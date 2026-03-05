@@ -5,23 +5,49 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Neon Drifter</title>
+    <title>Neon Drifter V2</title>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
     <style>
-        body { margin: 0; background: #050505; overflow: hidden; touch-action: none; font-family: sans-serif; }
-        #game-container { display: flex; justify-content: center; align-items: center; height: 100vh; }
-        #gui { position: absolute; top: 10px; left: 10px; color: #0ff; pointer-events: none; text-transform: uppercase; letter-spacing: 2px; }
+        body { 
+            margin: 0; 
+            padding: 0; 
+            background: #050505; 
+            overflow: hidden; 
+            touch-action: none; /* Prevents default browser swipe actions */
+            font-family: monospace;
+        }
+        #game-container { 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            height: 100vh; 
+            width: 100vw;
+        }
+        /* Force Landscape Warning */
+        #orientation-warning { display: none; color: #0ff; text-align: center; margin-top: 40vh; font-size: 1.5rem; }
+        @media screen and (orientation: portrait) {
+            #game-container { display: none; }
+            #orientation-warning { display: block; }
+        }
     </style>
 </head>
 <body>
-    <div id="gui">HP: 100 | Energy: 100</div>
+    <div id="orientation-warning">Please rotate your phone to Landscape.</div>
     <div id="game-container"></div>
 
     <script>
+        /**
+         * GAME CONFIGURATION
+         * Architected to dynamically fit the iPhone screen while maintaining a 16:9 ratio internally.
+         */
         const config = {
             type: Phaser.AUTO,
-            width: 800,
-            height: 400,
+            scale: {
+                mode: Phaser.Scale.FIT,
+                autoCenter: Phaser.Scale.CENTER_BOTH,
+                width: 800,
+                height: 400
+            },
             parent: 'game-container',
             pixelArt: true,
             physics: {
@@ -32,87 +58,126 @@
         };
 
         const game = new Phaser.Game(config);
-        let player, platforms, bullets, cursors;
-        let moveState = { left: false, right: false, jump: false, shoot: false };
 
+        // --- GLOBAL STATE ---
+        let player, platforms;
+        let inputState = { left: false, right: false, jump: false };
+
+        /**
+         * PRELOAD: Generate procedural textures so no external image files are needed.
+         */
         function preload() {
-            // Create procedural assets so no external images are needed
-            this.textures.addCanvas('hero', createTexture(32, 48, '#00ffff'));
-            this.textures.addCanvas('floor', createTexture(32, 32, '#444466'));
-            this.textures.addCanvas('bullet', createTexture(10, 4, '#ff00ff'));
+            // Player Texture
+            let heroGraphics = this.make.graphics({x: 0, y: 0}, false);
+            heroGraphics.fillStyle(0x00ffff, 1);
+            heroGraphics.fillRect(0, 0, 32, 48);
+            heroGraphics.generateTexture('heroTex', 32, 48);
+
+            // Floor Texture
+            let floorGraphics = this.make.graphics({x: 0, y: 0}, false);
+            floorGraphics.fillStyle(0x444466, 1);
+            floorGraphics.lineStyle(2, 0x8888aa, 1);
+            floorGraphics.fillRect(0, 0, 32, 32);
+            floorGraphics.strokeRect(0, 0, 32, 32);
+            floorGraphics.generateTexture('floorTex', 32, 32);
+
+            // UI Button Texture (Semi-transparent circle)
+            let btnGraphics = this.make.graphics({x: 0, y: 0}, false);
+            btnGraphics.fillStyle(0xffffff, 0.3); // 30% opacity white
+            btnGraphics.fillCircle(40, 40, 40);
+            btnGraphics.generateTexture('btnTex', 80, 80);
         }
 
-        function createTexture(w, h, color) {
-            let canvas = document.createElement('canvas');
-            canvas.width = w; canvas.height = h;
-            let ctx = canvas.getContext('2d');
-            ctx.fillStyle = color;
-            ctx.fillRect(0, 0, w, h);
-            return canvas;
-        }
-
+        /**
+         * CREATE: Assemble the level, player, camera, and UI.
+         */
         function create() {
-            // Level Design (Basic Metroidvania Room)
-            platforms = this.physics.add.staticGroup();
-            for(let i=0; i<25; i++) platforms.create(i*32, 384, 'floor'); // Floor
-            platforms.create(400, 250, 'floor'); // Ledge 1
-            platforms.create(432, 250, 'floor');
-            platforms.create(150, 180, 'floor'); // Ledge 2
-            platforms.create(182, 180, 'floor');
+            this.input.addPointer(3); // Support up to 3 simultaneous touches (Left + Jump + Shoot)
 
-            // Player Setup
-            player = this.physics.add.sprite(100, 300, 'hero');
-            player.setCollideWorldBounds(true);
-            this.physics.add.collider(player, platforms);
-
-            // Projectiles
-            bullets = this.physics.add.group({ defaultKey: 'bullet', maxSize: 10 });
-
-            // CAMERA
-            this.cameras.main.setBackgroundColor('#050510');
-            
-            // TOUCH INPUT LOGIC (Optimized for Thumbs)
-            this.input.addPointer(2); // Enable 2-finger multi-touch
-            
-            this.input.on('pointerdown', (pointer) => {
-                if (pointer.x < 150) moveState.left = true;
-                else if (pointer.x > 150 && pointer.x < 300) moveState.right = true;
-                else if (pointer.x > 650) moveState.jump = true;
-                else if (pointer.x > 450 && pointer.x < 650) shootBullet.call(this);
-            });
-
-            this.input.on('pointerup', (pointer) => {
-                if (pointer.x < 150) moveState.left = false;
-                else if (pointer.x > 150 && pointer.x < 300) moveState.right = false;
-                else if (pointer.x > 650) moveState.jump = false;
-            });
+            buildLevel(this);
+            setupPlayer(this);
+            setupCamera(this);
+            setupVirtualGamepad(this);
         }
 
-        function shootBullet() {
-            let bullet = bullets.get(player.x, player.y);
-            if (bullet) {
-                bullet.setActive(true).setVisible(true);
-                bullet.body.allowGravity = false;
-                bullet.setVelocityX(player.flipX ? -600 : 600);
-                this.time.delayedCall(1000, () => { bullet.setActive(false).setVisible(false); });
-            }
-        }
-
+        /**
+         * UPDATE: Game loop handling logic and physics steps.
+         */
         function update() {
-            // Movement Logic
-            if (moveState.left) {
-                player.setVelocityX(-250);
-                player.flipX = true;
-            } else if (moveState.right) {
-                player.setVelocityX(250);
-                player.flipX = false;
-            } else {
-                player.setVelocityX(0);
-            }
+            handlePlayerMovement();
+        }
 
-            // Jump Logic
-            if (moveState.jump && player.body.touching.down) {
-                player.setVelocityY(-650);
+        // ==========================================
+        // MODULE FUNCTIONS
+        // ==========================================
+
+        function buildLevel(scene) {
+            platforms = scene.physics.add.staticGroup();
+            
+            // Generate a wide floor
+            for(let i = 0; i < 50; i++) {
+                platforms.create(i * 32, 384, 'floorTex');
+            }
+            
+            // Add some platforming ledges
+            platforms.create(300, 280, 'floorTex');
+            platforms.create(332, 280, 'floorTex');
+            platforms.create(500, 200, 'floorTex');
+            platforms.create(532, 200, 'floorTex');
+        }
+
+        function setupPlayer(scene) {
+            player = scene.physics.add.sprite(100, 300, 'heroTex');
+            player.setCollideWorldBounds(false); // Let the camera follow them freely
+            scene.physics.add.collider(player, platforms);
+        }
+
+        function setupCamera(scene) {
+            scene.cameras.main.setBackgroundColor('#050510');
+            scene.cameras.main.setBounds(0, 0, 1600, 400); // World size
+            scene.cameras.main.startFollow(player, true, 0.1, 0.1);
+        }
+
+        function setupVirtualGamepad(scene) {
+            // .setScrollFactor(0) ensures the buttons stick to the screen and don't move with the camera
+            
+            // LEFT BUTTON
+            let btnLeft = scene.add.image(60, 340, 'btnTex').setScrollFactor(0).setInteractive();
+            btnLeft.on('pointerdown', () => inputState.left = true);
+            btnLeft.on('pointerup', () => inputState.left = false);
+            btnLeft.on('pointerout', () => inputState.left = false); // FIX: Stops movement if thumb slides off
+
+            // RIGHT BUTTON
+            let btnRight = scene.add.image(160, 340, 'btnTex').setScrollFactor(0).setInteractive();
+            btnRight.on('pointerdown', () => inputState.right = true);
+            btnRight.on('pointerup', () => inputState.right = false);
+            btnRight.on('pointerout', () => inputState.right = false); // FIX: Stops movement if thumb slides off
+
+            // JUMP BUTTON
+            let btnJump = scene.add.image(740, 340, 'btnTex').setScrollFactor(0).setInteractive();
+            btnJump.on('pointerdown', () => {
+                inputState.jump = true;
+                if (player.body.touching.down) {
+                    player.setVelocityY(-650);
+                }
+            });
+            btnJump.on('pointerup', () => inputState.jump = false);
+            btnJump.on('pointerout', () => inputState.jump = false);
+            
+            // Text Labels for clarity
+            scene.add.text(45, 335, '<', { fontSize: '24px', fill: '#fff' }).setScrollFactor(0);
+            scene.add.text(145, 335, '>', { fontSize: '24px', fill: '#fff' }).setScrollFactor(0);
+            scene.add.text(715, 335, 'UP', { fontSize: '20px', fill: '#fff' }).setScrollFactor(0);
+        }
+
+        function handlePlayerMovement() {
+            // Horizontal Movement
+            if (inputState.left) {
+                player.setVelocityX(-250);
+            } else if (inputState.right) {
+                player.setVelocityX(250);
+            } else {
+                player.setVelocityX(0); // Stop immediately when no buttons are active
             }
         }
     </script>
