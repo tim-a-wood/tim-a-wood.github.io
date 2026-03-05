@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Neon Drifter</title>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+    <style>
+        body { margin: 0; background: #050505; overflow: hidden; touch-action: none; font-family: sans-serif; }
+        #game-container { display: flex; justify-content: center; align-items: center; height: 100vh; }
+        #gui { position: absolute; top: 10px; left: 10px; color: #0ff; pointer-events: none; text-transform: uppercase; letter-spacing: 2px; }
+    </style>
+</head>
+<body>
+    <div id="gui">HP: 100 | Energy: 100</div>
+    <div id="game-container"></div>
+
+    <script>
+        const config = {
+            type: Phaser.AUTO,
+            width: 800,
+            height: 400,
+            parent: 'game-container',
+            pixelArt: true,
+            physics: {
+                default: 'arcade',
+                arcade: { gravity: { y: 1200 }, debug: false }
+            },
+            scene: { preload: preload, create: create, update: update }
+        };
+
+        const game = new Phaser.Game(config);
+        let player, platforms, bullets, cursors;
+        let moveState = { left: false, right: false, jump: false, shoot: false };
+
+        function preload() {
+            // Create procedural assets so no external images are needed
+            this.textures.addCanvas('hero', createTexture(32, 48, '#00ffff'));
+            this.textures.addCanvas('floor', createTexture(32, 32, '#444466'));
+            this.textures.addCanvas('bullet', createTexture(10, 4, '#ff00ff'));
+        }
+
+        function createTexture(w, h, color) {
+            let canvas = document.createElement('canvas');
+            canvas.width = w; canvas.height = h;
+            let ctx = canvas.getContext('2d');
+            ctx.fillStyle = color;
+            ctx.fillRect(0, 0, w, h);
+            return canvas;
+        }
+
+        function create() {
+            // Level Design (Basic Metroidvania Room)
+            platforms = this.physics.add.staticGroup();
+            for(let i=0; i<25; i++) platforms.create(i*32, 384, 'floor'); // Floor
+            platforms.create(400, 250, 'floor'); // Ledge 1
+            platforms.create(432, 250, 'floor');
+            platforms.create(150, 180, 'floor'); // Ledge 2
+            platforms.create(182, 180, 'floor');
+
+            // Player Setup
+            player = this.physics.add.sprite(100, 300, 'hero');
+            player.setCollideWorldBounds(true);
+            this.physics.add.collider(player, platforms);
+
+            // Projectiles
+            bullets = this.physics.add.group({ defaultKey: 'bullet', maxSize: 10 });
+
+            // CAMERA
+            this.cameras.main.setBackgroundColor('#050510');
+            
+            // TOUCH INPUT LOGIC (Optimized for Thumbs)
+            this.input.addPointer(2); // Enable 2-finger multi-touch
+            
+            this.input.on('pointerdown', (pointer) => {
+                if (pointer.x < 150) moveState.left = true;
+                else if (pointer.x > 150 && pointer.x < 300) moveState.right = true;
+                else if (pointer.x > 650) moveState.jump = true;
+                else if (pointer.x > 450 && pointer.x < 650) shootBullet.call(this);
+            });
+
+            this.input.on('pointerup', (pointer) => {
+                if (pointer.x < 150) moveState.left = false;
+                else if (pointer.x > 150 && pointer.x < 300) moveState.right = false;
+                else if (pointer.x > 650) moveState.jump = false;
+            });
+        }
+
+        function shootBullet() {
+            let bullet = bullets.get(player.x, player.y);
+            if (bullet) {
+                bullet.setActive(true).setVisible(true);
+                bullet.body.allowGravity = false;
+                bullet.setVelocityX(player.flipX ? -600 : 600);
+                this.time.delayedCall(1000, () => { bullet.setActive(false).setVisible(false); });
+            }
+        }
+
+        function update() {
+            // Movement Logic
+            if (moveState.left) {
+                player.setVelocityX(-250);
+                player.flipX = true;
+            } else if (moveState.right) {
+                player.setVelocityX(250);
+                player.flipX = false;
+            } else {
+                player.setVelocityX(0);
+            }
+
+            // Jump Logic
+            if (moveState.jump && player.body.touching.down) {
+                player.setVelocityY(-650);
+            }
+        }
+    </script>
+</body>
+</html>
