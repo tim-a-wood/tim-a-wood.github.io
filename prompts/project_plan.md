@@ -44,13 +44,91 @@
 
 ---
 
-## Next Steps
+## Next Steps (Atomic)
 
-- [ ] **Align naming with plan** — If keeping "Neon Drifter" as the title, consider whether "Infinite" stays or is renamed as the game shifts to a bounded, dark-fantasy metroidvania.
-- [ ] **PWA basics** — Add `manifest.json` and a minimal service worker so the app is installable and cacheable.
-- [ ] **Design first bounded map** — Decide format (tilemap, procedural chunks with fixed seed, or hand-placed rooms) and implement world bounds + one explorable zone. Aim for maze-like, interconnected feel where appropriate.
-- [ ] **Introduce first ability** — Implement one movement or utility ability and one gate (e.g. high ledge or gap that requires it); prioritize smooth, satisfying feel (see design pillars).
-- [ ] **Keep tests in sync** — When changing RNG, pit logic, or new deterministic systems, add or update tests in `./tests/` and run `node tests/game-logic.test.js` (and CI) before committing.
+These steps are small, independent units of work. Each can be done in one or two commits. Order is suggested below; dependencies are noted where relevant.
+
+### 1. Naming / branding (low risk)
+
+- [ ] **Decide and apply title**
+  - **What:** Choose whether to keep "Neon Drifter Infinite" or rename (e.g. drop "Infinite", or adopt a new dark-fantasy name). Apply the decision everywhere the title appears.
+  - **Where:** `index.html` (e.g. `<title>`, any visible heading or splash text), and any docs (README, overview) that reference the game name.
+  - **How:** Single find/replace or manual edit so the visible title and comments match the decision. No gameplay or logic changes.
+  - **Why:** Avoids confusion as features are added and keeps branding aligned with the shift from infinite runner to bounded metroidvania.
+
+---
+
+### 2. PWA basics (M5 — can be done early and independently)
+
+- [ ] **Add `manifest.json`**
+  - **What:** Web app manifest so the app can be installed (e.g. "Add to Home Screen").
+  - **Fields to include:** `name`, `short_name`, `icons` (or placeholders), `start_url`, `display: "standalone"`. Use paths that work when deployed (e.g. on GitHub Pages).
+  - **Where:** One new file at project root (or a dedicated `public/` if you introduce one). Link from `index.html` via `<link rel="manifest" href="manifest.json">`.
+  - **Scope:** One file only; no refactor of game code. Can be a separate commit from the service worker.
+
+- [ ] **Add minimal service worker**
+  - **What:** Register a service worker that caches `index.html` (and any critical assets) on install so the app is installable and works offline/on refresh.
+  - **Where:** New file (e.g. `sw.js` or `service-worker.js`) at a path that the app can register from. Registration from `index.html` (or main entry script).
+  - **Scope:** Keep it minimal: cache on install, serve from cache when available. No game logic changes. Enables installability and reliable loading; can be extended later for full offline support.
+
+---
+
+### 3. Bounded world (M2) — split into small steps
+
+- [ ] **Lock camera to world**
+  - **What:** Replace infinite horizontal scroll with a fixed world width. Camera stays within that width; no new rooms or zones yet.
+  - **How:** Introduce a world width (constant or from a simple config). Update camera logic so it does not scroll beyond 0 and world width (e.g. `camera.setBounds(0, 0, worldWidth, height)` and clamp camera position). Player movement can still use the same physics; only the "endless" generation or scroll is removed or capped.
+  - **Outcome:** Visually and behaviorally, the world has left/right limits; no infinite runner feel.
+
+- [ ] **Define "one zone"**
+  - **What:** Pick a format for a single explorable area (e.g. one room, or a few hand-placed platforms in a fixed layout). Implement one zone so there is a concrete place to explore.
+  - **Format options:** Single room, a small hand-placed layout, or one procedural "chunk" with a fixed seed—whichever fits the codebase and design. No need for multiple rooms or doors yet.
+  - **Outcome:** One explorable zone (e.g. one screen or one chunk) that the player can move through, with platforms/terrain defined by that format.
+
+- [ ] **Add world bounds in physics**
+  - **What:** Set Phaser world bounds (and any body boundaries) to the playable area (the one zone or full map) so the player and camera never leave the intended region.
+  - **How:** Use `this.physics.world.setBounds(...)` (and camera bounds if not already set) to match the zone or map size. Ensures no falling into the void or walking past the level edges.
+  - **Outcome:** Solid, predictable boundaries for movement and camera; foundation for adding more zones later.
+
+You can combine "camera + one zone + bounds" in one or two small steps if preferred.
+
+---
+
+### 4. First ability gate (M3) — two atoms
+
+- [ ] **Implement one ability**
+  - **What:** One new movement or utility ability—e.g. double jump or dash. Include input handling, state (e.g. "can double jump" / "has dashed"), and the actual movement effect.
+  - **Scope:** No gates yet; the ability just works in the existing space. Prioritize smooth, satisfying feel (see design pillars in `project_overview.md`).
+  - **Outcome:** Player can use the ability at will within the current bounds; no save/load or persistence required for this step.
+
+- [ ] **Add one gate**
+  - **What:** One place in the first zone that is unreachable without the new ability (e.g. high ledge, gap, or blocked path). When the player has the ability, they can reach it.
+  - **Scope:** Single gate; no full backtracking loop or save system yet. Proves the "ability-gated progression" idea.
+  - **Outcome:** Clear before/after: without ability you cannot reach the spot; with ability you can. Sets up M4 (backtracking & progression) later.
+
+---
+
+### 5. Tests (recurring)
+
+- [ ] **After any RNG or pit/terrain change**
+  - **What:** Add or update tests in `./tests/` for any changed or new deterministic logic (e.g. RNG, pit zones, terrain generation).
+  - **How:** Run `node tests/game-logic.test.js` (and ensure CI in `.github/workflows/test.yml` still passes). Add new test cases for new behavior.
+  - **When:** Treat this as a recurring atomic step whenever you touch those systems—not necessarily every PR, but before considering the feature "done."
+
+---
+
+## Suggested order of execution
+
+| Order | Step | Why |
+|-------|------|-----|
+| 1 | Naming decision + apply | Quick, avoids confusion as you add features. |
+| 2 | `manifest.json` | One file, no refactor, moves you toward PWA (M5). |
+| 3 | Minimal service worker | Makes the app installable; independent of game design. |
+| 4 | Camera + world bounds + one zone | Core of M2; enables "explorable map" instead of infinite runner. |
+| 5 | First ability | Unlocks M3. |
+| 6 | First gate | Completes "ability-gated progression" for one place. |
+
+Tests (step 5) are ongoing: run and extend them whenever you change RNG, pit logic, or terrain.
 
 ---
 
