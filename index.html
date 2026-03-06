@@ -1,23 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Neon Drifter Infinite</title>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+    <style>
+        body { margin: 0; padding: 0; background: #000; overflow: hidden; touch-action: none; font-family: monospace; }
+        #game-container { display: flex; justify-content: center; align-items: center; height: 100dvh; width: 100vw; }
+    </style>
+</head>
+<body>
+<div id="game-container"></div>
 <script>
 /**
  * ARCHITECTURE MANIFEST - FOR AI AGENT INTERPRETATION
- * * PROGRAM NAME: Neon Drifter Infinite
+ * --------------------------------------------------
+ * PROGRAM: Neon Drifter Infinite
  * ENGINE: Phaser 3 (Arcade Physics)
- * PARADIGM: Procedural Infinite Runner (Class-based)
+ * PARADIGM: Procedural Infinite Runner
  * * CORE SYSTEMS:
- * 1. Procedural Generation: Uses a deterministic seeded RNG to ensure level 
- * consistency. Chunks are generated in 1600px intervals.
- * 2. Memory Management: StaticGroup for platforms. Active "Cleanup" routine 
- * destroys off-screen entities < 600px behind player to prevent memory leaks.
- * 3. Physics: Gravity-based platformer. Player uses velocity-based movement 
- * with a 0.75 friction coefficient for "drifting" feel.
- * 4. Rendering: 100% dynamic texture generation. No external assets required.
- * * GLOBAL STATE MAP (this.*):
- * - .seed: Current RNG state for procedural consistency.
- * - .generatedUpTo: X-coordinate tracking for the procedural horizon.
- * - .pitZones: Array of {start, end} objects defining floor gaps.
- * - .trailPts: Particle queue for the motion blur/trail effect.
- * - .inputState: Unified boolean map for touch/keyboard parity.
+ * 1. Procedural Generation: Deterministic seeded RNG. Level data is generated in "chunks"
+ * ahead of the player. Floor pits and floating platforms are randomized.
+ * 2. Cleanup Routine: $O(n)$ sweep of the StaticGroup to destroy objects behind the 
+ * view frustum, maintaining constant memory usage.
+ * 3. Texture Generation: No external assets. All sprites are generated via 
+ * this.make.graphics() during the preload/create phase to ensure 0ms latency.
+ * * GLOBAL STATE (this.*):
+ * - .seed: Current RNG seed (42).
+ * - .generatedUpTo: The X-coordinate limit of currently spawned terrain.
+ * - .pitZones: Array of {start, end} to prevent floor overlap.
+ * - .inputState: Object tracking active touch/button inputs for physics polling.
  */
 
 const CONFIG = {
@@ -26,15 +41,19 @@ const CONFIG = {
     GRAVITY: 1400,
     GEN_AHEAD: 1600,
     CLEANUP_BEHIND: 600,
-    PLAYER_SPEED: 270,
+    PLAYER_SPEED: 280,
     JUMP_FORCE: -690,
+    FRICTION: 0.75,
     COLORS: [0x2a3a5a, 0x3a2a5a, 0x2a4a3a, 0x4a3a2a, 0x2a4050]
 };
 
 class NeonDrifter extends Phaser.Scene {
     constructor() {
         super('NeonDrifter');
-        // Explicitly declared for AI context anchoring
+        this.resetInternalState();
+    }
+
+    resetInternalState() {
         this.seed = 42;
         this.generatedUpTo = 0;
         this.lives = 3;
@@ -44,6 +63,246 @@ class NeonDrifter extends Phaser.Scene {
         this.inputState = { left: false, right: false, jump: false };
     }
 
-    // ... [Rest of the refactored code from the previous response]
+    preload() {
+        this.generateAssetTextures();
+    }
+
+    generateAssetTextures() {
+        const g = this.make.graphics({ x: 0, y: 0, add: false });
+        
+        // Floor Tile
+        g.fillStyle(0x334466).fillRect(0, 0, 32, 32);
+        g.fillStyle(0xffffff, 0.15).fillRect(0, 0, 32, 2);
+        g.generateTexture('floor', 32, 32);
+
+        // Platform Variants
+        CONFIG.COLORS.forEach((color, i) => {
+            g.clear().fillStyle(color).fillRect(0, 0, 32, 14);
+            g.fillStyle(0xffffff, 0.15).fillRect(0, 0, 32, 2);
+            g.generateTexture(`p${i}`, 32, 14);
+        });
+
+        // Hero Sprite
+        g.clear().fillStyle(0x00ddff).fillRect(4, 8, 20, 24); // Body
+        g.fillStyle(0xff00bb).fillRect(8, 10, 12, 8);   // Visor
+        g.fillStyle(0x007799).fillRect(4, 32, 8, 8);    // Left Leg
+        g.fillStyle(0x007799).fillRect(16, 32, 8, 8);   // Right Leg
+        g.generateTexture('hero', 28, 40);
+        
+        // UI Controls
+        g.clear().fillStyle(0xffffff, 0.13).fillCircle(40, 40, 40);
+        g.generateTexture('btn', 80, 80);
+
+        // Starfield Batch
+        g.clear();
+        for (let i = 0; i < 100; i++) {
+            g.fillStyle(0xffffff, 0.4 + Math.random() * 0.6);
+            g.fillRect(Math.random() * 512, Math.random() * 512, 2, 2);
+        }
+        g.generateTexture('stars', 512, 512);
+        g.destroy();
+    }
+
+    create() {
+        this.resetInternalState();
+
+        // Environment
+        this.physics.world.setBounds(0, 0, 9999999, CONFIG.H);
+        this.cameras.main.setBackgroundColor('#050510');
+        this.starField = this.add.tileSprite(CONFIG.W/2, CONFIG.H/2, CONFIG.W, CONFIG.H, 'stars')
+            .setScrollFactor(0).setDepth(-1);
+        this.trail = this.add.graphics();
+
+        // Groups & Entities
+        this.platforms = this.physics.add.staticGroup();
+        this.player = this.physics.add.sprite(100, 250, 'hero');
+        this.physics.add.collider(this.player, this.platforms);
+        
+        // Camera setup
+        this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
+
+        // UI & Input
+        this.createHUD();
+        this.setupControls();
+
+        // Initial Seeded Generation
+        this.generateChunk(0, CONFIG.GEN_AHEAD * 2);
+    }
+
+    createHUD() {
+        this.distText = this.add.text(CONFIG.W / 2, 12, 'DIST 0 m', {
+            fontSize: '14px', fill: '#00ffff', stroke: '#000', strokeThickness: 3
+        }).setScrollFactor(0).setOrigin(0.5, 0);
+
+        this.lifeIcons = this.add.group();
+        this.updateLifeDisplay();
+
+        // Restart Button
+        this.add.text(10, 10, '[ RESTART ]', { fontSize: '12px', fill: '#ff3355' })
+            .setScrollFactor(0).setInteractive()
+            .on('pointerdown', () => this.scene.restart());
+    }
+
+    setupControls() {
+        this.cursors = this.input.keyboard.createCursorKeys();
+        this.input.addPointer(2);
+
+        const spawnBtn = (x, y, label, action) => {
+            const btn = this.add.image(x, y, 'btn').setScrollFactor(0).setInteractive().setAlpha(0.6);
+            this.add.text(x, y, label, { fontSize: '24px' }).setOrigin(0.5).setScrollFactor(0);
+            
+            btn.on('pointerdown', () => this.inputState[action] = true);
+            btn.on('pointerup', () => this.inputState[action] = false);
+            btn.on('pointerout', () => this.inputState[action] = false);
+        };
+
+        spawnBtn(60, 340, '<', 'left');
+        spawnBtn(160, 340, '>', 'right');
+        spawnBtn(740, 340, '^', 'jump');
+    }
+
+    update() {
+        if (this.isGameOver) return;
+
+        this.handleMovement();
+        this.handleProceduralGen();
+        this.drawMotionTrail();
+        
+        // Background Parallax
+        this.starField.tilePositionX = this.player.x * 0.15;
+        this.distText.setText(`DIST ${Math.floor(this.player.x / 10)} m`);
+
+        // Pit Check
+        if (this.player.y > CONFIG.H + 50) this.handlePlayerDeath();
+    }
+
+    handleMovement() {
+        const onGround = this.player.body.blocked.down;
+        const left = this.inputState.left || this.cursors.left.isDown;
+        const right = this.inputState.right || this.cursors.right.isDown;
+        const jump = this.inputState.jump || this.cursors.up.isDown || this.cursors.space.isDown;
+
+        if (left) {
+            this.player.setVelocityX(-CONFIG.PLAYER_SPEED).setFlipX(true);
+        } else if (right) {
+            this.player.setVelocityX(CONFIG.PLAYER_SPEED).setFlipX(false);
+        } else {
+            this.player.setVelocityX(this.player.body.velocity.x * CONFIG.FRICTION);
+        }
+
+        if (jump && onGround) this.player.setVelocityY(CONFIG.JUMP_FORCE);
+    }
+
+    handleProceduralGen() {
+        if (this.player.x + CONFIG.GEN_AHEAD > this.generatedUpTo) {
+            this.generateChunk(this.generatedUpTo, this.generatedUpTo + CONFIG.GEN_AHEAD);
+        }
+
+        // Cleanup: Use filter/destroy pattern for efficiency
+        const cutoff = this.player.x - CONFIG.CLEANUP_BEHIND;
+        this.platforms.getChildren().forEach(child => {
+            if (child.x < cutoff) child.destroy();
+        });
+    }
+
+    rng() {
+        this.seed = (this.seed * 16807) % 2147483647;
+        return (this.seed - 1) / 2147483646;
+    }
+
+    generateChunk(fromX, toX) {
+        const TILE = 32;
+        let xPtr = fromX;
+
+        // Map Pits
+        while (xPtr < toX) {
+            if (this.rng() < 0.12 && xPtr > 400) {
+                const gap = 120 + (this.rng() * 100);
+                this.pitZones.push({ start: xPtr, end: xPtr + gap });
+                xPtr += gap;
+            }
+            xPtr += 150 + (this.rng() * 200);
+        }
+
+        // Spawn Floor
+        for (let tx = Math.floor(fromX / TILE) * TILE; tx < toX; tx += TILE) {
+            const mid = tx + 16;
+            const isPit = this.pitZones.some(p => mid >= p.start && mid <= p.end);
+            if (!isPit) {
+                this.platforms.create(mid, CONFIG.H - 16, 'floor').refreshBody();
+            }
+        }
+
+        // Spawn Floating Ledges
+        let fx = fromX + (this.rng() * 100);
+        while (fx < toX) {
+            const len = Math.floor(2 + this.rng() * 4);
+            const y = 120 + (this.rng() * 180);
+            const tint = `p${Math.floor(this.rng() * CONFIG.COLORS.length)}`;
+            for (let i = 0; i < len; i++) {
+                this.platforms.create(fx + (i * TILE) + 16, y, tint).refreshBody();
+            }
+            fx += (len * TILE) + 120 + (this.rng() * 150);
+        }
+        this.generatedUpTo = toX;
+    }
+
+    handlePlayerDeath() {
+        this.lives--;
+        this.updateLifeDisplay();
+
+        if (this.lives <= 0) {
+            this.isGameOver = true;
+            this.physics.pause();
+            this.player.setTint(0xff0000);
+            this.add.text(CONFIG.W/2, CONFIG.H/2, 'GAME OVER\nTap Restart', {
+                fontSize: '32px', fill: '#ff0066', align: 'center'
+            }).setOrigin(0.5).setScrollFactor(0);
+        } else {
+            this.player.setPosition(this.player.x, 50).setVelocity(0, 0);
+            this.tweens.add({ targets: this.player, alpha: 0.2, duration: 100, yoyo: true, repeat: 5 });
+        }
+    }
+
+    updateLifeDisplay() {
+        this.lifeIcons.clear(true, true);
+        for(let i = 0; i < this.lives; i++) {
+            this.lifeIcons.create(CONFIG.W - 30 - (i * 25), 25, 'hero').setScale(0.5).setScrollFactor(0);
+        }
+    }
+
+    drawMotionTrail() {
+        if (Math.abs(this.player.body.velocity.x) > 100) {
+            this.trailPts.push({ x: this.player.x, y: this.player.y + 4, life: 10 });
+        }
+        
+        this.trail.clear();
+        this.trailPts = this.trailPts.filter(p => p.life > 0);
+        
+        this.trailPts.forEach(p => {
+            p.life--;
+            this.trail.fillStyle(0x00eeff, (p.life / 10) * 0.4);
+            this.trail.fillRect(p.x - 4, p.y - 4, 8, 8);
+        });
+    }
 }
+
+const game = new Phaser.Game({
+    type: Phaser.AUTO,
+    scale: {
+        mode: Phaser.Scale.FIT,
+        autoCenter: Phaser.Scale.CENTER_BOTH,
+        width: CONFIG.W,
+        height: CONFIG.H
+    },
+    parent: 'game-container',
+    pixelArt: true,
+    physics: {
+        default: 'arcade',
+        arcade: { gravity: { y: CONFIG.GRAVITY }, debug: false }
+    },
+    scene: NeonDrifter
+});
 </script>
+</body>
+</html>
