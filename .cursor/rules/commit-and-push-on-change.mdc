@@ -1,0 +1,13 @@
+---
+description: Commit and push after code changes
+alwaysApply: true
+---
+
+# Commit and Push After Code Changes
+
+After you make or complete code changes to this project:
+
+1. **Commit** — Stage all changed files (`git add -A` or equivalent) and commit with a clear, concise message describing the change.
+2. **Push** — Push to the remote (e.g. `git push origin main` or the current branch).
+
+Do this when you have actually modified, added, or deleted files. Skip if the user explicitly asks not to commit/push, or if there were no file changes. Prefer one logical commit per task or request.
