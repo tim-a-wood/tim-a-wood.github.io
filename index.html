@@ -27,6 +27,7 @@ resetState() {
     this.jumpState = 'GROUNDED'; // GROUNDED, JUMPING, DOUBLE_JUMPING
     this.lastGroundedTime = 0;
     this.isJumpKeyDown = false;
+    this.hasJumped = false;
     this.lives = 3;
 }
 
@@ -57,24 +58,30 @@ create() {
 }
 
 setupTouchControls() {
-    this.inputState = { left: false, right: false, jump: false };
+    this.inputState = { left: false, right: false, jumpPressed: false };
     const makeBtn = (x, y, act) => {
         const b = this.add.image(x, y, 'btn').setScrollFactor(0).setInteractive().setAlpha(0.5);
-        b.on('pointerdown', () => this.inputState[act] = true);
-        b.on('pointerup', () => this.inputState[act] = false);
-        b.on('pointerout', () => this.inputState[act] = false);
+        if (act === 'jump') {
+            b.on('pointerdown', () => { this.inputState.jumpPressed = true; });
+        } else {
+            b.on('pointerdown', () => this.inputState[act] = true);
+            b.on('pointerup', () => this.inputState[act] = false);
+            b.on('pointerout', () => this.inputState[act] = false);
+        }
     };
     makeBtn(80, 320, 'left'); makeBtn(200, 320, 'right'); makeBtn(720, 320, 'jump');
 }
 
 update(time) {
     const onGround = this.player.body.blocked.down;
-    const jumpJustPressed = (this.cursors.up.isDown || this.inputState.jump) && !this.isJumpKeyDown;
+    const jumpJustPressed = (this.cursors.up.isDown && !this.isJumpKeyDown) || this.inputState.jumpPressed;
+    this.inputState.jumpPressed = false;
 
     // 1. Update Grounding/Coyote Time
     if (onGround) {
         this.jumpState = 'GROUNDED';
         this.lastGroundedTime = time;
+        this.hasJumped = false;
     } else if (this.jumpState === 'GROUNDED' && (time - this.lastGroundedTime) > CONFIG.COYOTE_TIME) {
         // Player walked off a ledge
         this.jumpState = 'JUMPING';
@@ -82,10 +89,11 @@ update(time) {
 
     // 2. Jump Logic
     if (jumpJustPressed) {
-        if (this.jumpState === 'GROUNDED' || (time - this.lastGroundedTime) < CONFIG.COYOTE_TIME) {
+        if (this.jumpState === 'GROUNDED' || (!this.hasJumped && (time - this.lastGroundedTime) < CONFIG.COYOTE_TIME)) {
             // Initial Jump
             this.performJump();
             this.jumpState = 'JUMPING';
+            this.hasJumped = true;
         } else if (this.jumpState === 'JUMPING') {
             // Double Jump
             this.performJump(true);
@@ -99,7 +107,7 @@ update(time) {
     else if (this.cursors.right.isDown || this.inputState.right) this.player.setVelocityX(speed);
     else this.player.setVelocityX(this.player.body.velocity.x * 0.8);
 
-    this.isJumpKeyDown = (this.cursors.up.isDown || this.inputState.jump);
+    this.isJumpKeyDown = this.cursors.up.isDown;
     if (this.player.y > CONFIG.H) this.player.setPosition(100, 100);
 }
 
