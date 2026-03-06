@@ -170,7 +170,7 @@ class AshenHollow extends Phaser.Scene {
 
         // Groups & Entities
         this.platforms = this.physics.add.staticGroup();
-        this.player = this.physics.add.sprite(100, 1092, 'hero');
+        this.player = this.physics.add.sprite(128, 1073, 'hero');
         this.player.setCollideWorldBounds(true);
         this.physics.add.collider(this.player, this.platforms);
 
