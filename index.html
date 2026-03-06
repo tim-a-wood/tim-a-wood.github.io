@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -20,104 +21,106 @@ const CONFIG = {
 };
 
 class AshenHollow extends Phaser.Scene {
-    constructor() { super('AshenHollow'); }
+constructor() { super(‘AshenHollow’); }
 
-    resetState() {
-        this.jumpState = 'GROUNDED'; // GROUNDED, JUMPING, DOUBLE_JUMPING
-        this.lastGroundedTime = 0;
-        this.isJumpKeyDown = false;
-        this.lives = 3;
+resetState() {
+    this.jumpState = 'GROUNDED'; // GROUNDED, JUMPING, DOUBLE_JUMPING
+    this.lastGroundedTime = 0;
+    this.isJumpKeyDown = false;
+    this.lives = 3;
+}
+
+preload() {
+    const g = this.make.graphics({ x: 0, y: 0, add: false });
+    g.fillStyle(0x334466).fillRect(0, 0, 32, 32).generateTexture('floor', 32, 32);
+    g.clear().fillStyle(0x00ddff).fillRect(4, 8, 20, 24).generateTexture('hero', 28, 40);
+    g.clear().fillStyle(0xffffff, 0.2).fillCircle(40, 40, 40).generateTexture('btn', 80, 80);
+}
+
+create() {
+    this.resetState();
+    this.physics.world.setBounds(0, 0, CONFIG.WORLD_WIDTH, CONFIG.H);
+    
+    this.platforms = this.physics.add.staticGroup();
+    // Ground
+    for (let x = 0; x < CONFIG.WORLD_WIDTH; x += 32) this.platforms.create(x + 16, CONFIG.H - 16, 'floor');
+    // Ledges
+    const ledges = [[400, 280], [600, 200], [900, 250]];
+    ledges.forEach(l => this.platforms.create(l[0], l[1], 'floor').setScale(3, 0.5).refreshBody());
+
+    this.player = this.physics.add.sprite(100, 200, 'hero').setCollideWorldBounds(true);
+    this.physics.add.collider(this.player, this.platforms);
+    this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
+
+    this.cursors = this.input.keyboard.createCursorKeys();
+    this.setupTouchControls();
+}
+
+setupTouchControls() {
+    this.inputState = { left: false, right: false, jump: false };
+    const makeBtn = (x, y, act) => {
+        const b = this.add.image(x, y, 'btn').setScrollFactor(0).setInteractive().setAlpha(0.5);
+        b.on('pointerdown', () => this.inputState[act] = true);
+        b.on('pointerup', () => this.inputState[act] = false);
+        b.on('pointerout', () => this.inputState[act] = false);
+    };
+    makeBtn(80, 320, 'left'); makeBtn(200, 320, 'right'); makeBtn(720, 320, 'jump');
+}
+
+update(time) {
+    const onGround = this.player.body.blocked.down;
+    const jumpJustPressed = (this.cursors.up.isDown || this.inputState.jump) && !this.isJumpKeyDown;
+
+    // 1. Update Grounding/Coyote Time
+    if (onGround) {
+        this.jumpState = 'GROUNDED';
+        this.lastGroundedTime = time;
+    } else if (this.jumpState === 'GROUNDED' && (time - this.lastGroundedTime) > CONFIG.COYOTE_TIME) {
+        // Player walked off a ledge
+        this.jumpState = 'JUMPING';
     }
 
-    preload() {
-        const g = this.make.graphics({ x: 0, y: 0, add: false });
-        g.fillStyle(0x334466).fillRect(0, 0, 32, 32).generateTexture('floor', 32, 32);
-        g.clear().fillStyle(0x00ddff).fillRect(4, 8, 20, 24).generateTexture('hero', 28, 40);
-        g.clear().fillStyle(0xffffff, 0.2).fillCircle(40, 40, 40).generateTexture('btn', 80, 80);
-    }
-
-    create() {
-        this.resetState();
-        this.physics.world.setBounds(0, 0, CONFIG.WORLD_WIDTH, CONFIG.H);
-        
-        this.platforms = this.physics.add.staticGroup();
-        // Ground
-        for (let x = 0; x < CONFIG.WORLD_WIDTH; x += 32) this.platforms.create(x + 16, CONFIG.H - 16, 'floor');
-        // Ledges
-        const ledges = [[400, 280], [600, 200], [900, 250]];
-        ledges.forEach(l => this.platforms.create(l[0], l[1], 'floor').setScale(3, 0.5).refreshBody());
-
-        this.player = this.physics.add.sprite(100, 200, 'hero').setCollideWorldBounds(true);
-        this.physics.add.collider(this.player, this.platforms);
-        this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
-
-        this.cursors = this.input.keyboard.createCursorKeys();
-        this.setupTouchControls();
-    }
-
-    setupTouchControls() {
-        this.inputState = { left: false, right: false, jump: false };
-        const makeBtn = (x, y, act) => {
-            const b = this.add.image(x, y, 'btn').setScrollFactor(0).setInteractive().setAlpha(0.5);
-            b.on('pointerdown', () => this.inputState[act] = true);
-            b.on('pointerup', () => this.inputState[act] = false);
-            b.on('pointerout', () => this.inputState[act] = false);
-        };
-        makeBtn(80, 320, 'left'); makeBtn(200, 320, 'right'); makeBtn(720, 320, 'jump');
-    }
-
-    update(time) {
-        const onGround = this.player.body.blocked.down;
-        const jumpJustPressed = (this.cursors.up.isDown || this.inputState.jump) && !this.isJumpKeyDown;
-
-        // 1. Update Grounding/Coyote Time
-        if (onGround) {
-            this.jumpState = 'GROUNDED';
-            this.lastGroundedTime = time;
-        } else if (this.jumpState === 'GROUNDED' && (time - this.lastGroundedTime) > CONFIG.COYOTE_TIME) {
-            // Player walked off a ledge
+    // 2. Jump Logic
+    if (jumpJustPressed) {
+        if (this.jumpState === 'GROUNDED' || (time - this.lastGroundedTime) < CONFIG.COYOTE_TIME) {
+            // Initial Jump
+            this.performJump();
             this.jumpState = 'JUMPING';
+        } else if (this.jumpState === 'JUMPING') {
+            // Double Jump
+            this.performJump(true);
+            this.jumpState = 'DOUBLE_JUMPING';
         }
-
-        // 2. Jump Logic
-        if (jumpJustPressed) {
-            if (this.jumpState === 'GROUNDED' || (time - this.lastGroundedTime) < CONFIG.COYOTE_TIME) {
-                // Initial Jump
-                this.performJump();
-                this.jumpState = 'JUMPING';
-            } else if (this.jumpState === 'JUMPING') {
-                // Double Jump
-                this.performJump(true);
-                this.jumpState = 'DOUBLE_JUMPING';
-            }
-        }
-
-        // 3. Movement
-        const speed = CONFIG.PLAYER_SPEED;
-        if (this.cursors.left.isDown || this.inputState.left) this.player.setVelocityX(-speed);
-        else if (this.cursors.right.isDown || this.inputState.right) this.player.setVelocityX(speed);
-        else this.player.setVelocityX(this.player.body.velocity.x * 0.8);
-
-        this.isJumpKeyDown = (this.cursors.up.isDown || this.inputState.jump);
-        if (this.player.y > CONFIG.H) this.player.setPosition(100, 100);
     }
 
-    performJump(isDouble = false) {
-        this.player.setVelocityY(CONFIG.JUMP_FORCE);
-        if (isDouble) {
-            this.player.setTint(0xff00ff);
-            this.time.delayedCall(200, () => this.player.clearTint());
-        }
+    // 3. Movement
+    const speed = CONFIG.PLAYER_SPEED;
+    if (this.cursors.left.isDown || this.inputState.left) this.player.setVelocityX(-speed);
+    else if (this.cursors.right.isDown || this.inputState.right) this.player.setVelocityX(speed);
+    else this.player.setVelocityX(this.player.body.velocity.x * 0.8);
+
+    this.isJumpKeyDown = (this.cursors.up.isDown || this.inputState.jump);
+    if (this.player.y > CONFIG.H) this.player.setPosition(100, 100);
+}
+
+performJump(isDouble = false) {
+    this.player.setVelocityY(CONFIG.JUMP_FORCE);
+    if (isDouble) {
+        this.player.setTint(0xff00ff);
+        this.time.delayedCall(200, () => this.player.clearTint());
     }
 }
 
+}
+
 new Phaser.Game({
-    type: Phaser.AUTO,
-    scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, width: CONFIG.W, height: CONFIG.H },
-    parent: 'game-container',
-    physics: { default: 'arcade', arcade: { gravity: { y: CONFIG.GRAVITY } } },
-    scene: AshenHollow
+type: Phaser.AUTO,
+scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, width: CONFIG.W, height: CONFIG.H },
+parent: ‘game-container’,
+physics: { default: ‘arcade’, arcade: { gravity: { y: CONFIG.GRAVITY } } },
+scene: AshenHollow
 });
 </script>
+
 </body>
 </html>
