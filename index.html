@@ -1,246 +1,314 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<meta name="theme-color" content="#050510">
-<link rel="manifest" href="manifest.json">
-<title>Ashen Hollow</title>
-
-<script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
-
-<style>
-body{
-margin:0;
-padding:0;
-background:#000;
-overflow:hidden;
-touch-action:none;
-}
-
-#game-container{
-position:relative;
-display:flex;
-justify-content:center;
-align-items:center;
-height:100dvh;
-}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#050510">
+    <link rel="manifest" href="manifest.json">
+    <title>Ashen Hollow</title>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+    <style>
+        body { margin: 0; padding: 0; background: #000; overflow: hidden; touch-action: none; font-family: monospace; }
+        #game-container { display: flex; justify-content: center; align-items: center; height: 100dvh; width: 100vw; }
+    </style>
 </head>
-
 <body>
 <div id="game-container"></div>
-
 <script>
+/**
+ * ARCHITECTURE MANIFEST - FOR AI AGENT INTERPRETATION
+ * --------------------------------------------------
+ * PROGRAM: Ashen Hollow
+ * ENGINE: Phaser 3 (Arcade Physics)
+ * PARADIGM: Bounded metroidvania (fixed world, one zone)
+ * * CORE SYSTEMS:
+ * 1. Bounded World: Fixed world width (CONFIG.WORLD_WIDTH). One zone built in create
+ *    via buildFirstZone() — hand-placed floor and floating platforms. No procedural gen.
+ * 2. Camera & Bounds: Camera follows player and is clamped to world bounds; physics
+ *    world and player use setBounds/setCollideWorldBounds so nothing leaves the zone.
+ * 3. Texture Generation: No external assets. All sprites are generated via
+ *    this.make.graphics() during the preload/create phase to ensure 0ms latency.
+ * * GLOBAL STATE (this.*):
+ * - .inputState: Object tracking active touch/button inputs for physics polling.
+ * - .jumpsRemaining: number of jumps allowed in current flight (2 = can double jump). Refilled to 2 when solidly on ground; decremented each time a jump is applied.
+ * - .jumpWasDownLastFrame: used to detect "jump just pressed" for double jump (so holding jump doesn't burn it).
+ * - .jumpBuffer: frames remaining to accept a mid-air jump press (makes double jump feel responsive).
+ */
 
 const CONFIG = {
-W:800,
-H:400,
-WORLD_WIDTH:1600,
-GRAVITY:1500,
-PLAYER_SPEED:280,
-JUMP_FORCE:-550,
-TOUCH_JUMP_COOLDOWN_MS:180
+    W: 800,
+    H: 400,
+    WORLD_WIDTH: 1600,
+    GRAVITY: 1400,
+    PLAYER_SPEED: 280,
+    JUMP_FORCE: -690,
+    FRICTION: 0.75,
+    COLORS: [0x2a3a5a, 0x3a2a5a, 0x2a4a3a, 0x4a3a2a, 0x2a4050]
 };
 
 class AshenHollow extends Phaser.Scene {
+    constructor() {
+        super('AshenHollow');
+        this.resetInternalState();
+    }
 
-constructor(){
-super("AshenHollow");
+    resetInternalState() {
+        this.lives = 3;
+        this.isGameOver = false;
+        this.trailPts = [];
+        this.inputState = { left: false, right: false, jump: false };
+        this.jumpsRemaining = 2; // max jumps per flight; refill when solidly on ground
+        this.jumpWasDownLastFrame = false; // for "jump just pressed" so double jump requires a new press
+        this.jumpBuffer = 0; // frames to accept mid-air jump (so second tap reliably triggers hop)
+    }
+
+    preload() {
+        this.generateAssetTextures();
+    }
+
+    generateAssetTextures() {
+        const g = this.make.graphics({ x: 0, y: 0, add: false });
+        
+        // Floor Tile
+        g.fillStyle(0x334466).fillRect(0, 0, 32, 32);
+        g.fillStyle(0xffffff, 0.15).fillRect(0, 0, 32, 2);
+        g.generateTexture('floor', 32, 32);
+
+        // Platform Variants
+        CONFIG.COLORS.forEach((color, i) => {
+            g.clear().fillStyle(color).fillRect(0, 0, 32, 14);
+            g.fillStyle(0xffffff, 0.15).fillRect(0, 0, 32, 2);
+            g.generateTexture(`p${i}`, 32, 14);
+        });
+
+        // Hero Sprite
+        g.clear().fillStyle(0x00ddff).fillRect(4, 8, 20, 24); // Body
+        g.fillStyle(0xff00bb).fillRect(8, 10, 12, 8);   // Visor
+        g.fillStyle(0x007799).fillRect(4, 32, 8, 8);    // Left Leg
+        g.fillStyle(0x007799).fillRect(16, 32, 8, 8);   // Right Leg
+        g.generateTexture('hero', 28, 40);
+        
+        // UI Controls
+        g.clear().fillStyle(0xffffff, 0.13).fillCircle(40, 40, 40);
+        g.generateTexture('btn', 80, 80);
+
+        // Starfield Batch
+        g.clear();
+        for (let i = 0; i < 100; i++) {
+            g.fillStyle(0xffffff, 0.4 + Math.random() * 0.6);
+            g.fillRect(Math.random() * 512, Math.random() * 512, 2, 2);
+        }
+        g.generateTexture('stars', 512, 512);
+        g.destroy();
+    }
+
+    create() {
+        this.resetInternalState();
+
+        // Environment: bounded world
+        this.physics.world.setBounds(0, 0, CONFIG.WORLD_WIDTH, CONFIG.H);
+        this.cameras.main.setBounds(0, 0, CONFIG.WORLD_WIDTH, CONFIG.H);
+        this.cameras.main.setBackgroundColor('#050510');
+        this.starField = this.add.tileSprite(CONFIG.W/2, CONFIG.H/2, CONFIG.W, CONFIG.H, 'stars')
+            .setScrollFactor(0).setDepth(-1);
+        this.trail = this.add.graphics();
+
+        // Groups & Entities
+        this.platforms = this.physics.add.staticGroup();
+        this.player = this.physics.add.sprite(100, 250, 'hero');
+        this.player.setCollideWorldBounds(true);
+        this.physics.add.collider(this.player, this.platforms);
+
+        // Camera: follow player, stay within world
+        this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
+
+        // One zone: hand-placed floor + platforms
+        this.buildFirstZone();
+
+        // UI & Input
+        this.createHUD();
+        this.setupControls();
+    }
+
+    buildFirstZone() {
+        const TILE = 32;
+        const H = CONFIG.H;
+        const W = CONFIG.WORLD_WIDTH;
+        // Solid floor across the zone
+        for (let tx = 0; tx < W; tx += TILE) {
+            const mid = tx + 16;
+            this.platforms.create(mid, H - 16, 'floor').refreshBody();
+        }
+        // Hand-placed floating platforms
+        const ledges = [
+            { x: 320, y: 280, len: 2, tint: 0 },
+            { x: 520, y: 220, len: 3, tint: 1 },
+            { x: 800, y: 260, len: 2, tint: 2 },
+            { x: 1050, y: 180, len: 4, tint: 3 },
+            { x: 1320, y: 240, len: 2, tint: 4 }
+        ];
+        ledges.forEach(({ x, y, len, tint }) => {
+            for (let i = 0; i < len; i++) {
+                this.platforms.create(x + (i * TILE) + 16, y, `p${tint}`).refreshBody();
+            }
+        });
+    }
+
+    createHUD() {
+        this.distText = this.add.text(CONFIG.W / 2, 12, 'DIST 0 m', {
+            fontSize: '14px', fill: '#00ffff', stroke: '#000', strokeThickness: 3
+        }).setScrollFactor(0).setOrigin(0.5, 0);
+
+        this.lifeIcons = this.add.group();
+        this.updateLifeDisplay();
+
+        // Restart Button
+        this.add.text(10, 10, '[ RESTART ]', { fontSize: '12px', fill: '#ff3355' })
+            .setScrollFactor(0).setInteractive()
+            .on('pointerdown', () => this.scene.restart());
+    }
+
+    setupControls() {
+        this.cursors = this.input.keyboard.createCursorKeys();
+        this.spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+        this.input.addPointer(2);
+
+        const spawnBtn = (x, y, label, action) => {
+            const btn = this.add.image(x, y, 'btn').setScrollFactor(0).setInteractive().setAlpha(0.6);
+            this.add.text(x, y, label, { fontSize: '24px' }).setOrigin(0.5).setScrollFactor(0);
+            
+            btn.on('pointerdown', () => this.inputState[action] = true);
+            btn.on('pointerup', () => this.inputState[action] = false);
+            btn.on('pointerout', () => this.inputState[action] = false);
+        };
+
+        spawnBtn(60, 340, '<', 'left');
+        spawnBtn(160, 340, '>', 'right');
+        spawnBtn(740, 340, '^', 'jump');
+    }
+
+    update() {
+        if (this.isGameOver) return;
+
+        this.handleMovement();
+        this.drawMotionTrail();
+
+        // Background Parallax
+        this.starField.tilePositionX = this.player.x * 0.15;
+        this.distText.setText(`DIST ${Math.floor(this.player.x / 10)} m`);
+
+        // Pit / void death
+        if (this.player.y > CONFIG.H + 50) this.handlePlayerDeath();
+    }
+
+    handleMovement() {
+        const onGround = this.player.body.blocked.down;
+        const velocityY = this.player.body.velocity.y;
+        // In-air for double jump: not on ground OR moving up (covers Arcade one-frame delay). Logic mirrored in tests/game-logic.test.js computeJumpFrame().
+        const inAir = !onGround || velocityY < 0;
+        const left = this.inputState.left || this.cursors.left.isDown;
+        const right = this.inputState.right || this.cursors.right.isDown;
+        const jump = this.inputState.jump || this.cursors.up.isDown || this.spaceKey.isDown;
+        // Double jump only on *new* press (so holding jump from first jump doesn't burn it)
+        const jumpJustPressed = (this.cursors.up && this.cursors.up.justDown) ||
+            (this.spaceKey && this.spaceKey.justDown) ||
+            (this.inputState.jump && !this.jumpWasDownLastFrame);
+
+        // Buffer: when player presses jump, remember for a few frames so mid-air hop is easy to trigger
+        if (jumpJustPressed) this.jumpBuffer = 5;
+        if (this.jumpBuffer > 0) this.jumpBuffer--;
+
+        // Refill jump count only when solidly on ground (not moving up), so we don't reset the frame after first jump
+        if (onGround && velocityY >= 0) this.jumpsRemaining = 2;
+
+        if (left) {
+            this.player.setVelocityX(-CONFIG.PLAYER_SPEED).setFlipX(true);
+        } else if (right) {
+            this.player.setVelocityX(CONFIG.PLAYER_SPEED).setFlipX(false);
+        } else {
+            this.player.setVelocityX(this.player.body.velocity.x * CONFIG.FRICTION);
+        }
+
+        // Jump: first jump only when we have both jumps (avoids Arcade one-frame ground delay burning the second)
+        if (jump && onGround && this.jumpsRemaining === 2) {
+            this.player.setVelocityY(CONFIG.JUMP_FORCE);
+            this.jumpsRemaining--;
+            this.jumpBuffer = 0; // don't carry buffer into air so holding jump doesn't auto double-jump
+        } else if ((jumpJustPressed || this.jumpBuffer > 0) && inAir && this.jumpsRemaining > 0) {
+            // Mid-air hop: apply full jump force so the character clearly hops up
+            this.player.setVelocityY(CONFIG.JUMP_FORCE);
+            this.jumpsRemaining--;
+            this.jumpBuffer = 0; // consume buffer so we don't double-apply
+        }
+
+        this.jumpWasDownLastFrame = jump;
+    }
+
+    handlePlayerDeath() {
+        this.lives--;
+        this.updateLifeDisplay();
+
+        if (this.lives <= 0) {
+            this.isGameOver = true;
+            this.physics.pause();
+            this.player.setTint(0xff0000);
+            this.add.text(CONFIG.W/2, CONFIG.H/2, 'GAME OVER\nTap Restart', {
+                fontSize: '32px', fill: '#ff0066', align: 'center'
+            }).setOrigin(0.5).setScrollFactor(0);
+        } else {
+            this.player.setPosition(this.player.x, 50).setVelocity(0, 0);
+            this.tweens.add({ targets: this.player, alpha: 0.2, duration: 100, yoyo: true, repeat: 5 });
+        }
+    }
+
+    updateLifeDisplay() {
+        this.lifeIcons.clear(true, true);
+        for(let i = 0; i < this.lives; i++) {
+            this.lifeIcons.create(CONFIG.W - 30 - (i * 25), 25, 'hero').setScale(0.5).setScrollFactor(0);
+        }
+    }
+
+    drawMotionTrail() {
+        if (Math.abs(this.player.body.velocity.x) > 100) {
+            this.trailPts.push({ x: this.player.x, y: this.player.y + 4, life: 10 });
+        }
+        
+        this.trail.clear();
+        this.trailPts = this.trailPts.filter(p => p.life > 0);
+        
+        this.trailPts.forEach(p => {
+            p.life--;
+            this.trail.fillStyle(0x00eeff, (p.life / 10) * 0.4);
+            this.trail.fillRect(p.x - 4, p.y - 4, 8, 8);
+        });
+    }
 }
 
-preload(){
-
-const g=this.make.graphics({x:0,y:0,add:false});
-
-g.fillStyle(0x334466)
-.fillRect(0,0,32,32)
-.generateTexture("floor",32,32);
-
-g.clear()
-.fillStyle(0x00ddff)
-.fillRect(4,8,20,24)
-.generateTexture("hero",28,40);
-
-g.clear()
-.fillStyle(0xffffff,0.2)
-.fillCircle(40,40,40)
-.generateTexture("btn",80,80);
-
+// PWA: register service worker for installability and caching
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  });
 }
 
-create(){
-
-this.jumpCount=0;
-this.lastTouchJumpAt=-Infinity;
-
-this.physics.world.setBounds(0,0,CONFIG.WORLD_WIDTH,CONFIG.H);
-
-this.platforms=this.physics.add.staticGroup();
-
-for(let x=0;x<CONFIG.WORLD_WIDTH;x+=32){
-this.platforms.create(x+16,CONFIG.H-16,"floor");
-}
-
-const ledges=[
-[400,280],
-[600,200],
-[900,250]
-];
-
-ledges.forEach(l=>{
-this.platforms.create(l[0],l[1],"floor")
-.setScale(3,0.5)
-.refreshBody();
+const game = new Phaser.Game({
+    type: Phaser.AUTO,
+    scale: {
+        mode: Phaser.Scale.FIT,
+        autoCenter: Phaser.Scale.CENTER_BOTH,
+        width: CONFIG.W,
+        height: CONFIG.H
+    },
+    parent: 'game-container',
+    pixelArt: true,
+    physics: {
+        default: 'arcade',
+        arcade: { gravity: { y: CONFIG.GRAVITY }, debug: false }
+    },
+    scene: AshenHollow
 });
-
-this.player=this.physics.add.sprite(100,200,"hero")
-.setCollideWorldBounds(true);
-
-this.physics.add.collider(this.player,this.platforms,this.onLand,null,this);
-
-this.cameras.main.startFollow(this.player,true,0.1,0.1);
-
-this.cursors=this.input.keyboard.createCursorKeys();
-this.spaceKey=this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
-
-this.setupTouchControls();
-
-}
-
-onLand(){}
-
-setupTouchControls(){
-
-this.inputState={
-left:false,
-right:false
-};
-
-const makeBtn=(x,y,act)=>{
-
-const b=this.add.image(x,y,"btn")
-.setScrollFactor(0)
-.setInteractive()
-.setAlpha(0.5);
-
-if(act==="jump"){
-b.on("pointerdown",()=>{
-this.requestTouchJump();
-});
-return;
-}
-
-b.on("pointerdown",()=>{
-this.inputState[act]=true;
-});
-
-b.on("pointerup",()=>{
-this.inputState[act]=false;
-});
-
-b.on("pointerout",()=>{
-this.inputState[act]=false;
-});
-
-};
-
-makeBtn(80,320,"left");
-makeBtn(200,320,"right");
-makeBtn(720,320,"jump");
-
-}
-
-requestTouchJump(){
-
-const now=this.time.now;
-if(now-this.lastTouchJumpAt<CONFIG.TOUCH_JUMP_COOLDOWN_MS){
-return;
-}
-
-this.lastTouchJumpAt=now;
-this.tryJump();
-
-}
-
-tryJump(){
-
-if(this.jumpCount<2){
-
-this.player.setVelocityY(CONFIG.JUMP_FORCE);
-
-if(this.jumpCount === 1){
-
-this.player.setTint(0xff00ff);
-
-this.time.delayedCall(200,()=>{
-this.player.clearTint();
-});
-
-}
-
-this.jumpCount++;
-
-}
-
-}
-
-update(){
-
-const onGround=(this.player.body.blocked.down||this.player.body.touching.down)&&this.player.body.velocity.y>=0;
-if(onGround){
-this.jumpCount=0;
-}
-
-if(Phaser.Input.Keyboard.JustDown(this.cursors.up)||Phaser.Input.Keyboard.JustDown(this.spaceKey)){
-this.tryJump();
-}
-
-const speed=CONFIG.PLAYER_SPEED;
-
-if(this.cursors.left.isDown || this.inputState.left){
-this.player.setVelocityX(-speed);
-}
-else if(this.cursors.right.isDown || this.inputState.right){
-this.player.setVelocityX(speed);
-}
-else{
-this.player.setVelocityX(this.player.body.velocity.x*0.8);
-}
-
-if(this.player.y>CONFIG.H){
-this.player.setPosition(100,100);
-this.jumpCount=0;
-}
-
-}
-
-}
-
-new Phaser.Game({
-type:Phaser.AUTO,
-parent:"game-container",
-scale:{
-mode:Phaser.Scale.FIT,
-autoCenter:Phaser.Scale.CENTER_BOTH,
-width:CONFIG.W,
-height:CONFIG.H
-},
-physics:{
-default:"arcade",
-arcade:{
-gravity:{y:CONFIG.GRAVITY}
-}
-},
-scene:AshenHollow
-});
-
-if("serviceWorker" in navigator){
-window.addEventListener("load",()=>{
-navigator.serviceWorker.register("sw.js").catch(()=>{});
-});
-}
-
 </script>
 </body>
 </html>
