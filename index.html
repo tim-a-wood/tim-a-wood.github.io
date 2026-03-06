@@ -15,6 +15,7 @@
     </style>
 </head>
 <body>
+<!-- build: 2026-03-06-relic (includes relic pickup and double-jump unlock) -->
 <div id="game-container"></div>
 <script>
 /**
@@ -200,7 +201,7 @@ class AshenHollow extends Phaser.Scene {
             { x: 520, y: 220, len: 3, tint: 1 },
             { x: 800, y: 260, len: 2, tint: 2 },
             { x: 1050, y: 180, len: 4, tint: 3 },
-            { x: 1320, y: 240, len: 2, tint: 4 },
+            { x: 1100, y: 240, len: 2, tint: 4 },
             { x: 1450, y: 120, len: 3, tint: 1 }
         ];
         ledges.forEach(({ x, y, len, tint }) => {
@@ -235,7 +236,7 @@ class AshenHollow extends Phaser.Scene {
     buildProgressionObjects() {
         this.exitDoor = this.physics.add.staticImage(224, 326, 'doorLocked').refreshBody();
         this.keyPickup = this.physics.add.staticImage(1498, 86, 'key').refreshBody();
-        this.relicPickup = this.physics.add.staticImage(400, 266, 'relic').refreshBody();
+        this.relicPickup = this.physics.add.staticImage(368, 266, 'relic').refreshBody();
 
         this.physics.add.overlap(this.player, this.keyPickup, this.collectKey, null, this);
         this.physics.add.overlap(this.player, this.relicPickup, this.collectRelic, null, this);

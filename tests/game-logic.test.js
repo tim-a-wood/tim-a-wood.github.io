@@ -109,7 +109,7 @@ function buildFirstZoneLayout(worldWidth = CONFIG.WORLD_WIDTH, tile = ROOM_LAYOU
         { x: 520, y: 220, len: 3, tint: 1 },
         { x: 800, y: 260, len: 2, tint: 2 },
         { x: 1050, y: 180, len: 4, tint: 3 },
-        { x: 1320, y: 240, len: 2, tint: 4 },
+        { x: 1100, y: 240, len: 2, tint: 4 },
         { x: 1450, y: 120, len: 3, tint: 1 }
     ];
 
@@ -127,7 +127,7 @@ function buildProgressionLayout(height = 400) {
     return {
         exitDoor: { x: 224, y: 326, texture: 'doorLocked' },
         keyPickup: { x: 1498, y: 86, texture: 'key' },
-        relicPickup: { x: 400, y: 266, texture: 'relic' }
+        relicPickup: { x: 368, y: 266, texture: 'relic' }
     };
 }
 
@@ -532,7 +532,7 @@ function isInPit(mid, pitZones) {
     const layout = buildProgressionLayout();
     assert.deepStrictEqual(layout.exitDoor, { x: 224, y: 326, texture: 'doorLocked' });
     assert.deepStrictEqual(layout.keyPickup, { x: 1498, y: 86, texture: 'key' });
-    assert.deepStrictEqual(layout.relicPickup, { x: 400, y: 266, texture: 'relic' });
+    assert.deepStrictEqual(layout.relicPickup, { x: 368, y: 266, texture: 'relic' });
 })();
 
 (function testTouchingRelicUnlocksDoubleJump() {
