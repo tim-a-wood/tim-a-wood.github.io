@@ -57,8 +57,8 @@ const CONFIG = {
 
 const ROOM_LAYOUT = {
     TILE: 32,
-    /** Top of left-side doorway (wall stops above this). Opening starts at last tile bottom; 1088 so wall ends higher and door sits just under corridor (bottom 1107). */
-    LEFT_DOORWAY_TOP: 1088,
+    /** Left wall stops so its bottom is flush with corridor platform top (1093). Loop ends at 1056; then two tiles at 1052 and 1077 so wall bottom = 1093. */
+    LEFT_DOORWAY_TOP: 1056,
     /** 'internal' = walls/ceiling on closed edges, doors-only entry; 'outdoor' = no boundary walls, open passage unless blocked */
     roomType: 'internal'
 };
@@ -254,10 +254,14 @@ class AshenHollow extends Phaser.Scene {
         for (let ty = TILE; ty < ROOM_LAYOUT.LEFT_DOORWAY_TOP; ty += TILE) {
             this.platforms.create(leftWallX, ty + 16, 'floor').refreshBody();
         }
+        // Left wall bottom flush with corridor platform top (1093): add tiles so last tile bottom = 1093
+        const corridorPlatformTop = 1093;
+        this.platforms.create(leftWallX, corridorPlatformTop - 41, 'floor').refreshBody();
+        this.platforms.create(leftWallX, corridorPlatformTop - 16, 'floor').refreshBody();
     }
 
     buildProgressionObjects() {
-        this.exitDoor = this.physics.add.staticImage(224, 1150, 'doorLocked').refreshBody();
+        this.exitDoor = this.physics.add.staticImage(224, 1126, 'doorLocked').refreshBody();
         this.keyPickup = this.physics.add.staticImage(1498, 86, 'key').refreshBody();
         this.relicPickup = this.physics.add.staticImage(368, 1092, 'relic').refreshBody();
 
