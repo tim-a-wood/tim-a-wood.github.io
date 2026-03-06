@@ -46,10 +46,8 @@ super("AshenHollow");
 }
 
 resetState(){
-
-this.jumpQueue = 0;
-this.jumpCount = 0;
-
+this.jumpCount=0;
+this.wasOnGround=false;
 }
 
 preload(){
@@ -126,7 +124,7 @@ const b=this.add.image(x,y,"btn")
 if(act==="jump"){
 
 b.on("pointerdown",()=>{
-this.jumpQueue++;
+this.tryJump();
 });
 
 }else{
@@ -153,48 +151,41 @@ makeBtn(720,320,"jump");
 
 }
 
-update(){
-
-const body=this.player.body;
-
-const onGround = body.blocked.down || body.touching.down;
-
-/* keyboard jump /
-
-if(Phaser.Input.Keyboard.JustDown(this.cursors.up)){
-this.jumpQueue++;
-}
-
-/ landing reset /
-
-if(onGround){
-this.jumpCount=0;
-}
-
-/ process queued jumps /
-
-while(this.jumpQueue>0){
+tryJump(){
 
 if(this.jumpCount<2){
 
 this.player.setVelocityY(CONFIG.JUMP_FORCE);
 
 if(this.jumpCount===1){
-
 this.player.setTint(0xff00ff);
-
-this.time.delayedCall(200,()=>{
-this.player.clearTint();
-});
-
+this.time.delayedCall(200,()=>this.player.clearTint());
 }
 
 this.jumpCount++;
 
 }
 
-this.jumpQueue--;
+}
 
+update(){
+
+const body=this.player.body;
+
+const onGround = body.blocked.down;
+
+/* landing detection /
+
+if(onGround && !this.wasOnGround && body.velocity.y>=0){
+this.jumpCount=0;
+}
+
+this.wasOnGround=onGround;
+
+/ keyboard jump /
+
+if(Phaser.Input.Keyboard.JustDown(this.cursors.up)){
+this.tryJump();
 }
 
 / movement /
