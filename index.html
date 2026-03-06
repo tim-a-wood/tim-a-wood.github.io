@@ -51,7 +51,7 @@ pitZones = [];
 generatedUpTo = 0;
 inputState = { left: false, right: false, jump: false };
 
-```
+
 this.physics.world.setBounds(0, 0, 9999999, H);
 this.cameras.main.setBounds(0, 0, 9999999, H);
 this.cameras.main.setBackgroundColor('#050510');
@@ -138,7 +138,6 @@ this.add.text(8, 8, 'RESTART', {
 // ── Trail FX ─────────────────────────────────────────────────────────────
 this.trail = this.add.graphics();
 this.trailPts = [];
-```
 
 }
 
@@ -146,7 +145,6 @@ function update() {
 var px = player.x;
 var onGround = player.body.blocked.down;
 
-```
 var goLeft  = inputState.left  || cursors.left.isDown;
 var goRight = inputState.right || cursors.right.isDown;
 var doJump  = inputState.jump  || cursors.up.isDown || cursors.space.isDown;
@@ -260,7 +258,6 @@ while (fx < toX) {
 }
 
 generatedUpTo = toX;
-```
 
 }
 
