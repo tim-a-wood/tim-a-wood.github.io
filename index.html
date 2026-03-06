@@ -195,7 +195,6 @@ for (var i = this.trailPts.length - 1; i >= 0; i--) {
     this.trail.fillRect(p.x - s, p.y - s, s * 2, s * 2);
 }
 if (this.trailPts.length > 60) { this.trailPts.splice(0, 10); }
-```
 
 }
 
@@ -203,7 +202,6 @@ function generateChunk(fromX, toX) {
 var TILE   = 32;
 var FLOOR_Y = H - 16;
 
-```
 // Decide pit positions
 var x = fromX;
 while (x < toX) {
