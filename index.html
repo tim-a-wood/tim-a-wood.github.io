@@ -46,8 +46,8 @@
 const CONFIG = {
     W: 800,
     H: 400,
-    WORLD_WIDTH: 1600,
-    WORLD_HEIGHT: 1200,
+    WORLD_WIDTH: 1000,
+    WORLD_HEIGHT: 600,
     GRAVITY: 1400,
     PLAYER_SPEED: 280,
     JUMP_FORCE: -690,
@@ -57,8 +57,8 @@ const CONFIG = {
 
 const ROOM_LAYOUT = {
     TILE: 32,
-    /** Left wall stops so its bottom is flush with corridor platform top (1093). Loop ends at 1056; then two tiles at 1052 and 1077 so wall bottom = 1093. */
-    LEFT_DOORWAY_TOP: 1056,
+    /** Left wall stops so its bottom is flush with corridor platform top (493). Loop ends at 416; then two tiles so wall bottom = 493. */
+    LEFT_DOORWAY_TOP: 416,
     /** 'internal' = walls/ceiling on closed edges, doors-only entry; 'outdoor' = no boundary walls, open passage unless blocked */
     roomType: 'internal'
 };
@@ -170,7 +170,7 @@ class AshenHollow extends Phaser.Scene {
 
         // Groups & Entities
         this.platforms = this.physics.add.staticGroup();
-        this.player = this.physics.add.sprite(128, 1073, 'hero');
+        this.player = this.physics.add.sprite(128, 473, 'hero');
         this.player.setCollideWorldBounds(true);
         this.physics.add.collider(this.player, this.platforms);
 
@@ -189,8 +189,8 @@ class AshenHollow extends Phaser.Scene {
     /**
      * LAYOUT CONSTRAINTS (fixed for labyrinth / dungeon layout)
      * Do not change when reworking interior ledges:
-     * - First ledge in ledges[] must stay: { x: 0, y: 1100, len: 8, tint: 0 } (corridor platform).
-     * - Exit door must stay at (248, 1137); buildProgressionObjects() must not change door position.
+     * - First ledge in ledges[] must stay: { x: 0, y: 500, len: 8, tint: 0 } (corridor platform).
+     * - Exit door must stay at (248, 537); buildProgressionObjects() must not change door position.
      * - buildBoundaryWalls() and ROOM_LAYOUT (LEFT_DOORWAY_TOP, roomType) must not change.
      */
     buildFirstZone() {
@@ -205,35 +205,33 @@ class AshenHollow extends Phaser.Scene {
             const mid = tx + 16;
             this.platforms.create(mid, H - 16, 'floor').refreshBody();
         }
-        // Hand-placed floating platforms: bottom (corridor, start) up to top (key ledge). Key only via double jump from 1100,240.
+        // Layout F (Guide-based single room) scaled to 1000×600.
         const ledges = [
-            { x: 0, y: 1100, len: 8, tint: 0 },
-            { x: 320, y: 1120, len: 2, tint: 0 },
-            { x: 500, y: 1080, len: 3, tint: 1 },
-            { x: 750, y: 1100, len: 2, tint: 2 },
-            { x: 1000, y: 1060, len: 2, tint: 3 },
-            { x: 400, y: 1000, len: 2, tint: 0 },
-            { x: 650, y: 980, len: 3, tint: 1 },
-            { x: 950, y: 1020, len: 2, tint: 2 },
-            { x: 300, y: 920, len: 3, tint: 3 },
-            { x: 600, y: 900, len: 2, tint: 4 },
-            { x: 900, y: 940, len: 3, tint: 0 },
-            { x: 450, y: 820, len: 2, tint: 1 },
-            { x: 750, y: 840, len: 3, tint: 2 },
-            { x: 1050, y: 800, len: 2, tint: 3 },
-            { x: 350, y: 720, len: 3, tint: 4 },
-            { x: 700, y: 700, len: 2, tint: 0 },
-            { x: 500, y: 600, len: 2, tint: 1 },
-            { x: 850, y: 620, len: 3, tint: 2 },
-            { x: 400, y: 520, len: 2, tint: 3 },
-            { x: 700, y: 500, len: 3, tint: 4 },
-            { x: 1000, y: 540, len: 2, tint: 0 },
-            { x: 550, y: 400, len: 2, tint: 1 },
-            { x: 900, y: 420, len: 3, tint: 2 },
-            { x: 1050, y: 350, len: 4, tint: 3 },
-            { x: 800, y: 380, len: 2, tint: 4 },
-            { x: 1100, y: 240, len: 2, tint: 4 },
-            { x: 1450, y: 120, len: 3, tint: 1 }
+            { x: 0, y: 500, len: 8, tint: 0 },
+            { x: 176, y: 493, len: 2, tint: 0 },
+            { x: 224, y: 476, len: 2, tint: 1 },
+            { x: 256, y: 459, len: 2, tint: 2 },
+            { x: 224, y: 443, len: 2, tint: 3 },
+            { x: 288, y: 443, len: 2, tint: 0 },
+            { x: 320, y: 427, len: 2, tint: 1 },
+            { x: 304, y: 410, len: 2, tint: 2 },
+            { x: 336, y: 394, len: 2, tint: 0 },
+            { x: 304, y: 378, len: 2, tint: 1 },
+            { x: 352, y: 361, len: 2, tint: 2 },
+            { x: 384, y: 345, len: 2, tint: 0 },
+            { x: 352, y: 329, len: 2, tint: 1 },
+            { x: 400, y: 312, len: 2, tint: 2 },
+            { x: 432, y: 296, len: 2, tint: 0 },
+            { x: 480, y: 280, len: 2, tint: 1 },
+            { x: 512, y: 263, len: 2, tint: 2 },
+            { x: 560, y: 247, len: 2, tint: 0 },
+            { x: 608, y: 231, len: 2, tint: 1 },
+            { x: 640, y: 214, len: 2, tint: 2 },
+            { x: 672, y: 198, len: 2, tint: 0 },
+            { x: 720, y: 182, len: 2, tint: 1 },
+            { x: 752, y: 165, len: 2, tint: 2 },
+            { x: 672, y: 157, len: 2, tint: 4 },
+            { x: 896, y: 100, len: 3, tint: 1 }
         ];
         ledges.forEach(({ x, y, len, tint }) => {
             for (let i = 0; i < len; i++) {
@@ -262,16 +260,16 @@ class AshenHollow extends Phaser.Scene {
         for (let ty = TILE; ty < ROOM_LAYOUT.LEFT_DOORWAY_TOP; ty += TILE) {
             this.platforms.create(leftWallX, ty + 16, 'floor').refreshBody();
         }
-        // Left wall bottom flush with corridor platform top (1093): add tiles so last tile bottom = 1093
-        const corridorPlatformTop = 1093;
+        // Left wall bottom flush with corridor platform top (493): add tiles so last tile bottom = 493
+        const corridorPlatformTop = 493;
         this.platforms.create(leftWallX, corridorPlatformTop - 41, 'floor').refreshBody();
         this.platforms.create(leftWallX, corridorPlatformTop - 16, 'floor').refreshBody();
     }
 
     buildProgressionObjects() {
-        this.exitDoor = this.physics.add.staticImage(248, 1137, 'doorLocked').refreshBody();
-        this.keyPickup = this.physics.add.staticImage(1498, 86, 'key').refreshBody();
-        this.relicPickup = this.physics.add.staticImage(368, 1092, 'relic').refreshBody();
+        this.exitDoor = this.physics.add.staticImage(248, 537, 'doorLocked').refreshBody();
+        this.keyPickup = this.physics.add.staticImage(954, 86, 'key').refreshBody();
+        this.relicPickup = this.physics.add.staticImage(256, 436, 'relic').refreshBody();
 
         this.physics.add.overlap(this.player, this.keyPickup, this.collectKey, null, this);
         this.physics.add.overlap(this.player, this.relicPickup, this.collectRelic, null, this);
@@ -478,7 +476,7 @@ class AshenHollow extends Phaser.Scene {
                 fontSize: '32px', fill: '#ff0066', align: 'center'
             }).setOrigin(0.5).setScrollFactor(0);
         } else {
-            this.player.setPosition(this.player.x, CONFIG.WORLD_HEIGHT - 150).setVelocity(0, 0);
+            this.player.setPosition(this.player.x, CONFIG.WORLD_HEIGHT - 80).setVelocity(0, 0);
             this.tweens.add({ targets: this.player, alpha: 0.2, duration: 100, yoyo: true, repeat: 5 });
         }
     }

@@ -21,7 +21,7 @@ The page also sends `Cache-Control: no-cache` via meta tags so some clients may 
 
 ## Level layout viewer
 
-Open `level-viewer.html` in a browser (or via your local server) to visualize the draft labyrinth platform layout without running the full game. Used when reviewing `prompts/labyrinth_layout_plan.md` (Step 3 / G3).
+Open `level-viewer.html` in a browser (or via your local server) to visualize draft platform layouts without running the full game. Use the **Layout** dropdown to compare options (e.g. **F — Guide-based single room**, from `prompts/metroidvania_single_room_guide.md`). Plan: `prompts/labyrinth_layout_plan.md`.
 
 ## Local Run
 

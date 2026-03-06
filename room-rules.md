@@ -25,6 +25,16 @@ When designing internal room platforms to feel labyrinthian (dungeon-style):
 - **Progression flow** — One clear route; abilities (e.g. double jump) gate later parts; no sequence breaks.
 - **Density** — Prefer more, smaller platforms over fewer long ones; reuse existing tints for variety.
 
+### Actual labyrinth (maze)
+
+When the goal is an **actual labyrinth** (maze-like, easy to get lost):
+
+- **Narrow passages** — Use len 1–2 only so the path feels like corridors, not open platforms.
+- **Branches and junctions** — At least 2–3 places where the path splits; only some branches lead to progress.
+- **Dead ends** — Several branches that end in a single platform (no exit); one dead end holds the relic so exploration is rewarded.
+- **Internal barriers** — Vertical stacks of single-tile platforms (same x, different y) so the player must go around; no direct straight line through the room.
+- **Winding route** — The path to the key doubles back or loops so orientation is non-obvious; return to the door feels like “finding your way out.”
+
 ## Outdoor rooms
 
 - **Do not** add boundary walls or a ceiling for the room shell. The player may leave via any edge unless something else blocks it (e.g. hazard, one-way gate, or locked door).
