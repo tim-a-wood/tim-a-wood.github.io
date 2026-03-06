@@ -103,13 +103,7 @@ this.setupTouchControls();
 
 }
 
-onLand(player,platform){
-
-if(player.body.velocity.y >= 0){
-this.jumpCount = 0;
-}
-
-}
+onLand(){}
 
 setupTouchControls(){
 
@@ -179,7 +173,13 @@ this.jumpCount++;
 
 update(){
 
-if(Phaser.Input.Keyboard.JustDown(this.cursors.up)||Phaser.Input.Keyboard.JustDown(this.spaceKey)){
+const onGround=this.player.body.blocked.down&&this.player.body.velocity.y>=0;
+if(onGround){
+this.jumpCount=0;
+}
+
+const jumpPressed=Phaser.Input.Keyboard.JustDown(this.cursors.up)||Phaser.Input.Keyboard.JustDown(this.spaceKey);
+if(jumpPressed){
 this.tryJump();
 }
 
