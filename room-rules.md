@@ -14,6 +14,17 @@ The game supports two room kinds. The active zone’s type is set via config (e.
 - If a door exists on an edge, keep the rest of that edge closed so the doorway is the only transition.
 - Mirror room-boundary logic in layout tests when room geometry or room type changes.
 
+### Indoor / dungeon layout (labyrinth)
+
+When designing internal room platforms to feel labyrinthian (dungeon-style):
+
+- **Corridors** — Prefer short runs of 1–2 tiles for narrow passages and choke points rather than long straight platforms.
+- **Zigzags and vertical flow** — Path should wind (alternate left/right) and move vertically with direction changes; use staggered steps instead of a single straight climb.
+- **Alcoves and dead ends** — Optional small branches (1–2 tiles) for pickups or variety; main progression path stays clear (e.g. start → relic → key → door).
+- **Internal walls (optional)** — Use platforms as walls to form corridors (vertical strips or L-shapes); same ledge/platform API, no new systems.
+- **Progression flow** — One clear route; abilities (e.g. double jump) gate later parts; no sequence breaks.
+- **Density** — Prefer more, smaller platforms over fewer long ones; reuse existing tints for variety.
+
 ## Outdoor rooms
 
 - **Do not** add boundary walls or a ceiling for the room shell. The player may leave via any edge unless something else blocks it (e.g. hazard, one-way gate, or locked door).

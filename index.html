@@ -186,6 +186,13 @@ class AshenHollow extends Phaser.Scene {
         this.setupControls();
     }
 
+    /**
+     * LAYOUT CONSTRAINTS (fixed for labyrinth / dungeon layout)
+     * Do not change when reworking interior ledges:
+     * - First ledge in ledges[] must stay: { x: 0, y: 1100, len: 8, tint: 0 } (corridor platform).
+     * - Exit door must stay at (248, 1137); buildProgressionObjects() must not change door position.
+     * - buildBoundaryWalls() and ROOM_LAYOUT (LEFT_DOORWAY_TOP, roomType) must not change.
+     */
     buildFirstZone() {
         const TILE = ROOM_LAYOUT.TILE;
         const H = CONFIG.WORLD_HEIGHT;
