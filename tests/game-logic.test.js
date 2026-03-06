@@ -87,7 +87,8 @@ function buildFirstZoneLayout(worldWidth = CONFIG.WORLD_WIDTH, tile = 32) {
         { x: 520, y: 220, len: 3, tint: 1 },
         { x: 800, y: 260, len: 2, tint: 2 },
         { x: 1050, y: 180, len: 4, tint: 3 },
-        { x: 1320, y: 240, len: 2, tint: 4 }
+        { x: 1320, y: 240, len: 2, tint: 4 },
+        { x: 1450, y: 120, len: 3, tint: 1 }
     ];
 
     const platformTiles = [];
@@ -360,9 +361,20 @@ function isInPit(mid, pitZones) {
 
 (function testFirstZoneCreatesExpectedFloatingPlatforms() {
     const layout = buildFirstZoneLayout();
-    assert.strictEqual(layout.platformTiles.length, 13);
+    assert.strictEqual(layout.platformTiles.length, 16);
     assert.deepStrictEqual(layout.platformTiles[0], { x: 336, y: 280, tint: 'p0' });
-    assert.deepStrictEqual(layout.platformTiles[layout.platformTiles.length - 1], { x: 1368, y: 240, tint: 'p4' });
+    assert.deepStrictEqual(layout.platformTiles[layout.platformTiles.length - 1], { x: 1530, y: 120, tint: 'p1' });
+})();
+
+(function testFirstZoneIncludesHighGateLedge() {
+    const layout = buildFirstZoneLayout();
+    const gateTiles = layout.platformTiles.filter((tile) => tile.y === 120);
+    assert.strictEqual(gateTiles.length, 3, 'Expected three tiles for the high gated ledge');
+    assert.deepStrictEqual(gateTiles, [
+        { x: 1466, y: 120, tint: 'p1' },
+        { x: 1498, y: 120, tint: 'p1' },
+        { x: 1530, y: 120, tint: 'p1' }
+    ]);
 })();
 
 (function testAllPlatformTintsReferenceKnownColors() {

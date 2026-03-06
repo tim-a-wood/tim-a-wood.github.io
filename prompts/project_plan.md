@@ -23,7 +23,7 @@
 ## Current State
 
 - **Codebase:** Single `index.html` with Phaser 3; monolithic layout for simplicity and portability.
-- **Gameplay:** **Ashen Hollow** — bounded world with one explorable zone: fixed width (1600px), hand-placed floor and floating platforms, camera/world bounds, lives, restart, and a first-pass double jump. No ability gate yet.
+- **Gameplay:** **Ashen Hollow** — bounded world with one explorable zone: fixed width (1600px), hand-placed floor and floating platforms, camera/world bounds, lives, restart, a first-pass double jump, and one simple high-ledge gate intended to require that ability.
 - **Tech:** HTML/JS, Phaser 3 (Arcade Physics), texture generation at runtime. No external art assets. `manifest.json` is present; service-worker caching is intentionally disabled during rapid iteration on GitHub Pages to avoid stale installs.
 - **Quality:** Unit tests in `./tests/` cover current movement/jump state logic and first-zone layout; CI via `.github/workflows/test.yml`. Manual acceptance checks live in `tests/acceptance_tests.md`, with per-change outcomes recorded in `tests/test_report.md`.
 - **Docs:** `prompts/project_overview.md`, this plan, `README.md`, `tests/README.md`, `tests/acceptance_tests.md`, and `tests/test_report.md`.
@@ -102,10 +102,11 @@ You can combine "camera + one zone + bounds" in one or two small steps if prefer
   - **Outcome:** Player can use the ability at will within the current bounds; no save/load or persistence required for this step.
   - **Done:** Double jump added in `index.html`: state `doubleJumpAvailable`, refilled on land, consumed on mid-air jump; same jump force as first jump for consistent feel.
 
-- [ ] **Add one gate**
+- [x] **Add one gate**
   - **What:** One place in the first zone that is unreachable without the new ability (e.g. high ledge, gap, or blocked path). When the player has the ability, they can reach it.
   - **Scope:** Single gate; no full backtracking loop or save system yet. Proves the "ability-gated progression" idea.
   - **Outcome:** Clear before/after: without ability you cannot reach the spot; with ability you can. Sets up M4 (backtracking & progression) later.
+  - **Done:** Added a late-zone high ledge in `index.html` intended to require double jump to reach.
 
 ---
 

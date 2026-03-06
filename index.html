@@ -141,13 +141,15 @@ class AshenHollow extends Phaser.Scene {
             const mid = tx + 16;
             this.platforms.create(mid, H - 16, 'floor').refreshBody();
         }
-        // Hand-placed floating platforms
+        // Hand-placed floating platforms. The final high ledge acts as the
+        // first simple ability gate: it should only be reachable with double jump.
         const ledges = [
             { x: 320, y: 280, len: 2, tint: 0 },
             { x: 520, y: 220, len: 3, tint: 1 },
             { x: 800, y: 260, len: 2, tint: 2 },
             { x: 1050, y: 180, len: 4, tint: 3 },
-            { x: 1320, y: 240, len: 2, tint: 4 }
+            { x: 1320, y: 240, len: 2, tint: 4 },
+            { x: 1450, y: 120, len: 3, tint: 1 }
         ];
         ledges.forEach(({ x, y, len, tint }) => {
             for (let i = 0; i < len; i++) {
