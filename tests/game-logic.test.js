@@ -7,11 +7,17 @@
 const assert = require('assert');
 
 const CONFIG = {
+    H: 400,
     WORLD_WIDTH: 1600,
     PLAYER_SPEED: 280,
     JUMP_FORCE: -690,
     FRICTION: 0.75,
     COLORS: [0x2a3a5a, 0x3a2a5a, 0x2a4a3a, 0x4a3a2a, 0x2a4050]
+};
+
+const ROOM_LAYOUT = {
+    TILE: 32,
+    LEFT_DOORWAY_TOP: 288
 };
 
 // ----- Movement / jump helpers (must match index.html handleMovement()) -----
@@ -76,10 +82,21 @@ function computeJumpFrame(state) {
     };
 }
 
-function buildFirstZoneLayout(worldWidth = CONFIG.WORLD_WIDTH, tile = 32) {
+function buildFirstZoneLayout(worldWidth = CONFIG.WORLD_WIDTH, tile = ROOM_LAYOUT.TILE, height = CONFIG.H) {
     const floorCenters = [];
     for (let tx = 0; tx < worldWidth; tx += tile) {
         floorCenters.push(tx + 16);
+    }
+
+    const wallTiles = [];
+    for (let tx = 0; tx < worldWidth; tx += tile) {
+        wallTiles.push({ x: tx + 16, y: 16, texture: 'floor' });
+    }
+    for (let ty = tile; ty < height - tile; ty += tile) {
+        wallTiles.push({ x: worldWidth - 16, y: ty + 16, texture: 'floor' });
+    }
+    for (let ty = tile; ty < ROOM_LAYOUT.LEFT_DOORWAY_TOP; ty += tile) {
+        wallTiles.push({ x: 16, y: ty + 16, texture: 'floor' });
     }
 
     const ledges = [
@@ -99,7 +116,7 @@ function buildFirstZoneLayout(worldWidth = CONFIG.WORLD_WIDTH, tile = 32) {
         }
     });
 
-    return { floorCenters, platformTiles };
+    return { floorCenters, platformTiles, wallTiles };
 }
 
 function buildProgressionLayout(height = 400) {
@@ -396,6 +413,28 @@ function isInPit(mid, pitZones) {
     assert.strictEqual(layout.platformTiles.length, 24);
     assert.deepStrictEqual(layout.platformTiles[0], { x: 16, y: 284, tint: 'p0' });
     assert.deepStrictEqual(layout.platformTiles[layout.platformTiles.length - 1], { x: 1530, y: 120, tint: 'p1' });
+})();
+
+(function testFirstZoneCreatesBoundaryWallsAtClosedEdges() {
+    const layout = buildFirstZoneLayout();
+    assert.strictEqual(layout.wallTiles.length, 69);
+    assert.deepStrictEqual(layout.wallTiles[0], { x: 16, y: 16, texture: 'floor' });
+    assert.deepStrictEqual(layout.wallTiles[49], { x: 1584, y: 16, texture: 'floor' });
+})();
+
+(function testLeftEdgeStaysOpenOnlyForDoorCorridor() {
+    const layout = buildFirstZoneLayout();
+    const leftWallTiles = layout.wallTiles.filter((tile) => tile.x === 16 && tile.y > 16);
+    assert.deepStrictEqual(leftWallTiles, [
+        { x: 16, y: 48, texture: 'floor' },
+        { x: 16, y: 80, texture: 'floor' },
+        { x: 16, y: 112, texture: 'floor' },
+        { x: 16, y: 144, texture: 'floor' },
+        { x: 16, y: 176, texture: 'floor' },
+        { x: 16, y: 208, texture: 'floor' },
+        { x: 16, y: 240, texture: 'floor' },
+        { x: 16, y: 272, texture: 'floor' }
+    ]);
 })();
 
 (function testFirstZoneIncludesLeftCorridorLedge() {

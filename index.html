@@ -49,6 +49,11 @@ const CONFIG = {
     COLORS: [0x2a3a5a, 0x3a2a5a, 0x2a4a3a, 0x4a3a2a, 0x2a4050]
 };
 
+const ROOM_LAYOUT = {
+    TILE: 32,
+    LEFT_DOORWAY_TOP: 288
+};
+
 class AshenHollow extends Phaser.Scene {
     constructor() {
         super('AshenHollow');
@@ -159,9 +164,10 @@ class AshenHollow extends Phaser.Scene {
     }
 
     buildFirstZone() {
-        const TILE = 32;
+        const TILE = ROOM_LAYOUT.TILE;
         const H = CONFIG.H;
         const W = CONFIG.WORLD_WIDTH;
+        this.buildBoundaryWalls();
         // Solid floor across the zone
         for (let tx = 0; tx < W; tx += TILE) {
             const mid = tx + 16;
@@ -184,6 +190,28 @@ class AshenHollow extends Phaser.Scene {
                 this.platforms.create(x + (i * TILE) + 16, y, `p${tint}`).refreshBody();
             }
         });
+    }
+
+    buildBoundaryWalls() {
+        const TILE = ROOM_LAYOUT.TILE;
+        const W = CONFIG.WORLD_WIDTH;
+        const H = CONFIG.H;
+        const rightWallX = W - 16;
+        const leftWallX = 16;
+
+        // Seal room edges visually and physically. The only intended left-side
+        // opening is the corridor that leads to the door.
+        for (let tx = 0; tx < W; tx += TILE) {
+            this.platforms.create(tx + 16, 16, 'floor').refreshBody();
+        }
+
+        for (let ty = TILE; ty < H - TILE; ty += TILE) {
+            this.platforms.create(rightWallX, ty + 16, 'floor').refreshBody();
+        }
+
+        for (let ty = TILE; ty < ROOM_LAYOUT.LEFT_DOORWAY_TOP; ty += TILE) {
+            this.platforms.create(leftWallX, ty + 16, 'floor').refreshBody();
+        }
     }
 
     buildProgressionObjects() {
