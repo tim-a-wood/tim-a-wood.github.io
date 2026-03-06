@@ -35,6 +35,7 @@
  * - .jumpsRemaining: number of jumps allowed in current flight (2 = can double jump). Refilled to 2 when solidly on ground; decremented each time a jump is applied.
  * - .jumpWasDownLastFrame: used to detect "jump just pressed" for double jump (so holding jump doesn't burn it).
  * - .jumpBuffer: frames remaining to accept a mid-air jump press (makes double jump feel responsive).
+ * - .hasKey / .doorUnlocked: simple progression state for the first key-door backtracking loop.
  */
 
 const CONFIG = {
@@ -62,6 +63,12 @@ class AshenHollow extends Phaser.Scene {
         this.jumpsRemaining = 2; // max jumps per flight; refill when solidly on ground
         this.jumpWasDownLastFrame = false; // for "jump just pressed" so double jump requires a new press
         this.jumpBuffer = 0; // frames to accept mid-air jump (so second tap reliably triggers hop)
+        this.hasKey = false;
+        this.doorUnlocked = false;
+        this.statusMessageFrames = 0;
+        this.doorHintCooldownUntil = 0;
+        this.keyInventoryIcon = null;
+        this.keyInventoryLabel = null;
     }
 
     preload() {
@@ -82,6 +89,25 @@ class AshenHollow extends Phaser.Scene {
             g.fillStyle(0xffffff, 0.15).fillRect(0, 0, 32, 2);
             g.generateTexture(`p${i}`, 32, 14);
         });
+
+        // Key Pickup
+        g.clear().fillStyle(0xffd54a);
+        g.fillTriangle(12, 0, 24, 12, 12, 24);
+        g.fillTriangle(0, 12, 12, 0, 12, 24);
+        g.fillStyle(0x6b4b14).fillRect(18, 10, 16, 4);
+        g.fillRect(28, 8, 4, 8);
+        g.generateTexture('key', 36, 24);
+
+        // Door: locked / unlocked
+        g.clear().fillStyle(0x5b3a20).fillRect(0, 0, 44, 60);
+        g.fillStyle(0x2b1810).fillRect(6, 8, 32, 46);
+        g.fillStyle(0xffd54a).fillCircle(34, 32, 3);
+        g.generateTexture('doorLocked', 44, 60);
+
+        g.clear().fillStyle(0x5b3a20).fillRect(0, 0, 44, 60);
+        g.fillStyle(0x111111).fillRect(10, 8, 28, 46);
+        g.fillStyle(0x00ffaa, 0.7).fillRect(3, 0, 38, 4);
+        g.generateTexture('doorOpen', 44, 60);
 
         // Hero Sprite
         g.clear().fillStyle(0x00ddff).fillRect(4, 8, 20, 24); // Body
@@ -126,6 +152,7 @@ class AshenHollow extends Phaser.Scene {
 
         // One zone: hand-placed floor + platforms
         this.buildFirstZone();
+        this.buildProgressionObjects();
 
         // UI & Input
         this.createHUD();
@@ -158,18 +185,94 @@ class AshenHollow extends Phaser.Scene {
         });
     }
 
+    buildProgressionObjects() {
+        this.exitDoor = this.physics.add.staticImage(76, CONFIG.H - 44, 'doorLocked').refreshBody();
+        this.keyPickup = this.physics.add.staticImage(1498, 86, 'key').refreshBody();
+
+        this.physics.add.overlap(this.player, this.keyPickup, this.collectKey, null, this);
+        this.physics.add.overlap(this.player, this.exitDoor, this.tryDoorInteraction, null, this);
+    }
+
     createHUD() {
         this.distText = this.add.text(CONFIG.W / 2, 12, 'DIST 0 m', {
             fontSize: '14px', fill: '#00ffff', stroke: '#000', strokeThickness: 3
         }).setScrollFactor(0).setOrigin(0.5, 0);
 
+        this.objectiveText = this.add.text(CONFIG.W / 2, 30, '', {
+            fontSize: '12px', fill: '#ffe082', stroke: '#000', strokeThickness: 3
+        }).setScrollFactor(0).setOrigin(0.5, 0);
+
+        this.statusText = this.add.text(CONFIG.W / 2, CONFIG.H - 24, '', {
+            fontSize: '12px', fill: '#ffffff', stroke: '#000', strokeThickness: 3
+        }).setScrollFactor(0).setOrigin(0.5, 0.5);
+
+        this.keyInventoryLabel = this.add.text(10, 30, 'KEY', {
+            fontSize: '12px', fill: '#ffe082', stroke: '#000', strokeThickness: 3
+        }).setScrollFactor(0).setOrigin(0, 0.5).setVisible(false);
+        this.keyInventoryIcon = this.add.image(48, 30, 'key')
+            .setScale(0.6)
+            .setScrollFactor(0)
+            .setVisible(false);
+
         this.lifeIcons = this.add.group();
         this.updateLifeDisplay();
+        this.refreshObjectiveText();
+        this.refreshInventoryHUD();
 
         // Restart Button
         this.add.text(10, 10, '[ RESTART ]', { fontSize: '12px', fill: '#ff3355' })
             .setScrollFactor(0).setInteractive()
             .on('pointerdown', () => this.scene.restart());
+    }
+
+    refreshObjectiveText() {
+        if (this.doorUnlocked) {
+            this.objectiveText.setText('OBJECTIVE: Return to the open door');
+        } else if (this.hasKey) {
+            this.objectiveText.setText('OBJECTIVE: Bring the key to the left door');
+        } else {
+            this.objectiveText.setText('OBJECTIVE: Reach the high ledge and claim the key');
+        }
+    }
+
+    refreshInventoryHUD() {
+        const showKey = this.hasKey && !this.doorUnlocked;
+        if (this.keyInventoryLabel) this.keyInventoryLabel.setVisible(showKey);
+        if (this.keyInventoryIcon) this.keyInventoryIcon.setVisible(showKey);
+    }
+
+    setStatusMessage(message, frames = 180) {
+        this.statusText.setText(message);
+        this.statusMessageFrames = frames;
+    }
+
+    collectKey() {
+        if (this.hasKey || !this.keyPickup.active) return;
+
+        this.hasKey = true;
+        this.keyPickup.disableBody(true, true);
+        this.refreshObjectiveText();
+        this.refreshInventoryHUD();
+        this.setStatusMessage('KEY ACQUIRED - Return to the left door');
+    }
+
+    tryDoorInteraction() {
+        if (this.doorUnlocked) return;
+
+        if (this.hasKey) {
+            this.hasKey = false;
+            this.doorUnlocked = true;
+            this.exitDoor.setTexture('doorOpen').refreshBody();
+            this.refreshObjectiveText();
+            this.refreshInventoryHUD();
+            this.setStatusMessage('DOOR UNLOCKED - Passage opened');
+            return;
+        }
+
+        if (this.time.now >= this.doorHintCooldownUntil) {
+            this.doorHintCooldownUntil = this.time.now + 1000;
+            this.setStatusMessage('The door is locked. A key waits on the high ledge.', 90);
+        }
     }
 
     setupControls() {
@@ -203,6 +306,11 @@ class AshenHollow extends Phaser.Scene {
 
         // Pit / void death
         if (this.player.y > CONFIG.H + 50) this.handlePlayerDeath();
+
+        if (this.statusMessageFrames > 0) {
+            this.statusMessageFrames--;
+            if (this.statusMessageFrames === 0) this.statusText.setText('');
+        }
     }
 
     handleMovement() {

@@ -101,6 +101,36 @@ function buildFirstZoneLayout(worldWidth = CONFIG.WORLD_WIDTH, tile = 32) {
     return { floorCenters, platformTiles };
 }
 
+function buildProgressionLayout(height = 400) {
+    return {
+        exitDoor: { x: 76, y: height - 44, texture: 'doorLocked' },
+        keyPickup: { x: 1498, y: 86, texture: 'key' }
+    };
+}
+
+function shouldShowInventoryKey(state) {
+    return state.hasKey && !state.doorUnlocked;
+}
+
+function computeProgressionFrame(state) {
+    const next = { ...state };
+
+    if (state.touchingKey && state.keyActive && !state.hasKey) {
+        next.hasKey = true;
+        next.keyActive = false;
+        next.statusMessage = 'KEY ACQUIRED - Return to the left door';
+    } else if (state.touchingDoor && !state.doorUnlocked && state.hasKey) {
+        next.hasKey = false;
+        next.doorUnlocked = true;
+        next.doorTexture = 'doorOpen';
+        next.statusMessage = 'DOOR UNLOCKED - Passage opened';
+    } else if (state.touchingDoor && !state.doorUnlocked && !state.hasKey) {
+        next.statusMessage = 'The door is locked. A key waits on the high ledge.';
+    }
+
+    return next;
+}
+
 // ----- Seeded RNG (must match index.html: this.seed = (this.seed * 16807) % 2147483647; return (this.seed - 1) / 2147483646) -----
 function createRng(initialSeed) {
     let seed = initialSeed;
@@ -383,6 +413,92 @@ function isInPit(mid, pitZones) {
     layout.platformTiles.forEach((tile) => {
         assert(validTints.has(tile.tint), `Unknown platform tint ${tile.tint}`);
     });
+})();
+
+// ========== Progression layout and state tests ==========
+(function testProgressionObjectsAppearAtExpectedPositions() {
+    const layout = buildProgressionLayout();
+    assert.deepStrictEqual(layout.exitDoor, { x: 76, y: 356, texture: 'doorLocked' });
+    assert.deepStrictEqual(layout.keyPickup, { x: 1498, y: 86, texture: 'key' });
+})();
+
+(function testTouchingKeyCollectsIt() {
+    const out = computeProgressionFrame({
+        hasKey: false,
+        keyActive: true,
+        touchingKey: true,
+        touchingDoor: false,
+        doorUnlocked: false,
+        doorTexture: 'doorLocked',
+        statusMessage: ''
+    });
+    assert.strictEqual(out.hasKey, true);
+    assert.strictEqual(out.keyActive, false);
+    assert.strictEqual(out.statusMessage, 'KEY ACQUIRED - Return to the left door');
+})();
+
+(function testInventoryKeyIsVisibleOnlyWhileHeld() {
+    assert.strictEqual(shouldShowInventoryKey({ hasKey: false, doorUnlocked: false }), false);
+    assert.strictEqual(shouldShowInventoryKey({ hasKey: true, doorUnlocked: false }), true);
+    assert.strictEqual(shouldShowInventoryKey({ hasKey: false, doorUnlocked: true }), false);
+})();
+
+(function testDoorStaysLockedWithoutKey() {
+    const out = computeProgressionFrame({
+        hasKey: false,
+        keyActive: true,
+        touchingKey: false,
+        touchingDoor: true,
+        doorUnlocked: false,
+        doorTexture: 'doorLocked',
+        statusMessage: ''
+    });
+    assert.strictEqual(out.doorUnlocked, false);
+    assert.strictEqual(out.doorTexture, 'doorLocked');
+    assert.strictEqual(out.statusMessage, 'The door is locked. A key waits on the high ledge.');
+})();
+
+(function testDoorUnlocksWithKey() {
+    const out = computeProgressionFrame({
+        hasKey: true,
+        keyActive: false,
+        touchingKey: false,
+        touchingDoor: true,
+        doorUnlocked: false,
+        doorTexture: 'doorLocked',
+        statusMessage: ''
+    });
+    assert.strictEqual(out.hasKey, false);
+    assert.strictEqual(out.doorUnlocked, true);
+    assert.strictEqual(out.doorTexture, 'doorOpen');
+    assert.strictEqual(out.statusMessage, 'DOOR UNLOCKED - Passage opened');
+})();
+
+(function testFullKeyDoorLoop() {
+    let state = computeProgressionFrame({
+        hasKey: false,
+        keyActive: true,
+        touchingKey: true,
+        touchingDoor: false,
+        doorUnlocked: false,
+        doorTexture: 'doorLocked',
+        statusMessage: ''
+    });
+    assert.strictEqual(state.hasKey, true);
+    assert.strictEqual(state.keyActive, false);
+
+    state = computeProgressionFrame({
+        hasKey: state.hasKey,
+        keyActive: state.keyActive,
+        touchingKey: false,
+        touchingDoor: true,
+        doorUnlocked: false,
+        doorTexture: 'doorLocked',
+        statusMessage: state.statusMessage
+    });
+    assert.strictEqual(state.hasKey, false);
+    assert.strictEqual(state.doorUnlocked, true);
+    assert.strictEqual(state.doorTexture, 'doorOpen');
 })();
 
 console.log('All game-logic tests passed.');

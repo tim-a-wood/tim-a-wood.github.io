@@ -82,3 +82,13 @@ Manual acceptance tests for the current `index.html` prototype. These are the hi
   2. Observe the distance text while moving.
   3. Lose a life and observe the life icons.
 - **Expected result:** HUD text remains visible, distance updates during movement, and life icons reflect the current life count.
+
+### AT-09 Key Pickup And Door Unlock
+
+- **Description:** Verify the first progression loop works end to end: collect the key on the high ledge, show it in the HUD inventory, then consume it to unlock the left-side door.
+- **Steps:**
+  1. Reach the high ledge and collect the key.
+  2. Confirm a key icon appears in the HUD inventory.
+  3. Return to the locked door on the left.
+  4. Touch the door with the key in inventory.
+- **Expected result:** The key disappears from the world when collected, the HUD shows the key while it is carried, the door unlocks on contact, and the HUD key icon is removed because the key is consumed.
