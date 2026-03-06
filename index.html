@@ -222,8 +222,8 @@ class AshenHollow extends Phaser.Scene {
             this.player.setVelocityX(this.player.body.velocity.x * CONFIG.FRICTION);
         }
 
-        // Jump: first jump from ground, or second jump (double) from air; each consumes one from jumpsRemaining
-        if (jump && onGround && this.jumpsRemaining > 0) {
+        // Jump: first jump only when we have both jumps (avoids Arcade one-frame ground delay burning the second)
+        if (jump && onGround && this.jumpsRemaining === 2) {
             this.player.setVelocityY(CONFIG.JUMP_FORCE);
             this.jumpsRemaining--;
         } else if (jumpJustPressed && !onGround && this.jumpsRemaining > 0) {
