@@ -24,7 +24,7 @@
 
 - **Codebase:** Single `index.html` with Phaser 3; monolithic layout for simplicity and portability.
 - **Gameplay:** **Ashen Hollow** (placeholder dark-fantasy name) — bounded world with one explorable zone: fixed width (1600px), hand-placed floor and platforms, camera and physics bounds. No infinite scroll; no abilities or gates yet.
-- **Tech:** HTML/JS, Phaser 3 (Arcade Physics), texture generation at runtime. No external art assets.
+- **Tech:** HTML/JS, Phaser 3 (Arcade Physics), texture generation at runtime. No external art assets. `manifest.json` is present; service-worker caching is intentionally disabled during rapid iteration on GitHub Pages to avoid stale installs.
 - **Quality:** Unit tests in `./tests/` (RNG/pit helpers retained for possible future procedural terrain); CI via `.github/workflows/test.yml`.
 - **Docs:** `prompts/project_overview.md`, this plan, `README.md`, `tests/README.md`.
 
@@ -38,7 +38,7 @@
 | **M2** | **Bounded world** | ✅ Replace infinite scroll with a fixed, explorable map (rooms or zones) and camera/world bounds. |
 | **M3** | **First ability gate** | One new ability (e.g. double jump or dash) and at least one area/route that requires it. |
 | **M4** | **Backtracking & progression** | Clear loop: gain ability → revisit earlier area → open new path. Save/load or persistent progress (e.g. localStorage). |
-| **M5** | **PWA polish** | Manifest, service worker, installability, and reliable offline/refresh behavior on GitHub Pages. |
+| **M5** | **PWA polish** | Manifest, installability, and later offline/service-worker behavior once the build is stable on GitHub Pages. |
 | **M6** | **Expand content** | Additional abilities, areas, and gates as scope allows. |
 | **M7** | **Combat, bosses & loot** | Combat feel and depth; at least one signature boss fight; unique loot/upgrades that support the dark-fantasy metroidvania pillars. |
 
@@ -64,12 +64,12 @@ These steps are small, independent units of work. Each can be done in one or two
   - **What:** Web app manifest so the app can be installed (e.g. "Add to Home Screen").
   - **Fields to include:** `name`, `short_name`, `icons` (or placeholders), `start_url`, `display: "standalone"`. Use paths that work when deployed (e.g. on GitHub Pages).
   - **Where:** One new file at project root (or a dedicated `public/` if you introduce one). Link from `index.html` via `<link rel="manifest" href="manifest.json">`.
-  - **Scope:** One file only; no refactor of game code. Can be a separate commit from the service worker.
+  - **Scope:** One file only; no refactor of game code.
 
-- [x] **Add minimal service worker**
-  - **What:** Register a service worker that caches `index.html` (and any critical assets) on install so the app is installable and works offline/on refresh.
-  - **Where:** New file (e.g. `sw.js` or `service-worker.js`) at a path that the app can register from. Registration from `index.html` (or main entry script).
-  - **Scope:** Keep it minimal: cache on install, serve from cache when available. No game logic changes. Enables installability and reliable loading; can be extended later for full offline support.
+- [x] **Defer service worker during prototyping**
+  - **What:** Do **not** ship a service worker while gameplay and deployment are changing frequently.
+  - **Why:** Avoid stale cached `index.html` revisions and hard-to-debug install/update issues on GitHub Pages and iPhone home-screen installs.
+  - **When to revisit:** Reintroduce a service worker later in M5 once the build is stable enough to justify offline support and cache management.
 
 ---
 
@@ -124,7 +124,7 @@ You can combine "camera + one zone + bounds" in one or two small steps if prefer
 |-------|------|-----|
 | 1 | Naming decision + apply | Quick, avoids confusion as you add features. |
 | 2 | `manifest.json` | One file, no refactor, moves you toward PWA (M5). |
-| 3 | Minimal service worker | Makes the app installable; independent of game design. |
+| 3 | Defer service worker | Keeps GitHub Pages and iPhone installs loading the latest build during rapid iteration. |
 | 4 | Camera + world bounds + one zone | Core of M2; enables "explorable map" instead of infinite runner. |
 | 5 | First ability | Unlocks M3. |
 | 6 | First gate | Completes "ability-gated progression" for one place. |

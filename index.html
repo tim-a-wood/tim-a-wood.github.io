@@ -286,8 +286,8 @@ class AshenHollow extends Phaser.Scene {
     }
 }
 
-// Temporary cache reset: aggressively clear old PWA/service-worker state so
-// iPhone installs stop serving a stale index.html after repeated iterations.
+// One-time cleanup: remove any previously installed service workers and caches.
+// The project currently ships without a service worker to avoid stale GitHub Pages builds during rapid iteration.
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', async () => {
     try {

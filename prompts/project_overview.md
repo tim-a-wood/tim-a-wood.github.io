@@ -31,6 +31,7 @@ This project is a **metroidvania** game developed as a web-based PWA. It is buil
 
 - **Rapid prototyping** using standard web technologies: **HTML**, **JavaScript**, and related web APIs.
 - **Hosting:** Deployed as a **Progressive Web App (PWA)** via **GitHub Pages** for easy sharing and installable experience.
+- **Caching policy:** During rapid prototyping on GitHub Pages, the project intentionally ships **without a service worker** to avoid stale cached builds on devices. Service-worker-based offline caching can be reintroduced later when the build is more stable.
 
 ---
 
