@@ -57,7 +57,8 @@ const CONFIG = {
 
 const ROOM_LAYOUT = {
     TILE: 32,
-    LEFT_DOORWAY_TOP: 1150,
+    /** Top of left-side doorway (wall stops above this). With TILE 32, opening starts at last tile bottom; use 1120 so opening aligns with door top when door center is 1162. */
+    LEFT_DOORWAY_TOP: 1120,
     /** 'internal' = walls/ceiling on closed edges, doors-only entry; 'outdoor' = no boundary walls, open passage unless blocked */
     roomType: 'internal'
 };
@@ -256,7 +257,7 @@ class AshenHollow extends Phaser.Scene {
     }
 
     buildProgressionObjects() {
-        this.exitDoor = this.physics.add.staticImage(224, 1166, 'doorLocked').refreshBody();
+        this.exitDoor = this.physics.add.staticImage(224, 1162, 'doorLocked').refreshBody();
         this.keyPickup = this.physics.add.staticImage(1498, 86, 'key').refreshBody();
         this.relicPickup = this.physics.add.staticImage(368, 1092, 'relic').refreshBody();
 

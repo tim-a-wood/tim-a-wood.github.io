@@ -18,7 +18,7 @@ const CONFIG = {
 
 const ROOM_LAYOUT = {
     TILE: 32,
-    LEFT_DOORWAY_TOP: 1150,
+    LEFT_DOORWAY_TOP: 1120,
     roomType: 'internal'
 };
 
@@ -146,7 +146,7 @@ function buildFirstZoneLayout(worldWidth = CONFIG.WORLD_WIDTH, tile = ROOM_LAYOU
 
 function buildProgressionLayout(height = 400) {
     return {
-        exitDoor: { x: 224, y: 1166, texture: 'doorLocked' },
+        exitDoor: { x: 224, y: 1162, texture: 'doorLocked' },
         keyPickup: { x: 1498, y: 86, texture: 'key' },
         relicPickup: { x: 368, y: 1092, texture: 'relic' }
     };
@@ -489,7 +489,7 @@ function isInPit(mid, pitZones) {
 
 (function testFirstZoneCreatesBoundaryWallsAtClosedEdges() {
     const layout = buildFirstZoneLayout();
-    assert.strictEqual(layout.wallTiles.length, 121);
+    assert.strictEqual(layout.wallTiles.length, 120);
     assert.deepStrictEqual(layout.wallTiles[0], { x: 16, y: 16, texture: 'floor' });
     assert.deepStrictEqual(layout.wallTiles[49], { x: 1584, y: 16, texture: 'floor' });
 })();
@@ -497,9 +497,9 @@ function isInPit(mid, pitZones) {
 (function testLeftEdgeStaysOpenOnlyForDoorCorridor() {
     const layout = buildFirstZoneLayout();
     const leftWallTiles = layout.wallTiles.filter((tile) => tile.x === 16 && tile.y > 16);
-    assert.strictEqual(leftWallTiles.length, 35);
+    assert.strictEqual(leftWallTiles.length, 34);
     assert.deepStrictEqual(leftWallTiles[0], { x: 16, y: 48, texture: 'floor' });
-    assert.deepStrictEqual(leftWallTiles[leftWallTiles.length - 1], { x: 16, y: 1136, texture: 'floor' });
+    assert.deepStrictEqual(leftWallTiles[leftWallTiles.length - 1], { x: 16, y: 1104, texture: 'floor' });
 })();
 
 (function testOutdoorRoomHasNoBoundaryWalls() {
@@ -544,7 +544,7 @@ function isInPit(mid, pitZones) {
 // ========== Progression layout and state tests ==========
 (function testProgressionObjectsAppearAtExpectedPositions() {
     const layout = buildProgressionLayout();
-    assert.deepStrictEqual(layout.exitDoor, { x: 224, y: 1166, texture: 'doorLocked' });
+    assert.deepStrictEqual(layout.exitDoor, { x: 224, y: 1162, texture: 'doorLocked' });
     assert.deepStrictEqual(layout.keyPickup, { x: 1498, y: 86, texture: 'key' });
     assert.deepStrictEqual(layout.relicPickup, { x: 368, y: 1092, texture: 'relic' });
 })();
