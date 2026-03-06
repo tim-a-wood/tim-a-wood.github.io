@@ -83,7 +83,7 @@ function buildFirstZoneLayout(worldWidth = CONFIG.WORLD_WIDTH, tile = 32) {
     }
 
     const ledges = [
-        { x: 0, y: 284, len: 5, tint: 0 },
+        { x: 0, y: 284, len: 8, tint: 0 },
         { x: 320, y: 280, len: 2, tint: 0 },
         { x: 520, y: 220, len: 3, tint: 1 },
         { x: 800, y: 260, len: 2, tint: 2 },
@@ -104,7 +104,7 @@ function buildFirstZoneLayout(worldWidth = CONFIG.WORLD_WIDTH, tile = 32) {
 
 function buildProgressionLayout(height = 400) {
     return {
-        exitDoor: { x: 28, y: 326, texture: 'doorLocked' },
+        exitDoor: { x: 224, y: 326, texture: 'doorLocked' },
         keyPickup: { x: 1498, y: 86, texture: 'key' }
     };
 }
@@ -393,7 +393,7 @@ function isInPit(mid, pitZones) {
 
 (function testFirstZoneCreatesExpectedFloatingPlatforms() {
     const layout = buildFirstZoneLayout();
-    assert.strictEqual(layout.platformTiles.length, 21);
+    assert.strictEqual(layout.platformTiles.length, 24);
     assert.deepStrictEqual(layout.platformTiles[0], { x: 16, y: 284, tint: 'p0' });
     assert.deepStrictEqual(layout.platformTiles[layout.platformTiles.length - 1], { x: 1530, y: 120, tint: 'p1' });
 })();
@@ -406,7 +406,10 @@ function isInPit(mid, pitZones) {
         { x: 48, y: 284, tint: 'p0' },
         { x: 80, y: 284, tint: 'p0' },
         { x: 112, y: 284, tint: 'p0' },
-        { x: 144, y: 284, tint: 'p0' }
+        { x: 144, y: 284, tint: 'p0' },
+        { x: 176, y: 284, tint: 'p0' },
+        { x: 208, y: 284, tint: 'p0' },
+        { x: 240, y: 284, tint: 'p0' }
     ]);
 })();
 
@@ -432,7 +435,7 @@ function isInPit(mid, pitZones) {
 // ========== Progression layout and state tests ==========
 (function testProgressionObjectsAppearAtExpectedPositions() {
     const layout = buildProgressionLayout();
-    assert.deepStrictEqual(layout.exitDoor, { x: 28, y: 326, texture: 'doorLocked' });
+    assert.deepStrictEqual(layout.exitDoor, { x: 224, y: 326, texture: 'doorLocked' });
     assert.deepStrictEqual(layout.keyPickup, { x: 1498, y: 86, texture: 'key' });
 })();
 
