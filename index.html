@@ -32,7 +32,7 @@
  *    this.make.graphics() during the preload/create phase to ensure 0ms latency.
  * * GLOBAL STATE (this.*):
  * - .inputState: Object tracking active touch/button inputs for physics polling.
- * - .doubleJumpAvailable: true when a mid-air jump can be used; refilled on land, consumed on double jump.
+ * - .jumpsRemaining: number of jumps allowed in current flight (2 = can double jump). Refilled to 2 when solidly on ground; decremented each time a jump is applied.
  * - .jumpWasDownLastFrame: used to detect "jump just pressed" for double jump (so holding jump doesn't burn it).
  */
 
@@ -58,7 +58,7 @@ class AshenHollow extends Phaser.Scene {
         this.isGameOver = false;
         this.trailPts = [];
         this.inputState = { left: false, right: false, jump: false };
-        this.doubleJumpAvailable = true; // refilled on land, consumed on mid-air jump
+        this.jumpsRemaining = 2; // max jumps per flight; refill when solidly on ground
         this.jumpWasDownLastFrame = false; // for "jump just pressed" so double jump requires a new press
     }
 
@@ -211,7 +211,8 @@ class AshenHollow extends Phaser.Scene {
             (this.spaceKey && this.spaceKey.justDown) ||
             (this.inputState.jump && !this.jumpWasDownLastFrame);
 
-        if (onGround) this.doubleJumpAvailable = true;
+        // Refill jump count only when solidly on ground (not moving up), so we don't reset the frame after first jump
+        if (onGround && this.player.body.velocity.y >= 0) this.jumpsRemaining = 2;
 
         if (left) {
             this.player.setVelocityX(-CONFIG.PLAYER_SPEED).setFlipX(true);
@@ -221,13 +222,13 @@ class AshenHollow extends Phaser.Scene {
             this.player.setVelocityX(this.player.body.velocity.x * CONFIG.FRICTION);
         }
 
-        // In-air for double jump: not on ground OR moving up (Arcade can keep blocked.down true one frame after jump)
-        const inAirForDoubleJump = !onGround || this.player.body.velocity.y < 0;
-        if (jump && onGround) {
+        // Jump: first jump from ground, or second jump (double) from air; each consumes one from jumpsRemaining
+        if (jump && onGround && this.jumpsRemaining > 0) {
             this.player.setVelocityY(CONFIG.JUMP_FORCE);
-        } else if (jumpJustPressed && inAirForDoubleJump && this.doubleJumpAvailable) {
-            this.player.setVelocityY(CONFIG.JUMP_FORCE); // same height as first jump for consistent feel
-            this.doubleJumpAvailable = false;
+            this.jumpsRemaining--;
+        } else if (jumpJustPressed && !onGround && this.jumpsRemaining > 0) {
+            this.player.setVelocityY(CONFIG.JUMP_FORCE);
+            this.jumpsRemaining--;
         }
 
         this.jumpWasDownLastFrame = jump;
