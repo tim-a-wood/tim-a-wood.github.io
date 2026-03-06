@@ -34,6 +34,7 @@
  * - .inputState: Object tracking active touch/button inputs for physics polling.
  * - .jumpsRemaining: number of jumps allowed in current flight (2 = can double jump). Refilled to 2 when solidly on ground; decremented each time a jump is applied.
  * - .jumpWasDownLastFrame: used to detect "jump just pressed" for double jump (so holding jump doesn't burn it).
+ * - .jumpBuffer: frames remaining to accept a mid-air jump press (makes double jump feel responsive).
  */
 
 const CONFIG = {
@@ -60,6 +61,7 @@ class AshenHollow extends Phaser.Scene {
         this.inputState = { left: false, right: false, jump: false };
         this.jumpsRemaining = 2; // max jumps per flight; refill when solidly on ground
         this.jumpWasDownLastFrame = false; // for "jump just pressed" so double jump requires a new press
+        this.jumpBuffer = 0; // frames to accept mid-air jump (so second tap reliably triggers hop)
     }
 
     preload() {
@@ -204,7 +206,7 @@ class AshenHollow extends Phaser.Scene {
     handleMovement() {
         const onGround = this.player.body.blocked.down;
         const velocityY = this.player.body.velocity.y;
-        // In-air for double jump: not on ground OR moving up (covers Arcade one-frame delay where blocked.down is still true after leave)
+        // In-air for double jump: not on ground OR moving up (covers Arcade one-frame delay). Logic mirrored in tests/game-logic.test.js computeJumpFrame().
         const inAir = !onGround || velocityY < 0;
         const left = this.inputState.left || this.cursors.left.isDown;
         const right = this.inputState.right || this.cursors.right.isDown;
@@ -213,6 +215,10 @@ class AshenHollow extends Phaser.Scene {
         const jumpJustPressed = (this.cursors.up && this.cursors.up.justDown) ||
             (this.spaceKey && this.spaceKey.justDown) ||
             (this.inputState.jump && !this.jumpWasDownLastFrame);
+
+        // Buffer: when player presses jump, remember for a few frames so mid-air hop is easy to trigger
+        if (jumpJustPressed) this.jumpBuffer = 5;
+        if (this.jumpBuffer > 0) this.jumpBuffer--;
 
         // Refill jump count only when solidly on ground (not moving up), so we don't reset the frame after first jump
         if (onGround && velocityY >= 0) this.jumpsRemaining = 2;
@@ -229,9 +235,12 @@ class AshenHollow extends Phaser.Scene {
         if (jump && onGround && this.jumpsRemaining === 2) {
             this.player.setVelocityY(CONFIG.JUMP_FORCE);
             this.jumpsRemaining--;
-        } else if (jumpJustPressed && inAir && this.jumpsRemaining > 0) {
+            this.jumpBuffer = 0; // don't carry buffer into air so holding jump doesn't auto double-jump
+        } else if ((jumpJustPressed || this.jumpBuffer > 0) && inAir && this.jumpsRemaining > 0) {
+            // Mid-air hop: apply full jump force so the character clearly hops up
             this.player.setVelocityY(CONFIG.JUMP_FORCE);
             this.jumpsRemaining--;
+            this.jumpBuffer = 0; // consume buffer so we don't double-apply
         }
 
         this.jumpWasDownLastFrame = jump;

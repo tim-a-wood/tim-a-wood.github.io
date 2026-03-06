@@ -2,7 +2,7 @@
 
 Unit tests for the metroidvania PWA. Game logic lives in `index.html`; these tests duplicate deterministic algorithms to verify behavior without loading Phaser.
 
-**Keep in sync:** When changing the RNG or pit-zone logic in `index.html`, update the corresponding logic in `tests/game-logic.test.js`.
+**Keep in sync:** When changing the RNG, pit-zone, or **double-jump** logic in `index.html`, update the corresponding logic in `tests/game-logic.test.js`. Double-jump is covered by `computeJumpFrame()` and the "Double-jump tests" section.
 
 ## Run
 
