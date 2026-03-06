@@ -286,10 +286,21 @@ class AshenHollow extends Phaser.Scene {
     }
 }
 
-// PWA: register service worker for installability and caching
+// Temporary cache reset: aggressively clear old PWA/service-worker state so
+// iPhone installs stop serving a stale index.html after repeated iterations.
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js').catch(() => {});
+  window.addEventListener('load', async () => {
+    try {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(registrations.map((registration) => registration.unregister()));
+    } catch (_) {}
+
+    if ('caches' in window) {
+      try {
+        const cacheKeys = await caches.keys();
+        await Promise.all(cacheKeys.map((key) => caches.delete(key)));
+      } catch (_) {}
+    }
   });
 }
 
