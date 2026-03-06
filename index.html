@@ -25,28 +25,28 @@ height:100dvh;
 }
 
 #debug-overlay{
-position:absolute;
-top:8px;
-left:8px;
-max-width:92%;
-max-height:180px;
+position:fixed !important;
+top:0 !important;
+left:0 !important;
+width:300px;
+max-height:200px;
 overflow:auto;
 pointer-events:none;
-z-index:9999;
+z-index:2147483647;
 padding:10px;
 font-size:14px;
-line-height:1.35;
+line-height:1.3;
 color:#fff;
-background:rgba(0,0,0,0.88);
+background:#000;
 font-family:monospace;
 white-space:pre-wrap;
-word-break:break-all;
-border:2px solid #0f0;
+border:3px solid red;
 }
 </style>
 </head>
 
 <body>
+<div id="debug-overlay">DEBUG</div>
 <div id="game-container"></div>
 
 <script>
@@ -89,7 +89,7 @@ g.clear()
 create(){
 
 this.jumpCount=0;
-this.jumpWasDownLastFrame=false;
+this.jumpCooldownFrames=0;
 
 this.physics.world.setBounds(0,0,CONFIG.WORLD_WIDTH,CONFIG.H);
 
@@ -119,12 +119,7 @@ this.physics.add.collider(this.player,this.platforms,this.onLand,null,this);
 this.cameras.main.startFollow(this.player,true,0.1,0.1);
 
 this.debugTryJumpLog=[];
-const container=document.getElementById("game-container");
-const overlay=document.createElement("div");
-overlay.id="debug-overlay";
-overlay.textContent="DEBUG loading...";
-container.appendChild(overlay);
-this.debugOverlay=overlay;
+this.debugOverlay=document.getElementById("debug-overlay");
 
 this.cursors=this.input.keyboard.createCursorKeys();
 this.spaceKey=this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
@@ -212,22 +207,22 @@ const onGround=this.player.body.blocked.down&&this.player.body.velocity.y>=0;
 if(onGround){
 this.jumpCount=0;
 }
+if(this.jumpCooldownFrames>0)this.jumpCooldownFrames--;
 
 const jumpDown=this.inputState.jump||this.cursors.up.isDown||this.spaceKey.isDown;
-const jumpJustPressed=jumpDown&&!this.jumpWasDownLastFrame;
-const keyboardJumpJustPressed=Phaser.Input.Keyboard.JustDown(this.cursors.up)||Phaser.Input.Keyboard.JustDown(this.spaceKey);
-if(jumpJustPressed||keyboardJumpJustPressed){
+const canJump=this.jumpCooldownFrames<=0&&this.jumpCount<2;
+if(jumpDown&&canJump){
 this.tryJump();
+this.jumpCooldownFrames=14;
 }
-this.jumpWasDownLastFrame=jumpDown;
 
 const logTail=this.debugTryJumpLog.slice(-6).join(" | ");
 const debugStr=
 "jumpCount="+this.jumpCount+
+" cooldown="+this.jumpCooldownFrames+
 " onGr="+onGround+
-" b.down="+this.player.body.blocked.down+
 " velY="+Math.round(this.player.body.velocity.y)+
-"\njump="+jumpDown+" just="+(jumpJustPressed||keyboardJumpJustPressed)+" last="+this.jumpWasDownLastFrame+
+"\njumpDown="+jumpDown+" canJump="+canJump+
 "\n"+logTail;
 if(this.debugOverlay)this.debugOverlay.textContent=debugStr;
 
