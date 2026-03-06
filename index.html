@@ -221,9 +221,11 @@ class AshenHollow extends Phaser.Scene {
             this.player.setVelocityX(this.player.body.velocity.x * CONFIG.FRICTION);
         }
 
+        // In-air for double jump: not on ground OR moving up (Arcade can keep blocked.down true one frame after jump)
+        const inAirForDoubleJump = !onGround || this.player.body.velocity.y < 0;
         if (jump && onGround) {
             this.player.setVelocityY(CONFIG.JUMP_FORCE);
-        } else if (jumpJustPressed && !onGround && this.doubleJumpAvailable) {
+        } else if (jumpJustPressed && inAirForDoubleJump && this.doubleJumpAvailable) {
             this.player.setVelocityY(CONFIG.JUMP_FORCE); // same height as first jump for consistent feel
             this.doubleJumpAvailable = false;
         }
