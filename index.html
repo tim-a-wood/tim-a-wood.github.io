@@ -20,9 +20,9 @@ const CONFIG = {
     W: 800,
     H: 400,
     WORLD_WIDTH: 1600,
-    GRAVITY: 1600,       // Slightly higher gravity for tighter feel
+    GRAVITY: 1600,
     PLAYER_SPEED: 300,
-    JUMP_FORCE: -650,    // Stronger jump to fight gravity
+    JUMP_FORCE: -680,
     FRICTION: 0.8,
     COLORS: [0x2a3a5a, 0x3a2a5a, 0x2a4a3a, 0x4a3a2a, 0x2a4050]
 };
@@ -36,9 +36,8 @@ class AshenHollow extends Phaser.Scene {
         this.lives = 3;
         this.isGameOver = false;
         this.trailPts = [];
-        this.inputState = { left: false, right: false, jump: false };
+        this.inputState = { left: false, right: false };
         this.jumpsRemaining = 2;
-        this.jumpWasDownLastFrame = false;
     }
 
     preload() {
@@ -47,35 +46,28 @@ class AshenHollow extends Phaser.Scene {
 
     generateAssetTextures() {
         const g = this.make.graphics({ x: 0, y: 0, add: false });
-        
-        // Floor
         g.fillStyle(0x334466).fillRect(0, 0, 32, 32);
         g.fillStyle(0xffffff, 0.15).fillRect(0, 0, 32, 2);
         g.generateTexture('floor', 32, 32);
 
-        // Platforms
         CONFIG.COLORS.forEach((color, i) => {
             g.clear().fillStyle(color).fillRect(0, 0, 32, 14);
             g.fillStyle(0xffffff, 0.15).fillRect(0, 0, 32, 2);
             g.generateTexture(`p${i}`, 32, 14);
         });
 
-        // Hero
         g.clear().fillStyle(0x00ddff).fillRect(4, 8, 20, 24);
         g.fillStyle(0xff00bb).fillRect(8, 10, 12, 8);
         g.fillStyle(0x007799).fillRect(4, 32, 8, 8);
         g.fillStyle(0x007799).fillRect(16, 32, 8, 8);
         g.generateTexture('hero', 28, 40);
         
-        // Jump Particle
         g.clear().fillStyle(0x00ffff, 0.8).fillRect(0, 0, 4, 4);
         g.generateTexture('part', 4, 4);
 
-        // UI
         g.clear().fillStyle(0xffffff, 0.13).fillCircle(40, 40, 40);
         g.generateTexture('btn', 80, 80);
 
-        // Stars
         g.clear();
         for (let i = 0; i < 100; i++) {
             g.fillStyle(0xffffff, 0.4 + Math.random() * 0.6);
@@ -98,7 +90,6 @@ class AshenHollow extends Phaser.Scene {
         this.player.setCollideWorldBounds(true);
         this.physics.add.collider(this.player, this.platforms);
 
-        // Particle Emitter for Jump
         this.jumpParticles = this.add.particles(0, 0, 'part', {
             speed: { min: 50, max: 150 },
             angle: { min: 0, max: 360 },
@@ -147,46 +138,67 @@ class AshenHollow extends Phaser.Scene {
 
     setupControls() {
         this.cursors = this.input.keyboard.createCursorKeys();
-        this.spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+        
+        // Keyboard Jump
+        this.input.keyboard.on('keydown-UP', () => this.executeJump());
+        this.input.keyboard.on('keydown-SPACE', () => this.executeJump());
 
-        const spawnBtn = (x, y, label, action) => {
+        // Left/Right Button Logic
+        const makeBtn = (x, y, label, action) => {
             const btn = this.add.image(x, y, 'btn').setScrollFactor(0).setInteractive().setAlpha(0.6);
-            this.add.text(x, y, label, { fontSize: '24px' }).setOrigin(0.5).setScrollFactor(0);
-            
-            btn.on('pointerdown', () => this.inputState[action] = true);
-            btn.on('pointerup', () => this.inputState[action] = false);
-            btn.on('pointerout', () => this.inputState[action] = false);
+            this.add.text(x, y, label, { fontSize: '32px' }).setOrigin(0.5).setScrollFactor(0);
+            btn.on('pointerdown', () => { this.inputState[action] = true; btn.setAlpha(0.9); });
+            btn.on('pointerup', () => { this.inputState[action] = false; btn.setAlpha(0.6); });
+            btn.on('pointerout', () => { this.inputState[action] = false; btn.setAlpha(0.6); });
         };
 
-        spawnBtn(60, 340, '<', 'left');
-        spawnBtn(160, 340, '>', 'right');
-        spawnBtn(740, 340, '^', 'jump');
+        // Separate Jump Button with distinct "Down" event
+        const jumpBtn = this.add.image(740, 340, 'btn').setScrollFactor(0).setInteractive().setAlpha(0.6);
+        this.add.text(740, 340, '^', { fontSize: '40px' }).setOrigin(0.5).setScrollFactor(0);
+        jumpBtn.on('pointerdown', () => {
+            this.executeJump();
+            jumpBtn.setAlpha(0.9);
+        });
+        jumpBtn.on('pointerup', () => jumpBtn.setAlpha(0.6));
+
+        makeBtn(60, 340, '<', 'left');
+        makeBtn(180, 340, '>', 'right');
+    }
+
+    executeJump() {
+        if (this.isGameOver) return;
+
+        const onGround = this.player.body.blocked.down;
+        
+        // Reset jump count if on ground before jumping
+        if (onGround) this.jumpsRemaining = 2;
+
+        if (this.jumpsRemaining > 0) {
+            // Spend a jump
+            this.jumpsRemaining--;
+            
+            // Apply force
+            this.player.setVelocityY(CONFIG.JUMP_FORCE);
+            
+            // Visuals
+            this.jumpParticles.emitParticleAt(this.player.x, this.player.y + 15, 10);
+            this.player.setTint(0x00ffff);
+            this.time.delayedCall(100, () => this.player.clearTint());
+        }
     }
 
     update() {
         if (this.isGameOver) return;
-        this.handleMovement();
-        this.drawMotionTrail();
-        this.starField.tilePositionX = this.player.x * 0.15;
-        this.distText.setText(`DIST ${Math.floor(this.player.x / 10)} m`);
-        if (this.player.y > CONFIG.H + 50) this.handlePlayerDeath();
-    }
-
-    handleMovement() {
-        const onGround = this.player.body.blocked.down;
-        const left = this.inputState.left || this.cursors.left.isDown;
-        const right = this.inputState.right || this.cursors.right.isDown;
-        const jumpIsDown = this.inputState.jump || this.cursors.up.isDown || this.spaceKey.isDown;
-
-        // "Just Pressed" - True only on the frame the button goes down
-        const jumpJustPressed = jumpIsDown && !this.jumpWasDownLastFrame;
-
-        // Reset jumps on ground - only if not currently moving up from a jump
-        if (onGround && this.player.body.velocity.y >= 0) {
+        
+        // Grounded check for reset (catches walking off ledges)
+        if (this.player.body.blocked.down && this.player.body.velocity.y >= 0) {
             this.jumpsRemaining = 2;
         }
 
-        // Horizontal
+        // Horizontal Movement
+        const left = this.inputState.left || this.cursors.left.isDown;
+        const right = this.inputState.right || this.cursors.right.isDown;
+
         if (left) {
             this.player.setVelocityX(-CONFIG.PLAYER_SPEED).setFlipX(true);
         } else if (right) {
@@ -195,25 +207,10 @@ class AshenHollow extends Phaser.Scene {
             this.player.setVelocityX(this.player.body.velocity.x * CONFIG.FRICTION);
         }
 
-        // Jump Execution
-        if (jumpJustPressed && this.jumpsRemaining > 0) {
-            // If airborne (e.g. falling off a ledge), consume first jump immediately
-            if (!onGround && this.jumpsRemaining === 2) {
-                this.jumpsRemaining = 1;
-            } else {
-                this.jumpsRemaining--;
-            }
-
-            // Reset Y velocity so falling speed doesn't weaken the jump
-            this.player.setVelocityY(CONFIG.JUMP_FORCE);
-
-            // Visual Burst
-            this.jumpParticles.emitParticleAt(this.player.x, this.player.y + 10, 8);
-            this.player.setAlpha(0.7);
-            this.time.delayedCall(100, () => this.player.setAlpha(1));
-        }
-
-        this.jumpWasDownLastFrame = jumpIsDown;
+        this.drawMotionTrail();
+        this.starField.tilePositionX = this.player.x * 0.15;
+        this.distText.setText(`DIST ${Math.floor(this.player.x / 10)} m`);
+        if (this.player.y > CONFIG.H + 50) this.handlePlayerDeath();
     }
 
     handlePlayerDeath() {
