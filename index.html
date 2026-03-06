@@ -97,6 +97,9 @@ this.physics.add.collider(this.player,this.platforms,this.onLand,null,this);
 
 this.cameras.main.startFollow(this.player,true,0.1,0.1);
 
+this.debugText=this.add.text(10,60,"",{fontSize:"12px",fill:"#00ff00"}).setScrollFactor(0).setDepth(1000);
+this.debugTryJumpLog=[];
+
 this.cursors=this.input.keyboard.createCursorKeys();
 this.spaceKey=this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
 
@@ -123,15 +126,19 @@ const b=this.add.image(x,y,"btn")
 
 b.on("pointerdown",()=>{
 this.inputState[act]=true;
+if(act==="jump"){this.debugTryJumpLog.push("BTN down");if(this.debugTryJumpLog.length>20)this.debugTryJumpLog.shift();}
 });
 
 b.on("pointerup",()=>{
 this.inputState[act]=false;
+if(act==="jump"){this.debugTryJumpLog.push("BTN up");if(this.debugTryJumpLog.length>20)this.debugTryJumpLog.shift();}
 });
 
+if(act!=="jump"){
 b.on("pointerout",()=>{
 this.inputState[act]=false;
 });
+}
 
 }
 
@@ -145,7 +152,8 @@ makeBtn(720,320,"jump");
 
 tryJump(){
 
-if(this.jumpCount < 2){
+const didApply=this.jumpCount<2;
+if(didApply){
 
 this.player.setVelocityY(CONFIG.JUMP_FORCE);
 
@@ -160,6 +168,13 @@ this.player.clearTint();
 }
 
 this.jumpCount++;
+this.debugTryJumpLog.push("tryJump APPLIED #"+this.jumpCount);
+if(this.debugTryJumpLog.length>20)this.debugTryJumpLog.shift();
+
+}else{
+
+this.debugTryJumpLog.push("tryJump BLOCKED (jumpCount="+this.jumpCount+")");
+if(this.debugTryJumpLog.length>20)this.debugTryJumpLog.shift();
 
 }
 
@@ -179,6 +194,16 @@ if(jumpJustPressed||keyboardJumpJustPressed){
 this.tryJump();
 }
 this.jumpWasDownLastFrame=jumpDown;
+
+const logTail=this.debugTryJumpLog.slice(-6).join(" | ");
+this.debugText.setText(
+"jumpCount="+this.jumpCount+
+" onGr="+onGround+
+" blocked.down="+this.player.body.blocked.down+
+" velY="+Math.round(this.player.body.velocity.y)+
+"\njumpDown="+jumpDown+" justPressed="+(jumpJustPressed||keyboardJumpJustPressed)+" last="+this.jumpWasDownLastFrame+
+"\n"+logTail
+);
 
 const speed=CONFIG.PLAYER_SPEED;
 
