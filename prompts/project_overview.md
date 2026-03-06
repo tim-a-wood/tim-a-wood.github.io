@@ -9,7 +9,21 @@ This project is a **metroidvania** game developed as a web-based PWA. It is buil
 ## 1. Game & Scope
 
 - **Genre:** Metroidvania (exploration, backtracking, ability-gated progression).
+- **Theme:** **Dark fantasy** — atmospheric, moody worldbuilding with a tone that fits the exploration and combat focus.
 - **Development model:** The game will **grow incrementally**—features, areas, and mechanics are added over time rather than built in one shot.
+
+### Design Pillars (game direction)
+
+- **Combat** — Engaging, responsive combat is a core focus (attacks, hitboxes, telegraphs, variety in encounters).
+- **Smooth movement & platforming** — Tight controls, satisfying jumps, dashes, and traversal; platforming that feels good and supports exploration.
+- **Boss fights** — Memorable, well-telegraphed bosses with distinct patterns and phases; boss encounters are a key part of the experience.
+- **Maze-like dungeon crawling** — Interconnected areas, shortcuts, and winding paths that reward exploration and backtracking; environments feel like dungeons and labyrinths rather than linear corridors.
+- **Unique loot** — Meaningful finds: upgrades, abilities, or items that change how the player moves, fights, or explores (not just stat bumps).
+
+### Inspirations
+
+- **Hollow Knight** — Atmosphere, interconnected world, combat feel, and boss design.
+- **Prince of Persia: The Lost Crown** — Snappy movement, platforming, and time/ability-based puzzle-platforming in a metroidvania structure.
 
 ---
 
