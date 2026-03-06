@@ -29,11 +29,13 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
-  const isPrecached = PRECACHE_URLS.some((u) => url.href === u || (url.pathname === '/' && u === 'index.html'));
+  const isRoot = url.origin === self.location.origin && (url.pathname === '/' || url.pathname === '' || url.pathname.endsWith('/'));
+  const isPrecached = PRECACHE_URLS.some((u) => url.href === u) || isRoot;
   if (!isPrecached) {
     return;
   }
+  const cacheRequest = isRoot ? 'index.html' : event.request;
   event.respondWith(
-    caches.match(event.request).then((cached) => cached || fetch(event.request))
+    caches.match(cacheRequest).then((cached) => cached || fetch(event.request))
   );
 });

@@ -23,9 +23,9 @@
 ## Current State (as of plan creation)
 
 - **Codebase:** Single `index.html` with Phaser 3; monolithic layout for simplicity and portability.
-- **Gameplay:** "Neon Drifter Infinite" — procedural infinite runner (forward scroll, pits, platforms, jump/run). Not yet metroidvania (no bounded world, abilities, or gates).
-- **Tech:** HTML/JS, Phaser 3 (Arcade Physics), deterministic seeded RNG, texture generation at runtime. No external art assets.
-- **Quality:** Unit tests in `./tests/` for RNG and pit-zone logic; CI via `.github/workflows/test.yml`.
+- **Gameplay:** **Ashen Hollow** (placeholder dark-fantasy name) — bounded world with one explorable zone: fixed width (1600px), hand-placed floor and platforms, camera and physics bounds. No infinite scroll; no abilities or gates yet.
+- **Tech:** HTML/JS, Phaser 3 (Arcade Physics), texture generation at runtime. No external art assets.
+- **Quality:** Unit tests in `./tests/` (RNG/pit helpers retained for possible future procedural terrain); CI via `.github/workflows/test.yml`.
 - **Docs:** `prompts/project_overview.md`, this plan, `README.md`, `tests/README.md`.
 
 ---
@@ -35,7 +35,7 @@
 | # | Milestone | Description |
 |---|-----------|-------------|
 | **M1** | **Playable prototype** | ✅ Current: infinite runner with movement, procedural terrain, lives, restart. |
-| **M2** | **Bounded world** | Replace infinite scroll with a fixed, explorable map (rooms or zones) and camera/world bounds. |
+| **M2** | **Bounded world** | ✅ Replace infinite scroll with a fixed, explorable map (rooms or zones) and camera/world bounds. |
 | **M3** | **First ability gate** | One new ability (e.g. double jump or dash) and at least one area/route that requires it. |
 | **M4** | **Backtracking & progression** | Clear loop: gain ability → revisit earlier area → open new path. Save/load or persistent progress (e.g. localStorage). |
 | **M5** | **PWA polish** | Manifest, service worker, installability, and reliable offline/refresh behavior on GitHub Pages. |
@@ -50,7 +50,7 @@ These steps are small, independent units of work. Each can be done in one or two
 
 ### 1. Naming / branding (low risk)
 
-- [ ] **Decide and apply title**
+- [x] **Decide and apply title**
   - **What:** Choose whether to keep "Neon Drifter Infinite" or rename (e.g. drop "Infinite", or adopt a new dark-fantasy name). Apply the decision everywhere the title appears.
   - **Where:** `index.html` (e.g. `<title>`, any visible heading or splash text), and any docs (README, overview) that reference the game name.
   - **How:** Single find/replace or manual edit so the visible title and comments match the decision. No gameplay or logic changes.
@@ -60,13 +60,13 @@ These steps are small, independent units of work. Each can be done in one or two
 
 ### 2. PWA basics (M5 — can be done early and independently)
 
-- [ ] **Add `manifest.json`**
+- [x] **Add `manifest.json`**
   - **What:** Web app manifest so the app can be installed (e.g. "Add to Home Screen").
   - **Fields to include:** `name`, `short_name`, `icons` (or placeholders), `start_url`, `display: "standalone"`. Use paths that work when deployed (e.g. on GitHub Pages).
   - **Where:** One new file at project root (or a dedicated `public/` if you introduce one). Link from `index.html` via `<link rel="manifest" href="manifest.json">`.
   - **Scope:** One file only; no refactor of game code. Can be a separate commit from the service worker.
 
-- [ ] **Add minimal service worker**
+- [x] **Add minimal service worker**
   - **What:** Register a service worker that caches `index.html` (and any critical assets) on install so the app is installable and works offline/on refresh.
   - **Where:** New file (e.g. `sw.js` or `service-worker.js`) at a path that the app can register from. Registration from `index.html` (or main entry script).
   - **Scope:** Keep it minimal: cache on install, serve from cache when available. No game logic changes. Enables installability and reliable loading; can be extended later for full offline support.
@@ -75,17 +75,17 @@ These steps are small, independent units of work. Each can be done in one or two
 
 ### 3. Bounded world (M2) — split into small steps
 
-- [ ] **Lock camera to world**
+- [x] **Lock camera to world**
   - **What:** Replace infinite horizontal scroll with a fixed world width. Camera stays within that width; no new rooms or zones yet.
   - **How:** Introduce a world width (constant or from a simple config). Update camera logic so it does not scroll beyond 0 and world width (e.g. `camera.setBounds(0, 0, worldWidth, height)` and clamp camera position). Player movement can still use the same physics; only the "endless" generation or scroll is removed or capped.
   - **Outcome:** Visually and behaviorally, the world has left/right limits; no infinite runner feel.
 
-- [ ] **Define "one zone"**
+- [x] **Define "one zone"**
   - **What:** Pick a format for a single explorable area (e.g. one room, or a few hand-placed platforms in a fixed layout). Implement one zone so there is a concrete place to explore.
   - **Format options:** Single room, a small hand-placed layout, or one procedural "chunk" with a fixed seed—whichever fits the codebase and design. No need for multiple rooms or doors yet.
   - **Outcome:** One explorable zone (e.g. one screen or one chunk) that the player can move through, with platforms/terrain defined by that format.
 
-- [ ] **Add world bounds in physics**
+- [x] **Add world bounds in physics**
   - **What:** Set Phaser world bounds (and any body boundaries) to the playable area (the one zone or full map) so the player and camera never leave the intended region.
   - **How:** Use `this.physics.world.setBounds(...)` (and camera bounds if not already set) to match the zone or map size. Ensures no falling into the void or walking past the level edges.
   - **Outcome:** Solid, predictable boundaries for movement and camera; foundation for adding more zones later.

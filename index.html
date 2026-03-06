@@ -5,7 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Neon Drifter Infinite</title>
+    <meta name="theme-color" content="#050510">
+    <link rel="manifest" href="manifest.json">
+    <title>Ashen Hollow</title>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
     <style>
         body { margin: 0; padding: 0; background: #000; overflow: hidden; touch-action: none; font-family: monospace; }
@@ -18,47 +20,40 @@
 /**
  * ARCHITECTURE MANIFEST - FOR AI AGENT INTERPRETATION
  * --------------------------------------------------
- * PROGRAM: Neon Drifter Infinite
+ * PROGRAM: Ashen Hollow
  * ENGINE: Phaser 3 (Arcade Physics)
- * PARADIGM: Procedural Infinite Runner
+ * PARADIGM: Bounded metroidvania (fixed world, one zone)
  * * CORE SYSTEMS:
- * 1. Procedural Generation: Deterministic seeded RNG. Level data is generated in "chunks"
- * ahead of the player. Floor pits and floating platforms are randomized.
- * 2. Cleanup Routine: $O(n)$ sweep of the StaticGroup to destroy objects behind the 
- * view frustum, maintaining constant memory usage.
- * 3. Texture Generation: No external assets. All sprites are generated via 
- * this.make.graphics() during the preload/create phase to ensure 0ms latency.
+ * 1. Bounded World: Fixed world width (CONFIG.WORLD_WIDTH). One zone built in create
+ *    via buildFirstZone() — hand-placed floor and floating platforms. No procedural gen.
+ * 2. Camera & Bounds: Camera follows player and is clamped to world bounds; physics
+ *    world and player use setBounds/setCollideWorldBounds so nothing leaves the zone.
+ * 3. Texture Generation: No external assets. All sprites are generated via
+ *    this.make.graphics() during the preload/create phase to ensure 0ms latency.
  * * GLOBAL STATE (this.*):
- * - .seed: Current RNG seed (42).
- * - .generatedUpTo: The X-coordinate limit of currently spawned terrain.
- * - .pitZones: Array of {start, end} to prevent floor overlap.
  * - .inputState: Object tracking active touch/button inputs for physics polling.
  */
 
 const CONFIG = {
     W: 800,
     H: 400,
+    WORLD_WIDTH: 1600,
     GRAVITY: 1400,
-    GEN_AHEAD: 1600,
-    CLEANUP_BEHIND: 600,
     PLAYER_SPEED: 280,
     JUMP_FORCE: -690,
     FRICTION: 0.75,
     COLORS: [0x2a3a5a, 0x3a2a5a, 0x2a4a3a, 0x4a3a2a, 0x2a4050]
 };
 
-class NeonDrifter extends Phaser.Scene {
+class AshenHollow extends Phaser.Scene {
     constructor() {
-        super('NeonDrifter');
+        super('AshenHollow');
         this.resetInternalState();
     }
 
     resetInternalState() {
-        this.seed = 42;
-        this.generatedUpTo = 0;
         this.lives = 3;
         this.isGameOver = false;
-        this.pitZones = [];
         this.trailPts = [];
         this.inputState = { left: false, right: false, jump: false };
     }
@@ -106,8 +101,9 @@ class NeonDrifter extends Phaser.Scene {
     create() {
         this.resetInternalState();
 
-        // Environment
-        this.physics.world.setBounds(0, 0, 9999999, CONFIG.H);
+        // Environment: bounded world
+        this.physics.world.setBounds(0, 0, CONFIG.WORLD_WIDTH, CONFIG.H);
+        this.cameras.main.setBounds(0, 0, CONFIG.WORLD_WIDTH, CONFIG.H);
         this.cameras.main.setBackgroundColor('#050510');
         this.starField = this.add.tileSprite(CONFIG.W/2, CONFIG.H/2, CONFIG.W, CONFIG.H, 'stars')
             .setScrollFactor(0).setDepth(-1);
@@ -116,17 +112,42 @@ class NeonDrifter extends Phaser.Scene {
         // Groups & Entities
         this.platforms = this.physics.add.staticGroup();
         this.player = this.physics.add.sprite(100, 250, 'hero');
+        this.player.setCollideWorldBounds(true);
         this.physics.add.collider(this.player, this.platforms);
-        
-        // Camera setup
+
+        // Camera: follow player, stay within world
         this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
+
+        // One zone: hand-placed floor + platforms
+        this.buildFirstZone();
 
         // UI & Input
         this.createHUD();
         this.setupControls();
+    }
 
-        // Initial Seeded Generation
-        this.generateChunk(0, CONFIG.GEN_AHEAD * 2);
+    buildFirstZone() {
+        const TILE = 32;
+        const H = CONFIG.H;
+        const W = CONFIG.WORLD_WIDTH;
+        // Solid floor across the zone
+        for (let tx = 0; tx < W; tx += TILE) {
+            const mid = tx + 16;
+            this.platforms.create(mid, H - 16, 'floor').refreshBody();
+        }
+        // Hand-placed floating platforms
+        const ledges = [
+            { x: 320, y: 280, len: 2, tint: 0 },
+            { x: 520, y: 220, len: 3, tint: 1 },
+            { x: 800, y: 260, len: 2, tint: 2 },
+            { x: 1050, y: 180, len: 4, tint: 3 },
+            { x: 1320, y: 240, len: 2, tint: 4 }
+        ];
+        ledges.forEach(({ x, y, len, tint }) => {
+            for (let i = 0; i < len; i++) {
+                this.platforms.create(x + (i * TILE) + 16, y, `p${tint}`).refreshBody();
+            }
+        });
     }
 
     createHUD() {
@@ -165,14 +186,13 @@ class NeonDrifter extends Phaser.Scene {
         if (this.isGameOver) return;
 
         this.handleMovement();
-        this.handleProceduralGen();
         this.drawMotionTrail();
-        
+
         // Background Parallax
         this.starField.tilePositionX = this.player.x * 0.15;
         this.distText.setText(`DIST ${Math.floor(this.player.x / 10)} m`);
 
-        // Pit Check
+        // Pit / void death
         if (this.player.y > CONFIG.H + 50) this.handlePlayerDeath();
     }
 
@@ -191,60 +211,6 @@ class NeonDrifter extends Phaser.Scene {
         }
 
         if (jump && onGround) this.player.setVelocityY(CONFIG.JUMP_FORCE);
-    }
-
-    handleProceduralGen() {
-        if (this.player.x + CONFIG.GEN_AHEAD > this.generatedUpTo) {
-            this.generateChunk(this.generatedUpTo, this.generatedUpTo + CONFIG.GEN_AHEAD);
-        }
-
-        // Cleanup: Use filter/destroy pattern for efficiency
-        const cutoff = this.player.x - CONFIG.CLEANUP_BEHIND;
-        this.platforms.getChildren().forEach(child => {
-            if (child.x < cutoff) child.destroy();
-        });
-    }
-
-    rng() {
-        this.seed = (this.seed * 16807) % 2147483647;
-        return (this.seed - 1) / 2147483646;
-    }
-
-    generateChunk(fromX, toX) {
-        const TILE = 32;
-        let xPtr = fromX;
-
-        // Map Pits
-        while (xPtr < toX) {
-            if (this.rng() < 0.12 && xPtr > 400) {
-                const gap = 120 + (this.rng() * 100);
-                this.pitZones.push({ start: xPtr, end: xPtr + gap });
-                xPtr += gap;
-            }
-            xPtr += 150 + (this.rng() * 200);
-        }
-
-        // Spawn Floor
-        for (let tx = Math.floor(fromX / TILE) * TILE; tx < toX; tx += TILE) {
-            const mid = tx + 16;
-            const isPit = this.pitZones.some(p => mid >= p.start && mid <= p.end);
-            if (!isPit) {
-                this.platforms.create(mid, CONFIG.H - 16, 'floor').refreshBody();
-            }
-        }
-
-        // Spawn Floating Ledges
-        let fx = fromX + (this.rng() * 100);
-        while (fx < toX) {
-            const len = Math.floor(2 + this.rng() * 4);
-            const y = 120 + (this.rng() * 180);
-            const tint = `p${Math.floor(this.rng() * CONFIG.COLORS.length)}`;
-            for (let i = 0; i < len; i++) {
-                this.platforms.create(fx + (i * TILE) + 16, y, tint).refreshBody();
-            }
-            fx += (len * TILE) + 120 + (this.rng() * 150);
-        }
-        this.generatedUpTo = toX;
     }
 
     handlePlayerDeath() {
@@ -287,6 +253,13 @@ class NeonDrifter extends Phaser.Scene {
     }
 }
 
+// PWA: register service worker for installability and caching
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  });
+}
+
 const game = new Phaser.Game({
     type: Phaser.AUTO,
     scale: {
@@ -301,7 +274,7 @@ const game = new Phaser.Game({
         default: 'arcade',
         arcade: { gravity: { y: CONFIG.GRAVITY }, debug: false }
     },
-    scene: NeonDrifter
+    scene: AshenHollow
 });
 </script>
 </body>

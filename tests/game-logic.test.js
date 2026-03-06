@@ -1,6 +1,7 @@
 /**
- * Unit tests for game logic. Algorithms below mirror index.html for deterministic checks.
- * Update when changing RNG or pit-zone logic in index.html.
+ * Unit tests for game logic (RNG and pit-zone helpers).
+ * The game currently uses a bounded hand-placed zone with no procedural gen;
+ * these tests remain for regression if procedural or pit-based terrain is reintroduced.
  */
 
 const assert = require('assert');
