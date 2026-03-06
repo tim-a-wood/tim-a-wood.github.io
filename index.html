@@ -51,7 +51,9 @@ const CONFIG = {
 
 const ROOM_LAYOUT = {
     TILE: 32,
-    LEFT_DOORWAY_TOP: 288
+    LEFT_DOORWAY_TOP: 288,
+    /** 'internal' = walls/ceiling on closed edges, doors-only entry; 'outdoor' = no boundary walls, open passage unless blocked */
+    roomType: 'internal'
 };
 
 class AshenHollow extends Phaser.Scene {
@@ -167,7 +169,9 @@ class AshenHollow extends Phaser.Scene {
         const TILE = ROOM_LAYOUT.TILE;
         const H = CONFIG.H;
         const W = CONFIG.WORLD_WIDTH;
-        this.buildBoundaryWalls();
+        if (ROOM_LAYOUT.roomType === 'internal') {
+            this.buildBoundaryWalls();
+        }
         // Solid floor across the zone
         for (let tx = 0; tx < W; tx += TILE) {
             const mid = tx + 16;

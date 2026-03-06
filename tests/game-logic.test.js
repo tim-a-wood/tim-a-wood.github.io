@@ -17,7 +17,8 @@ const CONFIG = {
 
 const ROOM_LAYOUT = {
     TILE: 32,
-    LEFT_DOORWAY_TOP: 288
+    LEFT_DOORWAY_TOP: 288,
+    roomType: 'internal'
 };
 
 // ----- Movement / jump helpers (must match index.html handleMovement()) -----
@@ -82,21 +83,23 @@ function computeJumpFrame(state) {
     };
 }
 
-function buildFirstZoneLayout(worldWidth = CONFIG.WORLD_WIDTH, tile = ROOM_LAYOUT.TILE, height = CONFIG.H) {
+function buildFirstZoneLayout(worldWidth = CONFIG.WORLD_WIDTH, tile = ROOM_LAYOUT.TILE, height = CONFIG.H, roomType = ROOM_LAYOUT.roomType) {
     const floorCenters = [];
     for (let tx = 0; tx < worldWidth; tx += tile) {
         floorCenters.push(tx + 16);
     }
 
     const wallTiles = [];
-    for (let tx = 0; tx < worldWidth; tx += tile) {
-        wallTiles.push({ x: tx + 16, y: 16, texture: 'floor' });
-    }
-    for (let ty = tile; ty < height - tile; ty += tile) {
-        wallTiles.push({ x: worldWidth - 16, y: ty + 16, texture: 'floor' });
-    }
-    for (let ty = tile; ty < ROOM_LAYOUT.LEFT_DOORWAY_TOP; ty += tile) {
-        wallTiles.push({ x: 16, y: ty + 16, texture: 'floor' });
+    if (roomType === 'internal') {
+        for (let tx = 0; tx < worldWidth; tx += tile) {
+            wallTiles.push({ x: tx + 16, y: 16, texture: 'floor' });
+        }
+        for (let ty = tile; ty < height - tile; ty += tile) {
+            wallTiles.push({ x: worldWidth - 16, y: ty + 16, texture: 'floor' });
+        }
+        for (let ty = tile; ty < ROOM_LAYOUT.LEFT_DOORWAY_TOP; ty += tile) {
+            wallTiles.push({ x: 16, y: ty + 16, texture: 'floor' });
+        }
     }
 
     const ledges = [
@@ -435,6 +438,11 @@ function isInPit(mid, pitZones) {
         { x: 16, y: 240, texture: 'floor' },
         { x: 16, y: 272, texture: 'floor' }
     ]);
+})();
+
+(function testOutdoorRoomHasNoBoundaryWalls() {
+    const layout = buildFirstZoneLayout(CONFIG.WORLD_WIDTH, ROOM_LAYOUT.TILE, CONFIG.H, 'outdoor');
+    assert.strictEqual(layout.wallTiles.length, 0, 'Outdoor rooms must not add boundary walls or ceiling');
 })();
 
 (function testFirstZoneIncludesLeftCorridorLedge() {
