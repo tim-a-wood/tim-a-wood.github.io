@@ -32,6 +32,7 @@
  *    this.make.graphics() during the preload/create phase to ensure 0ms latency.
  * * GLOBAL STATE (this.*):
  * - .inputState: Object tracking active touch/button inputs for physics polling.
+ * - .doubleJumpAvailable: true when a mid-air jump can be used; refilled on land, consumed on double jump.
  */
 
 const CONFIG = {
@@ -56,6 +57,7 @@ class AshenHollow extends Phaser.Scene {
         this.isGameOver = false;
         this.trailPts = [];
         this.inputState = { left: false, right: false, jump: false };
+        this.doubleJumpAvailable = true; // refilled on land, consumed on mid-air jump
     }
 
     preload() {
@@ -202,6 +204,8 @@ class AshenHollow extends Phaser.Scene {
         const right = this.inputState.right || this.cursors.right.isDown;
         const jump = this.inputState.jump || this.cursors.up.isDown || this.cursors.space.isDown;
 
+        if (onGround) this.doubleJumpAvailable = true;
+
         if (left) {
             this.player.setVelocityX(-CONFIG.PLAYER_SPEED).setFlipX(true);
         } else if (right) {
@@ -210,7 +214,12 @@ class AshenHollow extends Phaser.Scene {
             this.player.setVelocityX(this.player.body.velocity.x * CONFIG.FRICTION);
         }
 
-        if (jump && onGround) this.player.setVelocityY(CONFIG.JUMP_FORCE);
+        if (jump && onGround) {
+            this.player.setVelocityY(CONFIG.JUMP_FORCE);
+        } else if (jump && !onGround && this.doubleJumpAvailable) {
+            this.player.setVelocityY(CONFIG.JUMP_FORCE); // same height as first jump for consistent feel
+            this.doubleJumpAvailable = false;
+        }
     }
 
     handlePlayerDeath() {

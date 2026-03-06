@@ -96,10 +96,11 @@ You can combine "camera + one zone + bounds" in one or two small steps if prefer
 
 ### 4. First ability gate (M3) — two atoms
 
-- [ ] **Implement one ability**
+- [x] **Implement one ability**
   - **What:** One new movement or utility ability—e.g. double jump or dash. Include input handling, state (e.g. "can double jump" / "has dashed"), and the actual movement effect.
   - **Scope:** No gates yet; the ability just works in the existing space. Prioritize smooth, satisfying feel (see design pillars in `project_overview.md`).
   - **Outcome:** Player can use the ability at will within the current bounds; no save/load or persistence required for this step.
+  - **Done:** Double jump added in `index.html`: state `doubleJumpAvailable`, refilled on land, consumed on mid-air jump; same jump force as first jump for consistent feel.
 
 - [ ] **Add one gate**
   - **What:** One place in the first zone that is unreachable without the new ability (e.g. high ledge, gap, or blocked path). When the player has the ability, they can reach it.
