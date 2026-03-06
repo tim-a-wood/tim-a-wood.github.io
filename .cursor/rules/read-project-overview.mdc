@@ -1,0 +1,14 @@
+---
+description: Read project overview at start of every request
+alwaysApply: true
+---
+
+# Read Project Overview First
+
+When the user provides a prompt or request:
+
+1. **Immediately** read `prompts/project_overview.md` at the start of your response (before planning or making changes).
+2. Use it for context on game genre, tech stack, architecture, code style priorities, and where tests and the project plan live.
+3. If the file is missing, note it and proceed; consider suggesting creating it per the project’s documentation.
+
+This keeps responses aligned with the project’s scope and conventions.

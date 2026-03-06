@@ -1,0 +1,15 @@
+---
+description: Check unit test coverage at end of every request and add tests if needed
+alwaysApply: true
+---
+
+# Check Unit Test Coverage at End of Request
+
+After fulfilling the user's request:
+
+1. **Review unit test coverage** for any code you added or modified. Tests live in `./tests/`. Create the directory if it does not exist.
+2. **Decide if more coverage is required:** If you changed game logic, utilities, or behavior that can be tested (e.g. deterministic helpers, config, state transitions), treat coverage as required unless the change is trivial or purely presentational.
+3. **Add or extend tests** when coverage is lacking: add tests in `./tests/` that exercise the new or changed behavior. Prefer simple, runnable tests (e.g. small HTML test runners or Node scripts that assert expected outcomes).
+4. **Summarize** in your reply: state whether you checked coverage and whether you added or updated tests (and where). If you skipped adding tests, briefly say why (e.g. "trivial CSS only", "no test harness yet").
+
+Do not block completing the user's main task on writing tests; do the coverage check and any test additions as a final step before closing your response.

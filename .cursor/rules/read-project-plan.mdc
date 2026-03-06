@@ -1,0 +1,14 @@
+---
+description: Read project plan at start of every request
+alwaysApply: true
+---
+
+# Read Project Plan First
+
+When the user provides a prompt or request:
+
+1. **Immediately** read `prompts/project_plan.md` at the start of your response (before planning or making changes).
+2. Use it to align your work with current goals, milestones, and next steps.
+3. If the file is missing or empty, note it and proceed; consider suggesting creating or updating it per `prompts/project_overview.md`.
+
+This ensures agentic workflows stay aligned with the maintained project plan.
