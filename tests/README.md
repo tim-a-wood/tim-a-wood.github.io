@@ -13,6 +13,10 @@ Unit tests for the metroidvania PWA. Game logic lives in `index.html`; these tes
   - edge cases around upward velocity and exhausted jumps
 - Current first-zone layout expectations from `buildFirstZone()`
 
+**Acceptance artifacts:**
+- `tests/acceptance_tests.md` contains the manual high-level acceptance checklist
+- `tests/test_report.md` contains the per-change test report table for acceptance results plus the overall unit-suite result
+
 **Keep in sync:** When changing the movement, jump, or zone-layout logic in `index.html`, update the corresponding helpers in `tests/game-logic.test.js`.
 
 ## Run

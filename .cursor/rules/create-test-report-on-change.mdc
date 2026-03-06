@@ -1,0 +1,15 @@
+---
+description: Create tests/test_report.md after code changes
+alwaysApply: true
+---
+
+# Maintain Test Report
+
+After any code change:
+
+1. Read `tests/acceptance_tests.md`.
+2. Create or update `tests/test_report.md`.
+3. Keep a simple Markdown table with one row for every acceptance test plus one extra row for the overall unit test suite.
+4. Each row must include: `ID`, `Line Item`, `Description`, `Result`, and `Notes`.
+5. Valid results are `Pass`, `Fail`, `Not Run`, or `Blocked`. Never mark a test `Pass` unless it was actually executed.
+6. If a test was not executed, explain why in `Notes`.

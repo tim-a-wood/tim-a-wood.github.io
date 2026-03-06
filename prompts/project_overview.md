@@ -69,3 +69,4 @@ HTML and in-file code shall be **clean and readable**, with priorities in this o
 
 - **Tests** are stored under **`./tests/`**.
 - Test coverage and layout should be maintained there as the project grows.
+- Manual acceptance coverage is documented in `tests/acceptance_tests.md`, and per-change results are recorded in `tests/test_report.md`.

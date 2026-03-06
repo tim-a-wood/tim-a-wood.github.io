@@ -1,0 +1,14 @@
+---
+description: Review acceptance tests after code changes
+alwaysApply: true
+---
+
+# Review Acceptance Tests
+
+After any code change:
+
+1. Review `tests/acceptance_tests.md` against the behavior you changed.
+2. Decide whether the acceptance checklist should be updated, expanded, or clarified.
+3. If updates are needed, propose them in your response as suggested changes.
+4. Do **not** modify `tests/acceptance_tests.md` automatically unless the user explicitly approves the proposed updates.
+5. If no updates are needed, say that explicitly.
