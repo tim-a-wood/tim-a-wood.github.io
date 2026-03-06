@@ -197,7 +197,6 @@ var TILE = 32;
 var FLOOR_Y = H - 16;
 
 ```
-// Pick pit zones for this chunk
 var x = fromX;
 while (x < toX) {
     if (rng() < 0.10 && x > 300) {
@@ -209,7 +208,6 @@ while (x < toX) {
     }
 }
 
-// Floor tiles
 for (var tx = Math.floor(fromX / TILE) * TILE; tx < toX; tx += TILE) {
     var cx = tx + 16;
     if (!inPit(cx)) {
@@ -219,7 +217,6 @@ for (var tx = Math.floor(fromX / TILE) * TILE; tx < toX; tx += TILE) {
     }
 }
 
-// Floating platforms
 var fx = fromX + rngRange(80, 200);
 while (fx < toX) {
     var numTiles = rngInt(2, 5);
@@ -234,7 +231,6 @@ while (fx < toX) {
         floatTiles.push(ft);
     }
 
-    // Occasional upper ledge
     if (rng() < 0.28) {
         var upCount = rngInt(1, 3);
         var upY = py - rngInt(55, 85);
