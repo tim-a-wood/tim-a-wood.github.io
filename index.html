@@ -63,6 +63,99 @@ const ROOM_LAYOUT = {
     roomType: 'internal'
 };
 
+/** ASCII room spec: # = solid, . = empty, [ G ] = key, [S] = start. 90 cols × 28 rows. See prompts/room_spec_ascii.txt */
+const ROOM_SPEC = [
+    '##########################################################################################',
+    '#........................................................................................#',
+    '#..........................................................................[ G ].........#',
+    '#.........................................................................#######........#',
+    '#..............####################################......................#.......#.......#',
+    '#.............#....................................#.....................#.......#.......#',
+    '#......#######......................................#####################........#.......#',
+    '#.....#..........................................................................#.......#',
+    '#.....#.........##################################################################.......#',
+    '#.....#........#.........................................................................#',
+    '#.....#........#.........##########################......................................#',
+    '#.....#........#........#..........................#.........#############################',
+    '#.....#........#........#..........................#........#.............................#',
+    '#.....#........#........#..........................#........#.............................#',
+    '#.....#........#........#..........................#........#.............................#',
+    '#_PLAT_........#_FLOOR_2_..........................#_FLOOR_2_............................#',
+    '#........................................................................................#',
+    '#...........................################################################.............#',
+    '#..........................#................................................#............#',
+    '#.......###################.................................................#............#',
+    '#......#....................................................................#............#',
+    '#......#.........###########################################################.............#',
+    '#......#........#........................................................................#',
+    '#_PLAT_........#........................................................................#',
+    '#..............#........................................................................#',
+    '#......#........############################################################.............#',
+    '#......#....................................................................#............#',
+    '# [S] ......................................................................#............#',
+    '#  S   #####################################################################.............#',
+    '##########################################################################################'
+].map((line) => {
+    const s = line.replace(/\[ G \]/g, 'G').replace(/\[S\]/g, 'S').replace(/[A-Z_0-9]/g, (c) => (c === 'G' || c === 'S' ? c : '.'));
+    if (s.length >= 90) return s.slice(0, 90);
+    return s + (s[s.length - 1] === '#' ? '#' : '.').repeat(90 - s.length);
+});
+
+function parseRoomSpec() {
+    const TILE = 32;
+    const W = CONFIG.WORLD_WIDTH;
+    const H = CONFIG.WORLD_HEIGHT;
+    const SPEC_W = 90;
+    const SPEC_H = ROOM_SPEC.length;
+    const nTileCols = Math.floor(W / TILE);
+    const grid = ROOM_SPEC.map((line) => {
+        const row = [];
+        for (let c = 0; c < SPEC_W; c++) {
+            const ch = (line[c] || '.');
+            row.push(ch === '#' || ch === 'G' || ch === 'S' ? 1 : 0);
+        }
+        return row;
+    });
+    function tileSolid(row, tileCol) {
+        const c0 = (tileCol * SPEC_W) / nTileCols;
+        const c1 = ((tileCol + 1) * SPEC_W) / nTileCols;
+        for (let c = Math.floor(c0); c < Math.ceil(c1) && c < SPEC_W; c++) {
+            if (grid[row][c] === 1) return true;
+        }
+        return false;
+    }
+    let keyCol = null;
+    for (let r = 0; r < SPEC_H; r++) {
+        for (let c = 0; c < SPEC_W; c++) {
+            if (ROOM_SPEC[r][c] === 'G') keyCol = c;
+        }
+    }
+    const ledges = [];
+    const CORRIDOR_Y = 500;
+    ledges.push({ x: 0, y: CORRIDOR_Y, len: 8, tint: 0 });
+    ledges.push({ x: 8 * TILE, y: CORRIDOR_Y, len: nTileCols - 8, tint: 0 });
+    for (let specRow = 1; specRow <= 25; specRow++) {
+        const y = 100 + Math.floor((specRow - 1) * (380 / 25));
+        let runStart = null;
+        for (let t = 0; t < nTileCols; t++) {
+            const solid = tileSolid(specRow, t);
+            if (solid && runStart === null) runStart = t;
+            if (!solid && runStart !== null) {
+                ledges.push({ x: runStart * TILE, y, len: t - runStart, tint: specRow % 5 });
+                runStart = null;
+            }
+        }
+        if (runStart !== null) ledges.push({ x: runStart * TILE, y, len: nTileCols - runStart, tint: specRow % 5 });
+    }
+    const keyX = keyCol != null ? Math.round((keyCol / SPEC_W) * W) : 820;
+    const keyLedgeY = 100 + Math.floor(3 * (380 / 25));
+    return {
+        ledges,
+        keyPos: { x: keyX, y: keyLedgeY - 19 },
+        startPos: { x: 128, y: CORRIDOR_Y - 27 }
+    };
+}
+
 class AshenHollow extends Phaser.Scene {
     constructor() {
         super('AshenHollow');
@@ -177,9 +270,12 @@ class AshenHollow extends Phaser.Scene {
         // Camera: follow player, stay within world
         this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
 
-        // One zone: hand-placed floor + platforms
+        // One zone: from ASCII spec (ROOM_SPEC)
         this.buildFirstZone();
         this.buildProgressionObjects();
+        if (this._roomSpecStartPos) {
+            this.player.setPosition(this._roomSpecStartPos.x, this._roomSpecStartPos.y);
+        }
 
         // UI & Input
         this.createHUD();
@@ -205,35 +301,11 @@ class AshenHollow extends Phaser.Scene {
             const mid = tx + 16;
             this.platforms.create(mid, H - 16, 'floor').refreshBody();
         }
-        // Layout F (Guide-based single room) scaled to 1000×600.
-        const ledges = [
-            { x: 0, y: 500, len: 8, tint: 0 },
-            { x: 176, y: 493, len: 2, tint: 0 },
-            { x: 224, y: 476, len: 2, tint: 1 },
-            { x: 256, y: 459, len: 2, tint: 2 },
-            { x: 224, y: 443, len: 2, tint: 3 },
-            { x: 288, y: 443, len: 2, tint: 0 },
-            { x: 320, y: 427, len: 2, tint: 1 },
-            { x: 304, y: 410, len: 2, tint: 2 },
-            { x: 336, y: 394, len: 2, tint: 0 },
-            { x: 304, y: 378, len: 2, tint: 1 },
-            { x: 352, y: 361, len: 2, tint: 2 },
-            { x: 384, y: 345, len: 2, tint: 0 },
-            { x: 352, y: 329, len: 2, tint: 1 },
-            { x: 400, y: 312, len: 2, tint: 2 },
-            { x: 432, y: 296, len: 2, tint: 0 },
-            { x: 480, y: 280, len: 2, tint: 1 },
-            { x: 512, y: 263, len: 2, tint: 2 },
-            { x: 560, y: 247, len: 2, tint: 0 },
-            { x: 608, y: 231, len: 2, tint: 1 },
-            { x: 640, y: 214, len: 2, tint: 2 },
-            { x: 672, y: 198, len: 2, tint: 0 },
-            { x: 720, y: 182, len: 2, tint: 1 },
-            { x: 752, y: 165, len: 2, tint: 2 },
-            { x: 672, y: 157, len: 2, tint: 4 },
-            { x: 896, y: 100, len: 3, tint: 1 }
-        ];
-        ledges.forEach(({ x, y, len, tint }) => {
+        // Room from ASCII spec (ROOM_SPEC): corridor + platforms; key only via double jump.
+        const parsed = parseRoomSpec();
+        this._roomSpecKeyPos = parsed.keyPos;
+        this._roomSpecStartPos = parsed.startPos;
+        parsed.ledges.forEach(({ x, y, len, tint }) => {
             for (let i = 0; i < len; i++) {
                 this.platforms.create(x + (i * TILE) + 16, y, `p${tint}`).refreshBody();
             }
@@ -268,7 +340,8 @@ class AshenHollow extends Phaser.Scene {
 
     buildProgressionObjects() {
         this.exitDoor = this.physics.add.staticImage(248, 537, 'doorLocked').refreshBody();
-        this.keyPickup = this.physics.add.staticImage(954, 86, 'key').refreshBody();
+        const keyPos = this._roomSpecKeyPos || { x: 954, y: 86 };
+        this.keyPickup = this.physics.add.staticImage(keyPos.x, keyPos.y, 'key').refreshBody();
         this.relicPickup = this.physics.add.staticImage(256, 436, 'relic').refreshBody();
 
         this.physics.add.overlap(this.player, this.keyPickup, this.collectKey, null, this);

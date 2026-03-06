@@ -25,6 +25,12 @@ Redesign interior platforms to feel labyrinthian. Corridor platform and exit doo
 
 ---
 
+## ASCII room spec (current source of truth)
+
+The room layout is generated from **`prompts/room_spec_ascii.txt`** (inlined as `ROOM_SPEC` in `index.html`). The parser `parseRoomSpec()` converts the 90×28 ASCII grid into ledges and key/start positions. Legend: `#` = solid, `.` = empty, `[ G ]` = key, `[S]` = start. To change the layout, edit the ASCII spec and keep the first ledge as the corridor `(0, 500, 8)` and door at `(248, 537)`.
+
+---
+
 ## Fixed elements (do not change)
 
 - **World:** 1000×600 (condensed; was 1600×1200). Corridor platform: first ledge `{ x: 0, y: 500, len: 8, tint: 0 }`.
