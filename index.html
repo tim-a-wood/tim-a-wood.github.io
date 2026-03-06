@@ -9,18 +9,18 @@
 
 <style>
 body {
-    margin:0;
-    padding:0;
-    background:#000;
-    overflow:hidden;
-    touch-action:none;
+margin:0;
+padding:0;
+background:#000;
+overflow:hidden;
+touch-action:none;
 }
 
 #game-container {
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    height:100dvh;
+display:flex;
+justify-content:center;
+align-items:center;
+height:100dvh;
 }
 </style>
 </head>
@@ -31,235 +31,237 @@ body {
 <script>
 
 const CONFIG = {
-    W:800,
-    H:400,
-    WORLD_WIDTH:1600,
-    GRAVITY:1500,
-    PLAYER_SPEED:280,
-    JUMP_FORCE:-550,
-    COYOTE_TIME:120
+W:800,
+H:400,
+WORLD_WIDTH:1600,
+GRAVITY:1500,
+PLAYER_SPEED:280,
+JUMP_FORCE:-550,
+COYOTE_TIME:120
 };
 
 class AshenHollow extends Phaser.Scene {
 
 constructor(){
-    super("AshenHollow");
+super("AshenHollow");
 }
 
 resetState(){
-    this.jumpState = "GROUNDED";
-    this.lastGroundedTime = 0;
+this.jumpsUsed = 0;
+this.lastGroundedTime = 0;
 
-    this.jumpHeld = false;
-    this.jumpPressed = false;
-
-    this.lives = 3;
+this.jumpHeld = false;
+this.jumpPressed = false;
 }
 
 preload(){
 
-    const g = this.make.graphics({x:0,y:0,add:false});
+const g = this.make.graphics({x:0,y:0,add:false});
 
-    g.fillStyle(0x334466)
-        .fillRect(0,0,32,32)
-        .generateTexture("floor",32,32);
+g.fillStyle(0x334466)
+.fillRect(0,0,32,32)
+.generateTexture("floor",32,32);
 
-    g.clear()
-        .fillStyle(0x00ddff)
-        .fillRect(4,8,20,24)
-        .generateTexture("hero",28,40);
+g.clear()
+.fillStyle(0x00ddff)
+.fillRect(4,8,20,24)
+.generateTexture("hero",28,40);
 
-    g.clear()
-        .fillStyle(0xffffff,0.2)
-        .fillCircle(40,40,40)
-        .generateTexture("btn",80,80);
+g.clear()
+.fillStyle(0xffffff,0.2)
+.fillCircle(40,40,40)
+.generateTexture("btn",80,80);
 }
 
 create(){
 
-    this.resetState();
+this.resetState();
 
-    this.physics.world.setBounds(0,0,CONFIG.WORLD_WIDTH,CONFIG.H);
+this.physics.world.setBounds(0,0,CONFIG.WORLD_WIDTH,CONFIG.H);
 
-    this.platforms = this.physics.add.staticGroup();
+this.platforms = this.physics.add.staticGroup();
 
-    for(let x=0;x<CONFIG.WORLD_WIDTH;x+=32){
-        this.platforms.create(x+16,CONFIG.H-16,"floor");
-    }
+for(let x=0;x<CONFIG.WORLD_WIDTH;x+=32){
+this.platforms.create(x+16,CONFIG.H-16,"floor");
+}
 
-    const ledges = [
-        [400,280],
-        [600,200],
-        [900,250]
-    ];
+const ledges = [
+[400,280],
+[600,200],
+[900,250]
+];
 
-    ledges.forEach(l=>{
-        this.platforms.create(l[0],l[1],"floor")
-            .setScale(3,0.5)
-            .refreshBody();
-    });
+ledges.forEach(l=>{
+this.platforms.create(l[0],l[1],"floor")
+.setScale(3,0.5)
+.refreshBody();
+});
 
-    this.player = this.physics.add.sprite(100,200,"hero")
-        .setCollideWorldBounds(true);
+this.player = this.physics.add.sprite(100,200,"hero")
+.setCollideWorldBounds(true);
 
-    this.physics.add.collider(this.player,this.platforms);
+this.physics.add.collider(this.player,this.platforms);
 
-    this.cameras.main.startFollow(this.player,true,0.1,0.1);
+this.cameras.main.startFollow(this.player,true,0.1,0.1);
 
-    this.cursors = this.input.keyboard.createCursorKeys();
+this.cursors = this.input.keyboard.createCursorKeys();
 
-    this.setupTouchControls();
+this.setupTouchControls();
 }
 
 setupTouchControls(){
 
-    this.inputState = {
-        left:false,
-        right:false
-    };
+this.inputState = {
+left:false,
+right:false
+};
 
-    const makeBtn = (x,y,act)=>{
+const makeBtn = (x,y,act)=>{
 
-        const b = this.add.image(x,y,"btn")
-            .setScrollFactor(0)
-            .setInteractive()
-            .setAlpha(0.5);
+const b = this.add.image(x,y,"btn")
+.setScrollFactor(0)
+.setInteractive()
+.setAlpha(0.5);
 
-        if(act==="jump"){
+if(act==="jump"){
 
-            b.on("pointerdown",()=>{
-                if(!this.jumpHeld){
-                    this.jumpPressed = true;
-                }
-                this.jumpHeld = true;
-            });
+b.on("pointerdown",()=>{
+if(!this.jumpHeld){
+this.jumpPressed = true;
+}
+this.jumpHeld = true;
+});
 
-            b.on("pointerup",()=>{
-                this.jumpHeld = false;
-            });
+b.on("pointerup",()=>{
+this.jumpHeld = false;
+});
 
-            b.on("pointerout",()=>{
-                this.jumpHeld = false;
-            });
+b.on("pointerout",()=>{
+this.jumpHeld = false;
+});
 
-        } else {
+}else{
 
-            b.on("pointerdown",()=>{
-                this.inputState[act]=true;
-            });
+b.on("pointerdown",()=>{
+this.inputState[act]=true;
+});
 
-            b.on("pointerup",()=>{
-                this.inputState[act]=false;
-            });
+b.on("pointerup",()=>{
+this.inputState[act]=false;
+});
 
-            b.on("pointerout",()=>{
-                this.inputState[act]=false;
-            });
-        }
-    };
+b.on("pointerout",()=>{
+this.inputState[act]=false;
+});
 
-    makeBtn(80,320,"left");
-    makeBtn(200,320,"right");
-    makeBtn(720,320,"jump");
+}
+
+};
+
+makeBtn(80,320,"left");
+makeBtn(200,320,"right");
+makeBtn(720,320,"jump");
 }
 
 update(time){
 
-    const onGround = this.player.body.blocked.down;
+const onGround = this.player.body.blocked.down;
 
-    const keyboardJumpPressed =
-        this.cursors.up.isDown && !this.jumpHeld;
+/* keyboard edge trigger /
 
-    if(keyboardJumpPressed){
-        this.jumpPressed = true;
-        this.jumpHeld = true;
-    }
+if(this.cursors.up.isDown && !this.jumpHeld){
+this.jumpPressed = true;
+this.jumpHeld = true;
+}
 
-    if(!this.cursors.up.isDown && !this.jumpHeld){
-        this.jumpHeld = false;
-    }
+if(!this.cursors.up.isDown){
+this.jumpHeld = false;
+}
 
-    const jumpJustPressed = this.jumpPressed;
-    this.jumpPressed = false;
+/ landing detection /
 
-    if(onGround){
-        this.jumpState = "GROUNDED";
-        this.lastGroundedTime = time;
-    }
-    else if(
-        this.jumpState === "GROUNDED" &&
-        (time - this.lastGroundedTime) > CONFIG.COYOTE_TIME
-    ){
-        this.jumpState = "JUMPING";
-    }
+if(onGround){
 
-    if(jumpJustPressed){
+this.jumpsUsed = 0;
+this.lastGroundedTime = time;
 
-        if(
-            this.jumpState === "GROUNDED" ||
-            (time - this.lastGroundedTime) < CONFIG.COYOTE_TIME
-        ){
+}
 
-            this.performJump(false);
-            this.jumpState = "JUMPING";
+/ handle jump /
 
-        }
-        else if(this.jumpState === "JUMPING"){
+if(this.jumpPressed){
 
-            this.performJump(true);
-            this.jumpState = "DOUBLE_JUMPING";
-        }
-    }
+const withinCoyote = (time - this.lastGroundedTime) < CONFIG.COYOTE_TIME;
 
-    const speed = CONFIG.PLAYER_SPEED;
+if(this.jumpsUsed < 2 && (onGround || withinCoyote || this.jumpsUsed === 1)){
 
-    if(this.cursors.left.isDown || this.inputState.left){
-        this.player.setVelocityX(-speed);
-    }
-    else if(this.cursors.right.isDown || this.inputState.right){
-        this.player.setVelocityX(speed);
-    }
-    else{
-        this.player.setVelocityX(this.player.body.velocity.x*0.8);
-    }
+this.performJump(this.jumpsUsed === 1);
 
-    if(this.player.y > CONFIG.H){
-        this.player.setPosition(100,100);
-    }
+this.jumpsUsed++;
+
+}
+
+}
+
+this.jumpPressed = false;
+
+/ horizontal movement /
+
+const speed = CONFIG.PLAYER_SPEED;
+
+if(this.cursors.left.isDown || this.inputState.left){
+this.player.setVelocityX(-speed);
+}
+else if(this.cursors.right.isDown || this.inputState.right){
+this.player.setVelocityX(speed);
+}
+else{
+this.player.setVelocityX(this.player.body.velocity.x * 0.8);
+}
+
+/ reset if falling */
+
+if(this.player.y > CONFIG.H){
+this.player.setPosition(100,100);
+this.jumpsUsed = 0;
+}
+
 }
 
 performJump(isDouble=false){
 
-    this.player.setVelocityY(CONFIG.JUMP_FORCE);
+this.player.setVelocityY(CONFIG.JUMP_FORCE);
 
-    if(isDouble){
+if(isDouble){
 
-        this.player.setTint(0xff00ff);
+this.player.setTint(0xff00ff);
 
-        this.time.delayedCall(200,()=>{
-            this.player.clearTint();
-        });
-    }
+this.time.delayedCall(200,()=>{
+this.player.clearTint();
+});
+
+}
+
 }
 
 }
 
 new Phaser.Game({
-    type:Phaser.AUTO,
-    parent:"game-container",
-    scale:{
-        mode:Phaser.Scale.FIT,
-        autoCenter:Phaser.Scale.CENTER_BOTH,
-        width:CONFIG.W,
-        height:CONFIG.H
-    },
-    physics:{
-        default:"arcade",
-        arcade:{
-            gravity:{y:CONFIG.GRAVITY}
-        }
-    },
-    scene:AshenHollow
+type:Phaser.AUTO,
+parent:"game-container",
+scale:{
+mode:Phaser.Scale.FIT,
+autoCenter:Phaser.Scale.CENTER_BOTH,
+width:CONFIG.W,
+height:CONFIG.H
+},
+physics:{
+default:"arcade",
+arcade:{
+gravity:{y:CONFIG.GRAVITY}
+}
+},
+scene:AshenHollow
 });
 
 </script>
