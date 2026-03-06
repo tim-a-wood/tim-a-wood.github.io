@@ -20,13 +20,13 @@
 
 ---
 
-## Current State (as of plan creation)
+## Current State
 
 - **Codebase:** Single `index.html` with Phaser 3; monolithic layout for simplicity and portability.
-- **Gameplay:** **Ashen Hollow** (placeholder dark-fantasy name) — bounded world with one explorable zone: fixed width (1600px), hand-placed floor and platforms, camera and physics bounds. No infinite scroll; no abilities or gates yet.
+- **Gameplay:** **Ashen Hollow** — bounded world with one explorable zone: fixed width (1600px), hand-placed floor and floating platforms, camera/world bounds, lives, restart, and a first-pass double jump. No ability gate yet.
 - **Tech:** HTML/JS, Phaser 3 (Arcade Physics), texture generation at runtime. No external art assets. `manifest.json` is present; service-worker caching is intentionally disabled during rapid iteration on GitHub Pages to avoid stale installs.
-- **Quality:** Unit tests in `./tests/` (RNG/pit helpers retained for possible future procedural terrain); CI via `.github/workflows/test.yml`.
-- **Docs:** `prompts/project_overview.md`, this plan, `README.md`, `tests/README.md`.
+- **Quality:** Unit tests in `./tests/` cover current movement/jump state logic and first-zone layout; CI via `.github/workflows/test.yml`. Manual acceptance checks live in `tests/acceptance_tests.md`, with per-change outcomes recorded in `tests/test_report.md`.
+- **Docs:** `prompts/project_overview.md`, this plan, `README.md`, `tests/README.md`, `tests/acceptance_tests.md`, and `tests/test_report.md`.
 
 ---
 
