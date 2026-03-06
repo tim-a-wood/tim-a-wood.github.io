@@ -25,17 +25,17 @@ Redesign interior platforms to feel labyrinthian. Corridor platform and exit doo
 
 ---
 
-## ASCII room spec (current source of truth)
+## Level Design Specification (current source of truth)
 
-The room layout is generated from **`prompts/room_spec_ascii.txt`** (inlined as `ROOM_SPEC` in `index.html`). The parser `parseRoomSpec()` converts the 90×28 ASCII grid into ledges and key/start positions. Legend: `#` = solid, `.` = empty, `[ G ]` = key, `[S]` = start. To change the layout, edit the ASCII spec and keep the first ledge as the corridor `(0, 500, 8)` and door at `(248, 537)`.
+The room follows the **Level Design Specification: Labyrinthian Metroidvania Room** (world 1600×1200, 32×32 tiles, 14px platform thickness). Layout is defined by **`LABYRINTH_LEDGES`** in `index.html`: explicit platform list with corridor first, winding path to high key ledge. Door at `(248, 1137)`; key on high ledge; relic on mid platform.
 
 ---
 
 ## Fixed elements (do not change)
 
-- **World:** 1000×600 (condensed; was 1600×1200). Corridor platform: first ledge `{ x: 0, y: 500, len: 8, tint: 0 }`.
-- **Exit door:** position `(248, 537)`; right flush with corridor (256); top/bottom flush with corridor bottom (507) and ground (568).
-- **Boundary:** `buildBoundaryWalls()`, `ROOM_LAYOUT` (ceiling, right wall, left wall + doorway).
+- **World:** 1600×1200. Floor center Y = 1184; ceiling Y = 16. Corridor platform: first ledge `{ x: 0, y: 1100, len: 8 }`.
+- **Exit door:** position `(248, 1137)`; top just below corridor bottom (1107), bottom above ground.
+- **Boundary:** Left wall to center 1077 (bottom flush 1093); right wall full height (centers to 1168); ceiling full width.
 
 ---
 

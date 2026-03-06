@@ -8,8 +8,8 @@ const assert = require('assert');
 
 const CONFIG = {
     H: 400,
-    WORLD_WIDTH: 1000,
-    WORLD_HEIGHT: 600,
+    WORLD_WIDTH: 1600,
+    WORLD_HEIGHT: 1200,
     PLAYER_SPEED: 280,
     JUMP_FORCE: -690,
     FRICTION: 0.75,
@@ -18,101 +18,40 @@ const CONFIG = {
 
 const ROOM_LAYOUT = {
     TILE: 32,
-    LEFT_DOORWAY_TOP: 416,
+    LEFT_DOORWAY_TOP: 1077,
     roomType: 'internal'
 };
 
-// ----- Room spec (must match index.html ROOM_SPEC and parseRoomSpec) -----
-const ROOM_SPEC = [
-    '##########################################################################################',
-    '#........................................................................................#',
-    '#..........................................................................[ G ].........#',
-    '#.........................................................................#######........#',
-    '#..............####################################......................#.......#.......#',
-    '#.............#....................................#.....................#.......#.......#',
-    '#......#######......................................#####################........#.......#',
-    '#.....#..........................................................................#.......#',
-    '#.....#.........##################################################################.......#',
-    '#.....#........#.........................................................................#',
-    '#.....#........#.........##########################......................................#',
-    '#.....#........#........#..........................#.........#############################',
-    '#.....#........#........#..........................#........#.............................#',
-    '#.....#........#........#..........................#........#.............................#',
-    '#.....#........#........#..........................#........#.............................#',
-    '#_PLAT_........#_FLOOR_2_..........................#_FLOOR_2_............................#',
-    '#........................................................................................#',
-    '#...........................################################################.............#',
-    '#..........................#................................................#............#',
-    '#.......###################.................................................#............#',
-    '#......#....................................................................#............#',
-    '#......#.........###########################################################.............#',
-    '#......#........#........................................................................#',
-    '#_PLAT_........#........................................................................#',
-    '#..............#........................................................................#',
-    '#......#........############################################################.............#',
-    '#......#....................................................................#............#',
-    '# [S] ......................................................................#............#',
-    '#  S   #####################################################################.............#',
-    '##########################################################################################'
-].map((line) => {
-    const s = line.replace(/\[ G \]/g, 'G').replace(/\[S\]/g, 'S').replace(/[A-Z_0-9]/g, (c) => (c === 'G' || c === 'S' ? c : '.'));
-    if (s.length >= 90) return s.slice(0, 90);
-    return s + (s[s.length - 1] === '#' ? '#' : '.').repeat(90 - s.length);
-});
-
-function parseRoomSpec() {
-    const TILE = 32;
-    const W = CONFIG.WORLD_WIDTH;
-    const SPEC_W = 90;
-    const SPEC_H = ROOM_SPEC.length;
-    const nTileCols = Math.floor(W / TILE);
-    const grid = ROOM_SPEC.map((line) => {
-        const row = [];
-        for (let c = 0; c < SPEC_W; c++) {
-            const ch = (line[c] || '.');
-            row.push(ch === '#' || ch === 'G' || ch === 'S' ? 1 : 0);
-        }
-        return row;
-    });
-    function tileSolid(row, tileCol) {
-        const c0 = (tileCol * SPEC_W) / nTileCols;
-        const c1 = ((tileCol + 1) * SPEC_W) / nTileCols;
-        for (let c = Math.floor(c0); c < Math.ceil(c1) && c < SPEC_W; c++) {
-            if (grid[row][c] === 1) return true;
-        }
-        return false;
-    }
-    let keyCol = null;
-    for (let r = 0; r < SPEC_H; r++) {
-        for (let c = 0; c < SPEC_W; c++) {
-            if (ROOM_SPEC[r][c] === 'G') keyCol = c;
-        }
-    }
-    const ledges = [];
-    const CORRIDOR_Y = 500;
-    ledges.push({ x: 0, y: CORRIDOR_Y, len: 8, tint: 0 });
-    ledges.push({ x: 8 * TILE, y: CORRIDOR_Y, len: nTileCols - 8, tint: 0 });
-    for (let specRow = 1; specRow <= 25; specRow++) {
-        const y = 100 + Math.floor((specRow - 1) * (380 / 25));
-        let runStart = null;
-        for (let t = 0; t < nTileCols; t++) {
-            const solid = tileSolid(specRow, t);
-            if (solid && runStart === null) runStart = t;
-            if (!solid && runStart !== null) {
-                ledges.push({ x: runStart * TILE, y, len: t - runStart, tint: specRow % 5 });
-                runStart = null;
-            }
-        }
-        if (runStart !== null) ledges.push({ x: runStart * TILE, y, len: nTileCols - runStart, tint: specRow % 5 });
-    }
-    const keyX = keyCol != null ? Math.round((keyCol / SPEC_W) * W) : 820;
-    const keyLedgeY = 100 + Math.floor(3 * (380 / 25));
-    return {
-        ledges,
-        keyPos: { x: keyX, y: keyLedgeY - 19 },
-        startPos: { x: 128, y: CORRIDOR_Y - 27 }
-    };
-}
+// ----- Labyrinth layout (must match index.html LABYRINTH_LEDGES; Level Design Spec 1600×1200) -----
+const LABYRINTH_LEDGES = [
+    { x: 0, y: 1100, len: 8, tint: 0 },
+    { x: 304, y: 1120, len: 2, tint: 0 },
+    { x: 484, y: 1080, len: 3, tint: 1 },
+    { x: 734, y: 1100, len: 2, tint: 2 },
+    { x: 984, y: 1060, len: 2, tint: 3 },
+    { x: 384, y: 1000, len: 2, tint: 0 },
+    { x: 634, y: 980, len: 3, tint: 1 },
+    { x: 934, y: 1020, len: 2, tint: 2 },
+    { x: 284, y: 920, len: 3, tint: 3 },
+    { x: 584, y: 900, len: 2, tint: 0 },
+    { x: 884, y: 940, len: 3, tint: 1 },
+    { x: 434, y: 820, len: 2, tint: 2 },
+    { x: 734, y: 840, len: 3, tint: 3 },
+    { x: 1034, y: 800, len: 2, tint: 0 },
+    { x: 334, y: 720, len: 3, tint: 1 },
+    { x: 684, y: 700, len: 2, tint: 2 },
+    { x: 484, y: 600, len: 2, tint: 3 },
+    { x: 834, y: 620, len: 3, tint: 0 },
+    { x: 384, y: 520, len: 2, tint: 1 },
+    { x: 684, y: 500, len: 3, tint: 2 },
+    { x: 984, y: 540, len: 2, tint: 3 },
+    { x: 534, y: 400, len: 2, tint: 0 },
+    { x: 884, y: 420, len: 3, tint: 1 },
+    { x: 1034, y: 350, len: 4, tint: 2 },
+    { x: 784, y: 380, len: 2, tint: 3 },
+    { x: 1084, y: 240, len: 2, tint: 0 },
+    { x: 1434, y: 120, len: 3, tint: 1 }
+];
 
 // ----- Movement / jump helpers (must match index.html handleMovement()) -----
 function computeHorizontalVelocity({ left, right, currentVelocityX }) {
@@ -188,19 +127,16 @@ function buildFirstZoneLayout(worldWidth = CONFIG.WORLD_WIDTH, tile = ROOM_LAYOU
         for (let tx = 0; tx < worldWidth; tx += tile) {
             wallTiles.push({ x: tx + 16, y: 16, texture: 'floor' });
         }
-        for (let ty = tile; ty < height - tile; ty += tile) {
+        for (let ty = tile; ty < 1168; ty += tile) {
             wallTiles.push({ x: worldWidth - 16, y: ty + 16, texture: 'floor' });
         }
         for (let ty = tile; ty < ROOM_LAYOUT.LEFT_DOORWAY_TOP; ty += tile) {
             wallTiles.push({ x: 16, y: ty + 16, texture: 'floor' });
         }
-        const corridorPlatformTop = 493;
-        wallTiles.push({ x: 16, y: corridorPlatformTop - 41, texture: 'floor' });
-        wallTiles.push({ x: 16, y: corridorPlatformTop - 16, texture: 'floor' });
+        wallTiles.push({ x: 16, y: 1077, texture: 'floor' });
     }
 
-    const parsed = parseRoomSpec();
-    const ledges = parsed.ledges;
+    const ledges = LABYRINTH_LEDGES;
 
     const platformTiles = [];
     ledges.forEach(({ x, y, len, tint }) => {
@@ -213,12 +149,10 @@ function buildFirstZoneLayout(worldWidth = CONFIG.WORLD_WIDTH, tile = ROOM_LAYOU
 }
 
 function buildProgressionLayout() {
-    const parsed = parseRoomSpec();
-    const keyPos = parsed.keyPos || { x: 954, y: 86 };
     return {
-        exitDoor: { x: 248, y: 537, texture: 'doorLocked' },
-        keyPickup: { x: keyPos.x, y: keyPos.y, texture: 'key' },
-        relicPickup: { x: 256, y: 436, texture: 'relic' }
+        exitDoor: { x: 248, y: 1137, texture: 'doorLocked' },
+        keyPickup: { x: 1498, y: 86, texture: 'key' },
+        relicPickup: { x: 416, y: 493, texture: 'relic' }
     };
 }
 
@@ -545,32 +479,30 @@ function isInPit(mid, pitZones) {
 // ========== Level layout tests ==========
 (function testFirstZoneCreatesExpectedFloorTiles() {
     const layout = buildFirstZoneLayout();
-    assert.strictEqual(layout.floorCenters.length, 31, '1000px world with 32px tiles should create 31 floor tiles');
+    assert.strictEqual(layout.floorCenters.length, 50, '1600px world with 32px tiles should create 50 floor tiles');
     assert.strictEqual(layout.floorCenters[0], 16);
-    assert.strictEqual(layout.floorCenters[layout.floorCenters.length - 1], 976);
+    assert.strictEqual(layout.floorCenters[layout.floorCenters.length - 1], 1584);
 })();
 
 (function testFirstZoneCreatesExpectedFloatingPlatforms() {
     const layout = buildFirstZoneLayout();
-    const parsed = parseRoomSpec();
-    const expectedCount = parsed.ledges.reduce((sum, l) => sum + l.len, 0);
-    assert.strictEqual(layout.platformTiles.length, expectedCount, 'platform count must match spec-derived ledges');
-    assert.deepStrictEqual(layout.platformTiles[0], { x: 16, y: 500, tint: 'p0' }, 'first tile is corridor start');
+    const expectedCount = LABYRINTH_LEDGES.reduce((sum, l) => sum + l.len, 0);
+    assert.strictEqual(layout.platformTiles.length, expectedCount, 'platform count must match LABYRINTH_LEDGES');
+    assert.deepStrictEqual(layout.platformTiles[0], { x: 16, y: 1100, tint: 'p0' }, 'first tile is corridor start');
 })();
 
 (function testFirstZoneCreatesBoundaryWallsAtClosedEdges() {
     const layout = buildFirstZoneLayout();
-    assert.strictEqual(layout.wallTiles.length, 62);
+    assert.strictEqual(layout.wallTiles.length, 120, 'ceiling 50 + right 36 + left 34');
     assert.deepStrictEqual(layout.wallTiles[0], { x: 16, y: 16, texture: 'floor' });
-    assert.deepStrictEqual(layout.wallTiles[30], { x: 976, y: 16, texture: 'floor' });
 })();
 
 (function testLeftEdgeStaysOpenOnlyForDoorCorridor() {
     const layout = buildFirstZoneLayout();
     const leftWallTiles = layout.wallTiles.filter((t) => t.x === 16 && t.y > 16);
-    assert.strictEqual(leftWallTiles.length, 14);
+    assert(leftWallTiles.length >= 33, 'left wall from 48 down to 1077');
     assert.deepStrictEqual(leftWallTiles[0], { x: 16, y: 48, texture: 'floor' });
-    assert.deepStrictEqual(leftWallTiles[leftWallTiles.length - 1], { x: 16, y: 477, texture: 'floor' });
+    assert.deepStrictEqual(leftWallTiles[leftWallTiles.length - 1], { x: 16, y: 1077, texture: 'floor' });
 })();
 
 (function testOutdoorRoomHasNoBoundaryWalls() {
@@ -580,24 +512,24 @@ function isInPit(mid, pitZones) {
 
 (function testFirstZoneIncludesLeftCorridorLedge() {
     const layout = buildFirstZoneLayout();
-    const corridorTiles = layout.platformTiles.filter((tile) => tile.y === 500);
+    const corridorTiles = layout.platformTiles.filter((tile) => tile.y === 1100);
     const firstEight = corridorTiles.slice(0, 8);
     assert.deepStrictEqual(firstEight, [
-        { x: 16, y: 500, tint: 'p0' },
-        { x: 48, y: 500, tint: 'p0' },
-        { x: 80, y: 500, tint: 'p0' },
-        { x: 112, y: 500, tint: 'p0' },
-        { x: 144, y: 500, tint: 'p0' },
-        { x: 176, y: 500, tint: 'p0' },
-        { x: 208, y: 500, tint: 'p0' },
-        { x: 240, y: 500, tint: 'p0' }
-    ], 'first ledge is corridor (8 tiles at y=500)');
+        { x: 16, y: 1100, tint: 'p0' },
+        { x: 48, y: 1100, tint: 'p0' },
+        { x: 80, y: 1100, tint: 'p0' },
+        { x: 112, y: 1100, tint: 'p0' },
+        { x: 144, y: 1100, tint: 'p0' },
+        { x: 176, y: 1100, tint: 'p0' },
+        { x: 208, y: 1100, tint: 'p0' },
+        { x: 240, y: 1100, tint: 'p0' }
+    ], 'first ledge is corridor (8 tiles at y=1100)');
 })();
 
 (function testFirstZoneIncludesHighGateLedge() {
     const layout = buildFirstZoneLayout();
     const highTiles = layout.platformTiles.filter((tile) => tile.y <= 150);
-    assert(highTiles.length >= 1, 'spec should produce at least one high platform (key area)');
+    assert(highTiles.length >= 3, 'key ledge (1450, 120, 3) produces high platform');
 })();
 
 (function testAllPlatformTintsReferenceKnownColors() {
@@ -611,11 +543,9 @@ function isInPit(mid, pitZones) {
 // ========== Progression layout and state tests ==========
 (function testProgressionObjectsAppearAtExpectedPositions() {
     const layout = buildProgressionLayout();
-    assert.deepStrictEqual(layout.exitDoor, { x: 248, y: 537, texture: 'doorLocked' });
-    assert.strictEqual(layout.keyPickup.texture, 'key');
-    assert(layout.keyPickup.x >= 0 && layout.keyPickup.x <= 1000, 'key x in world');
-    assert(layout.keyPickup.y >= 0 && layout.keyPickup.y <= 600, 'key y in world');
-    assert.deepStrictEqual(layout.relicPickup, { x: 256, y: 436, texture: 'relic' });
+    assert.deepStrictEqual(layout.exitDoor, { x: 248, y: 1137, texture: 'doorLocked' });
+    assert.deepStrictEqual(layout.keyPickup, { x: 1498, y: 86, texture: 'key' });
+    assert.deepStrictEqual(layout.relicPickup, { x: 416, y: 493, texture: 'relic' });
 })();
 
 (function testTouchingRelicUnlocksDoubleJump() {
