@@ -33,11 +33,51 @@ Redesign interior platforms to feel labyrinthian. Corridor platform and exit doo
 
 ---
 
+## Step 3: Draft ledges array (for G3 approval)
+
+**Visualize:** Open `level-viewer.html` in a browser to see the draft layout (platforms, door, start, relic, key). Same data as the table below; update the viewer if you change the draft.
+
+Data only. First entry is fixed (corridor). Rest zigzag upward with short runs (len 1–2), one relic alcove, then climb to key ledge. Path: start (corridor) → relic (early alcove) → key (high, double-jump only) → return to door.
+
+| # | x | y | len | tint | Notes |
+|---|---|---|-----|------|------|
+| 1 | 0 | 1100 | 8 | 0 | **FIXED** corridor (start) |
+| 2 | 288 | 1060 | 2 | 0 | Step right from corridor |
+| 3 | 352 | 1020 | 1 | 1 | Zig right |
+| 4 | 304 | 980 | 2 | 2 | Zig left |
+| 5 | 400 | 940 | 1 | 0 | Zig right |
+| 6 | 336 | 900 | 2 | 3 | Zig left |
+| 7 | 432 | 860 | 1 | 1 | Zig right |
+| 8 | 368 | 820 | 2 | 2 | Zig left — **relic alcove** (relic platform) |
+| 9 | 480 | 780 | 1 | 0 | Zig right |
+| 10 | 416 | 740 | 2 | 4 | Zig left |
+| 11 | 512 | 700 | 1 | 1 | Zig right |
+| 12 | 448 | 660 | 2 | 2 | Zig left |
+| 13 | 544 | 620 | 1 | 0 | Zig right |
+| 14 | 480 | 580 | 2 | 3 | Zig left |
+| 15 | 576 | 540 | 1 | 1 | Zig right |
+| 16 | 512 | 500 | 2 | 4 | Zig left |
+| 17 | 608 | 460 | 1 | 0 | Zig right |
+| 18 | 544 | 420 | 2 | 2 | Zig left |
+| 19 | 640 | 380 | 1 | 1 | Zig right |
+| 20 | 576 | 340 | 2 | 3 | Zig left |
+| 21 | 672 | 300 | 1 | 0 | Zig right |
+| 22 | 608 | 260 | 2 | 4 | Zig left |
+| 23 | 704 | 220 | 1 | 1 | Zig right |
+| 24 | 1100 | 260 | 2 | 4 | Approach to key area (gap forces double jump) |
+| 25 | 1450 | 120 | 3 | 1 | **Key ledge** — reachable only via double jump from 24 |
+
+Flow: Corridor (1) → 2 → 3 → … → 8 (relic) → … → 24 → 25 (key). Return: 25 → 24 → … → 2 → 1 → door.
+
+Relic position (Step 4): on platform 8 (centers 384, 416; y=820). Key position (Step 4): on platform 25 (e.g. center tile; y=120).
+
+---
+
 ## Progress
 
 - [x] Step 1 — constraints documented (code comment)
 - [x] Step 2 — design rules defined
-- [ ] Step 3 — ledge draft (use rules above)
+- [x] Step 3 — ledge draft (pending G3 approval)
 - [ ] Step 4 — relic/key positions
 - [ ] Step 5 — implement ledges
 - [ ] Step 6 — progression objects

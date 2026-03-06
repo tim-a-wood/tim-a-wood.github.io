@@ -19,6 +19,10 @@ Browsers and CDNs often cache `index.html`. To force the latest version:
 
 The page also sends `Cache-Control: no-cache` via meta tags so some clients may revalidate without the query param.
 
+## Level layout viewer
+
+Open `level-viewer.html` in a browser (or via your local server) to visualize the draft labyrinth platform layout without running the full game. Used when reviewing `prompts/labyrinth_layout_plan.md` (Step 3 / G3).
+
 ## Local Run
 
 Use a simple local HTTP server instead of opening the file directly.
