@@ -105,7 +105,7 @@ function buildFirstZoneLayout(worldWidth = CONFIG.WORLD_WIDTH, tile = ROOM_LAYOU
     }
 
     const ledges = [
-        { x: 0, y: 1150, len: 8, tint: 0 },
+        { x: 0, y: 1100, len: 8, tint: 0 },
         { x: 320, y: 1120, len: 2, tint: 0 },
         { x: 500, y: 1080, len: 3, tint: 1 },
         { x: 750, y: 1100, len: 2, tint: 2 },
@@ -148,7 +148,7 @@ function buildProgressionLayout(height = 400) {
     return {
         exitDoor: { x: 224, y: 1166, texture: 'doorLocked' },
         keyPickup: { x: 1498, y: 86, texture: 'key' },
-        relicPickup: { x: 368, y: 1112, texture: 'relic' }
+        relicPickup: { x: 368, y: 1092, texture: 'relic' }
     };
 }
 
@@ -483,7 +483,7 @@ function isInPit(mid, pitZones) {
 (function testFirstZoneCreatesExpectedFloatingPlatforms() {
     const layout = buildFirstZoneLayout();
     assert.strictEqual(layout.platformTiles.length, 70);
-    assert.deepStrictEqual(layout.platformTiles[0], { x: 16, y: 1150, tint: 'p0' });
+    assert.deepStrictEqual(layout.platformTiles[0], { x: 16, y: 1100, tint: 'p0' });
     assert.deepStrictEqual(layout.platformTiles[layout.platformTiles.length - 1], { x: 1530, y: 120, tint: 'p1' });
 })();
 
@@ -509,16 +509,16 @@ function isInPit(mid, pitZones) {
 
 (function testFirstZoneIncludesLeftCorridorLedge() {
     const layout = buildFirstZoneLayout();
-    const corridorTiles = layout.platformTiles.filter((tile) => tile.y === 1150);
+    const corridorTiles = layout.platformTiles.filter((tile) => tile.y === 1100);
     assert.deepStrictEqual(corridorTiles, [
-        { x: 16, y: 1150, tint: 'p0' },
-        { x: 48, y: 1150, tint: 'p0' },
-        { x: 80, y: 1150, tint: 'p0' },
-        { x: 112, y: 1150, tint: 'p0' },
-        { x: 144, y: 1150, tint: 'p0' },
-        { x: 176, y: 1150, tint: 'p0' },
-        { x: 208, y: 1150, tint: 'p0' },
-        { x: 240, y: 1150, tint: 'p0' }
+        { x: 16, y: 1100, tint: 'p0' },
+        { x: 48, y: 1100, tint: 'p0' },
+        { x: 80, y: 1100, tint: 'p0' },
+        { x: 112, y: 1100, tint: 'p0' },
+        { x: 144, y: 1100, tint: 'p0' },
+        { x: 176, y: 1100, tint: 'p0' },
+        { x: 208, y: 1100, tint: 'p0' },
+        { x: 240, y: 1100, tint: 'p0' }
     ]);
 })();
 
@@ -546,7 +546,7 @@ function isInPit(mid, pitZones) {
     const layout = buildProgressionLayout();
     assert.deepStrictEqual(layout.exitDoor, { x: 224, y: 1166, texture: 'doorLocked' });
     assert.deepStrictEqual(layout.keyPickup, { x: 1498, y: 86, texture: 'key' });
-    assert.deepStrictEqual(layout.relicPickup, { x: 368, y: 1112, texture: 'relic' });
+    assert.deepStrictEqual(layout.relicPickup, { x: 368, y: 1092, texture: 'relic' });
 })();
 
 (function testTouchingRelicUnlocksDoubleJump() {

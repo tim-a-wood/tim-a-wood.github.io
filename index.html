@@ -168,7 +168,7 @@ class AshenHollow extends Phaser.Scene {
 
         // Groups & Entities
         this.platforms = this.physics.add.staticGroup();
-        this.player = this.physics.add.sprite(100, 1140, 'hero');
+        this.player = this.physics.add.sprite(100, 1092, 'hero');
         this.player.setCollideWorldBounds(true);
         this.physics.add.collider(this.player, this.platforms);
 
@@ -198,7 +198,7 @@ class AshenHollow extends Phaser.Scene {
         }
         // Hand-placed floating platforms: bottom (corridor, start) up to top (key ledge). Key only via double jump from 1100,240.
         const ledges = [
-            { x: 0, y: 1150, len: 8, tint: 0 },
+            { x: 0, y: 1100, len: 8, tint: 0 },
             { x: 320, y: 1120, len: 2, tint: 0 },
             { x: 500, y: 1080, len: 3, tint: 1 },
             { x: 750, y: 1100, len: 2, tint: 2 },
@@ -258,7 +258,7 @@ class AshenHollow extends Phaser.Scene {
     buildProgressionObjects() {
         this.exitDoor = this.physics.add.staticImage(224, 1166, 'doorLocked').refreshBody();
         this.keyPickup = this.physics.add.staticImage(1498, 86, 'key').refreshBody();
-        this.relicPickup = this.physics.add.staticImage(368, 1112, 'relic').refreshBody();
+        this.relicPickup = this.physics.add.staticImage(368, 1092, 'relic').refreshBody();
 
         this.physics.add.overlap(this.player, this.keyPickup, this.collectKey, null, this);
         this.physics.add.overlap(this.player, this.relicPickup, this.collectRelic, null, this);
