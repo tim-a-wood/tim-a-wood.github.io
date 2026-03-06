@@ -14,8 +14,8 @@ Dark-fantasy metroidvania prototype built as a single-file Phaser game in `index
 Browsers and CDNs often cache `index.html`. To force the latest version:
 
 1. **Use a versioned URL** — Add `?v=XXXX` to the game URL. The current value is in the page source (search for `CACHE_BUST`) or below. We bump it when we deploy, so this URL always bypasses cache.
-   - Example: `https://your-username.github.io/your-repo/?v=264a694`
-2. **Current cache-bust value:** `264a694` (update this when you deploy and want clients to refresh).
+   - Example: `https://your-username.github.io/your-repo/?v=fa5d8ac`
+2. **Current cache-bust value:** `fa5d8ac` (update this when you deploy and want clients to refresh).
 
 The page also sends `Cache-Control: no-cache` via meta tags so some clients may revalidate without the query param.
 
