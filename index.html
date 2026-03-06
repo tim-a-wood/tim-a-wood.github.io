@@ -97,6 +97,7 @@ this.physics.add.collider(this.player,this.platforms,this.onLand,null,this);
 this.cameras.main.startFollow(this.player,true,0.1,0.1);
 
 this.cursors=this.input.keyboard.createCursorKeys();
+this.spaceKey=this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
 
 this.setupTouchControls();
 
@@ -178,7 +179,7 @@ this.jumpCount++;
 
 update(){
 
-if(Phaser.Input.Keyboard.JustDown(this.cursors.up)){
+if(Phaser.Input.Keyboard.JustDown(this.cursors.up)||Phaser.Input.Keyboard.JustDown(this.spaceKey)){
 this.tryJump();
 }
 
