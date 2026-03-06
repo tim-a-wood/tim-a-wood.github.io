@@ -97,7 +97,13 @@ this.physics.add.collider(this.player,this.platforms,this.onLand,null,this);
 
 this.cameras.main.startFollow(this.player,true,0.1,0.1);
 
-this.debugText=this.add.text(10,60,"",{fontSize:"12px",fill:"#00ff00"}).setScrollFactor(0).setDepth(1000);
+this.debugBg=this.add.rectangle(5,55,320,95,0x000000,0.85).setScrollFactor(0).setDepth(9998).setOrigin(0,0);
+this.debugText=this.add.text(10,60,"DEBUG",{
+fontSize:"16px",
+fill:"#ffffff",
+stroke:"#000000",
+strokeThickness:3
+}).setScrollFactor(0).setDepth(9999).setOrigin(0,0);
 this.debugTryJumpLog=[];
 
 this.cursors=this.input.keyboard.createCursorKeys();
@@ -199,9 +205,9 @@ const logTail=this.debugTryJumpLog.slice(-6).join(" | ");
 this.debugText.setText(
 "jumpCount="+this.jumpCount+
 " onGr="+onGround+
-" blocked.down="+this.player.body.blocked.down+
+" b.down="+this.player.body.blocked.down+
 " velY="+Math.round(this.player.body.velocity.y)+
-"\njumpDown="+jumpDown+" justPressed="+(jumpJustPressed||keyboardJumpJustPressed)+" last="+this.jumpWasDownLastFrame+
+"\njump="+jumpDown+" just="+(jumpJustPressed||keyboardJumpJustPressed)+" last="+this.jumpWasDownLastFrame+
 "\n"+logTail
 );
 
