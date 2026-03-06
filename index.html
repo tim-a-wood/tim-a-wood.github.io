@@ -6,7 +6,6 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#050510">
-    <link rel="manifest" href="manifest.json">
     <title>Ashen Hollow</title>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
     <style>
@@ -17,51 +16,29 @@
 <body>
 <div id="game-container"></div>
 <script>
-/**
- * ARCHITECTURE MANIFEST - FOR AI AGENT INTERPRETATION
- * --------------------------------------------------
- * PROGRAM: Ashen Hollow
- * ENGINE: Phaser 3 (Arcade Physics)
- * PARADIGM: Bounded metroidvania (fixed world, one zone)
- * * CORE SYSTEMS:
- * 1. Bounded World: Fixed world width (CONFIG.WORLD_WIDTH). One zone built in create
- *    via buildFirstZone() — hand-placed floor and floating platforms. No procedural gen.
- * 2. Camera & Bounds: Camera follows player and is clamped to world bounds; physics
- *    world and player use setBounds/setCollideWorldBounds so nothing leaves the zone.
- * 3. Texture Generation: No external assets. All sprites are generated via
- *    this.make.graphics() during the preload/create phase to ensure 0ms latency.
- * * GLOBAL STATE (this.*):
- * - .inputState: Object tracking active touch/button inputs for physics polling.
- * - .jumpsRemaining: number of jumps allowed in current flight (2 = can double jump). Refilled to 2 when solidly on ground; decremented each time a jump is applied.
- * - .jumpWasDownLastFrame: used to detect "jump just pressed" for double jump (so holding jump doesn't burn it).
- * - .jumpBuffer: frames remaining to accept a mid-air jump press (makes double jump feel responsive).
- */
-
 const CONFIG = {
     W: 800,
     H: 400,
     WORLD_WIDTH: 1600,
     GRAVITY: 1400,
     PLAYER_SPEED: 280,
-    JUMP_FORCE: -690,
-    FRICTION: 0.75,
+    JUMP_FORCE: -600,
+    FRICTION: 0.8,
     COLORS: [0x2a3a5a, 0x3a2a5a, 0x2a4a3a, 0x4a3a2a, 0x2a4050]
 };
 
 class AshenHollow extends Phaser.Scene {
     constructor() {
         super('AshenHollow');
-        this.resetInternalState();
     }
 
-    resetInternalState() {
+    init() {
         this.lives = 3;
         this.isGameOver = false;
         this.trailPts = [];
         this.inputState = { left: false, right: false, jump: false };
-        this.jumpsRemaining = 2; // max jumps per flight; refill when solidly on ground
-        this.jumpWasDownLastFrame = false; // for "jump just pressed" so double jump requires a new press
-        this.jumpBuffer = 0; // frames to accept mid-air jump (so second tap reliably triggers hop)
+        this.jumpsRemaining = 2;
+        this.jumpWasDownLastFrame = false;
     }
 
     preload() {
@@ -71,30 +48,25 @@ class AshenHollow extends Phaser.Scene {
     generateAssetTextures() {
         const g = this.make.graphics({ x: 0, y: 0, add: false });
         
-        // Floor Tile
         g.fillStyle(0x334466).fillRect(0, 0, 32, 32);
         g.fillStyle(0xffffff, 0.15).fillRect(0, 0, 32, 2);
         g.generateTexture('floor', 32, 32);
 
-        // Platform Variants
         CONFIG.COLORS.forEach((color, i) => {
             g.clear().fillStyle(color).fillRect(0, 0, 32, 14);
             g.fillStyle(0xffffff, 0.15).fillRect(0, 0, 32, 2);
             g.generateTexture(`p${i}`, 32, 14);
         });
 
-        // Hero Sprite
-        g.clear().fillStyle(0x00ddff).fillRect(4, 8, 20, 24); // Body
-        g.fillStyle(0xff00bb).fillRect(8, 10, 12, 8);   // Visor
-        g.fillStyle(0x007799).fillRect(4, 32, 8, 8);    // Left Leg
-        g.fillStyle(0x007799).fillRect(16, 32, 8, 8);   // Right Leg
+        g.clear().fillStyle(0x00ddff).fillRect(4, 8, 20, 24);
+        g.fillStyle(0xff00bb).fillRect(8, 10, 12, 8);
+        g.fillStyle(0x007799).fillRect(4, 32, 8, 8);
+        g.fillStyle(0x007799).fillRect(16, 32, 8, 8);
         g.generateTexture('hero', 28, 40);
         
-        // UI Controls
         g.clear().fillStyle(0xffffff, 0.13).fillCircle(40, 40, 40);
         g.generateTexture('btn', 80, 80);
 
-        // Starfield Batch
         g.clear();
         for (let i = 0; i < 100; i++) {
             g.fillStyle(0xffffff, 0.4 + Math.random() * 0.6);
@@ -105,29 +77,22 @@ class AshenHollow extends Phaser.Scene {
     }
 
     create() {
-        this.resetInternalState();
-
-        // Environment: bounded world
         this.physics.world.setBounds(0, 0, CONFIG.WORLD_WIDTH, CONFIG.H);
         this.cameras.main.setBounds(0, 0, CONFIG.WORLD_WIDTH, CONFIG.H);
         this.cameras.main.setBackgroundColor('#050510');
+        
         this.starField = this.add.tileSprite(CONFIG.W/2, CONFIG.H/2, CONFIG.W, CONFIG.H, 'stars')
             .setScrollFactor(0).setDepth(-1);
         this.trail = this.add.graphics();
 
-        // Groups & Entities
         this.platforms = this.physics.add.staticGroup();
         this.player = this.physics.add.sprite(100, 250, 'hero');
         this.player.setCollideWorldBounds(true);
         this.physics.add.collider(this.player, this.platforms);
 
-        // Camera: follow player, stay within world
         this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
 
-        // One zone: hand-placed floor + platforms
         this.buildFirstZone();
-
-        // UI & Input
         this.createHUD();
         this.setupControls();
     }
@@ -135,13 +100,9 @@ class AshenHollow extends Phaser.Scene {
     buildFirstZone() {
         const TILE = 32;
         const H = CONFIG.H;
-        const W = CONFIG.WORLD_WIDTH;
-        // Solid floor across the zone
-        for (let tx = 0; tx < W; tx += TILE) {
-            const mid = tx + 16;
-            this.platforms.create(mid, H - 16, 'floor').refreshBody();
+        for (let tx = 0; tx < CONFIG.WORLD_WIDTH; tx += TILE) {
+            this.platforms.create(tx + 16, H - 16, 'floor').refreshBody();
         }
-        // Hand-placed floating platforms
         const ledges = [
             { x: 320, y: 280, len: 2, tint: 0 },
             { x: 520, y: 220, len: 3, tint: 1 },
@@ -164,7 +125,6 @@ class AshenHollow extends Phaser.Scene {
         this.lifeIcons = this.add.group();
         this.updateLifeDisplay();
 
-        // Restart Button
         this.add.text(10, 10, '[ RESTART ]', { fontSize: '12px', fill: '#ff3355' })
             .setScrollFactor(0).setInteractive()
             .on('pointerdown', () => this.scene.restart());
@@ -173,7 +133,6 @@ class AshenHollow extends Phaser.Scene {
     setupControls() {
         this.cursors = this.input.keyboard.createCursorKeys();
         this.spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
-        this.input.addPointer(2);
 
         const spawnBtn = (x, y, label, action) => {
             const btn = this.add.image(x, y, 'btn').setScrollFactor(0).setInteractive().setAlpha(0.6);
@@ -195,34 +154,23 @@ class AshenHollow extends Phaser.Scene {
         this.handleMovement();
         this.drawMotionTrail();
 
-        // Background Parallax
         this.starField.tilePositionX = this.player.x * 0.15;
         this.distText.setText(`DIST ${Math.floor(this.player.x / 10)} m`);
 
-        // Pit / void death
         if (this.player.y > CONFIG.H + 50) this.handlePlayerDeath();
     }
 
     handleMovement() {
         const onGround = this.player.body.blocked.down;
-        const velocityY = this.player.body.velocity.y;
-        // In-air for double jump: not on ground OR moving up (covers Arcade one-frame delay). Logic mirrored in tests/game-logic.test.js computeJumpFrame().
-        const inAir = !onGround || velocityY < 0;
+        
         const left = this.inputState.left || this.cursors.left.isDown;
         const right = this.inputState.right || this.cursors.right.isDown;
-        const jump = this.inputState.jump || this.cursors.up.isDown || this.spaceKey.isDown;
-        // Double jump only on *new* press (so holding jump from first jump doesn't burn it)
-        const jumpJustPressed = (this.cursors.up && this.cursors.up.justDown) ||
-            (this.spaceKey && this.spaceKey.justDown) ||
-            (this.inputState.jump && !this.jumpWasDownLastFrame);
+        const jumpIsDown = this.inputState.jump || this.cursors.up.isDown || this.spaceKey.isDown;
 
-        // Buffer: when player presses jump, remember for a few frames so mid-air hop is easy to trigger
-        if (jumpJustPressed) this.jumpBuffer = 5;
-        if (this.jumpBuffer > 0) this.jumpBuffer--;
+        // "Just Pressed" Logic: True only on the frame the button was first pressed
+        const jumpJustPressed = jumpIsDown && !this.jumpWasDownLastFrame;
 
-        // Refill jump count only when solidly on ground (not moving up), so we don't reset the frame after first jump
-        if (onGround && velocityY >= 0) this.jumpsRemaining = 2;
-
+        // 1. Horizontal Movement
         if (left) {
             this.player.setVelocityX(-CONFIG.PLAYER_SPEED).setFlipX(true);
         } else if (right) {
@@ -231,19 +179,25 @@ class AshenHollow extends Phaser.Scene {
             this.player.setVelocityX(this.player.body.velocity.x * CONFIG.FRICTION);
         }
 
-        // Jump: first jump only when we have both jumps (avoids Arcade one-frame ground delay burning the second)
-        if (jump && onGround && this.jumpsRemaining === 2) {
-            this.player.setVelocityY(CONFIG.JUMP_FORCE);
-            this.jumpsRemaining--;
-            this.jumpBuffer = 0; // don't carry buffer into air so holding jump doesn't auto double-jump
-        } else if ((jumpJustPressed || this.jumpBuffer > 0) && inAir && this.jumpsRemaining > 0) {
-            // Mid-air hop: apply full jump force so the character clearly hops up
-            this.player.setVelocityY(CONFIG.JUMP_FORCE);
-            this.jumpsRemaining--;
-            this.jumpBuffer = 0; // consume buffer so we don't double-apply
+        // 2. Reset jump count on ground
+        if (onGround) {
+            this.jumpsRemaining = 2;
         }
 
-        this.jumpWasDownLastFrame = jump;
+        // 3. Jump Execution
+        if (jumpJustPressed && this.jumpsRemaining > 0) {
+            // First jump from ground counts as using one jump, leaving the second for air
+            if (onGround) {
+                this.jumpsRemaining = 1; 
+            } else {
+                this.jumpsRemaining--;
+            }
+            
+            this.player.setVelocityY(CONFIG.JUMP_FORCE);
+        }
+
+        // Record state for the next frame
+        this.jumpWasDownLastFrame = jumpIsDown;
     }
 
     handlePlayerDeath() {
@@ -258,7 +212,7 @@ class AshenHollow extends Phaser.Scene {
                 fontSize: '32px', fill: '#ff0066', align: 'center'
             }).setOrigin(0.5).setScrollFactor(0);
         } else {
-            this.player.setPosition(this.player.x, 50).setVelocity(0, 0);
+            this.player.setPosition(100, 250).setVelocity(0, 0);
             this.tweens.add({ targets: this.player, alpha: 0.2, duration: 100, yoyo: true, repeat: 5 });
         }
     }
@@ -274,10 +228,8 @@ class AshenHollow extends Phaser.Scene {
         if (Math.abs(this.player.body.velocity.x) > 100) {
             this.trailPts.push({ x: this.player.x, y: this.player.y + 4, life: 10 });
         }
-        
         this.trail.clear();
         this.trailPts = this.trailPts.filter(p => p.life > 0);
-        
         this.trailPts.forEach(p => {
             p.life--;
             this.trail.fillStyle(0x00eeff, (p.life / 10) * 0.4);
@@ -286,14 +238,7 @@ class AshenHollow extends Phaser.Scene {
     }
 }
 
-// PWA: register service worker for installability and caching
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js').catch(() => {});
-  });
-}
-
-const game = new Phaser.Game({
+new Phaser.Game({
     type: Phaser.AUTO,
     scale: {
         mode: Phaser.Scale.FIT,
