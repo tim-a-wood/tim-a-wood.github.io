@@ -7,7 +7,7 @@
 const assert = require('assert');
 
 const CONFIG = {
-    H: 400,
+    H: 1200,
     WORLD_WIDTH: 1600,
     PLAYER_SPEED: 280,
     JUMP_FORCE: -690,
@@ -17,7 +17,7 @@ const CONFIG = {
 
 const ROOM_LAYOUT = {
     TILE: 32,
-    LEFT_DOORWAY_TOP: 288,
+    LEFT_DOORWAY_TOP: 1150,
     roomType: 'internal'
 };
 
@@ -104,11 +104,31 @@ function buildFirstZoneLayout(worldWidth = CONFIG.WORLD_WIDTH, tile = ROOM_LAYOU
     }
 
     const ledges = [
-        { x: 0, y: 284, len: 8, tint: 0 },
-        { x: 320, y: 280, len: 2, tint: 0 },
-        { x: 520, y: 220, len: 3, tint: 1 },
-        { x: 800, y: 260, len: 2, tint: 2 },
-        { x: 1050, y: 180, len: 4, tint: 3 },
+        { x: 0, y: 1150, len: 8, tint: 0 },
+        { x: 320, y: 1120, len: 2, tint: 0 },
+        { x: 500, y: 1080, len: 3, tint: 1 },
+        { x: 750, y: 1100, len: 2, tint: 2 },
+        { x: 1000, y: 1060, len: 2, tint: 3 },
+        { x: 400, y: 1000, len: 2, tint: 0 },
+        { x: 650, y: 980, len: 3, tint: 1 },
+        { x: 950, y: 1020, len: 2, tint: 2 },
+        { x: 300, y: 920, len: 3, tint: 3 },
+        { x: 600, y: 900, len: 2, tint: 4 },
+        { x: 900, y: 940, len: 3, tint: 0 },
+        { x: 450, y: 820, len: 2, tint: 1 },
+        { x: 750, y: 840, len: 3, tint: 2 },
+        { x: 1050, y: 800, len: 2, tint: 3 },
+        { x: 350, y: 720, len: 3, tint: 4 },
+        { x: 700, y: 700, len: 2, tint: 0 },
+        { x: 500, y: 600, len: 2, tint: 1 },
+        { x: 850, y: 620, len: 3, tint: 2 },
+        { x: 400, y: 520, len: 2, tint: 3 },
+        { x: 700, y: 500, len: 3, tint: 4 },
+        { x: 1000, y: 540, len: 2, tint: 0 },
+        { x: 550, y: 400, len: 2, tint: 1 },
+        { x: 900, y: 420, len: 3, tint: 2 },
+        { x: 1050, y: 350, len: 4, tint: 3 },
+        { x: 800, y: 380, len: 2, tint: 4 },
         { x: 1100, y: 240, len: 2, tint: 4 },
         { x: 1450, y: 120, len: 3, tint: 1 }
     ];
@@ -125,9 +145,9 @@ function buildFirstZoneLayout(worldWidth = CONFIG.WORLD_WIDTH, tile = ROOM_LAYOU
 
 function buildProgressionLayout(height = 400) {
     return {
-        exitDoor: { x: 224, y: 326, texture: 'doorLocked' },
+        exitDoor: { x: 224, y: 1166, texture: 'doorLocked' },
         keyPickup: { x: 1498, y: 86, texture: 'key' },
-        relicPickup: { x: 368, y: 266, texture: 'relic' }
+        relicPickup: { x: 368, y: 1112, texture: 'relic' }
     };
 }
 
@@ -461,14 +481,14 @@ function isInPit(mid, pitZones) {
 
 (function testFirstZoneCreatesExpectedFloatingPlatforms() {
     const layout = buildFirstZoneLayout();
-    assert.strictEqual(layout.platformTiles.length, 24);
-    assert.deepStrictEqual(layout.platformTiles[0], { x: 16, y: 284, tint: 'p0' });
+    assert.strictEqual(layout.platformTiles.length, 70);
+    assert.deepStrictEqual(layout.platformTiles[0], { x: 16, y: 1150, tint: 'p0' });
     assert.deepStrictEqual(layout.platformTiles[layout.platformTiles.length - 1], { x: 1530, y: 120, tint: 'p1' });
 })();
 
 (function testFirstZoneCreatesBoundaryWallsAtClosedEdges() {
     const layout = buildFirstZoneLayout();
-    assert.strictEqual(layout.wallTiles.length, 69);
+    assert.strictEqual(layout.wallTiles.length, 121);
     assert.deepStrictEqual(layout.wallTiles[0], { x: 16, y: 16, texture: 'floor' });
     assert.deepStrictEqual(layout.wallTiles[49], { x: 1584, y: 16, texture: 'floor' });
 })();
@@ -476,16 +496,9 @@ function isInPit(mid, pitZones) {
 (function testLeftEdgeStaysOpenOnlyForDoorCorridor() {
     const layout = buildFirstZoneLayout();
     const leftWallTiles = layout.wallTiles.filter((tile) => tile.x === 16 && tile.y > 16);
-    assert.deepStrictEqual(leftWallTiles, [
-        { x: 16, y: 48, texture: 'floor' },
-        { x: 16, y: 80, texture: 'floor' },
-        { x: 16, y: 112, texture: 'floor' },
-        { x: 16, y: 144, texture: 'floor' },
-        { x: 16, y: 176, texture: 'floor' },
-        { x: 16, y: 208, texture: 'floor' },
-        { x: 16, y: 240, texture: 'floor' },
-        { x: 16, y: 272, texture: 'floor' }
-    ]);
+    assert.strictEqual(leftWallTiles.length, 35);
+    assert.deepStrictEqual(leftWallTiles[0], { x: 16, y: 48, texture: 'floor' });
+    assert.deepStrictEqual(leftWallTiles[leftWallTiles.length - 1], { x: 16, y: 1136, texture: 'floor' });
 })();
 
 (function testOutdoorRoomHasNoBoundaryWalls() {
@@ -495,16 +508,16 @@ function isInPit(mid, pitZones) {
 
 (function testFirstZoneIncludesLeftCorridorLedge() {
     const layout = buildFirstZoneLayout();
-    const corridorTiles = layout.platformTiles.filter((tile) => tile.y === 284);
+    const corridorTiles = layout.platformTiles.filter((tile) => tile.y === 1150);
     assert.deepStrictEqual(corridorTiles, [
-        { x: 16, y: 284, tint: 'p0' },
-        { x: 48, y: 284, tint: 'p0' },
-        { x: 80, y: 284, tint: 'p0' },
-        { x: 112, y: 284, tint: 'p0' },
-        { x: 144, y: 284, tint: 'p0' },
-        { x: 176, y: 284, tint: 'p0' },
-        { x: 208, y: 284, tint: 'p0' },
-        { x: 240, y: 284, tint: 'p0' }
+        { x: 16, y: 1150, tint: 'p0' },
+        { x: 48, y: 1150, tint: 'p0' },
+        { x: 80, y: 1150, tint: 'p0' },
+        { x: 112, y: 1150, tint: 'p0' },
+        { x: 144, y: 1150, tint: 'p0' },
+        { x: 176, y: 1150, tint: 'p0' },
+        { x: 208, y: 1150, tint: 'p0' },
+        { x: 240, y: 1150, tint: 'p0' }
     ]);
 })();
 
@@ -530,9 +543,9 @@ function isInPit(mid, pitZones) {
 // ========== Progression layout and state tests ==========
 (function testProgressionObjectsAppearAtExpectedPositions() {
     const layout = buildProgressionLayout();
-    assert.deepStrictEqual(layout.exitDoor, { x: 224, y: 326, texture: 'doorLocked' });
+    assert.deepStrictEqual(layout.exitDoor, { x: 224, y: 1166, texture: 'doorLocked' });
     assert.deepStrictEqual(layout.keyPickup, { x: 1498, y: 86, texture: 'key' });
-    assert.deepStrictEqual(layout.relicPickup, { x: 368, y: 266, texture: 'relic' });
+    assert.deepStrictEqual(layout.relicPickup, { x: 368, y: 1112, texture: 'relic' });
 })();
 
 (function testTouchingRelicUnlocksDoubleJump() {
