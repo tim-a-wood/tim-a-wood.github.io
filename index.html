@@ -203,6 +203,9 @@ class AshenHollow extends Phaser.Scene {
 
     handleMovement() {
         const onGround = this.player.body.blocked.down;
+        const velocityY = this.player.body.velocity.y;
+        // In-air for double jump: not on ground OR moving up (covers Arcade one-frame delay where blocked.down is still true after leave)
+        const inAir = !onGround || velocityY < 0;
         const left = this.inputState.left || this.cursors.left.isDown;
         const right = this.inputState.right || this.cursors.right.isDown;
         const jump = this.inputState.jump || this.cursors.up.isDown || this.spaceKey.isDown;
@@ -212,7 +215,7 @@ class AshenHollow extends Phaser.Scene {
             (this.inputState.jump && !this.jumpWasDownLastFrame);
 
         // Refill jump count only when solidly on ground (not moving up), so we don't reset the frame after first jump
-        if (onGround && this.player.body.velocity.y >= 0) this.jumpsRemaining = 2;
+        if (onGround && velocityY >= 0) this.jumpsRemaining = 2;
 
         if (left) {
             this.player.setVelocityX(-CONFIG.PLAYER_SPEED).setFlipX(true);
@@ -226,7 +229,7 @@ class AshenHollow extends Phaser.Scene {
         if (jump && onGround && this.jumpsRemaining === 2) {
             this.player.setVelocityY(CONFIG.JUMP_FORCE);
             this.jumpsRemaining--;
-        } else if (jumpJustPressed && !onGround && this.jumpsRemaining > 0) {
+        } else if (jumpJustPressed && inAir && this.jumpsRemaining > 0) {
             this.player.setVelocityY(CONFIG.JUMP_FORCE);
             this.jumpsRemaining--;
         }
