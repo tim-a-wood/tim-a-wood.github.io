@@ -33,6 +33,7 @@
  * * GLOBAL STATE (this.*):
  * - .inputState: Object tracking active touch/button inputs for physics polling.
  * - .doubleJumpAvailable: true when a mid-air jump can be used; refilled on land, consumed on double jump.
+ * - .jumpWasDownLastFrame: used to detect "jump just pressed" for double jump (so holding jump doesn't burn it).
  */
 
 const CONFIG = {
@@ -58,6 +59,7 @@ class AshenHollow extends Phaser.Scene {
         this.trailPts = [];
         this.inputState = { left: false, right: false, jump: false };
         this.doubleJumpAvailable = true; // refilled on land, consumed on mid-air jump
+        this.jumpWasDownLastFrame = false; // for "jump just pressed" so double jump requires a new press
     }
 
     preload() {
@@ -168,6 +170,7 @@ class AshenHollow extends Phaser.Scene {
 
     setupControls() {
         this.cursors = this.input.keyboard.createCursorKeys();
+        this.spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
         this.input.addPointer(2);
 
         const spawnBtn = (x, y, label, action) => {
@@ -202,7 +205,11 @@ class AshenHollow extends Phaser.Scene {
         const onGround = this.player.body.blocked.down;
         const left = this.inputState.left || this.cursors.left.isDown;
         const right = this.inputState.right || this.cursors.right.isDown;
-        const jump = this.inputState.jump || this.cursors.up.isDown || this.cursors.space.isDown;
+        const jump = this.inputState.jump || this.cursors.up.isDown || this.spaceKey.isDown;
+        // Double jump only on *new* press (so holding jump from first jump doesn't burn it)
+        const jumpJustPressed = (this.cursors.up && this.cursors.up.justDown) ||
+            (this.spaceKey && this.spaceKey.justDown) ||
+            (this.inputState.jump && !this.jumpWasDownLastFrame);
 
         if (onGround) this.doubleJumpAvailable = true;
 
@@ -216,10 +223,12 @@ class AshenHollow extends Phaser.Scene {
 
         if (jump && onGround) {
             this.player.setVelocityY(CONFIG.JUMP_FORCE);
-        } else if (jump && !onGround && this.doubleJumpAvailable) {
+        } else if (jumpJustPressed && !onGround && this.doubleJumpAvailable) {
             this.player.setVelocityY(CONFIG.JUMP_FORCE); // same height as first jump for consistent feel
             this.doubleJumpAvailable = false;
         }
+
+        this.jumpWasDownLastFrame = jump;
     }
 
     handlePlayerDeath() {
