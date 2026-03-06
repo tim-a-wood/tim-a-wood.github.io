@@ -68,7 +68,7 @@ g.clear()
 create(){
 
 this.jumpCount=0;
-this.touchJumpRequested=false;
+this.jumpWasDownLastFrame=false;
 
 this.physics.world.setBounds(0,0,CONFIG.WORLD_WIDTH,CONFIG.H);
 
@@ -110,7 +110,8 @@ setupTouchControls(){
 
 this.inputState={
 left:false,
-right:false
+right:false,
+jump:false
 };
 
 const makeBtn=(x,y,act)=>{
@@ -119,14 +120,6 @@ const b=this.add.image(x,y,"btn")
 .setScrollFactor(0)
 .setInteractive()
 .setAlpha(0.5);
-
-if(act==="jump"){
-
-b.on("pointerdown",()=>{
-this.touchJumpRequested=true;
-});
-
-}else{
 
 b.on("pointerdown",()=>{
 this.inputState[act]=true;
@@ -179,11 +172,13 @@ if(onGround){
 this.jumpCount=0;
 }
 
-const jumpPressed=Phaser.Input.Keyboard.JustDown(this.cursors.up)||Phaser.Input.Keyboard.JustDown(this.spaceKey)||this.touchJumpRequested;
-if(jumpPressed){
-this.touchJumpRequested=false;
+const jumpDown=this.inputState.jump||this.cursors.up.isDown||this.spaceKey.isDown;
+const jumpJustPressed=jumpDown&&!this.jumpWasDownLastFrame;
+const keyboardJumpJustPressed=Phaser.Input.Keyboard.JustDown(this.cursors.up)||Phaser.Input.Keyboard.JustDown(this.spaceKey);
+if(jumpJustPressed||keyboardJumpJustPressed){
 this.tryJump();
 }
+this.jumpWasDownLastFrame=jumpDown;
 
 const speed=CONFIG.PLAYER_SPEED;
 
