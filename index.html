@@ -51,6 +51,7 @@
         this.cameras.main.setBounds(0, 0, 9999999, H);
         this.cameras.main.setBackgroundColor('#050510');
 
+        // ── Generate textures ────────────────────────────────────────────────────
         var g = this.add.graphics();
         g.fillStyle(0x334466, 1); g.fillRect(0, 0, 32, 32);
         g.fillStyle(0xffffff, 0.15); g.fillRect(0, 0, 32, 2);
@@ -79,24 +80,35 @@
         bg.generateTexture('btn', 80, 80);
         bg.destroy();
 
-        var stars = this.add.graphics();
-        stars.setScrollFactor(0.15);
-        for (var i = 0; i < 160; i++) {
-            var a = 0.3 + rng() * 0.7;
-            stars.fillStyle(0xffffff, a);
-            stars.fillRect(rngInt(0, W), rngInt(0, H), 1, 1);
+        // ── Infinite Starfield (Option 2) ────────────────────────────────────────
+        var starCanvas = this.add.graphics();
+        for (var i = 0; i < 100; i++) {
+            var sAlpha = 0.4 + Math.random() * 0.6;
+            starCanvas.fillStyle(0xffffff, sAlpha);
+            starCanvas.fillRect(Math.random() * 512, Math.random() * 512, 2, 2);
         }
+        starCanvas.generateTexture('starBatch', 512, 512);
+        starCanvas.destroy();
 
+        // Create the TileSprite that covers the screen
+        this.starField = this.add.tileSprite(W/2, H/2, W, H, 'starBatch')
+            .setScrollFactor(0)
+            .setDepth(-1);
+
+        // ── Platforms ────────────────────────────────────────────────────────────
         platforms = this.physics.add.staticGroup();
         generateChunk.call(this, 0, GENERATE_AHEAD * 2);
 
+        // ── Player ───────────────────────────────────────────────────────────────
         player = this.physics.add.sprite(100, 250, 'hero');
         player.setCollideWorldBounds(false);
         this.physics.add.collider(player, platforms);
         this.cameras.main.startFollow(player, true, 0.09, 0.09);
 
+        // ── Keyboard ─────────────────────────────────────────────────────────────
         cursors = this.input.keyboard.createCursorKeys();
 
+        // ── HUD ──────────────────────────────────────────────────────────────────
         this.distText = this.add.text(W / 2, 12, 'DIST 0 m', {
             fontFamily: 'monospace',
             fontSize: '13px',
@@ -105,6 +117,7 @@
             strokeThickness: 4
         }).setScrollFactor(0).setOrigin(0.5, 0);
 
+        // ── Touch controls ───────────────────────────────────────────────────────
         this.input.addPointer(3);
         makeTouchBtn(this, 55, 345, '<', function() { inputState.left = true; }, function() { inputState.left = false; });
         makeTouchBtn(this, 155, 345, '>', function() { inputState.right = true; }, function() { inputState.right = false; });
@@ -124,6 +137,9 @@
     function update() {
         var px = player.x;
         var onGround = player.body.blocked.down;
+
+        // Update infinite star position (parallax)
+        this.starField.tilePositionX = px * 0.15;
 
         var goLeft  = inputState.left  || cursors.left.isDown;
         var goRight = inputState.right || cursors.right.isDown;
@@ -177,7 +193,6 @@
         var TILE = 32;
         var FLOOR_Y = H - 16;
         var x = fromX;
-
         while (x < toX) {
             if (rng() < 0.10 && x > 300) {
                 var pw = rngRange(64, 150);
@@ -187,7 +202,6 @@
                 x += rngRange(120, 280);
             }
         }
-
         for (var tx = Math.floor(fromX / TILE) * TILE; tx < toX; tx += TILE) {
             var cx = tx + 16;
             if (!inPit(cx)) {
@@ -196,7 +210,6 @@
                 floorTiles.push(t);
             }
         }
-
         var fx = fromX + rngRange(80, 200);
         while (fx < toX) {
             var numTiles = rngInt(2, 5);
