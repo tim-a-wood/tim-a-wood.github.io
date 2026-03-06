@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Neon Drifter Infinite</title>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+    <style>
+        body { margin: 0; padding: 0; background: #000; overflow: hidden; touch-action: none; }
+        #game-container { display: flex; justify-content: center; align-items: center; height: 100vh; width: 100vw; }
+    </style>
+</head>
+<body>
+<div id="game-container"></div>
+<script>
+var W = 800, H = 400;
+var GRAVITY = 1400;
+var GENERATE_AHEAD = 1600;
+var CLEANUP_BEHIND = 600;
+
+var seed = 42;
+function rng() {
+seed = (seed * 16807) % 2147483647;
+return (seed - 1) / 2147483646;
+}
+function rngRange(lo, hi) { return lo + rng() * (hi - lo); }
+function rngInt(lo, hi) { return Math.floor(lo + rng() * (hi - lo + 1)); }
+
+var player, platforms, cursors;
+var floorTiles = [];
+var floatTiles = [];
+var generatedUpTo = 0;
+var pitZones = [];
+var inputState = { left: false, right: false, jump: false };
+
+var PLAT_HEX = [0x2a3a5a, 0x3a2a5a, 0x2a4a3a, 0x4a3a2a, 0x2a4050];
+
+function preload() {}
+
+function create() {
+seed = 42;
+floorTiles = [];
+floatTiles = [];
+pitZones = [];
+generatedUpTo = 0;
+inputState = { left: false, right: false, jump: false };
+
+this.physics.world.setBounds(0, 0, 9999999, H);
+this.cameras.main.setBounds(0, 0, 9999999, H);
+this.cameras.main.setBackgroundColor('#050510');
+
+var g = this.add.graphics();
+g.fillStyle(0x334466, 1); g.fillRect(0, 0, 32, 32);
+g.fillStyle(0xffffff, 0.15); g.fillRect(0, 0, 32, 2);
+g.generateTexture('floor', 32, 32);
+g.destroy();
+
+for (var ci = 0; ci < PLAT_HEX.length; ci++) {
+    var pg = this.add.graphics();
+    pg.fillStyle(PLAT_HEX[ci], 1); pg.fillRect(0, 0, 32, 14);
+    pg.fillStyle(0xffffff, 0.15); pg.fillRect(0, 0, 32, 2);
+    pg.generateTexture('p' + ci, 32, 14);
+    pg.destroy();
+}
+
+var hg = this.add.graphics();
+hg.fillStyle(0x00ddff, 1); hg.fillRect(4, 8, 20, 24);
+hg.fillStyle(0xff00bb, 1); hg.fillRect(8, 10, 12, 8);
+hg.fillStyle(0x007799, 1); hg.fillRect(4, 32, 8, 8);
+hg.fillStyle(0x007799, 1); hg.fillRect(16, 32, 8, 8);
+hg.lineStyle(1, 0x00ffff, 1); hg.strokeRect(4, 8, 20, 24);
+hg.generateTexture('hero', 28, 40);
+hg.destroy();
+
+var bg = this.add.graphics();
+bg.fillStyle(0xffffff, 0.13); bg.fillCircle(40, 40, 40);
+bg.generateTexture('btn', 80, 80);
+bg.destroy();
+
+var stars = this.add.graphics();
+stars.setScrollFactor(0.15);
+for (var i = 0; i < 160; i++) {
+    var a = 0.3 + rng() * 0.7;
+    stars.fillStyle(0xffffff, a);
+    stars.fillRect(rngInt(0, W), rngInt(0, H), 1, 1);
+}
+
+platforms = this.physics.add.staticGroup();
+generateChunk.call(this, 0, GENERATE_AHEAD * 2);
+
+player = this.physics.add.sprite(100, 250, 'hero');
+player.setCollideWorldBounds(false);
+this.physics.add.collider(player, platforms);
+this.cameras.main.startFollow(player, true, 0.09, 0.09);
+
+cursors = this.input.keyboard.createCursorKeys();
+
+this.distText = this.add.text(W / 2, 12, 'DIST  0 m', {
+    fontFamily: 'monospace',
+    fontSize: '13px',
+    fill: '#00ffff',
+    stroke: '#000022',
+    strokeThickness: 4
+}).setScrollFactor(0).setOrigin(0.5, 0);
+
+this.input.addPointer(3);
+makeTouchBtn(this, 55,  345, '<', function() { inputState.left  = true;  }, function() { inputState.left  = false; });
+makeTouchBtn(this, 155, 345, '>', function() { inputState.right = true;  }, function() { inputState.right = false; });
+makeTouchBtn(this, 745, 345, '^', function() { inputState.jump  = true;  }, function() { inputState.jump  = false; });
+
+var scene = this;
+this.add.text(8, 8, 'RESTART', {
+    fontFamily: 'monospace', fontSize: '12px', fill: '#ff3355',
+    backgroundColor: '#00000099', padding: { x: 5, y: 3 }
+}).setScrollFactor(0).setInteractive()
+  .on('pointerdown', function() { scene.scene.restart(); });
+
+this.trail = this.add.graphics();
+this.trailPts = [];
+
+}
+
+function update() {
+var px = player.x;
+var onGround = player.body.blocked.down;
+
+
+var goLeft  = inputState.left  || cursors.left.isDown;
+var goRight = inputState.right || cursors.right.isDown;
+var doJump  = inputState.jump  || cursors.up.isDown || cursors.space.isDown;
+
+if (goLeft) {
+    player.setVelocityX(-270);
+    player.flipX = true;
+} else if (goRight) {
+    player.setVelocityX(270);
+    player.flipX = false;
+} else {
+    player.setVelocityX(player.body.velocity.x * 0.75);
+}
+
+if (doJump && onGround) {
+    player.setVelocityY(-690);
+}
+
+if (px + GENERATE_AHEAD > generatedUpTo) {
+    generateChunk.call(this, generatedUpTo, generatedUpTo + GENERATE_AHEAD);
+}
+
+var cutoff = px - CLEANUP_BEHIND;
+recycleTiles(floorTiles, cutoff);
+recycleTiles(floatTiles, cutoff);
+
+if (player.y > H + 60) {
+    player.setPosition(px, 80);
+    player.setVelocity(0, 0);
+}
+
+this.distText.setText('DIST  ' + Math.floor(px / 10) + ' m');
+
+if (Math.abs(player.body.velocity.x) > 30) {
+    this.trailPts.push({ x: player.x, y: player.y + 4, life: 10 });
+}
+this.trail.clear();
+for (var i = this.trailPts.length - 1; i >= 0; i--) {
+    var p = this.trailPts[i];
+    p.life--;
+    if (p.life <= 0) { this.trailPts.splice(i, 1); continue; }
+    this.trail.fillStyle(0x00eeff, (p.life / 10) * 0.45);
+    var s = p.life * 0.4;
+    this.trail.fillRect(p.x - s, p.y - s, s * 2, s * 2);
+}
+if (this.trailPts.length > 60) { this.trailPts.splice(0, 10); }
+
+
+}
+
+function generateChunk(fromX, toX) {
+var TILE = 32;
+var FLOOR_Y = H - 16;
+
+var x = fromX;
+while (x < toX) {
+    if (rng() < 0.10 && x > 300) {
+        var pw = rngRange(64, 150);
+        pitZones.push({ x: x, w: pw });
+        x += pw;
+    } else {
+        x += rngRange(120, 280);
+    }
+}
+
+for (var tx = Math.floor(fromX / TILE) * TILE; tx < toX; tx += TILE) {
+    var cx = tx + 16;
+    if (!inPit(cx)) {
+        var t = platforms.create(cx, FLOOR_Y, 'floor');
+        t.refreshBody();
+        floorTiles.push(t);
+    }
+}
+
+var fx = fromX + rngRange(80, 200);
+while (fx < toX) {
+    var numTiles = rngInt(2, 5);
+    var py  = rngInt(110, 310);
+    var col = rngInt(0, PLAT_HEX.length - 1);
+
+    for (var i = 0; i < numTiles; i++) {
+        var ftx = fx + i * TILE;
+        if (ftx >= toX) break;
+        var ft = platforms.create(ftx + 16, py, 'p' + col);
+        ft.refreshBody();
+        floatTiles.push(ft);
+    }
+
+    if (rng() < 0.28) {
+        var upCount = rngInt(1, 3);
+        var upY = py - rngInt(55, 85);
+        if (upY > 40) {
+            for (var j = 0; j < upCount; j++) {
+                var ut = platforms.create(fx + j * TILE + 16, upY, 'p' + rngInt(0, PLAT_HEX.length - 1));
+                ut.refreshBody();
+                floatTiles.push(ut);
+            }
+        }
+    }
+
+    fx += numTiles * TILE + rngRange(60, 190);
+}
+
+generatedUpTo = toX;
+
+}
+
+function inPit(cx) {
+for (var i = 0; i < pitZones.length; i++) {
+var p = pitZones[i];
+if (cx >= p.x && cx < p.x + p.w) return true;
+}
+return false;
+}
+
+function recycleTiles(arr, cutoff) {
+for (var i = arr.length - 1; i >= 0; i–) {
+if (arr[i].x < cutoff) {
+arr[i].destroy();
+arr.splice(i, 1);
+}
+}
+}
+
+function makeTouchBtn(scene, x, y, label, onDown, onUp) {
+var btn = scene.add.image(x, y, ‘btn’).setScrollFactor(0).setInteractive();
+scene.add.text(x, y, label, {
+fontFamily: ‘monospace’, fontSize: ‘20px’, fill: ‘#fff’
+}).setScrollFactor(0).setOrigin(0.5);
+btn.on(‘pointerdown’, onDown).on(‘pointerup’, onUp).on(‘pointerout’, onUp);
+}
+
+new Phaser.Game({
+type: Phaser.AUTO,
+scale: {
+mode: Phaser.Scale.FIT,
+autoCenter: Phaser.Scale.CENTER_BOTH,
+width: W,
+height: H
+},
+parent: ‘game-container’,
+pixelArt: true,
+physics: {
+default: ‘arcade’,
+arcade: { gravity: { y: GRAVITY }, debug: false }
+},
+scene: { preload: preload, create: create, update: update }
+});
+</script>
+
+</body>
+</html>
