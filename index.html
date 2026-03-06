@@ -98,16 +98,15 @@ class AshenHollow extends Phaser.Scene {
         g.fillRect(28, 8, 4, 8);
         g.generateTexture('key', 36, 24);
 
-        // Door: locked / unlocked
-        g.clear().fillStyle(0x5b3a20).fillRect(0, 0, 44, 60);
-        g.fillStyle(0x2b1810).fillRect(6, 8, 32, 46);
-        g.fillStyle(0xffd54a).fillCircle(34, 32, 3);
-        g.generateTexture('doorLocked', 44, 60);
+        // Door: narrow side-profile bar (locked / unlocked)
+        g.clear().fillStyle(0x6a4326).fillRect(0, 0, 16, 84);
+        g.fillStyle(0x3f2414).fillRect(4, 0, 8, 84);
+        g.fillStyle(0xffd54a).fillRect(11, 38, 3, 8);
+        g.generateTexture('doorLocked', 16, 84);
 
-        g.clear().fillStyle(0x5b3a20).fillRect(0, 0, 44, 60);
-        g.fillStyle(0x111111).fillRect(10, 8, 28, 46);
-        g.fillStyle(0x00ffaa, 0.7).fillRect(3, 0, 38, 4);
-        g.generateTexture('doorOpen', 44, 60);
+        g.clear().fillStyle(0x24423b).fillRect(0, 0, 16, 84);
+        g.fillStyle(0x00ffaa, 0.65).fillRect(6, 0, 4, 84);
+        g.generateTexture('doorOpen', 16, 84);
 
         // Hero Sprite
         g.clear().fillStyle(0x00ddff).fillRect(4, 8, 20, 24); // Body
@@ -168,9 +167,11 @@ class AshenHollow extends Phaser.Scene {
             const mid = tx + 16;
             this.platforms.create(mid, H - 16, 'floor').refreshBody();
         }
-        // Hand-placed floating platforms. The final high ledge acts as the
-        // first simple ability gate: it should only be reachable with double jump.
+        // Hand-placed floating platforms. The left-most ledge creates a low
+        // corridor that frames the exit door; the final high ledge acts as the
+        // first simple ability gate and key perch.
         const ledges = [
+            { x: 0, y: 284, len: 5, tint: 0 },
             { x: 320, y: 280, len: 2, tint: 0 },
             { x: 520, y: 220, len: 3, tint: 1 },
             { x: 800, y: 260, len: 2, tint: 2 },
@@ -186,11 +187,11 @@ class AshenHollow extends Phaser.Scene {
     }
 
     buildProgressionObjects() {
-        this.exitDoor = this.physics.add.staticImage(76, CONFIG.H - 44, 'doorLocked').refreshBody();
+        this.exitDoor = this.physics.add.staticImage(28, 326, 'doorLocked').refreshBody();
         this.keyPickup = this.physics.add.staticImage(1498, 86, 'key').refreshBody();
 
         this.physics.add.overlap(this.player, this.keyPickup, this.collectKey, null, this);
-        this.physics.add.overlap(this.player, this.exitDoor, this.tryDoorInteraction, null, this);
+        this.doorCollider = this.physics.add.collider(this.player, this.exitDoor, this.tryDoorInteraction, null, this);
     }
 
     createHUD() {
@@ -262,7 +263,8 @@ class AshenHollow extends Phaser.Scene {
         if (this.hasKey) {
             this.hasKey = false;
             this.doorUnlocked = true;
-            this.exitDoor.setTexture('doorOpen').refreshBody();
+            this.exitDoor.setTexture('doorOpen');
+            this.exitDoor.disableBody(false, false);
             this.refreshObjectiveText();
             this.refreshInventoryHUD();
             this.setStatusMessage('DOOR UNLOCKED - Passage opened');

@@ -83,6 +83,7 @@ function buildFirstZoneLayout(worldWidth = CONFIG.WORLD_WIDTH, tile = 32) {
     }
 
     const ledges = [
+        { x: 0, y: 284, len: 5, tint: 0 },
         { x: 320, y: 280, len: 2, tint: 0 },
         { x: 520, y: 220, len: 3, tint: 1 },
         { x: 800, y: 260, len: 2, tint: 2 },
@@ -103,7 +104,7 @@ function buildFirstZoneLayout(worldWidth = CONFIG.WORLD_WIDTH, tile = 32) {
 
 function buildProgressionLayout(height = 400) {
     return {
-        exitDoor: { x: 76, y: height - 44, texture: 'doorLocked' },
+        exitDoor: { x: 28, y: 326, texture: 'doorLocked' },
         keyPickup: { x: 1498, y: 86, texture: 'key' }
     };
 }
@@ -123,6 +124,7 @@ function computeProgressionFrame(state) {
         next.hasKey = false;
         next.doorUnlocked = true;
         next.doorTexture = 'doorOpen';
+        next.doorBodyEnabled = false;
         next.statusMessage = 'DOOR UNLOCKED - Passage opened';
     } else if (state.touchingDoor && !state.doorUnlocked && !state.hasKey) {
         next.statusMessage = 'The door is locked. A key waits on the high ledge.';
@@ -391,9 +393,21 @@ function isInPit(mid, pitZones) {
 
 (function testFirstZoneCreatesExpectedFloatingPlatforms() {
     const layout = buildFirstZoneLayout();
-    assert.strictEqual(layout.platformTiles.length, 16);
-    assert.deepStrictEqual(layout.platformTiles[0], { x: 336, y: 280, tint: 'p0' });
+    assert.strictEqual(layout.platformTiles.length, 21);
+    assert.deepStrictEqual(layout.platformTiles[0], { x: 16, y: 284, tint: 'p0' });
     assert.deepStrictEqual(layout.platformTiles[layout.platformTiles.length - 1], { x: 1530, y: 120, tint: 'p1' });
+})();
+
+(function testFirstZoneIncludesLeftCorridorLedge() {
+    const layout = buildFirstZoneLayout();
+    const corridorTiles = layout.platformTiles.filter((tile) => tile.y === 284);
+    assert.deepStrictEqual(corridorTiles, [
+        { x: 16, y: 284, tint: 'p0' },
+        { x: 48, y: 284, tint: 'p0' },
+        { x: 80, y: 284, tint: 'p0' },
+        { x: 112, y: 284, tint: 'p0' },
+        { x: 144, y: 284, tint: 'p0' }
+    ]);
 })();
 
 (function testFirstZoneIncludesHighGateLedge() {
@@ -418,7 +432,7 @@ function isInPit(mid, pitZones) {
 // ========== Progression layout and state tests ==========
 (function testProgressionObjectsAppearAtExpectedPositions() {
     const layout = buildProgressionLayout();
-    assert.deepStrictEqual(layout.exitDoor, { x: 76, y: 356, texture: 'doorLocked' });
+    assert.deepStrictEqual(layout.exitDoor, { x: 28, y: 326, texture: 'doorLocked' });
     assert.deepStrictEqual(layout.keyPickup, { x: 1498, y: 86, texture: 'key' });
 })();
 
@@ -430,6 +444,7 @@ function isInPit(mid, pitZones) {
         touchingDoor: false,
         doorUnlocked: false,
         doorTexture: 'doorLocked',
+        doorBodyEnabled: true,
         statusMessage: ''
     });
     assert.strictEqual(out.hasKey, true);
@@ -451,10 +466,12 @@ function isInPit(mid, pitZones) {
         touchingDoor: true,
         doorUnlocked: false,
         doorTexture: 'doorLocked',
+        doorBodyEnabled: true,
         statusMessage: ''
     });
     assert.strictEqual(out.doorUnlocked, false);
     assert.strictEqual(out.doorTexture, 'doorLocked');
+    assert.strictEqual(out.doorBodyEnabled, true);
     assert.strictEqual(out.statusMessage, 'The door is locked. A key waits on the high ledge.');
 })();
 
@@ -466,11 +483,13 @@ function isInPit(mid, pitZones) {
         touchingDoor: true,
         doorUnlocked: false,
         doorTexture: 'doorLocked',
+        doorBodyEnabled: true,
         statusMessage: ''
     });
     assert.strictEqual(out.hasKey, false);
     assert.strictEqual(out.doorUnlocked, true);
     assert.strictEqual(out.doorTexture, 'doorOpen');
+    assert.strictEqual(out.doorBodyEnabled, false);
     assert.strictEqual(out.statusMessage, 'DOOR UNLOCKED - Passage opened');
 })();
 
@@ -482,6 +501,7 @@ function isInPit(mid, pitZones) {
         touchingDoor: false,
         doorUnlocked: false,
         doorTexture: 'doorLocked',
+        doorBodyEnabled: true,
         statusMessage: ''
     });
     assert.strictEqual(state.hasKey, true);
@@ -494,11 +514,13 @@ function isInPit(mid, pitZones) {
         touchingDoor: true,
         doorUnlocked: false,
         doorTexture: 'doorLocked',
+        doorBodyEnabled: true,
         statusMessage: state.statusMessage
     });
     assert.strictEqual(state.hasKey, false);
     assert.strictEqual(state.doorUnlocked, true);
     assert.strictEqual(state.doorTexture, 'doorOpen');
+    assert.strictEqual(state.doorBodyEnabled, false);
 })();
 
 console.log('All game-logic tests passed.');
