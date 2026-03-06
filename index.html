@@ -20,9 +20,9 @@ const CONFIG = {
     W: 800,
     H: 400,
     WORLD_WIDTH: 1600,
-    GRAVITY: 1400,
-    PLAYER_SPEED: 280,
-    JUMP_FORCE: -600,
+    GRAVITY: 1600,       // Slightly higher gravity for tighter feel
+    PLAYER_SPEED: 300,
+    JUMP_FORCE: -650,    // Stronger jump to fight gravity
     FRICTION: 0.8,
     COLORS: [0x2a3a5a, 0x3a2a5a, 0x2a4a3a, 0x4a3a2a, 0x2a4050]
 };
@@ -48,25 +48,34 @@ class AshenHollow extends Phaser.Scene {
     generateAssetTextures() {
         const g = this.make.graphics({ x: 0, y: 0, add: false });
         
+        // Floor
         g.fillStyle(0x334466).fillRect(0, 0, 32, 32);
         g.fillStyle(0xffffff, 0.15).fillRect(0, 0, 32, 2);
         g.generateTexture('floor', 32, 32);
 
+        // Platforms
         CONFIG.COLORS.forEach((color, i) => {
             g.clear().fillStyle(color).fillRect(0, 0, 32, 14);
             g.fillStyle(0xffffff, 0.15).fillRect(0, 0, 32, 2);
             g.generateTexture(`p${i}`, 32, 14);
         });
 
+        // Hero
         g.clear().fillStyle(0x00ddff).fillRect(4, 8, 20, 24);
         g.fillStyle(0xff00bb).fillRect(8, 10, 12, 8);
         g.fillStyle(0x007799).fillRect(4, 32, 8, 8);
         g.fillStyle(0x007799).fillRect(16, 32, 8, 8);
         g.generateTexture('hero', 28, 40);
         
+        // Jump Particle
+        g.clear().fillStyle(0x00ffff, 0.8).fillRect(0, 0, 4, 4);
+        g.generateTexture('part', 4, 4);
+
+        // UI
         g.clear().fillStyle(0xffffff, 0.13).fillCircle(40, 40, 40);
         g.generateTexture('btn', 80, 80);
 
+        // Stars
         g.clear();
         for (let i = 0; i < 100; i++) {
             g.fillStyle(0xffffff, 0.4 + Math.random() * 0.6);
@@ -79,7 +88,6 @@ class AshenHollow extends Phaser.Scene {
     create() {
         this.physics.world.setBounds(0, 0, CONFIG.WORLD_WIDTH, CONFIG.H);
         this.cameras.main.setBounds(0, 0, CONFIG.WORLD_WIDTH, CONFIG.H);
-        this.cameras.main.setBackgroundColor('#050510');
         
         this.starField = this.add.tileSprite(CONFIG.W/2, CONFIG.H/2, CONFIG.W, CONFIG.H, 'stars')
             .setScrollFactor(0).setDepth(-1);
@@ -90,8 +98,16 @@ class AshenHollow extends Phaser.Scene {
         this.player.setCollideWorldBounds(true);
         this.physics.add.collider(this.player, this.platforms);
 
-        this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
+        // Particle Emitter for Jump
+        this.jumpParticles = this.add.particles(0, 0, 'part', {
+            speed: { min: 50, max: 150 },
+            angle: { min: 0, max: 360 },
+            scale: { start: 1, end: 0 },
+            lifespan: 300,
+            emitting: false
+        });
 
+        this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
         this.buildFirstZone();
         this.createHUD();
         this.setupControls();
@@ -99,9 +115,8 @@ class AshenHollow extends Phaser.Scene {
 
     buildFirstZone() {
         const TILE = 32;
-        const H = CONFIG.H;
         for (let tx = 0; tx < CONFIG.WORLD_WIDTH; tx += TILE) {
-            this.platforms.create(tx + 16, H - 16, 'floor').refreshBody();
+            this.platforms.create(tx + 16, CONFIG.H - 16, 'floor').refreshBody();
         }
         const ledges = [
             { x: 320, y: 280, len: 2, tint: 0 },
@@ -150,27 +165,28 @@ class AshenHollow extends Phaser.Scene {
 
     update() {
         if (this.isGameOver) return;
-
         this.handleMovement();
         this.drawMotionTrail();
-
         this.starField.tilePositionX = this.player.x * 0.15;
         this.distText.setText(`DIST ${Math.floor(this.player.x / 10)} m`);
-
         if (this.player.y > CONFIG.H + 50) this.handlePlayerDeath();
     }
 
     handleMovement() {
         const onGround = this.player.body.blocked.down;
-        
         const left = this.inputState.left || this.cursors.left.isDown;
         const right = this.inputState.right || this.cursors.right.isDown;
         const jumpIsDown = this.inputState.jump || this.cursors.up.isDown || this.spaceKey.isDown;
 
-        // "Just Pressed" Logic: True only on the frame the button was first pressed
+        // "Just Pressed" - True only on the frame the button goes down
         const jumpJustPressed = jumpIsDown && !this.jumpWasDownLastFrame;
 
-        // 1. Horizontal Movement
+        // Reset jumps on ground - only if not currently moving up from a jump
+        if (onGround && this.player.body.velocity.y >= 0) {
+            this.jumpsRemaining = 2;
+        }
+
+        // Horizontal
         if (left) {
             this.player.setVelocityX(-CONFIG.PLAYER_SPEED).setFlipX(true);
         } else if (right) {
@@ -179,31 +195,30 @@ class AshenHollow extends Phaser.Scene {
             this.player.setVelocityX(this.player.body.velocity.x * CONFIG.FRICTION);
         }
 
-        // 2. Reset jump count on ground
-        if (onGround) {
-            this.jumpsRemaining = 2;
-        }
-
-        // 3. Jump Execution
+        // Jump Execution
         if (jumpJustPressed && this.jumpsRemaining > 0) {
-            // First jump from ground counts as using one jump, leaving the second for air
-            if (onGround) {
-                this.jumpsRemaining = 1; 
+            // If airborne (e.g. falling off a ledge), consume first jump immediately
+            if (!onGround && this.jumpsRemaining === 2) {
+                this.jumpsRemaining = 1;
             } else {
                 this.jumpsRemaining--;
             }
-            
+
+            // Reset Y velocity so falling speed doesn't weaken the jump
             this.player.setVelocityY(CONFIG.JUMP_FORCE);
+
+            // Visual Burst
+            this.jumpParticles.emitParticleAt(this.player.x, this.player.y + 10, 8);
+            this.player.setAlpha(0.7);
+            this.time.delayedCall(100, () => this.player.setAlpha(1));
         }
 
-        // Record state for the next frame
         this.jumpWasDownLastFrame = jumpIsDown;
     }
 
     handlePlayerDeath() {
         this.lives--;
         this.updateLifeDisplay();
-
         if (this.lives <= 0) {
             this.isGameOver = true;
             this.physics.pause();
@@ -213,7 +228,7 @@ class AshenHollow extends Phaser.Scene {
             }).setOrigin(0.5).setScrollFactor(0);
         } else {
             this.player.setPosition(100, 250).setVelocity(0, 0);
-            this.tweens.add({ targets: this.player, alpha: 0.2, duration: 100, yoyo: true, repeat: 5 });
+            this.jumpsRemaining = 2;
         }
     }
 
@@ -240,18 +255,10 @@ class AshenHollow extends Phaser.Scene {
 
 new Phaser.Game({
     type: Phaser.AUTO,
-    scale: {
-        mode: Phaser.Scale.FIT,
-        autoCenter: Phaser.Scale.CENTER_BOTH,
-        width: CONFIG.W,
-        height: CONFIG.H
-    },
+    scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, width: CONFIG.W, height: CONFIG.H },
     parent: 'game-container',
     pixelArt: true,
-    physics: {
-        default: 'arcade',
-        arcade: { gravity: { y: CONFIG.GRAVITY }, debug: false }
-    },
+    physics: { default: 'arcade', arcade: { gravity: { y: CONFIG.GRAVITY }, debug: false } },
     scene: AshenHollow
 });
 </script>
