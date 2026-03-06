@@ -2,42 +2,35 @@
  * Unit tests for game logic (RNG, pit-zone helpers, and double-jump).
  * The game currently uses a bounded hand-placed zone with no procedural gen;
  * RNG/pit tests remain for regression if procedural or pit-based terrain is reintroduced.
- * Jump logic below must match index.html handleMovement() so double jump is fully testable.
+ * Jump helpers below must match the cooldown-based double-jump behavior in index.html.
  */
 
 const assert = require('assert');
 
-// ----- Double-jump state machine (must match index.html: inAir, refill, ground jump, air jump, buffer) -----
-function computeJumpFrame(state) {
-    const { onGround, velocityY, jump, jumpJustPressed, jumpBuffer, jumpsRemaining } = state;
-    const inAir = !onGround || velocityY < 0;
-    let buffer = jumpJustPressed ? 5 : jumpBuffer;
-    if (buffer > 0) buffer--;
-    let jumps = jumpsRemaining;
-    if (onGround && velocityY >= 0) jumps = 2;
+// ----- Double-jump cooldown helpers (must match index.html) -----
+function isGrounded(body) {
+    return (body.blockedDown || body.touchingDown) && body.velocityY >= 0;
+}
 
-    let applyGroundJump = false;
-    let applyAirJump = false;
-    let nextJumps = jumps;
-    let nextBuffer = buffer;
+function canTouchJump(state) {
+    return (state.now - state.lastTouchJumpAt) >= state.cooldownMs;
+}
 
-    if (jump && onGround && jumps === 2) {
-        applyGroundJump = true;
-        nextJumps = 1;
-        nextBuffer = 0;
-    } else if ((jumpJustPressed || buffer > 0) && inAir && jumps > 0) {
-        applyAirJump = true;
-        nextJumps = jumps - 1;
-        nextBuffer = 0;
+function applyJumpState(state) {
+    const next = { ...state };
+
+    if (isGrounded(state.body)) {
+        next.jumpCount = 0;
     }
 
-    return {
-        applyGroundJump,
-        applyAirJump,
-        nextJumpsRemaining: nextJumps,
-        nextBuffer,
-        nextJumpWasDownLastFrame: jump
-    };
+    if (state.jumpRequested && next.jumpCount < 2) {
+        next.jumpCount += 1;
+        next.appliedJump = true;
+    } else {
+        next.appliedJump = false;
+    }
+
+    return next;
 }
 
 // ----- Seeded RNG (must match index.html: this.seed = (this.seed * 16807) % 2147483647; return (this.seed - 1) / 2147483646) -----
@@ -102,125 +95,83 @@ function isInPit(mid, pitZones) {
     assert.strictEqual(isInPit(100, []), false);
 })();
 
-// ========== Double-jump tests (must match index.html handleMovement) ==========
-(function testJumpRefillOnGround() {
-    const r = computeJumpFrame({
-        onGround: true, velocityY: 0, jump: false, jumpJustPressed: false,
-        jumpBuffer: 0, jumpsRemaining: 0
-    });
-    assert.strictEqual(r.nextJumpsRemaining, 2, 'Refill to 2 when on ground, not moving');
-    assert.strictEqual(r.applyGroundJump, false);
-    assert.strictEqual(r.applyAirJump, false);
+// ========== Double-jump tests (must match index.html touch cooldown + jumpCount logic) ==========
+(function testGroundDetectionBlockedDown() {
+    assert.strictEqual(isGrounded({ blockedDown: true, touchingDown: false, velocityY: 0 }), true);
 })();
 
-(function testJumpNoRefillWhenMovingUp() {
-    const r = computeJumpFrame({
-        onGround: true, velocityY: -100, jump: false, jumpJustPressed: false,
-        jumpBuffer: 0, jumpsRemaining: 1
-    });
-    assert.strictEqual(r.nextJumpsRemaining, 1, 'Do not refill while moving up (Arcade one-frame delay)');
+(function testGroundDetectionTouchingDown() {
+    assert.strictEqual(isGrounded({ blockedDown: false, touchingDown: true, velocityY: 0 }), true);
 })();
 
-(function testGroundJumpWhenEligible() {
-    const r = computeJumpFrame({
-        onGround: true, velocityY: 0, jump: true, jumpJustPressed: true,
-        jumpBuffer: 0, jumpsRemaining: 2
-    });
-    assert.strictEqual(r.applyGroundJump, true);
-    assert.strictEqual(r.applyAirJump, false);
-    assert.strictEqual(r.nextJumpsRemaining, 1);
-    assert.strictEqual(r.nextBuffer, 0, 'Buffer cleared on ground jump so holding jump does not auto double-jump');
+(function testGroundDetectionRejectsUpwardMotion() {
+    assert.strictEqual(isGrounded({ blockedDown: true, touchingDown: true, velocityY: -1 }), false);
 })();
 
-(function testNoGroundJumpWhenOnlyOneJumpLeft() {
-    const r = computeJumpFrame({
-        onGround: true, velocityY: 0, jump: true, jumpJustPressed: false,
-        jumpBuffer: 0, jumpsRemaining: 1
-    });
-    assert.strictEqual(r.applyGroundJump, false, 'No ground jump when jumpsRemaining is 1 (edge case)');
+(function testTouchCooldownBlocksRapidRepeat() {
+    assert.strictEqual(canTouchJump({ now: 100, lastTouchJumpAt: 0, cooldownMs: 180 }), false);
+    assert.strictEqual(canTouchJump({ now: 181, lastTouchJumpAt: 0, cooldownMs: 180 }), true);
 })();
 
-(function testMidAirHopOnJustPressed() {
-    const r = computeJumpFrame({
-        onGround: false, velocityY: -200, jump: true, jumpJustPressed: true,
-        jumpBuffer: 0, jumpsRemaining: 1
+(function testGroundJumpApplies() {
+    const out = applyJumpState({
+        jumpCount: 0,
+        jumpRequested: true,
+        body: { blockedDown: true, touchingDown: true, velocityY: 0 }
     });
-    assert.strictEqual(r.applyGroundJump, false);
-    assert.strictEqual(r.applyAirJump, true);
-    assert.strictEqual(r.nextJumpsRemaining, 0);
-    assert.strictEqual(r.nextBuffer, 0);
+    assert.strictEqual(out.appliedJump, true);
+    assert.strictEqual(out.jumpCount, 1);
 })();
 
-(function testMidAirHopViaBuffer() {
-    const r = computeJumpFrame({
-        onGround: false, velocityY: -200, jump: false, jumpJustPressed: false,
-        jumpBuffer: 3, jumpsRemaining: 1
+(function testMidAirSecondJumpApplies() {
+    const out = applyJumpState({
+        jumpCount: 1,
+        jumpRequested: true,
+        body: { blockedDown: false, touchingDown: false, velocityY: -200 }
     });
-    assert.strictEqual(r.applyAirJump, true, 'Mid-air hop can trigger from buffer without new press');
-    assert.strictEqual(r.nextJumpsRemaining, 0);
-    assert.strictEqual(r.nextBuffer, 0);
+    assert.strictEqual(out.appliedJump, true);
+    assert.strictEqual(out.jumpCount, 2);
 })();
 
-(function testInAirWhenMovingUpButStillReportedOnGround() {
-    const r = computeJumpFrame({
-        onGround: true, velocityY: -50, jump: false, jumpJustPressed: false,
-        jumpBuffer: 4, jumpsRemaining: 1
+(function testThirdJumpBlocked() {
+    const out = applyJumpState({
+        jumpCount: 2,
+        jumpRequested: true,
+        body: { blockedDown: false, touchingDown: false, velocityY: -150 }
     });
-    assert.strictEqual(r.applyAirJump, true, 'inAir is true when velocityY < 0 so one-frame Arcade delay still allows double jump');
+    assert.strictEqual(out.appliedJump, false);
+    assert.strictEqual(out.jumpCount, 2);
 })();
 
-(function testNoAirJumpWhenNoInputAndNoBuffer() {
-    const r = computeJumpFrame({
-        onGround: false, velocityY: -100, jump: false, jumpJustPressed: false,
-        jumpBuffer: 0, jumpsRemaining: 1
+(function testLandingRefillsJumpCount() {
+    const out = applyJumpState({
+        jumpCount: 2,
+        jumpRequested: false,
+        body: { blockedDown: true, touchingDown: true, velocityY: 0 }
     });
-    assert.strictEqual(r.applyAirJump, false);
-    assert.strictEqual(r.nextJumpsRemaining, 1);
-})();
-
-(function testNoAirJumpWhenJumpsExhausted() {
-    const r = computeJumpFrame({
-        onGround: false, velocityY: -100, jump: true, jumpJustPressed: true,
-        jumpBuffer: 0, jumpsRemaining: 0
-    });
-    assert.strictEqual(r.applyAirJump, false);
-    assert.strictEqual(r.nextJumpsRemaining, 0);
-})();
-
-(function testBufferDecrementsEachFrame() {
-    const r = computeJumpFrame({
-        onGround: true, velocityY: 0, jump: false, jumpJustPressed: false,
-        jumpBuffer: 2, jumpsRemaining: 2
-    });
-    assert.strictEqual(r.nextBuffer, 1);
-})();
-
-(function testBufferClearedOnGroundJump() {
-    const r = computeJumpFrame({
-        onGround: true, velocityY: 0, jump: true, jumpJustPressed: true,
-        jumpBuffer: 0, jumpsRemaining: 2
-    });
-    assert.strictEqual(r.nextBuffer, 0, 'Buffer cleared on ground jump so holding jump does not auto double-jump');
-})();
-
-(function testBufferDecaysWhenNotConsumed() {
-    const r = computeJumpFrame({
-        onGround: true, velocityY: 0, jump: false, jumpJustPressed: false,
-        jumpBuffer: 5, jumpsRemaining: 2
-    });
-    assert.strictEqual(r.nextBuffer, 4, 'Buffer decrements each frame when no jump is performed');
+    assert.strictEqual(out.appliedJump, false);
+    assert.strictEqual(out.jumpCount, 0);
 })();
 
 (function testFullDoubleJumpSequence() {
-    let state = { onGround: true, velocityY: 0, jump: true, jumpJustPressed: true, jumpBuffer: 0, jumpsRemaining: 2 };
-    let out = computeJumpFrame(state);
-    assert.strictEqual(out.applyGroundJump, true);
-    assert.strictEqual(out.nextJumpsRemaining, 1);
-    state = { ...state, jumpsRemaining: out.nextJumpsRemaining, jumpBuffer: out.nextBuffer, jumpWasDownLastFrame: out.nextJumpWasDownLastFrame };
-    state = { onGround: false, velocityY: -300, jump: false, jumpJustPressed: true, jumpBuffer: state.jumpBuffer, jumpsRemaining: state.jumpsRemaining };
-    out = computeJumpFrame(state);
-    assert.strictEqual(out.applyAirJump, true, 'Second press in air triggers mid-air hop');
-    assert.strictEqual(out.nextJumpsRemaining, 0);
+    let state = {
+        jumpCount: 0,
+        jumpRequested: true,
+        body: { blockedDown: true, touchingDown: true, velocityY: 0 }
+    };
+
+    state = applyJumpState(state);
+    assert.strictEqual(state.jumpCount, 1);
+    assert.strictEqual(state.appliedJump, true);
+
+    state = applyJumpState({
+        jumpCount: state.jumpCount,
+        jumpRequested: true,
+        body: { blockedDown: false, touchingDown: false, velocityY: -300 }
+    });
+
+    assert.strictEqual(state.jumpCount, 2);
+    assert.strictEqual(state.appliedJump, true);
 })();
 
 console.log('All game-logic tests passed.');

@@ -3,6 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#050510">
+<link rel="manifest" href="manifest.json">
 <title>Ashen Hollow</title>
 
 <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
@@ -23,30 +25,10 @@ justify-content:center;
 align-items:center;
 height:100dvh;
 }
-
-#debug-overlay{
-position:fixed !important;
-top:0 !important;
-left:0 !important;
-width:300px;
-max-height:200px;
-overflow:auto;
-pointer-events:none;
-z-index:2147483647;
-padding:10px;
-font-size:14px;
-line-height:1.3;
-color:#fff;
-background:#000;
-font-family:monospace;
-white-space:pre-wrap;
-border:3px solid red;
-}
 </style>
 </head>
 
 <body>
-<div id="debug-overlay">DEBUG</div>
 <div id="game-container"></div>
 
 <script>
@@ -57,7 +39,8 @@ H:400,
 WORLD_WIDTH:1600,
 GRAVITY:1500,
 PLAYER_SPEED:280,
-JUMP_FORCE:-550
+JUMP_FORCE:-550,
+TOUCH_JUMP_COOLDOWN_MS:180
 };
 
 class AshenHollow extends Phaser.Scene {
@@ -89,7 +72,7 @@ g.clear()
 create(){
 
 this.jumpCount=0;
-this.jumpCooldownFrames=0;
+this.lastTouchJumpAt=-Infinity;
 
 this.physics.world.setBounds(0,0,CONFIG.WORLD_WIDTH,CONFIG.H);
 
@@ -118,9 +101,6 @@ this.physics.add.collider(this.player,this.platforms,this.onLand,null,this);
 
 this.cameras.main.startFollow(this.player,true,0.1,0.1);
 
-this.debugTryJumpLog=[];
-this.debugOverlay=document.getElementById("debug-overlay");
-
 this.cursors=this.input.keyboard.createCursorKeys();
 this.spaceKey=this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
 
@@ -134,8 +114,7 @@ setupTouchControls(){
 
 this.inputState={
 left:false,
-right:false,
-jump:false
+right:false
 };
 
 const makeBtn=(x,y,act)=>{
@@ -145,23 +124,24 @@ const b=this.add.image(x,y,"btn")
 .setInteractive()
 .setAlpha(0.5);
 
+if(act==="jump"){
+b.on("pointerdown",()=>{
+this.requestTouchJump();
+});
+return;
+}
+
 b.on("pointerdown",()=>{
 this.inputState[act]=true;
-if(act==="jump"){this.debugTryJumpLog.push("BTN down");if(this.debugTryJumpLog.length>20)this.debugTryJumpLog.shift();}
 });
 
 b.on("pointerup",()=>{
 this.inputState[act]=false;
-if(act==="jump"){this.debugTryJumpLog.push("BTN up");if(this.debugTryJumpLog.length>20)this.debugTryJumpLog.shift();}
 });
 
-if(act!=="jump"){
 b.on("pointerout",()=>{
 this.inputState[act]=false;
 });
-}
-
-}
 
 };
 
@@ -171,10 +151,21 @@ makeBtn(720,320,"jump");
 
 }
 
+requestTouchJump(){
+
+const now=this.time.now;
+if(now-this.lastTouchJumpAt<CONFIG.TOUCH_JUMP_COOLDOWN_MS){
+return;
+}
+
+this.lastTouchJumpAt=now;
+this.tryJump();
+
+}
+
 tryJump(){
 
-const didApply=this.jumpCount<2;
-if(didApply){
+if(this.jumpCount<2){
 
 this.player.setVelocityY(CONFIG.JUMP_FORCE);
 
@@ -189,13 +180,6 @@ this.player.clearTint();
 }
 
 this.jumpCount++;
-this.debugTryJumpLog.push("tryJump APPLIED #"+this.jumpCount);
-if(this.debugTryJumpLog.length>20)this.debugTryJumpLog.shift();
-
-}else{
-
-this.debugTryJumpLog.push("tryJump BLOCKED (jumpCount="+this.jumpCount+")");
-if(this.debugTryJumpLog.length>20)this.debugTryJumpLog.shift();
 
 }
 
@@ -203,28 +187,14 @@ if(this.debugTryJumpLog.length>20)this.debugTryJumpLog.shift();
 
 update(){
 
-const onGround=this.player.body.blocked.down&&this.player.body.velocity.y>=0;
+const onGround=(this.player.body.blocked.down||this.player.body.touching.down)&&this.player.body.velocity.y>=0;
 if(onGround){
 this.jumpCount=0;
 }
-if(this.jumpCooldownFrames>0)this.jumpCooldownFrames--;
 
-const jumpDown=this.inputState.jump||this.cursors.up.isDown||this.spaceKey.isDown;
-const canJump=this.jumpCooldownFrames<=0&&this.jumpCount<2;
-if(jumpDown&&canJump){
+if(Phaser.Input.Keyboard.JustDown(this.cursors.up)||Phaser.Input.Keyboard.JustDown(this.spaceKey)){
 this.tryJump();
-this.jumpCooldownFrames=14;
 }
-
-const logTail=this.debugTryJumpLog.slice(-6).join(" | ");
-const debugStr=
-"jumpCount="+this.jumpCount+
-" cooldown="+this.jumpCooldownFrames+
-" onGr="+onGround+
-" velY="+Math.round(this.player.body.velocity.y)+
-"\njumpDown="+jumpDown+" canJump="+canJump+
-"\n"+logTail;
-if(this.debugOverlay)this.debugOverlay.textContent=debugStr;
 
 const speed=CONFIG.PLAYER_SPEED;
 
@@ -264,6 +234,12 @@ gravity:{y:CONFIG.GRAVITY}
 },
 scene:AshenHollow
 });
+
+if("serviceWorker" in navigator){
+window.addEventListener("load",()=>{
+navigator.serviceWorker.register("sw.js").catch(()=>{});
+});
+}
 
 </script>
 </body>
