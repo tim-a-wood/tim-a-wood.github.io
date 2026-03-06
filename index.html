@@ -17,10 +17,31 @@ touch-action:none;
 }
 
 #game-container{
+position:relative;
 display:flex;
 justify-content:center;
 align-items:center;
 height:100dvh;
+}
+
+#debug-overlay{
+position:absolute;
+top:8px;
+left:8px;
+max-width:92%;
+max-height:180px;
+overflow:auto;
+pointer-events:none;
+z-index:9999;
+padding:10px;
+font-size:14px;
+line-height:1.35;
+color:#fff;
+background:rgba(0,0,0,0.88);
+font-family:monospace;
+white-space:pre-wrap;
+word-break:break-all;
+border:2px solid #0f0;
 }
 </style>
 </head>
@@ -97,14 +118,13 @@ this.physics.add.collider(this.player,this.platforms,this.onLand,null,this);
 
 this.cameras.main.startFollow(this.player,true,0.1,0.1);
 
-this.debugBg=this.add.rectangle(5,55,320,95,0x000000,0.85).setScrollFactor(0).setDepth(9998).setOrigin(0,0);
-this.debugText=this.add.text(10,60,"DEBUG",{
-fontSize:"16px",
-fill:"#ffffff",
-stroke:"#000000",
-strokeThickness:3
-}).setScrollFactor(0).setDepth(9999).setOrigin(0,0);
 this.debugTryJumpLog=[];
+const container=document.getElementById("game-container");
+const overlay=document.createElement("div");
+overlay.id="debug-overlay";
+overlay.textContent="DEBUG loading...";
+container.appendChild(overlay);
+this.debugOverlay=overlay;
 
 this.cursors=this.input.keyboard.createCursorKeys();
 this.spaceKey=this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
@@ -202,14 +222,14 @@ this.tryJump();
 this.jumpWasDownLastFrame=jumpDown;
 
 const logTail=this.debugTryJumpLog.slice(-6).join(" | ");
-this.debugText.setText(
+const debugStr=
 "jumpCount="+this.jumpCount+
 " onGr="+onGround+
 " b.down="+this.player.body.blocked.down+
 " velY="+Math.round(this.player.body.velocity.y)+
 "\njump="+jumpDown+" just="+(jumpJustPressed||keyboardJumpJustPressed)+" last="+this.jumpWasDownLastFrame+
-"\n"+logTail
-);
+"\n"+logTail;
+if(this.debugOverlay)this.debugOverlay.textContent=debugStr;
 
 const speed=CONFIG.PLAYER_SPEED;
 
