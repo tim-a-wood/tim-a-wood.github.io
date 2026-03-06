@@ -34,6 +34,8 @@
     var generatedUpTo = 0;
     var pitZones = [];
     var inputState = { left: false, right: false, jump: false };
+    var lives = 3;
+    var isGameOver = false;
 
     var PLAT_HEX = [0x2a3a5a, 0x3a2a5a, 0x2a4a3a, 0x4a3a2a, 0x2a4050];
 
@@ -41,6 +43,8 @@
 
     function create() {
         seed = 42;
+        lives = 3;
+        isGameOver = false;
         floorTiles = [];
         floatTiles = [];
         pitZones = [];
@@ -75,12 +79,20 @@
         hg.generateTexture('hero', 28, 40);
         hg.destroy();
 
+        // Heart Icon for lives
+        var heartG = this.add.graphics();
+        heartG.fillStyle(0xff0066, 1);
+        heartG.fillCircle(4, 4, 4);
+        heartG.fillCircle(10, 4, 4);
+        heartG.fillTriangle(0, 5, 14, 5, 7, 12);
+        heartG.generateTexture('heart', 14, 14);
+        heartG.destroy();
+
         var bg = this.add.graphics();
         bg.fillStyle(0xffffff, 0.13); bg.fillCircle(40, 40, 40);
         bg.generateTexture('btn', 80, 80);
         bg.destroy();
 
-        // ── Infinite Starfield (Option 2) ────────────────────────────────────────
         var starCanvas = this.add.graphics();
         for (var i = 0; i < 100; i++) {
             var sAlpha = 0.4 + Math.random() * 0.6;
@@ -90,7 +102,6 @@
         starCanvas.generateTexture('starBatch', 512, 512);
         starCanvas.destroy();
 
-        // Create the TileSprite that covers the screen
         this.starField = this.add.tileSprite(W/2, H/2, W, H, 'starBatch')
             .setScrollFactor(0)
             .setDepth(-1);
@@ -110,12 +121,12 @@
 
         // ── HUD ──────────────────────────────────────────────────────────────────
         this.distText = this.add.text(W / 2, 12, 'DIST 0 m', {
-            fontFamily: 'monospace',
-            fontSize: '13px',
-            fill: '#00ffff',
-            stroke: '#000022',
-            strokeThickness: 4
+            fontFamily: 'monospace', fontSize: '13px', fill: '#00ffff',
+            stroke: '#000022', strokeThickness: 4
         }).setScrollFactor(0).setOrigin(0.5, 0);
+
+        this.lifeIcons = this.add.group();
+        refreshLifeIcons.call(this);
 
         // ── Touch controls ───────────────────────────────────────────────────────
         this.input.addPointer(3);
@@ -134,11 +145,50 @@
         this.trailPts = [];
     }
 
+    function refreshLifeIcons() {
+        this.lifeIcons.clear(true, true);
+        for(var i = 0; i < lives; i++) {
+            this.lifeIcons.create(W - 20 - (i * 20), 20, 'heart').setScrollFactor(0);
+        }
+    }
+
+    function handleDeath() {
+        lives--;
+        refreshLifeIcons.call(this);
+
+        if (lives <= 0) {
+            isGameOver = true;
+            player.setTint(0xff0000);
+            player.setVelocity(0, 0);
+            this.physics.pause();
+            
+            this.add.text(W/2, H/2, 'GAME OVER\nTap Restart', {
+                fontFamily: 'monospace', fontSize: '32px', fill: '#ff0066', align: 'center',
+                stroke: '#000', strokeThickness: 6
+            }).setOrigin(0.5).setScrollFactor(0);
+        } else {
+            // Respawn logic
+            player.setPosition(player.x, 50);
+            player.setVelocity(0, 0);
+            
+            // Invulnerability blink effect
+            this.tweens.add({
+                targets: player,
+                alpha: 0.2,
+                duration: 100,
+                ease: 'Linear',
+                yoyo: true,
+                repeat: 5
+            });
+        }
+    }
+
     function update() {
+        if (isGameOver) return;
+
         var px = player.x;
         var onGround = player.body.blocked.down;
 
-        // Update infinite star position (parallax)
         this.starField.tilePositionX = px * 0.15;
 
         var goLeft  = inputState.left  || cursors.left.isDown;
@@ -167,9 +217,9 @@
         recycleTiles(floorTiles, cutoff);
         recycleTiles(floatTiles, cutoff);
 
+        // Fell down a pit
         if (player.y > H + 60) {
-            player.setPosition(px, 80);
-            player.setVelocity(0, 0);
+            handleDeath.call(this);
         }
 
         this.distText.setText('DIST ' + Math.floor(px / 10) + ' m');
@@ -186,7 +236,6 @@
             var s = p.life * 0.4;
             this.trail.fillRect(p.x - s, p.y - s, s * 2, s * 2);
         }
-        if (this.trailPts.length > 60) { this.trailPts.splice(0, 10); }
     }
 
     function generateChunk(fromX, toX) {
