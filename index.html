@@ -125,15 +125,16 @@ class AshenHollow extends Phaser.Scene {
         g.fillStyle(0x00aacc).fillRect(6, 10, 4, 8).fillRect(18, 6, 4, 12);
         g.generateTexture('skillDoubleJump', 28, 24);
 
-        // Door: narrow side-profile bar (locked / unlocked)
-        g.clear().fillStyle(0x6a4326).fillRect(0, 0, 16, 84);
-        g.fillStyle(0x3f2414).fillRect(4, 0, 8, 84);
-        g.fillStyle(0xffd54a).fillRect(11, 38, 3, 8);
-        g.generateTexture('doorLocked', 16, 84);
+        // Door: narrow bar from corridor bottom (1107) to ground (1168); height 61px
+        const DOOR_H = 61;
+        g.clear().fillStyle(0x6a4326).fillRect(0, 0, 16, DOOR_H);
+        g.fillStyle(0x3f2414).fillRect(4, 0, 8, DOOR_H);
+        g.fillStyle(0xffd54a).fillRect(11, 26, 3, 8);
+        g.generateTexture('doorLocked', 16, DOOR_H);
 
-        g.clear().fillStyle(0x24423b).fillRect(0, 0, 16, 84);
-        g.fillStyle(0x00ffaa, 0.65).fillRect(6, 0, 4, 84);
-        g.generateTexture('doorOpen', 16, 84);
+        g.clear().fillStyle(0x24423b).fillRect(0, 0, 16, DOOR_H);
+        g.fillStyle(0x00ffaa, 0.65).fillRect(6, 0, 4, DOOR_H);
+        g.generateTexture('doorOpen', 16, DOOR_H);
 
         // Hero Sprite
         g.clear().fillStyle(0x00ddff).fillRect(4, 8, 20, 24); // Body
@@ -261,7 +262,7 @@ class AshenHollow extends Phaser.Scene {
     }
 
     buildProgressionObjects() {
-        this.exitDoor = this.physics.add.staticImage(224, 1149, 'doorLocked').refreshBody();
+        this.exitDoor = this.physics.add.staticImage(248, 1137, 'doorLocked').refreshBody();
         this.keyPickup = this.physics.add.staticImage(1498, 86, 'key').refreshBody();
         this.relicPickup = this.physics.add.staticImage(368, 1092, 'relic').refreshBody();
 

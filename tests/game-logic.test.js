@@ -149,7 +149,7 @@ function buildFirstZoneLayout(worldWidth = CONFIG.WORLD_WIDTH, tile = ROOM_LAYOU
 
 function buildProgressionLayout(height = 400) {
     return {
-        exitDoor: { x: 224, y: 1149, texture: 'doorLocked' },
+        exitDoor: { x: 248, y: 1137, texture: 'doorLocked' },
         keyPickup: { x: 1498, y: 86, texture: 'key' },
         relicPickup: { x: 368, y: 1092, texture: 'relic' }
     };
@@ -547,7 +547,7 @@ function isInPit(mid, pitZones) {
 // ========== Progression layout and state tests ==========
 (function testProgressionObjectsAppearAtExpectedPositions() {
     const layout = buildProgressionLayout();
-    assert.deepStrictEqual(layout.exitDoor, { x: 224, y: 1149, texture: 'doorLocked' });
+    assert.deepStrictEqual(layout.exitDoor, { x: 248, y: 1137, texture: 'doorLocked' });
     assert.deepStrictEqual(layout.keyPickup, { x: 1498, y: 86, texture: 'key' });
     assert.deepStrictEqual(layout.relicPickup, { x: 368, y: 1092, texture: 'relic' });
 })();
