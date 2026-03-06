@@ -36,6 +36,7 @@
  * - .jumpWasDownLastFrame: used to detect "jump just pressed" for double jump (so holding jump doesn't burn it).
  * - .jumpBuffer: frames remaining to accept a mid-air jump press (makes double jump feel responsive).
  * - .hasKey / .doorUnlocked: simple progression state for the first key-door backtracking loop.
+ * - .doubleJumpUnlocked: when true, player has collected the relic and can double jump; HUD shows skill icon.
  */
 
 const CONFIG = {
@@ -72,10 +73,13 @@ class AshenHollow extends Phaser.Scene {
         this.jumpBuffer = 0; // frames to accept mid-air jump (so second tap reliably triggers hop)
         this.hasKey = false;
         this.doorUnlocked = false;
+        this.doubleJumpUnlocked = false;
         this.statusMessageFrames = 0;
         this.doorHintCooldownUntil = 0;
         this.keyInventoryIcon = null;
         this.keyInventoryLabel = null;
+        this.doubleJumpSkillIcon = null;
+        this.doubleJumpSkillLabel = null;
     }
 
     preload() {
@@ -104,6 +108,16 @@ class AshenHollow extends Phaser.Scene {
         g.fillStyle(0x6b4b14).fillRect(18, 10, 16, 4);
         g.fillRect(28, 8, 4, 8);
         g.generateTexture('key', 36, 24);
+
+        // Relic (unlocks double jump)
+        g.clear().fillStyle(0x8b5cf6).fillCircle(14, 14, 12);
+        g.fillStyle(0xffffff, 0.5).fillCircle(10, 10, 4);
+        g.generateTexture('relic', 28, 28);
+
+        // Double jump skill icon (HUD)
+        g.clear().fillStyle(0x00ddff, 0.9).fillRect(4, 16, 8, 6).fillRect(16, 16, 8, 6);
+        g.fillStyle(0x00aacc).fillRect(6, 10, 4, 8).fillRect(18, 6, 4, 12);
+        g.generateTexture('skillDoubleJump', 28, 24);
 
         // Door: narrow side-profile bar (locked / unlocked)
         g.clear().fillStyle(0x6a4326).fillRect(0, 0, 16, 84);
@@ -221,8 +235,10 @@ class AshenHollow extends Phaser.Scene {
     buildProgressionObjects() {
         this.exitDoor = this.physics.add.staticImage(224, 326, 'doorLocked').refreshBody();
         this.keyPickup = this.physics.add.staticImage(1498, 86, 'key').refreshBody();
+        this.relicPickup = this.physics.add.staticImage(400, 266, 'relic').refreshBody();
 
         this.physics.add.overlap(this.player, this.keyPickup, this.collectKey, null, this);
+        this.physics.add.overlap(this.player, this.relicPickup, this.collectRelic, null, this);
         this.doorCollider = this.physics.add.collider(this.player, this.exitDoor, this.tryDoorInteraction, null, this);
     }
 
@@ -246,11 +262,18 @@ class AshenHollow extends Phaser.Scene {
             .setScale(0.6)
             .setScrollFactor(0)
             .setVisible(false);
+        this.doubleJumpSkillIcon = this.add.image(90, 30, 'skillDoubleJump')
+            .setScale(0.5)
+            .setScrollFactor(0)
+            .setVisible(false);
+        this.doubleJumpSkillLabel = this.add.text(112, 30, '2x JUMP', { fontSize: '10px', fill: '#00ddff', stroke: '#000', strokeThickness: 2 })
+            .setScrollFactor(0).setOrigin(0, 0.5).setVisible(false);
 
         this.lifeIcons = this.add.group();
         this.updateLifeDisplay();
         this.refreshObjectiveText();
         this.refreshInventoryHUD();
+        this.refreshSkillHUD();
 
         // Restart Button
         this.add.text(10, 10, '[ RESTART ]', { fontSize: '12px', fill: '#ff3355' })
@@ -263,6 +286,8 @@ class AshenHollow extends Phaser.Scene {
             this.objectiveText.setText('OBJECTIVE: Return to the open door');
         } else if (this.hasKey) {
             this.objectiveText.setText('OBJECTIVE: Bring the key to the left door');
+        } else if (!this.doubleJumpUnlocked) {
+            this.objectiveText.setText('OBJECTIVE: Find the relic to unlock double jump');
         } else {
             this.objectiveText.setText('OBJECTIVE: Reach the high ledge and claim the key');
         }
@@ -274,9 +299,25 @@ class AshenHollow extends Phaser.Scene {
         if (this.keyInventoryIcon) this.keyInventoryIcon.setVisible(showKey);
     }
 
+    refreshSkillHUD() {
+        const show = this.doubleJumpUnlocked;
+        if (this.doubleJumpSkillIcon) this.doubleJumpSkillIcon.setVisible(show);
+        if (this.doubleJumpSkillLabel) this.doubleJumpSkillLabel.setVisible(show);
+    }
+
     setStatusMessage(message, frames = 180) {
         this.statusText.setText(message);
         this.statusMessageFrames = frames;
+    }
+
+    collectRelic() {
+        if (this.doubleJumpUnlocked || !this.relicPickup.active) return;
+
+        this.doubleJumpUnlocked = true;
+        this.relicPickup.disableBody(true, true);
+        this.refreshObjectiveText();
+        this.refreshSkillHUD();
+        this.setStatusMessage('RELIC ACQUIRED - Double jump unlocked');
     }
 
     collectKey() {
@@ -364,8 +405,8 @@ class AshenHollow extends Phaser.Scene {
         if (jumpJustPressed) this.jumpBuffer = 5;
         if (this.jumpBuffer > 0) this.jumpBuffer--;
 
-        // Refill jump count only when solidly on ground (not moving up), so we don't reset the frame after first jump
-        if (onGround && velocityY >= 0) this.jumpsRemaining = 2;
+        // Refill jump count only when solidly on ground (not moving up). Max 2 if relic unlocked, else 1.
+        if (onGround && velocityY >= 0) this.jumpsRemaining = this.doubleJumpUnlocked ? 2 : 1;
 
         if (left) {
             this.player.setVelocityX(-CONFIG.PLAYER_SPEED).setFlipX(true);
@@ -375,16 +416,15 @@ class AshenHollow extends Phaser.Scene {
             this.player.setVelocityX(this.player.body.velocity.x * CONFIG.FRICTION);
         }
 
-        // Jump: first jump only when we have both jumps (avoids Arcade one-frame ground delay burning the second)
-        if (jump && onGround && this.jumpsRemaining === 2) {
+        // Jump: first jump when on ground and jumps remaining; mid-air only if double jump is unlocked
+        if (jump && onGround && this.jumpsRemaining > 0) {
             this.player.setVelocityY(CONFIG.JUMP_FORCE);
             this.jumpsRemaining--;
-            this.jumpBuffer = 0; // don't carry buffer into air so holding jump doesn't auto double-jump
-        } else if ((jumpJustPressed || this.jumpBuffer > 0) && inAir && this.jumpsRemaining > 0) {
-            // Mid-air hop: apply full jump force so the character clearly hops up
+            this.jumpBuffer = 0;
+        } else if (this.doubleJumpUnlocked && (jumpJustPressed || this.jumpBuffer > 0) && inAir && this.jumpsRemaining > 0) {
             this.player.setVelocityY(CONFIG.JUMP_FORCE);
             this.jumpsRemaining--;
-            this.jumpBuffer = 0; // consume buffer so we don't double-apply
+            this.jumpBuffer = 0;
         }
 
         this.jumpWasDownLastFrame = jump;

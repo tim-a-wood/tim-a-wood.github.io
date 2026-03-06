@@ -39,7 +39,8 @@ function computeJumpFrame(state) {
         jumpDown,
         jumpJustPressed,
         jumpBuffer,
-        jumpsRemaining
+        jumpsRemaining,
+        doubleJumpUnlocked = false
     } = state;
 
     const inAir = !onGround || velocityY < 0;
@@ -58,15 +59,15 @@ function computeJumpFrame(state) {
     }
 
     if (onGround && velocityY >= 0) {
-        nextJumpsRemaining = 2;
+        nextJumpsRemaining = doubleJumpUnlocked ? 2 : 1;
     }
 
-    if (jumpDown && onGround && nextJumpsRemaining === 2) {
+    if (jumpDown && onGround && nextJumpsRemaining > 0) {
         appliedGroundJump = true;
         nextVelocityY = CONFIG.JUMP_FORCE;
         nextJumpsRemaining--;
         nextJumpBuffer = 0;
-    } else if ((jumpJustPressed || nextJumpBuffer > 0) && inAir && nextJumpsRemaining > 0) {
+    } else if (doubleJumpUnlocked && (jumpJustPressed || nextJumpBuffer > 0) && inAir && nextJumpsRemaining > 0) {
         appliedAirJump = true;
         nextVelocityY = CONFIG.JUMP_FORCE;
         nextJumpsRemaining--;
@@ -125,8 +126,13 @@ function buildFirstZoneLayout(worldWidth = CONFIG.WORLD_WIDTH, tile = ROOM_LAYOU
 function buildProgressionLayout(height = 400) {
     return {
         exitDoor: { x: 224, y: 326, texture: 'doorLocked' },
-        keyPickup: { x: 1498, y: 86, texture: 'key' }
+        keyPickup: { x: 1498, y: 86, texture: 'key' },
+        relicPickup: { x: 400, y: 266, texture: 'relic' }
     };
+}
+
+function shouldShowDoubleJumpSkill(state) {
+    return state.doubleJumpUnlocked === true;
 }
 
 function shouldShowInventoryKey(state) {
@@ -136,7 +142,11 @@ function shouldShowInventoryKey(state) {
 function computeProgressionFrame(state) {
     const next = { ...state };
 
-    if (state.touchingKey && state.keyActive && !state.hasKey) {
+    if (state.touchingRelic && state.relicActive && !state.doubleJumpUnlocked) {
+        next.doubleJumpUnlocked = true;
+        next.relicActive = false;
+        next.statusMessage = 'RELIC ACQUIRED - Double jump unlocked';
+    } else if (state.touchingKey && state.keyActive && !state.hasKey) {
         next.hasKey = true;
         next.keyActive = false;
         next.statusMessage = 'KEY ACQUIRED - Return to the left door';
@@ -252,11 +262,25 @@ function isInPit(mid, pitZones) {
         jumpDown: false,
         jumpJustPressed: false,
         jumpBuffer: 0,
-        jumpsRemaining: 0
+        jumpsRemaining: 0,
+        doubleJumpUnlocked: true
     });
     assert.strictEqual(out.nextJumpsRemaining, 2);
     assert.strictEqual(out.appliedGroundJump, false);
     assert.strictEqual(out.appliedAirJump, false);
+})();
+
+(function testRefillIsOneWhenDoubleJumpNotUnlocked() {
+    const out = computeJumpFrame({
+        onGround: true,
+        velocityY: 0,
+        jumpDown: false,
+        jumpJustPressed: false,
+        jumpBuffer: 0,
+        jumpsRemaining: 0,
+        doubleJumpUnlocked: false
+    });
+    assert.strictEqual(out.nextJumpsRemaining, 1);
 })();
 
 (function testJumpDoesNotRefillDuringUpwardArcadeDelay() {
@@ -278,7 +302,8 @@ function isInPit(mid, pitZones) {
         jumpDown: true,
         jumpJustPressed: true,
         jumpBuffer: 3,
-        jumpsRemaining: 2
+        jumpsRemaining: 2,
+        doubleJumpUnlocked: true
     });
     assert.strictEqual(out.appliedGroundJump, true);
     assert.strictEqual(out.appliedAirJump, false);
@@ -294,7 +319,8 @@ function isInPit(mid, pitZones) {
         jumpDown: true,
         jumpJustPressed: false,
         jumpBuffer: 0,
-        jumpsRemaining: 1
+        jumpsRemaining: 1,
+        doubleJumpUnlocked: true
     });
     assert.strictEqual(out.appliedGroundJump, false);
     assert.strictEqual(out.appliedAirJump, false);
@@ -308,12 +334,27 @@ function isInPit(mid, pitZones) {
         jumpDown: true,
         jumpJustPressed: true,
         jumpBuffer: 0,
-        jumpsRemaining: 1
+        jumpsRemaining: 1,
+        doubleJumpUnlocked: true
     });
     assert.strictEqual(out.appliedGroundJump, false);
     assert.strictEqual(out.appliedAirJump, true);
     assert.strictEqual(out.nextVelocityY, CONFIG.JUMP_FORCE);
     assert.strictEqual(out.nextJumpsRemaining, 0);
+})();
+
+(function testMidAirJumpBlockedWhenDoubleJumpNotUnlocked() {
+    const out = computeJumpFrame({
+        onGround: false,
+        velocityY: -200,
+        jumpDown: true,
+        jumpJustPressed: true,
+        jumpBuffer: 0,
+        jumpsRemaining: 1,
+        doubleJumpUnlocked: false
+    });
+    assert.strictEqual(out.appliedAirJump, false);
+    assert.strictEqual(out.nextJumpsRemaining, 1);
 })();
 
 (function testJumpBufferAllowsSlightlyLateSecondJump() {
@@ -323,7 +364,8 @@ function isInPit(mid, pitZones) {
         jumpDown: false,
         jumpJustPressed: false,
         jumpBuffer: 2,
-        jumpsRemaining: 1
+        jumpsRemaining: 1,
+        doubleJumpUnlocked: true
     });
     assert.strictEqual(out.appliedAirJump, true);
     assert.strictEqual(out.nextJumpsRemaining, 0);
@@ -337,7 +379,8 @@ function isInPit(mid, pitZones) {
         jumpDown: false,
         jumpJustPressed: false,
         jumpBuffer: 4,
-        jumpsRemaining: 1
+        jumpsRemaining: 1,
+        doubleJumpUnlocked: true
     });
     assert.strictEqual(out.appliedAirJump, true);
     assert.strictEqual(out.nextJumpsRemaining, 0);
@@ -350,7 +393,8 @@ function isInPit(mid, pitZones) {
         jumpDown: true,
         jumpJustPressed: true,
         jumpBuffer: 0,
-        jumpsRemaining: 0
+        jumpsRemaining: 0,
+        doubleJumpUnlocked: true
     });
     assert.strictEqual(out.appliedGroundJump, false);
     assert.strictEqual(out.appliedAirJump, false);
@@ -364,7 +408,8 @@ function isInPit(mid, pitZones) {
         jumpDown: true,
         jumpJustPressed: false,
         jumpBuffer: 0,
-        jumpsRemaining: 1
+        jumpsRemaining: 1,
+        doubleJumpUnlocked: true
     });
     assert.strictEqual(out.nextJumpWasDownLastFrame, true);
 })();
@@ -376,7 +421,8 @@ function isInPit(mid, pitZones) {
         jumpDown: true,
         jumpJustPressed: true,
         jumpBuffer: 0,
-        jumpsRemaining: 2
+        jumpsRemaining: 2,
+        doubleJumpUnlocked: true
     });
     assert.strictEqual(out.appliedGroundJump, true);
     assert.strictEqual(out.nextJumpsRemaining, 1);
@@ -387,7 +433,8 @@ function isInPit(mid, pitZones) {
         jumpDown: false,
         jumpJustPressed: false,
         jumpBuffer: out.nextJumpBuffer,
-        jumpsRemaining: out.nextJumpsRemaining
+        jumpsRemaining: out.nextJumpsRemaining,
+        doubleJumpUnlocked: true
     });
     assert.strictEqual(out.appliedAirJump, false, 'No second jump without new press or buffered tap');
 
@@ -397,7 +444,8 @@ function isInPit(mid, pitZones) {
         jumpDown: true,
         jumpJustPressed: true,
         jumpBuffer: out.nextJumpBuffer,
-        jumpsRemaining: out.nextJumpsRemaining
+        jumpsRemaining: out.nextJumpsRemaining,
+        doubleJumpUnlocked: true
     });
     assert.strictEqual(out.appliedAirJump, true);
     assert.strictEqual(out.nextJumpsRemaining, 0);
@@ -484,6 +532,27 @@ function isInPit(mid, pitZones) {
     const layout = buildProgressionLayout();
     assert.deepStrictEqual(layout.exitDoor, { x: 224, y: 326, texture: 'doorLocked' });
     assert.deepStrictEqual(layout.keyPickup, { x: 1498, y: 86, texture: 'key' });
+    assert.deepStrictEqual(layout.relicPickup, { x: 400, y: 266, texture: 'relic' });
+})();
+
+(function testTouchingRelicUnlocksDoubleJump() {
+    const out = computeProgressionFrame({
+        doubleJumpUnlocked: false,
+        relicActive: true,
+        touchingRelic: true,
+        hasKey: false,
+        touchingKey: false,
+        touchingDoor: false,
+        doorUnlocked: false
+    });
+    assert.strictEqual(out.doubleJumpUnlocked, true);
+    assert.strictEqual(out.relicActive, false);
+    assert.strictEqual(out.statusMessage, 'RELIC ACQUIRED - Double jump unlocked');
+})();
+
+(function testDoubleJumpSkillIconVisibleWhenUnlocked() {
+    assert.strictEqual(shouldShowDoubleJumpSkill({ doubleJumpUnlocked: false }), false);
+    assert.strictEqual(shouldShowDoubleJumpSkill({ doubleJumpUnlocked: true }), true);
 })();
 
 (function testTouchingKeyCollectsIt() {

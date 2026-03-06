@@ -87,8 +87,18 @@ Manual acceptance tests for the current `index.html` prototype. These are the hi
 
 - **Description:** Verify the first progression loop works end to end: collect the key on the high ledge, show it in the HUD inventory, then consume it to unlock the left-side door.
 - **Steps:**
-  1. Reach the high ledge and collect the key.
+  1. Collect the relic first (unlocks double jump), then reach the high ledge and collect the key.
   2. Confirm a key icon appears in the HUD inventory.
   3. Return to the locked door on the left.
   4. Touch the door with the key in inventory.
 - **Expected result:** The key disappears from the world when collected, the HUD shows the key while it is carried, the door unlocks on contact, and the HUD key icon is removed because the key is consumed.
+
+### AT-10 Relic And Double Jump Unlock
+
+- **Description:** Verify the relic unlocks double jump and the double jump skill icon appears in the HUD.
+- **Steps:**
+  1. Start the game and move to the relic (reachable with single jump).
+  2. Collect the relic.
+  3. Confirm the double jump skill icon (and "2x JUMP" label) appears in the HUD.
+  4. Perform a ground jump, then press jump again in mid-air.
+- **Expected result:** Before the relic, only one jump is possible per flight. After collecting the relic, the HUD shows the double jump skill, and a second jump in mid-air works.
