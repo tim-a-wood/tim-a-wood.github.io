@@ -67,6 +67,8 @@ const ROOM_PLATFORM_LAYOUTS = {
     ]
 };
 
+const ENABLE_DEBUG_UNLOCK = false;
+
 class AshenHollow extends Phaser.Scene {
     constructor() {
         super('AshenHollow');
@@ -89,8 +91,10 @@ class AshenHollow extends Phaser.Scene {
 
         this.statusMessageFrames = 0;
         this.transitionCooldownUntil = 0;
+        this.inRoomTransition = false;
         this.r9ShellComplete = false;
         this.preFinalCheckpointUnlocked = false;
+        this.currentRoomId = 'R1';
 
         this.hasVisitedR2 = false;
         this.hubLoopStartMs = 0;
@@ -182,6 +186,8 @@ class AshenHollow extends Phaser.Scene {
 
         this.createHUD();
         this.setupControls();
+        this.createTransitionOverlay();
+        this.setCurrentRoom('R1');
         this.refreshObjectiveText();
         this.refreshGateState();
         this.setStatusMessage('Activity 5 greybox loaded. Touch INTERACT/BYPASS on mobile.', 240);
@@ -272,11 +278,45 @@ class AshenHollow extends Phaser.Scene {
     }
 
     getCurrentRoomId() {
-        const x = this.player.x;
-        if (x <= ROOM_IDS.R1.end) return 'R1';
-        if (x <= ROOM_IDS.R2.end) return 'R2';
-        if (x <= ROOM_IDS.R9.end) return 'R9';
-        return 'R10';
+        return this.currentRoomId;
+    }
+
+    createTransitionOverlay() {
+        this.transitionOverlay = this.add.rectangle(0, 0, CONFIG.W, CONFIG.H, 0x000000, 0)
+            .setScrollFactor(0)
+            .setOrigin(0, 0)
+            .setDepth(1000);
+    }
+
+    setCurrentRoom(roomId) {
+        this.currentRoomId = roomId;
+        const room = ROOM_IDS[roomId];
+        this.cameras.main.setBounds(room.start, 0, CONFIG.ROOM_WIDTH, CONFIG.WORLD_HEIGHT);
+    }
+
+    transitionToRoom(targetRoomId, targetX, targetY, statusLabel) {
+        if (this.inRoomTransition) return;
+        this.inRoomTransition = true;
+        this.transitionCooldownUntil = this.time.now + 500;
+
+        this.tweens.add({
+            targets: this.transitionOverlay,
+            alpha: 1,
+            duration: 140,
+            onComplete: () => {
+                this.setCurrentRoom(targetRoomId);
+                this.player.setPosition(targetX, targetY).setVelocity(0, 0);
+                this.tweens.add({
+                    targets: this.transitionOverlay,
+                    alpha: 0,
+                    duration: 180,
+                    onComplete: () => {
+                        this.inRoomTransition = false;
+                        this.setStatusMessage(statusLabel);
+                    }
+                });
+            }
+        });
     }
 
     refreshGateState() {
@@ -340,15 +380,18 @@ class AshenHollow extends Phaser.Scene {
             .setInteractive()
             .on('pointerdown', () => this.runDebugBypass());
 
-        this.add.text(640, 364, '[ UNLOCK ]', { fontSize: '12px', fill: '#baffc9', backgroundColor: '#112233' })
-            .setPadding(6, 4, 6, 4)
-            .setScrollFactor(0)
-            .setInteractive()
-            .on('pointerdown', () => this.runDebugUnlock());
+        if (ENABLE_DEBUG_UNLOCK) {
+            this.add.text(640, 364, '[ UNLOCK ]', { fontSize: '12px', fill: '#baffc9', backgroundColor: '#112233' })
+                .setPadding(6, 4, 6, 4)
+                .setScrollFactor(0)
+                .setInteractive()
+                .on('pointerdown', () => this.runDebugUnlock());
+        }
     }
 
     update() {
         if (this.isGameOver) return;
+        if (this.inRoomTransition) return;
 
         this.handleMovement();
         this.handleCriticalPathInteractions();
@@ -378,7 +421,7 @@ class AshenHollow extends Phaser.Scene {
         }
 
         if (this.debugUnlockKey && Phaser.Input.Keyboard.JustDown(this.debugUnlockKey)) {
-            this.runDebugUnlock();
+            if (ENABLE_DEBUG_UNLOCK) this.runDebugUnlock();
         }
 
         if (now < this.transitionCooldownUntil) return;
@@ -386,23 +429,19 @@ class AshenHollow extends Phaser.Scene {
         const roomId = this.getCurrentRoomId();
 
         if (roomId === 'R1' && this.player.x > 1500 && this.player.y > 950) {
-            this.player.setPosition(1720, 1020).setVelocity(0, 0);
-            this.transitionCooldownUntil = now + 400;
             this.hasVisitedR2 = true;
             if (!this.hubLoopStartMs) this.hubLoopStartMs = now;
-            this.setStatusMessage('Transition: R1 -> R2');
+            this.transitionToRoom('R2', 1720, 1020, 'Transition: R1 -> R2');
             return;
         }
 
         if (roomId === 'R2' && this.player.x < 1680 && this.player.y > 950) {
-            this.player.setPosition(1480, 1020).setVelocity(0, 0);
-            this.transitionCooldownUntil = now + 400;
             if (this.hasVisitedR2 && !this.hubLoopCompleteMs) {
                 this.hubLoopCompleteMs = now;
                 const seconds = ((this.hubLoopCompleteMs - this.hubLoopStartMs) / 1000).toFixed(1);
-                this.setStatusMessage(`Traversal sample: spawn -> hub -> gate loop ${seconds}s`);
+                this.transitionToRoom('R1', 1480, 1020, `Traversal sample: spawn -> hub -> gate loop ${seconds}s`);
             } else {
-                this.setStatusMessage('Transition: R2 -> R1');
+                this.transitionToRoom('R1', 1480, 1020, 'Transition: R2 -> R1');
             }
             return;
         }
@@ -414,19 +453,20 @@ class AshenHollow extends Phaser.Scene {
         }
 
         if (roomId === 'R9' && this.r9ShellComplete && this.player.x > 4700 && this.player.y > 950) {
-            this.player.setPosition(4920, 1020).setVelocity(0, 0);
-            this.transitionCooldownUntil = now + 400;
-            this.setStatusMessage('Transition: R9 -> R10');
+            this.transitionToRoom('R10', 4920, 1020, 'Transition: R9 -> R10');
+            return;
+        }
+
+        if (roomId === 'R10' && this.player.x < 4860 && this.player.y > 950) {
+            this.transitionToRoom('R9', 4680, 1020, 'Transition: R10 -> R9');
             return;
         }
 
         const nearGate = Phaser.Math.Distance.Between(this.player.x, this.player.y, this.finalGate.x, this.finalGate.y) < 96;
         if (roomId === 'R1' && nearGate && interactPressed) {
             if (this.finalGateState === 'UNLOCKED') {
-                this.player.setPosition(3340, 1020).setVelocity(0, 0);
                 this.preFinalCheckpointUnlocked = true;
-                this.transitionCooldownUntil = now + 400;
-                this.setStatusMessage('Gate opened. Entering R9 final area.');
+                this.transitionToRoom('R9', 3340, 1020, 'Gate opened. Entering R9 final area.');
             } else if (this.finalGateState === 'LOCKED_KEY_ITEMS') {
                 this.setStatusMessage('Gate sealed: recover 3 Key Items.');
             } else {
@@ -449,9 +489,8 @@ class AshenHollow extends Phaser.Scene {
     }
 
     runDebugBypass() {
-        this.player.setPosition(3340, 1020).setVelocity(0, 0);
         this.preFinalCheckpointUnlocked = true;
-        this.setStatusMessage('DEBUG BYPASS: jumped to R9.');
+        this.transitionToRoom('R9', 3340, 1020, 'DEBUG BYPASS: jumped to R9.');
     }
 
     runDebugUnlock() {
