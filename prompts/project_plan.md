@@ -48,6 +48,198 @@
 
 These steps are small, independent units of work. Each can be done in one or two commits. Order is suggested below; dependencies are noted where relevant.
 
+## Map MVP Execution Plan (10-15 Minute In-Game Run)
+
+This section captures the locked high-level activities and expands each into atomic procedural tasks. Each activity produces explicit downstream inputs that should be used by the next activity.
+
+### Activity 1. Lock MVP Constraints
+
+Scope of work: align product boundaries and prevent scope creep.
+
+- [ ] Create `/Users/timwood/Desktop/projects/PWA/MV/docs/map-mvp-constraints.md`.
+- [ ] Document fixed goals: 10-15 minute run, final gate visible beside spawn in `R1`, 3-sigil progression.
+- [ ] Document non-goals: no branching endings, no extra biome branches, no large progression tree beyond 3 unlocks.
+- [ ] Write player success statement: collect 3 sigils, return to `R1`, unlock gate, clear final area.
+- [ ] Define timing assumptions: first-time target 12 minutes, acceptable 10-15.
+- [ ] Define content constraints: rooms `R1-R10`, one final area, one exit.
+- [ ] Define logic constraint: final unlock condition `sigils_collected == 3`.
+- [ ] Review and resolve ambiguous wording with stakeholders.
+- [ ] Add change-control rule: changes to constraints require explicit sign-off.
+- [ ] Mark the constraints doc approved with date and version.
+
+Downstream input: immutable scope contract for topology, unlocks, scripting, and QA.
+
+### Activity 2. Lock Map Graph and Room Purposes
+
+Scope of work: finalize traversal graph and room intent.
+
+- [ ] Create `/Users/timwood/Desktop/projects/PWA/MV/docs/map-graph-v1.md`.
+- [ ] Define canonical room IDs and names for `R1-R10`.
+- [ ] Write adjacency list for all valid room transitions.
+- [ ] Validate dead ends are only intentional endpoints.
+- [ ] Assign one primary purpose per room (orientation, hub, challenge, sigil, final, exit).
+- [ ] Assign one secondary purpose per room (teaching, pressure ramp, recovery, payoff).
+- [ ] Define required interactables per room (doors, sigil pedestal, checkpoint, switches).
+- [ ] Define return paths from each branch to hub/spawn.
+- [ ] Define respawn anchors (`R1`, `R2`, pre-`R9`).
+- [ ] Paper-simulate ideal player route.
+- [ ] Paper-simulate confused player route.
+- [ ] Fix topology issues and freeze graph v1.
+
+Downstream input: room topology and purpose matrix for progression and level blockout.
+
+### Activity 3. Define Progression Unlocks (1 Hard-Gate + 2 Soft-Power)
+
+Scope of work: design minimal progression tied to map flow.
+
+- [ ] Create `/Users/timwood/Desktop/projects/PWA/MV/docs/progression-unlocks-v1.md`.
+- [ ] Assign sigils to branches: `A -> R4`, `B -> R6`, `C -> R8`.
+- [ ] Define hard-gate unlock (recommended `Sigil A`) used in one required branch barrier.
+- [ ] Define soft-power unlock 1 (recommended `Sigil B`) with one pre-final usage moment.
+- [ ] Define soft-power unlock 2 (recommended `Sigil C`) with one pre-final usage moment.
+- [ ] Specify pickup trigger and immediate UI/audio feedback for each unlock.
+- [ ] Specify forced/obvious first usage moments before final room.
+- [ ] Define behavior if soft-power usage is skipped (run remains completable).
+- [ ] Write concise pickup/status copy tied to landmarks or color-coded doors.
+- [ ] Validate unlock set does not push run time beyond 15 minutes.
+- [ ] Validate unlock set does not permit sequence breaks.
+- [ ] Freeze unlock table v1.
+
+Downstream input: progression table for gate-state logic, encounter placement, and UX messaging.
+
+### Activity 4. Define Gate and State Logic
+
+Scope of work: implement deterministic progression state machine.
+
+- [ ] Create `/Users/timwood/Desktop/projects/PWA/MV/docs/gate-state-spec-v1.md`.
+- [ ] Define state variables: `sigils_collected`, `sigil_a`, `sigil_b`, `sigil_c`, `final_gate_state`.
+- [ ] Define valid gate states: `LOCKED_0`, `LOCKED_1`, `LOCKED_2`, `UNLOCKED_3`.
+- [ ] Define transition rules on sigil pickup and on reload/resume.
+- [ ] Define visuals for each state (runes, lights, effects, audio cue).
+- [ ] Define interact text for each state (`Requires 3 Sigils`, `2/3 Collected`, etc.).
+- [ ] Add idempotency rule to prevent duplicate pickup corruption.
+- [ ] Define save/restore behavior for in-progress runs.
+- [ ] Define reset behavior for new runs.
+- [ ] Define telemetry hooks: `sigil_pickup`, `gate_state_changed`, `gate_unlocked`.
+- [ ] Write test matrix for all valid and invalid transitions.
+- [ ] Freeze logic contract for implementation.
+
+Downstream input: implementation-ready gate state machine and QA transition test cases.
+
+### Activity 5. Greybox Critical Path (`R1`, `R2`, `R9`, `R10`)
+
+Scope of work: prove full-loop viability early using placeholder content.
+
+- [ ] Create greybox scenes/layouts for `R1`, `R2`, `R9`, `R10`.
+- [ ] Place spawn in `R1` with immediate line-of-sight to the locked final gate.
+- [ ] Add gate interactable and temporary gate-state UI in `R1`.
+- [ ] Build `R1 <-> R2` traversal path with low friction.
+- [ ] Add temporary debug bypass to access `R9` before full branch completion.
+- [ ] Greybox `R9` final encounter shell with placeholder logic.
+- [ ] Greybox `R10` exit room with completion trigger.
+- [ ] Add temporary objective signage in `R1` and `R2`.
+- [ ] Time traversal from spawn to hub and back to gate.
+- [ ] Adjust room scale/distances for pacing.
+- [ ] Run smoke test: spawn, gate text, unlock path, final completion.
+- [ ] Mark critical path playable.
+
+Downstream input: playable backbone for branch integration and pacing calibration.
+
+### Activity 6. Build Branch A/B/C Passes (`R3-R8`)
+
+Scope of work: implement three distinct branches with one sigil reward each.
+
+- [ ] Greybox `R3-R8` based on frozen graph.
+- [ ] Implement Branch A (`R3`, `R4`) with hard-gate usage and Sigil A reward.
+- [ ] Implement Branch B (`R5`, `R6`) with distinct mechanic profile and Sigil B reward.
+- [ ] Implement Branch C (`R7`, `R8`) as highest pre-final pressure branch with Sigil C reward.
+- [ ] Add deterministic return route from each branch back to hub/spawn.
+- [ ] Add branch completion flags and hook them to gate-state updates.
+- [ ] Add distinct visual identity per branch (color, icon, landmark).
+- [ ] Validate each branch duration against target.
+- [ ] Validate each branch works independently and in any completion order.
+- [ ] Run sequence tests: `A-B-C`, `B-C-A`, `C-A-B`.
+- [ ] Fix order-dependent bugs and sequence breaks.
+- [ ] Freeze branch behavior v1.
+
+Downstream input: complete playable map loop with functional progression.
+
+### Activity 7. Add Navigation Readability
+
+Scope of work: ensure players can self-navigate without external instruction.
+
+- [ ] Define branch color/icon language and apply it to doors, markers, and UI.
+- [ ] Add objective sign in `R1`: collect 3 sigils to unlock the final gate.
+- [ ] Add progress board in `R2` with live branch completion status.
+- [ ] Add directional landmarks visible from decision points.
+- [ ] Add door labels/icon repeats at branch entrances.
+- [ ] Add gate reaction feedback in `R1` after each sigil acquisition.
+- [ ] Add short contextual prompts on return to `R1`.
+- [ ] Run no-guidance navigation test with at least one fresh tester.
+- [ ] Log stalls greater than 20 seconds and wrong turns.
+- [ ] Adjust signage/landmarks based on observed confusion.
+- [ ] Re-test navigation comprehension.
+- [ ] Freeze readability pass.
+
+Downstream input: low-confusion guidance layer for final tuning and QA.
+
+### Activity 8. Tune Pacing and Difficulty
+
+Scope of work: hit timing target and smooth ramp into final room.
+
+- [ ] Create `/Users/timwood/Desktop/projects/PWA/MV/docs/pacing-tuning-v1.md`.
+- [ ] Define target duration and difficulty score per room.
+- [ ] Capture baseline completion times across internal runs.
+- [ ] Shorten overlong traversal segments.
+- [ ] Adjust encounter density where difficulty spikes exceed target.
+- [ ] Remove low-engagement downtime.
+- [ ] Ensure a short recovery window before `R9`.
+- [ ] Balance branch durations to similar completion times.
+- [ ] Confirm `R9` final duration remains ~2-3 minutes.
+- [ ] Re-test after each major tuning pass.
+- [ ] Stop tuning when median run is ~12 minutes.
+- [ ] Freeze tuned values for QA.
+
+Downstream input: calibrated timing and difficulty baseline for validation thresholds.
+
+### Activity 9. Instrument and Run Internal Playtests
+
+Scope of work: collect evidence and prioritize high-impact fixes.
+
+- [ ] Implement telemetry for run start/end and per-room enter/exit events.
+- [ ] Capture deaths, retries, and stalled time per room.
+- [ ] Capture unlock comprehension checkpoints after each sigil pickup.
+- [ ] Create playtest observer template for qualitative notes.
+- [ ] Recruit 5 fresh internal testers.
+- [ ] Run sessions without coaching unless hard-stuck.
+- [ ] Collect quantitative and qualitative data for each run.
+- [ ] Aggregate results into one findings report.
+- [ ] Rank issues by completion risk, clarity risk, and pacing impact.
+- [ ] Identify top 3 blockers and top 3 high-value improvements.
+- [ ] Map each issue to an owner/component.
+- [ ] Publish prioritized fix list for stabilization.
+
+Downstream input: evidence-based backlog for final MVP lock.
+
+### Activity 10. Final MVP Lock and QA
+
+Scope of work: stabilize build and certify MVP readiness.
+
+- [ ] Create final triage board with severities (`blocker`, `major`, `minor`).
+- [ ] Fix all blocker progression/completion defects.
+- [ ] Fix major navigation and objective-comprehension defects.
+- [ ] Re-run gate-state regression across all branch orders.
+- [ ] Execute full clean run from new game to `R10` completion.
+- [ ] Validate respawn and resume behavior.
+- [ ] Validate UI/signage/feedback triggers and consistency.
+- [ ] Re-validate timing band (10-15 minutes).
+- [ ] Document deferred minor issues and rationale.
+- [ ] Freeze map layout and progression parameters.
+- [ ] Tag MVP candidate build and archive test evidence.
+- [ ] Write go/no-go summary against explicit acceptance criteria.
+
+Downstream output: stable MVP map build ready for external MVP testing.
+
 ### 1. Naming / branding (low risk)
 
 - [x] **Decide and apply title**
