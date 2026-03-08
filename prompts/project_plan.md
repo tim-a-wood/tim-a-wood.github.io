@@ -130,16 +130,16 @@ Downstream input: implementation-ready gate state machine and QA transition test
 
 Scope of work: prove full-loop viability early using placeholder content.
 
-- [ ] Create greybox scenes/layouts for `R1`, `R2`, `R9`, `R10`.
-- [ ] Place spawn in `R1` with immediate line-of-sight to the locked final gate.
-- [ ] Add gate interactable and temporary gate-state UI in `R1`.
-- [ ] Build `R1 <-> R2` traversal path with low friction.
-- [ ] Add temporary debug bypass to access `R9` before full branch completion.
-- [ ] Greybox `R9` final encounter shell with placeholder logic.
-- [ ] Greybox `R10` exit room with completion trigger.
-- [ ] Add temporary objective signage in `R1` and `R2`.
-- [ ] Time traversal from spawn to hub and back to gate.
-- [ ] Adjust room scale/distances for pacing.
+- [x] Create greybox scenes/layouts for `R1`, `R2`, `R9`, `R10`.
+- [x] Place spawn in `R1` with immediate line-of-sight to the locked final gate.
+- [x] Add gate interactable and temporary gate-state UI in `R1`.
+- [x] Build `R1 <-> R2` traversal path with low friction.
+- [x] Add temporary debug bypass to access `R9` before full branch completion.
+- [x] Greybox `R9` final encounter shell with placeholder logic.
+- [x] Greybox `R10` exit room with completion trigger.
+- [x] Add temporary objective signage in `R1` and `R2`.
+- [x] Time traversal from spawn to hub and back to gate.
+- [x] Adjust room scale/distances for pacing.
 - [ ] Run smoke test: spawn, gate text, unlock path, final completion.
 - [ ] Mark critical path playable.
 

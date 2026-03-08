@@ -18,36 +18,15 @@
     </style>
 </head>
 <body>
-<!-- CACHE_BUST: interconnect1 — use ?v=interconnect1 on the URL to force latest; bump this when we deploy -->
+<!-- CACHE_BUST: activity5greybox1 — use ?v=activity5greybox1 on the URL to force latest; bump this when we deploy -->
 <div id="game-container"></div>
 <script>
-/**
- * ARCHITECTURE MANIFEST - FOR AI AGENT INTERPRETATION
- * --------------------------------------------------
- * PROGRAM: Ashen Hollow
- * ENGINE: Phaser 3 (Arcade Physics)
- * PARADIGM: Bounded metroidvania (fixed world, two rooms)
- * * CORE SYSTEMS:
- * 1. Bounded World: World width 3200 (room 2: 0..1600, room 1: 1600..3200). buildFirstZone()
- *    builds room 1 (cave with key/door) and room 2 (path to exit in top left). No procedural gen.
- * 2. Camera & Bounds: Camera follows player and is clamped to world bounds; physics
- *    world and player use setBounds/setCollideWorldBounds so nothing leaves the zone.
- * 3. Texture Generation: No external assets. All sprites are generated via
- *    this.make.graphics() during the preload/create phase to ensure 0ms latency.
- * * GLOBAL STATE (this.*):
- * - .inputState: Object tracking active touch/button inputs for physics polling.
- * - .jumpsRemaining: number of jumps allowed in current flight (2 = can double jump). Refilled to 2 when solidly on ground; decremented each time a jump is applied.
- * - .jumpWasDownLastFrame: used to detect "jump just pressed" for double jump (so holding jump doesn't burn it).
- * - .jumpBuffer: frames remaining to accept a mid-air jump press (makes double jump feel responsive).
- * - .hasKey / .doorUnlocked: simple progression state for the first key-door backtracking loop.
- * - .doubleJumpUnlocked: when true, player has collected the relic and can double jump; HUD shows skill icon.
- */
-
 const CONFIG = {
     W: 800,
     H: 400,
-    WORLD_WIDTH: 3200,
+    WORLD_WIDTH: 6400,
     WORLD_HEIGHT: 1200,
+    ROOM_WIDTH: 1600,
     GRAVITY: 1400,
     PLAYER_SPEED: 280,
     JUMP_FORCE: -690,
@@ -55,54 +34,38 @@ const CONFIG = {
     COLORS: [0x2a3a5a, 0x3a2a5a, 0x2a4a3a, 0x4a3a2a, 0x2a4050]
 };
 
-const ROOM_LAYOUT = {
-    TILE: 32,
-    /** Left wall stops so its bottom (1093) is flush with corridor platform top. Last tile center at 1077. */
-    LEFT_DOORWAY_TOP: 1077,
-    /** 'internal' = walls/ceiling on closed edges, doors-only entry; 'outdoor' = no boundary walls, open passage unless blocked */
-    roomType: 'internal'
+const ROOM_IDS = {
+    R1: { start: 0, end: 1599 },
+    R2: { start: 1600, end: 3199 },
+    R9: { start: 3200, end: 4799 },
+    R10: { start: 4800, end: 6399 }
 };
 
-/** Room 1 (cave with key/door) is shifted right by this amount; room 2 (exit) occupies x 0..ROOM1_OFFSET. */
-const ROOM1_OFFSET = 1600;
-
-/** Room 2: platforms from entrance (right) to exit (top left). Exit platform is in top left, reachable. */
-const ROOM2_LEDGES = [
-    { x: 1248, y: 1068, len: 11, tint: 0 },
-    { x: 992, y: 996, len: 14, tint: 1 },
-    { x: 736, y: 924, len: 15, tint: 2 },
-    { x: 480, y: 852, len: 14, tint: 3 },
-    { x: 256, y: 780, len: 12, tint: 0 },
-    { x: 96, y: 700, len: 9, tint: 1 },
-    { x: 64, y: 612, len: 7, tint: 2 },
-    { x: 64, y: 516, len: 6, tint: 3 },
-    { x: 64, y: 420, len: 5, tint: 0 },
-    { x: 64, y: 332, len: 4, tint: 1 },
-    { x: 64, y: 244, len: 4, tint: 4 }
-];
-
-/** Exit to next area: top-left of room 2, on the highest platform. */
-const ROOM2_EXIT = { x: 128, y: 210 };
-
-/**
- * Hollow Knight-inspired cave system.
- * Most platforms should read as one carved network of overlapping shelves with
- * only a few side branches: a relic alcove, an upper return route, and a gated key perch.
- */
-const LABYRINTH_LEDGES = [
-    { x: 0, y: 1100, len: 12, tint: 0 },
-    { x: 224, y: 1044, len: 18, tint: 1 },
-    { x: 416, y: 964, len: 19, tint: 2 },
-    { x: 608, y: 884, len: 18, tint: 3 },
-    { x: 768, y: 804, len: 15, tint: 0 },
-    { x: 608, y: 724, len: 18, tint: 1 },
-    { x: 416, y: 644, len: 20, tint: 2 },
-    { x: 224, y: 564, len: 16, tint: 3 },
-    { x: 416, y: 484, len: 13, tint: 0 },
-    { x: 704, y: 404, len: 10, tint: 1 },
-    { x: 928, y: 308, len: 8, tint: 2 },
-    { x: 1120, y: 180, len: 4, tint: 4 }
-];
+const ROOM_PLATFORM_LAYOUTS = {
+    R1: [
+        { x: 120, y: 1048, len: 12, tint: 0 },
+        { x: 520, y: 968, len: 10, tint: 1 },
+        { x: 980, y: 888, len: 8, tint: 2 },
+        { x: 1320, y: 1068, len: 8, tint: 3 }
+    ],
+    R2: [
+        { x: 1700, y: 1048, len: 14, tint: 0 },
+        { x: 2140, y: 940, len: 10, tint: 1 },
+        { x: 2480, y: 840, len: 10, tint: 2 },
+        { x: 2860, y: 1028, len: 8, tint: 3 }
+    ],
+    R9: [
+        { x: 3340, y: 1048, len: 14, tint: 0 },
+        { x: 3720, y: 920, len: 9, tint: 1 },
+        { x: 4080, y: 820, len: 8, tint: 2 },
+        { x: 4410, y: 980, len: 8, tint: 3 }
+    ],
+    R10: [
+        { x: 5020, y: 1048, len: 16, tint: 0 },
+        { x: 5520, y: 940, len: 8, tint: 4 },
+        { x: 5840, y: 860, len: 8, tint: 2 }
+    ]
+};
 
 class AshenHollow extends Phaser.Scene {
     constructor() {
@@ -115,18 +78,23 @@ class AshenHollow extends Phaser.Scene {
         this.isGameOver = false;
         this.trailPts = [];
         this.inputState = { left: false, right: false, jump: false };
-        this.jumpsRemaining = 2; // max jumps per flight; refill when solidly on ground
-        this.jumpWasDownLastFrame = false; // for "jump just pressed" so double jump requires a new press
-        this.jumpBuffer = 0; // frames to accept mid-air jump (so second tap reliably triggers hop)
-        this.hasKey = false;
-        this.doorUnlocked = false;
-        this.doubleJumpUnlocked = false;
+        this.jumpsRemaining = 1;
+        this.jumpWasDownLastFrame = false;
+        this.jumpBuffer = 0;
+        this.interactQueued = false;
+
+        this.keyItemsCollected = 0;
+        this.abilitiesUnlocked = 0;
+        this.finalGateState = 'LOCKED_KEY_ITEMS';
+
         this.statusMessageFrames = 0;
-        this.doorHintCooldownUntil = 0;
-        this.keyInventoryIcon = null;
-        this.keyInventoryLabel = null;
-        this.doubleJumpSkillIcon = null;
-        this.doubleJumpSkillLabel = null;
+        this.transitionCooldownUntil = 0;
+        this.r9ShellComplete = false;
+        this.preFinalCheckpointUnlocked = false;
+
+        this.hasVisitedR2 = false;
+        this.hubLoopStartMs = 0;
+        this.hubLoopCompleteMs = 0;
     }
 
     preload() {
@@ -135,65 +103,53 @@ class AshenHollow extends Phaser.Scene {
 
     generateAssetTextures() {
         const g = this.make.graphics({ x: 0, y: 0, add: false });
-        
-        // Floor Tile
+
         g.fillStyle(0x334466).fillRect(0, 0, 32, 32);
         g.fillStyle(0xffffff, 0.15).fillRect(0, 0, 32, 2);
         g.generateTexture('floor', 32, 32);
 
-        // Platform Variants
         CONFIG.COLORS.forEach((color, i) => {
             g.clear().fillStyle(color).fillRect(0, 0, 32, 14);
             g.fillStyle(0xffffff, 0.15).fillRect(0, 0, 32, 2);
             g.generateTexture(`p${i}`, 32, 14);
         });
 
-        // Key Pickup
-        g.clear().fillStyle(0xffd54a);
-        g.fillTriangle(12, 0, 24, 12, 12, 24);
-        g.fillTriangle(0, 12, 12, 0, 12, 24);
-        g.fillStyle(0x6b4b14).fillRect(18, 10, 16, 4);
-        g.fillRect(28, 8, 4, 8);
-        g.generateTexture('key', 36, 24);
+        g.clear().fillStyle(0x6a4326).fillRect(0, 0, 56, 88);
+        g.fillStyle(0x43230e).fillRect(10, 0, 36, 88);
+        g.fillStyle(0xaa2211).fillRect(24, 8, 8, 72);
+        g.generateTexture('finalGateLocked', 56, 88);
 
-        // Relic (unlocks double jump)
-        g.clear().fillStyle(0x8b5cf6).fillCircle(14, 14, 12);
-        g.fillStyle(0xffffff, 0.5).fillCircle(10, 10, 4);
-        g.generateTexture('relic', 28, 28);
+        g.clear().fillStyle(0x234a34).fillRect(0, 0, 56, 88);
+        g.fillStyle(0x00ffaa, 0.8).fillRect(16, 0, 24, 88);
+        g.fillStyle(0xffffff, 0.25).fillRect(24, 8, 8, 72);
+        g.generateTexture('finalGateOpen', 56, 88);
 
-        // Double jump skill icon (HUD)
-        g.clear().fillStyle(0x00ddff, 0.9).fillRect(4, 16, 8, 6).fillRect(16, 16, 8, 6);
-        g.fillStyle(0x00aacc).fillRect(6, 10, 4, 8).fillRect(18, 6, 4, 12);
-        g.generateTexture('skillDoubleJump', 28, 24);
+        g.clear().fillStyle(0x995c2d).fillRect(0, 0, 48, 72);
+        g.fillStyle(0x57351a).fillRect(10, 0, 28, 72);
+        g.generateTexture('doorFrame', 48, 72);
 
-        // Door: narrow bar from corridor bottom (1107) to ground (1168); height 61px
-        const DOOR_H = 61;
-        g.clear().fillStyle(0x6a4326).fillRect(0, 0, 16, DOOR_H);
-        g.fillStyle(0x3f2414).fillRect(4, 0, 8, DOOR_H);
-        g.fillStyle(0xffd54a).fillRect(11, 26, 3, 8);
-        g.generateTexture('doorLocked', 16, DOOR_H);
+        g.clear().fillStyle(0xff4444).fillRect(0, 0, 44, 44);
+        g.fillStyle(0x220000).fillRect(8, 8, 28, 28);
+        g.fillStyle(0xffbb44).fillRect(18, 6, 8, 32);
+        g.generateTexture('finalCore', 44, 44);
 
-        g.clear().fillStyle(0x24423b).fillRect(0, 0, 16, DOOR_H);
-        g.fillStyle(0x00ffaa, 0.65).fillRect(6, 0, 4, DOOR_H);
-        g.generateTexture('doorOpen', 16, DOOR_H);
+        g.clear().fillStyle(0x3a5a4a).fillRect(0, 0, 40, 40);
+        g.fillStyle(0x00ff88, 0.75).fillRect(10, 6, 20, 28);
+        g.generateTexture('exit', 40, 40);
 
-        // Exit (next area) — arch / passage in room 2 top left
-        g.clear().fillStyle(0x3a5a4a).fillRect(0, 0, 32, 32);
-        g.fillStyle(0x00ff88, 0.6).fillRect(8, 4, 16, 24);
-        g.generateTexture('exit', 32, 32);
+        g.clear().fillStyle(0x45526e).fillRect(0, 0, 160, 52);
+        g.fillStyle(0x121822).fillRect(3, 3, 154, 46);
+        g.generateTexture('signBoard', 160, 52);
 
-        // Hero Sprite
-        g.clear().fillStyle(0x00ddff).fillRect(4, 8, 20, 24); // Body
-        g.fillStyle(0xff00bb).fillRect(8, 10, 12, 8);   // Visor
-        g.fillStyle(0x007799).fillRect(4, 32, 8, 8);    // Left Leg
-        g.fillStyle(0x007799).fillRect(16, 32, 8, 8);   // Right Leg
+        g.clear().fillStyle(0x00ddff).fillRect(4, 8, 20, 24);
+        g.fillStyle(0xff00bb).fillRect(8, 10, 12, 8);
+        g.fillStyle(0x007799).fillRect(4, 32, 8, 8);
+        g.fillStyle(0x007799).fillRect(16, 32, 8, 8);
         g.generateTexture('hero', 28, 40);
-        
-        // UI Controls
+
         g.clear().fillStyle(0xffffff, 0.13).fillCircle(40, 40, 40);
         g.generateTexture('btn', 80, 80);
 
-        // Starfield Batch
         g.clear();
         for (let i = 0; i < 100; i++) {
             g.fillStyle(0xffffff, 0.4 + Math.random() * 0.6);
@@ -206,109 +162,84 @@ class AshenHollow extends Phaser.Scene {
     create() {
         this.resetInternalState();
 
-        // Environment: bounded world (viewport stays CONFIG.W x CONFIG.H; world is WORLD_WIDTH x WORLD_HEIGHT)
         this.physics.world.setBounds(0, 0, CONFIG.WORLD_WIDTH, CONFIG.WORLD_HEIGHT);
         this.cameras.main.setBounds(0, 0, CONFIG.WORLD_WIDTH, CONFIG.WORLD_HEIGHT);
         this.cameras.main.setBackgroundColor('#050510');
-        this.starField = this.add.tileSprite(CONFIG.W/2, CONFIG.H/2, CONFIG.W, CONFIG.H, 'stars')
-            .setScrollFactor(0).setDepth(-1);
+        this.starField = this.add.tileSprite(CONFIG.W / 2, CONFIG.H / 2, CONFIG.W, CONFIG.H, 'stars')
+            .setScrollFactor(0)
+            .setDepth(-1);
         this.trail = this.add.graphics();
 
-        // Groups & Entities
         this.platforms = this.physics.add.staticGroup();
-        this.player = this.physics.add.sprite(128 + ROOM1_OFFSET, 1073, 'hero');
+        this.player = this.physics.add.sprite(220, 1020, 'hero');
         this.player.setCollideWorldBounds(true);
         this.physics.add.collider(this.player, this.platforms);
 
-        // Camera: follow player, stay within world
         this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
 
-        this.buildFirstZone();
-        this.buildProgressionObjects();
+        this.buildGreyboxCriticalPath();
+        this.buildCriticalPathInteractables();
 
-        // UI & Input
         this.createHUD();
         this.setupControls();
+        this.refreshObjectiveText();
+        this.refreshGateState();
+        this.setStatusMessage('Activity 5 greybox loaded. Touch INTERACT/BYPASS on mobile.', 240);
     }
 
-    /**
-     * Two rooms: room 2 at x 0..ROOM1_OFFSET (exit top left), room 1 at x ROOM1_OFFSET..W (cave with key/door).
-     * Door at (248 + ROOM1_OFFSET, 1137); exit at ROOM2_EXIT on a reachable platform in room 2.
-     */
-    buildFirstZone() {
-        const TILE = ROOM_LAYOUT.TILE;
-        const H = CONFIG.WORLD_HEIGHT;
-        const W = CONFIG.WORLD_WIDTH;
-        if (ROOM_LAYOUT.roomType === 'internal') {
-            this.buildBoundaryWalls();
-        }
-        // Floor: continuous across both rooms
-        for (let tx = 0; tx < W; tx += TILE) {
-            this.platforms.create(tx + 16, H - 16, 'floor').refreshBody();
-        }
-        // Room 1 (cave): shift all ledges right
-        LABYRINTH_LEDGES.forEach(({ x, y, len, tint }) => {
-            for (let i = 0; i < len; i++) {
-                this.platforms.create(ROOM1_OFFSET + x + (i * TILE) + 16, y, `p${tint}`).refreshBody();
-            }
-        });
-        // Room 2: path from entrance (right) to exit platform (top left)
-        ROOM2_LEDGES.forEach(({ x, y, len, tint }) => {
-            for (let i = 0; i < len; i++) {
-                this.platforms.create(x + (i * TILE) + 16, y, `p${tint}`).refreshBody();
-            }
-        });
-    }
+    buildGreyboxCriticalPath() {
+        const tile = 32;
 
-    buildBoundaryWalls() {
-        const TILE = ROOM_LAYOUT.TILE;
-        const W = CONFIG.WORLD_WIDTH;
-        const H = CONFIG.WORLD_HEIGHT;
-        const rightWallX = W - 16;
-        const leftWallX = 16;
-
-        // Ceiling: full width across both rooms
-        for (let tx = 0; tx < W; tx += TILE) {
+        for (let tx = 0; tx < CONFIG.WORLD_WIDTH; tx += tile) {
+            this.platforms.create(tx + 16, CONFIG.WORLD_HEIGHT - 16, 'floor').refreshBody();
             this.platforms.create(tx + 16, 16, 'floor').refreshBody();
         }
 
-        // Right wall (room 1 only): full height
-        for (let ty = TILE; ty < 1168; ty += TILE) {
-            this.platforms.create(rightWallX, ty + 16, 'floor').refreshBody();
+        for (let ty = tile; ty < CONFIG.WORLD_HEIGHT - 32; ty += tile) {
+            this.platforms.create(16, ty + 16, 'floor').refreshBody();
+            this.platforms.create(CONFIG.WORLD_WIDTH - 16, ty + 16, 'floor').refreshBody();
         }
 
-        // Room 2 left wall: top section, gap for exit platform (y ~244), then rest down to floor
-        const room2GapEnd = 272;
-        for (let ty = TILE; ty < room2GapEnd - TILE * 2; ty += TILE) {
-            this.platforms.create(leftWallX, ty + 16, 'floor').refreshBody();
-        }
-        for (let ty = room2GapEnd; ty < 1168; ty += TILE) {
-            this.platforms.create(leftWallX, ty + 16, 'floor').refreshBody();
-        }
-        this.platforms.create(leftWallX, 1077, 'floor').refreshBody();
-
-        // Room 1 left wall (with corridor): at x = ROOM1_OFFSET + 16
-        const room1LeftX = ROOM1_OFFSET + 16;
-        for (let ty = TILE; ty < ROOM_LAYOUT.LEFT_DOORWAY_TOP; ty += TILE) {
-            this.platforms.create(room1LeftX, ty + 16, 'floor').refreshBody();
-        }
-        this.platforms.create(room1LeftX, 1077, 'floor').refreshBody();
+        Object.values(ROOM_PLATFORM_LAYOUTS).forEach((ledges) => {
+            ledges.forEach(({ x, y, len, tint }) => {
+                for (let i = 0; i < len; i++) {
+                    this.platforms.create(x + (i * tile) + 16, y, `p${tint}`).refreshBody();
+                }
+            });
+        });
     }
 
-    buildProgressionObjects() {
-        this.exitDoor = this.physics.add.staticImage(248 + ROOM1_OFFSET, 1137, 'doorLocked').refreshBody();
-        this.keyPickup = this.physics.add.staticImage(1200 + ROOM1_OFFSET, 146, 'key').refreshBody();
-        this.relicPickup = this.physics.add.staticImage(304 + ROOM1_OFFSET, 902, 'relic').refreshBody();
-        this.exitTrigger = this.physics.add.staticImage(ROOM2_EXIT.x, ROOM2_EXIT.y, 'exit').refreshBody();
+    buildCriticalPathInteractables() {
+        this.finalGate = this.physics.add.staticImage(500, 1000, 'finalGateLocked').refreshBody();
+        this.gatePrompt = this.add.text(500, 930, 'R1 FINAL GATE', {
+            fontSize: '12px', fill: '#ffb47a', stroke: '#000', strokeThickness: 3
+        }).setOrigin(0.5);
 
-        this.physics.add.overlap(this.player, this.keyPickup, this.collectKey, null, this);
-        this.physics.add.overlap(this.player, this.relicPickup, this.collectRelic, null, this);
-        this.doorCollider = this.physics.add.collider(this.player, this.exitDoor, this.tryDoorInteraction, null, this);
-        this.physics.add.overlap(this.player, this.exitTrigger, this.reachExit, null, this);
-    }
+        this.r1ToR2Door = this.physics.add.staticImage(1540, 1034, 'doorFrame').refreshBody();
+        this.r2ToR1Door = this.physics.add.staticImage(1660, 1034, 'doorFrame').refreshBody();
+        this.r9ToR10Door = this.physics.add.staticImage(4740, 1034, 'doorFrame').refreshBody();
+        this.r10ToR9Door = this.physics.add.staticImage(4860, 1034, 'doorFrame').refreshBody();
 
-    reachExit() {
-        this.setStatusMessage('Exit! (Next area)', 300);
+        this.r9Objective = this.physics.add.staticImage(4010, 776, 'finalCore').refreshBody();
+        this.r10Exit = this.physics.add.staticImage(6020, 826, 'exit').refreshBody();
+
+        this.physics.add.overlap(this.player, this.r9Objective, this.completeFinalShell, null, this);
+        this.physics.add.overlap(this.player, this.r10Exit, this.tryExitRun, null, this);
+
+        this.signR1Board = this.add.image(260, 860, 'signBoard');
+        this.signR1Text = this.add.text(260, 860, 'R1 Objective:\nUnlock gate (3 keys + 3 abilities)', {
+            fontSize: '11px', fill: '#d7ebff', align: 'center'
+        }).setOrigin(0.5);
+
+        this.signR2Board = this.add.image(2120, 850, 'signBoard');
+        this.signR2Text = this.add.text(2120, 850, 'R2 Hub:\nBranches A/B/C come next\n(Activity 6)', {
+            fontSize: '11px', fill: '#d7ebff', align: 'center'
+        }).setOrigin(0.5);
+
+        this.signR9Board = this.add.image(3460, 860, 'signBoard');
+        this.signR9Text = this.add.text(3460, 860, 'R9 Final Shell:\nTouch core to complete', {
+            fontSize: '11px', fill: '#d7ebff', align: 'center'
+        }).setOrigin(0.5);
     }
 
     createHUD() {
@@ -316,118 +247,76 @@ class AshenHollow extends Phaser.Scene {
             fontSize: '14px', fill: '#00ffff', stroke: '#000', strokeThickness: 3
         }).setScrollFactor(0).setOrigin(0.5, 0);
 
-        this.objectiveText = this.add.text(CONFIG.W / 2, 30, '', {
+        this.roomText = this.add.text(CONFIG.W / 2, 30, '', {
+            fontSize: '12px', fill: '#a6ffb5', stroke: '#000', strokeThickness: 3
+        }).setScrollFactor(0).setOrigin(0.5, 0);
+
+        this.objectiveText = this.add.text(CONFIG.W / 2, 48, '', {
             fontSize: '12px', fill: '#ffe082', stroke: '#000', strokeThickness: 3
         }).setScrollFactor(0).setOrigin(0.5, 0);
+
+        this.gateStateText = this.add.text(10, 10, '', {
+            fontSize: '12px', fill: '#ffb47a', stroke: '#000', strokeThickness: 3
+        }).setScrollFactor(0).setOrigin(0, 0);
 
         this.statusText = this.add.text(CONFIG.W / 2, CONFIG.H - 24, '', {
             fontSize: '12px', fill: '#ffffff', stroke: '#000', strokeThickness: 3
         }).setScrollFactor(0).setOrigin(0.5, 0.5);
 
-        this.keyInventoryLabel = this.add.text(10, 30, 'KEY', {
-            fontSize: '12px', fill: '#ffe082', stroke: '#000', strokeThickness: 3
-        }).setScrollFactor(0).setOrigin(0, 0.5).setVisible(false);
-        this.keyInventoryIcon = this.add.image(48, 30, 'key')
-            .setScale(0.6)
-            .setScrollFactor(0)
-            .setVisible(false);
-        this.doubleJumpSkillIcon = this.add.image(90, 30, 'skillDoubleJump')
-            .setScale(0.5)
-            .setScrollFactor(0)
-            .setVisible(false);
-        this.doubleJumpSkillLabel = this.add.text(112, 30, '2x JUMP', { fontSize: '10px', fill: '#00ddff', stroke: '#000', strokeThickness: 2 })
-            .setScrollFactor(0).setOrigin(0, 0.5).setVisible(false);
-
         this.lifeIcons = this.add.group();
         this.updateLifeDisplay();
-        this.refreshObjectiveText();
-        this.refreshInventoryHUD();
-        this.refreshSkillHUD();
 
-        // Restart Button
-        this.add.text(10, 10, '[ RESTART ]', { fontSize: '12px', fill: '#ff3355' })
+        this.add.text(10, 44, '[ RESTART ]', { fontSize: '12px', fill: '#ff3355' })
             .setScrollFactor(0).setInteractive()
             .on('pointerdown', () => this.scene.restart());
     }
 
-    refreshObjectiveText() {
-        if (this.doorUnlocked) {
-            this.objectiveText.setText('OBJECTIVE: Find the exit in the next room');
-        } else if (this.hasKey) {
-            this.objectiveText.setText('OBJECTIVE: Bring the key to the left door');
-        } else if (!this.doubleJumpUnlocked) {
-            this.objectiveText.setText('OBJECTIVE: Find the relic to unlock double jump');
+    getCurrentRoomId() {
+        const x = this.player.x;
+        if (x <= ROOM_IDS.R1.end) return 'R1';
+        if (x <= ROOM_IDS.R2.end) return 'R2';
+        if (x <= ROOM_IDS.R9.end) return 'R9';
+        return 'R10';
+    }
+
+    refreshGateState() {
+        if (this.keyItemsCollected < 3) {
+            this.finalGateState = 'LOCKED_KEY_ITEMS';
+        } else if (this.abilitiesUnlocked < 3) {
+            this.finalGateState = 'LOCKED_ABILITIES';
         } else {
-            this.objectiveText.setText('OBJECTIVE: Reach the high ledge and claim the key');
+            this.finalGateState = 'UNLOCKED';
         }
+
+        if (this.finalGate) {
+            this.finalGate.setTexture(this.finalGateState === 'UNLOCKED' ? 'finalGateOpen' : 'finalGateLocked');
+        }
+
+        this.gateStateText.setText(
+            `Gate: ${this.finalGateState}\nKeys ${this.keyItemsCollected}/3 | Abilities ${this.abilitiesUnlocked}/3`
+        );
     }
 
-    refreshInventoryHUD() {
-        const showKey = this.hasKey && !this.doorUnlocked;
-        if (this.keyInventoryLabel) this.keyInventoryLabel.setVisible(showKey);
-        if (this.keyInventoryIcon) this.keyInventoryIcon.setVisible(showKey);
-    }
-
-    refreshSkillHUD() {
-        const show = this.doubleJumpUnlocked;
-        if (this.doubleJumpSkillIcon) this.doubleJumpSkillIcon.setVisible(show);
-        if (this.doubleJumpSkillLabel) this.doubleJumpSkillLabel.setVisible(show);
-    }
-
-    setStatusMessage(message, frames = 180) {
-        this.statusText.setText(message);
-        this.statusMessageFrames = frames;
-    }
-
-    collectRelic() {
-        if (this.doubleJumpUnlocked || !this.relicPickup.active) return;
-
-        this.doubleJumpUnlocked = true;
-        this.relicPickup.disableBody(true, true);
-        this.refreshObjectiveText();
-        this.refreshSkillHUD();
-        this.setStatusMessage('RELIC ACQUIRED - Double jump unlocked');
-    }
-
-    collectKey() {
-        if (this.hasKey || !this.keyPickup.active) return;
-
-        this.hasKey = true;
-        this.keyPickup.disableBody(true, true);
-        this.refreshObjectiveText();
-        this.refreshInventoryHUD();
-        this.setStatusMessage('KEY ACQUIRED - Return to the left door');
-    }
-
-    tryDoorInteraction() {
-        if (this.doorUnlocked) return;
-
-        if (this.hasKey) {
-            this.hasKey = false;
-            this.doorUnlocked = true;
-            this.exitDoor.setTexture('doorOpen');
-            this.exitDoor.disableBody(false, false);
-            this.refreshObjectiveText();
-            this.refreshInventoryHUD();
-            this.setStatusMessage('DOOR UNLOCKED - Passage opened');
+    refreshObjectiveText() {
+        if (!this.r9ShellComplete) {
+            this.objectiveText.setText('OBJECTIVE: R1<->R2 traversal, then use gate or debug bypass to test R9/R10.');
             return;
         }
-
-        if (this.time.now >= this.doorHintCooldownUntil) {
-            this.doorHintCooldownUntil = this.time.now + 1000;
-            this.setStatusMessage('The door is locked. A key waits on the high ledge.', 90);
-        }
+        this.objectiveText.setText('OBJECTIVE: Reach R10 exit to complete Activity 5 critical path.');
     }
 
     setupControls() {
         this.cursors = this.input.keyboard.createCursorKeys();
         this.spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+        this.interactKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E);
+        this.debugBypassKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.B);
+        this.debugUnlockKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.U);
         this.input.addPointer(2);
 
         const spawnBtn = (x, y, label, action) => {
             const btn = this.add.image(x, y, 'btn').setScrollFactor(0).setInteractive().setAlpha(0.6);
             this.add.text(x, y, label, { fontSize: '24px' }).setOrigin(0.5).setScrollFactor(0);
-            
+
             btn.on('pointerdown', () => this.inputState[action] = true);
             btn.on('pointerup', () => this.inputState[action] = false);
             btn.on('pointerout', () => this.inputState[action] = false);
@@ -436,19 +325,39 @@ class AshenHollow extends Phaser.Scene {
         spawnBtn(60, 340, '<', 'left');
         spawnBtn(160, 340, '>', 'right');
         spawnBtn(740, 340, '^', 'jump');
+
+        this.add.text(640, 300, '[ INTERACT ]', { fontSize: '12px', fill: '#ffe082', backgroundColor: '#112233' })
+            .setPadding(6, 4, 6, 4)
+            .setScrollFactor(0)
+            .setInteractive()
+            .on('pointerdown', () => {
+                this.interactQueued = true;
+            });
+
+        this.add.text(640, 332, '[ BYPASS ]', { fontSize: '12px', fill: '#9ae6ff', backgroundColor: '#112233' })
+            .setPadding(6, 4, 6, 4)
+            .setScrollFactor(0)
+            .setInteractive()
+            .on('pointerdown', () => this.runDebugBypass());
+
+        this.add.text(640, 364, '[ UNLOCK ]', { fontSize: '12px', fill: '#baffc9', backgroundColor: '#112233' })
+            .setPadding(6, 4, 6, 4)
+            .setScrollFactor(0)
+            .setInteractive()
+            .on('pointerdown', () => this.runDebugUnlock());
     }
 
     update() {
         if (this.isGameOver) return;
 
         this.handleMovement();
+        this.handleCriticalPathInteractions();
         this.drawMotionTrail();
 
-        // Background Parallax
         this.starField.tilePositionX = this.player.x * 0.15;
         this.distText.setText(`DIST ${Math.floor(this.player.x / 10)} m`);
+        this.roomText.setText(`ROOM: ${this.getCurrentRoomId()}`);
 
-        // Pit / void death
         if (this.player.y > CONFIG.WORLD_HEIGHT + 50) this.handlePlayerDeath();
 
         if (this.statusMessageFrames > 0) {
@@ -457,25 +366,121 @@ class AshenHollow extends Phaser.Scene {
         }
     }
 
+    handleCriticalPathInteractions() {
+        const now = this.time.now;
+        const interactPressed = (this.cursors.up && this.cursors.up.justDown) ||
+            (this.interactKey && Phaser.Input.Keyboard.JustDown(this.interactKey)) ||
+            this.interactQueued;
+        this.interactQueued = false;
+
+        if (this.debugBypassKey && Phaser.Input.Keyboard.JustDown(this.debugBypassKey)) {
+            this.runDebugBypass();
+        }
+
+        if (this.debugUnlockKey && Phaser.Input.Keyboard.JustDown(this.debugUnlockKey)) {
+            this.runDebugUnlock();
+        }
+
+        if (now < this.transitionCooldownUntil) return;
+
+        const roomId = this.getCurrentRoomId();
+
+        if (roomId === 'R1' && this.player.x > 1500 && this.player.y > 950) {
+            this.player.setPosition(1720, 1020).setVelocity(0, 0);
+            this.transitionCooldownUntil = now + 400;
+            this.hasVisitedR2 = true;
+            if (!this.hubLoopStartMs) this.hubLoopStartMs = now;
+            this.setStatusMessage('Transition: R1 -> R2');
+            return;
+        }
+
+        if (roomId === 'R2' && this.player.x < 1680 && this.player.y > 950) {
+            this.player.setPosition(1480, 1020).setVelocity(0, 0);
+            this.transitionCooldownUntil = now + 400;
+            if (this.hasVisitedR2 && !this.hubLoopCompleteMs) {
+                this.hubLoopCompleteMs = now;
+                const seconds = ((this.hubLoopCompleteMs - this.hubLoopStartMs) / 1000).toFixed(1);
+                this.setStatusMessage(`Traversal sample: spawn -> hub -> gate loop ${seconds}s`);
+            } else {
+                this.setStatusMessage('Transition: R2 -> R1');
+            }
+            return;
+        }
+
+        if (roomId === 'R9' && !this.r9ShellComplete && this.player.x > 4700 && this.player.y > 950) {
+            this.setStatusMessage('R9 objective incomplete: touch the core first.', 90);
+            this.transitionCooldownUntil = now + 250;
+            return;
+        }
+
+        if (roomId === 'R9' && this.r9ShellComplete && this.player.x > 4700 && this.player.y > 950) {
+            this.player.setPosition(4920, 1020).setVelocity(0, 0);
+            this.transitionCooldownUntil = now + 400;
+            this.setStatusMessage('Transition: R9 -> R10');
+            return;
+        }
+
+        const nearGate = Phaser.Math.Distance.Between(this.player.x, this.player.y, this.finalGate.x, this.finalGate.y) < 96;
+        if (roomId === 'R1' && nearGate && interactPressed) {
+            if (this.finalGateState === 'UNLOCKED') {
+                this.player.setPosition(3340, 1020).setVelocity(0, 0);
+                this.preFinalCheckpointUnlocked = true;
+                this.transitionCooldownUntil = now + 400;
+                this.setStatusMessage('Gate opened. Entering R9 final area.');
+            } else if (this.finalGateState === 'LOCKED_KEY_ITEMS') {
+                this.setStatusMessage('Gate sealed: recover 3 Key Items.');
+            } else {
+                this.setStatusMessage('Gate sealed: awaken 3 Abilities.');
+            }
+        }
+    }
+
+    completeFinalShell(player, core) {
+        if (this.r9ShellComplete) return;
+        this.r9ShellComplete = true;
+        core.disableBody(true, true);
+        this.refreshObjectiveText();
+        this.setStatusMessage('R9 shell complete. Proceed to R10 exit.');
+    }
+
+    tryExitRun() {
+        if (!this.r9ShellComplete) return;
+        this.setStatusMessage('MVP critical path complete (R1 -> R2 -> R9 -> R10).', 360);
+    }
+
+    runDebugBypass() {
+        this.player.setPosition(3340, 1020).setVelocity(0, 0);
+        this.preFinalCheckpointUnlocked = true;
+        this.setStatusMessage('DEBUG BYPASS: jumped to R9.');
+    }
+
+    runDebugUnlock() {
+        this.keyItemsCollected = 3;
+        this.abilitiesUnlocked = 3;
+        this.refreshGateState();
+        this.setStatusMessage('DEBUG: Gate requirements set to 3/3 + 3/3.');
+    }
+
+    setStatusMessage(message, frames = 180) {
+        this.statusText.setText(message);
+        this.statusMessageFrames = frames;
+    }
+
     handleMovement() {
         const onGround = this.player.body.blocked.down;
         const velocityY = this.player.body.velocity.y;
-        // In-air for double jump: not on ground OR moving up (covers Arcade one-frame delay). Logic mirrored in tests/game-logic.test.js computeJumpFrame().
         const inAir = !onGround || velocityY < 0;
         const left = this.inputState.left || this.cursors.left.isDown;
         const right = this.inputState.right || this.cursors.right.isDown;
         const jump = this.inputState.jump || this.cursors.up.isDown || this.spaceKey.isDown;
-        // Double jump only on *new* press (so holding jump from first jump doesn't burn it)
         const jumpJustPressed = (this.cursors.up && this.cursors.up.justDown) ||
             (this.spaceKey && this.spaceKey.justDown) ||
             (this.inputState.jump && !this.jumpWasDownLastFrame);
 
-        // Buffer: when player presses jump, remember for a few frames so mid-air hop is easy to trigger
         if (jumpJustPressed) this.jumpBuffer = 5;
         if (this.jumpBuffer > 0) this.jumpBuffer--;
 
-        // Refill jump count only when solidly on ground (not moving up). Max 2 if relic unlocked, else 1.
-        if (onGround && velocityY >= 0) this.jumpsRemaining = this.doubleJumpUnlocked ? 2 : 1;
+        if (onGround && velocityY >= 0) this.jumpsRemaining = 1;
 
         if (left) {
             this.player.setVelocityX(-CONFIG.PLAYER_SPEED).setFlipX(true);
@@ -485,12 +490,11 @@ class AshenHollow extends Phaser.Scene {
             this.player.setVelocityX(this.player.body.velocity.x * CONFIG.FRICTION);
         }
 
-        // Jump: first jump when on ground and jumps remaining; mid-air only if double jump is unlocked
         if (jump && onGround && this.jumpsRemaining > 0) {
             this.player.setVelocityY(CONFIG.JUMP_FORCE);
             this.jumpsRemaining--;
             this.jumpBuffer = 0;
-        } else if (this.doubleJumpUnlocked && (jumpJustPressed || this.jumpBuffer > 0) && inAir && this.jumpsRemaining > 0) {
+        } else if ((jumpJustPressed || this.jumpBuffer > 0) && inAir && this.jumpsRemaining > 0) {
             this.player.setVelocityY(CONFIG.JUMP_FORCE);
             this.jumpsRemaining--;
             this.jumpBuffer = 0;
@@ -507,18 +511,19 @@ class AshenHollow extends Phaser.Scene {
             this.isGameOver = true;
             this.physics.pause();
             this.player.setTint(0xff0000);
-            this.add.text(CONFIG.W/2, CONFIG.H/2, 'GAME OVER\nTap Restart', {
+            this.add.text(CONFIG.W / 2, CONFIG.H / 2, 'GAME OVER\nTap Restart', {
                 fontSize: '32px', fill: '#ff0066', align: 'center'
             }).setOrigin(0.5).setScrollFactor(0);
         } else {
-            this.player.setPosition(this.player.x, CONFIG.WORLD_HEIGHT - 80).setVelocity(0, 0);
+            const respawnX = this.preFinalCheckpointUnlocked ? 3340 : 220;
+            this.player.setPosition(respawnX, CONFIG.WORLD_HEIGHT - 80).setVelocity(0, 0);
             this.tweens.add({ targets: this.player, alpha: 0.2, duration: 100, yoyo: true, repeat: 5 });
         }
     }
 
     updateLifeDisplay() {
         this.lifeIcons.clear(true, true);
-        for(let i = 0; i < this.lives; i++) {
+        for (let i = 0; i < this.lives; i++) {
             this.lifeIcons.create(CONFIG.W - 30 - (i * 25), 25, 'hero').setScale(0.5).setScrollFactor(0);
         }
     }
@@ -527,11 +532,11 @@ class AshenHollow extends Phaser.Scene {
         if (Math.abs(this.player.body.velocity.x) > 100) {
             this.trailPts.push({ x: this.player.x, y: this.player.y + 4, life: 10 });
         }
-        
+
         this.trail.clear();
-        this.trailPts = this.trailPts.filter(p => p.life > 0);
-        
-        this.trailPts.forEach(p => {
+        this.trailPts = this.trailPts.filter((p) => p.life > 0);
+
+        this.trailPts.forEach((p) => {
             p.life--;
             this.trail.fillStyle(0x00eeff, (p.life / 10) * 0.4);
             this.trail.fillRect(p.x - 4, p.y - 4, 8, 8);
@@ -539,22 +544,20 @@ class AshenHollow extends Phaser.Scene {
     }
 }
 
-// One-time cleanup: remove any previously installed service workers and caches.
-// The project currently ships without a service worker to avoid stale GitHub Pages builds during rapid iteration.
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', async () => {
-    try {
-      const registrations = await navigator.serviceWorker.getRegistrations();
-      await Promise.all(registrations.map((registration) => registration.unregister()));
-    } catch (_) {}
+    window.addEventListener('load', async () => {
+        try {
+            const registrations = await navigator.serviceWorker.getRegistrations();
+            await Promise.all(registrations.map((registration) => registration.unregister()));
+        } catch (_) {}
 
-    if ('caches' in window) {
-      try {
-        const cacheKeys = await caches.keys();
-        await Promise.all(cacheKeys.map((key) => caches.delete(key)));
-      } catch (_) {}
-    }
-  });
+        if ('caches' in window) {
+            try {
+                const cacheKeys = await caches.keys();
+                await Promise.all(cacheKeys.map((key) => caches.delete(key)));
+            } catch (_) {}
+        }
+    });
 }
 
 const game = new Phaser.Game({
