@@ -23,6 +23,22 @@ The page also sends `Cache-Control: no-cache` via meta tags so some clients may 
 
 Open `level-viewer.html` in a browser (or via your local server) to visualize draft platform layouts without running the full game. Use the **Layout** dropdown to compare options (e.g. **F — Guide-based single room**, from `prompts/metroidvania_single_room_guide.md`). Plan: `prompts/labyrinth_layout_plan.md`.
 
+## MVP planning dashboard
+
+Open `plan-dashboard.html` to track the full Map MVP activity/task plan, progress totals, and burndown chart.
+
+- Uses browser `localStorage` for task completion state and completion dates
+- Includes schedule controls (start/target date) that drive the ideal burndown line
+- Includes actual burndown from task completion timestamps
+
+## Map graph viewer
+
+Open `map-graph-viewer.html` to visualize the MVP room graph and inspect each room's role before freezing topology.
+
+- Click any room node to see purpose, interactables, timing target, respawn behavior, and connections
+- Shows critical flow and final-gate dependency (`key_items_collected == 3` and `abilities_unlocked == 3`)
+- Draft source spec lives in `docs/map-graph-v1.md`
+
 ## Local Run
 
 Use a simple local HTTP server instead of opening the file directly.

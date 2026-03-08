@@ -1,0 +1,632 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Ashen Hollow - MVP Plan Dashboard</title>
+  <style>
+    :root {
+      --bg: #081018;
+      --panel: #101c28;
+      --panel-2: #132234;
+      --text: #e7eef6;
+      --muted: #9fb2c6;
+      --line: #23405d;
+      --accent: #f2a93b;
+      --ok: #3ecf8e;
+      --warn: #f15c5c;
+      --ideal: #5da8ff;
+      --actual: #f2a93b;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Avenir Next", "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 15% 20%, #143454 0%, transparent 35%),
+        radial-gradient(circle at 85% 0%, #2d1d12 0%, transparent 35%),
+        var(--bg);
+      min-height: 100vh;
+    }
+    .container {
+      width: min(1200px, 95vw);
+      margin: 24px auto 48px;
+    }
+    h1 { margin: 0 0 8px; font-size: 1.8rem; }
+    .sub { color: var(--muted); margin-bottom: 20px; }
+    .controls, .cards, .panel {
+      background: linear-gradient(180deg, var(--panel-2), var(--panel));
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 14px;
+      margin-bottom: 16px;
+    }
+    .controls {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(160px, 1fr));
+      gap: 10px;
+      align-items: end;
+    }
+    label {
+      display: block;
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+    input, button {
+      width: 100%;
+      padding: 10px;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+      background: #0b1724;
+      color: var(--text);
+    }
+    button {
+      background: #153048;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    button:hover { background: #1b3b57; }
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(140px, 1fr));
+      gap: 10px;
+    }
+    .card {
+      background: #0b1724;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 10px;
+    }
+    .card .k {
+      color: var(--muted);
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .card .v {
+      font-size: 1.4rem;
+      font-weight: 700;
+      margin-top: 6px;
+    }
+    .panel h2 { margin: 0 0 10px; font-size: 1.05rem; }
+    #chartWrap { width: 100%; overflow-x: auto; }
+    #burndown {
+      width: 100%;
+      min-height: 260px;
+      background: #0b1724;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      display: block;
+    }
+    .legend {
+      display: flex;
+      gap: 14px;
+      font-size: 0.82rem;
+      color: var(--muted);
+      margin-top: 8px;
+    }
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      display: inline-block;
+      margin-right: 6px;
+    }
+    .activity {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      margin-bottom: 10px;
+      overflow: hidden;
+      background: #0b1724;
+    }
+    .activityHead {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 12px;
+      background: #102033;
+      border-bottom: 1px solid var(--line);
+      cursor: pointer;
+    }
+    .activityMeta { color: var(--muted); font-size: 0.84rem; }
+    .bar {
+      margin-top: 6px;
+      width: 200px;
+      height: 8px;
+      border-radius: 999px;
+      background: #0a141f;
+      border: 1px solid #1d344b;
+      overflow: hidden;
+    }
+    .bar > div { height: 100%; background: linear-gradient(90deg, #2dbb80, #5de6aa); }
+    .tasks {
+      padding: 10px 14px 12px;
+      display: grid;
+      gap: 6px;
+    }
+    .task {
+      display: grid;
+      grid-template-columns: 20px 1fr;
+      gap: 8px;
+      align-items: start;
+      color: #d7e2ee;
+      font-size: 0.93rem;
+    }
+    .task.done { color: #8fb19f; text-decoration: line-through; }
+    .foot {
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
+    @media (max-width: 860px) {
+      .controls, .cards { grid-template-columns: 1fr 1fr; }
+      .bar { width: 130px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <h1>MVP Plan Analytics Dashboard</h1>
+    <div class="sub">Tracks the full 10-activity map MVP plan with local progress and burndown.</div>
+
+    <section class="controls">
+      <div>
+        <label for="startDate">Sprint start</label>
+        <input id="startDate" type="date" />
+      </div>
+      <div>
+        <label for="targetDate">Sprint target</label>
+        <input id="targetDate" type="date" />
+      </div>
+      <div>
+        <label>&nbsp;</label>
+        <button id="saveDates">Save schedule</button>
+      </div>
+      <div>
+        <label>&nbsp;</label>
+        <button id="resetProgress">Reset progress</button>
+      </div>
+    </section>
+
+    <section class="cards">
+      <div class="card"><div class="k">Total Tasks</div><div class="v" id="totalTasks">0</div></div>
+      <div class="card"><div class="k">Completed</div><div class="v" id="completedTasks">0</div></div>
+      <div class="card"><div class="k">Remaining</div><div class="v" id="remainingTasks">0</div></div>
+      <div class="card"><div class="k">Velocity (7d)</div><div class="v" id="velocity">0/wk</div></div>
+    </section>
+
+    <section class="panel">
+      <h2>Burndown Chart</h2>
+      <div id="chartWrap">
+        <canvas id="burndown" width="1160" height="320"></canvas>
+      </div>
+      <div class="legend">
+        <span><span class="dot" style="background: var(--ideal)"></span>Ideal Remaining</span>
+        <span><span class="dot" style="background: var(--actual)"></span>Actual Remaining</span>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Activities and Atomic Tasks</h2>
+      <div id="activities"></div>
+      <div class="foot">Status is stored in <code>localStorage</code> in this browser. Host locally with <code>python3 -m http.server 8765</code> and open <code>/plan-dashboard.html</code>.</div>
+    </section>
+  </main>
+
+  <script>
+    const PLAN = [
+      { id: "A1", title: "Activity 1. Lock MVP Constraints", tasks: [
+        "Create docs/map-mvp-constraints.md.",
+        "Document fixed goals: 10-15 minute run, final gate visible beside spawn in R1, two-layer progression (3 key items + 3 ability unlocks).",
+        "Document non-goals: no branching endings, no extra biome branches, no large progression tree beyond defined ability unlocks.",
+        "Write player success statement: collect 3 key items, unlock 3 abilities, return to R1, unlock gate, clear final area.",
+        "Define timing assumptions: first-time target 12 minutes, acceptable 10-15.",
+        "Define content constraints: rooms R1-R10, one final area, one exit.",
+        "Define logic constraints: key_items_collected == 3 and abilities_unlocked == 3.",
+        "Review and resolve ambiguous wording with stakeholders.",
+        "Add change-control rule: changes to constraints require explicit sign-off.",
+        "Mark the constraints doc approved with date and version."
+      ]},
+      { id: "A2", title: "Activity 2. Lock Map Graph and Room Purposes", tasks: [
+        "Create docs/map-graph-v1.md.",
+        "Define canonical room IDs and names for R1-R10.",
+        "Write adjacency list for all valid room transitions.",
+        "Validate dead ends are only intentional endpoints.",
+        "Assign one primary purpose per room (orientation, hub, challenge, key-item, final, exit).",
+        "Assign one secondary purpose per room (teaching, pressure ramp, recovery, payoff).",
+        "Define required interactables per room (doors, key-item pedestal, checkpoint, switches).",
+        "Define return paths from each branch to hub/spawn.",
+        "Define respawn anchors (R1, R2, pre-R9).",
+        "Paper-simulate ideal player route.",
+        "Paper-simulate confused player route.",
+        "Fix topology issues and freeze graph v1."
+      ]},
+      { id: "A3", title: "Activity 3. Define Progression Unlocks (Key Items + Ability Unlocks)", tasks: [
+        "Create docs/progression-unlocks-v1.md.",
+        "Assign key items to branches: A -> R4, B -> R6, C -> R8.",
+        "Define hard-gate unlock (recommended Ability Unlock A) used in one required branch barrier.",
+        "Define soft-power unlock 1 (recommended Ability Unlock B) with one pre-final usage moment.",
+        "Define soft-power unlock 2 (recommended Ability Unlock C) with one pre-final usage moment.",
+        "Specify pickup + ability-unlock trigger and immediate UI/audio feedback for each unlock.",
+        "Specify forced/obvious first usage moments before final room.",
+        "Define behavior if soft-power usage is skipped (run remains completable).",
+        "Write concise pickup/status copy tied to landmarks or color-coded doors.",
+        "Validate unlock set does not push run time beyond 15 minutes.",
+        "Validate unlock set does not permit sequence breaks.",
+        "Freeze unlock table v1."
+      ]},
+      { id: "A4", title: "Activity 4. Define Gate and State Logic", tasks: [
+        "Create docs/gate-state-spec-v1.md.",
+        "Define state variables: key_items_collected, abilities_unlocked, key_item_a, key_item_b, key_item_c, ability_unlock_a, ability_unlock_b, ability_unlock_c, final_gate_state.",
+        "Define valid gate states: LOCKED_KEY_ITEMS, LOCKED_ABILITIES, UNLOCKED.",
+        "Define transition rules on key-item pickup, ability unlock completion, and on reload/resume.",
+        "Define visuals for each state (runes, lights, effects, audio cue).",
+        "Define interact text for each state (Requires 3 Key Items, Requires 3 Ability Unlocks, etc.).",
+        "Add idempotency rule to prevent duplicate pickup corruption.",
+        "Define save/restore behavior for in-progress runs.",
+        "Define reset behavior for new runs.",
+        "Define telemetry hooks: key_item_collected, ability_unlocked, gate_state_changed, gate_unlocked.",
+        "Write test matrix for all valid and invalid transitions.",
+        "Freeze logic contract for implementation."
+      ]},
+      { id: "A5", title: "Activity 5. Greybox Critical Path (R1, R2, R9, R10)", tasks: [
+        "Create greybox scenes/layouts for R1, R2, R9, R10.",
+        "Place spawn in R1 with immediate line-of-sight to the locked final gate.",
+        "Add gate interactable and temporary gate-state UI in R1.",
+        "Build R1 <-> R2 traversal path with low friction.",
+        "Add temporary debug bypass to access R9 before full branch completion.",
+        "Greybox R9 final encounter shell with placeholder logic.",
+        "Greybox R10 exit room with completion trigger.",
+        "Add temporary objective signage in R1 and R2.",
+        "Time traversal from spawn to hub and back to gate.",
+        "Adjust room scale/distances for pacing.",
+        "Run smoke test: spawn, gate text, unlock path, final completion.",
+        "Mark critical path playable."
+      ]},
+      { id: "A6", title: "Activity 6. Build Branch A/B/C Passes (R3-R8)", tasks: [
+        "Greybox R3-R8 based on frozen graph.",
+        "Implement Branch A (R3, R4) with hard-gate usage and Key Item A reward.",
+        "Implement Branch B (R5, R6) with distinct mechanic profile and Key Item B reward.",
+        "Implement Branch C (R7, R8) as highest pre-final pressure branch with Key Item C reward.",
+        "Add deterministic return route from each branch back to hub/spawn.",
+        "Add branch completion flags and hook them to gate-state updates.",
+        "Add distinct visual identity per branch (color, icon, landmark).",
+        "Validate each branch duration against target.",
+        "Validate each branch works independently and in any completion order.",
+        "Run sequence tests: A-B-C, B-C-A, C-A-B.",
+        "Fix order-dependent bugs and sequence breaks.",
+        "Freeze branch behavior v1."
+      ]},
+      { id: "A7", title: "Activity 7. Add Navigation Readability", tasks: [
+        "Define branch color/icon language and apply it to doors, markers, and UI.",
+        "Add objective sign in R1: collect 3 key items and unlock 3 abilities to unlock the final gate.",
+        "Add progress board in R2 with live branch completion status.",
+        "Add directional landmarks visible from decision points.",
+        "Add door labels/icon repeats at branch entrances.",
+        "Add gate reaction feedback in R1 after each key-item acquisition.",
+        "Add short contextual prompts on return to R1.",
+        "Run no-guidance navigation test with at least one fresh tester.",
+        "Log stalls greater than 20 seconds and wrong turns.",
+        "Adjust signage/landmarks based on observed confusion.",
+        "Re-test navigation comprehension.",
+        "Freeze readability pass."
+      ]},
+      { id: "A8", title: "Activity 8. Tune Pacing and Difficulty", tasks: [
+        "Create docs/pacing-tuning-v1.md.",
+        "Define target duration and difficulty score per room.",
+        "Capture baseline completion times across internal runs.",
+        "Shorten overlong traversal segments.",
+        "Adjust encounter density where difficulty spikes exceed target.",
+        "Remove low-engagement downtime.",
+        "Ensure a short recovery window before R9.",
+        "Balance branch durations to similar completion times.",
+        "Confirm R9 final duration remains about 2-3 minutes.",
+        "Re-test after each major tuning pass.",
+        "Stop tuning when median run is about 12 minutes.",
+        "Freeze tuned values for QA."
+      ]},
+      { id: "A9", title: "Activity 9. Instrument and Run Internal Playtests", tasks: [
+        "Implement telemetry for run start/end and per-room enter/exit events.",
+        "Capture deaths, retries, and stalled time per room.",
+        "Capture unlock comprehension checkpoints after each key-item pickup.",
+        "Create playtest observer template for qualitative notes.",
+        "Recruit 5 fresh internal testers.",
+        "Run sessions without coaching unless hard-stuck.",
+        "Collect quantitative and qualitative data for each run.",
+        "Aggregate results into one findings report.",
+        "Rank issues by completion risk, clarity risk, and pacing impact.",
+        "Identify top 3 blockers and top 3 high-value improvements.",
+        "Map each issue to an owner/component.",
+        "Publish prioritized fix list for stabilization."
+      ]},
+      { id: "A10", title: "Activity 10. Final MVP Lock and QA", tasks: [
+        "Create final triage board with severities (blocker, major, minor).",
+        "Fix all blocker progression/completion defects.",
+        "Fix major navigation and objective-comprehension defects.",
+        "Re-run gate-state regression across all branch orders.",
+        "Execute full clean run from new game to R10 completion.",
+        "Validate respawn and resume behavior.",
+        "Validate UI/signage/feedback triggers and consistency.",
+        "Re-validate timing band (10-15 minutes).",
+        "Document deferred minor issues and rationale.",
+        "Freeze map layout and progression parameters.",
+        "Tag MVP candidate build and archive test evidence.",
+        "Write go/no-go summary against explicit acceptance criteria."
+      ]}
+    ];
+
+    const STORE_KEY = "ashen-hollow-mvp-plan-v1";
+    const DATE_KEY = "ashen-hollow-mvp-schedule-v1";
+
+    const todayISO = () => new Date().toISOString().slice(0, 10);
+    const plusDaysISO = (d) => {
+      const dt = new Date();
+      dt.setDate(dt.getDate() + d);
+      return dt.toISOString().slice(0, 10);
+    };
+    const dayKey = (d) => new Date(d).toISOString().slice(0, 10);
+
+    function buildFlatTasks() {
+      const out = [];
+      PLAN.forEach((activity, ai) => {
+        activity.tasks.forEach((text, ti) => {
+          out.push({ id: `${activity.id}-T${ti + 1}`, activityId: activity.id, activityIndex: ai, text });
+        });
+      });
+      return out;
+    }
+    const FLAT = buildFlatTasks();
+
+    function loadState() {
+      try {
+        return JSON.parse(localStorage.getItem(STORE_KEY) || "{}");
+      } catch {
+        return {};
+      }
+    }
+    function saveState(state) {
+      localStorage.setItem(STORE_KEY, JSON.stringify(state));
+    }
+    function loadSchedule() {
+      try {
+        return JSON.parse(localStorage.getItem(DATE_KEY) || "{}");
+      } catch {
+        return {};
+      }
+    }
+    function saveSchedule(schedule) {
+      localStorage.setItem(DATE_KEY, JSON.stringify(schedule));
+    }
+
+    function getStats(state) {
+      const total = FLAT.length;
+      let done = 0;
+      let weekDone = 0;
+      const weekAgo = new Date();
+      weekAgo.setDate(weekAgo.getDate() - 7);
+      FLAT.forEach((task) => {
+        const s = state[task.id];
+        if (s && s.done) {
+          done += 1;
+          if (s.completedAt && new Date(s.completedAt) >= weekAgo) weekDone += 1;
+        }
+      });
+      return { total, done, remaining: total - done, velocity: weekDone };
+    }
+
+    function renderCards(state) {
+      const stats = getStats(state);
+      document.getElementById("totalTasks").textContent = String(stats.total);
+      document.getElementById("completedTasks").textContent = String(stats.done);
+      document.getElementById("remainingTasks").textContent = String(stats.remaining);
+      document.getElementById("velocity").textContent = `${stats.velocity}/wk`;
+    }
+
+    function renderActivities(state) {
+      const root = document.getElementById("activities");
+      root.innerHTML = "";
+
+      PLAN.forEach((activity) => {
+        const wrap = document.createElement("article");
+        wrap.className = "activity";
+
+        const doneCount = activity.tasks.reduce((acc, _task, idx) => {
+          const id = `${activity.id}-T${idx + 1}`;
+          return acc + ((state[id] && state[id].done) ? 1 : 0);
+        }, 0);
+        const pct = Math.round((doneCount / activity.tasks.length) * 100);
+
+        const head = document.createElement("div");
+        head.className = "activityHead";
+        head.innerHTML = `
+          <div>
+            <strong>${activity.title}</strong>
+            <div class="activityMeta">${doneCount}/${activity.tasks.length} complete</div>
+          </div>
+          <div>
+            <div class="bar"><div style="width:${pct}%"></div></div>
+          </div>
+        `;
+
+        const tasks = document.createElement("div");
+        tasks.className = "tasks";
+
+        activity.tasks.forEach((text, idx) => {
+          const id = `${activity.id}-T${idx + 1}`;
+          const row = document.createElement("label");
+          row.className = "task";
+          if (state[id] && state[id].done) row.classList.add("done");
+
+          const box = document.createElement("input");
+          box.type = "checkbox";
+          box.checked = !!(state[id] && state[id].done);
+          box.addEventListener("change", () => {
+            const next = loadState();
+            next[id] = {
+              done: box.checked,
+              completedAt: box.checked ? dayKey(new Date()) : null
+            };
+            saveState(next);
+            renderAll();
+          });
+
+          const span = document.createElement("span");
+          span.textContent = text;
+
+          row.appendChild(box);
+          row.appendChild(span);
+          tasks.appendChild(row);
+        });
+
+        head.addEventListener("click", () => {
+          tasks.style.display = tasks.style.display === "none" ? "grid" : "none";
+        });
+
+        wrap.appendChild(head);
+        wrap.appendChild(tasks);
+        root.appendChild(wrap);
+      });
+    }
+
+    function enumerateDays(start, end) {
+      const days = [];
+      const cur = new Date(start + "T00:00:00");
+      const endDt = new Date(end + "T00:00:00");
+      while (cur <= endDt) {
+        days.push(cur.toISOString().slice(0, 10));
+        cur.setDate(cur.getDate() + 1);
+      }
+      return days;
+    }
+
+    function computeSeries(state, start, end) {
+      const total = FLAT.length;
+      const days = enumerateDays(start, end);
+      const completedByDay = {};
+      Object.entries(state).forEach(([taskId, s]) => {
+        if (s && s.done && s.completedAt) {
+          const key = dayKey(s.completedAt);
+          completedByDay[key] = (completedByDay[key] || 0) + 1;
+        }
+      });
+
+      const ideal = [];
+      const actual = [];
+      let completedCum = 0;
+      const span = Math.max(days.length - 1, 1);
+
+      days.forEach((d, idx) => {
+        completedCum += (completedByDay[d] || 0);
+        const idealRemaining = Math.max(total - (total * (idx / span)), 0);
+        const actualRemaining = Math.max(total - completedCum, 0);
+        ideal.push(idealRemaining);
+        actual.push(actualRemaining);
+      });
+
+      return { days, ideal, actual, total };
+    }
+
+    function drawChart(series) {
+      const c = document.getElementById("burndown");
+      const ctx = c.getContext("2d");
+      const w = c.width;
+      const h = c.height;
+      ctx.clearRect(0, 0, w, h);
+
+      const pad = { l: 54, r: 16, t: 20, b: 38 };
+      const gw = w - pad.l - pad.r;
+      const gh = h - pad.t - pad.b;
+
+      ctx.fillStyle = "#0b1724";
+      ctx.fillRect(0, 0, w, h);
+
+      ctx.strokeStyle = "#21384f";
+      ctx.lineWidth = 1;
+      for (let i = 0; i <= 5; i++) {
+        const y = pad.t + (gh * i / 5);
+        ctx.beginPath();
+        ctx.moveTo(pad.l, y);
+        ctx.lineTo(w - pad.r, y);
+        ctx.stroke();
+      }
+
+      const yMax = Math.max(series.total, 1);
+      const xAt = (i) => pad.l + (gw * (i / Math.max(series.days.length - 1, 1)));
+      const yAt = (v) => pad.t + gh - (gh * (v / yMax));
+
+      function drawLine(data, color) {
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        data.forEach((v, i) => {
+          const x = xAt(i);
+          const y = yAt(v);
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+      }
+
+      drawLine(series.ideal, getComputedStyle(document.documentElement).getPropertyValue("--ideal").trim());
+      drawLine(series.actual, getComputedStyle(document.documentElement).getPropertyValue("--actual").trim());
+
+      ctx.fillStyle = "#9fb2c6";
+      ctx.font = "12px Avenir Next, Segoe UI, sans-serif";
+      [0, Math.round(yMax / 2), yMax].forEach((tick) => {
+        ctx.fillText(String(tick), 14, yAt(tick) + 4);
+      });
+
+      const labelIdx = [0, Math.floor((series.days.length - 1) / 2), series.days.length - 1].filter((v, i, a) => a.indexOf(v) === i);
+      labelIdx.forEach((idx) => {
+        const x = xAt(idx);
+        const label = series.days[idx];
+        ctx.fillText(label, Math.max(4, x - 36), h - 12);
+      });
+    }
+
+    function getSchedule() {
+      const stored = loadSchedule();
+      const start = stored.startDate || todayISO();
+      const target = stored.targetDate || plusDaysISO(28);
+      return { start, target };
+    }
+
+    function renderAll() {
+      const state = loadState();
+      const schedule = getSchedule();
+      renderCards(state);
+      renderActivities(state);
+      drawChart(computeSeries(state, schedule.start, schedule.target));
+    }
+
+    function init() {
+      const schedule = getSchedule();
+      document.getElementById("startDate").value = schedule.start;
+      document.getElementById("targetDate").value = schedule.target;
+
+      document.getElementById("saveDates").addEventListener("click", () => {
+        const startDate = document.getElementById("startDate").value || todayISO();
+        const targetDate = document.getElementById("targetDate").value || plusDaysISO(28);
+        if (new Date(targetDate) < new Date(startDate)) {
+          alert("Target date must be after start date.");
+          return;
+        }
+        saveSchedule({ startDate, targetDate });
+        renderAll();
+      });
+
+      document.getElementById("resetProgress").addEventListener("click", () => {
+        if (!confirm("Reset all task progress for this dashboard?")) return;
+        localStorage.removeItem(STORE_KEY);
+        renderAll();
+      });
+
+      renderAll();
+    }
+
+    init();
+  </script>
+</body>
+</html>

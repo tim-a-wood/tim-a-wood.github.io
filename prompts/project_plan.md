@@ -56,16 +56,16 @@ This section captures the locked high-level activities and expands each into ato
 
 Scope of work: align product boundaries and prevent scope creep.
 
-- [ ] Create `/Users/timwood/Desktop/projects/PWA/MV/docs/map-mvp-constraints.md`.
-- [ ] Document fixed goals: 10-15 minute run, final gate visible beside spawn in `R1`, 3-sigil progression.
-- [ ] Document non-goals: no branching endings, no extra biome branches, no large progression tree beyond 3 unlocks.
-- [ ] Write player success statement: collect 3 sigils, return to `R1`, unlock gate, clear final area.
-- [ ] Define timing assumptions: first-time target 12 minutes, acceptable 10-15.
-- [ ] Define content constraints: rooms `R1-R10`, one final area, one exit.
-- [ ] Define logic constraint: final unlock condition `sigils_collected == 3`.
+- [x] Create `/Users/timwood/Desktop/projects/PWA/MV/docs/map-mvp-constraints.md`.
+- [x] Document fixed goals: 10-15 minute run, final gate visible beside spawn in `R1`, two-layer progression (3 key items + 3 ability unlocks).
+- [x] Document non-goals: no branching endings, no extra biome branches, no large progression tree beyond the defined ability-unlock layer.
+- [x] Write player success statement: collect 3 key items, unlock 3 abilities, return to `R1`, unlock gate, clear final area.
+- [x] Define timing assumptions: first-time target 12 minutes, acceptable 10-15.
+- [x] Define content constraints: rooms `R1-R10`, one final area, one exit.
+- [x] Define logic constraints: final unlock conditions `key_items_collected == 3` and `abilities_unlocked == 3`.
 - [ ] Review and resolve ambiguous wording with stakeholders.
-- [ ] Add change-control rule: changes to constraints require explicit sign-off.
-- [ ] Mark the constraints doc approved with date and version.
+- [x] Add change-control rule: changes to constraints require explicit sign-off.
+- [x] Mark the constraints doc approved with date and version.
 
 Downstream input: immutable scope contract for topology, unlocks, scripting, and QA.
 
@@ -73,34 +73,34 @@ Downstream input: immutable scope contract for topology, unlocks, scripting, and
 
 Scope of work: finalize traversal graph and room intent.
 
-- [ ] Create `/Users/timwood/Desktop/projects/PWA/MV/docs/map-graph-v1.md`.
-- [ ] Define canonical room IDs and names for `R1-R10`.
-- [ ] Write adjacency list for all valid room transitions.
-- [ ] Validate dead ends are only intentional endpoints.
-- [ ] Assign one primary purpose per room (orientation, hub, challenge, sigil, final, exit).
-- [ ] Assign one secondary purpose per room (teaching, pressure ramp, recovery, payoff).
-- [ ] Define required interactables per room (doors, sigil pedestal, checkpoint, switches).
-- [ ] Define return paths from each branch to hub/spawn.
-- [ ] Define respawn anchors (`R1`, `R2`, pre-`R9`).
-- [ ] Paper-simulate ideal player route.
-- [ ] Paper-simulate confused player route.
-- [ ] Fix topology issues and freeze graph v1.
+- [x] Create `/Users/timwood/Desktop/projects/PWA/MV/docs/map-graph-v1.md`.
+- [x] Define canonical room IDs and names for `R1-R10`.
+- [x] Write adjacency list for all valid room transitions.
+- [x] Validate dead ends are only intentional endpoints.
+- [x] Assign one primary purpose per room (orientation, hub, challenge, key-item, final, exit).
+- [x] Assign one secondary purpose per room (teaching, pressure ramp, recovery, payoff).
+- [x] Define required interactables per room (doors, key-item pedestal, checkpoint, switches).
+- [x] Define return paths from each branch to hub/spawn.
+- [x] Define respawn anchors (`R1`, `R2`, pre-`R9`).
+- [x] Paper-simulate ideal player route.
+- [x] Paper-simulate confused player route.
+- [x] Fix topology issues and freeze graph v1.
 
 Downstream input: room topology and purpose matrix for progression and level blockout.
 
-### Activity 3. Define Progression Unlocks (1 Hard-Gate + 2 Soft-Power)
+### Activity 3. Define Progression Unlocks (Key Items + Ability Unlocks)
 
 Scope of work: design minimal progression tied to map flow.
 
 - [ ] Create `/Users/timwood/Desktop/projects/PWA/MV/docs/progression-unlocks-v1.md`.
-- [ ] Assign sigils to branches: `A -> R4`, `B -> R6`, `C -> R8`.
-- [ ] Define hard-gate unlock (recommended `Sigil A`) used in one required branch barrier.
-- [ ] Define soft-power unlock 1 (recommended `Sigil B`) with one pre-final usage moment.
-- [ ] Define soft-power unlock 2 (recommended `Sigil C`) with one pre-final usage moment.
-- [ ] Specify pickup trigger and immediate UI/audio feedback for each unlock.
+- [ ] Assign key items to branches: `A -> R4`, `B -> R6`, `C -> R8`.
+- [ ] Define hard-gate unlock (recommended `Ability Unlock A`) used in one required branch barrier.
+- [ ] Define soft-power unlock 1 (recommended `Ability Unlock B`) with one pre-final usage moment.
+- [ ] Define soft-power unlock 2 (recommended `Ability Unlock C`) with one pre-final usage moment.
+- [ ] Specify pickup + ability-unlock trigger and immediate UI/audio feedback for each unlock.
 - [ ] Specify forced/obvious first usage moments before final room.
 - [ ] Define behavior if soft-power usage is skipped (run remains completable).
-- [ ] Write concise pickup/status copy tied to landmarks or color-coded doors.
+- [ ] Write concise pickup/ability/gate-status copy tied to landmarks or color-coded doors.
 - [ ] Validate unlock set does not push run time beyond 15 minutes.
 - [ ] Validate unlock set does not permit sequence breaks.
 - [ ] Freeze unlock table v1.
@@ -112,15 +112,15 @@ Downstream input: progression table for gate-state logic, encounter placement, a
 Scope of work: implement deterministic progression state machine.
 
 - [ ] Create `/Users/timwood/Desktop/projects/PWA/MV/docs/gate-state-spec-v1.md`.
-- [ ] Define state variables: `sigils_collected`, `sigil_a`, `sigil_b`, `sigil_c`, `final_gate_state`.
-- [ ] Define valid gate states: `LOCKED_0`, `LOCKED_1`, `LOCKED_2`, `UNLOCKED_3`.
-- [ ] Define transition rules on sigil pickup and on reload/resume.
+- [ ] Define state variables: `key_items_collected`, `abilities_unlocked`, `key_item_a`, `key_item_b`, `key_item_c`, `ability_unlock_a`, `ability_unlock_b`, `ability_unlock_c`, `final_gate_state`.
+- [ ] Define valid gate states: `LOCKED_KEY_ITEMS`, `LOCKED_ABILITIES`, `UNLOCKED`.
+- [ ] Define transition rules on key-item pickup, ability unlock completion, and on reload/resume.
 - [ ] Define visuals for each state (runes, lights, effects, audio cue).
-- [ ] Define interact text for each state (`Requires 3 Sigils`, `2/3 Collected`, etc.).
+- [ ] Define interact text for each state (`Requires 3 Key Items`, `Requires 3 Ability Unlocks`, etc.).
 - [ ] Add idempotency rule to prevent duplicate pickup corruption.
 - [ ] Define save/restore behavior for in-progress runs.
 - [ ] Define reset behavior for new runs.
-- [ ] Define telemetry hooks: `sigil_pickup`, `gate_state_changed`, `gate_unlocked`.
+- [ ] Define telemetry hooks: `key_item_collected`, `ability_unlocked`, `gate_state_changed`, `gate_unlocked`.
 - [ ] Write test matrix for all valid and invalid transitions.
 - [ ] Freeze logic contract for implementation.
 
@@ -147,12 +147,12 @@ Downstream input: playable backbone for branch integration and pacing calibratio
 
 ### Activity 6. Build Branch A/B/C Passes (`R3-R8`)
 
-Scope of work: implement three distinct branches with one sigil reward each.
+Scope of work: implement three distinct branches with one key-item reward each.
 
 - [ ] Greybox `R3-R8` based on frozen graph.
-- [ ] Implement Branch A (`R3`, `R4`) with hard-gate usage and Sigil A reward.
-- [ ] Implement Branch B (`R5`, `R6`) with distinct mechanic profile and Sigil B reward.
-- [ ] Implement Branch C (`R7`, `R8`) as highest pre-final pressure branch with Sigil C reward.
+- [ ] Implement Branch A (`R3`, `R4`) with hard-gate usage and Key Item A reward.
+- [ ] Implement Branch B (`R5`, `R6`) with distinct mechanic profile and Key Item B reward.
+- [ ] Implement Branch C (`R7`, `R8`) as highest pre-final pressure branch with Key Item C reward.
 - [ ] Add deterministic return route from each branch back to hub/spawn.
 - [ ] Add branch completion flags and hook them to gate-state updates.
 - [ ] Add distinct visual identity per branch (color, icon, landmark).
@@ -169,11 +169,11 @@ Downstream input: complete playable map loop with functional progression.
 Scope of work: ensure players can self-navigate without external instruction.
 
 - [ ] Define branch color/icon language and apply it to doors, markers, and UI.
-- [ ] Add objective sign in `R1`: collect 3 sigils to unlock the final gate.
+- [ ] Add objective sign in `R1`: collect 3 key items and unlock 3 abilities to unlock the final gate.
 - [ ] Add progress board in `R2` with live branch completion status.
 - [ ] Add directional landmarks visible from decision points.
 - [ ] Add door labels/icon repeats at branch entrances.
-- [ ] Add gate reaction feedback in `R1` after each sigil acquisition.
+- [ ] Add gate reaction feedback in `R1` after each key-item acquisition.
 - [ ] Add short contextual prompts on return to `R1`.
 - [ ] Run no-guidance navigation test with at least one fresh tester.
 - [ ] Log stalls greater than 20 seconds and wrong turns.
@@ -208,7 +208,7 @@ Scope of work: collect evidence and prioritize high-impact fixes.
 
 - [ ] Implement telemetry for run start/end and per-room enter/exit events.
 - [ ] Capture deaths, retries, and stalled time per room.
-- [ ] Capture unlock comprehension checkpoints after each sigil pickup.
+- [ ] Capture unlock comprehension checkpoints after each key-item pickup.
 - [ ] Create playtest observer template for qualitative notes.
 - [ ] Recruit 5 fresh internal testers.
 - [ ] Run sessions without coaching unless hard-stuck.

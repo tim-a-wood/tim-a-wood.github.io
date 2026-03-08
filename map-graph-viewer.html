@@ -1,0 +1,391 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Ashen Hollow - Map Graph Viewer</title>
+  <style>
+    :root {
+      --bg: #0c1219;
+      --panel: #111d2a;
+      --panel-2: #162638;
+      --text: #e8eef5;
+      --muted: #9ab0c7;
+      --line: #25415d;
+      --accent: #f0ad4e;
+      --a: #56c3ff;
+      --b: #57d48d;
+      --c: #ff9a5c;
+      --main: #ffd166;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background:
+        radial-gradient(circle at 10% 15%, #173753 0%, transparent 28%),
+        radial-gradient(circle at 90% 0%, #3a2616 0%, transparent 30%),
+        var(--bg);
+      color: var(--text);
+      font-family: "Avenir Next", "Segoe UI", sans-serif;
+    }
+    .container {
+      width: min(1280px, 96vw);
+      margin: 18px auto 28px;
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 14px;
+    }
+    .panel {
+      background: linear-gradient(180deg, var(--panel-2), var(--panel));
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 12px;
+    }
+    h1 { margin: 0; font-size: 1.35rem; }
+    .sub { margin-top: 6px; color: var(--muted); font-size: 0.9rem; }
+    .top {
+      grid-column: 1 / -1;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+    }
+    .legend {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+    .pill {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 4px 8px;
+      background: #0d1824;
+    }
+    #mapSvg {
+      width: 100%;
+      height: 560px;
+      display: block;
+      background: #0a141f;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+    }
+    .node {
+      cursor: pointer;
+      transition: transform 0.12s ease;
+    }
+    .node:hover { transform: translateY(-1px); }
+    .node.selected rect {
+      stroke: #ffffff;
+      stroke-width: 2.5;
+    }
+    .kpi {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .kpi > div {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 8px;
+      background: #0c1825;
+    }
+    .kpi .label { color: var(--muted); font-size: 0.75rem; text-transform: uppercase; }
+    .kpi .value { font-weight: 700; margin-top: 4px; }
+    h2 { margin: 0 0 8px; font-size: 1rem; }
+    .small { color: var(--muted); font-size: 0.85rem; }
+    ul { margin: 8px 0 0 18px; padding: 0; }
+    li { margin: 4px 0; }
+    .flow {
+      margin-top: 12px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 8px;
+      background: #0c1825;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.82rem;
+      color: #c6d8ea;
+      line-height: 1.45;
+      white-space: pre-wrap;
+    }
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .box {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 8px;
+      background: #0d1824;
+    }
+    .footer {
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 0.8rem;
+    }
+    @media (max-width: 1020px) {
+      .container { grid-template-columns: 1fr; }
+      #mapSvg { height: 500px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <section class="panel top">
+      <div>
+        <h1>Map Graph Viewer (Draft)</h1>
+        <div class="sub">Click rooms to inspect purposes, interactables, and progression hooks before freezing graph v1.</div>
+        <div class="legend">
+          <span class="pill">Main: Spawn/Hub/Final/Exit</span>
+          <span class="pill">Branch A</span>
+          <span class="pill">Branch B</span>
+          <span class="pill">Branch C</span>
+          <span class="pill">Gate edge requires all Key Items + Ability Unlocks</span>
+        </div>
+      </div>
+      <div class="small">Spec source: <code>docs/map-graph-v1.md</code></div>
+    </section>
+
+    <section class="panel">
+      <svg id="mapSvg" viewBox="0 0 980 560" aria-label="Map graph"></svg>
+      <div class="flow" id="graphFlow"></div>
+    </section>
+
+    <section class="panel">
+      <div class="kpi">
+        <div><div class="label">Rooms</div><div class="value" id="kRooms"></div></div>
+        <div><div class="label">Edges</div><div class="value" id="kEdges"></div></div>
+        <div><div class="label">Key Items</div><div class="value">3</div></div>
+        <div><div class="label">Ability Unlocks</div><div class="value">3</div></div>
+      </div>
+      <h2 id="roomTitle">Room</h2>
+      <div class="small" id="roomMeta"></div>
+      <div class="row">
+        <div class="box">
+          <strong>Purpose</strong>
+          <ul id="purposeList"></ul>
+        </div>
+        <div class="box">
+          <strong>Timing + Respawn</strong>
+          <ul id="timingList"></ul>
+        </div>
+      </div>
+      <div class="box" style="margin-top:8px;">
+        <strong>Required Interactables</strong>
+        <ul id="intList"></ul>
+      </div>
+      <div class="box" style="margin-top:8px;">
+        <strong>Connections</strong>
+        <ul id="connList"></ul>
+      </div>
+      <div class="footer">Draft only: review this with the room graph doc before freezing Activity 2.</div>
+    </section>
+  </main>
+
+  <script>
+    const rooms = [
+      { id: "R1", name: "Spawn + Final Gate Chamber", cluster: "main", x: 120, y: 280, primary: "Orientation + final gate objective", secondary: "Progress recap / payoff anticipation", timing: "45-60s initial, 20-30s revisit", respawn: "Primary spawn", interactables: ["Spawn point", "Final gate terminal", "Gate-state UI marker", "Path sign to R2"] },
+      { id: "R2", name: "Central Hub", cluster: "main", x: 350, y: 280, primary: "Hub routing", secondary: "Progress readability", timing: "30-45s per visit", respawn: "Mid-run checkpoint", interactables: ["Branch doors A/B/C", "Branch completion board", "Shortcut marker back to R1"] },
+      { id: "R3", name: "Branch A Entry Trial", cluster: "a", x: 560, y: 130, primary: "Branch A challenge entry", secondary: "Teach A branch rhythm", timing: "60-90s", respawn: "None", interactables: ["Challenge trigger A", "Branch landmark"] },
+      { id: "R4", name: "Branch A Reward + Ability Node", cluster: "a", x: 780, y: 130, primary: "Key Item A reward", secondary: "Ability Unlock A activation", timing: "90-120s", respawn: "None", interactables: ["Key Item A pickup", "Ability Unlock A node", "Return door to R2"] },
+      { id: "R5", name: "Branch B Entry Trial", cluster: "b", x: 560, y: 280, primary: "Branch B challenge entry", secondary: "Mechanical variation", timing: "60-90s", respawn: "None", interactables: ["Challenge trigger B", "Branch landmark"] },
+      { id: "R6", name: "Branch B Reward + Ability Node", cluster: "b", x: 780, y: 280, primary: "Key Item B reward", secondary: "Ability Unlock B activation", timing: "90-120s", respawn: "None", interactables: ["Key Item B pickup", "Ability Unlock B node", "Return door to R2"] },
+      { id: "R7", name: "Branch C Entry Trial", cluster: "c", x: 560, y: 430, primary: "Branch C challenge entry", secondary: "Pre-final pressure ramp", timing: "60-90s", respawn: "None", interactables: ["Challenge trigger C", "Branch landmark"] },
+      { id: "R8", name: "Branch C Reward + Ability Node", cluster: "c", x: 780, y: 430, primary: "Key Item C reward", secondary: "Ability Unlock C activation", timing: "90-120s", respawn: "None", interactables: ["Key Item C pickup", "Ability Unlock C node", "Return door to R2"] },
+      { id: "R9", name: "Final Area", cluster: "main", x: 350, y: 470, primary: "Final encounter/objective", secondary: "Run climax", timing: "120-180s", respawn: "Pre-final checkpoint", interactables: ["Final objective trigger", "Pre-exit unlock trigger"] },
+      { id: "R10", name: "Exit / Completion Room", cluster: "main", x: 900, y: 510, primary: "Exit and completion trigger", secondary: "Reward/summary", timing: "30-60s", respawn: "N/A", interactables: ["Exit trigger", "Run completion marker"] }
+    ];
+
+    const edges = [
+      { from: "R1", to: "R2", type: "normal" },
+      { from: "R2", to: "R1", type: "normal" },
+      { from: "R2", to: "R3", type: "normal" },
+      { from: "R3", to: "R4", type: "normal" },
+      { from: "R4", to: "R2", type: "normal" },
+      { from: "R2", to: "R5", type: "normal" },
+      { from: "R5", to: "R6", type: "normal" },
+      { from: "R6", to: "R2", type: "normal" },
+      { from: "R2", to: "R7", type: "normal" },
+      { from: "R7", to: "R8", type: "normal" },
+      { from: "R8", to: "R2", type: "normal" },
+      { from: "R1", to: "R9", type: "gate" },
+      { from: "R9", to: "R10", type: "normal" }
+    ];
+
+    const roomById = Object.fromEntries(rooms.map(r => [r.id, r]));
+    const outByRoom = Object.fromEntries(rooms.map(r => [r.id, []]));
+    const inByRoom = Object.fromEntries(rooms.map(r => [r.id, []]));
+    edges.forEach(e => {
+      outByRoom[e.from].push(e.to);
+      inByRoom[e.to].push(e.from);
+    });
+
+    const palette = {
+      main: "var(--main)",
+      a: "var(--a)",
+      b: "var(--b)",
+      c: "var(--c)"
+    };
+
+    const svg = document.getElementById("mapSvg");
+    const nodeEls = new Map();
+    let selected = "R1";
+
+    function arrow(x1, y1, x2, y2, color, dash) {
+      const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+      const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+      line.setAttribute("x1", x1);
+      line.setAttribute("y1", y1);
+      line.setAttribute("x2", x2);
+      line.setAttribute("y2", y2);
+      line.setAttribute("stroke", color);
+      line.setAttribute("stroke-width", "2");
+      line.setAttribute("opacity", "0.9");
+      if (dash) line.setAttribute("stroke-dasharray", "7 5");
+      g.appendChild(line);
+
+      const dx = x2 - x1;
+      const dy = y2 - y1;
+      const len = Math.max(Math.hypot(dx, dy), 1);
+      const ux = dx / len;
+      const uy = dy / len;
+      const px = x2 - ux * 14;
+      const py = y2 - uy * 14;
+      const nx = -uy;
+      const ny = ux;
+
+      const p = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      const d = `M ${x2} ${y2} L ${px + nx * 5} ${py + ny * 5} L ${px - nx * 5} ${py - ny * 5} Z`;
+      p.setAttribute("d", d);
+      p.setAttribute("fill", color);
+      p.setAttribute("opacity", "0.9");
+      g.appendChild(p);
+
+      return g;
+    }
+
+    function makeNode(r) {
+      const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+      g.classList.add("node");
+      g.dataset.id = r.id;
+
+      const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+      rect.setAttribute("x", r.x - 64);
+      rect.setAttribute("y", r.y - 28);
+      rect.setAttribute("rx", "10");
+      rect.setAttribute("ry", "10");
+      rect.setAttribute("width", "128");
+      rect.setAttribute("height", "56");
+      rect.setAttribute("fill", "#0f1b28");
+      rect.setAttribute("stroke", palette[r.cluster]);
+      rect.setAttribute("stroke-width", "2");
+      g.appendChild(rect);
+
+      const t1 = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      t1.setAttribute("x", r.x);
+      t1.setAttribute("y", r.y - 4);
+      t1.setAttribute("text-anchor", "middle");
+      t1.setAttribute("fill", "#f0f5fb");
+      t1.setAttribute("font-size", "16");
+      t1.setAttribute("font-weight", "700");
+      t1.textContent = r.id;
+      g.appendChild(t1);
+
+      const t2 = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      t2.setAttribute("x", r.x);
+      t2.setAttribute("y", r.y + 14);
+      t2.setAttribute("text-anchor", "middle");
+      t2.setAttribute("fill", "#bdd0e4");
+      t2.setAttribute("font-size", "11");
+      t2.textContent = r.name.length > 20 ? r.name.slice(0, 20) + "..." : r.name;
+      g.appendChild(t2);
+
+      g.addEventListener("click", () => {
+        selected = r.id;
+        renderSelection();
+      });
+
+      return g;
+    }
+
+    function renderGraph() {
+      svg.innerHTML = "";
+
+      edges.forEach(e => {
+        const from = roomById[e.from];
+        const to = roomById[e.to];
+        const isGate = e.type === "gate";
+        const color = isGate ? "#f07f7f" : "#6fa4cf";
+        const line = arrow(from.x, from.y, to.x, to.y, color, isGate);
+        svg.appendChild(line);
+      });
+
+      rooms.forEach(r => {
+        const el = makeNode(r);
+        nodeEls.set(r.id, el);
+        svg.appendChild(el);
+      });
+
+      document.getElementById("kRooms").textContent = String(rooms.length);
+      document.getElementById("kEdges").textContent = String(edges.length);
+      document.getElementById("graphFlow").textContent = [
+        "Critical flow:",
+        "R1 -> R2 -> (R3 -> R4 -> R2, R5 -> R6 -> R2, R7 -> R8 -> R2) -> R1 -> R9 -> R10",
+        "",
+        "Gate rule:",
+        "R1 -> R9 requires key_items_collected == 3 and abilities_unlocked == 3"
+      ].join("\n");
+    }
+
+    function fillList(id, items) {
+      const ul = document.getElementById(id);
+      ul.innerHTML = "";
+      items.forEach(item => {
+        const li = document.createElement("li");
+        li.textContent = item;
+        ul.appendChild(li);
+      });
+    }
+
+    function renderSelection() {
+      nodeEls.forEach((el, id) => {
+        if (id === selected) el.classList.add("selected");
+        else el.classList.remove("selected");
+      });
+
+      const r = roomById[selected];
+      document.getElementById("roomTitle").textContent = `${r.id} - ${r.name}`;
+      document.getElementById("roomMeta").textContent = `Cluster: ${r.cluster.toUpperCase()}`;
+
+      fillList("purposeList", [
+        `Primary: ${r.primary}`,
+        `Secondary: ${r.secondary}`
+      ]);
+
+      fillList("timingList", [
+        `Target time: ${r.timing}`,
+        `Respawn: ${r.respawn}`
+      ]);
+
+      fillList("intList", r.interactables);
+
+      const conns = [
+        `Inbound: ${inByRoom[r.id].length ? inByRoom[r.id].join(", ") : "None"}`,
+        `Outbound: ${outByRoom[r.id].length ? outByRoom[r.id].join(", ") : "None"}`
+      ];
+      if (r.id === "R1") {
+        conns.push("Special gate edge: R1 -> R9 (requires all key items + ability unlocks)");
+      }
+      fillList("connList", conns);
+    }
+
+    renderGraph();
+    renderSelection();
+  </script>
+</body>
+</html>
