@@ -63,7 +63,7 @@ Scope of work: align product boundaries and prevent scope creep.
 - [x] Define timing assumptions: first-time target 12 minutes, acceptable 10-15.
 - [x] Define content constraints: rooms `R1-R10`, one final area, one exit.
 - [x] Define logic constraints: final unlock conditions `key_items_collected == 3` and `abilities_unlocked == 3`.
-- [ ] Review and resolve ambiguous wording with stakeholders.
+- [x] Review and resolve ambiguous wording with stakeholders.
 - [x] Add change-control rule: changes to constraints require explicit sign-off.
 - [x] Mark the constraints doc approved with date and version.
 
@@ -92,18 +92,18 @@ Downstream input: room topology and purpose matrix for progression and level blo
 
 Scope of work: design minimal progression tied to map flow.
 
-- [ ] Create `/Users/timwood/Desktop/projects/PWA/MV/docs/progression-unlocks-v1.md`.
-- [ ] Assign key items to branches: `A -> R4`, `B -> R6`, `C -> R8`.
-- [ ] Define hard-gate unlock (recommended `Ability Unlock A`) used in one required branch barrier.
-- [ ] Define soft-power unlock 1 (recommended `Ability Unlock B`) with one pre-final usage moment.
-- [ ] Define soft-power unlock 2 (recommended `Ability Unlock C`) with one pre-final usage moment.
-- [ ] Specify pickup + ability-unlock trigger and immediate UI/audio feedback for each unlock.
-- [ ] Specify forced/obvious first usage moments before final room.
-- [ ] Define behavior if soft-power usage is skipped (run remains completable).
-- [ ] Write concise pickup/ability/gate-status copy tied to landmarks or color-coded doors.
-- [ ] Validate unlock set does not push run time beyond 15 minutes.
-- [ ] Validate unlock set does not permit sequence breaks.
-- [ ] Freeze unlock table v1.
+- [x] Create `/Users/timwood/Desktop/projects/PWA/MV/docs/progression-unlocks-v1.md`.
+- [x] Assign key items to branches: `A -> R4`, `B -> R6`, `C -> R8`.
+- [x] Define hard-gate unlock (recommended `Ability Unlock A`) used in one required branch barrier.
+- [x] Define soft-power unlock 1 (recommended `Ability Unlock B`) with one pre-final usage moment.
+- [x] Define soft-power unlock 2 (recommended `Ability Unlock C`) with one pre-final usage moment.
+- [x] Specify pickup + ability-unlock trigger and immediate UI/audio feedback for each unlock.
+- [x] Specify forced/obvious first usage moments before final room.
+- [x] Define behavior if soft-power usage is skipped (run remains completable).
+- [x] Write concise pickup/ability/gate-status copy tied to landmarks or color-coded doors.
+- [x] Validate unlock set does not push run time beyond 15 minutes.
+- [x] Validate unlock set does not permit sequence breaks.
+- [x] Freeze unlock table v1.
 
 Downstream input: progression table for gate-state logic, encounter placement, and UX messaging.
 
@@ -111,18 +111,18 @@ Downstream input: progression table for gate-state logic, encounter placement, a
 
 Scope of work: implement deterministic progression state machine.
 
-- [ ] Create `/Users/timwood/Desktop/projects/PWA/MV/docs/gate-state-spec-v1.md`.
-- [ ] Define state variables: `key_items_collected`, `abilities_unlocked`, `key_item_a`, `key_item_b`, `key_item_c`, `ability_unlock_a`, `ability_unlock_b`, `ability_unlock_c`, `final_gate_state`.
-- [ ] Define valid gate states: `LOCKED_KEY_ITEMS`, `LOCKED_ABILITIES`, `UNLOCKED`.
-- [ ] Define transition rules on key-item pickup, ability unlock completion, and on reload/resume.
-- [ ] Define visuals for each state (runes, lights, effects, audio cue).
-- [ ] Define interact text for each state (`Requires 3 Key Items`, `Requires 3 Ability Unlocks`, etc.).
-- [ ] Add idempotency rule to prevent duplicate pickup corruption.
-- [ ] Define save/restore behavior for in-progress runs.
-- [ ] Define reset behavior for new runs.
-- [ ] Define telemetry hooks: `key_item_collected`, `ability_unlocked`, `gate_state_changed`, `gate_unlocked`.
-- [ ] Write test matrix for all valid and invalid transitions.
-- [ ] Freeze logic contract for implementation.
+- [x] Create `/Users/timwood/Desktop/projects/PWA/MV/docs/gate-state-spec-v1.md`.
+- [x] Define state variables: `key_items_collected`, `abilities_unlocked`, `key_item_a`, `key_item_b`, `key_item_c`, `ability_unlock_a`, `ability_unlock_b`, `ability_unlock_c`, `final_gate_state`.
+- [x] Define valid gate states: `LOCKED_KEY_ITEMS`, `LOCKED_ABILITIES`, `UNLOCKED`.
+- [x] Define transition rules on key-item pickup, ability unlock completion, and on reload/resume.
+- [x] Define visuals for each state (runes, lights, effects, audio cue).
+- [x] Define interact text for each state (`Requires 3 Key Items`, `Requires 3 Ability Unlocks`, etc.).
+- [x] Add idempotency rule to prevent duplicate pickup corruption.
+- [x] Define save/restore behavior for in-progress runs.
+- [x] Define reset behavior for new runs.
+- [x] Define telemetry hooks: `key_item_collected`, `ability_unlocked`, `gate_state_changed`, `gate_unlocked`.
+- [x] Write test matrix for all valid and invalid transitions.
+- [x] Freeze logic contract for implementation.
 
 Downstream input: implementation-ready gate state machine and QA transition test cases.
 
