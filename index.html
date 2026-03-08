@@ -18,15 +18,14 @@
     </style>
 </head>
 <body>
-<!-- CACHE_BUST: activity5greybox1 — use ?v=activity5greybox1 on the URL to force latest; bump this when we deploy -->
+<!-- CACHE_BUST: activity6dungeon1 -->
 <div id="game-container"></div>
 <script>
 const CONFIG = {
     W: 800,
     H: 400,
-    WORLD_WIDTH: 6400,
-    WORLD_HEIGHT: 1200,
     ROOM_WIDTH: 1600,
+    WORLD_HEIGHT: 1200,
     GRAVITY: 1400,
     PLAYER_SPEED: 280,
     JUMP_FORCE: -690,
@@ -34,12 +33,16 @@ const CONFIG = {
     COLORS: [0x2a3a5a, 0x3a2a5a, 0x2a4a3a, 0x4a3a2a, 0x2a4050]
 };
 
-const ROOM_IDS = {
-    R1: { start: 0, end: 1599 },
-    R2: { start: 1600, end: 3199 },
-    R9: { start: 3200, end: 4799 },
-    R10: { start: 4800, end: 6399 }
-};
+const ROOM_SEQUENCE = ['R1', 'R2', 'R3', 'R4', 'R5', 'R6', 'R7', 'R8', 'R9', 'R10'];
+const ROOM_IDS = ROOM_SEQUENCE.reduce((acc, roomId, idx) => {
+    const start = idx * CONFIG.ROOM_WIDTH;
+    acc[roomId] = { start, end: start + CONFIG.ROOM_WIDTH - 1 };
+    return acc;
+}, {});
+
+CONFIG.WORLD_WIDTH = CONFIG.ROOM_WIDTH * ROOM_SEQUENCE.length;
+
+const ENABLE_DEBUG_UNLOCK = true;
 
 const ROOM_PLATFORM_LAYOUTS = {
     R1: [
@@ -49,25 +52,93 @@ const ROOM_PLATFORM_LAYOUTS = {
         { x: 1320, y: 1068, len: 8, tint: 3 }
     ],
     R2: [
-        { x: 1700, y: 1048, len: 14, tint: 0 },
-        { x: 2140, y: 940, len: 10, tint: 1 },
-        { x: 2480, y: 840, len: 10, tint: 2 },
-        { x: 2860, y: 1028, len: 8, tint: 3 }
+        { x: ROOM_IDS.R2.start + 60, y: 1060, len: 14, tint: 0 },
+        { x: ROOM_IDS.R2.start + 360, y: 980, len: 10, tint: 1 },
+        { x: ROOM_IDS.R2.start + 700, y: 900, len: 10, tint: 2 },
+        { x: ROOM_IDS.R2.start + 1040, y: 980, len: 10, tint: 3 },
+        { x: ROOM_IDS.R2.start + 1320, y: 1060, len: 7, tint: 4 }
+    ],
+    R3: [
+        { x: ROOM_IDS.R3.start + 60, y: 1060, len: 10, tint: 0 },
+        { x: ROOM_IDS.R3.start + 360, y: 980, len: 10, tint: 1 },
+        { x: ROOM_IDS.R3.start + 660, y: 900, len: 10, tint: 2 },
+        { x: ROOM_IDS.R3.start + 960, y: 820, len: 8, tint: 3 },
+        { x: ROOM_IDS.R3.start + 1180, y: 900, len: 8, tint: 4 },
+        { x: ROOM_IDS.R3.start + 1360, y: 980, len: 6, tint: 1 },
+        { x: ROOM_IDS.R3.start + 500, y: 760, len: 4, tint: 2 },
+        { x: ROOM_IDS.R3.start + 1080, y: 700, len: 4, tint: 3 }
+    ],
+    R4: [
+        { x: ROOM_IDS.R4.start + 80, y: 1060, len: 10, tint: 0 },
+        { x: ROOM_IDS.R4.start + 360, y: 980, len: 10, tint: 1 },
+        { x: ROOM_IDS.R4.start + 660, y: 900, len: 10, tint: 2 },
+        { x: ROOM_IDS.R4.start + 960, y: 820, len: 8, tint: 3 },
+        { x: ROOM_IDS.R4.start + 1180, y: 900, len: 8, tint: 4 },
+        { x: ROOM_IDS.R4.start + 1360, y: 980, len: 6, tint: 1 },
+        { x: ROOM_IDS.R4.start + 480, y: 760, len: 4, tint: 2 },
+        { x: ROOM_IDS.R4.start + 1040, y: 740, len: 4, tint: 3 }
+    ],
+    R5: [
+        { x: ROOM_IDS.R5.start + 60, y: 1060, len: 10, tint: 0 },
+        { x: ROOM_IDS.R5.start + 360, y: 980, len: 10, tint: 4 },
+        { x: ROOM_IDS.R5.start + 660, y: 900, len: 10, tint: 2 },
+        { x: ROOM_IDS.R5.start + 960, y: 820, len: 8, tint: 1 },
+        { x: ROOM_IDS.R5.start + 1180, y: 900, len: 8, tint: 3 },
+        { x: ROOM_IDS.R5.start + 1360, y: 980, len: 6, tint: 4 },
+        { x: ROOM_IDS.R5.start + 500, y: 760, len: 4, tint: 2 },
+        { x: ROOM_IDS.R5.start + 1080, y: 720, len: 4, tint: 1 }
+    ],
+    R6: [
+        { x: ROOM_IDS.R6.start + 60, y: 1060, len: 10, tint: 0 },
+        { x: ROOM_IDS.R6.start + 360, y: 980, len: 10, tint: 1 },
+        { x: ROOM_IDS.R6.start + 660, y: 900, len: 10, tint: 2 },
+        { x: ROOM_IDS.R6.start + 960, y: 820, len: 8, tint: 3 },
+        { x: ROOM_IDS.R6.start + 1180, y: 900, len: 8, tint: 4 },
+        { x: ROOM_IDS.R6.start + 1360, y: 980, len: 6, tint: 1 },
+        { x: ROOM_IDS.R6.start + 500, y: 760, len: 4, tint: 2 },
+        { x: ROOM_IDS.R6.start + 1040, y: 740, len: 4, tint: 3 }
+    ],
+    R7: [
+        { x: ROOM_IDS.R7.start + 60, y: 1060, len: 10, tint: 0 },
+        { x: ROOM_IDS.R7.start + 360, y: 980, len: 10, tint: 3 },
+        { x: ROOM_IDS.R7.start + 660, y: 900, len: 10, tint: 4 },
+        { x: ROOM_IDS.R7.start + 960, y: 820, len: 8, tint: 2 },
+        { x: ROOM_IDS.R7.start + 1180, y: 900, len: 8, tint: 1 },
+        { x: ROOM_IDS.R7.start + 1360, y: 980, len: 6, tint: 3 },
+        { x: ROOM_IDS.R7.start + 500, y: 760, len: 4, tint: 2 },
+        { x: ROOM_IDS.R7.start + 1080, y: 700, len: 4, tint: 4 }
+    ],
+    R8: [
+        { x: ROOM_IDS.R8.start + 60, y: 1060, len: 10, tint: 0 },
+        { x: ROOM_IDS.R8.start + 360, y: 980, len: 10, tint: 1 },
+        { x: ROOM_IDS.R8.start + 660, y: 900, len: 10, tint: 3 },
+        { x: ROOM_IDS.R8.start + 960, y: 820, len: 8, tint: 4 },
+        { x: ROOM_IDS.R8.start + 1180, y: 900, len: 8, tint: 2 },
+        { x: ROOM_IDS.R8.start + 1360, y: 980, len: 6, tint: 1 },
+        { x: ROOM_IDS.R8.start + 500, y: 760, len: 4, tint: 2 },
+        { x: ROOM_IDS.R8.start + 1060, y: 720, len: 4, tint: 4 }
     ],
     R9: [
-        { x: 3340, y: 1048, len: 14, tint: 0 },
-        { x: 3720, y: 920, len: 9, tint: 1 },
-        { x: 4080, y: 820, len: 8, tint: 2 },
-        { x: 4410, y: 980, len: 8, tint: 3 }
+        { x: ROOM_IDS.R9.start + 140, y: 1048, len: 14, tint: 0 },
+        { x: ROOM_IDS.R9.start + 520, y: 920, len: 9, tint: 1 },
+        { x: ROOM_IDS.R9.start + 880, y: 820, len: 8, tint: 2 },
+        { x: ROOM_IDS.R9.start + 1210, y: 980, len: 8, tint: 3 }
     ],
     R10: [
-        { x: 5020, y: 1048, len: 16, tint: 0 },
-        { x: 5520, y: 940, len: 8, tint: 4 },
-        { x: 5840, y: 860, len: 8, tint: 2 }
+        { x: ROOM_IDS.R10.start + 220, y: 1048, len: 16, tint: 0 },
+        { x: ROOM_IDS.R10.start + 720, y: 940, len: 8, tint: 4 },
+        { x: ROOM_IDS.R10.start + 1040, y: 860, len: 8, tint: 2 }
     ]
 };
 
-const ENABLE_DEBUG_UNLOCK = false;
+const DUNGEON_WALL_RECTS = [
+    { room: 'R3', rects: [{ x: 520, y: 920, wTiles: 1, hTiles: 5 }, { x: 1080, y: 920, wTiles: 1, hTiles: 5 }] },
+    { room: 'R4', rects: [{ x: 560, y: 920, wTiles: 1, hTiles: 5 }, { x: 1120, y: 920, wTiles: 1, hTiles: 5 }] },
+    { room: 'R5', rects: [{ x: 520, y: 920, wTiles: 1, hTiles: 5 }, { x: 1080, y: 920, wTiles: 1, hTiles: 5 }] },
+    { room: 'R6', rects: [{ x: 560, y: 920, wTiles: 1, hTiles: 5 }, { x: 1120, y: 920, wTiles: 1, hTiles: 5 }] },
+    { room: 'R7', rects: [{ x: 520, y: 920, wTiles: 1, hTiles: 5 }, { x: 1080, y: 920, wTiles: 1, hTiles: 5 }] },
+    { room: 'R8', rects: [{ x: 560, y: 920, wTiles: 1, hTiles: 5 }, { x: 1120, y: 920, wTiles: 1, hTiles: 5 }] }
+];
 
 class AshenHollow extends Phaser.Scene {
     constructor() {
@@ -84,21 +155,23 @@ class AshenHollow extends Phaser.Scene {
         this.jumpWasDownLastFrame = false;
         this.jumpBuffer = 0;
         this.interactQueued = false;
+        this.inRoomTransition = false;
+        this.transitionCooldownUntil = 0;
+        this.currentRoomId = 'R1';
 
+        this.keyItemA = false;
+        this.keyItemB = false;
+        this.keyItemC = false;
+        this.abilityA = false;
+        this.abilityB = false;
+        this.abilityC = false;
         this.keyItemsCollected = 0;
         this.abilitiesUnlocked = 0;
         this.finalGateState = 'LOCKED_KEY_ITEMS';
 
-        this.statusMessageFrames = 0;
-        this.transitionCooldownUntil = 0;
-        this.inRoomTransition = false;
         this.r9ShellComplete = false;
         this.preFinalCheckpointUnlocked = false;
-        this.currentRoomId = 'R1';
-
-        this.hasVisitedR2 = false;
-        this.hubLoopStartMs = 0;
-        this.hubLoopCompleteMs = 0;
+        this.statusMessageFrames = 0;
     }
 
     preload() {
@@ -137,13 +210,22 @@ class AshenHollow extends Phaser.Scene {
         g.fillStyle(0xffbb44).fillRect(18, 6, 8, 32);
         g.generateTexture('finalCore', 44, 44);
 
+        g.clear().fillStyle(0xffd54a);
+        g.fillRect(0, 0, 28, 20);
+        g.fillStyle(0x6b4b14).fillRect(20, 6, 8, 8);
+        g.generateTexture('keyItem', 28, 20);
+
+        g.clear().fillStyle(0x00ddff).fillCircle(14, 14, 13);
+        g.fillStyle(0xffffff, 0.55).fillCircle(10, 10, 4);
+        g.generateTexture('abilityNode', 28, 28);
+
         g.clear().fillStyle(0x3a5a4a).fillRect(0, 0, 40, 40);
         g.fillStyle(0x00ff88, 0.75).fillRect(10, 6, 20, 28);
         g.generateTexture('exit', 40, 40);
 
-        g.clear().fillStyle(0x45526e).fillRect(0, 0, 160, 52);
-        g.fillStyle(0x121822).fillRect(3, 3, 154, 46);
-        g.generateTexture('signBoard', 160, 52);
+        g.clear().fillStyle(0x45526e).fillRect(0, 0, 188, 56);
+        g.fillStyle(0x121822).fillRect(3, 3, 182, 50);
+        g.generateTexture('signBoard', 188, 56);
 
         g.clear().fillStyle(0x00ddff).fillRect(4, 8, 20, 24);
         g.fillStyle(0xff00bb).fillRect(8, 10, 12, 8);
@@ -165,13 +247,12 @@ class AshenHollow extends Phaser.Scene {
 
     create() {
         this.resetInternalState();
-
         this.physics.world.setBounds(0, 0, CONFIG.WORLD_WIDTH, CONFIG.WORLD_HEIGHT);
         this.cameras.main.setBounds(0, 0, CONFIG.WORLD_WIDTH, CONFIG.WORLD_HEIGHT);
         this.cameras.main.setBackgroundColor('#050510');
+
         this.starField = this.add.tileSprite(CONFIG.W / 2, CONFIG.H / 2, CONFIG.W, CONFIG.H, 'stars')
-            .setScrollFactor(0)
-            .setDepth(-1);
+            .setScrollFactor(0).setDepth(-1);
         this.trail = this.add.graphics();
 
         this.platforms = this.physics.add.staticGroup();
@@ -181,26 +262,24 @@ class AshenHollow extends Phaser.Scene {
 
         this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
 
-        this.buildGreyboxCriticalPath();
-        this.buildCriticalPathInteractables();
-
+        this.buildWorldGeometry();
+        this.buildWorldInteractables();
         this.createHUD();
         this.setupControls();
         this.createTransitionOverlay();
+
         this.setCurrentRoom('R1');
+        this.recomputeProgressionCounts();
         this.refreshObjectiveText();
-        this.refreshGateState();
-        this.setStatusMessage('Activity 5 greybox loaded. Touch INTERACT/BYPASS on mobile.', 240);
+        this.setStatusMessage('Activity 6: dungeon branches live in R3-R8. Use INTERACT in R2 doors.', 240);
     }
 
-    buildGreyboxCriticalPath() {
+    buildWorldGeometry() {
         const tile = 32;
-
         for (let tx = 0; tx < CONFIG.WORLD_WIDTH; tx += tile) {
             this.platforms.create(tx + 16, CONFIG.WORLD_HEIGHT - 16, 'floor').refreshBody();
             this.platforms.create(tx + 16, 16, 'floor').refreshBody();
         }
-
         for (let ty = tile; ty < CONFIG.WORLD_HEIGHT - 32; ty += tile) {
             this.platforms.create(16, ty + 16, 'floor').refreshBody();
             this.platforms.create(CONFIG.WORLD_WIDTH - 16, ty + 16, 'floor').refreshBody();
@@ -213,39 +292,61 @@ class AshenHollow extends Phaser.Scene {
                 }
             });
         });
+
+        DUNGEON_WALL_RECTS.forEach(({ room, rects }) => {
+            const roomStart = ROOM_IDS[room].start;
+            rects.forEach(({ x, y, wTiles, hTiles }) => {
+                for (let xi = 0; xi < wTiles; xi++) {
+                    for (let yi = 0; yi < hTiles; yi++) {
+                        this.platforms.create(roomStart + x + (xi * tile) + 16, y + (yi * tile), 'floor').refreshBody();
+                    }
+                }
+            });
+        });
     }
 
-    buildCriticalPathInteractables() {
+    buildWorldInteractables() {
         this.finalGate = this.physics.add.staticImage(500, 1000, 'finalGateLocked').refreshBody();
-        this.gatePrompt = this.add.text(500, 930, 'R1 FINAL GATE', {
-            fontSize: '12px', fill: '#ffb47a', stroke: '#000', strokeThickness: 3
-        }).setOrigin(0.5);
+        this.add.text(500, 930, 'R1 FINAL GATE', { fontSize: '12px', fill: '#ffb47a', stroke: '#000', strokeThickness: 3 }).setOrigin(0.5);
 
-        this.r1ToR2Door = this.physics.add.staticImage(1540, 1034, 'doorFrame').refreshBody();
-        this.r2ToR1Door = this.physics.add.staticImage(1660, 1034, 'doorFrame').refreshBody();
-        this.r9ToR10Door = this.physics.add.staticImage(4740, 1034, 'doorFrame').refreshBody();
-        this.r10ToR9Door = this.physics.add.staticImage(4860, 1034, 'doorFrame').refreshBody();
+        this.branchDoors = [
+            { id: 'A', room: 'R2', x: ROOM_IDS.R2.start + 520, y: 980, target: 'R3', requires: null, label: 'A: Crimson Depths' },
+            { id: 'B', room: 'R2', x: ROOM_IDS.R2.start + 900, y: 900, target: 'R5', requires: 'A', label: 'B: Umber Catacombs' },
+            { id: 'C', room: 'R2', x: ROOM_IDS.R2.start + 1260, y: 980, target: 'R7', requires: null, label: 'C: Azure Warrens' }
+        ];
 
-        this.r9Objective = this.physics.add.staticImage(4010, 776, 'finalCore').refreshBody();
-        this.r10Exit = this.physics.add.staticImage(6020, 826, 'exit').refreshBody();
+        this.branchDoors.forEach((door) => {
+            door.sprite = this.physics.add.staticImage(door.x, door.y, 'doorFrame').refreshBody();
+            this.add.text(door.x, door.y - 52, door.label, { fontSize: '10px', fill: '#c9dcff', stroke: '#000', strokeThickness: 2 }).setOrigin(0.5);
+        });
 
+        this.r9Objective = this.physics.add.staticImage(ROOM_IDS.R9.start + 810, 776, 'finalCore').refreshBody();
+        this.r10Exit = this.physics.add.staticImage(ROOM_IDS.R10.start + 1240, 826, 'exit').refreshBody();
         this.physics.add.overlap(this.player, this.r9Objective, this.completeFinalShell, null, this);
         this.physics.add.overlap(this.player, this.r10Exit, this.tryExitRun, null, this);
 
-        this.signR1Board = this.add.image(260, 860, 'signBoard');
-        this.signR1Text = this.add.text(260, 860, 'R1 Objective:\nUnlock gate (3 keys + 3 abilities)', {
-            fontSize: '11px', fill: '#d7ebff', align: 'center'
-        }).setOrigin(0.5);
+        this.keyPickupGroup = this.physics.add.staticGroup();
+        this.abilityNodeGroup = this.physics.add.staticGroup();
 
-        this.signR2Board = this.add.image(2120, 850, 'signBoard');
-        this.signR2Text = this.add.text(2120, 850, 'R2 Hub:\nBranches A/B/C come next\n(Activity 6)', {
-            fontSize: '11px', fill: '#d7ebff', align: 'center'
-        }).setOrigin(0.5);
+        this.createBranchReward('A', ROOM_IDS.R4.start + 980, 780, ROOM_IDS.R4.start + 1320, 940);
+        this.createBranchReward('B', ROOM_IDS.R6.start + 980, 780, ROOM_IDS.R6.start + 1320, 940);
+        this.createBranchReward('C', ROOM_IDS.R8.start + 980, 780, ROOM_IDS.R8.start + 1320, 940);
 
-        this.signR9Board = this.add.image(3460, 860, 'signBoard');
-        this.signR9Text = this.add.text(3460, 860, 'R9 Final Shell:\nTouch core to complete', {
-            fontSize: '11px', fill: '#d7ebff', align: 'center'
-        }).setOrigin(0.5);
+        this.physics.add.overlap(this.player, this.keyPickupGroup, (_, item) => this.collectKeyItem(item));
+        this.physics.add.overlap(this.player, this.abilityNodeGroup, (_, node) => this.collectAbility(node));
+
+        this.add.image(250, 860, 'signBoard');
+        this.add.text(250, 860, 'R1\nFinal gate requires\n3 Keys + 3 Abilities', { fontSize: '11px', fill: '#d7ebff', align: 'center' }).setOrigin(0.5);
+
+        this.add.image(ROOM_IDS.R2.start + 260, 860, 'signBoard');
+        this.add.text(ROOM_IDS.R2.start + 260, 860, 'R2 HUB\nChoose branches A/B/C\nAny order (B requires A)', { fontSize: '11px', fill: '#d7ebff', align: 'center' }).setOrigin(0.5);
+    }
+
+    createBranchReward(branchId, keyX, keyY, abilityX, abilityY) {
+        const key = this.keyPickupGroup.create(keyX, keyY, 'keyItem').refreshBody();
+        key.setData('branch', branchId);
+        const node = this.abilityNodeGroup.create(abilityX, abilityY, 'abilityNode').refreshBody();
+        node.setData('branch', branchId);
     }
 
     createHUD() {
@@ -273,19 +374,44 @@ class AshenHollow extends Phaser.Scene {
         this.updateLifeDisplay();
 
         this.add.text(10, 44, '[ RESTART ]', { fontSize: '12px', fill: '#ff3355' })
-            .setScrollFactor(0).setInteractive()
-            .on('pointerdown', () => this.scene.restart());
+            .setScrollFactor(0).setInteractive().on('pointerdown', () => this.scene.restart());
     }
 
-    getCurrentRoomId() {
-        return this.currentRoomId;
+    setupControls() {
+        this.cursors = this.input.keyboard.createCursorKeys();
+        this.spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+        this.interactKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E);
+        this.debugBypassKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.B);
+        this.debugUnlockKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.U);
+        this.input.addPointer(2);
+
+        const spawnBtn = (x, y, label, action) => {
+            const btn = this.add.image(x, y, 'btn').setScrollFactor(0).setInteractive().setAlpha(0.6);
+            this.add.text(x, y, label, { fontSize: '24px' }).setOrigin(0.5).setScrollFactor(0);
+            btn.on('pointerdown', () => this.inputState[action] = true);
+            btn.on('pointerup', () => this.inputState[action] = false);
+            btn.on('pointerout', () => this.inputState[action] = false);
+        };
+
+        spawnBtn(60, 340, '<', 'left');
+        spawnBtn(160, 340, '>', 'right');
+        spawnBtn(740, 340, '^', 'jump');
+
+        this.add.text(640, 300, '[ INTERACT ]', { fontSize: '12px', fill: '#ffe082', backgroundColor: '#112233' })
+            .setPadding(6, 4, 6, 4).setScrollFactor(0).setInteractive().on('pointerdown', () => { this.interactQueued = true; });
+
+        this.add.text(640, 332, '[ BYPASS ]', { fontSize: '12px', fill: '#9ae6ff', backgroundColor: '#112233' })
+            .setPadding(6, 4, 6, 4).setScrollFactor(0).setInteractive().on('pointerdown', () => this.runDebugBypass());
+
+        if (ENABLE_DEBUG_UNLOCK) {
+            this.add.text(640, 364, '[ UNLOCK ]', { fontSize: '12px', fill: '#baffc9', backgroundColor: '#112233' })
+                .setPadding(6, 4, 6, 4).setScrollFactor(0).setInteractive().on('pointerdown', () => this.runDebugUnlock());
+        }
     }
 
     createTransitionOverlay() {
         this.transitionOverlay = this.add.rectangle(0, 0, CONFIG.W, CONFIG.H, 0x000000, 0)
-            .setScrollFactor(0)
-            .setOrigin(0, 0)
-            .setDepth(1000);
+            .setScrollFactor(0).setOrigin(0, 0).setDepth(1000);
     }
 
     setCurrentRoom(roomId) {
@@ -297,7 +423,7 @@ class AshenHollow extends Phaser.Scene {
     transitionToRoom(targetRoomId, targetX, targetY, statusLabel) {
         if (this.inRoomTransition) return;
         this.inRoomTransition = true;
-        this.transitionCooldownUntil = this.time.now + 500;
+        this.transitionCooldownUntil = this.time.now + 550;
 
         this.tweens.add({
             targets: this.transitionOverlay,
@@ -319,87 +445,73 @@ class AshenHollow extends Phaser.Scene {
         });
     }
 
-    refreshGateState() {
-        if (this.keyItemsCollected < 3) {
-            this.finalGateState = 'LOCKED_KEY_ITEMS';
-        } else if (this.abilitiesUnlocked < 3) {
-            this.finalGateState = 'LOCKED_ABILITIES';
-        } else {
-            this.finalGateState = 'UNLOCKED';
-        }
+    recomputeProgressionCounts() {
+        this.keyItemsCollected = Number(this.keyItemA) + Number(this.keyItemB) + Number(this.keyItemC);
+        this.abilitiesUnlocked = Number(this.abilityA) + Number(this.abilityB) + Number(this.abilityC);
+        if (this.keyItemsCollected < 3) this.finalGateState = 'LOCKED_KEY_ITEMS';
+        else if (this.abilitiesUnlocked < 3) this.finalGateState = 'LOCKED_ABILITIES';
+        else this.finalGateState = 'UNLOCKED';
 
-        if (this.finalGate) {
-            this.finalGate.setTexture(this.finalGateState === 'UNLOCKED' ? 'finalGateOpen' : 'finalGateLocked');
+        if (this.finalGate) this.finalGate.setTexture(this.finalGateState === 'UNLOCKED' ? 'finalGateOpen' : 'finalGateLocked');
+        if (this.gateStateText) {
+            this.gateStateText.setText(`Gate: ${this.finalGateState}\nKeys ${this.keyItemsCollected}/3 | Abilities ${this.abilitiesUnlocked}/3`);
         }
-
-        this.gateStateText.setText(
-            `Gate: ${this.finalGateState}\nKeys ${this.keyItemsCollected}/3 | Abilities ${this.abilitiesUnlocked}/3`
-        );
     }
 
     refreshObjectiveText() {
-        if (!this.r9ShellComplete) {
-            this.objectiveText.setText('OBJECTIVE: R1<->R2 traversal, then use gate or debug bypass to test R9/R10.');
+        if (this.finalGateState !== 'UNLOCKED') {
+            this.objectiveText.setText('OBJECTIVE: Crawl branches R3-R8, collect 3 keys + unlock 3 abilities.');
             return;
         }
-        this.objectiveText.setText('OBJECTIVE: Reach R10 exit to complete Activity 5 critical path.');
+        if (!this.r9ShellComplete) {
+            this.objectiveText.setText('OBJECTIVE: Enter final gate and clear R9 shell.');
+            return;
+        }
+        this.objectiveText.setText('OBJECTIVE: Reach R10 exit, then use right-edge return link to R1.');
     }
 
-    setupControls() {
-        this.cursors = this.input.keyboard.createCursorKeys();
-        this.spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
-        this.interactKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E);
-        this.debugBypassKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.B);
-        this.debugUnlockKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.U);
-        this.input.addPointer(2);
+    collectKeyItem(item) {
+        if (!item.active) return;
+        const branch = item.getData('branch');
+        const map = { A: 'keyItemA', B: 'keyItemB', C: 'keyItemC' };
+        if (this[map[branch]]) return;
 
-        const spawnBtn = (x, y, label, action) => {
-            const btn = this.add.image(x, y, 'btn').setScrollFactor(0).setInteractive().setAlpha(0.6);
-            this.add.text(x, y, label, { fontSize: '24px' }).setOrigin(0.5).setScrollFactor(0);
+        this[map[branch]] = true;
+        item.disableBody(true, true);
+        this.recomputeProgressionCounts();
+        this.refreshObjectiveText();
+        this.setStatusMessage(`Key Item ${branch} secured (${this.keyItemsCollected}/3).`);
+    }
 
-            btn.on('pointerdown', () => this.inputState[action] = true);
-            btn.on('pointerup', () => this.inputState[action] = false);
-            btn.on('pointerout', () => this.inputState[action] = false);
-        };
+    collectAbility(node) {
+        if (!node.active) return;
+        const branch = node.getData('branch');
+        const keyMap = { A: 'keyItemA', B: 'keyItemB', C: 'keyItemC' };
+        const abilityMap = { A: 'abilityA', B: 'abilityB', C: 'abilityC' };
 
-        spawnBtn(60, 340, '<', 'left');
-        spawnBtn(160, 340, '>', 'right');
-        spawnBtn(740, 340, '^', 'jump');
-
-        this.add.text(640, 300, '[ INTERACT ]', { fontSize: '12px', fill: '#ffe082', backgroundColor: '#112233' })
-            .setPadding(6, 4, 6, 4)
-            .setScrollFactor(0)
-            .setInteractive()
-            .on('pointerdown', () => {
-                this.interactQueued = true;
-            });
-
-        this.add.text(640, 332, '[ BYPASS ]', { fontSize: '12px', fill: '#9ae6ff', backgroundColor: '#112233' })
-            .setPadding(6, 4, 6, 4)
-            .setScrollFactor(0)
-            .setInteractive()
-            .on('pointerdown', () => this.runDebugBypass());
-
-        if (ENABLE_DEBUG_UNLOCK) {
-            this.add.text(640, 364, '[ UNLOCK ]', { fontSize: '12px', fill: '#baffc9', backgroundColor: '#112233' })
-                .setPadding(6, 4, 6, 4)
-                .setScrollFactor(0)
-                .setInteractive()
-                .on('pointerdown', () => this.runDebugUnlock());
+        if (!this[keyMap[branch]]) {
+            this.setStatusMessage(`Branch ${branch}: claim Key Item first.`);
+            return;
         }
+        if (this[abilityMap[branch]]) return;
+
+        this[abilityMap[branch]] = true;
+        node.disableBody(true, true);
+        this.recomputeProgressionCounts();
+        this.refreshObjectiveText();
+        this.setStatusMessage(`Ability Unlock ${branch} awakened (${this.abilitiesUnlocked}/3).`);
     }
 
     update() {
-        if (this.isGameOver) return;
-        if (this.inRoomTransition) return;
+        if (this.isGameOver || this.inRoomTransition) return;
 
         this.handleMovement();
-        this.handleCriticalPathInteractions();
+        this.handleInteractionsAndTransitions();
         this.drawMotionTrail();
 
         this.starField.tilePositionX = this.player.x * 0.15;
         this.distText.setText(`DIST ${Math.floor(this.player.x / 10)} m`);
-        this.roomText.setText(`ROOM: ${this.getCurrentRoomId()}`);
+        this.roomText.setText(`ROOM: ${this.currentRoomId}`);
 
         if (this.player.y > CONFIG.WORLD_HEIGHT + 50) this.handlePlayerDeath();
 
@@ -409,64 +521,87 @@ class AshenHollow extends Phaser.Scene {
         }
     }
 
-    handleCriticalPathInteractions() {
+    handleInteractionsAndTransitions() {
         const now = this.time.now;
         const interactPressed = (this.cursors.up && this.cursors.up.justDown) ||
             (this.interactKey && Phaser.Input.Keyboard.JustDown(this.interactKey)) ||
             this.interactQueued;
         this.interactQueued = false;
 
-        if (this.debugBypassKey && Phaser.Input.Keyboard.JustDown(this.debugBypassKey)) {
-            this.runDebugBypass();
-        }
-
-        if (this.debugUnlockKey && Phaser.Input.Keyboard.JustDown(this.debugUnlockKey)) {
-            if (ENABLE_DEBUG_UNLOCK) this.runDebugUnlock();
-        }
+        if (this.debugBypassKey && Phaser.Input.Keyboard.JustDown(this.debugBypassKey)) this.runDebugBypass();
+        if (this.debugUnlockKey && Phaser.Input.Keyboard.JustDown(this.debugUnlockKey) && ENABLE_DEBUG_UNLOCK) this.runDebugUnlock();
 
         if (now < this.transitionCooldownUntil) return;
 
-        const roomId = this.getCurrentRoomId();
-
-        if (roomId === 'R1' && this.player.x > 1500 && this.player.y > 950) {
-            this.hasVisitedR2 = true;
-            if (!this.hubLoopStartMs) this.hubLoopStartMs = now;
-            this.transitionToRoom('R2', 1720, 1020, 'Transition: R1 -> R2');
-            return;
-        }
-
-        if (roomId === 'R2' && this.player.x < 1680 && this.player.y > 950) {
-            if (this.hasVisitedR2 && !this.hubLoopCompleteMs) {
-                this.hubLoopCompleteMs = now;
-                const seconds = ((this.hubLoopCompleteMs - this.hubLoopStartMs) / 1000).toFixed(1);
-                this.transitionToRoom('R1', 1480, 1020, `Traversal sample: spawn -> hub -> gate loop ${seconds}s`);
-            } else {
-                this.transitionToRoom('R1', 1480, 1020, 'Transition: R2 -> R1');
+        if (this.currentRoomId === 'R2' && interactPressed) {
+            const nearbyDoor = this.branchDoors.find((door) => Phaser.Math.Distance.Between(this.player.x, this.player.y, door.x, door.y) < 140);
+            if (nearbyDoor) {
+                this.tryEnterBranchDoor(nearbyDoor);
+                return;
             }
+        }
+
+        const room = this.currentRoomId;
+
+        if (room === 'R1' && this.player.x > ROOM_IDS.R1.end - 90 && this.player.y > 950) {
+            this.transitionToRoom('R2', ROOM_IDS.R2.start + 120, 1020, 'Transition: R1 -> R2');
+            return;
+        }
+        if (room === 'R2' && this.player.x < ROOM_IDS.R2.start + 80 && this.player.y > 950) {
+            this.transitionToRoom('R1', ROOM_IDS.R1.end - 140, 1020, 'Transition: R2 -> R1');
             return;
         }
 
-        if (roomId === 'R9' && !this.r9ShellComplete && this.player.x > 4700 && this.player.y > 950) {
+        if (room === 'R3' && this.player.x > ROOM_IDS.R3.end - 90 && this.player.y > 860) {
+            this.transitionToRoom('R4', ROOM_IDS.R4.start + 120, 1020, 'Transition: R3 -> R4');
+            return;
+        }
+        if (room === 'R4' && this.player.x > ROOM_IDS.R4.end - 90 && this.player.y > 860) {
+            this.transitionToRoom('R2', ROOM_IDS.R2.start + 620, 1020, 'Branch A complete: return to R2');
+            return;
+        }
+
+        if (room === 'R5' && this.player.x > ROOM_IDS.R5.end - 90 && this.player.y > 860) {
+            this.transitionToRoom('R6', ROOM_IDS.R6.start + 120, 1020, 'Transition: R5 -> R6');
+            return;
+        }
+        if (room === 'R6' && this.player.x > ROOM_IDS.R6.end - 90 && this.player.y > 860) {
+            this.transitionToRoom('R2', ROOM_IDS.R2.start + 980, 1020, 'Branch B complete: return to R2');
+            return;
+        }
+
+        if (room === 'R7' && this.player.x > ROOM_IDS.R7.end - 90 && this.player.y > 860) {
+            this.transitionToRoom('R8', ROOM_IDS.R8.start + 120, 1020, 'Transition: R7 -> R8');
+            return;
+        }
+        if (room === 'R8' && this.player.x > ROOM_IDS.R8.end - 90 && this.player.y > 860) {
+            this.transitionToRoom('R2', ROOM_IDS.R2.start + 1320, 1020, 'Branch C complete: return to R2');
+            return;
+        }
+
+        if (room === 'R9' && !this.r9ShellComplete && this.player.x > ROOM_IDS.R9.end - 90 && this.player.y > 950) {
             this.setStatusMessage('R9 objective incomplete: touch the core first.', 90);
             this.transitionCooldownUntil = now + 250;
             return;
         }
-
-        if (roomId === 'R9' && this.r9ShellComplete && this.player.x > 4700 && this.player.y > 950) {
-            this.transitionToRoom('R10', 4920, 1020, 'Transition: R9 -> R10');
+        if (room === 'R9' && this.r9ShellComplete && this.player.x > ROOM_IDS.R9.end - 90 && this.player.y > 950) {
+            this.transitionToRoom('R10', ROOM_IDS.R10.start + 120, 1020, 'Transition: R9 -> R10');
+            return;
+        }
+        if (room === 'R10' && this.player.x < ROOM_IDS.R10.start + 80 && this.player.y > 950) {
+            this.transitionToRoom('R9', ROOM_IDS.R9.end - 140, 1020, 'Transition: R10 -> R9');
+            return;
+        }
+        if (room === 'R10' && this.player.x > ROOM_IDS.R10.end - 60 && this.player.y > 950) {
+            this.transitionToRoom('R1', 620, 1020, 'Transition: R10 -> R1 (gate return link)');
             return;
         }
 
-        if (roomId === 'R10' && this.player.x < 4860 && this.player.y > 950) {
-            this.transitionToRoom('R9', 4680, 1020, 'Transition: R10 -> R9');
-            return;
-        }
-
-        const nearGate = Phaser.Math.Distance.Between(this.player.x, this.player.y, this.finalGate.x, this.finalGate.y) < 96;
-        if (roomId === 'R1' && nearGate && interactPressed) {
+        const nearGate = Phaser.Math.Distance.Between(this.player.x, this.player.y, this.finalGate.x, this.finalGate.y) < 130;
+        if (room === 'R1' && nearGate && interactPressed) {
             if (this.finalGateState === 'UNLOCKED') {
                 this.preFinalCheckpointUnlocked = true;
-                this.transitionToRoom('R9', 3340, 1020, 'Gate opened. Entering R9 final area.');
+                this.transitionToRoom('R9', ROOM_IDS.R9.start + 140, 1020, 'Gate opened. Entering R9 final area.');
             } else if (this.finalGateState === 'LOCKED_KEY_ITEMS') {
                 this.setStatusMessage('Gate sealed: recover 3 Key Items.');
             } else {
@@ -475,7 +610,16 @@ class AshenHollow extends Phaser.Scene {
         }
     }
 
-    completeFinalShell(player, core) {
+    tryEnterBranchDoor(door) {
+        if (door.requires === 'A' && !this.abilityA) {
+            this.setStatusMessage('Branch B sealed: requires Ability Unlock A (Abyss Dash).');
+            return;
+        }
+        const spawnX = ROOM_IDS[door.target].start + 120;
+        this.transitionToRoom(door.target, spawnX, 1020, `Entering Branch ${door.id}`);
+    }
+
+    completeFinalShell(_player, core) {
         if (this.r9ShellComplete) return;
         this.r9ShellComplete = true;
         core.disableBody(true, true);
@@ -485,18 +629,19 @@ class AshenHollow extends Phaser.Scene {
 
     tryExitRun() {
         if (!this.r9ShellComplete) return;
-        this.setStatusMessage('MVP critical path complete (R1 -> R2 -> R9 -> R10).', 360);
+        this.setStatusMessage('MVP loop complete. Return to R1 via R10 right-edge link.', 360);
     }
 
     runDebugBypass() {
         this.preFinalCheckpointUnlocked = true;
-        this.transitionToRoom('R9', 3340, 1020, 'DEBUG BYPASS: jumped to R9.');
+        this.transitionToRoom('R9', ROOM_IDS.R9.start + 140, 1020, 'DEBUG BYPASS: jumped to R9.');
     }
 
     runDebugUnlock() {
-        this.keyItemsCollected = 3;
-        this.abilitiesUnlocked = 3;
-        this.refreshGateState();
+        this.keyItemA = this.keyItemB = this.keyItemC = true;
+        this.abilityA = this.abilityB = this.abilityC = true;
+        this.recomputeProgressionCounts();
+        this.refreshObjectiveText();
         this.setStatusMessage('DEBUG: Gate requirements set to 3/3 + 3/3.');
     }
 
@@ -518,16 +663,11 @@ class AshenHollow extends Phaser.Scene {
 
         if (jumpJustPressed) this.jumpBuffer = 5;
         if (this.jumpBuffer > 0) this.jumpBuffer--;
-
         if (onGround && velocityY >= 0) this.jumpsRemaining = 1;
 
-        if (left) {
-            this.player.setVelocityX(-CONFIG.PLAYER_SPEED).setFlipX(true);
-        } else if (right) {
-            this.player.setVelocityX(CONFIG.PLAYER_SPEED).setFlipX(false);
-        } else {
-            this.player.setVelocityX(this.player.body.velocity.x * CONFIG.FRICTION);
-        }
+        if (left) this.player.setVelocityX(-CONFIG.PLAYER_SPEED).setFlipX(true);
+        else if (right) this.player.setVelocityX(CONFIG.PLAYER_SPEED).setFlipX(false);
+        else this.player.setVelocityX(this.player.body.velocity.x * CONFIG.FRICTION);
 
         if (jump && onGround && this.jumpsRemaining > 0) {
             this.player.setVelocityY(CONFIG.JUMP_FORCE);
@@ -553,11 +693,14 @@ class AshenHollow extends Phaser.Scene {
             this.add.text(CONFIG.W / 2, CONFIG.H / 2, 'GAME OVER\nTap Restart', {
                 fontSize: '32px', fill: '#ff0066', align: 'center'
             }).setOrigin(0.5).setScrollFactor(0);
-        } else {
-            const respawnX = this.preFinalCheckpointUnlocked ? 3340 : 220;
-            this.player.setPosition(respawnX, CONFIG.WORLD_HEIGHT - 80).setVelocity(0, 0);
-            this.tweens.add({ targets: this.player, alpha: 0.2, duration: 100, yoyo: true, repeat: 5 });
+            return;
         }
+
+        const respawnRoom = this.preFinalCheckpointUnlocked ? 'R9' : 'R1';
+        const respawnX = ROOM_IDS[respawnRoom].start + 140;
+        this.setCurrentRoom(respawnRoom);
+        this.player.setPosition(respawnX, CONFIG.WORLD_HEIGHT - 80).setVelocity(0, 0);
+        this.tweens.add({ targets: this.player, alpha: 0.2, duration: 100, yoyo: true, repeat: 5 });
     }
 
     updateLifeDisplay() {
@@ -571,10 +714,8 @@ class AshenHollow extends Phaser.Scene {
         if (Math.abs(this.player.body.velocity.x) > 100) {
             this.trailPts.push({ x: this.player.x, y: this.player.y + 4, life: 10 });
         }
-
         this.trail.clear();
         this.trailPts = this.trailPts.filter((p) => p.life > 0);
-
         this.trailPts.forEach((p) => {
             p.life--;
             this.trail.fillStyle(0x00eeff, (p.life / 10) * 0.4);
@@ -599,7 +740,7 @@ if ('serviceWorker' in navigator) {
     });
 }
 
-const game = new Phaser.Game({
+new Phaser.Game({
     type: Phaser.AUTO,
     scale: {
         mode: Phaser.Scale.FIT,
