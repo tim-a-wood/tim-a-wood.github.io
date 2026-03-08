@@ -1,8 +1,8 @@
-# Level Design Specification: Labyrinthian Metroidvania Room
+# Level Design Specification: Hollow Knight Cave Room
 
 ## Overview
 
-Single-screen (bounded) metroidvania-style room: walls, floors, ceilings, and a corridor platform behind a locked door. Consistent spacing, no player stuck, 2D platformer best practices. Phaser 3, arcade physics, tile-based geometry, fixed world size.
+Single-screen (bounded) metroidvania-style room with a Hollow Knight-like cave structure: strong landmarks, overlapping shelves that feel carved out of one mass, layered vertical traversal, and a clear return route to the left-side door. Phaser 3, arcade physics, tile-based geometry, fixed world size.
 
 ---
 
@@ -52,12 +52,25 @@ Single-screen (bounded) metroidvania-style room: walls, floors, ceilings, and a 
 
 ## Additional Floating Platforms (LABYRINTH_LEDGES)
 
-Example list (left-edge X in code; spec gives center X so stored as center−16):
+Current list (left-edge X in code):
 
 - (0, 1100, 8) – Corridor
-- (320, 1120, 2), (500, 1080, 3), (750, 1100, 2), (1000, 1060, 2), (400, 1000, 2), (650, 980, 3), (950, 1020, 2), (300, 920, 3), (600, 900, 2), (900, 940, 3), (450, 820, 2), (750, 840, 3), (1050, 800, 2), (350, 720, 3), (700, 700, 2), (500, 600, 2), (850, 620, 3), (400, 520, 2), (700, 500, 3), (1000, 540, 2), (550, 400, 2), (900, 420, 3), (1050, 350, 4), (800, 380, 2), (1100, 240, 2), (1450, 120, 3)
+- (192, 1068, 10) – Threshold shelf
+- (416, 1012, 11) – Lower cave floor
+- (256, 936, 3) – Relic alcove branch
+- (640, 952, 11) – Mid-room shelf chain
+- (864, 892, 10) – East rise
+- (1088, 824, 8) – Upper east shelf
+- (1184, 748, 6) – Upper lip
+- (1024, 664, 8) – Return passage
+- (832, 580, 9) – West upper shelf
+- (608, 500, 8) – West middle shelf
+- (384, 420, 7) – Lower return shelf
+- (672, 340, 5) – Shrine step
+- (928, 260, 4) – Key approach
+- (1120, 180, 4) – High gated key perch
 
-Guidelines: platforms 2–4 tiles; vertical gaps 80–150 px; horizontal gaps &lt; 200–300 px; double-jump required for highest ledges.
+Guidelines: most platforms should read as one connected cave mass rather than isolated pads; use long overlapping shelves, only a few branch ledges, and keep the relic as a small side-branch reward while the key remains double-jump gated.
 
 ---
 
@@ -73,4 +86,4 @@ Guidelines: platforms 2–4 tiles; vertical gaps 80–150 px; horizontal gaps &l
 
 ## Summary
 
-Floor and ceiling full width; right wall full height; left wall stops for corridor. Corridor (8 tiles, y=1100) leads to locked door (248, 1137). Key on high ledge (1450, 120, 3); relic on path. Labyrinth of floating platforms for vertical exploration.
+Floor and ceiling stay full width; right wall full height; left wall stops for the corridor. Corridor `(0, 1100, 8)` leads to locked door `(248, 1137)`. The player climbs onto a continuous cave shelf network, detours into the relic alcove `(304, 902)`, pushes up through the east shelves, crosses the upper return passage, then double-jumps to the key perch `(1200, 146)` before returning to the door.

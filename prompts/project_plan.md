@@ -23,7 +23,7 @@
 ## Current State
 
 - **Codebase:** Single `index.html` with Phaser 3; monolithic layout for simplicity and portability.
-- **Gameplay:** **Ashen Hollow** — bounded world with one explorable zone: fixed width (1600px), hand-placed floor and floating platforms, camera/world bounds, lives, restart, a first-pass double jump, one simple high-ledge gate, and a key-to-door backtracking loop (key on the high ledge, locked door at ground level on the left).
+- **Gameplay:** **Ashen Hollow** — bounded world (3200×1200): room 1 (right, 1600–3200) is the Hollow Knight–style cave with key/door; room 2 (left, 0–1600) is reached through the unlocked door and has a reachable exit in the top left. Camera/world bounds, lives, restart, double jump (relic-unlock), key-to-door loop, and exit trigger in room 2.
 - **Tech:** HTML/JS, Phaser 3 (Arcade Physics), texture generation at runtime. No external art assets. `manifest.json` is present; service-worker caching is intentionally disabled during rapid iteration on GitHub Pages to avoid stale installs.
 - **Quality:** Unit tests in `./tests/` cover current movement/jump state logic and first-zone layout; CI via `.github/workflows/test.yml`. Manual acceptance checks live in `tests/acceptance_tests.md`, with per-change outcomes recorded in `tests/test_report.md`.
 - **Docs:** `prompts/project_overview.md`, this plan, `README.md`, `tests/README.md`, `tests/acceptance_tests.md`, and `tests/test_report.md`.

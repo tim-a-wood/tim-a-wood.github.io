@@ -8,7 +8,7 @@ const assert = require('assert');
 
 const CONFIG = {
     H: 400,
-    WORLD_WIDTH: 1600,
+    WORLD_WIDTH: 3200,
     WORLD_HEIGHT: 1200,
     PLAYER_SPEED: 280,
     JUMP_FORCE: -690,
@@ -22,36 +22,40 @@ const ROOM_LAYOUT = {
     roomType: 'internal'
 };
 
-// ----- Labyrinth layout (must match index.html LABYRINTH_LEDGES; Level Design Spec 1600×1200) -----
+// ----- Room 1: Hollow Knight cave (must match index.html LABYRINTH_LEDGES) -----
 const LABYRINTH_LEDGES = [
-    { x: 0, y: 1100, len: 8, tint: 0 },
-    { x: 304, y: 1120, len: 2, tint: 0 },
-    { x: 484, y: 1080, len: 3, tint: 1 },
-    { x: 734, y: 1100, len: 2, tint: 2 },
-    { x: 984, y: 1060, len: 2, tint: 3 },
-    { x: 384, y: 1000, len: 2, tint: 0 },
-    { x: 634, y: 980, len: 3, tint: 1 },
-    { x: 934, y: 1020, len: 2, tint: 2 },
-    { x: 284, y: 920, len: 3, tint: 3 },
-    { x: 584, y: 900, len: 2, tint: 0 },
-    { x: 884, y: 940, len: 3, tint: 1 },
-    { x: 434, y: 820, len: 2, tint: 2 },
-    { x: 734, y: 840, len: 3, tint: 3 },
-    { x: 1034, y: 800, len: 2, tint: 0 },
-    { x: 334, y: 720, len: 3, tint: 1 },
-    { x: 684, y: 700, len: 2, tint: 2 },
-    { x: 484, y: 600, len: 2, tint: 3 },
-    { x: 834, y: 620, len: 3, tint: 0 },
-    { x: 384, y: 520, len: 2, tint: 1 },
-    { x: 684, y: 500, len: 3, tint: 2 },
-    { x: 984, y: 540, len: 2, tint: 3 },
-    { x: 534, y: 400, len: 2, tint: 0 },
-    { x: 884, y: 420, len: 3, tint: 1 },
-    { x: 1034, y: 350, len: 4, tint: 2 },
-    { x: 784, y: 380, len: 2, tint: 3 },
-    { x: 1084, y: 240, len: 2, tint: 0 },
-    { x: 1434, y: 120, len: 3, tint: 1 }
+    { x: 0, y: 1100, len: 12, tint: 0 },
+    { x: 224, y: 1044, len: 18, tint: 1 },
+    { x: 416, y: 964, len: 19, tint: 2 },
+    { x: 608, y: 884, len: 18, tint: 3 },
+    { x: 768, y: 804, len: 15, tint: 0 },
+    { x: 608, y: 724, len: 18, tint: 1 },
+    { x: 416, y: 644, len: 20, tint: 2 },
+    { x: 224, y: 564, len: 16, tint: 3 },
+    { x: 416, y: 484, len: 13, tint: 0 },
+    { x: 704, y: 404, len: 10, tint: 1 },
+    { x: 928, y: 308, len: 8, tint: 2 },
+    { x: 1120, y: 180, len: 4, tint: 4 }
 ];
+
+const ROOM1_OFFSET = 1600;
+
+// ----- Room 2: path to exit (must match index.html ROOM2_LEDGES) -----
+const ROOM2_LEDGES = [
+    { x: 1248, y: 1068, len: 11, tint: 0 },
+    { x: 992, y: 996, len: 14, tint: 1 },
+    { x: 736, y: 924, len: 15, tint: 2 },
+    { x: 480, y: 852, len: 14, tint: 3 },
+    { x: 256, y: 780, len: 12, tint: 0 },
+    { x: 96, y: 700, len: 9, tint: 1 },
+    { x: 64, y: 612, len: 7, tint: 2 },
+    { x: 64, y: 516, len: 6, tint: 3 },
+    { x: 64, y: 420, len: 5, tint: 0 },
+    { x: 64, y: 332, len: 4, tint: 1 },
+    { x: 64, y: 244, len: 4, tint: 4 }
+];
+
+const ROOM2_EXIT = { x: 128, y: 210 };
 
 // ----- Movement / jump helpers (must match index.html handleMovement()) -----
 function computeHorizontalVelocity({ left, right, currentVelocityX }) {
@@ -130,16 +134,28 @@ function buildFirstZoneLayout(worldWidth = CONFIG.WORLD_WIDTH, tile = ROOM_LAYOU
         for (let ty = tile; ty < 1168; ty += tile) {
             wallTiles.push({ x: worldWidth - 16, y: ty + 16, texture: 'floor' });
         }
-        for (let ty = tile; ty < ROOM_LAYOUT.LEFT_DOORWAY_TOP; ty += tile) {
+        const room2GapEnd = 272;
+        for (let ty = tile; ty < room2GapEnd - tile * 2; ty += tile) {
+            wallTiles.push({ x: 16, y: ty + 16, texture: 'floor' });
+        }
+        for (let ty = room2GapEnd; ty < 1168; ty += tile) {
             wallTiles.push({ x: 16, y: ty + 16, texture: 'floor' });
         }
         wallTiles.push({ x: 16, y: 1077, texture: 'floor' });
+        const room1LeftX = ROOM1_OFFSET + 16;
+        for (let ty = tile; ty < ROOM_LAYOUT.LEFT_DOORWAY_TOP; ty += tile) {
+            wallTiles.push({ x: room1LeftX, y: ty + 16, texture: 'floor' });
+        }
+        wallTiles.push({ x: room1LeftX, y: 1077, texture: 'floor' });
     }
 
-    const ledges = LABYRINTH_LEDGES;
-
     const platformTiles = [];
-    ledges.forEach(({ x, y, len, tint }) => {
+    LABYRINTH_LEDGES.forEach(({ x, y, len, tint }) => {
+        for (let i = 0; i < len; i++) {
+            platformTiles.push({ x: ROOM1_OFFSET + x + (i * tile) + 16, y, tint: `p${tint}` });
+        }
+    });
+    ROOM2_LEDGES.forEach(({ x, y, len, tint }) => {
         for (let i = 0; i < len; i++) {
             platformTiles.push({ x: x + (i * tile) + 16, y, tint: `p${tint}` });
         }
@@ -150,9 +166,10 @@ function buildFirstZoneLayout(worldWidth = CONFIG.WORLD_WIDTH, tile = ROOM_LAYOU
 
 function buildProgressionLayout() {
     return {
-        exitDoor: { x: 248, y: 1137, texture: 'doorLocked' },
-        keyPickup: { x: 1498, y: 86, texture: 'key' },
-        relicPickup: { x: 416, y: 493, texture: 'relic' }
+        exitDoor: { x: 248 + ROOM1_OFFSET, y: 1137, texture: 'doorLocked' },
+        keyPickup: { x: 1200 + ROOM1_OFFSET, y: 146, texture: 'key' },
+        relicPickup: { x: 304 + ROOM1_OFFSET, y: 902, texture: 'relic' },
+        exitTrigger: { x: ROOM2_EXIT.x, y: ROOM2_EXIT.y, texture: 'exit' }
     };
 }
 
@@ -479,30 +496,30 @@ function isInPit(mid, pitZones) {
 // ========== Level layout tests ==========
 (function testFirstZoneCreatesExpectedFloorTiles() {
     const layout = buildFirstZoneLayout();
-    assert.strictEqual(layout.floorCenters.length, 50, '1600px world with 32px tiles should create 50 floor tiles');
+    assert.strictEqual(layout.floorCenters.length, 100, '3200px world with 32px tiles should create 100 floor tiles');
     assert.strictEqual(layout.floorCenters[0], 16);
-    assert.strictEqual(layout.floorCenters[layout.floorCenters.length - 1], 1584);
+    assert.strictEqual(layout.floorCenters[layout.floorCenters.length - 1], 3184);
 })();
 
 (function testFirstZoneCreatesExpectedFloatingPlatforms() {
     const layout = buildFirstZoneLayout();
-    const expectedCount = LABYRINTH_LEDGES.reduce((sum, l) => sum + l.len, 0);
-    assert.strictEqual(layout.platformTiles.length, expectedCount, 'platform count must match LABYRINTH_LEDGES');
-    assert.deepStrictEqual(layout.platformTiles[0], { x: 16, y: 1100, tint: 'p0' }, 'first tile is corridor start');
+    const expectedCount = LABYRINTH_LEDGES.reduce((sum, l) => sum + l.len, 0) + ROOM2_LEDGES.reduce((sum, l) => sum + l.len, 0);
+    assert.strictEqual(layout.platformTiles.length, expectedCount, 'platform count must match room 1 + room 2 ledges');
+    assert.deepStrictEqual(layout.platformTiles[0], { x: ROOM1_OFFSET + 16, y: 1100, tint: 'p0' }, 'first tile is room 1 corridor');
 })();
 
 (function testFirstZoneCreatesBoundaryWallsAtClosedEdges() {
     const layout = buildFirstZoneLayout();
-    assert.strictEqual(layout.wallTiles.length, 120, 'ceiling 50 + right 36 + left 34');
+    assert.strictEqual(layout.wallTiles.length, 205, 'ceiling 100 + right 36 + room2 left 36 + room1 left 33');
     assert.deepStrictEqual(layout.wallTiles[0], { x: 16, y: 16, texture: 'floor' });
 })();
 
 (function testLeftEdgeStaysOpenOnlyForDoorCorridor() {
     const layout = buildFirstZoneLayout();
-    const leftWallTiles = layout.wallTiles.filter((t) => t.x === 16 && t.y > 16);
-    assert(leftWallTiles.length >= 33, 'left wall from 48 down to 1077');
-    assert.deepStrictEqual(leftWallTiles[0], { x: 16, y: 48, texture: 'floor' });
-    assert.deepStrictEqual(leftWallTiles[leftWallTiles.length - 1], { x: 16, y: 1077, texture: 'floor' });
+    const room1LeftTiles = layout.wallTiles.filter((t) => t.x === ROOM1_OFFSET + 16 && t.y > 16);
+    assert(room1LeftTiles.length >= 33, 'room 1 left wall from 48 down to 1077');
+    assert.deepStrictEqual(room1LeftTiles[0], { x: ROOM1_OFFSET + 16, y: 48, texture: 'floor' });
+    assert.deepStrictEqual(room1LeftTiles[room1LeftTiles.length - 1], { x: ROOM1_OFFSET + 16, y: 1077, texture: 'floor' });
 })();
 
 (function testOutdoorRoomHasNoBoundaryWalls() {
@@ -512,24 +529,25 @@ function isInPit(mid, pitZones) {
 
 (function testFirstZoneIncludesLeftCorridorLedge() {
     const layout = buildFirstZoneLayout();
-    const corridorTiles = layout.platformTiles.filter((tile) => tile.y === 1100);
+    const corridorTiles = layout.platformTiles.filter((tile) => tile.y === 1100 && tile.x >= ROOM1_OFFSET);
     const firstEight = corridorTiles.slice(0, 8);
+    const base = ROOM1_OFFSET + 16;
     assert.deepStrictEqual(firstEight, [
-        { x: 16, y: 1100, tint: 'p0' },
-        { x: 48, y: 1100, tint: 'p0' },
-        { x: 80, y: 1100, tint: 'p0' },
-        { x: 112, y: 1100, tint: 'p0' },
-        { x: 144, y: 1100, tint: 'p0' },
-        { x: 176, y: 1100, tint: 'p0' },
-        { x: 208, y: 1100, tint: 'p0' },
-        { x: 240, y: 1100, tint: 'p0' }
-    ], 'first ledge is corridor (8 tiles at y=1100)');
+        { x: base, y: 1100, tint: 'p0' },
+        { x: base + 32, y: 1100, tint: 'p0' },
+        { x: base + 64, y: 1100, tint: 'p0' },
+        { x: base + 96, y: 1100, tint: 'p0' },
+        { x: base + 128, y: 1100, tint: 'p0' },
+        { x: base + 160, y: 1100, tint: 'p0' },
+        { x: base + 192, y: 1100, tint: 'p0' },
+        { x: base + 224, y: 1100, tint: 'p0' }
+    ], 'first ledge is room 1 corridor (8 tiles at y=1100)');
 })();
 
 (function testFirstZoneIncludesHighGateLedge() {
     const layout = buildFirstZoneLayout();
-    const highTiles = layout.platformTiles.filter((tile) => tile.y <= 150);
-    assert(highTiles.length >= 3, 'key ledge (1450, 120, 3) produces high platform');
+    const highTiles = layout.platformTiles.filter((tile) => tile.y <= 200);
+    assert.strictEqual(highTiles.length, 4, 'high gated perch is four tiles wide at y=180');
 })();
 
 (function testAllPlatformTintsReferenceKnownColors() {
@@ -543,9 +561,10 @@ function isInPit(mid, pitZones) {
 // ========== Progression layout and state tests ==========
 (function testProgressionObjectsAppearAtExpectedPositions() {
     const layout = buildProgressionLayout();
-    assert.deepStrictEqual(layout.exitDoor, { x: 248, y: 1137, texture: 'doorLocked' });
-    assert.deepStrictEqual(layout.keyPickup, { x: 1498, y: 86, texture: 'key' });
-    assert.deepStrictEqual(layout.relicPickup, { x: 416, y: 493, texture: 'relic' });
+    assert.deepStrictEqual(layout.exitDoor, { x: 248 + ROOM1_OFFSET, y: 1137, texture: 'doorLocked' });
+    assert.deepStrictEqual(layout.keyPickup, { x: 1200 + ROOM1_OFFSET, y: 146, texture: 'key' });
+    assert.deepStrictEqual(layout.relicPickup, { x: 304 + ROOM1_OFFSET, y: 902, texture: 'relic' });
+    assert.deepStrictEqual(layout.exitTrigger, { x: ROOM2_EXIT.x, y: ROOM2_EXIT.y, texture: 'exit' });
 })();
 
 (function testTouchingRelicUnlocksDoubleJump() {

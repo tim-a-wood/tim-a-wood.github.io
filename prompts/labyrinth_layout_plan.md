@@ -25,9 +25,9 @@ Redesign interior platforms to feel labyrinthian. Corridor platform and exit doo
 
 ---
 
-## Level Design Specification (current source of truth)
+## Current source of truth
 
-The room follows the **Level Design Specification: Labyrinthian Metroidvania Room** (world 1600×1200, 32×32 tiles, 14px platform thickness). Layout is defined by **`LABYRINTH_LEDGES`** in `index.html`: explicit platform list with corridor first, winding path to high key ledge. Door at `(248, 1137)`; key on high ledge; relic on mid platform.
+The current room is a **Hollow Knight-inspired cave system** in a 1600×1200 world. Layout is defined by **`LABYRINTH_LEDGES`** in `index.html`: corridor first, then a mostly interconnected chain of overlapping cave shelves, a relic alcove branch, an upper return route, and a high gated perch. Door stays at `(248, 1137)`; relic sits on an early side branch; key sits on the high perch.
 
 ---
 
@@ -116,9 +116,9 @@ The room follows the **Level Design Specification: Labyrinthian Metroidvania Roo
 
 ---
 
-## Implemented layout: F (Guide-based single room), scaled to 1000×600
+## Implemented layout: Hollow Knight cave room (1600×1200)
 
-The game and tests use Layout F: 25 ledges (corridor → landing → relic branch → zigzag → key approach → key ledge). Relic (256, 436), key (954, 86), door (248, 537). Level viewer "Current" matches.
+The game and tests now use a cave-like Hollow Knight structure: a compressed corridor entry, an overlapping threshold shelf, a broad lower cave floor, a relic alcove tucked into the left side of the formation, a linked mid-room shelf chain, an upper return passage, and a double-jump key perch. Relic `(304, 902)`, key `(1200, 146)`, door `(248, 1137)`. Level viewer `Current` matches.
 
 ---
 
