@@ -901,8 +901,11 @@ class AshenHollow extends Phaser.Scene {
 
     handleInteractionsAndTransitions() {
         const now = this.time.now;
-        const interactPressed = (this.cursors.up && this.cursors.up.justDown) ||
-            (this.interactKey && Phaser.Input.Keyboard.JustDown(this.interactKey)) ||
+        const room = this.currentRoomId;
+        const bounds = ROOM_IDS[room];
+        const r3ShaftX = ROOM_IDS.R3.start + 820;
+        const r4ShaftX = ROOM_IDS.R4.start + 820;
+        const interactPressed = (this.interactKey && Phaser.Input.Keyboard.JustDown(this.interactKey)) ||
             this.interactQueued;
         this.interactQueued = false;
 
@@ -911,7 +914,7 @@ class AshenHollow extends Phaser.Scene {
 
         if (now < this.transitionCooldownUntil) return;
 
-        if (this.currentRoomId === 'R2' && interactPressed) {
+        if (room === 'R2' && interactPressed) {
             const nearbyDoor = this.branchDoors.find((door) => Phaser.Math.Distance.Between(this.player.x, this.player.y, door.x, door.y) < 140);
             if (nearbyDoor) {
                 this.tryEnterBranchDoor(nearbyDoor);
@@ -919,10 +922,20 @@ class AshenHollow extends Phaser.Scene {
             }
         }
 
-        const room = this.currentRoomId;
-        const bounds = ROOM_IDS[room];
-        const r3ShaftX = ROOM_IDS.R3.start + 820;
-        const r4ShaftX = ROOM_IDS.R4.start + 820;
+        if (room === 'R3' && interactPressed) {
+            const r3DoorX = r3ShaftX;
+            const r3DoorY = 1148;
+            const nearR3ReturnDoor = Phaser.Math.Distance.Between(this.player.x, this.player.y, r3DoorX, r3DoorY) < 130;
+            if (nearR3ReturnDoor) {
+                this.completeBranchRun('A');
+                this.transitionToRoom('R2', ROOM_IDS.R2.start + 680, 780, 'Branch A complete: return to R2', {
+                    entrySide: 'top',
+                    preserveY: false
+                });
+                return;
+            }
+        }
+
         this.player.x = Phaser.Math.Clamp(this.player.x, bounds.start + 24, bounds.end - 24);
 
         if (room === 'R1' && this.player.x > ROOM_IDS.R1.end - 70) {
@@ -943,14 +956,6 @@ class AshenHollow extends Phaser.Scene {
         }
         if (room === 'R4' && this.player.y > 980 && Math.abs(this.player.x - r4ShaftX) < 170) {
             this.transitionToRoom('R3', r3ShaftX, 360, 'Transition: R4 -> R3 (south descent)', {
-                entrySide: 'top',
-                preserveY: false
-            });
-            return;
-        }
-        if (room === 'R3' && this.player.body.velocity.y > 0 && this.player.y > 980 && Math.abs(this.player.x - r3ShaftX) < 190) {
-            this.completeBranchRun('A');
-            this.transitionToRoom('R2', ROOM_IDS.R2.start + 680, 780, 'Branch A complete: return to R2', {
                 entrySide: 'top',
                 preserveY: false
             });
