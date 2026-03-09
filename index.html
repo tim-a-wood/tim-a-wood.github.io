@@ -690,15 +690,25 @@ class AshenHollow extends Phaser.Scene {
         const roomMid = room.start + (CONFIG.ROOM_WIDTH / 2);
         const entryEdge = options.entrySide || (targetX <= roomMid ? 'left' : 'right');
         const resolvedY = options.preserveY === false ? targetY : sourceY;
+        const isVertical = entryEdge === 'top' || entryEdge === 'bottom';
         const entryX = entryEdge === 'left' ? room.start + 56
             : entryEdge === 'right' ? room.end - 56
                 : targetX;
-        const entryY = entryEdge === 'top' ? 56
-            : entryEdge === 'bottom' ? CONFIG.WORLD_HEIGHT - 56
-                : resolvedY;
+        const verticalOffset = 180;
+        let entryY;
+        if (isVertical) {
+            const targetVertical = targetY;
+            if (entryEdge === 'top') {
+                entryY = Math.max(40, targetVertical - verticalOffset);
+            } else {
+                entryY = Math.min(CONFIG.WORLD_HEIGHT - 40, targetVertical + verticalOffset);
+            }
+        } else {
+            entryY = resolvedY;
+        }
         const facingLeft = entryEdge === 'right';
         const transitionSpeedPxPerSec = CONFIG.PLAYER_SPEED;
-        const entryDistancePx = (entryEdge === 'top' || entryEdge === 'bottom')
+        const entryDistancePx = isVertical
             ? Math.abs(targetY - entryY)
             : Math.abs(targetX - entryX);
         const entryDurationMs = Phaser.Math.Clamp(
