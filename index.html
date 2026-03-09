@@ -496,6 +496,8 @@ class AshenHollow extends Phaser.Scene {
                 label: 'A North: Crimson Depths',
                 spawnX: ROOM_IDS.R3.start + 820,
                 spawnY: 1120,
+                entrySide: 'bottom',
+                verticalDirection: 'up',
                 preserveY: false
             },
             {
@@ -1050,6 +1052,7 @@ class AshenHollow extends Phaser.Scene {
         };
         this.transitionToRoom(door.target, spawnX, spawnY, entryFlavor[door.id] || `Entering Branch ${door.id}`, {
             entrySide: door.entrySide,
+            verticalDirection: door.verticalDirection,
             preserveY: door.preserveY
         });
     }
