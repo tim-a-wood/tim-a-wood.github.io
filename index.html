@@ -489,11 +489,11 @@ class AshenHollow extends Phaser.Scene {
             {
                 id: 'A',
                 room: 'R2',
-                x: ROOM_IDS.R2.start + 820,
-                y: 1088,
+                x: ROOM_IDS.R2.start + 680,
+                y: 740,
                 target: 'R3',
                 requires: null,
-                label: 'A Down: Crimson Depths',
+                label: 'A North: Crimson Depths',
                 spawnX: ROOM_IDS.R3.start + 820,
                 spawnY: 1060,
                 entrySide: 'top',
@@ -560,7 +560,7 @@ class AshenHollow extends Phaser.Scene {
             fontSize: '10px', fill: '#d7ebff', align: 'center'
         }).setOrigin(0.5);
 
-        this.add.text(ROOM_IDS.R2.start + 820, 1038, '[A] DOWN -> FANG SPIRE', {
+        this.add.text(ROOM_IDS.R2.start + 680, 690, '[A] NORTH -> FANG SPIRE', {
             fontSize: '10px', fill: '#ff9aa5', stroke: '#000', strokeThickness: 2
         }).setOrigin(0.5);
         this.add.text(ROOM_IDS.R2.start + 1300, 868, '[B] EAST -> BONE ARCH', {
@@ -582,6 +582,10 @@ class AshenHollow extends Phaser.Scene {
         this.add.text(ROOM_IDS.R7.start + 880, 340, BRANCH_CONFIG.C.landmark, {
             fontSize: '11px', fill: '#9fdfff', stroke: '#000', strokeThickness: 2
         }).setOrigin(0.5);
+
+        this.physics.add.staticImage(ROOM_IDS.R3.start + 820, 1088, 'doorFrame')
+            .setTint(BRANCH_CONFIG.A.color)
+            .refreshBody();
 
         this.add.text(ROOM_IDS.R4.start + 820, 1000, 'DESCEND -> R3', {
             fontSize: '10px', fill: '#ff9aa5', stroke: '#000', strokeThickness: 2
