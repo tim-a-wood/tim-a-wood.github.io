@@ -496,8 +496,9 @@ class AshenHollow extends Phaser.Scene {
                 label: 'A North: Crimson Depths',
                 spawnX: ROOM_IDS.R3.start + 820,
                 spawnY: 1060,
-                entrySide: 'bottom',
-                preserveY: false
+                entrySide: 'top',
+                preserveY: false,
+                verticalDirection: 'up'
             },
             {
                 id: 'B',
@@ -698,10 +699,15 @@ class AshenHollow extends Phaser.Scene {
         let entryY;
         if (isVertical) {
             const targetVertical = targetY;
-            if (entryEdge === 'top') {
-                entryY = Math.max(40, targetVertical - verticalOffset);
-            } else {
+            const requestedDir = options.verticalDirection || 'auto';
+            const direction = requestedDir === 'auto'
+                ? (entryEdge === 'top' ? 'down' : 'up')
+                : requestedDir;
+
+            if (direction === 'up') {
                 entryY = Math.min(CONFIG.WORLD_HEIGHT - 40, targetVertical + verticalOffset);
+            } else {
+                entryY = Math.max(40, targetVertical - verticalOffset);
             }
         } else {
             entryY = resolvedY;

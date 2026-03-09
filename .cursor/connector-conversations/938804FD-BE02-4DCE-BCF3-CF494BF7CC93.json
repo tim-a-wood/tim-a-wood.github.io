@@ -1,0 +1,18 @@
+{
+  "createdAt" : "2026-03-09T12:15:07.485Z",
+  "id" : "938804FD-BE02-4DCE-BCF3-CF494BF7CC93",
+  "messages" : [
+    {
+      "content" : "The player still seems to “fall” when entering R3 from R2, when the player should be moving upwards as if they’re moving through the flow",
+      "id" : "A8692950-4DF8-47A9-9E40-59F5F6C1FA9F",
+      "role" : "user"
+    },
+    {
+      "content" : "",
+      "id" : "D82E1991-E68E-4C5C-8F01-87B9A8523EA7",
+      "role" : "assistant"
+    }
+  ],
+  "title" : "The player still seems to “fall” when entering R3 from R2, w",
+  "updatedAt" : "2026-03-09T12:15:07.485Z"
+}
