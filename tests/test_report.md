@@ -4,7 +4,7 @@ Update this file after each code change. Record one row for every acceptance tes
 
 | ID | Line Item | Description | Result | Notes |
 |---|---|---|---|---|
-| AT-01 | Fresh Load And Startup | Verifies the game loads into the playable scene with the player, HUD, and controls visible. | Not Run | R2→R3 branch A entry animation now uses a relative vertical tween so the player rises smoothly up out of the R3 floor door; no manual startup run was executed here. |
+| AT-01 | Fresh Load And Startup | Verifies the game loads into the playable scene with the player, HUD, and controls visible. | Not Run | R2→R3 Branch A entry animation now uses a relative vertical tween so the player rises smoothly up out of the R3 floor door, and the spawn Y now aligns with the floor so the player appears on the ground; no manual startup run was executed here. |
 | AT-02 | Movement, Camera, And World Bounds | Verifies horizontal movement works and the player/camera stay inside the bounded world. | Not Run | World bounds and camera logic were unchanged; only the vertical entry tween for room transitions (notably R2→R3 branch A) was refined, and movement was not manually re-tested. |
 | AT-03 | Ground Jump | Verifies the first jump consistently works from the ground. | Not Run | Platform spacing changed substantially; manual jump checks were not executed here. |
 | AT-04 | Mid-Air Double Jump | Verifies a second press/tap in mid-air triggers exactly one additional jump. | Not Run | The new key perch is intentionally gated by double jump, but the route was not manually exercised here. |
