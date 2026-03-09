@@ -191,13 +191,13 @@
     const rooms = [
       { id: "R1", name: "Spawn + Final Gate Chamber", cluster: "main", x: 120, y: 280, primary: "Orientation + final gate objective", secondary: "Progress recap / payoff anticipation", timing: "45-60s initial, 20-30s revisit", respawn: "Primary spawn", interactables: ["Spawn point", "Final gate terminal", "Gate-state UI marker", "Path sign to R2"] },
       { id: "R2", name: "Central Hub", cluster: "main", x: 350, y: 280, primary: "Hub routing", secondary: "Progress readability", timing: "30-45s per visit", respawn: "Mid-run checkpoint", interactables: ["Branch doors A/B/C", "Branch completion board", "Shortcut marker back to R1"] },
-      { id: "R3", name: "Branch A Entry Trial", cluster: "a", x: 560, y: 130, primary: "Branch A challenge entry", secondary: "Teach A branch rhythm", timing: "60-90s", respawn: "None", interactables: ["Challenge trigger A", "Branch landmark"] },
-      { id: "R4", name: "Branch A Reward + Ability Node", cluster: "a", x: 780, y: 130, primary: "Key Item A reward", secondary: "Ability Unlock A activation", timing: "90-120s", respawn: "None", interactables: ["Key Item A pickup", "Ability Unlock A node", "Return door to R2"] },
-      { id: "R5", name: "Branch B Entry Trial", cluster: "b", x: 560, y: 280, primary: "Branch B challenge entry", secondary: "Mechanical variation", timing: "60-90s", respawn: "None", interactables: ["Challenge trigger B", "Branch landmark"] },
-      { id: "R6", name: "Branch B Reward + Ability Node", cluster: "b", x: 780, y: 280, primary: "Key Item B reward", secondary: "Ability Unlock B activation", timing: "90-120s", respawn: "None", interactables: ["Key Item B pickup", "Ability Unlock B node", "Return door to R2"] },
-      { id: "R7", name: "Branch C Entry Trial", cluster: "c", x: 560, y: 430, primary: "Branch C challenge entry", secondary: "Pre-final pressure ramp", timing: "60-90s", respawn: "None", interactables: ["Challenge trigger C", "Branch landmark"] },
-      { id: "R8", name: "Branch C Reward + Ability Node", cluster: "c", x: 780, y: 430, primary: "Key Item C reward", secondary: "Ability Unlock C activation", timing: "90-120s", respawn: "None", interactables: ["Key Item C pickup", "Ability Unlock C node", "Return door to R2"] },
-      { id: "R9", name: "Final Area", cluster: "main", x: 350, y: 470, primary: "Final encounter/objective", secondary: "Run climax", timing: "120-180s", respawn: "Pre-final checkpoint", interactables: ["Final objective trigger", "Pre-exit unlock trigger"] },
+      { id: "R3", name: "Branch A Entry Trial", cluster: "a", x: 350, y: 130, primary: "Branch A challenge entry", secondary: "Narrow vertical ascent (north)", timing: "60-90s", respawn: "None", interactables: ["Challenge trigger A", "Branch landmark"] },
+      { id: "R4", name: "Branch A Reward + Ability Node", cluster: "a", x: 350, y: 60, primary: "Key Item A reward", secondary: "Ability Unlock A activation", timing: "90-120s", respawn: "None", interactables: ["Key Item A pickup", "Ability Unlock A node", "Loop-back lane to R3"] },
+      { id: "R5", name: "Branch B Entry Trial", cluster: "b", x: 560, y: 280, primary: "Branch B challenge entry", secondary: "Wide horizontal route (east)", timing: "60-90s", respawn: "None", interactables: ["Challenge trigger B", "Branch landmark"] },
+      { id: "R6", name: "Branch B Reward + Ability Node", cluster: "b", x: 780, y: 280, primary: "Key Item B reward", secondary: "Ability Unlock B activation", timing: "90-120s", respawn: "None", interactables: ["Key Item B pickup", "Ability Unlock B node", "Loop-back lane to R5"] },
+      { id: "R7", name: "Branch C Entry Trial", cluster: "c", x: 350, y: 430, primary: "Branch C challenge entry", secondary: "Narrow vertical descent (south)", timing: "60-90s", respawn: "None", interactables: ["Challenge trigger C", "Branch landmark"] },
+      { id: "R8", name: "Branch C Reward + Ability Node", cluster: "c", x: 350, y: 510, primary: "Key Item C reward", secondary: "Ability Unlock C activation", timing: "90-120s", respawn: "None", interactables: ["Key Item C pickup", "Ability Unlock C node", "Loop-back lane to R7"] },
+      { id: "R9", name: "Final Area", cluster: "main", x: 620, y: 470, primary: "Final encounter/objective", secondary: "Run climax", timing: "120-180s", respawn: "Pre-final checkpoint", interactables: ["Final objective trigger", "Pre-exit unlock trigger"] },
       { id: "R10", name: "Exit / Completion Room", cluster: "main", x: 900, y: 510, primary: "Exit and completion trigger", secondary: "Reward/summary", timing: "30-60s", respawn: "N/A", interactables: ["Exit trigger", "Run completion marker"] }
     ];
 
@@ -206,13 +206,16 @@
       { from: "R2", to: "R1", type: "normal" },
       { from: "R2", to: "R3", type: "normal" },
       { from: "R3", to: "R4", type: "normal" },
-      { from: "R4", to: "R2", type: "normal" },
+      { from: "R4", to: "R3", type: "normal" },
+      { from: "R3", to: "R2", type: "normal" },
       { from: "R2", to: "R5", type: "normal" },
       { from: "R5", to: "R6", type: "normal" },
-      { from: "R6", to: "R2", type: "normal" },
+      { from: "R6", to: "R5", type: "normal" },
+      { from: "R5", to: "R2", type: "normal" },
       { from: "R2", to: "R7", type: "normal" },
       { from: "R7", to: "R8", type: "normal" },
-      { from: "R8", to: "R2", type: "normal" },
+      { from: "R8", to: "R7", type: "normal" },
+      { from: "R7", to: "R2", type: "normal" },
       { from: "R1", to: "R9", type: "gate" },
       { from: "R9", to: "R10", type: "normal" }
     ];
@@ -335,7 +338,7 @@
       document.getElementById("kEdges").textContent = String(edges.length);
       document.getElementById("graphFlow").textContent = [
         "Critical flow:",
-        "R1 -> R2 -> (R3 -> R4 -> R2, R5 -> R6 -> R2, R7 -> R8 -> R2) -> R1 -> R9 -> R10",
+        "R1 -> R2 -> (A North loop: R3 -> R4 -> R3 -> R2, B East loop: R5 -> R6 -> R5 -> R2, C South loop: R7 -> R8 -> R7 -> R2) -> R1 -> R9 -> R10",
         "",
         "Gate rule:",
         "R1 -> R9 requires key_items_collected == 3 and abilities_unlocked == 3"

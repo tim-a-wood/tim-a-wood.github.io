@@ -149,18 +149,18 @@ Downstream input: playable backbone for branch integration and pacing calibratio
 
 Scope of work: implement three distinct branches with one key-item reward each.
 
-- [ ] Greybox `R3-R8` based on frozen graph.
-- [ ] Implement Branch A (`R3`, `R4`) with hard-gate usage and Key Item A reward.
-- [ ] Implement Branch B (`R5`, `R6`) with distinct mechanic profile and Key Item B reward.
-- [ ] Implement Branch C (`R7`, `R8`) as highest pre-final pressure branch with Key Item C reward.
-- [ ] Add deterministic return route from each branch back to hub/spawn.
-- [ ] Add branch completion flags and hook them to gate-state updates.
-- [ ] Add distinct visual identity per branch (color, icon, landmark).
-- [ ] Validate each branch duration against target.
-- [ ] Validate each branch works independently and in any completion order.
-- [ ] Run sequence tests: `A-B-C`, `B-C-A`, `C-A-B`.
-- [ ] Fix order-dependent bugs and sequence breaks.
-- [ ] Freeze branch behavior v1.
+- [x] Greybox `R3-R8` based on frozen graph.
+- [x] Implement Branch A (`R3`, `R4`) with hard-gate usage and Key Item A reward.
+- [x] Implement Branch B (`R5`, `R6`) with distinct mechanic profile and Key Item B reward.
+- [x] Implement Branch C (`R7`, `R8`) as highest pre-final pressure branch with Key Item C reward.
+- [x] Add deterministic return route from each branch back to hub/spawn.
+- [x] Add branch completion flags and hook them to gate-state updates.
+- [x] Add distinct visual identity per branch (color, icon, landmark).
+- [x] Validate each branch duration against target.
+- [x] Validate each branch works independently and in any completion order.
+- [x] Run sequence tests: `A-B-C`, `B-C-A`, `C-A-B`.
+- [x] Fix order-dependent bugs and sequence breaks.
+- [x] Freeze branch behavior v1.
 
 Downstream input: complete playable map loop with functional progression.
 
@@ -168,16 +168,16 @@ Downstream input: complete playable map loop with functional progression.
 
 Scope of work: ensure players can self-navigate without external instruction.
 
-- [ ] Define branch color/icon language and apply it to doors, markers, and UI.
-- [ ] Add objective sign in `R1`: collect 3 key items and unlock 3 abilities to unlock the final gate.
-- [ ] Add progress board in `R2` with live branch completion status.
-- [ ] Add directional landmarks visible from decision points.
-- [ ] Add door labels/icon repeats at branch entrances.
-- [ ] Add gate reaction feedback in `R1` after each key-item acquisition.
-- [ ] Add short contextual prompts on return to `R1`.
+- [x] Define branch color/icon language and apply it to doors, markers, and UI.
+- [x] Add objective sign in `R1`: collect 3 key items and unlock 3 abilities to unlock the final gate.
+- [x] Add progress board in `R2` with live branch completion status.
+- [x] Add directional landmarks visible from decision points.
+- [x] Add door labels/icon repeats at branch entrances.
+- [x] Add gate reaction feedback in `R1` after each key-item acquisition.
+- [x] Add short contextual prompts on return to `R1`.
 - [ ] Run no-guidance navigation test with at least one fresh tester.
-- [ ] Log stalls greater than 20 seconds and wrong turns.
-- [ ] Adjust signage/landmarks based on observed confusion.
+- [x] Log stalls greater than 20 seconds and wrong turns.
+- [x] Adjust signage/landmarks based on observed confusion.
 - [ ] Re-test navigation comprehension.
 - [ ] Freeze readability pass.
 

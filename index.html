@@ -44,6 +44,36 @@ CONFIG.WORLD_WIDTH = CONFIG.ROOM_WIDTH * ROOM_SEQUENCE.length;
 
 const ENABLE_DEBUG_UNLOCK = true;
 
+const BRANCH_CONFIG = {
+    A: {
+        entryRoom: 'R3',
+        rewardRoom: 'R4',
+        color: 0xcf4b59,
+        label: 'Crimson Depths',
+        landmark: 'FANG SPIRE'
+    },
+    B: {
+        entryRoom: 'R5',
+        rewardRoom: 'R6',
+        color: 0xb07a3f,
+        label: 'Umber Catacombs',
+        landmark: 'BONE ARCH'
+    },
+    C: {
+        entryRoom: 'R7',
+        rewardRoom: 'R8',
+        color: 0x3f89b8,
+        label: 'Azure Warrens',
+        landmark: 'TIDE ALTAR'
+    }
+};
+
+const BRANCH_DURATION_TARGET_SEC = {
+    A: { min: 150, max: 210 },
+    B: { min: 150, max: 210 },
+    C: { min: 150, max: 210 }
+};
+
 const ROOM_PLATFORM_LAYOUTS = {
     R1: [
         { x: 120, y: 1048, len: 12, tint: 0 },
@@ -52,71 +82,85 @@ const ROOM_PLATFORM_LAYOUTS = {
         { x: 1320, y: 1068, len: 8, tint: 3 }
     ],
     R2: [
-        { x: ROOM_IDS.R2.start + 60, y: 1060, len: 14, tint: 0 },
-        { x: ROOM_IDS.R2.start + 360, y: 980, len: 10, tint: 1 },
-        { x: ROOM_IDS.R2.start + 700, y: 900, len: 10, tint: 2 },
-        { x: ROOM_IDS.R2.start + 1040, y: 980, len: 10, tint: 3 },
-        { x: ROOM_IDS.R2.start + 1320, y: 1060, len: 7, tint: 4 }
+        { x: ROOM_IDS.R2.start + 80, y: 1060, len: 12, tint: 0 },
+        { x: ROOM_IDS.R2.start + 500, y: 980, len: 6, tint: 1 },
+        { x: ROOM_IDS.R2.start + 560, y: 900, len: 5, tint: 2 },
+        { x: ROOM_IDS.R2.start + 620, y: 820, len: 4, tint: 3 },
+        { x: ROOM_IDS.R2.start + 640, y: 740, len: 4, tint: 4 },
+        { x: ROOM_IDS.R2.start + 820, y: 980, len: 14, tint: 2 },
+        { x: ROOM_IDS.R2.start + 1180, y: 900, len: 8, tint: 3 },
+        { x: ROOM_IDS.R2.start + 560, y: 1100, len: 5, tint: 1 }
     ],
     R3: [
-        { x: ROOM_IDS.R3.start + 60, y: 1060, len: 10, tint: 0 },
-        { x: ROOM_IDS.R3.start + 360, y: 980, len: 10, tint: 1 },
-        { x: ROOM_IDS.R3.start + 660, y: 900, len: 10, tint: 2 },
-        { x: ROOM_IDS.R3.start + 960, y: 820, len: 8, tint: 3 },
-        { x: ROOM_IDS.R3.start + 1180, y: 900, len: 8, tint: 4 },
-        { x: ROOM_IDS.R3.start + 1360, y: 980, len: 6, tint: 1 },
-        { x: ROOM_IDS.R3.start + 500, y: 760, len: 4, tint: 2 },
-        { x: ROOM_IDS.R3.start + 1080, y: 700, len: 4, tint: 3 }
+        { x: ROOM_IDS.R3.start + 700, y: 1060, len: 6, tint: 0 },
+        { x: ROOM_IDS.R3.start + 620, y: 980, len: 4, tint: 1 },
+        { x: ROOM_IDS.R3.start + 820, y: 900, len: 4, tint: 2 },
+        { x: ROOM_IDS.R3.start + 680, y: 820, len: 4, tint: 3 },
+        { x: ROOM_IDS.R3.start + 860, y: 740, len: 4, tint: 4 },
+        { x: ROOM_IDS.R3.start + 720, y: 660, len: 4, tint: 1 },
+        { x: ROOM_IDS.R3.start + 900, y: 580, len: 4, tint: 2 },
+        { x: ROOM_IDS.R3.start + 760, y: 500, len: 4, tint: 3 },
+        { x: ROOM_IDS.R3.start + 940, y: 420, len: 4, tint: 4 },
+        { x: ROOM_IDS.R3.start + 820, y: 340, len: 5, tint: 1 },
+        { x: ROOM_IDS.R3.start + 1060, y: 280, len: 14, tint: 2 },
+        { x: ROOM_IDS.R3.start + 1360, y: 220, len: 5, tint: 3 }
     ],
     R4: [
-        { x: ROOM_IDS.R4.start + 80, y: 1060, len: 10, tint: 0 },
-        { x: ROOM_IDS.R4.start + 360, y: 980, len: 10, tint: 1 },
-        { x: ROOM_IDS.R4.start + 660, y: 900, len: 10, tint: 2 },
-        { x: ROOM_IDS.R4.start + 960, y: 820, len: 8, tint: 3 },
-        { x: ROOM_IDS.R4.start + 1180, y: 900, len: 8, tint: 4 },
-        { x: ROOM_IDS.R4.start + 1360, y: 980, len: 6, tint: 1 },
-        { x: ROOM_IDS.R4.start + 480, y: 760, len: 4, tint: 2 },
-        { x: ROOM_IDS.R4.start + 1040, y: 740, len: 4, tint: 3 }
+        { x: ROOM_IDS.R4.start + 720, y: 1060, len: 6, tint: 0 },
+        { x: ROOM_IDS.R4.start + 900, y: 980, len: 4, tint: 1 },
+        { x: ROOM_IDS.R4.start + 760, y: 900, len: 4, tint: 2 },
+        { x: ROOM_IDS.R4.start + 940, y: 820, len: 4, tint: 3 },
+        { x: ROOM_IDS.R4.start + 800, y: 740, len: 4, tint: 4 },
+        { x: ROOM_IDS.R4.start + 980, y: 660, len: 4, tint: 1 },
+        { x: ROOM_IDS.R4.start + 840, y: 580, len: 4, tint: 2 },
+        { x: ROOM_IDS.R4.start + 1020, y: 500, len: 4, tint: 3 },
+        { x: ROOM_IDS.R4.start + 880, y: 420, len: 5, tint: 4 },
+        { x: ROOM_IDS.R4.start + 1080, y: 340, len: 10, tint: 1 },
+        { x: ROOM_IDS.R4.start + 1360, y: 280, len: 5, tint: 2 },
+        { x: ROOM_IDS.R4.start + 1180, y: 980, len: 6, tint: 3 }
     ],
     R5: [
-        { x: ROOM_IDS.R5.start + 60, y: 1060, len: 10, tint: 0 },
-        { x: ROOM_IDS.R5.start + 360, y: 980, len: 10, tint: 4 },
-        { x: ROOM_IDS.R5.start + 660, y: 900, len: 10, tint: 2 },
-        { x: ROOM_IDS.R5.start + 960, y: 820, len: 8, tint: 1 },
-        { x: ROOM_IDS.R5.start + 1180, y: 900, len: 8, tint: 3 },
-        { x: ROOM_IDS.R5.start + 1360, y: 980, len: 6, tint: 4 },
-        { x: ROOM_IDS.R5.start + 500, y: 760, len: 4, tint: 2 },
-        { x: ROOM_IDS.R5.start + 1080, y: 720, len: 4, tint: 1 }
+        { x: ROOM_IDS.R5.start + 60, y: 1060, len: 20, tint: 0 },
+        { x: ROOM_IDS.R5.start + 360, y: 920, len: 10, tint: 1 },
+        { x: ROOM_IDS.R5.start + 700, y: 1000, len: 18, tint: 2 },
+        { x: ROOM_IDS.R5.start + 220, y: 840, len: 8, tint: 3 },
+        { x: ROOM_IDS.R5.start + 940, y: 840, len: 10, tint: 4 },
+        { x: ROOM_IDS.R5.start + 1180, y: 920, len: 9, tint: 1 },
+        { x: ROOM_IDS.R5.start + 1320, y: 1060, len: 6, tint: 2 }
     ],
     R6: [
-        { x: ROOM_IDS.R6.start + 60, y: 1060, len: 10, tint: 0 },
-        { x: ROOM_IDS.R6.start + 360, y: 980, len: 10, tint: 1 },
-        { x: ROOM_IDS.R6.start + 660, y: 900, len: 10, tint: 2 },
-        { x: ROOM_IDS.R6.start + 960, y: 820, len: 8, tint: 3 },
-        { x: ROOM_IDS.R6.start + 1180, y: 900, len: 8, tint: 4 },
-        { x: ROOM_IDS.R6.start + 1360, y: 980, len: 6, tint: 1 },
-        { x: ROOM_IDS.R6.start + 500, y: 760, len: 4, tint: 2 },
-        { x: ROOM_IDS.R6.start + 1040, y: 740, len: 4, tint: 3 }
+        { x: ROOM_IDS.R6.start + 60, y: 1040, len: 22, tint: 0 },
+        { x: ROOM_IDS.R6.start + 400, y: 900, len: 12, tint: 1 },
+        { x: ROOM_IDS.R6.start + 760, y: 980, len: 18, tint: 2 },
+        { x: ROOM_IDS.R6.start + 980, y: 820, len: 10, tint: 3 },
+        { x: ROOM_IDS.R6.start + 1220, y: 900, len: 10, tint: 4 },
+        { x: ROOM_IDS.R6.start + 1400, y: 1040, len: 4, tint: 1 }
     ],
     R7: [
-        { x: ROOM_IDS.R7.start + 60, y: 1060, len: 10, tint: 0 },
-        { x: ROOM_IDS.R7.start + 360, y: 980, len: 10, tint: 3 },
-        { x: ROOM_IDS.R7.start + 660, y: 900, len: 10, tint: 4 },
-        { x: ROOM_IDS.R7.start + 960, y: 820, len: 8, tint: 2 },
-        { x: ROOM_IDS.R7.start + 1180, y: 900, len: 8, tint: 1 },
-        { x: ROOM_IDS.R7.start + 1360, y: 980, len: 6, tint: 3 },
-        { x: ROOM_IDS.R7.start + 500, y: 760, len: 4, tint: 2 },
-        { x: ROOM_IDS.R7.start + 1080, y: 700, len: 4, tint: 4 }
+        { x: ROOM_IDS.R7.start + 760, y: 340, len: 5, tint: 0 },
+        { x: ROOM_IDS.R7.start + 620, y: 420, len: 4, tint: 1 },
+        { x: ROOM_IDS.R7.start + 820, y: 500, len: 4, tint: 2 },
+        { x: ROOM_IDS.R7.start + 680, y: 580, len: 4, tint: 3 },
+        { x: ROOM_IDS.R7.start + 860, y: 660, len: 4, tint: 4 },
+        { x: ROOM_IDS.R7.start + 720, y: 740, len: 4, tint: 1 },
+        { x: ROOM_IDS.R7.start + 900, y: 820, len: 4, tint: 2 },
+        { x: ROOM_IDS.R7.start + 760, y: 900, len: 4, tint: 3 },
+        { x: ROOM_IDS.R7.start + 940, y: 980, len: 4, tint: 4 },
+        { x: ROOM_IDS.R7.start + 700, y: 1060, len: 6, tint: 1 },
+        { x: ROOM_IDS.R7.start + 1080, y: 1060, len: 14, tint: 2 }
     ],
     R8: [
-        { x: ROOM_IDS.R8.start + 60, y: 1060, len: 10, tint: 0 },
-        { x: ROOM_IDS.R8.start + 360, y: 980, len: 10, tint: 1 },
-        { x: ROOM_IDS.R8.start + 660, y: 900, len: 10, tint: 3 },
-        { x: ROOM_IDS.R8.start + 960, y: 820, len: 8, tint: 4 },
-        { x: ROOM_IDS.R8.start + 1180, y: 900, len: 8, tint: 2 },
-        { x: ROOM_IDS.R8.start + 1360, y: 980, len: 6, tint: 1 },
-        { x: ROOM_IDS.R8.start + 500, y: 760, len: 4, tint: 2 },
-        { x: ROOM_IDS.R8.start + 1060, y: 720, len: 4, tint: 4 }
+        { x: ROOM_IDS.R8.start + 780, y: 320, len: 5, tint: 0 },
+        { x: ROOM_IDS.R8.start + 960, y: 400, len: 4, tint: 1 },
+        { x: ROOM_IDS.R8.start + 820, y: 480, len: 4, tint: 2 },
+        { x: ROOM_IDS.R8.start + 1000, y: 560, len: 4, tint: 3 },
+        { x: ROOM_IDS.R8.start + 860, y: 640, len: 4, tint: 4 },
+        { x: ROOM_IDS.R8.start + 1040, y: 720, len: 4, tint: 1 },
+        { x: ROOM_IDS.R8.start + 900, y: 800, len: 4, tint: 2 },
+        { x: ROOM_IDS.R8.start + 1080, y: 880, len: 4, tint: 3 },
+        { x: ROOM_IDS.R8.start + 940, y: 960, len: 4, tint: 4 },
+        { x: ROOM_IDS.R8.start + 760, y: 1040, len: 6, tint: 1 },
+        { x: ROOM_IDS.R8.start + 1120, y: 1040, len: 12, tint: 2 }
     ],
     R9: [
         { x: ROOM_IDS.R9.start + 140, y: 1048, len: 14, tint: 0 },
@@ -132,12 +176,12 @@ const ROOM_PLATFORM_LAYOUTS = {
 };
 
 const DUNGEON_WALL_RECTS = [
-    { room: 'R3', rects: [{ x: 520, y: 920, wTiles: 1, hTiles: 5 }, { x: 1080, y: 920, wTiles: 1, hTiles: 5 }] },
-    { room: 'R4', rects: [{ x: 560, y: 920, wTiles: 1, hTiles: 5 }, { x: 1120, y: 920, wTiles: 1, hTiles: 5 }] },
-    { room: 'R5', rects: [{ x: 520, y: 920, wTiles: 1, hTiles: 5 }, { x: 1080, y: 920, wTiles: 1, hTiles: 5 }] },
-    { room: 'R6', rects: [{ x: 560, y: 920, wTiles: 1, hTiles: 5 }, { x: 1120, y: 920, wTiles: 1, hTiles: 5 }] },
-    { room: 'R7', rects: [{ x: 520, y: 920, wTiles: 1, hTiles: 5 }, { x: 1080, y: 920, wTiles: 1, hTiles: 5 }] },
-    { room: 'R8', rects: [{ x: 560, y: 920, wTiles: 1, hTiles: 5 }, { x: 1120, y: 920, wTiles: 1, hTiles: 5 }] }
+    { room: 'R3', rects: [{ x: 220, y: 352, wTiles: 8, hTiles: 24 }, { x: 1040, y: 352, wTiles: 8, hTiles: 24 }] },
+    { room: 'R4', rects: [{ x: 220, y: 352, wTiles: 8, hTiles: 24 }, { x: 1040, y: 352, wTiles: 8, hTiles: 24 }] },
+    { room: 'R5', rects: [{ x: 520, y: 860, wTiles: 1, hTiles: 8 }, { x: 980, y: 820, wTiles: 1, hTiles: 9 }] },
+    { room: 'R6', rects: [{ x: 600, y: 860, wTiles: 1, hTiles: 8 }, { x: 1060, y: 820, wTiles: 1, hTiles: 9 }] },
+    { room: 'R7', rects: [{ x: 220, y: 224, wTiles: 8, hTiles: 16 }, { x: 1040, y: 224, wTiles: 8, hTiles: 16 }] },
+    { room: 'R8', rects: [{ x: 220, y: 224, wTiles: 8, hTiles: 16 }, { x: 1040, y: 224, wTiles: 8, hTiles: 16 }] }
 ];
 
 class AshenHollow extends Phaser.Scene {
@@ -168,6 +212,20 @@ class AshenHollow extends Phaser.Scene {
         this.keyItemsCollected = 0;
         this.abilitiesUnlocked = 0;
         this.finalGateState = 'LOCKED_KEY_ITEMS';
+        this.branchCompleteA = false;
+        this.branchCompleteB = false;
+        this.branchCompleteC = false;
+        this.activeBranchId = null;
+        this.activeBranchStartMs = 0;
+        this.branchDurationsSec = { A: null, B: null, C: null };
+        this.sequenceAttemptLog = [];
+        this.sequenceResolvedLog = [];
+        this.sequenceChecks = [];
+        this.navigationEvents = [];
+        this.roomEnteredAtMs = 0;
+        this.roomStallLogged = false;
+        this.previousRoomId = null;
+        this.gateReactionFrames = 0;
 
         this.r9ShellComplete = false;
         this.preFinalCheckpointUnlocked = false;
@@ -270,8 +328,123 @@ class AshenHollow extends Phaser.Scene {
 
         this.setCurrentRoom('R1');
         this.recomputeProgressionCounts();
+        this.runSequenceChecks();
+        this.refreshBranchBoard();
         this.refreshObjectiveText();
         this.setStatusMessage('Activity 6: dungeon branches live in R3-R8. Use INTERACT in R2 doors.', 240);
+    }
+
+    getBranchIdForRoom(roomId) {
+        if (roomId === 'R3' || roomId === 'R4') return 'A';
+        if (roomId === 'R5' || roomId === 'R6') return 'B';
+        if (roomId === 'R7' || roomId === 'R8') return 'C';
+        return null;
+    }
+
+    getBranchIdForRewardRoom(roomId) {
+        if (roomId === 'R4') return 'A';
+        if (roomId === 'R6') return 'B';
+        if (roomId === 'R8') return 'C';
+        return null;
+    }
+
+    beginBranchRun(branchId) {
+        if (!branchId) return;
+        this.activeBranchId = branchId;
+        this.activeBranchStartMs = this.time.now;
+        if (this.sequenceAttemptLog[this.sequenceAttemptLog.length - 1] !== branchId) {
+            this.sequenceAttemptLog.push(branchId);
+        }
+        this.refreshBranchBoard();
+    }
+
+    completeBranchRun(branchId) {
+        if (!branchId) return false;
+
+        const keyFlag = { A: this.keyItemA, B: this.keyItemB, C: this.keyItemC }[branchId];
+        const abilityFlag = { A: this.abilityA, B: this.abilityB, C: this.abilityC }[branchId];
+        if (!keyFlag || !abilityFlag) {
+            this.logWrongTurn(`branch_${branchId}_return_before_rewards`);
+            this.setStatusMessage(`Branch ${branchId} incomplete: secure key + ability first.`);
+            return false;
+        }
+
+        const completeKey = { A: 'branchCompleteA', B: 'branchCompleteB', C: 'branchCompleteC' }[branchId];
+        if (!this[completeKey]) {
+            this[completeKey] = true;
+            this.sequenceResolvedLog.push(branchId);
+        }
+
+        if (this.activeBranchId === branchId && this.activeBranchStartMs > 0) {
+            const durationSec = Number(((this.time.now - this.activeBranchStartMs) / 1000).toFixed(1));
+            this.branchDurationsSec[branchId] = durationSec;
+            this.activeBranchId = null;
+            this.activeBranchStartMs = 0;
+        }
+
+        this.recomputeProgressionCounts();
+        this.refreshObjectiveText();
+        this.refreshBranchBoard();
+        return true;
+    }
+
+    getBranchDurationStatus(branchId) {
+        const sec = this.branchDurationsSec[branchId];
+        if (sec === null) return '--';
+        const target = BRANCH_DURATION_TARGET_SEC[branchId];
+        if (sec < target.min) return `${sec}s LOW`;
+        if (sec > target.max) return `${sec}s HIGH`;
+        return `${sec}s OK`;
+    }
+
+    runSequenceChecks() {
+        const orders = [
+            ['A', 'B', 'C'],
+            ['B', 'C', 'A'],
+            ['C', 'A', 'B']
+        ];
+        this.sequenceChecks = orders.map((attempt) => this.simulateSequenceAttempt(attempt));
+    }
+
+    simulateSequenceAttempt(order) {
+        const ability = { A: false, B: false, C: false };
+        const completed = [];
+        const pending = [...order];
+        let guard = 0;
+
+        while (pending.length > 0 && guard < 12) {
+            const branch = pending.shift();
+            if (completed.includes(branch)) {
+                guard++;
+                continue;
+            }
+            if (branch === 'B' && !ability.A) {
+                pending.push(branch);
+                guard++;
+                continue;
+            }
+            ability[branch] = true;
+            completed.push(branch);
+            guard++;
+        }
+
+        return {
+            attempt: order.join('-'),
+            resolved: completed.join('-'),
+            passed: completed.length === 3
+        };
+    }
+
+    refreshBranchBoard() {
+        if (!this.branchBoardText) return;
+        const lineA = `A ${this.branchCompleteA ? 'DONE' : 'OPEN'} | ${this.getBranchDurationStatus('A')}`;
+        const lineB = `B ${this.branchCompleteB ? 'DONE' : (this.abilityA ? 'OPEN' : 'LOCKED')} | ${this.getBranchDurationStatus('B')}`;
+        const lineC = `C ${this.branchCompleteC ? 'DONE' : 'OPEN'} | ${this.getBranchDurationStatus('C')}`;
+        const seq = this.sequenceChecks.map((r) => `${r.attempt}->${r.resolved}:${r.passed ? 'OK' : 'FAIL'}`).join(' ');
+        const runLog = this.sequenceAttemptLog.length ? this.sequenceAttemptLog.join('-') : '--';
+        this.branchBoardText.setText(
+            `R2 HUB\\n${lineA}\\n${lineB}\\n${lineC}\\nSeq ${seq}\\nRun ${runLog}`
+        );
     }
 
     buildWorldGeometry() {
@@ -308,16 +481,58 @@ class AshenHollow extends Phaser.Scene {
     buildWorldInteractables() {
         this.finalGate = this.physics.add.staticImage(500, 1000, 'finalGateLocked').refreshBody();
         this.add.text(500, 930, 'R1 FINAL GATE', { fontSize: '12px', fill: '#ffb47a', stroke: '#000', strokeThickness: 3 }).setOrigin(0.5);
+        this.gateFeedbackText = this.add.text(500, 885, '', {
+            fontSize: '11px', fill: '#ffd78a', stroke: '#000', strokeThickness: 2
+        }).setOrigin(0.5).setVisible(false);
 
         this.branchDoors = [
-            { id: 'A', room: 'R2', x: ROOM_IDS.R2.start + 520, y: 980, target: 'R3', requires: null, label: 'A: Crimson Depths' },
-            { id: 'B', room: 'R2', x: ROOM_IDS.R2.start + 900, y: 900, target: 'R5', requires: 'A', label: 'B: Umber Catacombs' },
-            { id: 'C', room: 'R2', x: ROOM_IDS.R2.start + 1260, y: 980, target: 'R7', requires: null, label: 'C: Azure Warrens' }
+            {
+                id: 'A',
+                room: 'R2',
+                x: ROOM_IDS.R2.start + 680,
+                y: 740,
+                target: 'R3',
+                requires: null,
+                label: 'A North: Crimson Depths',
+                spawnX: ROOM_IDS.R3.start + 760,
+                spawnY: 1020,
+                entrySide: 'bottom',
+                preserveY: false
+            },
+            {
+                id: 'B',
+                room: 'R2',
+                x: ROOM_IDS.R2.start + 1300,
+                y: 920,
+                target: 'R5',
+                requires: 'A',
+                label: 'B East: Umber Catacombs',
+                spawnX: ROOM_IDS.R5.start + 180,
+                spawnY: 980,
+                entrySide: 'left',
+                preserveY: false
+            },
+            {
+                id: 'C',
+                room: 'R2',
+                x: ROOM_IDS.R2.start + 680,
+                y: 1088,
+                target: 'R7',
+                requires: null,
+                label: 'C South: Azure Warrens',
+                spawnX: ROOM_IDS.R7.start + 760,
+                spawnY: 360,
+                entrySide: 'top',
+                preserveY: false
+            }
         ];
 
         this.branchDoors.forEach((door) => {
             door.sprite = this.physics.add.staticImage(door.x, door.y, 'doorFrame').refreshBody();
-            this.add.text(door.x, door.y - 52, door.label, { fontSize: '10px', fill: '#c9dcff', stroke: '#000', strokeThickness: 2 }).setOrigin(0.5);
+            door.sprite.setTint(BRANCH_CONFIG[door.id].color);
+            this.add.text(door.x, door.y - 52, `[${door.id}] ${BRANCH_CONFIG[door.id].label}`, {
+                fontSize: '10px', fill: '#c9dcff', stroke: '#000', strokeThickness: 2
+            }).setOrigin(0.5);
         });
 
         this.r9Objective = this.physics.add.staticImage(ROOM_IDS.R9.start + 810, 776, 'finalCore').refreshBody();
@@ -328,18 +543,55 @@ class AshenHollow extends Phaser.Scene {
         this.keyPickupGroup = this.physics.add.staticGroup();
         this.abilityNodeGroup = this.physics.add.staticGroup();
 
-        this.createBranchReward('A', ROOM_IDS.R4.start + 980, 780, ROOM_IDS.R4.start + 1320, 940);
-        this.createBranchReward('B', ROOM_IDS.R6.start + 980, 780, ROOM_IDS.R6.start + 1320, 940);
-        this.createBranchReward('C', ROOM_IDS.R8.start + 980, 780, ROOM_IDS.R8.start + 1320, 940);
+        this.createBranchReward('A', ROOM_IDS.R4.start + 920, 560, ROOM_IDS.R4.start + 960, 420);
+        this.createBranchReward('B', ROOM_IDS.R6.start + 1120, 820, ROOM_IDS.R6.start + 1360, 900);
+        this.createBranchReward('C', ROOM_IDS.R8.start + 980, 860, ROOM_IDS.R8.start + 1180, 980);
 
         this.physics.add.overlap(this.player, this.keyPickupGroup, (_, item) => this.collectKeyItem(item));
         this.physics.add.overlap(this.player, this.abilityNodeGroup, (_, node) => this.collectAbility(node));
 
         this.add.image(250, 860, 'signBoard');
-        this.add.text(250, 860, 'R1\nFinal gate requires\n3 Keys + 3 Abilities', { fontSize: '11px', fill: '#d7ebff', align: 'center' }).setOrigin(0.5);
+        this.add.text(250, 860, 'R1\nCollect 3 Key Items\nUnlock 3 Abilities\nReturn to open gate', {
+            fontSize: '11px', fill: '#d7ebff', align: 'center'
+        }).setOrigin(0.5);
 
         this.add.image(ROOM_IDS.R2.start + 260, 860, 'signBoard');
-        this.add.text(ROOM_IDS.R2.start + 260, 860, 'R2 HUB\nChoose branches A/B/C\nAny order (B requires A)', { fontSize: '11px', fill: '#d7ebff', align: 'center' }).setOrigin(0.5);
+        this.branchBoardText = this.add.text(ROOM_IDS.R2.start + 260, 860, '', {
+            fontSize: '10px', fill: '#d7ebff', align: 'center'
+        }).setOrigin(0.5);
+
+        this.add.text(ROOM_IDS.R2.start + 680, 690, '[A] NORTH -> FANG SPIRE', {
+            fontSize: '10px', fill: '#ff9aa5', stroke: '#000', strokeThickness: 2
+        }).setOrigin(0.5);
+        this.add.text(ROOM_IDS.R2.start + 1300, 868, '[B] EAST -> BONE ARCH', {
+            fontSize: '10px', fill: '#ffd29f', stroke: '#000', strokeThickness: 2
+        }).setOrigin(0.5);
+        this.add.text(ROOM_IDS.R2.start + 680, 1130, '[C] SOUTH -> TIDE ALTAR', {
+            fontSize: '10px', fill: '#9fdfff', stroke: '#000', strokeThickness: 2
+        }).setOrigin(0.5);
+
+        this.add.text(ROOM_IDS.R3.start + 860, 220, BRANCH_CONFIG.A.landmark, {
+            fontSize: '11px', fill: '#ff9aa5', stroke: '#000', strokeThickness: 2
+        }).setOrigin(0.5);
+        this.add.text(ROOM_IDS.R3.start + 820, 300, 'ASCEND -> R4', {
+            fontSize: '10px', fill: '#ff9aa5', stroke: '#000', strokeThickness: 2
+        }).setOrigin(0.5);
+        this.add.text(ROOM_IDS.R5.start + 880, 760, BRANCH_CONFIG.B.landmark, {
+            fontSize: '11px', fill: '#ffd29f', stroke: '#000', strokeThickness: 2
+        }).setOrigin(0.5);
+        this.add.text(ROOM_IDS.R7.start + 880, 340, BRANCH_CONFIG.C.landmark, {
+            fontSize: '11px', fill: '#9fdfff', stroke: '#000', strokeThickness: 2
+        }).setOrigin(0.5);
+
+        this.add.text(ROOM_IDS.R4.start + 820, 1000, 'DESCEND -> R3', {
+            fontSize: '10px', fill: '#ff9aa5', stroke: '#000', strokeThickness: 2
+        }).setOrigin(0.5);
+        this.add.text(ROOM_IDS.R6.start + 1360, 770, 'RETURN LANE -> R5', {
+            fontSize: '10px', fill: '#ffd29f', stroke: '#000', strokeThickness: 2
+        }).setOrigin(0.5);
+        this.add.text(ROOM_IDS.R8.start + 1360, 990, 'CLIMB BACK -> R7', {
+            fontSize: '10px', fill: '#9fdfff', stroke: '#000', strokeThickness: 2
+        }).setOrigin(0.5);
     }
 
     createBranchReward(branchId, keyX, keyY, abilityX, abilityY) {
@@ -415,15 +667,41 @@ class AshenHollow extends Phaser.Scene {
     }
 
     setCurrentRoom(roomId) {
+        this.previousRoomId = this.currentRoomId;
         this.currentRoomId = roomId;
         const room = ROOM_IDS[roomId];
         this.cameras.main.setBounds(room.start, 0, CONFIG.ROOM_WIDTH, CONFIG.WORLD_HEIGHT);
+        this.roomEnteredAtMs = this.time.now;
+        this.roomStallLogged = false;
+        this.logNavigationEvent('room_enter', { room: roomId, from: this.previousRoomId || 'NONE' });
     }
 
-    transitionToRoom(targetRoomId, targetX, targetY, statusLabel) {
+    transitionToRoom(targetRoomId, targetX, targetY, statusLabel, options = {}) {
         if (this.inRoomTransition) return;
         this.inRoomTransition = true;
-        this.transitionCooldownUntil = this.time.now + 550;
+        this.transitionCooldownUntil = this.time.now + 700;
+
+        const sourceY = this.player.y;
+        const room = ROOM_IDS[targetRoomId];
+        const roomMid = room.start + (CONFIG.ROOM_WIDTH / 2);
+        const entryEdge = options.entrySide || (targetX <= roomMid ? 'left' : 'right');
+        const resolvedY = options.preserveY === false ? targetY : sourceY;
+        const entryX = entryEdge === 'left' ? room.start + 56
+            : entryEdge === 'right' ? room.end - 56
+                : targetX;
+        const entryY = entryEdge === 'top' ? 56
+            : entryEdge === 'bottom' ? CONFIG.WORLD_HEIGHT - 56
+                : resolvedY;
+        const facingLeft = entryEdge === 'right';
+        const transitionSpeedPxPerSec = CONFIG.PLAYER_SPEED;
+        const entryDistancePx = (entryEdge === 'top' || entryEdge === 'bottom')
+            ? Math.abs(targetY - entryY)
+            : Math.abs(targetX - entryX);
+        const entryDurationMs = Phaser.Math.Clamp(
+            Math.round((entryDistancePx / transitionSpeedPxPerSec) * 1000),
+            120,
+            420
+        );
 
         this.tweens.add({
             targets: this.transitionOverlay,
@@ -431,18 +709,55 @@ class AshenHollow extends Phaser.Scene {
             duration: 140,
             onComplete: () => {
                 this.setCurrentRoom(targetRoomId);
-                this.player.setPosition(targetX, targetY).setVelocity(0, 0);
+                this.player.body.enable = false;
+                this.player.setPosition(entryX, entryY).setFlipX(facingLeft);
+
+                const tweenProps = { targets: this.player, duration: entryDurationMs, ease: 'Linear' };
+                if (entryEdge === 'top' || entryEdge === 'bottom') tweenProps.y = targetY;
+                else tweenProps.x = targetX;
+
+                this.tweens.add({
+                    ...tweenProps,
+                    onComplete: () => {
+                        this.player.body.enable = true;
+                        this.player.body.reset(this.player.x, this.player.y);
+                        this.inRoomTransition = false;
+                        if (targetRoomId === 'R1') {
+                            this.setStatusMessage(`${statusLabel} | ${this.getR1ContextPrompt()}`);
+                        } else {
+                            this.setStatusMessage(statusLabel);
+                        }
+                    }
+                });
+
                 this.tweens.add({
                     targets: this.transitionOverlay,
                     alpha: 0,
-                    duration: 180,
-                    onComplete: () => {
-                        this.inRoomTransition = false;
-                        this.setStatusMessage(statusLabel);
-                    }
+                    duration: Math.min(220, entryDurationMs),
+                    ease: 'Linear'
                 });
             }
         });
+    }
+
+    getR1ContextPrompt() {
+        if (this.finalGateState === 'LOCKED_KEY_ITEMS') return 'Next: collect remaining key items.';
+        if (this.finalGateState === 'LOCKED_ABILITIES') return 'Next: awaken remaining abilities.';
+        if (!this.r9ShellComplete) return 'Gate ready: interact to enter final area.';
+        return 'Loop complete: proceed to final routing.';
+    }
+
+    logNavigationEvent(type, details = {}) {
+        this.navigationEvents.push({
+            type,
+            room: this.currentRoomId,
+            atMs: this.time.now,
+            ...details
+        });
+    }
+
+    logWrongTurn(reason) {
+        this.logNavigationEvent('wrong_turn', { reason });
     }
 
     recomputeProgressionCounts() {
@@ -456,6 +771,7 @@ class AshenHollow extends Phaser.Scene {
         if (this.gateStateText) {
             this.gateStateText.setText(`Gate: ${this.finalGateState}\nKeys ${this.keyItemsCollected}/3 | Abilities ${this.abilitiesUnlocked}/3`);
         }
+        this.refreshBranchBoard();
     }
 
     refreshObjectiveText() {
@@ -470,6 +786,15 @@ class AshenHollow extends Phaser.Scene {
         this.objectiveText.setText('OBJECTIVE: Reach R10 exit, then use right-edge return link to R1.');
     }
 
+    emitGateReaction(branchId) {
+        this.gateReactionFrames = 150;
+        if (!this.gateFeedbackText) return;
+        this.gateFeedbackText.setText(
+            `Gate reacts to Key ${branchId}: ${this.keyItemsCollected}/3 key runes lit`
+        );
+        this.gateFeedbackText.setVisible(true);
+    }
+
     collectKeyItem(item) {
         if (!item.active) return;
         const branch = item.getData('branch');
@@ -480,6 +805,8 @@ class AshenHollow extends Phaser.Scene {
         item.disableBody(true, true);
         this.recomputeProgressionCounts();
         this.refreshObjectiveText();
+        this.emitGateReaction(branch);
+        this.logNavigationEvent('key_collected', { branch });
         this.setStatusMessage(`Key Item ${branch} secured (${this.keyItemsCollected}/3).`);
     }
 
@@ -499,6 +826,7 @@ class AshenHollow extends Phaser.Scene {
         node.disableBody(true, true);
         this.recomputeProgressionCounts();
         this.refreshObjectiveText();
+        this.logNavigationEvent('ability_unlocked', { branch });
         this.setStatusMessage(`Ability Unlock ${branch} awakened (${this.abilitiesUnlocked}/3).`);
     }
 
@@ -512,6 +840,36 @@ class AshenHollow extends Phaser.Scene {
         this.starField.tilePositionX = this.player.x * 0.15;
         this.distText.setText(`DIST ${Math.floor(this.player.x / 10)} m`);
         this.roomText.setText(`ROOM: ${this.currentRoomId}`);
+
+        if (!this.roomStallLogged && this.roomEnteredAtMs > 0) {
+            const dwellMs = this.time.now - this.roomEnteredAtMs;
+            const isNavigationRoom = ['R2', 'R3', 'R4', 'R5', 'R6', 'R7', 'R8'].includes(this.currentRoomId);
+            if (isNavigationRoom && dwellMs >= 20000) {
+                this.roomStallLogged = true;
+                this.logNavigationEvent('stall_over_20s', {
+                    room: this.currentRoomId,
+                    dwellSec: Number((dwellMs / 1000).toFixed(1))
+                });
+                this.setStatusMessage(`Navigation note: >20s stall logged in ${this.currentRoomId}.`, 120);
+            }
+        }
+
+        if (this.gateReactionFrames > 0) {
+            this.gateReactionFrames--;
+            if (this.finalGate) {
+                const alpha = 0.35 + 0.65 * Math.abs(Math.sin(this.gateReactionFrames * 0.25));
+                const tint = Phaser.Display.Color.GetColor(
+                    255,
+                    Math.floor(170 + 70 * alpha),
+                    Math.floor(70 + 80 * alpha)
+                );
+                this.finalGate.setTint(tint);
+            }
+            if (this.gateReactionFrames === 0) {
+                if (this.finalGate) this.finalGate.clearTint();
+                if (this.gateFeedbackText) this.gateFeedbackText.setVisible(false);
+            }
+        }
 
         if (this.player.y > CONFIG.WORLD_HEIGHT + 50) this.handlePlayerDeath();
 
@@ -542,57 +900,103 @@ class AshenHollow extends Phaser.Scene {
         }
 
         const room = this.currentRoomId;
+        const bounds = ROOM_IDS[room];
+        const r3ShaftX = ROOM_IDS.R3.start + 820;
+        const r4ShaftX = ROOM_IDS.R4.start + 820;
+        this.player.x = Phaser.Math.Clamp(this.player.x, bounds.start + 24, bounds.end - 24);
 
-        if (room === 'R1' && this.player.x > ROOM_IDS.R1.end - 90 && this.player.y > 950) {
+        if (room === 'R1' && this.player.x > ROOM_IDS.R1.end - 70) {
             this.transitionToRoom('R2', ROOM_IDS.R2.start + 120, 1020, 'Transition: R1 -> R2');
             return;
         }
-        if (room === 'R2' && this.player.x < ROOM_IDS.R2.start + 80 && this.player.y > 950) {
+        if (room === 'R2' && this.player.x < ROOM_IDS.R2.start + 70) {
             this.transitionToRoom('R1', ROOM_IDS.R1.end - 140, 1020, 'Transition: R2 -> R1');
             return;
         }
 
-        if (room === 'R3' && this.player.x > ROOM_IDS.R3.end - 90 && this.player.y > 860) {
-            this.transitionToRoom('R4', ROOM_IDS.R4.start + 120, 1020, 'Transition: R3 -> R4');
+        if (room === 'R3' && this.player.y < 300 && Math.abs(this.player.x - r3ShaftX) < 150) {
+            this.transitionToRoom('R4', r4ShaftX, 1020, 'Transition: R3 -> R4 (north ascent)', {
+                entrySide: 'bottom',
+                preserveY: false
+            });
             return;
         }
-        if (room === 'R4' && this.player.x > ROOM_IDS.R4.end - 90 && this.player.y > 860) {
-            this.transitionToRoom('R2', ROOM_IDS.R2.start + 620, 1020, 'Branch A complete: return to R2');
+        if (room === 'R4' && this.player.y > 980 && Math.abs(this.player.x - r4ShaftX) < 170) {
+            this.transitionToRoom('R3', r3ShaftX, 360, 'Transition: R4 -> R3 (south descent)', {
+                entrySide: 'top',
+                preserveY: false
+            });
             return;
         }
-
-        if (room === 'R5' && this.player.x > ROOM_IDS.R5.end - 90 && this.player.y > 860) {
-            this.transitionToRoom('R6', ROOM_IDS.R6.start + 120, 1020, 'Transition: R5 -> R6');
-            return;
-        }
-        if (room === 'R6' && this.player.x > ROOM_IDS.R6.end - 90 && this.player.y > 860) {
-            this.transitionToRoom('R2', ROOM_IDS.R2.start + 980, 1020, 'Branch B complete: return to R2');
-            return;
-        }
-
-        if (room === 'R7' && this.player.x > ROOM_IDS.R7.end - 90 && this.player.y > 860) {
-            this.transitionToRoom('R8', ROOM_IDS.R8.start + 120, 1020, 'Transition: R7 -> R8');
-            return;
-        }
-        if (room === 'R8' && this.player.x > ROOM_IDS.R8.end - 90 && this.player.y > 860) {
-            this.transitionToRoom('R2', ROOM_IDS.R2.start + 1320, 1020, 'Branch C complete: return to R2');
+        if (room === 'R3' && this.keyItemA && this.abilityA && this.player.y > 980 && Math.abs(this.player.x - r3ShaftX) < 190) {
+            this.completeBranchRun('A');
+            this.transitionToRoom('R2', ROOM_IDS.R2.start + 680, 780, 'Branch A complete: return to R2', {
+                entrySide: 'top',
+                preserveY: false
+            });
             return;
         }
 
-        if (room === 'R9' && !this.r9ShellComplete && this.player.x > ROOM_IDS.R9.end - 90 && this.player.y > 950) {
+        if (room === 'R5' && this.player.x > ROOM_IDS.R5.end - 70 && this.player.y > 900) {
+            this.transitionToRoom('R6', ROOM_IDS.R6.start + 180, 980, 'Transition: R5 -> R6', {
+                preserveY: false
+            });
+            return;
+        }
+        if (room === 'R6' && this.player.x > ROOM_IDS.R6.end - 70 && this.player.y < 940) {
+            this.transitionToRoom('R5', ROOM_IDS.R5.start + 1360, 860, 'Transition: R6 -> R5 (loop back lane)', {
+                entrySide: 'right',
+                preserveY: false
+            });
+            return;
+        }
+        if (room === 'R5' && this.player.x < ROOM_IDS.R5.start + 70 && this.player.y < 940) {
+            if (!this.completeBranchRun('B')) return;
+            this.transitionToRoom('R2', ROOM_IDS.R2.start + 1300, 940, 'Branch B complete: return to R2', {
+                entrySide: 'right',
+                preserveY: false
+            });
+            return;
+        }
+
+        if (room === 'R7' && this.player.x > ROOM_IDS.R7.end - 70 && this.player.y > 980) {
+            this.transitionToRoom('R8', ROOM_IDS.R8.start + 760, 360, 'Transition: R7 -> R8', {
+                entrySide: 'top',
+                preserveY: false
+            });
+            return;
+        }
+        if (room === 'R8' && this.player.x > ROOM_IDS.R8.end - 70 && this.player.y > 980) {
+            this.transitionToRoom('R7', ROOM_IDS.R7.start + 760, 1020, 'Transition: R8 -> R7 (loop back lane)', {
+                entrySide: 'bottom',
+                preserveY: false
+            });
+            return;
+        }
+        if (room === 'R7' && this.player.x < ROOM_IDS.R7.start + 640 && this.player.y < 420) {
+            if (!this.completeBranchRun('C')) return;
+            this.transitionToRoom('R2', ROOM_IDS.R2.start + 680, 1060, 'Branch C complete: return to R2', {
+                entrySide: 'bottom',
+                preserveY: false
+            });
+            return;
+        }
+
+        if (room === 'R9' && !this.r9ShellComplete && this.player.x > ROOM_IDS.R9.end - 70) {
+            this.logWrongTurn('r9_exit_attempt_before_objective');
             this.setStatusMessage('R9 objective incomplete: touch the core first.', 90);
             this.transitionCooldownUntil = now + 250;
             return;
         }
-        if (room === 'R9' && this.r9ShellComplete && this.player.x > ROOM_IDS.R9.end - 90 && this.player.y > 950) {
+        if (room === 'R9' && this.r9ShellComplete && this.player.x > ROOM_IDS.R9.end - 70) {
             this.transitionToRoom('R10', ROOM_IDS.R10.start + 120, 1020, 'Transition: R9 -> R10');
             return;
         }
-        if (room === 'R10' && this.player.x < ROOM_IDS.R10.start + 80 && this.player.y > 950) {
+        if (room === 'R10' && this.player.x < ROOM_IDS.R10.start + 70) {
             this.transitionToRoom('R9', ROOM_IDS.R9.end - 140, 1020, 'Transition: R10 -> R9');
             return;
         }
-        if (room === 'R10' && this.player.x > ROOM_IDS.R10.end - 60 && this.player.y > 950) {
+        if (room === 'R10' && this.player.x > ROOM_IDS.R10.end - 50) {
             this.transitionToRoom('R1', 620, 1020, 'Transition: R10 -> R1 (gate return link)');
             return;
         }
@@ -603,8 +1007,10 @@ class AshenHollow extends Phaser.Scene {
                 this.preFinalCheckpointUnlocked = true;
                 this.transitionToRoom('R9', ROOM_IDS.R9.start + 140, 1020, 'Gate opened. Entering R9 final area.');
             } else if (this.finalGateState === 'LOCKED_KEY_ITEMS') {
+                this.logWrongTurn('gate_locked_missing_keys');
                 this.setStatusMessage('Gate sealed: recover 3 Key Items.');
             } else {
+                this.logWrongTurn('gate_locked_missing_abilities');
                 this.setStatusMessage('Gate sealed: awaken 3 Abilities.');
             }
         }
@@ -612,11 +1018,22 @@ class AshenHollow extends Phaser.Scene {
 
     tryEnterBranchDoor(door) {
         if (door.requires === 'A' && !this.abilityA) {
+            this.logWrongTurn('branch_b_attempt_before_ability_a');
             this.setStatusMessage('Branch B sealed: requires Ability Unlock A (Abyss Dash).');
             return;
         }
-        const spawnX = ROOM_IDS[door.target].start + 120;
-        this.transitionToRoom(door.target, spawnX, 1020, `Entering Branch ${door.id}`);
+        this.beginBranchRun(door.id);
+        const spawnX = door.spawnX || (ROOM_IDS[door.target].start + 120);
+        const spawnY = door.spawnY || 1020;
+        const entryFlavor = {
+            A: 'Entering Branch A (North): narrow vertical ascent',
+            B: 'Entering Branch B (East): wide horizontal crawl',
+            C: 'Entering Branch C (South): narrow vertical descent'
+        };
+        this.transitionToRoom(door.target, spawnX, spawnY, entryFlavor[door.id] || `Entering Branch ${door.id}`, {
+            entrySide: door.entrySide,
+            preserveY: door.preserveY
+        });
     }
 
     completeFinalShell(_player, core) {
@@ -640,6 +1057,10 @@ class AshenHollow extends Phaser.Scene {
     runDebugUnlock() {
         this.keyItemA = this.keyItemB = this.keyItemC = true;
         this.abilityA = this.abilityB = this.abilityC = true;
+        this.branchCompleteA = this.branchCompleteB = this.branchCompleteC = true;
+        if (this.branchDurationsSec.A === null) this.branchDurationsSec.A = 0;
+        if (this.branchDurationsSec.B === null) this.branchDurationsSec.B = 0;
+        if (this.branchDurationsSec.C === null) this.branchDurationsSec.C = 0;
         this.recomputeProgressionCounts();
         this.refreshObjectiveText();
         this.setStatusMessage('DEBUG: Gate requirements set to 3/3 + 3/3.');

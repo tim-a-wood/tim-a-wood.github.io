@@ -84,3 +84,15 @@ Output:
 2. All three branches completable with touch controls only.
 3. Final gate can be unlocked through real branch progression (not debug shortcuts).
 4. Player can complete full run and return loop without soft-locks.
+
+## Focused Regression Checklist (Branch A / R3-R4)
+
+Use this checklist after every `R3` or `R4` geometry change:
+
+1. Enter Branch A door from `R2` using only touch controls.
+2. Traverse `R3` from entry spawn to right boundary transition without damage boosts or debug teleport.
+3. Confirm `R3 -> R4` transition always fires when pushing into right boundary (any reachable ledge height).
+4. Reach Key Item A in `R4`.
+5. Reach Ability Unlock A in `R4` after key pickup.
+6. Exit branch and confirm return to `R2`.
+7. In `R2`, confirm Branch B door now opens (hard-gate released).
