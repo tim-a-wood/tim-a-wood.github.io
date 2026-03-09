@@ -490,7 +490,7 @@ class AshenHollow extends Phaser.Scene {
                 id: 'A',
                 room: 'R2',
                 x: ROOM_IDS.R2.start + 680,
-                y: 740,
+                y: 704,
                 target: 'R3',
                 requires: null,
                 label: 'A North: Crimson Depths',
@@ -561,7 +561,7 @@ class AshenHollow extends Phaser.Scene {
             fontSize: '10px', fill: '#d7ebff', align: 'center'
         }).setOrigin(0.5);
 
-        this.add.text(ROOM_IDS.R2.start + 680, 690, '[A] NORTH -> FANG SPIRE', {
+        this.add.text(ROOM_IDS.R2.start + 680, 654, '[A] NORTH -> FANG SPIRE', {
             fontSize: '10px', fill: '#ff9aa5', stroke: '#000', strokeThickness: 2
         }).setOrigin(0.5);
         this.add.text(ROOM_IDS.R2.start + 1300, 868, '[B] EAST -> BONE ARCH', {
@@ -686,6 +686,8 @@ class AshenHollow extends Phaser.Scene {
         this.inRoomTransition = true;
         this.transitionCooldownUntil = this.time.now + 700;
 
+        this.cameras.main.stopFollow();
+
         const sourceY = this.player.y;
         const room = ROOM_IDS[targetRoomId];
         const roomMid = room.start + (CONFIG.ROOM_WIDTH / 2);
@@ -732,6 +734,9 @@ class AshenHollow extends Phaser.Scene {
                 this.player.body.enable = false;
                 this.player.setPosition(entryX, entryY).setFlipX(facingLeft);
 
+                this.cameras.main.centerOn(entryX, entryY);
+                this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
+
                 const tweenProps = { targets: this.player, duration: entryDurationMs, ease: 'Linear' };
                 if (entryEdge === 'top' || entryEdge === 'bottom') tweenProps.y = targetY;
                 else tweenProps.x = targetX;
@@ -741,20 +746,22 @@ class AshenHollow extends Phaser.Scene {
                     onComplete: () => {
                         this.player.body.enable = true;
                         this.player.body.reset(this.player.x, this.player.y);
-                        this.inRoomTransition = false;
                         if (targetRoomId === 'R1') {
                             this.setStatusMessage(`${statusLabel} | ${this.getR1ContextPrompt()}`);
                         } else {
                             this.setStatusMessage(statusLabel);
                         }
-                    }
-                });
 
-                this.tweens.add({
-                    targets: this.transitionOverlay,
-                    alpha: 0,
-                    duration: Math.min(220, entryDurationMs),
-                    ease: 'Linear'
+                        this.tweens.add({
+                            targets: this.transitionOverlay,
+                            alpha: 0,
+                            duration: 200,
+                            ease: 'Linear',
+                            onComplete: () => {
+                                this.inRoomTransition = false;
+                            }
+                        });
+                    }
                 });
             }
         });
@@ -928,7 +935,7 @@ class AshenHollow extends Phaser.Scene {
             const nearR3ReturnDoor = Phaser.Math.Distance.Between(this.player.x, this.player.y, r3DoorX, r3DoorY) < 130;
             if (nearR3ReturnDoor) {
                 this.completeBranchRun('A');
-                this.transitionToRoom('R2', ROOM_IDS.R2.start + 680, 780, 'Branch A complete: return to R2', {
+                this.transitionToRoom('R2', ROOM_IDS.R2.start + 680, 740, 'Branch A complete: return to R2', {
                     entrySide: 'top',
                     preserveY: false
                 });
