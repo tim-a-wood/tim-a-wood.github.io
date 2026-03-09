@@ -120,38 +120,7 @@ const ROOM_PLATFORM_LAYOUTS = {
         { x: ROOM_IDS.R4.start + 1400, y: 820, len: 3, tint: 4 },
         { x: ROOM_IDS.R4.start + 1440, y: 740, len: 3, tint: 1 },
         { x: ROOM_IDS.R4.start + 1480, y: 660, len: 3, tint: 2 },
-        { x: ROOM_IDS.R4.start + 1480, y: 580, len: 2, tint: 3 },
-        // Tunnel L: horizontal west at mid-height (R3 middle height), west shaft down to R3 bottom
-        { x: ROOM_IDS.R4.start + 0, y: 600, len: 47, tint: 0 },
-        { x: ROOM_IDS.R4.start + 0, y: 632, len: 1, tint: 0 },
-        { x: ROOM_IDS.R4.start + 0, y: 664, len: 1, tint: 0 },
-        { x: ROOM_IDS.R4.start + 0, y: 696, len: 1, tint: 0 },
-        { x: ROOM_IDS.R4.start + 0, y: 728, len: 1, tint: 0 },
-        { x: ROOM_IDS.R4.start + 0, y: 760, len: 1, tint: 0 },
-        { x: ROOM_IDS.R4.start + 0, y: 792, len: 1, tint: 0 },
-        { x: ROOM_IDS.R4.start + 0, y: 824, len: 1, tint: 0 },
-        { x: ROOM_IDS.R4.start + 0, y: 856, len: 1, tint: 0 },
-        { x: ROOM_IDS.R4.start + 0, y: 888, len: 1, tint: 0 },
-        { x: ROOM_IDS.R4.start + 0, y: 920, len: 1, tint: 0 },
-        { x: ROOM_IDS.R4.start + 0, y: 952, len: 1, tint: 0 },
-        { x: ROOM_IDS.R4.start + 0, y: 984, len: 1, tint: 0 },
-        { x: ROOM_IDS.R4.start + 0, y: 1016, len: 1, tint: 0 },
-        { x: ROOM_IDS.R4.start + 0, y: 1048, len: 1, tint: 0 },
-        { x: ROOM_IDS.R4.start + 0, y: 1080, len: 1, tint: 0 },
-        { x: ROOM_IDS.R4.start + 0, y: 1100, len: 1, tint: 0 },
-        // Tunnel: south shaft at R4 east (from mid-height down); gap at y 984–1048 so key/ability at 1000 are reachable
-        { x: ROOM_IDS.R4.start + 1480, y: 600, len: 1, tint: 0 },
-        { x: ROOM_IDS.R4.start + 1480, y: 632, len: 1, tint: 0 },
-        { x: ROOM_IDS.R4.start + 1480, y: 664, len: 1, tint: 0 },
-        { x: ROOM_IDS.R4.start + 1480, y: 696, len: 1, tint: 0 },
-        { x: ROOM_IDS.R4.start + 1480, y: 728, len: 1, tint: 0 },
-        { x: ROOM_IDS.R4.start + 1480, y: 760, len: 1, tint: 0 },
-        { x: ROOM_IDS.R4.start + 1480, y: 792, len: 1, tint: 0 },
-        { x: ROOM_IDS.R4.start + 1480, y: 824, len: 1, tint: 0 },
-        { x: ROOM_IDS.R4.start + 1480, y: 856, len: 1, tint: 0 },
-        { x: ROOM_IDS.R4.start + 1480, y: 888, len: 1, tint: 0 },
-        { x: ROOM_IDS.R4.start + 1480, y: 920, len: 1, tint: 0 },
-        { x: ROOM_IDS.R4.start + 1480, y: 952, len: 1, tint: 0 }
+        { x: ROOM_IDS.R4.start + 1480, y: 580, len: 2, tint: 3 }
     ],
     R5: [
         { x: ROOM_IDS.R5.start + 60, y: 1060, len: 20, tint: 0 },
@@ -210,14 +179,18 @@ const ROOM_PLATFORM_LAYOUTS = {
     R11: [
         { x: ROOM_IDS.R11.start + 1320, y: 240, len: 6, tint: 1 },
         { x: ROOM_IDS.R11.start + 1040, y: 648, len: 15, tint: 2 },
-        { x: ROOM_IDS.R11.start + 80, y: 648, len: 30, tint: 0 },
+        { x: ROOM_IDS.R11.start + 80, y: 648, len: 31, tint: 0 },
         { x: ROOM_IDS.R11.start + 80, y: 552, len: 30, tint: 4 }
     ]
 };
 
 const DUNGEON_WALL_RECTS = [
     { room: 'R3', rects: [{ x: 220, y: 352, wTiles: 8, hTiles: 24 }, { x: 1040, y: 352, wTiles: 8, hTiles: 24 }] },
-    { room: 'R4', rects: [] },
+    { room: 'R4', rects: [
+        { x: 0, y: 600, wTiles: 47, hTiles: 1 },
+        { x: 0, y: 616, wTiles: 1, hTiles: 16 },
+        { x: 1480, y: 616, wTiles: 1, hTiles: 11 }
+    ] },
     { room: 'R5', rects: [{ x: 520, y: 860, wTiles: 1, hTiles: 8 }, { x: 980, y: 820, wTiles: 1, hTiles: 9 }] },
     { room: 'R6', rects: [{ x: 600, y: 860, wTiles: 1, hTiles: 8 }, { x: 1060, y: 820, wTiles: 1, hTiles: 9 }] },
     { room: 'R7', rects: [{ x: 220, y: 224, wTiles: 8, hTiles: 16 }, { x: 1040, y: 224, wTiles: 8, hTiles: 16 }] },
