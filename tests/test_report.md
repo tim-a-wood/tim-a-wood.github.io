@@ -12,5 +12,5 @@ Update this file after each code change. Record one row for every acceptance tes
 | AT-06 | Touch Controls | Verifies on-screen left/right/jump controls behave correctly on touch devices. | Not Run | Touch controls not modified. |
 | AT-07 | Death, Respawn, And Restart | Verifies life loss, respawn flow, game-over state, and restart behavior. | Not Run | Life/respawn not involved. |
 | AT-08 | HUD And Feedback | Verifies the distance HUD and life icons stay visible and update correctly. | Not Run | HUD unchanged. |
-| AT-09 | Key Pickup And Door Unlock | Verifies the key can be collected on the high ledge, appears in the HUD inventory, and is consumed when unlocking the left-side door. | Not Run | Branch A: after R4 key+ability, secret door and tunnel labels appear; interact at tunnel exit -> R3. |
-| UT-01 | Unit Test Suite | Verifies the full automated unit test suite in `tests/game-logic.test.js` passes. | Not Run | Unit tests not re-run; R4/R3 platform data and tunnel logic added. |
+| AT-09 | Key Pickup And Door Unlock | Verifies the key can be collected on the high ledge, appears in the HUD inventory, and is consumed when unlocking the left-side door. | Not Run | Branch A: R4 east tunnel wall given gap so key/ability at y=1000 are reachable; not re-tested. |
+| UT-01 | Unit Test Suite | Verifies the full automated unit test suite in `tests/game-logic.test.js` passes. | Not Run | Unit tests not re-run; R4 platform layout only (tunnel wall gap). |
