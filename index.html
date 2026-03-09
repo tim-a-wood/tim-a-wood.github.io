@@ -103,14 +103,49 @@ const ROOM_PLATFORM_LAYOUTS = {
         { x: ROOM_IDS.R3.start + 940, y: 420, len: 4, tint: 4 },
         { x: ROOM_IDS.R3.start + 820, y: 340, len: 5, tint: 1 },
         { x: ROOM_IDS.R3.start + 1060, y: 280, len: 14, tint: 2 },
-        { x: ROOM_IDS.R3.start + 1360, y: 220, len: 5, tint: 3 }
+        { x: ROOM_IDS.R3.start + 1360, y: 220, len: 5, tint: 3 },
+        { x: ROOM_IDS.R3.start + 1560, y: 1100, len: 3, tint: 0 }
     ],
     R4: [
         { x: ROOM_IDS.R4.start + 80, y: 1060, len: 44, tint: 0 },
         { x: ROOM_IDS.R4.start + 360, y: 980, len: 5, tint: 1 },
         { x: ROOM_IDS.R4.start + 720, y: 980, len: 5, tint: 2 },
         { x: ROOM_IDS.R4.start + 1080, y: 980, len: 5, tint: 3 },
-        { x: ROOM_IDS.R4.start + 1440, y: 1060, len: 5, tint: 4 }
+        { x: ROOM_IDS.R4.start + 1440, y: 1060, len: 5, tint: 4 },
+        // Tunnel L: horizontal west at mid-height (R3 middle height), west shaft down to R3 bottom
+        { x: ROOM_IDS.R4.start + 0, y: 600, len: 47, tint: 0 },
+        { x: ROOM_IDS.R4.start + 0, y: 632, len: 1, tint: 0 },
+        { x: ROOM_IDS.R4.start + 0, y: 664, len: 1, tint: 0 },
+        { x: ROOM_IDS.R4.start + 0, y: 696, len: 1, tint: 0 },
+        { x: ROOM_IDS.R4.start + 0, y: 728, len: 1, tint: 0 },
+        { x: ROOM_IDS.R4.start + 0, y: 760, len: 1, tint: 0 },
+        { x: ROOM_IDS.R4.start + 0, y: 792, len: 1, tint: 0 },
+        { x: ROOM_IDS.R4.start + 0, y: 824, len: 1, tint: 0 },
+        { x: ROOM_IDS.R4.start + 0, y: 856, len: 1, tint: 0 },
+        { x: ROOM_IDS.R4.start + 0, y: 888, len: 1, tint: 0 },
+        { x: ROOM_IDS.R4.start + 0, y: 920, len: 1, tint: 0 },
+        { x: ROOM_IDS.R4.start + 0, y: 952, len: 1, tint: 0 },
+        { x: ROOM_IDS.R4.start + 0, y: 984, len: 1, tint: 0 },
+        { x: ROOM_IDS.R4.start + 0, y: 1016, len: 1, tint: 0 },
+        { x: ROOM_IDS.R4.start + 0, y: 1048, len: 1, tint: 0 },
+        { x: ROOM_IDS.R4.start + 0, y: 1080, len: 1, tint: 0 },
+        { x: ROOM_IDS.R4.start + 0, y: 1100, len: 1, tint: 0 },
+        // Tunnel: south shaft at R4 east (from mid-height down to east end floor)
+        { x: ROOM_IDS.R4.start + 1480, y: 600, len: 1, tint: 0 },
+        { x: ROOM_IDS.R4.start + 1480, y: 632, len: 1, tint: 0 },
+        { x: ROOM_IDS.R4.start + 1480, y: 664, len: 1, tint: 0 },
+        { x: ROOM_IDS.R4.start + 1480, y: 696, len: 1, tint: 0 },
+        { x: ROOM_IDS.R4.start + 1480, y: 728, len: 1, tint: 0 },
+        { x: ROOM_IDS.R4.start + 1480, y: 760, len: 1, tint: 0 },
+        { x: ROOM_IDS.R4.start + 1480, y: 792, len: 1, tint: 0 },
+        { x: ROOM_IDS.R4.start + 1480, y: 824, len: 1, tint: 0 },
+        { x: ROOM_IDS.R4.start + 1480, y: 856, len: 1, tint: 0 },
+        { x: ROOM_IDS.R4.start + 1480, y: 888, len: 1, tint: 0 },
+        { x: ROOM_IDS.R4.start + 1480, y: 920, len: 1, tint: 0 },
+        { x: ROOM_IDS.R4.start + 1480, y: 952, len: 1, tint: 0 },
+        { x: ROOM_IDS.R4.start + 1480, y: 984, len: 1, tint: 0 },
+        { x: ROOM_IDS.R4.start + 1480, y: 1016, len: 1, tint: 0 },
+        { x: ROOM_IDS.R4.start + 1480, y: 1048, len: 1, tint: 0 }
     ],
     R5: [
         { x: ROOM_IDS.R5.start + 60, y: 1060, len: 20, tint: 0 },
@@ -603,6 +638,24 @@ class AshenHollow extends Phaser.Scene {
         this.add.text(ROOM_IDS.R8.start + 1360, 990, 'CLIMB BACK -> R7', {
             fontSize: '10px', fill: '#9fdfff', stroke: '#000', strokeThickness: 2
         }).setOrigin(0.5);
+
+        const r3SecretDoorX = ROOM_IDS.R3.start + 1560;
+        const r3SecretDoorY = 1100;
+        this.r3SecretDoor = this.physics.add.staticImage(r3SecretDoorX, r3SecretDoorY, 'doorFrame')
+            .setTint(0x8b4513)
+            .setVisible(false)
+            .refreshBody();
+        this.r3SecretDoorLabel = this.add.text(r3SecretDoorX, r3SecretDoorY - 52, 'SECRET -> R3', {
+            fontSize: '10px', fill: '#daa520', stroke: '#000', strokeThickness: 2
+        }).setOrigin(0.5).setVisible(false);
+        this.tunnelExitX = ROOM_IDS.R4.start + 56;
+        this.tunnelExitY = 1100;
+        this.tunnelEntranceLabel = this.add.text(ROOM_IDS.R4.start + 1500, 1040, 'TUNNEL -> R3', {
+            fontSize: '10px', fill: '#daa520', stroke: '#000', strokeThickness: 2
+        }).setOrigin(0.5);
+        this.tunnelExitLabel = this.add.text(this.tunnelExitX, this.tunnelExitY - 48, '[E] EXIT -> R3', {
+            fontSize: '10px', fill: '#daa520', stroke: '#000', strokeThickness: 2
+        }).setOrigin(0.5).setVisible(false);
     }
 
     createBranchReward(branchId, keyX, keyY, abilityX, abilityY) {
@@ -870,6 +923,12 @@ class AshenHollow extends Phaser.Scene {
         this.handleInteractionsAndTransitions();
         this.drawMotionTrail();
 
+        const showSecretDoor = this.keyItemA && this.abilityA;
+        if (this.r3SecretDoor) this.r3SecretDoor.setVisible(showSecretDoor);
+        if (this.r3SecretDoorLabel) this.r3SecretDoorLabel.setVisible(showSecretDoor);
+        if (this.tunnelEntranceLabel) this.tunnelEntranceLabel.setVisible(showSecretDoor);
+        if (this.tunnelExitLabel) this.tunnelExitLabel.setVisible(showSecretDoor);
+
         this.starField.tilePositionX = this.player.x * 0.15;
         this.distText.setText(`DIST ${Math.floor(this.player.x / 10)} m`);
         this.roomText.setText(`ROOM: ${this.currentRoomId}`);
@@ -995,6 +1054,24 @@ class AshenHollow extends Phaser.Scene {
             if (nearR4ReturnDoor) {
                 this.transitionToRoom('R3', r3ShaftX, 360, 'Transition: R4 -> R3 (south descent)', {
                     entrySide: 'top',
+                    preserveY: false
+                });
+                return;
+            }
+        }
+
+        if (room === 'R4' && interactPressed && this.r3SecretDoor && this.r3SecretDoor.visible) {
+            const nearTunnelExit = Phaser.Math.Distance.Between(
+                this.player.x,
+                this.player.y,
+                this.tunnelExitX,
+                this.tunnelExitY
+            ) < 120;
+            if (nearTunnelExit) {
+                const secretDoorX = ROOM_IDS.R3.start + 1560;
+                const secretDoorY = 1100;
+                this.transitionToRoom('R3', secretDoorX, secretDoorY, 'Secret tunnel: exit to R3 (bottom right)', {
+                    entrySide: 'right',
                     preserveY: false
                 });
                 return;
