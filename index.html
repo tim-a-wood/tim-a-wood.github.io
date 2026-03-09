@@ -106,18 +106,11 @@ const ROOM_PLATFORM_LAYOUTS = {
         { x: ROOM_IDS.R3.start + 1360, y: 220, len: 5, tint: 3 }
     ],
     R4: [
-        { x: ROOM_IDS.R4.start + 720, y: 1060, len: 6, tint: 0 },
-        { x: ROOM_IDS.R4.start + 900, y: 980, len: 4, tint: 1 },
-        { x: ROOM_IDS.R4.start + 760, y: 900, len: 4, tint: 2 },
-        { x: ROOM_IDS.R4.start + 940, y: 820, len: 4, tint: 3 },
-        { x: ROOM_IDS.R4.start + 800, y: 740, len: 4, tint: 4 },
-        { x: ROOM_IDS.R4.start + 980, y: 660, len: 4, tint: 1 },
-        { x: ROOM_IDS.R4.start + 840, y: 580, len: 4, tint: 2 },
-        { x: ROOM_IDS.R4.start + 1020, y: 500, len: 4, tint: 3 },
-        { x: ROOM_IDS.R4.start + 880, y: 420, len: 5, tint: 4 },
-        { x: ROOM_IDS.R4.start + 1080, y: 340, len: 10, tint: 1 },
-        { x: ROOM_IDS.R4.start + 1360, y: 280, len: 5, tint: 2 },
-        { x: ROOM_IDS.R4.start + 1180, y: 980, len: 6, tint: 3 }
+        { x: ROOM_IDS.R4.start + 80, y: 1060, len: 44, tint: 0 },
+        { x: ROOM_IDS.R4.start + 360, y: 980, len: 5, tint: 1 },
+        { x: ROOM_IDS.R4.start + 720, y: 980, len: 5, tint: 2 },
+        { x: ROOM_IDS.R4.start + 1080, y: 980, len: 5, tint: 3 },
+        { x: ROOM_IDS.R4.start + 1440, y: 1060, len: 5, tint: 4 }
     ],
     R5: [
         { x: ROOM_IDS.R5.start + 60, y: 1060, len: 20, tint: 0 },
@@ -177,7 +170,7 @@ const ROOM_PLATFORM_LAYOUTS = {
 
 const DUNGEON_WALL_RECTS = [
     { room: 'R3', rects: [{ x: 220, y: 352, wTiles: 8, hTiles: 24 }, { x: 1040, y: 352, wTiles: 8, hTiles: 24 }] },
-    { room: 'R4', rects: [{ x: 220, y: 352, wTiles: 8, hTiles: 24 }, { x: 1040, y: 352, wTiles: 8, hTiles: 24 }] },
+    { room: 'R4', rects: [] },
     { room: 'R5', rects: [{ x: 520, y: 860, wTiles: 1, hTiles: 8 }, { x: 980, y: 820, wTiles: 1, hTiles: 9 }] },
     { room: 'R6', rects: [{ x: 600, y: 860, wTiles: 1, hTiles: 8 }, { x: 1060, y: 820, wTiles: 1, hTiles: 9 }] },
     { room: 'R7', rects: [{ x: 220, y: 224, wTiles: 8, hTiles: 16 }, { x: 1040, y: 224, wTiles: 8, hTiles: 16 }] },
@@ -544,7 +537,7 @@ class AshenHollow extends Phaser.Scene {
         this.keyPickupGroup = this.physics.add.staticGroup();
         this.abilityNodeGroup = this.physics.add.staticGroup();
 
-        this.createBranchReward('A', ROOM_IDS.R4.start + 920, 560, ROOM_IDS.R4.start + 960, 420);
+        this.createBranchReward('A', ROOM_IDS.R4.start + 1480, 1000, ROOM_IDS.R4.start + 1520, 1000);
         this.createBranchReward('B', ROOM_IDS.R6.start + 1120, 820, ROOM_IDS.R6.start + 1360, 900);
         this.createBranchReward('C', ROOM_IDS.R8.start + 980, 860, ROOM_IDS.R8.start + 1180, 980);
 
@@ -595,13 +588,13 @@ class AshenHollow extends Phaser.Scene {
             .setTint(BRANCH_CONFIG.A.color)
             .refreshBody();
 
-        const r4ReturnDoorX = ROOM_IDS.R4.start + 820;
+        const r4ReturnDoorX = ROOM_IDS.R4.start + 120;
         const r4ReturnDoorY = 1012;
         this.r4ToR3Door = this.physics.add.staticImage(r4ReturnDoorX, r4ReturnDoorY, 'doorFrame')
             .setTint(BRANCH_CONFIG.A.color)
             .refreshBody();
 
-        this.add.text(ROOM_IDS.R4.start + 820, 1000, 'DESCEND -> R3', {
+        this.add.text(ROOM_IDS.R4.start + 120, 1000, 'DESCEND -> R3', {
             fontSize: '10px', fill: '#ff9aa5', stroke: '#000', strokeThickness: 2
         }).setOrigin(0.5);
         this.add.text(ROOM_IDS.R6.start + 1360, 770, 'RETURN LANE -> R5', {
@@ -924,7 +917,7 @@ class AshenHollow extends Phaser.Scene {
         const room = this.currentRoomId;
         const bounds = ROOM_IDS[room];
         const r3ShaftX = ROOM_IDS.R3.start + 820;
-        const r4ShaftX = ROOM_IDS.R4.start + 820;
+        const r4EntryX = ROOM_IDS.R4.start + 120;
         const interactPressed = (this.interactKey && Phaser.Input.Keyboard.JustDown(this.interactKey)) ||
             this.interactQueued;
         this.interactQueued = false;
@@ -970,8 +963,8 @@ class AshenHollow extends Phaser.Scene {
                     this.r3ToR4Door.y
                 ) < 130;
                 if (nearR3ToR4Door) {
-                    this.transitionToRoom('R4', r4ShaftX, 1020, 'Transition: R3 -> R4 (north ascent)', {
-                        entrySide: 'bottom',
+                    this.transitionToRoom('R4', r4EntryX, 1020, 'Transition: R3 -> R4 (west entry)', {
+                        entrySide: 'left',
                         preserveY: false
                     });
                     handled = true;
