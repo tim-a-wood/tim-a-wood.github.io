@@ -574,9 +574,16 @@ class AshenHollow extends Phaser.Scene {
         this.add.text(ROOM_IDS.R3.start + 860, 220, BRANCH_CONFIG.A.landmark, {
             fontSize: '11px', fill: '#ff9aa5', stroke: '#000', strokeThickness: 2
         }).setOrigin(0.5);
-        this.add.text(ROOM_IDS.R3.start + 820, 300, 'ASCEND -> R4', {
+
+        const r3TopDoorX = ROOM_IDS.R3.start + 1360;
+        const r3TopDoorY = 248;
+        this.r3ToR4Door = this.physics.add.staticImage(r3TopDoorX, r3TopDoorY, 'doorFrame')
+            .setTint(BRANCH_CONFIG.A.color)
+            .refreshBody();
+        this.add.text(r3TopDoorX, r3TopDoorY - 52, 'ASCEND -> R4', {
             fontSize: '10px', fill: '#ff9aa5', stroke: '#000', strokeThickness: 2
         }).setOrigin(0.5);
+
         this.add.text(ROOM_IDS.R5.start + 880, 760, BRANCH_CONFIG.B.landmark, {
             fontSize: '11px', fill: '#ffd29f', stroke: '#000', strokeThickness: 2
         }).setOrigin(0.5);
@@ -584,7 +591,13 @@ class AshenHollow extends Phaser.Scene {
             fontSize: '11px', fill: '#9fdfff', stroke: '#000', strokeThickness: 2
         }).setOrigin(0.5);
 
-        this.physics.add.staticImage(ROOM_IDS.R3.start + 820, 1148, 'doorFrame')
+        this.r3ReturnDoor = this.physics.add.staticImage(ROOM_IDS.R3.start + 820, 1148, 'doorFrame')
+            .setTint(BRANCH_CONFIG.A.color)
+            .refreshBody();
+
+        const r4ReturnDoorX = ROOM_IDS.R4.start + 820;
+        const r4ReturnDoorY = 1012;
+        this.r4ToR3Door = this.physics.add.staticImage(r4ReturnDoorX, r4ReturnDoorY, 'doorFrame')
             .setTint(BRANCH_CONFIG.A.color)
             .refreshBody();
 
@@ -930,17 +943,42 @@ class AshenHollow extends Phaser.Scene {
         }
 
         if (room === 'R3' && interactPressed) {
-            const r3DoorX = r3ShaftX;
-            const r3DoorY = 1148;
-            const nearR3ReturnDoor = Phaser.Math.Distance.Between(this.player.x, this.player.y, r3DoorX, r3DoorY) < 130;
-            if (nearR3ReturnDoor) {
-                this.completeBranchRun('A');
-                this.transitionToRoom('R2', ROOM_IDS.R2.start + 680, 740, 'Branch A complete: return to R2', {
-                    entrySide: 'top',
-                    preserveY: false
-                });
-                return;
+            let handled = false;
+
+            if (this.r3ReturnDoor) {
+                const nearR3ReturnDoor = Phaser.Math.Distance.Between(
+                    this.player.x,
+                    this.player.y,
+                    this.r3ReturnDoor.x,
+                    this.r3ReturnDoor.y
+                ) < 130;
+                if (nearR3ReturnDoor) {
+                    this.completeBranchRun('A');
+                    this.transitionToRoom('R2', ROOM_IDS.R2.start + 680, 740, 'Branch A complete: return to R2', {
+                        entrySide: 'top',
+                        preserveY: false
+                    });
+                    handled = true;
+                }
             }
+
+            if (!handled && this.r3ToR4Door) {
+                const nearR3ToR4Door = Phaser.Math.Distance.Between(
+                    this.player.x,
+                    this.player.y,
+                    this.r3ToR4Door.x,
+                    this.r3ToR4Door.y
+                ) < 130;
+                if (nearR3ToR4Door) {
+                    this.transitionToRoom('R4', r4ShaftX, 1020, 'Transition: R3 -> R4 (north ascent)', {
+                        entrySide: 'bottom',
+                        preserveY: false
+                    });
+                    handled = true;
+                }
+            }
+
+            if (handled) return;
         }
 
         this.player.x = Phaser.Math.Clamp(this.player.x, bounds.start + 24, bounds.end - 24);
@@ -954,19 +992,20 @@ class AshenHollow extends Phaser.Scene {
             return;
         }
 
-        if (room === 'R3' && this.player.y < 300 && Math.abs(this.player.x - r3ShaftX) < 150) {
-            this.transitionToRoom('R4', r4ShaftX, 1020, 'Transition: R3 -> R4 (north ascent)', {
-                entrySide: 'bottom',
-                preserveY: false
-            });
-            return;
-        }
-        if (room === 'R4' && this.player.y > 980 && Math.abs(this.player.x - r4ShaftX) < 170) {
-            this.transitionToRoom('R3', r3ShaftX, 360, 'Transition: R4 -> R3 (south descent)', {
-                entrySide: 'top',
-                preserveY: false
-            });
-            return;
+        if (room === 'R4' && interactPressed && this.r4ToR3Door) {
+            const nearR4ReturnDoor = Phaser.Math.Distance.Between(
+                this.player.x,
+                this.player.y,
+                this.r4ToR3Door.x,
+                this.r4ToR3Door.y
+            ) < 130;
+            if (nearR4ReturnDoor) {
+                this.transitionToRoom('R3', r3ShaftX, 360, 'Transition: R4 -> R3 (south descent)', {
+                    entrySide: 'top',
+                    preserveY: false
+                });
+                return;
+            }
         }
 
         if (room === 'R5' && this.player.x > ROOM_IDS.R5.end - 70 && this.player.y > 900) {
