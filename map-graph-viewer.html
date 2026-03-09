@@ -193,6 +193,7 @@
       { id: "R2", name: "Central Hub", cluster: "main", x: 350, y: 280, primary: "Hub routing", secondary: "Progress readability", timing: "30-45s per visit", respawn: "Mid-run checkpoint", interactables: ["Branch doors A/B/C", "Branch completion board", "Shortcut marker back to R1"] },
       { id: "R3", name: "Branch A Entry Trial", cluster: "a", x: 350, y: 130, primary: "Branch A challenge entry", secondary: "Narrow vertical ascent (north)", timing: "60-90s", respawn: "None", interactables: ["Challenge trigger A", "Branch landmark"] },
       { id: "R4", name: "Branch A Reward + Ability Node", cluster: "a", x: 350, y: 60, primary: "Key Item A reward", secondary: "Ability Unlock A activation", timing: "90-120s", respawn: "None", interactables: ["Key Item A pickup", "Ability Unlock A node", "Loop-back lane to R3"] },
+      { id: "R11", name: "Branch A Tunnel Shaft", cluster: "a", x: 560, y: 60, primary: "Secret tunnel connector", secondary: "Vertical shaft then west crawl to R3", timing: "20-40s", respawn: "None", interactables: ["R4 tunnel door", "Shaft drop", "Secret door to R3"] },
       { id: "R5", name: "Branch B Entry Trial", cluster: "b", x: 560, y: 280, primary: "Branch B challenge entry", secondary: "Wide horizontal route (east)", timing: "60-90s", respawn: "None", interactables: ["Challenge trigger B", "Branch landmark"] },
       { id: "R6", name: "Branch B Reward + Ability Node", cluster: "b", x: 780, y: 280, primary: "Key Item B reward", secondary: "Ability Unlock B activation", timing: "90-120s", respawn: "None", interactables: ["Key Item B pickup", "Ability Unlock B node", "Loop-back lane to R5"] },
       { id: "R7", name: "Branch C Entry Trial", cluster: "c", x: 350, y: 430, primary: "Branch C challenge entry", secondary: "Narrow vertical descent (south)", timing: "60-90s", respawn: "None", interactables: ["Challenge trigger C", "Branch landmark"] },
@@ -206,7 +207,8 @@
       { from: "R2", to: "R1", type: "normal" },
       { from: "R2", to: "R3", type: "normal" },
       { from: "R3", to: "R4", type: "normal" },
-      { from: "R4", to: "R3", type: "normal" },
+      { from: "R4", to: "R11", type: "normal" },
+      { from: "R11", to: "R3", type: "normal" },
       { from: "R3", to: "R2", type: "normal" },
       { from: "R2", to: "R5", type: "normal" },
       { from: "R5", to: "R6", type: "normal" },
@@ -338,7 +340,7 @@
       document.getElementById("kEdges").textContent = String(edges.length);
       document.getElementById("graphFlow").textContent = [
         "Critical flow:",
-        "R1 -> R2 -> (A North loop: R3 -> R4 -> R3 -> R2, B East loop: R5 -> R6 -> R5 -> R2, C South loop: R7 -> R8 -> R7 -> R2) -> R1 -> R9 -> R10",
+        "R1 -> R2 -> (A North loop: R3 -> R4 -> R11 -> R3 -> R2, B East loop: R5 -> R6 -> R5 -> R2, C South loop: R7 -> R8 -> R7 -> R2) -> R1 -> R9 -> R10",
         "",
         "Gate rule:",
         "R1 -> R9 requires key_items_collected == 3 and abilities_unlocked == 3"
