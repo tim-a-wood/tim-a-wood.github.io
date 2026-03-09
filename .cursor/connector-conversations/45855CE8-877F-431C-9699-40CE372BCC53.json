@@ -1,0 +1,18 @@
+{
+  "createdAt" : "2026-03-09T13:44:30.992Z",
+  "id" : "45855CE8-877F-431C-9699-40CE372BCC53",
+  "messages" : [
+    {
+      "content" : "The player should appear at ground level when transitioning from R2 to R3. Currently the player appears offset vertically above the ground in R3, and then falls to the ground.",
+      "id" : "93A7ED37-6CFA-4C11-806F-5CA2EAF36B7C",
+      "role" : "user"
+    },
+    {
+      "content" : "",
+      "id" : "0105EF00-EB1E-4ADE-9859-A7EBFEDBBAE6",
+      "role" : "assistant"
+    }
+  ],
+  "title" : "The player should appear at ground level when transitioning ",
+  "updatedAt" : "2026-03-09T13:44:30.992Z"
+}
