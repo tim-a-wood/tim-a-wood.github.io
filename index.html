@@ -18,7 +18,7 @@
     </style>
 </head>
 <body>
-<!-- CACHE_BUST: activity6dungeon1 -->
+<!-- CACHE_BUST: activity6dungeon2 -->
 <div id="game-container"></div>
 <script>
 const CONFIG = {
@@ -43,6 +43,11 @@ const ROOM_IDS = ROOM_SEQUENCE.reduce((acc, roomId, idx) => {
 CONFIG.WORLD_WIDTH = CONFIG.ROOM_WIDTH * ROOM_SEQUENCE.length;
 
 const ENABLE_DEBUG_UNLOCK = true;
+const TEMP_TEST_START = {
+    room: 'R4',
+    x: ROOM_IDS.R4.start + 1460,
+    y: 1020
+};
 
 const BRANCH_CONFIG = {
     A: {
@@ -177,10 +182,11 @@ const ROOM_PLATFORM_LAYOUTS = {
         { x: ROOM_IDS.R10.start + 1040, y: 860, len: 8, tint: 2 }
     ],
     R11: [
-        { x: ROOM_IDS.R11.start + 1160, y: 240, len: 13, tint: 1 },
+        { x: ROOM_IDS.R11.start + 1160, y: 240, len: 5, tint: 1 },
+        { x: ROOM_IDS.R11.start + 1416, y: 240, len: 5, tint: 1 },
         { x: ROOM_IDS.R11.start + 1040, y: 648, len: 17, tint: 2 },
         { x: ROOM_IDS.R11.start + 48, y: 648, len: 32, tint: 0 },
-        { x: ROOM_IDS.R11.start + 48, y: 552, len: 32, tint: 4 },
+        { x: ROOM_IDS.R11.start + 48, y: 552, len: 25, tint: 4 },
         { x: ROOM_IDS.R11.start + 1040, y: 552, len: 17, tint: 1 }
     ]
 };
@@ -334,7 +340,7 @@ class AshenHollow extends Phaser.Scene {
         this.trail = this.add.graphics();
 
         this.platforms = this.physics.add.staticGroup();
-        this.player = this.physics.add.sprite(220, 1020, 'hero');
+        this.player = this.physics.add.sprite(TEMP_TEST_START.x, TEMP_TEST_START.y, 'hero');
         this.player.setCollideWorldBounds(true);
         this.physics.add.collider(this.player, this.platforms);
 
@@ -346,7 +352,7 @@ class AshenHollow extends Phaser.Scene {
         this.setupControls();
         this.createTransitionOverlay();
 
-        this.setCurrentRoom('R1');
+        this.setCurrentRoom(TEMP_TEST_START.room);
         this.recomputeProgressionCounts();
         this.runSequenceChecks();
         this.refreshBranchBoard();
