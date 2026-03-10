@@ -177,10 +177,11 @@ const ROOM_PLATFORM_LAYOUTS = {
         { x: ROOM_IDS.R10.start + 1040, y: 860, len: 8, tint: 2 }
     ],
     R11: [
-        { x: ROOM_IDS.R11.start + 1320, y: 240, len: 6, tint: 1 },
-        { x: ROOM_IDS.R11.start + 1040, y: 648, len: 15, tint: 2 },
-        { x: ROOM_IDS.R11.start + 80, y: 648, len: 31, tint: 0 },
-        { x: ROOM_IDS.R11.start + 80, y: 552, len: 30, tint: 4 }
+        { x: ROOM_IDS.R11.start + 1160, y: 240, len: 13, tint: 1 },
+        { x: ROOM_IDS.R11.start + 1040, y: 648, len: 17, tint: 2 },
+        { x: ROOM_IDS.R11.start + 48, y: 648, len: 32, tint: 0 },
+        { x: ROOM_IDS.R11.start + 48, y: 552, len: 32, tint: 4 },
+        { x: ROOM_IDS.R11.start + 1040, y: 552, len: 17, tint: 1 }
     ]
 };
 
@@ -195,7 +196,12 @@ const DUNGEON_WALL_RECTS = [
     { room: 'R6', rects: [{ x: 600, y: 860, wTiles: 1, hTiles: 8 }, { x: 1060, y: 820, wTiles: 1, hTiles: 9 }] },
     { room: 'R7', rects: [{ x: 220, y: 224, wTiles: 8, hTiles: 16 }, { x: 1040, y: 224, wTiles: 8, hTiles: 16 }] },
     { room: 'R8', rects: [{ x: 220, y: 224, wTiles: 8, hTiles: 16 }, { x: 1040, y: 224, wTiles: 8, hTiles: 16 }] },
-    { room: 'R11', rects: [{ x: 1080, y: 224, wTiles: 1, hTiles: 14 }, { x: 1460, y: 224, wTiles: 1, hTiles: 14 }] }
+    {
+        room: 'R11',
+        rects: [
+            { x: 48, y: 520, wTiles: 1, hTiles: 5 }
+        ]
+    }
 ];
 
 class AshenHollow extends Phaser.Scene {
@@ -1041,7 +1047,7 @@ class AshenHollow extends Phaser.Scene {
                 this.r4ToR3Door.y
             ) < 130;
             if (nearR4ReturnDoor) {
-                this.transitionToRoom('R11', ROOM_IDS.R11.start + 1420, 200, 'Transition: R4 -> Tunnel shaft', {
+                this.transitionToRoom('R11', ROOM_IDS.R11.start + 1520, 214, 'Transition: R4 -> Tunnel shaft', {
                     entrySide: 'right',
                     preserveY: false
                 });
