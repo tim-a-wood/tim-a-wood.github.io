@@ -690,8 +690,6 @@ class AshenHollow extends Phaser.Scene {
         this.lifeIcons = this.add.group();
         this.updateLifeDisplay();
 
-        this.add.text(10, 44, '[ RESTART ]', { fontSize: '12px', fill: '#ff3355' })
-            .setScrollFactor(0).setInteractive().on('pointerdown', () => this.scene.restart());
     }
 
     setupControls() {
@@ -714,16 +712,45 @@ class AshenHollow extends Phaser.Scene {
         spawnBtn(160, 340, '>', 'right');
         spawnBtn(740, 340, '^', 'jump');
 
-        this.add.text(640, 300, '[ INTERACT ]', { fontSize: '12px', fill: '#ffe082', backgroundColor: '#112233' })
-            .setPadding(6, 4, 6, 4).setScrollFactor(0).setInteractive().on('pointerdown', () => { this.interactQueued = true; });
+        const interactY = 340;
+        this.interactBtn = this.add.image(640, interactY, 'btn').setScrollFactor(0).setInteractive().setAlpha(0.6);
+        this.interactBtnLabel = this.add.text(640, interactY, 'E', { fontSize: '24px' }).setOrigin(0.5).setScrollFactor(0);
+        this.interactBtn.on('pointerdown', () => { this.interactQueued = true; });
+        this.interactBtn.setVisible(false);
+        this.interactBtnLabel.setVisible(false);
 
-        this.add.text(640, 332, '[ BYPASS ]', { fontSize: '12px', fill: '#9ae6ff', backgroundColor: '#112233' })
+        const leftMidX = 14;
+        const leftMidY = Math.floor(CONFIG.H / 2) - 52;
+        this.add.text(leftMidX, leftMidY, '[ RESTART ]', { fontSize: '12px', fill: '#ff3355' })
+            .setScrollFactor(0).setInteractive().on('pointerdown', () => this.scene.restart());
+        this.add.text(leftMidX, leftMidY + 32, '[ BYPASS ]', { fontSize: '12px', fill: '#9ae6ff', backgroundColor: '#112233' })
             .setPadding(6, 4, 6, 4).setScrollFactor(0).setInteractive().on('pointerdown', () => this.runDebugBypass());
-
         if (ENABLE_DEBUG_UNLOCK) {
-            this.add.text(640, 364, '[ UNLOCK ]', { fontSize: '12px', fill: '#baffc9', backgroundColor: '#112233' })
+            this.add.text(leftMidX, leftMidY + 64, '[ UNLOCK ]', { fontSize: '12px', fill: '#baffc9', backgroundColor: '#112233' })
                 .setPadding(6, 4, 6, 4).setScrollFactor(0).setInteractive().on('pointerdown', () => this.runDebugUnlock());
         }
+    }
+
+    hasInteractableNearby() {
+        const room = this.currentRoomId;
+        const px = this.player.x;
+        const py = this.player.y;
+        const dist = (x, y) => Phaser.Math.Distance.Between(px, py, x, y);
+        if (room === 'R2' && this.branchDoors && this.branchDoors.length) {
+            if (this.branchDoors.some((d) => dist(d.x, d.y) < 140)) return true;
+        }
+        if (room === 'R3') {
+            if (this.r3ReturnDoor && dist(this.r3ReturnDoor.x, this.r3ReturnDoor.y) < 130) return true;
+            if (this.r3ToR4Door && dist(this.r3ToR4Door.x, this.r3ToR4Door.y) < 130) return true;
+        }
+        if (room === 'R4' && this.r4ToR3Door && this.r4ToR3Door.visible) {
+            if (dist(this.r4ToR3Door.x, this.r4ToR3Door.y) < 130) return true;
+        }
+        if (room === 'R11' && this.r11ToR3Door) {
+            if (dist(this.r11ToR3Door.x, this.r11ToR3Door.y) < 130) return true;
+        }
+        if (room === 'R1' && this.finalGate && dist(this.finalGate.x, this.finalGate.y) < 130) return true;
+        return false;
     }
 
     createTransitionOverlay() {
@@ -919,6 +946,13 @@ class AshenHollow extends Phaser.Scene {
 
     update() {
         if (this.isGameOver || this.inRoomTransition) return;
+
+        const showInteract = this.hasInteractableNearby();
+        if (this.interactBtn) {
+            this.interactBtn.setVisible(showInteract);
+            this.interactBtnLabel.setVisible(showInteract);
+            this.interactBtn.setInteractive(showInteract);
+        }
 
         this.handleMovement();
         this.handleInteractionsAndTransitions();
