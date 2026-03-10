@@ -18,7 +18,7 @@
     </style>
 </head>
 <body>
-<!-- CACHE_BUST: activity6dungeon2 -->
+<!-- CACHE_BUST: activity6dungeon3 -->
 <div id="game-container"></div>
 <script>
 const CONFIG = {
@@ -44,8 +44,8 @@ CONFIG.WORLD_WIDTH = CONFIG.ROOM_WIDTH * ROOM_SEQUENCE.length;
 
 const ENABLE_DEBUG_UNLOCK = true;
 const TEMP_TEST_START = {
-    room: 'R4',
-    x: ROOM_IDS.R4.start + 1460,
+    room: 'R1',
+    x: 220,
     y: 1020
 };
 
@@ -97,78 +97,68 @@ const ROOM_PLATFORM_LAYOUTS = {
         { x: ROOM_IDS.R2.start + 560, y: 1100, len: 5, tint: 1 }
     ],
     R3: [
-        { x: ROOM_IDS.R3.start + 700, y: 1060, len: 6, tint: 0 },
-        { x: ROOM_IDS.R3.start + 620, y: 980, len: 4, tint: 1 },
-        { x: ROOM_IDS.R3.start + 820, y: 900, len: 4, tint: 2 },
-        { x: ROOM_IDS.R3.start + 680, y: 820, len: 4, tint: 3 },
-        { x: ROOM_IDS.R3.start + 860, y: 740, len: 4, tint: 4 },
-        { x: ROOM_IDS.R3.start + 720, y: 660, len: 4, tint: 1 },
-        { x: ROOM_IDS.R3.start + 900, y: 580, len: 4, tint: 2 },
-        { x: ROOM_IDS.R3.start + 760, y: 500, len: 4, tint: 3 },
-        { x: ROOM_IDS.R3.start + 940, y: 420, len: 4, tint: 4 },
-        { x: ROOM_IDS.R3.start + 820, y: 340, len: 5, tint: 1 },
-        { x: ROOM_IDS.R3.start + 1060, y: 280, len: 14, tint: 2 },
-        { x: ROOM_IDS.R3.start + 1360, y: 220, len: 5, tint: 3 },
-        { x: ROOM_IDS.R3.start + 1560, y: 600, len: 3, tint: 0 }
+        { x: ROOM_IDS.R3.start + 560, y: 1060, len: 12, tint: 0 },
+        { x: ROOM_IDS.R3.start + 1020, y: 1060, len: 8, tint: 1 },
+        { x: ROOM_IDS.R3.start + 600, y: 940, len: 5, tint: 1 },
+        { x: ROOM_IDS.R3.start + 900, y: 920, len: 6, tint: 2 },
+        { x: ROOM_IDS.R3.start + 720, y: 780, len: 4, tint: 3 },
+        { x: ROOM_IDS.R3.start + 980, y: 700, len: 5, tint: 4 },
+        { x: ROOM_IDS.R3.start + 760, y: 560, len: 4, tint: 1 },
+        { x: ROOM_IDS.R3.start + 1120, y: 520, len: 6, tint: 2 },
+        { x: ROOM_IDS.R3.start + 1310, y: 360, len: 5, tint: 3 },
+        { x: ROOM_IDS.R3.start + 1260, y: 280, len: 8, tint: 4 },
+        { x: ROOM_IDS.R3.start + 1490, y: 600, len: 4, tint: 0 }
     ],
     R4: [
-        { x: ROOM_IDS.R4.start + 80, y: 1060, len: 8, tint: 0 },
-        { x: ROOM_IDS.R4.start + 420, y: 1060, len: 7, tint: 1 },
-        { x: ROOM_IDS.R4.start + 860, y: 1060, len: 7, tint: 2 },
-        { x: ROOM_IDS.R4.start + 1300, y: 1060, len: 6, tint: 3 },
-        { x: ROOM_IDS.R4.start + 300, y: 940, len: 5, tint: 1 },
-        { x: ROOM_IDS.R4.start + 700, y: 900, len: 5, tint: 2 },
-        { x: ROOM_IDS.R4.start + 1080, y: 860, len: 5, tint: 3 },
-        { x: ROOM_IDS.R4.start + 1360, y: 940, len: 4, tint: 4 },
-        { x: ROOM_IDS.R4.start + 1320, y: 980, len: 3, tint: 2 },
-        { x: ROOM_IDS.R4.start + 1360, y: 900, len: 3, tint: 3 },
-        { x: ROOM_IDS.R4.start + 1400, y: 820, len: 3, tint: 4 },
-        { x: ROOM_IDS.R4.start + 1440, y: 740, len: 3, tint: 1 },
-        { x: ROOM_IDS.R4.start + 1480, y: 660, len: 3, tint: 2 },
-        { x: ROOM_IDS.R4.start + 1480, y: 580, len: 2, tint: 3 }
+        { x: ROOM_IDS.R4.start + 80, y: 1060, len: 10, tint: 0 },
+        { x: ROOM_IDS.R4.start + 500, y: 1060, len: 8, tint: 1 },
+        { x: ROOM_IDS.R4.start + 900, y: 1060, len: 8, tint: 2 },
+        { x: ROOM_IDS.R4.start + 1300, y: 1060, len: 8, tint: 3 },
+        { x: ROOM_IDS.R4.start + 220, y: 920, len: 6, tint: 1 },
+        { x: ROOM_IDS.R4.start + 760, y: 940, len: 5, tint: 2 },
+        { x: ROOM_IDS.R4.start + 1080, y: 860, len: 6, tint: 3 },
+        { x: ROOM_IDS.R4.start + 1360, y: 920, len: 4, tint: 4 },
+        { x: ROOM_IDS.R4.start + 1420, y: 760, len: 4, tint: 1 },
+        { x: ROOM_IDS.R4.start + 1460, y: 620, len: 3, tint: 2 }
     ],
     R5: [
-        { x: ROOM_IDS.R5.start + 60, y: 1060, len: 20, tint: 0 },
-        { x: ROOM_IDS.R5.start + 360, y: 920, len: 10, tint: 1 },
-        { x: ROOM_IDS.R5.start + 700, y: 1000, len: 18, tint: 2 },
-        { x: ROOM_IDS.R5.start + 220, y: 840, len: 8, tint: 3 },
-        { x: ROOM_IDS.R5.start + 940, y: 840, len: 10, tint: 4 },
-        { x: ROOM_IDS.R5.start + 1180, y: 920, len: 9, tint: 1 },
-        { x: ROOM_IDS.R5.start + 1320, y: 1060, len: 6, tint: 2 }
+        { x: ROOM_IDS.R5.start + 60, y: 1060, len: 16, tint: 0 },
+        { x: ROOM_IDS.R5.start + 620, y: 1060, len: 18, tint: 1 },
+        { x: ROOM_IDS.R5.start + 220, y: 900, len: 7, tint: 2 },
+        { x: ROOM_IDS.R5.start + 560, y: 880, len: 6, tint: 3 },
+        { x: ROOM_IDS.R5.start + 920, y: 900, len: 8, tint: 4 },
+        { x: ROOM_IDS.R5.start + 1230, y: 820, len: 5, tint: 2 }
     ],
     R6: [
-        { x: ROOM_IDS.R6.start + 60, y: 1040, len: 22, tint: 0 },
-        { x: ROOM_IDS.R6.start + 400, y: 900, len: 12, tint: 1 },
-        { x: ROOM_IDS.R6.start + 760, y: 980, len: 18, tint: 2 },
-        { x: ROOM_IDS.R6.start + 980, y: 820, len: 10, tint: 3 },
-        { x: ROOM_IDS.R6.start + 1220, y: 900, len: 10, tint: 4 },
-        { x: ROOM_IDS.R6.start + 1400, y: 1040, len: 4, tint: 1 }
+        { x: ROOM_IDS.R6.start + 60, y: 1040, len: 12, tint: 0 },
+        { x: ROOM_IDS.R6.start + 520, y: 1040, len: 10, tint: 1 },
+        { x: ROOM_IDS.R6.start + 960, y: 1040, len: 14, tint: 2 },
+        { x: ROOM_IDS.R6.start + 320, y: 900, len: 5, tint: 3 },
+        { x: ROOM_IDS.R6.start + 760, y: 900, len: 7, tint: 4 },
+        { x: ROOM_IDS.R6.start + 1040, y: 820, len: 6, tint: 2 },
+        { x: ROOM_IDS.R6.start + 1280, y: 900, len: 5, tint: 3 },
+        { x: ROOM_IDS.R6.start + 1420, y: 880, len: 4, tint: 4 }
     ],
     R7: [
-        { x: ROOM_IDS.R7.start + 760, y: 340, len: 5, tint: 0 },
-        { x: ROOM_IDS.R7.start + 620, y: 420, len: 4, tint: 1 },
-        { x: ROOM_IDS.R7.start + 820, y: 500, len: 4, tint: 2 },
-        { x: ROOM_IDS.R7.start + 680, y: 580, len: 4, tint: 3 },
-        { x: ROOM_IDS.R7.start + 860, y: 660, len: 4, tint: 4 },
-        { x: ROOM_IDS.R7.start + 720, y: 740, len: 4, tint: 1 },
-        { x: ROOM_IDS.R7.start + 900, y: 820, len: 4, tint: 2 },
-        { x: ROOM_IDS.R7.start + 760, y: 900, len: 4, tint: 3 },
-        { x: ROOM_IDS.R7.start + 940, y: 980, len: 4, tint: 4 },
-        { x: ROOM_IDS.R7.start + 700, y: 1060, len: 6, tint: 1 },
-        { x: ROOM_IDS.R7.start + 1080, y: 1060, len: 14, tint: 2 }
+        { x: ROOM_IDS.R7.start + 700, y: 340, len: 6, tint: 0 },
+        { x: ROOM_IDS.R7.start + 520, y: 380, len: 4, tint: 4 },
+        { x: ROOM_IDS.R7.start + 560, y: 460, len: 4, tint: 1 },
+        { x: ROOM_IDS.R7.start + 820, y: 520, len: 5, tint: 2 },
+        { x: ROOM_IDS.R7.start + 640, y: 660, len: 4, tint: 3 },
+        { x: ROOM_IDS.R7.start + 900, y: 760, len: 5, tint: 4 },
+        { x: ROOM_IDS.R7.start + 760, y: 900, len: 5, tint: 1 },
+        { x: ROOM_IDS.R7.start + 1020, y: 1060, len: 10, tint: 2 },
+        { x: ROOM_IDS.R7.start + 620, y: 1060, len: 5, tint: 3 }
     ],
     R8: [
-        { x: ROOM_IDS.R8.start + 780, y: 320, len: 5, tint: 0 },
-        { x: ROOM_IDS.R8.start + 960, y: 400, len: 4, tint: 1 },
-        { x: ROOM_IDS.R8.start + 820, y: 480, len: 4, tint: 2 },
-        { x: ROOM_IDS.R8.start + 1000, y: 560, len: 4, tint: 3 },
-        { x: ROOM_IDS.R8.start + 860, y: 640, len: 4, tint: 4 },
-        { x: ROOM_IDS.R8.start + 1040, y: 720, len: 4, tint: 1 },
-        { x: ROOM_IDS.R8.start + 900, y: 800, len: 4, tint: 2 },
-        { x: ROOM_IDS.R8.start + 1080, y: 880, len: 4, tint: 3 },
-        { x: ROOM_IDS.R8.start + 940, y: 960, len: 4, tint: 4 },
-        { x: ROOM_IDS.R8.start + 760, y: 1040, len: 6, tint: 1 },
-        { x: ROOM_IDS.R8.start + 1120, y: 1040, len: 12, tint: 2 }
+        { x: ROOM_IDS.R8.start + 700, y: 340, len: 6, tint: 0 },
+        { x: ROOM_IDS.R8.start + 840, y: 480, len: 5, tint: 1 },
+        { x: ROOM_IDS.R8.start + 700, y: 620, len: 5, tint: 2 },
+        { x: ROOM_IDS.R8.start + 980, y: 720, len: 6, tint: 3 },
+        { x: ROOM_IDS.R8.start + 820, y: 860, len: 7, tint: 4 },
+        { x: ROOM_IDS.R8.start + 1120, y: 980, len: 8, tint: 1 },
+        { x: ROOM_IDS.R8.start + 1260, y: 1040, len: 6, tint: 2 },
+        { x: ROOM_IDS.R8.start + 760, y: 1040, len: 5, tint: 3 }
     ],
     R9: [
         { x: ROOM_IDS.R9.start + 140, y: 1048, len: 14, tint: 0 },
@@ -192,16 +182,35 @@ const ROOM_PLATFORM_LAYOUTS = {
 };
 
 const DUNGEON_WALL_RECTS = [
-    { room: 'R3', rects: [{ x: 220, y: 352, wTiles: 8, hTiles: 24 }, { x: 1040, y: 352, wTiles: 8, hTiles: 24 }] },
-    { room: 'R4', rects: [
-        { x: 0, y: 600, wTiles: 47, hTiles: 1 },
-        { x: 0, y: 616, wTiles: 1, hTiles: 16 },
-        { x: 1480, y: 616, wTiles: 1, hTiles: 11 }
+    { room: 'R3', rects: [
+        { x: 500, y: 896, wTiles: 3, hTiles: 6 },
+        { x: 1220, y: 640, wTiles: 3, hTiles: 10 },
+        { x: 880, y: 416, wTiles: 2, hTiles: 7 },
+        { x: 1430, y: 320, wTiles: 2, hTiles: 4 }
     ] },
-    { room: 'R5', rects: [{ x: 520, y: 860, wTiles: 1, hTiles: 8 }, { x: 980, y: 820, wTiles: 1, hTiles: 9 }] },
-    { room: 'R6', rects: [{ x: 600, y: 860, wTiles: 1, hTiles: 8 }, { x: 1060, y: 820, wTiles: 1, hTiles: 9 }] },
-    { room: 'R7', rects: [{ x: 220, y: 224, wTiles: 8, hTiles: 16 }, { x: 1040, y: 224, wTiles: 8, hTiles: 16 }] },
-    { room: 'R8', rects: [{ x: 220, y: 224, wTiles: 8, hTiles: 16 }, { x: 1040, y: 224, wTiles: 8, hTiles: 16 }] },
+    { room: 'R4', rects: [
+        { x: 360, y: 928, wTiles: 2, hTiles: 5 },
+        { x: 980, y: 864, wTiles: 2, hTiles: 7 },
+        { x: 1260, y: 736, wTiles: 2, hTiles: 11 },
+        { x: 1510, y: 608, wTiles: 1, hTiles: 14 }
+    ] },
+    { room: 'R5', rects: [
+        { x: 460, y: 896, wTiles: 2, hTiles: 6 },
+        { x: 1080, y: 832, wTiles: 2, hTiles: 8 }
+    ] },
+    { room: 'R6', rects: [
+        { x: 420, y: 896, wTiles: 2, hTiles: 5 },
+        { x: 900, y: 800, wTiles: 2, hTiles: 8 },
+        { x: 1220, y: 864, wTiles: 2, hTiles: 6 }
+    ] },
+    { room: 'R7', rects: [
+        { x: 520, y: 416, wTiles: 2, hTiles: 6 },
+        { x: 1080, y: 736, wTiles: 2, hTiles: 8 }
+    ] },
+    { room: 'R8', rects: [
+        { x: 620, y: 544, wTiles: 2, hTiles: 6 },
+        { x: 1180, y: 896, wTiles: 2, hTiles: 5 }
+    ] },
     {
         room: 'R11',
         rects: [
