@@ -1,0 +1,1360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ashen Hollow Room Layout Editor</title>
+  <style>
+    :root {
+      --bg: #0b1117;
+      --panel: #111b24;
+      --panel-2: #162635;
+      --line: #2b445c;
+      --text: #e6eef7;
+      --muted: #95aabd;
+      --accent: #f5c156;
+      --good: #59d8a1;
+      --door: #f5986e;
+      --platform: #77b8ff;
+      --vertex: #ff6b8a;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background:
+        radial-gradient(circle at top left, rgba(58, 92, 128, 0.18), transparent 25%),
+        radial-gradient(circle at bottom right, rgba(176, 110, 67, 0.18), transparent 25%),
+        var(--bg);
+      color: var(--text);
+      font-family: "Avenir Next", "Segoe UI", sans-serif;
+    }
+    .app {
+      display: grid;
+      grid-template-columns: 330px minmax(0, 1fr) 380px;
+      gap: 12px;
+      padding: 12px;
+      min-height: 100vh;
+    }
+    .panel {
+      background: linear-gradient(180deg, var(--panel-2), var(--panel));
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 12px;
+      min-height: 0;
+    }
+    h1, h2, h3 {
+      margin: 0;
+      font-size: 15px;
+      letter-spacing: 0.02em;
+    }
+    .sub {
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.4;
+    }
+    .stack { display: grid; gap: 10px; }
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .row-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+    label {
+      display: grid;
+      gap: 4px;
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    input, select, textarea, button {
+      width: 100%;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+      background: #0d1821;
+      color: var(--text);
+      padding: 8px 10px;
+      font: inherit;
+    }
+    textarea {
+      min-height: 280px;
+      resize: vertical;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+    button {
+      cursor: pointer;
+      background: #132637;
+    }
+    button.active {
+      border-color: var(--accent);
+      color: #fff4d7;
+      background: #3a2b14;
+    }
+    button.secondary { background: #102331; }
+    button.good { background: #16372b; border-color: #255c48; }
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .toolbar button {
+      width: auto;
+      min-width: 88px;
+      padding: 8px 12px;
+    }
+    .canvas-wrap {
+      display: grid;
+      gap: 10px;
+      min-height: 0;
+    }
+    .canvas-box {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #09121a;
+      overflow: hidden;
+    }
+    canvas {
+      display: block;
+      width: 100%;
+      height: auto;
+      touch-action: none;
+      background:
+        linear-gradient(0deg, rgba(255,255,255,0.02), rgba(255,255,255,0.02)),
+        #081018;
+    }
+    .hint {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+    .list {
+      display: grid;
+      gap: 6px;
+      max-height: 200px;
+      overflow: auto;
+    }
+    .chip {
+      padding: 8px 10px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #0b1620;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    .chip.active {
+      border-color: var(--accent);
+      background: #1c2530;
+    }
+    .status {
+      font-size: 12px;
+      color: var(--muted);
+      min-height: 18px;
+    }
+    .badge {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 11px;
+      margin-right: 6px;
+    }
+    .hidden { display: none; }
+    .steps {
+      margin: 0;
+      padding-left: 18px;
+      color: var(--text);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+    .steps li + li {
+      margin-top: 6px;
+    }
+    details {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 10px;
+      background: #0b1620;
+    }
+    summary {
+      cursor: pointer;
+      color: var(--muted);
+      font-size: 12px;
+      user-select: none;
+    }
+    @media (max-width: 1300px) {
+      .app {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="panel stack">
+      <div>
+        <h1>Room Layout Editor</h1>
+        <div class="sub">Edit room floorplans, ledges, doors, and global placement. During development, use git as the shared cross-device sync mechanism.</div>
+      </div>
+
+      <details open>
+        <summary>Development Workflow</summary>
+        <ol class="steps">
+          <li>Choose a room, edit the layout, then tap <strong>Save Device</strong>. This saves the current layout in this browser on this device.</li>
+          <li>Tap <strong>Export Layout</strong> from Advanced when you want to move the current layout to another device or commit it to git.</li>
+          <li>On your MacBook, replace [room-layout-data.json](/Users/timwood/Desktop/projects/PWA/MV/room-layout-data.json) with the exported file, then `git add`, `git commit`, and `git push`.</li>
+          <li>On another device, pull/reload the latest repo version, or use <strong>Import Layout</strong> from Advanced to paste the JSON directly.</li>
+          <li>Tap <strong>Open Game</strong> to test the exact current editor state immediately in the same tab.</li>
+          <li>Use <strong>Reload From Disk</strong> only when you explicitly want to discard the current device-saved layout and reload [room-layout-data.json](/Users/timwood/Desktop/projects/PWA/MV/room-layout-data.json).</li>
+        </ol>
+      </details>
+
+      <div class="stack">
+        <label>
+          Room
+          <select id="roomSelect"></select>
+        </label>
+        <div class="row">
+          <label>
+            View
+            <select id="viewMode">
+              <option value="room">Room Editor</option>
+              <option value="global">Global Map</option>
+            </select>
+          </label>
+          <label>
+            Grid Snap
+            <select id="snapSize">
+              <option value="0">Off</option>
+              <option value="8">8</option>
+              <option value="16">16</option>
+              <option value="32" selected>32</option>
+              <option value="64">64</option>
+            </select>
+          </label>
+        </div>
+      </div>
+
+      <div>
+        <h2>Save + Test</h2>
+        <div class="sub">Primary flow: save on this device, then test in-game. Use Advanced only for export/import and repo file operations.</div>
+      </div>
+
+      <div class="row">
+        <button id="savePermanent" class="good">Save Device</button>
+        <button id="openGameWithLayout">Open Game</button>
+      </div>
+
+      <details>
+        <summary>Advanced Export / Import / File Tools</summary>
+        <div class="stack" style="margin-top: 10px;">
+          <div class="row">
+            <button id="reloadJson">Reload From Disk</button>
+            <button id="applyJson">Import Layout</button>
+          </div>
+          <div class="row">
+            <button id="downloadJson" class="good">Export Layout</button>
+            <button id="saveJsonFile" class="secondary">Save To File</button>
+          </div>
+          <div class="row">
+            <button id="clearSavedLayout" class="secondary">Clear Saved Layout</button>
+          </div>
+          <textarea id="jsonText" spellcheck="false"></textarea>
+        </div>
+      </details>
+      <div class="status" id="statusText">Loading layout data…</div>
+    </section>
+
+    <section class="panel canvas-wrap">
+      <div>
+        <h2 id="canvasTitle">Room Editor</h2>
+        <div class="sub" id="canvasSub">Local room space is 1600 x 1200. Drag vertices to reshape the room shell.</div>
+      </div>
+      <div class="canvas-box" id="roomCanvasBox">
+        <canvas id="roomCanvas" width="960" height="720"></canvas>
+      </div>
+      <div class="canvas-box hidden" id="globalCanvasBox">
+        <canvas id="globalCanvas" width="960" height="720"></canvas>
+      </div>
+    </section>
+
+    <section class="panel stack">
+      <div class="stack">
+        <h2>Tools</h2>
+        <div class="toolbar" id="toolButtons">
+          <button data-tool="select" class="active">Select</button>
+          <button data-tool="vertex">Add Vertex</button>
+          <button data-tool="platform">Add Platform</button>
+          <button data-tool="door">Add Door</button>
+          <button data-tool="room-move">Move Room</button>
+        </div>
+        <div class="hint">
+          `Select`: drag vertices, platforms, doors, or whole rooms on the global map.
+          `Add Vertex`: click a polygon edge to insert a corner.
+          `Add Platform` / `Add Door`: click in the room editor to place new items.
+        </div>
+      </div>
+
+      <div class="stack">
+        <h2>Selection</h2>
+        <div class="status" id="selectionSummary">Nothing selected.</div>
+        <div class="row-3">
+          <button id="deleteSelected">Delete Selected</button>
+          <button id="duplicatePlatform">Duplicate Platform</button>
+          <button id="centerRoom">Center Room</button>
+        </div>
+      </div>
+
+      <div class="stack">
+        <h2>Properties</h2>
+        <div class="row">
+          <label>Global X<input id="globalX" type="number" step="1" /></label>
+          <label>Global Y<input id="globalY" type="number" step="1" /></label>
+        </div>
+        <div class="row">
+          <label>Platform X<input id="itemX" type="number" step="1" /></label>
+          <label>Platform Y / Door Y<input id="itemY" type="number" step="1" /></label>
+        </div>
+        <div class="row">
+          <label>Length<input id="itemLen" type="number" step="1" min="1" /></label>
+          <label>Tint<input id="itemTint" type="number" step="1" min="0" max="4" /></label>
+        </div>
+        <div class="row">
+          <label>Door Label<input id="doorLabel" type="text" /></label>
+          <label>Target Room<input id="doorTarget" type="text" /></label>
+        </div>
+        <button id="applyProps" class="good">Apply Properties</button>
+      </div>
+
+      <div class="stack">
+        <h2>Room Contents</h2>
+        <div class="badge" id="vertexCount">Vertices: 0</div>
+        <div class="badge" id="platformCount">Platforms: 0</div>
+        <div class="badge" id="doorCount">Doors: 0</div>
+        <div class="list" id="itemList"></div>
+      </div>
+    </section>
+
+  </main>
+
+  <script id="seedData" type="application/json">
+{
+  "version": 1,
+  "meta": {
+    "worldWidth": 1600,
+    "worldHeight": 1200,
+    "grid": 32,
+    "notes": "Editable room layout source of truth for Ashen Hollow. Coordinates are local to each room unless under global."
+  },
+  "rooms": [
+    {
+      "id": "R1",
+      "name": "Spawn + Final Gate Chamber",
+      "global": { "x": 360, "y": 405 },
+      "polygon": [[160, 260], [900, 260], [900, 120], [1240, 120], [1240, 1080], [980, 1080], [980, 860], [160, 860]],
+      "platforms": [
+        { "id": "R1-P1", "x": 120, "y": 1048, "len": 12, "tint": 0 },
+        { "id": "R1-P2", "x": 520, "y": 968, "len": 10, "tint": 1 },
+        { "id": "R1-P3", "x": 980, "y": 888, "len": 8, "tint": 2 }
+      ],
+      "doors": [
+        { "id": "R1-D1", "x": 1520, "y": 1020, "kind": "transition", "label": "To R2", "targetRoom": "R2" },
+        { "id": "R1-D2", "x": 500, "y": 1000, "kind": "gate", "label": "Final Gate", "targetRoom": "R9" }
+      ]
+    },
+    {
+      "id": "R2",
+      "name": "Central Hub",
+      "global": { "x": 610, "y": 390 },
+      "polygon": [[120, 300], [480, 300], [480, 120], [860, 120], [860, 300], [1280, 300], [1280, 820], [860, 820], [860, 1080], [560, 1080], [560, 820], [120, 820]],
+      "platforms": [
+        { "id": "R2-P1", "x": 80, "y": 1060, "len": 12, "tint": 0 },
+        { "id": "R2-P2", "x": 500, "y": 980, "len": 6, "tint": 1 },
+        { "id": "R2-P3", "x": 820, "y": 980, "len": 14, "tint": 2 },
+        { "id": "R2-P4", "x": 1180, "y": 900, "len": 8, "tint": 3 }
+      ],
+      "doors": [
+        { "id": "R2-D1", "x": 24, "y": 1020, "kind": "transition", "label": "To R1", "targetRoom": "R1" },
+        { "id": "R2-D2", "x": 680, "y": 704, "kind": "branch", "label": "A North", "targetRoom": "R3" },
+        { "id": "R2-D3", "x": 1300, "y": 920, "kind": "branch", "label": "B East", "targetRoom": "R5" },
+        { "id": "R2-D4", "x": 680, "y": 1088, "kind": "branch", "label": "C South", "targetRoom": "R7" }
+      ]
+    },
+    {
+      "id": "R3",
+      "name": "Branch A Entry Trial",
+      "global": { "x": 610, "y": 232 },
+      "polygon": [[520, 1080], [520, 280], [800, 280], [800, 420], [960, 420], [960, 640], [1120, 640], [1120, 320], [1500, 320], [1500, 720], [1360, 720], [1360, 1080]],
+      "platforms": [
+        { "id": "R3-P1", "x": 520, "y": 1060, "len": 8, "tint": 0 },
+        { "id": "R3-P2", "x": 820, "y": 1060, "len": 5, "tint": 1 },
+        { "id": "R3-P3", "x": 1040, "y": 1060, "len": 5, "tint": 2 },
+        { "id": "R3-P4", "x": 700, "y": 940, "len": 4, "tint": 1 },
+        { "id": "R3-P5", "x": 900, "y": 900, "len": 4, "tint": 2 },
+        { "id": "R3-P6", "x": 820, "y": 820, "len": 4, "tint": 3 },
+        { "id": "R3-P7", "x": 1020, "y": 760, "len": 4, "tint": 0 },
+        { "id": "R3-P8", "x": 1120, "y": 580, "len": 4, "tint": 3 },
+        { "id": "R3-P9", "x": 1300, "y": 320, "len": 5, "tint": 3 }
+      ],
+      "doors": [
+        { "id": "R3-D1", "x": 820, "y": 1148, "kind": "return", "label": "Return to R2", "targetRoom": "R2" },
+        { "id": "R3-D2", "x": 1360, "y": 248, "kind": "transition", "label": "Ascend to R4", "targetRoom": "R4" },
+        { "id": "R3-D3", "x": 1560, "y": 600, "kind": "secret", "label": "Secret Door", "targetRoom": "R11" }
+      ]
+    },
+    {
+      "id": "R4",
+      "name": "Branch A Reward Hall",
+      "global": { "x": 790, "y": 148 },
+      "polygon": [[80, 1080], [80, 920], [360, 920], [360, 1080], [760, 1080], [760, 760], [1120, 760], [1120, 620], [1500, 620], [1500, 1080]],
+      "platforms": [
+        { "id": "R4-P1", "x": 80, "y": 1060, "len": 8, "tint": 0 },
+        { "id": "R4-P2", "x": 420, "y": 1060, "len": 5, "tint": 1 },
+        { "id": "R4-P3", "x": 700, "y": 1020, "len": 4, "tint": 2 },
+        { "id": "R4-P4", "x": 920, "y": 980, "len": 4, "tint": 3 },
+        { "id": "R4-P5", "x": 1160, "y": 940, "len": 4, "tint": 4 },
+        { "id": "R4-P6", "x": 1360, "y": 920, "len": 4, "tint": 1 },
+        { "id": "R4-P7", "x": 1120, "y": 760, "len": 4, "tint": 1 },
+        { "id": "R4-P8", "x": 1460, "y": 620, "len": 3, "tint": 3 }
+      ],
+      "doors": [
+        { "id": "R4-D1", "x": 1520, "y": 1148, "kind": "secret", "label": "Tunnel Shaft", "targetRoom": "R11" }
+      ]
+    },
+    {
+      "id": "R5",
+      "name": "Branch B East Corridor",
+      "global": { "x": 840, "y": 392 },
+      "polygon": [[60, 1080], [60, 860], [360, 860], [360, 760], [620, 760], [620, 860], [980, 860], [980, 760], [1260, 760], [1260, 1080]],
+      "platforms": [
+        { "id": "R5-P1", "x": 60, "y": 1060, "len": 10, "tint": 0 },
+        { "id": "R5-P2", "x": 440, "y": 1060, "len": 6, "tint": 1 },
+        { "id": "R5-P3", "x": 760, "y": 1060, "len": 6, "tint": 2 },
+        { "id": "R5-P4", "x": 1080, "y": 1060, "len": 8, "tint": 3 },
+        { "id": "R5-P5", "x": 420, "y": 900, "len": 4, "tint": 0 },
+        { "id": "R5-P6", "x": 860, "y": 900, "len": 4, "tint": 2 },
+        { "id": "R5-P7", "x": 1260, "y": 820, "len": 4, "tint": 4 }
+      ],
+      "doors": [
+        { "id": "R5-D1", "x": 1540, "y": 980, "kind": "transition", "label": "To R6", "targetRoom": "R6" },
+        { "id": "R5-D2", "x": 24, "y": 900, "kind": "return", "label": "Back to R2", "targetRoom": "R2" }
+      ]
+    },
+    {
+      "id": "R6",
+      "name": "Branch B Vault",
+      "global": { "x": 1080, "y": 390 },
+      "polygon": [[60, 1080], [60, 900], [260, 900], [260, 780], [520, 780], [520, 700], [1020, 700], [1020, 780], [1260, 780], [1260, 860], [1500, 860], [1500, 1080]],
+      "platforms": [
+        { "id": "R6-P1", "x": 60, "y": 1040, "len": 7, "tint": 0 },
+        { "id": "R6-P2", "x": 360, "y": 1040, "len": 4, "tint": 1 },
+        { "id": "R6-P3", "x": 620, "y": 1040, "len": 4, "tint": 2 },
+        { "id": "R6-P4", "x": 900, "y": 1040, "len": 5, "tint": 3 },
+        { "id": "R6-P5", "x": 1180, "y": 1040, "len": 6, "tint": 4 },
+        { "id": "R6-P6", "x": 520, "y": 880, "len": 4, "tint": 3 },
+        { "id": "R6-P7", "x": 1020, "y": 800, "len": 5, "tint": 1 },
+        { "id": "R6-P8", "x": 1420, "y": 880, "len": 4, "tint": 3 }
+      ],
+      "doors": [
+        { "id": "R6-D1", "x": 1540, "y": 860, "kind": "return", "label": "Back to R5", "targetRoom": "R5" }
+      ]
+    },
+    {
+      "id": "R7",
+      "name": "Branch C South Shaft",
+      "global": { "x": 610, "y": 575 },
+      "polygon": [[700, 320], [700, 500], [560, 500], [560, 700], [700, 700], [700, 920], [560, 920], [560, 1080], [1220, 1080], [1220, 700], [1040, 700], [1040, 320]],
+      "platforms": [
+        { "id": "R7-P1", "x": 700, "y": 340, "len": 5, "tint": 0 },
+        { "id": "R7-P2", "x": 560, "y": 420, "len": 3, "tint": 1 },
+        { "id": "R7-P3", "x": 760, "y": 500, "len": 4, "tint": 2 },
+        { "id": "R7-P4", "x": 620, "y": 600, "len": 3, "tint": 3 },
+        { "id": "R7-P5", "x": 820, "y": 700, "len": 4, "tint": 4 },
+        { "id": "R7-P6", "x": 560, "y": 940, "len": 4, "tint": 2 },
+        { "id": "R7-P7", "x": 1040, "y": 1060, "len": 6, "tint": 4 }
+      ],
+      "doors": [
+        { "id": "R7-D1", "x": 1520, "y": 1020, "kind": "transition", "label": "To R8", "targetRoom": "R8" },
+        { "id": "R7-D2", "x": 540, "y": 360, "kind": "return", "label": "Back to R2", "targetRoom": "R2" }
+      ]
+    },
+    {
+      "id": "R8",
+      "name": "Branch C South Sanctum",
+      "global": { "x": 635, "y": 728 },
+      "polygon": [[700, 320], [860, 320], [860, 460], [1040, 460], [1040, 620], [900, 620], [900, 860], [1180, 860], [1180, 1080], [700, 1080]],
+      "platforms": [
+        { "id": "R8-P1", "x": 700, "y": 340, "len": 5, "tint": 0 },
+        { "id": "R8-P2", "x": 880, "y": 420, "len": 4, "tint": 1 },
+        { "id": "R8-P3", "x": 760, "y": 520, "len": 4, "tint": 2 },
+        { "id": "R8-P4", "x": 960, "y": 620, "len": 4, "tint": 3 },
+        { "id": "R8-P5", "x": 820, "y": 740, "len": 4, "tint": 4 },
+        { "id": "R8-P6", "x": 1040, "y": 860, "len": 5, "tint": 1 },
+        { "id": "R8-P7", "x": 1260, "y": 1060, "len": 5, "tint": 4 }
+      ],
+      "doors": [
+        { "id": "R8-D1", "x": 1520, "y": 1020, "kind": "return", "label": "Back to R7", "targetRoom": "R7" }
+      ]
+    },
+    {
+      "id": "R9",
+      "name": "Final Area",
+      "global": { "x": 170, "y": 474 },
+      "polygon": [[120, 260], [480, 260], [480, 140], [860, 140], [860, 980], [520, 980], [520, 1080], [120, 1080]],
+      "platforms": [
+        { "id": "R9-P1", "x": 140, "y": 1048, "len": 14, "tint": 0 },
+        { "id": "R9-P2", "x": 520, "y": 920, "len": 9, "tint": 1 },
+        { "id": "R9-P3", "x": 880, "y": 820, "len": 8, "tint": 2 }
+      ],
+      "doors": [
+        { "id": "R9-D1", "x": 1540, "y": 1020, "kind": "transition", "label": "To R10", "targetRoom": "R10" }
+      ]
+    },
+    {
+      "id": "R10",
+      "name": "Exit / Completion Room",
+      "global": { "x": 150, "y": 658 },
+      "polygon": [[220, 260], [900, 260], [900, 140], [1240, 140], [1240, 1080], [220, 1080]],
+      "platforms": [
+        { "id": "R10-P1", "x": 220, "y": 1048, "len": 16, "tint": 0 },
+        { "id": "R10-P2", "x": 720, "y": 940, "len": 8, "tint": 4 },
+        { "id": "R10-P3", "x": 1040, "y": 860, "len": 8, "tint": 2 }
+      ],
+      "doors": [
+        { "id": "R10-D1", "x": 24, "y": 1020, "kind": "transition", "label": "Back to R9", "targetRoom": "R9" },
+        { "id": "R10-D2", "x": 1540, "y": 1020, "kind": "transition", "label": "Return to R1", "targetRoom": "R1" }
+      ]
+    },
+    {
+      "id": "R11",
+      "name": "Branch A Tunnel Shaft",
+      "global": { "x": 950, "y": 258 },
+      "polygon": [[1120, 220], [1500, 220], [1500, 420], [1280, 420], [1280, 680], [48, 680], [48, 520], [1040, 520], [1040, 420], [1120, 420]],
+      "platforms": [
+        { "id": "R11-P1", "x": 1160, "y": 240, "len": 5, "tint": 1 },
+        { "id": "R11-P2", "x": 1416, "y": 240, "len": 5, "tint": 1 },
+        { "id": "R11-P3", "x": 48, "y": 552, "len": 25, "tint": 4 },
+        { "id": "R11-P4", "x": 1040, "y": 552, "len": 17, "tint": 1 },
+        { "id": "R11-P5", "x": 48, "y": 648, "len": 32, "tint": 0 },
+        { "id": "R11-P6", "x": 1040, "y": 648, "len": 17, "tint": 2 }
+      ],
+      "doors": [
+        { "id": "R11-D1", "x": 96, "y": 612, "kind": "secret", "label": "Secret to R3", "targetRoom": "R3" },
+        { "id": "R11-D2", "x": 1480, "y": 220, "kind": "secret", "label": "From R4", "targetRoom": "R4" }
+      ]
+    }
+  ]
+}
+  </script>
+
+  <script>
+    (() => {
+      const DATA_URL = './room-layout-data.json';
+      const LAYOUT_STORAGE_KEY = 'ashen-hollow-room-layout-v1';
+      const SEED_DATA = JSON.parse(document.getElementById('seedData').textContent);
+      const ROOM_W = 1600;
+      const ROOM_H = 1200;
+      const TILE = 32;
+      const PLATFORM_H = 14;
+      const roomCanvas = document.getElementById('roomCanvas');
+      const roomCtx = roomCanvas.getContext('2d');
+      const globalCanvas = document.getElementById('globalCanvas');
+      const globalCtx = globalCanvas.getContext('2d');
+
+      const ui = {
+        roomSelect: document.getElementById('roomSelect'),
+        viewMode: document.getElementById('viewMode'),
+        snapSize: document.getElementById('snapSize'),
+        toolButtons: Array.from(document.querySelectorAll('#toolButtons button')),
+        selectionSummary: document.getElementById('selectionSummary'),
+        deleteSelected: document.getElementById('deleteSelected'),
+        duplicatePlatform: document.getElementById('duplicatePlatform'),
+        centerRoom: document.getElementById('centerRoom'),
+        globalX: document.getElementById('globalX'),
+        globalY: document.getElementById('globalY'),
+        itemX: document.getElementById('itemX'),
+        itemY: document.getElementById('itemY'),
+        itemLen: document.getElementById('itemLen'),
+        itemTint: document.getElementById('itemTint'),
+        doorLabel: document.getElementById('doorLabel'),
+        doorTarget: document.getElementById('doorTarget'),
+        applyProps: document.getElementById('applyProps'),
+        itemList: document.getElementById('itemList'),
+        vertexCount: document.getElementById('vertexCount'),
+        platformCount: document.getElementById('platformCount'),
+        doorCount: document.getElementById('doorCount'),
+        roomCanvasBox: document.getElementById('roomCanvasBox'),
+        globalCanvasBox: document.getElementById('globalCanvasBox'),
+        canvasTitle: document.getElementById('canvasTitle'),
+        canvasSub: document.getElementById('canvasSub'),
+        jsonText: document.getElementById('jsonText'),
+        reloadJson: document.getElementById('reloadJson'),
+        applyJson: document.getElementById('applyJson'),
+        downloadJson: document.getElementById('downloadJson'),
+        saveJsonFile: document.getElementById('saveJsonFile'),
+        savePermanent: document.getElementById('savePermanent'),
+        openGameWithLayout: document.getElementById('openGameWithLayout'),
+        clearSavedLayout: document.getElementById('clearSavedLayout'),
+        statusText: document.getElementById('statusText')
+      };
+
+      const state = {
+        data: null,
+        currentRoomId: null,
+        viewMode: 'room',
+        tool: 'select',
+        selected: null,
+        drag: null,
+        fileHandle: null
+      };
+
+      function setStatus(message) {
+        ui.statusText.textContent = message;
+      }
+
+      function snap(value) {
+        const size = Number(ui.snapSize.value || 0);
+        if (!size) return Math.round(value);
+        return Math.round(value / size) * size;
+      }
+
+      function currentRoom() {
+        return state.data.rooms.find((room) => room.id === state.currentRoomId);
+      }
+
+      function roomScale() {
+        return {
+          x: roomCanvas.width / ROOM_W,
+          y: roomCanvas.height / ROOM_H
+        };
+      }
+
+      function globalBounds() {
+        const xs = state.data.rooms.map((room) => room.global.x);
+        const ys = state.data.rooms.map((room) => room.global.y);
+        const minX = Math.min(...xs) - 220;
+        const maxX = Math.max(...xs) + 220;
+        const minY = Math.min(...ys) - 220;
+        const maxY = Math.max(...ys) + 220;
+        return { minX, maxX, minY, maxY };
+      }
+
+      function globalScale() {
+        const bounds = globalBounds();
+        const width = Math.max(bounds.maxX - bounds.minX, 1);
+        const height = Math.max(bounds.maxY - bounds.minY, 1);
+        const sx = (globalCanvas.width - 80) / width;
+        const sy = (globalCanvas.height - 80) / height;
+        return {
+          bounds,
+          scale: Math.min(sx, sy),
+          offsetX: 40,
+          offsetY: 40
+        };
+      }
+
+      function roomToCanvasPoint(x, y) {
+        const scale = roomScale();
+        return { x: x * scale.x, y: y * scale.y };
+      }
+
+      function canvasToRoomPoint(x, y) {
+        const scale = roomScale();
+        return { x: snap(x / scale.x), y: snap(y / scale.y) };
+      }
+
+      function globalToCanvasPoint(x, y) {
+        const { bounds, scale, offsetX, offsetY } = globalScale();
+        return {
+          x: offsetX + (x - bounds.minX) * scale,
+          y: offsetY + (y - bounds.minY) * scale
+        };
+      }
+
+      function canvasToGlobalPoint(x, y) {
+        const { bounds, scale, offsetX, offsetY } = globalScale();
+        return {
+          x: snap(bounds.minX + ((x - offsetX) / scale)),
+          y: snap(bounds.minY + ((y - offsetY) / scale))
+        };
+      }
+
+      function updateJsonText() {
+        ui.jsonText.value = JSON.stringify(state.data, null, 2);
+        try {
+          window.localStorage.setItem(LAYOUT_STORAGE_KEY, ui.jsonText.value);
+        } catch (_) {}
+      }
+
+      function updateCounts(room) {
+        ui.vertexCount.textContent = `Vertices: ${room.polygon.length}`;
+        ui.platformCount.textContent = `Platforms: ${room.platforms.length}`;
+        ui.doorCount.textContent = `Doors: ${room.doors.length}`;
+      }
+
+      function updateSelectionSummary() {
+        if (!state.selected) {
+          ui.selectionSummary.textContent = 'Nothing selected.';
+          return;
+        }
+        if (state.selected.kind === 'vertex') {
+          ui.selectionSummary.textContent = `Selected vertex ${state.selected.index + 1} in ${state.currentRoomId}.`;
+          return;
+        }
+        ui.selectionSummary.textContent = `Selected ${state.selected.kind} ${state.selected.id}.`;
+      }
+
+      function populateRoomSelect() {
+        ui.roomSelect.innerHTML = state.data.rooms
+          .map((room) => `<option value="${room.id}">${room.id} - ${room.name}</option>`)
+          .join('');
+        ui.roomSelect.value = state.currentRoomId;
+      }
+
+      function populateItemList() {
+        const room = currentRoom();
+        const rows = [];
+        room.platforms.forEach((platform) => {
+          rows.push({ kind: 'platform', id: platform.id, label: `${platform.id} · x ${platform.x} · y ${platform.y} · len ${platform.len}` });
+        });
+        room.doors.forEach((door) => {
+          rows.push({ kind: 'door', id: door.id, label: `${door.id} · ${door.label || door.kind} · -> ${door.targetRoom || '-'}` });
+        });
+        ui.itemList.innerHTML = rows.map((row) => {
+          const active = state.selected && state.selected.kind === row.kind && state.selected.id === row.id ? 'active' : '';
+          return `<div class="chip ${active}" data-kind="${row.kind}" data-id="${row.id}">${row.label}</div>`;
+        }).join('');
+        Array.from(ui.itemList.querySelectorAll('.chip')).forEach((chip) => {
+          chip.addEventListener('click', () => {
+            state.selected = { kind: chip.dataset.kind, id: chip.dataset.id };
+            syncPropertyInputs();
+            redraw();
+          });
+        });
+      }
+
+      function syncPropertyInputs() {
+        const room = currentRoom();
+        ui.globalX.value = room.global.x;
+        ui.globalY.value = room.global.y;
+
+        const selected = resolveSelected();
+        if (!selected) {
+          ui.itemX.value = '';
+          ui.itemY.value = '';
+          ui.itemLen.value = '';
+          ui.itemTint.value = '';
+          ui.doorLabel.value = '';
+          ui.doorTarget.value = '';
+          updateSelectionSummary();
+          populateItemList();
+          return;
+        }
+        ui.itemX.value = selected.item.x ?? '';
+        ui.itemY.value = selected.item.y ?? '';
+        ui.itemLen.value = selected.item.len ?? '';
+        ui.itemTint.value = selected.item.tint ?? '';
+        ui.doorLabel.value = selected.item.label ?? '';
+        ui.doorTarget.value = selected.item.targetRoom ?? '';
+        updateSelectionSummary();
+        populateItemList();
+      }
+
+      function resolveSelected() {
+        const room = currentRoom();
+        if (!state.selected) return null;
+        if (state.selected.kind === 'platform') {
+          const item = room.platforms.find((platform) => platform.id === state.selected.id);
+          if (item) return { room, item, collection: room.platforms };
+        }
+        if (state.selected.kind === 'door') {
+          const item = room.doors.find((door) => door.id === state.selected.id);
+          if (item) return { room, item, collection: room.doors };
+        }
+        return null;
+      }
+
+      function drawGrid(ctx, width, height, cell, color) {
+        ctx.save();
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        for (let x = 0; x <= width; x += cell) {
+          ctx.moveTo(x + 0.5, 0);
+          ctx.lineTo(x + 0.5, height);
+        }
+        for (let y = 0; y <= height; y += cell) {
+          ctx.moveTo(0, y + 0.5);
+          ctx.lineTo(width, y + 0.5);
+        }
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      function drawRoomView() {
+        const room = currentRoom();
+        const scale = roomScale();
+        roomCtx.clearRect(0, 0, roomCanvas.width, roomCanvas.height);
+        drawGrid(roomCtx, roomCanvas.width, roomCanvas.height, TILE * scale.x, 'rgba(72, 99, 124, 0.22)');
+
+        roomCtx.fillStyle = '#071018';
+        roomCtx.fillRect(0, 0, roomCanvas.width, roomCanvas.height);
+
+        roomCtx.save();
+        roomCtx.beginPath();
+        room.polygon.forEach(([x, y], index) => {
+          const pt = roomToCanvasPoint(x, y);
+          if (index === 0) roomCtx.moveTo(pt.x, pt.y);
+          else roomCtx.lineTo(pt.x, pt.y);
+        });
+        roomCtx.closePath();
+        roomCtx.fillStyle = 'rgba(27, 57, 80, 0.65)';
+        roomCtx.strokeStyle = '#9bd1ff';
+        roomCtx.lineWidth = 2;
+        roomCtx.fill();
+        roomCtx.stroke();
+        roomCtx.restore();
+
+        room.platforms.forEach((platform) => {
+          const p = roomToCanvasPoint(platform.x, platform.y - PLATFORM_H / 2);
+          const width = platform.len * TILE * scale.x;
+          const height = PLATFORM_H * scale.y;
+          const isSelected = state.selected && state.selected.kind === 'platform' && state.selected.id === platform.id;
+          roomCtx.fillStyle = isSelected ? '#ffd166' : '#6eaef6';
+          roomCtx.fillRect(p.x, p.y, width, height);
+          roomCtx.strokeStyle = '#102334';
+          roomCtx.strokeRect(p.x, p.y, width, height);
+        });
+
+        room.doors.forEach((door) => {
+          const p = roomToCanvasPoint(door.x, door.y);
+          const isSelected = state.selected && state.selected.kind === 'door' && state.selected.id === door.id;
+          roomCtx.fillStyle = isSelected ? '#ffe0b3' : '#f5986e';
+          roomCtx.fillRect(p.x - 10, p.y - 24, 20, 48);
+          roomCtx.strokeStyle = '#3e2315';
+          roomCtx.strokeRect(p.x - 10, p.y - 24, 20, 48);
+          roomCtx.fillStyle = '#ffe8d1';
+          roomCtx.font = '11px sans-serif';
+          roomCtx.fillText(door.id, p.x + 14, p.y - 10);
+        });
+
+        room.polygon.forEach(([x, y], index) => {
+          const p = roomToCanvasPoint(x, y);
+          const isSelected = state.selected && state.selected.kind === 'vertex' && state.selected.index === index;
+          roomCtx.beginPath();
+          roomCtx.arc(p.x, p.y, isSelected ? 7 : 5, 0, Math.PI * 2);
+          roomCtx.fillStyle = isSelected ? '#fff1b0' : '#ff6b8a';
+          roomCtx.fill();
+          roomCtx.strokeStyle = '#1a0e13';
+          roomCtx.stroke();
+        });
+      }
+
+      function drawGlobalView() {
+        globalCtx.clearRect(0, 0, globalCanvas.width, globalCanvas.height);
+        drawGrid(globalCtx, globalCanvas.width, globalCanvas.height, 48, 'rgba(72, 99, 124, 0.15)');
+        globalCtx.fillStyle = '#071018';
+        globalCtx.fillRect(0, 0, globalCanvas.width, globalCanvas.height);
+
+        state.data.rooms.forEach((room) => {
+          const center = globalToCanvasPoint(room.global.x, room.global.y);
+          const points = room.polygon.map(([x, y]) => {
+            const dx = (x - ROOM_W / 2) * 0.12;
+            const dy = (y - ROOM_H / 2) * 0.12;
+            return [center.x + dx, center.y + dy];
+          });
+          globalCtx.beginPath();
+          points.forEach(([x, y], index) => {
+            if (index === 0) globalCtx.moveTo(x, y);
+            else globalCtx.lineTo(x, y);
+          });
+          globalCtx.closePath();
+          globalCtx.fillStyle = room.id === state.currentRoomId ? 'rgba(70, 126, 173, 0.65)' : 'rgba(24, 48, 70, 0.75)';
+          globalCtx.strokeStyle = room.id === state.currentRoomId ? '#ffd166' : '#7fb2df';
+          globalCtx.lineWidth = room.id === state.currentRoomId ? 2.5 : 1.5;
+          globalCtx.fill();
+          globalCtx.stroke();
+
+          globalCtx.fillStyle = '#f0f7ff';
+          globalCtx.font = '12px sans-serif';
+          globalCtx.fillText(room.id, center.x - 10, center.y + 4);
+        });
+      }
+
+      function redraw() {
+        const room = currentRoom();
+        if (!room) return;
+        updateCounts(room);
+        syncPropertyInputs();
+        ui.roomCanvasBox.classList.toggle('hidden', state.viewMode !== 'room');
+        ui.globalCanvasBox.classList.toggle('hidden', state.viewMode !== 'global');
+        ui.canvasTitle.textContent = state.viewMode === 'room' ? `${room.id} Room Editor` : 'Global Map Editor';
+        ui.canvasSub.textContent = state.viewMode === 'room'
+          ? 'Drag vertices, platforms, and doors. Add new items with the active tool.'
+          : 'Drag room footprints to rearrange global layout.';
+        drawRoomView();
+        drawGlobalView();
+        updateJsonText();
+      }
+
+      function pointDistance(a, b) {
+        return Math.hypot(a.x - b.x, a.y - b.y);
+      }
+
+      function distanceToSegment(point, a, b) {
+        const l2 = ((b.x - a.x) ** 2) + ((b.y - a.y) ** 2);
+        if (l2 === 0) return pointDistance(point, a);
+        let t = ((point.x - a.x) * (b.x - a.x) + (point.y - a.y) * (b.y - a.y)) / l2;
+        t = Math.max(0, Math.min(1, t));
+        const proj = {
+          x: a.x + t * (b.x - a.x),
+          y: a.y + t * (b.y - a.y)
+        };
+        return { distance: pointDistance(point, proj), point: proj };
+      }
+
+      function nextId(prefix, collection) {
+        let count = collection.length + 1;
+        let id = `${prefix}${count}`;
+        const ids = new Set(collection.map((item) => item.id));
+        while (ids.has(id)) {
+          count += 1;
+          id = `${prefix}${count}`;
+        }
+        return id;
+      }
+
+      function hitTestRoomEditor(mouse) {
+        const room = currentRoom();
+        for (let i = 0; i < room.polygon.length; i += 1) {
+          const p = roomToCanvasPoint(room.polygon[i][0], room.polygon[i][1]);
+          if (pointDistance(mouse, p) < 10) {
+            return { kind: 'vertex', index: i };
+          }
+        }
+        for (const door of room.doors) {
+          const p = roomToCanvasPoint(door.x, door.y);
+          if (mouse.x >= p.x - 12 && mouse.x <= p.x + 12 && mouse.y >= p.y - 28 && mouse.y <= p.y + 28) {
+            return { kind: 'door', id: door.id };
+          }
+        }
+        for (const platform of room.platforms) {
+          const p = roomToCanvasPoint(platform.x, platform.y - PLATFORM_H / 2);
+          const width = platform.len * TILE * roomScale().x;
+          const height = PLATFORM_H * roomScale().y;
+          if (mouse.x >= p.x && mouse.x <= p.x + width && mouse.y >= p.y && mouse.y <= p.y + height) {
+            return { kind: 'platform', id: platform.id };
+          }
+        }
+        return null;
+      }
+
+      function hitTestGlobal(mouse) {
+        const reversed = [...state.data.rooms].reverse();
+        for (const room of reversed) {
+          const center = globalToCanvasPoint(room.global.x, room.global.y);
+          const dx = mouse.x - center.x;
+          const dy = mouse.y - center.y;
+          if (Math.abs(dx) < 120 && Math.abs(dy) < 80) {
+            return { kind: 'room', roomId: room.id };
+          }
+        }
+        return null;
+      }
+
+      function addVertexAt(mouse) {
+        const room = currentRoom();
+        const local = canvasToRoomPoint(mouse.x, mouse.y);
+        let best = { index: 0, distance: Infinity };
+        for (let i = 0; i < room.polygon.length; i += 1) {
+          const a = { x: room.polygon[i][0], y: room.polygon[i][1] };
+          const b = { x: room.polygon[(i + 1) % room.polygon.length][0], y: room.polygon[(i + 1) % room.polygon.length][1] };
+          const result = distanceToSegment(local, a, b);
+          if (result.distance < best.distance) {
+            best = { index: i + 1, distance: result.distance, point: result.point };
+          }
+        }
+        room.polygon.splice(best.index, 0, [snap(best.point.x), snap(best.point.y)]);
+        state.selected = { kind: 'vertex', index: best.index };
+      }
+
+      function addPlatformAt(mouse) {
+        const room = currentRoom();
+        const local = canvasToRoomPoint(mouse.x, mouse.y);
+        const platform = {
+          id: nextId(`${room.id}-P`, room.platforms),
+          x: local.x,
+          y: local.y,
+          len: 4,
+          tint: 0
+        };
+        room.platforms.push(platform);
+        state.selected = { kind: 'platform', id: platform.id };
+      }
+
+      function addDoorAt(mouse) {
+        const room = currentRoom();
+        const local = canvasToRoomPoint(mouse.x, mouse.y);
+        const door = {
+          id: nextId(`${room.id}-D`, room.doors),
+          x: local.x,
+          y: local.y,
+          kind: 'transition',
+          label: 'New Door',
+          targetRoom: ''
+        };
+        room.doors.push(door);
+        state.selected = { kind: 'door', id: door.id };
+        setStatus(`Added door ${door.id} at ${door.x}, ${door.y}`);
+      }
+
+      function getCanvasPointer(event, canvas) {
+        const rect = canvas.getBoundingClientRect();
+        const point = event.touches && event.touches[0]
+          ? event.touches[0]
+          : event.changedTouches && event.changedTouches[0]
+            ? event.changedTouches[0]
+            : event;
+        return { x: point.clientX - rect.left, y: point.clientY - rect.top };
+      }
+
+      function onRoomPointerDown(event) {
+        if (event.cancelable) event.preventDefault();
+        const mouse = getCanvasPointer(event, roomCanvas);
+        const hit = hitTestRoomEditor(mouse);
+
+        if (state.tool === 'vertex') {
+          addVertexAt(mouse);
+          redraw();
+          return;
+        }
+        if (state.tool === 'platform') {
+          addPlatformAt(mouse);
+          redraw();
+          return;
+        }
+        if (state.tool === 'door') {
+          addDoorAt(mouse);
+          redraw();
+          return;
+        }
+
+        if (hit) {
+          state.selected = hit;
+          if (hit.kind === 'vertex') {
+            state.drag = { type: 'vertex', index: hit.index };
+          } else {
+            state.drag = { type: hit.kind, id: hit.id };
+          }
+          redraw();
+        } else {
+          state.selected = null;
+          redraw();
+        }
+      }
+
+      function onRoomPointerMove(event) {
+        if (!state.drag) return;
+        if (event.cancelable) event.preventDefault();
+        const mouse = getCanvasPointer(event, roomCanvas);
+        const room = currentRoom();
+        const local = canvasToRoomPoint(mouse.x, mouse.y);
+
+        if (state.drag.type === 'vertex') {
+          room.polygon[state.drag.index] = [local.x, local.y];
+        }
+        if (state.drag.type === 'platform') {
+          const platform = room.platforms.find((item) => item.id === state.drag.id);
+          if (platform) {
+            platform.x = local.x;
+            platform.y = local.y;
+          }
+        }
+        if (state.drag.type === 'door') {
+          const door = room.doors.find((item) => item.id === state.drag.id);
+          if (door) {
+            door.x = local.x;
+            door.y = local.y;
+          }
+        }
+        redraw();
+      }
+
+      function onGlobalPointerDown(event) {
+        if (event.cancelable) event.preventDefault();
+        const mouse = getCanvasPointer(event, globalCanvas);
+        const hit = hitTestGlobal(mouse);
+        if (!hit) return;
+        state.currentRoomId = hit.roomId;
+        ui.roomSelect.value = hit.roomId;
+        const room = currentRoom();
+        state.drag = {
+          type: 'room',
+          roomId: room.id,
+          offsetX: room.global.x - canvasToGlobalPoint(mouse.x, mouse.y).x,
+          offsetY: room.global.y - canvasToGlobalPoint(mouse.x, mouse.y).y
+        };
+        redraw();
+      }
+
+      function onGlobalPointerMove(event) {
+        if (!state.drag || state.drag.type !== 'room') return;
+        if (event.cancelable) event.preventDefault();
+        const mouse = getCanvasPointer(event, globalCanvas);
+        const local = canvasToGlobalPoint(mouse.x, mouse.y);
+        const room = state.data.rooms.find((item) => item.id === state.drag.roomId);
+        room.global.x = local.x + state.drag.offsetX;
+        room.global.y = local.y + state.drag.offsetY;
+        redraw();
+      }
+
+      function endDrag() {
+        state.drag = null;
+      }
+
+      function applyPropertyInputs() {
+        const room = currentRoom();
+        room.global.x = Number(ui.globalX.value || room.global.x);
+        room.global.y = Number(ui.globalY.value || room.global.y);
+        const selected = resolveSelected();
+        if (selected) {
+          selected.item.x = Number(ui.itemX.value || selected.item.x || 0);
+          selected.item.y = Number(ui.itemY.value || selected.item.y || 0);
+          if (selected.item.len !== undefined) {
+            selected.item.len = Math.max(1, Number(ui.itemLen.value || selected.item.len || 1));
+            selected.item.tint = Number(ui.itemTint.value || selected.item.tint || 0);
+          }
+          if (selected.item.label !== undefined) {
+            selected.item.label = ui.doorLabel.value;
+            selected.item.targetRoom = ui.doorTarget.value;
+          }
+        }
+        redraw();
+      }
+
+      function deleteSelected() {
+        const room = currentRoom();
+        if (!state.selected) return;
+        if (state.selected.kind === 'vertex' && room.polygon.length > 3) {
+          room.polygon.splice(state.selected.index, 1);
+        }
+        if (state.selected.kind === 'platform') {
+          room.platforms = room.platforms.filter((item) => item.id !== state.selected.id);
+        }
+        if (state.selected.kind === 'door') {
+          room.doors = room.doors.filter((item) => item.id !== state.selected.id);
+        }
+        state.selected = null;
+        redraw();
+      }
+
+      function duplicatePlatform() {
+        const room = currentRoom();
+        const selected = resolveSelected();
+        if (!selected || state.selected.kind !== 'platform') return;
+        const clone = {
+          ...selected.item,
+          id: nextId(`${room.id}-P`, room.platforms),
+          x: selected.item.x + 64,
+          y: selected.item.y
+        };
+        room.platforms.push(clone);
+        state.selected = { kind: 'platform', id: clone.id };
+        redraw();
+      }
+
+      function centerRoom() {
+        const room = currentRoom();
+        room.global.x = 600;
+        room.global.y = 360;
+        redraw();
+      }
+
+      function initializeData(data, message) {
+        state.data = data;
+        state.currentRoomId = state.data.rooms[0].id;
+        populateRoomSelect();
+        redraw();
+        setStatus(message);
+      }
+
+      function loadSavedLayout() {
+        try {
+          const raw = window.localStorage.getItem(LAYOUT_STORAGE_KEY);
+          if (!raw) return null;
+          const parsed = JSON.parse(raw);
+          if (!parsed || !Array.isArray(parsed.rooms)) return null;
+          return parsed;
+        } catch (_) {
+          return null;
+        }
+      }
+
+      async function loadData(forceDisk = false) {
+        const saved = !forceDisk ? loadSavedLayout() : null;
+        if (saved) {
+          initializeData(saved, `Loaded ${saved.rooms.length} rooms from saved permanent layout.`);
+          return;
+        }
+
+        initializeData(structuredClone(SEED_DATA), 'Loaded embedded seed data.');
+        try {
+          const response = await fetch(DATA_URL, { cache: 'no-store' });
+          if (!response.ok) throw new Error(`Failed to load ${DATA_URL}`);
+          const fetched = await response.json();
+          initializeData(
+            fetched,
+            forceDisk
+              ? `Reloaded ${fetched.rooms.length} rooms from room-layout-data.json`
+              : `Loaded ${fetched.rooms.length} rooms from room-layout-data.json`
+          );
+        } catch (error) {
+          setStatus(
+            forceDisk
+              ? `Disk reload unavailable under file:// (${error.message})`
+              : `Using embedded seed data. Disk load unavailable under file:// (${error.message})`
+          );
+        }
+      }
+
+      function applyJsonText() {
+        try {
+          const parsed = JSON.parse(ui.jsonText.value);
+          if (!parsed.rooms || !Array.isArray(parsed.rooms)) {
+            throw new Error('JSON must contain a rooms array.');
+          }
+          state.data = parsed;
+          if (!state.data.rooms.find((room) => room.id === state.currentRoomId)) {
+            state.currentRoomId = state.data.rooms[0].id;
+          }
+          populateRoomSelect();
+          redraw();
+          setStatus('Applied JSON from editor.');
+        } catch (error) {
+          setStatus(`JSON error: ${error.message}`);
+        }
+      }
+
+      function downloadJson() {
+        const blob = new Blob([JSON.stringify(state.data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'room-layout-data.json';
+        a.click();
+        URL.revokeObjectURL(url);
+        setStatus('Downloaded room-layout-data.json');
+      }
+
+      function encodeLayoutForHash() {
+        return encodeURIComponent(btoa(unescape(encodeURIComponent(JSON.stringify(state.data)))));
+      }
+
+      function openGameWithLayout() {
+        const encoded = encodeLayoutForHash();
+        window.location.href = `./index.html#layout=${encoded}`;
+      }
+
+      async function savePermanent() {
+        const serialized = JSON.stringify(state.data, null, 2);
+        try {
+          window.localStorage.setItem(LAYOUT_STORAGE_KEY, serialized);
+        } catch (_) {}
+
+        if (state.fileHandle) {
+          try {
+            const writable = await state.fileHandle.createWritable();
+            await writable.write(serialized);
+            await writable.close();
+            setStatus('Saved to this device and to the selected file.');
+            return;
+          } catch (_) {}
+        }
+
+        setStatus('Saved to this device. Use Advanced > Save To File or Export Layout for git sync.');
+      }
+
+      function clearSavedLayout() {
+        window.localStorage.removeItem(LAYOUT_STORAGE_KEY);
+        setStatus('Cleared saved layout from local storage.');
+      }
+
+      async function saveJsonToFile() {
+        try {
+          if (!window.showSaveFilePicker) {
+            downloadJson();
+            setStatus('File System Access API unavailable. Downloaded JSON instead.');
+            return;
+          }
+          if (!state.fileHandle) {
+            state.fileHandle = await window.showSaveFilePicker({
+              suggestedName: 'room-layout-data.json',
+              types: [{ description: 'JSON Files', accept: { 'application/json': ['.json'] } }]
+            });
+          }
+          const writable = await state.fileHandle.createWritable();
+          await writable.write(JSON.stringify(state.data, null, 2));
+          await writable.close();
+          setStatus('Saved JSON to file.');
+        } catch (error) {
+          setStatus(`Save cancelled or failed: ${error.message}`);
+        }
+      }
+
+      function wireEvents() {
+        ui.roomSelect.addEventListener('change', () => {
+          state.currentRoomId = ui.roomSelect.value;
+          state.selected = null;
+          redraw();
+        });
+        ui.viewMode.addEventListener('change', () => {
+          state.viewMode = ui.viewMode.value;
+          redraw();
+        });
+        ui.toolButtons.forEach((button) => {
+          button.addEventListener('click', () => {
+            state.tool = button.dataset.tool;
+            ui.toolButtons.forEach((item) => item.classList.toggle('active', item === button));
+          });
+        });
+        ui.applyProps.addEventListener('click', applyPropertyInputs);
+        ui.deleteSelected.addEventListener('click', deleteSelected);
+        ui.duplicatePlatform.addEventListener('click', duplicatePlatform);
+        ui.centerRoom.addEventListener('click', centerRoom);
+        ui.reloadJson.addEventListener('click', () => loadData(true));
+        ui.applyJson.addEventListener('click', applyJsonText);
+        ui.downloadJson.addEventListener('click', downloadJson);
+        ui.saveJsonFile.addEventListener('click', saveJsonToFile);
+        ui.savePermanent.addEventListener('click', savePermanent);
+        ui.openGameWithLayout.addEventListener('click', openGameWithLayout);
+        ui.clearSavedLayout.addEventListener('click', clearSavedLayout);
+
+        roomCanvas.addEventListener('pointerdown', onRoomPointerDown);
+        roomCanvas.addEventListener('pointermove', onRoomPointerMove);
+        roomCanvas.addEventListener('touchstart', onRoomPointerDown, { passive: false });
+        roomCanvas.addEventListener('touchmove', onRoomPointerMove, { passive: false });
+        globalCanvas.addEventListener('pointerdown', onGlobalPointerDown);
+        globalCanvas.addEventListener('pointermove', onGlobalPointerMove);
+        globalCanvas.addEventListener('touchstart', onGlobalPointerDown, { passive: false });
+        globalCanvas.addEventListener('touchmove', onGlobalPointerMove, { passive: false });
+        window.addEventListener('pointerup', endDrag);
+        window.addEventListener('pointercancel', endDrag);
+        window.addEventListener('touchend', endDrag, { passive: false });
+        window.addEventListener('touchcancel', endDrag, { passive: false });
+      }
+
+      wireEvents();
+      loadData().catch((error) => {
+        setStatus(`Load failed: ${error.message}`);
+      });
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,207 @@
+{
+  "version": 1,
+  "meta": {
+    "worldWidth": 1600,
+    "worldHeight": 1200,
+    "grid": 32,
+    "notes": "Editable room layout source of truth for Ashen Hollow. Coordinates are local to each room unless under global."
+  },
+  "rooms": [
+    {
+      "id": "R1",
+      "name": "Spawn + Final Gate Chamber",
+      "global": { "x": 360, "y": 405 },
+      "polygon": [[160, 260], [900, 260], [900, 120], [1240, 120], [1240, 1080], [980, 1080], [980, 860], [160, 860]],
+      "platforms": [
+        { "id": "R1-P1", "x": 120, "y": 1048, "len": 12, "tint": 0 },
+        { "id": "R1-P2", "x": 520, "y": 968, "len": 10, "tint": 1 },
+        { "id": "R1-P3", "x": 980, "y": 888, "len": 8, "tint": 2 }
+      ],
+      "doors": [
+        { "id": "R1-D1", "x": 1520, "y": 1020, "kind": "transition", "label": "To R2", "targetRoom": "R2" },
+        { "id": "R1-D2", "x": 500, "y": 1000, "kind": "gate", "label": "Final Gate", "targetRoom": "R9" }
+      ]
+    },
+    {
+      "id": "R2",
+      "name": "Central Hub",
+      "global": { "x": 610, "y": 390 },
+      "polygon": [[120, 300], [480, 300], [480, 120], [860, 120], [860, 300], [1280, 300], [1280, 820], [860, 820], [860, 1080], [560, 1080], [560, 820], [120, 820]],
+      "platforms": [
+        { "id": "R2-P1", "x": 80, "y": 1060, "len": 12, "tint": 0 },
+        { "id": "R2-P2", "x": 500, "y": 980, "len": 6, "tint": 1 },
+        { "id": "R2-P3", "x": 820, "y": 980, "len": 14, "tint": 2 },
+        { "id": "R2-P4", "x": 1180, "y": 900, "len": 8, "tint": 3 }
+      ],
+      "doors": [
+        { "id": "R2-D1", "x": 24, "y": 1020, "kind": "transition", "label": "To R1", "targetRoom": "R1" },
+        { "id": "R2-D2", "x": 680, "y": 704, "kind": "branch", "label": "A North", "targetRoom": "R3" },
+        { "id": "R2-D3", "x": 1300, "y": 920, "kind": "branch", "label": "B East", "targetRoom": "R5" },
+        { "id": "R2-D4", "x": 680, "y": 1088, "kind": "branch", "label": "C South", "targetRoom": "R7" }
+      ]
+    },
+    {
+      "id": "R3",
+      "name": "Branch A Entry Trial",
+      "global": { "x": 610, "y": 232 },
+      "polygon": [[520, 1080], [520, 280], [800, 280], [800, 420], [960, 420], [960, 640], [1120, 640], [1120, 320], [1500, 320], [1500, 720], [1360, 720], [1360, 1080]],
+      "platforms": [
+        { "id": "R3-P1", "x": 520, "y": 1060, "len": 8, "tint": 0 },
+        { "id": "R3-P2", "x": 820, "y": 1060, "len": 5, "tint": 1 },
+        { "id": "R3-P3", "x": 1040, "y": 1060, "len": 5, "tint": 2 },
+        { "id": "R3-P4", "x": 700, "y": 940, "len": 4, "tint": 1 },
+        { "id": "R3-P5", "x": 900, "y": 900, "len": 4, "tint": 2 },
+        { "id": "R3-P6", "x": 820, "y": 820, "len": 4, "tint": 3 },
+        { "id": "R3-P7", "x": 1020, "y": 760, "len": 4, "tint": 0 },
+        { "id": "R3-P8", "x": 1120, "y": 580, "len": 4, "tint": 3 },
+        { "id": "R3-P9", "x": 1300, "y": 320, "len": 5, "tint": 3 }
+      ],
+      "doors": [
+        { "id": "R3-D1", "x": 820, "y": 1148, "kind": "return", "label": "Return to R2", "targetRoom": "R2" },
+        { "id": "R3-D2", "x": 1360, "y": 248, "kind": "transition", "label": "Ascend to R4", "targetRoom": "R4" },
+        { "id": "R3-D3", "x": 1560, "y": 600, "kind": "secret", "label": "Secret Door", "targetRoom": "R11" }
+      ]
+    },
+    {
+      "id": "R4",
+      "name": "Branch A Reward Hall",
+      "global": { "x": 790, "y": 148 },
+      "polygon": [[80, 1080], [80, 920], [360, 920], [360, 1080], [760, 1080], [760, 760], [1120, 760], [1120, 620], [1500, 620], [1500, 1080]],
+      "platforms": [
+        { "id": "R4-P1", "x": 80, "y": 1060, "len": 8, "tint": 0 },
+        { "id": "R4-P2", "x": 420, "y": 1060, "len": 5, "tint": 1 },
+        { "id": "R4-P3", "x": 700, "y": 1020, "len": 4, "tint": 2 },
+        { "id": "R4-P4", "x": 920, "y": 980, "len": 4, "tint": 3 },
+        { "id": "R4-P5", "x": 1160, "y": 940, "len": 4, "tint": 4 },
+        { "id": "R4-P6", "x": 1360, "y": 920, "len": 4, "tint": 1 },
+        { "id": "R4-P7", "x": 1120, "y": 760, "len": 4, "tint": 1 },
+        { "id": "R4-P8", "x": 1460, "y": 620, "len": 3, "tint": 3 }
+      ],
+      "doors": [
+        { "id": "R4-D1", "x": 1520, "y": 1148, "kind": "secret", "label": "Tunnel Shaft", "targetRoom": "R11" }
+      ]
+    },
+    {
+      "id": "R5",
+      "name": "Branch B East Corridor",
+      "global": { "x": 840, "y": 392 },
+      "polygon": [[60, 1080], [60, 860], [360, 860], [360, 760], [620, 760], [620, 860], [980, 860], [980, 760], [1260, 760], [1260, 1080]],
+      "platforms": [
+        { "id": "R5-P1", "x": 60, "y": 1060, "len": 10, "tint": 0 },
+        { "id": "R5-P2", "x": 440, "y": 1060, "len": 6, "tint": 1 },
+        { "id": "R5-P3", "x": 760, "y": 1060, "len": 6, "tint": 2 },
+        { "id": "R5-P4", "x": 1080, "y": 1060, "len": 8, "tint": 3 },
+        { "id": "R5-P5", "x": 420, "y": 900, "len": 4, "tint": 0 },
+        { "id": "R5-P6", "x": 860, "y": 900, "len": 4, "tint": 2 },
+        { "id": "R5-P7", "x": 1260, "y": 820, "len": 4, "tint": 4 }
+      ],
+      "doors": [
+        { "id": "R5-D1", "x": 1540, "y": 980, "kind": "transition", "label": "To R6", "targetRoom": "R6" },
+        { "id": "R5-D2", "x": 24, "y": 900, "kind": "return", "label": "Back to R2", "targetRoom": "R2" }
+      ]
+    },
+    {
+      "id": "R6",
+      "name": "Branch B Vault",
+      "global": { "x": 1080, "y": 390 },
+      "polygon": [[60, 1080], [60, 900], [260, 900], [260, 780], [520, 780], [520, 700], [1020, 700], [1020, 780], [1260, 780], [1260, 860], [1500, 860], [1500, 1080]],
+      "platforms": [
+        { "id": "R6-P1", "x": 60, "y": 1040, "len": 7, "tint": 0 },
+        { "id": "R6-P2", "x": 360, "y": 1040, "len": 4, "tint": 1 },
+        { "id": "R6-P3", "x": 620, "y": 1040, "len": 4, "tint": 2 },
+        { "id": "R6-P4", "x": 900, "y": 1040, "len": 5, "tint": 3 },
+        { "id": "R6-P5", "x": 1180, "y": 1040, "len": 6, "tint": 4 },
+        { "id": "R6-P6", "x": 520, "y": 880, "len": 4, "tint": 3 },
+        { "id": "R6-P7", "x": 1020, "y": 800, "len": 5, "tint": 1 },
+        { "id": "R6-P8", "x": 1420, "y": 880, "len": 4, "tint": 3 }
+      ],
+      "doors": [
+        { "id": "R6-D1", "x": 1540, "y": 860, "kind": "return", "label": "Back to R5", "targetRoom": "R5" }
+      ]
+    },
+    {
+      "id": "R7",
+      "name": "Branch C South Shaft",
+      "global": { "x": 610, "y": 575 },
+      "polygon": [[700, 320], [700, 500], [560, 500], [560, 700], [700, 700], [700, 920], [560, 920], [560, 1080], [1220, 1080], [1220, 700], [1040, 700], [1040, 320]],
+      "platforms": [
+        { "id": "R7-P1", "x": 700, "y": 340, "len": 5, "tint": 0 },
+        { "id": "R7-P2", "x": 560, "y": 420, "len": 3, "tint": 1 },
+        { "id": "R7-P3", "x": 760, "y": 500, "len": 4, "tint": 2 },
+        { "id": "R7-P4", "x": 620, "y": 600, "len": 3, "tint": 3 },
+        { "id": "R7-P5", "x": 820, "y": 700, "len": 4, "tint": 4 },
+        { "id": "R7-P6", "x": 560, "y": 940, "len": 4, "tint": 2 },
+        { "id": "R7-P7", "x": 1040, "y": 1060, "len": 6, "tint": 4 }
+      ],
+      "doors": [
+        { "id": "R7-D1", "x": 1520, "y": 1020, "kind": "transition", "label": "To R8", "targetRoom": "R8" },
+        { "id": "R7-D2", "x": 540, "y": 360, "kind": "return", "label": "Back to R2", "targetRoom": "R2" }
+      ]
+    },
+    {
+      "id": "R8",
+      "name": "Branch C South Sanctum",
+      "global": { "x": 635, "y": 728 },
+      "polygon": [[700, 320], [860, 320], [860, 460], [1040, 460], [1040, 620], [900, 620], [900, 860], [1180, 860], [1180, 1080], [700, 1080]],
+      "platforms": [
+        { "id": "R8-P1", "x": 700, "y": 340, "len": 5, "tint": 0 },
+        { "id": "R8-P2", "x": 880, "y": 420, "len": 4, "tint": 1 },
+        { "id": "R8-P3", "x": 760, "y": 520, "len": 4, "tint": 2 },
+        { "id": "R8-P4", "x": 960, "y": 620, "len": 4, "tint": 3 },
+        { "id": "R8-P5", "x": 820, "y": 740, "len": 4, "tint": 4 },
+        { "id": "R8-P6", "x": 1040, "y": 860, "len": 5, "tint": 1 },
+        { "id": "R8-P7", "x": 1260, "y": 1060, "len": 5, "tint": 4 }
+      ],
+      "doors": [
+        { "id": "R8-D1", "x": 1520, "y": 1020, "kind": "return", "label": "Back to R7", "targetRoom": "R7" }
+      ]
+    },
+    {
+      "id": "R9",
+      "name": "Final Area",
+      "global": { "x": 170, "y": 474 },
+      "polygon": [[120, 260], [480, 260], [480, 140], [860, 140], [860, 980], [520, 980], [520, 1080], [120, 1080]],
+      "platforms": [
+        { "id": "R9-P1", "x": 140, "y": 1048, "len": 14, "tint": 0 },
+        { "id": "R9-P2", "x": 520, "y": 920, "len": 9, "tint": 1 },
+        { "id": "R9-P3", "x": 880, "y": 820, "len": 8, "tint": 2 }
+      ],
+      "doors": [
+        { "id": "R9-D1", "x": 1540, "y": 1020, "kind": "transition", "label": "To R10", "targetRoom": "R10" }
+      ]
+    },
+    {
+      "id": "R10",
+      "name": "Exit / Completion Room",
+      "global": { "x": 150, "y": 658 },
+      "polygon": [[220, 260], [900, 260], [900, 140], [1240, 140], [1240, 1080], [220, 1080]],
+      "platforms": [
+        { "id": "R10-P1", "x": 220, "y": 1048, "len": 16, "tint": 0 },
+        { "id": "R10-P2", "x": 720, "y": 940, "len": 8, "tint": 4 },
+        { "id": "R10-P3", "x": 1040, "y": 860, "len": 8, "tint": 2 }
+      ],
+      "doors": [
+        { "id": "R10-D1", "x": 24, "y": 1020, "kind": "transition", "label": "Back to R9", "targetRoom": "R9" },
+        { "id": "R10-D2", "x": 1540, "y": 1020, "kind": "transition", "label": "Return to R1", "targetRoom": "R1" }
+      ]
+    },
+    {
+      "id": "R11",
+      "name": "Branch A Tunnel Shaft",
+      "global": { "x": 950, "y": 258 },
+      "polygon": [[1120, 220], [1500, 220], [1500, 420], [1280, 420], [1280, 680], [48, 680], [48, 520], [1040, 520], [1040, 420], [1120, 420]],
+      "platforms": [
+        { "id": "R11-P1", "x": 1160, "y": 240, "len": 5, "tint": 1 },
+        { "id": "R11-P2", "x": 1416, "y": 240, "len": 5, "tint": 1 },
+        { "id": "R11-P3", "x": 48, "y": 552, "len": 25, "tint": 4 },
+        { "id": "R11-P4", "x": 1040, "y": 552, "len": 17, "tint": 1 },
+        { "id": "R11-P5", "x": 48, "y": 648, "len": 32, "tint": 0 },
+        { "id": "R11-P6", "x": 1040, "y": 648, "len": 17, "tint": 2 }
+      ],
+      "doors": [
+        { "id": "R11-D1", "x": 96, "y": 612, "kind": "secret", "label": "Secret to R3", "targetRoom": "R3" },
+        { "id": "R11-D2", "x": 1480, "y": 220, "kind": "secret", "label": "From R4", "targetRoom": "R4" }
+      ]
+    }
+  ]
+}
