@@ -30,7 +30,7 @@
     }
     .app {
       display: grid;
-      grid-template-columns: 330px minmax(0, 1fr) 380px;
+      grid-template-columns: minmax(0, 1fr) 380px;
       gap: 12px;
       padding: 12px;
       min-height: 100vh;
@@ -97,6 +97,10 @@
       color: #fff4d7;
       background: #3a2b14;
     }
+    button:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
     button.secondary { background: #102331; }
     button.good { background: #16372b; border-color: #255c48; }
     .toolbar {
@@ -114,11 +118,37 @@
       gap: 10px;
       min-height: 0;
     }
+    .canvas-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .canvas-header-text {
+      min-width: 0;
+    }
+    .canvas-controls {
+      display: grid;
+      gap: 8px;
+      min-width: min(560px, 100%);
+    }
+    .canvas-controls .row {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .canvas-controls .row-3 {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+    .canvas-controls .row-4 {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+    }
     .canvas-box {
       border: 1px solid var(--line);
       border-radius: 12px;
       background: #09121a;
       overflow: hidden;
+      position: relative;
     }
     canvas {
       display: block;
@@ -189,6 +219,61 @@
       font-size: 12px;
       user-select: none;
     }
+    .inspector {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      width: min(220px, calc(100% - 24px));
+      background: rgba(9, 19, 28, 0.94);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 8px;
+      display: grid;
+      gap: 6px;
+      z-index: 3;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    }
+    .inspector.hidden {
+      display: none;
+    }
+    .inspector-title {
+      font-size: 12px;
+      color: var(--text);
+    }
+    .inspector .row {
+      grid-template-columns: 1fr 1fr;
+    }
+    .inspector label {
+      font-size: 10px;
+    }
+    .canvas-toolbar {
+      position: absolute;
+      top: 92px;
+      left: 12px;
+      width: 110px;
+      display: grid;
+      gap: 6px;
+      z-index: 3;
+    }
+    .canvas-toolbar button {
+      padding: 6px 8px;
+      font-size: 11px;
+      text-align: left;
+    }
+    .canvas-toolbar .toolbar-divider {
+      height: 1px;
+      background: rgba(127, 178, 223, 0.2);
+      margin: 2px 0;
+    }
+    .canvas-toolbar .toolbar-note {
+      font-size: 10px;
+      color: var(--muted);
+      line-height: 1.3;
+      padding: 2px 2px 0 2px;
+    }
+    .field-hidden {
+      display: none;
+    }
     @media (max-width: 1300px) {
       .app {
         grid-template-columns: 1fr;
@@ -198,73 +283,130 @@
 </head>
 <body>
   <main class="app">
-    <section class="panel stack">
-      <div>
-        <h1>Room Layout Editor</h1>
-        <div class="sub">Edit room floorplans, ledges, doors, and global placement. During development, use git as the shared cross-device sync mechanism.</div>
-      </div>
-
-      <details open>
-        <summary>Development Workflow</summary>
-        <ol class="steps">
-          <li>Choose a room, edit the layout, then tap <strong>Save Device</strong>. This saves the current layout in this browser on this device.</li>
-          <li>Tap <strong>Export Layout</strong> from Advanced when you want to move the current layout to another device or commit it to git.</li>
-          <li>On your MacBook, replace [room-layout-data.json](/Users/timwood/Desktop/projects/PWA/MV/room-layout-data.json) with the exported file, then `git add`, `git commit`, and `git push`.</li>
-          <li>On another device, pull/reload the latest repo version, or use <strong>Import Layout</strong> from Advanced to paste the JSON directly.</li>
-          <li>Tap <strong>Open Game</strong> to test the exact current editor state immediately in the same tab.</li>
-          <li>Use <strong>Reload From Disk</strong> only when you explicitly want to discard the current device-saved layout and reload [room-layout-data.json](/Users/timwood/Desktop/projects/PWA/MV/room-layout-data.json).</li>
-        </ol>
-      </details>
-
-      <div class="stack">
-        <label>
-          Room
-          <select id="roomSelect"></select>
-        </label>
-        <div class="row">
-          <label>
-            View
-            <select id="viewMode">
-              <option value="room">Room Editor</option>
-              <option value="global">Global Map</option>
-            </select>
-          </label>
-          <label>
-            Grid Snap
-            <select id="snapSize">
-              <option value="0">Off</option>
-              <option value="8">8</option>
-              <option value="16">16</option>
-              <option value="32" selected>32</option>
-              <option value="64">64</option>
-            </select>
-          </label>
+    <section class="panel canvas-wrap">
+      <div class="canvas-header">
+        <div class="canvas-header-text">
+          <h1 id="canvasTitle">Room Layout Editor</h1>
+          <div class="sub" id="canvasSub">Drag vertices, platforms, and doors in the active map view.</div>
+        </div>
+        <div class="canvas-controls">
+          <div class="row">
+            <label>
+              Room
+              <select id="roomSelect"></select>
+            </label>
+            <label>
+              View
+              <select id="viewMode">
+                <option value="room">Room Editor</option>
+                <option value="global">Global Map</option>
+              </select>
+            </label>
+          </div>
+          <div class="row-4">
+            <label>
+              Room Width
+              <input id="roomWidth" type="number" step="32" min="320" />
+            </label>
+            <label>
+              Room Height
+              <input id="roomHeight" type="number" step="32" min="320" />
+            </label>
+            <button id="addRoom">Add Room</button>
+            <button id="deleteRoom">Delete Room</button>
+          </div>
+          <div class="row-4">
+            <label>
+              Grid Snap
+              <select id="snapSize">
+                <option value="0">Off</option>
+                <option value="8">8</option>
+                <option value="16">16</option>
+                <option value="32" selected>32</option>
+                <option value="64">64</option>
+              </select>
+            </label>
+            <label>
+              Global Zoom
+              <input id="globalZoom" type="range" min="40" max="200" step="5" value="100" />
+            </label>
+            <button id="savePermanent" class="good">Save Device</button>
+            <button id="downloadJson" class="good">Export JSON</button>
+          </div>
+          <div class="row-3">
+            <button id="syncCanonicalJson" class="good">Sync Canonical</button>
+            <button id="openGameWithLayout">Open Game</button>
+            <button id="reloadJson">Reload Disk</button>
+          </div>
         </div>
       </div>
-
-      <div>
-        <h2>Save + Test</h2>
-        <div class="sub">Primary flow: save on this device, then test in-game. Use Advanced only for export/import and repo file operations.</div>
-      </div>
-
-      <div class="row">
-        <button id="savePermanent" class="good">Save Device</button>
-        <button id="openGameWithLayout">Open Game</button>
-      </div>
-
-      <details>
-        <summary>Advanced Export / Import / File Tools</summary>
-        <div class="stack" style="margin-top: 10px;">
-          <div class="row">
-            <button id="reloadJson">Reload From Disk</button>
-            <button id="applyJson">Import Layout</button>
+      <div class="canvas-box" id="roomCanvasBox">
+        <div class="canvas-toolbar" id="canvasToolButtons">
+          <button data-tool="select" class="active">Select</button>
+          <button data-tool="vertex">Add Vertex</button>
+          <button data-tool="platform">Add Platform</button>
+          <button data-tool="door">Add Door</button>
+          <button data-tool="key">Add Key</button>
+          <button data-tool="start">Set Start</button>
+          <button data-tool="room-move">Move Room</button>
+          <div class="toolbar-divider"></div>
+          <button id="deleteSelected">Delete</button>
+          <button id="duplicatePlatform">Duplicate</button>
+          <button id="centerRoom">Center Room</button>
+          <div class="toolbar-note" id="selectionSummary">Nothing selected.</div>
+        </div>
+        <div class="inspector hidden" id="selectionInspector">
+          <div class="inspector-title" id="inspectorTitle">Selection</div>
+          <div class="row" id="globalFields">
+            <label>Global X<input id="globalX" type="number" step="1" /></label>
+            <label>Global Y<input id="globalY" type="number" step="1" /></label>
           </div>
           <div class="row">
-            <button id="downloadJson" class="good">Export Layout</button>
+            <label>X<input id="itemX" type="number" step="1" /></label>
+            <label>Y<input id="itemY" type="number" step="1" /></label>
+          </div>
+          <div class="row" id="platformFields">
+            <label>Length<input id="itemLen" type="number" step="1" min="1" /></label>
+            <label>Tint<input id="itemTint" type="number" step="1" min="0" max="4" /></label>
+          </div>
+          <div class="row field-hidden" id="doorFields">
+            <label>Door Label<input id="doorLabel" type="text" /></label>
+            <label>Target Room<input id="doorTarget" type="text" /></label>
+            <label>
+              This Side
+              <select id="doorStateForward">
+                <option value="unlocked">Unlocked</option>
+                <option value="locked">Locked</option>
+              </select>
+            </label>
+            <label>
+              Other Side
+              <select id="doorStateReverse">
+                <option value="unlocked">Unlocked</option>
+                <option value="locked">Locked</option>
+              </select>
+            </label>
+          </div>
+          <div class="row field-hidden" id="keyFields">
+            <label>Key Label<input id="keyLabel" type="text" /></label>
+            <label>Unlocks Door<input id="keyDoorTarget" type="text" placeholder="R5-D3" /></label>
+          </div>
+          <button id="applyProps" class="good">Apply Properties</button>
+        </div>
+        <canvas id="roomCanvas" width="960" height="720"></canvas>
+      </div>
+      <div class="canvas-box hidden" id="globalCanvasBox">
+        <canvas id="globalCanvas" width="960" height="720"></canvas>
+      </div>
+      <details>
+        <summary>Advanced Import / Scratch / Raw JSON</summary>
+        <div class="stack" style="margin-top: 10px;">
+          <div class="row">
+            <button id="applyJson">Import Layout</button>
             <button id="saveJsonFile" class="secondary">Save To File</button>
           </div>
           <div class="row">
-            <button id="clearSavedLayout" class="secondary">Clear Saved Layout</button>
+            <button id="clearSavedLayout" class="secondary">Clear Scratch Save</button>
           </div>
           <textarea id="jsonText" spellcheck="false"></textarea>
         </div>
@@ -272,72 +414,13 @@
       <div class="status" id="statusText">Loading layout data…</div>
     </section>
 
-    <section class="panel canvas-wrap">
-      <div>
-        <h2 id="canvasTitle">Room Editor</h2>
-        <div class="sub" id="canvasSub">Local room space is 1600 x 1200. Drag vertices to reshape the room shell.</div>
-      </div>
-      <div class="canvas-box" id="roomCanvasBox">
-        <canvas id="roomCanvas" width="960" height="720"></canvas>
-      </div>
-      <div class="canvas-box hidden" id="globalCanvasBox">
-        <canvas id="globalCanvas" width="960" height="720"></canvas>
-      </div>
-    </section>
-
     <section class="panel stack">
-      <div class="stack">
-        <h2>Tools</h2>
-        <div class="toolbar" id="toolButtons">
-          <button data-tool="select" class="active">Select</button>
-          <button data-tool="vertex">Add Vertex</button>
-          <button data-tool="platform">Add Platform</button>
-          <button data-tool="door">Add Door</button>
-          <button data-tool="room-move">Move Room</button>
-        </div>
-        <div class="hint">
-          `Select`: drag vertices, platforms, doors, or whole rooms on the global map.
-          `Add Vertex`: click a polygon edge to insert a corner.
-          `Add Platform` / `Add Door`: click in the room editor to place new items.
-        </div>
-      </div>
-
-      <div class="stack">
-        <h2>Selection</h2>
-        <div class="status" id="selectionSummary">Nothing selected.</div>
-        <div class="row-3">
-          <button id="deleteSelected">Delete Selected</button>
-          <button id="duplicatePlatform">Duplicate Platform</button>
-          <button id="centerRoom">Center Room</button>
-        </div>
-      </div>
-
-      <div class="stack">
-        <h2>Properties</h2>
-        <div class="row">
-          <label>Global X<input id="globalX" type="number" step="1" /></label>
-          <label>Global Y<input id="globalY" type="number" step="1" /></label>
-        </div>
-        <div class="row">
-          <label>Platform X<input id="itemX" type="number" step="1" /></label>
-          <label>Platform Y / Door Y<input id="itemY" type="number" step="1" /></label>
-        </div>
-        <div class="row">
-          <label>Length<input id="itemLen" type="number" step="1" min="1" /></label>
-          <label>Tint<input id="itemTint" type="number" step="1" min="0" max="4" /></label>
-        </div>
-        <div class="row">
-          <label>Door Label<input id="doorLabel" type="text" /></label>
-          <label>Target Room<input id="doorTarget" type="text" /></label>
-        </div>
-        <button id="applyProps" class="good">Apply Properties</button>
-      </div>
-
       <div class="stack">
         <h2>Room Contents</h2>
         <div class="badge" id="vertexCount">Vertices: 0</div>
         <div class="badge" id="platformCount">Platforms: 0</div>
         <div class="badge" id="doorCount">Doors: 0</div>
+        <div class="badge" id="keyCount">Keys: 0</div>
         <div class="list" id="itemList"></div>
       </div>
     </section>
@@ -557,12 +640,24 @@
   <script>
     (() => {
       const DATA_URL = './room-layout-data.json';
+      const API_PING_URL = '/api/ping';
+      const API_LAYOUT_URL = '/api/layout';
       const LAYOUT_STORAGE_KEY = 'ashen-hollow-room-layout-v1';
       const SEED_DATA = JSON.parse(document.getElementById('seedData').textContent);
       const ROOM_W = 1600;
       const ROOM_H = 1200;
       const TILE = 32;
       const PLATFORM_H = 14;
+      const ROOM_MARGIN_LEFT = 132;
+      const ROOM_MARGIN_RIGHT = 236;
+      const ROOM_MARGIN_TOP = 16;
+      const ROOM_MARGIN_BOTTOM = 16;
+      const GLOBAL_ROOM_PREVIEW_SCALE = 0.12;
+      const HIT_VERTEX = 18;
+      const HIT_DOOR_X = 24;
+      const HIT_DOOR_Y = 36;
+      const HIT_PLATFORM_PAD = 12;
+      const HIT_GLOBAL_PAD = 18;
       const roomCanvas = document.getElementById('roomCanvas');
       const roomCtx = roomCanvas.getContext('2d');
       const globalCanvas = document.getElementById('globalCanvas');
@@ -572,11 +667,22 @@
         roomSelect: document.getElementById('roomSelect'),
         viewMode: document.getElementById('viewMode'),
         snapSize: document.getElementById('snapSize'),
-        toolButtons: Array.from(document.querySelectorAll('#toolButtons button')),
+        globalZoom: document.getElementById('globalZoom'),
+        toolButtons: Array.from(document.querySelectorAll('#canvasToolButtons button[data-tool]')),
         selectionSummary: document.getElementById('selectionSummary'),
+        selectionInspector: document.getElementById('selectionInspector'),
+        inspectorTitle: document.getElementById('inspectorTitle'),
+        globalFields: document.getElementById('globalFields'),
+        platformFields: document.getElementById('platformFields'),
+        doorFields: document.getElementById('doorFields'),
+        keyFields: document.getElementById('keyFields'),
         deleteSelected: document.getElementById('deleteSelected'),
         duplicatePlatform: document.getElementById('duplicatePlatform'),
         centerRoom: document.getElementById('centerRoom'),
+        roomWidth: document.getElementById('roomWidth'),
+        roomHeight: document.getElementById('roomHeight'),
+        addRoom: document.getElementById('addRoom'),
+        deleteRoom: document.getElementById('deleteRoom'),
         globalX: document.getElementById('globalX'),
         globalY: document.getElementById('globalY'),
         itemX: document.getElementById('itemX'),
@@ -585,11 +691,16 @@
         itemTint: document.getElementById('itemTint'),
         doorLabel: document.getElementById('doorLabel'),
         doorTarget: document.getElementById('doorTarget'),
+        doorStateForward: document.getElementById('doorStateForward'),
+        doorStateReverse: document.getElementById('doorStateReverse'),
+        keyLabel: document.getElementById('keyLabel'),
+        keyDoorTarget: document.getElementById('keyDoorTarget'),
         applyProps: document.getElementById('applyProps'),
         itemList: document.getElementById('itemList'),
         vertexCount: document.getElementById('vertexCount'),
         platformCount: document.getElementById('platformCount'),
         doorCount: document.getElementById('doorCount'),
+        keyCount: document.getElementById('keyCount'),
         roomCanvasBox: document.getElementById('roomCanvasBox'),
         globalCanvasBox: document.getElementById('globalCanvasBox'),
         canvasTitle: document.getElementById('canvasTitle'),
@@ -600,6 +711,7 @@
         downloadJson: document.getElementById('downloadJson'),
         saveJsonFile: document.getElementById('saveJsonFile'),
         savePermanent: document.getElementById('savePermanent'),
+        syncCanonicalJson: document.getElementById('syncCanonicalJson'),
         openGameWithLayout: document.getElementById('openGameWithLayout'),
         clearSavedLayout: document.getElementById('clearSavedLayout'),
         statusText: document.getElementById('statusText')
@@ -610,13 +722,39 @@
         currentRoomId: null,
         viewMode: 'room',
         tool: 'select',
+        globalZoom: 1,
         selected: null,
+        selectionItems: [],
         drag: null,
-        fileHandle: null
+        fileHandle: null,
+        apiAvailable: false
       };
 
       function setStatus(message) {
         ui.statusText.textContent = message;
+      }
+
+      function selectionKey(item) {
+        if (item.kind === 'vertex') return `${item.kind}:${item.index}`;
+        if (item.kind === 'room-shell' || item.kind === 'start') return item.kind;
+        return `${item.kind}:${item.id}`;
+      }
+
+      function setSelection(items) {
+        state.selectionItems = items.slice();
+        state.selected = state.selectionItems[0] || null;
+      }
+
+      function selectionContains(item) {
+        const key = selectionKey(item);
+        return state.selectionItems.some((selected) => selectionKey(selected) === key);
+      }
+
+      function updateSyncButtonState() {
+        ui.syncCanonicalJson.disabled = !state.apiAvailable;
+        ui.syncCanonicalJson.title = state.apiAvailable
+          ? 'Overwrite room-layout-data.json on this dev machine'
+          : 'Launch through the local editor server to enable canonical sync';
       }
 
       function snap(value) {
@@ -629,16 +767,59 @@
         return state.data.rooms.find((room) => room.id === state.currentRoomId);
       }
 
+      function ensureRoomShape(room) {
+        if (!room.size) room.size = { width: ROOM_W, height: ROOM_H };
+        room.size.width = Math.max(320, Number(room.size.width || ROOM_W));
+        room.size.height = Math.max(320, Number(room.size.height || ROOM_H));
+        room.platforms = Array.isArray(room.platforms) ? room.platforms : [];
+        room.doors = Array.isArray(room.doors) ? room.doors : [];
+        room.keys = Array.isArray(room.keys) ? room.keys : [];
+        room.doors = room.doors.map((door) => ({
+          ...door,
+          initialState: {
+            forward: door?.initialState?.forward === 'locked' ? 'locked' : 'unlocked',
+            reverse: door?.initialState?.reverse === 'locked' ? 'locked' : 'unlocked'
+          }
+        }));
+        room.keys = room.keys.map((key) => ({
+          ...key,
+          label: key?.label || 'Key',
+          unlocksDoor: key?.unlocksDoor || ''
+        }));
+        room.playerStart = room.playerStart && Number.isFinite(Number(room.playerStart.x)) && Number.isFinite(Number(room.playerStart.y))
+          ? { x: Number(room.playerStart.x), y: Number(room.playerStart.y) }
+          : null;
+        room.polygon = Array.isArray(room.polygon) && room.polygon.length >= 3
+          ? room.polygon
+          : [[160, 160], [1200, 160], [1200, 980], [160, 980]];
+      }
+
+      function currentRoomSize() {
+        const room = currentRoom();
+        ensureRoomShape(room);
+        return room.size;
+      }
+
       function roomScale() {
+        const roomSize = currentRoomSize();
+        const usableWidth = roomCanvas.width - ROOM_MARGIN_LEFT - ROOM_MARGIN_RIGHT;
+        const usableHeight = roomCanvas.height - ROOM_MARGIN_TOP - ROOM_MARGIN_BOTTOM;
         return {
-          x: roomCanvas.width / ROOM_W,
-          y: roomCanvas.height / ROOM_H
+          x: usableWidth / roomSize.width,
+          y: usableHeight / roomSize.height
         };
       }
 
       function globalBounds() {
-        const xs = state.data.rooms.map((room) => room.global.x);
-        const ys = state.data.rooms.map((room) => room.global.y);
+        const xs = [];
+        const ys = [];
+        state.data.rooms.forEach((room) => {
+          ensureRoomShape(room);
+          const previewHalfWidth = (room.size.width * GLOBAL_ROOM_PREVIEW_SCALE) / 2;
+          const previewHalfHeight = (room.size.height * GLOBAL_ROOM_PREVIEW_SCALE) / 2;
+          xs.push(room.global.x - previewHalfWidth, room.global.x + previewHalfWidth);
+          ys.push(room.global.y - previewHalfHeight, room.global.y + previewHalfHeight);
+        });
         const minX = Math.min(...xs) - 220;
         const maxX = Math.max(...xs) + 220;
         const minY = Math.min(...ys) - 220;
@@ -652,22 +833,29 @@
         const height = Math.max(bounds.maxY - bounds.minY, 1);
         const sx = (globalCanvas.width - 80) / width;
         const sy = (globalCanvas.height - 80) / height;
+        const scale = Math.min(sx, sy) * state.globalZoom;
         return {
           bounds,
-          scale: Math.min(sx, sy),
-          offsetX: 40,
-          offsetY: 40
+          scale,
+          offsetX: (globalCanvas.width - (width * scale)) / 2,
+          offsetY: (globalCanvas.height - (height * scale)) / 2
         };
       }
 
       function roomToCanvasPoint(x, y) {
         const scale = roomScale();
-        return { x: x * scale.x, y: y * scale.y };
+        return {
+          x: ROOM_MARGIN_LEFT + (x * scale.x),
+          y: ROOM_MARGIN_TOP + (y * scale.y)
+        };
       }
 
       function canvasToRoomPoint(x, y) {
         const scale = roomScale();
-        return { x: snap(x / scale.x), y: snap(y / scale.y) };
+        return {
+          x: snap((x - ROOM_MARGIN_LEFT) / scale.x),
+          y: snap((y - ROOM_MARGIN_TOP) / scale.y)
+        };
       }
 
       function globalToCanvasPoint(x, y) {
@@ -686,6 +874,53 @@
         };
       }
 
+      function getGlobalRoomPoints(room) {
+        ensureRoomShape(room);
+        const globalProjection = globalScale();
+        const previewScale = globalProjection.scale * GLOBAL_ROOM_PREVIEW_SCALE;
+        const center = globalToCanvasPoint(room.global.x, room.global.y);
+        return room.polygon.map(([x, y]) => {
+          const dx = (x - room.size.width / 2) * previewScale;
+          const dy = (y - room.size.height / 2) * previewScale;
+          return { x: center.x + dx, y: center.y + dy };
+        });
+      }
+
+      function pointInCanvasPolygon(point, polygon) {
+        let inside = false;
+        for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+          const xi = polygon[i].x;
+          const yi = polygon[i].y;
+          const xj = polygon[j].x;
+          const yj = polygon[j].y;
+          const intersects = ((yi > point.y) !== (yj > point.y)) &&
+            (point.x < ((xj - xi) * (point.y - yi) / ((yj - yi) || 1e-9)) + xi);
+          if (intersects) inside = !inside;
+        }
+        return inside;
+      }
+
+      function distanceToCanvasSegment(point, a, b) {
+        const l2 = ((b.x - a.x) ** 2) + ((b.y - a.y) ** 2);
+        if (l2 === 0) return pointDistance(point, a);
+        let t = ((point.x - a.x) * (b.x - a.x) + (point.y - a.y) * (b.y - a.y)) / l2;
+        t = Math.max(0, Math.min(1, t));
+        return pointDistance(point, {
+          x: a.x + t * (b.x - a.x),
+          y: a.y + t * (b.y - a.y)
+        });
+      }
+
+      function distanceToCanvasPolygon(point, polygon) {
+        let minDistance = Infinity;
+        for (let i = 0; i < polygon.length; i += 1) {
+          const a = polygon[i];
+          const b = polygon[(i + 1) % polygon.length];
+          minDistance = Math.min(minDistance, distanceToCanvasSegment(point, a, b));
+        }
+        return minDistance;
+      }
+
       function updateJsonText() {
         ui.jsonText.value = JSON.stringify(state.data, null, 2);
         try {
@@ -697,21 +932,82 @@
         ui.vertexCount.textContent = `Vertices: ${room.polygon.length}`;
         ui.platformCount.textContent = `Platforms: ${room.platforms.length}`;
         ui.doorCount.textContent = `Doors: ${room.doors.length}`;
+        ui.keyCount.textContent = `Keys: ${room.keys.length}`;
       }
 
       function updateSelectionSummary() {
-        if (!state.selected) {
+        if (!state.selected || state.selectionItems.length === 0) {
           ui.selectionSummary.textContent = 'Nothing selected.';
+          return;
+        }
+        if (state.selectionItems.length > 1) {
+          const kinds = [...new Set(state.selectionItems.map((item) => item.kind))].join(', ');
+          ui.selectionSummary.textContent = `${state.selectionItems.length} selected (${kinds}).`;
           return;
         }
         if (state.selected.kind === 'vertex') {
           ui.selectionSummary.textContent = `Selected vertex ${state.selected.index + 1} in ${state.currentRoomId}.`;
           return;
         }
+        if (state.selected.kind === 'room-shell') {
+          ui.selectionSummary.textContent = `Selected entire room ${state.currentRoomId}.`;
+          return;
+        }
+        if (state.selected.kind === 'start') {
+          ui.selectionSummary.textContent = `Selected player start in ${state.currentRoomId}.`;
+          return;
+        }
         ui.selectionSummary.textContent = `Selected ${state.selected.kind} ${state.selected.id}.`;
       }
 
+      function updateInspector() {
+        const room = currentRoom();
+        if (!room || !state.selected || state.viewMode !== 'room' || state.selectionItems.length !== 1) {
+          ui.selectionInspector.classList.add('hidden');
+          return;
+        }
+
+        ui.selectionInspector.classList.remove('hidden');
+        ui.globalFields.classList.add('field-hidden');
+        ui.platformFields.classList.add('field-hidden');
+        ui.doorFields.classList.add('field-hidden');
+        ui.keyFields.classList.add('field-hidden');
+
+        if (state.selected.kind === 'vertex') {
+          ui.inspectorTitle.textContent = `Vertex ${state.selected.index + 1}`;
+          return;
+        }
+
+        if (state.selected.kind === 'room-shell') {
+          ui.inspectorTitle.textContent = `${state.currentRoomId} shell`;
+          return;
+        }
+
+        if (state.selected.kind === 'start') {
+          ui.inspectorTitle.textContent = `${state.currentRoomId} player start`;
+          return;
+        }
+
+        if (state.selected.kind === 'platform') {
+          ui.inspectorTitle.textContent = state.selected.id;
+          ui.platformFields.classList.remove('field-hidden');
+          return;
+        }
+
+        if (state.selected.kind === 'door') {
+          ui.inspectorTitle.textContent = state.selected.id;
+          ui.doorFields.classList.remove('field-hidden');
+          return;
+        }
+
+        if (state.selected.kind === 'key') {
+          ui.inspectorTitle.textContent = state.selected.id;
+          ui.keyFields.classList.remove('field-hidden');
+        }
+      }
+
       function populateRoomSelect() {
+        state.data.rooms.forEach(ensureRoomShape);
         ui.roomSelect.innerHTML = state.data.rooms
           .map((room) => `<option value="${room.id}">${room.id} - ${room.name}</option>`)
           .join('');
@@ -727,13 +1023,21 @@
         room.doors.forEach((door) => {
           rows.push({ kind: 'door', id: door.id, label: `${door.id} · ${door.label || door.kind} · -> ${door.targetRoom || '-'}` });
         });
+        room.keys.forEach((key) => {
+          rows.push({ kind: 'key', id: key.id, label: `${key.id} · ${key.label || 'Key'} · unlocks ${key.unlocksDoor || '-'}` });
+        });
+        if (room.playerStart) {
+          rows.push({ kind: 'start', id: 'player-start', label: `Player Start · x ${room.playerStart.x} · y ${room.playerStart.y}` });
+        }
         ui.itemList.innerHTML = rows.map((row) => {
-          const active = state.selected && state.selected.kind === row.kind && state.selected.id === row.id ? 'active' : '';
+          const active = selectionContains(row.kind === 'start' ? { kind: 'start' } : { kind: row.kind, id: row.id }) ? 'active' : '';
           return `<div class="chip ${active}" data-kind="${row.kind}" data-id="${row.id}">${row.label}</div>`;
         }).join('');
         Array.from(ui.itemList.querySelectorAll('.chip')).forEach((chip) => {
           chip.addEventListener('click', () => {
-            state.selected = { kind: chip.dataset.kind, id: chip.dataset.id };
+            setSelection([chip.dataset.kind === 'start'
+              ? { kind: 'start' }
+              : { kind: chip.dataset.kind, id: chip.dataset.id }]);
             syncPropertyInputs();
             redraw();
           });
@@ -742,18 +1046,26 @@
 
       function syncPropertyInputs() {
         const room = currentRoom();
+        ensureRoomShape(room);
+        ui.roomWidth.value = room.size.width;
+        ui.roomHeight.value = room.size.height;
         ui.globalX.value = room.global.x;
         ui.globalY.value = room.global.y;
 
         const selected = resolveSelected();
-        if (!selected) {
+        if (!selected || state.selectionItems.length !== 1) {
           ui.itemX.value = '';
           ui.itemY.value = '';
           ui.itemLen.value = '';
           ui.itemTint.value = '';
           ui.doorLabel.value = '';
           ui.doorTarget.value = '';
+          ui.doorStateForward.value = 'unlocked';
+          ui.doorStateReverse.value = 'unlocked';
+          ui.keyLabel.value = '';
+          ui.keyDoorTarget.value = '';
           updateSelectionSummary();
+          updateInspector();
           populateItemList();
           return;
         }
@@ -763,13 +1075,31 @@
         ui.itemTint.value = selected.item.tint ?? '';
         ui.doorLabel.value = selected.item.label ?? '';
         ui.doorTarget.value = selected.item.targetRoom ?? '';
+        ui.doorStateForward.value = selected.item.initialState?.forward ?? 'unlocked';
+        ui.doorStateReverse.value = selected.item.initialState?.reverse ?? 'unlocked';
+        ui.keyLabel.value = selected.item.label ?? '';
+        ui.keyDoorTarget.value = selected.item.unlocksDoor ?? '';
         updateSelectionSummary();
+        updateInspector();
         populateItemList();
       }
 
       function resolveSelected() {
         const room = currentRoom();
         if (!state.selected) return null;
+        if (state.selected.kind === 'room-shell') {
+          return { room, item: room, kind: 'room-shell' };
+        }
+        if (state.selected.kind === 'vertex') {
+          const point = room.polygon[state.selected.index];
+          if (point) {
+            return {
+              room,
+              item: { x: point[0], y: point[1] },
+              kind: 'vertex'
+            };
+          }
+        }
         if (state.selected.kind === 'platform') {
           const item = room.platforms.find((platform) => platform.id === state.selected.id);
           if (item) return { room, item, collection: room.platforms };
@@ -777,6 +1107,13 @@
         if (state.selected.kind === 'door') {
           const item = room.doors.find((door) => door.id === state.selected.id);
           if (item) return { room, item, collection: room.doors };
+        }
+        if (state.selected.kind === 'key') {
+          const item = room.keys.find((key) => key.id === state.selected.id);
+          if (item) return { room, item, collection: room.keys };
+        }
+        if (state.selected.kind === 'start' && room.playerStart) {
+          return { room, item: room.playerStart, kind: 'start' };
         }
         return null;
       }
@@ -806,6 +1143,20 @@
 
         roomCtx.fillStyle = '#071018';
         roomCtx.fillRect(0, 0, roomCanvas.width, roomCanvas.height);
+        roomCtx.fillStyle = 'rgba(9, 26, 38, 0.92)';
+        roomCtx.fillRect(
+          ROOM_MARGIN_LEFT,
+          ROOM_MARGIN_TOP,
+          roomCanvas.width - ROOM_MARGIN_LEFT - ROOM_MARGIN_RIGHT,
+          roomCanvas.height - ROOM_MARGIN_TOP - ROOM_MARGIN_BOTTOM
+        );
+        roomCtx.strokeStyle = 'rgba(127, 178, 223, 0.35)';
+        roomCtx.strokeRect(
+          ROOM_MARGIN_LEFT + 0.5,
+          ROOM_MARGIN_TOP + 0.5,
+          roomCanvas.width - ROOM_MARGIN_LEFT - ROOM_MARGIN_RIGHT - 1,
+          roomCanvas.height - ROOM_MARGIN_TOP - ROOM_MARGIN_BOTTOM - 1
+        );
 
         roomCtx.save();
         roomCtx.beginPath();
@@ -816,18 +1167,41 @@
         });
         roomCtx.closePath();
         roomCtx.fillStyle = 'rgba(27, 57, 80, 0.65)';
-        roomCtx.strokeStyle = '#9bd1ff';
-        roomCtx.lineWidth = 2;
+        roomCtx.strokeStyle = selectionContains({ kind: 'room-shell' }) ? '#ffd166' : '#9bd1ff';
+        roomCtx.lineWidth = selectionContains({ kind: 'room-shell' }) ? 4 : 2;
         roomCtx.fill();
         roomCtx.stroke();
         roomCtx.restore();
+
+        if (room.playerStart) {
+          const p = roomToCanvasPoint(room.playerStart.x, room.playerStart.y);
+          const selected = selectionContains({ kind: 'start' });
+          roomCtx.save();
+          roomCtx.strokeStyle = selected ? '#ffe27a' : '#8ff7d5';
+          roomCtx.fillStyle = selected ? 'rgba(255, 226, 122, 0.16)' : 'rgba(143, 247, 213, 0.16)';
+          roomCtx.lineWidth = selected ? 3 : 2;
+          roomCtx.beginPath();
+          roomCtx.arc(p.x, p.y, 14, 0, Math.PI * 2);
+          roomCtx.fill();
+          roomCtx.stroke();
+          roomCtx.beginPath();
+          roomCtx.moveTo(p.x - 10, p.y);
+          roomCtx.lineTo(p.x + 10, p.y);
+          roomCtx.moveTo(p.x, p.y - 10);
+          roomCtx.lineTo(p.x, p.y + 10);
+          roomCtx.stroke();
+          roomCtx.fillStyle = '#dffff5';
+          roomCtx.font = '11px sans-serif';
+          roomCtx.fillText('START', p.x + 18, p.y - 8);
+          roomCtx.restore();
+        }
 
         room.platforms.forEach((platform) => {
           const p = roomToCanvasPoint(platform.x, platform.y - PLATFORM_H / 2);
           const width = platform.len * TILE * scale.x;
           const height = PLATFORM_H * scale.y;
-          const isSelected = state.selected && state.selected.kind === 'platform' && state.selected.id === platform.id;
-          roomCtx.fillStyle = isSelected ? '#ffd166' : '#6eaef6';
+          const selected = selectionContains({ kind: 'platform', id: platform.id });
+          roomCtx.fillStyle = selected ? '#ffd166' : '#6eaef6';
           roomCtx.fillRect(p.x, p.y, width, height);
           roomCtx.strokeStyle = '#102334';
           roomCtx.strokeRect(p.x, p.y, width, height);
@@ -835,8 +1209,8 @@
 
         room.doors.forEach((door) => {
           const p = roomToCanvasPoint(door.x, door.y);
-          const isSelected = state.selected && state.selected.kind === 'door' && state.selected.id === door.id;
-          roomCtx.fillStyle = isSelected ? '#ffe0b3' : '#f5986e';
+          const selected = selectionContains({ kind: 'door', id: door.id });
+          roomCtx.fillStyle = selected ? '#ffe0b3' : '#f5986e';
           roomCtx.fillRect(p.x - 10, p.y - 24, 20, 48);
           roomCtx.strokeStyle = '#3e2315';
           roomCtx.strokeRect(p.x - 10, p.y - 24, 20, 48);
@@ -845,31 +1219,61 @@
           roomCtx.fillText(door.id, p.x + 14, p.y - 10);
         });
 
+        room.keys.forEach((key) => {
+          const p = roomToCanvasPoint(key.x, key.y);
+          const selected = selectionContains({ kind: 'key', id: key.id });
+          roomCtx.save();
+          roomCtx.fillStyle = selected ? '#fff09f' : '#e8d26e';
+          roomCtx.strokeStyle = '#4f3f00';
+          roomCtx.lineWidth = 2;
+          roomCtx.beginPath();
+          roomCtx.arc(p.x, p.y, 10, 0, Math.PI * 2);
+          roomCtx.fill();
+          roomCtx.stroke();
+          roomCtx.fillRect(p.x + 8, p.y - 2, 18, 4);
+          roomCtx.strokeRect(p.x + 8, p.y - 2, 18, 4);
+          roomCtx.beginPath();
+          roomCtx.arc(p.x + 30, p.y, 4, 0, Math.PI * 2);
+          roomCtx.stroke();
+          roomCtx.fillStyle = '#fff5bf';
+          roomCtx.font = '11px sans-serif';
+          roomCtx.fillText(key.id, p.x + 14, p.y - 12);
+          roomCtx.restore();
+        });
+
         room.polygon.forEach(([x, y], index) => {
           const p = roomToCanvasPoint(x, y);
-          const isSelected = state.selected && state.selected.kind === 'vertex' && state.selected.index === index;
+          const selected = selectionContains({ kind: 'vertex', index });
           roomCtx.beginPath();
-          roomCtx.arc(p.x, p.y, isSelected ? 7 : 5, 0, Math.PI * 2);
-          roomCtx.fillStyle = isSelected ? '#fff1b0' : '#ff6b8a';
+          roomCtx.arc(p.x, p.y, selected ? 7 : 5, 0, Math.PI * 2);
+          roomCtx.fillStyle = selected ? '#fff1b0' : '#ff6b8a';
           roomCtx.fill();
           roomCtx.strokeStyle = '#1a0e13';
           roomCtx.stroke();
         });
+
+        if (state.drag && state.drag.type === 'marquee') {
+          const rect = normalizeRect(state.drag.startCanvas, state.drag.currentCanvas);
+          roomCtx.strokeStyle = '#ffd166';
+          roomCtx.setLineDash([6, 4]);
+          roomCtx.strokeRect(rect.x1, rect.y1, rect.x2 - rect.x1, rect.y2 - rect.y1);
+          roomCtx.fillStyle = 'rgba(255, 209, 102, 0.12)';
+          roomCtx.fillRect(rect.x1, rect.y1, rect.x2 - rect.x1, rect.y2 - rect.y1);
+          roomCtx.setLineDash([]);
+        }
       }
 
       function drawGlobalView() {
         globalCtx.clearRect(0, 0, globalCanvas.width, globalCanvas.height);
-        drawGrid(globalCtx, globalCanvas.width, globalCanvas.height, 48, 'rgba(72, 99, 124, 0.15)');
+        const globalProjection = globalScale();
+        const previewScale = globalProjection.scale * GLOBAL_ROOM_PREVIEW_SCALE;
+        drawGrid(globalCtx, globalCanvas.width, globalCanvas.height, Math.max(24, 48 * globalProjection.scale), 'rgba(72, 99, 124, 0.15)');
         globalCtx.fillStyle = '#071018';
         globalCtx.fillRect(0, 0, globalCanvas.width, globalCanvas.height);
 
         state.data.rooms.forEach((room) => {
+          const points = getGlobalRoomPoints(room).map((point) => [point.x, point.y]);
           const center = globalToCanvasPoint(room.global.x, room.global.y);
-          const points = room.polygon.map(([x, y]) => {
-            const dx = (x - ROOM_W / 2) * 0.12;
-            const dy = (y - ROOM_H / 2) * 0.12;
-            return [center.x + dx, center.y + dy];
-          });
           globalCtx.beginPath();
           points.forEach(([x, y], index) => {
             if (index === 0) globalCtx.moveTo(x, y);
@@ -895,10 +1299,12 @@
         syncPropertyInputs();
         ui.roomCanvasBox.classList.toggle('hidden', state.viewMode !== 'room');
         ui.globalCanvasBox.classList.toggle('hidden', state.viewMode !== 'global');
+        document.getElementById('canvasToolButtons').classList.toggle('hidden', state.viewMode !== 'room');
+        if (state.viewMode !== 'room') ui.selectionInspector.classList.add('hidden');
         ui.canvasTitle.textContent = state.viewMode === 'room' ? `${room.id} Room Editor` : 'Global Map Editor';
         ui.canvasSub.textContent = state.viewMode === 'room'
-          ? 'Drag vertices, platforms, and doors. Add new items with the active tool.'
-          : 'Drag room footprints to rearrange global layout.';
+          ? 'Drag vertices, platforms, doors, keys, and the player start. Add new items with the active tool.'
+          : 'Drag room footprints to rearrange global layout. Use Global Zoom to resize the map view.';
         drawRoomView();
         drawGlobalView();
         updateJsonText();
@@ -920,6 +1326,184 @@
         return { distance: pointDistance(point, proj), point: proj };
       }
 
+      function normalizeRect(a, b) {
+        return {
+          x1: Math.min(a.x, b.x),
+          y1: Math.min(a.y, b.y),
+          x2: Math.max(a.x, b.x),
+          y2: Math.max(a.y, b.y)
+        };
+      }
+
+      function pointInRect(point, rect) {
+        return point.x >= rect.x1 && point.x <= rect.x2 && point.y >= rect.y1 && point.y <= rect.y2;
+      }
+
+      function rectIntersectsRect(a, b) {
+        return !(a.x2 < b.x1 || a.x1 > b.x2 || a.y2 < b.y1 || a.y1 > b.y2);
+      }
+
+      function getRoomBounds() {
+        const room = currentRoom();
+        const xs = room.polygon.map(([x]) => x);
+        const ys = room.polygon.map(([, y]) => y);
+        return {
+          x1: Math.min(...xs),
+          y1: Math.min(...ys),
+          x2: Math.max(...xs),
+          y2: Math.max(...ys)
+        };
+      }
+
+      function buildSelectionFromRect(startLocal, endLocal) {
+        const room = currentRoom();
+        const rect = normalizeRect(startLocal, endLocal);
+        const items = [];
+
+        if (room.playerStart && pointInRect(room.playerStart, rect)) {
+          items.push({ kind: 'start' });
+        }
+
+        room.polygon.forEach(([x, y], index) => {
+          if (pointInRect({ x, y }, rect)) items.push({ kind: 'vertex', index });
+        });
+
+        room.platforms.forEach((platform) => {
+          const bounds = {
+            x1: platform.x,
+            y1: platform.y - PLATFORM_H,
+            x2: platform.x + (platform.len * TILE),
+            y2: platform.y
+          };
+          if (rectIntersectsRect(rect, bounds)) items.push({ kind: 'platform', id: platform.id });
+        });
+
+        room.doors.forEach((door) => {
+          const bounds = {
+            x1: door.x - 24,
+            y1: door.y - 36,
+            x2: door.x + 24,
+            y2: door.y + 36
+          };
+          if (rectIntersectsRect(rect, bounds)) items.push({ kind: 'door', id: door.id });
+        });
+
+        room.keys.forEach((key) => {
+          const bounds = {
+            x1: key.x - 16,
+            y1: key.y - 16,
+            x2: key.x + 36,
+            y2: key.y + 16
+          };
+          if (rectIntersectsRect(rect, bounds)) items.push({ kind: 'key', id: key.id });
+        });
+
+        const roomBounds = getRoomBounds();
+        const coversRoom = rect.x1 <= roomBounds.x1 && rect.y1 <= roomBounds.y1 &&
+          rect.x2 >= roomBounds.x2 && rect.y2 >= roomBounds.y2;
+        if (coversRoom) return [{ kind: 'room-shell' }];
+
+        return items;
+      }
+
+      function snapshotSelectionItems() {
+        const room = currentRoom();
+        return state.selectionItems.map((item) => {
+          if (item.kind === 'vertex') {
+            const point = room.polygon[item.index];
+            return { ...item, x: point[0], y: point[1] };
+          }
+          if (item.kind === 'platform') {
+            const platform = room.platforms.find((entry) => entry.id === item.id);
+            return { ...item, x: platform.x, y: platform.y };
+          }
+          if (item.kind === 'door') {
+            const door = room.doors.find((entry) => entry.id === item.id);
+            return { ...item, x: door.x, y: door.y };
+          }
+          if (item.kind === 'key') {
+            const key = room.keys.find((entry) => entry.id === item.id);
+            return { ...item, x: key.x, y: key.y };
+          }
+          if (item.kind === 'start' && room.playerStart) {
+            return { kind: 'start', x: room.playerStart.x, y: room.playerStart.y };
+          }
+          if (item.kind === 'room-shell') {
+            return {
+              kind: 'room-shell',
+              polygon: room.polygon.map(([x, y]) => [x, y]),
+              platforms: room.platforms.map((platform) => ({ id: platform.id, x: platform.x, y: platform.y })),
+              doors: room.doors.map((door) => ({ id: door.id, x: door.x, y: door.y })),
+              keys: room.keys.map((key) => ({ id: key.id, x: key.x, y: key.y })),
+              playerStart: room.playerStart ? { x: room.playerStart.x, y: room.playerStart.y } : null
+            };
+          }
+          return item;
+        });
+      }
+
+      function moveSelection(dx, dy, snapshot) {
+        const room = currentRoom();
+        snapshot.forEach((item) => {
+          if (item.kind === 'vertex') {
+            room.polygon[item.index] = [snap(item.x + dx), snap(item.y + dy)];
+          }
+          if (item.kind === 'platform') {
+            const platform = room.platforms.find((entry) => entry.id === item.id);
+            if (platform) {
+              platform.x = snap(item.x + dx);
+              platform.y = snap(item.y + dy);
+            }
+          }
+          if (item.kind === 'door') {
+            const door = room.doors.find((entry) => entry.id === item.id);
+            if (door) {
+              door.x = snap(item.x + dx);
+              door.y = snap(item.y + dy);
+            }
+          }
+          if (item.kind === 'key') {
+            const key = room.keys.find((entry) => entry.id === item.id);
+            if (key) {
+              key.x = snap(item.x + dx);
+              key.y = snap(item.y + dy);
+            }
+          }
+          if (item.kind === 'start' && room.playerStart) {
+            room.playerStart.x = snap(item.x + dx);
+            room.playerStart.y = snap(item.y + dy);
+          }
+          if (item.kind === 'room-shell') {
+            room.polygon = item.polygon.map(([x, y]) => [snap(x + dx), snap(y + dy)]);
+            item.platforms.forEach((platformState) => {
+              const platform = room.platforms.find((entry) => entry.id === platformState.id);
+              if (platform) {
+                platform.x = snap(platformState.x + dx);
+                platform.y = snap(platformState.y + dy);
+              }
+            });
+            item.doors.forEach((doorState) => {
+              const door = room.doors.find((entry) => entry.id === doorState.id);
+              if (door) {
+                door.x = snap(doorState.x + dx);
+                door.y = snap(doorState.y + dy);
+              }
+            });
+            item.keys.forEach((keyState) => {
+              const key = room.keys.find((entry) => entry.id === keyState.id);
+              if (key) {
+                key.x = snap(keyState.x + dx);
+                key.y = snap(keyState.y + dy);
+              }
+            });
+            if (item.playerStart && room.playerStart) {
+              room.playerStart.x = snap(item.playerStart.x + dx);
+              room.playerStart.y = snap(item.playerStart.y + dy);
+            }
+          }
+        });
+      }
+
       function nextId(prefix, collection) {
         let count = collection.length + 1;
         let id = `${prefix}${count}`;
@@ -931,25 +1515,46 @@
         return id;
       }
 
+      function nextRoomId() {
+        const roomNums = state.data.rooms
+          .map((room) => /^R(\d+)$/.exec(room.id))
+          .filter(Boolean)
+          .map((match) => Number(match[1]));
+        const nextNum = roomNums.length ? Math.max(...roomNums) + 1 : 1;
+        return `R${nextNum}`;
+      }
+
       function hitTestRoomEditor(mouse) {
         const room = currentRoom();
+        if (room.playerStart) {
+          const p = roomToCanvasPoint(room.playerStart.x, room.playerStart.y);
+          if (pointDistance(mouse, p) < 20) {
+            return { kind: 'start' };
+          }
+        }
         for (let i = 0; i < room.polygon.length; i += 1) {
           const p = roomToCanvasPoint(room.polygon[i][0], room.polygon[i][1]);
-          if (pointDistance(mouse, p) < 10) {
+          if (pointDistance(mouse, p) < HIT_VERTEX) {
             return { kind: 'vertex', index: i };
           }
         }
         for (const door of room.doors) {
           const p = roomToCanvasPoint(door.x, door.y);
-          if (mouse.x >= p.x - 12 && mouse.x <= p.x + 12 && mouse.y >= p.y - 28 && mouse.y <= p.y + 28) {
+          if (mouse.x >= p.x - HIT_DOOR_X && mouse.x <= p.x + HIT_DOOR_X && mouse.y >= p.y - HIT_DOOR_Y && mouse.y <= p.y + HIT_DOOR_Y) {
             return { kind: 'door', id: door.id };
+          }
+        }
+        for (const key of room.keys) {
+          const p = roomToCanvasPoint(key.x, key.y);
+          if (mouse.x >= p.x - 18 && mouse.x <= p.x + 34 && mouse.y >= p.y - 18 && mouse.y <= p.y + 18) {
+            return { kind: 'key', id: key.id };
           }
         }
         for (const platform of room.platforms) {
           const p = roomToCanvasPoint(platform.x, platform.y - PLATFORM_H / 2);
           const width = platform.len * TILE * roomScale().x;
           const height = PLATFORM_H * roomScale().y;
-          if (mouse.x >= p.x && mouse.x <= p.x + width && mouse.y >= p.y && mouse.y <= p.y + height) {
+          if (mouse.x >= p.x - HIT_PLATFORM_PAD && mouse.x <= p.x + width + HIT_PLATFORM_PAD && mouse.y >= p.y - HIT_PLATFORM_PAD && mouse.y <= p.y + height + HIT_PLATFORM_PAD) {
             return { kind: 'platform', id: platform.id };
           }
         }
@@ -958,14 +1563,24 @@
 
       function hitTestGlobal(mouse) {
         const reversed = [...state.data.rooms].reverse();
+        let nearest = null;
+
         for (const room of reversed) {
-          const center = globalToCanvasPoint(room.global.x, room.global.y);
-          const dx = mouse.x - center.x;
-          const dy = mouse.y - center.y;
-          if (Math.abs(dx) < 120 && Math.abs(dy) < 80) {
+          const polygon = getGlobalRoomPoints(room);
+          if (pointInCanvasPolygon(mouse, polygon)) {
             return { kind: 'room', roomId: room.id };
           }
+
+          const distance = distanceToCanvasPolygon(mouse, polygon);
+          if (!nearest || distance < nearest.distance) {
+            nearest = { kind: 'room', roomId: room.id, distance };
+          }
         }
+
+        if (nearest && nearest.distance <= HIT_GLOBAL_PAD) {
+          return nearest;
+        }
+
         return null;
       }
 
@@ -982,7 +1597,7 @@
           }
         }
         room.polygon.splice(best.index, 0, [snap(best.point.x), snap(best.point.y)]);
-        state.selected = { kind: 'vertex', index: best.index };
+        setSelection([{ kind: 'vertex', index: best.index }]);
       }
 
       function addPlatformAt(mouse) {
@@ -996,7 +1611,7 @@
           tint: 0
         };
         room.platforms.push(platform);
-        state.selected = { kind: 'platform', id: platform.id };
+        setSelection([{ kind: 'platform', id: platform.id }]);
       }
 
       function addDoorAt(mouse) {
@@ -1008,11 +1623,38 @@
           y: local.y,
           kind: 'transition',
           label: 'New Door',
-          targetRoom: ''
+          targetRoom: '',
+          initialState: {
+            forward: 'unlocked',
+            reverse: 'unlocked'
+          }
         };
         room.doors.push(door);
-        state.selected = { kind: 'door', id: door.id };
+        setSelection([{ kind: 'door', id: door.id }]);
         setStatus(`Added door ${door.id} at ${door.x}, ${door.y}`);
+      }
+
+      function addKeyAt(mouse) {
+        const room = currentRoom();
+        const local = canvasToRoomPoint(mouse.x, mouse.y);
+        const key = {
+          id: nextId(`${room.id}-K`, room.keys),
+          x: local.x,
+          y: local.y,
+          label: 'New Key',
+          unlocksDoor: ''
+        };
+        room.keys.push(key);
+        setSelection([{ kind: 'key', id: key.id }]);
+        setStatus(`Added key ${key.id} at ${key.x}, ${key.y}.`);
+      }
+
+      function setPlayerStartAt(mouse) {
+        const room = currentRoom();
+        const local = canvasToRoomPoint(mouse.x, mouse.y);
+        room.playerStart = { x: local.x, y: local.y };
+        setSelection([{ kind: 'start' }]);
+        setStatus(`Set player start for ${room.id} at ${room.playerStart.x}, ${room.playerStart.y}.`);
       }
 
       function getCanvasPointer(event, canvas) {
@@ -1029,6 +1671,7 @@
         if (event.cancelable) event.preventDefault();
         const mouse = getCanvasPointer(event, roomCanvas);
         const hit = hitTestRoomEditor(mouse);
+        const local = canvasToRoomPoint(mouse.x, mouse.y);
 
         if (state.tool === 'vertex') {
           addVertexAt(mouse);
@@ -1045,17 +1688,45 @@
           redraw();
           return;
         }
+        if (state.tool === 'key') {
+          addKeyAt(mouse);
+          redraw();
+          return;
+        }
+        if (state.tool === 'start') {
+          setPlayerStartAt(mouse);
+          redraw();
+          return;
+        }
 
         if (hit) {
-          state.selected = hit;
-          if (hit.kind === 'vertex') {
+          const alreadySelected = selectionContains(hit);
+          if (!alreadySelected || state.selectionItems.length <= 1) {
+            setSelection([hit]);
+          }
+          if (state.selectionItems.length > 1 || state.selected?.kind === 'room-shell') {
+            state.drag = {
+              type: 'selection-move',
+              startLocal: local,
+              snapshot: snapshotSelectionItems()
+            };
+          } else if (hit.kind === 'start') {
+            state.drag = { type: 'start' };
+          } else if (hit.kind === 'vertex') {
             state.drag = { type: 'vertex', index: hit.index };
           } else {
             state.drag = { type: hit.kind, id: hit.id };
           }
           redraw();
         } else {
-          state.selected = null;
+          setSelection([]);
+          state.drag = {
+            type: 'marquee',
+            startCanvas: mouse,
+            currentCanvas: mouse,
+            startLocal: local,
+            currentLocal: local
+          };
           redraw();
         }
       }
@@ -1066,6 +1737,21 @@
         const mouse = getCanvasPointer(event, roomCanvas);
         const room = currentRoom();
         const local = canvasToRoomPoint(mouse.x, mouse.y);
+
+        if (state.drag.type === 'marquee') {
+          state.drag.currentCanvas = mouse;
+          state.drag.currentLocal = local;
+          redraw();
+          return;
+        }
+
+        if (state.drag.type === 'selection-move') {
+          const dx = local.x - state.drag.startLocal.x;
+          const dy = local.y - state.drag.startLocal.y;
+          moveSelection(dx, dy, state.drag.snapshot);
+          redraw();
+          return;
+        }
 
         if (state.drag.type === 'vertex') {
           room.polygon[state.drag.index] = [local.x, local.y];
@@ -1083,6 +1769,17 @@
             door.x = local.x;
             door.y = local.y;
           }
+        }
+        if (state.drag.type === 'key') {
+          const key = room.keys.find((item) => item.id === state.drag.id);
+          if (key) {
+            key.x = local.x;
+            key.y = local.y;
+          }
+        }
+        if (state.drag.type === 'start' && room.playerStart) {
+          room.playerStart.x = local.x;
+          room.playerStart.y = local.y;
         }
         redraw();
       }
@@ -1116,57 +1813,102 @@
       }
 
       function endDrag() {
+        if (state.drag && state.drag.type === 'marquee') {
+          const items = buildSelectionFromRect(state.drag.startLocal, state.drag.currentLocal);
+          setSelection(items);
+          redraw();
+        }
         state.drag = null;
       }
 
       function applyPropertyInputs() {
         const room = currentRoom();
-        room.global.x = Number(ui.globalX.value || room.global.x);
-        room.global.y = Number(ui.globalY.value || room.global.y);
         const selected = resolveSelected();
         if (selected) {
-          selected.item.x = Number(ui.itemX.value || selected.item.x || 0);
-          selected.item.y = Number(ui.itemY.value || selected.item.y || 0);
+          const nextX = Number(ui.itemX.value || selected.item.x || 0);
+          const nextY = Number(ui.itemY.value || selected.item.y || 0);
+          if (state.selected.kind === 'vertex') {
+            room.polygon[state.selected.index] = [nextX, nextY];
+          } else {
+            selected.item.x = nextX;
+            selected.item.y = nextY;
+          }
           if (selected.item.len !== undefined) {
             selected.item.len = Math.max(1, Number(ui.itemLen.value || selected.item.len || 1));
             selected.item.tint = Number(ui.itemTint.value || selected.item.tint || 0);
           }
-          if (selected.item.label !== undefined) {
+          if (state.selected.kind === 'door') {
             selected.item.label = ui.doorLabel.value;
             selected.item.targetRoom = ui.doorTarget.value;
+            selected.item.initialState = {
+              forward: ui.doorStateForward.value === 'locked' ? 'locked' : 'unlocked',
+              reverse: ui.doorStateReverse.value === 'locked' ? 'locked' : 'unlocked'
+            };
+          }
+          if (state.selected.kind === 'key') {
+            selected.item.label = ui.keyLabel.value;
+            selected.item.unlocksDoor = ui.keyDoorTarget.value.trim();
           }
         }
         redraw();
       }
 
+      function applyRoomSizeInputs() {
+        const room = currentRoom();
+        ensureRoomShape(room);
+        room.size.width = Math.max(320, snap(Number(ui.roomWidth.value || room.size.width)));
+        room.size.height = Math.max(320, snap(Number(ui.roomHeight.value || room.size.height)));
+        ui.roomWidth.value = room.size.width;
+        ui.roomHeight.value = room.size.height;
+        redraw();
+        setStatus(`Resized ${room.id} workspace to ${room.size.width} x ${room.size.height}.`);
+      }
+
       function deleteSelected() {
         const room = currentRoom();
-        if (!state.selected) return;
-        if (state.selected.kind === 'vertex' && room.polygon.length > 3) {
-          room.polygon.splice(state.selected.index, 1);
+        if (!state.selected || state.selectionItems.length === 0) return;
+        const vertexIndexes = state.selectionItems
+          .filter((item) => item.kind === 'vertex')
+          .map((item) => item.index)
+          .sort((a, b) => b - a);
+        const platformIds = new Set(state.selectionItems.filter((item) => item.kind === 'platform').map((item) => item.id));
+        const doorIds = new Set(state.selectionItems.filter((item) => item.kind === 'door').map((item) => item.id));
+        const keyIds = new Set(state.selectionItems.filter((item) => item.kind === 'key').map((item) => item.id));
+        const clearPlayerStart = state.selectionItems.some((item) => item.kind === 'start');
+
+        if (vertexIndexes.length && room.polygon.length - vertexIndexes.length >= 3) {
+          vertexIndexes.forEach((index) => room.polygon.splice(index, 1));
         }
-        if (state.selected.kind === 'platform') {
-          room.platforms = room.platforms.filter((item) => item.id !== state.selected.id);
+        if (platformIds.size) {
+          room.platforms = room.platforms.filter((item) => !platformIds.has(item.id));
         }
-        if (state.selected.kind === 'door') {
-          room.doors = room.doors.filter((item) => item.id !== state.selected.id);
+        if (doorIds.size) {
+          room.doors = room.doors.filter((item) => !doorIds.has(item.id));
         }
-        state.selected = null;
+        if (keyIds.size) {
+          room.keys = room.keys.filter((item) => !keyIds.has(item.id));
+        }
+        if (clearPlayerStart) {
+          room.playerStart = null;
+        }
+        setSelection([]);
         redraw();
       }
 
       function duplicatePlatform() {
         const room = currentRoom();
-        const selected = resolveSelected();
-        if (!selected || state.selected.kind !== 'platform') return;
+        const platforms = state.selectionItems.filter((item) => item.kind === 'platform');
+        if (platforms.length !== 1) return;
+        const selected = room.platforms.find((platform) => platform.id === platforms[0].id);
+        if (!selected) return;
         const clone = {
-          ...selected.item,
+          ...selected,
           id: nextId(`${room.id}-P`, room.platforms),
-          x: selected.item.x + 64,
-          y: selected.item.y
+          x: selected.x + 64,
+          y: selected.y
         };
         room.platforms.push(clone);
-        state.selected = { kind: 'platform', id: clone.id };
+        setSelection([{ kind: 'platform', id: clone.id }]);
         redraw();
       }
 
@@ -1177,8 +1919,44 @@
         redraw();
       }
 
+      function addRoom() {
+        const roomId = nextRoomId();
+        const room = {
+          id: roomId,
+          name: `New Room ${roomId}`,
+          global: { x: 600, y: 360 },
+          size: { width: ROOM_W, height: ROOM_H },
+          polygon: [[160, 220], [1200, 220], [1200, 980], [160, 980]],
+          playerStart: null,
+          platforms: [],
+          doors: [],
+          keys: []
+        };
+        state.data.rooms.push(room);
+        state.currentRoomId = roomId;
+        setSelection([]);
+        populateRoomSelect();
+        redraw();
+        setStatus(`Added ${roomId}.`);
+      }
+
+      function deleteRoom() {
+        if (state.data.rooms.length <= 1) {
+          setStatus('Cannot delete the last room.');
+          return;
+        }
+        const roomId = state.currentRoomId;
+        state.data.rooms = state.data.rooms.filter((room) => room.id !== roomId);
+        state.currentRoomId = state.data.rooms[0].id;
+        setSelection([]);
+        populateRoomSelect();
+        redraw();
+        setStatus(`Deleted ${roomId}.`);
+      }
+
       function initializeData(data, message) {
         state.data = data;
+        state.data.rooms.forEach(ensureRoomShape);
         state.currentRoomId = state.data.rooms[0].id;
         populateRoomSelect();
         redraw();
@@ -1197,14 +1975,35 @@
         }
       }
 
+      async function loadCanonicalLayoutFromApi() {
+        try {
+          const response = await fetch(API_LAYOUT_URL, { cache: 'no-store' });
+          if (!response.ok) return null;
+          const parsed = await response.json();
+          if (!parsed || !Array.isArray(parsed.rooms)) return null;
+          return parsed;
+        } catch (_) {
+          return null;
+        }
+      }
+
       async function loadData(forceDisk = false) {
-        const saved = !forceDisk ? loadSavedLayout() : null;
-        if (saved) {
-          initializeData(saved, `Loaded ${saved.rooms.length} rooms from saved permanent layout.`);
+        initializeData(structuredClone(SEED_DATA), 'Loaded embedded seed data.');
+        const apiLayout = await loadCanonicalLayoutFromApi();
+        if (apiLayout) {
+          state.apiAvailable = true;
+          updateSyncButtonState();
+          initializeData(
+            apiLayout,
+            forceDisk
+              ? `Reloaded ${apiLayout.rooms.length} rooms from local canonical room-layout-data.json`
+              : `Loaded ${apiLayout.rooms.length} rooms from local canonical room-layout-data.json`
+          );
           return;
         }
 
-        initializeData(structuredClone(SEED_DATA), 'Loaded embedded seed data.');
+        state.apiAvailable = false;
+        updateSyncButtonState();
         try {
           const response = await fetch(DATA_URL, { cache: 'no-store' });
           if (!response.ok) throw new Error(`Failed to load ${DATA_URL}`);
@@ -1215,12 +2014,16 @@
               ? `Reloaded ${fetched.rooms.length} rooms from room-layout-data.json`
               : `Loaded ${fetched.rooms.length} rooms from room-layout-data.json`
           );
+          return;
         } catch (error) {
-          setStatus(
-            forceDisk
-              ? `Disk reload unavailable under file:// (${error.message})`
-              : `Using embedded seed data. Disk load unavailable under file:// (${error.message})`
-          );
+          const saved = !forceDisk ? loadSavedLayout() : null;
+          if (saved) {
+            initializeData(saved, `Loaded ${saved.rooms.length} rooms from browser scratch save.`);
+            return;
+          }
+          setStatus(forceDisk
+            ? `Disk reload unavailable under file:// (${error.message})`
+            : `Using embedded seed data. Canonical file unavailable and no scratch save found (${error.message})`);
         }
       }
 
@@ -1242,8 +2045,9 @@
         }
       }
 
-      function downloadJson() {
-        const blob = new Blob([JSON.stringify(state.data, null, 2)], { type: 'application/json' });
+      async function downloadJson() {
+        const serialized = JSON.stringify(state.data, null, 2);
+        const blob = new Blob([serialized], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
@@ -1281,6 +2085,27 @@
         setStatus('Saved to this device. Use Advanced > Save To File or Export Layout for git sync.');
       }
 
+      async function syncCanonicalJson() {
+        if (!state.apiAvailable) {
+          setStatus('Canonical sync requires the local editor server. Use Export JSON instead.');
+          return;
+        }
+        try {
+          const serialized = JSON.stringify(state.data, null, 2);
+          const response = await fetch(API_LAYOUT_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: serialized
+          });
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+          }
+          setStatus('Synced current layout into canonical room-layout-data.json. Commit and push next.');
+        } catch (error) {
+          setStatus(`Canonical sync cancelled or failed: ${error.message}`);
+        }
+      }
+
       function clearSavedLayout() {
         window.localStorage.removeItem(LAYOUT_STORAGE_KEY);
         setStatus('Cleared saved layout from local storage.');
@@ -1309,15 +2134,24 @@
       }
 
       function wireEvents() {
+        updateSyncButtonState();
         ui.roomSelect.addEventListener('change', () => {
           state.currentRoomId = ui.roomSelect.value;
-          state.selected = null;
+          setSelection([]);
           redraw();
         });
         ui.viewMode.addEventListener('change', () => {
           state.viewMode = ui.viewMode.value;
           redraw();
         });
+        ui.globalZoom.addEventListener('input', () => {
+          state.globalZoom = Number(ui.globalZoom.value || 100) / 100;
+          if (state.viewMode === 'global') redraw();
+        });
+        ui.roomWidth.addEventListener('change', applyRoomSizeInputs);
+        ui.roomHeight.addEventListener('change', applyRoomSizeInputs);
+        ui.addRoom.addEventListener('click', addRoom);
+        ui.deleteRoom.addEventListener('click', deleteRoom);
         ui.toolButtons.forEach((button) => {
           button.addEventListener('click', () => {
             state.tool = button.dataset.tool;
@@ -1333,6 +2167,7 @@
         ui.downloadJson.addEventListener('click', downloadJson);
         ui.saveJsonFile.addEventListener('click', saveJsonToFile);
         ui.savePermanent.addEventListener('click', savePermanent);
+        ui.syncCanonicalJson.addEventListener('click', syncCanonicalJson);
         ui.openGameWithLayout.addEventListener('click', openGameWithLayout);
         ui.clearSavedLayout.addEventListener('click', clearSavedLayout);
 

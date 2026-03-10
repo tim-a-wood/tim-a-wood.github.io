@@ -59,6 +59,29 @@ Then open `http://127.0.0.1:8765/`.
 
 To test on an iPhone on the same Wi-Fi, use your computer's LAN IP instead of `127.0.0.1`.
 
+## Local Room Editor
+
+For canonical room authoring on your MacBook, use the local editor server instead of opening `room-layout-editor.html` directly.
+
+```bash
+python3 scripts/layout_editor_server.py --host 127.0.0.1 --port 8765
+```
+
+Then open:
+
+```text
+http://127.0.0.1:8765/room-layout-editor.html
+```
+
+Local editor workflow:
+
+1. Edit the layout in the browser.
+2. Click `Sync Canonical JSON` to overwrite `room-layout-data.json`.
+3. Open the game from the editor to test against that same canonical file.
+4. Run `git add room-layout-data.json && git commit && git push`.
+
+If you open the editor outside the local server, canonical sync is unavailable and you should use `Export JSON` instead.
+
 ## Controls
 
 - Keyboard: arrow keys for movement, `Up` or `Space` to jump

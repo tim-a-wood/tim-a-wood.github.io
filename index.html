@@ -18,7 +18,7 @@
     </style>
 </head>
 <body>
-<!-- CACHE_BUST: activity6dungeon4 -->
+<!-- CACHE_BUST: activity6dungeon5 -->
 <div id="game-container"></div>
 <script>
 const CONFIG = {
@@ -34,13 +34,34 @@ const CONFIG = {
 };
 
 const ROOM_SEQUENCE = ['R1', 'R2', 'R3', 'R4', 'R5', 'R6', 'R7', 'R8', 'R9', 'R10', 'R11'];
-const ROOM_IDS = ROOM_SEQUENCE.reduce((acc, roomId, idx) => {
-    const start = idx * CONFIG.ROOM_WIDTH;
-    acc[roomId] = { start, end: start + CONFIG.ROOM_WIDTH - 1 };
-    return acc;
-}, {});
+const ROOM_IDS = {};
 
-CONFIG.WORLD_WIDTH = CONFIG.ROOM_WIDTH * ROOM_SEQUENCE.length;
+function rebuildRoomGeometry(layoutData = null) {
+    const roomWidths = new Map();
+    if (layoutData && Array.isArray(layoutData.rooms)) {
+        layoutData.rooms.forEach((room) => {
+            const width = Number(room?.size?.width);
+            if (Number.isFinite(width) && width >= 320) {
+                roomWidths.set(room.id, width);
+            }
+        });
+    }
+
+    let cursor = 0;
+    ROOM_SEQUENCE.forEach((roomId) => {
+        const width = roomWidths.get(roomId) || CONFIG.ROOM_WIDTH;
+        ROOM_IDS[roomId] = {
+            start: cursor,
+            end: cursor + width - 1,
+            width
+        };
+        cursor += width;
+    });
+
+    CONFIG.WORLD_WIDTH = cursor;
+}
+
+rebuildRoomGeometry();
 
 const ENABLE_DEBUG_UNLOCK = true;
 const LAYOUT_STORAGE_KEY = 'ashen-hollow-room-layout-v1';
@@ -264,10 +285,14 @@ function pointInPolygon(x, y, polygon) {
     return inside;
 }
 
-function buildWallRectsFromPolygon(polygon) {
+function getRoomWidth(roomId) {
+    return ROOM_IDS[roomId]?.width || CONFIG.ROOM_WIDTH;
+}
+
+function buildWallRectsFromPolygon(polygon, roomWidth = CONFIG.ROOM_WIDTH, roomHeight = CONFIG.WORLD_HEIGHT) {
     const tile = 32;
-    const cols = Math.floor(CONFIG.ROOM_WIDTH / tile);
-    const rows = Math.floor(CONFIG.WORLD_HEIGHT / tile);
+    const cols = Math.floor(roomWidth / tile);
+    const rows = Math.floor(roomHeight / tile);
     const rects = [];
 
     for (let row = 0; row < rows; row++) {
@@ -307,6 +332,18 @@ function loadLayoutDataFromStorage() {
     }
 }
 
+async function loadCanonicalLayoutData() {
+    try {
+        const response = await fetch(`./room-layout-data.json?ts=${Date.now()}`, { cache: 'no-store' });
+        if (!response.ok) return null;
+        const parsed = await response.json();
+        if (!parsed || !Array.isArray(parsed.rooms)) return null;
+        return parsed;
+    } catch (_) {
+        return null;
+    }
+}
+
 function loadLayoutDataFromHash() {
     try {
         const hash = window.location.hash || '';
@@ -322,17 +359,19 @@ function loadLayoutDataFromHash() {
     }
 }
 
-function applyRuntimeLayoutData() {
+function applyRuntimeLayoutData(canonicalData = null) {
     const hashData = loadLayoutDataFromHash();
     const storageData = loadLayoutDataFromStorage();
-    const data = hashData || storageData;
+    const data = hashData || canonicalData || storageData;
+    rebuildRoomGeometry(data);
     if (!data) return;
 
     ACTIVE_LAYOUT_DATA = data;
-    ACTIVE_LAYOUT_SOURCE = hashData ? 'hash' : 'storage';
+    ACTIVE_LAYOUT_SOURCE = hashData ? 'hash' : canonicalData ? 'canonical' : 'storage';
+    const runtimeRooms = data.rooms.filter((room) => ROOM_IDS[room.id]);
 
     const nextPlatforms = {};
-    data.rooms.forEach((room) => {
+    runtimeRooms.forEach((room) => {
         nextPlatforms[room.id] = (room.platforms || []).map((platform) => ({
             x: ROOM_IDS[room.id].start + platform.x,
             y: platform.y,
@@ -342,11 +381,11 @@ function applyRuntimeLayoutData() {
     });
     ROOM_PLATFORM_LAYOUTS = nextPlatforms;
 
-    DUNGEON_WALL_RECTS = data.rooms
+    DUNGEON_WALL_RECTS = runtimeRooms
         .filter((room) => Array.isArray(room.polygon) && room.polygon.length >= 3)
         .map((room) => ({
             room: room.id,
-            rects: buildWallRectsFromPolygon(room.polygon)
+            rects: buildWallRectsFromPolygon(room.polygon, Number(room?.size?.width) || getRoomWidth(room.id), CONFIG.WORLD_HEIGHT)
         }));
 }
 
@@ -394,7 +433,7 @@ function getDoorStandPosition(roomId, doorId, fallbackX, fallbackY) {
     if (!door) return fallback;
 
     const leftGap = door.x;
-    const rightGap = CONFIG.ROOM_WIDTH - door.x;
+    const rightGap = getRoomWidth(roomId) - door.x;
     const topGap = door.y;
     const bottomGap = CONFIG.WORLD_HEIGHT - door.y;
     const minGap = Math.min(leftGap, rightGap, topGap, bottomGap);
@@ -414,6 +453,13 @@ function getDoorStandPosition(roomId, doorId, fallbackX, fallbackY) {
 function getRoomSpawnPoint(roomId, fallbackX, fallbackY) {
     const room = getLayoutRoom(roomId);
     const roomStart = ROOM_IDS[roomId].start;
+    if (room && room.playerStart && Number.isFinite(Number(room.playerStart.x)) && Number.isFinite(Number(room.playerStart.y))) {
+        return {
+            x: roomStart + Number(room.playerStart.x),
+            y: Number(room.playerStart.y)
+        };
+    }
+
     if (!room || !Array.isArray(room.platforms) || room.platforms.length === 0) {
         return { x: fallbackX, y: fallbackY };
     }
@@ -428,8 +474,6 @@ function getRoomSpawnPoint(roomId, fallbackX, fallbackY) {
         y: spawnY
     };
 }
-
-applyRuntimeLayoutData();
 
 class AshenHollow extends Phaser.Scene {
     constructor() {
@@ -873,6 +917,23 @@ class AshenHollow extends Phaser.Scene {
         this.add.text(ROOM_IDS.R6.start + 1360, 770, 'RETURN LANE -> R5', {
             fontSize: '10px', fill: '#ffd29f', stroke: '#000', strokeThickness: 2
         }).setOrigin(0.5);
+
+        const r7ToR8DoorPos = getLayoutDoorWorldPosition('R7', 'R7-D1', ROOM_IDS.R7.end - 80, 573);
+        this.r7ToR8Door = this.physics.add.staticImage(r7ToR8DoorPos.x, r7ToR8DoorPos.y, 'doorFrame')
+            .setTint(BRANCH_CONFIG.C.color)
+            .refreshBody();
+        this.add.text(r7ToR8DoorPos.x, r7ToR8DoorPos.y - 52, 'DESCEND -> R8', {
+            fontSize: '10px', fill: '#9fdfff', stroke: '#000', strokeThickness: 2
+        }).setOrigin(0.5);
+
+        const r8ToR7DoorPos = getLayoutDoorWorldPosition('R8', 'R8-D1', ROOM_IDS.R8.end - 80, 1020);
+        this.r8ToR7Door = this.physics.add.staticImage(r8ToR7DoorPos.x, r8ToR7DoorPos.y, 'doorFrame')
+            .setTint(BRANCH_CONFIG.C.color)
+            .refreshBody();
+        this.add.text(r8ToR7DoorPos.x, r8ToR7DoorPos.y - 52, 'CLIMB -> R7', {
+            fontSize: '10px', fill: '#9fdfff', stroke: '#000', strokeThickness: 2
+        }).setOrigin(0.5);
+
         this.add.text(ROOM_IDS.R8.start + 1360, 990, 'CLIMB BACK -> R7', {
             fontSize: '10px', fill: '#9fdfff', stroke: '#000', strokeThickness: 2
         }).setOrigin(0.5);
@@ -1015,6 +1076,8 @@ class AshenHollow extends Phaser.Scene {
         if (room === 'R11' && this.r11ToR3Door) {
             if (dist(this.r11ToR3Door.x, this.r11ToR3Door.y) < 130) return true;
         }
+        if (room === 'R7' && this.r7ToR8Door && dist(this.r7ToR8Door.x, this.r7ToR8Door.y) < 130) return true;
+        if (room === 'R8' && this.r8ToR7Door && dist(this.r8ToR7Door.x, this.r8ToR7Door.y) < 130) return true;
         if (room === 'R1' && this.finalGate && dist(this.finalGate.x, this.finalGate.y) < 130) return true;
         return false;
     }
@@ -1028,7 +1091,7 @@ class AshenHollow extends Phaser.Scene {
         this.previousRoomId = this.currentRoomId;
         this.currentRoomId = roomId;
         const room = ROOM_IDS[roomId];
-        this.cameras.main.setBounds(room.start, 0, CONFIG.ROOM_WIDTH, CONFIG.WORLD_HEIGHT);
+        this.cameras.main.setBounds(room.start, 0, room.width, CONFIG.WORLD_HEIGHT);
         this.roomEnteredAtMs = this.time.now;
         this.roomStallLogged = false;
         this.logNavigationEvent('room_enter', { room: roomId, from: this.previousRoomId || 'NONE' });
@@ -1043,7 +1106,7 @@ class AshenHollow extends Phaser.Scene {
 
         const sourceY = this.player.y;
         const room = ROOM_IDS[targetRoomId];
-        const roomMid = room.start + (CONFIG.ROOM_WIDTH / 2);
+        const roomMid = room.start + (room.width / 2);
         const entryEdge = options.entrySide || (targetX <= roomMid ? 'left' : 'right');
         const resolvedY = options.preserveY === false ? targetY : sourceY;
         const isVertical = entryEdge === 'top' || entryEdge === 'bottom';
@@ -1407,6 +1470,40 @@ class AshenHollow extends Phaser.Scene {
             }
         }
 
+        if (room === 'R7' && interactPressed && this.r7ToR8Door) {
+            const nearR7ToR8Door = Phaser.Math.Distance.Between(
+                this.player.x,
+                this.player.y,
+                this.r7ToR8Door.x,
+                this.r7ToR8Door.y
+            ) < 130;
+            if (nearR7ToR8Door) {
+                const r8EntryPos = getRoomSpawnPoint('R8', ROOM_IDS.R8.start + 760, 360);
+                this.transitionToRoom('R8', r8EntryPos.x, r8EntryPos.y, 'Transition: R7 -> R8', {
+                    entrySide: 'top',
+                    preserveY: false
+                });
+                return;
+            }
+        }
+
+        if (room === 'R8' && interactPressed && this.r8ToR7Door) {
+            const nearR8ToR7Door = Phaser.Math.Distance.Between(
+                this.player.x,
+                this.player.y,
+                this.r8ToR7Door.x,
+                this.r8ToR7Door.y
+            ) < 130;
+            if (nearR8ToR7Door) {
+                const r7EntryPos = getDoorTargetPosition('R7', 'R7-D1', ROOM_IDS.R7.end - 120, 573, -96, 0);
+                this.transitionToRoom('R7', r7EntryPos.x, r7EntryPos.y, 'Transition: R8 -> R7', {
+                    entrySide: 'right',
+                    preserveY: false
+                });
+                return;
+            }
+        }
+
         if (room === 'R5' && this.player.x > ROOM_IDS.R5.end - 70 && this.player.y > 900) {
             this.transitionToRoom('R6', ROOM_IDS.R6.start + 180, 980, 'Transition: R5 -> R6', {
                 preserveY: false
@@ -1430,20 +1527,6 @@ class AshenHollow extends Phaser.Scene {
             return;
         }
 
-        if (room === 'R7' && this.player.x > ROOM_IDS.R7.end - 70 && this.player.y > 980) {
-            this.transitionToRoom('R8', ROOM_IDS.R8.start + 760, 360, 'Transition: R7 -> R8', {
-                entrySide: 'top',
-                preserveY: false
-            });
-            return;
-        }
-        if (room === 'R8' && this.player.x > ROOM_IDS.R8.end - 70 && this.player.y > 980) {
-            this.transitionToRoom('R7', ROOM_IDS.R7.start + 760, 1020, 'Transition: R8 -> R7 (loop back lane)', {
-                entrySide: 'bottom',
-                preserveY: false
-            });
-            return;
-        }
         if (room === 'R7' && this.player.x < ROOM_IDS.R7.start + 640 && this.player.y < 420) {
             if (!this.completeBranchRun('C')) return;
             const r2SouthDoorPos = getDoorTargetPosition('R2', 'R2-D4', ROOM_IDS.R2.start + 680, 1060, 0, -28);
@@ -1498,10 +1581,11 @@ class AshenHollow extends Phaser.Scene {
             return;
         }
         this.beginBranchRun(door.id);
+        const branchSpawn = (roomId, fallbackX, fallbackY) => getRoomSpawnPoint(roomId, fallbackX, fallbackY);
         const branchEntryFallbacks = {
-            A: getDoorTargetPosition('R3', 'R3-D1', door.spawnX || (ROOM_IDS.R3.start + 120), door.spawnY || 1020, 0, -28),
-            B: getDoorTargetPosition('R5', 'R5-D2', door.spawnX || (ROOM_IDS.R5.start + 120), door.spawnY || 1020, 156, 80),
-            C: getDoorTargetPosition('R7', 'R7-D2', door.spawnX || (ROOM_IDS.R7.start + 120), door.spawnY || 1020, 220, 0)
+            A: branchSpawn('R3', door.spawnX || (ROOM_IDS.R3.start + 120), door.spawnY || 1020),
+            B: branchSpawn('R5', door.spawnX || (ROOM_IDS.R5.start + 120), door.spawnY || 1020),
+            C: branchSpawn('R7', door.spawnX || (ROOM_IDS.R7.start + 120), door.spawnY || 1020)
         };
         const resolvedSpawn = branchEntryFallbacks[door.id] || {
             x: door.spawnX || (ROOM_IDS[door.target].start + 120),
@@ -1646,22 +1730,29 @@ if ('serviceWorker' in navigator) {
     });
 }
 
-new Phaser.Game({
-    type: Phaser.AUTO,
-    scale: {
-        mode: Phaser.Scale.FIT,
-        autoCenter: Phaser.Scale.CENTER_BOTH,
-        width: CONFIG.W,
-        height: CONFIG.H
-    },
-    parent: 'game-container',
-    pixelArt: true,
-    physics: {
-        default: 'arcade',
-        arcade: { gravity: { y: CONFIG.GRAVITY }, debug: false }
-    },
-    scene: AshenHollow
-});
+async function bootGame() {
+    const canonicalData = await loadCanonicalLayoutData();
+    applyRuntimeLayoutData(canonicalData);
+
+    new Phaser.Game({
+        type: Phaser.AUTO,
+        scale: {
+            mode: Phaser.Scale.FIT,
+            autoCenter: Phaser.Scale.CENTER_BOTH,
+            width: CONFIG.W,
+            height: CONFIG.H
+        },
+        parent: 'game-container',
+        pixelArt: true,
+        physics: {
+            default: 'arcade',
+            arcade: { gravity: { y: CONFIG.GRAVITY }, debug: false }
+        },
+        scene: AshenHollow
+    });
+}
+
+bootGame();
 </script>
 </body>
 </html>
