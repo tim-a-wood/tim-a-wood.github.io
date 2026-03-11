@@ -197,8 +197,7 @@
         "y": 64
       },
       "keys": [],
-      "movingPlatforms": [],
-      "levers": []
+      "movingPlatforms": []
     },
     {
       "id": "R2",
@@ -357,8 +356,7 @@
       },
       "playerStart": null,
       "keys": [],
-      "movingPlatforms": [],
-      "levers": []
+      "movingPlatforms": []
     },
     {
       "id": "R3",
@@ -526,8 +524,7 @@
       },
       "playerStart": null,
       "keys": [],
-      "movingPlatforms": [],
-      "levers": []
+      "movingPlatforms": []
     },
     {
       "id": "R4",
@@ -656,8 +653,7 @@
       },
       "playerStart": null,
       "keys": [],
-      "movingPlatforms": [],
-      "levers": []
+      "movingPlatforms": []
     },
     {
       "id": "R5",
@@ -680,12 +676,28 @@
           860
         ],
         [
-          359,
-          335
+          352,
+          512
         ],
         [
-          1215,
-          333
+          1056,
+          512
+        ],
+        [
+          1056,
+          384
+        ],
+        [
+          320,
+          384
+        ],
+        [
+          320,
+          160
+        ],
+        [
+          1216,
+          160
         ],
         [
           1217,
@@ -726,24 +738,17 @@
         },
         {
           "id": "R5-P2",
-          "x": 440,
-          "y": 1060,
+          "x": 480,
+          "y": 1008,
           "len": 6,
           "tint": 1
         },
         {
           "id": "R5-P3",
-          "x": 535,
-          "y": 977,
-          "len": 6,
+          "x": 360,
+          "y": 736,
+          "len": 3,
           "tint": 2
-        },
-        {
-          "id": "R5-P4",
-          "x": 1080,
-          "y": 1060,
-          "len": 8,
-          "tint": 3
         },
         {
           "id": "R5-P5",
@@ -754,24 +759,31 @@
         },
         {
           "id": "R5-P6",
-          "x": 860,
-          "y": 900,
+          "x": 944,
+          "y": 976,
           "len": 4,
           "tint": 2
         },
         {
           "id": "R5-P7",
-          "x": 1260,
-          "y": 820,
+          "x": 1128,
+          "y": 888,
           "len": 4,
           "tint": 4
+        },
+        {
+          "id": "R5-P9",
+          "x": 584,
+          "y": 648,
+          "len": 3,
+          "tint": 2
         }
       ],
       "doors": [
         {
           "id": "R5-D1",
-          "x": 1540,
-          "y": 980,
+          "x": 1216,
+          "y": 848,
           "kind": "transition",
           "label": "To R6",
           "targetRoom": "R6",
@@ -811,8 +823,18 @@
       },
       "playerStart": null,
       "keys": [],
-      "movingPlatforms": [],
-      "levers": []
+      "movingPlatforms": [
+        {
+          "id": "R5-M1",
+          "x": 1072,
+          "y": 584,
+          "endX": 1072,
+          "endY": 384,
+          "len": 4,
+          "tint": 0,
+          "initialState": "unlocked"
+        }
+      ]
     },
     {
       "id": "R6",
@@ -961,8 +983,7 @@
       },
       "playerStart": null,
       "keys": [],
-      "movingPlatforms": [],
-      "levers": []
+      "movingPlatforms": []
     },
     {
       "id": "R7",
@@ -1157,8 +1178,7 @@
         "y": 224
       },
       "keys": [],
-      "movingPlatforms": [],
-      "levers": []
+      "movingPlatforms": []
     },
     {
       "id": "R8",
@@ -1189,11 +1209,11 @@
           192
         ],
         [
-          192,
+          288,
           192
         ],
         [
-          192,
+          288,
           256
         ],
         [
@@ -1244,7 +1264,7 @@
       "platforms": [
         {
           "id": "R8-P2",
-          "x": 0,
+          "x": 32,
           "y": 288,
           "len": 4,
           "tint": 1
@@ -1342,8 +1362,8 @@
         },
         {
           "id": "R8-D2",
-          "x": 86,
-          "y": 250,
+          "x": 76,
+          "y": 247,
           "kind": "transition",
           "label": "New Door",
           "targetRoom": "R5",
@@ -1358,20 +1378,28 @@
         "height": 1200
       },
       "playerStart": null,
-      "keys": [],
+      "keys": [
+        {
+          "id": "R8-K1",
+          "x": 1445,
+          "y": 653,
+          "label": "New Key",
+          "unlocksTarget": "R8-M1"
+        }
+      ],
       "movingPlatforms": [
         {
           "id": "R8-M1",
-          "x": 402,
+          "x": 395,
           "y": 1113,
           "endX": 403,
           "endY": 357,
           "len": 4,
           "tint": 0,
-          "leverId": ""
+          "leverId": "",
+          "initialState": "locked"
         }
-      ],
-      "levers": []
+      ]
     },
     {
       "id": "R9",
@@ -1457,8 +1485,7 @@
       },
       "playerStart": null,
       "keys": [],
-      "movingPlatforms": [],
-      "levers": []
+      "movingPlatforms": []
     },
     {
       "id": "R10",
@@ -1548,8 +1575,7 @@
       },
       "playerStart": null,
       "keys": [],
-      "movingPlatforms": [],
-      "levers": []
+      "movingPlatforms": []
     },
     {
       "id": "R11",
@@ -1676,8 +1702,7 @@
       },
       "playerStart": null,
       "keys": [],
-      "movingPlatforms": [],
-      "levers": []
+      "movingPlatforms": []
     },
     {
       "id": "R12",
@@ -1712,8 +1737,7 @@
       "platforms": [],
       "doors": [],
       "keys": [],
-      "movingPlatforms": [],
-      "levers": []
+      "movingPlatforms": []
     }
   ]
 }
