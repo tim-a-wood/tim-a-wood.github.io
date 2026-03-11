@@ -66,9 +66,10 @@ rebuildRoomGeometry();
 const ENABLE_DEBUG_UNLOCK = true;
 const LAYOUT_STORAGE_KEY = 'ashen-hollow-room-layout-v1';
 const TEMP_TEST_START = {
-    room: 'R1',
+    room: 'R8',
+    doorId: 'R8-D1',
     x: 220,
-    y: 1020
+    y: 980
 };
 
 const BRANCH_CONFIG = {
@@ -406,6 +407,18 @@ function getLayoutPlatform(roomId, platformId) {
     return room.platforms.find((platform) => platform.id === platformId) || null;
 }
 
+function getLayoutKeys(roomId) {
+    const room = getLayoutRoom(roomId);
+    if (!room || !Array.isArray(room.keys)) return [];
+    return room.keys;
+}
+
+function getLayoutMovingPlatforms(roomId) {
+    const room = getLayoutRoom(roomId);
+    if (!room || !Array.isArray(room.movingPlatforms)) return [];
+    return room.movingPlatforms;
+}
+
 function getLayoutDoorWorldPosition(roomId, doorId, fallbackX, fallbackY) {
     const door = getLayoutDoor(roomId, doorId);
     if (!door || !ROOM_IDS[roomId]) return { x: fallbackX, y: fallbackY, source: null };
@@ -605,10 +618,14 @@ class AshenHollow extends Phaser.Scene {
         this.trail = this.add.graphics();
 
         this.platforms = this.physics.add.staticGroup();
-        const initialSpawn = getRoomSpawnPoint(TEMP_TEST_START.room, TEMP_TEST_START.x, TEMP_TEST_START.y);
+        this.dynamicPlatforms = this.physics.add.group({ allowGravity: false, immovable: true });
+        const initialSpawn = TEMP_TEST_START.doorId
+            ? getDoorStandPosition(TEMP_TEST_START.room, TEMP_TEST_START.doorId, ROOM_IDS[TEMP_TEST_START.room].start + TEMP_TEST_START.x, TEMP_TEST_START.y)
+            : getRoomSpawnPoint(TEMP_TEST_START.room, TEMP_TEST_START.x, TEMP_TEST_START.y);
         this.player = this.physics.add.sprite(initialSpawn.x, initialSpawn.y, 'hero');
         this.player.setCollideWorldBounds(true);
         this.physics.add.collider(this.player, this.platforms);
+        this.physics.add.collider(this.player, this.dynamicPlatforms);
 
         this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
 
@@ -771,6 +788,9 @@ class AshenHollow extends Phaser.Scene {
     }
 
     buildWorldInteractables() {
+        this.layoutKeys = [];
+        this.layoutMovers = [];
+
         const finalGatePos = getLayoutDoorWorldPosition('R1', 'R1-D2', 500, 1000);
         this.finalGate = this.physics.add.staticImage(finalGatePos.x, finalGatePos.y, 'finalGateLocked').refreshBody();
         this.add.text(finalGatePos.x, finalGatePos.y - 70, 'R1 FINAL GATE', { fontSize: '12px', fill: '#ffb47a', stroke: '#000', strokeThickness: 3 }).setOrigin(0.5);
@@ -849,6 +869,7 @@ class AshenHollow extends Phaser.Scene {
 
         this.keyPickupGroup = this.physics.add.staticGroup();
         this.abilityNodeGroup = this.physics.add.staticGroup();
+        this.runtimeKeyGroup = this.physics.add.staticGroup();
 
         this.createBranchReward('A', ROOM_IDS.R4.start + 1520, 1000, ROOM_IDS.R4.start + 840, 940);
         this.createBranchReward('B', ROOM_IDS.R6.start + 1120, 820, ROOM_IDS.R6.start + 1360, 900);
@@ -856,6 +877,50 @@ class AshenHollow extends Phaser.Scene {
 
         this.physics.add.overlap(this.player, this.keyPickupGroup, (_, item) => this.collectKeyItem(item));
         this.physics.add.overlap(this.player, this.abilityNodeGroup, (_, node) => this.collectAbility(node));
+        this.physics.add.overlap(this.player, this.runtimeKeyGroup, (_, key) => this.collectRuntimeKey(key));
+
+        ROOM_SEQUENCE.forEach((roomId) => {
+            const roomStart = ROOM_IDS[roomId].start;
+            const roomKeys = getLayoutKeys(roomId);
+            const roomMovers = getLayoutMovingPlatforms(roomId);
+
+            roomKeys.forEach((keyDef) => {
+                const sprite = this.runtimeKeyGroup.create(roomStart + keyDef.x, keyDef.y, 'keyItem').refreshBody();
+                sprite.setData('layoutId', keyDef.id);
+                sprite.setData('unlocksTarget', keyDef.unlocksTarget || '');
+                sprite.setData('label', keyDef.label || keyDef.id);
+                this.layoutKeys.push(sprite);
+                this.add.text(sprite.x, sprite.y - 26, keyDef.id, {
+                    fontSize: '10px', fill: '#ffe38d', stroke: '#000', strokeThickness: 2
+                }).setOrigin(0.5);
+            });
+
+            roomMovers.forEach((moverDef) => {
+                const textureKey = `p${Number(moverDef.tint || 0)}`;
+                const moverWidth = Math.max(32, moverDef.len * 32);
+                const sprite = this.dynamicPlatforms.create(roomStart + moverDef.x + (moverWidth / 2), moverDef.y, textureKey);
+                sprite.setDisplaySize(moverWidth, 14);
+                sprite.body.setAllowGravity(false);
+                sprite.body.setImmovable(true);
+                sprite.body.setSize(moverWidth, 14, true);
+                sprite.setData('layoutId', moverDef.id);
+                sprite.setData('roomId', roomId);
+                sprite.setData('startX', roomStart + moverDef.x + (moverWidth / 2));
+                sprite.setData('startY', moverDef.y);
+                sprite.setData('endX', roomStart + moverDef.endX + (moverWidth / 2));
+                sprite.setData('endY', moverDef.endY);
+                sprite.setData('locked', moverDef.initialState === 'locked');
+                sprite.setData('forward', true);
+                sprite.setData('moving', false);
+                sprite.setData('targetX', roomStart + moverDef.x + (moverWidth / 2));
+                sprite.setData('targetY', moverDef.y);
+                sprite.setData('speed', 80);
+                this.layoutMovers.push(sprite);
+                this.add.text(sprite.x, sprite.y - 30, moverDef.id, {
+                    fontSize: '10px', fill: moverDef.initialState === 'locked' ? '#ffb0b0' : '#b9f0ff', stroke: '#000', strokeThickness: 2
+                }).setOrigin(0.5);
+            });
+        });
 
         this.add.image(250, 860, 'signBoard');
         this.add.text(250, 860, 'R1\nCollect 3 Key Items\nUnlock 3 Abilities\nReturn to open gate', {
@@ -1078,6 +1143,7 @@ class AshenHollow extends Phaser.Scene {
         }
         if (room === 'R7' && this.r7ToR8Door && dist(this.r7ToR8Door.x, this.r7ToR8Door.y) < 130) return true;
         if (room === 'R8' && this.r8ToR7Door && dist(this.r8ToR7Door.x, this.r8ToR7Door.y) < 130) return true;
+        if (this.layoutMovers && this.layoutMovers.some((mover) => mover.getData('roomId') === this.currentRoomId && dist(mover.x, mover.y) < 140)) return true;
         if (room === 'R1' && this.finalGate && dist(this.finalGate.x, this.finalGate.y) < 130) return true;
         return false;
     }
@@ -1273,8 +1339,66 @@ class AshenHollow extends Phaser.Scene {
         this.setStatusMessage(`Ability Unlock ${branch} awakened (${this.abilitiesUnlocked}/3).`);
     }
 
+    collectRuntimeKey(key) {
+        if (!key.active) return;
+        const targetId = key.getData('unlocksTarget');
+        const label = key.getData('label') || key.getData('layoutId');
+        key.disableBody(true, true);
+
+        let handled = false;
+        if (targetId) {
+            const mover = this.layoutMovers.find((entry) => entry.getData('layoutId') === targetId);
+            if (mover) {
+                mover.setData('locked', false);
+                mover.clearTint();
+                handled = true;
+                this.setStatusMessage(`${label} unlocked mover ${targetId}.`);
+            }
+        }
+
+        if (!handled) {
+            this.setStatusMessage(`${label} collected.`);
+        }
+    }
+
+    updateRuntimeMovers() {
+        if (!this.layoutMovers || this.inRoomTransition) return;
+
+        this.layoutMovers.forEach((mover) => {
+            if (!mover.active) return;
+            if (!mover.getData('moving')) {
+                mover.body.updateFromGameObject();
+                return;
+            }
+
+            const targetX = mover.getData('targetX');
+            const targetY = mover.getData('targetY');
+            const dx = targetX - mover.x;
+            const dy = targetY - mover.y;
+            const dist = Math.hypot(dx, dy);
+            const speed = mover.getData('speed') || 80;
+
+            if (dist <= speed * (1 / 60)) {
+                mover.setPosition(targetX, targetY);
+                mover.setData('moving', false);
+                mover.setData('forward', targetX === mover.getData('startX') && targetY === mover.getData('startY'));
+                mover.body.updateFromGameObject();
+                return;
+            }
+
+            const step = Math.min(dist, speed * (1 / 60));
+            mover.setPosition(
+                mover.x + ((dx / dist) * step),
+                mover.y + ((dy / dist) * step)
+            );
+            mover.body.updateFromGameObject();
+        });
+    }
+
     update() {
         if (this.isGameOver || this.inRoomTransition) return;
+
+        this.updateRuntimeMovers();
 
         const showInteract = this.hasInteractableNearby();
         if (this.interactBtn) {
@@ -1470,6 +1594,49 @@ class AshenHollow extends Phaser.Scene {
             }
         }
 
+        if (interactPressed && this.layoutMovers) {
+            const nearbyMover = this.layoutMovers.find((mover) =>
+                mover.getData('roomId') === room &&
+                Phaser.Math.Distance.Between(this.player.x, this.player.y, mover.x, mover.y) < 140
+            );
+            if (nearbyMover) {
+                if (nearbyMover.getData('locked')) {
+                    this.setStatusMessage(`Mover ${nearbyMover.getData('layoutId')} is locked.`);
+                    return;
+                }
+                if (nearbyMover.getData('moving')) {
+                    this.setStatusMessage(`Mover ${nearbyMover.getData('layoutId')} already moving.`);
+                    return;
+                }
+
+                const currentlyAtStart = Phaser.Math.Distance.Between(
+                    nearbyMover.x,
+                    nearbyMover.y,
+                    nearbyMover.getData('startX'),
+                    nearbyMover.getData('startY')
+                ) < 4;
+                const currentlyAtEnd = Phaser.Math.Distance.Between(
+                    nearbyMover.x,
+                    nearbyMover.y,
+                    nearbyMover.getData('endX'),
+                    nearbyMover.getData('endY')
+                ) < 4;
+
+                let targetX = nearbyMover.getData('endX');
+                let targetY = nearbyMover.getData('endY');
+                if (currentlyAtEnd || (!currentlyAtStart && nearbyMover.getData('forward') === false)) {
+                    targetX = nearbyMover.getData('startX');
+                    targetY = nearbyMover.getData('startY');
+                }
+
+                nearbyMover.setData('targetX', targetX);
+                nearbyMover.setData('targetY', targetY);
+                nearbyMover.setData('moving', true);
+                this.setStatusMessage(`Mover ${nearbyMover.getData('layoutId')} activated.`);
+                return;
+            }
+        }
+
         if (room === 'R7' && interactPressed && this.r7ToR8Door) {
             const nearR7ToR8Door = Phaser.Math.Distance.Between(
                 this.player.x,
@@ -1478,9 +1645,9 @@ class AshenHollow extends Phaser.Scene {
                 this.r7ToR8Door.y
             ) < 130;
             if (nearR7ToR8Door) {
-                const r8EntryPos = getRoomSpawnPoint('R8', ROOM_IDS.R8.start + 760, 360);
+                const r8EntryPos = getDoorStandPosition('R8', 'R8-D1', ROOM_IDS.R8.start + 220, 980);
                 this.transitionToRoom('R8', r8EntryPos.x, r8EntryPos.y, 'Transition: R7 -> R8', {
-                    entrySide: 'top',
+                    entrySide: r8EntryPos.entrySide,
                     preserveY: false
                 });
                 return;
@@ -1495,9 +1662,9 @@ class AshenHollow extends Phaser.Scene {
                 this.r8ToR7Door.y
             ) < 130;
             if (nearR8ToR7Door) {
-                const r7EntryPos = getDoorTargetPosition('R7', 'R7-D1', ROOM_IDS.R7.end - 120, 573, -96, 0);
+                const r7EntryPos = getDoorStandPosition('R7', 'R7-D1', ROOM_IDS.R7.end - 120, 573);
                 this.transitionToRoom('R7', r7EntryPos.x, r7EntryPos.y, 'Transition: R8 -> R7', {
-                    entrySide: 'right',
+                    entrySide: r7EntryPos.entrySide,
                     preserveY: false
                 });
                 return;

@@ -347,6 +347,7 @@
           <button data-tool="platform">Add Platform</button>
           <button data-tool="door">Add Door</button>
           <button data-tool="key">Add Key</button>
+          <button data-tool="mover">Add Mover</button>
           <button data-tool="start">Set Start</button>
           <button data-tool="room-move">Move Room</button>
           <div class="toolbar-divider"></div>
@@ -369,6 +370,19 @@
             <label>Length<input id="itemLen" type="number" step="1" min="1" /></label>
             <label>Tint<input id="itemTint" type="number" step="1" min="0" max="4" /></label>
           </div>
+          <div class="row field-hidden" id="moverFields">
+            <label>End X<input id="moverEndX" type="number" step="1" /></label>
+            <label>End Y<input id="moverEndY" type="number" step="1" /></label>
+            <label>Length<input id="moverLen" type="number" step="1" min="1" /></label>
+            <label>Tint<input id="moverTint" type="number" step="1" min="0" max="4" /></label>
+            <label>
+              Initial State
+              <select id="moverInitialState">
+                <option value="unlocked">Unlocked</option>
+                <option value="locked">Locked</option>
+              </select>
+            </label>
+          </div>
           <div class="row field-hidden" id="doorFields">
             <label>Door Label<input id="doorLabel" type="text" /></label>
             <label>Target Room<input id="doorTarget" type="text" /></label>
@@ -389,7 +403,7 @@
           </div>
           <div class="row field-hidden" id="keyFields">
             <label>Key Label<input id="keyLabel" type="text" /></label>
-            <label>Unlocks Door<input id="keyDoorTarget" type="text" placeholder="R5-D3" /></label>
+            <label>Unlocks Target<input id="keyDoorTarget" type="text" placeholder="R5-D3 or R8-M1" /></label>
           </div>
           <button id="applyProps" class="good">Apply Properties</button>
         </div>
@@ -421,6 +435,7 @@
         <div class="badge" id="platformCount">Platforms: 0</div>
         <div class="badge" id="doorCount">Doors: 0</div>
         <div class="badge" id="keyCount">Keys: 0</div>
+        <div class="badge" id="moverCount">Movers: 0</div>
         <div class="list" id="itemList"></div>
       </div>
     </section>
@@ -674,6 +689,7 @@
         inspectorTitle: document.getElementById('inspectorTitle'),
         globalFields: document.getElementById('globalFields'),
         platformFields: document.getElementById('platformFields'),
+        moverFields: document.getElementById('moverFields'),
         doorFields: document.getElementById('doorFields'),
         keyFields: document.getElementById('keyFields'),
         deleteSelected: document.getElementById('deleteSelected'),
@@ -689,6 +705,11 @@
         itemY: document.getElementById('itemY'),
         itemLen: document.getElementById('itemLen'),
         itemTint: document.getElementById('itemTint'),
+        moverEndX: document.getElementById('moverEndX'),
+        moverEndY: document.getElementById('moverEndY'),
+        moverLen: document.getElementById('moverLen'),
+        moverTint: document.getElementById('moverTint'),
+        moverInitialState: document.getElementById('moverInitialState'),
         doorLabel: document.getElementById('doorLabel'),
         doorTarget: document.getElementById('doorTarget'),
         doorStateForward: document.getElementById('doorStateForward'),
@@ -701,6 +722,7 @@
         platformCount: document.getElementById('platformCount'),
         doorCount: document.getElementById('doorCount'),
         keyCount: document.getElementById('keyCount'),
+        moverCount: document.getElementById('moverCount'),
         roomCanvasBox: document.getElementById('roomCanvasBox'),
         globalCanvasBox: document.getElementById('globalCanvasBox'),
         canvasTitle: document.getElementById('canvasTitle'),
@@ -726,6 +748,8 @@
         selected: null,
         selectionItems: [],
         drag: null,
+        pendingMoverStart: null,
+        hoverLocal: null,
         fileHandle: null,
         apiAvailable: false
       };
@@ -736,6 +760,7 @@
 
       function selectionKey(item) {
         if (item.kind === 'vertex') return `${item.kind}:${item.index}`;
+        if (item.kind === 'mover-start' || item.kind === 'mover-end') return `${item.kind}:${item.id}`;
         if (item.kind === 'room-shell' || item.kind === 'start') return item.kind;
         return `${item.kind}:${item.id}`;
       }
@@ -774,6 +799,7 @@
         room.platforms = Array.isArray(room.platforms) ? room.platforms : [];
         room.doors = Array.isArray(room.doors) ? room.doors : [];
         room.keys = Array.isArray(room.keys) ? room.keys : [];
+        room.movingPlatforms = Array.isArray(room.movingPlatforms) ? room.movingPlatforms : [];
         room.doors = room.doors.map((door) => ({
           ...door,
           initialState: {
@@ -784,8 +810,24 @@
         room.keys = room.keys.map((key) => ({
           ...key,
           label: key?.label || 'Key',
-          unlocksDoor: key?.unlocksDoor || ''
+          unlocksTarget: key?.unlocksTarget || key?.unlocksDoor || ''
         }));
+        room.movingPlatforms = room.movingPlatforms.map((mover) => ({
+          ...mover,
+          endX: Number.isFinite(Number(mover?.endX)) ? Number(mover.endX) : Number(mover?.x || 0),
+          endY: Number.isFinite(Number(mover?.endY)) ? Number(mover.endY) : Number(mover?.y || 0),
+          len: Math.max(1, Number(mover?.len || 4)),
+          tint: Number(mover?.tint || 0),
+          initialState: mover?.initialState === 'locked' ? 'locked' : 'unlocked'
+        }));
+        const legacyLevers = Array.isArray(room.levers) ? room.levers : [];
+        legacyLevers.forEach((lever) => {
+          const moverId = lever?.controlsMover;
+          if (!moverId) return;
+          const mover = room.movingPlatforms.find((item) => item.id === moverId);
+          if (mover) mover.initialState = lever?.initialState === 'locked' ? 'locked' : 'unlocked';
+        });
+        delete room.levers;
         room.playerStart = room.playerStart && Number.isFinite(Number(room.playerStart.x)) && Number.isFinite(Number(room.playerStart.y))
           ? { x: Number(room.playerStart.x), y: Number(room.playerStart.y) }
           : null;
@@ -933,6 +975,7 @@
         ui.platformCount.textContent = `Platforms: ${room.platforms.length}`;
         ui.doorCount.textContent = `Doors: ${room.doors.length}`;
         ui.keyCount.textContent = `Keys: ${room.keys.length}`;
+        ui.moverCount.textContent = `Movers: ${room.movingPlatforms.length}`;
       }
 
       function updateSelectionSummary() {
@@ -957,6 +1000,10 @@
           ui.selectionSummary.textContent = `Selected player start in ${state.currentRoomId}.`;
           return;
         }
+        if (state.selected.kind === 'mover-start' || state.selected.kind === 'mover-end') {
+          ui.selectionSummary.textContent = `Selected ${state.selected.kind === 'mover-start' ? 'mover start' : 'mover end'} for ${state.selected.id}.`;
+          return;
+        }
         ui.selectionSummary.textContent = `Selected ${state.selected.kind} ${state.selected.id}.`;
       }
 
@@ -970,6 +1017,7 @@
         ui.selectionInspector.classList.remove('hidden');
         ui.globalFields.classList.add('field-hidden');
         ui.platformFields.classList.add('field-hidden');
+        ui.moverFields.classList.add('field-hidden');
         ui.doorFields.classList.add('field-hidden');
         ui.keyFields.classList.add('field-hidden');
 
@@ -994,6 +1042,18 @@
           return;
         }
 
+        if (state.selected.kind === 'mover') {
+          ui.inspectorTitle.textContent = state.selected.id;
+          ui.moverFields.classList.remove('field-hidden');
+          return;
+        }
+
+        if (state.selected.kind === 'mover-start' || state.selected.kind === 'mover-end') {
+          ui.inspectorTitle.textContent = state.selected.id;
+          ui.moverFields.classList.remove('field-hidden');
+          return;
+        }
+
         if (state.selected.kind === 'door') {
           ui.inspectorTitle.textContent = state.selected.id;
           ui.doorFields.classList.remove('field-hidden');
@@ -1003,6 +1063,7 @@
         if (state.selected.kind === 'key') {
           ui.inspectorTitle.textContent = state.selected.id;
           ui.keyFields.classList.remove('field-hidden');
+          return;
         }
       }
 
@@ -1024,7 +1085,10 @@
           rows.push({ kind: 'door', id: door.id, label: `${door.id} · ${door.label || door.kind} · -> ${door.targetRoom || '-'}` });
         });
         room.keys.forEach((key) => {
-          rows.push({ kind: 'key', id: key.id, label: `${key.id} · ${key.label || 'Key'} · unlocks ${key.unlocksDoor || '-'}` });
+          rows.push({ kind: 'key', id: key.id, label: `${key.id} · ${key.label || 'Key'} · unlocks ${key.unlocksTarget || '-'}` });
+        });
+        room.movingPlatforms.forEach((mover) => {
+          rows.push({ kind: 'mover', id: mover.id, label: `${mover.id} · (${mover.x},${mover.y}) -> (${mover.endX},${mover.endY}) · ${mover.initialState}` });
         });
         if (room.playerStart) {
           rows.push({ kind: 'start', id: 'player-start', label: `Player Start · x ${room.playerStart.x} · y ${room.playerStart.y}` });
@@ -1058,6 +1122,11 @@
           ui.itemY.value = '';
           ui.itemLen.value = '';
           ui.itemTint.value = '';
+          ui.moverEndX.value = '';
+          ui.moverEndY.value = '';
+          ui.moverLen.value = '';
+          ui.moverTint.value = '';
+          ui.moverInitialState.value = 'unlocked';
           ui.doorLabel.value = '';
           ui.doorTarget.value = '';
           ui.doorStateForward.value = 'unlocked';
@@ -1073,12 +1142,17 @@
         ui.itemY.value = selected.item.y ?? '';
         ui.itemLen.value = selected.item.len ?? '';
         ui.itemTint.value = selected.item.tint ?? '';
+        ui.moverEndX.value = selected.item.endX ?? '';
+        ui.moverEndY.value = selected.item.endY ?? '';
+        ui.moverLen.value = selected.item.len ?? '';
+        ui.moverTint.value = selected.item.tint ?? '';
+        ui.moverInitialState.value = selected.item.initialState ?? 'unlocked';
         ui.doorLabel.value = selected.item.label ?? '';
         ui.doorTarget.value = selected.item.targetRoom ?? '';
         ui.doorStateForward.value = selected.item.initialState?.forward ?? 'unlocked';
         ui.doorStateReverse.value = selected.item.initialState?.reverse ?? 'unlocked';
         ui.keyLabel.value = selected.item.label ?? '';
-        ui.keyDoorTarget.value = selected.item.unlocksDoor ?? '';
+        ui.keyDoorTarget.value = selected.item.unlocksTarget ?? '';
         updateSelectionSummary();
         updateInspector();
         populateItemList();
@@ -1103,6 +1177,14 @@
         if (state.selected.kind === 'platform') {
           const item = room.platforms.find((platform) => platform.id === state.selected.id);
           if (item) return { room, item, collection: room.platforms };
+        }
+        if (state.selected.kind === 'mover') {
+          const item = room.movingPlatforms.find((mover) => mover.id === state.selected.id);
+          if (item) return { room, item, collection: room.movingPlatforms };
+        }
+        if (state.selected.kind === 'mover-start' || state.selected.kind === 'mover-end') {
+          const item = room.movingPlatforms.find((mover) => mover.id === state.selected.id);
+          if (item) return { room, item, collection: room.movingPlatforms };
         }
         if (state.selected.kind === 'door') {
           const item = room.doors.find((door) => door.id === state.selected.id);
@@ -1207,6 +1289,47 @@
           roomCtx.strokeRect(p.x, p.y, width, height);
         });
 
+        room.movingPlatforms.forEach((mover) => {
+          const start = roomToCanvasPoint(mover.x, mover.y - PLATFORM_H / 2);
+          const end = roomToCanvasPoint(mover.endX, mover.endY - PLATFORM_H / 2);
+          const width = mover.len * TILE * scale.x;
+          const height = PLATFORM_H * scale.y;
+          const selected = selectionContains({ kind: 'mover', id: mover.id });
+          const startSelected = selectionContains({ kind: 'mover-start', id: mover.id });
+          const endSelected = selectionContains({ kind: 'mover-end', id: mover.id });
+          roomCtx.save();
+          roomCtx.strokeStyle = selected ? '#ffde7a' : '#8fd0ff';
+          roomCtx.lineWidth = selected ? 3 : 2;
+          roomCtx.setLineDash([8, 6]);
+          roomCtx.beginPath();
+          roomCtx.moveTo(start.x + (width / 2), start.y + (height / 2));
+          roomCtx.lineTo(end.x + (width / 2), end.y + (height / 2));
+          roomCtx.stroke();
+          roomCtx.setLineDash([]);
+          roomCtx.fillStyle = selected ? '#ffd166' : '#64c6ff';
+          roomCtx.fillRect(start.x, start.y, width, height);
+          roomCtx.strokeStyle = '#102334';
+          roomCtx.strokeRect(start.x, start.y, width, height);
+          roomCtx.strokeStyle = 'rgba(255,255,255,0.55)';
+          roomCtx.strokeRect(end.x, end.y, width, height);
+          roomCtx.fillStyle = startSelected ? '#ffe27a' : '#dff5ff';
+          roomCtx.beginPath();
+          roomCtx.arc(start.x + (width / 2), start.y + (height / 2), 7, 0, Math.PI * 2);
+          roomCtx.fill();
+          roomCtx.strokeStyle = '#102334';
+          roomCtx.stroke();
+          roomCtx.fillStyle = endSelected ? '#ffe27a' : 'rgba(223,245,255,0.7)';
+          roomCtx.beginPath();
+          roomCtx.arc(end.x + (width / 2), end.y + (height / 2), 7, 0, Math.PI * 2);
+          roomCtx.fill();
+          roomCtx.strokeStyle = '#102334';
+          roomCtx.stroke();
+          roomCtx.fillStyle = '#dff5ff';
+          roomCtx.font = '11px sans-serif';
+          roomCtx.fillText(mover.id, start.x + 4, start.y - 8);
+          roomCtx.restore();
+        });
+
         room.doors.forEach((door) => {
           const p = roomToCanvasPoint(door.x, door.y);
           const selected = selectionContains({ kind: 'door', id: door.id });
@@ -1261,6 +1384,26 @@
           roomCtx.fillRect(rect.x1, rect.y1, rect.x2 - rect.x1, rect.y2 - rect.y1);
           roomCtx.setLineDash([]);
         }
+
+        if (state.tool === 'mover' && state.pendingMoverStart) {
+          const preview = state.hoverLocal || state.pendingMoverStart;
+          const start = roomToCanvasPoint(state.pendingMoverStart.x, state.pendingMoverStart.y - PLATFORM_H / 2);
+          const end = roomToCanvasPoint(preview.x, preview.y - PLATFORM_H / 2);
+          roomCtx.save();
+          roomCtx.strokeStyle = '#ffd166';
+          roomCtx.lineWidth = 2;
+          roomCtx.setLineDash([8, 6]);
+          roomCtx.beginPath();
+          roomCtx.moveTo(start.x, start.y);
+          roomCtx.lineTo(end.x, end.y);
+          roomCtx.stroke();
+          roomCtx.setLineDash([]);
+          roomCtx.beginPath();
+          roomCtx.arc(start.x, start.y, 6, 0, Math.PI * 2);
+          roomCtx.fillStyle = '#ffd166';
+          roomCtx.fill();
+          roomCtx.restore();
+        }
       }
 
       function drawGlobalView() {
@@ -1303,7 +1446,7 @@
         if (state.viewMode !== 'room') ui.selectionInspector.classList.add('hidden');
         ui.canvasTitle.textContent = state.viewMode === 'room' ? `${room.id} Room Editor` : 'Global Map Editor';
         ui.canvasSub.textContent = state.viewMode === 'room'
-          ? 'Drag vertices, platforms, doors, keys, and the player start. Add new items with the active tool.'
+          ? 'Drag vertices, platforms, moving platforms, doors, keys, and the player start. Add new items with the active tool.'
           : 'Drag room footprints to rearrange global layout. Use Global Zoom to resize the map view.';
         drawRoomView();
         drawGlobalView();
@@ -1398,6 +1541,14 @@
           if (rectIntersectsRect(rect, bounds)) items.push({ kind: 'key', id: key.id });
         });
 
+        room.movingPlatforms.forEach((mover) => {
+          const x1 = Math.min(mover.x, mover.endX);
+          const y1 = Math.min(mover.y, mover.endY) - PLATFORM_H;
+          const x2 = Math.max(mover.x + (mover.len * TILE), mover.endX + (mover.len * TILE));
+          const y2 = Math.max(mover.y, mover.endY);
+          if (rectIntersectsRect(rect, { x1, y1, x2, y2 })) items.push({ kind: 'mover', id: mover.id });
+        });
+
         const roomBounds = getRoomBounds();
         const coversRoom = rect.x1 <= roomBounds.x1 && rect.y1 <= roomBounds.y1 &&
           rect.x2 >= roomBounds.x2 && rect.y2 >= roomBounds.y2;
@@ -1425,6 +1576,10 @@
             const key = room.keys.find((entry) => entry.id === item.id);
             return { ...item, x: key.x, y: key.y };
           }
+          if (item.kind === 'mover') {
+            const mover = room.movingPlatforms.find((entry) => entry.id === item.id);
+            return { ...item, x: mover.x, y: mover.y, endX: mover.endX, endY: mover.endY };
+          }
           if (item.kind === 'start' && room.playerStart) {
             return { kind: 'start', x: room.playerStart.x, y: room.playerStart.y };
           }
@@ -1435,6 +1590,7 @@
               platforms: room.platforms.map((platform) => ({ id: platform.id, x: platform.x, y: platform.y })),
               doors: room.doors.map((door) => ({ id: door.id, x: door.x, y: door.y })),
               keys: room.keys.map((key) => ({ id: key.id, x: key.x, y: key.y })),
+              movingPlatforms: room.movingPlatforms.map((mover) => ({ id: mover.id, x: mover.x, y: mover.y, endX: mover.endX, endY: mover.endY })),
               playerStart: room.playerStart ? { x: room.playerStart.x, y: room.playerStart.y } : null
             };
           }
@@ -1469,6 +1625,15 @@
               key.y = snap(item.y + dy);
             }
           }
+          if (item.kind === 'mover') {
+            const mover = room.movingPlatforms.find((entry) => entry.id === item.id);
+            if (mover) {
+              mover.x = snap(item.x + dx);
+              mover.y = snap(item.y + dy);
+              mover.endX = snap(item.endX + dx);
+              mover.endY = snap(item.endY + dy);
+            }
+          }
           if (item.kind === 'start' && room.playerStart) {
             room.playerStart.x = snap(item.x + dx);
             room.playerStart.y = snap(item.y + dy);
@@ -1494,6 +1659,15 @@
               if (key) {
                 key.x = snap(keyState.x + dx);
                 key.y = snap(keyState.y + dy);
+              }
+            });
+            item.movingPlatforms.forEach((moverState) => {
+              const mover = room.movingPlatforms.find((entry) => entry.id === moverState.id);
+              if (mover) {
+                mover.x = snap(moverState.x + dx);
+                mover.y = snap(moverState.y + dy);
+                mover.endX = snap(moverState.endX + dx);
+                mover.endY = snap(moverState.endY + dy);
               }
             });
             if (item.playerStart && room.playerStart) {
@@ -1548,6 +1722,29 @@
           const p = roomToCanvasPoint(key.x, key.y);
           if (mouse.x >= p.x - 18 && mouse.x <= p.x + 34 && mouse.y >= p.y - 18 && mouse.y <= p.y + 18) {
             return { kind: 'key', id: key.id };
+          }
+        }
+        for (const mover of room.movingPlatforms) {
+          const start = roomToCanvasPoint(mover.x, mover.y - PLATFORM_H / 2);
+          const end = roomToCanvasPoint(mover.endX, mover.endY - PLATFORM_H / 2);
+          const width = mover.len * TILE * roomScale().x;
+          const height = PLATFORM_H * roomScale().y;
+          const startHandle = { x: start.x + (width / 2), y: start.y + (height / 2) };
+          const endHandle = { x: end.x + (width / 2), y: end.y + (height / 2) };
+          if (pointDistance(mouse, startHandle) < 14) {
+            return { kind: 'mover-start', id: mover.id };
+          }
+          if (pointDistance(mouse, endHandle) < 14) {
+            return { kind: 'mover-end', id: mover.id };
+          }
+          const bounds = {
+            x1: Math.min(start.x, end.x) - HIT_PLATFORM_PAD,
+            y1: Math.min(start.y, end.y) - HIT_PLATFORM_PAD,
+            x2: Math.max(start.x + width, end.x + width) + HIT_PLATFORM_PAD,
+            y2: Math.max(start.y + height, end.y + height) + HIT_PLATFORM_PAD
+          };
+          if (mouse.x >= bounds.x1 && mouse.x <= bounds.x2 && mouse.y >= bounds.y1 && mouse.y <= bounds.y2) {
+            return { kind: 'mover', id: mover.id };
           }
         }
         for (const platform of room.platforms) {
@@ -1642,11 +1839,43 @@
           x: local.x,
           y: local.y,
           label: 'New Key',
-          unlocksDoor: ''
+          unlocksTarget: ''
         };
         room.keys.push(key);
         setSelection([{ kind: 'key', id: key.id }]);
         setStatus(`Added key ${key.id} at ${key.x}, ${key.y}.`);
+      }
+
+      function addMoverPoint(mouse) {
+        const room = currentRoom();
+        const local = canvasToRoomPoint(mouse.x, mouse.y);
+        if (!state.pendingMoverStart) {
+          state.pendingMoverStart = local;
+          state.hoverLocal = local;
+          setStatus(`Mover start set at ${local.x}, ${local.y}. Tap end point.`);
+          redraw();
+          return;
+        }
+
+        const start = state.pendingMoverStart;
+        const rawDx = local.x - start.x;
+        const rawDy = local.y - start.y;
+        const horizontal = Math.abs(rawDx) >= Math.abs(rawDy);
+        const mover = {
+          id: nextId(`${room.id}-M`, room.movingPlatforms),
+          x: start.x,
+          y: start.y,
+          endX: horizontal ? local.x : start.x,
+          endY: horizontal ? start.y : local.y,
+          len: 4,
+          tint: 0,
+          initialState: 'unlocked'
+        };
+        room.movingPlatforms.push(mover);
+        state.pendingMoverStart = null;
+        state.hoverLocal = null;
+        setSelection([{ kind: 'mover', id: mover.id }]);
+        setStatus(`Added mover ${mover.id} from ${mover.x},${mover.y} to ${mover.endX},${mover.endY}.`);
       }
 
       function setPlayerStartAt(mouse) {
@@ -1693,6 +1922,10 @@
           redraw();
           return;
         }
+        if (state.tool === 'mover') {
+          addMoverPoint(mouse);
+          return;
+        }
         if (state.tool === 'start') {
           setPlayerStartAt(mouse);
           redraw();
@@ -1709,6 +1942,19 @@
               type: 'selection-move',
               startLocal: local,
               snapshot: snapshotSelectionItems()
+            };
+          } else if (hit.kind === 'mover-start' || hit.kind === 'mover-end') {
+            state.drag = {
+              type: hit.kind,
+              id: hit.id
+            };
+          } else if (hit.kind === 'mover') {
+            const mover = room.movingPlatforms.find((item) => item.id === hit.id);
+            state.drag = {
+              type: 'mover',
+              id: hit.id,
+              startLocal: local,
+              snapshot: { x: mover.x, y: mover.y, endX: mover.endX, endY: mover.endY }
             };
           } else if (hit.kind === 'start') {
             state.drag = { type: 'start' };
@@ -1732,11 +1978,18 @@
       }
 
       function onRoomPointerMove(event) {
-        if (!state.drag) return;
         if (event.cancelable) event.preventDefault();
         const mouse = getCanvasPointer(event, roomCanvas);
-        const room = currentRoom();
         const local = canvasToRoomPoint(mouse.x, mouse.y);
+        if (!state.drag) {
+          if (state.tool === 'mover' && state.pendingMoverStart) {
+            state.hoverLocal = local;
+            redraw();
+          }
+          return;
+        }
+        const room = currentRoom();
+        state.hoverLocal = local;
 
         if (state.drag.type === 'marquee') {
           state.drag.currentCanvas = mouse;
@@ -1775,6 +2028,31 @@
           if (key) {
             key.x = local.x;
             key.y = local.y;
+          }
+        }
+        if (state.drag.type === 'mover') {
+          const mover = room.movingPlatforms.find((item) => item.id === state.drag.id);
+          if (mover) {
+            const dx = local.x - state.drag.startLocal.x;
+            const dy = local.y - state.drag.startLocal.y;
+            mover.x = snap(state.drag.snapshot.x + dx);
+            mover.y = snap(state.drag.snapshot.y + dy);
+            mover.endX = snap(state.drag.snapshot.endX + dx);
+            mover.endY = snap(state.drag.snapshot.endY + dy);
+          }
+        }
+        if (state.drag.type === 'mover-start') {
+          const mover = room.movingPlatforms.find((item) => item.id === state.drag.id);
+          if (mover) {
+            mover.x = local.x;
+            mover.y = local.y;
+          }
+        }
+        if (state.drag.type === 'mover-end') {
+          const mover = room.movingPlatforms.find((item) => item.id === state.drag.id);
+          if (mover) {
+            mover.endX = local.x;
+            mover.endY = local.y;
           }
         }
         if (state.drag.type === 'start' && room.playerStart) {
@@ -1819,6 +2097,9 @@
           redraw();
         }
         state.drag = null;
+        if (state.tool !== 'mover') {
+          state.hoverLocal = null;
+        }
       }
 
       function applyPropertyInputs() {
@@ -1833,9 +2114,16 @@
             selected.item.x = nextX;
             selected.item.y = nextY;
           }
-          if (selected.item.len !== undefined) {
+          if (state.selected.kind === 'platform') {
             selected.item.len = Math.max(1, Number(ui.itemLen.value || selected.item.len || 1));
             selected.item.tint = Number(ui.itemTint.value || selected.item.tint || 0);
+          }
+          if (state.selected.kind === 'mover' || state.selected.kind === 'mover-start' || state.selected.kind === 'mover-end') {
+            selected.item.endX = Number(ui.moverEndX.value || selected.item.endX || selected.item.x || 0);
+            selected.item.endY = Number(ui.moverEndY.value || selected.item.endY || selected.item.y || 0);
+            selected.item.len = Math.max(1, Number(ui.moverLen.value || selected.item.len || 1));
+            selected.item.tint = Number(ui.moverTint.value || selected.item.tint || 0);
+            selected.item.initialState = ui.moverInitialState.value === 'locked' ? 'locked' : 'unlocked';
           }
           if (state.selected.kind === 'door') {
             selected.item.label = ui.doorLabel.value;
@@ -1847,7 +2135,7 @@
           }
           if (state.selected.kind === 'key') {
             selected.item.label = ui.keyLabel.value;
-            selected.item.unlocksDoor = ui.keyDoorTarget.value.trim();
+            selected.item.unlocksTarget = ui.keyDoorTarget.value.trim();
           }
         }
         redraw();
@@ -1872,6 +2160,7 @@
           .map((item) => item.index)
           .sort((a, b) => b - a);
         const platformIds = new Set(state.selectionItems.filter((item) => item.kind === 'platform').map((item) => item.id));
+        const moverIds = new Set(state.selectionItems.filter((item) => item.kind === 'mover').map((item) => item.id));
         const doorIds = new Set(state.selectionItems.filter((item) => item.kind === 'door').map((item) => item.id));
         const keyIds = new Set(state.selectionItems.filter((item) => item.kind === 'key').map((item) => item.id));
         const clearPlayerStart = state.selectionItems.some((item) => item.kind === 'start');
@@ -1881,6 +2170,9 @@
         }
         if (platformIds.size) {
           room.platforms = room.platforms.filter((item) => !platformIds.has(item.id));
+        }
+        if (moverIds.size) {
+          room.movingPlatforms = room.movingPlatforms.filter((item) => !moverIds.has(item.id));
         }
         if (doorIds.size) {
           room.doors = room.doors.filter((item) => !doorIds.has(item.id));
@@ -1929,6 +2221,7 @@
           polygon: [[160, 220], [1200, 220], [1200, 980], [160, 980]],
           playerStart: null,
           platforms: [],
+          movingPlatforms: [],
           doors: [],
           keys: []
         };
@@ -2137,6 +2430,8 @@
         updateSyncButtonState();
         ui.roomSelect.addEventListener('change', () => {
           state.currentRoomId = ui.roomSelect.value;
+          state.pendingMoverStart = null;
+          state.hoverLocal = null;
           setSelection([]);
           redraw();
         });
@@ -2155,7 +2450,12 @@
         ui.toolButtons.forEach((button) => {
           button.addEventListener('click', () => {
             state.tool = button.dataset.tool;
+            if (state.tool !== 'mover') {
+              state.pendingMoverStart = null;
+              state.hoverLocal = null;
+            }
             ui.toolButtons.forEach((item) => item.classList.toggle('active', item === button));
+            redraw();
           });
         });
         ui.applyProps.addEventListener('click', applyPropertyInputs);

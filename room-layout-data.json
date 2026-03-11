@@ -196,7 +196,9 @@
         "x": 256,
         "y": 64
       },
-      "keys": []
+      "keys": [],
+      "movingPlatforms": [],
+      "levers": []
     },
     {
       "id": "R2",
@@ -354,7 +356,9 @@
         "height": 1200
       },
       "playerStart": null,
-      "keys": []
+      "keys": [],
+      "movingPlatforms": [],
+      "levers": []
     },
     {
       "id": "R3",
@@ -521,7 +525,9 @@
         "height": 1200
       },
       "playerStart": null,
-      "keys": []
+      "keys": [],
+      "movingPlatforms": [],
+      "levers": []
     },
     {
       "id": "R4",
@@ -649,7 +655,9 @@
         "height": 1200
       },
       "playerStart": null,
-      "keys": []
+      "keys": [],
+      "movingPlatforms": [],
+      "levers": []
     },
     {
       "id": "R5",
@@ -802,7 +810,9 @@
         "height": 1200
       },
       "playerStart": null,
-      "keys": []
+      "keys": [],
+      "movingPlatforms": [],
+      "levers": []
     },
     {
       "id": "R6",
@@ -950,7 +960,9 @@
         "height": 2000
       },
       "playerStart": null,
-      "keys": []
+      "keys": [],
+      "movingPlatforms": [],
+      "levers": []
     },
     {
       "id": "R7",
@@ -1144,7 +1156,9 @@
         "x": 192,
         "y": 224
       },
-      "keys": []
+      "keys": [],
+      "movingPlatforms": [],
+      "levers": []
     },
     {
       "id": "R8",
@@ -1344,7 +1358,20 @@
         "height": 1200
       },
       "playerStart": null,
-      "keys": []
+      "keys": [],
+      "movingPlatforms": [
+        {
+          "id": "R8-M1",
+          "x": 402,
+          "y": 1113,
+          "endX": 403,
+          "endY": 357,
+          "len": 4,
+          "tint": 0,
+          "leverId": ""
+        }
+      ],
+      "levers": []
     },
     {
       "id": "R9",
@@ -1429,7 +1456,9 @@
         "height": 1200
       },
       "playerStart": null,
-      "keys": []
+      "keys": [],
+      "movingPlatforms": [],
+      "levers": []
     },
     {
       "id": "R10",
@@ -1518,7 +1547,9 @@
         "height": 1200
       },
       "playerStart": null,
-      "keys": []
+      "keys": [],
+      "movingPlatforms": [],
+      "levers": []
     },
     {
       "id": "R11",
@@ -1644,7 +1675,9 @@
         "height": 1200
       },
       "playerStart": null,
-      "keys": []
+      "keys": [],
+      "movingPlatforms": [],
+      "levers": []
     },
     {
       "id": "R12",
@@ -1678,7 +1711,9 @@
       "playerStart": null,
       "platforms": [],
       "doors": [],
-      "keys": []
+      "keys": [],
+      "movingPlatforms": [],
+      "levers": []
     }
   ]
 }
