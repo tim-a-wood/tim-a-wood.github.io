@@ -271,6 +271,17 @@ let DUNGEON_WALL_RECTS = [
 
 let ACTIVE_LAYOUT_DATA = null;
 let ACTIVE_LAYOUT_SOURCE = 'default';
+const GLOBAL_ROOM_PREVIEW_SCALE = 0.12;
+const IN_GAME_MAP = Object.freeze({
+    panelX: 74,
+    panelY: 24,
+    panelWidth: 652,
+    panelHeight: 352,
+    mapX: 102,
+    mapY: 86,
+    mapWidth: 596,
+    mapHeight: 236
+});
 
 function pointInPolygon(x, y, polygon) {
     let inside = false;
@@ -288,6 +299,41 @@ function pointInPolygon(x, y, polygon) {
 
 function getRoomWidth(roomId) {
     return ROOM_IDS[roomId]?.width || CONFIG.ROOM_WIDTH;
+}
+
+function ensureLayoutRoomShape(room) {
+    if (!room) return null;
+
+    const fallbackWidth = getRoomWidth(room.id);
+    if (!room.size) room.size = { width: fallbackWidth, height: CONFIG.WORLD_HEIGHT };
+    room.size.width = Math.max(320, Number(room.size.width || fallbackWidth));
+    room.size.height = Math.max(320, Number(room.size.height || CONFIG.WORLD_HEIGHT));
+
+    room.global = room.global &&
+        Number.isFinite(Number(room.global.x)) &&
+        Number.isFinite(Number(room.global.y))
+        ? { x: Number(room.global.x), y: Number(room.global.y) }
+        : { x: 0, y: 0 };
+
+    if (!Array.isArray(room.polygon) || room.polygon.length < 3) {
+        const insetX = Math.min(160, Math.max(32, Math.floor(room.size.width * 0.2)));
+        const insetY = Math.min(160, Math.max(32, Math.floor(room.size.height * 0.2)));
+        room.polygon = [
+            [insetX, insetY],
+            [room.size.width - insetX, insetY],
+            [room.size.width - insetX, room.size.height - insetY],
+            [insetX, room.size.height - insetY]
+        ];
+    }
+
+    return room;
+}
+
+function getRuntimeLayoutRooms() {
+    if (!ACTIVE_LAYOUT_DATA || !Array.isArray(ACTIVE_LAYOUT_DATA.rooms)) return [];
+    return ACTIVE_LAYOUT_DATA.rooms
+        .filter((room) => ROOM_IDS[room.id])
+        .map((room) => ensureLayoutRoomShape(room));
 }
 
 function buildWallRectsFromPolygon(polygon, roomWidth = CONFIG.ROOM_WIDTH, roomHeight = CONFIG.WORLD_HEIGHT) {
@@ -530,6 +576,10 @@ class AshenHollow extends Phaser.Scene {
         this.roomStallLogged = false;
         this.previousRoomId = null;
         this.gateReactionFrames = 0;
+        this.visitedRooms = new Set();
+        this.isMapOpen = false;
+        this.mapNeedsRedraw = true;
+        this.mapRoomLabels = [];
 
         this.r9ShellComplete = false;
         this.preFinalCheckpointUnlocked = false;
@@ -632,6 +682,7 @@ class AshenHollow extends Phaser.Scene {
         this.buildWorldGeometry();
         this.buildWorldInteractables();
         this.createHUD();
+        this.createMapOverlay();
         this.setupControls();
         this.createTransitionOverlay();
 
@@ -1065,6 +1116,258 @@ class AshenHollow extends Phaser.Scene {
         node.setData('branch', branchId);
     }
 
+    markRoomVisited(roomId) {
+        if (!roomId) return;
+        const previousCount = this.visitedRooms.size;
+        this.visitedRooms.add(roomId);
+        if (this.visitedRooms.size !== previousCount) this.mapNeedsRedraw = true;
+    }
+
+    getVisitedMapRooms() {
+        return getRuntimeLayoutRooms().filter((room) => this.visitedRooms.has(room.id));
+    }
+
+    getMapProjection(rooms) {
+        if (!rooms.length) return null;
+
+        const xs = [];
+        const ys = [];
+        rooms.forEach((room) => {
+            const previewHalfWidth = (room.size.width * GLOBAL_ROOM_PREVIEW_SCALE) / 2;
+            const previewHalfHeight = (room.size.height * GLOBAL_ROOM_PREVIEW_SCALE) / 2;
+            xs.push(room.global.x - previewHalfWidth, room.global.x + previewHalfWidth);
+            ys.push(room.global.y - previewHalfHeight, room.global.y + previewHalfHeight);
+        });
+
+        const bounds = {
+            minX: Math.min(...xs) - 220,
+            maxX: Math.max(...xs) + 220,
+            minY: Math.min(...ys) - 220,
+            maxY: Math.max(...ys) + 220
+        };
+        const width = Math.max(bounds.maxX - bounds.minX, 1);
+        const height = Math.max(bounds.maxY - bounds.minY, 1);
+        const sx = (IN_GAME_MAP.mapWidth - 80) / width;
+        const sy = (IN_GAME_MAP.mapHeight - 80) / height;
+        const scale = Math.min(sx, sy);
+
+        return {
+            bounds,
+            scale,
+            offsetX: IN_GAME_MAP.mapX + ((IN_GAME_MAP.mapWidth - (width * scale)) / 2),
+            offsetY: IN_GAME_MAP.mapY + ((IN_GAME_MAP.mapHeight - (height * scale)) / 2)
+        };
+    }
+
+    mapGlobalToScreen(x, y, projection) {
+        return {
+            x: projection.offsetX + ((x - projection.bounds.minX) * projection.scale),
+            y: projection.offsetY + ((y - projection.bounds.minY) * projection.scale)
+        };
+    }
+
+    getMapRoomPoints(room, projection) {
+        const previewScale = projection.scale * GLOBAL_ROOM_PREVIEW_SCALE;
+        const center = this.mapGlobalToScreen(room.global.x, room.global.y, projection);
+        return room.polygon.map(([x, y]) => ({
+            x: center.x + ((x - (room.size.width / 2)) * previewScale),
+            y: center.y + ((y - (room.size.height / 2)) * previewScale)
+        }));
+    }
+
+    getPlayerMapPosition(projection) {
+        const room = getLayoutRoom(this.currentRoomId);
+        if (!room || !ROOM_IDS[this.currentRoomId]) return null;
+
+        ensureLayoutRoomShape(room);
+        const localX = Phaser.Math.Clamp(this.player.x - ROOM_IDS[this.currentRoomId].start, 0, room.size.width);
+        const localY = Phaser.Math.Clamp(this.player.y, 0, room.size.height);
+        const globalX = room.global.x + ((localX - (room.size.width / 2)) * GLOBAL_ROOM_PREVIEW_SCALE);
+        const globalY = room.global.y + ((localY - (room.size.height / 2)) * GLOBAL_ROOM_PREVIEW_SCALE);
+        return this.mapGlobalToScreen(globalX, globalY, projection);
+    }
+
+    clearMapLabels() {
+        this.mapRoomLabels.forEach((label) => label.destroy());
+        this.mapRoomLabels = [];
+    }
+
+    drawMapOverlay() {
+        if (!this.mapGraphics) return;
+
+        const rooms = this.getVisitedMapRooms();
+        const projection = this.getMapProjection(rooms);
+
+        this.mapGraphics.clear();
+        this.clearMapLabels();
+
+        this.mapGraphics.fillStyle(0x071018, 1);
+        this.mapGraphics.fillRect(IN_GAME_MAP.mapX, IN_GAME_MAP.mapY, IN_GAME_MAP.mapWidth, IN_GAME_MAP.mapHeight);
+
+        if (!rooms.length || !projection) {
+            if (this.mapCurrentRoomText) this.mapCurrentRoomText.setText('Current: map unavailable');
+            if (this.mapVisitedText) this.mapVisitedText.setText(`Visited ${this.visitedRooms.size}/${ROOM_SEQUENCE.length}`);
+            const emptyLabel = this.add.text(CONFIG.W / 2, IN_GAME_MAP.mapY + (IN_GAME_MAP.mapHeight / 2), 'No visited rooms to display.', {
+                fontSize: '14px',
+                fill: '#d8e7f3',
+                stroke: '#000',
+                strokeThickness: 3
+            }).setOrigin(0.5).setScrollFactor(0).setDepth(942);
+            this.mapRoomLabels.push(emptyLabel);
+            this.mapNeedsRedraw = false;
+            return;
+        }
+
+        const gridStep = Math.max(24, 48 * projection.scale);
+        this.mapGraphics.lineStyle(1, 0x48637c, 0.28);
+        for (let x = IN_GAME_MAP.mapX; x <= IN_GAME_MAP.mapX + IN_GAME_MAP.mapWidth; x += gridStep) {
+            this.mapGraphics.lineBetween(x, IN_GAME_MAP.mapY, x, IN_GAME_MAP.mapY + IN_GAME_MAP.mapHeight);
+        }
+        for (let y = IN_GAME_MAP.mapY; y <= IN_GAME_MAP.mapY + IN_GAME_MAP.mapHeight; y += gridStep) {
+            this.mapGraphics.lineBetween(IN_GAME_MAP.mapX, y, IN_GAME_MAP.mapX + IN_GAME_MAP.mapWidth, y);
+        }
+
+        rooms.forEach((room) => {
+            const points = this.getMapRoomPoints(room, projection);
+            const isCurrentRoom = room.id === this.currentRoomId;
+
+            this.mapGraphics.beginPath();
+            points.forEach((point, index) => {
+                if (index === 0) this.mapGraphics.moveTo(point.x, point.y);
+                else this.mapGraphics.lineTo(point.x, point.y);
+            });
+            this.mapGraphics.closePath();
+            this.mapGraphics.fillStyle(isCurrentRoom ? 0x467ead : 0x183046, isCurrentRoom ? 0.9 : 0.82);
+            this.mapGraphics.fillPath();
+            this.mapGraphics.lineStyle(isCurrentRoom ? 2.5 : 1.5, isCurrentRoom ? 0xffd166 : 0x7fb2df, 1);
+            this.mapGraphics.strokePath();
+
+            const center = this.mapGlobalToScreen(room.global.x, room.global.y, projection);
+            const roomLabel = this.add.text(center.x, center.y, room.id, {
+                fontSize: '12px',
+                fill: '#f0f7ff',
+                stroke: '#000',
+                strokeThickness: 3
+            }).setOrigin(0.5).setScrollFactor(0).setDepth(942);
+            this.mapRoomLabels.push(roomLabel);
+        });
+
+        const playerMarker = this.getPlayerMapPosition(projection);
+        if (playerMarker) {
+            this.mapGraphics.lineStyle(2, 0xe8f8ff, 1);
+            this.mapGraphics.strokeCircle(playerMarker.x, playerMarker.y, 8);
+            this.mapGraphics.fillStyle(0x3be1ff, 1);
+            this.mapGraphics.fillCircle(playerMarker.x, playerMarker.y, 4);
+        }
+
+        const currentRoom = getLayoutRoom(this.currentRoomId);
+        const currentName = currentRoom?.name || this.currentRoomId;
+        if (this.mapCurrentRoomText) this.mapCurrentRoomText.setText(`Current: ${this.currentRoomId} - ${currentName}`);
+        if (this.mapVisitedText) this.mapVisitedText.setText(`Visited ${this.visitedRooms.size}/${ROOM_SEQUENCE.length}`);
+        this.mapNeedsRedraw = false;
+    }
+
+    toggleMapOverlay() {
+        if (!this.mapGraphics || this.inRoomTransition || this.isGameOver) return;
+
+        this.isMapOpen = !this.isMapOpen;
+        const overlayObjects = [
+            this.mapOverlayBackdrop,
+            this.mapPanel,
+            this.mapPanelBorder,
+            this.mapGraphics,
+            this.mapTitleText,
+            this.mapHintText,
+            this.mapCurrentRoomText,
+            this.mapVisitedText,
+            this.mapRevealHintText
+        ].filter(Boolean);
+        overlayObjects.forEach((obj) => obj.setVisible(this.isMapOpen));
+
+        if (this.mapButtonText) {
+            this.mapButtonText.setText(this.isMapOpen ? '[ CLOSE MAP ]' : '[ MAP ]');
+        }
+
+        if (this.isMapOpen) {
+            this.inputState.left = false;
+            this.inputState.right = false;
+            this.inputState.jump = false;
+            this.player.setVelocity(0, 0);
+            this.physics.world.pause();
+            if (this.interactBtn) {
+                this.interactBtn.setVisible(false);
+                this.interactBtnLabel.setVisible(false);
+            }
+            this.mapNeedsRedraw = true;
+            this.drawMapOverlay();
+            return;
+        }
+
+        this.clearMapLabels();
+        if (!this.isGameOver) this.physics.world.resume();
+    }
+
+    createMapOverlay() {
+        this.mapOverlayBackdrop = this.add.rectangle(0, 0, CONFIG.W, CONFIG.H, 0x02060b, 0.74)
+            .setOrigin(0, 0)
+            .setScrollFactor(0)
+            .setDepth(938)
+            .setVisible(false);
+
+        this.mapPanel = this.add.rectangle(IN_GAME_MAP.panelX, IN_GAME_MAP.panelY, IN_GAME_MAP.panelWidth, IN_GAME_MAP.panelHeight, 0x0b1620, 0.96)
+            .setOrigin(0, 0)
+            .setScrollFactor(0)
+            .setDepth(939)
+            .setVisible(false);
+
+        this.mapPanelBorder = this.add.rectangle(IN_GAME_MAP.panelX, IN_GAME_MAP.panelY, IN_GAME_MAP.panelWidth, IN_GAME_MAP.panelHeight, 0xffffff, 0)
+            .setOrigin(0, 0)
+            .setScrollFactor(0)
+            .setDepth(940)
+            .setStrokeStyle(2, 0x3e6178, 1)
+            .setVisible(false);
+
+        this.mapGraphics = this.add.graphics()
+            .setScrollFactor(0)
+            .setDepth(941)
+            .setVisible(false);
+
+        this.mapTitleText = this.add.text(IN_GAME_MAP.panelX + 18, IN_GAME_MAP.panelY + 14, 'MAP', {
+            fontSize: '18px',
+            fill: '#f0f7ff',
+            stroke: '#000',
+            strokeThickness: 4
+        }).setScrollFactor(0).setDepth(942).setVisible(false);
+
+        this.mapHintText = this.add.text(IN_GAME_MAP.panelX + IN_GAME_MAP.panelWidth - 18, IN_GAME_MAP.panelY + 16, 'Press M or tap MAP to close', {
+            fontSize: '11px',
+            fill: '#9fc3dc',
+            stroke: '#000',
+            strokeThickness: 3
+        }).setOrigin(1, 0).setScrollFactor(0).setDepth(942).setVisible(false);
+
+        this.mapCurrentRoomText = this.add.text(IN_GAME_MAP.panelX + 18, IN_GAME_MAP.panelY + 42, '', {
+            fontSize: '12px',
+            fill: '#ffd166',
+            stroke: '#000',
+            strokeThickness: 3
+        }).setScrollFactor(0).setDepth(942).setVisible(false);
+
+        this.mapVisitedText = this.add.text(IN_GAME_MAP.panelX + IN_GAME_MAP.panelWidth - 18, IN_GAME_MAP.panelY + 42, '', {
+            fontSize: '12px',
+            fill: '#d3ecff',
+            stroke: '#000',
+            strokeThickness: 3
+        }).setOrigin(1, 0).setScrollFactor(0).setDepth(942).setVisible(false);
+
+        this.mapRevealHintText = this.add.text(IN_GAME_MAP.panelX + 18, IN_GAME_MAP.panelY + IN_GAME_MAP.panelHeight - 24, 'Only visited rooms are shown. The cyan marker is your current position.', {
+            fontSize: '11px',
+            fill: '#9fc3dc',
+            stroke: '#000',
+            strokeThickness: 3
+        }).setScrollFactor(0).setDepth(942).setVisible(false);
+    }
+
     createHUD() {
         this.distText = this.add.text(CONFIG.W / 2, 12, 'DIST 0 m', {
             fontSize: '14px', fill: '#00ffff', stroke: '#000', strokeThickness: 3
@@ -1099,6 +1402,7 @@ class AshenHollow extends Phaser.Scene {
         this.cursors = this.input.keyboard.createCursorKeys();
         this.spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
         this.interactKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E);
+        this.mapKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.M);
         this.debugBypassKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.B);
         this.debugUnlockKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.U);
         this.input.addPointer(2);
@@ -1151,6 +1455,15 @@ class AshenHollow extends Phaser.Scene {
             .on('pointerdown', () => {
                 window.location.reload();
             });
+
+        this.mapButtonText = this.add.text(utilityX, 78, '[ MAP ]', { fontSize: '12px', fill: '#bde3ff', backgroundColor: '#112233' })
+            .setPadding(6, 4, 6, 4)
+            .setScrollFactor(0)
+            .setOrigin(1, 0)
+            .setInteractive()
+            .on('pointerdown', () => {
+                this.toggleMapOverlay();
+            });
     }
 
     hasInteractableNearby() {
@@ -1192,6 +1505,7 @@ class AshenHollow extends Phaser.Scene {
     setCurrentRoom(roomId) {
         this.previousRoomId = this.currentRoomId;
         this.currentRoomId = roomId;
+        this.markRoomVisited(roomId);
         const room = ROOM_IDS[roomId];
         this.cameras.main.setBounds(room.start, 0, room.width, CONFIG.WORLD_HEIGHT);
         this.roomEnteredAtMs = this.time.now;
@@ -1432,6 +1746,13 @@ class AshenHollow extends Phaser.Scene {
     }
 
     update() {
+        if (this.mapKey && Phaser.Input.Keyboard.JustDown(this.mapKey)) {
+            this.toggleMapOverlay();
+        }
+        if (this.isMapOpen) {
+            if (this.mapNeedsRedraw) this.drawMapOverlay();
+            return;
+        }
         if (this.isGameOver || this.inRoomTransition) return;
 
         this.updateRuntimeMovers();
