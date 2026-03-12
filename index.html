@@ -580,6 +580,11 @@ class AshenHollow extends Phaser.Scene {
         this.isMapOpen = false;
         this.mapNeedsRedraw = true;
         this.mapRoomLabels = [];
+        this.mapZoom = 1;
+        this.mapZoomQueuedDelta = 0;
+        this.mapPinchActive = false;
+        this.mapPinchStartDistance = 0;
+        this.mapPinchStartZoom = 1;
 
         this.r9ShellComplete = false;
         this.preFinalCheckpointUnlocked = false;
@@ -1127,6 +1132,19 @@ class AshenHollow extends Phaser.Scene {
         return getRuntimeLayoutRooms().filter((room) => this.visitedRooms.has(room.id));
     }
 
+    getPlayerGlobalMapPoint() {
+        const room = getLayoutRoom(this.currentRoomId);
+        if (!room || !ROOM_IDS[this.currentRoomId]) return null;
+
+        ensureLayoutRoomShape(room);
+        const localX = Phaser.Math.Clamp(this.player.x - ROOM_IDS[this.currentRoomId].start, 0, room.size.width);
+        const localY = Phaser.Math.Clamp(this.player.y, 0, room.size.height);
+        return {
+            x: room.global.x + ((localX - (room.size.width / 2)) * GLOBAL_ROOM_PREVIEW_SCALE),
+            y: room.global.y + ((localY - (room.size.height / 2)) * GLOBAL_ROOM_PREVIEW_SCALE)
+        };
+    }
+
     getMapProjection(rooms) {
         if (!rooms.length) return null;
 
@@ -1147,15 +1165,37 @@ class AshenHollow extends Phaser.Scene {
         };
         const width = Math.max(bounds.maxX - bounds.minX, 1);
         const height = Math.max(bounds.maxY - bounds.minY, 1);
-        const sx = (IN_GAME_MAP.mapWidth - 80) / width;
-        const sy = (IN_GAME_MAP.mapHeight - 80) / height;
-        const scale = Math.min(sx, sy);
+        const baseScale = Math.min((IN_GAME_MAP.mapWidth - 80) / width, (IN_GAME_MAP.mapHeight - 80) / height);
+        const scale = baseScale * this.mapZoom;
+        const contentWidth = width * scale;
+        const contentHeight = height * scale;
+        const mapCenterX = IN_GAME_MAP.mapX + (IN_GAME_MAP.mapWidth / 2);
+        const mapCenterY = IN_GAME_MAP.mapY + (IN_GAME_MAP.mapHeight / 2);
+        const focus = this.getPlayerGlobalMapPoint() || {
+            x: bounds.minX + (width / 2),
+            y: bounds.minY + (height / 2)
+        };
+
+        let offsetX = mapCenterX - ((focus.x - bounds.minX) * scale);
+        let offsetY = mapCenterY - ((focus.y - bounds.minY) * scale);
+
+        if (contentWidth <= IN_GAME_MAP.mapWidth) {
+            offsetX = IN_GAME_MAP.mapX + ((IN_GAME_MAP.mapWidth - contentWidth) / 2);
+        } else {
+            offsetX = Phaser.Math.Clamp(offsetX, IN_GAME_MAP.mapX + IN_GAME_MAP.mapWidth - contentWidth, IN_GAME_MAP.mapX);
+        }
+
+        if (contentHeight <= IN_GAME_MAP.mapHeight) {
+            offsetY = IN_GAME_MAP.mapY + ((IN_GAME_MAP.mapHeight - contentHeight) / 2);
+        } else {
+            offsetY = Phaser.Math.Clamp(offsetY, IN_GAME_MAP.mapY + IN_GAME_MAP.mapHeight - contentHeight, IN_GAME_MAP.mapY);
+        }
 
         return {
             bounds,
             scale,
-            offsetX: IN_GAME_MAP.mapX + ((IN_GAME_MAP.mapWidth - (width * scale)) / 2),
-            offsetY: IN_GAME_MAP.mapY + ((IN_GAME_MAP.mapHeight - (height * scale)) / 2)
+            offsetX,
+            offsetY
         };
     }
 
@@ -1176,15 +1216,9 @@ class AshenHollow extends Phaser.Scene {
     }
 
     getPlayerMapPosition(projection) {
-        const room = getLayoutRoom(this.currentRoomId);
-        if (!room || !ROOM_IDS[this.currentRoomId]) return null;
-
-        ensureLayoutRoomShape(room);
-        const localX = Phaser.Math.Clamp(this.player.x - ROOM_IDS[this.currentRoomId].start, 0, room.size.width);
-        const localY = Phaser.Math.Clamp(this.player.y, 0, room.size.height);
-        const globalX = room.global.x + ((localX - (room.size.width / 2)) * GLOBAL_ROOM_PREVIEW_SCALE);
-        const globalY = room.global.y + ((localY - (room.size.height / 2)) * GLOBAL_ROOM_PREVIEW_SCALE);
-        return this.mapGlobalToScreen(globalX, globalY, projection);
+        const point = this.getPlayerGlobalMapPoint();
+        if (!point) return null;
+        return this.mapGlobalToScreen(point.x, point.y, projection);
     }
 
     clearMapLabels() {
@@ -1207,12 +1241,14 @@ class AshenHollow extends Phaser.Scene {
         if (!rooms.length || !projection) {
             if (this.mapCurrentRoomText) this.mapCurrentRoomText.setText('Current: map unavailable');
             if (this.mapVisitedText) this.mapVisitedText.setText(`Visited ${this.visitedRooms.size}/${ROOM_SEQUENCE.length}`);
+            if (this.mapZoomText) this.mapZoomText.setText(`Zoom ${Math.round(this.mapZoom * 100)}%`);
             const emptyLabel = this.add.text(CONFIG.W / 2, IN_GAME_MAP.mapY + (IN_GAME_MAP.mapHeight / 2), 'No visited rooms to display.', {
                 fontSize: '14px',
                 fill: '#d8e7f3',
                 stroke: '#000',
                 strokeThickness: 3
             }).setOrigin(0.5).setScrollFactor(0).setDepth(942);
+            if (this.mapClipMask) emptyLabel.setMask(this.mapClipMask);
             this.mapRoomLabels.push(emptyLabel);
             this.mapNeedsRedraw = false;
             return;
@@ -1249,6 +1285,7 @@ class AshenHollow extends Phaser.Scene {
                 stroke: '#000',
                 strokeThickness: 3
             }).setOrigin(0.5).setScrollFactor(0).setDepth(942);
+            if (this.mapClipMask) roomLabel.setMask(this.mapClipMask);
             this.mapRoomLabels.push(roomLabel);
         });
 
@@ -1264,7 +1301,68 @@ class AshenHollow extends Phaser.Scene {
         const currentName = currentRoom?.name || this.currentRoomId;
         if (this.mapCurrentRoomText) this.mapCurrentRoomText.setText(`Current: ${this.currentRoomId} - ${currentName}`);
         if (this.mapVisitedText) this.mapVisitedText.setText(`Visited ${this.visitedRooms.size}/${ROOM_SEQUENCE.length}`);
+        if (this.mapZoomText) this.mapZoomText.setText(`Zoom ${Math.round(this.mapZoom * 100)}%`);
         this.mapNeedsRedraw = false;
+    }
+
+    setMapZoom(nextZoom) {
+        const clampedZoom = Phaser.Math.Clamp(Number(nextZoom.toFixed(2)), 0.6, 3);
+        if (clampedZoom === this.mapZoom) return false;
+        this.mapZoom = clampedZoom;
+        this.mapNeedsRedraw = true;
+        if (this.isMapOpen) this.drawMapOverlay();
+        return true;
+    }
+
+    adjustMapZoom(delta) {
+        this.setMapZoom(this.mapZoom + delta);
+    }
+
+    resetMapPinch() {
+        this.mapPinchActive = false;
+        this.mapPinchStartDistance = 0;
+        this.mapPinchStartZoom = this.mapZoom;
+    }
+
+    getTouchCanvasPoint(touch) {
+        const rect = this.game.canvas.getBoundingClientRect();
+        const gameWidth = this.scale.gameSize.width;
+        const gameHeight = this.scale.gameSize.height;
+        return {
+            x: ((touch.clientX - rect.left) / rect.width) * gameWidth,
+            y: ((touch.clientY - rect.top) / rect.height) * gameHeight
+        };
+    }
+
+    isPointInMapPanel(x, y) {
+        return x >= IN_GAME_MAP.panelX &&
+            x <= IN_GAME_MAP.panelX + IN_GAME_MAP.panelWidth &&
+            y >= IN_GAME_MAP.panelY &&
+            y <= IN_GAME_MAP.panelY + IN_GAME_MAP.panelHeight;
+    }
+
+    beginMapPinch(touchA, touchB) {
+        const pointA = this.getTouchCanvasPoint(touchA);
+        const pointB = this.getTouchCanvasPoint(touchB);
+        const centerX = (pointA.x + pointB.x) / 2;
+        const centerY = (pointA.y + pointB.y) / 2;
+        if (!this.isPointInMapPanel(centerX, centerY)) return false;
+
+        this.mapPinchActive = true;
+        this.mapPinchStartDistance = Phaser.Math.Distance.Between(pointA.x, pointA.y, pointB.x, pointB.y);
+        this.mapPinchStartZoom = this.mapZoom;
+        return this.mapPinchStartDistance > 0;
+    }
+
+    updateMapPinch(touchA, touchB) {
+        if (!this.mapPinchActive || this.mapPinchStartDistance <= 0) return;
+
+        const pointA = this.getTouchCanvasPoint(touchA);
+        const pointB = this.getTouchCanvasPoint(touchB);
+        const distance = Phaser.Math.Distance.Between(pointA.x, pointA.y, pointB.x, pointB.y);
+        if (distance <= 0) return;
+
+        this.setMapZoom(this.mapPinchStartZoom * (distance / this.mapPinchStartDistance));
     }
 
     toggleMapOverlay() {
@@ -1280,7 +1378,10 @@ class AshenHollow extends Phaser.Scene {
             this.mapHintText,
             this.mapCurrentRoomText,
             this.mapVisitedText,
-            this.mapRevealHintText
+            this.mapRevealHintText,
+            this.mapZoomText,
+            this.mapZoomInText,
+            this.mapZoomOutText
         ].filter(Boolean);
         overlayObjects.forEach((obj) => obj.setVisible(this.isMapOpen));
 
@@ -1292,6 +1393,7 @@ class AshenHollow extends Phaser.Scene {
             this.inputState.left = false;
             this.inputState.right = false;
             this.inputState.jump = false;
+            this.resetMapPinch();
             this.player.setVelocity(0, 0);
             this.physics.world.pause();
             if (this.interactBtn) {
@@ -1303,6 +1405,7 @@ class AshenHollow extends Phaser.Scene {
             return;
         }
 
+        this.resetMapPinch();
         this.clearMapLabels();
         if (!this.isGameOver) this.physics.world.resume();
     }
@@ -1332,6 +1435,14 @@ class AshenHollow extends Phaser.Scene {
             .setDepth(941)
             .setVisible(false);
 
+        this.mapMaskShape = this.add.graphics()
+            .setScrollFactor(0)
+            .setVisible(false);
+        this.mapMaskShape.fillStyle(0xffffff, 1);
+        this.mapMaskShape.fillRect(IN_GAME_MAP.mapX, IN_GAME_MAP.mapY, IN_GAME_MAP.mapWidth, IN_GAME_MAP.mapHeight);
+        this.mapClipMask = this.mapMaskShape.createGeometryMask();
+        this.mapGraphics.setMask(this.mapClipMask);
+
         this.mapTitleText = this.add.text(IN_GAME_MAP.panelX + 18, IN_GAME_MAP.panelY + 14, 'MAP', {
             fontSize: '18px',
             fill: '#f0f7ff',
@@ -1339,12 +1450,33 @@ class AshenHollow extends Phaser.Scene {
             strokeThickness: 4
         }).setScrollFactor(0).setDepth(942).setVisible(false);
 
-        this.mapHintText = this.add.text(IN_GAME_MAP.panelX + IN_GAME_MAP.panelWidth - 18, IN_GAME_MAP.panelY + 16, 'Press M or tap MAP to close', {
+        this.mapHintText = this.add.text(IN_GAME_MAP.panelX + IN_GAME_MAP.panelWidth - 18, IN_GAME_MAP.panelY + 16, 'Press M to close, +/- or pinch to zoom', {
             fontSize: '11px',
             fill: '#9fc3dc',
             stroke: '#000',
             strokeThickness: 3
         }).setOrigin(1, 0).setScrollFactor(0).setDepth(942).setVisible(false);
+
+        this.mapZoomOutText = this.add.text(IN_GAME_MAP.panelX + IN_GAME_MAP.panelWidth - 162, IN_GAME_MAP.panelY + 12, '[ - ]', {
+            fontSize: '12px',
+            fill: '#d3ecff',
+            backgroundColor: '#112233'
+        }).setPadding(6, 4, 6, 4).setScrollFactor(0).setDepth(942).setVisible(false).setInteractive()
+            .on('pointerdown', () => this.adjustMapZoom(-0.2));
+
+        this.mapZoomInText = this.add.text(IN_GAME_MAP.panelX + IN_GAME_MAP.panelWidth - 106, IN_GAME_MAP.panelY + 12, '[ + ]', {
+            fontSize: '12px',
+            fill: '#d3ecff',
+            backgroundColor: '#112233'
+        }).setPadding(6, 4, 6, 4).setScrollFactor(0).setDepth(942).setVisible(false).setInteractive()
+            .on('pointerdown', () => this.adjustMapZoom(0.2));
+
+        this.mapZoomText = this.add.text(IN_GAME_MAP.panelX + IN_GAME_MAP.panelWidth - 188, IN_GAME_MAP.panelY + 42, 'Zoom 100%', {
+            fontSize: '12px',
+            fill: '#d3ecff',
+            stroke: '#000',
+            strokeThickness: 3
+        }).setScrollFactor(0).setDepth(942).setVisible(false);
 
         this.mapCurrentRoomText = this.add.text(IN_GAME_MAP.panelX + 18, IN_GAME_MAP.panelY + 42, '', {
             fontSize: '12px',
@@ -1406,6 +1538,55 @@ class AshenHollow extends Phaser.Scene {
         this.debugBypassKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.B);
         this.debugUnlockKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.U);
         this.input.addPointer(2);
+
+        if (this.mapKeyboardHandler) this.input.keyboard.off('keydown', this.mapKeyboardHandler);
+        this.mapKeyboardHandler = (event) => {
+            if (!this.isMapOpen) return;
+
+            const key = event.key;
+            const code = event.code;
+            if (key === '+' || key === '=' || code === 'NumpadAdd') {
+                this.mapZoomQueuedDelta += 0.2;
+                event.preventDefault();
+                return;
+            }
+            if (key === '-' || key === '_' || code === 'NumpadSubtract') {
+                this.mapZoomQueuedDelta -= 0.2;
+                event.preventDefault();
+            }
+        };
+        this.input.keyboard.on('keydown', this.mapKeyboardHandler);
+
+        if (this.mapTouchStartHandler) this.game.canvas.removeEventListener('touchstart', this.mapTouchStartHandler);
+        if (this.mapTouchMoveHandler) this.game.canvas.removeEventListener('touchmove', this.mapTouchMoveHandler);
+        if (this.mapTouchEndHandler) this.game.canvas.removeEventListener('touchend', this.mapTouchEndHandler);
+        if (this.mapTouchCancelHandler) this.game.canvas.removeEventListener('touchcancel', this.mapTouchCancelHandler);
+
+        this.mapTouchStartHandler = (event) => {
+            if (!this.isMapOpen || event.touches.length < 2) return;
+            if (this.beginMapPinch(event.touches[0], event.touches[1])) {
+                event.preventDefault();
+            }
+        };
+
+        this.mapTouchMoveHandler = (event) => {
+            if (!this.isMapOpen || event.touches.length < 2) return;
+            if (!this.mapPinchActive && !this.beginMapPinch(event.touches[0], event.touches[1])) return;
+            this.updateMapPinch(event.touches[0], event.touches[1]);
+            event.preventDefault();
+        };
+
+        this.mapTouchEndHandler = (event) => {
+            if (event.touches.length < 2) this.resetMapPinch();
+        };
+        this.mapTouchCancelHandler = () => {
+            this.resetMapPinch();
+        };
+
+        this.game.canvas.addEventListener('touchstart', this.mapTouchStartHandler, { passive: false });
+        this.game.canvas.addEventListener('touchmove', this.mapTouchMoveHandler, { passive: false });
+        this.game.canvas.addEventListener('touchend', this.mapTouchEndHandler, { passive: false });
+        this.game.canvas.addEventListener('touchcancel', this.mapTouchCancelHandler, { passive: false });
 
         const spawnBtn = (x, y, label, action) => {
             const btn = this.add.image(x, y, 'btn').setScrollFactor(0).setInteractive().setAlpha(0.6);
@@ -1750,6 +1931,11 @@ class AshenHollow extends Phaser.Scene {
             this.toggleMapOverlay();
         }
         if (this.isMapOpen) {
+            if (this.mapZoomQueuedDelta !== 0) {
+                const delta = this.mapZoomQueuedDelta;
+                this.mapZoomQueuedDelta = 0;
+                this.adjustMapZoom(delta);
+            }
             if (this.mapNeedsRedraw) this.drawMapOverlay();
             return;
         }
