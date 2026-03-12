@@ -187,6 +187,26 @@
       color: var(--muted);
       min-height: 18px;
     }
+    .toast {
+      position: fixed;
+      right: 18px;
+      bottom: 18px;
+      max-width: min(360px, calc(100vw - 36px));
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      background: rgba(16, 35, 49, 0.96);
+      color: var(--text);
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+      z-index: 20;
+      font-size: 12px;
+      line-height: 1.4;
+    }
+    .toast.success {
+      border-color: #255c48;
+      background: rgba(22, 55, 43, 0.96);
+      color: #dff7ec;
+    }
     .badge {
       display: inline-block;
       padding: 3px 8px;
@@ -274,9 +294,33 @@
     .field-hidden {
       display: none;
     }
+    .global-link-panel {
+      display: grid;
+      grid-template-columns: minmax(220px, 1.3fr) minmax(0, 1fr) minmax(0, 1fr) auto auto auto;
+      gap: 8px;
+      padding: 12px;
+      border-bottom: 1px solid var(--line);
+      background: #0b1620;
+      align-items: end;
+    }
+    .global-link-summary {
+      font-size: 12px;
+      color: var(--text);
+      line-height: 1.45;
+      min-height: 42px;
+      display: flex;
+      align-items: center;
+    }
+    .global-link-panel button {
+      height: 40px;
+      align-self: end;
+    }
     @media (max-width: 1300px) {
       .app {
         grid-template-columns: 1fr;
+      }
+      .global-link-panel {
+        grid-template-columns: 1fr 1fr;
       }
     }
   </style>
@@ -410,6 +454,20 @@
         <canvas id="roomCanvas" width="960" height="720"></canvas>
       </div>
       <div class="canvas-box hidden" id="globalCanvasBox">
+        <div class="global-link-panel" id="globalLinkPanel">
+          <div class="global-link-summary" id="globalLinkSummary">Select an edge in the global map to create or edit a room connection.</div>
+          <label>
+            Target Room
+            <select id="edgeTargetRoom"></select>
+          </label>
+          <label>
+            Target Edge
+            <select id="edgeTargetIndex"></select>
+          </label>
+          <button id="linkSelectedEdge" class="good">Link Edge</button>
+          <button id="clearSelectedEdgeLink">Clear Link</button>
+          <button id="snapSelectedEdge">Snap Room</button>
+        </div>
         <canvas id="globalCanvas" width="960" height="720"></canvas>
       </div>
       <details>
@@ -441,6 +499,7 @@
     </section>
 
   </main>
+  <div class="toast hidden" id="toast"></div>
 
   <script id="seedData" type="application/json">
 {
@@ -673,6 +732,8 @@
       const HIT_DOOR_Y = 36;
       const HIT_PLATFORM_PAD = 12;
       const HIT_GLOBAL_PAD = 18;
+      const HIT_LINK_GUIDE_PAD = 18;
+      const GLOBAL_DRAG_START_DISTANCE = 6;
       const roomCanvas = document.getElementById('roomCanvas');
       const roomCtx = roomCanvas.getContext('2d');
       const globalCanvas = document.getElementById('globalCanvas');
@@ -725,6 +786,13 @@
         moverCount: document.getElementById('moverCount'),
         roomCanvasBox: document.getElementById('roomCanvasBox'),
         globalCanvasBox: document.getElementById('globalCanvasBox'),
+        globalLinkPanel: document.getElementById('globalLinkPanel'),
+        globalLinkSummary: document.getElementById('globalLinkSummary'),
+        edgeTargetRoom: document.getElementById('edgeTargetRoom'),
+        edgeTargetIndex: document.getElementById('edgeTargetIndex'),
+        linkSelectedEdge: document.getElementById('linkSelectedEdge'),
+        clearSelectedEdgeLink: document.getElementById('clearSelectedEdgeLink'),
+        snapSelectedEdge: document.getElementById('snapSelectedEdge'),
         canvasTitle: document.getElementById('canvasTitle'),
         canvasSub: document.getElementById('canvasSub'),
         jsonText: document.getElementById('jsonText'),
@@ -736,7 +804,8 @@
         syncCanonicalJson: document.getElementById('syncCanonicalJson'),
         openGameWithLayout: document.getElementById('openGameWithLayout'),
         clearSavedLayout: document.getElementById('clearSavedLayout'),
-        statusText: document.getElementById('statusText')
+        statusText: document.getElementById('statusText'),
+        toast: document.getElementById('toast')
       };
 
       const state = {
@@ -750,12 +819,31 @@
         drag: null,
         pendingMoverStart: null,
         hoverLocal: null,
+        selectedGlobalEdge: null,
+        globalSnapPreview: null,
         fileHandle: null,
-        apiAvailable: false
+        apiAvailable: false,
+        toastTimer: null
       };
 
       function setStatus(message) {
         ui.statusText.textContent = message;
+      }
+
+      function showToast(message, kind = 'success') {
+        if (!ui.toast) return;
+        if (state.toastTimer) {
+          window.clearTimeout(state.toastTimer);
+          state.toastTimer = null;
+        }
+        ui.toast.textContent = message;
+        ui.toast.classList.remove('hidden', 'success');
+        if (kind) ui.toast.classList.add(kind);
+        state.toastTimer = window.setTimeout(() => {
+          ui.toast.classList.add('hidden');
+          ui.toast.classList.remove('success');
+          state.toastTimer = null;
+        }, 2600);
       }
 
       function selectionKey(item) {
@@ -800,6 +888,7 @@
         room.doors = Array.isArray(room.doors) ? room.doors : [];
         room.keys = Array.isArray(room.keys) ? room.keys : [];
         room.movingPlatforms = Array.isArray(room.movingPlatforms) ? room.movingPlatforms : [];
+        room.edgeLinks = Array.isArray(room.edgeLinks) ? room.edgeLinks : [];
         room.doors = room.doors.map((door) => ({
           ...door,
           initialState: {
@@ -834,6 +923,383 @@
         room.polygon = Array.isArray(room.polygon) && room.polygon.length >= 3
           ? room.polygon
           : [[160, 160], [1200, 160], [1200, 980], [160, 980]];
+        room.edgeLinks = room.edgeLinks
+          .map((link) => ({
+            edgeIndex: Number(link?.edgeIndex),
+            targetRoomId: String(link?.targetRoomId || ''),
+            targetEdgeIndex: Number(link?.targetEdgeIndex)
+          }))
+          .filter((link) => Number.isInteger(link.edgeIndex) && link.edgeIndex >= 0 && Number.isInteger(link.targetEdgeIndex) && link.targetEdgeIndex >= 0 && link.targetRoomId);
+      }
+
+      function getRoomById(roomId) {
+        return state.data.rooms.find((room) => room.id === roomId) || null;
+      }
+
+      function getLinkedRoomGroup(roomId) {
+        const visited = new Set();
+        const queue = roomId ? [roomId] : [];
+        while (queue.length) {
+          const currentRoomId = queue.shift();
+          if (!currentRoomId || visited.has(currentRoomId)) continue;
+          visited.add(currentRoomId);
+          const room = getRoomById(currentRoomId);
+          if (!room) continue;
+          ensureRoomShape(room);
+          room.edgeLinks.forEach((link) => {
+            if (link.targetRoomId && !visited.has(link.targetRoomId)) {
+              queue.push(link.targetRoomId);
+            }
+          });
+        }
+        return [...visited];
+      }
+
+      function snapshotGlobalRoomGroup(roomIds) {
+        return roomIds
+          .map((roomId) => {
+            const room = getRoomById(roomId);
+            if (!room) return null;
+            return { roomId, x: room.global.x, y: room.global.y };
+          })
+          .filter(Boolean);
+      }
+
+      function applyGlobalRoomGroupDelta(snapshot, dx, dy) {
+        snapshot.forEach((entry) => {
+          const room = getRoomById(entry.roomId);
+          if (!room) return;
+          room.global.x = Math.round(entry.x + dx);
+          room.global.y = Math.round(entry.y + dy);
+        });
+      }
+
+      function getEdgeCount(room) {
+        ensureRoomShape(room);
+        return room.polygon.length;
+      }
+
+      function getRoomEdge(room, edgeIndex) {
+        ensureRoomShape(room);
+        const count = room.polygon.length;
+        if (!count) return null;
+        const normalizedIndex = ((edgeIndex % count) + count) % count;
+        const start = room.polygon[normalizedIndex];
+        const end = room.polygon[(normalizedIndex + 1) % count];
+        return {
+          roomId: room.id,
+          edgeIndex: normalizedIndex,
+          start: { x: start[0], y: start[1] },
+          end: { x: end[0], y: end[1] }
+        };
+      }
+
+      function edgeLabel(room, edgeIndex) {
+        const edge = getRoomEdge(room, edgeIndex);
+        if (!edge) return `Edge ${edgeIndex + 1}`;
+        return `Edge ${edge.edgeIndex + 1} · (${edge.start.x}, ${edge.start.y}) -> (${edge.end.x}, ${edge.end.y})`;
+      }
+
+      function getEdgeLink(roomId, edgeIndex) {
+        const room = getRoomById(roomId);
+        if (!room) return null;
+        ensureRoomShape(room);
+        return room.edgeLinks.find((link) => Number(link.edgeIndex) === Number(edgeIndex)) || null;
+      }
+
+      function clearRoomEdgeLink(roomId, edgeIndex, clearReciprocal = true) {
+        const room = getRoomById(roomId);
+        if (!room) return;
+        ensureRoomShape(room);
+        const existing = getEdgeLink(roomId, edgeIndex);
+        room.edgeLinks = room.edgeLinks.filter((link) => Number(link.edgeIndex) !== Number(edgeIndex));
+        if (!clearReciprocal || !existing) return;
+
+        const targetRoom = getRoomById(existing.targetRoomId);
+        if (!targetRoom) return;
+        ensureRoomShape(targetRoom);
+        targetRoom.edgeLinks = targetRoom.edgeLinks.filter((link) => Number(link.edgeIndex) !== Number(existing.targetEdgeIndex));
+      }
+
+      function clearAllRoomEdgeLinks(roomId) {
+        const room = getRoomById(roomId);
+        if (!room) return;
+        ensureRoomShape(room);
+        const links = [...room.edgeLinks];
+        links.forEach((link) => clearRoomEdgeLink(roomId, link.edgeIndex, true));
+      }
+
+      function setRoomEdgeLink(roomId, edgeIndex, targetRoomId, targetEdgeIndex) {
+        if (!roomId || !targetRoomId || roomId === targetRoomId) return false;
+        const room = getRoomById(roomId);
+        const targetRoom = getRoomById(targetRoomId);
+        if (!room || !targetRoom) return false;
+        if (edgeIndex < 0 || targetEdgeIndex < 0) return false;
+        if (edgeIndex >= getEdgeCount(room) || targetEdgeIndex >= getEdgeCount(targetRoom)) return false;
+
+        clearRoomEdgeLink(roomId, edgeIndex, true);
+        clearRoomEdgeLink(targetRoomId, targetEdgeIndex, true);
+
+        room.edgeLinks.push({ edgeIndex, targetRoomId, targetEdgeIndex });
+        targetRoom.edgeLinks.push({ edgeIndex: targetEdgeIndex, targetRoomId: roomId, targetEdgeIndex: edgeIndex });
+        room.edgeLinks.sort((a, b) => a.edgeIndex - b.edgeIndex);
+        targetRoom.edgeLinks.sort((a, b) => a.edgeIndex - b.edgeIndex);
+        return true;
+      }
+
+      function getEdgeGlobalPoints(room, edgeIndex, roomGlobal = room.global) {
+        const edge = getRoomEdge(room, edgeIndex);
+        if (!edge) return null;
+        const start = {
+          x: roomGlobal.x + ((edge.start.x - (room.size.width / 2)) * GLOBAL_ROOM_PREVIEW_SCALE),
+          y: roomGlobal.y + ((edge.start.y - (room.size.height / 2)) * GLOBAL_ROOM_PREVIEW_SCALE)
+        };
+        const end = {
+          x: roomGlobal.x + ((edge.end.x - (room.size.width / 2)) * GLOBAL_ROOM_PREVIEW_SCALE),
+          y: roomGlobal.y + ((edge.end.y - (room.size.height / 2)) * GLOBAL_ROOM_PREVIEW_SCALE)
+        };
+        return { start, end };
+      }
+
+      function getEdgeCanvasPoints(room, edgeIndex) {
+        const polygon = getGlobalRoomPoints(room);
+        if (!polygon.length) return null;
+        const normalizedIndex = ((edgeIndex % polygon.length) + polygon.length) % polygon.length;
+        return {
+          start: polygon[normalizedIndex],
+          end: polygon[(normalizedIndex + 1) % polygon.length]
+        };
+      }
+
+      function getLinkedEdgeGuide(roomId, edgeIndex) {
+        const link = getEdgeLink(roomId, edgeIndex);
+        if (!link) return null;
+        const room = getRoomById(roomId);
+        const targetRoom = getRoomById(link.targetRoomId);
+        if (!room || !targetRoom) return null;
+        const sourceEdge = getEdgeCanvasPoints(room, edgeIndex);
+        const targetEdge = getEdgeCanvasPoints(targetRoom, link.targetEdgeIndex);
+        if (!sourceEdge || !targetEdge) return null;
+        return {
+          sourceRoomId: roomId,
+          edgeIndex,
+          targetRoomId: link.targetRoomId,
+          targetEdgeIndex: link.targetEdgeIndex,
+          sourceEdge,
+          targetEdge
+        };
+      }
+
+      function edgeLength(edge) {
+        if (!edge) return 0;
+        return Math.hypot(edge.end.x - edge.start.x, edge.end.y - edge.start.y);
+      }
+
+      function globalPointToRoomLocal(room, point) {
+        ensureRoomShape(room);
+        return {
+          x: (room.size.width / 2) + ((point.x - room.global.x) / GLOBAL_ROOM_PREVIEW_SCALE),
+          y: (room.size.height / 2) + ((point.y - room.global.y) / GLOBAL_ROOM_PREVIEW_SCALE)
+        };
+      }
+
+      function getRoomLinkedEdgeGuide(roomId, edgeIndex) {
+        const link = getEdgeLink(roomId, edgeIndex);
+        if (!link) return null;
+        const room = getRoomById(roomId);
+        const targetRoom = getRoomById(link.targetRoomId);
+        if (!room || !targetRoom) return null;
+
+        const sourceEdge = getRoomEdge(room, edgeIndex);
+        const targetEdge = getRoomEdge(targetRoom, link.targetEdgeIndex);
+        const targetGlobalEdge = getEdgeGlobalPoints(targetRoom, link.targetEdgeIndex, targetRoom.global);
+        const sourceLength = edgeLength(sourceEdge);
+        const targetLength = edgeLength(targetEdge);
+        if (!sourceEdge || !targetEdge || !targetGlobalEdge || sourceLength <= 0.001 || targetLength <= 0.001) return null;
+
+        const guideLocal = {
+          start: globalPointToRoomLocal(room, targetGlobalEdge.start),
+          end: globalPointToRoomLocal(room, targetGlobalEdge.end)
+        };
+        return {
+          roomId,
+          edgeIndex,
+          targetRoomId: link.targetRoomId,
+          targetEdgeIndex: link.targetEdgeIndex,
+          sourceEdge,
+          targetEdge,
+          sourceLength,
+          targetLength,
+          guideLocal,
+          guideCanvas: {
+            start: roomToCanvasPoint(guideLocal.start.x, guideLocal.start.y),
+            end: roomToCanvasPoint(guideLocal.end.x, guideLocal.end.y)
+          }
+        };
+      }
+
+      function getRoomVertexLinkSnapTargets(room, vertexIndex) {
+        ensureRoomShape(room);
+        if (!room.polygon.length) return [];
+        const count = room.polygon.length;
+        const targets = [];
+        const currentVertex = room.polygon[vertexIndex]
+          ? { x: room.polygon[vertexIndex][0], y: room.polygon[vertexIndex][1] }
+          : null;
+        const pickGuideEndpoint = (guide) => {
+          if (!guide || !currentVertex) return null;
+          const startDistance = Phaser.Math.Distance.Between(
+            currentVertex.x,
+            currentVertex.y,
+            guide.guideLocal.start.x,
+            guide.guideLocal.start.y
+          );
+          const endDistance = Phaser.Math.Distance.Between(
+            currentVertex.x,
+            currentVertex.y,
+            guide.guideLocal.end.x,
+            guide.guideLocal.end.y
+          );
+          return startDistance <= endDistance
+            ? { point: guide.guideLocal.start, canvas: guide.guideCanvas.start }
+            : { point: guide.guideLocal.end, canvas: guide.guideCanvas.end };
+        };
+
+        const outgoingGuide = getRoomLinkedEdgeGuide(room.id, vertexIndex);
+        if (outgoingGuide) {
+          const snapTarget = pickGuideEndpoint(outgoingGuide);
+          if (snapTarget) {
+            targets.push({
+              roomId: room.id,
+              vertexIndex,
+              edgeIndex: outgoingGuide.edgeIndex,
+              point: snapTarget.point,
+              canvas: snapTarget.canvas
+            });
+          }
+        }
+
+        const incomingEdgeIndex = ((vertexIndex - 1) % count + count) % count;
+        const incomingGuide = getRoomLinkedEdgeGuide(room.id, incomingEdgeIndex);
+        if (incomingGuide) {
+          const snapTarget = pickGuideEndpoint(incomingGuide);
+          if (snapTarget) {
+            targets.push({
+              roomId: room.id,
+              vertexIndex,
+              edgeIndex: incomingGuide.edgeIndex,
+              point: snapTarget.point,
+              canvas: snapTarget.canvas
+            });
+          }
+        }
+
+        return targets;
+      }
+
+      function getNearestRoomVertexLinkSnap(room, vertexIndex, mouse) {
+        const targets = getRoomVertexLinkSnapTargets(room, vertexIndex);
+        let best = null;
+        targets.forEach((target) => {
+          const distance = pointDistance(mouse, target.canvas);
+          if (!best || distance < best.distance) {
+            best = { ...target, distance };
+          }
+        });
+        if (!best || best.distance > HIT_LINK_GUIDE_PAD) return null;
+        return best;
+      }
+
+      function getRoomSnapCandidate(room) {
+        ensureRoomShape(room);
+        if (!room.edgeLinks.length) return null;
+
+        const projection = globalScale();
+        const snapThreshold = 28 / projection.scale;
+        let best = null;
+
+        room.edgeLinks.forEach((link) => {
+          const targetRoom = getRoomById(link.targetRoomId);
+          if (!targetRoom) return;
+
+          const sourceEdge = getEdgeGlobalPoints(room, link.edgeIndex, room.global);
+          const targetEdge = getEdgeGlobalPoints(targetRoom, link.targetEdgeIndex, targetRoom.global);
+          if (!sourceEdge || !targetEdge) return;
+
+          const sourceMid = {
+            x: (sourceEdge.start.x + sourceEdge.end.x) / 2,
+            y: (sourceEdge.start.y + sourceEdge.end.y) / 2
+          };
+          const targetMid = {
+            x: (targetEdge.start.x + targetEdge.end.x) / 2,
+            y: (targetEdge.start.y + targetEdge.end.y) / 2
+          };
+          const candidateDeltas = [
+            {
+              proposedGlobal: {
+                x: room.global.x + (targetMid.x - sourceMid.x),
+                y: room.global.y + (targetMid.y - sourceMid.y)
+              }
+            },
+            {
+              proposedGlobal: {
+                x: room.global.x + (targetEdge.start.x - sourceEdge.start.x),
+                y: room.global.y + (targetEdge.start.y - sourceEdge.start.y)
+              }
+            },
+            {
+              proposedGlobal: {
+                x: room.global.x + (targetEdge.end.x - sourceEdge.end.x),
+                y: room.global.y + (targetEdge.end.y - sourceEdge.end.y)
+              }
+            },
+            {
+              proposedGlobal: {
+                x: room.global.x + (targetEdge.end.x - sourceEdge.start.x),
+                y: room.global.y + (targetEdge.end.y - sourceEdge.start.y)
+              }
+            },
+            {
+              proposedGlobal: {
+                x: room.global.x + (targetEdge.start.x - sourceEdge.end.x),
+                y: room.global.y + (targetEdge.start.y - sourceEdge.end.y)
+              }
+            }
+          ];
+
+          candidateDeltas.forEach((entry) => {
+            const snappedEdge = getEdgeGlobalPoints(room, link.edgeIndex, entry.proposedGlobal);
+            if (!snappedEdge) return;
+            const sameError = Math.max(
+              pointDistance(snappedEdge.start, targetEdge.start),
+              pointDistance(snappedEdge.end, targetEdge.end)
+            );
+            const reversedError = Math.max(
+              pointDistance(snappedEdge.start, targetEdge.end),
+              pointDistance(snappedEdge.end, targetEdge.start)
+            );
+            const error = Math.min(sameError, reversedError);
+            const candidate = {
+              roomId: room.id,
+              edgeIndex: link.edgeIndex,
+              targetRoomId: link.targetRoomId,
+              targetEdgeIndex: link.targetEdgeIndex,
+              proposedGlobal: entry.proposedGlobal,
+              error
+            };
+            if (!best || candidate.error < best.error) best = candidate;
+          });
+        });
+
+        if (!best || best.error > snapThreshold) return null;
+        return best;
+      }
+
+      function applyRoomSnapCandidate(room, candidate) {
+        if (!room || !candidate) return false;
+        room.global.x = Math.round(candidate.proposedGlobal.x);
+        room.global.y = Math.round(candidate.proposedGlobal.y);
+        return true;
       }
 
       function currentRoomSize() {
@@ -1158,6 +1624,146 @@
         populateItemList();
       }
 
+      function setSelectedGlobalEdge(selection) {
+        state.selectedGlobalEdge = selection ? { roomId: selection.roomId, edgeIndex: selection.edgeIndex } : null;
+        state.globalSnapPreview = null;
+        ui.edgeTargetRoom.value = '';
+        ui.edgeTargetIndex.value = '';
+        updateGlobalLinkControls();
+      }
+
+      function populateTargetEdgeOptions(roomId, preferredEdgeIndex = null) {
+        const targetRoom = getRoomById(roomId);
+        if (!targetRoom) {
+          ui.edgeTargetIndex.innerHTML = '<option value="">No edge</option>';
+          ui.edgeTargetIndex.value = '';
+          return;
+        }
+
+        const options = [];
+        for (let edgeIndex = 0; edgeIndex < getEdgeCount(targetRoom); edgeIndex += 1) {
+          options.push(`<option value="${edgeIndex}">${edgeLabel(targetRoom, edgeIndex)}</option>`);
+        }
+        ui.edgeTargetIndex.innerHTML = options.join('');
+        const fallbackValue = options.length ? '0' : '';
+        ui.edgeTargetIndex.value = options.some((_, index) => String(index) === String(preferredEdgeIndex))
+          ? String(preferredEdgeIndex)
+          : fallbackValue;
+      }
+
+      function updateGlobalLinkControls() {
+        const isGlobalView = state.viewMode === 'global';
+        ui.globalLinkPanel.classList.toggle('hidden', !isGlobalView);
+        if (!isGlobalView) return;
+
+        const selected = state.selectedGlobalEdge;
+        const requestedTargetRoomId = ui.edgeTargetRoom.value;
+        const requestedTargetEdgeIndex = ui.edgeTargetIndex.value;
+        if (!selected) {
+          ui.globalLinkSummary.textContent = 'Select an edge in the global map to create or edit a room connection.';
+          ui.edgeTargetRoom.innerHTML = '<option value="">No edge selected</option>';
+          ui.edgeTargetIndex.innerHTML = '<option value="">No edge selected</option>';
+          ui.edgeTargetRoom.disabled = true;
+          ui.edgeTargetIndex.disabled = true;
+          ui.linkSelectedEdge.disabled = true;
+          ui.clearSelectedEdgeLink.disabled = true;
+          ui.snapSelectedEdge.disabled = true;
+          return;
+        }
+
+        const room = getRoomById(selected.roomId);
+        const existingLink = getEdgeLink(selected.roomId, selected.edgeIndex);
+        const targetRooms = state.data.rooms.filter((entry) => entry.id !== selected.roomId);
+        ui.edgeTargetRoom.innerHTML = targetRooms.length
+          ? targetRooms.map((entry) => `<option value="${entry.id}">${entry.id} - ${entry.name}</option>`).join('')
+          : '<option value="">No target rooms</option>';
+
+        const selectedTargetRoomId = targetRooms.find((entry) => entry.id === requestedTargetRoomId)?.id
+          || existingLink?.targetRoomId
+          || targetRooms[0]?.id
+          || '';
+        ui.edgeTargetRoom.value = selectedTargetRoomId;
+        const preferredTargetEdgeIndex = requestedTargetRoomId === selectedTargetRoomId && requestedTargetEdgeIndex !== ''
+          ? Number(requestedTargetEdgeIndex)
+          : existingLink?.targetRoomId === selectedTargetRoomId
+            ? existingLink.targetEdgeIndex
+            : null;
+        populateTargetEdgeOptions(selectedTargetRoomId, preferredTargetEdgeIndex);
+
+        ui.edgeTargetRoom.disabled = targetRooms.length === 0;
+        ui.edgeTargetIndex.disabled = !selectedTargetRoomId;
+        ui.linkSelectedEdge.disabled = targetRooms.length === 0 || ui.edgeTargetIndex.value === '';
+        ui.clearSelectedEdgeLink.disabled = !existingLink;
+        ui.snapSelectedEdge.disabled = !existingLink;
+
+        const sourceLabel = edgeLabel(room, selected.edgeIndex);
+        if (!existingLink) {
+          ui.globalLinkSummary.innerHTML = `<strong>${room.id}</strong> · ${sourceLabel}<br>Not linked yet. Choose a target room and edge, then click Link Edge.`;
+          return;
+        }
+
+        const targetRoom = getRoomById(existingLink.targetRoomId);
+        const targetLabel = targetRoom ? edgeLabel(targetRoom, existingLink.targetEdgeIndex) : `Edge ${existingLink.targetEdgeIndex + 1}`;
+        ui.globalLinkSummary.innerHTML = `<strong>${room.id}</strong> · ${sourceLabel}<br>Linked to <strong>${existingLink.targetRoomId}</strong> · ${targetLabel}. Drag the room or click Snap Room to align the connected walls.`;
+      }
+
+      function linkSelectedGlobalEdge() {
+        const selected = state.selectedGlobalEdge;
+        if (!selected) return;
+        const targetRoomId = ui.edgeTargetRoom.value;
+        const targetEdgeIndex = Number(ui.edgeTargetIndex.value);
+        if (!targetRoomId || !Number.isInteger(targetEdgeIndex)) return;
+        const linked = setRoomEdgeLink(selected.roomId, selected.edgeIndex, targetRoomId, targetEdgeIndex);
+        if (!linked) {
+          setStatus('Edge link failed. Check that both rooms and edges are valid.');
+          return;
+        }
+        state.globalSnapPreview = null;
+        updateGlobalLinkControls();
+        redraw();
+        setStatus(`Linked ${selected.roomId} edge ${selected.edgeIndex + 1} to ${targetRoomId} edge ${targetEdgeIndex + 1}.`);
+      }
+
+      function clearSelectedGlobalEdgeLink() {
+        const selected = state.selectedGlobalEdge;
+        if (!selected) return;
+        const existingLink = getEdgeLink(selected.roomId, selected.edgeIndex);
+        if (!existingLink) return;
+        clearRoomEdgeLink(selected.roomId, selected.edgeIndex, true);
+        state.globalSnapPreview = null;
+        updateGlobalLinkControls();
+        redraw();
+        setStatus(`Cleared link for ${selected.roomId} edge ${selected.edgeIndex + 1}.`);
+      }
+
+      function getSpecificEdgeSnapCandidate(roomId, edgeIndex) {
+        const room = getRoomById(roomId);
+        const link = getEdgeLink(roomId, edgeIndex);
+        if (!room || !link) return null;
+        const originalLinks = room.edgeLinks;
+        try {
+          room.edgeLinks = room.edgeLinks.filter((entry) => Number(entry.edgeIndex) === Number(edgeIndex));
+          return getRoomSnapCandidate(room);
+        } finally {
+          room.edgeLinks = originalLinks;
+        }
+      }
+
+      function snapSelectedGlobalEdge() {
+        const selected = state.selectedGlobalEdge;
+        if (!selected) return;
+        const room = getRoomById(selected.roomId);
+        const candidate = getSpecificEdgeSnapCandidate(selected.roomId, selected.edgeIndex);
+        if (!room || !candidate) {
+          setStatus('No snap target available for the selected edge.');
+          return;
+        }
+        applyRoomSnapCandidate(room, candidate);
+        state.globalSnapPreview = candidate;
+        redraw();
+        setStatus(`Snapped ${selected.roomId} edge ${selected.edgeIndex + 1} to ${candidate.targetRoomId} edge ${candidate.targetEdgeIndex + 1}.`);
+      }
+
       function resolveSelected() {
         const room = currentRoom();
         if (!state.selected) return null;
@@ -1217,6 +1823,71 @@
         ctx.restore();
       }
 
+      function drawGlobalEdge(edgeCanvas, options = {}) {
+        if (!edgeCanvas) return;
+        const {
+          strokeStyle = '#4ff5be',
+          lineWidth = 4,
+          dash = [],
+          endpointFill = null
+        } = options;
+        globalCtx.save();
+        globalCtx.strokeStyle = strokeStyle;
+        globalCtx.lineWidth = lineWidth;
+        globalCtx.setLineDash(dash);
+        globalCtx.beginPath();
+        globalCtx.moveTo(edgeCanvas.start.x, edgeCanvas.start.y);
+        globalCtx.lineTo(edgeCanvas.end.x, edgeCanvas.end.y);
+        globalCtx.stroke();
+        globalCtx.setLineDash([]);
+        if (endpointFill) {
+          [edgeCanvas.start, edgeCanvas.end].forEach((point) => {
+            globalCtx.beginPath();
+            globalCtx.arc(point.x, point.y, 5, 0, Math.PI * 2);
+            globalCtx.fillStyle = endpointFill;
+            globalCtx.fill();
+          });
+        }
+        globalCtx.restore();
+      }
+
+      function drawRoomEdge(edgeCanvas, options = {}) {
+        if (!edgeCanvas) return;
+        const {
+          strokeStyle = '#4ff5be',
+          lineWidth = 5,
+          dash = [],
+          endpointFill = null
+        } = options;
+        roomCtx.save();
+        roomCtx.strokeStyle = strokeStyle;
+        roomCtx.lineWidth = lineWidth;
+        roomCtx.setLineDash(dash);
+        roomCtx.beginPath();
+        roomCtx.moveTo(edgeCanvas.start.x, edgeCanvas.start.y);
+        roomCtx.lineTo(edgeCanvas.end.x, edgeCanvas.end.y);
+        roomCtx.stroke();
+        roomCtx.setLineDash([]);
+        if (endpointFill) {
+          [edgeCanvas.start, edgeCanvas.end].forEach((point) => {
+            roomCtx.beginPath();
+            roomCtx.arc(point.x, point.y, 5, 0, Math.PI * 2);
+            roomCtx.fillStyle = endpointFill;
+            roomCtx.fill();
+          });
+        }
+        roomCtx.restore();
+      }
+
+      function getRoomLocalEdgeCanvasPoints(room, edgeIndex) {
+        const edge = getRoomEdge(room, edgeIndex);
+        if (!edge) return null;
+        return {
+          start: roomToCanvasPoint(edge.start.x, edge.start.y),
+          end: roomToCanvasPoint(edge.end.x, edge.end.y)
+        };
+      }
+
       function drawRoomView() {
         const room = currentRoom();
         const scale = roomScale();
@@ -1254,6 +1925,25 @@
         roomCtx.fill();
         roomCtx.stroke();
         roomCtx.restore();
+
+        room.edgeLinks.forEach((link) => {
+          const isSelectedEdge = state.selectedGlobalEdge?.roomId === room.id &&
+            state.selectedGlobalEdge.edgeIndex === link.edgeIndex;
+          const localEdge = getRoomLocalEdgeCanvasPoints(room, link.edgeIndex);
+          drawRoomEdge(localEdge, {
+            strokeStyle: isSelectedEdge ? '#ffd166' : '#64c6ff',
+            lineWidth: isSelectedEdge ? 5 : 4
+          });
+
+          const guide = getRoomLinkedEdgeGuide(room.id, link.edgeIndex);
+          if (!guide) return;
+          drawRoomEdge(guide.guideCanvas, {
+            strokeStyle: isSelectedEdge ? '#ffd166' : '#3ee6b8',
+            lineWidth: isSelectedEdge ? 5 : 4,
+            dash: [10, 6],
+            endpointFill: isSelectedEdge ? '#ffd166' : '#3ee6b8'
+          });
+        });
 
         if (room.playerStart) {
           const p = roomToCanvasPoint(room.playerStart.x, room.playerStart.y);
@@ -1409,7 +2099,6 @@
       function drawGlobalView() {
         globalCtx.clearRect(0, 0, globalCanvas.width, globalCanvas.height);
         const globalProjection = globalScale();
-        const previewScale = globalProjection.scale * GLOBAL_ROOM_PREVIEW_SCALE;
         drawGrid(globalCtx, globalCanvas.width, globalCanvas.height, Math.max(24, 48 * globalProjection.scale), 'rgba(72, 99, 124, 0.15)');
         globalCtx.fillStyle = '#071018';
         globalCtx.fillRect(0, 0, globalCanvas.width, globalCanvas.height);
@@ -1433,6 +2122,75 @@
           globalCtx.font = '12px sans-serif';
           globalCtx.fillText(room.id, center.x - 10, center.y + 4);
         });
+
+        state.data.rooms.forEach((room) => {
+          ensureRoomShape(room);
+          room.edgeLinks.forEach((link) => {
+            const edgeCanvas = getEdgeCanvasPoints(room, link.edgeIndex);
+            drawGlobalEdge(edgeCanvas, {
+              strokeStyle: '#3ee6b8',
+              lineWidth: 4
+            });
+          });
+        });
+
+        if (state.selectedGlobalEdge) {
+          const room = getRoomById(state.selectedGlobalEdge.roomId);
+          const selectedEdge = room ? getEdgeCanvasPoints(room, state.selectedGlobalEdge.edgeIndex) : null;
+          drawGlobalEdge(selectedEdge, {
+            strokeStyle: '#ffd166',
+            lineWidth: 5,
+            endpointFill: '#ffd166'
+          });
+
+          const linkedGuide = getLinkedEdgeGuide(state.selectedGlobalEdge.roomId, state.selectedGlobalEdge.edgeIndex);
+          if (linkedGuide) {
+            drawGlobalEdge(linkedGuide.targetEdge, {
+              strokeStyle: '#ff8ec7',
+              lineWidth: 5,
+              dash: [10, 6],
+              endpointFill: '#ff8ec7'
+            });
+          }
+        }
+
+        if (state.drag && state.drag.type === 'room' && !state.drag.pending) {
+          const groupRoomIds = new Set(state.drag.groupRoomIds || [state.drag.roomId]);
+          groupRoomIds.forEach((dragRoomId) => {
+            const draggingRoom = getRoomById(dragRoomId);
+            if (!draggingRoom) return;
+            draggingRoom.edgeLinks.forEach((link) => {
+              if (groupRoomIds.has(link.targetRoomId)) return;
+              const targetRoom = getRoomById(link.targetRoomId);
+              if (!targetRoom) return;
+              const targetEdge = getEdgeCanvasPoints(targetRoom, link.targetEdgeIndex);
+              drawGlobalEdge(targetEdge, {
+                strokeStyle: 'rgba(255, 142, 199, 0.85)',
+                lineWidth: 4,
+                dash: [8, 6],
+                endpointFill: '#ff8ec7'
+              });
+            });
+          });
+        }
+
+        if (state.globalSnapPreview) {
+          const sourceRoom = getRoomById(state.globalSnapPreview.roomId);
+          const targetRoom = getRoomById(state.globalSnapPreview.targetRoomId);
+          const sourceEdge = sourceRoom ? getEdgeCanvasPoints(sourceRoom, state.globalSnapPreview.edgeIndex) : null;
+          const targetEdge = targetRoom ? getEdgeCanvasPoints(targetRoom, state.globalSnapPreview.targetEdgeIndex) : null;
+          drawGlobalEdge(targetEdge, {
+            strokeStyle: '#ff8ec7',
+            lineWidth: 6,
+            dash: [8, 6],
+            endpointFill: '#ff8ec7'
+          });
+          drawGlobalEdge(sourceEdge, {
+            strokeStyle: '#ffe08a',
+            lineWidth: 4,
+            endpointFill: '#ffe08a'
+          });
+        }
       }
 
       function redraw() {
@@ -1442,12 +2200,14 @@
         syncPropertyInputs();
         ui.roomCanvasBox.classList.toggle('hidden', state.viewMode !== 'room');
         ui.globalCanvasBox.classList.toggle('hidden', state.viewMode !== 'global');
+        ui.globalLinkPanel.classList.toggle('hidden', state.viewMode !== 'global');
         document.getElementById('canvasToolButtons').classList.toggle('hidden', state.viewMode !== 'room');
         if (state.viewMode !== 'room') ui.selectionInspector.classList.add('hidden');
         ui.canvasTitle.textContent = state.viewMode === 'room' ? `${room.id} Room Editor` : 'Global Map Editor';
         ui.canvasSub.textContent = state.viewMode === 'room'
           ? 'Drag vertices, platforms, moving platforms, doors, keys, and the player start. Add new items with the active tool.'
-          : 'Drag room footprints to rearrange global layout. Use Global Zoom to resize the map view.';
+          : 'Click an edge to link rooms. Drag room interiors to move rooms; linked edges highlight and snap together.';
+        updateGlobalLinkControls();
         drawRoomView();
         drawGlobalView();
         updateJsonText();
@@ -1764,6 +2524,19 @@
 
         for (const room of reversed) {
           const polygon = getGlobalRoomPoints(room);
+          let nearestEdge = null;
+          for (let edgeIndex = 0; edgeIndex < polygon.length; edgeIndex += 1) {
+            const a = polygon[edgeIndex];
+            const b = polygon[(edgeIndex + 1) % polygon.length];
+            const distance = distanceToCanvasSegment(mouse, a, b);
+            if (!nearestEdge || distance < nearestEdge.distance) {
+              nearestEdge = { kind: 'edge', roomId: room.id, edgeIndex, distance };
+            }
+          }
+          if (nearestEdge && nearestEdge.distance <= HIT_GLOBAL_PAD) {
+            return nearestEdge;
+          }
+
           if (pointInCanvasPolygon(mouse, polygon)) {
             return { kind: 'room', roomId: room.id };
           }
@@ -1783,6 +2556,11 @@
 
       function addVertexAt(mouse) {
         const room = currentRoom();
+        clearAllRoomEdgeLinks(room.id);
+        if (state.selectedGlobalEdge?.roomId === room.id) {
+          state.selectedGlobalEdge = null;
+          state.globalSnapPreview = null;
+        }
         const local = canvasToRoomPoint(mouse.x, mouse.y);
         let best = { index: 0, distance: Infinity };
         for (let i = 0; i < room.polygon.length; i += 1) {
@@ -2007,7 +2785,9 @@
         }
 
         if (state.drag.type === 'vertex') {
-          room.polygon[state.drag.index] = [local.x, local.y];
+          const snapTarget = getNearestRoomVertexLinkSnap(room, state.drag.index, mouse);
+          const nextPoint = snapTarget ? snapTarget.point : local;
+          room.polygon[state.drag.index] = [nextPoint.x, nextPoint.y];
         }
         if (state.drag.type === 'platform') {
           const platform = room.platforms.find((item) => item.id === state.drag.id);
@@ -2066,15 +2846,28 @@
         if (event.cancelable) event.preventDefault();
         const mouse = getCanvasPointer(event, globalCanvas);
         const hit = hitTestGlobal(mouse);
-        if (!hit) return;
+        state.globalSnapPreview = null;
+        if (!hit) {
+          setSelectedGlobalEdge(null);
+          redraw();
+          return;
+        }
         state.currentRoomId = hit.roomId;
         ui.roomSelect.value = hit.roomId;
-        const room = currentRoom();
+        if (hit.kind === 'edge') {
+          setSelectedGlobalEdge({ roomId: hit.roomId, edgeIndex: hit.edgeIndex });
+        } else if (state.selectedGlobalEdge && state.selectedGlobalEdge.roomId !== hit.roomId) {
+          setSelectedGlobalEdge(null);
+        }
+        const groupRoomIds = getLinkedRoomGroup(hit.roomId);
         state.drag = {
           type: 'room',
-          roomId: room.id,
-          offsetX: room.global.x - canvasToGlobalPoint(mouse.x, mouse.y).x,
-          offsetY: room.global.y - canvasToGlobalPoint(mouse.x, mouse.y).y
+          roomId: hit.roomId,
+          groupRoomIds,
+          startCanvas: mouse,
+          startGlobal: canvasToGlobalPoint(mouse.x, mouse.y),
+          snapshot: snapshotGlobalRoomGroup(groupRoomIds),
+          pending: true
         };
         redraw();
       }
@@ -2083,23 +2876,33 @@
         if (!state.drag || state.drag.type !== 'room') return;
         if (event.cancelable) event.preventDefault();
         const mouse = getCanvasPointer(event, globalCanvas);
+        if (state.drag.pending) {
+          if (pointDistance(mouse, state.drag.startCanvas) < GLOBAL_DRAG_START_DISTANCE) {
+            return;
+          }
+          state.drag.pending = false;
+        }
         const local = canvasToGlobalPoint(mouse.x, mouse.y);
-        const room = state.data.rooms.find((item) => item.id === state.drag.roomId);
-        room.global.x = local.x + state.drag.offsetX;
-        room.global.y = local.y + state.drag.offsetY;
+        const dx = local.x - state.drag.startGlobal.x;
+        const dy = local.y - state.drag.startGlobal.y;
+        applyGlobalRoomGroupDelta(state.drag.snapshot, dx, dy);
+        state.globalSnapPreview = null;
         redraw();
       }
 
       function endDrag() {
+        const hadGlobalRoomDrag = state.drag && state.drag.type === 'room';
         if (state.drag && state.drag.type === 'marquee') {
           const items = buildSelectionFromRect(state.drag.startLocal, state.drag.currentLocal);
           setSelection(items);
           redraw();
         }
+        state.globalSnapPreview = null;
         state.drag = null;
         if (state.tool !== 'mover') {
           state.hoverLocal = null;
         }
+        if (hadGlobalRoomDrag) redraw();
       }
 
       function applyPropertyInputs() {
@@ -2166,6 +2969,11 @@
         const clearPlayerStart = state.selectionItems.some((item) => item.kind === 'start');
 
         if (vertexIndexes.length && room.polygon.length - vertexIndexes.length >= 3) {
+          clearAllRoomEdgeLinks(room.id);
+          if (state.selectedGlobalEdge?.roomId === room.id) {
+            state.selectedGlobalEdge = null;
+            state.globalSnapPreview = null;
+          }
           vertexIndexes.forEach((index) => room.polygon.splice(index, 1));
         }
         if (platformIds.size) {
@@ -2223,10 +3031,12 @@
           platforms: [],
           movingPlatforms: [],
           doors: [],
-          keys: []
+          keys: [],
+          edgeLinks: []
         };
         state.data.rooms.push(room);
         state.currentRoomId = roomId;
+        state.selectedGlobalEdge = null;
         setSelection([]);
         populateRoomSelect();
         redraw();
@@ -2239,8 +3049,12 @@
           return;
         }
         const roomId = state.currentRoomId;
+        clearAllRoomEdgeLinks(roomId);
         state.data.rooms = state.data.rooms.filter((room) => room.id !== roomId);
         state.currentRoomId = state.data.rooms[0].id;
+        if (state.selectedGlobalEdge && state.selectedGlobalEdge.roomId === roomId) {
+          state.selectedGlobalEdge = null;
+        }
         setSelection([]);
         populateRoomSelect();
         redraw();
@@ -2251,6 +3065,8 @@
         state.data = data;
         state.data.rooms.forEach(ensureRoomShape);
         state.currentRoomId = state.data.rooms[0].id;
+        state.selectedGlobalEdge = null;
+        state.globalSnapPreview = null;
         populateRoomSelect();
         redraw();
         setStatus(message);
@@ -2323,13 +3139,16 @@
       function applyJsonText() {
         try {
           const parsed = JSON.parse(ui.jsonText.value);
-          if (!parsed.rooms || !Array.isArray(parsed.rooms)) {
-            throw new Error('JSON must contain a rooms array.');
+          if (!parsed.rooms || !Array.isArray(parsed.rooms) || parsed.rooms.length === 0) {
+            throw new Error('JSON must contain a non-empty rooms array.');
           }
           state.data = parsed;
+          state.data.rooms.forEach(ensureRoomShape);
           if (!state.data.rooms.find((room) => room.id === state.currentRoomId)) {
             state.currentRoomId = state.data.rooms[0].id;
           }
+          state.selectedGlobalEdge = null;
+          state.globalSnapPreview = null;
           populateRoomSelect();
           redraw();
           setStatus('Applied JSON from editor.');
@@ -2394,6 +3213,7 @@
             throw new Error(`HTTP ${response.status}`);
           }
           setStatus('Synced current layout into canonical room-layout-data.json. Commit and push next.');
+          showToast('Canonical layout synced successfully.');
         } catch (error) {
           setStatus(`Canonical sync cancelled or failed: ${error.message}`);
         }
@@ -2432,6 +3252,9 @@
           state.currentRoomId = ui.roomSelect.value;
           state.pendingMoverStart = null;
           state.hoverLocal = null;
+          if (!state.selectedGlobalEdge || state.selectedGlobalEdge.roomId !== state.currentRoomId) {
+            state.selectedGlobalEdge = null;
+          }
           setSelection([]);
           redraw();
         });
@@ -2462,6 +3285,14 @@
         ui.deleteSelected.addEventListener('click', deleteSelected);
         ui.duplicatePlatform.addEventListener('click', duplicatePlatform);
         ui.centerRoom.addEventListener('click', centerRoom);
+        ui.edgeTargetRoom.addEventListener('change', () => {
+          populateTargetEdgeOptions(ui.edgeTargetRoom.value, null);
+          updateGlobalLinkControls();
+        });
+        ui.edgeTargetIndex.addEventListener('change', updateGlobalLinkControls);
+        ui.linkSelectedEdge.addEventListener('click', linkSelectedGlobalEdge);
+        ui.clearSelectedEdgeLink.addEventListener('click', clearSelectedGlobalEdgeLink);
+        ui.snapSelectedEdge.addEventListener('click', snapSelectedGlobalEdge);
         ui.reloadJson.addEventListener('click', () => loadData(true));
         ui.applyJson.addEventListener('click', applyJsonText);
         ui.downloadJson.addEventListener('click', downloadJson);

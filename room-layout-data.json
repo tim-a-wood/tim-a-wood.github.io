@@ -11,8 +11,8 @@
       "id": "R1",
       "name": "Spawn + Final Gate Chamber",
       "global": {
-        "x": 367,
-        "y": 417
+        "x": 342,
+        "y": 420
       },
       "polygon": [
         [
@@ -28,8 +28,24 @@
           128
         ],
         [
-          2720,
+          2944,
           128
+        ],
+        [
+          2944,
+          608
+        ],
+        [
+          2848,
+          608
+        ],
+        [
+          2848,
+          832
+        ],
+        [
+          2720,
+          832
         ],
         [
           2720,
@@ -79,7 +95,7 @@
       "platforms": [
         {
           "id": "R1-P1",
-          "x": 2336,
+          "x": 2432,
           "y": 256,
           "len": 12,
           "tint": 0
@@ -114,8 +130,8 @@
         },
         {
           "id": "R1-P6",
-          "x": 1761,
-          "y": 366,
+          "x": 1752,
+          "y": 368,
           "len": 12,
           "tint": 0
         },
@@ -128,8 +144,8 @@
         },
         {
           "id": "R1-P8",
-          "x": 1838,
-          "y": 494,
+          "x": 2040,
+          "y": 488,
           "len": 12,
           "tint": 0
         },
@@ -165,7 +181,7 @@
       "doors": [
         {
           "id": "R1-D1",
-          "x": 2592,
+          "x": 2752,
           "y": 224,
           "kind": "transition",
           "label": "To R2",
@@ -197,7 +213,14 @@
         "y": 64
       },
       "keys": [],
-      "movingPlatforms": []
+      "movingPlatforms": [],
+      "edgeLinks": [
+        {
+          "edgeIndex": 3,
+          "targetRoomId": "R2",
+          "targetEdgeIndex": 11
+        }
+      ]
     },
     {
       "id": "R2",
@@ -208,36 +231,36 @@
       },
       "polygon": [
         [
-          120,
-          300
+          112.3819120188169,
+          320.06045718546454
         ],
         [
           480,
-          300
+          320
         ],
         [
-          475,
-          23
+          472,
+          16
         ],
         [
-          852,
-          19
+          848,
+          16
         ],
         [
-          860,
-          300
+          848,
+          320
         ],
         [
-          1280,
-          300
+          1288,
+          320
         ],
         [
-          1280,
-          820
+          1288,
+          800
         ],
         [
-          860,
-          820
+          848,
+          800
         ],
         [
           860,
@@ -248,12 +271,12 @@
           1080
         ],
         [
-          560,
-          820
+          552,
+          800
         ],
         [
-          120,
-          820
+          119.99999999964436,
+          799.999999977592
         ]
       ],
       "platforms": [
@@ -280,31 +303,38 @@
         },
         {
           "id": "R2-P4",
-          "x": 362,
-          "y": 729,
+          "x": 368,
+          "y": 680,
           "len": 8,
           "tint": 3
         },
         {
           "id": "R2-P5",
-          "x": 669,
-          "y": 358,
+          "x": 688,
+          "y": 328,
           "len": 8,
           "tint": 3
         },
         {
           "id": "R2-P6",
-          "x": 546,
-          "y": 514,
+          "x": 536,
+          "y": 488,
           "len": 8,
           "tint": 3
+        },
+        {
+          "id": "R2-P8",
+          "x": 704,
+          "y": 808,
+          "len": 4,
+          "tint": 0
         }
       ],
       "doors": [
         {
           "id": "R2-D1",
           "x": 160,
-          "y": 352,
+          "y": 384,
           "kind": "transition",
           "label": "To R1",
           "targetRoom": "R1",
@@ -315,8 +345,8 @@
         },
         {
           "id": "R2-D2",
-          "x": 533,
-          "y": 67,
+          "x": 512,
+          "y": 56,
           "kind": "branch",
           "label": "A North",
           "targetRoom": "R3",
@@ -339,8 +369,8 @@
         },
         {
           "id": "R2-D4",
-          "x": 717,
-          "y": 1038,
+          "x": 768,
+          "y": 1040,
           "kind": "branch",
           "label": "C South",
           "targetRoom": "R7",
@@ -356,7 +386,30 @@
       },
       "playerStart": null,
       "keys": [],
-      "movingPlatforms": []
+      "movingPlatforms": [
+        {
+          "id": "R2-M1",
+          "x": 576,
+          "y": 1064,
+          "endX": 568,
+          "endY": 808,
+          "len": 4,
+          "tint": 0,
+          "initialState": "unlocked"
+        }
+      ],
+      "edgeLinks": [
+        {
+          "edgeIndex": 8,
+          "targetRoomId": "R7",
+          "targetEdgeIndex": 5
+        },
+        {
+          "edgeIndex": 11,
+          "targetRoomId": "R1",
+          "targetEdgeIndex": 3
+        }
+      ]
     },
     {
       "id": "R3",
@@ -532,7 +585,8 @@
       },
       "playerStart": null,
       "keys": [],
-      "movingPlatforms": []
+      "movingPlatforms": [],
+      "edgeLinks": []
     },
     {
       "id": "R4",
@@ -661,7 +715,8 @@
       },
       "playerStart": null,
       "keys": [],
-      "movingPlatforms": []
+      "movingPlatforms": [],
+      "edgeLinks": []
     },
     {
       "id": "R5",
@@ -842,7 +897,8 @@
           "tint": 0,
           "initialState": "unlocked"
         }
-      ]
+      ],
+      "edgeLinks": []
     },
     {
       "id": "R6",
@@ -991,14 +1047,15 @@
       },
       "playerStart": null,
       "keys": [],
-      "movingPlatforms": []
+      "movingPlatforms": [],
+      "edgeLinks": []
     },
     {
       "id": "R7",
       "name": "Branch C South Shaft",
       "global": {
         "x": 664,
-        "y": 509
+        "y": 508
       },
       "polygon": [
         [
@@ -1186,7 +1243,14 @@
         "y": 224
       },
       "keys": [],
-      "movingPlatforms": []
+      "movingPlatforms": [],
+      "edgeLinks": [
+        {
+          "edgeIndex": 5,
+          "targetRoomId": "R2",
+          "targetEdgeIndex": 8
+        }
+      ]
     },
     {
       "id": "R8",
@@ -1407,7 +1471,8 @@
           "leverId": "",
           "initialState": "locked"
         }
-      ]
+      ],
+      "edgeLinks": []
     },
     {
       "id": "R9",
@@ -1493,7 +1558,8 @@
       },
       "playerStart": null,
       "keys": [],
-      "movingPlatforms": []
+      "movingPlatforms": [],
+      "edgeLinks": []
     },
     {
       "id": "R10",
@@ -1583,7 +1649,8 @@
       },
       "playerStart": null,
       "keys": [],
-      "movingPlatforms": []
+      "movingPlatforms": [],
+      "edgeLinks": []
     },
     {
       "id": "R11",
@@ -1672,7 +1739,8 @@
       },
       "playerStart": null,
       "keys": [],
-      "movingPlatforms": []
+      "movingPlatforms": [],
+      "edgeLinks": []
     },
     {
       "id": "R12",
@@ -1707,7 +1775,8 @@
       "platforms": [],
       "doors": [],
       "keys": [],
-      "movingPlatforms": []
+      "movingPlatforms": [],
+      "edgeLinks": []
     }
   ]
 }

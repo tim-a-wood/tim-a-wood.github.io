@@ -1376,6 +1376,7 @@ class AshenHollow extends Phaser.Scene {
             this.mapGraphics,
             this.mapTitleText,
             this.mapHintText,
+            this.mapCloseText,
             this.mapCurrentRoomText,
             this.mapVisitedText,
             this.mapRevealHintText,
@@ -1384,6 +1385,15 @@ class AshenHollow extends Phaser.Scene {
             this.mapZoomOutText
         ].filter(Boolean);
         overlayObjects.forEach((obj) => obj.setVisible(this.isMapOpen));
+        [
+            this.mapOverlayBackdrop,
+            this.mapPanel,
+            this.mapCloseText,
+            this.mapZoomInText,
+            this.mapZoomOutText
+        ].filter((obj) => obj?.input).forEach((obj) => {
+            obj.input.enabled = this.isMapOpen;
+        });
 
         if (this.mapButtonText) {
             this.mapButtonText.setText(this.isMapOpen ? '[ CLOSE MAP ]' : '[ MAP ]');
@@ -1415,13 +1425,19 @@ class AshenHollow extends Phaser.Scene {
             .setOrigin(0, 0)
             .setScrollFactor(0)
             .setDepth(938)
-            .setVisible(false);
+            .setVisible(false)
+            .setInteractive()
+            .on('pointerdown', () => {
+                if (this.isMapOpen) this.toggleMapOverlay();
+            });
 
         this.mapPanel = this.add.rectangle(IN_GAME_MAP.panelX, IN_GAME_MAP.panelY, IN_GAME_MAP.panelWidth, IN_GAME_MAP.panelHeight, 0x0b1620, 0.96)
             .setOrigin(0, 0)
             .setScrollFactor(0)
             .setDepth(939)
-            .setVisible(false);
+            .setVisible(false)
+            .setInteractive()
+            .on('pointerdown', () => {});
 
         this.mapPanelBorder = this.add.rectangle(IN_GAME_MAP.panelX, IN_GAME_MAP.panelY, IN_GAME_MAP.panelWidth, IN_GAME_MAP.panelHeight, 0xffffff, 0)
             .setOrigin(0, 0)
@@ -1450,12 +1466,19 @@ class AshenHollow extends Phaser.Scene {
             strokeThickness: 4
         }).setScrollFactor(0).setDepth(942).setVisible(false);
 
-        this.mapHintText = this.add.text(IN_GAME_MAP.panelX + IN_GAME_MAP.panelWidth - 18, IN_GAME_MAP.panelY + 16, 'Press M to close, +/- or pinch to zoom', {
+        this.mapHintText = this.add.text(IN_GAME_MAP.panelX + 112, IN_GAME_MAP.panelY + 16, 'Tap CLOSE or outside. +/- or pinch to zoom', {
             fontSize: '11px',
             fill: '#9fc3dc',
             stroke: '#000',
             strokeThickness: 3
-        }).setOrigin(1, 0).setScrollFactor(0).setDepth(942).setVisible(false);
+        }).setOrigin(0, 0).setScrollFactor(0).setDepth(942).setVisible(false);
+
+        this.mapCloseText = this.add.text(IN_GAME_MAP.panelX + IN_GAME_MAP.panelWidth - 18, IN_GAME_MAP.panelY + 12, '[ CLOSE ]', {
+            fontSize: '12px',
+            fill: '#ffd7a8',
+            backgroundColor: '#2a1c10'
+        }).setPadding(6, 4, 6, 4).setOrigin(1, 0).setScrollFactor(0).setDepth(942).setVisible(false).setInteractive()
+            .on('pointerdown', () => this.toggleMapOverlay());
 
         this.mapZoomOutText = this.add.text(IN_GAME_MAP.panelX + IN_GAME_MAP.panelWidth - 162, IN_GAME_MAP.panelY + 12, '[ - ]', {
             fontSize: '12px',
@@ -1498,6 +1521,16 @@ class AshenHollow extends Phaser.Scene {
             stroke: '#000',
             strokeThickness: 3
         }).setScrollFactor(0).setDepth(942).setVisible(false);
+
+        [
+            this.mapOverlayBackdrop,
+            this.mapPanel,
+            this.mapCloseText,
+            this.mapZoomInText,
+            this.mapZoomOutText
+        ].filter((obj) => obj?.input).forEach((obj) => {
+            obj.input.enabled = false;
+        });
     }
 
     createHUD() {
