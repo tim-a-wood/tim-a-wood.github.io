@@ -81,12 +81,19 @@ DEFAULT_NEGATIVE_PROMPT = (
 )
 
 METROIDVANIA_PROMPT_CONTEXT = (
-    "designed for a 2d side-scrolling metroidvania game, retro pixel-art-friendly concept art, "
-    "dark medieval fantasy atmosphere, moody gothic ruins sensibility, readable side-view combat silhouette, "
-    "large primary shapes and limited secondary noise, clustered values for sprite readability, "
-    "clear separation between head, torso, limbs, and prop, readable at low resolution, "
-    "animation-friendly costume breakup, practical collision-aware silhouette, "
+    "designed for Ashen Hollow, a dark-fantasy 2d side-scrolling metroidvania, "
+    "Hollow Knight-inspired atmosphere with ruined chapels, catacombs, and medieval decay, "
+    "player-character readability first, strict side-view silhouette, full body visible, "
+    "large primary shapes, restrained secondary detail, clustered values for sprite readability, "
+    "clear separation between head, torso, limbs, and held item, readable at low resolution, "
+    "animation-friendly costume breakup, practical combat silhouette, "
     "plain or minimal background for character extraction"
+)
+
+HOUSE_STYLE_PROMPT_RULES = (
+    "single character only, centered full body concept, orthographic side profile, no dramatic camera angle, "
+    "no environment storytelling shot, one iconic held item, practical traversal and combat gear, "
+    "grounded proportions, silhouette readable in motion, restrained ornamental noise"
 )
 
 REQUIRED_PARTS = [
@@ -160,6 +167,8 @@ PROP_FAMILIES = {
 
 JOBS: Dict[str, Dict[str, Any]] = {}
 JOB_LOCK = threading.Lock()
+
+ProgressCallback = Callable[[int, Optional[str], Optional[str]], None]
 
 
 @dataclass
@@ -321,6 +330,12 @@ def clamp(value: float, minimum: float, maximum: float) -> float:
     return max(minimum, min(maximum, value))
 
 
+def call_progress(progress: Optional[ProgressCallback], percent: int, label: Optional[str], detail: Optional[str] = None) -> None:
+    if progress is None:
+        return
+    progress(percent, label, detail)
+
+
 def apply_project_defaults(project: Dict[str, Any]) -> Dict[str, Any]:
     normalized = dict(project or {})
     normalized.setdefault("project_id", "")
@@ -428,13 +443,13 @@ def compute_wizard_context(project: Dict[str, Any]) -> Dict[str, Any]:
 
     blocking_reasons = {
         "brief": [] if complete_map["project"] else ["Create or open a project first."],
-        "references": [] if complete_map["brief"] else ["Save the brief before adding or skipping references."],
-        "concepts": [] if complete_map["brief"] else ["Save the brief before generating concepts."],
-        "review": [] if complete_map["concepts"] else ["Generate a concept run before reviewing concepts."],
-        "refine": [] if complete_map["review"] else ["Approve a concept before refinement."],
-        "build": [] if complete_map["review"] and complete_map["refine"] else ["Approve a concept and confirm the refine step before building."],
-        "qa": [] if complete_map["build"] else ["Complete the build step before running QA."],
-        "export": [] if complete_map["qa"] and project.get("qa_report", {}).get("status") == "pass" else ["QA must pass before export."],
+        "references": [] if complete_map["brief"] else ["Save the character description before adding or skipping references."],
+        "concepts": [] if complete_map["brief"] else ["Save the character description before generating looks."],
+        "review": [] if complete_map["concepts"] else ["Generate looks before choosing one."],
+        "refine": [] if complete_map["review"] else ["Choose a look before adjusting it."],
+        "build": [] if complete_map["review"] and complete_map["refine"] else ["Choose a look and finish the adjustment step before building."],
+        "qa": [] if complete_map["build"] else ["Finish the build step before running checks."],
+        "export": [] if complete_map["qa"] and project.get("qa_report", {}).get("status") == "pass" else ["Checks must pass before export."],
     }
 
     step_statuses: Dict[str, str] = {}
@@ -505,37 +520,37 @@ def compute_wizard_context(project: Dict[str, Any]) -> Dict[str, Any]:
 def default_stage_maturity() -> Dict[str, Any]:
     return {
         "intake": {
-            "label": "Structured Brief",
+            "label": "Setup",
             "maturity": "experimental",
             "description": "Prompt parsing is richer than v1, but still heuristic and local-only.",
         },
         "concepts": {
-            "label": "Concept Generation",
+            "label": "Looks",
             "maturity": "real",
             "description": "ComfyUI is the default concept backend. Debug procedural art is opt-in only.",
         },
         "refine": {
-            "label": "Refinement",
+            "label": "Adjust",
             "maturity": "real",
             "description": "Refinement creates new concept images through ComfyUI and records lineage.",
         },
         "layer_review": {
-            "label": "Layer Review",
+            "label": "Build Layers",
             "maturity": "placeholder",
             "description": "Layers are still synthetic stand-ins, not extracted from approved concept art.",
         },
         "rig_review": {
-            "label": "Rig Review",
+            "label": "Set Up Motion",
             "maturity": "placeholder",
             "description": "Rigging remains procedural and only validates the placeholder downstream path.",
         },
         "production": {
-            "label": "Production",
+            "label": "Build Animations",
             "maturity": "experimental",
             "description": "Renderer and packing are deterministic, but still fed by synthetic layer and rig assets.",
         },
         "qa": {
-            "label": "QA",
+            "label": "Checks",
             "maturity": "experimental",
             "description": "QA only reports implemented image checks; semantic sprite correctness is not automated.",
         },
@@ -609,34 +624,34 @@ def infer_brief_defaults(prompt_text: str) -> Dict[str, str]:
     lowered = prompt.lower()
     if not prompt:
         return {
-            "role_archetype": "humanoid side-view adventurer",
-            "silhouette_intent": "balanced readable profile",
-            "outfit_materials": "layered dark-fantasy travel gear with one dominant material family",
+            "role_archetype": "ashen hollow adventurer",
+            "silhouette_intent": "clear side-view traveler silhouette with one dominant read",
+            "outfit_materials": "layered dark-fantasy travel gear with practical medieval materials",
             "prop": "tool",
             "palette_mood": "storm steel",
-            "shape_language": "balanced angular to rounded mix",
+            "shape_language": "balanced angular to rounded masses",
             "mood_tone": "watchful, haunted, and grounded",
-            "side_view_constraints": "strict side view, one humanoid character, clean background, prop silhouette separated from torso, strong low-resolution readability for a 2d metroidvania sprite pipeline",
+            "side_view_constraints": "strict side view, one humanoid character, clean background, held item clearly separated from torso, strong low-resolution readability for a 2d metroidvania sprite pipeline",
         }
 
-    if any(word in lowered for word in ["knight", "armored", "guardian", "sentinel"]):
-        role = "armored dark-fantasy traveler"
+    if any(word in lowered for word in ["knight", "armored", "guardian", "sentinel", "warden"]):
+        role = "ashen hollow sentinel"
         silhouette = "broad guarded profile"
         outfit = "weathered plate fragments over travel layers with matte metal surfaces"
         tone = "stoic, vigilant, and battle-worn"
-    elif any(word in lowered for word in ["rogue", "thief", "scout", "nimble"]):
-        role = "nimble dark-fantasy infiltrator"
+    elif any(word in lowered for word in ["rogue", "thief", "scout", "nimble", "hunter", "ranger"]):
+        role = "ashen hollow scout"
         silhouette = "compact and forward-leaning profile"
         outfit = "light leathers, wraps, utility straps, and worn medieval layers"
         tone = "cautious, severe, and alert"
-    elif any(word in lowered for word in ["mage", "witch", "scholar", "mystic"]):
-        role = "arcane dark-fantasy wanderer"
+    elif any(word in lowered for word in ["mage", "witch", "scholar", "mystic", "seer", "pilgrim"]):
+        role = "ashen hollow pilgrim"
         silhouette = "tall readable profile with clear head-to-prop separation"
         outfit = "layered cloth, trim armor accents, and weathered ritual fabric"
         tone = "mysterious, austere, and self-possessed"
     else:
-        role = "humanoid dark-fantasy adventurer"
-        silhouette = "balanced readable profile"
+        role = "ashen hollow adventurer"
+        silhouette = "balanced readable profile with one dominant read"
         outfit = "field-ready medieval layers with one dominant material family"
         tone = "grounded, capable, and somber"
 
@@ -665,7 +680,7 @@ def infer_brief_defaults(prompt_text: str) -> Dict[str, str]:
         "palette_mood": palette,
         "shape_language": shape,
         "mood_tone": tone,
-        "side_view_constraints": "strict side view, one humanoid character, clean background, prop silhouette separated from torso, strong low-resolution readability for a 2d metroidvania sprite pipeline",
+        "side_view_constraints": "strict side view, one humanoid character, clean background, held item clearly separated from torso, strong low-resolution readability for a 2d metroidvania sprite pipeline",
     }
 
 
@@ -712,12 +727,13 @@ def hydrate_brief(brief: Optional[Dict[str, Any]], prompt_text: str) -> Dict[str
 def build_positive_prompt_base(brief: Dict[str, Any]) -> str:
     return (
         "single humanoid side-view character concept art, full body, plain light background, "
-        "clean silhouette, readable negative space, %s, "
-        "%s, silhouette intent: %s, outfit and materials: %s, "
+        "clean silhouette, readable negative space, %s, %s, "
+        "character role: %s, silhouette intent: %s, outfit and materials: %s, "
         "primary handheld prop: %s, palette mood: %s, shape language: %s, mood: %s, "
         "readability constraints: %s"
         % (
             METROIDVANIA_PROMPT_CONTEXT,
+            HOUSE_STYLE_PROMPT_RULES,
             brief["role_archetype"],
             brief["silhouette_intent"],
             brief["outfit_materials"],
@@ -977,39 +993,39 @@ def build_initial_variation_axes(brief: Dict[str, Any]) -> List[Dict[str, Any]]:
     prop_variants = [prop_variant_for_family(brief["prop"], index) for index in range(INITIAL_CONCEPT_COUNT)]
     return [
         {
-            "silhouette": "balanced readable profile",
-            "outfit_complexity": "clean travel-ready layering",
+            "silhouette": brief["silhouette_intent"],
+            "outfit_complexity": brief["outfit_materials"],
             "palette_direction": brief["palette_mood"],
             "prop_variant": prop_variants[0],
-            "summary": "baseline interpretation with the clearest silhouette read",
+            "summary": "baseline interpretation with the clearest side-view read",
         },
         {
-            "silhouette": "compact tucked profile",
+            "silhouette": "slightly leaner version of the same core silhouette",
             "outfit_complexity": "reduced bulk and tighter panel breaks",
             "palette_direction": "%s with lower-value accents" % brief["palette_mood"],
             "prop_variant": prop_variants[1],
-            "summary": "leans compact and quick without changing the core identity",
+            "summary": "leans a little lighter and quicker without changing the identity",
         },
         {
-            "silhouette": "taller vertical rhythm",
-            "outfit_complexity": "elongated layers and stronger hem breakup",
+            "silhouette": "slightly taller side-view rhythm",
+            "outfit_complexity": "elongated layers and clearer vertical breaks",
             "palette_direction": "%s pushed cooler" % brief["palette_mood"],
             "prop_variant": prop_variants[2],
-            "summary": "pushes height and vertical shape language",
+            "summary": "pushes height and vertical rhythm while staying readable",
         },
         {
-            "silhouette": "broad guarded profile",
+            "silhouette": "broader guarded take on the same profile",
             "outfit_complexity": "heavier armor grouping and chunkier masses",
             "palette_direction": "%s with warm metal accents" % brief["palette_mood"],
             "prop_variant": prop_variants[3],
             "summary": "emphasizes armor weight and defensive massing",
         },
         {
-            "silhouette": "lean forward-biased profile",
-            "outfit_complexity": "ornamental trim concentrated near shoulders and waist",
+            "silhouette": "slightly forward-biased action profile",
+            "outfit_complexity": "trim detail concentrated near shoulders and waist",
             "palette_direction": "%s with sharper contrast splits" % brief["palette_mood"],
             "prop_variant": prop_variants[4],
-            "summary": "same identity core with a more stylized trim and palette contrast",
+            "summary": "same identity with a clearer action-ready push",
         },
         {
             "silhouette": "steady field-ready profile",
@@ -1071,11 +1087,13 @@ def build_prompt_bundle(brief: Dict[str, Any], variation_axes: Dict[str, Any], s
     positive_parts = [
         brief["positive_prompt_base"],
         "gameplay role: player-facing 2d metroidvania character concept intended for side-view animation and sprite extraction",
+        "readability priority: silhouette clarity first, world style second, identity consistency third",
         "variant emphasis: %s" % variation_axes.get("summary", "base brief"),
         "silhouette focus: %s" % (variation_axes.get("silhouette") or brief["silhouette_intent"]),
         "outfit focus: %s" % (variation_axes.get("outfit_complexity") or brief["outfit_materials"]),
         "palette focus: %s" % (variation_axes.get("palette_direction") or brief["palette_mood"]),
         "prop silhouette: %s" % (variation_axes.get("prop_variant") or brief["prop"]),
+        "avoid cinematic pose or environment-heavy framing; keep the character readable as game art",
     ]
     if source_concept is not None:
         positive_parts.append("preserve the same character identity core as the source concept")
@@ -1890,15 +1908,18 @@ def make_part_image(part: PartSpec, palette: Dict[str, str]) -> Image.Image:
     return img
 
 
-def build_layered_character(project_id: str) -> Dict[str, Any]:
+def build_layered_character(project_id: str, progress: Optional[ProgressCallback] = None) -> Dict[str, Any]:
     project = load_project(project_id)
     project_dir = PROJECTS_ROOT / project_id
     if not project.get("character_spec"):
         raise ValueError("Concept approval is required before layer build.")
 
+    call_progress(progress, 8, "Preparing layers", "Building the temporary layer stack for the selected look.")
     palette = project["character_spec"]["palette_definition"]
     parts = []
-    for part_name in REQUIRED_PARTS:
+    total_parts = len(REQUIRED_PARTS)
+    for index, part_name in enumerate(REQUIRED_PARTS):
+        call_progress(progress, 12 + int((index / max(1, total_parts)) * 74), "Building layer %d of %d" % (index + 1, total_parts), part_name)
         part = PART_LIBRARY[part_name]
         image = make_part_image(part, palette)
         output_path = project_dir / "layers" / ("%s.png" % part_name)
@@ -1933,6 +1954,7 @@ def build_layered_character(project_id: str) -> Dict[str, Any]:
     project["current_stage"] = "layer_review"
     project["updated_at"] = now_iso()
     save_project(project)
+    call_progress(progress, 100, "Layers ready", "Review the temporary layer stack before continuing.")
     return layered
 
 
@@ -2128,13 +2150,15 @@ def border_has_alpha(image: Image.Image) -> bool:
     return False
 
 
-def build_rig(project_id: str) -> Dict[str, Any]:
+def build_rig(project_id: str, progress: Optional[ProgressCallback] = None) -> Dict[str, Any]:
     project = load_project(project_id)
     if not project.get("layered_character"):
         raise ValueError("Layer review required before rig build.")
 
+    call_progress(progress, 10, "Preparing motion setup", "Loading the temporary layer stack.")
     project_dir = PROJECTS_ROOT / project_id
     templates = build_animation_templates()
+    call_progress(progress, 45, "Rendering neutral pose", "Capturing a reference pose for the motion setup.")
     _, neutral_meta = render_pose(project, templates["idle"]["joint_transforms_per_frame"][0], project_dir / "rig" / "neutral_pose.png")
     joint_map = {joint: list(coords) for joint, coords in base_joint_positions().items()}
     rig = {
@@ -2169,10 +2193,11 @@ def build_rig(project_id: str) -> Dict[str, Any]:
     project["current_stage"] = "rig_review"
     project["updated_at"] = now_iso()
     save_project(project)
+    call_progress(progress, 100, "Motion setup ready", "Review the temporary motion setup before building animations.")
     return rig
 
 
-def render_animation(project_id: str, animation_name: str) -> Dict[str, Any]:
+def render_animation(project_id: str, animation_name: str, progress: Optional[ProgressCallback] = None) -> Dict[str, Any]:
     project = load_project(project_id)
     if not project.get("rig") or not project["rig"].get("approved_for_production"):
         raise ValueError("Rig review approval is required before production.")
@@ -2180,7 +2205,14 @@ def render_animation(project_id: str, animation_name: str) -> Dict[str, Any]:
     project_dir = PROJECTS_ROOT / project_id
     output_dir = project_dir / "animations" / animation_name
     manifests = []
+    frame_total = len(templates["joint_transforms_per_frame"])
     for frame_index, transforms in enumerate(templates["joint_transforms_per_frame"]):
+        call_progress(
+            progress,
+            10 + int((frame_index / max(1, frame_total)) * 82),
+            "Building %s frame %d of %d" % (animation_name, frame_index + 1, frame_total),
+            "Rendering and cleaning the frame.",
+        )
         raw, render_meta = render_pose(project, transforms)
         final_frame, cleanup = cleanup_frame(raw)
         frame_name = "%s_%02d.png" % (animation_name, frame_index)
@@ -2196,6 +2228,7 @@ def render_animation(project_id: str, animation_name: str) -> Dict[str, Any]:
     project["current_stage"] = "production_%s" % animation_name
     project["updated_at"] = now_iso()
     save_project(project)
+    call_progress(progress, 100, "%s animation ready" % animation_name.title(), "Frames saved for review.")
     return {"animation": animation_name, "frames": manifests, "fps": templates["fps"], "frame_count": templates["frame_count"]}
 
 
@@ -2213,7 +2246,7 @@ def aggregate_check_state(states: List[str]) -> str:
     return "not_implemented"
 
 
-def run_qa(project_id: str) -> Dict[str, Any]:
+def run_qa(project_id: str, progress: Optional[ProgressCallback] = None) -> Dict[str, Any]:
     project = load_project(project_id)
     project_dir = PROJECTS_ROOT / project_id
     report = {
@@ -2228,7 +2261,14 @@ def run_qa(project_id: str) -> Dict[str, Any]:
         ],
     }
     source_hashes = {}
-    for animation_name, spec in ANIMATION_SPECS.items():
+    animation_items = list(ANIMATION_SPECS.items())
+    for animation_index, (animation_name, spec) in enumerate(animation_items):
+        call_progress(
+            progress,
+            8 + int((animation_index / max(1, len(animation_items))) * 70),
+            "Checking %s animation" % animation_name,
+            "Validating frame sizes, clipping, pivots, and loop continuity.",
+        )
         frames = []
         hashes = []
         animation_dir = project_dir / "animations" / animation_name
@@ -2307,10 +2347,11 @@ def run_qa(project_id: str) -> Dict[str, Any]:
     project["current_stage"] = "qa"
     project["updated_at"] = now_iso()
     save_project(project)
+    call_progress(progress, 100, "Checks complete", "Review the check results before export.")
     return report
 
 
-def export_project(project_id: str) -> Dict[str, Any]:
+def export_project(project_id: str, progress: Optional[ProgressCallback] = None) -> Dict[str, Any]:
     project = load_project(project_id)
     if not project.get("qa_report") or project["qa_report"]["status"] != "pass":
         raise ValueError("Export blocked: QA must pass first.")
@@ -2319,6 +2360,7 @@ def export_project(project_id: str) -> Dict[str, Any]:
     export_dir = project_dir / "exports" / datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     export_dir.mkdir(parents=True, exist_ok=True)
     ordered_frames = []
+    call_progress(progress, 8, "Preparing export", "Copying finished frame images into the export folder.")
     for animation_name in ["idle", "walk"]:
         count = ANIMATION_SPECS[animation_name]["frame_count"]
         for index in range(count):
@@ -2329,6 +2371,7 @@ def export_project(project_id: str) -> Dict[str, Any]:
             target.write_bytes(source.read_bytes())
             ordered_frames.append((animation_name, source.name, target))
 
+    call_progress(progress, 45, "Building spritesheet", "Packing all exported frames into a single sheet.")
     spritesheet = Image.new("RGBA", (FRAME_SIZE * len(ordered_frames), FRAME_SIZE), (0, 0, 0, 0))
     atlas_frames = {}
     for index, (_, frame_name, path) in enumerate(ordered_frames):
@@ -2358,6 +2401,7 @@ def export_project(project_id: str) -> Dict[str, Any]:
     write_json(export_dir / "qa_report.json", project["qa_report"])
     write_json(export_dir / "export_manifest.json", export_manifest)
 
+    call_progress(progress, 78, "Building preview", "Creating the animated preview file.")
     preview_frames = [Image.open(path).convert("RGBA") for _, _, path in ordered_frames]
     preview_frames[0].save(
         export_dir / "preview.gif",
@@ -2385,6 +2429,7 @@ def export_project(project_id: str) -> Dict[str, Any]:
     project["current_stage"] = "export"
     project["updated_at"] = now_iso()
     save_project(project)
+    call_progress(progress, 100, "Export ready", "Open the export files from the export panel.")
     return result
 
 
@@ -2683,11 +2728,13 @@ def generate_run(
     attribute_group: Optional[str] = None,
     target_value: Optional[str] = None,
     strength_label: Optional[str] = None,
+    progress: Optional[ProgressCallback] = None,
 ) -> Dict[str, Any]:
     project = load_project(project_id)
     project_dir = PROJECTS_ROOT / project_id
     backend_mode = project["brief"]["backend_mode"]
     backend = get_concept_backend(backend_mode)
+    call_progress(progress, 5, "Checking the image generator", "Making sure concept generation is available.")
     health = backend.healthcheck()
     if not health.get("ok") and backend_mode != "debug_procedural":
         raise ValueError("ComfyUI backend unavailable: %s" % health.get("error", "unknown backend error"))
@@ -2729,6 +2776,12 @@ def generate_run(
         concept_count = REFINEMENT_CONCEPT_COUNT
 
     for index, variation_axes in enumerate(variation_axes_list[:concept_count]):
+        call_progress(
+            progress,
+            12 + int((index / max(1, concept_count)) * 72),
+            "Generating look %d of %d" % (index + 1, concept_count),
+            variation_axes.get("summary"),
+        )
         concept_id = "concept-%04d" % serial
         output_path = project_dir / "concepts" / ("%s.png" % concept_id)
         positive_prompt, negative_prompt = build_prompt_bundle(project["brief"], variation_axes, base_concept)
@@ -2783,6 +2836,7 @@ def generate_run(
         generated_records.append(concept)
         serial += 1
 
+    call_progress(progress, 88, "Reviewing generated looks", "Running lightweight triage and saving concept metadata.")
     annotate_run_triage(project_dir, generated_records)
     for concept in generated_records:
         concepts.append(concept)
@@ -2815,6 +2869,7 @@ def generate_run(
     project["status"] = "concepts_generated" if run_kind == "initial" else "concepts_refined"
     project["updated_at"] = now_iso()
     save_project(project)
+    call_progress(progress, 100, "Looks ready", "The concept board has been updated.")
     return {
         "run_id": run_id,
         "run_kind": run_kind,
@@ -2823,13 +2878,16 @@ def generate_run(
     }
 
 
-def create_job(project_id: Optional[str], job_type: str, target: Callable[[], Any]) -> Dict[str, Any]:
+def create_job(project_id: Optional[str], job_type: str, target: Callable[[ProgressCallback], Any]) -> Dict[str, Any]:
     job_id = uuid.uuid4().hex[:12]
     job = {
         "job_id": job_id,
         "project_id": project_id,
         "job_type": job_type,
         "status": "queued",
+        "progress_percent": 0,
+        "progress_label": "Queued",
+        "progress_detail": "Waiting to start.",
         "created_at": now_iso(),
         "updated_at": now_iso(),
         "result": None,
@@ -2841,11 +2899,29 @@ def create_job(project_id: Optional[str], job_type: str, target: Callable[[], An
     def runner() -> None:
         with JOB_LOCK:
             JOBS[job_id]["status"] = "running"
+            JOBS[job_id]["progress_percent"] = 4
+            JOBS[job_id]["progress_label"] = "Starting"
+            JOBS[job_id]["progress_detail"] = "The server has started the job."
             JOBS[job_id]["updated_at"] = now_iso()
+
+        def report(percent: int, label: Optional[str], detail: Optional[str] = None) -> None:
+            with JOB_LOCK:
+                if job_id not in JOBS:
+                    return
+                JOBS[job_id]["progress_percent"] = max(0, min(100, int(percent)))
+                if label:
+                    JOBS[job_id]["progress_label"] = label
+                if detail is not None:
+                    JOBS[job_id]["progress_detail"] = detail
+                JOBS[job_id]["updated_at"] = now_iso()
+
         try:
-            result = target()
+            result = target(report)
             with JOB_LOCK:
                 JOBS[job_id]["status"] = "completed"
+                JOBS[job_id]["progress_percent"] = 100
+                JOBS[job_id]["progress_label"] = "Completed"
+                JOBS[job_id]["progress_detail"] = "The job finished successfully."
                 JOBS[job_id]["result"] = result
                 JOBS[job_id]["updated_at"] = now_iso()
             if project_id:
@@ -2860,6 +2936,8 @@ def create_job(project_id: Optional[str], job_type: str, target: Callable[[], An
         except Exception as exc:
             with JOB_LOCK:
                 JOBS[job_id]["status"] = "failed"
+                JOBS[job_id]["progress_label"] = "Failed"
+                JOBS[job_id]["progress_detail"] = str(exc)
                 JOBS[job_id]["error"] = str(exc)
                 JOBS[job_id]["updated_at"] = now_iso()
             if project_id:
@@ -2919,7 +2997,7 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
             try:
                 return self._send_json(load_project(project_match.group(1)))
             except FileNotFoundError:
-                return self.send_error(HTTPStatus.NOT_FOUND, "Project not found")
+                return self._send_error_json(HTTPStatus.NOT_FOUND, "Project not found")
 
         job_match = re.fullmatch(r"/api/projects/([^/]+)/jobs/([^/]+)", path)
         if job_match:
@@ -2927,7 +3005,7 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
             with JOB_LOCK:
                 job = JOBS.get(job_id)
             if not job or job.get("project_id") != project_id:
-                return self.send_error(HTTPStatus.NOT_FOUND, "Job not found")
+                return self._send_error_json(HTTPStatus.NOT_FOUND, "Job not found")
             return self._send_json(job)
 
         return super().do_GET()
@@ -2959,7 +3037,7 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
             if generate_match:
                 project_id = generate_match.group(1)
                 return self._send_json(
-                    create_job(project_id, "concepts.generate", lambda: generate_run(project_id, "initial")),
+                    create_job(project_id, "concepts.generate", lambda progress: generate_run(project_id, "initial", progress=progress)),
                     status=HTTPStatus.ACCEPTED,
                 )
 
@@ -2979,7 +3057,7 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
             if similar_match:
                 project_id, concept_id = similar_match.groups()
                 return self._send_json(
-                    create_job(project_id, "concepts.regenerate_similar", lambda: generate_run(project_id, "similar", source_concept_id=concept_id)),
+                    create_job(project_id, "concepts.regenerate_similar", lambda progress: generate_run(project_id, "similar", source_concept_id=concept_id, progress=progress)),
                     status=HTTPStatus.ACCEPTED,
                 )
 
@@ -2998,13 +3076,14 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                     create_job(
                         project_id,
                         "concepts.refine",
-                        lambda: generate_run(
+                        lambda progress: generate_run(
                             project_id,
                             "refinement",
                             source_concept_id=source_concept_id,
                             attribute_group=attribute_group,
                             target_value=target_value,
                             strength_label=strength,
+                            progress=progress,
                         ),
                     ),
                     status=HTTPStatus.ACCEPTED,
@@ -3013,32 +3092,32 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
             layers_match = re.fullmatch(r"/api/projects/([^/]+)/layers/build", path)
             if layers_match:
                 project_id = layers_match.group(1)
-                return self._send_json(create_job(project_id, "layers.build", lambda: build_layered_character(project_id)), status=HTTPStatus.ACCEPTED)
+                return self._send_json(create_job(project_id, "layers.build", lambda progress: build_layered_character(project_id, progress=progress)), status=HTTPStatus.ACCEPTED)
 
             rig_match = re.fullmatch(r"/api/projects/([^/]+)/rig/build", path)
             if rig_match:
                 project_id = rig_match.group(1)
-                return self._send_json(create_job(project_id, "rig.build", lambda: build_rig(project_id)), status=HTTPStatus.ACCEPTED)
+                return self._send_json(create_job(project_id, "rig.build", lambda progress: build_rig(project_id, progress=progress)), status=HTTPStatus.ACCEPTED)
 
             idle_match = re.fullmatch(r"/api/projects/([^/]+)/animations/idle/render", path)
             if idle_match:
                 project_id = idle_match.group(1)
-                return self._send_json(create_job(project_id, "animations.idle.render", lambda: render_animation(project_id, "idle")), status=HTTPStatus.ACCEPTED)
+                return self._send_json(create_job(project_id, "animations.idle.render", lambda progress: render_animation(project_id, "idle", progress=progress)), status=HTTPStatus.ACCEPTED)
 
             walk_match = re.fullmatch(r"/api/projects/([^/]+)/animations/walk/render", path)
             if walk_match:
                 project_id = walk_match.group(1)
-                return self._send_json(create_job(project_id, "animations.walk.render", lambda: render_animation(project_id, "walk")), status=HTTPStatus.ACCEPTED)
+                return self._send_json(create_job(project_id, "animations.walk.render", lambda progress: render_animation(project_id, "walk", progress=progress)), status=HTTPStatus.ACCEPTED)
 
             qa_match = re.fullmatch(r"/api/projects/([^/]+)/qa/run", path)
             if qa_match:
                 project_id = qa_match.group(1)
-                return self._send_json(create_job(project_id, "qa.run", lambda: run_qa(project_id)), status=HTTPStatus.ACCEPTED)
+                return self._send_json(create_job(project_id, "qa.run", lambda progress: run_qa(project_id, progress=progress)), status=HTTPStatus.ACCEPTED)
 
             export_match = re.fullmatch(r"/api/projects/([^/]+)/export", path)
             if export_match:
                 project_id = export_match.group(1)
-                return self._send_json(create_job(project_id, "export", lambda: export_project(project_id)), status=HTTPStatus.ACCEPTED)
+                return self._send_json(create_job(project_id, "export", lambda progress: export_project(project_id, progress=progress)), status=HTTPStatus.ACCEPTED)
 
             approve_layer_match = re.fullmatch(r"/api/projects/([^/]+)/layer-review/approve", path)
             if approve_layer_match:
@@ -3067,15 +3146,15 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                 return self._send_json({"ok": True})
 
         except FileNotFoundError:
-            return self.send_error(HTTPStatus.NOT_FOUND, "Project not found")
+            return self._send_error_json(HTTPStatus.NOT_FOUND, "Project not found")
         except ValueError as exc:
-            return self.send_error(HTTPStatus.BAD_REQUEST, str(exc))
+            return self._send_error_json(HTTPStatus.BAD_REQUEST, str(exc))
         except HttpRequestError as exc:
-            return self.send_error(HTTPStatus.BAD_GATEWAY, str(exc))
+            return self._send_error_json(HTTPStatus.BAD_GATEWAY, str(exc))
         except Exception as exc:
-            return self.send_error(HTTPStatus.INTERNAL_SERVER_ERROR, str(exc))
+            return self._send_error_json(HTTPStatus.INTERNAL_SERVER_ERROR, str(exc))
 
-        return self.send_error(HTTPStatus.NOT_FOUND, "Unknown API route")
+        return self._send_error_json(HTTPStatus.NOT_FOUND, "Unknown API route")
 
     def _send_json(self, payload: Any, status: HTTPStatus = HTTPStatus.OK) -> None:
         body = json.dumps(payload).encode("utf-8")
@@ -3085,6 +3164,9 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
         self.send_header("Cache-Control", "no-store")
         self.end_headers()
         self.wfile.write(body)
+
+    def _send_error_json(self, status: HTTPStatus, message: str) -> None:
+        return self._send_json({"ok": False, "error": message}, status=status)
 
 
 def main() -> None:

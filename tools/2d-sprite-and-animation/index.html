@@ -381,9 +381,27 @@
             background: rgba(211, 122, 122, 0.08);
         }
 
+        .info-box,
+        .success-box {
+            padding: 14px 16px;
+            border: 1px solid var(--stroke);
+            border-radius: 18px;
+            background: rgba(124, 181, 220, 0.08);
+        }
+
+        .success-box {
+            background: rgba(117, 196, 152, 0.08);
+        }
+
         .warning-box p {
             margin: 0;
             line-height: 1.45;
+        }
+
+        .info-box p,
+        .success-box p {
+            margin: 0;
+            line-height: 1.5;
         }
 
         label {
@@ -391,6 +409,35 @@
             gap: 8px;
             color: var(--muted);
             font-size: 0.92rem;
+        }
+
+        .field-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text);
+            font-weight: 600;
+        }
+
+        .field-help {
+            font-size: 0.83rem;
+            color: var(--muted);
+            line-height: 1.45;
+        }
+
+        .help-tip {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            border: 1px solid var(--stroke-strong);
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--muted);
+            cursor: help;
+            font-size: 0.72rem;
+            font-weight: 700;
         }
 
         input,
@@ -535,6 +582,36 @@
             font-size: 1.2rem;
         }
 
+        .wizard-guide {
+            display: grid;
+            gap: 12px;
+        }
+
+        .wizard-guide-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 12px;
+        }
+
+        .wizard-guide-card {
+            padding: 14px 16px;
+            border: 1px solid var(--stroke);
+            border-radius: 18px;
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .wizard-guide-card strong {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--text);
+        }
+
+        .wizard-guide-card p {
+            margin: 0;
+            color: var(--muted);
+            line-height: 1.5;
+        }
+
         .wizard-blockers,
         .wizard-summaries {
             display: grid;
@@ -549,6 +626,10 @@
         }
 
         .hidden-by-mode {
+            display: none !important;
+        }
+
+        .wizard-hidden {
             display: none !important;
         }
 
@@ -611,6 +692,147 @@
             margin: 8px 0 0;
             color: var(--muted);
             line-height: 1.45;
+        }
+
+        .step-panel-note {
+            margin-bottom: 14px;
+        }
+
+        details.advanced-settings {
+            margin-top: 14px;
+            border: 1px solid var(--stroke);
+            border-radius: 18px;
+            background: rgba(255, 255, 255, 0.03);
+            overflow: hidden;
+        }
+
+        details.advanced-settings summary {
+            list-style: none;
+            cursor: pointer;
+            padding: 14px 16px;
+            color: var(--text);
+            font-weight: 600;
+        }
+
+        details.advanced-settings summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .advanced-content {
+            padding: 0 16px 16px;
+            display: grid;
+            gap: 14px;
+        }
+
+        .inline-hint {
+            color: var(--muted);
+            font-size: 0.84rem;
+            line-height: 1.45;
+        }
+
+        .toast-stack {
+            position: fixed;
+            top: 18px;
+            right: 18px;
+            z-index: 40;
+            display: grid;
+            gap: 10px;
+            width: min(360px, calc(100vw - 36px));
+        }
+
+        .toast {
+            padding: 12px 14px;
+            border-radius: 18px;
+            border: 1px solid var(--stroke);
+            background: rgba(15, 21, 29, 0.95);
+            box-shadow: var(--shadow);
+        }
+
+        .toast.info {
+            border-color: rgba(124, 181, 220, 0.28);
+        }
+
+        .toast.success {
+            border-color: rgba(117, 196, 152, 0.28);
+        }
+
+        .toast.error {
+            border-color: rgba(211, 122, 122, 0.32);
+        }
+
+        .toast strong {
+            display: block;
+            font-size: 0.92rem;
+            margin-bottom: 5px;
+        }
+
+        .toast p {
+            margin: 0;
+            color: var(--muted);
+            line-height: 1.45;
+            font-size: 0.88rem;
+        }
+
+        .activity-dock {
+            position: fixed;
+            right: 18px;
+            bottom: 18px;
+            z-index: 38;
+            width: min(380px, calc(100vw - 36px));
+            padding: 16px;
+            border-radius: 22px;
+            border: 1px solid var(--stroke);
+            background: rgba(12, 18, 25, 0.96);
+            box-shadow: var(--shadow);
+            display: none;
+            gap: 12px;
+        }
+
+        .activity-dock.open {
+            display: grid;
+        }
+
+        .activity-dock p {
+            margin: 0;
+            color: var(--muted);
+            line-height: 1.45;
+        }
+
+        .progress-track {
+            width: 100%;
+            height: 10px;
+            border-radius: 999px;
+            overflow: hidden;
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .progress-fill {
+            height: 100%;
+            width: 0%;
+            border-radius: 999px;
+            background: linear-gradient(135deg, #d4a752, #f1d9a2);
+            transition: width 0.2s ease;
+        }
+
+        .progress-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            color: var(--muted);
+            font-size: 0.84rem;
+        }
+
+        .status-inline {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .section-intro {
+            color: var(--muted);
+            line-height: 1.5;
+            margin: 0;
         }
 
         .compare-grid {
@@ -771,6 +993,13 @@
             .reference-row {
                 grid-template-columns: 1fr;
             }
+
+            .toast-stack,
+            .activity-dock {
+                right: 12px;
+                left: 12px;
+                width: auto;
+            }
         }
     </style>
 </head>
@@ -779,18 +1008,18 @@
     <aside class="sidebar">
         <div class="brand">
             <h1>Sprite<br>Workbench</h1>
-            <p>Local concept iteration for side-view humanoid sprites. Concepts are now real ComfyUI jobs; layers, rigging, and animation are still clearly labeled when they remain synthetic.</p>
+            <p>Create side-view character sprites for Ashen Hollow with a guided wizard or the full workbench. The wizard is tuned for first-time users and keeps the advanced details out of the way.</p>
         </div>
 
         <div class="sidebar-block">
             <div class="nav-list">
-                <a class="nav-link" href="#intake">Intake</a>
-                <a class="nav-link" href="#concepts">Concept Review</a>
-                <a class="nav-link" href="#refine">Refine</a>
-                <a class="nav-link" href="#layer-review">Layer Review</a>
-                <a class="nav-link" href="#rig-review">Rig Review</a>
-                <a class="nav-link" href="#production">Production</a>
-                <a class="nav-link" href="#qa">QA</a>
+                <a class="nav-link" href="#intake">Setup</a>
+                <a class="nav-link" href="#concepts">Looks</a>
+                <a class="nav-link" href="#refine">Adjust</a>
+                <a class="nav-link" href="#layer-review">Build Layers</a>
+                <a class="nav-link" href="#rig-review">Set Up Motion</a>
+                <a class="nav-link" href="#production">Build Animations</a>
+                <a class="nav-link" href="#qa">Checks</a>
                 <a class="nav-link" href="#export">Export</a>
             </div>
         </div>
@@ -806,8 +1035,8 @@
 
     <main class="main-column">
         <section class="hero">
-            <h2>ComfyUI-backed concept boards, honest downstream warnings.</h2>
-            <p>Initial generation now targets six real concept outputs by default, refinement produces four new variants with lineage, review state lives in project history, and the UI stops pretending the placeholder downstream pipeline is production-complete.</p>
+            <h2>Guide a sprite from idea to export without learning the pipeline first.</h2>
+            <p>The wizard now focuses one step at a time, explains what each choice does, and uses a stronger Ashen Hollow house style for more readable starting concepts. The workbench still stays available when you want direct access.</p>
             <div class="hero-actions">
                 <button id="launch-wizard">Create New Sprite</button>
                 <button class="secondary" id="open-workbench">Open Workbench</button>
@@ -818,7 +1047,7 @@
             <div class="section-head">
                 <div>
                     <h3>Workspace Mode</h3>
-                    <p id="mode-summary">Use the workbench for direct access, or launch the guided wizard to create a new sprite step by step.</p>
+                    <p id="mode-summary">Use the workbench for direct access, or launch the guided wizard to create a new sprite one clear step at a time.</p>
                 </div>
                 <div class="mode-actions">
                     <button class="secondary" id="mode-workbench">Workbench</button>
@@ -834,34 +1063,34 @@
                 <strong id="status-project">None</strong>
             </div>
             <div class="status-card">
-                <span>Current Stage</span>
+                <span>Current Step</span>
                 <strong id="status-stage">Idle</strong>
             </div>
             <div class="status-card">
-                <span>Concept Backend</span>
+                <span>Image Generator</span>
                 <strong id="status-backend">Unknown</strong>
             </div>
             <div class="status-card">
-                <span>QA Status</span>
+                <span>Checks</span>
                 <strong id="status-qa">Blocked</strong>
             </div>
         </section>
 
         <section class="metric-grid" id="metric-grid">
             <div class="metric-card">
-                <span>Concept Runs</span>
+                <span>Look Boards</span>
                 <strong>0</strong>
             </div>
             <div class="metric-card">
-                <span>Approvals Logged</span>
+                <span>Looks Chosen</span>
                 <strong>0</strong>
             </div>
             <div class="metric-card">
-                <span>Refinements</span>
+                <span>Adjustments</span>
                 <strong>0</strong>
             </div>
             <div class="metric-card">
-                <span>Time To Approved</span>
+                <span>Time To Chosen Look</span>
                 <strong>n/a</strong>
             </div>
         </section>
@@ -869,71 +1098,123 @@
         <section class="panel" id="intake">
             <div class="section-head">
                 <div>
-                    <h3>Intake</h3>
-                    <p>Prompt-only entry still works, but structured art-direction fields now feed the concept prompt builder directly. Reference rows can point to local files or browser uploads and are copied into the project before generation.</p>
+                    <h3>Setup</h3>
+                    <p>Start with a project name, then describe the character in plain language. The wizard uses these fields to build a stronger concept prompt tuned for readable Ashen Hollow sprites.</p>
                 </div>
                 <div class="stage-meta" data-stage="intake"></div>
             </div>
 
-            <div class="grid-2">
-                <label>Project Name
-                    <input id="project-name" placeholder="Ashen Sentinel">
-                </label>
-                <label>Raw Prompt
-                    <textarea id="prompt-text" placeholder="Humanoid side-view armored traveler with a lantern and storm-steel palette."></textarea>
-                </label>
-            </div>
-
-            <div class="grid-3" style="margin-top: 12px;">
-                <label>Role / Archetype
-                    <input id="role-archetype" placeholder="armored traveler">
-                </label>
-                <label>Silhouette Intent
-                    <input id="silhouette-intent" placeholder="broad guarded profile">
-                </label>
-                <label>Outfit / Materials
-                    <input id="outfit-materials" placeholder="plate fragments over travel layers">
-                </label>
-                <label>Primary Prop
-                    <input id="prop" placeholder="lantern">
-                </label>
-                <label>Palette Mood
-                    <input id="palette-mood" placeholder="storm steel">
-                </label>
-                <label>Shape Language
-                    <input id="shape-language" placeholder="angular disciplined silhouettes">
-                </label>
-                <label>Mood / Tone
-                    <input id="mood-tone" placeholder="stoic and vigilant">
-                </label>
-                <label>Side-View Constraints
-                    <input id="side-view-constraints" placeholder="strict side view, one humanoid character, clean background">
-                </label>
-                <label>Negative Prompt
-                    <input id="negative-prompt" placeholder="front view, crowd, busy background, extra limbs">
-                </label>
-            </div>
-
-            <div class="grid-3" style="margin-top: 12px;">
-                <label>Concept Backend
-                    <select id="backend-mode">
-                        <option value="comfyui">ComfyUI</option>
-                        <option value="debug_procedural">Debug Procedural</option>
-                    </select>
-                </label>
-                <label>Checkpoint Override
-                    <input id="comfyui-checkpoint" placeholder="sd15.safetensors">
-                </label>
-                <div class="warning-box" id="backend-warning">
-                    <p>ComfyUI is the default and only real concept backend. The debug backend exists only as an explicit fallback for local testing.</p>
+            <div class="wizard-subview step-panel-note wizard-only" data-wizard-view="project">
+                <div class="info-box">
+                    <p><strong>Start here.</strong> Give the sprite a project name first. You can add the full character description in the next step.</p>
                 </div>
             </div>
 
-            <div style="margin-top: 18px;">
+            <div class="grid-2" data-wizard-view="project,brief">
+                <label>
+                    <span class="field-label">Project Name <span class="help-tip" title="Used to organize the sprite project on disk. Pick something short and recognizable.">?</span></span>
+                    <span class="field-help">Example: Ashen Sentinel, Lantern Pilgrim, Hollow Ranger.</span>
+                    <input id="project-name" placeholder="Ashen Sentinel">
+                </label>
+            </div>
+
+            <div class="wizard-subview step-panel-note wizard-only" data-wizard-view="brief">
+                <div class="info-box">
+                    <p><strong>Describe the character like you would to an artist.</strong> Focus on role, mood, silhouette, clothing, and the one item they carry. The wizard will steer the prompt toward readable side-view game art.</p>
+                </div>
+            </div>
+
+            <div class="grid-2" data-wizard-view="brief">
+                <label>
+                    <span class="field-label">Character Description <span class="help-tip" title="Freeform description of the character. This is the main input the concept prompt is built from.">?</span></span>
+                    <span class="field-help">Good example: A watchful armored pilgrim carrying a hooded lantern, with worn plate over travel cloth and a cold steel palette.</span>
+                    <textarea id="prompt-text" placeholder="A side-view armored pilgrim carrying a hooded lantern, with weathered plate, layered travel cloth, and a cold ash-and-steel palette."></textarea>
+                </label>
+                <label>
+                    <span class="field-label">Character Type</span>
+                    <span class="field-help">Who are they in the world and how should they read at a glance?</span>
+                    <input id="role-archetype" placeholder="armored traveler">
+                </label>
+                <label>
+                    <span class="field-label">Main Shape</span>
+                    <span class="field-help">Describe the overall silhouette you want the player to notice first.</span>
+                    <input id="silhouette-intent" placeholder="broad guarded profile">
+                </label>
+                <label>
+                    <span class="field-label">Clothing and Materials</span>
+                    <span class="field-help">Keep this practical and readable for side-view animation.</span>
+                    <input id="outfit-materials" placeholder="plate fragments over travel layers">
+                </label>
+                <label>
+                    <span class="field-label">Held Item</span>
+                    <span class="field-help">Use one primary prop only for this version of the tool.</span>
+                    <input id="prop" placeholder="lantern">
+                </label>
+                <label>
+                    <span class="field-label">Color Mood</span>
+                    <span class="field-help">Short palette direction such as storm steel, ember dusk, or bone ash.</span>
+                    <input id="palette-mood" placeholder="storm steel">
+                </label>
+                <label>
+                    <span class="field-label">Shape Style</span>
+                    <span class="field-help">Rounded, angular, or balanced. This helps stabilize the overall look.</span>
+                    <input id="shape-language" placeholder="angular disciplined silhouettes">
+                </label>
+                <label>
+                    <span class="field-label">Personality and Tone</span>
+                    <span class="field-help">How should the character feel: grim, haunted, vigilant, severe, noble, worn, and so on.</span>
+                    <input id="mood-tone" placeholder="stoic and vigilant">
+                </label>
+            </div>
+
+            <details class="advanced-settings" data-wizard-view="brief">
+                <summary>Advanced concept settings</summary>
+                <div class="advanced-content">
+                    <p class="inline-hint">You can usually leave these alone. The wizard already biases prompts toward Ashen Hollow’s dark-fantasy side-view style.</p>
+                    <div class="grid-3">
+                        <label>
+                            <span class="field-label">Side-View Rules</span>
+                            <span class="field-help">Extra constraints that keep the concept readable for side-view sprite work.</span>
+                            <input id="side-view-constraints" placeholder="strict side view, one humanoid character, clean background">
+                        </label>
+                        <label>
+                            <span class="field-label">Avoid These Visuals</span>
+                            <span class="field-help">Things the generator should avoid showing.</span>
+                            <input id="negative-prompt" placeholder="front view, crowd, busy background, extra limbs">
+                        </label>
+                        <label>
+                            <span class="field-label">Image Generator</span>
+                            <span class="field-help">Use debug mode only if you want placeholder images for testing.</span>
+                            <select id="backend-mode">
+                                <option value="comfyui">ComfyUI</option>
+                                <option value="debug_procedural">Debug Procedural</option>
+                            </select>
+                        </label>
+                    </div>
+                    <div class="grid-2">
+                        <label>
+                            <span class="field-label">Model Checkpoint</span>
+                            <span class="field-help">Optional override for the ComfyUI checkpoint filename.</span>
+                            <input id="comfyui-checkpoint" placeholder="sd15.safetensors">
+                        </label>
+                        <div class="warning-box" id="backend-warning">
+                            <p>ComfyUI is the default image generator. Debug mode exists only for local fallback testing.</p>
+                        </div>
+                    </div>
+                </div>
+            </details>
+
+            <div class="wizard-subview step-panel-note wizard-only" data-wizard-view="references">
+                <div class="info-box">
+                    <p><strong>References are optional.</strong> Add them if you want to push the tool toward a specific face, outfit, prop, or overall mood. If you skip this step, the wizard will rely on your written description alone.</p>
+                </div>
+            </div>
+
+            <div style="margin-top: 18px;" data-wizard-view="references">
                 <div class="section-head" style="margin-bottom: 10px;">
                     <div>
                         <h3 style="font-size: 0.98rem;">References</h3>
-                        <p>Typed references are stored under each project and passed into the concept backend through uploaded conditioning images. Identity, costume, style, and prop references stay separate in metadata.</p>
+                        <p>Add optional reference images for the face, outfit, world style, or held item. Uploaded images are stored with the project and passed into the concept generator as separate guide inputs.</p>
                     </div>
                 </div>
                 <div class="reference-list" id="attached-references"></div>
@@ -943,42 +1224,65 @@
                 </div>
             </div>
 
-            <div class="actions">
+            <div class="actions wizard-only" data-wizard-view="project">
                 <button id="create-project">Create Project</button>
-                <button class="secondary" id="save-brief">Save Intake</button>
-                <button class="secondary" id="refresh-projects">Refresh Projects</button>
             </div>
-            <p class="small-note" id="intake-note">Unsupported prompt patterns are rejected before concept generation. Existing projects load with backward-compatible defaults even if they predate the structured brief schema.</p>
+            <div class="actions wizard-only" data-wizard-view="brief">
+                <button class="secondary" id="save-brief">Save Description</button>
+                <button class="secondary" id="refresh-projects-brief">Refresh Projects</button>
+            </div>
+            <div class="actions wizard-only workbench-actions" data-wizard-view="references">
+                <button class="secondary" id="save-references">Save References</button>
+                <button class="secondary" id="refresh-projects-references">Refresh Projects</button>
+            </div>
+            <div class="actions" data-wizard-view="workbench">
+                <button id="create-project-workbench">Create Project</button>
+                <button class="secondary" id="save-brief-workbench">Save Setup</button>
+                <button class="secondary" id="refresh-projects-workbench">Refresh Projects</button>
+            </div>
+            <p class="small-note" id="intake-note">This version supports one side-view humanoid character. Unsupported prompt patterns are blocked early so you know what to fix before generation starts.</p>
         </section>
 
         <section class="panel" id="concepts">
             <div class="section-head">
                 <div>
-                    <h3>Concept Review</h3>
-                    <p>Initial runs generate six concepts. Refinement and regenerate-similar runs generate four. Review actions, lineage, and derived metrics all come from <code>history.json</code> rather than UI-only state.</p>
+                    <h3>Looks</h3>
+                    <p>Start by generating six looks. The wizard keeps them close to the same identity, but varies silhouette, outfit treatment, and palette enough to help you choose a direction quickly.</p>
                 </div>
                 <div class="stage-meta" data-stage="concepts"></div>
             </div>
 
-            <div class="actions">
-                <button id="generate-concepts">Generate 6 Concepts</button>
+            <div class="wizard-subview step-panel-note wizard-only" data-wizard-view="concepts">
+                <div class="info-box">
+                    <p><strong>Generate the first board.</strong> You are looking for at least one or two looks worth keeping. Don’t chase final polish yet.</p>
+                </div>
             </div>
 
-            <div style="margin-top: 16px;">
+            <div class="actions" data-wizard-view="concepts,review,workbench">
+                <button id="generate-concepts">Generate 6 Looks</button>
+            </div>
+
+            <div style="margin-top: 16px;" data-wizard-view="concepts,review,workbench">
                 <div class="section-head" style="margin-bottom: 10px;">
                     <div>
-                        <h3 style="font-size: 0.98rem;">Run Summaries</h3>
-                        <p>The most recent run is selected by default. Old projects with legacy concept boards still load, but they will not show the same lineage detail until new runs are created.</p>
+                        <h3 style="font-size: 0.98rem;">Generation History</h3>
+                        <p>The most recent run is selected by default. Use older runs if you want to compare your latest board against previous directions.</p>
                     </div>
                 </div>
                 <div class="run-grid" id="run-grid"></div>
             </div>
 
-            <div style="margin-top: 16px;">
+            <div class="wizard-subview step-panel-note wizard-only" data-wizard-view="review">
+                <div class="info-box">
+                    <p><strong>Pick a direction.</strong> Compare the strongest looks, shortlist what works, then choose the one you want to carry into adjustments and build.</p>
+                </div>
+            </div>
+
+            <div style="margin-top: 16px;" data-wizard-view="review,workbench">
                 <div class="section-head" style="margin-bottom: 10px;">
                     <div>
                         <h3 style="font-size: 0.98rem;">Compare</h3>
-                        <p>The approved concept stays fixed on the left when available. Click compare on any other concept to pin it on the right, then use quick toggle to swap sides.</p>
+                        <p>The chosen look stays pinned on the left when available. Compare another option on the right to judge shape, prop clarity, and palette readability.</p>
                     </div>
                 </div>
                 <div class="compare-grid">
@@ -986,11 +1290,11 @@
                     <div class="compare-slot" id="compare-right"></div>
                 </div>
                 <div class="actions">
-                    <button class="secondary" id="swap-compare">Quick Toggle</button>
+                    <button class="secondary" id="swap-compare">Swap Compare Sides</button>
                 </div>
             </div>
 
-            <div style="margin-top: 16px;">
+            <div style="margin-top: 16px;" data-wizard-view="review,workbench">
                 <div class="concept-grid" id="concept-grid"></div>
             </div>
         </section>
@@ -998,10 +1302,14 @@
         <section class="panel" id="refine">
             <div class="section-head">
                 <div>
-                    <h3>Refine</h3>
-                    <p>Refinement is now a real image generation step. Pick the approved concept, choose one major attribute group to change, provide the new target value, and set the denoise strength used in the backend refinement workflow.</p>
+                    <h3>Adjust</h3>
+                    <p>Change one major thing at a time so the results stay predictable. This works best when you keep the approved look stable and only ask for a single focused change.</p>
                 </div>
                 <div class="stage-meta" data-stage="refine"></div>
+            </div>
+
+            <div class="info-box step-panel-note">
+                <p><strong>Best practice:</strong> keep the overall shape, outfit, or colors steady unless that is the exact thing you want to change.</p>
             </div>
 
             <div class="warning-box">
@@ -1009,19 +1317,25 @@
             </div>
 
             <div class="grid-3" style="margin-top: 14px;">
-                <label>Selected Concept
+                <label>
+                    <span class="field-label">Chosen Look</span>
+                    <span class="field-help">This is the version the adjustment will build from.</span>
                     <select id="refine-concept"></select>
                 </label>
-                <label>Attribute Group
+                <label>
+                    <span class="field-label">Change This</span>
+                    <span class="field-help">Pick one area to change so the results stay controlled.</span>
                     <select id="refine-attribute">
-                        <option value="silhouette">silhouette</option>
-                        <option value="face_head_shape">face_head_shape</option>
+                        <option value="silhouette">overall shape</option>
+                        <option value="face_head_shape">face and head shape</option>
                         <option value="outfit">outfit</option>
-                        <option value="palette">palette</option>
-                        <option value="prop">prop</option>
+                        <option value="palette">colors</option>
+                        <option value="prop">held item</option>
                     </select>
                 </label>
-                <label>Refinement Strength
+                <label>
+                    <span class="field-label">How Different</span>
+                    <span class="field-help">Subtle stays close. Strong pushes farther away from the current version.</span>
                     <select id="refine-strength">
                         <option value="subtle">subtle</option>
                         <option value="medium">medium</option>
@@ -1031,24 +1345,26 @@
             </div>
 
             <div class="grid-2" style="margin-top: 12px;">
-                <label>New Target Value
+                <label>
+                    <span class="field-label">Describe the Change</span>
+                    <span class="field-help">Example: cooler steel palette with brass accents, leaner silhouette, heavier shoulder armor.</span>
                     <input id="refine-target" placeholder="cooler storm palette with brass accents">
                 </label>
                 <div class="warning-box">
-                    <p><strong>Strength mapping:</strong> subtle = 0.25, medium = 0.45, strong = 0.65. The selected concept is used as the img2img parent, and locked attributes are restated in the refine prompt.</p>
+                    <p><strong>What this does:</strong> subtle stays close to the current look, medium makes a clearer change, and strong pushes farther. The tool still tries to preserve the chosen character identity.</p>
                 </div>
             </div>
 
             <div class="actions">
-                <button id="run-refine">Generate 4 Refinements</button>
+                <button id="run-refine">Generate 4 Adjusted Looks</button>
             </div>
         </section>
 
         <section class="panel" id="layer-review">
             <div class="section-head">
                 <div>
-                    <h3>Layer Review</h3>
-                    <p>This stage is still placeholder. It remains useful for downstream smoke testing, but the UI now says plainly that these layers are synthetic stand-ins rather than extracted concept art.</p>
+                    <h3>Build Layers</h3>
+                    <p>This step prepares the temporary layer stack used by the current build pipeline. It is useful for testing the animation/export path, but it still uses a placeholder downstream build.</p>
                 </div>
                 <div class="stage-meta" data-stage="layer_review"></div>
             </div>
@@ -1058,8 +1374,8 @@
             </div>
 
             <div class="actions">
-                <button id="build-layers">Build Placeholder Layers</button>
-                <button class="secondary" id="approve-layers">Approve Layer Review</button>
+                <button id="build-layers">Build Layers</button>
+                <button class="secondary" id="approve-layers">Approve Layers</button>
             </div>
             <div class="check-list" id="layer-checks" style="margin-top: 14px;"></div>
             <div class="thumb-grid" id="layer-gallery" style="margin-top: 14px;"></div>
@@ -1068,15 +1384,15 @@
         <section class="panel" id="rig-review">
             <div class="section-head">
                 <div>
-                    <h3>Rig Review</h3>
-                    <p>The rig is still generated procedurally for the placeholder downstream path. Use this stage for deterministic renderer validation, not as evidence of concept-to-rig extraction maturity.</p>
+                    <h3>Set Up Motion</h3>
+                    <p>This creates the temporary motion setup used by the current renderer. Review it as a pipeline check, not as final extracted animation data.</p>
                 </div>
                 <div class="stage-meta" data-stage="rig_review"></div>
             </div>
 
             <div class="actions">
-                <button id="build-rig">Build Placeholder Rig</button>
-                <button class="secondary" id="approve-rig">Approve Rig Review</button>
+                <button id="build-rig">Build Motion Setup</button>
+                <button class="secondary" id="approve-rig">Approve Motion Setup</button>
             </div>
             <div class="grid-2" style="margin-top: 14px;">
                 <div class="warning-box">
@@ -1089,8 +1405,8 @@
         <section class="panel" id="production">
             <div class="section-head">
                 <div>
-                    <h3>Production</h3>
-                    <p>The deterministic renderer remains in place. It is still useful for testing sheet packing, pivot consistency, and exports, but it sits on top of placeholder layers and rig data.</p>
+                    <h3>Build Animations</h3>
+                    <p>Render the idle and walk animations, then move on to checks. This renderer is deterministic, but it still depends on the temporary downstream layer and motion setup.</p>
                 </div>
                 <div class="stage-meta" data-stage="production"></div>
             </div>
@@ -1100,8 +1416,8 @@
             </div>
 
             <div class="actions">
-                <button id="render-idle">Render Idle</button>
-                <button id="render-walk">Render Walk</button>
+                <button id="render-idle">Build Idle</button>
+                <button id="render-walk">Build Walk</button>
             </div>
             <div class="grid-2" style="margin-top: 14px;">
                 <div>
@@ -1118,14 +1434,14 @@
         <section class="panel" id="qa">
             <div class="section-head">
                 <div>
-                    <h3>QA</h3>
-                    <p>QA now only reports what is actually implemented. Unsupported checks are surfaced as <code>not_implemented</code> instead of being silently counted as pass.</p>
+                    <h3>Checks</h3>
+                    <p>Run the implemented image checks before export. The tool is explicit about what it can verify and what still needs human judgment.</p>
                 </div>
                 <div class="stage-meta" data-stage="qa"></div>
             </div>
 
             <div class="actions">
-                <button id="run-qa">Run QA</button>
+                <button id="run-qa">Run Checks</button>
             </div>
             <div class="check-list" id="qa-summary" style="margin-top: 14px;"></div>
         </section>
@@ -1134,7 +1450,7 @@
             <div class="section-head">
                 <div>
                     <h3>Export</h3>
-                    <p>Exports stay gated behind passing QA, but the surrounding copy is now explicit about the experimental and placeholder stages still present upstream.</p>
+                    <p>Export the sprite sheet, frame images, metadata, and preview once checks pass.</p>
                 </div>
                 <div class="stage-meta" data-stage="export"></div>
             </div>
@@ -1145,16 +1461,36 @@
             <div class="check-list" id="export-summary" style="margin-top: 14px;"></div>
         </section>
 
-        <section class="panel">
+        <section class="panel" id="activity-log">
             <div class="section-head">
                 <div>
-                    <h3>Job Log</h3>
-                    <p>Background jobs still run through the local server queue. The most recent events are shown first.</p>
+                    <h3>Activity Log</h3>
+                    <p>Recent background activity is shown here. In wizard mode, active progress and notifications are surfaced directly on screen so you do not have to watch this log.</p>
                 </div>
             </div>
             <ul class="log-list" id="job-log"></ul>
         </section>
     </main>
+</div>
+
+<div class="toast-stack" id="toast-stack" aria-live="polite"></div>
+
+<div class="activity-dock" id="activity-dock" aria-live="polite">
+    <div class="status-inline">
+        <span class="pill warning" id="activity-state">Working</span>
+        <span class="pill" id="activity-job-type">job</span>
+    </div>
+    <div>
+        <strong id="activity-label">Preparing…</strong>
+        <p id="activity-detail">Waiting for the next update.</p>
+    </div>
+    <div class="progress-track">
+        <div class="progress-fill" id="activity-progress"></div>
+    </div>
+    <div class="progress-meta">
+        <span id="activity-progress-text">0%</span>
+        <span id="activity-hint">You can keep browsing while this runs.</span>
+    </div>
 </div>
 
 <div class="modal" id="zoom-modal">
@@ -1180,7 +1516,7 @@ const STORAGE_KEYS = {
 };
 
 const WIZARD_STEPS = ["project", "brief", "references", "concepts", "review", "refine", "build", "qa", "export"];
-const WORKBENCH_SECTION_IDS = ["intake", "concepts", "refine", "layer-review", "rig-review", "production", "qa", "export"];
+const WORKBENCH_SECTION_IDS = ["intake", "concepts", "refine", "layer-review", "rig-review", "production", "qa", "export", "activity-log"];
 const WIZARD_SECTION_MAP = {
     project: ["intake"],
     brief: ["intake"],
@@ -1194,41 +1530,92 @@ const WIZARD_SECTION_MAP = {
 };
 const WIZARD_META = {
     project: {
-        label: "Project",
-        description: "Start a new sprite project. Use the intake form below to create the project and capture the initial brief in one pass.",
+        label: "Start",
+        description: "Create a new sprite project so the wizard has a place to store everything that follows.",
+        outcome: "You will have a named project ready for the rest of the flow.",
+        example: "Example: Lantern Pilgrim or Ashen Sentinel.",
     },
     brief: {
-        label: "Brief",
-        description: "Save the character brief so the tool has a stable starting point before concept generation.",
+        label: "Describe Your Character",
+        description: "Describe the character in plain language and fill in the main art-direction fields.",
+        outcome: "The tool will build a stronger Ashen Hollow prompt scaffold for concept generation.",
+        example: "Focus on role, silhouette, clothing, mood, and one held item.",
     },
     references: {
-        label: "References",
-        description: "Optional step. Attach identity, costume, style, or prop references, then continue into concept generation.",
+        label: "Add References",
+        description: "Optional step. Add images if you want to steer the face, outfit, style, or held item.",
+        outcome: "The generator will use the stored references as extra guidance.",
+        example: "Skip this if your written description is already strong.",
     },
     concepts: {
-        label: "Concepts",
-        description: "Run the concept backend and create the first concept board for this sprite.",
+        label: "Generate Looks",
+        description: "Create the first board of looks. The wizard aims for readable side-view concepts first.",
+        outcome: "You will get six concept directions that stay within the same general identity family.",
+        example: "Look for one or two directions worth keeping, not final art.",
     },
     review: {
-        label: "Review",
-        description: "Compare the concept directions, reject weak ones, and approve one concept to carry forward.",
+        label: "Pick a Look",
+        description: "Compare the strongest looks, shortlist them, and choose one direction to carry forward.",
+        outcome: "The selected look becomes the source for adjustments and build steps.",
+        example: "Pick the option with the clearest silhouette and strongest side-view readability.",
     },
     refine: {
-        label: "Refine",
-        description: "Optionally run controlled refinement loops from the approved concept until it feels ready to build.",
+        label: "Adjust the Design",
+        description: "Optionally adjust one major thing at a time until the chosen look feels ready.",
+        outcome: "You will get four controlled variations from the approved look.",
+        example: "Change colors, outfit weight, or silhouette, but avoid changing everything at once.",
     },
     build: {
-        label: "Build",
-        description: "Run the placeholder downstream path in order: layers, rig, and renders.",
+        label: "Build Sprite Set",
+        description: "Run the current layer, motion, and animation build path in the right order.",
+        outcome: "This step prepares the idle and walk frames for checks and export.",
+        example: "The build path is still experimental downstream, but the wizard keeps the order simple.",
     },
     qa: {
-        label: "QA",
-        description: "Run implemented checks and review the result before export.",
+        label: "Check Results",
+        description: "Run the available image checks and review the results before export.",
+        outcome: "Failed checks stop export so problems are visible before packaging.",
+        example: "Use this step to catch missing frames, wrong sizes, or clipping issues.",
     },
     export: {
         label: "Export",
         description: "Package the finished files and open the export artifacts.",
+        outcome: "You will get a spritesheet, frame images, metadata, and a preview.",
+        example: "Export stays blocked until checks pass.",
     },
+};
+
+const REFINEMENT_LABELS = {
+    silhouette: "overall shape",
+    face_head_shape: "face and head shape",
+    outfit: "outfit",
+    palette: "colors",
+    prop: "held item",
+};
+
+const FRIENDLY_STAGE_NAMES = {
+    intake: "Setup",
+    concepts: "Looks",
+    concept_lock: "Look chosen",
+    refine: "Adjusting look",
+    layer_review: "Build layers",
+    rig_review: "Set up motion",
+    production_idle: "Building idle",
+    production_walk: "Building walk",
+    qa: "Checks",
+    export: "Export",
+};
+
+const JOB_TYPE_LABELS = {
+    "concepts.generate": "Generating looks",
+    "concepts.regenerate_similar": "Generating similar looks",
+    "concepts.refine": "Adjusting the chosen look",
+    "layers.build": "Building layers",
+    "rig.build": "Building motion setup",
+    "animations.idle.render": "Building idle animation",
+    "animations.walk.render": "Building walk animation",
+    "qa.run": "Running checks",
+    export: "Exporting files",
 };
 
 const DEFAULT_WORKBENCH_PORT = "8766";
@@ -1281,6 +1668,7 @@ const state = {
     zoomConceptId: null,
     swapCompareView: false,
     uiMode: "workbench",
+    activity: null,
 };
 
 function currentMode() {
@@ -1289,6 +1677,88 @@ function currentMode() {
 
 function isWizardMode() {
     return currentMode() === "wizard";
+}
+
+function normalizeWizardVisibility(value) {
+    return String(value || "")
+        .split(",")
+        .map((item) => item.trim())
+        .filter(Boolean);
+}
+
+function activeBuildSectionId() {
+    const project = state.activeProject;
+    if (!project?.layered_character || !project.layer_review_approved) return "layer-review";
+    if (!project?.rig || !project.rig_review_approved) return "rig-review";
+    return "production";
+}
+
+function wizardSectionIds(step) {
+    if (step === "build") return [activeBuildSectionId()];
+    return WIZARD_SECTION_MAP[step] || [];
+}
+
+function stageDisplayName(stage) {
+    return FRIENDLY_STAGE_NAMES[stage] || stage || "Idle";
+}
+
+function jobDisplayName(jobType) {
+    return JOB_TYPE_LABELS[jobType] || jobType || "Working";
+}
+
+function normalizeErrorMessage(message) {
+    const text = String(message || "").replace(/\s+/g, " ").trim();
+    if (!text) return "Something went wrong. Try again.";
+    if (text.includes("ComfyUI backend unavailable") || text.includes("Connection refused")) {
+        return "The image generator is not reachable. Make sure ComfyUI is running, then try again.";
+    }
+    if (text.includes("Unsupported input:")) {
+        return "This version only supports one side-view humanoid character with one main held item. Simplify the prompt and try again.";
+    }
+    if (text.includes("Refinement target value is required")) {
+        return "Describe what you want to change before generating adjusted looks.";
+    }
+    if (text.includes("Refinement must change exactly one supported major attribute group")) {
+        return "Change one major thing at a time when adjusting a look.";
+    }
+    if (text.includes("Layer review cannot be approved")) {
+        return "Build the layers first, then approve them.";
+    }
+    if (text.includes("Rig review approval is required before production")) {
+        return "Approve the motion setup before building animations.";
+    }
+    if (text.includes("Export blocked: QA must pass first")) {
+        return "Checks must pass before export is available.";
+    }
+    if (text.includes("Missing frame:")) {
+        return "At least one animation frame is missing. Rebuild the animation and run checks again.";
+    }
+    return text;
+}
+
+function notify(message, tone = "info", title = "") {
+    const root = document.querySelector("#toast-stack");
+    if (!root) return;
+    const node = document.createElement("div");
+    node.className = `toast ${tone}`;
+    node.innerHTML = `
+        <strong>${title || (tone === "error" ? "Something needs attention" : tone === "success" ? "Done" : "Update")}</strong>
+        <p>${message}</p>
+    `;
+    root.appendChild(node);
+    window.setTimeout(() => {
+        node.remove();
+    }, tone === "error" ? 6500 : 4000);
+}
+
+function setActivity(activity) {
+    state.activity = activity;
+    renderActivity();
+}
+
+function clearActivity() {
+    state.activity = null;
+    renderActivity();
 }
 
 function blankWizardModel() {
@@ -1308,13 +1778,13 @@ function blankWizardModel() {
         },
         blocking_reasons: {
             brief: ["Create a project first."],
-            references: ["Save the brief first."],
-            concepts: ["Save the brief first."],
-            review: ["Generate concepts first."],
-            refine: ["Approve a concept first."],
-            build: ["Approve a concept and confirm the refine step first."],
-            qa: ["Complete the build step first."],
-            export: ["QA must pass before export."],
+            references: ["Save the character description first."],
+            concepts: ["Save the character description first."],
+            review: ["Generate looks first."],
+            refine: ["Choose a look first."],
+            build: ["Choose a look and finish the adjustment step first."],
+            qa: ["Finish the build step first."],
+            export: ["Checks must pass before export."],
         },
     };
 }
@@ -1344,19 +1814,19 @@ function wizardSummaryText(step) {
         case "project":
             return project.project_name;
         case "brief":
-            return project.prompt_text || project.brief?.role_archetype || "Brief saved.";
+            return project.prompt_text || project.brief?.role_archetype || "Description saved.";
         case "references":
             return `${project.brief?.references?.length || 0} stored reference(s)`;
         case "concepts":
-            return project.latest_concept_run ? `${project.latest_concept_run.concept_count} concepts in latest run` : "No concept run yet.";
+            return project.latest_concept_run ? `${project.latest_concept_run.concept_count} looks in latest run` : "No looks generated yet.";
         case "review":
-            return project.selected_concept_id ? `Approved ${project.selected_concept_id}` : "No approved concept yet.";
+            return project.selected_concept_id ? `Chosen ${project.selected_concept_id}` : "No look chosen yet.";
         case "refine":
-            return project.wizard_state?.last_refine_decision || (project.latest_refinement_run ? "Refinement history exists." : "No refine decision yet.");
+            return project.wizard_state?.last_refine_decision || (project.latest_refinement_run ? "Adjustments generated." : "No adjustment decision yet.");
         case "build":
-            return `${project.layer_review_approved ? "layers approved" : "layers pending"} · ${project.rig_review_approved ? "rig approved" : "rig pending"}`;
+            return `${project.layer_review_approved ? "layers approved" : "layers pending"} · ${project.rig_review_approved ? "motion approved" : "motion pending"}`;
         case "qa":
-            return project.qa_report?.status || "QA not run.";
+            return project.qa_report?.status || "Checks not run.";
         case "export":
             return project.last_export?.export_dir || "No export yet.";
         default:
@@ -1402,20 +1872,20 @@ async function goToWizardStep(step) {
 function nextBuildAction() {
     const project = state.activeProject;
     if (!project?.layered_character) {
-        return { label: "Build Placeholder Layers", run: () => runJob(`/api/projects/${project.project_id}/layers/build`) };
+        return { label: "Build Layers", run: () => runJob(`/api/projects/${project.project_id}/layers/build`) };
     }
     if (!project.layer_review_approved) {
         return {
-            label: "Approve Layer Review",
+            label: "Approve Layers",
             run: () => api(`/api/projects/${project.project_id}/layer-review/approve`, { method: "POST", body: "{}" }).then(() => loadProject(project.project_id, "wizard")),
         };
     }
     if (!project.rig) {
-        return { label: "Build Placeholder Rig", run: () => runJob(`/api/projects/${project.project_id}/rig/build`) };
+        return { label: "Build Motion Setup", run: () => runJob(`/api/projects/${project.project_id}/rig/build`) };
     }
     if (!project.rig_review_approved) {
         return {
-            label: "Approve Rig Review",
+            label: "Approve Motion Setup",
             run: () => api(`/api/projects/${project.project_id}/rig-review/approve`, { method: "POST", body: "{}" }).then(() => loadProject(project.project_id, "wizard")),
         };
     }
@@ -1436,12 +1906,22 @@ function nextBuildAction() {
 function applyModeVisibility() {
     const mode = currentMode();
     const activeStep = activeWizardStep();
-    const allowedSections = new Set(mode === "wizard" ? (WIZARD_SECTION_MAP[activeStep] || []) : WORKBENCH_SECTION_IDS);
+    const allowedSections = new Set(mode === "wizard" ? wizardSectionIds(activeStep) : WORKBENCH_SECTION_IDS);
     WORKBENCH_SECTION_IDS.forEach((id) => {
         const node = document.querySelector(`#${id}`);
         if (!node) return;
         const shouldHide = mode === "wizard" && !allowedSections.has(id);
         node.classList.toggle("hidden-by-mode", shouldHide);
+    });
+    document.querySelectorAll("[data-wizard-view]").forEach((node) => {
+        const steps = normalizeWizardVisibility(node.dataset.wizardView);
+        const show = mode !== "wizard"
+            ? true
+            : steps.includes(activeStep);
+        node.classList.toggle("wizard-hidden", !show);
+    });
+    document.querySelectorAll(".wizard-only").forEach((node) => {
+        node.classList.toggle("wizard-hidden", mode !== "wizard");
     });
 }
 
@@ -1460,12 +1940,12 @@ function wizardActionConfig(step) {
             return {
                 primary: {
                     id: "wizard-create-project",
-                    label: "Create Project From Intake",
+                    label: "Start Project",
                     disabled: false,
                 },
                 secondary: {
                     id: "wizard-open-workbench",
-                    label: "Open Workbench",
+                    label: "Open Advanced Workbench",
                     disabled: false,
                 },
             };
@@ -1473,12 +1953,12 @@ function wizardActionConfig(step) {
             return {
                 primary: {
                     id: "wizard-save-brief",
-                    label: "Save Brief",
+                    label: "Save And Continue",
                     disabled: !project,
                 },
                 secondary: {
                     id: "wizard-open-workbench",
-                    label: "Open Workbench",
+                    label: "Open Advanced Workbench",
                     disabled: false,
                 },
             };
@@ -1486,7 +1966,7 @@ function wizardActionConfig(step) {
             return {
                 primary: {
                     id: "wizard-save-references",
-                    label: "Save References And Continue",
+                    label: "Continue To Looks",
                     disabled: !project,
                 },
                 secondary: {
@@ -1499,12 +1979,12 @@ function wizardActionConfig(step) {
             return {
                 primary: {
                     id: "wizard-generate-concepts",
-                    label: project?.concept_runs?.length ? "Generate Another 6 Concepts" : "Generate 6 Concepts",
+                    label: project?.concept_runs?.length ? "Generate Another 6 Looks" : "Generate 6 Looks",
                     disabled: !project,
                 },
                 secondary: project?.concept_runs?.length ? {
                     id: "wizard-go-review",
-                    label: "Go To Review",
+                    label: "Go To Pick A Look",
                     disabled: false,
                 } : null,
             };
@@ -1512,12 +1992,12 @@ function wizardActionConfig(step) {
             return {
                 primary: {
                     id: "wizard-continue-review",
-                    label: selected ? "Continue With Approved Concept" : "Approve A Concept Below",
+                    label: selected ? "Use This Look" : "Choose A Look Below",
                     disabled: !selected,
                 },
                 secondary: {
                     id: "wizard-open-workbench",
-                    label: "Open Workbench",
+                    label: "Open Advanced Workbench",
                     disabled: false,
                 },
             };
@@ -1525,12 +2005,12 @@ function wizardActionConfig(step) {
             return {
                 primary: {
                     id: "wizard-run-refine",
-                    label: "Generate 4 Refinements",
+                    label: "Generate 4 Adjusted Looks",
                     disabled: !project || !selected,
                 },
                 secondary: {
                     id: "wizard-use-current-concept",
-                    label: "Use Current Approved Concept",
+                    label: "Keep Current Look",
                     disabled: !project || !selected,
                 },
             };
@@ -1543,12 +2023,12 @@ function wizardActionConfig(step) {
                     disabled: false,
                 } : {
                     id: "wizard-open-workbench",
-                    label: "Open Workbench",
+                    label: "Open Advanced Workbench",
                     disabled: false,
                 },
                 secondary: {
                     id: "wizard-open-workbench",
-                    label: "Open Workbench",
+                    label: "Open Advanced Workbench",
                     disabled: false,
                 },
             };
@@ -1557,12 +2037,12 @@ function wizardActionConfig(step) {
             return {
                 primary: {
                     id: "wizard-run-qa",
-                    label: project?.qa_report?.status === "pass" ? "Continue To Export" : "Run QA",
+                    label: project?.qa_report?.status === "pass" ? "Continue To Export" : "Run Checks",
                     disabled: !project,
                 },
                 secondary: {
                     id: "wizard-open-workbench",
-                    label: "Open Workbench",
+                    label: "Open Advanced Workbench",
                     disabled: false,
                 },
             };
@@ -1575,7 +2055,7 @@ function wizardActionConfig(step) {
                 },
                 secondary: {
                     id: "wizard-open-workbench",
-                    label: "Open Workbench",
+                    label: "Open Advanced Workbench",
                     disabled: false,
                 },
             };
@@ -1599,12 +2079,12 @@ function renderModeShell() {
 
     if (mode === "workbench") {
         modeSummary.textContent = state.activeProject
-            ? "Workbench mode keeps every major stage visible for direct access. Use the wizard only when you want a guided new-sprite flow."
+            ? "Workbench mode keeps every major stage visible for direct access. Use the wizard when you want a more guided new-sprite flow."
             : "Choose or create a project, or launch the wizard to start a new sprite with guided steps.";
         wizardShell.innerHTML = `
             <div class="wizard-card">
                 <h3>Workbench Mode</h3>
-                <p class="muted">The multi-panel workbench is active. Existing projects open here by default so you can jump straight to the stage you want.</p>
+                <p class="muted">The full multi-panel workbench is active. Existing projects open here by default so you can jump straight to the stage you want.</p>
                 <div class="wizard-inline">
                     <span class="pill ok">direct access</span>
                     <span class="pill warning">${state.activeProject?.can_resume_wizard ? "wizard available" : "wizard optional"}</span>
@@ -1620,7 +2100,8 @@ function renderModeShell() {
             try {
                 await resumeWizardForCurrentProject();
             } catch (error) {
-                log(error.message, "error");
+                log(normalizeErrorMessage(error.message), "error");
+                notify(normalizeErrorMessage(error.message), "error");
             }
         });
         return;
@@ -1650,10 +2131,19 @@ function renderModeShell() {
                 <span class="pill">${stepNumber} / ${WIZARD_STEPS.length}</span>
                 <span class="pill ${stepStatuses[step] === "attention" ? "warning" : stepStatuses[step] === "complete" ? "ok" : stepStatuses[step] === "locked" ? "fail" : "warning"}">${stepStatuses[step] || "active"}</span>
             </div>
-            <div>
+            <div class="wizard-guide">
                 <h3>${meta.label}</h3>
                 <p class="muted">${meta.description}</p>
-                <p class="small-note">Relevant panel${(WIZARD_SECTION_MAP[step] || []).length > 1 ? "s" : ""}: ${(WIZARD_SECTION_MAP[step] || []).join(", ")}</p>
+                <div class="wizard-guide-grid">
+                    <div class="wizard-guide-card">
+                        <strong>What happens here</strong>
+                        <p>${meta.outcome || meta.description}</p>
+                    </div>
+                    <div class="wizard-guide-card">
+                        <strong>How to use it</strong>
+                        <p>${meta.example || "Use the visible fields and follow the primary button below."}</p>
+                    </div>
+                </div>
             </div>
             ${blockers.length ? `
                 <div class="wizard-blockers">
@@ -1683,7 +2173,8 @@ function renderModeShell() {
             try {
                 await goToWizardStep(button.dataset.step);
             } catch (error) {
-                log(error.message, "error");
+                log(normalizeErrorMessage(error.message), "error");
+                notify(normalizeErrorMessage(error.message), "error");
             }
         });
     });
@@ -1693,7 +2184,8 @@ function renderModeShell() {
             try {
                 await handleWizardAction(button.dataset.wizardAction, step);
             } catch (error) {
-                log(error.message, "error");
+                log(normalizeErrorMessage(error.message), "error");
+                notify(normalizeErrorMessage(error.message), "error");
             }
         });
     });
@@ -1856,11 +2348,19 @@ async function api(path, options = {}) {
         });
     } catch (error) {
         const target = WORKBENCH_ORIGIN || window.location.origin;
-        throw new Error(`${error.message} (API origin: ${target})`);
+        throw new Error(normalizeErrorMessage(`${error.message} (API origin: ${target})`));
     }
     if (!response.ok) {
-        const text = await response.text();
-        throw new Error(text.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim());
+        let message = "";
+        const contentType = response.headers.get("Content-Type") || "";
+        if (contentType.includes("application/json")) {
+            const payload = await response.json();
+            message = payload.error || payload.message || JSON.stringify(payload);
+        } else {
+            const text = await response.text();
+            message = text.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+        }
+        throw new Error(normalizeErrorMessage(message));
     }
     return response.json();
 }
@@ -1924,7 +2424,7 @@ function renderStatus() {
     const counts = getReviewCounts(metrics);
 
     document.querySelector("#status-project").textContent = project ? project.project_name : "None";
-    document.querySelector("#status-stage").textContent = project ? project.current_stage : "Idle";
+    document.querySelector("#status-stage").textContent = project ? stageDisplayName(project.current_stage) : "Idle";
     document.querySelector("#status-backend").textContent = project?.brief?.backend_mode === "debug_procedural"
         ? "Debug Procedural"
         : backend?.ok
@@ -1937,22 +2437,39 @@ function renderStatus() {
     const metricGrid = document.querySelector("#metric-grid");
     metricGrid.innerHTML = `
         <div class="metric-card">
-            <span>Concept Runs</span>
+            <span>Look Boards</span>
             <strong>${metrics.concept_runs_per_project || 0}</strong>
         </div>
         <div class="metric-card">
-            <span>Approvals Logged</span>
+            <span>Looks Chosen</span>
             <strong>${counts.approvals}</strong>
         </div>
         <div class="metric-card">
-            <span>Refinements</span>
+            <span>Adjustments</span>
             <strong>${counts.refinements}</strong>
         </div>
         <div class="metric-card">
-            <span>Time To Approved</span>
+            <span>Time To Chosen Look</span>
             <strong>${formatDuration(metrics.time_to_approved_concept_seconds)}</strong>
         </div>
     `;
+}
+
+function renderActivity() {
+    const node = document.querySelector("#activity-dock");
+    const activity = state.activity;
+    if (!node || !activity) {
+        node?.classList.remove("open");
+        return;
+    }
+    document.querySelector("#activity-state").textContent = activity.state || "Working";
+    document.querySelector("#activity-job-type").textContent = jobDisplayName(activity.jobType);
+    document.querySelector("#activity-label").textContent = activity.label || "Working";
+    document.querySelector("#activity-detail").textContent = activity.detail || "Waiting for the next update.";
+    document.querySelector("#activity-progress").style.width = `${Math.max(0, Math.min(100, activity.percent || 0))}%`;
+    document.querySelector("#activity-progress-text").textContent = `${Math.round(activity.percent || 0)}%`;
+    document.querySelector("#activity-hint").textContent = activity.hint || "You can keep browsing while this runs.";
+    node.classList.add("open");
 }
 
 function attachProjectCard(card, project) {
@@ -1962,7 +2479,8 @@ function attachProjectCard(card, project) {
         try {
             await loadProject(project.project_id, "wizard");
         } catch (error) {
-            log(error.message, "error");
+            log(normalizeErrorMessage(error.message), "error");
+            notify(normalizeErrorMessage(error.message), "error");
         }
     });
     card.querySelector("[data-action='duplicate']").addEventListener("click", async (event) => {
@@ -1970,10 +2488,12 @@ function attachProjectCard(card, project) {
         try {
             const clone = await api(`/api/projects/${project.project_id}/duplicate`, { method: "POST", body: "{}" });
             log(`Duplicated ${project.project_name}`, "success");
+            notify(`Duplicated ${project.project_name}.`, "success");
             await refreshProjects();
             await loadProject(clone.project_id, "workbench");
         } catch (error) {
-            log(error.message, "error");
+            log(normalizeErrorMessage(error.message), "error");
+            notify(normalizeErrorMessage(error.message), "error");
         }
     });
     card.querySelector("[data-action='archive']").addEventListener("click", async (event) => {
@@ -1981,13 +2501,15 @@ function attachProjectCard(card, project) {
         try {
             await api(`/api/projects/${project.project_id}/archive`, { method: "POST", body: "{}" });
             log(`Archived ${project.project_name}`, "success");
+            notify(`Archived ${project.project_name}.`, "success");
             if (state.activeProject?.project_id === project.project_id) {
                 state.activeProject = null;
                 storage.removeItem(STORAGE_KEYS.activeProjectId);
             }
             await refreshProjects();
         } catch (error) {
-            log(error.message, "error");
+            log(normalizeErrorMessage(error.message), "error");
+            notify(normalizeErrorMessage(error.message), "error");
         }
     });
 }
@@ -2006,7 +2528,7 @@ function renderProjectList() {
         card.className = `project-card ${state.activeProject?.project_id === project.project_id ? "active" : ""}`;
         card.innerHTML = `
             <strong>${project.project_name}</strong>
-            <small>${project.current_stage} · ${project.status}</small>
+            <small>${stageDisplayName(project.current_stage)} · ${project.status}</small>
             <div class="inline-actions" style="margin-top: 10px;">
                 <span class="badge ${config.maturity}">${config.maturity}</span>
                 ${project.archived_at ? `<span class="pill warning">archived</span>` : ""}
@@ -2197,16 +2719,16 @@ function renderRunGrid() {
         card.className = `run-card ${state.selectedRunId === run.run_id ? "active" : ""}`;
         const triage = run.triage || {};
         card.innerHTML = `
-            <strong>${run.run_kind} · ${run.concept_count} concepts</strong>
+            <strong>${run.run_kind === "initial" ? "New look board" : run.run_kind === "refinement" ? "Adjusted looks" : "Similar looks"} · ${run.concept_count} results</strong>
             <div class="meta-line" style="margin-top: 8px;">
                 <span class="pill">${formatDate(run.created_at)}</span>
                 <span class="pill">${run.backend_name || "legacy"}</span>
                 <span class="pill ${(triage["system-demoted"] || 0) ? "fail" : (triage.warning || 0) ? "warning" : "ok"}">
-                    triage ${triage["system-demoted"] || 0}/${triage.warning || 0}
+                    flagged ${triage["system-demoted"] || 0}/${triage.warning || 0}
                 </span>
             </div>
             <p>${run.summary || "No run summary."}</p>
-            ${run.target_value ? `<p class="small-note">Target: ${run.attribute_group} -> ${run.target_value} (${run.refinement_strength_label})</p>` : ""}
+            ${run.target_value ? `<p class="small-note">Changed: ${REFINEMENT_LABELS[run.attribute_group] || run.attribute_group} -> ${run.target_value} (${run.refinement_strength_label})</p>` : ""}
         `;
         card.addEventListener("click", () => {
             state.selectedRunId = run.run_id;
@@ -2282,12 +2804,12 @@ function renderConceptGrid() {
                 </div>
                 <div class="small-note">${(triage.flags || []).join(", ") || "No triage flags."}</div>
                 <div class="actions">
-                    <button data-action="approve">Approve</button>
-                    <button class="secondary" data-action="favorite">${concept.review_state?.favorite ? "Unfavorite" : "Favorite"}</button>
-                    <button class="danger" data-action="reject">${concept.review_state?.rejected ? "Unreject" : "Reject"}</button>
+                    <button data-action="approve">Choose This Look</button>
+                    <button class="secondary" data-action="favorite">${concept.review_state?.favorite ? "Remove From Shortlist" : "Save To Shortlist"}</button>
+                    <button class="danger" data-action="reject">${concept.review_state?.rejected ? "Show Again" : "Hide This"}</button>
                     <button class="secondary" data-action="compare">Compare</button>
                     <button class="secondary" data-action="zoom">Zoom</button>
-                    <button class="secondary" data-action="similar">Regenerate Similar</button>
+                    <button class="secondary" data-action="similar">Make Similar</button>
                 </div>
             </div>
         `;
@@ -2304,9 +2826,11 @@ function renderConceptGrid() {
             try {
                 const result = await runJob(`/api/projects/${state.activeProject.project_id}/concepts/${concept.concept_id}/regenerate-similar`);
                 log(`Regenerated similar concepts from ${concept.concept_id}`, "success");
+                notify(`Generated more looks based on ${concept.concept_id}.`, "success");
                 if (result?.run_id) state.selectedRunId = result.run_id;
             } catch (error) {
-                log(error.message, "error");
+                log(normalizeErrorMessage(error.message), "error");
+                notify(normalizeErrorMessage(error.message), "error");
             }
         });
         root.appendChild(card);
@@ -2324,8 +2848,8 @@ function renderConceptReview() {
     const approvedAnchor = Boolean(selectedConcept());
     const left = !approvedAnchor && state.swapCompareView && right ? right : anchor;
     const comparison = !approvedAnchor && state.swapCompareView ? anchor : right;
-    renderCompareSlot(document.querySelector("#compare-left"), left, "Left");
-    renderCompareSlot(document.querySelector("#compare-right"), comparison, "Right");
+    renderCompareSlot(document.querySelector("#compare-left"), left, approvedAnchor ? "Chosen look" : "Primary look");
+    renderCompareSlot(document.querySelector("#compare-right"), comparison, "Compare against");
     renderConceptGrid();
 }
 
@@ -2341,8 +2865,8 @@ function renderRefinePanel() {
         select.appendChild(option);
     });
     document.querySelector("#selected-concept-summary").textContent = selectedConcept()
-        ? `Approved concept ${selectedConcept().concept_id}: ${selectedConcept().difference_summary || selectedConcept().silhouette || "no summary"}.`
-        : "Approve a concept before refinement to establish the parent lineage and locked attributes.";
+        ? `Chosen look ${selectedConcept().concept_id}: ${selectedConcept().difference_summary || selectedConcept().silhouette || "no summary"}.`
+        : "Choose a look before adjusting it so the wizard knows what to preserve.";
 }
 
 function renderLayerReview() {
@@ -2473,6 +2997,7 @@ function renderAll() {
     renderQa();
     renderExport();
     applyModeVisibility();
+    renderActivity();
 }
 
 async function loadHealth() {
@@ -2520,10 +3045,14 @@ async function restoreProjectSelection() {
 }
 
 async function createProject(mode = "workbench") {
+    if (mode === "wizard" && !document.querySelector("#project-name").value.trim()) {
+        throw new Error("Add a project name before starting the wizard.");
+    }
     const payload = await collectIntakePayload();
     payload.last_ui_mode = mode;
     const project = await api("/api/projects", { method: "POST", body: JSON.stringify(payload) });
     log(`Created project ${project.project_id}`, "success");
+    notify(`Project "${project.project_name}" is ready.`, "success", "Project created");
     resetReferenceEditor();
     await refreshProjects();
     await loadProject(project.project_id, mode);
@@ -2531,6 +3060,9 @@ async function createProject(mode = "workbench") {
 
 async function saveBrief(mode = currentMode(), nextStep = null) {
     if (!state.activeProject) throw new Error("Select or create a project first.");
+    if (!document.querySelector("#prompt-text").value.trim()) {
+        throw new Error("Add a character description before continuing.");
+    }
     const payload = await collectIntakePayload();
     const project = await api(`/api/projects/${state.activeProject.project_id}/brief`, {
         method: "POST",
@@ -2539,6 +3071,7 @@ async function saveBrief(mode = currentMode(), nextStep = null) {
     state.activeProject = project;
     resetReferenceEditor();
     log(`Updated intake for ${project.project_name}`, "success");
+    notify("Saved the character description.", "success");
     await refreshProjects();
     if (mode === "wizard") {
         const synced = await persistWizardState({
@@ -2554,16 +3087,36 @@ async function saveBrief(mode = currentMode(), nextStep = null) {
 
 async function waitForJob(job) {
     log(`Queued ${job.job_type} as ${job.job_id}`);
+    setActivity({
+        state: "Queued",
+        jobType: job.job_type,
+        label: jobDisplayName(job.job_type),
+        detail: "Waiting for the server to start work.",
+        percent: job.progress_percent || 2,
+    });
+    notify(`${jobDisplayName(job.job_type)} started.`, "info", "Working");
     while (true) {
         await new Promise((resolve) => setTimeout(resolve, 1000));
         const update = await api(`/api/projects/${job.project_id}/jobs/${job.job_id}`);
+        setActivity({
+            state: update.status === "completed" ? "Done" : update.status === "failed" ? "Stopped" : "Working",
+            jobType: update.job_type,
+            label: update.progress_label || jobDisplayName(update.job_type),
+            detail: update.progress_detail || "Still running…",
+            percent: update.progress_percent ?? 10,
+        });
         if (update.status === "completed") {
             log(`Completed ${update.job_type}`, "success");
+            notify(`${jobDisplayName(update.job_type)} finished.`, "success");
+            clearActivity();
             await loadProject(job.project_id, currentMode());
             return update.result;
         }
         if (update.status === "failed") {
-            throw new Error(update.error || `${update.job_type} failed`);
+            clearActivity();
+            const message = normalizeErrorMessage(update.error || `${update.job_type} failed`);
+            notify(message, "error");
+            throw new Error(message);
         }
     }
 }
@@ -2582,6 +3135,9 @@ async function reviewConcept(conceptId, action, value) {
     });
     state.activeProject = project;
     log(`${action} updated for ${conceptId}`, "success");
+    if (action === "approve") notify(`${conceptId} is now the chosen look.`, "success");
+    if (action === "favorite") notify(value ? `${conceptId} saved to the shortlist.` : `${conceptId} removed from the shortlist.`, "info");
+    if (action === "reject") notify(value ? `${conceptId} hidden from consideration.` : `${conceptId} restored.`, "info");
     await refreshProjects();
     renderAll();
 }
@@ -2594,6 +3150,9 @@ async function runRefinement() {
         target_value: document.querySelector("#refine-target").value.trim(),
         strength: document.querySelector("#refine-strength").value,
     };
+    if (!payload.target_value) {
+        throw new Error("Describe the change before generating adjusted looks.");
+    }
     const result = await runJob(`/api/projects/${state.activeProject.project_id}/refine`, payload);
     if (result?.run_id) state.selectedRunId = result.run_id;
     log(`Generated refinement run from ${payload.concept_id}`, "success");
@@ -2625,7 +3184,8 @@ document.querySelector("#create-project").addEventListener("click", async () => 
     try {
         await createProject(currentMode());
     } catch (error) {
-        log(error.message, "error");
+        log(normalizeErrorMessage(error.message), "error");
+        notify(normalizeErrorMessage(error.message), "error");
     }
 });
 
@@ -2633,19 +3193,51 @@ document.querySelector("#save-brief").addEventListener("click", async () => {
     try {
         await saveBrief(currentMode());
     } catch (error) {
-        log(error.message, "error");
+        log(normalizeErrorMessage(error.message), "error");
+        notify(normalizeErrorMessage(error.message), "error");
     }
 });
 
-document.querySelector("#refresh-projects").addEventListener("click", async () => {
+document.querySelector("#create-project-workbench").addEventListener("click", async () => {
     try {
-        await refreshProjects();
-        if (state.activeProject) {
-            await loadProject(state.activeProject.project_id, currentMode());
-        }
+        await createProject("workbench");
     } catch (error) {
-        log(error.message, "error");
+        log(normalizeErrorMessage(error.message), "error");
+        notify(normalizeErrorMessage(error.message), "error");
     }
+});
+
+document.querySelector("#save-brief-workbench").addEventListener("click", async () => {
+    try {
+        await saveBrief("workbench");
+    } catch (error) {
+        log(normalizeErrorMessage(error.message), "error");
+        notify(normalizeErrorMessage(error.message), "error");
+    }
+});
+
+document.querySelector("#save-references").addEventListener("click", async () => {
+    try {
+        await saveBrief(currentMode(), "concepts");
+    } catch (error) {
+        log(normalizeErrorMessage(error.message), "error");
+        notify(normalizeErrorMessage(error.message), "error");
+    }
+});
+
+["#refresh-projects-brief", "#refresh-projects-references", "#refresh-projects-workbench"].forEach((selector) => {
+    document.querySelector(selector)?.addEventListener("click", async () => {
+        try {
+            await refreshProjects();
+            if (state.activeProject) {
+                await loadProject(state.activeProject.project_id, currentMode());
+            }
+            notify("Project list refreshed.", "info");
+        } catch (error) {
+            log(normalizeErrorMessage(error.message), "error");
+            notify(normalizeErrorMessage(error.message), "error");
+        }
+    });
 });
 
 document.querySelector("#toggle-archived").addEventListener("click", async () => {
@@ -2656,7 +3248,8 @@ document.querySelector("#toggle-archived").addEventListener("click", async () =>
         await refreshProjects();
         await restoreProjectSelection();
     } catch (error) {
-        log(error.message, "error");
+        log(normalizeErrorMessage(error.message), "error");
+        notify(normalizeErrorMessage(error.message), "error");
     }
 });
 
@@ -2664,7 +3257,8 @@ document.querySelector("#launch-wizard").addEventListener("click", async () => {
     try {
         await startNewSpriteWizard();
     } catch (error) {
-        log(error.message, "error");
+        log(normalizeErrorMessage(error.message), "error");
+        notify(normalizeErrorMessage(error.message), "error");
     }
 });
 
@@ -2672,7 +3266,8 @@ document.querySelector("#open-workbench").addEventListener("click", async () => 
     try {
         await openWorkbenchMode();
     } catch (error) {
-        log(error.message, "error");
+        log(normalizeErrorMessage(error.message), "error");
+        notify(normalizeErrorMessage(error.message), "error");
     }
 });
 
@@ -2680,7 +3275,8 @@ document.querySelector("#mode-workbench").addEventListener("click", async () => 
     try {
         await openWorkbenchMode();
     } catch (error) {
-        log(error.message, "error");
+        log(normalizeErrorMessage(error.message), "error");
+        notify(normalizeErrorMessage(error.message), "error");
     }
 });
 
@@ -2692,7 +3288,8 @@ document.querySelector("#mode-wizard").addEventListener("click", async () => {
             await startNewSpriteWizard();
         }
     } catch (error) {
-        log(error.message, "error");
+        log(normalizeErrorMessage(error.message), "error");
+        notify(normalizeErrorMessage(error.message), "error");
     }
 });
 
@@ -2702,7 +3299,8 @@ document.querySelector("#generate-concepts").addEventListener("click", async () 
         const result = await runJob(`/api/projects/${state.activeProject.project_id}/concepts/generate`);
         if (result?.run_id) state.selectedRunId = result.run_id;
     } catch (error) {
-        log(error.message, "error");
+        log(normalizeErrorMessage(error.message), "error");
+        notify(normalizeErrorMessage(error.message), "error");
     }
 });
 
@@ -2710,7 +3308,8 @@ document.querySelector("#run-refine").addEventListener("click", async () => {
     try {
         await runRefinement();
     } catch (error) {
-        log(error.message, "error");
+        log(normalizeErrorMessage(error.message), "error");
+        notify(normalizeErrorMessage(error.message), "error");
     }
 });
 
@@ -2718,7 +3317,8 @@ document.querySelector("#build-layers").addEventListener("click", async () => {
     try {
         await runJob(`/api/projects/${state.activeProject.project_id}/layers/build`);
     } catch (error) {
-        log(error.message, "error");
+        log(normalizeErrorMessage(error.message), "error");
+        notify(normalizeErrorMessage(error.message), "error");
     }
 });
 
@@ -2726,9 +3326,11 @@ document.querySelector("#approve-layers").addEventListener("click", async () => 
     try {
         await api(`/api/projects/${state.activeProject.project_id}/layer-review/approve`, { method: "POST", body: "{}" });
         await loadProject(state.activeProject.project_id, currentMode());
-        log("Approved layer review", "success");
+        log("Approved layers", "success");
+        notify("Layers approved.", "success");
     } catch (error) {
-        log(error.message, "error");
+        log(normalizeErrorMessage(error.message), "error");
+        notify(normalizeErrorMessage(error.message), "error");
     }
 });
 
@@ -2736,7 +3338,8 @@ document.querySelector("#build-rig").addEventListener("click", async () => {
     try {
         await runJob(`/api/projects/${state.activeProject.project_id}/rig/build`);
     } catch (error) {
-        log(error.message, "error");
+        log(normalizeErrorMessage(error.message), "error");
+        notify(normalizeErrorMessage(error.message), "error");
     }
 });
 
@@ -2744,9 +3347,11 @@ document.querySelector("#approve-rig").addEventListener("click", async () => {
     try {
         await api(`/api/projects/${state.activeProject.project_id}/rig-review/approve`, { method: "POST", body: "{}" });
         await loadProject(state.activeProject.project_id, currentMode());
-        log("Approved rig review", "success");
+        log("Approved motion setup", "success");
+        notify("Motion setup approved.", "success");
     } catch (error) {
-        log(error.message, "error");
+        log(normalizeErrorMessage(error.message), "error");
+        notify(normalizeErrorMessage(error.message), "error");
     }
 });
 
@@ -2754,7 +3359,8 @@ document.querySelector("#render-idle").addEventListener("click", async () => {
     try {
         await runJob(`/api/projects/${state.activeProject.project_id}/animations/idle/render`);
     } catch (error) {
-        log(error.message, "error");
+        log(normalizeErrorMessage(error.message), "error");
+        notify(normalizeErrorMessage(error.message), "error");
     }
 });
 
@@ -2762,7 +3368,8 @@ document.querySelector("#render-walk").addEventListener("click", async () => {
     try {
         await runJob(`/api/projects/${state.activeProject.project_id}/animations/walk/render`);
     } catch (error) {
-        log(error.message, "error");
+        log(normalizeErrorMessage(error.message), "error");
+        notify(normalizeErrorMessage(error.message), "error");
     }
 });
 
@@ -2770,7 +3377,8 @@ document.querySelector("#run-qa").addEventListener("click", async () => {
     try {
         await runJob(`/api/projects/${state.activeProject.project_id}/qa/run`);
     } catch (error) {
-        log(error.message, "error");
+        log(normalizeErrorMessage(error.message), "error");
+        notify(normalizeErrorMessage(error.message), "error");
     }
 });
 
@@ -2778,13 +3386,16 @@ document.querySelector("#run-export").addEventListener("click", async () => {
     try {
         await runJob(`/api/projects/${state.activeProject.project_id}/export`);
     } catch (error) {
-        log(error.message, "error");
+        log(normalizeErrorMessage(error.message), "error");
+        notify(normalizeErrorMessage(error.message), "error");
     }
 });
 
 document.querySelector("#swap-compare").addEventListener("click", () => {
     if (selectedConcept()) {
-        log("Quick toggle is disabled while an approved concept is pinned on the left.", "error");
+        const message = "Swap compare sides is disabled while the chosen look stays pinned on the left.";
+        log(message, "error");
+        notify(message, "error");
         return;
     }
     if (!compareLeftConcept() || !conceptById(state.compareRightId)) return;
@@ -2814,7 +3425,9 @@ async function boot() {
 }
 
 boot().catch((error) => {
-    log(`${error.message}. Open ${WORKBENCH_BASE}/index.html if you want the page and API on the same origin.`, "error");
+    const message = normalizeErrorMessage(`${error.message}. Open ${WORKBENCH_BASE}/index.html if you want the page and API on the same origin.`);
+    log(message, "error");
+    notify(message, "error");
 });
 </script>
 </body>

@@ -1,6 +1,7 @@
 import http.client
 import tempfile
 import threading
+import time
 import unittest
 from pathlib import Path
 from http.server import ThreadingHTTPServer
@@ -129,6 +130,38 @@ class SpriteWorkbenchTests(unittest.TestCase):
         self.assertEqual(sw.REFINEMENT_STRENGTHS["subtle"], 0.25)
         self.assertEqual(sw.REFINEMENT_STRENGTHS["medium"], 0.45)
         self.assertEqual(sw.REFINEMENT_STRENGTHS["strong"], 0.65)
+
+    def test_build_positive_prompt_base_uses_ashen_hollow_house_style(self):
+        brief = sw.hydrate_brief({
+            "raw_prompt": "armored lantern pilgrim",
+            "role_archetype": "ashen hollow pilgrim",
+            "silhouette_intent": "broad guarded profile",
+            "outfit_materials": "weathered plate over layered travel cloth",
+            "prop": "lantern",
+            "palette_mood": "storm steel",
+            "shape_language": "angular disciplined silhouettes",
+            "mood_tone": "watchful and haunted",
+            "side_view_constraints": "strict side view",
+        }, "")
+        prompt = sw.build_positive_prompt_base(brief)
+        self.assertIn("Ashen Hollow", prompt)
+        self.assertIn("Hollow Knight-inspired atmosphere", prompt)
+        self.assertIn("orthographic side profile", prompt)
+        self.assertIn("single character only", prompt)
+
+    def test_create_job_tracks_progress_updates(self):
+        job = sw.create_job(None, "demo.progress", lambda progress: (progress(55, "Halfway there", "Testing progress"), {"ok": True})[1])
+        deadline = time.time() + 5
+        while time.time() < deadline:
+            with sw.JOB_LOCK:
+                snapshot = dict(sw.JOBS[job["job_id"]])
+            if snapshot["status"] == "completed":
+                break
+            time.sleep(0.05)
+        self.assertEqual(snapshot["status"], "completed")
+        self.assertEqual(snapshot["progress_percent"], 100)
+        self.assertEqual(snapshot["progress_label"], "Completed")
+        self.assertEqual(snapshot["result"], {"ok": True})
 
     def test_derive_metrics_from_history(self):
         history = {
