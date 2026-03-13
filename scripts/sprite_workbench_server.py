@@ -48,7 +48,7 @@ def env_int(name: str, default: int, minimum: int = 1) -> int:
         return default
     return value if value >= minimum else default
 
-CONCEPT_CANVAS = (896, 1024)
+CONCEPT_CANVAS = (640, 768)
 INITIAL_CONCEPT_COUNT = 6
 REFINEMENT_CONCEPT_COUNT = 4
 JOB_HISTORY_LIMIT = 50
@@ -78,6 +78,15 @@ DEFAULT_NEGATIVE_PROMPT = (
     "front view, rear view, top-down, isometric, multiple characters, crowd, group shot, "
     "full environment scene, busy background, extra limbs, extra arms, extra weapons, "
     "wings, huge cape, non-humanoid anatomy, mount, vehicle, text, watermark, logo"
+)
+
+METROIDVANIA_PROMPT_CONTEXT = (
+    "designed for a 2d side-scrolling metroidvania game, retro pixel-art-friendly concept art, "
+    "dark medieval fantasy atmosphere, moody gothic ruins sensibility, readable side-view combat silhouette, "
+    "large primary shapes and limited secondary noise, clustered values for sprite readability, "
+    "clear separation between head, torso, limbs, and prop, readable at low resolution, "
+    "animation-friendly costume breakup, practical collision-aware silhouette, "
+    "plain or minimal background for character extraction"
 )
 
 REQUIRED_PARTS = [
@@ -602,34 +611,34 @@ def infer_brief_defaults(prompt_text: str) -> Dict[str, str]:
         return {
             "role_archetype": "humanoid side-view adventurer",
             "silhouette_intent": "balanced readable profile",
-            "outfit_materials": "layered travel gear with one dominant material family",
+            "outfit_materials": "layered dark-fantasy travel gear with one dominant material family",
             "prop": "tool",
             "palette_mood": "storm steel",
             "shape_language": "balanced angular to rounded mix",
-            "mood_tone": "watchful and grounded",
-            "side_view_constraints": "strict side view, one humanoid character, clean background, prop silhouette separated from torso",
+            "mood_tone": "watchful, haunted, and grounded",
+            "side_view_constraints": "strict side view, one humanoid character, clean background, prop silhouette separated from torso, strong low-resolution readability for a 2d metroidvania sprite pipeline",
         }
 
     if any(word in lowered for word in ["knight", "armored", "guardian", "sentinel"]):
-        role = "armored traveler"
+        role = "armored dark-fantasy traveler"
         silhouette = "broad guarded profile"
-        outfit = "plate fragments over travel layers with matte metal surfaces"
-        tone = "stoic and vigilant"
+        outfit = "weathered plate fragments over travel layers with matte metal surfaces"
+        tone = "stoic, vigilant, and battle-worn"
     elif any(word in lowered for word in ["rogue", "thief", "scout", "nimble"]):
-        role = "nimble infiltrator"
+        role = "nimble dark-fantasy infiltrator"
         silhouette = "compact and forward-leaning profile"
-        outfit = "light leathers, wraps, and utility straps"
-        tone = "cautious and alert"
+        outfit = "light leathers, wraps, utility straps, and worn medieval layers"
+        tone = "cautious, severe, and alert"
     elif any(word in lowered for word in ["mage", "witch", "scholar", "mystic"]):
-        role = "arcane wanderer"
+        role = "arcane dark-fantasy wanderer"
         silhouette = "tall readable profile with clear head-to-prop separation"
-        outfit = "layered cloth, trim armor accents, and weathered fabric"
-        tone = "mysterious and self-possessed"
+        outfit = "layered cloth, trim armor accents, and weathered ritual fabric"
+        tone = "mysterious, austere, and self-possessed"
     else:
-        role = "humanoid side-view adventurer"
+        role = "humanoid dark-fantasy adventurer"
         silhouette = "balanced readable profile"
-        outfit = "field-ready layers with one dominant material family"
-        tone = "grounded and capable"
+        outfit = "field-ready medieval layers with one dominant material family"
+        tone = "grounded, capable, and somber"
 
     if any(word in lowered for word in ["green", "jade", "verdant", "moss"]):
         palette = "verdigris slate"
@@ -656,7 +665,7 @@ def infer_brief_defaults(prompt_text: str) -> Dict[str, str]:
         "palette_mood": palette,
         "shape_language": shape,
         "mood_tone": tone,
-        "side_view_constraints": "strict side view, one humanoid character, clean background, prop silhouette separated from torso",
+        "side_view_constraints": "strict side view, one humanoid character, clean background, prop silhouette separated from torso, strong low-resolution readability for a 2d metroidvania sprite pipeline",
     }
 
 
@@ -703,11 +712,12 @@ def hydrate_brief(brief: Optional[Dict[str, Any]], prompt_text: str) -> Dict[str
 def build_positive_prompt_base(brief: Dict[str, Any]) -> str:
     return (
         "single humanoid side-view character concept art, full body, plain light background, "
-        "clean silhouette, readable negative space, "
+        "clean silhouette, readable negative space, %s, "
         "%s, silhouette intent: %s, outfit and materials: %s, "
         "primary handheld prop: %s, palette mood: %s, shape language: %s, mood: %s, "
         "readability constraints: %s"
         % (
+            METROIDVANIA_PROMPT_CONTEXT,
             brief["role_archetype"],
             brief["silhouette_intent"],
             brief["outfit_materials"],
@@ -1060,6 +1070,7 @@ def build_refinement_variation_axes(base_concept: Dict[str, Any], attribute_grou
 def build_prompt_bundle(brief: Dict[str, Any], variation_axes: Dict[str, Any], source_concept: Optional[Dict[str, Any]] = None) -> Tuple[str, str]:
     positive_parts = [
         brief["positive_prompt_base"],
+        "gameplay role: player-facing 2d metroidvania character concept intended for side-view animation and sprite extraction",
         "variant emphasis: %s" % variation_axes.get("summary", "base brief"),
         "silhouette focus: %s" % (variation_axes.get("silhouette") or brief["silhouette_intent"]),
         "outfit focus: %s" % (variation_axes.get("outfit_complexity") or brief["outfit_materials"]),

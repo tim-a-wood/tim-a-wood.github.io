@@ -45,7 +45,7 @@
       "default_denoise": 0.82
     },
     "defaults": {
-      "steps": 24,
+      "steps": 14,
       "cfg": 6.5
     }
   },
@@ -79,8 +79,8 @@
     "4": {
       "class_type": "EmptyLatentImage",
       "inputs": {
-        "width": 896,
-        "height": 1024,
+        "width": 640,
+        "height": 768,
         "batch_size": 1
       }
     },
@@ -88,7 +88,7 @@
       "class_type": "KSampler",
       "inputs": {
         "seed": 0,
-        "steps": 24,
+        "steps": 14,
         "cfg": 6.5,
         "sampler_name": "euler",
         "scheduler": "normal",

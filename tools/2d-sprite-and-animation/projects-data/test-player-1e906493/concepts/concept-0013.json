@@ -1,0 +1,68 @@
+{
+  "concept_id": "concept-0013",
+  "run_id": "run-5dce46bf4f",
+  "run_kind": "refinement",
+  "created_at": "2026-03-13T20:33:33.524212+00:00",
+  "seed": 302368597,
+  "positive_prompt": "single humanoid side-view character concept art, full body, plain light background, clean silhouette, readable negative space, designed for a 2d side-scrolling metroidvania game, retro pixel-art-friendly concept art, dark medieval fantasy atmosphere, moody gothic ruins sensibility, readable side-view combat silhouette, large primary shapes and limited secondary noise, clustered values for sprite readability, clear separation between head, torso, limbs, and prop, readable at low resolution, animation-friendly costume breakup, practical collision-aware silhouette, plain or minimal background for character extraction, armored traveler, silhouette intent: broad guarded profile, outfit and materials: knights helmet and chainmail, primary handheld prop: none, palette mood: pixel medieval, shape language: angular disciplined silhouette, mood: dark fantasy, readability constraints: strict sideview, one humanoid, gameplay role: player-facing 2d metroidvania character concept intended for side-view animation and sprite extraction, variant emphasis: must be side view; closest hold to the parent concept, silhouette focus: must be side view, outfit focus: heavier armor grouping and chunkier masses, palette focus: pixel medieval with warm metal accents, prop silhouette: mechanic rod, preserve the same character identity core as the source concept, locked attributes: silhouette=broad guarded profile, outfit=heavier armor grouping and chunkier masses, palette_direction=pixel medieval with warm metal accents, prop_variant=mechanic rod",
+  "negative_prompt": "front view, crowd, busy, weapons, props",
+  "prompt": "single humanoid side-view character concept art, full body, plain light background, clean silhouette, readable negative space, designed for a 2d side-scrolling metroidvania game, retro pixel-art-friendly concept art, dark medieval fantasy atmosphere, moody gothic ruins sensibility, readable side-view combat silhouette, large primary shapes and limited secondary noise, clustered values for sprite readability, clear separation between head, torso, limbs, and prop, readable at low resolution, animation-friendly costume breakup, practical collision-aware silhouette, plain or minimal background for character extraction, armored traveler, silhouette intent: broad guarded profile, outfit and materials: knights helmet and chainmail, primary handheld prop: none, palette mood: pixel medieval, shape language: angular disciplined silhouette, mood: dark fantasy, readability constraints: strict sideview, one humanoid, gameplay role: player-facing 2d metroidvania character concept intended for side-view animation and sprite extraction, variant emphasis: must be side view; closest hold to the parent concept, silhouette focus: must be side view, outfit focus: heavier armor grouping and chunkier masses, palette focus: pixel medieval with warm metal accents, prop silhouette: mechanic rod, preserve the same character identity core as the source concept, locked attributes: silhouette=broad guarded profile, outfit=heavier armor grouping and chunkier masses, palette_direction=pixel medieval with warm metal accents, prop_variant=mechanic rod",
+  "preview_image": "concepts/concept-0013.png",
+  "backend_name": "comfyui",
+  "backend_run_id": "a086f028-1526-474c-be5a-4245fe6c2f3f",
+  "variation_axes": {
+    "attribute_group": "silhouette",
+    "target_value": "must be side view",
+    "strength": "strong",
+    "preserve": {
+      "silhouette": "broad guarded profile",
+      "outfit": "heavier armor grouping and chunkier masses",
+      "palette_direction": "pixel medieval with warm metal accents",
+      "prop_variant": "mechanic rod"
+    },
+    "summary": "must be side view; closest hold to the parent concept",
+    "silhouette": "must be side view",
+    "outfit_complexity": "heavier armor grouping and chunkier masses",
+    "palette_direction": "pixel medieval with warm metal accents",
+    "prop_variant": "mechanic rod"
+  },
+  "difference_summary": "must be side view; closest hold to the parent concept",
+  "silhouette": "must be side view",
+  "outfit": "heavier armor grouping and chunkier masses",
+  "palette_direction": "pixel medieval with warm metal accents",
+  "palette": {
+    "base": "#1e252d",
+    "accent": "#4d687d",
+    "skin": "#d4c5ae",
+    "prop": "#755244",
+    "outline": "#10161d"
+  },
+  "prop_variant": "mechanic rod",
+  "face_head_shape": "angular disciplined silhouette",
+  "references_used": [],
+  "review_state": {
+    "approved": false,
+    "favorite": false,
+    "rejected": false
+  },
+  "approved": false,
+  "favorite": false,
+  "rejected": false,
+  "lineage": {
+    "run_id": "run-5dce46bf4f",
+    "parent_concept_id": "concept-0010"
+  },
+  "triage": {
+    "status": "warning",
+    "flags": [
+      "near_duplicate_output"
+    ],
+    "metrics": {
+      "occupancy": 0.5134,
+      "edge_foreground_ratio": 0.0,
+      "component_count": 4,
+      "sha256": "218365ec1937f251a422301b7dfa07d01990c6a3e444545ad767be7f5606d375",
+      "perceptual_hash": 3974868133412864
+    }
+  }
+}
