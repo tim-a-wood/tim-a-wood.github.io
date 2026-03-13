@@ -1,0 +1,12 @@
+{
+  "subject": "humanoid biped",
+  "silhouette": "broad",
+  "outfit": "armored traveler",
+  "palette_direction": "storm steel",
+  "prop": "lantern",
+  "material_notes": "clean silhouette, matte surfaces, limited metal highlights",
+  "side_view_readability_notes": "strict side view, readable negative space, prop silhouette distinct from torso",
+  "normalized_prompt": "Humanoid biped side-view armored traveler with a lantern, storm-steel palette, one handheld prop.",
+  "reference_images": [],
+  "style_references": []
+}

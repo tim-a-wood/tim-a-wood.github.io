@@ -1,0 +1,18 @@
+{
+  "concept_id": "concept-02",
+  "variant_index": 1,
+  "seed": 942958,
+  "prompt": "Humanoid biped side-view armored traveler with a lantern, storm-steel palette, one handheld prop., compact silhouette, layered cloth, side view sprite concept",
+  "negative_prompt": "front view, top-down, extra limbs, wings, multiple weapons, cape, background",
+  "preview_image": "concepts/concept-02.png",
+  "silhouette": "compact",
+  "outfit": "layered cloth",
+  "palette": {
+    "base": "#2a2320",
+    "accent": "#83675e",
+    "skin": "#d7c6ac",
+    "prop": "#6a7f90",
+    "outline": "#171110"
+  },
+  "approved": false
+}

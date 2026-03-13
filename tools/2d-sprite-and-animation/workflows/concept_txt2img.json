@@ -1,0 +1,157 @@
+{
+  "meta": {
+    "template_name": "concept_txt2img",
+    "checkpoint": {
+      "node": "1",
+      "input": "ckpt_name"
+    },
+    "positive": {
+      "node": "2",
+      "input": "text"
+    },
+    "negative": {
+      "node": "3",
+      "input": "text"
+    },
+    "latent": {
+      "node": "4",
+      "width_input": "width",
+      "height_input": "height"
+    },
+    "sampler": {
+      "node": "5",
+      "seed_input": "seed",
+      "steps_input": "steps",
+      "cfg_input": "cfg",
+      "denoise_input": "denoise",
+      "latent_input": "latent_image"
+    },
+    "save": {
+      "node": "7",
+      "input": "filename_prefix"
+    },
+    "conditioning": {
+      "load_node": "8",
+      "image_input": "image",
+      "conditioned_source": [
+        "9",
+        0
+      ],
+      "empty_source": [
+        "4",
+        0
+      ],
+      "required": false,
+      "default_denoise": 0.82
+    },
+    "defaults": {
+      "steps": 24,
+      "cfg": 6.5
+    }
+  },
+  "prompt": {
+    "1": {
+      "class_type": "CheckpointLoaderSimple",
+      "inputs": {
+        "ckpt_name": "sd15.safetensors"
+      }
+    },
+    "2": {
+      "class_type": "CLIPTextEncode",
+      "inputs": {
+        "text": "",
+        "clip": [
+          "1",
+          1
+        ]
+      }
+    },
+    "3": {
+      "class_type": "CLIPTextEncode",
+      "inputs": {
+        "text": "",
+        "clip": [
+          "1",
+          1
+        ]
+      }
+    },
+    "4": {
+      "class_type": "EmptyLatentImage",
+      "inputs": {
+        "width": 896,
+        "height": 1024,
+        "batch_size": 1
+      }
+    },
+    "5": {
+      "class_type": "KSampler",
+      "inputs": {
+        "seed": 0,
+        "steps": 24,
+        "cfg": 6.5,
+        "sampler_name": "euler",
+        "scheduler": "normal",
+        "denoise": 1.0,
+        "model": [
+          "1",
+          0
+        ],
+        "positive": [
+          "2",
+          0
+        ],
+        "negative": [
+          "3",
+          0
+        ],
+        "latent_image": [
+          "4",
+          0
+        ]
+      }
+    },
+    "6": {
+      "class_type": "VAEDecode",
+      "inputs": {
+        "samples": [
+          "5",
+          0
+        ],
+        "vae": [
+          "1",
+          2
+        ]
+      }
+    },
+    "7": {
+      "class_type": "SaveImage",
+      "inputs": {
+        "filename_prefix": "sprite-workbench/concepts",
+        "images": [
+          "6",
+          0
+        ]
+      }
+    },
+    "8": {
+      "class_type": "LoadImage",
+      "inputs": {
+        "image": "conditioning.png"
+      }
+    },
+    "9": {
+      "class_type": "VAEEncode",
+      "inputs": {
+        "pixels": [
+          "8",
+          0
+        ],
+        "vae": [
+          "1",
+          2
+        ]
+      }
+    }
+  }
+}

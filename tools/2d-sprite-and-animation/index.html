@@ -1,0 +1,2821 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sprite Workbench</title>
+    <style>
+        :root {
+            --bg: #0a0f14;
+            --bg-soft: #111922;
+            --panel: rgba(18, 24, 33, 0.94);
+            --panel-soft: rgba(25, 34, 45, 0.92);
+            --stroke: rgba(255, 255, 255, 0.1);
+            --stroke-strong: rgba(255, 255, 255, 0.16);
+            --text: #edf2f8;
+            --muted: #96a8ba;
+            --accent: #d4a752;
+            --accent-soft: rgba(212, 167, 82, 0.18);
+            --blue: #7cb5dc;
+            --blue-soft: rgba(124, 181, 220, 0.18);
+            --green: #75c498;
+            --green-soft: rgba(117, 196, 152, 0.18);
+            --red: #d37a7a;
+            --red-soft: rgba(211, 122, 122, 0.18);
+            --shadow: 0 24px 64px rgba(0, 0, 0, 0.34);
+            --radius: 22px;
+        }
+
+        * {
+            box-sizing: border-box;
+            min-width: 0;
+        }
+
+        html, body {
+            margin: 0;
+            min-height: 100%;
+            overflow-x: hidden;
+        }
+
+        body {
+            font-family: "Avenir Next", "Segoe UI", sans-serif;
+            color: var(--text);
+            background:
+                radial-gradient(circle at top left, rgba(212, 167, 82, 0.13), transparent 28%),
+                radial-gradient(circle at bottom right, rgba(124, 181, 220, 0.12), transparent 24%),
+                linear-gradient(180deg, #091017 0%, #0d141d 44%, #121b24 100%);
+        }
+
+        a {
+            color: var(--blue);
+        }
+
+        button, input, textarea, select {
+            font: inherit;
+        }
+
+        img {
+            max-width: 100%;
+            display: block;
+        }
+
+        pre {
+            margin: 0;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .app-shell {
+            display: grid;
+            grid-template-columns: minmax(260px, 310px) minmax(0, 1fr);
+            min-height: 100vh;
+            width: 100%;
+        }
+
+        .sidebar {
+            position: sticky;
+            top: 0;
+            align-self: start;
+            height: 100vh;
+            overflow: auto;
+            padding: 28px 20px 24px;
+            border-right: 1px solid var(--stroke);
+            background: rgba(8, 11, 16, 0.78);
+            backdrop-filter: blur(14px);
+        }
+
+        .brand {
+            margin-bottom: 24px;
+        }
+
+        .brand h1 {
+            margin: 0;
+            font-family: "Iowan Old Style", Georgia, serif;
+            font-size: 2rem;
+            line-height: 0.95;
+            letter-spacing: 0.02em;
+        }
+
+        .brand p {
+            margin: 10px 0 0;
+            color: var(--muted);
+            line-height: 1.5;
+        }
+
+        .nav-list,
+        .project-list {
+            display: grid;
+            gap: 10px;
+        }
+
+        .nav-link,
+        .project-card,
+        .panel,
+        .status-card,
+        .hero,
+        .compare-slot,
+        .run-card,
+        .concept-card,
+        .thumb,
+        .metric-card,
+        .warning-box,
+        .modal-card {
+            border: 1px solid var(--stroke);
+            border-radius: var(--radius);
+            background: var(--panel);
+            box-shadow: var(--shadow);
+        }
+
+        .nav-link {
+            text-decoration: none;
+            color: var(--text);
+            padding: 11px 12px;
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .nav-link:hover,
+        .project-card:hover,
+        .run-card:hover {
+            border-color: rgba(212, 167, 82, 0.42);
+        }
+
+        .sidebar-block + .sidebar-block {
+            margin-top: 22px;
+        }
+
+        .sidebar-title {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .sidebar-title h2 {
+            margin: 0;
+            font-size: 0.92rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--muted);
+        }
+
+        .project-card {
+            padding: 14px;
+            cursor: pointer;
+        }
+
+        .project-card.active {
+            border-color: rgba(212, 167, 82, 0.5);
+            box-shadow: 0 0 0 1px rgba(212, 167, 82, 0.16) inset, var(--shadow);
+        }
+
+        .project-card strong {
+            display: block;
+            font-size: 1rem;
+        }
+
+        .project-card small,
+        .small-note,
+        .muted {
+            color: var(--muted);
+        }
+
+        .project-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .main-column {
+            padding: 24px;
+            display: grid;
+            gap: 18px;
+            align-content: start;
+        }
+
+        .hero {
+            padding: 24px;
+            background:
+                linear-gradient(140deg, rgba(21, 31, 43, 0.96), rgba(10, 15, 22, 0.94)),
+                radial-gradient(circle at top right, rgba(124, 181, 220, 0.12), transparent 30%);
+        }
+
+        .hero h2 {
+            margin: 0;
+            font-family: "Iowan Old Style", Georgia, serif;
+            font-size: clamp(2rem, 4vw, 2.8rem);
+            line-height: 0.95;
+        }
+
+        .hero p {
+            margin: 12px 0 0;
+            max-width: 72ch;
+            color: var(--muted);
+            line-height: 1.55;
+        }
+
+        .status-row,
+        .metric-grid,
+        .grid-2,
+        .grid-3,
+        .concept-grid,
+        .run-grid,
+        .thumb-grid {
+            display: grid;
+            gap: 14px;
+        }
+
+        .status-row {
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        }
+
+        .metric-grid {
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        }
+
+        .grid-2 {
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        }
+
+        .grid-3 {
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        }
+
+        .run-grid {
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        }
+
+        .concept-grid {
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        }
+
+        .thumb-grid {
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        }
+
+        .status-card,
+        .metric-card {
+            padding: 16px;
+        }
+
+        .status-card span,
+        .metric-card span {
+            display: block;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--muted);
+        }
+
+        .status-card strong,
+        .metric-card strong {
+            display: block;
+            margin-top: 7px;
+            font-size: 1.35rem;
+        }
+
+        .panel {
+            padding: 20px;
+        }
+
+        .section-head {
+            display: flex;
+            justify-content: space-between;
+            gap: 18px;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            margin-bottom: 16px;
+        }
+
+        .section-head h3 {
+            margin: 0;
+            font-size: 1.15rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        .section-head p {
+            margin: 8px 0 0;
+            color: var(--muted);
+            line-height: 1.5;
+            max-width: 70ch;
+        }
+
+        .stage-meta {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: flex-end;
+            text-align: right;
+            max-width: min(100%, 360px);
+        }
+
+        .stage-meta p {
+            margin: 0;
+            color: var(--muted);
+            font-size: 0.88rem;
+            line-height: 1.4;
+        }
+
+        .badge,
+        .pill {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            border-radius: 999px;
+            padding: 5px 10px;
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            border: 1px solid transparent;
+            white-space: nowrap;
+        }
+
+        .badge.real {
+            background: var(--green-soft);
+            color: var(--green);
+            border-color: rgba(117, 196, 152, 0.24);
+        }
+
+        .badge.experimental {
+            background: var(--accent-soft);
+            color: var(--accent);
+            border-color: rgba(212, 167, 82, 0.24);
+        }
+
+        .badge.placeholder {
+            background: var(--red-soft);
+            color: var(--red);
+            border-color: rgba(211, 122, 122, 0.24);
+        }
+
+        .pill {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--muted);
+            border-color: rgba(255, 255, 255, 0.08);
+        }
+
+        .pill.ok {
+            color: var(--green);
+            background: var(--green-soft);
+            border-color: rgba(117, 196, 152, 0.24);
+        }
+
+        .pill.warning {
+            color: var(--accent);
+            background: var(--accent-soft);
+            border-color: rgba(212, 167, 82, 0.24);
+        }
+
+        .pill.fail {
+            color: var(--red);
+            background: var(--red-soft);
+            border-color: rgba(211, 122, 122, 0.24);
+        }
+
+        .warning-box {
+            padding: 14px 16px;
+            background: rgba(211, 122, 122, 0.08);
+        }
+
+        .warning-box p {
+            margin: 0;
+            line-height: 1.45;
+        }
+
+        label {
+            display: grid;
+            gap: 8px;
+            color: var(--muted);
+            font-size: 0.92rem;
+        }
+
+        input,
+        textarea,
+        select {
+            width: 100%;
+            border-radius: 14px;
+            padding: 11px 12px;
+            border: 1px solid var(--stroke-strong);
+            background: rgba(7, 11, 16, 0.52);
+            color: var(--text);
+        }
+
+        input[type="file"] {
+            padding: 10px;
+        }
+
+        textarea {
+            min-height: 110px;
+            resize: vertical;
+        }
+
+        .actions,
+        .inline-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .actions {
+            margin-top: 16px;
+        }
+
+        button {
+            border: 1px solid transparent;
+            border-radius: 999px;
+            padding: 10px 15px;
+            font-weight: 700;
+            cursor: pointer;
+            color: #11161c;
+            background: linear-gradient(135deg, #d4a752, #f1d9a2);
+        }
+
+        button.secondary {
+            color: var(--text);
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        button.danger {
+            color: var(--text);
+            background: rgba(211, 122, 122, 0.16);
+            border-color: rgba(211, 122, 122, 0.26);
+        }
+
+        button:disabled {
+            opacity: 0.42;
+            cursor: not-allowed;
+        }
+
+        .hero-actions,
+        .mode-actions,
+        .wizard-actions,
+        .wizard-inline {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .hero-actions {
+            margin-top: 18px;
+        }
+
+        .mode-button.active {
+            color: #11161c;
+            background: linear-gradient(135deg, #d4a752, #f1d9a2);
+            border-color: transparent;
+        }
+
+        .mode-shell {
+            display: grid;
+            gap: 16px;
+        }
+
+        .wizard-shell {
+            display: grid;
+            gap: 14px;
+        }
+
+        .wizard-stepper {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+            gap: 10px;
+        }
+
+        .wizard-step {
+            padding: 12px;
+            border-radius: 16px;
+            border: 1px solid var(--stroke);
+            background: rgba(255, 255, 255, 0.03);
+            color: var(--text);
+            text-align: left;
+            cursor: pointer;
+        }
+
+        .wizard-step.active {
+            border-color: rgba(212, 167, 82, 0.5);
+            box-shadow: 0 0 0 1px rgba(212, 167, 82, 0.16) inset;
+        }
+
+        .wizard-step.complete {
+            border-color: rgba(117, 196, 152, 0.3);
+        }
+
+        .wizard-step.locked {
+            opacity: 0.55;
+            cursor: not-allowed;
+        }
+
+        .wizard-step strong {
+            display: block;
+            font-size: 0.95rem;
+        }
+
+        .wizard-step small {
+            display: block;
+            margin-top: 6px;
+            color: var(--muted);
+        }
+
+        .wizard-card {
+            padding: 18px;
+            border-radius: var(--radius);
+            border: 1px solid var(--stroke);
+            background: rgba(255, 255, 255, 0.03);
+            display: grid;
+            gap: 14px;
+        }
+
+        .wizard-card h3 {
+            margin: 0;
+            font-size: 1.2rem;
+        }
+
+        .wizard-blockers,
+        .wizard-summaries {
+            display: grid;
+            gap: 10px;
+        }
+
+        .wizard-summary {
+            padding: 12px 14px;
+            border-radius: 16px;
+            border: 1px solid var(--stroke);
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .hidden-by-mode {
+            display: none !important;
+        }
+
+        .reference-editor {
+            display: grid;
+            gap: 12px;
+        }
+
+        .reference-row {
+            display: grid;
+            grid-template-columns: 130px 92px minmax(0, 1fr);
+            gap: 10px;
+            padding: 12px;
+            border: 1px solid var(--stroke);
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .reference-row .row-main {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            align-items: end;
+        }
+
+        .reference-list {
+            display: grid;
+            gap: 10px;
+        }
+
+        .reference-chip {
+            padding: 12px 14px;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--stroke);
+        }
+
+        .run-card,
+        .concept-card,
+        .thumb {
+            overflow: hidden;
+        }
+
+        .run-card {
+            padding: 14px;
+            cursor: pointer;
+        }
+
+        .run-card.active {
+            border-color: rgba(212, 167, 82, 0.52);
+            box-shadow: 0 0 0 1px rgba(212, 167, 82, 0.18) inset, var(--shadow);
+        }
+
+        .run-card strong {
+            display: block;
+            font-size: 1rem;
+        }
+
+        .run-card p {
+            margin: 8px 0 0;
+            color: var(--muted);
+            line-height: 1.45;
+        }
+
+        .compare-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 14px;
+        }
+
+        .compare-slot {
+            padding: 14px;
+            display: grid;
+            gap: 12px;
+        }
+
+        .compare-slot img,
+        .concept-card img,
+        .zoom-image {
+            width: 100%;
+            object-fit: contain;
+            aspect-ratio: 7 / 8;
+            background:
+                radial-gradient(circle at center, rgba(124, 181, 220, 0.18), rgba(0, 0, 0, 0.04)),
+                linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent);
+        }
+
+        .concept-card .body {
+            padding: 14px;
+            display: grid;
+            gap: 10px;
+        }
+
+        .concept-top {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            align-items: flex-start;
+        }
+
+        .concept-title {
+            display: grid;
+            gap: 4px;
+        }
+
+        .concept-title strong {
+            font-size: 1rem;
+        }
+
+        .meta-line,
+        .metric-line {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .thumb {
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.03);
+            text-align: center;
+        }
+
+        .thumb img {
+            border-radius: 12px;
+            image-rendering: pixelated;
+            background: rgba(255, 255, 255, 0.03);
+            aspect-ratio: 1 / 1;
+        }
+
+        .check-list,
+        .log-list {
+            display: grid;
+            gap: 10px;
+        }
+
+        .check-row,
+        .log-list li {
+            padding: 12px 14px;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--stroke);
+        }
+
+        .check-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .log-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.72);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            z-index: 100;
+        }
+
+        .modal.open {
+            display: flex;
+        }
+
+        .modal-card {
+            width: min(920px, 100%);
+            max-height: min(92vh, 960px);
+            padding: 18px;
+            display: grid;
+            gap: 14px;
+            overflow: auto;
+        }
+
+        .modal-head {
+            display: flex;
+            justify-content: space-between;
+            gap: 14px;
+            align-items: flex-start;
+        }
+
+        .empty {
+            padding: 14px;
+            border-radius: 16px;
+            border: 1px dashed rgba(255, 255, 255, 0.12);
+            color: var(--muted);
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        @media (max-width: 1180px) {
+            .app-shell {
+                grid-template-columns: 1fr;
+            }
+
+            .sidebar {
+                position: relative;
+                height: auto;
+                border-right: 0;
+                border-bottom: 1px solid var(--stroke);
+            }
+        }
+
+        @media (max-width: 760px) {
+            .main-column {
+                padding: 16px;
+            }
+
+            .panel,
+            .hero {
+                padding: 16px;
+            }
+
+            .reference-row {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="app-shell">
+    <aside class="sidebar">
+        <div class="brand">
+            <h1>Sprite<br>Workbench</h1>
+            <p>Local concept iteration for side-view humanoid sprites. Concepts are now real ComfyUI jobs; layers, rigging, and animation are still clearly labeled when they remain synthetic.</p>
+        </div>
+
+        <div class="sidebar-block">
+            <div class="nav-list">
+                <a class="nav-link" href="#intake">Intake</a>
+                <a class="nav-link" href="#concepts">Concept Review</a>
+                <a class="nav-link" href="#refine">Refine</a>
+                <a class="nav-link" href="#layer-review">Layer Review</a>
+                <a class="nav-link" href="#rig-review">Rig Review</a>
+                <a class="nav-link" href="#production">Production</a>
+                <a class="nav-link" href="#qa">QA</a>
+                <a class="nav-link" href="#export">Export</a>
+            </div>
+        </div>
+
+        <div class="sidebar-block">
+            <div class="sidebar-title">
+                <h2>Projects</h2>
+                <button class="secondary" id="toggle-archived">Show Archived</button>
+            </div>
+            <div class="project-list" id="project-list"></div>
+        </div>
+    </aside>
+
+    <main class="main-column">
+        <section class="hero">
+            <h2>ComfyUI-backed concept boards, honest downstream warnings.</h2>
+            <p>Initial generation now targets six real concept outputs by default, refinement produces four new variants with lineage, review state lives in project history, and the UI stops pretending the placeholder downstream pipeline is production-complete.</p>
+            <div class="hero-actions">
+                <button id="launch-wizard">Create New Sprite</button>
+                <button class="secondary" id="open-workbench">Open Workbench</button>
+            </div>
+        </section>
+
+        <section class="panel mode-shell" id="mode-shell">
+            <div class="section-head">
+                <div>
+                    <h3>Workspace Mode</h3>
+                    <p id="mode-summary">Use the workbench for direct access, or launch the guided wizard to create a new sprite step by step.</p>
+                </div>
+                <div class="mode-actions">
+                    <button class="secondary" id="mode-workbench">Workbench</button>
+                    <button class="secondary" id="mode-wizard">New Sprite Wizard</button>
+                </div>
+            </div>
+            <div id="wizard-shell" class="wizard-shell"></div>
+        </section>
+
+        <section class="status-row">
+            <div class="status-card">
+                <span>Active Project</span>
+                <strong id="status-project">None</strong>
+            </div>
+            <div class="status-card">
+                <span>Current Stage</span>
+                <strong id="status-stage">Idle</strong>
+            </div>
+            <div class="status-card">
+                <span>Concept Backend</span>
+                <strong id="status-backend">Unknown</strong>
+            </div>
+            <div class="status-card">
+                <span>QA Status</span>
+                <strong id="status-qa">Blocked</strong>
+            </div>
+        </section>
+
+        <section class="metric-grid" id="metric-grid">
+            <div class="metric-card">
+                <span>Concept Runs</span>
+                <strong>0</strong>
+            </div>
+            <div class="metric-card">
+                <span>Approvals Logged</span>
+                <strong>0</strong>
+            </div>
+            <div class="metric-card">
+                <span>Refinements</span>
+                <strong>0</strong>
+            </div>
+            <div class="metric-card">
+                <span>Time To Approved</span>
+                <strong>n/a</strong>
+            </div>
+        </section>
+
+        <section class="panel" id="intake">
+            <div class="section-head">
+                <div>
+                    <h3>Intake</h3>
+                    <p>Prompt-only entry still works, but structured art-direction fields now feed the concept prompt builder directly. Reference rows can point to local files or browser uploads and are copied into the project before generation.</p>
+                </div>
+                <div class="stage-meta" data-stage="intake"></div>
+            </div>
+
+            <div class="grid-2">
+                <label>Project Name
+                    <input id="project-name" placeholder="Ashen Sentinel">
+                </label>
+                <label>Raw Prompt
+                    <textarea id="prompt-text" placeholder="Humanoid side-view armored traveler with a lantern and storm-steel palette."></textarea>
+                </label>
+            </div>
+
+            <div class="grid-3" style="margin-top: 12px;">
+                <label>Role / Archetype
+                    <input id="role-archetype" placeholder="armored traveler">
+                </label>
+                <label>Silhouette Intent
+                    <input id="silhouette-intent" placeholder="broad guarded profile">
+                </label>
+                <label>Outfit / Materials
+                    <input id="outfit-materials" placeholder="plate fragments over travel layers">
+                </label>
+                <label>Primary Prop
+                    <input id="prop" placeholder="lantern">
+                </label>
+                <label>Palette Mood
+                    <input id="palette-mood" placeholder="storm steel">
+                </label>
+                <label>Shape Language
+                    <input id="shape-language" placeholder="angular disciplined silhouettes">
+                </label>
+                <label>Mood / Tone
+                    <input id="mood-tone" placeholder="stoic and vigilant">
+                </label>
+                <label>Side-View Constraints
+                    <input id="side-view-constraints" placeholder="strict side view, one humanoid character, clean background">
+                </label>
+                <label>Negative Prompt
+                    <input id="negative-prompt" placeholder="front view, crowd, busy background, extra limbs">
+                </label>
+            </div>
+
+            <div class="grid-3" style="margin-top: 12px;">
+                <label>Concept Backend
+                    <select id="backend-mode">
+                        <option value="comfyui">ComfyUI</option>
+                        <option value="debug_procedural">Debug Procedural</option>
+                    </select>
+                </label>
+                <label>Checkpoint Override
+                    <input id="comfyui-checkpoint" placeholder="sd15.safetensors">
+                </label>
+                <div class="warning-box" id="backend-warning">
+                    <p>ComfyUI is the default and only real concept backend. The debug backend exists only as an explicit fallback for local testing.</p>
+                </div>
+            </div>
+
+            <div style="margin-top: 18px;">
+                <div class="section-head" style="margin-bottom: 10px;">
+                    <div>
+                        <h3 style="font-size: 0.98rem;">References</h3>
+                        <p>Typed references are stored under each project and passed into the concept backend through uploaded conditioning images. Identity, costume, style, and prop references stay separate in metadata.</p>
+                    </div>
+                </div>
+                <div class="reference-list" id="attached-references"></div>
+                <div class="reference-editor" id="reference-editor"></div>
+                <div class="actions">
+                    <button class="secondary" id="add-reference-row">Add Reference Row</button>
+                </div>
+            </div>
+
+            <div class="actions">
+                <button id="create-project">Create Project</button>
+                <button class="secondary" id="save-brief">Save Intake</button>
+                <button class="secondary" id="refresh-projects">Refresh Projects</button>
+            </div>
+            <p class="small-note" id="intake-note">Unsupported prompt patterns are rejected before concept generation. Existing projects load with backward-compatible defaults even if they predate the structured brief schema.</p>
+        </section>
+
+        <section class="panel" id="concepts">
+            <div class="section-head">
+                <div>
+                    <h3>Concept Review</h3>
+                    <p>Initial runs generate six concepts. Refinement and regenerate-similar runs generate four. Review actions, lineage, and derived metrics all come from <code>history.json</code> rather than UI-only state.</p>
+                </div>
+                <div class="stage-meta" data-stage="concepts"></div>
+            </div>
+
+            <div class="actions">
+                <button id="generate-concepts">Generate 6 Concepts</button>
+            </div>
+
+            <div style="margin-top: 16px;">
+                <div class="section-head" style="margin-bottom: 10px;">
+                    <div>
+                        <h3 style="font-size: 0.98rem;">Run Summaries</h3>
+                        <p>The most recent run is selected by default. Old projects with legacy concept boards still load, but they will not show the same lineage detail until new runs are created.</p>
+                    </div>
+                </div>
+                <div class="run-grid" id="run-grid"></div>
+            </div>
+
+            <div style="margin-top: 16px;">
+                <div class="section-head" style="margin-bottom: 10px;">
+                    <div>
+                        <h3 style="font-size: 0.98rem;">Compare</h3>
+                        <p>The approved concept stays fixed on the left when available. Click compare on any other concept to pin it on the right, then use quick toggle to swap sides.</p>
+                    </div>
+                </div>
+                <div class="compare-grid">
+                    <div class="compare-slot" id="compare-left"></div>
+                    <div class="compare-slot" id="compare-right"></div>
+                </div>
+                <div class="actions">
+                    <button class="secondary" id="swap-compare">Quick Toggle</button>
+                </div>
+            </div>
+
+            <div style="margin-top: 16px;">
+                <div class="concept-grid" id="concept-grid"></div>
+            </div>
+        </section>
+
+        <section class="panel" id="refine">
+            <div class="section-head">
+                <div>
+                    <h3>Refine</h3>
+                    <p>Refinement is now a real image generation step. Pick the approved concept, choose one major attribute group to change, provide the new target value, and set the denoise strength used in the backend refinement workflow.</p>
+                </div>
+                <div class="stage-meta" data-stage="refine"></div>
+            </div>
+
+            <div class="warning-box">
+                <p id="selected-concept-summary">Select and approve a concept before running refinement.</p>
+            </div>
+
+            <div class="grid-3" style="margin-top: 14px;">
+                <label>Selected Concept
+                    <select id="refine-concept"></select>
+                </label>
+                <label>Attribute Group
+                    <select id="refine-attribute">
+                        <option value="silhouette">silhouette</option>
+                        <option value="face_head_shape">face_head_shape</option>
+                        <option value="outfit">outfit</option>
+                        <option value="palette">palette</option>
+                        <option value="prop">prop</option>
+                    </select>
+                </label>
+                <label>Refinement Strength
+                    <select id="refine-strength">
+                        <option value="subtle">subtle</option>
+                        <option value="medium">medium</option>
+                        <option value="strong">strong</option>
+                    </select>
+                </label>
+            </div>
+
+            <div class="grid-2" style="margin-top: 12px;">
+                <label>New Target Value
+                    <input id="refine-target" placeholder="cooler storm palette with brass accents">
+                </label>
+                <div class="warning-box">
+                    <p><strong>Strength mapping:</strong> subtle = 0.25, medium = 0.45, strong = 0.65. The selected concept is used as the img2img parent, and locked attributes are restated in the refine prompt.</p>
+                </div>
+            </div>
+
+            <div class="actions">
+                <button id="run-refine">Generate 4 Refinements</button>
+            </div>
+        </section>
+
+        <section class="panel" id="layer-review">
+            <div class="section-head">
+                <div>
+                    <h3>Layer Review</h3>
+                    <p>This stage is still placeholder. It remains useful for downstream smoke testing, but the UI now says plainly that these layers are synthetic stand-ins rather than extracted concept art.</p>
+                </div>
+                <div class="stage-meta" data-stage="layer_review"></div>
+            </div>
+
+            <div class="warning-box">
+                <p id="layer-warning">Downstream warning: the current layer build still uses a synthetic part library.</p>
+            </div>
+
+            <div class="actions">
+                <button id="build-layers">Build Placeholder Layers</button>
+                <button class="secondary" id="approve-layers">Approve Layer Review</button>
+            </div>
+            <div class="check-list" id="layer-checks" style="margin-top: 14px;"></div>
+            <div class="thumb-grid" id="layer-gallery" style="margin-top: 14px;"></div>
+        </section>
+
+        <section class="panel" id="rig-review">
+            <div class="section-head">
+                <div>
+                    <h3>Rig Review</h3>
+                    <p>The rig is still generated procedurally for the placeholder downstream path. Use this stage for deterministic renderer validation, not as evidence of concept-to-rig extraction maturity.</p>
+                </div>
+                <div class="stage-meta" data-stage="rig_review"></div>
+            </div>
+
+            <div class="actions">
+                <button id="build-rig">Build Placeholder Rig</button>
+                <button class="secondary" id="approve-rig">Approve Rig Review</button>
+            </div>
+            <div class="grid-2" style="margin-top: 14px;">
+                <div class="warning-box">
+                    <pre id="rig-summary">No rig data yet.</pre>
+                </div>
+                <div id="rig-preview"></div>
+            </div>
+        </section>
+
+        <section class="panel" id="production">
+            <div class="section-head">
+                <div>
+                    <h3>Production</h3>
+                    <p>The deterministic renderer remains in place. It is still useful for testing sheet packing, pivot consistency, and exports, but it sits on top of placeholder layers and rig data.</p>
+                </div>
+                <div class="stage-meta" data-stage="production"></div>
+            </div>
+
+            <div class="warning-box">
+                <p id="production-warning">Production warning: renderer outputs are deterministic, but their upstream layer and rig sources are still synthetic.</p>
+            </div>
+
+            <div class="actions">
+                <button id="render-idle">Render Idle</button>
+                <button id="render-walk">Render Walk</button>
+            </div>
+            <div class="grid-2" style="margin-top: 14px;">
+                <div>
+                    <h3 style="font-size: 0.95rem; margin: 0 0 10px;">Idle Frames</h3>
+                    <div class="thumb-grid" id="idle-gallery"></div>
+                </div>
+                <div>
+                    <h3 style="font-size: 0.95rem; margin: 0 0 10px;">Walk Frames</h3>
+                    <div class="thumb-grid" id="walk-gallery"></div>
+                </div>
+            </div>
+        </section>
+
+        <section class="panel" id="qa">
+            <div class="section-head">
+                <div>
+                    <h3>QA</h3>
+                    <p>QA now only reports what is actually implemented. Unsupported checks are surfaced as <code>not_implemented</code> instead of being silently counted as pass.</p>
+                </div>
+                <div class="stage-meta" data-stage="qa"></div>
+            </div>
+
+            <div class="actions">
+                <button id="run-qa">Run QA</button>
+            </div>
+            <div class="check-list" id="qa-summary" style="margin-top: 14px;"></div>
+        </section>
+
+        <section class="panel" id="export">
+            <div class="section-head">
+                <div>
+                    <h3>Export</h3>
+                    <p>Exports stay gated behind passing QA, but the surrounding copy is now explicit about the experimental and placeholder stages still present upstream.</p>
+                </div>
+                <div class="stage-meta" data-stage="export"></div>
+            </div>
+
+            <div class="actions">
+                <button id="run-export">Export Package</button>
+            </div>
+            <div class="check-list" id="export-summary" style="margin-top: 14px;"></div>
+        </section>
+
+        <section class="panel">
+            <div class="section-head">
+                <div>
+                    <h3>Job Log</h3>
+                    <p>Background jobs still run through the local server queue. The most recent events are shown first.</p>
+                </div>
+            </div>
+            <ul class="log-list" id="job-log"></ul>
+        </section>
+    </main>
+</div>
+
+<div class="modal" id="zoom-modal">
+    <div class="modal-card">
+        <div class="modal-head">
+            <div>
+                <h3 style="margin: 0; text-transform: uppercase; letter-spacing: 0.08em;">Zoomed Concept</h3>
+                <p class="muted" id="zoom-meta" style="margin: 8px 0 0;">No concept selected.</p>
+            </div>
+            <button class="secondary" id="close-zoom">Close</button>
+        </div>
+        <img class="zoom-image" id="zoom-image" alt="Zoomed concept">
+        <div class="warning-box">
+            <pre id="zoom-details">No details.</pre>
+        </div>
+    </div>
+</div>
+
+<script>
+const STORAGE_KEYS = {
+    activeProjectId: "spriteWorkbench.activeProjectId",
+    includeArchived: "spriteWorkbench.includeArchived",
+};
+
+const WIZARD_STEPS = ["project", "brief", "references", "concepts", "review", "refine", "build", "qa", "export"];
+const WORKBENCH_SECTION_IDS = ["intake", "concepts", "refine", "layer-review", "rig-review", "production", "qa", "export"];
+const WIZARD_SECTION_MAP = {
+    project: ["intake"],
+    brief: ["intake"],
+    references: ["intake"],
+    concepts: ["concepts"],
+    review: ["concepts"],
+    refine: ["refine"],
+    build: ["layer-review", "rig-review", "production"],
+    qa: ["qa"],
+    export: ["export"],
+};
+const WIZARD_META = {
+    project: {
+        label: "Project",
+        description: "Start a new sprite project. Use the intake form below to create the project and capture the initial brief in one pass.",
+    },
+    brief: {
+        label: "Brief",
+        description: "Save the character brief so the tool has a stable starting point before concept generation.",
+    },
+    references: {
+        label: "References",
+        description: "Optional step. Attach identity, costume, style, or prop references, then continue into concept generation.",
+    },
+    concepts: {
+        label: "Concepts",
+        description: "Run the concept backend and create the first concept board for this sprite.",
+    },
+    review: {
+        label: "Review",
+        description: "Compare the concept directions, reject weak ones, and approve one concept to carry forward.",
+    },
+    refine: {
+        label: "Refine",
+        description: "Optionally run controlled refinement loops from the approved concept until it feels ready to build.",
+    },
+    build: {
+        label: "Build",
+        description: "Run the placeholder downstream path in order: layers, rig, and renders.",
+    },
+    qa: {
+        label: "QA",
+        description: "Run implemented checks and review the result before export.",
+    },
+    export: {
+        label: "Export",
+        description: "Package the finished files and open the export artifacts.",
+    },
+};
+
+const DEFAULT_WORKBENCH_PORT = "8766";
+
+function createStorage() {
+    try {
+        const storage = window.localStorage;
+        const probeKey = "__spriteWorkbenchProbe__";
+        storage.setItem(probeKey, "1");
+        storage.removeItem(probeKey);
+        return storage;
+    } catch (error) {
+        const memory = new Map();
+        return {
+            getItem(key) {
+                return memory.has(key) ? memory.get(key) : null;
+            },
+            setItem(key, value) {
+                memory.set(key, String(value));
+            },
+            removeItem(key) {
+                memory.delete(key);
+            },
+        };
+    }
+}
+
+function detectWorkbenchOrigin() {
+    const explicit = new URLSearchParams(window.location.search).get("api");
+    if (explicit) return explicit.replace(/\/$/, "");
+    if (window.location.protocol === "file:") return `http://127.0.0.1:${DEFAULT_WORKBENCH_PORT}`;
+    if (!window.location.hostname) return `http://127.0.0.1:${DEFAULT_WORKBENCH_PORT}`;
+    if (!window.location.port || window.location.port === DEFAULT_WORKBENCH_PORT) return "";
+    return `${window.location.protocol}//${window.location.hostname}:${DEFAULT_WORKBENCH_PORT}`;
+}
+
+const storage = createStorage();
+const WORKBENCH_ORIGIN = detectWorkbenchOrigin();
+const WORKBENCH_BASE = WORKBENCH_ORIGIN
+    ? `${WORKBENCH_ORIGIN}/tools/2d-sprite-and-animation`
+    : `${window.location.origin}/tools/2d-sprite-and-animation`;
+
+const state = {
+    health: null,
+    projects: [],
+    activeProject: null,
+    includeArchived: storage.getItem(STORAGE_KEYS.includeArchived) === "1",
+    selectedRunId: null,
+    compareRightId: null,
+    zoomConceptId: null,
+    swapCompareView: false,
+    uiMode: "workbench",
+};
+
+function currentMode() {
+    return state.uiMode || state.activeProject?.last_ui_mode || "workbench";
+}
+
+function isWizardMode() {
+    return currentMode() === "wizard";
+}
+
+function blankWizardModel() {
+    return {
+        current_step: "project",
+        recommended_next_step: "project",
+        step_statuses: {
+            project: "active",
+            brief: "locked",
+            references: "locked",
+            concepts: "locked",
+            review: "locked",
+            refine: "locked",
+            build: "locked",
+            qa: "locked",
+            export: "locked",
+        },
+        blocking_reasons: {
+            brief: ["Create a project first."],
+            references: ["Save the brief first."],
+            concepts: ["Save the brief first."],
+            review: ["Generate concepts first."],
+            refine: ["Approve a concept first."],
+            build: ["Approve a concept and confirm the refine step first."],
+            qa: ["Complete the build step first."],
+            export: ["QA must pass before export."],
+        },
+    };
+}
+
+function wizardModel() {
+    const project = state.activeProject;
+    if (!project) return blankWizardModel();
+    return {
+        current_step: project.wizard_state?.current_step || project.recommended_next_step || "brief",
+        recommended_next_step: project.recommended_next_step || project.wizard_state?.current_step || "brief",
+        step_statuses: project.step_statuses || {},
+        blocking_reasons: project.blocking_reasons || {},
+    };
+}
+
+function activeWizardStep() {
+    return wizardModel().current_step || wizardModel().recommended_next_step || "project";
+}
+
+function wizardSummaryText(step) {
+    const project = state.activeProject;
+    if (!project) {
+        if (step === "project") return "No project yet.";
+        return "Not started.";
+    }
+    switch (step) {
+        case "project":
+            return project.project_name;
+        case "brief":
+            return project.prompt_text || project.brief?.role_archetype || "Brief saved.";
+        case "references":
+            return `${project.brief?.references?.length || 0} stored reference(s)`;
+        case "concepts":
+            return project.latest_concept_run ? `${project.latest_concept_run.concept_count} concepts in latest run` : "No concept run yet.";
+        case "review":
+            return project.selected_concept_id ? `Approved ${project.selected_concept_id}` : "No approved concept yet.";
+        case "refine":
+            return project.wizard_state?.last_refine_decision || (project.latest_refinement_run ? "Refinement history exists." : "No refine decision yet.");
+        case "build":
+            return `${project.layer_review_approved ? "layers approved" : "layers pending"} · ${project.rig_review_approved ? "rig approved" : "rig pending"}`;
+        case "qa":
+            return project.qa_report?.status || "QA not run.";
+        case "export":
+            return project.last_export?.export_dir || "No export yet.";
+        default:
+            return "";
+    }
+}
+
+async function persistWizardState(payload) {
+    if (!state.activeProject) return null;
+    const project = await api(`/api/projects/${state.activeProject.project_id}/wizard-state`, {
+        method: "POST",
+        body: JSON.stringify(payload),
+    });
+    state.activeProject = project;
+    await refreshProjects();
+    return project;
+}
+
+async function setUiMode(mode) {
+    state.uiMode = mode;
+    if (state.activeProject) {
+        const project = await persistWizardState({ last_ui_mode: mode, current_step: state.activeProject.wizard_state?.current_step });
+        if (project) state.activeProject = project;
+    }
+    renderAll();
+}
+
+async function goToWizardStep(step) {
+    const model = wizardModel();
+    if (model.step_statuses?.[step] === "locked") return;
+    if (!state.activeProject) {
+        state.uiMode = "wizard";
+        renderAll();
+        return;
+    }
+    const project = await persistWizardState({ current_step: step, last_ui_mode: "wizard" });
+    if (project) {
+        state.uiMode = "wizard";
+        renderAll();
+    }
+}
+
+function nextBuildAction() {
+    const project = state.activeProject;
+    if (!project?.layered_character) {
+        return { label: "Build Placeholder Layers", run: () => runJob(`/api/projects/${project.project_id}/layers/build`) };
+    }
+    if (!project.layer_review_approved) {
+        return {
+            label: "Approve Layer Review",
+            run: () => api(`/api/projects/${project.project_id}/layer-review/approve`, { method: "POST", body: "{}" }).then(() => loadProject(project.project_id, "wizard")),
+        };
+    }
+    if (!project.rig) {
+        return { label: "Build Placeholder Rig", run: () => runJob(`/api/projects/${project.project_id}/rig/build`) };
+    }
+    if (!project.rig_review_approved) {
+        return {
+            label: "Approve Rig Review",
+            run: () => api(`/api/projects/${project.project_id}/rig-review/approve`, { method: "POST", body: "{}" }).then(() => loadProject(project.project_id, "wizard")),
+        };
+    }
+    const hasIdle = Boolean(project.build_status?.idle_render_complete);
+    const hasWalk = Boolean(project.build_status?.walk_render_complete);
+    if (!hasIdle) {
+        return { label: "Render Idle", run: () => runJob(`/api/projects/${project.project_id}/animations/idle/render`) };
+    }
+    if (!hasWalk) {
+        return { label: "Render Walk", run: () => runJob(`/api/projects/${project.project_id}/animations/walk/render`) };
+    }
+    return {
+        label: "Continue To QA",
+        run: () => persistWizardState({ completed_steps: ["build"], current_step: "qa", last_ui_mode: "wizard" }),
+    };
+}
+
+function applyModeVisibility() {
+    const mode = currentMode();
+    const activeStep = activeWizardStep();
+    const allowedSections = new Set(mode === "wizard" ? (WIZARD_SECTION_MAP[activeStep] || []) : WORKBENCH_SECTION_IDS);
+    WORKBENCH_SECTION_IDS.forEach((id) => {
+        const node = document.querySelector(`#${id}`);
+        if (!node) return;
+        const shouldHide = mode === "wizard" && !allowedSections.has(id);
+        node.classList.toggle("hidden-by-mode", shouldHide);
+    });
+}
+
+function wizardActionButton(action, secondary = false) {
+    if (!action) return "";
+    const disabled = action.disabled ? "disabled" : "";
+    const klass = secondary ? "secondary" : "";
+    return `<button class="${klass}" data-wizard-action="${action.id}" ${disabled}>${action.label}</button>`;
+}
+
+function wizardActionConfig(step) {
+    const project = state.activeProject;
+    const selected = selectedConcept();
+    switch (step) {
+        case "project":
+            return {
+                primary: {
+                    id: "wizard-create-project",
+                    label: "Create Project From Intake",
+                    disabled: false,
+                },
+                secondary: {
+                    id: "wizard-open-workbench",
+                    label: "Open Workbench",
+                    disabled: false,
+                },
+            };
+        case "brief":
+            return {
+                primary: {
+                    id: "wizard-save-brief",
+                    label: "Save Brief",
+                    disabled: !project,
+                },
+                secondary: {
+                    id: "wizard-open-workbench",
+                    label: "Open Workbench",
+                    disabled: false,
+                },
+            };
+        case "references":
+            return {
+                primary: {
+                    id: "wizard-save-references",
+                    label: "Save References And Continue",
+                    disabled: !project,
+                },
+                secondary: {
+                    id: "wizard-skip-references",
+                    label: "Skip References",
+                    disabled: !project,
+                },
+            };
+        case "concepts":
+            return {
+                primary: {
+                    id: "wizard-generate-concepts",
+                    label: project?.concept_runs?.length ? "Generate Another 6 Concepts" : "Generate 6 Concepts",
+                    disabled: !project,
+                },
+                secondary: project?.concept_runs?.length ? {
+                    id: "wizard-go-review",
+                    label: "Go To Review",
+                    disabled: false,
+                } : null,
+            };
+        case "review":
+            return {
+                primary: {
+                    id: "wizard-continue-review",
+                    label: selected ? "Continue With Approved Concept" : "Approve A Concept Below",
+                    disabled: !selected,
+                },
+                secondary: {
+                    id: "wizard-open-workbench",
+                    label: "Open Workbench",
+                    disabled: false,
+                },
+            };
+        case "refine":
+            return {
+                primary: {
+                    id: "wizard-run-refine",
+                    label: "Generate 4 Refinements",
+                    disabled: !project || !selected,
+                },
+                secondary: {
+                    id: "wizard-use-current-concept",
+                    label: "Use Current Approved Concept",
+                    disabled: !project || !selected,
+                },
+            };
+        case "build": {
+            const buildAction = project ? nextBuildAction() : null;
+            return {
+                primary: buildAction ? {
+                    id: "wizard-build-next",
+                    label: buildAction.label,
+                    disabled: false,
+                } : {
+                    id: "wizard-open-workbench",
+                    label: "Open Workbench",
+                    disabled: false,
+                },
+                secondary: {
+                    id: "wizard-open-workbench",
+                    label: "Open Workbench",
+                    disabled: false,
+                },
+            };
+        }
+        case "qa":
+            return {
+                primary: {
+                    id: "wizard-run-qa",
+                    label: project?.qa_report?.status === "pass" ? "Continue To Export" : "Run QA",
+                    disabled: !project,
+                },
+                secondary: {
+                    id: "wizard-open-workbench",
+                    label: "Open Workbench",
+                    disabled: false,
+                },
+            };
+        case "export":
+            return {
+                primary: {
+                    id: "wizard-run-export",
+                    label: "Export Package",
+                    disabled: !project || project?.qa_report?.status !== "pass",
+                },
+                secondary: {
+                    id: "wizard-open-workbench",
+                    label: "Open Workbench",
+                    disabled: false,
+                },
+            };
+        default:
+            return {
+                primary: null,
+                secondary: null,
+            };
+    }
+}
+
+function renderModeShell() {
+    const mode = currentMode();
+    const modeSummary = document.querySelector("#mode-summary");
+    const wizardShell = document.querySelector("#wizard-shell");
+    const workbenchButton = document.querySelector("#mode-workbench");
+    const wizardButton = document.querySelector("#mode-wizard");
+
+    workbenchButton.classList.toggle("active", mode === "workbench");
+    wizardButton.classList.toggle("active", mode === "wizard");
+
+    if (mode === "workbench") {
+        modeSummary.textContent = state.activeProject
+            ? "Workbench mode keeps every major stage visible for direct access. Use the wizard only when you want a guided new-sprite flow."
+            : "Choose or create a project, or launch the wizard to start a new sprite with guided steps.";
+        wizardShell.innerHTML = `
+            <div class="wizard-card">
+                <h3>Workbench Mode</h3>
+                <p class="muted">The multi-panel workbench is active. Existing projects open here by default so you can jump straight to the stage you want.</p>
+                <div class="wizard-inline">
+                    <span class="pill ok">direct access</span>
+                    <span class="pill warning">${state.activeProject?.can_resume_wizard ? "wizard available" : "wizard optional"}</span>
+                </div>
+                ${state.activeProject?.can_resume_wizard ? `
+                    <div class="wizard-actions">
+                        <button data-wizard-action="wizard-resume-current">Resume Wizard For This Project</button>
+                    </div>
+                ` : ""}
+            </div>
+        `;
+        wizardShell.querySelector("[data-wizard-action='wizard-resume-current']")?.addEventListener("click", async () => {
+            try {
+                await resumeWizardForCurrentProject();
+            } catch (error) {
+                log(error.message, "error");
+            }
+        });
+        return;
+    }
+
+    const model = wizardModel();
+    const step = activeWizardStep();
+    const meta = WIZARD_META[step];
+    const stepStatuses = model.step_statuses || {};
+    const blockers = model.blocking_reasons?.[step] || [];
+    const actions = wizardActionConfig(step);
+    const stepNumber = WIZARD_STEPS.indexOf(step) + 1;
+    const completedSteps = WIZARD_STEPS.filter((item) => stepStatuses[item] === "complete" && item !== step);
+
+    wizardShell.innerHTML = `
+        <div class="wizard-stepper">
+            ${WIZARD_STEPS.map((item, index) => `
+                <button class="wizard-step ${stepStatuses[item] || ""}" data-step="${item}" ${stepStatuses[item] === "locked" ? "disabled" : ""}>
+                    <strong>${index + 1}. ${WIZARD_META[item].label}</strong>
+                    <small>${stepStatuses[item] || "locked"}</small>
+                </button>
+            `).join("")}
+        </div>
+        <div class="wizard-card">
+            <div class="meta-line">
+                <span class="pill ok">Wizard</span>
+                <span class="pill">${stepNumber} / ${WIZARD_STEPS.length}</span>
+                <span class="pill ${stepStatuses[step] === "attention" ? "warning" : stepStatuses[step] === "complete" ? "ok" : stepStatuses[step] === "locked" ? "fail" : "warning"}">${stepStatuses[step] || "active"}</span>
+            </div>
+            <div>
+                <h3>${meta.label}</h3>
+                <p class="muted">${meta.description}</p>
+                <p class="small-note">Relevant panel${(WIZARD_SECTION_MAP[step] || []).length > 1 ? "s" : ""}: ${(WIZARD_SECTION_MAP[step] || []).join(", ")}</p>
+            </div>
+            ${blockers.length ? `
+                <div class="wizard-blockers">
+                    ${blockers.map((reason) => `<div class="warning-box"><p>${reason}</p></div>`).join("")}
+                </div>
+            ` : ""}
+            <div class="wizard-actions">
+                ${wizardActionButton(actions.primary)}
+                ${wizardActionButton(actions.secondary, true)}
+                <button class="secondary" data-wizard-action="wizard-back">Back</button>
+            </div>
+            ${completedSteps.length ? `
+                <div class="wizard-summaries">
+                    ${completedSteps.map((completedStep) => `
+                        <div class="wizard-summary">
+                            <strong>${WIZARD_META[completedStep].label}</strong>
+                            <div class="small-note" style="margin-top: 6px;">${wizardSummaryText(completedStep)}</div>
+                        </div>
+                    `).join("")}
+                </div>
+            ` : ""}
+        </div>
+    `;
+
+    wizardShell.querySelectorAll(".wizard-step[data-step]").forEach((button) => {
+        button.addEventListener("click", async () => {
+            try {
+                await goToWizardStep(button.dataset.step);
+            } catch (error) {
+                log(error.message, "error");
+            }
+        });
+    });
+
+    wizardShell.querySelectorAll("[data-wizard-action]").forEach((button) => {
+        button.addEventListener("click", async () => {
+            try {
+                await handleWizardAction(button.dataset.wizardAction, step);
+            } catch (error) {
+                log(error.message, "error");
+            }
+        });
+    });
+}
+
+async function openWorkbenchMode() {
+    if (!state.activeProject) {
+        state.uiMode = "workbench";
+        const storedId = storage.getItem(STORAGE_KEYS.activeProjectId);
+        if (storedId) {
+            await loadProject(storedId, "workbench");
+            return;
+        }
+        renderAll();
+        return;
+    }
+    await setUiMode("workbench");
+}
+
+async function startNewSpriteWizard() {
+    state.uiMode = "wizard";
+    state.activeProject = null;
+    state.selectedRunId = null;
+    state.compareRightId = null;
+    state.swapCompareView = false;
+    resetReferenceEditor();
+    renderAll();
+    document.querySelector("#intake")?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+async function resumeWizardForCurrentProject() {
+    if (!state.activeProject) return;
+    const project = await persistWizardState({
+        last_ui_mode: "wizard",
+        current_step: state.activeProject.recommended_next_step || state.activeProject.wizard_state?.current_step || "brief",
+    });
+    if (project) {
+        state.uiMode = "wizard";
+        renderAll();
+    }
+}
+
+async function handleWizardAction(actionId, currentStep) {
+    switch (actionId) {
+        case "wizard-open-workbench":
+            await openWorkbenchMode();
+            return;
+        case "wizard-resume-current":
+            await resumeWizardForCurrentProject();
+            return;
+        case "wizard-back": {
+            const index = Math.max(0, WIZARD_STEPS.indexOf(currentStep) - 1);
+            await goToWizardStep(WIZARD_STEPS[index]);
+            return;
+        }
+        case "wizard-create-project":
+            await createProject("wizard");
+            return;
+        case "wizard-save-brief":
+            await saveBrief("wizard", "references");
+            return;
+        case "wizard-save-references":
+            await saveBrief("wizard", "concepts");
+            return;
+        case "wizard-skip-references":
+            if (!state.activeProject) return;
+            await persistWizardState({
+                skipped_optional_steps: ["references"],
+                completed_steps: ["references"],
+                current_step: "concepts",
+                last_ui_mode: "wizard",
+            });
+            renderAll();
+            return;
+        case "wizard-generate-concepts": {
+            const result = await runJob(`/api/projects/${state.activeProject.project_id}/concepts/generate`);
+            if (result?.run_id) state.selectedRunId = result.run_id;
+            if (state.activeProject) {
+                await persistWizardState({ completed_steps: ["concepts"], current_step: "review", last_ui_mode: "wizard" });
+                renderAll();
+            }
+            return;
+        }
+        case "wizard-go-review":
+            await persistWizardState({ current_step: "review", last_ui_mode: "wizard" });
+            renderAll();
+            return;
+        case "wizard-continue-review":
+            if (!selectedConcept()) return;
+            await persistWizardState({ completed_steps: ["review"], current_step: "refine", last_ui_mode: "wizard" });
+            renderAll();
+            return;
+        case "wizard-run-refine": {
+            await runRefinement();
+            if (state.activeProject) {
+                await persistWizardState({ current_step: "refine", last_ui_mode: "wizard", last_refine_decision: "refine_again" });
+                renderAll();
+            }
+            return;
+        }
+        case "wizard-use-current-concept":
+            if (!state.activeProject) return;
+            await persistWizardState({
+                completed_steps: ["refine"],
+                skipped_optional_steps: ["refine"],
+                last_refine_decision: "use_current_approved_concept",
+                current_step: "build",
+                last_ui_mode: "wizard",
+            });
+            renderAll();
+            return;
+        case "wizard-build-next": {
+            const action = nextBuildAction();
+            if (!action) return;
+            await action.run();
+            if (state.activeProject?.build_status?.idle_render_complete && state.activeProject?.build_status?.walk_render_complete) {
+                await persistWizardState({ completed_steps: ["build"], current_step: "qa", last_ui_mode: "wizard" });
+            }
+            renderAll();
+            return;
+        }
+        case "wizard-run-qa":
+            if (state.activeProject?.qa_report?.status === "pass") {
+                await persistWizardState({ completed_steps: ["qa"], current_step: "export", last_ui_mode: "wizard" });
+                renderAll();
+                return;
+            }
+            await runJob(`/api/projects/${state.activeProject.project_id}/qa/run`);
+            if (state.activeProject?.qa_report) {
+                await persistWizardState({ completed_steps: ["qa"], current_step: state.activeProject.qa_report.status === "pass" ? "export" : "qa", last_ui_mode: "wizard" });
+            }
+            renderAll();
+            return;
+        case "wizard-run-export":
+            await runJob(`/api/projects/${state.activeProject.project_id}/export`);
+            if (state.activeProject?.last_export) {
+                await persistWizardState({ completed_steps: ["export"], current_step: "export", last_ui_mode: "wizard" });
+            }
+            renderAll();
+            return;
+        default:
+            return;
+    }
+}
+
+function log(message, tone = "info") {
+    const row = document.createElement("li");
+    row.textContent = `${new Date().toLocaleTimeString()}  ${message}`;
+    if (tone === "error") row.style.borderColor = "rgba(211, 122, 122, 0.32)";
+    if (tone === "success") row.style.borderColor = "rgba(117, 196, 152, 0.32)";
+    document.querySelector("#job-log").prepend(row);
+}
+
+async function api(path, options = {}) {
+    let response;
+    try {
+        response = await fetch(`${WORKBENCH_ORIGIN}${path}`, {
+            headers: { "Content-Type": "application/json" },
+            ...options,
+        });
+    } catch (error) {
+        const target = WORKBENCH_ORIGIN || window.location.origin;
+        throw new Error(`${error.message} (API origin: ${target})`);
+    }
+    if (!response.ok) {
+        const text = await response.text();
+        throw new Error(text.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim());
+    }
+    return response.json();
+}
+
+function stageConfig(stage) {
+    const config = state.activeProject?.stage_maturity || state.health?.stage_maturity || {};
+    return config[stage] || { maturity: "experimental", label: stage, description: "" };
+}
+
+function projectStageKey(stageName) {
+    if (!stageName) return "intake";
+    if (stageName.startsWith("production_")) return "production";
+    return stageName;
+}
+
+function projectAsset(project, relativePath) {
+    if (!project || !relativePath) return "";
+    return `${WORKBENCH_BASE}/projects-data/${project.project_id}/${relativePath}`;
+}
+
+function formatDate(value) {
+    if (!value) return "n/a";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value;
+    return date.toLocaleString();
+}
+
+function formatDuration(seconds) {
+    if (seconds == null) return "n/a";
+    if (seconds < 60) return `${seconds}s`;
+    const minutes = Math.floor(seconds / 60);
+    const remainder = seconds % 60;
+    return remainder ? `${minutes}m ${remainder}s` : `${minutes}m`;
+}
+
+function setArchivedToggleLabel() {
+    document.querySelector("#toggle-archived").textContent = state.includeArchived ? "Hide Archived" : "Show Archived";
+}
+
+function renderStageMeta() {
+    document.querySelectorAll(".stage-meta").forEach((node) => {
+        const stage = node.dataset.stage;
+        const config = stageConfig(stage);
+        node.innerHTML = `
+            <span class="badge ${config.maturity}">${config.maturity}</span>
+            <p>${config.description || ""}</p>
+        `;
+    });
+}
+
+function getReviewCounts(metrics) {
+    const approvals = Object.values(metrics?.approvals_per_run || {}).reduce((sum, value) => sum + value, 0);
+    const refinements = Object.values(metrics?.refinements_per_selected_concept || {}).reduce((sum, value) => sum + value, 0);
+    return { approvals, refinements };
+}
+
+function renderStatus() {
+    const project = state.activeProject;
+    const backend = state.health?.backend;
+    const metrics = project?.metrics || {};
+    const counts = getReviewCounts(metrics);
+
+    document.querySelector("#status-project").textContent = project ? project.project_name : "None";
+    document.querySelector("#status-stage").textContent = project ? project.current_stage : "Idle";
+    document.querySelector("#status-backend").textContent = project?.brief?.backend_mode === "debug_procedural"
+        ? "Debug Procedural"
+        : backend?.ok
+            ? "ComfyUI Ready"
+            : backend?.backend === "comfyui"
+                ? "ComfyUI Unavailable"
+                : "Unknown";
+    document.querySelector("#status-qa").textContent = project?.qa_report?.status || "Blocked";
+
+    const metricGrid = document.querySelector("#metric-grid");
+    metricGrid.innerHTML = `
+        <div class="metric-card">
+            <span>Concept Runs</span>
+            <strong>${metrics.concept_runs_per_project || 0}</strong>
+        </div>
+        <div class="metric-card">
+            <span>Approvals Logged</span>
+            <strong>${counts.approvals}</strong>
+        </div>
+        <div class="metric-card">
+            <span>Refinements</span>
+            <strong>${counts.refinements}</strong>
+        </div>
+        <div class="metric-card">
+            <span>Time To Approved</span>
+            <strong>${formatDuration(metrics.time_to_approved_concept_seconds)}</strong>
+        </div>
+    `;
+}
+
+function attachProjectCard(card, project) {
+    card.addEventListener("click", () => loadProject(project.project_id, "workbench"));
+    card.querySelector("[data-action='resume']")?.addEventListener("click", async (event) => {
+        event.stopPropagation();
+        try {
+            await loadProject(project.project_id, "wizard");
+        } catch (error) {
+            log(error.message, "error");
+        }
+    });
+    card.querySelector("[data-action='duplicate']").addEventListener("click", async (event) => {
+        event.stopPropagation();
+        try {
+            const clone = await api(`/api/projects/${project.project_id}/duplicate`, { method: "POST", body: "{}" });
+            log(`Duplicated ${project.project_name}`, "success");
+            await refreshProjects();
+            await loadProject(clone.project_id, "workbench");
+        } catch (error) {
+            log(error.message, "error");
+        }
+    });
+    card.querySelector("[data-action='archive']").addEventListener("click", async (event) => {
+        event.stopPropagation();
+        try {
+            await api(`/api/projects/${project.project_id}/archive`, { method: "POST", body: "{}" });
+            log(`Archived ${project.project_name}`, "success");
+            if (state.activeProject?.project_id === project.project_id) {
+                state.activeProject = null;
+                storage.removeItem(STORAGE_KEYS.activeProjectId);
+            }
+            await refreshProjects();
+        } catch (error) {
+            log(error.message, "error");
+        }
+    });
+}
+
+function renderProjectList() {
+    const root = document.querySelector("#project-list");
+    root.innerHTML = "";
+    if (!state.projects.length) {
+        root.innerHTML = `<div class="empty">No projects yet.</div>`;
+        return;
+    }
+    state.projects.forEach((project) => {
+        const stage = projectStageKey(project.current_stage);
+        const config = stageConfig(stage);
+        const card = document.createElement("div");
+        card.className = `project-card ${state.activeProject?.project_id === project.project_id ? "active" : ""}`;
+        card.innerHTML = `
+            <strong>${project.project_name}</strong>
+            <small>${project.current_stage} · ${project.status}</small>
+            <div class="inline-actions" style="margin-top: 10px;">
+                <span class="badge ${config.maturity}">${config.maturity}</span>
+                ${project.archived_at ? `<span class="pill warning">archived</span>` : ""}
+                ${project.can_resume_wizard ? `<span class="pill warning">wizard available</span>` : ""}
+            </div>
+            <div class="project-actions">
+                ${project.can_resume_wizard ? `<button class="secondary" data-action="resume">Resume Wizard</button>` : ""}
+                <button class="secondary" data-action="duplicate">Duplicate</button>
+                <button class="danger" data-action="archive">Archive</button>
+            </div>
+        `;
+        attachProjectCard(card, project);
+        root.appendChild(card);
+    });
+}
+
+function addReferenceRow(data = {}) {
+    const root = document.querySelector("#reference-editor");
+    const row = document.createElement("div");
+    row.className = "reference-row";
+    row.innerHTML = `
+        <label>Role
+            <select class="ref-role">
+                <option value="identity">identity</option>
+                <option value="costume">costume</option>
+                <option value="style">style</option>
+                <option value="prop">prop</option>
+            </select>
+        </label>
+        <label>Weight
+            <input class="ref-weight" type="number" min="0.1" max="2.0" step="0.05" value="${data.weight || 1}">
+        </label>
+        <div class="row-main">
+            <label>Local Path
+                <input class="ref-path" placeholder="/absolute/path/to/reference.png" value="${data.path || ""}">
+            </label>
+            <label>Upload File
+                <input class="ref-file" type="file" accept="image/*">
+            </label>
+            <div class="inline-actions" style="align-self: end;">
+                <button class="danger ref-remove" type="button">Remove</button>
+            </div>
+        </div>
+    `;
+    row.querySelector(".ref-role").value = data.role || "identity";
+    row.querySelector(".ref-remove").addEventListener("click", () => row.remove());
+    root.appendChild(row);
+}
+
+function resetReferenceEditor() {
+    const root = document.querySelector("#reference-editor");
+    root.innerHTML = "";
+    addReferenceRow();
+}
+
+function renderAttachedReferences() {
+    const root = document.querySelector("#attached-references");
+    root.innerHTML = "";
+    const references = state.activeProject?.brief?.references || [];
+    if (!references.length) {
+        root.innerHTML = `<div class="empty">No stored references yet.</div>`;
+        return;
+    }
+    references.forEach((reference) => {
+        const item = document.createElement("div");
+        item.className = "reference-chip";
+        item.innerHTML = `
+            <div class="meta-line">
+                <span class="pill">${reference.role}</span>
+                <span class="pill">${reference.weight}</span>
+                <span class="muted">${reference.local_path || reference.source_value || "legacy reference"}</span>
+            </div>
+        `;
+        root.appendChild(item);
+    });
+}
+
+async function collectReferencePayload() {
+    const rows = Array.from(document.querySelectorAll(".reference-row"));
+    const references = [];
+    for (const row of rows) {
+        const role = row.querySelector(".ref-role").value;
+        const weight = Number(row.querySelector(".ref-weight").value || 1);
+        const path = row.querySelector(".ref-path").value.trim();
+        const file = row.querySelector(".ref-file").files[0];
+        if (!path && !file) continue;
+        if (file) {
+            const dataUrl = await new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = () => reject(new Error(`Failed to read ${file.name}`));
+                reader.readAsDataURL(file);
+            });
+            references.push({
+                role,
+                weight,
+                name: file.name,
+                data_url: dataUrl,
+            });
+        } else {
+            references.push({ role, weight, path });
+        }
+    }
+    return references;
+}
+
+async function collectIntakePayload() {
+    return {
+        project_name: document.querySelector("#project-name").value.trim(),
+        prompt_text: document.querySelector("#prompt-text").value.trim(),
+        role_archetype: document.querySelector("#role-archetype").value.trim(),
+        silhouette_intent: document.querySelector("#silhouette-intent").value.trim(),
+        outfit_materials: document.querySelector("#outfit-materials").value.trim(),
+        prop: document.querySelector("#prop").value.trim(),
+        palette_mood: document.querySelector("#palette-mood").value.trim(),
+        shape_language: document.querySelector("#shape-language").value.trim(),
+        mood_tone: document.querySelector("#mood-tone").value.trim(),
+        side_view_constraints: document.querySelector("#side-view-constraints").value.trim(),
+        negative_prompt: document.querySelector("#negative-prompt").value.trim(),
+        backend_mode: document.querySelector("#backend-mode").value,
+        comfyui_checkpoint: document.querySelector("#comfyui-checkpoint").value.trim(),
+        references: await collectReferencePayload(),
+    };
+}
+
+function populateIntakeForm() {
+    const project = state.activeProject;
+    const brief = project?.brief;
+    document.querySelector("#project-name").value = project?.project_name || "";
+    document.querySelector("#prompt-text").value = project?.prompt_text || "";
+    document.querySelector("#role-archetype").value = brief?.role_archetype || "";
+    document.querySelector("#silhouette-intent").value = brief?.silhouette_intent || "";
+    document.querySelector("#outfit-materials").value = brief?.outfit_materials || "";
+    document.querySelector("#prop").value = brief?.prop || "";
+    document.querySelector("#palette-mood").value = brief?.palette_mood || "";
+    document.querySelector("#shape-language").value = brief?.shape_language || "";
+    document.querySelector("#mood-tone").value = brief?.mood_tone || "";
+    document.querySelector("#side-view-constraints").value = brief?.side_view_constraints || "";
+    document.querySelector("#negative-prompt").value = brief?.negative_prompt || "";
+    document.querySelector("#backend-mode").value = brief?.backend_mode || "comfyui";
+    document.querySelector("#comfyui-checkpoint").value = brief?.comfyui_checkpoint || state.health?.default_checkpoint || "";
+    renderAttachedReferences();
+}
+
+function currentRunSummary() {
+    const project = state.activeProject;
+    if (!project?.concept_runs?.length) return null;
+    return project.concept_runs.find((run) => run.run_id === state.selectedRunId) || project.concept_runs[0];
+}
+
+function currentRunConcepts() {
+    const project = state.activeProject;
+    if (!project?.concepts?.length) return [];
+    const run = currentRunSummary();
+    if (!run) return project.concepts;
+    return project.concepts.filter((concept) => concept.run_id === run.run_id);
+}
+
+function conceptById(conceptId) {
+    return state.activeProject?.concepts?.find((concept) => concept.concept_id === conceptId) || null;
+}
+
+function selectedConcept() {
+    const project = state.activeProject;
+    return conceptById(project?.selected_concept_id) || null;
+}
+
+function compareLeftConcept() {
+    return selectedConcept() || currentRunConcepts()[0] || null;
+}
+
+function triageClass(status) {
+    if (status === "system-demoted") return "fail";
+    if (status === "warning") return "warning";
+    return "ok";
+}
+
+function renderRunGrid() {
+    const root = document.querySelector("#run-grid");
+    root.innerHTML = "";
+    const runs = state.activeProject?.concept_runs || [];
+    if (!runs.length) {
+        root.innerHTML = `<div class="empty">No concept runs yet.</div>`;
+        return;
+    }
+    runs.forEach((run) => {
+        const card = document.createElement("div");
+        card.className = `run-card ${state.selectedRunId === run.run_id ? "active" : ""}`;
+        const triage = run.triage || {};
+        card.innerHTML = `
+            <strong>${run.run_kind} · ${run.concept_count} concepts</strong>
+            <div class="meta-line" style="margin-top: 8px;">
+                <span class="pill">${formatDate(run.created_at)}</span>
+                <span class="pill">${run.backend_name || "legacy"}</span>
+                <span class="pill ${(triage["system-demoted"] || 0) ? "fail" : (triage.warning || 0) ? "warning" : "ok"}">
+                    triage ${triage["system-demoted"] || 0}/${triage.warning || 0}
+                </span>
+            </div>
+            <p>${run.summary || "No run summary."}</p>
+            ${run.target_value ? `<p class="small-note">Target: ${run.attribute_group} -> ${run.target_value} (${run.refinement_strength_label})</p>` : ""}
+        `;
+        card.addEventListener("click", () => {
+            state.selectedRunId = run.run_id;
+            state.swapCompareView = false;
+            if (!currentRunConcepts().some((concept) => concept.concept_id === state.compareRightId)) {
+                state.compareRightId = null;
+            }
+            renderConceptReview();
+        });
+        root.appendChild(card);
+    });
+}
+
+function renderCompareSlot(node, concept, label) {
+    if (!concept) {
+        node.innerHTML = `<div class="empty">${label}: no concept pinned.</div>`;
+        return;
+    }
+    node.innerHTML = `
+        <div class="meta-line">
+            <span class="pill">${label}</span>
+            <span class="pill ${triageClass(concept.triage?.status)}">${concept.triage?.status || "ok"}</span>
+            ${concept.review_state?.approved ? `<span class="pill ok">approved</span>` : ""}
+            ${concept.review_state?.favorite ? `<span class="pill warning">favorite</span>` : ""}
+            ${concept.review_state?.rejected ? `<span class="pill fail">rejected</span>` : ""}
+        </div>
+        <img src="${projectAsset(state.activeProject, concept.preview_image)}?v=${state.activeProject.updated_at}" alt="${concept.concept_id}">
+        <div>
+            <strong>${concept.concept_id}</strong>
+            <p class="muted" style="margin: 8px 0 0;">${concept.difference_summary || "No summary."}</p>
+            <div class="meta-line" style="margin-top: 10px;">
+                <span class="pill">${concept.silhouette || "n/a"}</span>
+                <span class="pill">${concept.outfit || "n/a"}</span>
+                <span class="pill">${concept.palette_direction || "n/a"}</span>
+            </div>
+        </div>
+    `;
+}
+
+function renderConceptGrid() {
+    const root = document.querySelector("#concept-grid");
+    root.innerHTML = "";
+    const concepts = currentRunConcepts();
+    if (!concepts.length) {
+        root.innerHTML = `<div class="empty">No concepts in the selected run.</div>`;
+        return;
+    }
+    concepts.forEach((concept) => {
+        const card = document.createElement("div");
+        card.className = "concept-card";
+        const triage = concept.triage || {};
+        card.innerHTML = `
+            <img src="${projectAsset(state.activeProject, concept.preview_image)}?v=${state.activeProject.updated_at}" alt="${concept.concept_id}">
+            <div class="body">
+                <div class="concept-top">
+                    <div class="concept-title">
+                        <strong>${concept.concept_id}</strong>
+                        <span class="muted">${concept.difference_summary || "No summary."}</span>
+                    </div>
+                    <span class="pill ${triageClass(triage.status)}">${triage.status || "ok"}</span>
+                </div>
+                <div class="meta-line">
+                    ${concept.review_state?.approved ? `<span class="pill ok">approved</span>` : ""}
+                    ${concept.review_state?.favorite ? `<span class="pill warning">favorite</span>` : ""}
+                    ${concept.review_state?.rejected ? `<span class="pill fail">rejected</span>` : ""}
+                    <span class="pill">${concept.backend_name}</span>
+                    <span class="pill">seed ${concept.seed}</span>
+                </div>
+                <div class="meta-line">
+                    <span class="pill">${concept.silhouette || "n/a"}</span>
+                    <span class="pill">${concept.outfit || "n/a"}</span>
+                    <span class="pill">${concept.palette_direction || "n/a"}</span>
+                </div>
+                <div class="small-note">${(triage.flags || []).join(", ") || "No triage flags."}</div>
+                <div class="actions">
+                    <button data-action="approve">Approve</button>
+                    <button class="secondary" data-action="favorite">${concept.review_state?.favorite ? "Unfavorite" : "Favorite"}</button>
+                    <button class="danger" data-action="reject">${concept.review_state?.rejected ? "Unreject" : "Reject"}</button>
+                    <button class="secondary" data-action="compare">Compare</button>
+                    <button class="secondary" data-action="zoom">Zoom</button>
+                    <button class="secondary" data-action="similar">Regenerate Similar</button>
+                </div>
+            </div>
+        `;
+        card.querySelector("[data-action='approve']").addEventListener("click", () => reviewConcept(concept.concept_id, "approve", true));
+        card.querySelector("[data-action='favorite']").addEventListener("click", () => reviewConcept(concept.concept_id, "favorite", !concept.review_state?.favorite));
+        card.querySelector("[data-action='reject']").addEventListener("click", () => reviewConcept(concept.concept_id, "reject", !concept.review_state?.rejected));
+        card.querySelector("[data-action='compare']").addEventListener("click", () => {
+            state.compareRightId = concept.concept_id;
+            state.swapCompareView = false;
+            renderConceptReview();
+        });
+        card.querySelector("[data-action='zoom']").addEventListener("click", () => openZoom(concept.concept_id));
+        card.querySelector("[data-action='similar']").addEventListener("click", async () => {
+            try {
+                const result = await runJob(`/api/projects/${state.activeProject.project_id}/concepts/${concept.concept_id}/regenerate-similar`);
+                log(`Regenerated similar concepts from ${concept.concept_id}`, "success");
+                if (result?.run_id) state.selectedRunId = result.run_id;
+            } catch (error) {
+                log(error.message, "error");
+            }
+        });
+        root.appendChild(card);
+    });
+}
+
+function renderConceptReview() {
+    renderRunGrid();
+    const anchor = compareLeftConcept();
+    let right = conceptById(state.compareRightId);
+    if (!right || right.concept_id === anchor?.concept_id) {
+        right = currentRunConcepts().find((concept) => concept.concept_id !== anchor?.concept_id) || null;
+        state.compareRightId = right?.concept_id || null;
+    }
+    const approvedAnchor = Boolean(selectedConcept());
+    const left = !approvedAnchor && state.swapCompareView && right ? right : anchor;
+    const comparison = !approvedAnchor && state.swapCompareView ? anchor : right;
+    renderCompareSlot(document.querySelector("#compare-left"), left, "Left");
+    renderCompareSlot(document.querySelector("#compare-right"), comparison, "Right");
+    renderConceptGrid();
+}
+
+function renderRefinePanel() {
+    const select = document.querySelector("#refine-concept");
+    select.innerHTML = "";
+    const concepts = state.activeProject?.concepts || [];
+    concepts.forEach((concept) => {
+        const option = document.createElement("option");
+        option.value = concept.concept_id;
+        option.textContent = `${concept.concept_id} · ${concept.difference_summary || concept.run_kind}`;
+        if (state.activeProject?.selected_concept_id === concept.concept_id) option.selected = true;
+        select.appendChild(option);
+    });
+    document.querySelector("#selected-concept-summary").textContent = selectedConcept()
+        ? `Approved concept ${selectedConcept().concept_id}: ${selectedConcept().difference_summary || selectedConcept().silhouette || "no summary"}.`
+        : "Approve a concept before refinement to establish the parent lineage and locked attributes.";
+}
+
+function renderLayerReview() {
+    const checksRoot = document.querySelector("#layer-checks");
+    const galleryRoot = document.querySelector("#layer-gallery");
+    checksRoot.innerHTML = "";
+    galleryRoot.innerHTML = "";
+    const layered = state.activeProject?.layered_character;
+    if (!layered) {
+        checksRoot.innerHTML = `<div class="empty">Layer build has not run yet.</div>`;
+        return;
+    }
+    document.querySelector("#layer-warning").textContent = `${layered.source_summary || "Layer build remains synthetic."}`;
+    Object.entries(layered.qa || {}).forEach(([key, value]) => {
+        const row = document.createElement("div");
+        row.className = "check-row";
+        const status = value === false ? "pass" : value === true ? "fail" : value;
+        row.innerHTML = `<span>${key}</span><span class="pill ${status === "pass" ? "ok" : status === "fail" ? "fail" : "warning"}">${status}</span>`;
+        checksRoot.appendChild(row);
+    });
+    (layered.parts || []).slice(0, 18).forEach((part) => {
+        const thumb = document.createElement("div");
+        thumb.className = "thumb";
+        thumb.innerHTML = `
+            <img src="${projectAsset(state.activeProject, part.source_image_path)}?v=${state.activeProject.updated_at}" alt="${part.part_name}">
+            <div class="small-note" style="margin-top: 8px;">${part.part_name}</div>
+        `;
+        galleryRoot.appendChild(thumb);
+    });
+}
+
+function renderRigReview() {
+    const rig = state.activeProject?.rig;
+    const summary = document.querySelector("#rig-summary");
+    const preview = document.querySelector("#rig-preview");
+    if (!rig) {
+        summary.textContent = "No rig data yet.";
+        preview.innerHTML = "";
+        return;
+    }
+    summary.textContent = JSON.stringify({
+        source_mode: rig.source_mode,
+        prop_attachment_joint: rig.prop_attachment_joint,
+        approved_for_production: rig.approved_for_production,
+        joint_count: rig.joints?.length || 0,
+    }, null, 2);
+    preview.innerHTML = `
+        <div class="thumb">
+            <img src="${projectAsset(state.activeProject, rig.neutral_pose_render)}?v=${state.activeProject.updated_at}" alt="Neutral pose">
+            <div class="small-note" style="margin-top: 8px;">neutral pose</div>
+        </div>
+    `;
+}
+
+function renderAnimationGallery(name) {
+    const root = document.querySelector(`#${name}-gallery`);
+    root.innerHTML = "";
+    const project = state.activeProject;
+    if (!project) return;
+    const count = name === "idle" ? 6 : 8;
+    for (let index = 0; index < count; index += 1) {
+        const frame = `${name}_${String(index).padStart(2, "0")}.png`;
+        const thumb = document.createElement("div");
+        thumb.className = "thumb";
+        thumb.innerHTML = `
+            <img src="${projectAsset(project, `animations/${name}/${frame}`)}?v=${project.updated_at}" alt="${frame}" onerror="this.parentElement.style.display='none'">
+            <div class="small-note" style="margin-top: 8px;">${frame}</div>
+        `;
+        root.appendChild(thumb);
+    }
+}
+
+function renderQa() {
+    const root = document.querySelector("#qa-summary");
+    root.innerHTML = "";
+    const qa = state.activeProject?.qa_report;
+    if (!qa) {
+        root.innerHTML = `<div class="empty">QA has not run yet.</div>`;
+        return;
+    }
+    const overall = document.createElement("div");
+    overall.className = "check-row";
+    overall.innerHTML = `<span>overall_status</span><span class="pill ${qa.status === "pass" ? "ok" : "fail"}">${qa.status}</span>`;
+    root.appendChild(overall);
+    Object.entries(qa.per_animation_checks || {}).forEach(([animation, payload]) => {
+        const row = document.createElement("div");
+        row.className = "check-row";
+        const checks = Object.entries(payload.checks || {})
+            .map(([name, item]) => `${name}: ${item.status}`)
+            .join(" · ");
+        row.innerHTML = `<span>${animation}</span><span class="small-note">${checks}</span>`;
+        root.appendChild(row);
+    });
+}
+
+function renderExport() {
+    const root = document.querySelector("#export-summary");
+    root.innerHTML = "";
+    const exportData = state.activeProject?.last_export;
+    if (!exportData) {
+        root.innerHTML = `<div class="empty">No export package yet.</div>`;
+        return;
+    }
+    const top = document.createElement("div");
+    top.className = "check-row";
+    top.innerHTML = `<span>export_dir</span><span class="small-note">${exportData.export_dir}</span>`;
+    root.appendChild(top);
+    exportData.files.forEach((file) => {
+        const row = document.createElement("div");
+        row.className = "check-row";
+        row.innerHTML = `<span>${file}</span><a href="${projectAsset(state.activeProject, `${exportData.export_dir}/${file}`)}" target="_blank">open</a>`;
+        root.appendChild(row);
+    });
+}
+
+function renderAll() {
+    renderStageMeta();
+    renderProjectList();
+    populateIntakeForm();
+    renderStatus();
+    renderModeShell();
+    renderConceptReview();
+    renderRefinePanel();
+    renderLayerReview();
+    renderRigReview();
+    renderAnimationGallery("idle");
+    renderAnimationGallery("walk");
+    renderQa();
+    renderExport();
+    applyModeVisibility();
+}
+
+async function loadHealth() {
+    state.health = await api("/api/health");
+    renderStageMeta();
+    setArchivedToggleLabel();
+}
+
+async function refreshProjects() {
+    const query = state.includeArchived ? "?include_archived=1" : "";
+    const data = await api(`/api/projects${query}`);
+    state.projects = data.projects;
+    renderProjectList();
+}
+
+async function loadProject(projectId, mode = "workbench") {
+    const project = await api(`/api/projects/${projectId}`);
+    state.activeProject = project;
+    state.uiMode = mode;
+    storage.setItem(STORAGE_KEYS.activeProjectId, projectId);
+    state.selectedRunId = project.concept_runs?.[0]?.run_id || null;
+    state.compareRightId = null;
+    state.swapCompareView = false;
+    if (mode !== project.last_ui_mode) {
+        const synced = await persistWizardState({
+            last_ui_mode: mode,
+            current_step: mode === "wizard"
+                ? (project.recommended_next_step || project.wizard_state?.current_step || "brief")
+                : project.wizard_state?.current_step,
+        });
+        if (synced) state.activeProject = synced;
+    }
+    renderAll();
+}
+
+async function restoreProjectSelection() {
+    if (!state.projects.length) {
+        state.activeProject = null;
+        renderAll();
+        return;
+    }
+    const storedId = storage.getItem(STORAGE_KEYS.activeProjectId);
+    const match = state.projects.find((project) => project.project_id === storedId) || state.projects[0];
+    await loadProject(match.project_id, "workbench");
+}
+
+async function createProject(mode = "workbench") {
+    const payload = await collectIntakePayload();
+    payload.last_ui_mode = mode;
+    const project = await api("/api/projects", { method: "POST", body: JSON.stringify(payload) });
+    log(`Created project ${project.project_id}`, "success");
+    resetReferenceEditor();
+    await refreshProjects();
+    await loadProject(project.project_id, mode);
+}
+
+async function saveBrief(mode = currentMode(), nextStep = null) {
+    if (!state.activeProject) throw new Error("Select or create a project first.");
+    const payload = await collectIntakePayload();
+    const project = await api(`/api/projects/${state.activeProject.project_id}/brief`, {
+        method: "POST",
+        body: JSON.stringify(payload),
+    });
+    state.activeProject = project;
+    resetReferenceEditor();
+    log(`Updated intake for ${project.project_name}`, "success");
+    await refreshProjects();
+    if (mode === "wizard") {
+        const synced = await persistWizardState({
+            completed_steps: ["brief"],
+            current_step: nextStep || "references",
+            last_ui_mode: "wizard",
+        });
+        if (synced) state.activeProject = synced;
+        state.uiMode = "wizard";
+    }
+    renderAll();
+}
+
+async function waitForJob(job) {
+    log(`Queued ${job.job_type} as ${job.job_id}`);
+    while (true) {
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        const update = await api(`/api/projects/${job.project_id}/jobs/${job.job_id}`);
+        if (update.status === "completed") {
+            log(`Completed ${update.job_type}`, "success");
+            await loadProject(job.project_id, currentMode());
+            return update.result;
+        }
+        if (update.status === "failed") {
+            throw new Error(update.error || `${update.job_type} failed`);
+        }
+    }
+}
+
+async function runJob(path, payload = {}) {
+    if (!state.activeProject) throw new Error("Select or create a project first.");
+    const job = await api(path, { method: "POST", body: JSON.stringify(payload) });
+    return waitForJob(job);
+}
+
+async function reviewConcept(conceptId, action, value) {
+    if (!state.activeProject) return;
+    const project = await api(`/api/projects/${state.activeProject.project_id}/concepts/${conceptId}/${action}`, {
+        method: "POST",
+        body: JSON.stringify({ value }),
+    });
+    state.activeProject = project;
+    log(`${action} updated for ${conceptId}`, "success");
+    await refreshProjects();
+    renderAll();
+}
+
+async function runRefinement() {
+    if (!state.activeProject) throw new Error("Select or create a project first.");
+    const payload = {
+        concept_id: document.querySelector("#refine-concept").value,
+        attribute_group: document.querySelector("#refine-attribute").value,
+        target_value: document.querySelector("#refine-target").value.trim(),
+        strength: document.querySelector("#refine-strength").value,
+    };
+    const result = await runJob(`/api/projects/${state.activeProject.project_id}/refine`, payload);
+    if (result?.run_id) state.selectedRunId = result.run_id;
+    log(`Generated refinement run from ${payload.concept_id}`, "success");
+}
+
+function openZoom(conceptId) {
+    const concept = conceptById(conceptId);
+    if (!concept) return;
+    state.zoomConceptId = conceptId;
+    document.querySelector("#zoom-image").src = `${projectAsset(state.activeProject, concept.preview_image)}?v=${state.activeProject.updated_at}`;
+    document.querySelector("#zoom-meta").textContent = `${concept.concept_id} · ${concept.difference_summary || "No summary"}`;
+    document.querySelector("#zoom-details").textContent = JSON.stringify({
+        run_id: concept.run_id,
+        backend_name: concept.backend_name,
+        seed: concept.seed,
+        triage: concept.triage,
+        variation_axes: concept.variation_axes,
+        references_used: concept.references_used,
+    }, null, 2);
+    document.querySelector("#zoom-modal").classList.add("open");
+}
+
+function closeZoom() {
+    state.zoomConceptId = null;
+    document.querySelector("#zoom-modal").classList.remove("open");
+}
+
+document.querySelector("#create-project").addEventListener("click", async () => {
+    try {
+        await createProject(currentMode());
+    } catch (error) {
+        log(error.message, "error");
+    }
+});
+
+document.querySelector("#save-brief").addEventListener("click", async () => {
+    try {
+        await saveBrief(currentMode());
+    } catch (error) {
+        log(error.message, "error");
+    }
+});
+
+document.querySelector("#refresh-projects").addEventListener("click", async () => {
+    try {
+        await refreshProjects();
+        if (state.activeProject) {
+            await loadProject(state.activeProject.project_id, currentMode());
+        }
+    } catch (error) {
+        log(error.message, "error");
+    }
+});
+
+document.querySelector("#toggle-archived").addEventListener("click", async () => {
+    state.includeArchived = !state.includeArchived;
+    storage.setItem(STORAGE_KEYS.includeArchived, state.includeArchived ? "1" : "0");
+    setArchivedToggleLabel();
+    try {
+        await refreshProjects();
+        await restoreProjectSelection();
+    } catch (error) {
+        log(error.message, "error");
+    }
+});
+
+document.querySelector("#launch-wizard").addEventListener("click", async () => {
+    try {
+        await startNewSpriteWizard();
+    } catch (error) {
+        log(error.message, "error");
+    }
+});
+
+document.querySelector("#open-workbench").addEventListener("click", async () => {
+    try {
+        await openWorkbenchMode();
+    } catch (error) {
+        log(error.message, "error");
+    }
+});
+
+document.querySelector("#mode-workbench").addEventListener("click", async () => {
+    try {
+        await openWorkbenchMode();
+    } catch (error) {
+        log(error.message, "error");
+    }
+});
+
+document.querySelector("#mode-wizard").addEventListener("click", async () => {
+    try {
+        if (state.activeProject) {
+            await resumeWizardForCurrentProject();
+        } else {
+            await startNewSpriteWizard();
+        }
+    } catch (error) {
+        log(error.message, "error");
+    }
+});
+
+document.querySelector("#add-reference-row").addEventListener("click", () => addReferenceRow());
+document.querySelector("#generate-concepts").addEventListener("click", async () => {
+    try {
+        const result = await runJob(`/api/projects/${state.activeProject.project_id}/concepts/generate`);
+        if (result?.run_id) state.selectedRunId = result.run_id;
+    } catch (error) {
+        log(error.message, "error");
+    }
+});
+
+document.querySelector("#run-refine").addEventListener("click", async () => {
+    try {
+        await runRefinement();
+    } catch (error) {
+        log(error.message, "error");
+    }
+});
+
+document.querySelector("#build-layers").addEventListener("click", async () => {
+    try {
+        await runJob(`/api/projects/${state.activeProject.project_id}/layers/build`);
+    } catch (error) {
+        log(error.message, "error");
+    }
+});
+
+document.querySelector("#approve-layers").addEventListener("click", async () => {
+    try {
+        await api(`/api/projects/${state.activeProject.project_id}/layer-review/approve`, { method: "POST", body: "{}" });
+        await loadProject(state.activeProject.project_id, currentMode());
+        log("Approved layer review", "success");
+    } catch (error) {
+        log(error.message, "error");
+    }
+});
+
+document.querySelector("#build-rig").addEventListener("click", async () => {
+    try {
+        await runJob(`/api/projects/${state.activeProject.project_id}/rig/build`);
+    } catch (error) {
+        log(error.message, "error");
+    }
+});
+
+document.querySelector("#approve-rig").addEventListener("click", async () => {
+    try {
+        await api(`/api/projects/${state.activeProject.project_id}/rig-review/approve`, { method: "POST", body: "{}" });
+        await loadProject(state.activeProject.project_id, currentMode());
+        log("Approved rig review", "success");
+    } catch (error) {
+        log(error.message, "error");
+    }
+});
+
+document.querySelector("#render-idle").addEventListener("click", async () => {
+    try {
+        await runJob(`/api/projects/${state.activeProject.project_id}/animations/idle/render`);
+    } catch (error) {
+        log(error.message, "error");
+    }
+});
+
+document.querySelector("#render-walk").addEventListener("click", async () => {
+    try {
+        await runJob(`/api/projects/${state.activeProject.project_id}/animations/walk/render`);
+    } catch (error) {
+        log(error.message, "error");
+    }
+});
+
+document.querySelector("#run-qa").addEventListener("click", async () => {
+    try {
+        await runJob(`/api/projects/${state.activeProject.project_id}/qa/run`);
+    } catch (error) {
+        log(error.message, "error");
+    }
+});
+
+document.querySelector("#run-export").addEventListener("click", async () => {
+    try {
+        await runJob(`/api/projects/${state.activeProject.project_id}/export`);
+    } catch (error) {
+        log(error.message, "error");
+    }
+});
+
+document.querySelector("#swap-compare").addEventListener("click", () => {
+    if (selectedConcept()) {
+        log("Quick toggle is disabled while an approved concept is pinned on the left.", "error");
+        return;
+    }
+    if (!compareLeftConcept() || !conceptById(state.compareRightId)) return;
+    state.swapCompareView = !state.swapCompareView;
+    renderConceptReview();
+});
+
+document.querySelector("#close-zoom").addEventListener("click", closeZoom);
+document.querySelector("#zoom-modal").addEventListener("click", (event) => {
+    if (event.target === document.querySelector("#zoom-modal")) closeZoom();
+});
+
+document.querySelector("#backend-mode").addEventListener("change", () => {
+    const mode = document.querySelector("#backend-mode").value;
+    document.querySelector("#backend-warning").innerHTML = mode === "debug_procedural"
+        ? "<p>Debug procedural mode is explicitly selected. The concept board will use synthetic placeholder art instead of ComfyUI until you switch back.</p>"
+        : "<p>ComfyUI is the default and only real concept backend. The debug backend exists only as an explicit fallback for local testing.</p>";
+});
+
+async function boot() {
+    resetReferenceEditor();
+    setArchivedToggleLabel();
+    renderAll();
+    await loadHealth();
+    await refreshProjects();
+    await restoreProjectSelection();
+}
+
+boot().catch((error) => {
+    log(`${error.message}. Open ${WORKBENCH_BASE}/index.html if you want the page and API on the same origin.`, "error");
+});
+</script>
+</body>
+</html>

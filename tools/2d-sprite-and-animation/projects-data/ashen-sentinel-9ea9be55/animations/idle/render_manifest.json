@@ -1,0 +1,1475 @@
+{
+  "animation": "idle",
+  "frames": [
+    {
+      "frame_name": "idle_00.png",
+      "path": "animations/idle/idle_00.png",
+      "cleanup": {
+        "crop_box": [
+          159,
+          84,
+          283,
+          325
+        ],
+        "output_box": [
+          66,
+          4,
+          190,
+          245
+        ],
+        "pivot": [
+          128,
+          245
+        ]
+      },
+      "render_meta": {
+        "render_log": [
+          {
+            "part": "hair_back",
+            "joint": "head",
+            "rotation": 0.45199999999999996,
+            "pivot_world": [
+              184.0,
+              118.08
+            ]
+          },
+          {
+            "part": "accessory_back",
+            "joint": "torso",
+            "rotation": 0.0,
+            "pivot_world": [
+              192.0,
+              212.16
+            ]
+          },
+          {
+            "part": "upper_leg_left",
+            "joint": "hip_left",
+            "rotation": 0.0,
+            "pivot_world": [
+              201.6,
+              231.76
+            ]
+          },
+          {
+            "part": "lower_leg_left",
+            "joint": "knee_left",
+            "rotation": 0.0,
+            "pivot_world": [
+              196.24,
+              282.64
+            ]
+          },
+          {
+            "part": "foot_left",
+            "joint": "ankle_left",
+            "rotation": 0.0,
+            "pivot_world": [
+              190.56,
+              317.52
+            ]
+          },
+          {
+            "part": "pelvis",
+            "joint": "pelvis",
+            "rotation": 0.0,
+            "pivot_world": [
+              188.0,
+              222.72
+            ]
+          },
+          {
+            "part": "torso",
+            "joint": "torso",
+            "rotation": 0.0,
+            "pivot_world": [
+              182.0,
+              188.16
+            ]
+          },
+          {
+            "part": "upper_arm_left",
+            "joint": "shoulder_left",
+            "rotation": 0.0,
+            "pivot_world": [
+              190.24,
+              178.0
+            ]
+          },
+          {
+            "part": "lower_arm_left",
+            "joint": "elbow_left",
+            "rotation": 0.0,
+            "pivot_world": [
+              180.16,
+              208.16
+            ]
+          },
+          {
+            "part": "hand_left",
+            "joint": "wrist_left",
+            "rotation": 0.0,
+            "pivot_world": [
+              175.44,
+              238.0
+            ]
+          },
+          {
+            "part": "head",
+            "joint": "head",
+            "rotation": 1.13,
+            "pivot_world": [
+              186.0,
+              112.08
+            ]
+          },
+          {
+            "part": "hair_front",
+            "joint": "head",
+            "rotation": 0.6779999999999999,
+            "pivot_world": [
+              186.0,
+              118.08
+            ]
+          },
+          {
+            "part": "upper_leg_right",
+            "joint": "hip_right",
+            "rotation": -0.0,
+            "pivot_world": [
+              218.4,
+              231.76
+            ]
+          },
+          {
+            "part": "lower_leg_right",
+            "joint": "knee_right",
+            "rotation": -0.0,
+            "pivot_world": [
+              219.76,
+              282.64
+            ]
+          },
+          {
+            "part": "foot_right",
+            "joint": "ankle_right",
+            "rotation": 0.0,
+            "pivot_world": [
+              217.44,
+              317.52
+            ]
+          },
+          {
+            "part": "upper_arm_right",
+            "joint": "shoulder_right",
+            "rotation": -0.0,
+            "pivot_world": [
+              215.76,
+              178.0
+            ]
+          },
+          {
+            "part": "lower_arm_right",
+            "joint": "elbow_right",
+            "rotation": -0.0,
+            "pivot_world": [
+              227.52,
+              208.16
+            ]
+          },
+          {
+            "part": "hand_right",
+            "joint": "wrist_right",
+            "rotation": 0.0,
+            "pivot_world": [
+              236.24,
+              238.0
+            ]
+          },
+          {
+            "part": "prop",
+            "joint": "wrist_right",
+            "rotation": -0.0,
+            "pivot_world": [
+              240.24,
+              230.0
+            ]
+          },
+          {
+            "part": "accessory_front",
+            "joint": "torso",
+            "rotation": 0.0,
+            "pivot_world": [
+              222.0,
+              212.16
+            ]
+          }
+        ],
+        "draw_sequence": [
+          "hair_back",
+          "accessory_back",
+          "head",
+          "hair_front",
+          "upper_arm_left",
+          "lower_arm_left",
+          "hand_left",
+          "foot_left",
+          "lower_leg_left",
+          "upper_leg_left",
+          "pelvis",
+          "foot_right",
+          "lower_leg_right",
+          "upper_leg_right",
+          "torso",
+          "upper_arm_right",
+          "lower_arm_right",
+          "hand_right",
+          "accessory_front",
+          "prop"
+        ],
+        "foot_anchor": {
+          "left": [
+            190.56,
+            317.52
+          ],
+          "right": [
+            217.44,
+            317.52
+          ]
+        },
+        "palette": {
+          "base": "#1f2630",
+          "accent": "#4e6a85",
+          "skin": "#d9c7a7",
+          "prop": "#7f4c39",
+          "outline": "#0f151c"
+        }
+      }
+    },
+    {
+      "frame_name": "idle_01.png",
+      "path": "animations/idle/idle_01.png",
+      "cleanup": {
+        "crop_box": [
+          161,
+          86,
+          284,
+          327
+        ],
+        "output_box": [
+          67,
+          4,
+          190,
+          245
+        ],
+        "pivot": [
+          128,
+          245
+        ]
+      },
+      "render_meta": {
+        "render_log": [
+          {
+            "part": "hair_back",
+            "joint": "head",
+            "rotation": 0.768,
+            "pivot_world": [
+              184.0,
+              120.47
+            ]
+          },
+          {
+            "part": "accessory_back",
+            "joint": "torso",
+            "rotation": 0.855,
+            "pivot_world": [
+              192.0,
+              214.55
+            ]
+          },
+          {
+            "part": "upper_leg_left",
+            "joint": "hip_left",
+            "rotation": 3.04,
+            "pivot_world": [
+              201.6,
+              234.15
+            ]
+          },
+          {
+            "part": "lower_leg_left",
+            "joint": "knee_left",
+            "rotation": 2.09,
+            "pivot_world": [
+              196.24,
+              285.03
+            ]
+          },
+          {
+            "part": "foot_left",
+            "joint": "ankle_left",
+            "rotation": 0.0,
+            "pivot_world": [
+              190.56,
+              319.91
+            ]
+          },
+          {
+            "part": "pelvis",
+            "joint": "pelvis",
+            "rotation": 0.0,
+            "pivot_world": [
+              188.0,
+              225.11
+            ]
+          },
+          {
+            "part": "torso",
+            "joint": "torso",
+            "rotation": 2.85,
+            "pivot_world": [
+              182.0,
+              190.55
+            ]
+          },
+          {
+            "part": "upper_arm_left",
+            "joint": "shoulder_left",
+            "rotation": 3.997,
+            "pivot_world": [
+              190.24,
+              180.39
+            ]
+          },
+          {
+            "part": "lower_arm_left",
+            "joint": "elbow_left",
+            "rotation": 2.5695,
+            "pivot_world": [
+              180.16,
+              210.55
+            ]
+          },
+          {
+            "part": "hand_left",
+            "joint": "wrist_left",
+            "rotation": 0.0,
+            "pivot_world": [
+              175.44,
+              240.39
+            ]
+          },
+          {
+            "part": "head",
+            "joint": "head",
+            "rotation": 1.92,
+            "pivot_world": [
+              186.0,
+              114.47
+            ]
+          },
+          {
+            "part": "hair_front",
+            "joint": "head",
+            "rotation": 1.152,
+            "pivot_world": [
+              186.0,
+              120.47
+            ]
+          },
+          {
+            "part": "upper_leg_right",
+            "joint": "hip_right",
+            "rotation": -3.04,
+            "pivot_world": [
+              218.4,
+              234.15
+            ]
+          },
+          {
+            "part": "lower_leg_right",
+            "joint": "knee_right",
+            "rotation": -2.09,
+            "pivot_world": [
+              219.76,
+              285.03
+            ]
+          },
+          {
+            "part": "foot_right",
+            "joint": "ankle_right",
+            "rotation": 0.0,
+            "pivot_world": [
+              217.44,
+              319.91
+            ]
+          },
+          {
+            "part": "upper_arm_right",
+            "joint": "shoulder_right",
+            "rotation": -3.997,
+            "pivot_world": [
+              215.76,
+              180.39
+            ]
+          },
+          {
+            "part": "lower_arm_right",
+            "joint": "elbow_right",
+            "rotation": -2.5695,
+            "pivot_world": [
+              227.52,
+              210.55
+            ]
+          },
+          {
+            "part": "hand_right",
+            "joint": "wrist_right",
+            "rotation": 0.0,
+            "pivot_world": [
+              236.24,
+              240.39
+            ]
+          },
+          {
+            "part": "prop",
+            "joint": "wrist_right",
+            "rotation": -2.2840000000000003,
+            "pivot_world": [
+              240.24,
+              232.39
+            ]
+          },
+          {
+            "part": "accessory_front",
+            "joint": "torso",
+            "rotation": 0.5700000000000001,
+            "pivot_world": [
+              222.0,
+              214.55
+            ]
+          }
+        ],
+        "draw_sequence": [
+          "hair_back",
+          "accessory_back",
+          "head",
+          "hair_front",
+          "upper_arm_left",
+          "lower_arm_left",
+          "hand_left",
+          "foot_left",
+          "lower_leg_left",
+          "upper_leg_left",
+          "pelvis",
+          "foot_right",
+          "lower_leg_right",
+          "upper_leg_right",
+          "torso",
+          "upper_arm_right",
+          "lower_arm_right",
+          "hand_right",
+          "accessory_front",
+          "prop"
+        ],
+        "foot_anchor": {
+          "left": [
+            190.56,
+            319.914
+          ],
+          "right": [
+            217.44,
+            319.914
+          ]
+        },
+        "palette": {
+          "base": "#1f2630",
+          "accent": "#4e6a85",
+          "skin": "#d9c7a7",
+          "prop": "#7f4c39",
+          "outline": "#0f151c"
+        }
+      }
+    },
+    {
+      "frame_name": "idle_02.png",
+      "path": "animations/idle/idle_02.png",
+      "cleanup": {
+        "crop_box": [
+          160,
+          87,
+          284,
+          326
+        ],
+        "output_box": [
+          66,
+          6,
+          190,
+          245
+        ],
+        "pivot": [
+          128,
+          245
+        ]
+      },
+      "render_meta": {
+        "render_log": [
+          {
+            "part": "hair_back",
+            "joint": "head",
+            "rotation": 0.024,
+            "pivot_world": [
+              184.0,
+              119.56
+            ]
+          },
+          {
+            "part": "accessory_back",
+            "joint": "torso",
+            "rotation": 0.528,
+            "pivot_world": [
+              192.0,
+              213.64
+            ]
+          },
+          {
+            "part": "upper_leg_left",
+            "joint": "hip_left",
+            "rotation": 1.8800000000000001,
+            "pivot_world": [
+              201.6,
+              233.24
+            ]
+          },
+          {
+            "part": "lower_leg_left",
+            "joint": "knee_left",
+            "rotation": 1.2925000000000002,
+            "pivot_world": [
+              196.24,
+              284.12
+            ]
+          },
+          {
+            "part": "foot_left",
+            "joint": "ankle_left",
+            "rotation": 0.0,
+            "pivot_world": [
+              190.56,
+              319.0
+            ]
+          },
+          {
+            "part": "pelvis",
+            "joint": "pelvis",
+            "rotation": 0.0,
+            "pivot_world": [
+              188.0,
+              224.2
+            ]
+          },
+          {
+            "part": "torso",
+            "joint": "torso",
+            "rotation": 1.76,
+            "pivot_world": [
+              182.0,
+              189.64
+            ]
+          },
+          {
+            "part": "upper_arm_left",
+            "joint": "shoulder_left",
+            "rotation": 2.4709999999999996,
+            "pivot_world": [
+              190.24,
+              179.48
+            ]
+          },
+          {
+            "part": "lower_arm_left",
+            "joint": "elbow_left",
+            "rotation": 1.5885,
+            "pivot_world": [
+              180.16,
+              209.64
+            ]
+          },
+          {
+            "part": "hand_left",
+            "joint": "wrist_left",
+            "rotation": 0.0,
+            "pivot_world": [
+              175.44,
+              239.48
+            ]
+          },
+          {
+            "part": "head",
+            "joint": "head",
+            "rotation": 0.06,
+            "pivot_world": [
+              186.0,
+              113.56
+            ]
+          },
+          {
+            "part": "hair_front",
+            "joint": "head",
+            "rotation": 0.036,
+            "pivot_world": [
+              186.0,
+              119.56
+            ]
+          },
+          {
+            "part": "upper_leg_right",
+            "joint": "hip_right",
+            "rotation": -1.8800000000000001,
+            "pivot_world": [
+              218.4,
+              233.24
+            ]
+          },
+          {
+            "part": "lower_leg_right",
+            "joint": "knee_right",
+            "rotation": -1.2925000000000002,
+            "pivot_world": [
+              219.76,
+              284.12
+            ]
+          },
+          {
+            "part": "foot_right",
+            "joint": "ankle_right",
+            "rotation": 0.0,
+            "pivot_world": [
+              217.44,
+              319.0
+            ]
+          },
+          {
+            "part": "upper_arm_right",
+            "joint": "shoulder_right",
+            "rotation": -2.4709999999999996,
+            "pivot_world": [
+              215.76,
+              179.48
+            ]
+          },
+          {
+            "part": "lower_arm_right",
+            "joint": "elbow_right",
+            "rotation": -1.5885,
+            "pivot_world": [
+              227.52,
+              209.64
+            ]
+          },
+          {
+            "part": "hand_right",
+            "joint": "wrist_right",
+            "rotation": 0.0,
+            "pivot_world": [
+              236.24,
+              239.48
+            ]
+          },
+          {
+            "part": "prop",
+            "joint": "wrist_right",
+            "rotation": -1.412,
+            "pivot_world": [
+              240.24,
+              231.48
+            ]
+          },
+          {
+            "part": "accessory_front",
+            "joint": "torso",
+            "rotation": 0.35200000000000004,
+            "pivot_world": [
+              222.0,
+              213.64
+            ]
+          }
+        ],
+        "draw_sequence": [
+          "hair_back",
+          "accessory_back",
+          "head",
+          "hair_front",
+          "upper_arm_left",
+          "lower_arm_left",
+          "hand_left",
+          "foot_left",
+          "lower_leg_left",
+          "upper_leg_left",
+          "pelvis",
+          "foot_right",
+          "lower_leg_right",
+          "upper_leg_right",
+          "torso",
+          "upper_arm_right",
+          "lower_arm_right",
+          "hand_right",
+          "accessory_front",
+          "prop"
+        ],
+        "foot_anchor": {
+          "left": [
+            190.56,
+            318.9984
+          ],
+          "right": [
+            217.44,
+            318.9984
+          ]
+        },
+        "palette": {
+          "base": "#1f2630",
+          "accent": "#4e6a85",
+          "skin": "#d9c7a7",
+          "prop": "#7f4c39",
+          "outline": "#0f151c"
+        }
+      }
+    },
+    {
+      "frame_name": "idle_03.png",
+      "path": "animations/idle/idle_03.png",
+      "cleanup": {
+        "crop_box": [
+          159,
+          83,
+          284,
+          323
+        ],
+        "output_box": [
+          66,
+          5,
+          191,
+          245
+        ],
+        "pivot": [
+          128,
+          245
+        ]
+      },
+      "render_meta": {
+        "render_log": [
+          {
+            "part": "hair_back",
+            "joint": "head",
+            "rotation": -0.752,
+            "pivot_world": [
+              184.0,
+              116.6
+            ]
+          },
+          {
+            "part": "accessory_back",
+            "joint": "torso",
+            "rotation": -0.528,
+            "pivot_world": [
+              192.0,
+              210.68
+            ]
+          },
+          {
+            "part": "upper_leg_left",
+            "joint": "hip_left",
+            "rotation": -1.8800000000000001,
+            "pivot_world": [
+              201.6,
+              230.28
+            ]
+          },
+          {
+            "part": "lower_leg_left",
+            "joint": "knee_left",
+            "rotation": -1.2925000000000002,
+            "pivot_world": [
+              196.24,
+              281.16
+            ]
+          },
+          {
+            "part": "foot_left",
+            "joint": "ankle_left",
+            "rotation": 0.0,
+            "pivot_world": [
+              190.56,
+              316.04
+            ]
+          },
+          {
+            "part": "pelvis",
+            "joint": "pelvis",
+            "rotation": 0.0,
+            "pivot_world": [
+              188.0,
+              221.24
+            ]
+          },
+          {
+            "part": "torso",
+            "joint": "torso",
+            "rotation": -1.76,
+            "pivot_world": [
+              182.0,
+              186.68
+            ]
+          },
+          {
+            "part": "upper_arm_left",
+            "joint": "shoulder_left",
+            "rotation": -2.4709999999999996,
+            "pivot_world": [
+              190.24,
+              176.52
+            ]
+          },
+          {
+            "part": "lower_arm_left",
+            "joint": "elbow_left",
+            "rotation": -1.5885,
+            "pivot_world": [
+              180.16,
+              206.68
+            ]
+          },
+          {
+            "part": "hand_left",
+            "joint": "wrist_left",
+            "rotation": 0.0,
+            "pivot_world": [
+              175.44,
+              236.52
+            ]
+          },
+          {
+            "part": "head",
+            "joint": "head",
+            "rotation": -1.88,
+            "pivot_world": [
+              186.0,
+              110.6
+            ]
+          },
+          {
+            "part": "hair_front",
+            "joint": "head",
+            "rotation": -1.128,
+            "pivot_world": [
+              186.0,
+              116.6
+            ]
+          },
+          {
+            "part": "upper_leg_right",
+            "joint": "hip_right",
+            "rotation": 1.8800000000000001,
+            "pivot_world": [
+              218.4,
+              230.28
+            ]
+          },
+          {
+            "part": "lower_leg_right",
+            "joint": "knee_right",
+            "rotation": 1.2925000000000002,
+            "pivot_world": [
+              219.76,
+              281.16
+            ]
+          },
+          {
+            "part": "foot_right",
+            "joint": "ankle_right",
+            "rotation": 0.0,
+            "pivot_world": [
+              217.44,
+              316.04
+            ]
+          },
+          {
+            "part": "upper_arm_right",
+            "joint": "shoulder_right",
+            "rotation": 2.4709999999999996,
+            "pivot_world": [
+              215.76,
+              176.52
+            ]
+          },
+          {
+            "part": "lower_arm_right",
+            "joint": "elbow_right",
+            "rotation": 1.5885,
+            "pivot_world": [
+              227.52,
+              206.68
+            ]
+          },
+          {
+            "part": "hand_right",
+            "joint": "wrist_right",
+            "rotation": 0.0,
+            "pivot_world": [
+              236.24,
+              236.52
+            ]
+          },
+          {
+            "part": "prop",
+            "joint": "wrist_right",
+            "rotation": 1.412,
+            "pivot_world": [
+              240.24,
+              228.52
+            ]
+          },
+          {
+            "part": "accessory_front",
+            "joint": "torso",
+            "rotation": -0.35200000000000004,
+            "pivot_world": [
+              222.0,
+              210.68
+            ]
+          }
+        ],
+        "draw_sequence": [
+          "hair_back",
+          "accessory_back",
+          "head",
+          "hair_front",
+          "upper_arm_left",
+          "lower_arm_left",
+          "hand_left",
+          "foot_left",
+          "lower_leg_left",
+          "upper_leg_left",
+          "pelvis",
+          "foot_right",
+          "lower_leg_right",
+          "upper_leg_right",
+          "torso",
+          "upper_arm_right",
+          "lower_arm_right",
+          "hand_right",
+          "accessory_front",
+          "prop"
+        ],
+        "foot_anchor": {
+          "left": [
+            190.56,
+            316.0416
+          ],
+          "right": [
+            217.44,
+            316.0416
+          ]
+        },
+        "palette": {
+          "base": "#1f2630",
+          "accent": "#4e6a85",
+          "skin": "#d9c7a7",
+          "prop": "#7f4c39",
+          "outline": "#0f151c"
+        }
+      }
+    },
+    {
+      "frame_name": "idle_04.png",
+      "path": "animations/idle/idle_04.png",
+      "cleanup": {
+        "crop_box": [
+          158,
+          82,
+          285,
+          322
+        ],
+        "output_box": [
+          65,
+          5,
+          192,
+          245
+        ],
+        "pivot": [
+          128,
+          245
+        ]
+      },
+      "render_meta": {
+        "render_log": [
+          {
+            "part": "hair_back",
+            "joint": "head",
+            "rotation": -0.488,
+            "pivot_world": [
+              184.0,
+              115.69
+            ]
+          },
+          {
+            "part": "accessory_back",
+            "joint": "torso",
+            "rotation": -0.855,
+            "pivot_world": [
+              192.0,
+              209.77
+            ]
+          },
+          {
+            "part": "upper_leg_left",
+            "joint": "hip_left",
+            "rotation": -3.04,
+            "pivot_world": [
+              201.6,
+              229.37
+            ]
+          },
+          {
+            "part": "lower_leg_left",
+            "joint": "knee_left",
+            "rotation": -2.09,
+            "pivot_world": [
+              196.24,
+              280.25
+            ]
+          },
+          {
+            "part": "foot_left",
+            "joint": "ankle_left",
+            "rotation": 0.0,
+            "pivot_world": [
+              190.56,
+              315.13
+            ]
+          },
+          {
+            "part": "pelvis",
+            "joint": "pelvis",
+            "rotation": 0.0,
+            "pivot_world": [
+              188.0,
+              220.33
+            ]
+          },
+          {
+            "part": "torso",
+            "joint": "torso",
+            "rotation": -2.85,
+            "pivot_world": [
+              182.0,
+              185.77
+            ]
+          },
+          {
+            "part": "upper_arm_left",
+            "joint": "shoulder_left",
+            "rotation": -3.997,
+            "pivot_world": [
+              190.24,
+              175.61
+            ]
+          },
+          {
+            "part": "lower_arm_left",
+            "joint": "elbow_left",
+            "rotation": -2.5695,
+            "pivot_world": [
+              180.16,
+              205.77
+            ]
+          },
+          {
+            "part": "hand_left",
+            "joint": "wrist_left",
+            "rotation": 0.0,
+            "pivot_world": [
+              175.44,
+              235.61
+            ]
+          },
+          {
+            "part": "head",
+            "joint": "head",
+            "rotation": -1.22,
+            "pivot_world": [
+              186.0,
+              109.69
+            ]
+          },
+          {
+            "part": "hair_front",
+            "joint": "head",
+            "rotation": -0.732,
+            "pivot_world": [
+              186.0,
+              115.69
+            ]
+          },
+          {
+            "part": "upper_leg_right",
+            "joint": "hip_right",
+            "rotation": 3.04,
+            "pivot_world": [
+              218.4,
+              229.37
+            ]
+          },
+          {
+            "part": "lower_leg_right",
+            "joint": "knee_right",
+            "rotation": 2.09,
+            "pivot_world": [
+              219.76,
+              280.25
+            ]
+          },
+          {
+            "part": "foot_right",
+            "joint": "ankle_right",
+            "rotation": 0.0,
+            "pivot_world": [
+              217.44,
+              315.13
+            ]
+          },
+          {
+            "part": "upper_arm_right",
+            "joint": "shoulder_right",
+            "rotation": 3.997,
+            "pivot_world": [
+              215.76,
+              175.61
+            ]
+          },
+          {
+            "part": "lower_arm_right",
+            "joint": "elbow_right",
+            "rotation": 2.5695,
+            "pivot_world": [
+              227.52,
+              205.77
+            ]
+          },
+          {
+            "part": "hand_right",
+            "joint": "wrist_right",
+            "rotation": 0.0,
+            "pivot_world": [
+              236.24,
+              235.61
+            ]
+          },
+          {
+            "part": "prop",
+            "joint": "wrist_right",
+            "rotation": 2.2840000000000003,
+            "pivot_world": [
+              240.24,
+              227.61
+            ]
+          },
+          {
+            "part": "accessory_front",
+            "joint": "torso",
+            "rotation": -0.5700000000000001,
+            "pivot_world": [
+              222.0,
+              209.77
+            ]
+          }
+        ],
+        "draw_sequence": [
+          "hair_back",
+          "accessory_back",
+          "head",
+          "hair_front",
+          "upper_arm_left",
+          "lower_arm_left",
+          "hand_left",
+          "foot_left",
+          "lower_leg_left",
+          "upper_leg_left",
+          "pelvis",
+          "foot_right",
+          "lower_leg_right",
+          "upper_leg_right",
+          "torso",
+          "upper_arm_right",
+          "lower_arm_right",
+          "hand_right",
+          "accessory_front",
+          "prop"
+        ],
+        "foot_anchor": {
+          "left": [
+            190.56,
+            315.126
+          ],
+          "right": [
+            217.44,
+            315.126
+          ]
+        },
+        "palette": {
+          "base": "#1f2630",
+          "accent": "#4e6a85",
+          "skin": "#d9c7a7",
+          "prop": "#7f4c39",
+          "outline": "#0f151c"
+        }
+      }
+    },
+    {
+      "frame_name": "idle_05.png",
+      "path": "animations/idle/idle_05.png",
+      "cleanup": {
+        "crop_box": [
+          159,
+          84,
+          283,
+          325
+        ],
+        "output_box": [
+          66,
+          4,
+          190,
+          245
+        ],
+        "pivot": [
+          128,
+          245
+        ]
+      },
+      "render_meta": {
+        "render_log": [
+          {
+            "part": "hair_back",
+            "joint": "head",
+            "rotation": 0.45199999999999996,
+            "pivot_world": [
+              184.0,
+              118.08
+            ]
+          },
+          {
+            "part": "accessory_back",
+            "joint": "torso",
+            "rotation": -0.0,
+            "pivot_world": [
+              192.0,
+              212.16
+            ]
+          },
+          {
+            "part": "upper_leg_left",
+            "joint": "hip_left",
+            "rotation": -0.0,
+            "pivot_world": [
+              201.6,
+              231.76
+            ]
+          },
+          {
+            "part": "lower_leg_left",
+            "joint": "knee_left",
+            "rotation": -0.0,
+            "pivot_world": [
+              196.24,
+              282.64
+            ]
+          },
+          {
+            "part": "foot_left",
+            "joint": "ankle_left",
+            "rotation": 0.0,
+            "pivot_world": [
+              190.56,
+              317.52
+            ]
+          },
+          {
+            "part": "pelvis",
+            "joint": "pelvis",
+            "rotation": 0.0,
+            "pivot_world": [
+              188.0,
+              222.72
+            ]
+          },
+          {
+            "part": "torso",
+            "joint": "torso",
+            "rotation": -0.0,
+            "pivot_world": [
+              182.0,
+              188.16
+            ]
+          },
+          {
+            "part": "upper_arm_left",
+            "joint": "shoulder_left",
+            "rotation": -0.0,
+            "pivot_world": [
+              190.24,
+              178.0
+            ]
+          },
+          {
+            "part": "lower_arm_left",
+            "joint": "elbow_left",
+            "rotation": -0.0,
+            "pivot_world": [
+              180.16,
+              208.16
+            ]
+          },
+          {
+            "part": "hand_left",
+            "joint": "wrist_left",
+            "rotation": 0.0,
+            "pivot_world": [
+              175.44,
+              238.0
+            ]
+          },
+          {
+            "part": "head",
+            "joint": "head",
+            "rotation": 1.13,
+            "pivot_world": [
+              186.0,
+              112.08
+            ]
+          },
+          {
+            "part": "hair_front",
+            "joint": "head",
+            "rotation": 0.6779999999999999,
+            "pivot_world": [
+              186.0,
+              118.08
+            ]
+          },
+          {
+            "part": "upper_leg_right",
+            "joint": "hip_right",
+            "rotation": 0.0,
+            "pivot_world": [
+              218.4,
+              231.76
+            ]
+          },
+          {
+            "part": "lower_leg_right",
+            "joint": "knee_right",
+            "rotation": 0.0,
+            "pivot_world": [
+              219.76,
+              282.64
+            ]
+          },
+          {
+            "part": "foot_right",
+            "joint": "ankle_right",
+            "rotation": 0.0,
+            "pivot_world": [
+              217.44,
+              317.52
+            ]
+          },
+          {
+            "part": "upper_arm_right",
+            "joint": "shoulder_right",
+            "rotation": 0.0,
+            "pivot_world": [
+              215.76,
+              178.0
+            ]
+          },
+          {
+            "part": "lower_arm_right",
+            "joint": "elbow_right",
+            "rotation": 0.0,
+            "pivot_world": [
+              227.52,
+              208.16
+            ]
+          },
+          {
+            "part": "hand_right",
+            "joint": "wrist_right",
+            "rotation": 0.0,
+            "pivot_world": [
+              236.24,
+              238.0
+            ]
+          },
+          {
+            "part": "prop",
+            "joint": "wrist_right",
+            "rotation": 0.0,
+            "pivot_world": [
+              240.24,
+              230.0
+            ]
+          },
+          {
+            "part": "accessory_front",
+            "joint": "torso",
+            "rotation": -0.0,
+            "pivot_world": [
+              222.0,
+              212.16
+            ]
+          }
+        ],
+        "draw_sequence": [
+          "hair_back",
+          "accessory_back",
+          "head",
+          "hair_front",
+          "upper_arm_left",
+          "lower_arm_left",
+          "hand_left",
+          "foot_left",
+          "lower_leg_left",
+          "upper_leg_left",
+          "pelvis",
+          "foot_right",
+          "lower_leg_right",
+          "upper_leg_right",
+          "torso",
+          "upper_arm_right",
+          "lower_arm_right",
+          "hand_right",
+          "accessory_front",
+          "prop"
+        ],
+        "foot_anchor": {
+          "left": [
+            190.56,
+            317.52
+          ],
+          "right": [
+            217.44,
+            317.52
+          ]
+        },
+        "palette": {
+          "base": "#1f2630",
+          "accent": "#4e6a85",
+          "skin": "#d9c7a7",
+          "prop": "#7f4c39",
+          "outline": "#0f151c"
+        }
+      }
+    }
+  ]
+}

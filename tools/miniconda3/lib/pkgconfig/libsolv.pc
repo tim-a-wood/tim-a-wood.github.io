@@ -1,0 +1,8 @@
+libdir=/Users/timwood/Desktop/projects/PWA/MV/tools/miniconda3/lib
+includedir=/Users/timwood/Desktop/projects/PWA/MV/tools/miniconda3/include
+
+Name: libsolv
+Description: Library for solving packages
+Version: 0.7.30
+Libs: -L${libdir} -lsolv
+Cflags: -I${includedir}

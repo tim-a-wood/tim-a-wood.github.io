@@ -82,6 +82,51 @@ Local editor workflow:
 
 If you open the editor outside the local server, canonical sync is unavailable and you should use `Export JSON` instead.
 
+## Solo AI Sprite Workbench
+
+The sprite workbench lives at `tools/2d-sprite-and-animation/index.html` and uses a local filesystem-backed API server.
+
+Install the tool-local Python dependency first:
+
+```bash
+python3 -m pip install -r tools/2d-sprite-and-animation/requirements.txt
+```
+
+The default concept backend is local `ComfyUI` at `http://127.0.0.1:8188`.
+Optional environment overrides:
+
+```bash
+export SPRITE_WORKBENCH_COMFYUI_URL=http://127.0.0.1:8188
+export SPRITE_WORKBENCH_COMFYUI_CHECKPOINT=sd15.safetensors
+```
+
+Run:
+
+```bash
+python3 scripts/sprite_workbench_server.py --host 127.0.0.1 --port 8766
+```
+
+Then open:
+
+```text
+http://127.0.0.1:8766/tools/2d-sprite-and-animation/index.html
+```
+
+The server writes local-first project data and exports under `tools/2d-sprite-and-animation/projects-data/`.
+
+Current workbench notes:
+
+- Concept generation and refinement are ComfyUI-backed by default.
+- A debug procedural backend still exists, but only when explicitly selected in the UI.
+- Layers, rigging, and animation remain clearly labeled placeholder or experimental downstream stages.
+- References are copied into each project under `references/` and recorded in `history.json`.
+
+Sprite workbench regression tests:
+
+```bash
+python3 -m unittest tests.test_sprite_workbench
+```
+
 ## Controls
 
 - Keyboard: arrow keys for movement, `Up` or `Space` to jump

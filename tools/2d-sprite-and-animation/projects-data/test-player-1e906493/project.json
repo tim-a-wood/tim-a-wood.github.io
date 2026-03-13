@@ -1,0 +1,25 @@
+{
+  "project_id": "test-player-1e906493",
+  "project_name": "Test Player",
+  "prompt_text": "Humanoid knight wearing helmet and chainmail in pixel style art",
+  "created_at": "2026-03-13T18:34:05.135567+00:00",
+  "updated_at": "2026-03-13T19:01:21.906967+00:00",
+  "current_stage": "intake",
+  "status": "ready_for_concepts",
+  "layer_review_approved": false,
+  "rig_review_approved": false,
+  "selected_concept_id": null,
+  "archived_at": null,
+  "last_ui_mode": "wizard",
+  "wizard_state": {
+    "current_step": "concepts",
+    "last_completed_step": "brief",
+    "completed_steps": [
+      "project",
+      "brief"
+    ],
+    "skipped_optional_steps": [],
+    "last_refine_decision": null,
+    "show_advanced": false
+  }
+}

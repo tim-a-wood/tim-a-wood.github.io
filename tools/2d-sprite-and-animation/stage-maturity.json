@@ -1,0 +1,42 @@
+{
+  "intake": {
+    "label": "Structured Brief",
+    "maturity": "experimental",
+    "description": "Prompt parsing is materially better than v1, but still heuristic and local-only."
+  },
+  "concepts": {
+    "label": "Concept Generation",
+    "maturity": "real",
+    "description": "ComfyUI is the default concept backend. The procedural generator remains debug-only."
+  },
+  "refine": {
+    "label": "Refinement",
+    "maturity": "real",
+    "description": "Refinement creates new concept candidates and records lineage from the selected concept."
+  },
+  "layer_review": {
+    "label": "Layer Review",
+    "maturity": "placeholder",
+    "description": "Layers are still generated from a synthetic part library instead of extracted concept art."
+  },
+  "rig_review": {
+    "label": "Rig Review",
+    "maturity": "placeholder",
+    "description": "Rigging is procedural and only validates the current placeholder downstream pipeline."
+  },
+  "production": {
+    "label": "Production",
+    "maturity": "experimental",
+    "description": "Rendering and packing are deterministic, but still depend on synthetic layers and rig data."
+  },
+  "qa": {
+    "label": "QA",
+    "maturity": "experimental",
+    "description": "QA reports only implemented image heuristics and does not claim semantic certainty."
+  },
+  "export": {
+    "label": "Export",
+    "maturity": "experimental",
+    "description": "Exports are usable, but inherit the experimental upstream and placeholder downstream stages."
+  }
+}

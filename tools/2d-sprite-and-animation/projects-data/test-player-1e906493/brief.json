@@ -1,0 +1,16 @@
+{
+  "raw_prompt": "Humanoid knight wearing helmet and chainmail in pixel style art",
+  "role_archetype": "armored traveler",
+  "silhouette_intent": "broad guarded profile",
+  "outfit_materials": "knights helmet and chainmail",
+  "prop": "none",
+  "palette_mood": "pixel medieval",
+  "shape_language": "angular disciplined silhouette",
+  "mood_tone": "dark fantasy",
+  "side_view_constraints": "strict sideview, one humanoid",
+  "negative_prompt": "front view, crowd, busy, weapons, props",
+  "backend_mode": "comfyui",
+  "comfyui_checkpoint": "sd15.safetensors",
+  "references": [],
+  "positive_prompt_base": "single humanoid side-view character concept art, full body, plain light background, clean silhouette, readable negative space, armored traveler, silhouette intent: broad guarded profile, outfit and materials: knights helmet and chainmail, primary handheld prop: none, palette mood: pixel medieval, shape language: angular disciplined silhouette, mood: dark fantasy, readability constraints: strict sideview, one humanoid"
+}

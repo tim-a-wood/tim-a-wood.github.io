@@ -1,0 +1,37 @@
+{
+  "project_id": "ashen-sentinel-9ea9be55",
+  "project_name": "Ashen Sentinel",
+  "prompt_text": "Humanoid biped side-view armored traveler with a lantern, storm-steel palette, one handheld prop.",
+  "created_at": "2026-03-13T11:38:13.768494+00:00",
+  "updated_at": "2026-03-13T12:00:13.394987+00:00",
+  "current_stage": "concepts",
+  "status": "concepts_generated",
+  "layer_review_approved": true,
+  "rig_review_approved": true,
+  "selected_concept_id": "concept-03",
+  "last_export": {
+    "export_dir": "exports/20260313T114452Z",
+    "files": [
+      "spritesheet.png",
+      "atlas.json",
+      "animations.json",
+      "preview.gif",
+      "qa_report.json",
+      "export_manifest.json",
+      "frames/idle_00.png",
+      "frames/idle_01.png",
+      "frames/idle_02.png",
+      "frames/idle_03.png",
+      "frames/idle_04.png",
+      "frames/idle_05.png",
+      "frames/walk_00.png",
+      "frames/walk_01.png",
+      "frames/walk_02.png",
+      "frames/walk_03.png",
+      "frames/walk_04.png",
+      "frames/walk_05.png",
+      "frames/walk_06.png",
+      "frames/walk_07.png"
+    ]
+  }
+}
