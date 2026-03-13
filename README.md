@@ -98,7 +98,10 @@ Optional environment overrides:
 ```bash
 export SPRITE_WORKBENCH_COMFYUI_URL=http://127.0.0.1:8188
 export SPRITE_WORKBENCH_COMFYUI_CHECKPOINT=sd15.safetensors
+export SPRITE_WORKBENCH_COMFYUI_JOB_TIMEOUT_SECONDS=600
 ```
+
+`SPRITE_WORKBENCH_COMFYUI_JOB_TIMEOUT_SECONDS` is the per-image generation timeout used by the workbench server.
 
 Run:
 

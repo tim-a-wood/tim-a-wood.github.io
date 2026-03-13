@@ -20,6 +20,36 @@
       "completed_at": "2026-03-13T18:34:51.991897+00:00",
       "event_id": "991bc5545243",
       "created_at": "2026-03-13T18:34:51.992204+00:00"
+    },
+    {
+      "type": "job_summary",
+      "job_id": "ddb47de668e1",
+      "job_type": "concepts.generate",
+      "status": "failed",
+      "summary": "ComfyUI concept job timed out after 180 seconds.",
+      "completed_at": "2026-03-13T19:03:53.959847+00:00",
+      "event_id": "0bf98322acbd",
+      "created_at": "2026-03-13T19:03:53.961574+00:00"
+    },
+    {
+      "type": "job_summary",
+      "job_id": "3f6dc3181790",
+      "job_type": "concepts.generate",
+      "status": "failed",
+      "summary": "ComfyUI concept job timed out after 180 seconds.",
+      "completed_at": "2026-03-13T19:04:32.377896+00:00",
+      "event_id": "ecc9d2b16ddd",
+      "created_at": "2026-03-13T19:04:32.395285+00:00"
+    },
+    {
+      "type": "job_summary",
+      "job_id": "9c90f4967fa1",
+      "job_type": "concepts.generate",
+      "status": "failed",
+      "summary": "ComfyUI concept job timed out after 180 seconds.",
+      "completed_at": "2026-03-13T19:07:05.655086+00:00",
+      "event_id": "645ff86c1236",
+      "created_at": "2026-03-13T19:07:05.656709+00:00"
     }
   ]
 }

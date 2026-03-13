@@ -37,6 +37,17 @@ TOOL_VERSION = "solo-ai-sprite-workbench-v2"
 DEFAULT_COMFYUI_BASE_URL = os.environ.get("SPRITE_WORKBENCH_COMFYUI_URL", "http://127.0.0.1:8188")
 DEFAULT_COMFYUI_CHECKPOINT = os.environ.get("SPRITE_WORKBENCH_COMFYUI_CHECKPOINT", "sd15.safetensors")
 
+
+def env_int(name: str, default: int, minimum: int = 1) -> int:
+    raw = os.environ.get(name)
+    if raw is None:
+        return default
+    try:
+        value = int(raw)
+    except ValueError:
+        return default
+    return value if value >= minimum else default
+
 CONCEPT_CANVAS = (896, 1024)
 INITIAL_CONCEPT_COUNT = 6
 REFINEMENT_CONCEPT_COUNT = 4
@@ -49,9 +60,9 @@ WORKING_CANVAS = (420, 420)
 RENDER_SCALE = 0.84
 RENDER_CENTER = (210, 220)
 
-COMFYUI_TIMEOUT_SECONDS = 3
-COMFYUI_POLL_SECONDS = 1
-COMFYUI_JOB_TIMEOUT_SECONDS = 180
+COMFYUI_TIMEOUT_SECONDS = env_int("SPRITE_WORKBENCH_COMFYUI_TIMEOUT_SECONDS", 3)
+COMFYUI_POLL_SECONDS = env_int("SPRITE_WORKBENCH_COMFYUI_POLL_SECONDS", 1)
+COMFYUI_JOB_TIMEOUT_SECONDS = env_int("SPRITE_WORKBENCH_COMFYUI_JOB_TIMEOUT_SECONDS", 600)
 
 REFINEMENT_STRENGTHS = {
     "subtle": 0.25,
@@ -2614,7 +2625,11 @@ class ComfyUIConceptBackend(object):
                 break
             time.sleep(COMFYUI_POLL_SECONDS)
         if not image_metas:
-            raise ValueError("ComfyUI concept job timed out after %s seconds." % COMFYUI_JOB_TIMEOUT_SECONDS)
+            raise ValueError(
+                "ComfyUI concept job timed out after %s seconds. "
+                "Increase SPRITE_WORKBENCH_COMFYUI_JOB_TIMEOUT_SECONDS for slower local runs."
+                % COMFYUI_JOB_TIMEOUT_SECONDS
+            )
 
         image_bytes = fetch_comfyui_history_image(self.base_url, image_metas[0])
         request.output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -2881,6 +2896,7 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                 "stage_maturity": load_stage_maturity(),
                 "backend": backend,
                 "default_checkpoint": DEFAULT_COMFYUI_CHECKPOINT,
+                "comfyui_job_timeout_seconds": COMFYUI_JOB_TIMEOUT_SECONDS,
             })
 
         if path == "/api/projects":
