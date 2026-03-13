@@ -65,11 +65,12 @@ rebuildRoomGeometry();
 
 const ENABLE_DEBUG_UNLOCK = true;
 const LAYOUT_STORAGE_KEY = 'ashen-hollow-room-layout-v1';
+const TEMP_SHOW_FULL_MAP = true;
 const TEMP_TEST_START = {
-    room: 'R8',
-    doorId: 'R8-D1',
-    x: 220,
-    y: 980
+    room: 'R4',
+    doorId: 'R4-D1',
+    x: 1150,
+    y: 1046
 };
 
 const BRANCH_CONFIG = {
@@ -297,36 +298,215 @@ function pointInPolygon(x, y, polygon) {
     return inside;
 }
 
+function closestPointOnSegment(point, start, end) {
+    const dx = end[0] - start[0];
+    const dy = end[1] - start[1];
+    const lengthSquared = (dx * dx) + (dy * dy);
+    if (lengthSquared === 0) {
+        return {
+            point: { x: start[0], y: start[1] },
+            distance: Math.hypot(point.x - start[0], point.y - start[1]),
+            t: 0
+        };
+    }
+    let t = (((point.x - start[0]) * dx) + ((point.y - start[1]) * dy)) / lengthSquared;
+    t = Math.max(0, Math.min(1, t));
+    const projectedX = start[0] + (dx * t);
+    const projectedY = start[1] + (dy * t);
+    return {
+        point: { x: projectedX, y: projectedY },
+        distance: Math.hypot(point.x - projectedX, point.y - projectedY),
+        t
+    };
+}
+
+function getPolygonEdge(polygon, edgeIndex) {
+    if (!Array.isArray(polygon) || polygon.length < 2) return null;
+    const count = polygon.length;
+    const normalizedIndex = ((Number(edgeIndex) % count) + count) % count;
+    return {
+        edgeIndex: normalizedIndex,
+        start: polygon[normalizedIndex],
+        end: polygon[(normalizedIndex + 1) % count]
+    };
+}
+
+function getPolygonEdgeOutwardNormal(polygon, edgeIndex) {
+    const edge = getPolygonEdge(polygon, edgeIndex);
+    if (!edge) return { x: 0, y: -1 };
+    const dx = edge.end[0] - edge.start[0];
+    const dy = edge.end[1] - edge.start[1];
+    const length = Math.hypot(dx, dy) || 1;
+    const normalA = { x: -dy / length, y: dx / length };
+    const normalB = { x: dy / length, y: -dx / length };
+    const midX = (edge.start[0] + edge.end[0]) / 2;
+    const midY = (edge.start[1] + edge.end[1]) / 2;
+    const sampleDistance = 8;
+    if (!pointInPolygon(midX + (normalA.x * sampleDistance), midY + (normalA.y * sampleDistance), polygon)) {
+        return normalA;
+    }
+    if (!pointInPolygon(midX + (normalB.x * sampleDistance), midY + (normalB.y * sampleDistance), polygon)) {
+        return normalB;
+    }
+    return normalA;
+}
+
+function isPointInRemovedEdgeTunnel(point, polygon, edgeIndex, options = {}) {
+    const edge = getPolygonEdge(polygon, edgeIndex);
+    if (!edge) return false;
+    const dx = edge.end[0] - edge.start[0];
+    const dy = edge.end[1] - edge.start[1];
+    const lengthSquared = (dx * dx) + (dy * dy);
+    if (lengthSquared === 0) return false;
+    const length = Math.sqrt(lengthSquared);
+    const endpointPad = Number.isFinite(options.endpointPad) ? options.endpointPad : 28;
+    const inwardPad = Number.isFinite(options.inwardPad) ? options.inwardPad : 10;
+    const normal = getPolygonEdgeOutwardNormal(polygon, edgeIndex);
+    const relX = point.x - edge.start[0];
+    const relY = point.y - edge.start[1];
+    const t = ((relX * dx) + (relY * dy)) / lengthSquared;
+    const padT = endpointPad / length;
+    if (t < -padT || t > 1 + padT) return false;
+    const signedDistance = (relX * normal.x) + (relY * normal.y);
+    return signedDistance >= -inwardPad;
+}
+
 function getRoomWidth(roomId) {
     return ROOM_IDS[roomId]?.width || CONFIG.ROOM_WIDTH;
 }
 
-function ensureLayoutRoomShape(room) {
+function clampNumber(value, min, max) {
+    return Math.min(max, Math.max(min, value));
+}
+
+function normalizeLayoutRoom(room) {
     if (!room) return null;
 
     const fallbackWidth = getRoomWidth(room.id);
-    if (!room.size) room.size = { width: fallbackWidth, height: CONFIG.WORLD_HEIGHT };
-    room.size.width = Math.max(320, Number(room.size.width || fallbackWidth));
-    room.size.height = Math.max(320, Number(room.size.height || CONFIG.WORLD_HEIGHT));
+    const width = Math.max(320, Number(room?.size?.width || fallbackWidth));
+    const sourceHeight = Math.max(320, Number(room?.size?.height || CONFIG.WORLD_HEIGHT));
+    const scaleY = CONFIG.WORLD_HEIGHT / sourceHeight;
+    const normalizeX = (value, fallback = 0) => {
+        const numeric = Number(value);
+        if (!Number.isFinite(numeric)) return fallback;
+        return clampNumber(numeric, 0, width);
+    };
+    const normalizeY = (value, fallback = CONFIG.WORLD_HEIGHT - 64) => {
+        const numeric = Number(value);
+        if (!Number.isFinite(numeric)) return fallback;
+        const scaled = sourceHeight === CONFIG.WORLD_HEIGHT ? numeric : (numeric * scaleY);
+        return clampNumber(Number(scaled.toFixed(2)), 0, CONFIG.WORLD_HEIGHT);
+    };
 
-    room.global = room.global &&
-        Number.isFinite(Number(room.global.x)) &&
-        Number.isFinite(Number(room.global.y))
-        ? { x: Number(room.global.x), y: Number(room.global.y) }
-        : { x: 0, y: 0 };
+    const normalizedRoom = {
+        ...room,
+        size: {
+            width,
+            height: CONFIG.WORLD_HEIGHT
+        },
+        global: room.global &&
+            Number.isFinite(Number(room.global.x)) &&
+            Number.isFinite(Number(room.global.y))
+            ? { x: Number(room.global.x), y: Number(room.global.y) }
+            : { x: 0, y: 0 }
+    };
 
-    if (!Array.isArray(room.polygon) || room.polygon.length < 3) {
-        const insetX = Math.min(160, Math.max(32, Math.floor(room.size.width * 0.2)));
-        const insetY = Math.min(160, Math.max(32, Math.floor(room.size.height * 0.2)));
-        room.polygon = [
+    if (Array.isArray(room.polygon) && room.polygon.length >= 3) {
+        normalizedRoom.polygon = room.polygon.map((point) => [
+            normalizeX(point?.[0], 0),
+            normalizeY(point?.[1], 0)
+        ]);
+    } else {
+        const insetX = Math.min(160, Math.max(32, Math.floor(width * 0.2)));
+        const insetY = Math.min(160, Math.max(32, Math.floor(CONFIG.WORLD_HEIGHT * 0.2)));
+        normalizedRoom.polygon = [
             [insetX, insetY],
-            [room.size.width - insetX, insetY],
-            [room.size.width - insetX, room.size.height - insetY],
-            [insetX, room.size.height - insetY]
+            [width - insetX, insetY],
+            [width - insetX, CONFIG.WORLD_HEIGHT - insetY],
+            [insetX, CONFIG.WORLD_HEIGHT - insetY]
         ];
     }
 
-    return room;
+    normalizedRoom.platforms = Array.isArray(room.platforms)
+        ? room.platforms.map((platform) => ({
+            ...platform,
+            x: normalizeX(platform.x, 0),
+            y: normalizeY(platform.y, CONFIG.WORLD_HEIGHT - 64),
+            len: Math.max(1, Number(platform.len || 1)),
+            tint: Number(platform.tint || 0)
+        }))
+        : [];
+
+    normalizedRoom.doors = Array.isArray(room.doors)
+        ? room.doors.map((door) => ({
+            ...door,
+            x: normalizeX(door.x, 0),
+            y: normalizeY(door.y, CONFIG.WORLD_HEIGHT - 64)
+        }))
+        : [];
+
+    normalizedRoom.keys = Array.isArray(room.keys)
+        ? room.keys.map((key) => ({
+            ...key,
+            x: normalizeX(key.x, 0),
+            y: normalizeY(key.y, CONFIG.WORLD_HEIGHT - 64)
+        }))
+        : [];
+
+    normalizedRoom.movingPlatforms = Array.isArray(room.movingPlatforms)
+        ? room.movingPlatforms.map((mover) => {
+            const startX = normalizeX(mover.x, 0);
+            const startY = normalizeY(mover.y, CONFIG.WORLD_HEIGHT - 64);
+            return {
+                ...mover,
+                x: startX,
+                y: startY,
+                endX: normalizeX(mover.endX, startX),
+                endY: normalizeY(mover.endY, startY),
+                len: Math.max(1, Number(mover.len || 1)),
+                tint: Number(mover.tint || 0)
+            };
+        })
+        : [];
+
+    normalizedRoom.playerStart = room.playerStart &&
+        Number.isFinite(Number(room.playerStart.x)) &&
+        Number.isFinite(Number(room.playerStart.y))
+        ? {
+            x: normalizeX(room.playerStart.x, 120),
+            y: normalizeY(room.playerStart.y, CONFIG.WORLD_HEIGHT - 80)
+        }
+        : null;
+
+    normalizedRoom.edgeLinks = Array.isArray(room.edgeLinks)
+        ? room.edgeLinks
+            .map((link) => ({
+                edgeIndex: Number(link?.edgeIndex),
+                targetRoomId: String(link?.targetRoomId || ''),
+                targetEdgeIndex: Number(link?.targetEdgeIndex)
+            }))
+            .filter((link) => Number.isInteger(link.edgeIndex) && link.edgeIndex >= 0 && Number.isInteger(link.targetEdgeIndex) && link.targetEdgeIndex >= 0 && link.targetRoomId)
+        : [];
+
+    normalizedRoom.removedEdges = [...new Set(
+        (Array.isArray(room.removedEdges) ? room.removedEdges : Array.isArray(room.openEdges) ? room.openEdges : [])
+            .map((edgeIndex) => Number(edgeIndex))
+            .filter((edgeIndex) => Number.isInteger(edgeIndex) && edgeIndex >= 0 && edgeIndex < normalizedRoom.polygon.length)
+    )].sort((a, b) => a - b);
+
+    return normalizedRoom;
+}
+
+function normalizeLayoutData(data) {
+    if (!data || !Array.isArray(data.rooms)) return null;
+    return {
+        ...data,
+        rooms: data.rooms.map((room) => normalizeLayoutRoom(room)).filter(Boolean)
+    };
+}
+
+function ensureLayoutRoomShape(room) {
+    return normalizeLayoutRoom(room);
 }
 
 function getRuntimeLayoutRooms() {
@@ -336,23 +516,43 @@ function getRuntimeLayoutRooms() {
         .map((room) => ensureLayoutRoomShape(room));
 }
 
-function buildWallRectsFromPolygon(polygon, roomWidth = CONFIG.ROOM_WIDTH, roomHeight = CONFIG.WORLD_HEIGHT) {
+function buildWallRectsFromPolygon(polygon, roomWidth = CONFIG.ROOM_WIDTH, roomHeight = CONFIG.WORLD_HEIGHT, removedEdges = []) {
     const tile = 32;
     const cols = Math.floor(roomWidth / tile);
     const rows = Math.floor(roomHeight / tile);
+    const wallGrid = Array.from({ length: rows }, () => Array(cols).fill(false));
     const rects = [];
+
+    for (let row = 0; row < rows; row++) {
+        for (let col = 0; col < cols; col++) {
+            const x = (col * tile) + 16;
+            const y = (row * tile) + 16;
+            wallGrid[row][col] = !pointInPolygon(x, y, polygon);
+        }
+    }
+
+    removedEdges.forEach((edgeIndex) => {
+        for (let row = 0; row < rows; row++) {
+            for (let col = 0; col < cols; col++) {
+                if (!wallGrid[row][col]) continue;
+                const point = { x: (col * tile) + 16, y: (row * tile) + 16 };
+                if (isPointInRemovedEdgeTunnel(point, polygon, edgeIndex, {
+                    endpointPad: tile,
+                    inwardPad: tile * 0.5
+                })) {
+                    wallGrid[row][col] = false;
+                }
+            }
+        }
+    });
 
     for (let row = 0; row < rows; row++) {
         let runStart = null;
         for (let col = 0; col < cols; col++) {
-            const x = (col * tile) + 16;
-            const y = (row * tile) + 16;
-            const inside = pointInPolygon(x, y, polygon);
-
-            if (!inside && runStart === null) runStart = col;
-
-            if ((inside || col === cols - 1) && runStart !== null) {
-                const endCol = inside ? col - 1 : col;
+            const isWall = wallGrid[row][col];
+            if (isWall && runStart === null) runStart = col;
+            if ((!isWall || col === cols - 1) && runStart !== null) {
+                const endCol = isWall ? col : col - 1;
                 rects.push({
                     x: runStart * tile,
                     y: (row * tile) + 16,
@@ -409,9 +609,13 @@ function loadLayoutDataFromHash() {
 function applyRuntimeLayoutData(canonicalData = null) {
     const hashData = loadLayoutDataFromHash();
     const storageData = loadLayoutDataFromStorage();
-    const data = hashData || canonicalData || storageData;
+    const data = normalizeLayoutData(hashData || canonicalData || storageData);
     rebuildRoomGeometry(data);
-    if (!data) return;
+    if (!data) {
+        ACTIVE_LAYOUT_DATA = null;
+        ACTIVE_LAYOUT_SOURCE = 'default';
+        return;
+    }
 
     ACTIVE_LAYOUT_DATA = data;
     ACTIVE_LAYOUT_SOURCE = hashData ? 'hash' : canonicalData ? 'canonical' : 'storage';
@@ -432,13 +636,98 @@ function applyRuntimeLayoutData(canonicalData = null) {
         .filter((room) => Array.isArray(room.polygon) && room.polygon.length >= 3)
         .map((room) => ({
             room: room.id,
-            rects: buildWallRectsFromPolygon(room.polygon, Number(room?.size?.width) || getRoomWidth(room.id), CONFIG.WORLD_HEIGHT)
+            rects: buildWallRectsFromPolygon(
+                room.polygon,
+                Number(room?.size?.width) || getRoomWidth(room.id),
+                CONFIG.WORLD_HEIGHT,
+                room.removedEdges || []
+            )
         }));
 }
 
 function getLayoutRoom(roomId) {
     if (!ACTIVE_LAYOUT_DATA) return null;
     return ACTIVE_LAYOUT_DATA.rooms.find((room) => room.id === roomId) || null;
+}
+
+function getLayoutRoomEdge(roomId, edgeIndex) {
+    const room = getLayoutRoom(roomId);
+    if (!room) return null;
+    const edge = getPolygonEdge(room.polygon, edgeIndex);
+    if (!edge) return null;
+    return {
+        room,
+        edgeIndex: edge.edgeIndex,
+        start: { x: edge.start[0], y: edge.start[1] },
+        end: { x: edge.end[0], y: edge.end[1] }
+    };
+}
+
+function getLayoutRoomEdgeLink(roomId, edgeIndex) {
+    const room = getLayoutRoom(roomId);
+    if (!room || !Array.isArray(room.edgeLinks)) return null;
+    const normalized = getPolygonEdge(room.polygon, edgeIndex)?.edgeIndex;
+    if (!Number.isInteger(normalized)) return null;
+    return room.edgeLinks.find((link) => Number(link.edgeIndex) === normalized) || null;
+}
+
+function isLayoutRoomEdgeRemoved(roomId, edgeIndex) {
+    const room = getLayoutRoom(roomId);
+    if (!room || !Array.isArray(room.removedEdges)) return false;
+    const normalized = getPolygonEdge(room.polygon, edgeIndex)?.edgeIndex;
+    return Number.isInteger(normalized) && room.removedEdges.includes(normalized);
+}
+
+function hasLayoutDoorNearEdge(roomId, edgeIndex, distanceThreshold = 72) {
+    const room = getLayoutRoom(roomId);
+    const edge = getLayoutRoomEdge(roomId, edgeIndex);
+    if (!room || !edge || !Array.isArray(room.doors) || !room.doors.length) return false;
+    return room.doors.some((door) => {
+        const projected = closestPointOnSegment(
+            { x: Number(door.x), y: Number(door.y) },
+            [edge.start.x, edge.start.y],
+            [edge.end.x, edge.end.y]
+        );
+        return projected.distance <= distanceThreshold;
+    });
+}
+
+function getEntrySideFromNormal(normal) {
+    if (Math.abs(normal.x) >= Math.abs(normal.y)) {
+        return normal.x >= 0 ? 'right' : 'left';
+    }
+    return normal.y >= 0 ? 'bottom' : 'top';
+}
+
+function getLayoutGlobalEdge(roomId, edgeIndex) {
+    const room = getLayoutRoom(roomId);
+    const edge = getLayoutRoomEdge(roomId, edgeIndex);
+    if (!room || !edge) return null;
+    return {
+        start: {
+            x: room.global.x + ((edge.start.x - (room.size.width / 2)) * GLOBAL_ROOM_PREVIEW_SCALE),
+            y: room.global.y + ((edge.start.y - (room.size.height / 2)) * GLOBAL_ROOM_PREVIEW_SCALE)
+        },
+        end: {
+            x: room.global.x + ((edge.end.x - (room.size.width / 2)) * GLOBAL_ROOM_PREVIEW_SCALE),
+            y: room.global.y + ((edge.end.y - (room.size.height / 2)) * GLOBAL_ROOM_PREVIEW_SCALE)
+        }
+    };
+}
+
+function isLayoutEdgeLinkReversed(roomId, edgeIndex, targetRoomId, targetEdgeIndex) {
+    const sourceEdge = getLayoutGlobalEdge(roomId, edgeIndex);
+    const targetEdge = getLayoutGlobalEdge(targetRoomId, targetEdgeIndex);
+    if (!sourceEdge || !targetEdge) return false;
+    const same = Math.max(
+        Math.hypot(sourceEdge.start.x - targetEdge.start.x, sourceEdge.start.y - targetEdge.start.y),
+        Math.hypot(sourceEdge.end.x - targetEdge.end.x, sourceEdge.end.y - targetEdge.end.y)
+    );
+    const reversed = Math.max(
+        Math.hypot(sourceEdge.start.x - targetEdge.end.x, sourceEdge.start.y - targetEdge.end.y),
+        Math.hypot(sourceEdge.end.x - targetEdge.start.x, sourceEdge.end.y - targetEdge.start.y)
+    );
+    return reversed < same;
 }
 
 function getLayoutDoor(roomId, doorId) {
@@ -585,6 +874,8 @@ class AshenHollow extends Phaser.Scene {
         this.mapPinchActive = false;
         this.mapPinchStartDistance = 0;
         this.mapPinchStartZoom = 1;
+        this.continuousTransferFrames = 0;
+        this.continuousTransferVelocity = null;
 
         this.r9ShellComplete = false;
         this.preFinalCheckpointUnlocked = false;
@@ -814,13 +1105,52 @@ class AshenHollow extends Phaser.Scene {
 
     buildWorldGeometry() {
         const tile = 32;
-        for (let tx = 0; tx < CONFIG.WORLD_WIDTH; tx += tile) {
-            this.platforms.create(tx + 16, CONFIG.WORLD_HEIGHT - 16, 'floor').refreshBody();
-            this.platforms.create(tx + 16, 16, 'floor').refreshBody();
+        const shouldPlaceBoundaryTile = (roomId, point) => {
+            const room = getLayoutRoom(roomId);
+            if (!room || !Array.isArray(room.removedEdges) || !room.removedEdges.length) return true;
+            return !room.removedEdges.some((edgeIndex) => {
+                return isPointInRemovedEdgeTunnel(point, room.polygon, edgeIndex, {
+                    endpointPad: tile,
+                    inwardPad: tile * 0.5
+                });
+            });
+        };
+
+        ROOM_SEQUENCE.forEach((roomId) => {
+            const roomBounds = ROOM_IDS[roomId];
+            const roomWidth = roomBounds?.width || getRoomWidth(roomId);
+            if (!roomBounds || roomWidth <= 0) return;
+            for (let localX = 0; localX < roomWidth; localX += tile) {
+                const centerX = localX + 16;
+                if (shouldPlaceBoundaryTile(roomId, { x: centerX, y: 16 })) {
+                    this.platforms.create(roomBounds.start + centerX, 16, 'floor').refreshBody();
+                }
+                if (shouldPlaceBoundaryTile(roomId, { x: centerX, y: CONFIG.WORLD_HEIGHT - 16 })) {
+                    this.platforms.create(roomBounds.start + centerX, CONFIG.WORLD_HEIGHT - 16, 'floor').refreshBody();
+                }
+            }
+        });
+
+        const firstRoomId = ROOM_SEQUENCE[0];
+        const lastRoomId = ROOM_SEQUENCE[ROOM_SEQUENCE.length - 1];
+        const firstRoom = ROOM_IDS[firstRoomId];
+        const lastRoom = ROOM_IDS[lastRoomId];
+        if (firstRoom && firstRoom.start === 0) {
+            for (let localY = tile; localY < CONFIG.WORLD_HEIGHT - 32; localY += tile) {
+                const centerY = localY + 16;
+                if (shouldPlaceBoundaryTile(firstRoomId, { x: 16, y: centerY })) {
+                    this.platforms.create(16, centerY, 'floor').refreshBody();
+                }
+            }
         }
-        for (let ty = tile; ty < CONFIG.WORLD_HEIGHT - 32; ty += tile) {
-            this.platforms.create(16, ty + 16, 'floor').refreshBody();
-            this.platforms.create(CONFIG.WORLD_WIDTH - 16, ty + 16, 'floor').refreshBody();
+        if (lastRoom && lastRoom.end >= CONFIG.WORLD_WIDTH - 1) {
+            const localX = lastRoom.width - 16;
+            for (let localY = tile; localY < CONFIG.WORLD_HEIGHT - 32; localY += tile) {
+                const centerY = localY + 16;
+                if (shouldPlaceBoundaryTile(lastRoomId, { x: localX, y: centerY })) {
+                    this.platforms.create(CONFIG.WORLD_WIDTH - 16, centerY, 'floor').refreshBody();
+                }
+            }
         }
 
         Object.values(ROOM_PLATFORM_LAYOUTS).forEach((ledges) => {
@@ -1129,6 +1459,7 @@ class AshenHollow extends Phaser.Scene {
     }
 
     getVisitedMapRooms() {
+        if (TEMP_SHOW_FULL_MAP) return getRuntimeLayoutRooms();
         return getRuntimeLayoutRooms().filter((room) => this.visitedRooms.has(room.id));
     }
 
@@ -1171,10 +1502,15 @@ class AshenHollow extends Phaser.Scene {
         const contentHeight = height * scale;
         const mapCenterX = IN_GAME_MAP.mapX + (IN_GAME_MAP.mapWidth / 2);
         const mapCenterY = IN_GAME_MAP.mapY + (IN_GAME_MAP.mapHeight / 2);
-        const focus = this.getPlayerGlobalMapPoint() || {
-            x: bounds.minX + (width / 2),
-            y: bounds.minY + (height / 2)
-        };
+        const focus = TEMP_SHOW_FULL_MAP
+            ? {
+                x: bounds.minX + (width / 2),
+                y: bounds.minY + (height / 2)
+            }
+            : (this.getPlayerGlobalMapPoint() || {
+                x: bounds.minX + (width / 2),
+                y: bounds.minY + (height / 2)
+            });
 
         let offsetX = mapCenterX - ((focus.x - bounds.minX) * scale);
         let offsetY = mapCenterY - ((focus.y - bounds.minY) * scale);
@@ -1240,7 +1576,7 @@ class AshenHollow extends Phaser.Scene {
 
         if (!rooms.length || !projection) {
             if (this.mapCurrentRoomText) this.mapCurrentRoomText.setText('Current: map unavailable');
-            if (this.mapVisitedText) this.mapVisitedText.setText(`Visited ${this.visitedRooms.size}/${ROOM_SEQUENCE.length}`);
+            if (this.mapVisitedText) this.mapVisitedText.setText(TEMP_SHOW_FULL_MAP ? 'Map: full layout' : `Visited ${this.visitedRooms.size}/${ROOM_SEQUENCE.length}`);
             if (this.mapZoomText) this.mapZoomText.setText(`Zoom ${Math.round(this.mapZoom * 100)}%`);
             const emptyLabel = this.add.text(CONFIG.W / 2, IN_GAME_MAP.mapY + (IN_GAME_MAP.mapHeight / 2), 'No visited rooms to display.', {
                 fontSize: '14px',
@@ -1300,7 +1636,7 @@ class AshenHollow extends Phaser.Scene {
         const currentRoom = getLayoutRoom(this.currentRoomId);
         const currentName = currentRoom?.name || this.currentRoomId;
         if (this.mapCurrentRoomText) this.mapCurrentRoomText.setText(`Current: ${this.currentRoomId} - ${currentName}`);
-        if (this.mapVisitedText) this.mapVisitedText.setText(`Visited ${this.visitedRooms.size}/${ROOM_SEQUENCE.length}`);
+        if (this.mapVisitedText) this.mapVisitedText.setText(TEMP_SHOW_FULL_MAP ? 'Map: full layout' : `Visited ${this.visitedRooms.size}/${ROOM_SEQUENCE.length}`);
         if (this.mapZoomText) this.mapZoomText.setText(`Zoom ${Math.round(this.mapZoom * 100)}%`);
         this.mapNeedsRedraw = false;
     }
@@ -1729,17 +2065,17 @@ class AshenHollow extends Phaser.Scene {
 
     transitionToRoom(targetRoomId, targetX, targetY, statusLabel, options = {}) {
         if (this.inRoomTransition) return;
-        this.inRoomTransition = true;
-        this.transitionCooldownUntil = this.time.now + 700;
-
-        this.cameras.main.stopFollow();
-
         const sourceY = this.player.y;
         const room = ROOM_IDS[targetRoomId];
         const roomMid = room.start + (room.width / 2);
         const entryEdge = options.entrySide || (targetX <= roomMid ? 'left' : 'right');
         const resolvedY = options.preserveY === false ? targetY : sourceY;
         const isVertical = entryEdge === 'top' || entryEdge === 'bottom';
+        const preserveFacing = options.preserveFacing === true;
+        const continuous = options.continuous === true;
+        const preserveVelocity = continuous && options.preserveVelocity === true;
+        const sourceVelocityX = this.player.body?.velocity?.x || 0;
+        const sourceVelocityY = this.player.body?.velocity?.y || 0;
         const entryX = entryEdge === 'left' ? room.start + 56
             : entryEdge === 'right' ? room.end - 56
                 : targetX;
@@ -1760,7 +2096,7 @@ class AshenHollow extends Phaser.Scene {
         } else {
             entryY = resolvedY;
         }
-        const facingLeft = entryEdge === 'right';
+        const facingLeft = preserveFacing ? this.player.flipX : entryEdge === 'right';
         const transitionSpeedPxPerSec = CONFIG.PLAYER_SPEED;
         const entryDistancePx = isVertical
             ? Math.abs(targetY - entryY)
@@ -1771,14 +2107,109 @@ class AshenHollow extends Phaser.Scene {
             420
         );
 
+        const clearBodyContactState = (body) => {
+            if (!body) return;
+            if (typeof body.resetFlags === 'function') {
+                body.resetFlags(true);
+            }
+            if (body.touching) {
+                body.touching.none = true;
+                body.touching.up = false;
+                body.touching.down = false;
+                body.touching.left = false;
+                body.touching.right = false;
+            }
+            if (body.wasTouching) {
+                body.wasTouching.none = true;
+                body.wasTouching.up = false;
+                body.wasTouching.down = false;
+                body.wasTouching.left = false;
+                body.wasTouching.right = false;
+            }
+            if (body.blocked) {
+                body.blocked.none = true;
+                body.blocked.up = false;
+                body.blocked.down = false;
+                body.blocked.left = false;
+                body.blocked.right = false;
+            }
+            body.embedded = false;
+        };
+        const finalizeStatus = () => {
+            if (targetRoomId === 'R1') {
+                this.setStatusMessage(`${statusLabel} | ${this.getR1ContextPrompt()}`);
+            } else {
+                this.setStatusMessage(statusLabel);
+            }
+        };
+
+        if (continuous) {
+            this.transitionCooldownUntil = this.time.now + 320;
+            this.setCurrentRoom(targetRoomId);
+            this.player.setFlipX(facingLeft);
+            this.player.body.enable = true;
+            this.player.setPosition(targetX, targetY);
+            this.player.body.reset(targetX, targetY);
+            clearBodyContactState(this.player.body);
+
+            if (preserveVelocity) {
+                let nextVelocityY = sourceVelocityY;
+                if (entryEdge === 'top' && nextVelocityY <= 0) nextVelocityY = 24;
+                else if (entryEdge === 'bottom' && nextVelocityY >= 0) nextVelocityY = -24;
+                const clampedVelocity = {
+                    x: Phaser.Math.Clamp(sourceVelocityX, -CONFIG.PLAYER_SPEED, CONFIG.PLAYER_SPEED),
+                    y: Phaser.Math.Clamp(nextVelocityY, -520, 520)
+                };
+                this.player.setVelocity(clampedVelocity.x, clampedVelocity.y);
+                this.continuousTransferVelocity = clampedVelocity;
+                this.continuousTransferFrames = 4;
+            } else {
+                this.continuousTransferVelocity = null;
+                this.continuousTransferFrames = 0;
+            }
+
+            this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
+            this.cameras.main.centerOn(this.player.x, this.player.y);
+            this.tweens.killTweensOf(this.transitionOverlay);
+            this.transitionOverlay.setAlpha(0.16);
+            this.tweens.add({
+                targets: this.transitionOverlay,
+                alpha: 0,
+                duration: 120,
+                ease: 'Linear'
+            });
+            finalizeStatus();
+            return;
+        }
+
+        this.inRoomTransition = true;
+        this.transitionCooldownUntil = this.time.now + 700;
+        this.cameras.main.stopFollow();
+
         this.tweens.add({
             targets: this.transitionOverlay,
             alpha: 1,
             duration: 140,
             onComplete: () => {
                 this.setCurrentRoom(targetRoomId);
+                this.player.setFlipX(facingLeft);
+
+                const finalizeTransition = () => {
+                    finalizeStatus();
+
+                    this.tweens.add({
+                        targets: this.transitionOverlay,
+                        alpha: 0,
+                        duration: 200,
+                        ease: 'Linear',
+                        onComplete: () => {
+                            this.inRoomTransition = false;
+                        }
+                    });
+                };
+
                 this.player.body.enable = false;
-                this.player.setPosition(entryX, entryY).setFlipX(facingLeft);
+                this.player.setPosition(entryX, entryY);
 
                 this.cameras.main.centerOn(entryX, entryY);
                 this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
@@ -1792,25 +2223,93 @@ class AshenHollow extends Phaser.Scene {
                     onComplete: () => {
                         this.player.body.enable = true;
                         this.player.body.reset(this.player.x, this.player.y);
-                        if (targetRoomId === 'R1') {
-                            this.setStatusMessage(`${statusLabel} | ${this.getR1ContextPrompt()}`);
-                        } else {
-                            this.setStatusMessage(statusLabel);
-                        }
-
-                        this.tweens.add({
-                            targets: this.transitionOverlay,
-                            alpha: 0,
-                            duration: 200,
-                            ease: 'Linear',
-                            onComplete: () => {
-                                this.inRoomTransition = false;
-                            }
-                        });
+                        finalizeTransition();
                     }
                 });
             }
         });
+    }
+
+    tryTraverseOpenEdgeEntrance() {
+        const roomId = this.currentRoomId;
+        const room = getLayoutRoom(roomId);
+        const roomBounds = ROOM_IDS[roomId];
+        if (!room || !roomBounds || !Array.isArray(room.edgeLinks) || !room.edgeLinks.length) return false;
+
+        const localPlayer = {
+            x: this.player.x - roomBounds.start,
+            y: this.player.y
+        };
+        const velocity = this.player.body?.velocity || { x: 0, y: 0 };
+        let bestCandidate = null;
+
+        room.edgeLinks.forEach((link) => {
+            if (!isLayoutRoomEdgeRemoved(roomId, link.edgeIndex) || !isLayoutRoomEdgeRemoved(link.targetRoomId, link.targetEdgeIndex)) {
+                return;
+            }
+            if (hasLayoutDoorNearEdge(roomId, link.edgeIndex) || hasLayoutDoorNearEdge(link.targetRoomId, link.targetEdgeIndex)) {
+                return;
+            }
+
+            const sourceEdge = getLayoutRoomEdge(roomId, link.edgeIndex);
+            const targetEdge = getLayoutRoomEdge(link.targetRoomId, link.targetEdgeIndex);
+            const targetRoom = getLayoutRoom(link.targetRoomId);
+            if (!sourceEdge || !targetEdge || !targetRoom || !ROOM_IDS[link.targetRoomId]) return;
+
+            const closest = closestPointOnSegment(
+                localPlayer,
+                [sourceEdge.start.x, sourceEdge.start.y],
+                [sourceEdge.end.x, sourceEdge.end.y]
+            );
+            if (closest.distance > 28) return;
+
+            const sourceNormal = getPolygonEdgeOutwardNormal(room.polygon, link.edgeIndex);
+            const signedDistance = ((localPlayer.x - closest.point.x) * sourceNormal.x) + ((localPlayer.y - closest.point.y) * sourceNormal.y);
+            const velocityDot = (velocity.x * sourceNormal.x) + (velocity.y * sourceNormal.y);
+            const boundaryBlocked =
+                (sourceNormal.y > 0.5 && this.player.body?.blocked?.down) ||
+                (sourceNormal.y < -0.5 && this.player.body?.blocked?.up) ||
+                (sourceNormal.x > 0.5 && this.player.body?.blocked?.right) ||
+                (sourceNormal.x < -0.5 && this.player.body?.blocked?.left);
+            if (signedDistance < -8 && velocityDot < 10 && !boundaryBlocked) return;
+
+            if (!bestCandidate || closest.distance < bestCandidate.distance) {
+                bestCandidate = {
+                    link,
+                    targetRoom,
+                    sourceEdge,
+                    targetEdge,
+                    distance: closest.distance,
+                    t: closest.t
+                };
+            }
+        });
+
+        if (!bestCandidate) return false;
+
+        const { link, targetRoom, targetEdge, t } = bestCandidate;
+        const targetNormal = getPolygonEdgeOutwardNormal(targetRoom.polygon, link.targetEdgeIndex);
+        const targetT = isLayoutEdgeLinkReversed(roomId, link.edgeIndex, link.targetRoomId, link.targetEdgeIndex) ? 1 - t : t;
+        const targetX = targetEdge.start.x + ((targetEdge.end.x - targetEdge.start.x) * targetT);
+        const targetY = targetEdge.start.y + ((targetEdge.end.y - targetEdge.start.y) * targetT);
+        const spawnLocalX = Phaser.Math.Clamp(targetX - (targetNormal.x * 40), 32, targetRoom.size.width - 32);
+        const spawnLocalY = Phaser.Math.Clamp(targetY - (targetNormal.y * 40), 48, targetRoom.size.height - 48);
+        const entrySide = getEntrySideFromNormal(targetNormal);
+
+        this.transitionToRoom(
+            link.targetRoomId,
+            ROOM_IDS[link.targetRoomId].start + spawnLocalX,
+            spawnLocalY,
+            `Entrance: ${roomId} -> ${link.targetRoomId}`,
+            {
+                entrySide,
+                preserveY: false,
+                preserveFacing: true,
+                preserveVelocity: true,
+                continuous: true
+            }
+        );
+        return true;
     }
 
     getR1ContextPrompt() {
@@ -1959,6 +2458,51 @@ class AshenHollow extends Phaser.Scene {
         });
     }
 
+    sustainContinuousTransferMomentum() {
+        if (!this.player?.body || this.continuousTransferFrames <= 0 || !this.continuousTransferVelocity) return;
+
+        const body = this.player.body;
+        if (typeof body.resetFlags === 'function') {
+            body.resetFlags(true);
+        }
+        if (body.touching) {
+            body.touching.none = true;
+            body.touching.up = false;
+            body.touching.down = false;
+            body.touching.left = false;
+            body.touching.right = false;
+        }
+        if (body.wasTouching) {
+            body.wasTouching.none = true;
+            body.wasTouching.up = false;
+            body.wasTouching.down = false;
+            body.wasTouching.left = false;
+            body.wasTouching.right = false;
+        }
+        if (body.blocked) {
+            body.blocked.none = true;
+            body.blocked.up = false;
+            body.blocked.down = false;
+            body.blocked.left = false;
+            body.blocked.right = false;
+        }
+        body.embedded = false;
+
+        const carryX = this.continuousTransferVelocity.x;
+        const carryY = this.continuousTransferVelocity.y;
+        if (Math.abs(carryX) > Math.abs(body.velocity.x)) {
+            this.player.setVelocityX(carryX);
+        }
+        if ((carryY >= 0 && body.velocity.y < carryY) || (carryY < 0 && body.velocity.y > carryY)) {
+            this.player.setVelocityY(carryY);
+        }
+
+        this.continuousTransferFrames -= 1;
+        if (this.continuousTransferFrames <= 0) {
+            this.continuousTransferVelocity = null;
+        }
+    }
+
     update() {
         if (this.mapKey && Phaser.Input.Keyboard.JustDown(this.mapKey)) {
             this.toggleMapOverlay();
@@ -1975,6 +2519,7 @@ class AshenHollow extends Phaser.Scene {
         if (this.isGameOver || this.inRoomTransition) return;
 
         this.updateRuntimeMovers();
+        this.sustainContinuousTransferMomentum();
 
         const showInteract = this.hasInteractableNearby();
         if (this.interactBtn) {
@@ -2049,6 +2594,7 @@ class AshenHollow extends Phaser.Scene {
         if (this.debugUnlockKey && Phaser.Input.Keyboard.JustDown(this.debugUnlockKey) && ENABLE_DEBUG_UNLOCK) this.runDebugUnlock();
 
         if (now < this.transitionCooldownUntil) return;
+        if (this.tryTraverseOpenEdgeEntrance()) return;
 
         if (room === 'R1' && interactPressed && this.r1ToR2Door) {
             const nearR1Door = Phaser.Math.Distance.Between(

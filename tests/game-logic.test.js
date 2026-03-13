@@ -219,6 +219,71 @@ function isInPit(mid, pitZones) {
     return pitZones.some(p => mid >= p.start && mid <= p.end);
 }
 
+function clampNumber(value, min, max) {
+    return Math.min(max, Math.max(min, value));
+}
+
+function normalizeLayoutRoomForRuntime(room, fallbackWidth = 1600) {
+    const width = Math.max(320, Number(room?.size?.width || fallbackWidth));
+    const sourceHeight = Math.max(320, Number(room?.size?.height || CONFIG.WORLD_HEIGHT));
+    const scaleY = CONFIG.WORLD_HEIGHT / sourceHeight;
+    const normalizeX = (value, fallback = 0) => {
+        const numeric = Number(value);
+        if (!Number.isFinite(numeric)) return fallback;
+        return clampNumber(numeric, 0, width);
+    };
+    const normalizeY = (value, fallback = CONFIG.WORLD_HEIGHT - 64) => {
+        const numeric = Number(value);
+        if (!Number.isFinite(numeric)) return fallback;
+        const scaled = sourceHeight === CONFIG.WORLD_HEIGHT ? numeric : (numeric * scaleY);
+        return clampNumber(Number(scaled.toFixed(2)), 0, CONFIG.WORLD_HEIGHT);
+    };
+
+    return {
+        size: { width, height: CONFIG.WORLD_HEIGHT },
+        doors: (room.doors || []).map((door) => ({
+            ...door,
+            x: normalizeX(door.x, 0),
+            y: normalizeY(door.y, CONFIG.WORLD_HEIGHT - 64)
+        })),
+        platforms: (room.platforms || []).map((platform) => ({
+            ...platform,
+            x: normalizeX(platform.x, 0),
+            y: normalizeY(platform.y, CONFIG.WORLD_HEIGHT - 64)
+        })),
+        movingPlatforms: (room.movingPlatforms || []).map((mover) => {
+            const startX = normalizeX(mover.x, 0);
+            const startY = normalizeY(mover.y, CONFIG.WORLD_HEIGHT - 64);
+            return {
+                ...mover,
+                x: startX,
+                y: startY,
+                endX: normalizeX(mover.endX, startX),
+                endY: normalizeY(mover.endY, startY)
+            };
+        })
+    };
+}
+
+function computeDoorStandPosition(roomWidth, door) {
+    const leftGap = door.x;
+    const rightGap = roomWidth - door.x;
+    const topGap = door.y;
+    const bottomGap = CONFIG.WORLD_HEIGHT - door.y;
+    const minGap = Math.min(leftGap, rightGap, topGap, bottomGap);
+
+    if (minGap === leftGap) {
+        return { x: door.x + 96, y: door.y, entrySide: 'left' };
+    }
+    if (minGap === rightGap) {
+        return { x: door.x - 96, y: door.y, entrySide: 'right' };
+    }
+    if (minGap === topGap) {
+        return { x: door.x, y: door.y + 96, entrySide: 'top' };
+    }
+    return { x: door.x, y: door.y - 96, entrySide: 'bottom' };
+}
+
 // ========== RNG tests ==========
 (function testRngDeterminism() {
     const rng1 = createRng(42);
@@ -265,6 +330,44 @@ function isInPit(mid, pitZones) {
 
 (function testPitZoneEmpty() {
     assert.strictEqual(isInPit(100, []), false);
+})();
+
+// ========== Runtime layout normalization tests ==========
+(function testTallRoomDoorAndPlatformsScaleIntoPlayableHeight() {
+    const out = normalizeLayoutRoomForRuntime({
+        id: 'R6',
+        size: { width: 5000, height: 2000 },
+        doors: [{ id: 'R6-D1', x: 201, y: 1622 }],
+        platforms: [{ id: 'R6-P1', x: 1790, y: 1551, len: 7, tint: 0 }],
+        movingPlatforms: [{ id: 'R6-M1', x: 1072, y: 1584, endX: 1072, endY: 384, len: 4, tint: 0 }]
+    });
+
+    assert.strictEqual(out.size.height, CONFIG.WORLD_HEIGHT);
+    assert.strictEqual(out.doors[0].y, 973.2);
+    assert.strictEqual(out.platforms[0].y, 930.6);
+    assert.strictEqual(out.movingPlatforms[0].y, 950.4);
+    assert.strictEqual(out.movingPlatforms[0].endY, 230.4);
+})();
+
+(function testScaledDoorSpawnStaysInsidePlayableWorld() {
+    const out = normalizeLayoutRoomForRuntime({
+        id: 'R6',
+        size: { width: 5000, height: 2000 },
+        doors: [{ id: 'R6-D1', x: 201, y: 1622 }]
+    });
+    const stand = computeDoorStandPosition(out.size.width, out.doors[0]);
+
+    assert.deepStrictEqual(stand, { x: 297, y: 973.2, entrySide: 'left' });
+})();
+
+(function testInBoundsRoomKeepsExistingDoorHeight() {
+    const out = normalizeLayoutRoomForRuntime({
+        id: 'R5',
+        size: { width: 1600, height: 1200 },
+        doors: [{ id: 'R5-D1', x: 1216, y: 848 }]
+    });
+
+    assert.strictEqual(out.doors[0].y, 848);
 })();
 
 // ========== Horizontal movement tests ==========

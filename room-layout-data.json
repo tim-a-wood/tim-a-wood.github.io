@@ -11,13 +11,21 @@
       "id": "R1",
       "name": "Spawn + Final Gate Chamber",
       "global": {
-        "x": 342,
-        "y": 420
+        "x": 468,
+        "y": 396
       },
       "polygon": [
         [
           1216,
           256
+        ],
+        [
+          1439.108290535011,
+          256.0000000000004
+        ],
+        [
+          1572.297023005573,
+          256.0000000000004
         ],
         [
           1824,
@@ -130,8 +138,8 @@
         },
         {
           "id": "R1-P6",
-          "x": 1752,
-          "y": 368,
+          "x": 1568,
+          "y": 576,
           "len": 12,
           "tint": 0
         },
@@ -176,6 +184,27 @@
           "y": 192,
           "len": 5,
           "tint": 2
+        },
+        {
+          "id": "R1-P13",
+          "x": 2464,
+          "y": 416,
+          "len": 12,
+          "tint": 0
+        },
+        {
+          "id": "R1-P14",
+          "x": 1600,
+          "y": 448,
+          "len": 12,
+          "tint": 0
+        },
+        {
+          "id": "R1-P15",
+          "x": 1944,
+          "y": 368,
+          "len": 12,
+          "tint": 0
         }
       ],
       "doors": [
@@ -216,18 +245,32 @@
       "movingPlatforms": [],
       "edgeLinks": [
         {
-          "edgeIndex": 3,
+          "edgeIndex": 1,
+          "targetRoomId": "R11",
+          "targetEdgeIndex": 2
+        },
+        {
+          "edgeIndex": 5,
           "targetRoomId": "R2",
           "targetEdgeIndex": 11
+        },
+        {
+          "edgeIndex": 11,
+          "targetRoomId": "R9",
+          "targetEdgeIndex": 2
         }
-      ]
+      ],
+      "removedEdges": [
+        1
+      ],
+      "abilities": []
     },
     {
       "id": "R2",
       "name": "Central Hub",
       "global": {
-        "x": 596,
-        "y": 396
+        "x": 722,
+        "y": 372
       },
       "polygon": [
         [
@@ -256,19 +299,19 @@
         ],
         [
           1288,
-          800
+          656
         ],
         [
           848,
           800
         ],
         [
-          860,
-          1080
+          848,
+          1048
         ],
         [
-          560,
-          1080
+          552,
+          1048
         ],
         [
           552,
@@ -363,14 +406,14 @@
           "label": "B East",
           "targetRoom": "R5",
           "initialState": {
-            "forward": "unlocked",
+            "forward": "locked",
             "reverse": "unlocked"
           }
         },
         {
           "id": "R2-D4",
           "x": 768,
-          "y": 1040,
+          "y": 1008,
           "kind": "branch",
           "label": "C South",
           "targetRoom": "R7",
@@ -389,8 +432,8 @@
       "movingPlatforms": [
         {
           "id": "R2-M1",
-          "x": 576,
-          "y": 1064,
+          "x": 568,
+          "y": 1032,
           "endX": 568,
           "endY": 808,
           "len": 4,
@@ -400,6 +443,16 @@
       ],
       "edgeLinks": [
         {
+          "edgeIndex": 2,
+          "targetRoomId": "R3",
+          "targetEdgeIndex": 15
+        },
+        {
+          "edgeIndex": 5,
+          "targetRoomId": "R5",
+          "targetEdgeIndex": 0
+        },
+        {
           "edgeIndex": 8,
           "targetRoomId": "R7",
           "targetEdgeIndex": 5
@@ -407,21 +460,23 @@
         {
           "edgeIndex": 11,
           "targetRoomId": "R1",
-          "targetEdgeIndex": 3
+          "targetEdgeIndex": 5
         }
-      ]
+      ],
+      "removedEdges": [],
+      "abilities": []
     },
     {
       "id": "R3",
       "name": "Branch A Entry Trial",
       "global": {
-        "x": 535,
-        "y": 268
+        "x": 661,
+        "y": 244
       },
       "polygon": [
         [
-          983,
-          1079
+          980.3333333333333,
+          1082.6666666666667
         ],
         [
           985,
@@ -432,8 +487,16 @@
           989
         ],
         [
-          47,
-          50
+          58,
+          117
+        ],
+        [
+          6,
+          117
+        ],
+        [
+          7,
+          49
         ],
         [
           796,
@@ -472,8 +535,8 @@
           720
         ],
         [
-          1360,
-          1080
+          1356.333333333333,
+          1082.6666666666667
         ]
       ],
       "platforms": [
@@ -586,14 +649,27 @@
       "playerStart": null,
       "keys": [],
       "movingPlatforms": [],
-      "edgeLinks": []
+      "edgeLinks": [
+        {
+          "edgeIndex": 4,
+          "targetRoomId": "R4",
+          "targetEdgeIndex": 8
+        },
+        {
+          "edgeIndex": 15,
+          "targetRoomId": "R2",
+          "targetEdgeIndex": 2
+        }
+      ],
+      "removedEdges": [],
+      "abilities": []
     },
     {
       "id": "R4",
       "name": "Branch A Reward Hall",
       "global": {
-        "x": 432,
-        "y": 154
+        "x": 556,
+        "y": 129
       },
       "polygon": [
         [
@@ -629,12 +705,28 @@
           1009
         ],
         [
-          1185,
-          1009
+          1182.0000000000002,
+          1007.3333333333333
         ],
         [
-          1186,
-          1080
+          1181.0000000000002,
+          1075.3333333333335
+        ],
+        [
+          467,
+          1079
+        ],
+        [
+          429,
+          1195
+        ],
+        [
+          306.0000000000002,
+          1195
+        ],
+        [
+          267,
+          1079
         ]
       ],
       "platforms": [
@@ -647,29 +739,29 @@
         },
         {
           "id": "R4-P2",
-          "x": 420,
-          "y": 1060,
+          "x": 288,
+          "y": 960,
           "len": 5,
           "tint": 1
         },
         {
           "id": "R4-P3",
-          "x": 908,
-          "y": 938,
+          "x": 718,
+          "y": 864,
           "len": 4,
           "tint": 2
         },
         {
           "id": "R4-P4",
-          "x": 920,
-          "y": 980,
+          "x": 844,
+          "y": 858,
           "len": 4,
           "tint": 3
         },
         {
           "id": "R4-P5",
-          "x": 1160,
-          "y": 940,
+          "x": 1121,
+          "y": 882,
           "len": 4,
           "tint": 4
         },
@@ -698,8 +790,8 @@
       "doors": [
         {
           "id": "R4-D1",
-          "x": 1520,
-          "y": 1148,
+          "x": 1150,
+          "y": 1046,
           "kind": "secret",
           "label": "Tunnel Shaft",
           "targetRoom": "R11",
@@ -716,27 +808,42 @@
       "playerStart": null,
       "keys": [],
       "movingPlatforms": [],
-      "edgeLinks": []
+      "edgeLinks": [
+        {
+          "edgeIndex": 8,
+          "targetRoomId": "R3",
+          "targetEdgeIndex": 4
+        },
+        {
+          "edgeIndex": 11,
+          "targetRoomId": "R11",
+          "targetEdgeIndex": 0
+        }
+      ],
+      "removedEdges": [
+        11
+      ],
+      "abilities": []
     },
     {
       "id": "R5",
       "name": "Branch B East Corridor",
       "global": {
-        "x": 743,
-        "y": 365
+        "x": 869,
+        "y": 322
       },
       "polygon": [
         [
-          60,
-          1080
+          62.999999999999545,
+          1072.666666666667
         ],
         [
-          60,
-          860
+          62.999999999999545,
+          736.6666666666665
         ],
         [
-          360,
-          860
+          352,
+          736.6667
         ],
         [
           352,
@@ -788,7 +895,7 @@
         ],
         [
           1260,
-          1080
+          1072.6667
         ]
       ],
       "platforms": [
@@ -898,27 +1005,40 @@
           "initialState": "unlocked"
         }
       ],
-      "edgeLinks": []
+      "edgeLinks": [
+        {
+          "edgeIndex": 0,
+          "targetRoomId": "R2",
+          "targetEdgeIndex": 5
+        },
+        {
+          "edgeIndex": 14,
+          "targetRoomId": "R6",
+          "targetEdgeIndex": 0
+        }
+      ],
+      "removedEdges": [],
+      "abilities": []
     },
     {
       "id": "R6",
       "name": "Branch B Vault",
       "global": {
-        "x": 1091,
-        "y": 323
+        "x": 1214,
+        "y": 287
       },
       "polygon": [
         [
-          87,
-          1695
+          85.00000000000041,
+          1764.3333666666667
         ],
         [
-          87,
-          1515
+          85.00000000000041,
+          1451.6666666666665
         ],
         [
-          287,
-          1515
+          278,
+          1449
         ],
         [
           287,
@@ -965,8 +1085,8 @@
           1401
         ],
         [
-          4251,
-          1679
+          4227,
+          1766
         ]
       ],
       "platforms": [
@@ -1030,8 +1150,8 @@
       "doors": [
         {
           "id": "R6-D1",
-          "x": 201,
-          "y": 1622,
+          "x": 205,
+          "y": 1695,
           "kind": "return",
           "label": "Back to R5",
           "targetRoom": "R5",
@@ -1048,14 +1168,22 @@
       "playerStart": null,
       "keys": [],
       "movingPlatforms": [],
-      "edgeLinks": []
+      "edgeLinks": [
+        {
+          "edgeIndex": 0,
+          "targetRoomId": "R5",
+          "targetEdgeIndex": 14
+        }
+      ],
+      "removedEdges": [],
+      "abilities": []
     },
     {
       "id": "R7",
       "name": "Branch C South Shaft",
       "global": {
-        "x": 664,
-        "y": 508
+        "x": 790,
+        "y": 484
       },
       "polygon": [
         [
@@ -1075,24 +1203,24 @@
           737
         ],
         [
-          284,
-          739
-        ],
-        [
-          279,
-          147
-        ],
-        [
-          14,
-          150
-        ],
-        [
-          8,
+          320,
           736
         ],
         [
-          4,
-          938
+          313.33333333333326,
+          114.66666666666657
+        ],
+        [
+          17.333333333333385,
+          114.66666666666657
+        ],
+        [
+          16,
+          736
+        ],
+        [
+          16,
+          944
         ],
         [
           1019,
@@ -1103,12 +1231,20 @@
           1101
         ],
         [
-          1579,
-          519
+          1587,
+          652
+        ],
+        [
+          1622.3333333333335,
+          652.0000000000001
+        ],
+        [
+          1622.3333333333335,
+          492.00000000000017
         ],
         [
           1036,
-          517
+          492
         ],
         [
           1036,
@@ -1125,8 +1261,8 @@
         },
         {
           "id": "R7-P2",
-          "x": 929,
-          "y": 616,
+          "x": 944,
+          "y": 656,
           "len": 20,
           "tint": 1
         },
@@ -1211,8 +1347,8 @@
       "doors": [
         {
           "id": "R7-D1",
-          "x": 1511,
-          "y": 573,
+          "x": 1584,
+          "y": 616,
           "kind": "transition",
           "label": "To R8",
           "targetRoom": "R8",
@@ -1235,7 +1371,7 @@
         }
       ],
       "size": {
-        "width": 1600,
+        "width": 1664,
         "height": 1200
       },
       "playerStart": {
@@ -1249,15 +1385,22 @@
           "edgeIndex": 5,
           "targetRoomId": "R2",
           "targetEdgeIndex": 8
+        },
+        {
+          "edgeIndex": 12,
+          "targetRoomId": "R8",
+          "targetEdgeIndex": 3
         }
-      ]
+      ],
+      "removedEdges": [],
+      "abilities": []
     },
     {
       "id": "R8",
       "name": "Branch C South Sanctum",
       "global": {
-        "x": 835,
-        "y": 472
+        "x": 977,
+        "y": 520
       },
       "polygon": [
         [
@@ -1317,8 +1460,8 @@
           1193
         ],
         [
-          555,
-          1127
+          608,
+          1128
         ],
         [
           377,
@@ -1421,18 +1564,6 @@
       ],
       "doors": [
         {
-          "id": "R8-D1",
-          "x": 202,
-          "y": 1046,
-          "kind": "return",
-          "label": "Back to R7",
-          "targetRoom": "R7",
-          "initialState": {
-            "forward": "unlocked",
-            "reverse": "unlocked"
-          }
-        },
-        {
           "id": "R8-D2",
           "x": 76,
           "y": 247,
@@ -1450,36 +1581,43 @@
         "height": 1200
       },
       "playerStart": null,
-      "keys": [
-        {
-          "id": "R8-K1",
-          "x": 1445,
-          "y": 653,
-          "label": "New Key",
-          "unlocksTarget": "R8-M1"
-        }
-      ],
+      "keys": [],
       "movingPlatforms": [
         {
           "id": "R8-M1",
-          "x": 395,
-          "y": 1113,
+          "x": 408,
+          "y": 1112,
           "endX": 403,
           "endY": 357,
           "len": 4,
           "tint": 0,
           "leverId": "",
-          "initialState": "locked"
+          "initialState": "unlocked"
         }
       ],
-      "edgeLinks": []
+      "edgeLinks": [
+        {
+          "edgeIndex": 3,
+          "targetRoomId": "R7",
+          "targetEdgeIndex": 12
+        }
+      ],
+      "removedEdges": [],
+      "abilities": [
+        {
+          "id": "R8-A1",
+          "x": 1176,
+          "y": 1168,
+          "type": "double_jump"
+        }
+      ]
     },
     {
       "id": "R9",
       "name": "Final Area",
       "global": {
-        "x": 445,
-        "y": 531
+        "x": 547,
+        "y": 509
       },
       "polygon": [
         [
@@ -1487,20 +1625,20 @@
           260
         ],
         [
-          480,
-          260
+          464,
+          256
         ],
         [
-          480,
-          140
+          461.6666666666665,
+          138.33333333333348
         ],
         [
-          860,
-          140
+          877.6666666666663,
+          138.33333333333348
         ],
         [
-          860,
-          980
+          880,
+          984
         ],
         [
           520,
@@ -1559,14 +1697,27 @@
       "playerStart": null,
       "keys": [],
       "movingPlatforms": [],
-      "edgeLinks": []
+      "edgeLinks": [
+        {
+          "edgeIndex": 2,
+          "targetRoomId": "R1",
+          "targetEdgeIndex": 11
+        },
+        {
+          "edgeIndex": 6,
+          "targetRoomId": "R10",
+          "targetEdgeIndex": 2
+        }
+      ],
+      "removedEdges": [],
+      "abilities": []
     },
     {
       "id": "R10",
       "name": "Exit / Completion Room",
       "global": {
-        "x": 321,
-        "y": 694
+        "x": 457,
+        "y": 638
       },
       "polygon": [
         [
@@ -1574,19 +1725,19 @@
           260
         ],
         [
-          900,
-          260
+          872,
+          256
         ],
         [
-          900,
-          140
+          869.9999999999998,
+          5.000000000000112
         ],
         [
-          1240,
-          140
+          1269.9999999999995,
+          5.000000000000112
         ],
         [
-          1240,
+          1288,
           1080
         ],
         [
@@ -1650,133 +1801,67 @@
       "playerStart": null,
       "keys": [],
       "movingPlatforms": [],
-      "edgeLinks": []
+      "edgeLinks": [
+        {
+          "edgeIndex": 2,
+          "targetRoomId": "R9",
+          "targetEdgeIndex": 6
+        }
+      ],
+      "removedEdges": [],
+      "abilities": []
     },
     {
       "id": "R11",
       "name": "Branch A Tunnel Shaft",
       "global": {
-        "x": 317,
-        "y": 317
+        "x": 492,
+        "y": 295
       },
       "polygon": [
         [
-          562,
-          89
+          539.3333333333335,
+          111.6666666666664
         ],
         [
-          668,
-          89
+          662.3333333333335,
+          111.6666666666664
         ],
         [
-          670,
-          1093
+          668.297023005573,
+          1389.666666666667
         ],
         [
-          565,
-          1093
+          535.1082905350111,
+          1389.666666666667
         ]
       ],
-      "platforms": [
-        {
-          "id": "R11-P1",
-          "x": 1160,
-          "y": 240,
-          "len": 5,
-          "tint": 1
-        },
-        {
-          "id": "R11-P2",
-          "x": 1416,
-          "y": 240,
-          "len": 5,
-          "tint": 1
-        },
-        {
-          "id": "R11-P3",
-          "x": 48,
-          "y": 552,
-          "len": 25,
-          "tint": 4
-        },
-        {
-          "id": "R11-P5",
-          "x": 48,
-          "y": 648,
-          "len": 32,
-          "tint": 0
-        }
-      ],
-      "doors": [
-        {
-          "id": "R11-D1",
-          "x": 96,
-          "y": 612,
-          "kind": "secret",
-          "label": "Secret to R3",
-          "targetRoom": "R3",
-          "initialState": {
-            "forward": "unlocked",
-            "reverse": "unlocked"
-          }
-        },
-        {
-          "id": "R11-D2",
-          "x": 1480,
-          "y": 220,
-          "kind": "secret",
-          "label": "From R4",
-          "targetRoom": "R4",
-          "initialState": {
-            "forward": "unlocked",
-            "reverse": "unlocked"
-          }
-        }
-      ],
-      "size": {
-        "width": 1600,
-        "height": 1200
-      },
-      "playerStart": null,
-      "keys": [],
-      "movingPlatforms": [],
-      "edgeLinks": []
-    },
-    {
-      "id": "R12",
-      "name": "New Room R12",
-      "global": {
-        "x": 375,
-        "y": 623
-      },
-      "size": {
-        "width": 500,
-        "height": 600
-      },
-      "polygon": [
-        [
-          156,
-          27
-        ],
-        [
-          242,
-          27
-        ],
-        [
-          243,
-          422
-        ],
-        [
-          157,
-          421
-        ]
-      ],
-      "playerStart": null,
       "platforms": [],
       "doors": [],
+      "size": {
+        "width": 1600,
+        "height": 1800
+      },
+      "playerStart": null,
       "keys": [],
       "movingPlatforms": [],
-      "edgeLinks": []
+      "edgeLinks": [
+        {
+          "edgeIndex": 0,
+          "targetRoomId": "R4",
+          "targetEdgeIndex": 11
+        },
+        {
+          "edgeIndex": 2,
+          "targetRoomId": "R1",
+          "targetEdgeIndex": 1
+        }
+      ],
+      "removedEdges": [
+        0,
+        2
+      ],
+      "abilities": []
     }
   ]
 }
