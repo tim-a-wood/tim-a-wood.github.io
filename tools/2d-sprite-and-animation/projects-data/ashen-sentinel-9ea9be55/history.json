@@ -57,6 +57,44 @@
       "value": true,
       "event_id": "163305a6c376",
       "created_at": "2026-03-13T22:43:09.290535+00:00"
+    },
+    {
+      "type": "concept_run",
+      "run_id": "run-01888551bd",
+      "run_kind": "initial",
+      "status": "completed",
+      "created_at": "2026-03-13T22:47:39.406372+00:00",
+      "completed_at": "2026-03-13T22:47:39.406380+00:00",
+      "concept_ids": [
+        "concept-0011",
+        "concept-0012",
+        "concept-0013",
+        "concept-0014",
+        "concept-0015",
+        "concept-0016"
+      ],
+      "concept_count": 6,
+      "backend_name": "comfyui",
+      "backend_mode": "comfyui",
+      "source_concept_id": null,
+      "attribute_group": null,
+      "target_value": null,
+      "refinement_strength_label": null,
+      "refinement_strength": null,
+      "references_used": [],
+      "summary": "initial run with 6 concepts",
+      "duration_ms": 260502,
+      "event_id": "32c85f207af1"
+    },
+    {
+      "type": "job_summary",
+      "job_id": "77e2b765a31f",
+      "job_type": "concepts.generate",
+      "status": "completed",
+      "summary": "Job completed",
+      "completed_at": "2026-03-13T22:47:39.411960+00:00",
+      "event_id": "7f9af7f97fcf",
+      "created_at": "2026-03-13T22:47:39.412023+00:00"
     }
   ]
 }
