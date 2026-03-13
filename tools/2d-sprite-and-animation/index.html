@@ -661,10 +661,22 @@
         }
 
         .reference-chip {
+            display: grid;
+            grid-template-columns: 80px minmax(0, 1fr);
+            gap: 12px;
             padding: 12px 14px;
             border-radius: 16px;
             background: rgba(255, 255, 255, 0.04);
             border: 1px solid var(--stroke);
+        }
+
+        .reference-chip img {
+            width: 80px;
+            height: 80px;
+            border-radius: 12px;
+            object-fit: cover;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
         }
 
         .run-card,
@@ -901,6 +913,72 @@
             aspect-ratio: 1 / 1;
         }
 
+        .preview-card {
+            position: relative;
+            padding: 12px;
+            border-radius: 18px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--stroke);
+            overflow: hidden;
+        }
+
+        .preview-card img {
+            width: 100%;
+            display: block;
+            border-radius: 12px;
+            object-fit: contain;
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .overlay-stack {
+            position: relative;
+        }
+
+        .overlay-box {
+            position: absolute;
+            border: 2px solid rgba(241, 217, 162, 0.95);
+            background: rgba(212, 167, 82, 0.16);
+            border-radius: 10px;
+            pointer-events: none;
+        }
+
+        .overlay-pivot {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            border-radius: 999px;
+            background: rgba(117, 196, 152, 0.98);
+            border: 2px solid rgba(12, 18, 25, 0.92);
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+        }
+
+        .overlay-pivot.prop {
+            width: 12px;
+            height: 12px;
+            background: rgba(212, 167, 82, 0.98);
+        }
+
+        .swatch-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .swatch {
+            width: 28px;
+            height: 28px;
+            border-radius: 999px;
+            border: 2px solid rgba(255, 255, 255, 0.16);
+            box-shadow: inset 0 0 0 1px rgba(12, 18, 25, 0.42);
+        }
+
+        .action-cloud {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
         .check-list,
         .log-list {
             display: grid;
@@ -920,6 +998,47 @@
             justify-content: space-between;
             gap: 12px;
             align-items: center;
+        }
+
+        .check-row.wrap {
+            align-items: flex-start;
+        }
+
+        .check-row.wrap span:last-child {
+            text-align: right;
+            max-width: 70%;
+        }
+
+        .detail-grid {
+            display: grid;
+            gap: 10px;
+        }
+
+        .history-list {
+            display: grid;
+            gap: 8px;
+        }
+
+        .history-item {
+            padding: 10px 12px;
+            border-radius: 14px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .frame-sequence {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: flex-end;
+        }
+
+        .frame-sequence code {
+            padding: 4px 8px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            font-size: 0.8rem;
         }
 
         .log-list {
@@ -994,6 +1113,10 @@
                 grid-template-columns: 1fr;
             }
 
+            .reference-chip {
+                grid-template-columns: 1fr;
+            }
+
             .toast-stack,
             .activity-dock {
                 right: 12px;
@@ -1016,7 +1139,8 @@
                 <a class="nav-link" href="#intake">Setup</a>
                 <a class="nav-link" href="#concepts">Looks</a>
                 <a class="nav-link" href="#refine">Adjust</a>
-                <a class="nav-link" href="#layer-review">Build Layers</a>
+                <a class="nav-link" href="#master-pose">Master Pose</a>
+                <a class="nav-link" href="#layer-review">Sprite Model</a>
                 <a class="nav-link" href="#rig-review">Set Up Motion</a>
                 <a class="nav-link" href="#production">Build Animations</a>
                 <a class="nav-link" href="#qa">Checks</a>
@@ -1360,43 +1484,159 @@
             </div>
         </section>
 
-        <section class="panel" id="layer-review">
+        <section class="panel" id="master-pose">
             <div class="section-head">
                 <div>
-                    <h3>Build Layers</h3>
-                    <p>This step prepares the temporary layer stack used by the current build pipeline. It is useful for testing the animation/export path, but it still uses a placeholder downstream build.</p>
+                    <h3>Master Pose</h3>
+                    <p>Generate three extraction-ready source images from the approved concept, then approve one. This is the last required image-generation step before deterministic production.</p>
                 </div>
-                <div class="stage-meta" data-stage="layer_review"></div>
+                <div class="stage-meta" data-stage="master_pose"></div>
             </div>
 
             <div class="warning-box">
-                <p id="layer-warning">Downstream warning: the current layer build still uses a synthetic part library.</p>
+                <p id="master-pose-warning">Approve one master pose before building the sprite model. The rest of production reuses that exact source image.</p>
             </div>
 
             <div class="actions">
-                <button id="build-layers">Build Layers</button>
-                <button class="secondary" id="approve-layers">Approve Layers</button>
+                <button id="generate-master-pose">Generate 3 Master Poses</button>
             </div>
-            <div class="check-list" id="layer-checks" style="margin-top: 14px;"></div>
-            <div class="thumb-grid" id="layer-gallery" style="margin-top: 14px;"></div>
+            <div class="grid-2" style="margin-top: 14px;">
+                <div>
+                    <h3 style="font-size: 0.95rem; margin: 0 0 10px;">Approved Concept</h3>
+                    <div id="approved-concept-preview"></div>
+                </div>
+                <div>
+                    <h3 style="font-size: 0.95rem; margin: 0 0 10px;">Master Pose Checks</h3>
+                    <div class="check-list" id="master-pose-summary"></div>
+                </div>
+            </div>
+            <div class="thumb-grid" id="master-pose-gallery" style="margin-top: 14px;"></div>
+        </section>
+
+        <section class="panel" id="layer-review">
+            <div class="section-head">
+                <div>
+                    <h3>Build Sprite Model</h3>
+                    <p>Extract canonical parts from the approved master pose, inspect the result, and apply deterministic corrections in-tool before rigging.</p>
+                </div>
+                <div class="stage-meta" data-stage="sprite_model"></div>
+            </div>
+
+            <div class="warning-box">
+                <p id="layer-warning">The sprite model is the deterministic source of truth for final rendering. Fix masks, pivots, and draw order here instead of rerunning downstream AI.</p>
+            </div>
+
+            <div class="actions">
+                <button id="build-layers">Build Sprite Model</button>
+                <button class="secondary" id="approve-layers">Approve Sprite Model</button>
+            </div>
+            <div class="grid-2" style="margin-top: 14px;">
+                <div>
+                    <h3 style="font-size: 0.95rem; margin: 0 0 10px;">Source And Overlay</h3>
+                    <div id="sprite-model-source"></div>
+                </div>
+                <div>
+                    <h3 style="font-size: 0.95rem; margin: 0 0 10px;">Selected Part</h3>
+                    <div id="sprite-model-selected"></div>
+                </div>
+            </div>
+            <div class="grid-3" style="margin-top: 14px;">
+                <label>
+                    <span class="field-label">Selected Part</span>
+                    <select id="sprite-part-select"></select>
+                </label>
+                <label>
+                    <span class="field-label">Rename Part</span>
+                    <input id="sprite-rename" placeholder="upper_arm_right">
+                </label>
+                <label>
+                    <span class="field-label">Parent Joint</span>
+                    <select id="sprite-parent-joint"></select>
+                </label>
+            </div>
+            <div class="grid-3" style="margin-top: 12px;">
+                <label>
+                    <span class="field-label">Pivot X</span>
+                    <input id="sprite-pivot-x" type="number" step="1">
+                </label>
+                <label>
+                    <span class="field-label">Pivot Y</span>
+                    <input id="sprite-pivot-y" type="number" step="1">
+                </label>
+                <label>
+                    <span class="field-label">Draw Order</span>
+                    <input id="sprite-draw-order" type="number" step="1">
+                </label>
+            </div>
+            <div class="grid-3" style="margin-top: 12px;">
+                <label>
+                    <span class="field-label">Move Part</span>
+                    <input id="sprite-translate" placeholder="dx,dy">
+                </label>
+                <label>
+                    <span class="field-label">Rotate Part</span>
+                    <input id="sprite-rotate" placeholder="degrees">
+                </label>
+                <label>
+                    <span class="field-label">Scale Part</span>
+                    <input id="sprite-scale" placeholder="1.0">
+                </label>
+            </div>
+            <div class="grid-2" style="margin-top: 12px;">
+                <label>
+                    <span class="field-label">Palette Replace</span>
+                    <input id="sprite-palette-map" placeholder="#445566:#c7aa74, #101820:#0b0f16">
+                </label>
+                <label>
+                    <span class="field-label">Mask Region</span>
+                    <input id="sprite-mask-region" placeholder="x0,y0,x1,y1">
+                </label>
+            </div>
+            <div class="actions" style="margin-top: 12px;">
+                <button class="secondary" id="sprite-set-pivot">Set Pivot</button>
+                <button class="secondary" id="sprite-set-parent">Set Parent Joint</button>
+                <button class="secondary" id="sprite-set-draw-order">Set Draw Order</button>
+                <button class="secondary" id="sprite-rename-part">Rename Part</button>
+                <button class="secondary" id="sprite-translate-part">Move Part</button>
+                <button class="secondary" id="sprite-rotate-part">Rotate Part</button>
+                <button class="secondary" id="sprite-scale-part">Scale Part</button>
+                <button class="secondary" id="sprite-cleanup-alpha">Alpha Cleanup</button>
+                <button class="secondary" id="sprite-normalize-outline">Normalize Outline</button>
+                <button class="secondary" id="sprite-apply-palette">Replace Palette</button>
+                <button class="secondary" id="sprite-add-mask">Add To Mask</button>
+                <button class="secondary" id="sprite-remove-mask">Remove From Mask</button>
+                <button class="secondary" id="sprite-mirror-part">Mirror Part</button>
+                <button class="secondary" id="sprite-duplicate-part">Duplicate Part</button>
+                <button class="secondary" id="sprite-recover-occlusion">Recover Occlusion</button>
+            </div>
+            <div class="grid-2" style="margin-top: 14px;">
+                <div>
+                    <h3 style="font-size: 0.95rem; margin: 0 0 10px;">Parts</h3>
+                    <div class="thumb-grid" id="layer-gallery"></div>
+                </div>
+                <div>
+                    <h3 style="font-size: 0.95rem; margin: 0 0 10px;">Model Status And History</h3>
+                    <div class="check-list" id="layer-checks"></div>
+                </div>
+            </div>
         </section>
 
         <section class="panel" id="rig-review">
             <div class="section-head">
                 <div>
                     <h3>Set Up Motion</h3>
-                    <p>This creates the temporary motion setup used by the current renderer. Review it as a pipeline check, not as final extracted animation data.</p>
+                    <p>Bind the extracted sprite model to a deterministic rig and inspect the neutral pose, joint map, and attachment points before rendering clips.</p>
                 </div>
                 <div class="stage-meta" data-stage="rig_review"></div>
             </div>
 
             <div class="actions">
-                <button id="build-rig">Build Motion Setup</button>
-                <button class="secondary" id="approve-rig">Approve Motion Setup</button>
+                <button id="build-rig">Build Rig</button>
+                <button class="secondary" id="approve-rig">Approve Rig</button>
             </div>
             <div class="grid-2" style="margin-top: 14px;">
                 <div class="warning-box">
-                    <pre id="rig-summary">No rig data yet.</pre>
+                    <div class="check-list" id="rig-summary"><div class="empty">No rig data yet.</div></div>
                 </div>
                 <div id="rig-preview"></div>
             </div>
@@ -1406,19 +1646,20 @@
             <div class="section-head">
                 <div>
                     <h3>Build Animations</h3>
-                    <p>Render the idle and walk animations, then move on to checks. This renderer is deterministic, but it still depends on the temporary downstream layer and motion setup.</p>
+                    <p>Render deterministic idle and walk clips from the approved sprite model and rig. No AI calls happen in this stage.</p>
                 </div>
                 <div class="stage-meta" data-stage="production"></div>
             </div>
 
             <div class="warning-box">
-                <p id="production-warning">Production warning: renderer outputs are deterministic, but their upstream layer and rig sources are still synthetic.</p>
+                <p id="production-warning">Clip output is deterministic. Rebuilds from the same approved sprite model and rig should match exactly.</p>
             </div>
 
             <div class="actions">
                 <button id="render-idle">Build Idle</button>
                 <button id="render-walk">Build Walk</button>
             </div>
+            <div class="check-list" id="clip-summary" style="margin-top: 14px;"></div>
             <div class="grid-2" style="margin-top: 14px;">
                 <div>
                     <h3 style="font-size: 0.95rem; margin: 0 0 10px;">Idle Frames</h3>
@@ -1515,8 +1756,8 @@ const STORAGE_KEYS = {
     includeArchived: "spriteWorkbench.includeArchived",
 };
 
-const WIZARD_STEPS = ["project", "brief", "references", "concepts", "review", "refine", "build", "qa", "export"];
-const WORKBENCH_SECTION_IDS = ["intake", "concepts", "refine", "layer-review", "rig-review", "production", "qa", "export", "activity-log"];
+const WIZARD_STEPS = ["project", "brief", "references", "concepts", "review", "refine", "master_pose", "sprite_model", "rig", "clips", "qa", "export"];
+const WORKBENCH_SECTION_IDS = ["intake", "concepts", "refine", "master-pose", "layer-review", "rig-review", "production", "qa", "export", "activity-log"];
 const WIZARD_SECTION_MAP = {
     project: ["intake"],
     brief: ["intake"],
@@ -1524,7 +1765,10 @@ const WIZARD_SECTION_MAP = {
     concepts: ["concepts"],
     review: ["concepts"],
     refine: ["refine"],
-    build: ["layer-review", "rig-review", "production"],
+    master_pose: ["master-pose"],
+    sprite_model: ["layer-review"],
+    rig: ["rig-review"],
+    clips: ["production"],
     qa: ["qa"],
     export: ["export"],
 };
@@ -1565,11 +1809,29 @@ const WIZARD_META = {
         outcome: "You will get four controlled variations from the approved look.",
         example: "Change colors, outfit weight, or silhouette, but avoid changing everything at once.",
     },
-    build: {
-        label: "Build Sprite Set",
-        description: "Run the current layer, motion, and animation build path in the right order.",
-        outcome: "This step prepares the idle and walk frames for checks and export.",
-        example: "The build path is still experimental downstream, but the wizard keeps the order simple.",
+    master_pose: {
+        label: "Master Pose",
+        description: "Generate three extraction-ready source images from the approved concept and choose one.",
+        outcome: "The approved master pose becomes the frozen source image for deterministic production.",
+        example: "Pick the cleanest silhouette with the plainest background and the clearest full-body read.",
+    },
+    sprite_model: {
+        label: "Build Sprite Model",
+        description: "Extract canonical parts from the approved master pose and correct them with deterministic tools.",
+        outcome: "You will get the layered sprite model used by rigging and final rendering.",
+        example: "Fix masks, pivots, and draw order here instead of rerunning downstream generation.",
+    },
+    rig: {
+        label: "Set Up Motion",
+        description: "Build the rig from the extracted sprite model and inspect the neutral pose and joint map.",
+        outcome: "The approved rig binds the canonical parts to deterministic motion controls.",
+        example: "Check joint placement, prop attachment, and the neutral pose before rendering clips.",
+    },
+    clips: {
+        label: "Build Animations",
+        description: "Render deterministic idle and walk clips from the rigged sprite model.",
+        outcome: "You will get fixed-size final frames ready for QA and export.",
+        example: "This stage does not call AI. It reuses the approved sprite model and rig only.",
     },
     qa: {
         label: "Check Results",
@@ -1598,7 +1860,9 @@ const FRIENDLY_STAGE_NAMES = {
     concepts: "Looks",
     concept_lock: "Look chosen",
     refine: "Adjusting look",
-    layer_review: "Build layers",
+    master_pose: "Master pose",
+    layer_review: "Sprite model",
+    sprite_model: "Sprite model",
     rig_review: "Set up motion",
     production_idle: "Building idle",
     production_walk: "Building walk",
@@ -1610,10 +1874,14 @@ const JOB_TYPE_LABELS = {
     "concepts.generate": "Generating looks",
     "concepts.regenerate_similar": "Generating similar looks",
     "concepts.refine": "Adjusting the chosen look",
-    "layers.build": "Building layers",
-    "rig.build": "Building motion setup",
-    "animations.idle.render": "Building idle animation",
-    "animations.walk.render": "Building walk animation",
+    "master_pose.generate": "Generating master poses",
+    "sprite_model.build": "Building sprite model",
+    "layers.build": "Building sprite model",
+    "rig.build": "Building rig",
+    "clips.idle.render": "Building idle clip",
+    "clips.walk.render": "Building walk clip",
+    "animations.idle.render": "Building idle clip",
+    "animations.walk.render": "Building walk clip",
     "qa.run": "Running checks",
     export: "Exporting files",
 };
@@ -1667,6 +1935,8 @@ const state = {
     compareRightId: null,
     zoomConceptId: null,
     swapCompareView: false,
+    selectedSpritePart: null,
+    previousSpriteModel: null,
     uiMode: "workbench",
     activity: null,
 };
@@ -1686,15 +1956,7 @@ function normalizeWizardVisibility(value) {
         .filter(Boolean);
 }
 
-function activeBuildSectionId() {
-    const project = state.activeProject;
-    if (!project?.layered_character || !project.layer_review_approved) return "layer-review";
-    if (!project?.rig || !project.rig_review_approved) return "rig-review";
-    return "production";
-}
-
 function wizardSectionIds(step) {
-    if (step === "build") return [activeBuildSectionId()];
     return WIZARD_SECTION_MAP[step] || [];
 }
 
@@ -1704,6 +1966,18 @@ function stageDisplayName(stage) {
 
 function jobDisplayName(jobType) {
     return JOB_TYPE_LABELS[jobType] || jobType || "Working";
+}
+
+function humanizeKey(value) {
+    return String(value || "")
+        .replace(/_/g, " ")
+        .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function wizardProgressSummary(project) {
+    const statuses = project?.wizard_state?.step_statuses || {};
+    const completed = Object.values(statuses).filter((status) => status === "complete").length;
+    return `${completed}/${WIZARD_STEPS.length} steps complete`;
 }
 
 function normalizeErrorMessage(message) {
@@ -1721,11 +1995,23 @@ function normalizeErrorMessage(message) {
     if (text.includes("Refinement must change exactly one supported major attribute group")) {
         return "Change one major thing at a time when adjusting a look.";
     }
+    if (text.includes("master-pose/select requires candidate_id")) {
+        return "Choose a master pose before continuing.";
+    }
+    if (text.includes("Master pose approval is required")) {
+        return "Approve a master pose before building the sprite model.";
+    }
+    if (text.includes("Sprite model build is required")) {
+        return "Build and approve the sprite model before rigging.";
+    }
+    if (text.includes("Sprite-model approval is required")) {
+        return "Approve the sprite model before approving the rig.";
+    }
     if (text.includes("Layer review cannot be approved")) {
-        return "Build the layers first, then approve them.";
+        return "Build the sprite model first, then approve it.";
     }
     if (text.includes("Rig review approval is required before production")) {
-        return "Approve the motion setup before building animations.";
+        return "Approve the rig before building animations.";
     }
     if (text.includes("Export blocked: QA must pass first")) {
         return "Checks must pass before export is available.";
@@ -1772,7 +2058,10 @@ function blankWizardModel() {
             concepts: "locked",
             review: "locked",
             refine: "locked",
-            build: "locked",
+            master_pose: "locked",
+            sprite_model: "locked",
+            rig: "locked",
+            clips: "locked",
             qa: "locked",
             export: "locked",
         },
@@ -1782,8 +2071,11 @@ function blankWizardModel() {
             concepts: ["Save the character description first."],
             review: ["Generate looks first."],
             refine: ["Choose a look first."],
-            build: ["Choose a look and finish the adjustment step first."],
-            qa: ["Finish the build step first."],
+            master_pose: ["Choose a look and finish the adjustment step first."],
+            sprite_model: ["Approve a master pose first."],
+            rig: ["Build and approve the sprite model first."],
+            clips: ["Approve the rig first."],
+            qa: ["Render the clips first."],
             export: ["Checks must pass before export."],
         },
     };
@@ -1823,8 +2115,14 @@ function wizardSummaryText(step) {
             return project.selected_concept_id ? `Chosen ${project.selected_concept_id}` : "No look chosen yet.";
         case "refine":
             return project.wizard_state?.last_refine_decision || (project.latest_refinement_run ? "Adjustments generated." : "No adjustment decision yet.");
-        case "build":
-            return `${project.layer_review_approved ? "layers approved" : "layers pending"} · ${project.rig_review_approved ? "motion approved" : "motion pending"}`;
+        case "master_pose":
+            return project.master_pose_manifest?.approved_candidate_id || (project.master_pose_manifest?.candidates?.length ? `${project.master_pose_manifest.candidates.length} candidates` : "No master poses yet.");
+        case "sprite_model":
+            return project.sprite_model?.parts?.length ? `${project.sprite_model.parts.length} parts extracted` : "Sprite model not built yet.";
+        case "rig":
+            return project.rig_review_approved ? "Rig approved." : project.rig ? "Rig built." : "Rig not built.";
+        case "clips":
+            return `${project.build_status?.idle_render_complete ? "idle ready" : "idle pending"} · ${project.build_status?.walk_render_complete ? "walk ready" : "walk pending"}`;
         case "qa":
             return project.qa_report?.status || "Checks not run.";
         case "export":
@@ -1869,37 +2167,17 @@ async function goToWizardStep(step) {
     }
 }
 
-function nextBuildAction() {
+function nextClipAction() {
     const project = state.activeProject;
-    if (!project?.layered_character) {
-        return { label: "Build Layers", run: () => runJob(`/api/projects/${project.project_id}/layers/build`) };
+    if (!project?.build_status?.idle_render_complete) {
+        return { label: "Build Idle", run: () => runJob(`/api/projects/${project.project_id}/clips/idle/render`) };
     }
-    if (!project.layer_review_approved) {
-        return {
-            label: "Approve Layers",
-            run: () => api(`/api/projects/${project.project_id}/layer-review/approve`, { method: "POST", body: "{}" }).then(() => loadProject(project.project_id, "wizard")),
-        };
-    }
-    if (!project.rig) {
-        return { label: "Build Motion Setup", run: () => runJob(`/api/projects/${project.project_id}/rig/build`) };
-    }
-    if (!project.rig_review_approved) {
-        return {
-            label: "Approve Motion Setup",
-            run: () => api(`/api/projects/${project.project_id}/rig-review/approve`, { method: "POST", body: "{}" }).then(() => loadProject(project.project_id, "wizard")),
-        };
-    }
-    const hasIdle = Boolean(project.build_status?.idle_render_complete);
-    const hasWalk = Boolean(project.build_status?.walk_render_complete);
-    if (!hasIdle) {
-        return { label: "Render Idle", run: () => runJob(`/api/projects/${project.project_id}/animations/idle/render`) };
-    }
-    if (!hasWalk) {
-        return { label: "Render Walk", run: () => runJob(`/api/projects/${project.project_id}/animations/walk/render`) };
+    if (!project?.build_status?.walk_render_complete) {
+        return { label: "Build Walk", run: () => runJob(`/api/projects/${project.project_id}/clips/walk/render`) };
     }
     return {
         label: "Continue To QA",
-        run: () => persistWizardState({ completed_steps: ["build"], current_step: "qa", last_ui_mode: "wizard" }),
+        run: () => persistWizardState({ completed_steps: ["clips"], current_step: "qa", last_ui_mode: "wizard" }),
     };
 }
 
@@ -2014,11 +2292,66 @@ function wizardActionConfig(step) {
                     disabled: !project || !selected,
                 },
             };
-        case "build": {
-            const buildAction = project ? nextBuildAction() : null;
+        case "master_pose":
+            return {
+                primary: {
+                    id: "wizard-generate-master-pose",
+                    label: project?.master_pose_manifest?.candidates?.length ? "Generate 3 New Master Poses" : "Generate 3 Master Poses",
+                    disabled: !project || !selected,
+                },
+                secondary: {
+                    id: "wizard-go-sprite-model",
+                    label: project?.master_pose_approved ? "Continue To Sprite Model" : "Choose A Master Pose Below",
+                    disabled: !project?.master_pose_approved,
+                },
+            };
+        case "sprite_model":
+            return {
+                primary: !project?.sprite_model ? {
+                    id: "wizard-build-sprite-model",
+                    label: "Build Sprite Model",
+                    disabled: !project?.master_pose_approved,
+                } : !project?.sprite_model_approved ? {
+                    id: "wizard-approve-sprite-model",
+                    label: "Approve Sprite Model",
+                    disabled: false,
+                } : {
+                    id: "wizard-go-rig",
+                    label: "Continue To Rig",
+                    disabled: false,
+                },
+                secondary: {
+                    id: "wizard-open-workbench",
+                    label: "Open Advanced Workbench",
+                    disabled: false,
+                },
+            };
+        case "rig":
+            return {
+                primary: !project?.rig ? {
+                    id: "wizard-build-rig",
+                    label: "Build Rig",
+                    disabled: !project?.sprite_model_approved,
+                } : !project?.rig_review_approved ? {
+                    id: "wizard-approve-rig",
+                    label: "Approve Rig",
+                    disabled: false,
+                } : {
+                    id: "wizard-go-clips",
+                    label: "Continue To Clips",
+                    disabled: false,
+                },
+                secondary: {
+                    id: "wizard-open-workbench",
+                    label: "Open Advanced Workbench",
+                    disabled: false,
+                },
+            };
+        case "clips": {
+            const buildAction = project ? nextClipAction() : null;
             return {
                 primary: buildAction ? {
-                    id: "wizard-build-next",
+                    id: "wizard-build-clips-next",
                     label: buildAction.label,
                     disabled: false,
                 } : {
@@ -2292,17 +2625,62 @@ async function handleWizardAction(actionId, currentStep) {
                 completed_steps: ["refine"],
                 skipped_optional_steps: ["refine"],
                 last_refine_decision: "use_current_approved_concept",
-                current_step: "build",
+                current_step: "master_pose",
                 last_ui_mode: "wizard",
             });
             renderAll();
             return;
-        case "wizard-build-next": {
-            const action = nextBuildAction();
+        case "wizard-generate-master-pose":
+            await runJob(`/api/projects/${state.activeProject.project_id}/master-pose/generate`);
+            if (state.activeProject) {
+                await persistWizardState({ current_step: "master_pose", last_ui_mode: "wizard" });
+            }
+            renderAll();
+            return;
+        case "wizard-go-sprite-model":
+            await persistWizardState({ completed_steps: ["master_pose"], current_step: "sprite_model", last_ui_mode: "wizard" });
+            renderAll();
+            return;
+        case "wizard-build-sprite-model":
+            await runJob(`/api/projects/${state.activeProject.project_id}/sprite-model/build`);
+            if (state.activeProject) {
+                await persistWizardState({ current_step: "sprite_model", last_ui_mode: "wizard" });
+            }
+            renderAll();
+            return;
+        case "wizard-approve-sprite-model":
+            await api(`/api/projects/${state.activeProject.project_id}/sprite-model/approve`, { method: "POST", body: "{}" });
+            await loadProject(state.activeProject.project_id, "wizard");
+            await persistWizardState({ completed_steps: ["sprite_model"], current_step: "rig", last_ui_mode: "wizard" });
+            renderAll();
+            return;
+        case "wizard-go-rig":
+            await persistWizardState({ completed_steps: ["sprite_model"], current_step: "rig", last_ui_mode: "wizard" });
+            renderAll();
+            return;
+        case "wizard-build-rig":
+            await runJob(`/api/projects/${state.activeProject.project_id}/rig/build`);
+            if (state.activeProject) {
+                await persistWizardState({ current_step: "rig", last_ui_mode: "wizard" });
+            }
+            renderAll();
+            return;
+        case "wizard-approve-rig":
+            await api(`/api/projects/${state.activeProject.project_id}/rig/approve`, { method: "POST", body: "{}" });
+            await loadProject(state.activeProject.project_id, "wizard");
+            await persistWizardState({ completed_steps: ["rig"], current_step: "clips", last_ui_mode: "wizard" });
+            renderAll();
+            return;
+        case "wizard-go-clips":
+            await persistWizardState({ completed_steps: ["rig"], current_step: "clips", last_ui_mode: "wizard" });
+            renderAll();
+            return;
+        case "wizard-build-clips-next": {
+            const action = nextClipAction();
             if (!action) return;
             await action.run();
             if (state.activeProject?.build_status?.idle_render_complete && state.activeProject?.build_status?.walk_render_complete) {
-                await persistWizardState({ completed_steps: ["build"], current_step: "qa", last_ui_mode: "wizard" });
+                await persistWizardState({ completed_steps: ["clips"], current_step: "qa", last_ui_mode: "wizard" });
             }
             renderAll();
             return;
@@ -2529,10 +2907,16 @@ function renderProjectList() {
         card.innerHTML = `
             <strong>${project.project_name}</strong>
             <small>${stageDisplayName(project.current_stage)} · ${project.status}</small>
+            <div class="small-note">Last modified ${formatDate(project.updated_at)}</div>
+            <div class="small-note">${wizardProgressSummary(project)} · next ${WIZARD_META[project.wizard_state?.current_step || "brief"]?.label || "Setup"}</div>
             <div class="inline-actions" style="margin-top: 10px;">
                 <span class="badge ${config.maturity}">${config.maturity}</span>
                 ${project.archived_at ? `<span class="pill warning">archived</span>` : ""}
                 ${project.can_resume_wizard ? `<span class="pill warning">wizard available</span>` : ""}
+                ${project.selected_concept_id ? `<span class="pill ok">look chosen</span>` : ""}
+                ${project.master_pose_approved ? `<span class="pill ok">master pose</span>` : ""}
+                ${project.sprite_model_approved ? `<span class="pill ok">sprite model</span>` : ""}
+                ${project.rig_review_approved ? `<span class="pill ok">rig</span>` : ""}
             </div>
             <div class="project-actions">
                 ${project.can_resume_wizard ? `<button class="secondary" data-action="resume">Resume Wizard</button>` : ""}
@@ -2589,17 +2973,21 @@ function renderAttachedReferences() {
     root.innerHTML = "";
     const references = state.activeProject?.brief?.references || [];
     if (!references.length) {
-        root.innerHTML = `<div class="empty">No stored references yet.</div>`;
+        root.innerHTML = `<div class="empty">No stored references yet. Add them when you need help with face, outfit, prop, or overall style direction.</div>`;
         return;
     }
     references.forEach((reference) => {
         const item = document.createElement("div");
         item.className = "reference-chip";
+        const imagePath = reference.local_path ? projectAsset(state.activeProject, reference.local_path) : "";
         item.innerHTML = `
-            <div class="meta-line">
-                <span class="pill">${reference.role}</span>
-                <span class="pill">${reference.weight}</span>
-                <span class="muted">${reference.local_path || reference.source_value || "legacy reference"}</span>
+            ${imagePath ? `<img src="${imagePath}?v=${state.activeProject.updated_at}" alt="${reference.role} reference">` : `<div class="empty">No preview</div>`}
+            <div class="detail-grid">
+                <div class="meta-line">
+                    <span class="pill">${reference.role}</span>
+                    <span class="pill">weight ${reference.weight}</span>
+                </div>
+                <div class="small-note">${reference.local_path || reference.source_value || "legacy reference"}</div>
             </div>
         `;
         root.appendChild(item);
@@ -2869,31 +3257,263 @@ function renderRefinePanel() {
         : "Choose a look before adjusting it so the wizard knows what to preserve.";
 }
 
+function spriteModelParts() {
+    return state.activeProject?.sprite_model?.parts || state.activeProject?.layered_character?.parts || [];
+}
+
+function selectedSpritePart() {
+    const parts = spriteModelParts();
+    if (!parts.length) return null;
+    return parts.find((part) => part.part_name === state.selectedSpritePart) || parts[0];
+}
+
+function previousSpritePart(partName) {
+    const previousParts = state.previousSpriteModel?.parts || [];
+    return previousParts.find((part) => part.part_name === partName) || null;
+}
+
+function validBBox(value) {
+    return Array.isArray(value) && value.length === 4 && value.every((item) => Number.isFinite(Number(item)));
+}
+
+function formatBBox(value) {
+    return validBBox(value) ? value.map((item) => Number(item)).join(", ") : "none";
+}
+
+function overlayMarkup(imagePath, bbox, pivot) {
+    if (!validBBox(bbox)) return `<div class="empty">No overlay data yet.</div>`;
+    const [x0, y0, x1, y1] = bbox;
+    const width = Math.max(1, x1 - x0);
+    const height = Math.max(1, y1 - y0);
+    return `
+        <div class="preview-card overlay-stack">
+            <img src="${imagePath}" alt="Source preview">
+            <div class="overlay-box" style="left:${(x0 / 640) * 100}%;top:${(y0 / 768) * 100}%;width:${(width / 640) * 100}%;height:${(height / 768) * 100}%;"></div>
+            ${pivot ? `<div class="overlay-pivot" style="left:${((x0 + pivot[0]) / 640) * 100}%;top:${((y0 + pivot[1]) / 768) * 100}%;"></div>` : ""}
+        </div>
+    `;
+}
+
+function paletteSwatchesMarkup(palette) {
+    const swatches = palette?.swatches || [];
+    if (!swatches.length) return `<div class="empty">No palette extracted yet.</div>`;
+    return `
+        <div class="swatch-row">
+            ${swatches.map((swatch) => `<div class="swatch" title="${swatch}" style="background:${swatch};"></div>`).join("")}
+        </div>
+    `;
+}
+
+function renderMasterPose() {
+    const project = state.activeProject;
+    const approvedConcept = selectedConcept();
+    const conceptRoot = document.querySelector("#approved-concept-preview");
+    const summaryRoot = document.querySelector("#master-pose-summary");
+    const galleryRoot = document.querySelector("#master-pose-gallery");
+    conceptRoot.innerHTML = "";
+    summaryRoot.innerHTML = "";
+    galleryRoot.innerHTML = "";
+
+    if (!project || !approvedConcept) {
+        conceptRoot.innerHTML = `<div class="empty">Choose a concept before generating master poses.</div>`;
+        summaryRoot.innerHTML = `<div class="empty">Master-pose checks will appear here.</div>`;
+        return;
+    }
+
+    conceptRoot.innerHTML = `
+        <div class="preview-card">
+            <img src="${projectAsset(project, approvedConcept.preview_image)}?v=${project.updated_at}" alt="${approvedConcept.concept_id}">
+            <div class="small-note" style="margin-top: 10px;">${approvedConcept.concept_id} · ${approvedConcept.difference_summary || "Approved concept"}</div>
+        </div>
+    `;
+
+    const manifest = project.master_pose_manifest || {};
+    const approvedId = manifest.approved_candidate_id;
+    const rows = [
+        ["Approved concept", approvedConcept.concept_id],
+        ["Approved master pose", approvedId || "not selected"],
+        ["Candidate count", manifest.candidates?.length || 0],
+        ["Production rule", "Only the approved pose feeds sprite extraction"],
+    ];
+    rows.forEach(([label, value]) => {
+        const row = document.createElement("div");
+        row.className = "check-row";
+        row.innerHTML = `<span>${label}</span><span class="small-note">${value}</span>`;
+        summaryRoot.appendChild(row);
+    });
+
+    if (!manifest.candidates?.length) {
+        galleryRoot.innerHTML = `<div class="empty">No master poses yet.</div>`;
+        return;
+    }
+
+    manifest.candidates.forEach((candidate) => {
+        const card = document.createElement("div");
+        card.className = "thumb";
+        card.innerHTML = `
+            <img src="${projectAsset(project, candidate.image_path)}?v=${project.updated_at}" alt="${candidate.candidate_id}">
+            <div class="small-note" style="margin-top: 8px;">${candidate.candidate_id}</div>
+            <div class="meta-line" style="justify-content:center; margin-top: 8px;">
+                ${candidate.approved ? `<span class="pill ok">approved</span>` : `<span class="pill">candidate</span>`}
+                <span class="pill ${candidate.background_clean ? "ok" : "warning"}">${candidate.background_clean ? "clean background" : "needs cleanup"}</span>
+                <span class="pill">${candidate.silhouette_components || 0} shape${candidate.silhouette_components === 1 ? "" : "s"}</span>
+            </div>
+            <div class="actions" style="margin-top: 10px;">
+                <button data-action="approve" ${candidate.approved ? "disabled" : ""}>${candidate.approved ? "Approved" : "Approve This Pose"}</button>
+                <button class="secondary" data-action="open">Open Full Size</button>
+            </div>
+        `;
+        card.querySelector("[data-action='approve']").addEventListener("click", async () => {
+            try {
+                await api(`/api/projects/${project.project_id}/master-pose/select`, { method: "POST", body: JSON.stringify({ candidate_id: candidate.candidate_id }) });
+                await loadProject(project.project_id, currentMode());
+                if (isWizardMode()) {
+                    await persistWizardState({ completed_steps: ["master_pose"], current_step: "sprite_model", last_ui_mode: "wizard" });
+                }
+                log(`Approved ${candidate.candidate_id}`, "success");
+                notify(`Approved ${candidate.candidate_id}.`, "success");
+            } catch (error) {
+                log(normalizeErrorMessage(error.message), "error");
+                notify(normalizeErrorMessage(error.message), "error");
+            }
+        });
+        card.querySelector("[data-action='open']").addEventListener("click", () => {
+            window.open(projectAsset(project, candidate.image_path), "_blank", "noopener,noreferrer");
+        });
+        galleryRoot.appendChild(card);
+    });
+}
+
 function renderLayerReview() {
     const checksRoot = document.querySelector("#layer-checks");
     const galleryRoot = document.querySelector("#layer-gallery");
+    const sourceRoot = document.querySelector("#sprite-model-source");
+    const selectedRoot = document.querySelector("#sprite-model-selected");
+    const select = document.querySelector("#sprite-part-select");
+    const parentJoint = document.querySelector("#sprite-parent-joint");
     checksRoot.innerHTML = "";
     galleryRoot.innerHTML = "";
-    const layered = state.activeProject?.layered_character;
-    if (!layered) {
-        checksRoot.innerHTML = `<div class="empty">Layer build has not run yet.</div>`;
+    sourceRoot.innerHTML = "";
+    selectedRoot.innerHTML = "";
+    select.innerHTML = "";
+    parentJoint.innerHTML = "";
+    const layered = state.activeProject?.sprite_model || state.activeProject?.layered_character;
+    const project = state.activeProject;
+    if (!project || !layered) {
+        checksRoot.innerHTML = `<div class="empty">Sprite model has not run yet.</div>`;
+        sourceRoot.innerHTML = `<div class="empty">Build the sprite model to inspect source overlays.</div>`;
+        selectedRoot.innerHTML = `<div class="empty">No selected part yet.</div>`;
         return;
     }
-    document.querySelector("#layer-warning").textContent = `${layered.source_summary || "Layer build remains synthetic."}`;
-    Object.entries(layered.qa || {}).forEach(([key, value]) => {
+    document.querySelector("#layer-warning").textContent = layered.approved_for_rigging
+        ? "Sprite model approved for rigging."
+        : "Review masks, pivots, draw order, and parent joints before approving the sprite model.";
+
+    const parts = layered.parts || [];
+    if (!parts.some((part) => part.part_name === state.selectedSpritePart)) {
+        state.selectedSpritePart = parts[0]?.part_name || null;
+    }
+    const activePart = selectedSpritePart();
+    const previousPart = activePart ? previousSpritePart(activePart.part_name) : null;
+    parts.forEach((part) => {
+        const option = document.createElement("option");
+        option.value = part.part_name;
+        option.textContent = `${part.part_name} · ${part.parent_joint}`;
+        if (activePart?.part_name === part.part_name) option.selected = true;
+        select.appendChild(option);
+    });
+    select.addEventListener("change", () => {
+        state.selectedSpritePart = select.value;
+        renderLayerReview();
+    }, { once: true });
+
+    const joints = ["root", "pelvis", "torso", "neck", "head", "shoulder_left", "elbow_left", "wrist_left", "shoulder_right", "elbow_right", "wrist_right", "hip_left", "knee_left", "ankle_left", "hip_right", "knee_right", "ankle_right"];
+    joints.forEach((joint) => {
+        const option = document.createElement("option");
+        option.value = joint;
+        option.textContent = joint;
+        if (activePart?.parent_joint === joint) option.selected = true;
+        parentJoint.appendChild(option);
+    });
+
+    const approvedImage = project.master_pose_manifest?.approved_image
+        ? projectAsset(project, project.master_pose_manifest.approved_image)
+        : projectAsset(project, "master_pose/approved_master_pose.png");
+    sourceRoot.innerHTML = activePart
+        ? overlayMarkup(`${approvedImage}?v=${project.updated_at}`, activePart?.bbox, activePart?.pivot_point)
+        : `<div class="empty">No part selected.</div>`;
+    selectedRoot.innerHTML = activePart ? `
+        <div class="${previousPart ? "grid-2" : "detail-grid"}">
+            ${previousPart ? `
+                <div class="detail-grid">
+                    ${overlayMarkup(`${approvedImage}?v=${project.updated_at}`, previousPart?.bbox, previousPart?.pivot_point)}
+                    <div class="small-note" style="margin-top: 10px;">Before last edit</div>
+                </div>
+            ` : ""}
+            <div class="preview-card">
+                <img src="${projectAsset(project, activePart.image_path)}?v=${project.updated_at}" alt="${activePart.part_name}">
+                <div class="meta-line" style="margin-top: 10px;">
+                    <span class="pill">${activePart.part_name}</span>
+                    <span class="pill">${activePart.parent_joint}</span>
+                    <span class="pill">draw ${activePart.draw_order}</span>
+                </div>
+                <div class="small-note" style="margin-top: 10px;">${previousPart ? "Current part after the last deterministic edit" : "Current selected part"}</div>
+            </div>
+        </div>
+    ` : `<div class="empty">No part selected.</div>`;
+
+    document.querySelector("#sprite-rename").value = activePart?.part_name || "";
+    document.querySelector("#sprite-pivot-x").value = activePart?.pivot_point?.[0] ?? "";
+    document.querySelector("#sprite-pivot-y").value = activePart?.pivot_point?.[1] ?? "";
+    document.querySelector("#sprite-draw-order").value = activePart?.draw_order ?? "";
+
+    [
+        ["Status", layered.status || "unknown"],
+        ["Approved for rigging", layered.approved_for_rigging ? "yes" : "no"],
+        ["Parts", parts.length],
+        ["Facing", layered.source_facing || "unknown"],
+        ["Palette", paletteSwatchesMarkup(layered.palette || project.palette)],
+        ["Selected bbox", formatBBox(activePart?.bbox)],
+        ["Mirror source", activePart?.mirror_of || "original extraction"],
+    ].forEach(([key, value]) => {
         const row = document.createElement("div");
-        row.className = "check-row";
-        const status = value === false ? "pass" : value === true ? "fail" : value;
-        row.innerHTML = `<span>${key}</span><span class="pill ${status === "pass" ? "ok" : status === "fail" ? "fail" : "warning"}">${status}</span>`;
+        row.className = "check-row wrap";
+        row.innerHTML = key === "Palette"
+            ? `<span>${key}</span><span>${value}</span>`
+            : `<span>${key}</span><span class="small-note">${value}</span>`;
         checksRoot.appendChild(row);
     });
-    (layered.parts || []).slice(0, 18).forEach((part) => {
+    const historyEvents = (project.sprite_model_history?.events || []).slice(-5).reverse();
+    if (historyEvents.length) {
+        const history = document.createElement("div");
+        history.className = "history-list";
+        historyEvents.forEach((event) => {
+            const item = document.createElement("div");
+            item.className = "history-item";
+            item.innerHTML = `
+                <div class="meta-line">
+                    <span class="pill">${humanizeKey(event.type || "update")}</span>
+                    ${event.operation ? `<span class="pill">${humanizeKey(event.operation)}</span>` : ""}
+                    ${event.part_name ? `<span class="pill">${event.part_name}</span>` : ""}
+                </div>
+                <div class="small-note" style="margin-top: 8px;">${formatDate(event.created_at)}</div>
+            `;
+            history.appendChild(item);
+        });
+        checksRoot.appendChild(history);
+    }
+    (parts || []).slice(0, 20).forEach((part) => {
         const thumb = document.createElement("div");
         thumb.className = "thumb";
         thumb.innerHTML = `
-            <img src="${projectAsset(state.activeProject, part.source_image_path)}?v=${state.activeProject.updated_at}" alt="${part.part_name}">
+            <img src="${projectAsset(project, part.image_path)}?v=${project.updated_at}" alt="${part.part_name}">
             <div class="small-note" style="margin-top: 8px;">${part.part_name}</div>
+            <div class="small-note">${part.parent_joint} · draw ${part.draw_order}</div>
         `;
+        thumb.addEventListener("click", () => {
+            state.selectedSpritePart = part.part_name;
+            renderLayerReview();
+        });
         galleryRoot.appendChild(thumb);
     });
 }
@@ -2903,22 +3523,71 @@ function renderRigReview() {
     const summary = document.querySelector("#rig-summary");
     const preview = document.querySelector("#rig-preview");
     if (!rig) {
-        summary.textContent = "No rig data yet.";
+        summary.innerHTML = `<div class="empty">No rig data yet.</div>`;
         preview.innerHTML = "";
         return;
     }
-    summary.textContent = JSON.stringify({
-        source_mode: rig.source_mode,
-        prop_attachment_joint: rig.prop_attachment_joint,
-        approved_for_production: rig.approved_for_production,
-        joint_count: rig.joints?.length || 0,
-    }, null, 2);
+    summary.innerHTML = "";
+    [
+        ["Source mode", rig.source_mode],
+        ["Prop attachment", rig.prop_attachment_joint],
+        ["Approved for production", rig.approved_for_production ? "yes" : "no"],
+        ["Joint count", rig.joints?.length || 0],
+        ["Pivot map entries", Object.keys(rig.pivot_map || {}).length],
+        ["Foot anchors", `${rig.foot_anchor_reference?.left?.join(", ") || "n/a"} · ${rig.foot_anchor_reference?.right?.join(", ") || "n/a"}`],
+    ].forEach(([label, value]) => {
+        const row = document.createElement("div");
+        row.className = "check-row wrap";
+        row.innerHTML = `<span>${label}</span><span class="small-note">${value}</span>`;
+        summary.appendChild(row);
+    });
+    const jointMarkers = Object.entries(rig.rig_joint_map || {})
+        .map(([name, point]) => `<div class="overlay-pivot" title="${name}" style="left:${(point[0] / 640) * 100}%;top:${(point[1] / 768) * 100}%;"></div>`)
+        .join("");
+    const propPoint = rig.rig_joint_map?.[rig.prop_attachment_joint];
+    const propMarker = propPoint
+        ? `<div class="overlay-pivot prop" title="prop attachment" style="left:${(propPoint[0] / 640) * 100}%;top:${(propPoint[1] / 768) * 100}%;"></div>`
+        : "";
+    const approvedSource = state.activeProject.master_pose_manifest?.approved_image
+        ? projectAsset(state.activeProject, state.activeProject.master_pose_manifest.approved_image)
+        : projectAsset(state.activeProject, "master_pose/approved_master_pose.png");
     preview.innerHTML = `
-        <div class="thumb">
-            <img src="${projectAsset(state.activeProject, rig.neutral_pose_render)}?v=${state.activeProject.updated_at}" alt="Neutral pose">
-            <div class="small-note" style="margin-top: 8px;">neutral pose</div>
+        <div class="grid-2">
+            <div class="preview-card overlay-stack">
+                <img src="${approvedSource}?v=${state.activeProject.updated_at}" alt="Approved master pose">
+                ${jointMarkers}
+                ${propMarker}
+            </div>
+            <div class="thumb">
+                <img src="${projectAsset(state.activeProject, rig.neutral_pose_render)}?v=${state.activeProject.updated_at}" alt="Neutral pose">
+                <div class="small-note" style="margin-top: 8px;">neutral pose</div>
+            </div>
         </div>
     `;
+}
+
+function renderClipSummary() {
+    const root = document.querySelector("#clip-summary");
+    root.innerHTML = "";
+    const project = state.activeProject;
+    if (!project) {
+        root.innerHTML = `<div class="empty">Open a project to inspect clip settings.</div>`;
+        return;
+    }
+    const clips = project.animation_clips || {};
+    ["idle", "walk"].forEach((name) => {
+        const clip = clips[name];
+        const row = document.createElement("div");
+        row.className = "check-row wrap";
+        row.innerHTML = clip ? `
+            <span>${humanizeKey(name)} clip</span>
+            <span class="small-note">${clip.frame_count} frames · ${clip.fps} fps · ${clip.root_motion_policy} root · ${project.build_status?.[`${name}_render_complete`] ? "built" : "pending"}</span>
+        ` : `
+            <span>${humanizeKey(name)} clip</span>
+            <span class="small-note">No clip data yet.</span>
+        `;
+        root.appendChild(row);
+    });
 }
 
 function renderAnimationGallery(name) {
@@ -2926,7 +3595,7 @@ function renderAnimationGallery(name) {
     root.innerHTML = "";
     const project = state.activeProject;
     if (!project) return;
-    const count = name === "idle" ? 6 : 8;
+    const count = project.animation_clips?.[name]?.frame_count || (name === "idle" ? 6 : 8);
     for (let index = 0; index < count; index += 1) {
         const frame = `${name}_${String(index).padStart(2, "0")}.png`;
         const thumb = document.createElement("div");
@@ -2949,17 +3618,44 @@ function renderQa() {
     }
     const overall = document.createElement("div");
     overall.className = "check-row";
-    overall.innerHTML = `<span>overall_status</span><span class="pill ${qa.status === "pass" ? "ok" : "fail"}">${qa.status}</span>`;
+    overall.innerHTML = `<span>Overall status</span><span class="pill ${qa.status === "pass" ? "ok" : "fail"}">${qa.status}</span>`;
     root.appendChild(overall);
+    Object.entries(qa.metadata_checks || {}).forEach(([name, item]) => {
+        const row = document.createElement("div");
+        row.className = "check-row";
+        row.innerHTML = `<span>${humanizeKey(name)}</span><span class="pill ${item.status === "pass" ? "ok" : "fail"}">${item.status}</span>`;
+        root.appendChild(row);
+    });
     Object.entries(qa.per_animation_checks || {}).forEach(([animation, payload]) => {
         const row = document.createElement("div");
         row.className = "check-row";
         const checks = Object.entries(payload.checks || {})
-            .map(([name, item]) => `${name}: ${item.status}`)
+            .map(([name, item]) => `${humanizeKey(name)}: ${item.status}`)
             .join(" · ");
-        row.innerHTML = `<span>${animation}</span><span class="small-note">${checks}</span>`;
+        row.innerHTML = `<span>${humanizeKey(animation)}</span><span class="small-note">${checks}</span>`;
         root.appendChild(row);
     });
+    const frameGrid = document.createElement("div");
+    frameGrid.className = "thumb-grid";
+    frameGrid.style.marginTop = "10px";
+    (qa.per_frame_checks || []).forEach((frame) => {
+        const card = document.createElement("div");
+        card.className = "thumb";
+        card.style.borderColor = frame.status === "fail" ? "rgba(211, 122, 122, 0.5)" : "rgba(117, 196, 152, 0.35)";
+        const failedChecks = Object.entries(frame.checks || {})
+            .filter(([, item]) => item.status === "fail")
+            .map(([name]) => humanizeKey(name))
+            .join(", ");
+        card.innerHTML = `
+            <div class="meta-line" style="justify-content:center;">
+                <span class="pill ${frame.status === "pass" ? "ok" : "fail"}">${frame.status}</span>
+            </div>
+            <div class="small-note" style="margin-top: 8px;">${frame.frame_name}</div>
+            <div class="small-note">${failedChecks || "all checks passed"}</div>
+        `;
+        frameGrid.appendChild(card);
+    });
+    root.appendChild(frameGrid);
 }
 
 function renderExport() {
@@ -2972,8 +3668,32 @@ function renderExport() {
     }
     const top = document.createElement("div");
     top.className = "check-row";
-    top.innerHTML = `<span>export_dir</span><span class="small-note">${exportData.export_dir}</span>`;
+    top.innerHTML = `<span>Export directory</span><span class="small-note">${exportData.export_dir}</span>`;
     root.appendChild(top);
+    const preview = document.createElement("div");
+    preview.className = "grid-2";
+    preview.style.marginTop = "10px";
+    preview.innerHTML = `
+        <div class="preview-card">
+            <img src="${projectAsset(state.activeProject, `${exportData.export_dir}/spritesheet.png`)}" alt="Spritesheet preview">
+            <div class="small-note" style="margin-top: 8px;">spritesheet</div>
+        </div>
+        <div class="preview-card">
+            <img src="${projectAsset(state.activeProject, `${exportData.export_dir}/preview.gif`)}" alt="Preview animation">
+            <div class="small-note" style="margin-top: 8px;">preview animation</div>
+        </div>
+    `;
+    root.appendChild(preview);
+    const clips = state.activeProject?.animation_clips || {};
+    Object.entries(clips).forEach(([clipName, clip]) => {
+        const row = document.createElement("div");
+        row.className = "check-row wrap";
+        row.innerHTML = `
+            <span>${humanizeKey(clipName)} runtime order</span>
+            <span class="frame-sequence">${Array.from({ length: clip.frame_count }, (_, index) => `<code>${clipName}_${String(index).padStart(2, "0")}.png</code>`).join("")}</span>
+        `;
+        root.appendChild(row);
+    });
     exportData.files.forEach((file) => {
         const row = document.createElement("div");
         row.className = "check-row";
@@ -2990,8 +3710,10 @@ function renderAll() {
     renderModeShell();
     renderConceptReview();
     renderRefinePanel();
+    renderMasterPose();
     renderLayerReview();
     renderRigReview();
+    renderClipSummary();
     renderAnimationGallery("idle");
     renderAnimationGallery("walk");
     renderQa();
@@ -3014,6 +3736,9 @@ async function refreshProjects() {
 }
 
 async function loadProject(projectId, mode = "workbench") {
+    if (state.activeProject?.project_id !== projectId) {
+        state.previousSpriteModel = null;
+    }
     const project = await api(`/api/projects/${projectId}`);
     state.activeProject = project;
     state.uiMode = mode;
@@ -3021,6 +3746,7 @@ async function loadProject(projectId, mode = "workbench") {
     state.selectedRunId = project.concept_runs?.[0]?.run_id || null;
     state.compareRightId = null;
     state.swapCompareView = false;
+    state.selectedSpritePart = project.sprite_model?.parts?.[0]?.part_name || null;
     if (mode !== project.last_ui_mode) {
         const synced = await persistWizardState({
             last_ui_mode: mode,
@@ -3156,6 +3882,50 @@ async function runRefinement() {
     const result = await runJob(`/api/projects/${state.activeProject.project_id}/refine`, payload);
     if (result?.run_id) state.selectedRunId = result.run_id;
     log(`Generated refinement run from ${payload.concept_id}`, "success");
+}
+
+function parsePairInput(value) {
+    return String(value || "")
+        .split(",")
+        .map((item) => Number(item.trim()))
+        .filter((item) => Number.isFinite(item));
+}
+
+function spritePaletteReplacements() {
+    const raw = document.querySelector("#sprite-palette-map").value.trim();
+    if (!raw) return null;
+    const replacements = {};
+    raw.split(",").forEach((pair) => {
+        const [from, to] = pair.split(":").map((item) => item.trim());
+        if (from && to) replacements[from] = to;
+    });
+    return Object.keys(replacements).length ? replacements : null;
+}
+
+async function applySpriteOperation(operation, extra = {}) {
+    if (!state.activeProject) throw new Error("Open a project first.");
+    const part = selectedSpritePart();
+    if (!part && operation !== "merge_parts") throw new Error("Choose a sprite-model part first.");
+    state.previousSpriteModel = typeof structuredClone === "function"
+        ? structuredClone(state.activeProject.sprite_model || null)
+        : JSON.parse(JSON.stringify(state.activeProject.sprite_model || null));
+    const payload = {
+        operation,
+        part_name: part?.part_name,
+        ...extra,
+    };
+    const spriteModel = await api(`/api/projects/${state.activeProject.project_id}/sprite-model/update`, {
+        method: "POST",
+        body: JSON.stringify(payload),
+    });
+    state.activeProject.sprite_model = spriteModel;
+    state.activeProject.layered_character = spriteModel;
+    const preferredPart = extra.new_part_name || part?.part_name || state.selectedSpritePart;
+    await loadProject(state.activeProject.project_id, currentMode());
+    state.selectedSpritePart = preferredPart;
+    renderLayerReview();
+    log(`Applied ${operation} to ${part?.part_name || "sprite model"}`, "success");
+    notify(`Applied ${operation.replace(/_/g, " ")}.`, "success");
 }
 
 function openZoom(conceptId) {
@@ -3313,9 +4083,18 @@ document.querySelector("#run-refine").addEventListener("click", async () => {
     }
 });
 
+document.querySelector("#generate-master-pose").addEventListener("click", async () => {
+    try {
+        await runJob(`/api/projects/${state.activeProject.project_id}/master-pose/generate`);
+    } catch (error) {
+        log(normalizeErrorMessage(error.message), "error");
+        notify(normalizeErrorMessage(error.message), "error");
+    }
+});
+
 document.querySelector("#build-layers").addEventListener("click", async () => {
     try {
-        await runJob(`/api/projects/${state.activeProject.project_id}/layers/build`);
+        await runJob(`/api/projects/${state.activeProject.project_id}/sprite-model/build`);
     } catch (error) {
         log(normalizeErrorMessage(error.message), "error");
         notify(normalizeErrorMessage(error.message), "error");
@@ -3324,10 +4103,10 @@ document.querySelector("#build-layers").addEventListener("click", async () => {
 
 document.querySelector("#approve-layers").addEventListener("click", async () => {
     try {
-        await api(`/api/projects/${state.activeProject.project_id}/layer-review/approve`, { method: "POST", body: "{}" });
+        await api(`/api/projects/${state.activeProject.project_id}/sprite-model/approve`, { method: "POST", body: "{}" });
         await loadProject(state.activeProject.project_id, currentMode());
-        log("Approved layers", "success");
-        notify("Layers approved.", "success");
+        log("Approved sprite model", "success");
+        notify("Sprite model approved.", "success");
     } catch (error) {
         log(normalizeErrorMessage(error.message), "error");
         notify(normalizeErrorMessage(error.message), "error");
@@ -3345,10 +4124,10 @@ document.querySelector("#build-rig").addEventListener("click", async () => {
 
 document.querySelector("#approve-rig").addEventListener("click", async () => {
     try {
-        await api(`/api/projects/${state.activeProject.project_id}/rig-review/approve`, { method: "POST", body: "{}" });
+        await api(`/api/projects/${state.activeProject.project_id}/rig/approve`, { method: "POST", body: "{}" });
         await loadProject(state.activeProject.project_id, currentMode());
-        log("Approved motion setup", "success");
-        notify("Motion setup approved.", "success");
+        log("Approved rig", "success");
+        notify("Rig approved.", "success");
     } catch (error) {
         log(normalizeErrorMessage(error.message), "error");
         notify(normalizeErrorMessage(error.message), "error");
@@ -3357,7 +4136,7 @@ document.querySelector("#approve-rig").addEventListener("click", async () => {
 
 document.querySelector("#render-idle").addEventListener("click", async () => {
     try {
-        await runJob(`/api/projects/${state.activeProject.project_id}/animations/idle/render`);
+        await runJob(`/api/projects/${state.activeProject.project_id}/clips/idle/render`);
     } catch (error) {
         log(normalizeErrorMessage(error.message), "error");
         notify(normalizeErrorMessage(error.message), "error");
@@ -3366,7 +4145,162 @@ document.querySelector("#render-idle").addEventListener("click", async () => {
 
 document.querySelector("#render-walk").addEventListener("click", async () => {
     try {
-        await runJob(`/api/projects/${state.activeProject.project_id}/animations/walk/render`);
+        await runJob(`/api/projects/${state.activeProject.project_id}/clips/walk/render`);
+    } catch (error) {
+        log(normalizeErrorMessage(error.message), "error");
+        notify(normalizeErrorMessage(error.message), "error");
+    }
+});
+
+document.querySelector("#sprite-set-pivot").addEventListener("click", async () => {
+    try {
+        await applySpriteOperation("set_pivot", {
+            pivot_point: [
+                Number(document.querySelector("#sprite-pivot-x").value || 0),
+                Number(document.querySelector("#sprite-pivot-y").value || 0),
+            ],
+        });
+    } catch (error) {
+        log(normalizeErrorMessage(error.message), "error");
+        notify(normalizeErrorMessage(error.message), "error");
+    }
+});
+
+document.querySelector("#sprite-set-parent").addEventListener("click", async () => {
+    try {
+        await applySpriteOperation("set_parent_joint", { parent_joint: document.querySelector("#sprite-parent-joint").value });
+    } catch (error) {
+        log(normalizeErrorMessage(error.message), "error");
+        notify(normalizeErrorMessage(error.message), "error");
+    }
+});
+
+document.querySelector("#sprite-set-draw-order").addEventListener("click", async () => {
+    try {
+        await applySpriteOperation("set_draw_order", { draw_order: Number(document.querySelector("#sprite-draw-order").value || 0) });
+    } catch (error) {
+        log(normalizeErrorMessage(error.message), "error");
+        notify(normalizeErrorMessage(error.message), "error");
+    }
+});
+
+document.querySelector("#sprite-rename-part").addEventListener("click", async () => {
+    try {
+        await applySpriteOperation("rename_part", { new_part_name: document.querySelector("#sprite-rename").value.trim() });
+    } catch (error) {
+        log(normalizeErrorMessage(error.message), "error");
+        notify(normalizeErrorMessage(error.message), "error");
+    }
+});
+
+document.querySelector("#sprite-translate-part").addEventListener("click", async () => {
+    try {
+        const [dx, dy] = parsePairInput(document.querySelector("#sprite-translate").value);
+        await applySpriteOperation("translate_part", { dx: dx || 0, dy: dy || 0 });
+    } catch (error) {
+        log(normalizeErrorMessage(error.message), "error");
+        notify(normalizeErrorMessage(error.message), "error");
+    }
+});
+
+document.querySelector("#sprite-rotate-part").addEventListener("click", async () => {
+    try {
+        await applySpriteOperation("rotate_part", { degrees: Number(document.querySelector("#sprite-rotate").value || 0) });
+    } catch (error) {
+        log(normalizeErrorMessage(error.message), "error");
+        notify(normalizeErrorMessage(error.message), "error");
+    }
+});
+
+document.querySelector("#sprite-scale-part").addEventListener("click", async () => {
+    try {
+        await applySpriteOperation("scale_part", { scale: Number(document.querySelector("#sprite-scale").value || 1) });
+    } catch (error) {
+        log(normalizeErrorMessage(error.message), "error");
+        notify(normalizeErrorMessage(error.message), "error");
+    }
+});
+
+document.querySelector("#sprite-cleanup-alpha").addEventListener("click", async () => {
+    try {
+        await applySpriteOperation("cleanup_alpha");
+    } catch (error) {
+        log(normalizeErrorMessage(error.message), "error");
+        notify(normalizeErrorMessage(error.message), "error");
+    }
+});
+
+document.querySelector("#sprite-normalize-outline").addEventListener("click", async () => {
+    try {
+        await applySpriteOperation("normalize_outline");
+    } catch (error) {
+        log(normalizeErrorMessage(error.message), "error");
+        notify(normalizeErrorMessage(error.message), "error");
+    }
+});
+
+document.querySelector("#sprite-apply-palette").addEventListener("click", async () => {
+    try {
+        const replacements = spritePaletteReplacements();
+        if (!replacements) throw new Error("Add at least one palette replacement first.");
+        await applySpriteOperation("apply_palette_change", { replacements });
+    } catch (error) {
+        log(normalizeErrorMessage(error.message), "error");
+        notify(normalizeErrorMessage(error.message), "error");
+    }
+});
+
+document.querySelector("#sprite-add-mask").addEventListener("click", async () => {
+    try {
+        const region = parsePairInput(document.querySelector("#sprite-mask-region").value);
+        if (region.length !== 4) throw new Error("Enter mask region as x0,y0,x1,y1.");
+        await applySpriteOperation("add_to_mask", { region });
+    } catch (error) {
+        log(normalizeErrorMessage(error.message), "error");
+        notify(normalizeErrorMessage(error.message), "error");
+    }
+});
+
+document.querySelector("#sprite-remove-mask").addEventListener("click", async () => {
+    try {
+        const region = parsePairInput(document.querySelector("#sprite-mask-region").value);
+        if (region.length !== 4) throw new Error("Enter mask region as x0,y0,x1,y1.");
+        await applySpriteOperation("remove_from_mask", { region });
+    } catch (error) {
+        log(normalizeErrorMessage(error.message), "error");
+        notify(normalizeErrorMessage(error.message), "error");
+    }
+});
+
+document.querySelector("#sprite-mirror-part").addEventListener("click", async () => {
+    try {
+        await applySpriteOperation("mirror_part");
+    } catch (error) {
+        log(normalizeErrorMessage(error.message), "error");
+        notify(normalizeErrorMessage(error.message), "error");
+    }
+});
+
+document.querySelector("#sprite-duplicate-part").addEventListener("click", async () => {
+    try {
+        const active = selectedSpritePart();
+        await applySpriteOperation("duplicate_part", { new_part_name: `${active.part_name}_copy` });
+    } catch (error) {
+        log(normalizeErrorMessage(error.message), "error");
+        notify(normalizeErrorMessage(error.message), "error");
+    }
+});
+
+document.querySelector("#sprite-recover-occlusion").addEventListener("click", async () => {
+    try {
+        const active = selectedSpritePart();
+        const result = await api(`/api/projects/${state.activeProject.project_id}/sprite-model/recover-occlusion`, {
+            method: "POST",
+            body: JSON.stringify({ part_name: active.part_name }),
+        });
+        log(`Recovered occlusion variants for ${active.part_name}`, "success");
+        notify(`Saved ${result.variants.length} recovery variant(s) for ${active.part_name}.`, "success");
+        await loadProject(state.activeProject.project_id, currentMode());
     } catch (error) {
         log(normalizeErrorMessage(error.message), "error");
         notify(normalizeErrorMessage(error.message), "error");

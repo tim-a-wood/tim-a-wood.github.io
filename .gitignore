@@ -1,0 +1,6 @@
+tools/ComfyUI/
+tools/miniconda3/
+
+# Python caches
+__pycache__/
+*.pyc

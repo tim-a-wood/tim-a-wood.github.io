@@ -14,29 +14,39 @@
     "maturity": "real",
     "description": "Refinement creates new concept candidates and records lineage from the selected concept."
   },
+  "master_pose": {
+    "label": "Master Pose",
+    "maturity": "real",
+    "description": "Three extraction-ready master poses are generated from the approved concept and one must be explicitly approved."
+  },
+  "sprite_model": {
+    "label": "Sprite Model",
+    "maturity": "experimental",
+    "description": "The tool extracts canonical parts from the approved master pose and persists deterministic correction operations."
+  },
   "layer_review": {
-    "label": "Layer Review",
-    "maturity": "placeholder",
-    "description": "Layers are still generated from a synthetic part library instead of extracted concept art."
+    "label": "Sprite Model",
+    "maturity": "experimental",
+    "description": "The build panel now edits the extracted sprite model rather than showing placeholder procedural layers."
   },
   "rig_review": {
     "label": "Rig Review",
-    "maturity": "placeholder",
-    "description": "Rigging is procedural and only validates the current placeholder downstream pipeline."
+    "maturity": "experimental",
+    "description": "Rigging binds extracted sprite-model parts to deterministic joints and neutral pose output."
   },
   "production": {
     "label": "Production",
-    "maturity": "experimental",
-    "description": "Rendering and packing are deterministic, but still depend on synthetic layers and rig data."
+    "maturity": "real",
+    "description": "Idle and walk clips are rendered deterministically from the approved sprite model and rig with no AI frame generation."
   },
   "qa": {
     "label": "QA",
     "maturity": "experimental",
-    "description": "QA reports only implemented image heuristics and does not claim semantic certainty."
+    "description": "QA validates implemented deterministic asset checks and blocks export when required checks fail."
   },
   "export": {
     "label": "Export",
     "maturity": "experimental",
-    "description": "Exports are usable, but inherit the experimental upstream and placeholder downstream stages."
+    "description": "Exports package the deterministic sprite sheet, frames, metadata, and preview from the real sprite-model path."
   }
 }

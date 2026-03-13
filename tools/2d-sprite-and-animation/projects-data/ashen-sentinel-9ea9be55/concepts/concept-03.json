@@ -14,5 +14,24 @@
     "prop": "#7f4c39",
     "outline": "#0f151c"
   },
-  "approved": false
+  "approved": false,
+  "run_id": "legacy",
+  "run_kind": "legacy",
+  "created_at": "2026-03-13T11:38:13.768494+00:00",
+  "positive_prompt": "Humanoid biped side-view armored traveler with a lantern, storm-steel palette, one handheld prop., broad silhouette, armored traveler, side view sprite concept",
+  "variation_axes": {},
+  "review_state": {
+    "approved": false,
+    "favorite": false,
+    "rejected": false
+  },
+  "favorite": false,
+  "rejected": false,
+  "difference_summary": "broad, armored traveler",
+  "references_used": [],
+  "triage": {
+    "status": "not_evaluated",
+    "flags": [],
+    "metrics": {}
+  }
 }

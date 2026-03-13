@@ -14,5 +14,24 @@
     "prop": "#6a7f90",
     "outline": "#171110"
   },
-  "approved": false
+  "approved": false,
+  "run_id": "legacy",
+  "run_kind": "legacy",
+  "created_at": "2026-03-13T11:38:13.768494+00:00",
+  "positive_prompt": "Humanoid biped side-view armored traveler with a lantern, storm-steel palette, one handheld prop., compact silhouette, layered cloth, side view sprite concept",
+  "variation_axes": {},
+  "review_state": {
+    "approved": false,
+    "favorite": false,
+    "rejected": false
+  },
+  "favorite": false,
+  "rejected": false,
+  "difference_summary": "compact, layered cloth",
+  "references_used": [],
+  "triage": {
+    "status": "not_evaluated",
+    "flags": [],
+    "metrics": {}
+  }
 }

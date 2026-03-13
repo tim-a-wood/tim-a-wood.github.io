@@ -10,6 +10,37 @@ from scripts import sprite_workbench_server as sw
 
 
 class SpriteWorkbenchTests(unittest.TestCase):
+    def build_debug_pipeline(self, tmpdir: str):
+        original_root = sw.PROJECTS_ROOT
+        sw.PROJECTS_ROOT = Path(tmpdir)
+        try:
+            project = sw.create_project({
+                "project_name": "Pipeline Hero",
+                "prompt_text": "a vigilant ranger with a lantern",
+                "backend_mode": "debug_procedural",
+                "last_ui_mode": "wizard",
+            })
+            sw.generate_run(project["project_id"], "initial")
+            project = sw.load_project(project["project_id"])
+            approved_concept = project["concepts"][0]["concept_id"]
+            sw.update_concept_review_state(project["project_id"], approved_concept, "approve", True)
+            sw.generate_master_pose_candidates(project["project_id"])
+            project = sw.load_project(project["project_id"])
+            sw.select_master_pose(project["project_id"], project["master_pose_manifest"]["candidates"][0]["candidate_id"])
+            sw.build_sprite_model(project["project_id"])
+            project = sw.load_project(project["project_id"])
+            project["sprite_model_approved"] = True
+            project["layer_review_approved"] = True
+            sw.save_project(project)
+            sw.build_rig(project["project_id"])
+            project = sw.load_project(project["project_id"])
+            project["rig_review_approved"] = True
+            project["rig"]["approved_for_production"] = True
+            sw.save_project(project)
+            return sw.load_project(project["project_id"])
+        finally:
+            sw.PROJECTS_ROOT = original_root
+
     def test_create_project_in_wizard_starts_reference_step(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             original_root = sw.PROJECTS_ROOT
@@ -46,7 +77,7 @@ class SpriteWorkbenchTests(unittest.TestCase):
         self.assertEqual(project["wizard_state"]["current_step"], "references")
         self.assertIn("brief", project["wizard_state"]["completed_steps"])
 
-    def test_refine_again_does_not_complete_refine_or_unlock_build(self):
+    def test_refine_again_does_not_complete_refine_or_unlock_master_pose(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             original_root = sw.PROJECTS_ROOT
             sw.PROJECTS_ROOT = Path(tmpdir)
@@ -84,7 +115,91 @@ class SpriteWorkbenchTests(unittest.TestCase):
         self.assertEqual(updated["wizard_state"]["last_refine_decision"], "refine_again")
         self.assertNotIn("refine", updated["wizard_state"]["completed_steps"])
         self.assertEqual(updated["step_statuses"]["refine"], "active")
-        self.assertEqual(updated["step_statuses"]["build"], "locked")
+        self.assertEqual(updated["step_statuses"]["master_pose"], "locked")
+
+    def test_master_pose_generation_and_selection_persist_manifest(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            original_root = sw.PROJECTS_ROOT
+            sw.PROJECTS_ROOT = Path(tmpdir)
+            try:
+                project = sw.create_project({
+                    "project_name": "Master Pose Hero",
+                    "prompt_text": "a side-view armored pilgrim with a lantern",
+                    "backend_mode": "debug_procedural",
+                })
+                sw.generate_run(project["project_id"], "initial")
+                project = sw.load_project(project["project_id"])
+                sw.update_concept_review_state(project["project_id"], project["concepts"][0]["concept_id"], "approve", True)
+                manifest = sw.generate_master_pose_candidates(project["project_id"])
+                self.assertEqual(len(manifest["candidates"]), 3)
+                selected = sw.select_master_pose(project["project_id"], manifest["candidates"][0]["candidate_id"])
+                self.assertEqual(selected["approved_candidate_id"], manifest["candidates"][0]["candidate_id"])
+                self.assertTrue((sw.PROJECTS_ROOT / project["project_id"] / "master_pose" / "approved_master_pose.png").exists())
+            finally:
+                sw.PROJECTS_ROOT = original_root
+
+    def test_sprite_model_build_extracts_required_parts(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            original_root = sw.PROJECTS_ROOT
+            sw.PROJECTS_ROOT = Path(tmpdir)
+            try:
+                project = sw.create_project({
+                    "project_name": "Sprite Model Hero",
+                    "prompt_text": "a watchful scout with a lantern",
+                    "backend_mode": "debug_procedural",
+                })
+                sw.generate_run(project["project_id"], "initial")
+                project = sw.load_project(project["project_id"])
+                sw.update_concept_review_state(project["project_id"], project["concepts"][0]["concept_id"], "approve", True)
+                sw.generate_master_pose_candidates(project["project_id"])
+                project = sw.load_project(project["project_id"])
+                sw.select_master_pose(project["project_id"], project["master_pose_manifest"]["candidates"][0]["candidate_id"])
+                sprite_model = sw.build_sprite_model(project["project_id"])
+            finally:
+                sw.PROJECTS_ROOT = original_root
+
+        self.assertEqual(sprite_model["status"], "pass")
+        self.assertEqual(len(sprite_model["parts"]), len(sw.REQUIRED_PARTS))
+        self.assertEqual(sprite_model["approved_master_pose"], "master_pose/approved_master_pose.png")
+        self.assertIn("swatches", sprite_model["palette"])
+
+    def test_full_debug_pipeline_renders_clips_passes_qa_and_exports(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            original_root = sw.PROJECTS_ROOT
+            sw.PROJECTS_ROOT = Path(tmpdir)
+            try:
+                project = sw.create_project({
+                    "project_name": "Full Pipeline Hero",
+                    "prompt_text": "a vigilant ranger with a lantern",
+                    "backend_mode": "debug_procedural",
+                })
+                sw.generate_run(project["project_id"], "initial")
+                project = sw.load_project(project["project_id"])
+                sw.update_concept_review_state(project["project_id"], project["concepts"][0]["concept_id"], "approve", True)
+                sw.generate_master_pose_candidates(project["project_id"])
+                project = sw.load_project(project["project_id"])
+                sw.select_master_pose(project["project_id"], project["master_pose_manifest"]["candidates"][0]["candidate_id"])
+                sw.build_sprite_model(project["project_id"])
+                project = sw.load_project(project["project_id"])
+                project["sprite_model_approved"] = True
+                project["layer_review_approved"] = True
+                sw.save_project(project)
+                sw.build_rig(project["project_id"])
+                project = sw.load_project(project["project_id"])
+                project["rig_review_approved"] = True
+                project["rig"]["approved_for_production"] = True
+                sw.save_project(project)
+                sw.render_animation(project["project_id"], "idle")
+                sw.render_animation(project["project_id"], "walk")
+                qa = sw.run_qa(project["project_id"])
+                export = sw.export_project(project["project_id"])
+            finally:
+                sw.PROJECTS_ROOT = original_root
+
+        self.assertEqual(qa["status"], "pass")
+        self.assertIn("idle", qa["per_animation_checks"])
+        self.assertTrue(export["export_dir"].startswith("exports/"))
+        self.assertIn("spritesheet.png", export["files"])
 
     def test_hydrate_brief_is_backward_compatible(self):
         legacy = {

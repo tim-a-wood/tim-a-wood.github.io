@@ -1,0 +1,60 @@
+{
+  "concept_id": "concept-0007",
+  "run_id": "run-08e49e40a9",
+  "run_kind": "initial",
+  "created_at": "2026-03-13T22:38:21.859682+00:00",
+  "seed": 3346013141,
+  "positive_prompt": "single humanoid side-view character concept art, full body, plain light background, clean silhouette, readable negative space, designed for Ashen Hollow, a dark-fantasy 2d side-scrolling metroidvania, Hollow Knight-inspired atmosphere with ruined chapels, catacombs, and medieval decay, player-character readability first, strict side-view silhouette, full body visible, large primary shapes, restrained secondary detail, clustered values for sprite readability, clear separation between head, torso, limbs, and held item, readable at low resolution, animation-friendly costume breakup, practical combat silhouette, plain or minimal background for character extraction, single character only, centered full body concept, orthographic side profile, no dramatic camera angle, no environment storytelling shot, one iconic held item, practical traversal and combat gear, grounded proportions, silhouette readable in motion, restrained ornamental noise, character role: humanoid biped, silhouette intent: broad, outfit and materials: armored traveler, primary handheld prop: lantern, palette mood: storm steel, shape language: balanced angular to rounded mix, mood: stoic, vigilant, and battle-worn, readability constraints: strict side view, readable negative space, prop silhouette distinct from torso, gameplay role: player-facing 2d metroidvania character concept intended for side-view animation and sprite extraction, readability priority: silhouette clarity first, world style second, identity consistency third, variant emphasis: pushes height and vertical rhythm while staying readable, silhouette focus: slightly taller side-view rhythm, outfit focus: elongated layers and clearer vertical breaks, palette focus: storm steel pushed cooler, prop silhouette: rail lantern, avoid cinematic pose or environment-heavy framing; keep the character readable as game art",
+  "negative_prompt": "front view, rear view, top-down, isometric, multiple characters, crowd, group shot, full environment scene, busy background, extra limbs, extra arms, extra weapons, wings, huge cape, non-humanoid anatomy, mount, vehicle, text, watermark, logo",
+  "prompt": "single humanoid side-view character concept art, full body, plain light background, clean silhouette, readable negative space, designed for Ashen Hollow, a dark-fantasy 2d side-scrolling metroidvania, Hollow Knight-inspired atmosphere with ruined chapels, catacombs, and medieval decay, player-character readability first, strict side-view silhouette, full body visible, large primary shapes, restrained secondary detail, clustered values for sprite readability, clear separation between head, torso, limbs, and held item, readable at low resolution, animation-friendly costume breakup, practical combat silhouette, plain or minimal background for character extraction, single character only, centered full body concept, orthographic side profile, no dramatic camera angle, no environment storytelling shot, one iconic held item, practical traversal and combat gear, grounded proportions, silhouette readable in motion, restrained ornamental noise, character role: humanoid biped, silhouette intent: broad, outfit and materials: armored traveler, primary handheld prop: lantern, palette mood: storm steel, shape language: balanced angular to rounded mix, mood: stoic, vigilant, and battle-worn, readability constraints: strict side view, readable negative space, prop silhouette distinct from torso, gameplay role: player-facing 2d metroidvania character concept intended for side-view animation and sprite extraction, readability priority: silhouette clarity first, world style second, identity consistency third, variant emphasis: pushes height and vertical rhythm while staying readable, silhouette focus: slightly taller side-view rhythm, outfit focus: elongated layers and clearer vertical breaks, palette focus: storm steel pushed cooler, prop silhouette: rail lantern, avoid cinematic pose or environment-heavy framing; keep the character readable as game art",
+  "preview_image": "concepts/concept-0007.png",
+  "backend_name": "comfyui",
+  "backend_run_id": "c1cb0d82-51f3-4081-8ce1-007416536224",
+  "variation_axes": {
+    "silhouette": "slightly taller side-view rhythm",
+    "outfit_complexity": "elongated layers and clearer vertical breaks",
+    "palette_direction": "storm steel pushed cooler",
+    "prop_variant": "rail lantern",
+    "summary": "pushes height and vertical rhythm while staying readable"
+  },
+  "difference_summary": "pushes height and vertical rhythm while staying readable",
+  "silhouette": "slightly taller side-view rhythm",
+  "outfit": "elongated layers and clearer vertical breaks",
+  "palette_direction": "storm steel pushed cooler",
+  "palette": {
+    "base": "#1e252d",
+    "accent": "#4d687d",
+    "skin": "#d4c5ae",
+    "prop": "#755244",
+    "outline": "#10161d"
+  },
+  "prop_variant": "rail lantern",
+  "face_head_shape": "balanced angular to rounded mix",
+  "references_used": [],
+  "review_state": {
+    "approved": false,
+    "favorite": false,
+    "rejected": false
+  },
+  "approved": false,
+  "favorite": false,
+  "rejected": false,
+  "lineage": {
+    "run_id": "run-08e49e40a9",
+    "parent_concept_id": null
+  },
+  "triage": {
+    "status": "system-demoted",
+    "flags": [
+      "background_not_clean",
+      "bounding_box_occupancy_out_of_range"
+    ],
+    "metrics": {
+      "occupancy": 1.0,
+      "edge_foreground_ratio": 0.7009,
+      "component_count": 2,
+      "sha256": "062fdcd6e689557553450e03a2d2a7154b11faa44d6fa9731b8e24bf4bc1a273",
+      "perceptual_hash": 1476326343701092448
+    }
+  }
+}

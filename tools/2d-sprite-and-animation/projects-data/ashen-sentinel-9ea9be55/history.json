@@ -10,6 +10,53 @@
       "completed_at": "2026-03-13T14:38:05.858559+00:00",
       "event_id": "c814e9ad91e9",
       "created_at": "2026-03-13T14:38:05.858644+00:00"
+    },
+    {
+      "type": "concept_run",
+      "run_id": "run-08e49e40a9",
+      "run_kind": "initial",
+      "status": "completed",
+      "created_at": "2026-03-13T22:40:29.585898+00:00",
+      "completed_at": "2026-03-13T22:40:29.585905+00:00",
+      "concept_ids": [
+        "concept-0005",
+        "concept-0006",
+        "concept-0007",
+        "concept-0008",
+        "concept-0009",
+        "concept-0010"
+      ],
+      "concept_count": 6,
+      "backend_name": "comfyui",
+      "backend_mode": "comfyui",
+      "source_concept_id": null,
+      "attribute_group": null,
+      "target_value": null,
+      "refinement_strength_label": null,
+      "refinement_strength": null,
+      "references_used": [],
+      "summary": "initial run with 6 concepts",
+      "duration_ms": 271210,
+      "event_id": "f2851c465ecb"
+    },
+    {
+      "type": "job_summary",
+      "job_id": "47e5a8b2ca02",
+      "job_type": "concepts.generate",
+      "status": "completed",
+      "summary": "Job completed",
+      "completed_at": "2026-03-13T22:40:29.588526+00:00",
+      "event_id": "d92f1f6f0b8c",
+      "created_at": "2026-03-13T22:40:29.588590+00:00"
+    },
+    {
+      "type": "review_action",
+      "run_id": "run-08e49e40a9",
+      "concept_id": "concept-0008",
+      "action": "reject",
+      "value": true,
+      "event_id": "163305a6c376",
+      "created_at": "2026-03-13T22:43:09.290535+00:00"
     }
   ]
 }
