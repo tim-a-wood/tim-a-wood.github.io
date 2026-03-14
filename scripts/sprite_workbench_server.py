@@ -94,11 +94,15 @@ REFINEMENT_STRENGTHS = {
 REFERENCE_ROLES = ("identity", "costume", "style", "prop")
 BACKEND_MODES = ("comfyui", "debug_procedural")
 MAJOR_REFINEMENT_LOCKS = {"silhouette", "face_head_shape", "outfit", "palette", "prop"}
+REFERENCE_SPRITESHEET_HINTS = ("sprite", "spritesheet", "spritelist", "sheet", "idle", "walk", "run", "attack", "anim")
 
 DEFAULT_NEGATIVE_PROMPT = (
     "front view, rear view, top-down, isometric, multiple characters, crowd, group shot, "
     "full environment scene, busy background, extra limbs, extra arms, extra weapons, "
-    "wings, huge cape, non-humanoid anatomy, mount, vehicle, text, watermark, logo"
+    "wings, huge cape, non-humanoid anatomy, mount, vehicle, text, watermark, logo, "
+    "character sheet, model sheet, turnaround sheet, sprite sheet, animation sheet, silhouette sheet, "
+    "contact sheet, collage, mood board, sketch page, comic page, split panel layout, multiple poses, "
+    "pose lineup, small figure, distant figure, tiny subject, cropped body, cut off feet, cut off head"
 )
 
 METROIDVANIA_PROMPT_CONTEXT = (
@@ -115,6 +119,18 @@ HOUSE_STYLE_PROMPT_RULES = (
     "single character only, centered full body concept, orthographic side profile, no dramatic camera angle, "
     "no environment storytelling shot, one iconic held item, practical traversal and combat gear, "
     "grounded proportions, silhouette readable in motion, restrained ornamental noise"
+)
+
+CONCEPT_RESCUE_POSITIVE_RULES = (
+    "exactly one full-body character only, large centered figure occupying most of the canvas, "
+    "plain studio backdrop, no concept page layout, no pose lineup, no thumbnail sheet, "
+    "head and feet both fully visible, single readable side-view silhouette"
+)
+
+CONCEPT_RESCUE_NEGATIVE_RULES = (
+    "multiple silhouettes, silhouette lineup, design sheet, turnarounds, concept sheet, contact sheet, "
+    "sprite page, reference page, white margin blocks, page annotations, tiny character, distant figure, "
+    "cropped framing, duplicate character, multi-pose board"
 )
 
 REQUIRED_PARTS = [
@@ -1060,6 +1076,9 @@ def hydrate_brief(brief: Optional[Dict[str, Any]], prompt_text: str) -> Dict[str
             "source_value": item.get("source_value"),
             "local_path": item.get("local_path"),
             "added_at": item.get("added_at") or now_iso(),
+            "reference_kind": item.get("reference_kind"),
+            "reference_warning": item.get("reference_warning"),
+            "usable_for_concepts": item.get("usable_for_concepts"),
         })
     hydrated["references"] = normalized_refs
     hydrated["positive_prompt_base"] = build_positive_prompt_base(hydrated)
@@ -1120,6 +1139,43 @@ def parse_data_url(value: str) -> Tuple[str, bytes]:
     return mime_type, base64.b64decode(encoded)
 
 
+def analyze_reference_asset(path: Optional[Path], source_value: Optional[str] = None) -> Dict[str, Any]:
+    name_bits = [str(source_value or "")]
+    if path:
+        name_bits.append(path.name)
+        name_bits.append(path.stem)
+    lowered_name = " ".join(name_bits).lower()
+    if any(hint in lowered_name for hint in REFERENCE_SPRITESHEET_HINTS):
+        return {
+            "reference_kind": "sprite_sheet",
+            "reference_warning": "Looks like a sprite or animation sheet. The concept generator will ignore it because it tends to produce layout-copy artifacts instead of usable concept art.",
+            "usable_for_concepts": False,
+        }
+
+    if path and path.exists():
+        try:
+            with Image.open(path) as loaded:
+                image = loaded.convert("RGBA")
+            mask = detect_mask(image)
+            component_count = mask_connected_components(mask)
+            width, height = image.size
+            aspect_ratio = width / max(height, 1)
+            if width >= 384 and aspect_ratio >= 1.2 and component_count >= 8:
+                return {
+                    "reference_kind": "sprite_sheet",
+                    "reference_warning": "This reference reads like a multi-frame sprite sheet. The concept generator will ignore it to avoid copying sheet structure into the concept board.",
+                    "usable_for_concepts": False,
+                }
+        except Exception:
+            pass
+
+    return {
+        "reference_kind": "illustration",
+        "reference_warning": None,
+        "usable_for_concepts": True,
+    }
+
+
 def store_reference(project_dir: Path, descriptor: Dict[str, Any]) -> Dict[str, Any]:
     role = descriptor.get("role")
     if role not in REFERENCE_ROLES:
@@ -1158,6 +1214,8 @@ def store_reference(project_dir: Path, descriptor: Dict[str, Any]) -> Dict[str, 
     else:
         raise ValueError("Reference entry must include either a file upload or a local path.")
 
+    analysis = analyze_reference_asset(output_path, source_value)
+
     return {
         "reference_id": reference_id,
         "role": role,
@@ -1166,6 +1224,9 @@ def store_reference(project_dir: Path, descriptor: Dict[str, Any]) -> Dict[str, 
         "source_value": source_value,
         "local_path": str(output_path.relative_to(project_dir)),
         "added_at": now_iso(),
+        "reference_kind": analysis["reference_kind"],
+        "reference_warning": analysis["reference_warning"],
+        "usable_for_concepts": analysis["usable_for_concepts"],
     }
 
 
@@ -1425,7 +1486,12 @@ def build_refinement_variation_axes(base_concept: Dict[str, Any], attribute_grou
     return results
 
 
-def build_prompt_bundle(brief: Dict[str, Any], variation_axes: Dict[str, Any], source_concept: Optional[Dict[str, Any]] = None) -> Tuple[str, str]:
+def build_prompt_bundle(
+    brief: Dict[str, Any],
+    variation_axes: Dict[str, Any],
+    source_concept: Optional[Dict[str, Any]] = None,
+    rescue_mode: bool = False,
+) -> Tuple[str, str]:
     positive_parts = [
         brief["positive_prompt_base"],
         "gameplay role: player-facing 2d metroidvania character concept intended for side-view animation and sprite extraction",
@@ -1437,6 +1503,10 @@ def build_prompt_bundle(brief: Dict[str, Any], variation_axes: Dict[str, Any], s
         "prop silhouette: %s" % (variation_axes.get("prop_variant") or brief["prop"]),
         "avoid cinematic pose or environment-heavy framing; keep the character readable as game art",
     ]
+    negative_prompt = brief["negative_prompt"]
+    if rescue_mode:
+        positive_parts.append(CONCEPT_RESCUE_POSITIVE_RULES)
+        negative_prompt = "%s, %s" % (negative_prompt, CONCEPT_RESCUE_NEGATIVE_RULES)
     if source_concept is not None:
         positive_parts.append("preserve the same character identity core as the source concept")
         preserve = variation_axes.get("preserve") or {}
@@ -1446,7 +1516,7 @@ def build_prompt_bundle(brief: Dict[str, Any], variation_axes: Dict[str, Any], s
                 locked_bits.append("%s=%s" % (key, preserve[key]))
         if locked_bits:
             positive_parts.append("locked attributes: %s" % ", ".join(locked_bits))
-    return ", ".join(positive_parts), brief["negative_prompt"]
+    return ", ".join(positive_parts), negative_prompt
 
 
 def make_reference_inputs(project_dir: Path, brief: Dict[str, Any]) -> List[ReferenceInput]:
@@ -1456,7 +1526,8 @@ def make_reference_inputs(project_dir: Path, brief: Dict[str, Any]) -> List[Refe
         if not local_rel:
             continue
         path = project_dir / local_rel
-        if path.exists():
+        analysis = analyze_reference_asset(path, item.get("source_value"))
+        if path.exists() and analysis.get("usable_for_concepts", True):
             inputs.append(ReferenceInput(role=item["role"], local_path=path, weight=float(item.get("weight", 1.0))))
     return inputs
 
@@ -1789,6 +1860,8 @@ def build_run_summaries(history: Dict[str, Any], concepts: List[Dict[str, Any]])
             "created_at": event.get("created_at"),
             "completed_at": event.get("completed_at"),
             "status": event.get("status"),
+            "quality_gate_failed": bool(event.get("quality_gate_failed")),
+            "rescue_attempted": bool(event.get("rescue_attempted")),
             "concept_ids": event.get("concept_ids") or [item["concept_id"] for item in run_concepts],
             "concept_count": event.get("concept_count") or len(run_concepts),
             "backend_name": event.get("backend_name"),
@@ -1824,6 +1897,22 @@ def build_run_summaries(history: Dict[str, Any], concepts: List[Dict[str, Any]])
     return summaries
 
 
+def enrich_brief_references(project_dir: Path, brief: Dict[str, Any]) -> Dict[str, Any]:
+    references = []
+    for item in brief.get("references") or []:
+        if not isinstance(item, dict):
+            continue
+        local_path = project_dir / item["local_path"] if item.get("local_path") else None
+        analysis = analyze_reference_asset(local_path if local_path and local_path.exists() else None, item.get("source_value"))
+        enriched = dict(item)
+        enriched["reference_kind"] = analysis["reference_kind"]
+        enriched["reference_warning"] = analysis["reference_warning"]
+        enriched["usable_for_concepts"] = analysis["usable_for_concepts"]
+        references.append(enriched)
+    brief["references"] = references
+    return brief
+
+
 def load_project(project_id: str) -> Dict[str, Any]:
     project_dir = PROJECTS_ROOT / project_id
     project_path = project_dir / "project.json"
@@ -1832,7 +1921,7 @@ def load_project(project_id: str) -> Dict[str, Any]:
 
     project = apply_project_defaults(load_json(project_path, {}))
     ensure_dirs(project_dir)
-    project["brief"] = hydrate_brief(load_json(project_dir / "brief.json", {}), project.get("prompt_text", ""))
+    project["brief"] = enrich_brief_references(project_dir, hydrate_brief(load_json(project_dir / "brief.json", {}), project.get("prompt_text", "")))
     project["character_spec"] = load_json(project_dir / "character_spec.json")
     project["master_pose_manifest"] = load_master_pose_manifest(project_dir)
     legacy_layered_character = load_json(legacy_downstream_path(project_dir, "layered_character"))
@@ -4802,7 +4891,6 @@ def generate_run(
     concepts = project["concepts"]
     serial = next_concept_serial(concepts)
     request_references = make_reference_inputs(project_dir, project["brief"])
-    generated_records = []
     start_time = time.monotonic()
 
     if run_kind == "initial":
@@ -4814,69 +4902,85 @@ def generate_run(
         refine_source = project_dir / base_concept["preview_image"]
         concept_count = REFINEMENT_CONCEPT_COUNT
 
-    for index, variation_axes in enumerate(variation_axes_list[:concept_count]):
-        call_progress(
-            progress,
-            12 + int((index / max(1, concept_count)) * 72),
-            "Generating look %d of %d" % (index + 1, concept_count),
-            variation_axes.get("summary"),
-        )
-        concept_id = "concept-%04d" % serial
-        output_path = project_dir / "concepts" / ("%s.png" % concept_id)
-        positive_prompt, negative_prompt = build_prompt_bundle(project["brief"], variation_axes, base_concept)
-        seed = stable_int(project_id, run_id, concept_id, positive_prompt, mod=4_294_967_295)
-        refine_strength = None
-        if run_kind in ("refinement", "similar"):
-            refine_strength = REFINEMENT_STRENGTHS[strength_label or "subtle"]
-        request = ConceptRequest(
-            project_id=project_id,
-            positive_prompt=positive_prompt,
-            negative_prompt=negative_prompt,
-            width=CONCEPT_CANVAS[0],
-            height=CONCEPT_CANVAS[1],
-            seed=seed,
-            count=1,
-            references=request_references,
-            mode=run_kind,
-            refine_from_image=refine_source,
-            refine_strength=refine_strength,
-            variation_axes=variation_axes,
-            output_path=output_path,
-            checkpoint_name=project["brief"].get("comfyui_checkpoint") or DEFAULT_COMFYUI_CHECKPOINT,
-        )
-        generated = backend.generate(request)[0]
-        concept = {
-            "concept_id": concept_id,
-            "run_id": run_id,
-            "run_kind": run_kind,
-            "created_at": now_iso(),
-            "seed": seed,
-            "positive_prompt": generated.positive_prompt,
-            "negative_prompt": generated.negative_prompt,
-            "prompt": generated.positive_prompt,
-            "preview_image": relative_preview_path(project_dir, generated.image_path),
-            "backend_name": generated.backend_name,
-            "backend_run_id": generated.backend_run_id,
-            "variation_axes": variation_axes,
-            "difference_summary": variation_axes.get("summary"),
-            "silhouette": variation_axes.get("silhouette") or project["brief"]["silhouette_intent"],
-            "outfit": variation_axes.get("outfit_complexity") or project["brief"]["outfit_materials"],
-            "palette_direction": variation_axes.get("palette_direction") or project["brief"]["palette_mood"],
-            "palette": palette_from_seed(seed, index, project["brief"]["palette_mood"]),
-            "prop_variant": variation_axes.get("prop_variant") or project["brief"]["prop"],
-            "face_head_shape": project["brief"]["shape_language"],
-            "references_used": generated.references_used,
-            "review_state": {"approved": False, "favorite": False, "rejected": False},
-            "approved": False,
-            "favorite": False,
-            "rejected": False,
-            "lineage": {"run_id": run_id, "parent_concept_id": source_concept_id},
-        }
-        generated_records.append(concept)
-        serial += 1
+    def generate_records_for_attempt(rescue_mode: bool) -> List[Dict[str, Any]]:
+        generated_records: List[Dict[str, Any]] = []
+        for index, variation_axes in enumerate(variation_axes_list[:concept_count]):
+            call_progress(
+                progress,
+                12 + int((index / max(1, concept_count)) * 72),
+                "Generating look %d of %d" % (index + 1, concept_count),
+                variation_axes.get("summary"),
+            )
+            concept_id = "concept-%04d" % (serial + index)
+            output_path = project_dir / "concepts" / ("%s.png" % concept_id)
+            positive_prompt, negative_prompt = build_prompt_bundle(project["brief"], variation_axes, base_concept, rescue_mode=rescue_mode)
+            seed = stable_int(project_id, run_id, concept_id, positive_prompt, "rescue" if rescue_mode else "base", mod=4_294_967_295)
+            refine_strength = None
+            if run_kind in ("refinement", "similar"):
+                refine_strength = REFINEMENT_STRENGTHS[strength_label or "subtle"]
+            request = ConceptRequest(
+                project_id=project_id,
+                positive_prompt=positive_prompt,
+                negative_prompt=negative_prompt,
+                width=CONCEPT_CANVAS[0],
+                height=CONCEPT_CANVAS[1],
+                seed=seed,
+                count=1,
+                references=request_references,
+                mode=run_kind,
+                refine_from_image=refine_source,
+                refine_strength=refine_strength,
+                variation_axes=variation_axes,
+                output_path=output_path,
+                checkpoint_name=project["brief"].get("comfyui_checkpoint") or DEFAULT_COMFYUI_CHECKPOINT,
+            )
+            generated = backend.generate(request)[0]
+            concept = {
+                "concept_id": concept_id,
+                "run_id": run_id,
+                "run_kind": run_kind,
+                "created_at": now_iso(),
+                "seed": seed,
+                "positive_prompt": generated.positive_prompt,
+                "negative_prompt": generated.negative_prompt,
+                "prompt": generated.positive_prompt,
+                "preview_image": relative_preview_path(project_dir, generated.image_path),
+                "backend_name": generated.backend_name,
+                "backend_run_id": generated.backend_run_id,
+                "variation_axes": variation_axes,
+                "difference_summary": variation_axes.get("summary"),
+                "silhouette": variation_axes.get("silhouette") or project["brief"]["silhouette_intent"],
+                "outfit": variation_axes.get("outfit_complexity") or project["brief"]["outfit_materials"],
+                "palette_direction": variation_axes.get("palette_direction") or project["brief"]["palette_mood"],
+                "palette": palette_from_seed(seed, index, project["brief"]["palette_mood"]),
+                "prop_variant": variation_axes.get("prop_variant") or project["brief"]["prop"],
+                "face_head_shape": project["brief"]["shape_language"],
+                "references_used": generated.references_used,
+                "review_state": {"approved": False, "favorite": False, "rejected": False},
+                "approved": False,
+                "favorite": False,
+                "rejected": False,
+                "lineage": {"run_id": run_id, "parent_concept_id": source_concept_id},
+            }
+            generated_records.append(concept)
+        return generated_records
 
+    generated_records = generate_records_for_attempt(False)
     call_progress(progress, 88, "Reviewing generated looks", "Running lightweight triage and saving concept metadata.")
     annotate_run_triage(project_dir, generated_records)
+    triage_summary = summarize_run_triage(generated_records)
+    rescue_attempted = False
+    quality_gate_failed = False
+    usable_count = triage_summary.get("ok", 0) + triage_summary.get("warning", 0)
+    if run_kind == "initial" and usable_count < 2:
+        rescue_attempted = True
+        call_progress(progress, 90, "Board quality too low", "Retrying with stricter single-character framing rules.")
+        generated_records = generate_records_for_attempt(True)
+        annotate_run_triage(project_dir, generated_records)
+        triage_summary = summarize_run_triage(generated_records)
+        usable_count = triage_summary.get("ok", 0) + triage_summary.get("warning", 0)
+        quality_gate_failed = usable_count < 2
+
     for concept in generated_records:
         concepts.append(concept)
         save_concept(project_dir, concept)
@@ -4885,7 +4989,7 @@ def generate_run(
         "type": "concept_run",
         "run_id": run_id,
         "run_kind": run_kind,
-        "status": "completed",
+        "status": "quality_failed" if quality_gate_failed else "completed",
         "created_at": now_iso(),
         "completed_at": now_iso(),
         "concept_ids": [item["concept_id"] for item in generated_records],
@@ -4898,22 +5002,31 @@ def generate_run(
         "refinement_strength_label": strength_label,
         "refinement_strength": REFINEMENT_STRENGTHS.get(strength_label) if strength_label else None,
         "references_used": generated_records[0]["references_used"] if generated_records else [],
-        "summary": "%s run with %d concepts" % (run_kind, len(generated_records)),
+        "summary": "Concept board failed quality gate; generated outputs were kept for inspection only." if quality_gate_failed else "%s run with %d concepts" % (run_kind, len(generated_records)),
+        "rescue_attempted": rescue_attempted,
+        "quality_gate_failed": quality_gate_failed,
         "duration_ms": int((time.monotonic() - start_time) * 1000),
     }
     history = append_history_event(project_id, summary)
     project["history"] = history
     project["concepts"] = concepts
     project["current_stage"] = "concepts" if run_kind == "initial" else "refine"
-    project["status"] = "concepts_generated" if run_kind == "initial" else "concepts_refined"
+    project["status"] = "concepts_quality_failed" if quality_gate_failed else ("concepts_generated" if run_kind == "initial" else "concepts_refined")
     project["updated_at"] = now_iso()
     save_project(project)
-    call_progress(progress, 100, "Looks ready", "The concept board has been updated.")
+    call_progress(
+        progress,
+        100,
+        "Looks ready" if not quality_gate_failed else "Board needs attention",
+        "The concept board has been updated." if not quality_gate_failed else "No usable concepts passed triage. Adjust the brief or checkpoint, then regenerate.",
+    )
     return {
         "run_id": run_id,
         "run_kind": run_kind,
         "concept_ids": [item["concept_id"] for item in generated_records],
-        "triage": summarize_run_triage(generated_records),
+        "triage": triage_summary,
+        "rescue_attempted": rescue_attempted,
+        "quality_gate_failed": quality_gate_failed,
     }
 
 

@@ -22,8 +22,11 @@
             --green-soft: rgba(117, 196, 152, 0.18);
             --red: #d37a7a;
             --red-soft: rgba(211, 122, 122, 0.18);
-            --shadow: 0 24px 64px rgba(0, 0, 0, 0.34);
-            --radius: 22px;
+            --shadow: 0 12px 32px rgba(0, 0, 0, 0.26);
+            --radius: 16px;
+            --radius-tight: 12px;
+            --surface-gap: 12px;
+            --surface-pad: 14px;
         }
 
         * {
@@ -38,12 +41,14 @@
         }
 
         body {
-            font-family: "Avenir Next", "Segoe UI", sans-serif;
+            font-family: "IBM Plex Sans", "Avenir Next", "Segoe UI", sans-serif;
             color: var(--text);
             background:
                 radial-gradient(circle at top left, rgba(212, 167, 82, 0.13), transparent 28%),
                 radial-gradient(circle at bottom right, rgba(124, 181, 220, 0.12), transparent 24%),
                 linear-gradient(180deg, #091017 0%, #0d141d 44%, #121b24 100%);
+            font-size: 14px;
+            line-height: 1.45;
         }
 
         a {
@@ -67,7 +72,7 @@
 
         .app-shell {
             display: grid;
-            grid-template-columns: minmax(260px, 310px) minmax(0, 1fr);
+            grid-template-columns: minmax(220px, 260px) minmax(0, 1fr);
             min-height: 100vh;
             width: 100%;
         }
@@ -78,34 +83,35 @@
             align-self: start;
             height: 100vh;
             overflow: auto;
-            padding: 28px 20px 24px;
+            padding: 18px 14px 16px;
             border-right: 1px solid var(--stroke);
-            background: rgba(8, 11, 16, 0.78);
+            background: rgba(8, 11, 16, 0.88);
             backdrop-filter: blur(14px);
         }
 
         .brand {
-            margin-bottom: 24px;
+            margin-bottom: 16px;
         }
 
         .brand h1 {
             margin: 0;
             font-family: "Iowan Old Style", Georgia, serif;
-            font-size: 2rem;
-            line-height: 0.95;
+            font-size: 1.5rem;
+            line-height: 0.9;
             letter-spacing: 0.02em;
         }
 
         .brand p {
-            margin: 10px 0 0;
+            margin: 8px 0 0;
             color: var(--muted);
-            line-height: 1.5;
+            line-height: 1.35;
+            font-size: 0.88rem;
         }
 
         .nav-list,
         .project-list {
             display: grid;
-            gap: 10px;
+            gap: 8px;
         }
 
         .nav-link,
@@ -129,8 +135,9 @@
         .nav-link {
             text-decoration: none;
             color: var(--text);
-            padding: 11px 12px;
+            padding: 9px 10px;
             background: rgba(255, 255, 255, 0.03);
+            font-size: 0.88rem;
         }
 
         .nav-link:hover,
@@ -140,7 +147,7 @@
         }
 
         .sidebar-block + .sidebar-block {
-            margin-top: 22px;
+            margin-top: 16px;
         }
 
         .sidebar-title {
@@ -148,19 +155,19 @@
             justify-content: space-between;
             align-items: center;
             gap: 12px;
-            margin-bottom: 12px;
+            margin-bottom: 8px;
         }
 
         .sidebar-title h2 {
             margin: 0;
-            font-size: 0.92rem;
+            font-size: 0.8rem;
             text-transform: uppercase;
             letter-spacing: 0.08em;
             color: var(--muted);
         }
 
         .project-card {
-            padding: 14px;
+            padding: 10px 11px;
             cursor: pointer;
         }
 
@@ -171,7 +178,7 @@
 
         .project-card strong {
             display: block;
-            font-size: 1rem;
+            font-size: 0.92rem;
         }
 
         .project-card small,
@@ -183,36 +190,42 @@
         .project-actions {
             display: flex;
             flex-wrap: wrap;
-            gap: 8px;
-            margin-top: 12px;
+            gap: 6px;
+            margin-top: 8px;
         }
 
         .main-column {
-            padding: 24px;
+            padding: 14px;
             display: grid;
-            gap: 18px;
+            gap: 12px;
             align-content: start;
+            grid-template-columns: repeat(12, minmax(0, 1fr));
         }
 
         .hero {
-            padding: 24px;
+            grid-column: 1 / -1;
+            padding: 16px 18px;
             background:
                 linear-gradient(140deg, rgba(21, 31, 43, 0.96), rgba(10, 15, 22, 0.94)),
                 radial-gradient(circle at top right, rgba(124, 181, 220, 0.12), transparent 30%);
+            display: grid;
+            grid-template-columns: minmax(0, 1.8fr) auto;
+            gap: 16px;
+            align-items: center;
         }
 
         .hero h2 {
             margin: 0;
             font-family: "Iowan Old Style", Georgia, serif;
-            font-size: clamp(2rem, 4vw, 2.8rem);
-            line-height: 0.95;
+            font-size: clamp(1.5rem, 2.6vw, 2.1rem);
+            line-height: 0.96;
         }
 
         .hero p {
-            margin: 12px 0 0;
-            max-width: 72ch;
+            margin: 8px 0 0;
+            max-width: 64ch;
             color: var(--muted);
-            line-height: 1.55;
+            line-height: 1.42;
         }
 
         .status-row,
@@ -223,40 +236,42 @@
         .run-grid,
         .thumb-grid {
             display: grid;
-            gap: 14px;
+            gap: 10px;
         }
 
         .status-row {
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            grid-column: span 5;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
         }
 
         .metric-grid {
-            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            grid-column: span 7;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
         }
 
         .grid-2 {
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-        }
-
-        .grid-3 {
             grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
         }
 
+        .grid-3 {
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        }
+
         .run-grid {
-            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
         }
 
         .concept-grid {
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
         }
 
         .thumb-grid {
-            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(92px, 1fr));
         }
 
         .status-card,
         .metric-card {
-            padding: 16px;
+            padding: 12px;
         }
 
         .status-card span,
@@ -271,45 +286,48 @@
         .status-card strong,
         .metric-card strong {
             display: block;
-            margin-top: 7px;
-            font-size: 1.35rem;
+            margin-top: 4px;
+            font-size: 1.05rem;
         }
 
         .panel {
-            padding: 20px;
+            grid-column: 1 / -1;
+            padding: var(--surface-pad);
         }
 
         .section-head {
             display: flex;
             justify-content: space-between;
-            gap: 18px;
+            gap: 12px;
             align-items: flex-start;
             flex-wrap: wrap;
-            margin-bottom: 16px;
+            margin-bottom: 12px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
         }
 
         .section-head h3 {
             margin: 0;
-            font-size: 1.15rem;
+            font-size: 1rem;
             text-transform: uppercase;
             letter-spacing: 0.08em;
         }
 
         .section-head p {
-            margin: 8px 0 0;
+            margin: 6px 0 0;
             color: var(--muted);
-            line-height: 1.5;
-            max-width: 70ch;
+            line-height: 1.4;
+            max-width: 62ch;
         }
 
         .stage-meta {
             display: flex;
             align-items: center;
             flex-wrap: wrap;
-            gap: 10px;
+            gap: 8px;
             justify-content: flex-end;
             text-align: right;
-            max-width: min(100%, 360px);
+            max-width: min(100%, 320px);
         }
 
         .stage-meta p {
@@ -324,10 +342,10 @@
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            gap: 8px;
+            gap: 6px;
             border-radius: 999px;
-            padding: 5px 10px;
-            font-size: 0.78rem;
+            padding: 4px 8px;
+            font-size: 0.72rem;
             text-transform: uppercase;
             letter-spacing: 0.08em;
             border: 1px solid transparent;
@@ -377,15 +395,15 @@
         }
 
         .warning-box {
-            padding: 14px 16px;
+            padding: 10px 12px;
             background: rgba(211, 122, 122, 0.08);
         }
 
         .info-box,
         .success-box {
-            padding: 14px 16px;
+            padding: 10px 12px;
             border: 1px solid var(--stroke);
-            border-radius: 18px;
+            border-radius: var(--radius-tight);
             background: rgba(124, 181, 220, 0.08);
         }
 
@@ -406,9 +424,9 @@
 
         label {
             display: grid;
-            gap: 8px;
+            gap: 6px;
             color: var(--muted);
-            font-size: 0.92rem;
+            font-size: 0.86rem;
         }
 
         .field-label {
@@ -420,9 +438,9 @@
         }
 
         .field-help {
-            font-size: 0.83rem;
+            font-size: 0.76rem;
             color: var(--muted);
-            line-height: 1.45;
+            line-height: 1.35;
         }
 
         .help-tip {
@@ -436,7 +454,7 @@
             background: rgba(255, 255, 255, 0.05);
             color: var(--muted);
             cursor: help;
-            font-size: 0.72rem;
+            font-size: 0.68rem;
             font-weight: 700;
         }
 
@@ -444,8 +462,8 @@
         textarea,
         select {
             width: 100%;
-            border-radius: 14px;
-            padding: 11px 12px;
+            border-radius: 10px;
+            padding: 8px 10px;
             border: 1px solid var(--stroke-strong);
             background: rgba(7, 11, 16, 0.52);
             color: var(--text);
@@ -456,7 +474,7 @@
         }
 
         textarea {
-            min-height: 110px;
+            min-height: 88px;
             resize: vertical;
         }
 
@@ -464,21 +482,23 @@
         .inline-actions {
             display: flex;
             flex-wrap: wrap;
-            gap: 10px;
+            gap: 8px;
         }
 
         .actions {
-            margin-top: 16px;
+            margin-top: 12px;
         }
 
         button {
             border: 1px solid transparent;
             border-radius: 999px;
-            padding: 10px 15px;
+            padding: 8px 12px;
             font-weight: 700;
             cursor: pointer;
             color: #11161c;
             background: linear-gradient(135deg, #d4a752, #f1d9a2);
+            font-size: 0.85rem;
+            line-height: 1.1;
         }
 
         button.secondary {
@@ -504,11 +524,13 @@
         .wizard-inline {
             display: flex;
             flex-wrap: wrap;
-            gap: 10px;
+            gap: 8px;
         }
 
         .hero-actions {
-            margin-top: 18px;
+            margin-top: 0;
+            justify-content: flex-end;
+            align-items: center;
         }
 
         .mode-button.active {
@@ -519,84 +541,174 @@
 
         .mode-shell {
             display: grid;
-            gap: 16px;
+            gap: 12px;
+        }
+
+        .mode-actions {
+            gap: 0;
+            padding: 3px;
+            border-radius: 999px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .mode-actions button {
+            min-width: 0;
+        }
+
+        .mode-actions .secondary {
+            border-color: transparent;
+            background: transparent;
+            color: var(--muted);
         }
 
         .wizard-shell {
             display: grid;
-            gap: 14px;
+            gap: 10px;
+        }
+
+        .wizard-layout {
+            display: grid;
+            grid-template-columns: minmax(190px, 240px) minmax(0, 1fr);
+            gap: 10px;
+            align-items: start;
+        }
+
+        .wizard-progress {
+            display: grid;
+            gap: 8px;
         }
 
         .wizard-stepper {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
-            gap: 10px;
+            grid-template-columns: 1fr;
+            gap: 8px;
         }
 
         .wizard-step {
-            padding: 12px;
-            border-radius: 16px;
+            padding: 10px;
+            border-radius: var(--radius-tight);
             border: 1px solid var(--stroke);
             background: rgba(255, 255, 255, 0.03);
             color: var(--text);
             text-align: left;
             cursor: pointer;
+            display: grid;
+            grid-template-columns: 22px minmax(0, 1fr) auto;
+            gap: 8px;
+            align-items: center;
         }
 
-        .wizard-step.active {
+        .wizard-step-index {
+            width: 22px;
+            height: 22px;
+            border-radius: 999px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.72rem;
+            font-weight: 700;
+            background: rgba(255, 255, 255, 0.06);
+            color: var(--muted);
+        }
+
+        .wizard-step-copy {
+            display: grid;
+            gap: 2px;
+        }
+
+        .wizard-step-status {
+            font-size: 0.68rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--muted);
+        }
+
+        .wizard-step.selected {
             border-color: rgba(212, 167, 82, 0.5);
             box-shadow: 0 0 0 1px rgba(212, 167, 82, 0.16) inset;
         }
 
-        .wizard-step.complete {
+        .wizard-step.status-complete {
             border-color: rgba(117, 196, 152, 0.3);
         }
 
-        .wizard-step.locked {
+        .wizard-step.selected .wizard-step-index {
+            background: rgba(212, 167, 82, 0.18);
+            color: var(--accent);
+        }
+
+        .wizard-step.status-complete .wizard-step-index {
+            background: rgba(117, 196, 152, 0.18);
+            color: var(--green);
+        }
+
+        .wizard-step.status-complete .wizard-step-status {
+            color: var(--green);
+        }
+
+        .wizard-step.status-locked {
             opacity: 0.55;
             cursor: not-allowed;
         }
 
         .wizard-step strong {
             display: block;
-            font-size: 0.95rem;
+            font-size: 0.84rem;
         }
 
         .wizard-step small {
             display: block;
-            margin-top: 6px;
+            margin-top: 4px;
             color: var(--muted);
+            font-size: 0.74rem;
         }
 
         .wizard-card {
-            padding: 18px;
+            padding: 14px;
             border-radius: var(--radius);
             border: 1px solid var(--stroke);
             background: rgba(255, 255, 255, 0.03);
             display: grid;
-            gap: 14px;
+            gap: 10px;
+        }
+
+        .wizard-card-head {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            align-items: flex-start;
+            flex-wrap: wrap;
+        }
+
+        .wizard-card-head h3 {
+            margin: 0;
+        }
+
+        .wizard-card-head p {
+            margin: 4px 0 0;
         }
 
         .wizard-card h3 {
             margin: 0;
-            font-size: 1.2rem;
+            font-size: 1.05rem;
         }
 
         .wizard-guide {
             display: grid;
-            gap: 12px;
+            gap: 10px;
         }
 
         .wizard-guide-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 12px;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 10px;
         }
 
         .wizard-guide-card {
-            padding: 14px 16px;
+            padding: 11px 12px;
             border: 1px solid var(--stroke);
-            border-radius: 18px;
+            border-radius: var(--radius-tight);
             background: rgba(255, 255, 255, 0.03);
         }
 
@@ -615,14 +727,46 @@
         .wizard-blockers,
         .wizard-summaries {
             display: grid;
-            gap: 10px;
+            gap: 8px;
         }
 
         .wizard-summary {
             padding: 12px 14px;
-            border-radius: 16px;
+            border-radius: var(--radius-tight);
             border: 1px solid var(--stroke);
             background: rgba(255, 255, 255, 0.03);
+        }
+
+        .wizard-summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 8px;
+        }
+
+        .wizard-summary strong {
+            font-size: 0.84rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+
+        .wizard-progress-note {
+            padding: 10px;
+            border: 1px solid var(--stroke);
+            border-radius: var(--radius-tight);
+            background: rgba(255, 255, 255, 0.025);
+        }
+
+        .wizard-progress-note strong {
+            display: block;
+            margin-bottom: 4px;
+            font-size: 0.82rem;
+        }
+
+        .wizard-progress-note p {
+            margin: 0;
+            font-size: 0.78rem;
+            color: var(--muted);
+            line-height: 1.35;
         }
 
         .hidden-by-mode {
@@ -635,23 +779,23 @@
 
         .reference-editor {
             display: grid;
-            gap: 12px;
+            gap: 10px;
         }
 
         .reference-row {
             display: grid;
-            grid-template-columns: 130px 92px minmax(0, 1fr);
-            gap: 10px;
-            padding: 12px;
+            grid-template-columns: 112px 84px minmax(0, 1fr);
+            gap: 8px;
+            padding: 10px;
             border: 1px solid var(--stroke);
-            border-radius: 16px;
+            border-radius: var(--radius-tight);
             background: rgba(255, 255, 255, 0.03);
         }
 
         .reference-row .row-main {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 10px;
+            gap: 8px;
             align-items: end;
         }
 
@@ -662,18 +806,18 @@
 
         .reference-chip {
             display: grid;
-            grid-template-columns: 80px minmax(0, 1fr);
-            gap: 12px;
-            padding: 12px 14px;
-            border-radius: 16px;
+            grid-template-columns: 64px minmax(0, 1fr);
+            gap: 10px;
+            padding: 10px 12px;
+            border-radius: var(--radius-tight);
             background: rgba(255, 255, 255, 0.04);
             border: 1px solid var(--stroke);
         }
 
         .reference-chip img {
-            width: 80px;
-            height: 80px;
-            border-radius: 12px;
+            width: 64px;
+            height: 64px;
+            border-radius: 10px;
             object-fit: cover;
             background: rgba(255, 255, 255, 0.03);
             border: 1px solid rgba(255, 255, 255, 0.08);
@@ -686,7 +830,7 @@
         }
 
         .run-card {
-            padding: 14px;
+            padding: 11px;
             cursor: pointer;
         }
 
@@ -707,13 +851,13 @@
         }
 
         .step-panel-note {
-            margin-bottom: 14px;
+            margin-bottom: 10px;
         }
 
         details.advanced-settings {
-            margin-top: 14px;
+            margin-top: 10px;
             border: 1px solid var(--stroke);
-            border-radius: 18px;
+            border-radius: var(--radius-tight);
             background: rgba(255, 255, 255, 0.03);
             overflow: hidden;
         }
@@ -721,7 +865,7 @@
         details.advanced-settings summary {
             list-style: none;
             cursor: pointer;
-            padding: 14px 16px;
+            padding: 11px 12px;
             color: var(--text);
             font-weight: 600;
         }
@@ -731,9 +875,9 @@
         }
 
         .advanced-content {
-            padding: 0 16px 16px;
+            padding: 0 12px 12px;
             display: grid;
-            gap: 14px;
+            gap: 10px;
         }
 
         .inline-hint {
@@ -849,14 +993,14 @@
 
         .compare-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 14px;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 10px;
         }
 
         .compare-slot {
-            padding: 14px;
+            padding: 10px;
             display: grid;
-            gap: 12px;
+            gap: 8px;
         }
 
         .compare-slot img,
@@ -871,9 +1015,9 @@
         }
 
         .concept-card .body {
-            padding: 14px;
+            padding: 10px;
             display: grid;
-            gap: 10px;
+            gap: 8px;
         }
 
         .concept-top {
@@ -901,7 +1045,7 @@
         }
 
         .thumb {
-            padding: 10px;
+            padding: 8px;
             background: rgba(255, 255, 255, 0.03);
             text-align: center;
         }
@@ -915,8 +1059,8 @@
 
         .preview-card {
             position: relative;
-            padding: 12px;
-            border-radius: 18px;
+            padding: 10px;
+            border-radius: var(--radius-tight);
             background: rgba(255, 255, 255, 0.03);
             border: 1px solid var(--stroke);
             overflow: hidden;
@@ -966,7 +1110,7 @@
         .clip-control-grid,
         .frame-metrics {
             display: grid;
-            gap: 12px;
+            gap: 10px;
         }
 
         .sprite-editor-toolbar,
@@ -974,7 +1118,7 @@
         .range-row {
             display: flex;
             flex-wrap: wrap;
-            gap: 10px;
+            gap: 8px;
             align-items: center;
         }
 
@@ -1069,8 +1213,8 @@
 
         .recovery-card,
         .clip-control-card {
-            padding: 12px;
-            border-radius: 16px;
+            padding: 10px;
+            border-radius: var(--radius-tight);
             border: 1px solid var(--stroke);
             background: rgba(255, 255, 255, 0.03);
         }
@@ -1086,10 +1230,11 @@
         .clip-tab {
             border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 999px;
-            padding: 9px 14px;
+            padding: 7px 11px;
             font-weight: 700;
             background: rgba(255, 255, 255, 0.04);
             color: var(--text);
+            font-size: 0.82rem;
         }
 
         .clip-tab.active {
@@ -1099,7 +1244,7 @@
         }
 
         .clip-control-grid {
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
         }
 
         .range-row {
@@ -1119,26 +1264,26 @@
 
         .comparison-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 12px;
-        }
-
-        .comparison-panel {
-            padding: 12px;
-            border-radius: 16px;
-            border: 1px solid var(--stroke);
-            background: rgba(255, 255, 255, 0.03);
-            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
             gap: 10px;
         }
 
+        .comparison-panel {
+            padding: 10px;
+            border-radius: var(--radius-tight);
+            border: 1px solid var(--stroke);
+            background: rgba(255, 255, 255, 0.03);
+            display: grid;
+            gap: 8px;
+        }
+
         .frame-metrics {
-            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
         }
 
         .metric-chip {
-            padding: 10px 12px;
-            border-radius: 14px;
+            padding: 8px 10px;
+            border-radius: 10px;
             border: 1px solid rgba(255, 255, 255, 0.08);
             background: rgba(255, 255, 255, 0.02);
         }
@@ -1166,19 +1311,19 @@
         .action-cloud {
             display: flex;
             flex-wrap: wrap;
-            gap: 10px;
+            gap: 8px;
         }
 
         .check-list,
         .log-list {
             display: grid;
-            gap: 10px;
+            gap: 8px;
         }
 
         .check-row,
         .log-list li {
-            padding: 12px 14px;
-            border-radius: 16px;
+            padding: 9px 11px;
+            border-radius: var(--radius-tight);
             background: rgba(255, 255, 255, 0.03);
             border: 1px solid var(--stroke);
         }
@@ -1210,8 +1355,8 @@
         }
 
         .history-item {
-            padding: 10px 12px;
-            border-radius: 14px;
+            padding: 8px 10px;
+            border-radius: 10px;
             border: 1px solid rgba(255, 255, 255, 0.08);
             background: rgba(255, 255, 255, 0.02);
         }
@@ -1255,9 +1400,9 @@
         .modal-card {
             width: min(920px, 100%);
             max-height: min(92vh, 960px);
-            padding: 18px;
+            padding: 14px;
             display: grid;
-            gap: 14px;
+            gap: 10px;
             overflow: auto;
         }
 
@@ -1269,11 +1414,109 @@
         }
 
         .empty {
-            padding: 14px;
-            border-radius: 16px;
+            padding: 10px;
+            border-radius: var(--radius-tight);
             border: 1px dashed rgba(255, 255, 255, 0.12);
             color: var(--muted);
             background: rgba(255, 255, 255, 0.02);
+        }
+
+        #mode-shell {
+            grid-column: 1 / -1;
+        }
+
+        #intake,
+        #concepts,
+        #refine,
+        #master-pose,
+        #layer-review,
+        #rig-review,
+        #production,
+        #qa,
+        #export,
+        #activity-log {
+            scroll-margin-top: 12px;
+        }
+
+        body.wizard-mode .hero,
+        body.wizard-mode .status-row,
+        body.wizard-mode .metric-grid {
+            display: none;
+        }
+
+        body.wizard-mode .sidebar {
+            display: none;
+        }
+
+        body.wizard-mode .app-shell {
+            grid-template-columns: 1fr;
+        }
+
+        body.wizard-mode .main-column {
+            grid-template-columns: repeat(12, minmax(0, 1fr));
+        }
+
+        body.wizard-mode #mode-shell {
+            grid-column: 1 / span 4;
+            position: sticky;
+            top: 14px;
+            align-self: start;
+        }
+
+        body.wizard-mode .panel.hidden-by-mode {
+            display: none !important;
+        }
+
+        body.wizard-mode .panel:not(#mode-shell):not(.hidden-by-mode) {
+            grid-column: 5 / -1;
+            align-self: start;
+        }
+
+        body.wizard-mode #activity-log {
+            display: none !important;
+        }
+
+        body.wizard-mode .panel:not(#mode-shell):not(.hidden-by-mode) .section-head {
+            margin-bottom: 10px;
+        }
+
+        body.wizard-mode .panel:not(#mode-shell):not(.hidden-by-mode) .section-head p {
+            max-width: none;
+        }
+
+        body.wizard-mode .panel:not(#mode-shell):not(.hidden-by-mode) .stage-meta {
+            display: none;
+        }
+
+        body.wizard-mode #intake,
+        body.wizard-mode #concepts,
+        body.wizard-mode #refine,
+        body.wizard-mode #master-pose,
+        body.wizard-mode #layer-review,
+        body.wizard-mode #rig-review,
+        body.wizard-mode #production,
+        body.wizard-mode #qa,
+        body.wizard-mode #export {
+            min-height: calc(100vh - 28px);
+        }
+
+        @media (min-width: 1181px) {
+            #intake,
+            #concepts,
+            #refine,
+            #master-pose,
+            #layer-review,
+            #production {
+                grid-column: 1 / span 8;
+            }
+
+            #rig-review,
+            #qa,
+            #export,
+            #activity-log {
+                grid-column: 9 / -1;
+                align-self: start;
+            }
         }
 
         @media (max-width: 1180px) {
@@ -1287,16 +1530,72 @@
                 border-right: 0;
                 border-bottom: 1px solid var(--stroke);
             }
+
+            .main-column {
+                grid-template-columns: 1fr;
+            }
+
+            .hero,
+            .status-row,
+            .metric-grid,
+            .panel {
+                grid-column: 1;
+            }
+
+            .hero {
+                grid-template-columns: 1fr;
+            }
+
+            .status-row,
+            .metric-grid {
+                grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            }
+
+            body.wizard-mode .sidebar {
+                display: none;
+            }
+
+            body.wizard-mode #mode-shell,
+            body.wizard-mode .panel:not(#mode-shell):not(.hidden-by-mode) {
+                grid-column: 1;
+                position: static;
+                min-height: 0;
+            }
+
+            .wizard-layout {
+                grid-template-columns: 1fr;
+            }
+
+            .wizard-stepper {
+                grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            }
         }
 
         @media (max-width: 760px) {
             .main-column {
-                padding: 16px;
+                padding: 12px;
             }
 
             .panel,
             .hero {
-                padding: 16px;
+                padding: 12px;
+            }
+
+            .hero-actions {
+                justify-content: flex-start;
+            }
+
+            .mode-actions {
+                width: 100%;
+            }
+
+            .mode-actions button {
+                flex: 1 1 0;
+                justify-content: center;
+            }
+
+            .wizard-stepper {
+                grid-template-columns: 1fr;
             }
 
             .reference-row {
@@ -1321,7 +1620,7 @@
     <aside class="sidebar">
         <div class="brand">
             <h1>Sprite<br>Workbench</h1>
-            <p>Create side-view character sprites for Ashen Hollow with a guided wizard or the full workbench. The wizard is tuned for first-time users and keeps the advanced details out of the way.</p>
+            <p>Build side-view character sprites with the guided wizard or the full production workbench.</p>
         </div>
 
         <div class="sidebar-block">
@@ -1350,7 +1649,7 @@
     <main class="main-column">
         <section class="hero">
             <h2>Guide a sprite from idea to export without learning the pipeline first.</h2>
-            <p>The wizard now focuses one step at a time, explains what each choice does, and uses a stronger Ashen Hollow house style for more readable starting concepts. The workbench still stays available when you want direct access.</p>
+            <p>Start with the wizard for a clean first pass, or stay in the workbench to move straight through concepts, model cleanup, rigging, and export.</p>
             <div class="hero-actions">
                 <button id="launch-wizard">Create New Sprite</button>
                 <button class="secondary" id="open-workbench">Open Workbench</button>
@@ -1361,7 +1660,7 @@
             <div class="section-head">
                 <div>
                     <h3>Workspace Mode</h3>
-                    <p id="mode-summary">Use the workbench for direct access, or launch the guided wizard to create a new sprite one clear step at a time.</p>
+                    <p id="mode-summary">Use the workbench for direct access, or the wizard for a step-by-step sprite setup flow.</p>
                 </div>
                 <div class="mode-actions">
                     <button class="secondary" id="mode-workbench">Workbench</button>
@@ -1424,7 +1723,7 @@
                 </div>
             </div>
 
-            <div class="grid-2" data-wizard-view="project,brief">
+            <div class="grid-2" data-wizard-view="project">
                 <label>
                     <span class="field-label">Project Name <span class="help-tip" title="Used to organize the sprite project on disk. Pick something short and recognizable.">?</span></span>
                     <span class="field-help">Example: Ashen Sentinel, Lantern Pilgrim, Hollow Ranger.</span>
@@ -1554,7 +1853,7 @@
                 <button class="secondary" id="save-brief-workbench">Save Setup</button>
                 <button class="secondary" id="refresh-projects-workbench">Refresh Projects</button>
             </div>
-            <p class="small-note" id="intake-note">This version supports one side-view humanoid character. Unsupported prompt patterns are blocked early so you know what to fix before generation starts.</p>
+            <p class="small-note" id="intake-note" data-wizard-view="workbench">This version supports one side-view humanoid character. Unsupported prompt patterns are blocked early so you know what to fix before generation starts.</p>
         </section>
 
         <section class="panel" id="concepts">
@@ -1572,11 +1871,11 @@
                 </div>
             </div>
 
-            <div class="actions" data-wizard-view="concepts,review,workbench">
+            <div class="actions" data-wizard-view="concepts,workbench">
                 <button id="generate-concepts">Generate 6 Looks</button>
             </div>
 
-            <div style="margin-top: 16px;" data-wizard-view="concepts,review,workbench">
+            <div style="margin-top: 16px;" data-wizard-view="concepts,workbench">
                 <div class="section-head" style="margin-bottom: 10px;">
                     <div>
                         <h3 style="font-size: 0.98rem;">Generation History</h3>
@@ -1608,7 +1907,7 @@
                 </div>
             </div>
 
-            <div style="margin-top: 16px;" data-wizard-view="review,workbench">
+            <div style="margin-top: 16px;" data-wizard-view="concepts,review,workbench">
                 <div class="concept-grid" id="concept-grid"></div>
             </div>
         </section>
@@ -2372,6 +2671,40 @@ function wizardSummaryText(step) {
     }
 }
 
+function syncWizardPanelHeadings() {
+    const sectionIds = [...new Set(Object.values(WIZARD_SECTION_MAP).flat())];
+    sectionIds.forEach((id) => {
+        const section = document.querySelector(`#${id}`);
+        if (!section) return;
+        const title = section.querySelector(".section-head h3");
+        const description = section.querySelector(".section-head p");
+        if (title && !section.dataset.defaultTitle) section.dataset.defaultTitle = title.textContent;
+        if (description && !section.dataset.defaultDescription) section.dataset.defaultDescription = description.textContent;
+    });
+
+    if (!isWizardMode()) {
+        sectionIds.forEach((id) => {
+            const section = document.querySelector(`#${id}`);
+            if (!section) return;
+            const title = section.querySelector(".section-head h3");
+            const description = section.querySelector(".section-head p");
+            if (title && section.dataset.defaultTitle) title.textContent = section.dataset.defaultTitle;
+            if (description && section.dataset.defaultDescription) description.textContent = section.dataset.defaultDescription;
+        });
+        return;
+    }
+
+    const step = activeWizardStep();
+    const meta = WIZARD_META[step];
+    const sectionId = wizardSectionIds(step)[0];
+    const section = sectionId ? document.querySelector(`#${sectionId}`) : null;
+    if (!section || !meta) return;
+    const title = section.querySelector(".section-head h3");
+    const description = section.querySelector(".section-head p");
+    if (title) title.textContent = meta.label;
+    if (description) description.textContent = meta.description;
+}
+
 async function persistWizardState(payload) {
     if (!state.activeProject) return null;
     const project = await api(`/api/projects/${state.activeProject.project_id}/wizard-state`, {
@@ -2424,12 +2757,14 @@ function nextClipAction() {
 function applyModeVisibility() {
     const mode = currentMode();
     const activeStep = activeWizardStep();
+    document.body.classList.toggle("wizard-mode", mode === "wizard");
     const allowedSections = new Set(mode === "wizard" ? wizardSectionIds(activeStep) : WORKBENCH_SECTION_IDS);
     WORKBENCH_SECTION_IDS.forEach((id) => {
         const node = document.querySelector(`#${id}`);
         if (!node) return;
         const shouldHide = mode === "wizard" && !allowedSections.has(id);
         node.classList.toggle("hidden-by-mode", shouldHide);
+        node.hidden = shouldHide;
     });
     document.querySelectorAll("[data-wizard-view]").forEach((node) => {
         const steps = normalizeWizardVisibility(node.dataset.wizardView);
@@ -2437,207 +2772,17 @@ function applyModeVisibility() {
             ? true
             : steps.includes(activeStep);
         node.classList.toggle("wizard-hidden", !show);
+        node.hidden = !show;
     });
     document.querySelectorAll(".wizard-only").forEach((node) => {
         node.classList.toggle("wizard-hidden", mode !== "wizard");
-    });
-}
-
-function wizardActionButton(action, secondary = false) {
-    if (!action) return "";
-    const disabled = action.disabled ? "disabled" : "";
-    const klass = secondary ? "secondary" : "";
-    return `<button class="${klass}" data-wizard-action="${action.id}" ${disabled}>${action.label}</button>`;
-}
-
-function wizardActionConfig(step) {
-    const project = state.activeProject;
-    const selected = selectedConcept();
-    switch (step) {
-        case "project":
-            return {
-                primary: {
-                    id: "wizard-create-project",
-                    label: "Start Project",
-                    disabled: false,
-                },
-                secondary: {
-                    id: "wizard-open-workbench",
-                    label: "Open Advanced Workbench",
-                    disabled: false,
-                },
-            };
-        case "brief":
-            return {
-                primary: {
-                    id: "wizard-save-brief",
-                    label: "Save And Continue",
-                    disabled: !project,
-                },
-                secondary: {
-                    id: "wizard-open-workbench",
-                    label: "Open Advanced Workbench",
-                    disabled: false,
-                },
-            };
-        case "references":
-            return {
-                primary: {
-                    id: "wizard-save-references",
-                    label: "Continue To Looks",
-                    disabled: !project,
-                },
-                secondary: {
-                    id: "wizard-skip-references",
-                    label: "Skip References",
-                    disabled: !project,
-                },
-            };
-        case "concepts":
-            return {
-                primary: {
-                    id: "wizard-generate-concepts",
-                    label: project?.concept_runs?.length ? "Generate Another 6 Looks" : "Generate 6 Looks",
-                    disabled: !project,
-                },
-                secondary: project?.concept_runs?.length ? {
-                    id: "wizard-go-review",
-                    label: "Go To Pick A Look",
-                    disabled: false,
-                } : null,
-            };
-        case "review":
-            return {
-                primary: {
-                    id: "wizard-continue-review",
-                    label: selected ? "Use This Look" : "Choose A Look Below",
-                    disabled: !selected,
-                },
-                secondary: {
-                    id: "wizard-open-workbench",
-                    label: "Open Advanced Workbench",
-                    disabled: false,
-                },
-            };
-        case "refine":
-            return {
-                primary: {
-                    id: "wizard-run-refine",
-                    label: "Generate 4 Adjusted Looks",
-                    disabled: !project || !selected,
-                },
-                secondary: {
-                    id: "wizard-use-current-concept",
-                    label: "Keep Current Look",
-                    disabled: !project || !selected,
-                },
-            };
-        case "master_pose":
-            return {
-                primary: {
-                    id: "wizard-generate-master-pose",
-                    label: project?.master_pose_manifest?.candidates?.length ? "Generate 3 New Master Poses" : "Generate 3 Master Poses",
-                    disabled: !project || !selected,
-                },
-                secondary: {
-                    id: "wizard-go-sprite-model",
-                    label: project?.master_pose_approved ? "Continue To Sprite Model" : "Choose A Master Pose Below",
-                    disabled: !project?.master_pose_approved,
-                },
-            };
-        case "sprite_model":
-            return {
-                primary: !project?.sprite_model ? {
-                    id: "wizard-build-sprite-model",
-                    label: "Build Sprite Model",
-                    disabled: !project?.master_pose_approved,
-                } : !project?.sprite_model_approved ? {
-                    id: "wizard-approve-sprite-model",
-                    label: "Approve Sprite Model",
-                    disabled: false,
-                } : {
-                    id: "wizard-go-rig",
-                    label: "Continue To Rig",
-                    disabled: false,
-                },
-                secondary: {
-                    id: "wizard-open-workbench",
-                    label: "Open Advanced Workbench",
-                    disabled: false,
-                },
-            };
-        case "rig":
-            return {
-                primary: !project?.rig ? {
-                    id: "wizard-build-rig",
-                    label: "Build Rig",
-                    disabled: !project?.sprite_model_approved,
-                } : !project?.rig_review_approved ? {
-                    id: "wizard-approve-rig",
-                    label: "Approve Rig",
-                    disabled: false,
-                } : {
-                    id: "wizard-go-clips",
-                    label: "Continue To Clips",
-                    disabled: false,
-                },
-                secondary: {
-                    id: "wizard-open-workbench",
-                    label: "Open Advanced Workbench",
-                    disabled: false,
-                },
-            };
-        case "clips": {
-            const buildAction = project ? nextClipAction() : null;
-            return {
-                primary: buildAction ? {
-                    id: "wizard-build-clips-next",
-                    label: buildAction.label,
-                    disabled: false,
-                } : {
-                    id: "wizard-open-workbench",
-                    label: "Open Advanced Workbench",
-                    disabled: false,
-                },
-                secondary: {
-                    id: "wizard-open-workbench",
-                    label: "Open Advanced Workbench",
-                    disabled: false,
-                },
-            };
+        if (mode !== "wizard") {
+            node.hidden = true;
+        } else if (!node.hasAttribute("data-wizard-view")) {
+            node.hidden = false;
         }
-        case "qa":
-            return {
-                primary: {
-                    id: "wizard-run-qa",
-                    label: project?.qa_report?.status === "pass" ? "Continue To Export" : "Run Checks",
-                    disabled: !project,
-                },
-                secondary: {
-                    id: "wizard-open-workbench",
-                    label: "Open Advanced Workbench",
-                    disabled: false,
-                },
-            };
-        case "export":
-            return {
-                primary: {
-                    id: "wizard-run-export",
-                    label: "Export Package",
-                    disabled: !project || project?.qa_report?.status !== "pass",
-                },
-                secondary: {
-                    id: "wizard-open-workbench",
-                    label: "Open Advanced Workbench",
-                    disabled: false,
-                },
-            };
-        default:
-            return {
-                primary: null,
-                secondary: null,
-            };
-    }
+    });
+    syncWizardPanelHeadings();
 }
 
 function renderModeShell() {
@@ -2649,6 +2794,8 @@ function renderModeShell() {
 
     workbenchButton.classList.toggle("active", mode === "workbench");
     wizardButton.classList.toggle("active", mode === "wizard");
+    workbenchButton.classList.toggle("mode-button", true);
+    wizardButton.classList.toggle("mode-button", true);
 
     if (mode === "workbench") {
         modeSummary.textContent = state.activeProject
@@ -2656,11 +2803,15 @@ function renderModeShell() {
             : "Choose or create a project, or launch the wizard to start a new sprite with guided steps.";
         wizardShell.innerHTML = `
             <div class="wizard-card">
-                <h3>Workbench Mode</h3>
-                <p class="muted">The full multi-panel workbench is active. Existing projects open here by default so you can jump straight to the stage you want.</p>
-                <div class="wizard-inline">
-                    <span class="pill ok">direct access</span>
-                    <span class="pill warning">${state.activeProject?.can_resume_wizard ? "wizard available" : "wizard optional"}</span>
+                <div class="wizard-card-head">
+                    <div>
+                        <h3>Workbench Mode</h3>
+                        <p class="muted">All stages are visible so you can jump directly to the area you need.</p>
+                    </div>
+                    <div class="wizard-inline">
+                        <span class="pill ok">direct access</span>
+                        <span class="pill warning">${state.activeProject?.can_resume_wizard ? "wizard available" : "wizard optional"}</span>
+                    </div>
                 </div>
                 ${state.activeProject?.can_resume_wizard ? `
                     <div class="wizard-actions">
@@ -2682,60 +2833,45 @@ function renderModeShell() {
 
     const model = wizardModel();
     const step = activeWizardStep();
-    const meta = WIZARD_META[step];
     const stepStatuses = model.step_statuses || {};
     const blockers = model.blocking_reasons?.[step] || [];
-    const actions = wizardActionConfig(step);
     const stepNumber = WIZARD_STEPS.indexOf(step) + 1;
     const completedSteps = WIZARD_STEPS.filter((item) => stepStatuses[item] === "complete" && item !== step);
+    const recommendedNext = model.recommended_next_step;
 
     wizardShell.innerHTML = `
-        <div class="wizard-stepper">
-            ${WIZARD_STEPS.map((item, index) => `
-                <button class="wizard-step ${stepStatuses[item] || ""}" data-step="${item}" ${stepStatuses[item] === "locked" ? "disabled" : ""}>
-                    <strong>${index + 1}. ${WIZARD_META[item].label}</strong>
-                    <small>${stepStatuses[item] || "locked"}</small>
-                </button>
-            `).join("")}
-        </div>
-        <div class="wizard-card">
-            <div class="meta-line">
-                <span class="pill ok">Wizard</span>
-                <span class="pill">${stepNumber} / ${WIZARD_STEPS.length}</span>
-                <span class="pill ${stepStatuses[step] === "attention" ? "warning" : stepStatuses[step] === "complete" ? "ok" : stepStatuses[step] === "locked" ? "fail" : "warning"}">${stepStatuses[step] || "active"}</span>
-            </div>
-            <div class="wizard-guide">
-                <h3>${meta.label}</h3>
-                <p class="muted">${meta.description}</p>
-                <div class="wizard-guide-grid">
-                    <div class="wizard-guide-card">
-                        <strong>What happens here</strong>
-                        <p>${meta.outcome || meta.description}</p>
-                    </div>
-                    <div class="wizard-guide-card">
-                        <strong>How to use it</strong>
-                        <p>${meta.example || "Use the visible fields and follow the primary button below."}</p>
-                    </div>
-                </div>
+        <div class="wizard-progress">
+            <div class="wizard-progress-note">
+                <strong>Progress</strong>
+                <p>Step ${stepNumber} of ${WIZARD_STEPS.length}${recommendedNext ? `. Recommended next: ${WIZARD_META[recommendedNext]?.label || recommendedNext}.` : "."}</p>
             </div>
             ${blockers.length ? `
                 <div class="wizard-blockers">
                     ${blockers.map((reason) => `<div class="warning-box"><p>${reason}</p></div>`).join("")}
                 </div>
             ` : ""}
-            <div class="wizard-actions">
-                ${wizardActionButton(actions.primary)}
-                ${wizardActionButton(actions.secondary, true)}
-                <button class="secondary" data-wizard-action="wizard-back">Back</button>
+            <div class="wizard-stepper">
+                ${WIZARD_STEPS.map((item, index) => `
+                    <button class="wizard-step ${item === step ? "selected" : ""} status-${stepStatuses[item] || "locked"}" data-step="${item}" ${stepStatuses[item] === "locked" ? "disabled" : ""}>
+                        <span class="wizard-step-index">${index + 1}</span>
+                        <span class="wizard-step-copy">
+                            <strong>${WIZARD_META[item].label}</strong>
+                            <small>${wizardSummaryText(item)}</small>
+                        </span>
+                        <span class="wizard-step-status">${stepStatuses[item] || "locked"}</span>
+                    </button>
+                `).join("")}
             </div>
             ${completedSteps.length ? `
                 <div class="wizard-summaries">
-                    ${completedSteps.map((completedStep) => `
-                        <div class="wizard-summary">
-                            <strong>${WIZARD_META[completedStep].label}</strong>
-                            <div class="small-note" style="margin-top: 6px;">${wizardSummaryText(completedStep)}</div>
-                        </div>
-                    `).join("")}
+                    <div class="wizard-summary-grid">
+                        ${completedSteps.map((completedStep) => `
+                            <div class="wizard-summary">
+                                <strong>${WIZARD_META[completedStep].label}</strong>
+                                <div class="small-note" style="margin-top: 6px;">${wizardSummaryText(completedStep)}</div>
+                            </div>
+                        `).join("")}
+                    </div>
                 </div>
             ` : ""}
         </div>
@@ -2837,7 +2973,14 @@ async function handleWizardAction(actionId, currentStep) {
             const result = await runJob(`/api/projects/${state.activeProject.project_id}/concepts/generate`);
             if (result?.run_id) state.selectedRunId = result.run_id;
             if (state.activeProject) {
-                await persistWizardState({ completed_steps: ["concepts"], current_step: "review", last_ui_mode: "wizard" });
+                await persistWizardState({
+                    completed_steps: result?.quality_gate_failed ? [] : ["concepts"],
+                    current_step: result?.quality_gate_failed ? "concepts" : "review",
+                    last_ui_mode: "wizard",
+                });
+                if (result?.quality_gate_failed) {
+                    notify("The generated board failed quality checks. Tighten the brief or change the checkpoint, then regenerate.", "error");
+                }
                 renderAll();
             }
             return;
@@ -3226,8 +3369,10 @@ function renderAttachedReferences() {
                 <div class="meta-line">
                     <span class="pill">${reference.role}</span>
                     <span class="pill">weight ${reference.weight}</span>
+                    ${reference.usable_for_concepts === false ? `<span class="pill fail">ignored for concepts</span>` : ""}
                 </div>
                 <div class="small-note">${reference.local_path || reference.source_value || "legacy reference"}</div>
+                ${reference.reference_warning ? `<div class="warning-box"><p>${reference.reference_warning}</p></div>` : ""}
             </div>
         `;
         root.appendChild(item);
@@ -3315,6 +3460,10 @@ function currentRunConcepts() {
     return project.concepts.filter((concept) => concept.run_id === run.run_id);
 }
 
+function reviewableRunConcepts() {
+    return currentRunConcepts().filter((concept) => concept.triage?.status !== "system-demoted");
+}
+
 function conceptById(conceptId) {
     return state.activeProject?.concepts?.find((concept) => concept.concept_id === conceptId) || null;
 }
@@ -3325,7 +3474,7 @@ function selectedConcept() {
 }
 
 function compareLeftConcept() {
-    return selectedConcept() || currentRunConcepts()[0] || null;
+    return selectedConcept() || reviewableRunConcepts()[0] || null;
 }
 
 function triageClass(status) {
@@ -3354,8 +3503,10 @@ function renderRunGrid() {
                 <span class="pill ${(triage["system-demoted"] || 0) ? "fail" : (triage.warning || 0) ? "warning" : "ok"}">
                     flagged ${triage["system-demoted"] || 0}/${triage.warning || 0}
                 </span>
+                ${run.quality_gate_failed ? `<span class="pill fail">failed board</span>` : ""}
             </div>
             <p>${run.summary || "No run summary."}</p>
+            ${run.rescue_attempted ? `<p class="small-note">The tool retried this board once with stricter single-character framing.</p>` : ""}
             ${run.target_value ? `<p class="small-note">Changed: ${REFINEMENT_LABELS[run.attribute_group] || run.attribute_group} -> ${run.target_value} (${run.refinement_strength_label})</p>` : ""}
         `;
         card.addEventListener("click", () => {
@@ -3399,7 +3550,17 @@ function renderCompareSlot(node, concept, label) {
 function renderConceptGrid() {
     const root = document.querySelector("#concept-grid");
     root.innerHTML = "";
-    const concepts = currentRunConcepts();
+    const allConcepts = currentRunConcepts();
+    const concepts = reviewableRunConcepts();
+    const run = currentRunSummary();
+    if (allConcepts.length && !concepts.length) {
+        root.innerHTML = `
+            <div class="warning-box">
+                <p><strong>This board failed quality checks.</strong> Every concept in this run was system-demoted for layout or framing issues, so they are hidden from selection. Regenerate after tightening the brief or changing the checkpoint.</p>
+            </div>
+        `;
+        return;
+    }
     if (!concepts.length) {
         root.innerHTML = `<div class="empty">No concepts in the selected run.</div>`;
         return;
@@ -3469,8 +3630,11 @@ function renderConceptReview() {
     renderRunGrid();
     const anchor = compareLeftConcept();
     let right = conceptById(state.compareRightId);
+    if (right?.triage?.status === "system-demoted") {
+        right = null;
+    }
     if (!right || right.concept_id === anchor?.concept_id) {
-        right = currentRunConcepts().find((concept) => concept.concept_id !== anchor?.concept_id) || null;
+        right = reviewableRunConcepts().find((concept) => concept.concept_id !== anchor?.concept_id) || null;
         state.compareRightId = right?.concept_id || null;
     }
     const approvedAnchor = Boolean(selectedConcept());
@@ -4714,6 +4878,14 @@ async function reviewConcept(conceptId, action, value) {
     if (action === "favorite") notify(value ? `${conceptId} saved to the shortlist.` : `${conceptId} removed from the shortlist.`, "info");
     if (action === "reject") notify(value ? `${conceptId} hidden from consideration.` : `${conceptId} restored.`, "info");
     await refreshProjects();
+    if (currentMode() === "wizard" && action === "approve" && value) {
+        const synced = await persistWizardState({
+            completed_steps: ["review"],
+            current_step: "refine",
+            last_ui_mode: "wizard",
+        });
+        if (synced) state.activeProject = synced;
+    }
     renderAll();
 }
 
@@ -4917,6 +5089,18 @@ document.querySelector("#generate-concepts").addEventListener("click", async () 
     try {
         const result = await runJob(`/api/projects/${state.activeProject.project_id}/concepts/generate`);
         if (result?.run_id) state.selectedRunId = result.run_id;
+        if (currentMode() === "wizard" && state.activeProject) {
+            const synced = await persistWizardState({
+                completed_steps: result?.quality_gate_failed ? [] : ["concepts"],
+                current_step: result?.quality_gate_failed ? "concepts" : "review",
+                last_ui_mode: "wizard",
+            });
+            if (synced) state.activeProject = synced;
+            renderAll();
+        }
+        if (result?.quality_gate_failed) {
+            notify("The generated board failed quality checks. Tighten the brief or change the checkpoint, then regenerate.", "error");
+        }
     } catch (error) {
         log(normalizeErrorMessage(error.message), "error");
         notify(normalizeErrorMessage(error.message), "error");
@@ -4954,6 +5138,14 @@ document.querySelector("#approve-layers").addEventListener("click", async () => 
     try {
         await api(`/api/projects/${state.activeProject.project_id}/sprite-model/approve`, { method: "POST", body: "{}" });
         await loadProject(state.activeProject.project_id, currentMode());
+        if (currentMode() === "wizard" && state.activeProject) {
+            const synced = await persistWizardState({
+                completed_steps: ["sprite_model"],
+                current_step: "rig",
+                last_ui_mode: "wizard",
+            });
+            if (synced) state.activeProject = synced;
+        }
         log("Approved sprite model", "success");
         notify("Sprite model approved.", "success");
     } catch (error) {
@@ -4975,6 +5167,14 @@ document.querySelector("#approve-rig").addEventListener("click", async () => {
     try {
         await api(`/api/projects/${state.activeProject.project_id}/rig/approve`, { method: "POST", body: "{}" });
         await loadProject(state.activeProject.project_id, currentMode());
+        if (currentMode() === "wizard" && state.activeProject) {
+            const synced = await persistWizardState({
+                completed_steps: ["rig"],
+                current_step: "clips",
+                last_ui_mode: "wizard",
+            });
+            if (synced) state.activeProject = synced;
+        }
         log("Approved rig", "success");
         notify("Rig approved.", "success");
     } catch (error) {
@@ -4986,6 +5186,15 @@ document.querySelector("#approve-rig").addEventListener("click", async () => {
 document.querySelector("#render-idle").addEventListener("click", async () => {
     try {
         await runJob(`/api/projects/${state.activeProject.project_id}/clips/idle/render`);
+        if (currentMode() === "wizard" && state.activeProject?.build_status?.idle_render_complete && state.activeProject?.build_status?.walk_render_complete) {
+            const synced = await persistWizardState({
+                completed_steps: ["clips"],
+                current_step: "qa",
+                last_ui_mode: "wizard",
+            });
+            if (synced) state.activeProject = synced;
+            renderAll();
+        }
     } catch (error) {
         log(normalizeErrorMessage(error.message), "error");
         notify(normalizeErrorMessage(error.message), "error");
@@ -4995,6 +5204,15 @@ document.querySelector("#render-idle").addEventListener("click", async () => {
 document.querySelector("#render-walk").addEventListener("click", async () => {
     try {
         await runJob(`/api/projects/${state.activeProject.project_id}/clips/walk/render`);
+        if (currentMode() === "wizard" && state.activeProject?.build_status?.idle_render_complete && state.activeProject?.build_status?.walk_render_complete) {
+            const synced = await persistWizardState({
+                completed_steps: ["clips"],
+                current_step: "qa",
+                last_ui_mode: "wizard",
+            });
+            if (synced) state.activeProject = synced;
+            renderAll();
+        }
     } catch (error) {
         log(normalizeErrorMessage(error.message), "error");
         notify(normalizeErrorMessage(error.message), "error");
@@ -5208,6 +5426,15 @@ document.querySelector("#sprite-recover-occlusion").addEventListener("click", as
 document.querySelector("#run-qa").addEventListener("click", async () => {
     try {
         await runJob(`/api/projects/${state.activeProject.project_id}/qa/run`);
+        if (currentMode() === "wizard" && state.activeProject?.qa_report) {
+            const synced = await persistWizardState({
+                completed_steps: ["qa"],
+                current_step: state.activeProject.qa_report.status === "pass" ? "export" : "qa",
+                last_ui_mode: "wizard",
+            });
+            if (synced) state.activeProject = synced;
+            renderAll();
+        }
     } catch (error) {
         log(normalizeErrorMessage(error.message), "error");
         notify(normalizeErrorMessage(error.message), "error");
@@ -5217,6 +5444,15 @@ document.querySelector("#run-qa").addEventListener("click", async () => {
 document.querySelector("#run-export").addEventListener("click", async () => {
     try {
         await runJob(`/api/projects/${state.activeProject.project_id}/export`);
+        if (currentMode() === "wizard" && state.activeProject) {
+            const synced = await persistWizardState({
+                completed_steps: ["export"],
+                current_step: "export",
+                last_ui_mode: "wizard",
+            });
+            if (synced) state.activeProject = synced;
+            renderAll();
+        }
     } catch (error) {
         log(normalizeErrorMessage(error.message), "error");
         notify(normalizeErrorMessage(error.message), "error");
