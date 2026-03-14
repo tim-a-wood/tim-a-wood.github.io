@@ -56,5 +56,15 @@
       "sha256": "2eaffeb0dc4168487e9806651e31eb7a456e890f55e8086b9ab377d3f88c37db",
       "perceptual_hash": 2681106551990970307
     }
-  }
+  },
+  "prompt_text": "single humanoid side-view character concept art, full body, plain light background, clean silhouette, readable negative space, designed for Ashen Hollow, a dark-fantasy 2d side-scrolling metroidvania, Hollow Knight-inspired atmosphere with ruined chapels, catacombs, and medieval decay, player-character readability first, strict side-view silhouette, full body visible, large primary shapes, restrained secondary detail, clustered values for sprite readability, clear separation between head, torso, limbs, and held item, readable at low resolution, animation-friendly costume breakup, practical combat silhouette, plain or minimal background for character extraction, single character only, centered full body concept, orthographic side profile, no dramatic camera angle, no environment storytelling shot, one iconic held item, practical traversal and combat gear, grounded proportions, silhouette readable in motion, restrained ornamental noise, character role: armored traveler, silhouette intent: broad guarded profile, outfit and materials: knights helmet and chainmail, primary handheld prop: none, palette mood: pixel medieval, shape language: angular disciplined silhouette, mood: dark fantasy, readability constraints: strict sideview, one humanoid, gameplay role: player-facing 2d metroidvania character concept intended for side-view animation and sprite extraction, readability priority: silhouette clarity first, world style second, identity consistency third, variant emphasis: emphasizes armor weight and defensive massing, silhouette focus: broader guarded take on the same profile, outfit focus: heavier armor grouping and chunkier masses, palette focus: pixel medieval with warm metal accents, prop silhouette: mechanic rod, avoid cinematic pose or environment-heavy framing; keep the character readable as game art",
+  "prompt_version": 0,
+  "prompt_source": "initial",
+  "attempt_group_id": "run-83a77d6093",
+  "attempt_index": 1,
+  "import_source": null,
+  "validation_status": "pending",
+  "validation_feedback": null,
+  "accepted_for_review": false,
+  "prompt_file": null
 }

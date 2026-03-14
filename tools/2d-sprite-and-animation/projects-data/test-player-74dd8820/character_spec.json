@@ -1,0 +1,54 @@
+{
+  "approved_concept_id": "concept-0002",
+  "canonical_prompt": "Create one full-body side-view character concept for a 2D metroidvania sprite pipeline.\nKeep it to exactly one humanoid character on a plain removable background.\nUse a strict side profile with the full body visible, centered, readable, and animation-friendly.\nRole: armored traveler.\nSilhouette: broad guarded profile.\nOutfit/materials: knights helmet and chainmail.\nHeld item: none.\nPalette/mood: pixel medieval.\nShape language: angular disciplined silhouette.\nMood/tone: dark fantasy.\nReadability constraints: strict sideview, one humanoid.\nDo not make a sprite sheet, turnaround, concept page, collage, scene shot, or multiple poses.\nDo not crop the head or feet.",
+  "negative_prompt": "front view, rear view, top-down, isometric, multiple characters, crowd, group shot, full environment scene, busy background, extra limbs, extra arms, extra weapons, wings, huge cape, non-humanoid anatomy, mount, vehicle, text, watermark, logo, character sheet, model sheet, turnaround sheet, sprite sheet, animation sheet, silhouette sheet, contact sheet, collage, mood board, sketch page, comic page, split panel layout, multiple poses, pose lineup, small figure, distant figure, tiny subject, cropped body, cut off feet, cut off head",
+  "prompt_lineage": {
+    "run_id": "prompt-1",
+    "parent_concept_id": "concept-0001",
+    "backend_name": "manual_import",
+    "backend_run_id": "Gemini_Generated_Image_nith7anith7anith.png"
+  },
+  "palette_direction": "pixel medieval",
+  "locked_attributes": {
+    "silhouette": "broad guarded profile",
+    "face_head_shape": "angular disciplined silhouette",
+    "outfit": "knights helmet and chainmail",
+    "palette": "pixel medieval",
+    "prop": "none"
+  },
+  "seed_history": [],
+  "palette_definition": {
+    "base": "#1e252d",
+    "accent": "#4d687d",
+    "skin": "#d4c5ae",
+    "prop": "#755244",
+    "outline": "#10161d"
+  },
+  "prop_definition": {
+    "type": "none",
+    "attachment_joint": "wrist_right"
+  },
+  "side_view_rules": "strict sideview, one humanoid",
+  "production_target": {
+    "frame_size": [
+      256,
+      256
+    ],
+    "idle": {
+      "frame_count": 6,
+      "fps": 8,
+      "loop": true
+    },
+    "walk": {
+      "frame_count": 8,
+      "fps": 10,
+      "loop": true
+    }
+  },
+  "model_identifiers_used_during_concept_generation": {
+    "mode": "manual_import",
+    "backend_run_id": "Gemini_Generated_Image_nith7anith7anith.png",
+    "version": "solo-ai-sprite-workbench-v4",
+    "run_id": "prompt-1"
+  }
+}

@@ -1,4 +1,5 @@
 import http.client
+import base64
 import shutil
 import tempfile
 import threading
@@ -8,11 +9,49 @@ from contextlib import contextmanager
 from pathlib import Path
 from http.server import ThreadingHTTPServer
 
+from PIL import Image, ImageDraw
+
 from scripts import sprite_workbench_server as sw
 
 
 class SpriteWorkbenchTests(unittest.TestCase):
     FIXTURE_ROOT = Path(__file__).resolve().parent / "fixtures" / "sprite_workbench"
+
+    def create_manual_concept_asset(self, path: Path):
+        image = Image.new("RGBA", sw.CONCEPT_CANVAS, (0, 0, 0, 0))
+        draw = ImageDraw.Draw(image)
+        draw.ellipse((250, 80, 390, 220), fill=(219, 198, 172, 255))
+        draw.rectangle((270, 210, 370, 420), fill=(58, 73, 92, 255))
+        draw.rectangle((310, 240, 430, 270), fill=(142, 103, 77, 255))
+        draw.rectangle((220, 235, 300, 260), fill=(96, 120, 140, 255))
+        draw.rectangle((285, 420, 325, 675), fill=(78, 92, 110, 255))
+        draw.rectangle((325, 420, 365, 675), fill=(78, 92, 110, 255))
+        draw.rectangle((275, 665, 335, 720), fill=(120, 84, 66, 255))
+        draw.rectangle((325, 665, 385, 720), fill=(120, 84, 66, 255))
+        path.parent.mkdir(parents=True, exist_ok=True)
+        image.save(path)
+        return path
+
+    def import_valid_manual_concept(self, project_id: str, *, import_mode: str = "local_path"):
+        prompt = sw.generate_initial_prompt(project_id)
+        with tempfile.TemporaryDirectory() as asset_dir:
+            asset_path = self.create_manual_concept_asset(Path(asset_dir) / "gemini-import.png")
+            if import_mode == "upload":
+                encoded = base64.b64encode(asset_path.read_bytes()).decode("ascii")
+                project = sw.import_concept_attempt(project_id, {
+                    "source_prompt_id": prompt["concept_id"],
+                    "name": "gemini-import.png",
+                    "data_url": "data:image/png;base64,%s" % encoded,
+                })
+            else:
+                project = sw.import_concept_attempt(project_id, {
+                    "source_prompt_id": prompt["concept_id"],
+                    "local_path": str(asset_path),
+                })
+        imported = next(item for item in project["concepts"] if item.get("preview_image"))
+        project = sw.update_concept_validation(project_id, imported["concept_id"], "valid")
+        sw.update_concept_review_state(project_id, imported["concept_id"], "approve", True)
+        return sw.load_project(project_id)
 
     def build_debug_pipeline(self, tmpdir: str):
         original_root = sw.PROJECTS_ROOT
@@ -24,10 +63,7 @@ class SpriteWorkbenchTests(unittest.TestCase):
                 "backend_mode": "debug_procedural",
                 "last_ui_mode": "wizard",
             })
-            sw.generate_run(project["project_id"], "initial")
-            project = sw.load_project(project["project_id"])
-            approved_concept = project["concepts"][0]["concept_id"]
-            sw.update_concept_review_state(project["project_id"], approved_concept, "approve", True)
+            project = self.import_valid_manual_concept(project["project_id"])
             sw.generate_master_pose_candidates(project["project_id"])
             project = sw.load_project(project["project_id"])
             sw.select_master_pose(project["project_id"], project["master_pose_manifest"]["candidates"][0]["candidate_id"])
@@ -127,45 +163,27 @@ class SpriteWorkbenchTests(unittest.TestCase):
         self.assertEqual(project["wizard_state"]["current_step"], "references")
         self.assertIn("brief", project["wizard_state"]["completed_steps"])
 
-    def test_refine_again_does_not_complete_refine_or_unlock_master_pose(self):
+    def test_review_stays_locked_until_a_valid_import_exists_and_refine_step_is_gone(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             original_root = sw.PROJECTS_ROOT
             sw.PROJECTS_ROOT = Path(tmpdir)
             try:
                 created = sw.create_project({
-                    "project_name": "Refine Wizard",
+                    "project_name": "Prompt Wizard",
                     "prompt_text": "a dune guard with a curved blade",
                     "last_ui_mode": "wizard",
                 })
-                project = sw.load_project(created["project_id"])
-                project["history"]["events"].append({
-                    "type": "concept_run",
-                    "run_id": "run-001",
-                    "run_kind": "initial",
-                    "created_at": sw.now_iso(),
-                })
-                project["selected_concept_id"] = "concept-0001"
-                project["wizard_state"] = {
-                    "current_step": "refine",
-                    "completed_steps": ["project", "brief", "references", "concepts", "review"],
-                    "skipped_optional_steps": ["references"],
-                    "last_completed_step": "review",
-                    "last_refine_decision": None,
-                    "show_advanced": False,
-                }
-                sw.save_project(project)
-                updated = sw.update_wizard_state(project["project_id"], {
-                    "current_step": "refine",
-                    "last_refine_decision": "refine_again",
-                    "last_ui_mode": "wizard",
-                })
+                sw.generate_initial_prompt(created["project_id"])
+                before_valid = sw.load_project(created["project_id"])
+                project = self.import_valid_manual_concept(created["project_id"], import_mode="local_path")
             finally:
                 sw.PROJECTS_ROOT = original_root
 
-        self.assertEqual(updated["wizard_state"]["last_refine_decision"], "refine_again")
-        self.assertNotIn("refine", updated["wizard_state"]["completed_steps"])
-        self.assertEqual(updated["step_statuses"]["refine"], "active")
-        self.assertEqual(updated["step_statuses"]["master_pose"], "locked")
+        self.assertNotIn("refine", before_valid["step_statuses"])
+        self.assertEqual(before_valid["step_statuses"]["review"], "locked")
+        self.assertIn("Mark at least one imported concept valid", before_valid["blocking_reasons"]["review"][0])
+        self.assertEqual(project["step_statuses"]["review"], "complete")
+        self.assertEqual(project["step_statuses"]["master_pose"], "ready")
 
     def test_master_pose_generation_and_selection_persist_manifest(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -177,9 +195,7 @@ class SpriteWorkbenchTests(unittest.TestCase):
                     "prompt_text": "a side-view armored pilgrim with a lantern",
                     "backend_mode": "debug_procedural",
                 })
-                sw.generate_run(project["project_id"], "initial")
-                project = sw.load_project(project["project_id"])
-                sw.update_concept_review_state(project["project_id"], project["concepts"][0]["concept_id"], "approve", True)
+                project = self.import_valid_manual_concept(project["project_id"])
                 manifest = sw.generate_master_pose_candidates(project["project_id"])
                 self.assertEqual(len(manifest["candidates"]), 3)
                 selected = sw.select_master_pose(project["project_id"], manifest["candidates"][0]["candidate_id"])
@@ -198,9 +214,7 @@ class SpriteWorkbenchTests(unittest.TestCase):
                     "prompt_text": "a watchful scout with a lantern",
                     "backend_mode": "debug_procedural",
                 })
-                sw.generate_run(project["project_id"], "initial")
-                project = sw.load_project(project["project_id"])
-                sw.update_concept_review_state(project["project_id"], project["concepts"][0]["concept_id"], "approve", True)
+                project = self.import_valid_manual_concept(project["project_id"])
                 sw.generate_master_pose_candidates(project["project_id"])
                 project = sw.load_project(project["project_id"])
                 sw.select_master_pose(project["project_id"], project["master_pose_manifest"]["candidates"][0]["candidate_id"])
@@ -223,9 +237,7 @@ class SpriteWorkbenchTests(unittest.TestCase):
                     "prompt_text": "a vigilant ranger with a lantern",
                     "backend_mode": "debug_procedural",
                 })
-                sw.generate_run(project["project_id"], "initial")
-                project = sw.load_project(project["project_id"])
-                sw.update_concept_review_state(project["project_id"], project["concepts"][0]["concept_id"], "approve", True)
+                project = self.import_valid_manual_concept(project["project_id"])
                 sw.generate_master_pose_candidates(project["project_id"])
                 project = sw.load_project(project["project_id"])
                 sw.select_master_pose(project["project_id"], project["master_pose_manifest"]["candidates"][0]["candidate_id"])
@@ -354,6 +366,151 @@ class SpriteWorkbenchTests(unittest.TestCase):
         self.assertEqual(brief["references"][0]["role"], "identity")
         self.assertEqual(brief["references"][1]["role"], "style")
 
+    def test_generate_initial_prompt_persists_history_and_prompt_file(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            original_root = sw.PROJECTS_ROOT
+            sw.PROJECTS_ROOT = Path(tmpdir)
+            try:
+                project = sw.create_project({
+                    "project_name": "Prompt Hero",
+                    "prompt_text": "a watchful ranger with layered leather armor and a lantern",
+                })
+                result = sw.generate_initial_prompt(project["project_id"])
+                reloaded = sw.load_project(project["project_id"])
+                prompt_exists = (Path(tmpdir) / project["project_id"] / "prompts" / "latest-gemini-prompt.txt").exists()
+            finally:
+                sw.PROJECTS_ROOT = original_root
+
+        self.assertIn("Role:", result["prompt_text"])
+        self.assertEqual(reloaded["latest_prompt"]["prompt_version"], 1)
+        self.assertTrue(prompt_exists)
+        self.assertEqual(reloaded["status"], "prompt_ready")
+
+    def test_generate_improved_prompt_includes_prior_prompt_and_feedback(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            original_root = sw.PROJECTS_ROOT
+            sw.PROJECTS_ROOT = Path(tmpdir)
+            try:
+                project = sw.create_project({
+                    "project_name": "Improve Hero",
+                    "prompt_text": "a grim pilgrim with a lantern",
+                })
+                initial = sw.generate_initial_prompt(project["project_id"])
+                project = sw.import_concept_attempt(project["project_id"], {
+                    "source_prompt_id": initial["concept_id"],
+                    "local_path": str(self.create_manual_concept_asset(Path(tmpdir) / "concept.png")),
+                })
+                imported = next(item for item in project["concepts"] if item.get("preview_image"))
+                updated = sw.update_concept_validation(project["project_id"], imported["concept_id"], "invalid", "make the silhouette leaner and remove the heavy shoulder mass")
+                improved = sw.generate_improved_prompt(project["project_id"], imported["concept_id"])
+            finally:
+                sw.PROJECTS_ROOT = original_root
+
+        self.assertIn("Preserve the core identity from this previous prompt", improved["prompt_text"])
+        self.assertIn("make the silhouette leaner", improved["prompt_text"])
+        self.assertEqual(updated["concepts"][-1]["validation_status"], "invalid")
+
+    def test_upload_import_creates_concept_attempt(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            original_root = sw.PROJECTS_ROOT
+            sw.PROJECTS_ROOT = Path(tmpdir)
+            try:
+                project = sw.create_project({
+                    "project_name": "Upload Hero",
+                    "prompt_text": "a lantern scout",
+                })
+                prompt = sw.generate_initial_prompt(project["project_id"])
+                image_path = self.create_manual_concept_asset(Path(tmpdir) / "upload-source.png")
+                encoded = base64.b64encode(image_path.read_bytes()).decode("ascii")
+                project = sw.import_concept_attempt(project["project_id"], {
+                    "source_prompt_id": prompt["concept_id"],
+                    "name": "upload-source.png",
+                    "data_url": "data:image/png;base64,%s" % encoded,
+                })
+                imported = next(item for item in project["concepts"] if item.get("preview_image"))
+                import_exists = (Path(tmpdir) / project["project_id"] / imported["preview_image"]).exists()
+            finally:
+                sw.PROJECTS_ROOT = original_root
+
+        self.assertEqual(imported["import_source"], "upload")
+        self.assertEqual(imported["validation_status"], "pending")
+        self.assertTrue(import_exists)
+
+    def test_local_path_import_creates_concept_attempt(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            original_root = sw.PROJECTS_ROOT
+            sw.PROJECTS_ROOT = Path(tmpdir)
+            try:
+                project = sw.create_project({
+                    "project_name": "Path Hero",
+                    "prompt_text": "a lantern scout",
+                })
+                prompt = sw.generate_initial_prompt(project["project_id"])
+                image_path = self.create_manual_concept_asset(Path(tmpdir) / "local-source.png")
+                project = sw.import_concept_attempt(project["project_id"], {
+                    "source_prompt_id": prompt["concept_id"],
+                    "local_path": str(image_path),
+                })
+            finally:
+                sw.PROJECTS_ROOT = original_root
+
+        imported = next(item for item in project["concepts"] if item.get("preview_image"))
+        self.assertEqual(imported["import_source"], "local_path")
+        self.assertEqual(imported["validation_status"], "pending")
+
+    def test_manual_validation_transitions_pending_to_invalid_and_valid(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            original_root = sw.PROJECTS_ROOT
+            sw.PROJECTS_ROOT = Path(tmpdir)
+            try:
+                project = sw.create_project({
+                    "project_name": "Validation Hero",
+                    "prompt_text": "a lantern scout",
+                })
+                prompt = sw.generate_initial_prompt(project["project_id"])
+                project = sw.import_concept_attempt(project["project_id"], {
+                    "source_prompt_id": prompt["concept_id"],
+                    "local_path": str(self.create_manual_concept_asset(Path(tmpdir) / "validation.png")),
+                })
+                imported = next(item for item in project["concepts"] if item.get("preview_image"))
+                invalid = sw.update_concept_validation(project["project_id"], imported["concept_id"], "invalid", "prop reads too large")
+                valid = sw.update_concept_validation(project["project_id"], imported["concept_id"], "valid")
+            finally:
+                sw.PROJECTS_ROOT = original_root
+
+        invalid_attempt = next(item for item in invalid["concepts"] if item["concept_id"] == imported["concept_id"])
+        valid_attempt = next(item for item in valid["concepts"] if item["concept_id"] == imported["concept_id"])
+        self.assertEqual(invalid_attempt["validation_status"], "invalid")
+        self.assertEqual(invalid_attempt["validation_feedback"], "prop reads too large")
+        self.assertEqual(valid_attempt["validation_status"], "valid")
+
+    def test_accepting_concept_requires_valid_status(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            original_root = sw.PROJECTS_ROOT
+            sw.PROJECTS_ROOT = Path(tmpdir)
+            try:
+                project = sw.create_project({
+                    "project_name": "Accept Hero",
+                    "prompt_text": "a lantern scout",
+                    "backend_mode": "debug_procedural",
+                })
+                prompt = sw.generate_initial_prompt(project["project_id"])
+                project = sw.import_concept_attempt(project["project_id"], {
+                    "source_prompt_id": prompt["concept_id"],
+                    "local_path": str(self.create_manual_concept_asset(Path(tmpdir) / "accept.png")),
+                })
+                imported = next(item for item in project["concepts"] if item.get("preview_image"))
+                with self.assertRaisesRegex(ValueError, "Only valid imported concepts can be accepted"):
+                    sw.update_concept_review_state(project["project_id"], imported["concept_id"], "approve", True)
+                project = sw.update_concept_validation(project["project_id"], imported["concept_id"], "valid")
+                accepted = sw.update_concept_review_state(project["project_id"], imported["concept_id"], "approve", True)
+            finally:
+                sw.PROJECTS_ROOT = original_root
+
+        accepted_attempt = next(item for item in accepted["concepts"] if item["concept_id"] == imported["concept_id"])
+        self.assertEqual(accepted["selected_concept_id"], imported["concept_id"])
+        self.assertTrue(accepted_attempt["accepted_for_review"])
+
     def test_prepare_workflow_prompt_shapes_request(self):
         template = sw.load_workflow_template("concept_txt2img.json")
         request = sw.ConceptRequest(
@@ -375,11 +532,6 @@ class SpriteWorkbenchTests(unittest.TestCase):
         self.assertEqual(prompt["4"]["inputs"]["height"], 768)
         self.assertEqual(prompt["5"]["inputs"]["seed"], 1234)
         self.assertEqual(prompt["7"]["inputs"]["filename_prefix"], "demo/run")
-
-    def test_refinement_strength_mapping(self):
-        self.assertEqual(sw.REFINEMENT_STRENGTHS["subtle"], 0.25)
-        self.assertEqual(sw.REFINEMENT_STRENGTHS["medium"], 0.45)
-        self.assertEqual(sw.REFINEMENT_STRENGTHS["strong"], 0.65)
 
     def test_build_positive_prompt_base_uses_ashen_hollow_house_style(self):
         brief = sw.hydrate_brief({

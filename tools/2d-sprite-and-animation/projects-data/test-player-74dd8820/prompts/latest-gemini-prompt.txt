@@ -1,0 +1,13 @@
+Create one full-body side-view character concept for a 2D metroidvania sprite pipeline.
+Keep it to exactly one humanoid character on a plain removable background.
+Use a strict side profile with the full body visible, centered, readable, and animation-friendly.
+Role: armored traveler.
+Silhouette: broad guarded profile.
+Outfit/materials: knights helmet and chainmail.
+Held item: none.
+Palette/mood: pixel medieval.
+Shape language: angular disciplined silhouette.
+Mood/tone: dark fantasy.
+Readability constraints: strict sideview, one humanoid.
+Do not make a sprite sheet, turnaround, concept page, collage, scene shot, or multiple poses.
+Do not crop the head or feet.

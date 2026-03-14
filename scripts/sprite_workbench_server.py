@@ -53,7 +53,7 @@ LEGACY_DOWNSTREAM_FILES = {
 }
 SPRITE_MODEL_REVISIONS_DIRNAME = "sprite_model_revisions"
 
-TOOL_VERSION = "solo-ai-sprite-workbench-v3"
+TOOL_VERSION = "solo-ai-sprite-workbench-v4"
 DEFAULT_COMFYUI_BASE_URL = os.environ.get("SPRITE_WORKBENCH_COMFYUI_URL", "http://127.0.0.1:8188")
 DEFAULT_COMFYUI_CHECKPOINT = os.environ.get("SPRITE_WORKBENCH_COMFYUI_CHECKPOINT", "sd15.safetensors")
 
@@ -72,7 +72,7 @@ CONCEPT_CANVAS = (640, 768)
 INITIAL_CONCEPT_COUNT = 6
 REFINEMENT_CONCEPT_COUNT = 4
 JOB_HISTORY_LIMIT = 50
-WIZARD_STEPS = ["project", "brief", "references", "concepts", "review", "refine", "master_pose", "sprite_model", "rig", "clips", "qa", "export"]
+WIZARD_STEPS = ["project", "brief", "references", "concepts", "review", "master_pose", "sprite_model", "rig", "clips", "qa", "export"]
 MASTER_POSE_COUNT = 3
 
 FRAME_SIZE = 256
@@ -434,6 +434,7 @@ def parse_iso(value: Optional[str]) -> datetime:
 def ensure_dirs(project_dir: Path) -> None:
     for rel in [
         "concepts",
+        "prompts/history",
         "layers",
         "master_pose",
         "parts",
@@ -659,7 +660,6 @@ def default_wizard_state() -> Dict[str, Any]:
         "last_completed_step": None,
         "completed_steps": [],
         "skipped_optional_steps": [],
-        "last_refine_decision": None,
         "show_advanced": False,
     }
 
@@ -677,9 +677,6 @@ def normalize_wizard_state(payload: Any) -> Dict[str, Any]:
         skipped = [item for item in payload.get("skipped_optional_steps", []) if item in WIZARD_STEPS]
         state["completed_steps"] = list(dict.fromkeys(completed))
         state["skipped_optional_steps"] = list(dict.fromkeys(skipped))
-        refine_decision = payload.get("last_refine_decision")
-        if refine_decision in {"refine_again", "use_current_approved_concept", "skip"}:
-            state["last_refine_decision"] = refine_decision
         state["show_advanced"] = bool(payload.get("show_advanced", False))
     return state
 
@@ -757,12 +754,14 @@ def compute_wizard_context(project: Dict[str, Any]) -> Dict[str, Any]:
     brief = project.get("brief") or {}
     completed = set(wizard_state.get("completed_steps", []))
     skipped = set(wizard_state.get("skipped_optional_steps", []))
+    attempts = project.get("concepts") or []
+    imported_attempts = [item for item in attempts if item.get("preview_image")]
+    valid_attempts = [item for item in imported_attempts if item.get("validation_status") == "valid"]
 
     has_brief = "brief" in completed or bool((project.get("prompt_text") or "").strip())
     has_references = bool(brief.get("references")) or "references" in completed or "references" in skipped
-    has_concepts = bool(project.get("concept_runs"))
+    has_concepts = bool(project.get("prompt_history")) or bool(imported_attempts)
     has_review = bool(project.get("selected_concept_id"))
-    has_refine_decision = wizard_state.get("last_refine_decision") in {"use_current_approved_concept", "skip"} or "refine" in skipped
     has_master_pose = bool(project.get("master_pose_approved") and project.get("master_pose_manifest", {}).get("approved_image"))
     has_sprite_model = bool(project.get("sprite_model"))
     has_rig = bool(project.get("rig_review_approved"))
@@ -776,7 +775,6 @@ def compute_wizard_context(project: Dict[str, Any]) -> Dict[str, Any]:
         "references": has_references,
         "concepts": has_concepts,
         "review": has_review,
-        "refine": has_refine_decision,
         "master_pose": has_master_pose,
         "sprite_model": has_sprite_model,
         "rig": has_rig,
@@ -788,10 +786,9 @@ def compute_wizard_context(project: Dict[str, Any]) -> Dict[str, Any]:
     blocking_reasons = {
         "brief": [] if complete_map["project"] else ["Create or open a project first."],
         "references": [] if complete_map["brief"] else ["Save the character description before adding or skipping references."],
-        "concepts": [] if complete_map["brief"] else ["Save the character description before generating looks."],
-        "review": [] if complete_map["concepts"] else ["Generate looks before choosing one."],
-        "refine": [] if complete_map["review"] else ["Choose a look before adjusting it."],
-        "master_pose": [] if complete_map["review"] and complete_map["refine"] else ["Choose a look and finish the adjustment step before generating master poses."],
+        "concepts": [] if complete_map["brief"] else ["Save the character description before generating a Gemini prompt."],
+        "review": [] if valid_attempts else ["Mark at least one imported concept valid before choosing one."],
+        "master_pose": [] if complete_map["review"] else ["Choose a valid imported concept before generating master poses."],
         "sprite_model": [] if complete_map["master_pose"] else ["Approve a master pose before building the sprite model."],
         "rig": [] if complete_map["sprite_model"] else ["Build and review the sprite model before rigging."],
         "clips": [] if complete_map["rig"] else ["Approve the rig before building clips."],
@@ -845,8 +842,6 @@ def compute_wizard_context(project: Dict[str, Any]) -> Dict[str, Any]:
         wizard_state = set_wizard_step_complete(wizard_state, "concepts")
     if has_review:
         wizard_state = set_wizard_step_complete(wizard_state, "review")
-    if has_refine_decision:
-        wizard_state = set_wizard_step_complete(wizard_state, "refine")
     if has_master_pose:
         wizard_state = set_wizard_step_complete(wizard_state, "master_pose")
     if has_sprite_model:
@@ -880,12 +875,7 @@ def default_stage_maturity() -> Dict[str, Any]:
         "concepts": {
             "label": "Looks",
             "maturity": "real",
-            "description": "ComfyUI is the default concept backend. Debug procedural art is opt-in only.",
-        },
-        "refine": {
-            "label": "Adjust",
-            "maturity": "real",
-            "description": "Refinement creates new concept images through ComfyUI and records lineage.",
+            "description": "Concept work is now a manual Gemini loop: generate a prompt, import the result, review it, and iterate.",
         },
         "master_pose": {
             "label": "Master Pose",
@@ -1107,6 +1097,42 @@ def build_positive_prompt_base(brief: Dict[str, Any]) -> str:
     )
 
 
+def build_gemini_prompt(
+    brief: Dict[str, Any],
+    previous_prompt: Optional[str] = None,
+    validation_feedback: Optional[str] = None,
+    imported_attempt: Optional[Dict[str, Any]] = None,
+) -> str:
+    lines = [
+        "Create one full-body side-view character concept for a 2D metroidvania sprite pipeline.",
+        "Keep it to exactly one humanoid character on a plain removable background.",
+        "Use a strict side profile with the full body visible, centered, readable, and animation-friendly.",
+        "Role: %s." % brief["role_archetype"],
+        "Silhouette: %s." % brief["silhouette_intent"],
+        "Outfit/materials: %s." % brief["outfit_materials"],
+        "Held item: %s." % brief["prop"],
+        "Palette/mood: %s." % brief["palette_mood"],
+        "Shape language: %s." % brief["shape_language"],
+        "Mood/tone: %s." % brief["mood_tone"],
+        "Readability constraints: %s." % brief["side_view_constraints"],
+        "Do not make a sprite sheet, turnaround, concept page, collage, scene shot, or multiple poses.",
+        "Do not crop the head or feet.",
+    ]
+    if previous_prompt:
+        lines.append("Preserve the core identity from this previous prompt: %s" % previous_prompt.strip())
+    if imported_attempt:
+        imported_bits = []
+        if imported_attempt.get("import_source"):
+            imported_bits.append("source=%s" % imported_attempt["import_source"])
+        if imported_attempt.get("preview_image"):
+            imported_bits.append("asset=%s" % imported_attempt["preview_image"])
+        if imported_bits:
+            lines.append("Previous imported concept metadata: %s." % ", ".join(imported_bits))
+    if validation_feedback:
+        lines.append("Improve the next attempt using this rejection feedback: %s" % validation_feedback.strip())
+    return "\n".join(lines)
+
+
 def build_brief_from_payload(payload: Dict[str, Any], existing_brief: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     prompt_text = normalize_prompt_text(payload.get("prompt_text") or (existing_brief or {}).get("raw_prompt") or "")
     validate_prompt_constraints(prompt_text)
@@ -1301,6 +1327,26 @@ def load_concepts(project_dir: Path) -> List[Dict[str, Any]]:
     return concepts
 
 
+def prompt_history_entries(concepts: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    entries = []
+    for concept in concepts:
+        if not concept.get("prompt_text"):
+            continue
+        entries.append({
+            "concept_id": concept.get("concept_id"),
+            "attempt_group_id": concept.get("attempt_group_id"),
+            "attempt_index": concept.get("attempt_index"),
+            "prompt_version": concept.get("prompt_version"),
+            "prompt_source": concept.get("prompt_source"),
+            "prompt_text": concept.get("prompt_text"),
+            "prompt_file": concept.get("prompt_file"),
+            "created_at": concept.get("created_at"),
+            "validation_feedback": concept.get("validation_feedback"),
+        })
+    entries.sort(key=lambda item: (item.get("prompt_version") or 0, parse_iso(item.get("created_at"))), reverse=True)
+    return entries
+
+
 def hydrate_concept(concept: Dict[str, Any], fallback_created_at: Optional[str] = None) -> Dict[str, Any]:
     record = dict(concept or {})
     record.setdefault("concept_id", "")
@@ -1308,6 +1354,16 @@ def hydrate_concept(concept: Dict[str, Any], fallback_created_at: Optional[str] 
     record.setdefault("run_kind", "legacy")
     record.setdefault("created_at", fallback_created_at or now_iso())
     record.setdefault("positive_prompt", record.get("prompt") or "")
+    record.setdefault("prompt_text", record.get("prompt") or record.get("positive_prompt") or "")
+    record.setdefault("prompt_version", 0)
+    record.setdefault("prompt_source", "initial")
+    record.setdefault("attempt_group_id", record.get("run_id") or "legacy")
+    record.setdefault("attempt_index", 1)
+    record.setdefault("import_source", None)
+    record.setdefault("validation_status", "valid" if record.get("review_state", {}).get("approved") else "pending")
+    record.setdefault("validation_feedback", None)
+    record.setdefault("accepted_for_review", bool(record.get("review_state", {}).get("approved")))
+    record.setdefault("prompt_file", None)
     record.setdefault("negative_prompt", DEFAULT_NEGATIVE_PROMPT)
     record.setdefault("preview_image", "")
     record.setdefault("variation_axes", {})
@@ -1320,6 +1376,9 @@ def hydrate_concept(concept: Dict[str, Any], fallback_created_at: Optional[str] 
     record["approved"] = record["review_state"]["approved"]
     record["favorite"] = record["review_state"]["favorite"]
     record["rejected"] = record["review_state"]["rejected"]
+    if record["review_state"]["approved"]:
+        record["validation_status"] = "valid"
+        record["accepted_for_review"] = True
     if "difference_summary" not in record:
         silhouette = record.get("silhouette") or record.get("variation_axes", {}).get("silhouette")
         outfit = record.get("outfit") or record.get("variation_axes", {}).get("outfit_complexity")
@@ -1345,6 +1404,171 @@ def next_concept_serial(concepts: List[Dict[str, Any]]) -> int:
         if match:
             highest = max(highest, int(match.group(1)))
     return highest + 1
+
+
+def next_prompt_version(concepts: List[Dict[str, Any]]) -> int:
+    highest = 0
+    for concept in concepts:
+        highest = max(highest, int(concept.get("prompt_version") or 0))
+    return highest + 1
+
+
+def save_prompt_artifacts(project_dir: Path, prompt_version: int, prompt_text: str) -> Tuple[str, str]:
+    prompts_dir = project_dir / "prompts"
+    history_dir = prompts_dir / "history"
+    history_dir.mkdir(parents=True, exist_ok=True)
+    latest_path = prompts_dir / "latest-gemini-prompt.txt"
+    history_path = history_dir / ("prompt-v%03d.txt" % prompt_version)
+    latest_path.write_text(prompt_text.strip() + "\n", encoding="utf-8")
+    history_path.write_text(prompt_text.strip() + "\n", encoding="utf-8")
+    return str(latest_path.relative_to(project_dir)), str(history_path.relative_to(project_dir))
+
+
+def create_prompt_attempt(
+    project: Dict[str, Any],
+    prompt_text: str,
+    prompt_source: str,
+    attempt_group_id: Optional[str] = None,
+    validation_feedback: Optional[str] = None,
+) -> Dict[str, Any]:
+    project_dir = PROJECTS_ROOT / project["project_id"]
+    project["concepts"] = project.get("concepts") or []
+    serial = next_concept_serial(project["concepts"])
+    prompt_version = next_prompt_version(project["concepts"])
+    concept_id = "concept-%04d" % serial
+    attempt_group = attempt_group_id or ("attempt-%s" % uuid.uuid4().hex[:10])
+    _, history_prompt_path = save_prompt_artifacts(project_dir, prompt_version, prompt_text)
+    concept = hydrate_concept({
+        "concept_id": concept_id,
+        "run_id": "prompt-%s" % prompt_version,
+        "run_kind": "prompt_request",
+        "created_at": now_iso(),
+        "positive_prompt": prompt_text,
+        "prompt": prompt_text,
+        "prompt_text": prompt_text,
+        "prompt_version": prompt_version,
+        "prompt_source": prompt_source,
+        "prompt_file": history_prompt_path,
+        "attempt_group_id": attempt_group,
+        "attempt_index": prompt_version,
+        "import_source": None,
+        "validation_status": "pending",
+        "validation_feedback": validation_feedback,
+        "accepted_for_review": False,
+        "difference_summary": "Gemini prompt v%d" % prompt_version,
+        "silhouette": project["brief"]["silhouette_intent"],
+        "outfit": project["brief"]["outfit_materials"],
+        "palette_direction": project["brief"]["palette_mood"],
+        "palette": palette_from_seed(prompt_version, 0, project["brief"]["palette_mood"]),
+        "prop_variant": project["brief"]["prop"],
+        "face_head_shape": project["brief"]["shape_language"],
+        "references_used": [],
+        "review_state": {"approved": False, "favorite": False, "rejected": False},
+        "lineage": {"run_id": "prompt-%s" % prompt_version, "parent_concept_id": None},
+    })
+    project["concepts"].append(concept)
+    save_concept(project_dir, concept)
+    project["updated_at"] = now_iso()
+    project["current_stage"] = "concepts"
+    project["status"] = "prompt_ready"
+    save_project(project)
+    append_history_event(project["project_id"], {
+        "type": "prompt_generation",
+        "concept_id": concept_id,
+        "attempt_group_id": attempt_group,
+        "prompt_version": prompt_version,
+        "prompt_source": prompt_source,
+        "created_at": now_iso(),
+    })
+    return concept
+
+
+def import_concept_attempt(project_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+    project = load_project(project_id)
+    project_dir = PROJECTS_ROOT / project_id
+    source_prompt_id = payload.get("source_prompt_id")
+    if not source_prompt_id:
+        raise ValueError("source_prompt_id is required.")
+    source_prompt = next((item for item in project["concepts"] if item["concept_id"] == source_prompt_id), None)
+    if source_prompt is None:
+        raise ValueError("Prompt attempt not found.")
+
+    imports_dir = project_dir / "concepts"
+    imports_dir.mkdir(parents=True, exist_ok=True)
+    data_url = payload.get("data_url")
+    local_path = payload.get("local_path")
+    original_name = payload.get("name") or payload.get("filename") or "gemini-concept"
+    if data_url:
+        mime_type, raw = parse_data_url(data_url)
+        extension = guess_extension(original_name, mime_type)
+        import_source = "upload"
+        source_value = original_name
+    elif local_path:
+        source = Path(str(local_path)).expanduser()
+        if not source.exists() or not source.is_file():
+            raise ValueError("Local image path does not exist: %s" % local_path)
+        raw = source.read_bytes()
+        extension = source.suffix or ".png"
+        import_source = "local_path"
+        source_value = str(source)
+    else:
+        raise ValueError("Provide an upload or local_path.")
+
+    serial = next_concept_serial(project["concepts"])
+    concept_id = "concept-%04d" % serial
+    filename = "%s%s" % (concept_id, extension)
+    output_path = imports_dir / filename
+    output_path.write_bytes(raw)
+
+    prompt_version = int(source_prompt.get("prompt_version") or next_prompt_version(project["concepts"]))
+    concept = hydrate_concept({
+        "concept_id": concept_id,
+        "run_id": source_prompt.get("run_id") or ("import-%s" % prompt_version),
+        "run_kind": "manual_import",
+        "created_at": now_iso(),
+        "positive_prompt": source_prompt.get("prompt_text") or source_prompt.get("positive_prompt") or "",
+        "prompt": source_prompt.get("prompt_text") or source_prompt.get("positive_prompt") or "",
+        "prompt_text": source_prompt.get("prompt_text") or source_prompt.get("positive_prompt") or "",
+        "prompt_version": prompt_version,
+        "prompt_source": source_prompt.get("prompt_source") or "initial",
+        "prompt_file": source_prompt.get("prompt_file"),
+        "preview_image": str(output_path.relative_to(project_dir)),
+        "backend_name": "manual_import",
+        "backend_run_id": source_value,
+        "attempt_group_id": source_prompt.get("attempt_group_id") or source_prompt_id,
+        "attempt_index": source_prompt.get("attempt_index") or prompt_version,
+        "import_source": import_source,
+        "validation_status": "pending",
+        "validation_feedback": None,
+        "accepted_for_review": False,
+        "difference_summary": "Imported Gemini concept for prompt v%d" % prompt_version,
+        "silhouette": project["brief"]["silhouette_intent"],
+        "outfit": project["brief"]["outfit_materials"],
+        "palette_direction": project["brief"]["palette_mood"],
+        "palette": palette_from_seed(prompt_version, 0, project["brief"]["palette_mood"]),
+        "prop_variant": project["brief"]["prop"],
+        "face_head_shape": project["brief"]["shape_language"],
+        "references_used": [],
+        "review_state": {"approved": False, "favorite": False, "rejected": False},
+        "lineage": {"run_id": source_prompt.get("run_id"), "parent_concept_id": source_prompt_id},
+    })
+    try:
+        concept["triage"] = analyze_concept_image(output_path)
+    except Exception:
+        concept["triage"] = {"status": "not_evaluated", "flags": [], "metrics": {}}
+    project["concepts"].append(concept)
+    project["updated_at"] = now_iso()
+    project["current_stage"] = "concepts"
+    project["status"] = "concept_imported"
+    save_project(project)
+    append_history_event(project_id, {
+        "type": "concept_import",
+        "concept_id": concept_id,
+        "source_prompt_id": source_prompt_id,
+        "import_source": import_source,
+        "created_at": now_iso(),
+    })
+    return load_project(project_id)
 
 
 def palette_from_seed(seed: int, variant_index: int, palette_mood: str) -> Dict[str, str]:
@@ -1943,6 +2167,8 @@ def load_project(project_id: str) -> Dict[str, Any]:
     project["sprite_model_history"] = load_sprite_model_history(project_dir)
     project["history"] = load_history(project_id)
     project["concepts"] = [hydrate_concept(item, project["created_at"]) for item in load_concepts(project_dir)]
+    project["prompt_history"] = prompt_history_entries(project["concepts"])
+    project["latest_prompt"] = project["prompt_history"][0] if project["prompt_history"] else None
     project["sprite_model_approved"] = bool(project.get("sprite_model_approved") or (not project.get("sprite_model_approved") and project.get("layer_review_approved")))
     project["layer_review_approved"] = bool(project.get("layer_review_approved") or project.get("sprite_model_approved"))
     if project.get("selected_concept_id") is None:
@@ -2193,7 +2419,7 @@ def duplicate_project(project_id: str) -> Dict[str, Any]:
         if src.exists():
             shutil.copy2(src, new_dir / filename)
 
-    for folder in ["concepts", "references", "master_pose", "parts", "rig", "animations", "layers", "logs"]:
+    for folder in ["concepts", "prompts", "references", "master_pose", "parts", "rig", "animations", "layers", "logs"]:
         src_folder = PROJECTS_ROOT / project_id / folder
         dst_folder = new_dir / folder
         dst_folder.mkdir(parents=True, exist_ok=True)
@@ -2251,17 +2477,12 @@ def update_wizard_state(project_id: str, payload: Dict[str, Any]) -> Dict[str, A
     if isinstance(payload.get("show_advanced"), bool):
         wizard_state["show_advanced"] = payload["show_advanced"]
 
-    if payload.get("last_refine_decision") in {"refine_again", "use_current_approved_concept", "skip"}:
-        wizard_state["last_refine_decision"] = payload["last_refine_decision"]
-        if payload["last_refine_decision"] in {"use_current_approved_concept", "skip"}:
-            wizard_state = set_wizard_step_complete(wizard_state, "refine")
-
     for step in payload.get("completed_steps", []) or []:
         if step in WIZARD_STEPS:
             wizard_state = set_wizard_step_complete(wizard_state, step)
 
     for step in payload.get("skipped_optional_steps", []) or []:
-        if step in {"references", "refine"}:
+        if step in {"references"}:
             wizard_state = set_wizard_optional_step_skipped(wizard_state, step)
 
     requested_mode = payload.get("last_ui_mode")
@@ -2312,6 +2533,41 @@ def make_character_spec(project: Dict[str, Any], concept: Dict[str, Any]) -> Dic
     }
 
 
+def update_concept_validation(project_id: str, concept_id: str, validation_status: str, feedback: Optional[str] = None) -> Dict[str, Any]:
+    if validation_status not in {"pending", "valid", "invalid"}:
+        raise ValueError("validation_status must be pending, valid, or invalid.")
+    project = load_project(project_id)
+    concept = next((item for item in project["concepts"] if item["concept_id"] == concept_id), None)
+    if concept is None:
+        raise ValueError("Concept not found.")
+    if not concept.get("preview_image"):
+        raise ValueError("Only imported concept attempts can be validated.")
+
+    concept["validation_status"] = validation_status
+    concept["validation_feedback"] = (feedback or "").strip() or None
+    concept["review_state"]["rejected"] = validation_status == "invalid"
+    concept["rejected"] = concept["review_state"]["rejected"]
+    if validation_status != "valid" and project.get("selected_concept_id") == concept_id:
+        reset_downstream_assets(project_id, "concept")
+        project = clear_project_downstream_state(project, "concept")
+        concept["review_state"]["approved"] = False
+        concept["approved"] = False
+        concept["accepted_for_review"] = False
+        project["selected_concept_id"] = None
+        project["character_spec"] = None
+    concept["accepted_for_review"] = bool(project.get("selected_concept_id") == concept_id and validation_status == "valid")
+    project["updated_at"] = now_iso()
+    save_project(project)
+    append_history_event(project_id, {
+        "type": "concept_validation",
+        "concept_id": concept_id,
+        "validation_status": validation_status,
+        "validation_feedback": concept["validation_feedback"],
+        "created_at": now_iso(),
+    })
+    return load_project(project_id)
+
+
 def update_concept_review_state(project_id: str, concept_id: str, action: str, value: Optional[bool]) -> Dict[str, Any]:
     if action not in {"approve", "favorite", "reject"}:
         raise ValueError("Unsupported review action.")
@@ -2325,11 +2581,14 @@ def update_concept_review_state(project_id: str, concept_id: str, action: str, v
 
     if action == "approve":
         event_value = True
+        if concept.get("validation_status") != "valid":
+            raise ValueError("Only valid imported concepts can be accepted.")
         reset_downstream_assets(project_id, "concept")
         project = clear_project_downstream_state(project, "concept")
         for item in project["concepts"]:
             item["review_state"]["approved"] = item["concept_id"] == concept_id
             item["approved"] = item["review_state"]["approved"]
+            item["accepted_for_review"] = item["concept_id"] == concept_id
             save_concept(PROJECTS_ROOT / project_id, item)
         project["selected_concept_id"] = concept_id
         project["character_spec"] = make_character_spec(project, concept)
@@ -2357,6 +2616,7 @@ def update_concept_review_state(project_id: str, concept_id: str, action: str, v
             project["sprite_model_approved"] = False
             project["layer_review_approved"] = False
             project["rig_review_approved"] = False
+            concept["accepted_for_review"] = False
         save_concept(PROJECTS_ROOT / project_id, concept)
 
     project["updated_at"] = now_iso()
@@ -2369,6 +2629,48 @@ def update_concept_review_state(project_id: str, concept_id: str, action: str, v
         "value": event_value,
     })
     return load_project(project_id)
+
+
+def generate_initial_prompt(project_id: str) -> Dict[str, Any]:
+    project = load_project(project_id)
+    prompt_text = build_gemini_prompt(project["brief"])
+    concept = create_prompt_attempt(project, prompt_text, "initial")
+    return {
+        "concept_id": concept["concept_id"],
+        "attempt_group_id": concept["attempt_group_id"],
+        "prompt_version": concept["prompt_version"],
+        "prompt_source": concept["prompt_source"],
+        "prompt_text": concept["prompt_text"],
+        "prompt_file": concept["prompt_file"],
+    }
+
+
+def generate_improved_prompt(project_id: str, concept_id: str, feedback: Optional[str] = None) -> Dict[str, Any]:
+    project = load_project(project_id)
+    prior = next((item for item in project["concepts"] if item["concept_id"] == concept_id), None)
+    if prior is None:
+        raise ValueError("Concept attempt not found.")
+    prompt_text = build_gemini_prompt(
+        project["brief"],
+        previous_prompt=prior.get("prompt_text") or prior.get("positive_prompt"),
+        validation_feedback=feedback or prior.get("validation_feedback"),
+        imported_attempt=prior if prior.get("preview_image") else None,
+    )
+    concept = create_prompt_attempt(
+        project,
+        prompt_text,
+        "improved",
+        attempt_group_id=prior.get("attempt_group_id"),
+        validation_feedback=(feedback or prior.get("validation_feedback") or "").strip() or None,
+    )
+    return {
+        "concept_id": concept["concept_id"],
+        "attempt_group_id": concept["attempt_group_id"],
+        "prompt_version": concept["prompt_version"],
+        "prompt_source": concept["prompt_source"],
+        "prompt_text": concept["prompt_text"],
+        "prompt_file": concept["prompt_file"],
+    }
 
 
 def promote_reference_as_concept(project_id: str, payload: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
@@ -5304,10 +5606,23 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
             generate_match = re.fullmatch(r"/api/projects/([^/]+)/concepts/generate", path)
             if generate_match:
                 project_id = generate_match.group(1)
-                return self._send_json(
-                    create_job(project_id, "concepts.generate", lambda progress: generate_run(project_id, "initial", progress=progress)),
-                    status=HTTPStatus.ACCEPTED,
-                )
+                return self._send_json(generate_initial_prompt(project_id), status=HTTPStatus.CREATED)
+
+            improved_prompt_match = re.fullmatch(r"/api/projects/([^/]+)/concepts/([^/]+)/improve-prompt", path)
+            if improved_prompt_match:
+                project_id, concept_id = improved_prompt_match.groups()
+                payload = read_body(self)
+                return self._send_json(generate_improved_prompt(project_id, concept_id, payload.get("feedback")), status=HTTPStatus.CREATED)
+
+            import_match = re.fullmatch(r"/api/projects/([^/]+)/concepts/import", path)
+            if import_match:
+                return self._send_json(import_concept_attempt(import_match.group(1), read_body(self)), status=HTTPStatus.CREATED)
+
+            validate_match = re.fullmatch(r"/api/projects/([^/]+)/concepts/([^/]+)/validate", path)
+            if validate_match:
+                project_id, concept_id = validate_match.groups()
+                payload = read_body(self)
+                return self._send_json(update_concept_validation(project_id, concept_id, payload.get("validation_status"), payload.get("feedback")))
 
             approve_match = re.fullmatch(r"/api/projects/([^/]+)/concepts/([^/]+)/(approve|favorite|reject)", path)
             if approve_match:
@@ -5337,31 +5652,7 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
 
             refine_match = re.fullmatch(r"/api/projects/([^/]+)/refine", path)
             if refine_match:
-                project_id = refine_match.group(1)
-                payload = read_body(self)
-                source_concept_id = payload.get("concept_id")
-                if not source_concept_id:
-                    project = load_project(project_id)
-                    source_concept_id = project.get("selected_concept_id")
-                attribute_group = payload.get("attribute_group") or payload.get("lock") or (payload.get("locks") or [None])[0]
-                target_value = (payload.get("target_value") or payload.get("value") or "").strip()
-                strength = payload.get("strength") or payload.get("refinement_strength")
-                return self._send_json(
-                    create_job(
-                        project_id,
-                        "concepts.refine",
-                        lambda progress: generate_run(
-                            project_id,
-                            "refinement",
-                            source_concept_id=source_concept_id,
-                            attribute_group=attribute_group,
-                            target_value=target_value,
-                            strength_label=strength,
-                            progress=progress,
-                        ),
-                    ),
-                    status=HTTPStatus.ACCEPTED,
-                )
+                return self._send_error_json(HTTPStatus.GONE, "The refine stage has been removed. Generate an improved Gemini prompt instead.")
 
             master_pose_generate_match = re.fullmatch(r"/api/projects/([^/]+)/master-pose/generate", path)
             if master_pose_generate_match:

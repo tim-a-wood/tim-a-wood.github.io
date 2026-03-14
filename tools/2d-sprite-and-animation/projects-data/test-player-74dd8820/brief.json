@@ -1,0 +1,16 @@
+{
+  "raw_prompt": "Humanoid knight wearing helmet and chainmail in pixel style art",
+  "role_archetype": "armored traveler",
+  "silhouette_intent": "broad guarded profile",
+  "outfit_materials": "knights helmet and chainmail",
+  "prop": "none",
+  "palette_mood": "pixel medieval",
+  "shape_language": "angular disciplined silhouette",
+  "mood_tone": "dark fantasy",
+  "side_view_constraints": "strict sideview, one humanoid",
+  "negative_prompt": "front view, crowd, busy, weapons, props",
+  "backend_mode": "comfyui",
+  "comfyui_checkpoint": "sd15.safetensors",
+  "references": [],
+  "positive_prompt_base": "single humanoid side-view character concept art, full body, plain light background, clean silhouette, readable negative space, designed for Ashen Hollow, a dark-fantasy 2d side-scrolling metroidvania, Hollow Knight-inspired atmosphere with ruined chapels, catacombs, and medieval decay, player-character readability first, strict side-view silhouette, full body visible, large primary shapes, restrained secondary detail, clustered values for sprite readability, clear separation between head, torso, limbs, and held item, readable at low resolution, animation-friendly costume breakup, practical combat silhouette, plain or minimal background for character extraction, single character only, centered full body concept, orthographic side profile, no dramatic camera angle, no environment storytelling shot, one iconic held item, practical traversal and combat gear, grounded proportions, silhouette readable in motion, restrained ornamental noise, character role: armored traveler, silhouette intent: broad guarded profile, outfit and materials: knights helmet and chainmail, primary handheld prop: none, palette mood: pixel medieval, shape language: angular disciplined silhouette, mood: dark fantasy, readability constraints: strict sideview, one humanoid"
+}

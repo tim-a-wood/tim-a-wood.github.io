@@ -64,5 +64,15 @@
       "sha256": "7b457c71da9c744644c4c52875531708d50440ebf9face7c453e68c45250dbbc",
       "perceptual_hash": 597142643081216
     }
-  }
+  },
+  "prompt_text": "single humanoid side-view character concept art, full body, plain light background, clean silhouette, readable negative space, designed for Ashen Hollow, a dark-fantasy 2d side-scrolling metroidvania, Hollow Knight-inspired atmosphere with ruined chapels, catacombs, and medieval decay, player-character readability first, strict side-view silhouette, full body visible, large primary shapes, restrained secondary detail, clustered values for sprite readability, clear separation between head, torso, limbs, and held item, readable at low resolution, animation-friendly costume breakup, practical combat silhouette, plain or minimal background for character extraction, single character only, centered full body concept, orthographic side profile, no dramatic camera angle, no environment storytelling shot, one iconic held item, practical traversal and combat gear, grounded proportions, silhouette readable in motion, restrained ornamental noise, character role: armored traveler, silhouette intent: broad guarded profile, outfit and materials: knights helmet and chainmail, primary handheld prop: none, palette mood: pixel medieval, shape language: angular disciplined silhouette, mood: dark fantasy, readability constraints: strict sideview, one humanoid, gameplay role: player-facing 2d metroidvania character concept intended for side-view animation and sprite extraction, readability priority: silhouette clarity first, world style second, identity consistency third, variant emphasis: make it into a small knight suitable for 2D metroidvania (e.g., hollow knight); closest hold to the parent concept, silhouette focus: make it into a small knight suitable for 2D metroidvania (e.g., hollow knight), outfit focus: reduced bulk and tighter panel breaks, palette focus: pixel medieval with lower-value accents, prop silhouette: forged hammer, avoid cinematic pose or environment-heavy framing; keep the character readable as game art, preserve the same character identity core as the source concept, locked attributes: silhouette=slightly leaner version of the same core silhouette, outfit=reduced bulk and tighter panel breaks, palette_direction=pixel medieval with lower-value accents, prop_variant=forged hammer",
+  "prompt_version": 0,
+  "prompt_source": "initial",
+  "attempt_group_id": "run-8bea256f2c",
+  "attempt_index": 1,
+  "import_source": null,
+  "validation_status": "pending",
+  "validation_feedback": null,
+  "accepted_for_review": false,
+  "prompt_file": null
 }

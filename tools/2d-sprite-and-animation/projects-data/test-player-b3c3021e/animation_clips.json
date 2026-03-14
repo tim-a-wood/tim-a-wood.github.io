@@ -1,0 +1,344 @@
+{
+  "idle": {
+    "frame_count": 6,
+    "fps": 8,
+    "loop": true,
+    "root_motion_policy": "locked",
+    "loop_continuity_rules": {
+      "wrap_to_first_frame": true
+    },
+    "controls": {
+      "body_bob": 2.85,
+      "torso_lean": 2.85,
+      "arm_swing": 6.0,
+      "leg_swing": 4.0,
+      "foot_lift": 4.0,
+      "prop_lag": 1.5
+    },
+    "frame_overrides": [
+      {},
+      {},
+      {},
+      {},
+      {},
+      {}
+    ],
+    "joint_transforms_per_frame": [
+      {
+        "root_offset": [
+          0.0,
+          0.0
+        ],
+        "torso_rotation": 0.0,
+        "head_rotation": 1.13,
+        "shoulder_left_rotation": -0.0,
+        "elbow_left_rotation": 8.0,
+        "shoulder_right_rotation": 0.0,
+        "elbow_right_rotation": 10.0,
+        "hip_left_rotation": 0.0,
+        "knee_left_rotation": 0.0,
+        "ankle_left_rotation": -0.0,
+        "hip_right_rotation": -0.0,
+        "knee_right_rotation": 0.0,
+        "ankle_right_rotation": -0.0,
+        "prop_rotation": 0.0
+      },
+      {
+        "root_offset": [
+          0.0,
+          2.85
+        ],
+        "torso_rotation": 2.85,
+        "head_rotation": 1.92,
+        "shoulder_left_rotation": -5.71,
+        "elbow_left_rotation": 9.71,
+        "shoulder_right_rotation": 5.71,
+        "elbow_right_rotation": 10.0,
+        "hip_left_rotation": 3.8,
+        "knee_left_rotation": 0.0,
+        "ankle_left_rotation": -1.9,
+        "hip_right_rotation": -3.8,
+        "knee_right_rotation": 3.8,
+        "ankle_right_rotation": -0.0,
+        "prop_rotation": 1.14
+      },
+      {
+        "root_offset": [
+          0.0,
+          1.76
+        ],
+        "torso_rotation": 1.76,
+        "head_rotation": 0.06,
+        "shoulder_left_rotation": -3.53,
+        "elbow_left_rotation": 9.06,
+        "shoulder_right_rotation": 3.53,
+        "elbow_right_rotation": 10.0,
+        "hip_left_rotation": 2.35,
+        "knee_left_rotation": 0.0,
+        "ankle_left_rotation": -1.18,
+        "hip_right_rotation": -2.35,
+        "knee_right_rotation": 2.35,
+        "ankle_right_rotation": -0.0,
+        "prop_rotation": 0.71
+      },
+      {
+        "root_offset": [
+          0.0,
+          -1.76
+        ],
+        "torso_rotation": -1.76,
+        "head_rotation": -1.88,
+        "shoulder_left_rotation": 3.53,
+        "elbow_left_rotation": 8.0,
+        "shoulder_right_rotation": -3.53,
+        "elbow_right_rotation": 11.06,
+        "hip_left_rotation": -2.35,
+        "knee_left_rotation": 2.35,
+        "ankle_left_rotation": -0.0,
+        "hip_right_rotation": 2.35,
+        "knee_right_rotation": 0.0,
+        "ankle_right_rotation": -1.18,
+        "prop_rotation": -0.71
+      },
+      {
+        "root_offset": [
+          0.0,
+          -2.85
+        ],
+        "torso_rotation": -2.85,
+        "head_rotation": -1.22,
+        "shoulder_left_rotation": 5.71,
+        "elbow_left_rotation": 8.0,
+        "shoulder_right_rotation": -5.71,
+        "elbow_right_rotation": 11.71,
+        "hip_left_rotation": -3.8,
+        "knee_left_rotation": 3.8,
+        "ankle_left_rotation": -0.0,
+        "hip_right_rotation": 3.8,
+        "knee_right_rotation": 0.0,
+        "ankle_right_rotation": -1.9,
+        "prop_rotation": -1.14
+      },
+      {
+        "root_offset": [
+          0.0,
+          -0.0
+        ],
+        "torso_rotation": -0.0,
+        "head_rotation": 1.13,
+        "shoulder_left_rotation": 0.0,
+        "elbow_left_rotation": 8.0,
+        "shoulder_right_rotation": -0.0,
+        "elbow_right_rotation": 10.0,
+        "hip_left_rotation": -0.0,
+        "knee_left_rotation": 0.0,
+        "ankle_left_rotation": -0.0,
+        "hip_right_rotation": 0.0,
+        "knee_right_rotation": 0.0,
+        "ankle_right_rotation": -0.0,
+        "prop_rotation": -0.0
+      }
+    ],
+    "neutral_pose_frame_index": 0,
+    "corrective_assets_per_frame": [
+      [],
+      [],
+      [],
+      [],
+      [],
+      []
+    ]
+  },
+  "walk": {
+    "frame_count": 8,
+    "fps": 10,
+    "loop": true,
+    "root_motion_policy": "in_place",
+    "loop_continuity_rules": {
+      "wrap_to_first_frame": true
+    },
+    "controls": {
+      "body_bob": 6.0,
+      "torso_lean": 4.87,
+      "arm_swing": 19.5,
+      "leg_swing": 23.4,
+      "foot_lift": 16.0,
+      "prop_lag": 4.0
+    },
+    "frame_overrides": [
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {}
+    ],
+    "joint_transforms_per_frame": [
+      {
+        "root_offset": [
+          0.0,
+          -0.0
+        ],
+        "torso_rotation": 0.0,
+        "head_rotation": 1.17,
+        "shoulder_left_rotation": -0.0,
+        "elbow_left_rotation": 8.0,
+        "shoulder_right_rotation": 0.0,
+        "elbow_right_rotation": 10.0,
+        "hip_left_rotation": 0.0,
+        "knee_left_rotation": 0.0,
+        "ankle_left_rotation": -0.0,
+        "hip_right_rotation": -0.0,
+        "knee_right_rotation": 0.0,
+        "ankle_right_rotation": -0.0,
+        "prop_rotation": 0.0
+      },
+      {
+        "root_offset": [
+          3.13,
+          -4.69
+        ],
+        "torso_rotation": 3.91,
+        "head_rotation": 2.89,
+        "shoulder_left_rotation": -15.64,
+        "elbow_left_rotation": 12.69,
+        "shoulder_right_rotation": 15.64,
+        "elbow_right_rotation": 10.0,
+        "hip_left_rotation": 18.76,
+        "knee_left_rotation": 0.0,
+        "ankle_left_rotation": -9.38,
+        "hip_right_rotation": -18.76,
+        "knee_right_rotation": 22.51,
+        "ankle_right_rotation": -0.0,
+        "prop_rotation": 3.13
+      },
+      {
+        "root_offset": [
+          3.9,
+          -5.85
+        ],
+        "torso_rotation": 4.87,
+        "head_rotation": 2.43,
+        "shoulder_left_rotation": -19.5,
+        "elbow_left_rotation": 13.85,
+        "shoulder_right_rotation": 19.5,
+        "elbow_right_rotation": 10.0,
+        "hip_left_rotation": 23.4,
+        "knee_left_rotation": 0.0,
+        "ankle_left_rotation": -11.7,
+        "hip_right_rotation": -23.4,
+        "knee_right_rotation": 28.08,
+        "ankle_right_rotation": -0.0,
+        "prop_rotation": 3.9
+      },
+      {
+        "root_offset": [
+          1.74,
+          -2.6
+        ],
+        "torso_rotation": 2.17,
+        "head_rotation": 0.15,
+        "shoulder_left_rotation": -8.68,
+        "elbow_left_rotation": 10.6,
+        "shoulder_right_rotation": 8.68,
+        "elbow_right_rotation": 10.0,
+        "hip_left_rotation": 10.41,
+        "knee_left_rotation": 0.0,
+        "ankle_left_rotation": -5.21,
+        "hip_right_rotation": -10.41,
+        "knee_right_rotation": 12.49,
+        "ankle_right_rotation": -0.0,
+        "prop_rotation": 1.74
+      },
+      {
+        "root_offset": [
+          -1.74,
+          -2.6
+        ],
+        "torso_rotation": -2.17,
+        "head_rotation": -2.25,
+        "shoulder_left_rotation": 8.68,
+        "elbow_left_rotation": 8.0,
+        "shoulder_right_rotation": -8.68,
+        "elbow_right_rotation": 12.6,
+        "hip_left_rotation": -10.41,
+        "knee_left_rotation": 12.49,
+        "ankle_left_rotation": -0.0,
+        "hip_right_rotation": 10.41,
+        "knee_right_rotation": 0.0,
+        "ankle_right_rotation": -5.21,
+        "prop_rotation": -1.74
+      },
+      {
+        "root_offset": [
+          -3.9,
+          -5.85
+        ],
+        "torso_rotation": -4.87,
+        "head_rotation": -2.95,
+        "shoulder_left_rotation": 19.5,
+        "elbow_left_rotation": 8.0,
+        "shoulder_right_rotation": -19.5,
+        "elbow_right_rotation": 15.85,
+        "hip_left_rotation": -23.4,
+        "knee_left_rotation": 28.08,
+        "ankle_left_rotation": -0.0,
+        "hip_right_rotation": 23.4,
+        "knee_right_rotation": 0.0,
+        "ankle_right_rotation": -11.7,
+        "prop_rotation": -3.9
+      },
+      {
+        "root_offset": [
+          -3.13,
+          -4.69
+        ],
+        "torso_rotation": -3.91,
+        "head_rotation": -1.43,
+        "shoulder_left_rotation": 15.64,
+        "elbow_left_rotation": 8.0,
+        "shoulder_right_rotation": -15.64,
+        "elbow_right_rotation": 14.69,
+        "hip_left_rotation": -18.76,
+        "knee_left_rotation": 22.51,
+        "ankle_left_rotation": -0.0,
+        "hip_right_rotation": 18.76,
+        "knee_right_rotation": 0.0,
+        "ankle_right_rotation": -9.38,
+        "prop_rotation": -3.13
+      },
+      {
+        "root_offset": [
+          -0.0,
+          -0.0
+        ],
+        "torso_rotation": -0.0,
+        "head_rotation": 1.17,
+        "shoulder_left_rotation": 0.0,
+        "elbow_left_rotation": 8.0,
+        "shoulder_right_rotation": -0.0,
+        "elbow_right_rotation": 10.0,
+        "hip_left_rotation": -0.0,
+        "knee_left_rotation": 0.0,
+        "ankle_left_rotation": -0.0,
+        "hip_right_rotation": 0.0,
+        "knee_right_rotation": 0.0,
+        "ankle_right_rotation": -0.0,
+        "prop_rotation": -0.0
+      }
+    ],
+    "neutral_pose_frame_index": 0,
+    "corrective_assets_per_frame": [
+      [],
+      [],
+      [],
+      [],
+      [],
+      [],
+      [],
+      []
+    ]
+  }
+}

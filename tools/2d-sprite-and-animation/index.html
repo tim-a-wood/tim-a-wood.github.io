@@ -1427,7 +1427,6 @@
 
         #intake,
         #concepts,
-        #refine,
         #master-pose,
         #layer-review,
         #rig-review,
@@ -1490,7 +1489,6 @@
 
         body.wizard-mode #intake,
         body.wizard-mode #concepts,
-        body.wizard-mode #refine,
         body.wizard-mode #master-pose,
         body.wizard-mode #layer-review,
         body.wizard-mode #rig-review,
@@ -1503,7 +1501,6 @@
         @media (min-width: 1181px) {
             #intake,
             #concepts,
-            #refine,
             #master-pose,
             #layer-review,
             #production {
@@ -1627,7 +1624,6 @@
             <div class="nav-list">
                 <a class="nav-link" href="#intake">Setup</a>
                 <a class="nav-link" href="#concepts">Looks</a>
-                <a class="nav-link" href="#refine">Adjust</a>
                 <a class="nav-link" href="#master-pose">Master Pose</a>
                 <a class="nav-link" href="#layer-review">Sprite Model</a>
                 <a class="nav-link" href="#rig-review">Set Up Motion</a>
@@ -1859,27 +1855,69 @@
         <section class="panel" id="concepts">
             <div class="section-head">
                 <div>
-                    <h3>Looks</h3>
-                    <p>Start by generating six looks. The wizard keeps them close to the same identity, but varies silhouette, outfit treatment, and palette enough to help you choose a direction quickly.</p>
+                    <h3>Gemini Concepts</h3>
+                    <p>Generate a Gemini-ready prompt from the saved brief, run Gemini yourself outside this tool, then import the image back here for manual validation and acceptance.</p>
                 </div>
                 <div class="stage-meta" data-stage="concepts"></div>
             </div>
 
             <div class="wizard-subview step-panel-note wizard-only" data-wizard-view="concepts">
                 <div class="info-box">
-                    <p><strong>Generate the first board.</strong> You are looking for at least one or two looks worth keeping. Don’t chase final polish yet.</p>
+                    <p><strong>Generate a prompt, then import the result.</strong> This step is now manual by design. You control which imported attempts are pending, valid, or invalid.</p>
                 </div>
             </div>
 
             <div class="actions" data-wizard-view="concepts,workbench">
-                <button id="generate-concepts">Generate 6 Looks</button>
+                <button id="generate-concepts">Generate Gemini Prompt</button>
+                <button class="secondary" id="copy-latest-prompt">Copy Prompt</button>
             </div>
 
-            <div style="margin-top: 16px;" data-wizard-view="concepts,workbench">
+            <div class="grid-2" style="margin-top: 16px;" data-wizard-view="concepts,review,workbench">
+                <div>
+                    <div class="section-head" style="margin-bottom: 10px;">
+                        <div>
+                            <h3 style="font-size: 0.98rem;">Latest Prompt</h3>
+                            <p>The newest Gemini prompt stays visible here and is also saved into the project prompt history.</p>
+                        </div>
+                    </div>
+                    <div class="warning-box">
+                        <pre id="gemini-prompt-text">No Gemini prompt generated yet.</pre>
+                    </div>
+                </div>
+                <div>
+                    <div class="section-head" style="margin-bottom: 10px;">
+                        <div>
+                            <h3 style="font-size: 0.98rem;">Import Gemini Image</h3>
+                            <p>Choose which saved prompt produced the image, then import it by upload or absolute local path.</p>
+                        </div>
+                    </div>
+                    <div class="grid-2">
+                        <label>
+                            <span class="field-label">Prompt Version</span>
+                            <select id="concept-source-prompt"></select>
+                        </label>
+                        <label>
+                            <span class="field-label">Upload File</span>
+                            <input id="concept-import-file" type="file" accept="image/*">
+                        </label>
+                    </div>
+                    <div class="grid-2" style="margin-top: 12px;">
+                        <label>
+                            <span class="field-label">Local Image Path</span>
+                            <input id="concept-import-path" placeholder="/absolute/path/to/gemini-image.png">
+                        </label>
+                        <div class="actions" style="align-items: end;">
+                            <button id="import-concept-image">Import Gemini Image</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div style="margin-top: 16px;" data-wizard-view="concepts,review,workbench">
                 <div class="section-head" style="margin-bottom: 10px;">
                     <div>
-                        <h3 style="font-size: 0.98rem;">Generation History</h3>
-                        <p>The most recent run is selected by default. Use older runs if you want to compare your latest board against previous directions.</p>
+                        <h3 style="font-size: 0.98rem;">Prompt History</h3>
+                        <p>Each prompt version is stored so you can copy the latest one or continue the loop with an improved prompt after an invalid import.</p>
                     </div>
                 </div>
                 <div class="run-grid" id="run-grid"></div>
@@ -1887,89 +1925,12 @@
 
             <div class="wizard-subview step-panel-note wizard-only" data-wizard-view="review">
                 <div class="info-box">
-                    <p><strong>Pick a direction.</strong> Compare the strongest looks, shortlist what works, then choose the one you want to carry into adjustments and build.</p>
-                </div>
-            </div>
-
-            <div style="margin-top: 16px;" data-wizard-view="review,workbench">
-                <div class="section-head" style="margin-bottom: 10px;">
-                    <div>
-                        <h3 style="font-size: 0.98rem;">Compare</h3>
-                        <p>The chosen look stays pinned on the left when available. Compare another option on the right to judge shape, prop clarity, and palette readability.</p>
-                    </div>
-                </div>
-                <div class="compare-grid">
-                    <div class="compare-slot" id="compare-left"></div>
-                    <div class="compare-slot" id="compare-right"></div>
-                </div>
-                <div class="actions">
-                    <button class="secondary" id="swap-compare">Swap Compare Sides</button>
+                    <p><strong>Choose a valid imported concept.</strong> `Pending` means undecided. `Invalid` means you want a better next prompt. Only `Valid` attempts can be accepted into production.</p>
                 </div>
             </div>
 
             <div style="margin-top: 16px;" data-wizard-view="concepts,review,workbench">
                 <div class="concept-grid" id="concept-grid"></div>
-            </div>
-        </section>
-
-        <section class="panel" id="refine">
-            <div class="section-head">
-                <div>
-                    <h3>Adjust</h3>
-                    <p>Change one major thing at a time so the results stay predictable. This works best when you keep the approved look stable and only ask for a single focused change.</p>
-                </div>
-                <div class="stage-meta" data-stage="refine"></div>
-            </div>
-
-            <div class="info-box step-panel-note">
-                <p><strong>Best practice:</strong> keep the overall shape, outfit, or colors steady unless that is the exact thing you want to change.</p>
-            </div>
-
-            <div class="warning-box">
-                <p id="selected-concept-summary">Select and approve a concept before running refinement.</p>
-            </div>
-
-            <div class="grid-3" style="margin-top: 14px;">
-                <label>
-                    <span class="field-label">Chosen Look</span>
-                    <span class="field-help">This is the version the adjustment will build from.</span>
-                    <select id="refine-concept"></select>
-                </label>
-                <label>
-                    <span class="field-label">Change This</span>
-                    <span class="field-help">Pick one area to change so the results stay controlled.</span>
-                    <select id="refine-attribute">
-                        <option value="silhouette">overall shape</option>
-                        <option value="face_head_shape">face and head shape</option>
-                        <option value="outfit">outfit</option>
-                        <option value="palette">colors</option>
-                        <option value="prop">held item</option>
-                    </select>
-                </label>
-                <label>
-                    <span class="field-label">How Different</span>
-                    <span class="field-help">Subtle stays close. Strong pushes farther away from the current version.</span>
-                    <select id="refine-strength">
-                        <option value="subtle">subtle</option>
-                        <option value="medium">medium</option>
-                        <option value="strong">strong</option>
-                    </select>
-                </label>
-            </div>
-
-            <div class="grid-2" style="margin-top: 12px;">
-                <label>
-                    <span class="field-label">Describe the Change</span>
-                    <span class="field-help">Example: cooler steel palette with brass accents, leaner silhouette, heavier shoulder armor.</span>
-                    <input id="refine-target" placeholder="cooler storm palette with brass accents">
-                </label>
-                <div class="warning-box">
-                    <p><strong>What this does:</strong> subtle stays close to the current look, medium makes a clearer change, and strong pushes farther. The tool still tries to preserve the chosen character identity.</p>
-                </div>
-            </div>
-
-            <div class="actions">
-                <button id="run-refine">Generate 4 Adjusted Looks</button>
             </div>
         </section>
 
@@ -2266,15 +2227,14 @@ const STORAGE_KEYS = {
     includeArchived: "spriteWorkbench.includeArchived",
 };
 
-const WIZARD_STEPS = ["project", "brief", "references", "concepts", "review", "refine", "master_pose", "sprite_model", "rig", "clips", "qa", "export"];
-const WORKBENCH_SECTION_IDS = ["intake", "concepts", "refine", "master-pose", "layer-review", "rig-review", "production", "qa", "export", "activity-log"];
+const WIZARD_STEPS = ["project", "brief", "references", "concepts", "review", "master_pose", "sprite_model", "rig", "clips", "qa", "export"];
+const WORKBENCH_SECTION_IDS = ["intake", "concepts", "master-pose", "layer-review", "rig-review", "production", "qa", "export", "activity-log"];
 const WIZARD_SECTION_MAP = {
     project: ["intake"],
     brief: ["intake"],
     references: ["intake"],
     concepts: ["concepts"],
     review: ["concepts"],
-    refine: ["refine"],
     master_pose: ["master-pose"],
     sprite_model: ["layer-review"],
     rig: ["rig-review"],
@@ -2302,22 +2262,16 @@ const WIZARD_META = {
         example: "Skip this if your written description is already strong.",
     },
     concepts: {
-        label: "Generate Looks",
-        description: "Create the first board of looks. The wizard aims for readable side-view concepts first.",
-        outcome: "You will get six concept directions that stay within the same general identity family.",
-        example: "Look for one or two directions worth keeping, not final art.",
+        label: "Generate Prompt",
+        description: "Generate a Gemini-ready prompt from the saved brief, then import the image Gemini produces.",
+        outcome: "You will have a prompt history and one or more imported concept attempts to review manually.",
+        example: "Copy the prompt, run Gemini outside the tool, then import the returned image here.",
     },
     review: {
-        label: "Pick a Look",
-        description: "Compare the strongest looks, shortlist them, and choose one direction to carry forward.",
-        outcome: "The selected look becomes the source for adjustments and build steps.",
-        example: "Pick the option with the clearest silhouette and strongest side-view readability.",
-    },
-    refine: {
-        label: "Adjust the Design",
-        description: "Optionally adjust one major thing at a time until the chosen look feels ready.",
-        outcome: "You will get four controlled variations from the approved look.",
-        example: "Change colors, outfit weight, or silhouette, but avoid changing everything at once.",
+        label: "Choose A Valid Concept",
+        description: "Review imported attempts, mark them valid or invalid, and accept one valid concept to carry forward.",
+        outcome: "The accepted concept becomes the frozen source for the rest of production.",
+        example: "If an attempt is close but wrong, mark it invalid and generate an improved prompt with rejection feedback.",
     },
     master_pose: {
         label: "Master Pose",
@@ -2357,19 +2311,10 @@ const WIZARD_META = {
     },
 };
 
-const REFINEMENT_LABELS = {
-    silhouette: "overall shape",
-    face_head_shape: "face and head shape",
-    outfit: "outfit",
-    palette: "colors",
-    prop: "held item",
-};
-
 const FRIENDLY_STAGE_NAMES = {
     intake: "Setup",
-    concepts: "Looks",
+    concepts: "Gemini concepts",
     concept_lock: "Look chosen",
-    refine: "Adjusting look",
     master_pose: "Master pose",
     layer_review: "Sprite model",
     sprite_model: "Sprite model",
@@ -2381,9 +2326,7 @@ const FRIENDLY_STAGE_NAMES = {
 };
 
 const JOB_TYPE_LABELS = {
-    "concepts.generate": "Generating looks",
-    "concepts.regenerate_similar": "Generating similar looks",
-    "concepts.refine": "Adjusting the chosen look",
+    "concepts.generate": "Generating Gemini prompt",
     "master_pose.generate": "Generating master poses",
     "sprite_model.build": "Building sprite model",
     "layers.build": "Building sprite model",
@@ -2596,7 +2539,6 @@ function blankWizardModel() {
             references: "locked",
             concepts: "locked",
             review: "locked",
-            refine: "locked",
             master_pose: "locked",
             sprite_model: "locked",
             rig: "locked",
@@ -2608,9 +2550,8 @@ function blankWizardModel() {
             brief: ["Create a project first."],
             references: ["Save the character description first."],
             concepts: ["Save the character description first."],
-            review: ["Generate looks first."],
-            refine: ["Choose a look first."],
-            master_pose: ["Choose a look and finish the adjustment step first."],
+            review: ["Mark at least one imported concept valid first."],
+            master_pose: ["Choose a valid imported concept first."],
             sprite_model: ["Approve a master pose first."],
             rig: ["Build and approve the sprite model first."],
             clips: ["Approve the rig first."],
@@ -2649,11 +2590,9 @@ function wizardSummaryText(step) {
         case "references":
             return `${project.brief?.references?.length || 0} stored reference(s)`;
         case "concepts":
-            return project.latest_concept_run ? `${project.latest_concept_run.concept_count} looks in latest run` : "No looks generated yet.";
+            return project.latest_prompt ? `Prompt v${project.latest_prompt.prompt_version}` : "No prompt generated yet.";
         case "review":
-            return project.selected_concept_id ? `Chosen ${project.selected_concept_id}` : "No look chosen yet.";
-        case "refine":
-            return project.wizard_state?.last_refine_decision || (project.latest_refinement_run ? "Adjustments generated." : "No adjustment decision yet.");
+            return project.selected_concept_id ? `Chosen ${project.selected_concept_id}` : "No valid concept chosen yet.";
         case "master_pose":
             return project.master_pose_manifest?.approved_candidate_id || (project.master_pose_manifest?.candidates?.length ? `${project.master_pose_manifest.candidates.length} candidates` : "No master poses yet.");
         case "sprite_model":
@@ -2970,17 +2909,14 @@ async function handleWizardAction(actionId, currentStep) {
             renderAll();
             return;
         case "wizard-generate-concepts": {
-            const result = await runJob(`/api/projects/${state.activeProject.project_id}/concepts/generate`);
-            if (result?.run_id) state.selectedRunId = result.run_id;
+            const result = await api(`/api/projects/${state.activeProject.project_id}/concepts/generate`, { method: "POST", body: "{}" });
+            notify(`Generated Gemini prompt v${result.prompt_version}.`, "success");
             if (state.activeProject) {
                 await persistWizardState({
-                    completed_steps: result?.quality_gate_failed ? [] : ["concepts"],
-                    current_step: result?.quality_gate_failed ? "concepts" : "review",
+                    completed_steps: ["concepts"],
+                    current_step: "concepts",
                     last_ui_mode: "wizard",
                 });
-                if (result?.quality_gate_failed) {
-                    notify("The generated board failed quality checks. Tighten the brief or change the checkpoint, then regenerate.", "error");
-                }
                 renderAll();
             }
             return;
@@ -2991,23 +2927,8 @@ async function handleWizardAction(actionId, currentStep) {
             return;
         case "wizard-continue-review":
             if (!selectedConcept()) return;
-            await persistWizardState({ completed_steps: ["review"], current_step: "refine", last_ui_mode: "wizard" });
-            renderAll();
-            return;
-        case "wizard-run-refine": {
-            await runRefinement();
-            if (state.activeProject) {
-                await persistWizardState({ current_step: "refine", last_ui_mode: "wizard", last_refine_decision: "refine_again" });
-                renderAll();
-            }
-            return;
-        }
-        case "wizard-use-current-concept":
-            if (!state.activeProject) return;
             await persistWizardState({
-                completed_steps: ["refine"],
-                skipped_optional_steps: ["refine"],
-                last_refine_decision: "use_current_approved_concept",
+                completed_steps: ["review"],
                 current_step: "master_pose",
                 last_ui_mode: "wizard",
             });
@@ -3174,8 +3095,8 @@ function renderStageMeta() {
 
 function getReviewCounts(metrics) {
     const approvals = Object.values(metrics?.approvals_per_run || {}).reduce((sum, value) => sum + value, 0);
-    const refinements = Object.values(metrics?.refinements_per_selected_concept || {}).reduce((sum, value) => sum + value, 0);
-    return { approvals, refinements };
+    const promptIterations = state.activeProject?.prompt_history?.length || 0;
+    return { approvals, refinements: promptIterations };
 }
 
 function renderStatus() {
@@ -3206,7 +3127,7 @@ function renderStatus() {
             <strong>${counts.approvals}</strong>
         </div>
         <div class="metric-card">
-            <span>Adjustments</span>
+            <span>Prompt Iterations</span>
             <strong>${counts.refinements}</strong>
         </div>
         <div class="metric-card">
@@ -3446,24 +3367,6 @@ function populateIntakeForm() {
     renderAttachedReferences();
 }
 
-function currentRunSummary() {
-    const project = state.activeProject;
-    if (!project?.concept_runs?.length) return null;
-    return project.concept_runs.find((run) => run.run_id === state.selectedRunId) || project.concept_runs[0];
-}
-
-function currentRunConcepts() {
-    const project = state.activeProject;
-    if (!project?.concepts?.length) return [];
-    const run = currentRunSummary();
-    if (!run) return project.concepts;
-    return project.concepts.filter((concept) => concept.run_id === run.run_id);
-}
-
-function reviewableRunConcepts() {
-    return currentRunConcepts().filter((concept) => concept.triage?.status !== "system-demoted");
-}
-
 function conceptById(conceptId) {
     return state.activeProject?.concepts?.find((concept) => concept.concept_id === conceptId) || null;
 }
@@ -3471,10 +3374,6 @@ function conceptById(conceptId) {
 function selectedConcept() {
     const project = state.activeProject;
     return conceptById(project?.selected_concept_id) || null;
-}
-
-function compareLeftConcept() {
-    return selectedConcept() || reviewableRunConcepts()[0] || null;
 }
 
 function triageClass(status) {
@@ -3485,84 +3384,47 @@ function triageClass(status) {
 
 function renderRunGrid() {
     const root = document.querySelector("#run-grid");
+    const promptTextNode = document.querySelector("#gemini-prompt-text");
+    const promptSelect = document.querySelector("#concept-source-prompt");
     root.innerHTML = "";
-    const runs = state.activeProject?.concept_runs || [];
-    if (!runs.length) {
-        root.innerHTML = `<div class="empty">No concept runs yet.</div>`;
+    if (promptSelect) promptSelect.innerHTML = "";
+    const prompts = state.activeProject?.prompt_history || [];
+    if (promptTextNode) {
+        promptTextNode.textContent = state.activeProject?.latest_prompt?.prompt_text || "No Gemini prompt generated yet.";
+    }
+    if (!prompts.length) {
+        root.innerHTML = `<div class="empty">No saved Gemini prompts yet.</div>`;
         return;
     }
-    runs.forEach((run) => {
+    prompts.forEach((prompt, index) => {
+        if (promptSelect) {
+            const option = document.createElement("option");
+            option.value = prompt.concept_id;
+            option.textContent = `v${prompt.prompt_version} · ${prompt.prompt_source}`;
+            if (index === 0) option.selected = true;
+            promptSelect.appendChild(option);
+        }
         const card = document.createElement("div");
-        card.className = `run-card ${state.selectedRunId === run.run_id ? "active" : ""}`;
-        const triage = run.triage || {};
+        card.className = "run-card active";
         card.innerHTML = `
-            <strong>${run.run_kind === "initial" ? "New look board" : run.run_kind === "refinement" ? "Adjusted looks" : "Similar looks"} · ${run.concept_count} results</strong>
+            <strong>Prompt v${prompt.prompt_version} · ${prompt.prompt_source}</strong>
             <div class="meta-line" style="margin-top: 8px;">
-                <span class="pill">${formatDate(run.created_at)}</span>
-                <span class="pill">${run.backend_name || "legacy"}</span>
-                <span class="pill ${(triage["system-demoted"] || 0) ? "fail" : (triage.warning || 0) ? "warning" : "ok"}">
-                    flagged ${triage["system-demoted"] || 0}/${triage.warning || 0}
-                </span>
-                ${run.quality_gate_failed ? `<span class="pill fail">failed board</span>` : ""}
+                <span class="pill">${formatDate(prompt.created_at)}</span>
+                <span class="pill">${prompt.prompt_file ? "saved" : "unsaved"}</span>
             </div>
-            <p>${run.summary || "No run summary."}</p>
-            ${run.rescue_attempted ? `<p class="small-note">The tool retried this board once with stricter single-character framing.</p>` : ""}
-            ${run.target_value ? `<p class="small-note">Changed: ${REFINEMENT_LABELS[run.attribute_group] || run.attribute_group} -> ${run.target_value} (${run.refinement_strength_label})</p>` : ""}
+            <p>${prompt.prompt_text}</p>
+            ${prompt.validation_feedback ? `<p class="small-note">Feedback: ${prompt.validation_feedback}</p>` : ""}
         `;
-        card.addEventListener("click", () => {
-            state.selectedRunId = run.run_id;
-            state.swapCompareView = false;
-            if (!currentRunConcepts().some((concept) => concept.concept_id === state.compareRightId)) {
-                state.compareRightId = null;
-            }
-            renderConceptReview();
-        });
         root.appendChild(card);
     });
-}
-
-function renderCompareSlot(node, concept, label) {
-    if (!concept) {
-        node.innerHTML = `<div class="empty">${label}: no concept pinned.</div>`;
-        return;
-    }
-    node.innerHTML = `
-        <div class="meta-line">
-            <span class="pill">${label}</span>
-            <span class="pill ${triageClass(concept.triage?.status)}">${concept.triage?.status || "ok"}</span>
-            ${concept.review_state?.approved ? `<span class="pill ok">approved</span>` : ""}
-            ${concept.review_state?.favorite ? `<span class="pill warning">favorite</span>` : ""}
-            ${concept.review_state?.rejected ? `<span class="pill fail">rejected</span>` : ""}
-        </div>
-        <img src="${projectAsset(state.activeProject, concept.preview_image)}?v=${state.activeProject.updated_at}" alt="${concept.concept_id}">
-        <div>
-            <strong>${concept.concept_id}</strong>
-            <p class="muted" style="margin: 8px 0 0;">${concept.difference_summary || "No summary."}</p>
-            <div class="meta-line" style="margin-top: 10px;">
-                <span class="pill">${concept.silhouette || "n/a"}</span>
-                <span class="pill">${concept.outfit || "n/a"}</span>
-                <span class="pill">${concept.palette_direction || "n/a"}</span>
-            </div>
-        </div>
-    `;
 }
 
 function renderConceptGrid() {
     const root = document.querySelector("#concept-grid");
     root.innerHTML = "";
-    const allConcepts = currentRunConcepts();
-    const concepts = reviewableRunConcepts();
-    const run = currentRunSummary();
-    if (allConcepts.length && !concepts.length) {
-        root.innerHTML = `
-            <div class="warning-box">
-                <p><strong>This board failed quality checks.</strong> Every concept in this run was system-demoted for layout or framing issues, so they are hidden from selection. Regenerate after tightening the brief or changing the checkpoint.</p>
-            </div>
-        `;
-        return;
-    }
+    const concepts = (state.activeProject?.concepts || []).filter((concept) => concept.preview_image);
     if (!concepts.length) {
-        root.innerHTML = `<div class="empty">No concepts in the selected run.</div>`;
+        root.innerHTML = `<div class="empty">No imported Gemini concepts yet.</div>`;
         return;
     }
     concepts.forEach((concept) => {
@@ -3574,91 +3436,49 @@ function renderConceptGrid() {
             <div class="body">
                 <div class="concept-top">
                     <div class="concept-title">
-                        <strong>${concept.concept_id}</strong>
-                        <span class="muted">${concept.difference_summary || "No summary."}</span>
+                        <strong>${concept.concept_id} · attempt ${concept.attempt_index || "?"}</strong>
+                        <span class="muted">prompt v${concept.prompt_version || "?"} · ${concept.import_source || "imported"}</span>
                     </div>
-                    <span class="pill ${triageClass(triage.status)}">${triage.status || "ok"}</span>
+                    <span class="pill ${concept.validation_status === "valid" ? "ok" : concept.validation_status === "invalid" ? "fail" : "warning"}">${concept.validation_status || "pending"}</span>
                 </div>
                 <div class="meta-line">
-                    ${concept.review_state?.approved ? `<span class="pill ok">approved</span>` : ""}
-                    ${concept.review_state?.favorite ? `<span class="pill warning">favorite</span>` : ""}
-                    ${concept.review_state?.rejected ? `<span class="pill fail">rejected</span>` : ""}
-                    <span class="pill">${concept.backend_name}</span>
-                    <span class="pill">seed ${concept.seed}</span>
+                    ${concept.accepted_for_review ? `<span class="pill ok">accepted</span>` : ""}
+                    ${concept.review_state?.approved ? `<span class="pill ok">chosen</span>` : ""}
+                    <span class="pill ${triageClass(triage.status)}">${triage.status || "ok"}</span>
                 </div>
                 <div class="meta-line">
                     <span class="pill">${concept.silhouette || "n/a"}</span>
                     <span class="pill">${concept.outfit || "n/a"}</span>
                     <span class="pill">${concept.palette_direction || "n/a"}</span>
                 </div>
-                <div class="small-note">${(triage.flags || []).join(", ") || "No triage flags."}</div>
+                <div class="small-note">${concept.validation_feedback || (triage.flags || []).join(", ") || "No rejection feedback yet."}</div>
+                <label style="margin-top: 10px; display: block;">
+                    <span class="field-label">Rejection Feedback</span>
+                    <input data-feedback-input placeholder="what should the next Gemini prompt improve?">
+                </label>
                 <div class="actions">
-                    <button data-action="approve">Choose This Look</button>
-                    <button class="secondary" data-action="favorite">${concept.review_state?.favorite ? "Remove From Shortlist" : "Save To Shortlist"}</button>
-                    <button class="danger" data-action="reject">${concept.review_state?.rejected ? "Show Again" : "Hide This"}</button>
-                    <button class="secondary" data-action="compare">Compare</button>
+                    <button class="secondary" data-action="valid">Mark Valid</button>
+                    <button class="danger" data-action="invalid">Mark Invalid</button>
+                    <button data-action="approve" ${concept.validation_status !== "valid" ? "disabled" : ""}>Accept This Concept</button>
+                    <button class="secondary" data-action="improve">Generate Improved Prompt</button>
                     <button class="secondary" data-action="zoom">Zoom</button>
-                    <button class="secondary" data-action="similar">Make Similar</button>
                 </div>
             </div>
         `;
+        const feedbackInput = card.querySelector("[data-feedback-input]");
+        feedbackInput.value = concept.validation_feedback || "";
+        card.querySelector("[data-action='valid']").addEventListener("click", () => validateConceptAttempt(concept.concept_id, "valid", feedbackInput.value));
+        card.querySelector("[data-action='invalid']").addEventListener("click", () => validateConceptAttempt(concept.concept_id, "invalid", feedbackInput.value));
         card.querySelector("[data-action='approve']").addEventListener("click", () => reviewConcept(concept.concept_id, "approve", true));
-        card.querySelector("[data-action='favorite']").addEventListener("click", () => reviewConcept(concept.concept_id, "favorite", !concept.review_state?.favorite));
-        card.querySelector("[data-action='reject']").addEventListener("click", () => reviewConcept(concept.concept_id, "reject", !concept.review_state?.rejected));
-        card.querySelector("[data-action='compare']").addEventListener("click", () => {
-            state.compareRightId = concept.concept_id;
-            state.swapCompareView = false;
-            renderConceptReview();
-        });
+        card.querySelector("[data-action='improve']").addEventListener("click", () => generateImprovedPrompt(concept.concept_id, feedbackInput.value));
         card.querySelector("[data-action='zoom']").addEventListener("click", () => openZoom(concept.concept_id));
-        card.querySelector("[data-action='similar']").addEventListener("click", async () => {
-            try {
-                const result = await runJob(`/api/projects/${state.activeProject.project_id}/concepts/${concept.concept_id}/regenerate-similar`);
-                log(`Regenerated similar concepts from ${concept.concept_id}`, "success");
-                notify(`Generated more looks based on ${concept.concept_id}.`, "success");
-                if (result?.run_id) state.selectedRunId = result.run_id;
-            } catch (error) {
-                log(normalizeErrorMessage(error.message), "error");
-                notify(normalizeErrorMessage(error.message), "error");
-            }
-        });
         root.appendChild(card);
     });
 }
 
 function renderConceptReview() {
     renderRunGrid();
-    const anchor = compareLeftConcept();
-    let right = conceptById(state.compareRightId);
-    if (right?.triage?.status === "system-demoted") {
-        right = null;
-    }
-    if (!right || right.concept_id === anchor?.concept_id) {
-        right = reviewableRunConcepts().find((concept) => concept.concept_id !== anchor?.concept_id) || null;
-        state.compareRightId = right?.concept_id || null;
-    }
-    const approvedAnchor = Boolean(selectedConcept());
-    const left = !approvedAnchor && state.swapCompareView && right ? right : anchor;
-    const comparison = !approvedAnchor && state.swapCompareView ? anchor : right;
-    renderCompareSlot(document.querySelector("#compare-left"), left, approvedAnchor ? "Chosen look" : "Primary look");
-    renderCompareSlot(document.querySelector("#compare-right"), comparison, "Compare against");
     renderConceptGrid();
-}
-
-function renderRefinePanel() {
-    const select = document.querySelector("#refine-concept");
-    select.innerHTML = "";
-    const concepts = state.activeProject?.concepts || [];
-    concepts.forEach((concept) => {
-        const option = document.createElement("option");
-        option.value = concept.concept_id;
-        option.textContent = `${concept.concept_id} · ${concept.difference_summary || concept.run_kind}`;
-        if (state.activeProject?.selected_concept_id === concept.concept_id) option.selected = true;
-        select.appendChild(option);
-    });
-    document.querySelector("#selected-concept-summary").textContent = selectedConcept()
-        ? `Chosen look ${selectedConcept().concept_id}: ${selectedConcept().difference_summary || selectedConcept().silhouette || "no summary"}.`
-        : "Choose a look before adjusting it so the wizard knows what to preserve.";
 }
 
 function spriteModelParts() {
@@ -4713,7 +4533,6 @@ function renderAll() {
     renderStatus();
     renderModeShell();
     renderConceptReview();
-    renderRefinePanel();
     renderMasterPose();
     renderLayerReview();
     renderRigReview();
@@ -4751,7 +4570,6 @@ async function loadProject(projectId, mode = "workbench") {
     state.activeProject = project;
     state.uiMode = mode;
     storage.setItem(STORAGE_KEYS.activeProjectId, projectId);
-    state.selectedRunId = project.concept_runs?.[0]?.run_id || null;
     state.compareRightId = null;
     state.swapCompareView = false;
     state.selectedSpritePart = project.sprite_model?.parts?.[0]?.part_name || null;
@@ -4881,7 +4699,7 @@ async function reviewConcept(conceptId, action, value) {
     if (currentMode() === "wizard" && action === "approve" && value) {
         const synced = await persistWizardState({
             completed_steps: ["review"],
-            current_step: "refine",
+            current_step: "master_pose",
             last_ui_mode: "wizard",
         });
         if (synced) state.activeProject = synced;
@@ -4889,20 +4707,70 @@ async function reviewConcept(conceptId, action, value) {
     renderAll();
 }
 
-async function runRefinement() {
+async function validateConceptAttempt(conceptId, validationStatus, feedback = "") {
     if (!state.activeProject) throw new Error("Select or create a project first.");
-    const payload = {
-        concept_id: document.querySelector("#refine-concept").value,
-        attribute_group: document.querySelector("#refine-attribute").value,
-        target_value: document.querySelector("#refine-target").value.trim(),
-        strength: document.querySelector("#refine-strength").value,
-    };
-    if (!payload.target_value) {
-        throw new Error("Describe the change before generating adjusted looks.");
+    const project = await api(`/api/projects/${state.activeProject.project_id}/concepts/${conceptId}/validate`, {
+        method: "POST",
+        body: JSON.stringify({
+            validation_status: validationStatus,
+            feedback: feedback.trim(),
+        }),
+    });
+    state.activeProject = project;
+    await refreshProjects();
+    log(`Marked ${conceptId} as ${validationStatus}`, "success");
+    notify(`${conceptId} marked ${validationStatus}.`, validationStatus === "invalid" ? "info" : "success");
+    renderAll();
+}
+
+async function generateImprovedPrompt(conceptId, feedback = "") {
+    if (!state.activeProject) throw new Error("Select or create a project first.");
+    const result = await api(`/api/projects/${state.activeProject.project_id}/concepts/${conceptId}/improve-prompt`, {
+        method: "POST",
+        body: JSON.stringify({ feedback: feedback.trim() }),
+    });
+    await loadProject(state.activeProject.project_id, currentMode());
+    log(`Generated improved Gemini prompt from ${conceptId}`, "success");
+    notify(`Generated Gemini prompt v${result.prompt_version}.`, "success");
+}
+
+async function importConceptImage() {
+    if (!state.activeProject) throw new Error("Select or create a project first.");
+    const sourcePromptId = document.querySelector("#concept-source-prompt").value;
+    if (!sourcePromptId) throw new Error("Generate a prompt first.");
+    const file = document.querySelector("#concept-import-file").files[0];
+    const localPath = document.querySelector("#concept-import-path").value.trim();
+    if (!file && !localPath) throw new Error("Choose an upload or enter a local image path.");
+    let payload = { source_prompt_id: sourcePromptId };
+    if (file) {
+        const dataUrl = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = () => reject(new Error(`Failed to read ${file.name}`));
+            reader.readAsDataURL(file);
+        });
+        payload = { ...payload, name: file.name, data_url: dataUrl };
+    } else {
+        payload = { ...payload, local_path: localPath };
     }
-    const result = await runJob(`/api/projects/${state.activeProject.project_id}/refine`, payload);
-    if (result?.run_id) state.selectedRunId = result.run_id;
-    log(`Generated refinement run from ${payload.concept_id}`, "success");
+    const project = await api(`/api/projects/${state.activeProject.project_id}/concepts/import`, {
+        method: "POST",
+        body: JSON.stringify(payload),
+    });
+    state.activeProject = project;
+    document.querySelector("#concept-import-file").value = "";
+    document.querySelector("#concept-import-path").value = "";
+    await refreshProjects();
+    log("Imported Gemini concept image", "success");
+    notify("Imported Gemini concept image.", "success");
+    renderAll();
+}
+
+async function copyLatestPrompt() {
+    const prompt = state.activeProject?.latest_prompt?.prompt_text;
+    if (!prompt) throw new Error("Generate a prompt first.");
+    await navigator.clipboard.writeText(prompt);
+    notify("Copied the latest Gemini prompt.", "success");
 }
 
 function parsePairInput(value) {
@@ -5087,29 +4955,36 @@ document.querySelector("#mode-wizard").addEventListener("click", async () => {
 document.querySelector("#add-reference-row").addEventListener("click", () => addReferenceRow());
 document.querySelector("#generate-concepts").addEventListener("click", async () => {
     try {
-        const result = await runJob(`/api/projects/${state.activeProject.project_id}/concepts/generate`);
-        if (result?.run_id) state.selectedRunId = result.run_id;
+        const result = await api(`/api/projects/${state.activeProject.project_id}/concepts/generate`, { method: "POST", body: "{}" });
+        await loadProject(state.activeProject.project_id, currentMode());
         if (currentMode() === "wizard" && state.activeProject) {
             const synced = await persistWizardState({
-                completed_steps: result?.quality_gate_failed ? [] : ["concepts"],
-                current_step: result?.quality_gate_failed ? "concepts" : "review",
+                completed_steps: ["concepts"],
+                current_step: "concepts",
                 last_ui_mode: "wizard",
             });
             if (synced) state.activeProject = synced;
             renderAll();
         }
-        if (result?.quality_gate_failed) {
-            notify("The generated board failed quality checks. Tighten the brief or change the checkpoint, then regenerate.", "error");
-        }
+        notify(`Generated Gemini prompt v${result.prompt_version}.`, "success");
     } catch (error) {
         log(normalizeErrorMessage(error.message), "error");
         notify(normalizeErrorMessage(error.message), "error");
     }
 });
 
-document.querySelector("#run-refine").addEventListener("click", async () => {
+document.querySelector("#copy-latest-prompt").addEventListener("click", async () => {
     try {
-        await runRefinement();
+        await copyLatestPrompt();
+    } catch (error) {
+        log(normalizeErrorMessage(error.message), "error");
+        notify(normalizeErrorMessage(error.message), "error");
+    }
+});
+
+document.querySelector("#import-concept-image").addEventListener("click", async () => {
+    try {
+        await importConceptImage();
     } catch (error) {
         log(normalizeErrorMessage(error.message), "error");
         notify(normalizeErrorMessage(error.message), "error");
@@ -5457,18 +5332,6 @@ document.querySelector("#run-export").addEventListener("click", async () => {
         log(normalizeErrorMessage(error.message), "error");
         notify(normalizeErrorMessage(error.message), "error");
     }
-});
-
-document.querySelector("#swap-compare").addEventListener("click", () => {
-    if (selectedConcept()) {
-        const message = "Swap compare sides is disabled while the chosen look stays pinned on the left.";
-        log(message, "error");
-        notify(message, "error");
-        return;
-    }
-    if (!compareLeftConcept() || !conceptById(state.compareRightId)) return;
-    state.swapCompareView = !state.swapCompareView;
-    renderConceptReview();
 });
 
 document.querySelector("#close-zoom").addEventListener("click", closeZoom);
