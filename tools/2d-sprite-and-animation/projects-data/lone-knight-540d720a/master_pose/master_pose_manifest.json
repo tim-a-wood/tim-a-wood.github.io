@@ -1,0 +1,56 @@
+{
+  "project_id": "lone-knight-540d720a",
+  "approved_concept_id": "concept-0019",
+  "generated_at": "2026-03-14T03:10:56.928108+00:00",
+  "backend_mode": "comfyui",
+  "candidates": [
+    {
+      "candidate_id": "master-pose-01",
+      "image_path": "master_pose/master_pose_01.png",
+      "summary": "strict side-view master pose, clean silhouette, plain background, neutral stance, extraction-ready sprite source",
+      "created_at": "2026-03-14T03:10:57.776829+00:00",
+      "background_clean": true,
+      "bbox": [
+        124,
+        454,
+        495,
+        740
+      ],
+      "silhouette_components": 2,
+      "approved": false
+    },
+    {
+      "candidate_id": "master-pose-02",
+      "image_path": "master_pose/master_pose_02.png",
+      "summary": "strict side-view master pose, full-body clean profile, plain removable background, readable silhouette, animation-ready stance",
+      "created_at": "2026-03-14T03:10:58.091599+00:00",
+      "background_clean": true,
+      "bbox": [
+        122,
+        440,
+        518,
+        746
+      ],
+      "silhouette_components": 2,
+      "approved": true
+    },
+    {
+      "candidate_id": "master-pose-03",
+      "image_path": "master_pose/master_pose_03.png",
+      "summary": "strict side-view master pose, clean silhouette overlap, plain background, stable anatomy, source image for sprite extraction",
+      "created_at": "2026-03-14T03:10:58.377379+00:00",
+      "background_clean": true,
+      "bbox": [
+        149,
+        466,
+        507,
+        742
+      ],
+      "silhouette_components": 2,
+      "approved": false
+    }
+  ],
+  "approved_candidate_id": "master-pose-02",
+  "approved_image": "master_pose/approved_master_pose.png",
+  "approved_at": "2026-03-14T03:12:19.961602+00:00"
+}

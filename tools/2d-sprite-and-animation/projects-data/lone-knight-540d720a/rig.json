@@ -1,0 +1,349 @@
+{
+  "source_mode": "sprite_model",
+  "source_summary": "Rig is built from the extracted canonical sprite model.",
+  "joints": [
+    "root",
+    "pelvis",
+    "torso",
+    "neck",
+    "head",
+    "shoulder_left",
+    "elbow_left",
+    "wrist_left",
+    "shoulder_right",
+    "elbow_right",
+    "wrist_right",
+    "hip_left",
+    "knee_left",
+    "ankle_left",
+    "hip_right",
+    "knee_right",
+    "ankle_right"
+  ],
+  "rig_joint_map": {
+    "head": [
+      239,
+      496
+    ],
+    "torso": [
+      265,
+      505
+    ],
+    "pelvis": [
+      261,
+      591
+    ],
+    "shoulder_left": [
+      237,
+      507
+    ],
+    "elbow_left": [
+      229,
+      551
+    ],
+    "wrist_left": [
+      213,
+      585
+    ],
+    "shoulder_right": [
+      371,
+      507
+    ],
+    "elbow_right": [
+      403,
+      551
+    ],
+    "wrist_right": [
+      427,
+      585
+    ],
+    "hip_left": [
+      261,
+      616
+    ],
+    "knee_left": [
+      253,
+      666
+    ],
+    "ankle_left": [
+      234,
+      722
+    ],
+    "hip_right": [
+      340,
+      616
+    ],
+    "knee_right": [
+      348,
+      666
+    ],
+    "ankle_right": [
+      301,
+      722
+    ],
+    "neck": [
+      239,
+      501.0
+    ],
+    "root": [
+      267.5,
+      745.0
+    ]
+  },
+  "joint_vectors": {
+    "pelvis_from_root": [
+      -7,
+      -154
+    ],
+    "torso_from_pelvis": [
+      4,
+      -86
+    ],
+    "neck_from_torso": [
+      -26,
+      -4
+    ],
+    "head_from_neck": [
+      0,
+      -5
+    ],
+    "shoulder_left_from_torso": [
+      -28,
+      2
+    ],
+    "elbow_left_from_shoulder": [
+      -8,
+      44
+    ],
+    "wrist_left_from_elbow": [
+      -16,
+      34
+    ],
+    "shoulder_right_from_torso": [
+      106,
+      2
+    ],
+    "elbow_right_from_shoulder": [
+      32,
+      44
+    ],
+    "wrist_right_from_elbow": [
+      24,
+      34
+    ],
+    "hip_left_from_pelvis": [
+      0,
+      25
+    ],
+    "knee_left_from_hip": [
+      -8,
+      50
+    ],
+    "ankle_left_from_knee": [
+      -19,
+      56
+    ],
+    "hip_right_from_pelvis": [
+      79,
+      25
+    ],
+    "knee_right_from_hip": [
+      8,
+      50
+    ],
+    "ankle_right_from_knee": [
+      -47,
+      56
+    ]
+  },
+  "per_joint_rotation_limits": {
+    "torso": {
+      "min": -12,
+      "max": 12
+    },
+    "head": {
+      "min": -18,
+      "max": 18
+    },
+    "shoulder_left": {
+      "min": -40,
+      "max": 40
+    },
+    "elbow_left": {
+      "min": -5,
+      "max": 55
+    },
+    "shoulder_right": {
+      "min": -40,
+      "max": 40
+    },
+    "elbow_right": {
+      "min": -5,
+      "max": 55
+    },
+    "hip_left": {
+      "min": -28,
+      "max": 28
+    },
+    "knee_left": {
+      "min": -4,
+      "max": 45
+    },
+    "hip_right": {
+      "min": -28,
+      "max": 28
+    },
+    "knee_right": {
+      "min": -4,
+      "max": 45
+    }
+  },
+  "draw_order_rules_for_overlap": [
+    "hair_back",
+    "accessory_back",
+    "pelvis",
+    "torso",
+    "upper_leg_left",
+    "lower_leg_left",
+    "head",
+    "foot_left",
+    "hair_front",
+    "upper_leg_right",
+    "lower_leg_right",
+    "foot_right",
+    "upper_arm_left",
+    "upper_arm_right",
+    "lower_arm_left",
+    "lower_arm_right",
+    "hand_left",
+    "hand_right",
+    "prop",
+    "accessory_front"
+  ],
+  "foot_anchor_reference": {
+    "left": [
+      234,
+      722
+    ],
+    "right": [
+      301,
+      722
+    ],
+    "pivot": [
+      128,
+      245
+    ]
+  },
+  "prop_attachment_joint": "wrist_left",
+  "pivot_map": {
+    "hair_back": [
+      24,
+      7
+    ],
+    "accessory_back": [
+      60,
+      15
+    ],
+    "pelvis": [
+      28,
+      4
+    ],
+    "torso": [
+      40,
+      10
+    ],
+    "upper_leg_left": [
+      36,
+      5
+    ],
+    "lower_leg_left": [
+      44,
+      6
+    ],
+    "head": [
+      6,
+      28
+    ],
+    "foot_left": [
+      13,
+      7
+    ],
+    "hair_front": [
+      0,
+      0
+    ],
+    "upper_leg_right": [
+      36,
+      5
+    ],
+    "lower_leg_right": [
+      44,
+      6
+    ],
+    "foot_right": [
+      13,
+      7
+    ],
+    "upper_arm_left": [
+      67,
+      6
+    ],
+    "upper_arm_right": [
+      67,
+      6
+    ],
+    "lower_arm_left": [
+      75,
+      7
+    ],
+    "lower_arm_right": [
+      75,
+      7
+    ],
+    "hand_left": [
+      67,
+      10
+    ],
+    "hand_right": [
+      67,
+      10
+    ],
+    "prop": [
+      0,
+      0
+    ],
+    "accessory_front": [
+      8,
+      6
+    ]
+  },
+  "source_bounds": [
+    122,
+    440,
+    518,
+    746
+  ],
+  "neutral_pose_render": "rig/neutral_pose.png",
+  "approved_for_production": false,
+  "created_at": "2026-03-14T03:17:58.828070+00:00",
+  "occlusion_order_map": [
+    "hair_back",
+    "accessory_back",
+    "pelvis",
+    "torso",
+    "upper_leg_left",
+    "lower_leg_left",
+    "head",
+    "foot_left",
+    "upper_leg_right",
+    "lower_leg_right",
+    "foot_right",
+    "upper_arm_left",
+    "upper_arm_right",
+    "lower_arm_left",
+    "lower_arm_right",
+    "hand_left",
+    "hand_right",
+    "accessory_front"
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "raw_prompt": "Single humanoid knight character concept. Strict side profile. Full body centered in frame on a plain light background. Closed medieval knight helmet with no visible face. Worn steel plate armor with practical layered cloth underneath. One sword and one shield only. Clean readable retro-friendly silhouette for a 2D dark fantasy metroidvania player character. Brown, green, grey, and beige palette with restrained purple accents. Moody but simple presentation.",
+  "role_archetype": "knight hero",
+  "silhouette_intent": "strict orthographic side-profile knight, single full-body figure, clear sword silhouette and clear shield silhouette, standard proportions, fully centered and fully inside frame",
+  "outfit_materials": "worn steel plate armor, practical medieval armor layers, restrained cloth underlayers, aged metal, no robe-dominant silhouette",
+  "prop": "one straight sword and one shield, both clearly readable in side silhouette",
+  "palette_mood": "moody dark fantasy in brown green grey beige with restrained purple accents, no orange, no bright gold glow",
+  "shape_language": "clean pixel-friendly shapes, classic knight read, simple readable masses, stylized but extraction-friendly",
+  "mood_tone": "lone moody searching knight, understated, grounded, not cinematic",
+  "side_view_constraints": "strict side profile only, single full-body character, centered, fully inside frame, plain light background, no environment, no scene composition, no extra figure, no front view, no back view",
+  "negative_prompt": "front view, rear view, top-down, isometric, multiple characters, crowd, group shot, full environment scene, busy background, extra limbs, extra arms, extra weapons, wings, huge cape, non-humanoid anatomy, mount, vehicle, text, watermark, logo, character sheet, model sheet, turnaround sheet, sprite sheet, animation sheet, silhouette sheet, contact sheet, collage, mood board, sketch page, comic page, split panel layout, multiple poses, pose lineup, small figure, distant figure, tiny subject, cropped body, cut off feet, cut off head",
+  "backend_mode": "comfyui",
+  "comfyui_checkpoint": "sd15.safetensors",
+  "references": [
+    {
+      "reference_id": "0ffe4ff392",
+      "role": "identity",
+      "weight": 1.0,
+      "source_type": "local",
+      "source_value": "/Users/timwood/Desktop/projects/PWA/MV/image_3b275ed2.png",
+      "local_path": "references/identity_image_3b275ed2.png",
+      "added_at": "2026-03-14T02:42:28.555069+00:00",
+      "reference_kind": "illustration",
+      "reference_warning": null,
+      "usable_for_concepts": true
+    }
+  ],
+  "positive_prompt_base": "single humanoid side-view character concept art, full body, plain light background, clean silhouette, readable negative space, designed for Ashen Hollow, a dark-fantasy 2d side-scrolling metroidvania, Hollow Knight-inspired atmosphere with ruined chapels, catacombs, and medieval decay, player-character readability first, strict side-view silhouette, full body visible, large primary shapes, restrained secondary detail, clustered values for sprite readability, clear separation between head, torso, limbs, and held item, readable at low resolution, animation-friendly costume breakup, practical combat silhouette, plain or minimal background for character extraction, single character only, centered full body concept, orthographic side profile, no dramatic camera angle, no environment storytelling shot, one iconic held item, practical traversal and combat gear, grounded proportions, silhouette readable in motion, restrained ornamental noise, character role: knight hero, silhouette intent: strict orthographic side-profile knight, single full-body figure, clear sword silhouette and clear shield silhouette, standard proportions, fully centered and fully inside frame, outfit and materials: worn steel plate armor, practical medieval armor layers, restrained cloth underlayers, aged metal, no robe-dominant silhouette, primary handheld prop: one straight sword and one shield, both clearly readable in side silhouette, palette mood: moody dark fantasy in brown green grey beige with restrained purple accents, no orange, no bright gold glow, shape language: clean pixel-friendly shapes, classic knight read, simple readable masses, stylized but extraction-friendly, mood: lone moody searching knight, understated, grounded, not cinematic, readability constraints: strict side profile only, single full-body character, centered, fully inside frame, plain light background, no environment, no scene composition, no extra figure, no front view, no back view"
+}

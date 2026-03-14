@@ -2371,6 +2371,121 @@ def update_concept_review_state(project_id: str, concept_id: str, action: str, v
     return load_project(project_id)
 
 
+def promote_reference_as_concept(project_id: str, payload: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    project = load_project(project_id)
+    project_dir = PROJECTS_ROOT / project_id
+    payload = payload or {}
+
+    requested_reference_id = payload.get("reference_id")
+    references = [
+        item for item in project["brief"].get("references") or []
+        if isinstance(item, dict) and item.get("local_path")
+    ]
+    if requested_reference_id:
+        reference = next((item for item in references if item.get("reference_id") == requested_reference_id), None)
+    else:
+        reference = next((item for item in references if item.get("role") == "identity"), None)
+        if reference is None:
+            reference = references[0] if references else None
+    if reference is None:
+        raise ValueError("Attach at least one usable reference before promoting it as the approved concept.")
+
+    source_path = project_dir / reference["local_path"]
+    if not source_path.exists():
+        raise ValueError("Reference image is missing on disk.")
+
+    reset_downstream_assets(project_id, "concept")
+    project = clear_project_downstream_state(project, "concept")
+
+    serial = next_concept_serial(project["concepts"])
+    concept_id = "concept-%04d" % serial
+    concept_filename = "%s%s" % (concept_id, source_path.suffix or ".png")
+    concept_output_path = project_dir / "concepts" / concept_filename
+    concept_output_path.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(source_path, concept_output_path)
+
+    run_id = "manual-reference-%s" % stable_hash(project_id, concept_id, reference.get("reference_id", ""))[:10]
+    seed = stable_int(project_id, concept_id, reference.get("reference_id", ""), mod=4_294_967_295)
+    concept = hydrate_concept({
+        "concept_id": concept_id,
+        "run_id": run_id,
+        "run_kind": "manual_reference",
+        "created_at": now_iso(),
+        "seed": seed,
+        "positive_prompt": "%s, approved directly from attached reference image, preserve character identity and style direction"
+        % project["brief"]["positive_prompt_base"],
+        "negative_prompt": project["brief"]["negative_prompt"],
+        "prompt": "%s, approved directly from attached reference image, preserve character identity and style direction"
+        % project["brief"]["positive_prompt_base"],
+        "preview_image": str(concept_output_path.relative_to(project_dir)),
+        "backend_name": "manual_reference",
+        "backend_run_id": reference.get("reference_id"),
+        "variation_axes": {
+            "summary": "approved directly from attached reference image",
+        },
+        "difference_summary": "Using the attached reference as the approved concept direction.",
+        "silhouette": project["brief"]["silhouette_intent"],
+        "outfit": project["brief"]["outfit_materials"],
+        "palette_direction": project["brief"]["palette_mood"],
+        "palette": palette_from_seed(seed, 0, project["brief"]["palette_mood"]),
+        "prop_variant": project["brief"]["prop"],
+        "face_head_shape": project["brief"]["shape_language"],
+        "references_used": [{
+            "role": reference.get("role"),
+            "local_path": reference.get("local_path"),
+            "weight": float(reference.get("weight", 1.0)),
+            "reference_id": reference.get("reference_id"),
+        }],
+        "review_state": {
+            "approved": True,
+            "favorite": True,
+            "rejected": False,
+        },
+        "approved": True,
+        "favorite": True,
+        "rejected": False,
+        "lineage": {
+            "run_id": run_id,
+            "parent_concept_id": None,
+            "source_reference_id": reference.get("reference_id"),
+        },
+        "triage": analyze_concept_image(concept_output_path),
+    })
+
+    for item in project["concepts"]:
+        item["review_state"]["approved"] = False
+        item["approved"] = False
+        save_concept(project_dir, item)
+    project["concepts"].append(concept)
+    save_concept(project_dir, concept)
+
+    project["selected_concept_id"] = concept_id
+    project["character_spec"] = make_character_spec(project, concept)
+    project["current_stage"] = "concept_lock"
+    project["status"] = "concept_approved"
+    project["master_pose_approved"] = False
+    project["sprite_model_approved"] = False
+    project["layer_review_approved"] = False
+    project["rig_review_approved"] = False
+    project["qa_report"] = None
+    project["last_export"] = None
+    project["wizard_state"] = set_wizard_step_complete(project.get("wizard_state"), "references")
+    project["wizard_state"] = set_wizard_step_complete(project["wizard_state"], "concepts")
+    project["wizard_state"] = set_wizard_step_complete(project["wizard_state"], "review")
+    if project["last_ui_mode"] == "wizard":
+        project["wizard_state"]["current_step"] = "master_pose"
+    project["updated_at"] = now_iso()
+    save_project(project)
+    append_history_event(project_id, {
+        "type": "manual_reference_concept",
+        "concept_id": concept_id,
+        "reference_id": reference.get("reference_id"),
+        "summary": "Attached reference promoted to approved concept.",
+        "created_at": now_iso(),
+    })
+    return load_project(project_id)
+
+
 def master_pose_manifest_path(project_dir: Path) -> Path:
     return project_dir / "master_pose" / "master_pose_manifest.json"
 
@@ -2460,13 +2575,14 @@ def generate_master_pose_candidates(project_id: str, progress: Optional[Progress
     backend_mode = project["brief"]["backend_mode"]
     backend = get_concept_backend(backend_mode)
     request_references = make_reference_inputs(project_dir, project["brief"])
+    use_local_reference_candidates = concept.get("backend_name") == "manual_reference"
     prompt_suffixes = [
         "strict side-view master pose, clean silhouette, plain background, neutral stance, extraction-ready sprite source",
         "strict side-view master pose, full-body clean profile, plain removable background, readable silhouette, animation-ready stance",
         "strict side-view master pose, clean silhouette overlap, plain background, stable anatomy, source image for sprite extraction",
     ]
 
-    if backend_mode != "debug_procedural":
+    if backend_mode != "debug_procedural" and not use_local_reference_candidates:
         health = backend.healthcheck()
         if not health.get("ok"):
             raise ValueError("ComfyUI backend unavailable: %s" % health.get("error", "unknown backend error"))
@@ -2476,7 +2592,7 @@ def generate_master_pose_candidates(project_id: str, progress: Optional[Progress
         output_path = master_pose_dir / ("master_pose_%02d.png" % (index + 1))
         call_progress(progress, 16 + index * 22, "Generating master pose %d of %d" % (index + 1, MASTER_POSE_COUNT), prompt_suffixes[index])
         candidate_meta = None
-        if backend_mode == "debug_procedural":
+        if backend_mode == "debug_procedural" or use_local_reference_candidates:
             candidate_meta = local_master_pose_candidate(concept_path, output_path, index, concept["palette"]["outline"])
         else:
             request = ConceptRequest(
@@ -5204,6 +5320,12 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
             if select_match:
                 project_id, concept_id = select_match.groups()
                 return self._send_json(update_concept_review_state(project_id, concept_id, "approve", True))
+
+            promote_reference_match = re.fullmatch(r"/api/projects/([^/]+)/concepts/use-reference", path)
+            if promote_reference_match:
+                project_id = promote_reference_match.group(1)
+                payload = read_body(self)
+                return self._send_json(promote_reference_as_concept(project_id, payload))
 
             similar_match = re.fullmatch(r"/api/projects/([^/]+)/concepts/([^/]+)/regenerate-similar", path)
             if similar_match:

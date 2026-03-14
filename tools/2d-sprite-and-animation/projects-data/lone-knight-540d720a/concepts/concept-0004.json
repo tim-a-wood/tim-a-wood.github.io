@@ -1,0 +1,60 @@
+{
+  "concept_id": "concept-0004",
+  "run_id": "run-b69843ef89",
+  "run_kind": "initial",
+  "created_at": "2026-03-14T02:00:43.223766+00:00",
+  "seed": 3888040821,
+  "positive_prompt": "single humanoid side-view character concept art, full body, plain light background, clean silhouette, readable negative space, designed for Ashen Hollow, a dark-fantasy 2d side-scrolling metroidvania, Hollow Knight-inspired atmosphere with ruined chapels, catacombs, and medieval decay, player-character readability first, strict side-view silhouette, full body visible, large primary shapes, restrained secondary detail, clustered values for sprite readability, clear separation between head, torso, limbs, and held item, readable at low resolution, animation-friendly costume breakup, practical combat silhouette, plain or minimal background for character extraction, single character only, centered full body concept, orthographic side profile, no dramatic camera angle, no environment storytelling shot, one iconic held item, practical traversal and combat gear, grounded proportions, silhouette readable in motion, restrained ornamental noise, character role: knight hero, silhouette intent: single side-view knight silhouette with readable sword-and-shield profile, standard proportions, fully inside frame, outfit and materials: worn steel armor with practical medieval layering, aged surfaces, dark-fantasy travel wear, primary handheld prop: standard sword and shield, palette mood: firelink shrine dark fantasy, brown green grey beige with restrained purple accents, no orange, shape language: clean stylized pixel-friendly medieval forms, readable retro silhouette, mood: moody, lone, searching, medieval dark fantasy, readability constraints: strict side view only, full body, single character, fit fully in frame, plain clean background, gameplay role: player-facing 2d metroidvania character concept intended for side-view animation and sprite extraction, readability priority: silhouette clarity first, world style second, identity consistency third, variant emphasis: emphasizes armor weight and defensive massing, silhouette focus: broader guarded take on the same profile, outfit focus: heavier armor grouping and chunkier masses, palette focus: firelink shrine dark fantasy, brown green grey beige with restrained purple accents, no orange with warm metal accents, prop silhouette: longknife, avoid cinematic pose or environment-heavy framing; keep the character readable as game art, exactly one full-body character only, large centered figure occupying most of the canvas, plain studio backdrop, no concept page layout, no pose lineup, no thumbnail sheet, head and feet both fully visible, single readable side-view silhouette",
+  "negative_prompt": "front view, rear view, top-down, isometric, multiple characters, crowd, group shot, full environment scene, busy background, extra limbs, extra arms, extra weapons, wings, huge cape, non-humanoid anatomy, mount, vehicle, text, watermark, logo, character sheet, model sheet, turnaround sheet, sprite sheet, animation sheet, silhouette sheet, contact sheet, collage, mood board, sketch page, comic page, split panel layout, multiple poses, pose lineup, small figure, distant figure, tiny subject, cropped body, cut off feet, cut off head, multiple silhouettes, silhouette lineup, design sheet, turnarounds, concept sheet, contact sheet, sprite page, reference page, white margin blocks, page annotations, tiny character, distant figure, cropped framing, duplicate character, multi-pose board",
+  "prompt": "single humanoid side-view character concept art, full body, plain light background, clean silhouette, readable negative space, designed for Ashen Hollow, a dark-fantasy 2d side-scrolling metroidvania, Hollow Knight-inspired atmosphere with ruined chapels, catacombs, and medieval decay, player-character readability first, strict side-view silhouette, full body visible, large primary shapes, restrained secondary detail, clustered values for sprite readability, clear separation between head, torso, limbs, and held item, readable at low resolution, animation-friendly costume breakup, practical combat silhouette, plain or minimal background for character extraction, single character only, centered full body concept, orthographic side profile, no dramatic camera angle, no environment storytelling shot, one iconic held item, practical traversal and combat gear, grounded proportions, silhouette readable in motion, restrained ornamental noise, character role: knight hero, silhouette intent: single side-view knight silhouette with readable sword-and-shield profile, standard proportions, fully inside frame, outfit and materials: worn steel armor with practical medieval layering, aged surfaces, dark-fantasy travel wear, primary handheld prop: standard sword and shield, palette mood: firelink shrine dark fantasy, brown green grey beige with restrained purple accents, no orange, shape language: clean stylized pixel-friendly medieval forms, readable retro silhouette, mood: moody, lone, searching, medieval dark fantasy, readability constraints: strict side view only, full body, single character, fit fully in frame, plain clean background, gameplay role: player-facing 2d metroidvania character concept intended for side-view animation and sprite extraction, readability priority: silhouette clarity first, world style second, identity consistency third, variant emphasis: emphasizes armor weight and defensive massing, silhouette focus: broader guarded take on the same profile, outfit focus: heavier armor grouping and chunkier masses, palette focus: firelink shrine dark fantasy, brown green grey beige with restrained purple accents, no orange with warm metal accents, prop silhouette: longknife, avoid cinematic pose or environment-heavy framing; keep the character readable as game art, exactly one full-body character only, large centered figure occupying most of the canvas, plain studio backdrop, no concept page layout, no pose lineup, no thumbnail sheet, head and feet both fully visible, single readable side-view silhouette",
+  "preview_image": "concepts/concept-0004.png",
+  "backend_name": "comfyui",
+  "backend_run_id": "14917910-c9a6-40be-ad6c-7b4b0011cb88",
+  "variation_axes": {
+    "silhouette": "broader guarded take on the same profile",
+    "outfit_complexity": "heavier armor grouping and chunkier masses",
+    "palette_direction": "firelink shrine dark fantasy, brown green grey beige with restrained purple accents, no orange with warm metal accents",
+    "prop_variant": "longknife",
+    "summary": "emphasizes armor weight and defensive massing"
+  },
+  "difference_summary": "emphasizes armor weight and defensive massing",
+  "silhouette": "broader guarded take on the same profile",
+  "outfit": "heavier armor grouping and chunkier masses",
+  "palette_direction": "firelink shrine dark fantasy, brown green grey beige with restrained purple accents, no orange with warm metal accents",
+  "palette": {
+    "base": "#1f2630",
+    "accent": "#56738f",
+    "skin": "#d8c8b0",
+    "prop": "#7b5346",
+    "outline": "#0f151c"
+  },
+  "prop_variant": "longknife",
+  "face_head_shape": "clean stylized pixel-friendly medieval forms, readable retro silhouette",
+  "references_used": [],
+  "review_state": {
+    "approved": false,
+    "favorite": false,
+    "rejected": false
+  },
+  "approved": false,
+  "favorite": false,
+  "rejected": false,
+  "lineage": {
+    "run_id": "run-b69843ef89",
+    "parent_concept_id": null
+  },
+  "triage": {
+    "status": "system-demoted",
+    "flags": [
+      "background_not_clean",
+      "bounding_box_occupancy_out_of_range"
+    ],
+    "metrics": {
+      "occupancy": 0.9414,
+      "edge_foreground_ratio": 0.1099,
+      "component_count": 2,
+      "sha256": "9f7bc5b88d86a3b90177186da70fa112cda2c0a67d68be9283f5a2627e841c97",
+      "perceptual_hash": 10272304064395976671
+    }
+  }
+}
