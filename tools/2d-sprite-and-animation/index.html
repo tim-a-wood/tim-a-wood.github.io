@@ -959,6 +959,196 @@
             background: rgba(212, 167, 82, 0.98);
         }
 
+        .sprite-editor-panel,
+        .clip-editor-card,
+        .revision-list,
+        .recovery-grid,
+        .clip-control-grid,
+        .frame-metrics {
+            display: grid;
+            gap: 12px;
+        }
+
+        .sprite-editor-toolbar,
+        .clip-tab-row,
+        .range-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .sprite-editor-toolbar {
+            justify-content: space-between;
+        }
+
+        .sprite-editor {
+            position: relative;
+            user-select: none;
+            touch-action: none;
+            cursor: crosshair;
+        }
+
+        .sprite-editor.mode-move {
+            cursor: move;
+        }
+
+        .sprite-editor.mode-mask-add,
+        .sprite-editor.mode-mask-remove {
+            cursor: crosshair;
+        }
+
+        .editor-hitbox,
+        .editor-handle,
+        .editor-pivot-handle {
+            position: absolute;
+            border: 0;
+            padding: 0;
+            background: transparent;
+            color: inherit;
+            cursor: pointer;
+        }
+
+        .editor-hitbox {
+            border-radius: 10px;
+            border: 1px dashed rgba(124, 181, 220, 0.28);
+            background: rgba(124, 181, 220, 0.08);
+        }
+
+        .editor-hitbox.selected {
+            border-color: rgba(241, 217, 162, 0.68);
+            background: rgba(212, 167, 82, 0.12);
+        }
+
+        .editor-part-label {
+            position: absolute;
+            left: 10px;
+            bottom: 10px;
+            padding: 6px 9px;
+            border-radius: 999px;
+            font-size: 0.76rem;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            background: rgba(12, 18, 25, 0.82);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            pointer-events: none;
+        }
+
+        .editor-handle,
+        .editor-pivot-handle {
+            width: 16px;
+            height: 16px;
+            border-radius: 999px;
+            transform: translate(-50%, -50%);
+            border: 2px solid rgba(12, 18, 25, 0.92);
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
+        }
+
+        .editor-handle {
+            background: rgba(241, 217, 162, 0.96);
+        }
+
+        .editor-pivot-handle {
+            background: rgba(117, 196, 152, 0.98);
+            width: 18px;
+            height: 18px;
+        }
+
+        .editor-mask-preview {
+            position: absolute;
+            border: 2px dashed rgba(117, 196, 152, 0.92);
+            background: rgba(117, 196, 152, 0.14);
+            border-radius: 10px;
+            pointer-events: none;
+        }
+
+        .editor-mask-preview.remove {
+            border-color: rgba(211, 122, 122, 0.92);
+            background: rgba(211, 122, 122, 0.14);
+        }
+
+        .recovery-card,
+        .clip-control-card {
+            padding: 12px;
+            border-radius: 16px;
+            border: 1px solid var(--stroke);
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .recovery-card img,
+        .comparison-panel img {
+            aspect-ratio: 1 / 1;
+            object-fit: contain;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
+        }
+
+        .clip-tab {
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 999px;
+            padding: 9px 14px;
+            font-weight: 700;
+            background: rgba(255, 255, 255, 0.04);
+            color: var(--text);
+        }
+
+        .clip-tab.active {
+            color: #11161c;
+            background: linear-gradient(135deg, #d4a752, #f1d9a2);
+            border-color: transparent;
+        }
+
+        .clip-control-grid {
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        }
+
+        .range-row {
+            justify-content: space-between;
+        }
+
+        .range-row input[type="range"] {
+            flex: 1;
+        }
+
+        .range-value {
+            min-width: 48px;
+            text-align: right;
+            color: var(--muted);
+            font-variant-numeric: tabular-nums;
+        }
+
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+        }
+
+        .comparison-panel {
+            padding: 12px;
+            border-radius: 16px;
+            border: 1px solid var(--stroke);
+            background: rgba(255, 255, 255, 0.03);
+            display: grid;
+            gap: 10px;
+        }
+
+        .frame-metrics {
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        }
+
+        .metric-chip {
+            padding: 10px 12px;
+            border-radius: 14px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .metric-chip strong {
+            display: block;
+            margin-top: 4px;
+            font-size: 1rem;
+        }
+
         .swatch-row {
             display: flex;
             flex-wrap: wrap;
@@ -1529,16 +1719,8 @@
             <div class="actions">
                 <button id="build-layers">Build Sprite Model</button>
                 <button class="secondary" id="approve-layers">Approve Sprite Model</button>
-            </div>
-            <div class="grid-2" style="margin-top: 14px;">
-                <div>
-                    <h3 style="font-size: 0.95rem; margin: 0 0 10px;">Source And Overlay</h3>
-                    <div id="sprite-model-source"></div>
-                </div>
-                <div>
-                    <h3 style="font-size: 0.95rem; margin: 0 0 10px;">Selected Part</h3>
-                    <div id="sprite-model-selected"></div>
-                </div>
+                <button class="secondary" id="sprite-undo-last">Undo Last Change</button>
+                <button class="secondary" id="sprite-restore-revision">Restore Selected Revision</button>
             </div>
             <div class="grid-3" style="margin-top: 14px;">
                 <label>
@@ -1546,76 +1728,95 @@
                     <select id="sprite-part-select"></select>
                 </label>
                 <label>
-                    <span class="field-label">Rename Part</span>
-                    <input id="sprite-rename" placeholder="upper_arm_right">
-                </label>
-                <label>
                     <span class="field-label">Parent Joint</span>
                     <select id="sprite-parent-joint"></select>
                 </label>
-            </div>
-            <div class="grid-3" style="margin-top: 12px;">
                 <label>
-                    <span class="field-label">Pivot X</span>
-                    <input id="sprite-pivot-x" type="number" step="1">
-                </label>
-                <label>
-                    <span class="field-label">Pivot Y</span>
-                    <input id="sprite-pivot-y" type="number" step="1">
-                </label>
-                <label>
-                    <span class="field-label">Draw Order</span>
-                    <input id="sprite-draw-order" type="number" step="1">
-                </label>
-            </div>
-            <div class="grid-3" style="margin-top: 12px;">
-                <label>
-                    <span class="field-label">Move Part</span>
-                    <input id="sprite-translate" placeholder="dx,dy">
-                </label>
-                <label>
-                    <span class="field-label">Rotate Part</span>
-                    <input id="sprite-rotate" placeholder="degrees">
-                </label>
-                <label>
-                    <span class="field-label">Scale Part</span>
-                    <input id="sprite-scale" placeholder="1.0">
-                </label>
-            </div>
-            <div class="grid-2" style="margin-top: 12px;">
-                <label>
-                    <span class="field-label">Palette Replace</span>
-                    <input id="sprite-palette-map" placeholder="#445566:#c7aa74, #101820:#0b0f16">
-                </label>
-                <label>
-                    <span class="field-label">Mask Region</span>
-                    <input id="sprite-mask-region" placeholder="x0,y0,x1,y1">
+                    <span class="field-label">Revision Snapshot</span>
+                    <select id="sprite-revision-select"></select>
                 </label>
             </div>
             <div class="actions" style="margin-top: 12px;">
-                <button class="secondary" id="sprite-set-pivot">Set Pivot</button>
-                <button class="secondary" id="sprite-set-parent">Set Parent Joint</button>
-                <button class="secondary" id="sprite-set-draw-order">Set Draw Order</button>
-                <button class="secondary" id="sprite-rename-part">Rename Part</button>
-                <button class="secondary" id="sprite-translate-part">Move Part</button>
-                <button class="secondary" id="sprite-rotate-part">Rotate Part</button>
-                <button class="secondary" id="sprite-scale-part">Scale Part</button>
-                <button class="secondary" id="sprite-cleanup-alpha">Alpha Cleanup</button>
-                <button class="secondary" id="sprite-normalize-outline">Normalize Outline</button>
-                <button class="secondary" id="sprite-apply-palette">Replace Palette</button>
-                <button class="secondary" id="sprite-add-mask">Add To Mask</button>
-                <button class="secondary" id="sprite-remove-mask">Remove From Mask</button>
-                <button class="secondary" id="sprite-mirror-part">Mirror Part</button>
-                <button class="secondary" id="sprite-duplicate-part">Duplicate Part</button>
+                <button class="secondary" id="sprite-draw-order-back">Send Backward</button>
+                <button class="secondary" id="sprite-draw-order-forward">Bring Forward</button>
                 <button class="secondary" id="sprite-recover-occlusion">Recover Occlusion</button>
             </div>
+            <div class="grid-2" style="margin-top: 14px;">
+                <div>
+                    <h3 style="font-size: 0.95rem; margin: 0 0 10px;">Direct Editor</h3>
+                    <div id="sprite-model-source"></div>
+                </div>
+                <div>
+                    <h3 style="font-size: 0.95rem; margin: 0 0 10px;">Selected Part And Recovery</h3>
+                    <div id="sprite-model-selected"></div>
+                </div>
+            </div>
+            <details class="advanced-settings" style="margin-top: 14px;">
+                <summary>Advanced Sprite-Model Controls</summary>
+                <div class="advanced-content">
+                    <div class="grid-3">
+                        <label>
+                            <span class="field-label">Rename Part</span>
+                            <input id="sprite-rename" placeholder="upper_arm_right">
+                        </label>
+                        <label>
+                            <span class="field-label">Pivot X</span>
+                            <input id="sprite-pivot-x" type="number" step="1">
+                        </label>
+                        <label>
+                            <span class="field-label">Pivot Y</span>
+                            <input id="sprite-pivot-y" type="number" step="1">
+                        </label>
+                        <label>
+                            <span class="field-label">Draw Order</span>
+                            <input id="sprite-draw-order" type="number" step="1">
+                        </label>
+                        <label>
+                            <span class="field-label">Move Part</span>
+                            <input id="sprite-translate" placeholder="dx,dy">
+                        </label>
+                        <label>
+                            <span class="field-label">Rotate Part</span>
+                            <input id="sprite-rotate" placeholder="degrees">
+                        </label>
+                        <label>
+                            <span class="field-label">Scale Part</span>
+                            <input id="sprite-scale" placeholder="1.0">
+                        </label>
+                        <label>
+                            <span class="field-label">Palette Replace</span>
+                            <input id="sprite-palette-map" placeholder="#445566:#c7aa74, #101820:#0b0f16">
+                        </label>
+                        <label>
+                            <span class="field-label">Mask Region</span>
+                            <input id="sprite-mask-region" placeholder="x0,y0,x1,y1">
+                        </label>
+                    </div>
+                    <div class="actions">
+                        <button class="secondary" id="sprite-set-pivot">Set Pivot</button>
+                        <button class="secondary" id="sprite-set-parent">Set Parent Joint</button>
+                        <button class="secondary" id="sprite-set-draw-order">Set Draw Order</button>
+                        <button class="secondary" id="sprite-rename-part">Rename Part</button>
+                        <button class="secondary" id="sprite-translate-part">Move Part</button>
+                        <button class="secondary" id="sprite-rotate-part">Rotate Part</button>
+                        <button class="secondary" id="sprite-scale-part">Scale Part</button>
+                        <button class="secondary" id="sprite-cleanup-alpha">Alpha Cleanup</button>
+                        <button class="secondary" id="sprite-normalize-outline">Normalize Outline</button>
+                        <button class="secondary" id="sprite-apply-palette">Replace Palette</button>
+                        <button class="secondary" id="sprite-add-mask">Add To Mask</button>
+                        <button class="secondary" id="sprite-remove-mask">Remove From Mask</button>
+                        <button class="secondary" id="sprite-mirror-part">Mirror Part</button>
+                        <button class="secondary" id="sprite-duplicate-part">Duplicate Part</button>
+                    </div>
+                </div>
+            </details>
             <div class="grid-2" style="margin-top: 14px;">
                 <div>
                     <h3 style="font-size: 0.95rem; margin: 0 0 10px;">Parts</h3>
                     <div class="thumb-grid" id="layer-gallery"></div>
                 </div>
                 <div>
-                    <h3 style="font-size: 0.95rem; margin: 0 0 10px;">Model Status And History</h3>
+                    <h3 style="font-size: 0.95rem; margin: 0 0 10px;">Build Diagnostics And History</h3>
                     <div class="check-list" id="layer-checks"></div>
                 </div>
             </div>
@@ -1658,6 +1859,16 @@
             <div class="actions">
                 <button id="render-idle">Build Idle</button>
                 <button id="render-walk">Build Walk</button>
+            </div>
+            <div class="grid-2" style="margin-top: 14px;">
+                <div>
+                    <h3 style="font-size: 0.95rem; margin: 0 0 10px;">Clip Editor</h3>
+                    <div id="clip-editor"></div>
+                </div>
+                <div>
+                    <h3 style="font-size: 0.95rem; margin: 0 0 10px;">Neutral Pose Comparison</h3>
+                    <div id="clip-preview"></div>
+                </div>
             </div>
             <div class="check-list" id="clip-summary" style="margin-top: 14px;"></div>
             <div class="grid-2" style="margin-top: 14px;">
@@ -1925,6 +2136,15 @@ const WORKBENCH_ORIGIN = detectWorkbenchOrigin();
 const WORKBENCH_BASE = WORKBENCH_ORIGIN
     ? `${WORKBENCH_ORIGIN}/tools/2d-sprite-and-animation`
     : `${window.location.origin}/tools/2d-sprite-and-animation`;
+const SPRITE_EDITOR_SIZE = { width: 640, height: 768 };
+const CLIP_CONTROL_META = {
+    body_bob: { label: "Body Bob", min: 0, max: 16, step: 0.5 },
+    torso_lean: { label: "Torso Lean", min: 0, max: 12, step: 0.5 },
+    arm_swing: { label: "Arm Swing", min: 0, max: 28, step: 0.5 },
+    leg_swing: { label: "Leg Swing", min: 0, max: 28, step: 0.5 },
+    foot_lift: { label: "Foot Lift", min: 0, max: 24, step: 0.5 },
+    prop_lag: { label: "Prop Lag", min: 0, max: 12, step: 0.5 },
+};
 
 const state = {
     health: null,
@@ -1936,7 +2156,12 @@ const state = {
     zoomConceptId: null,
     swapCompareView: false,
     selectedSpritePart: null,
+    selectedRevisionId: null,
+    selectedClip: "idle",
+    selectedClipFrame: 0,
     previousSpriteModel: null,
+    spriteEditorMode: "move",
+    spriteRecoveryVariants: {},
     uiMode: "workbench",
     activity: null,
 };
@@ -2007,17 +2232,32 @@ function normalizeErrorMessage(message) {
     if (text.includes("Sprite-model approval is required")) {
         return "Approve the sprite model before approving the rig.";
     }
+    if (text.includes("Sprite model approval is blocked until build failures are resolved")) {
+        return "Fix sprite-model build failures before approving it.";
+    }
     if (text.includes("Layer review cannot be approved")) {
         return "Build the sprite model first, then approve it.";
     }
     if (text.includes("Rig review approval is required before production")) {
         return "Approve the rig before building animations.";
     }
+    if (text.includes("Build the rig before editing clips")) {
+        return "Build the rig before editing idle or walk controls.";
+    }
     if (text.includes("Export blocked: QA must pass first")) {
         return "Checks must pass before export is available.";
     }
     if (text.includes("Missing frame:")) {
         return "At least one animation frame is missing. Rebuild the animation and run checks again.";
+    }
+    if (text.includes("No earlier revision is available")) {
+        return "No earlier sprite-model revision is available yet.";
+    }
+    if (text.includes("Revision not found")) {
+        return "That sprite-model revision is no longer available.";
+    }
+    if (text.includes("promote-recovery requires")) {
+        return "Generate recovery variants first, then choose one to promote.";
     }
     return text;
 }
@@ -3280,6 +3520,121 @@ function formatBBox(value) {
     return validBBox(value) ? value.map((item) => Number(item)).join(", ") : "none";
 }
 
+function clamp(value, min, max) {
+    return Math.min(max, Math.max(min, value));
+}
+
+function statusTone(status) {
+    if (status === "pass") return "ok";
+    if (status === "warning") return "warning";
+    return "fail";
+}
+
+function normalizeSourceBBox(value) {
+    if (!validBBox(value)) return null;
+    const [x0, y0, x1, y1] = value.map((item) => Number(item));
+    const left = clamp(Math.min(x0, x1), 0, SPRITE_EDITOR_SIZE.width - 1);
+    const top = clamp(Math.min(y0, y1), 0, SPRITE_EDITOR_SIZE.height - 1);
+    const right = clamp(Math.max(x0, x1), left + 1, SPRITE_EDITOR_SIZE.width);
+    const bottom = clamp(Math.max(y0, y1), top + 1, SPRITE_EDITOR_SIZE.height);
+    return [Math.round(left), Math.round(top), Math.round(right), Math.round(bottom)];
+}
+
+function bboxDimensions(value) {
+    if (!validBBox(value)) return [0, 0];
+    return [Math.max(0, Number(value[2]) - Number(value[0])), Math.max(0, Number(value[3]) - Number(value[1]))];
+}
+
+function bboxStyleString(bbox) {
+    const normalized = normalizeSourceBBox(bbox);
+    if (!normalized) return "";
+    const [x0, y0, x1, y1] = normalized;
+    const width = x1 - x0;
+    const height = y1 - y0;
+    return `left:${(x0 / SPRITE_EDITOR_SIZE.width) * 100}%;top:${(y0 / SPRITE_EDITOR_SIZE.height) * 100}%;width:${(width / SPRITE_EDITOR_SIZE.width) * 100}%;height:${(height / SPRITE_EDITOR_SIZE.height) * 100}%;`;
+}
+
+function pivotStyleString(bbox, pivot) {
+    const normalized = normalizeSourceBBox(bbox);
+    if (!normalized || !Array.isArray(pivot) || pivot.length !== 2) return "";
+    const x = clamp(normalized[0] + Number(pivot[0]), normalized[0], normalized[2]);
+    const y = clamp(normalized[1] + Number(pivot[1]), normalized[1], normalized[3]);
+    return `left:${(x / SPRITE_EDITOR_SIZE.width) * 100}%;top:${(y / SPRITE_EDITOR_SIZE.height) * 100}%;`;
+}
+
+function handlePositionStyle(bbox, handle) {
+    const normalized = normalizeSourceBBox(bbox);
+    if (!normalized) return "";
+    const [x0, y0, x1, y1] = normalized;
+    const map = {
+        nw: [x0, y0],
+        ne: [x1, y0],
+        sw: [x0, y1],
+        se: [x1, y1],
+    };
+    const point = map[handle] || map.se;
+    return `left:${(point[0] / SPRITE_EDITOR_SIZE.width) * 100}%;top:${(point[1] / SPRITE_EDITOR_SIZE.height) * 100}%;`;
+}
+
+function sourcePointFromEvent(event, element) {
+    const rect = element.getBoundingClientRect();
+    const x = ((event.clientX - rect.left) / rect.width) * SPRITE_EDITOR_SIZE.width;
+    const y = ((event.clientY - rect.top) / rect.height) * SPRITE_EDITOR_SIZE.height;
+    return [
+        Math.round(clamp(x, 0, SPRITE_EDITOR_SIZE.width)),
+        Math.round(clamp(y, 0, SPRITE_EDITOR_SIZE.height)),
+    ];
+}
+
+function pointToLocalPivot(point, bbox) {
+    const normalized = normalizeSourceBBox(bbox);
+    if (!normalized) return [0, 0];
+    const [x, y] = point;
+    return [
+        Math.round(clamp(x - normalized[0], 0, Math.max(0, normalized[2] - normalized[0]))),
+        Math.round(clamp(y - normalized[1], 0, Math.max(0, normalized[3] - normalized[1]))),
+    ];
+}
+
+function approvedMasterPosePath(project) {
+    return project?.master_pose_manifest?.approved_image
+        ? projectAsset(project, project.master_pose_manifest.approved_image)
+        : projectAsset(project, "master_pose/approved_master_pose.png");
+}
+
+function currentBuildReport() {
+    return state.activeProject?.sprite_model?.build_report || state.activeProject?.layered_character?.build_report || null;
+}
+
+function currentClipData() {
+    const clips = state.activeProject?.animation_clips || {};
+    if (!clips[state.selectedClip]) {
+        state.selectedClip = clips.idle ? "idle" : clips.walk ? "walk" : "idle";
+    }
+    return clips[state.selectedClip] || null;
+}
+
+function clampSelectedClipFrame() {
+    const clip = currentClipData();
+    const frameCount = clip?.frame_count || 1;
+    state.selectedClipFrame = clamp(Number(state.selectedClipFrame) || 0, 0, Math.max(0, frameCount - 1));
+}
+
+function currentClipFrameData() {
+    clampSelectedClipFrame();
+    const clip = currentClipData();
+    return clip?.joint_transforms_per_frame?.[state.selectedClipFrame] || null;
+}
+
+function selectedRevisionHistory() {
+    return state.activeProject?.sprite_model_history?.revisions || [];
+}
+
+function selectedRecoveryVariants() {
+    const partName = selectedSpritePart()?.part_name;
+    return partName ? (state.spriteRecoveryVariants[partName] || []) : [];
+}
+
 function overlayMarkup(imagePath, bbox, pivot) {
     if (!validBBox(bbox)) return `<div class="empty">No overlay data yet.</div>`;
     const [x0, y0, x1, y1] = bbox;
@@ -3384,6 +3739,147 @@ function renderMasterPose() {
     });
 }
 
+function buildIssueMarkup(title, items, tone = "warning") {
+    if (!items?.length) return "";
+    const klass = tone === "fail" ? "warning-box" : tone === "ok" ? "success-box" : "info-box";
+    return `
+        <div class="${klass}">
+            <p><strong>${title}</strong></p>
+            <div class="history-list" style="margin-top: 10px;">
+                ${items.map((item) => `<div class="history-item">${item}</div>`).join("")}
+            </div>
+        </div>
+    `;
+}
+
+function updateSpriteEditorPreview(editor, bbox, pivot, maskRegion) {
+    const box = editor.querySelector(".sprite-editor-box");
+    const pivotHandle = editor.querySelector(".editor-pivot-handle");
+    const maskPreview = editor.querySelector(".editor-mask-preview");
+    if (box) box.style.cssText = bboxStyleString(bbox);
+    if (pivotHandle) pivotHandle.style.cssText = pivotStyleString(bbox, pivot);
+    editor.querySelectorAll(".editor-handle").forEach((handle) => {
+        handle.style.cssText = handlePositionStyle(bbox, handle.dataset.handle);
+    });
+    if (maskPreview) {
+        if (maskRegion) {
+            maskPreview.hidden = false;
+            maskPreview.style.cssText = bboxStyleString(maskRegion);
+        } else {
+            maskPreview.hidden = true;
+            maskPreview.style.cssText = "";
+        }
+    }
+}
+
+function bindSpriteEditorInteractions(editor, activePart) {
+    if (!editor || !activePart) return;
+    const activeBBox = normalizeSourceBBox(activePart.bbox);
+    const activePivot = Array.isArray(activePart.pivot_point) ? [Number(activePart.pivot_point[0]), Number(activePart.pivot_point[1])] : [0, 0];
+    const mode = state.spriteEditorMode;
+
+    const startGesture = (kind, event, extra = {}) => {
+        event.preventDefault();
+        event.stopPropagation();
+        const startPoint = sourcePointFromEvent(event, editor);
+        const startBBox = normalizeSourceBBox(activeBBox);
+        const startPivot = [...activePivot];
+        let previewBBox = [...startBBox];
+        let previewPivot = [...startPivot];
+        let previewMask = null;
+
+        const onMove = (moveEvent) => {
+            const point = sourcePointFromEvent(moveEvent, editor);
+            if (kind === "move") {
+                const dx = point[0] - startPoint[0];
+                const dy = point[1] - startPoint[1];
+                previewBBox = normalizeSourceBBox([
+                    startBBox[0] + dx,
+                    startBBox[1] + dy,
+                    startBBox[2] + dx,
+                    startBBox[3] + dy,
+                ]);
+            } else if (kind === "resize") {
+                previewBBox = [...startBBox];
+                if (extra.handle.includes("w")) previewBBox[0] = point[0];
+                if (extra.handle.includes("e")) previewBBox[2] = point[0];
+                if (extra.handle.includes("n")) previewBBox[1] = point[1];
+                if (extra.handle.includes("s")) previewBBox[3] = point[1];
+                previewBBox = normalizeSourceBBox(previewBBox);
+            } else if (kind === "pivot") {
+                previewPivot = pointToLocalPivot(point, startBBox);
+            } else if (kind === "mask") {
+                previewMask = normalizeSourceBBox([startPoint[0], startPoint[1], point[0], point[1]]);
+            }
+            updateSpriteEditorPreview(editor, previewBBox, previewPivot, previewMask);
+        };
+
+        const onUp = async (upEvent) => {
+            window.removeEventListener("pointermove", onMove);
+            window.removeEventListener("pointerup", onUp);
+            const endPoint = sourcePointFromEvent(upEvent, editor);
+            try {
+                if (kind === "move" || kind === "resize") {
+                    const finalBBox = previewBBox || normalizeSourceBBox([startBBox[0], startBBox[1], endPoint[0], endPoint[1]]);
+                    if (JSON.stringify(finalBBox) !== JSON.stringify(startBBox)) {
+                        await applySpriteOperation("set_bbox", { bbox: finalBBox });
+                    } else {
+                        updateSpriteEditorPreview(editor, startBBox, startPivot, null);
+                    }
+                } else if (kind === "pivot") {
+                    if (JSON.stringify(previewPivot) !== JSON.stringify(startPivot)) {
+                        await applySpriteOperation("set_pivot", { pivot_point: previewPivot });
+                    } else {
+                        updateSpriteEditorPreview(editor, startBBox, startPivot, null);
+                    }
+                } else if (kind === "mask" && previewMask) {
+                    const operation = mode === "mask_remove" ? "remove_from_mask" : "add_to_mask";
+                    await applySpriteOperation(operation, { region: previewMask });
+                } else {
+                    updateSpriteEditorPreview(editor, startBBox, startPivot, null);
+                }
+            } catch (error) {
+                log(normalizeErrorMessage(error.message), "error");
+                notify(normalizeErrorMessage(error.message), "error");
+            }
+        };
+
+        window.addEventListener("pointermove", onMove);
+        window.addEventListener("pointerup", onUp);
+    };
+
+    editor.querySelector(".sprite-editor-box")?.addEventListener("pointerdown", (event) => {
+        startGesture(mode === "mask_add" || mode === "mask_remove" ? "mask" : "move", event);
+    });
+    editor.querySelector(".editor-pivot-handle")?.addEventListener("pointerdown", (event) => {
+        if (mode === "mask_add" || mode === "mask_remove") {
+            startGesture("mask", event);
+            return;
+        }
+        startGesture("pivot", event);
+    });
+    editor.querySelectorAll(".editor-handle").forEach((handle) => {
+        handle.addEventListener("pointerdown", (event) => {
+            if (mode === "mask_add" || mode === "mask_remove") {
+                startGesture("mask", event);
+                return;
+            }
+            startGesture("resize", event, { handle: handle.dataset.handle });
+        });
+    });
+    editor.querySelectorAll(".editor-hitbox").forEach((hitbox) => {
+        hitbox.addEventListener("click", () => {
+            state.selectedSpritePart = hitbox.dataset.partName;
+            renderLayerReview();
+        });
+    });
+    editor.addEventListener("pointerdown", (event) => {
+        if (mode !== "mask_add" && mode !== "mask_remove") return;
+        if (event.target.closest(".editor-hitbox")) return;
+        startGesture("mask", event);
+    });
+}
+
 function renderLayerReview() {
     const checksRoot = document.querySelector("#layer-checks");
     const galleryRoot = document.querySelector("#layer-gallery");
@@ -3391,30 +3887,55 @@ function renderLayerReview() {
     const selectedRoot = document.querySelector("#sprite-model-selected");
     const select = document.querySelector("#sprite-part-select");
     const parentJoint = document.querySelector("#sprite-parent-joint");
+    const revisionSelect = document.querySelector("#sprite-revision-select");
     checksRoot.innerHTML = "";
     galleryRoot.innerHTML = "";
     sourceRoot.innerHTML = "";
     selectedRoot.innerHTML = "";
     select.innerHTML = "";
     parentJoint.innerHTML = "";
+    revisionSelect.innerHTML = "";
     const layered = state.activeProject?.sprite_model || state.activeProject?.layered_character;
     const project = state.activeProject;
     if (!project || !layered) {
         checksRoot.innerHTML = `<div class="empty">Sprite model has not run yet.</div>`;
         sourceRoot.innerHTML = `<div class="empty">Build the sprite model to inspect source overlays.</div>`;
         selectedRoot.innerHTML = `<div class="empty">No selected part yet.</div>`;
+        document.querySelector("#approve-layers").disabled = true;
+        document.querySelector("#sprite-undo-last").disabled = true;
+        document.querySelector("#sprite-restore-revision").disabled = true;
+        document.querySelector("#sprite-draw-order-back").disabled = true;
+        document.querySelector("#sprite-draw-order-forward").disabled = true;
         return;
     }
-    document.querySelector("#layer-warning").textContent = layered.approved_for_rigging
-        ? "Sprite model approved for rigging."
-        : "Review masks, pivots, draw order, and parent joints before approving the sprite model.";
 
+    const buildReport = currentBuildReport();
     const parts = layered.parts || [];
     if (!parts.some((part) => part.part_name === state.selectedSpritePart)) {
         state.selectedSpritePart = parts[0]?.part_name || null;
     }
     const activePart = selectedSpritePart();
     const previousPart = activePart ? previousSpritePart(activePart.part_name) : null;
+    const partReport = buildReport?.per_part?.find((item) => item.part_name === activePart?.part_name);
+    const approvedImage = `${approvedMasterPosePath(project)}?v=${project.updated_at}`;
+    const revisions = selectedRevisionHistory();
+    const currentRevisionId = state.selectedRevisionId || project.sprite_model_history?.current_revision_id || revisions.slice(-1)[0]?.revision_id || null;
+    state.selectedRevisionId = currentRevisionId;
+
+    document.querySelector("#layer-warning").textContent = layered.approved_for_rigging
+        ? "Sprite model approved for rigging."
+        : buildReport?.status === "fail"
+            ? "Build failures block approval. Fix the failing parts before continuing."
+            : buildReport?.status === "warning"
+                ? "Warnings are visible below. You can still approve once the risks are understood."
+                : "Use the direct editor to correct pivots, bbox placement, and mask issues before approval.";
+    document.querySelector("#approve-layers").disabled = !layered || buildReport?.status === "fail";
+    document.querySelector("#approve-layers").textContent = buildReport?.status === "warning" ? "Approve With Warnings" : "Approve Sprite Model";
+    document.querySelector("#sprite-undo-last").disabled = revisions.length < 2;
+    document.querySelector("#sprite-restore-revision").disabled = !currentRevisionId;
+    document.querySelector("#sprite-draw-order-back").disabled = !activePart;
+    document.querySelector("#sprite-draw-order-forward").disabled = !activePart;
+
     parts.forEach((part) => {
         const option = document.createElement("option");
         option.value = part.part_name;
@@ -3422,10 +3943,10 @@ function renderLayerReview() {
         if (activePart?.part_name === part.part_name) option.selected = true;
         select.appendChild(option);
     });
-    select.addEventListener("change", () => {
+    select.onchange = () => {
         state.selectedSpritePart = select.value;
         renderLayerReview();
-    }, { once: true });
+    };
 
     const joints = ["root", "pelvis", "torso", "neck", "head", "shoulder_left", "elbow_left", "wrist_left", "shoulder_right", "elbow_right", "wrist_right", "hip_left", "knee_left", "ankle_left", "hip_right", "knee_right", "ankle_right"];
     joints.forEach((joint) => {
@@ -3435,80 +3956,229 @@ function renderLayerReview() {
         if (activePart?.parent_joint === joint) option.selected = true;
         parentJoint.appendChild(option);
     });
+    parentJoint.onchange = async () => {
+        if (!activePart) return;
+        try {
+            await applySpriteOperation("set_parent_joint", { parent_joint: parentJoint.value });
+        } catch (error) {
+            log(normalizeErrorMessage(error.message), "error");
+            notify(normalizeErrorMessage(error.message), "error");
+        }
+    };
 
-    const approvedImage = project.master_pose_manifest?.approved_image
-        ? projectAsset(project, project.master_pose_manifest.approved_image)
-        : projectAsset(project, "master_pose/approved_master_pose.png");
-    sourceRoot.innerHTML = activePart
-        ? overlayMarkup(`${approvedImage}?v=${project.updated_at}`, activePart?.bbox, activePart?.pivot_point)
-        : `<div class="empty">No part selected.</div>`;
+    revisions.slice().reverse().forEach((revision) => {
+        const option = document.createElement("option");
+        option.value = revision.revision_id;
+        option.textContent = `${formatDate(revision.created_at)} · ${humanizeKey(revision.reason || revision.operation || "revision")}`;
+        if (revision.revision_id === currentRevisionId) option.selected = true;
+        revisionSelect.appendChild(option);
+    });
+    revisionSelect.onchange = () => {
+        state.selectedRevisionId = revisionSelect.value;
+    };
+
+    if (activePart) {
+        sourceRoot.innerHTML = `
+            <div class="sprite-editor-panel">
+                <div class="sprite-editor-toolbar">
+                    <div class="inline-actions">
+                        <button class="${state.spriteEditorMode === "move" ? "" : "secondary"}" data-editor-mode="move">Move Or Resize</button>
+                        <button class="${state.spriteEditorMode === "mask_add" ? "" : "secondary"}" data-editor-mode="mask_add">Add Mask Rect</button>
+                        <button class="${state.spriteEditorMode === "mask_remove" ? "" : "secondary"}" data-editor-mode="mask_remove">Remove Mask Rect</button>
+                    </div>
+                    <div class="small-note">Drag the gold bbox to move it, drag the corner handles to resize it, and drag the green pivot to retarget the joint anchor.</div>
+                </div>
+                <div class="preview-card overlay-stack sprite-editor mode-${state.spriteEditorMode.replace("_", "-")}" id="sprite-editor-interactive">
+                    <img src="${approvedImage}" alt="Approved master pose">
+                    ${parts.map((part) => `<button class="editor-hitbox ${part.part_name === activePart.part_name ? "selected" : ""}" data-part-name="${part.part_name}" style="${bboxStyleString(part.bbox)}" aria-label="${part.part_name}"></button>`).join("")}
+                    <div class="overlay-box sprite-editor-box" style="${bboxStyleString(activePart.bbox)}"></div>
+                    <div class="editor-part-label">${activePart.part_name}</div>
+                    <button class="editor-pivot-handle" data-editor-target="pivot" style="${pivotStyleString(activePart.bbox, activePart.pivot_point)}" aria-label="Move pivot"></button>
+                    ${["nw", "ne", "sw", "se"].map((handle) => `<button class="editor-handle" data-handle="${handle}" style="${handlePositionStyle(activePart.bbox, handle)}" aria-label="Resize ${handle}"></button>`).join("")}
+                    <div class="editor-mask-preview ${state.spriteEditorMode === "mask_remove" ? "remove" : ""}" hidden></div>
+                </div>
+                <div class="small-note">Draw-order preview is live: use the forward and backward buttons above, then rebuild the rig to propagate positional changes.</div>
+            </div>
+        `;
+        sourceRoot.querySelectorAll("[data-editor-mode]").forEach((button) => {
+            button.onclick = () => {
+                state.spriteEditorMode = button.dataset.editorMode;
+                renderLayerReview();
+            };
+        });
+        bindSpriteEditorInteractions(sourceRoot.querySelector("#sprite-editor-interactive"), activePart);
+    } else {
+        sourceRoot.innerHTML = `<div class="empty">No part selected.</div>`;
+    }
+
+    const variants = selectedRecoveryVariants();
     selectedRoot.innerHTML = activePart ? `
-        <div class="${previousPart ? "grid-2" : "detail-grid"}">
-            ${previousPart ? `
-                <div class="detail-grid">
-                    ${overlayMarkup(`${approvedImage}?v=${project.updated_at}`, previousPart?.bbox, previousPart?.pivot_point)}
-                    <div class="small-note" style="margin-top: 10px;">Before last edit</div>
+        <div class="detail-grid">
+            <div class="${previousPart ? "grid-2" : "detail-grid"}">
+                ${previousPart ? `
+                    <div class="detail-grid">
+                        ${overlayMarkup(approvedImage, previousPart?.bbox, previousPart?.pivot_point)}
+                        <div class="small-note">Before last edit</div>
+                    </div>
+                ` : ""}
+                <div class="preview-card">
+                    <img src="${projectAsset(project, activePart.image_path)}?v=${project.updated_at}" alt="${activePart.part_name}">
+                    <div class="meta-line" style="margin-top: 10px;">
+                        <span class="pill">${activePart.part_name}</span>
+                        <span class="pill">${activePart.parent_joint}</span>
+                        <span class="pill">draw ${activePart.draw_order}</span>
+                        <span class="pill ${statusTone(partReport?.status || buildReport?.status || "warning")}">${partReport?.status || buildReport?.status || "warning"}</span>
+                    </div>
+                    <div class="small-note" style="margin-top: 10px;">Current extracted asset. Promote a recovery variant below if the part was occluded or badly cropped.</div>
                 </div>
-            ` : ""}
-            <div class="preview-card">
-                <img src="${projectAsset(project, activePart.image_path)}?v=${project.updated_at}" alt="${activePart.part_name}">
-                <div class="meta-line" style="margin-top: 10px;">
-                    <span class="pill">${activePart.part_name}</span>
-                    <span class="pill">${activePart.parent_joint}</span>
-                    <span class="pill">draw ${activePart.draw_order}</span>
+            </div>
+            <div class="check-list">
+                <div class="check-row wrap"><span>Selected bbox</span><span class="small-note">${formatBBox(activePart.bbox)}</span></div>
+                <div class="check-row wrap"><span>Pivot</span><span class="small-note">${activePart.pivot_point?.join(", ") || "none"}</span></div>
+                <div class="check-row wrap"><span>Mirror source</span><span class="small-note">${activePart.mirror_of || "original extraction"}</span></div>
+                <div class="check-row wrap"><span>Mask area</span><span class="small-note">${partReport?.mask_area ?? "n/a"}</span></div>
+                <div class="check-row wrap"><span>BBox size</span><span class="small-note">${partReport?.bbox_size?.join(" × ") || bboxDimensions(activePart.bbox).join(" × ")}</span></div>
+            </div>
+            ${buildIssueMarkup("Selected Part Warnings", partReport?.warnings || [], "warning")}
+            ${buildIssueMarkup("Selected Part Failures", partReport?.failures || [], "fail")}
+            <div>
+                <div class="meta-line" style="margin-bottom: 10px;">
+                    <span class="pill">${variants.length} recovery variant${variants.length === 1 ? "" : "s"}</span>
                 </div>
-                <div class="small-note" style="margin-top: 10px;">${previousPart ? "Current part after the last deterministic edit" : "Current selected part"}</div>
+                ${variants.length ? `
+                    <div class="recovery-grid">
+                        ${variants.map((variant) => `
+                            <div class="recovery-card">
+                                <img src="${projectAsset(project, variant.image_path)}?v=${project.updated_at}" alt="${variant.variant_id}">
+                                <div class="small-note" style="margin-top: 8px;">${variant.summary || variant.variant_id}</div>
+                                <div class="actions" style="margin-top: 10px;">
+                                    <button class="secondary" data-promote-recovery="${variant.variant_id}" data-image-path="${variant.image_path}" data-mask-path="${variant.mask_path}">Promote Variant</button>
+                                </div>
+                            </div>
+                        `).join("")}
+                    </div>
+                ` : `<div class="empty">Run occlusion recovery for the selected part if you need alternates.</div>`}
             </div>
         </div>
     ` : `<div class="empty">No part selected.</div>`;
+    selectedRoot.querySelectorAll("[data-promote-recovery]").forEach((button) => {
+        button.onclick = async () => {
+            try {
+                await api(`/api/projects/${project.project_id}/sprite-model/promote-recovery`, {
+                    method: "POST",
+                    body: JSON.stringify({
+                        part_name: activePart.part_name,
+                        image_path: button.dataset.imagePath,
+                        mask_path: button.dataset.maskPath,
+                    }),
+                });
+                state.spriteRecoveryVariants[activePart.part_name] = [];
+                await loadProject(project.project_id, currentMode());
+                notify(`Promoted a recovery variant for ${activePart.part_name}.`, "success");
+            } catch (error) {
+                log(normalizeErrorMessage(error.message), "error");
+                notify(normalizeErrorMessage(error.message), "error");
+            }
+        };
+    });
 
     document.querySelector("#sprite-rename").value = activePart?.part_name || "";
     document.querySelector("#sprite-pivot-x").value = activePart?.pivot_point?.[0] ?? "";
     document.querySelector("#sprite-pivot-y").value = activePart?.pivot_point?.[1] ?? "";
     document.querySelector("#sprite-draw-order").value = activePart?.draw_order ?? "";
 
-    [
-        ["Status", layered.status || "unknown"],
-        ["Approved for rigging", layered.approved_for_rigging ? "yes" : "no"],
-        ["Parts", parts.length],
+    const summaryRows = [
+        ["Build status", `<span class="pill ${statusTone(buildReport?.status || "warning")}">${buildReport?.status || "warning"}</span>`],
+        ["Approval", layered.approved_for_rigging ? `<span class="pill ok">approved for rigging</span>` : `<span class="pill warning">awaiting approval</span>`],
+        ["Parts", `${parts.length} / ${buildReport?.summary?.required_part_count || parts.length}`],
+        ["Warnings", buildReport?.summary?.warning_count ?? 0],
+        ["Failures", buildReport?.summary?.fail_count ?? 0],
+        ["Mirrored fallbacks", buildReport?.summary?.mirrored_fallback_count ?? 0],
         ["Facing", layered.source_facing || "unknown"],
         ["Palette", paletteSwatchesMarkup(layered.palette || project.palette)],
-        ["Selected bbox", formatBBox(activePart?.bbox)],
-        ["Mirror source", activePart?.mirror_of || "original extraction"],
-    ].forEach(([key, value]) => {
+    ];
+    summaryRows.forEach(([key, value]) => {
         const row = document.createElement("div");
         row.className = "check-row wrap";
         row.innerHTML = key === "Palette"
             ? `<span>${key}</span><span>${value}</span>`
-            : `<span>${key}</span><span class="small-note">${value}</span>`;
+            : key === "Build status" || key === "Approval"
+                ? `<span>${key}</span><span>${value}</span>`
+                : `<span>${key}</span><span class="small-note">${value}</span>`;
         checksRoot.appendChild(row);
     });
-    const historyEvents = (project.sprite_model_history?.events || []).slice(-5).reverse();
-    if (historyEvents.length) {
+
+    if (buildReport) {
+        const reportBox = document.createElement("div");
+        reportBox.className = "detail-grid";
+        reportBox.innerHTML = `
+            ${buildIssueMarkup("Build Failures", buildReport.failures || [], "fail")}
+            ${buildIssueMarkup("Build Warnings", buildReport.warnings || [], "warning")}
+            ${buildIssueMarkup("Overlap Warnings", (buildReport.overlap_warnings || []).map((item) => `${item.parts.join(" vs ")} · overlap ${item.ratio}`), "warning")}
+            ${buildIssueMarkup("Prop Separation Warnings", (buildReport.prop_separation_warnings || []).map((item) => `${item.parts.join(" vs ")} · overlap ${item.ratio}`), "warning")}
+        `;
+        if (reportBox.textContent.trim()) checksRoot.appendChild(reportBox);
+    }
+
+    const perPart = document.createElement("div");
+    perPart.className = "revision-list";
+    (buildReport?.per_part || []).forEach((item) => {
+        const row = document.createElement("div");
+        row.className = "history-item";
+        row.innerHTML = `
+            <div class="meta-line">
+                <span class="pill ${statusTone(item.status)}">${item.status}</span>
+                <span class="pill">${item.part_name}</span>
+                <span class="pill">${item.bbox_size?.join(" × ") || "n/a"}</span>
+                ${item.used_mirrored_fallback ? `<span class="pill warning">mirrored fallback</span>` : ""}
+            </div>
+            <div class="small-note" style="margin-top: 8px;">mask area ${item.mask_area} · bbox ${item.bbox.join(", ")}</div>
+        `;
+        perPart.appendChild(row);
+    });
+    if (perPart.childElementCount) checksRoot.appendChild(perPart);
+
+    const historyEvents = (project.sprite_model_history?.events || []).slice(-6).reverse();
+    if (historyEvents.length || revisions.length) {
         const history = document.createElement("div");
-        history.className = "history-list";
-        historyEvents.forEach((event) => {
-            const item = document.createElement("div");
-            item.className = "history-item";
-            item.innerHTML = `
-                <div class="meta-line">
-                    <span class="pill">${humanizeKey(event.type || "update")}</span>
-                    ${event.operation ? `<span class="pill">${humanizeKey(event.operation)}</span>` : ""}
-                    ${event.part_name ? `<span class="pill">${event.part_name}</span>` : ""}
+        history.className = "revision-list";
+        history.innerHTML = `
+            ${revisions.slice(-6).reverse().map((revision) => `
+                <div class="history-item">
+                    <div class="meta-line">
+                        <span class="pill ${revision.revision_id === currentRevisionId ? "ok" : ""}">${revision.revision_id === currentRevisionId ? "selected" : "revision"}</span>
+                        <span class="pill">${humanizeKey(revision.reason || revision.operation || "snapshot")}</span>
+                        ${revision.part_name ? `<span class="pill">${revision.part_name}</span>` : ""}
+                    </div>
+                    <div class="small-note" style="margin-top: 8px;">${formatDate(revision.created_at)} · hash ${String(revision.sprite_model_hash || "").slice(0, 12)}</div>
                 </div>
-                <div class="small-note" style="margin-top: 8px;">${formatDate(event.created_at)}</div>
-            `;
-            history.appendChild(item);
-        });
+            `).join("")}
+            ${historyEvents.map((event) => `
+                <div class="history-item">
+                    <div class="meta-line">
+                        <span class="pill">${humanizeKey(event.type || "update")}</span>
+                        ${event.operation ? `<span class="pill">${humanizeKey(event.operation)}</span>` : ""}
+                        ${event.part_name ? `<span class="pill">${event.part_name}</span>` : ""}
+                    </div>
+                    <div class="small-note" style="margin-top: 8px;">${formatDate(event.created_at)}</div>
+                </div>
+            `).join("")}
+        `;
         checksRoot.appendChild(history);
     }
+
     (parts || []).slice(0, 20).forEach((part) => {
+        const report = buildReport?.per_part?.find((item) => item.part_name === part.part_name);
         const thumb = document.createElement("div");
         thumb.className = "thumb";
         thumb.innerHTML = `
             <img src="${projectAsset(project, part.image_path)}?v=${project.updated_at}" alt="${part.part_name}">
             <div class="small-note" style="margin-top: 8px;">${part.part_name}</div>
-            <div class="small-note">${part.parent_joint} · draw ${part.draw_order}</div>
+            <div class="meta-line" style="justify-content:center; margin-top: 8px;">
+                <span class="pill">${part.parent_joint}</span>
+                <span class="pill">draw ${part.draw_order}</span>
+                ${report ? `<span class="pill ${statusTone(report.status)}">${report.status}</span>` : ""}
+            </div>
         `;
         thumb.addEventListener("click", () => {
             state.selectedSpritePart = part.part_name;
@@ -3581,13 +4251,145 @@ function renderClipSummary() {
         row.className = "check-row wrap";
         row.innerHTML = clip ? `
             <span>${humanizeKey(name)} clip</span>
-            <span class="small-note">${clip.frame_count} frames · ${clip.fps} fps · ${clip.root_motion_policy} root · ${project.build_status?.[`${name}_render_complete`] ? "built" : "pending"}</span>
+            <span class="small-note">${clip.frame_count} frames · ${clip.fps} fps · ${clip.root_motion_policy} root · ${project.build_status?.[`${name}_render_complete`] ? "built" : "pending"} · bob ${clip.controls?.body_bob ?? "n/a"} · arm ${clip.controls?.arm_swing ?? "n/a"}</span>
         ` : `
             <span>${humanizeKey(name)} clip</span>
             <span class="small-note">No clip data yet.</span>
         `;
         root.appendChild(row);
     });
+}
+
+function renderClipEditor() {
+    const editorRoot = document.querySelector("#clip-editor");
+    const previewRoot = document.querySelector("#clip-preview");
+    editorRoot.innerHTML = "";
+    previewRoot.innerHTML = "";
+    const project = state.activeProject;
+    const clip = currentClipData();
+    if (!project || !clip) {
+        editorRoot.innerHTML = `<div class="empty">Build the rig to author idle and walk clips.</div>`;
+        previewRoot.innerHTML = `<div class="empty">Neutral pose and rendered frame previews will appear here.</div>`;
+        return;
+    }
+
+    clampSelectedClipFrame();
+    const frame = currentClipFrameData() || {};
+    const neutralPosePath = project.rig?.neutral_pose_render ? `${projectAsset(project, project.rig.neutral_pose_render)}?v=${project.updated_at}` : null;
+    const builtFramePath = project.build_status?.[`${state.selectedClip}_render_complete`]
+        ? `${projectAsset(project, `animations/${state.selectedClip}/${state.selectedClip}_${String(state.selectedClipFrame).padStart(2, "0")}.png`)}?v=${project.updated_at}`
+        : null;
+
+    editorRoot.innerHTML = `
+        <div class="clip-editor-card">
+            <div class="clip-tab-row">
+                ${["idle", "walk"].map((name) => `
+                    <button class="clip-tab ${state.selectedClip === name ? "active" : ""}" data-select-clip="${name}">${humanizeKey(name)}</button>
+                `).join("")}
+            </div>
+            <div class="check-row wrap">
+                <span>${humanizeKey(state.selectedClip)} frame scrubber</span>
+                <span class="small-note">Frame ${state.selectedClipFrame + 1} of ${clip.frame_count}</span>
+            </div>
+            <label>
+                <span class="field-label">Current Frame</span>
+                <input id="clip-frame-scrubber" type="range" min="0" max="${Math.max(0, clip.frame_count - 1)}" step="1" value="${state.selectedClipFrame}">
+            </label>
+            <div class="clip-control-grid">
+                ${Object.entries(CLIP_CONTROL_META).map(([key, meta]) => `
+                    <div class="clip-control-card">
+                        <div class="range-row">
+                            <span class="field-label">${meta.label}</span>
+                            <span class="range-value" data-range-value="${key}">${Number(clip.controls?.[key] ?? 0).toFixed(1)}</span>
+                        </div>
+                        <input type="range" data-clip-control="${key}" min="${meta.min}" max="${meta.max}" step="${meta.step}" value="${clip.controls?.[key] ?? 0}">
+                    </div>
+                `).join("")}
+            </div>
+            <div class="actions">
+                <button id="save-clip-controls">Save ${humanizeKey(state.selectedClip)} Controls</button>
+                <button class="secondary" id="reset-clip-controls">Reset ${humanizeKey(state.selectedClip)}</button>
+                <button class="secondary" id="rebuild-neutral-pose">Rebuild Neutral Pose</button>
+            </div>
+            <div class="small-note">Clip controls update canonical <code>animation_clips.json</code>. Re-render the clip after saving if you want new preview frames on disk.</div>
+        </div>
+    `;
+    previewRoot.innerHTML = `
+        <div class="detail-grid">
+            <div class="comparison-grid">
+                <div class="comparison-panel">
+                    ${neutralPosePath ? `<img src="${neutralPosePath}" alt="Neutral pose">` : `<div class="empty">No neutral pose yet.</div>`}
+                    <div class="small-note">Neutral pose</div>
+                </div>
+                <div class="comparison-panel">
+                    ${builtFramePath ? `<img src="${builtFramePath}" alt="${state.selectedClip} frame ${state.selectedClipFrame + 1}">` : `<div class="empty">Render ${humanizeKey(state.selectedClip)} to preview this frame.</div>`}
+                    <div class="small-note">${humanizeKey(state.selectedClip)} frame ${state.selectedClipFrame + 1}</div>
+                </div>
+            </div>
+            <div class="frame-metrics">
+                ${Object.entries(frame).map(([key, value]) => `
+                    <div class="metric-chip">
+                        <span class="small-note">${humanizeKey(key)}</span>
+                        <strong>${Array.isArray(value) ? value.join(", ") : value}</strong>
+                    </div>
+                `).join("") || `<div class="empty">No frame data available.</div>`}
+            </div>
+        </div>
+    `;
+
+    editorRoot.querySelectorAll("[data-select-clip]").forEach((button) => {
+        button.onclick = () => {
+            state.selectedClip = button.dataset.selectClip;
+            state.selectedClipFrame = 0;
+            renderClipEditor();
+            renderClipSummary();
+        };
+    });
+    editorRoot.querySelector("#clip-frame-scrubber").oninput = (event) => {
+        state.selectedClipFrame = Number(event.target.value || 0);
+        renderClipEditor();
+    };
+    editorRoot.querySelectorAll("[data-clip-control]").forEach((input) => {
+        input.oninput = () => {
+            const valueNode = editorRoot.querySelector(`[data-range-value="${input.dataset.clipControl}"]`);
+            if (valueNode) valueNode.textContent = Number(input.value || 0).toFixed(1);
+        };
+    });
+    editorRoot.querySelector("#save-clip-controls").onclick = async () => {
+        try {
+            const controls = {};
+            editorRoot.querySelectorAll("[data-clip-control]").forEach((input) => {
+                controls[input.dataset.clipControl] = Number(input.value || 0);
+            });
+            await api(`/api/projects/${project.project_id}/clips/${state.selectedClip}/update`, {
+                method: "POST",
+                body: JSON.stringify({ controls }),
+            });
+            await loadProject(project.project_id, currentMode());
+            notify(`Saved ${state.selectedClip} controls.`, "success");
+        } catch (error) {
+            log(normalizeErrorMessage(error.message), "error");
+            notify(normalizeErrorMessage(error.message), "error");
+        }
+    };
+    editorRoot.querySelector("#reset-clip-controls").onclick = async () => {
+        try {
+            await api(`/api/projects/${project.project_id}/clips/${state.selectedClip}/reset`, { method: "POST", body: "{}" });
+            await loadProject(project.project_id, currentMode());
+            notify(`Reset ${state.selectedClip} to defaults.`, "success");
+        } catch (error) {
+            log(normalizeErrorMessage(error.message), "error");
+            notify(normalizeErrorMessage(error.message), "error");
+        }
+    };
+    editorRoot.querySelector("#rebuild-neutral-pose").onclick = async () => {
+        try {
+            await runJob(`/api/projects/${project.project_id}/rig/build`);
+        } catch (error) {
+            log(normalizeErrorMessage(error.message), "error");
+            notify(normalizeErrorMessage(error.message), "error");
+        }
+    };
 }
 
 function renderAnimationGallery(name) {
@@ -3620,6 +4422,20 @@ function renderQa() {
     overall.className = "check-row";
     overall.innerHTML = `<span>Overall status</span><span class="pill ${qa.status === "pass" ? "ok" : "fail"}">${qa.status}</span>`;
     root.appendChild(overall);
+    const buildReport = qa.sprite_model_build_report;
+    if (buildReport) {
+        const buildRow = document.createElement("div");
+        buildRow.className = "check-row wrap";
+        buildRow.innerHTML = `
+            <span>Sprite-model build gate</span>
+            <span class="small-note">
+                <span class="pill ${statusTone(buildReport.status)}">${buildReport.status}</span>
+                ${buildReport.summary?.warning_count || 0} warning${(buildReport.summary?.warning_count || 0) === 1 ? "" : "s"} ·
+                ${buildReport.summary?.fail_count || 0} fail${(buildReport.summary?.fail_count || 0) === 1 ? "" : "s"}
+            </span>
+        `;
+        root.appendChild(buildRow);
+    }
     Object.entries(qa.metadata_checks || {}).forEach(([name, item]) => {
         const row = document.createElement("div");
         row.className = "check-row";
@@ -3656,6 +4472,15 @@ function renderQa() {
         frameGrid.appendChild(card);
     });
     root.appendChild(frameGrid);
+    if (buildReport?.failures?.length || buildReport?.warnings?.length) {
+        const issueBlock = document.createElement("div");
+        issueBlock.className = "detail-grid";
+        issueBlock.innerHTML = `
+            ${buildIssueMarkup("Sprite-Model Failures", buildReport.failures || [], "fail")}
+            ${buildIssueMarkup("Sprite-Model Warnings", buildReport.warnings || [], "warning")}
+        `;
+        root.appendChild(issueBlock);
+    }
 }
 
 function renderExport() {
@@ -3670,6 +4495,21 @@ function renderExport() {
     top.className = "check-row";
     top.innerHTML = `<span>Export directory</span><span class="small-note">${exportData.export_dir}</span>`;
     root.appendChild(top);
+    if (exportData.verification) {
+        const verification = document.createElement("div");
+        verification.className = "check-row wrap";
+        verification.innerHTML = `
+            <span>Post-pack verification</span>
+            <span class="small-note"><span class="pill ${statusTone(exportData.verification.status)}">${exportData.verification.status}</span></span>
+        `;
+        root.appendChild(verification);
+        Object.entries(exportData.verification.checks || {}).forEach(([name, passed]) => {
+            const row = document.createElement("div");
+            row.className = "check-row";
+            row.innerHTML = `<span>${humanizeKey(name)}</span><span class="pill ${passed ? "ok" : "fail"}">${passed ? "pass" : "fail"}</span>`;
+            root.appendChild(row);
+        });
+    }
     const preview = document.createElement("div");
     preview.className = "grid-2";
     preview.style.marginTop = "10px";
@@ -3714,6 +4554,7 @@ function renderAll() {
     renderLayerReview();
     renderRigReview();
     renderClipSummary();
+    renderClipEditor();
     renderAnimationGallery("idle");
     renderAnimationGallery("walk");
     renderQa();
@@ -3738,6 +4579,9 @@ async function refreshProjects() {
 async function loadProject(projectId, mode = "workbench") {
     if (state.activeProject?.project_id !== projectId) {
         state.previousSpriteModel = null;
+        state.spriteRecoveryVariants = {};
+        state.selectedRevisionId = null;
+        state.selectedClipFrame = 0;
     }
     const project = await api(`/api/projects/${projectId}`);
     state.activeProject = project;
@@ -3747,6 +4591,11 @@ async function loadProject(projectId, mode = "workbench") {
     state.compareRightId = null;
     state.swapCompareView = false;
     state.selectedSpritePart = project.sprite_model?.parts?.[0]?.part_name || null;
+    state.selectedRevisionId = state.selectedRevisionId || project.sprite_model_history?.current_revision_id || project.sprite_model_history?.revisions?.slice(-1)[0]?.revision_id || null;
+    if (!project.animation_clips?.[state.selectedClip]) {
+        state.selectedClip = project.animation_clips?.idle ? "idle" : project.animation_clips?.walk ? "walk" : "idle";
+    }
+    clampSelectedClipFrame();
     if (mode !== project.last_ui_mode) {
         const synced = await persistWizardState({
             last_ui_mode: mode,
@@ -4146,6 +4995,55 @@ document.querySelector("#render-idle").addEventListener("click", async () => {
 document.querySelector("#render-walk").addEventListener("click", async () => {
     try {
         await runJob(`/api/projects/${state.activeProject.project_id}/clips/walk/render`);
+    } catch (error) {
+        log(normalizeErrorMessage(error.message), "error");
+        notify(normalizeErrorMessage(error.message), "error");
+    }
+});
+
+document.querySelector("#sprite-undo-last").addEventListener("click", async () => {
+    try {
+        await api(`/api/projects/${state.activeProject.project_id}/sprite-model/undo`, { method: "POST", body: "{}" });
+        await loadProject(state.activeProject.project_id, currentMode());
+        notify("Reverted to the previous sprite-model revision.", "success");
+    } catch (error) {
+        log(normalizeErrorMessage(error.message), "error");
+        notify(normalizeErrorMessage(error.message), "error");
+    }
+});
+
+document.querySelector("#sprite-restore-revision").addEventListener("click", async () => {
+    try {
+        const revisionId = document.querySelector("#sprite-revision-select").value;
+        if (!revisionId) throw new Error("Choose a revision to restore.");
+        await api(`/api/projects/${state.activeProject.project_id}/sprite-model/restore`, {
+            method: "POST",
+            body: JSON.stringify({ revision_id: revisionId }),
+        });
+        await loadProject(state.activeProject.project_id, currentMode());
+        notify("Restored the selected sprite-model revision.", "success");
+    } catch (error) {
+        log(normalizeErrorMessage(error.message), "error");
+        notify(normalizeErrorMessage(error.message), "error");
+    }
+});
+
+document.querySelector("#sprite-draw-order-back").addEventListener("click", async () => {
+    try {
+        const active = selectedSpritePart();
+        if (!active) throw new Error("Choose a sprite-model part first.");
+        await applySpriteOperation("set_draw_order", { draw_order: Number(active.draw_order || 0) - 1 });
+    } catch (error) {
+        log(normalizeErrorMessage(error.message), "error");
+        notify(normalizeErrorMessage(error.message), "error");
+    }
+});
+
+document.querySelector("#sprite-draw-order-forward").addEventListener("click", async () => {
+    try {
+        const active = selectedSpritePart();
+        if (!active) throw new Error("Choose a sprite-model part first.");
+        await applySpriteOperation("set_draw_order", { draw_order: Number(active.draw_order || 0) + 1 });
     } catch (error) {
         log(normalizeErrorMessage(error.message), "error");
         notify(normalizeErrorMessage(error.message), "error");

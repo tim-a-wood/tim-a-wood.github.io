@@ -3,10 +3,9 @@
   "project_name": "Ashen Sentinel",
   "prompt_text": "Humanoid biped side-view armored traveler with a lantern, storm-steel palette, one handheld prop.",
   "created_at": "2026-03-13T11:38:13.768494+00:00",
-  "updated_at": "2026-03-13T22:47:39.406712+00:00",
+  "updated_at": "2026-03-14T00:01:58.960163+00:00",
   "current_stage": "concepts",
   "status": "concepts_generated",
-  "layer_review_approved": true,
   "rig_review_approved": true,
   "selected_concept_id": "concept-03",
   "last_export": {
@@ -37,18 +36,22 @@
   "archived_at": null,
   "last_ui_mode": "wizard",
   "wizard_state": {
-    "current_step": "review",
+    "current_step": "project",
     "last_completed_step": "export",
     "completed_steps": [
       "brief",
       "concepts",
       "review",
-      "build",
       "qa",
-      "export"
+      "export",
+      "sprite_model",
+      "rig",
+      "clips"
     ],
     "skipped_optional_steps": [],
     "last_refine_decision": null,
     "show_advanced": false
-  }
+  },
+  "master_pose_approved": false,
+  "sprite_model_approved": true
 }

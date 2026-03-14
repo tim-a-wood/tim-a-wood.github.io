@@ -1,8 +1,10 @@
 import http.client
+import shutil
 import tempfile
 import threading
 import time
 import unittest
+from contextlib import contextmanager
 from pathlib import Path
 from http.server import ThreadingHTTPServer
 
@@ -10,6 +12,8 @@ from scripts import sprite_workbench_server as sw
 
 
 class SpriteWorkbenchTests(unittest.TestCase):
+    FIXTURE_ROOT = Path(__file__).resolve().parent / "fixtures" / "sprite_workbench"
+
     def build_debug_pipeline(self, tmpdir: str):
         original_root = sw.PROJECTS_ROOT
         sw.PROJECTS_ROOT = Path(tmpdir)
@@ -40,6 +44,52 @@ class SpriteWorkbenchTests(unittest.TestCase):
             return sw.load_project(project["project_id"])
         finally:
             sw.PROJECTS_ROOT = original_root
+
+    @contextmanager
+    def fixture_project(self, fixture_name: str):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            fixture_root = Path(tmpdir)
+            shutil.copytree(self.FIXTURE_ROOT / fixture_name, fixture_root / fixture_name)
+            original_root = sw.PROJECTS_ROOT
+            sw.PROJECTS_ROOT = fixture_root
+            try:
+                yield fixture_root, fixture_name
+            finally:
+                sw.PROJECTS_ROOT = original_root
+
+    def assert_only_canonical_downstream_json(self, project_dir: Path):
+        json_files = {path.name for path in project_dir.glob("*.json")}
+        self.assertIn("sprite_model.json", json_files)
+        self.assertIn("sprite_model_history.json", json_files)
+        self.assertIn("animation_clips.json", json_files)
+        self.assertNotIn("layered_character.json", json_files)
+        self.assertNotIn("animation_templates.json", json_files)
+        self.assertNotIn("palette.json", json_files)
+
+    def test_fixture_matrix_loads_all_project_classes(self):
+        for fixture_name in ["legacy-layered-character", "hybrid-mixed-pipeline", "canonical-sprite-model"]:
+            with self.subTest(fixture=fixture_name):
+                with self.fixture_project(fixture_name):
+                    project = sw.load_project(fixture_name)
+                    self.assertEqual(project["project_id"], fixture_name)
+                    self.assertIsNotNone(project["sprite_model"])
+                    self.assertIn(project["sprite_model"]["status"], {"pass", "warning"})
+
+    def test_fixture_matrix_duplicate_writes_only_canonical_downstream_json(self):
+        for fixture_name in ["legacy-layered-character", "hybrid-mixed-pipeline", "canonical-sprite-model"]:
+            with self.subTest(fixture=fixture_name):
+                with self.fixture_project(fixture_name) as (fixture_root, _):
+                    duplicate = sw.duplicate_project(fixture_name)
+                    self.assertNotEqual(duplicate["project_id"], fixture_name)
+                    self.assert_only_canonical_downstream_json(fixture_root / duplicate["project_id"])
+
+    def test_fixture_matrix_archive_marks_project_archived(self):
+        for fixture_name in ["legacy-layered-character", "hybrid-mixed-pipeline", "canonical-sprite-model"]:
+            with self.subTest(fixture=fixture_name):
+                with self.fixture_project(fixture_name):
+                    archived = sw.archive_project(fixture_name)
+                    self.assertEqual(archived["status"], "archived")
+                    self.assertIsNotNone(archived["archived_at"])
 
     def test_create_project_in_wizard_starts_reference_step(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -200,6 +250,91 @@ class SpriteWorkbenchTests(unittest.TestCase):
         self.assertIn("idle", qa["per_animation_checks"])
         self.assertTrue(export["export_dir"].startswith("exports/"))
         self.assertIn("spritesheet.png", export["files"])
+
+    def test_sprite_model_validation_blocks_approval_on_fail(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            original_root = sw.PROJECTS_ROOT
+            sw.PROJECTS_ROOT = Path(tmpdir)
+            try:
+                project = self.build_debug_pipeline(tmpdir)
+                updated = sw.update_sprite_model(project["project_id"], {
+                    "operation": "remove_from_mask",
+                    "part_name": "torso",
+                    "region": [0, 0, 500, 500],
+                })
+                self.assertEqual(updated["status"], "fail")
+                with self.assertRaisesRegex(ValueError, "blocked"):
+                    sw.approve_sprite_model_review(project["project_id"])
+            finally:
+                sw.PROJECTS_ROOT = original_root
+
+    def test_sprite_model_revision_restore_round_trip_restores_exact_hash(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            original_root = sw.PROJECTS_ROOT
+            sw.PROJECTS_ROOT = Path(tmpdir)
+            try:
+                project = self.build_debug_pipeline(tmpdir)
+                project_dir = Path(tmpdir) / project["project_id"]
+                original_hash = sw.image_sha256(project_dir / "sprite_model.json")
+                original_revision_id = sw.load_project(project["project_id"])["sprite_model_history"]["current_revision_id"]
+                sw.update_sprite_model(project["project_id"], {
+                    "operation": "translate_part",
+                    "part_name": "torso",
+                    "dx": 9,
+                    "dy": 0,
+                })
+                restored = sw.restore_sprite_model_revision(project["project_id"], original_revision_id)
+                self.assertEqual(restored["sprite_model_history"]["current_revision_id"], original_revision_id)
+                self.assertEqual(sw.image_sha256(project_dir / "sprite_model.json"), original_hash)
+                rig = sw.build_rig(project["project_id"])
+                self.assertIn("rig_joint_map", rig)
+            finally:
+                sw.PROJECTS_ROOT = original_root
+
+    def test_clip_update_persists_controls_and_clears_export_state(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            original_root = sw.PROJECTS_ROOT
+            sw.PROJECTS_ROOT = Path(tmpdir)
+            try:
+                project = self.build_debug_pipeline(tmpdir)
+                sw.approve_rig_review(project["project_id"])
+                sw.render_animation(project["project_id"], "idle")
+                sw.render_animation(project["project_id"], "walk")
+                sw.run_qa(project["project_id"])
+                sw.export_project(project["project_id"])
+                updated = sw.update_animation_clip(project["project_id"], "idle", {
+                    "controls": {
+                        "body_bob": 4.0,
+                        "arm_swing": 9.0,
+                    },
+                })
+                reloaded = sw.load_project(project["project_id"])
+            finally:
+                sw.PROJECTS_ROOT = original_root
+
+        self.assertEqual(updated["controls"]["body_bob"], 4.0)
+        self.assertEqual(reloaded["animation_clips"]["idle"]["controls"]["arm_swing"], 9.0)
+        self.assertIsNone(reloaded["qa_report"])
+        self.assertIsNone(reloaded["last_export"])
+
+    def test_export_manifest_includes_post_pack_verification(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            original_root = sw.PROJECTS_ROOT
+            sw.PROJECTS_ROOT = Path(tmpdir)
+            try:
+                project = self.build_debug_pipeline(tmpdir)
+                sw.approve_rig_review(project["project_id"])
+                sw.render_animation(project["project_id"], "idle")
+                sw.render_animation(project["project_id"], "walk")
+                sw.run_qa(project["project_id"])
+                export = sw.export_project(project["project_id"])
+                export_manifest = sw.load_json(Path(tmpdir) / project["project_id"] / export["export_dir"] / "export_manifest.json")
+            finally:
+                sw.PROJECTS_ROOT = original_root
+
+        self.assertEqual(export_manifest["verification"]["status"], "pass")
+        self.assertIn("atlas.json", export_manifest["bundle_hashes"])
+        self.assertEqual(export["verification"]["status"], "pass")
 
     def test_hydrate_brief_is_backward_compatible(self):
         legacy = {

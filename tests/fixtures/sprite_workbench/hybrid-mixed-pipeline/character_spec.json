@@ -1,0 +1,18 @@
+{
+  "approved_concept_id": "fixture-concept",
+  "palette_definition": {
+    "outline": "#0d1117",
+    "shadow": "#111922",
+    "base": "#6b7c8f",
+    "accent": "#b8914b",
+    "highlight": "#d9e2eb",
+    "swatches": [
+      "#0d1117",
+      "#111922",
+      "#6b7c8f",
+      "#b8914b",
+      "#d4a752",
+      "#d9e2eb"
+    ]
+  }
+}

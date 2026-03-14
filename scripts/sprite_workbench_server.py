@@ -19,7 +19,7 @@ from datetime import datetime, timezone
 from http import HTTPStatus
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Protocol, Tuple
+from typing import Any, Callable, Dict, List, Optional, Protocol, Set, Tuple
 from urllib.error import HTTPError, URLError
 from urllib.parse import parse_qs, quote, urlencode, urlparse, unquote
 from urllib.request import Request, urlopen
@@ -32,6 +32,26 @@ TOOL_DIR = ROOT / "tools" / "2d-sprite-and-animation"
 PROJECTS_ROOT = TOOL_DIR / "projects-data"
 WORKFLOW_DIR = TOOL_DIR / "workflows"
 STAGE_MATURITY_PATH = TOOL_DIR / "stage-maturity.json"
+
+# Canonical downstream contract for new work:
+# - sprite_model.json
+# - sprite_model_history.json
+# - rig.json
+# - animation_clips.json
+# - qa_report.json
+CANONICAL_DOWNSTREAM_FILES = {
+    "sprite_model": "sprite_model.json",
+    "sprite_model_history": "sprite_model_history.json",
+    "rig": "rig.json",
+    "animation_clips": "animation_clips.json",
+    "qa_report": "qa_report.json",
+}
+LEGACY_DOWNSTREAM_FILES = {
+    "layered_character": "layered_character.json",
+    "animation_templates": "animation_templates.json",
+    "palette": "palette.json",
+}
+SPRITE_MODEL_REVISIONS_DIRNAME = "sprite_model_revisions"
 
 TOOL_VERSION = "solo-ai-sprite-workbench-v3"
 DEFAULT_COMFYUI_BASE_URL = os.environ.get("SPRITE_WORKBENCH_COMFYUI_URL", "http://127.0.0.1:8188")
@@ -144,6 +164,31 @@ ANIMATION_SPECS = {
     "idle": {"frame_count": 6, "fps": 8, "loop": True},
     "walk": {"frame_count": 8, "fps": 10, "loop": True},
 }
+
+DEFAULT_CLIP_CONTROLS = {
+    "idle": {
+        "body_bob": 2.0,
+        "torso_lean": 2.5,
+        "arm_swing": 6.0,
+        "leg_swing": 4.0,
+        "foot_lift": 4.0,
+        "prop_lag": 1.5,
+    },
+    "walk": {
+        "body_bob": 6.0,
+        "torso_lean": 3.5,
+        "arm_swing": 18.0,
+        "leg_swing": 20.0,
+        "foot_lift": 16.0,
+        "prop_lag": 4.0,
+    },
+}
+
+SPRITE_MODEL_FAIL_MIN_MASK_AREA = 18
+SPRITE_MODEL_WARN_MIN_MASK_AREA = 36
+SPRITE_MODEL_MIN_DIMENSION = 2
+SPRITE_MODEL_WARN_COMPONENT_OVERLAP_RATIO = 0.62
+SPRITE_MODEL_WARN_PROP_OVERLAP_RATIO = 0.48
 
 PART_PARENT_JOINTS = {
     "head": "head",
@@ -426,23 +471,25 @@ def reset_downstream_assets(project_id: str, from_stage: str) -> None:
     if from_stage == "concept":
         clear_directory(project_dir / "master_pose")
     if from_stage in {"concept", "master_pose"}:
-        delete_path(project_dir / "sprite_model.json")
-        delete_path(project_dir / "sprite_model_history.json")
-        delete_path(project_dir / "palette.json")
+        delete_path(canonical_downstream_path(project_dir, "sprite_model"))
+        delete_path(canonical_downstream_path(project_dir, "sprite_model_history"))
+        delete_path(legacy_downstream_path(project_dir, "palette"))
         clear_directory(project_dir / "parts")
+        clear_directory(sprite_model_revisions_path(project_dir))
         (project_dir / "parts" / "masks").mkdir(parents=True, exist_ok=True)
         (project_dir / "parts" / "recovery").mkdir(parents=True, exist_ok=True)
     if from_stage in {"concept", "master_pose", "sprite_model"}:
         clear_directory(project_dir / "rig")
-        delete_path(project_dir / "rig.json")
-        delete_path(project_dir / "animation_clips.json")
+        delete_path(canonical_downstream_path(project_dir, "rig"))
+        delete_path(canonical_downstream_path(project_dir, "animation_clips"))
+        delete_path(legacy_downstream_path(project_dir, "animation_templates"))
     if from_stage in {"concept", "master_pose", "sprite_model", "rig", "clips"}:
         clear_directory(project_dir / "animations" / "idle")
         clear_directory(project_dir / "animations" / "walk")
         (project_dir / "animations" / "idle").mkdir(parents=True, exist_ok=True)
         (project_dir / "animations" / "walk").mkdir(parents=True, exist_ok=True)
     if from_stage in {"concept", "master_pose", "sprite_model", "rig", "clips", "qa"}:
-        delete_path(project_dir / "qa_report.json")
+        delete_path(canonical_downstream_path(project_dir, "qa_report"))
     if from_stage in {"concept", "master_pose", "sprite_model", "rig", "clips", "qa", "export"}:
         clear_directory(project_dir / "exports")
 
@@ -454,8 +501,9 @@ def clear_project_downstream_state(project: Dict[str, Any], from_stage: str) -> 
     if from_stage in {"concept", "master_pose"}:
         project["sprite_model"] = None
         project["palette"] = None
-        project["sprite_model_history"] = {"project_id": project["project_id"], "events": []}
+        project["sprite_model_history"] = default_sprite_model_history(project["project_id"])
         project["sprite_model_approved"] = False
+        project["layer_review_approved"] = False
         project["layered_character"] = None
     if from_stage in {"concept", "master_pose", "sprite_model"}:
         project["rig"] = None
@@ -641,6 +689,50 @@ def animation_render_complete(project_dir: Path, animation_name: str) -> bool:
         return False
     frames = manifest.get("frames") or []
     return len(frames) == ANIMATION_SPECS[animation_name]["frame_count"]
+
+
+def canonical_downstream_path(project_dir: Path, key: str) -> Path:
+    return project_dir / CANONICAL_DOWNSTREAM_FILES[key]
+
+
+def legacy_downstream_path(project_dir: Path, key: str) -> Path:
+    return project_dir / LEGACY_DOWNSTREAM_FILES[key]
+
+
+def default_sprite_model_history(project_id: str) -> Dict[str, Any]:
+    return {
+        "project_id": project_id,
+        "current_revision_id": None,
+        "events": [],
+        "revisions": [],
+    }
+
+
+def sprite_model_revisions_path(project_dir: Path) -> Path:
+    return project_dir / SPRITE_MODEL_REVISIONS_DIRNAME
+
+
+def bbox_area(box: Optional[List[int]]) -> int:
+    if not isinstance(box, list) or len(box) != 4:
+        return 0
+    return max(0, int(box[2]) - int(box[0])) * max(0, int(box[3]) - int(box[1]))
+
+
+def bbox_intersection_area(a: Optional[List[int]], b: Optional[List[int]]) -> int:
+    if not isinstance(a, list) or len(a) != 4 or not isinstance(b, list) or len(b) != 4:
+        return 0
+    left = max(int(a[0]), int(b[0]))
+    top = max(int(a[1]), int(b[1]))
+    right = min(int(a[2]), int(b[2]))
+    bottom = min(int(a[3]), int(b[3]))
+    if right <= left or bottom <= top:
+        return 0
+    return (right - left) * (bottom - top)
+
+
+def mask_pixel_area(mask: Image.Image) -> int:
+    normalized = normalize_mask(mask)
+    return sum(1 for value in normalized.getdata() if value > 0)
 
 
 def compute_wizard_context(project: Dict[str, Any]) -> Dict[str, Any]:
@@ -1743,16 +1835,27 @@ def load_project(project_id: str) -> Dict[str, Any]:
     project["brief"] = hydrate_brief(load_json(project_dir / "brief.json", {}), project.get("prompt_text", ""))
     project["character_spec"] = load_json(project_dir / "character_spec.json")
     project["master_pose_manifest"] = load_master_pose_manifest(project_dir)
-    project["sprite_model"] = load_json(project_dir / "sprite_model.json")
-    project["palette"] = load_json(project_dir / "palette.json")
-    project["layered_character"] = project["sprite_model"] or load_json(project_dir / "layered_character.json")
-    project["rig"] = load_json(project_dir / "rig.json")
-    project["animation_clips"] = load_json(project_dir / "animation_clips.json")
-    project["animation_templates"] = project["animation_clips"] or load_json(project_dir / "animation_templates.json")
-    project["qa_report"] = load_json(project_dir / "qa_report.json")
+    legacy_layered_character = load_json(legacy_downstream_path(project_dir, "layered_character"))
+    project["rig"] = load_json(canonical_downstream_path(project_dir, "rig"))
+    sprite_model = load_json(canonical_downstream_path(project_dir, "sprite_model"))
+    legacy_palette = load_json(legacy_downstream_path(project_dir, "palette"))
+    if sprite_model is None and legacy_layered_character:
+        sprite_model = hydrate_legacy_sprite_model(project_dir, legacy_layered_character, project.get("rig"), legacy_palette, project.get("character_spec"))
+    if sprite_model is not None and not sprite_model.get("build_report"):
+        sprite_model["build_report"] = validate_sprite_model(project_dir, sprite_model)
+        sprite_model["status"] = sprite_model["build_report"]["status"]
+    project["sprite_model"] = sprite_model
+    project["palette"] = (sprite_model or {}).get("palette") or legacy_palette
+    project["layered_character"] = sprite_model or legacy_layered_character
+    legacy_animation_templates = load_json(legacy_downstream_path(project_dir, "animation_templates"))
+    project["animation_clips"] = hydrate_animation_clips(load_json(canonical_downstream_path(project_dir, "animation_clips")), legacy_animation_templates)
+    project["animation_templates"] = project["animation_clips"] or legacy_animation_templates
+    project["qa_report"] = load_json(canonical_downstream_path(project_dir, "qa_report"))
     project["sprite_model_history"] = load_sprite_model_history(project_dir)
     project["history"] = load_history(project_id)
     project["concepts"] = [hydrate_concept(item, project["created_at"]) for item in load_concepts(project_dir)]
+    project["sprite_model_approved"] = bool(project.get("sprite_model_approved") or (not project.get("sprite_model_approved") and project.get("layer_review_approved")))
+    project["layer_review_approved"] = bool(project.get("layer_review_approved") or project.get("sprite_model_approved"))
     if project.get("selected_concept_id") is None:
         for concept in project["concepts"]:
             if concept["review_state"]["approved"]:
@@ -1819,7 +1922,9 @@ def save_project(project: Dict[str, Any]) -> None:
         "step_statuses",
         "blocking_reasons",
         "can_resume_wizard",
+        "layer_review_approved",
     }}
+    core["sprite_model_approved"] = bool(project.get("sprite_model_approved") or project.get("layer_review_approved"))
     write_json(project_dir / "project.json", core)
     write_json(project_dir / "brief.json", project["brief"])
     if project.get("character_spec") is not None:
@@ -1827,21 +1932,15 @@ def save_project(project: Dict[str, Any]) -> None:
     if project.get("master_pose_manifest") is not None:
         save_master_pose_manifest(project_dir, project["master_pose_manifest"])
     if project.get("sprite_model") is not None:
-        write_json(project_dir / "sprite_model.json", project["sprite_model"])
-    if project.get("palette") is not None:
-        write_json(project_dir / "palette.json", project["palette"])
+        write_json(canonical_downstream_path(project_dir, "sprite_model"), project["sprite_model"])
     if project.get("sprite_model_history") is not None:
         save_sprite_model_history(project_dir, project["sprite_model_history"])
-    if project.get("layered_character") is not None:
-        write_json(project_dir / "layered_character.json", project["layered_character"])
     if project.get("rig") is not None:
-        write_json(project_dir / "rig.json", project["rig"])
+        write_json(canonical_downstream_path(project_dir, "rig"), project["rig"])
     if project.get("animation_clips") is not None:
-        write_json(project_dir / "animation_clips.json", project["animation_clips"])
-    if project.get("animation_templates") is not None:
-        write_json(project_dir / "animation_templates.json", project["animation_templates"])
+        write_json(canonical_downstream_path(project_dir, "animation_clips"), project["animation_clips"])
     if project.get("qa_report") is not None:
-        write_json(project_dir / "qa_report.json", project["qa_report"])
+        write_json(canonical_downstream_path(project_dir, "qa_report"), project["qa_report"])
     if project.get("history") is not None:
         write_json(project_dir / "history.json", project["history"])
     for concept in project.get("concepts", []) or []:
@@ -1865,6 +1964,7 @@ def list_projects(include_archived: bool) -> List[Dict[str, Any]]:
 
 def project_summary(project: Dict[str, Any]) -> Dict[str, Any]:
     wizard_state = normalize_wizard_state(project.get("wizard_state"))
+    sprite_model_approved = bool(project.get("sprite_model_approved") or project.get("layer_review_approved"))
     return {
         "project_id": project["project_id"],
         "project_name": project["project_name"],
@@ -1874,8 +1974,8 @@ def project_summary(project: Dict[str, Any]) -> Dict[str, Any]:
         "status": project["status"],
         "selected_concept_id": project.get("selected_concept_id"),
         "master_pose_approved": project.get("master_pose_approved", False),
-        "sprite_model_approved": project.get("sprite_model_approved", False),
-        "layer_review_approved": project.get("layer_review_approved", False),
+        "sprite_model_approved": sprite_model_approved,
+        "layer_review_approved": sprite_model_approved,
         "rig_review_approved": project.get("rig_review_approved", False),
         "archived_at": project.get("archived_at"),
         "last_export": project.get("last_export"),
@@ -1987,21 +2087,24 @@ def duplicate_project(project_id: str) -> Dict[str, Any]:
     ensure_dirs(new_dir)
 
     for filename in [
+        "project.json",
         "brief.json",
         "character_spec.json",
         "history.json",
-        "sprite_model.json",
-        "sprite_model_history.json",
-        "palette.json",
-        "rig.json",
-        "animation_clips.json",
-        "qa_report.json",
+        CANONICAL_DOWNSTREAM_FILES["sprite_model"],
+        CANONICAL_DOWNSTREAM_FILES["sprite_model_history"],
+        CANONICAL_DOWNSTREAM_FILES["rig"],
+        CANONICAL_DOWNSTREAM_FILES["animation_clips"],
+        CANONICAL_DOWNSTREAM_FILES["qa_report"],
+        LEGACY_DOWNSTREAM_FILES["layered_character"],
+        LEGACY_DOWNSTREAM_FILES["animation_templates"],
+        LEGACY_DOWNSTREAM_FILES["palette"],
     ]:
         src = PROJECTS_ROOT / project_id / filename
         if src.exists():
             shutil.copy2(src, new_dir / filename)
 
-    for folder in ["concepts", "references", "master_pose", "parts", "rig", "animations"]:
+    for folder in ["concepts", "references", "master_pose", "parts", "rig", "animations", "layers", "logs"]:
         src_folder = PROJECTS_ROOT / project_id / folder
         dst_folder = new_dir / folder
         dst_folder.mkdir(parents=True, exist_ok=True)
@@ -2014,35 +2117,28 @@ def duplicate_project(project_id: str) -> Dict[str, Any]:
                     target.parent.mkdir(parents=True, exist_ok=True)
                     shutil.copy2(path, target)
 
-    project_core = {
-        "project_id": new_id,
-        "project_name": "%s Copy" % source["project_name"],
-        "prompt_text": source["prompt_text"],
-        "created_at": now_iso(),
-        "updated_at": now_iso(),
-        "current_stage": "concept_lock" if source.get("character_spec") else "concepts",
-        "status": "branched_from_%s" % source["project_id"],
-        "master_pose_approved": source.get("master_pose_approved", False),
-        "sprite_model_approved": False,
-        "layer_review_approved": False,
-        "rig_review_approved": False,
-        "selected_concept_id": source.get("selected_concept_id"),
-        "archived_at": None,
-        "last_export": None,
-        "last_ui_mode": "workbench",
-        "wizard_state": normalize_wizard_state(source.get("wizard_state")),
-    }
-    write_json(new_dir / "project.json", project_core)
-
-    for path in (new_dir / "concepts").glob("*.json"):
-        payload = load_json(path, {})
-        payload["project_id"] = new_id
-        write_json(path, payload)
-
-    history = load_json(new_dir / "history.json", {"project_id": new_id, "events": []})
-    history["project_id"] = new_id
-    write_json(new_dir / "history.json", history)
-
+    duplicated = load_project(new_id)
+    duplicated["project_id"] = new_id
+    duplicated["project_name"] = "%s Copy" % source["project_name"]
+    duplicated["created_at"] = now_iso()
+    duplicated["updated_at"] = now_iso()
+    duplicated["current_stage"] = "concept_lock" if source.get("character_spec") else "concepts"
+    duplicated["status"] = "branched_from_%s" % source["project_id"]
+    duplicated["sprite_model_approved"] = False
+    duplicated["layer_review_approved"] = False
+    duplicated["rig_review_approved"] = False
+    duplicated["last_export"] = None
+    duplicated["archived_at"] = None
+    duplicated["last_ui_mode"] = "workbench"
+    duplicated["wizard_state"] = normalize_wizard_state(source.get("wizard_state"))
+    if duplicated.get("history"):
+        duplicated["history"]["project_id"] = new_id
+    for concept in duplicated.get("concepts", []) or []:
+        concept["project_id"] = new_id
+    save_project(duplicated)
+    delete_path(legacy_downstream_path(new_dir, "layered_character"))
+    delete_path(legacy_downstream_path(new_dir, "animation_templates"))
+    delete_path(legacy_downstream_path(new_dir, "palette"))
     return load_project(new_id)
 
 
@@ -2388,11 +2484,16 @@ def select_master_pose(project_id: str, candidate_id: str) -> Dict[str, Any]:
 
 
 def sprite_model_history_path(project_dir: Path) -> Path:
-    return project_dir / "sprite_model_history.json"
+    return canonical_downstream_path(project_dir, "sprite_model_history")
 
 
 def load_sprite_model_history(project_dir: Path) -> Dict[str, Any]:
-    return load_json(sprite_model_history_path(project_dir), {"project_id": project_dir.name, "events": []})
+    history = load_json(sprite_model_history_path(project_dir), default_sprite_model_history(project_dir.name))
+    history.setdefault("project_id", project_dir.name)
+    history.setdefault("current_revision_id", None)
+    history.setdefault("events", [])
+    history.setdefault("revisions", [])
+    return history
 
 
 def save_sprite_model_history(project_dir: Path, history: Dict[str, Any]) -> None:
@@ -2401,14 +2502,128 @@ def save_sprite_model_history(project_dir: Path, history: Dict[str, Any]) -> Non
 
 def append_sprite_model_history(project_dir: Path, event: Dict[str, Any]) -> Dict[str, Any]:
     history = load_sprite_model_history(project_dir)
-    history.setdefault("events", [])
     history["events"].append({"created_at": now_iso(), **event})
     save_sprite_model_history(project_dir, history)
     return history
 
 
 def load_sprite_model(project_dir: Path) -> Optional[Dict[str, Any]]:
-    return load_json(project_dir / "sprite_model.json")
+    sprite_model = load_json(canonical_downstream_path(project_dir, "sprite_model"))
+    if sprite_model is not None:
+        return sprite_model
+    legacy_layered_character = load_json(legacy_downstream_path(project_dir, "layered_character"))
+    if legacy_layered_character:
+        rig = load_json(canonical_downstream_path(project_dir, "rig"))
+        legacy_palette = load_json(legacy_downstream_path(project_dir, "palette"))
+        character_spec = load_json(project_dir / "character_spec.json")
+        return hydrate_legacy_sprite_model(project_dir, legacy_layered_character, rig, legacy_palette, character_spec)
+    return None
+
+
+def resolve_part_image_path(part: Dict[str, Any]) -> Optional[str]:
+    return part.get("image_path") or part.get("source_image_path")
+
+
+def sprite_model_hash(sprite_model: Dict[str, Any]) -> str:
+    return hashlib.sha256(json.dumps(sprite_model, sort_keys=True).encode("utf-8")).hexdigest()
+
+
+def create_sprite_model_revision(
+    project_dir: Path,
+    sprite_model: Dict[str, Any],
+    reason: str,
+    operation: Optional[str] = None,
+    part_name: Optional[str] = None,
+) -> Dict[str, Any]:
+    revisions_root = sprite_model_revisions_path(project_dir)
+    revisions_root.mkdir(parents=True, exist_ok=True)
+    revision_id = "rev-%s" % uuid.uuid4().hex[:10]
+    revision_dir = revisions_root / revision_id
+    revision_dir.mkdir(parents=True, exist_ok=True)
+    write_json(revision_dir / CANONICAL_DOWNSTREAM_FILES["sprite_model"], sprite_model)
+    parts_dir = project_dir / "parts"
+    if parts_dir.exists():
+        shutil.copytree(parts_dir, revision_dir / "parts", dirs_exist_ok=True)
+
+    history = load_sprite_model_history(project_dir)
+    revision = {
+        "revision_id": revision_id,
+        "created_at": now_iso(),
+        "reason": reason,
+        "operation": operation,
+        "part_name": part_name,
+        "sprite_model_hash": sprite_model_hash(sprite_model),
+        "snapshot_dir": str(revision_dir.relative_to(project_dir)),
+    }
+    history["revisions"].append(revision)
+    history["current_revision_id"] = revision_id
+    history["events"].append({
+        "created_at": revision["created_at"],
+        "type": reason,
+        "operation": operation,
+        "part_name": part_name,
+        "revision_id": revision_id,
+        "sprite_model_hash": revision["sprite_model_hash"],
+    })
+    save_sprite_model_history(project_dir, history)
+    return history
+
+
+def restore_sprite_model_revision(project_id: str, revision_id: str) -> Dict[str, Any]:
+    project = load_project(project_id)
+    project_dir = PROJECTS_ROOT / project_id
+    history = load_sprite_model_history(project_dir)
+    revision = next((item for item in history["revisions"] if item["revision_id"] == revision_id), None)
+    if revision is None:
+        raise ValueError("Revision not found.")
+    revision_dir = project_dir / revision["snapshot_dir"]
+    sprite_model = load_json(revision_dir / CANONICAL_DOWNSTREAM_FILES["sprite_model"], None)
+    if not isinstance(sprite_model, dict):
+        raise ValueError("Revision snapshot is missing sprite_model.json.")
+    revision_parts_dir = revision_dir / "parts"
+    if not revision_parts_dir.exists():
+        raise ValueError("Revision snapshot is missing part assets.")
+
+    clear_directory(project_dir / "parts")
+    shutil.copytree(revision_parts_dir, project_dir / "parts", dirs_exist_ok=True)
+    write_json(canonical_downstream_path(project_dir, "sprite_model"), sprite_model)
+    reset_downstream_assets(project_id, "sprite_model")
+    project = clear_project_downstream_state(project, "sprite_model")
+    history["current_revision_id"] = revision_id
+    history["events"].append({
+        "created_at": now_iso(),
+        "type": "restore",
+        "revision_id": revision_id,
+        "part_name": revision.get("part_name"),
+        "operation": revision.get("operation"),
+        "sprite_model_hash": revision["sprite_model_hash"],
+    })
+    save_sprite_model_history(project_dir, history)
+    project["sprite_model"] = sprite_model
+    project["palette"] = sprite_model.get("palette")
+    project["layered_character"] = sprite_model
+    project["sprite_model_history"] = history
+    project["sprite_model_approved"] = False
+    project["layer_review_approved"] = False
+    project["rig_review_approved"] = False
+    project["current_stage"] = "sprite_model"
+    project["status"] = "sprite_model_restored"
+    project["updated_at"] = now_iso()
+    save_project(project)
+    return load_project(project_id)
+
+
+def undo_last_sprite_model_change(project_id: str) -> Dict[str, Any]:
+    project_dir = PROJECTS_ROOT / project_id
+    history = load_sprite_model_history(project_dir)
+    revisions = history.get("revisions") or []
+    current_revision_id = history.get("current_revision_id")
+    if len(revisions) < 2 or current_revision_id is None:
+        raise ValueError("No earlier revision is available.")
+    current_index = next((index for index, item in enumerate(revisions) if item["revision_id"] == current_revision_id), None)
+    if current_index is None or current_index <= 0:
+        raise ValueError("No earlier revision is available.")
+    return restore_sprite_model_revision(project_id, revisions[current_index - 1]["revision_id"])
 
 
 def write_part_asset(project_dir: Path, part_name: str, image: Image.Image, mask: Image.Image) -> Tuple[str, str]:
@@ -2422,8 +2637,15 @@ def write_part_asset(project_dir: Path, part_name: str, image: Image.Image, mask
 
 
 def load_part_asset(project_dir: Path, part: Dict[str, Any]) -> Tuple[Image.Image, Image.Image]:
-    image = Image.open(project_dir / part["image_path"]).convert("RGBA")
-    mask = normalize_mask(Image.open(project_dir / part["mask_path"]))
+    image_rel = resolve_part_image_path(part)
+    if not image_rel:
+        raise ValueError("Part is missing an image path.")
+    image = Image.open(project_dir / image_rel).convert("RGBA")
+    mask_rel = part.get("mask_path")
+    if mask_rel and (project_dir / mask_rel).exists():
+        mask = normalize_mask(Image.open(project_dir / mask_rel))
+    else:
+        mask = normalize_mask(detect_mask(image))
     return image, mask
 
 
@@ -2537,6 +2759,122 @@ def part_pivot_from_image(part_name: str, image: Image.Image) -> List[int]:
     ]
 
 
+def validate_sprite_model(project_dir: Path, sprite_model: Dict[str, Any]) -> Dict[str, Any]:
+    parts = sprite_model.get("parts") or []
+    required_roles: Set[str] = set(REQUIRED_PARTS)
+    role_counts: Dict[str, int] = {}
+    part_reports: List[Dict[str, Any]] = []
+    warnings: List[str] = []
+    failures: List[str] = []
+    overlap_warnings: List[Dict[str, Any]] = []
+    prop_separation_warnings: List[Dict[str, Any]] = []
+
+    for part in parts:
+        role = part.get("part_role", part.get("part_name", "part"))
+        role_counts[role] = role_counts.get(role, 0) + 1
+        image, mask = load_part_asset(project_dir, part)
+        bbox = part.get("bbox") or [0, 0, image.size[0], image.size[1]]
+        bbox_size = [max(0, int(bbox[2]) - int(bbox[0])), max(0, int(bbox[3]) - int(bbox[1]))]
+        area = mask_pixel_area(mask)
+        part_warnings: List[str] = []
+        part_failures: List[str] = []
+        status = "pass"
+
+        if area < SPRITE_MODEL_FAIL_MIN_MASK_AREA or min(bbox_size) < SPRITE_MODEL_MIN_DIMENSION or bbox_area(bbox) <= 0:
+            part_failures.append("part is missing usable opaque pixels")
+            status = "fail"
+        elif area < SPRITE_MODEL_WARN_MIN_MASK_AREA:
+            part_warnings.append("mask area is unusually small")
+            status = "warning"
+        if part.get("mirror_of"):
+            part_warnings.append("used mirrored fallback")
+        if bbox_area(bbox) > 0 and area / float(max(1, bbox_area(bbox))) < 0.08:
+            part_warnings.append("mask coverage is sparse inside the bbox")
+
+        part_reports.append({
+            "part_name": part["part_name"],
+            "part_role": role,
+            "status": status,
+            "mask_area": area,
+            "bbox": [int(value) for value in bbox],
+            "bbox_size": bbox_size,
+            "used_mirrored_fallback": bool(part.get("mirror_of")),
+            "mirror_of": part.get("mirror_of"),
+            "warnings": part_warnings,
+            "failures": part_failures,
+        })
+        for message in part_warnings:
+            warnings.append("%s: %s" % (part["part_name"], message))
+        for message in part_failures:
+            failures.append("%s: %s" % (part["part_name"], message))
+
+    missing_roles = sorted(required_roles.difference(set(role_counts)))
+    for role in missing_roles:
+        failures.append("missing required part: %s" % role)
+
+    usable_part_reports = [item for item in part_reports if item["status"] != "fail"]
+    for index, left in enumerate(usable_part_reports):
+        for right in usable_part_reports[index + 1:]:
+            interesting_roles = {"prop", "accessory_front", "accessory_back"}
+            if left["part_role"] not in interesting_roles and right["part_role"] not in interesting_roles:
+                continue
+            shared = bbox_intersection_area(left["bbox"], right["bbox"])
+            if shared <= 0:
+                continue
+            ratio = shared / float(max(1, min(bbox_area(left["bbox"]), bbox_area(right["bbox"]))))
+            if ratio >= SPRITE_MODEL_WARN_COMPONENT_OVERLAP_RATIO:
+                overlap_warnings.append({
+                    "parts": [left["part_name"], right["part_name"]],
+                    "ratio": round(ratio, 4),
+                })
+
+    prop_report = next((item for item in usable_part_reports if item["part_role"] == "prop"), None)
+    if prop_report is not None:
+        for role in ["torso", "hand_left", "hand_right"]:
+            other = next((item for item in usable_part_reports if item["part_role"] == role), None)
+            if other is None:
+                continue
+            overlap = bbox_intersection_area(prop_report["bbox"], other["bbox"])
+            ratio = overlap / float(max(1, min(bbox_area(prop_report["bbox"]), bbox_area(other["bbox"]))))
+            if ratio >= SPRITE_MODEL_WARN_PROP_OVERLAP_RATIO:
+                prop_separation_warnings.append({
+                    "parts": [prop_report["part_name"], other["part_name"]],
+                    "ratio": round(ratio, 4),
+                })
+
+    warnings.extend(
+        "overlap warning: %s vs %s" % (item["parts"][0], item["parts"][1])
+        for item in overlap_warnings
+    )
+    warnings.extend(
+        "prop separation warning: %s vs %s" % (item["parts"][0], item["parts"][1])
+        for item in prop_separation_warnings
+    )
+
+    status = "pass"
+    if failures:
+        status = "fail"
+    elif any(item["status"] == "warning" for item in part_reports):
+        status = "warning"
+    return {
+        "generated_at": now_iso(),
+        "status": status,
+        "warnings": warnings,
+        "failures": failures,
+        "required_parts_missing": missing_roles,
+        "overlap_warnings": overlap_warnings,
+        "prop_separation_warnings": prop_separation_warnings,
+        "per_part": part_reports,
+        "summary": {
+            "part_count": len(parts),
+            "required_part_count": len(REQUIRED_PARTS),
+            "mirrored_fallback_count": sum(1 for item in part_reports if item["used_mirrored_fallback"]),
+            "warning_count": len(warnings),
+            "fail_count": len(failures),
+        },
+    }
+
+
 def build_sprite_model(project_id: str, progress: Optional[ProgressCallback] = None) -> Dict[str, Any]:
     project = load_project(project_id)
     project_dir = PROJECTS_ROOT / project_id
@@ -2559,8 +2897,8 @@ def build_sprite_model(project_id: str, progress: Optional[ProgressCallback] = N
     clear_directory(project_dir / "parts")
     (project_dir / "parts" / "masks").mkdir(parents=True, exist_ok=True)
     (project_dir / "parts" / "recovery").mkdir(parents=True, exist_ok=True)
-    delete_path(project_dir / "sprite_model.json")
-    delete_path(project_dir / "palette.json")
+    delete_path(canonical_downstream_path(project_dir, "sprite_model"))
+    delete_path(legacy_downstream_path(project_dir, "palette"))
 
     palette = extract_palette(image_with_mask(source_image, source_mask))
     facing = estimate_facing_direction(source_mask)
@@ -2576,12 +2914,20 @@ def build_sprite_model(project_id: str, progress: Optional[ProgressCallback] = N
         part_image, part_mask, absolute_bbox = crop_region_from_source(source_image, source_mask, box)
         if alpha_bbox(part_image) is None:
             counterpart = None
+            counterpart_name = None
             if part_name.endswith("_left"):
-                counterpart = built_parts.get(part_name.replace("_left", "_right"))
+                counterpart_name = part_name.replace("_left", "_right")
+                counterpart = built_parts.get(counterpart_name)
             elif part_name.endswith("_right"):
-                counterpart = built_parts.get(part_name.replace("_right", "_left"))
+                counterpart_name = part_name.replace("_right", "_left")
+                counterpart = built_parts.get(counterpart_name)
             counterpart_image = built_images.get(counterpart["part_name"]) if counterpart else None
             counterpart_mask = built_masks.get(counterpart["part_name"]) if counterpart else None
+            if counterpart is None and counterpart_name:
+                counterpart_box = region_box(subject_bbox, PART_REGION_FRACTIONS[counterpart_name])
+                counterpart_image, counterpart_mask, _ = crop_region_from_source(source_image, source_mask, counterpart_box)
+                if alpha_bbox(counterpart_image) is not None:
+                    counterpart = {"part_name": counterpart_name}
             part_image, part_mask, fallback_meta = fallback_part_entry(part_name, counterpart, counterpart_image, counterpart_mask, box)
             absolute_bbox = tuple(fallback_meta["bbox"])
             mirror_of = fallback_meta["mirror_of"]
@@ -2630,15 +2976,16 @@ def build_sprite_model(project_id: str, progress: Optional[ProgressCallback] = N
         "status": "pass",
         "approved_for_rigging": False,
     }
-    write_json(project_dir / "sprite_model.json", sprite_model)
-    write_json(project_dir / "palette.json", palette)
-    append_sprite_model_history(project_dir, {"type": "build", "status": "pass", "facing": facing})
+    sprite_model["build_report"] = validate_sprite_model(project_dir, sprite_model)
+    sprite_model["status"] = sprite_model["build_report"]["status"]
+    write_json(canonical_downstream_path(project_dir, "sprite_model"), sprite_model)
+    create_sprite_model_revision(project_dir, sprite_model, "build")
     project["sprite_model"] = sprite_model
     project["palette"] = palette
     project["layered_character"] = sprite_model
     project["sprite_model_history"] = load_sprite_model_history(project_dir)
     project["current_stage"] = "sprite_model"
-    project["status"] = "sprite_model_built"
+    project["status"] = "sprite_model_%s" % sprite_model["status"]
     project["sprite_model_approved"] = False
     project["layer_review_approved"] = False
     project["rig_review_approved"] = False
@@ -2657,11 +3004,9 @@ def sort_sprite_model_parts(sprite_model: Dict[str, Any]) -> None:
 
 def save_sprite_model_bundle(project_dir: Path, sprite_model: Dict[str, Any], palette: Optional[Dict[str, Any]] = None) -> None:
     sort_sprite_model_parts(sprite_model)
-    write_json(project_dir / "sprite_model.json", sprite_model)
-    if palette is None:
-        palette = sprite_model.get("palette")
     if palette is not None:
-        write_json(project_dir / "palette.json", palette)
+        sprite_model["palette"] = palette
+    write_json(canonical_downstream_path(project_dir, "sprite_model"), sprite_model)
 
 
 def replace_part_pixels_with_mask(image: Image.Image, mask: Image.Image) -> Image.Image:
@@ -2743,7 +3088,7 @@ def update_sprite_model(project_id: str, payload: Dict[str, Any]) -> Dict[str, A
     sprite_model = load_sprite_model(project_dir)
     if not sprite_model:
         raise ValueError("Build the sprite model before applying deterministic edits.")
-    palette = load_json(project_dir / "palette.json", sprite_model.get("palette", {}))
+    palette = sprite_model.get("palette", {})
 
     part_name = payload.get("part_name")
     parts_by_name = {item["part_name"]: item for item in sprite_model.get("parts", [])}
@@ -2753,6 +3098,11 @@ def update_sprite_model(project_id: str, payload: Dict[str, Any]) -> Dict[str, A
 
     if operation == "set_pivot":
         part["pivot_point"] = [int(payload["pivot_point"][0]), int(payload["pivot_point"][1])]
+    elif operation == "set_bbox":
+        bbox = payload.get("bbox")
+        if not isinstance(bbox, list) or len(bbox) != 4:
+            raise ValueError("set_bbox requires a four-value bbox.")
+        part["bbox"] = [int(value) for value in bbox]
     elif operation == "set_draw_order":
         part["draw_order"] = int(payload["draw_order"])
     elif operation == "set_parent_joint":
@@ -2765,8 +3115,10 @@ def update_sprite_model(project_id: str, payload: Dict[str, Any]) -> Dict[str, A
         if not new_name:
             raise ValueError("rename_part requires new_part_name.")
         image, mask = load_part_asset(project_dir, part)
-        delete_path(project_dir / part["image_path"])
-        delete_path(project_dir / part["mask_path"])
+        if resolve_part_image_path(part):
+            delete_path(project_dir / resolve_part_image_path(part))
+        if part.get("mask_path"):
+            delete_path(project_dir / part["mask_path"])
         image_path, mask_path = write_part_asset(project_dir, new_name, image, mask)
         part["part_name"] = new_name
         part["image_path"] = image_path
@@ -2793,8 +3145,10 @@ def update_sprite_model(project_id: str, payload: Dict[str, Any]) -> Dict[str, A
             merged_mask.paste(mask, (entry["bbox"][0] - union[0], entry["bbox"][1] - union[1]), mask)
         target_name = sanitize_filename(str(payload.get("target_part_name") or merge_parts[0]["part_name"]), merge_parts[0]["part_name"])
         for entry in merge_parts:
-            delete_path(project_dir / entry["image_path"])
-            delete_path(project_dir / entry["mask_path"])
+            if resolve_part_image_path(entry):
+                delete_path(project_dir / resolve_part_image_path(entry))
+            if entry.get("mask_path"):
+                delete_path(project_dir / entry["mask_path"])
         sprite_model["parts"] = [item for item in sprite_model["parts"] if item["part_name"] not in names]
         image_path, mask_path = write_part_asset(project_dir, target_name, merged_image, merged_mask)
         sprite_model["parts"].append({
@@ -2828,8 +3182,10 @@ def update_sprite_model(project_id: str, payload: Dict[str, Any]) -> Dict[str, A
                     {"part_name": "%s_b" % part["part_name"], "bbox": [split_at, 0, image.size[0], image.size[1]]},
                 ]
         sprite_model["parts"] = [item for item in sprite_model["parts"] if item["part_name"] != part["part_name"]]
-        delete_path(project_dir / part["image_path"])
-        delete_path(project_dir / part["mask_path"])
+        if resolve_part_image_path(part):
+            delete_path(project_dir / resolve_part_image_path(part))
+        if part.get("mask_path"):
+            delete_path(project_dir / part["mask_path"])
         for region in regions:
             box = tuple(int(value) for value in region["bbox"])
             child_image = image.crop(box)
@@ -2952,9 +3308,11 @@ def update_sprite_model(project_id: str, payload: Dict[str, Any]) -> Dict[str, A
             raise ValueError("Unsupported sprite-model operation.")
 
     sprite_model["palette"] = palette
+    sprite_model["build_report"] = validate_sprite_model(project_dir, sprite_model)
+    sprite_model["status"] = sprite_model["build_report"]["status"]
     sprite_model["approved_for_rigging"] = False
     save_sprite_model_bundle(project_dir, sprite_model, palette)
-    append_sprite_model_history(project_dir, {"type": "update", "operation": operation, "part_name": part_name})
+    create_sprite_model_revision(project_dir, sprite_model, "update", operation=operation, part_name=part_name)
     reset_downstream_assets(project_id, "sprite_model")
     project = clear_project_downstream_state(project, "sprite_model")
     project["sprite_model"] = sprite_model
@@ -2965,7 +3323,7 @@ def update_sprite_model(project_id: str, payload: Dict[str, Any]) -> Dict[str, A
     project["layer_review_approved"] = False
     project["rig_review_approved"] = False
     project["current_stage"] = "sprite_model"
-    project["status"] = "sprite_model_updated"
+    project["status"] = "sprite_model_%s" % sprite_model["status"]
     project["updated_at"] = now_iso()
     save_project(project)
     return load_project(project_id)["sprite_model"]
@@ -3015,88 +3373,57 @@ def recover_sprite_model_occlusion(project_id: str, payload: Dict[str, Any]) -> 
     return {"part_name": part_name, "variants": variants}
 
 
+def promote_sprite_model_recovery_variant(project_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+    project = load_project(project_id)
+    project_dir = PROJECTS_ROOT / project_id
+    sprite_model = load_sprite_model(project_dir)
+    if not sprite_model:
+        raise ValueError("Build the sprite model before promoting recovery variants.")
+    part_name = str(payload.get("part_name") or "").strip()
+    if not part_name:
+        raise ValueError("promote-recovery requires part_name.")
+    image_path = str(payload.get("image_path") or "").strip()
+    mask_path = str(payload.get("mask_path") or "").strip()
+    if not image_path or not mask_path:
+        raise ValueError("promote-recovery requires image_path and mask_path.")
+
+    part = next((item for item in sprite_model["parts"] if item["part_name"] == part_name), None)
+    if part is None:
+        raise ValueError("Part not found.")
+
+    recovery_image = Image.open(project_dir / image_path).convert("RGBA")
+    recovery_mask = normalize_mask(Image.open(project_dir / mask_path))
+    part["image_path"], part["mask_path"] = write_part_asset(project_dir, part_name, recovery_image, recovery_mask)
+    part["bbox"] = [
+        int(part["bbox"][0]),
+        int(part["bbox"][1]),
+        int(part["bbox"][0]) + recovery_image.size[0],
+        int(part["bbox"][1]) + recovery_image.size[1],
+    ]
+    sprite_model["build_report"] = validate_sprite_model(project_dir, sprite_model)
+    sprite_model["status"] = sprite_model["build_report"]["status"]
+    sprite_model["approved_for_rigging"] = False
+    save_sprite_model_bundle(project_dir, sprite_model)
+    create_sprite_model_revision(project_dir, sprite_model, "promote_recovery", operation="promote_recovery", part_name=part_name)
+    reset_downstream_assets(project_id, "sprite_model")
+    project = clear_project_downstream_state(project, "sprite_model")
+    project["sprite_model"] = sprite_model
+    project["palette"] = sprite_model.get("palette")
+    project["layered_character"] = sprite_model
+    project["sprite_model_history"] = load_sprite_model_history(project_dir)
+    project["sprite_model_approved"] = False
+    project["layer_review_approved"] = False
+    project["rig_review_approved"] = False
+    project["current_stage"] = "sprite_model"
+    project["status"] = "sprite_model_%s" % sprite_model["status"]
+    project["updated_at"] = now_iso()
+    save_project(project)
+    return load_project(project_id)
+
+
 def hex_to_rgba(value: str, alpha: int = 255) -> Tuple[int, int, int, int]:
     value = value.lstrip("#")
     return tuple(int(value[index:index + 2], 16) for index in (0, 2, 4)) + (alpha,)
-
-
-def make_part_image(part: PartSpec, palette: Dict[str, str]) -> Image.Image:
-    img = Image.new("RGBA", part.size, (0, 0, 0, 0))
-    draw = ImageDraw.Draw(img)
-    fill = hex_to_rgba(palette[part.color_key])
-    outline = hex_to_rgba(palette["outline"])
-    width, height = part.size
-    if part.kind == "ellipse":
-        draw.ellipse((2, 2, width - 3, height - 3), fill=fill, outline=outline, width=2)
-    elif part.kind == "fringe":
-        draw.polygon([(2, 6), (width - 4, 2), (width - 6, height - 2), (8, height - 4)], fill=fill, outline=outline)
-    elif part.kind == "torso":
-        draw.rounded_rectangle((3, 2, width - 3, height - 2), radius=10, fill=fill, outline=outline, width=2)
-        draw.rectangle((10, height - 18, width - 10, height - 6), fill=hex_to_rgba(palette["accent"]), outline=outline, width=2)
-    elif part.kind == "pelvis":
-        draw.rounded_rectangle((2, 3, width - 2, height - 2), radius=6, fill=fill, outline=outline, width=2)
-    elif part.kind == "limb":
-        draw.rounded_rectangle((3, 2, width - 3, height - 2), radius=7, fill=fill, outline=outline, width=2)
-    elif part.kind == "hand":
-        draw.ellipse((1, 2, width - 2, height - 2), fill=fill, outline=outline, width=2)
-    elif part.kind == "foot":
-        draw.rounded_rectangle((1, 4, width - 2, height - 2), radius=5, fill=fill, outline=outline, width=2)
-    elif part.kind == "prop":
-        draw.rounded_rectangle((1, 3, width - 3, height - 3), radius=5, fill=fill, outline=outline, width=2)
-        draw.line((8, height // 2, width - 8, height // 2), fill=hex_to_rgba(palette["accent"]), width=2)
-    elif part.kind == "accessory":
-        draw.rounded_rectangle((2, 2, width - 2, height - 2), radius=5, fill=fill, outline=outline, width=2)
-    return img
-
-
-def build_layered_character(project_id: str, progress: Optional[ProgressCallback] = None) -> Dict[str, Any]:
-    project = load_project(project_id)
-    project_dir = PROJECTS_ROOT / project_id
-    if not project.get("character_spec"):
-        raise ValueError("Concept approval is required before layer build.")
-
-    call_progress(progress, 8, "Preparing layers", "Building the temporary layer stack for the selected look.")
-    palette = project["character_spec"]["palette_definition"]
-    parts = []
-    total_parts = len(REQUIRED_PARTS)
-    for index, part_name in enumerate(REQUIRED_PARTS):
-        call_progress(progress, 12 + int((index / max(1, total_parts)) * 74), "Building layer %d of %d" % (index + 1, total_parts), part_name)
-        part = PART_LIBRARY[part_name]
-        image = make_part_image(part, palette)
-        output_path = project_dir / "layers" / ("%s.png" % part_name)
-        image.save(output_path)
-        parts.append({
-            "part_name": part_name,
-            "source_image_path": str(output_path.relative_to(project_dir)),
-            "local_bounding_box": [0, 0, image.size[0], image.size[1]],
-            "pivot_point": list(part.pivot),
-            "draw_order": part.draw_order,
-            "parent_joint": part.parent_joint,
-            "mask_integrity_status": "pass",
-        })
-
-    layered = {
-        "project_id": project_id,
-        "source_mode": "synthetic_procedural",
-        "source_summary": "Synthetic placeholder layers generated from a fixed part library.",
-        "parts": parts,
-        "qa": {
-            "missing_required_part": False,
-            "visible_background_contamination": False,
-            "broken_mask_edges": False,
-            "prop_not_separable_from_hand": False,
-            "source_is_extracted_from_concept": "not_implemented",
-        },
-        "status": "pass",
-        "approved_for_rigging": False,
-        "created_at": now_iso(),
-    }
-    project["layered_character"] = layered
-    project["current_stage"] = "layer_review"
-    project["updated_at"] = now_iso()
-    save_project(project)
-    call_progress(progress, 100, "Layers ready", "Review the temporary layer stack before continuing.")
-    return layered
 
 
 def base_joint_positions() -> Dict[str, Tuple[float, float]]:
@@ -3121,45 +3448,6 @@ def base_joint_positions() -> Dict[str, Tuple[float, float]]:
     }
 
 
-def build_animation_templates() -> Dict[str, Any]:
-    idle_frames = []
-    for index in range(ANIMATION_SPECS["idle"]["frame_count"]):
-        phase = index / float(ANIMATION_SPECS["idle"]["frame_count"] - 1)
-        idle_frames.append({
-            "root_offset": [0, round(math.sin(phase * math.tau) * 3, 2)],
-            "torso_rotation": round(math.sin(phase * math.tau) * 3, 2),
-            "head_rotation": round(math.sin(phase * math.tau + 0.6) * 2, 2),
-            "arm_swing": round(math.sin(phase * math.tau) * 6, 2),
-            "leg_swing": round(math.sin(phase * math.tau) * 4, 2),
-        })
-
-    walk_frames = []
-    for index in range(ANIMATION_SPECS["walk"]["frame_count"]):
-        phase = index / float(ANIMATION_SPECS["walk"]["frame_count"] - 1)
-        walk_frames.append({
-            "root_offset": [round(math.sin(phase * math.tau) * 4, 2), round(abs(math.sin(phase * math.tau)) * -6, 2)],
-            "torso_rotation": round(math.sin(phase * math.tau) * 5, 2),
-            "head_rotation": round(math.sin(phase * math.tau + 0.4) * 3, 2),
-            "arm_swing": round(math.sin(phase * math.tau) * 20, 2),
-            "leg_swing": round(math.sin(phase * math.tau) * 24, 2),
-        })
-
-    return {
-        "idle": {
-            **ANIMATION_SPECS["idle"],
-            "root_motion_policy": "locked",
-            "loop_frame_continuity": True,
-            "joint_transforms_per_frame": idle_frames,
-        },
-        "walk": {
-            **ANIMATION_SPECS["walk"],
-            "root_motion_policy": "in_place",
-            "loop_frame_continuity": True,
-            "joint_transforms_per_frame": walk_frames,
-        },
-    }
-
-
 def composite_part(
     canvas: Image.Image,
     part_image: Image.Image,
@@ -3174,91 +3462,6 @@ def composite_part(
     offset_x = pivot_world[0] - pivot_local[0]
     offset_y = pivot_world[1] - pivot_local[1]
     canvas.alpha_composite(rotated, (int(round(offset_x)), int(round(offset_y))))
-
-
-def scale_point(point: Tuple[float, float]) -> Tuple[float, float]:
-    return (
-        RENDER_CENTER[0] + ((point[0] - RENDER_CENTER[0]) * RENDER_SCALE),
-        RENDER_CENTER[1] + ((point[1] - RENDER_CENTER[1]) * RENDER_SCALE),
-    )
-
-
-def render_pose(project: Dict[str, Any], transforms: Dict[str, Any], save_path: Optional[Path] = None) -> Tuple[Image.Image, Dict[str, Any]]:
-    project_dir = PROJECTS_ROOT / project["project_id"]
-    parts_meta = {part["part_name"]: part for part in project["layered_character"]["parts"]}
-    part_images = {}
-    scaled_pivots = {}
-    for name, meta in parts_meta.items():
-        image = Image.open(project_dir / meta["source_image_path"]).convert("RGBA")
-        scaled_size = (
-            max(1, int(round(image.size[0] * RENDER_SCALE))),
-            max(1, int(round(image.size[1] * RENDER_SCALE))),
-        )
-        scaled_image = image.resize(scaled_size, resample=Image.Resampling.BICUBIC)
-        part_images[name] = scaled_image
-        scaled_pivots[name] = (
-            max(0, int(round(meta["pivot_point"][0] * RENDER_SCALE))),
-            max(0, int(round(meta["pivot_point"][1] * RENDER_SCALE))),
-        )
-
-    base = base_joint_positions()
-    root_dx, root_dy = transforms.get("root_offset", [0, 0])
-    for key, value in list(base.items()):
-        base[key] = scale_point((value[0] + root_dx, value[1] + root_dy))
-
-    canvas = Image.new("RGBA", WORKING_CANVAS, (0, 0, 0, 0))
-    render_log = []
-    draw_sequence = []
-
-    def add(name: str, joint_key: str, rotation: float = 0.0, extra: Tuple[float, float] = (0, 0)) -> None:
-        meta = parts_meta[name]
-        world = (base[joint_key][0] + extra[0], base[joint_key][1] + extra[1])
-        composite_part(canvas, part_images[name], world, scaled_pivots[name], rotation)
-        draw_sequence.append((meta["draw_order"], name))
-        render_log.append({
-            "part": name,
-            "joint": joint_key,
-            "rotation": rotation,
-            "pivot_world": [round(world[0], 2), round(world[1], 2)],
-        })
-
-    arm_swing = float(transforms.get("arm_swing", 0))
-    leg_swing = float(transforms.get("leg_swing", 0))
-    torso_rotation = float(transforms.get("torso_rotation", 0))
-    head_rotation = float(transforms.get("head_rotation", 0))
-
-    add("hair_back", "head", head_rotation * 0.4, (-26, -28))
-    add("accessory_back", "torso", torso_rotation * 0.3, (-18, 14))
-    add("upper_leg_left", "hip_left", leg_swing * 0.8)
-    add("lower_leg_left", "knee_left", leg_swing * 0.55, (-2, 24))
-    add("foot_left", "ankle_left", 0.0, (-6, 32))
-    add("pelvis", "pelvis", 0.0, (-22, -4))
-    add("torso", "torso", torso_rotation, (-28, -10))
-    add("upper_arm_left", "shoulder_left", arm_swing * 0.7, (-8, 0))
-    add("lower_arm_left", "elbow_left", arm_swing * 0.45, (-8, 10))
-    add("hand_left", "wrist_left", 0.0, (-6, 18))
-    add("head", "head", head_rotation, (-24, -34))
-    add("hair_front", "head", head_rotation * 0.6, (-24, -28))
-    add("upper_leg_right", "hip_right", -leg_swing * 0.8)
-    add("lower_leg_right", "knee_right", -leg_swing * 0.55, (-2, 24))
-    add("foot_right", "ankle_right", 0.0, (-6, 32))
-    add("upper_arm_right", "shoulder_right", -arm_swing * 0.7, (-6, 0))
-    add("lower_arm_right", "elbow_right", -arm_swing * 0.45, (-6, 10))
-    add("hand_right", "wrist_right", 0.0, (-4, 18))
-    add("prop", "wrist_right", -arm_swing * 0.4, (0, 10))
-    add("accessory_front", "torso", torso_rotation * 0.2, (12, 14))
-
-    if save_path is not None:
-        canvas.save(save_path)
-    draw_sequence.sort()
-    return canvas, {
-        "render_log": render_log,
-        "draw_sequence": [name for _, name in draw_sequence],
-        "foot_anchor": {
-            "left": [base["ankle_left"][0] - 6, base["ankle_left"][1] + 32],
-            "right": [base["ankle_right"][0] - 6, base["ankle_right"][1] + 32],
-        },
-    }
 
 
 def cleanup_frame(image: Image.Image) -> Tuple[Image.Image, Dict[str, Any]]:
@@ -3295,88 +3498,6 @@ def border_has_alpha(image: Image.Image) -> bool:
     return False
 
 
-def build_rig(project_id: str, progress: Optional[ProgressCallback] = None) -> Dict[str, Any]:
-    project = load_project(project_id)
-    if not project.get("layered_character"):
-        raise ValueError("Layer review required before rig build.")
-
-    call_progress(progress, 10, "Preparing motion setup", "Loading the temporary layer stack.")
-    project_dir = PROJECTS_ROOT / project_id
-    templates = build_animation_templates()
-    call_progress(progress, 45, "Rendering neutral pose", "Capturing a reference pose for the motion setup.")
-    _, neutral_meta = render_pose(project, templates["idle"]["joint_transforms_per_frame"][0], project_dir / "rig" / "neutral_pose.png")
-    joint_map = {joint: list(coords) for joint, coords in base_joint_positions().items()}
-    rig = {
-        "source_mode": "synthetic_procedural",
-        "source_summary": "Rig is built for synthetic placeholder layers only.",
-        "joints": RIG_JOINTS,
-        "default_neutral_pose": joint_map,
-        "per_joint_rotation_limits": {
-            joint: {"min": -35, "max": 35}
-            for joint in RIG_JOINTS
-            if joint not in {"root", "pelvis", "torso"}
-        },
-        "draw_order_rules_for_overlap": neutral_meta["draw_sequence"],
-        "foot_anchor_reference": {
-            "pivot": list(FRAME_PIVOT),
-            "left_ankle": joint_map["ankle_left"],
-            "right_ankle": joint_map["ankle_right"],
-        },
-        "prop_attachment_joint": "wrist_right",
-        "rig_joint_map": joint_map,
-        "pivot_map": {part["part_name"]: part["pivot_point"] for part in project["layered_character"]["parts"]},
-        "occlusion_order_map": neutral_meta["draw_sequence"],
-        "neutral_pose_render": "rig/neutral_pose.png",
-        "approved_for_production": False,
-        "created_at": now_iso(),
-    }
-    write_json(project_dir / "rig" / "joint_map.json", joint_map)
-    write_json(project_dir / "rig" / "pivot_map.json", rig["pivot_map"])
-    write_json(project_dir / "rig" / "occlusion_order_map.json", rig["occlusion_order_map"])
-    project["rig"] = rig
-    project["animation_templates"] = templates
-    project["current_stage"] = "rig_review"
-    project["updated_at"] = now_iso()
-    save_project(project)
-    call_progress(progress, 100, "Motion setup ready", "Review the temporary motion setup before building animations.")
-    return rig
-
-
-def render_animation(project_id: str, animation_name: str, progress: Optional[ProgressCallback] = None) -> Dict[str, Any]:
-    project = load_project(project_id)
-    if not project.get("rig") or not project["rig"].get("approved_for_production"):
-        raise ValueError("Rig review approval is required before production.")
-    templates = project["animation_templates"][animation_name]
-    project_dir = PROJECTS_ROOT / project_id
-    output_dir = project_dir / "animations" / animation_name
-    manifests = []
-    frame_total = len(templates["joint_transforms_per_frame"])
-    for frame_index, transforms in enumerate(templates["joint_transforms_per_frame"]):
-        call_progress(
-            progress,
-            10 + int((frame_index / max(1, frame_total)) * 82),
-            "Building %s frame %d of %d" % (animation_name, frame_index + 1, frame_total),
-            "Rendering and cleaning the frame.",
-        )
-        raw, render_meta = render_pose(project, transforms)
-        final_frame, cleanup = cleanup_frame(raw)
-        frame_name = "%s_%02d.png" % (animation_name, frame_index)
-        final_path = output_dir / frame_name
-        final_frame.save(final_path)
-        manifests.append({
-            "frame_name": frame_name,
-            "path": str(final_path.relative_to(project_dir)),
-            "cleanup": cleanup,
-            "render_meta": render_meta,
-        })
-    write_json(output_dir / "render_manifest.json", {"animation": animation_name, "frames": manifests})
-    project["current_stage"] = "production_%s" % animation_name
-    project["updated_at"] = now_iso()
-    save_project(project)
-    call_progress(progress, 100, "%s animation ready" % animation_name.title(), "Frames saved for review.")
-    return {"animation": animation_name, "frames": manifests, "fps": templates["fps"], "frame_count": templates["frame_count"]}
-
-
 def check_state(status: str, details: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     if status not in {"pass", "fail", "not_implemented"}:
         raise ValueError("Invalid check state.")
@@ -3389,193 +3510,6 @@ def aggregate_check_state(states: List[str]) -> str:
     if any(state == "pass" for state in states):
         return "pass"
     return "not_implemented"
-
-
-def run_qa(project_id: str, progress: Optional[ProgressCallback] = None) -> Dict[str, Any]:
-    project = load_project(project_id)
-    project_dir = PROJECTS_ROOT / project_id
-    report = {
-        "project_id": project_id,
-        "generated_at": now_iso(),
-        "per_frame_checks": [],
-        "per_animation_checks": {},
-        "status": "pass",
-        "notes": [
-            "QA only evaluates implemented image heuristics.",
-            "Semantic checks such as strict side-view correctness remain out of scope for this pass.",
-        ],
-    }
-    source_hashes = {}
-    animation_items = list(ANIMATION_SPECS.items())
-    for animation_index, (animation_name, spec) in enumerate(animation_items):
-        call_progress(
-            progress,
-            8 + int((animation_index / max(1, len(animation_items))) * 70),
-            "Checking %s animation" % animation_name,
-            "Validating frame sizes, clipping, pivots, and loop continuity.",
-        )
-        frames = []
-        hashes = []
-        animation_dir = project_dir / "animations" / animation_name
-        manifest = load_json(animation_dir / "render_manifest.json", {"frames": []})
-        by_name = {item["frame_name"]: item for item in manifest.get("frames", [])}
-
-        for index in range(spec["frame_count"]):
-            frame_name = "%s_%02d.png" % (animation_name, index)
-            path = animation_dir / frame_name
-            if not path.exists():
-                raise ValueError("Missing frame: %s" % frame_name)
-            image = Image.open(path).convert("RGBA")
-            alpha = image.getchannel("A")
-            alpha_bbox = alpha.getbbox()
-            manifest_row = by_name.get(frame_name)
-            source_hashes[str(path.relative_to(project_dir))] = image_sha256(path)
-            hashes.append(source_hashes[str(path.relative_to(project_dir))])
-            pivot_ok = manifest_row is not None and manifest_row.get("cleanup", {}).get("pivot") == list(FRAME_PIVOT)
-            transparent = alpha_bbox is not None and any(value < 255 for value in alpha.getdata())
-            clipped = border_has_alpha(image)
-
-            checks = {
-                "alpha_presence": check_state("pass" if transparent else "fail"),
-                "exact_size_256x256": check_state("pass" if list(image.size) == [FRAME_SIZE, FRAME_SIZE] else "fail"),
-                "border_clipping": check_state("fail" if clipped else "pass"),
-                "pivot_alignment": check_state("pass" if pivot_ok else "fail", {"expected": list(FRAME_PIVOT)}),
-                "outline_thickness_stability": check_state("not_implemented"),
-                "palette_drift": check_state("not_implemented"),
-            }
-            frame_status = aggregate_check_state([item["status"] for item in checks.values()])
-            if frame_status == "fail":
-                report["status"] = "fail"
-            report["per_frame_checks"].append({
-                "frame_name": frame_name,
-                "status": frame_status,
-                "checks": checks,
-            })
-            if alpha_bbox is not None:
-                frames.append({"name": frame_name, "bbox": list(alpha_bbox), "hash": hashes[-1], "manifest": manifest_row})
-
-        bbox_jitter_state = "not_implemented"
-        duplicate_frame_state = "pass"
-        loop_state = "pass"
-        if frames:
-            xs = [frame["bbox"][0] for frame in frames]
-            widths = [frame["bbox"][2] - frame["bbox"][0] for frame in frames]
-            if max(xs) - min(xs) <= 18 and max(widths) - min(widths) <= 28:
-                bbox_jitter_state = "pass"
-            else:
-                bbox_jitter_state = "fail"
-            duplicate_frame_state = "fail" if len(set(hashes)) != len(hashes) else "pass"
-            first_bbox = frames[0]["bbox"]
-            last_bbox = frames[-1]["bbox"]
-            loop_state = "pass" if first_bbox == last_bbox else "fail"
-
-        animation_checks = {
-            "required_frame_count": check_state("pass" if len(frames) == spec["frame_count"] else "fail"),
-            "file_naming": check_state(
-                "pass" if [item["name"] for item in frames] == ["%s_%02d.png" % (animation_name, idx) for idx in range(spec["frame_count"])] else "fail"
-            ),
-            "bbox_jitter": check_state(bbox_jitter_state),
-            "duplicate_frame_detection": check_state(duplicate_frame_state),
-            "loop_seam_continuity": check_state(loop_state),
-            "spritesheet_ordering_validation": check_state("not_implemented"),
-        }
-        animation_status = aggregate_check_state([item["status"] for item in animation_checks.values()])
-        if animation_status == "fail":
-            report["status"] = "fail"
-        report["per_animation_checks"][animation_name] = {
-            "status": animation_status,
-            "checks": animation_checks,
-        }
-
-    report["source_asset_hashes"] = source_hashes
-    project["qa_report"] = report
-    project["current_stage"] = "qa"
-    project["updated_at"] = now_iso()
-    save_project(project)
-    call_progress(progress, 100, "Checks complete", "Review the check results before export.")
-    return report
-
-
-def export_project(project_id: str, progress: Optional[ProgressCallback] = None) -> Dict[str, Any]:
-    project = load_project(project_id)
-    if not project.get("qa_report") or project["qa_report"]["status"] != "pass":
-        raise ValueError("Export blocked: QA must pass first.")
-
-    project_dir = PROJECTS_ROOT / project_id
-    export_dir = project_dir / "exports" / datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-    export_dir.mkdir(parents=True, exist_ok=True)
-    ordered_frames = []
-    call_progress(progress, 8, "Preparing export", "Copying finished frame images into the export folder.")
-    for animation_name in ["idle", "walk"]:
-        count = ANIMATION_SPECS[animation_name]["frame_count"]
-        for index in range(count):
-            source = project_dir / "animations" / animation_name / ("%s_%02d.png" % (animation_name, index))
-            target_dir = export_dir / "frames"
-            target_dir.mkdir(exist_ok=True)
-            target = target_dir / source.name
-            target.write_bytes(source.read_bytes())
-            ordered_frames.append((animation_name, source.name, target))
-
-    call_progress(progress, 45, "Building spritesheet", "Packing all exported frames into a single sheet.")
-    spritesheet = Image.new("RGBA", (FRAME_SIZE * len(ordered_frames), FRAME_SIZE), (0, 0, 0, 0))
-    atlas_frames = {}
-    for index, (_, frame_name, path) in enumerate(ordered_frames):
-        frame_image = Image.open(path).convert("RGBA")
-        x = index * FRAME_SIZE
-        spritesheet.alpha_composite(frame_image, (x, 0))
-        atlas_frames[frame_name] = {"x": x, "y": 0, "w": FRAME_SIZE, "h": FRAME_SIZE}
-    spritesheet.save(export_dir / "spritesheet.png")
-
-    animations_payload = {
-        name: {
-            "fps": spec["fps"],
-            "loop": spec["loop"],
-            "frames": ["%s_%02d.png" % (name, index) for index in range(spec["frame_count"])],
-        }
-        for name, spec in ANIMATION_SPECS.items()
-    }
-    export_manifest = {
-        "project_id": project_id,
-        "approved_concept_id": project["character_spec"]["approved_concept_id"],
-        "export_timestamp": now_iso(),
-        "tool_version": TOOL_VERSION,
-        "source_asset_hashes": project["qa_report"]["source_asset_hashes"],
-    }
-    write_json(export_dir / "atlas.json", {"image": "spritesheet.png", "frames": atlas_frames})
-    write_json(export_dir / "animations.json", animations_payload)
-    write_json(export_dir / "qa_report.json", project["qa_report"])
-    write_json(export_dir / "export_manifest.json", export_manifest)
-
-    call_progress(progress, 78, "Building preview", "Creating the animated preview file.")
-    preview_frames = [Image.open(path).convert("RGBA") for _, _, path in ordered_frames]
-    preview_frames[0].save(
-        export_dir / "preview.gif",
-        save_all=True,
-        append_images=preview_frames[1:],
-        duration=[int(1000 / ANIMATION_SPECS["idle"]["fps"])] * ANIMATION_SPECS["idle"]["frame_count"]
-        + [int(1000 / ANIMATION_SPECS["walk"]["fps"])] * ANIMATION_SPECS["walk"]["frame_count"],
-        loop=0,
-        disposal=2,
-        transparency=0,
-    )
-
-    result = {
-        "export_dir": str(export_dir.relative_to(project_dir)),
-        "files": [
-            "spritesheet.png",
-            "atlas.json",
-            "animations.json",
-            "preview.gif",
-            "qa_report.json",
-            "export_manifest.json",
-        ] + ["frames/%s" % name for _, name, _ in ordered_frames],
-    }
-    project["last_export"] = result
-    project["current_stage"] = "export"
-    project["updated_at"] = now_iso()
-    save_project(project)
-    call_progress(progress, 100, "Export ready", "Open the export files from the export panel.")
-    return result
 
 
 def world_pivot(part: Dict[str, Any]) -> Tuple[float, float]:
@@ -3653,63 +3587,305 @@ def build_joint_vectors(joint_map: Dict[str, List[float]]) -> Dict[str, List[flo
     }
 
 
-def build_default_animation_clips(joint_map: Dict[str, List[float]]) -> Dict[str, Any]:
-    idle_frames = []
-    for index in range(ANIMATION_SPECS["idle"]["frame_count"]):
-        phase = index / float(ANIMATION_SPECS["idle"]["frame_count"])
-        wave = math.sin(phase * math.tau)
-        idle_frames.append({
-            "root_offset": [0, round(wave * 2.0, 2)],
-            "torso_rotation": round(wave * 2.5, 2),
-            "head_rotation": round(math.sin(phase * math.tau + 0.5) * 1.8, 2),
-            "shoulder_left_rotation": round(-4 + (wave * 4), 2),
-            "elbow_left_rotation": round(8 + (wave * 2), 2),
-            "shoulder_right_rotation": round(8 - (wave * 5), 2),
-            "elbow_right_rotation": round(10 - (wave * 2), 2),
-            "hip_left_rotation": round(wave * 3, 2),
-            "knee_left_rotation": round(max(0.0, -wave) * 4, 2),
-            "ankle_left_rotation": round(max(0.0, wave) * -2, 2),
-            "hip_right_rotation": round(-wave * 3, 2),
-            "knee_right_rotation": round(max(0.0, wave) * 4, 2),
-            "ankle_right_rotation": round(max(0.0, -wave) * -2, 2),
-        })
+def clip_root_motion_policy(animation_name: str) -> str:
+    return "locked" if animation_name == "idle" else "in_place"
 
-    walk_frames = []
-    for index in range(ANIMATION_SPECS["walk"]["frame_count"]):
-        phase = index / float(ANIMATION_SPECS["walk"]["frame_count"])
-        swing = math.sin(phase * math.tau)
-        walk_frames.append({
-            "root_offset": [0, round(abs(swing) * -6.0, 2)],
-            "torso_rotation": round(swing * 3.5, 2),
-            "head_rotation": round(math.sin(phase * math.tau + 0.35) * 2.2, 2),
-            "shoulder_left_rotation": round(-swing * 18, 2),
-            "elbow_left_rotation": round(8 + max(0.0, swing) * 8, 2),
-            "shoulder_right_rotation": round(swing * 18, 2),
-            "elbow_right_rotation": round(10 + max(0.0, -swing) * 8, 2),
-            "hip_left_rotation": round(swing * 20, 2),
-            "knee_left_rotation": round(max(0.0, -swing) * 24, 2),
-            "ankle_left_rotation": round(max(0.0, swing) * -10, 2),
-            "hip_right_rotation": round(-swing * 20, 2),
-            "knee_right_rotation": round(max(0.0, swing) * 24, 2),
-            "ankle_right_rotation": round(max(0.0, -swing) * -10, 2),
-        })
 
+def default_clip_controls(animation_name: str) -> Dict[str, float]:
+    return copy.deepcopy(DEFAULT_CLIP_CONTROLS[animation_name])
+
+
+def normalize_clip_controls(animation_name: str, controls: Optional[Dict[str, Any]]) -> Dict[str, float]:
+    normalized = default_clip_controls(animation_name)
+    if isinstance(controls, dict):
+        for key in normalized:
+            value = controls.get(key)
+            if isinstance(value, (int, float)):
+                normalized[key] = round(float(value), 2)
+    return normalized
+
+
+def clip_frame_overrides(frame_count: int, overrides: Optional[List[Any]]) -> List[Dict[str, Any]]:
+    rows: List[Dict[str, Any]] = []
+    for index in range(frame_count):
+        override = overrides[index] if isinstance(overrides, list) and index < len(overrides) and isinstance(overrides[index], dict) else {}
+        rows.append(dict(override))
+    return rows
+
+
+def apply_frame_overrides(frames: List[Dict[str, Any]], overrides: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    merged: List[Dict[str, Any]] = []
+    for index, frame in enumerate(frames):
+        updated = dict(frame)
+        for key, value in (overrides[index] if index < len(overrides) else {}).items():
+            if key == "root_offset" and isinstance(value, list) and len(value) == 2:
+                updated[key] = [round(float(value[0]), 2), round(float(value[1]), 2)]
+            elif isinstance(value, (int, float)):
+                updated[key] = round(float(value), 2)
+        merged.append(updated)
+    return merged
+
+
+def synthesize_clip_controls(animation_name: str, clip_source: Optional[Dict[str, Any]]) -> Dict[str, float]:
+    controls = default_clip_controls(animation_name)
+    if not isinstance(clip_source, dict):
+        return controls
+    frames = clip_source.get("joint_transforms_per_frame") or []
+    if not isinstance(frames, list) or not frames:
+        return controls
+
+    def amplitude(*keys: str) -> float:
+        values = []
+        for frame in frames:
+            for key in keys:
+                value = frame.get(key)
+                if isinstance(value, list) and len(value) == 2:
+                    values.extend(abs(float(item)) for item in value)
+                elif isinstance(value, (int, float)):
+                    values.append(abs(float(value)))
+        return round(max(values), 2) if values else 0.0
+
+    controls["body_bob"] = max(controls["body_bob"], amplitude("root_offset"))
+    controls["torso_lean"] = max(controls["torso_lean"], amplitude("torso_rotation"))
+    controls["arm_swing"] = max(controls["arm_swing"], amplitude("arm_swing", "shoulder_left_rotation", "shoulder_right_rotation"))
+    controls["leg_swing"] = max(controls["leg_swing"], amplitude("leg_swing", "hip_left_rotation", "hip_right_rotation"))
+    controls["foot_lift"] = max(controls["foot_lift"], amplitude("knee_left_rotation", "knee_right_rotation"))
+    controls["prop_lag"] = max(controls["prop_lag"], round(controls["arm_swing"] * 0.2, 2))
+    return controls
+
+
+def legacy_clip_frame_to_joint_frame(animation_name: str, frame: Dict[str, Any]) -> Dict[str, Any]:
+    if any(key in frame for key in ("shoulder_left_rotation", "shoulder_right_rotation", "hip_left_rotation", "hip_right_rotation")):
+        upgraded = dict(frame)
+        root = upgraded.get("root_offset") or [0, 0]
+        upgraded["root_offset"] = [round(float(root[0]), 2), round(float(root[1]), 2)]
+        return upgraded
+
+    arm_swing = float(frame.get("arm_swing", 0.0))
+    leg_swing = float(frame.get("leg_swing", 0.0))
+    torso_rotation = float(frame.get("torso_rotation", 0.0))
+    head_rotation = float(frame.get("head_rotation", 0.0))
+    root_offset = frame.get("root_offset") or [0, 0]
     return {
-        "idle": {
-            **ANIMATION_SPECS["idle"],
-            "root_motion_policy": "locked",
-            "loop_continuity_rules": {"wrap_to_first_frame": True},
-            "joint_transforms_per_frame": idle_frames,
-            "corrective_assets_per_frame": [[] for _ in idle_frames],
-        },
-        "walk": {
-            **ANIMATION_SPECS["walk"],
-            "root_motion_policy": "in_place",
-            "loop_continuity_rules": {"wrap_to_first_frame": True},
-            "joint_transforms_per_frame": walk_frames,
-            "corrective_assets_per_frame": [[] for _ in walk_frames],
-        },
+        "root_offset": [round(float(root_offset[0]), 2), round(float(root_offset[1]), 2)],
+        "torso_rotation": round(torso_rotation, 2),
+        "head_rotation": round(head_rotation, 2),
+        "shoulder_left_rotation": round(-arm_swing, 2),
+        "elbow_left_rotation": round(8 + max(0.0, arm_swing * 0.3), 2),
+        "shoulder_right_rotation": round(arm_swing, 2),
+        "elbow_right_rotation": round(10 + max(0.0, -arm_swing * 0.3), 2),
+        "hip_left_rotation": round(leg_swing, 2),
+        "knee_left_rotation": round(max(0.0, -leg_swing) * (1.2 if animation_name == "walk" else 1.0), 2),
+        "ankle_left_rotation": round(max(0.0, leg_swing) * -0.5, 2),
+        "hip_right_rotation": round(-leg_swing, 2),
+        "knee_right_rotation": round(max(0.0, leg_swing) * (1.2 if animation_name == "walk" else 1.0), 2),
+        "ankle_right_rotation": round(max(0.0, -leg_swing) * -0.5, 2),
+        "prop_rotation": round(arm_swing * 0.2, 2),
     }
+
+
+def generate_clip_frames(animation_name: str, controls: Dict[str, float], overrides: Optional[List[Dict[str, Any]]] = None) -> List[Dict[str, Any]]:
+    frame_total = ANIMATION_SPECS[animation_name]["frame_count"]
+    frames: List[Dict[str, Any]] = []
+    for index in range(frame_total):
+        phase = index / float(frame_total)
+        swing = math.sin(phase * math.tau)
+        lift = max(0.0, -swing)
+        push = max(0.0, swing)
+        if animation_name == "idle":
+            frames.append({
+                "root_offset": [0.0, round(swing * controls["body_bob"], 2)],
+                "torso_rotation": round(swing * controls["torso_lean"], 2),
+                "head_rotation": round(math.sin(phase * math.tau + 0.5) * max(1.2, controls["torso_lean"] * 0.7), 2),
+                "shoulder_left_rotation": round(-4 + (swing * controls["arm_swing"] * 0.6), 2),
+                "elbow_left_rotation": round(8 + (push * controls["arm_swing"] * 0.18), 2),
+                "shoulder_right_rotation": round(8 - (swing * controls["arm_swing"] * 0.75), 2),
+                "elbow_right_rotation": round(10 + (lift * controls["arm_swing"] * 0.18), 2),
+                "hip_left_rotation": round(swing * controls["leg_swing"] * 0.8, 2),
+                "knee_left_rotation": round(lift * controls["foot_lift"] * 0.7, 2),
+                "ankle_left_rotation": round(push * controls["foot_lift"] * -0.24, 2),
+                "hip_right_rotation": round(-swing * controls["leg_swing"] * 0.8, 2),
+                "knee_right_rotation": round(push * controls["foot_lift"] * 0.7, 2),
+                "ankle_right_rotation": round(lift * controls["foot_lift"] * -0.24, 2),
+                "prop_rotation": round(-swing * controls["prop_lag"], 2),
+            })
+        else:
+            frames.append({
+                "root_offset": [0.0, round(abs(swing) * -controls["body_bob"], 2)],
+                "torso_rotation": round(swing * controls["torso_lean"], 2),
+                "head_rotation": round(math.sin(phase * math.tau + 0.35) * max(1.4, controls["torso_lean"] * 0.8), 2),
+                "shoulder_left_rotation": round(-swing * controls["arm_swing"], 2),
+                "elbow_left_rotation": round(8 + (push * controls["arm_swing"] * 0.4), 2),
+                "shoulder_right_rotation": round(swing * controls["arm_swing"], 2),
+                "elbow_right_rotation": round(10 + (lift * controls["arm_swing"] * 0.4), 2),
+                "hip_left_rotation": round(swing * controls["leg_swing"], 2),
+                "knee_left_rotation": round(lift * controls["foot_lift"] * 1.35, 2),
+                "ankle_left_rotation": round(push * controls["foot_lift"] * -0.58, 2),
+                "hip_right_rotation": round(-swing * controls["leg_swing"], 2),
+                "knee_right_rotation": round(push * controls["foot_lift"] * 1.35, 2),
+                "ankle_right_rotation": round(lift * controls["foot_lift"] * -0.58, 2),
+                "prop_rotation": round(math.sin((phase - 0.08) * math.tau) * controls["prop_lag"], 2),
+            })
+    return apply_frame_overrides(frames, overrides or [])
+
+
+def hydrate_animation_clips(animation_clips: Optional[Dict[str, Any]], legacy_animation_templates: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+    if not ((isinstance(animation_clips, dict) and animation_clips) or (isinstance(legacy_animation_templates, dict) and legacy_animation_templates)):
+        return {}
+    source = animation_clips if isinstance(animation_clips, dict) and animation_clips else legacy_animation_templates if isinstance(legacy_animation_templates, dict) else {}
+    clips: Dict[str, Any] = {}
+    for animation_name in ["idle", "walk"]:
+        clip_source = source.get(animation_name) if isinstance(source, dict) else None
+        controls = normalize_clip_controls(animation_name, clip_source.get("controls") if isinstance(clip_source, dict) else None)
+        if isinstance(clip_source, dict) and "controls" not in clip_source:
+            controls = synthesize_clip_controls(animation_name, clip_source)
+        overrides = clip_frame_overrides(ANIMATION_SPECS[animation_name]["frame_count"], clip_source.get("frame_overrides") if isinstance(clip_source, dict) else None)
+        if isinstance(clip_source, dict) and clip_source.get("joint_transforms_per_frame") and "controls" not in clip_source:
+            frames = [
+                legacy_clip_frame_to_joint_frame(animation_name, frame)
+                for frame in clip_source.get("joint_transforms_per_frame", [])
+            ]
+            if len(frames) != ANIMATION_SPECS[animation_name]["frame_count"]:
+                frames = generate_clip_frames(animation_name, controls, overrides)
+            else:
+                frames = apply_frame_overrides(frames, overrides)
+        else:
+            frames = generate_clip_frames(animation_name, controls, overrides)
+        clips[animation_name] = {
+            **ANIMATION_SPECS[animation_name],
+            "root_motion_policy": clip_root_motion_policy(animation_name),
+            "loop_continuity_rules": {"wrap_to_first_frame": True},
+            "controls": controls,
+            "frame_overrides": overrides,
+            "joint_transforms_per_frame": frames,
+            "neutral_pose_frame_index": 0,
+            "corrective_assets_per_frame": [[] for _ in frames],
+        }
+    return clips
+
+
+def infer_legacy_part_bbox(part: Dict[str, Any], joint_map: Dict[str, List[float]], image_size: Tuple[int, int]) -> List[int]:
+    parent_joint = part.get("parent_joint") or PART_PARENT_JOINTS.get(part.get("part_name", ""), "torso")
+    pivot = part.get("pivot_point") or [image_size[0] // 2, image_size[1] // 2]
+    anchor = joint_map.get(parent_joint) or list(base_joint_positions()[parent_joint])
+    left = int(round(float(anchor[0]) - float(pivot[0])))
+    top = int(round(float(anchor[1]) - float(pivot[1])))
+    return [left, top, left + image_size[0], top + image_size[1]]
+
+
+def normalize_palette_payload(palette: Optional[Dict[str, Any]], fallback_image: Optional[Image.Image] = None) -> Dict[str, Any]:
+    if isinstance(palette, dict) and palette.get("swatches"):
+        result = dict(palette)
+        result.setdefault("outline", palette.get("outline") or "#0d1117")
+        result.setdefault("shadow", palette.get("shadow") or palette.get("outline") or "#111922")
+        result.setdefault("base", palette.get("base") or palette["swatches"][0])
+        result.setdefault("accent", palette.get("accent") or palette["swatches"][min(1, len(palette["swatches"]) - 1)])
+        result.setdefault("highlight", palette.get("highlight") or palette["swatches"][-1])
+        return result
+    if isinstance(palette, dict) and {"outline", "base", "accent"}.issubset(set(palette.keys())):
+        swatches = [palette["outline"], palette["base"], palette["accent"], palette.get("highlight") or palette["base"]]
+        return {
+            "outline": palette["outline"],
+            "shadow": palette.get("shadow") or palette["outline"],
+            "base": palette["base"],
+            "accent": palette["accent"],
+            "highlight": palette.get("highlight") or palette["base"],
+            "swatches": list(dict.fromkeys(swatches)),
+        }
+    if fallback_image is not None:
+        return extract_palette(fallback_image)
+    return {
+        "outline": "#0d1117",
+        "shadow": "#111922",
+        "base": "#7c8b98",
+        "accent": "#d4a752",
+        "highlight": "#edf2f8",
+        "swatches": ["#0d1117", "#111922", "#7c8b98", "#d4a752", "#edf2f8"],
+    }
+
+
+def hydrate_legacy_sprite_model(
+    project_dir: Path,
+    layered_character: Dict[str, Any],
+    rig: Optional[Dict[str, Any]],
+    legacy_palette: Optional[Dict[str, Any]],
+    character_spec: Optional[Dict[str, Any]],
+) -> Optional[Dict[str, Any]]:
+    if not isinstance(layered_character, dict) or not isinstance(layered_character.get("parts"), list):
+        return None
+    joint_map = None
+    if isinstance(rig, dict):
+        joint_map = rig.get("rig_joint_map") or rig.get("default_neutral_pose")
+    if not isinstance(joint_map, dict):
+        joint_map = {key: list(value) for key, value in base_joint_positions().items()}
+
+    parts: List[Dict[str, Any]] = []
+    palette_source_image = None
+    for entry in layered_character.get("parts", []):
+        image_rel = entry.get("source_image_path") or entry.get("image_path")
+        if not image_rel or not (project_dir / image_rel).exists():
+            continue
+        image = Image.open(project_dir / image_rel).convert("RGBA")
+        if palette_source_image is None:
+            palette_source_image = image
+        pivot = entry.get("pivot_point") or part_pivot_from_image(entry.get("part_name") or "part", image)
+        bbox = entry.get("bbox") or infer_legacy_part_bbox(entry, joint_map, image.size)
+        parts.append({
+            "part_name": entry["part_name"],
+            "part_role": entry.get("part_role") or entry["part_name"],
+            "image_path": image_rel,
+            "mask_path": entry.get("mask_path"),
+            "pivot_point": [int(pivot[0]), int(pivot[1])],
+            "parent_joint": entry.get("parent_joint") or PART_PARENT_JOINTS.get(entry["part_name"], "torso"),
+            "draw_order": int(entry.get("draw_order", PART_DRAW_ORDERS.get(entry["part_name"], 0))),
+            "bbox": [int(value) for value in bbox],
+            "mirror_of": entry.get("mirror_of"),
+            "approved": True,
+        })
+    if not parts:
+        return None
+    palette = normalize_palette_payload(
+        legacy_palette or ((character_spec or {}).get("palette_definition") if isinstance(character_spec, dict) else None),
+        palette_source_image,
+    )
+    source_bounds = [
+        min(part["bbox"][0] for part in parts),
+        min(part["bbox"][1] for part in parts),
+        max(part["bbox"][2] for part in parts),
+        max(part["bbox"][3] for part in parts),
+    ]
+    sprite_model = {
+        "project_id": project_dir.name,
+        "approved_master_pose": None,
+        "parts": sorted(parts, key=lambda item: (item["draw_order"], item["part_name"])),
+        "palette": palette,
+        "outline_rules": {
+            "outline_color": palette["outline"],
+            "mode": "legacy_hydrated",
+        },
+        "draw_order": [item["part_name"] for item in sorted(parts, key=lambda item: (item["draw_order"], item["part_name"]))],
+        "source_facing": "right",
+        "source_bounds": source_bounds,
+        "status": "warning",
+        "approved_for_rigging": False,
+    }
+    report = validate_sprite_model(project_dir, sprite_model)
+    sprite_model["build_report"] = report
+    sprite_model["status"] = report["status"]
+    return sprite_model
+
+
+def build_default_animation_clips(joint_map: Dict[str, List[float]], existing_clips: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    _ = joint_map
+    if not isinstance(existing_clips, dict) or not existing_clips:
+        existing_clips = {
+            name: {
+                "controls": default_clip_controls(name),
+                "frame_overrides": [{} for _ in range(ANIMATION_SPECS[name]["frame_count"])],
+            }
+            for name in ANIMATION_SPECS
+        }
+    return hydrate_animation_clips(existing_clips, None)
 
 
 def compute_pose_joints(rig: Dict[str, Any], transforms: Dict[str, Any]) -> Dict[str, Tuple[float, float]]:
@@ -3810,7 +3986,7 @@ def render_pose_from_sprite_model(project: Dict[str, Any], rig: Dict[str, Any], 
         "upper_leg_right": float(transforms.get("hip_right_rotation", 0.0)),
         "lower_leg_right": float(transforms.get("hip_right_rotation", 0.0)) + float(transforms.get("knee_right_rotation", 0.0)),
         "foot_right": float(transforms.get("hip_right_rotation", 0.0)) + float(transforms.get("knee_right_rotation", 0.0)) + float(transforms.get("ankle_right_rotation", 0.0)),
-        "prop": float(transforms.get("shoulder_right_rotation", 0.0)) + float(transforms.get("elbow_right_rotation", 0.0)),
+        "prop": float(transforms.get("shoulder_right_rotation", 0.0)) + float(transforms.get("elbow_right_rotation", 0.0)) + float(transforms.get("prop_rotation", 0.0)),
         "accessory_front": float(transforms.get("torso_rotation", 0.0)),
         "accessory_back": float(transforms.get("torso_rotation", 0.0)),
     }
@@ -3865,13 +4041,14 @@ def build_rig(project_id: str, progress: Optional[ProgressCallback] = None) -> D
     sprite_model = project.get("sprite_model")
     if not sprite_model:
         raise ValueError("Sprite model build is required before rig build.")
+    existing_clips = copy.deepcopy(project.get("animation_clips") or {})
     reset_downstream_assets(project_id, "rig")
     project = clear_project_downstream_state(project, "rig")
 
     call_progress(progress, 10, "Preparing rig", "Building a deterministic rig from the extracted sprite model.")
     joint_map = build_joint_map_from_sprite_model(sprite_model)
     joint_vectors = build_joint_vectors(joint_map)
-    clips = build_default_animation_clips(joint_map)
+    clips = build_default_animation_clips(joint_map, existing_clips)
     rig = {
         "source_mode": "sprite_model",
         "source_summary": "Rig is built from the extracted canonical sprite model.",
@@ -3906,10 +4083,10 @@ def build_rig(project_id: str, progress: Optional[ProgressCallback] = None) -> D
     call_progress(progress, 48, "Rendering neutral pose", "Capturing the deterministic neutral pose from the extracted parts.")
     _, neutral_meta = render_pose_from_sprite_model(project, rig, clips["idle"]["joint_transforms_per_frame"][0], project_dir / "rig" / "neutral_pose.png")
     rig["occlusion_order_map"] = neutral_meta["draw_sequence"]
-    write_json(project_dir / "rig.json", rig)
+    write_json(canonical_downstream_path(project_dir, "rig"), rig)
     write_json(project_dir / "rig" / "joint_map.json", joint_map)
     write_json(project_dir / "rig" / "pivot_map.json", rig["pivot_map"])
-    write_json(project_dir / "animation_clips.json", clips)
+    write_json(canonical_downstream_path(project_dir, "animation_clips"), clips)
     project["rig"] = rig
     project["animation_clips"] = clips
     project["animation_templates"] = clips
@@ -3924,16 +4101,80 @@ def build_rig(project_id: str, progress: Optional[ProgressCallback] = None) -> D
     return rig
 
 
+def update_animation_clip(project_id: str, animation_name: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+    if animation_name not in ANIMATION_SPECS:
+        raise ValueError("Unknown clip: %s." % animation_name)
+    project = load_project(project_id)
+    if not project.get("rig"):
+        raise ValueError("Build the rig before editing clips.")
+    clips = hydrate_animation_clips(project.get("animation_clips"), project.get("animation_templates"))
+    clip = clips[animation_name]
+    merged_controls = dict(clip.get("controls") or {})
+    incoming_controls = payload.get("controls") if isinstance(payload.get("controls"), dict) else payload
+    if isinstance(incoming_controls, dict):
+        merged_controls.update({key: value for key, value in incoming_controls.items() if key in DEFAULT_CLIP_CONTROLS[animation_name]})
+    controls = normalize_clip_controls(animation_name, merged_controls)
+    overrides = clip_frame_overrides(ANIMATION_SPECS[animation_name]["frame_count"], payload.get("frame_overrides") if "frame_overrides" in payload else clip.get("frame_overrides"))
+    clip["controls"] = controls
+    clip["frame_overrides"] = overrides
+    clip["joint_transforms_per_frame"] = generate_clip_frames(animation_name, controls, overrides)
+    clips[animation_name] = clip
+    reset_downstream_assets(project_id, "clips")
+    project = clear_project_downstream_state(project, "clips")
+    project["animation_clips"] = clips
+    project["animation_templates"] = clips
+    project["current_stage"] = "clips"
+    project["status"] = "%s_clip_updated" % animation_name
+    project["updated_at"] = now_iso()
+    save_project(project)
+    return clip
+
+
+def reset_animation_clip(project_id: str, animation_name: str) -> Dict[str, Any]:
+    return update_animation_clip(project_id, animation_name, {
+        "controls": default_clip_controls(animation_name),
+        "frame_overrides": [{} for _ in range(ANIMATION_SPECS[animation_name]["frame_count"])],
+    })
+
+
+def approve_sprite_model_review(project_id: str) -> Dict[str, Any]:
+    project = load_project(project_id)
+    sprite_model = project.get("sprite_model")
+    if not sprite_model:
+        raise ValueError("Sprite model cannot be approved before a build.")
+    if sprite_model.get("status") == "fail":
+        raise ValueError("Sprite model approval is blocked until build failures are resolved.")
+    project["sprite_model_approved"] = True
+    project["layer_review_approved"] = True
+    project["sprite_model"]["approved_for_rigging"] = True
+    project["updated_at"] = now_iso()
+    save_project(project)
+    return {"ok": True}
+
+
+def approve_rig_review(project_id: str) -> Dict[str, Any]:
+    project = load_project(project_id)
+    if not project.get("rig"):
+        raise ValueError("Rig review cannot be approved before rig build.")
+    if not project.get("sprite_model_approved") and not project.get("layer_review_approved"):
+        raise ValueError("Sprite-model approval is required before rig review approval.")
+    project["rig_review_approved"] = True
+    project["rig"]["approved_for_production"] = True
+    project["updated_at"] = now_iso()
+    save_project(project)
+    return {"ok": True}
+
+
 def render_animation(project_id: str, animation_name: str, progress: Optional[ProgressCallback] = None) -> Dict[str, Any]:
     project = load_project(project_id)
     if not project.get("rig"):
         raise ValueError("Build the rig before rendering clips.")
     if not project.get("rig_review_approved"):
         raise ValueError("Rig review approval is required before production.")
-    clips = project.get("animation_clips") or load_json(PROJECTS_ROOT / project_id / "animation_clips.json")
+    clips = project.get("animation_clips") or load_json(canonical_downstream_path(PROJECTS_ROOT / project_id, "animation_clips"))
     if animation_name not in clips:
         raise ValueError("Unknown clip: %s." % animation_name)
-    delete_path(PROJECTS_ROOT / project_id / "qa_report.json")
+    delete_path(canonical_downstream_path(PROJECTS_ROOT / project_id, "qa_report"))
     clear_directory(PROJECTS_ROOT / project_id / "exports")
     project["qa_report"] = None
     project["last_export"] = None
@@ -3973,9 +4214,12 @@ def run_qa(project_id: str, progress: Optional[ProgressCallback] = None) -> Dict
     project_dir = PROJECTS_ROOT / project_id
     sprite_model = project.get("sprite_model")
     rig = project.get("rig")
-    clips = project.get("animation_clips") or load_json(project_dir / "animation_clips.json", {})
+    clips = project.get("animation_clips") or load_json(canonical_downstream_path(project_dir, "animation_clips"), {})
     if not sprite_model or not rig or not clips:
         raise ValueError("Sprite model, rig, and animation clips must exist before QA.")
+    build_report = sprite_model.get("build_report") or validate_sprite_model(project_dir, sprite_model)
+    sprite_model["build_report"] = build_report
+    sprite_model["status"] = build_report["status"]
 
     report = {
         "project_id": project_id,
@@ -3989,6 +4233,7 @@ def run_qa(project_id: str, progress: Optional[ProgressCallback] = None) -> Dict
             "QA validates deterministic asset structure and implemented image checks.",
             "Semantic art direction still requires a human review pass in the workbench.",
         ],
+        "sprite_model_build_report": build_report,
     }
 
     required_parts = set()
@@ -4007,6 +4252,7 @@ def run_qa(project_id: str, progress: Optional[ProgressCallback] = None) -> Dict
         draw_orders = []
         foot_anchors = []
         frame_hashes = []
+        manifest_names = [item.get("frame_name") for item in frames]
         for index in range(spec["frame_count"]):
             frame_name = "%s_%02d.png" % (animation_name, index)
             path = animation_dir / frame_name
@@ -4054,11 +4300,14 @@ def run_qa(project_id: str, progress: Optional[ProgressCallback] = None) -> Dict
         loop_ok = abs(first_left[1] - last_left[1]) <= 6
         animation_checks = {
             "correct_frame_count": check_state("pass" if len(frames) == spec["frame_count"] else "fail"),
+            "render_manifest_completeness": check_state(
+                "pass" if manifest_names == ["%s_%02d.png" % (animation_name, index) for index in range(spec["frame_count"])] else "fail"
+            ),
             "stable_draw_order": check_state("pass" if stable_draw_order else "fail"),
             "stable_foot_anchor": check_state("pass" if foot_anchor_stable else "fail"),
             "loop_seam_continuity": check_state("pass" if loop_ok else "fail"),
             "metadata_correctness": check_state("pass" if clips.get(animation_name, {}).get("frame_count") == spec["frame_count"] and clips.get(animation_name, {}).get("fps") == spec["fps"] else "fail"),
-            "spritesheet_packing_correctness": check_state("pass"),
+            "clip_control_persistence": check_state("pass" if isinstance(clips.get(animation_name, {}).get("controls"), dict) else "fail"),
         }
         animation_status = aggregate_check_state([item["status"] for item in animation_checks.values()])
         if animation_status == "fail":
@@ -4068,19 +4317,58 @@ def run_qa(project_id: str, progress: Optional[ProgressCallback] = None) -> Dict
     report["metadata_checks"] = {
         "has_master_pose": check_state("pass" if project.get("master_pose_approved") else "fail"),
         "has_sprite_model": check_state("pass" if bool(sprite_model.get("parts")) else "fail"),
+        "sprite_model_build_report": check_state("pass" if build_report.get("status") != "fail" else "fail", {"status": build_report.get("status")}),
         "has_rig": check_state("pass" if bool(rig.get("rig_joint_map")) else "fail"),
         "has_animation_clips": check_state("pass" if set(clips.keys()) >= {"idle", "walk"} else "fail"),
     }
     if any(item["status"] == "fail" for item in report["metadata_checks"].values()):
         report["status"] = "fail"
-    write_json(project_dir / "qa_report.json", report)
+    write_json(canonical_downstream_path(project_dir, "qa_report"), report)
     project["qa_report"] = report
+    project["sprite_model"] = sprite_model
     project["current_stage"] = "qa"
     project["status"] = "qa_%s" % report["status"]
     project["updated_at"] = now_iso()
     save_project(project)
     call_progress(progress, 100, "Checks complete", "QA finished. Export stays blocked until every required check passes.")
     return report
+
+
+def validate_export_bundle(
+    export_dir: Path,
+    ordered_frames: List[Tuple[str, str, Path]],
+    atlas_frames: Dict[str, Dict[str, Any]],
+) -> Dict[str, Any]:
+    spritesheet_path = export_dir / "spritesheet.png"
+    spritesheet = Image.open(spritesheet_path).convert("RGBA")
+    expected_order = [frame_name for _, frame_name, _ in ordered_frames]
+    atlas_order = list(atlas_frames.keys())
+    crop_checks = []
+    for animation_name, frame_name, path in ordered_frames:
+        atlas = atlas_frames[frame_name]
+        crop = spritesheet.crop((atlas["x"], atlas["y"], atlas["x"] + atlas["w"], atlas["y"] + atlas["h"]))
+        source = Image.open(path).convert("RGBA")
+        crop_checks.append({
+            "frame_name": frame_name,
+            "animation": animation_name,
+            "matches_source": list(crop.getdata()) == list(source.getdata()),
+        })
+    status = "pass" if (
+        list(spritesheet.size) == [FRAME_SIZE * len(ordered_frames), FRAME_SIZE]
+        and atlas_order == expected_order
+        and all(item["matches_source"] for item in crop_checks)
+    ) else "fail"
+    return {
+        "status": status,
+        "checks": {
+            "spritesheet_dimensions": list(spritesheet.size) == [FRAME_SIZE * len(ordered_frames), FRAME_SIZE],
+            "atlas_order_matches_frames": atlas_order == expected_order,
+            "packed_pixels_match_sources": all(item["matches_source"] for item in crop_checks),
+        },
+        "atlas_order": atlas_order,
+        "expected_order": expected_order,
+        "per_frame": crop_checks,
+    }
 
 
 def export_project(project_id: str, progress: Optional[ProgressCallback] = None) -> Dict[str, Any]:
@@ -4091,7 +4379,7 @@ def export_project(project_id: str, progress: Optional[ProgressCallback] = None)
         raise ValueError("Export blocked: sprite model is missing.")
 
     project_dir = PROJECTS_ROOT / project_id
-    clips = project.get("animation_clips") or load_json(project_dir / "animation_clips.json", {})
+    clips = project.get("animation_clips") or load_json(canonical_downstream_path(project_dir, "animation_clips"), {})
     export_dir = project_dir / "exports" / datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     export_dir.mkdir(parents=True, exist_ok=True)
     ordered_frames = []
@@ -4131,14 +4419,13 @@ def export_project(project_id: str, progress: Optional[ProgressCallback] = None)
         "approved_master_pose": "master_pose/approved_master_pose.png",
         "export_timestamp": now_iso(),
         "tool_version": TOOL_VERSION,
-        "sprite_model_hash": hashlib.sha256((project_dir / "sprite_model.json").read_bytes()).hexdigest(),
-        "rig_hash": hashlib.sha256((project_dir / "rig.json").read_bytes()).hexdigest(),
+        "sprite_model_hash": hashlib.sha256(canonical_downstream_path(project_dir, "sprite_model").read_bytes()).hexdigest(),
+        "rig_hash": hashlib.sha256(canonical_downstream_path(project_dir, "rig").read_bytes()).hexdigest(),
         "source_asset_hashes": project["qa_report"]["source_asset_hashes"],
     }
     write_json(export_dir / "atlas.json", {"image": "spritesheet.png", "frames": atlas_frames})
     write_json(export_dir / "animations.json", animations_payload)
     write_json(export_dir / "qa_report.json", project["qa_report"])
-    write_json(export_dir / "export_manifest.json", export_manifest)
 
     call_progress(progress, 72, "Building preview", "Creating an animated preview from the exported frames.")
     preview_frames = [Image.open(path).convert("RGBA") for _, _, path in ordered_frames]
@@ -4152,9 +4439,21 @@ def export_project(project_id: str, progress: Optional[ProgressCallback] = None)
         disposal=2,
         transparency=0,
     )
+    export_manifest["bundle_hashes"] = {
+        "atlas.json": image_sha256(export_dir / "atlas.json"),
+        "animations.json": image_sha256(export_dir / "animations.json"),
+        "qa_report.json": image_sha256(export_dir / "qa_report.json"),
+        "spritesheet.png": image_sha256(export_dir / "spritesheet.png"),
+        "preview.gif": image_sha256(export_dir / "preview.gif"),
+    }
+    export_manifest["verification"] = validate_export_bundle(export_dir, ordered_frames, atlas_frames)
+    if export_manifest["verification"]["status"] != "pass":
+        raise ValueError("Export verification failed: packed spritesheet did not match the frame manifest.")
+    write_json(export_dir / "export_manifest.json", export_manifest)
 
     result = {
         "export_dir": str(export_dir.relative_to(project_dir)),
+        "verification": export_manifest["verification"],
         "files": [
             "spritesheet.png",
             "atlas.json",
@@ -4864,15 +5163,38 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                 project_id = sprite_model_recover_match.group(1)
                 return self._send_json(recover_sprite_model_occlusion(project_id, read_body(self)))
 
-            layers_match = re.fullmatch(r"/api/projects/([^/]+)/layers/build", path)
-            if layers_match:
-                project_id = layers_match.group(1)
-                return self._send_json(create_job(project_id, "layers.build", lambda progress: build_layered_character(project_id, progress=progress)), status=HTTPStatus.ACCEPTED)
+            sprite_model_promote_match = re.fullmatch(r"/api/projects/([^/]+)/sprite-model/promote-recovery", path)
+            if sprite_model_promote_match:
+                project_id = sprite_model_promote_match.group(1)
+                return self._send_json(promote_sprite_model_recovery_variant(project_id, read_body(self)))
+
+            sprite_model_undo_match = re.fullmatch(r"/api/projects/([^/]+)/sprite-model/undo", path)
+            if sprite_model_undo_match:
+                return self._send_json(undo_last_sprite_model_change(sprite_model_undo_match.group(1)))
+
+            sprite_model_restore_match = re.fullmatch(r"/api/projects/([^/]+)/sprite-model/restore", path)
+            if sprite_model_restore_match:
+                project_id = sprite_model_restore_match.group(1)
+                payload = read_body(self)
+                revision_id = payload.get("revision_id")
+                if not revision_id:
+                    raise ValueError("sprite-model/restore requires revision_id.")
+                return self._send_json(restore_sprite_model_revision(project_id, revision_id))
 
             rig_match = re.fullmatch(r"/api/projects/([^/]+)/rig/build", path)
             if rig_match:
                 project_id = rig_match.group(1)
                 return self._send_json(create_job(project_id, "rig.build", lambda progress: build_rig(project_id, progress=progress)), status=HTTPStatus.ACCEPTED)
+
+            clip_update_match = re.fullmatch(r"/api/projects/([^/]+)/clips/([^/]+)/update", path)
+            if clip_update_match:
+                project_id, clip_name = clip_update_match.groups()
+                return self._send_json(update_animation_clip(project_id, clip_name, read_body(self)))
+
+            clip_reset_match = re.fullmatch(r"/api/projects/([^/]+)/clips/([^/]+)/reset", path)
+            if clip_reset_match:
+                project_id, clip_name = clip_reset_match.groups()
+                return self._send_json(reset_animation_clip(project_id, clip_name))
 
             clip_match = re.fullmatch(r"/api/projects/([^/]+)/clips/([^/]+)/render", path)
             if clip_match:
@@ -4880,16 +5202,6 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                 if clip_name not in ANIMATION_SPECS:
                     raise ValueError("Unknown clip: %s." % clip_name)
                 return self._send_json(create_job(project_id, "clips.%s.render" % clip_name, lambda progress: render_animation(project_id, clip_name, progress=progress)), status=HTTPStatus.ACCEPTED)
-
-            idle_match = re.fullmatch(r"/api/projects/([^/]+)/animations/idle/render", path)
-            if idle_match:
-                project_id = idle_match.group(1)
-                return self._send_json(create_job(project_id, "animations.idle.render", lambda progress: render_animation(project_id, "idle", progress=progress)), status=HTTPStatus.ACCEPTED)
-
-            walk_match = re.fullmatch(r"/api/projects/([^/]+)/animations/walk/render", path)
-            if walk_match:
-                project_id = walk_match.group(1)
-                return self._send_json(create_job(project_id, "animations.walk.render", lambda progress: render_animation(project_id, "walk", progress=progress)), status=HTTPStatus.ACCEPTED)
 
             qa_match = re.fullmatch(r"/api/projects/([^/]+)/qa/run", path)
             if qa_match:
@@ -4903,57 +5215,11 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
 
             approve_sprite_model_match = re.fullmatch(r"/api/projects/([^/]+)/sprite-model/approve", path)
             if approve_sprite_model_match:
-                project_id = approve_sprite_model_match.group(1)
-                project = load_project(project_id)
-                if not project.get("sprite_model") or project["sprite_model"]["status"] != "pass":
-                    raise ValueError("Sprite model cannot be approved before a passing sprite-model build.")
-                project["sprite_model_approved"] = True
-                project["layer_review_approved"] = True
-                project["sprite_model"]["approved_for_rigging"] = True
-                project["updated_at"] = now_iso()
-                save_project(project)
-                return self._send_json({"ok": True})
-
-            approve_layer_match = re.fullmatch(r"/api/projects/([^/]+)/layer-review/approve", path)
-            if approve_layer_match:
-                project_id = approve_layer_match.group(1)
-                project = load_project(project_id)
-                if not project.get("sprite_model") or project["sprite_model"]["status"] != "pass":
-                    raise ValueError("Layer review cannot be approved before a passing sprite-model build.")
-                project["sprite_model_approved"] = True
-                project["layer_review_approved"] = True
-                project["sprite_model"]["approved_for_rigging"] = True
-                project["updated_at"] = now_iso()
-                save_project(project)
-                return self._send_json({"ok": True})
-
-            approve_rig_match = re.fullmatch(r"/api/projects/([^/]+)/rig-review/approve", path)
-            if approve_rig_match:
-                project_id = approve_rig_match.group(1)
-                project = load_project(project_id)
-                if not project.get("rig"):
-                    raise ValueError("Rig review cannot be approved before rig build.")
-                if not project.get("sprite_model_approved") and not project.get("layer_review_approved"):
-                    raise ValueError("Sprite-model approval is required before rig review approval.")
-                project["rig_review_approved"] = True
-                project["rig"]["approved_for_production"] = True
-                project["updated_at"] = now_iso()
-                save_project(project)
-                return self._send_json({"ok": True})
+                return self._send_json(approve_sprite_model_review(approve_sprite_model_match.group(1)))
 
             approve_rig_direct_match = re.fullmatch(r"/api/projects/([^/]+)/rig/approve", path)
             if approve_rig_direct_match:
-                project_id = approve_rig_direct_match.group(1)
-                project = load_project(project_id)
-                if not project.get("rig"):
-                    raise ValueError("Rig review cannot be approved before rig build.")
-                if not project.get("sprite_model_approved") and not project.get("layer_review_approved"):
-                    raise ValueError("Sprite-model approval is required before rig review approval.")
-                project["rig_review_approved"] = True
-                project["rig"]["approved_for_production"] = True
-                project["updated_at"] = now_iso()
-                save_project(project)
-                return self._send_json({"ok": True})
+                return self._send_json(approve_rig_review(approve_rig_direct_match.group(1)))
 
         except FileNotFoundError:
             return self._send_error_json(HTTPStatus.NOT_FOUND, "Project not found")

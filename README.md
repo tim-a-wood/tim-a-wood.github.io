@@ -121,14 +121,23 @@ Current workbench notes:
 
 - Concept generation and refinement are ComfyUI-backed by default.
 - A debug procedural backend still exists, but only when explicitly selected in the UI.
-- Layers, rigging, and animation remain clearly labeled placeholder or experimental downstream stages.
+- New downstream writes use the canonical files only: `sprite_model.json`, `sprite_model_history.json`, `rig.json`, `animation_clips.json`, and `qa_report.json`.
+- Legacy `layered_character.json`, `animation_templates.json`, and `palette.json` are hydration-only inputs for older projects and fixtures.
+- Sprite-model builds now emit a `build_report` with pass, warning, and fail states. Failures block approval in the UI.
+- The sprite-model editor supports direct bbox and pivot manipulation, mask rectangle edits, recovery promotion, undo, and revision restore.
+- Idle and walk clips are per-project deterministic clips stored in `animation_clips.json`, with editable high-level controls in the workbench.
+- Export verification now checks the packed spritesheet pixels and atlas order after packing, not just the pre-pack frame manifest.
 - References are copied into each project under `references/` and recorded in `history.json`.
+
+Canonical route and file contract notes live in `tools/2d-sprite-and-animation/CANONICAL-DOWNSTREAM-CONTRACT.md`.
 
 Sprite workbench regression tests:
 
 ```bash
 python3 -m unittest tests.test_sprite_workbench
 ```
+
+Fixture matrix for migration and canonical downstream coverage lives under `tests/fixtures/sprite_workbench/`.
 
 ## Controls
 
