@@ -1684,7 +1684,10 @@ def compute_wizard_context(project: Dict[str, Any]) -> Dict[str, Any]:
     valid_attempts = [item for item in imported_attempts if item.get("validation_status") == "valid"]
 
     has_brief = "brief" in completed or bool((project.get("prompt_text") or "").strip())
-    has_references = bool(brief.get("references")) or "references" in completed or "references" in skipped
+    # References are optional in the guided flow. Once the brief exists, the
+    # step should not remain the "active" blocker forever just because the
+    # user chose not to add any.
+    has_references = bool(brief.get("references")) or "references" in completed or "references" in skipped or has_brief
     has_concepts = bool(project.get("prompt_history")) or bool(imported_attempts)
     has_review = bool(project.get("selected_concept_id"))
     has_rig_layout = bool(project.get("rig_layout")) and bool(project.get("rig_layout_approved"))
@@ -1761,10 +1764,13 @@ def compute_wizard_context(project: Dict[str, Any]) -> Dict[str, Any]:
 
     recommended_next_step = active_step or "export"
     persisted_step = wizard_state.get("current_step")
-    if persisted_step in WIZARD_STEPS and step_statuses.get(persisted_step) in {"active", "ready", "complete", "attention"}:
-        recommended_next_step = persisted_step if step_statuses.get(persisted_step) != "locked" else recommended_next_step
+    if persisted_step in WIZARD_STEPS and step_statuses.get(persisted_step) in {"active", "ready", "attention"}:
+        recommended_next_step = persisted_step
 
-    wizard_state["current_step"] = recommended_next_step
+    if persisted_step in WIZARD_STEPS and step_statuses.get(persisted_step) != "locked":
+        wizard_state["current_step"] = persisted_step
+    else:
+        wizard_state["current_step"] = recommended_next_step
     if has_brief:
         wizard_state = set_wizard_step_complete(wizard_state, "brief")
     if has_references and "references" not in skipped:

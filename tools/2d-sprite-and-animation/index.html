@@ -2844,7 +2844,7 @@ function humanizeKey(value) {
 }
 
 function wizardProgressSummary(project) {
-    const statuses = project?.wizard_state?.step_statuses || {};
+    const statuses = project?.step_statuses || {};
     const completed = Object.values(statuses).filter((status) => status === "complete").length;
     return `${completed}/${WIZARD_STEPS.length} steps complete`;
 }
@@ -5221,7 +5221,7 @@ async function refreshProjects() {
     renderProjectList();
 }
 
-async function loadProject(projectId, mode = "workbench") {
+async function loadProject(projectId, mode = "wizard") {
     if (state.activeProject?.project_id !== projectId) {
         state.previousSpriteModel = null;
         state.spriteRecoveryVariants = {};
