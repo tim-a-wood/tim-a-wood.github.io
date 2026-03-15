@@ -40,6 +40,10 @@ STAGE_MATURITY_PATH = TOOL_DIR / "stage-maturity.json"
 # - animation_clips.json
 # - qa_report.json
 CANONICAL_DOWNSTREAM_FILES = {
+    "rig_layout": "rig_layout.json",
+    "rig_layout_history": "rig_layout_history.json",
+    "part_split": "part_split.json",
+    "part_split_history": "part_split_history.json",
     "sprite_model": "sprite_model.json",
     "sprite_model_history": "sprite_model_history.json",
     "rig": "rig.json",
@@ -56,6 +60,8 @@ SPRITE_MODEL_REVISIONS_DIRNAME = "sprite_model_revisions"
 TOOL_VERSION = "solo-ai-sprite-workbench-v4"
 DEFAULT_COMFYUI_BASE_URL = os.environ.get("SPRITE_WORKBENCH_COMFYUI_URL", "http://127.0.0.1:8188")
 DEFAULT_COMFYUI_CHECKPOINT = os.environ.get("SPRITE_WORKBENCH_COMFYUI_CHECKPOINT", "sd15.safetensors")
+GEMINI_API_BASE_URL = os.environ.get("GEMINI_API_BASE_URL", "https://generativelanguage.googleapis.com/v1beta")
+DEFAULT_GEMINI_VALIDATION_MODEL = os.environ.get("SPRITE_WORKBENCH_GEMINI_VALIDATION_MODEL", "gemini-2.5-flash")
 
 
 def env_int(name: str, default: int, minimum: int = 1) -> int:
@@ -72,7 +78,7 @@ CONCEPT_CANVAS = (640, 768)
 INITIAL_CONCEPT_COUNT = 6
 REFINEMENT_CONCEPT_COUNT = 4
 JOB_HISTORY_LIMIT = 50
-WIZARD_STEPS = ["project", "brief", "references", "concepts", "review", "master_pose", "sprite_model", "rig", "clips", "qa", "export"]
+WIZARD_STEPS = ["project", "brief", "references", "concepts", "review", "rig_layout", "part_split", "split_review", "sprite_model", "rig", "clips", "qa", "export"]
 MASTER_POSE_COUNT = 3
 
 FRAME_SIZE = 256
@@ -155,6 +161,10 @@ REQUIRED_PARTS = [
     "accessory_front",
     "accessory_back",
 ]
+
+LEGACY_RIG_PROFILE = "side_humanoid_full_20"
+SIDE_KNIGHT_SIMPLE_7 = "side_knight_simple_7"
+SIDE_KNIGHT_DUAL_LEG_8 = "side_knight_dual_leg_8"
 
 RIG_JOINTS = [
     "root",
@@ -298,6 +308,265 @@ PART_PIVOT_FRACTIONS = {
     "accessory_back": (0.5, 0.10),
 }
 
+LEGACY_RIG_LAYOUT_FLAGS = {
+    "has_weapon": True,
+    "has_cape_back": True,
+    "has_front_cloth": True,
+    "back_leg_mode": "full",
+    "back_arm_mode": "full",
+    "helmet_has_hair_layers": True,
+}
+
+SIMPLE_RIG_LAYOUT_FLAGS = {
+    "has_weapon": True,
+    "has_cape_back": True,
+    "has_front_cloth": True,
+    "back_leg_mode": "none",
+    "back_arm_mode": "none",
+    "helmet_has_hair_layers": False,
+}
+
+DUAL_LEG_RIG_LAYOUT_FLAGS = {
+    "has_weapon": True,
+    "has_cape_back": True,
+    "has_front_cloth": True,
+    "back_leg_mode": "single",
+    "back_arm_mode": "none",
+    "helmet_has_hair_layers": False,
+}
+
+SIMPLE_RIG_PARTS = [
+    {
+        "part_name": "head",
+        "part_role": "head",
+        "required": True,
+        "parent_joint": "head",
+        "draw_order": 22,
+        "pivot_strategy": {"mode": "fractional", "fraction": [0.5, 0.86]},
+        "extraction_region": [0.28, 0.02, 0.72, 0.20],
+        "fallback_mode": "empty_fail",
+        "overlay_only": False,
+        "label": "Head / Helmet",
+        "coverage": "The whole head mass, including helmet and neck silhouette. Exclude shoulder, cape, and torso armor.",
+    },
+    {
+        "part_name": "torso_pelvis",
+        "part_role": "torso_pelvis",
+        "required": True,
+        "parent_joint": "torso",
+        "draw_order": 16,
+        "pivot_strategy": {"mode": "fractional", "fraction": [0.5, 0.14]},
+        "extraction_region": [0.26, 0.18, 0.76, 0.62],
+        "fallback_mode": "empty_fail",
+        "overlay_only": False,
+        "label": "Torso / Pelvis",
+        "coverage": "Chest, waist, belt, and pelvis as one stable body mass. Exclude the readable front leg, weapon, and cape.",
+    },
+    {
+        "part_name": "front_arm",
+        "part_role": "front_arm",
+        "required": True,
+        "parent_joint": "shoulder_front",
+        "draw_order": 28,
+        "pivot_strategy": {"mode": "fractional", "fraction": [0.52, 0.10]},
+        "extraction_region": {
+            "left": [0.12, 0.20, 0.56, 0.62],
+            "right": [0.46, 0.20, 0.88, 0.62],
+        },
+        "fallback_mode": "empty_fail",
+        "overlay_only": False,
+        "label": "Front Arm",
+        "coverage": "Visible-side arm as one piece, including hand if needed. Keep it tight to the readable arm silhouette.",
+    },
+    {
+        "part_name": "front_leg",
+        "part_role": "front_leg",
+        "required": True,
+        "parent_joint": "hip_front",
+        "draw_order": 24,
+        "pivot_strategy": {"mode": "fractional", "fraction": [0.5, 0.08]},
+        "extraction_region": {
+            "left": [0.26, 0.56, 0.60, 1.00],
+            "right": [0.42, 0.56, 0.86, 1.00],
+        },
+        "fallback_mode": "empty_fail",
+        "overlay_only": False,
+        "label": "Front Leg",
+        "coverage": "Visible-side leg as one stable piece from thigh through foot. Do not try to split hidden-side limb details.",
+    },
+    {
+        "part_name": "weapon",
+        "part_role": "weapon",
+        "required": False,
+        "parent_joint": "wrist_front",
+        "draw_order": 32,
+        "pivot_strategy": {"mode": "fractional", "fraction": [0.18, 0.22]},
+        "extraction_region": {
+            "left": [0.00, 0.24, 0.58, 0.72],
+            "right": [0.42, 0.24, 1.00, 0.72],
+        },
+        "fallback_mode": "allow_missing",
+        "overlay_only": False,
+        "label": "Weapon",
+        "coverage": "Only the clearly visible handheld weapon. Keep it separate from torso, cape, and front cloth.",
+    },
+    {
+        "part_name": "cape_back",
+        "part_role": "cape_back",
+        "required": False,
+        "parent_joint": "torso",
+        "draw_order": 6,
+        "pivot_strategy": {"mode": "fractional", "fraction": [0.5, 0.10]},
+        "extraction_region": {
+            "left": [0.46, 0.18, 0.96, 1.00],
+            "right": [0.04, 0.18, 0.54, 1.00],
+        },
+        "fallback_mode": "allow_missing",
+        "overlay_only": True,
+        "label": "Back Cape",
+        "coverage": "Rear-hanging cape or back cloth behind the body. Exclude torso armor and visible limbs.",
+    },
+    {
+        "part_name": "front_cloth",
+        "part_role": "front_cloth",
+        "required": False,
+        "parent_joint": "torso",
+        "draw_order": 34,
+        "pivot_strategy": {"mode": "fractional", "fraction": [0.5, 0.10]},
+        "extraction_region": [0.42, 0.20, 0.78, 0.96],
+        "fallback_mode": "allow_missing",
+        "overlay_only": True,
+        "label": "Front Cloth",
+        "coverage": "Front cloth flap, sash, or tabard over the body. Exclude the readable front leg where possible.",
+    },
+]
+
+DUAL_LEG_RIG_PARTS = [
+    copy.deepcopy(SIMPLE_RIG_PARTS[0]),
+    copy.deepcopy(SIMPLE_RIG_PARTS[1]),
+    copy.deepcopy(SIMPLE_RIG_PARTS[2]),
+    copy.deepcopy(SIMPLE_RIG_PARTS[3]),
+    {
+        "part_name": "back_leg",
+        "part_role": "back_leg",
+        "required": True,
+        "parent_joint": "hip_back",
+        "draw_order": 10,
+        "pivot_strategy": {"mode": "fractional", "fraction": [0.5, 0.08]},
+        "extraction_region": [0.68, 0.67, 0.92, 1.00],
+        "fallback_mode": "clone_from:front_leg",
+        "overlay_only": False,
+        "label": "Back Leg",
+        "coverage": "Rear leg mass for locomotion support. Prefer a clean visible rear-leg read; otherwise derive deterministically from the front leg.",
+    },
+    copy.deepcopy(SIMPLE_RIG_PARTS[4]),
+    copy.deepcopy(SIMPLE_RIG_PARTS[5]),
+    copy.deepcopy(SIMPLE_RIG_PARTS[6]),
+]
+
+RIG_PROFILES: Dict[str, Dict[str, Any]] = {
+    LEGACY_RIG_PROFILE: {
+        "rig_profile": LEGACY_RIG_PROFILE,
+        "joint_schema": {
+            "joints": list(RIG_JOINTS),
+            "transform_channels": [
+                "root_offset",
+                "pelvis_rotation",
+                "torso_rotation",
+                "head_rotation",
+                "shoulder_left_rotation",
+                "elbow_left_rotation",
+                "shoulder_right_rotation",
+                "elbow_right_rotation",
+                "hip_left_rotation",
+                "knee_left_rotation",
+                "ankle_left_rotation",
+                "hip_right_rotation",
+                "knee_right_rotation",
+                "ankle_right_rotation",
+                "prop_rotation",
+            ],
+        },
+        "flags": dict(LEGACY_RIG_LAYOUT_FLAGS),
+        "parts": [
+            {
+                "part_name": part_name,
+                "part_role": part_name,
+                "required": True,
+                "parent_joint": PART_PARENT_JOINTS[part_name],
+                "draw_order": PART_DRAW_ORDERS[part_name],
+                "pivot_strategy": {"mode": "fractional", "fraction": list(PART_PIVOT_FRACTIONS.get(part_name, (0.5, 0.5)))},
+                "extraction_region": list(PART_REGION_FRACTIONS[part_name]),
+                "fallback_mode": "mirror_counterpart" if part_name.endswith("_left") or part_name.endswith("_right") else "empty_fail",
+                "overlay_only": part_name in {"hair_front", "hair_back", "accessory_front", "accessory_back"},
+                "label": part_name.replace("_", " ").title(),
+                "coverage": "Keep the box tight to this isolated body part and avoid neighboring pixels.",
+            }
+            for part_name in REQUIRED_PARTS
+        ],
+        "joint_driving_parts": [
+            "head",
+            "torso",
+            "pelvis",
+            "upper_arm_left",
+            "lower_arm_left",
+            "hand_left",
+            "upper_arm_right",
+            "lower_arm_right",
+            "hand_right",
+            "upper_leg_left",
+            "lower_leg_left",
+            "foot_left",
+            "upper_leg_right",
+            "lower_leg_right",
+            "foot_right",
+            "prop",
+        ],
+        "overlay_parts": ["hair_front", "hair_back", "accessory_front", "accessory_back"],
+    },
+    SIDE_KNIGHT_SIMPLE_7: {
+        "rig_profile": SIDE_KNIGHT_SIMPLE_7,
+        "joint_schema": {
+            "joints": ["root", "torso", "neck", "head", "shoulder_front", "wrist_front", "hip_front", "ankle_front"],
+            "transform_channels": [
+                "root_offset",
+                "torso_rotation",
+                "head_rotation",
+                "shoulder_front_rotation",
+                "hip_front_rotation",
+                "weapon_rotation",
+                "cape_back_rotation_bias",
+                "front_cloth_rotation_bias",
+            ],
+        },
+        "flags": dict(SIMPLE_RIG_LAYOUT_FLAGS),
+        "parts": copy.deepcopy(SIMPLE_RIG_PARTS),
+        "joint_driving_parts": ["head", "torso_pelvis", "front_arm", "front_leg", "weapon"],
+        "overlay_parts": ["cape_back", "front_cloth"],
+    },
+    SIDE_KNIGHT_DUAL_LEG_8: {
+        "rig_profile": SIDE_KNIGHT_DUAL_LEG_8,
+        "joint_schema": {
+            "joints": ["root", "torso", "neck", "head", "shoulder_front", "wrist_front", "hip_front", "ankle_front", "hip_back", "ankle_back"],
+            "transform_channels": [
+                "root_offset",
+                "torso_rotation",
+                "head_rotation",
+                "shoulder_front_rotation",
+                "hip_front_rotation",
+                "hip_back_rotation",
+                "weapon_rotation",
+                "cape_back_rotation_bias",
+                "front_cloth_rotation_bias",
+            ],
+        },
+        "flags": dict(DUAL_LEG_RIG_LAYOUT_FLAGS),
+        "parts": copy.deepcopy(DUAL_LEG_RIG_PARTS),
+        "joint_driving_parts": ["head", "torso_pelvis", "front_arm", "front_leg", "back_leg", "weapon"],
+        "overlay_parts": ["cape_back", "front_cloth"],
+    },
+}
+
 REJECT_PATTERNS = {
     "quadrupeds": re.compile(r"\b(quadruped|wolf|dog|cat|horse|beast on all fours)\b", re.I),
     "multi-character scenes": re.compile(r"\b(two characters|group|party|crowd|duo|trio|squad)\b", re.I),
@@ -437,6 +706,9 @@ def ensure_dirs(project_dir: Path) -> None:
         "prompts/history",
         "layers",
         "master_pose",
+        "part_split",
+        "part_split/parts",
+        "part_split/masks",
         "parts",
         "parts/masks",
         "parts/recovery",
@@ -487,7 +759,15 @@ def reset_downstream_assets(project_id: str, from_stage: str) -> None:
     project_dir = PROJECTS_ROOT / project_id
     if from_stage == "concept":
         clear_directory(project_dir / "master_pose")
-    if from_stage in {"concept", "master_pose"}:
+        delete_path(canonical_downstream_path(project_dir, "rig_layout"))
+        delete_path(canonical_downstream_path(project_dir, "rig_layout_history"))
+    if from_stage in {"concept", "master_pose", "rig_layout"}:
+        delete_path(canonical_downstream_path(project_dir, "part_split"))
+        delete_path(canonical_downstream_path(project_dir, "part_split_history"))
+        clear_directory(project_dir / "part_split")
+        (project_dir / "part_split" / "parts").mkdir(parents=True, exist_ok=True)
+        (project_dir / "part_split" / "masks").mkdir(parents=True, exist_ok=True)
+    if from_stage in {"concept", "master_pose", "rig_layout", "part_split"}:
         delete_path(canonical_downstream_path(project_dir, "sprite_model"))
         delete_path(canonical_downstream_path(project_dir, "sprite_model_history"))
         delete_path(legacy_downstream_path(project_dir, "palette"))
@@ -495,19 +775,19 @@ def reset_downstream_assets(project_id: str, from_stage: str) -> None:
         clear_directory(sprite_model_revisions_path(project_dir))
         (project_dir / "parts" / "masks").mkdir(parents=True, exist_ok=True)
         (project_dir / "parts" / "recovery").mkdir(parents=True, exist_ok=True)
-    if from_stage in {"concept", "master_pose", "sprite_model"}:
+    if from_stage in {"concept", "master_pose", "rig_layout", "part_split", "sprite_model"}:
         clear_directory(project_dir / "rig")
         delete_path(canonical_downstream_path(project_dir, "rig"))
         delete_path(canonical_downstream_path(project_dir, "animation_clips"))
         delete_path(legacy_downstream_path(project_dir, "animation_templates"))
-    if from_stage in {"concept", "master_pose", "sprite_model", "rig", "clips"}:
+    if from_stage in {"concept", "master_pose", "rig_layout", "part_split", "sprite_model", "rig", "clips"}:
         clear_directory(project_dir / "animations" / "idle")
         clear_directory(project_dir / "animations" / "walk")
         (project_dir / "animations" / "idle").mkdir(parents=True, exist_ok=True)
         (project_dir / "animations" / "walk").mkdir(parents=True, exist_ok=True)
-    if from_stage in {"concept", "master_pose", "sprite_model", "rig", "clips", "qa"}:
+    if from_stage in {"concept", "master_pose", "rig_layout", "part_split", "sprite_model", "rig", "clips", "qa"}:
         delete_path(canonical_downstream_path(project_dir, "qa_report"))
-    if from_stage in {"concept", "master_pose", "sprite_model", "rig", "clips", "qa", "export"}:
+    if from_stage in {"concept", "master_pose", "rig_layout", "part_split", "sprite_model", "rig", "clips", "qa", "export"}:
         clear_directory(project_dir / "exports")
 
 
@@ -515,21 +795,29 @@ def clear_project_downstream_state(project: Dict[str, Any], from_stage: str) -> 
     if from_stage == "concept":
         project["master_pose_manifest"] = {"candidates": []}
         project["master_pose_approved"] = False
-    if from_stage in {"concept", "master_pose"}:
+        project["rig_layout"] = None
+        project["rig_layout_history"] = default_rig_layout_history(project["project_id"])
+        project["rig_layout_approved"] = False
+    if from_stage in {"concept", "master_pose", "rig_layout"}:
+        project["part_split"] = None
+        project["part_split_history"] = default_part_split_history(project["project_id"])
+        project["part_split_approved"] = False
+        project["split_review_approved"] = False
+    if from_stage in {"concept", "master_pose", "rig_layout", "part_split"}:
         project["sprite_model"] = None
         project["palette"] = None
         project["sprite_model_history"] = default_sprite_model_history(project["project_id"])
         project["sprite_model_approved"] = False
         project["layer_review_approved"] = False
         project["layered_character"] = None
-    if from_stage in {"concept", "master_pose", "sprite_model"}:
+    if from_stage in {"concept", "master_pose", "rig_layout", "part_split", "sprite_model"}:
         project["rig"] = None
         project["animation_clips"] = None
         project["animation_templates"] = None
         project["rig_review_approved"] = False
-    if from_stage in {"concept", "master_pose", "sprite_model", "rig", "clips"}:
+    if from_stage in {"concept", "master_pose", "rig_layout", "part_split", "sprite_model", "rig", "clips"}:
         project["qa_report"] = None
-    if from_stage in {"concept", "master_pose", "sprite_model", "rig", "clips", "qa", "export"}:
+    if from_stage in {"concept", "master_pose", "rig_layout", "part_split", "sprite_model", "rig", "clips", "qa", "export"}:
         project["last_export"] = None
     return project
 
@@ -589,6 +877,118 @@ def dilate_mask(mask: Image.Image, radius: int = 1) -> Image.Image:
     return expanded
 
 
+def erode_mask(mask: Image.Image, radius: int = 1) -> Image.Image:
+    source = normalize_mask(mask)
+    eroded = Image.new("L", source.size, 0)
+    width, height = source.size
+    src = source.load()
+    dst = eroded.load()
+    for y in range(height):
+        for x in range(width):
+            keep = True
+            for oy in range(-radius, radius + 1):
+                for ox in range(-radius, radius + 1):
+                    nx = x + ox
+                    ny = y + oy
+                    if nx < 0 or ny < 0 or nx >= width or ny >= height or src[nx, ny] <= 0:
+                        keep = False
+                        break
+                if not keep:
+                    break
+            if keep:
+                dst[x, y] = 255
+    return eroded
+
+
+def largest_component_mask(mask: Image.Image, min_area_ratio: float = 0.035) -> Image.Image:
+    source = normalize_mask(mask)
+    width, height = source.size
+    pixels = source.load()
+    visited = set()
+    components: List[List[Tuple[int, int]]] = []
+    for y in range(height):
+        for x in range(width):
+            if pixels[x, y] <= 0 or (x, y) in visited:
+                continue
+            queue = [(x, y)]
+            visited.add((x, y))
+            component: List[Tuple[int, int]] = []
+            while queue:
+                cx, cy = queue.pop()
+                component.append((cx, cy))
+                for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+                    nx = cx + dx
+                    ny = cy + dy
+                    if nx < 0 or ny < 0 or nx >= width or ny >= height:
+                        continue
+                    if pixels[nx, ny] <= 0 or (nx, ny) in visited:
+                        continue
+                    visited.add((nx, ny))
+                    queue.append((nx, ny))
+            components.append(component)
+    if not components:
+        return source
+    largest = max(components, key=len)
+    minimum_area = max(24, int(len(largest) * min_area_ratio))
+    filtered = Image.new("L", source.size, 0)
+    dst = filtered.load()
+    for component in components:
+        if len(component) < minimum_area:
+            continue
+        for x, y in component:
+            dst[x, y] = 255
+    if filtered.getbbox() is None:
+        for x, y in largest:
+            dst[x, y] = 255
+    return filtered
+
+
+def strip_light_edge_matte(image: Image.Image, mask: Image.Image) -> Image.Image:
+    rgba = image.convert("RGBA")
+    alpha = normalize_mask(mask)
+    interior = erode_mask(alpha, 1)
+    inner_pixels = interior.load()
+    alpha_pixels = alpha.load()
+    rgba_pixels = rgba.load()
+    width, height = rgba.size
+    cleaned = Image.new("RGBA", rgba.size, (0, 0, 0, 0))
+    cleaned_pixels = cleaned.load()
+    for y in range(height):
+        for x in range(width):
+            if alpha_pixels[x, y] <= 0:
+                continue
+            r, g, b, a = rgba_pixels[x, y]
+            if inner_pixels[x, y] <= 0 and a > 0:
+                neighbor_samples = []
+                for oy in (-1, 0, 1):
+                    for ox in (-1, 0, 1):
+                        if ox == 0 and oy == 0:
+                            continue
+                        nx = x + ox
+                        ny = y + oy
+                        if nx < 0 or ny < 0 or nx >= width or ny >= height:
+                            continue
+                        if inner_pixels[nx, ny] <= 0:
+                            continue
+                        neighbor_samples.append(rgba_pixels[nx, ny][:3])
+                luminance = (r + g + b) / 3.0
+                neutral_range = max(r, g, b) - min(r, g, b)
+                neighbor_luminance = None
+                if neighbor_samples:
+                    neighbor_luminance = sum((sample[0] + sample[1] + sample[2]) / 3.0 for sample in neighbor_samples) / float(len(neighbor_samples))
+                if min(r, g, b) >= 208 and neutral_range <= 42:
+                    cleaned_pixels[x, y] = (r, g, b, 0)
+                    continue
+                if neighbor_luminance is not None and neutral_range <= 48 and luminance >= neighbor_luminance + 34:
+                    cleaned_pixels[x, y] = (r, g, b, 0)
+                    continue
+                if min(r, g, b) >= 232:
+                    cleaned_pixels[x, y] = (r, g, b, 0)
+                    continue
+            cleaned_pixels[x, y] = (r, g, b, 255)
+    return cleaned
+
+
 def alpha_bbox(image: Image.Image) -> Optional[Tuple[int, int, int, int]]:
     return image.getchannel("A").getbbox()
 
@@ -634,6 +1034,528 @@ def call_progress(progress: Optional[ProgressCallback], percent: int, label: Opt
     progress(percent, label, detail)
 
 
+def rig_layout_history_path(project_dir: Path) -> Path:
+    return canonical_downstream_path(project_dir, "rig_layout_history")
+
+
+def default_rig_layout_history(project_id: str) -> Dict[str, Any]:
+    return {
+        "project_id": project_id,
+        "current_revision_id": None,
+        "events": [],
+        "revisions": [],
+    }
+
+
+def part_split_history_path(project_dir: Path) -> Path:
+    return canonical_downstream_path(project_dir, "part_split_history")
+
+
+def default_part_split_history(project_id: str) -> Dict[str, Any]:
+    return {
+        "project_id": project_id,
+        "current_revision_id": None,
+        "events": [],
+        "revisions": [],
+    }
+
+
+def part_split_parts_dir(project_dir: Path) -> Path:
+    return project_dir / "part_split" / "parts"
+
+
+def part_split_masks_dir(project_dir: Path) -> Path:
+    return project_dir / "part_split" / "masks"
+
+
+def write_part_split_asset(project_dir: Path, part_name: str, image: Image.Image, mask: Image.Image) -> Tuple[str, str]:
+    safe = sanitize_filename(part_name, "part")
+    image_path = part_split_parts_dir(project_dir) / f"{safe}.png"
+    mask_path = part_split_masks_dir(project_dir) / f"{safe}.png"
+    image.convert("RGBA").save(image_path)
+    normalize_mask(mask).save(mask_path)
+    return str(image_path.relative_to(project_dir)), str(mask_path.relative_to(project_dir))
+
+
+def load_part_split_asset(project_dir: Path, part: Dict[str, Any]) -> Tuple[Image.Image, Image.Image]:
+    image = Image.open(project_dir / str(part.get("image_path") or "")).convert("RGBA")
+    mask = normalize_mask(Image.open(project_dir / str(part.get("mask_path") or "")).convert("L"))
+    return image, mask
+
+
+def create_part_split_revision(project_dir: Path, part_split: Dict[str, Any], reason: str, operation: Optional[str] = None) -> Dict[str, Any]:
+    history = load_json(part_split_history_path(project_dir), default_part_split_history(project_dir.name))
+    revision = {
+        "revision_id": "rev-%s" % uuid.uuid4().hex[:10],
+        "created_at": now_iso(),
+        "reason": reason,
+        "operation": operation,
+        "part_split_hash": hashlib.sha256(json.dumps(part_split, sort_keys=True).encode("utf-8")).hexdigest(),
+    }
+    history.setdefault("revisions", []).append(revision)
+    history["current_revision_id"] = revision["revision_id"]
+    history.setdefault("events", []).append({
+        "type": "part_split_%s" % reason,
+        "operation": operation,
+        "created_at": revision["created_at"],
+    })
+    write_json(part_split_history_path(project_dir), history)
+    return history
+
+
+def normalize_fraction_region(value: Any) -> Any:
+    if isinstance(value, dict):
+        normalized = {}
+        for key, region in value.items():
+            if isinstance(region, (list, tuple)) and len(region) == 4:
+                normalized[str(key)] = [float(item) for item in region]
+        return normalized
+    if isinstance(value, (list, tuple)) and len(value) == 4:
+        return [float(item) for item in value]
+    return None
+
+
+def active_rig_profile_name(project: Dict[str, Any], rig_layout: Optional[Dict[str, Any]] = None) -> str:
+    if isinstance(rig_layout, dict) and rig_layout.get("rig_profile") in RIG_PROFILES:
+        return str(rig_layout["rig_profile"])
+    character_spec = project.get("character_spec") if isinstance(project, dict) else None
+    if isinstance(character_spec, dict) and character_spec.get("rig_profile") in RIG_PROFILES:
+        return str(character_spec["rig_profile"])
+    return LEGACY_RIG_PROFILE
+
+
+def profile_definition(profile_name: Optional[str]) -> Dict[str, Any]:
+    return copy.deepcopy(RIG_PROFILES.get(profile_name or "", RIG_PROFILES[LEGACY_RIG_PROFILE]))
+
+
+def brief_text_blob(project: Dict[str, Any], concept: Optional[Dict[str, Any]] = None) -> str:
+    brief = project.get("brief") or {}
+    fields = [
+        project.get("prompt_text", ""),
+        brief.get("role", ""),
+        brief.get("silhouette", ""),
+        brief.get("outfit_materials", ""),
+        brief.get("prop", ""),
+        brief.get("palette_mood", ""),
+        brief.get("shape_language", ""),
+        brief.get("mood_tone", ""),
+        concept.get("positive_prompt", "") if isinstance(concept, dict) else "",
+        concept.get("validation_feedback", "") if isinstance(concept, dict) else "",
+        concept.get("outfit", "") if isinstance(concept, dict) else "",
+        concept.get("prop_variant", "") if isinstance(concept, dict) else "",
+    ]
+    return " ".join(str(item or "") for item in fields).lower()
+
+
+def select_rig_profile(project: Dict[str, Any], concept: Dict[str, Any]) -> str:
+    blob = brief_text_blob(project, concept)
+    side_view = "side" in blob and "view" in blob
+    armored = any(token in blob for token in ("armor", "armour", "knight", "helmet", "chainmail", "plate"))
+    has_sword = any(token in blob for token in ("sword", "blade", "arming sword", "weapon"))
+    has_cloth = any(token in blob for token in ("cape", "tabard", "cloth", "sash", "traveler"))
+    humanoid = not any(token in blob for token in ("beast", "quadruped", "wolf", "dog", "mount"))
+    if side_view and armored and has_sword and has_cloth and humanoid:
+        return SIDE_KNIGHT_SIMPLE_7
+    return LEGACY_RIG_PROFILE
+
+
+def resolve_layout_parent_joint(part_name: str, profile_name: str, source_facing: str) -> str:
+    if profile_name == LEGACY_RIG_PROFILE and part_name == "prop":
+        return "wrist_left" if source_facing == "left" else "wrist_right"
+    return {
+        "front_arm": "shoulder_front",
+        "front_leg": "hip_front",
+        "back_leg": "hip_back",
+        "weapon": "wrist_front",
+    }.get(part_name, "")
+
+
+def resolve_layout_region(part_definition: Dict[str, Any], source_facing: str) -> Optional[List[float]]:
+    region = normalize_fraction_region(part_definition.get("extraction_region"))
+    if isinstance(region, dict):
+        return region.get(source_facing) or region.get("right") or region.get("left")
+    return region
+
+
+def canonical_sprite_part_role(part: Dict[str, Any], rig_profile: Optional[str]) -> str:
+    part_name = str(part.get("part_name") or "")
+    part_role = str(part.get("part_role") or part_name)
+    if rig_profile in {SIDE_KNIGHT_SIMPLE_7, SIDE_KNIGHT_DUAL_LEG_8}:
+        return part_name or part_role
+    return part_role or part_name
+
+
+def validate_rig_layout(layout: Dict[str, Any]) -> Dict[str, Any]:
+    if not isinstance(layout, dict):
+        raise ValueError("Invalid rig layout payload.")
+    profile_name = str(layout.get("rig_profile") or "")
+    if profile_name not in RIG_PROFILES:
+        raise ValueError("Unknown rig profile.")
+    profile = RIG_PROFILES[profile_name]
+    joint_names = set(profile["joint_schema"]["joints"])
+    profile_parts = {item["part_name"]: item for item in profile["parts"]}
+    seen: Set[str] = set()
+    errors: List[str] = []
+    parts = layout.get("parts") or []
+    if not isinstance(parts, list) or not parts:
+        errors.append("layout must include one or more parts")
+    for entry in parts:
+        if not isinstance(entry, dict):
+            errors.append("each layout part must be an object")
+            continue
+        name = str(entry.get("part_name") or "")
+        if not name or name not in profile_parts:
+            errors.append("unknown part role: %s" % (name or "missing"))
+            continue
+        if name in seen:
+            errors.append("duplicate part name: %s" % name)
+        seen.add(name)
+        if str(entry.get("parent_joint") or "") not in joint_names:
+            errors.append("unknown parent joint for %s" % name)
+        region = resolve_layout_region(entry, "right")
+        if not region or len(region) != 4:
+            errors.append("invalid extraction region for %s" % name)
+        if not isinstance(entry.get("draw_order"), int):
+            errors.append("invalid draw order for %s" % name)
+        if bool(entry.get("overlay_only")) and name in set(layout.get("joint_driving_parts") or []):
+            errors.append("overlay part cannot be joint-driving: %s" % name)
+    status = "pass" if not errors else "fail"
+    return {"status": status, "errors": errors}
+
+
+def render_part_split_reconstruction(project_dir: Path, source_size: Tuple[int, int], parts: List[Dict[str, Any]]) -> Tuple[str, Dict[str, Any]]:
+    canvas = Image.new("RGBA", source_size, (0, 0, 0, 0))
+    for part in sorted(parts, key=lambda item: int(item.get("draw_order", 0))):
+        image_path = part.get("image_path")
+        if not image_path:
+            continue
+        image = Image.open(project_dir / str(image_path)).convert("RGBA")
+        bbox = part.get("bbox") or [0, 0, image.size[0], image.size[1]]
+        canvas.alpha_composite(image, (int(bbox[0]), int(bbox[1])))
+    preview_path = project_dir / "part_split" / "reconstruction_preview.png"
+    preview_path.parent.mkdir(parents=True, exist_ok=True)
+    canvas.save(preview_path)
+    mask = normalize_mask(canvas.getchannel("A"))
+    return str(preview_path.relative_to(project_dir)), {
+        "bbox": list(mask.getbbox() or (0, 0, 1, 1)),
+        "mask_area": mask_pixel_area(mask),
+    }
+
+
+def validate_part_split(project_dir: Path, part_split: Dict[str, Any], source_mask: Optional[Image.Image] = None) -> Dict[str, Any]:
+    rig_layout = part_split.get("rig_layout") or {}
+    expected_parts = {item["part_name"]: item for item in (rig_layout.get("parts") or []) if isinstance(item, dict)}
+    parts = part_split.get("parts") or []
+    seen: Set[str] = set()
+    warnings: List[str] = []
+    failures: List[str] = []
+    per_part: List[Dict[str, Any]] = []
+    for entry in parts:
+        if not isinstance(entry, dict):
+            failures.append("each split part must be an object")
+            continue
+        name = str(entry.get("part_name") or "")
+        if not name:
+            failures.append("split part is missing part_name")
+            continue
+        if name in seen:
+            failures.append("duplicate part: %s" % name)
+        seen.add(name)
+        try:
+            image, mask = load_part_split_asset(project_dir, entry)
+            bbox = entry.get("bbox") or [0, 0, image.size[0], image.size[1]]
+            area = mask_pixel_area(mask)
+            status = "pass"
+            entry_warnings: List[str] = []
+            entry_failures: List[str] = []
+            if area < SPRITE_MODEL_FAIL_MIN_MASK_AREA or bbox_area(bbox) <= 0:
+                entry_failures.append("part is missing usable opaque pixels")
+                status = "fail"
+            elif area < SPRITE_MODEL_WARN_MIN_MASK_AREA:
+                entry_warnings.append("mask area is unusually small")
+                status = "warning"
+            per_part.append({
+                "part_name": name,
+                "status": status,
+                "mask_area": area,
+                "bbox": [int(value) for value in bbox],
+                "warnings": entry_warnings,
+                "failures": entry_failures,
+            })
+            warnings.extend("%s: %s" % (name, message) for message in entry_warnings)
+            failures.extend("%s: %s" % (name, message) for message in entry_failures)
+        except FileNotFoundError:
+            failures.append("missing asset files for %s" % name)
+    missing_required = sorted(
+        name for name, definition in expected_parts.items()
+        if definition.get("required") and name not in seen
+    )
+    for name in missing_required:
+        failures.append("missing required part: %s" % name)
+    reconstruction = part_split.get("reconstruction_preview") or {}
+    if isinstance(source_mask, Image.Image) and reconstruction.get("path"):
+        preview_mask = normalize_mask(Image.open(project_dir / reconstruction["path"]).convert("RGBA").getchannel("A"))
+        union = mask_pixel_area(ImageChops.lighter(source_mask, preview_mask))
+        overlap = mask_pixel_area(ImageChops.multiply(source_mask, preview_mask))
+        coverage = overlap / float(max(1, union))
+        reconstruction["coverage_ratio"] = round(coverage, 4)
+        if coverage < 0.55:
+            failures.append("reconstruction drift is too large")
+        elif coverage < 0.72:
+            warnings.append("reconstruction drift needs review")
+    status = "pass"
+    if failures:
+        status = "fail"
+    elif warnings:
+        status = "warning"
+    return {
+        "generated_at": now_iso(),
+        "status": status,
+        "warnings": warnings,
+        "failures": failures,
+        "missing_required_parts": missing_required,
+        "per_part": per_part,
+        "reconstruction": reconstruction,
+    }
+
+
+def extract_json_object_from_text(text: str) -> Dict[str, Any]:
+    raw = str(text or "").strip()
+    if not raw:
+        raise ValueError("Codex response is empty.")
+    fenced = re.findall(r"```(?:json)?\s*(\{.*?\})\s*```", raw, re.S)
+    candidates = fenced + [raw]
+    for candidate in candidates:
+        candidate = candidate.strip()
+        if not candidate:
+            continue
+        try:
+            parsed = json.loads(candidate)
+            if isinstance(parsed, dict):
+                return parsed
+        except json.JSONDecodeError:
+            pass
+        start = candidate.find("{")
+        end = candidate.rfind("}")
+        if start != -1 and end != -1 and end > start:
+            snippet = candidate[start:end + 1]
+            try:
+                parsed = json.loads(snippet)
+                if isinstance(parsed, dict):
+                    return parsed
+            except json.JSONDecodeError:
+                continue
+    raise ValueError("Could not find a valid JSON object in the Codex response.")
+
+
+def create_rig_layout_revision(project_dir: Path, rig_layout: Dict[str, Any], reason: str, operation: Optional[str] = None) -> Dict[str, Any]:
+    history = load_json(rig_layout_history_path(project_dir), default_rig_layout_history(project_dir.name))
+    revision = {
+        "revision_id": "rev-%s" % uuid.uuid4().hex[:10],
+        "created_at": now_iso(),
+        "reason": reason,
+        "operation": operation,
+        "rig_layout_hash": hashlib.sha256(json.dumps(rig_layout, sort_keys=True).encode("utf-8")).hexdigest(),
+    }
+    history.setdefault("revisions", []).append(revision)
+    history["current_revision_id"] = revision["revision_id"]
+    history.setdefault("events", []).append({
+        "type": "rig_layout_%s" % reason,
+        "operation": operation,
+        "created_at": revision["created_at"],
+    })
+    write_json(rig_layout_history_path(project_dir), history)
+    return history
+
+
+def resolve_rig_layout(project: Dict[str, Any], concept: Optional[Dict[str, Any]] = None, rig_profile: Optional[str] = None, persist: bool = False) -> Dict[str, Any]:
+    project_dir = PROJECTS_ROOT / project["project_id"]
+    if concept is None:
+        concepts = project.get("concepts") or []
+        concept = next((item for item in concepts if item.get("concept_id") == project.get("selected_concept_id")), {}) if concepts else {}
+    profile_name = rig_profile or active_rig_profile_name(project)
+    if profile_name not in RIG_PROFILES:
+        profile_name = LEGACY_RIG_PROFILE
+    profile = profile_definition(profile_name)
+    source_facing = "right"
+    if isinstance(project.get("sprite_model"), dict) and project["sprite_model"].get("source_facing") in {"left", "right"}:
+        source_facing = project["sprite_model"]["source_facing"]
+    parts: List[Dict[str, Any]] = []
+    for entry in profile["parts"]:
+        part = copy.deepcopy(entry)
+        parent_joint = resolve_layout_parent_joint(part["part_name"], profile_name, source_facing)
+        if parent_joint:
+            part["parent_joint"] = parent_joint
+        part["extraction_region"] = resolve_layout_region(part, source_facing)
+        parts.append(part)
+    layout = {
+        "layout_version": 1,
+        "project_id": project["project_id"],
+        "approved_concept_id": concept.get("concept_id") if isinstance(concept, dict) else None,
+        "rig_profile": profile_name,
+        "parts": parts,
+        "joint_schema": profile["joint_schema"],
+        "draw_order": [item["part_name"] for item in sorted(parts, key=lambda item: item["draw_order"])],
+        "extraction_rules": {item["part_name"]: item["extraction_region"] for item in parts},
+        "pivot_rules": {item["part_name"]: item.get("pivot_strategy") for item in parts},
+        "joint_driving_parts": list(profile["joint_driving_parts"]),
+        "overlay_parts": list(profile["overlay_parts"]),
+        "flags": copy.deepcopy(profile["flags"]),
+        "source_assumptions": {
+            "strict_side_view": True,
+            "source_facing": source_facing,
+        },
+        "validation": validate_rig_layout({
+            "rig_profile": profile_name,
+            "parts": parts,
+            "joint_driving_parts": profile["joint_driving_parts"],
+        }),
+        "approved": profile_name == LEGACY_RIG_PROFILE and not persist,
+        "auto_generated_legacy": profile_name == LEGACY_RIG_PROFILE and not persist,
+        "created_at": now_iso(),
+    }
+    if persist:
+        write_json(canonical_downstream_path(project_dir, "rig_layout"), layout)
+        create_rig_layout_revision(project_dir, layout, "generate")
+    return layout
+
+
+def build_rig_layout_handoff_prompt(project: Dict[str, Any], rig_layout: Optional[Dict[str, Any]] = None) -> str:
+    layout = rig_layout or project.get("rig_layout") or resolve_rig_layout(project, persist=False)
+    concept = None
+    try:
+        concept = selected_concept(project)
+    except Exception:
+        concept = None
+    prompt_profile = active_rig_profile_name(project, layout)
+    if isinstance(concept, dict) and concept:
+        prompt_profile = select_rig_profile(project, concept)
+    layout = resolve_rig_layout(project, concept, rig_profile=prompt_profile, persist=False)
+    brief = project.get("brief") or {}
+    allowed_parts = [item["part_name"] for item in (layout.get("parts") or [])]
+    allowed_joints = list((layout.get("joint_schema") or {}).get("joints") or [])
+    lines = [
+        "You are validating a side-view character concept for a deterministic 2D sprite pipeline.",
+        "This step does two things at once:",
+        "1. decide whether the concept is suitable for deterministic sprite extraction and rigging",
+        "2. if it is suitable, define the internal rig_layout JSON that downstream sprite extraction, rig build, and animation rendering will use",
+        "",
+        "The rig_layout is not a generic anatomy rig.",
+        "It should be optimized to the actual visible shapes in this concept image so the bind pose reconstructs cleanly and animation remains stable.",
+        "Fit the rig to the concept. Do not force the concept into unnecessary articulated pieces.",
+        "",
+        "Rig simplicity is a hard requirement.",
+        "For armored side-view knight concepts, default to the minimum viable rig that reconstructs the concept cleanly.",
+        "For this pipeline, a stable merged-mass layout is preferred over a detailed anatomy rig.",
+        "A result that mechanically expands into the legacy full-part decomposition is usually wrong for this task.",
+        "",
+        "Primary design goals:",
+        "- preserve the concept's readable silhouette and shape language",
+        "- maximize clean neutral-pose reconstruction from extracted parts",
+        "- minimize seams, duplicated pixels, and unstable hidden-side anatomy",
+        "- prefer fewer, larger, more reliable masses when separation is ambiguous",
+        "- keep overlays like cape or front cloth as overlays when that is more stable than making them primary joint-driving pieces",
+        "- keep weapon, arm, leg, torso, and head separations only where the concept clearly supports them",
+        "",
+        "Decision rule:",
+        "- If the concept is not suitable for this pipeline, return valid=false and explain why briefly.",
+        "- If the concept is suitable, return valid=true and produce a rig_layout object that matches the required schema exactly.",
+        "- If the only way to make the layout work is to invent hidden-side anatomy or speculative articulation, return valid=false.",
+        "- If the concept would require the legacy many-part rig to function, return valid=false instead of emitting an over-split layout.",
+        "",
+        "Context:",
+        f"- project: {project.get('project_name') or project.get('project_id')}",
+        f"- rig_profile: {layout.get('rig_profile')}",
+        f"- character brief: role={brief.get('role_archetype') or brief.get('role', '')}; silhouette={brief.get('silhouette_intent') or brief.get('silhouette', '')}; outfit={brief.get('outfit_materials') or brief.get('outfit', '')}; prop={brief.get('prop', '')}; palette={brief.get('palette_mood') or brief.get('palette_direction', '')}; mood={brief.get('mood_tone') or brief.get('mood_tone', '')}",
+    ]
+    if concept:
+        lines.extend([
+            f"- selected concept id: {concept.get('concept_id')}",
+            f"- concept prompt summary: {(concept.get('positive_prompt') or '').strip()}",
+        ])
+    lines.extend([
+        "",
+        "Response requirements:",
+        "- Return exactly one JSON object.",
+        "- You may wrap it in a ```json code fence, but do not include any extra prose outside the JSON.",
+        "- The JSON object must contain: valid, summary, rig_layout.",
+        "- If valid is false, still return a rig_layout field using null.",
+        '- The summary should explain the rigging judgment in human terms, for example why the image is stable or unstable for deterministic extraction.',
+        "",
+        "Required top-level JSON shape:",
+        "{",
+        '  "valid": true,',
+        '  "summary": "short human-readable validation summary",',
+        '  "rig_layout": {',
+        '    "layout_version": 1,',
+        f'    "rig_profile": "{layout.get("rig_profile")}",',
+        '    "parts": [...],',
+        '    "joint_schema": {"joints": [...], "transform_channels": [...]},',
+        '    "draw_order": [...],',
+        '    "extraction_rules": {...},',
+        '    "pivot_rules": {...},',
+        '    "joint_driving_parts": [...],',
+        '    "overlay_parts": [...],',
+        '    "flags": {...},',
+        '    "source_assumptions": {...}',
+        "  }",
+        "}",
+        "",
+        "Schema constraints:",
+        f"- allowed part names: {', '.join(allowed_parts)}",
+        f"- allowed joints: {', '.join(allowed_joints)}",
+        "- Every part object must contain: part_name, part_role, required, parent_joint, draw_order, pivot_strategy, extraction_region, fallback_mode, overlay_only.",
+        "- extraction_region must be either [x0, y0, x1, y1] or a facing map like {\"left\": [...], \"right\": [...]} using normalized 0..1 coordinates.",
+        "- pivot_strategy must use mode=fractional and fraction=[x, y].",
+        "- joint_driving_parts must not include overlay-only parts.",
+        "- draw_order must match the intended visual stacking for the image.",
+        "- Keep the layout conservative. Merge ambiguous anatomy into larger stable masses instead of inventing fragile articulated splits.",
+        "- Use as few parts as possible while preserving neutral-pose reconstruction and stable animation.",
+        "- Omitted allowed parts are expected and preferred over speculative parts.",
+        "- The allowed part list is a superset, not a target checklist. Do not try to use every allowed part.",
+        "- Do not return more than 8 total parts. If more than 8 parts seem necessary, return valid=false.",
+        "- Do not include a limb split unless the split is clearly visible in the concept and materially improves deformation stability.",
+        "- Do not create hidden-side limbs, hidden-side joints, or duplicated anatomy from inference.",
+        "- Prefer one-piece armor masses over anatomical segmentation when armor reads as a single stable shape.",
+        "- Cape, tabard, front cloth, loin cloth, and similar hanging materials should default to overlay parts rather than primary joint-driving parts.",
+        "- If an arm or leg can be reconstructed more reliably as one visible mass, prefer the merged limb over elbow or knee sub-parts.",
+        "- The output rig_layout should be the best practical structure for this specific concept image, not a theoretical perfect rig.",
+        "- Avoid legacy anatomy-style decomposition such as separate upper/lower arm, hand, upper/lower leg, and foot splits unless the image truly cannot be stabilized without them.",
+        "",
+        "Complexity target:",
+        "- For knight-like side-view concepts, target the minimum viable part count.",
+        "- Expected primary driven parts: 4 to 8.",
+        "- Expected overlay parts: 0 to 2.",
+        "- A typical good result for this kind of character is about 7 to 8 total parts, not 20.",
+        "- 8 total parts is a hard ceiling for this response.",
+        "- If more than 8 primary driven parts are used, the summary must briefly justify why the extra splits are necessary for stability.",
+        "- If the layout reaches anything close to the legacy full-part count, treat that as a likely failure to simplify and reconsider from scratch.",
+        "",
+        "Preferred simplification pattern for armored side-view characters:",
+        "- Merge torso and pelvis if the separation is weak or mostly hidden by armor or cloth.",
+        "- Use one front arm mass instead of upper arm, forearm, and hand unless the elbow break is unusually clear and necessary.",
+        "- Use one front leg mass instead of thigh, shin, and foot unless ankle articulation is clearly needed for ground contact.",
+        "- Keep the rear-side anatomy omitted unless it is cleanly visible and materially necessary.",
+        "- Treat weapon, cape, and front cloth as optional extra masses only when they are visually distinct and stable.",
+        "",
+        "Updated output contract:",
+        "- Before producing JSON, internally test whether the neutral pose can be reconstructed with fewer parts.",
+        "- Before producing JSON, internally test whether any obscured limb, hidden-side anatomy, or speculative joint was invented.",
+        "- Before producing JSON, internally test whether any armor mass was split where a merged mass would be more stable.",
+        "- Before producing JSON, internally test whether any cape, tabard, or front cloth was incorrectly promoted to a primary joint-driving part.",
+        "- Before producing JSON, internally test whether you accidentally drifted toward the legacy 20-part anatomy breakdown. If so, simplify again.",
+        "- If any of those checks fail, simplify the layout before returning JSON.",
+        "- If the simplified profile still cannot represent the concept within 8 total parts, return valid=false.",
+        "- If the concept still requires speculative anatomy or unnecessary articulation after simplification, return valid=false.",
+        "",
+        "Profile-specific expectation:",
+        "- For knight-like side-view concepts, use the simplified merged-mass layout rather than the legacy full 20-part layout unless the image clearly demands more structure.",
+        "- For side_knight_simple_7, the default expected joint_driving_parts are: head, torso_pelvis, front_arm, front_leg, weapon.",
+        "- For side_knight_simple_7, do not rename or expand the simple profile into legacy-style equivalents.",
+    ])
+    return "\n".join(lines)
+
+
 def apply_project_defaults(project: Dict[str, Any]) -> Dict[str, Any]:
     normalized = dict(project or {})
     normalized.setdefault("project_id", "")
@@ -647,9 +1569,12 @@ def apply_project_defaults(project: Dict[str, Any]) -> Dict[str, Any]:
     normalized.setdefault("rig_review_approved", False)
     normalized.setdefault("master_pose_approved", False)
     normalized.setdefault("sprite_model_approved", False)
+    normalized.setdefault("rig_layout_approved", False)
+    normalized.setdefault("part_split_approved", False)
+    normalized.setdefault("split_review_approved", False)
     normalized.setdefault("selected_concept_id", None)
     normalized.setdefault("archived_at", None)
-    normalized.setdefault("last_ui_mode", "workbench")
+    normalized.setdefault("last_ui_mode", "wizard")
     normalized.setdefault("wizard_state", None)
     return normalized
 
@@ -762,7 +1687,9 @@ def compute_wizard_context(project: Dict[str, Any]) -> Dict[str, Any]:
     has_references = bool(brief.get("references")) or "references" in completed or "references" in skipped
     has_concepts = bool(project.get("prompt_history")) or bool(imported_attempts)
     has_review = bool(project.get("selected_concept_id"))
-    has_master_pose = bool(project.get("master_pose_approved") and project.get("master_pose_manifest", {}).get("approved_image"))
+    has_rig_layout = bool(project.get("rig_layout")) and bool(project.get("rig_layout_approved"))
+    has_part_split = bool(project.get("part_split"))
+    has_split_review = bool(project.get("part_split_approved"))
     has_sprite_model = bool(project.get("sprite_model"))
     has_rig = bool(project.get("rig_review_approved"))
     has_clips = animation_render_complete(project_dir, "idle") and animation_render_complete(project_dir, "walk")
@@ -775,7 +1702,9 @@ def compute_wizard_context(project: Dict[str, Any]) -> Dict[str, Any]:
         "references": has_references,
         "concepts": has_concepts,
         "review": has_review,
-        "master_pose": has_master_pose,
+        "rig_layout": has_rig_layout,
+        "part_split": has_part_split,
+        "split_review": has_split_review,
         "sprite_model": has_sprite_model,
         "rig": has_rig,
         "clips": has_clips,
@@ -787,9 +1716,11 @@ def compute_wizard_context(project: Dict[str, Any]) -> Dict[str, Any]:
         "brief": [] if complete_map["project"] else ["Create or open a project first."],
         "references": [] if complete_map["brief"] else ["Save the character description before adding or skipping references."],
         "concepts": [] if complete_map["brief"] else ["Save the character description before generating a Gemini prompt."],
-        "review": [] if valid_attempts else ["Mark at least one imported concept valid before choosing one."],
-        "master_pose": [] if complete_map["review"] else ["Choose a valid imported concept before generating master poses."],
-        "sprite_model": [] if complete_map["master_pose"] else ["Approve a master pose before building the sprite model."],
+        "review": [] if valid_attempts else ["Import at least one concept that Codex validated as valid before choosing one."],
+        "rig_layout": [] if complete_map["review"] else ["Accept a Codex-valid concept before defining the rig layout."],
+        "part_split": [] if complete_map["rig_layout"] else ["Generate and approve the rig layout before splitting parts."],
+        "split_review": [] if complete_map["part_split"] else ["Generate candidate split parts before reviewing them."],
+        "sprite_model": [] if complete_map["split_review"] else ["Approve the part split before building the sprite model."],
         "rig": [] if complete_map["sprite_model"] else ["Build and review the sprite model before rigging."],
         "clips": [] if complete_map["rig"] else ["Approve the rig before building clips."],
         "qa": [] if complete_map["clips"] else ["Render idle and walk before running checks."],
@@ -842,8 +1773,12 @@ def compute_wizard_context(project: Dict[str, Any]) -> Dict[str, Any]:
         wizard_state = set_wizard_step_complete(wizard_state, "concepts")
     if has_review:
         wizard_state = set_wizard_step_complete(wizard_state, "review")
-    if has_master_pose:
-        wizard_state = set_wizard_step_complete(wizard_state, "master_pose")
+    if has_rig_layout:
+        wizard_state = set_wizard_step_complete(wizard_state, "rig_layout")
+    if has_part_split:
+        wizard_state = set_wizard_step_complete(wizard_state, "part_split")
+    if has_split_review:
+        wizard_state = set_wizard_step_complete(wizard_state, "split_review")
     if has_sprite_model:
         wizard_state = set_wizard_step_complete(wizard_state, "sprite_model")
     if has_rig:
@@ -875,17 +1810,12 @@ def default_stage_maturity() -> Dict[str, Any]:
         "concepts": {
             "label": "Looks",
             "maturity": "real",
-            "description": "Concept work is now a manual Gemini loop: generate a prompt, import the result, review it, and iterate.",
-        },
-        "master_pose": {
-            "label": "Master Pose",
-            "maturity": "real",
-            "description": "Master pose candidates are generated from the approved concept and must be explicitly selected before extraction.",
+            "description": "Concept work is now a Gemini import loop with server-side normalization and Gemini validation on every imported image.",
         },
         "sprite_model": {
             "label": "Sprite Model",
             "maturity": "experimental",
-            "description": "The tool extracts canonical layered parts from the approved master pose and stores deterministic edit history.",
+            "description": "The tool extracts canonical layered parts directly from the accepted concept source image and stores deterministic edit history.",
         },
         "rig_review": {
             "label": "Set Up Motion",
@@ -1097,39 +2027,101 @@ def build_positive_prompt_base(brief: Dict[str, Any]) -> str:
     )
 
 
+def build_identity_lock_lines(brief: Dict[str, Any]) -> List[str]:
+    return [
+        "Continuity lock: this must remain the same character between iterations, not a redesign.",
+        "Keep these identity anchors fixed unless feedback explicitly asks to change them:",
+        "- role/archetype: %s" % brief["role_archetype"],
+        "- silhouette family: %s" % brief["silhouette_intent"],
+        "- outfit/materials: %s" % brief["outfit_materials"],
+        "- prop policy: %s" % brief["prop"],
+        "- palette direction: %s" % brief["palette_mood"],
+        "- shape language: %s" % brief["shape_language"],
+        "- mood/tone: %s" % brief["mood_tone"],
+        "Only change the minimum necessary details requested by the feedback. Preserve the same character identity, proportions, costume logic, silhouette family, and rendering intent.",
+    ]
+
+
+def summarize_iteration_feedback(brief: Dict[str, Any], feedback: Optional[str]) -> List[str]:
+    text = (feedback or "").strip()
+    if not text:
+        return ["Make only minor polish-level improvements. Keep the same character, pose logic, costume, and silhouette."]
+    lowered = text.lower()
+    prop = str(brief.get("prop") or "").strip()
+    instructions: List[str] = []
+    if prop and any(token in lowered for token in ["missing", "absence", "absent", "not visible"]) and any(token in lowered for token in ["sword", "prop", "held item", "weapon"]):
+        instructions.append("Add the required %s." % prop)
+        instructions.append("Keep the %s clearly visible in the front/reading hand." % prop)
+        instructions.append("Maintain strong negative space between the %s, hand, torso, and cape." % prop)
+        instructions.append("Do not redesign the helmet, armor, body proportions, palette, or silhouette.")
+        return instructions
+    instructions.append(text)
+    instructions.append("Keep all other character design decisions unchanged.")
+    return instructions
+
+
 def build_gemini_prompt(
     brief: Dict[str, Any],
     previous_prompt: Optional[str] = None,
     validation_feedback: Optional[str] = None,
     imported_attempt: Optional[Dict[str, Any]] = None,
 ) -> str:
+    iteration_mode = bool(previous_prompt or imported_attempt)
+    if iteration_mode:
+        lines = [
+            "Use the attached previous image as the direct reference.",
+            "Edit or regenerate the same character, not a redesign.",
+            "Keep the same side-view composition, same character identity, same costume logic, same proportions, same palette direction, and same silhouette family.",
+            "Exactly one full-body humanoid character on a plain removable background.",
+            "Strict orthographic side profile only.",
+            "Do not change the character into a different knight or different costume interpretation.",
+            "",
+            "Keep these identity anchors fixed:",
+            "- role/archetype: %s" % brief["role_archetype"],
+            "- silhouette family: %s" % brief["silhouette_intent"],
+            "- outfit/materials: %s" % brief["outfit_materials"],
+            "- held item intent: %s" % brief["prop"],
+            "- palette direction: %s" % brief["palette_mood"],
+            "- shape language: %s" % brief["shape_language"],
+            "- mood/tone: %s" % brief["mood_tone"],
+            "",
+            "Make only these corrections:",
+            *["- %s" % item for item in summarize_iteration_feedback(brief, validation_feedback)],
+            "",
+            "Hard constraints:",
+            "- one character only",
+            "- full body visible",
+            "- no front view, 3/4 view, top-down view, or dramatic camera angle",
+            "- no background scene, no collage, no concept page, no turnaround, no sprite sheet, no multiple poses",
+            "- do not crop head or feet",
+            "- preserve low-resolution readability",
+        ]
+        return "\n".join(lines)
     lines = [
-        "Create one full-body side-view character concept for a 2D metroidvania sprite pipeline.",
-        "Keep it to exactly one humanoid character on a plain removable background.",
-        "Use a strict side profile with the full body visible, centered, readable, and animation-friendly.",
-        "Role: %s." % brief["role_archetype"],
-        "Silhouette: %s." % brief["silhouette_intent"],
-        "Outfit/materials: %s." % brief["outfit_materials"],
-        "Held item: %s." % brief["prop"],
-        "Palette/mood: %s." % brief["palette_mood"],
-        "Shape language: %s." % brief["shape_language"],
-        "Mood/tone: %s." % brief["mood_tone"],
-        "Readability constraints: %s." % brief["side_view_constraints"],
-        "Do not make a sprite sheet, turnaround, concept page, collage, scene shot, or multiple poses.",
-        "Do not crop the head or feet.",
+        "Create exactly one full-body side-view humanoid character concept for a 2D metroidvania sprite pipeline.",
+        "Plain removable background only.",
+        "Strict orthographic side profile only.",
+        "Full body visible, centered, readable, and animation-friendly.",
+        "",
+        "Character brief:",
+        "- role/archetype: %s" % brief["role_archetype"],
+        "- silhouette family: %s" % brief["silhouette_intent"],
+        "- outfit/materials: %s" % brief["outfit_materials"],
+        "- held item: %s" % brief["prop"],
+        "- palette direction: %s" % brief["palette_mood"],
+        "- shape language: %s" % brief["shape_language"],
+        "- mood/tone: %s" % brief["mood_tone"],
+        "- readability constraints: %s" % brief["side_view_constraints"],
+        "",
+        "Composition requirements:",
+        "- one character only",
+        "- no background scene or environment storytelling",
+        "- no front view, 3/4 view, top-down view, or dramatic camera angle",
+        "- no action montage, no multiple poses, no turnaround, no sprite sheet, no collage, no concept page",
+        "- do not crop head or feet",
+        "- maintain clear negative space between head, torso, limbs, and held item",
+        "- held item must read as a separate silhouette from the torso when present",
     ]
-    if previous_prompt:
-        lines.append("Preserve the core identity from this previous prompt: %s" % previous_prompt.strip())
-    if imported_attempt:
-        imported_bits = []
-        if imported_attempt.get("import_source"):
-            imported_bits.append("source=%s" % imported_attempt["import_source"])
-        if imported_attempt.get("preview_image"):
-            imported_bits.append("asset=%s" % imported_attempt["preview_image"])
-        if imported_bits:
-            lines.append("Previous imported concept metadata: %s." % ", ".join(imported_bits))
-    if validation_feedback:
-        lines.append("Improve the next attempt using this rejection feedback: %s" % validation_feedback.strip())
     return "\n".join(lines)
 
 
@@ -1362,10 +2354,25 @@ def hydrate_concept(concept: Dict[str, Any], fallback_created_at: Optional[str] 
     record.setdefault("import_source", None)
     record.setdefault("validation_status", "valid" if record.get("review_state", {}).get("approved") else "pending")
     record.setdefault("validation_feedback", None)
+    validation_source = record.get("validation_source")
+    if validation_source == "codex":
+        validation_source = "gemini"
+    elif validation_source == "codex_overridden":
+        validation_source = "gemini_overridden"
+    record.setdefault("validation_source", validation_source or "manual")
+    record.setdefault("validation_updated_at", record.get("created_at"))
+    record.setdefault("validation_error", None)
+    record.setdefault("codex_review_summary", None)
+    record.setdefault("codex_response_id", None)
     record.setdefault("accepted_for_review", bool(record.get("review_state", {}).get("approved")))
     record.setdefault("prompt_file", None)
     record.setdefault("negative_prompt", DEFAULT_NEGATIVE_PROMPT)
     record.setdefault("preview_image", "")
+    record.setdefault("original_preview_image", record.get("preview_image") or "")
+    record.setdefault("processed_preview_image", None)
+    record.setdefault("postprocess_status", "not_needed")
+    record.setdefault("postprocess_notes", None)
+    record.setdefault("approved_source_image", record.get("processed_preview_image") or record.get("preview_image") or None)
     record.setdefault("variation_axes", {})
     review_state = record.get("review_state") or {}
     record["review_state"] = {
@@ -1379,6 +2386,8 @@ def hydrate_concept(concept: Dict[str, Any], fallback_created_at: Optional[str] 
     if record["review_state"]["approved"]:
         record["validation_status"] = "valid"
         record["accepted_for_review"] = True
+        if not record.get("approved_source_image"):
+            record["approved_source_image"] = record.get("processed_preview_image") or record.get("original_preview_image") or record.get("preview_image")
     if "difference_summary" not in record:
         silhouette = record.get("silhouette") or record.get("variation_axes", {}).get("silhouette")
         outfit = record.get("outfit") or record.get("variation_axes", {}).get("outfit_complexity")
@@ -1389,6 +2398,10 @@ def hydrate_concept(concept: Dict[str, Any], fallback_created_at: Optional[str] 
         "flags": [],
         "metrics": {},
     })
+    if not record.get("original_preview_image") and record.get("preview_image"):
+        record["original_preview_image"] = record["preview_image"]
+    if not record.get("approved_source_image"):
+        record["approved_source_image"] = record.get("processed_preview_image") or record.get("original_preview_image") or record.get("preview_image")
     return record
 
 
@@ -1422,6 +2435,375 @@ def save_prompt_artifacts(project_dir: Path, prompt_version: int, prompt_text: s
     latest_path.write_text(prompt_text.strip() + "\n", encoding="utf-8")
     history_path.write_text(prompt_text.strip() + "\n", encoding="utf-8")
     return str(latest_path.relative_to(project_dir)), str(history_path.relative_to(project_dir))
+
+
+def image_data_url(path: Path) -> str:
+    suffix = path.suffix.lower()
+    mime_type = {
+        ".png": "image/png",
+        ".jpg": "image/jpeg",
+        ".jpeg": "image/jpeg",
+        ".webp": "image/webp",
+    }.get(suffix, "image/png")
+    return "data:%s;base64,%s" % (mime_type, base64.b64encode(path.read_bytes()).decode("ascii"))
+
+
+def concept_validation_schema() -> Dict[str, Any]:
+    return {
+        "type": "object",
+        "additionalProperties": False,
+        "properties": {
+            "decision": {"type": "string", "enum": ["valid", "invalid"]},
+            "summary": {"type": "string"},
+            "feedback": {"type": "string"},
+            "improved_gemini_prompt": {"type": ["string", "null"]},
+            "master_pose_ready": {"type": "boolean"},
+            "technical_requirements_ok": {"type": "boolean"},
+        },
+        "required": [
+            "decision",
+            "summary",
+            "feedback",
+            "improved_gemini_prompt",
+            "master_pose_ready",
+            "technical_requirements_ok",
+        ],
+    }
+
+
+def safe_normalize_concept_image(source_path: Path, output_path: Path) -> Dict[str, Any]:
+    source_image = ImageOps.exif_transpose(Image.open(source_path)).convert("RGBA")
+    source_mask = largest_component_mask(detect_mask(source_image))
+    bbox = source_mask.getbbox()
+    if bbox is None:
+        return {
+            "status": "failed",
+            "image_path": None,
+            "notes": "Could not isolate a full-body subject from the imported image.",
+        }
+
+    canvas_matches = source_image.size == CONCEPT_CANVAS
+    width = max(1, bbox[2] - bbox[0])
+    height = max(1, bbox[3] - bbox[1])
+    centered_x = abs(((bbox[0] + bbox[2]) / 2.0) - (source_image.size[0] / 2.0)) <= max(18, source_image.size[0] * 0.05)
+    full_body_visible = bbox[1] > 8 and bbox[3] < source_image.size[1] - 8 and bbox[0] > 4 and bbox[2] < source_image.size[0] - 4
+    target_scale = min((CONCEPT_CANVAS[0] - 112) / float(width), (CONCEPT_CANVAS[1] - 94) / float(height))
+    current_scale = min(source_image.size[0] / float(width), source_image.size[1] / float(height))
+    close_to_target = abs(current_scale - target_scale) <= 0.12
+    clean = analyze_concept_image(source_path)
+    if canvas_matches and centered_x and full_body_visible and close_to_target and clean.get("status") == "ok":
+        return {
+            "status": "not_needed",
+            "image_path": None,
+            "notes": "Imported image already fits extraction framing.",
+        }
+
+    subject = strip_light_edge_matte(source_image, source_mask)
+    cleaned_mask = largest_component_mask(subject.getchannel("A"))
+    subject = image_with_mask(subject, cleaned_mask)
+    cropped, cropped_mask, _ = crop_to_alpha(subject, cleaned_mask)
+    if cropped_mask.getbbox() is None or mask_pixel_area(cropped_mask) < 1500:
+        return {
+            "status": "failed",
+            "image_path": None,
+            "notes": "Subject area was too small or fragmented for safe normalization.",
+        }
+
+    contained = ImageOps.contain(cropped, (CONCEPT_CANVAS[0] - 112, CONCEPT_CANVAS[1] - 94))
+    canvas = Image.new("RGBA", CONCEPT_CANVAS, (0, 0, 0, 0))
+    offset_x = (CONCEPT_CANVAS[0] - contained.size[0]) // 2
+    offset_y = CONCEPT_CANVAS[1] - 54 - contained.size[1]
+    offset_y = max(20, offset_y)
+    canvas.alpha_composite(contained, (offset_x, offset_y))
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    canvas.save(output_path)
+    return {
+        "status": "applied",
+        "image_path": str(output_path),
+        "notes": "Normalized canvas, centering, and padding for extraction without repainting the artwork.",
+    }
+
+
+def parse_gemini_response_text(payload: Dict[str, Any]) -> str:
+    for candidate in payload.get("candidates", []) or []:
+        content = candidate.get("content") or {}
+        for part in content.get("parts", []) or []:
+            text_value = part.get("text")
+            if isinstance(text_value, str) and text_value.strip():
+                return text_value
+    raise ValueError("Gemini response did not include structured text output.")
+
+
+def run_gemini_concept_validation(
+    project: Dict[str, Any],
+    concept: Dict[str, Any],
+    validation_path: Path,
+) -> Dict[str, Any]:
+    api_key = os.environ.get("GEMINI_API_KEY")
+    if not api_key:
+        raise ValueError("GEMINI_API_KEY is not configured.")
+
+    brief = project.get("brief") or {}
+    prompt_text = concept.get("prompt_text") or concept.get("positive_prompt") or ""
+    instructions = (
+        "You validate imported Gemini concept art for a 2d side-view sprite pipeline. "
+        "Judge both creative quality and direct extraction readiness. "
+        "Accept only if the image is artistically acceptable for the brief and can serve as the direct sprite extraction source after only safe mechanical normalization. "
+        "Reject if side profile is weak, the background is not safely removable, the body is cropped, there are multiple characters, the silhouette is unclear, or the image would still need a separate master pose step. "
+        "If rejected, describe only the targeted corrections needed to fix the specific issues while preserving the same character identity. "
+        "Do not suggest a redesign, different costume, different silhouette family, or different character unless the brief itself is inconsistent. "
+        "If you provide an improved Gemini prompt, it must explicitly preserve the same character and change only the minimum required details. "
+        "The required technical standard is: strict side profile, one full-body humanoid, plain removable background, clean silhouette, readable limbs and prop, direct sprite-source readiness, consistency with the brief and latest Gemini prompt. "
+        "Set decision=valid only when both master_pose_ready and technical_requirements_ok are true."
+    )
+    user_prompt = (
+        "Brief summary:\n"
+        "Role: %s\n"
+        "Silhouette: %s\n"
+        "Outfit: %s\n"
+        "Prop: %s\n"
+        "Palette: %s\n"
+        "Tone: %s\n\n"
+        "Latest Gemini prompt:\n%s\n"
+    ) % (
+        brief.get("role_archetype", ""),
+        brief.get("silhouette_intent", ""),
+        brief.get("outfit_materials", ""),
+        brief.get("prop", ""),
+        brief.get("palette_mood", ""),
+        brief.get("mood_tone", ""),
+        prompt_text,
+    )
+    image_bytes = base64.b64decode(image_data_url(validation_path).split(",", 1)[1])
+    endpoint = "%s/models/%s:generateContent" % (
+        GEMINI_API_BASE_URL,
+        DEFAULT_GEMINI_VALIDATION_MODEL,
+    )
+    body = {
+        "system_instruction": {
+            "parts": [{"text": instructions}],
+        },
+        "contents": [{
+            "role": "user",
+            "parts": [
+                {"text": user_prompt},
+                {
+                    "inline_data": {
+                        "mime_type": {
+                            ".png": "image/png",
+                            ".jpg": "image/jpeg",
+                            ".jpeg": "image/jpeg",
+                            ".webp": "image/webp",
+                        }.get(validation_path.suffix.lower(), "image/png"),
+                        "data": base64.b64encode(image_bytes).decode("ascii"),
+                    }
+                },
+            ],
+        }],
+        "generationConfig": {
+            "responseMimeType": "application/json",
+            "responseJsonSchema": concept_validation_schema(),
+        },
+    }
+    request = Request(
+        endpoint,
+        data=json.dumps(body).encode("utf-8"),
+        headers={
+            "x-goog-api-key": api_key,
+            "Content-Type": "application/json",
+        },
+        method="POST",
+    )
+    try:
+        with urlopen(request, timeout=60) as response:
+            payload = json.loads(response.read().decode("utf-8"))
+    except HTTPError as exc:
+        if exc.code == 404:
+            raise ValueError(
+                "Gemini validation model '%s' was not found for this API/version. "
+                "Set SPRITE_WORKBENCH_GEMINI_VALIDATION_MODEL to an available model."
+                % DEFAULT_GEMINI_VALIDATION_MODEL
+            ) from exc
+        if exc.code == 429:
+            raise ValueError("Gemini rate limit hit. Validation left pending; retry later.") from exc
+        raise
+    parsed = json.loads(parse_gemini_response_text(payload))
+    decision = parsed.get("decision")
+    if decision not in {"valid", "invalid"}:
+        raise ValueError("Gemini validation decision was missing or invalid.")
+    return {
+        "decision": decision,
+        "summary": str(parsed.get("summary") or "").strip(),
+        "feedback": str(parsed.get("feedback") or "").strip(),
+        "improved_gemini_prompt": (str(parsed.get("improved_gemini_prompt")).strip() if parsed.get("improved_gemini_prompt") else None),
+        "master_pose_ready": bool(parsed.get("master_pose_ready")),
+        "technical_requirements_ok": bool(parsed.get("technical_requirements_ok")),
+        "response_id": payload.get("responseId"),
+    }
+
+
+def apply_validation_state(
+    project: Dict[str, Any],
+    concept: Dict[str, Any],
+    validation_status: str,
+    *,
+    feedback: Optional[str] = None,
+    summary: Optional[str] = None,
+    validation_source: str = "manual",
+    validation_error: Optional[str] = None,
+    codex_response_id: Optional[str] = None,
+) -> Dict[str, Any]:
+    concept["validation_status"] = validation_status
+    concept["validation_feedback"] = (feedback or "").strip() or None
+    concept["validation_source"] = validation_source
+    concept["validation_updated_at"] = now_iso()
+    concept["validation_error"] = (validation_error or "").strip() or None
+    concept["codex_review_summary"] = (summary or "").strip() or None
+    concept["codex_response_id"] = codex_response_id
+    concept["review_state"]["rejected"] = validation_status == "invalid"
+    concept["approved"] = concept["review_state"]["approved"]
+    concept["favorite"] = concept["review_state"]["favorite"]
+    concept["rejected"] = concept["review_state"]["rejected"]
+    if validation_status != "valid" and project.get("selected_concept_id") == concept["concept_id"]:
+        reset_downstream_assets(project["project_id"], "concept")
+        project = clear_project_downstream_state(project, "concept")
+        concept["review_state"]["approved"] = False
+        concept["approved"] = False
+        concept["accepted_for_review"] = False
+        project["selected_concept_id"] = None
+        project["character_spec"] = None
+    concept["accepted_for_review"] = bool(project.get("selected_concept_id") == concept["concept_id"] and validation_status == "valid")
+    return project
+
+
+def persist_gemini_retry_prompt(project: Dict[str, Any], concept: Dict[str, Any], prompt_text: str) -> Dict[str, Any]:
+    prompt_text = (prompt_text or "").strip()
+    if not prompt_text:
+        raise ValueError("Improved Gemini prompt was empty.")
+    latest_prompt = project.get("latest_prompt") or {}
+    if latest_prompt.get("prompt_text", "").strip() == prompt_text:
+        return latest_prompt
+    return create_prompt_attempt(
+        project,
+        prompt_text,
+        "gemini_retry",
+        attempt_group_id=concept.get("attempt_group_id"),
+        validation_feedback=concept.get("validation_feedback"),
+    )
+
+
+def build_retry_prompt_from_validation(project: Dict[str, Any], concept: Dict[str, Any], fallback_prompt_text: Optional[str] = None) -> str:
+    feedback = (concept.get("validation_feedback") or "").strip()
+    prior_prompt = (
+        concept.get("prompt_text")
+        or concept.get("positive_prompt")
+        or (project.get("latest_prompt") or {}).get("prompt_text")
+        or fallback_prompt_text
+        or ""
+    )
+    return build_gemini_prompt(
+        project["brief"],
+        previous_prompt=prior_prompt,
+        validation_feedback=feedback,
+        imported_attempt=concept if concept.get("preview_image") else None,
+    )
+
+
+def validate_imported_concept(project_id: str, concept_id: str, *, allow_prompt_create: bool = True) -> Dict[str, Any]:
+    project = load_project(project_id)
+    project_dir = PROJECTS_ROOT / project_id
+    concept = next((item for item in project["concepts"] if item["concept_id"] == concept_id), None)
+    if concept is None:
+        raise ValueError("Concept not found.")
+    original_rel = concept.get("original_preview_image") or concept.get("preview_image")
+    if not original_rel:
+        raise ValueError("Only imported concept attempts can be revalidated.")
+    original_path = project_dir / original_rel
+    if not original_path.exists():
+        raise ValueError("Imported concept image is missing on disk.")
+
+    processed_path = project_dir / "concepts" / ("%s-processed.png" % concept_id)
+    postprocess = safe_normalize_concept_image(original_path, processed_path)
+    concept["postprocess_status"] = postprocess["status"]
+    concept["postprocess_notes"] = postprocess["notes"]
+    concept["processed_preview_image"] = (
+        str(processed_path.relative_to(project_dir))
+        if postprocess.get("image_path") and processed_path.exists()
+        else None
+    )
+    concept["approved_source_image"] = concept.get("processed_preview_image") or original_rel
+    validation_path = project_dir / (concept["processed_preview_image"] or original_rel)
+
+    try:
+        review = run_gemini_concept_validation(project, concept, validation_path)
+    except Exception as exc:
+        project = apply_validation_state(
+            project,
+            concept,
+            "pending",
+            feedback=concept.get("validation_feedback"),
+            summary=None,
+            validation_source="gemini",
+            validation_error=str(exc),
+            codex_response_id=None,
+        )
+        concept["review_state"]["approved"] = False
+        concept["approved"] = False
+        concept["accepted_for_review"] = False
+        concept["favorite"] = concept["review_state"]["favorite"]
+        save_concept(project_dir, concept)
+        project["updated_at"] = now_iso()
+        project["current_stage"] = "concepts"
+        project["status"] = "concept_validation_pending"
+        save_project(project)
+        append_history_event(project_id, {
+            "type": "concept_gemini_validation_pending",
+            "concept_id": concept_id,
+            "validation_error": concept.get("validation_error"),
+            "created_at": now_iso(),
+        })
+        return load_project(project_id)
+
+    if review["decision"] == "valid" and not (review["master_pose_ready"] and review["technical_requirements_ok"]):
+        review["decision"] = "invalid"
+        if not review.get("feedback"):
+            review["feedback"] = "Image was not extraction-ready under the technical rubric."
+
+    project = apply_validation_state(
+        project,
+        concept,
+        review["decision"],
+        feedback=review["feedback"],
+        summary=review["summary"],
+        validation_source="gemini",
+        validation_error=None,
+        codex_response_id=review.get("response_id"),
+    )
+    save_concept(project_dir, concept)
+    retry_prompt = None
+    if review["decision"] == "invalid" and allow_prompt_create:
+        synthesized_retry_prompt = build_retry_prompt_from_validation(project, concept, review.get("improved_gemini_prompt"))
+        retry_prompt = persist_gemini_retry_prompt(project, concept, synthesized_retry_prompt)
+    project["updated_at"] = now_iso()
+    project["current_stage"] = "concepts"
+    project["status"] = "concept_%s" % review["decision"]
+    save_project(project)
+    append_history_event(project_id, {
+        "type": "concept_gemini_validation",
+        "concept_id": concept_id,
+        "validation_status": review["decision"],
+        "summary": review["summary"],
+        "response_id": review.get("response_id"),
+        "created_at": now_iso(),
+    })
+    if retry_prompt is not None:
+        append_history_event(project_id, {
+            "type": "concept_gemini_retry_prompt",
+            "concept_id": concept_id,
+            "prompt_version": retry_prompt.get("prompt_version"),
+            "created_at": now_iso(),
+        })
+    return load_project(project_id)
 
 
 def create_prompt_attempt(
@@ -1533,6 +2915,7 @@ def import_concept_attempt(project_id: str, payload: Dict[str, Any]) -> Dict[str
         "prompt_source": source_prompt.get("prompt_source") or "initial",
         "prompt_file": source_prompt.get("prompt_file"),
         "preview_image": str(output_path.relative_to(project_dir)),
+        "original_preview_image": str(output_path.relative_to(project_dir)),
         "backend_name": "manual_import",
         "backend_run_id": source_value,
         "attempt_group_id": source_prompt.get("attempt_group_id") or source_prompt_id,
@@ -1561,6 +2944,7 @@ def import_concept_attempt(project_id: str, payload: Dict[str, Any]) -> Dict[str
     project["current_stage"] = "concepts"
     project["status"] = "concept_imported"
     save_project(project)
+    save_concept(project_dir, concept)
     append_history_event(project_id, {
         "type": "concept_import",
         "concept_id": concept_id,
@@ -1568,7 +2952,7 @@ def import_concept_attempt(project_id: str, payload: Dict[str, Any]) -> Dict[str
         "import_source": import_source,
         "created_at": now_iso(),
     })
-    return load_project(project_id)
+    return validate_imported_concept(project_id, concept_id)
 
 
 def palette_from_seed(seed: int, variant_index: int, palette_mood: str) -> Dict[str, str]:
@@ -2147,6 +3531,16 @@ def load_project(project_id: str) -> Dict[str, Any]:
     ensure_dirs(project_dir)
     project["brief"] = enrich_brief_references(project_dir, hydrate_brief(load_json(project_dir / "brief.json", {}), project.get("prompt_text", "")))
     project["character_spec"] = load_json(project_dir / "character_spec.json")
+    project["rig_layout"] = load_json(canonical_downstream_path(project_dir, "rig_layout"))
+    project["rig_layout_history"] = load_json(rig_layout_history_path(project_dir), default_rig_layout_history(project_id))
+    project["part_split"] = load_json(canonical_downstream_path(project_dir, "part_split"))
+    project["part_split_history"] = load_json(part_split_history_path(project_dir), default_part_split_history(project_id))
+    if project["part_split"] is not None and not project["part_split"].get("validation"):
+        source_rel = str(project["part_split"].get("source_image") or "")
+        source_mask = None
+        if source_rel and (project_dir / source_rel).exists():
+            source_mask = normalize_mask(detect_mask(Image.open(project_dir / source_rel).convert("RGBA")))
+        project["part_split"]["validation"] = validate_part_split(project_dir, project["part_split"], source_mask)
     project["master_pose_manifest"] = load_master_pose_manifest(project_dir)
     legacy_layered_character = load_json(legacy_downstream_path(project_dir, "layered_character"))
     project["rig"] = load_json(canonical_downstream_path(project_dir, "rig"))
@@ -2161,10 +3555,22 @@ def load_project(project_id: str) -> Dict[str, Any]:
     project["palette"] = (sprite_model or {}).get("palette") or legacy_palette
     project["layered_character"] = sprite_model or legacy_layered_character
     legacy_animation_templates = load_json(legacy_downstream_path(project_dir, "animation_templates"))
-    project["animation_clips"] = hydrate_animation_clips(load_json(canonical_downstream_path(project_dir, "animation_clips")), legacy_animation_templates)
+    project["animation_clips"] = hydrate_animation_clips(
+        load_json(canonical_downstream_path(project_dir, "animation_clips")),
+        legacy_animation_templates,
+        rig_profile=active_rig_profile_name(project, project.get("rig_layout")),
+    )
     project["animation_templates"] = project["animation_clips"] or legacy_animation_templates
     project["qa_report"] = load_json(canonical_downstream_path(project_dir, "qa_report"))
     project["sprite_model_history"] = load_sprite_model_history(project_dir)
+    if project["rig_layout"] is None and project.get("selected_concept_id"):
+        project["rig_layout"] = resolve_rig_layout(project, persist=False)
+        project["rig_layout_approved"] = True
+    elif project["rig_layout"] is not None:
+        project["rig_layout_approved"] = bool(project.get("rig_layout_approved") or project["rig_layout"].get("approved"))
+    if project["part_split"] is not None:
+        project["part_split_approved"] = bool(project.get("part_split_approved") or project["part_split"].get("approved"))
+        project["split_review_approved"] = bool(project.get("split_review_approved") or project.get("part_split_approved") or project["part_split"].get("approved"))
     project["history"] = load_history(project_id)
     project["concepts"] = [hydrate_concept(item, project["created_at"]) for item in load_concepts(project_dir)]
     project["prompt_history"] = prompt_history_entries(project["concepts"])
@@ -2176,6 +3582,8 @@ def load_project(project_id: str) -> Dict[str, Any]:
             if concept["review_state"]["approved"]:
                 project["selected_concept_id"] = concept["concept_id"]
                 break
+    project["rig_layout_handoff_prompt"] = build_rig_layout_handoff_prompt(project, project.get("rig_layout")) if project.get("selected_concept_id") else None
+    project["part_split_handoff_prompt"] = build_part_split_handoff_prompt(project, project.get("part_split")) if project.get("selected_concept_id") and project.get("rig_layout_approved") else None
     project["exports"] = [
         str(path.relative_to(project_dir))
         for path in sorted((project_dir / "exports").glob("*"), key=lambda item: item.name)
@@ -2189,6 +3597,9 @@ def load_project(project_id: str) -> Dict[str, Any]:
     project["build_status"] = {
         "master_pose_ready": bool(project["master_pose_manifest"].get("candidates")),
         "master_pose_approved": bool(project.get("master_pose_approved") and project["master_pose_manifest"].get("approved_image")),
+        "concept_source_ready": bool(selected_concept(project).get("approved_source_image")) if project.get("selected_concept_id") else False,
+        "rig_layout_ready": bool(project.get("rig_layout")) and bool(project.get("rig_layout_approved")),
+        "part_split_ready": bool(project.get("part_split")) and bool(project.get("part_split_approved")),
         "sprite_model_ready": bool(project["sprite_model"]),
         "idle_render_complete": animation_render_complete(project_dir, "idle"),
         "walk_render_complete": animation_render_complete(project_dir, "walk"),
@@ -2213,6 +3624,10 @@ def save_project(project: Dict[str, Any]) -> None:
     core = {k: v for k, v in project.items() if k not in {
         "brief",
         "character_spec",
+        "rig_layout",
+        "rig_layout_history",
+        "part_split",
+        "part_split_history",
         "master_pose_manifest",
         "sprite_model",
         "palette",
@@ -2244,6 +3659,14 @@ def save_project(project: Dict[str, Any]) -> None:
     write_json(project_dir / "brief.json", project["brief"])
     if project.get("character_spec") is not None:
         write_json(project_dir / "character_spec.json", project["character_spec"])
+    if project.get("rig_layout") is not None:
+        write_json(canonical_downstream_path(project_dir, "rig_layout"), project["rig_layout"])
+    if project.get("rig_layout_history") is not None:
+        write_json(rig_layout_history_path(project_dir), project["rig_layout_history"])
+    if project.get("part_split") is not None:
+        write_json(canonical_downstream_path(project_dir, "part_split"), project["part_split"])
+    if project.get("part_split_history") is not None:
+        write_json(part_split_history_path(project_dir), project["part_split_history"])
     if project.get("master_pose_manifest") is not None:
         save_master_pose_manifest(project_dir, project["master_pose_manifest"])
     if project.get("sprite_model") is not None:
@@ -2289,12 +3712,15 @@ def project_summary(project: Dict[str, Any]) -> Dict[str, Any]:
         "status": project["status"],
         "selected_concept_id": project.get("selected_concept_id"),
         "master_pose_approved": project.get("master_pose_approved", False),
+        "rig_layout_approved": project.get("rig_layout_approved", False),
+        "part_split_approved": project.get("part_split_approved", False),
+        "split_review_approved": project.get("split_review_approved", False),
         "sprite_model_approved": sprite_model_approved,
         "layer_review_approved": sprite_model_approved,
         "rig_review_approved": project.get("rig_review_approved", False),
         "archived_at": project.get("archived_at"),
         "last_export": project.get("last_export"),
-        "last_ui_mode": project.get("last_ui_mode", "workbench"),
+        "last_ui_mode": project.get("last_ui_mode", "wizard"),
         "wizard_state": wizard_state,
         "can_resume_wizard": wizard_state.get("current_step") not in {None, "project", "export"},
     }
@@ -2331,7 +3757,7 @@ def create_project(payload: Dict[str, Any]) -> Dict[str, Any]:
     brief = merge_new_references(project_dir, brief, payload)
 
     now = now_iso()
-    initial_mode = payload.get("last_ui_mode") if payload.get("last_ui_mode") in {"wizard", "workbench"} else "workbench"
+    initial_mode = "wizard"
     wizard_state = normalize_wizard_state(payload.get("wizard_state"))
     wizard_state = set_wizard_step_complete(wizard_state, "project")
     if prompt or any(payload.get(key) for key in [
@@ -2346,8 +3772,7 @@ def create_project(payload: Dict[str, Any]) -> Dict[str, Any]:
         "negative_prompt",
     ]):
         wizard_state = set_wizard_step_complete(wizard_state, "brief")
-        if initial_mode == "wizard":
-            wizard_state["current_step"] = "references"
+        wizard_state["current_step"] = "references"
 
     project = {
         "project_id": project_id,
@@ -2444,7 +3869,7 @@ def duplicate_project(project_id: str) -> Dict[str, Any]:
     duplicated["rig_review_approved"] = False
     duplicated["last_export"] = None
     duplicated["archived_at"] = None
-    duplicated["last_ui_mode"] = "workbench"
+    duplicated["last_ui_mode"] = "wizard"
     duplicated["wizard_state"] = normalize_wizard_state(source.get("wizard_state"))
     if duplicated.get("history"):
         duplicated["history"]["project_id"] = new_id
@@ -2485,9 +3910,7 @@ def update_wizard_state(project_id: str, payload: Dict[str, Any]) -> Dict[str, A
         if step in {"references"}:
             wizard_state = set_wizard_optional_step_skipped(wizard_state, step)
 
-    requested_mode = payload.get("last_ui_mode")
-    if requested_mode in {"wizard", "workbench"}:
-        project["last_ui_mode"] = requested_mode
+    project["last_ui_mode"] = "wizard"
 
     project["wizard_state"] = wizard_state
     project["updated_at"] = now_iso()
@@ -2497,6 +3920,7 @@ def update_wizard_state(project_id: str, payload: Dict[str, Any]) -> Dict[str, A
 
 def make_character_spec(project: Dict[str, Any], concept: Dict[str, Any]) -> Dict[str, Any]:
     seed_history = [item["seed"] for item in project["concepts"] if item.get("seed") is not None]
+    rig_profile = select_rig_profile(project, concept)
     return {
         "approved_concept_id": concept["concept_id"],
         "canonical_prompt": concept["positive_prompt"],
@@ -2518,6 +3942,8 @@ def make_character_spec(project: Dict[str, Any], concept: Dict[str, Any]) -> Dic
         "seed_history": seed_history,
         "palette_definition": concept["palette"],
         "prop_definition": {"type": concept.get("prop_variant") or project["brief"]["prop"], "attachment_joint": "wrist_right"},
+        "rig_profile": rig_profile,
+        "rig_profile_flags": copy.deepcopy(RIG_PROFILES[rig_profile]["flags"]),
         "side_view_rules": project["brief"]["side_view_constraints"],
         "production_target": {
             "frame_size": [256, 256],
@@ -2533,6 +3959,318 @@ def make_character_spec(project: Dict[str, Any], concept: Dict[str, Any]) -> Dic
     }
 
 
+def get_rig_layout(project_id: str) -> Dict[str, Any]:
+    project = load_project(project_id)
+    layout = project.get("rig_layout")
+    if not layout:
+        raise ValueError("No rig layout is available for this project.")
+    return layout
+
+
+def generate_rig_layout(project_id: str) -> Dict[str, Any]:
+    project = load_project(project_id)
+    if not project.get("selected_concept_id"):
+        raise ValueError("Accept a concept before generating the rig layout.")
+    concept = selected_concept(project)
+    rig_profile = active_rig_profile_name(project)
+    if isinstance(project.get("character_spec"), dict):
+        rig_profile = project["character_spec"].get("rig_profile") or rig_profile
+    reset_downstream_assets(project_id, "rig_layout")
+    project = clear_project_downstream_state(project, "rig_layout")
+    layout = resolve_rig_layout(project, concept, rig_profile=rig_profile, persist=True)
+    project["rig_layout"] = layout
+    project["rig_layout_history"] = load_json(rig_layout_history_path(PROJECTS_ROOT / project_id), default_rig_layout_history(project_id))
+    project["rig_layout_approved"] = False
+    project["current_stage"] = "rig_layout"
+    project["updated_at"] = now_iso()
+    save_project(project)
+    return load_project(project_id)["rig_layout"]
+
+
+def update_rig_layout(project_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+    project = load_project(project_id)
+    project_dir = PROJECTS_ROOT / project_id
+    layout = copy.deepcopy(project.get("rig_layout"))
+    if not isinstance(layout, dict):
+        raise ValueError("Generate the rig layout before editing it.")
+    operation = str(payload.get("operation") or "").strip() or "replace_layout"
+    if operation == "replace_layout":
+        incoming = payload.get("rig_layout")
+        if not isinstance(incoming, dict):
+            raise ValueError("replace_layout requires a rig_layout object.")
+        layout = copy.deepcopy(incoming)
+    elif operation == "update_part":
+        part_name = str(payload.get("part_name") or "").strip()
+        part = next((item for item in layout.get("parts", []) if item.get("part_name") == part_name), None)
+        if part is None:
+            raise ValueError("Part not found: %s" % part_name)
+        for field in ["parent_joint", "draw_order", "pivot_strategy", "extraction_region", "overlay_only", "required"]:
+            if field in payload:
+                part[field] = copy.deepcopy(payload[field])
+    elif operation == "update_flags":
+        flags = payload.get("flags")
+        if not isinstance(flags, dict):
+            raise ValueError("update_flags requires flags.")
+        layout.setdefault("flags", {}).update(copy.deepcopy(flags))
+    elif operation == "apply_codex_response":
+        response_text = str(payload.get("response_text") or "").strip()
+        parsed = extract_json_object_from_text(response_text)
+        codex_valid = parsed.get("valid")
+        if codex_valid is None:
+            decision = str(parsed.get("decision") or "").strip().lower()
+            codex_valid = decision == "valid"
+        summary = str(parsed.get("summary") or parsed.get("feedback") or "").strip()
+        layout_payload = parsed.get("rig_layout") if isinstance(parsed.get("rig_layout"), dict) else parsed.get("layout")
+        if codex_valid:
+            if not isinstance(layout_payload, dict):
+                raise ValueError("Codex marked the image valid but did not include a rig_layout object.")
+            layout = copy.deepcopy(layout_payload)
+            layout["codex_check"] = {
+                "valid": True,
+                "summary": summary or "Codex marked this concept valid for the current rig layout step.",
+                "applied_at": now_iso(),
+                "raw_response_excerpt": response_text[:1200],
+            }
+        else:
+            layout.setdefault("codex_check", {})
+            layout["codex_check"].update({
+                "valid": False,
+                "summary": summary or "Codex did not approve this image for rig layout generation.",
+                "applied_at": now_iso(),
+                "raw_response_excerpt": response_text[:1200],
+            })
+    else:
+        raise ValueError("Unsupported rig-layout operation.")
+
+    profile_name = active_rig_profile_name(project, layout)
+    layout["rig_profile"] = profile_name
+    layout["draw_order"] = [item["part_name"] for item in sorted(layout.get("parts", []), key=lambda item: item.get("draw_order", 0))]
+    layout["extraction_rules"] = {item["part_name"]: item.get("extraction_region") for item in layout.get("parts", [])}
+    layout["pivot_rules"] = {item["part_name"]: item.get("pivot_strategy") for item in layout.get("parts", [])}
+    layout["validation"] = validate_rig_layout(layout)
+    if layout["validation"]["status"] != "pass":
+        raise ValueError("; ".join(layout["validation"]["errors"]))
+    layout["approved"] = False
+    reset_downstream_assets(project_id, "rig_layout")
+    project = clear_project_downstream_state(project, "rig_layout")
+    write_json(canonical_downstream_path(project_dir, "rig_layout"), layout)
+    project["rig_layout"] = layout
+    project["rig_layout_history"] = create_rig_layout_revision(project_dir, layout, "update", operation=operation)
+    project["rig_layout_approved"] = False
+    project["current_stage"] = "rig_layout"
+    project["updated_at"] = now_iso()
+    save_project(project)
+    return load_project(project_id)["rig_layout"]
+
+
+def approve_rig_layout(project_id: str) -> Dict[str, Any]:
+    project = load_project(project_id)
+    layout = copy.deepcopy(project.get("rig_layout"))
+    if not isinstance(layout, dict):
+        raise ValueError("Generate the rig layout before approving it.")
+    validation = validate_rig_layout(layout)
+    if validation["status"] != "pass":
+        raise ValueError("Rig layout approval is blocked: %s" % "; ".join(validation["errors"]))
+    layout["approved"] = True
+    project["rig_layout"] = layout
+    project["rig_layout_approved"] = True
+    project["current_stage"] = "rig_layout"
+    project["updated_at"] = now_iso()
+    save_project(project)
+    return load_project(project_id)
+
+
+def build_part_split_handoff_prompt(project: Dict[str, Any], part_split: Optional[Dict[str, Any]] = None) -> str:
+    layout = project.get("rig_layout") or {}
+    concept = None
+    try:
+        concept = selected_concept(project)
+    except Exception:
+        concept = None
+    lines = [
+        "You are preparing separated sprite parts for a deterministic 2D sprite pipeline.",
+        "Use the approved side-view concept and approved rig layout to produce candidate split parts.",
+        "",
+        "Rules:",
+        "- return candidate part assets only for the approved rig layout parts",
+        "- do not invent hidden-side anatomy",
+        "- preserve merged armor masses when the layout keeps them merged",
+        "- overlays stay overlays; do not promote them into anatomy splits",
+        "- optimize for clean neutral-pose reconstruction, not anatomy completeness",
+        "- output candidates only; the user will review and approve them",
+        "",
+        "Expected part names:",
+        "- %s" % "\n- ".join(item["part_name"] for item in (layout.get("parts") or [])),
+        "",
+        "Required output:",
+        "- one isolated transparent PNG per part when visible",
+        "- one mask per part",
+        "- no prose redesign",
+        "- preserve source silhouette and palette",
+    ]
+    if concept:
+        lines.extend([
+            "",
+            "Context:",
+            f"- selected concept id: {concept.get('concept_id')}",
+            f"- source image: {concept.get('approved_source_image')}",
+        ])
+    return "\n".join(lines)
+
+
+def get_part_split(project_id: str) -> Dict[str, Any]:
+    project = load_project(project_id)
+    payload = project.get("part_split")
+    if not payload:
+        raise ValueError("No part split is available for this project.")
+    return payload
+
+
+def generate_part_split(project_id: str) -> Dict[str, Any]:
+    project = load_project(project_id)
+    if not project.get("selected_concept_id"):
+        raise ValueError("Accept a concept before generating split parts.")
+    if not project.get("rig_layout_approved"):
+        raise ValueError("Approve the rig layout before generating split parts.")
+    project_dir = PROJECTS_ROOT / project_id
+    concept = selected_concept(project)
+    rig_layout = project.get("rig_layout") or resolve_rig_layout(project, concept, persist=False)
+    approved_path, approved_rel = resolve_sprite_source_image(project, project_dir)
+    source_image = Image.open(approved_path).convert("RGBA")
+    source_mask = normalize_mask(detect_mask(source_image))
+    subject_bbox = source_mask.getbbox()
+    if subject_bbox is None:
+        raise ValueError("Could not detect a character silhouette in the approved source image.")
+
+    reset_downstream_assets(project_id, "part_split")
+    project = clear_project_downstream_state(project, "part_split")
+
+    facing = estimate_facing_direction(source_mask)
+    parts: List[Dict[str, Any]] = []
+    for entry in list(rig_layout.get("parts") or []):
+        extraction_region = resolve_layout_region(entry, facing) or entry.get("extraction_region")
+        if not extraction_region:
+            continue
+        box = region_box(subject_bbox, extraction_region)
+        part_image, part_mask, absolute_bbox = crop_region_from_source(source_image, source_mask, box)
+        image_path, mask_path = write_part_split_asset(project_dir, entry["part_name"], part_image, part_mask)
+        parts.append({
+            "part_name": entry["part_name"],
+            "part_role": canonical_sprite_part_role(entry, rig_layout.get("rig_profile")),
+            "required": bool(entry.get("required")),
+            "image_path": image_path,
+            "mask_path": mask_path,
+            "bbox": [int(value) for value in absolute_bbox],
+            "overlay_only": bool(entry.get("overlay_only")),
+            "source_method": "legacy_box_fallback",
+            "status": "candidate",
+            "notes": "",
+            "pivot_hint": part_pivot_from_image(entry["part_name"], part_image, entry),
+            "parent_joint": entry.get("parent_joint"),
+            "draw_order": int(entry.get("draw_order", 0)),
+        })
+
+    preview_path, reconstruction_meta = render_part_split_reconstruction(project_dir, source_image.size, parts)
+    payload = {
+        "layout_version": 1,
+        "project_id": project_id,
+        "approved_concept_id": concept.get("concept_id"),
+        "rig_profile": rig_layout.get("rig_profile"),
+        "rig_layout": rig_layout,
+        "source_image": approved_rel,
+        "source_facing": facing,
+        "parts": parts,
+        "reconstruction_preview": {"path": preview_path, **reconstruction_meta},
+        "approved": False,
+        "created_at": now_iso(),
+    }
+    payload["validation"] = validate_part_split(project_dir, payload, source_mask)
+    write_json(canonical_downstream_path(project_dir, "part_split"), payload)
+    project["part_split"] = payload
+    project["part_split_history"] = create_part_split_revision(project_dir, payload, "generate")
+    project["part_split_approved"] = False
+    project["split_review_approved"] = False
+    project["current_stage"] = "part_split"
+    project["updated_at"] = now_iso()
+    save_project(project)
+    return load_project(project_id)["part_split"]
+
+
+def update_part_split(project_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+    project = load_project(project_id)
+    project_dir = PROJECTS_ROOT / project_id
+    part_split = copy.deepcopy(project.get("part_split"))
+    if not isinstance(part_split, dict):
+        raise ValueError("Generate split parts before editing them.")
+    operation = str(payload.get("operation") or "").strip() or "replace_split"
+    if operation == "replace_split":
+        incoming = payload.get("part_split")
+        if not isinstance(incoming, dict):
+            raise ValueError("replace_split requires a part_split object.")
+        part_split = copy.deepcopy(incoming)
+    elif operation == "update_part":
+        part_name = str(payload.get("part_name") or "").strip()
+        part = next((item for item in part_split.get("parts", []) if item.get("part_name") == part_name), None)
+        if part is None:
+            raise ValueError("Part not found: %s" % part_name)
+        for field in ["required", "overlay_only", "notes", "pivot_hint", "parent_joint", "draw_order", "status", "source_method", "bbox"]:
+            if field in payload:
+                part[field] = copy.deepcopy(payload[field])
+    elif operation == "apply_codex_response":
+        parsed = extract_json_object_from_text(str(payload.get("response_text") or ""))
+        split_payload = parsed.get("part_split") if isinstance(parsed.get("part_split"), dict) else parsed.get("split")
+        if not isinstance(split_payload, dict):
+            raise ValueError("Codex response did not include a part_split object.")
+        part_split = copy.deepcopy(split_payload)
+    else:
+        raise ValueError("Unsupported part-split operation.")
+
+    source_rel = str(part_split.get("source_image") or "")
+    source_mask = None
+    if source_rel:
+        source_path = project_dir / source_rel
+        if source_path.exists():
+            source_mask = normalize_mask(detect_mask(Image.open(source_path).convert("RGBA")))
+    preview_path, reconstruction_meta = render_part_split_reconstruction(
+        project_dir,
+        Image.open(project_dir / source_rel).convert("RGBA").size if source_rel and (project_dir / source_rel).exists() else CONCEPT_CANVAS,
+        list(part_split.get("parts") or []),
+    )
+    part_split["reconstruction_preview"] = {"path": preview_path, **reconstruction_meta}
+    part_split["rig_layout"] = project.get("rig_layout") or part_split.get("rig_layout")
+    part_split["rig_profile"] = active_rig_profile_name(project, project.get("rig_layout"))
+    part_split["validation"] = validate_part_split(project_dir, part_split, source_mask)
+    part_split["approved"] = False
+    write_json(canonical_downstream_path(project_dir, "part_split"), part_split)
+    project = clear_project_downstream_state(project, "part_split")
+    project["part_split"] = part_split
+    project["part_split_history"] = create_part_split_revision(project_dir, part_split, "update", operation=operation)
+    project["part_split_approved"] = False
+    project["split_review_approved"] = False
+    project["current_stage"] = "part_split"
+    project["updated_at"] = now_iso()
+    save_project(project)
+    return load_project(project_id)["part_split"]
+
+
+def approve_part_split(project_id: str) -> Dict[str, Any]:
+    project = load_project(project_id)
+    part_split = copy.deepcopy(project.get("part_split"))
+    if not isinstance(part_split, dict):
+        raise ValueError("Generate split parts before approving them.")
+    validation = part_split.get("validation") or {}
+    if validation.get("status") == "fail":
+        raise ValueError("Part split approval is blocked: %s" % "; ".join(validation.get("failures") or ["validation failed"]))
+    part_split["approved"] = True
+    project["part_split"] = part_split
+    project["part_split_approved"] = True
+    project["split_review_approved"] = True
+    project["current_stage"] = "split_review"
+    project["updated_at"] = now_iso()
+    save_project(project)
+    return load_project(project_id)
+
+
 def update_concept_validation(project_id: str, concept_id: str, validation_status: str, feedback: Optional[str] = None) -> Dict[str, Any]:
     if validation_status not in {"pending", "valid", "invalid"}:
         raise ValueError("validation_status must be pending, valid, or invalid.")
@@ -2542,27 +4280,26 @@ def update_concept_validation(project_id: str, concept_id: str, validation_statu
         raise ValueError("Concept not found.")
     if not concept.get("preview_image"):
         raise ValueError("Only imported concept attempts can be validated.")
-
-    concept["validation_status"] = validation_status
-    concept["validation_feedback"] = (feedback or "").strip() or None
-    concept["review_state"]["rejected"] = validation_status == "invalid"
-    concept["rejected"] = concept["review_state"]["rejected"]
-    if validation_status != "valid" and project.get("selected_concept_id") == concept_id:
-        reset_downstream_assets(project_id, "concept")
-        project = clear_project_downstream_state(project, "concept")
-        concept["review_state"]["approved"] = False
-        concept["approved"] = False
-        concept["accepted_for_review"] = False
-        project["selected_concept_id"] = None
-        project["character_spec"] = None
-    concept["accepted_for_review"] = bool(project.get("selected_concept_id") == concept_id and validation_status == "valid")
+    source = "gemini_overridden" if concept.get("validation_source") == "gemini" else "manual"
+    project = apply_validation_state(
+        project,
+        concept,
+        validation_status,
+        feedback=feedback,
+        summary=concept.get("codex_review_summary"),
+        validation_source=source,
+        validation_error=None,
+        codex_response_id=concept.get("codex_response_id"),
+    )
     project["updated_at"] = now_iso()
+    save_concept(PROJECTS_ROOT / project_id, concept)
     save_project(project)
     append_history_event(project_id, {
         "type": "concept_validation",
         "concept_id": concept_id,
         "validation_status": validation_status,
         "validation_feedback": concept["validation_feedback"],
+        "validation_source": concept["validation_source"],
         "created_at": now_iso(),
     })
     return load_project(project_id)
@@ -2583,6 +4320,8 @@ def update_concept_review_state(project_id: str, concept_id: str, action: str, v
         event_value = True
         if concept.get("validation_status") != "valid":
             raise ValueError("Only valid imported concepts can be accepted.")
+        if not concept.get("approved_source_image"):
+            raise ValueError("Only valid imported concepts with an approved source image can be accepted.")
         reset_downstream_assets(project_id, "concept")
         project = clear_project_downstream_state(project, "concept")
         for item in project["concepts"]:
@@ -2592,7 +4331,11 @@ def update_concept_review_state(project_id: str, concept_id: str, action: str, v
             save_concept(PROJECTS_ROOT / project_id, item)
         project["selected_concept_id"] = concept_id
         project["character_spec"] = make_character_spec(project, concept)
-        project["current_stage"] = "concept_lock"
+        rig_layout = resolve_rig_layout(project, concept, rig_profile=project["character_spec"]["rig_profile"], persist=True)
+        project["rig_layout"] = rig_layout
+        project["rig_layout_history"] = load_json(rig_layout_history_path(PROJECTS_ROOT / project_id), default_rig_layout_history(project_id))
+        project["rig_layout_approved"] = False
+        project["current_stage"] = "rig_layout"
         project["status"] = "concept_approved"
         project["master_pose_approved"] = False
         project["sprite_model_approved"] = False
@@ -2633,8 +4376,18 @@ def update_concept_review_state(project_id: str, concept_id: str, action: str, v
 
 def generate_initial_prompt(project_id: str) -> Dict[str, Any]:
     project = load_project(project_id)
-    prompt_text = build_gemini_prompt(project["brief"])
-    concept = create_prompt_attempt(project, prompt_text, "initial")
+    concepts = list(project.get("concepts") or [])
+    prior = None
+    if concepts:
+        concepts.sort(key=lambda item: parse_iso(item.get("created_at")), reverse=True)
+        prior = next((item for item in concepts if item.get("preview_image")), concepts[0])
+    prompt_text = build_gemini_prompt(
+        project["brief"],
+        previous_prompt=(prior.get("prompt_text") or prior.get("positive_prompt")) if prior else None,
+        validation_feedback=(prior.get("validation_feedback") or None) if prior and prior.get("validation_status") == "invalid" else None,
+        imported_attempt=prior if prior and prior.get("preview_image") else None,
+    )
+    concept = create_prompt_attempt(project, prompt_text, "iteration" if prior else "initial", attempt_group_id=prior.get("attempt_group_id") if prior else None)
     return {
         "concept_id": concept["concept_id"],
         "attempt_group_id": concept["attempt_group_id"],
@@ -2720,6 +4473,8 @@ def promote_reference_as_concept(project_id: str, payload: Optional[Dict[str, An
         "prompt": "%s, approved directly from attached reference image, preserve character identity and style direction"
         % project["brief"]["positive_prompt_base"],
         "preview_image": str(concept_output_path.relative_to(project_dir)),
+        "original_preview_image": str(concept_output_path.relative_to(project_dir)),
+        "approved_source_image": str(concept_output_path.relative_to(project_dir)),
         "backend_name": "manual_reference",
         "backend_run_id": reference.get("reference_id"),
         "variation_axes": {
@@ -2746,6 +4501,10 @@ def promote_reference_as_concept(project_id: str, payload: Optional[Dict[str, An
         "approved": True,
         "favorite": True,
         "rejected": False,
+        "validation_status": "valid",
+        "validation_source": "manual",
+        "validation_updated_at": now_iso(),
+        "codex_review_summary": "Reference promoted directly as the approved extraction source.",
         "lineage": {
             "run_id": run_id,
             "parent_concept_id": None,
@@ -2763,7 +4522,11 @@ def promote_reference_as_concept(project_id: str, payload: Optional[Dict[str, An
 
     project["selected_concept_id"] = concept_id
     project["character_spec"] = make_character_spec(project, concept)
-    project["current_stage"] = "concept_lock"
+    rig_layout = resolve_rig_layout(project, concept, rig_profile=project["character_spec"]["rig_profile"], persist=True)
+    project["rig_layout"] = rig_layout
+    project["rig_layout_history"] = load_json(rig_layout_history_path(project_dir), default_rig_layout_history(project_id))
+    project["rig_layout_approved"] = False
+    project["current_stage"] = "rig_layout"
     project["status"] = "concept_approved"
     project["master_pose_approved"] = False
     project["sprite_model_approved"] = False
@@ -2775,7 +4538,7 @@ def promote_reference_as_concept(project_id: str, payload: Optional[Dict[str, An
     project["wizard_state"] = set_wizard_step_complete(project["wizard_state"], "concepts")
     project["wizard_state"] = set_wizard_step_complete(project["wizard_state"], "review")
     if project["last_ui_mode"] == "wizard":
-        project["wizard_state"]["current_step"] = "master_pose"
+        project["wizard_state"]["current_step"] = "rig_layout"
     project["updated_at"] = now_iso()
     save_project(project)
     append_history_event(project_id, {
@@ -2801,10 +4564,24 @@ def save_master_pose_manifest(project_dir: Path, manifest: Dict[str, Any]) -> No
 
 
 def selected_concept(project: Dict[str, Any]) -> Dict[str, Any]:
-    concept = next((item for item in project["concepts"] if item["concept_id"] == project.get("selected_concept_id")), None)
+    concept = next((item for item in (project.get("concepts") or []) if item["concept_id"] == project.get("selected_concept_id")), None)
     if concept is None:
         raise ValueError("Concept approval is required before this stage.")
     return concept
+
+
+def resolve_sprite_source_image(project: Dict[str, Any], project_dir: Path) -> Tuple[Path, str]:
+    concept = selected_concept(project)
+    approved_source = concept.get("approved_source_image")
+    if approved_source:
+        source_path = project_dir / approved_source
+        if source_path.exists():
+            return source_path, approved_source
+    legacy_master_pose = project.get("master_pose_manifest", {}).get("approved_image") or "master_pose/approved_master_pose.png"
+    legacy_path = project_dir / legacy_master_pose
+    if legacy_path.exists():
+        return legacy_path, legacy_master_pose
+    raise ValueError("Approved concept source image is missing.")
 
 
 def clean_source_subject(image: Image.Image) -> Tuple[Image.Image, Image.Image, Tuple[int, int, int, int]]:
@@ -3258,8 +5035,68 @@ def fallback_part_entry(
     return empty, Image.new("L", (1, 1), 0), {"mirror_of": None, "bbox": list(target_bbox)}
 
 
-def part_pivot_from_image(part_name: str, image: Image.Image) -> List[int]:
-    fx, fy = PART_PIVOT_FRACTIONS.get(part_name, (0.5, 0.5))
+def shade_part_image(image: Image.Image, factor: float) -> Image.Image:
+    rgba = image.convert("RGBA")
+    factor = max(0.0, float(factor))
+    r, g, b, a = rgba.split()
+    return Image.merge("RGBA", (
+        r.point(lambda value: int(round(value * factor))),
+        g.point(lambda value: int(round(value * factor))),
+        b.point(lambda value: int(round(value * factor))),
+        a,
+    ))
+
+
+def clone_part_entry(
+    source_part: Optional[Dict[str, Any]],
+    source_image: Optional[Image.Image],
+    source_mask: Optional[Image.Image],
+    target_bbox: Tuple[int, int, int, int],
+    *,
+    shade_factor: float = 1.0,
+    scale_x: float = 1.0,
+    scale_y: float = 1.0,
+    align: str = "top_left",
+) -> Tuple[Image.Image, Image.Image, Dict[str, Any]]:
+    if source_part and source_image and source_mask:
+        image = shade_part_image(source_image, shade_factor)
+        mask = source_mask.copy()
+        if scale_x != 1.0 or scale_y != 1.0:
+            scaled_size = (
+                max(1, int(round(image.size[0] * max(0.05, float(scale_x))))),
+                max(1, int(round(image.size[1] * max(0.05, float(scale_y))))),
+            )
+            image = image.resize(scaled_size, Image.Resampling.NEAREST)
+            mask = mask.resize(scaled_size, Image.Resampling.NEAREST)
+        left = target_bbox[0]
+        top = target_bbox[1]
+        if align == "bottom_right":
+            left = target_bbox[2] - image.size[0]
+            top = target_bbox[3] - image.size[1]
+        elif align == "bottom_left":
+            top = target_bbox[3] - image.size[1]
+        elif align == "top_right":
+            left = target_bbox[2] - image.size[0]
+        bbox = (
+            int(left),
+            int(top),
+            int(left + image.size[0]),
+            int(top + image.size[1]),
+        )
+        return image, mask, {
+            "mirror_of": source_part["part_name"],
+            "bbox": list(bbox),
+        }
+    empty = Image.new("RGBA", (1, 1), (0, 0, 0, 0))
+    return empty, Image.new("L", (1, 1), 0), {"mirror_of": None, "bbox": list(target_bbox)}
+
+
+def part_pivot_from_image(part_name: str, image: Image.Image, part_definition: Optional[Dict[str, Any]] = None) -> List[int]:
+    strategy = (part_definition or {}).get("pivot_strategy") or {}
+    if strategy.get("mode") == "fractional" and isinstance(strategy.get("fraction"), (list, tuple)) and len(strategy.get("fraction")) == 2:
+        fx, fy = float(strategy["fraction"][0]), float(strategy["fraction"][1])
+    else:
+        fx, fy = PART_PIVOT_FRACTIONS.get(part_name, (0.5, 0.5))
     return [
         clamp_int(image.size[0] * fx, 0, max(0, image.size[0] - 1)),
         clamp_int(image.size[1] * fy, 0, max(0, image.size[1] - 1)),
@@ -3268,7 +5105,12 @@ def part_pivot_from_image(part_name: str, image: Image.Image) -> List[int]:
 
 def validate_sprite_model(project_dir: Path, sprite_model: Dict[str, Any]) -> Dict[str, Any]:
     parts = sprite_model.get("parts") or []
-    required_roles: Set[str] = set(REQUIRED_PARTS)
+    rig_layout = sprite_model.get("rig_layout") or load_json(canonical_downstream_path(project_dir, "rig_layout"))
+    profile_name = active_rig_profile_name({"character_spec": None}, rig_layout)
+    layout_parts = {item["part_name"]: item for item in (rig_layout or {}).get("parts", []) if isinstance(item, dict)}
+    required_roles: Set[str] = {item["part_name"] for item in layout_parts.values() if item.get("required")}
+    optional_roles: Set[str] = {item["part_name"] for item in layout_parts.values() if not item.get("required")}
+    overlay_roles: Set[str] = set((rig_layout or {}).get("overlay_parts") or [])
     role_counts: Dict[str, int] = {}
     part_reports: List[Dict[str, Any]] = []
     warnings: List[str] = []
@@ -3277,7 +5119,7 @@ def validate_sprite_model(project_dir: Path, sprite_model: Dict[str, Any]) -> Di
     prop_separation_warnings: List[Dict[str, Any]] = []
 
     for part in parts:
-        role = part.get("part_role", part.get("part_name", "part"))
+        role = canonical_sprite_part_role(part, profile_name)
         role_counts[role] = role_counts.get(role, 0) + 1
         image, mask = load_part_asset(project_dir, part)
         bbox = part.get("bbox") or [0, 0, image.size[0], image.size[1]]
@@ -3318,26 +5160,31 @@ def validate_sprite_model(project_dir: Path, sprite_model: Dict[str, Any]) -> Di
     missing_roles = sorted(required_roles.difference(set(role_counts)))
     for role in missing_roles:
         failures.append("missing required part: %s" % role)
+    missing_optional_roles = sorted(optional_roles.difference(set(role_counts)))
+    for role in missing_optional_roles:
+        warnings.append("missing optional part: %s" % role)
 
     usable_part_reports = [item for item in part_reports if item["status"] != "fail"]
     for index, left in enumerate(usable_part_reports):
         for right in usable_part_reports[index + 1:]:
-            interesting_roles = {"prop", "accessory_front", "accessory_back"}
-            if left["part_role"] not in interesting_roles and right["part_role"] not in interesting_roles:
+            interesting_roles = {"prop", "weapon", "accessory_front", "accessory_back", "front_cloth", "cape_back"}
+            if left["part_role"] not in interesting_roles and right["part_role"] not in interesting_roles and left["part_role"] not in overlay_roles and right["part_role"] not in overlay_roles:
                 continue
             shared = bbox_intersection_area(left["bbox"], right["bbox"])
             if shared <= 0:
                 continue
             ratio = shared / float(max(1, min(bbox_area(left["bbox"]), bbox_area(right["bbox"]))))
-            if ratio >= SPRITE_MODEL_WARN_COMPONENT_OVERLAP_RATIO:
+            threshold = 0.8 if left["part_role"] in overlay_roles or right["part_role"] in overlay_roles else SPRITE_MODEL_WARN_COMPONENT_OVERLAP_RATIO
+            if ratio >= threshold:
                 overlap_warnings.append({
                     "parts": [left["part_name"], right["part_name"]],
                     "ratio": round(ratio, 4),
                 })
 
-    prop_report = next((item for item in usable_part_reports if item["part_role"] == "prop"), None)
+    prop_report = next((item for item in usable_part_reports if item["part_role"] in {"prop", "weapon"}), None)
     if prop_report is not None:
-        for role in ["torso", "hand_left", "hand_right"]:
+        candidate_roles = ["torso", "torso_pelvis", "hand_left", "hand_right", "front_arm"]
+        for role in candidate_roles:
             other = next((item for item in usable_part_reports if item["part_role"] == role), None)
             if other is None:
                 continue
@@ -3369,12 +5216,17 @@ def validate_sprite_model(project_dir: Path, sprite_model: Dict[str, Any]) -> Di
         "warnings": warnings,
         "failures": failures,
         "required_parts_missing": missing_roles,
+        "optional_parts_missing": missing_optional_roles,
         "overlap_warnings": overlap_warnings,
         "prop_separation_warnings": prop_separation_warnings,
         "per_part": part_reports,
         "summary": {
             "part_count": len(parts),
-            "required_part_count": len(REQUIRED_PARTS),
+            "required_part_count": len(required_roles) if required_roles else len(parts),
+            "optional_part_count": len(optional_roles),
+            "rig_profile": profile_name,
+            "overlay_part_count": len(overlay_roles),
+            "joint_driving_part_count": len(set((rig_layout or {}).get("joint_driving_parts") or [])),
             "mirrored_fallback_count": sum(1 for item in part_reports if item["used_mirrored_fallback"]),
             "warning_count": len(warnings),
             "fail_count": len(failures),
@@ -3385,14 +5237,91 @@ def validate_sprite_model(project_dir: Path, sprite_model: Dict[str, Any]) -> Di
 def build_sprite_model(project_id: str, progress: Optional[ProgressCallback] = None) -> Dict[str, Any]:
     project = load_project(project_id)
     project_dir = PROJECTS_ROOT / project_id
-    if not project.get("master_pose_approved"):
-        raise ValueError("Master pose approval is required before sprite model build.")
+    concept = selected_concept(project)
+    if concept.get("validation_status") != "valid":
+        raise ValueError("A valid accepted concept is required before sprite model build.")
+    rig_layout = project.get("rig_layout") or resolve_rig_layout(project, concept, persist=False)
+    if rig_layout.get("validation", {}).get("status") == "fail":
+        raise ValueError("Approve a valid rig layout before sprite model build.")
+    if project.get("selected_concept_id") and not (project.get("rig_layout_approved") or rig_layout.get("auto_generated_legacy")):
+        raise ValueError("Approve the rig layout before building the sprite model.")
 
-    approved_path = project_dir / "master_pose" / "approved_master_pose.png"
-    if not approved_path.exists():
-        raise ValueError("Approved master pose image is missing.")
+    part_split = project.get("part_split")
+    if part_split and project.get("part_split_approved"):
+        call_progress(progress, 8, "Preparing sprite model", "Building from approved split parts instead of recropping the source image.")
+        reset_downstream_assets(project_id, "sprite_model")
+        project = clear_project_downstream_state(project, "sprite_model")
+        clear_directory(project_dir / "parts")
+        (project_dir / "parts" / "masks").mkdir(parents=True, exist_ok=True)
+        (project_dir / "parts" / "recovery").mkdir(parents=True, exist_ok=True)
+        delete_path(canonical_downstream_path(project_dir, "sprite_model"))
+        delete_path(legacy_downstream_path(project_dir, "palette"))
 
-    call_progress(progress, 8, "Preparing sprite model", "Loading the approved master pose and extracting the subject silhouette.")
+        approved_rel = str(part_split.get("source_image") or "")
+        approved_path = project_dir / approved_rel if approved_rel else None
+        source_image = Image.open(approved_path).convert("RGBA") if approved_path and approved_path.exists() else None
+        palette_source = source_image if source_image is not None else Image.new("RGBA", CONCEPT_CANVAS, (0, 0, 0, 0))
+        palette = extract_palette(palette_source)
+        facing = str(part_split.get("source_facing") or "left")
+        built_parts: List[Dict[str, Any]] = []
+        for index, part_definition in enumerate(list(part_split.get("parts") or [])):
+            call_progress(progress, 12 + int((index / max(1, len(part_split.get("parts") or []))) * 72), "Copying split part %d of %d" % (index + 1, len(part_split.get("parts") or [])), part_definition["part_name"])
+            image, mask = load_part_split_asset(project_dir, part_definition)
+            image_path, mask_path = write_part_asset(project_dir, part_definition["part_name"], image, mask)
+            built_parts.append({
+                "part_name": part_definition["part_name"],
+                "part_role": canonical_sprite_part_role(part_definition, rig_layout["rig_profile"]),
+                "image_path": image_path,
+                "mask_path": mask_path,
+                "pivot_point": list(part_definition.get("pivot_hint") or part_pivot_from_image(part_definition["part_name"], image, part_definition)),
+                "parent_joint": str(part_definition.get("parent_joint") or resolve_layout_parent_joint(part_definition["part_name"], rig_layout["rig_profile"], facing) or "torso"),
+                "draw_order": int(part_definition.get("draw_order", 0)),
+                "bbox": [int(value) for value in (part_definition.get("bbox") or [0, 0, image.size[0], image.size[1]])],
+                "mirror_of": None,
+                "approved": True,
+                "overlay_only": bool(part_definition.get("overlay_only")),
+            })
+        ordered_parts = sorted(built_parts, key=lambda item: item["draw_order"])
+        source_bounds = normalize_mask(source_image.getchannel("A")).getbbox() if source_image is not None else None
+        sprite_model = {
+            "project_id": project_id,
+            "approved_master_pose": part_split.get("approved_master_pose"),
+            "approved_source_image": approved_rel,
+            "parts": ordered_parts,
+            "palette": palette,
+            "outline_rules": {
+                "outline_color": palette["outline"],
+                "mode": "single_pixel_detected",
+            },
+            "draw_order": [item["part_name"] for item in ordered_parts],
+            "source_facing": facing,
+            "source_bounds": list(source_bounds or (0, 0, palette_source.size[0], palette_source.size[1])),
+            "rig_layout": rig_layout,
+            "status": "pass",
+            "approved_for_rigging": False,
+            "source_mode": "approved_part_split",
+        }
+        sprite_model["build_report"] = validate_sprite_model(project_dir, sprite_model)
+        sprite_model["status"] = sprite_model["build_report"]["status"]
+        write_json(canonical_downstream_path(project_dir, "sprite_model"), sprite_model)
+        create_sprite_model_revision(project_dir, sprite_model, "build")
+        project["sprite_model"] = sprite_model
+        project["palette"] = palette
+        project["layered_character"] = sprite_model
+        project["sprite_model_history"] = load_sprite_model_history(project_dir)
+        project["current_stage"] = "sprite_model"
+        project["status"] = "sprite_model_%s" % sprite_model["status"]
+        project["updated_at"] = now_iso()
+        save_project(project)
+        return load_project(project_id)["sprite_model"]
+
+    if not part_split:
+        call_progress(progress, 5, "Legacy fallback", "Using legacy extraction because no approved part split exists.")
+    else:
+        raise ValueError("Approve the part split before building the sprite model.")
+
+    approved_path, approved_rel = resolve_sprite_source_image(project, project_dir)
+    call_progress(progress, 8, "Preparing sprite model", "Loading the accepted concept source image and extracting the subject silhouette.")
     source_image = Image.open(approved_path).convert("RGBA")
     source_mask = normalize_mask(detect_mask(source_image))
     subject_bbox = source_mask.getbbox()
@@ -3410,58 +5339,92 @@ def build_sprite_model(project_id: str, progress: Optional[ProgressCallback] = N
     palette = extract_palette(image_with_mask(source_image, source_mask))
     facing = estimate_facing_direction(source_mask)
     left_in_front = facing == "left"
+    rig_layout["source_assumptions"] = {
+        **(rig_layout.get("source_assumptions") or {}),
+        "source_facing": facing,
+    }
     built_parts: Dict[str, Dict[str, Any]] = {}
     built_images: Dict[str, Image.Image] = {}
     built_masks: Dict[str, Image.Image] = {}
-    total_parts = len(REQUIRED_PARTS)
+    layout_parts = list(rig_layout.get("parts") or [])
+    total_parts = len(layout_parts)
 
-    for index, part_name in enumerate(REQUIRED_PARTS):
+    for index, part_definition in enumerate(layout_parts):
+        part_name = part_definition["part_name"]
         call_progress(progress, 12 + int((index / max(1, total_parts)) * 72), "Extracting part %d of %d" % (index + 1, total_parts), part_name)
-        box = region_box(subject_bbox, PART_REGION_FRACTIONS[part_name])
+        extraction_region = resolve_layout_region(part_definition, facing) or part_definition.get("extraction_region")
+        if not extraction_region:
+            continue
+        box = region_box(subject_bbox, extraction_region)
         part_image, part_mask, absolute_bbox = crop_region_from_source(source_image, source_mask, box)
-        if alpha_bbox(part_image) is None:
+        fallback_mode = str(part_definition.get("fallback_mode") or "")
+        if fallback_mode.startswith("clone_from:"):
+            source_name = fallback_mode.split(":", 1)[1].strip()
+            source_part = built_parts.get(source_name)
+            source_image_clone = built_images.get(source_name)
+            source_mask_clone = built_masks.get(source_name)
+            part_image, part_mask, fallback_meta = clone_part_entry(
+                source_part,
+                source_image_clone,
+                source_mask_clone,
+                box,
+                shade_factor=0.7 if part_name == "back_leg" else 1.0,
+                scale_x=0.88 if part_name == "back_leg" else 1.0,
+                scale_y=0.95 if part_name == "back_leg" else 1.0,
+                align="bottom_right" if part_name == "back_leg" else "top_left",
+            )
+            absolute_bbox = tuple(fallback_meta["bbox"])
+            mirror_of = fallback_meta["mirror_of"]
+        elif alpha_bbox(part_image) is None:
             counterpart = None
             counterpart_name = None
-            if part_name.endswith("_left"):
+            if fallback_mode == "mirror_counterpart" and part_name.endswith("_left"):
                 counterpart_name = part_name.replace("_left", "_right")
                 counterpart = built_parts.get(counterpart_name)
-            elif part_name.endswith("_right"):
+            elif fallback_mode == "mirror_counterpart" and part_name.endswith("_right"):
                 counterpart_name = part_name.replace("_right", "_left")
                 counterpart = built_parts.get(counterpart_name)
             counterpart_image = built_images.get(counterpart["part_name"]) if counterpart else None
             counterpart_mask = built_masks.get(counterpart["part_name"]) if counterpart else None
             if counterpart is None and counterpart_name:
-                counterpart_box = region_box(subject_bbox, PART_REGION_FRACTIONS[counterpart_name])
+                counterpart_definition = next((item for item in layout_parts if item["part_name"] == counterpart_name), None)
+                counterpart_region = resolve_layout_region(counterpart_definition or {}, facing)
+                counterpart_box = region_box(subject_bbox, counterpart_region or extraction_region)
                 counterpart_image, counterpart_mask, _ = crop_region_from_source(source_image, source_mask, counterpart_box)
                 if alpha_bbox(counterpart_image) is not None:
                     counterpart = {"part_name": counterpart_name}
-            part_image, part_mask, fallback_meta = fallback_part_entry(part_name, counterpart, counterpart_image, counterpart_mask, box)
-            absolute_bbox = tuple(fallback_meta["bbox"])
-            mirror_of = fallback_meta["mirror_of"]
+            if fallback_mode == "allow_missing":
+                part_image = Image.new("RGBA", (1, 1), (0, 0, 0, 0))
+                part_mask = Image.new("L", (1, 1), 0)
+                absolute_bbox = (int(box[0]), int(box[1]), int(box[0]) + 1, int(box[1]) + 1)
+                mirror_of = None
+            else:
+                part_image, part_mask, fallback_meta = fallback_part_entry(part_name, counterpart, counterpart_image, counterpart_mask, box)
+                absolute_bbox = tuple(fallback_meta["bbox"])
+                mirror_of = fallback_meta["mirror_of"]
         else:
             mirror_of = None
 
-        draw_order = PART_DRAW_ORDERS[part_name]
+        draw_order = int(part_definition.get("draw_order", 0))
         if part_name.endswith("_left") and left_in_front:
-            draw_order = PART_DRAW_ORDERS[part_name] + 10
+            draw_order += 10
         if part_name.endswith("_right") and not left_in_front:
-            draw_order = PART_DRAW_ORDERS[part_name] + 10
-        parent_joint = PART_PARENT_JOINTS[part_name]
-        if part_name == "prop":
-            parent_joint = "wrist_left" if left_in_front else "wrist_right"
+            draw_order += 10
+        parent_joint = resolve_layout_parent_joint(part_name, rig_layout["rig_profile"], facing) or str(part_definition.get("parent_joint") or "torso")
 
         image_path, mask_path = write_part_asset(project_dir, part_name, part_image, part_mask)
         part_entry = {
             "part_name": part_name,
-            "part_role": part_name,
+            "part_role": canonical_sprite_part_role(part_definition, rig_layout["rig_profile"]),
             "image_path": image_path,
             "mask_path": mask_path,
-            "pivot_point": part_pivot_from_image(part_name, part_image),
+            "pivot_point": part_pivot_from_image(part_name, part_image, part_definition),
             "parent_joint": parent_joint,
             "draw_order": draw_order,
             "bbox": list(absolute_bbox),
             "mirror_of": mirror_of,
             "approved": True,
+            "overlay_only": bool(part_definition.get("overlay_only")),
         }
         built_parts[part_name] = part_entry
         built_images[part_name] = part_image
@@ -3470,7 +5433,8 @@ def build_sprite_model(project_id: str, progress: Optional[ProgressCallback] = N
     ordered_parts = sorted(built_parts.values(), key=lambda item: item["draw_order"])
     sprite_model = {
         "project_id": project_id,
-        "approved_master_pose": "master_pose/approved_master_pose.png",
+        "approved_master_pose": approved_rel if approved_rel.startswith("master_pose/") else None,
+        "approved_source_image": approved_rel,
         "parts": ordered_parts,
         "palette": palette,
         "outline_rules": {
@@ -3480,6 +5444,7 @@ def build_sprite_model(project_id: str, progress: Optional[ProgressCallback] = N
         "draw_order": [item["part_name"] for item in ordered_parts],
         "source_facing": facing,
         "source_bounds": list(subject_bbox),
+        "rig_layout": rig_layout,
         "status": "pass",
         "approved_for_rigging": False,
     }
@@ -3614,7 +5579,8 @@ def update_sprite_model(project_id: str, payload: Dict[str, Any]) -> Dict[str, A
         part["draw_order"] = int(payload["draw_order"])
     elif operation == "set_parent_joint":
         parent_joint = str(payload.get("parent_joint") or "").strip()
-        if parent_joint not in RIG_JOINTS:
+        valid_joints = set(((sprite_model.get("rig_layout") or project.get("rig_layout") or {}).get("joint_schema") or {}).get("joints") or RIG_JOINTS)
+        if parent_joint not in valid_joints:
             raise ValueError("Invalid parent joint.")
         part["parent_joint"] = parent_joint
     elif operation == "rename_part":
@@ -3961,8 +5927,10 @@ def composite_part(
     pivot_world: Tuple[float, float],
     pivot_local: Tuple[int, int],
     rotation_deg: float,
+    *,
+    resample: int = Image.Resampling.BICUBIC,
 ) -> None:
-    rotated = part_image.rotate(rotation_deg, resample=Image.Resampling.BICUBIC, center=pivot_local, expand=True)
+    rotated = part_image.rotate(rotation_deg, resample=resample, center=pivot_local, expand=True)
     bbox = rotated.getbbox()
     if bbox is None:
         return
@@ -3971,17 +5939,59 @@ def composite_part(
     canvas.alpha_composite(rotated, (int(round(offset_x)), int(round(offset_y))))
 
 
-def cleanup_frame(image: Image.Image) -> Tuple[Image.Image, Dict[str, Any]]:
+def is_pixel_art_rig_profile(profile_name: Optional[str]) -> bool:
+    return profile_name in {SIDE_KNIGHT_SIMPLE_7, SIDE_KNIGHT_DUAL_LEG_8}
+
+
+def quantize_pixel_part_rotation(part_role: str, rotation_deg: float) -> float:
+    limits = {
+        "head": 0.75,
+        "torso_pelvis": 0.75,
+        "front_arm": 2.0,
+        "front_leg": 6.0,
+        "back_leg": 5.5,
+        "weapon": 0.75,
+        "cape_back": 0.75,
+        "front_cloth": 0.75,
+    }
+    limit = limits.get(part_role, 1.0)
+    clamped = max(-limit, min(limit, float(rotation_deg)))
+    return round(clamped * 2.0) / 2.0
+
+
+def cleanup_frame(
+    image: Image.Image,
+    anchor_point: Optional[Tuple[float, float]] = None,
+    anchor_target: Tuple[int, int] = FRAME_PIVOT,
+) -> Tuple[Image.Image, Dict[str, Any]]:
     alpha = image.getchannel("A")
     bbox = alpha.getbbox()
     if bbox is None:
         raise ValueError("Rendered frame is empty.")
     cropped = image.crop(bbox)
+    anchor_relative = None
+    if anchor_point is not None:
+        anchor_relative = (
+            float(anchor_point[0]) - float(bbox[0]),
+            float(anchor_point[1]) - float(bbox[1]),
+        )
+    original_size = cropped.size
     if cropped.size[0] > FRAME_SIZE - 4 or cropped.size[1] > FRAME_SIZE - 4:
         cropped = ImageOps.contain(cropped, (FRAME_SIZE - 4, FRAME_SIZE - 4))
+    if anchor_relative is not None and original_size != cropped.size:
+        scale_x = cropped.size[0] / float(max(1, original_size[0]))
+        scale_y = cropped.size[1] / float(max(1, original_size[1]))
+        anchor_relative = (
+            anchor_relative[0] * scale_x,
+            anchor_relative[1] * scale_y,
+        )
     padded = Image.new("RGBA", (FRAME_SIZE, FRAME_SIZE), (0, 0, 0, 0))
-    target_x = FRAME_PIVOT[0] - cropped.size[0] // 2
-    target_y = FRAME_PIVOT[1] - cropped.size[1]
+    if anchor_relative is not None:
+        target_x = int(round(anchor_target[0] - anchor_relative[0]))
+        target_y = int(round(anchor_target[1] - anchor_relative[1]))
+    else:
+        target_x = FRAME_PIVOT[0] - cropped.size[0] // 2
+        target_y = FRAME_PIVOT[1] - cropped.size[1]
     target_x = max(2, min(FRAME_SIZE - cropped.size[0] - 2, target_x))
     target_y = max(2, min(FRAME_SIZE - cropped.size[1] - 2, target_y))
     padded.alpha_composite(cropped, (target_x, target_y))
@@ -3989,6 +5999,7 @@ def cleanup_frame(image: Image.Image) -> Tuple[Image.Image, Dict[str, Any]]:
         "crop_box": list(bbox),
         "output_box": [target_x, target_y, target_x + cropped.size[0], target_y + cropped.size[1]],
         "pivot": list(FRAME_PIVOT),
+        "anchor_target": list(anchor_target),
     }
 
 
@@ -4042,7 +6053,54 @@ def add_points(a: Tuple[float, float], b: Tuple[float, float]) -> Tuple[float, f
 
 
 def build_joint_map_from_sprite_model(sprite_model: Dict[str, Any]) -> Dict[str, List[float]]:
-    parts = {item.get("part_role", item["part_name"]): item for item in sprite_model["parts"]}
+    rig_layout = sprite_model.get("rig_layout") or {}
+    rig_profile = active_rig_profile_name({}, rig_layout)
+    if rig_profile in {SIDE_KNIGHT_SIMPLE_7, SIDE_KNIGHT_DUAL_LEG_8}:
+        parts = {canonical_sprite_part_role(item, rig_profile): item for item in sprite_model["parts"]}
+        body = parts["torso_pelvis"]
+        head_part = parts["head"]
+        front_arm = parts["front_arm"]
+        front_leg = parts["front_leg"]
+        torso = list(world_pivot(body))
+        head = list(world_pivot(head_part))
+        shoulder_front = list(world_pivot(front_arm))
+        hip_front = list(world_pivot(front_leg))
+        neck_y = max(body["bbox"][1] + 6, head_part["bbox"][3] - 8)
+        neck = [head[0], float(neck_y)]
+        ankle_front = [
+            float(front_leg["bbox"][0] + front_leg["pivot_point"][0]),
+            float(front_leg["bbox"][3] - max(2, front_leg["pivot_point"][1] * 0.15)),
+        ]
+        root = [ankle_front[0], float(max(front_leg["bbox"][3], body["bbox"][3]) + 10)]
+        wrist_front = [
+            float(front_arm["bbox"][0] + front_arm["pivot_point"][0]),
+            float(front_arm["bbox"][3] - max(2, front_arm["pivot_point"][1] * 0.2)),
+        ]
+        joint_map = {
+            "root": root,
+            "torso": torso,
+            "neck": neck,
+            "head": head,
+            "shoulder_front": shoulder_front,
+            "wrist_front": wrist_front,
+            "hip_front": hip_front,
+            "ankle_front": ankle_front,
+        }
+        if rig_profile == SIDE_KNIGHT_DUAL_LEG_8 and "back_leg" in parts:
+            back_leg = parts["back_leg"]
+            hip_back = list(world_pivot(back_leg))
+            ankle_back = [
+                float(back_leg["bbox"][0] + back_leg["pivot_point"][0]),
+                float(back_leg["bbox"][3] - max(2, back_leg["pivot_point"][1] * 0.15)),
+            ]
+            joint_map["hip_back"] = hip_back
+            joint_map["ankle_back"] = ankle_back
+            joint_map["root"] = [
+                round((ankle_front[0] + ankle_back[0]) / 2.0, 2),
+                float(max(front_leg["bbox"][3], back_leg["bbox"][3], body["bbox"][3]) + 10),
+            ]
+        return joint_map
+    parts = {canonical_sprite_part_role(item, rig_profile): item for item in sprite_model["parts"]}
     joint_map = {
         "head": list(world_pivot(parts["head"])),
         "torso": list(world_pivot(parts["torso"])),
@@ -4073,6 +6131,21 @@ def build_joint_map_from_sprite_model(sprite_model: Dict[str, Any]) -> Dict[str,
 
 
 def build_joint_vectors(joint_map: Dict[str, List[float]]) -> Dict[str, List[float]]:
+    if "shoulder_front" in joint_map:
+        as_tuple = {key: list_to_tuple([int(round(value[0])), int(round(value[1]))]) for key, value in joint_map.items()}
+        vectors = {
+            "torso_from_root": list(vector_between(as_tuple["root"], as_tuple["torso"])),
+            "neck_from_torso": list(vector_between(as_tuple["torso"], as_tuple["neck"])),
+            "head_from_neck": list(vector_between(as_tuple["neck"], as_tuple["head"])),
+            "shoulder_front_from_torso": list(vector_between(as_tuple["torso"], as_tuple["shoulder_front"])),
+            "wrist_front_from_shoulder": list(vector_between(as_tuple["shoulder_front"], as_tuple["wrist_front"])),
+            "hip_front_from_root": list(vector_between(as_tuple["root"], as_tuple["hip_front"])),
+            "ankle_front_from_hip": list(vector_between(as_tuple["hip_front"], as_tuple["ankle_front"])),
+        }
+        if "hip_back" in as_tuple and "ankle_back" in as_tuple:
+            vectors["hip_back_from_root"] = list(vector_between(as_tuple["root"], as_tuple["hip_back"]))
+            vectors["ankle_back_from_hip"] = list(vector_between(as_tuple["hip_back"], as_tuple["ankle_back"]))
+        return vectors
     as_tuple = {key: list_to_tuple([int(round(value[0])), int(round(value[1]))]) for key, value in joint_map.items()}
     return {
         "pelvis_from_root": list(vector_between(as_tuple["root"], as_tuple["pelvis"])),
@@ -4191,7 +6264,7 @@ def legacy_clip_frame_to_joint_frame(animation_name: str, frame: Dict[str, Any])
     }
 
 
-def generate_clip_frames(animation_name: str, controls: Dict[str, float], overrides: Optional[List[Dict[str, Any]]] = None) -> List[Dict[str, Any]]:
+def generate_clip_frames(animation_name: str, controls: Dict[str, float], overrides: Optional[List[Dict[str, Any]]] = None, rig_profile: str = LEGACY_RIG_PROFILE) -> List[Dict[str, Any]]:
     frame_total = ANIMATION_SPECS[animation_name]["frame_count"]
     frames: List[Dict[str, Any]] = []
     for index in range(frame_total):
@@ -4199,6 +6272,70 @@ def generate_clip_frames(animation_name: str, controls: Dict[str, float], overri
         swing = math.sin(phase * math.tau)
         lift = max(0.0, -swing)
         push = max(0.0, swing)
+        if rig_profile == SIDE_KNIGHT_DUAL_LEG_8:
+            if animation_name == "idle":
+                frames.append({
+                    "root_offset": [0.0, round(swing * controls["body_bob"] * 0.18, 2)],
+                    "torso_rotation": round(swing * controls["torso_lean"] * 0.14, 2),
+                    "head_rotation": round(math.sin(phase * math.tau + 0.45) * max(0.2, controls["torso_lean"] * 0.08), 2),
+                    "shoulder_front_rotation": round(-1.0 + (swing * controls["arm_swing"] * 0.05), 2),
+                    "hip_front_rotation": round(swing * controls["leg_swing"] * 0.08, 2),
+                    "hip_back_rotation": round(-swing * controls["leg_swing"] * 0.06, 2),
+                    "weapon_rotation": round(-swing * controls["prop_lag"] * 0.1, 2),
+                    "cape_back_rotation_bias": round(math.sin((phase - 0.12) * math.tau) * 0.4, 2),
+                    "front_cloth_rotation_bias": round(math.sin((phase + 0.08) * math.tau) * 0.18, 2),
+                })
+            else:
+                body_bob = controls["body_bob"] * 0.28
+                torso_lean = controls["torso_lean"] * 0.14
+                head_sway = max(0.2, controls["torso_lean"] * 0.12)
+                arm_swing = min(1.6, controls["arm_swing"] * 0.08)
+                front_leg_swing = min(6.4, controls["leg_swing"] * 0.32)
+                back_leg_swing = min(5.8, controls["leg_swing"] * 0.29)
+                weapon_lag = min(0.65, controls["prop_lag"] * 0.16)
+                cape_bias = min(0.6, 0.35 + (controls["torso_lean"] * 0.04))
+                front_cloth_bias = min(0.9, 0.35 + (controls["leg_swing"] * 0.018))
+                frames.append({
+                    "root_offset": [0.0, round(abs(swing) * -body_bob, 2)],
+                    "torso_rotation": round(swing * torso_lean, 2),
+                    "head_rotation": round(math.sin(phase * math.tau + 0.35) * head_sway, 2),
+                    "shoulder_front_rotation": round(-swing * arm_swing, 2),
+                    "hip_front_rotation": round(swing * front_leg_swing, 2),
+                    "hip_back_rotation": round(-swing * back_leg_swing, 2),
+                    "weapon_rotation": round(math.sin((phase - 0.08) * math.tau) * weapon_lag, 2),
+                    "cape_back_rotation_bias": round(math.sin((phase - 0.16) * math.tau) * cape_bias, 2),
+                    "front_cloth_rotation_bias": round(-swing * front_cloth_bias, 2),
+                })
+            continue
+        if rig_profile == SIDE_KNIGHT_SIMPLE_7:
+            if animation_name == "idle":
+                frames.append({
+                    "root_offset": [0.0, round(swing * controls["body_bob"], 2)],
+                    "torso_rotation": round(swing * controls["torso_lean"], 2),
+                    "head_rotation": round(math.sin(phase * math.tau + 0.5) * max(1.2, controls["torso_lean"] * 0.7), 2),
+                    "shoulder_front_rotation": round(-4 + (swing * controls["arm_swing"] * 0.6), 2),
+                    "hip_front_rotation": round(swing * controls["leg_swing"] * 0.8, 2),
+                    "weapon_rotation": round(-swing * controls["prop_lag"], 2),
+                    "cape_back_rotation_bias": round(math.sin((phase - 0.12) * math.tau) * 1.6, 2),
+                })
+            else:
+                body_bob = controls["body_bob"] * 0.42
+                torso_lean = controls["torso_lean"] * 0.38
+                head_sway = max(0.9, controls["torso_lean"] * 0.32)
+                arm_swing = min(6.0, controls["arm_swing"] * 0.28)
+                leg_swing = min(7.5, controls["leg_swing"] * 0.32)
+                weapon_lag = min(2.2, controls["prop_lag"] * 0.55)
+                cape_bias = min(1.6, 0.9 + (controls["torso_lean"] * 0.14))
+                frames.append({
+                    "root_offset": [0.0, round(abs(swing) * -body_bob, 2)],
+                    "torso_rotation": round(swing * torso_lean, 2),
+                    "head_rotation": round(math.sin(phase * math.tau + 0.35) * head_sway, 2),
+                    "shoulder_front_rotation": round(-swing * arm_swing, 2),
+                    "hip_front_rotation": round(swing * leg_swing, 2),
+                    "weapon_rotation": round(math.sin((phase - 0.08) * math.tau) * weapon_lag, 2),
+                    "cape_back_rotation_bias": round(math.sin((phase - 0.18) * math.tau) * cape_bias, 2),
+                })
+            continue
         if animation_name == "idle":
             frames.append({
                 "root_offset": [0.0, round(swing * controls["body_bob"], 2)],
@@ -4236,7 +6373,7 @@ def generate_clip_frames(animation_name: str, controls: Dict[str, float], overri
     return apply_frame_overrides(frames, overrides or [])
 
 
-def hydrate_animation_clips(animation_clips: Optional[Dict[str, Any]], legacy_animation_templates: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+def hydrate_animation_clips(animation_clips: Optional[Dict[str, Any]], legacy_animation_templates: Optional[Dict[str, Any]], rig_profile: str = LEGACY_RIG_PROFILE) -> Dict[str, Any]:
     if not ((isinstance(animation_clips, dict) and animation_clips) or (isinstance(legacy_animation_templates, dict) and legacy_animation_templates)):
         return {}
     source = animation_clips if isinstance(animation_clips, dict) and animation_clips else legacy_animation_templates if isinstance(legacy_animation_templates, dict) else {}
@@ -4253,11 +6390,11 @@ def hydrate_animation_clips(animation_clips: Optional[Dict[str, Any]], legacy_an
                 for frame in clip_source.get("joint_transforms_per_frame", [])
             ]
             if len(frames) != ANIMATION_SPECS[animation_name]["frame_count"]:
-                frames = generate_clip_frames(animation_name, controls, overrides)
+                frames = generate_clip_frames(animation_name, controls, overrides, rig_profile=rig_profile)
             else:
                 frames = apply_frame_overrides(frames, overrides)
         else:
-            frames = generate_clip_frames(animation_name, controls, overrides)
+            frames = generate_clip_frames(animation_name, controls, overrides, rig_profile=rig_profile)
         clips[animation_name] = {
             **ANIMATION_SPECS[animation_name],
             "root_motion_policy": clip_root_motion_policy(animation_name),
@@ -4364,6 +6501,7 @@ def hydrate_legacy_sprite_model(
     sprite_model = {
         "project_id": project_dir.name,
         "approved_master_pose": None,
+        "approved_source_image": None,
         "parts": sorted(parts, key=lambda item: (item["draw_order"], item["part_name"])),
         "palette": palette,
         "outline_rules": {
@@ -4384,6 +6522,12 @@ def hydrate_legacy_sprite_model(
 
 def build_default_animation_clips(joint_map: Dict[str, List[float]], existing_clips: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     _ = joint_map
+    if "hip_back" in joint_map:
+        rig_profile = SIDE_KNIGHT_DUAL_LEG_8
+    elif "shoulder_front" in joint_map:
+        rig_profile = SIDE_KNIGHT_SIMPLE_7
+    else:
+        rig_profile = LEGACY_RIG_PROFILE
     if not isinstance(existing_clips, dict) or not existing_clips:
         existing_clips = {
             name: {
@@ -4392,10 +6536,69 @@ def build_default_animation_clips(joint_map: Dict[str, List[float]], existing_cl
             }
             for name in ANIMATION_SPECS
         }
-    return hydrate_animation_clips(existing_clips, None)
+    return hydrate_animation_clips(existing_clips, None, rig_profile=rig_profile)
+
+
+def neutral_pose_transforms() -> Dict[str, Any]:
+    return {
+        "root_offset": [0.0, 0.0],
+        "pelvis_rotation": 0.0,
+        "torso_rotation": 0.0,
+        "head_rotation": 0.0,
+        "shoulder_front_rotation": 0.0,
+        "hip_front_rotation": 0.0,
+        "hip_back_rotation": 0.0,
+        "weapon_rotation": 0.0,
+        "cape_back_rotation_bias": 0.0,
+        "front_cloth_rotation_bias": 0.0,
+        "shoulder_left_rotation": 0.0,
+        "elbow_left_rotation": 0.0,
+        "shoulder_right_rotation": 0.0,
+        "elbow_right_rotation": 0.0,
+        "hip_left_rotation": 0.0,
+        "knee_left_rotation": 0.0,
+        "ankle_left_rotation": 0.0,
+        "hip_right_rotation": 0.0,
+        "knee_right_rotation": 0.0,
+        "ankle_right_rotation": 0.0,
+        "prop_rotation": 0.0,
+    }
 
 
 def compute_pose_joints(rig: Dict[str, Any], transforms: Dict[str, Any]) -> Dict[str, Tuple[float, float]]:
+    if rig.get("rig_profile") in {SIDE_KNIGHT_SIMPLE_7, SIDE_KNIGHT_DUAL_LEG_8}:
+        base = {key: tuple(value) for key, value in rig["rig_joint_map"].items()}
+        vectors = {key: tuple(value) for key, value in rig["joint_vectors"].items()}
+        root_offset = tuple(transforms.get("root_offset", [0, 0]))
+        root = add_points(base["root"], root_offset)
+        torso_rotation = float(transforms.get("torso_rotation", 0.0))
+        head_rotation = float(transforms.get("head_rotation", 0.0))
+        shoulder_front_rotation = float(transforms.get("shoulder_front_rotation", 0.0))
+        hip_front_rotation = float(transforms.get("hip_front_rotation", 0.0))
+        torso = add_points(root, rotate_vector(vectors["torso_from_root"], torso_rotation * 0.1))
+        neck = add_points(torso, rotate_vector(vectors["neck_from_torso"], torso_rotation))
+        head = add_points(neck, rotate_vector(vectors["head_from_neck"], torso_rotation + head_rotation))
+        shoulder_front = add_points(torso, rotate_vector(vectors["shoulder_front_from_torso"], torso_rotation))
+        wrist_front = add_points(shoulder_front, rotate_vector(vectors["wrist_front_from_shoulder"], shoulder_front_rotation + (torso_rotation * 0.2)))
+        hip_front = add_points(root, rotate_vector(vectors["hip_front_from_root"], torso_rotation * 0.1))
+        ankle_front = add_points(hip_front, rotate_vector(vectors["ankle_front_from_hip"], hip_front_rotation))
+        joints = {
+            "root": root,
+            "torso": torso,
+            "neck": neck,
+            "head": head,
+            "shoulder_front": shoulder_front,
+            "wrist_front": wrist_front,
+            "hip_front": hip_front,
+            "ankle_front": ankle_front,
+        }
+        if rig.get("rig_profile") == SIDE_KNIGHT_DUAL_LEG_8 and "hip_back_from_root" in vectors and "ankle_back_from_hip" in vectors:
+            hip_back_rotation = float(transforms.get("hip_back_rotation", 0.0))
+            hip_back = add_points(root, rotate_vector(vectors["hip_back_from_root"], torso_rotation * 0.1))
+            ankle_back = add_points(hip_back, rotate_vector(vectors["ankle_back_from_hip"], hip_back_rotation))
+            joints["hip_back"] = hip_back
+            joints["ankle_back"] = ankle_back
+        return joints
     base = {key: tuple(value) for key, value in rig["rig_joint_map"].items()}
     vectors = {key: tuple(value) for key, value in rig["joint_vectors"].items()}
     root_offset = tuple(transforms.get("root_offset", [0, 0]))
@@ -4469,34 +6672,66 @@ def render_pose_from_sprite_model(project: Dict[str, Any], rig: Dict[str, Any], 
     sprite_model = project["sprite_model"]
     parts = sorted(sprite_model["parts"], key=lambda item: item["draw_order"])
     joints = compute_pose_joints(rig, transforms)
+    neutral_joints = {key: tuple(value) for key, value in (rig.get("rig_joint_map") or {}).items()}
     scale, offset_x, offset_y = source_fit(tuple(rig["source_bounds"]), WORKING_CANVAS)
+    pixel_art_mode = is_pixel_art_rig_profile(rig.get("rig_profile"))
+    prop_attachment_joint = rig.get("prop_attachment_joint") or "wrist_right"
+    if rig.get("rig_profile") in {SIDE_KNIGHT_SIMPLE_7, SIDE_KNIGHT_DUAL_LEG_8}:
+        prop_chain_rotation = float(transforms.get("shoulder_front_rotation", 0.0)) + float(transforms.get("weapon_rotation", 0.0))
+        if rig.get("rig_profile") == SIDE_KNIGHT_DUAL_LEG_8 and "ankle_back" in joints:
+            foot_anchor = {
+                "left": [round(value, 2) for value in map_source_point(joints["ankle_front"], scale, offset_x, offset_y)],
+                "right": [round(value, 2) for value in map_source_point(joints["ankle_back"], scale, offset_x, offset_y)],
+            }
+        else:
+            foot_anchor = [round(value, 2) for value in map_source_point(joints["ankle_front"], scale, offset_x, offset_y)]
+        rotations = {
+            "head": float(transforms.get("head_rotation", 0.0)),
+            "torso_pelvis": float(transforms.get("torso_rotation", 0.0)),
+            "front_arm": float(transforms.get("shoulder_front_rotation", 0.0)),
+            "front_leg": float(transforms.get("hip_front_rotation", 0.0)),
+            "weapon": prop_chain_rotation,
+            "cape_back": float(transforms.get("torso_rotation", 0.0)) + float(transforms.get("cape_back_rotation_bias", 0.0)),
+            "front_cloth": (float(transforms.get("torso_rotation", 0.0)) * 0.45) + float(transforms.get("front_cloth_rotation_bias", 0.0)),
+        }
+        if rig.get("rig_profile") == SIDE_KNIGHT_DUAL_LEG_8:
+            rotations["back_leg"] = float(transforms.get("hip_back_rotation", 0.0))
+    else:
+        prop_rotation = float(transforms.get("prop_rotation", 0.0))
+        if prop_attachment_joint == "wrist_left":
+            prop_chain_rotation = float(transforms.get("shoulder_left_rotation", 0.0)) + float(transforms.get("elbow_left_rotation", 0.0)) + prop_rotation
+        else:
+            prop_chain_rotation = float(transforms.get("shoulder_right_rotation", 0.0)) + float(transforms.get("elbow_right_rotation", 0.0)) + prop_rotation
+        foot_anchor = None
 
     canvas = Image.new("RGBA", WORKING_CANVAS, (0, 0, 0, 0))
     render_log = []
     draw_sequence = []
-
-    rotations = {
-        "hair_back": float(transforms.get("head_rotation", 0.0)),
-        "head": float(transforms.get("head_rotation", 0.0)),
-        "hair_front": float(transforms.get("head_rotation", 0.0)),
-        "torso": float(transforms.get("torso_rotation", 0.0)),
-        "pelvis": float(transforms.get("pelvis_rotation", 0.0)),
-        "upper_arm_left": float(transforms.get("shoulder_left_rotation", 0.0)),
-        "lower_arm_left": float(transforms.get("shoulder_left_rotation", 0.0)) + float(transforms.get("elbow_left_rotation", 0.0)),
-        "hand_left": float(transforms.get("shoulder_left_rotation", 0.0)) + float(transforms.get("elbow_left_rotation", 0.0)),
-        "upper_arm_right": float(transforms.get("shoulder_right_rotation", 0.0)),
-        "lower_arm_right": float(transforms.get("shoulder_right_rotation", 0.0)) + float(transforms.get("elbow_right_rotation", 0.0)),
-        "hand_right": float(transforms.get("shoulder_right_rotation", 0.0)) + float(transforms.get("elbow_right_rotation", 0.0)),
-        "upper_leg_left": float(transforms.get("hip_left_rotation", 0.0)),
-        "lower_leg_left": float(transforms.get("hip_left_rotation", 0.0)) + float(transforms.get("knee_left_rotation", 0.0)),
-        "foot_left": float(transforms.get("hip_left_rotation", 0.0)) + float(transforms.get("knee_left_rotation", 0.0)) + float(transforms.get("ankle_left_rotation", 0.0)),
-        "upper_leg_right": float(transforms.get("hip_right_rotation", 0.0)),
-        "lower_leg_right": float(transforms.get("hip_right_rotation", 0.0)) + float(transforms.get("knee_right_rotation", 0.0)),
-        "foot_right": float(transforms.get("hip_right_rotation", 0.0)) + float(transforms.get("knee_right_rotation", 0.0)) + float(transforms.get("ankle_right_rotation", 0.0)),
-        "prop": float(transforms.get("shoulder_right_rotation", 0.0)) + float(transforms.get("elbow_right_rotation", 0.0)) + float(transforms.get("prop_rotation", 0.0)),
-        "accessory_front": float(transforms.get("torso_rotation", 0.0)),
-        "accessory_back": float(transforms.get("torso_rotation", 0.0)),
-    }
+    if rig.get("rig_profile") not in {SIDE_KNIGHT_SIMPLE_7, SIDE_KNIGHT_DUAL_LEG_8}:
+        rotations = {
+            "hair_back": float(transforms.get("head_rotation", 0.0)),
+            "head": float(transforms.get("head_rotation", 0.0)),
+            "hair_front": float(transforms.get("head_rotation", 0.0)),
+            "torso": float(transforms.get("torso_rotation", 0.0)),
+            "pelvis": float(transforms.get("pelvis_rotation", 0.0)),
+            "upper_arm_left": float(transforms.get("shoulder_left_rotation", 0.0)),
+            "lower_arm_left": float(transforms.get("shoulder_left_rotation", 0.0)) + float(transforms.get("elbow_left_rotation", 0.0)),
+            "hand_left": float(transforms.get("shoulder_left_rotation", 0.0)) + float(transforms.get("elbow_left_rotation", 0.0)),
+            "upper_arm_right": float(transforms.get("shoulder_right_rotation", 0.0)),
+            "lower_arm_right": float(transforms.get("shoulder_right_rotation", 0.0)) + float(transforms.get("elbow_right_rotation", 0.0)),
+            "hand_right": float(transforms.get("shoulder_right_rotation", 0.0)) + float(transforms.get("elbow_right_rotation", 0.0)),
+            "upper_leg_left": float(transforms.get("hip_left_rotation", 0.0)),
+            "lower_leg_left": float(transforms.get("hip_left_rotation", 0.0)) + float(transforms.get("knee_left_rotation", 0.0)),
+            "foot_left": float(transforms.get("hip_left_rotation", 0.0)) + float(transforms.get("knee_left_rotation", 0.0)) + float(transforms.get("ankle_left_rotation", 0.0)),
+            "upper_leg_right": float(transforms.get("hip_right_rotation", 0.0)),
+            "lower_leg_right": float(transforms.get("hip_right_rotation", 0.0)) + float(transforms.get("knee_right_rotation", 0.0)),
+            "foot_right": float(transforms.get("hip_right_rotation", 0.0)) + float(transforms.get("knee_right_rotation", 0.0)) + float(transforms.get("ankle_right_rotation", 0.0)),
+            "prop": prop_chain_rotation,
+            "accessory_front": float(transforms.get("torso_rotation", 0.0)),
+            "accessory_back": float(transforms.get("torso_rotation", 0.0)),
+        }
+    if pixel_art_mode:
+        rotations = {role: quantize_pixel_part_rotation(role, rotation) for role, rotation in rotations.items()}
 
     for part in parts:
         image, _ = load_part_asset(project_dir, part)
@@ -4507,33 +6742,55 @@ def render_pose_from_sprite_model(project: Dict[str, Any], rig: Dict[str, Any], 
                 max(1, int(round(image.size[0] * scale))),
                 max(1, int(round(image.size[1] * scale))),
             ),
-            resample=Image.Resampling.BICUBIC,
+            resample=Image.Resampling.NEAREST if pixel_art_mode else Image.Resampling.BICUBIC,
         )
         pivot = (
             max(0, int(round(part["pivot_point"][0] * scale))),
             max(0, int(round(part["pivot_point"][1] * scale))),
         )
-        pivot_world = map_source_point(joints[part["parent_joint"]], scale, offset_x, offset_y)
+        parent_joint = part["parent_joint"]
+        current_joint_world = map_source_point(joints[parent_joint], scale, offset_x, offset_y)
         role = part.get("part_role", part["part_name"])
-        composite_part(canvas, scaled_image, pivot_world, pivot, rotations.get(role, 0.0))
+        rotation = rotations.get(role, 0.0)
+        neutral_joint = neutral_joints.get(parent_joint, joints[parent_joint])
+        neutral_pivot = world_pivot(part)
+        neutral_offset = vector_between(neutral_joint, neutral_pivot)
+        scaled_offset = (neutral_offset[0] * scale, neutral_offset[1] * scale)
+        rotated_offset = rotate_vector(scaled_offset, rotation)
+        pivot_world = (
+            current_joint_world[0] + rotated_offset[0],
+            current_joint_world[1] + rotated_offset[1],
+        )
+        composite_part(
+            canvas,
+            scaled_image,
+            pivot_world,
+            pivot,
+            rotation,
+            resample=Image.Resampling.NEAREST if pixel_art_mode else Image.Resampling.BICUBIC,
+        )
         draw_sequence.append(part["part_name"])
         render_log.append({
             "part": part["part_name"],
             "part_role": role,
-            "joint": part["parent_joint"],
-            "rotation": round(rotations.get(role, 0.0), 2),
+            "joint": parent_joint,
+            "rotation": round(rotation, 2),
             "pivot_world": [round(pivot_world[0], 2), round(pivot_world[1], 2)],
         })
 
     if save_path is not None:
         canvas.save(save_path)
+    if foot_anchor is None:
+        foot_anchor = {
+            "left": [round(value, 2) for value in map_source_point(joints["ankle_left"], scale, offset_x, offset_y)],
+            "right": [round(value, 2) for value in map_source_point(joints["ankle_right"], scale, offset_x, offset_y)],
+        }
+    elif isinstance(foot_anchor, list):
+        foot_anchor = {"left": foot_anchor, "right": foot_anchor}
     return canvas, {
         "draw_sequence": draw_sequence,
         "render_log": render_log,
-        "foot_anchor": {
-            "left": [round(value, 2) for value in map_source_point(joints["ankle_left"], scale, offset_x, offset_y)],
-            "right": [round(value, 2) for value in map_source_point(joints["ankle_right"], scale, offset_x, offset_y)],
-        },
+        "foot_anchor": foot_anchor,
         "joints": {key: [round(value[0], 2), round(value[1], 2)] for key, value in joints.items()},
     }
 
@@ -4548,6 +6805,12 @@ def build_rig(project_id: str, progress: Optional[ProgressCallback] = None) -> D
     sprite_model = project.get("sprite_model")
     if not sprite_model:
         raise ValueError("Sprite model build is required before rig build.")
+    rig_profile = active_rig_profile_name(project, sprite_model.get("rig_layout") or project.get("rig_layout"))
+    prop_part = next((part for part in sprite_model["parts"] if canonical_sprite_part_role(part, rig_profile) in {"prop", "weapon"}), None)
+    if rig_profile in {SIDE_KNIGHT_SIMPLE_7, SIDE_KNIGHT_DUAL_LEG_8}:
+        prop_attachment_joint = "wrist_front"
+    else:
+        prop_attachment_joint = prop_part.get("parent_joint") if prop_part and prop_part.get("parent_joint") else ("wrist_left" if sprite_model.get("source_facing") == "left" else "wrist_right")
     existing_clips = copy.deepcopy(project.get("animation_clips") or {})
     reset_downstream_assets(project_id, "rig")
     project = clear_project_downstream_state(project, "rig")
@@ -4559,10 +6822,18 @@ def build_rig(project_id: str, progress: Optional[ProgressCallback] = None) -> D
     rig = {
         "source_mode": "sprite_model",
         "source_summary": "Rig is built from the extracted canonical sprite model.",
-        "joints": RIG_JOINTS,
+        "rig_profile": rig_profile,
+        "rig_layout": sprite_model.get("rig_layout") or project.get("rig_layout"),
+        "joints": sprite_model.get("rig_layout", {}).get("joint_schema", {}).get("joints") or (RIG_PROFILES[rig_profile]["joint_schema"]["joints"]),
         "rig_joint_map": joint_map,
         "joint_vectors": joint_vectors,
-        "per_joint_rotation_limits": {
+        "per_joint_rotation_limits": ({
+            "torso": {"min": -12, "max": 12},
+            "head": {"min": -18, "max": 18},
+            "shoulder_front": {"min": -40, "max": 40},
+            "hip_front": {"min": -22, "max": 22},
+            **({"hip_back": {"min": -18, "max": 18}} if rig_profile == SIDE_KNIGHT_DUAL_LEG_8 else {}),
+        } if rig_profile in {SIDE_KNIGHT_SIMPLE_7, SIDE_KNIGHT_DUAL_LEG_8} else {
             "torso": {"min": -12, "max": 12},
             "head": {"min": -18, "max": 18},
             "shoulder_left": {"min": -40, "max": 40},
@@ -4573,14 +6844,14 @@ def build_rig(project_id: str, progress: Optional[ProgressCallback] = None) -> D
             "knee_left": {"min": -4, "max": 45},
             "hip_right": {"min": -28, "max": 28},
             "knee_right": {"min": -4, "max": 45},
-        },
+        }),
         "draw_order_rules_for_overlap": sprite_model["draw_order"],
         "foot_anchor_reference": {
-            "left": joint_map["ankle_left"],
-            "right": joint_map["ankle_right"],
+            "left": joint_map["ankle_front"] if rig_profile in {SIDE_KNIGHT_SIMPLE_7, SIDE_KNIGHT_DUAL_LEG_8} else joint_map["ankle_left"],
+            "right": joint_map["ankle_back"] if rig_profile == SIDE_KNIGHT_DUAL_LEG_8 else joint_map["ankle_front"] if rig_profile == SIDE_KNIGHT_SIMPLE_7 else joint_map["ankle_right"],
             "pivot": list(FRAME_PIVOT),
         },
-        "prop_attachment_joint": "wrist_left" if sprite_model.get("source_facing") == "left" else "wrist_right",
+        "prop_attachment_joint": prop_attachment_joint,
         "pivot_map": {part["part_name"]: part["pivot_point"] for part in sprite_model["parts"]},
         "source_bounds": sprite_model["source_bounds"],
         "neutral_pose_render": "rig/neutral_pose.png",
@@ -4588,7 +6859,7 @@ def build_rig(project_id: str, progress: Optional[ProgressCallback] = None) -> D
         "created_at": now_iso(),
     }
     call_progress(progress, 48, "Rendering neutral pose", "Capturing the deterministic neutral pose from the extracted parts.")
-    _, neutral_meta = render_pose_from_sprite_model(project, rig, clips["idle"]["joint_transforms_per_frame"][0], project_dir / "rig" / "neutral_pose.png")
+    _, neutral_meta = render_pose_from_sprite_model(project, rig, neutral_pose_transforms(), project_dir / "rig" / "neutral_pose.png")
     rig["occlusion_order_map"] = neutral_meta["draw_sequence"]
     write_json(canonical_downstream_path(project_dir, "rig"), rig)
     write_json(project_dir / "rig" / "joint_map.json", joint_map)
@@ -4614,7 +6885,7 @@ def update_animation_clip(project_id: str, animation_name: str, payload: Dict[st
     project = load_project(project_id)
     if not project.get("rig"):
         raise ValueError("Build the rig before editing clips.")
-    clips = hydrate_animation_clips(project.get("animation_clips"), project.get("animation_templates"))
+    clips = hydrate_animation_clips(project.get("animation_clips"), project.get("animation_templates"), rig_profile=active_rig_profile_name(project, project.get("rig_layout")))
     clip = clips[animation_name]
     merged_controls = dict(clip.get("controls") or {})
     incoming_controls = payload.get("controls") if isinstance(payload.get("controls"), dict) else payload
@@ -4624,7 +6895,7 @@ def update_animation_clip(project_id: str, animation_name: str, payload: Dict[st
     overrides = clip_frame_overrides(ANIMATION_SPECS[animation_name]["frame_count"], payload.get("frame_overrides") if "frame_overrides" in payload else clip.get("frame_overrides"))
     clip["controls"] = controls
     clip["frame_overrides"] = overrides
-    clip["joint_transforms_per_frame"] = generate_clip_frames(animation_name, controls, overrides)
+    clip["joint_transforms_per_frame"] = generate_clip_frames(animation_name, controls, overrides, rig_profile=active_rig_profile_name(project, project.get("rig_layout")))
     clips[animation_name] = clip
     reset_downstream_assets(project_id, "clips")
     project = clear_project_downstream_state(project, "clips")
@@ -4696,7 +6967,19 @@ def render_animation(project_id: str, animation_name: str, progress: Optional[Pr
     for frame_index, transforms in enumerate(clip["joint_transforms_per_frame"]):
         call_progress(progress, 12 + int((frame_index / max(1, frame_total)) * 80), "Rendering %s frame %d of %d" % (animation_name, frame_index + 1, frame_total), "Compositing extracted parts with deterministic rig transforms.")
         raw, render_meta = render_pose_from_sprite_model(project, project["rig"], transforms)
-        final_frame, cleanup = cleanup_frame(raw)
+        foot_anchor = render_meta.get("foot_anchor") or {}
+        anchor_candidates = [
+            tuple(foot_anchor[name])
+            for name in ("left", "right")
+            if isinstance(foot_anchor.get(name), list) and len(foot_anchor.get(name)) == 2
+        ]
+        anchor_point = None
+        if anchor_candidates:
+            anchor_point = (
+                sum(point[0] for point in anchor_candidates) / float(len(anchor_candidates)),
+                sum(point[1] for point in anchor_candidates) / float(len(anchor_candidates)),
+            )
+        final_frame, cleanup = cleanup_frame(raw, anchor_point=anchor_point)
         frame_name = "%s_%02d.png" % (animation_name, frame_index)
         final_path = output_dir / frame_name
         final_frame.save(final_path)
@@ -4743,10 +7026,12 @@ def run_qa(project_id: str, progress: Optional[ProgressCallback] = None) -> Dict
         "sprite_model_build_report": build_report,
     }
 
+    rig_layout = sprite_model.get("rig_layout") or project.get("rig_layout") or {}
+    required_roles = {item["part_name"] for item in (rig_layout.get("parts") or []) if item.get("required")}
     required_parts = set()
     for part in sprite_model["parts"]:
         role = part.get("part_role", part["part_name"])
-        if role not in REQUIRED_PARTS:
+        if required_roles and role not in required_roles:
             continue
         image, _ = load_part_asset(project_dir, part)
         if alpha_bbox(image) is not None:
@@ -4822,7 +7107,11 @@ def run_qa(project_id: str, progress: Optional[ProgressCallback] = None) -> Dict
         report["per_animation_checks"][animation_name] = {"status": animation_status, "checks": animation_checks}
 
     report["metadata_checks"] = {
-        "has_master_pose": check_state("pass" if project.get("master_pose_approved") else "fail"),
+        "has_approved_source_image": check_state(
+            "pass"
+            if (sprite_model.get("approved_source_image") or project.get("master_pose_approved"))
+            else "fail"
+        ),
         "has_sprite_model": check_state("pass" if bool(sprite_model.get("parts")) else "fail"),
         "sprite_model_build_report": check_state("pass" if build_report.get("status") != "fail" else "fail", {"status": build_report.get("status")}),
         "has_rig": check_state("pass" if bool(rig.get("rig_joint_map")) else "fail"),
@@ -4923,7 +7212,8 @@ def export_project(project_id: str, progress: Optional[ProgressCallback] = None)
     export_manifest = {
         "project_id": project_id,
         "approved_concept_id": project["character_spec"]["approved_concept_id"],
-        "approved_master_pose": "master_pose/approved_master_pose.png",
+        "approved_master_pose": project.get("sprite_model", {}).get("approved_master_pose"),
+        "approved_source_image": project.get("sprite_model", {}).get("approved_source_image"),
         "export_timestamp": now_iso(),
         "tool_version": TOOL_VERSION,
         "sprite_model_hash": hashlib.sha256(canonical_downstream_path(project_dir, "sprite_model").read_bytes()).hexdigest(),
@@ -5569,6 +7859,20 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
             except FileNotFoundError:
                 return self._send_error_json(HTTPStatus.NOT_FOUND, "Project not found")
 
+        rig_layout_match = re.fullmatch(r"/api/projects/([^/]+)/rig-layout", path)
+        if rig_layout_match:
+            try:
+                return self._send_json(get_rig_layout(rig_layout_match.group(1)))
+            except FileNotFoundError:
+                return self._send_error_json(HTTPStatus.NOT_FOUND, "Project not found")
+
+        part_split_match = re.fullmatch(r"/api/projects/([^/]+)/part-split", path)
+        if part_split_match:
+            try:
+                return self._send_json(get_part_split(part_split_match.group(1)))
+            except FileNotFoundError:
+                return self._send_error_json(HTTPStatus.NOT_FOUND, "Project not found")
+
         job_match = re.fullmatch(r"/api/projects/([^/]+)/jobs/([^/]+)", path)
         if job_match:
             project_id, job_id = job_match.groups()
@@ -5624,6 +7928,11 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                 payload = read_body(self)
                 return self._send_json(update_concept_validation(project_id, concept_id, payload.get("validation_status"), payload.get("feedback")))
 
+            revalidate_match = re.fullmatch(r"/api/projects/([^/]+)/concepts/([^/]+)/revalidate", path)
+            if revalidate_match:
+                project_id, concept_id = revalidate_match.groups()
+                return self._send_json(validate_imported_concept(project_id, concept_id))
+
             approve_match = re.fullmatch(r"/api/projects/([^/]+)/concepts/([^/]+)/(approve|favorite|reject)", path)
             if approve_match:
                 project_id, concept_id, action = approve_match.groups()
@@ -5670,6 +7979,30 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                 if not candidate_id:
                     raise ValueError("master-pose/select requires candidate_id.")
                 return self._send_json(select_master_pose(project_id, candidate_id))
+
+            rig_layout_generate_match = re.fullmatch(r"/api/projects/([^/]+)/rig-layout/generate", path)
+            if rig_layout_generate_match:
+                return self._send_json(generate_rig_layout(rig_layout_generate_match.group(1)), status=HTTPStatus.CREATED)
+
+            rig_layout_update_match = re.fullmatch(r"/api/projects/([^/]+)/rig-layout/update", path)
+            if rig_layout_update_match:
+                return self._send_json(update_rig_layout(rig_layout_update_match.group(1), read_body(self)))
+
+            rig_layout_approve_match = re.fullmatch(r"/api/projects/([^/]+)/rig-layout/approve", path)
+            if rig_layout_approve_match:
+                return self._send_json(approve_rig_layout(rig_layout_approve_match.group(1)))
+
+            part_split_generate_match = re.fullmatch(r"/api/projects/([^/]+)/part-split/generate", path)
+            if part_split_generate_match:
+                return self._send_json(generate_part_split(part_split_generate_match.group(1)), status=HTTPStatus.CREATED)
+
+            part_split_update_match = re.fullmatch(r"/api/projects/([^/]+)/part-split/update", path)
+            if part_split_update_match:
+                return self._send_json(update_part_split(part_split_update_match.group(1), read_body(self)))
+
+            part_split_approve_match = re.fullmatch(r"/api/projects/([^/]+)/part-split/approve", path)
+            if part_split_approve_match:
+                return self._send_json(approve_part_split(part_split_approve_match.group(1)))
 
             sprite_model_build_match = re.fullmatch(r"/api/projects/([^/]+)/sprite-model/build", path)
             if sprite_model_build_match:

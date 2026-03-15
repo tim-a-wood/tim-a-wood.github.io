@@ -8,6 +8,7 @@ import unittest
 from contextlib import contextmanager
 from pathlib import Path
 from http.server import ThreadingHTTPServer
+from unittest.mock import patch
 
 from PIL import Image, ImageDraw
 
@@ -32,25 +33,77 @@ class SpriteWorkbenchTests(unittest.TestCase):
         image.save(path)
         return path
 
+    def create_logo_and_halo_asset(self, path: Path):
+        image = Image.new("RGBA", sw.CONCEPT_CANVAS, (255, 255, 255, 255))
+        draw = ImageDraw.Draw(image)
+        draw.ellipse((250, 80, 390, 220), fill=(219, 198, 172, 255))
+        draw.rectangle((270, 210, 370, 420), fill=(58, 73, 92, 255))
+        draw.rectangle((310, 240, 430, 270), fill=(142, 103, 77, 255))
+        draw.rectangle((220, 235, 300, 260), fill=(96, 120, 140, 255))
+        draw.rectangle((285, 420, 325, 675), fill=(78, 92, 110, 255))
+        draw.rectangle((325, 420, 365, 675), fill=(78, 92, 110, 255))
+        draw.rectangle((275, 665, 335, 720), fill=(120, 84, 66, 255))
+        draw.rectangle((325, 665, 385, 720), fill=(120, 84, 66, 255))
+        draw.rectangle((24, 24, 86, 50), fill=(24, 24, 24, 255))
+        draw.rectangle((0, 0, sw.CONCEPT_CANVAS[0] - 1, sw.CONCEPT_CANVAS[1] - 1), outline=(255, 255, 255, 255), width=1)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        image.save(path)
+        return path
+
+    def create_subject_halo_asset(self, path: Path):
+        base_path = self.create_manual_concept_asset(path)
+        image = Image.open(base_path).convert("RGBA")
+        mask = sw.detect_mask(image)
+        ring = Image.new("L", image.size, 0)
+        dilated = sw.dilate_mask(mask, 1)
+        ring_pixels = ring.load()
+        dilated_pixels = dilated.load()
+        mask_pixels = sw.normalize_mask(mask).load()
+        for y in range(image.size[1]):
+            for x in range(image.size[0]):
+                if dilated_pixels[x, y] > 0 and mask_pixels[x, y] <= 0:
+                    ring_pixels[x, y] = 255
+        draw = ImageDraw.Draw(image)
+        for y in range(image.size[1]):
+            for x in range(image.size[0]):
+                if ring_pixels[x, y] > 0:
+                    draw.point((x, y), fill=(235, 235, 235, 255))
+        image.save(path)
+        return path
+
     def import_valid_manual_concept(self, project_id: str, *, import_mode: str = "local_path"):
         prompt = sw.generate_initial_prompt(project_id)
-        with tempfile.TemporaryDirectory() as asset_dir:
-            asset_path = self.create_manual_concept_asset(Path(asset_dir) / "gemini-import.png")
-            if import_mode == "upload":
-                encoded = base64.b64encode(asset_path.read_bytes()).decode("ascii")
-                project = sw.import_concept_attempt(project_id, {
-                    "source_prompt_id": prompt["concept_id"],
-                    "name": "gemini-import.png",
-                    "data_url": "data:image/png;base64,%s" % encoded,
-                })
-            else:
-                project = sw.import_concept_attempt(project_id, {
-                    "source_prompt_id": prompt["concept_id"],
-                    "local_path": str(asset_path),
-                })
+        with patch.object(sw, "run_gemini_concept_validation", return_value={
+            "decision": "valid",
+            "summary": "Extraction-ready after safe normalization.",
+            "feedback": "Ready to continue.",
+            "improved_gemini_prompt": None,
+            "master_pose_ready": True,
+            "technical_requirements_ok": True,
+            "response_id": "resp_valid",
+        }):
+            with tempfile.TemporaryDirectory() as asset_dir:
+                asset_path = self.create_manual_concept_asset(Path(asset_dir) / "gemini-import.png")
+                if import_mode == "upload":
+                    encoded = base64.b64encode(asset_path.read_bytes()).decode("ascii")
+                    project = sw.import_concept_attempt(project_id, {
+                        "source_prompt_id": prompt["concept_id"],
+                        "name": "gemini-import.png",
+                        "data_url": "data:image/png;base64,%s" % encoded,
+                    })
+                else:
+                    project = sw.import_concept_attempt(project_id, {
+                        "source_prompt_id": prompt["concept_id"],
+                        "local_path": str(asset_path),
+                    })
         imported = next(item for item in project["concepts"] if item.get("preview_image"))
-        project = sw.update_concept_validation(project_id, imported["concept_id"], "valid")
         sw.update_concept_review_state(project_id, imported["concept_id"], "approve", True)
+        sw.approve_rig_layout(project_id)
+        return sw.load_project(project_id)
+
+    def generate_approved_part_split(self, project_id: str):
+        sw.generate_part_split(project_id)
+        sw.approve_part_split(project_id)
         return sw.load_project(project_id)
 
     def build_debug_pipeline(self, tmpdir: str):
@@ -64,9 +117,7 @@ class SpriteWorkbenchTests(unittest.TestCase):
                 "last_ui_mode": "wizard",
             })
             project = self.import_valid_manual_concept(project["project_id"])
-            sw.generate_master_pose_candidates(project["project_id"])
-            project = sw.load_project(project["project_id"])
-            sw.select_master_pose(project["project_id"], project["master_pose_manifest"]["candidates"][0]["candidate_id"])
+            project = self.generate_approved_part_split(project["project_id"])
             sw.build_sprite_model(project["project_id"])
             project = sw.load_project(project["project_id"])
             project["sprite_model_approved"] = True
@@ -181,26 +232,100 @@ class SpriteWorkbenchTests(unittest.TestCase):
 
         self.assertNotIn("refine", before_valid["step_statuses"])
         self.assertEqual(before_valid["step_statuses"]["review"], "locked")
-        self.assertIn("Mark at least one imported concept valid", before_valid["blocking_reasons"]["review"][0])
+        self.assertIn("Codex validated as valid", before_valid["blocking_reasons"]["review"][0])
         self.assertEqual(project["step_statuses"]["review"], "complete")
-        self.assertEqual(project["step_statuses"]["master_pose"], "ready")
+        self.assertEqual(project["step_statuses"]["part_split"], "ready")
 
-    def test_master_pose_generation_and_selection_persist_manifest(self):
+    def test_concept_approval_generates_rig_layout_before_sprite_model(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            original_root = sw.PROJECTS_ROOT
+            sw.PROJECTS_ROOT = Path(tmpdir)
+            try:
+                created = sw.create_project({
+                    "project_name": "Knight Layout",
+                    "prompt_text": "a side-view armored knight with sword and cape",
+                    "last_ui_mode": "wizard",
+                })
+                prompt = sw.generate_initial_prompt(created["project_id"])
+                with patch.object(sw, "run_gemini_concept_validation", return_value={
+                    "decision": "valid",
+                    "summary": "Extraction-ready after safe normalization.",
+                    "feedback": "Ready to continue.",
+                    "improved_gemini_prompt": None,
+                    "master_pose_ready": True,
+                    "technical_requirements_ok": True,
+                    "response_id": "resp_valid",
+                }):
+                    with tempfile.TemporaryDirectory() as asset_dir:
+                        asset_path = self.create_manual_concept_asset(Path(asset_dir) / "knight.png")
+                        project = sw.import_concept_attempt(created["project_id"], {
+                            "source_prompt_id": prompt["concept_id"],
+                            "local_path": str(asset_path),
+                        })
+                imported = next(item for item in project["concepts"] if item.get("preview_image"))
+                project = sw.update_concept_review_state(created["project_id"], imported["concept_id"], "approve", True)
+            finally:
+                sw.PROJECTS_ROOT = original_root
+
+        self.assertEqual(project["current_stage"], "rig_layout")
+        self.assertFalse(project["rig_layout_approved"])
+        self.assertIn(project["step_statuses"]["rig_layout"], {"active", "ready"})
+        self.assertEqual(project["rig_layout"]["rig_profile"], sw.SIDE_KNIGHT_SIMPLE_7)
+
+    def test_valid_gemini_import_sets_direct_source_image(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             original_root = sw.PROJECTS_ROOT
             sw.PROJECTS_ROOT = Path(tmpdir)
             try:
                 project = sw.create_project({
-                    "project_name": "Master Pose Hero",
+                    "project_name": "Direct Source Hero",
                     "prompt_text": "a side-view armored pilgrim with a lantern",
                     "backend_mode": "debug_procedural",
                 })
                 project = self.import_valid_manual_concept(project["project_id"])
-                manifest = sw.generate_master_pose_candidates(project["project_id"])
-                self.assertEqual(len(manifest["candidates"]), 3)
-                selected = sw.select_master_pose(project["project_id"], manifest["candidates"][0]["candidate_id"])
-                self.assertEqual(selected["approved_candidate_id"], manifest["candidates"][0]["candidate_id"])
-                self.assertTrue((sw.PROJECTS_ROOT / project["project_id"] / "master_pose" / "approved_master_pose.png").exists())
+                accepted = next(item for item in project["concepts"] if item["concept_id"] == project["selected_concept_id"])
+                approved_source_exists = (sw.PROJECTS_ROOT / project["project_id"] / accepted["approved_source_image"]).exists()
+            finally:
+                sw.PROJECTS_ROOT = original_root
+
+        self.assertEqual(accepted["validation_status"], "valid")
+        self.assertTrue(accepted["approved_source_image"])
+        self.assertTrue(approved_source_exists)
+
+    def test_generate_part_split_creates_candidate_parts_and_preview(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            original_root = sw.PROJECTS_ROOT
+            sw.PROJECTS_ROOT = Path(tmpdir)
+            try:
+                project = sw.create_project({
+                    "project_name": "Split Hero",
+                    "prompt_text": "a side-view armored knight with sword and cape",
+                    "backend_mode": "debug_procedural",
+                })
+                project = self.import_valid_manual_concept(project["project_id"])
+                part_split = sw.generate_part_split(project["project_id"])
+            finally:
+                sw.PROJECTS_ROOT = original_root
+
+        self.assertTrue(part_split["parts"])
+        self.assertEqual(part_split["approved"], False)
+        self.assertIn("path", part_split["reconstruction_preview"])
+        self.assertIn(part_split["validation"]["status"], {"pass", "warning"})
+
+    def test_sprite_model_build_requires_approved_part_split_on_new_flow(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            original_root = sw.PROJECTS_ROOT
+            sw.PROJECTS_ROOT = Path(tmpdir)
+            try:
+                project = sw.create_project({
+                    "project_name": "Blocked Hero",
+                    "prompt_text": "a side-view armored knight with sword and cape",
+                    "backend_mode": "debug_procedural",
+                })
+                project = self.import_valid_manual_concept(project["project_id"])
+                sw.generate_part_split(project["project_id"])
+                with self.assertRaisesRegex(ValueError, "Approve the part split"):
+                    sw.build_sprite_model(project["project_id"])
             finally:
                 sw.PROJECTS_ROOT = original_root
 
@@ -215,17 +340,17 @@ class SpriteWorkbenchTests(unittest.TestCase):
                     "backend_mode": "debug_procedural",
                 })
                 project = self.import_valid_manual_concept(project["project_id"])
-                sw.generate_master_pose_candidates(project["project_id"])
-                project = sw.load_project(project["project_id"])
-                sw.select_master_pose(project["project_id"], project["master_pose_manifest"]["candidates"][0]["candidate_id"])
+                self.generate_approved_part_split(project["project_id"])
                 sprite_model = sw.build_sprite_model(project["project_id"])
             finally:
                 sw.PROJECTS_ROOT = original_root
 
         self.assertEqual(sprite_model["status"], "pass")
-        self.assertEqual(len(sprite_model["parts"]), len(sw.REQUIRED_PARTS))
-        self.assertEqual(sprite_model["approved_master_pose"], "master_pose/approved_master_pose.png")
+        self.assertGreaterEqual(len(sprite_model["parts"]), 1)
+        self.assertTrue(sprite_model["approved_source_image"].startswith("concepts/"))
+        self.assertIsNone(sprite_model["approved_master_pose"])
         self.assertIn("swatches", sprite_model["palette"])
+        self.assertEqual(sprite_model["source_mode"], "approved_part_split")
 
     def test_full_debug_pipeline_renders_clips_passes_qa_and_exports(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -238,9 +363,7 @@ class SpriteWorkbenchTests(unittest.TestCase):
                     "backend_mode": "debug_procedural",
                 })
                 project = self.import_valid_manual_concept(project["project_id"])
-                sw.generate_master_pose_candidates(project["project_id"])
-                project = sw.load_project(project["project_id"])
-                sw.select_master_pose(project["project_id"], project["master_pose_manifest"]["candidates"][0]["candidate_id"])
+                self.generate_approved_part_split(project["project_id"])
                 sw.build_sprite_model(project["project_id"])
                 project = sw.load_project(project["project_id"])
                 project["sprite_model_approved"] = True
@@ -381,7 +504,7 @@ class SpriteWorkbenchTests(unittest.TestCase):
             finally:
                 sw.PROJECTS_ROOT = original_root
 
-        self.assertIn("Role:", result["prompt_text"])
+        self.assertIn("Character brief:", result["prompt_text"])
         self.assertEqual(reloaded["latest_prompt"]["prompt_version"], 1)
         self.assertTrue(prompt_exists)
         self.assertEqual(reloaded["status"], "prompt_ready")
@@ -406,7 +529,7 @@ class SpriteWorkbenchTests(unittest.TestCase):
             finally:
                 sw.PROJECTS_ROOT = original_root
 
-        self.assertIn("Preserve the core identity from this previous prompt", improved["prompt_text"])
+        self.assertIn("Use the attached previous image as the direct reference.", improved["prompt_text"])
         self.assertIn("make the silhouette leaner", improved["prompt_text"])
         self.assertEqual(updated["concepts"][-1]["validation_status"], "invalid")
 
@@ -457,6 +580,98 @@ class SpriteWorkbenchTests(unittest.TestCase):
         imported = next(item for item in project["concepts"] if item.get("preview_image"))
         self.assertEqual(imported["import_source"], "local_path")
         self.assertEqual(imported["validation_status"], "pending")
+        self.assertTrue(imported["validation_error"])
+
+    def test_safe_normalization_removes_detached_logo_and_white_halo(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            source_path = self.create_logo_and_halo_asset(Path(tmpdir) / "logo-halo.png")
+            output_path = Path(tmpdir) / "processed.png"
+            result = sw.safe_normalize_concept_image(source_path, output_path)
+            processed = Image.open(output_path).convert("RGBA")
+            alpha = processed.getchannel("A")
+            bbox = alpha.getbbox()
+
+        self.assertEqual(result["status"], "applied")
+        self.assertIsNotNone(bbox)
+        self.assertGreater(bbox[0], 100)
+        self.assertGreater(bbox[1], 20)
+        self.assertEqual(alpha.getpixel((0, 0)), 0)
+        self.assertEqual(alpha.getpixel((sw.CONCEPT_CANVAS[0] - 1, 0)), 0)
+
+    def test_safe_normalization_removes_subject_edge_halo(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            source_path = self.create_subject_halo_asset(Path(tmpdir) / "subject-halo.png")
+            output_path = Path(tmpdir) / "processed.png"
+            result = sw.safe_normalize_concept_image(source_path, output_path)
+            processed = Image.open(output_path).convert("RGBA")
+            alpha = processed.getchannel("A")
+            bbox = alpha.getbbox()
+
+        self.assertEqual(result["status"], "applied")
+        self.assertIsNotNone(bbox)
+        edge_sample = processed.getpixel((bbox[0], (bbox[1] + bbox[3]) // 2))
+        self.assertLess(min(edge_sample[:3]), 220)
+
+    def test_invalid_gemini_import_persists_retry_prompt(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            original_root = sw.PROJECTS_ROOT
+            sw.PROJECTS_ROOT = Path(tmpdir)
+            try:
+                project = sw.create_project({
+                    "project_name": "Gemini Reject Hero",
+                    "prompt_text": "a lantern scout",
+                })
+                prompt = sw.generate_initial_prompt(project["project_id"])
+                with patch.object(sw, "run_gemini_concept_validation", return_value={
+                    "decision": "invalid",
+                    "summary": "Silhouette is too front-facing.",
+                    "feedback": "Use a stricter side profile and a cleaner background.",
+                    "improved_gemini_prompt": "Side-profile lantern scout, one full-body humanoid, plain removable background.",
+                    "master_pose_ready": False,
+                    "technical_requirements_ok": False,
+                    "response_id": "resp_invalid",
+                }):
+                    project = sw.import_concept_attempt(project["project_id"], {
+                        "source_prompt_id": prompt["concept_id"],
+                        "local_path": str(self.create_manual_concept_asset(Path(tmpdir) / "reject.png")),
+                    })
+            finally:
+                sw.PROJECTS_ROOT = original_root
+
+        imported = next(item for item in project["concepts"] if item.get("preview_image"))
+        self.assertEqual(imported["validation_status"], "invalid")
+        self.assertEqual(imported["validation_source"], "gemini")
+        self.assertIn("stricter side profile", imported["validation_feedback"])
+        self.assertEqual(project["latest_prompt"]["prompt_source"], "gemini_retry")
+        self.assertIn("plain removable background", project["latest_prompt"]["prompt_text"])
+
+    def test_gemini_failure_revalidation_stays_pending_with_error(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            original_root = sw.PROJECTS_ROOT
+            sw.PROJECTS_ROOT = Path(tmpdir)
+            try:
+                project = sw.create_project({
+                    "project_name": "Retry Hero",
+                    "prompt_text": "a lantern scout",
+                })
+                prompt = sw.generate_initial_prompt(project["project_id"])
+                project = sw.import_concept_attempt(project["project_id"], {
+                    "source_prompt_id": prompt["concept_id"],
+                    "local_path": str(self.create_manual_concept_asset(Path(tmpdir) / "retry.png")),
+                })
+                imported = next(item for item in project["concepts"] if item.get("preview_image"))
+                with patch.object(sw, "run_gemini_concept_validation", side_effect=RuntimeError("service unavailable")):
+                    project = sw.validate_imported_concept(project["project_id"], imported["concept_id"])
+            finally:
+                sw.PROJECTS_ROOT = original_root
+
+        retried = next(item for item in project["concepts"] if item["concept_id"] == imported["concept_id"])
+        self.assertEqual(retried["validation_status"], "pending")
+        self.assertEqual(retried["validation_source"], "gemini")
+        self.assertIn("service unavailable", retried["validation_error"])
+
+    def test_wizard_steps_remove_master_pose(self):
+        self.assertNotIn("master_pose", sw.WIZARD_STEPS)
 
     def test_manual_validation_transitions_pending_to_invalid_and_valid(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -551,6 +766,37 @@ class SpriteWorkbenchTests(unittest.TestCase):
         self.assertIn("orthographic side profile", prompt)
         self.assertIn("single character only", prompt)
 
+    def test_build_rig_layout_handoff_prompt_biases_toward_simple_rig(self):
+        project = sw.apply_project_defaults({
+            "project_id": "demo-project",
+            "project_name": "Demo Project",
+            "brief": {
+                "role_archetype": "armored traveler",
+                "silhouette_intent": "broad guarded profile",
+                "outfit_materials": "weathered plate and cloth",
+                "prop": "sword",
+                "palette_mood": "storm steel",
+                "mood_tone": "grim and vigilant",
+            },
+            "selected_concept_id": "concept-0001",
+            "concepts": [{
+                "concept_id": "concept-0001",
+                "positive_prompt": "side-view armored knight with sword and cloth drape",
+            }],
+        })
+        rig_layout = sw.resolve_rig_layout(project, persist=False)
+        prompt = sw.build_rig_layout_handoff_prompt(project, rig_layout)
+        self.assertIn("rig_profile: side_knight_simple_7", prompt)
+        self.assertIn('"rig_profile": "side_knight_simple_7"', prompt)
+        self.assertIn("The allowed part list is a superset, not a target checklist.", prompt)
+        self.assertIn("Do not return more than 8 total parts. If more than 8 parts seem necessary, return valid=false.", prompt)
+        self.assertIn("8 total parts is a hard ceiling for this response.", prompt)
+        self.assertIn("If the simplified profile still cannot represent the concept within 8 total parts, return valid=false.", prompt)
+        self.assertIn("For side_knight_simple_7, the default expected joint_driving_parts are: head, torso_pelvis, front_arm, front_leg, weapon.", prompt)
+        self.assertIn("A typical good result for this kind of character is about 7 to 8 total parts, not 20.", prompt)
+        self.assertIn("If the concept would require the legacy many-part rig to function, return valid=false instead of emitting an over-split layout.", prompt)
+        self.assertIn("If the layout reaches anything close to the legacy full-part count, treat that as a likely failure to simplify and reconsider from scratch.", prompt)
+
     def test_create_job_tracks_progress_updates(self):
         job = sw.create_job(None, "demo.progress", lambda progress: (progress(55, "Halfway there", "Testing progress"), {"ok": True})[1])
         deadline = time.time() + 5
@@ -611,6 +857,83 @@ class SpriteWorkbenchTests(unittest.TestCase):
         self.assertEqual(sw.aggregate_check_state(["pass", "not_implemented"]), "pass")
         self.assertEqual(sw.aggregate_check_state(["not_implemented", "not_implemented"]), "not_implemented")
         self.assertEqual(sw.aggregate_check_state(["pass", "fail"]), "fail")
+
+    def test_cleanup_frame_keeps_anchor_stable_across_translated_sources(self):
+        first = Image.new("RGBA", sw.WORKING_CANVAS, (0, 0, 0, 0))
+        first_draw = ImageDraw.Draw(first)
+        first_draw.rectangle((120, 80, 160, 200), fill=(255, 255, 255, 255))
+        first_draw.rectangle((110, 200, 170, 214), fill=(255, 255, 255, 255))
+
+        second = Image.new("RGBA", sw.WORKING_CANVAS, (0, 0, 0, 0))
+        second_draw = ImageDraw.Draw(second)
+        second_draw.rectangle((147, 80, 187, 200), fill=(255, 255, 255, 255))
+        second_draw.rectangle((137, 200, 197, 214), fill=(255, 255, 255, 255))
+
+        cleaned_first, meta_first = sw.cleanup_frame(first, anchor_point=(140, 214))
+        cleaned_second, meta_second = sw.cleanup_frame(second, anchor_point=(167, 214))
+
+        self.assertEqual(meta_first["output_box"], meta_second["output_box"])
+        self.assertEqual(cleaned_first.tobytes(), cleaned_second.tobytes())
+
+    def test_generate_clip_frames_simple_walk_stays_conservative(self):
+        frames = sw.generate_clip_frames("walk", sw.DEFAULT_CLIP_CONTROLS["walk"], rig_profile=sw.SIDE_KNIGHT_SIMPLE_7)
+
+        self.assertLessEqual(max(abs(frame["shoulder_front_rotation"]) for frame in frames), 6.0)
+        self.assertLessEqual(max(abs(frame["hip_front_rotation"]) for frame in frames), 7.5)
+        self.assertLessEqual(max(abs(frame["root_offset"][1]) for frame in frames), 3.0)
+        self.assertLessEqual(max(abs(frame["weapon_rotation"]) for frame in frames), 2.2)
+
+    def test_build_joint_map_uses_part_names_for_simple_profile(self):
+        sprite_model = {
+            "rig_layout": {"rig_profile": sw.SIDE_KNIGHT_SIMPLE_7},
+            "parts": [
+                {"part_name": "torso_pelvis", "part_role": "primary", "bbox": [100, 120, 160, 220], "pivot_point": [30, 20]},
+                {"part_name": "head", "part_role": "primary", "bbox": [112, 48, 154, 126], "pivot_point": [14, 64]},
+                {"part_name": "front_arm", "part_role": "primary", "bbox": [132, 130, 194, 210], "pivot_point": [8, 10]},
+                {"part_name": "front_leg", "part_role": "primary", "bbox": [108, 196, 150, 280], "pivot_point": [16, 8]},
+                {"part_name": "weapon", "part_role": "primary", "bbox": [176, 150, 228, 198], "pivot_point": [6, 16]},
+                {"part_name": "cape_back", "part_role": "overlay", "bbox": [88, 122, 118, 232], "pivot_point": [6, 8]},
+            ],
+        }
+
+        joint_map = sw.build_joint_map_from_sprite_model(sprite_model)
+
+        self.assertEqual(set(joint_map), {"root", "torso", "neck", "head", "shoulder_front", "wrist_front", "hip_front", "ankle_front"})
+        self.assertEqual(joint_map["torso"], [130.0, 140.0])
+        self.assertEqual(joint_map["head"], [126.0, 112.0])
+
+    def test_clone_part_entry_can_scale_and_bottom_align(self):
+        image = Image.new("RGBA", (10, 20), (255, 255, 255, 255))
+        mask = Image.new("L", (10, 20), 255)
+        source_part = {"part_name": "front_leg"}
+
+        cloned_image, cloned_mask, meta = sw.clone_part_entry(
+            source_part,
+            image,
+            mask,
+            (100, 200, 130, 250),
+            shade_factor=0.7,
+            scale_x=0.5,
+            scale_y=0.5,
+            align="bottom_right",
+        )
+
+        self.assertEqual(cloned_image.size, (5, 10))
+        self.assertEqual(cloned_mask.size, (5, 10))
+        self.assertEqual(meta["bbox"], [125, 240, 130, 250])
+        self.assertEqual(cloned_image.getpixel((0, 0)), (178, 178, 178, 255))
+
+    def test_generate_clip_frames_dual_leg_walk_stays_pixel_conservative(self):
+        frames = sw.generate_clip_frames("walk", sw.DEFAULT_CLIP_CONTROLS["walk"], rig_profile=sw.SIDE_KNIGHT_DUAL_LEG_8)
+
+        self.assertLessEqual(max(abs(frame["shoulder_front_rotation"]) for frame in frames), 1.6)
+        self.assertLessEqual(max(abs(frame["weapon_rotation"]) for frame in frames), 0.65)
+        self.assertLessEqual(max(abs(frame["root_offset"][1]) for frame in frames), 1.7)
+        self.assertGreaterEqual(max(abs(frame["hip_front_rotation"]) for frame in frames), 5.5)
+        self.assertGreaterEqual(max(abs(frame["hip_back_rotation"]) for frame in frames), 5.0)
+        self.assertLessEqual(max(abs(frame["hip_front_rotation"]) for frame in frames), 6.4)
+        self.assertLessEqual(max(abs(frame["hip_back_rotation"]) for frame in frames), 5.8)
+        self.assertLessEqual(max(abs(frame["front_cloth_rotation_bias"]) for frame in frames), 0.9)
 
     def test_server_supports_cors_preflight(self):
         try:

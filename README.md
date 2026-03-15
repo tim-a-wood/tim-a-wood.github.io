@@ -103,16 +103,35 @@ export SPRITE_WORKBENCH_COMFYUI_JOB_TIMEOUT_SECONDS=600
 
 `SPRITE_WORKBENCH_COMFYUI_JOB_TIMEOUT_SECONDS` is the per-image generation timeout used by the workbench server.
 
-Run:
+Create a local env file once, then paste your Gemini API key into it:
 
 ```bash
-python3 scripts/sprite_workbench_server.py --host 127.0.0.1 --port 8766
+cp .env.local.example .env.local
+```
+
+Expected variable in `.env.local`:
+
+```bash
+export GEMINI_API_KEY="paste_key_here"
+```
+
+Canonical launch flow:
+
+```bash
+./scripts/start_sprite_workbench_with_env.sh
 ```
 
 Then open:
 
 ```text
 http://127.0.0.1:8766/tools/2d-sprite-and-animation/index.html
+```
+
+Advanced fallback, if you want to bypass the launcher and manage env loading yourself:
+
+```bash
+source .env.local
+python3 scripts/sprite_workbench_server.py --host 127.0.0.1 --port 8766
 ```
 
 The server writes local-first project data and exports under `tools/2d-sprite-and-animation/projects-data/`.

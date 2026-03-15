@@ -1,5 +1,9 @@
 tools/ComfyUI/
 tools/miniconda3/
+.env.local
+tools/2d-sprite-and-animation/projects-data/
+image_*.png
+map-birdseye-*.png
 
 # Python caches
 __pycache__/
