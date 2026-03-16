@@ -3371,6 +3371,10 @@ const state = {
     selectedClipPart: null,
     selectedManualClipId: null,
     selectedManualClipFrame: 0,
+    selectedManualPatchSourcePart: null,
+    selectedManualPatchOccluderPart: null,
+    manualPatchCandidates: [],
+    manualPatchBusy: false,
     manualPoseDraft: null,
     manualPoseDraftKey: null,
     manualPoseDrag: null,
@@ -4741,6 +4745,65 @@ function clampSelectedManualClipFrame(project = state.activeProject) {
     state.selectedManualClipFrame = clamp(Number(state.selectedManualClipFrame) || 0, 0, Math.max(0, frameCount - 1));
 }
 
+function manualFrameEntry(frame) {
+    if (frame && (frame.transforms || frame.part_repairs || frame.corrective_patches)) {
+        return {
+            transforms: cloneJson(frame.transforms || {}),
+            part_repairs: cloneJson(frame.part_repairs || {}),
+            corrective_patches: cloneJson(frame.corrective_patches || {}),
+        };
+    }
+    return {
+        transforms: cloneJson(frame || {}),
+        part_repairs: {},
+        corrective_patches: {},
+    };
+}
+
+function manualFrameTransforms(frame) {
+    return manualFrameEntry(frame).transforms || {};
+}
+
+function manualFrameRepairs(frame) {
+    return manualFrameEntry(frame).part_repairs || {};
+}
+
+function manualFramePatches(frame) {
+    return manualFrameEntry(frame).corrective_patches || {};
+}
+
+function manualPatchableParts(project = state.activeProject) {
+    return (project?.sprite_model?.parts || [])
+        .filter((part) => Boolean(part?.part_name && part?.image_path))
+        .sort((left, right) => Number(left.draw_order || 0) - Number(right.draw_order || 0) || String(left.part_name || "").localeCompare(String(right.part_name || "")));
+}
+
+function selectedManualPatchSourcePart(project = state.activeProject) {
+    const parts = manualPatchableParts(project);
+    if (!parts.length) return null;
+    if (!parts.some((part) => part.part_name === state.selectedManualPatchSourcePart)) {
+        state.selectedManualPatchSourcePart = parts[0]?.part_name || null;
+    }
+    return parts.find((part) => part.part_name === state.selectedManualPatchSourcePart) || parts[0] || null;
+}
+
+function manualPatchOccluderParts(project = state.activeProject, sourcePartName = state.selectedManualPatchSourcePart) {
+    const sourcePart = manualPatchableParts(project).find((part) => part.part_name === sourcePartName);
+    const sourceDrawOrder = Number(sourcePart?.draw_order || 0);
+    return manualPatchableParts(project).filter((part) => part.part_name !== sourcePartName && Number(part.draw_order || 0) >= sourceDrawOrder);
+}
+
+function selectedManualPatchOccluderPart(project = state.activeProject) {
+    const sourcePart = selectedManualPatchSourcePart(project);
+    if (!sourcePart) return null;
+    const options = manualPatchOccluderParts(project, sourcePart.part_name);
+    if (!options.length) return null;
+    if (!options.some((part) => part.part_name === state.selectedManualPatchOccluderPart)) {
+        state.selectedManualPatchOccluderPart = options[0]?.part_name || null;
+    }
+    return options.find((part) => part.part_name === state.selectedManualPatchOccluderPart) || options[0] || null;
+}
+
 function manualPoseDraftKey(clipId = state.selectedManualClipId, frameIndex = state.selectedManualClipFrame) {
     return `${clipId || "none"}:${frameIndex}`;
 }
@@ -4755,7 +4818,7 @@ function syncManualPoseDraft(project = state.activeProject) {
     clampSelectedManualClipFrame(project);
     const key = manualPoseDraftKey(clip.clip_id, state.selectedManualClipFrame);
     if (state.manualPoseDraftKey !== key) {
-        state.manualPoseDraft = cloneJson(clip.frames?.[state.selectedManualClipFrame] || {});
+        state.manualPoseDraft = cloneJson(manualFrameTransforms(clip.frames?.[state.selectedManualClipFrame] || {}));
         state.manualPoseDraftKey = key;
     }
     return state.manualPoseDraft;
@@ -4765,7 +4828,19 @@ function currentManualClipFrame(project = state.activeProject) {
     const clip = selectedManualClip(project);
     if (!clip) return null;
     syncManualPoseDraft(project);
-    return state.manualPoseDraft || clip.frames?.[state.selectedManualClipFrame] || null;
+    return state.manualPoseDraft || manualFrameTransforms(clip.frames?.[state.selectedManualClipFrame] || {}) || null;
+}
+
+function currentManualClipFrameEntry(project = state.activeProject) {
+    const clip = selectedManualClip(project);
+    if (!clip) return null;
+    syncManualPoseDraft(project);
+    const stored = manualFrameEntry(clip.frames?.[state.selectedManualClipFrame] || {});
+    return {
+        transforms: cloneJson(state.manualPoseDraft || stored.transforms || {}),
+        part_repairs: cloneJson(stored.part_repairs || {}),
+        corrective_patches: cloneJson(stored.corrective_patches || {}),
+    };
 }
 
 function addPosePoints(a, b) {
@@ -4889,14 +4964,27 @@ function computeManualPoseJoints(rig, frame) {
 }
 
 function manualFrameAdjustmentEntries(frame) {
-    return Object.entries(frame || {}).flatMap(([key, value]) => {
+    const transforms = manualFrameTransforms(frame);
+    const repairs = manualFrameRepairs(frame);
+    const patches = manualFramePatches(frame);
+    return [
+        ...Object.entries(transforms || {}).flatMap(([key, value]) => {
         if (key === "root_offset") {
             if (!Array.isArray(value) || (!value[0] && !value[1])) return [];
             return [{ label: "Root Offset", value: `${Number(value[0] || 0).toFixed(1)}, ${Number(value[1] || 0).toFixed(1)}` }];
         }
         if (typeof value !== "number" || Math.abs(value) < 0.01) return [];
         return [{ label: humanizeKey(key), value: `${value.toFixed(1)}deg` }];
-    });
+        }),
+        ...Object.entries(repairs || {}).map(([partName, repair]) => ({
+            label: `${humanizeKey(partName)} Repair`,
+            value: repair?.summary || repair?.variant_id || "custom variant",
+        })),
+        ...Object.values(patches || {}).map((patch) => ({
+            label: `${humanizeKey(patch?.source_part_name || "part")} Patch`,
+            value: `behind ${humanizeKey(patch?.keep_behind_part_name || "selected part")}`,
+        })),
+    ];
 }
 
 function manualFrameHasEdits(frame) {
@@ -4953,16 +5041,21 @@ function manualPosePreviewRotations(project, rig, transforms) {
 function manualPosePreviewParts(project, rig, transforms) {
     const parts = [...(project?.sprite_model?.parts || [])].sort((left, right) => Number(left.draw_order || 0) - Number(right.draw_order || 0));
     if (!parts.length || !rig) return [];
-    const joints = computeManualPoseJoints(rig, transforms || {});
+    const frameEntry = manualFrameEntry(transforms);
+    const frameTransforms = frameEntry.transforms || {};
+    const partRepairs = frameEntry.part_repairs || {};
+    const correctivePatches = frameEntry.corrective_patches || {};
+    const partsByName = Object.fromEntries(parts.map((part) => [part.part_name, part]));
+    const joints = computeManualPoseJoints(rig, frameTransforms || {});
     const neutralJoints = rig.rig_joint_map || {};
-    const rotations = manualPosePreviewRotations(project, rig, transforms || {});
-    return parts.map((part) => {
+    const rotations = manualPosePreviewRotations(project, rig, frameTransforms || {});
+    const renderPart = (part, imagePath, extra = {}) => {
         const parentJoint = part.parent_joint;
         const currentJoint = joints[parentJoint];
         const neutralJoint = neutralJoints[parentJoint];
         const bbox = validBBox(part.bbox) ? part.bbox.map((value) => Number(value)) : null;
         const pivot = Array.isArray(part.pivot_point) ? [Number(part.pivot_point[0] || 0), Number(part.pivot_point[1] || 0)] : [0, 0];
-        if (!currentJoint || !neutralJoint || !bbox || !part.image_path) return null;
+        if (!currentJoint || !neutralJoint || !bbox || !imagePath) return null;
         const neutralPivot = [bbox[0] + pivot[0], bbox[1] + pivot[1]];
         const neutralOffset = [neutralPivot[0] - Number(neutralJoint[0] || 0), neutralPivot[1] - Number(neutralJoint[1] || 0)];
         const rotation = Number(rotations[manualPoseRole(part)] || 0);
@@ -4972,8 +5065,41 @@ function manualPosePreviewParts(project, rig, transforms) {
         const height = Math.max(1, bbox[3] - bbox[1]);
         const translateX = pivotWorld[0] - pivot[0];
         const translateY = pivotWorld[1] - pivot[1];
-        return { src: `${projectAsset(project, part.image_path)}?v=${project.updated_at}`, alt: part.part_name, width, height, translateX, translateY, rotation, pivotX: pivot[0], pivotY: pivot[1] };
-    }).filter(Boolean);
+        return {
+            src: `${projectAsset(project, imagePath)}?v=${project.updated_at}`,
+            alt: extra.alt || part.part_name,
+            width,
+            height,
+            translateX,
+            translateY,
+            rotation,
+            pivotX: pivot[0],
+            pivotY: pivot[1],
+            repaired: Boolean(extra.repaired),
+            patched: Boolean(extra.patched),
+            drawOrder: Number(extra.drawOrder ?? part.draw_order ?? 0),
+        };
+    };
+    const rendered = [];
+    parts.forEach((part) => {
+        Object.values(correctivePatches)
+            .filter((patch) => patch?.keep_behind_part_name === part.part_name)
+            .forEach((patch) => {
+                const sourcePart = partsByName[patch?.source_part_name];
+                if (!sourcePart) return;
+                const patchRendered = renderPart(sourcePart, patch?.image_path, {
+                    alt: patch?.patch_id || `patch-${sourcePart.part_name}`,
+                    patched: true,
+                    drawOrder: Number(part.draw_order || 0) - 0.5,
+                });
+                if (patchRendered) rendered.push(patchRendered);
+            });
+        const repair = partRepairs[part.part_name];
+        const imagePath = repair?.image_path || part.image_path;
+        const partRendered = renderPart(part, imagePath, { repaired: Boolean(repair) });
+        if (partRendered) rendered.push(partRendered);
+    });
+    return rendered.sort((left, right) => Number(left.drawOrder || 0) - Number(right.drawOrder || 0));
 }
 
 function manualPosePreviewMarkup(project, rig, transforms, { compact = false } = {}) {
@@ -5105,9 +5231,10 @@ function updateManualPoseStageDOM(stage, project, draftFrame, dragState) {
 
 async function saveManualPoseFrame(project, clip, transforms, successMessage = "") {
     if (!project || !clip) return;
+    const payloadTransforms = manualFrameTransforms(transforms);
     await api(`/api/projects/${project.project_id}/manual-clips/${clip.clip_id}/frame/${state.selectedManualClipFrame}`, {
         method: "POST",
-        body: JSON.stringify({ transforms: transforms || {} }),
+        body: JSON.stringify({ transforms: payloadTransforms || {} }),
     });
     state.manualPoseDraft = null;
     await loadProject(project.project_id, currentMode());
@@ -5134,7 +5261,7 @@ function bindManualPoseStageInteractions(stage, project, clip, frame, handles) {
                 });
                 const liveEl = document.getElementById("manual-pose-live-preview-container");
                 if (liveEl && project?.rig) {
-                    liveEl.innerHTML = manualPosePreviewMarkup(project, project.rig, state.manualPoseDraft || {});
+                    liveEl.innerHTML = manualPosePreviewMarkup(project, project.rig, currentManualClipFrameEntry(project) || {});
                 }
             };
             const finish = () => {
@@ -6770,6 +6897,7 @@ function renderManualClipStudio() {
     if (!clip && state.manualPoseModalOpen) closeManualPoseEditor();
     if (clip) clampSelectedManualClipFrame(project);
     const frame = currentManualClipFrame(project);
+    const frameEntry = currentManualClipFrameEntry(project);
     const joints = computeManualPoseJoints(rig, frame || {});
     const handles = manualPoseHandles(project);
     const sourceImage = approvedConceptSourcePath(project);
@@ -6779,7 +6907,7 @@ function renderManualClipStudio() {
     const previewGifPath = clip?.preview_render?.gif_path
         ? `${projectAsset(project, clip.preview_render.gif_path)}?v=${project.updated_at}`
         : null;
-    const draftFrame = state.manualPoseDraft || frame || {};
+    const draftFrame = frameEntry || manualFrameEntry(frame || {});
     const frameAdjustments = manualFrameAdjustmentEntries(draftFrame);
     const frameAdjustmentMarkup = frameAdjustments.length
         ? frameAdjustments.map((item) => `
@@ -6792,6 +6920,25 @@ function renderManualClipStudio() {
     const statusLabel = clip
         ? `${clip.approval_status || "draft"}${clip.is_stale ? ` · stale (${(clip.stale_reasons || []).join(", ")})` : ""}`
         : "No clip selected";
+    const selectedPatchSourcePart = selectedManualPatchSourcePart(project);
+    const selectedPatchOccluder = selectedManualPatchOccluderPart(project);
+    const appliedPatches = manualFramePatches(draftFrame);
+    const appliedPatchMarkup = Object.values(appliedPatches).length
+        ? Object.values(appliedPatches).map((patch) => `
+            <div class="manual-adjustment-row">
+                <strong>${humanizeKey(patch?.source_part_name || "part")}</strong>
+                <span>${patch?.summary || patch?.variant_id || "gap patch"} · behind ${humanizeKey(patch?.keep_behind_part_name || "selected part")}</span>
+            </div>
+        `).join("")
+        : `<div class="empty">No corrective patches applied on this frame.</div>`;
+    const patchCandidateMarkup = state.manualPatchCandidates?.length
+        ? state.manualPatchCandidates.map((candidate) => `
+            <button class="secondary" data-manual-patch-variant="${candidate.variant_id}" style="justify-content: space-between;">
+                <span>${candidate.summary || candidate.variant_id}</span>
+                <span class="small-note">${candidate.variant_id}</span>
+            </button>
+        `).join("")
+        : `<div class="small-note">Use the gap workflow below. The first patch is auto-applied, and you can swap to another generated variant afterward if needed.</div>`;
     const rigGuidance = rig?.rig_profile === "side_knight_simple_7"
         ? "This project is using the simplified side-view rig, so you get one arm/weapon chain and one front-leg chain instead of fully separate left/right limbs."
         : rig?.rig_profile === "side_knight_dual_leg_8"
@@ -7031,9 +7178,44 @@ function renderManualClipStudio() {
                             ${handleGuideMarkup}
                         </div>
                     </div>
+                    <div class="manual-context-window">
+                        <div class="check-row wrap">
+                            <span>Fix Exposed Gap</span>
+                            <span class="small-note">${selectedPatchSourcePart?.part_name ? humanizeKey(selectedPatchSourcePart.part_name) : "no source part"}</span>
+                        </div>
+                        <div class="small-note">Use this when moving one part exposes missing pixels behind it. Example: fill from <strong>shield</strong>, keep the patch behind <strong>sword</strong>.</div>
+                        <label>
+                            <span class="field-label">1. Fill pixels from</span>
+                            <select id="manual-patch-source-select">
+                                ${manualPatchableParts(project).map((part) => `<option value="${part.part_name}" ${part.part_name === selectedPatchSourcePart?.part_name ? "selected" : ""}>${humanizeKey(part.part_name)}</option>`).join("")}
+                            </select>
+                        </label>
+                        <label>
+                            <span class="field-label">2. Keep patch behind</span>
+                            <select id="manual-patch-occluder-select">
+                                ${manualPatchOccluderParts(project, selectedPatchSourcePart?.part_name).map((part) => `<option value="${part.part_name}" ${part.part_name === selectedPatchOccluder?.part_name ? "selected" : ""}>${humanizeKey(part.part_name)}</option>`).join("")}
+                            </select>
+                        </label>
+                        <div class="actions">
+                            <button id="manual-patch-generate" ${(selectedPatchSourcePart && selectedPatchOccluder) ? "" : "disabled"}>${state.manualPatchBusy ? "Generating..." : "Create Gap Patch"}</button>
+                            <button class="secondary" id="manual-patch-clear" ${selectedPatchSourcePart && appliedPatches[`patch:${selectedPatchSourcePart.part_name}`] ? "" : "disabled"}>Clear Patch</button>
+                        </div>
+                        <div class="manual-adjustment-list" style="margin-top: 8px;">
+                            ${patchCandidateMarkup}
+                        </div>
+                    </div>
                     <div class="comparison-panel manual-context-window">
                         ${previewFramePath && clip.preview_render_complete ? `<img src="${previewFramePath}" alt="${clip.clip_name} frame ${state.selectedManualClipFrame + 1}">` : `<div class="empty">No rendered snapshot for the selected frame yet.</div>`}
                         <div class="small-note">Rendered frame F${state.selectedManualClipFrame + 1}</div>
+                    </div>
+                    <div class="manual-context-window">
+                        <div class="check-row wrap">
+                            <span>Patches on this frame</span>
+                            <span class="small-note">${Object.keys(appliedPatches).length} applied</span>
+                        </div>
+                        <div class="manual-adjustment-list">
+                            ${appliedPatchMarkup}
+                        </div>
                     </div>
                     <div class="manual-context-window">
                         <div class="check-row wrap">
@@ -7084,6 +7266,7 @@ function renderManualClipStudio() {
     editorRoot.querySelector("#manual-clip-select").onchange = (event) => {
         state.selectedManualClipId = event.target.value || null;
         state.selectedManualClipFrame = 0;
+        state.manualPatchCandidates = [];
         state.manualPoseDraft = null;
         state.manualPoseDraftKey = null;
         renderManualClipStudio();
@@ -7091,6 +7274,7 @@ function renderManualClipStudio() {
     poseModalContent.querySelectorAll("[data-manual-frame]").forEach((button) => {
         button.onclick = () => {
             state.selectedManualClipFrame = Number(button.dataset.manualFrame || 0);
+            state.manualPatchCandidates = [];
             state.manualPoseDraft = null;
             state.manualPoseDraftKey = null;
             renderManualClipStudio();
@@ -7099,6 +7283,7 @@ function renderManualClipStudio() {
     const prevFrameButton = poseModalContent.querySelector("#manual-clip-prev-frame");
     if (prevFrameButton) prevFrameButton.onclick = () => {
         state.selectedManualClipFrame = Math.max(0, state.selectedManualClipFrame - 1);
+        state.manualPatchCandidates = [];
         state.manualPoseDraft = null;
         state.manualPoseDraftKey = null;
         renderManualClipStudio();
@@ -7106,9 +7291,97 @@ function renderManualClipStudio() {
     const nextFrameButton = poseModalContent.querySelector("#manual-clip-next-frame");
     if (nextFrameButton) nextFrameButton.onclick = () => {
         state.selectedManualClipFrame = Math.min((clip.frame_count || 1) - 1, state.selectedManualClipFrame + 1);
+        state.manualPatchCandidates = [];
         state.manualPoseDraft = null;
         state.manualPoseDraftKey = null;
         renderManualClipStudio();
+    };
+    const patchSourceSelect = poseModalContent.querySelector("#manual-patch-source-select");
+    if (patchSourceSelect) patchSourceSelect.onchange = (event) => {
+        state.selectedManualPatchSourcePart = event.target.value || null;
+        state.selectedManualPatchOccluderPart = null;
+        state.manualPatchCandidates = [];
+        renderManualClipStudio();
+    };
+    const patchOccluderSelect = poseModalContent.querySelector("#manual-patch-occluder-select");
+    if (patchOccluderSelect) patchOccluderSelect.onchange = (event) => {
+        state.selectedManualPatchOccluderPart = event.target.value || null;
+        state.manualPatchCandidates = [];
+        renderManualClipStudio();
+    };
+    const patchGenerateButton = poseModalContent.querySelector("#manual-patch-generate");
+    if (patchGenerateButton) patchGenerateButton.onclick = async () => {
+        const sourcePartName = state.selectedManualPatchSourcePart || selectedManualPatchSourcePart(project)?.part_name;
+        const keepBehindPartName = state.selectedManualPatchOccluderPart || selectedManualPatchOccluderPart(project)?.part_name;
+        if (!sourcePartName || !keepBehindPartName) return;
+        state.manualPatchBusy = true;
+        state.manualPatchCandidates = [];
+        renderManualClipStudio();
+        try {
+            const result = await api(`/api/projects/${project.project_id}/manual-clips/${clip.clip_id}/frame/${state.selectedManualClipFrame}/patch/${sourcePartName}/generate`, {
+                method: "POST",
+                body: JSON.stringify({}),
+            });
+            state.manualPatchCandidates = result.variants || [];
+            if (!state.manualPatchCandidates.length) {
+                notify(`No patch candidates were generated for ${humanizeKey(sourcePartName)}.`, "info");
+            } else {
+                const bestCandidate = state.manualPatchCandidates[0];
+                await api(`/api/projects/${project.project_id}/manual-clips/${clip.clip_id}/frame/${state.selectedManualClipFrame}/patch/${sourcePartName}/apply`, {
+                    method: "POST",
+                    body: JSON.stringify({
+                        ...bestCandidate,
+                        keep_behind_part_name: keepBehindPartName,
+                    }),
+                });
+                await loadProject(project.project_id, currentMode());
+                notify(`Applied a gap patch from ${humanizeKey(sourcePartName)} behind ${humanizeKey(keepBehindPartName)} on F${state.selectedManualClipFrame + 1}.`, "success");
+            }
+        } catch (error) {
+            log(normalizeErrorMessage(error.message), "error");
+            notify(normalizeErrorMessage(error.message), "error");
+        } finally {
+            state.manualPatchBusy = false;
+            renderManualClipStudio();
+        }
+    };
+    poseModalContent.querySelectorAll("[data-manual-patch-variant]").forEach((button) => {
+        button.onclick = async () => {
+            const sourcePartName = state.selectedManualPatchSourcePart || selectedManualPatchSourcePart(project)?.part_name;
+            const keepBehindPartName = state.selectedManualPatchOccluderPart || selectedManualPatchOccluderPart(project)?.part_name;
+            const candidate = (state.manualPatchCandidates || []).find((item) => item.variant_id === button.dataset.manualPatchVariant);
+            if (!sourcePartName || !keepBehindPartName || !candidate) return;
+            try {
+                await api(`/api/projects/${project.project_id}/manual-clips/${clip.clip_id}/frame/${state.selectedManualClipFrame}/patch/${sourcePartName}/apply`, {
+                    method: "POST",
+                    body: JSON.stringify({
+                        ...candidate,
+                        keep_behind_part_name: keepBehindPartName,
+                    }),
+                });
+                await loadProject(project.project_id, currentMode());
+                notify(`Applied patch variant for ${humanizeKey(sourcePartName)} on F${state.selectedManualClipFrame + 1}.`, "success");
+            } catch (error) {
+                log(normalizeErrorMessage(error.message), "error");
+                notify(normalizeErrorMessage(error.message), "error");
+            }
+        };
+    });
+    const patchClearButton = poseModalContent.querySelector("#manual-patch-clear");
+    if (patchClearButton) patchClearButton.onclick = async () => {
+        const sourcePartName = state.selectedManualPatchSourcePart || selectedManualPatchSourcePart(project)?.part_name;
+        if (!sourcePartName) return;
+        try {
+            await api(`/api/projects/${project.project_id}/manual-clips/${clip.clip_id}/frame/${state.selectedManualClipFrame}/patch/${sourcePartName}/clear`, {
+                method: "POST",
+                body: JSON.stringify({}),
+            });
+            await loadProject(project.project_id, currentMode());
+            notify(`Cleared gap patch for ${humanizeKey(sourcePartName)} on F${state.selectedManualClipFrame + 1}.`, "success");
+        } catch (error) {
+            log(normalizeErrorMessage(error.message), "error");
+            notify(normalizeErrorMessage(error.message), "error");
+        }
     };
     editorRoot.querySelector("#manual-clip-save-meta").onclick = async () => {
         try {
@@ -7479,6 +7752,10 @@ async function loadProject(projectId, mode = "wizard") {
         state.selectedClipPart = null;
         state.selectedManualClipId = null;
         state.selectedManualClipFrame = 0;
+        state.selectedManualPatchSourcePart = null;
+        state.selectedManualPatchOccluderPart = null;
+        state.manualPatchCandidates = [];
+        state.manualPatchBusy = false;
         state.manualPoseDraft = null;
         state.manualPoseDraftKey = null;
         state.manualPoseModalOpen = false;

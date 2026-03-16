@@ -38,16 +38,22 @@ STAGE_MATURITY_PATH = TOOL_DIR / "stage-maturity.json"
 # - sprite_model_history.json
 # - rig.json
 # - animation_clips.json
+# - manual_animation_clips.json
 # - qa_report.json
 CANONICAL_DOWNSTREAM_FILES = {
     "rig_layout": "rig_layout.json",
     "rig_layout_history": "rig_layout_history.json",
+    "part_manifest": "part_manifest.json",
+    "part_manifest_history": "part_manifest_history.json",
+    "part_shapes": "part_shapes.json",
+    "part_shapes_history": "part_shapes_history.json",
     "part_split": "part_split.json",
     "part_split_history": "part_split_history.json",
     "sprite_model": "sprite_model.json",
     "sprite_model_history": "sprite_model_history.json",
     "rig": "rig.json",
     "animation_clips": "animation_clips.json",
+    "manual_animation_clips": "manual_animation_clips.json",
     "qa_report": "qa_report.json",
 }
 LEGACY_DOWNSTREAM_FILES = {
@@ -78,7 +84,7 @@ CONCEPT_CANVAS = (640, 768)
 INITIAL_CONCEPT_COUNT = 6
 REFINEMENT_CONCEPT_COUNT = 4
 JOB_HISTORY_LIMIT = 50
-WIZARD_STEPS = ["project", "brief", "references", "concepts", "review", "rig_layout", "part_split", "split_review", "sprite_model", "rig", "clips", "qa", "export"]
+WIZARD_STEPS = ["project", "brief", "references", "concepts", "review", "rig_layout", "part_manifest", "part_shape_edit", "split_build", "split_review", "sprite_model", "rig", "clips", "qa", "export"]
 MASTER_POSE_COUNT = 3
 
 FRAME_SIZE = 256
@@ -706,6 +712,10 @@ def ensure_dirs(project_dir: Path) -> None:
         "prompts/history",
         "layers",
         "master_pose",
+        "part_manifest",
+        "part_shapes",
+        "part_shapes/masks",
+        "part_shapes/previews",
         "part_split",
         "part_split/parts",
         "part_split/masks",
@@ -715,6 +725,7 @@ def ensure_dirs(project_dir: Path) -> None:
         "rig",
         "animations/idle",
         "animations/walk",
+        "manual_clips",
         "exports",
         "logs",
         "references",
@@ -762,12 +773,21 @@ def reset_downstream_assets(project_id: str, from_stage: str) -> None:
         delete_path(canonical_downstream_path(project_dir, "rig_layout"))
         delete_path(canonical_downstream_path(project_dir, "rig_layout_history"))
     if from_stage in {"concept", "master_pose", "rig_layout"}:
+        delete_path(canonical_downstream_path(project_dir, "part_manifest"))
+        delete_path(canonical_downstream_path(project_dir, "part_manifest_history"))
+    if from_stage in {"concept", "master_pose", "rig_layout", "part_manifest"}:
+        delete_path(canonical_downstream_path(project_dir, "part_shapes"))
+        delete_path(canonical_downstream_path(project_dir, "part_shapes_history"))
+        clear_directory(project_dir / "part_shapes")
+        (project_dir / "part_shapes" / "masks").mkdir(parents=True, exist_ok=True)
+        (project_dir / "part_shapes" / "previews").mkdir(parents=True, exist_ok=True)
+    if from_stage in {"concept", "master_pose", "rig_layout", "part_manifest", "part_shapes"}:
         delete_path(canonical_downstream_path(project_dir, "part_split"))
         delete_path(canonical_downstream_path(project_dir, "part_split_history"))
         clear_directory(project_dir / "part_split")
         (project_dir / "part_split" / "parts").mkdir(parents=True, exist_ok=True)
         (project_dir / "part_split" / "masks").mkdir(parents=True, exist_ok=True)
-    if from_stage in {"concept", "master_pose", "rig_layout", "part_split"}:
+    if from_stage in {"concept", "master_pose", "rig_layout", "part_manifest", "part_shapes", "part_split"}:
         delete_path(canonical_downstream_path(project_dir, "sprite_model"))
         delete_path(canonical_downstream_path(project_dir, "sprite_model_history"))
         delete_path(legacy_downstream_path(project_dir, "palette"))
@@ -775,19 +795,22 @@ def reset_downstream_assets(project_id: str, from_stage: str) -> None:
         clear_directory(sprite_model_revisions_path(project_dir))
         (project_dir / "parts" / "masks").mkdir(parents=True, exist_ok=True)
         (project_dir / "parts" / "recovery").mkdir(parents=True, exist_ok=True)
-    if from_stage in {"concept", "master_pose", "rig_layout", "part_split", "sprite_model"}:
+    if from_stage in {"concept", "master_pose", "rig_layout", "part_manifest", "part_shapes", "part_split", "sprite_model"}:
         clear_directory(project_dir / "rig")
         delete_path(canonical_downstream_path(project_dir, "rig"))
         delete_path(canonical_downstream_path(project_dir, "animation_clips"))
         delete_path(legacy_downstream_path(project_dir, "animation_templates"))
-    if from_stage in {"concept", "master_pose", "rig_layout", "part_split", "sprite_model", "rig", "clips"}:
+    if from_stage in {"concept", "master_pose", "rig_layout", "part_manifest", "part_shapes", "part_split", "sprite_model", "rig", "clips"}:
         clear_directory(project_dir / "animations" / "idle")
         clear_directory(project_dir / "animations" / "walk")
         (project_dir / "animations" / "idle").mkdir(parents=True, exist_ok=True)
         (project_dir / "animations" / "walk").mkdir(parents=True, exist_ok=True)
-    if from_stage in {"concept", "master_pose", "rig_layout", "part_split", "sprite_model", "rig", "clips", "qa"}:
+    if from_stage in {"concept", "master_pose", "rig_layout", "part_manifest", "part_shapes", "part_split", "sprite_model", "rig"}:
+        clear_directory(manual_clip_render_root(project_dir))
+        manual_clip_render_root(project_dir).mkdir(parents=True, exist_ok=True)
+    if from_stage in {"concept", "master_pose", "rig_layout", "part_manifest", "part_shapes", "part_split", "sprite_model", "rig", "clips", "qa"}:
         delete_path(canonical_downstream_path(project_dir, "qa_report"))
-    if from_stage in {"concept", "master_pose", "rig_layout", "part_split", "sprite_model", "rig", "clips", "qa", "export"}:
+    if from_stage in {"concept", "master_pose", "rig_layout", "part_manifest", "part_shapes", "part_split", "sprite_model", "rig", "clips", "qa", "export"}:
         clear_directory(project_dir / "exports")
 
 
@@ -799,25 +822,33 @@ def clear_project_downstream_state(project: Dict[str, Any], from_stage: str) -> 
         project["rig_layout_history"] = default_rig_layout_history(project["project_id"])
         project["rig_layout_approved"] = False
     if from_stage in {"concept", "master_pose", "rig_layout"}:
+        project["part_manifest"] = None
+        project["part_manifest_history"] = default_part_manifest_history(project["project_id"])
+        project["part_manifest_approved"] = False
+    if from_stage in {"concept", "master_pose", "rig_layout", "part_manifest"}:
+        project["part_shapes"] = None
+        project["part_shapes_history"] = default_part_shapes_history(project["project_id"])
+        project["part_shapes_approved"] = False
+    if from_stage in {"concept", "master_pose", "rig_layout", "part_manifest", "part_shapes"}:
         project["part_split"] = None
         project["part_split_history"] = default_part_split_history(project["project_id"])
         project["part_split_approved"] = False
         project["split_review_approved"] = False
-    if from_stage in {"concept", "master_pose", "rig_layout", "part_split"}:
+    if from_stage in {"concept", "master_pose", "rig_layout", "part_manifest", "part_shapes", "part_split"}:
         project["sprite_model"] = None
         project["palette"] = None
         project["sprite_model_history"] = default_sprite_model_history(project["project_id"])
         project["sprite_model_approved"] = False
         project["layer_review_approved"] = False
         project["layered_character"] = None
-    if from_stage in {"concept", "master_pose", "rig_layout", "part_split", "sprite_model"}:
+    if from_stage in {"concept", "master_pose", "rig_layout", "part_manifest", "part_shapes", "part_split", "sprite_model"}:
         project["rig"] = None
         project["animation_clips"] = None
         project["animation_templates"] = None
         project["rig_review_approved"] = False
-    if from_stage in {"concept", "master_pose", "rig_layout", "part_split", "sprite_model", "rig", "clips"}:
+    if from_stage in {"concept", "master_pose", "rig_layout", "part_manifest", "part_shapes", "part_split", "sprite_model", "rig", "clips"}:
         project["qa_report"] = None
-    if from_stage in {"concept", "master_pose", "rig_layout", "part_split", "sprite_model", "rig", "clips", "qa", "export"}:
+    if from_stage in {"concept", "master_pose", "rig_layout", "part_manifest", "part_shapes", "part_split", "sprite_model", "rig", "clips", "qa", "export"}:
         project["last_export"] = None
     return project
 
@@ -1047,6 +1078,32 @@ def default_rig_layout_history(project_id: str) -> Dict[str, Any]:
     }
 
 
+def part_manifest_history_path(project_dir: Path) -> Path:
+    return canonical_downstream_path(project_dir, "part_manifest_history")
+
+
+def default_part_manifest_history(project_id: str) -> Dict[str, Any]:
+    return {
+        "project_id": project_id,
+        "current_revision_id": None,
+        "events": [],
+        "revisions": [],
+    }
+
+
+def part_shapes_history_path(project_dir: Path) -> Path:
+    return canonical_downstream_path(project_dir, "part_shapes_history")
+
+
+def default_part_shapes_history(project_id: str) -> Dict[str, Any]:
+    return {
+        "project_id": project_id,
+        "current_revision_id": None,
+        "events": [],
+        "revisions": [],
+    }
+
+
 def part_split_history_path(project_dir: Path) -> Path:
     return canonical_downstream_path(project_dir, "part_split_history")
 
@@ -1081,6 +1138,54 @@ def load_part_split_asset(project_dir: Path, part: Dict[str, Any]) -> Tuple[Imag
     image = Image.open(project_dir / str(part.get("image_path") or "")).convert("RGBA")
     mask = normalize_mask(Image.open(project_dir / str(part.get("mask_path") or "")).convert("L"))
     return image, mask
+
+
+def part_shapes_masks_dir(project_dir: Path) -> Path:
+    return project_dir / "part_shapes" / "masks"
+
+
+def part_shapes_previews_dir(project_dir: Path) -> Path:
+    return project_dir / "part_shapes" / "previews"
+
+
+def create_part_manifest_revision(project_dir: Path, part_manifest: Dict[str, Any], reason: str, operation: Optional[str] = None) -> Dict[str, Any]:
+    history = load_json(part_manifest_history_path(project_dir), default_part_manifest_history(project_dir.name))
+    revision = {
+        "revision_id": "rev-%s" % uuid.uuid4().hex[:10],
+        "created_at": now_iso(),
+        "reason": reason,
+        "operation": operation,
+        "part_manifest_hash": hashlib.sha256(json.dumps(part_manifest, sort_keys=True).encode("utf-8")).hexdigest(),
+    }
+    history.setdefault("revisions", []).append(revision)
+    history["current_revision_id"] = revision["revision_id"]
+    history.setdefault("events", []).append({
+        "type": "part_manifest_%s" % reason,
+        "operation": operation,
+        "created_at": revision["created_at"],
+    })
+    write_json(part_manifest_history_path(project_dir), history)
+    return history
+
+
+def create_part_shapes_revision(project_dir: Path, part_shapes: Dict[str, Any], reason: str, operation: Optional[str] = None) -> Dict[str, Any]:
+    history = load_json(part_shapes_history_path(project_dir), default_part_shapes_history(project_dir.name))
+    revision = {
+        "revision_id": "rev-%s" % uuid.uuid4().hex[:10],
+        "created_at": now_iso(),
+        "reason": reason,
+        "operation": operation,
+        "part_shapes_hash": hashlib.sha256(json.dumps(part_shapes, sort_keys=True).encode("utf-8")).hexdigest(),
+    }
+    history.setdefault("revisions", []).append(revision)
+    history["current_revision_id"] = revision["revision_id"]
+    history.setdefault("events", []).append({
+        "type": "part_shapes_%s" % reason,
+        "operation": operation,
+        "created_at": revision["created_at"],
+    })
+    write_json(part_shapes_history_path(project_dir), history)
+    return history
 
 
 def create_part_split_revision(project_dir: Path, part_split: Dict[str, Any], reason: str, operation: Optional[str] = None) -> Dict[str, Any]:
@@ -1223,6 +1328,376 @@ def validate_rig_layout(layout: Dict[str, Any]) -> Dict[str, Any]:
     return {"status": status, "errors": errors}
 
 
+def build_default_part_manifest(project: Dict[str, Any], rig_layout: Dict[str, Any], concept: Dict[str, Any]) -> Dict[str, Any]:
+    parts: List[Dict[str, Any]] = []
+    for entry in list(rig_layout.get("parts") or []):
+        if not isinstance(entry, dict):
+            continue
+        part_name = str(entry.get("part_name") or "").strip()
+        if not part_name:
+            continue
+        parts.append({
+            "part_name": part_name,
+            "part_label": humanize_identifier(part_name),
+            "part_role": canonical_sprite_part_role(entry, rig_layout.get("rig_profile")),
+            "required": bool(entry.get("required", True)),
+            "overlay_only": bool(entry.get("overlay_only")),
+            "parent_joint": str(entry.get("parent_joint") or ""),
+            "draw_order": int(entry.get("draw_order", 0)),
+            "source": "rig_profile",
+            "editable": True,
+            "notes": "",
+        })
+    manifest = {
+        "project_id": project["project_id"],
+        "approved_concept_id": concept.get("concept_id"),
+        "rig_profile": rig_layout.get("rig_profile"),
+        "source_rig_layout_revision": (project.get("rig_layout_history") or {}).get("current_revision_id"),
+        "parts": sorted(parts, key=lambda item: (int(item.get("draw_order", 0)), item["part_name"])),
+        "approved": False,
+        "created_at": now_iso(),
+        "updated_at": now_iso(),
+    }
+    manifest["validation"] = validate_part_manifest(manifest)
+    return manifest
+
+
+def validate_part_manifest(part_manifest: Dict[str, Any]) -> Dict[str, Any]:
+    parts = part_manifest.get("parts") or []
+    failures: List[str] = []
+    warnings: List[str] = []
+    seen: Set[str] = set()
+    required_count = 0
+    overlay_count = 0
+    for entry in parts:
+        if not isinstance(entry, dict):
+            failures.append("each manifest part must be an object")
+            continue
+        name = str(entry.get("part_name") or "").strip()
+        if not name:
+            failures.append("manifest part is missing part_name")
+            continue
+        if name in seen:
+            failures.append("duplicate part name: %s" % name)
+        seen.add(name)
+        if bool(entry.get("required")):
+            required_count += 1
+        if bool(entry.get("overlay_only")):
+            overlay_count += 1
+        if not str(entry.get("parent_joint") or "").strip():
+            warnings.append("%s: missing parent_joint" % name)
+        if not isinstance(entry.get("draw_order"), int):
+            failures.append("%s: draw_order must be an integer" % name)
+        if not str(entry.get("part_label") or "").strip():
+            warnings.append("%s: missing part_label" % name)
+    if not parts:
+        failures.append("manifest must contain at least one part")
+    if required_count == 0:
+        failures.append("manifest must contain at least one required part")
+    if len(parts) >= 10:
+        warnings.append("part list may be over-split for the current concept")
+    status = "pass"
+    if failures:
+        status = "fail"
+    elif warnings:
+        status = "warning"
+    return {
+        "status": status,
+        "failures": failures,
+        "warnings": warnings,
+        "required_count": required_count,
+        "optional_count": max(0, len(parts) - required_count),
+        "overlay_count": overlay_count,
+    }
+
+
+def humanize_identifier(value: str) -> str:
+    return str(value or "").replace("_", " ").strip().title()
+
+
+def polygon_bbox(vertices: List[List[float]]) -> List[int]:
+    if not vertices:
+        return [0, 0, 1, 1]
+    xs = [float(point[0]) for point in vertices]
+    ys = [float(point[1]) for point in vertices]
+    return [
+        int(math.floor(min(xs))),
+        int(math.floor(min(ys))),
+        int(math.ceil(max(xs))),
+        int(math.ceil(max(ys))),
+    ]
+
+
+def clamp_point_to_image(point: Tuple[float, float], size: Tuple[int, int]) -> List[int]:
+    return [
+        int(max(0, min(size[0] - 1, round(point[0])))),
+        int(max(0, min(size[1] - 1, round(point[1])))),
+    ]
+
+
+def contour_polygon_from_mask(mask: Image.Image, target_points: int = 10) -> List[List[int]]:
+    normalized = normalize_mask(mask)
+    bbox = normalized.getbbox()
+    if bbox is None:
+        return []
+    x0, y0, x1, y1 = bbox
+    if x1 - x0 <= 1 or y1 - y0 <= 1:
+        return [[x0, y0], [x1, y0], [x1, y1], [x0, y1]]
+    slices = max(3, target_points // 2)
+    left_points: List[List[int]] = []
+    right_points: List[List[int]] = []
+    pixels = normalized.load()
+    for index in range(slices + 1):
+        sample_y = min(y1 - 1, max(y0, y0 + int(round((index / float(slices)) * max(0, (y1 - y0 - 1))))))
+        xs = [x for x in range(x0, x1) if pixels[x, sample_y] > 0]
+        if not xs:
+            continue
+        left_points.append([min(xs), sample_y])
+        right_points.append([max(xs), sample_y])
+    points = left_points + list(reversed(right_points))
+    deduped: List[List[int]] = []
+    for point in points:
+        if not deduped or deduped[-1] != point:
+            deduped.append(point)
+    return deduped if len(deduped) >= 3 else [[x0, y0], [x1, y0], [x1, y1], [x0, y1]]
+
+
+def render_polygon_mask(size: Tuple[int, int], vertices: List[List[float]], closed: bool = True) -> Image.Image:
+    mask = Image.new("L", size, 0)
+    if len(vertices) < 3:
+        return mask
+    draw = ImageDraw.Draw(mask)
+    points = [(int(round(point[0])), int(round(point[1]))) for point in vertices]
+    if closed:
+        draw.polygon(points, fill=255)
+    else:
+        draw.line(points, fill=255, width=1)
+    return normalize_mask(mask)
+
+
+def extraction_box_from_manifest_entry(source_size: Tuple[int, int], subject_bbox: Tuple[int, int, int, int], rig_layout: Dict[str, Any], part_name: str, facing: str) -> Tuple[int, int, int, int]:
+    layout_entry = next((item for item in (rig_layout.get("parts") or []) if item.get("part_name") == part_name), None) or {}
+    extraction_region = resolve_layout_region(layout_entry, facing) or layout_entry.get("extraction_region")
+    if extraction_region:
+        return region_box(subject_bbox, extraction_region)
+    return subject_bbox
+
+
+def write_part_shape_assets(project_dir: Path, part_name: str, source_image: Image.Image, mask: Image.Image) -> Tuple[Optional[str], Optional[str], List[int]]:
+    safe = sanitize_filename(part_name, "part")
+    mask_path = part_shapes_masks_dir(project_dir) / f"{safe}.png"
+    preview_path = part_shapes_previews_dir(project_dir) / f"{safe}.png"
+    normalize_mask(mask).save(mask_path)
+    bbox = list(normalize_mask(mask).getbbox() or (0, 0, 1, 1))
+    if bbox_area(bbox) > 0 and mask_pixel_area(mask) > 0:
+        preview = image_with_mask(source_image, mask).crop(tuple(bbox))
+        preview.save(preview_path)
+        preview_rel = str(preview_path.relative_to(project_dir))
+    else:
+        preview_rel = None
+        if preview_path.exists():
+            delete_path(preview_path)
+    return str(mask_path.relative_to(project_dir)), preview_rel, bbox
+
+
+def build_default_part_shapes(project: Dict[str, Any], part_manifest: Dict[str, Any], source_image: Image.Image, source_rel: str, operation_source: str = "auto_init") -> Dict[str, Any]:
+    source_mask = normalize_mask(detect_mask(source_image))
+    subject_bbox = source_mask.getbbox()
+    if subject_bbox is None:
+        raise ValueError("Could not detect a character silhouette in the approved source image.")
+    project_dir = PROJECTS_ROOT / project["project_id"]
+    rig_layout = project.get("rig_layout") or {}
+    facing = estimate_facing_direction(source_mask)
+    parts: List[Dict[str, Any]] = []
+    for manifest_entry in list(part_manifest.get("parts") or []):
+        part_name = str(manifest_entry.get("part_name") or "").strip()
+        if not part_name:
+            continue
+        extraction_box = extraction_box_from_manifest_entry(source_image.size, subject_bbox, rig_layout, part_name, facing)
+        regional_mask = Image.new("L", source_image.size, 0)
+        regional_mask.paste(source_mask.crop(extraction_box), extraction_box[:2])
+        polygon = contour_polygon_from_mask(regional_mask)
+        if len(polygon) < 3:
+            x0, y0, x1, y1 = extraction_box
+            polygon = [[x0, y0], [x1, y0], [x1, y1], [x0, y1]]
+        polygon = [clamp_point_to_image((point[0], point[1]), source_image.size) for point in polygon]
+        mask = render_polygon_mask(source_image.size, polygon, closed=True)
+        mask_path, preview_path, bbox = write_part_shape_assets(project_dir, part_name, source_image, mask)
+        parts.append({
+            "part_name": part_name,
+            "part_label": manifest_entry.get("part_label") or humanize_identifier(part_name),
+            "shape_type": "polygon",
+            "vertices": polygon,
+            "closed": True,
+            "bbox": bbox,
+            "mask_path": mask_path,
+            "preview_path": preview_path,
+            "source_method": operation_source,
+            "status": "candidate",
+            "locked": False,
+            "visible": True,
+            "color": stable_part_shape_color(project["project_id"], part_name),
+            "notes": "",
+        })
+    part_shapes = {
+        "project_id": project["project_id"],
+        "approved_concept_id": part_manifest.get("approved_concept_id"),
+        "source_image": source_rel,
+        "manifest_revision_id": (project.get("part_manifest_history") or {}).get("current_revision_id"),
+        "parts": parts,
+        "approved": False,
+        "created_at": now_iso(),
+        "updated_at": now_iso(),
+    }
+    part_shapes["validation"] = validate_part_shapes(project_dir, part_shapes, part_manifest)
+    return part_shapes
+
+
+def stable_part_shape_color(project_id: str, part_name: str) -> str:
+    return "#%06x" % (stable_int(project_id, part_name, mod=0xFFFFFF) or 0x66CCFF)
+
+
+def preserve_part_shapes_for_manifest(
+    project: Dict[str, Any],
+    part_manifest: Dict[str, Any],
+    existing_part_shapes: Optional[Dict[str, Any]],
+    rename_map: Optional[Dict[str, str]] = None,
+) -> Optional[Dict[str, Any]]:
+    if not isinstance(existing_part_shapes, dict) or not existing_part_shapes.get("parts"):
+        return None
+    project_dir = PROJECTS_ROOT / project["project_id"]
+    approved_path, approved_rel = resolve_sprite_source_image(project, project_dir)
+    source_image = Image.open(approved_path).convert("RGBA")
+    rename_lookup = dict(rename_map or {})
+    existing_lookup: Dict[str, Dict[str, Any]] = {}
+    for entry in list(existing_part_shapes.get("parts") or []):
+        if not isinstance(entry, dict):
+            continue
+        original_name = str(entry.get("part_name") or "").strip()
+        if not original_name:
+            continue
+        current_name = rename_lookup.get(original_name, original_name)
+        existing_lookup[current_name] = copy.deepcopy(entry)
+    missing_manifest = {
+        "parts": [
+            copy.deepcopy(item)
+            for item in (part_manifest.get("parts") or [])
+            if str(item.get("part_name") or "").strip() not in existing_lookup
+        ]
+    }
+    default_shapes = build_default_part_shapes(project, missing_manifest, source_image, approved_rel, operation_source="auto_init") if missing_manifest["parts"] else {"parts": []}
+    default_lookup = {
+        str(entry.get("part_name") or ""): copy.deepcopy(entry)
+        for entry in (default_shapes.get("parts") or [])
+        if isinstance(entry, dict) and entry.get("part_name")
+    }
+    parts: List[Dict[str, Any]] = []
+    for manifest_entry in list(part_manifest.get("parts") or []):
+        part_name = str(manifest_entry.get("part_name") or "").strip()
+        if not part_name:
+            continue
+        if part_name in existing_lookup:
+            part_shape = existing_lookup[part_name]
+            part_shape["part_name"] = part_name
+            part_shape["part_label"] = manifest_entry.get("part_label") or part_shape.get("part_label") or humanize_identifier(part_name)
+            part_shape.setdefault("shape_type", "polygon")
+            part_shape.setdefault("closed", True)
+            part_shape.setdefault("source_method", "manual_edit")
+            part_shape.setdefault("status", "candidate")
+            part_shape.setdefault("locked", False)
+            part_shape.setdefault("visible", True)
+            part_shape.setdefault("notes", "")
+            part_shape["color"] = str(part_shape.get("color") or stable_part_shape_color(project["project_id"], part_name))
+            parts.append(part_shape)
+            continue
+        fallback = default_lookup.get(part_name)
+        if fallback:
+            parts.append(fallback)
+    part_shapes = {
+        "project_id": project["project_id"],
+        "approved_concept_id": part_manifest.get("approved_concept_id"),
+        "source_image": approved_rel,
+        "manifest_revision_id": None,
+        "parts": parts,
+        "approved": False,
+        "created_at": existing_part_shapes.get("created_at") or now_iso(),
+        "updated_at": now_iso(),
+    }
+    part_shapes["validation"] = validate_part_shapes(project_dir, part_shapes, part_manifest)
+    return part_shapes
+
+
+def validate_part_shapes(project_dir: Path, part_shapes: Dict[str, Any], part_manifest: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    manifest = part_manifest or {}
+    manifest_parts = {item["part_name"]: item for item in (manifest.get("parts") or []) if isinstance(item, dict) and item.get("part_name")}
+    failures: List[str] = []
+    warnings: List[str] = []
+    seen: Set[str] = set()
+    per_part: List[Dict[str, Any]] = []
+    for entry in list(part_shapes.get("parts") or []):
+        if not isinstance(entry, dict):
+            failures.append("each part shape must be an object")
+            continue
+        name = str(entry.get("part_name") or "").strip()
+        vertices = entry.get("vertices") or []
+        if not name:
+            failures.append("shape entry is missing part_name")
+            continue
+        if name in seen:
+            failures.append("duplicate part shape: %s" % name)
+        seen.add(name)
+        entry_failures: List[str] = []
+        entry_warnings: List[str] = []
+        if len(vertices) < 3:
+            entry_failures.append("polygon needs at least 3 vertices")
+        bbox = entry.get("bbox") or polygon_bbox(vertices)
+        if bbox_area(bbox) <= 0:
+            entry_failures.append("shape bbox is empty")
+        mask_rel = str(entry.get("mask_path") or "")
+        mask_area = 0
+        if mask_rel and (project_dir / mask_rel).exists():
+            mask_area = mask_pixel_area(Image.open(project_dir / mask_rel).convert("L"))
+            if mask_area < SPRITE_MODEL_FAIL_MIN_MASK_AREA and manifest_parts.get(name, {}).get("required"):
+                entry_failures.append("required part mask is empty")
+            elif mask_area < SPRITE_MODEL_WARN_MIN_MASK_AREA:
+                entry_warnings.append("mask area is very small")
+        elif manifest_parts.get(name, {}).get("required"):
+            entry_failures.append("mask asset is missing")
+        if name not in manifest_parts:
+            entry_warnings.append("shape does not exist in the approved manifest")
+        status = "pass"
+        if entry_failures:
+            status = "fail"
+        elif entry_warnings:
+            status = "warning"
+        per_part.append({
+            "part_name": name,
+            "status": status,
+            "bbox": [int(value) for value in bbox],
+            "mask_area": mask_area,
+            "warnings": entry_warnings,
+            "failures": entry_failures,
+        })
+        warnings.extend("%s: %s" % (name, item) for item in entry_warnings)
+        failures.extend("%s: %s" % (name, item) for item in entry_failures)
+    missing_required = sorted(name for name, entry in manifest_parts.items() if entry.get("required") and name not in seen)
+    for name in missing_required:
+        failures.append("missing required shape: %s" % name)
+    status = "pass"
+    if failures:
+        status = "fail"
+    elif warnings:
+        status = "warning"
+    return {
+        "generated_at": now_iso(),
+        "status": status,
+        "warnings": warnings,
+        "failures": failures,
+        "missing_required_parts": missing_required,
+        "per_part": per_part,
+    }
+
+
 def render_part_split_reconstruction(project_dir: Path, source_size: Tuple[int, int], parts: List[Dict[str, Any]]) -> Tuple[str, Dict[str, Any]]:
     canvas = Image.new("RGBA", source_size, (0, 0, 0, 0))
     for part in sorted(parts, key=lambda item: int(item.get("draw_order", 0))):
@@ -1243,13 +1718,29 @@ def render_part_split_reconstruction(project_dir: Path, source_size: Tuple[int, 
 
 
 def validate_part_split(project_dir: Path, part_split: Dict[str, Any], source_mask: Optional[Image.Image] = None) -> Dict[str, Any]:
+    manifest = part_split.get("part_manifest") or {}
     rig_layout = part_split.get("rig_layout") or {}
-    expected_parts = {item["part_name"]: item for item in (rig_layout.get("parts") or []) if isinstance(item, dict)}
+    expected_source = manifest.get("parts") or rig_layout.get("parts") or []
+    expected_parts = {item["part_name"]: item for item in expected_source if isinstance(item, dict) and item.get("part_name")}
     parts = part_split.get("parts") or []
     seen: Set[str] = set()
     warnings: List[str] = []
     failures: List[str] = []
     per_part: List[Dict[str, Any]] = []
+    overlap_masks: List[Tuple[str, Image.Image]] = []
+    if isinstance(source_mask, Image.Image):
+        overlap_canvas_size = source_mask.size
+    else:
+        max_x = 1
+        max_y = 1
+        for entry in parts:
+            if not isinstance(entry, dict):
+                continue
+            bbox = entry.get("bbox") or [0, 0, 1, 1]
+            if isinstance(bbox, (list, tuple)) and len(bbox) == 4:
+                max_x = max(max_x, int(bbox[2]))
+                max_y = max(max_y, int(bbox[3]))
+        overlap_canvas_size = (max_x, max_y)
     for entry in parts:
         if not isinstance(entry, dict):
             failures.append("each split part must be an object")
@@ -1264,6 +1755,7 @@ def validate_part_split(project_dir: Path, part_split: Dict[str, Any], source_ma
         try:
             image, mask = load_part_split_asset(project_dir, entry)
             bbox = entry.get("bbox") or [0, 0, image.size[0], image.size[1]]
+            x0, y0, x1, y1 = [int(value) for value in bbox]
             area = mask_pixel_area(mask)
             status = "pass"
             entry_warnings: List[str] = []
@@ -1282,6 +1774,9 @@ def validate_part_split(project_dir: Path, part_split: Dict[str, Any], source_ma
                 "warnings": entry_warnings,
                 "failures": entry_failures,
             })
+            positioned_mask = Image.new("L", overlap_canvas_size, 0)
+            positioned_mask.paste(mask, (x0, y0))
+            overlap_masks.append((name, normalize_mask(positioned_mask)))
             warnings.extend("%s: %s" % (name, message) for message in entry_warnings)
             failures.extend("%s: %s" % (name, message) for message in entry_failures)
         except FileNotFoundError:
@@ -1292,6 +1787,19 @@ def validate_part_split(project_dir: Path, part_split: Dict[str, Any], source_ma
     )
     for name in missing_required:
         failures.append("missing required part: %s" % name)
+    enforce_overlap_checks = any(str(entry.get("source_method") or "") != "legacy_box_fallback" for entry in parts)
+    if enforce_overlap_checks:
+        for left_index, (left_name, left_mask) in enumerate(overlap_masks):
+            left_area = float(max(1, mask_pixel_area(left_mask)))
+            for right_name, right_mask in overlap_masks[left_index + 1:]:
+                overlap = mask_pixel_area(ImageChops.multiply(left_mask, right_mask))
+                if overlap <= 0:
+                    continue
+                overlap_ratio = overlap / left_area
+                if overlap_ratio > 0.45:
+                    failures.append("severe overlap contamination: %s vs %s" % (left_name, right_name))
+                elif overlap_ratio > 0.22:
+                    warnings.append("overlap contamination needs review: %s vs %s" % (left_name, right_name))
     reconstruction = part_split.get("reconstruction_preview") or {}
     if isinstance(source_mask, Image.Image) and reconstruction.get("path"):
         preview_mask = normalize_mask(Image.open(project_dir / reconstruction["path"]).convert("RGBA").getchannel("A"))
@@ -1570,6 +2078,8 @@ def apply_project_defaults(project: Dict[str, Any]) -> Dict[str, Any]:
     normalized.setdefault("master_pose_approved", False)
     normalized.setdefault("sprite_model_approved", False)
     normalized.setdefault("rig_layout_approved", False)
+    normalized.setdefault("part_manifest_approved", False)
+    normalized.setdefault("part_shapes_approved", False)
     normalized.setdefault("part_split_approved", False)
     normalized.setdefault("split_review_approved", False)
     normalized.setdefault("selected_concept_id", None)
@@ -1646,6 +2156,231 @@ def default_sprite_model_history(project_id: str) -> Dict[str, Any]:
     }
 
 
+def default_manual_animation_clips(project_id: str) -> Dict[str, Any]:
+    return {
+        "project_id": project_id,
+        "clips": {},
+        "updated_at": now_iso(),
+    }
+
+
+def manual_clip_render_root(project_dir: Path) -> Path:
+    return project_dir / "manual_clips"
+
+
+def manual_clip_source_hashes(project_dir: Path) -> Dict[str, Optional[str]]:
+    rig_path = canonical_downstream_path(project_dir, "rig")
+    sprite_model_path = canonical_downstream_path(project_dir, "sprite_model")
+    return {
+        "rig_hash": image_sha256(rig_path) if rig_path.exists() else None,
+        "sprite_model_hash": image_sha256(sprite_model_path) if sprite_model_path.exists() else None,
+    }
+
+
+def manual_clip_frame_count(value: Any, default: int = 8) -> int:
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        return default
+    return max(1, min(64, parsed))
+
+
+def normalize_manual_clip_frame(frame: Any) -> Dict[str, Any]:
+    base = neutral_pose_transforms()
+    normalized = dict(base)
+    if isinstance(frame, dict):
+        for key, value in frame.items():
+            if key == "root_offset" and isinstance(value, list) and len(value) == 2:
+                normalized[key] = [round(float(value[0]), 2), round(float(value[1]), 2)]
+            elif key in normalized and isinstance(value, (int, float)):
+                normalized[key] = round(float(value), 2)
+    return normalized
+
+
+def normalize_manual_frame_repairs(value: Any) -> Dict[str, Any]:
+    normalized: Dict[str, Any] = {}
+    if not isinstance(value, dict):
+        return normalized
+    for part_name, payload in value.items():
+        if not isinstance(payload, dict):
+            continue
+        image_path = str(payload.get("image_path") or "").strip()
+        if not image_path:
+            continue
+        normalized[str(part_name)] = {
+            "variant_id": str(payload.get("variant_id") or "").strip() or None,
+            "image_path": image_path,
+            "mask_path": str(payload.get("mask_path") or "").strip() or None,
+            "source": str(payload.get("source") or "recover-occlusion").strip() or "recover-occlusion",
+            "summary": str(payload.get("summary") or "").strip() or None,
+            "applied_at": str(payload.get("applied_at") or now_iso()),
+        }
+    return normalized
+
+
+def normalize_manual_frame_patches(value: Any) -> Dict[str, Any]:
+    normalized: Dict[str, Any] = {}
+    if not isinstance(value, dict):
+        return normalized
+    for patch_id, payload in value.items():
+        if not isinstance(payload, dict):
+            continue
+        source_part = str(payload.get("source_part_name") or payload.get("part_name") or "").strip()
+        image_path = str(payload.get("image_path") or "").strip()
+        keep_behind_part = str(payload.get("keep_behind_part_name") or "").strip()
+        if not source_part or not image_path or not keep_behind_part:
+            continue
+        normalized[str(patch_id)] = {
+            "patch_id": str(payload.get("patch_id") or patch_id).strip() or str(patch_id),
+            "source_part_name": source_part,
+            "keep_behind_part_name": keep_behind_part,
+            "variant_id": str(payload.get("variant_id") or "").strip() or None,
+            "image_path": image_path,
+            "mask_path": str(payload.get("mask_path") or "").strip() or None,
+            "source": str(payload.get("source") or "recover-occlusion").strip() or "recover-occlusion",
+            "summary": str(payload.get("summary") or "").strip() or None,
+            "applied_at": str(payload.get("applied_at") or now_iso()),
+        }
+    return normalized
+
+
+def normalize_manual_clip_frame_entry(frame: Any) -> Dict[str, Any]:
+    if isinstance(frame, dict) and ("transforms" in frame or "part_repairs" in frame or "corrective_patches" in frame):
+        transforms = normalize_manual_clip_frame(frame.get("transforms"))
+        part_repairs = normalize_manual_frame_repairs(frame.get("part_repairs"))
+        corrective_patches = normalize_manual_frame_patches(frame.get("corrective_patches"))
+    else:
+        transforms = normalize_manual_clip_frame(frame)
+        part_repairs = {}
+        corrective_patches = {}
+    return {
+        "transforms": transforms,
+        "part_repairs": part_repairs,
+        "corrective_patches": corrective_patches,
+    }
+
+
+def manual_clip_frame_transforms(frame: Any) -> Dict[str, Any]:
+    return normalize_manual_clip_frame_entry(frame)["transforms"]
+
+
+def blank_manual_clip_frames(frame_count: int) -> List[Dict[str, Any]]:
+    return [normalize_manual_clip_frame_entry({}) for _ in range(frame_count)]
+
+
+def default_manual_clip(project_dir: Path, clip_id: str, clip_name: str, frame_count: int = 8, fps: int = 12, loop: bool = True) -> Dict[str, Any]:
+    render_root = manual_clip_render_root(project_dir) / clip_id
+    frame_count = manual_clip_frame_count(frame_count)
+    fps_value = max(1, min(60, int(fps)))
+    return {
+        "clip_id": clip_id,
+        "clip_name": clip_name,
+        "authoring_mode": "manual",
+        "approval_status": "draft",
+        "frame_count": frame_count,
+        "fps": fps_value,
+        "loop": bool(loop),
+        "frames": blank_manual_clip_frames(frame_count),
+        "source_hashes": manual_clip_source_hashes(project_dir),
+        "preview_render": {
+            "status": "not_rendered",
+            "gif_path": str((render_root / "preview.gif").relative_to(project_dir)),
+            "render_manifest_path": str((render_root / "render_manifest.json").relative_to(project_dir)),
+            "frame_dir": str((render_root / "frames").relative_to(project_dir)),
+            "frames": [],
+            "generated_at": None,
+        },
+        "created_at": now_iso(),
+        "updated_at": now_iso(),
+        "approved_at": None,
+    }
+
+
+def invalidate_manual_clip_preview(clip: Dict[str, Any]) -> Dict[str, Any]:
+    preview = dict(clip.get("preview_render") or {})
+    preview["status"] = "outdated"
+    preview["frames"] = []
+    preview["generated_at"] = None
+    clip["preview_render"] = preview
+    clip["approval_status"] = "draft"
+    clip["approved_at"] = None
+    clip["updated_at"] = now_iso()
+    return clip
+
+
+def normalize_manual_clip(project_dir: Path, clip_id: str, payload: Any) -> Dict[str, Any]:
+    clip = default_manual_clip(project_dir, clip_id, humanize_identifier(clip_id))
+    if isinstance(payload, dict):
+        clip["clip_name"] = str(payload.get("clip_name") or clip["clip_name"]).strip() or clip["clip_name"]
+        clip["frame_count"] = manual_clip_frame_count(payload.get("frame_count"), clip["frame_count"])
+        clip["fps"] = max(1, min(60, int(payload.get("fps") or clip["fps"])))
+        clip["loop"] = bool(payload.get("loop", clip["loop"]))
+        clip["authoring_mode"] = "manual"
+        clip["approval_status"] = str(payload.get("approval_status") or clip["approval_status"])
+        clip["source_hashes"] = payload.get("source_hashes") if isinstance(payload.get("source_hashes"), dict) else clip["source_hashes"]
+        clip["created_at"] = str(payload.get("created_at") or clip["created_at"])
+        clip["updated_at"] = str(payload.get("updated_at") or clip["updated_at"])
+        clip["approved_at"] = payload.get("approved_at")
+        preview = payload.get("preview_render") if isinstance(payload.get("preview_render"), dict) else {}
+        clip["preview_render"] = {
+            "status": str(preview.get("status") or "not_rendered"),
+            "gif_path": str(preview.get("gif_path") or clip["preview_render"]["gif_path"]),
+            "render_manifest_path": str(preview.get("render_manifest_path") or clip["preview_render"]["render_manifest_path"]),
+            "frame_dir": str(preview.get("frame_dir") or clip["preview_render"]["frame_dir"]),
+            "frames": list(preview.get("frames") or []),
+            "generated_at": preview.get("generated_at"),
+        }
+        raw_frames = payload.get("frames") if isinstance(payload.get("frames"), list) else []
+        normalized_frames = [normalize_manual_clip_frame_entry(frame) for frame in raw_frames[:clip["frame_count"]]]
+        while len(normalized_frames) < clip["frame_count"]:
+            normalized_frames.append(normalize_manual_clip_frame_entry({}))
+        clip["frames"] = normalized_frames
+    return clip
+
+
+def hydrate_manual_animation_clips(store: Any, project_dir: Path) -> Dict[str, Any]:
+    hydrated = default_manual_animation_clips(project_dir.name)
+    raw_clips = store.get("clips") if isinstance(store, dict) else {}
+    normalized: Dict[str, Any] = {}
+    for clip_id, payload in (raw_clips or {}).items():
+        if not isinstance(payload, dict):
+            continue
+        safe_clip_id = sanitize_filename(str(payload.get("clip_id") or clip_id), "manual-clip")
+        clip = normalize_manual_clip(project_dir, safe_clip_id, payload)
+        current_hashes = manual_clip_source_hashes(project_dir)
+        stale_reasons = []
+        if clip["source_hashes"].get("rig_hash") != current_hashes.get("rig_hash"):
+            stale_reasons.append("rig changed")
+        if clip["source_hashes"].get("sprite_model_hash") != current_hashes.get("sprite_model_hash"):
+            stale_reasons.append("sprite model changed")
+        preview_gif = project_dir / str(clip["preview_render"].get("gif_path") or "")
+        manifest_path = project_dir / str(clip["preview_render"].get("render_manifest_path") or "")
+        clip["is_stale"] = bool(stale_reasons)
+        clip["stale_reasons"] = stale_reasons
+        clip["preview_render_complete"] = bool(preview_gif.exists() and manifest_path.exists())
+        normalized[safe_clip_id] = clip
+    hydrated["clips"] = normalized
+    hydrated["updated_at"] = str(store.get("updated_at") or hydrated["updated_at"]) if isinstance(store, dict) else hydrated["updated_at"]
+    return hydrated
+
+
+def serialize_manual_animation_clips(store: Any, project_id: str) -> Dict[str, Any]:
+    serialized = default_manual_animation_clips(project_id)
+    raw_clips = store.get("clips") if isinstance(store, dict) else {}
+    clips: Dict[str, Any] = {}
+    for clip_id, payload in (raw_clips or {}).items():
+        if not isinstance(payload, dict):
+            continue
+        clip = copy.deepcopy(payload)
+        clip.pop("is_stale", None)
+        clip.pop("stale_reasons", None)
+        clip.pop("preview_render_complete", None)
+        clips[str(clip_id)] = clip
+    serialized["clips"] = clips
+    if isinstance(store, dict) and store.get("updated_at"):
+        serialized["updated_at"] = str(store["updated_at"])
+    return serialized
+
 def sprite_model_revisions_path(project_dir: Path) -> Path:
     return project_dir / SPRITE_MODEL_REVISIONS_DIRNAME
 
@@ -1691,7 +2426,10 @@ def compute_wizard_context(project: Dict[str, Any]) -> Dict[str, Any]:
     has_concepts = bool(project.get("prompt_history")) or bool(imported_attempts)
     has_review = bool(project.get("selected_concept_id"))
     has_rig_layout = bool(project.get("rig_layout")) and bool(project.get("rig_layout_approved"))
+    has_part_manifest = bool(project.get("part_manifest")) and bool(project.get("part_manifest_approved"))
+    has_part_shapes = bool(project.get("part_shapes")) and bool(project.get("part_shapes_approved"))
     has_part_split = bool(project.get("part_split"))
+    has_split_build = bool(project.get("part_split"))
     has_split_review = bool(project.get("part_split_approved"))
     has_sprite_model = bool(project.get("sprite_model"))
     has_rig = bool(project.get("rig_review_approved"))
@@ -1706,7 +2444,9 @@ def compute_wizard_context(project: Dict[str, Any]) -> Dict[str, Any]:
         "concepts": has_concepts,
         "review": has_review,
         "rig_layout": has_rig_layout,
-        "part_split": has_part_split,
+        "part_manifest": has_part_manifest or has_part_split,
+        "part_shape_edit": has_part_shapes or has_part_split,
+        "split_build": has_split_build,
         "split_review": has_split_review,
         "sprite_model": has_sprite_model,
         "rig": has_rig,
@@ -1721,8 +2461,10 @@ def compute_wizard_context(project: Dict[str, Any]) -> Dict[str, Any]:
         "concepts": [] if complete_map["brief"] else ["Save the character description before generating a Gemini prompt."],
         "review": [] if valid_attempts else ["Import at least one concept that Codex validated as valid before choosing one."],
         "rig_layout": [] if complete_map["review"] else ["Accept a Codex-valid concept before defining the rig layout."],
-        "part_split": [] if complete_map["rig_layout"] else ["Generate and approve the rig layout before splitting parts."],
-        "split_review": [] if complete_map["part_split"] else ["Generate candidate split parts before reviewing them."],
+        "part_manifest": [] if complete_map["rig_layout"] else ["Generate and approve the rig layout before configuring the part manifest."],
+        "part_shape_edit": [] if complete_map["part_manifest"] else ["Approve the part manifest before editing part shapes."],
+        "split_build": [] if complete_map["part_shape_edit"] else ["Approve the part shapes before building split assets."],
+        "split_review": [] if complete_map["split_build"] else ["Build split assets before reviewing them."],
         "sprite_model": [] if complete_map["split_review"] else ["Approve the part split before building the sprite model."],
         "rig": [] if complete_map["sprite_model"] else ["Build and review the sprite model before rigging."],
         "clips": [] if complete_map["rig"] else ["Approve the rig before building clips."],
@@ -1781,8 +2523,12 @@ def compute_wizard_context(project: Dict[str, Any]) -> Dict[str, Any]:
         wizard_state = set_wizard_step_complete(wizard_state, "review")
     if has_rig_layout:
         wizard_state = set_wizard_step_complete(wizard_state, "rig_layout")
+    if has_part_manifest or has_part_split:
+        wizard_state = set_wizard_step_complete(wizard_state, "part_manifest")
+    if has_part_shapes or has_part_split:
+        wizard_state = set_wizard_step_complete(wizard_state, "part_shape_edit")
     if has_part_split:
-        wizard_state = set_wizard_step_complete(wizard_state, "part_split")
+        wizard_state = set_wizard_step_complete(wizard_state, "split_build")
     if has_split_review:
         wizard_state = set_wizard_step_complete(wizard_state, "split_review")
     if has_sprite_model:
@@ -3539,6 +4285,14 @@ def load_project(project_id: str) -> Dict[str, Any]:
     project["character_spec"] = load_json(project_dir / "character_spec.json")
     project["rig_layout"] = load_json(canonical_downstream_path(project_dir, "rig_layout"))
     project["rig_layout_history"] = load_json(rig_layout_history_path(project_dir), default_rig_layout_history(project_id))
+    project["part_manifest"] = load_json(canonical_downstream_path(project_dir, "part_manifest"))
+    project["part_manifest_history"] = load_json(part_manifest_history_path(project_dir), default_part_manifest_history(project_id))
+    if project["part_manifest"] is not None and not project["part_manifest"].get("validation"):
+        project["part_manifest"]["validation"] = validate_part_manifest(project["part_manifest"])
+    project["part_shapes"] = load_json(canonical_downstream_path(project_dir, "part_shapes"))
+    project["part_shapes_history"] = load_json(part_shapes_history_path(project_dir), default_part_shapes_history(project_id))
+    if project["part_shapes"] is not None and not project["part_shapes"].get("validation"):
+        project["part_shapes"]["validation"] = validate_part_shapes(project_dir, project["part_shapes"], project.get("part_manifest"))
     project["part_split"] = load_json(canonical_downstream_path(project_dir, "part_split"))
     project["part_split_history"] = load_json(part_split_history_path(project_dir), default_part_split_history(project_id))
     if project["part_split"] is not None and not project["part_split"].get("validation"):
@@ -3566,6 +4320,10 @@ def load_project(project_id: str) -> Dict[str, Any]:
         legacy_animation_templates,
         rig_profile=active_rig_profile_name(project, project.get("rig_layout")),
     )
+    project["manual_animation_clips"] = hydrate_manual_animation_clips(
+        load_json(canonical_downstream_path(project_dir, "manual_animation_clips")),
+        project_dir,
+    )
     project["animation_templates"] = project["animation_clips"] or legacy_animation_templates
     project["qa_report"] = load_json(canonical_downstream_path(project_dir, "qa_report"))
     project["sprite_model_history"] = load_sprite_model_history(project_dir)
@@ -3574,6 +4332,10 @@ def load_project(project_id: str) -> Dict[str, Any]:
         project["rig_layout_approved"] = True
     elif project["rig_layout"] is not None:
         project["rig_layout_approved"] = bool(project.get("rig_layout_approved") or project["rig_layout"].get("approved"))
+    if project["part_manifest"] is not None:
+        project["part_manifest_approved"] = bool(project.get("part_manifest_approved") or project["part_manifest"].get("approved"))
+    if project["part_shapes"] is not None:
+        project["part_shapes_approved"] = bool(project.get("part_shapes_approved") or project["part_shapes"].get("approved"))
     if project["part_split"] is not None:
         project["part_split_approved"] = bool(project.get("part_split_approved") or project["part_split"].get("approved"))
         project["split_review_approved"] = bool(project.get("split_review_approved") or project.get("part_split_approved") or project["part_split"].get("approved"))
@@ -3589,6 +4351,8 @@ def load_project(project_id: str) -> Dict[str, Any]:
                 project["selected_concept_id"] = concept["concept_id"]
                 break
     project["rig_layout_handoff_prompt"] = build_rig_layout_handoff_prompt(project, project.get("rig_layout")) if project.get("selected_concept_id") else None
+    project["part_manifest_handoff_prompt"] = build_part_manifest_handoff_prompt(project, project.get("part_manifest")) if project.get("selected_concept_id") and project.get("rig_layout_approved") else None
+    project["part_shapes_handoff_prompt"] = build_part_shapes_handoff_prompt(project, project.get("part_shapes")) if project.get("selected_concept_id") and project.get("part_manifest_approved") else None
     project["part_split_handoff_prompt"] = build_part_split_handoff_prompt(project, project.get("part_split")) if project.get("selected_concept_id") and project.get("rig_layout_approved") else None
     project["exports"] = [
         str(path.relative_to(project_dir))
@@ -3605,10 +4369,19 @@ def load_project(project_id: str) -> Dict[str, Any]:
         "master_pose_approved": bool(project.get("master_pose_approved") and project["master_pose_manifest"].get("approved_image")),
         "concept_source_ready": bool(selected_concept(project).get("approved_source_image")) if project.get("selected_concept_id") else False,
         "rig_layout_ready": bool(project.get("rig_layout")) and bool(project.get("rig_layout_approved")),
+        "part_manifest_ready": bool(project.get("part_manifest")) and bool(project.get("part_manifest_approved")),
+        "part_shapes_ready": bool(project.get("part_shapes")) and bool(project.get("part_shapes_approved")),
         "part_split_ready": bool(project.get("part_split")) and bool(project.get("part_split_approved")),
         "sprite_model_ready": bool(project["sprite_model"]),
         "idle_render_complete": animation_render_complete(project_dir, "idle"),
         "walk_render_complete": animation_render_complete(project_dir, "walk"),
+        "manual_clip_count": len(project["manual_animation_clips"]["clips"]),
+        "approved_manual_clip_count": sum(
+            1
+            for clip in project["manual_animation_clips"]["clips"].values()
+            if clip.get("approval_status") == "approved" and not clip.get("is_stale")
+        ),
+        "stale_manual_clip_count": sum(1 for clip in project["manual_animation_clips"]["clips"].values() if clip.get("is_stale")),
     }
     project["production_warnings"] = [
         "Final frames are deterministic and built from persisted extracted parts.",
@@ -3632,6 +4405,10 @@ def save_project(project: Dict[str, Any]) -> None:
         "character_spec",
         "rig_layout",
         "rig_layout_history",
+        "part_manifest",
+        "part_manifest_history",
+        "part_shapes",
+        "part_shapes_history",
         "part_split",
         "part_split_history",
         "master_pose_manifest",
@@ -3641,6 +4418,7 @@ def save_project(project: Dict[str, Any]) -> None:
         "layered_character",
         "rig",
         "animation_clips",
+        "manual_animation_clips",
         "animation_templates",
         "qa_report",
         "history",
@@ -3669,6 +4447,14 @@ def save_project(project: Dict[str, Any]) -> None:
         write_json(canonical_downstream_path(project_dir, "rig_layout"), project["rig_layout"])
     if project.get("rig_layout_history") is not None:
         write_json(rig_layout_history_path(project_dir), project["rig_layout_history"])
+    if project.get("part_manifest") is not None:
+        write_json(canonical_downstream_path(project_dir, "part_manifest"), project["part_manifest"])
+    if project.get("part_manifest_history") is not None:
+        write_json(part_manifest_history_path(project_dir), project["part_manifest_history"])
+    if project.get("part_shapes") is not None:
+        write_json(canonical_downstream_path(project_dir, "part_shapes"), project["part_shapes"])
+    if project.get("part_shapes_history") is not None:
+        write_json(part_shapes_history_path(project_dir), project["part_shapes_history"])
     if project.get("part_split") is not None:
         write_json(canonical_downstream_path(project_dir, "part_split"), project["part_split"])
     if project.get("part_split_history") is not None:
@@ -3683,6 +4469,8 @@ def save_project(project: Dict[str, Any]) -> None:
         write_json(canonical_downstream_path(project_dir, "rig"), project["rig"])
     if project.get("animation_clips") is not None:
         write_json(canonical_downstream_path(project_dir, "animation_clips"), project["animation_clips"])
+    if project.get("manual_animation_clips") is not None:
+        write_json(canonical_downstream_path(project_dir, "manual_animation_clips"), serialize_manual_animation_clips(project["manual_animation_clips"], project["project_id"]))
     if project.get("qa_report") is not None:
         write_json(canonical_downstream_path(project_dir, "qa_report"), project["qa_report"])
     if project.get("history") is not None:
@@ -3837,10 +4625,17 @@ def duplicate_project(project_id: str) -> Dict[str, Any]:
         "brief.json",
         "character_spec.json",
         "history.json",
+        CANONICAL_DOWNSTREAM_FILES["part_manifest"],
+        CANONICAL_DOWNSTREAM_FILES["part_manifest_history"],
+        CANONICAL_DOWNSTREAM_FILES["part_shapes"],
+        CANONICAL_DOWNSTREAM_FILES["part_shapes_history"],
+        CANONICAL_DOWNSTREAM_FILES["part_split"],
+        CANONICAL_DOWNSTREAM_FILES["part_split_history"],
         CANONICAL_DOWNSTREAM_FILES["sprite_model"],
         CANONICAL_DOWNSTREAM_FILES["sprite_model_history"],
         CANONICAL_DOWNSTREAM_FILES["rig"],
         CANONICAL_DOWNSTREAM_FILES["animation_clips"],
+        CANONICAL_DOWNSTREAM_FILES["manual_animation_clips"],
         CANONICAL_DOWNSTREAM_FILES["qa_report"],
         LEGACY_DOWNSTREAM_FILES["layered_character"],
         LEGACY_DOWNSTREAM_FILES["animation_templates"],
@@ -3850,7 +4645,7 @@ def duplicate_project(project_id: str) -> Dict[str, Any]:
         if src.exists():
             shutil.copy2(src, new_dir / filename)
 
-    for folder in ["concepts", "prompts", "references", "master_pose", "parts", "rig", "animations", "layers", "logs"]:
+    for folder in ["concepts", "prompts", "references", "master_pose", "part_shapes", "part_split", "parts", "rig", "animations", "manual_clips", "layers", "logs"]:
         src_folder = PROJECTS_ROOT / project_id / folder
         dst_folder = new_dir / folder
         dst_folder.mkdir(parents=True, exist_ok=True)
@@ -4086,8 +4881,458 @@ def approve_rig_layout(project_id: str) -> Dict[str, Any]:
     return load_project(project_id)
 
 
+def build_part_manifest_handoff_prompt(project: Dict[str, Any], part_manifest: Optional[Dict[str, Any]] = None) -> str:
+    layout = project.get("rig_layout") or {}
+    concept = None
+    try:
+        concept = selected_concept(project)
+    except Exception:
+        concept = None
+    parts = list(layout.get("parts") or [])
+    current_parts = list((part_manifest or {}).get("parts") or [])
+    lines = [
+        "You are proposing a configurable part manifest for a deterministic 2D sprite pipeline.",
+        "Use the approved source image and approved rig layout as context, but return the practical authored part list rather than a theoretical anatomy split.",
+        "",
+        "Goals:",
+        "- keep the part list conservative and production-friendly",
+        "- mark clearly optional parts as optional",
+        "- keep ambiguous hanging cloth or cape masses as overlays where appropriate",
+        "- do not invent hidden-side anatomy",
+        "- prefer merged masses when separation is visually ambiguous",
+        "",
+        "Return exactly one JSON object with:",
+        '{ "valid": true, "summary": "short summary", "part_manifest": { "parts": [...] } }',
+        "",
+        "Each part entry must include:",
+        "- part_name",
+        "- part_label",
+        "- part_role",
+        "- required",
+        "- overlay_only",
+        "- parent_joint",
+        "- draw_order",
+        "- source",
+        "- editable",
+        "- notes",
+        "",
+        "Allowed base part names from rig layout:",
+        "- %s" % "\n- ".join(item["part_name"] for item in parts),
+    ]
+    if current_parts:
+        lines.extend([
+            "",
+            "Current manifest draft:",
+            "- %s" % "\n- ".join("%s (%s)" % (item.get("part_name"), "required" if item.get("required") else "optional") for item in current_parts),
+        ])
+    if concept:
+        lines.extend([
+            "",
+            "Context:",
+            f"- selected concept id: {concept.get('concept_id')}",
+            f"- source image: {concept.get('approved_source_image')}",
+        ])
+    return "\n".join(lines)
+
+
+def build_part_shapes_handoff_prompt(project: Dict[str, Any], part_shapes: Optional[Dict[str, Any]] = None) -> str:
+    manifest = project.get("part_manifest") or {}
+    lines = [
+        "You are proposing candidate part polygons or masks for a deterministic 2D sprite pipeline.",
+        "Use the approved source image and approved part manifest.",
+        "",
+        "Rules:",
+        "- return candidate polygons or masks only for manifest parts",
+        "- no speculative hidden anatomy",
+        "- merge masses where separation is ambiguous",
+        "- prioritize reconstruction fidelity over anatomical completeness",
+        "- all outputs remain editable drafts",
+        "",
+        "Return exactly one JSON object with:",
+        '{ "valid": true, "summary": "short summary", "part_shapes": { "parts": [...] } }',
+    ]
+    if manifest.get("parts"):
+        lines.extend([
+            "",
+            "Approved manifest parts:",
+            "- %s" % "\n- ".join(item["part_name"] for item in manifest["parts"]),
+        ])
+    if part_shapes and part_shapes.get("parts"):
+        lines.extend([
+            "",
+            "Current shape draft parts:",
+            "- %s" % "\n- ".join(item["part_name"] for item in part_shapes["parts"]),
+        ])
+    return "\n".join(lines)
+
+
+def get_part_manifest(project_id: str) -> Dict[str, Any]:
+    project = load_project(project_id)
+    payload = project.get("part_manifest")
+    if not payload:
+        raise ValueError("No part manifest is available for this project.")
+    return payload
+
+
+def get_part_shapes(project_id: str) -> Dict[str, Any]:
+    project = load_project(project_id)
+    payload = project.get("part_shapes")
+    if not payload:
+        raise ValueError("No part shapes are available for this project.")
+    return payload
+
+
+def generate_part_manifest(project_id: str) -> Dict[str, Any]:
+    project = load_project(project_id)
+    if not project.get("selected_concept_id"):
+        raise ValueError("Accept a concept before generating the part manifest.")
+    if not project.get("rig_layout_approved"):
+        raise ValueError("Approve the rig layout before generating the part manifest.")
+    project_dir = PROJECTS_ROOT / project_id
+    concept = selected_concept(project)
+    rig_layout = project.get("rig_layout") or resolve_rig_layout(project, concept, persist=False)
+    existing_part_shapes = copy.deepcopy(project.get("part_shapes"))
+    manifest = build_default_part_manifest(project, rig_layout, concept)
+    preserved_part_shapes = preserve_part_shapes_for_manifest(project, manifest, existing_part_shapes)
+    reset_downstream_assets(project_id, "part_manifest")
+    project = clear_project_downstream_state(project, "part_manifest")
+    write_json(canonical_downstream_path(project_dir, "part_manifest"), manifest)
+    project["part_manifest"] = manifest
+    project["part_manifest_history"] = create_part_manifest_revision(project_dir, manifest, "generate")
+    if isinstance(preserved_part_shapes, dict):
+        preserved_part_shapes["manifest_revision_id"] = project["part_manifest_history"]["current_revision_id"]
+        preserved_part_shapes = refresh_part_shape_assets(project_id, preserved_part_shapes)
+        write_json(canonical_downstream_path(project_dir, "part_shapes"), preserved_part_shapes)
+        project["part_shapes"] = preserved_part_shapes
+        project["part_shapes_history"] = create_part_shapes_revision(project_dir, preserved_part_shapes, "update", operation="manifest_refresh")
+        project["part_shapes_approved"] = False
+    project["part_manifest_approved"] = False
+    project["current_stage"] = "part_manifest"
+    project["updated_at"] = now_iso()
+    save_project(project)
+    return load_project(project_id)["part_manifest"]
+
+
+def update_part_manifest(project_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+    project = load_project(project_id)
+    project_dir = PROJECTS_ROOT / project_id
+    manifest = copy.deepcopy(project.get("part_manifest"))
+    existing_part_shapes = copy.deepcopy(project.get("part_shapes"))
+    rename_map: Dict[str, str] = {}
+    if not isinstance(manifest, dict):
+        raise ValueError("Generate the part manifest before editing it.")
+    operation = str(payload.get("operation") or "").strip() or "replace_manifest"
+    if operation == "replace_manifest":
+        incoming = payload.get("part_manifest")
+        if not isinstance(incoming, dict):
+            raise ValueError("replace_manifest requires a part_manifest object.")
+        manifest = copy.deepcopy(incoming)
+    elif operation == "apply_codex_response":
+        parsed = extract_json_object_from_text(str(payload.get("response_text") or ""))
+        manifest_payload = parsed.get("part_manifest")
+        if not isinstance(manifest_payload, dict):
+            raise ValueError("Codex response did not include a part_manifest object.")
+        manifest = copy.deepcopy(manifest_payload)
+    elif operation == "add_optional_part":
+        part_name = str(payload.get("part_name") or "").strip()
+        if not part_name:
+            raise ValueError("add_optional_part requires part_name.")
+        manifest.setdefault("parts", []).append({
+            "part_name": part_name,
+            "part_label": str(payload.get("part_label") or humanize_identifier(part_name)),
+            "part_role": str(payload.get("part_role") or part_name),
+            "required": False,
+            "overlay_only": bool(payload.get("overlay_only")),
+            "parent_joint": str(payload.get("parent_joint") or "torso"),
+            "draw_order": int(payload.get("draw_order", len(manifest.get("parts") or []) + 1)),
+            "source": str(payload.get("source") or "manual"),
+            "editable": True,
+            "notes": str(payload.get("notes") or ""),
+        })
+    elif operation in {"update_part", "rename_part"}:
+        part_name = str(payload.get("part_name") or "").strip()
+        part = next((item for item in manifest.get("parts", []) if item.get("part_name") == part_name), None)
+        if part is None:
+            raise ValueError("Part not found: %s" % part_name)
+        if operation == "rename_part":
+            new_name = str(payload.get("new_part_name") or "").strip()
+            if not new_name:
+                raise ValueError("rename_part requires new_part_name.")
+            rename_map[part_name] = new_name
+            part["part_name"] = new_name
+        for field in ["part_label", "part_role", "required", "overlay_only", "parent_joint", "draw_order", "editable", "notes", "source"]:
+            if field in payload:
+                part[field] = copy.deepcopy(payload[field])
+    elif operation == "delete_optional_part":
+        part_name = str(payload.get("part_name") or "").strip()
+        before = len(manifest.get("parts") or [])
+        manifest["parts"] = [item for item in manifest.get("parts", []) if item.get("part_name") != part_name or item.get("required")]
+        if len(manifest["parts"]) == before:
+            raise ValueError("Optional part not found or cannot delete required part.")
+    elif operation == "merge_parts":
+        target_name = str(payload.get("target_name") or "").strip()
+        source_names = [str(item).strip() for item in (payload.get("source_names") or []) if str(item).strip()]
+        if not target_name or len(source_names) < 1:
+            raise ValueError("merge_parts requires target_name and one or more source_names.")
+        target = next((item for item in manifest.get("parts", []) if item.get("part_name") == target_name), None)
+        if target is None:
+            raise ValueError("Target part not found.")
+        manifest["parts"] = [item for item in manifest.get("parts", []) if item.get("part_name") not in set(source_names)]
+        target["source"] = "manual"
+        target["notes"] = ("Merged from: %s" % ", ".join(source_names)).strip()
+    elif operation == "reset_to_rig_profile_default":
+        concept = selected_concept(project)
+        manifest = build_default_part_manifest(project, project.get("rig_layout") or {}, concept)
+    else:
+        raise ValueError("Unsupported part-manifest operation.")
+    manifest["project_id"] = project_id
+    manifest["approved_concept_id"] = project.get("selected_concept_id")
+    manifest["rig_profile"] = active_rig_profile_name(project, project.get("rig_layout"))
+    manifest["source_rig_layout_revision"] = (project.get("rig_layout_history") or {}).get("current_revision_id")
+    manifest["updated_at"] = now_iso()
+    manifest["validation"] = validate_part_manifest(manifest)
+    manifest["approved"] = False
+    preserved_part_shapes = preserve_part_shapes_for_manifest(project, manifest, existing_part_shapes, rename_map=rename_map)
+    reset_downstream_assets(project_id, "part_manifest")
+    project = clear_project_downstream_state(project, "part_manifest")
+    write_json(canonical_downstream_path(project_dir, "part_manifest"), manifest)
+    project["part_manifest"] = manifest
+    project["part_manifest_history"] = create_part_manifest_revision(project_dir, manifest, "update", operation=operation)
+    if isinstance(preserved_part_shapes, dict):
+        preserved_part_shapes["manifest_revision_id"] = project["part_manifest_history"]["current_revision_id"]
+        preserved_part_shapes = refresh_part_shape_assets(project_id, preserved_part_shapes)
+        write_json(canonical_downstream_path(project_dir, "part_shapes"), preserved_part_shapes)
+        project["part_shapes"] = preserved_part_shapes
+        project["part_shapes_history"] = create_part_shapes_revision(project_dir, preserved_part_shapes, "update", operation="manifest_refresh")
+        project["part_shapes_approved"] = False
+    project["part_manifest_approved"] = False
+    project["current_stage"] = "part_manifest"
+    project["updated_at"] = now_iso()
+    save_project(project)
+    return load_project(project_id)["part_manifest"]
+
+
+def approve_part_manifest(project_id: str) -> Dict[str, Any]:
+    project = load_project(project_id)
+    manifest = copy.deepcopy(project.get("part_manifest"))
+    if not isinstance(manifest, dict):
+        raise ValueError("Generate the part manifest before approving it.")
+    validation = validate_part_manifest(manifest)
+    if validation["status"] == "fail":
+        raise ValueError("Part manifest approval is blocked: %s" % "; ".join(validation["failures"]))
+    manifest["approved"] = True
+    manifest["updated_at"] = now_iso()
+    project["part_manifest"] = manifest
+    project["part_manifest_approved"] = True
+    project["current_stage"] = "part_manifest"
+    project["updated_at"] = now_iso()
+    save_project(project)
+    return load_project(project_id)
+
+
+def initialize_part_shapes(project_id: str) -> Dict[str, Any]:
+    project = load_project(project_id)
+    if not project.get("selected_concept_id"):
+        raise ValueError("Accept a concept before initializing part shapes.")
+    if not project.get("part_manifest_approved"):
+        raise ValueError("Approve the part manifest before initializing part shapes.")
+    project_dir = PROJECTS_ROOT / project_id
+    approved_path, approved_rel = resolve_sprite_source_image(project, project_dir)
+    source_image = Image.open(approved_path).convert("RGBA")
+    reset_downstream_assets(project_id, "part_shapes")
+    project = clear_project_downstream_state(project, "part_shapes")
+    part_shapes = build_default_part_shapes(project, project.get("part_manifest") or {}, source_image, approved_rel, operation_source="auto_init")
+    write_json(canonical_downstream_path(project_dir, "part_shapes"), part_shapes)
+    project["part_shapes"] = part_shapes
+    project["part_shapes_history"] = create_part_shapes_revision(project_dir, part_shapes, "generate")
+    project["part_shapes_approved"] = False
+    project["current_stage"] = "part_shape_edit"
+    project["updated_at"] = now_iso()
+    save_project(project)
+    return load_project(project_id)["part_shapes"]
+
+
+def refresh_part_shape_assets(project_id: str, part_shapes: Dict[str, Any]) -> Dict[str, Any]:
+    project = load_project(project_id)
+    project_dir = PROJECTS_ROOT / project_id
+    source_rel = str(part_shapes.get("source_image") or "")
+    source_path = project_dir / source_rel
+    if not source_rel or not source_path.exists():
+        approved_path, approved_rel = resolve_sprite_source_image(project, project_dir)
+        source_path = approved_path
+        source_rel = approved_rel
+        part_shapes["source_image"] = approved_rel
+    source_image = Image.open(source_path).convert("RGBA")
+    for entry in list(part_shapes.get("parts") or []):
+        vertices = [clamp_point_to_image((point[0], point[1]), source_image.size) for point in (entry.get("vertices") or [])]
+        entry["vertices"] = vertices
+        mask = render_polygon_mask(source_image.size, vertices, closed=bool(entry.get("closed", True)))
+        mask_path, preview_path, bbox = write_part_shape_assets(project_dir, str(entry.get("part_name") or ""), source_image, mask)
+        entry["mask_path"] = mask_path
+        entry["preview_path"] = preview_path
+        entry["bbox"] = bbox
+    part_shapes["updated_at"] = now_iso()
+    part_shapes["validation"] = validate_part_shapes(project_dir, part_shapes, project.get("part_manifest"))
+    return part_shapes
+
+
+def update_part_shapes(project_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+    project = load_project(project_id)
+    project_dir = PROJECTS_ROOT / project_id
+    part_shapes = copy.deepcopy(project.get("part_shapes"))
+    if not isinstance(part_shapes, dict):
+        raise ValueError("Initialize part shapes before editing them.")
+    operation = str(payload.get("operation") or "").strip() or "replace_shapes"
+    if operation == "replace_shapes":
+        incoming = payload.get("part_shapes")
+        if not isinstance(incoming, dict):
+            raise ValueError("replace_shapes requires a part_shapes object.")
+        part_shapes = copy.deepcopy(incoming)
+    elif operation == "apply_codex_response":
+        parsed = extract_json_object_from_text(str(payload.get("response_text") or ""))
+        shape_payload = parsed.get("part_shapes")
+        if not isinstance(shape_payload, dict):
+            raise ValueError("Codex response did not include a part_shapes object.")
+        part_shapes = copy.deepcopy(shape_payload)
+    elif operation in {"update_part", "reset_part_shape"}:
+        part_name = str(payload.get("part_name") or "").strip()
+        part = next((item for item in part_shapes.get("parts", []) if item.get("part_name") == part_name), None)
+        if part is None:
+            raise ValueError("Part shape not found: %s" % part_name)
+        if operation == "reset_part_shape":
+            source_rel = str(part_shapes.get("source_image") or "")
+            source_path = project_dir / source_rel
+            if not source_rel or not source_path.exists():
+                source_path, source_rel = resolve_sprite_source_image(project, project_dir)
+            source_image = Image.open(source_path).convert("RGBA")
+            refreshed = build_default_part_shapes(project, {"parts": [next(item for item in (project.get("part_manifest") or {}).get("parts", []) if item.get("part_name") == part_name)]}, source_image, source_rel, operation_source="auto_init")
+            if refreshed.get("parts"):
+                index = next((idx for idx, item in enumerate(part_shapes.get("parts", [])) if item.get("part_name") == part_name), None)
+                if index is not None:
+                    part_shapes["parts"][index] = refreshed["parts"][0]
+        else:
+            for field in ["shape_type", "vertices", "closed", "source_method", "status", "notes", "locked", "visible", "color", "part_label"]:
+                if field in payload:
+                    part[field] = copy.deepcopy(payload[field])
+    else:
+        raise ValueError("Unsupported part-shapes operation.")
+    part_shapes["project_id"] = project_id
+    part_shapes["approved_concept_id"] = project.get("selected_concept_id")
+    part_shapes["manifest_revision_id"] = (project.get("part_manifest_history") or {}).get("current_revision_id")
+    part_shapes["approved"] = False
+    reset_downstream_assets(project_id, "part_shapes")
+    project = clear_project_downstream_state(project, "part_shapes")
+    part_shapes = refresh_part_shape_assets(project_id, part_shapes)
+    write_json(canonical_downstream_path(project_dir, "part_shapes"), part_shapes)
+    project["part_shapes"] = part_shapes
+    project["part_shapes_history"] = create_part_shapes_revision(project_dir, part_shapes, "update", operation=operation)
+    project["part_shapes_approved"] = False
+    project["current_stage"] = "part_shape_edit"
+    project["updated_at"] = now_iso()
+    save_project(project)
+    return load_project(project_id)["part_shapes"]
+
+
+def approve_part_shapes(project_id: str) -> Dict[str, Any]:
+    project = load_project(project_id)
+    part_shapes = copy.deepcopy(project.get("part_shapes"))
+    if not isinstance(part_shapes, dict):
+        raise ValueError("Initialize part shapes before approving them.")
+    validation = validate_part_shapes(PROJECTS_ROOT / project_id, part_shapes, project.get("part_manifest"))
+    if validation["status"] == "fail":
+        raise ValueError("Part shapes approval is blocked: %s" % "; ".join(validation["failures"]))
+    part_shapes["approved"] = True
+    part_shapes["updated_at"] = now_iso()
+    part_shapes["validation"] = validation
+    project["part_shapes"] = part_shapes
+    project["part_shapes_approved"] = True
+    project["current_stage"] = "part_shape_edit"
+    project["updated_at"] = now_iso()
+    save_project(project)
+    return load_project(project_id)
+
+
+def build_split_from_part_shapes(project_id: str) -> Dict[str, Any]:
+    project = load_project(project_id)
+    if not project.get("selected_concept_id"):
+        raise ValueError("Accept a concept before building split assets.")
+    if not project.get("part_shapes_approved"):
+        raise ValueError("Approve the part shapes before building split assets.")
+    project_dir = PROJECTS_ROOT / project_id
+    approved_path, approved_rel = resolve_sprite_source_image(project, project_dir)
+    source_image = Image.open(approved_path).convert("RGBA")
+    source_mask = normalize_mask(detect_mask(source_image))
+    part_shapes = project.get("part_shapes") or {}
+    manifest = project.get("part_manifest") or {}
+    reset_downstream_assets(project_id, "part_split")
+    project = clear_project_downstream_state(project, "part_split")
+    parts: List[Dict[str, Any]] = []
+    assigned_mask = Image.new("L", source_image.size, 0)
+    ordered_shape_entries = sorted(
+        list(part_shapes.get("parts") or []),
+        key=lambda entry: int(next((item.get("draw_order", 0) for item in (manifest.get("parts") or []) if item.get("part_name") == entry.get("part_name")), 0)),
+        reverse=True,
+    )
+    for shape_entry in ordered_shape_entries:
+        part_name = str(shape_entry.get("part_name") or "").strip()
+        if not part_name:
+            continue
+        shape_mask = normalize_mask(Image.open(project_dir / shape_entry["mask_path"]).convert("L")) if shape_entry.get("mask_path") else render_polygon_mask(source_image.size, shape_entry.get("vertices") or [])
+        isolated_mask = normalize_mask(ImageChops.multiply(shape_mask, source_mask))
+        isolated_mask = normalize_mask(ImageChops.subtract(isolated_mask, assigned_mask))
+        bbox = list(isolated_mask.getbbox() or tuple(shape_entry.get("bbox") or (0, 0, 1, 1)))
+        cropped_image = image_with_mask(source_image, isolated_mask).crop(tuple(bbox))
+        cropped_mask = isolated_mask.crop(tuple(bbox))
+        image_path, mask_path = write_part_split_asset(project_dir, part_name, cropped_image, cropped_mask)
+        manifest_entry = next((item for item in (manifest.get("parts") or []) if item.get("part_name") == part_name), {})
+        parts.append({
+            "part_name": part_name,
+            "part_role": manifest_entry.get("part_role") or part_name,
+            "required": bool(manifest_entry.get("required")),
+            "image_path": image_path,
+            "mask_path": mask_path,
+            "bbox": bbox,
+            "overlay_only": bool(manifest_entry.get("overlay_only")),
+            "source_method": shape_entry.get("source_method") or "manual_edit",
+            "status": "candidate",
+            "notes": str(shape_entry.get("notes") or ""),
+            "pivot_hint": part_pivot_from_image(part_name, cropped_image, manifest_entry),
+            "parent_joint": manifest_entry.get("parent_joint"),
+            "draw_order": int(manifest_entry.get("draw_order", 0)),
+        })
+        assigned_mask = normalize_mask(ImageChops.lighter(assigned_mask, isolated_mask))
+    preview_path, reconstruction_meta = render_part_split_reconstruction(project_dir, source_image.size, parts)
+    payload = {
+        "layout_version": 2,
+        "project_id": project_id,
+        "approved_concept_id": project.get("selected_concept_id"),
+        "manifest_revision_id": (project.get("part_manifest_history") or {}).get("current_revision_id"),
+        "shape_revision_id": (project.get("part_shapes_history") or {}).get("current_revision_id"),
+        "rig_profile": active_rig_profile_name(project, project.get("rig_layout")),
+        "rig_layout": project.get("rig_layout") or {},
+        "part_manifest": manifest,
+        "source_image": approved_rel,
+        "source_facing": estimate_facing_direction(source_mask),
+        "parts": sorted(parts, key=lambda item: (int(item.get("draw_order", 0)), item["part_name"])),
+        "reconstruction_preview": {"path": preview_path, **reconstruction_meta},
+        "approved": False,
+        "created_at": now_iso(),
+    }
+    payload["validation"] = validate_part_split(project_dir, payload, source_mask)
+    write_json(canonical_downstream_path(project_dir, "part_split"), payload)
+    project["part_split"] = payload
+    project["part_split_history"] = create_part_split_revision(project_dir, payload, "generate", operation="split_build")
+    project["part_split_approved"] = False
+    project["split_review_approved"] = False
+    project["current_stage"] = "split_build"
+    project["updated_at"] = now_iso()
+    save_project(project)
+    return load_project(project_id)["part_split"]
+
+
 def build_part_split_handoff_prompt(project: Dict[str, Any], part_split: Optional[Dict[str, Any]] = None) -> str:
     layout = project.get("rig_layout") or {}
+    manifest = project.get("part_manifest") or {}
     concept = None
     try:
         concept = selected_concept(project)
@@ -4098,7 +5343,7 @@ def build_part_split_handoff_prompt(project: Dict[str, Any], part_split: Optiona
         "Use the approved side-view concept and approved rig layout to produce candidate split parts.",
         "",
         "Rules:",
-        "- return candidate part assets only for the approved rig layout parts",
+        "- return candidate part assets only for the approved manifest parts",
         "- do not invent hidden-side anatomy",
         "- preserve merged armor masses when the layout keeps them merged",
         "- overlays stay overlays; do not promote them into anatomy splits",
@@ -4106,7 +5351,7 @@ def build_part_split_handoff_prompt(project: Dict[str, Any], part_split: Optiona
         "- output candidates only; the user will review and approve them",
         "",
         "Expected part names:",
-        "- %s" % "\n- ".join(item["part_name"] for item in (layout.get("parts") or [])),
+        "- %s" % "\n- ".join(item["part_name"] for item in ((manifest.get("parts") or []) or (layout.get("parts") or []))),
         "",
         "Required output:",
         "- one isolated transparent PNG per part when visible",
@@ -4134,6 +5379,8 @@ def get_part_split(project_id: str) -> Dict[str, Any]:
 
 def generate_part_split(project_id: str) -> Dict[str, Any]:
     project = load_project(project_id)
+    if project.get("part_shapes_approved"):
+        return build_split_from_part_shapes(project_id)
     if not project.get("selected_concept_id"):
         raise ValueError("Accept a concept before generating split parts.")
     if not project.get("rig_layout_approved"):
@@ -4926,12 +6173,12 @@ def write_part_asset(project_dir: Path, part_name: str, image: Image.Image, mask
     return str(image_path.relative_to(project_dir)), str(mask_path.relative_to(project_dir))
 
 
-def load_part_asset(project_dir: Path, part: Dict[str, Any]) -> Tuple[Image.Image, Image.Image]:
-    image_rel = resolve_part_image_path(part)
+def load_part_asset(project_dir: Path, part: Dict[str, Any], asset_override: Optional[Dict[str, Any]] = None) -> Tuple[Image.Image, Image.Image]:
+    image_rel = str((asset_override or {}).get("image_path") or resolve_part_image_path(part) or "")
     if not image_rel:
         raise ValueError("Part is missing an image path.")
     image = Image.open(project_dir / image_rel).convert("RGBA")
-    mask_rel = part.get("mask_path")
+    mask_rel = (asset_override or {}).get("mask_path") or part.get("mask_path")
     if mask_rel and (project_dir / mask_rel).exists():
         mask = normalize_mask(Image.open(project_dir / mask_rel))
     else:
@@ -6325,21 +7572,24 @@ def generate_clip_frames(animation_name: str, controls: Dict[str, float], overri
                     "cape_back_rotation_bias": round(math.sin((phase - 0.12) * math.tau) * 1.6, 2),
                 })
             else:
-                body_bob = controls["body_bob"] * 0.42
-                torso_lean = controls["torso_lean"] * 0.38
-                head_sway = max(0.9, controls["torso_lean"] * 0.32)
-                arm_swing = min(6.0, controls["arm_swing"] * 0.28)
-                leg_swing = min(7.5, controls["leg_swing"] * 0.32)
-                weapon_lag = min(2.2, controls["prop_lag"] * 0.55)
-                cape_bias = min(1.6, 0.9 + (controls["torso_lean"] * 0.14))
+                # Walk: phase offset so frame 0 is near contact (leg under); stronger scaling for readable motion
+                walk_phase = (index + 0.5) / float(frame_total)
+                walk_swing = math.sin(walk_phase * math.tau)
+                body_bob = controls["body_bob"] * 0.52
+                torso_lean = controls["torso_lean"] * 0.44
+                head_sway = max(1.0, controls["torso_lean"] * 0.36)
+                arm_swing = min(7.2, controls["arm_swing"] * 0.32)
+                leg_swing = min(9.2, controls["leg_swing"] * 0.38)
+                weapon_lag = min(2.6, controls["prop_lag"] * 0.6)
+                cape_bias = min(1.8, 1.0 + (controls["torso_lean"] * 0.16))
                 frames.append({
-                    "root_offset": [0.0, round(abs(swing) * -body_bob, 2)],
-                    "torso_rotation": round(swing * torso_lean, 2),
-                    "head_rotation": round(math.sin(phase * math.tau + 0.35) * head_sway, 2),
-                    "shoulder_front_rotation": round(-swing * arm_swing, 2),
-                    "hip_front_rotation": round(swing * leg_swing, 2),
-                    "weapon_rotation": round(math.sin((phase - 0.08) * math.tau) * weapon_lag, 2),
-                    "cape_back_rotation_bias": round(math.sin((phase - 0.18) * math.tau) * cape_bias, 2),
+                    "root_offset": [0.0, round(abs(walk_swing) * -body_bob, 2)],
+                    "torso_rotation": round(walk_swing * torso_lean, 2),
+                    "head_rotation": round(math.sin(walk_phase * math.tau + 0.35) * head_sway, 2),
+                    "shoulder_front_rotation": round(-walk_swing * arm_swing, 2),
+                    "hip_front_rotation": round(walk_swing * leg_swing, 2),
+                    "weapon_rotation": round(math.sin((walk_phase - 0.08) * math.tau) * weapon_lag, 2),
+                    "cape_back_rotation_bias": round(math.sin((walk_phase - 0.18) * math.tau) * cape_bias, 2),
                 })
             continue
         if animation_name == "idle":
@@ -6673,7 +7923,14 @@ def map_source_point(point: Tuple[float, float], scale: float, offset_x: float, 
     return point[0] * scale + offset_x, point[1] * scale + offset_y
 
 
-def render_pose_from_sprite_model(project: Dict[str, Any], rig: Dict[str, Any], transforms: Dict[str, Any], save_path: Optional[Path] = None) -> Tuple[Image.Image, Dict[str, Any]]:
+def render_pose_from_sprite_model(
+    project: Dict[str, Any],
+    rig: Dict[str, Any],
+    transforms: Dict[str, Any],
+    save_path: Optional[Path] = None,
+    part_asset_overrides: Optional[Dict[str, Any]] = None,
+    corrective_patches: Optional[Dict[str, Any]] = None,
+) -> Tuple[Image.Image, Dict[str, Any]]:
     project_dir = PROJECTS_ROOT / project["project_id"]
     sprite_model = project["sprite_model"]
     parts = sorted(sprite_model["parts"], key=lambda item: item["draw_order"])
@@ -6713,6 +7970,12 @@ def render_pose_from_sprite_model(project: Dict[str, Any], rig: Dict[str, Any], 
     canvas = Image.new("RGBA", WORKING_CANVAS, (0, 0, 0, 0))
     render_log = []
     draw_sequence = []
+    overrides = part_asset_overrides if isinstance(part_asset_overrides, dict) else {}
+    patches = normalize_manual_frame_patches(corrective_patches)
+    parts_by_name = {part["part_name"]: part for part in parts}
+    patches_before: Dict[str, List[Dict[str, Any]]] = {}
+    for patch in patches.values():
+        patches_before.setdefault(str(patch["keep_behind_part_name"]), []).append(patch)
     if rig.get("rig_profile") not in {SIDE_KNIGHT_SIMPLE_7, SIDE_KNIGHT_DUAL_LEG_8}:
         rotations = {
             "hair_back": float(transforms.get("head_rotation", 0.0)),
@@ -6739,10 +8002,10 @@ def render_pose_from_sprite_model(project: Dict[str, Any], rig: Dict[str, Any], 
     if pixel_art_mode:
         rotations = {role: quantize_pixel_part_rotation(role, rotation) for role, rotation in rotations.items()}
 
-    for part in parts:
-        image, _ = load_part_asset(project_dir, part)
+    def composite_bound_asset(bound_part: Dict[str, Any], asset_override: Optional[Dict[str, Any]] = None, logical_name: Optional[str] = None, kind: str = "part") -> None:
+        image, _ = load_part_asset(project_dir, bound_part, asset_override=asset_override)
         if image.size == (1, 1) and image.getchannel("A").getbbox() is None:
-            continue
+            return
         scaled_image = image.resize(
             (
                 max(1, int(round(image.size[0] * scale))),
@@ -6751,15 +8014,15 @@ def render_pose_from_sprite_model(project: Dict[str, Any], rig: Dict[str, Any], 
             resample=Image.Resampling.NEAREST if pixel_art_mode else Image.Resampling.BICUBIC,
         )
         pivot = (
-            max(0, int(round(part["pivot_point"][0] * scale))),
-            max(0, int(round(part["pivot_point"][1] * scale))),
+            max(0, int(round(bound_part["pivot_point"][0] * scale))),
+            max(0, int(round(bound_part["pivot_point"][1] * scale))),
         )
-        parent_joint = part["parent_joint"]
+        parent_joint = bound_part["parent_joint"]
         current_joint_world = map_source_point(joints[parent_joint], scale, offset_x, offset_y)
-        role = part.get("part_role", part["part_name"])
+        role = bound_part.get("part_role", bound_part["part_name"])
         rotation = rotations.get(role, 0.0)
         neutral_joint = neutral_joints.get(parent_joint, joints[parent_joint])
-        neutral_pivot = world_pivot(part)
+        neutral_pivot = world_pivot(bound_part)
         neutral_offset = vector_between(neutral_joint, neutral_pivot)
         scaled_offset = (neutral_offset[0] * scale, neutral_offset[1] * scale)
         rotated_offset = rotate_vector(scaled_offset, rotation)
@@ -6775,14 +8038,26 @@ def render_pose_from_sprite_model(project: Dict[str, Any], rig: Dict[str, Any], 
             rotation,
             resample=Image.Resampling.NEAREST if pixel_art_mode else Image.Resampling.BICUBIC,
         )
-        draw_sequence.append(part["part_name"])
+        draw_sequence.append(logical_name or bound_part["part_name"])
         render_log.append({
-            "part": part["part_name"],
+            "part": logical_name or bound_part["part_name"],
+            "base_part_name": bound_part["part_name"],
+            "kind": kind,
             "part_role": role,
             "joint": parent_joint,
             "rotation": round(rotation, 2),
             "pivot_world": [round(pivot_world[0], 2), round(pivot_world[1], 2)],
+            "asset_override": asset_override,
         })
+
+    for part in parts:
+        for patch in patches_before.get(part["part_name"], []):
+            source_part = parts_by_name.get(str(patch["source_part_name"]))
+            if source_part is None:
+                continue
+            composite_bound_asset(source_part, asset_override=patch, logical_name=patch["patch_id"], kind="corrective_patch")
+        asset_override = overrides.get(part["part_name"]) if isinstance(overrides.get(part["part_name"]), dict) else None
+        composite_bound_asset(part, asset_override=asset_override, logical_name=part["part_name"], kind="part")
 
     if save_path is not None:
         canvas.save(save_path)
@@ -6798,6 +8073,8 @@ def render_pose_from_sprite_model(project: Dict[str, Any], rig: Dict[str, Any], 
         "render_log": render_log,
         "foot_anchor": foot_anchor,
         "joints": {key: [round(value[0], 2), round(value[1], 2)] for key, value in joints.items()},
+        "part_asset_overrides": overrides,
+        "corrective_patches": patches,
     }
 
 
@@ -6883,6 +8160,406 @@ def build_rig(project_id: str, progress: Optional[ProgressCallback] = None) -> D
     save_project(project)
     call_progress(progress, 100, "Rig ready", "Review the skeleton and neutral pose before rendering clips.")
     return rig
+
+
+def get_manual_animation_clips(project_id: str) -> Dict[str, Any]:
+    project = load_project(project_id)
+    return project.get("manual_animation_clips") or default_manual_animation_clips(project_id)
+
+
+def create_manual_animation_clip(project_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+    project = load_project(project_id)
+    if not project.get("rig"):
+        raise ValueError("Build the rig before creating manual clips.")
+    project_dir = PROJECTS_ROOT / project_id
+    store = project.get("manual_animation_clips") or default_manual_animation_clips(project_id)
+    clip_name = str(payload.get("clip_name") or "Manual Clip").strip() or "Manual Clip"
+    base_id = sanitize_filename(slugify(clip_name), "manual-clip")
+    clip_id = base_id
+    counter = 2
+    while clip_id in (store.get("clips") or {}):
+        clip_id = "%s-%d" % (base_id, counter)
+        counter += 1
+    clip = default_manual_clip(
+        project_dir,
+        clip_id,
+        clip_name,
+        frame_count=manual_clip_frame_count(payload.get("frame_count"), 8),
+        fps=max(1, min(60, int(payload.get("fps") or 12))),
+        loop=bool(payload.get("loop", True)),
+    )
+    store.setdefault("clips", {})[clip_id] = clip
+    store["updated_at"] = now_iso()
+    project["manual_animation_clips"] = store
+    project["current_stage"] = "clips"
+    project["status"] = "manual_clip_created"
+    project["updated_at"] = now_iso()
+    save_project(project)
+    return hydrate_manual_animation_clips(project["manual_animation_clips"], project_dir)["clips"][clip_id]
+
+
+def manual_clip_or_error(project: Dict[str, Any], clip_id: str) -> Dict[str, Any]:
+    store = project.get("manual_animation_clips") or default_manual_animation_clips(project["project_id"])
+    clip = (store.get("clips") or {}).get(clip_id)
+    if not clip:
+        raise ValueError("Unknown manual clip: %s." % clip_id)
+    return clip
+
+
+def update_manual_animation_clip_meta(project_id: str, clip_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+    project = load_project(project_id)
+    project_dir = PROJECTS_ROOT / project_id
+    store = project.get("manual_animation_clips") or default_manual_animation_clips(project_id)
+    clip = manual_clip_or_error(project, clip_id)
+    next_frame_count = manual_clip_frame_count(payload.get("frame_count"), clip.get("frame_count") or 8)
+    clip["clip_name"] = str(payload.get("clip_name") or clip.get("clip_name") or humanize_identifier(clip_id)).strip() or clip["clip_name"]
+    clip["fps"] = max(1, min(60, int(payload.get("fps") or clip.get("fps") or 12)))
+    clip["loop"] = bool(payload.get("loop", clip.get("loop", True)))
+    current_frames = [normalize_manual_clip_frame_entry(frame) for frame in (clip.get("frames") or [])]
+    while len(current_frames) < next_frame_count:
+        current_frames.append(normalize_manual_clip_frame_entry({}))
+    clip["frame_count"] = next_frame_count
+    clip["frames"] = current_frames[:next_frame_count]
+    clip["source_hashes"] = manual_clip_source_hashes(project_dir)
+    invalidate_manual_clip_preview(clip)
+    store["updated_at"] = now_iso()
+    project["manual_animation_clips"] = store
+    project["status"] = "manual_clip_updated"
+    project["updated_at"] = now_iso()
+    save_project(project)
+    return hydrate_manual_animation_clips(project["manual_animation_clips"], project_dir)["clips"][clip_id]
+
+
+def update_manual_animation_clip_frame(project_id: str, clip_id: str, frame_index: int, payload: Dict[str, Any]) -> Dict[str, Any]:
+    project = load_project(project_id)
+    project_dir = PROJECTS_ROOT / project_id
+    store = project.get("manual_animation_clips") or default_manual_animation_clips(project_id)
+    clip = manual_clip_or_error(project, clip_id)
+    if frame_index < 0 or frame_index >= int(clip.get("frame_count") or 0):
+        raise ValueError("Frame index out of range.")
+    current_entry = normalize_manual_clip_frame_entry((clip.get("frames") or [])[frame_index])
+    incoming = payload.get("transforms") if isinstance(payload.get("transforms"), dict) else payload
+    next_entry = dict(current_entry)
+    next_entry["transforms"] = normalize_manual_clip_frame(incoming)
+    if isinstance(payload.get("part_repairs"), dict):
+        next_entry["part_repairs"] = normalize_manual_frame_repairs(payload.get("part_repairs"))
+    if isinstance(payload.get("corrective_patches"), dict):
+        next_entry["corrective_patches"] = normalize_manual_frame_patches(payload.get("corrective_patches"))
+    clip["frames"][frame_index] = normalize_manual_clip_frame_entry(next_entry)
+    clip["source_hashes"] = manual_clip_source_hashes(project_dir)
+    invalidate_manual_clip_preview(clip)
+    store["updated_at"] = now_iso()
+    project["manual_animation_clips"] = store
+    project["status"] = "manual_clip_frame_updated"
+    project["updated_at"] = now_iso()
+    save_project(project)
+    return hydrate_manual_animation_clips(project["manual_animation_clips"], project_dir)["clips"][clip_id]
+
+
+def copy_manual_animation_clip_frame(project_id: str, clip_id: str, frame_index: int, payload: Dict[str, Any]) -> Dict[str, Any]:
+    project = load_project(project_id)
+    project_dir = PROJECTS_ROOT / project_id
+    store = project.get("manual_animation_clips") or default_manual_animation_clips(project_id)
+    clip = manual_clip_or_error(project, clip_id)
+    if frame_index < 0 or frame_index >= int(clip.get("frame_count") or 0):
+        raise ValueError("Frame index out of range.")
+    source_index = int(payload.get("source_index", max(0, frame_index - 1)))
+    if source_index < 0 or source_index >= int(clip.get("frame_count") or 0):
+        raise ValueError("Source frame index out of range.")
+    clip["frames"][frame_index] = normalize_manual_clip_frame_entry(clip["frames"][source_index])
+    clip["source_hashes"] = manual_clip_source_hashes(project_dir)
+    invalidate_manual_clip_preview(clip)
+    store["updated_at"] = now_iso()
+    project["manual_animation_clips"] = store
+    project["status"] = "manual_clip_frame_copied"
+    project["updated_at"] = now_iso()
+    save_project(project)
+    return hydrate_manual_animation_clips(project["manual_animation_clips"], project_dir)["clips"][clip_id]
+
+
+def reset_manual_animation_clip_frame(project_id: str, clip_id: str, frame_index: int) -> Dict[str, Any]:
+    return update_manual_animation_clip_frame(project_id, clip_id, frame_index, {"transforms": neutral_pose_transforms(), "part_repairs": {}, "corrective_patches": {}})
+
+
+def generate_manual_animation_clip_frame_repair(project_id: str, clip_id: str, frame_index: int, part_name: str, payload: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    project = load_project(project_id)
+    clip = manual_clip_or_error(project, clip_id)
+    if frame_index < 0 or frame_index >= int(clip.get("frame_count") or 0):
+        raise ValueError("Frame index out of range.")
+    result = recover_sprite_model_occlusion(project_id, {"part_name": part_name})
+    return {
+        "clip_id": clip_id,
+        "frame_index": frame_index,
+        "part_name": part_name,
+        "variants": result.get("variants") or [],
+    }
+
+
+def apply_manual_animation_clip_frame_repair(project_id: str, clip_id: str, frame_index: int, part_name: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+    project = load_project(project_id)
+    project_dir = PROJECTS_ROOT / project_id
+    store = project.get("manual_animation_clips") or default_manual_animation_clips(project_id)
+    clip = manual_clip_or_error(project, clip_id)
+    if frame_index < 0 or frame_index >= int(clip.get("frame_count") or 0):
+        raise ValueError("Frame index out of range.")
+    image_path = str(payload.get("image_path") or "").strip()
+    if not image_path:
+        raise ValueError("repair/apply requires image_path.")
+    frame_entry = normalize_manual_clip_frame_entry((clip.get("frames") or [])[frame_index])
+    repairs = dict(frame_entry.get("part_repairs") or {})
+    repairs[part_name] = {
+        "variant_id": str(payload.get("variant_id") or "").strip() or None,
+        "image_path": image_path,
+        "mask_path": str(payload.get("mask_path") or "").strip() or None,
+        "source": str(payload.get("source") or "recover-occlusion").strip() or "recover-occlusion",
+        "summary": str(payload.get("summary") or "").strip() or None,
+        "applied_at": now_iso(),
+    }
+    frame_entry["part_repairs"] = repairs
+    clip["frames"][frame_index] = normalize_manual_clip_frame_entry(frame_entry)
+    clip["source_hashes"] = manual_clip_source_hashes(project_dir)
+    invalidate_manual_clip_preview(clip)
+    store["updated_at"] = now_iso()
+    project["manual_animation_clips"] = store
+    project["status"] = "manual_clip_frame_repair_applied"
+    project["updated_at"] = now_iso()
+    save_project(project)
+    hydrated = hydrate_manual_animation_clips(project["manual_animation_clips"], project_dir)["clips"][clip_id]
+    return {
+        "clip_id": clip_id,
+        "frame_index": frame_index,
+        "part_name": part_name,
+        "frame": hydrated["frames"][frame_index],
+        "clip": hydrated,
+    }
+
+
+def clear_manual_animation_clip_frame_repair(project_id: str, clip_id: str, frame_index: int, part_name: str) -> Dict[str, Any]:
+    project = load_project(project_id)
+    project_dir = PROJECTS_ROOT / project_id
+    store = project.get("manual_animation_clips") or default_manual_animation_clips(project_id)
+    clip = manual_clip_or_error(project, clip_id)
+    if frame_index < 0 or frame_index >= int(clip.get("frame_count") or 0):
+        raise ValueError("Frame index out of range.")
+    frame_entry = normalize_manual_clip_frame_entry((clip.get("frames") or [])[frame_index])
+    repairs = dict(frame_entry.get("part_repairs") or {})
+    repairs.pop(part_name, None)
+    frame_entry["part_repairs"] = repairs
+    clip["frames"][frame_index] = normalize_manual_clip_frame_entry(frame_entry)
+    clip["source_hashes"] = manual_clip_source_hashes(project_dir)
+    invalidate_manual_clip_preview(clip)
+    store["updated_at"] = now_iso()
+    project["manual_animation_clips"] = store
+    project["status"] = "manual_clip_frame_repair_cleared"
+    project["updated_at"] = now_iso()
+    save_project(project)
+    hydrated = hydrate_manual_animation_clips(project["manual_animation_clips"], project_dir)["clips"][clip_id]
+    return {
+        "clip_id": clip_id,
+        "frame_index": frame_index,
+        "part_name": part_name,
+        "frame": hydrated["frames"][frame_index],
+        "clip": hydrated,
+    }
+
+
+def generate_manual_animation_clip_frame_patch(project_id: str, clip_id: str, frame_index: int, source_part_name: str, payload: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    project = load_project(project_id)
+    clip = manual_clip_or_error(project, clip_id)
+    if frame_index < 0 or frame_index >= int(clip.get("frame_count") or 0):
+        raise ValueError("Frame index out of range.")
+    result = recover_sprite_model_occlusion(project_id, {"part_name": source_part_name})
+    return {
+        "clip_id": clip_id,
+        "frame_index": frame_index,
+        "source_part_name": source_part_name,
+        "variants": result.get("variants") or [],
+    }
+
+
+def apply_manual_animation_clip_frame_patch(project_id: str, clip_id: str, frame_index: int, source_part_name: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+    project = load_project(project_id)
+    project_dir = PROJECTS_ROOT / project_id
+    store = project.get("manual_animation_clips") or default_manual_animation_clips(project_id)
+    clip = manual_clip_or_error(project, clip_id)
+    if frame_index < 0 or frame_index >= int(clip.get("frame_count") or 0):
+        raise ValueError("Frame index out of range.")
+    image_path = str(payload.get("image_path") or "").strip()
+    keep_behind_part_name = str(payload.get("keep_behind_part_name") or "").strip()
+    if not image_path:
+        raise ValueError("patch/apply requires image_path.")
+    if not keep_behind_part_name:
+        raise ValueError("patch/apply requires keep_behind_part_name.")
+    sprite_parts = project.get("sprite_model", {}).get("parts") or []
+    part_names = {str(item.get("part_name")) for item in sprite_parts if item.get("part_name")}
+    if source_part_name not in part_names:
+        raise ValueError("Unknown source part: %s." % source_part_name)
+    if keep_behind_part_name not in part_names:
+        raise ValueError("Unknown keep_behind_part_name: %s." % keep_behind_part_name)
+    patch_id = "patch:%s" % source_part_name
+    frame_entry = normalize_manual_clip_frame_entry((clip.get("frames") or [])[frame_index])
+    patches = dict(frame_entry.get("corrective_patches") or {})
+    patches[patch_id] = {
+        "patch_id": patch_id,
+        "source_part_name": source_part_name,
+        "keep_behind_part_name": keep_behind_part_name,
+        "variant_id": str(payload.get("variant_id") or "").strip() or None,
+        "image_path": image_path,
+        "mask_path": str(payload.get("mask_path") or "").strip() or None,
+        "source": str(payload.get("source") or "recover-occlusion").strip() or "recover-occlusion",
+        "summary": str(payload.get("summary") or "").strip() or None,
+        "applied_at": now_iso(),
+    }
+    frame_entry["corrective_patches"] = patches
+    clip["frames"][frame_index] = normalize_manual_clip_frame_entry(frame_entry)
+    clip["source_hashes"] = manual_clip_source_hashes(project_dir)
+    invalidate_manual_clip_preview(clip)
+    store["updated_at"] = now_iso()
+    project["manual_animation_clips"] = store
+    project["status"] = "manual_clip_frame_patch_applied"
+    project["updated_at"] = now_iso()
+    save_project(project)
+    hydrated = hydrate_manual_animation_clips(project["manual_animation_clips"], project_dir)["clips"][clip_id]
+    return {
+        "clip_id": clip_id,
+        "frame_index": frame_index,
+        "source_part_name": source_part_name,
+        "frame": hydrated["frames"][frame_index],
+        "clip": hydrated,
+    }
+
+
+def clear_manual_animation_clip_frame_patch(project_id: str, clip_id: str, frame_index: int, source_part_name: str) -> Dict[str, Any]:
+    project = load_project(project_id)
+    project_dir = PROJECTS_ROOT / project_id
+    store = project.get("manual_animation_clips") or default_manual_animation_clips(project_id)
+    clip = manual_clip_or_error(project, clip_id)
+    if frame_index < 0 or frame_index >= int(clip.get("frame_count") or 0):
+        raise ValueError("Frame index out of range.")
+    frame_entry = normalize_manual_clip_frame_entry((clip.get("frames") or [])[frame_index])
+    patches = dict(frame_entry.get("corrective_patches") or {})
+    patches.pop("patch:%s" % source_part_name, None)
+    frame_entry["corrective_patches"] = patches
+    clip["frames"][frame_index] = normalize_manual_clip_frame_entry(frame_entry)
+    clip["source_hashes"] = manual_clip_source_hashes(project_dir)
+    invalidate_manual_clip_preview(clip)
+    store["updated_at"] = now_iso()
+    project["manual_animation_clips"] = store
+    project["status"] = "manual_clip_frame_patch_cleared"
+    project["updated_at"] = now_iso()
+    save_project(project)
+    hydrated = hydrate_manual_animation_clips(project["manual_animation_clips"], project_dir)["clips"][clip_id]
+    return {
+        "clip_id": clip_id,
+        "frame_index": frame_index,
+        "source_part_name": source_part_name,
+        "frame": hydrated["frames"][frame_index],
+        "clip": hydrated,
+    }
+
+
+def render_manual_animation_clip_preview(project_id: str, clip_id: str, progress: Optional[ProgressCallback] = None) -> Dict[str, Any]:
+    project = load_project(project_id)
+    if not project.get("rig"):
+        raise ValueError("Build the rig before rendering manual clips.")
+    project_dir = PROJECTS_ROOT / project_id
+    store = project.get("manual_animation_clips") or default_manual_animation_clips(project_id)
+    clip = manual_clip_or_error(project, clip_id)
+    render_root = manual_clip_render_root(project_dir) / clip_id
+    frame_dir = render_root / "frames"
+    clear_directory(render_root)
+    frame_dir.mkdir(parents=True, exist_ok=True)
+    manifests = []
+    frame_total = int(clip.get("frame_count") or len(clip.get("frames") or []))
+    for frame_index, frame_entry in enumerate((clip.get("frames") or [])[:frame_total]):
+        normalized_frame = normalize_manual_clip_frame_entry(frame_entry)
+        transforms = normalized_frame["transforms"]
+        part_repairs = normalized_frame["part_repairs"]
+        corrective_patches = normalized_frame["corrective_patches"]
+        call_progress(progress, 10 + int((frame_index / max(1, frame_total)) * 78), "Rendering manual frame %d of %d" % (frame_index + 1, frame_total), "Compositing the authored manual pose against the current rig and sprite model.")
+        raw, render_meta = render_pose_from_sprite_model(project, project["rig"], transforms, part_asset_overrides=part_repairs, corrective_patches=corrective_patches)
+        foot_anchor = render_meta.get("foot_anchor") or {}
+        anchor_candidates = [
+            tuple(foot_anchor[name])
+            for name in ("left", "right")
+            if isinstance(foot_anchor.get(name), list) and len(foot_anchor.get(name)) == 2
+        ]
+        anchor_point = None
+        if anchor_candidates:
+            anchor_point = (
+                sum(point[0] for point in anchor_candidates) / float(len(anchor_candidates)),
+                sum(point[1] for point in anchor_candidates) / float(len(anchor_candidates)),
+            )
+        final_frame, cleanup = cleanup_frame(raw, anchor_point=anchor_point)
+        frame_name = "%s_%02d.png" % (clip_id, frame_index)
+        final_path = frame_dir / frame_name
+        final_frame.save(final_path)
+        manifests.append({
+            "frame_name": frame_name,
+            "path": str(final_path.relative_to(project_dir)),
+            "cleanup": cleanup,
+            "render_meta": render_meta,
+            "joint_transforms": transforms,
+            "part_repairs": part_repairs,
+            "corrective_patches": corrective_patches,
+        })
+    manifest_path = render_root / "render_manifest.json"
+    gif_path = render_root / "preview.gif"
+    write_json(manifest_path, {"animation": clip_id, "clip_name": clip.get("clip_name"), "frames": manifests})
+    preview_frames = [Image.open(project_dir / item["path"]).convert("RGBA") for item in manifests]
+    if preview_frames:
+        preview_frames[0].save(
+            gif_path,
+            save_all=True,
+            append_images=preview_frames[1:],
+            duration=[int(1000 / max(1, int(clip.get("fps") or 12)))] * len(preview_frames),
+            loop=0 if clip.get("loop", True) else 1,
+            disposal=2,
+            transparency=0,
+        )
+    clip["preview_render"] = {
+        "status": "complete",
+        "gif_path": str(gif_path.relative_to(project_dir)),
+        "render_manifest_path": str(manifest_path.relative_to(project_dir)),
+        "frame_dir": str(frame_dir.relative_to(project_dir)),
+        "frames": [item["path"] for item in manifests],
+        "generated_at": now_iso(),
+    }
+    clip["source_hashes"] = manual_clip_source_hashes(project_dir)
+    clip["updated_at"] = now_iso()
+    store["updated_at"] = now_iso()
+    project["manual_animation_clips"] = store
+    project["status"] = "manual_clip_preview_rendered"
+    project["current_stage"] = "clips"
+    project["updated_at"] = now_iso()
+    save_project(project)
+    call_progress(progress, 100, "Manual preview ready", "Review the generated GIF before approving this clip.")
+    return hydrate_manual_animation_clips(project["manual_animation_clips"], project_dir)["clips"][clip_id]
+
+
+def approve_manual_animation_clip(project_id: str, clip_id: str, approved: bool) -> Dict[str, Any]:
+    project = load_project(project_id)
+    project_dir = PROJECTS_ROOT / project_id
+    store = project.get("manual_animation_clips") or default_manual_animation_clips(project_id)
+    clip = manual_clip_or_error(project, clip_id)
+    hydrated = hydrate_manual_animation_clips(store, project_dir)["clips"][clip_id]
+    if approved:
+        if hydrated.get("is_stale"):
+            raise ValueError("Manual clip approval is blocked until the clip is re-rendered against the current rig and sprite model.")
+        if not hydrated.get("preview_render_complete"):
+            raise ValueError("Render the manual preview before approving the clip.")
+        clip["approval_status"] = "approved"
+        clip["approved_at"] = now_iso()
+    else:
+        clip["approval_status"] = "draft"
+        clip["approved_at"] = None
+    clip["updated_at"] = now_iso()
+    store["updated_at"] = now_iso()
+    project["manual_animation_clips"] = store
+    project["status"] = "manual_clip_%s" % ("approved" if approved else "unapproved")
+    project["updated_at"] = now_iso()
+    save_project(project)
+    return hydrate_manual_animation_clips(project["manual_animation_clips"], project_dir)["clips"][clip_id]
 
 
 def update_animation_clip(project_id: str, animation_name: str, payload: Dict[str, Any]) -> Dict[str, Any]:
@@ -7005,6 +8682,15 @@ def render_animation(project_id: str, animation_name: str, progress: Optional[Pr
     return {"animation": animation_name, "frames": manifests, "fps": clip["fps"], "frame_count": clip["frame_count"]}
 
 
+def approved_manual_animation_clips(project: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
+    store = project.get("manual_animation_clips") or {"clips": {}}
+    return {
+        clip_id: clip
+        for clip_id, clip in (store.get("clips") or {}).items()
+        if clip.get("approval_status") == "approved" and not clip.get("is_stale") and clip.get("preview_render_complete")
+    }
+
+
 def run_qa(project_id: str, progress: Optional[ProgressCallback] = None) -> Dict[str, Any]:
     project = load_project(project_id)
     project_dir = PROJECTS_ROOT / project_id
@@ -7042,10 +8728,22 @@ def run_qa(project_id: str, progress: Optional[ProgressCallback] = None) -> Dict
         image, _ = load_part_asset(project_dir, part)
         if alpha_bbox(image) is not None:
             required_parts.add(role)
-    for animation_index, (animation_name, spec) in enumerate(ANIMATION_SPECS.items()):
-        call_progress(progress, 8 + int((animation_index / max(1, len(ANIMATION_SPECS))) * 74), "Checking %s clip" % animation_name, "Validating frame dimensions, pivots, parts, draw order, and loop continuity.")
-        animation_dir = project_dir / "animations" / animation_name
-        manifest = load_json(animation_dir / "render_manifest.json", {"frames": []})
+    manual_clips = approved_manual_animation_clips(project)
+    runtime_animations: List[Tuple[str, Dict[str, Any], Path, str]] = [
+        (animation_name, dict(spec), project_dir / "animations" / animation_name, "procedural")
+        for animation_name, spec in ANIMATION_SPECS.items()
+    ] + [
+        (
+            clip_id,
+            {"frame_count": int(clip.get("frame_count") or 0), "fps": int(clip.get("fps") or 12), "loop": bool(clip.get("loop", True))},
+            project_dir / str(clip.get("preview_render", {}).get("frame_dir") or ""),
+            "manual",
+        )
+        for clip_id, clip in manual_clips.items()
+    ]
+    for animation_index, (animation_name, spec, animation_dir, animation_kind) in enumerate(runtime_animations):
+        call_progress(progress, 8 + int((animation_index / max(1, len(runtime_animations))) * 74), "Checking %s clip" % animation_name, "Validating frame dimensions, pivots, parts, draw order, and loop continuity.")
+        manifest = load_json((animation_dir.parent if animation_kind == "manual" else animation_dir) / "render_manifest.json", {"frames": []}) if animation_kind == "manual" else load_json(animation_dir / "render_manifest.json", {"frames": []})
         frames = manifest.get("frames", [])
         draw_orders = []
         foot_anchors = []
@@ -7104,8 +8802,15 @@ def run_qa(project_id: str, progress: Optional[ProgressCallback] = None) -> Dict
             "stable_draw_order": check_state("pass" if stable_draw_order else "fail"),
             "stable_foot_anchor": check_state("pass" if foot_anchor_stable else "fail"),
             "loop_seam_continuity": check_state("pass" if loop_ok else "fail"),
-            "metadata_correctness": check_state("pass" if clips.get(animation_name, {}).get("frame_count") == spec["frame_count"] and clips.get(animation_name, {}).get("fps") == spec["fps"] else "fail"),
-            "clip_control_persistence": check_state("pass" if isinstance(clips.get(animation_name, {}).get("controls"), dict) else "fail"),
+            "metadata_correctness": check_state(
+                "pass"
+                if (
+                    (animation_kind == "procedural" and clips.get(animation_name, {}).get("frame_count") == spec["frame_count"] and clips.get(animation_name, {}).get("fps") == spec["fps"])
+                    or (animation_kind == "manual" and manual_clips.get(animation_name, {}).get("frame_count") == spec["frame_count"] and manual_clips.get(animation_name, {}).get("fps") == spec["fps"])
+                )
+                else "fail"
+            ),
+            "clip_control_persistence": check_state("pass" if animation_kind == "manual" or isinstance(clips.get(animation_name, {}).get("controls"), dict) else "fail"),
         }
         animation_status = aggregate_check_state([item["status"] for item in animation_checks.values()])
         if animation_status == "fail":
@@ -7122,6 +8827,7 @@ def run_qa(project_id: str, progress: Optional[ProgressCallback] = None) -> Dict
         "sprite_model_build_report": check_state("pass" if build_report.get("status") != "fail" else "fail", {"status": build_report.get("status")}),
         "has_rig": check_state("pass" if bool(rig.get("rig_joint_map")) else "fail"),
         "has_animation_clips": check_state("pass" if set(clips.keys()) >= {"idle", "walk"} else "fail"),
+        "manual_clips_not_stale": check_state("pass" if not any(clip.get("is_stale") for clip in (project.get("manual_animation_clips", {}).get("clips") or {}).values() if clip.get("approval_status") == "approved") else "fail"),
     }
     if any(item["status"] == "fail" for item in report["metadata_checks"].values()):
         report["status"] = "fail"
@@ -7182,13 +8888,21 @@ def export_project(project_id: str, progress: Optional[ProgressCallback] = None)
 
     project_dir = PROJECTS_ROOT / project_id
     clips = project.get("animation_clips") or load_json(canonical_downstream_path(project_dir, "animation_clips"), {})
+    manual_clips = approved_manual_animation_clips(project)
     export_dir = project_dir / "exports" / datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     export_dir.mkdir(parents=True, exist_ok=True)
     ordered_frames = []
     call_progress(progress, 8, "Preparing export", "Collecting deterministic clip frames and runtime metadata.")
-    for animation_name in ["idle", "walk"]:
-        for index in range(ANIMATION_SPECS[animation_name]["frame_count"]):
-            source = project_dir / "animations" / animation_name / ("%s_%02d.png" % (animation_name, index))
+    runtime_exports: List[Tuple[str, int, Path]] = [
+        (animation_name, ANIMATION_SPECS[animation_name]["frame_count"], project_dir / "animations" / animation_name)
+        for animation_name in ["idle", "walk"]
+    ] + [
+        (clip_id, int(clip.get("frame_count") or 0), project_dir / str(clip.get("preview_render", {}).get("frame_dir") or ""))
+        for clip_id, clip in manual_clips.items()
+    ]
+    for animation_name, frame_count, source_root in runtime_exports:
+        for index in range(frame_count):
+            source = source_root / ("%s_%02d.png" % (animation_name, index))
             target_dir = export_dir / "frames"
             target_dir.mkdir(parents=True, exist_ok=True)
             target = target_dir / source.name
@@ -7215,6 +8929,14 @@ def export_project(project_id: str, progress: Optional[ProgressCallback] = None)
         }
         for name in ["idle", "walk"]
     }
+    for clip_id, clip in manual_clips.items():
+        animations_payload[clip_id] = {
+            "fps": int(clip.get("fps") or 12),
+            "loop": bool(clip.get("loop", True)),
+            "frame_count": int(clip.get("frame_count") or 0),
+            "frames": ["%s_%02d.png" % (clip_id, index) for index in range(int(clip.get("frame_count") or 0))],
+            "root_motion_policy": "manual",
+        }
     export_manifest = {
         "project_id": project_id,
         "approved_concept_id": project["character_spec"]["approved_concept_id"],
@@ -7225,6 +8947,10 @@ def export_project(project_id: str, progress: Optional[ProgressCallback] = None)
         "sprite_model_hash": hashlib.sha256(canonical_downstream_path(project_dir, "sprite_model").read_bytes()).hexdigest(),
         "rig_hash": hashlib.sha256(canonical_downstream_path(project_dir, "rig").read_bytes()).hexdigest(),
         "source_asset_hashes": project["qa_report"]["source_asset_hashes"],
+        "approved_manual_clips": [
+            {"clip_id": clip_id, "clip_name": clip.get("clip_name"), "frame_count": clip.get("frame_count"), "fps": clip.get("fps")}
+            for clip_id, clip in manual_clips.items()
+        ],
     }
     write_json(export_dir / "atlas.json", {"image": "spritesheet.png", "frames": atlas_frames})
     write_json(export_dir / "animations.json", animations_payload)
@@ -7232,7 +8958,14 @@ def export_project(project_id: str, progress: Optional[ProgressCallback] = None)
 
     call_progress(progress, 72, "Building preview", "Creating an animated preview from the exported frames.")
     preview_frames = [Image.open(path).convert("RGBA") for _, _, path in ordered_frames]
-    durations = [int(1000 / clips["idle"]["fps"])] * clips["idle"]["frame_count"] + [int(1000 / clips["walk"]["fps"])] * clips["walk"]["frame_count"]
+    durations = []
+    for animation_name, _, _ in ordered_frames:
+        if animation_name in clips:
+            durations.append(int(1000 / clips[animation_name]["fps"]))
+        elif animation_name in manual_clips:
+            durations.append(int(1000 / max(1, int(manual_clips[animation_name].get("fps") or 12))))
+        else:
+            durations.append(100)
     preview_frames[0].save(
         export_dir / "preview.gif",
         save_all=True,
@@ -7820,6 +9553,16 @@ def create_job(project_id: Optional[str], job_type: str, target: Callable[[Progr
     return job
 
 
+API_PATH_PREFIX = "/tools/2d-sprite-and-animation"
+
+
+def _normalize_api_path(path: str) -> str:
+    """Strip tool path prefix so /tools/2d-sprite-and-animation/api/... matches API routes."""
+    if path.startswith(API_PATH_PREFIX):
+        path = path[len(API_PATH_PREFIX) :] or "/"
+    return path
+
+
 class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, directory=str(ROOT), **kwargs)
@@ -7839,7 +9582,7 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
 
     def do_GET(self) -> None:
         parsed = urlparse(self.path)
-        path = unquote(parsed.path)
+        path = _normalize_api_path(unquote(parsed.path))
         query = parse_qs(parsed.query)
 
         if path == "/api/health":
@@ -7872,10 +9615,31 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
             except FileNotFoundError:
                 return self._send_error_json(HTTPStatus.NOT_FOUND, "Project not found")
 
+        part_manifest_match = re.fullmatch(r"/api/projects/([^/]+)/part-manifest", path)
+        if part_manifest_match:
+            try:
+                return self._send_json(get_part_manifest(part_manifest_match.group(1)))
+            except FileNotFoundError:
+                return self._send_error_json(HTTPStatus.NOT_FOUND, "Project not found")
+
+        part_shapes_match = re.fullmatch(r"/api/projects/([^/]+)/part-shapes", path)
+        if part_shapes_match:
+            try:
+                return self._send_json(get_part_shapes(part_shapes_match.group(1)))
+            except FileNotFoundError:
+                return self._send_error_json(HTTPStatus.NOT_FOUND, "Project not found")
+
         part_split_match = re.fullmatch(r"/api/projects/([^/]+)/part-split", path)
         if part_split_match:
             try:
                 return self._send_json(get_part_split(part_split_match.group(1)))
+            except FileNotFoundError:
+                return self._send_error_json(HTTPStatus.NOT_FOUND, "Project not found")
+
+        manual_clips_match = re.fullmatch(r"/api/projects/([^/]+)/manual-clips", path)
+        if manual_clips_match:
+            try:
+                return self._send_json(get_manual_animation_clips(manual_clips_match.group(1)))
             except FileNotFoundError:
                 return self._send_error_json(HTTPStatus.NOT_FOUND, "Project not found")
 
@@ -7888,11 +9652,13 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                 return self._send_error_json(HTTPStatus.NOT_FOUND, "Job not found")
             return self._send_json(job)
 
+        if path.startswith("/api/"):
+            return self._send_error_json(HTTPStatus.NOT_FOUND, "Unknown API route (GET): %s" % path)
         return super().do_GET()
 
     def do_POST(self) -> None:
         parsed = urlparse(self.path)
-        path = unquote(parsed.path)
+        path = _normalize_api_path(unquote(parsed.path))
         try:
             if path == "/api/projects":
                 return self._send_json(create_project(read_body(self)), status=HTTPStatus.CREATED)
@@ -7998,6 +9764,34 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
             if rig_layout_approve_match:
                 return self._send_json(approve_rig_layout(rig_layout_approve_match.group(1)))
 
+            part_manifest_generate_match = re.fullmatch(r"/api/projects/([^/]+)/part-manifest/generate", path)
+            if part_manifest_generate_match:
+                return self._send_json(generate_part_manifest(part_manifest_generate_match.group(1)), status=HTTPStatus.CREATED)
+
+            part_manifest_update_match = re.fullmatch(r"/api/projects/([^/]+)/part-manifest/update", path)
+            if part_manifest_update_match:
+                return self._send_json(update_part_manifest(part_manifest_update_match.group(1), read_body(self)))
+
+            part_manifest_approve_match = re.fullmatch(r"/api/projects/([^/]+)/part-manifest/approve", path)
+            if part_manifest_approve_match:
+                return self._send_json(approve_part_manifest(part_manifest_approve_match.group(1)))
+
+            part_shapes_initialize_match = re.fullmatch(r"/api/projects/([^/]+)/part-shapes/initialize", path)
+            if part_shapes_initialize_match:
+                return self._send_json(initialize_part_shapes(part_shapes_initialize_match.group(1)), status=HTTPStatus.CREATED)
+
+            part_shapes_update_match = re.fullmatch(r"/api/projects/([^/]+)/part-shapes/update", path)
+            if part_shapes_update_match:
+                return self._send_json(update_part_shapes(part_shapes_update_match.group(1), read_body(self)))
+
+            part_shapes_approve_match = re.fullmatch(r"/api/projects/([^/]+)/part-shapes/approve", path)
+            if part_shapes_approve_match:
+                return self._send_json(approve_part_shapes(part_shapes_approve_match.group(1)))
+
+            split_build_match = re.fullmatch(r"/api/projects/([^/]+)/split-build", path)
+            if split_build_match:
+                return self._send_json(build_split_from_part_shapes(split_build_match.group(1)), status=HTTPStatus.CREATED)
+
             part_split_generate_match = re.fullmatch(r"/api/projects/([^/]+)/part-split/generate", path)
             if part_split_generate_match:
                 return self._send_json(generate_part_split(part_split_generate_match.group(1)), status=HTTPStatus.CREATED)
@@ -8051,6 +9845,74 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                 project_id = rig_match.group(1)
                 return self._send_json(create_job(project_id, "rig.build", lambda progress: build_rig(project_id, progress=progress)), status=HTTPStatus.ACCEPTED)
 
+            manual_clip_create_match = re.fullmatch(r"/api/projects/([^/]+)/manual-clips/create", path)
+            if manual_clip_create_match:
+                project_id = manual_clip_create_match.group(1)
+                return self._send_json(create_manual_animation_clip(project_id, read_body(self)))
+
+            manual_clip_update_meta_match = re.fullmatch(r"/api/projects/([^/]+)/manual-clips/([^/]+)/update-meta", path)
+            if manual_clip_update_meta_match:
+                project_id, clip_id = manual_clip_update_meta_match.groups()
+                return self._send_json(update_manual_animation_clip_meta(project_id, clip_id, read_body(self)))
+
+            manual_clip_frame_match = re.fullmatch(r"/api/projects/([^/]+)/manual-clips/([^/]+)/frame/([0-9]+)", path)
+            if manual_clip_frame_match:
+                project_id, clip_id, frame_index = manual_clip_frame_match.groups()
+                return self._send_json(update_manual_animation_clip_frame(project_id, clip_id, int(frame_index), read_body(self)))
+
+            manual_clip_copy_match = re.fullmatch(r"/api/projects/([^/]+)/manual-clips/([^/]+)/frame/([0-9]+)/copy", path)
+            if manual_clip_copy_match:
+                project_id, clip_id, frame_index = manual_clip_copy_match.groups()
+                return self._send_json(copy_manual_animation_clip_frame(project_id, clip_id, int(frame_index), read_body(self)))
+
+            manual_clip_reset_match = re.fullmatch(r"/api/projects/([^/]+)/manual-clips/([^/]+)/frame/([0-9]+)/reset", path)
+            if manual_clip_reset_match:
+                project_id, clip_id, frame_index = manual_clip_reset_match.groups()
+                return self._send_json(reset_manual_animation_clip_frame(project_id, clip_id, int(frame_index)))
+
+            manual_clip_repair_generate_match = re.fullmatch(r"/api/projects/([^/]+)/manual-clips/([^/]+)/frame/([0-9]+)/repair/([^/]+)/generate", path)
+            if manual_clip_repair_generate_match:
+                project_id, clip_id, frame_index, part_name = manual_clip_repair_generate_match.groups()
+                return self._send_json(generate_manual_animation_clip_frame_repair(project_id, clip_id, int(frame_index), part_name, read_body(self)))
+
+            manual_clip_repair_apply_match = re.fullmatch(r"/api/projects/([^/]+)/manual-clips/([^/]+)/frame/([0-9]+)/repair/([^/]+)/apply", path)
+            if manual_clip_repair_apply_match:
+                project_id, clip_id, frame_index, part_name = manual_clip_repair_apply_match.groups()
+                return self._send_json(apply_manual_animation_clip_frame_repair(project_id, clip_id, int(frame_index), part_name, read_body(self)))
+
+            manual_clip_repair_clear_match = re.fullmatch(r"/api/projects/([^/]+)/manual-clips/([^/]+)/frame/([0-9]+)/repair/([^/]+)/clear", path)
+            if manual_clip_repair_clear_match:
+                project_id, clip_id, frame_index, part_name = manual_clip_repair_clear_match.groups()
+                return self._send_json(clear_manual_animation_clip_frame_repair(project_id, clip_id, int(frame_index), part_name))
+
+            manual_clip_patch_generate_match = re.fullmatch(r"/api/projects/([^/]+)/manual-clips/([^/]+)/frame/([0-9]+)/patch/([^/]+)/generate", path)
+            if manual_clip_patch_generate_match:
+                project_id, clip_id, frame_index, source_part_name = manual_clip_patch_generate_match.groups()
+                return self._send_json(generate_manual_animation_clip_frame_patch(project_id, clip_id, int(frame_index), source_part_name, read_body(self)))
+
+            manual_clip_patch_apply_match = re.fullmatch(r"/api/projects/([^/]+)/manual-clips/([^/]+)/frame/([0-9]+)/patch/([^/]+)/apply", path)
+            if manual_clip_patch_apply_match:
+                project_id, clip_id, frame_index, source_part_name = manual_clip_patch_apply_match.groups()
+                return self._send_json(apply_manual_animation_clip_frame_patch(project_id, clip_id, int(frame_index), source_part_name, read_body(self)))
+
+            manual_clip_patch_clear_match = re.fullmatch(r"/api/projects/([^/]+)/manual-clips/([^/]+)/frame/([0-9]+)/patch/([^/]+)/clear", path)
+            if manual_clip_patch_clear_match:
+                project_id, clip_id, frame_index, source_part_name = manual_clip_patch_clear_match.groups()
+                return self._send_json(clear_manual_animation_clip_frame_patch(project_id, clip_id, int(frame_index), source_part_name))
+
+            manual_clip_render_match = re.fullmatch(r"/api/projects/([^/]+)/manual-clips/([^/]+)/render-preview", path)
+            if manual_clip_render_match:
+                project_id, clip_id = manual_clip_render_match.groups()
+                return self._send_json(
+                    create_job(project_id, "manual_clips.%s.render_preview" % clip_id, lambda progress: render_manual_animation_clip_preview(project_id, clip_id, progress=progress)),
+                    status=HTTPStatus.ACCEPTED,
+                )
+
+            manual_clip_approve_match = re.fullmatch(r"/api/projects/([^/]+)/manual-clips/([^/]+)/(approve|unapprove)", path)
+            if manual_clip_approve_match:
+                project_id, clip_id, action = manual_clip_approve_match.groups()
+                return self._send_json(approve_manual_animation_clip(project_id, clip_id, action == "approve"))
+
             clip_update_match = re.fullmatch(r"/api/projects/([^/]+)/clips/([^/]+)/update", path)
             if clip_update_match:
                 project_id, clip_name = clip_update_match.groups()
@@ -8095,7 +9957,7 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
         except Exception as exc:
             return self._send_error_json(HTTPStatus.INTERNAL_SERVER_ERROR, str(exc))
 
-        return self._send_error_json(HTTPStatus.NOT_FOUND, "Unknown API route")
+        return self._send_error_json(HTTPStatus.NOT_FOUND, "Unknown API route: %s" % path)
 
     def _send_json(self, payload: Any, status: HTTPStatus = HTTPStatus.OK) -> None:
         body = json.dumps(payload).encode("utf-8")

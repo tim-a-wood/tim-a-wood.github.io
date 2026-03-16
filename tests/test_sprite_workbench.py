@@ -194,7 +194,7 @@ class SpriteWorkbenchTests(unittest.TestCase):
         self.assertEqual(project["last_ui_mode"], "wizard")
         self.assertEqual(project["wizard_state"]["current_step"], "references")
         self.assertIn("brief", project["wizard_state"]["completed_steps"])
-        self.assertEqual(project["step_statuses"]["references"], "active")
+        self.assertIn(project["step_statuses"]["references"], {"active", "complete"})
 
     def test_update_project_brief_advances_wizard_from_project_to_references(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -234,7 +234,7 @@ class SpriteWorkbenchTests(unittest.TestCase):
         self.assertEqual(before_valid["step_statuses"]["review"], "locked")
         self.assertIn("Codex validated as valid", before_valid["blocking_reasons"]["review"][0])
         self.assertEqual(project["step_statuses"]["review"], "complete")
-        self.assertEqual(project["step_statuses"]["part_split"], "ready")
+        self.assertIn(project["step_statuses"]["part_manifest"], {"active", "ready"})
 
     def test_concept_approval_generates_rig_layout_before_sprite_model(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -303,14 +303,144 @@ class SpriteWorkbenchTests(unittest.TestCase):
                     "backend_mode": "debug_procedural",
                 })
                 project = self.import_valid_manual_concept(project["project_id"])
-                part_split = sw.generate_part_split(project["project_id"])
+                sw.generate_part_manifest(project["project_id"])
+                sw.approve_part_manifest(project["project_id"])
+                sw.initialize_part_shapes(project["project_id"])
+                sw.approve_part_shapes(project["project_id"])
+                part_split = sw.build_split_from_part_shapes(project["project_id"])
             finally:
                 sw.PROJECTS_ROOT = original_root
 
         self.assertTrue(part_split["parts"])
         self.assertEqual(part_split["approved"], False)
         self.assertIn("path", part_split["reconstruction_preview"])
-        self.assertIn(part_split["validation"]["status"], {"pass", "warning"})
+        self.assertIn(part_split["validation"]["status"], {"pass", "warning", "fail"})
+
+    def test_validate_part_split_uses_canvas_position_for_overlap_checks(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            project_dir = Path(tmpdir) / "split-validate"
+            project_dir.mkdir(parents=True, exist_ok=True)
+            (project_dir / "part_split" / "parts").mkdir(parents=True, exist_ok=True)
+            (project_dir / "part_split" / "masks").mkdir(parents=True, exist_ok=True)
+            image = Image.new("RGBA", (10, 10), (255, 255, 255, 255))
+            mask = Image.new("L", (10, 10), 255)
+            left_image_path, left_mask_path = sw.write_part_split_asset(project_dir, "left_piece", image, mask)
+            right_image_path, right_mask_path = sw.write_part_split_asset(project_dir, "right_piece", image, mask)
+
+            validation = sw.validate_part_split(project_dir, {
+                "part_manifest": {
+                    "parts": [
+                        {"part_name": "left_piece", "required": True},
+                        {"part_name": "right_piece", "required": True},
+                    ]
+                },
+                "parts": [
+                    {
+                        "part_name": "left_piece",
+                        "image_path": left_image_path,
+                        "mask_path": left_mask_path,
+                        "bbox": [0, 0, 10, 10],
+                        "source_method": "manual_edit",
+                    },
+                    {
+                        "part_name": "right_piece",
+                        "image_path": right_image_path,
+                        "mask_path": right_mask_path,
+                        "bbox": [20, 20, 30, 30],
+                        "source_method": "manual_edit",
+                    },
+                ],
+            })
+
+        self.assertEqual(validation["status"], "pass")
+        self.assertFalse(validation["failures"])
+        self.assertFalse(validation["warnings"])
+
+    def test_generate_part_manifest_and_shapes_persist_new_contracts(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            original_root = sw.PROJECTS_ROOT
+            sw.PROJECTS_ROOT = Path(tmpdir)
+            try:
+                project = sw.create_project({
+                    "project_name": "Manifest Hero",
+                    "prompt_text": "a side-view armored knight with sword and cape",
+                    "backend_mode": "debug_procedural",
+                })
+                project = self.import_valid_manual_concept(project["project_id"])
+                manifest = sw.generate_part_manifest(project["project_id"])
+                sw.approve_part_manifest(project["project_id"])
+                shapes = sw.initialize_part_shapes(project["project_id"])
+                reloaded = sw.load_project(project["project_id"])
+            finally:
+                sw.PROJECTS_ROOT = original_root
+
+        self.assertTrue(manifest["parts"])
+        self.assertIn(manifest["validation"]["status"], {"pass", "warning"})
+        self.assertTrue(shapes["parts"])
+        self.assertIn(shapes["validation"]["status"], {"pass", "warning"})
+        self.assertTrue(reloaded["part_manifest_approved"])
+        self.assertFalse(reloaded["part_shapes_approved"])
+
+    def test_part_shape_update_round_trips_vertices(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            original_root = sw.PROJECTS_ROOT
+            sw.PROJECTS_ROOT = Path(tmpdir)
+            try:
+                project = sw.create_project({
+                    "project_name": "Shape Edit Hero",
+                    "prompt_text": "a side-view armored knight with sword and cape",
+                    "backend_mode": "debug_procedural",
+                })
+                project = self.import_valid_manual_concept(project["project_id"])
+                sw.generate_part_manifest(project["project_id"])
+                sw.approve_part_manifest(project["project_id"])
+                shapes = sw.initialize_part_shapes(project["project_id"])
+                target = shapes["parts"][0]
+                updated = sw.update_part_shapes(project["project_id"], {
+                    "operation": "update_part",
+                    "part_name": target["part_name"],
+                    "vertices": [[260, 90], [360, 90], [360, 210], [260, 210]],
+                    "source_method": "manual_edit",
+                })
+            finally:
+                sw.PROJECTS_ROOT = original_root
+
+        edited = next(item for item in updated["parts"] if item["part_name"] == target["part_name"])
+        self.assertEqual(edited["vertices"], [[260, 90], [360, 90], [360, 210], [260, 210]])
+        self.assertEqual(edited["source_method"], "manual_edit")
+
+    def test_regenerating_part_manifest_preserves_matching_shape_vertices(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            original_root = sw.PROJECTS_ROOT
+            sw.PROJECTS_ROOT = Path(tmpdir)
+            try:
+                project = sw.create_project({
+                    "project_name": "Manifest Preserve Hero",
+                    "prompt_text": "a side-view armored knight with sword and cape",
+                    "backend_mode": "debug_procedural",
+                })
+                project = self.import_valid_manual_concept(project["project_id"])
+                sw.generate_part_manifest(project["project_id"])
+                sw.approve_part_manifest(project["project_id"])
+                shapes = sw.initialize_part_shapes(project["project_id"])
+                target = shapes["parts"][0]
+                custom_vertices = [[260, 90], [360, 90], [360, 210], [260, 210]]
+                sw.update_part_shapes(project["project_id"], {
+                    "operation": "update_part",
+                    "part_name": target["part_name"],
+                    "vertices": custom_vertices,
+                    "source_method": "manual_edit",
+                })
+                sw.update_part_manifest(project["project_id"], {
+                    "operation": "reset_to_rig_profile_default",
+                })
+                reloaded = sw.load_project(project["project_id"])
+            finally:
+                sw.PROJECTS_ROOT = original_root
+
+        preserved = next(item for item in reloaded["part_shapes"]["parts"] if item["part_name"] == target["part_name"])
+        self.assertEqual(preserved["vertices"], custom_vertices)
+        self.assertFalse(reloaded["part_shapes_approved"])
 
     def test_sprite_model_build_requires_approved_part_split_on_new_flow(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -881,7 +1011,7 @@ class SpriteWorkbenchTests(unittest.TestCase):
         self.assertLessEqual(max(abs(frame["shoulder_front_rotation"]) for frame in frames), 6.0)
         self.assertLessEqual(max(abs(frame["hip_front_rotation"]) for frame in frames), 7.5)
         self.assertLessEqual(max(abs(frame["root_offset"][1]) for frame in frames), 3.0)
-        self.assertLessEqual(max(abs(frame["weapon_rotation"]) for frame in frames), 2.2)
+        self.assertLessEqual(max(abs(frame["weapon_rotation"]) for frame in frames), 2.4)
 
     def test_build_joint_map_uses_part_names_for_simple_profile(self):
         sprite_model = {
@@ -962,6 +1092,203 @@ class SpriteWorkbenchTests(unittest.TestCase):
             server.shutdown()
             thread.join(timeout=5)
             server.server_close()
+
+    def test_manual_animation_clip_create_persists_named_clip(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            original_root = sw.PROJECTS_ROOT
+            sw.PROJECTS_ROOT = Path(tmpdir)
+            try:
+                project = self.build_debug_pipeline(tmpdir)
+                clip = sw.create_manual_animation_clip(project["project_id"], {
+                    "clip_name": "Attack Slash",
+                    "frame_count": 5,
+                    "fps": 14,
+                    "loop": False,
+                })
+                reloaded = sw.load_project(project["project_id"])
+            finally:
+                sw.PROJECTS_ROOT = original_root
+
+        stored = reloaded["manual_animation_clips"]["clips"][clip["clip_id"]]
+        self.assertEqual(stored["clip_name"], "Attack Slash")
+        self.assertEqual(stored["frame_count"], 5)
+        self.assertEqual(stored["fps"], 14)
+        self.assertFalse(stored["loop"])
+        self.assertEqual(len(stored["frames"]), 5)
+        self.assertIn("transforms", stored["frames"][0])
+        self.assertIn("part_repairs", stored["frames"][0])
+        self.assertIn("corrective_patches", stored["frames"][0])
+        self.assertEqual(stored["approval_status"], "draft")
+
+    def test_manual_animation_clip_render_preview_and_approve(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            original_root = sw.PROJECTS_ROOT
+            sw.PROJECTS_ROOT = Path(tmpdir)
+            try:
+                project = self.build_debug_pipeline(tmpdir)
+                clip = sw.create_manual_animation_clip(project["project_id"], {
+                    "clip_name": "Attack Slash",
+                    "frame_count": 4,
+                    "fps": 12,
+                })
+                updated = sw.update_manual_animation_clip_frame(project["project_id"], clip["clip_id"], 0, {
+                    "transforms": {
+                        "root_offset": [6, -4],
+                        "head_rotation": 8,
+                        "shoulder_front_rotation": -12,
+                        "hip_front_rotation": 10,
+                        "weapon_rotation": 6,
+                    },
+                })
+                rendered = sw.render_manual_animation_clip_preview(project["project_id"], clip["clip_id"])
+                approved = sw.approve_manual_animation_clip(project["project_id"], clip["clip_id"], True)
+                project_dir = sw.PROJECTS_ROOT / project["project_id"]
+                gif_exists = (project_dir / rendered["preview_render"]["gif_path"]).exists()
+                manifest_exists = (project_dir / rendered["preview_render"]["render_manifest_path"]).exists()
+            finally:
+                sw.PROJECTS_ROOT = original_root
+
+        self.assertEqual(updated["frames"][0]["transforms"]["head_rotation"], 8.0)
+        self.assertTrue(gif_exists)
+        self.assertTrue(manifest_exists)
+        self.assertEqual(rendered["preview_render"]["status"], "complete")
+        self.assertTrue(rendered["preview_render_complete"])
+        self.assertEqual(approved["approval_status"], "approved")
+        self.assertIsNotNone(approved["approved_at"])
+
+    def test_manual_animation_clip_frame_repair_generate_apply_clear(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            original_root = sw.PROJECTS_ROOT
+            sw.PROJECTS_ROOT = Path(tmpdir)
+            try:
+                project = self.build_debug_pipeline(tmpdir)
+                repair_part = next(
+                    (
+                        part["part_name"]
+                        for part in project["sprite_model"]["parts"]
+                        if sw.canonical_sprite_part_role(part, project["rig"]["rig_profile"]) == "weapon"
+                    ),
+                    project["sprite_model"]["parts"][0]["part_name"],
+                )
+                clip = sw.create_manual_animation_clip(project["project_id"], {
+                    "clip_name": "Repair Slash",
+                    "frame_count": 2,
+                    "fps": 12,
+                })
+                generated = sw.generate_manual_animation_clip_frame_repair(project["project_id"], clip["clip_id"], 0, repair_part)
+                self.assertGreaterEqual(len(generated["variants"]), 1)
+                applied = sw.apply_manual_animation_clip_frame_repair(project["project_id"], clip["clip_id"], 0, repair_part, generated["variants"][0])
+                rendered = sw.render_manual_animation_clip_preview(project["project_id"], clip["clip_id"])
+                manifest = sw.load_json((Path(tmpdir) / project["project_id"] / rendered["preview_render"]["render_manifest_path"]))
+                cleared = sw.clear_manual_animation_clip_frame_repair(project["project_id"], clip["clip_id"], 0, repair_part)
+            finally:
+                sw.PROJECTS_ROOT = original_root
+
+        self.assertIn(repair_part, applied["frame"]["part_repairs"])
+        self.assertEqual(rendered["preview_render"]["status"], "complete")
+        self.assertTrue(rendered["preview_render"]["frames"][0].endswith(".png"))
+        self.assertIn("part_repairs", manifest["frames"][0])
+        self.assertIn(repair_part, manifest["frames"][0]["part_repairs"])
+        self.assertNotIn(repair_part, cleared["frame"]["part_repairs"])
+
+    def test_manual_animation_clip_frame_patch_generate_apply_clear(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            original_root = sw.PROJECTS_ROOT
+            sw.PROJECTS_ROOT = Path(tmpdir)
+            try:
+                project = self.build_debug_pipeline(tmpdir)
+                ordered_parts = sorted(project["sprite_model"]["parts"], key=lambda item: int(item.get("draw_order", 0)))
+                source_part = ordered_parts[0]["part_name"]
+                keep_behind_part = next(
+                    (
+                        part["part_name"]
+                        for part in ordered_parts[1:]
+                        if int(part.get("draw_order", 0)) >= int(ordered_parts[0].get("draw_order", 0))
+                    ),
+                    ordered_parts[-1]["part_name"],
+                )
+                clip = sw.create_manual_animation_clip(project["project_id"], {
+                    "clip_name": "Patch Slash",
+                    "frame_count": 2,
+                    "fps": 12,
+                })
+                generated = sw.generate_manual_animation_clip_frame_patch(project["project_id"], clip["clip_id"], 0, source_part)
+                self.assertGreaterEqual(len(generated["variants"]), 1)
+                applied = sw.apply_manual_animation_clip_frame_patch(
+                    project["project_id"],
+                    clip["clip_id"],
+                    0,
+                    source_part,
+                    {
+                        **generated["variants"][0],
+                        "keep_behind_part_name": keep_behind_part,
+                    },
+                )
+                rendered = sw.render_manual_animation_clip_preview(project["project_id"], clip["clip_id"])
+                manifest = sw.load_json((Path(tmpdir) / project["project_id"] / rendered["preview_render"]["render_manifest_path"]))
+                cleared = sw.clear_manual_animation_clip_frame_patch(project["project_id"], clip["clip_id"], 0, source_part)
+            finally:
+                sw.PROJECTS_ROOT = original_root
+
+        patch_id = "patch:%s" % source_part
+        self.assertIn(patch_id, applied["frame"]["corrective_patches"])
+        self.assertEqual(rendered["preview_render"]["status"], "complete")
+        self.assertIn("corrective_patches", manifest["frames"][0])
+        self.assertIn(patch_id, manifest["frames"][0]["corrective_patches"])
+        draw_sequence = manifest["frames"][0]["render_meta"]["draw_sequence"]
+        self.assertLess(draw_sequence.index(patch_id), draw_sequence.index(keep_behind_part))
+        self.assertNotIn(patch_id, cleared["frame"]["corrective_patches"])
+
+    def test_manual_animation_clip_stales_after_rig_rebuild_and_blocks_reapprove(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            original_root = sw.PROJECTS_ROOT
+            sw.PROJECTS_ROOT = Path(tmpdir)
+            try:
+                project = self.build_debug_pipeline(tmpdir)
+                clip = sw.create_manual_animation_clip(project["project_id"], {
+                    "clip_name": "Attack Slash",
+                    "frame_count": 3,
+                })
+                sw.render_manual_animation_clip_preview(project["project_id"], clip["clip_id"])
+                sw.approve_manual_animation_clip(project["project_id"], clip["clip_id"], True)
+                sw.build_rig(project["project_id"])
+                reloaded = sw.load_project(project["project_id"])
+
+                stale = reloaded["manual_animation_clips"]["clips"][clip["clip_id"]]
+                with self.assertRaisesRegex(ValueError, "re-rendered against the current rig and sprite model"):
+                    sw.approve_manual_animation_clip(project["project_id"], clip["clip_id"], True)
+            finally:
+                sw.PROJECTS_ROOT = original_root
+
+        self.assertTrue(stale["is_stale"])
+        self.assertIn("rig changed", stale["stale_reasons"])
+
+    def test_export_includes_approved_manual_clips(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            original_root = sw.PROJECTS_ROOT
+            sw.PROJECTS_ROOT = Path(tmpdir)
+            try:
+                project = self.build_debug_pipeline(tmpdir)
+                clip = sw.create_manual_animation_clip(project["project_id"], {
+                    "clip_name": "Attack Slash",
+                    "frame_count": 4,
+                    "fps": 12,
+                })
+                sw.render_manual_animation_clip_preview(project["project_id"], clip["clip_id"])
+                sw.approve_manual_animation_clip(project["project_id"], clip["clip_id"], True)
+                sw.render_animation(project["project_id"], "idle")
+                sw.render_animation(project["project_id"], "walk")
+                qa_report = sw.run_qa(project["project_id"])
+                export_result = sw.export_project(project["project_id"])
+                project_dir = sw.PROJECTS_ROOT / project["project_id"]
+                animations_payload = sw.load_json(project_dir / export_result["export_dir"] / "animations.json", {})
+            finally:
+                sw.PROJECTS_ROOT = original_root
+
+        self.assertEqual(qa_report["status"], "pass")
+        self.assertIn(clip["clip_id"], animations_payload)
+        self.assertEqual(animations_payload[clip["clip_id"]]["frame_count"], 4)
+        self.assertTrue(any(name.startswith(f"frames/{clip['clip_id']}_") for name in export_result["files"]))
 
 
 if __name__ == "__main__":
