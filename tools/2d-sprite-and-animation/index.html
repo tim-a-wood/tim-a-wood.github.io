@@ -1720,6 +1720,7 @@
         .manual-pose-line {
             stroke: rgba(241, 217, 162, 0.82);
             stroke-width: 2.5;
+            pointer-events: none;
         }
 
         .manual-pose-handle {
@@ -1741,6 +1742,7 @@
             stroke: rgba(12, 18, 25, 0.95);
             stroke-width: 4px;
             stroke-linejoin: round;
+            pointer-events: none;
         }
 
         .manual-pose-card,
@@ -4618,9 +4620,37 @@ function handlePositionStyle(bbox, handle) {
 
 function sourcePointFromEvent(event, element, round = true) {
     const rect = element.getBoundingClientRect();
-    const x = ((event.clientX - rect.left) / rect.width) * SPRITE_EDITOR_SIZE.width;
-    const y = ((event.clientY - rect.top) / rect.height) * SPRITE_EDITOR_SIZE.height;
-    const clamped = [clamp(x, 0, SPRITE_EDITOR_SIZE.width), clamp(y, 0, SPRITE_EDITOR_SIZE.height)];
+    let localX = event.clientX - rect.left;
+    let localY = event.clientY - rect.top;
+    let viewportWidth = rect.width;
+    let viewportHeight = rect.height;
+    let sourceWidth = SPRITE_EDITOR_SIZE.width;
+    let sourceHeight = SPRITE_EDITOR_SIZE.height;
+
+    // Manual pose editor overlays the rig in an SVG using preserveAspectRatio,
+    // so pointer coordinates must map into the rendered SVG viewport rather
+    // than the full stage box (which may include letterboxing).
+    const svg = element.querySelector?.("svg[viewBox]");
+    const viewBox = svg?.viewBox?.baseVal;
+    if (viewBox?.width && viewBox?.height && rect.width > 0 && rect.height > 0) {
+        sourceWidth = viewBox.width;
+        sourceHeight = viewBox.height;
+        const sourceAspect = sourceWidth / sourceHeight;
+        const rectAspect = rect.width / rect.height;
+        if (rectAspect > sourceAspect) {
+            viewportHeight = rect.height;
+            viewportWidth = viewportHeight * sourceAspect;
+            localX -= (rect.width - viewportWidth) / 2;
+        } else {
+            viewportWidth = rect.width;
+            viewportHeight = viewportWidth / sourceAspect;
+            localY -= (rect.height - viewportHeight) / 2;
+        }
+    }
+
+    const x = (localX / Math.max(1, viewportWidth)) * sourceWidth;
+    const y = (localY / Math.max(1, viewportHeight)) * sourceHeight;
+    const clamped = [clamp(x, 0, sourceWidth), clamp(y, 0, sourceHeight)];
     return round ? [Math.round(clamped[0]), Math.round(clamped[1])] : clamped;
 }
 
@@ -5051,7 +5081,9 @@ function bindManualPoseStageInteractions(stage, project, clip, frame, handles) {
     stage.querySelectorAll("[data-manual-handle]").forEach((node) => {
         const handle = handles.find((item) => item.id === node.dataset.manualHandle);
         if (!handle) return;
-        node.addEventListener("mousedown", (event) => {
+        const dragTarget = node.querySelector("circle.manual-pose-handle");
+        if (!dragTarget) return;
+        dragTarget.addEventListener("mousedown", (event) => {
             event.preventDefault();
             state.manualPoseDrag = { clipId: clip.clip_id, frameIndex: state.selectedManualClipFrame, handleId: handle.id };
             const move = (moveEvent) => {
@@ -5067,16 +5099,11 @@ function bindManualPoseStageInteractions(stage, project, clip, frame, handles) {
                     liveEl.innerHTML = manualPosePreviewMarkup(project, project.rig, state.manualPoseDraft || {});
                 }
             };
-            const finish = async () => {
+            const finish = () => {
                 window.removeEventListener("mousemove", move);
                 window.removeEventListener("mouseup", finish);
                 state.manualPoseDrag = null;
-                try {
-                    await saveManualPoseFrame(project, clip, state.manualPoseDraft || frame || {});
-                } catch (error) {
-                    log(normalizeErrorMessage(error.message), "error");
-                    notify(normalizeErrorMessage(error.message), "error");
-                }
+                updateManualPoseStageDOM(stage, project, state.manualPoseDraft);
             };
             window.addEventListener("mousemove", move);
             window.addEventListener("mouseup", finish, { once: true });
