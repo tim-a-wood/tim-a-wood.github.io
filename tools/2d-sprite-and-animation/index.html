@@ -1645,11 +1645,17 @@
 
         .manual-frame-chip-preview {
             width: 100%;
-            aspect-ratio: 1 / 1;
+            aspect-ratio: 640 / 768;
             border-radius: 8px;
             overflow: hidden;
             border: 1px solid rgba(255, 255, 255, 0.08);
             background: rgba(8, 12, 18, 0.9);
+        }
+
+        .manual-pose-thumb-svg {
+            display: block;
+            width: 100%;
+            height: 100%;
         }
 
         .manual-frame-chip-label {
@@ -1682,7 +1688,7 @@
             object-fit: contain;
         }
 
-        .manual-pose-live-stage {
+        .manual-pose-live-viewport {
             position: relative;
             width: 100%;
             aspect-ratio: 640 / 768;
@@ -1694,6 +1700,19 @@
                 repeating-linear-gradient(0deg, rgba(255,255,255,0.03) 0, rgba(255,255,255,0.03) 1px, transparent 1px, transparent 32px),
                 repeating-linear-gradient(90deg, rgba(255,255,255,0.03) 0, rgba(255,255,255,0.03) 1px, transparent 1px, transparent 32px),
                 rgba(8, 12, 18, 0.9);
+            cursor: grab;
+        }
+
+        .manual-pose-live-viewport:active {
+            cursor: grabbing;
+        }
+
+        .manual-pose-live-stage {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            transform-origin: 0 0;
         }
 
         .manual-pose-live-stage.compact {
@@ -3356,6 +3375,9 @@ const state = {
     manualPoseDraftKey: null,
     manualPoseDrag: null,
     manualPoseModalOpen: false,
+    manualPreviewZoom: 1,
+    manualPreviewPanX: 0,
+    manualPreviewPanY: 0,
     previousSpriteModel: null,
     spriteEditorMode: "move",
     selectedShapePart: null,
@@ -4928,19 +4950,19 @@ function manualPosePreviewRotations(project, rig, transforms) {
     };
 }
 
-function manualPosePreviewMarkup(project, rig, transforms, { compact = false } = {}) {
+function manualPosePreviewParts(project, rig, transforms) {
     const parts = [...(project?.sprite_model?.parts || [])].sort((left, right) => Number(left.draw_order || 0) - Number(right.draw_order || 0));
-    if (!parts.length || !rig) return `<div class="empty">No sprite parts available for live pose preview yet.</div>`;
+    if (!parts.length || !rig) return [];
     const joints = computeManualPoseJoints(rig, transforms || {});
     const neutralJoints = rig.rig_joint_map || {};
     const rotations = manualPosePreviewRotations(project, rig, transforms || {});
-    const partMarkup = parts.map((part) => {
+    return parts.map((part) => {
         const parentJoint = part.parent_joint;
         const currentJoint = joints[parentJoint];
         const neutralJoint = neutralJoints[parentJoint];
         const bbox = validBBox(part.bbox) ? part.bbox.map((value) => Number(value)) : null;
         const pivot = Array.isArray(part.pivot_point) ? [Number(part.pivot_point[0] || 0), Number(part.pivot_point[1] || 0)] : [0, 0];
-        if (!currentJoint || !neutralJoint || !bbox || !part.image_path) return "";
+        if (!currentJoint || !neutralJoint || !bbox || !part.image_path) return null;
         const neutralPivot = [bbox[0] + pivot[0], bbox[1] + pivot[1]];
         const neutralOffset = [neutralPivot[0] - Number(neutralJoint[0] || 0), neutralPivot[1] - Number(neutralJoint[1] || 0)];
         const rotation = Number(rotations[manualPoseRole(part)] || 0);
@@ -4950,9 +4972,25 @@ function manualPosePreviewMarkup(project, rig, transforms, { compact = false } =
         const height = Math.max(1, bbox[3] - bbox[1]);
         const translateX = pivotWorld[0] - pivot[0];
         const translateY = pivotWorld[1] - pivot[1];
-        return `<img class="manual-pose-live-part" src="${projectAsset(project, part.image_path)}?v=${project.updated_at}" alt="${part.part_name}" style="width:${width}px;height:${height}px;transform:translate(${translateX}px, ${translateY}px) rotate(${rotation}deg);transform-origin:${pivot[0]}px ${pivot[1]}px;">`;
-    }).join("");
-    return `<div class="manual-pose-live-stage${compact ? " compact" : ""}">${partMarkup}</div>`;
+        return { src: `${projectAsset(project, part.image_path)}?v=${project.updated_at}`, alt: part.part_name, width, height, translateX, translateY, rotation, pivotX: pivot[0], pivotY: pivot[1] };
+    }).filter(Boolean);
+}
+
+function manualPosePreviewMarkup(project, rig, transforms, { compact = false } = {}) {
+    const rendered = manualPosePreviewParts(project, rig, transforms);
+    if (!rendered.length) return `<div class="empty">No sprite parts available for live pose preview yet.</div>`;
+    if (compact) {
+        const sw = SPRITE_EDITOR_SIZE.width;
+        const sh = SPRITE_EDITOR_SIZE.height;
+        const svgParts = rendered.map((p) =>
+            `<image href="${p.src}" x="0" y="0" width="${p.width}" height="${p.height}" transform="translate(${p.translateX},${p.translateY}) rotate(${p.rotation},${p.pivotX},${p.pivotY})" />`
+        ).join("");
+        return `<svg class="manual-pose-thumb-svg" viewBox="0 0 ${sw} ${sh}" preserveAspectRatio="xMidYMid meet">${svgParts}</svg>`;
+    }
+    const partMarkup = rendered.map((p) =>
+        `<img class="manual-pose-live-part" src="${p.src}" alt="${p.alt}" style="width:${p.width}px;height:${p.height}px;transform:translate(${p.translateX}px, ${p.translateY}px) rotate(${p.rotation}deg);transform-origin:${p.pivotX}px ${p.pivotY}px;">`
+    ).join("");
+    return `<div class="manual-pose-live-stage">${partMarkup}</div>`;
 }
 
 function manualPoseHandles(project = state.activeProject) {
@@ -6938,7 +6976,15 @@ function renderManualClipStudio() {
                                 </div>
                                 <div class="small-note">Current draft for F${state.selectedManualClipFrame + 1}</div>
                             </div>
-                            <div id="manual-pose-live-preview-container">${livePreviewMarkup}</div>
+                            <div class="manual-pose-live-viewport" id="manual-pose-live-viewport">
+                                <div id="manual-pose-live-preview-container" style="transform: translate(${state.manualPreviewPanX}px, ${state.manualPreviewPanY}px) scale(${state.manualPreviewZoom}); transform-origin: 0 0;">${livePreviewMarkup}</div>
+                            </div>
+                            <div class="actions" style="margin-top:6px;">
+                                <button class="secondary" id="manual-preview-zoom-in" title="Zoom in">+</button>
+                                <button class="secondary" id="manual-preview-zoom-out" title="Zoom out">−</button>
+                                <button class="secondary" id="manual-preview-zoom-reset" title="Reset view">Reset</button>
+                                <span class="small-note" style="margin-left:8px;">${Math.round(state.manualPreviewZoom * 100)}%</span>
+                            </div>
                         </div>
                     </div>
                     <div class="clip-part-card">
@@ -7144,6 +7190,50 @@ function renderManualClipStudio() {
     };
     const closePoseButton = poseModalContent.querySelector("#close-manual-pose");
     if (closePoseButton) closePoseButton.onclick = closeManualPoseEditor;
+
+    const liveViewport = poseModalContent.querySelector("#manual-pose-live-viewport");
+    const liveContainer = poseModalContent.querySelector("#manual-pose-live-preview-container");
+    function applyPreviewTransform() {
+        if (liveContainer) liveContainer.style.transform = `translate(${state.manualPreviewPanX}px, ${state.manualPreviewPanY}px) scale(${state.manualPreviewZoom})`;
+        const zoomLabel = poseModalContent.querySelector("#manual-preview-zoom-in")?.parentElement?.querySelector(".small-note");
+        if (zoomLabel) zoomLabel.textContent = `${Math.round(state.manualPreviewZoom * 100)}%`;
+    }
+    if (liveViewport) {
+        liveViewport.addEventListener("wheel", (e) => {
+            e.preventDefault();
+            const rect = liveViewport.getBoundingClientRect();
+            const mx = e.clientX - rect.left;
+            const my = e.clientY - rect.top;
+            const oldZoom = state.manualPreviewZoom;
+            const delta = e.deltaY > 0 ? 0.9 : 1.1;
+            state.manualPreviewZoom = clamp(oldZoom * delta, 0.25, 8);
+            const ratio = state.manualPreviewZoom / oldZoom;
+            state.manualPreviewPanX = mx - ratio * (mx - state.manualPreviewPanX);
+            state.manualPreviewPanY = my - ratio * (my - state.manualPreviewPanY);
+            applyPreviewTransform();
+        }, { passive: false });
+        liveViewport.addEventListener("mousedown", (e) => {
+            if (e.button !== 0) return;
+            e.preventDefault();
+            const startX = e.clientX, startY = e.clientY;
+            const startPanX = state.manualPreviewPanX, startPanY = state.manualPreviewPanY;
+            const onMove = (me) => {
+                state.manualPreviewPanX = startPanX + (me.clientX - startX);
+                state.manualPreviewPanY = startPanY + (me.clientY - startY);
+                applyPreviewTransform();
+            };
+            const onUp = () => { window.removeEventListener("mousemove", onMove); window.removeEventListener("mouseup", onUp); };
+            window.addEventListener("mousemove", onMove);
+            window.addEventListener("mouseup", onUp, { once: true });
+        });
+    }
+    const zoomInBtn = poseModalContent.querySelector("#manual-preview-zoom-in");
+    const zoomOutBtn = poseModalContent.querySelector("#manual-preview-zoom-out");
+    const zoomResetBtn = poseModalContent.querySelector("#manual-preview-zoom-reset");
+    if (zoomInBtn) zoomInBtn.onclick = () => { state.manualPreviewZoom = clamp(state.manualPreviewZoom * 1.25, 0.25, 8); applyPreviewTransform(); };
+    if (zoomOutBtn) zoomOutBtn.onclick = () => { state.manualPreviewZoom = clamp(state.manualPreviewZoom * 0.8, 0.25, 8); applyPreviewTransform(); };
+    if (zoomResetBtn) zoomResetBtn.onclick = () => { state.manualPreviewZoom = 1; state.manualPreviewPanX = 0; state.manualPreviewPanY = 0; applyPreviewTransform(); };
+
     bindManualPoseStageInteractions(poseModalContent.querySelector("#manual-pose-stage-modal"), project, clip, frame, handles);
 }
 
