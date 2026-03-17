@@ -1,5 +1,6 @@
 import http.client
 import base64
+import json
 import shutil
 import tempfile
 import threading
@@ -70,6 +71,42 @@ class SpriteWorkbenchTests(unittest.TestCase):
                     draw.point((x, y), fill=(235, 235, 235, 255))
         image.save(path)
         return path
+
+    def create_external_bundle_assets(self, root: Path):
+        root.mkdir(parents=True, exist_ok=True)
+        spritesheet = Image.new("RGBA", (64, 32), (0, 0, 0, 0))
+        draw = ImageDraw.Draw(spritesheet)
+        draw.rectangle((4, 4, 28, 28), fill=(180, 120, 90, 255))
+        draw.rectangle((36, 4, 60, 28), fill=(90, 140, 200, 255))
+        spritesheet_path = root / "spritesheet.png"
+        spritesheet.save(spritesheet_path)
+        atlas_path = root / "atlas.json"
+        atlas_path.write_text(json.dumps({
+            "image": "spritesheet.png",
+            "frames": {
+                "idle_00.png": {"x": 0, "y": 0, "w": 32, "h": 32},
+                "walk_00.png": {"x": 32, "y": 0, "w": 32, "h": 32},
+            },
+        }), encoding="utf-8")
+        animations_path = root / "animations.json"
+        animations_path.write_text(json.dumps({
+            "idle": {"fps": 8, "loop": True, "frame_count": 1, "frames": ["idle_00.png"]},
+            "walk": {"fps": 10, "loop": True, "frame_count": 1, "frames": ["walk_00.png"]},
+        }), encoding="utf-8")
+        preview_path = root / "preview.gif"
+        spritesheet.crop((0, 0, 32, 32)).save(
+            preview_path,
+            save_all=True,
+            append_images=[spritesheet.crop((32, 0, 64, 32))],
+            duration=[120, 120],
+            loop=0,
+        )
+        return {
+            "spritesheet": spritesheet_path,
+            "atlas": atlas_path,
+            "animations": animations_path,
+            "preview_gif": preview_path,
+        }
 
     def import_valid_manual_concept(self, project_id: str, *, import_mode: str = "local_path"):
         prompt = sw.generate_initial_prompt(project_id)
@@ -380,6 +417,45 @@ class SpriteWorkbenchTests(unittest.TestCase):
         self.assertIn(shapes["validation"]["status"], {"pass", "warning"})
         self.assertTrue(reloaded["part_manifest_approved"])
         self.assertFalse(reloaded["part_shapes_approved"])
+
+    def test_external_authoring_bundle_can_drive_qa_and_export(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            original_root = sw.PROJECTS_ROOT
+            sw.PROJECTS_ROOT = Path(tmpdir)
+            try:
+                project = sw.create_project({
+                    "project_name": "External Authoring Hero",
+                    "prompt_text": "a side-view shield knight",
+                    "backend_mode": "debug_procedural",
+                    "last_ui_mode": "wizard",
+                })
+                project = self.import_valid_manual_concept(project["project_id"])
+                external = sw.update_external_authoring(project["project_id"], {"enabled": True, "provider": "skelform"})
+                self.assertTrue(external["enabled"])
+                loaded = sw.load_project(project["project_id"])
+                self.assertEqual(loaded["wizard_state"]["current_step"], "clips")
+                self.assertEqual(loaded["step_statuses"]["part_manifest"], "complete")
+                with tempfile.TemporaryDirectory() as asset_dir:
+                    bundle = self.create_external_bundle_assets(Path(asset_dir))
+                    external = sw.import_external_authoring_bundle(project["project_id"], {
+                        "source_label": "SkelForm test export",
+                        "spritesheet_local_path": str(bundle["spritesheet"]),
+                        "atlas_local_path": str(bundle["atlas"]),
+                        "animations_local_path": str(bundle["animations"]),
+                        "preview_gif_local_path": str(bundle["preview_gif"]),
+                    })
+                self.assertEqual(external["imported_bundle"]["animation_names"], ["idle", "walk"])
+                qa = sw.run_qa(project["project_id"])
+                self.assertEqual(qa["mode"], "external_authoring")
+                self.assertEqual(qa["status"], "pass")
+                export = sw.export_project(project["project_id"])
+                export_dir = sw.PROJECTS_ROOT / project["project_id"] / export["export_dir"]
+                self.assertTrue((export_dir / "spritesheet.png").exists())
+                self.assertTrue((export_dir / "atlas.json").exists())
+                self.assertTrue((export_dir / "animations.json").exists())
+                self.assertTrue((export_dir / "export_manifest.json").exists())
+            finally:
+                sw.PROJECTS_ROOT = original_root
 
     def test_part_shape_update_round_trips_vertices(self):
         with tempfile.TemporaryDirectory() as tmpdir:

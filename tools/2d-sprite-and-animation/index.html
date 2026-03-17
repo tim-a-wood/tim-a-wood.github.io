@@ -3275,6 +3275,7 @@ const FRIENDLY_STAGE_NAMES = {
     intake: "Setup",
     concepts: "Gemini concepts",
     concept_lock: "Look chosen",
+    external_authoring: "External authoring",
     rig_layout: "Rig layout",
     part_manifest: "Part manifest",
     part_shape_edit: "Part shape edit",
@@ -3602,6 +3603,10 @@ function wizardSummaryText(step) {
         case "rig":
             return project.rig_review_approved ? "Rig approved." : project.rig ? "Rig built." : "Rig not built.";
         case "clips":
+            if (project?.external_authoring?.enabled) {
+                const bundle = project.external_authoring.imported_bundle;
+                return bundle ? `SkelForm bundle imported · ${bundle.animation_names?.length || 0} clip(s)` : "SkelForm session ready";
+            }
             return `${project.build_status?.idle_render_complete ? "idle ready" : "idle pending"} · ${project.build_status?.walk_render_complete ? "walk ready" : "walk pending"}`;
         case "qa":
             return project.qa_report?.status || "Checks not run.";
@@ -3694,14 +3699,21 @@ function nextClipAction() {
 function applyModeVisibility() {
     const mode = "wizard";
     const activeStep = activeWizardStep();
+    const externalEnabled = Boolean(state.activeProject?.external_authoring?.enabled);
+    const hiddenForExternal = new Set(["rig-layout", "part-manifest", "part-shape-edit", "split-build", "split-review", "layer-review", "rig-review"]);
     document.body.classList.toggle("wizard-mode", mode === "wizard");
     const allowedSections = new Set(mode === "wizard" ? wizardSectionIds(activeStep) : WORKBENCH_SECTION_IDS);
     WORKBENCH_SECTION_IDS.forEach((id) => {
         const node = document.querySelector(`#${id}`);
         if (!node) return;
-        const shouldHide = mode === "wizard" && !allowedSections.has(id);
+        const shouldHide = (mode === "wizard" && !allowedSections.has(id)) || (externalEnabled && hiddenForExternal.has(id));
         node.classList.toggle("hidden-by-mode", shouldHide);
         node.hidden = shouldHide;
+    });
+    document.querySelectorAll(".nav-link").forEach((node) => {
+        const href = node.getAttribute("href");
+        const sectionId = href?.startsWith("#") ? href.slice(1) : "";
+        node.hidden = Boolean(externalEnabled && hiddenForExternal.has(sectionId));
     });
     document.querySelectorAll("[data-wizard-view]").forEach((node) => {
         const steps = normalizeWizardVisibility(node.dataset.wizardView);
@@ -3722,6 +3734,32 @@ function applyModeVisibility() {
     syncWizardPanelHeadings();
 }
 
+function externalAuthoringStore(project = state.activeProject) {
+    return project?.external_authoring || null;
+}
+
+function externalAuthoringEnabled(project = state.activeProject) {
+    return Boolean(externalAuthoringStore(project)?.enabled);
+}
+
+function externalAuthoringBundle(project = state.activeProject) {
+    return externalAuthoringStore(project)?.imported_bundle || null;
+}
+
+function syncExternalAuthoringControls() {
+    const externalEnabled = externalAuthoringEnabled();
+    const productionWarning = document.querySelector("#production-warning");
+    if (productionWarning) {
+        productionWarning.textContent = externalEnabled
+            ? "SkelForm external authoring is active. Import a SkelForm export bundle here, then run QA and export through the current workbench."
+            : "Clip output is deterministic. Rebuilds from the same approved sprite model and rig should match exactly.";
+    }
+    ["#render-idle", "#render-walk"].forEach((selector) => {
+        const node = document.querySelector(selector);
+        if (node) node.hidden = externalEnabled;
+    });
+}
+
 function renderModeShell() {
     const modeSummary = document.querySelector("#mode-summary");
     const wizardShell = document.querySelector("#wizard-shell");
@@ -3730,7 +3768,9 @@ function renderModeShell() {
     if (workbenchButton) workbenchButton.hidden = true;
     if (wizardButton) wizardButton.hidden = true;
     modeSummary.textContent = state.activeProject
-        ? "Workbench is now a single guided production flow. Advance through the approved steps and keep each stage deterministic."
+        ? (externalAuthoringEnabled()
+            ? "SkelForm external authoring is enabled for this project. The workbench now skips the legacy split/rig authoring stages and expects an imported bundle before QA/export."
+            : "Workbench is now a single guided production flow. Advance through the approved steps and keep each stage deterministic.")
         : "Create or open a project to start the guided Workbench flow.";
 
     const model = wizardModel();
@@ -3747,6 +3787,12 @@ function renderModeShell() {
                 <strong>Progress</strong>
                 <p>Step ${stepNumber} of ${WIZARD_STEPS.length}${recommendedNext ? `. Recommended next: ${WIZARD_META[recommendedNext]?.label || recommendedNext}.` : "."}</p>
             </div>
+            ${state.activeProject?.selected_concept_id ? `
+                <div class="inline-actions" style="margin-top: 10px;">
+                    <button class="secondary" id="toggle-skelform-pipeline">${externalAuthoringEnabled() ? "Disable SkelForm Beta" : "Enable SkelForm Beta"}</button>
+                    <span class="small-note">${externalAuthoringEnabled() ? "Legacy split/rig authoring is hidden for this project." : "Use this to skip the brittle split/rig/manual-pose stages and author in SkelForm instead."}</span>
+                </div>
+            ` : ""}
             ${blockers.length ? `
                 <div class="wizard-blockers">
                     ${blockers.map((reason) => `<div class="warning-box"><p>${reason}</p></div>`).join("")}
@@ -3800,6 +3846,22 @@ function renderModeShell() {
             }
         });
     });
+    const skelformToggle = wizardShell.querySelector("#toggle-skelform-pipeline");
+    if (skelformToggle) {
+        skelformToggle.addEventListener("click", async () => {
+            try {
+                await api(`/api/projects/${state.activeProject.project_id}/external-authoring/update`, {
+                    method: "POST",
+                    body: JSON.stringify({ enabled: !externalAuthoringEnabled(), provider: "skelform" }),
+                });
+                await loadProject(state.activeProject.project_id, currentMode());
+                notify(externalAuthoringEnabled() ? "SkelForm authoring enabled. The legacy split and rig steps are now hidden for this project." : "SkelForm authoring disabled. The legacy deterministic pipeline is visible again.", "success");
+            } catch (error) {
+                log(normalizeErrorMessage(error.message), "error");
+                notify(normalizeErrorMessage(error.message), "error");
+            }
+        });
+    }
 }
 
 async function openWorkbenchMode() {
@@ -4188,6 +4250,7 @@ function renderProjectList() {
                 ${project.archived_at ? `<span class="pill warning">archived</span>` : ""}
                 ${project.can_resume_wizard ? `<span class="pill warning">wizard available</span>` : ""}
                 ${project.selected_concept_id ? `<span class="pill ok">look chosen</span>` : ""}
+                ${project.external_authoring_enabled ? `<span class="pill ok">skelform</span>` : ""}
                 ${project.sprite_model_approved ? `<span class="pill ok">sprite model</span>` : ""}
                 ${project.rig_review_approved ? `<span class="pill ok">rig</span>` : ""}
             </div>
@@ -6630,6 +6693,20 @@ function renderClipSummary() {
         root.innerHTML = `<div class="empty">Open a project to inspect clip settings.</div>`;
         return;
     }
+    if (externalAuthoringEnabled(project)) {
+        const bundle = externalAuthoringBundle(project);
+        root.innerHTML = `
+            <div class="check-row wrap">
+                <span>External authoring mode</span>
+                <span class="small-note">SkelForm replaces the legacy split, rig, and manual pose authoring workflow for this project.</span>
+            </div>
+            <div class="check-row wrap">
+                <span>Imported bundle</span>
+                <span class="small-note">${bundle ? `${bundle.animation_names?.length || 0} animation(s) · ${bundle.frame_count || 0} atlas frame(s)` : "No SkelForm export bundle imported yet."}</span>
+            </div>
+        `;
+        return;
+    }
     const clips = project.animation_clips || {};
     ["idle", "walk"].forEach((name) => {
         const clip = clips[name];
@@ -6665,6 +6742,61 @@ function renderClipEditor() {
     editorRoot.innerHTML = "";
     previewRoot.innerHTML = "";
     const project = state.activeProject;
+    if (externalAuthoringEnabled(project)) {
+        const store = externalAuthoringStore(project);
+        const bundle = externalAuthoringBundle(project);
+        editorRoot.innerHTML = `
+            <div class="clip-editor-card">
+                <div class="check-row wrap">
+                    <span>SkelForm Studio</span>
+                    <span class="small-note">${store?.provider_profile?.license || "MIT"} · hosted editor embed</span>
+                </div>
+                <div class="small-note" style="margin-top: 8px;">
+                    This project is using the browser-embedded SkelForm path. The old deterministic clip controls are replaced by external skeletal authoring plus import/export normalization.
+                </div>
+                <div class="actions" style="margin-top: 12px;">
+                    <button id="open-skelform-session">Open SkelForm Session</button>
+                    <button class="secondary" id="disable-skelform-session">Return To Legacy Pipeline</button>
+                </div>
+                <div class="check-list" style="margin-top: 12px;">
+                    <div class="check-row"><span>Docs</span><a href="${store?.provider_profile?.docs_url || "#"}" target="_blank">open</a></div>
+                    <div class="check-row"><span>Imported bundle</span><span class="small-note">${bundle ? bundle.source_label || "ready" : "pending import"}</span></div>
+                </div>
+            </div>
+        `;
+        previewRoot.innerHTML = bundle?.preview_gif_path
+            ? `<div class="preview-card"><img src="${projectAsset(project, bundle.preview_gif_path)}?v=${project.updated_at}" alt="Imported SkelForm preview"><div class="small-note" style="margin-top: 8px;">Imported preview GIF</div></div>`
+            : `<div class="empty">Import a SkelForm bundle to preview its GIF here.</div>`;
+        const openButton = editorRoot.querySelector("#open-skelform-session");
+        if (openButton) openButton.onclick = async () => {
+            try {
+                await api(`/api/projects/${project.project_id}/external-authoring/session`, {
+                    method: "POST",
+                    body: JSON.stringify({ provider: "skelform" }),
+                });
+                await loadProject(project.project_id, currentMode());
+                notify("Opened the embedded SkelForm session for this project.", "success");
+            } catch (error) {
+                log(normalizeErrorMessage(error.message), "error");
+                notify(normalizeErrorMessage(error.message), "error");
+            }
+        };
+        const disableButton = editorRoot.querySelector("#disable-skelform-session");
+        if (disableButton) disableButton.onclick = async () => {
+            try {
+                await api(`/api/projects/${project.project_id}/external-authoring/update`, {
+                    method: "POST",
+                    body: JSON.stringify({ enabled: false, provider: "skelform" }),
+                });
+                await loadProject(project.project_id, currentMode());
+                notify("Returned this project to the legacy deterministic pipeline.", "success");
+            } catch (error) {
+                log(normalizeErrorMessage(error.message), "error");
+                notify(normalizeErrorMessage(error.message), "error");
+            }
+        };
+        return;
+    }
     const clip = currentClipData();
     if (!project || !clip) {
         editorRoot.innerHTML = `<div class="empty">Build the rig to author idle and walk clips.</div>`;
@@ -6885,6 +7017,123 @@ function renderManualClipStudio() {
     previewRoot.innerHTML = "";
     poseModalContent.innerHTML = "";
     const project = state.activeProject;
+    if (externalAuthoringEnabled(project)) {
+        const store = externalAuthoringStore(project);
+        const bundle = externalAuthoringBundle(project);
+        const embedUrl = store?.session?.embed_url || store?.session?.editor_url || store?.provider_profile?.editor_url || "https://skelform.org/editor/";
+        editorRoot.innerHTML = `
+            <div class="manual-clip-shell">
+                <div class="clip-control-card">
+                    <div class="check-row wrap">
+                        <span>Embedded editor</span>
+                        <span class="small-note">SkelForm hosted session</span>
+                    </div>
+                    <iframe src="${embedUrl}" title="SkelForm editor" style="width: 100%; min-height: 720px; border: 1px solid rgba(255,255,255,0.12); border-radius: 16px; background: rgba(8,12,19,0.8);"></iframe>
+                </div>
+                <div class="clip-part-card" style="margin-top: 14px;">
+                    <div class="check-row wrap">
+                        <span>Import SkelForm export bundle</span>
+                        <span class="small-note">Spritesheet + atlas + animations are required.</span>
+                    </div>
+                    <label>
+                        <span class="field-label">Bundle Label</span>
+                        <input id="skelform-source-label" type="text" value="${bundle?.source_label || "SkelForm export"}">
+                    </label>
+                    <label>
+                        <span class="field-label">Spritesheet PNG</span>
+                        <input id="skelform-spritesheet-file" type="file" accept="image/png,image/*">
+                        <input id="skelform-spritesheet-path" type="text" placeholder="/absolute/path/to/spritesheet.png">
+                    </label>
+                    <label>
+                        <span class="field-label">Atlas JSON</span>
+                        <input id="skelform-atlas-file" type="file" accept="application/json,.json">
+                        <input id="skelform-atlas-path" type="text" placeholder="/absolute/path/to/atlas.json">
+                    </label>
+                    <label>
+                        <span class="field-label">Animations JSON</span>
+                        <input id="skelform-animations-file" type="file" accept="application/json,.json">
+                        <input id="skelform-animations-path" type="text" placeholder="/absolute/path/to/animations.json">
+                    </label>
+                    <label>
+                        <span class="field-label">Preview GIF (optional)</span>
+                        <input id="skelform-preview-gif-file" type="file" accept="image/gif,image/*">
+                        <input id="skelform-preview-gif-path" type="text" placeholder="/absolute/path/to/preview.gif">
+                    </label>
+                    <label>
+                        <span class="field-label">Notes</span>
+                        <textarea id="skelform-import-notes" placeholder="Optional notes about this export bundle.">${bundle?.notes || ""}</textarea>
+                    </label>
+                    <div class="actions">
+                        <button id="import-skelform-bundle">Import Bundle</button>
+                    </div>
+                </div>
+            </div>
+        `;
+        previewRoot.innerHTML = bundle ? `
+            <div class="clip-control-card">
+                <div class="check-row wrap">
+                    <span>Imported bundle</span>
+                    <span class="small-note">${bundle.animation_names?.length || 0} animation(s) · ${bundle.frame_count || 0} atlas frame(s)</span>
+                </div>
+                <div class="check-list" style="margin-top: 10px;">
+                    <div class="check-row"><span>Spritesheet</span><a href="${projectAsset(project, bundle.spritesheet_image_path)}" target="_blank">open</a></div>
+                    <div class="check-row"><span>Atlas</span><a href="${projectAsset(project, bundle.atlas_path)}" target="_blank">open</a></div>
+                    <div class="check-row"><span>Animations</span><a href="${projectAsset(project, bundle.animations_path)}" target="_blank">open</a></div>
+                    ${bundle.preview_gif_path ? `<div class="check-row"><span>Preview GIF</span><a href="${projectAsset(project, bundle.preview_gif_path)}" target="_blank">open</a></div>` : ""}
+                </div>
+                ${bundle.preview_gif_path ? `<div class="preview-card" style="margin-top: 12px;"><img src="${projectAsset(project, bundle.preview_gif_path)}?v=${project.updated_at}" alt="SkelForm preview gif"><div class="small-note" style="margin-top: 8px;">${bundle.source_label || "Imported bundle"}</div></div>` : `<div class="small-note" style="margin-top: 12px;">No preview GIF imported yet.</div>`}
+            </div>
+        ` : `<div class="empty">Import a SkelForm bundle to unlock QA and export.</div>`;
+        const importButton = editorRoot.querySelector("#import-skelform-bundle");
+        if (importButton) importButton.onclick = async () => {
+            const readFileAsDataUrl = (file) => new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = () => reject(new Error(`Failed to read ${file.name}`));
+                reader.readAsDataURL(file);
+            });
+            try {
+                const spritesheetFile = editorRoot.querySelector("#skelform-spritesheet-file").files[0];
+                const atlasFile = editorRoot.querySelector("#skelform-atlas-file").files[0];
+                const animationsFile = editorRoot.querySelector("#skelform-animations-file").files[0];
+                const previewGifFile = editorRoot.querySelector("#skelform-preview-gif-file").files[0];
+                const payload = {
+                    source_label: editorRoot.querySelector("#skelform-source-label").value.trim(),
+                    notes: editorRoot.querySelector("#skelform-import-notes").value.trim(),
+                    spritesheet_local_path: editorRoot.querySelector("#skelform-spritesheet-path").value.trim(),
+                    atlas_local_path: editorRoot.querySelector("#skelform-atlas-path").value.trim(),
+                    animations_local_path: editorRoot.querySelector("#skelform-animations-path").value.trim(),
+                    preview_gif_local_path: editorRoot.querySelector("#skelform-preview-gif-path").value.trim(),
+                };
+                if (spritesheetFile) {
+                    payload.spritesheet_name = spritesheetFile.name;
+                    payload.spritesheet_data_url = await readFileAsDataUrl(spritesheetFile);
+                }
+                if (atlasFile) {
+                    payload.atlas_name = atlasFile.name;
+                    payload.atlas_data_url = await readFileAsDataUrl(atlasFile);
+                }
+                if (animationsFile) {
+                    payload.animations_name = animationsFile.name;
+                    payload.animations_data_url = await readFileAsDataUrl(animationsFile);
+                }
+                if (previewGifFile) {
+                    payload.preview_gif_name = previewGifFile.name;
+                    payload.preview_gif_data_url = await readFileAsDataUrl(previewGifFile);
+                }
+                await api(`/api/projects/${project.project_id}/external-authoring/import-bundle`, {
+                    method: "POST",
+                    body: JSON.stringify(payload),
+                });
+                await loadProject(project.project_id, currentMode());
+                notify("Imported the SkelForm bundle. QA and export now use the external-authoring adapter path.", "success");
+            } catch (error) {
+                log(normalizeErrorMessage(error.message), "error");
+                notify(normalizeErrorMessage(error.message), "error");
+            }
+        };
+        return;
+    }
     const rig = project?.rig;
     if (!project || !rig) {
         closeManualPoseEditor();
@@ -7520,6 +7769,13 @@ function renderAnimationGallery(name) {
         if (previewRoot) previewRoot.innerHTML = "";
         return;
     }
+    if (externalAuthoringEnabled(project)) {
+        clearClipLoopPreview(name);
+        const previewRoot = document.querySelector(`#${name}-loop-preview`);
+        if (previewRoot) previewRoot.innerHTML = `<div class="small-note">Legacy ${humanizeKey(name)} frame previews are disabled while SkelForm authoring is active.</div>`;
+        root.innerHTML = `<div class="empty">SkelForm bundle import replaces this gallery.</div>`;
+        return;
+    }
     const count = project.animation_clips?.[name]?.frame_count || (name === "idle" ? 6 : 8);
     renderClipLoopPreview(name, count);
     for (let index = 0; index < count; index += 1) {
@@ -7591,11 +7847,12 @@ function renderQa() {
         const buildRow = document.createElement("div");
         buildRow.className = "check-row wrap";
         buildRow.innerHTML = `
-            <span>Sprite-model build gate</span>
+            <span>${qa.mode === "external_authoring" ? "External bundle gate" : "Sprite-model build gate"}</span>
             <span class="small-note">
                 <span class="pill ${statusTone(buildReport.status)}">${buildReport.status}</span>
-                ${buildReport.summary?.warning_count || 0} warning${(buildReport.summary?.warning_count || 0) === 1 ? "" : "s"} ·
-                ${buildReport.summary?.fail_count || 0} fail${(buildReport.summary?.fail_count || 0) === 1 ? "" : "s"}
+                ${qa.mode === "external_authoring"
+                    ? (buildReport.source || "external authoring")
+                    : `${buildReport.summary?.warning_count || 0} warning${(buildReport.summary?.warning_count || 0) === 1 ? "" : "s"} · ${buildReport.summary?.fail_count || 0} fail${(buildReport.summary?.fail_count || 0) === 1 ? "" : "s"}`}
             </span>
         `;
         root.appendChild(buildRow);
@@ -7636,7 +7893,7 @@ function renderQa() {
         frameGrid.appendChild(card);
     });
     root.appendChild(frameGrid);
-    if (buildReport?.failures?.length || buildReport?.warnings?.length) {
+    if (qa.mode !== "external_authoring" && (buildReport?.failures?.length || buildReport?.warnings?.length)) {
         const issueBlock = document.createElement("div");
         issueBlock.className = "detail-grid";
         issueBlock.innerHTML = `
@@ -7683,22 +7940,30 @@ function renderExport() {
             <div class="small-note" style="margin-top: 8px;">spritesheet</div>
         </div>
         <div class="preview-card">
-            <img src="${projectAsset(state.activeProject, `${exportData.export_dir}/preview.gif`)}" alt="Preview animation">
+            ${exportData.preview_gif ? `<img src="${projectAsset(state.activeProject, `${exportData.export_dir}/${exportData.preview_gif}`)}" alt="Preview animation">` : `<div class="empty">No preview GIF in this export.</div>`}
             <div class="small-note" style="margin-top: 8px;">preview animation</div>
         </div>
     `;
     root.appendChild(preview);
-    const clips = state.activeProject?.animation_clips || {};
-    Object.entries(clips).forEach(([clipName, clip]) => {
-        const row = document.createElement("div");
-        row.className = "check-row wrap";
-        row.innerHTML = `
-            <span>${humanizeKey(clipName)} runtime order</span>
-            <span class="frame-sequence">${Array.from({ length: clip.frame_count }, (_, index) => `<code>${clipName}_${String(index).padStart(2, "0")}.png</code>`).join("")}</span>
-        `;
-        root.appendChild(row);
-    });
-    exportData.files.forEach((file) => {
+    if (!externalAuthoringEnabled(state.activeProject)) {
+        const clips = state.activeProject?.animation_clips || {};
+        Object.entries(clips).forEach(([clipName, clip]) => {
+            const row = document.createElement("div");
+            row.className = "check-row wrap";
+            row.innerHTML = `
+                <span>${humanizeKey(clipName)} runtime order</span>
+                <span class="frame-sequence">${Array.from({ length: clip.frame_count }, (_, index) => `<code>${clipName}_${String(index).padStart(2, "0")}.png</code>`).join("")}</span>
+            `;
+            root.appendChild(row);
+        });
+    }
+    (exportData.files || Object.values({
+        spritesheet: exportData.spritesheet,
+        atlas: exportData.atlas,
+        animations: exportData.animations,
+        preview_gif: exportData.preview_gif,
+        export_manifest: exportData.export_manifest,
+    }).filter(Boolean)).forEach((file) => {
         const row = document.createElement("div");
         row.className = "check-row";
         row.innerHTML = `<span>${file}</span><a href="${projectAsset(state.activeProject, `${exportData.export_dir}/${file}`)}" target="_blank">open</a>`;
@@ -7727,6 +7992,7 @@ function renderAll() {
     renderQa();
     renderExport();
     applyModeVisibility();
+    syncExternalAuthoringControls();
     renderActivity();
 }
 

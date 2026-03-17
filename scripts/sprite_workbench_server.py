@@ -54,6 +54,7 @@ CANONICAL_DOWNSTREAM_FILES = {
     "rig": "rig.json",
     "animation_clips": "animation_clips.json",
     "manual_animation_clips": "manual_animation_clips.json",
+    "external_authoring": "external_authoring.json",
     "qa_report": "qa_report.json",
 }
 LEGACY_DOWNSTREAM_FILES = {
@@ -64,6 +65,8 @@ LEGACY_DOWNSTREAM_FILES = {
 SPRITE_MODEL_REVISIONS_DIRNAME = "sprite_model_revisions"
 
 TOOL_VERSION = "solo-ai-sprite-workbench-v4"
+SKELFORM_EDITOR_URL = "https://skelform.org/editor/"
+SKELFORM_DOCS_URL = "https://skelform.org/user-docs/"
 DEFAULT_COMFYUI_BASE_URL = os.environ.get("SPRITE_WORKBENCH_COMFYUI_URL", "http://127.0.0.1:8188")
 DEFAULT_COMFYUI_CHECKPOINT = os.environ.get("SPRITE_WORKBENCH_COMFYUI_CHECKPOINT", "sd15.safetensors")
 GEMINI_API_BASE_URL = os.environ.get("GEMINI_API_BASE_URL", "https://generativelanguage.googleapis.com/v1beta")
@@ -726,6 +729,8 @@ def ensure_dirs(project_dir: Path) -> None:
         "animations/idle",
         "animations/walk",
         "manual_clips",
+        "external_authoring",
+        "external_authoring/imports",
         "exports",
         "logs",
         "references",
@@ -2086,6 +2091,7 @@ def apply_project_defaults(project: Dict[str, Any]) -> Dict[str, Any]:
     normalized.setdefault("archived_at", None)
     normalized.setdefault("last_ui_mode", "wizard")
     normalized.setdefault("wizard_state", None)
+    normalized.setdefault("external_authoring", None)
     return normalized
 
 
@@ -2162,6 +2168,95 @@ def default_manual_animation_clips(project_id: str) -> Dict[str, Any]:
         "clips": {},
         "updated_at": now_iso(),
     }
+
+
+def skelform_provider_profile() -> Dict[str, Any]:
+    return {
+        "provider": "skelform",
+        "label": "SkelForm",
+        "editor_url": SKELFORM_EDITOR_URL,
+        "docs_url": SKELFORM_DOCS_URL,
+        "license": "MIT",
+        "embed_strategy": "iframe-hosted-editor",
+        "self_hosting_status": "validated_remote_editor_first",
+        "x_frameable": True,
+        "export_expectations": [
+            "spritesheet image",
+            "atlas json",
+            "animations json",
+            "optional preview gif",
+        ],
+        "validated_at": now_iso(),
+    }
+
+
+def default_external_authoring(project_id: str) -> Dict[str, Any]:
+    return {
+        "project_id": project_id,
+        "enabled": False,
+        "provider": "skelform",
+        "provider_profile": skelform_provider_profile(),
+        "session": {
+            "editor_url": SKELFORM_EDITOR_URL,
+            "embed_url": SKELFORM_EDITOR_URL,
+            "can_embed": True,
+            "source_mode": "hosted",
+            "last_opened_at": None,
+        },
+        "validation": {
+            "license": "MIT",
+            "docs_url": SKELFORM_DOCS_URL,
+            "embed_test": "passed",
+            "build_flow": "remote-hosted editor embedded first, local vendoring deferred",
+            "runtime_format": ".skf plus exported sheets/metadata",
+            "validated_at": now_iso(),
+        },
+        "imported_bundle": None,
+        "updated_at": now_iso(),
+    }
+
+
+def hydrate_external_authoring(store: Any, project_dir: Path) -> Dict[str, Any]:
+    hydrated = default_external_authoring(project_dir.name)
+    if not isinstance(store, dict):
+        return hydrated
+    hydrated["enabled"] = bool(store.get("enabled", False))
+    hydrated["provider"] = str(store.get("provider") or "skelform")
+    if isinstance(store.get("provider_profile"), dict):
+        hydrated["provider_profile"].update(store["provider_profile"])
+    if isinstance(store.get("session"), dict):
+        hydrated["session"].update(store["session"])
+    if isinstance(store.get("validation"), dict):
+        hydrated["validation"].update(store["validation"])
+    bundle = store.get("imported_bundle")
+    if isinstance(bundle, dict):
+        hydrated["imported_bundle"] = copy.deepcopy(bundle)
+    hydrated["updated_at"] = str(store.get("updated_at") or hydrated["updated_at"])
+    return hydrated
+
+
+def serialize_external_authoring(store: Any, project_id: str) -> Dict[str, Any]:
+    serialized = default_external_authoring(project_id)
+    if not isinstance(store, dict):
+        return serialized
+    serialized["enabled"] = bool(store.get("enabled", False))
+    serialized["provider"] = str(store.get("provider") or "skelform")
+    if isinstance(store.get("provider_profile"), dict):
+        serialized["provider_profile"].update(copy.deepcopy(store["provider_profile"]))
+    if isinstance(store.get("session"), dict):
+        serialized["session"].update(copy.deepcopy(store["session"]))
+    if isinstance(store.get("validation"), dict):
+        serialized["validation"].update(copy.deepcopy(store["validation"]))
+    if isinstance(store.get("imported_bundle"), dict):
+        serialized["imported_bundle"] = copy.deepcopy(store["imported_bundle"])
+    serialized["updated_at"] = str(store.get("updated_at") or serialized["updated_at"])
+    return serialized
+
+
+def external_authoring_import_root(project_dir: Path) -> Path:
+    root = project_dir / "external_authoring" / "imports"
+    root.mkdir(parents=True, exist_ok=True)
+    return root
 
 
 def manual_clip_render_root(project_dir: Path) -> Path:
@@ -2412,6 +2507,15 @@ def compute_wizard_context(project: Dict[str, Any]) -> Dict[str, Any]:
     project_dir = PROJECTS_ROOT / project["project_id"]
     wizard_state = normalize_wizard_state(project.get("wizard_state"))
     brief = project.get("brief") or {}
+    external_authoring = project.get("external_authoring") or {}
+    external_enabled = bool(external_authoring.get("enabled"))
+    external_bundle = external_authoring.get("imported_bundle") if isinstance(external_authoring.get("imported_bundle"), dict) else None
+    has_external_bundle = bool(
+        external_bundle
+        and external_bundle.get("spritesheet_image_path")
+        and external_bundle.get("atlas_path")
+        and external_bundle.get("animations_path")
+    )
     completed = set(wizard_state.get("completed_steps", []))
     skipped = set(wizard_state.get("skipped_optional_steps", []))
     attempts = project.get("concepts") or []
@@ -2425,15 +2529,15 @@ def compute_wizard_context(project: Dict[str, Any]) -> Dict[str, Any]:
     has_references = bool(brief.get("references")) or "references" in completed or "references" in skipped or has_brief
     has_concepts = bool(project.get("prompt_history")) or bool(imported_attempts)
     has_review = bool(project.get("selected_concept_id"))
-    has_rig_layout = bool(project.get("rig_layout")) and bool(project.get("rig_layout_approved"))
-    has_part_manifest = bool(project.get("part_manifest")) and bool(project.get("part_manifest_approved"))
-    has_part_shapes = bool(project.get("part_shapes")) and bool(project.get("part_shapes_approved"))
-    has_part_split = bool(project.get("part_split"))
-    has_split_build = bool(project.get("part_split"))
-    has_split_review = bool(project.get("part_split_approved"))
-    has_sprite_model = bool(project.get("sprite_model"))
-    has_rig = bool(project.get("rig_review_approved"))
-    has_clips = animation_render_complete(project_dir, "idle") and animation_render_complete(project_dir, "walk")
+    has_rig_layout = (bool(project.get("rig_layout")) and bool(project.get("rig_layout_approved"))) or external_enabled
+    has_part_manifest = (bool(project.get("part_manifest")) and bool(project.get("part_manifest_approved"))) or external_enabled
+    has_part_shapes = (bool(project.get("part_shapes")) and bool(project.get("part_shapes_approved"))) or external_enabled
+    has_part_split = bool(project.get("part_split")) or external_enabled
+    has_split_build = bool(project.get("part_split")) or external_enabled
+    has_split_review = bool(project.get("part_split_approved")) or external_enabled
+    has_sprite_model = bool(project.get("sprite_model")) or external_enabled
+    has_rig = bool(project.get("rig_review_approved")) or external_enabled
+    has_clips = (animation_render_complete(project_dir, "idle") and animation_render_complete(project_dir, "walk")) or has_external_bundle
     has_qa = bool(project.get("qa_report"))
     has_export = bool(project.get("last_export"))
 
@@ -2468,9 +2572,12 @@ def compute_wizard_context(project: Dict[str, Any]) -> Dict[str, Any]:
         "sprite_model": [] if complete_map["split_review"] else ["Approve the part split before building the sprite model."],
         "rig": [] if complete_map["sprite_model"] else ["Build and review the sprite model before rigging."],
         "clips": [] if complete_map["rig"] else ["Approve the rig before building clips."],
-        "qa": [] if complete_map["clips"] else ["Render idle and walk before running checks."],
+        "qa": [] if complete_map["clips"] else ["Render idle and walk before running checks, or import a SkelForm bundle."],
         "export": [] if complete_map["qa"] and project.get("qa_report", {}).get("status") == "pass" else ["Checks must pass before export."],
     }
+    if external_enabled:
+        blocking_reasons["clips"] = [] if complete_map["review"] else ["Accept a Codex-valid concept before opening SkelForm authoring."]
+        blocking_reasons["qa"] = [] if complete_map["clips"] else ["Import a SkelForm export bundle before running checks."]
 
     step_statuses: Dict[str, str] = {}
     active_step = None
@@ -4324,6 +4431,10 @@ def load_project(project_id: str) -> Dict[str, Any]:
         load_json(canonical_downstream_path(project_dir, "manual_animation_clips")),
         project_dir,
     )
+    project["external_authoring"] = hydrate_external_authoring(
+        load_json(canonical_downstream_path(project_dir, "external_authoring")),
+        project_dir,
+    )
     project["animation_templates"] = project["animation_clips"] or legacy_animation_templates
     project["qa_report"] = load_json(canonical_downstream_path(project_dir, "qa_report"))
     project["sprite_model_history"] = load_sprite_model_history(project_dir)
@@ -4419,6 +4530,7 @@ def save_project(project: Dict[str, Any]) -> None:
         "rig",
         "animation_clips",
         "manual_animation_clips",
+        "external_authoring",
         "animation_templates",
         "qa_report",
         "history",
@@ -4471,6 +4583,8 @@ def save_project(project: Dict[str, Any]) -> None:
         write_json(canonical_downstream_path(project_dir, "animation_clips"), project["animation_clips"])
     if project.get("manual_animation_clips") is not None:
         write_json(canonical_downstream_path(project_dir, "manual_animation_clips"), serialize_manual_animation_clips(project["manual_animation_clips"], project["project_id"]))
+    if project.get("external_authoring") is not None:
+        write_json(canonical_downstream_path(project_dir, "external_authoring"), serialize_external_authoring(project["external_authoring"], project["project_id"]))
     if project.get("qa_report") is not None:
         write_json(canonical_downstream_path(project_dir, "qa_report"), project["qa_report"])
     if project.get("history") is not None:
@@ -4515,6 +4629,7 @@ def project_summary(project: Dict[str, Any]) -> Dict[str, Any]:
         "archived_at": project.get("archived_at"),
         "last_export": project.get("last_export"),
         "last_ui_mode": project.get("last_ui_mode", "wizard"),
+        "external_authoring_enabled": bool((project.get("external_authoring") or {}).get("enabled")),
         "wizard_state": wizard_state,
         "can_resume_wizard": wizard_state.get("current_step") not in {None, "project", "export"},
     }
@@ -4587,6 +4702,7 @@ def create_project(payload: Dict[str, Any]) -> Dict[str, Any]:
         "layered_character": None,
         "rig": None,
         "animation_templates": None,
+        "external_authoring": default_external_authoring(project_id),
         "qa_report": None,
         "history": {"project_id": project_id, "events": []},
         "concepts": [],
@@ -4636,6 +4752,7 @@ def duplicate_project(project_id: str) -> Dict[str, Any]:
         CANONICAL_DOWNSTREAM_FILES["rig"],
         CANONICAL_DOWNSTREAM_FILES["animation_clips"],
         CANONICAL_DOWNSTREAM_FILES["manual_animation_clips"],
+        CANONICAL_DOWNSTREAM_FILES["external_authoring"],
         CANONICAL_DOWNSTREAM_FILES["qa_report"],
         LEGACY_DOWNSTREAM_FILES["layered_character"],
         LEGACY_DOWNSTREAM_FILES["animation_templates"],
@@ -4645,7 +4762,7 @@ def duplicate_project(project_id: str) -> Dict[str, Any]:
         if src.exists():
             shutil.copy2(src, new_dir / filename)
 
-    for folder in ["concepts", "prompts", "references", "master_pose", "part_shapes", "part_split", "parts", "rig", "animations", "manual_clips", "layers", "logs"]:
+    for folder in ["concepts", "prompts", "references", "master_pose", "part_shapes", "part_split", "parts", "rig", "animations", "manual_clips", "external_authoring", "layers", "logs"]:
         src_folder = PROJECTS_ROOT / project_id / folder
         dst_folder = new_dir / folder
         dst_folder.mkdir(parents=True, exist_ok=True)
@@ -4717,6 +4834,127 @@ def update_wizard_state(project_id: str, payload: Dict[str, Any]) -> Dict[str, A
     project["updated_at"] = now_iso()
     save_project(project)
     return load_project(project_id)
+
+
+def get_external_authoring(project_id: str) -> Dict[str, Any]:
+    project = load_project(project_id)
+    return project.get("external_authoring") or default_external_authoring(project_id)
+
+
+def update_external_authoring(project_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+    project = load_project(project_id)
+    project_dir = PROJECTS_ROOT / project_id
+    store = hydrate_external_authoring(project.get("external_authoring"), project_dir)
+    if "enabled" in payload:
+        store["enabled"] = bool(payload.get("enabled"))
+    provider = str(payload.get("provider") or store.get("provider") or "skelform")
+    if provider != "skelform":
+        raise ValueError("Only skelform is currently supported for embedded external authoring.")
+    store["provider"] = provider
+    store["provider_profile"] = skelform_provider_profile()
+    store["updated_at"] = now_iso()
+    project["external_authoring"] = store
+    project["current_stage"] = "external_authoring" if store["enabled"] else project.get("current_stage", "intake")
+    project["status"] = "external_authoring_enabled" if store["enabled"] else project.get("status", "ready")
+    project["updated_at"] = now_iso()
+    if store["enabled"]:
+        project["wizard_state"] = set_wizard_step_complete(project.get("wizard_state"), "review")
+        project["wizard_state"]["current_step"] = "clips"
+    save_project(project)
+    return load_project(project_id)["external_authoring"]
+
+
+def open_external_authoring_session(project_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+    project = load_project(project_id)
+    project_dir = PROJECTS_ROOT / project_id
+    store = hydrate_external_authoring(project.get("external_authoring"), project_dir)
+    if not store.get("enabled"):
+        raise ValueError("Enable external authoring before opening a SkelForm session.")
+    store["session"] = {
+        **store.get("session", {}),
+        "editor_url": SKELFORM_EDITOR_URL,
+        "embed_url": "%s?utm_source=sprite_workbench&project_id=%s" % (SKELFORM_EDITOR_URL, quote(project_id)),
+        "can_embed": True,
+        "source_mode": "hosted",
+        "last_opened_at": now_iso(),
+    }
+    store["updated_at"] = now_iso()
+    project["external_authoring"] = store
+    project["current_stage"] = "external_authoring"
+    project["status"] = "external_authoring_session_ready"
+    project["updated_at"] = now_iso()
+    save_project(project)
+    return load_project(project_id)["external_authoring"]
+
+
+def _store_uploaded_or_local_asset(project_dir: Path, bundle_dir: Path, payload: Dict[str, Any], stem: str, default_suffix: str) -> Optional[str]:
+    data_url = payload.get("%s_data_url" % stem)
+    local_path = payload.get("%s_local_path" % stem)
+    original_name = payload.get("%s_name" % stem) or stem
+    if data_url:
+        mime_type, raw = parse_data_url(str(data_url))
+        suffix = guess_extension(str(original_name), mime_type) or default_suffix
+        target = bundle_dir / ("%s%s" % (sanitize_filename(Path(str(original_name)).stem, stem), suffix))
+        target.write_bytes(raw)
+        return str(target.relative_to(project_dir))
+    if local_path:
+        source = Path(str(local_path)).expanduser()
+        if not source.exists() or not source.is_file():
+            raise ValueError("%s path does not exist: %s" % (stem, local_path))
+        suffix = source.suffix or default_suffix
+        target = bundle_dir / ("%s%s" % (sanitize_filename(source.stem, stem), suffix))
+        shutil.copy2(source, target)
+        return str(target.relative_to(project_dir))
+    return None
+
+
+def import_external_authoring_bundle(project_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+    project = load_project(project_id)
+    project_dir = PROJECTS_ROOT / project_id
+    store = hydrate_external_authoring(project.get("external_authoring"), project_dir)
+    if not store.get("enabled"):
+        raise ValueError("Enable external authoring before importing a bundle.")
+    bundle_id = "bundle-%s" % uuid.uuid4().hex[:8]
+    bundle_dir = external_authoring_import_root(project_dir) / bundle_id
+    bundle_dir.mkdir(parents=True, exist_ok=True)
+    spritesheet_path = _store_uploaded_or_local_asset(project_dir, bundle_dir, payload, "spritesheet", ".png")
+    atlas_path = _store_uploaded_or_local_asset(project_dir, bundle_dir, payload, "atlas", ".json")
+    animations_path = _store_uploaded_or_local_asset(project_dir, bundle_dir, payload, "animations", ".json")
+    preview_gif_path = _store_uploaded_or_local_asset(project_dir, bundle_dir, payload, "preview_gif", ".gif")
+    if not spritesheet_path:
+        raise ValueError("Import requires a spritesheet upload or local path.")
+    if not atlas_path:
+        raise ValueError("Import requires an atlas JSON upload or local path.")
+    if not animations_path:
+        raise ValueError("Import requires an animations JSON upload or local path.")
+    atlas = load_json(project_dir / atlas_path, None)
+    animations = load_json(project_dir / animations_path, None)
+    if not isinstance(atlas, dict) or not isinstance(atlas.get("frames"), dict):
+        raise ValueError("Atlas JSON must contain a top-level frames object.")
+    if not isinstance(animations, dict) or not animations:
+        raise ValueError("Animations JSON must be a non-empty object.")
+    store["imported_bundle"] = {
+        "bundle_id": bundle_id,
+        "provider": "skelform",
+        "imported_at": now_iso(),
+        "source_label": str(payload.get("source_label") or "SkelForm export").strip() or "SkelForm export",
+        "notes": str(payload.get("notes") or "").strip() or None,
+        "spritesheet_image_path": spritesheet_path,
+        "atlas_path": atlas_path,
+        "animations_path": animations_path,
+        "preview_gif_path": preview_gif_path,
+        "animation_names": sorted(animations.keys()),
+        "frame_count": len(atlas.get("frames") or {}),
+    }
+    store["updated_at"] = now_iso()
+    project["external_authoring"] = store
+    project["current_stage"] = "external_authoring"
+    project["status"] = "external_authoring_bundle_imported"
+    project["updated_at"] = now_iso()
+    project["wizard_state"] = set_wizard_step_complete(project.get("wizard_state"), "clips")
+    project["wizard_state"]["current_step"] = "qa"
+    save_project(project)
+    return load_project(project_id)["external_authoring"]
 
 
 def make_character_spec(project: Dict[str, Any], concept: Dict[str, Any]) -> Dict[str, Any]:
@@ -8691,8 +8929,79 @@ def approved_manual_animation_clips(project: Dict[str, Any]) -> Dict[str, Dict[s
     }
 
 
+def run_external_authoring_qa(project_id: str, progress: Optional[ProgressCallback] = None) -> Dict[str, Any]:
+    project = load_project(project_id)
+    project_dir = PROJECTS_ROOT / project_id
+    store = hydrate_external_authoring(project.get("external_authoring"), project_dir)
+    bundle = store.get("imported_bundle") if isinstance(store.get("imported_bundle"), dict) else None
+    if not store.get("enabled") or not bundle:
+        raise ValueError("External authoring bundle is required before QA.")
+    call_progress(progress, 12, "Checking SkelForm bundle", "Validating imported spritesheet and metadata files.")
+    spritesheet_path = project_dir / str(bundle.get("spritesheet_image_path") or "")
+    atlas_path = project_dir / str(bundle.get("atlas_path") or "")
+    animations_path = project_dir / str(bundle.get("animations_path") or "")
+    preview_gif_path = project_dir / str(bundle.get("preview_gif_path") or "") if bundle.get("preview_gif_path") else None
+    atlas = load_json(atlas_path, None) if atlas_path.exists() else None
+    animations = load_json(animations_path, None) if animations_path.exists() else None
+    atlas_frames = atlas.get("frames") if isinstance(atlas, dict) else None
+    animation_names = sorted(animations.keys()) if isinstance(animations, dict) else []
+    referenced_frames: List[str] = []
+    if isinstance(animations, dict):
+        for clip in animations.values():
+            if isinstance(clip, dict):
+                referenced_frames.extend([str(name) for name in (clip.get("frames") or [])])
+    frame_lookup = set((atlas_frames or {}).keys()) if isinstance(atlas_frames, dict) else set()
+    missing_frame_refs = sorted(set(referenced_frames).difference(frame_lookup))
+    report = {
+        "project_id": project_id,
+        "generated_at": now_iso(),
+        "status": "pass",
+        "mode": "external_authoring",
+        "per_frame_checks": [],
+        "per_animation_checks": {},
+        "source_asset_hashes": {},
+        "metadata_checks": {
+            "external_authoring_enabled": check_state("pass" if store.get("enabled") else "fail"),
+            "has_spritesheet": check_state("pass" if spritesheet_path.exists() else "fail"),
+            "has_atlas": check_state("pass" if atlas_path.exists() else "fail"),
+            "has_animations": check_state("pass" if animations_path.exists() else "fail"),
+            "atlas_has_frames": check_state("pass" if isinstance(atlas_frames, dict) and atlas_frames else "fail"),
+            "animations_non_empty": check_state("pass" if animation_names else "fail"),
+            "animation_frames_resolve_in_atlas": check_state("pass" if not missing_frame_refs else "fail", {"missing_frames": missing_frame_refs}),
+            "has_preview_gif": check_state("pass" if preview_gif_path and preview_gif_path.exists() else "warning"),
+        },
+        "notes": [
+            "QA validated the imported external-authoring bundle rather than the legacy deterministic rig pipeline.",
+            "Semantic animation quality still requires human review in the workbench.",
+        ],
+        "sprite_model_build_report": {"status": "pass", "source": "external_authoring"},
+    }
+    if spritesheet_path.exists():
+        report["source_asset_hashes"][str(spritesheet_path.relative_to(project_dir))] = image_sha256(spritesheet_path)
+    if atlas_path.exists():
+        report["source_asset_hashes"][str(atlas_path.relative_to(project_dir))] = image_sha256(atlas_path)
+    if animations_path.exists():
+        report["source_asset_hashes"][str(animations_path.relative_to(project_dir))] = image_sha256(animations_path)
+    if preview_gif_path and preview_gif_path.exists():
+        report["source_asset_hashes"][str(preview_gif_path.relative_to(project_dir))] = image_sha256(preview_gif_path)
+    if any(item["status"] == "fail" for item in report["metadata_checks"].values()):
+        report["status"] = "fail"
+    write_json(canonical_downstream_path(project_dir, "qa_report"), report)
+    project["qa_report"] = report
+    project["current_stage"] = "qa"
+    project["status"] = "qa_%s" % report["status"]
+    project["updated_at"] = now_iso()
+    save_project(project)
+    call_progress(progress, 100, "Checks complete", "Imported SkelForm bundle validation finished.")
+    return report
+
+
 def run_qa(project_id: str, progress: Optional[ProgressCallback] = None) -> Dict[str, Any]:
     project = load_project(project_id)
+    external_authoring = project.get("external_authoring") or {}
+    imported_bundle = external_authoring.get("imported_bundle") if isinstance(external_authoring.get("imported_bundle"), dict) else None
+    if external_authoring.get("enabled") and imported_bundle:
+        return run_external_authoring_qa(project_id, progress=progress)
     project_dir = PROJECTS_ROOT / project_id
     sprite_model = project.get("sprite_model")
     rig = project.get("rig")
@@ -8883,10 +9192,73 @@ def export_project(project_id: str, progress: Optional[ProgressCallback] = None)
     project = load_project(project_id)
     if not project.get("qa_report") or project["qa_report"]["status"] != "pass":
         raise ValueError("Export blocked: QA must pass first.")
-    if not project.get("sprite_model"):
+    external_authoring = project.get("external_authoring") or {}
+    imported_bundle = external_authoring.get("imported_bundle") if isinstance(external_authoring.get("imported_bundle"), dict) else None
+    if not project.get("sprite_model") and not (external_authoring.get("enabled") and imported_bundle):
         raise ValueError("Export blocked: sprite model is missing.")
 
     project_dir = PROJECTS_ROOT / project_id
+    if external_authoring.get("enabled") and imported_bundle:
+        export_dir = project_dir / "exports" / datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+        export_dir.mkdir(parents=True, exist_ok=True)
+        call_progress(progress, 12, "Preparing external export", "Copying imported SkelForm assets into the standard export bundle.")
+        spritesheet_source = project_dir / str(imported_bundle.get("spritesheet_image_path") or "")
+        atlas_source = project_dir / str(imported_bundle.get("atlas_path") or "")
+        animations_source = project_dir / str(imported_bundle.get("animations_path") or "")
+        preview_source = project_dir / str(imported_bundle.get("preview_gif_path") or "") if imported_bundle.get("preview_gif_path") else None
+        for source, target_name in [
+            (spritesheet_source, "spritesheet.png"),
+            (atlas_source, "atlas.json"),
+            (animations_source, "animations.json"),
+        ]:
+            if not source.exists():
+                raise ValueError("Export blocked: missing imported bundle asset %s." % source)
+            (export_dir / target_name).write_bytes(source.read_bytes())
+        write_json(export_dir / "qa_report.json", project["qa_report"])
+        if preview_source and preview_source.exists():
+            (export_dir / "preview.gif").write_bytes(preview_source.read_bytes())
+        export_manifest = {
+            "project_id": project_id,
+            "approved_concept_id": (project.get("character_spec") or {}).get("approved_concept_id"),
+            "approved_master_pose": None,
+            "approved_source_image": (project.get("sprite_model") or {}).get("approved_source_image"),
+            "export_timestamp": now_iso(),
+            "tool_version": TOOL_VERSION,
+            "export_mode": "external_authoring",
+            "external_authoring_provider": external_authoring.get("provider"),
+            "external_bundle": {
+                "bundle_id": imported_bundle.get("bundle_id"),
+                "animation_names": imported_bundle.get("animation_names") or [],
+                "frame_count": imported_bundle.get("frame_count"),
+                "source_label": imported_bundle.get("source_label"),
+            },
+            "source_asset_hashes": project["qa_report"]["source_asset_hashes"],
+        }
+        write_json(export_dir / "export_manifest.json", export_manifest)
+        project["last_export"] = {
+            "export_dir": str(export_dir.relative_to(project_dir)),
+            "spritesheet": "spritesheet.png",
+            "atlas": "atlas.json",
+            "animations": "animations.json",
+            "preview_gif": "preview.gif" if preview_source and preview_source.exists() else None,
+            "export_manifest": "export_manifest.json",
+            "generated_at": now_iso(),
+            "mode": "external_authoring",
+        }
+        project["current_stage"] = "export"
+        project["status"] = "export_complete"
+        project["updated_at"] = now_iso()
+        save_project(project)
+        call_progress(progress, 100, "External export ready", "Imported SkelForm assets were packaged into the standard export directory.")
+        return {
+            "export_dir": str(export_dir.relative_to(project_dir)),
+            "spritesheet": "spritesheet.png",
+            "atlas": "atlas.json",
+            "animations": "animations.json",
+            "preview_gif": "preview.gif" if preview_source and preview_source.exists() else None,
+            "export_manifest": "export_manifest.json",
+            "mode": "external_authoring",
+        }
     clips = project.get("animation_clips") or load_json(canonical_downstream_path(project_dir, "animation_clips"), {})
     manual_clips = approved_manual_animation_clips(project)
     export_dir = project_dir / "exports" / datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
@@ -9643,6 +10015,13 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
             except FileNotFoundError:
                 return self._send_error_json(HTTPStatus.NOT_FOUND, "Project not found")
 
+        external_authoring_match = re.fullmatch(r"/api/projects/([^/]+)/external-authoring", path)
+        if external_authoring_match:
+            try:
+                return self._send_json(get_external_authoring(external_authoring_match.group(1)))
+            except FileNotFoundError:
+                return self._send_error_json(HTTPStatus.NOT_FOUND, "Project not found")
+
         job_match = re.fullmatch(r"/api/projects/([^/]+)/jobs/([^/]+)", path)
         if job_match:
             project_id, job_id = job_match.groups()
@@ -9849,6 +10228,21 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
             if manual_clip_create_match:
                 project_id = manual_clip_create_match.group(1)
                 return self._send_json(create_manual_animation_clip(project_id, read_body(self)))
+
+            external_authoring_update_match = re.fullmatch(r"/api/projects/([^/]+)/external-authoring/update", path)
+            if external_authoring_update_match:
+                project_id = external_authoring_update_match.group(1)
+                return self._send_json(update_external_authoring(project_id, read_body(self)))
+
+            external_authoring_session_match = re.fullmatch(r"/api/projects/([^/]+)/external-authoring/session", path)
+            if external_authoring_session_match:
+                project_id = external_authoring_session_match.group(1)
+                return self._send_json(open_external_authoring_session(project_id, read_body(self)))
+
+            external_authoring_import_match = re.fullmatch(r"/api/projects/([^/]+)/external-authoring/import-bundle", path)
+            if external_authoring_import_match:
+                project_id = external_authoring_import_match.group(1)
+                return self._send_json(import_external_authoring_bundle(project_id, read_body(self)))
 
             manual_clip_update_meta_match = re.fullmatch(r"/api/projects/([^/]+)/manual-clips/([^/]+)/update-meta", path)
             if manual_clip_update_meta_match:

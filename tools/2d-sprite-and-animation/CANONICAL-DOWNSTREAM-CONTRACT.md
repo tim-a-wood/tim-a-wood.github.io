@@ -7,6 +7,7 @@ New downstream writes use these canonical files only:
 - `rig.json`
 - `animation_clips.json`
 - `manual_animation_clips.json`
+- `external_authoring.json`
 - `qa_report.json`
 
 Legacy files are read for hydration only:
@@ -30,7 +31,11 @@ Canonical sprite workbench routes:
 - `POST /api/projects/<project_id>/clips/<clip_name>/reset`
 - `POST /api/projects/<project_id>/clips/<clip_name>/render`
 - `GET /api/projects/<project_id>/manual-clips`
+- `GET /api/projects/<project_id>/external-authoring`
 - `POST /api/projects/<project_id>/manual-clips/create`
+- `POST /api/projects/<project_id>/external-authoring/update`
+- `POST /api/projects/<project_id>/external-authoring/session`
+- `POST /api/projects/<project_id>/external-authoring/import-bundle`
 - `POST /api/projects/<project_id>/manual-clips/<clip_id>/update-meta`
 - `POST /api/projects/<project_id>/manual-clips/<clip_id>/frame/<frame_index>`
 - `POST /api/projects/<project_id>/manual-clips/<clip_id>/frame/<frame_index>/copy`
@@ -54,3 +59,4 @@ Notes:
 - `animation_clips.json` is the only canonical clip source for idle and walk.
 - `manual_animation_clips.json` stores optional named manual clips and their approval state separately from procedural idle/walk generation.
 - manual clip frames now persist pose `transforms` plus optional per-frame `part_repairs` overrides and `corrective_patches` for gap-filling patches rendered behind a chosen front part.
+- `external_authoring.json` stores the embedded SkelForm provider profile, session/embed metadata, validation notes from the adoption spike, and the most recently imported external export bundle.
