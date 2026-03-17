@@ -5334,6 +5334,10 @@ def _ai_source_image(project: Dict[str, Any], project_dir: Path) -> Image.Image:
     return Image.open(source_path).convert("RGBA")
 
 
+def _ai_backend_mode(project: Dict[str, Any]) -> str:
+    return str((project.get("brief") or {}).get("backend_mode") or "comfyui")
+
+
 def _ai_transform_variant(image: Image.Image, *, dx: int = 0, dy: int = 0, scale: float = 1.0, rotate: float = 0.0, mirror: bool = False) -> Image.Image:
     subject = image
     if mirror:
@@ -5409,40 +5413,122 @@ def _ai_render_manifest_for_frames(clip_name: str, frame_names: List[str]) -> Di
     }
 
 
+def run_comfy_prompt_graph(prompt_graph: Dict[str, Any], output_dir: Path) -> List[Path]:
+    base_url = DEFAULT_COMFYUI_BASE_URL.rstrip("/")
+    output_dir.mkdir(parents=True, exist_ok=True)
+    submit = http_json("POST", "%s/prompt" % base_url, {"prompt": prompt_graph}, timeout=COMFYUI_TIMEOUT_SECONDS)
+    prompt_id = submit.get("prompt_id")
+    if not prompt_id:
+        raise ValueError("ComfyUI did not return a prompt_id.")
+    if submit.get("node_errors"):
+        raise ValueError("ComfyUI reported node errors: %s" % submit["node_errors"])
+
+    deadline = time.monotonic() + COMFYUI_JOB_TIMEOUT_SECONDS
+    image_metas: List[Dict[str, Any]] = []
+    while time.monotonic() < deadline:
+        history_payload = http_json("GET", "%s/history/%s" % (base_url, quote(str(prompt_id))), timeout=COMFYUI_TIMEOUT_SECONDS)
+        image_metas = extract_history_images(history_payload, str(prompt_id))
+        if image_metas:
+            break
+        time.sleep(COMFYUI_POLL_SECONDS)
+    if not image_metas:
+        raise ValueError(
+            "ComfyUI workflow job timed out after %s seconds. "
+            "Increase SPRITE_WORKBENCH_COMFYUI_JOB_TIMEOUT_SECONDS for slower local runs."
+            % COMFYUI_JOB_TIMEOUT_SECONDS
+        )
+
+    result_paths: List[Path] = []
+    for index, image_meta in enumerate(image_metas):
+        image_bytes = fetch_comfyui_history_image(base_url, image_meta)
+        filename = image_meta.get("filename") or "frame_%02d.png" % index
+        path = output_dir / filename
+        path.write_bytes(image_bytes)
+        result_paths.append(path)
+    return result_paths
+
+
 def run_ai_character_lock(project_id: str, workflow_profile: str, source_asset_ids: List[str], parameters: Dict[str, Any], progress: Optional[ProgressCallback] = None) -> Dict[str, Any]:
     project = load_project(project_id)
     store = ai_workflow_or_error(project)
-    _ai_require_stack_ready(project)
     project_dir = PROJECTS_ROOT / project_id
-    source = _ai_source_image(project, project_dir)
+    backend_mode = _ai_backend_mode(project)
+    _ai_require_stack_ready(project)
     run_id = "lock-%s" % uuid.uuid4().hex[:8]
     output_root = ai_workflow_root(project_dir, "character_lock", run_id=run_id)
     refs_used = [item.get("reference_id") for item in ((project.get("brief") or {}).get("references") or []) if item.get("reference_id")]
     prompt = str(parameters.get("prompt") or project.get("prompt_text") or "").strip()
     negative_prompt = str(parameters.get("negative_prompt") or (project.get("brief") or {}).get("negative_prompt") or DEFAULT_NEGATIVE_PROMPT).strip()
-    candidates = []
-    transforms = [
-        {"dx": -10, "dy": 0, "scale": 1.0, "rotate": -1.5, "mirror": False},
-        {"dx": 8, "dy": -4, "scale": 1.02, "rotate": 1.0, "mirror": False},
-        {"dx": -4, "dy": 2, "scale": 0.98, "rotate": 0.0, "mirror": False},
-        {"dx": 12, "dy": 1, "scale": 1.01, "rotate": 0.5, "mirror": False},
-        {"dx": -14, "dy": -2, "scale": 0.99, "rotate": -0.5, "mirror": False},
-        {"dx": 0, "dy": 0, "scale": 1.0, "rotate": 0.0, "mirror": False},
-    ]
-    for index in range(AI_CHARACTER_LOCK_COUNT):
-        call_progress(progress, 10 + int((index / AI_CHARACTER_LOCK_COUNT) * 72), "Character Lock %d of %d" % (index + 1, AI_CHARACTER_LOCK_COUNT), "Generating identity-locked candidate set.")
-        variant = _ai_transform_variant(source, **transforms[index % len(transforms)])
-        asset_name = _ai_candidate_label(index)
-        output_path = output_root / ("%s.png" % asset_name)
-        _ai_write_asset(variant, output_path)
-        candidates.append({
-            "asset_id": "character_lock:%s:%s" % (run_id, asset_name),
-            "label": asset_name,
-            "image_path": str(output_path.relative_to(project_dir)),
-            "seed": int(parameters.get("seed", 1000 + index)),
-            "workflow_id": "photomaker_ipadapter_character_lock",
-            "references_used": refs_used,
-        })
+    candidates: List[Dict[str, Any]] = []
+
+    if backend_mode == "debug_procedural":
+        source = _ai_source_image(project, project_dir)
+        transforms = [
+            {"dx": -10, "dy": 0, "scale": 1.0, "rotate": -1.5, "mirror": False},
+            {"dx": 8, "dy": -4, "scale": 1.02, "rotate": 1.0, "mirror": False},
+            {"dx": -4, "dy": 2, "scale": 0.98, "rotate": 0.0, "mirror": False},
+            {"dx": 12, "dy": 1, "scale": 1.01, "rotate": 0.5, "mirror": False},
+            {"dx": -14, "dy": -2, "scale": 0.99, "rotate": -0.5, "mirror": False},
+            {"dx": 0, "dy": 0, "scale": 1.0, "rotate": 0.0, "mirror": False},
+        ]
+        for index in range(AI_CHARACTER_LOCK_COUNT):
+            call_progress(progress, 10 + int((index / AI_CHARACTER_LOCK_COUNT) * 72), "Character Lock %d of %d" % (index + 1, AI_CHARACTER_LOCK_COUNT), "Generating identity-locked candidate set.")
+            variant = _ai_transform_variant(source, **transforms[index % len(transforms)])
+            asset_name = _ai_candidate_label(index)
+            output_path = output_root / ("%s.png" % asset_name)
+            _ai_write_asset(variant, output_path)
+            candidates.append({
+                "asset_id": "character_lock:%s:%s" % (run_id, asset_name),
+                "label": asset_name,
+                "image_path": str(output_path.relative_to(project_dir)),
+                "seed": int(parameters.get("seed", 1000 + index)),
+                "workflow_id": "photomaker_ipadapter_character_lock",
+                "references_used": refs_used,
+            })
+    else:
+        template = load_workflow_template("character_lock_photomaker.json")
+        source_path, _ = resolve_sprite_source_image(project, project_dir)
+        conditioning_filename = upload_image_to_comfyui(DEFAULT_COMFYUI_BASE_URL, source_path)
+        checkpoint_name = DEFAULT_COMFYUI_CHECKPOINT
+        brief = project.get("brief") or {}
+        base_positive = prompt or build_positive_prompt_base(brief)
+        for index in range(AI_CHARACTER_LOCK_COUNT):
+            seed = int(parameters.get("seed", 1000 + index))
+            call_progress(progress, 10 + int((index / AI_CHARACTER_LOCK_COUNT) * 72), "Character Lock %d of %d" % (index + 1, AI_CHARACTER_LOCK_COUNT), "Generating identity-locked candidate set.")
+            request = ConceptRequest(
+                project_id=project_id,
+                positive_prompt=base_positive,
+                negative_prompt=negative_prompt,
+                width=CONCEPT_CANVAS[0],
+                height=CONCEPT_CANVAS[1],
+                seed=seed,
+                count=1,
+                references=[],
+                mode="character_lock",
+                refine_from_image=None,
+                refine_strength=None,
+                variation_axes={"summary": "character lock seed %d" % seed},
+                output_path=None,
+                checkpoint_name=checkpoint_name,
+            )
+            output_prefix = "sprite-workbench/%s/ai_sideview_v1/character_lock/%s_%02d" % (project_id, run_id, index)
+            prompt_graph = prepare_workflow_prompt(template, request, output_prefix, checkpoint_name, conditioning_filename)
+            result_paths = run_comfy_prompt_graph(prompt_graph, output_root)
+            if not result_paths:
+                raise ValueError("ComfyUI Character Lock run did not return any images.")
+            asset_name = _ai_candidate_label(index)
+            target_path = output_root / ("%s.png" % asset_name)
+            # Copy the first result into a stable per-candidate filename.
+            target_path.write_bytes(result_paths[0].read_bytes())
+            candidates.append({
+                "asset_id": "character_lock:%s:%s" % (run_id, asset_name),
+                "label": asset_name,
+                "image_path": str(target_path.relative_to(project_dir)),
+                "seed": seed,
+                "workflow_id": "photomaker_ipadapter_character_lock",
+                "references_used": refs_used,
+            })
+
     run = {
         "run_id": run_id,
         "stage": "character_lock",
@@ -5472,34 +5558,86 @@ def run_ai_character_lock(project_id: str, workflow_profile: str, source_asset_i
 def run_ai_key_pose_set(project_id: str, workflow_profile: str, source_asset_ids: List[str], parameters: Dict[str, Any], progress: Optional[ProgressCallback] = None) -> Dict[str, Any]:
     project = load_project(project_id)
     store = ai_workflow_or_error(project)
-    _ai_require_stack_ready(project)
     approved_asset = _ai_find_character_lock_asset(store, store.get("character_lock", {}).get("approved_asset_id"))
     if not approved_asset:
         raise ValueError("Approve a Character Lock candidate before generating key poses.")
+    _ai_require_stack_ready(project)
     project_dir = PROJECTS_ROOT / project_id
-    base = Image.open(project_dir / approved_asset["image_path"]).convert("RGBA")
+    backend_mode = _ai_backend_mode(project)
     run_id = "poses-%s" % uuid.uuid4().hex[:8]
     output_root = ai_workflow_root(project_dir, "key_pose_set", run_id=run_id)
-    pose_variants = {
-        "idle_a": {"dx": -2, "dy": 0, "scale": 1.0, "rotate": -0.4},
-        "idle_b": {"dx": 2, "dy": -2, "scale": 1.0, "rotate": 0.4},
-        "walk_contact_front": {"dx": -10, "dy": 2, "scale": 1.0, "rotate": -1.2},
-        "walk_passing_front": {"dx": -2, "dy": -6, "scale": 0.98, "rotate": -0.2},
-        "walk_contact_back": {"dx": 10, "dy": 2, "scale": 1.0, "rotate": 1.2},
-        "walk_passing_back": {"dx": 2, "dy": -6, "scale": 0.98, "rotate": 0.2},
-    }
-    poses = []
-    for index, pose_name in enumerate(AI_KEY_POSE_NAMES):
-        call_progress(progress, 10 + int((index / len(AI_KEY_POSE_NAMES)) * 74), "Key Pose %d of %d" % (index + 1, len(AI_KEY_POSE_NAMES)), "Generating canonical pose board.")
-        variant = _ai_transform_variant(base, **pose_variants[pose_name])
-        output_path = output_root / ("%s.png" % pose_name)
-        _ai_write_asset(variant, output_path)
-        poses.append({
-            "asset_id": "key_pose:%s:%s" % (run_id, pose_name),
-            "pose_name": pose_name,
-            "image_path": str(output_path.relative_to(project_dir)),
-            "source_character_lock_asset_id": approved_asset["asset_id"],
-        })
+    poses: List[Dict[str, Any]] = []
+
+    if backend_mode == "debug_procedural":
+        base = Image.open(project_dir / approved_asset["image_path"]).convert("RGBA")
+        pose_variants = {
+            "idle_a": {"dx": -2, "dy": 0, "scale": 1.0, "rotate": -0.4},
+            "idle_b": {"dx": 2, "dy": -2, "scale": 1.0, "rotate": 0.4},
+            "walk_contact_front": {"dx": -10, "dy": 2, "scale": 1.0, "rotate": -1.2},
+            "walk_passing_front": {"dx": -2, "dy": -6, "scale": 0.98, "rotate": -0.2},
+            "walk_contact_back": {"dx": 10, "dy": 2, "scale": 1.0, "rotate": 1.2},
+            "walk_passing_back": {"dx": 2, "dy": -6, "scale": 0.98, "rotate": 0.2},
+        }
+        for index, pose_name in enumerate(AI_KEY_POSE_NAMES):
+            call_progress(progress, 10 + int((index / len(AI_KEY_POSE_NAMES)) * 74), "Key Pose %d of %d" % (index + 1, len(AI_KEY_POSE_NAMES)), "Generating canonical pose board.")
+            variant = _ai_transform_variant(base, **pose_variants[pose_name])
+            output_path = output_root / ("%s.png" % pose_name)
+            _ai_write_asset(variant, output_path)
+            poses.append({
+                "asset_id": "key_pose:%s:%s" % (run_id, pose_name),
+                "pose_name": pose_name,
+                "image_path": str(output_path.relative_to(project_dir)),
+                "source_character_lock_asset_id": approved_asset["asset_id"],
+            })
+    else:
+        template = load_workflow_template("key_pose_photomaker.json")
+        checkpoint_name = DEFAULT_COMFYUI_CHECKPOINT
+        conditioning_filename = upload_image_to_comfyui(DEFAULT_COMFYUI_BASE_URL, project_dir / approved_asset["image_path"])
+        brief = project.get("brief") or {}
+        base_positive = build_positive_prompt_base(brief)
+        negative_prompt = (project.get("brief") or {}).get("negative_prompt") or DEFAULT_NEGATIVE_PROMPT
+        pose_prompts = {
+            "idle_a": "idle pose, relaxed stance, minimal motion blur",
+            "idle_b": "idle pose, subtle weight shift, minimal motion blur",
+            "walk_contact_front": "walk cycle contact pose, front leg contacting ground",
+            "walk_passing_front": "walk cycle passing pose, front leg passing under body",
+            "walk_contact_back": "walk cycle contact pose, rear leg contacting ground",
+            "walk_passing_back": "walk cycle passing pose, rear leg passing under body",
+        }
+        for index, pose_name in enumerate(AI_KEY_POSE_NAMES):
+            call_progress(progress, 10 + int((index / len(AI_KEY_POSE_NAMES)) * 74), "Key Pose %d of %d" % (index + 1, len(AI_KEY_POSE_NAMES)), "Generating canonical pose board.")
+            seed = stable_int(project_id, run_id, pose_name, base_positive, pose_prompts.get(pose_name, pose_name))
+            positive_prompt = "%s, %s" % (base_positive, pose_prompts.get(pose_name, pose_name))
+            request = ConceptRequest(
+                project_id=project_id,
+                positive_prompt=positive_prompt,
+                negative_prompt=negative_prompt,
+                width=CONCEPT_CANVAS[0],
+                height=CONCEPT_CANVAS[1],
+                seed=seed,
+                count=1,
+                references=[],
+                mode="key_pose_set",
+                refine_from_image=None,
+                refine_strength=None,
+                variation_axes={"summary": "key pose %s" % pose_name},
+                output_path=None,
+                checkpoint_name=checkpoint_name,
+            )
+            output_prefix = "sprite-workbench/%s/ai_sideview_v1/key_pose/%s_%s" % (project_id, run_id, pose_name)
+            prompt_graph = prepare_workflow_prompt(template, request, output_prefix, checkpoint_name, conditioning_filename)
+            result_paths = run_comfy_prompt_graph(prompt_graph, output_root)
+            if not result_paths:
+                raise ValueError("ComfyUI Key Pose run did not return any images for %s." % pose_name)
+            output_path = output_root / ("%s.png" % pose_name)
+            output_path.write_bytes(result_paths[0].read_bytes())
+            poses.append({
+                "asset_id": "key_pose:%s:%s" % (run_id, pose_name),
+                "pose_name": pose_name,
+                "image_path": str(output_path.relative_to(project_dir)),
+                "source_character_lock_asset_id": approved_asset["asset_id"],
+            })
+
     run = {
         "run_id": run_id,
         "stage": "key_pose_set",
@@ -5532,42 +5670,97 @@ def run_ai_motion_clip(project_id: str, workflow_profile: str, clip_name: str, s
     project = load_project(project_id)
     store = ai_workflow_or_error(project)
     _ai_require_stack_ready(project)
+    backend_mode = _ai_backend_mode(project)
     key_pose_run = _ai_find_key_pose_run(store, store.get("key_pose_set", {}).get("approved_run_id"))
     if not key_pose_run:
         raise ValueError("Approve a Key Pose Board before running motion.")
     project_dir = PROJECTS_ROOT / project_id
-    pose_images = {}
-    for pose in key_pose_run.get("poses") or []:
-        image_path = project_dir / str(pose.get("image_path") or "")
-        if image_path.exists():
-            pose_images[pose["pose_name"]] = Image.open(image_path).convert("RGBA")
     spec = AI_CLIP_SPECS[clip_name]
-    sequence = spec["pose_sequence"]
-    frame_total = spec["frame_count"]
     run_id = "%s-%s" % (clip_name, uuid.uuid4().hex[:8])
     output_root = ai_workflow_root(project_dir, "motion_clip", clip_name=clip_name, run_id=run_id)
     frame_dir = output_root / "frames"
     clear_directory(output_root)
     frame_dir.mkdir(parents=True, exist_ok=True)
     frame_records = []
-    for index in range(frame_total):
-        segment_position = (index / max(1, frame_total - 1)) * (len(sequence) - 1)
-        left_index = int(math.floor(segment_position))
-        right_index = min(len(sequence) - 1, left_index + 1)
-        blend_amount = segment_position - left_index
-        left_pose = pose_images[sequence[left_index]]
-        right_pose = pose_images[sequence[right_index]]
-        blended = Image.blend(left_pose, right_pose, blend_amount)
-        frame_name = "%s_%02d.png" % (clip_name, index)
-        frame_path = frame_dir / frame_name
-        _ai_write_asset(blended, frame_path)
-        frame_records.append({
-            "frame_name": frame_name,
-            "image_path": str(frame_path.relative_to(project_dir)),
-            "source_pose_names": [sequence[left_index], sequence[right_index]],
-            "blend_amount": round(blend_amount, 4),
-        })
-        call_progress(progress, 12 + int((index / max(1, frame_total)) * 74), "Motion frame %d of %d" % (index + 1, frame_total), "Interpolating pose-to-pose motion frames.")
+    sequence = spec["pose_sequence"]
+    frame_total = spec["frame_count"]
+
+    if backend_mode == "debug_procedural":
+        pose_images = {}
+        for pose in key_pose_run.get("poses") or []:
+            image_path = project_dir / str(pose.get("image_path") or "")
+            if image_path.exists():
+                pose_images[pose["pose_name"]] = Image.open(image_path).convert("RGBA")
+        for index in range(frame_total):
+            segment_position = (index / max(1, frame_total - 1)) * (len(sequence) - 1)
+            left_index = int(math.floor(segment_position))
+            right_index = min(len(sequence) - 1, left_index + 1)
+            blend_amount = segment_position - left_index
+            left_pose = pose_images[sequence[left_index]]
+            right_pose = pose_images[sequence[right_index]]
+            blended = Image.blend(left_pose, right_pose, blend_amount)
+            frame_name = "%s_%02d.png" % (clip_name, index)
+            frame_path = frame_dir / frame_name
+            _ai_write_asset(blended, frame_path)
+            frame_records.append({
+                "frame_name": frame_name,
+                "image_path": str(frame_path.relative_to(project_dir)),
+                "source_pose_names": [sequence[left_index], sequence[right_index]],
+                "blend_amount": round(blend_amount, 4),
+            })
+            call_progress(progress, 12 + int((index / max(1, frame_total)) * 74), "Motion frame %d of %d" % (index + 1, frame_total), "Interpolating pose-to-pose motion frames.")
+    else:
+        template = load_workflow_template("motion_tooncrafter.json")
+        prompt_graph = copy.deepcopy(template["prompt"])
+        meta = template.get("meta") or {}
+        motion_meta = meta.get("motion") or {}
+        motion_node = motion_meta.get("node")
+        if motion_node and motion_node in prompt_graph:
+            node_inputs = prompt_graph[motion_node]["inputs"]
+            if motion_meta.get("frames_input"):
+                node_inputs[motion_meta["frames_input"]] = frame_total
+            if motion_meta.get("fps_input"):
+                node_inputs[motion_meta["fps_input"]] = spec["fps"]
+        poses_meta = (meta.get("poses") or {}).get("load_nodes") or []
+        # Map up to four unique poses from the sequence into the ToonCrafter template.
+        pose_by_name = {pose["pose_name"]: pose for pose in (key_pose_run.get("poses") or [])}
+        unique_sequence = []
+        for name in sequence:
+            if name not in unique_sequence:
+                unique_sequence.append(name)
+        for mapped, pose_name in zip(poses_meta, unique_sequence):
+            pose = pose_by_name.get(pose_name)
+            if not pose:
+                continue
+            image_path = project_dir / str(pose.get("image_path") or "")
+            if not image_path.exists():
+                continue
+            uploaded = upload_image_to_comfyui(DEFAULT_COMFYUI_BASE_URL, image_path)
+            node_id = mapped.get("node")
+            input_name = mapped.get("input") or "image"
+            if node_id and node_id in prompt_graph:
+                prompt_graph[node_id]["inputs"][input_name] = uploaded
+        call_progress(progress, 16, "%s motion" % clip_name.title(), "Generating motion frames via ToonCrafter.")
+        result_paths = run_comfy_prompt_graph(prompt_graph, frame_dir)
+        if len(result_paths) < frame_total:
+            raise ValueError("ComfyUI ToonCrafter run returned %d frames, expected %d." % (len(result_paths), frame_total))
+        # Truncate or use first frame_total outputs to keep invariants stable.
+        for index in range(frame_total):
+            path = result_paths[index]
+            frame_name = "%s_%02d.png" % (clip_name, index)
+            frame_path = frame_dir / frame_name
+            frame_path.write_bytes(path.read_bytes())
+            segment_position = (index / max(1, frame_total - 1)) * (len(sequence) - 1)
+            left_index = int(math.floor(segment_position))
+            right_index = min(len(sequence) - 1, left_index + 1)
+            blend_amount = segment_position - left_index
+            frame_records.append({
+                "frame_name": frame_name,
+                "image_path": str(frame_path.relative_to(project_dir)),
+                "source_pose_names": [sequence[left_index], sequence[right_index]],
+                "blend_amount": round(blend_amount, 4),
+            })
+            call_progress(progress, 12 + int((index / max(1, frame_total)) * 74), "Motion frame %d of %d" % (index + 1, frame_total), "Mapping ToonCrafter frames into the motion clip.")
     run = {
         "run_id": run_id,
         "stage": "motion_clip",

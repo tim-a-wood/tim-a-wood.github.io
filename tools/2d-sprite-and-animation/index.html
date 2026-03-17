@@ -3896,11 +3896,16 @@ function externalAuthoringBundle(project = state.activeProject) {
 
 function syncWorkflowModeControls() {
     const aiEnabled = aiWorkflowEnabled();
+    const backendMode = (state.activeProject?.brief?.backend_mode) || "comfyui";
     const productionWarning = document.querySelector("#production-warning");
     if (productionWarning) {
-        productionWarning.textContent = aiEnabled
-            ? "AI workflow mode is active. Motion, extraction, and cleanup now run through ai_sideview_v1 rather than the deterministic rig path."
-            : "Clip output is deterministic. Rebuilds from the same approved sprite model and rig should match exactly.";
+        if (!aiEnabled) {
+            productionWarning.textContent = "Clip output is deterministic. Rebuilds from the same approved sprite model and rig should match exactly.";
+        } else if (backendMode === "debug_procedural") {
+            productionWarning.textContent = "AI workflow mode is active in Debug Placeholder mode. Motion, extraction, and cleanup run through deterministic local transforms only.";
+        } else {
+            productionWarning.textContent = "AI workflow mode is active. Character Lock, Key Poses, and Motion are driven by ComfyUI; extraction and pixel cleanup remain local and deterministic.";
+        }
     }
     ["#render-idle", "#render-walk"].forEach((selector) => {
         const node = document.querySelector(selector);
@@ -3915,11 +3920,14 @@ function renderModeShell() {
     const wizardButton = document.querySelector("#mode-wizard");
     if (workbenchButton) workbenchButton.hidden = true;
     if (wizardButton) wizardButton.hidden = true;
+    const backendMode = (state.activeProject?.brief?.backend_mode) || "comfyui";
     modeSummary.textContent = state.activeProject
         ? (aiWorkflowLegacyMode()
             ? "This project uses a retired workflow and is shown in read-only legacy mode. Create a new project to use ai_sideview_v1."
             : aiWorkflowEnabled()
-                ? "ai_sideview_v1 is active. The workbench now runs Character Lock, Key Pose Board, Motion Workflow, and Cleanup & QA as the primary production path."
+                ? backendMode === "debug_procedural"
+                    ? "ai_sideview_v1 is active in Debug Placeholder mode. Character Lock, Key Poses, Motion, and Cleanup run via local deterministic transforms only."
+                    : "ai_sideview_v1 is active. Character Lock, Key Pose Board, Motion Workflow, and Cleanup & QA run as a ComfyUI-backed production path with local extraction/cleanup."
             : "Workbench is now a single guided production flow. Advance through the approved steps and keep each stage deterministic.")
         : "Create or open a project to start the guided Workbench flow.";
 
@@ -5694,6 +5702,7 @@ function renderAiCharacterLockBoard() {
     const project = state.activeProject;
     if (!project || !aiWorkflowEnabled(project)) return;
     const store = aiWorkflowStore(project);
+    const backendMode = (project.brief?.backend_mode) || "comfyui";
     const runs = Object.values(store?.character_lock?.runs || {}).reverse();
     const approvedAssetId = store?.character_lock?.approved_asset_id;
     root.innerHTML = `
@@ -5703,7 +5712,12 @@ function renderAiCharacterLockBoard() {
                     <span>Run Character Lock</span>
                     <span class="small-note">${runs.length} run${runs.length === 1 ? "" : "s"}</span>
                 </div>
-                <div class="small-note">This stage creates exactly 6 candidates from the approved concept using the active ai_sideview_v1 profile.</div>
+                <div class="small-note">
+                    This stage creates exactly 6 candidates from the approved concept using the active ai_sideview_v1 profile.
+                    ${backendMode === "debug_procedural"
+                        ? `<span class="pill warn" style="margin-left: 6px;">Debug placeholders</span>`
+                        : `<span class="pill ok" style="margin-left: 6px;">ComfyUI: PhotoMaker + IPAdapter</span>`}
+                </div>
                 <div class="actions" style="margin-top: 12px;">
                     <button id="ai-run-character-lock" ${project.selected_concept_id ? "" : "disabled"}>Generate 6 Candidates</button>
                 </div>
@@ -5853,6 +5867,7 @@ function renderAiMotionWorkflowBoard() {
     const project = state.activeProject;
     if (!project || !aiWorkflowEnabled(project)) return;
     const store = aiWorkflowStore(project);
+    const backendMode = (project.brief?.backend_mode) || "comfyui";
     const approvedPoseRun = aiWorkflowApprovedRun("key_pose_set", null, project);
     root.innerHTML = Object.keys({ idle: 1, walk: 1 }).map((clipName) => {
         const motionGroup = aiWorkflowRunGroup("motion_runs", clipName, project);
@@ -5865,6 +5880,12 @@ function renderAiMotionWorkflowBoard() {
                 <div class="check-row wrap">
                     <span>${humanizeKey(clipName)}</span>
                     <span class="small-note">${approvedCleanup ? "cleanup approved" : "pending"}</span>
+                </div>
+                <div class="small-note">
+                    Generate motion frames from the approved Key Pose Board, then extract and clean up pixel-perfect runtime frames.
+                    ${backendMode === "debug_procedural"
+                        ? `<span class="pill warn" style="margin-left: 6px;">Debug placeholders</span>`
+                        : `<span class="pill ok" style="margin-left: 6px;">ToonCrafter via ComfyUI</span>`}
                 </div>
                 <div class="actions" style="margin-top: 12px;">
                     <button data-ai-run-motion="${clipName}" ${approvedPoseRun ? "" : "disabled"}>Run Motion</button>

@@ -487,6 +487,43 @@ class SpriteWorkbenchTests(unittest.TestCase):
         self.assertEqual(health["dependencies"]["comfyui"]["status"], "fail")
         self.assertIn("connection refused", health["dependencies"]["comfyui"]["detail"])
 
+    def test_ai_character_lock_uses_comfyui_when_backend_mode_is_comfyui(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            original_root = sw.PROJECTS_ROOT
+            sw.PROJECTS_ROOT = Path(tmpdir)
+            try:
+                project = sw.create_project({
+                    "project_name": "Comfy Hero",
+                    "prompt_text": "a side-view lantern knight",
+                    "backend_mode": "comfyui",
+                })
+                project = self.import_valid_manual_concept(project["project_id"])
+
+                def fake_http_json(method, url, payload=None, headers=None, timeout=sw.COMFYUI_TIMEOUT_SECONDS):
+                    if url.rstrip("/").endswith("/prompt") and method == "POST":
+                        return {"prompt_id": "job-123"}
+                    if "/history/" in url and method == "GET":
+                        return {
+                            "outputs": {
+                                "7": {
+                                    "images": [{
+                                        "filename": "lock_00.png",
+                                        "subfolder": "",
+                                        "type": "output",
+                                    }]
+                                }
+                            }
+                        }
+                    return {}
+
+                with patch.object(sw, "http_json", side_effect=fake_http_json), patch.object(sw, "fetch_comfyui_history_image", return_value=b"fake-bytes"), patch.object(sw.ComfyUIConceptBackend, "healthcheck", return_value={"ok": True, "base_url": sw.DEFAULT_COMFYUI_BASE_URL}):
+                    run = sw.run_ai_character_lock(project["project_id"], sw.AI_WORKFLOW_PROFILE, [project["selected_concept_id"]], {}, progress=None)
+            finally:
+                sw.PROJECTS_ROOT = original_root
+
+        self.assertEqual(len(run["candidates"]), sw.AI_CHARACTER_LOCK_COUNT)
+        self.assertTrue(all(item.get("workflow_id") == "photomaker_ipadapter_character_lock" for item in run["candidates"]))
+
     def test_legacy_projects_hydrate_read_only_ai_mode(self):
         with self.fixture_project("hybrid-mixed-pipeline"):
             project = sw.load_project("hybrid-mixed-pipeline")
