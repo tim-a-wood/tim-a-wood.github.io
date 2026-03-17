@@ -1598,9 +1598,19 @@
             align-items: start;
         }
 
+        .manual-studio-layout.skelform-active {
+            grid-template-columns: 1fr;
+            gap: 14px;
+        }
+
         .manual-clip-shell {
             grid-template-columns: minmax(280px, 320px) minmax(0, 1fr);
             align-items: start;
+        }
+
+        .skelform-studio-shell {
+            grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
+            align-items: stretch;
         }
 
         .manual-clip-sidebar,
@@ -1611,6 +1621,31 @@
 
         .manual-clip-workspace {
             min-width: 0;
+        }
+
+        .skelform-editor-column {
+            min-width: 0;
+        }
+
+        .skelform-embed-card {
+            min-height: clamp(760px, 82vh, 1280px);
+            display: grid;
+            grid-template-rows: auto auto minmax(0, 1fr);
+            gap: 12px;
+            padding: 12px;
+        }
+
+        .skelform-embed-frame {
+            width: 100%;
+            min-height: clamp(680px, 76vh, 1200px);
+            height: 100%;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 16px;
+            background: rgba(8, 12, 19, 0.8);
+        }
+
+        .skelform-import-card {
+            align-content: start;
         }
 
         .manual-clip-toolbar {
@@ -2101,6 +2136,12 @@
             min-height: calc(100vh - 28px);
         }
 
+        body.wizard-mode.skelform-authoring #mode-shell,
+        body.wizard-mode.skelform-authoring .panel:not(#mode-shell):not(.hidden-by-mode) {
+            grid-column: 1 / -1;
+            position: static;
+        }
+
         @media (min-width: 1181px) {
             #intake,
             #concepts,
@@ -2116,6 +2157,13 @@
             #activity-log {
                 grid-column: 9 / -1;
                 align-self: start;
+            }
+
+            body.skelform-authoring #production,
+            body.skelform-authoring #qa,
+            body.skelform-authoring #export,
+            body.skelform-authoring #activity-log {
+                grid-column: 1 / -1;
             }
         }
 
@@ -2295,6 +2343,10 @@
             <div class="nav-list">
                 <a class="nav-link" href="#intake">Setup</a>
                 <a class="nav-link" href="#concepts">Looks</a>
+                <a class="nav-link" href="#ai-character-lock">Character Lock</a>
+                <a class="nav-link" href="#ai-key-pose-board">Key Pose Board</a>
+                <a class="nav-link" href="#ai-motion-workflow">Motion Workflow</a>
+                <a class="nav-link" href="#ai-cleanup-qa">Cleanup & QA</a>
                 <a class="nav-link" href="#rig-layout">Rig Layout</a>
                 <a class="nav-link" href="#part-split">Part Split</a>
                 <a class="nav-link" href="#split-review">Split Review</a>
@@ -2605,6 +2657,50 @@
             <div style="margin-top: 16px;" data-wizard-view="concepts,review,workbench">
                 <div class="concept-grid" id="concept-grid"></div>
             </div>
+        </section>
+
+        <section class="panel" id="ai-character-lock">
+            <div class="section-head">
+                <div>
+                    <h3>Character Lock</h3>
+                    <p>Generate six identity-locked side-view candidates from the approved concept, then approve one locked character before key poses.</p>
+                </div>
+                <div class="stage-meta" data-stage="rig_layout"></div>
+            </div>
+            <div id="ai-character-lock-board"></div>
+        </section>
+
+        <section class="panel" id="ai-key-pose-board">
+            <div class="section-head">
+                <div>
+                    <h3>Key Pose Board</h3>
+                    <p>Generate and review the canonical idle and walk pose anchors that drive the motion workflow.</p>
+                </div>
+                <div class="stage-meta" data-stage="part_manifest"></div>
+            </div>
+            <div id="ai-key-pose-board-root"></div>
+        </section>
+
+        <section class="panel" id="ai-motion-workflow">
+            <div class="section-head">
+                <div>
+                    <h3>Motion Workflow</h3>
+                    <p>Run motion, extraction, and pixel cleanup for idle and walk. Approve the cleaned outputs before Cleanup & QA.</p>
+                </div>
+                <div class="stage-meta" data-stage="production"></div>
+            </div>
+            <div id="ai-motion-workflow-board"></div>
+        </section>
+
+        <section class="panel" id="ai-cleanup-qa">
+            <div class="section-head">
+                <div>
+                    <h3>Cleanup & QA</h3>
+                    <p>Review dependency readiness, approved lineage, and deterministic checks before export.</p>
+                </div>
+                <div class="stage-meta" data-stage="qa"></div>
+            </div>
+            <div id="ai-cleanup-qa-board"></div>
         </section>
 
         <section class="panel" id="rig-layout">
@@ -3160,22 +3256,22 @@ const STORAGE_KEYS = {
 };
 
 const WIZARD_STEPS = ["project", "brief", "references", "concepts", "review", "rig_layout", "part_manifest", "part_shape_edit", "split_build", "split_review", "sprite_model", "rig", "clips", "qa", "export"];
-const WORKBENCH_SECTION_IDS = ["intake", "concepts", "rig-layout", "part-manifest", "part-shape-edit", "split-build", "split-review", "layer-review", "rig-review", "production", "qa", "export", "activity-log"];
+const WORKBENCH_SECTION_IDS = ["intake", "concepts", "ai-character-lock", "ai-key-pose-board", "ai-motion-workflow", "ai-cleanup-qa", "rig-layout", "part-manifest", "part-shape-edit", "split-build", "split-review", "layer-review", "rig-review", "production", "qa", "export", "activity-log"];
 const WIZARD_SECTION_MAP = {
     project: ["intake"],
     brief: ["intake"],
     references: ["intake"],
     concepts: ["concepts"],
     review: ["concepts"],
-    rig_layout: ["rig-layout"],
-    part_manifest: ["part-manifest"],
+    rig_layout: ["ai-character-lock"],
+    part_manifest: ["ai-key-pose-board"],
     part_shape_edit: ["part-shape-edit"],
     split_build: ["split-build"],
     split_review: ["split-review"],
     sprite_model: ["layer-review"],
     rig: ["rig-review"],
-    clips: ["production"],
-    qa: ["qa"],
+    clips: ["ai-motion-workflow"],
+    qa: ["ai-cleanup-qa"],
     export: ["export"],
 };
 const WIZARD_META = {
@@ -3210,16 +3306,16 @@ const WIZARD_META = {
         example: "If Codex rejects an attempt, use the next Gemini prompt it generated and import the next result.",
     },
     rig_layout: {
-        label: "Define Rig Layout",
-        description: "Review the generated rig layout JSON, adjust supported fields if needed, and approve it before extraction.",
-        outcome: "The approved rig layout becomes the deterministic source for sprite extraction and rig build.",
-        example: "Use conservative edits. Fewer, larger parts are usually more stable than many tiny articulated pieces.",
+        label: "Character Lock",
+        description: "Generate six identity-locked side-view candidates from the approved concept and approve one before key poses.",
+        outcome: "You will have one locked character look that drives the rest of the AI motion workflow.",
+        example: "Pick the candidate with the cleanest side silhouette and most stable prop read.",
     },
     part_manifest: {
-        label: "Configure Part Manifest",
-        description: "Turn the approved rig layout into the explicit list of parts that will actually be authored.",
-        outcome: "You will have the canonical required and optional part list for shape authoring.",
-        example: "Use this step to simplify, merge, or add optional parts before shapes exist.",
+        label: "Key Pose Board",
+        description: "Generate the six canonical idle and walk pose anchors from the approved Character Lock output.",
+        outcome: "You will have one approved pose set that blocks motion until it is accepted.",
+        example: "Check silhouette consistency across idle, contact, and passing poses before approving the board.",
     },
     part_shape_edit: {
         label: "Edit Part Shapes",
@@ -3252,16 +3348,16 @@ const WIZARD_META = {
         example: "Check joint placement, prop attachment, and the neutral pose before rendering clips.",
     },
     clips: {
-        label: "Build Animations",
-        description: "Render deterministic idle and walk clips from the rigged sprite model.",
-        outcome: "You will get fixed-size final frames ready for QA and export.",
-        example: "This stage does not call AI. It reuses the approved sprite model and rig only.",
+        label: "Motion Workflow",
+        description: "Run pose-to-pose motion, extraction, and pixel cleanup for idle and walk until both clips are approved.",
+        outcome: "You will get cleaned 256x256 transparent frames ready for deterministic QA and export.",
+        example: "Run motion first, then extraction, then cleanup for each clip before approving the final output.",
     },
     qa: {
-        label: "Check Results",
-        description: "Run the available image checks and review the results before export.",
-        outcome: "Failed checks stop export so problems are visible before packaging.",
-        example: "Use this step to catch missing frames, wrong sizes, or clipping issues.",
+        label: "Cleanup & QA",
+        description: "Review dependency health, approved lineage, and deterministic frame checks before export.",
+        outcome: "Failed checks stop export so alignment, transparency, and frame-count issues are visible before packaging.",
+        example: "Use this step to catch clipped bounds, opaque backgrounds, or shared-pivot drift.",
     },
     export: {
         label: "Export",
@@ -3428,6 +3524,38 @@ function humanizeKey(value) {
         .replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
+function aiWorkflowStore(project = state.activeProject) {
+    return project?.ai_workflow || null;
+}
+
+function aiWorkflowEnabled(project = state.activeProject) {
+    return Boolean(aiWorkflowStore(project)?.enabled) && !Boolean(aiWorkflowStore(project)?.legacy_mode);
+}
+
+function aiWorkflowLegacyMode(project = state.activeProject) {
+    return Boolean(aiWorkflowStore(project)?.legacy_mode);
+}
+
+function aiWorkflowRunGroup(groupName, clipName = null, project = state.activeProject) {
+    const store = aiWorkflowStore(project);
+    if (!store) return null;
+    if (!clipName) return store[groupName] || null;
+    return store[groupName]?.[clipName] || null;
+}
+
+function aiWorkflowApprovedRun(groupName, clipName = null, project = state.activeProject) {
+    const group = aiWorkflowRunGroup(groupName, clipName, project);
+    if (!group) return null;
+    const runId = group.approved_run_id;
+    return runId ? group.runs?.[runId] || null : null;
+}
+
+function visibleWizardSteps(project = state.activeProject) {
+    return aiWorkflowEnabled(project)
+        ? ["project", "brief", "references", "concepts", "review", "rig_layout", "part_manifest", "clips", "qa", "export"]
+        : WIZARD_STEPS;
+}
+
 function wizardProgressSummary(project) {
     const statuses = project?.step_statuses || {};
     const completed = Object.values(statuses).filter((status) => status === "complete").length;
@@ -3571,6 +3699,19 @@ function activeWizardStep() {
     return wizardModel().current_step || wizardModel().recommended_next_step || "project";
 }
 
+const WIZARD_LEGACY_LABELS = {
+    rig_layout: "Rig Layout",
+    part_manifest: "Part Manifest",
+    clips: "Build Animations",
+    qa: "Check Results",
+};
+
+function wizardStepLabel(step, project = state.activeProject) {
+    if (aiWorkflowLegacyMode(project) && WIZARD_LEGACY_LABELS[step])
+        return WIZARD_LEGACY_LABELS[step];
+    return WIZARD_META[step]?.label || step;
+}
+
 function wizardSummaryText(step) {
     const project = state.activeProject;
     if (!project) {
@@ -3589,8 +3730,14 @@ function wizardSummaryText(step) {
         case "review":
             return project.selected_concept_id ? `Chosen ${project.selected_concept_id}` : "No valid concept chosen yet.";
         case "rig_layout":
+            if (aiWorkflowEnabled(project)) {
+                return project.ai_workflow?.character_lock?.approved_asset_id || "Character Lock not approved yet.";
+            }
             return project.rig_layout_approved ? `${project.rig_layout?.rig_profile || "layout"} approved` : project.rig_layout ? `${project.rig_layout?.parts?.length || 0} parts in layout` : "Rig layout not generated yet.";
         case "part_manifest":
+            if (aiWorkflowEnabled(project)) {
+                return project.ai_workflow?.key_pose_set?.approved_run_id || "Key Pose Board not approved yet.";
+            }
             return project.part_manifest_approved ? `${project.part_manifest?.parts?.length || 0} manifest parts approved` : project.part_manifest ? `${project.part_manifest?.parts?.length || 0} manifest parts` : "Part manifest not generated yet.";
         case "part_shape_edit":
             return project.part_shapes_approved ? `${project.part_shapes?.parts?.length || 0} shapes approved` : project.part_shapes ? `${project.part_shapes?.parts?.length || 0} shape drafts` : "Part shapes not initialized yet.";
@@ -3603,13 +3750,14 @@ function wizardSummaryText(step) {
         case "rig":
             return project.rig_review_approved ? "Rig approved." : project.rig ? "Rig built." : "Rig not built.";
         case "clips":
-            if (project?.external_authoring?.enabled) {
-                const bundle = project.external_authoring.imported_bundle;
-                return bundle ? `SkelForm bundle imported · ${bundle.animation_names?.length || 0} clip(s)` : "SkelForm session ready";
+            if (aiWorkflowEnabled(project)) {
+                const idleRun = aiWorkflowApprovedRun("cleanup_runs", "idle", project);
+                const walkRun = aiWorkflowApprovedRun("cleanup_runs", "walk", project);
+                return `${idleRun ? "idle cleaned" : "idle pending"} · ${walkRun ? "walk cleaned" : "walk pending"}`;
             }
             return `${project.build_status?.idle_render_complete ? "idle ready" : "idle pending"} · ${project.build_status?.walk_render_complete ? "walk ready" : "walk pending"}`;
         case "qa":
-            return project.qa_report?.status || "Checks not run.";
+            return project.qa_report?.status || (aiWorkflowEnabled(project) ? "Cleanup & QA not run." : "Checks not run.");
         case "export":
             return project.last_export?.export_dir || "No export yet.";
         default:
@@ -3647,7 +3795,7 @@ function syncWizardPanelHeadings() {
     if (!section || !meta) return;
     const title = section.querySelector(".section-head h3");
     const description = section.querySelector(".section-head p");
-    if (title) title.textContent = meta.label;
+    if (title) title.textContent = wizardStepLabel(step);
     if (description) description.textContent = meta.description;
 }
 
@@ -3699,21 +3847,21 @@ function nextClipAction() {
 function applyModeVisibility() {
     const mode = "wizard";
     const activeStep = activeWizardStep();
-    const externalEnabled = Boolean(state.activeProject?.external_authoring?.enabled);
-    const hiddenForExternal = new Set(["rig-layout", "part-manifest", "part-shape-edit", "split-build", "split-review", "layer-review", "rig-review"]);
+    const aiEnabled = aiWorkflowEnabled();
+    const hiddenForAi = new Set(["rig-layout", "part-manifest", "part-shape-edit", "split-build", "split-review", "layer-review", "rig-review", "production", "qa"]);
     document.body.classList.toggle("wizard-mode", mode === "wizard");
     const allowedSections = new Set(mode === "wizard" ? wizardSectionIds(activeStep) : WORKBENCH_SECTION_IDS);
     WORKBENCH_SECTION_IDS.forEach((id) => {
         const node = document.querySelector(`#${id}`);
         if (!node) return;
-        const shouldHide = (mode === "wizard" && !allowedSections.has(id)) || (externalEnabled && hiddenForExternal.has(id));
+        const shouldHide = (mode === "wizard" && !allowedSections.has(id)) || (aiEnabled && hiddenForAi.has(id));
         node.classList.toggle("hidden-by-mode", shouldHide);
         node.hidden = shouldHide;
     });
     document.querySelectorAll(".nav-link").forEach((node) => {
         const href = node.getAttribute("href");
         const sectionId = href?.startsWith("#") ? href.slice(1) : "";
-        node.hidden = Boolean(externalEnabled && hiddenForExternal.has(sectionId));
+        node.hidden = Boolean(aiEnabled && hiddenForAi.has(sectionId));
     });
     document.querySelectorAll("[data-wizard-view]").forEach((node) => {
         const steps = normalizeWizardVisibility(node.dataset.wizardView);
@@ -3746,17 +3894,17 @@ function externalAuthoringBundle(project = state.activeProject) {
     return externalAuthoringStore(project)?.imported_bundle || null;
 }
 
-function syncExternalAuthoringControls() {
-    const externalEnabled = externalAuthoringEnabled();
+function syncWorkflowModeControls() {
+    const aiEnabled = aiWorkflowEnabled();
     const productionWarning = document.querySelector("#production-warning");
     if (productionWarning) {
-        productionWarning.textContent = externalEnabled
-            ? "SkelForm external authoring is active. Import a SkelForm export bundle here, then run QA and export through the current workbench."
+        productionWarning.textContent = aiEnabled
+            ? "AI workflow mode is active. Motion, extraction, and cleanup now run through ai_sideview_v1 rather than the deterministic rig path."
             : "Clip output is deterministic. Rebuilds from the same approved sprite model and rig should match exactly.";
     }
     ["#render-idle", "#render-walk"].forEach((selector) => {
         const node = document.querySelector(selector);
-        if (node) node.hidden = externalEnabled;
+        if (node) node.hidden = aiEnabled;
     });
 }
 
@@ -3768,42 +3916,40 @@ function renderModeShell() {
     if (workbenchButton) workbenchButton.hidden = true;
     if (wizardButton) wizardButton.hidden = true;
     modeSummary.textContent = state.activeProject
-        ? (externalAuthoringEnabled()
-            ? "SkelForm external authoring is enabled for this project. The workbench now skips the legacy split/rig authoring stages and expects an imported bundle before QA/export."
+        ? (aiWorkflowLegacyMode()
+            ? "This project uses a retired workflow and is shown in read-only legacy mode. Create a new project to use ai_sideview_v1."
+            : aiWorkflowEnabled()
+                ? "ai_sideview_v1 is active. The workbench now runs Character Lock, Key Pose Board, Motion Workflow, and Cleanup & QA as the primary production path."
             : "Workbench is now a single guided production flow. Advance through the approved steps and keep each stage deterministic.")
         : "Create or open a project to start the guided Workbench flow.";
 
     const model = wizardModel();
     const step = activeWizardStep();
+    const steps = visibleWizardSteps();
     const stepStatuses = model.step_statuses || {};
     const blockers = model.blocking_reasons?.[step] || [];
-    const stepNumber = WIZARD_STEPS.indexOf(step) + 1;
-    const completedSteps = WIZARD_STEPS.filter((item) => stepStatuses[item] === "complete" && item !== step);
+    const stepNumber = steps.indexOf(step) + 1;
+    const completedSteps = steps.filter((item) => stepStatuses[item] === "complete" && item !== step);
     const recommendedNext = model.recommended_next_step;
 
     wizardShell.innerHTML = `
         <div class="wizard-progress">
             <div class="wizard-progress-note">
                 <strong>Progress</strong>
-                <p>Step ${stepNumber} of ${WIZARD_STEPS.length}${recommendedNext ? `. Recommended next: ${WIZARD_META[recommendedNext]?.label || recommendedNext}.` : "."}</p>
+                <p>Step ${stepNumber} of ${steps.length}${recommendedNext ? `. Recommended next: ${wizardStepLabel(recommendedNext)}.` : "."}</p>
             </div>
-            ${state.activeProject?.selected_concept_id ? `
-                <div class="inline-actions" style="margin-top: 10px;">
-                    <button class="secondary" id="toggle-skelform-pipeline">${externalAuthoringEnabled() ? "Disable SkelForm Beta" : "Enable SkelForm Beta"}</button>
-                    <span class="small-note">${externalAuthoringEnabled() ? "Legacy split/rig authoring is hidden for this project." : "Use this to skip the brittle split/rig/manual-pose stages and author in SkelForm instead."}</span>
-                </div>
-            ` : ""}
+            ${aiWorkflowLegacyMode() ? `<div class="warning-box" style="margin-top: 10px;"><p>Legacy project: mutating controls are disabled. New projects always use ai_sideview_v1.</p></div>` : ""}
             ${blockers.length ? `
                 <div class="wizard-blockers">
                     ${blockers.map((reason) => `<div class="warning-box"><p>${reason}</p></div>`).join("")}
                 </div>
             ` : ""}
             <div class="wizard-stepper">
-                ${WIZARD_STEPS.map((item, index) => `
+                ${steps.map((item, index) => `
                     <button class="wizard-step ${item === step ? "selected" : ""} status-${stepStatuses[item] || "locked"}" data-step="${item}" ${stepStatuses[item] === "locked" ? "disabled" : ""}>
                         <span class="wizard-step-index">${index + 1}</span>
                         <span class="wizard-step-copy">
-                            <strong>${WIZARD_META[item].label}</strong>
+                            <strong>${wizardStepLabel(item)}</strong>
                             <small>${wizardSummaryText(item)}</small>
                         </span>
                         <span class="wizard-step-status">${stepStatuses[item] || "locked"}</span>
@@ -3846,22 +3992,6 @@ function renderModeShell() {
             }
         });
     });
-    const skelformToggle = wizardShell.querySelector("#toggle-skelform-pipeline");
-    if (skelformToggle) {
-        skelformToggle.addEventListener("click", async () => {
-            try {
-                await api(`/api/projects/${state.activeProject.project_id}/external-authoring/update`, {
-                    method: "POST",
-                    body: JSON.stringify({ enabled: !externalAuthoringEnabled(), provider: "skelform" }),
-                });
-                await loadProject(state.activeProject.project_id, currentMode());
-                notify(externalAuthoringEnabled() ? "SkelForm authoring enabled. The legacy split and rig steps are now hidden for this project." : "SkelForm authoring disabled. The legacy deterministic pipeline is visible again.", "success");
-            } catch (error) {
-                log(normalizeErrorMessage(error.message), "error");
-                notify(normalizeErrorMessage(error.message), "error");
-            }
-        });
-    }
 }
 
 async function openWorkbenchMode() {
@@ -4250,7 +4380,8 @@ function renderProjectList() {
                 ${project.archived_at ? `<span class="pill warning">archived</span>` : ""}
                 ${project.can_resume_wizard ? `<span class="pill warning">wizard available</span>` : ""}
                 ${project.selected_concept_id ? `<span class="pill ok">look chosen</span>` : ""}
-                ${project.external_authoring_enabled ? `<span class="pill ok">skelform</span>` : ""}
+                ${project.ai_workflow_enabled ? `<span class="pill ok">ai workflow</span>` : ""}
+                ${project.ai_workflow_legacy_mode ? `<span class="pill warning">legacy read-only</span>` : ""}
                 ${project.sprite_model_approved ? `<span class="pill ok">sprite model</span>` : ""}
                 ${project.rig_review_approved ? `<span class="pill ok">rig</span>` : ""}
             </div>
@@ -4394,7 +4525,7 @@ function populateIntakeForm() {
     document.querySelector("#mood-tone").value = brief?.mood_tone || "";
     document.querySelector("#side-view-constraints").value = brief?.side_view_constraints || "";
     document.querySelector("#negative-prompt").value = brief?.negative_prompt || "";
-    document.querySelector("#backend-mode").value = brief?.backend_mode || "comfyui";
+    document.querySelector("#backend-mode").value = brief?.backend_mode || "debug_procedural";
     document.querySelector("#comfyui-checkpoint").value = brief?.comfyui_checkpoint || state.health?.default_checkpoint || "";
     renderAttachedReferences();
 }
@@ -5513,6 +5644,349 @@ function layoutOverlayMarkup(project, layout) {
             ${boxes}
         </div>
     `;
+}
+
+function aiDependencySummaryMarkup(store) {
+    const entries = Object.entries(store?.dependency_status?.dependencies || {});
+    if (!entries.length) return `<div class="empty">Dependency health has not been checked yet.</div>`;
+    return entries.map(([name, item]) => `
+        <div class="check-row wrap">
+            <span>${humanizeKey(name)}</span>
+            <span class="small-note"><span class="pill ${item.status === "pass" ? "ok" : "fail"}">${item.status}</span> ${item.detail || ""}</span>
+        </div>
+    `).join("");
+}
+
+async function runAiWorkflowStage(stage, options = {}) {
+    if (!state.activeProject) throw new Error("Select or create a project first.");
+    if (aiWorkflowLegacyMode()) throw new Error("Legacy projects are read-only. Create a new project to use ai_sideview_v1.");
+    await runJob(`/api/projects/${state.activeProject.project_id}/ai-workflow/run`, {
+        stage,
+        workflow_profile: "ai_sideview_v1",
+        source_asset_ids: options.sourceAssetIds || [],
+        clip_name: options.clipName || null,
+        parameters: options.parameters || {},
+    });
+}
+
+async function approveAiWorkflow(stage, payload = {}) {
+    if (!state.activeProject) throw new Error("Select or create a project first.");
+    await api(`/api/projects/${state.activeProject.project_id}/ai-workflow/approve`, {
+        method: "POST",
+        body: JSON.stringify({ stage, ...payload }),
+    });
+    await loadProject(state.activeProject.project_id, currentMode());
+}
+
+async function rejectAiWorkflow(stage, payload = {}) {
+    if (!state.activeProject) throw new Error("Select or create a project first.");
+    await api(`/api/projects/${state.activeProject.project_id}/ai-workflow/reject`, {
+        method: "POST",
+        body: JSON.stringify({ stage, ...payload }),
+    });
+    await loadProject(state.activeProject.project_id, currentMode());
+}
+
+function renderAiCharacterLockBoard() {
+    const root = document.querySelector("#ai-character-lock-board");
+    if (!root) return;
+    root.innerHTML = "";
+    const project = state.activeProject;
+    if (!project || !aiWorkflowEnabled(project)) return;
+    const store = aiWorkflowStore(project);
+    const runs = Object.values(store?.character_lock?.runs || {}).reverse();
+    const approvedAssetId = store?.character_lock?.approved_asset_id;
+    root.innerHTML = `
+        <div class="grid-2">
+            <div class="clip-control-card">
+                <div class="check-row wrap">
+                    <span>Run Character Lock</span>
+                    <span class="small-note">${runs.length} run${runs.length === 1 ? "" : "s"}</span>
+                </div>
+                <div class="small-note">This stage creates exactly 6 candidates from the approved concept using the active ai_sideview_v1 profile.</div>
+                <div class="actions" style="margin-top: 12px;">
+                    <button id="ai-run-character-lock" ${project.selected_concept_id ? "" : "disabled"}>Generate 6 Candidates</button>
+                </div>
+                <div class="check-list" style="margin-top: 12px;">${aiDependencySummaryMarkup(store)}</div>
+            </div>
+            <div class="clip-control-card">
+                <div class="check-row wrap">
+                    <span>Approved Character</span>
+                    <span class="small-note">${approvedAssetId || "none yet"}</span>
+                </div>
+                <div class="small-note">Approve exactly one candidate before moving to the Key Pose Board.</div>
+            </div>
+        </div>
+        <div class="thumb-grid" style="margin-top: 14px;">
+            ${runs.flatMap((run) => (run.candidates || []).map((candidate) => `
+                <div class="thumb">
+                    <img src="${projectAsset(project, candidate.image_path)}?v=${project.updated_at}" alt="${candidate.label}">
+                    <div class="small-note" style="margin-top: 8px;">${candidate.label}</div>
+                    <div class="small-note">${run.run_id}</div>
+                    <div class="actions" style="margin-top: 8px;">
+                        <button data-ai-approve-lock="${candidate.asset_id}" data-ai-run-id="${run.run_id}" ${approvedAssetId === candidate.asset_id ? "disabled" : ""}>Approve</button>
+                        <button class="secondary" data-ai-reject-lock-run="${run.run_id}">Reject Run</button>
+                    </div>
+                </div>
+            `)).join("") || `<div class="empty">No Character Lock runs yet.</div>`}
+        </div>
+    `;
+    const runButton = root.querySelector("#ai-run-character-lock");
+    if (runButton) runButton.onclick = async () => {
+        try {
+            await runAiWorkflowStage("character_lock", { sourceAssetIds: [project.selected_concept_id] });
+        } catch (error) {
+            log(normalizeErrorMessage(error.message), "error");
+            notify(normalizeErrorMessage(error.message), "error");
+        }
+    };
+    root.querySelectorAll("[data-ai-approve-lock]").forEach((button) => {
+        button.onclick = async () => {
+            try {
+                await approveAiWorkflow("character_lock", { run_id: button.dataset.aiRunId, asset_id: button.dataset.aiApproveLock });
+                notify("Approved Character Lock candidate.", "success");
+            } catch (error) {
+                log(normalizeErrorMessage(error.message), "error");
+                notify(normalizeErrorMessage(error.message), "error");
+            }
+        };
+    });
+    root.querySelectorAll("[data-ai-reject-lock-run]").forEach((button) => {
+        button.onclick = async () => {
+            try {
+                await rejectAiWorkflow("character_lock", { run_id: button.dataset.aiRejectLockRun });
+                notify("Rejected Character Lock run.", "info");
+            } catch (error) {
+                log(normalizeErrorMessage(error.message), "error");
+                notify(normalizeErrorMessage(error.message), "error");
+            }
+        };
+    });
+}
+
+function renderAiKeyPoseBoard() {
+    const root = document.querySelector("#ai-key-pose-board-root");
+    if (!root) return;
+    root.innerHTML = "";
+    const project = state.activeProject;
+    if (!project || !aiWorkflowEnabled(project)) return;
+    const store = aiWorkflowStore(project);
+    const runs = Object.values(store?.key_pose_set?.runs || {}).reverse();
+    const approvedRunId = store?.key_pose_set?.approved_run_id;
+    const approvedLockAssetId = store?.character_lock?.approved_asset_id;
+    root.innerHTML = `
+        <div class="grid-2">
+            <div class="clip-control-card">
+                <div class="check-row wrap">
+                    <span>Generate Key Pose Board</span>
+                    <span class="small-note">${approvedLockAssetId || "approve Character Lock first"}</span>
+                </div>
+                <div class="actions" style="margin-top: 12px;">
+                    <button id="ai-run-key-poses" ${approvedLockAssetId ? "" : "disabled"}>Generate 6 Canonical Poses</button>
+                </div>
+            </div>
+            <div class="clip-control-card">
+                <div class="check-row wrap">
+                    <span>Approved Pose Board</span>
+                    <span class="small-note">${approvedRunId || "none yet"}</span>
+                </div>
+            </div>
+        </div>
+        ${(runs || []).map((run) => `
+            <div class="clip-control-card" style="margin-top: 14px;">
+                <div class="check-row wrap">
+                    <span>${run.run_id}</span>
+                    <span class="small-note">${(run.poses || []).length} pose(s)</span>
+                </div>
+                <div class="thumb-grid" style="margin-top: 12px;">
+                    ${(run.poses || []).map((pose) => `
+                        <div class="thumb">
+                            <img src="${projectAsset(project, pose.image_path)}?v=${project.updated_at}" alt="${pose.pose_name}">
+                            <div class="small-note" style="margin-top: 8px;">${humanizeKey(pose.pose_name)}</div>
+                        </div>
+                    `).join("")}
+                </div>
+                <div class="actions" style="margin-top: 12px;">
+                    <button data-ai-approve-poses="${run.run_id}" ${approvedRunId === run.run_id ? "disabled" : ""}>Approve Pose Board</button>
+                    <button class="secondary" data-ai-reject-poses="${run.run_id}">Reject</button>
+                </div>
+            </div>
+        `).join("") || `<div class="empty">No Key Pose Board runs yet.</div>`}
+    `;
+    const runButton = root.querySelector("#ai-run-key-poses");
+    if (runButton) runButton.onclick = async () => {
+        try {
+            await runAiWorkflowStage("key_pose_set", { sourceAssetIds: [approvedLockAssetId] });
+        } catch (error) {
+            log(normalizeErrorMessage(error.message), "error");
+            notify(normalizeErrorMessage(error.message), "error");
+        }
+    };
+    root.querySelectorAll("[data-ai-approve-poses]").forEach((button) => {
+        button.onclick = async () => {
+            try {
+                await approveAiWorkflow("key_pose_set", { run_id: button.dataset.aiApprovePoses });
+                notify("Approved Key Pose Board.", "success");
+            } catch (error) {
+                log(normalizeErrorMessage(error.message), "error");
+                notify(normalizeErrorMessage(error.message), "error");
+            }
+        };
+    });
+    root.querySelectorAll("[data-ai-reject-poses]").forEach((button) => {
+        button.onclick = async () => {
+            try {
+                await rejectAiWorkflow("key_pose_set", { run_id: button.dataset.aiRejectPoses });
+                notify("Rejected Key Pose Board.", "info");
+            } catch (error) {
+                log(normalizeErrorMessage(error.message), "error");
+                notify(normalizeErrorMessage(error.message), "error");
+            }
+        };
+    });
+}
+
+function renderAiMotionWorkflowBoard() {
+    const root = document.querySelector("#ai-motion-workflow-board");
+    if (!root) return;
+    root.innerHTML = "";
+    const project = state.activeProject;
+    if (!project || !aiWorkflowEnabled(project)) return;
+    const store = aiWorkflowStore(project);
+    const approvedPoseRun = aiWorkflowApprovedRun("key_pose_set", null, project);
+    root.innerHTML = Object.keys({ idle: 1, walk: 1 }).map((clipName) => {
+        const motionGroup = aiWorkflowRunGroup("motion_runs", clipName, project);
+        const extractGroup = aiWorkflowRunGroup("extract_runs", clipName, project);
+        const cleanupGroup = aiWorkflowRunGroup("cleanup_runs", clipName, project);
+        const approvedCleanup = aiWorkflowApprovedRun("cleanup_runs", clipName, project);
+        const previewPath = approvedCleanup?.frames?.[0]?.runtime_image_path || approvedCleanup?.frames?.[0]?.image_path || null;
+        return `
+            <div class="clip-control-card" style="margin-bottom: 14px;">
+                <div class="check-row wrap">
+                    <span>${humanizeKey(clipName)}</span>
+                    <span class="small-note">${approvedCleanup ? "cleanup approved" : "pending"}</span>
+                </div>
+                <div class="actions" style="margin-top: 12px;">
+                    <button data-ai-run-motion="${clipName}" ${approvedPoseRun ? "" : "disabled"}>Run Motion</button>
+                    <button data-ai-run-extract="${clipName}" ${(motionGroup?.approved_run_id || Object.keys(motionGroup?.runs || {}).length) ? "" : "disabled"}>Extract Frames</button>
+                    <button data-ai-run-cleanup="${clipName}" ${(extractGroup?.approved_run_id || Object.keys(extractGroup?.runs || {}).length) ? "" : "disabled"}>Pixel Cleanup</button>
+                    <button data-ai-approve-cleanup="${clipName}" ${Object.keys(cleanupGroup?.runs || {}).length ? "" : "disabled"}>Approve Cleanup</button>
+                </div>
+                <div class="small-note" style="margin-top: 10px;">
+                    motion runs ${Object.keys(motionGroup?.runs || {}).length} · extract runs ${Object.keys(extractGroup?.runs || {}).length} · cleanup runs ${Object.keys(cleanupGroup?.runs || {}).length}
+                </div>
+                ${previewPath ? `<div class="preview-card" style="margin-top: 12px; max-width: 220px;"><img src="${projectAsset(project, previewPath)}?v=${project.updated_at}" alt="${clipName} preview"><div class="small-note" style="margin-top: 8px;">Latest approved cleaned frame</div></div>` : ""}
+            </div>
+        `;
+    }).join("");
+    root.querySelectorAll("[data-ai-run-motion]").forEach((button) => {
+        button.onclick = async () => {
+            try {
+                await runAiWorkflowStage("motion_clip", { clipName: button.dataset.aiRunMotion });
+            } catch (error) {
+                log(normalizeErrorMessage(error.message), "error");
+                notify(normalizeErrorMessage(error.message), "error");
+            }
+        };
+    });
+    root.querySelectorAll("[data-ai-run-extract]").forEach((button) => {
+        button.onclick = async () => {
+            try {
+                await runAiWorkflowStage("extract_frames", { clipName: button.dataset.aiRunExtract });
+            } catch (error) {
+                log(normalizeErrorMessage(error.message), "error");
+                notify(normalizeErrorMessage(error.message), "error");
+            }
+        };
+    });
+    root.querySelectorAll("[data-ai-run-cleanup]").forEach((button) => {
+        button.onclick = async () => {
+            try {
+                await runAiWorkflowStage("pixel_cleanup", { clipName: button.dataset.aiRunCleanup });
+            } catch (error) {
+                log(normalizeErrorMessage(error.message), "error");
+                notify(normalizeErrorMessage(error.message), "error");
+            }
+        };
+    });
+    root.querySelectorAll("[data-ai-approve-cleanup]").forEach((button) => {
+        button.onclick = async () => {
+            try {
+                const clipName = button.dataset.aiApproveCleanup;
+                const cleanupGroup = aiWorkflowRunGroup("cleanup_runs", clipName);
+                const latestRunId = cleanupGroup?.approved_run_id || Object.keys(cleanupGroup?.runs || {}).slice(-1)[0];
+                if (!latestRunId) throw new Error(`No cleanup run found for ${clipName}.`);
+                await approveAiWorkflow("pixel_cleanup", { clip_name: clipName, run_id: latestRunId });
+                notify(`Approved cleaned ${clipName} output.`, "success");
+            } catch (error) {
+                log(normalizeErrorMessage(error.message), "error");
+                notify(normalizeErrorMessage(error.message), "error");
+            }
+        };
+    });
+}
+
+function renderAiCleanupQaBoard() {
+    const root = document.querySelector("#ai-cleanup-qa-board");
+    if (!root) return;
+    root.innerHTML = "";
+    const project = state.activeProject;
+    if (!project || !aiWorkflowEnabled(project)) return;
+    const store = aiWorkflowStore(project);
+    const selected = store?.selected_assets || {};
+    root.innerHTML = `
+        <div class="grid-2">
+            <div class="clip-control-card">
+                <div class="check-row wrap">
+                    <span>Dependency readiness</span>
+                    <span class="small-note">${store?.dependency_status?.overall_status || "unknown"}</span>
+                </div>
+                <div class="check-list" style="margin-top: 10px;">${aiDependencySummaryMarkup(store)}</div>
+            </div>
+            <div class="clip-control-card">
+                <div class="check-row wrap">
+                    <span>Approved lineage</span>
+                    <span class="small-note">${store?.profile || "ai_sideview_v1"}</span>
+                </div>
+                <div class="check-list" style="margin-top: 10px;">
+                    <div class="check-row"><span>Concept</span><span class="small-note">${selected.approved_concept_id || "none"}</span></div>
+                    <div class="check-row"><span>Character Lock</span><span class="small-note">${selected.character_lock_asset_id || "none"}</span></div>
+                    <div class="check-row"><span>Key Pose Board</span><span class="small-note">${selected.key_pose_run_id || "none"}</span></div>
+                    <div class="check-row"><span>Idle Cleanup</span><span class="small-note">${selected.cleanup_run_ids?.idle || "none"}</span></div>
+                    <div class="check-row"><span>Walk Cleanup</span><span class="small-note">${selected.cleanup_run_ids?.walk || "none"}</span></div>
+                </div>
+                <div class="actions" style="margin-top: 12px;">
+                    <button id="ai-run-qa">Run Cleanup & QA</button>
+                </div>
+            </div>
+        </div>
+    `;
+    const qaButton = root.querySelector("#ai-run-qa");
+    if (qaButton) qaButton.onclick = async () => {
+        try {
+            await runJob(`/api/projects/${project.project_id}/qa/run`);
+        } catch (error) {
+            log(normalizeErrorMessage(error.message), "error");
+            notify(normalizeErrorMessage(error.message), "error");
+        }
+    };
+}
+
+function syncLegacyModeControls() {
+    const legacy = aiWorkflowLegacyMode();
+    const selectors = [
+        "#intake", "#concepts", "#rig-layout", "#part-manifest", "#part-shape-edit", "#split-build",
+        "#split-review", "#layer-review", "#rig-review", "#production", "#qa", "#export"
+    ];
+    const allowInLegacy = new Set(["create-project", "create-project-workbench", "refresh-projects-brief", "refresh-projects-references", "refresh-projects-workbench"]);
+    selectors.forEach((selector) => {
+        const root = document.querySelector(selector);
+        if (!root) return;
+        root.querySelectorAll("button, input, textarea, select").forEach((node) => {
+            if (legacy && (node.id && allowInLegacy.has(node.id))) return;
+            node.disabled = legacy;
+        });
+    });
 }
 
 function renderRigLayout() {
@@ -7017,71 +7491,82 @@ function renderManualClipStudio() {
     previewRoot.innerHTML = "";
     poseModalContent.innerHTML = "";
     const project = state.activeProject;
+    const studioLayout = editorRoot.closest(".manual-studio-layout");
+    if (studioLayout) {
+        studioLayout.classList.toggle("skelform-active", externalAuthoringEnabled(project));
+    }
     if (externalAuthoringEnabled(project)) {
         const store = externalAuthoringStore(project);
         const bundle = externalAuthoringBundle(project);
         const embedUrl = store?.session?.embed_url || store?.session?.editor_url || store?.provider_profile?.editor_url || "https://skelform.org/editor/";
         editorRoot.innerHTML = `
-            <div class="manual-clip-shell">
-                <div class="clip-control-card">
-                    <div class="check-row wrap">
-                        <span>Embedded editor</span>
-                        <span class="small-note">SkelForm hosted session</span>
+            <div class="manual-clip-shell skelform-studio-shell">
+                <div class="manual-clip-workspace skelform-editor-column">
+                    <div class="clip-control-card skelform-embed-card">
+                        <div class="check-row wrap">
+                            <span>Embedded editor</span>
+                            <span class="small-note">SkelForm hosted session</span>
+                        </div>
+                        <div class="small-note">The editor now uses the full workspace column. Bundle import stays in the side rail so the canvas can occupy most of the screen.</div>
+                        <iframe class="skelform-embed-frame" src="${embedUrl}" title="SkelForm editor"></iframe>
                     </div>
-                    <iframe src="${embedUrl}" title="SkelForm editor" style="width: 100%; min-height: 720px; border: 1px solid rgba(255,255,255,0.12); border-radius: 16px; background: rgba(8,12,19,0.8);"></iframe>
                 </div>
-                <div class="clip-part-card" style="margin-top: 14px;">
-                    <div class="check-row wrap">
-                        <span>Import SkelForm export bundle</span>
-                        <span class="small-note">Spritesheet + atlas + animations are required.</span>
-                    </div>
-                    <label>
-                        <span class="field-label">Bundle Label</span>
-                        <input id="skelform-source-label" type="text" value="${bundle?.source_label || "SkelForm export"}">
-                    </label>
-                    <label>
-                        <span class="field-label">Spritesheet PNG</span>
-                        <input id="skelform-spritesheet-file" type="file" accept="image/png,image/*">
-                        <input id="skelform-spritesheet-path" type="text" placeholder="/absolute/path/to/spritesheet.png">
-                    </label>
-                    <label>
-                        <span class="field-label">Atlas JSON</span>
-                        <input id="skelform-atlas-file" type="file" accept="application/json,.json">
-                        <input id="skelform-atlas-path" type="text" placeholder="/absolute/path/to/atlas.json">
-                    </label>
-                    <label>
-                        <span class="field-label">Animations JSON</span>
-                        <input id="skelform-animations-file" type="file" accept="application/json,.json">
-                        <input id="skelform-animations-path" type="text" placeholder="/absolute/path/to/animations.json">
-                    </label>
-                    <label>
-                        <span class="field-label">Preview GIF (optional)</span>
-                        <input id="skelform-preview-gif-file" type="file" accept="image/gif,image/*">
-                        <input id="skelform-preview-gif-path" type="text" placeholder="/absolute/path/to/preview.gif">
-                    </label>
-                    <label>
-                        <span class="field-label">Notes</span>
-                        <textarea id="skelform-import-notes" placeholder="Optional notes about this export bundle.">${bundle?.notes || ""}</textarea>
-                    </label>
-                    <div class="actions">
-                        <button id="import-skelform-bundle">Import Bundle</button>
+                <div class="manual-clip-sidebar">
+                    <div class="clip-part-card skelform-import-card">
+                        <div class="check-row wrap">
+                            <span>Import SkelForm export bundle</span>
+                            <span class="small-note">Spritesheet + atlas + animations are required.</span>
+                        </div>
+                        <label>
+                            <span class="field-label">Bundle Label</span>
+                            <input id="skelform-source-label" type="text" value="${bundle?.source_label || "SkelForm export"}">
+                        </label>
+                        <label>
+                            <span class="field-label">Spritesheet PNG</span>
+                            <input id="skelform-spritesheet-file" type="file" accept="image/png,image/*">
+                            <input id="skelform-spritesheet-path" type="text" placeholder="/absolute/path/to/spritesheet.png">
+                        </label>
+                        <label>
+                            <span class="field-label">Atlas JSON</span>
+                            <input id="skelform-atlas-file" type="file" accept="application/json,.json">
+                            <input id="skelform-atlas-path" type="text" placeholder="/absolute/path/to/atlas.json">
+                        </label>
+                        <label>
+                            <span class="field-label">Animations JSON</span>
+                            <input id="skelform-animations-file" type="file" accept="application/json,.json">
+                            <input id="skelform-animations-path" type="text" placeholder="/absolute/path/to/animations.json">
+                        </label>
+                        <label>
+                            <span class="field-label">Preview GIF (optional)</span>
+                            <input id="skelform-preview-gif-file" type="file" accept="image/gif,image/*">
+                            <input id="skelform-preview-gif-path" type="text" placeholder="/absolute/path/to/preview.gif">
+                        </label>
+                        <label>
+                            <span class="field-label">Notes</span>
+                            <textarea id="skelform-import-notes" placeholder="Optional notes about this export bundle.">${bundle?.notes || ""}</textarea>
+                        </label>
+                        <div class="actions">
+                            <button id="import-skelform-bundle">Import Bundle</button>
+                        </div>
                     </div>
                 </div>
             </div>
         `;
         previewRoot.innerHTML = bundle ? `
-            <div class="clip-control-card">
-                <div class="check-row wrap">
-                    <span>Imported bundle</span>
-                    <span class="small-note">${bundle.animation_names?.length || 0} animation(s) · ${bundle.frame_count || 0} atlas frame(s)</span>
+            <div class="manual-context-stack">
+                <div class="clip-control-card">
+                    <div class="check-row wrap">
+                        <span>Imported bundle</span>
+                        <span class="small-note">${bundle.animation_names?.length || 0} animation(s) · ${bundle.frame_count || 0} atlas frame(s)</span>
+                    </div>
+                    <div class="check-list" style="margin-top: 10px;">
+                        <div class="check-row"><span>Spritesheet</span><a href="${projectAsset(project, bundle.spritesheet_image_path)}" target="_blank">open</a></div>
+                        <div class="check-row"><span>Atlas</span><a href="${projectAsset(project, bundle.atlas_path)}" target="_blank">open</a></div>
+                        <div class="check-row"><span>Animations</span><a href="${projectAsset(project, bundle.animations_path)}" target="_blank">open</a></div>
+                        ${bundle.preview_gif_path ? `<div class="check-row"><span>Preview GIF</span><a href="${projectAsset(project, bundle.preview_gif_path)}" target="_blank">open</a></div>` : ""}
+                    </div>
+                    ${bundle.preview_gif_path ? `<div class="preview-card" style="margin-top: 12px;"><img src="${projectAsset(project, bundle.preview_gif_path)}?v=${project.updated_at}" alt="SkelForm preview gif"><div class="small-note" style="margin-top: 8px;">${bundle.source_label || "Imported bundle"}</div></div>` : `<div class="small-note" style="margin-top: 12px;">No preview GIF imported yet.</div>`}
                 </div>
-                <div class="check-list" style="margin-top: 10px;">
-                    <div class="check-row"><span>Spritesheet</span><a href="${projectAsset(project, bundle.spritesheet_image_path)}" target="_blank">open</a></div>
-                    <div class="check-row"><span>Atlas</span><a href="${projectAsset(project, bundle.atlas_path)}" target="_blank">open</a></div>
-                    <div class="check-row"><span>Animations</span><a href="${projectAsset(project, bundle.animations_path)}" target="_blank">open</a></div>
-                    ${bundle.preview_gif_path ? `<div class="check-row"><span>Preview GIF</span><a href="${projectAsset(project, bundle.preview_gif_path)}" target="_blank">open</a></div>` : ""}
-                </div>
-                ${bundle.preview_gif_path ? `<div class="preview-card" style="margin-top: 12px;"><img src="${projectAsset(project, bundle.preview_gif_path)}?v=${project.updated_at}" alt="SkelForm preview gif"><div class="small-note" style="margin-top: 8px;">${bundle.source_label || "Imported bundle"}</div></div>` : `<div class="small-note" style="margin-top: 12px;">No preview GIF imported yet.</div>`}
             </div>
         ` : `<div class="empty">Import a SkelForm bundle to unlock QA and export.</div>`;
         const importButton = editorRoot.querySelector("#import-skelform-bundle");
@@ -7844,13 +8329,14 @@ function renderQa() {
     root.appendChild(overall);
     const buildReport = qa.sprite_model_build_report;
     if (buildReport) {
+        const nonDeterministicSource = qa.mode === "external_authoring" || qa.mode === "ai_workflow";
         const buildRow = document.createElement("div");
         buildRow.className = "check-row wrap";
         buildRow.innerHTML = `
-            <span>${qa.mode === "external_authoring" ? "External bundle gate" : "Sprite-model build gate"}</span>
+            <span>${nonDeterministicSource ? "Workflow source gate" : "Sprite-model build gate"}</span>
             <span class="small-note">
                 <span class="pill ${statusTone(buildReport.status)}">${buildReport.status}</span>
-                ${qa.mode === "external_authoring"
+                ${nonDeterministicSource
                     ? (buildReport.source || "external authoring")
                     : `${buildReport.summary?.warning_count || 0} warning${(buildReport.summary?.warning_count || 0) === 1 ? "" : "s"} · ${buildReport.summary?.fail_count || 0} fail${(buildReport.summary?.fail_count || 0) === 1 ? "" : "s"}`}
             </span>
@@ -7893,7 +8379,7 @@ function renderQa() {
         frameGrid.appendChild(card);
     });
     root.appendChild(frameGrid);
-    if (qa.mode !== "external_authoring" && (buildReport?.failures?.length || buildReport?.warnings?.length)) {
+    if (qa.mode !== "external_authoring" && qa.mode !== "ai_workflow" && (buildReport?.failures?.length || buildReport?.warnings?.length)) {
         const issueBlock = document.createElement("div");
         issueBlock.className = "detail-grid";
         issueBlock.innerHTML = `
@@ -7978,6 +8464,10 @@ function renderAll() {
     renderStatus();
     renderModeShell();
     renderConceptReview();
+    renderAiCharacterLockBoard();
+    renderAiKeyPoseBoard();
+    renderAiMotionWorkflowBoard();
+    renderAiCleanupQaBoard();
     renderRigLayout();
     renderPartManifest();
     renderPartShapeEdit();
@@ -7992,7 +8482,8 @@ function renderAll() {
     renderQa();
     renderExport();
     applyModeVisibility();
-    syncExternalAuthoringControls();
+    syncWorkflowModeControls();
+    syncLegacyModeControls();
     renderActivity();
 }
 
@@ -8166,7 +8657,7 @@ async function reviewConcept(conceptId, action, value) {
     if (currentMode() === "wizard" && action === "approve" && value) {
         const synced = await persistWizardState({
             completed_steps: ["review"],
-            current_step: "sprite_model",
+            current_step: "rig_layout",
             last_ui_mode: "wizard",
         });
         if (synced) state.activeProject = synced;

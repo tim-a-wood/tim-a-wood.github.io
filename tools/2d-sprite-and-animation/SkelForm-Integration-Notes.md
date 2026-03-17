@@ -2,6 +2,8 @@
 
 This file captures the validation spike behind the browser-embedded external authoring path.
 
+Status: retired as the active workflow. The current production path is `ai_sideview_v1`, and SkelForm remains documented here only for historical context and legacy project hydration.
+
 ### Validated Findings
 
 - Candidate selected: `SkelForm`

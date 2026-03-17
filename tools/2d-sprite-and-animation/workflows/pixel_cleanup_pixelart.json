@@ -1,0 +1,46 @@
+{
+  "meta": {
+    "template_name": "pixel_cleanup_pixelart",
+    "save": {
+      "node": "4",
+      "input": "filename_prefix"
+    }
+  },
+  "prompt": {
+    "1": {
+      "class_type": "LoadImage",
+      "inputs": {
+        "image": "frame.png"
+      }
+    },
+    "2": {
+      "class_type": "PixelArtCleanup",
+      "inputs": {
+        "image": [
+          "1",
+          0
+        ]
+      }
+    },
+    "3": {
+      "class_type": "PixelArtPostprocess",
+      "inputs": {
+        "image": [
+          "2",
+          0
+        ]
+      }
+    },
+    "4": {
+      "class_type": "SaveImage",
+      "inputs": {
+        "filename_prefix": "sprite-workbench/ai_sideview_v1/pixel_cleanup",
+        "images": [
+          "3",
+          0
+        ]
+      }
+    }
+  }
+}
+

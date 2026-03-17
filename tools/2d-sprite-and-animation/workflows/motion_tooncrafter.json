@@ -1,0 +1,99 @@
+{
+  "meta": {
+    "template_name": "motion_tooncrafter",
+    "motion": {
+      "node": "5",
+      "frames_input": "num_frames",
+      "fps_input": "fps"
+    },
+    "save": {
+      "node": "7",
+      "input": "filename_prefix"
+    },
+    "poses": {
+      "load_nodes": [
+        {
+          "name": "pose_0",
+          "node": "1",
+          "input": "image"
+        },
+        {
+          "name": "pose_1",
+          "node": "2",
+          "input": "image"
+        },
+        {
+          "name": "pose_2",
+          "node": "3",
+          "input": "image"
+        },
+        {
+          "name": "pose_3",
+          "node": "4",
+          "input": "image"
+        }
+      ]
+    },
+    "defaults": {
+      "frames": 8,
+      "fps": 10
+    }
+  },
+  "prompt": {
+    "1": {
+      "class_type": "LoadImage",
+      "inputs": {
+        "image": "pose_0.png"
+      }
+    },
+    "2": {
+      "class_type": "LoadImage",
+      "inputs": {
+        "image": "pose_1.png"
+      }
+    },
+    "3": {
+      "class_type": "LoadImage",
+      "inputs": {
+        "image": "pose_2.png"
+      }
+    },
+    "4": {
+      "class_type": "LoadImage",
+      "inputs": {
+        "image": "pose_3.png"
+      }
+    },
+    "5": {
+      "class_type": "ToonCrafter",
+      "inputs": {
+        "images": [
+          "1",
+          0
+        ],
+        "num_frames": 8,
+        "fps": 10
+      }
+    },
+    "6": {
+      "class_type": "SplitVideoFrames",
+      "inputs": {
+        "video": [
+          "5",
+          0
+        ]
+      }
+    },
+    "7": {
+      "class_type": "SaveImage",
+      "inputs": {
+        "filename_prefix": "sprite-workbench/ai_sideview_v1/motion",
+        "images": [
+          "6",
+          0
+        ]
+      }
+    }
+  }
+}
+

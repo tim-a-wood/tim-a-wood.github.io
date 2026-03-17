@@ -7,6 +7,7 @@ New downstream writes use these canonical files only:
 - `rig.json`
 - `animation_clips.json`
 - `manual_animation_clips.json`
+- `ai_workflow.json`
 - `external_authoring.json`
 - `qa_report.json`
 
@@ -31,11 +32,16 @@ Canonical sprite workbench routes:
 - `POST /api/projects/<project_id>/clips/<clip_name>/reset`
 - `POST /api/projects/<project_id>/clips/<clip_name>/render`
 - `GET /api/projects/<project_id>/manual-clips`
+- `GET /api/ai-workflow/health`
+- `GET /api/projects/<project_id>/ai-workflow`
 - `GET /api/projects/<project_id>/external-authoring`
+- `POST /api/projects/<project_id>/ai-workflow/run`
+- `POST /api/projects/<project_id>/ai-workflow/approve`
+- `POST /api/projects/<project_id>/ai-workflow/reject`
 - `POST /api/projects/<project_id>/manual-clips/create`
-- `POST /api/projects/<project_id>/external-authoring/update`
-- `POST /api/projects/<project_id>/external-authoring/session`
-- `POST /api/projects/<project_id>/external-authoring/import-bundle`
+- `POST /api/projects/<project_id>/external-authoring/update` returns `410 Gone`
+- `POST /api/projects/<project_id>/external-authoring/session` returns `410 Gone`
+- `POST /api/projects/<project_id>/external-authoring/import-bundle` returns `410 Gone`
 - `POST /api/projects/<project_id>/manual-clips/<clip_id>/update-meta`
 - `POST /api/projects/<project_id>/manual-clips/<clip_id>/frame/<frame_index>`
 - `POST /api/projects/<project_id>/manual-clips/<clip_id>/frame/<frame_index>/copy`
@@ -57,6 +63,7 @@ Notes:
 - `sprite_model.json` carries the palette and the latest `build_report`.
 - `sprite_model_history.json` stores both the event log and revision snapshots.
 - `animation_clips.json` is the only canonical clip source for idle and walk.
+- `ai_workflow.json` stores the active `ai_sideview_v1` run lineage, dependency health snapshot, approved assets, and run metadata for character lock, key poses, motion, extraction, and cleanup.
 - `manual_animation_clips.json` stores optional named manual clips and their approval state separately from procedural idle/walk generation.
 - manual clip frames now persist pose `transforms` plus optional per-frame `part_repairs` overrides and `corrective_patches` for gap-filling patches rendered behind a chosen front part.
-- `external_authoring.json` stores the embedded SkelForm provider profile, session/embed metadata, validation notes from the adoption spike, and the most recently imported external export bundle.
+- `external_authoring.json` is now legacy hydration only for retired SkelForm projects. The active workflow path is `ai_workflow.json`.

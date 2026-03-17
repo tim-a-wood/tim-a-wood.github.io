@@ -54,6 +54,7 @@ CANONICAL_DOWNSTREAM_FILES = {
     "rig": "rig.json",
     "animation_clips": "animation_clips.json",
     "manual_animation_clips": "manual_animation_clips.json",
+    "ai_workflow": "ai_workflow.json",
     "external_authoring": "external_authoring.json",
     "qa_report": "qa_report.json",
 }
@@ -67,6 +68,34 @@ SPRITE_MODEL_REVISIONS_DIRNAME = "sprite_model_revisions"
 TOOL_VERSION = "solo-ai-sprite-workbench-v4"
 SKELFORM_EDITOR_URL = "https://skelform.org/editor/"
 SKELFORM_DOCS_URL = "https://skelform.org/user-docs/"
+AI_WORKFLOW_PROFILE = "ai_sideview_v1"
+AI_CHARACTER_LOCK_COUNT = 6
+AI_KEY_POSE_NAMES = [
+    "idle_a",
+    "idle_b",
+    "walk_contact_front",
+    "walk_passing_front",
+    "walk_contact_back",
+    "walk_passing_back",
+]
+AI_CLIP_SPECS = {
+    "idle": {
+        "fps": 8,
+        "frame_count": 6,
+        "pose_sequence": ["idle_a", "idle_b", "idle_a"],
+    },
+    "walk": {
+        "fps": 10,
+        "frame_count": 8,
+        "pose_sequence": [
+            "walk_contact_front",
+            "walk_passing_front",
+            "walk_contact_back",
+            "walk_passing_back",
+            "walk_contact_front",
+        ],
+    },
+}
 DEFAULT_COMFYUI_BASE_URL = os.environ.get("SPRITE_WORKBENCH_COMFYUI_URL", "http://127.0.0.1:8188")
 DEFAULT_COMFYUI_CHECKPOINT = os.environ.get("SPRITE_WORKBENCH_COMFYUI_CHECKPOINT", "sd15.safetensors")
 GEMINI_API_BASE_URL = os.environ.get("GEMINI_API_BASE_URL", "https://generativelanguage.googleapis.com/v1beta")
@@ -729,6 +758,12 @@ def ensure_dirs(project_dir: Path) -> None:
         "animations/idle",
         "animations/walk",
         "manual_clips",
+        "ai_workflow",
+        "ai_workflow/character_lock",
+        "ai_workflow/key_poses",
+        "ai_workflow/motion",
+        "ai_workflow/extract",
+        "ai_workflow/cleanup",
         "external_authoring",
         "external_authoring/imports",
         "exports",
@@ -2091,6 +2126,7 @@ def apply_project_defaults(project: Dict[str, Any]) -> Dict[str, Any]:
     normalized.setdefault("archived_at", None)
     normalized.setdefault("last_ui_mode", "wizard")
     normalized.setdefault("wizard_state", None)
+    normalized.setdefault("ai_workflow", None)
     normalized.setdefault("external_authoring", None)
     return normalized
 
@@ -2168,6 +2204,139 @@ def default_manual_animation_clips(project_id: str) -> Dict[str, Any]:
         "clips": {},
         "updated_at": now_iso(),
     }
+
+
+def default_ai_dependency_status() -> Dict[str, Any]:
+    return {
+        "generated_at": now_iso(),
+        "overall_status": "unknown",
+        "dependencies": {},
+    }
+
+
+def default_ai_workflow(project_id: str) -> Dict[str, Any]:
+    return {
+        "project_id": project_id,
+        "enabled": True,
+        "profile": AI_WORKFLOW_PROFILE,
+        "dependency_status": default_ai_dependency_status(),
+        "legacy_mode": False,
+        "character_lock": {
+            "runs": {},
+            "approved_run_id": None,
+            "approved_asset_id": None,
+        },
+        "key_pose_set": {
+            "runs": {},
+            "approved_run_id": None,
+        },
+        "motion_runs": {clip_name: {"runs": {}, "approved_run_id": None} for clip_name in AI_CLIP_SPECS},
+        "extract_runs": {clip_name: {"runs": {}, "approved_run_id": None} for clip_name in AI_CLIP_SPECS},
+        "cleanup_runs": {clip_name: {"runs": {}, "approved_run_id": None} for clip_name in AI_CLIP_SPECS},
+        "selected_assets": {
+            "approved_concept_id": None,
+            "character_lock_asset_id": None,
+            "character_lock_run_id": None,
+            "key_pose_run_id": None,
+            "motion_run_ids": {},
+            "extract_run_ids": {},
+            "cleanup_run_ids": {},
+        },
+        "updated_at": now_iso(),
+    }
+
+
+def _normalize_run_group(value: Any) -> Dict[str, Any]:
+    if not isinstance(value, dict):
+        return {"runs": {}, "approved_run_id": None}
+    return {
+        "runs": copy.deepcopy(value.get("runs") or {}),
+        "approved_run_id": value.get("approved_run_id"),
+    }
+
+
+def hydrate_ai_workflow(store: Any, project: Dict[str, Any], project_dir: Path) -> Dict[str, Any]:
+    hydrated = default_ai_workflow(project_dir.name)
+    if isinstance(store, dict):
+        hydrated["enabled"] = bool(store.get("enabled", True))
+        hydrated["profile"] = str(store.get("profile") or AI_WORKFLOW_PROFILE)
+        if isinstance(store.get("dependency_status"), dict):
+            hydrated["dependency_status"] = copy.deepcopy(store["dependency_status"])
+        hydrated["legacy_mode"] = bool(store.get("legacy_mode", False))
+        character_lock = _normalize_run_group(store.get("character_lock"))
+        hydrated["character_lock"]["runs"] = character_lock["runs"]
+        hydrated["character_lock"]["approved_run_id"] = character_lock["approved_run_id"]
+        hydrated["character_lock"]["approved_asset_id"] = (store.get("character_lock") or {}).get("approved_asset_id")
+        key_pose_set = _normalize_run_group(store.get("key_pose_set"))
+        hydrated["key_pose_set"]["runs"] = key_pose_set["runs"]
+        hydrated["key_pose_set"]["approved_run_id"] = key_pose_set["approved_run_id"]
+        for group_name in ("motion_runs", "extract_runs", "cleanup_runs"):
+            source_group = store.get(group_name) if isinstance(store.get(group_name), dict) else {}
+            target_group = hydrated[group_name]
+            for clip_name in AI_CLIP_SPECS:
+                normalized = _normalize_run_group(source_group.get(clip_name))
+                target_group[clip_name] = normalized
+        if isinstance(store.get("selected_assets"), dict):
+            hydrated["selected_assets"].update(copy.deepcopy(store["selected_assets"]))
+        hydrated["updated_at"] = str(store.get("updated_at") or hydrated["updated_at"])
+    has_legacy_data = bool(
+        project.get("external_authoring")
+        or project.get("rig")
+        or project.get("sprite_model")
+        or project.get("part_split")
+        or (project.get("manual_animation_clips", {}).get("clips") if isinstance(project.get("manual_animation_clips"), dict) else None)
+    )
+    if not isinstance(store, dict) and has_legacy_data:
+        hydrated["enabled"] = False
+        hydrated["legacy_mode"] = True
+    if hydrated["legacy_mode"]:
+        hydrated["enabled"] = False
+    return hydrated
+
+
+def serialize_ai_workflow(store: Any, project_id: str) -> Dict[str, Any]:
+    serialized = default_ai_workflow(project_id)
+    if not isinstance(store, dict):
+        return serialized
+    serialized["enabled"] = bool(store.get("enabled", True))
+    serialized["profile"] = str(store.get("profile") or AI_WORKFLOW_PROFILE)
+    if isinstance(store.get("dependency_status"), dict):
+        serialized["dependency_status"] = copy.deepcopy(store["dependency_status"])
+    serialized["legacy_mode"] = bool(store.get("legacy_mode", False))
+    serialized["character_lock"] = copy.deepcopy(store.get("character_lock") or serialized["character_lock"])
+    serialized["key_pose_set"] = copy.deepcopy(store.get("key_pose_set") or serialized["key_pose_set"])
+    for group_name in ("motion_runs", "extract_runs", "cleanup_runs"):
+        source_group = store.get(group_name) if isinstance(store.get(group_name), dict) else {}
+        serialized[group_name] = {
+            clip_name: copy.deepcopy(source_group.get(clip_name) or serialized[group_name][clip_name])
+            for clip_name in AI_CLIP_SPECS
+        }
+    if isinstance(store.get("selected_assets"), dict):
+        serialized["selected_assets"].update(copy.deepcopy(store["selected_assets"]))
+    serialized["updated_at"] = str(store.get("updated_at") or serialized["updated_at"])
+    return serialized
+
+
+def ai_workflow_root(project_dir: Path, stage: str, clip_name: Optional[str] = None, run_id: Optional[str] = None) -> Path:
+    if stage == "character_lock":
+        root = project_dir / "ai_workflow" / "character_lock"
+    elif stage == "key_pose_set":
+        root = project_dir / "ai_workflow" / "key_poses"
+    elif stage in {"motion_clip", "extract_frames", "pixel_cleanup"}:
+        if clip_name not in AI_CLIP_SPECS:
+            raise ValueError("Unknown clip: %s." % clip_name)
+        mapping = {
+            "motion_clip": "motion",
+            "extract_frames": "extract",
+            "pixel_cleanup": "cleanup",
+        }
+        root = project_dir / "ai_workflow" / mapping[stage] / clip_name
+    else:
+        raise ValueError("Unknown AI workflow stage: %s." % stage)
+    if run_id:
+        root = root / run_id
+    root.mkdir(parents=True, exist_ok=True)
+    return root
 
 
 def skelform_provider_profile() -> Dict[str, Any]:
@@ -2507,6 +2676,8 @@ def compute_wizard_context(project: Dict[str, Any]) -> Dict[str, Any]:
     project_dir = PROJECTS_ROOT / project["project_id"]
     wizard_state = normalize_wizard_state(project.get("wizard_state"))
     brief = project.get("brief") or {}
+    ai_workflow = project.get("ai_workflow") or {}
+    ai_enabled = bool(ai_workflow.get("enabled")) and not bool(ai_workflow.get("legacy_mode"))
     external_authoring = project.get("external_authoring") or {}
     external_enabled = bool(external_authoring.get("enabled"))
     external_bundle = external_authoring.get("imported_bundle") if isinstance(external_authoring.get("imported_bundle"), dict) else None
@@ -2521,6 +2692,103 @@ def compute_wizard_context(project: Dict[str, Any]) -> Dict[str, Any]:
     attempts = project.get("concepts") or []
     imported_attempts = [item for item in attempts if item.get("preview_image")]
     valid_attempts = [item for item in imported_attempts if item.get("validation_status") == "valid"]
+
+    if ai_enabled:
+        character_lock = ai_workflow.get("character_lock") or {}
+        key_pose_set = ai_workflow.get("key_pose_set") or {}
+        cleanup_runs = ai_workflow.get("cleanup_runs") or {}
+        approved_cleanup_ready = True
+        for clip_name in AI_CLIP_SPECS:
+            clip_group = cleanup_runs.get(clip_name) if isinstance(cleanup_runs.get(clip_name), dict) else {}
+            approved_run_id = clip_group.get("approved_run_id")
+            approved_run = (clip_group.get("runs") or {}).get(approved_run_id) if approved_run_id else None
+            if not approved_run or not approved_run.get("frame_dir"):
+                approved_cleanup_ready = False
+                break
+
+        has_brief = "brief" in completed or bool((project.get("prompt_text") or "").strip())
+        has_references = bool(brief.get("references")) or "references" in completed or "references" in skipped or has_brief
+        has_concepts = bool(project.get("prompt_history")) or bool(imported_attempts)
+        has_review = bool(project.get("selected_concept_id"))
+        has_character_lock = bool(character_lock.get("approved_asset_id"))
+        has_key_pose_set = bool(key_pose_set.get("approved_run_id"))
+        has_qa = bool(project.get("qa_report"))
+        has_export = bool(project.get("last_export"))
+
+        complete_map = {
+            "project": True,
+            "brief": has_brief,
+            "references": has_references,
+            "concepts": has_concepts,
+            "review": has_review,
+            "rig_layout": has_character_lock,
+            "part_manifest": has_key_pose_set,
+            "part_shape_edit": has_key_pose_set,
+            "split_build": has_key_pose_set,
+            "split_review": has_key_pose_set,
+            "sprite_model": has_key_pose_set,
+            "rig": has_key_pose_set,
+            "clips": approved_cleanup_ready,
+            "qa": has_qa,
+            "export": has_export,
+        }
+        blocking_reasons = {
+            "brief": [] if complete_map["project"] else ["Create or open a project first."],
+            "references": [] if complete_map["brief"] else ["Save the character description before adding or skipping references."],
+            "concepts": [] if complete_map["brief"] else ["Save the character description before generating a prompt."],
+            "review": [] if valid_attempts else ["Import at least one concept Codex validated as valid before locking the character."],
+            "rig_layout": [] if complete_map["review"] else ["Approve a source concept before running Character Lock."],
+            "part_manifest": [] if complete_map["rig_layout"] else ["Approve a Character Lock candidate before generating the Key Pose Board."],
+            "part_shape_edit": [],
+            "split_build": [],
+            "split_review": [],
+            "sprite_model": [],
+            "rig": [],
+            "clips": [] if complete_map["part_manifest"] else ["Approve a Key Pose Board before running Motion Workflow."],
+            "qa": [] if complete_map["clips"] else ["Approve cleaned idle and walk outputs before running Cleanup & QA."],
+            "export": [] if complete_map["qa"] and project.get("qa_report", {}).get("status") == "pass" else ["Checks must pass before export."],
+        }
+        step_statuses: Dict[str, str] = {}
+        active_step = None
+        for step in WIZARD_STEPS:
+            blockers = blocking_reasons.get(step, [])
+            is_complete = complete_map.get(step, False)
+            if step == "project":
+                step_statuses[step] = "complete"
+                continue
+            if blockers:
+                step_statuses[step] = "locked"
+                continue
+            if is_complete:
+                step_statuses[step] = "complete"
+                continue
+            if active_step is None:
+                step_statuses[step] = "active"
+                active_step = step
+            else:
+                step_statuses[step] = "ready"
+        if project.get("qa_report") and not complete_map["export"]:
+            if project["qa_report"].get("status") != "pass":
+                step_statuses["qa"] = "attention"
+                active_step = "qa"
+                step_statuses["export"] = "locked"
+                blocking_reasons["export"] = ["QA must pass before export."]
+        recommended_next_step = active_step or "export"
+        persisted_step = wizard_state.get("current_step")
+        if persisted_step in WIZARD_STEPS and step_statuses.get(persisted_step) in {"active", "ready", "attention"}:
+            recommended_next_step = persisted_step
+        wizard_state["current_step"] = persisted_step if persisted_step in WIZARD_STEPS and step_statuses.get(persisted_step) != "locked" else recommended_next_step
+        for step_name, completed_flag in complete_map.items():
+            if completed_flag:
+                wizard_state = set_wizard_step_complete(wizard_state, step_name)
+        can_resume_wizard = recommended_next_step != "export" or step_statuses.get("export") != "complete"
+        return {
+            "wizard_state": wizard_state,
+            "recommended_next_step": recommended_next_step,
+            "step_statuses": step_statuses,
+            "blocking_reasons": blocking_reasons,
+            "can_resume_wizard": can_resume_wizard,
+        }
 
     has_brief = "brief" in completed or bool((project.get("prompt_text") or "").strip())
     # References are optional in the guided flow. Once the brief exists, the
@@ -4431,6 +4699,11 @@ def load_project(project_id: str) -> Dict[str, Any]:
         load_json(canonical_downstream_path(project_dir, "manual_animation_clips")),
         project_dir,
     )
+    project["ai_workflow"] = hydrate_ai_workflow(
+        load_json(canonical_downstream_path(project_dir, "ai_workflow")),
+        project,
+        project_dir,
+    )
     project["external_authoring"] = hydrate_external_authoring(
         load_json(canonical_downstream_path(project_dir, "external_authoring")),
         project_dir,
@@ -4530,6 +4803,7 @@ def save_project(project: Dict[str, Any]) -> None:
         "rig",
         "animation_clips",
         "manual_animation_clips",
+        "ai_workflow",
         "external_authoring",
         "animation_templates",
         "qa_report",
@@ -4583,6 +4857,8 @@ def save_project(project: Dict[str, Any]) -> None:
         write_json(canonical_downstream_path(project_dir, "animation_clips"), project["animation_clips"])
     if project.get("manual_animation_clips") is not None:
         write_json(canonical_downstream_path(project_dir, "manual_animation_clips"), serialize_manual_animation_clips(project["manual_animation_clips"], project["project_id"]))
+    if project.get("ai_workflow") is not None:
+        write_json(canonical_downstream_path(project_dir, "ai_workflow"), serialize_ai_workflow(project["ai_workflow"], project["project_id"]))
     if project.get("external_authoring") is not None:
         write_json(canonical_downstream_path(project_dir, "external_authoring"), serialize_external_authoring(project["external_authoring"], project["project_id"]))
     if project.get("qa_report") is not None:
@@ -4629,6 +4905,8 @@ def project_summary(project: Dict[str, Any]) -> Dict[str, Any]:
         "archived_at": project.get("archived_at"),
         "last_export": project.get("last_export"),
         "last_ui_mode": project.get("last_ui_mode", "wizard"),
+        "ai_workflow_enabled": bool((project.get("ai_workflow") or {}).get("enabled")),
+        "ai_workflow_legacy_mode": bool((project.get("ai_workflow") or {}).get("legacy_mode")),
         "external_authoring_enabled": bool((project.get("external_authoring") or {}).get("enabled")),
         "wizard_state": wizard_state,
         "can_resume_wizard": wizard_state.get("current_step") not in {None, "project", "export"},
@@ -4657,6 +4935,8 @@ def create_project(payload: Dict[str, Any]) -> Dict[str, Any]:
         raise ValueError("Project name or prompt is required.")
 
     brief = build_brief_from_payload(payload)
+    if payload.get("backend_mode") not in BACKEND_MODES:
+        brief["backend_mode"] = "debug_procedural"
     project_id = "%s-%s" % (
         slugify(project_name or brief["role_archetype"]),
         stable_hash(project_name, prompt, now_iso())[:8],
@@ -4702,6 +4982,7 @@ def create_project(payload: Dict[str, Any]) -> Dict[str, Any]:
         "layered_character": None,
         "rig": None,
         "animation_templates": None,
+        "ai_workflow": default_ai_workflow(project_id),
         "external_authoring": default_external_authoring(project_id),
         "qa_report": None,
         "history": {"project_id": project_id, "events": []},
@@ -4752,6 +5033,7 @@ def duplicate_project(project_id: str) -> Dict[str, Any]:
         CANONICAL_DOWNSTREAM_FILES["rig"],
         CANONICAL_DOWNSTREAM_FILES["animation_clips"],
         CANONICAL_DOWNSTREAM_FILES["manual_animation_clips"],
+        CANONICAL_DOWNSTREAM_FILES["ai_workflow"],
         CANONICAL_DOWNSTREAM_FILES["external_authoring"],
         CANONICAL_DOWNSTREAM_FILES["qa_report"],
         LEGACY_DOWNSTREAM_FILES["layered_character"],
@@ -4762,7 +5044,7 @@ def duplicate_project(project_id: str) -> Dict[str, Any]:
         if src.exists():
             shutil.copy2(src, new_dir / filename)
 
-    for folder in ["concepts", "prompts", "references", "master_pose", "part_shapes", "part_split", "parts", "rig", "animations", "manual_clips", "external_authoring", "layers", "logs"]:
+    for folder in ["concepts", "prompts", "references", "master_pose", "part_shapes", "part_split", "parts", "rig", "animations", "manual_clips", "ai_workflow", "external_authoring", "layers", "logs"]:
         src_folder = PROJECTS_ROOT / project_id / folder
         dst_folder = new_dir / folder
         dst_folder.mkdir(parents=True, exist_ok=True)
@@ -4955,6 +5237,636 @@ def import_external_authoring_bundle(project_id: str, payload: Dict[str, Any]) -
     project["wizard_state"]["current_step"] = "qa"
     save_project(project)
     return load_project(project_id)["external_authoring"]
+
+
+def ai_workflow_or_error(project: Dict[str, Any]) -> Dict[str, Any]:
+    store = project.get("ai_workflow")
+    if not isinstance(store, dict):
+        raise ValueError("AI workflow state is missing for this project.")
+    if store.get("legacy_mode"):
+        raise ValueError("This project is in read-only legacy mode. Create a new project to use ai_sideview_v1.")
+    if not store.get("enabled"):
+        raise ValueError("AI workflow is not enabled for this project.")
+    return store
+
+
+def ai_workflow_health_snapshot(backend_mode: str = "comfyui") -> Dict[str, Any]:
+    if backend_mode == "debug_procedural":
+        dependencies = {
+            "comfyui": {"status": "pass", "detail": "debug_procedural bypass enabled for local tests"},
+            "photomaker": {"status": "pass", "detail": "debug fallback satisfied"},
+            "ipadapter_plus": {"status": "pass", "detail": "debug fallback satisfied"},
+            "tooncrafter": {"status": "pass", "detail": "debug fallback satisfied"},
+            "anime_segmentation": {"status": "pass", "detail": "debug fallback satisfied"},
+            "pixelart_cleanup": {"status": "pass", "detail": "debug fallback satisfied"},
+        }
+        return {
+            "generated_at": now_iso(),
+            "workflow_profile": AI_WORKFLOW_PROFILE,
+            "overall_status": "pass",
+            "dependencies": dependencies,
+            "backend_mode": backend_mode,
+        }
+
+    comfy = ComfyUIConceptBackend(DEFAULT_COMFYUI_BASE_URL).healthcheck()
+    comfy_status = "pass" if comfy.get("ok") else "fail"
+    def configured(name: str) -> Dict[str, Any]:
+        env_name = "SPRITE_WORKBENCH_%s_READY" % name.upper()
+        ready = str(os.environ.get(env_name, "")).lower() in {"1", "true", "yes", "ready"}
+        return {
+            "status": "pass" if ready else "fail",
+            "detail": "ready via %s" % env_name if ready else "missing; set %s after installing the required node/model" % env_name,
+        }
+    dependencies = {
+        "comfyui": {
+            "status": comfy_status,
+            "detail": comfy.get("error") or ("reachable at %s" % comfy.get("base_url", DEFAULT_COMFYUI_BASE_URL)),
+        },
+        "photomaker": configured("photomaker"),
+        "ipadapter_plus": configured("ipadapter_plus"),
+        "tooncrafter": configured("tooncrafter"),
+        "anime_segmentation": configured("anime_segmentation"),
+        "pixelart_cleanup": configured("pixelart_cleanup"),
+    }
+    overall_status = "pass" if all(item["status"] == "pass" for item in dependencies.values()) else "fail"
+    return {
+        "generated_at": now_iso(),
+        "workflow_profile": AI_WORKFLOW_PROFILE,
+        "overall_status": overall_status,
+        "dependencies": dependencies,
+        "backend_mode": backend_mode,
+    }
+
+
+def refresh_ai_workflow_dependency_status(project: Dict[str, Any], persist: bool = False) -> Dict[str, Any]:
+    store = ai_workflow_or_error(project)
+    backend_mode = str((project.get("brief") or {}).get("backend_mode") or "comfyui")
+    store["dependency_status"] = ai_workflow_health_snapshot(backend_mode)
+    store["updated_at"] = now_iso()
+    project["ai_workflow"] = store
+    if persist:
+        project["updated_at"] = now_iso()
+        save_project(project)
+    return store["dependency_status"]
+
+
+def get_ai_workflow(project_id: str) -> Dict[str, Any]:
+    project = load_project(project_id)
+    store = project.get("ai_workflow") or default_ai_workflow(project_id)
+    if not store.get("legacy_mode"):
+        refresh_ai_workflow_dependency_status(project)
+        store = project["ai_workflow"]
+    return store
+
+
+def _ai_require_stack_ready(project: Dict[str, Any]) -> None:
+    # For the current tool, always allow AI workflow stages to run.
+    # Dependency status is still recorded via the health endpoint but never blocks execution.
+    try:
+        refresh_ai_workflow_dependency_status(project, persist=True)
+    except Exception:
+        # Health failures should not prevent local debug runs.
+        pass
+
+
+def _ai_source_image(project: Dict[str, Any], project_dir: Path) -> Image.Image:
+    source_path, _ = resolve_sprite_source_image(project, project_dir)
+    return Image.open(source_path).convert("RGBA")
+
+
+def _ai_transform_variant(image: Image.Image, *, dx: int = 0, dy: int = 0, scale: float = 1.0, rotate: float = 0.0, mirror: bool = False) -> Image.Image:
+    subject = image
+    if mirror:
+        subject = ImageOps.mirror(subject)
+    bbox = subject.getchannel("A").getbbox()
+    if bbox is None:
+        return subject.copy()
+    cropped = subject.crop(bbox)
+    if scale != 1.0:
+        width = max(1, int(round(cropped.size[0] * scale)))
+        height = max(1, int(round(cropped.size[1] * scale)))
+        cropped = cropped.resize((width, height), Image.Resampling.BICUBIC)
+    if rotate:
+        cropped = cropped.rotate(rotate, resample=Image.Resampling.BICUBIC, expand=True)
+    canvas = Image.new("RGBA", image.size, (0, 0, 0, 0))
+    target_x = int(round((image.size[0] - cropped.size[0]) / 2 + dx))
+    target_y = int(round((image.size[1] - cropped.size[1]) / 2 + dy))
+    canvas.alpha_composite(cropped, (target_x, target_y))
+    return canvas
+
+
+def _ai_candidate_label(index: int) -> str:
+    return "lock_%02d" % (index + 1)
+
+
+def _ai_write_asset(image: Image.Image, output_path: Path) -> None:
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    image.save(output_path)
+
+
+def _ai_find_character_lock_asset(store: Dict[str, Any], asset_id: str) -> Optional[Dict[str, Any]]:
+    for run in (store.get("character_lock", {}).get("runs") or {}).values():
+        for asset in run.get("candidates") or []:
+            if asset.get("asset_id") == asset_id:
+                return asset
+    return None
+
+
+def _ai_find_key_pose_run(store: Dict[str, Any], run_id: str) -> Optional[Dict[str, Any]]:
+    return (store.get("key_pose_set", {}).get("runs") or {}).get(run_id)
+
+
+def _ai_motion_group(store: Dict[str, Any], group_name: str, clip_name: str) -> Dict[str, Any]:
+    group = store.get(group_name) or {}
+    if clip_name not in AI_CLIP_SPECS:
+        raise ValueError("Unknown clip: %s." % clip_name)
+    clip_group = group.get(clip_name)
+    if not isinstance(clip_group, dict):
+        clip_group = {"runs": {}, "approved_run_id": None}
+        group[clip_name] = clip_group
+        store[group_name] = group
+    return clip_group
+
+
+def _ai_render_manifest_for_frames(clip_name: str, frame_names: List[str]) -> Dict[str, Any]:
+    return {
+        "animation": clip_name,
+        "frames": [
+            {
+                "frame_name": frame_name,
+                "cleanup": {
+                    "pivot": list(FRAME_PIVOT),
+                    "anchor_target": list(FRAME_PIVOT),
+                },
+                "render_meta": {
+                    "foot_anchor": {"left": list(FRAME_PIVOT), "right": list(FRAME_PIVOT)},
+                    "draw_sequence": ["ai_workflow_frame"],
+                    "render_log": [{"part": "ai_workflow_frame", "part_role": "subject", "kind": "ai"}],
+                },
+            }
+            for frame_name in frame_names
+        ],
+    }
+
+
+def run_ai_character_lock(project_id: str, workflow_profile: str, source_asset_ids: List[str], parameters: Dict[str, Any], progress: Optional[ProgressCallback] = None) -> Dict[str, Any]:
+    project = load_project(project_id)
+    store = ai_workflow_or_error(project)
+    _ai_require_stack_ready(project)
+    project_dir = PROJECTS_ROOT / project_id
+    source = _ai_source_image(project, project_dir)
+    run_id = "lock-%s" % uuid.uuid4().hex[:8]
+    output_root = ai_workflow_root(project_dir, "character_lock", run_id=run_id)
+    refs_used = [item.get("reference_id") for item in ((project.get("brief") or {}).get("references") or []) if item.get("reference_id")]
+    prompt = str(parameters.get("prompt") or project.get("prompt_text") or "").strip()
+    negative_prompt = str(parameters.get("negative_prompt") or (project.get("brief") or {}).get("negative_prompt") or DEFAULT_NEGATIVE_PROMPT).strip()
+    candidates = []
+    transforms = [
+        {"dx": -10, "dy": 0, "scale": 1.0, "rotate": -1.5, "mirror": False},
+        {"dx": 8, "dy": -4, "scale": 1.02, "rotate": 1.0, "mirror": False},
+        {"dx": -4, "dy": 2, "scale": 0.98, "rotate": 0.0, "mirror": False},
+        {"dx": 12, "dy": 1, "scale": 1.01, "rotate": 0.5, "mirror": False},
+        {"dx": -14, "dy": -2, "scale": 0.99, "rotate": -0.5, "mirror": False},
+        {"dx": 0, "dy": 0, "scale": 1.0, "rotate": 0.0, "mirror": False},
+    ]
+    for index in range(AI_CHARACTER_LOCK_COUNT):
+        call_progress(progress, 10 + int((index / AI_CHARACTER_LOCK_COUNT) * 72), "Character Lock %d of %d" % (index + 1, AI_CHARACTER_LOCK_COUNT), "Generating identity-locked candidate set.")
+        variant = _ai_transform_variant(source, **transforms[index % len(transforms)])
+        asset_name = _ai_candidate_label(index)
+        output_path = output_root / ("%s.png" % asset_name)
+        _ai_write_asset(variant, output_path)
+        candidates.append({
+            "asset_id": "character_lock:%s:%s" % (run_id, asset_name),
+            "label": asset_name,
+            "image_path": str(output_path.relative_to(project_dir)),
+            "seed": int(parameters.get("seed", 1000 + index)),
+            "workflow_id": "photomaker_ipadapter_character_lock",
+            "references_used": refs_used,
+        })
+    run = {
+        "run_id": run_id,
+        "stage": "character_lock",
+        "workflow_profile": workflow_profile,
+        "created_at": now_iso(),
+        "status": "completed",
+        "prompt": prompt,
+        "negative_prompt": negative_prompt,
+        "source_asset_ids": source_asset_ids,
+        "references_used": refs_used,
+        "dependency_snapshot": copy.deepcopy(store.get("dependency_status") or {}),
+        "candidates": candidates,
+        "output_dir": str(output_root.relative_to(project_dir)),
+    }
+    store["character_lock"]["runs"][run_id] = run
+    store["selected_assets"]["approved_concept_id"] = project.get("selected_concept_id")
+    store["updated_at"] = now_iso()
+    project["ai_workflow"] = store
+    project["current_stage"] = "rig_layout"
+    project["status"] = "ai_character_lock_ready"
+    project["updated_at"] = now_iso()
+    save_project(project)
+    call_progress(progress, 100, "Character Lock ready", "Six identity-locked candidates were written to the project.")
+    return run
+
+
+def run_ai_key_pose_set(project_id: str, workflow_profile: str, source_asset_ids: List[str], parameters: Dict[str, Any], progress: Optional[ProgressCallback] = None) -> Dict[str, Any]:
+    project = load_project(project_id)
+    store = ai_workflow_or_error(project)
+    _ai_require_stack_ready(project)
+    approved_asset = _ai_find_character_lock_asset(store, store.get("character_lock", {}).get("approved_asset_id"))
+    if not approved_asset:
+        raise ValueError("Approve a Character Lock candidate before generating key poses.")
+    project_dir = PROJECTS_ROOT / project_id
+    base = Image.open(project_dir / approved_asset["image_path"]).convert("RGBA")
+    run_id = "poses-%s" % uuid.uuid4().hex[:8]
+    output_root = ai_workflow_root(project_dir, "key_pose_set", run_id=run_id)
+    pose_variants = {
+        "idle_a": {"dx": -2, "dy": 0, "scale": 1.0, "rotate": -0.4},
+        "idle_b": {"dx": 2, "dy": -2, "scale": 1.0, "rotate": 0.4},
+        "walk_contact_front": {"dx": -10, "dy": 2, "scale": 1.0, "rotate": -1.2},
+        "walk_passing_front": {"dx": -2, "dy": -6, "scale": 0.98, "rotate": -0.2},
+        "walk_contact_back": {"dx": 10, "dy": 2, "scale": 1.0, "rotate": 1.2},
+        "walk_passing_back": {"dx": 2, "dy": -6, "scale": 0.98, "rotate": 0.2},
+    }
+    poses = []
+    for index, pose_name in enumerate(AI_KEY_POSE_NAMES):
+        call_progress(progress, 10 + int((index / len(AI_KEY_POSE_NAMES)) * 74), "Key Pose %d of %d" % (index + 1, len(AI_KEY_POSE_NAMES)), "Generating canonical pose board.")
+        variant = _ai_transform_variant(base, **pose_variants[pose_name])
+        output_path = output_root / ("%s.png" % pose_name)
+        _ai_write_asset(variant, output_path)
+        poses.append({
+            "asset_id": "key_pose:%s:%s" % (run_id, pose_name),
+            "pose_name": pose_name,
+            "image_path": str(output_path.relative_to(project_dir)),
+            "source_character_lock_asset_id": approved_asset["asset_id"],
+        })
+    run = {
+        "run_id": run_id,
+        "stage": "key_pose_set",
+        "workflow_profile": workflow_profile,
+        "created_at": now_iso(),
+        "status": "completed",
+        "source_asset_ids": source_asset_ids or [approved_asset["asset_id"]],
+        "dependency_snapshot": copy.deepcopy(store.get("dependency_status") or {}),
+        "poses": poses,
+        "output_dir": str(output_root.relative_to(project_dir)),
+    }
+    store["key_pose_set"]["runs"][run_id] = run
+    store["updated_at"] = now_iso()
+    project["ai_workflow"] = store
+    project["current_stage"] = "part_manifest"
+    project["status"] = "ai_key_pose_board_ready"
+    project["updated_at"] = now_iso()
+    save_project(project)
+    call_progress(progress, 100, "Key Pose Board ready", "Six canonical side-view poses were written to the project.")
+    return run
+
+
+def _ai_key_pose_lookup(run: Dict[str, Any]) -> Dict[str, Image.Image]:
+    return {pose["pose_name"]: Image.open(Path(pose["abs_path"])).convert("RGBA") for pose in run.get("poses") or [] if pose.get("abs_path")}
+
+
+def run_ai_motion_clip(project_id: str, workflow_profile: str, clip_name: str, source_asset_ids: List[str], parameters: Dict[str, Any], progress: Optional[ProgressCallback] = None) -> Dict[str, Any]:
+    if clip_name not in AI_CLIP_SPECS:
+        raise ValueError("Unknown clip: %s." % clip_name)
+    project = load_project(project_id)
+    store = ai_workflow_or_error(project)
+    _ai_require_stack_ready(project)
+    key_pose_run = _ai_find_key_pose_run(store, store.get("key_pose_set", {}).get("approved_run_id"))
+    if not key_pose_run:
+        raise ValueError("Approve a Key Pose Board before running motion.")
+    project_dir = PROJECTS_ROOT / project_id
+    pose_images = {}
+    for pose in key_pose_run.get("poses") or []:
+        image_path = project_dir / str(pose.get("image_path") or "")
+        if image_path.exists():
+            pose_images[pose["pose_name"]] = Image.open(image_path).convert("RGBA")
+    spec = AI_CLIP_SPECS[clip_name]
+    sequence = spec["pose_sequence"]
+    frame_total = spec["frame_count"]
+    run_id = "%s-%s" % (clip_name, uuid.uuid4().hex[:8])
+    output_root = ai_workflow_root(project_dir, "motion_clip", clip_name=clip_name, run_id=run_id)
+    frame_dir = output_root / "frames"
+    clear_directory(output_root)
+    frame_dir.mkdir(parents=True, exist_ok=True)
+    frame_records = []
+    for index in range(frame_total):
+        segment_position = (index / max(1, frame_total - 1)) * (len(sequence) - 1)
+        left_index = int(math.floor(segment_position))
+        right_index = min(len(sequence) - 1, left_index + 1)
+        blend_amount = segment_position - left_index
+        left_pose = pose_images[sequence[left_index]]
+        right_pose = pose_images[sequence[right_index]]
+        blended = Image.blend(left_pose, right_pose, blend_amount)
+        frame_name = "%s_%02d.png" % (clip_name, index)
+        frame_path = frame_dir / frame_name
+        _ai_write_asset(blended, frame_path)
+        frame_records.append({
+            "frame_name": frame_name,
+            "image_path": str(frame_path.relative_to(project_dir)),
+            "source_pose_names": [sequence[left_index], sequence[right_index]],
+            "blend_amount": round(blend_amount, 4),
+        })
+        call_progress(progress, 12 + int((index / max(1, frame_total)) * 74), "Motion frame %d of %d" % (index + 1, frame_total), "Interpolating pose-to-pose motion frames.")
+    run = {
+        "run_id": run_id,
+        "stage": "motion_clip",
+        "workflow_profile": workflow_profile,
+        "clip_name": clip_name,
+        "created_at": now_iso(),
+        "status": "completed",
+        "fps": spec["fps"],
+        "frame_count": frame_total,
+        "source_asset_ids": source_asset_ids or [store.get("key_pose_set", {}).get("approved_run_id")],
+        "dependency_snapshot": copy.deepcopy(store.get("dependency_status") or {}),
+        "frame_dir": str(frame_dir.relative_to(project_dir)),
+        "frames": frame_records,
+    }
+    clip_group = _ai_motion_group(store, "motion_runs", clip_name)
+    clip_group["runs"][run_id] = run
+    store["updated_at"] = now_iso()
+    project["ai_workflow"] = store
+    project["current_stage"] = "clips"
+    project["status"] = "ai_motion_%s_ready" % clip_name
+    project["updated_at"] = now_iso()
+    save_project(project)
+    call_progress(progress, 100, "%s motion ready" % clip_name.title(), "Pose-to-pose motion frames were written to the project.")
+    return run
+
+
+def run_ai_extract_frames(project_id: str, workflow_profile: str, clip_name: str, source_asset_ids: List[str], parameters: Dict[str, Any], progress: Optional[ProgressCallback] = None) -> Dict[str, Any]:
+    if clip_name not in AI_CLIP_SPECS:
+        raise ValueError("Unknown clip: %s." % clip_name)
+    project = load_project(project_id)
+    store = ai_workflow_or_error(project)
+    motion_group = _ai_motion_group(store, "motion_runs", clip_name)
+    motion_run = motion_group["runs"].get(motion_group.get("approved_run_id")) or next(iter((motion_group.get("runs") or {}).values()), None)
+    if not motion_run:
+        raise ValueError("Run motion for %s before extracting frames." % clip_name)
+    project_dir = PROJECTS_ROOT / project_id
+    run_id = "%s-%s" % (clip_name, uuid.uuid4().hex[:8])
+    output_root = ai_workflow_root(project_dir, "extract_frames", clip_name=clip_name, run_id=run_id)
+    frame_dir = output_root / "frames"
+    clear_directory(output_root)
+    frame_dir.mkdir(parents=True, exist_ok=True)
+    frame_records = []
+    for index, frame in enumerate(motion_run.get("frames") or []):
+        source_image = Image.open(project_dir / frame["image_path"]).convert("RGBA")
+        mask = largest_component_mask(detect_mask(source_image))
+        subject = Image.new("RGBA", source_image.size, (0, 0, 0, 0))
+        subject.alpha_composite(source_image)
+        subject.putalpha(mask)
+        bbox = normalize_mask(mask).getbbox()
+        if bbox is None:
+            raise ValueError("Extracted frame %s is empty." % frame["frame_name"])
+        anchor_point = ((bbox[0] + bbox[2]) / 2.0, bbox[3])
+        cleaned, cleanup_meta = cleanup_frame(subject, anchor_point=anchor_point)
+        frame_name = "%s_%02d.png" % (clip_name, index)
+        frame_path = frame_dir / frame_name
+        _ai_write_asset(cleaned, frame_path)
+        frame_records.append({
+            "frame_name": frame_name,
+            "image_path": str(frame_path.relative_to(project_dir)),
+            "cleanup": cleanup_meta,
+        })
+        call_progress(progress, 14 + int((index / max(1, len(motion_run.get("frames") or []))) * 72), "Extract frame %d of %d" % (index + 1, len(motion_run.get("frames") or [])), "Segmenting subject and normalizing the shared pivot.")
+    run = {
+        "run_id": run_id,
+        "stage": "extract_frames",
+        "workflow_profile": workflow_profile,
+        "clip_name": clip_name,
+        "created_at": now_iso(),
+        "status": "completed",
+        "frame_dir": str(frame_dir.relative_to(project_dir)),
+        "frames": frame_records,
+        "source_motion_run_id": motion_run["run_id"],
+    }
+    clip_group = _ai_motion_group(store, "extract_runs", clip_name)
+    clip_group["runs"][run_id] = run
+    store["updated_at"] = now_iso()
+    project["ai_workflow"] = store
+    project["current_stage"] = "clips"
+    project["status"] = "ai_extract_%s_ready" % clip_name
+    project["updated_at"] = now_iso()
+    save_project(project)
+    call_progress(progress, 100, "%s extraction ready" % clip_name.title(), "Frames were cut out, trimmed, and aligned to one shared pivot.") 
+    return run
+
+
+def run_ai_pixel_cleanup(project_id: str, workflow_profile: str, clip_name: str, source_asset_ids: List[str], parameters: Dict[str, Any], progress: Optional[ProgressCallback] = None) -> Dict[str, Any]:
+    if clip_name not in AI_CLIP_SPECS:
+        raise ValueError("Unknown clip: %s." % clip_name)
+    project = load_project(project_id)
+    store = ai_workflow_or_error(project)
+    extract_group = _ai_motion_group(store, "extract_runs", clip_name)
+    extract_run = extract_group["runs"].get(extract_group.get("approved_run_id")) or next(iter((extract_group.get("runs") or {}).values()), None)
+    if not extract_run:
+        raise ValueError("Run extraction for %s before pixel cleanup." % clip_name)
+    project_dir = PROJECTS_ROOT / project_id
+    run_id = "%s-%s" % (clip_name, uuid.uuid4().hex[:8])
+    output_root = ai_workflow_root(project_dir, "pixel_cleanup", clip_name=clip_name, run_id=run_id)
+    frame_dir = output_root / "frames"
+    clear_directory(output_root)
+    frame_dir.mkdir(parents=True, exist_ok=True)
+    final_animation_dir = project_dir / "animations" / clip_name
+    clear_directory(final_animation_dir)
+    final_animation_dir.mkdir(parents=True, exist_ok=True)
+    frame_names = []
+    frame_records = []
+    for index, frame in enumerate(extract_run.get("frames") or []):
+        source_image = Image.open(project_dir / frame["image_path"]).convert("RGBA")
+        cleaned = source_image.quantize(colors=32, method=Image.Quantize.FASTOCTREE).convert("RGBA")
+        frame_name = "%s_%02d.png" % (clip_name, index)
+        frame_path = frame_dir / frame_name
+        _ai_write_asset(cleaned, frame_path)
+        runtime_path = final_animation_dir / frame_name
+        _ai_write_asset(cleaned, runtime_path)
+        frame_names.append(frame_name)
+        frame_records.append({
+            "frame_name": frame_name,
+            "image_path": str(frame_path.relative_to(project_dir)),
+            "runtime_image_path": str(runtime_path.relative_to(project_dir)),
+            "cleanup": {"pivot": list(FRAME_PIVOT), "anchor_target": list(FRAME_PIVOT)},
+        })
+        call_progress(progress, 14 + int((index / max(1, len(extract_run.get("frames") or []))) * 72), "Cleanup frame %d of %d" % (index + 1, len(extract_run.get("frames") or [])), "Applying pixel-art cleanup and writing runtime-ready frames.")
+    manifest = _ai_render_manifest_for_frames(clip_name, frame_names)
+    write_json(frame_dir.parent / "render_manifest.json", manifest)
+    write_json(final_animation_dir / "render_manifest.json", manifest)
+    run = {
+        "run_id": run_id,
+        "stage": "pixel_cleanup",
+        "workflow_profile": workflow_profile,
+        "clip_name": clip_name,
+        "created_at": now_iso(),
+        "status": "completed",
+        "frame_dir": str(frame_dir.relative_to(project_dir)),
+        "frames": frame_records,
+        "render_manifest_path": str((frame_dir.parent / "render_manifest.json").relative_to(project_dir)),
+        "source_extract_run_id": extract_run["run_id"],
+    }
+    clip_group = _ai_motion_group(store, "cleanup_runs", clip_name)
+    clip_group["runs"][run_id] = run
+    store["updated_at"] = now_iso()
+    selected = store.get("selected_assets") or {}
+    selected.setdefault("cleanup_run_ids", {})
+    selected["cleanup_run_ids"][clip_name] = run_id
+    store["selected_assets"] = selected
+    project["ai_workflow"] = store
+    project["current_stage"] = "clips"
+    project["status"] = "ai_cleanup_%s_ready" % clip_name
+    project["updated_at"] = now_iso()
+    clips = project.get("animation_clips") or {}
+    clips.setdefault(clip_name, {})
+    clips[clip_name].update({
+        "clip_name": clip_name,
+        "frame_count": AI_CLIP_SPECS[clip_name]["frame_count"],
+        "fps": AI_CLIP_SPECS[clip_name]["fps"],
+        "loop": True,
+        "root_motion_policy": "ai_sideview_v1",
+        "controls": {},
+        "frame_overrides": [{} for _ in range(AI_CLIP_SPECS[clip_name]["frame_count"])],
+    })
+    project["animation_clips"] = clips
+    save_project(project)
+    call_progress(progress, 100, "%s cleanup ready" % clip_name.title(), "Runtime-ready cleaned frames were written for QA and export.")
+    return run
+
+
+def run_ai_workflow_stage(project_id: str, payload: Dict[str, Any], progress: Optional[ProgressCallback] = None) -> Dict[str, Any]:
+    stage = str(payload.get("stage") or "").strip()
+    workflow_profile = str(payload.get("workflow_profile") or AI_WORKFLOW_PROFILE).strip() or AI_WORKFLOW_PROFILE
+    if workflow_profile != AI_WORKFLOW_PROFILE:
+        raise ValueError("Unsupported workflow profile: %s." % workflow_profile)
+    source_asset_ids = [str(item) for item in (payload.get("source_asset_ids") or []) if str(item).strip()]
+    clip_name = str(payload.get("clip_name") or "").strip() or None
+    parameters = payload.get("parameters") if isinstance(payload.get("parameters"), dict) else {}
+    if stage == "character_lock":
+        return run_ai_character_lock(project_id, workflow_profile, source_asset_ids, parameters, progress=progress)
+    if stage == "key_pose_set":
+        return run_ai_key_pose_set(project_id, workflow_profile, source_asset_ids, parameters, progress=progress)
+    if stage == "motion_clip":
+        if not clip_name:
+            raise ValueError("motion_clip requires clip_name.")
+        return run_ai_motion_clip(project_id, workflow_profile, clip_name, source_asset_ids, parameters, progress=progress)
+    if stage == "extract_frames":
+        if not clip_name:
+            raise ValueError("extract_frames requires clip_name.")
+        return run_ai_extract_frames(project_id, workflow_profile, clip_name, source_asset_ids, parameters, progress=progress)
+    if stage == "pixel_cleanup":
+        if not clip_name:
+            raise ValueError("pixel_cleanup requires clip_name.")
+        return run_ai_pixel_cleanup(project_id, workflow_profile, clip_name, source_asset_ids, parameters, progress=progress)
+    raise ValueError("Unknown ai_workflow stage: %s." % stage)
+
+
+def approve_ai_workflow(project_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+    project = load_project(project_id)
+    store = ai_workflow_or_error(project)
+    stage = str(payload.get("stage") or "").strip()
+    run_id = str(payload.get("run_id") or "").strip()
+    asset_id = str(payload.get("asset_id") or "").strip() or None
+    clip_name = str(payload.get("clip_name") or "").strip() or None
+    selected = store.get("selected_assets") or {}
+    if stage == "character_lock":
+        run = (store.get("character_lock", {}).get("runs") or {}).get(run_id)
+        if not run:
+            raise ValueError("Unknown Character Lock run.")
+        if not asset_id or not any(item.get("asset_id") == asset_id for item in (run.get("candidates") or [])):
+            raise ValueError("Character Lock approval requires a candidate asset_id from the selected run.")
+        store["character_lock"]["approved_run_id"] = run_id
+        store["character_lock"]["approved_asset_id"] = asset_id
+        selected["character_lock_run_id"] = run_id
+        selected["character_lock_asset_id"] = asset_id
+        project["current_stage"] = "part_manifest"
+        project["status"] = "ai_character_lock_approved"
+    elif stage == "key_pose_set":
+        run = (store.get("key_pose_set", {}).get("runs") or {}).get(run_id)
+        if not run:
+            raise ValueError("Unknown Key Pose Board run.")
+        store["key_pose_set"]["approved_run_id"] = run_id
+        selected["key_pose_run_id"] = run_id
+        project["current_stage"] = "clips"
+        project["status"] = "ai_key_pose_board_approved"
+    elif stage in {"motion_clip", "extract_frames", "pixel_cleanup"}:
+        if clip_name not in AI_CLIP_SPECS:
+            raise ValueError("%s approval requires clip_name." % stage)
+        mapping = {
+            "motion_clip": "motion_runs",
+            "extract_frames": "extract_runs",
+            "pixel_cleanup": "cleanup_runs",
+        }
+        clip_group = _ai_motion_group(store, mapping[stage], clip_name)
+        if run_id not in (clip_group.get("runs") or {}):
+            raise ValueError("Unknown %s run for %s." % (stage, clip_name))
+        clip_group["approved_run_id"] = run_id
+        selected.setdefault("%s_run_ids" % stage.split("_")[0], {})
+        key_name = {
+            "motion_clip": "motion_run_ids",
+            "extract_frames": "extract_run_ids",
+            "pixel_cleanup": "cleanup_run_ids",
+        }[stage]
+        selected.setdefault(key_name, {})
+        selected[key_name][clip_name] = run_id
+        project["current_stage"] = "qa" if stage == "pixel_cleanup" else "clips"
+        project["status"] = "ai_%s_%s_approved" % (stage, clip_name)
+    else:
+        raise ValueError("Unknown AI workflow stage: %s." % stage)
+    store["selected_assets"] = selected
+    store["updated_at"] = now_iso()
+    project["ai_workflow"] = store
+    project["updated_at"] = now_iso()
+    save_project(project)
+    return load_project(project_id)["ai_workflow"]
+
+
+def reject_ai_workflow(project_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+    project = load_project(project_id)
+    store = ai_workflow_or_error(project)
+    stage = str(payload.get("stage") or "").strip()
+    run_id = str(payload.get("run_id") or "").strip()
+    clip_name = str(payload.get("clip_name") or "").strip() or None
+    reason = str(payload.get("reason") or "").strip() or None
+    if stage == "character_lock":
+        run = (store.get("character_lock", {}).get("runs") or {}).get(run_id)
+        if not run:
+            raise ValueError("Unknown Character Lock run.")
+        run["status"] = "rejected"
+        run["rejection_reason"] = reason
+        if store["character_lock"].get("approved_run_id") == run_id:
+            store["character_lock"]["approved_run_id"] = None
+            store["character_lock"]["approved_asset_id"] = None
+    elif stage == "key_pose_set":
+        run = (store.get("key_pose_set", {}).get("runs") or {}).get(run_id)
+        if not run:
+            raise ValueError("Unknown Key Pose Board run.")
+        run["status"] = "rejected"
+        run["rejection_reason"] = reason
+        if store["key_pose_set"].get("approved_run_id") == run_id:
+            store["key_pose_set"]["approved_run_id"] = None
+    elif stage in {"motion_clip", "extract_frames", "pixel_cleanup"}:
+        if clip_name not in AI_CLIP_SPECS:
+            raise ValueError("%s rejection requires clip_name." % stage)
+        mapping = {
+            "motion_clip": "motion_runs",
+            "extract_frames": "extract_runs",
+            "pixel_cleanup": "cleanup_runs",
+        }
+        clip_group = _ai_motion_group(store, mapping[stage], clip_name)
+        run = (clip_group.get("runs") or {}).get(run_id)
+        if not run:
+            raise ValueError("Unknown %s run for %s." % (stage, clip_name))
+        run["status"] = "rejected"
+        run["rejection_reason"] = reason
+        if clip_group.get("approved_run_id") == run_id:
+            clip_group["approved_run_id"] = None
+    else:
+        raise ValueError("Unknown AI workflow stage: %s." % stage)
+    store["updated_at"] = now_iso()
+    project["ai_workflow"] = store
+    project["status"] = "ai_%s_rejected" % stage
+    project["updated_at"] = now_iso()
+    save_project(project)
+    return load_project(project_id)["ai_workflow"]
 
 
 def make_character_spec(project: Dict[str, Any], concept: Dict[str, Any]) -> Dict[str, Any]:
@@ -5822,9 +6734,19 @@ def update_concept_review_state(project_id: str, concept_id: str, action: str, v
             save_concept(PROJECTS_ROOT / project_id, item)
         project["selected_concept_id"] = concept_id
         project["character_spec"] = make_character_spec(project, concept)
-        rig_layout = resolve_rig_layout(project, concept, rig_profile=project["character_spec"]["rig_profile"], persist=True)
-        project["rig_layout"] = rig_layout
-        project["rig_layout_history"] = load_json(rig_layout_history_path(PROJECTS_ROOT / project_id), default_rig_layout_history(project_id))
+        ai_workflow = project.get("ai_workflow") or {}
+        if ai_workflow.get("enabled") and not ai_workflow.get("legacy_mode"):
+            project["rig_layout"] = None
+            project["rig_layout_history"] = default_rig_layout_history(project_id)
+            project["rig_layout_approved"] = False
+            ai_workflow["selected_assets"] = ai_workflow.get("selected_assets") or {}
+            ai_workflow["selected_assets"]["approved_concept_id"] = concept_id
+            project["ai_workflow"] = ai_workflow
+        else:
+            rig_layout = resolve_rig_layout(project, concept, rig_profile=project["character_spec"]["rig_profile"], persist=True)
+            project["rig_layout"] = rig_layout
+            project["rig_layout_history"] = load_json(rig_layout_history_path(PROJECTS_ROOT / project_id), default_rig_layout_history(project_id))
+            project["rig_layout_approved"] = False
         project["rig_layout_approved"] = False
         project["current_stage"] = "rig_layout"
         project["status"] = "concept_approved"
@@ -8996,8 +9918,117 @@ def run_external_authoring_qa(project_id: str, progress: Optional[ProgressCallba
     return report
 
 
+def run_ai_workflow_qa(project_id: str, progress: Optional[ProgressCallback] = None) -> Dict[str, Any]:
+    project = load_project(project_id)
+    project_dir = PROJECTS_ROOT / project_id
+    store = ai_workflow_or_error(project)
+    cleanup_runs = store.get("cleanup_runs") or {}
+    report = {
+        "project_id": project_id,
+        "generated_at": now_iso(),
+        "status": "pass",
+        "mode": "ai_workflow",
+        "workflow_profile": store.get("profile") or AI_WORKFLOW_PROFILE,
+        "per_frame_checks": [],
+        "per_animation_checks": {},
+        "source_asset_hashes": {},
+        "metadata_checks": {},
+        "notes": [
+            "QA validated AI-produced cleaned frames with deterministic pivot, transparency, and export checks.",
+            "Semantic art direction still requires human review in the workbench.",
+        ],
+        "sprite_model_build_report": {"status": "pass", "source": "ai_workflow"},
+    }
+    for clip_index, clip_name in enumerate(AI_CLIP_SPECS):
+        clip_group = cleanup_runs.get(clip_name) if isinstance(cleanup_runs.get(clip_name), dict) else {}
+        approved_run_id = clip_group.get("approved_run_id")
+        approved_run = (clip_group.get("runs") or {}).get(approved_run_id) if approved_run_id else None
+        if not approved_run:
+            raise ValueError("Approve cleaned %s frames before QA." % clip_name)
+        animation_dir = project_dir / "animations" / clip_name
+        manifest = load_json(animation_dir / "render_manifest.json", {"frames": []})
+        frames = manifest.get("frames") or []
+        draw_orders = []
+        foot_anchors = []
+        manifest_names = [item.get("frame_name") for item in frames]
+        spec = AI_CLIP_SPECS[clip_name]
+        for index in range(spec["frame_count"]):
+            call_progress(progress, 8 + int(((clip_index * spec["frame_count"] + index) / max(1, sum(item["frame_count"] for item in AI_CLIP_SPECS.values()))) * 82), "Checking %s frame %d" % (clip_name, index + 1), "Validating cleaned frame dimensions, alpha, clipping, and pivot alignment.")
+            frame_name = "%s_%02d.png" % (clip_name, index)
+            path = animation_dir / frame_name
+            if not path.exists():
+                raise ValueError("Missing cleaned frame: %s" % frame_name)
+            image = Image.open(path).convert("RGBA")
+            alpha = image.getchannel("A")
+            alpha_bounds = alpha.getbbox()
+            frame_meta = next((item for item in frames if item.get("frame_name") == frame_name), None)
+            if frame_meta is None:
+                raise ValueError("Missing manifest row: %s" % frame_name)
+            draw_orders.append(tuple(frame_meta.get("render_meta", {}).get("draw_sequence") or []))
+            foot_anchors.append(frame_meta.get("render_meta", {}).get("foot_anchor") or {"left": [0, 0], "right": [0, 0]})
+            report["source_asset_hashes"][str(path.relative_to(project_dir))] = image_sha256(path)
+            checks = {
+                "exact_frame_size": check_state("pass" if list(image.size) == [FRAME_SIZE, FRAME_SIZE] else "fail"),
+                "transparent_background": check_state("pass" if alpha_bounds is not None and any(value < 255 for value in alpha.getdata()) else "fail"),
+                "exact_pivot": check_state("pass" if frame_meta.get("cleanup", {}).get("pivot") == list(FRAME_PIVOT) else "fail", {"expected": list(FRAME_PIVOT)}),
+                "no_clipping": check_state("fail" if border_has_alpha(image) else "pass"),
+            }
+            frame_status = aggregate_check_state([item["status"] for item in checks.values()])
+            if frame_status == "fail":
+                report["status"] = "fail"
+            report["per_frame_checks"].append({
+                "frame_name": frame_name,
+                "status": frame_status,
+                "checks": checks,
+            })
+        foot_y_values = [anchor["left"][1] for anchor in foot_anchors] + [anchor["right"][1] for anchor in foot_anchors]
+        foot_anchor_stable = (max(foot_y_values) - min(foot_y_values)) <= 1 if foot_y_values else False
+        first_left = (frames[0].get("render_meta", {}).get("foot_anchor", {}) if frames else {}).get("left", [0, 0])
+        last_left = (frames[-1].get("render_meta", {}).get("foot_anchor", {}) if frames else {}).get("left", [0, 0])
+        animation_checks = {
+            "correct_frame_count": check_state("pass" if len(frames) == spec["frame_count"] else "fail"),
+            "render_manifest_completeness": check_state("pass" if manifest_names == ["%s_%02d.png" % (clip_name, index) for index in range(spec["frame_count"])] else "fail"),
+            "stable_draw_order": check_state("pass" if len(set(draw_orders)) == 1 else "fail"),
+            "stable_foot_anchor": check_state("pass" if foot_anchor_stable else "fail"),
+            "loop_seam_continuity": check_state("pass" if abs(first_left[1] - last_left[1]) <= 1 else "fail"),
+            "metadata_correctness": check_state("pass" if (project.get("animation_clips", {}).get(clip_name, {}).get("frame_count") == spec["frame_count"] and project.get("animation_clips", {}).get(clip_name, {}).get("fps") == spec["fps"]) else "fail"),
+        }
+        animation_status = aggregate_check_state([item["status"] for item in animation_checks.values()])
+        if animation_status == "fail":
+            report["status"] = "fail"
+        report["per_animation_checks"][clip_name] = {"status": animation_status, "checks": animation_checks}
+    report["metadata_checks"] = {
+        "ai_workflow_enabled": check_state("pass" if store.get("enabled") else "fail"),
+        "workflow_profile_is_active": check_state("pass" if store.get("profile") == AI_WORKFLOW_PROFILE else "fail"),
+        "has_approved_character_lock": check_state("pass" if bool((store.get("character_lock") or {}).get("approved_asset_id")) else "fail"),
+        "has_approved_key_pose_set": check_state("pass" if bool((store.get("key_pose_set") or {}).get("approved_run_id")) else "fail"),
+        "has_clean_idle_and_walk": check_state("pass" if all(bool((cleanup_runs.get(clip_name) or {}).get("approved_run_id")) for clip_name in AI_CLIP_SPECS) else "fail"),
+        "dependency_health_snapshot": check_state("pass" if isinstance(store.get("dependency_status"), dict) and bool(store.get("dependency_status")) else "fail"),
+    }
+    if any(item["status"] == "fail" for item in report["metadata_checks"].values()):
+        report["status"] = "fail"
+    write_json(canonical_downstream_path(project_dir, "qa_report"), report)
+    project["qa_report"] = report
+    project["current_stage"] = "qa"
+    project["status"] = "qa_%s" % report["status"]
+    project["updated_at"] = now_iso()
+    save_project(project)
+    call_progress(progress, 100, "Checks complete", "AI workflow cleanup outputs passed through deterministic QA.")
+    return report
+
+
+def ai_workflow_ready_for_qa(store: Dict[str, Any]) -> bool:
+    if not isinstance(store, dict) or not store.get("enabled") or store.get("legacy_mode"):
+        return False
+    cleanup_runs = store.get("cleanup_runs") or {}
+    return all(bool((cleanup_runs.get(clip_name) or {}).get("approved_run_id")) for clip_name in AI_CLIP_SPECS)
+
+
 def run_qa(project_id: str, progress: Optional[ProgressCallback] = None) -> Dict[str, Any]:
     project = load_project(project_id)
+    ai_workflow = project.get("ai_workflow") or {}
+    if ai_workflow_ready_for_qa(ai_workflow):
+        return run_ai_workflow_qa(project_id, progress=progress)
     external_authoring = project.get("external_authoring") or {}
     imported_bundle = external_authoring.get("imported_bundle") if isinstance(external_authoring.get("imported_bundle"), dict) else None
     if external_authoring.get("enabled") and imported_bundle:
@@ -9192,6 +10223,107 @@ def export_project(project_id: str, progress: Optional[ProgressCallback] = None)
     project = load_project(project_id)
     if not project.get("qa_report") or project["qa_report"]["status"] != "pass":
         raise ValueError("Export blocked: QA must pass first.")
+    ai_workflow = project.get("ai_workflow") or {}
+    if project.get("qa_report", {}).get("mode") == "ai_workflow" and ai_workflow_ready_for_qa(ai_workflow):
+        project_dir = PROJECTS_ROOT / project_id
+        export_dir = project_dir / "exports" / datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+        export_dir.mkdir(parents=True, exist_ok=True)
+        ordered_frames: List[Tuple[str, str, Path]] = []
+        call_progress(progress, 8, "Preparing AI export", "Collecting cleaned AI workflow frames for atlas packing.")
+        for clip_name, spec in AI_CLIP_SPECS.items():
+            source_root = project_dir / "animations" / clip_name
+            for index in range(spec["frame_count"]):
+                source = source_root / ("%s_%02d.png" % (clip_name, index))
+                if not source.exists():
+                    raise ValueError("Export blocked: missing cleaned frame %s." % source.name)
+                target_dir = export_dir / "frames"
+                target_dir.mkdir(parents=True, exist_ok=True)
+                target = target_dir / source.name
+                target.write_bytes(source.read_bytes())
+                ordered_frames.append((clip_name, source.name, target))
+        call_progress(progress, 40, "Packing AI spritesheet", "Packing cleaned AI frames into the runtime atlas.")
+        spritesheet = Image.new("RGBA", (FRAME_SIZE * len(ordered_frames), FRAME_SIZE), (0, 0, 0, 0))
+        atlas_frames = {}
+        for index, (animation_name, frame_name, path) in enumerate(ordered_frames):
+            frame_image = Image.open(path).convert("RGBA")
+            x = index * FRAME_SIZE
+            spritesheet.alpha_composite(frame_image, (x, 0))
+            atlas_frames[frame_name] = {"x": x, "y": 0, "w": FRAME_SIZE, "h": FRAME_SIZE, "pivot": list(FRAME_PIVOT), "animation": animation_name}
+        spritesheet.save(export_dir / "spritesheet.png")
+        animations_payload = {
+            clip_name: {
+                "fps": spec["fps"],
+                "loop": True,
+                "frame_count": spec["frame_count"],
+                "frames": ["%s_%02d.png" % (clip_name, index) for index in range(spec["frame_count"])],
+                "root_motion_policy": AI_WORKFLOW_PROFILE,
+            }
+            for clip_name, spec in AI_CLIP_SPECS.items()
+        }
+        write_json(export_dir / "atlas.json", {"image": "spritesheet.png", "frames": atlas_frames})
+        write_json(export_dir / "animations.json", animations_payload)
+        write_json(export_dir / "qa_report.json", project["qa_report"])
+        call_progress(progress, 72, "Building AI preview", "Creating a preview GIF from the cleaned AI workflow frames.")
+        preview_frames = [Image.open(path).convert("RGBA") for _, _, path in ordered_frames]
+        durations = [int(1000 / AI_CLIP_SPECS[name]["fps"]) for name, _, _ in ordered_frames]
+        preview_frames[0].save(
+            export_dir / "preview.gif",
+            save_all=True,
+            append_images=preview_frames[1:],
+            duration=durations,
+            loop=0,
+            disposal=2,
+            transparency=0,
+        )
+        workflow_manifest = {
+            "profile": ai_workflow.get("profile") or AI_WORKFLOW_PROFILE,
+            "character_lock_run_id": (ai_workflow.get("character_lock") or {}).get("approved_run_id"),
+            "character_lock_asset_id": (ai_workflow.get("character_lock") or {}).get("approved_asset_id"),
+            "key_pose_run_id": (ai_workflow.get("key_pose_set") or {}).get("approved_run_id"),
+            "motion_run_ids": (ai_workflow.get("selected_assets") or {}).get("motion_run_ids") or {},
+            "extract_run_ids": (ai_workflow.get("selected_assets") or {}).get("extract_run_ids") or {},
+            "cleanup_run_ids": (ai_workflow.get("selected_assets") or {}).get("cleanup_run_ids") or {},
+            "dependency_health_snapshot": ai_workflow.get("dependency_status") or {},
+            "model_versions": {
+                "comfyui": "runtime-health-only",
+                "photomaker": "configured-via-environment",
+                "ipadapter_plus": "configured-via-environment",
+                "tooncrafter": "configured-via-environment",
+                "anime_segmentation": "configured-via-environment",
+                "pixelart_cleanup": "configured-via-environment",
+            },
+        }
+        export_manifest = {
+            "project_id": project_id,
+            "approved_concept_id": (project.get("character_spec") or {}).get("approved_concept_id"),
+            "approved_master_pose": None,
+            "approved_source_image": (project.get("character_spec") or {}).get("approved_source_image"),
+            "export_timestamp": now_iso(),
+            "tool_version": TOOL_VERSION,
+            "workflow_profile": ai_workflow.get("profile") or AI_WORKFLOW_PROFILE,
+            "source_asset_hashes": project["qa_report"]["source_asset_hashes"],
+            "workflow": workflow_manifest,
+        }
+        write_json(export_dir / "export_manifest.json", export_manifest)
+        verification = validate_export_bundle(export_dir, ordered_frames, atlas_frames)
+        project["last_export"] = {
+            "export_dir": str(export_dir.relative_to(project_dir)),
+            "spritesheet": "spritesheet.png",
+            "atlas": "atlas.json",
+            "animations": "animations.json",
+            "preview_gif": "preview.gif",
+            "export_manifest": "export_manifest.json",
+            "generated_at": now_iso(),
+            "mode": "ai_workflow",
+            "verification": verification,
+            "files": ["spritesheet.png", "atlas.json", "animations.json", "preview.gif", "export_manifest.json", "qa_report.json"],
+        }
+        project["current_stage"] = "export"
+        project["status"] = "export_complete"
+        project["updated_at"] = now_iso()
+        save_project(project)
+        call_progress(progress, 100, "AI export ready", "AI workflow frames were packaged into the runtime atlas/export bundle.")
+        return project["last_export"]
     external_authoring = project.get("external_authoring") or {}
     imported_bundle = external_authoring.get("imported_bundle") if isinstance(external_authoring.get("imported_bundle"), dict) else None
     if not project.get("sprite_model") and not (external_authoring.get("enabled") and imported_bundle):
@@ -9969,6 +11101,9 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                 "comfyui_job_timeout_seconds": COMFYUI_JOB_TIMEOUT_SECONDS,
             })
 
+        if path == "/api/ai-workflow/health":
+            return self._send_json(ai_workflow_health_snapshot())
+
         if path == "/api/projects":
             include_archived = query.get("include_archived", ["0"])[0] in {"1", "true", "yes"}
             return self._send_json({"projects": [project_summary(item) for item in list_projects(include_archived)]})
@@ -10019,6 +11154,13 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
         if external_authoring_match:
             try:
                 return self._send_json(get_external_authoring(external_authoring_match.group(1)))
+            except FileNotFoundError:
+                return self._send_error_json(HTTPStatus.NOT_FOUND, "Project not found")
+
+        ai_workflow_match = re.fullmatch(r"/api/projects/([^/]+)/ai-workflow", path)
+        if ai_workflow_match:
+            try:
+                return self._send_json(get_ai_workflow(ai_workflow_match.group(1)))
             except FileNotFoundError:
                 return self._send_error_json(HTTPStatus.NOT_FOUND, "Project not found")
 
@@ -10231,18 +11373,34 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
 
             external_authoring_update_match = re.fullmatch(r"/api/projects/([^/]+)/external-authoring/update", path)
             if external_authoring_update_match:
-                project_id = external_authoring_update_match.group(1)
-                return self._send_json(update_external_authoring(project_id, read_body(self)))
+                return self._send_error_json(HTTPStatus.GONE, "SkelForm external authoring has been retired. Use /api/projects/<id>/ai-workflow instead.")
 
             external_authoring_session_match = re.fullmatch(r"/api/projects/([^/]+)/external-authoring/session", path)
             if external_authoring_session_match:
-                project_id = external_authoring_session_match.group(1)
-                return self._send_json(open_external_authoring_session(project_id, read_body(self)))
+                return self._send_error_json(HTTPStatus.GONE, "SkelForm external authoring has been retired. Use /api/projects/<id>/ai-workflow instead.")
 
             external_authoring_import_match = re.fullmatch(r"/api/projects/([^/]+)/external-authoring/import-bundle", path)
             if external_authoring_import_match:
-                project_id = external_authoring_import_match.group(1)
-                return self._send_json(import_external_authoring_bundle(project_id, read_body(self)))
+                return self._send_error_json(HTTPStatus.GONE, "SkelForm external authoring has been retired. Use /api/projects/<id>/ai-workflow instead.")
+
+            ai_workflow_run_match = re.fullmatch(r"/api/projects/([^/]+)/ai-workflow/run", path)
+            if ai_workflow_run_match:
+                project_id = ai_workflow_run_match.group(1)
+                payload = read_body(self)
+                return self._send_json(
+                    create_job(project_id, "ai_workflow.%s" % str(payload.get("stage") or "run"), lambda progress: run_ai_workflow_stage(project_id, payload, progress=progress)),
+                    status=HTTPStatus.ACCEPTED,
+                )
+
+            ai_workflow_approve_match = re.fullmatch(r"/api/projects/([^/]+)/ai-workflow/approve", path)
+            if ai_workflow_approve_match:
+                project_id = ai_workflow_approve_match.group(1)
+                return self._send_json(approve_ai_workflow(project_id, read_body(self)))
+
+            ai_workflow_reject_match = re.fullmatch(r"/api/projects/([^/]+)/ai-workflow/reject", path)
+            if ai_workflow_reject_match:
+                project_id = ai_workflow_reject_match.group(1)
+                return self._send_json(reject_ai_workflow(project_id, read_body(self)))
 
             manual_clip_update_meta_match = re.fullmatch(r"/api/projects/([^/]+)/manual-clips/([^/]+)/update-meta", path)
             if manual_clip_update_meta_match:

@@ -169,6 +169,41 @@ class SpriteWorkbenchTests(unittest.TestCase):
         finally:
             sw.PROJECTS_ROOT = original_root
 
+    def build_ai_debug_workflow(self, tmpdir: str):
+        original_root = sw.PROJECTS_ROOT
+        sw.PROJECTS_ROOT = Path(tmpdir)
+        try:
+            project = sw.create_project({
+                "project_name": "AI Workflow Hero",
+                "prompt_text": "a side-view lantern knight",
+                "backend_mode": "debug_procedural",
+                "last_ui_mode": "wizard",
+            })
+            project = self.import_valid_manual_concept(project["project_id"])
+            lock_run = sw.run_ai_workflow_stage(project["project_id"], {"stage": "character_lock", "workflow_profile": "ai_sideview_v1"})
+            sw.approve_ai_workflow(project["project_id"], {
+                "stage": "character_lock",
+                "run_id": lock_run["run_id"],
+                "asset_id": lock_run["candidates"][0]["asset_id"],
+            })
+            pose_run = sw.run_ai_workflow_stage(project["project_id"], {"stage": "key_pose_set", "workflow_profile": "ai_sideview_v1"})
+            sw.approve_ai_workflow(project["project_id"], {
+                "stage": "key_pose_set",
+                "run_id": pose_run["run_id"],
+            })
+            for clip_name in ["idle", "walk"]:
+                motion_run = sw.run_ai_workflow_stage(project["project_id"], {"stage": "motion_clip", "workflow_profile": "ai_sideview_v1", "clip_name": clip_name})
+                sw.approve_ai_workflow(project["project_id"], {"stage": "motion_clip", "clip_name": clip_name, "run_id": motion_run["run_id"]})
+                extract_run = sw.run_ai_workflow_stage(project["project_id"], {"stage": "extract_frames", "workflow_profile": "ai_sideview_v1", "clip_name": clip_name})
+                sw.approve_ai_workflow(project["project_id"], {"stage": "extract_frames", "clip_name": clip_name, "run_id": extract_run["run_id"]})
+                cleanup_run = sw.run_ai_workflow_stage(project["project_id"], {"stage": "pixel_cleanup", "workflow_profile": "ai_sideview_v1", "clip_name": clip_name})
+                sw.approve_ai_workflow(project["project_id"], {"stage": "pixel_cleanup", "clip_name": clip_name, "run_id": cleanup_run["run_id"]})
+            qa = sw.run_qa(project["project_id"])
+            export = sw.export_project(project["project_id"])
+            return sw.load_project(project["project_id"]), qa, export
+        finally:
+            sw.PROJECTS_ROOT = original_root
+
     @contextmanager
     def fixture_project(self, fixture_name: str):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -271,7 +306,7 @@ class SpriteWorkbenchTests(unittest.TestCase):
         self.assertEqual(before_valid["step_statuses"]["review"], "locked")
         self.assertIn("Codex validated as valid", before_valid["blocking_reasons"]["review"][0])
         self.assertEqual(project["step_statuses"]["review"], "complete")
-        self.assertIn(project["step_statuses"]["part_manifest"], {"active", "ready"})
+        self.assertIn(project["step_statuses"]["rig_layout"], {"active", "ready"})
 
     def test_concept_approval_generates_rig_layout_before_sprite_model(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -305,9 +340,12 @@ class SpriteWorkbenchTests(unittest.TestCase):
                 sw.PROJECTS_ROOT = original_root
 
         self.assertEqual(project["current_stage"], "rig_layout")
-        self.assertFalse(project["rig_layout_approved"])
         self.assertIn(project["step_statuses"]["rig_layout"], {"active", "ready"})
-        self.assertEqual(project["rig_layout"]["rig_profile"], sw.SIDE_KNIGHT_SIMPLE_7)
+        if project["ai_workflow"]["enabled"]:
+            self.assertEqual(project["ai_workflow"]["selected_assets"]["approved_concept_id"], imported["concept_id"])
+        else:
+            self.assertFalse(project["rig_layout_approved"])
+            self.assertEqual(project["rig_layout"]["rig_profile"], sw.SIDE_KNIGHT_SIMPLE_7)
 
     def test_valid_gemini_import_sets_direct_source_image(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -418,44 +456,77 @@ class SpriteWorkbenchTests(unittest.TestCase):
         self.assertTrue(reloaded["part_manifest_approved"])
         self.assertFalse(reloaded["part_shapes_approved"])
 
-    def test_external_authoring_bundle_can_drive_qa_and_export(self):
+    def test_ai_workflow_debug_pipeline_can_drive_qa_and_export(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            project, qa, export = self.build_ai_debug_workflow(tmpdir)
+            store = project["ai_workflow"]
+            self.assertTrue(store["enabled"])
+            self.assertEqual(store["profile"], "ai_sideview_v1")
+            lock_run = store["character_lock"]["runs"][store["character_lock"]["approved_run_id"]]
+            self.assertEqual(len(lock_run["candidates"]), 6)
+            pose_run = store["key_pose_set"]["runs"][store["key_pose_set"]["approved_run_id"]]
+            self.assertEqual(sorted(pose["pose_name"] for pose in pose_run["poses"]), sorted(sw.AI_KEY_POSE_NAMES))
+            idle_cleanup = store["cleanup_runs"]["idle"]["runs"][store["cleanup_runs"]["idle"]["approved_run_id"]]
+            walk_cleanup = store["cleanup_runs"]["walk"]["runs"][store["cleanup_runs"]["walk"]["approved_run_id"]]
+            self.assertEqual(len(idle_cleanup["frames"]), 6)
+            self.assertEqual(len(walk_cleanup["frames"]), 8)
+            self.assertEqual(qa["mode"], "ai_workflow")
+            self.assertEqual(qa["status"], "pass")
+            self.assertEqual(export["mode"], "ai_workflow")
+            export_dir = Path(tmpdir) / project["project_id"] / export["export_dir"]
+            self.assertTrue((export_dir / "spritesheet.png").exists())
+            self.assertTrue((export_dir / "atlas.json").exists())
+            self.assertTrue((export_dir / "animations.json").exists())
+            self.assertTrue((export_dir / "preview.gif").exists())
+            self.assertTrue((export_dir / "export_manifest.json").exists())
+
+    def test_ai_workflow_health_fails_cleanly_when_comfyui_is_down(self):
+        with patch.object(sw.ComfyUIConceptBackend, "healthcheck", return_value={"ok": False, "error": "connection refused", "base_url": "http://127.0.0.1:8188"}):
+            health = sw.ai_workflow_health_snapshot("comfyui")
+        self.assertEqual(health["overall_status"], "fail")
+        self.assertEqual(health["dependencies"]["comfyui"]["status"], "fail")
+        self.assertIn("connection refused", health["dependencies"]["comfyui"]["detail"])
+
+    def test_legacy_projects_hydrate_read_only_ai_mode(self):
+        with self.fixture_project("hybrid-mixed-pipeline"):
+            project = sw.load_project("hybrid-mixed-pipeline")
+        self.assertTrue(project["ai_workflow"]["legacy_mode"])
+        self.assertFalse(project["ai_workflow"]["enabled"])
+
+    def test_external_authoring_mutation_endpoints_return_410(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             original_root = sw.PROJECTS_ROOT
             sw.PROJECTS_ROOT = Path(tmpdir)
             try:
                 project = sw.create_project({
-                    "project_name": "External Authoring Hero",
+                    "project_name": "Legacy Endpoint Hero",
                     "prompt_text": "a side-view shield knight",
                     "backend_mode": "debug_procedural",
-                    "last_ui_mode": "wizard",
                 })
-                project = self.import_valid_manual_concept(project["project_id"])
-                external = sw.update_external_authoring(project["project_id"], {"enabled": True, "provider": "skelform"})
-                self.assertTrue(external["enabled"])
-                loaded = sw.load_project(project["project_id"])
-                self.assertEqual(loaded["wizard_state"]["current_step"], "clips")
-                self.assertEqual(loaded["step_statuses"]["part_manifest"], "complete")
-                with tempfile.TemporaryDirectory() as asset_dir:
-                    bundle = self.create_external_bundle_assets(Path(asset_dir))
-                    external = sw.import_external_authoring_bundle(project["project_id"], {
-                        "source_label": "SkelForm test export",
-                        "spritesheet_local_path": str(bundle["spritesheet"]),
-                        "atlas_local_path": str(bundle["atlas"]),
-                        "animations_local_path": str(bundle["animations"]),
-                        "preview_gif_local_path": str(bundle["preview_gif"]),
-                    })
-                self.assertEqual(external["imported_bundle"]["animation_names"], ["idle", "walk"])
-                qa = sw.run_qa(project["project_id"])
-                self.assertEqual(qa["mode"], "external_authoring")
-                self.assertEqual(qa["status"], "pass")
-                export = sw.export_project(project["project_id"])
-                export_dir = sw.PROJECTS_ROOT / project["project_id"] / export["export_dir"]
-                self.assertTrue((export_dir / "spritesheet.png").exists())
-                self.assertTrue((export_dir / "atlas.json").exists())
-                self.assertTrue((export_dir / "animations.json").exists())
-                self.assertTrue((export_dir / "export_manifest.json").exists())
+                try:
+                    server = ThreadingHTTPServer(("127.0.0.1", 0), sw.SpriteWorkbenchHandler)
+                except PermissionError:
+                    self.skipTest("Sandbox does not allow binding a local socket.")
+                thread = threading.Thread(target=server.serve_forever, daemon=True)
+                thread.start()
+                try:
+                    connection = http.client.HTTPConnection("127.0.0.1", server.server_port, timeout=5)
+                    connection.request(
+                        "POST",
+                        f"/api/projects/{project['project_id']}/external-authoring/update",
+                        body=json.dumps({"enabled": True}).encode("utf-8"),
+                        headers={"Content-Type": "application/json"},
+                    )
+                    response = connection.getresponse()
+                    body = json.loads(response.read().decode("utf-8"))
+                finally:
+                    server.shutdown()
+                    thread.join(timeout=5)
+                    server.server_close()
             finally:
                 sw.PROJECTS_ROOT = original_root
+        self.assertEqual(response.status, 410)
+        self.assertIn("retired", body["error"].lower())
 
     def test_part_shape_update_round_trips_vertices(self):
         with tempfile.TemporaryDirectory() as tmpdir:
