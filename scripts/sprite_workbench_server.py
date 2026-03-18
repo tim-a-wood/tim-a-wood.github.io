@@ -3610,6 +3610,114 @@ def build_iteration_prompt(
     }
 
 
+def _find_first_base64_png_like(payload: Any) -> Optional[str]:
+    """
+    Heuristically extracts a base64-encoded PNG image from a nested JSON payload.
+
+    Pixel Lab can return different shapes; for Phase 3 we primarily need a stable
+    way to support their image outputs without hard-coding one exact schema.
+    """
+    # Fast path for common fields.
+    if isinstance(payload, dict):
+        for key in ("image_base64", "image", "image_b64", "imageB64", "b64", "base64"):
+            if key in payload:
+                candidate = payload.get(key)
+                if isinstance(candidate, str):
+                    return candidate
+                if isinstance(candidate, dict):
+                    for subkey in ("base64", "b64", "data"):
+                        v = candidate.get(subkey)
+                        if isinstance(v, str):
+                            return v
+
+    # Recursive walk.
+    if isinstance(payload, dict):
+        for value in payload.values():
+            found = _find_first_base64_png_like(value)
+            if found:
+                return found
+        return None
+    if isinstance(payload, list):
+        for value in payload:
+            found = _find_first_base64_png_like(value)
+            if found:
+                return found
+        return None
+    if isinstance(payload, str):
+        s = payload.strip()
+        # Accept data URIs.
+        if "base64," in s:
+            s = s.split("base64,", 1)[1].strip()
+        # PNG base64 usually starts with iVBORw0...
+        if s.startswith("iVBORw0") and len(s) > 2000:
+            return payload
+    return None
+
+
+def _decode_base64_image_to_rgba(image_b64: str) -> Image.Image:
+    """
+    Decode base64 image into RGBA PIL image.
+    """
+    s = image_b64.strip()
+    if "base64," in s:
+        s = s.split("base64,", 1)[1].strip()
+    raw = base64.b64decode(s)
+    with Image.open(io.BytesIO(raw)) as loaded:
+        return loaded.convert("RGBA")
+
+
+def debug_pixellab_concept_image(image_size: Dict[str, int], seed: Optional[int], label: str = "pixellab-debug") -> Image.Image:
+    """
+    Offline fallback that produces a stable transparent concept image.
+    """
+    width = int(image_size.get("width") or image_size.get("w") or 64)
+    height = int(image_size.get("height") or image_size.get("h") or width)
+    base = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(base)
+
+    # Deterministic color selection from seed (or constant).
+    s = int(seed or 0)
+    r = (120 + (s % 120)) % 255
+    g = (60 + ((s // 3) % 160)) % 255
+    b = (80 + ((s // 7) % 140)) % 255
+    accent = (r, g, b, 210)
+    outline = (max(0, r - 40), max(0, g - 30), max(0, b - 30), 255)
+
+    # Main silhouette-ish blob.
+    pad = max(4, int(width * 0.12))
+    draw.rounded_rectangle((pad, pad, width - pad, height - pad), radius=int(width * 0.25), fill=accent, outline=outline, width=max(2, width // 24))
+    # Held-item hint.
+    item_w = max(8, width // 5)
+    item_h = max(10, height // 6)
+    draw.rectangle((width - pad - item_w, height // 2 - item_h // 2, width - pad, height // 2 + item_h // 2), fill=(outline[0], outline[1], outline[2], 200))
+
+    # Tiny label for human debugging (still within deterministic canvas).
+    draw.text((pad, height - pad - 10), label[:6], fill=(235, 235, 235, 255))
+    return base
+
+
+def debug_pixellab_iterate_from_inpainting(inpainting_image_b64: str, seed: Optional[int]) -> Image.Image:
+    """
+    Offline fallback for inpaint iterations.
+    """
+    try:
+        image = _decode_base64_image_to_rgba(inpainting_image_b64)
+    except Exception:
+        image = debug_pixellab_concept_image({"width": 64, "height": 64}, seed, label="iter")
+    s = int(seed or 0)
+    draw = ImageDraw.Draw(image)
+    w, h = image.size
+    # Add a deterministic “change marker” in a small corner.
+    c = (
+        (150 + (s % 105)) % 255,
+        (70 + ((s // 4) % 140)) % 255,
+        (90 + ((s // 11) % 120)) % 255,
+        220,
+    )
+    draw.rectangle((w - w // 4, h - h // 4, w - 1, h - 1), fill=c)
+    return image
+
+
 def build_identity_lock_lines(brief: Dict[str, Any]) -> List[str]:
     return [
         "Continuity lock: this must remain the same character between iterations, not a redesign.",
@@ -11934,6 +12042,258 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                     source_concept_path=source_path,
                 )
                 return self._send_json(scaffold, status=HTTPStatus.OK)
+
+            generate_pixellab_match = re.fullmatch(r"/api/projects/([^/]+)/concepts/generate-pixellab", path)
+            if generate_pixellab_match:
+                project_id = generate_pixellab_match.group(1)
+                payload = read_body(self)
+                pixellab_params = payload.get("pixellab_params") or {}
+                mode = (payload.get("mode") or "v2").strip().lower()
+
+                if not isinstance(pixellab_params, dict):
+                    raise ValueError("generate-pixellab requires pixellab_params object.")
+                if not pixellab_params.get("description"):
+                    raise ValueError("pixellab_params.description is required.")
+                if not pixellab_params.get("image_size"):
+                    raise ValueError("pixellab_params.image_size is required.")
+
+                project = load_project(project_id)
+                project_dir = PROJECTS_ROOT / project_id
+                serial = next_concept_serial(project["concepts"])
+                concept_id = "concept-%04d" % serial
+                output_path = project_dir / "concepts" / ("%s.png" % concept_id)
+
+                backend_mode = str((project.get("brief") or {}).get("backend_mode") or "comfyui")
+                seed = pixellab_params.get("seed")
+
+                used_backend = "debug_procedural" if backend_mode == "debug_procedural" else "pixellab"
+                backend_run_id = None
+
+                if backend_mode == "debug_procedural" or not pixellab_configured():
+                    image = debug_pixellab_concept_image(pixellab_params["image_size"], seed, label="gen")
+                    output_path.parent.mkdir(parents=True, exist_ok=True)
+                    image.save(output_path)
+                    backend_run_id = "debug"
+                else:
+                    client = get_pixellab_client()
+                    if client is None:
+                        raise ValueError("Pixel Lab client unavailable; missing PIXELLAB_API_KEY.")
+
+                    desc = pixellab_params["description"]
+                    image_size = pixellab_params["image_size"]
+                    no_background = bool(pixellab_params.get("no_background", True))
+
+                    # Prefer v2 for best quality, but keep pixflux as a fallback.
+                    last_exc: Optional[str] = None
+                    for attempt in ([mode] + (["pixflux"] if mode != "pixflux" else [])):
+                        try:
+                            if attempt == "v2":
+                                result = client.create_image_v2(
+                                    desc,
+                                    image_size,
+                                    no_background=no_background,
+                                    seed=seed,
+                                )
+                            else:
+                                result = client.create_image_pixflux(
+                                    desc,
+                                    image_size,
+                                    no_background=no_background,
+                                    outline=pixellab_params.get("outline"),
+                                    shading=pixellab_params.get("shading"),
+                                    detail=pixellab_params.get("detail"),
+                                    view=pixellab_params.get("view"),
+                                    direction=pixellab_params.get("direction"),
+                                    seed=seed,
+                                )
+
+                            backend_run_id = result.get("job_id") or result.get("id")
+                            b64 = _find_first_base64_png_like(result)
+                            if not b64:
+                                raise ValueError("Pixel Lab result did not contain extractable base64 image.")
+                            image = _decode_base64_image_to_rgba(b64)
+                            output_path.parent.mkdir(parents=True, exist_ok=True)
+                            image.save(output_path)
+                            used_backend = "pixellab"
+                            backend_run_id = backend_run_id or "pixellab"
+                            last_exc = None
+                            break
+                        except Exception as exc:
+                            last_exc = str(exc)
+                            continue
+
+                    if last_exc is not None:
+                        raise ValueError("generate-pixellab failed: %s" % last_exc)
+
+                concept = hydrate_concept({
+                    "concept_id": concept_id,
+                    "run_id": stable_hash("pixellab-generate", project_id, concept_id, str(seed or ""))[:12],
+                    "run_kind": "pixellab_generate",
+                    "created_at": now_iso(),
+                    "positive_prompt": pixellab_params["description"],
+                    "prompt": pixellab_params["description"],
+                    "prompt_text": pixellab_params["description"],
+                    "prompt_version": 0,
+                    "prompt_source": "scaffold",
+                    "attempt_group_id": stable_hash("pixellab-group", project_id, str(seed or ""))[:12],
+                    "attempt_index": 0,
+                    "import_source": None,
+                    "validation_status": "pending",
+                    "validation_feedback": None,
+                    "accepted_for_review": False,
+                    "preview_image": str(output_path.relative_to(project_dir)),
+                    "original_preview_image": str(output_path.relative_to(project_dir)),
+                    "backend_name": used_backend,
+                    "backend_run_id": backend_run_id,
+                    "difference_summary": "Pixel Lab generated concept (%s)" % mode,
+                    "silhouette": project["brief"]["silhouette_intent"],
+                    "outfit": project["brief"]["outfit_materials"],
+                    "palette_direction": project["brief"]["palette_mood"],
+                    "palette": palette_from_seed(serial, 0, project["brief"]["palette_mood"]),
+                    "prop_variant": project["brief"]["prop"],
+                    "face_head_shape": project["brief"]["shape_language"],
+                    "references_used": [],
+                    "review_state": {"approved": False, "favorite": False, "rejected": False},
+                    "lineage": {"run_id": backend_run_id or "pixellab", "parent_concept_id": None},
+                })
+
+                # Optional triage (best-effort). Keeps UI triage metrics coherent.
+                try:
+                    concept["triage"] = analyze_concept_image(output_path)
+                except Exception:
+                    concept["triage"] = {"status": "not_evaluated", "flags": [], "metrics": {}}
+
+                project["concepts"].append(concept)
+                project["updated_at"] = now_iso()
+                project["current_stage"] = "concepts"
+                project["status"] = "concept_pixellab_generated"
+                save_project(project)
+                save_concept(project_dir, concept)
+                append_history_event(project_id, {
+                    "type": "concept_pixellab_generate",
+                    "concept_id": concept_id,
+                    "mode": mode,
+                    "created_at": now_iso(),
+                })
+
+                return self._send_json(concept, status=HTTPStatus.CREATED)
+
+            iterate_pixellab_match = re.fullmatch(r"/api/projects/([^/]+)/concepts/iterate-pixellab", path)
+            if iterate_pixellab_match:
+                project_id = iterate_pixellab_match.group(1)
+                payload = read_body(self)
+                source_concept_id = payload.get("concept_id")
+                pixellab_params = payload.get("pixellab_params") or {}
+
+                if not source_concept_id:
+                    raise ValueError("iterate-pixellab requires concept_id.")
+                if not isinstance(pixellab_params, dict):
+                    raise ValueError("iterate-pixellab requires pixellab_params object.")
+                if not pixellab_params.get("description"):
+                    raise ValueError("pixellab_params.description is required.")
+                if not pixellab_params.get("image_size"):
+                    raise ValueError("pixellab_params.image_size is required.")
+                if not pixellab_params.get("inpainting_image_b64"):
+                    raise ValueError("pixellab_params.inpainting_image_b64 is required.")
+                if not pixellab_params.get("mask_image_b64"):
+                    raise ValueError("pixellab_params.mask_image_b64 is required.")
+
+                project = load_project(project_id)
+                project_dir = PROJECTS_ROOT / project_id
+                serial = next_concept_serial(project["concepts"])
+                concept_id = "concept-%04d" % serial
+                output_path = project_dir / "concepts" / ("%s.png" % concept_id)
+
+                backend_mode = str((project.get("brief") or {}).get("backend_mode") or "comfyui")
+                seed = pixellab_params.get("seed")
+                used_backend = "debug_procedural" if backend_mode == "debug_procedural" else "pixellab"
+                backend_run_id = None
+
+                if backend_mode == "debug_procedural" or not pixellab_configured():
+                    image = debug_pixellab_iterate_from_inpainting(
+                        pixellab_params["inpainting_image_b64"],
+                        seed,
+                    )
+                    output_path.parent.mkdir(parents=True, exist_ok=True)
+                    image.save(output_path)
+                    backend_run_id = "debug"
+                else:
+                    client = get_pixellab_client()
+                    if client is None:
+                        raise ValueError("Pixel Lab client unavailable; missing PIXELLAB_API_KEY.")
+
+                    result = client.inpaint_v3(
+                        pixellab_params["description"],
+                        pixellab_params["inpainting_image_b64"],
+                        pixellab_params["mask_image_b64"],
+                        pixellab_params["image_size"],
+                        no_background=bool(pixellab_params.get("no_background", True)),
+                        crop_to_mask=bool(pixellab_params.get("crop_to_mask", True)),
+                        seed=seed,
+                    )
+
+                    backend_run_id = result.get("job_id") or result.get("id")
+                    b64 = _find_first_base64_png_like(result)
+                    if not b64:
+                        raise ValueError("Pixel Lab result did not contain extractable base64 image.")
+
+                    image = _decode_base64_image_to_rgba(b64)
+                    output_path.parent.mkdir(parents=True, exist_ok=True)
+                    image.save(output_path)
+                    used_backend = "pixellab"
+                    backend_run_id = backend_run_id or "pixellab"
+
+                concept = hydrate_concept({
+                    "concept_id": concept_id,
+                    "run_id": stable_hash("pixellab-iterate", project_id, concept_id, str(seed or ""))[:12],
+                    "run_kind": "pixellab_iterate",
+                    "created_at": now_iso(),
+                    "positive_prompt": pixellab_params["description"],
+                    "prompt": pixellab_params["description"],
+                    "prompt_text": pixellab_params["description"],
+                    "prompt_version": 0,
+                    "prompt_source": "scaffold",
+                    "attempt_group_id": stable_hash("pixellab-iterate-group", project_id, source_concept_id)[:12],
+                    "attempt_index": 0,
+                    "import_source": None,
+                    "validation_status": "pending",
+                    "validation_feedback": None,
+                    "accepted_for_review": False,
+                    "preview_image": str(output_path.relative_to(project_dir)),
+                    "original_preview_image": str(output_path.relative_to(project_dir)),
+                    "backend_name": used_backend,
+                    "backend_run_id": backend_run_id,
+                    "difference_summary": "Pixel Lab inpaint iteration from %s" % source_concept_id,
+                    "silhouette": project["brief"]["silhouette_intent"],
+                    "outfit": project["brief"]["outfit_materials"],
+                    "palette_direction": project["brief"]["palette_mood"],
+                    "palette": palette_from_seed(serial, 0, project["brief"]["palette_mood"]),
+                    "prop_variant": project["brief"]["prop"],
+                    "face_head_shape": project["brief"]["shape_language"],
+                    "references_used": [],
+                    "review_state": {"approved": False, "favorite": False, "rejected": False},
+                    "lineage": {"run_id": backend_run_id or "pixellab", "parent_concept_id": source_concept_id},
+                })
+
+                try:
+                    concept["triage"] = analyze_concept_image(output_path)
+                except Exception:
+                    concept["triage"] = {"status": "not_evaluated", "flags": [], "metrics": {}}
+
+                project["concepts"].append(concept)
+                project["updated_at"] = now_iso()
+                project["current_stage"] = "concepts"
+                project["status"] = "concept_pixellab_iterated"
+                save_project(project)
+                save_concept(project_dir, concept)
+                append_history_event(project_id, {
+                    "type": "concept_pixellab_iterate",
+                    "concept_id": concept_id,
+                    "source_concept_id": source_concept_id,
+                    "created_at": now_iso(),
+                })
+
+                return self._send_json(concept, status=HTTPStatus.CREATED)
 
             improved_prompt_match = re.fullmatch(r"/api/projects/([^/]+)/concepts/([^/]+)/improve-prompt", path)
             if improved_prompt_match:

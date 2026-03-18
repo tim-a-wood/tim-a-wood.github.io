@@ -1439,6 +1439,124 @@ class SpriteWorkbenchTests(unittest.TestCase):
             finally:
                 sw.PROJECTS_ROOT = original_root
 
+    def test_generate_pixellab_endpoint_debug_writes_concept(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            original_root = sw.PROJECTS_ROOT
+            sw.PROJECTS_ROOT = Path(tmpdir)
+            try:
+                project = sw.create_project({
+                    "project_name": "Generate Pixellab Endpoint Hero",
+                    "prompt_text": "a vigilant ranger with a lantern",
+                    "backend_mode": "debug_procedural",
+                    "last_ui_mode": "wizard",
+                })
+                project_id = project["project_id"]
+                project_dir = sw.PROJECTS_ROOT / project_id
+
+                try:
+                    server = ThreadingHTTPServer(("127.0.0.1", 0), sw.SpriteWorkbenchHandler)
+                except PermissionError:
+                    self.skipTest("Sandbox does not allow binding a local socket.")
+                thread = threading.Thread(target=server.serve_forever, daemon=True)
+                thread.start()
+                try:
+                    connection = http.client.HTTPConnection("127.0.0.1", server.server_port, timeout=10)
+
+                    connection.request(
+                        "POST",
+                        f"/api/projects/{project_id}/concepts/build-prompt",
+                        body=b"{}",
+                        headers={"Content-Type": "application/json"},
+                    )
+                    response = connection.getresponse()
+                    raw = response.read().decode("utf-8")
+                    data = json.loads(raw)
+                    pixellab_params = data["pixellab_params"]
+
+                    connection.request(
+                        "POST",
+                        f"/api/projects/{project_id}/concepts/generate-pixellab",
+                        body=json.dumps({"pixellab_params": pixellab_params, "mode": "v2"}).encode("utf-8"),
+                        headers={"Content-Type": "application/json"},
+                    )
+                    response2 = connection.getresponse()
+                    raw2 = response2.read().decode("utf-8")
+                    created = json.loads(raw2)
+
+                    concept_id = created["concept_id"]
+                    expected_png = project_dir / "concepts" / f"{concept_id}.png"
+                    self.assertTrue(expected_png.exists())
+                    self.assertEqual(created["preview_image"], str(expected_png.relative_to(project_dir)))
+                finally:
+                    server.shutdown()
+                    thread.join(timeout=5)
+                    server.server_close()
+            finally:
+                sw.PROJECTS_ROOT = original_root
+
+    def test_iterate_pixellab_endpoint_debug_writes_concept_and_lineage(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            original_root = sw.PROJECTS_ROOT
+            sw.PROJECTS_ROOT = Path(tmpdir)
+            try:
+                # Create a project and an initial approved concept we can iterate on.
+                project = sw.create_project({
+                    "project_name": "Iterate Pixellab Endpoint Hero",
+                    "prompt_text": "a vigilant ranger with a lantern",
+                    "backend_mode": "debug_procedural",
+                    "last_ui_mode": "wizard",
+                })
+                project_id = project["project_id"]
+
+                source_project = self.import_valid_manual_concept(project_id)
+                source_concept_id = next(item["concept_id"] for item in source_project["concepts"] if item.get("preview_image"))
+                project_dir = sw.PROJECTS_ROOT / project_id
+
+                try:
+                    server = ThreadingHTTPServer(("127.0.0.1", 0), sw.SpriteWorkbenchHandler)
+                except PermissionError:
+                    self.skipTest("Sandbox does not allow binding a local socket.")
+                thread = threading.Thread(target=server.serve_forever, daemon=True)
+                thread.start()
+                try:
+                    connection = http.client.HTTPConnection("127.0.0.1", server.server_port, timeout=10)
+
+                    connection.request(
+                        "POST",
+                        f"/api/projects/{project_id}/concepts/build-iteration-prompt",
+                        body=json.dumps({
+                            "concept_id": source_concept_id,
+                            "element": "outfit",
+                            "change_text": "make the cape longer and more tattered",
+                        }).encode("utf-8"),
+                        headers={"Content-Type": "application/json"},
+                    )
+                    resp = connection.getresponse()
+                    raw = resp.read().decode("utf-8")
+                    scaffold = json.loads(raw)
+                    pixellab_params = scaffold["pixellab_params"]
+
+                    connection.request(
+                        "POST",
+                        f"/api/projects/{project_id}/concepts/iterate-pixellab",
+                        body=json.dumps({"concept_id": source_concept_id, "pixellab_params": pixellab_params}).encode("utf-8"),
+                        headers={"Content-Type": "application/json"},
+                    )
+                    resp2 = connection.getresponse()
+                    raw2 = resp2.read().decode("utf-8")
+                    created = json.loads(raw2)
+
+                    concept_id = created["concept_id"]
+                    expected_png = project_dir / "concepts" / f"{concept_id}.png"
+                    self.assertTrue(expected_png.exists())
+                    self.assertEqual(created["lineage"]["parent_concept_id"], source_concept_id)
+                finally:
+                    server.shutdown()
+                    thread.join(timeout=5)
+                    server.server_close()
+            finally:
+                sw.PROJECTS_ROOT = original_root
+
     def test_manual_animation_clip_create_persists_named_clip(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             original_root = sw.PROJECTS_ROOT
