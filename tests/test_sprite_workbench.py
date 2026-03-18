@@ -1557,6 +1557,96 @@ class SpriteWorkbenchTests(unittest.TestCase):
             finally:
                 sw.PROJECTS_ROOT = original_root
 
+    def test_create_character_pixellab_debug_writes_assets(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            original_root = sw.PROJECTS_ROOT
+            sw.PROJECTS_ROOT = Path(tmpdir)
+            try:
+                project = sw.create_project({
+                    "project_name": "Create Character Pixellab Endpoint Hero",
+                    "prompt_text": "a vigilant ranger with a lantern",
+                    "backend_mode": "debug_procedural",
+                    "last_ui_mode": "wizard",
+                })
+                project_id = project["project_id"]
+
+                # Generate an initial concept via our debug-safe pixellab endpoint flow.
+                project_dir = sw.PROJECTS_ROOT / project_id
+                build_scaffold = sw.build_concept_prompt(project["brief"])
+                pixellab_params = build_scaffold["pixellab_params"]
+
+                # Call server endpoints to mirror real HTTP flow (CORS path usage).
+                try:
+                    server = ThreadingHTTPServer(("127.0.0.1", 0), sw.SpriteWorkbenchHandler)
+                except PermissionError:
+                    self.skipTest("Sandbox does not allow binding a local socket.")
+                thread = threading.Thread(target=server.serve_forever, daemon=True)
+                thread.start()
+                try:
+                    connection = http.client.HTTPConnection("127.0.0.1", server.server_port, timeout=10)
+
+                    connection.request(
+                        "POST",
+                        f"/api/projects/{project_id}/concepts/generate-pixellab",
+                        body=json.dumps({"pixellab_params": pixellab_params, "mode": "v2"}).encode("utf-8"),
+                        headers={"Content-Type": "application/json"},
+                    )
+                    resp = connection.getresponse()
+                    raw = resp.read().decode("utf-8")
+                    created = json.loads(raw)
+                    concept_id = created["concept_id"]
+
+                    connection.request(
+                        "POST",
+                        f"/api/projects/{project_id}/pixellab/create-character",
+                        body=json.dumps({"directions": 4, "color_concept_id": concept_id, "seed": 123}).encode("utf-8"),
+                        headers={"Content-Type": "application/json"},
+                    )
+                    resp2 = connection.getresponse()
+                    raw2 = resp2.read().decode("utf-8")
+                    if resp2.status >= 400:
+                        raise AssertionError(f"create-character HTTP {resp2.status}: {raw2}")
+                    char_data = json.loads(raw2)
+
+                    char_path = project_dir / "pixellab_character.json"
+                    self.assertTrue(char_path.exists())
+                    self.assertEqual(char_data.get("approved"), False)
+
+                    # Directions should exist for 4-dir.
+                    expected_dirs = ["south", "west", "east", "north"]
+                    assets_dir = project_dir / "character"
+                    for d in expected_dirs:
+                        self.assertTrue((assets_dir / f"{d}.png").exists())
+
+                    connection.request(
+                        "POST",
+                        f"/api/projects/{project_id}/pixellab/estimate-skeleton",
+                        body=json.dumps({"direction": "east", "seed": 456}).encode("utf-8"),
+                        headers={"Content-Type": "application/json"},
+                    )
+                    resp3 = connection.getresponse()
+                    raw3 = resp3.read().decode("utf-8")
+                    skel_data = json.loads(raw3)
+                    self.assertTrue((project_dir / "pixellab_skeleton.json").exists())
+                    self.assertEqual(len(skel_data.get("skeleton_keypoints") or []), 18)
+
+                    connection.request(
+                        "POST",
+                        f"/api/projects/{project_id}/pixellab/approve-character",
+                        body=b"{}",
+                        headers={"Content-Type": "application/json"},
+                    )
+                    resp4 = connection.getresponse()
+                    raw4 = resp4.read().decode("utf-8")
+                    approved = json.loads(raw4)
+                    self.assertEqual(approved.get("approved"), True)
+                finally:
+                    server.shutdown()
+                    thread.join(timeout=5)
+                    server.server_close()
+            finally:
+                sw.PROJECTS_ROOT = original_root
+
     def test_manual_animation_clip_create_persists_named_clip(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             original_root = sw.PROJECTS_ROOT

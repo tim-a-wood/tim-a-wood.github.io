@@ -3718,6 +3718,87 @@ def debug_pixellab_iterate_from_inpainting(inpainting_image_b64: str, seed: Opti
     return image
 
 
+def debug_pixellab_character_images(directions: List[str], canvas_size: int, seed: Optional[int]) -> Dict[str, Image.Image]:
+    """
+    Offline fallback producing one transparent-direction image per requested direction.
+    """
+    s = int(seed or 0)
+    images: Dict[str, Image.Image] = {}
+    for idx, direction in enumerate(directions):
+        img = Image.new("RGBA", (canvas_size, canvas_size), (0, 0, 0, 0))
+        draw = ImageDraw.Draw(img)
+
+        # Deterministic per-direction colors.
+        r = (80 + ((s + idx * 17) % 150)) % 255
+        g = (50 + ((s + idx * 29) % 180)) % 255
+        b = (70 + ((s + idx * 37) % 160)) % 255
+        fill = (r, g, b, 215)
+        outline = (max(0, r - 45), max(0, g - 35), max(0, b - 35), 255)
+
+        pad = max(4, int(canvas_size * 0.10))
+        draw.rounded_rectangle(
+            (pad, pad, canvas_size - pad, canvas_size - pad),
+            radius=max(4, int(canvas_size * 0.18)),
+            fill=fill,
+            outline=outline,
+            width=max(2, canvas_size // 20),
+        )
+
+        # Direction marker helps humans confirm wiring.
+        draw.text((pad + 2, pad + 2), direction[:3].upper(), fill=(235, 235, 235, 255))
+        images[direction] = img
+
+    return images
+
+
+def debug_pixellab_skeleton_keypoints(canvas_size: int) -> List[List[float]]:
+    """
+    Offline fallback that returns 18 humanoid keypoints.
+
+    Pixel Lab’s exact keypoint coordinate system is not documented in our repo yet,
+    so for now we return deterministic pixel-space points (for tests and UI scaffolding).
+    """
+    w = float(canvas_size)
+    h = float(canvas_size)
+
+    # Create a simple, symmetric humanoid-ish layout.
+    # Order corresponds to our `SkeletonLabel` enum in llms.txt (NOSE, NECK, ...).
+    # This is a best-effort placeholder for offline pipeline testing.
+    points: List[List[float]] = [
+        [w * 0.50, h * 0.18],  # NOSE
+        [w * 0.50, h * 0.28],  # NECK
+        [w * 0.60, h * 0.28],  # RIGHT SHOULDER
+        [w * 0.66, h * 0.38],  # RIGHT ELBOW
+        [w * 0.70, h * 0.52],  # RIGHT ARM
+        [w * 0.40, h * 0.28],  # LEFT SHOULDER
+        [w * 0.34, h * 0.38],  # LEFT ELBOW
+        [w * 0.30, h * 0.52],  # LEFT ARM
+        [w * 0.54, h * 0.56],  # RIGHT HIP
+        [w * 0.56, h * 0.70],  # RIGHT KNEE
+        [w * 0.58, h * 0.86],  # RIGHT LEG
+        [w * 0.46, h * 0.56],  # LEFT HIP
+        [w * 0.44, h * 0.70],  # LEFT KNEE
+        [w * 0.42, h * 0.86],  # LEFT LEG
+        [w * 0.47, h * 0.20],  # RIGHT EYE (approx)
+        [w * 0.53, h * 0.20],  # LEFT EYE (approx)
+        [w * 0.44, h * 0.24],  # RIGHT EAR
+        [w * 0.56, h * 0.24],  # LEFT EAR
+    ]
+    return points
+
+
+def _pixellab_character_path(project_dir: Path) -> Path:
+    return project_dir / "pixellab_character.json"
+
+
+def _pixellab_skeleton_path(project_dir: Path) -> Path:
+    return project_dir / "pixellab_skeleton.json"
+
+
+def _pixellab_character_assets_dir(project_dir: Path) -> Path:
+    return project_dir / "character"
+
+
 def build_identity_lock_lines(brief: Dict[str, Any]) -> List[str]:
     return [
         "Continuity lock: this must remain the same character between iterations, not a redesign.",
@@ -12294,6 +12375,280 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                 })
 
                 return self._send_json(concept, status=HTTPStatus.CREATED)
+
+            create_character_pixellab_match = re.fullmatch(r"/api/projects/([^/]+)/pixellab/create-character", path)
+            if create_character_pixellab_match:
+                project_id = create_character_pixellab_match.group(1)
+                payload = read_body(self)
+
+                directions = int(payload.get("directions") or 4)
+                if directions not in {4, 8}:
+                    raise ValueError("directions must be 4 or 8.")
+
+                color_concept_id = payload.get("color_concept_id") or payload.get("concept_id")
+                if not color_concept_id:
+                    raise ValueError("create-character requires color_concept_id/concept_id to find the reference image.")
+
+                project = load_project(project_id)
+                project_dir = PROJECTS_ROOT / project_id
+                brief = project.get("brief") or {}
+                canvas_size = coerce_canvas_size(brief.get("canvas_size"), DEFAULT_CANVAS_SIZE)
+
+                concept = next((item for item in (project.get("concepts") or []) if item.get("concept_id") == color_concept_id), None)
+                if concept is None:
+                    raise ValueError("color_concept_id concept not found.")
+
+                source_rel = concept.get("original_preview_image") or concept.get("preview_image") or concept.get("image_path")
+                if not source_rel:
+                    raise ValueError("Concept does not have a preview image path.")
+
+                source_path = Path(source_rel)
+                if not source_path.is_absolute():
+                    source_path = project_dir / source_rel
+                if not source_path.exists():
+                    raise ValueError("Concept preview image is missing on disk.")
+
+                seed = payload.get("seed")
+                try:
+                    seed = int(seed) if seed is not None else stable_int(project_id, color_concept_id, str(directions), mod=4_294_967_295)
+                except (TypeError, ValueError):
+                    seed = stable_int(project_id, color_concept_id, str(directions), mod=4_294_967_295)
+
+                if directions == 4:
+                    direction_list = ["south", "west", "east", "north"]
+                else:
+                    direction_list = [
+                        "south",
+                        "south-east",
+                        "east",
+                        "north-east",
+                        "north",
+                        "north-west",
+                        "west",
+                        "south-west",
+                    ]
+
+                backend_mode = str(brief.get("backend_mode") or "comfyui")
+                use_debug = backend_mode == "debug_procedural" or not pixellab_configured()
+
+                if use_debug:
+                    images = debug_pixellab_character_images(direction_list, canvas_size, seed)
+                    char_id = "debug-char-%s" % stable_hash(project_id, color_concept_id, str(directions))[:10]
+                    for d, img in images.items():
+                        asset_path = _pixellab_character_assets_dir(project_dir) / ("%s.png" % d)
+                        asset_path.parent.mkdir(parents=True, exist_ok=True)
+                        img.save(asset_path)
+
+                    char_payload = {
+                        "character_id": char_id,
+                        "approved": False,
+                        "created_at": now_iso(),
+                        "directions": direction_list,
+                        "image_size": {"width": canvas_size, "height": canvas_size},
+                        "source_concept_id": color_concept_id,
+                        "backend_name": "debug_procedural",
+                        "seed": seed,
+                        "images": {d: str((_pixellab_character_assets_dir(project_dir) / ("%s.png" % d)).relative_to(project_dir)) for d in direction_list},
+                    }
+                    _pixellab_character_path(project_dir).write_text(json.dumps(char_payload, indent=2), encoding="utf-8")
+                    project["pixellab_character_approved"] = False
+                    project["pixellab_character_ready"] = True
+                    project["current_stage"] = "concepts"
+                    project["status"] = "pixellab_character_debug_ready"
+                    save_project(project)
+                    append_history_event(project_id, {
+                        "type": "pixellab_character_created",
+                        "character_id": char_id,
+                        "directions": directions,
+                        "created_at": now_iso(),
+                    })
+                    return self._send_json(char_payload, status=HTTPStatus.CREATED)
+
+                client = get_pixellab_client()
+                if client is None:
+                    raise ValueError("Pixel Lab client unavailable; missing PIXELLAB_API_KEY.")
+
+                # Build a deterministic description for the Pixel Lab character template call.
+                style = _brief_pixel_lab_style(brief)
+                character_description = "\n".join(
+                    [
+                        "Create a 2D side-view pixel art character from the supplied concept.",
+                        f"Role: {brief.get('role_archetype','')}",
+                        f"Silhouette: {brief.get('silhouette_intent','')}",
+                        f"Outfit: {brief.get('outfit_materials','')}",
+                        f"Held item: {brief.get('prop','')}",
+                        f"Palette mood: {brief.get('palette_mood','')}",
+                        f"Shape language: {brief.get('shape_language','')}",
+                        f"Mood/tone: {brief.get('mood_tone','')}",
+                        f"Style outline={style['outline_style_pixel_lab']} shading={style['shading_style_pixel_lab']} detail={style['detail_level_pixel_lab']}.",
+                    ]
+                )
+
+                images_b64: List[str] = []
+                try:
+                    if directions == 4:
+                        result = client.create_character_4dir(
+                            character_description,
+                            {"width": canvas_size, "height": canvas_size},
+                            template_id=style["character_template_pixel_lab"],
+                            view="side",
+                            direction="east",
+                            no_background=True,
+                            color_image=client.encode_image(source_path),
+                            force_colors=True,
+                            seed=seed,
+                            async_mode=True,
+                        )
+                    else:
+                        result = client.create_character_8dir(
+                            character_description,
+                            {"width": canvas_size, "height": canvas_size},
+                            template_id=style["character_template_pixel_lab"],
+                            view="side",
+                            direction="east",
+                            no_background=True,
+                            color_image=client.encode_image(source_path),
+                            force_colors=True,
+                            seed=seed,
+                            async_mode=True,
+                        )
+                except Exception as exc:
+                    raise ValueError("Pixel Lab create-character failed: %s" % str(exc))
+
+                # Extract all PNG-like base64 blobs from the result.
+                b64_candidate = _find_first_base64_png_like(result)
+                if b64_candidate:
+                    images_b64 = [b64_candidate]
+                else:
+                    # If we can't find multiple images, we at least attempt one.
+                    images_b64 = []
+
+                # Without confirmed response schema, we require explicit multiple direction images.
+                if len(images_b64) < len(direction_list):
+                    raise ValueError(
+                        "Pixel Lab create-character response did not contain enough direction images to map into %s."
+                        % str(direction_list)
+                    )
+
+                char_id = result.get("character_id") or result.get("id") or ("pixellab-char-%s" % stable_hash(project_id, seed)[:10])
+                assets_dir = _pixellab_character_assets_dir(project_dir)
+                assets_dir.mkdir(parents=True, exist_ok=True)
+                images_map: Dict[str, str] = {}
+                for idx, d in enumerate(direction_list):
+                    img = _decode_base64_image_to_rgba(images_b64[idx])
+                    asset_path = assets_dir / ("%s.png" % d)
+                    img.save(asset_path)
+                    images_map[d] = str(asset_path.relative_to(project_dir))
+
+                char_payload = {
+                    "character_id": char_id,
+                    "approved": False,
+                    "created_at": now_iso(),
+                    "directions": direction_list,
+                    "image_size": {"width": canvas_size, "height": canvas_size},
+                    "source_concept_id": color_concept_id,
+                    "backend_name": "pixellab",
+                    "seed": seed,
+                    "images": images_map,
+                }
+                _pixellab_character_path(project_dir).write_text(json.dumps(char_payload, indent=2), encoding="utf-8")
+                project["pixellab_character_approved"] = False
+                project["pixellab_character_ready"] = True
+                project["status"] = "pixellab_character_ready"
+                save_project(project)
+                return self._send_json(char_payload, status=HTTPStatus.CREATED)
+
+            estimate_skeleton_pixellab_match = re.fullmatch(r"/api/projects/([^/]+)/pixellab/estimate-skeleton", path)
+            if estimate_skeleton_pixellab_match:
+                project_id = estimate_skeleton_pixellab_match.group(1)
+                payload = read_body(self) if self.headers.get("Content-Length") else {}
+                direction = (payload.get("direction") or "east").strip().lower()
+
+                project = load_project(project_id)
+                project_dir = PROJECTS_ROOT / project_id
+                brief = project.get("brief") or {}
+                canvas_size = coerce_canvas_size(brief.get("canvas_size"), DEFAULT_CANVAS_SIZE)
+
+                # Require character assets.
+                char_path = _pixellab_character_path(project_dir)
+                if not char_path.exists():
+                    raise ValueError("pixellab_character.json is missing; run create-character first.")
+                char_data = load_json(char_path, None) or {}
+
+                assets_dir = _pixellab_character_assets_dir(project_dir)
+                source_img_path = assets_dir / ("%s.png" % direction)
+                if not source_img_path.exists():
+                    raise ValueError("Character direction image missing: %s" % str(source_img_path))
+
+                seed = payload.get("seed")
+                try:
+                    seed = int(seed) if seed is not None else stable_int(project_id, direction, str(canvas_size), mod=4_294_967_295)
+                except (TypeError, ValueError):
+                    seed = stable_int(project_id, direction, str(canvas_size), mod=4_294_967_295)
+
+                backend_mode = str(brief.get("backend_mode") or "comfyui")
+                use_debug = backend_mode == "debug_procedural" or not pixellab_configured()
+
+                if use_debug:
+                    keypoints = debug_pixellab_skeleton_keypoints(canvas_size)
+                    skel_payload = {
+                        "approved": False,
+                        "created_at": now_iso(),
+                        "character_id": char_data.get("character_id"),
+                        "direction": direction,
+                        "image_size": {"width": canvas_size, "height": canvas_size},
+                        "seed": seed,
+                        "skeleton_keypoints": keypoints,
+                    }
+                    _pixellab_skeleton_path(project_dir).write_text(json.dumps(skel_payload, indent=2), encoding="utf-8")
+                    project["pixellab_skeleton_ready"] = True
+                    save_project(project)
+                    append_history_event(project_id, {"type": "pixellab_skeleton_estimated", "direction": direction, "created_at": now_iso()})
+                    return self._send_json(skel_payload, status=HTTPStatus.CREATED)
+
+                client = get_pixellab_client()
+                if client is None:
+                    raise ValueError("Pixel Lab client unavailable; missing PIXELLAB_API_KEY.")
+
+                image_b64 = client.encode_image(source_img_path)
+                result = client.estimate_skeleton(image_b64)
+                # Heuristic: locate keypoints array.
+                keypoints = result.get("skeleton_keypoints") or result.get("keypoints") or result.get("result", {}).get("skeleton_keypoints")
+                if not isinstance(keypoints, list) or len(keypoints) != 18:
+                    raise ValueError("Pixel Lab skeleton response did not contain expected 18 keypoints.")
+
+                skel_payload = {
+                    "approved": False,
+                    "created_at": now_iso(),
+                    "character_id": char_data.get("character_id"),
+                    "direction": direction,
+                    "image_size": {"width": canvas_size, "height": canvas_size},
+                    "seed": seed,
+                    "skeleton_keypoints": keypoints,
+                }
+                _pixellab_skeleton_path(project_dir).write_text(json.dumps(skel_payload, indent=2), encoding="utf-8")
+                project["pixellab_skeleton_ready"] = True
+                save_project(project)
+                return self._send_json(skel_payload, status=HTTPStatus.CREATED)
+
+            approve_character_pixellab_match = re.fullmatch(r"/api/projects/([^/]+)/pixellab/approve-character", path)
+            if approve_character_pixellab_match:
+                project_id = approve_character_pixellab_match.group(1)
+                project = load_project(project_id)
+                project_dir = PROJECTS_ROOT / project_id
+                char_path = _pixellab_character_path(project_dir)
+                if not char_path.exists():
+                    raise ValueError("pixellab_character.json is missing; run create-character first.")
+
+                char_data = load_json(char_path, None) or {}
+                char_data["approved"] = True
+                char_path.write_text(json.dumps(char_data, indent=2), encoding="utf-8")
+
+                project["pixellab_character_approved"] = True
+                project["status"] = "pixellab_character_approved"
+                save_project(project)
+                append_history_event(project_id, {"type": "pixellab_character_approved", "created_at": now_iso()})
+                return self._send_json(char_data, status=HTTPStatus.OK)
 
             improved_prompt_match = re.fullmatch(r"/api/projects/([^/]+)/concepts/([^/]+)/improve-prompt", path)
             if improved_prompt_match:
