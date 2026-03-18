@@ -101,6 +101,29 @@ DEFAULT_COMFYUI_CHECKPOINT = os.environ.get("SPRITE_WORKBENCH_COMFYUI_CHECKPOINT
 GEMINI_API_BASE_URL = os.environ.get("GEMINI_API_BASE_URL", "https://generativelanguage.googleapis.com/v1beta")
 DEFAULT_GEMINI_VALIDATION_MODEL = os.environ.get("SPRITE_WORKBENCH_GEMINI_VALIDATION_MODEL", "gemini-2.5-flash")
 
+PIXELLAB_API_KEY = os.environ.get("PIXELLAB_API_KEY", "")
+
+
+def pixellab_configured() -> bool:
+    """Return True if a Pixel Lab API key is set in the environment."""
+    return bool(PIXELLAB_API_KEY)
+
+
+_pixellab_client = None
+
+
+def get_pixellab_client():
+    """Lazy Pixel Lab client initializer (keeps server import fast)."""
+    global _pixellab_client
+    if not pixellab_configured():
+        return None
+    if _pixellab_client is None:
+        # Lazy import to avoid importing PIL/client machinery unless needed.
+        from scripts.pixellab_client import PixelLabClient
+
+        _pixellab_client = PixelLabClient(api_key=PIXELLAB_API_KEY)
+    return _pixellab_client
+
 
 def env_int(name: str, default: int, minimum: int = 1) -> int:
     raw = os.environ.get(name)
@@ -11292,6 +11315,39 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                 "backend": backend,
                 "default_checkpoint": DEFAULT_COMFYUI_CHECKPOINT,
                 "comfyui_job_timeout_seconds": COMFYUI_JOB_TIMEOUT_SECONDS,
+            })
+
+        if path == "/api/pixellab/health":
+            configured = pixellab_configured()
+            client = get_pixellab_client()
+            balance = None
+            credits_remaining = None
+            usage = None
+            error = None
+
+            if client:
+                try:
+                    balance = client.get_balance()
+                    usage = client.last_usage
+                    if isinstance(balance, dict):
+                        # The API has historically returned USD balance.
+                        credits_remaining = (
+                            balance.get("remaining_credits")
+                            or balance.get("credits_remaining")
+                            or balance.get("usd")
+                            or balance.get("credits")
+                        )
+                except Exception as exc:
+                    error = str(exc)
+                    usage = client.last_usage
+
+            return self._send_json({
+                "ok": True,
+                "configured": configured,
+                "balance": balance,
+                "credits_remaining": credits_remaining,
+                "usage": usage,
+                "error": error,
             })
 
         if path == "/api/ai-workflow/health":

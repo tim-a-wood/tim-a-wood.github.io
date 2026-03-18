@@ -9,11 +9,12 @@ import unittest
 from contextlib import contextmanager
 from pathlib import Path
 from http.server import ThreadingHTTPServer
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from PIL import Image, ImageDraw
 
 from scripts import sprite_workbench_server as sw
+from scripts import pixellab_client as pl
 
 
 class SpriteWorkbenchTests(unittest.TestCase):
@@ -1276,6 +1277,70 @@ class SpriteWorkbenchTests(unittest.TestCase):
             server.shutdown()
             thread.join(timeout=5)
             server.server_close()
+
+    def test_pixellab_configured_false_when_key_unset(self):
+        original_key = sw.PIXELLAB_API_KEY
+        sw.PIXELLAB_API_KEY = ""
+        # Keep the lazy singleton consistent in case other tests ran first.
+        if hasattr(sw, "_pixellab_client"):
+            sw._pixellab_client = None
+        try:
+            self.assertFalse(sw.pixellab_configured())
+        finally:
+            sw.PIXELLAB_API_KEY = original_key
+            if hasattr(sw, "_pixellab_client"):
+                sw._pixellab_client = None
+
+    def test_pixellab_health_endpoint_returns_configured_false_when_key_unset(self):
+        original_key = sw.PIXELLAB_API_KEY
+        sw.PIXELLAB_API_KEY = ""
+        if hasattr(sw, "_pixellab_client"):
+            sw._pixellab_client = None
+
+        try:
+            try:
+                server = ThreadingHTTPServer(("127.0.0.1", 0), sw.SpriteWorkbenchHandler)
+            except PermissionError:
+                self.skipTest("Sandbox does not allow binding a local socket.")
+
+            thread = threading.Thread(target=server.serve_forever, daemon=True)
+            thread.start()
+            try:
+                connection = http.client.HTTPConnection("127.0.0.1", server.server_port, timeout=5)
+                connection.request("GET", "/api/pixellab/health")
+                response = connection.getresponse()
+                raw = response.read().decode("utf-8")
+                data = json.loads(raw)
+                self.assertEqual(data.get("configured"), False)
+            finally:
+                server.shutdown()
+                thread.join(timeout=5)
+                server.server_close()
+        finally:
+            sw.PIXELLAB_API_KEY = original_key
+            if hasattr(sw, "_pixellab_client"):
+                sw._pixellab_client = None
+
+    def test_pixellab_client_encode_decode_roundtrip(self):
+        client = pl.PixelLabClient("fake-key")
+        img = Image.new("RGBA", (8, 8), (255, 0, 0, 128))
+        b64 = client.encode_image(img)
+        decoded = client.decode_image(b64)
+        self.assertEqual(decoded.size, (8, 8))
+        self.assertEqual(decoded.getpixel((0, 0)), (255, 0, 0, 128))
+
+    def test_pixellab_client_get_balance_parses_json(self):
+        client = pl.PixelLabClient("fake-key")
+
+        mock_response = MagicMock()
+        mock_response.read.return_value = b'{"type":"usd","usd":12.5}'
+
+        with patch.object(pl, "urlopen", autospec=True) as mock_urlopen:
+            # urlopen is used as a context manager in the client.
+            mock_urlopen.return_value.__enter__.return_value = mock_response
+            balance = client.get_balance()
+
+        self.assertEqual(balance.get("usd"), 12.5)
 
     def test_manual_animation_clip_create_persists_named_clip(self):
         with tempfile.TemporaryDirectory() as tmpdir:

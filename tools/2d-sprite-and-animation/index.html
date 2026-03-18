@@ -2405,6 +2405,10 @@
                 <strong id="status-backend">Unknown</strong>
             </div>
             <div class="status-card">
+                <span>Pixel Lab</span>
+                <strong id="status-pixellab-credits">n/a</strong>
+            </div>
+            <div class="status-card">
                 <span>Checks</span>
                 <strong id="status-qa">Blocked</strong>
             </div>
@@ -4272,6 +4276,7 @@ function getReviewCounts(metrics) {
 function renderStatus() {
     const project = state.activeProject;
     const backend = state.health?.backend;
+    const pixellab = state.health?.pixellab;
     const metrics = project?.metrics || {};
     const counts = getReviewCounts(metrics);
 
@@ -4285,6 +4290,22 @@ function renderStatus() {
                 ? "ComfyUI Unavailable"
                 : "Unknown";
     document.querySelector("#status-qa").textContent = project?.qa_report?.status || "Blocked";
+
+    const pixellabCredits = document.querySelector("#status-pixellab-credits");
+    if (pixellabCredits) {
+        if (!pixellab) {
+            pixellabCredits.textContent = "PL: unknown";
+        } else if (!pixellab.configured) {
+            pixellabCredits.textContent = "PL: not configured";
+        } else if (pixellab.error) {
+            pixellabCredits.textContent = "PL: error";
+        } else {
+            const credits = pixellab.credits_remaining ?? pixellab.balance?.usd ?? pixellab.balance?.credits_remaining;
+            const numeric = credits == null ? null : Number(credits);
+            const formatted = numeric == null || Number.isNaN(numeric) ? String(credits) : numeric.toFixed(2).replace(/\.00$/, "");
+            pixellabCredits.textContent = `PL: ${formatted} credits`;
+        }
+    }
 
     const metricGrid = document.querySelector("#metric-grid");
     metricGrid.innerHTML = `
@@ -8510,8 +8531,14 @@ function renderAll() {
 
 async function loadHealth() {
     state.health = await api("/api/health");
+    try {
+        state.health.pixellab = await api("/api/pixellab/health");
+    } catch (error) {
+        state.health.pixellab = { ok: false, configured: false, error: error.message || "unknown error" };
+    }
     renderStageMeta();
     setArchivedToggleLabel();
+    renderStatus();
 }
 
 async function refreshProjects() {
