@@ -1342,6 +1342,103 @@ class SpriteWorkbenchTests(unittest.TestCase):
 
         self.assertEqual(balance.get("usd"), 12.5)
 
+    def test_build_concept_prompt_scaffold_includes_debug_and_defaults(self):
+        brief = {
+            "raw_prompt": "a vigilant ranger with a lantern",
+            "role_archetype": "ashen hollow ranger",
+            "silhouette_intent": "broad guarded profile",
+            "outfit_materials": "weathered plate over travel cloth",
+            "prop": "lantern",
+            "palette_mood": "storm steel",
+            "shape_language": "balanced angular to rounded mix",
+            "mood_tone": "watchful and haunted",
+        }
+
+        scaffold = sw.build_concept_prompt(brief)
+        self.assertIn("DEBUG CONSTRAINTS", scaffold["display_prompt"])
+        self.assertIn("64x64", scaffold["display_prompt"])
+        self.assertEqual(scaffold["pixellab_params"]["image_size"]["width"], 64)
+        self.assertEqual(scaffold["pixellab_params"]["view"], "side")
+        self.assertEqual(scaffold["pixellab_params"]["direction"], "east")
+        self.assertIn("debug_constraints", scaffold)
+        self.assertEqual(scaffold["debug_constraints"]["canvas_size"]["width"], 64)
+
+    def test_build_iteration_prompt_inpaint_returns_base64_and_mask(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            concept_path = Path(tmpdir) / "concept.png"
+            # Create a simple RGBA concept-like image.
+            img = Image.new("RGBA", (96, 96), (0, 0, 0, 0))
+            draw = ImageDraw.Draw(img)
+            draw.rectangle((20, 10, 80, 90), fill=(180, 120, 90, 255))
+            img.save(concept_path)
+
+            brief = {
+                "raw_prompt": "a vigilant ranger with a lantern",
+                "role_archetype": "ashen hollow ranger",
+                "silhouette_intent": "broad guarded profile",
+                "outfit_materials": "weathered plate over travel cloth",
+                "prop": "lantern",
+                "palette_mood": "storm steel",
+                "shape_language": "balanced angular to rounded mix",
+                "mood_tone": "watchful and haunted",
+            }
+
+            scaffold = sw.build_iteration_prompt(
+                brief,
+                "outfit",
+                "make the cape longer and more tattered",
+                source_concept_path=concept_path,
+            )
+            self.assertIn("DEBUG CONSTRAINTS", scaffold["display_prompt"])
+            self.assertIn("mask_boxes", scaffold["debug_constraints"]["inpaint"])
+            self.assertTrue(len(scaffold["debug_constraints"]["inpaint"]["mask_boxes"]) >= 1)
+            self.assertIn("inpainting_image_b64", scaffold["pixellab_params"])
+            self.assertIn("mask_image_b64", scaffold["pixellab_params"])
+            self.assertTrue(len(scaffold["pixellab_params"]["inpainting_image_b64"]) > 20)
+            self.assertTrue(len(scaffold["pixellab_params"]["mask_image_b64"]) > 20)
+            self.assertEqual(scaffold["pixellab_params"]["image_size"]["width"], 64)
+            self.assertTrue(scaffold["pixellab_params"]["crop_to_mask"])
+
+    def test_scaffold_build_prompt_endpoint_returns_scaffold_shape(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            original_root = sw.PROJECTS_ROOT
+            sw.PROJECTS_ROOT = Path(tmpdir)
+            try:
+                project = sw.create_project({
+                    "project_name": "Scaffold Endpoint Hero",
+                    "prompt_text": "a vigilant ranger with a lantern",
+                    "backend_mode": "debug_procedural",
+                    "last_ui_mode": "wizard",
+                })
+                project_id = project["project_id"]
+
+                try:
+                    server = ThreadingHTTPServer(("127.0.0.1", 0), sw.SpriteWorkbenchHandler)
+                except PermissionError:
+                    self.skipTest("Sandbox does not allow binding a local socket.")
+                thread = threading.Thread(target=server.serve_forever, daemon=True)
+                thread.start()
+                try:
+                    connection = http.client.HTTPConnection("127.0.0.1", server.server_port, timeout=5)
+                    connection.request(
+                        "POST",
+                        f"/api/projects/{project_id}/concepts/build-prompt",
+                        body=b"{}",
+                        headers={"Content-Type": "application/json"},
+                    )
+                    response = connection.getresponse()
+                    raw = response.read().decode("utf-8")
+                    data = json.loads(raw)
+                    self.assertIn("display_prompt", data)
+                    self.assertIn("pixellab_params", data)
+                    self.assertIn("debug_constraints", data)
+                finally:
+                    server.shutdown()
+                    thread.join(timeout=5)
+                    server.server_close()
+            finally:
+                sw.PROJECTS_ROOT = original_root
+
     def test_manual_animation_clip_create_persists_named_clip(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             original_root = sw.PROJECTS_ROOT

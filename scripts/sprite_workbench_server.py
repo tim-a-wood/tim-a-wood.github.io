@@ -172,6 +172,69 @@ DEFAULT_NEGATIVE_PROMPT = (
     "pose lineup, small figure, distant figure, tiny subject, cropped body, cut off feet, cut off head"
 )
 
+# Pixel Lab scaffold defaults (kept server-side for deterministic prompt generation).
+SUPPORTED_CANVAS_SIZES = (32, 64, 128, 256)
+DEFAULT_CANVAS_SIZE = 64
+DEFAULT_OUTLINE_STYLE = "single color black outline"
+DEFAULT_SHADING_STYLE = "medium shading"
+DEFAULT_DETAIL_LEVEL = "medium detail"
+DEFAULT_CHARACTER_TEMPLATE = "mannequin"
+
+OUTLINE_STYLE_MAP = {
+    # User-friendly values (what we store in brief) -> Pixel Lab values.
+    # Pixel Lab accepts these as strings for weak/guide conditioning.
+    "single color black outline": "single color black outline",
+    "selective outline": "selective outline",
+    "lineless": "lineless",
+}
+
+SHADING_STYLE_MAP = {
+    "flat shading": "flat shading",
+    "basic shading": "basic shading",
+    "medium shading": "medium shading",
+    "soft shading": "soft shading",
+    "hard shading": "hard shading",
+}
+
+DETAIL_LEVEL_MAP = {
+    "low detail": "low detail",
+    "medium detail": "medium detail",
+    "highly detailed": "highly detailed",
+}
+
+CHARACTER_TEMPLATE_MAP = {
+    "mannequin": "mannequin",
+    "bear": "bear",
+    "cat": "cat",
+    "dog": "dog",
+    "horse": "horse",
+    "lion": "lion",
+}
+
+
+def coerce_canvas_size(value: Any, default: int = DEFAULT_CANVAS_SIZE) -> int:
+    """Coerce `canvas_size` into a Pixel Lab supported integer size."""
+    try:
+        if value is None:
+            return default
+        size = int(value)
+    except (TypeError, ValueError):
+        return default
+    return size if size in SUPPORTED_CANVAS_SIZES else default
+
+
+def pick_mapped_style(mapping: Dict[str, str], user_value: Optional[str], default_user_value: str) -> Tuple[str, str]:
+    """
+    Returns (user_value_normalized, pixel_lab_value).
+    Keeps the "user-friendly" vocabulary in the brief, while mapping to Pixel Lab strings.
+    """
+    normalized = (user_value or "").strip()
+    if not normalized:
+        normalized = default_user_value
+    if normalized not in mapping:
+        normalized = default_user_value
+    return normalized, mapping[normalized]
+
 METROIDVANIA_PROMPT_CONTEXT = (
     "designed for Ashen Hollow, a dark-fantasy 2d side-scrolling metroidvania, "
     "Hollow Knight-inspired atmosphere with ruined chapels, catacombs, and medieval decay, "
@@ -3060,6 +3123,12 @@ def infer_brief_defaults(prompt_text: str) -> Dict[str, str]:
             "shape_language": "balanced angular to rounded masses",
             "mood_tone": "watchful, haunted, and grounded",
             "side_view_constraints": "strict side view, one humanoid character, clean background, held item clearly separated from torso, strong low-resolution readability for a 2d metroidvania sprite pipeline",
+            # Pixel Lab scaffold parameters.
+            "outline_style": DEFAULT_OUTLINE_STYLE,
+            "shading_style": DEFAULT_SHADING_STYLE,
+            "detail_level": DEFAULT_DETAIL_LEVEL,
+            "canvas_size": DEFAULT_CANVAS_SIZE,
+            "character_template": DEFAULT_CHARACTER_TEMPLATE,
         }
 
     if any(word in lowered for word in ["knight", "armored", "guardian", "sentinel", "warden"]):
@@ -3109,6 +3178,12 @@ def infer_brief_defaults(prompt_text: str) -> Dict[str, str]:
         "shape_language": shape,
         "mood_tone": tone,
         "side_view_constraints": "strict side view, one humanoid character, clean background, held item clearly separated from torso, strong low-resolution readability for a 2d metroidvania sprite pipeline",
+        # Pixel Lab scaffold parameters.
+        "outline_style": DEFAULT_OUTLINE_STYLE,
+        "shading_style": DEFAULT_SHADING_STYLE,
+        "detail_level": DEFAULT_DETAIL_LEVEL,
+        "canvas_size": DEFAULT_CANVAS_SIZE,
+        "character_template": DEFAULT_CHARACTER_TEMPLATE,
     }
 
 
@@ -3127,6 +3202,12 @@ def hydrate_brief(brief: Optional[Dict[str, Any]], prompt_text: str) -> Dict[str
         "mood_tone": source.get("mood_tone") or defaults["mood_tone"],
         "side_view_constraints": source.get("side_view_constraints") or source.get("side_view_readability_notes") or defaults["side_view_constraints"],
         "negative_prompt": source.get("negative_prompt") or DEFAULT_NEGATIVE_PROMPT,
+        # Prompt scaffold style parameters.
+        "outline_style": source.get("outline_style") or defaults.get("outline_style") or DEFAULT_OUTLINE_STYLE,
+        "shading_style": source.get("shading_style") or defaults.get("shading_style") or DEFAULT_SHADING_STYLE,
+        "detail_level": source.get("detail_level") or defaults.get("detail_level") or DEFAULT_DETAIL_LEVEL,
+        "canvas_size": coerce_canvas_size(source.get("canvas_size") if "canvas_size" in source else None, DEFAULT_CANVAS_SIZE),
+        "character_template": source.get("character_template") or defaults.get("character_template") or DEFAULT_CHARACTER_TEMPLATE,
         "backend_mode": source.get("backend_mode") if source.get("backend_mode") in BACKEND_MODES else "comfyui",
         "comfyui_checkpoint": source.get("comfyui_checkpoint") or DEFAULT_COMFYUI_CHECKPOINT,
     }
@@ -3175,6 +3256,358 @@ def build_positive_prompt_base(brief: Dict[str, Any]) -> str:
             brief["side_view_constraints"],
         )
     )
+
+
+def _brief_pixel_lab_style(brief: Dict[str, Any]) -> Dict[str, str]:
+    """Maps user-friendly brief style choices into Pixel Lab string values."""
+    user_outline, pixel_outline = pick_mapped_style(
+        OUTLINE_STYLE_MAP,
+        brief.get("outline_style"),
+        DEFAULT_OUTLINE_STYLE,
+    )
+    user_shading, pixel_shading = pick_mapped_style(
+        SHADING_STYLE_MAP,
+        brief.get("shading_style"),
+        DEFAULT_SHADING_STYLE,
+    )
+    user_detail, pixel_detail = pick_mapped_style(
+        DETAIL_LEVEL_MAP,
+        brief.get("detail_level"),
+        DEFAULT_DETAIL_LEVEL,
+    )
+    user_template, pixel_template = pick_mapped_style(
+        CHARACTER_TEMPLATE_MAP,
+        brief.get("character_template"),
+        DEFAULT_CHARACTER_TEMPLATE,
+    )
+
+    return {
+        "outline_style_user": user_outline,
+        "shading_style_user": user_shading,
+        "detail_level_user": user_detail,
+        "character_template_user": user_template,
+        "outline_style_pixel_lab": pixel_outline,
+        "shading_style_pixel_lab": pixel_shading,
+        "detail_level_pixel_lab": pixel_detail,
+        "character_template_pixel_lab": pixel_template,
+    }
+
+
+def build_concept_prompt(brief: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Deterministically scaffold the prompt + Pixel Lab params for *concept generation*.
+
+    Output shape includes:
+    - display_prompt: copyable prompt (includes DEBUG CONSTRAINTS section)
+    - pixellab_params: params suitable for `PixelLabClient.create_image_pixflux(...)`
+    - debug_constraints: machine-readable summary (also injected into display_prompt)
+    """
+    style = _brief_pixel_lab_style(brief)
+    canvas_size = coerce_canvas_size(brief.get("canvas_size"), DEFAULT_CANVAS_SIZE)
+    description = str(brief.get("raw_prompt") or "").strip() or str(brief.get("description") or "").strip() or str(brief.get("prompt_text") or "").strip()
+
+    # Keep Pixel Lab description free of debug text; the UI can show debug separately.
+    pixellab_description = "\n".join(
+        [
+            "Create exactly one full-body 2D side-view pixel art character concept.",
+            "Facing: right (east), strict orthographic side profile.",
+            "Background: plain single flat color background only; no environment and no ground.",
+            "Framing: full body visible, centered, animation-friendly proportions.",
+            "",
+            "CHARACTER:",
+            f"- Role: {brief.get('role_archetype','')}",
+            f"- Description: {description}",
+            f"- Silhouette: {brief.get('silhouette_intent','')}",
+            f"- Outfit/Materials: {brief.get('outfit_materials','')}",
+            f"- Held Item: {brief.get('prop','')}",
+            f"- Shape Language: {brief.get('shape_language','')}",
+            f"- Mood/Tone: {brief.get('mood_tone','')}",
+            f"- Palette: {brief.get('palette_mood','')}",
+            "",
+            "STYLE (pixel art):",
+            f"- Outline: {style['outline_style_pixel_lab']}",
+            f"- Shading: {style['shading_style_pixel_lab']}",
+            f"- Detail: {style['detail_level_pixel_lab']}",
+            f"- Template: {style['character_template_pixel_lab']}",
+            "",
+            "TECHNICAL REQUIREMENTS (tool-enforced):",
+            f"- Output size: {canvas_size}x{canvas_size} pixels",
+            "- Single character only, no text, no watermark, no UI elements.",
+            "- No front view / 3/4 view / top-down view.",
+        ]
+    )
+
+    debug_constraints = {
+        "orientation": {"view": "side", "direction": "east", "facing": "right"},
+        "canvas_size": {"width": canvas_size, "height": canvas_size},
+        "background_rule": "plain flat color only; no environment; output must be transparent-ready via Pixel Lab no_background",
+        "style_mapping": {
+            "outline_style_user": style["outline_style_user"],
+            "outline_style_pixel_lab": style["outline_style_pixel_lab"],
+            "shading_style_user": style["shading_style_user"],
+            "shading_style_pixel_lab": style["shading_style_pixel_lab"],
+            "detail_level_user": style["detail_level_user"],
+            "detail_level_pixel_lab": style["detail_level_pixel_lab"],
+            "character_template_user": style["character_template_user"],
+            "character_template_pixel_lab": style["character_template_pixel_lab"],
+        },
+        "pixel_lab_endpoint": "POST /v1/generate-image-pixflux",
+    }
+
+    display_prompt = pixellab_description + "\n\n" + "\n".join(
+        [
+            "DEBUG CONSTRAINTS (tool-enforced):",
+            f"- Orientation: view={debug_constraints['orientation']['view']}, direction={debug_constraints['orientation']['direction']}",
+            f"- Canvas: {debug_constraints['canvas_size']['width']}x{debug_constraints['canvas_size']['height']}",
+            f"- Background rule: {debug_constraints['background_rule']}",
+            "- Style mapping:",
+            f"  - outline: {style['outline_style_user']} -> {style['outline_style_pixel_lab']}",
+            f"  - shading: {style['shading_style_user']} -> {style['shading_style_pixel_lab']}",
+            f"  - detail: {style['detail_level_user']} -> {style['detail_level_pixel_lab']}",
+            f"  - template: {style['character_template_user']} -> {style['character_template_pixel_lab']}",
+        ]
+    )
+
+    seed = stable_int(
+        "concept",
+        str(brief.get("project_hint") or ""),
+        str(brief.get("role_archetype") or ""),
+        str(brief.get("silhouette_intent") or ""),
+        str(brief.get("outfit_materials") or ""),
+        str(brief.get("prop") or ""),
+        str(brief.get("palette_mood") or ""),
+        str(brief.get("shape_language") or ""),
+        str(brief.get("mood_tone") or ""),
+        str(brief.get("outline_style") or ""),
+        str(brief.get("shading_style") or ""),
+        str(brief.get("detail_level") or ""),
+        str(canvas_size),
+        mod=4_294_967_295,
+    )
+
+    pixellab_params = {
+        "description": pixellab_description,
+        "image_size": {"width": canvas_size, "height": canvas_size},
+        "view": "side",
+        "direction": "east",
+        "no_background": True,
+        "outline": style["outline_style_pixel_lab"],
+        "shading": style["shading_style_pixel_lab"],
+        "detail": style["detail_level_pixel_lab"],
+        "seed": seed,
+    }
+
+    return {
+        "display_prompt": display_prompt,
+        "pixellab_params": pixellab_params,
+        "debug_constraints": debug_constraints,
+    }
+
+
+def _build_element_inpaint_mask(element: str, canvas_size: int) -> Tuple[Image.Image, List[Dict[str, int]]]:
+    """
+    Returns (mask_image, debug_boxes) for inpaint-v3.
+    mask: 'L' mode with 255 in the region to edit.
+    """
+    from PIL import ImageDraw
+
+    w = canvas_size
+    h = canvas_size
+    mask = Image.new("L", (w, h), 0)
+    draw = ImageDraw.Draw(mask)
+
+    # Boxes are heuristic pixel-aligned regions in the 64x64 canvas.
+    # The goal is determinism + "good enough" targeting before more advanced segmentation exists.
+    boxes: List[Dict[str, int]] = []
+
+    def rect(x0: int, y0: int, x1: int, y1: int):
+        draw.rectangle((x0, y0, x1, y1), fill=255)
+        boxes.append({"x0": x0, "y0": y0, "x1": x1, "y1": y1})
+
+    element = element.strip().lower()
+    if element in {"outfit", "outfit/materials", "costume"}:
+        rect(int(w * 0.22), int(h * 0.28), int(w * 0.78), int(h * 0.82))  # torso + legs
+        rect(int(w * 0.14), int(h * 0.28), int(w * 0.36), int(h * 0.55))  # left arm area
+        rect(int(w * 0.64), int(h * 0.28), int(w * 0.86), int(h * 0.55))  # right arm area
+    elif element in {"weapon/prop", "prop", "weapon", "held item"}:
+        rect(int(w * 0.48), int(h * 0.38), int(w * 0.96), int(h * 0.78))
+    elif element in {"palette/colors", "palette", "colors"}:
+        rect(int(w * 0.16), int(h * 0.10), int(w * 0.84), int(h * 0.88))  # whole character
+    elif element in {"pose"}:
+        rect(int(w * 0.18), int(h * 0.14), int(w * 0.82), int(h * 0.88))  # character body area
+    elif element in {"silhouette"}:
+        rect(int(w * 0.14), int(h * 0.08), int(w * 0.86), int(h * 0.92))  # full silhouette area
+    elif element in {"hair/head", "hair", "head"}:
+        rect(int(w * 0.20), int(h * 0.04), int(w * 0.80), int(h * 0.42))
+    elif element in {"accessories"}:
+        rect(int(w * 0.20), int(h * 0.18), int(w * 0.80), int(h * 0.62))  # mid accessory band
+        rect(int(w * 0.26), int(h * 0.00), int(w * 0.74), int(h * 0.28))  # crown area
+    elif element in {"expression"}:
+        rect(int(w * 0.30), int(h * 0.14), int(w * 0.70), int(h * 0.26))  # face / eyes region
+    elif element in {"proportions"}:
+        rect(int(w * 0.14), int(h * 0.10), int(w * 0.86), int(h * 0.90))
+    else:
+        # Fallback: edit whole character.
+        rect(int(w * 0.16), int(h * 0.08), int(w * 0.84), int(h * 0.92))
+
+    return mask, boxes
+
+
+def _encode_png_base64(image: Image.Image) -> str:
+    buf = io.BytesIO()
+    image.save(buf, format="PNG")
+    return base64.b64encode(buf.getvalue()).decode("ascii")
+
+
+def build_iteration_prompt(
+    brief: Dict[str, Any],
+    element: str,
+    change_text: str,
+    *,
+    source_concept_path: Optional[Path] = None,
+) -> Dict[str, Any]:
+    """
+    Deterministically scaffold *targeted concept iteration* using inpaint-v3.
+    """
+    element = (element or "").strip()
+    change_text = (change_text or "").strip()
+    if not element:
+        raise ValueError("Iteration requires 'element'.")
+    if not change_text:
+        raise ValueError("Iteration requires 'change_text'.")
+
+    allowed_elements = {
+        "outfit",
+        "weapon/prop",
+        "palette/colors",
+        "pose",
+        "silhouette",
+        "hair/head",
+        "accessories",
+        "expression",
+        "proportions",
+    }
+    if element not in allowed_elements:
+        raise ValueError("Invalid element. Must be one of: %s" % ", ".join(sorted(allowed_elements)))
+
+    style = _brief_pixel_lab_style(brief)
+    canvas_size = coerce_canvas_size(brief.get("canvas_size"), DEFAULT_CANVAS_SIZE)
+    description = str(brief.get("raw_prompt") or "").strip() or str(brief.get("description") or "").strip()
+
+    pixellab_description = "\n".join(
+        [
+            "Inpaint-edit a single 2D side-view pixel art character concept.",
+            "Facing: right (east), strict orthographic side profile.",
+            "Background: plain flat color only; no environment; preserve transparency-ready look.",
+            "",
+            "CURRENT CHARACTER (must remain recognizable):",
+            f"- Role: {brief.get('role_archetype','')}",
+            f"- Description: {description}",
+            f"- Silhouette: {brief.get('silhouette_intent','')}",
+            f"- Outfit/Materials: {brief.get('outfit_materials','')}",
+            f"- Held Item: {brief.get('prop','')}",
+            f"- Shape Language: {brief.get('shape_language','')}",
+            f"- Mood/Tone: {brief.get('mood_tone','')}",
+            f"- Palette: {brief.get('palette_mood','')}",
+            "",
+            "STYLE (pixel art):",
+            f"- Outline: {style['outline_style_pixel_lab']}",
+            f"- Shading: {style['shading_style_pixel_lab']}",
+            f"- Detail: {style['detail_level_pixel_lab']}",
+            f"- Template: {style['character_template_pixel_lab']}",
+            "",
+            "ITERATION:",
+            f"- Element to change: {element}",
+            f"- Specific change: {change_text}",
+            "- Constraints: Keep ALL other visual elements unchanged except where the edit naturally affects continuity.",
+            "- Maintain the same style, palette, and proportions unless explicitly changed by the request.",
+        ]
+    )
+
+    # Mask + base64 are required for inpaint.
+    if source_concept_path is None:
+        raise ValueError("Iteration scaffolding requires source_concept_path for inpaint-v3.")
+    if not isinstance(source_concept_path, Path):
+        raise ValueError("source_concept_path must be a Path.")
+    if not source_concept_path.exists():
+        raise ValueError("source_concept_path does not exist: %s" % str(source_concept_path))
+
+    with Image.open(source_concept_path) as loaded:
+        rgba = loaded.convert("RGBA")
+        # Deterministic center-square crop so mask and inpainting align.
+        side = min(rgba.size[0], rgba.size[1])
+        left = (rgba.size[0] - side) // 2
+        top = (rgba.size[1] - side) // 2
+        cropped = rgba.crop((left, top, left + side, top + side))
+        resized = cropped.resize((canvas_size, canvas_size), resample=Image.Resampling.NEAREST)
+        inpainting_image_b64 = _encode_png_base64(resized)
+
+    mask_img, boxes = _build_element_inpaint_mask(element, canvas_size)
+    mask_image_b64 = _encode_png_base64(mask_img)
+
+    seed = stable_int(
+        "iteration",
+        str(brief.get("role_archetype") or ""),
+        str(brief.get("silhouette_intent") or ""),
+        str(brief.get("outfit_materials") or ""),
+        str(brief.get("prop") or ""),
+        str(brief.get("palette_mood") or ""),
+        str(brief.get("shape_language") or ""),
+        str(brief.get("mood_tone") or ""),
+        str(style.get("outline_style_user") or ""),
+        str(style.get("shading_style_user") or ""),
+        str(style.get("detail_level_user") or ""),
+        str(canvas_size),
+        element,
+        change_text,
+        mod=4_294_967_295,
+    )
+
+    debug_constraints = {
+        "orientation": {"view": "side", "direction": "east", "facing": "right"},
+        "canvas_size": {"width": canvas_size, "height": canvas_size},
+        "style_mapping": {
+            "outline_style_user": style["outline_style_user"],
+            "outline_style_pixel_lab": style["outline_style_pixel_lab"],
+            "shading_style_user": style["shading_style_user"],
+            "shading_style_pixel_lab": style["shading_style_pixel_lab"],
+            "detail_level_user": style["detail_level_user"],
+            "detail_level_pixel_lab": style["detail_level_pixel_lab"],
+        },
+        "inpaint": {
+            "element": element,
+            "mask_boxes": boxes,
+            "strategy": "heuristic deterministic rectangles in canvas space",
+            "pixel_lab_endpoint": "POST /v2/inpaint-v3",
+        },
+    }
+
+    display_prompt = pixellab_description + "\n\n" + "\n".join(
+        [
+            "DEBUG CONSTRAINTS (tool-enforced):",
+            f"- Orientation: view=side, direction=east",
+            f"- Canvas: {canvas_size}x{canvas_size}",
+            f"- Inpaint element: {element}",
+            f"- Mask boxes: {boxes}",
+            f"- Style mapping: outline={style['outline_style_user']} shading={style['shading_style_user']} detail={style['detail_level_user']}",
+        ]
+    )
+
+    pixellab_params = {
+        "description": pixellab_description,
+        "inpainting_image_b64": inpainting_image_b64,
+        "mask_image_b64": mask_image_b64,
+        "image_size": {"width": canvas_size, "height": canvas_size},
+        "no_background": True,
+        "crop_to_mask": True,
+        "seed": seed,
+    }
+
+    return {
+        "display_prompt": display_prompt,
+        "pixellab_params": pixellab_params,
+        "debug_constraints": debug_constraints,
+    }
 
 
 def build_identity_lock_lines(brief: Dict[str, Any]) -> List[str]:
@@ -3291,6 +3724,11 @@ def build_brief_from_payload(payload: Dict[str, Any], existing_brief: Optional[D
         "mood_tone": payload.get("mood_tone") or source.get("mood_tone") or defaults["mood_tone"],
         "side_view_constraints": payload.get("side_view_constraints") or source.get("side_view_constraints") or defaults["side_view_constraints"],
         "negative_prompt": payload.get("negative_prompt") or source.get("negative_prompt") or DEFAULT_NEGATIVE_PROMPT,
+        "outline_style": payload.get("outline_style") or source.get("outline_style") or defaults["outline_style"],
+        "shading_style": payload.get("shading_style") or source.get("shading_style") or defaults["shading_style"],
+        "detail_level": payload.get("detail_level") or source.get("detail_level") or defaults["detail_level"],
+        "canvas_size": coerce_canvas_size(payload.get("canvas_size") if "canvas_size" in payload else source.get("canvas_size") if "canvas_size" in source else None, DEFAULT_CANVAS_SIZE),
+        "character_template": payload.get("character_template") or source.get("character_template") or defaults["character_template"],
         "backend_mode": payload.get("backend_mode") if payload.get("backend_mode") in BACKEND_MODES else (source.get("backend_mode") or "comfyui"),
         "comfyui_checkpoint": payload.get("comfyui_checkpoint") or source.get("comfyui_checkpoint") or DEFAULT_COMFYUI_CHECKPOINT,
         "references": list(source.get("references") or []),
@@ -11453,6 +11891,49 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
             if generate_match:
                 project_id = generate_match.group(1)
                 return self._send_json(generate_initial_prompt(project_id), status=HTTPStatus.CREATED)
+
+            build_prompt_match = re.fullmatch(r"/api/projects/([^/]+)/concepts/build-prompt", path)
+            if build_prompt_match:
+                project_id = build_prompt_match.group(1)
+                project = load_project(project_id)
+                scaffold = build_concept_prompt(project.get("brief") or {})
+                return self._send_json(scaffold, status=HTTPStatus.OK)
+
+            build_iteration_prompt_match = re.fullmatch(r"/api/projects/([^/]+)/concepts/build-iteration-prompt", path)
+            if build_iteration_prompt_match:
+                project_id = build_iteration_prompt_match.group(1)
+                payload = read_body(self)
+                concept_id = payload.get("concept_id")
+                element = payload.get("element")
+                change_text = payload.get("change_text")
+                if not concept_id:
+                    raise ValueError("build-iteration-prompt requires concept_id.")
+                if not element:
+                    raise ValueError("build-iteration-prompt requires element.")
+                if not change_text:
+                    raise ValueError("build-iteration-prompt requires change_text.")
+
+                project = load_project(project_id)
+                project_dir = PROJECTS_ROOT / project_id
+                concept = next((item for item in (project.get("concepts") or []) if item.get("concept_id") == concept_id), None)
+                if concept is None:
+                    raise ValueError("Concept not found: %s" % str(concept_id))
+
+                source_rel = concept.get("original_preview_image") or concept.get("preview_image") or concept.get("image_path")
+                if not source_rel:
+                    raise ValueError("Concept does not have a preview image path (expected preview_image/original_preview_image/image_path).")
+
+                source_path = Path(source_rel)
+                if not source_path.is_absolute():
+                    source_path = project_dir / source_rel
+
+                scaffold = build_iteration_prompt(
+                    project.get("brief") or {},
+                    element,
+                    change_text,
+                    source_concept_path=source_path,
+                )
+                return self._send_json(scaffold, status=HTTPStatus.OK)
 
             improved_prompt_match = re.fullmatch(r"/api/projects/([^/]+)/concepts/([^/]+)/improve-prompt", path)
             if improved_prompt_match:
