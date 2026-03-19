@@ -2401,7 +2401,7 @@
                 <strong id="status-stage">Idle</strong>
             </div>
             <div class="status-card">
-                <span>Image Generator</span>
+                <span>Generation mode</span>
                 <strong id="status-backend">Unknown</strong>
             </div>
             <div class="status-card">
@@ -2506,9 +2506,9 @@
             </div>
 
             <details class="advanced-settings" data-wizard-view="brief">
-                <summary>Advanced concept settings</summary>
+                <summary>Pixel Lab style &amp; advanced</summary>
                 <div class="advanced-content">
-                    <p class="inline-hint">You can usually leave these alone. The wizard already biases prompts toward Ashen Hollow’s dark-fantasy side-view style.</p>
+                    <p class="inline-hint">Pixel Lab parameters are saved with the brief. Debug vs ComfyUI is <strong>not</strong> selectable here—it stays on the value already stored for this project (new projects default to offline debug). Phase 8 will remove legacy ComfyUI paths.</p>
                     <div class="grid-3">
                         <label>
                             <span class="field-label">Side-View Rules</span>
@@ -2521,22 +2521,62 @@
                             <input id="negative-prompt" placeholder="front view, crowd, busy background, extra limbs">
                         </label>
                         <label>
-                            <span class="field-label">Image Generator</span>
-                            <span class="field-help">Use debug mode only if you want placeholder images for testing.</span>
-                            <select id="backend-mode">
-                                <option value="comfyui">ComfyUI</option>
-                                <option value="debug_procedural">Debug Procedural</option>
+                            <span class="field-label">Outline style</span>
+                            <span class="field-help">Passed into Pixel Lab prompt scaffolding (brief).</span>
+                            <select id="pixellab-outline-style">
+                                <option value="single color black outline">single color black outline</option>
+                                <option value="selective outline">selective outline</option>
+                                <option value="lineless">lineless</option>
+                            </select>
+                        </label>
+                    </div>
+                    <div class="grid-3">
+                        <label>
+                            <span class="field-label">Shading</span>
+                            <span class="field-help">Shading strength for scaffolded Pixel Lab prompts.</span>
+                            <select id="pixellab-shading-style">
+                                <option value="flat shading">flat shading</option>
+                                <option value="basic shading">basic shading</option>
+                                <option value="medium shading">medium shading</option>
+                                <option value="soft shading">soft shading</option>
+                                <option value="hard shading">hard shading</option>
+                            </select>
+                        </label>
+                        <label>
+                            <span class="field-label">Detail level</span>
+                            <span class="field-help">Detail density hint for Pixel Lab.</span>
+                            <select id="pixellab-detail-level">
+                                <option value="low detail">low detail</option>
+                                <option value="medium detail">medium detail</option>
+                                <option value="highly detailed">highly detailed</option>
+                            </select>
+                        </label>
+                        <label>
+                            <span class="field-label">Canvas size</span>
+                            <span class="field-help">Square canvas for Pixel Lab generation (32–256).</span>
+                            <select id="pixellab-canvas-size">
+                                <option value="32">32 × 32</option>
+                                <option value="64">64 × 64</option>
+                                <option value="128">128 × 128</option>
+                                <option value="256">256 × 256</option>
                             </select>
                         </label>
                     </div>
                     <div class="grid-2">
                         <label>
-                            <span class="field-label">Model Checkpoint</span>
-                            <span class="field-help">Optional override for the ComfyUI checkpoint filename.</span>
-                            <input id="comfyui-checkpoint" placeholder="sd15.safetensors">
+                            <span class="field-label">Character template</span>
+                            <span class="field-help">Pixel Lab character template id (stored on brief).</span>
+                            <select id="pixellab-character-template">
+                                <option value="mannequin">mannequin</option>
+                                <option value="bear">bear</option>
+                                <option value="cat">cat</option>
+                                <option value="dog">dog</option>
+                                <option value="horse">horse</option>
+                                <option value="lion">lion</option>
+                            </select>
                         </label>
-                        <div class="warning-box" id="backend-warning">
-                            <p>ComfyUI is the default image generator. Debug mode exists only for local fallback testing.</p>
+                        <div class="info-box">
+                            <p><strong>Status row “Generation mode”</strong> shows whether this project uses <code>debug_procedural</code> (offline placeholders) or ComfyUI for any remaining legacy steps. To change it for an existing project, edit <code>brief.json</code> or use the API—Phase 7 keeps the server branch intact without a user-facing toggle.</p>
                         </div>
                     </div>
                 </div>
@@ -4283,11 +4323,11 @@ function renderStatus() {
     document.querySelector("#status-project").textContent = project ? project.project_name : "None";
     document.querySelector("#status-stage").textContent = project ? stageDisplayName(project.current_stage) : "Idle";
     document.querySelector("#status-backend").textContent = project?.brief?.backend_mode === "debug_procedural"
-        ? "Debug Procedural"
+        ? "Debug (offline)"
         : backend?.ok
-            ? "ComfyUI Ready"
+            ? "ComfyUI (legacy, ready)"
             : backend?.backend === "comfyui"
-                ? "ComfyUI Unavailable"
+                ? "ComfyUI (legacy, unavailable)"
                 : "Unknown";
     document.querySelector("#status-qa").textContent = project?.qa_report?.status || "Blocked";
 
@@ -4521,8 +4561,9 @@ async function collectReferencePayload() {
     return references;
 }
 
-async function collectIntakePayload() {
-    return {
+async function collectIntakePayload(options = {}) {
+    const preserveRuntimeFields = options.preserveRuntimeFields !== false;
+    const payload = {
         project_name: document.querySelector("#project-name").value.trim(),
         prompt_text: document.querySelector("#prompt-text").value.trim(),
         role_archetype: document.querySelector("#role-archetype").value.trim(),
@@ -4534,10 +4575,22 @@ async function collectIntakePayload() {
         mood_tone: document.querySelector("#mood-tone").value.trim(),
         side_view_constraints: document.querySelector("#side-view-constraints").value.trim(),
         negative_prompt: document.querySelector("#negative-prompt").value.trim(),
-        backend_mode: document.querySelector("#backend-mode").value,
-        comfyui_checkpoint: document.querySelector("#comfyui-checkpoint").value.trim(),
+        outline_style: document.querySelector("#pixellab-outline-style").value,
+        shading_style: document.querySelector("#pixellab-shading-style").value,
+        detail_level: document.querySelector("#pixellab-detail-level").value,
+        canvas_size: Number(document.querySelector("#pixellab-canvas-size").value),
+        character_template: document.querySelector("#pixellab-character-template").value,
         references: await collectReferencePayload(),
     };
+    // Phase 7.1: do not expose backend_mode / ComfyUI checkpoint in the UI.
+    // On brief updates, re-send the stored values so they are not cleared.
+    // On *create*, omit them so the server applies defaults (new projects → debug_procedural).
+    if (preserveRuntimeFields && state.activeProject?.brief) {
+        const b = state.activeProject.brief;
+        if (b.backend_mode) payload.backend_mode = b.backend_mode;
+        if (b.comfyui_checkpoint) payload.comfyui_checkpoint = b.comfyui_checkpoint;
+    }
+    return payload;
 }
 
 function populateIntakeForm() {
@@ -4554,8 +4607,16 @@ function populateIntakeForm() {
     document.querySelector("#mood-tone").value = brief?.mood_tone || "";
     document.querySelector("#side-view-constraints").value = brief?.side_view_constraints || "";
     document.querySelector("#negative-prompt").value = brief?.negative_prompt || "";
-    document.querySelector("#backend-mode").value = brief?.backend_mode || "debug_procedural";
-    document.querySelector("#comfyui-checkpoint").value = brief?.comfyui_checkpoint || state.health?.default_checkpoint || "";
+    const outlineSel = document.querySelector("#pixellab-outline-style");
+    const shadingSel = document.querySelector("#pixellab-shading-style");
+    const detailSel = document.querySelector("#pixellab-detail-level");
+    const canvasSel = document.querySelector("#pixellab-canvas-size");
+    const templateSel = document.querySelector("#pixellab-character-template");
+    if (outlineSel) outlineSel.value = brief?.outline_style || "single color black outline";
+    if (shadingSel) shadingSel.value = brief?.shading_style || "medium shading";
+    if (detailSel) detailSel.value = brief?.detail_level || "medium detail";
+    if (canvasSel) canvasSel.value = String(brief?.canvas_size != null ? brief.canvas_size : 64);
+    if (templateSel) templateSel.value = brief?.character_template || "mannequin";
     renderAttachedReferences();
 }
 
@@ -8611,7 +8672,7 @@ async function createProject(mode = "workbench") {
     if (mode === "wizard" && !document.querySelector("#project-name").value.trim()) {
         throw new Error("Add a project name before starting the wizard.");
     }
-    const payload = await collectIntakePayload();
+    const payload = await collectIntakePayload({ preserveRuntimeFields: false });
     payload.last_ui_mode = mode;
     const project = await api("/api/projects", { method: "POST", body: JSON.stringify(payload) });
     log(`Created project ${project.project_id}`, "success");
@@ -9698,13 +9759,6 @@ document.querySelector("#zoom-modal").addEventListener("click", (event) => {
 });
 document.querySelector("#manual-pose-modal").addEventListener("click", (event) => {
     if (event.target === document.querySelector("#manual-pose-modal")) closeManualPoseEditor();
-});
-
-document.querySelector("#backend-mode").addEventListener("change", () => {
-    const mode = document.querySelector("#backend-mode").value;
-    document.querySelector("#backend-warning").innerHTML = mode === "debug_procedural"
-        ? "<p>Debug procedural mode is explicitly selected. The concept board will use synthetic placeholder art instead of ComfyUI until you switch back.</p>"
-        : "<p>ComfyUI is the default and only real concept backend. The debug backend exists only as an explicit fallback for local testing.</p>";
 });
 
 async function boot() {

@@ -36,6 +36,8 @@ Status: Phases 1–4 complete
 - **5.3** `POST /api/projects/<id>/pixellab/animate-skeleton` — skeleton animation, guard-gated, requires `pixellab_skeleton.json`, calls `animate_with_skeleton()`
 - **5.4** `POST /api/projects/<id>/pixellab/edit-animation` — animation edit, guard-gated, loads existing frames, calls `edit_animation_v2()`
 - **5.5** `POST /api/projects/<id>/pixellab/build-clips` — guard-gated, reads `pixellab_animations.json`, writes canonical `animation_clips.json` with `fps`, `loop`, `frame_count`, `frames`, `frames_by_direction`
+- **6.1** `run_pixellab_qa()` added; `run_qa()` routes to it when `pixellab_pipeline_ready_for_qa()` returns true. Checks: `pixellab_character.json` + `pixellab_animations.json` exist, approval guard, frame count/transparency/dimension checks kept, part_split/sprite_model checks removed.
+- **6.2** Export pipeline adapted: reads frames from `animations/<clip>/<direction>/frame_NN.png` via `animation_clips.json`. Produces `spritesheet.png`, `atlas.json`, `animations.json`, `preview.gif`, `export_manifest.json`. Manifest includes `pixellab_character_id` and `pixellab_latest_job_ids`; no `sprite_model_hash`/`rig_hash`. Export mode flagged as `"export_mode": "pixellab"`.
 
 ### ⚠️ Known implementation notes (reviewed 2026-03-18)
 - `animate_character` endpoint path is `/v2/characters/animations` — confirmed via validation error query
@@ -298,6 +300,7 @@ keeping the app functional at every step.
 - Keep all existing brief fields (description, role, outfit, etc.)
 - Remove: backend_mode selector (comfyui vs debug_procedural), checkpoint input, ComfyUI-specific advanced settings
 - Add: Pixel Lab credits indicator in sidebar (wired to `GET /api/pixellab/health`)
+- **Implementation note (2026-03-18):** Do **not** remove server `debug_procedural` branching in Phase 7. UI must not offer backend_mode; on `POST .../brief`, re-send stored `backend_mode` / `comfyui_checkpoint` so they are not wiped. New projects omit them so `create_project` keeps defaulting to `debug_procedural` when no valid mode is posted.
 
 ### 7.2 Build new Concepts panel + remove old concepts/character-lock/key-pose panels
 - Replace existing `concepts` + `ai-character-lock` + `ai-key-pose-board` sections with single `concepts` panel
@@ -436,9 +439,8 @@ Phase 2 (scaffold):    2.1 ✅ → 2.2 ✅ → 2.3 ✅ → 2.4 ✅
 Phase 3 (concepts):    3.1 ✅ → 3.2 ✅ → 3.3 ✅ → 3.4 (deferred)
 Phase 4 (character):   4.1 ✅ → 4.2 ✅ → 4.3 ✅
 Phase 5 (animation):   5.1 ✅ → 5.2 ✅ → 5.3 ✅ → 5.4 ✅ → 5.5 ✅
-Phase 6 (QA/export):   6.1 → 6.2                              ← NEXT
-Phase 6 (QA/export):   6.1 → 6.2
-Phase 7 (frontend):    7.1 → 7.2 → 7.3 → 7.4 → 7.5 → 7.6 → 7.7
+Phase 6 (QA/export):   6.1 ✅ → 6.2 ✅
+Phase 7 (frontend):    7.1 ✅ → 7.2 → 7.3 → 7.4 → 7.5 → 7.6 → 7.7  ← NEXT
 Phase 8 (cleanup):     8.1 → 8.2 → 8.3 → 8.4 → 8.5 → 8.6
 Phase 9 (tests/docs):  9.1 → 9.2 → 9.3 → 9.4 → 9.5
 ```
