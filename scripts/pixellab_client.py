@@ -251,7 +251,12 @@ class PixelLabClient:
             "image_size": _normalize_size(image_size),
         }
         payload.update(kwargs)
-        return self._request_json("POST", "/v2/create-character-with-4-directions", payload)
+        # v2 character endpoints return a background job (202) — poll if job_id present.
+        result = self._request_json("POST", "/v2/create-character-with-4-directions", payload)
+        job_id = self._extract_job_id(result)
+        if job_id:
+            return self._poll_job(job_id)
+        return result
 
     def create_character_8dir(self, description: str, image_size: SizeLike, **kwargs: Any) -> Dict[str, Any]:
         payload: Dict[str, Any] = {
@@ -259,7 +264,12 @@ class PixelLabClient:
             "image_size": _normalize_size(image_size),
         }
         payload.update(kwargs)
-        return self._request_json("POST", "/v2/create-character-with-8-directions", payload)
+        # v2 character endpoints return a background job (202) — poll if job_id present.
+        result = self._request_json("POST", "/v2/create-character-with-8-directions", payload)
+        job_id = self._extract_job_id(result)
+        if job_id:
+            return self._poll_job(job_id)
+        return result
 
     def get_character(self, character_id: str) -> Dict[str, Any]:
         return self._request_json("GET", f"/v2/characters/{character_id}")
@@ -286,7 +296,7 @@ class PixelLabClient:
             "template_animation_id": template_animation_id,
         }
         payload.update(kwargs)
-        accepted = self._request_json("POST", "/v2/animate-character", payload)
+        accepted = self._request_json("POST", "/v2/characters/animations", payload)
         job_id = self._extract_job_id(accepted)
         if job_id:
             return self._poll_job(job_id)

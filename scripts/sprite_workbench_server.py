@@ -12497,7 +12497,6 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                             color_image=client.encode_image(source_path),
                             force_colors=True,
                             seed=seed,
-                            async_mode=True,
                         )
                     else:
                         result = client.create_character_8dir(
@@ -12510,7 +12509,6 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                             color_image=client.encode_image(source_path),
                             force_colors=True,
                             seed=seed,
-                            async_mode=True,
                         )
                 except Exception as exc:
                     raise ValueError("Pixel Lab create-character failed: %s" % str(exc))
@@ -12658,7 +12656,46 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
 
             import_match = re.fullmatch(r"/api/projects/([^/]+)/concepts/import", path)
             if import_match:
-                return self._send_json(import_concept_attempt(import_match.group(1), read_body(self)), status=HTTPStatus.CREATED)
+                import_project_id = import_match.group(1)
+                import_body = read_body(self)
+                import_result = import_concept_attempt(import_project_id, import_body)
+
+                # Phase 3.3: optional convert_to_pixelart post-processing
+                if import_body.get("convert_to_pixelart") and pixellab_configured():
+                    try:
+                        _client = get_pixellab_client()
+                        if _client:
+                            # The most recently added concept is last in the list.
+                            _import_project = load_project(import_project_id)
+                            _import_project_dir = PROJECTS_ROOT / import_project_id
+                            _new_concept = next(
+                                (c for c in reversed(_import_project.get("concepts") or []) if c.get("preview_image")),
+                                None,
+                            )
+                            if _new_concept:
+                                _preview_rel = _new_concept.get("preview_image") or ""
+                                _preview_path = _import_project_dir / _preview_rel
+                                if _preview_path.exists():
+                                    _img_b64 = _client.encode_image(str(_preview_path))
+                                    _brief = _import_project.get("brief") or {}
+                                    _canvas = coerce_canvas_size(_brief.get("canvas_size"), DEFAULT_CANVAS_SIZE)
+                                    _converted = _client.image_to_pixelart(
+                                        _img_b64,
+                                        input_size={"width": _canvas, "height": _canvas},
+                                        output_size={"width": _canvas, "height": _canvas},
+                                    )
+                                    _converted_b64 = (
+                                        _converted.get("image", {}).get("base64")
+                                        or _converted.get("base64")
+                                        or _converted.get("result", {}).get("base64")
+                                    )
+                                    if _converted_b64:
+                                        import base64 as _b64mod
+                                        _preview_path.write_bytes(_b64mod.b64decode(_converted_b64))
+                    except Exception:
+                        pass  # Conversion failure is non-fatal; the original import is preserved.
+
+                return self._send_json(import_result, status=HTTPStatus.CREATED)
 
             validate_match = re.fullmatch(r"/api/projects/([^/]+)/concepts/([^/]+)/validate", path)
             if validate_match:

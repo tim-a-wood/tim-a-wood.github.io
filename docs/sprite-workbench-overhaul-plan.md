@@ -1,15 +1,42 @@
 # Sprite Workbench Overhaul: Pixel Lab Integration
 
-Version: 0.2
+Version: 0.3
 Date: 2026-03-18
-Status: Planning (decisions locked)
+Status: Phases 1–4 complete
 
 ## Decisions
 
 - **Canvas size**: 64x64 (hero is 28x40 against 32px tiles; 64px gives ~38px sprite at 60% coverage — natural fit)
 - **Existing projects**: Force re-creation. Legacy projects are not migrated.
 - **Gemini concept validation**: Removed. The deterministic prompt scaffold handles constraints.
-- **Template animation IDs**: Query Pixel Lab API with real key before Phase 5 to get full list.
+- **Template animation IDs**: Full list queried — see Appendix A. Use these directly in Phase 5 UI.
+
+## Implementation Status (as of 2026-03-18)
+
+### ✅ Complete
+- **1.1** `PIXELLAB_API_KEY` env config + `pixellab_configured()` helper
+- **1.2** `scripts/pixellab_client.py` — `PixelLabClient` class with HTTP plumbing + job polling
+- **1.3** Concept generation methods: `create_image_pixflux`, `create_image_v2`, `image_to_pixelart`
+- **1.4** Character creation methods: `create_character_4dir`, `create_character_8dir`, `get_character`, `list_characters`, `download_character_zip`
+- **1.5** Skeleton + animation methods: `estimate_skeleton`, `animate_character`, `animate_with_text_v2`, `animate_with_skeleton`, `interpolation_v2`
+- **1.6** Editing methods: `edit_animation_v2`, `inpaint_v3`, `transfer_outfit_v2`
+- **1.7** `GET /api/pixellab/health` route + lazy singleton `get_pixellab_client()`
+- **2.1** Brief schema extended: `outline_style`, `shading_style`, `detail_level`, `canvas_size`, `character_template`
+- **2.2** `build_concept_prompt(brief)` — deterministic scaffold returning `display_prompt`, `pixellab_params`, `debug_constraints`
+- **2.3** `build_iteration_prompt(brief, element, change_text, source_concept_path)` — inpaint-v3 based, per-element mask boxes
+- **2.4** `POST /api/projects/<id>/concepts/build-prompt` and `build-iteration-prompt` endpoints
+- **3.1** `POST /api/projects/<id>/concepts/generate-pixellab` — concept gen via Pixel Lab or debug_procedural
+- **3.2** `POST /api/projects/<id>/concepts/iterate-pixellab` — iteration via inpaint-v3, stores `parent_concept_id` lineage
+- **3.3** `POST /api/projects/<id>/concepts/import` extended with optional `convert_to_pixelart` boolean
+- **4.1** `POST /api/projects/<id>/pixellab/create-character` — 4-dir or 8-dir, debug_procedural fallback, writes `pixellab_character.json` + `character/<dir>.png`
+- **4.2** `POST /api/projects/<id>/pixellab/estimate-skeleton` — writes `pixellab_skeleton.json` with 18 keypoints
+- **4.3** `POST /api/projects/<id>/pixellab/approve-character` — sets `approved: true` in `pixellab_character.json` and `pixellab_character_approved` on project
+
+### ⚠️ Known implementation notes (reviewed 2026-03-18)
+- `animate_character` endpoint path is `/v2/characters/animations` — confirmed via validation error query
+- `create_character_4dir`/`create_character_8dir` poll for async job completion (same `_extract_job_id` + `_poll_job` pattern as other async methods) — do NOT pass `async_mode=True` from server; polling is handled inside the client methods
+- Phase 4.3 gating: `pixellab_character_approved` flag is set; Phase 5 animation endpoints must check this flag before proceeding
+- 3 pre-existing test failures exist in the old Gemini validation path (`test_upload_import_creates_concept_attempt`, `test_local_path_import_creates_concept_attempt`, `test_generate_improved_prompt_includes_prior_prompt_and_feedback`) — these are unrelated to the new pipeline and will be removed in Phase 8
 
 ## Goal
 
@@ -164,10 +191,9 @@ DESCRIBE → CONCEPTS → CHARACTER → ANIMATIONS → EXPORT
 - Save conversion metadata in concept JSON
 - **Test**: unit test that import with conversion flag writes converted image
 
-### 3.4 Add concept image describe endpoint (optional, for imported images)
-- `POST /api/projects/<id>/concepts/<cid>/build-describe-prompt` — generates a prompt template asking the user to describe the imported image back into brief fields
-- Pure scaffold, no LLM call — produces a copyable prompt the user can paste into Gemini to get structured brief fields back
-- **Test**: verify scaffold output includes image analysis instructions
+### 3.4 Add concept image describe endpoint (optional, for imported images) — DEFERRED
+- Skipped in initial implementation. Not required for Phase 5.
+- If added later: `POST /api/projects/<id>/concepts/<cid>/build-describe-prompt` — pure scaffold, no LLM call
 
 ---
 
@@ -397,12 +423,12 @@ keeping the app functional at every step.
 Recommended sequence (each task is independently committable):
 
 ```
-Recon:                 1.0
-Phase 1 (foundation):  1.1 → 1.2 → 1.3 → 1.4 → 1.5 → 1.6 → 1.7
-Phase 2 (scaffold):    2.1 → 2.2 → 2.3 → 2.4
-Phase 3 (concepts):    3.1 → 3.2 → 3.3 → 3.4
-Phase 4 (character):   4.1 → 4.2 → 4.3
-Phase 5 (animation):   5.1 → 5.2 → 5.3 → 5.4 → 5.5
+Recon:                 1.0  ✅
+Phase 1 (foundation):  1.1 ✅ → 1.2 ✅ → 1.3 ✅ → 1.4 ✅ → 1.5 ✅ → 1.6 ✅ → 1.7 ✅
+Phase 2 (scaffold):    2.1 ✅ → 2.2 ✅ → 2.3 ✅ → 2.4 ✅
+Phase 3 (concepts):    3.1 ✅ → 3.2 ✅ → 3.3 ✅ → 3.4 (deferred)
+Phase 4 (character):   4.1 ✅ → 4.2 ✅ → 4.3 ✅
+Phase 5 (animation):   5.1 → 5.2 → 5.3 → 5.4 → 5.5       ← NEXT
 Phase 6 (QA/export):   6.1 → 6.2
 Phase 7 (frontend):    7.1 → 7.2 → 7.3 → 7.4 → 7.5 → 7.6 → 7.7
 Phase 8 (cleanup):     8.1 → 8.2 → 8.3 → 8.4 → 8.5 → 8.6
