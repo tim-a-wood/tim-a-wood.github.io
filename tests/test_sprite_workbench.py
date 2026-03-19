@@ -1647,6 +1647,165 @@ class SpriteWorkbenchTests(unittest.TestCase):
             finally:
                 sw.PROJECTS_ROOT = original_root
 
+    def test_pixellab_animate_rejects_unapproved_character(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            original_root = sw.PROJECTS_ROOT
+            sw.PROJECTS_ROOT = Path(tmpdir)
+            try:
+                project = sw.create_project({
+                    "project_name": "Pixellab Animate Approval Gate",
+                    "prompt_text": "a vigilant ranger with a lantern",
+                    "backend_mode": "debug_procedural",
+                    "last_ui_mode": "wizard",
+                })
+                project_id = project["project_id"]
+                project_dir = sw.PROJECTS_ROOT / project_id
+
+                project_dir.joinpath("pixellab_character.json").write_text(json.dumps({
+                    "character_id": "debug-char-1",
+                    "pixellab_character_approved": False,
+                    "approved": False,
+                    "directions": ["south", "west", "east", "north"],
+                    "image_size": {"width": 64, "height": 64},
+                    "backend_name": "debug_procedural",
+                    "seed": 1,
+                    "images": {},
+                }), encoding="utf-8")
+
+                try:
+                    server = ThreadingHTTPServer(("127.0.0.1", 0), sw.SpriteWorkbenchHandler)
+                except PermissionError:
+                    self.skipTest("Sandbox does not allow binding a local socket.")
+                thread = threading.Thread(target=server.serve_forever, daemon=True)
+                thread.start()
+                try:
+                    connection = http.client.HTTPConnection("127.0.0.1", server.server_port, timeout=10)
+                    connection.request(
+                        "POST",
+                        f"/api/projects/{project_id}/pixellab/animate",
+                        body=json.dumps({}).encode("utf-8"),
+                        headers={"Content-Type": "application/json"},
+                    )
+                    resp = connection.getresponse()
+                    raw = resp.read().decode("utf-8")
+                    data = json.loads(raw)
+                    self.assertGreaterEqual(resp.status, 400)
+                    self.assertFalse(data.get("ok", True))
+                finally:
+                    server.shutdown()
+                    thread.join(timeout=5)
+                    server.server_close()
+            finally:
+                sw.PROJECTS_ROOT = original_root
+
+    def test_pixellab_animate_custom_debug_writes_frames_and_manifest(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            original_root = sw.PROJECTS_ROOT
+            sw.PROJECTS_ROOT = Path(tmpdir)
+            try:
+                project = sw.create_project({
+                    "project_name": "Pixellab Animate Custom Debug",
+                    "prompt_text": "a side-view lantern knight",
+                    "backend_mode": "debug_procedural",
+                    "last_ui_mode": "wizard",
+                })
+                project_id = project["project_id"]
+                project_dir = sw.PROJECTS_ROOT / project_id
+
+                brief = project.get("brief") or {}
+                canvas_size = sw.coerce_canvas_size(brief.get("canvas_size"), sw.DEFAULT_CANVAS_SIZE)
+                directions = ["south", "west", "east", "north"]
+
+                (project_dir / "character").mkdir(parents=True, exist_ok=True)
+                images = sw.debug_pixellab_character_images(directions, canvas_size, seed=123)
+                for d, img in images.items():
+                    img.save(project_dir / "character" / ("%s.png" % d))
+
+                char_payload = {
+                    "character_id": "debug-char-1",
+                    "pixellab_character_approved": True,
+                    "approved": True,
+                    "directions": directions,
+                    "image_size": {"width": canvas_size, "height": canvas_size},
+                    "backend_name": "debug_procedural",
+                    "seed": 123,
+                    "images": {d: str((project_dir / "character" / ("%s.png" % d)).relative_to(project_dir)) for d in directions},
+                }
+                (project_dir / "pixellab_character.json").write_text(json.dumps(char_payload, indent=2), encoding="utf-8")
+
+                try:
+                    server = ThreadingHTTPServer(("127.0.0.1", 0), sw.SpriteWorkbenchHandler)
+                except PermissionError:
+                    self.skipTest("Sandbox does not allow binding a local socket.")
+                thread = threading.Thread(target=server.serve_forever, daemon=True)
+                thread.start()
+                try:
+                    connection = http.client.HTTPConnection("127.0.0.1", server.server_port, timeout=10)
+                    connection.request(
+                        "POST",
+                        f"/api/projects/{project_id}/pixellab/animate-custom",
+                        body=json.dumps({"action": "make him wave", "animation_name": "idle", "seed": 999}).encode("utf-8"),
+                        headers={"Content-Type": "application/json"},
+                    )
+                    resp = connection.getresponse()
+                    raw = resp.read().decode("utf-8")
+                    data = json.loads(raw)
+                    if resp.status >= 400:
+                        raise AssertionError(f"animate-custom HTTP {resp.status}: {raw}")
+                    self.assertTrue(data.get("ok"))
+                finally:
+                    server.shutdown()
+                    thread.join(timeout=5)
+                    server.server_close()
+
+                frame0 = project_dir / "animations" / "idle" / "east" / "frame_00.png"
+                frame_last = project_dir / "animations" / "idle" / "east" / "frame_05.png"
+                self.assertTrue(frame0.exists())
+                self.assertTrue(frame_last.exists())
+
+                store_path = project_dir / "pixellab_animations.json"
+                self.assertTrue(store_path.exists())
+                store = json.loads(store_path.read_text(encoding="utf-8"))
+                self.assertIn("idle", store.get("animations", {}))
+                dirs = store["animations"]["idle"].get("directions", {})
+                self.assertIn("east", dirs)
+                self.assertEqual(len(dirs["east"].get("frames") or []), 6)
+
+                # Build animation clips.
+                try:
+                    server = ThreadingHTTPServer(("127.0.0.1", 0), sw.SpriteWorkbenchHandler)
+                except PermissionError:
+                    self.skipTest("Sandbox does not allow binding a local socket.")
+                thread = threading.Thread(target=server.serve_forever, daemon=True)
+                thread.start()
+                try:
+                    connection = http.client.HTTPConnection("127.0.0.1", server.server_port, timeout=10)
+                    connection.request(
+                        "POST",
+                        f"/api/projects/{project_id}/pixellab/build-clips",
+                        body=json.dumps({}).encode("utf-8"),
+                        headers={"Content-Type": "application/json"},
+                    )
+                    resp2 = connection.getresponse()
+                    raw2 = resp2.read().decode("utf-8")
+                    if resp2.status >= 400:
+                        raise AssertionError(f"build-clips HTTP {resp2.status}: {raw2}")
+                    self.assertTrue(json.loads(raw2).get("ok"))
+                finally:
+                    server.shutdown()
+                    thread.join(timeout=5)
+                    server.server_close()
+
+                clips_path = project_dir / "animation_clips.json"
+                self.assertTrue(clips_path.exists())
+                clips = json.loads(clips_path.read_text(encoding="utf-8"))
+                self.assertIn("idle", clips)
+                self.assertIn("frames", clips["idle"])
+                self.assertEqual(len(clips["idle"]["frames"]), 6)
+                self.assertIn("animations/idle/east/frame_00.png", clips["idle"]["frames"][0])
+            finally:
+                sw.PROJECTS_ROOT = original_root
+
     def test_manual_animation_clip_create_persists_named_clip(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             original_root = sw.PROJECTS_ROOT

@@ -3787,6 +3787,120 @@ def debug_pixellab_skeleton_keypoints(canvas_size: int) -> List[List[float]]:
     return points
 
 
+def debug_pixellab_animation_frames(
+    animation_name: str,
+    direction: str,
+    canvas_size: int,
+    frame_count: int,
+    seed: Optional[int],
+    *,
+    description_hint: Optional[str] = None,
+) -> List[Image.Image]:
+    """
+    Offline fallback that produces stable synthetic animation frames.
+
+    Frames are saved as transparent-background PNGs with deterministic colored
+    rectangles and a small text label that includes the frame index.
+    """
+    s = int(seed or 0)
+    safe_anim = (animation_name or "anim")[:10]
+    safe_dir = (direction or "dir")[:10]
+    hint = (description_hint or "").strip()[:10]
+
+    frames: List[Image.Image] = []
+    for i in range(int(frame_count)):
+        img = Image.new("RGBA", (int(canvas_size), int(canvas_size)), (0, 0, 0, 0))
+        draw = ImageDraw.Draw(img)
+
+        r = (90 + ((s + i * 17 + len(safe_dir)) % 150)) % 255
+        g = (50 + ((s // 3 + i * 29) % 180)) % 255
+        b = (70 + ((s // 7 + i * 37) % 160)) % 255
+        fill = (r, g, b, 215)
+        outline = (max(0, r - 45), max(0, g - 35), max(0, b - 35), 255)
+
+        pad = max(4, int(canvas_size * 0.10))
+        draw.rounded_rectangle(
+            (pad, pad, canvas_size - pad, canvas_size - pad),
+            radius=max(4, int(canvas_size * 0.18)),
+            fill=fill,
+            outline=outline,
+            width=max(2, canvas_size // 20),
+        )
+
+        draw.text(
+            (pad + 2, pad + 2),
+            "%s %s %02d" % (safe_anim[:3], safe_dir[:3], i),
+            fill=(235, 235, 235, 255),
+        )
+        if hint:
+            draw.text((pad + 2, canvas_size - pad - 10), hint[:6], fill=(235, 235, 235, 255))
+
+        frames.append(img)
+    return frames
+
+
+def _pixellab_character_approved_guard(project_dir: Path) -> Dict[str, Any]:
+    """
+    Phase 5 gating (carry-forward from 4.3):
+    Require `pixellab_character_approved` (or legacy `approved`) to be true.
+    """
+    char_path = _pixellab_character_path(project_dir)
+    if not char_path.exists():
+        raise ValueError("pixellab_character.json is missing; create-character first.")
+    char_data = load_json(char_path, None) or {}
+
+    if isinstance(char_data, dict) and (char_data.get("pixellab_character_approved") is not None):
+        approved = bool(char_data.get("pixellab_character_approved"))
+    else:
+        approved = bool((char_data or {}).get("approved"))
+
+    if not approved:
+        raise ValueError("Pixel Lab character approval is required (pixellab_character_approved=false).")
+    return char_data if isinstance(char_data, dict) else {}
+
+
+def _pixellab_animation_frames_dir(project_dir: Path, animation_name: str, direction: str) -> Path:
+    # Phase 5: animations/<animation_name>/<direction>/frame_NN.png
+    return project_dir / "animations" / animation_name / direction
+
+
+def _pixellab_animation_frame_path(
+    project_dir: Path,
+    animation_name: str,
+    direction: str,
+    frame_index: int,
+) -> Path:
+    return _pixellab_animation_frames_dir(project_dir, animation_name, direction) / ("frame_%02d.png" % int(frame_index))
+
+
+def _find_all_base64_png_like(payload: Any) -> List[str]:
+    """
+    Extract all base64-like PNG blobs from an unknown Pixel Lab response.
+    """
+    found: List[str] = []
+
+    def walk(value: Any) -> None:
+        if isinstance(value, dict):
+            for v in value.values():
+                walk(v)
+            return
+        if isinstance(value, list):
+            for v in value:
+                walk(v)
+            return
+        if isinstance(value, str):
+            s = value.strip()
+            if "base64," in s:
+                s = s.split("base64,", 1)[1].strip()
+            # PNG base64 usually starts with iVBORw0...
+            if s.startswith("iVBORw0") and len(s) > 2000:
+                found.append(value)
+
+    walk(payload)
+    # De-dupe while preserving order.
+    return list(dict.fromkeys(found))
+
+
 def _pixellab_character_path(project_dir: Path) -> Path:
     return project_dir / "pixellab_character.json"
 
@@ -3797,6 +3911,152 @@ def _pixellab_skeleton_path(project_dir: Path) -> Path:
 
 def _pixellab_character_assets_dir(project_dir: Path) -> Path:
     return project_dir / "character"
+
+
+def _pixellab_animations_path(project_dir: Path) -> Path:
+    return project_dir / "pixellab_animations.json"
+
+
+def _load_pixellab_animations_store(project_dir: Path) -> Dict[str, Any]:
+    path = _pixellab_animations_path(project_dir)
+    if not path.exists():
+        return {"project_id": project_dir.name, "updated_at": now_iso(), "animations": {}}
+    store = load_json(path, None) or {}
+    if not isinstance(store, dict):
+        store = {}
+    store.setdefault("project_id", project_dir.name)
+    store.setdefault("animations", {})
+    store.setdefault("updated_at", now_iso())
+    return store
+
+
+def _save_pixellab_animations_store(project_dir: Path, store: Dict[str, Any]) -> None:
+    path = _pixellab_animations_path(project_dir)
+    path.write_text(json.dumps(store, indent=2), encoding="utf-8")
+
+
+def _infer_animation_name_from_template(template_animation_id: str) -> str:
+    s = (template_animation_id or "").lower()
+    if any(token in s for token in ["idle", "breathing"]):
+        return "idle"
+    if any(token in s for token in ["walk", "walking"]):
+        return "walk"
+    return "idle"
+
+
+def _infer_frame_count_from_template(template_animation_id: str) -> Optional[int]:
+    s = (template_animation_id or "").lower()
+    for count in (8, 6, 4, 2, 1):
+        # Matches patterns like "walking-8-frames" and "jumping-1".
+        if ("-%d-frames" % count) in s or ("jumping-%d" % count) in s or ("-frames-%d" % count) in s:
+            return count
+    return None
+
+
+def _resolve_animation_timing(
+    animation_name: str,
+    *,
+    template_animation_id: Optional[str] = None,
+    pixel_lab_result: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    """
+    Decide fps/frame_count/loop for a generated animation.
+
+    Design choice (from your earlier note):
+    - Prefer values returned by Pixel Lab (if present),
+    - Fall back to deterministic mapping from animation_name/template id.
+    """
+    loop = True
+    fps = None
+    frame_count = None
+
+    if isinstance(pixel_lab_result, dict):
+        raw_fps = pixel_lab_result.get("fps") or pixel_lab_result.get("frame_rate") or pixel_lab_result.get("frameRate")
+        raw_fc = pixel_lab_result.get("frame_count") or pixel_lab_result.get("frameCount") or pixel_lab_result.get("frames_count")
+        if raw_fps is not None:
+            try:
+                fps = int(raw_fps)
+            except (TypeError, ValueError):
+                fps = None
+        if raw_fc is not None:
+            try:
+                frame_count = int(raw_fc)
+            except (TypeError, ValueError):
+                frame_count = None
+
+    if fps is None:
+        fps = (AI_CLIP_SPECS.get(animation_name) or ANIMATION_SPECS.get(animation_name) or {}).get("fps")
+    if frame_count is None:
+        frame_count = (AI_CLIP_SPECS.get(animation_name) or ANIMATION_SPECS.get(animation_name) or {}).get("frame_count")
+
+    if frame_count is None and template_animation_id:
+        frame_count = _infer_frame_count_from_template(template_animation_id)
+
+    fps = int(fps or 12)
+    frame_count = int(frame_count or 4)
+
+    return {"fps": fps, "frame_count": frame_count, "loop": loop}
+
+
+def _write_png_frames(frames: List[Image.Image], project_dir: Path, animation_name: str, direction: str) -> List[str]:
+    frames_dir = _pixellab_animation_frames_dir(project_dir, animation_name, direction)
+    frames_dir.mkdir(parents=True, exist_ok=True)
+    frame_paths: List[str] = []
+    for idx, img in enumerate(frames):
+        path = frames_dir / ("frame_%02d.png" % int(idx))
+        img.save(path)
+        frame_paths.append(str(path.relative_to(project_dir)))
+    return frame_paths
+
+
+def _upsert_pixellab_animation_frames(
+    project_dir: Path,
+    store: Dict[str, Any],
+    *,
+    animation_name: str,
+    direction: str,
+    fps: int,
+    frame_count: int,
+    loop: bool,
+    frames_paths: List[str],
+    template_animation_id: Optional[str],
+    backend_name: str,
+    seed: Optional[int],
+    job_id: Optional[str] = None,
+    edited_description: Optional[str] = None,
+) -> Dict[str, Any]:
+    store.setdefault("animations", {})
+    animations = store["animations"]
+    anim = animations.get(animation_name) if isinstance(animations, dict) else None
+    if not isinstance(anim, dict):
+        anim = {}
+    anim.update({
+        "animation_name": animation_name,
+        "fps": int(fps),
+        "frame_count": int(frame_count),
+        "loop": bool(loop),
+        "backend_name": backend_name,
+        "seed": seed,
+        "template_animation_id": template_animation_id,
+        "updated_at": now_iso(),
+    })
+    if job_id:
+        anim["latest_job_id"] = job_id
+    if edited_description:
+        anim["latest_edited_description"] = edited_description
+
+    anim.setdefault("directions", {})
+    if isinstance(anim["directions"], dict):
+        anim["directions"][direction] = {
+            "frames": list(frames_paths),
+            "frame_count": int(frame_count),
+            "fps": int(fps),
+            "updated_at": now_iso(),
+        }
+    animations[animation_name] = anim
+    store["updated_at"] = now_iso()
+    _save_pixellab_animations_store(project_dir, store)
+    return anim
 
 
 def build_identity_lock_lines(brief: Dict[str, Any]) -> List[str]:
@@ -9654,7 +9914,7 @@ def hydrate_animation_clips(animation_clips: Optional[Dict[str, Any]], legacy_an
                 frames = apply_frame_overrides(frames, overrides)
         else:
             frames = generate_clip_frames(animation_name, controls, overrides, rig_profile=rig_profile)
-        clips[animation_name] = {
+        clip_out = {
             **ANIMATION_SPECS[animation_name],
             "root_motion_policy": clip_root_motion_policy(animation_name),
             "loop_continuity_rules": {"wrap_to_first_frame": True},
@@ -9664,6 +9924,16 @@ def hydrate_animation_clips(animation_clips: Optional[Dict[str, Any]], legacy_an
             "neutral_pose_frame_index": 0,
             "corrective_assets_per_frame": [[] for _ in frames],
         }
+
+        # Preserve Pixel Lab frame metadata for Phase 5/6 flows without breaking
+        # the existing deterministic rig-based renderer.
+        if isinstance(clip_source, dict):
+            if isinstance(clip_source.get("frames"), list):
+                clip_out["frames"] = clip_source.get("frames")
+            if isinstance(clip_source.get("frames_by_direction"), dict):
+                clip_out["frames_by_direction"] = clip_source.get("frames_by_direction")
+
+        clips[animation_name] = clip_out
     return clips
 
 
@@ -12647,6 +12917,539 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                 save_project(project)
                 append_history_event(project_id, {"type": "pixellab_character_approved", "created_at": now_iso()})
                 return self._send_json(char_data, status=HTTPStatus.OK)
+
+            # -----------------------------
+            # Phase 5: Pixel Lab animations
+            # -----------------------------
+            animate_pixellab_match = re.fullmatch(r"/api/projects/([^/]+)/pixellab/animate", path)
+            if animate_pixellab_match:
+                project_id = animate_pixellab_match.group(1)
+                payload = read_body(self) if self.headers.get("Content-Length") else {}
+
+                project = load_project(project_id)
+                project_dir = PROJECTS_ROOT / project_id
+                brief = project.get("brief") or {}
+                canvas_size = coerce_canvas_size(brief.get("canvas_size"), DEFAULT_CANVAS_SIZE)
+
+                # Phase 5 gating (4.3 carry-forward).
+                char_data = _pixellab_character_approved_guard(project_dir)
+
+                template_animation_id = payload.get("template_animation_id")
+                if not template_animation_id:
+                    raise ValueError("animate requires template_animation_id.")
+
+                directions = int(payload.get("directions") or 4)
+                if directions not in {4, 8}:
+                    raise ValueError("directions must be 4 or 8.")
+
+                animation_name = str(payload.get("animation_name") or "") or _infer_animation_name_from_template(template_animation_id)
+                if animation_name not in {"idle", "walk"}:
+                    # Current deterministic canonical pipeline only supports idle/walk.
+                    raise ValueError("Unsupported animation_name (expected idle or walk).")
+
+                if directions == 4:
+                    direction_list = ["south", "west", "east", "north"]
+                else:
+                    direction_list = [
+                        "south",
+                        "south-east",
+                        "east",
+                        "north-east",
+                        "north",
+                        "north-west",
+                        "west",
+                        "south-west",
+                    ]
+
+                backend_mode = str(brief.get("backend_mode") or "comfyui")
+                use_debug = backend_mode == "debug_procedural" or not pixellab_configured()
+
+                seed = payload.get("seed")
+                if seed is None:
+                    seed = stable_int(project_id, str(template_animation_id), animation_name, str(directions), mod=4_294_967_295)
+                try:
+                    seed = int(seed)
+                except (TypeError, ValueError):
+                    seed = stable_int(project_id, str(template_animation_id), animation_name, str(directions), mod=4_294_967_295)
+
+                fps_frame = _resolve_animation_timing(animation_name, template_animation_id=str(template_animation_id), pixel_lab_result=None)
+                fps = fps_frame["fps"]
+                frame_count = fps_frame["frame_count"]
+                loop = fps_frame["loop"]
+
+                store = _load_pixellab_animations_store(project_dir)
+
+                if use_debug:
+                    for dir_idx, direction in enumerate(direction_list):
+                        frames = debug_pixellab_animation_frames(
+                            animation_name,
+                            direction,
+                            canvas_size,
+                            frame_count,
+                            seed + dir_idx * 1000,
+                            description_hint=str(template_animation_id)[:8],
+                        )
+                        frame_paths = _write_png_frames(frames, project_dir, animation_name, direction)
+                        _upsert_pixellab_animation_frames(
+                            project_dir,
+                            store,
+                            animation_name=animation_name,
+                            direction=direction,
+                            fps=fps,
+                            frame_count=frame_count,
+                            loop=loop,
+                            frames_paths=frame_paths,
+                            template_animation_id=str(template_animation_id),
+                            backend_name="debug_procedural",
+                            seed=seed,
+                        )
+                else:
+                    client = get_pixellab_client()
+                    if client is None:
+                        raise ValueError("Pixel Lab client unavailable; missing PIXELLAB_API_KEY.")
+
+                    # v2 endpoint call (async polling handled inside the client).
+                    result = client.animate_character(
+                        str(char_data.get("character_id") or ""),
+                        str(template_animation_id),
+                        directions=direction_list,
+                        seed=seed,
+                    )
+
+                    fps_frame = _resolve_animation_timing(
+                        animation_name,
+                        template_animation_id=str(template_animation_id),
+                        pixel_lab_result=result,
+                    )
+                    fps = fps_frame["fps"]
+                    frame_count = fps_frame["frame_count"]
+                    loop = fps_frame["loop"]
+
+                    job_id = None
+                    if isinstance(result, dict):
+                        job_id = result.get("job_id") or result.get("jobId") or result.get("background_job_id") or result.get("backgroundJobId")
+
+                    images_b64 = _find_all_base64_png_like(result)
+                    # Heuristic ordering: direction-major then frame index.
+                    for dir_idx, direction in enumerate(direction_list):
+                        frames: List[Image.Image] = []
+                        for frame_idx in range(frame_count):
+                            b64_index = dir_idx * frame_count + frame_idx
+                            if b64_index >= len(images_b64):
+                                break
+                            frames.append(_decode_base64_image_to_rgba(images_b64[b64_index]))
+                        frame_paths = _write_png_frames(frames[:frame_count], project_dir, animation_name, direction)
+                        _upsert_pixellab_animation_frames(
+                            project_dir,
+                            store,
+                            animation_name=animation_name,
+                            direction=direction,
+                            fps=fps,
+                            frame_count=frame_count,
+                            loop=loop,
+                            frames_paths=frame_paths,
+                            template_animation_id=str(template_animation_id),
+                            backend_name="pixellab",
+                            seed=seed,
+                            job_id=job_id,
+                        )
+
+                return self._send_json({"ok": True, "animation_name": animation_name, "fps": fps, "frame_count": frame_count})
+
+            animate_custom_pixellab_match = re.fullmatch(r"/api/projects/([^/]+)/pixellab/animate-custom", path)
+            if animate_custom_pixellab_match:
+                project_id = animate_custom_pixellab_match.group(1)
+                payload = read_body(self) if self.headers.get("Content-Length") else {}
+
+                project = load_project(project_id)
+                project_dir = PROJECTS_ROOT / project_id
+                brief = project.get("brief") or {}
+                canvas_size = coerce_canvas_size(brief.get("canvas_size"), DEFAULT_CANVAS_SIZE)
+                char_data = _pixellab_character_approved_guard(project_dir)
+
+                action = str(payload.get("action") or "").strip()
+                if not action:
+                    raise ValueError("animate-custom requires action.")
+
+                animation_name = str(payload.get("animation_name") or "idle").strip()
+                if animation_name not in {"idle", "walk"}:
+                    raise ValueError("Unsupported animation_name (expected idle or walk).")
+
+                backend_mode = str(brief.get("backend_mode") or "comfyui")
+                use_debug = backend_mode == "debug_procedural" or not pixellab_configured()
+
+                seed = payload.get("seed")
+                if seed is None:
+                    seed = stable_int(project_id, action, animation_name, "custom", mod=4_294_967_295)
+                try:
+                    seed = int(seed)
+                except (TypeError, ValueError):
+                    seed = stable_int(project_id, action, animation_name, "custom", mod=4_294_967_295)
+
+                fps_frame = _resolve_animation_timing(animation_name, pixel_lab_result=None)
+                fps = fps_frame["fps"]
+                frame_count = fps_frame["frame_count"]
+                loop = fps_frame["loop"]
+
+                direction = "east"
+                store = _load_pixellab_animations_store(project_dir)
+
+                if use_debug:
+                    frames = debug_pixellab_animation_frames(animation_name, direction, canvas_size, frame_count, seed, description_hint=action)
+                    frame_paths = _write_png_frames(frames, project_dir, animation_name, direction)
+                    _upsert_pixellab_animation_frames(
+                        project_dir,
+                        store,
+                        animation_name=animation_name,
+                        direction=direction,
+                        fps=fps,
+                        frame_count=frame_count,
+                        loop=loop,
+                        frames_paths=frame_paths,
+                        template_animation_id=None,
+                        backend_name="debug_procedural",
+                        seed=seed,
+                    )
+                else:
+                    client = get_pixellab_client()
+                    if client is None:
+                        raise ValueError("Pixel Lab client unavailable; missing PIXELLAB_API_KEY.")
+
+                    ref_rel = (char_data.get("images") or {}).get(direction)
+                    if not ref_rel:
+                        raise ValueError("pixellab_character.json is missing east reference image.")
+                    ref_path = project_dir / str(ref_rel)
+                    if not ref_path.exists():
+                        raise ValueError("East reference image missing on disk.")
+
+                    ref_b64 = client.encode_image(str(ref_path))
+                    image_size = {"width": canvas_size, "height": canvas_size}
+                    result = client.animate_with_text_v2(ref_b64, action, image_size)
+
+                    fps_frame = _resolve_animation_timing(animation_name, pixel_lab_result=result)
+                    fps = fps_frame["fps"]
+                    frame_count = fps_frame["frame_count"]
+                    loop = fps_frame["loop"]
+
+                    job_id = None
+                    if isinstance(result, dict):
+                        job_id = result.get("job_id") or result.get("jobId") or result.get("background_job_id") or result.get("backgroundJobId")
+
+                    images_b64 = _find_all_base64_png_like(result)
+                    frames: List[Image.Image] = []
+                    for frame_idx in range(frame_count):
+                        if frame_idx >= len(images_b64):
+                            break
+                        frames.append(_decode_base64_image_to_rgba(images_b64[frame_idx]))
+                    frame_paths = _write_png_frames(frames[:frame_count], project_dir, animation_name, direction)
+                    _upsert_pixellab_animation_frames(
+                        project_dir,
+                        store,
+                        animation_name=animation_name,
+                        direction=direction,
+                        fps=fps,
+                        frame_count=frame_count,
+                        loop=loop,
+                        frames_paths=frame_paths,
+                        template_animation_id="custom",
+                        backend_name="pixellab",
+                        seed=seed,
+                        job_id=job_id,
+                    )
+
+                return self._send_json({"ok": True, "animation_name": animation_name, "fps": fps, "frame_count": frame_count})
+
+            animate_skeleton_pixellab_match = re.fullmatch(r"/api/projects/([^/]+)/pixellab/animate-skeleton", path)
+            if animate_skeleton_pixellab_match:
+                project_id = animate_skeleton_pixellab_match.group(1)
+                payload = read_body(self) if self.headers.get("Content-Length") else {}
+
+                project = load_project(project_id)
+                project_dir = PROJECTS_ROOT / project_id
+                brief = project.get("brief") or {}
+                canvas_size = coerce_canvas_size(brief.get("canvas_size"), DEFAULT_CANVAS_SIZE)
+                char_data = _pixellab_character_approved_guard(project_dir)
+
+                keypoint_frames = payload.get("keypoint_frames") if isinstance(payload, dict) else None
+                if not isinstance(keypoint_frames, list):
+                    raise ValueError("animate-skeleton requires keypoint_frames: list.")
+
+                animation_name = str(payload.get("animation_name") or "idle").strip()
+                if animation_name not in {"idle", "walk"}:
+                    raise ValueError("Unsupported animation_name (expected idle or walk).")
+
+                direction = str(payload.get("direction") or "east").strip().lower() or "east"
+                if direction not in (char_data.get("directions") or ["east"]):
+                    # Keep strict enough to catch wiring mistakes.
+                    raise ValueError("Invalid direction for this character: %s." % direction)
+
+                backend_mode = str(brief.get("backend_mode") or "comfyui")
+                use_debug = backend_mode == "debug_procedural" or not pixellab_configured()
+
+                seed = payload.get("seed")
+                if seed is None:
+                    seed = stable_int(project_id, animation_name, direction, "skeleton", mod=4_294_967_295)
+                try:
+                    seed = int(seed)
+                except (TypeError, ValueError):
+                    seed = stable_int(project_id, animation_name, direction, "skeleton", mod=4_294_967_295)
+
+                # Phase 5 debug mode mimics the plan: 4 frames per call.
+                req_frame_count = len(keypoint_frames)
+                fps_frame = _resolve_animation_timing(animation_name, pixel_lab_result=None)
+                fps = fps_frame["fps"]
+                frame_count = int(req_frame_count or 4)
+                loop = fps_frame["loop"]
+
+                # Require stored skeleton as base (Phase 5.3).
+                skel_path = _pixellab_skeleton_path(project_dir)
+                if not skel_path.exists():
+                    raise ValueError("pixellab_skeleton.json is missing; estimate-skeleton first.")
+
+                store = _load_pixellab_animations_store(project_dir)
+
+                if use_debug:
+                    frames = debug_pixellab_animation_frames(animation_name, direction, canvas_size, frame_count, seed, description_hint="skel")
+                    frame_paths = _write_png_frames(frames, project_dir, animation_name, direction)
+                    _upsert_pixellab_animation_frames(
+                        project_dir,
+                        store,
+                        animation_name=animation_name,
+                        direction=direction,
+                        fps=fps,
+                        frame_count=frame_count,
+                        loop=loop,
+                        frames_paths=frame_paths,
+                        template_animation_id="skeleton",
+                        backend_name="debug_procedural",
+                        seed=seed,
+                    )
+                else:
+                    client = get_pixellab_client()
+                    if client is None:
+                        raise ValueError("Pixel Lab client unavailable; missing PIXELLAB_API_KEY.")
+
+                    ref_rel = (char_data.get("images") or {}).get(direction)
+                    if not ref_rel:
+                        raise ValueError("pixellab_character.json is missing reference image for direction=%s." % direction)
+                    ref_path = project_dir / str(ref_rel)
+                    if not ref_path.exists():
+                        raise ValueError("Reference image missing on disk.")
+
+                    ref_b64 = client.encode_image(str(ref_path))
+                    image_size = {"width": canvas_size, "height": canvas_size}
+                    result = client.animate_with_skeleton(ref_b64, image_size, keypoint_frames)
+
+                    fps_frame = _resolve_animation_timing(animation_name, pixel_lab_result=result)
+                    fps = fps_frame["fps"]
+                    loop = fps_frame["loop"]
+                    # If Pixel Lab returns frames for a different count, trust the returned extraction.
+                    images_b64 = _find_all_base64_png_like(result)
+                    frame_count = min(int(frame_count), len(images_b64))
+
+                    job_id = None
+                    if isinstance(result, dict):
+                        job_id = result.get("job_id") or result.get("jobId") or result.get("background_job_id") or result.get("backgroundJobId")
+
+                    frames: List[Image.Image] = []
+                    for frame_idx in range(frame_count):
+                        frames.append(_decode_base64_image_to_rgba(images_b64[frame_idx]))
+                    frame_paths = _write_png_frames(frames[:frame_count], project_dir, animation_name, direction)
+                    _upsert_pixellab_animation_frames(
+                        project_dir,
+                        store,
+                        animation_name=animation_name,
+                        direction=direction,
+                        fps=fps,
+                        frame_count=frame_count,
+                        loop=loop,
+                        frames_paths=frame_paths,
+                        template_animation_id="skeleton",
+                        backend_name="pixellab",
+                        seed=seed,
+                        job_id=job_id,
+                    )
+
+                return self._send_json({"ok": True, "animation_name": animation_name, "direction": direction, "fps": fps, "frame_count": frame_count})
+
+            edit_animation_pixellab_match = re.fullmatch(r"/api/projects/([^/]+)/pixellab/edit-animation", path)
+            if edit_animation_pixellab_match:
+                project_id = edit_animation_pixellab_match.group(1)
+                payload = read_body(self) if self.headers.get("Content-Length") else {}
+
+                project = load_project(project_id)
+                project_dir = PROJECTS_ROOT / project_id
+                brief = project.get("brief") or {}
+                canvas_size = coerce_canvas_size(brief.get("canvas_size"), DEFAULT_CANVAS_SIZE)
+                char_data = _pixellab_character_approved_guard(project_dir)
+
+                animation_name = str(payload.get("animation_name") or "").strip()
+                description = str(payload.get("description") or "").strip()
+                if not animation_name:
+                    raise ValueError("edit-animation requires animation_name.")
+                if not description:
+                    raise ValueError("edit-animation requires description.")
+
+                if animation_name not in {"idle", "walk"}:
+                    raise ValueError("Unsupported animation_name (expected idle or walk).")
+
+                backend_mode = str(brief.get("backend_mode") or "comfyui")
+                use_debug = backend_mode == "debug_procedural" or not pixellab_configured()
+
+                store = _load_pixellab_animations_store(project_dir)
+                anim = (store.get("animations") or {}).get(animation_name) if isinstance(store.get("animations"), dict) else None
+                directions = []
+                if isinstance(anim, dict) and isinstance(anim.get("directions"), dict):
+                    directions = list(anim["directions"].keys())
+                if not directions:
+                    # Fallback: infer from disk folders.
+                    maybe_dir = project_dir / "animations" / animation_name
+                    if maybe_dir.exists():
+                        directions = [p.name for p in maybe_dir.iterdir() if p.is_dir()]
+                if not directions:
+                    raise ValueError("No existing animation frames found to edit.")
+
+                # Use deterministic frame_count from AI specs when possible, otherwise infer from files.
+                fps_frame = _resolve_animation_timing(animation_name, pixel_lab_result=None)
+                fps = fps_frame["fps"]
+                loop = fps_frame["loop"]
+
+                seed = payload.get("seed")
+                if seed is None:
+                    seed = stable_int(project_id, animation_name, description, "edit", mod=4_294_967_295)
+                try:
+                    seed = int(seed)
+                except (TypeError, ValueError):
+                    seed = stable_int(project_id, animation_name, description, "edit", mod=4_294_967_295)
+
+                for dir_idx, direction in enumerate(directions):
+                    direction = str(direction).strip().lower()
+                    # Infer frame_count from store if present.
+                    inferred_fc = None
+                    if isinstance(anim, dict) and isinstance(anim.get("directions"), dict):
+                        inferred_fc = (anim["directions"].get(direction) or {}).get("frame_count")
+                    if not inferred_fc:
+                        inferred_fc = len(list((_pixellab_animation_frames_dir(project_dir, animation_name, direction)).glob("frame_*.png"))) if _pixellab_animation_frames_dir(project_dir, animation_name, direction).exists() else fps_frame["frame_count"]
+                    frame_count = int(inferred_fc or fps_frame["frame_count"])
+
+                    if use_debug:
+                        frames = debug_pixellab_animation_frames(
+                            animation_name,
+                            direction,
+                            canvas_size,
+                            frame_count,
+                            seed + dir_idx * 1000,
+                            description_hint=description,
+                        )
+                        frame_paths = _write_png_frames(frames, project_dir, animation_name, direction)
+                        _upsert_pixellab_animation_frames(
+                            project_dir,
+                            store,
+                            animation_name=animation_name,
+                            direction=direction,
+                            fps=fps,
+                            frame_count=frame_count,
+                            loop=loop,
+                            frames_paths=frame_paths,
+                            template_animation_id="edited",
+                            backend_name="debug_procedural",
+                            seed=seed,
+                            edited_description=description,
+                        )
+                    else:
+                        client = get_pixellab_client()
+                        if client is None:
+                            raise ValueError("Pixel Lab client unavailable; missing PIXELLAB_API_KEY.")
+
+                        frames_dir = _pixellab_animation_frames_dir(project_dir, animation_name, direction)
+                        frame_b64s: List[str] = []
+                        for idx in range(frame_count):
+                            fp = frames_dir / ("frame_%02d.png" % idx)
+                            if not fp.exists():
+                                break
+                            frame_b64s.append(client.encode_image(str(fp)))
+
+                        image_size = {"width": canvas_size, "height": canvas_size}
+                        result = client.edit_animation_v2(description, frame_b64s, image_size)
+                        images_b64 = _find_all_base64_png_like(result)
+
+                        frames: List[Image.Image] = []
+                        out_fc = min(frame_count, len(images_b64))
+                        for frame_idx in range(out_fc):
+                            frames.append(_decode_base64_image_to_rgba(images_b64[frame_idx]))
+                        frame_paths = _write_png_frames(frames, project_dir, animation_name, direction)
+                        _upsert_pixellab_animation_frames(
+                            project_dir,
+                            store,
+                            animation_name=animation_name,
+                            direction=direction,
+                            fps=fps,
+                            frame_count=out_fc,
+                            loop=loop,
+                            frames_paths=frame_paths,
+                            template_animation_id="edited",
+                            backend_name="pixellab",
+                            seed=seed,
+                            edited_description=description,
+                        )
+
+                return self._send_json({"ok": True, "animation_name": animation_name, "description": description})
+
+            build_clips_pixellab_match = re.fullmatch(r"/api/projects/([^/]+)/pixellab/build-clips", path)
+            if build_clips_pixellab_match:
+                project_id = build_clips_pixellab_match.group(1)
+                project = load_project(project_id)
+                project_dir = PROJECTS_ROOT / project_id
+
+                pix_store = _load_pixellab_animations_store(project_dir)
+                anim_store = pix_store.get("animations") if isinstance(pix_store.get("animations"), dict) else {}
+                if not anim_store:
+                    raise ValueError("pixellab_animations.json is empty; generate animations first.")
+
+                animation_clips_path = canonical_downstream_path(project_dir, "animation_clips")
+                existing = load_json(animation_clips_path, {}) or {}
+                if not isinstance(existing, dict):
+                    existing = {}
+
+                for animation_name, anim in anim_store.items():
+                    if not isinstance(anim, dict):
+                        continue
+                    if animation_name not in {"idle", "walk"}:
+                        continue
+
+                    fps = anim.get("fps") or (AI_CLIP_SPECS.get(animation_name) or {}).get("fps") or ANIMATION_SPECS.get(animation_name, {}).get("fps") or 12
+                    frame_count = anim.get("frame_count") or (AI_CLIP_SPECS.get(animation_name) or {}).get("frame_count") or ANIMATION_SPECS.get(animation_name, {}).get("frame_count") or 4
+                    loop = bool(anim.get("loop", True))
+
+                    frames_by_direction = {}
+                    if isinstance(anim.get("directions"), dict):
+                        for direction, ddata in anim["directions"].items():
+                            if isinstance(ddata, dict) and isinstance(ddata.get("frames"), list):
+                                frames_by_direction[str(direction)] = ddata["frames"]
+
+                    default_dir = "east" if "east" in frames_by_direction else (next(iter(frames_by_direction.keys())) if frames_by_direction else "east")
+                    frames = frames_by_direction.get(default_dir) or []
+
+                    clip = existing.get(animation_name) if isinstance(existing.get(animation_name), dict) else {}
+                    if not isinstance(clip, dict):
+                        clip = {}
+                    clip.update({
+                        "fps": int(fps),
+                        "loop": loop,
+                        "frame_count": int(frame_count),
+                        "frames": frames,
+                        "frames_by_direction": frames_by_direction,
+                    })
+                    existing[animation_name] = clip
+
+                # Persist via save_project() so we don't get overwritten by the
+                # hydrated `project["animation_clips"]` value.
+                project["animation_clips"] = existing
+                project["current_stage"] = "animations"
+                project["status"] = "pixellab_build_clips_complete"
+                project["updated_at"] = now_iso()
+                save_project(project)
+                return self._send_json({"ok": True, "animation_clips_updated": True})
 
             improved_prompt_match = re.fullmatch(r"/api/projects/([^/]+)/concepts/([^/]+)/improve-prompt", path)
             if improved_prompt_match:
