@@ -11137,6 +11137,161 @@ def ai_workflow_ready_for_qa(store: Dict[str, Any]) -> bool:
     return all(bool((cleanup_runs.get(clip_name) or {}).get("approved_run_id")) for clip_name in AI_CLIP_SPECS)
 
 
+def pixellab_pipeline_ready_for_qa(project: Dict[str, Any], project_dir: Path) -> bool:
+    """
+    Phase 6: Pixel Lab QA readiness check.
+
+    Canonical inputs:
+    - `pixellab_character.json`
+    - `pixellab_animations.json`
+    - `animation_clips.json` (built in Phase 5.5)
+    """
+    char_path = _pixellab_character_path(project_dir)
+    anim_path = _pixellab_animations_path(project_dir)
+    if not char_path.exists() or not anim_path.exists():
+        return False
+    anim_store = load_json(anim_path, None)
+    if not isinstance(anim_store, dict) or not anim_store.get("animations"):
+        return False
+    clips = project.get("animation_clips") or load_json(canonical_downstream_path(project_dir, "animation_clips"), {})
+    return isinstance(clips, dict) and bool(clips)
+
+
+def run_pixellab_qa(project_id: str, progress: Optional[ProgressCallback] = None) -> Dict[str, Any]:
+    project = load_project(project_id)
+    project_dir = PROJECTS_ROOT / project_id
+
+    # Must exist and be non-empty.
+    char_path = _pixellab_character_path(project_dir)
+    anim_path = _pixellab_animations_path(project_dir)
+    if not char_path.exists() or not anim_path.exists():
+        raise ValueError("Pixel Lab canonical inputs missing; expected pixellab_character.json and pixellab_animations.json.")
+    _pixellab_character_approved_guard(project_dir)  # also enforces approval
+
+    pix_store = load_json(anim_path, None) or {}
+    if not isinstance(pix_store, dict) or not pix_store.get("animations"):
+        raise ValueError("pixellab_animations.json is empty.")
+
+    clips = project.get("animation_clips") or load_json(canonical_downstream_path(project_dir, "animation_clips"), {})
+    if not isinstance(clips, dict) or not clips:
+        raise ValueError("animation_clips.json must exist (Phase 5.5) before Pixel Lab QA.")
+
+    # Only validate canonical idle/walk clips that actually contain Pixel Lab frame metadata
+    # (i.e. Phase 5.5 copied `frames` into `animation_clips.json`).
+    clip_names = [
+        name
+        for name in ["idle", "walk"]
+        if name in clips
+        and isinstance(clips.get(name), dict)
+        and isinstance(clips.get(name).get("frames"), list)
+    ]
+    if not clip_names:
+        raise ValueError("animation_clips.json contains no supported Pixel Lab animations (idle/walk).")
+
+    report = {
+        "project_id": project_id,
+        "generated_at": now_iso(),
+        "status": "pass",
+        "mode": "pixellab",
+        "per_frame_checks": [],
+        "per_animation_checks": {},
+        "source_asset_hashes": {},
+        "metadata_checks": {},
+        "notes": [
+            "QA validates Pixel Lab canonical animation frames for size, transparency, and border clipping.",
+            "Semantic art direction still requires human review in the workbench.",
+        ],
+    }
+
+    for clip_index, clip_name in enumerate(clip_names):
+        call_progress(
+            progress,
+            8 + int((clip_index / max(1, len(clip_names))) * 74),
+            "Checking %s clip" % clip_name,
+            "Validating Pixel Lab frames (size, transparency, clipping).",
+        )
+        spec = AI_CLIP_SPECS.get(clip_name) or ANIMATION_SPECS.get(clip_name) or {}
+        expected_fc = int(spec.get("frame_count") or 0)
+        expected_fps = int(spec.get("fps") or 0)
+
+        clip = clips[clip_name]
+        frame_count = int(clip.get("frame_count") or 0)
+        fps = int(clip.get("fps") or 0)
+        frames = clip.get("frames") if isinstance(clip.get("frames"), list) else []
+
+        if expected_fc and frame_count != expected_fc:
+            raise ValueError("Pixel Lab QA blocked: %s.frame_count=%s but expected %s." % (clip_name, frame_count, expected_fc))
+        if expected_fps and fps != expected_fps:
+            raise ValueError("Pixel Lab QA blocked: %s.fps=%s but expected %s." % (clip_name, fps, expected_fps))
+        if expected_fc and len(frames) != expected_fc:
+            raise ValueError("Pixel Lab QA blocked: %s.frames length=%s but expected %s." % (clip_name, len(frames), expected_fc))
+
+        per_frame_states: List[str] = []
+        for index in range(frame_count):
+            call_progress(
+                progress,
+                8 + int(((clip_index * frame_count + index) / max(1, len(clip_names) * frame_count)) * 82),
+                "Checking %s frame %d" % (clip_name, index + 1),
+                "Validating frame image.",
+            )
+            frame_rel = frames[index] if index < len(frames) else None
+            if not frame_rel:
+                raise ValueError("Pixel Lab QA blocked: missing frame path for %s index %d." % (clip_name, index))
+            path = project_dir / str(frame_rel)
+            if not path.exists():
+                raise ValueError("Pixel Lab QA blocked: missing frame file %s." % str(path))
+
+            image = Image.open(path).convert("RGBA")
+            # Pixel Lab animation frames may be produced at a smaller canvas size
+            # (e.g. 64x64). Normalize to the canonical export size so QA checks and
+            # atlas packing use the same invariants as deterministic/AI workflows.
+            if list(image.size) != [FRAME_SIZE, FRAME_SIZE]:
+                image, _ = cleanup_frame(image)
+            alpha = image.getchannel("A")
+            alpha_bounds = alpha.getbbox()
+            checks = {
+                "exact_frame_size": check_state("pass" if list(image.size) == [FRAME_SIZE, FRAME_SIZE] else "fail"),
+                "transparent_background": check_state("pass" if alpha_bounds is not None and any(value < 255 for value in alpha.getdata()) else "fail"),
+                "no_clipping": check_state("fail" if border_has_alpha(image) else "pass"),
+            }
+            frame_status = aggregate_check_state([item["status"] for item in checks.values()])
+            per_frame_states.append(frame_status)
+            if frame_status == "fail":
+                report["status"] = "fail"
+            report["per_frame_checks"].append({
+                "frame_name": "%s_%02d.png" % (clip_name, index),
+                "status": frame_status,
+                "checks": checks,
+            })
+            report["source_asset_hashes"][str(path.relative_to(project_dir))] = image_sha256(path)
+
+        animation_status = aggregate_check_state(per_frame_states)
+        report["per_animation_checks"][clip_name] = {
+            "status": animation_status,
+            "checks": {
+                "correct_frame_count": check_state("pass" if len(frames) == frame_count else "fail"),
+                "metadata_correctness": check_state("pass" if frame_count == expected_fc and fps == expected_fps else "fail"),
+            },
+        }
+
+    report["metadata_checks"] = {
+        "has_pixellab_character": check_state("pass" if char_path.exists() else "fail"),
+        "has_pixellab_animations": check_state("pass" if anim_path.exists() and bool(pix_store.get("animations")) else "fail"),
+        "has_animation_clips": check_state("pass" if isinstance(clips, dict) and bool(clips) else "fail"),
+    }
+    if any(item["status"] == "fail" for item in report["metadata_checks"].values()):
+        report["status"] = "fail"
+
+    write_json(canonical_downstream_path(project_dir, "qa_report"), report)
+    project["qa_report"] = report
+    project["current_stage"] = "qa"
+    project["status"] = "qa_%s" % report["status"]
+    project["updated_at"] = now_iso()
+    save_project(project)
+    call_progress(progress, 100, "Checks complete", "Pixel Lab QA finished.")
+    return report
+
+
 def run_qa(project_id: str, progress: Optional[ProgressCallback] = None) -> Dict[str, Any]:
     project = load_project(project_id)
     ai_workflow = project.get("ai_workflow") or {}
@@ -11147,6 +11302,8 @@ def run_qa(project_id: str, progress: Optional[ProgressCallback] = None) -> Dict
     if external_authoring.get("enabled") and imported_bundle:
         return run_external_authoring_qa(project_id, progress=progress)
     project_dir = PROJECTS_ROOT / project_id
+    if pixellab_pipeline_ready_for_qa(project, project_dir):
+        return run_pixellab_qa(project_id, progress=progress)
     sprite_model = project.get("sprite_model")
     rig = project.get("rig")
     clips = project.get("animation_clips") or load_json(canonical_downstream_path(project_dir, "animation_clips"), {})
@@ -11332,6 +11489,197 @@ def validate_export_bundle(
     }
 
 
+def export_pixellab_project(project_id: str, progress: Optional[ProgressCallback] = None) -> Dict[str, Any]:
+    project = load_project(project_id)
+    project_dir = PROJECTS_ROOT / project_id
+    char_path = _pixellab_character_path(project_dir)
+    pix_anim_path = _pixellab_animations_path(project_dir)
+    if not char_path.exists() or not pix_anim_path.exists():
+        raise ValueError("Export blocked: Pixel Lab canonical inputs missing.")
+
+    if not project.get("qa_report") or project["qa_report"].get("status") != "pass":
+        raise ValueError("Export blocked: QA must pass first.")
+
+    clips = project.get("animation_clips") or load_json(canonical_downstream_path(project_dir, "animation_clips"), {})
+    if not isinstance(clips, dict) or not clips:
+        raise ValueError("Export blocked: animation_clips.json must exist for Pixel Lab export.")
+
+    # Only procedural idle/walk for runtime export right now; manual clips still use deterministic render outputs.
+    procedural_names = [
+        name
+        for name in ["idle", "walk"]
+        if name in clips and isinstance(clips.get(name), dict) and isinstance(clips[name].get("frames"), list)
+    ]
+    if not procedural_names and not bool(approved_manual_animation_clips(project).keys()):
+        raise ValueError("Export blocked: no Pixel Lab/procedural frames available.")
+
+    manual_clips = approved_manual_animation_clips(project)
+
+    export_dir = project_dir / "exports" / datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    export_dir.mkdir(parents=True, exist_ok=True)
+    ordered_frames: List[Tuple[str, str, Path]] = []
+
+    target_dir = export_dir / "frames"
+    target_dir.mkdir(parents=True, exist_ok=True)
+
+    call_progress(progress, 8, "Preparing Pixel Lab export", "Collecting Pixel Lab frames and runtime metadata.")
+
+    for clip_name in procedural_names:
+        clip = clips[clip_name]
+        frame_count = int(clip.get("frame_count") or 0)
+        fps = int(clip.get("fps") or 12)
+        loop = bool(clip.get("loop", True))
+        frames = clip.get("frames") if isinstance(clip.get("frames"), list) else []
+        if frame_count and len(frames) < frame_count:
+            raise ValueError("Export blocked: Pixel Lab %s frames missing (have %d need %d)." % (clip_name, len(frames), frame_count))
+        if not frame_count:
+            frame_count = len(frames)
+        for index in range(frame_count):
+            source_rel = frames[index] if index < len(frames) else None
+            if not source_rel:
+                raise ValueError("Export blocked: missing frame path for %s index %d." % (clip_name, index))
+            source = project_dir / str(source_rel)
+            if not source.exists():
+                raise ValueError("Export blocked: missing frame file %s." % source)
+            frame_name = "%s_%02d.png" % (clip_name, index)
+            target = target_dir / frame_name
+            img = Image.open(source).convert("RGBA")
+            if list(img.size) != [FRAME_SIZE, FRAME_SIZE]:
+                img, _ = cleanup_frame(img)
+            img.save(target)
+            ordered_frames.append((clip_name, frame_name, target))
+
+    for clip_id, clip in manual_clips.items():
+        frame_count = int(clip.get("frame_count") or 0)
+        if not frame_count:
+            continue
+        source_root = project_dir / str(clip.get("preview_render", {}).get("frame_dir") or "")
+        if not source_root.exists():
+            raise ValueError("Export blocked: missing manual clip frame_dir for %s." % clip_id)
+        for index in range(frame_count):
+            source = source_root / ("%s_%02d.png" % (clip_id, index))
+            if not source.exists():
+                raise ValueError("Export blocked: missing manual frame %s." % source.name)
+            frame_name = "%s_%02d.png" % (clip_id, index)
+            target = target_dir / frame_name
+            target.write_bytes(source.read_bytes())
+            ordered_frames.append((clip_id, frame_name, target))
+
+    call_progress(progress, 40, "Packing spritesheet", "Packing frame images into a deterministic atlas.")
+    spritesheet = Image.new("RGBA", (FRAME_SIZE * len(ordered_frames), FRAME_SIZE), (0, 0, 0, 0))
+    atlas_frames: Dict[str, Dict[str, Any]] = {}
+    for index, (animation_name, frame_name, path) in enumerate(ordered_frames):
+        frame_image = Image.open(path).convert("RGBA")
+        x = index * FRAME_SIZE
+        spritesheet.alpha_composite(frame_image, (x, 0))
+        atlas_frames[frame_name] = {"x": x, "y": 0, "w": FRAME_SIZE, "h": FRAME_SIZE, "pivot": list(FRAME_PIVOT), "animation": animation_name}
+    spritesheet.save(export_dir / "spritesheet.png")
+
+    animations_payload: Dict[str, Any] = {}
+    for name in procedural_names:
+        clip = clips[name]
+        frame_count = int(clip.get("frame_count") or 0)
+        animations_payload[name] = {
+            "fps": int(clip.get("fps") or 12),
+            "loop": bool(clip.get("loop", True)),
+            "frame_count": frame_count,
+            "frames": ["%s_%02d.png" % (name, index) for index in range(frame_count)],
+            "root_motion_policy": clip.get("root_motion_policy") or clip_root_motion_policy(name),
+        }
+    for clip_id, clip in manual_clips.items():
+        animations_payload[clip_id] = {
+            "fps": int(clip.get("fps") or 12),
+            "loop": bool(clip.get("loop", True)),
+            "frame_count": int(clip.get("frame_count") or 0),
+            "frames": ["%s_%02d.png" % (clip_id, index) for index in range(int(clip.get("frame_count") or 0))],
+            "root_motion_policy": "manual",
+        }
+
+    write_json(export_dir / "atlas.json", {"image": "spritesheet.png", "frames": atlas_frames})
+    write_json(export_dir / "animations.json", animations_payload)
+    write_json(export_dir / "qa_report.json", project["qa_report"])
+
+    call_progress(progress, 72, "Building preview", "Creating an animated preview from the exported Pixel Lab frames.")
+    preview_frames = [Image.open(path).convert("RGBA") for _, _, path in ordered_frames]
+    durations: List[int] = []
+    for animation_name, _, _ in ordered_frames:
+        if animation_name in clips:
+            durations.append(int(1000 / int(clips[animation_name].get("fps") or 12)))
+        elif animation_name in manual_clips:
+            durations.append(int(1000 / max(1, int(manual_clips[animation_name].get("fps") or 12))))
+        else:
+            durations.append(100)
+
+    preview_frames[0].save(
+        export_dir / "preview.gif",
+        save_all=True,
+        append_images=preview_frames[1:],
+        duration=durations,
+        loop=0,
+        disposal=2,
+        transparency=0,
+    )
+
+    char_data = load_json(char_path, {}) or {}
+    pix_store = load_json(pix_anim_path, None) or {}
+    pix_animations = pix_store.get("animations") if isinstance(pix_store, dict) else {}
+    pix_job_ids: Dict[str, Any] = {}
+    if isinstance(pix_animations, dict):
+        for anim_name, anim in pix_animations.items():
+            if isinstance(anim, dict):
+                pix_job_ids[anim_name] = anim.get("latest_job_id")
+
+    export_manifest: Dict[str, Any] = {
+        "project_id": project_id,
+        "export_timestamp": now_iso(),
+        "tool_version": TOOL_VERSION,
+        "export_mode": "pixellab",
+        "pixellab_character_id": char_data.get("character_id"),
+        "pixellab_latest_job_ids": pix_job_ids,
+        "source_asset_hashes": project["qa_report"]["source_asset_hashes"],
+        "approved_manual_clips": [
+            {"clip_id": clip_id, "clip_name": clip.get("clip_name"), "frame_count": clip.get("frame_count"), "fps": clip.get("fps")}
+            for clip_id, clip in manual_clips.items()
+        ],
+    }
+
+    export_manifest["bundle_hashes"] = {
+        "atlas.json": image_sha256(export_dir / "atlas.json"),
+        "animations.json": image_sha256(export_dir / "animations.json"),
+        "qa_report.json": image_sha256(export_dir / "qa_report.json"),
+        "spritesheet.png": image_sha256(export_dir / "spritesheet.png"),
+        "preview.gif": image_sha256(export_dir / "preview.gif"),
+    }
+
+    call_progress(progress, 76, "Verifying export", "Validating packed spritesheet matches sources.")
+    export_manifest["verification"] = validate_export_bundle(export_dir, ordered_frames, atlas_frames)
+    write_json(export_dir / "export_manifest.json", export_manifest)
+
+    verification = export_manifest["verification"]
+    if verification.get("status") != "pass":
+        raise ValueError("Export verification failed: packed spritesheet did not match the frame manifest.")
+
+    result = {
+        "export_dir": str(export_dir.relative_to(project_dir)),
+        "verification": verification,
+        "files": [
+            "spritesheet.png",
+            "atlas.json",
+            "animations.json",
+            "preview.gif",
+            "qa_report.json",
+            "export_manifest.json",
+        ] + ["frames/%s" % name for _, name, _ in ordered_frames],
+    }
+    project["last_export"] = result
+    project["current_stage"] = "export"
+    project["status"] = "export_ready"
+    project["updated_at"] = now_iso()
+    save_project(project)
+    call_progress(progress, 100, "Export ready", "The Pixel Lab sprite package is ready.")
+    return result
+
+
 def export_project(project_id: str, progress: Optional[ProgressCallback] = None) -> Dict[str, Any]:
     project = load_project(project_id)
     if not project.get("qa_report") or project["qa_report"]["status"] != "pass":
@@ -11439,10 +11787,11 @@ def export_project(project_id: str, progress: Optional[ProgressCallback] = None)
         return project["last_export"]
     external_authoring = project.get("external_authoring") or {}
     imported_bundle = external_authoring.get("imported_bundle") if isinstance(external_authoring.get("imported_bundle"), dict) else None
-    if not project.get("sprite_model") and not (external_authoring.get("enabled") and imported_bundle):
-        raise ValueError("Export blocked: sprite model is missing.")
-
     project_dir = PROJECTS_ROOT / project_id
+    pix_char_exists = _pixellab_character_path(project_dir).exists()
+    pix_anim_exists = _pixellab_animations_path(project_dir).exists()
+    if not project.get("sprite_model") and not (external_authoring.get("enabled") and imported_bundle) and not (pix_char_exists and pix_anim_exists):
+        raise ValueError("Export blocked: sprite model is missing.")
     if external_authoring.get("enabled") and imported_bundle:
         export_dir = project_dir / "exports" / datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
         export_dir.mkdir(parents=True, exist_ok=True)
@@ -11504,6 +11853,9 @@ def export_project(project_id: str, progress: Optional[ProgressCallback] = None)
             "export_manifest": "export_manifest.json",
             "mode": "external_authoring",
         }
+    # Phase 6: Pixel Lab export path (no sprite_model/rig dependency).
+    if pix_char_exists and pix_anim_exists:
+        return export_pixellab_project(project_id, progress=progress)
     clips = project.get("animation_clips") or load_json(canonical_downstream_path(project_dir, "animation_clips"), {})
     manual_clips = approved_manual_animation_clips(project)
     export_dir = project_dir / "exports" / datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
@@ -13400,6 +13752,7 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                 project_id = build_clips_pixellab_match.group(1)
                 project = load_project(project_id)
                 project_dir = PROJECTS_ROOT / project_id
+                _pixellab_character_approved_guard(project_dir)
 
                 pix_store = _load_pixellab_animations_store(project_dir)
                 anim_store = pix_store.get("animations") if isinstance(pix_store.get("animations"), dict) else {}

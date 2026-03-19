@@ -31,11 +31,18 @@ Status: Phases 1–4 complete
 - **4.1** `POST /api/projects/<id>/pixellab/create-character` — 4-dir or 8-dir, debug_procedural fallback, writes `pixellab_character.json` + `character/<dir>.png`
 - **4.2** `POST /api/projects/<id>/pixellab/estimate-skeleton` — writes `pixellab_skeleton.json` with 18 keypoints
 - **4.3** `POST /api/projects/<id>/pixellab/approve-character` — sets `approved: true` in `pixellab_character.json` and `pixellab_character_approved` on project
+- **5.1** `POST /api/projects/<id>/pixellab/animate` — template animation, guard-gated, calls `animate_character()` with stored `character_id`, saves frames to `animations/<name>/<direction>/frame_NN.png`, appends to `pixellab_animations.json`
+- **5.2** `POST /api/projects/<id>/pixellab/animate-custom` — text animation, guard-gated, east reference image, calls `animate_with_text_v2()`
+- **5.3** `POST /api/projects/<id>/pixellab/animate-skeleton` — skeleton animation, guard-gated, requires `pixellab_skeleton.json`, calls `animate_with_skeleton()`
+- **5.4** `POST /api/projects/<id>/pixellab/edit-animation` — animation edit, guard-gated, loads existing frames, calls `edit_animation_v2()`
+- **5.5** `POST /api/projects/<id>/pixellab/build-clips` — guard-gated, reads `pixellab_animations.json`, writes canonical `animation_clips.json` with `fps`, `loop`, `frame_count`, `frames`, `frames_by_direction`
 
 ### ⚠️ Known implementation notes (reviewed 2026-03-18)
 - `animate_character` endpoint path is `/v2/characters/animations` — confirmed via validation error query
 - `create_character_4dir`/`create_character_8dir` poll for async job completion (same `_extract_job_id` + `_poll_job` pattern as other async methods) — do NOT pass `async_mode=True` from server; polling is handled inside the client methods
-- Phase 4.3 gating: `pixellab_character_approved` flag is set; Phase 5 animation endpoints must check this flag before proceeding
+- `_pixellab_character_approved_guard(project_dir)` is defined in server and must be called at the top of every Phase 5 handler — supports both `pixellab_character_approved` and legacy `approved` keys
+- Frame filenames are zero-padded: `frame_%02d.png`
+- `pixellab_animations.json` is written via `_upsert_pixellab_animation_frames()` / `_save_pixellab_animations_store()`
 - 3 pre-existing test failures exist in the old Gemini validation path (`test_upload_import_creates_concept_attempt`, `test_local_path_import_creates_concept_attempt`, `test_generate_improved_prompt_includes_prior_prompt_and_feedback`) — these are unrelated to the new pipeline and will be removed in Phase 8
 
 ## Goal
@@ -428,7 +435,8 @@ Phase 1 (foundation):  1.1 ✅ → 1.2 ✅ → 1.3 ✅ → 1.4 ✅ → 1.5 ✅ �
 Phase 2 (scaffold):    2.1 ✅ → 2.2 ✅ → 2.3 ✅ → 2.4 ✅
 Phase 3 (concepts):    3.1 ✅ → 3.2 ✅ → 3.3 ✅ → 3.4 (deferred)
 Phase 4 (character):   4.1 ✅ → 4.2 ✅ → 4.3 ✅
-Phase 5 (animation):   5.1 → 5.2 → 5.3 → 5.4 → 5.5       ← NEXT
+Phase 5 (animation):   5.1 ✅ → 5.2 ✅ → 5.3 ✅ → 5.4 ✅ → 5.5 ✅
+Phase 6 (QA/export):   6.1 → 6.2                              ← NEXT
 Phase 6 (QA/export):   6.1 → 6.2
 Phase 7 (frontend):    7.1 → 7.2 → 7.3 → 7.4 → 7.5 → 7.6 → 7.7
 Phase 8 (cleanup):     8.1 → 8.2 → 8.3 → 8.4 → 8.5 → 8.6

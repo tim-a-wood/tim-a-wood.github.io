@@ -1803,6 +1803,116 @@ class SpriteWorkbenchTests(unittest.TestCase):
                 self.assertIn("frames", clips["idle"])
                 self.assertEqual(len(clips["idle"]["frames"]), 6)
                 self.assertIn("animations/idle/east/frame_00.png", clips["idle"]["frames"][0])
+
+                # Phase 6: Pixel Lab QA + export integration.
+                qa = sw.run_qa(project_id)
+                self.assertEqual(qa.get("status"), "pass")
+                export = sw.export_project(project_id)
+                self.assertIn("spritesheet.png", export.get("files") or [])
+                self.assertIn("atlas.json", export.get("files") or [])
+                self.assertIn("animations.json", export.get("files") or [])
+                self.assertIn("export_manifest.json", export.get("files") or [])
+            finally:
+                sw.PROJECTS_ROOT = original_root
+
+    def test_pixellab_run_qa_fails_when_frame_missing(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            original_root = sw.PROJECTS_ROOT
+            sw.PROJECTS_ROOT = Path(tmpdir)
+            try:
+                project = sw.create_project({
+                    "project_name": "Pixellab QA Missing Frame",
+                    "prompt_text": "a side-view lantern knight",
+                    "backend_mode": "debug_procedural",
+                    "last_ui_mode": "wizard",
+                })
+                project_id = project["project_id"]
+                project_dir = sw.PROJECTS_ROOT / project_id
+                brief = project.get("brief") or {}
+                canvas_size = sw.coerce_canvas_size(brief.get("canvas_size"), sw.DEFAULT_CANVAS_SIZE)
+                frame_count = sw.ANIMATION_SPECS["idle"]["frame_count"]
+                fps = sw.ANIMATION_SPECS["idle"]["fps"]
+
+                directions = ["south", "west", "east", "north"]
+                assets = sw.debug_pixellab_character_images(directions, canvas_size, seed=1)
+                (project_dir / "character").mkdir(parents=True, exist_ok=True)
+                for d, img in assets.items():
+                    img.save(project_dir / "character" / ("%s.png" % d))
+
+                char_payload = {
+                    "character_id": "debug-char-qa",
+                    "pixellab_character_approved": True,
+                    "approved": True,
+                    "directions": directions,
+                    "image_size": {"width": canvas_size, "height": canvas_size},
+                    "backend_name": "debug_procedural",
+                    "seed": 1,
+                    "images": {d: str((project_dir / "character" / ("%s.png" % d)).relative_to(project_dir)) for d in directions},
+                }
+                (project_dir / "pixellab_character.json").write_text(json.dumps(char_payload, indent=2), encoding="utf-8")
+
+                # Write only idle/east frames.
+                frames_dir = project_dir / "animations" / "idle" / "east"
+                frames_dir.mkdir(parents=True, exist_ok=True)
+                frame_rel_paths = []
+                frames = sw.debug_pixellab_animation_frames(
+                    animation_name="idle",
+                    direction="east",
+                    canvas_size=canvas_size,
+                    frame_count=frame_count,
+                    seed=3,
+                    description_hint="qa",
+                )
+                for idx, img in enumerate(frames):
+                    path = frames_dir / ("frame_%02d.png" % idx)
+                    img.save(path)
+                    frame_rel_paths.append(str(path.relative_to(project_dir)))
+
+                # Create pixellab_animations.json with at least one animation entry.
+                pix_store = {
+                    "project_id": project_id,
+                    "updated_at": sw.now_iso(),
+                    "animations": {
+                        "idle": {
+                            "animation_name": "idle",
+                            "fps": fps,
+                            "frame_count": frame_count,
+                            "loop": True,
+                            "backend_name": "debug_procedural",
+                            "seed": 3,
+                            "template_animation_id": None,
+                            "updated_at": sw.now_iso(),
+                            "directions": {
+                                "east": {
+                                    "frames": frame_rel_paths,
+                                    "frame_count": frame_count,
+                                    "fps": fps,
+                                    "updated_at": sw.now_iso(),
+                                }
+                            },
+                        }
+                    },
+                }
+                (project_dir / "pixellab_animations.json").write_text(json.dumps(pix_store, indent=2), encoding="utf-8")
+
+                # animation_clips.json is the canonical bridge.
+                anim_clips = {
+                    "idle": {
+                        "fps": fps,
+                        "loop": True,
+                        "frame_count": frame_count,
+                        "frames": frame_rel_paths,
+                        "frames_by_direction": {"east": frame_rel_paths},
+                    }
+                }
+                (project_dir / "animation_clips.json").write_text(json.dumps(anim_clips, indent=2), encoding="utf-8")
+
+                # Delete one frame to force QA failure.
+                missing = project_dir / frame_rel_paths[0]
+                missing.unlink(missing_ok=True)
+
+                with self.assertRaises(ValueError):
+                    sw.run_qa(project_id)
             finally:
                 sw.PROJECTS_ROOT = original_root
 
