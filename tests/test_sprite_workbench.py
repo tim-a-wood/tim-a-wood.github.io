@@ -305,9 +305,9 @@ class SpriteWorkbenchTests(unittest.TestCase):
 
         self.assertNotIn("refine", before_valid["step_statuses"])
         self.assertEqual(before_valid["step_statuses"]["review"], "locked")
-        self.assertIn("Codex validated as valid", before_valid["blocking_reasons"]["review"][0])
+        self.assertIn("valid concept", before_valid["blocking_reasons"]["review"][0].lower())
         self.assertEqual(project["step_statuses"]["review"], "complete")
-        self.assertIn(project["step_statuses"]["rig_layout"], {"active", "ready"})
+        self.assertIn(project["step_statuses"]["rig_layout"], {"active", "ready", "complete"})
 
     def test_concept_approval_generates_rig_layout_before_sprite_model(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -341,10 +341,14 @@ class SpriteWorkbenchTests(unittest.TestCase):
                 sw.PROJECTS_ROOT = original_root
 
         self.assertEqual(project["current_stage"], "rig_layout")
-        self.assertIn(project["step_statuses"]["rig_layout"], {"active", "ready"})
-        if project["ai_workflow"]["enabled"]:
+        if project["ai_workflow"]["enabled"] and not project["ai_workflow"].get("legacy_mode"):
+            self.assertEqual(project["step_statuses"]["rig_layout"], "complete")
+            self.assertEqual(project["ai_workflow"]["selected_assets"]["approved_concept_id"], imported["concept_id"])
+        elif project["ai_workflow"]["enabled"]:
+            self.assertIn(project["step_statuses"]["rig_layout"], {"active", "ready"})
             self.assertEqual(project["ai_workflow"]["selected_assets"]["approved_concept_id"], imported["concept_id"])
         else:
+            self.assertIn(project["step_statuses"]["rig_layout"], {"active", "ready"})
             self.assertFalse(project["rig_layout_approved"])
             self.assertEqual(project["rig_layout"]["rig_profile"], sw.SIDE_KNIGHT_SIMPLE_7)
 
@@ -456,6 +460,34 @@ class SpriteWorkbenchTests(unittest.TestCase):
         self.assertIn(shapes["validation"]["status"], {"pass", "warning"})
         self.assertTrue(reloaded["part_manifest_approved"])
         self.assertFalse(reloaded["part_shapes_approved"])
+
+    def test_synthetic_key_pose_run_from_selected_concept(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            original_root = sw.PROJECTS_ROOT
+            sw.PROJECTS_ROOT = root
+            try:
+                pid = "proj-synth-pose"
+                pdir = root / pid
+                concepts_dir = pdir / "concepts"
+                concepts_dir.mkdir(parents=True)
+                img_path = concepts_dir / "concept-0001.png"
+                Image.new("RGBA", (64, 64), (255, 0, 0, 255)).save(img_path)
+                project = {
+                    "project_id": pid,
+                    "selected_concept_id": "concept-0001",
+                    "concepts": [{
+                        "concept_id": "concept-0001",
+                        "preview_image": "concepts/concept-0001.png",
+                    }],
+                }
+                run = sw._ai_synthetic_key_pose_run_from_selected_concept(project, pdir)
+                self.assertIsNotNone(run)
+                self.assertEqual(len(run["poses"]), len(sw.AI_KEY_POSE_NAMES))
+                for pose in run["poses"]:
+                    self.assertEqual(pose["image_path"], "concepts/concept-0001.png")
+            finally:
+                sw.PROJECTS_ROOT = original_root
 
     def test_ai_workflow_debug_pipeline_can_drive_qa_and_export(self):
         with tempfile.TemporaryDirectory() as tmpdir:

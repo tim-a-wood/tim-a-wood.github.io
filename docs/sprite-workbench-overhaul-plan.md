@@ -303,20 +303,19 @@ keeping the app functional at every step.
 - **Implementation note (2026-03-18):** Do **not** remove server `debug_procedural` branching in Phase 7. UI must not offer backend_mode; on `POST .../brief`, re-send stored `backend_mode` / `comfyui_checkpoint` so they are not wiped. New projects omit them so `create_project` keeps defaulting to `debug_procedural` when no valid mode is posted.
 
 ### 7.2 Build new Concepts panel + remove old concepts/character-lock/key-pose panels
-- Replace existing `concepts` + `ai-character-lock` + `ai-key-pose-board` sections with single `concepts` panel
-- Layout: [Build Prompt] button → read-only prompt textarea (copyable) → mode toggle (Pixel Lab / Manual)
-- Concept grid with thumbnails, select highlight
-- [Generate via Pixel Lab] and [Import Image] buttons
-- Large preview of selected concept
-- Remove old sections from HTML: `ai-character-lock`, `ai-key-pose-board`
-- Remove associated JS render functions and event handlers
+- [x] Replace existing `concepts` + `ai-character-lock` + `ai-key-pose-board` sections with single `concepts` panel
+- [x] Layout: [Build Prompt] → `persist-scaffold-prompt` → read-only textarea; mode toggle (Pixel Lab / Manual); `WORKBENCH_SECTION_IDS` / `WIZARD_SECTION_MAP` updated (no character-lock / key-pose nav)
+- [x] Concept grid with thumbnails, selection, **Mark valid** / **Approve as character source** (Gemini revalidate/improve removed from cards)
+- [x] [Generate via Pixel Lab] → `generate-pixellab`; Manual **Import Image** uses `lastConceptScaffold.anchor_concept_id`
+- [x] Large preview + iteration compare hooks
+- [x] Remove old panel HTML; stub `renderAiCharacterLockBoard` / `renderAiKeyPoseBoard`; server: AI wizard gates treat approved concept as character-lock/key-pose for progression; motion can use `_ai_synthetic_key_pose_run_from_selected_concept` when no approved pose board
 
 ### 7.3 Add iteration sub-panel to Concepts
-- Element dropdown + change text input + [Build Iteration Prompt] button
-- Iteration prompt textarea (read-only, copyable)
-- [Generate via Pixel Lab] and [Import Edited Image] buttons
-- Side-by-side before/after preview
-- Remove: Gemini validation UI, concept revalidation buttons, improve-prompt flow
+- [x] Element dropdown + change text + [Build Iteration Prompt] → `build-iteration-prompt`
+- [x] Iteration prompt textarea (read-only)
+- [x] [Generate via Pixel Lab] → `iterate-pixellab`; [Import Edited Image] → `concepts/import` with `source_prompt_id` = selected concept
+- [x] Side-by-side before/after preview (`lastIteratedConceptId`)
+- [x] Removed heavy Gemini validation UI from concept cards (revalidate / improve / override invalid paths not shown)
 
 ### 7.4 Build new Character panel + remove old motion/extraction/cleanup panels
 - Shows approved concept at top

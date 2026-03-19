@@ -2796,8 +2796,10 @@ def compute_wizard_context(project: Dict[str, Any]) -> Dict[str, Any]:
         has_references = bool(brief.get("references")) or "references" in completed or "references" in skipped or has_brief
         has_concepts = bool(project.get("prompt_history")) or bool(imported_attempts)
         has_review = bool(project.get("selected_concept_id"))
-        has_character_lock = bool(character_lock.get("approved_asset_id"))
-        has_key_pose_set = bool(key_pose_set.get("approved_run_id"))
+        # Phase 7.2: Character Lock / Key Pose panels removed; approved concept unlocks the same gates.
+        concept_path_ready = bool(project.get("selected_concept_id"))
+        has_character_lock = bool(character_lock.get("approved_asset_id")) or concept_path_ready
+        has_key_pose_set = bool(key_pose_set.get("approved_run_id")) or concept_path_ready
         has_qa = bool(project.get("qa_report"))
         has_export = bool(project.get("last_export"))
 
@@ -2821,10 +2823,10 @@ def compute_wizard_context(project: Dict[str, Any]) -> Dict[str, Any]:
         blocking_reasons = {
             "brief": [] if complete_map["project"] else ["Create or open a project first."],
             "references": [] if complete_map["brief"] else ["Save the character description before adding or skipping references."],
-            "concepts": [] if complete_map["brief"] else ["Save the character description before generating a prompt."],
-            "review": [] if valid_attempts else ["Import at least one concept Codex validated as valid before locking the character."],
-            "rig_layout": [] if complete_map["review"] else ["Approve a source concept before running Character Lock."],
-            "part_manifest": [] if complete_map["rig_layout"] else ["Approve a Character Lock candidate before generating the Key Pose Board."],
+            "concepts": [] if complete_map["brief"] else ["Save the character description before building a concept prompt."],
+            "review": [] if valid_attempts else ["Generate or import at least one valid concept before approving a look."],
+            "rig_layout": [] if complete_map["review"] else ["Approve a source concept before Motion Workflow."],
+            "part_manifest": [] if complete_map["rig_layout"] else ["Complete the prior step before running motion."],
             "part_shape_edit": [],
             "split_build": [],
             "split_review": [],
@@ -2916,9 +2918,9 @@ def compute_wizard_context(project: Dict[str, Any]) -> Dict[str, Any]:
     blocking_reasons = {
         "brief": [] if complete_map["project"] else ["Create or open a project first."],
         "references": [] if complete_map["brief"] else ["Save the character description before adding or skipping references."],
-        "concepts": [] if complete_map["brief"] else ["Save the character description before generating a Gemini prompt."],
-        "review": [] if valid_attempts else ["Import at least one concept that Codex validated as valid before choosing one."],
-        "rig_layout": [] if complete_map["review"] else ["Accept a Codex-valid concept before defining the rig layout."],
+        "concepts": [] if complete_map["brief"] else ["Save the character description before building a concept prompt."],
+        "review": [] if valid_attempts else ["Generate or import at least one valid concept before choosing one to approve."],
+        "rig_layout": [] if complete_map["review"] else ["Approve a source concept before defining the rig layout."],
         "part_manifest": [] if complete_map["rig_layout"] else ["Generate and approve the rig layout before configuring the part manifest."],
         "part_shape_edit": [] if complete_map["part_manifest"] else ["Approve the part manifest before editing part shapes."],
         "split_build": [] if complete_map["part_shape_edit"] else ["Approve the part shapes before building split assets."],
@@ -6574,6 +6576,42 @@ def _ai_key_pose_lookup(run: Dict[str, Any]) -> Dict[str, Image.Image]:
     return {pose["pose_name"]: Image.open(Path(pose["abs_path"])).convert("RGBA") for pose in run.get("poses") or [] if pose.get("abs_path")}
 
 
+def _ai_synthetic_key_pose_run_from_selected_concept(project: Dict[str, Any], project_dir: Path) -> Optional[Dict[str, Any]]:
+    """
+    When Character Lock / Key Pose Board UIs are removed (Phase 7.2), motion still needs pose names.
+    If the user approved a concept but never generated a key pose board, reuse that concept image for every canonical pose.
+    """
+    cid = project.get("selected_concept_id")
+    if not cid:
+        return None
+    concept = next((item for item in (project.get("concepts") or []) if item.get("concept_id") == cid), None)
+    if not concept:
+        return None
+    rel = concept.get("processed_preview_image") or concept.get("preview_image") or concept.get("original_preview_image")
+    if not rel:
+        return None
+    image_path = project_dir / str(rel)
+    if not image_path.exists():
+        return None
+    rel_posix = Path(rel).as_posix()
+    poses: List[Dict[str, Any]] = []
+    for pose_name in AI_KEY_POSE_NAMES:
+        poses.append({
+            "asset_id": "key_pose:synthetic:%s:%s" % (cid, pose_name),
+            "pose_name": pose_name,
+            "image_path": rel_posix,
+        })
+    return {
+        "run_id": "synthetic-from-approved-concept",
+        "stage": "key_pose_set",
+        "workflow_profile": "synthetic",
+        "created_at": now_iso(),
+        "status": "completed",
+        "poses": poses,
+        "synthetic_from_concept_id": cid,
+    }
+
+
 def run_ai_motion_clip(project_id: str, workflow_profile: str, clip_name: str, source_asset_ids: List[str], parameters: Dict[str, Any], progress: Optional[ProgressCallback] = None) -> Dict[str, Any]:
     if clip_name not in AI_CLIP_SPECS:
         raise ValueError("Unknown clip: %s." % clip_name)
@@ -6581,10 +6619,12 @@ def run_ai_motion_clip(project_id: str, workflow_profile: str, clip_name: str, s
     store = ai_workflow_or_error(project)
     _ai_require_stack_ready(project)
     backend_mode = _ai_backend_mode(project)
+    project_dir = PROJECTS_ROOT / project_id
     key_pose_run = _ai_find_key_pose_run(store, store.get("key_pose_set", {}).get("approved_run_id"))
     if not key_pose_run:
-        raise ValueError("Approve a Key Pose Board before running motion.")
-    project_dir = PROJECTS_ROOT / project_id
+        key_pose_run = _ai_synthetic_key_pose_run_from_selected_concept(project, project_dir)
+    if not key_pose_run:
+        raise ValueError("Approve a Key Pose Board before running motion, or approve a concept with a preview image.")
     spec = AI_CLIP_SPECS[clip_name]
     run_id = "%s-%s" % (clip_name, uuid.uuid4().hex[:8])
     output_root = ai_workflow_root(project_dir, "motion_clip", clip_name=clip_name, run_id=run_id)
@@ -12710,6 +12750,16 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                 scaffold = build_concept_prompt(project.get("brief") or {})
                 return self._send_json(scaffold, status=HTTPStatus.OK)
 
+            persist_scaffold_match = re.fullmatch(r"/api/projects/([^/]+)/concepts/persist-scaffold-prompt", path)
+            if persist_scaffold_match:
+                project_id = persist_scaffold_match.group(1)
+                project = load_project(project_id)
+                scaffold = build_concept_prompt(project.get("brief") or {})
+                row = create_prompt_attempt(project, scaffold["display_prompt"], "pixel_lab_scaffold")
+                out = dict(scaffold)
+                out["anchor_concept_id"] = row["concept_id"]
+                return self._send_json(out, status=HTTPStatus.CREATED)
+
             build_iteration_prompt_match = re.fullmatch(r"/api/projects/([^/]+)/concepts/build-iteration-prompt", path)
             if build_iteration_prompt_match:
                 project_id = build_iteration_prompt_match.group(1)
@@ -12841,7 +12891,8 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                     "attempt_group_id": stable_hash("pixellab-group", project_id, str(seed or ""))[:12],
                     "attempt_index": 0,
                     "import_source": None,
-                    "validation_status": "pending",
+                    "validation_status": "valid",
+                    "validation_source": "pixel_lab_scaffold",
                     "validation_feedback": None,
                     "accepted_for_review": False,
                     "preview_image": str(output_path.relative_to(project_dir)),
@@ -12959,7 +13010,8 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                     "attempt_group_id": stable_hash("pixellab-iterate-group", project_id, source_concept_id)[:12],
                     "attempt_index": 0,
                     "import_source": None,
-                    "validation_status": "pending",
+                    "validation_status": "valid",
+                    "validation_source": "pixel_lab_scaffold",
                     "validation_feedback": None,
                     "accepted_for_review": False,
                     "preview_image": str(output_path.relative_to(project_dir)),

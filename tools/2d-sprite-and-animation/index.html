@@ -232,6 +232,47 @@
         .metric-grid,
         .grid-2,
         .grid-3,
+        .concept-card.selected {
+            outline: 2px solid rgba(117, 196, 152, 0.85);
+            outline-offset: 2px;
+        }
+        .concept-mode-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            align-items: center;
+            margin: 12px 0;
+        }
+        .concept-mode-row label {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+        }
+        .concept-large-preview {
+            min-height: 120px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            padding: 10px;
+        }
+        .concept-large-preview img {
+            max-width: 100%;
+            max-height: 360px;
+            border-radius: 8px;
+        }
+        .iteration-compare {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-top: 10px;
+        }
+        .iteration-compare img {
+            width: 100%;
+            border-radius: 8px;
+        }
         .concept-grid,
         .run-grid,
         .thumb-grid {
@@ -2342,9 +2383,7 @@
         <div class="sidebar-block">
             <div class="nav-list">
                 <a class="nav-link" href="#intake">Setup</a>
-                <a class="nav-link" href="#concepts">Looks</a>
-                <a class="nav-link" href="#ai-character-lock">Character Lock</a>
-                <a class="nav-link" href="#ai-key-pose-board">Key Pose Board</a>
+                <a class="nav-link" href="#concepts">Concepts</a>
                 <a class="nav-link" href="#ai-motion-workflow">Motion Workflow</a>
                 <a class="nav-link" href="#ai-cleanup-qa">Cleanup & QA</a>
                 <a class="nav-link" href="#rig-layout">Rig Layout</a>
@@ -2624,105 +2663,143 @@
         <section class="panel" id="concepts">
             <div class="section-head">
                 <div>
-                    <h3>Gemini Concepts</h3>
-                    <p>Generate a Gemini-ready prompt from the saved brief, run Gemini yourself outside this tool, then import the image back here for server normalization, Gemini validation, and acceptance.</p>
+                    <h3>Concepts</h3>
+                    <p>Build a deterministic Pixel Lab prompt from your brief, generate in-tool (or import externally in Manual mode), then pick the look to carry forward. Character Lock and Key Pose Board panels were removed in Phase 7.2 — use Pixel Lab character creation next, or the legacy Motion Workflow if <code>ai_workflow</code> is enabled.</p>
                 </div>
                 <div class="stage-meta" data-stage="concepts"></div>
             </div>
 
             <div class="wizard-subview step-panel-note wizard-only" data-wizard-view="concepts">
                 <div class="info-box">
-                    <p><strong>Generate a prompt, then import the result.</strong> Every imported image is normalized when safe and reviewed by Gemini before you decide whether to accept it.</p>
+                    <p><strong>Pixel Lab mode:</strong> <em>Build Prompt</em> saves a scaffold row and fills the textarea, then <em>Generate via Pixel Lab</em> creates a concept image. <strong>Manual mode:</strong> build/copy the prompt, create the image elsewhere, then import with upload or local path.</p>
                 </div>
             </div>
 
-            <div class="actions" data-wizard-view="concepts,workbench">
-                <button id="generate-concepts">Generate Gemini Prompt</button>
-                <button class="secondary" id="copy-latest-prompt">Copy Prompt</button>
+            <div class="concept-mode-row" data-wizard-view="concepts,review,workbench">
+                <span class="field-label">Source</span>
+                <label><input type="radio" name="concept-source-mode" value="pixellab" checked> Pixel Lab</label>
+                <label><input type="radio" name="concept-source-mode" value="manual"> Manual import</label>
+            </div>
+
+            <div class="grid-2" style="margin-top: 8px;" data-wizard-view="concepts,review,workbench">
+                <div>
+                    <div class="actions" style="flex-wrap: wrap;">
+                        <button id="build-concept-prompt">Build Prompt</button>
+                        <button class="secondary" id="copy-scaffold-prompt">Copy Prompt</button>
+                        <button id="generate-concept-pixellab" class="concept-pixellab-only">Generate via Pixel Lab</button>
+                    </div>
+                    <p class="small-note" id="concept-anchor-note" style="margin-top: 8px;">Build Prompt creates an import anchor for Manual mode.</p>
+                </div>
+                <div>
+                    <label>
+                        <span class="field-label">Scaffold prompt (read-only)</span>
+                        <textarea id="concept-scaffold-prompt" readonly rows="14" style="width:100%; font-family: ui-monospace, monospace; font-size: 0.82rem;" placeholder="Click Build Prompt to generate from the saved brief."></textarea>
+                    </label>
+                </div>
+            </div>
+
+            <div class="concept-manual-only" data-wizard-view="concepts,review,workbench" style="margin-top: 16px;">
+                <div class="section-head" style="margin-bottom: 10px;">
+                    <div>
+                        <h3 style="font-size: 0.98rem;">Import image</h3>
+                        <p>Requires <strong>Build Prompt</strong> first (creates a prompt anchor on the server). Then upload a file or enter an absolute local path on the machine running the workbench server.</p>
+                    </div>
+                </div>
+                <div class="grid-2">
+                    <label>
+                        <span class="field-label">Upload File</span>
+                        <input id="concept-import-file" type="file" accept="image/*">
+                    </label>
+                    <label>
+                        <span class="field-label">Local Image Path</span>
+                        <input id="concept-import-path" placeholder="/absolute/path/to/concept.png">
+                    </label>
+                </div>
+                <div class="actions" style="margin-top: 12px;">
+                    <button id="import-concept-image">Import Image</button>
+                </div>
+            </div>
+
+            <details class="advanced-settings" style="margin-top: 18px;" data-wizard-view="concepts,review,workbench">
+                <summary>Iterate on selected concept (Pixel Lab inpaint)</summary>
+                <div class="advanced-content">
+                    <p class="inline-hint">Select a concept in the grid below, choose what to change, then build the iteration prompt. <strong>Generate iteration</strong> calls Pixel Lab inpaint (or debug placeholders).</p>
+                    <div class="grid-2">
+                        <label>
+                            <span class="field-label">Element</span>
+                            <select id="concept-iterate-element">
+                                <option value="outfit">outfit</option>
+                                <option value="weapon/prop">weapon/prop</option>
+                                <option value="palette/colors">palette/colors</option>
+                                <option value="pose">pose</option>
+                                <option value="silhouette">silhouette</option>
+                                <option value="hair/head">hair/head</option>
+                                <option value="accessories">accessories</option>
+                                <option value="expression">expression</option>
+                                <option value="proportions">proportions</option>
+                            </select>
+                        </label>
+                        <label>
+                            <span class="field-label">Change request</span>
+                            <input id="concept-iterate-change" placeholder="e.g. darken the cloak and add a torn hem">
+                        </label>
+                    </div>
+                    <div class="actions" style="margin-top: 10px;">
+                        <button class="secondary" id="build-iteration-prompt">Build Iteration Prompt</button>
+                        <button id="generate-concept-iterate-pixellab">Generate via Pixel Lab</button>
+                    </div>
+                    <label style="margin-top: 12px; display: block;">
+                        <span class="field-label">Iteration prompt (read-only)</span>
+                        <textarea id="concept-iteration-prompt" readonly rows="10" style="width:100%; font-family: ui-monospace, monospace; font-size: 0.82rem;"></textarea>
+                    </label>
+                    <div class="grid-2" style="margin-top: 12px;">
+                        <label>
+                            <span class="field-label">Import edited image (optional)</span>
+                            <input id="concept-iterate-import-file" type="file" accept="image/*">
+                        </label>
+                        <div class="actions" style="align-items: end;">
+                            <button class="secondary" id="import-iterated-concept-file">Import Edited Image</button>
+                        </div>
+                    </div>
+                    <div class="iteration-compare">
+                        <div>
+                            <div class="small-note">Before (selected)</div>
+                            <div id="concept-iterate-before" class="concept-large-preview"><div class="empty">No selection</div></div>
+                        </div>
+                        <div>
+                            <div class="small-note">After (latest iteration)</div>
+                            <div id="concept-iterate-after" class="concept-large-preview"><div class="empty">—</div></div>
+                        </div>
+                    </div>
+                </div>
+            </details>
+
+            <div class="wizard-subview step-panel-note wizard-only" data-wizard-view="review">
+                <div class="info-box">
+                    <p><strong>Review.</strong> Pixel Lab–generated concepts are marked valid for approval. Manual imports may stay <code>pending</code> until you use <strong>Mark valid</strong> (manual review) or the server completes checks.</p>
+                </div>
             </div>
 
             <div class="grid-2" style="margin-top: 16px;" data-wizard-view="concepts,review,workbench">
                 <div>
                     <div class="section-head" style="margin-bottom: 10px;">
                         <div>
-                            <h3 style="font-size: 0.98rem;">Latest Prompt</h3>
-                            <p>The newest Gemini prompt stays visible here and is also saved into the project prompt history.</p>
+                            <h3 style="font-size: 0.98rem;">Selected preview</h3>
                         </div>
                     </div>
-                    <div class="warning-box">
-                        <pre id="gemini-prompt-text">No Gemini prompt generated yet.</pre>
+                    <div id="concept-large-preview" class="concept-large-preview">
+                        <div class="empty">Select a concept below.</div>
                     </div>
                 </div>
                 <div>
                     <div class="section-head" style="margin-bottom: 10px;">
                         <div>
-                            <h3 style="font-size: 0.98rem;">Import Gemini Image</h3>
-                            <p>Choose which saved prompt produced the image, then import it by upload or absolute local path.</p>
+                            <h3 style="font-size: 0.98rem;">All concepts</h3>
                         </div>
                     </div>
-                    <div class="grid-2">
-                        <label>
-                            <span class="field-label">Prompt Version</span>
-                            <select id="concept-source-prompt"></select>
-                        </label>
-                        <label>
-                            <span class="field-label">Upload File</span>
-                            <input id="concept-import-file" type="file" accept="image/*">
-                        </label>
-                    </div>
-                    <div class="grid-2" style="margin-top: 12px;">
-                        <label>
-                            <span class="field-label">Local Image Path</span>
-                            <input id="concept-import-path" placeholder="/absolute/path/to/gemini-image.png">
-                        </label>
-                        <div class="actions" style="align-items: end;">
-                            <button id="import-concept-image">Import Gemini Image</button>
-                        </div>
-                    </div>
+                    <div class="concept-grid" id="concept-grid"></div>
                 </div>
             </div>
-
-            <div style="margin-top: 16px;" data-wizard-view="concepts,review,workbench">
-                <div class="section-head" style="margin-bottom: 10px;">
-                    <div>
-                        <h3 style="font-size: 0.98rem;">Prompt History</h3>
-                        <p>Each prompt version is stored so you can copy the latest one or continue the loop with an improved prompt after an invalid import.</p>
-                    </div>
-                </div>
-                <div class="run-grid" id="run-grid"></div>
-            </div>
-
-            <div class="wizard-subview step-panel-note wizard-only" data-wizard-view="review">
-                <div class="info-box">
-                    <p><strong>Choose a valid imported concept.</strong> `Pending` means Gemini validation could not finish. `Invalid` includes Gemini feedback plus the next Gemini prompt. Only `Valid` attempts can move directly into sprite-model extraction.</p>
-                </div>
-            </div>
-
-            <div style="margin-top: 16px;" data-wizard-view="concepts,review,workbench">
-                <div class="concept-grid" id="concept-grid"></div>
-            </div>
-        </section>
-
-        <section class="panel" id="ai-character-lock">
-            <div class="section-head">
-                <div>
-                    <h3>Character Lock</h3>
-                    <p>Generate six identity-locked side-view candidates from the approved concept, then approve one locked character before key poses.</p>
-                </div>
-                <div class="stage-meta" data-stage="rig_layout"></div>
-            </div>
-            <div id="ai-character-lock-board"></div>
-        </section>
-
-        <section class="panel" id="ai-key-pose-board">
-            <div class="section-head">
-                <div>
-                    <h3>Key Pose Board</h3>
-                    <p>Generate and review the canonical idle and walk pose anchors that drive the motion workflow.</p>
-                </div>
-                <div class="stage-meta" data-stage="part_manifest"></div>
-            </div>
-            <div id="ai-key-pose-board-root"></div>
         </section>
 
         <section class="panel" id="ai-motion-workflow">
@@ -3300,15 +3377,15 @@ const STORAGE_KEYS = {
 };
 
 const WIZARD_STEPS = ["project", "brief", "references", "concepts", "review", "rig_layout", "part_manifest", "part_shape_edit", "split_build", "split_review", "sprite_model", "rig", "clips", "qa", "export"];
-const WORKBENCH_SECTION_IDS = ["intake", "concepts", "ai-character-lock", "ai-key-pose-board", "ai-motion-workflow", "ai-cleanup-qa", "rig-layout", "part-manifest", "part-shape-edit", "split-build", "split-review", "layer-review", "rig-review", "production", "qa", "export", "activity-log"];
+const WORKBENCH_SECTION_IDS = ["intake", "concepts", "ai-motion-workflow", "ai-cleanup-qa", "rig-layout", "part-manifest", "part-shape-edit", "split-build", "split-review", "layer-review", "rig-review", "production", "qa", "export", "activity-log"];
 const WIZARD_SECTION_MAP = {
     project: ["intake"],
     brief: ["intake"],
     references: ["intake"],
     concepts: ["concepts"],
     review: ["concepts"],
-    rig_layout: ["ai-character-lock"],
-    part_manifest: ["ai-key-pose-board"],
+    rig_layout: ["concepts"],
+    part_manifest: ["concepts"],
     part_shape_edit: ["part-shape-edit"],
     split_build: ["split-build"],
     split_review: ["split-review"],
@@ -3338,28 +3415,28 @@ const WIZARD_META = {
         example: "Skip this if your written description is already strong.",
     },
     concepts: {
-        label: "Generate Prompt",
-        description: "Generate a Gemini-ready prompt from the saved brief, then import the image Gemini produces.",
-        outcome: "You will have a prompt history and one or more imported concept attempts to review manually.",
-        example: "Copy the prompt, run Gemini outside the tool, then import the returned image here.",
+        label: "Concepts",
+        description: "Build a Pixel Lab scaffold from the brief, generate or import a concept image, then select one to approve.",
+        outcome: "You will have at least one concept image and a chosen look for downstream character creation.",
+        example: "Use Build Prompt → Generate via Pixel Lab, or Manual import after copying the scaffold.",
     },
     review: {
-        label: "Choose A Valid Concept",
-        description: "Review imported attempts, let Codex validate direct extraction readiness, and accept one valid concept to carry forward.",
-        outcome: "The accepted concept becomes the frozen source image for the rest of production.",
-        example: "If Codex rejects an attempt, use the next Gemini prompt it generated and import the next result.",
+        label: "Review concept",
+        description: "Pick the concept to carry forward and approve it for the pipeline.",
+        outcome: "The approved concept becomes the source for character / sprite work.",
+        example: "Select a thumbnail, confirm the large preview, then Approve as character source.",
     },
     rig_layout: {
-        label: "Character Lock",
-        description: "Generate six identity-locked side-view candidates from the approved concept and approve one before key poses.",
-        outcome: "You will have one locked character look that drives the rest of the AI motion workflow.",
-        example: "Pick the candidate with the cleanest side silhouette and most stable prop read.",
+        label: "Rig layout",
+        description: "Define the extraction rig layout (Codex handoff) after you have an approved concept source.",
+        outcome: "Rig JSON is ready for part manifest and downstream extraction.",
+        example: "Paste Codex validation output into the rig layout panel when using the legacy rig pipeline.",
     },
     part_manifest: {
-        label: "Key Pose Board",
-        description: "Generate the six canonical idle and walk pose anchors from the approved Character Lock output.",
-        outcome: "You will have one approved pose set that blocks motion until it is accepted.",
-        example: "Check silhouette consistency across idle, contact, and passing poses before approving the board.",
+        label: "Part manifest",
+        description: "Configure the part manifest from the approved rig layout.",
+        outcome: "Manifest JSON drives part shapes and split build.",
+        example: "Generate or paste Codex part manifest output in the part manifest panel.",
     },
     part_shape_edit: {
         label: "Edit Part Shapes",
@@ -3413,7 +3490,7 @@ const WIZARD_META = {
 
 const FRIENDLY_STAGE_NAMES = {
     intake: "Setup",
-    concepts: "Gemini concepts",
+    concepts: "Concepts",
     concept_lock: "Look chosen",
     external_authoring: "External authoring",
     rig_layout: "Rig layout",
@@ -3533,6 +3610,11 @@ const state = {
     uiMode: "wizard",
     activity: null,
     clipPreviewTimers: {},
+    conceptSourceMode: "pixellab",
+    lastConceptScaffold: null,
+    lastIterationScaffold: null,
+    conceptUiSelectedId: null,
+    lastIteratedConceptId: null,
 };
 
 function currentMode() {
@@ -3713,9 +3795,9 @@ function blankWizardModel() {
             brief: ["Create a project first."],
             references: ["Save the character description first."],
             concepts: ["Save the character description first."],
-            review: ["Import at least one Codex-valid concept first."],
-            rig_layout: ["Accept a valid concept first."],
-            part_manifest: ["Approve the rig layout first."],
+            review: ["Generate or import at least one valid concept image first."],
+            rig_layout: ["Approve a source concept before continuing."],
+            part_manifest: ["Complete rig layout approval before part manifest."],
             part_shape_edit: ["Approve the part manifest first."],
             split_build: ["Approve the part shapes first."],
             split_review: ["Build split assets first."],
@@ -3948,7 +4030,7 @@ function syncWorkflowModeControls() {
         } else if (backendMode === "debug_procedural") {
             productionWarning.textContent = "AI workflow mode is active in Debug Placeholder mode. Motion, extraction, and cleanup run through deterministic local transforms only.";
         } else {
-            productionWarning.textContent = "AI workflow mode is active. Character Lock, Key Poses, and Motion are driven by ComfyUI; extraction and pixel cleanup remain local and deterministic.";
+            productionWarning.textContent = "AI workflow mode is active. Motion uses ComfyUI when configured; extraction and pixel cleanup stay local. An approved concept can substitute for a Key Pose Board when that UI is absent.";
         }
     }
     ["#render-idle", "#render-walk"].forEach((selector) => {
@@ -3970,8 +4052,8 @@ function renderModeShell() {
             ? "This project uses a retired workflow and is shown in read-only legacy mode. Create a new project to use ai_sideview_v1."
             : aiWorkflowEnabled()
                 ? backendMode === "debug_procedural"
-                    ? "ai_sideview_v1 is active in Debug Placeholder mode. Character Lock, Key Poses, Motion, and Cleanup run via local deterministic transforms only."
-                    : "ai_sideview_v1 is active. Character Lock, Key Pose Board, Motion Workflow, and Cleanup & QA run as a ComfyUI-backed production path with local extraction/cleanup."
+                    ? "ai_sideview_v1 is active in Debug Placeholder mode. Motion and Cleanup run via local deterministic transforms (no ComfyUI required)."
+                    : "ai_sideview_v1 is active. Motion Workflow and Cleanup & QA use ComfyUI when available; an approved concept can back motion if no Key Pose Board was generated."
             : "Workbench is now a single guided production flow. Advance through the approved steps and keep each stage deterministic.")
         : "Create or open a project to start the guided Workbench flow.";
 
@@ -4110,16 +4192,14 @@ async function handleWizardAction(actionId, currentStep) {
             renderAll();
             return;
         case "wizard-generate-concepts": {
-            const result = await api(`/api/projects/${state.activeProject.project_id}/concepts/generate`, { method: "POST", body: "{}" });
-            notify(`Generated Gemini prompt v${result.prompt_version}.`, "success");
-            if (state.activeProject) {
-                await persistWizardState({
-                    completed_steps: ["concepts"],
-                    current_step: "concepts",
-                    last_ui_mode: "wizard",
-                });
-                renderAll();
-            }
+            if (!state.activeProject) return;
+            await persistConceptScaffoldPrompt();
+            await persistWizardState({
+                completed_steps: ["concepts"],
+                current_step: "concepts",
+                last_ui_mode: "wizard",
+            });
+            renderAll();
             return;
         }
         case "wizard-go-review":
@@ -4636,122 +4716,208 @@ function triageClass(status) {
 }
 
 function renderRunGrid() {
-    const root = document.querySelector("#run-grid");
-    const promptTextNode = document.querySelector("#gemini-prompt-text");
-    const promptSelect = document.querySelector("#concept-source-prompt");
-    const generateButton = document.querySelector("#generate-concepts");
-    root.innerHTML = "";
-    if (promptSelect) promptSelect.innerHTML = "";
-    const prompts = state.activeProject?.prompt_history || [];
-    const importedConcepts = (state.activeProject?.concepts || []).filter((concept) => concept.preview_image);
-    if (generateButton) {
-        generateButton.textContent = importedConcepts.length ? "Generate Iteration Prompt" : "Generate Gemini Prompt";
-    }
-    if (promptTextNode) {
-        promptTextNode.textContent = state.activeProject?.latest_prompt?.prompt_text || "No Gemini prompt generated yet.";
-    }
-    if (!prompts.length) {
-        root.innerHTML = `<div class="empty">No saved Gemini prompts yet.</div>`;
+    /* Phase 7.2: Gemini prompt run grid removed; scaffold lives in #concept-scaffold-prompt. */
+}
+
+let conceptWorkbenchControlsWired = false;
+
+function wireConceptWorkbenchControlsOnce() {
+    if (conceptWorkbenchControlsWired) return;
+    conceptWorkbenchControlsWired = true;
+    document.querySelectorAll('input[name="concept-source-mode"]').forEach((radio) => {
+        radio.addEventListener("change", () => {
+            if (radio.checked) {
+                state.conceptSourceMode = radio.value;
+                syncConceptPanelMode();
+            }
+        });
+    });
+    const bind = (selector, fn) => {
+        const el = document.querySelector(selector);
+        if (el) el.addEventListener("click", fn);
+    };
+    bind("#build-concept-prompt", async () => {
+        try {
+            await persistConceptScaffoldPrompt();
+        } catch (error) {
+            log(normalizeErrorMessage(error.message), "error");
+            notify(normalizeErrorMessage(error.message), "error");
+        }
+    });
+    bind("#copy-scaffold-prompt", async () => {
+        try {
+            await copyConceptScaffoldPrompt();
+        } catch (error) {
+            log(normalizeErrorMessage(error.message), "error");
+            notify(normalizeErrorMessage(error.message), "error");
+        }
+    });
+    bind("#generate-concept-pixellab", async () => {
+        try {
+            await generateConceptViaPixellab();
+        } catch (error) {
+            log(normalizeErrorMessage(error.message), "error");
+            notify(normalizeErrorMessage(error.message), "error");
+        }
+    });
+    bind("#build-iteration-prompt", async () => {
+        try {
+            await buildConceptIterationPrompt();
+        } catch (error) {
+            log(normalizeErrorMessage(error.message), "error");
+            notify(normalizeErrorMessage(error.message), "error");
+        }
+    });
+    bind("#generate-concept-iterate-pixellab", async () => {
+        try {
+            await generateConceptIterationViaPixellab();
+        } catch (error) {
+            log(normalizeErrorMessage(error.message), "error");
+            notify(normalizeErrorMessage(error.message), "error");
+        }
+    });
+    bind("#import-iterated-concept-file", async () => {
+        try {
+            await importIteratedConceptFile();
+        } catch (error) {
+            log(normalizeErrorMessage(error.message), "error");
+            notify(normalizeErrorMessage(error.message), "error");
+        }
+    });
+}
+
+function syncConceptPanelMode() {
+    const mode = state.conceptSourceMode || "pixellab";
+    document.querySelectorAll('input[name="concept-source-mode"]').forEach((r) => {
+        r.checked = r.value === mode;
+    });
+    document.querySelectorAll(".concept-pixellab-only").forEach((n) => {
+        n.hidden = mode !== "pixellab";
+    });
+    document.querySelectorAll(".concept-manual-only").forEach((n) => {
+        n.hidden = mode !== "manual";
+    });
+}
+
+function ensureConceptUiSelection() {
+    const project = state.activeProject;
+    const withPreview = (project?.concepts || []).filter((c) => c.preview_image);
+    if (!withPreview.length) {
+        state.conceptUiSelectedId = null;
         return;
     }
-    prompts.forEach((prompt, index) => {
-        if (promptSelect) {
-            const option = document.createElement("option");
-            option.value = prompt.concept_id;
-            option.textContent = `v${prompt.prompt_version} · ${prompt.prompt_source}`;
-            if (index === 0) option.selected = true;
-            promptSelect.appendChild(option);
+    const ok = state.conceptUiSelectedId && withPreview.some((c) => c.concept_id === state.conceptUiSelectedId);
+    if (!ok) {
+        const preferred = project.selected_concept_id;
+        state.conceptUiSelectedId = preferred && withPreview.some((c) => c.concept_id === preferred)
+            ? preferred
+            : withPreview[0].concept_id;
+    }
+}
+
+function renderConceptLargePreview() {
+    const root = document.querySelector("#concept-large-preview");
+    if (!root) return;
+    const project = state.activeProject;
+    const concept = state.conceptUiSelectedId ? conceptById(state.conceptUiSelectedId) : null;
+    if (!concept?.preview_image) {
+        root.innerHTML = `<div class="empty">Select a concept below.</div>`;
+        return;
+    }
+    const path = concept.processed_preview_image || concept.preview_image;
+    root.innerHTML = `<img src="${projectAsset(project, path)}?v=${project.updated_at}" alt="${concept.concept_id}">`;
+}
+
+function renderIterationCompare() {
+    const beforeRoot = document.querySelector("#concept-iterate-before");
+    const afterRoot = document.querySelector("#concept-iterate-after");
+    const project = state.activeProject;
+    if (!project) return;
+    const selected = state.conceptUiSelectedId ? conceptById(state.conceptUiSelectedId) : null;
+    if (beforeRoot) {
+        if (selected?.preview_image) {
+            const path = selected.processed_preview_image || selected.preview_image;
+            beforeRoot.innerHTML = `<img src="${projectAsset(project, path)}?v=${project.updated_at}" alt="before">`;
+        } else {
+            beforeRoot.innerHTML = `<div class="empty">No selection</div>`;
         }
-        const card = document.createElement("div");
-        card.className = "run-card active";
-        card.innerHTML = `
-            <strong>Prompt v${prompt.prompt_version} · ${prompt.prompt_source}</strong>
-            <div class="meta-line" style="margin-top: 8px;">
-                <span class="pill">${formatDate(prompt.created_at)}</span>
-                <span class="pill">${prompt.prompt_file ? "saved" : "unsaved"}</span>
-            </div>
-            <p>${prompt.prompt_text}</p>
-            ${prompt.validation_feedback ? `<p class="small-note">Feedback: ${prompt.validation_feedback}</p>` : ""}
-        `;
-        root.appendChild(card);
-    });
+    }
+    if (afterRoot) {
+        const after = state.lastIteratedConceptId ? conceptById(state.lastIteratedConceptId) : null;
+        if (after?.preview_image) {
+            const path = after.processed_preview_image || after.preview_image;
+            afterRoot.innerHTML = `<img src="${projectAsset(project, path)}?v=${project.updated_at}" alt="after">`;
+        } else {
+            afterRoot.innerHTML = `<div class="empty">—</div>`;
+        }
+    }
 }
 
 function renderConceptGrid() {
     const root = document.querySelector("#concept-grid");
+    if (!root) return;
     root.innerHTML = "";
+    wireConceptWorkbenchControlsOnce();
+    syncConceptPanelMode();
+    ensureConceptUiSelection();
     const concepts = (state.activeProject?.concepts || []).filter((concept) => concept.preview_image);
     if (!concepts.length) {
-        root.innerHTML = `<div class="empty">No imported Gemini concepts yet.</div>`;
+        root.innerHTML = `<div class="empty">No concept images yet. Use Pixel Lab or Manual import.</div>`;
         return;
     }
     concepts.forEach((concept) => {
         const card = document.createElement("div");
         card.className = "concept-card";
+        if (concept.concept_id === state.conceptUiSelectedId) card.classList.add("selected");
         const triage = concept.triage || {};
         const previewPath = concept.processed_preview_image || concept.preview_image;
         const hasProcessed = Boolean(concept.processed_preview_image);
-        const triageSummary = (triage.flags || []).join(", ");
-        const summary = concept.codex_review_summary || concept.validation_feedback || concept.validation_error || triageSummary || "No Gemini review yet.";
         const triageLabel = triage.status === "ok"
             ? "heuristics ok"
             : triage.status === "warning"
                 ? "heuristics warning"
-                : triage.status || "heuristics";
-        const nextPrompt = state.activeProject?.prompt_history?.find((prompt) => (
-            prompt.prompt_source === "gemini_retry" && prompt.attempt_group_id === concept.attempt_group_id
-        ));
+                : triage.status === "system-demoted"
+                    ? "heuristics fail"
+                    : triage.status || "heuristics";
+        const summary = concept.difference_summary || concept.codex_review_summary || concept.validation_feedback || (triage.flags || []).join(", ") || "—";
+        const canApprove = concept.validation_status === "valid";
         card.innerHTML = `
             <img src="${projectAsset(state.activeProject, previewPath)}?v=${state.activeProject.updated_at}" alt="${concept.concept_id}">
             <div class="body">
                 <div class="concept-top">
                     <div class="concept-title">
-                        <strong>${concept.concept_id} · attempt ${concept.attempt_index || "?"}</strong>
-                        <span class="muted">prompt v${concept.prompt_version || "?"} · ${concept.import_source || "imported"}</span>
+                        <strong>${concept.concept_id}</strong>
+                        <span class="muted">v${concept.prompt_version || "?"} · ${concept.import_source || concept.run_kind || "concept"}</span>
                     </div>
                     <span class="pill ${concept.validation_status === "valid" ? "ok" : concept.validation_status === "invalid" ? "fail" : "warning"}">${concept.validation_status || "pending"}</span>
                 </div>
                 <div class="meta-line">
-                    ${concept.accepted_for_review ? `<span class="pill ok">accepted</span>` : ""}
-                    ${concept.review_state?.approved ? `<span class="pill ok">chosen</span>` : ""}
-                    ${concept.validation_source ? `<span class="pill">${concept.validation_source.replaceAll("_", " ")}</span>` : ""}
+                    ${concept.review_state?.approved ? `<span class="pill ok">approved source</span>` : ""}
+                    ${concept.validation_source ? `<span class="pill">${String(concept.validation_source).replaceAll("_", " ")}</span>` : ""}
                     <span class="pill ${triageClass(triage.status)}">${triageLabel}</span>
                 </div>
                 <div class="meta-line">
                     ${concept.approved_source_image ? `<span class="pill ok">direct source ready</span>` : ""}
-                    ${concept.postprocess_status === "applied" ? `<span class="pill ok">normalized for extraction</span>` : ""}
-                    ${concept.postprocess_status === "failed" ? `<span class="pill fail">technical normalization failed</span>` : ""}
+                    ${concept.postprocess_status === "applied" ? `<span class="pill ok">normalized</span>` : ""}
+                    ${concept.postprocess_status === "failed" ? `<span class="pill fail">normalize failed</span>` : ""}
                     ${hasProcessed ? `<span class="pill">processed preview</span>` : `<span class="pill">original preview</span>`}
                 </div>
-                <div class="meta-line">
-                    <span class="pill">${concept.silhouette || "n/a"}</span>
-                    <span class="pill">${concept.outfit || "n/a"}</span>
-                    <span class="pill">${concept.palette_direction || "n/a"}</span>
-                </div>
                 <div class="small-note">${summary}</div>
-                ${concept.validation_error && summary !== concept.validation_error ? `<div class="warning-box"><p>${concept.validation_error}</p></div>` : ""}
-                ${nextPrompt?.prompt_text ? `<div class="info-box"><p><strong>Next Gemini prompt</strong></p><p>${nextPrompt.prompt_text}</p></div>` : ""}
-                <label style="margin-top: 10px; display: block;">
-                    <span class="field-label">Override Feedback</span>
-                    <input data-feedback-input placeholder="what should the next Gemini prompt improve?">
-                </label>
+                ${concept.validation_error ? `<div class="warning-box"><p>${concept.validation_error}</p></div>` : ""}
                 <div class="actions">
-                    <button class="secondary" data-action="valid">Override Valid</button>
-                    <button class="danger" data-action="invalid">Override Invalid</button>
-                    <button class="secondary" data-action="revalidate" ${concept.validation_status === "valid" ? "disabled" : ""}>Retry Gemini Validation</button>
-                    <button data-action="approve" ${concept.validation_status !== "valid" ? "disabled" : ""}>Continue To Sprite Model</button>
-                    <button class="secondary" data-action="improve">Generate Manual Prompt</button>
+                    <button class="secondary" data-action="select">Select</button>
+                    <button class="secondary" data-action="mark-valid" ${concept.validation_status === "valid" ? "disabled" : ""}>Mark valid</button>
+                    <button data-action="approve" ${canApprove ? "" : "disabled"}>Approve as character source</button>
                     <button class="secondary" data-action="zoom">Zoom</button>
                 </div>
             </div>
         `;
-        const feedbackInput = card.querySelector("[data-feedback-input]");
-        feedbackInput.value = concept.validation_feedback || "";
-        card.querySelector("[data-action='valid']").addEventListener("click", () => validateConceptAttempt(concept.concept_id, "valid", feedbackInput.value));
-        card.querySelector("[data-action='invalid']").addEventListener("click", () => validateConceptAttempt(concept.concept_id, "invalid", feedbackInput.value));
-        card.querySelector("[data-action='revalidate']").addEventListener("click", () => revalidateConceptAttempt(concept.concept_id));
+        card.querySelector("[data-action='select']").addEventListener("click", () => {
+            state.conceptUiSelectedId = concept.concept_id;
+            renderConceptReview();
+        });
+        card.querySelector("[data-action='mark-valid']").addEventListener("click", () => validateConceptAttempt(concept.concept_id, "valid", ""));
         card.querySelector("[data-action='approve']").addEventListener("click", () => reviewConcept(concept.concept_id, "approve", true));
-        card.querySelector("[data-action='improve']").addEventListener("click", () => generateImprovedPrompt(concept.concept_id, feedbackInput.value));
         card.querySelector("[data-action='zoom']").addEventListener("click", () => openZoom(concept.concept_id));
         root.appendChild(card);
     });
@@ -4760,6 +4926,8 @@ function renderConceptGrid() {
 function renderConceptReview() {
     renderRunGrid();
     renderConceptGrid();
+    renderConceptLargePreview();
+    renderIterationCompare();
 }
 
 function spriteModelParts() {
@@ -5778,168 +5946,11 @@ async function rejectAiWorkflow(stage, payload = {}) {
 }
 
 function renderAiCharacterLockBoard() {
-    const root = document.querySelector("#ai-character-lock-board");
-    if (!root) return;
-    root.innerHTML = "";
-    const project = state.activeProject;
-    if (!project || !aiWorkflowEnabled(project)) return;
-    const store = aiWorkflowStore(project);
-    const backendMode = (project.brief?.backend_mode) || "comfyui";
-    const runs = Object.values(store?.character_lock?.runs || {}).reverse();
-    const approvedAssetId = store?.character_lock?.approved_asset_id;
-    root.innerHTML = `
-        <div class="grid-2">
-            <div class="clip-control-card">
-                <div class="check-row wrap">
-                    <span>Run Character Lock</span>
-                    <span class="small-note">${runs.length} run${runs.length === 1 ? "" : "s"}</span>
-                </div>
-                <div class="small-note">
-                    This stage creates exactly 6 candidates from the approved concept using the active ai_sideview_v1 profile.
-                    ${backendMode === "debug_procedural"
-                        ? `<span class="pill warn" style="margin-left: 6px;">Debug placeholders</span>`
-                        : `<span class="pill ok" style="margin-left: 6px;">ComfyUI: PhotoMaker + IPAdapter</span>`}
-                </div>
-                <div class="actions" style="margin-top: 12px;">
-                    <button id="ai-run-character-lock" ${project.selected_concept_id ? "" : "disabled"}>Generate 6 Candidates</button>
-                </div>
-                <div class="check-list" style="margin-top: 12px;">${aiDependencySummaryMarkup(store)}</div>
-            </div>
-            <div class="clip-control-card">
-                <div class="check-row wrap">
-                    <span>Approved Character</span>
-                    <span class="small-note">${approvedAssetId || "none yet"}</span>
-                </div>
-                <div class="small-note">Approve exactly one candidate before moving to the Key Pose Board.</div>
-            </div>
-        </div>
-        <div class="thumb-grid" style="margin-top: 14px;">
-            ${runs.flatMap((run) => (run.candidates || []).map((candidate) => `
-                <div class="thumb">
-                    <img src="${projectAsset(project, candidate.image_path)}?v=${project.updated_at}" alt="${candidate.label}">
-                    <div class="small-note" style="margin-top: 8px;">${candidate.label}</div>
-                    <div class="small-note">${run.run_id}</div>
-                    <div class="actions" style="margin-top: 8px;">
-                        <button data-ai-approve-lock="${candidate.asset_id}" data-ai-run-id="${run.run_id}" ${approvedAssetId === candidate.asset_id ? "disabled" : ""}>Approve</button>
-                        <button class="secondary" data-ai-reject-lock-run="${run.run_id}">Reject Run</button>
-                    </div>
-                </div>
-            `)).join("") || `<div class="empty">No Character Lock runs yet.</div>`}
-        </div>
-    `;
-    const runButton = root.querySelector("#ai-run-character-lock");
-    if (runButton) runButton.onclick = async () => {
-        try {
-            await runAiWorkflowStage("character_lock", { sourceAssetIds: [project.selected_concept_id] });
-        } catch (error) {
-            log(normalizeErrorMessage(error.message), "error");
-            notify(normalizeErrorMessage(error.message), "error");
-        }
-    };
-    root.querySelectorAll("[data-ai-approve-lock]").forEach((button) => {
-        button.onclick = async () => {
-            try {
-                await approveAiWorkflow("character_lock", { run_id: button.dataset.aiRunId, asset_id: button.dataset.aiApproveLock });
-                notify("Approved Character Lock candidate.", "success");
-            } catch (error) {
-                log(normalizeErrorMessage(error.message), "error");
-                notify(normalizeErrorMessage(error.message), "error");
-            }
-        };
-    });
-    root.querySelectorAll("[data-ai-reject-lock-run]").forEach((button) => {
-        button.onclick = async () => {
-            try {
-                await rejectAiWorkflow("character_lock", { run_id: button.dataset.aiRejectLockRun });
-                notify("Rejected Character Lock run.", "info");
-            } catch (error) {
-                log(normalizeErrorMessage(error.message), "error");
-                notify(normalizeErrorMessage(error.message), "error");
-            }
-        };
-    });
+    /* Phase 7.2: Character Lock panel removed; server may still persist ai_workflow character_lock data. */
 }
 
 function renderAiKeyPoseBoard() {
-    const root = document.querySelector("#ai-key-pose-board-root");
-    if (!root) return;
-    root.innerHTML = "";
-    const project = state.activeProject;
-    if (!project || !aiWorkflowEnabled(project)) return;
-    const store = aiWorkflowStore(project);
-    const runs = Object.values(store?.key_pose_set?.runs || {}).reverse();
-    const approvedRunId = store?.key_pose_set?.approved_run_id;
-    const approvedLockAssetId = store?.character_lock?.approved_asset_id;
-    root.innerHTML = `
-        <div class="grid-2">
-            <div class="clip-control-card">
-                <div class="check-row wrap">
-                    <span>Generate Key Pose Board</span>
-                    <span class="small-note">${approvedLockAssetId || "approve Character Lock first"}</span>
-                </div>
-                <div class="actions" style="margin-top: 12px;">
-                    <button id="ai-run-key-poses" ${approvedLockAssetId ? "" : "disabled"}>Generate 6 Canonical Poses</button>
-                </div>
-            </div>
-            <div class="clip-control-card">
-                <div class="check-row wrap">
-                    <span>Approved Pose Board</span>
-                    <span class="small-note">${approvedRunId || "none yet"}</span>
-                </div>
-            </div>
-        </div>
-        ${(runs || []).map((run) => `
-            <div class="clip-control-card" style="margin-top: 14px;">
-                <div class="check-row wrap">
-                    <span>${run.run_id}</span>
-                    <span class="small-note">${(run.poses || []).length} pose(s)</span>
-                </div>
-                <div class="thumb-grid" style="margin-top: 12px;">
-                    ${(run.poses || []).map((pose) => `
-                        <div class="thumb">
-                            <img src="${projectAsset(project, pose.image_path)}?v=${project.updated_at}" alt="${pose.pose_name}">
-                            <div class="small-note" style="margin-top: 8px;">${humanizeKey(pose.pose_name)}</div>
-                        </div>
-                    `).join("")}
-                </div>
-                <div class="actions" style="margin-top: 12px;">
-                    <button data-ai-approve-poses="${run.run_id}" ${approvedRunId === run.run_id ? "disabled" : ""}>Approve Pose Board</button>
-                    <button class="secondary" data-ai-reject-poses="${run.run_id}">Reject</button>
-                </div>
-            </div>
-        `).join("") || `<div class="empty">No Key Pose Board runs yet.</div>`}
-    `;
-    const runButton = root.querySelector("#ai-run-key-poses");
-    if (runButton) runButton.onclick = async () => {
-        try {
-            await runAiWorkflowStage("key_pose_set", { sourceAssetIds: [approvedLockAssetId] });
-        } catch (error) {
-            log(normalizeErrorMessage(error.message), "error");
-            notify(normalizeErrorMessage(error.message), "error");
-        }
-    };
-    root.querySelectorAll("[data-ai-approve-poses]").forEach((button) => {
-        button.onclick = async () => {
-            try {
-                await approveAiWorkflow("key_pose_set", { run_id: button.dataset.aiApprovePoses });
-                notify("Approved Key Pose Board.", "success");
-            } catch (error) {
-                log(normalizeErrorMessage(error.message), "error");
-                notify(normalizeErrorMessage(error.message), "error");
-            }
-        };
-    });
-    root.querySelectorAll("[data-ai-reject-poses]").forEach((button) => {
-        button.onclick = async () => {
-            try {
-                await rejectAiWorkflow("key_pose_set", { run_id: button.dataset.aiRejectPoses });
-                notify("Rejected Key Pose Board.", "info");
-            } catch (error) {
-                log(normalizeErrorMessage(error.message), "error");
-                notify(normalizeErrorMessage(error.message), "error");
-            }
-        };
-    });
+    /* Phase 7.2: Key Pose Board panel removed. */
 }
 
 function renderAiMotionWorkflowBoard() {
@@ -5950,7 +5961,8 @@ function renderAiMotionWorkflowBoard() {
     if (!project || !aiWorkflowEnabled(project)) return;
     const store = aiWorkflowStore(project);
     const backendMode = (project.brief?.backend_mode) || "comfyui";
-    const approvedPoseRun = aiWorkflowApprovedRun("key_pose_set", null, project);
+    const approvedPoseRun = Boolean(aiWorkflowApprovedRun("key_pose_set", null, project))
+        || Boolean(project.selected_concept_id && selectedConcept()?.preview_image);
     root.innerHTML = Object.keys({ idle: 1, walk: 1 }).map((clipName) => {
         const motionGroup = aiWorkflowRunGroup("motion_runs", clipName, project);
         const extractGroup = aiWorkflowRunGroup("extract_runs", clipName, project);
@@ -5964,7 +5976,7 @@ function renderAiMotionWorkflowBoard() {
                     <span class="small-note">${approvedCleanup ? "cleanup approved" : "pending"}</span>
                 </div>
                 <div class="small-note">
-                    Generate motion frames from the approved Key Pose Board, then extract and clean up pixel-perfect runtime frames.
+                    Generate motion from an approved Key Pose Board, or from the approved concept when no pose board exists (Phase 7.2). Then extract and clean up runtime frames.
                     ${backendMode === "debug_procedural"
                         ? `<span class="pill warn" style="margin-left: 6px;">Debug placeholders</span>`
                         : `<span class="pill ok" style="margin-left: 6px;">ToonCrafter via ComfyUI</span>`}
@@ -8625,6 +8637,14 @@ async function loadProject(projectId, mode = "wizard") {
         state.manualPoseDraft = null;
         state.manualPoseDraftKey = null;
         state.manualPoseModalOpen = false;
+        state.lastConceptScaffold = null;
+        state.lastIterationScaffold = null;
+        state.conceptUiSelectedId = null;
+        state.lastIteratedConceptId = null;
+        const sc = document.querySelector("#concept-scaffold-prompt");
+        const it = document.querySelector("#concept-iteration-prompt");
+        if (sc) sc.value = "";
+        if (it) it.value = "";
     }
     const project = await api(`/api/projects/${projectId}`);
     state.activeProject = project;
@@ -8814,14 +8834,107 @@ async function generateImprovedPrompt(conceptId, feedback = "") {
     notify(`Generated Gemini prompt v${result.prompt_version}.`, "success");
 }
 
+async function persistConceptScaffoldPrompt() {
+    if (!state.activeProject) throw new Error("Select or create a project first.");
+    const result = await api(`/api/projects/${state.activeProject.project_id}/concepts/persist-scaffold-prompt`, {
+        method: "POST",
+        body: "{}",
+    });
+    state.lastConceptScaffold = result;
+    const ta = document.querySelector("#concept-scaffold-prompt");
+    if (ta) ta.value = result.display_prompt || "";
+    notify("Scaffold saved. Manual import uses the new anchor row.", "success");
+    await loadProject(state.activeProject.project_id, currentMode());
+}
+
+async function copyConceptScaffoldPrompt() {
+    const text = (state.lastConceptScaffold && state.lastConceptScaffold.display_prompt)
+        || document.querySelector("#concept-scaffold-prompt")?.value
+        || "";
+    if (!String(text).trim()) throw new Error('Use "Build Prompt" first.');
+    await navigator.clipboard.writeText(text);
+    notify("Copied scaffold prompt.", "success");
+}
+
+async function generateConceptViaPixellab() {
+    if (!state.activeProject) throw new Error("Select or create a project first.");
+    if (!state.lastConceptScaffold?.pixellab_params) throw new Error('Use "Build Prompt" first to persist Pixel Lab parameters.');
+    setActivity({
+        state: "Working",
+        jobType: "concepts.generate_pixellab",
+        label: "Generating concept via Pixel Lab",
+        detail: "Calling Pixel Lab or debug placeholders.",
+        percent: 25,
+    });
+    try {
+        const concept = await api(`/api/projects/${state.activeProject.project_id}/concepts/generate-pixellab`, {
+            method: "POST",
+            body: JSON.stringify({ mode: "v2", pixellab_params: state.lastConceptScaffold.pixellab_params }),
+        });
+        state.lastIteratedConceptId = null;
+        await loadProject(state.activeProject.project_id, currentMode());
+        state.conceptUiSelectedId = concept.concept_id;
+        log(`Pixel Lab concept ${concept.concept_id}`, "success");
+        notify(`Created ${concept.concept_id} via Pixel Lab.`, "success");
+        renderAll();
+    } finally {
+        clearActivity();
+    }
+}
+
+async function buildConceptIterationPrompt() {
+    if (!state.activeProject) throw new Error("Select or create a project first.");
+    const cid = state.conceptUiSelectedId;
+    if (!cid) throw new Error("Select a concept in the grid first.");
+    const element = document.querySelector("#concept-iterate-element")?.value;
+    const changeText = document.querySelector("#concept-iterate-change")?.value?.trim();
+    if (!changeText) throw new Error("Describe what to change.");
+    const result = await api(`/api/projects/${state.activeProject.project_id}/concepts/build-iteration-prompt`, {
+        method: "POST",
+        body: JSON.stringify({ concept_id: cid, element, change_text: changeText }),
+    });
+    state.lastIterationScaffold = result;
+    const ta = document.querySelector("#concept-iteration-prompt");
+    if (ta) ta.value = result.display_prompt || "";
+    notify("Iteration prompt ready.", "success");
+}
+
+async function generateConceptIterationViaPixellab() {
+    if (!state.activeProject) throw new Error("Select or create a project first.");
+    if (!state.lastIterationScaffold?.pixellab_params) throw new Error('Use "Build Iteration Prompt" first.');
+    const cid = state.conceptUiSelectedId;
+    if (!cid) throw new Error("Select a source concept.");
+    setActivity({
+        state: "Working",
+        jobType: "concepts.iterate_pixellab",
+        label: "Pixel Lab inpaint iteration",
+        detail: "Running inpaint or debug placeholders.",
+        percent: 25,
+    });
+    try {
+        const concept = await api(`/api/projects/${state.activeProject.project_id}/concepts/iterate-pixellab`, {
+            method: "POST",
+            body: JSON.stringify({ concept_id: cid, pixellab_params: state.lastIterationScaffold.pixellab_params }),
+        });
+        state.lastIteratedConceptId = concept.concept_id;
+        await loadProject(state.activeProject.project_id, currentMode());
+        state.conceptUiSelectedId = concept.concept_id;
+        log(`Pixel Lab iteration ${concept.concept_id}`, "success");
+        notify(`Created iteration ${concept.concept_id}.`, "success");
+        renderAll();
+    } finally {
+        clearActivity();
+    }
+}
+
 async function importConceptImage() {
     if (!state.activeProject) throw new Error("Select or create a project first.");
-    const sourcePromptId = document.querySelector("#concept-source-prompt").value;
-    if (!sourcePromptId) throw new Error("Generate a prompt first.");
-    const file = document.querySelector("#concept-import-file").files[0];
-    const localPath = document.querySelector("#concept-import-path").value.trim();
+    const anchor = state.lastConceptScaffold?.anchor_concept_id;
+    if (!anchor) throw new Error('Use "Build Prompt" first (creates an import anchor on the server).');
+    const file = document.querySelector("#concept-import-file")?.files?.[0];
+    const localPath = document.querySelector("#concept-import-path")?.value?.trim() || "";
     if (!file && !localPath) throw new Error("Choose an upload or enter a local image path.");
-    let payload = { source_prompt_id: sourcePromptId };
+    let payload = { source_prompt_id: anchor };
     if (file) {
         const dataUrl = await new Promise((resolve, reject) => {
             const reader = new FileReader();
@@ -8836,33 +8949,66 @@ async function importConceptImage() {
     setActivity({
         state: "Working",
         jobType: "concepts.import",
-        label: "Importing Gemini concept",
-        detail: "Uploading the image, normalizing it for extraction, and waiting for Gemini validation.",
+        label: "Importing concept image",
+        detail: "Uploading and normalizing; server may run validation.",
         percent: 35,
     });
-    let project;
     try {
-        project = await api(`/api/projects/${state.activeProject.project_id}/concepts/import`, {
+        await api(`/api/projects/${state.activeProject.project_id}/concepts/import`, {
             method: "POST",
             body: JSON.stringify(payload),
         });
     } finally {
         clearActivity();
     }
-    state.activeProject = project;
-    document.querySelector("#concept-import-file").value = "";
-    document.querySelector("#concept-import-path").value = "";
+    const fileInput = document.querySelector("#concept-import-file");
+    const pathInput = document.querySelector("#concept-import-path");
+    if (fileInput) fileInput.value = "";
+    if (pathInput) pathInput.value = "";
+    await loadProject(state.activeProject.project_id, currentMode());
     await refreshProjects();
-    log("Imported Gemini concept image and completed server review", "success");
-    notify("Imported Gemini concept image and completed server review.", "success");
+    log("Imported concept image", "success");
+    notify("Imported concept image.", "success");
     renderAll();
 }
 
-async function copyLatestPrompt() {
-    const prompt = state.activeProject?.latest_prompt?.prompt_text;
-    if (!prompt) throw new Error("Generate a prompt first.");
-    await navigator.clipboard.writeText(prompt);
-    notify("Copied the latest Gemini prompt.", "success");
+async function importIteratedConceptFile() {
+    if (!state.activeProject) throw new Error("Select or create a project first.");
+    const parentId = state.conceptUiSelectedId;
+    if (!parentId) throw new Error("Select a concept to attach this import to.");
+    const file = document.querySelector("#concept-iterate-import-file")?.files?.[0];
+    if (!file) throw new Error("Choose an image file.");
+    const dataUrl = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(new Error(`Failed to read ${file.name}`));
+        reader.readAsDataURL(file);
+    });
+    setActivity({
+        state: "Working",
+        jobType: "concepts.import",
+        label: "Importing edited concept",
+        detail: "Uploading iteration image.",
+        percent: 35,
+    });
+    try {
+        await api(`/api/projects/${state.activeProject.project_id}/concepts/import`, {
+            method: "POST",
+            body: JSON.stringify({
+                source_prompt_id: parentId,
+                name: file.name,
+                data_url: dataUrl,
+            }),
+        });
+    } finally {
+        clearActivity();
+    }
+    const iterInput = document.querySelector("#concept-iterate-import-file");
+    if (iterInput) iterInput.value = "";
+    await loadProject(state.activeProject.project_id, currentMode());
+    await refreshProjects();
+    notify("Imported edited image as a new concept.", "success");
+    renderAll();
 }
 
 function parsePairInput(value) {
@@ -9055,36 +9201,8 @@ document.querySelector("#mode-wizard").addEventListener("click", async () => {
 });
 
 document.querySelector("#add-reference-row").addEventListener("click", () => addReferenceRow());
-document.querySelector("#generate-concepts").addEventListener("click", async () => {
-    try {
-        const result = await api(`/api/projects/${state.activeProject.project_id}/concepts/generate`, { method: "POST", body: "{}" });
-        await loadProject(state.activeProject.project_id, currentMode());
-        if (currentMode() === "wizard" && state.activeProject) {
-            const synced = await persistWizardState({
-                completed_steps: ["concepts"],
-                current_step: "concepts",
-                last_ui_mode: "wizard",
-            });
-            if (synced) state.activeProject = synced;
-            renderAll();
-        }
-        notify(`Generated Gemini prompt v${result.prompt_version}.`, "success");
-    } catch (error) {
-        log(normalizeErrorMessage(error.message), "error");
-        notify(normalizeErrorMessage(error.message), "error");
-    }
-});
 
-document.querySelector("#copy-latest-prompt").addEventListener("click", async () => {
-    try {
-        await copyLatestPrompt();
-    } catch (error) {
-        log(normalizeErrorMessage(error.message), "error");
-        notify(normalizeErrorMessage(error.message), "error");
-    }
-});
-
-document.querySelector("#import-concept-image").addEventListener("click", async () => {
+document.querySelector("#import-concept-image")?.addEventListener("click", async () => {
     try {
         await importConceptImage();
     } catch (error) {
