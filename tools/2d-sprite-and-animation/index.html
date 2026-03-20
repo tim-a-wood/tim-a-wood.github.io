@@ -3468,7 +3468,8 @@ function aiWorkflowApprovedRun(groupName, clipName = null, project = state.activ
 
 function visibleWizardSteps(project = state.activeProject) {
     if (!aiWorkflowEnabled(project)) return WIZARD_STEPS;
-    const base = ["project", "brief", "references", "concepts", "review", "rig_layout", "part_manifest", "clips", "qa", "export"];
+    // Modern AI path: no legacy rig layout / part manifest steps (ComfyUI split pipeline).
+    const base = ["project", "brief", "references", "concepts", "review", "clips", "qa", "export"];
     if (String(project?.brief?.backend_mode || "") !== "pixellab") return base;
     const i = base.indexOf("clips") + 1;
     return [...base.slice(0, i), "animations", ...base.slice(i)];

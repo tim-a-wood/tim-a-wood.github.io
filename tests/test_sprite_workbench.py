@@ -251,7 +251,7 @@ class SpriteWorkbenchTests(unittest.TestCase):
                     self.assertEqual(archived["status"], "archived")
                     self.assertIsNotNone(archived["archived_at"])
 
-    def test_create_project_in_wizard_starts_reference_step(self):
+    def test_create_project_in_wizard_with_brief_advances_past_references_when_optional(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             original_root = sw.PROJECTS_ROOT
             sw.PROJECTS_ROOT = Path(tmpdir)
@@ -265,11 +265,12 @@ class SpriteWorkbenchTests(unittest.TestCase):
                 sw.PROJECTS_ROOT = original_root
 
         self.assertEqual(project["last_ui_mode"], "wizard")
-        self.assertEqual(project["wizard_state"]["current_step"], "references")
         self.assertIn("brief", project["wizard_state"]["completed_steps"])
-        self.assertIn(project["step_statuses"]["references"], {"active", "complete"})
+        # References counts satisfied once a brief exists; wizard focuses first incomplete step.
+        self.assertEqual(project["step_statuses"]["references"], "complete")
+        self.assertEqual(project["wizard_state"]["current_step"], "concepts")
 
-    def test_update_project_brief_advances_wizard_from_project_to_references(self):
+    def test_update_project_brief_advances_wizard_to_concepts_when_references_satisfied(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             original_root = sw.PROJECTS_ROOT
             sw.PROJECTS_ROOT = Path(tmpdir)
@@ -284,8 +285,9 @@ class SpriteWorkbenchTests(unittest.TestCase):
             finally:
                 sw.PROJECTS_ROOT = original_root
 
-        self.assertEqual(project["wizard_state"]["current_step"], "references")
         self.assertIn("brief", project["wizard_state"]["completed_steps"])
+        self.assertEqual(project["step_statuses"]["references"], "complete")
+        self.assertEqual(project["wizard_state"]["current_step"], "concepts")
 
     def test_review_stays_locked_until_a_valid_import_exists_and_refine_step_is_gone(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -307,7 +309,8 @@ class SpriteWorkbenchTests(unittest.TestCase):
         self.assertEqual(before_valid["step_statuses"]["review"], "locked")
         self.assertIn("valid concept", before_valid["blocking_reasons"]["review"][0].lower())
         self.assertEqual(project["step_statuses"]["review"], "complete")
-        self.assertIn(project["step_statuses"]["rig_layout"], {"active", "ready", "complete"})
+        self.assertNotIn("rig_layout", project["step_statuses"])
+        self.assertIn(project["step_statuses"]["clips"], {"active", "ready", "complete"})
 
     def test_concept_approval_generates_rig_layout_before_sprite_model(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -342,7 +345,8 @@ class SpriteWorkbenchTests(unittest.TestCase):
 
         self.assertEqual(project["current_stage"], "rig_layout")
         if project["ai_workflow"]["enabled"] and not project["ai_workflow"].get("legacy_mode"):
-            self.assertEqual(project["step_statuses"]["rig_layout"], "complete")
+            self.assertNotIn("rig_layout", project["step_statuses"])
+            self.assertIn(project["step_statuses"]["clips"], {"active", "ready", "complete"})
             self.assertEqual(project["ai_workflow"]["selected_assets"]["approved_concept_id"], imported["concept_id"])
         elif project["ai_workflow"]["enabled"]:
             self.assertIn(project["step_statuses"]["rig_layout"], {"active", "ready"})
@@ -1410,6 +1414,16 @@ class SpriteWorkbenchTests(unittest.TestCase):
             "ai_workflow": {"enabled": True, "legacy_mode": False},
         }
         self.assertNotIn("animations", sw.wizard_steps_active(project))
+
+    def test_wizard_steps_active_ai_omits_rig_layout_and_part_manifest(self):
+        project = {
+            "brief": {"backend_mode": "debug_procedural"},
+            "ai_workflow": {"enabled": True, "legacy_mode": False},
+        }
+        seq = sw.wizard_steps_active(project)
+        self.assertNotIn("rig_layout", seq)
+        self.assertNotIn("part_manifest", seq)
+        self.assertIn("clips", seq)
 
     def test_pixellab_animations_step_complete_requires_idle_and_walk_frames(self):
         with tempfile.TemporaryDirectory() as tmp:

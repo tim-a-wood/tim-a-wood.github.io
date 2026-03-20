@@ -144,6 +144,8 @@ INITIAL_CONCEPT_COUNT = 6
 REFINEMENT_CONCEPT_COUNT = 4
 JOB_HISTORY_LIMIT = 50
 WIZARD_STEPS = ["project", "brief", "references", "concepts", "review", "rig_layout", "part_manifest", "part_shape_edit", "split_build", "split_review", "sprite_model", "rig", "clips", "qa", "export"]
+# Guided AI workflow (non-legacy): no rig_layout / part_manifest steps in the stepper UI.
+WIZARD_STEPS_AI = ["project", "brief", "references", "concepts", "review", "clips", "qa", "export"]
 # Inserted after "clips" for Pixel Lab guided flow (Phase 7.5).
 WIZARD_STEP_ANIMATIONS = "animations"
 WIZARD_STEPS_KNOWN = set(WIZARD_STEPS) | {WIZARD_STEP_ANIMATIONS}
@@ -2901,9 +2903,10 @@ def compute_wizard_context(project: Dict[str, Any]) -> Dict[str, Any]:
                 blocking_reasons["export"] = ["QA must pass before export."]
         recommended_next_step = active_step or "export"
         persisted_step = wizard_state.get("current_step")
-        if persisted_step in WIZARD_STEPS_KNOWN and step_statuses.get(persisted_step) in {"active", "ready", "attention"}:
+        persisted_ok = persisted_step in WIZARD_STEPS_KNOWN and step_statuses.get(persisted_step) in {"active", "ready", "attention"}
+        if persisted_ok:
             recommended_next_step = persisted_step
-        wizard_state["current_step"] = persisted_step if persisted_step in WIZARD_STEPS_KNOWN and step_statuses.get(persisted_step) != "locked" else recommended_next_step
+        wizard_state["current_step"] = persisted_step if persisted_ok else recommended_next_step
         for step_name, completed_flag in complete_map.items():
             if completed_flag:
                 wizard_state = set_wizard_step_complete(wizard_state, step_name)
@@ -3007,13 +3010,11 @@ def compute_wizard_context(project: Dict[str, Any]) -> Dict[str, Any]:
 
     recommended_next_step = active_step or "export"
     persisted_step = wizard_state.get("current_step")
-    if persisted_step in WIZARD_STEPS_KNOWN and step_statuses.get(persisted_step) in {"active", "ready", "attention"}:
+    persisted_ok = persisted_step in WIZARD_STEPS_KNOWN and step_statuses.get(persisted_step) in {"active", "ready", "attention"}
+    if persisted_ok:
         recommended_next_step = persisted_step
 
-    if persisted_step in WIZARD_STEPS_KNOWN and step_statuses.get(persisted_step) != "locked":
-        wizard_state["current_step"] = persisted_step
-    else:
-        wizard_state["current_step"] = recommended_next_step
+    wizard_state["current_step"] = persisted_step if persisted_ok else recommended_next_step
     if has_brief:
         wizard_state = set_wizard_step_complete(wizard_state, "brief")
     if has_references and "references" not in skipped:
@@ -3983,18 +3984,21 @@ def pixellab_animations_step_complete(project: Dict[str, Any], project_dir: Path
 
 def wizard_steps_active(project: Dict[str, Any]) -> List[str]:
     """
-    Wizard step order. Pixel Lab AI projects insert `animations` after Character (`clips`).
+    Wizard step order. Legacy (non-AI or legacy_mode) uses full WIZARD_STEPS.
+    Modern AI uses WIZARD_STEPS_AI (no rig_layout / part_manifest in UI).
+    Pixel Lab AI projects insert `animations` after Character (`clips`).
     """
-    seq = list(WIZARD_STEPS)
-    i = seq.index("clips") + 1
-    extended = seq[:i] + [WIZARD_STEP_ANIMATIONS] + seq[i:]
     ai_workflow = project.get("ai_workflow") or {}
     ai_enabled = bool(ai_workflow.get("enabled")) and not bool(ai_workflow.get("legacy_mode"))
     brief = project.get("brief") or {}
     pixellab_brief = str(brief.get("backend_mode") or "") == "pixellab"
-    if ai_enabled and pixellab_brief:
-        return extended
-    return seq
+    if ai_enabled:
+        seq = list(WIZARD_STEPS_AI)
+        if pixellab_brief:
+            i = seq.index("clips") + 1
+            seq = seq[:i] + [WIZARD_STEP_ANIMATIONS] + seq[i:]
+        return seq
+    return list(WIZARD_STEPS)
 
 
 def _pixellab_skeleton_path(project_dir: Path) -> Path:
