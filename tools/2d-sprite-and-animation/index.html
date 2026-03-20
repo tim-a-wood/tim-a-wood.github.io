@@ -4404,11 +4404,13 @@ function renderStatus() {
     document.querySelector("#status-stage").textContent = project ? stageDisplayName(project.current_stage) : "Idle";
     document.querySelector("#status-backend").textContent = project?.brief?.backend_mode === "debug_procedural"
         ? "Debug (offline)"
-        : backend?.ok
-            ? "ComfyUI (legacy, ready)"
-            : backend?.backend === "comfyui"
-                ? "ComfyUI (legacy, unavailable)"
-                : "Unknown";
+        : project?.brief?.backend_mode === "pixellab"
+            ? "Pixel Lab"
+            : backend?.ok
+                ? "ComfyUI (legacy, ready)"
+                : backend?.backend === "comfyui"
+                    ? "ComfyUI (legacy, unavailable)"
+                    : "Unknown";
     document.querySelector("#status-qa").textContent = project?.qa_report?.status || "Blocked";
 
     const pixellabCredits = document.querySelector("#status-pixellab-credits");
@@ -4662,13 +4664,11 @@ async function collectIntakePayload(options = {}) {
         character_template: document.querySelector("#pixellab-character-template").value,
         references: await collectReferencePayload(),
     };
-    // Phase 7.1: do not expose backend_mode / ComfyUI checkpoint in the UI.
-    // On brief updates, re-send the stored values so they are not cleared.
-    // On *create*, omit them so the server applies defaults (new projects → debug_procedural).
-    if (preserveRuntimeFields && state.activeProject?.brief) {
-        const b = state.activeProject.brief;
-        if (b.backend_mode) payload.backend_mode = b.backend_mode;
-        if (b.comfyui_checkpoint) payload.comfyui_checkpoint = b.comfyui_checkpoint;
+    // Phase 7.1: Pixel Lab UI always uses pixellab backend.
+    // ComfyUI checkpoint is preserved from stored brief for projects that still reference it.
+    payload.backend_mode = "pixellab";
+    if (preserveRuntimeFields && state.activeProject?.brief?.comfyui_checkpoint) {
+        payload.comfyui_checkpoint = state.activeProject.brief.comfyui_checkpoint;
     }
     return payload;
 }
@@ -4909,6 +4909,7 @@ function renderConceptGrid() {
                     <button class="secondary" data-action="mark-valid" ${concept.validation_status === "valid" ? "disabled" : ""}>Mark valid</button>
                     <button data-action="approve" ${canApprove ? "" : "disabled"}>Approve as character source</button>
                     <button class="secondary" data-action="zoom">Zoom</button>
+                    <button class="secondary danger" data-action="delete" title="Remove this concept from the project">Delete</button>
                 </div>
             </div>
         `;
@@ -4919,6 +4920,19 @@ function renderConceptGrid() {
         card.querySelector("[data-action='mark-valid']").addEventListener("click", () => validateConceptAttempt(concept.concept_id, "valid", ""));
         card.querySelector("[data-action='approve']").addEventListener("click", () => reviewConcept(concept.concept_id, "approve", true));
         card.querySelector("[data-action='zoom']").addEventListener("click", () => openZoom(concept.concept_id));
+        card.querySelector("[data-action='delete']").addEventListener("click", async () => {
+            const approved = Boolean(concept.review_state?.approved);
+            const msg = approved
+                ? `Delete ${concept.concept_id}? It is the approved character source — rig, sprite model, and later stages will be reset.`
+                : `Delete ${concept.concept_id}? This removes the image and record from the project.`;
+            if (!confirm(msg)) return;
+            try {
+                await deleteConceptById(concept.concept_id);
+            } catch (error) {
+                log(normalizeErrorMessage(error.message), "error");
+                notify(normalizeErrorMessage(error.message), "error");
+            }
+        });
         root.appendChild(card);
     });
 }
@@ -9008,6 +9022,25 @@ async function importIteratedConceptFile() {
     await loadProject(state.activeProject.project_id, currentMode());
     await refreshProjects();
     notify("Imported edited image as a new concept.", "success");
+    renderAll();
+}
+
+async function deleteConceptById(conceptId) {
+    if (!state.activeProject) throw new Error("Select or create a project first.");
+    await api(`/api/projects/${state.activeProject.project_id}/concepts/${encodeURIComponent(conceptId)}/delete`, {
+        method: "POST",
+        body: "{}",
+    });
+    if (state.lastConceptScaffold?.anchor_concept_id === conceptId) {
+        state.lastConceptScaffold = null;
+        const sc = document.querySelector("#concept-scaffold-prompt");
+        if (sc) sc.value = "";
+    }
+    if (state.conceptUiSelectedId === conceptId) state.conceptUiSelectedId = null;
+    if (state.lastIteratedConceptId === conceptId) state.lastIteratedConceptId = null;
+    await loadProject(state.activeProject.project_id, currentMode());
+    await refreshProjects();
+    notify("Concept deleted.", "success");
     renderAll();
 }
 

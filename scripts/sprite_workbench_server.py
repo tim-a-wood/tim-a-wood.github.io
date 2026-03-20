@@ -119,6 +119,10 @@ def get_pixellab_client():
         return None
     if _pixellab_client is None:
         # Lazy import to avoid importing PIL/client machinery unless needed.
+        import sys as _sys, pathlib as _pl
+        _project_root = str(_pl.Path(__file__).resolve().parent.parent)
+        if _project_root not in _sys.path:
+            _sys.path.insert(0, _project_root)
         from scripts.pixellab_client import PixelLabClient
 
         _pixellab_client = PixelLabClient(api_key=PIXELLAB_API_KEY)
@@ -159,7 +163,7 @@ REFINEMENT_STRENGTHS = {
 }
 
 REFERENCE_ROLES = ("identity", "costume", "style", "prop")
-BACKEND_MODES = ("comfyui", "debug_procedural")
+BACKEND_MODES = ("comfyui", "debug_procedural", "pixellab")
 MAJOR_REFINEMENT_LOCKS = {"silhouette", "face_head_shape", "outfit", "palette", "prop"}
 REFERENCE_SPRITESHEET_HINTS = ("sprite", "spritesheet", "spritelist", "sheet", "idle", "walk", "run", "attack", "anim")
 
@@ -4180,7 +4184,7 @@ def build_brief_from_payload(payload: Dict[str, Any], existing_brief: Optional[D
         "detail_level": payload.get("detail_level") or source.get("detail_level") or defaults["detail_level"],
         "canvas_size": coerce_canvas_size(payload.get("canvas_size") if "canvas_size" in payload else source.get("canvas_size") if "canvas_size" in source else None, DEFAULT_CANVAS_SIZE),
         "character_template": payload.get("character_template") or source.get("character_template") or defaults["character_template"],
-        "backend_mode": payload.get("backend_mode") if payload.get("backend_mode") in BACKEND_MODES else (source.get("backend_mode") or "comfyui"),
+        "backend_mode": payload.get("backend_mode") if payload.get("backend_mode") in BACKEND_MODES else (source.get("backend_mode") if source.get("backend_mode") in BACKEND_MODES and source.get("backend_mode") != "debug_procedural" else "pixellab"),
         "comfyui_checkpoint": payload.get("comfyui_checkpoint") or source.get("comfyui_checkpoint") or DEFAULT_COMFYUI_CHECKPOINT,
         "references": list(source.get("references") or []),
     }
@@ -5848,7 +5852,7 @@ def create_project(payload: Dict[str, Any]) -> Dict[str, Any]:
 
     brief = build_brief_from_payload(payload)
     if payload.get("backend_mode") not in BACKEND_MODES:
-        brief["backend_mode"] = "debug_procedural"
+        brief["backend_mode"] = "pixellab"
     project_id = "%s-%s" % (
         slugify(project_name or brief["role_archetype"]),
         stable_hash(project_name, prompt, now_iso())[:8],
@@ -7926,6 +7930,93 @@ def update_concept_review_state(project_id: str, concept_id: str, action: str, v
         "concept_id": concept_id,
         "action": action,
         "value": event_value,
+    })
+    return load_project(project_id)
+
+
+_CONCEPT_ARTIFACT_IMAGE_KEYS = (
+    "preview_image",
+    "processed_preview_image",
+    "original_preview_image",
+    "approved_source_image",
+)
+
+
+def _concept_image_rel_paths(concept: Dict[str, Any]) -> List[str]:
+    out: List[str] = []
+    seen: Set[str] = set()
+    for key in _CONCEPT_ARTIFACT_IMAGE_KEYS:
+        rel = concept.get(key)
+        if rel and isinstance(rel, str) and rel not in seen:
+            seen.add(rel)
+            out.append(rel)
+    return out
+
+
+def _delete_concept_disk_artifacts(project_dir: Path, removed: Dict[str, Any], remaining: List[Dict[str, Any]]) -> None:
+    still_used: Set[str] = set()
+    for c in remaining:
+        for rel in _concept_image_rel_paths(c):
+            still_used.add(rel)
+    for rel in _concept_image_rel_paths(removed):
+        if rel in still_used:
+            continue
+        target = project_dir / rel
+        if target.exists() and target.is_file():
+            delete_path(target)
+    prompt_file = removed.get("prompt_file")
+    if prompt_file and isinstance(prompt_file, str):
+        if not any((c.get("prompt_file") == prompt_file) for c in remaining):
+            pf = project_dir / prompt_file
+            if pf.exists() and pf.is_file():
+                delete_path(pf)
+
+
+def delete_concept(project_id: str, concept_id: str) -> Dict[str, Any]:
+    project = load_project(project_id)
+    concepts = list(project.get("concepts") or [])
+    removed = next((c for c in concepts if c.get("concept_id") == concept_id), None)
+    if removed is None:
+        raise ValueError("Concept not found.")
+
+    project_dir = PROJECTS_ROOT / project_id
+    remaining = [c for c in concepts if c.get("concept_id") != concept_id]
+    was_selected = project.get("selected_concept_id") == concept_id
+    was_approved_look = bool(removed.get("review_state", {}).get("approved"))
+
+    if was_selected or was_approved_look:
+        reset_downstream_assets(project_id, "concept")
+        project = clear_project_downstream_state(project, "concept")
+        project["selected_concept_id"] = None
+        project["character_spec"] = None
+        delete_path(project_dir / "character_spec.json")
+        for item in remaining:
+            item.setdefault("review_state", {"approved": False, "favorite": False, "rejected": False})
+            item["review_state"]["approved"] = False
+            item["review_state"]["favorite"] = item["review_state"].get("favorite") or False
+            item["review_state"]["rejected"] = item["review_state"].get("rejected") or False
+            item["approved"] = False
+            item["accepted_for_review"] = False
+        ai_workflow = project.get("ai_workflow") or {}
+        if ai_workflow.get("enabled") and not ai_workflow.get("legacy_mode"):
+            ai_workflow.setdefault("selected_assets", {})
+            ai_workflow["selected_assets"]["approved_concept_id"] = None
+        project["ai_workflow"] = ai_workflow
+        project["current_stage"] = "concepts"
+        project["status"] = "concept_deleted"
+
+    project["concepts"] = remaining
+    _delete_concept_disk_artifacts(project_dir, removed, remaining)
+    delete_path(project_dir / "concepts" / ("%s.json" % concept_id))
+
+    project["updated_at"] = now_iso()
+    save_project(project)
+    append_history_event(project_id, {
+        "type": "concept_deleted",
+        "concept_id": concept_id,
+        "was_selected": was_selected,
+        "cleared_pipeline": was_selected or was_approved_look,
+        "created_at": now_iso(),
     })
     return load_project(project_id)
 
@@ -13927,6 +14018,11 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
             if select_match:
                 project_id, concept_id = select_match.groups()
                 return self._send_json(update_concept_review_state(project_id, concept_id, "approve", True))
+
+            delete_concept_match = re.fullmatch(r"/api/projects/([^/]+)/concepts/([^/]+)/delete", path)
+            if delete_concept_match:
+                project_id, concept_id = delete_concept_match.groups()
+                return self._send_json(delete_concept(project_id, concept_id))
 
             promote_reference_match = re.fullmatch(r"/api/projects/([^/]+)/concepts/use-reference", path)
             if promote_reference_match:

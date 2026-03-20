@@ -461,6 +461,43 @@ class SpriteWorkbenchTests(unittest.TestCase):
         self.assertTrue(reloaded["part_manifest_approved"])
         self.assertFalse(reloaded["part_shapes_approved"])
 
+    def test_delete_concept_removes_json_and_image_when_unshared(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            original_root = sw.PROJECTS_ROOT
+            sw.PROJECTS_ROOT = Path(tmpdir)
+            try:
+                created = sw.create_project({
+                    "project_name": "Delete Me Hero",
+                    "prompt_text": "a side-view scout with a cloak",
+                    "last_ui_mode": "wizard",
+                })
+                prompt = sw.generate_initial_prompt(created["project_id"])
+                with patch.object(sw, "run_gemini_concept_validation", return_value={
+                    "decision": "valid",
+                    "summary": "ok",
+                    "feedback": "",
+                    "improved_gemini_prompt": None,
+                    "master_pose_ready": True,
+                    "technical_requirements_ok": True,
+                    "response_id": "resp_valid",
+                }):
+                    with tempfile.TemporaryDirectory() as asset_dir:
+                        asset_path = self.create_manual_concept_asset(Path(asset_dir) / "scout.png")
+                        project = sw.import_concept_attempt(created["project_id"], {
+                            "source_prompt_id": prompt["concept_id"],
+                            "local_path": str(asset_path),
+                        })
+                imported = next(item for item in project["concepts"] if item.get("preview_image"))
+                cid = imported["concept_id"]
+                project_dir = sw.PROJECTS_ROOT / created["project_id"]
+                json_path = project_dir / "concepts" / ("%s.json" % cid)
+                self.assertTrue(json_path.exists())
+                after = sw.delete_concept(created["project_id"], cid)
+                self.assertFalse(any(c.get("concept_id") == cid for c in after["concepts"]))
+                self.assertFalse(json_path.exists())
+            finally:
+                sw.PROJECTS_ROOT = original_root
+
     def test_synthetic_key_pose_run_from_selected_concept(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
