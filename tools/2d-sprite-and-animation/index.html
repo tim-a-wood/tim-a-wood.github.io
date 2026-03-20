@@ -3401,6 +3401,8 @@ const state = {
     pixellabShowSkeleton: false,
     pixellabAnimTimers: {},
     pixellabCreateCharacterBusy: false,
+    /** While set, Animations panel shows a wait bar and disables generate/build controls. */
+    pixellabAnimGenBusy: null,
 };
 
 function currentMode() {
@@ -6387,6 +6389,60 @@ function clearPixellabAnimTimer(clipName) {
     }
 }
 
+/**
+ * Run a long Pixel Lab animation request with an estimated progress bar (like character creation).
+ * @param {string} pid
+ * @param {() => Promise<any>} run
+ * @param {{ detail?: string, estimatedMs?: number, jobType?: string, label?: string }} options
+ */
+async function withPixellabAnimationProgress(pid, run, options) {
+    const {
+        detail = "Generating animation…",
+        estimatedMs = 360000,
+        jobType = "pixellab.animation",
+        label = "Pixel Lab animation",
+    } = options || {};
+    state.pixellabAnimGenBusy = { detail, estimatedMs, jobType };
+    renderPixellabAnimationsBoard();
+    setActivity({
+        state: "Working",
+        jobType,
+        label,
+        detail,
+        percent: 6,
+    });
+    const board = () => document.querySelector("#pixellab-animations-board");
+    let fill = board()?.querySelector("[data-pixellab-anim-progress-fill]");
+    let pctText = board()?.querySelector("[data-pixellab-anim-progress-pct]");
+    const started = Date.now();
+    const tick = window.setInterval(() => {
+        const elapsed = Date.now() - started;
+        const pct = Math.min(92, 6 + (elapsed / estimatedMs) * 86);
+        if (fill) fill.style.width = `${pct}%`;
+        if (pctText) pctText.textContent = `${Math.round(pct)}%`;
+        if (state.activity && state.activity.jobType === jobType) {
+            setActivity({ ...state.activity, percent: pct, detail });
+        }
+    }, 350);
+    try {
+        const result = await run();
+        if (state.activity && state.activity.jobType === jobType) {
+            setActivity({ ...state.activity, state: "Done", detail: "Finishing…", percent: 100 });
+        }
+        fill = board()?.querySelector("[data-pixellab-anim-progress-fill]");
+        pctText = board()?.querySelector("[data-pixellab-anim-progress-pct]");
+        if (fill) fill.style.width = "100%";
+        if (pctText) pctText.textContent = "100%";
+        await new Promise((r) => setTimeout(r, 200));
+        return result;
+    } finally {
+        window.clearInterval(tick);
+        state.pixellabAnimGenBusy = null;
+        clearActivity();
+        renderPixellabAnimationsBoard();
+    }
+}
+
 function renderPixellabAnimationsBoard() {
     const root = document.querySelector("#pixellab-animations-board");
     if (!root) return;
@@ -6437,6 +6493,20 @@ function renderPixellabAnimationsBoard() {
         window.location.protocol === "file:"
             ? `<div class="warning-box" style="margin-bottom:12px;"><p><strong>Previews need the dev server.</strong> Frame thumbnails load from <code>http://127.0.0.1:${DEFAULT_WORKBENCH_PORT}/…</code>. Open the tool from that URL (not <code>file://</code>) if images stay blank or never update.</p></div>`
             : "";
+    const animBusy = Boolean(state.pixellabAnimGenBusy);
+    const animBusyDetail = animBusy ? escapeHtml(String(state.pixellabAnimGenBusy.detail || "Working…")) : "";
+    const animProgressBlock = animBusy
+        ? `<div class="pixellab-char-progress pixellab-anim-gen-progress" role="status" aria-live="polite" aria-busy="true" style="margin-bottom:14px;">
+            <div class="small-note" style="margin-bottom:8px;"><strong>${animBusyDetail}</strong> — this can take several minutes while Pixel Lab renders (especially for all directions).</div>
+            <div class="progress-track">
+                <div class="progress-fill" data-pixellab-anim-progress-fill style="width:6%"></div>
+            </div>
+            <div class="progress-meta" style="margin-top:8px;">
+                <span data-pixellab-anim-progress-pct>6%</span>
+                <span class="small-note">Progress is estimated until the server finishes.</span>
+            </div>
+        </div>`
+        : "";
     const listRows = Object.keys(anims).length
         ? Object.entries(anims).map(([name, meta]) => {
             const dirs = meta?.directions ? Object.keys(meta.directions).join(", ") : "—";
@@ -6449,6 +6519,7 @@ function renderPixellabAnimationsBoard() {
     function clipCard(clipName, templates, defaultTemplate) {
         const meta = anims[clipName] || {};
         const previewDefault = pixellabFirstPreviewDirection(dirList, meta);
+        const dis = animBusy ? " disabled" : "";
         const dirOptions = (dirList && dirList.length ? dirList : ["east"])
             .map((d) => {
                 const has = pixellabDirectionHasFramesInEntry(meta, d);
@@ -6462,26 +6533,26 @@ function renderPixellabAnimationsBoard() {
             <h4 style="margin:0 0 8px;">${humanizeKey(clipName)} clip</h4>
             <div class="small-note">Canonical name <code>${clipName}</code> for export and QA.</div>
             <label class="small-note" style="display:block;margin-top:10px;">Template animation</label>
-            <select class="pixellab-template-select" data-clip="${clipName}" style="max-width:100%;">${opts}</select>
+            <select class="pixellab-template-select" data-clip="${clipName}" style="max-width:100%;"${dis}>${opts}</select>
             <div class="actions" style="margin-top:10px;flex-wrap:wrap;gap:8px;">
-                <button type="button" class="pixellab-gen-template" data-clip="${clipName}">Generate via template</button>
+                <button type="button" class="pixellab-gen-template" data-clip="${clipName}"${dis}>Generate via template</button>
             </div>
             <label class="small-note" style="display:block;margin-top:14px;">Custom action (east-facing)</label>
-            <input type="text" class="pixellab-custom-action" data-clip="${clipName}" placeholder="e.g. heavy overhead slash" style="width:100%;">
+            <input type="text" class="pixellab-custom-action" data-clip="${clipName}" placeholder="e.g. heavy overhead slash" style="width:100%;"${dis}>
             <div class="actions" style="margin-top:8px;">
-                <button type="button" class="secondary pixellab-gen-custom" data-clip="${clipName}">Generate custom</button>
+                <button type="button" class="secondary pixellab-gen-custom" data-clip="${clipName}"${dis}>Generate custom</button>
             </div>
             <label class="small-note" style="display:block;margin-top:14px;">Edit existing frames</label>
-            <textarea class="pixellab-edit-desc" data-clip="${clipName}" rows="2" placeholder="Describe the change for Pixel Lab edit…" style="width:100%;"></textarea>
+            <textarea class="pixellab-edit-desc" data-clip="${clipName}" rows="2" placeholder="Describe the change for Pixel Lab edit…" style="width:100%;"${dis}></textarea>
             <div class="actions" style="margin-top:8px;">
-                <button type="button" class="secondary pixellab-edit-anim" data-clip="${clipName}">Edit animation</button>
+                <button type="button" class="secondary pixellab-edit-anim" data-clip="${clipName}"${dis}>Edit animation</button>
             </div>
             <div class="pixellab-anim-preview-wrap" style="margin-top:14px;">
                 <div class="check-row wrap">
                     <span class="small-note">Preview direction</span>
-                    <select class="pixellab-preview-dir" data-clip="${clipName}">${dirOptions}</select>
-                    <button type="button" class="secondary pixellab-preview-play" data-clip="${clipName}">Play</button>
-                    <button type="button" class="secondary pixellab-preview-stop" data-clip="${clipName}">Stop</button>
+                    <select class="pixellab-preview-dir" data-clip="${clipName}"${dis}>${dirOptions}</select>
+                    <button type="button" class="secondary pixellab-preview-play" data-clip="${clipName}"${dis}>Play</button>
+                    <button type="button" class="secondary pixellab-preview-stop" data-clip="${clipName}"${dis}>Stop</button>
                     <span class="small-note pixellab-preview-label" data-clip="${clipName}">—</span>
                 </div>
                 <img class="pixellab-preview-img" data-clip="${clipName}" alt="" onerror="this.alt='Preview failed to load'; this.style.outline='2px solid rgba(220,90,90,0.9)';" style="max-height:min(50vh,280px);min-height:120px;margin-top:8px;background:rgba(0,0,0,0.25);border-radius:8px;object-fit:contain;">
@@ -6492,6 +6563,7 @@ function renderPixellabAnimationsBoard() {
 
     root.innerHTML = `
         ${previewServeNote}
+        ${animProgressBlock}
         <div class="warning-box" style="margin-bottom:12px;">
             <p><strong>Idle</strong> and <strong>walk</strong> are required before <strong>Build canonical clips</strong> and QA. Pick templates that match each clip (server maps IDs to idle vs walk the same way as this UI).</p>
         </div>
@@ -6503,7 +6575,7 @@ function renderPixellabAnimationsBoard() {
             </table>
             ${clipsBridgeHtml}
             <div class="actions" style="margin-top:12px;flex-wrap:wrap;gap:8px;">
-                <button type="button" id="pixellab-build-clips" ${canBuildClips ? "" : "disabled"} title="${escapeHtml(buildClipsTitle)}">Build canonical clips</button>
+                <button type="button" id="pixellab-build-clips" ${canBuildClips && !animBusy ? "" : "disabled"} title="${escapeHtml(buildClipsTitle)}">Build canonical clips</button>
             </div>
             <p class="small-note" id="pixellab-build-clips-hint" style="margin-top:8px;">${buildClipsHintHtml}</p>
         </div>
@@ -6544,10 +6616,20 @@ function renderPixellabAnimationsBoard() {
             }
             try {
                 notify(`Generating ${clip} via ${tid}…`, "info");
-                await api(`/api/projects/${pid}/pixellab/animate`, {
-                    method: "POST",
-                    body: JSON.stringify({ template_animation_id: tid, directions: directionCount }),
-                });
+                const templateEstMs = Math.min(900000, Math.max(240000, directionCount * 120000));
+                await withPixellabAnimationProgress(
+                    pid,
+                    () => api(`/api/projects/${pid}/pixellab/animate`, {
+                        method: "POST",
+                        body: JSON.stringify({ template_animation_id: tid, directions: directionCount }),
+                    }),
+                    {
+                        detail: `Generating ${clip} via template (${tid}, ${directionCount} directions)`,
+                        estimatedMs: templateEstMs,
+                        jobType: "pixellab.animate_template",
+                        label: `Pixel Lab: ${clip} (template)`,
+                    },
+                );
                 notify(`${clip} animation updated.`, "success");
                 await reload();
             } catch (e) {
@@ -6566,10 +6648,20 @@ function renderPixellabAnimationsBoard() {
                 return;
             }
             try {
-                await api(`/api/projects/${pid}/pixellab/animate-custom`, {
-                    method: "POST",
-                    body: JSON.stringify({ animation_name: clip, action }),
-                });
+                notify(`Generating custom ${clip}…`, "info");
+                await withPixellabAnimationProgress(
+                    pid,
+                    () => api(`/api/projects/${pid}/pixellab/animate-custom`, {
+                        method: "POST",
+                        body: JSON.stringify({ animation_name: clip, action }),
+                    }),
+                    {
+                        detail: `Custom ${clip} (east-facing)`,
+                        estimatedMs: 420000,
+                        jobType: "pixellab.animate_custom",
+                        label: `Pixel Lab: ${clip} (custom)`,
+                    },
+                );
                 notify(`Custom ${clip} saved.`, "success");
                 await reload();
             } catch (e) {
@@ -6588,10 +6680,20 @@ function renderPixellabAnimationsBoard() {
                 return;
             }
             try {
-                await api(`/api/projects/${pid}/pixellab/edit-animation`, {
-                    method: "POST",
-                    body: JSON.stringify({ animation_name: clip, description }),
-                });
+                notify(`Editing ${clip} animation…`, "info");
+                await withPixellabAnimationProgress(
+                    pid,
+                    () => api(`/api/projects/${pid}/pixellab/edit-animation`, {
+                        method: "POST",
+                        body: JSON.stringify({ animation_name: clip, description }),
+                    }),
+                    {
+                        detail: `Editing ${clip} frames`,
+                        estimatedMs: 420000,
+                        jobType: "pixellab.edit_animation",
+                        label: `Pixel Lab: edit ${clip}`,
+                    },
+                );
                 notify(`${clip} edit applied.`, "success");
                 await reload();
             } catch (e) {
@@ -6603,7 +6705,16 @@ function renderPixellabAnimationsBoard() {
     root.querySelector("#pixellab-build-clips")?.addEventListener("click", async () => {
         try {
             notify("Building animation_clips.json…", "info");
-            await api(`/api/projects/${pid}/pixellab/build-clips`, { method: "POST", body: "{}" });
+            await withPixellabAnimationProgress(
+                pid,
+                () => api(`/api/projects/${pid}/pixellab/build-clips`, { method: "POST", body: "{}" }),
+                {
+                    detail: "Building canonical clips (animation_clips.json)",
+                    estimatedMs: 120000,
+                    jobType: "pixellab.build_clips",
+                    label: "Pixel Lab: build clips",
+                },
+            );
             await reload();
             const p = state.activeProject;
             const idleN = Array.isArray(p?.animation_clips?.idle?.frames) ? p.animation_clips.idle.frames.length : 0;
