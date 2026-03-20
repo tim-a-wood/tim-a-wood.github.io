@@ -4646,6 +4646,42 @@ async function collectIntakePayload(options = {}) {
     return payload;
 }
 
+/** Legacy projects may still have brief.backend_mode comfyui; Pixel Lab Character/Animations need pixellab. */
+async function switchProjectBackendToPixellab() {
+    const pid = state.activeProject?.project_id;
+    if (!pid) throw new Error("No active project.");
+    const project = await api(`/api/projects/${pid}/brief`, {
+        method: "POST",
+        body: JSON.stringify({ backend_mode: "pixellab" }),
+    });
+    state.activeProject = project;
+    await refreshProjects();
+    notify("Switched this project to Pixel Lab (brief backend_mode=pixellab).", "success");
+    renderAll();
+}
+
+function pixellabBackendModeMismatchBox(currentMode) {
+    const m = escapeHtml(String(currentMode || "unset"));
+    return `
+        <div class="warning-box">
+            <p><strong>These steps need Pixel Lab.</strong> This project&apos;s brief still has <code>backend_mode</code> = <code>${m}</code> (older projects default to ComfyUI).</p>
+            <p class="small-note">Or open <strong>Describe Your Character</strong> and click save — the form always saves as Pixel Lab.</p>
+            <div class="actions" style="margin-top:10px;">
+                <button type="button" class="pixellab-switch-backend-btn">Switch project to Pixel Lab</button>
+            </div>
+        </div>`;
+}
+
+function wirePixellabSwitchBackendButton(root) {
+    root.querySelector(".pixellab-switch-backend-btn")?.addEventListener("click", async () => {
+        try {
+            await switchProjectBackendToPixellab();
+        } catch (e) {
+            notify(normalizeErrorMessage(e.message), "error");
+        }
+    });
+}
+
 function populateIntakeForm() {
     const project = state.activeProject;
     const brief = project?.brief;
@@ -6198,7 +6234,8 @@ function renderPixellabCharacterBoard() {
     }
     const brief = project.brief || {};
     if (String(brief.backend_mode || "") !== "pixellab") {
-        root.innerHTML = `<div class="warning-box"><p>This panel is for Pixel Lab projects. Current brief <code>backend_mode</code> is <code>${escapeHtml(brief.backend_mode || "unset")}</code>.</p></div>`;
+        root.innerHTML = pixellabBackendModeMismatchBox(brief.backend_mode);
+        wirePixellabSwitchBackendButton(root);
         return;
     }
     const sel = selectedConcept();
@@ -6361,7 +6398,8 @@ function renderPixellabAnimationsBoard() {
         return;
     }
     if (String(project.brief?.backend_mode || "") !== "pixellab") {
-        root.innerHTML = `<div class="warning-box"><p>Animations (Pixel Lab) applies when <code>backend_mode</code> is <code>pixellab</code>.</p></div>`;
+        root.innerHTML = pixellabBackendModeMismatchBox(project.brief?.backend_mode);
+        wirePixellabSwitchBackendButton(root);
         return;
     }
     if (!pixellabCharacterApproved(project)) {
