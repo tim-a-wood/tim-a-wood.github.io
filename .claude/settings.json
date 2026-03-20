@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls -la /Users/timwood/Desktop/projects/PWA/MV/tools/2d-sprite-and-animation/*.md)"
+    ]
+  }
+}
