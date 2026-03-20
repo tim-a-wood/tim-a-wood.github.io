@@ -16,7 +16,7 @@ import os
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
@@ -111,6 +111,35 @@ class PixelLabClient:
                 if isinstance(value, str) and value.strip():
                     return value
         return None
+
+    def _extract_background_job_ids(self, payload: Any) -> List[str]:
+        """
+        v2 character animation POST may return multiple async jobs as ``background_job_ids``
+        (parallel to ``directions``) instead of a single ``job_id``.
+        """
+        if not isinstance(payload, dict):
+            return []
+        for key in ("background_job_ids", "backgroundJobIds"):
+            value = payload.get(key)
+            if not isinstance(value, list):
+                continue
+            out: List[str] = []
+            for item in value:
+                if isinstance(item, str) and item.strip():
+                    out.append(item.strip())
+                elif isinstance(item, dict):
+                    jid = (
+                        item.get("job_id")
+                        or item.get("jobId")
+                        or item.get("background_job_id")
+                        or item.get("backgroundJobId")
+                        or item.get("id")
+                    )
+                    if isinstance(jid, str) and jid.strip():
+                        out.append(jid.strip())
+            if out:
+                return out
+        return []
 
     def _request_json(self, method: str, path: str, payload: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         url = f"{self.base_url}{path}"
@@ -319,6 +348,17 @@ class PixelLabClient:
         }
         payload.update(kwargs)
         accepted = self._request_json("POST", "/v2/characters/animations", payload)
+        multi_ids = self._extract_background_job_ids(accepted)
+        if multi_ids:
+            merged: List[Dict[str, Any]] = []
+            for jid in multi_ids:
+                merged.append(self._poll_job(jid, timeout_seconds=poll_timeout))
+            return {
+                "per_job_last_response": merged,
+                "directions": accepted.get("directions") or accepted.get("Directions"),
+                "status": "completed",
+                "background_job_ids": multi_ids,
+            }
         job_id = self._extract_job_id(accepted)
         if job_id:
             return self._poll_job(job_id, timeout_seconds=poll_timeout)

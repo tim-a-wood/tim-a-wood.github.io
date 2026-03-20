@@ -10,7 +10,7 @@ import unittest
 from contextlib import contextmanager
 from pathlib import Path
 from http.server import ThreadingHTTPServer
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, call, patch
 
 from PIL import Image, ImageDraw
 
@@ -1671,6 +1671,36 @@ class SpriteWorkbenchTests(unittest.TestCase):
         self.assertEqual(out.get("character_id"), "c1")
         self.assertTrue(out.get("ok"))
 
+    def test_pixellab_animate_character_polls_all_background_job_ids(self):
+        """POST /v2/characters/animations may return ``background_job_ids`` (one per direction)."""
+        client = pl.PixelLabClient("fake-key")
+        accepted = {
+            "background_job_ids": ["job-a", "job-b"],
+            "directions": ["south", "east"],
+            "status": "accepted",
+        }
+        lr_a = {"direction": "south", "ok": True}
+        lr_b = {"direction": "east", "ok": True}
+        with patch.object(client, "_request_json", return_value=accepted), patch.object(
+            client, "_poll_job", side_effect=[lr_a, lr_b]
+        ) as poll:
+            out = client.animate_character(
+                "char-1",
+                "template_walk",
+                directions=["south", "east"],
+                poll_timeout_seconds=30,
+            )
+        self.assertEqual(
+            poll.call_args_list,
+            [
+                call("job-a", timeout_seconds=30),
+                call("job-b", timeout_seconds=30),
+            ],
+        )
+        self.assertEqual(out.get("per_job_last_response"), [lr_a, lr_b])
+        self.assertEqual(out.get("background_job_ids"), ["job-a", "job-b"])
+        self.assertEqual(out.get("status"), "completed")
+
     def test_pixellab_client_get_balance_parses_json(self):
         client = pl.PixelLabClient("fake-key")
 
@@ -2570,6 +2600,21 @@ class PixelLabAnimationFrameExtractionTests(unittest.TestCase):
         # URL path decodes the PNG at its native size (canvas hint is for raw RGBA only).
         self.assertEqual(frames[0].size, (4, 4))
         mock_dl.assert_called_once_with("https://cdn.example/frame.png", bearer="test-key")
+
+    def test_merged_per_job_last_response_concatenates_frames(self):
+        png = self._tiny_png_b64()
+        merged = {
+            "per_job_last_response": [
+                {"type": "base64", "base64": png, "format": "png"},
+                {"type": "base64", "base64": png, "format": "png"},
+            ]
+        }
+        frames = sw._pixellab_animation_job_to_rgba_frames(
+            merged,
+            canvas_size=32,
+            client=MagicMock(),
+        )
+        self.assertEqual(len(frames), 2)
 
 
 if __name__ == "__main__":

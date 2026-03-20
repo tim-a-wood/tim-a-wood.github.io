@@ -4195,13 +4195,13 @@ def _collect_pixellab_https_asset_urls(payload: Any) -> List[str]:
     return list(dict.fromkeys(urls))
 
 
-def _pixellab_animation_job_to_rgba_frames(
+def _pixellab_decode_single_animation_payload_to_frames(
     result: Any,
     *,
     canvas_size: int,
     client: Any,
 ) -> List[Image.Image]:
-    """Decode frames from a completed Pixel Lab animation job (base64 and/or downloadable URLs)."""
+    """Decode frames from one job ``last_response`` blob (base64 and/or downloadable URLs)."""
     rgba: Tuple[int, int] = (int(canvas_size), int(canvas_size))
     decoded: List[Image.Image] = []
     for s in _find_all_base64_png_like(result):
@@ -4225,6 +4225,39 @@ def _pixellab_animation_job_to_rgba_frames(
         except Exception:
             continue
     return decoded
+
+
+def _pixellab_animation_job_to_rgba_frames(
+    result: Any,
+    *,
+    canvas_size: int,
+    client: Any,
+) -> List[Image.Image]:
+    """
+    Decode frames from a Pixel Lab animation result.
+
+    Template ``/v2/characters/animations`` may return multiple background jobs; the client merges
+    those into ``per_job_last_response`` in order (direction-major when aligned with API ``directions``).
+    """
+    if isinstance(result, dict):
+        merged = result.get("per_job_last_response") or result.get("merged_last_responses")
+        if isinstance(merged, list) and merged:
+            out: List[Image.Image] = []
+            for part in merged:
+                out.extend(
+                    _pixellab_decode_single_animation_payload_to_frames(
+                        part,
+                        canvas_size=canvas_size,
+                        client=client,
+                    )
+                )
+            if out:
+                return out
+    return _pixellab_decode_single_animation_payload_to_frames(
+        result,
+        canvas_size=canvas_size,
+        client=client,
+    )
 
 
 def _pixellab_character_path(project_dir: Path) -> Path:
@@ -13935,7 +13968,16 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
 
                     job_id = None
                     if isinstance(result, dict):
-                        job_id = result.get("job_id") or result.get("jobId") or result.get("background_job_id") or result.get("backgroundJobId")
+                        bj = result.get("background_job_ids") or result.get("backgroundJobIds")
+                        if isinstance(bj, list) and bj:
+                            job_id = ",".join(str(x) for x in bj if x)[:500] or None
+                        if job_id is None:
+                            job_id = (
+                                result.get("job_id")
+                                or result.get("jobId")
+                                or result.get("background_job_id")
+                                or result.get("backgroundJobId")
+                            )
 
                     plate_frames = _pixellab_animation_job_to_rgba_frames(
                         result,
