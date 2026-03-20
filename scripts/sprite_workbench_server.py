@@ -3786,12 +3786,17 @@ def _pixellab_open_image_bytes(
         ) from exc
 
 
-def _decode_base64_image_to_rgba(image_b64: str) -> Image.Image:
+def _decode_base64_image_to_rgba(
+    image_b64: str,
+    *,
+    rgba_size: Optional[Tuple[int, int]] = None,
+) -> Image.Image:
     """
     Decode base64 image into RGBA PIL image.
+    ``rgba_size`` matches the workbench canvas when Pixel Lab returns raw packed RGBA (no PNG header).
     """
     raw = _decode_base64_to_bytes_loose(image_b64)
-    return _pixellab_open_image_bytes(raw, where="(base64 image)")
+    return _pixellab_open_image_bytes(raw, where="(base64 image)", rgba_size=rgba_size)
 
 
 def _normalize_pixellab_image_base64(value: Any) -> Optional[str]:
@@ -13662,7 +13667,7 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
             estimate_skeleton_pixellab_match = re.fullmatch(r"/api/projects/([^/]+)/pixellab/estimate-skeleton", path)
             if estimate_skeleton_pixellab_match:
                 project_id = estimate_skeleton_pixellab_match.group(1)
-                payload = read_body(self) if self.headers.get("Content-Length") else {}
+                payload = read_body(self)
                 direction = (payload.get("direction") or "east").strip().lower()
 
                 project = load_project(project_id)
@@ -13757,7 +13762,7 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
             animate_pixellab_match = re.fullmatch(r"/api/projects/([^/]+)/pixellab/animate", path)
             if animate_pixellab_match:
                 project_id = animate_pixellab_match.group(1)
-                payload = read_body(self) if self.headers.get("Content-Length") else {}
+                payload = read_body(self)
 
                 project = load_project(project_id)
                 project_dir = PROJECTS_ROOT / project_id
@@ -13870,7 +13875,12 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                             b64_index = dir_idx * frame_count + frame_idx
                             if b64_index >= len(images_b64):
                                 break
-                            frames.append(_decode_base64_image_to_rgba(images_b64[b64_index]))
+                            frames.append(
+                                _decode_base64_image_to_rgba(
+                                    images_b64[b64_index],
+                                    rgba_size=(canvas_size, canvas_size),
+                                )
+                            )
                         frame_paths = _write_png_frames(frames[:frame_count], project_dir, animation_name, direction)
                         _upsert_pixellab_animation_frames(
                             project_dir,
@@ -13892,7 +13902,7 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
             animate_custom_pixellab_match = re.fullmatch(r"/api/projects/([^/]+)/pixellab/animate-custom", path)
             if animate_custom_pixellab_match:
                 project_id = animate_custom_pixellab_match.group(1)
-                payload = read_body(self) if self.headers.get("Content-Length") else {}
+                payload = read_body(self)
 
                 project = load_project(project_id)
                 project_dir = PROJECTS_ROOT / project_id
@@ -13973,7 +13983,12 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                     for frame_idx in range(frame_count):
                         if frame_idx >= len(images_b64):
                             break
-                        frames.append(_decode_base64_image_to_rgba(images_b64[frame_idx]))
+                        frames.append(
+                            _decode_base64_image_to_rgba(
+                                images_b64[frame_idx],
+                                rgba_size=(canvas_size, canvas_size),
+                            )
+                        )
                     frame_paths = _write_png_frames(frames[:frame_count], project_dir, animation_name, direction)
                     _upsert_pixellab_animation_frames(
                         project_dir,
@@ -13995,7 +14010,7 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
             animate_skeleton_pixellab_match = re.fullmatch(r"/api/projects/([^/]+)/pixellab/animate-skeleton", path)
             if animate_skeleton_pixellab_match:
                 project_id = animate_skeleton_pixellab_match.group(1)
-                payload = read_body(self) if self.headers.get("Content-Length") else {}
+                payload = read_body(self)
 
                 project = load_project(project_id)
                 project_dir = PROJECTS_ROOT / project_id
@@ -14086,7 +14101,12 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
 
                     frames: List[Image.Image] = []
                     for frame_idx in range(frame_count):
-                        frames.append(_decode_base64_image_to_rgba(images_b64[frame_idx]))
+                        frames.append(
+                            _decode_base64_image_to_rgba(
+                                images_b64[frame_idx],
+                                rgba_size=(canvas_size, canvas_size),
+                            )
+                        )
                     frame_paths = _write_png_frames(frames[:frame_count], project_dir, animation_name, direction)
                     _upsert_pixellab_animation_frames(
                         project_dir,
@@ -14108,7 +14128,7 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
             edit_animation_pixellab_match = re.fullmatch(r"/api/projects/([^/]+)/pixellab/edit-animation", path)
             if edit_animation_pixellab_match:
                 project_id = edit_animation_pixellab_match.group(1)
-                payload = read_body(self) if self.headers.get("Content-Length") else {}
+                payload = read_body(self)
 
                 project = load_project(project_id)
                 project_dir = PROJECTS_ROOT / project_id
@@ -14209,7 +14229,12 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                         frames: List[Image.Image] = []
                         out_fc = min(frame_count, len(images_b64))
                         for frame_idx in range(out_fc):
-                            frames.append(_decode_base64_image_to_rgba(images_b64[frame_idx]))
+                            frames.append(
+                                _decode_base64_image_to_rgba(
+                                    images_b64[frame_idx],
+                                    rgba_size=(canvas_size, canvas_size),
+                                )
+                            )
                         frame_paths = _write_png_frames(frames, project_dir, animation_name, direction)
                         _upsert_pixellab_animation_frames(
                             project_dir,

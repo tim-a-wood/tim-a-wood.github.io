@@ -3444,6 +3444,121 @@ function escapeHtml(value) {
         .replace(/"/g, "&quot;");
 }
 
+function pixellabResolveDirectionBlock(directions, direction) {
+    const normDir = String(direction || "east").trim();
+    if (!directions || typeof directions !== "object") return { block: null, key: null };
+    if (Object.prototype.hasOwnProperty.call(directions, normDir)) {
+        return { block: directions[normDir], key: normDir };
+    }
+    const key = Object.keys(directions).find((k) => k.toLowerCase() === normDir.toLowerCase());
+    if (key) return { block: directions[key], key };
+    return { block: null, key: null };
+}
+
+function pixellabDirectionHasFramesInEntry(animEntry, direction) {
+    const dirs = animEntry?.directions;
+    const { block } = pixellabResolveDirectionBlock(dirs, direction);
+    const frames = block?.frames;
+    return Array.isArray(frames) && frames.length > 0;
+}
+
+function pixellabAnyDirectionHasFrames(animEntry) {
+    if (!animEntry?.directions || typeof animEntry.directions !== "object") return false;
+    return Object.keys(animEntry.directions).some((k) => {
+        const fr = animEntry.directions[k]?.frames;
+        return Array.isArray(fr) && fr.length > 0;
+    });
+}
+
+/** Prefer first character direction that actually has frames (custom anims are often east-only). */
+function pixellabFirstPreviewDirection(characterDirs, animEntry) {
+    const order = Array.isArray(characterDirs) && characterDirs.length ? characterDirs : ["east"];
+    for (const d of order) {
+        if (pixellabDirectionHasFramesInEntry(animEntry, d)) return d;
+    }
+    if (animEntry?.directions && typeof animEntry.directions === "object") {
+        for (const k of Object.keys(animEntry.directions)) {
+            const fr = animEntry.directions[k]?.frames;
+            if (Array.isArray(fr) && fr.length > 0) return k;
+        }
+    }
+    return order[0] || "east";
+}
+
+function pixellabPreviewFrameUrls(project, animName, direction) {
+    const normDir = String(direction || "east").trim();
+    const anim = project?.pixellab_animations?.animations?.[animName];
+    let block = null;
+    let resolvedKey = null;
+    if (anim?.directions) {
+        const r = pixellabResolveDirectionBlock(anim.directions, normDir);
+        block = r.block;
+        resolvedKey = r.key;
+    }
+    let frames = Array.isArray(block?.frames) ? block.frames : [];
+
+    const clip = project?.animation_clips?.[animName];
+    if (!frames.length && clip && typeof clip === "object") {
+        const byDir = clip.frames_by_direction;
+        if (byDir && typeof byDir === "object") {
+            const r2 = pixellabResolveDirectionBlock(byDir, normDir);
+            const raw = r2.block;
+            if (Array.isArray(raw) && raw.length) {
+                frames = raw;
+            } else if (raw && typeof raw === "object" && Array.isArray(raw.frames) && raw.frames.length) {
+                frames = raw.frames;
+            }
+        }
+        if (!frames.length && Array.isArray(clip.frames) && clip.frames.length) {
+            frames = clip.frames;
+        }
+    }
+
+    const store = project?.pixellab_animations;
+    const v = encodeURIComponent(
+        [
+            project?.updated_at || "",
+            store && typeof store === "object" ? store.updated_at || "" : "",
+            block?.updated_at || "",
+            resolvedKey || "",
+            clip?.frame_count ?? "",
+            clip?.fps ?? "",
+        ].join("|"),
+    );
+    return frames.map((rel) => `${projectAsset(project, rel)}?v=${v}`);
+}
+
+/** Matches server ``pixellab_missing_canonical_animation_clips`` — idle + walk each need ≥1 direction with frames. */
+function pixellabMissingCanonicalAnimationClips(project) {
+    const anims = project?.pixellab_animations?.animations;
+    const required = ["idle", "walk"];
+    if (!anims || typeof anims !== "object") return required.slice();
+    const missing = [];
+    for (const name of required) {
+        const entry = anims[name];
+        if (!entry || typeof entry !== "object") {
+            missing.push(name);
+            continue;
+        }
+        const dirs = entry.directions;
+        if (!dirs || typeof dirs !== "object" || !Object.keys(dirs).length) {
+            missing.push(name);
+            continue;
+        }
+        let hasFrames = false;
+        for (const d of Object.keys(dirs)) {
+            const data = dirs[d];
+            const frames = data && Array.isArray(data.frames) ? data.frames : [];
+            if (frames.length > 0) {
+                hasFrames = true;
+                break;
+            }
+        }
+        if (!hasFrames) missing.push(name);
+    }
+    return missing;
+}
+
 function pixellabCharacterApproved(project) {
     if (!project) return false;
     if (project.pixellab_character_approved) return true;
@@ -3544,6 +3659,18 @@ function normalizeErrorMessage(message) {
     }
     if (text.includes("Export blocked: QA must pass first")) {
         return "Checks must pass before export is available.";
+    }
+    if (text.includes("Pixel Lab character approval is required")) {
+        return "Approve the character on the Character step before generating animations.";
+    }
+    if (text.includes("animate requires template_animation_id")) {
+        return "Pick a template in the Animations panel, then try Generate again.";
+    }
+    if (text.includes("Pixel Lab client unavailable") && text.includes("PIXELLAB_API_KEY")) {
+        return "Set PIXELLAB_API_KEY for the workbench server, or use debug_procedural in the project brief for offline tests.";
+    }
+    if (text.includes("Cannot identify image") || text.includes("not raw RGBA")) {
+        return "Pixel Lab returned an image the server could not decode. Check credits/API status; try again or use a smaller canvas.";
     }
     if (text.includes("Missing frame:")) {
         return "At least one animation frame is missing. Rebuild the animation and run checks again.";
@@ -6221,121 +6348,6 @@ function clearPixellabAnimTimer(clipName) {
     if (state.pixellabAnimTimers && Object.prototype.hasOwnProperty.call(state.pixellabAnimTimers, clipName)) {
         delete state.pixellabAnimTimers[clipName];
     }
-}
-
-function pixellabResolveDirectionBlock(directions, direction) {
-    const normDir = String(direction || "east").trim();
-    if (!directions || typeof directions !== "object") return { block: null, key: null };
-    if (Object.prototype.hasOwnProperty.call(directions, normDir)) {
-        return { block: directions[normDir], key: normDir };
-    }
-    const key = Object.keys(directions).find((k) => k.toLowerCase() === normDir.toLowerCase());
-    if (key) return { block: directions[key], key };
-    return { block: null, key: null };
-}
-
-function pixellabDirectionHasFramesInEntry(animEntry, direction) {
-    const dirs = animEntry?.directions;
-    const { block } = pixellabResolveDirectionBlock(dirs, direction);
-    const frames = block?.frames;
-    return Array.isArray(frames) && frames.length > 0;
-}
-
-function pixellabAnyDirectionHasFrames(animEntry) {
-    if (!animEntry?.directions || typeof animEntry.directions !== "object") return false;
-    return Object.keys(animEntry.directions).some((k) => {
-        const fr = animEntry.directions[k]?.frames;
-        return Array.isArray(fr) && fr.length > 0;
-    });
-}
-
-/** Prefer first character direction that actually has frames (custom anims are often east-only). */
-function pixellabFirstPreviewDirection(characterDirs, animEntry) {
-    const order = Array.isArray(characterDirs) && characterDirs.length ? characterDirs : ["east"];
-    for (const d of order) {
-        if (pixellabDirectionHasFramesInEntry(animEntry, d)) return d;
-    }
-    if (animEntry?.directions && typeof animEntry.directions === "object") {
-        for (const k of Object.keys(animEntry.directions)) {
-            const fr = animEntry.directions[k]?.frames;
-            if (Array.isArray(fr) && fr.length > 0) return k;
-        }
-    }
-    return order[0] || "east";
-}
-
-function pixellabPreviewFrameUrls(project, animName, direction) {
-    const normDir = String(direction || "east").trim();
-    const anim = project?.pixellab_animations?.animations?.[animName];
-    let block = null;
-    let resolvedKey = null;
-    if (anim?.directions) {
-        const r = pixellabResolveDirectionBlock(anim.directions, normDir);
-        block = r.block;
-        resolvedKey = r.key;
-    }
-    let frames = Array.isArray(block?.frames) ? block.frames : [];
-
-    const clip = project?.animation_clips?.[animName];
-    if (!frames.length && clip && typeof clip === "object") {
-        const byDir = clip.frames_by_direction;
-        if (byDir && typeof byDir === "object") {
-            const r2 = pixellabResolveDirectionBlock(byDir, normDir);
-            const raw = r2.block;
-            if (Array.isArray(raw) && raw.length) {
-                frames = raw;
-            } else if (raw && typeof raw === "object" && Array.isArray(raw.frames) && raw.frames.length) {
-                frames = raw.frames;
-            }
-        }
-        if (!frames.length && Array.isArray(clip.frames) && clip.frames.length) {
-            frames = clip.frames;
-        }
-    }
-
-    const store = project?.pixellab_animations;
-    const v = encodeURIComponent(
-        [
-            project?.updated_at || "",
-            store && typeof store === "object" ? store.updated_at || "" : "",
-            block?.updated_at || "",
-            resolvedKey || "",
-            clip?.frame_count ?? "",
-            clip?.fps ?? "",
-        ].join("|"),
-    );
-    return frames.map((rel) => `${projectAsset(project, rel)}?v=${v}`);
-}
-
-/** Matches server ``pixellab_missing_canonical_animation_clips`` — idle + walk each need ≥1 direction with frames. */
-function pixellabMissingCanonicalAnimationClips(project) {
-    const anims = project?.pixellab_animations?.animations;
-    const required = ["idle", "walk"];
-    if (!anims || typeof anims !== "object") return required.slice();
-    const missing = [];
-    for (const name of required) {
-        const entry = anims[name];
-        if (!entry || typeof entry !== "object") {
-            missing.push(name);
-            continue;
-        }
-        const dirs = entry.directions;
-        if (!dirs || typeof dirs !== "object" || !Object.keys(dirs).length) {
-            missing.push(name);
-            continue;
-        }
-        let hasFrames = false;
-        for (const d of Object.keys(dirs)) {
-            const data = dirs[d];
-            const frames = data && Array.isArray(data.frames) ? data.frames : [];
-            if (frames.length > 0) {
-                hasFrames = true;
-                break;
-            }
-        }
-        if (!hasFrames) missing.push(name);
-    }
-    return missing;
 }
 
 function renderPixellabAnimationsBoard() {
