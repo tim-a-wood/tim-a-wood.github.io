@@ -3713,8 +3713,8 @@ function wizardSummaryText(step) {
         case "animations":
             if (String(project.brief?.backend_mode || "") === "pixellab") {
                 const an = project.pixellab_animations?.animations || {};
-                const idleOk = Boolean(an.idle?.directions && Object.keys(an.idle.directions).length);
-                const walkOk = Boolean(an.walk?.directions && Object.keys(an.walk.directions).length);
+                const idleOk = pixellabAnyDirectionHasFrames(an.idle);
+                const walkOk = pixellabAnyDirectionHasFrames(an.walk);
                 const clips = project.animation_clips || {};
                 const built = Boolean(clips.idle && clips.walk);
                 return `${idleOk ? "idle frames" : "idle pending"} · ${walkOk ? "walk frames" : "walk pending"}${built ? " · clips built" : ""}`;
@@ -6223,17 +6223,85 @@ function clearPixellabAnimTimer(clipName) {
     }
 }
 
+function pixellabResolveDirectionBlock(directions, direction) {
+    const normDir = String(direction || "east").trim();
+    if (!directions || typeof directions !== "object") return { block: null, key: null };
+    if (Object.prototype.hasOwnProperty.call(directions, normDir)) {
+        return { block: directions[normDir], key: normDir };
+    }
+    const key = Object.keys(directions).find((k) => k.toLowerCase() === normDir.toLowerCase());
+    if (key) return { block: directions[key], key };
+    return { block: null, key: null };
+}
+
+function pixellabDirectionHasFramesInEntry(animEntry, direction) {
+    const dirs = animEntry?.directions;
+    const { block } = pixellabResolveDirectionBlock(dirs, direction);
+    const frames = block?.frames;
+    return Array.isArray(frames) && frames.length > 0;
+}
+
+function pixellabAnyDirectionHasFrames(animEntry) {
+    if (!animEntry?.directions || typeof animEntry.directions !== "object") return false;
+    return Object.keys(animEntry.directions).some((k) => {
+        const fr = animEntry.directions[k]?.frames;
+        return Array.isArray(fr) && fr.length > 0;
+    });
+}
+
+/** Prefer first character direction that actually has frames (custom anims are often east-only). */
+function pixellabFirstPreviewDirection(characterDirs, animEntry) {
+    const order = Array.isArray(characterDirs) && characterDirs.length ? characterDirs : ["east"];
+    for (const d of order) {
+        if (pixellabDirectionHasFramesInEntry(animEntry, d)) return d;
+    }
+    if (animEntry?.directions && typeof animEntry.directions === "object") {
+        for (const k of Object.keys(animEntry.directions)) {
+            const fr = animEntry.directions[k]?.frames;
+            if (Array.isArray(fr) && fr.length > 0) return k;
+        }
+    }
+    return order[0] || "east";
+}
+
 function pixellabPreviewFrameUrls(project, animName, direction) {
+    const normDir = String(direction || "east").trim();
     const anim = project?.pixellab_animations?.animations?.[animName];
-    const block = anim?.directions?.[direction];
-    const frames = Array.isArray(block?.frames) ? block.frames : [];
+    let block = null;
+    let resolvedKey = null;
+    if (anim?.directions) {
+        const r = pixellabResolveDirectionBlock(anim.directions, normDir);
+        block = r.block;
+        resolvedKey = r.key;
+    }
+    let frames = Array.isArray(block?.frames) ? block.frames : [];
+
+    const clip = project?.animation_clips?.[animName];
+    if (!frames.length && clip && typeof clip === "object") {
+        const byDir = clip.frames_by_direction;
+        if (byDir && typeof byDir === "object") {
+            const r2 = pixellabResolveDirectionBlock(byDir, normDir);
+            const raw = r2.block;
+            if (Array.isArray(raw) && raw.length) {
+                frames = raw;
+            } else if (raw && typeof raw === "object" && Array.isArray(raw.frames) && raw.frames.length) {
+                frames = raw.frames;
+            }
+        }
+        if (!frames.length && Array.isArray(clip.frames) && clip.frames.length) {
+            frames = clip.frames;
+        }
+    }
+
     const store = project?.pixellab_animations;
-    // project.updated_at is not bumped when only pixellab_animations.json changes — include store + per-direction timestamps for cache bust.
     const v = encodeURIComponent(
         [
             project?.updated_at || "",
             store && typeof store === "object" ? store.updated_at || "" : "",
             block?.updated_at || "",
+            resolvedKey || "",
+            clip?.frame_count ?? "",
+            clip?.fps ?? "",
         ].join("|"),
     );
     return frames.map((rel) => `${projectAsset(project, rel)}?v=${v}`);
@@ -6330,9 +6398,14 @@ function renderPixellabAnimationsBoard() {
 
     function clipCard(clipName, templates, defaultTemplate) {
         const meta = anims[clipName] || {};
-        const dirsInStore = meta.directions ? Object.keys(meta.directions) : [];
-        const defaultDir = dirsInStore.includes("east") ? "east" : (dirsInStore[0] || "east");
-        const dirOptions = (dirList && dirList.length ? dirList : ["east"]).map((d) => `<option value="${escapeHtml(d)}"${d === defaultDir ? " selected" : ""}>${humanizeKey(d)}</option>`).join("");
+        const previewDefault = pixellabFirstPreviewDirection(dirList, meta);
+        const dirOptions = (dirList && dirList.length ? dirList : ["east"])
+            .map((d) => {
+                const has = pixellabDirectionHasFramesInEntry(meta, d);
+                const label = `${humanizeKey(d)}${has ? "" : " (no frames)"}`;
+                return `<option value="${escapeHtml(d)}"${d === previewDefault ? " selected" : ""}>${escapeHtml(label)}</option>`;
+            })
+            .join("");
         const opts = templates.map((t) => `<option value="${escapeHtml(t)}"${t === defaultTemplate ? " selected" : ""}>${escapeHtml(t)}</option>`).join("");
         return `
         <div class="clip-control-card" style="margin-bottom:14px;" data-pixellab-clip-card="${clipName}">
