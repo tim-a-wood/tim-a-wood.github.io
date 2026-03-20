@@ -405,6 +405,12 @@ class PixelLabClient:
             "template_animation_id": template_animation_id,
         }
         payload.update(kwargs)
+        logger.info(
+            "Pixel Lab animate_character: POST /v2/characters/animations (http timeout=%ds, poll timeout=%ds) — "
+            "waiting for API to return job id(s)…",
+            self.timeout_seconds,
+            poll_timeout,
+        )
         accepted = self._request_json("POST", "/v2/characters/animations", payload)
         _log_pixellab_post_accepted("animate_character", accepted)
         multi_ids = self._extract_background_job_ids(accepted)
@@ -439,6 +445,11 @@ class PixelLabClient:
             "image_size": _normalize_size(image_size),
         }
         payload.update(kwargs)
+        logger.info(
+            "Pixel Lab animate_with_text_v2: POST starting (http timeout=%ds, poll timeout=%ds)…",
+            self.timeout_seconds,
+            poll_timeout,
+        )
         accepted = self._request_json("POST", "/v2/animate-with-text-v2", payload)
         _log_pixellab_post_accepted("animate_with_text_v2", accepted)
         job_id = self._extract_job_id(accepted)
@@ -460,6 +471,11 @@ class PixelLabClient:
             "skeleton_keypoints": skeleton_keypoints,
         }
         payload.update(kwargs)
+        logger.info(
+            "Pixel Lab animate_with_skeleton: POST starting (http timeout=%ds, poll timeout=%ds)…",
+            self.timeout_seconds,
+            poll_timeout,
+        )
         accepted = self._request_json("POST", "/v1/animate-with-skeleton", payload)
         _log_pixellab_post_accepted("animate_with_skeleton", accepted)
         job_id = self._extract_job_id(accepted)
@@ -505,6 +521,11 @@ class PixelLabClient:
             "image_size": _normalize_size(image_size),
         }
         payload.update(kwargs)
+        logger.info(
+            "Pixel Lab edit_animation_v2: POST starting (http timeout=%ds, poll timeout=%ds)…",
+            self.timeout_seconds,
+            poll_timeout,
+        )
         accepted = self._request_json("POST", "/v2/edit-animation-v2", payload)
         _log_pixellab_post_accepted("edit_animation_v2", accepted)
         job_id = self._extract_job_id(accepted)

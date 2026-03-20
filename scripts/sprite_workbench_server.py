@@ -158,7 +158,9 @@ def get_pixellab_client():
             _sys.path.insert(0, _project_root)
         from scripts.pixellab_client import PixelLabClient
 
-        _pixellab_client = PixelLabClient(api_key=PIXELLAB_API_KEY)
+        # Pixel Lab may keep the POST connection open a long time before returning job JSON.
+        _http_timeout = env_int("SPRITE_WORKBENCH_PIXELLAB_HTTP_TIMEOUT", 180, minimum=30)
+        _pixellab_client = PixelLabClient(api_key=PIXELLAB_API_KEY, timeout_seconds=_http_timeout)
     return _pixellab_client
 
 
