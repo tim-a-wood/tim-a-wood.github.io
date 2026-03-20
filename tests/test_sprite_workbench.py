@@ -290,6 +290,24 @@ class SpriteWorkbenchTests(unittest.TestCase):
         self.assertEqual(project["step_statuses"]["references"], "complete")
         self.assertEqual(project["wizard_state"]["current_step"], "concepts")
 
+    def test_wizard_navigate_back_preserves_completed_step(self):
+        """User can set current_step to a completed step; hydrate must not snap forward."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            original_root = sw.PROJECTS_ROOT
+            sw.PROJECTS_ROOT = Path(tmpdir)
+            try:
+                created = sw.create_project({
+                    "project_name": "Back Nav Hero",
+                    "prompt_text": "a side-view scout",
+                    "last_ui_mode": "wizard",
+                })
+                reloaded = sw.update_wizard_state(created["project_id"], {"current_step": "brief"})
+            finally:
+                sw.PROJECTS_ROOT = original_root
+
+        self.assertEqual(reloaded["wizard_state"]["current_step"], "brief")
+        self.assertEqual(reloaded["step_statuses"].get("brief"), "complete")
+
     def test_review_stays_locked_until_a_valid_import_exists_and_refine_step_is_gone(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             original_root = sw.PROJECTS_ROOT

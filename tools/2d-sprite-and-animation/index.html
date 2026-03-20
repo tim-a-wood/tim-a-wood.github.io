@@ -3910,6 +3910,7 @@ async function setUiMode(mode) {
 
 async function goToWizardStep(step) {
     const model = wizardModel();
+    // Server marks future steps "locked"; "complete" / "active" / "ready" / "attention" are navigable.
     if (model.step_statuses?.[step] === "locked") return;
     if (!state.activeProject) {
         state.uiMode = "wizard";

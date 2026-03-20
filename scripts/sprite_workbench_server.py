@@ -2929,11 +2929,13 @@ def compute_wizard_context(project: Dict[str, Any]) -> Dict[str, Any]:
             if step == "project":
                 step_statuses[step] = "complete"
                 continue
-            if blockers:
-                step_statuses[step] = "locked"
-                continue
+            # Completed steps stay navigable (user can go back); do not mark them locked
+            # just because prerequisites for a *fresh* visit would fail.
             if is_complete:
                 step_statuses[step] = "complete"
+                continue
+            if blockers:
+                step_statuses[step] = "locked"
                 continue
             if active_step is None:
                 step_statuses[step] = "active"
@@ -2948,7 +2950,12 @@ def compute_wizard_context(project: Dict[str, Any]) -> Dict[str, Any]:
                 blocking_reasons["export"] = ["QA must pass before export."]
         recommended_next_step = active_step or "export"
         persisted_step = wizard_state.get("current_step")
-        persisted_ok = persisted_step in WIZARD_STEPS_KNOWN and step_statuses.get(persisted_step) in {"active", "ready", "attention"}
+        persisted_ok = persisted_step in WIZARD_STEPS_KNOWN and step_statuses.get(persisted_step) in {
+            "active",
+            "ready",
+            "attention",
+            "complete",
+        }
         if persisted_ok:
             recommended_next_step = persisted_step
         wizard_state["current_step"] = persisted_step if persisted_ok else recommended_next_step
@@ -3029,11 +3036,11 @@ def compute_wizard_context(project: Dict[str, Any]) -> Dict[str, Any]:
         if step == "project":
             step_statuses[step] = "complete"
             continue
-        if blockers:
-            step_statuses[step] = "locked"
-            continue
         if is_complete:
             step_statuses[step] = "complete"
+            continue
+        if blockers:
+            step_statuses[step] = "locked"
             continue
         if active_step is None:
             step_statuses[step] = "active"
@@ -3047,7 +3054,7 @@ def compute_wizard_context(project: Dict[str, Any]) -> Dict[str, Any]:
             active_step = "qa"
             if step_statuses.get("export") != "complete":
                 step_statuses["export"] = "locked"
-                blocking_reasons["export"] = ["QA must pass before export."]
+            blocking_reasons["export"] = ["QA must pass before export."]
 
     if project.get("qa_report") and project.get("current_stage", "").startswith("production_"):
         step_statuses["qa"] = "attention"
@@ -3055,7 +3062,12 @@ def compute_wizard_context(project: Dict[str, Any]) -> Dict[str, Any]:
 
     recommended_next_step = active_step or "export"
     persisted_step = wizard_state.get("current_step")
-    persisted_ok = persisted_step in WIZARD_STEPS_KNOWN and step_statuses.get(persisted_step) in {"active", "ready", "attention"}
+    persisted_ok = persisted_step in WIZARD_STEPS_KNOWN and step_statuses.get(persisted_step) in {
+        "active",
+        "ready",
+        "attention",
+        "complete",
+    }
     if persisted_ok:
         recommended_next_step = persisted_step
 
@@ -6465,7 +6477,8 @@ def create_project(payload: Dict[str, Any]) -> Dict[str, Any]:
         "negative_prompt",
     ]):
         wizard_state = set_wizard_step_complete(wizard_state, "brief")
-        wizard_state["current_step"] = "references"
+        # References are optional once a brief exists; land on Concepts (tests + UX).
+        wizard_state["current_step"] = "concepts"
 
     project = {
         "project_id": project_id,
@@ -6507,7 +6520,7 @@ def update_project_brief(project_id: str, payload: Dict[str, Any]) -> Dict[str, 
     project["status"] = "ready_for_concepts"
     project["wizard_state"] = set_wizard_step_complete(project.get("wizard_state"), "brief")
     if project["last_ui_mode"] == "wizard" and project["wizard_state"]["current_step"] in {"project", "brief"}:
-        project["wizard_state"]["current_step"] = "references"
+        project["wizard_state"]["current_step"] = "concepts"
     save_project(project)
     return load_project(project_id)
 
