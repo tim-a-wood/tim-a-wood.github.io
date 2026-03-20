@@ -1527,9 +1527,10 @@ class SpriteWorkbenchTests(unittest.TestCase):
         b64 = base64.b64encode(buf.getvalue()).decode("ascii")
         directions = ["south", "east"]
         result = {"images": {d: {"type": "base64", "base64": b64} for d in directions}}
-        out = sw._extract_pixellab_character_direction_images_b64(result, directions, client=None)
+        out = sw._extract_pixellab_character_direction_image_bytes(result, directions, client=None)
         self.assertEqual(len(out), 2)
-        self.assertEqual(out[0], b64)
+        self.assertEqual(out[0], buf.getvalue())
+        self.assertEqual(out[1], buf.getvalue())
 
     def test_extract_pixellab_character_rotation_urls_fallback(self):
         tiny = Image.new("RGBA", (1, 1), (1, 2, 3, 4))
@@ -1551,13 +1552,14 @@ class SpriteWorkbenchTests(unittest.TestCase):
 
         with patch.object(sw, "_download_url_bytes", return_value=png_bytes):
             result = {"character_id": "char-123", "status": "completed"}
-            out = sw._extract_pixellab_character_direction_images_b64(
+            out = sw._extract_pixellab_character_direction_image_bytes(
                 result,
                 ["south", "east"],
                 client=FakeClient(),
             )
         self.assertEqual(len(out), 2)
-        self.assertTrue(out[0].startswith("iVBORw"))
+        self.assertEqual(out[0], png_bytes)
+        self.assertEqual(out[1], png_bytes)
 
     def test_extract_unwraps_background_job_last_response_for_character_id(self):
         """Pixel Lab GET /v2/background-jobs/{id} nests payload under ``last_response``."""
@@ -1587,13 +1589,33 @@ class SpriteWorkbenchTests(unittest.TestCase):
             "last_response": {"character_id": "char-from-last-response"},
         }
         with patch.object(sw, "_download_url_bytes", return_value=png_bytes):
-            out = sw._extract_pixellab_character_direction_images_b64(
+            out = sw._extract_pixellab_character_direction_image_bytes(
                 wrapped,
                 ["south", "east"],
                 client=fc,
             )
         self.assertEqual(len(out), 2)
         self.assertEqual(fc.seen_id, "char-from-last-response")
+        self.assertEqual(out[0], png_bytes)
+
+    def test_extract_pixellab_images_map_per_direction_url(self):
+        tiny = Image.new("RGBA", (1, 1), (9, 8, 7, 255))
+        png_buf = io.BytesIO()
+        tiny.save(png_buf, format="PNG")
+        png_bytes = png_buf.getvalue()
+
+        class FakeClient:
+            api_key = "k"
+
+        with patch.object(sw, "_download_url_bytes", return_value=png_bytes) as dl:
+            result = {"images": {"south": {"url": "https://cdn.example/s.png"}}}
+            out = sw._extract_pixellab_character_direction_image_bytes(
+                result,
+                ["south"],
+                client=FakeClient(),
+            )
+        self.assertEqual(out, [png_bytes])
+        dl.assert_called_once()
 
     def test_pixellab_poll_job_prefers_last_response(self):
         client = pl.PixelLabClient("fake-key")

@@ -3695,16 +3695,48 @@ def _find_first_base64_png_like(payload: Any) -> Optional[str]:
     return None
 
 
+def _decode_base64_to_bytes_loose(value: str) -> bytes:
+    """Decode base64 with whitespace stripped and padding fixed (Pixel Lab / browsers vary)."""
+    t = str(value).strip()
+    if "base64," in t:
+        t = t.split("base64,", 1)[1].strip()
+    t = re.sub(r"\s+", "", t)
+    pad = (-len(t)) % 4
+    if pad:
+        t += "=" * pad
+    return base64.b64decode(t, validate=False)
+
+
+def _pixellab_open_image_bytes(raw: bytes, *, where: str) -> Image.Image:
+    """
+    Open image bytes from Pixel Lab (PNG/WebP/JPEG). Raises ValueError with context if not image data.
+    """
+    if not raw:
+        raise ValueError("Empty image payload %s" % where)
+    head = raw[: min(24, len(raw))]
+    if raw[:1] in (b"{", b"["):
+        snippet = raw[:400].decode("utf-8", "replace")
+        raise ValueError("Expected image %s but received JSON/text: %s" % (where, snippet))
+    lower = raw[:32].lower()
+    if lower.startswith(b"<!doctype") or lower.startswith(b"<html"):
+        snippet = raw[:400].decode("utf-8", "replace")
+        raise ValueError("Expected image %s but received HTML (wrong URL or auth?): %s" % (where, snippet))
+    try:
+        with Image.open(io.BytesIO(raw)) as loaded:
+            return loaded.convert("RGBA")
+    except Exception as exc:
+        raise ValueError(
+            "Cannot identify image file %s (%d bytes, starts with %r): %s"
+            % (where, len(raw), head, exc)
+        ) from exc
+
+
 def _decode_base64_image_to_rgba(image_b64: str) -> Image.Image:
     """
     Decode base64 image into RGBA PIL image.
     """
-    s = image_b64.strip()
-    if "base64," in s:
-        s = s.split("base64,", 1)[1].strip()
-    raw = base64.b64decode(s)
-    with Image.open(io.BytesIO(raw)) as loaded:
-        return loaded.convert("RGBA")
+    raw = _decode_base64_to_bytes_loose(image_b64)
+    return _pixellab_open_image_bytes(raw, where="(base64 image)")
 
 
 def _normalize_pixellab_image_base64(value: Any) -> Optional[str]:
@@ -3715,7 +3747,8 @@ def _normalize_pixellab_image_base64(value: Any) -> Optional[str]:
         s = value.strip()
         if "base64," in s:
             s = s.split("base64,", 1)[1].strip()
-        return s if len(s) > 40 else None
+        s = re.sub(r"\s+", "", s)
+        return s if len(s) > 12 else None
     if isinstance(value, dict):
         inner = value.get("base64") or value.get("b64") or value.get("data")
         if isinstance(inner, str):
@@ -3740,7 +3773,10 @@ def _collect_nested_images_dict(payload: Any) -> Optional[Dict[str, Any]]:
 
 
 def _download_url_bytes(url: str, *, bearer: Optional[str] = None, timeout: int = 90) -> bytes:
-    headers = {"User-Agent": "MV-sprite-workbench/1.0 (Pixel Lab asset fetch)"}
+    headers = {
+        "User-Agent": "MV-sprite-workbench/1.0 (Pixel Lab asset fetch)",
+        "Accept": "image/png,image/webp,image/jpeg,image/*;q=0.9,*/*;q=0.5",
+    }
     if bearer:
         headers["Authorization"] = "Bearer %s" % bearer
     req = Request(url, headers=headers, method="GET")
@@ -3748,12 +3784,12 @@ def _download_url_bytes(url: str, *, bearer: Optional[str] = None, timeout: int 
         return resp.read()
 
 
-def _extract_pixellab_character_direction_images_b64(
+def _extract_pixellab_character_direction_image_bytes(
     result: Any,
     direction_list: List[str],
     *,
     client: Any,
-) -> List[str]:
+) -> List[bytes]:
     """
     After async create-character completes, Pixel Lab returns either:
     - ``images``: {direction: Base64Image | data-URI str, ...}
@@ -3767,12 +3803,27 @@ def _extract_pixellab_character_direction_images_b64(
 
     images_block = _collect_nested_images_dict(result)
     if images_block:
-        out: List[str] = []
+        out: List[bytes] = []
+        bearer = getattr(client, "api_key", None) if client is not None else None
         for d in direction_list:
-            b64 = _normalize_pixellab_image_base64(images_block.get(d))
-            if not b64:
-                return []
-            out.append(b64)
+            cell = images_block.get(d)
+            raw_dir: Optional[bytes] = None
+            if isinstance(cell, dict):
+                u = cell.get("url") or cell.get("image_url") or cell.get("href") or cell.get("signed_url")
+                if isinstance(u, str) and u.strip():
+                    try:
+                        raw_dir = _download_url_bytes(u.strip(), bearer=bearer)
+                    except Exception:
+                        raw_dir = None
+            if raw_dir is None:
+                b64s = _normalize_pixellab_image_base64(cell)
+                if not b64s:
+                    return []
+                try:
+                    raw_dir = _decode_base64_to_bytes_loose(b64s)
+                except Exception:
+                    return []
+            out.append(raw_dir)
         if len(out) == len(direction_list):
             return out
 
@@ -3796,7 +3847,7 @@ def _extract_pixellab_character_direction_images_b64(
             urls = detail.get("rotation_urls") or detail.get("rotationUrls")
         if isinstance(urls, dict):
             bearer = getattr(client, "api_key", None)
-            out2: List[str] = []
+            out2: List[bytes] = []
             for d in direction_list:
                 u = urls.get(d)
                 if not isinstance(u, str) or not u.strip():
@@ -3805,7 +3856,7 @@ def _extract_pixellab_character_direction_images_b64(
                     raw = _download_url_bytes(u.strip(), bearer=bearer)
                 except Exception:
                     return []
-                out2.append(base64.b64encode(raw).decode("ascii"))
+                out2.append(raw)
             if len(out2) == len(direction_list):
                 return out2
 
@@ -13451,7 +13502,6 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                     ]
                 )
 
-                images_b64: List[str] = []
                 try:
                     from scripts.pixellab_client import base64_image_payload
 
@@ -13481,12 +13531,12 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                 except Exception as exc:
                     raise ValueError("Pixel Lab create-character failed: %s" % str(exc))
 
-                images_b64 = _extract_pixellab_character_direction_images_b64(
+                images_bytes = _extract_pixellab_character_direction_image_bytes(
                     result,
                     direction_list,
                     client=client,
                 )
-                if len(images_b64) < len(direction_list):
+                if len(images_bytes) < len(direction_list):
                     raise ValueError(
                         "Pixel Lab create-character response did not contain enough direction images to map into %s "
                         "(expected per-direction ``images`` or fetchable ``rotation_urls`` via ``character_id``)."
@@ -13498,7 +13548,10 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                 assets_dir.mkdir(parents=True, exist_ok=True)
                 images_map: Dict[str, str] = {}
                 for idx, d in enumerate(direction_list):
-                    img = _decode_base64_image_to_rgba(images_b64[idx])
+                    img = _pixellab_open_image_bytes(
+                        images_bytes[idx],
+                        where="Pixel Lab direction %s" % d,
+                    )
                     asset_path = assets_dir / ("%s.png" % d)
                     img.save(asset_path)
                     images_map[d] = str(asset_path.relative_to(project_dir))
