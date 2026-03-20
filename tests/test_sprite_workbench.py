@@ -1486,6 +1486,18 @@ class SpriteWorkbenchTests(unittest.TestCase):
         self.assertEqual(decoded.size, (8, 8))
         self.assertEqual(decoded.getpixel((0, 0)), (255, 0, 0, 128))
 
+    def test_pixellab_client_encode_image_accepts_path(self):
+        client = pl.PixelLabClient("fake-key")
+        with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp:
+            file_path = Path(tmp.name)
+        try:
+            Image.new("RGB", (4, 4), (0, 255, 0)).save(file_path)
+            b64_path = client.encode_image(file_path)
+            b64_str = client.encode_image(str(file_path))
+            self.assertEqual(b64_path, b64_str)
+        finally:
+            file_path.unlink(missing_ok=True)
+
     def test_pixellab_client_get_balance_parses_json(self):
         client = pl.PixelLabClient("fake-key")
 

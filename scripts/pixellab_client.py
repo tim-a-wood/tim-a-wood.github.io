@@ -12,8 +12,10 @@ from __future__ import annotations
 import base64
 import io
 import json
+import os
 import time
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, Dict, Optional, Tuple, Union
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
@@ -185,15 +187,16 @@ class PixelLabClient:
     # -----------------------------
     # Helpers
     # -----------------------------
-    def encode_image(self, path_or_pil: Union[str, Image.Image]) -> str:
-        if isinstance(path_or_pil, str):
-            with open(path_or_pil, "rb") as f:
-                raw = f.read()
-        else:
+    def encode_image(self, path_or_pil: Union[str, Path, Image.Image]) -> str:
+        # PIL Image must be checked before Path: pathlib.Path is not str but is also not Image.
+        if isinstance(path_or_pil, Image.Image):
             buf = io.BytesIO()
             # PNG keeps alpha if present.
             path_or_pil.save(buf, format="PNG")
             raw = buf.getvalue()
+        else:
+            with open(os.fspath(path_or_pil), "rb") as f:
+                raw = f.read()
         return base64.b64encode(raw).decode("ascii")
 
     def decode_image(self, image_b64: str) -> Image.Image:
