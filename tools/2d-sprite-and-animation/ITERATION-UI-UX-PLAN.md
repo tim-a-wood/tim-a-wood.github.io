@@ -174,84 +174,205 @@ The prototypes are **non-functional** (no JavaScript polling, no API calls) but 
 
 **Sprint 0 is done when:** Product Owner has selected a design direction and confirmed any specific hybrid choices. Agent records the decision in a `## Approved Direction` section at the bottom of this file before proceeding to Sprint 1.
 
+**Sprint 0 status: COMPLETE.** Six prototypes were delivered (3 round-1 options + 3 round-2 hybrids in `design-options/round-2/`). Approved direction recorded in Appendix B.
+
 ---
 
 ## Sprint 1 — Design System Foundation + App Shell
 
-**Prerequisite:** Sprint 0 approved direction is recorded in this file.
+**Prerequisite:** Sprint 0 approved direction is recorded in this file. ✅
 
-**Objective:** Replace the current CSS design system and app shell structure in `index.html` with the approved design language. All five phases must be navigable and the page must load without errors. No panel content is restyled in this sprint — only the shell (sidebar/nav, outer chrome, typography scale, colour tokens, spacing system, and the status/context bar).
+**Objective:** Replace the current CSS design system and app shell structure in `index.html` with the approved `hybrid-3-flightdeck` design language. All five phases must be navigable and the page must load without errors. No panel content is restyled in this sprint — only the shell (sidebar, outer chrome, typography scale, colour tokens, spacing system, hero header, phase rail, status row, activity-row strip, and mobile navigation).
+
+**Reference file:** `design-options/round-2/hybrid-3-flightdeck.html` — treat this as the authoritative visual spec for all shell elements in this sprint.
 
 **Agent instructions:**
 
 ### 1.1 CSS design system
 
-Replace the `:root` CSS variables block with the approved design language's token set. At minimum define:
+Replace the `:root` CSS variables block with the flightdeck token set. Use these exact values (taken directly from the approved prototype):
 
+```css
+--bg: #0d1117;
+--bg-gradient: radial-gradient(circle at top right, rgba(68,147,248,0.14), transparent 24%),
+               linear-gradient(180deg, #0a1016, #0d1117 46%, #101824);
+--panel: rgba(22, 30, 42, 0.96);
+--panel-soft: #111722;
+--border: rgba(255,255,255,0.09);
+--border-strong: rgba(255,255,255,0.18);
+--text: #e6edf3;
+--text-muted: #8b949e;
+--text-faint: rgba(139,148,158,0.55);
+--accent: #4493f8;
+--accent-hover: #5aa3ff;
+--accent-soft: rgba(68,147,248,0.16);
+--success: #3fb950;
+--success-soft: rgba(63,185,80,0.16);
+--warning: #d29922;
+--warning-soft: rgba(210,153,34,0.16);
+--error: #f85149;
+--error-soft: rgba(248,81,73,0.16);
+--radius-sm: 14px;
+--radius-md: 18px;
+--radius-lg: 20px;
+--space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px;
+--space-5: 24px; --space-6: 32px; --space-7: 48px; --space-8: 64px;
+--font-sans: "IBM Plex Sans", Inter, -apple-system, sans-serif;
+--font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+--font-size-xs: 11px; --font-size-sm: 13px; --font-size-base: 14px;
+--font-size-md: 15px; --font-size-lg: 18px; --font-size-xl: 22px;
+--shadow-sm: 0 2px 8px rgba(0,0,0,0.18);
+--shadow-md: 0 6px 20px rgba(0,0,0,0.26);
+--shadow-lg: 0 12px 40px rgba(0,0,0,0.38);
+--transition-fast: 120ms ease;
+--transition-base: 200ms ease;
 ```
---bg, --bg-soft, --bg-raised
---surface, --surface-hover
---border, --border-strong
---text, --text-muted, --text-faint
---accent, --accent-hover, --accent-soft
---success, --success-soft
---warning, --warning-soft
---error, --error-soft
---radius-sm, --radius-md, --radius-lg
---space-1 through --space-8 (4px scale: 4, 8, 12, 16, 24, 32, 48, 64)
---font-sans, --font-mono
---font-size-xs (11px), --font-size-sm (13px), --font-size-base (14px), --font-size-md (15px), --font-size-lg (18px), --font-size-xl (22px)
---shadow-sm, --shadow-md, --shadow-lg
---transition-fast (120ms ease), --transition-base (200ms ease)
+
+Apply `background: var(--bg-gradient)` to `body`.
+
+### 1.2 App shell — collapsible sidebar
+
+Implement the two-state sidebar from the prototype:
+
+- **Expanded:** `grid-template-columns: 300px minmax(0, 1fr)` on `.app`
+- **Collapsed:** `.app.sidebar-collapsed` → `grid-template-columns: 64px minmax(0, 1fr)`; sidebar shows only the `rail-toggle` button and a vertical "Projects" label (`.collapsed-mark`)
+- **Transition:** `transition: grid-template-columns 180ms ease` on `.app`; `transition: padding 180ms ease, opacity 180ms ease` on `.sidebar`
+- When collapsed, hide `.sidebar-copy` (brand text, project cards) — show only the toggle button and collapsed mark
+- Brand area: `<strong>` label ("Sprite Workbench") above `<h1>` project name; `rail-toggle` button (36×36px, `border-radius: 12px`) in the top-right of the brand row
+
+### 1.3 Sidebar toggle — JS wiring
+
+Wire the `rail-toggle` button to toggle `.sidebar-collapsed` on `.app`:
+
+```javascript
+// Persist state to localStorage
+const SIDEBAR_KEY = 'spriteWorkbench.sidebarCollapsed';
+function initSidebarToggle() {
+  const app = document.querySelector('.app');
+  const btn = document.querySelector('.rail-toggle');
+  if (!app || !btn) return;
+  if (localStorage.getItem(SIDEBAR_KEY) === '1') app.classList.add('sidebar-collapsed');
+  btn.addEventListener('click', () => {
+    const collapsed = app.classList.toggle('sidebar-collapsed');
+    localStorage.setItem(SIDEBAR_KEY, collapsed ? '1' : '0');
+    btn.setAttribute('aria-label', collapsed ? 'Expand project panel' : 'Collapse project panel');
+  });
+}
 ```
 
-### 1.2 App shell
+Call `initSidebarToggle()` during page initialisation (alongside other `init*` calls).
 
-Implement the approved navigation paradigm for the app shell:
-- Sidebar structure (if retained) or replacement nav component
-- Phase navigation list/rail/tabs with correct active/complete/locked states driven by existing JS state
-- Project selector/list in its approved position
-- Brand mark
+### 1.4 Hero header — process-forward, wired to live project data (Option B)
 
-### 1.3 Context / status bar
+The hero header is a two-column section at the top of the main content column:
 
-Replace the existing `.status-row` and `.metric-grid` sections with the approved compact status presentation (context bar, tray, or header bar per the chosen option). Wire the same JS update functions (`renderStatus()`) to the new elements by keeping the same element IDs where possible, or updating the JS to target new IDs.
+**Left column** (text + CTAs):
+- An overline chip showing the active phase name (e.g., "Animations" with `.chip.active` styling)
+- `<h2>` with the active project name (or "No project selected" when none)
+- A short one-line description drawn from the project brief (first sentence of `project.brief.description`, truncated at 120 chars)
+- Two CTA buttons: "Resume current phase" (primary, scrolls to the active phase panel) and "Open latest assets" (secondary, scrolls to `#review-export`)
 
-### 1.4 Typography
+**Right column** (`.header-console`) — wired to real data:
+- Three `.console-mini` stat cards: "Current phase" (active phase name), "Current step" (current wizard step label), "Credits" (Pixel Lab credit balance from `renderStatus()` data)
+- `.preview-stage` canvas area:
+  - If a character sprite exists (`pixellabCharacterAssetVersion(project)` is set): display the approved east-facing character sprite frame as an `<img>` — source the URL using the existing `animationClipFramePreviewUrl()` pattern
+  - If no sprite: show the decorative CSS placeholder silhouette from the prototype (the `::before`/`::after` pseudo-element stick figure)
+  - `.output-stack` on the right of the canvas: show up to 3 output status lines drawn from `animation_clips` data — each showing clip name + status ("Ready" / "Generating" / "Blocked")
+  - If no project is selected: show the decorative placeholder with greyed-out output stack
 
-Apply the approved type scale. Ensure:
-- Headings use the approved font and size
-- Body text is the approved size and line-height
-- Monospace sections (prompts, JSON, paths) use `--font-mono`
+Write a `renderHeroHeader(project)` function that populates all live elements. Call it from within the existing `renderStatus()` function so it updates whenever project state refreshes. Keep the hero header section ID as `id="hero"` for targeting.
 
-### 1.5 Mobile shell
+### 1.5 Phase rail
 
-Implement the mobile navigation approach for ≤430px as defined by the chosen option. The mobile shell must be fully functional (open/close, navigate between phases).
+Replace the existing `.mode-shell` panel and anchor-link nav with the flightdeck phase rail:
 
-### 1.6 Preservation rules
+```html
+<nav class="phase-rail" id="phase-rail" aria-label="Phase navigation">
+  <!-- 5 phase pills, generated by renderPhaseRail() -->
+</nav>
+```
+
+Each pill: numbered circle (01–05) + phase name + one-line description (e.g., "Creative brief", "Pick the look", "Lock identity", "Motion passes", "Package output").
+
+Phase states on the pill:
+- **Active:** `.phase-pill.active` — filled blue circle number, accent border on card
+- **Complete:** `.phase-pill.complete` — checkmark replaces the number, muted accent border
+- **Locked:** `.phase-pill.locked` — `opacity: 0.5`, `pointer-events: none`
+- **Available:** default — no modifier class
+
+Clicking a pill scrolls smoothly to the corresponding panel. Derive state from `project.wizard_state` (same logic as the existing `renderModeShell()`). Replace `renderModeShell()` with a new `renderPhaseRail(project)` function; preserve the same call sites.
+
+Remove the old `.mode-shell` panel and the `.status-row` / `.metric-grid` sections from the HTML — their data is now surfaced in the hero header and status row below the phase rail.
+
+### 1.6 Status row
+
+Keep the 5-card status row immediately below the phase rail, restyled to match the flightdeck prototype. Element IDs (`status-project`, `status-stage`, `status-backend`, `status-pixellab-credits`, `status-qa`) must be preserved — `renderStatus()` targets them by ID and must continue to work without changes to that function.
+
+CSS update: replace the existing `.status-card` with `.status` styling from the prototype (`--panel-soft` background, `border-radius: 16px`, uppercase `11px` label, `margin-top: 8px` on the value).
+
+### 1.7 Activity-row — pipeline history strip
+
+Add a new `.activity-row` component below the status row (and above the first phase panel). This is a 4-card horizontal strip showing the top-level pipeline stage history:
+
+```html
+<section class="activity-row" id="pipeline-strip">
+  <!-- populated by renderPipelineStrip(project) -->
+</section>
+```
+
+The four pipeline stages to show: **Brief** → **Concepts** → **Character** → **Animations & Export**.
+
+Each card shows:
+- Stage name (bold)
+- Status line (muted): "Done" / "In progress" / "Not started" / "Blocked"
+- Active stage card gets `.activity.active` treatment: accent-tinted border + subtle blue gradient background
+
+Write `renderPipelineStrip(project)` to derive stage status from `project.wizard_state`. The stages map as:
+- Brief: done if `wizard_state.intake === 'complete'`
+- Concepts: done if `wizard_state.concepts === 'complete'` (or a concept is approved)
+- Character: done if `pixellabCharacterApproved(project)` returns true
+- Animations & Export: done if `project.exported` is set; "In progress" if `animation_clips` exist; otherwise "Not started"
+
+Call `renderPipelineStrip(project)` from the existing `renderStatus()` call site.
+
+### 1.8 Mobile shell
+
+For `≤430px`:
+- Hide the sidebar: `display: none` on `.sidebar`
+- Show `.mobile-project` strip at the top of `<main>` — a single card showing "Projects" label + active project name. Add `display: none` on `.mobile-project` at `≥431px` (missing from the prototype; add it now)
+- Phase rail: horizontal scroll strip (`display: flex; overflow-x: auto`) — each pill has `min-width: 248px` so one-and-a-half pills are visible at once, signalling scrollability
+- Fixed bottom tab bar (`.mobile-tabs`): 5 phase icon labels, active phase highlighted with `--accent-soft` background. Tapping a tab scrolls to the corresponding panel
+
+### 1.9 Preservation rules
 
 - All panel section IDs (`#intake`, `#concepts`, `#character`, `#animations`, `#review-export`, `#activity-log`) must be preserved
 - All JS event listeners and API wiring must continue to function — CSS class/ID renames must be reflected in JS
-- Wizard mode switching (`isWizardMode()`, body class toggling) must continue to work
+- `renderStatus()` must continue to update element IDs it already targets; add new `renderHeroHeader()` and `renderPipelineStrip()` calls inside it rather than replacing it
+- The old `wizard-mode` body class and `data-wizard-view` attribute logic can be removed if the phase rail replaces the wizard stepper entirely — but do not remove it until confirmed that no panel visibility logic depends on it exclusively. Audit first; note findings in Appendix B.
 
 ---
 
 ### Sprint 1 Demo
 
-**Agent must prepare:**
-1. `index.html` loads cleanly in browser with no console errors
-2. All five phases are visible in the new navigation — clicking each scrolls to the correct panel
-3. A project can be selected from the project list/selector — the status bar updates to show the project name
-4. The page renders correctly at 1280px (MacBook Air) and 393px (iPhone portrait)
-5. The activity dock remains visible and styled correctly
+**Agent must prepare — open `index.html` in a browser with the server running:**
 
-**Product Owner evaluates at demo:**
-- Does the shell feel right? Is this the design language we approved?
-- Is the phase navigation clear and easy to use?
-- Is the status/context information legible without being overwhelming?
-- Does the mobile shell feel native?
+1. **Shell loads:** Page loads with no console errors; flightdeck colour tokens visible (dark blue background, blue accent)
+2. **Sidebar collapse:** Click the `rail-toggle` button — sidebar collapses to 64px with vertical "Projects" label; click again — expands. Reload the page — previous state is restored from localStorage
+3. **Hero header (no project):** With no project selected, hero shows "No project selected" heading + decorative sprite placeholder in the preview stage
+4. **Hero header (project selected):** Select a project that has a character approved — hero updates to show project name, brief excerpt, real phase/step/credit stats, character sprite in preview stage, and clip output statuses
+5. **Phase rail:** All 5 phase pills render with correct locked/complete/active states for the selected project; clicking each pill smooth-scrolls to the correct panel
+6. **Status row:** 5 cards below the phase rail update correctly when project is selected
+7. **Pipeline strip:** 4 activity cards show correct Done/In progress/Not started states for the selected project; active stage card has accent treatment
+8. **Mobile (resize to 393px):** Sidebar hidden; mobile-project strip visible; phase rail scrolls horizontally; bottom tab bar visible with active phase highlighted
 
-**Sprint 1 is done when:** Product Owner approves the shell. Agent notes any approved deviations in a `## Sprint 1 Approved Changes` section at the bottom of this file.
+**Product Owner evaluates:**
+- Does the shell match the flightdeck prototype? Does it feel right?
+- Does the hero header feel like useful "mission control" — not decorative noise?
+- Is the sidebar collapse smooth and satisfying?
+- Does the pipeline strip give a useful at-a-glance of where the project stands?
+- Does the mobile shell feel native and complete?
+
+**Sprint 1 is done when:** Product Owner approves the shell. Agent notes any approved deviations in the `### Sprint 1 Approved Changes` section in Appendix B.
 
 ---
 
@@ -597,6 +718,7 @@ Tab through the Describe panel and confirm visible focus rings on all inputs and
 - Colour direction: use the Atlas blue/green palette rather than the warmer Studio palette
 - Header direction: keep the process-forward graphical header that previews production state and outputs
 - Sidebar requirement: the left project panel must be collapsible toward the left edge as part of the app shell
+- **Hero header data (Sprint 1 PO decision):** Option B — hero preview stage and stat cards must be wired to live project data. If a character sprite exists, display it; if not, show the decorative placeholder. Output stack shows real clip statuses.
 
 ### Sprint 1 Approved Changes
 *(to be filled after Sprint 1)*
