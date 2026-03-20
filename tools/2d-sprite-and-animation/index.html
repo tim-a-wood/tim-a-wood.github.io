@@ -263,6 +263,63 @@
             max-height: 360px;
             border-radius: 8px;
         }
+        .concept-large-preview--main {
+            flex-direction: column;
+            align-items: stretch;
+            justify-content: flex-start;
+            padding: 0;
+            gap: 8px;
+            background: transparent;
+            min-height: min(72vh, calc(100dvh - 13rem));
+        }
+        .concept-preview-hint {
+            margin: 0;
+            padding: 0 2px;
+            flex-shrink: 0;
+        }
+        .concept-preview-viewport {
+            position: relative;
+            flex: 1 1 auto;
+            min-height: min(58vh, calc(100dvh - 16rem));
+            overflow: hidden;
+            touch-action: none;
+            border-radius: 10px;
+            background: rgba(0, 0, 0, 0.28);
+            cursor: grab;
+        }
+        .concept-preview-viewport.is-dragging {
+            cursor: grabbing;
+        }
+        .concept-preview-stage {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transform-origin: center center;
+            will-change: transform;
+        }
+        .concept-preview-stage img {
+            max-width: 100%;
+            max-height: 100%;
+            width: auto;
+            height: auto;
+            object-fit: contain;
+            border-radius: 8px;
+            pointer-events: none;
+            user-select: none;
+            -webkit-user-drag: none;
+        }
+        .concept-preview-toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+        .concept-preview-toolbar button {
+            min-width: 2.25rem;
+        }
         /* Selected preview dominates; unselected concepts stay compact in a narrow column */
         .concept-browser-layout {
             grid-template-columns: minmax(0, 1fr) minmax(200px, 17rem);
@@ -274,15 +331,17 @@
                 grid-template-columns: 1fr;
             }
         }
-        .concept-browser-layout .concept-large-preview {
-            min-height: min(48vh, 420px);
-            padding: 14px 16px;
+        .concept-browser-layout > div:first-child {
+            display: flex;
+            flex-direction: column;
+            min-height: min(74vh, calc(100dvh - 11rem));
         }
-        .concept-browser-layout .concept-large-preview img {
-            max-height: min(70vh, 720px);
-            max-width: 100%;
-            width: auto;
-            object-fit: contain;
+        .concept-browser-layout .concept-large-preview--main {
+            flex: 1 1 auto;
+            min-height: min(68vh, calc(100dvh - 12rem));
+        }
+        .concept-browser-layout .concept-preview-viewport {
+            min-height: min(52vh, calc(100dvh - 18rem));
         }
         .concept-browser-layout .concept-grid {
             grid-template-columns: 1fr;
@@ -2871,8 +2930,22 @@
                             <h3 style="font-size: 0.98rem;">Selected preview</h3>
                         </div>
                     </div>
-                    <div id="concept-large-preview" class="concept-large-preview">
-                        <div class="empty">Select a concept below.</div>
+                    <div id="concept-large-preview" class="concept-large-preview concept-large-preview--main">
+                        <div class="empty" data-concept-preview-empty>Select a concept below.</div>
+                        <div class="concept-preview-stack" data-concept-preview-stack hidden>
+                            <p class="concept-preview-hint small-note">Scroll or pinch to zoom · drag to pan · double-click or <strong>Reset view</strong> to fit.</p>
+                            <div class="concept-preview-viewport" data-concept-preview-viewport tabindex="0" role="img" aria-label="Selected concept preview">
+                                <div class="concept-preview-stage" data-concept-preview-stage>
+                                    <img alt="" data-concept-preview-img draggable="false" />
+                                </div>
+                            </div>
+                            <div class="concept-preview-toolbar">
+                                <button type="button" class="secondary" data-concept-preview-out title="Zoom out">−</button>
+                                <button type="button" class="secondary" data-concept-preview-in title="Zoom in">+</button>
+                                <button type="button" class="secondary" data-concept-preview-fit title="Reset pan and zoom">Reset view</button>
+                                <span class="small-note" data-concept-preview-label>100%</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div>
@@ -3699,6 +3772,10 @@ const state = {
     lastIterationScaffold: null,
     conceptUiSelectedId: null,
     lastIteratedConceptId: null,
+    conceptPreviewZoom: 1,
+    conceptPreviewPanX: 0,
+    conceptPreviewPanY: 0,
+    conceptPreviewTransformKey: null,
 };
 
 function currentMode() {
@@ -4899,17 +4976,178 @@ function ensureConceptUiSelection() {
     }
 }
 
+function applyConceptPreviewTransform() {
+    const stage = document.querySelector("[data-concept-preview-stage]");
+    const label = document.querySelector("[data-concept-preview-label]");
+    if (stage) {
+        stage.style.transform = `translate(${state.conceptPreviewPanX}px, ${state.conceptPreviewPanY}px) scale(${state.conceptPreviewZoom})`;
+    }
+    if (label) label.textContent = `${Math.round(state.conceptPreviewZoom * 100)}%`;
+}
+
+function isConceptPreviewStackVisible() {
+    const stack = document.querySelector("[data-concept-preview-stack]");
+    return Boolean(stack && !stack.hidden);
+}
+
+let conceptPreviewInteractionsWired = false;
+
+function wireConceptSelectedPreviewInteractionsOnce() {
+    if (conceptPreviewInteractionsWired) return;
+    conceptPreviewInteractionsWired = true;
+    const viewport = document.querySelector("[data-concept-preview-viewport]");
+    if (!viewport) return;
+
+    let cpTouch = null;
+
+    viewport.addEventListener("wheel", (e) => {
+        if (!isConceptPreviewStackVisible()) return;
+        e.preventDefault();
+        const rect = viewport.getBoundingClientRect();
+        const mx = e.clientX - rect.left;
+        const my = e.clientY - rect.top;
+        const cx = rect.width / 2;
+        const cy = rect.height / 2;
+        const oldZ = state.conceptPreviewZoom;
+        const delta = e.deltaY > 0 ? 0.9 : 1.1;
+        state.conceptPreviewZoom = clamp(oldZ * delta, 0.12, 14);
+        const ratio = state.conceptPreviewZoom / oldZ;
+        state.conceptPreviewPanX = mx - cx - ratio * (mx - cx - state.conceptPreviewPanX);
+        state.conceptPreviewPanY = my - cy - ratio * (my - cy - state.conceptPreviewPanY);
+        applyConceptPreviewTransform();
+    }, { passive: false });
+
+    viewport.addEventListener("dblclick", (e) => {
+        if (!isConceptPreviewStackVisible()) return;
+        e.preventDefault();
+        state.conceptPreviewZoom = 1;
+        state.conceptPreviewPanX = 0;
+        state.conceptPreviewPanY = 0;
+        applyConceptPreviewTransform();
+    });
+
+    viewport.addEventListener("touchstart", (e) => {
+        if (!isConceptPreviewStackVisible()) return;
+        if (e.touches.length === 2) {
+            const a = e.touches[0];
+            const b = e.touches[1];
+            cpTouch = {
+                mode: "pinch",
+                startDist: Math.hypot(b.clientX - a.clientX, b.clientY - a.clientY),
+                startZoom: state.conceptPreviewZoom,
+            };
+        } else if (e.touches.length === 1) {
+            cpTouch = {
+                mode: "pan",
+                sx: e.touches[0].clientX,
+                sy: e.touches[0].clientY,
+                panX: state.conceptPreviewPanX,
+                panY: state.conceptPreviewPanY,
+            };
+        }
+    }, { passive: true });
+
+    viewport.addEventListener("touchmove", (e) => {
+        if (!cpTouch || !isConceptPreviewStackVisible()) return;
+        if (cpTouch.mode === "pinch" && e.touches.length === 2 && cpTouch.startDist && cpTouch.startDist > 4) {
+            e.preventDefault();
+            const a = e.touches[0];
+            const b = e.touches[1];
+            const dist = Math.hypot(b.clientX - a.clientX, b.clientY - a.clientY);
+            state.conceptPreviewZoom = clamp((cpTouch.startZoom || 1) * (dist / cpTouch.startDist), 0.12, 14);
+            applyConceptPreviewTransform();
+        } else if (cpTouch.mode === "pan" && e.touches.length === 1) {
+            e.preventDefault();
+            const t = e.touches[0];
+            state.conceptPreviewPanX = (cpTouch.panX || 0) + (t.clientX - (cpTouch.sx || 0));
+            state.conceptPreviewPanY = (cpTouch.panY || 0) + (t.clientY - (cpTouch.sy || 0));
+            applyConceptPreviewTransform();
+        }
+    }, { passive: false });
+
+    viewport.addEventListener("touchend", () => {
+        cpTouch = null;
+    });
+
+    viewport.addEventListener("mousedown", (e) => {
+        if (e.button !== 0) return;
+        if (!isConceptPreviewStackVisible()) return;
+        e.preventDefault();
+        viewport.classList.add("is-dragging");
+        const startX = e.clientX;
+        const startY = e.clientY;
+        const startPanX = state.conceptPreviewPanX;
+        const startPanY = state.conceptPreviewPanY;
+        const onMove = (me) => {
+            state.conceptPreviewPanX = startPanX + (me.clientX - startX);
+            state.conceptPreviewPanY = startPanY + (me.clientY - startY);
+            applyConceptPreviewTransform();
+        };
+        const onUp = () => {
+            viewport.classList.remove("is-dragging");
+            window.removeEventListener("mousemove", onMove);
+            window.removeEventListener("mouseup", onUp);
+        };
+        window.addEventListener("mousemove", onMove);
+        window.addEventListener("mouseup", onUp, { once: true });
+    });
+
+    const onZoomBtn = (factor) => {
+        if (!isConceptPreviewStackVisible()) return;
+        const rect = viewport.getBoundingClientRect();
+        const cx = rect.width / 2;
+        const cy = rect.height / 2;
+        const oldZ = state.conceptPreviewZoom;
+        state.conceptPreviewZoom = clamp(oldZ * factor, 0.12, 14);
+        const ratio = state.conceptPreviewZoom / oldZ;
+        state.conceptPreviewPanX = cx - ratio * (cx - state.conceptPreviewPanX);
+        state.conceptPreviewPanY = cy - ratio * (cy - state.conceptPreviewPanY);
+        applyConceptPreviewTransform();
+    };
+    document.querySelector("[data-concept-preview-in]")?.addEventListener("click", () => onZoomBtn(1.2));
+    document.querySelector("[data-concept-preview-out]")?.addEventListener("click", () => onZoomBtn(1 / 1.2));
+    document.querySelector("[data-concept-preview-fit]")?.addEventListener("click", () => {
+        state.conceptPreviewZoom = 1;
+        state.conceptPreviewPanX = 0;
+        state.conceptPreviewPanY = 0;
+        applyConceptPreviewTransform();
+    });
+}
+
 function renderConceptLargePreview() {
     const root = document.querySelector("#concept-large-preview");
     if (!root) return;
+    wireConceptSelectedPreviewInteractionsOnce();
+    const emptyEl = root.querySelector("[data-concept-preview-empty]");
+    const stackEl = root.querySelector("[data-concept-preview-stack]");
+    const img = root.querySelector("[data-concept-preview-img]");
+    const viewport = root.querySelector("[data-concept-preview-viewport]");
     const project = state.activeProject;
     const concept = state.conceptUiSelectedId ? conceptById(state.conceptUiSelectedId) : null;
     if (!concept?.preview_image) {
-        root.innerHTML = `<div class="empty">Select a concept below.</div>`;
+        if (emptyEl) emptyEl.hidden = false;
+        if (stackEl) stackEl.hidden = true;
         return;
     }
     const path = concept.processed_preview_image || concept.preview_image;
-    root.innerHTML = `<img src="${projectAsset(project, path)}?v=${project.updated_at}" alt="${concept.concept_id}">`;
+    const tkey = `${concept.concept_id}|${path}|${project.updated_at}`;
+    if (state.conceptPreviewTransformKey !== tkey) {
+        state.conceptPreviewTransformKey = tkey;
+        state.conceptPreviewZoom = 1;
+        state.conceptPreviewPanX = 0;
+        state.conceptPreviewPanY = 0;
+    }
+    if (emptyEl) emptyEl.hidden = true;
+    if (stackEl) stackEl.hidden = false;
+    if (img) {
+        img.alt = concept.concept_id;
+        const url = `${projectAsset(project, path)}?v=${project.updated_at}`;
+        if (img.getAttribute("src") !== url) {
+            img.onload = () => applyConceptPreviewTransform();
+            img.src = url;
+        }
+    }
+    applyConceptPreviewTransform();
 }
 
 function renderIterationCompare() {
@@ -8739,6 +8977,10 @@ async function loadProject(projectId, mode = "wizard") {
         state.lastIterationScaffold = null;
         state.conceptUiSelectedId = null;
         state.lastIteratedConceptId = null;
+        state.conceptPreviewTransformKey = null;
+        state.conceptPreviewZoom = 1;
+        state.conceptPreviewPanX = 0;
+        state.conceptPreviewPanY = 0;
         const sc = document.querySelector("#concept-scaffold-prompt");
         const it = document.querySelector("#concept-iteration-prompt");
         if (sc) sc.value = "";

@@ -10,4 +10,4 @@
 | AT-07 | Death, Respawn, And Restart | Verify the life system, respawn behavior, game-over state, and restart control. | Not Run | Sprite workbench / wizard changes only; game prototype not exercised. |
 | AT-08 | HUD And Feedback | Verify the HUD remains visible and updates during play. | Not Run | Sprite workbench / wizard changes only; game prototype not exercised. |
 | AT-09 | Key Pickup And Door Unlock | Verify the first progression loop works end to end: collect the key on the high ledge, show it in the HUD inventory, then consume it to unlock the left-side door. | Not Run | Sprite workbench / wizard changes only; game prototype not exercised. |
-| Unit Test Suite | Overall Unit Tests | General unit test suite status. | Pass | Ran `python3 -m unittest discover -s tests -p "test_*.py"` (70 tests). Last change: CSS/layout only (`concept-browser-layout`); no new Python tests. |
+| Unit Test Suite | Overall Unit Tests | General unit test suite status. | Pass | Ran `python3 -m unittest discover -s tests -p "test_*.py"` (70 tests). Change: concept selected preview zoom/pan UI in `tools/2d-sprite-and-animation/index.html` only. |
