@@ -263,6 +263,90 @@
             max-height: 360px;
             border-radius: 8px;
         }
+        /* Selected preview dominates; unselected concepts stay compact in a narrow column */
+        .concept-browser-layout {
+            grid-template-columns: minmax(0, 1fr) minmax(200px, 17rem);
+            gap: 18px;
+            align-items: start;
+        }
+        @media (max-width: 960px) {
+            .concept-browser-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+        .concept-browser-layout .concept-large-preview {
+            min-height: min(48vh, 420px);
+            padding: 14px 16px;
+        }
+        .concept-browser-layout .concept-large-preview img {
+            max-height: min(70vh, 720px);
+            max-width: 100%;
+            width: auto;
+            object-fit: contain;
+        }
+        .concept-browser-layout .concept-grid {
+            grid-template-columns: 1fr;
+            gap: 8px;
+            max-height: min(78vh, 760px);
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+        .concept-browser-layout .concept-card {
+            display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
+            align-items: flex-start;
+            gap: 8px;
+            padding: 8px 10px;
+        }
+        .concept-browser-layout .concept-card > img {
+            width: 64px;
+            min-width: 64px;
+            height: 64px;
+            max-height: 64px;
+            object-fit: contain;
+            aspect-ratio: 1;
+            border-radius: 6px;
+            flex-shrink: 0;
+        }
+        .concept-browser-layout .concept-card .body {
+            flex: 1 1 120px;
+            min-width: 0;
+            padding: 0;
+            gap: 4px;
+        }
+        .concept-browser-layout .concept-card .concept-title strong {
+            font-size: 0.76rem;
+        }
+        .concept-browser-layout .concept-card .concept-title .muted {
+            font-size: 0.68rem;
+        }
+        .concept-browser-layout .concept-card .meta-line {
+            flex-wrap: wrap;
+            gap: 4px;
+        }
+        .concept-browser-layout .concept-card .meta-line .pill {
+            font-size: 0.65rem;
+            padding: 2px 6px;
+        }
+        .concept-browser-layout .concept-card .small-note {
+            font-size: 0.7rem;
+            line-height: 1.25;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .concept-browser-layout .concept-card .actions {
+            flex-basis: 100%;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin-top: 2px;
+        }
+        .concept-browser-layout .concept-card .actions button {
+            font-size: 0.68rem;
+            padding: 5px 8px;
+        }
         .iteration-compare {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -2780,7 +2864,7 @@
                 </div>
             </div>
 
-            <div class="grid-2" style="margin-top: 16px;" data-wizard-view="concepts,review,workbench">
+            <div class="grid-2 concept-browser-layout" style="margin-top: 16px;" data-wizard-view="concepts,review,workbench">
                 <div>
                     <div class="section-head" style="margin-bottom: 10px;">
                         <div>
