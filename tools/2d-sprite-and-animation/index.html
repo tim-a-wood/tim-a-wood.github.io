@@ -1456,6 +1456,12 @@
             image-rendering: pixelated;
             background: rgba(255, 255, 255, 0.03);
             aspect-ratio: 1 / 1;
+            object-fit: contain;
+            max-width: min(100%, 220px);
+            max-height: min(36vh, 220px);
+            width: auto;
+            height: auto;
+            margin-inline: auto;
         }
 
         .preview-card {
@@ -1799,12 +1805,69 @@
             border-radius: 8px;
         }
 
-        .recovery-card img,
-        .comparison-panel img {
+        .recovery-card img {
             aspect-ratio: 1 / 1;
             object-fit: contain;
             background: rgba(255, 255, 255, 0.03);
             border-radius: 12px;
+        }
+
+        /* Cap clip / manual preview tiles — large frame PNGs & GIFs were blowing up the grid. */
+        .comparison-panel img {
+            aspect-ratio: 1 / 1;
+            object-fit: contain;
+            max-width: min(100%, 280px);
+            max-height: min(38vh, 280px);
+            width: auto;
+            height: auto;
+            margin-inline: auto;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
+            image-rendering: pixelated;
+        }
+
+        /* Export step: spritesheet + per-clip GIFs ship at full resolution; constrain UI only. */
+        .export-preview-panel {
+            max-width: 100%;
+        }
+
+        .export-preview-panel .export-preview-spritesheet {
+            min-width: 0;
+            max-width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .export-preview-panel .export-preview-spritesheet img {
+            width: auto;
+            max-width: 100%;
+            max-height: min(36vh, 260px);
+            height: auto;
+            margin-inline: auto;
+            object-fit: contain;
+            image-rendering: pixelated;
+        }
+
+        .export-preview-panel .export-preview-gif-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(0, 160px));
+            gap: 12px;
+            align-items: start;
+        }
+
+        .export-preview-panel .export-preview-gif-grid .preview-card {
+            min-width: 0;
+            max-width: 220px;
+        }
+
+        .export-preview-panel .export-preview-gif-grid .preview-card img {
+            width: auto;
+            max-width: 100%;
+            max-height: min(28vh, 168px);
+            height: auto;
+            margin-inline: auto;
+            object-fit: contain;
+            image-rendering: pixelated;
         }
 
         .clip-tab {
@@ -9362,9 +9425,9 @@ function renderClipLoopPreview(name, count, opts = {}) {
               );
     const preview = document.createElement("div");
     preview.className = "thumb";
-    preview.style.maxWidth = "280px";
+    preview.style.maxWidth = "min(100%, 240px)";
     preview.innerHTML = `
-        <img alt="${humanizeKey(name)} looping preview" style="width: 100%; height: auto; display: block;">
+        <img alt="${humanizeKey(name)} looping preview" style="display:block;width:100%;max-width:240px;max-height:min(32vh,220px);height:auto;object-fit:contain;margin-inline:auto;">
         <div class="small-note" style="margin-top: 8px;">Looping preview</div>
     `;
     const image = preview.querySelector("img");
@@ -9539,9 +9602,10 @@ function renderExport() {
             ? [exportData.preview_gif]
             : [];
     const preview = document.createElement("div");
+    preview.className = "export-preview-panel";
     preview.style.marginTop = "10px";
     const sheetCard = document.createElement("div");
-    sheetCard.className = "preview-card";
+    sheetCard.className = "preview-card export-preview-spritesheet";
     sheetCard.style.marginBottom = "12px";
     sheetCard.innerHTML = `
         <img src="${projectAsset(state.activeProject, `${exportData.export_dir}/spritesheet.png`)}" alt="Spritesheet preview">
@@ -9550,7 +9614,7 @@ function renderExport() {
     preview.appendChild(sheetCard);
     if (previewGifs.length) {
         const gifGrid = document.createElement("div");
-        gifGrid.className = "grid-2";
+        gifGrid.className = "export-preview-gif-grid";
         previewGifs.forEach((gifName) => {
             const clipLabel = String(gifName).replace(/^preview_/, "").replace(/\.gif$/i, "");
             const cell = document.createElement("div");
