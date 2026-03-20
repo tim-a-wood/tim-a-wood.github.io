@@ -12,6 +12,7 @@ from __future__ import annotations
 import base64
 import io
 import json
+import logging
 import os
 import time
 from dataclasses import dataclass
@@ -23,7 +24,47 @@ from urllib.request import Request, urlopen
 from PIL import Image
 
 
+logger = logging.getLogger(__name__)
+
 SizeLike = Union[Tuple[int, int], Dict[str, int]]
+
+
+def _log_pixellab_post_accepted(context: str, accepted: Any) -> None:
+    """INFO log for async POST acceptance (job ids / status) so long polls are not silent."""
+    if not isinstance(accepted, dict):
+        logger.info("Pixel Lab %s POST response type=%s", context, type(accepted).__name__)
+        return
+    keys = list(accepted.keys())
+    st = accepted.get("status")
+    bj = accepted.get("background_job_ids") or accepted.get("backgroundJobIds")
+    if isinstance(bj, list) and bj:
+        first = bj[0]
+        sid = (first[:32] + "…") if isinstance(first, str) and len(first) > 32 else first
+        logger.info(
+            "Pixel Lab %s POST returned status=%r background_job_ids=%d (e.g. %s); polling…",
+            context,
+            st,
+            len(bj),
+            sid,
+        )
+        return
+    for k in ("job_id", "jobId", "background_job_id", "backgroundJobId", "id"):
+        v = accepted.get(k)
+        if isinstance(v, str) and v.strip():
+            logger.info(
+                "Pixel Lab %s POST returned status=%r %s=%s; polling…",
+                context,
+                st,
+                k,
+                (v[:40] + "…") if len(v) > 40 else v,
+            )
+            return
+    logger.info(
+        "Pixel Lab %s POST returned keys=%s status=%r (no job id — treating as synchronous body)",
+        context,
+        keys,
+        st,
+    )
 
 
 def _normalize_size(image_size: SizeLike) -> Dict[str, int]:
@@ -194,18 +235,35 @@ class PixelLabClient:
     def _poll_job(self, job_id: str, *, timeout_seconds: int = 120, interval_seconds: int = 3) -> Dict[str, Any]:
         start = time.monotonic()
         last_payload: Optional[Dict[str, Any]] = None
+        poll_idx = 0
+        last_heartbeat = start
+        short_id = (job_id[:36] + "…") if len(job_id) > 36 else job_id
 
         while True:
-            if time.monotonic() - start > timeout_seconds:
+            now = time.monotonic()
+            elapsed = now - start
+            if elapsed > timeout_seconds:
                 raise PixelLabError(f"Pixel Lab job polling timeout after {timeout_seconds}s (job_id={job_id})")
 
             payload = self._request_json("GET", f"/v2/background-jobs/{job_id}")
             last_payload = payload
+            poll_idx += 1
 
             # Best-effort status handling.
             status = None
             if isinstance(payload, dict):
                 status = payload.get("status") or payload.get("job_status") or payload.get("state")
+
+            # Heartbeat so multi-minute polls are visible in the server terminal.
+            if poll_idx == 1 or (now - last_heartbeat) >= 15.0:
+                logger.info(
+                    "Pixel Lab poll job_id=%s status=%r elapsed=%.0fs poll#=%d",
+                    short_id,
+                    status,
+                    elapsed,
+                    poll_idx,
+                )
+                last_heartbeat = now
 
             if status in {"completed", "succeeded", "done", "success"}:
                 # v2 background jobs use ``last_response`` (see OpenAPI BackgroundJobResponse).
@@ -348,10 +406,17 @@ class PixelLabClient:
         }
         payload.update(kwargs)
         accepted = self._request_json("POST", "/v2/characters/animations", payload)
+        _log_pixellab_post_accepted("animate_character", accepted)
         multi_ids = self._extract_background_job_ids(accepted)
         if multi_ids:
             merged: List[Dict[str, Any]] = []
-            for jid in multi_ids:
+            for i, jid in enumerate(multi_ids):
+                logger.info(
+                    "Pixel Lab animate_character polling job %d/%d (timeout %ds)",
+                    i + 1,
+                    len(multi_ids),
+                    poll_timeout,
+                )
                 merged.append(self._poll_job(jid, timeout_seconds=poll_timeout))
             return {
                 "per_job_last_response": merged,
@@ -361,6 +426,7 @@ class PixelLabClient:
             }
         job_id = self._extract_job_id(accepted)
         if job_id:
+            logger.info("Pixel Lab animate_character single job poll timeout=%ds", poll_timeout)
             return self._poll_job(job_id, timeout_seconds=poll_timeout)
         return accepted
 
@@ -374,6 +440,7 @@ class PixelLabClient:
         }
         payload.update(kwargs)
         accepted = self._request_json("POST", "/v2/animate-with-text-v2", payload)
+        _log_pixellab_post_accepted("animate_with_text_v2", accepted)
         job_id = self._extract_job_id(accepted)
         if job_id:
             return self._poll_job(job_id, timeout_seconds=poll_timeout)
@@ -394,6 +461,7 @@ class PixelLabClient:
         }
         payload.update(kwargs)
         accepted = self._request_json("POST", "/v1/animate-with-skeleton", payload)
+        _log_pixellab_post_accepted("animate_with_skeleton", accepted)
         job_id = self._extract_job_id(accepted)
         if job_id:
             return self._poll_job(job_id, timeout_seconds=poll_timeout)
@@ -438,6 +506,7 @@ class PixelLabClient:
         }
         payload.update(kwargs)
         accepted = self._request_json("POST", "/v2/edit-animation-v2", payload)
+        _log_pixellab_post_accepted("edit_animation_v2", accepted)
         job_id = self._extract_job_id(accepted)
         if job_id:
             return self._poll_job(job_id, timeout_seconds=poll_timeout)
