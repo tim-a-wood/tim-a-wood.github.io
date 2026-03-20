@@ -2429,8 +2429,20 @@
             margin-top: 4px;
         }
 
+        .review-export-loop-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 10px;
+            align-items: start;
+        }
+
         .review-export-loop-row .thumb {
             max-width: 100%;
+        }
+
+        .review-export-loop-row .thumb img {
+            max-width: min(100%, 120px);
+            max-height: min(24vh, 120px);
         }
 
         .review-export-actions {
@@ -3176,7 +3188,7 @@
             <div class="section-head">
                 <div>
                     <h3>Review &amp; export</h3>
-                    <p>Preview idle and walk loops, run image checks, then export the spritesheet and package when QA passes.</p>
+                    <p>Preview animation loops, run image checks, then export the spritesheet and package when QA passes.</p>
                 </div>
                 <div class="review-export-stage-meta">
                     <div class="stage-meta" data-stage="qa"></div>
@@ -3186,17 +3198,8 @@
 
             <div class="review-export-clip-block">
                 <h4 class="review-export-subhead">Clip previews</h4>
-                <p class="small-note review-export-subnote">Looping idle and walk before you run checks.</p>
-                <div class="grid-2 review-export-loop-row">
-                    <div>
-                        <div class="small-note">Idle</div>
-                        <div id="review-export-idle-preview"></div>
-                    </div>
-                    <div>
-                        <div class="small-note">Walk</div>
-                        <div id="review-export-walk-preview"></div>
-                    </div>
-                </div>
+                <p class="small-note review-export-subnote">Looping animation previews before you run checks.</p>
+                <div class="review-export-loop-row" id="review-export-clip-previews-row"></div>
             </div>
 
             <div class="actions review-export-actions">
@@ -9462,52 +9465,43 @@ function renderClipLoopPreview(name, count, opts = {}) {
 }
 
 function renderReviewExportClipPreviews() {
-    const idleRoot = document.querySelector("#review-export-idle-preview");
-    const walkRoot = document.querySelector("#review-export-walk-preview");
-    if (!idleRoot || !walkRoot) return;
+    const row = document.querySelector("#review-export-clip-previews-row");
+    if (!row) return;
+    // Clear all existing review preview timers.
+    Object.keys(state.clipPreviewTimers)
+        .filter((k) => k.startsWith("review_"))
+        .forEach((k) => clearClipLoopPreview(k));
+    row.innerHTML = "";
     const project = state.activeProject;
-    if (!project) {
-        clearClipLoopPreview("review_idle");
-        clearClipLoopPreview("review_walk");
-        idleRoot.innerHTML = "";
-        walkRoot.innerHTML = "";
-        return;
-    }
+    if (!project) return;
     if (externalAuthoringEnabled(project)) {
-        clearClipLoopPreview("review_idle");
-        clearClipLoopPreview("review_walk");
-        idleRoot.innerHTML = `<div class="small-note">Loop previews are disabled while SkelForm authoring is active.</div>`;
-        walkRoot.innerHTML = "";
+        row.innerHTML = `<div class="small-note">Loop previews are disabled while SkelForm authoring is active.</div>`;
         return;
     }
-    const idleClip = project.animation_clips?.idle;
-    const walkClip = project.animation_clips?.walk;
-    const idleBridge = pixellabAnimationClipFrameRels(project, "idle");
-    const walkBridge = pixellabAnimationClipFrameRels(project, "walk");
-    const idleCount = idleBridge?.length || idleClip?.frame_count || 6;
-    const walkCount = walkBridge?.length || walkClip?.frame_count || 8;
-    if (idleBridge) {
-        const urls = idleBridge.map((rel) => `${projectAsset(project, rel)}?v=${project.updated_at}`);
-        renderClipLoopPreview("idle", urls.length, {
-            root: idleRoot,
-            timerKey: "review_idle",
-            frameUrls: urls,
-            fps: idleClip?.fps,
-        });
-    } else {
-        renderClipLoopPreview("idle", idleCount, { root: idleRoot, timerKey: "review_idle" });
+    const clips = project.animation_clips || {};
+    const clipNames = Object.keys(clips);
+    if (!clipNames.length) {
+        row.innerHTML = `<div class="empty">No animation clips yet.</div>`;
+        return;
     }
-    if (walkBridge) {
-        const urls = walkBridge.map((rel) => `${projectAsset(project, rel)}?v=${project.updated_at}`);
-        renderClipLoopPreview("walk", urls.length, {
-            root: walkRoot,
-            timerKey: "review_walk",
-            frameUrls: urls,
-            fps: walkClip?.fps,
-        });
-    } else {
-        renderClipLoopPreview("walk", walkCount, { root: walkRoot, timerKey: "review_walk" });
-    }
+    clipNames.forEach((clipName) => {
+        const clip = clips[clipName];
+        const timerKey = `review_${clipName}`;
+        const cell = document.createElement("div");
+        cell.innerHTML = `<div class="small-note" style="margin-bottom:4px;">${humanizeKey(clipName)}</div>`;
+        const previewRoot = document.createElement("div");
+        previewRoot.id = `review-export-${clipName}-preview`;
+        cell.appendChild(previewRoot);
+        row.appendChild(cell);
+        const bridge = pixellabAnimationClipFrameRels(project, clipName);
+        if (bridge) {
+            const urls = bridge.map((rel) => `${projectAsset(project, rel)}?v=${project.updated_at}`);
+            renderClipLoopPreview(clipName, urls.length, { root: previewRoot, timerKey, frameUrls: urls, fps: clip?.fps });
+        } else {
+            const count = clip?.frame_count || (clipName === "idle" ? 6 : 8);
+            renderClipLoopPreview(clipName, count, { root: previewRoot, timerKey });
+        }
+    });
 }
 
 function renderQa() {
@@ -9624,7 +9618,7 @@ function renderExport() {
     sheetCard.className = "preview-card export-preview-spritesheet";
     sheetCard.style.marginBottom = "12px";
     sheetCard.innerHTML = `
-        <img src="${projectAsset(state.activeProject, `${exportData.export_dir}/spritesheet.png`)}" alt="Spritesheet preview">
+        <img src="${projectAsset(state.activeProject, `${exportData.export_dir}/preview_spritesheet.png`)}" alt="Spritesheet preview" onerror="this.src='${projectAsset(state.activeProject, `${exportData.export_dir}/spritesheet.png`)}'">
         <div class="small-note" style="margin-top: 8px;">spritesheet</div>
     `;
     preview.appendChild(sheetCard);

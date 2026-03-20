@@ -30,7 +30,7 @@ if str(_REPO_ROOT) not in sys.path:
 
 from typing import Any, Callable, Dict, List, Optional, Protocol, Set, Tuple
 from urllib.error import HTTPError, URLError
-from urllib.parse import parse_qs, quote, urlencode, urlparse, unquote
+from urllib.parse import parse_qs, quote, urlparse, unquote
 from urllib.request import Request, urlopen
 
 from PIL import Image, ImageChops, ImageDraw, ImageOps
@@ -41,7 +41,6 @@ from scripts.pixellab_client import PixelLabError
 ROOT = _REPO_ROOT
 TOOL_DIR = ROOT / "tools" / "2d-sprite-and-animation"
 PROJECTS_ROOT = TOOL_DIR / "projects-data"
-WORKFLOW_DIR = TOOL_DIR / "workflows"
 STAGE_MATURITY_PATH = TOOL_DIR / "stage-maturity.json"
 
 # Canonical downstream contract for new work:
@@ -107,11 +106,6 @@ AI_CLIP_SPECS = {
         ],
     },
 }
-DEFAULT_COMFYUI_BASE_URL = os.environ.get("SPRITE_WORKBENCH_COMFYUI_URL", "http://127.0.0.1:8188")
-DEFAULT_COMFYUI_CHECKPOINT = os.environ.get("SPRITE_WORKBENCH_COMFYUI_CHECKPOINT", "sd15.safetensors")
-GEMINI_API_BASE_URL = os.environ.get("GEMINI_API_BASE_URL", "https://generativelanguage.googleapis.com/v1beta")
-DEFAULT_GEMINI_VALIDATION_MODEL = os.environ.get("SPRITE_WORKBENCH_GEMINI_VALIDATION_MODEL", "gemini-2.5-flash")
-
 PIXELLAB_API_KEY = os.environ.get("PIXELLAB_API_KEY", "")
 
 logger = logging.getLogger("sprite_workbench")
@@ -197,7 +191,7 @@ WIZARD_STEPS = ["project", "brief", "references", "concepts", "review", "rig_lay
 WIZARD_STEPS_AI = ["project", "brief", "references", "concepts", "review", "clips", "qa", "export"]
 # Phase 7.7: Pixel Lab guided flow uses five visible steps (describe → concepts → character → animations → export).
 WIZARD_STEPS_PIXEL_LAB_UI = ["describe", "concepts", "character", "animations", "export"]
-# Non–Pixel Lab AI (e.g. debug_procedural / Comfy) uses four steps (no separate Animations panel).
+# Non–Pixel Lab AI (debug_procedural) uses four steps (no separate Animations panel).
 WIZARD_STEPS_AI_SIMPLE_UI = ["describe", "concepts", "character", "export"]
 # Inserted after "clips" for Pixel Lab guided flow (Phase 7.5).
 WIZARD_STEP_ANIMATIONS = "animations"
@@ -210,9 +204,7 @@ WORKING_CANVAS = (420, 420)
 RENDER_SCALE = 0.84
 RENDER_CENTER = (210, 220)
 
-COMFYUI_TIMEOUT_SECONDS = env_int("SPRITE_WORKBENCH_COMFYUI_TIMEOUT_SECONDS", 3)
-COMFYUI_POLL_SECONDS = env_int("SPRITE_WORKBENCH_COMFYUI_POLL_SECONDS", 1)
-COMFYUI_JOB_TIMEOUT_SECONDS = env_int("SPRITE_WORKBENCH_COMFYUI_JOB_TIMEOUT_SECONDS", 600)
+HTTP_JSON_DEFAULT_TIMEOUT_SECONDS = env_int("SPRITE_WORKBENCH_HTTP_JSON_TIMEOUT_SECONDS", 30, minimum=5)
 
 REFINEMENT_STRENGTHS = {
     "subtle": 0.25,
@@ -221,7 +213,23 @@ REFINEMENT_STRENGTHS = {
 }
 
 REFERENCE_ROLES = ("identity", "costume", "style", "prop")
-BACKEND_MODES = ("comfyui", "debug_procedural", "pixellab")
+BACKEND_MODES = ("debug_procedural", "pixellab")
+
+
+def normalize_brief_backend_mode(raw: Any) -> str:
+    """Map legacy ``backend_mode`` values after ComfyUI removal (Phase 8)."""
+    s = str(raw or "").strip()
+    if s == "comfyui":
+        return "debug_procedural"
+    if s in BACKEND_MODES:
+        return s
+    return "debug_procedural"
+
+
+def brief_backend_mode(brief: Optional[Dict[str, Any]]) -> str:
+    return normalize_brief_backend_mode((brief or {}).get("backend_mode"))
+
+
 MAJOR_REFINEMENT_LOCKS = {"silhouette", "face_head_shape", "outfit", "palette", "prop"}
 REFERENCE_SPRITESHEET_HINTS = ("sprite", "spritesheet", "spritelist", "sheet", "idle", "walk", "run", "attack", "anim")
 
@@ -3316,8 +3324,8 @@ def hydrate_brief(brief: Optional[Dict[str, Any]], prompt_text: str) -> Dict[str
         "detail_level": source.get("detail_level") or defaults.get("detail_level") or DEFAULT_DETAIL_LEVEL,
         "canvas_size": coerce_canvas_size(source.get("canvas_size") if "canvas_size" in source else None, DEFAULT_CANVAS_SIZE),
         "character_template": source.get("character_template") or defaults.get("character_template") or DEFAULT_CHARACTER_TEMPLATE,
-        "backend_mode": source.get("backend_mode") if source.get("backend_mode") in BACKEND_MODES else "comfyui",
-        "comfyui_checkpoint": source.get("comfyui_checkpoint") or DEFAULT_COMFYUI_CHECKPOINT,
+        "backend_mode": normalize_brief_backend_mode(source.get("backend_mode") or "pixellab"),
+        "comfyui_checkpoint": source.get("comfyui_checkpoint"),
     }
     references = source.get("references")
     if not isinstance(references, list):
@@ -4859,8 +4867,16 @@ def build_brief_from_payload(payload: Dict[str, Any], existing_brief: Optional[D
         "detail_level": payload.get("detail_level") or source.get("detail_level") or defaults["detail_level"],
         "canvas_size": coerce_canvas_size(payload.get("canvas_size") if "canvas_size" in payload else source.get("canvas_size") if "canvas_size" in source else None, DEFAULT_CANVAS_SIZE),
         "character_template": payload.get("character_template") or source.get("character_template") or defaults["character_template"],
-        "backend_mode": payload.get("backend_mode") if payload.get("backend_mode") in BACKEND_MODES else (source.get("backend_mode") if source.get("backend_mode") in BACKEND_MODES and source.get("backend_mode") != "debug_procedural" else "pixellab"),
-        "comfyui_checkpoint": payload.get("comfyui_checkpoint") or source.get("comfyui_checkpoint") or DEFAULT_COMFYUI_CHECKPOINT,
+        "backend_mode": normalize_brief_backend_mode(
+            payload.get("backend_mode")
+            if payload.get("backend_mode") is not None and str(payload.get("backend_mode")).strip() != ""
+            else (
+                source.get("backend_mode")
+                if source.get("backend_mode") is not None and str(source.get("backend_mode")).strip() != ""
+                else "pixellab"
+            )
+        ),
+        "comfyui_checkpoint": payload.get("comfyui_checkpoint") if "comfyui_checkpoint" in payload else source.get("comfyui_checkpoint"),
         "references": list(source.get("references") or []),
     }
     brief = hydrate_brief(raw, prompt_text)
@@ -5166,29 +5182,6 @@ def image_data_url(path: Path) -> str:
     return "data:%s;base64,%s" % (mime_type, base64.b64encode(path.read_bytes()).decode("ascii"))
 
 
-def concept_validation_schema() -> Dict[str, Any]:
-    return {
-        "type": "object",
-        "additionalProperties": False,
-        "properties": {
-            "decision": {"type": "string", "enum": ["valid", "invalid"]},
-            "summary": {"type": "string"},
-            "feedback": {"type": "string"},
-            "improved_gemini_prompt": {"type": ["string", "null"]},
-            "master_pose_ready": {"type": "boolean"},
-            "technical_requirements_ok": {"type": "boolean"},
-        },
-        "required": [
-            "decision",
-            "summary",
-            "feedback",
-            "improved_gemini_prompt",
-            "master_pose_ready",
-            "technical_requirements_ok",
-        ],
-    }
-
-
 def safe_normalize_concept_image(source_path: Path, output_path: Path) -> Dict[str, Any]:
     source_image = ImageOps.exif_transpose(Image.open(source_path)).convert("RGBA")
     source_mask = largest_component_mask(detect_mask(source_image))
@@ -5242,121 +5235,47 @@ def safe_normalize_concept_image(source_path: Path, output_path: Path) -> Dict[s
     }
 
 
-def parse_gemini_response_text(payload: Dict[str, Any]) -> str:
-    for candidate in payload.get("candidates", []) or []:
-        content = candidate.get("content") or {}
-        for part in content.get("parts", []) or []:
-            text_value = part.get("text")
-            if isinstance(text_value, str) and text_value.strip():
-                return text_value
-    raise ValueError("Gemini response did not include structured text output.")
-
-
 def run_gemini_concept_validation(
-    project: Dict[str, Any],
-    concept: Dict[str, Any],
+    _project: Dict[str, Any],
+    _concept: Dict[str, Any],
     validation_path: Path,
 ) -> Dict[str, Any]:
-    api_key = os.environ.get("GEMINI_API_KEY")
-    if not api_key:
-        raise ValueError("GEMINI_API_KEY is not configured.")
+    """
+    Local mechanical validation for imported concepts (Phase 8: external Gemini API removed).
 
-    brief = project.get("brief") or {}
-    prompt_text = concept.get("prompt_text") or concept.get("positive_prompt") or ""
-    instructions = (
-        "You validate imported Gemini concept art for a 2d side-view sprite pipeline. "
-        "Judge both creative quality and direct extraction readiness. "
-        "Accept only if the image is artistically acceptable for the brief and can serve as the direct sprite extraction source after only safe mechanical normalization. "
-        "Reject if side profile is weak, the background is not safely removable, the body is cropped, there are multiple characters, the silhouette is unclear, or the image would still need a separate master pose step. "
-        "If rejected, describe only the targeted corrections needed to fix the specific issues while preserving the same character identity. "
-        "Do not suggest a redesign, different costume, different silhouette family, or different character unless the brief itself is inconsistent. "
-        "If you provide an improved Gemini prompt, it must explicitly preserve the same character and change only the minimum required details. "
-        "The required technical standard is: strict side profile, one full-body humanoid, plain removable background, clean silhouette, readable limbs and prop, direct sprite-source readiness, consistency with the brief and latest Gemini prompt. "
-        "Set decision=valid only when both master_pose_ready and technical_requirements_ok are true."
+    Uses the same heuristics as concept triage (``analyze_concept_image``). Creative judgment
+    is left to the author; ``invalid`` means the image failed basic extraction-readiness checks.
+    """
+    analysis = analyze_concept_image(validation_path)
+    status = analysis.get("status")
+    flags = analysis.get("flags") or []
+    if status in ("ok", "warning"):
+        return {
+            "decision": "valid",
+            "summary": "Passed local mechanical checks (no external validation API).",
+            "feedback": "",
+            "improved_gemini_prompt": None,
+            "master_pose_ready": True,
+            "technical_requirements_ok": True,
+            "response_id": None,
+        }
+    feedback_bits = [str(f) for f in flags if f]
+    feedback = (
+        "Image failed local mechanical readiness checks (%s). "
+        "Tighten side profile, simplify background, or increase subject clarity." % ", ".join(feedback_bits or ["see metrics"])
     )
-    user_prompt = (
-        "Brief summary:\n"
-        "Role: %s\n"
-        "Silhouette: %s\n"
-        "Outfit: %s\n"
-        "Prop: %s\n"
-        "Palette: %s\n"
-        "Tone: %s\n\n"
-        "Latest Gemini prompt:\n%s\n"
-    ) % (
-        brief.get("role_archetype", ""),
-        brief.get("silhouette_intent", ""),
-        brief.get("outfit_materials", ""),
-        brief.get("prop", ""),
-        brief.get("palette_mood", ""),
-        brief.get("mood_tone", ""),
-        prompt_text,
+    improved = (
+        "strict side-view full-body humanoid, one character, plain removable background, "
+        "clean silhouette, readable limbs and held item, sprite extraction source framing"
     )
-    image_bytes = base64.b64decode(image_data_url(validation_path).split(",", 1)[1])
-    endpoint = "%s/models/%s:generateContent" % (
-        GEMINI_API_BASE_URL,
-        DEFAULT_GEMINI_VALIDATION_MODEL,
-    )
-    body = {
-        "system_instruction": {
-            "parts": [{"text": instructions}],
-        },
-        "contents": [{
-            "role": "user",
-            "parts": [
-                {"text": user_prompt},
-                {
-                    "inline_data": {
-                        "mime_type": {
-                            ".png": "image/png",
-                            ".jpg": "image/jpeg",
-                            ".jpeg": "image/jpeg",
-                            ".webp": "image/webp",
-                        }.get(validation_path.suffix.lower(), "image/png"),
-                        "data": base64.b64encode(image_bytes).decode("ascii"),
-                    }
-                },
-            ],
-        }],
-        "generationConfig": {
-            "responseMimeType": "application/json",
-            "responseJsonSchema": concept_validation_schema(),
-        },
-    }
-    request = Request(
-        endpoint,
-        data=json.dumps(body).encode("utf-8"),
-        headers={
-            "x-goog-api-key": api_key,
-            "Content-Type": "application/json",
-        },
-        method="POST",
-    )
-    try:
-        with urlopen(request, timeout=60) as response:
-            payload = json.loads(response.read().decode("utf-8"))
-    except HTTPError as exc:
-        if exc.code == 404:
-            raise ValueError(
-                "Gemini validation model '%s' was not found for this API/version. "
-                "Set SPRITE_WORKBENCH_GEMINI_VALIDATION_MODEL to an available model."
-                % DEFAULT_GEMINI_VALIDATION_MODEL
-            ) from exc
-        if exc.code == 429:
-            raise ValueError("Gemini rate limit hit. Validation left pending; retry later.") from exc
-        raise
-    parsed = json.loads(parse_gemini_response_text(payload))
-    decision = parsed.get("decision")
-    if decision not in {"valid", "invalid"}:
-        raise ValueError("Gemini validation decision was missing or invalid.")
     return {
-        "decision": decision,
-        "summary": str(parsed.get("summary") or "").strip(),
-        "feedback": str(parsed.get("feedback") or "").strip(),
-        "improved_gemini_prompt": (str(parsed.get("improved_gemini_prompt")).strip() if parsed.get("improved_gemini_prompt") else None),
-        "master_pose_ready": bool(parsed.get("master_pose_ready")),
-        "technical_requirements_ok": bool(parsed.get("technical_requirements_ok")),
-        "response_id": payload.get("responseId"),
+        "decision": "invalid",
+        "summary": "Failed local mechanical checks for sprite extraction.",
+        "feedback": feedback,
+        "improved_gemini_prompt": improved,
+        "master_pose_ready": False,
+        "technical_requirements_ok": False,
+        "response_id": None,
     }
 
 
@@ -5865,83 +5784,6 @@ def fit_image(image: Image.Image, size: Tuple[int, int], background: Tuple[int, 
     y = (size[1] - contained.size[1]) // 2
     framed.alpha_composite(contained, (x, y))
     return framed
-
-
-def create_conditioning_board(
-    project_dir: Path,
-    references: List[ReferenceInput],
-    base_image_path: Optional[Path],
-    size: Tuple[int, int],
-    board_name: str,
-) -> Optional[Path]:
-    if not references and base_image_path is None:
-        return None
-
-    board = Image.new("RGBA", size, (17, 21, 27, 255))
-    draw = ImageDraw.Draw(board)
-    padding = 24
-    role_colors = {
-        "identity": (127, 184, 214, 255),
-        "costume": (217, 164, 65, 255),
-        "style": (127, 214, 175, 255),
-        "prop": (214, 127, 127, 255),
-    }
-    groups = {}
-    for reference in references:
-        groups.setdefault(reference.role, []).append(reference)
-
-    if base_image_path is not None and base_image_path.exists():
-        left_width = int(size[0] * 0.62)
-        image = Image.open(base_image_path).convert("RGBA")
-        panel = fit_image(image, (left_width - padding * 2, size[1] - padding * 2), (27, 32, 40, 255))
-        board.alpha_composite(panel, (padding, padding))
-        draw.rounded_rectangle((padding, padding, left_width - padding, size[1] - padding), radius=18, outline=(80, 94, 108, 255), width=4)
-        draw.text((padding + 16, padding + 12), "source concept", fill=(240, 240, 240, 255))
-        right_x = left_width + padding
-        column_width = size[0] - right_x - padding
-        role_order = [role for role in REFERENCE_ROLES if groups.get(role)]
-        if not role_order:
-            role_order = []
-        block_height = (size[1] - padding * 2 - max(0, len(role_order) - 1) * padding) // max(1, len(role_order))
-        for index, role in enumerate(role_order):
-            top = padding + index * (block_height + padding)
-            refs = groups[role]
-            section = Image.new("RGBA", (column_width, block_height), (24, 30, 38, 255))
-            inner_width = column_width - 28
-            inner_height = block_height - 38
-            ref_size = (inner_width, max(64, inner_height // max(1, len(refs))))
-            for ref_index, reference in enumerate(refs[:3]):
-                image = Image.open(reference.local_path).convert("RGBA")
-                framed = fit_image(image, ref_size, (36, 43, 52, 255))
-                y = 24 + ref_index * ref_size[1]
-                section.alpha_composite(framed, (14, y))
-            border = role_colors.get(role, (160, 160, 160, 255))
-            draw_section = ImageDraw.Draw(section)
-            draw_section.rounded_rectangle((0, 0, column_width - 1, block_height - 1), radius=16, outline=border, width=4)
-            draw_section.text((14, 8), "%s refs" % role, fill=(240, 240, 240, 255))
-            board.alpha_composite(section, (right_x, top))
-    else:
-        refs = references[:4]
-        columns = 2
-        rows = max(1, int(math.ceil(len(refs) / float(columns))))
-        cell_width = (size[0] - padding * (columns + 1)) // columns
-        cell_height = (size[1] - padding * (rows + 1)) // rows
-        for index, reference in enumerate(refs):
-            row = index // columns
-            col = index % columns
-            x = padding + col * (cell_width + padding)
-            y = padding + row * (cell_height + padding)
-            image = Image.open(reference.local_path).convert("RGBA")
-            framed = fit_image(image, (cell_width, cell_height), (28, 35, 43, 255))
-            board.alpha_composite(framed, (x, y))
-            border = role_colors.get(reference.role, (160, 160, 160, 255))
-            draw.rounded_rectangle((x, y, x + cell_width, y + cell_height), radius=18, outline=border, width=4)
-            draw.text((x + 16, y + 12), "%s %.2f" % (reference.role, reference.weight), fill=(240, 240, 240, 255))
-
-    output = project_dir / "logs" / ("%s.png" % board_name)
-    output.parent.mkdir(parents=True, exist_ok=True)
-    board.save(output)
-    return output
 
 
 def detect_mask(image: Image.Image) -> Image.Image:
@@ -6532,8 +6374,6 @@ def create_project(payload: Dict[str, Any]) -> Dict[str, Any]:
         raise ValueError("Project name or prompt is required.")
 
     brief = build_brief_from_payload(payload)
-    if payload.get("backend_mode") not in BACKEND_MODES:
-        brief["backend_mode"] = "pixellab"
     project_id = "%s-%s" % (
         slugify(project_name or brief["role_archetype"]),
         stable_hash(project_name, prompt, now_iso())[:8],
@@ -6848,57 +6688,34 @@ def ai_workflow_or_error(project: Dict[str, Any]) -> Dict[str, Any]:
     return store
 
 
-def ai_workflow_health_snapshot(backend_mode: str = "comfyui") -> Dict[str, Any]:
-    if backend_mode == "debug_procedural":
-        dependencies = {
-            "comfyui": {"status": "pass", "detail": "debug_procedural bypass enabled for local tests"},
-            "photomaker": {"status": "pass", "detail": "debug fallback satisfied"},
-            "ipadapter_plus": {"status": "pass", "detail": "debug fallback satisfied"},
-            "tooncrafter": {"status": "pass", "detail": "debug fallback satisfied"},
-            "anime_segmentation": {"status": "pass", "detail": "debug fallback satisfied"},
-            "pixelart_cleanup": {"status": "pass", "detail": "debug fallback satisfied"},
-        }
-        return {
-            "generated_at": now_iso(),
-            "workflow_profile": AI_WORKFLOW_PROFILE,
-            "overall_status": "pass",
-            "dependencies": dependencies,
-            "backend_mode": backend_mode,
-        }
-
-    comfy = ComfyUIConceptBackend(DEFAULT_COMFYUI_BASE_URL).healthcheck()
-    comfy_status = "pass" if comfy.get("ok") else "fail"
-    def configured(name: str) -> Dict[str, Any]:
-        env_name = "SPRITE_WORKBENCH_%s_READY" % name.upper()
-        ready = str(os.environ.get(env_name, "")).lower() in {"1", "true", "yes", "ready"}
-        return {
-            "status": "pass" if ready else "fail",
-            "detail": "ready via %s" % env_name if ready else "missing; set %s after installing the required node/model" % env_name,
-        }
+def ai_workflow_health_snapshot(backend_mode: str = "debug_procedural") -> Dict[str, Any]:
+    """Dependency snapshot for the guided AI workflow (ComfyUI integration removed in Phase 8)."""
+    mode = normalize_brief_backend_mode(backend_mode)
+    detail = (
+        "debug_procedural offline path"
+        if mode == "debug_procedural"
+        else "Pixel Lab pipeline (legacy Comfy stack not used)"
+    )
     dependencies = {
-        "comfyui": {
-            "status": comfy_status,
-            "detail": comfy.get("error") or ("reachable at %s" % comfy.get("base_url", DEFAULT_COMFYUI_BASE_URL)),
-        },
-        "photomaker": configured("photomaker"),
-        "ipadapter_plus": configured("ipadapter_plus"),
-        "tooncrafter": configured("tooncrafter"),
-        "anime_segmentation": configured("anime_segmentation"),
-        "pixelart_cleanup": configured("pixelart_cleanup"),
+        "comfyui": {"status": "pass", "detail": "ComfyUI removed; AI workflow uses offline procedural paths"},
+        "photomaker": {"status": "pass", "detail": detail},
+        "ipadapter_plus": {"status": "pass", "detail": detail},
+        "tooncrafter": {"status": "pass", "detail": detail},
+        "anime_segmentation": {"status": "pass", "detail": detail},
+        "pixelart_cleanup": {"status": "pass", "detail": detail},
     }
-    overall_status = "pass" if all(item["status"] == "pass" for item in dependencies.values()) else "fail"
     return {
         "generated_at": now_iso(),
         "workflow_profile": AI_WORKFLOW_PROFILE,
-        "overall_status": overall_status,
+        "overall_status": "pass",
         "dependencies": dependencies,
-        "backend_mode": backend_mode,
+        "backend_mode": mode,
     }
 
 
 def refresh_ai_workflow_dependency_status(project: Dict[str, Any], persist: bool = False) -> Dict[str, Any]:
     store = ai_workflow_or_error(project)
-    backend_mode = str((project.get("brief") or {}).get("backend_mode") or "comfyui")
+    backend_mode = brief_backend_mode(project.get("brief"))
     store["dependency_status"] = ai_workflow_health_snapshot(backend_mode)
     store["updated_at"] = now_iso()
     project["ai_workflow"] = store
@@ -6933,7 +6750,7 @@ def _ai_source_image(project: Dict[str, Any], project_dir: Path) -> Image.Image:
 
 
 def _ai_backend_mode(project: Dict[str, Any]) -> str:
-    return str((project.get("brief") or {}).get("backend_mode") or "comfyui")
+    return brief_backend_mode(project.get("brief"))
 
 
 def _ai_transform_variant(image: Image.Image, *, dx: int = 0, dy: int = 0, scale: float = 1.0, rotate: float = 0.0, mirror: bool = False) -> Image.Image:
@@ -7011,46 +6828,10 @@ def _ai_render_manifest_for_frames(clip_name: str, frame_names: List[str]) -> Di
     }
 
 
-def run_comfy_prompt_graph(prompt_graph: Dict[str, Any], output_dir: Path) -> List[Path]:
-    base_url = DEFAULT_COMFYUI_BASE_URL.rstrip("/")
-    output_dir.mkdir(parents=True, exist_ok=True)
-    submit = http_json("POST", "%s/prompt" % base_url, {"prompt": prompt_graph}, timeout=COMFYUI_TIMEOUT_SECONDS)
-    prompt_id = submit.get("prompt_id")
-    if not prompt_id:
-        raise ValueError("ComfyUI did not return a prompt_id.")
-    if submit.get("node_errors"):
-        raise ValueError("ComfyUI reported node errors: %s" % submit["node_errors"])
-
-    deadline = time.monotonic() + COMFYUI_JOB_TIMEOUT_SECONDS
-    image_metas: List[Dict[str, Any]] = []
-    while time.monotonic() < deadline:
-        history_payload = http_json("GET", "%s/history/%s" % (base_url, quote(str(prompt_id))), timeout=COMFYUI_TIMEOUT_SECONDS)
-        image_metas = extract_history_images(history_payload, str(prompt_id))
-        if image_metas:
-            break
-        time.sleep(COMFYUI_POLL_SECONDS)
-    if not image_metas:
-        raise ValueError(
-            "ComfyUI workflow job timed out after %s seconds. "
-            "Increase SPRITE_WORKBENCH_COMFYUI_JOB_TIMEOUT_SECONDS for slower local runs."
-            % COMFYUI_JOB_TIMEOUT_SECONDS
-        )
-
-    result_paths: List[Path] = []
-    for index, image_meta in enumerate(image_metas):
-        image_bytes = fetch_comfyui_history_image(base_url, image_meta)
-        filename = image_meta.get("filename") or "frame_%02d.png" % index
-        path = output_dir / filename
-        path.write_bytes(image_bytes)
-        result_paths.append(path)
-    return result_paths
-
-
 def run_ai_character_lock(project_id: str, workflow_profile: str, source_asset_ids: List[str], parameters: Dict[str, Any], progress: Optional[ProgressCallback] = None) -> Dict[str, Any]:
     project = load_project(project_id)
     store = ai_workflow_or_error(project)
     project_dir = PROJECTS_ROOT / project_id
-    backend_mode = _ai_backend_mode(project)
     _ai_require_stack_ready(project)
     run_id = "lock-%s" % uuid.uuid4().hex[:8]
     output_root = ai_workflow_root(project_dir, "character_lock", run_id=run_id)
@@ -7059,73 +6840,29 @@ def run_ai_character_lock(project_id: str, workflow_profile: str, source_asset_i
     negative_prompt = str(parameters.get("negative_prompt") or (project.get("brief") or {}).get("negative_prompt") or DEFAULT_NEGATIVE_PROMPT).strip()
     candidates: List[Dict[str, Any]] = []
 
-    if backend_mode == "debug_procedural":
-        source = _ai_source_image(project, project_dir)
-        transforms = [
-            {"dx": -10, "dy": 0, "scale": 1.0, "rotate": -1.5, "mirror": False},
-            {"dx": 8, "dy": -4, "scale": 1.02, "rotate": 1.0, "mirror": False},
-            {"dx": -4, "dy": 2, "scale": 0.98, "rotate": 0.0, "mirror": False},
-            {"dx": 12, "dy": 1, "scale": 1.01, "rotate": 0.5, "mirror": False},
-            {"dx": -14, "dy": -2, "scale": 0.99, "rotate": -0.5, "mirror": False},
-            {"dx": 0, "dy": 0, "scale": 1.0, "rotate": 0.0, "mirror": False},
-        ]
-        for index in range(AI_CHARACTER_LOCK_COUNT):
-            call_progress(progress, 10 + int((index / AI_CHARACTER_LOCK_COUNT) * 72), "Character Lock %d of %d" % (index + 1, AI_CHARACTER_LOCK_COUNT), "Generating identity-locked candidate set.")
-            variant = _ai_transform_variant(source, **transforms[index % len(transforms)])
-            asset_name = _ai_candidate_label(index)
-            output_path = output_root / ("%s.png" % asset_name)
-            _ai_write_asset(variant, output_path)
-            candidates.append({
-                "asset_id": "character_lock:%s:%s" % (run_id, asset_name),
-                "label": asset_name,
-                "image_path": str(output_path.relative_to(project_dir)),
-                "seed": int(parameters.get("seed", 1000 + index)),
-                "workflow_id": "photomaker_ipadapter_character_lock",
-                "references_used": refs_used,
-            })
-    else:
-        template = load_workflow_template("character_lock_photomaker.json")
-        source_path, _ = resolve_sprite_source_image(project, project_dir)
-        conditioning_filename = upload_image_to_comfyui(DEFAULT_COMFYUI_BASE_URL, source_path)
-        checkpoint_name = DEFAULT_COMFYUI_CHECKPOINT
-        brief = project.get("brief") or {}
-        base_positive = prompt or build_positive_prompt_base(brief)
-        for index in range(AI_CHARACTER_LOCK_COUNT):
-            seed = int(parameters.get("seed", 1000 + index))
-            call_progress(progress, 10 + int((index / AI_CHARACTER_LOCK_COUNT) * 72), "Character Lock %d of %d" % (index + 1, AI_CHARACTER_LOCK_COUNT), "Generating identity-locked candidate set.")
-            request = ConceptRequest(
-                project_id=project_id,
-                positive_prompt=base_positive,
-                negative_prompt=negative_prompt,
-                width=CONCEPT_CANVAS[0],
-                height=CONCEPT_CANVAS[1],
-                seed=seed,
-                count=1,
-                references=[],
-                mode="character_lock",
-                refine_from_image=None,
-                refine_strength=None,
-                variation_axes={"summary": "character lock seed %d" % seed},
-                output_path=None,
-                checkpoint_name=checkpoint_name,
-            )
-            output_prefix = "sprite-workbench/%s/ai_sideview_v1/character_lock/%s_%02d" % (project_id, run_id, index)
-            prompt_graph = prepare_workflow_prompt(template, request, output_prefix, checkpoint_name, conditioning_filename)
-            result_paths = run_comfy_prompt_graph(prompt_graph, output_root)
-            if not result_paths:
-                raise ValueError("ComfyUI Character Lock run did not return any images.")
-            asset_name = _ai_candidate_label(index)
-            target_path = output_root / ("%s.png" % asset_name)
-            # Copy the first result into a stable per-candidate filename.
-            target_path.write_bytes(result_paths[0].read_bytes())
-            candidates.append({
-                "asset_id": "character_lock:%s:%s" % (run_id, asset_name),
-                "label": asset_name,
-                "image_path": str(target_path.relative_to(project_dir)),
-                "seed": seed,
-                "workflow_id": "photomaker_ipadapter_character_lock",
-                "references_used": refs_used,
-            })
+    source = _ai_source_image(project, project_dir)
+    transforms = [
+        {"dx": -10, "dy": 0, "scale": 1.0, "rotate": -1.5, "mirror": False},
+        {"dx": 8, "dy": -4, "scale": 1.02, "rotate": 1.0, "mirror": False},
+        {"dx": -4, "dy": 2, "scale": 0.98, "rotate": 0.0, "mirror": False},
+        {"dx": 12, "dy": 1, "scale": 1.01, "rotate": 0.5, "mirror": False},
+        {"dx": -14, "dy": -2, "scale": 0.99, "rotate": -0.5, "mirror": False},
+        {"dx": 0, "dy": 0, "scale": 1.0, "rotate": 0.0, "mirror": False},
+    ]
+    for index in range(AI_CHARACTER_LOCK_COUNT):
+        call_progress(progress, 10 + int((index / AI_CHARACTER_LOCK_COUNT) * 72), "Character Lock %d of %d" % (index + 1, AI_CHARACTER_LOCK_COUNT), "Generating identity-locked candidate set.")
+        variant = _ai_transform_variant(source, **transforms[index % len(transforms)])
+        asset_name = _ai_candidate_label(index)
+        output_path = output_root / ("%s.png" % asset_name)
+        _ai_write_asset(variant, output_path)
+        candidates.append({
+            "asset_id": "character_lock:%s:%s" % (run_id, asset_name),
+            "label": asset_name,
+            "image_path": str(output_path.relative_to(project_dir)),
+            "seed": int(parameters.get("seed", 1000 + index)),
+            "workflow_id": "photomaker_ipadapter_character_lock",
+            "references_used": refs_used,
+        })
 
     run = {
         "run_id": run_id,
@@ -7161,80 +6898,30 @@ def run_ai_key_pose_set(project_id: str, workflow_profile: str, source_asset_ids
         raise ValueError("Approve a Character Lock candidate before generating key poses.")
     _ai_require_stack_ready(project)
     project_dir = PROJECTS_ROOT / project_id
-    backend_mode = _ai_backend_mode(project)
     run_id = "poses-%s" % uuid.uuid4().hex[:8]
     output_root = ai_workflow_root(project_dir, "key_pose_set", run_id=run_id)
     poses: List[Dict[str, Any]] = []
 
-    if backend_mode == "debug_procedural":
-        base = Image.open(project_dir / approved_asset["image_path"]).convert("RGBA")
-        pose_variants = {
-            "idle_a": {"dx": -2, "dy": 0, "scale": 1.0, "rotate": -0.4},
-            "idle_b": {"dx": 2, "dy": -2, "scale": 1.0, "rotate": 0.4},
-            "walk_contact_front": {"dx": -10, "dy": 2, "scale": 1.0, "rotate": -1.2},
-            "walk_passing_front": {"dx": -2, "dy": -6, "scale": 0.98, "rotate": -0.2},
-            "walk_contact_back": {"dx": 10, "dy": 2, "scale": 1.0, "rotate": 1.2},
-            "walk_passing_back": {"dx": 2, "dy": -6, "scale": 0.98, "rotate": 0.2},
-        }
-        for index, pose_name in enumerate(AI_KEY_POSE_NAMES):
-            call_progress(progress, 10 + int((index / len(AI_KEY_POSE_NAMES)) * 74), "Key Pose %d of %d" % (index + 1, len(AI_KEY_POSE_NAMES)), "Generating canonical pose board.")
-            variant = _ai_transform_variant(base, **pose_variants[pose_name])
-            output_path = output_root / ("%s.png" % pose_name)
-            _ai_write_asset(variant, output_path)
-            poses.append({
-                "asset_id": "key_pose:%s:%s" % (run_id, pose_name),
-                "pose_name": pose_name,
-                "image_path": str(output_path.relative_to(project_dir)),
-                "source_character_lock_asset_id": approved_asset["asset_id"],
-            })
-    else:
-        template = load_workflow_template("key_pose_photomaker.json")
-        checkpoint_name = DEFAULT_COMFYUI_CHECKPOINT
-        conditioning_filename = upload_image_to_comfyui(DEFAULT_COMFYUI_BASE_URL, project_dir / approved_asset["image_path"])
-        brief = project.get("brief") or {}
-        base_positive = build_positive_prompt_base(brief)
-        negative_prompt = (project.get("brief") or {}).get("negative_prompt") or DEFAULT_NEGATIVE_PROMPT
-        pose_prompts = {
-            "idle_a": "idle pose, relaxed stance, minimal motion blur",
-            "idle_b": "idle pose, subtle weight shift, minimal motion blur",
-            "walk_contact_front": "walk cycle contact pose, front leg contacting ground",
-            "walk_passing_front": "walk cycle passing pose, front leg passing under body",
-            "walk_contact_back": "walk cycle contact pose, rear leg contacting ground",
-            "walk_passing_back": "walk cycle passing pose, rear leg passing under body",
-        }
-        for index, pose_name in enumerate(AI_KEY_POSE_NAMES):
-            call_progress(progress, 10 + int((index / len(AI_KEY_POSE_NAMES)) * 74), "Key Pose %d of %d" % (index + 1, len(AI_KEY_POSE_NAMES)), "Generating canonical pose board.")
-            seed = stable_int(project_id, run_id, pose_name, base_positive, pose_prompts.get(pose_name, pose_name))
-            positive_prompt = "%s, %s" % (base_positive, pose_prompts.get(pose_name, pose_name))
-            request = ConceptRequest(
-                project_id=project_id,
-                positive_prompt=positive_prompt,
-                negative_prompt=negative_prompt,
-                width=CONCEPT_CANVAS[0],
-                height=CONCEPT_CANVAS[1],
-                seed=seed,
-                count=1,
-                references=[],
-                mode="key_pose_set",
-                refine_from_image=None,
-                refine_strength=None,
-                variation_axes={"summary": "key pose %s" % pose_name},
-                output_path=None,
-                checkpoint_name=checkpoint_name,
-            )
-            output_prefix = "sprite-workbench/%s/ai_sideview_v1/key_pose/%s_%s" % (project_id, run_id, pose_name)
-            prompt_graph = prepare_workflow_prompt(template, request, output_prefix, checkpoint_name, conditioning_filename)
-            result_paths = run_comfy_prompt_graph(prompt_graph, output_root)
-            if not result_paths:
-                raise ValueError("ComfyUI Key Pose run did not return any images for %s." % pose_name)
-            output_path = output_root / ("%s.png" % pose_name)
-            output_path.write_bytes(result_paths[0].read_bytes())
-            poses.append({
-                "asset_id": "key_pose:%s:%s" % (run_id, pose_name),
-                "pose_name": pose_name,
-                "image_path": str(output_path.relative_to(project_dir)),
-                "source_character_lock_asset_id": approved_asset["asset_id"],
-            })
+    base = Image.open(project_dir / approved_asset["image_path"]).convert("RGBA")
+    pose_variants = {
+        "idle_a": {"dx": -2, "dy": 0, "scale": 1.0, "rotate": -0.4},
+        "idle_b": {"dx": 2, "dy": -2, "scale": 1.0, "rotate": 0.4},
+        "walk_contact_front": {"dx": -10, "dy": 2, "scale": 1.0, "rotate": -1.2},
+        "walk_passing_front": {"dx": -2, "dy": -6, "scale": 0.98, "rotate": -0.2},
+        "walk_contact_back": {"dx": 10, "dy": 2, "scale": 1.0, "rotate": 1.2},
+        "walk_passing_back": {"dx": 2, "dy": -6, "scale": 0.98, "rotate": 0.2},
+    }
+    for index, pose_name in enumerate(AI_KEY_POSE_NAMES):
+        call_progress(progress, 10 + int((index / len(AI_KEY_POSE_NAMES)) * 74), "Key Pose %d of %d" % (index + 1, len(AI_KEY_POSE_NAMES)), "Generating canonical pose board.")
+        variant = _ai_transform_variant(base, **pose_variants[pose_name])
+        output_path = output_root / ("%s.png" % pose_name)
+        _ai_write_asset(variant, output_path)
+        poses.append({
+            "asset_id": "key_pose:%s:%s" % (run_id, pose_name),
+            "pose_name": pose_name,
+            "image_path": str(output_path.relative_to(project_dir)),
+            "source_character_lock_asset_id": approved_asset["asset_id"],
+        })
 
     run = {
         "run_id": run_id,
@@ -7304,7 +6991,6 @@ def run_ai_motion_clip(project_id: str, workflow_profile: str, clip_name: str, s
     project = load_project(project_id)
     store = ai_workflow_or_error(project)
     _ai_require_stack_ready(project)
-    backend_mode = _ai_backend_mode(project)
     project_dir = PROJECTS_ROOT / project_id
     key_pose_run = _ai_find_key_pose_run(store, store.get("key_pose_set", {}).get("approved_run_id"))
     if not key_pose_run:
@@ -7321,82 +7007,29 @@ def run_ai_motion_clip(project_id: str, workflow_profile: str, clip_name: str, s
     sequence = spec["pose_sequence"]
     frame_total = spec["frame_count"]
 
-    if backend_mode == "debug_procedural":
-        pose_images = {}
-        for pose in key_pose_run.get("poses") or []:
-            image_path = project_dir / str(pose.get("image_path") or "")
-            if image_path.exists():
-                pose_images[pose["pose_name"]] = Image.open(image_path).convert("RGBA")
-        for index in range(frame_total):
-            segment_position = (index / max(1, frame_total - 1)) * (len(sequence) - 1)
-            left_index = int(math.floor(segment_position))
-            right_index = min(len(sequence) - 1, left_index + 1)
-            blend_amount = segment_position - left_index
-            left_pose = pose_images[sequence[left_index]]
-            right_pose = pose_images[sequence[right_index]]
-            blended = Image.blend(left_pose, right_pose, blend_amount)
-            frame_name = "%s_%02d.png" % (clip_name, index)
-            frame_path = frame_dir / frame_name
-            _ai_write_asset(blended, frame_path)
-            frame_records.append({
-                "frame_name": frame_name,
-                "image_path": str(frame_path.relative_to(project_dir)),
-                "source_pose_names": [sequence[left_index], sequence[right_index]],
-                "blend_amount": round(blend_amount, 4),
-            })
-            call_progress(progress, 12 + int((index / max(1, frame_total)) * 74), "Motion frame %d of %d" % (index + 1, frame_total), "Interpolating pose-to-pose motion frames.")
-    else:
-        template = load_workflow_template("motion_tooncrafter.json")
-        prompt_graph = copy.deepcopy(template["prompt"])
-        meta = template.get("meta") or {}
-        motion_meta = meta.get("motion") or {}
-        motion_node = motion_meta.get("node")
-        if motion_node and motion_node in prompt_graph:
-            node_inputs = prompt_graph[motion_node]["inputs"]
-            if motion_meta.get("frames_input"):
-                node_inputs[motion_meta["frames_input"]] = frame_total
-            if motion_meta.get("fps_input"):
-                node_inputs[motion_meta["fps_input"]] = spec["fps"]
-        poses_meta = (meta.get("poses") or {}).get("load_nodes") or []
-        # Map up to four unique poses from the sequence into the ToonCrafter template.
-        pose_by_name = {pose["pose_name"]: pose for pose in (key_pose_run.get("poses") or [])}
-        unique_sequence = []
-        for name in sequence:
-            if name not in unique_sequence:
-                unique_sequence.append(name)
-        for mapped, pose_name in zip(poses_meta, unique_sequence):
-            pose = pose_by_name.get(pose_name)
-            if not pose:
-                continue
-            image_path = project_dir / str(pose.get("image_path") or "")
-            if not image_path.exists():
-                continue
-            uploaded = upload_image_to_comfyui(DEFAULT_COMFYUI_BASE_URL, image_path)
-            node_id = mapped.get("node")
-            input_name = mapped.get("input") or "image"
-            if node_id and node_id in prompt_graph:
-                prompt_graph[node_id]["inputs"][input_name] = uploaded
-        call_progress(progress, 16, "%s motion" % clip_name.title(), "Generating motion frames via ToonCrafter.")
-        result_paths = run_comfy_prompt_graph(prompt_graph, frame_dir)
-        if len(result_paths) < frame_total:
-            raise ValueError("ComfyUI ToonCrafter run returned %d frames, expected %d." % (len(result_paths), frame_total))
-        # Truncate or use first frame_total outputs to keep invariants stable.
-        for index in range(frame_total):
-            path = result_paths[index]
-            frame_name = "%s_%02d.png" % (clip_name, index)
-            frame_path = frame_dir / frame_name
-            frame_path.write_bytes(path.read_bytes())
-            segment_position = (index / max(1, frame_total - 1)) * (len(sequence) - 1)
-            left_index = int(math.floor(segment_position))
-            right_index = min(len(sequence) - 1, left_index + 1)
-            blend_amount = segment_position - left_index
-            frame_records.append({
-                "frame_name": frame_name,
-                "image_path": str(frame_path.relative_to(project_dir)),
-                "source_pose_names": [sequence[left_index], sequence[right_index]],
-                "blend_amount": round(blend_amount, 4),
-            })
-            call_progress(progress, 12 + int((index / max(1, frame_total)) * 74), "Motion frame %d of %d" % (index + 1, frame_total), "Mapping ToonCrafter frames into the motion clip.")
+    pose_images = {}
+    for pose in key_pose_run.get("poses") or []:
+        image_path = project_dir / str(pose.get("image_path") or "")
+        if image_path.exists():
+            pose_images[pose["pose_name"]] = Image.open(image_path).convert("RGBA")
+    for index in range(frame_total):
+        segment_position = (index / max(1, frame_total - 1)) * (len(sequence) - 1)
+        left_index = int(math.floor(segment_position))
+        right_index = min(len(sequence) - 1, left_index + 1)
+        blend_amount = segment_position - left_index
+        left_pose = pose_images[sequence[left_index]]
+        right_pose = pose_images[sequence[right_index]]
+        blended = Image.blend(left_pose, right_pose, blend_amount)
+        frame_name = "%s_%02d.png" % (clip_name, index)
+        frame_path = frame_dir / frame_name
+        _ai_write_asset(blended, frame_path)
+        frame_records.append({
+            "frame_name": frame_name,
+            "image_path": str(frame_path.relative_to(project_dir)),
+            "source_pose_names": [sequence[left_index], sequence[right_index]],
+            "blend_amount": round(blend_amount, 4),
+        })
+        call_progress(progress, 12 + int((index / max(1, frame_total)) * 74), "Motion frame %d of %d" % (index + 1, frame_total), "Interpolating pose-to-pose motion frames.")
     run = {
         "run_id": run_id,
         "stage": "motion_clip",
@@ -8974,53 +8607,23 @@ def generate_master_pose_candidates(project_id: str, progress: Optional[Progress
         "project_id": project_id,
         "approved_concept_id": concept["concept_id"],
         "generated_at": now_iso(),
-        "backend_mode": project["brief"]["backend_mode"],
+        "backend_mode": brief_backend_mode(project.get("brief")),
         "candidates": [],
         "approved_candidate_id": None,
         "approved_image": None,
     }
 
-    backend_mode = project["brief"]["backend_mode"]
-    backend = get_concept_backend(backend_mode)
-    request_references = make_reference_inputs(project_dir, project["brief"])
-    use_local_reference_candidates = concept.get("backend_name") == "manual_reference"
     prompt_suffixes = [
         "strict side-view master pose, clean silhouette, plain background, neutral stance, extraction-ready sprite source",
         "strict side-view master pose, full-body clean profile, plain removable background, readable silhouette, animation-ready stance",
         "strict side-view master pose, clean silhouette overlap, plain background, stable anatomy, source image for sprite extraction",
     ]
 
-    if backend_mode != "debug_procedural" and not use_local_reference_candidates:
-        health = backend.healthcheck()
-        if not health.get("ok"):
-            raise ValueError("ComfyUI backend unavailable: %s" % health.get("error", "unknown backend error"))
-
     for index in range(MASTER_POSE_COUNT):
         candidate_id = "master-pose-%02d" % (index + 1)
         output_path = master_pose_dir / ("master_pose_%02d.png" % (index + 1))
         call_progress(progress, 16 + index * 22, "Generating master pose %d of %d" % (index + 1, MASTER_POSE_COUNT), prompt_suffixes[index])
-        candidate_meta = None
-        if backend_mode == "debug_procedural" or use_local_reference_candidates:
-            candidate_meta = local_master_pose_candidate(concept_path, output_path, index, concept["palette"]["outline"])
-        else:
-            request = ConceptRequest(
-                project_id=project_id,
-                positive_prompt="%s, %s" % (concept["positive_prompt"], prompt_suffixes[index]),
-                negative_prompt="%s, dramatic perspective, scene background, cropped limbs, motion blur" % concept["negative_prompt"],
-                width=CONCEPT_CANVAS[0],
-                height=CONCEPT_CANVAS[1],
-                seed=stable_int(project_id, concept["concept_id"], candidate_id, mod=4_294_967_295),
-                count=1,
-                references=request_references,
-                mode="master_pose",
-                refine_from_image=concept_path,
-                refine_strength=0.28 + (index * 0.03),
-                variation_axes={"summary": prompt_suffixes[index]},
-                output_path=output_path,
-                checkpoint_name=project["brief"].get("comfyui_checkpoint") or DEFAULT_COMFYUI_CHECKPOINT,
-            )
-            backend.generate(request)
-            candidate_meta = local_master_pose_candidate(output_path, output_path, 1, concept["palette"]["outline"])
+        candidate_meta = local_master_pose_candidate(concept_path, output_path, index, concept["palette"]["outline"])
         manifest["candidates"].append({
             "candidate_id": candidate_id,
             "image_path": str(output_path.relative_to(project_dir)),
@@ -12457,6 +12060,24 @@ def _write_per_animation_preview_gifs(
         fps = max(1, int(fps_for_animation(animation_name)))
         duration = int(1000 / fps)
         imgs = [Image.open(p).convert("RGBA") for p in paths]
+        # Compute union bbox of non-transparent pixels across all frames so the
+        # crop is stable (no jitter) and the sprite fills the preview.
+        union_bbox = None
+        for img in imgs:
+            bb = img.split()[3].getbbox()  # alpha channel bbox
+            if bb is None:
+                continue
+            if union_bbox is None:
+                union_bbox = bb
+            else:
+                union_bbox = (
+                    min(union_bbox[0], bb[0]),
+                    min(union_bbox[1], bb[1]),
+                    max(union_bbox[2], bb[2]),
+                    max(union_bbox[3], bb[3]),
+                )
+        if union_bbox is not None:
+            imgs = [img.crop(union_bbox) for img in imgs]
         out_name = "preview_%s.gif" % animation_name
         out_path = export_dir / out_name
         imgs[0].save(
@@ -12470,6 +12091,17 @@ def _write_per_animation_preview_gifs(
         )
         out_names.append(out_name)
     return out_names
+
+
+def _write_preview_spritesheet(spritesheet: Image.Image, export_dir: Path) -> None:
+    """Save a vertically-trimmed copy of the spritesheet as preview_spritesheet.png for workbench display."""
+    alpha = spritesheet.getchannel("A")
+    bbox = alpha.getbbox()
+    if bbox is not None and (bbox[1] > 0 or bbox[3] < spritesheet.height):
+        preview = spritesheet.crop((0, bbox[1], spritesheet.width, bbox[3]))
+    else:
+        preview = spritesheet
+    preview.save(export_dir / "preview_spritesheet.png")
 
 
 def export_pixellab_project(project_id: str, progress: Optional[ProgressCallback] = None) -> Dict[str, Any]:
@@ -12563,6 +12195,7 @@ def export_pixellab_project(project_id: str, progress: Optional[ProgressCallback
         spritesheet.alpha_composite(frame_image, (x, 0))
         atlas_frames[frame_name] = {"x": x, "y": 0, "w": FRAME_SIZE, "h": FRAME_SIZE, "pivot": list(FRAME_PIVOT), "animation": animation_name}
     spritesheet.save(export_dir / "spritesheet.png")
+    _write_preview_spritesheet(spritesheet, export_dir)
 
     animations_payload: Dict[str, Any] = {}
     for name in procedural_names:
@@ -12696,6 +12329,7 @@ def export_project(project_id: str, progress: Optional[ProgressCallback] = None)
             spritesheet.alpha_composite(frame_image, (x, 0))
             atlas_frames[frame_name] = {"x": x, "y": 0, "w": FRAME_SIZE, "h": FRAME_SIZE, "pivot": list(FRAME_PIVOT), "animation": animation_name}
         spritesheet.save(export_dir / "spritesheet.png")
+        _write_preview_spritesheet(spritesheet, export_dir)
         animations_payload = {
             clip_name: {
                 "fps": spec["fps"],
@@ -12725,7 +12359,7 @@ def export_project(project_id: str, progress: Optional[ProgressCallback] = None)
             "cleanup_run_ids": (ai_workflow.get("selected_assets") or {}).get("cleanup_run_ids") or {},
             "dependency_health_snapshot": ai_workflow.get("dependency_status") or {},
             "model_versions": {
-                "comfyui": "runtime-health-only",
+                "comfyui": "removed-phase-8",
                 "photomaker": "configured-via-environment",
                 "ipadapter_plus": "configured-via-environment",
                 "tooncrafter": "configured-via-environment",
@@ -12869,6 +12503,7 @@ def export_project(project_id: str, progress: Optional[ProgressCallback] = None)
         spritesheet.alpha_composite(frame_image, (x, 0))
         atlas_frames[frame_name] = {"x": x, "y": 0, "w": FRAME_SIZE, "h": FRAME_SIZE, "pivot": list(FRAME_PIVOT), "animation": animation_name}
     spritesheet.save(export_dir / "spritesheet.png")
+    _write_preview_spritesheet(spritesheet, export_dir)
 
     animations_payload = {
         name: {
@@ -12956,19 +12591,6 @@ def export_project(project_id: str, progress: Optional[ProgressCallback] = None)
     return result
 
 
-def multipart_encode(file_field: str, filename: str, content: bytes, content_type: str) -> Tuple[bytes, str]:
-    boundary = "----spriteworkbench%s" % uuid.uuid4().hex
-    body = (
-        "--%s\r\n"
-        "Content-Disposition: form-data; name=\"overwrite\"\r\n\r\ntrue\r\n"
-        "--%s\r\n"
-        "Content-Disposition: form-data; name=\"%s\"; filename=\"%s\"\r\n"
-        "Content-Type: %s\r\n\r\n"
-        % (boundary, boundary, file_field, filename, content_type)
-    ).encode("utf-8") + content + ("\r\n--%s--\r\n" % boundary).encode("utf-8")
-    return body, "multipart/form-data; boundary=%s" % boundary
-
-
 class HttpRequestError(RuntimeError):
     pass
 
@@ -12994,7 +12616,7 @@ def http_request(method: str, url: str, body: Optional[bytes], headers: Dict[str
     raise HttpRequestError(str(last_error))
 
 
-def http_json(method: str, url: str, payload: Optional[Dict[str, Any]] = None, headers: Optional[Dict[str, str]] = None, timeout: int = COMFYUI_TIMEOUT_SECONDS) -> Dict[str, Any]:
+def http_json(method: str, url: str, payload: Optional[Dict[str, Any]] = None, headers: Optional[Dict[str, str]] = None, timeout: int = HTTP_JSON_DEFAULT_TIMEOUT_SECONDS) -> Dict[str, Any]:
     body = None
     combined_headers = dict(headers or {})
     if payload is not None:
@@ -13005,110 +12627,6 @@ def http_json(method: str, url: str, payload: Optional[Dict[str, Any]] = None, h
     if not raw:
         return {}
     return json.loads(raw.decode("utf-8"))
-
-
-def upload_image_to_comfyui(base_url: str, image_path: Path) -> str:
-    mime = "image/png"
-    if image_path.suffix.lower() in (".jpg", ".jpeg"):
-        mime = "image/jpeg"
-    elif image_path.suffix.lower() == ".webp":
-        mime = "image/webp"
-    body, content_type = multipart_encode("image", image_path.name, image_path.read_bytes(), mime)
-    raw = http_request(
-        "POST",
-        "%s/upload/image" % base_url.rstrip("/"),
-        body,
-        {"Content-Type": content_type, "Accept": "application/json"},
-        COMFYUI_TIMEOUT_SECONDS,
-    )
-    payload = json.loads(raw.decode("utf-8"))
-    name = payload.get("name") or payload.get("subfolder") or payload.get("filename")
-    if not name:
-        raise ValueError("ComfyUI upload response did not include an uploaded filename.")
-    return name
-
-
-def load_workflow_template(template_name: str) -> Dict[str, Any]:
-    path = WORKFLOW_DIR / template_name
-    payload = load_json(path, None)
-    if not isinstance(payload, dict) or "meta" not in payload or "prompt" not in payload:
-        raise ValueError("Invalid workflow template: %s" % template_name)
-    return payload
-
-
-def prepare_workflow_prompt(
-    template: Dict[str, Any],
-    request: ConceptRequest,
-    output_prefix: str,
-    checkpoint_name: str,
-    conditioning_filename: Optional[str],
-) -> Dict[str, Any]:
-    prompt_graph = copy.deepcopy(template["prompt"])
-    meta = template["meta"]
-
-    checkpoint_meta = meta["checkpoint"]
-    prompt_graph[checkpoint_meta["node"]]["inputs"][checkpoint_meta["input"]] = checkpoint_name
-
-    positive_meta = meta["positive"]
-    negative_meta = meta["negative"]
-    prompt_graph[positive_meta["node"]]["inputs"][positive_meta["input"]] = request.positive_prompt
-    prompt_graph[negative_meta["node"]]["inputs"][negative_meta["input"]] = request.negative_prompt
-
-    latent_meta = meta["latent"]
-    prompt_graph[latent_meta["node"]]["inputs"][latent_meta["width_input"]] = request.width
-    prompt_graph[latent_meta["node"]]["inputs"][latent_meta["height_input"]] = request.height
-
-    sampler_meta = meta["sampler"]
-    sampler_inputs = prompt_graph[sampler_meta["node"]]["inputs"]
-    sampler_inputs[sampler_meta["seed_input"]] = int(request.seed)
-    if sampler_meta.get("steps_input"):
-        sampler_inputs[sampler_meta["steps_input"]] = meta.get("defaults", {}).get("steps", sampler_inputs.get(sampler_meta["steps_input"], 24))
-    if sampler_meta.get("cfg_input"):
-        sampler_inputs[sampler_meta["cfg_input"]] = meta.get("defaults", {}).get("cfg", sampler_inputs.get(sampler_meta["cfg_input"], 6.5))
-
-    save_meta = meta["save"]
-    prompt_graph[save_meta["node"]]["inputs"][save_meta["input"]] = output_prefix
-
-    conditioning_meta = meta.get("conditioning")
-    if conditioning_filename:
-        if not conditioning_meta:
-            raise ValueError("Workflow template does not define conditioning nodes.")
-        prompt_graph[conditioning_meta["load_node"]]["inputs"][conditioning_meta["image_input"]] = conditioning_filename
-        sampler_inputs[sampler_meta["latent_input"]] = conditioning_meta["conditioned_source"]
-        denoise = request.refine_strength if request.refine_strength is not None else conditioning_meta.get("default_denoise")
-        if sampler_meta.get("denoise_input") and denoise is not None:
-            sampler_inputs[sampler_meta["denoise_input"]] = denoise
-    else:
-        if conditioning_meta and conditioning_meta.get("required"):
-            raise ValueError("This workflow requires an input image.")
-        if conditioning_meta and conditioning_meta.get("empty_source") is not None:
-            sampler_inputs[sampler_meta["latent_input"]] = conditioning_meta["empty_source"]
-        if sampler_meta.get("denoise_input") and request.refine_strength is not None:
-            sampler_inputs[sampler_meta["denoise_input"]] = request.refine_strength
-
-    return prompt_graph
-
-
-def extract_history_images(history_payload: Dict[str, Any], prompt_id: str) -> List[Dict[str, Any]]:
-    entry = history_payload.get(prompt_id) if isinstance(history_payload, dict) else None
-    if entry is None and isinstance(history_payload, dict) and "outputs" in history_payload:
-        entry = history_payload
-    if not isinstance(entry, dict):
-        return []
-    outputs = entry.get("outputs") or {}
-    images = []
-    for node_output in outputs.values():
-        images.extend(node_output.get("images") or [])
-    return images
-
-
-def fetch_comfyui_history_image(base_url: str, image_meta: Dict[str, Any]) -> bytes:
-    query = urlencode({
-        "filename": image_meta["filename"],
-        "subfolder": image_meta.get("subfolder", ""),
-        "type": image_meta.get("type", "output"),
-    })
-    return http_request("GET", "%s/view?%s" % (base_url.rstrip("/"), query), None, {}, COMFYUI_TIMEOUT_SECONDS)
 
 
 class DebugProceduralConceptBackend(object):
@@ -13154,90 +12672,10 @@ class DebugProceduralConceptBackend(object):
         ]
 
 
-class ComfyUIConceptBackend(object):
-    name = "comfyui"
-
-    def __init__(self, base_url: str) -> None:
-        self.base_url = base_url.rstrip("/")
-
-    def healthcheck(self) -> Dict[str, Any]:
-        try:
-            http_request("GET", self.base_url, None, {}, COMFYUI_TIMEOUT_SECONDS)
-            return {"ok": True, "backend": self.name, "base_url": self.base_url}
-        except HttpRequestError as exc:
-            return {"ok": False, "backend": self.name, "base_url": self.base_url, "error": str(exc)}
-
-    def generate(self, request: ConceptRequest) -> List[GeneratedConcept]:
-        if request.output_path is None:
-            raise ValueError("Concept generation requires an output path.")
-        template_name = "concept_refine_img2img.json" if request.refine_from_image is not None else "concept_txt2img.json"
-        template = load_workflow_template(template_name)
-
-        project_dir = PROJECTS_ROOT / request.project_id
-        conditioning_board = create_conditioning_board(
-            project_dir,
-            request.references,
-            request.refine_from_image,
-            (request.width, request.height),
-            "conditioning_%s" % uuid.uuid4().hex[:8],
-        )
-        conditioning_filename = None
-        if conditioning_board is not None:
-            conditioning_filename = upload_image_to_comfyui(self.base_url, conditioning_board)
-
-        checkpoint_name = request.checkpoint_name or DEFAULT_COMFYUI_CHECKPOINT
-        output_prefix = "sprite-workbench/%s/%s" % (request.project_id, uuid.uuid4().hex[:10])
-        prompt_graph = prepare_workflow_prompt(template, request, output_prefix, checkpoint_name, conditioning_filename)
-        submit = http_json("POST", "%s/prompt" % self.base_url, {"prompt": prompt_graph}, timeout=COMFYUI_TIMEOUT_SECONDS)
-        prompt_id = submit.get("prompt_id")
-        if not prompt_id:
-            raise ValueError("ComfyUI did not return a prompt_id.")
-        if submit.get("node_errors"):
-            raise ValueError("ComfyUI reported node errors: %s" % submit["node_errors"])
-
-        deadline = time.monotonic() + COMFYUI_JOB_TIMEOUT_SECONDS
-        image_metas = []
-        while time.monotonic() < deadline:
-            history_payload = http_json("GET", "%s/history/%s" % (self.base_url, quote(str(prompt_id))), timeout=COMFYUI_TIMEOUT_SECONDS)
-            image_metas = extract_history_images(history_payload, str(prompt_id))
-            if image_metas:
-                break
-            time.sleep(COMFYUI_POLL_SECONDS)
-        if not image_metas:
-            raise ValueError(
-                "ComfyUI concept job timed out after %s seconds. "
-                "Increase SPRITE_WORKBENCH_COMFYUI_JOB_TIMEOUT_SECONDS for slower local runs."
-                % COMFYUI_JOB_TIMEOUT_SECONDS
-            )
-
-        image_bytes = fetch_comfyui_history_image(self.base_url, image_metas[0])
-        request.output_path.parent.mkdir(parents=True, exist_ok=True)
-        request.output_path.write_bytes(image_bytes)
-        return [
-            GeneratedConcept(
-                seed=request.seed,
-                image_path=request.output_path,
-                backend_name=self.name,
-                backend_run_id=str(prompt_id),
-                positive_prompt=request.positive_prompt,
-                negative_prompt=request.negative_prompt,
-                variation_axes=request.variation_axes or {},
-                references_used=[
-                    {
-                        "role": item.role,
-                        "local_path": str(item.local_path.relative_to(project_dir)),
-                        "weight": item.weight,
-                    }
-                    for item in request.references
-                ],
-            )
-        ]
-
-
 def get_concept_backend(mode: str) -> ConceptBackend:
-    if mode == "debug_procedural":
-        return DebugProceduralConceptBackend()
-    return ComfyUIConceptBackend(DEFAULT_COMFYUI_BASE_URL)
+    # ComfyUI removed (Phase 8); legacy concept routes use the offline procedural backend only.
+    _ = normalize_brief_backend_mode(mode)
+    return DebugProceduralConceptBackend()
 
 
 def relative_preview_path(project_dir: Path, image_path: Path) -> str:
@@ -13255,12 +12693,16 @@ def generate_run(
 ) -> Dict[str, Any]:
     project = load_project(project_id)
     project_dir = PROJECTS_ROOT / project_id
-    backend_mode = project["brief"]["backend_mode"]
+    backend_mode = brief_backend_mode(project.get("brief"))
+    if backend_mode == "pixellab":
+        raise ValueError(
+            "Legacy concept generation (similar/refinement) is not used for Pixel Lab projects; use the Pixel Lab concept endpoints."
+        )
     backend = get_concept_backend(backend_mode)
     call_progress(progress, 5, "Checking the image generator", "Making sure concept generation is available.")
     health = backend.healthcheck()
-    if not health.get("ok") and backend_mode != "debug_procedural":
-        raise ValueError("ComfyUI backend unavailable: %s" % health.get("error", "unknown backend error"))
+    if not health.get("ok"):
+        raise ValueError("Concept backend unavailable: %s" % health.get("error", "unknown backend error"))
 
     if run_kind == "initial":
         variation_axes_list = build_initial_variation_axes(project["brief"])
@@ -13327,7 +12769,7 @@ def generate_run(
                 refine_strength=refine_strength,
                 variation_axes=variation_axes,
                 output_path=output_path,
-                checkpoint_name=project["brief"].get("comfyui_checkpoint") or DEFAULT_COMFYUI_CHECKPOINT,
+                checkpoint_name=project["brief"].get("comfyui_checkpoint"),
             )
             generated = backend.generate(request)[0]
             concept = {
@@ -13534,15 +12976,14 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
         query = parse_qs(parsed.query)
 
         if path == "/api/health":
-            backend = ComfyUIConceptBackend(DEFAULT_COMFYUI_BASE_URL).healthcheck()
+            concept_backend = DebugProceduralConceptBackend().healthcheck()
             return self._send_json({
                 "ok": True,
                 "tool_version": TOOL_VERSION,
                 "projects_root": str(PROJECTS_ROOT),
                 "stage_maturity": load_stage_maturity(),
-                "backend": backend,
-                "default_checkpoint": DEFAULT_COMFYUI_CHECKPOINT,
-                "comfyui_job_timeout_seconds": COMFYUI_JOB_TIMEOUT_SECONDS,
+                "concept_backend": concept_backend,
+                "legacy_comfyui": "removed",
             })
 
         if path == "/api/pixellab/health":
@@ -13755,7 +13196,7 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                 concept_id = "concept-%04d" % serial
                 output_path = project_dir / "concepts" / ("%s.png" % concept_id)
 
-                backend_mode = str((project.get("brief") or {}).get("backend_mode") or "comfyui")
+                backend_mode = brief_backend_mode(project.get("brief"))
                 seed = pixellab_params.get("seed")
 
                 used_backend = "debug_procedural" if backend_mode == "debug_procedural" else "pixellab"
@@ -13897,7 +13338,7 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                 concept_id = "concept-%04d" % serial
                 output_path = project_dir / "concepts" / ("%s.png" % concept_id)
 
-                backend_mode = str((project.get("brief") or {}).get("backend_mode") or "comfyui")
+                backend_mode = brief_backend_mode(project.get("brief"))
                 seed = pixellab_params.get("seed")
                 used_backend = "debug_procedural" if backend_mode == "debug_procedural" else "pixellab"
                 backend_run_id = None
@@ -14041,7 +13482,7 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                         "south-west",
                     ]
 
-                backend_mode = str(brief.get("backend_mode") or "comfyui")
+                backend_mode = brief_backend_mode(brief)
                 use_debug = backend_mode == "debug_procedural" or not pixellab_configured()
 
                 if use_debug:
@@ -14200,7 +13641,7 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                 except (TypeError, ValueError):
                     seed = stable_int(project_id, direction, str(canvas_size), mod=4_294_967_295)
 
-                backend_mode = str(brief.get("backend_mode") or "comfyui")
+                backend_mode = brief_backend_mode(brief)
                 use_debug = backend_mode == "debug_procedural" or not pixellab_configured()
 
                 if use_debug:
@@ -14350,7 +13791,7 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                         "south-west",
                     ]
 
-                backend_mode = str(brief.get("backend_mode") or "comfyui")
+                backend_mode = brief_backend_mode(brief)
                 use_debug = backend_mode == "debug_procedural" or not pixellab_configured()
 
                 seed = payload.get("seed")
@@ -14550,7 +13991,7 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
 
                 animation_name = validate_pixellab_animation_name(payload.get("animation_name") or "idle")
 
-                backend_mode = str(brief.get("backend_mode") or "comfyui")
+                backend_mode = brief_backend_mode(brief)
                 use_debug = backend_mode == "debug_procedural" or not pixellab_configured()
 
                 seed = payload.get("seed")
@@ -14703,7 +14144,7 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                     # Keep strict enough to catch wiring mistakes.
                     raise ValueError("Invalid direction for this character: %s." % direction)
 
-                backend_mode = str(brief.get("backend_mode") or "comfyui")
+                backend_mode = brief_backend_mode(brief)
                 use_debug = backend_mode == "debug_procedural" or not pixellab_configured()
 
                 seed = payload.get("seed")
@@ -14862,7 +14303,7 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
 
                 animation_name = validate_pixellab_animation_name(animation_name)
 
-                backend_mode = str(brief.get("backend_mode") or "comfyui")
+                backend_mode = brief_backend_mode(brief)
                 use_debug = backend_mode == "debug_procedural" or not pixellab_configured()
 
                 store = _load_pixellab_animations_store(project_dir)

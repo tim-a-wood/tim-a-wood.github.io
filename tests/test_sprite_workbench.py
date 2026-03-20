@@ -577,14 +577,14 @@ class SpriteWorkbenchTests(unittest.TestCase):
             self.assertFalse((export_dir / "preview.gif").exists())
             self.assertTrue((export_dir / "export_manifest.json").exists())
 
-    def test_ai_workflow_health_fails_cleanly_when_comfyui_is_down(self):
-        with patch.object(sw.ComfyUIConceptBackend, "healthcheck", return_value={"ok": False, "error": "connection refused", "base_url": "http://127.0.0.1:8188"}):
-            health = sw.ai_workflow_health_snapshot("comfyui")
-        self.assertEqual(health["overall_status"], "fail")
-        self.assertEqual(health["dependencies"]["comfyui"]["status"], "fail")
-        self.assertIn("connection refused", health["dependencies"]["comfyui"]["detail"])
+    def test_ai_workflow_health_normalizes_legacy_comfyui_mode(self):
+        health = sw.ai_workflow_health_snapshot("comfyui")
+        self.assertEqual(health["overall_status"], "pass")
+        self.assertEqual(health["backend_mode"], "debug_procedural")
+        self.assertEqual(health["dependencies"]["comfyui"]["status"], "pass")
 
-    def test_ai_character_lock_uses_comfyui_when_backend_mode_is_comfyui(self):
+    def test_ai_character_lock_uses_procedural_when_brief_has_legacy_comfyui(self):
+        """Legacy ``comfyui`` brief mode maps to debug_procedural; no external Comfy calls."""
         with tempfile.TemporaryDirectory() as tmpdir:
             original_root = sw.PROJECTS_ROOT
             sw.PROJECTS_ROOT = Path(tmpdir)
@@ -595,26 +595,7 @@ class SpriteWorkbenchTests(unittest.TestCase):
                     "backend_mode": "comfyui",
                 })
                 project = self.import_valid_manual_concept(project["project_id"])
-
-                def fake_http_json(method, url, payload=None, headers=None, timeout=sw.COMFYUI_TIMEOUT_SECONDS):
-                    if url.rstrip("/").endswith("/prompt") and method == "POST":
-                        return {"prompt_id": "job-123"}
-                    if "/history/" in url and method == "GET":
-                        return {
-                            "outputs": {
-                                "7": {
-                                    "images": [{
-                                        "filename": "lock_00.png",
-                                        "subfolder": "",
-                                        "type": "output",
-                                    }]
-                                }
-                            }
-                        }
-                    return {}
-
-                with patch.object(sw, "http_json", side_effect=fake_http_json), patch.object(sw, "fetch_comfyui_history_image", return_value=b"fake-bytes"), patch.object(sw.ComfyUIConceptBackend, "healthcheck", return_value={"ok": True, "base_url": sw.DEFAULT_COMFYUI_BASE_URL}):
-                    run = sw.run_ai_character_lock(project["project_id"], sw.AI_WORKFLOW_PROFILE, [project["selected_concept_id"]], {}, progress=None)
+                run = sw.run_ai_character_lock(project["project_id"], sw.AI_WORKFLOW_PROFILE, [project["selected_concept_id"]], {}, progress=None)
             finally:
                 sw.PROJECTS_ROOT = original_root
 
@@ -967,7 +948,7 @@ class SpriteWorkbenchTests(unittest.TestCase):
                 sw.PROJECTS_ROOT = original_root
 
         self.assertEqual(imported["import_source"], "upload")
-        self.assertEqual(imported["validation_status"], "pending")
+        self.assertEqual(imported["validation_status"], "valid")
         self.assertTrue(import_exists)
 
     def test_local_path_import_creates_concept_attempt(self):
@@ -990,8 +971,8 @@ class SpriteWorkbenchTests(unittest.TestCase):
 
         imported = next(item for item in project["concepts"] if item.get("preview_image"))
         self.assertEqual(imported["import_source"], "local_path")
-        self.assertEqual(imported["validation_status"], "pending")
-        self.assertTrue(imported["validation_error"])
+        self.assertEqual(imported["validation_status"], "valid")
+        self.assertFalse((imported.get("validation_error") or "").strip())
 
     def test_safe_normalization_removes_detached_logo_and_white_halo(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -1126,6 +1107,8 @@ class SpriteWorkbenchTests(unittest.TestCase):
                     "local_path": str(self.create_manual_concept_asset(Path(tmpdir) / "accept.png")),
                 })
                 imported = next(item for item in project["concepts"] if item.get("preview_image"))
+                # Import runs local validation immediately (valid for test assets); flip to invalid to exercise the gate.
+                project = sw.update_concept_validation(project["project_id"], imported["concept_id"], "invalid", "blocked for acceptance test")
                 with self.assertRaisesRegex(ValueError, "Only valid imported concepts can be accepted"):
                     sw.update_concept_review_state(project["project_id"], imported["concept_id"], "approve", True)
                 project = sw.update_concept_validation(project["project_id"], imported["concept_id"], "valid")
@@ -1137,27 +1120,10 @@ class SpriteWorkbenchTests(unittest.TestCase):
         self.assertEqual(accepted["selected_concept_id"], imported["concept_id"])
         self.assertTrue(accepted_attempt["accepted_for_review"])
 
-    def test_prepare_workflow_prompt_shapes_request(self):
-        template = sw.load_workflow_template("concept_txt2img.json")
-        request = sw.ConceptRequest(
-            project_id="demo-project",
-            positive_prompt="positive prompt",
-            negative_prompt="negative prompt",
-            width=640,
-            height=768,
-            seed=1234,
-            count=1,
-            references=[],
-            mode="initial",
-        )
-        prompt = sw.prepare_workflow_prompt(template, request, "demo/run", "checkpoint.safetensors", None)
-        self.assertEqual(prompt["1"]["inputs"]["ckpt_name"], "checkpoint.safetensors")
-        self.assertEqual(prompt["2"]["inputs"]["text"], "positive prompt")
-        self.assertEqual(prompt["3"]["inputs"]["text"], "negative prompt")
-        self.assertEqual(prompt["4"]["inputs"]["width"], 640)
-        self.assertEqual(prompt["4"]["inputs"]["height"], 768)
-        self.assertEqual(prompt["5"]["inputs"]["seed"], 1234)
-        self.assertEqual(prompt["7"]["inputs"]["filename_prefix"], "demo/run")
+    def test_normalize_brief_backend_mode_maps_comfyui_to_debug(self):
+        self.assertEqual(sw.normalize_brief_backend_mode("comfyui"), "debug_procedural")
+        self.assertEqual(sw.normalize_brief_backend_mode("debug_procedural"), "debug_procedural")
+        self.assertEqual(sw.normalize_brief_backend_mode("pixellab"), "pixellab")
 
     def test_build_positive_prompt_base_uses_ashen_hollow_house_style(self):
         brief = sw.hydrate_brief({
