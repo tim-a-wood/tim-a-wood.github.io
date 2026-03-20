@@ -327,7 +327,7 @@ keeping the app functional at every step.
 - [x] [Estimate skeleton (east)] → `POST .../pixellab/estimate-skeleton`; skeleton overlay toggle on east (canvas keypoints)
 - [x] [Approve Character] → `POST .../pixellab/approve-character`
 - [x] Removed HTML: `ai-motion-workflow`, `ai-cleanup-qa`; removed `renderAiMotionWorkflowBoard` / `renderAiCleanupQaBoard` and Comfy-only motion handlers
-- [x] Wizard: `clips` → `#character`; `qa` → main `#qa` Checks panel; `load_project` hydrates `pixellab_character` + `pixellab_skeleton`; `compute_wizard_context` uses character approval when `brief.backend_mode === pixellab`
+- [x] Wizard: `clips` → `#character`; `qa` / `export` → merged `#review-export` panel; `load_project` hydrates `pixellab_character` + `pixellab_skeleton`; `compute_wizard_context` uses character approval when `brief.backend_mode === pixellab`
 
 ### 7.5 Build new Animations panel + remove old rig/part/production panels
 - [x] Template pickers (idle vs walk lists from Appendix A IDs, server-matched inference)
@@ -339,11 +339,11 @@ keeping the app functional at every step.
 - [x] `load_project` hydrates `pixellab_animations`; wizard step `animations` after `clips` for `backend_mode=pixellab` (`wizard_steps_active`, `pixellab_animations_step_complete`)
 
 ### 7.6 Adapt Review/QA + Export panel
-- Merge existing `qa` + `export` panels into single panel
-- Animation playback preview
-- QA status indicators
-- [Run QA] button
-- [Export] button with spritesheet preview
+- [x] Merge existing `qa` + `export` panels into single panel (`#review-export`)
+- [x] Animation playback preview (idle + walk loop previews)
+- [x] QA status indicators (`#qa-summary`)
+- [x] [Run QA] / Run Checks button
+- [x] [Export] / Export Package button with spritesheet + GIF preview (`#export-summary` via `renderExport()`)
 
 ### 7.7 Update wizard flow and navigation
 - Update `WIZARD_SECTION_MAP` to map new 5-phase flow: describe → concepts → character → animations → export
@@ -441,7 +441,7 @@ Phase 3 (concepts):    3.1 ✅ → 3.2 ✅ → 3.3 ✅ → 3.4 (deferred)
 Phase 4 (character):   4.1 ✅ → 4.2 ✅ → 4.3 ✅
 Phase 5 (animation):   5.1 ✅ → 5.2 ✅ → 5.3 ✅ → 5.4 ✅ → 5.5 ✅
 Phase 6 (QA/export):   6.1 ✅ → 6.2 ✅
-Phase 7 (frontend):    7.1 ✅ → 7.2 ✅ → 7.3 ✅ → 7.4 ✅ → 7.5 ✅ → 7.6 → 7.7  ← NEXT
+Phase 7 (frontend):    7.1 ✅ → 7.2 ✅ → 7.3 ✅ → 7.4 ✅ → 7.5 ✅ → 7.6 ✅ → 7.7  ← NEXT
 Phase 8 (cleanup):     8.1 → 8.2 → 8.3 → 8.4 → 8.5 → 8.6
 Phase 9 (tests/docs):  9.1 → 9.2 → 9.3 → 9.4 → 9.5
 ```

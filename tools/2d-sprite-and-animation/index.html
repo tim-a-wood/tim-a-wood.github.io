@@ -2301,6 +2301,48 @@
             background: rgba(255, 255, 255, 0.02);
         }
 
+        .review-export-stage-meta {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            align-items: flex-end;
+            min-width: min(100%, 220px);
+        }
+
+        .review-export-stage-meta .stage-meta {
+            width: 100%;
+        }
+
+        .review-export-subhead {
+            margin: 0 0 6px 0;
+            font-size: 0.95rem;
+            font-weight: 600;
+        }
+
+        .review-export-subnote {
+            margin: 0 0 10px 0;
+        }
+
+        .review-export-clip-block {
+            margin-top: 4px;
+        }
+
+        .review-export-loop-row .thumb {
+            max-width: 100%;
+        }
+
+        .review-export-actions {
+            margin-top: 16px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .review-export-columns {
+            margin-top: 18px;
+            align-items: start;
+            gap: 18px;
+        }
+
         #mode-shell {
             grid-column: 1 / -1;
         }
@@ -2311,8 +2353,7 @@
         #layer-review,
         #rig-review,
         #production,
-        #qa,
-        #export,
+        #review-export,
         #activity-log {
             scroll-margin-top: 12px;
         }
@@ -2373,8 +2414,7 @@
         body.wizard-mode #layer-review,
         body.wizard-mode #rig-review,
         body.wizard-mode #production,
-        body.wizard-mode #qa,
-        body.wizard-mode #export {
+        body.wizard-mode #review-export {
             min-height: calc(100vh - 28px);
         }
 
@@ -2394,16 +2434,14 @@
             }
 
             #rig-review,
-            #qa,
-            #export,
+            #review-export,
             #activity-log {
                 grid-column: 9 / -1;
                 align-self: start;
             }
 
             body.skelform-authoring #production,
-            body.skelform-authoring #qa,
-            body.skelform-authoring #export,
+            body.skelform-authoring #review-export,
             body.skelform-authoring #activity-log {
                 grid-column: 1 / -1;
             }
@@ -2587,8 +2625,7 @@
                 <a class="nav-link" href="#concepts">Concepts</a>
                 <a class="nav-link" href="#character">Character</a>
                 <a class="nav-link" href="#animations">Animations</a>
-                <a class="nav-link" href="#qa">Checks</a>
-                <a class="nav-link" href="#export">Export</a>
+                <a class="nav-link" href="#review-export">Review &amp; export</a>
             </div>
         </div>
 
@@ -2604,7 +2641,7 @@
     <main class="main-column">
         <section class="hero">
             <h2>Guide a sprite from idea to export without learning the pipeline first.</h2>
-            <p>Use the guided Workbench for Pixel Lab: setup, concepts, character, animations, checks, and export.</p>
+            <p>Use the guided Workbench for Pixel Lab: setup, concepts, character, animations, then review, checks, and export in one panel.</p>
             <div class="hero-actions">
                 <button id="launch-wizard">Create New Sprite</button>
                 <button class="secondary" id="open-workbench" hidden>Open Workbench</button>
@@ -3033,34 +3070,48 @@
             <div id="pixellab-animations-board"></div>
         </section>
 
-        <section class="panel" id="qa">
+        <section class="panel" id="review-export">
             <div class="section-head">
                 <div>
-                    <h3>Checks</h3>
-                    <p>Run the implemented image checks before export. The tool is explicit about what it can verify and what still needs human judgment.</p>
+                    <h3>Review &amp; export</h3>
+                    <p>Preview idle and walk loops, run image checks, then export the spritesheet and package when QA passes.</p>
                 </div>
-                <div class="stage-meta" data-stage="qa"></div>
+                <div class="review-export-stage-meta">
+                    <div class="stage-meta" data-stage="qa"></div>
+                    <div class="stage-meta" data-stage="export"></div>
+                </div>
             </div>
 
-            <div class="actions">
+            <div class="review-export-clip-block">
+                <h4 class="review-export-subhead">Clip previews</h4>
+                <p class="small-note review-export-subnote">Looping idle and walk before you run checks.</p>
+                <div class="grid-2 review-export-loop-row">
+                    <div>
+                        <div class="small-note">Idle</div>
+                        <div id="review-export-idle-preview"></div>
+                    </div>
+                    <div>
+                        <div class="small-note">Walk</div>
+                        <div id="review-export-walk-preview"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="actions review-export-actions">
                 <button id="run-qa">Run Checks</button>
+                <button id="run-export" class="secondary">Export Package</button>
             </div>
-            <div class="check-list" id="qa-summary" style="margin-top: 14px;"></div>
-        </section>
 
-        <section class="panel" id="export">
-            <div class="section-head">
+            <div class="grid-2 review-export-columns">
                 <div>
-                    <h3>Export</h3>
-                    <p>Export the sprite sheet, frame images, metadata, and preview once checks pass.</p>
+                    <h4 class="review-export-subhead">QA status</h4>
+                    <div id="qa-summary" class="check-list"></div>
                 </div>
-                <div class="stage-meta" data-stage="export"></div>
+                <div>
+                    <h4 class="review-export-subhead">Export</h4>
+                    <div id="export-summary" class="check-list"></div>
+                </div>
             </div>
-
-            <div class="actions">
-                <button id="run-export">Export Package</button>
-            </div>
-            <div class="check-list" id="export-summary" style="margin-top: 14px;"></div>
         </section>
 
         <section class="panel" id="activity-log">
@@ -3124,7 +3175,7 @@ const STORAGE_KEYS = {
 };
 
 const WIZARD_STEPS = ["project", "brief", "references", "concepts", "review", "rig_layout", "part_manifest", "part_shape_edit", "split_build", "split_review", "sprite_model", "rig", "clips", "qa", "export"];
-const WORKBENCH_SECTION_IDS = ["intake", "concepts", "character", "animations", "qa", "export", "activity-log"];
+const WORKBENCH_SECTION_IDS = ["intake", "concepts", "character", "animations", "review-export", "activity-log"];
 const WIZARD_SECTION_MAP = {
     project: ["intake"],
     brief: ["intake"],
@@ -3140,8 +3191,8 @@ const WIZARD_SECTION_MAP = {
     rig: ["concepts"],
     clips: ["character"],
     animations: ["animations"],
-    qa: ["qa"],
-    export: ["export"],
+    qa: ["review-export"],
+    export: ["review-export"],
 };
 const WIZARD_META = {
     project: {
@@ -3946,7 +3997,7 @@ function applyModeVisibility() {
     document.body.classList.toggle("wizard-mode", mode === "wizard");
     const allowedSections = new Set(mode === "wizard" ? wizardSectionIds(activeStep) : WORKBENCH_SECTION_IDS);
     // Pixel Lab: keep one main panel per wizard step. Do not also show #character on the
-    // animations/qa/export steps — that stacked Character under Animations and looked like one panel.
+    // animations / review-export steps — that stacked Character under Animations and looked like one panel.
     WORKBENCH_SECTION_IDS.forEach((id) => {
         const node = document.querySelector(`#${id}`);
         if (!node) return;
@@ -6769,7 +6820,7 @@ function renderAiKeyPoseBoard() {
 function syncLegacyModeControls() {
     const legacy = aiWorkflowLegacyMode();
     const selectors = [
-        "#intake", "#concepts", "#character", "#animations", "#qa", "#export",
+        "#intake", "#concepts", "#character", "#animations", "#review-export",
     ];
     const allowInLegacy = new Set(["create-project", "create-project-workbench", "refresh-projects-brief", "refresh-projects-references", "refresh-projects-workbench"]);
     selectors.forEach((selector) => {
@@ -9075,9 +9126,10 @@ function clearClipLoopPreview(name) {
     }
 }
 
-function renderClipLoopPreview(name, count) {
-    const root = document.querySelector(`#${name}-loop-preview`);
-    clearClipLoopPreview(name);
+function renderClipLoopPreview(name, count, opts = {}) {
+    const root = opts.root ?? document.querySelector(`#${name}-loop-preview`);
+    const timerKey = opts.timerKey ?? name;
+    clearClipLoopPreview(timerKey);
     if (!root) return;
     root.innerHTML = "";
     const project = state.activeProject;
@@ -9095,7 +9147,7 @@ function renderClipLoopPreview(name, count) {
     `;
     const image = preview.querySelector("img");
     image.onerror = () => {
-        clearClipLoopPreview(name);
+        clearClipLoopPreview(timerKey);
         root.innerHTML = "";
     };
     let frameIndex = 0;
@@ -9104,8 +9156,33 @@ function renderClipLoopPreview(name, count) {
         frameIndex = (frameIndex + 1) % frames.length;
     };
     paintFrame();
-    state.clipPreviewTimers[name] = window.setInterval(paintFrame, Math.max(80, Math.round(1000 / fps)));
+    state.clipPreviewTimers[timerKey] = window.setInterval(paintFrame, Math.max(80, Math.round(1000 / fps)));
     root.appendChild(preview);
+}
+
+function renderReviewExportClipPreviews() {
+    const idleRoot = document.querySelector("#review-export-idle-preview");
+    const walkRoot = document.querySelector("#review-export-walk-preview");
+    if (!idleRoot || !walkRoot) return;
+    const project = state.activeProject;
+    if (!project) {
+        clearClipLoopPreview("review_idle");
+        clearClipLoopPreview("review_walk");
+        idleRoot.innerHTML = "";
+        walkRoot.innerHTML = "";
+        return;
+    }
+    if (externalAuthoringEnabled(project)) {
+        clearClipLoopPreview("review_idle");
+        clearClipLoopPreview("review_walk");
+        idleRoot.innerHTML = `<div class="small-note">Loop previews are disabled while SkelForm authoring is active.</div>`;
+        walkRoot.innerHTML = "";
+        return;
+    }
+    const idleCount = project.animation_clips?.idle?.frame_count || 6;
+    const walkCount = project.animation_clips?.walk?.frame_count || 8;
+    renderClipLoopPreview("idle", idleCount, { root: idleRoot, timerKey: "review_idle" });
+    renderClipLoopPreview("walk", walkCount, { root: walkRoot, timerKey: "review_walk" });
 }
 
 function renderQa() {
@@ -9263,6 +9340,7 @@ function renderAll() {
     renderPixellabAnimationsBoard();
     renderQa();
     renderExport();
+    renderReviewExportClipPreviews();
     applyModeVisibility();
     syncWorkflowModeControls();
     syncLegacyModeControls();
