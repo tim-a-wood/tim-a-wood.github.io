@@ -3724,13 +3724,13 @@ def _normalize_pixellab_image_base64(value: Any) -> Optional[str]:
 
 
 def _collect_nested_images_dict(payload: Any) -> Optional[Dict[str, Any]]:
-    """Find a direction-keyed ``images`` map on the payload or nested ``result`` / ``output``."""
+    """Find a direction-keyed ``images`` map on the payload or nested job/result blobs."""
     if not isinstance(payload, dict):
         return None
     imgs = payload.get("images")
     if isinstance(imgs, dict) and imgs:
         return imgs
-    for key in ("result", "output", "data"):
+    for key in ("last_response", "result", "output", "data"):
         nested = payload.get(key)
         if isinstance(nested, dict):
             found = _collect_nested_images_dict(nested)
@@ -3757,8 +3757,14 @@ def _extract_pixellab_character_direction_images_b64(
     """
     After async create-character completes, Pixel Lab returns either:
     - ``images``: {direction: Base64Image | data-URI str, ...}
-    - or only ``character_id`` — then ``GET /v2/characters/{id}`` exposes ``rotation_urls``.
+    - or metadata (often ``character_id``) — then ``GET /v2/characters/{id}`` exposes ``rotation_urls``.
+
+    Completed v2 jobs may still be wrapped as ``{last_response: {...}}`` if an older client returned
+    the raw BackgroundJobResponse; unwrap here defensively.
     """
+    if isinstance(result, dict) and isinstance(result.get("last_response"), dict) and result.get("last_response"):
+        result = result["last_response"]
+
     images_block = _collect_nested_images_dict(result)
     if images_block:
         out: List[str] = []
@@ -3776,13 +3782,18 @@ def _extract_pixellab_character_direction_images_b64(
         nested = result.get("result")
         if not cid and isinstance(nested, dict):
             cid = nested.get("character_id") or nested.get("id")
+        lr = result.get("last_response")
+        if not cid and isinstance(lr, dict):
+            cid = lr.get("character_id") or lr.get("id")
 
     if cid and client is not None:
         try:
             detail = client.get_character(str(cid))
         except Exception:
             detail = {}
-        urls = detail.get("rotation_urls") if isinstance(detail, dict) else None
+        urls = None
+        if isinstance(detail, dict):
+            urls = detail.get("rotation_urls") or detail.get("rotationUrls")
         if isinstance(urls, dict):
             bearer = getattr(client, "api_key", None)
             out2: List[str] = []

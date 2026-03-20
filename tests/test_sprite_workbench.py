@@ -1559,6 +1559,59 @@ class SpriteWorkbenchTests(unittest.TestCase):
         self.assertEqual(len(out), 2)
         self.assertTrue(out[0].startswith("iVBORw"))
 
+    def test_extract_unwraps_background_job_last_response_for_character_id(self):
+        """Pixel Lab GET /v2/background-jobs/{id} nests payload under ``last_response``."""
+        tiny = Image.new("RGBA", (1, 1), (5, 6, 7, 255))
+        png_buf = io.BytesIO()
+        tiny.save(png_buf, format="PNG")
+        png_bytes = png_buf.getvalue()
+
+        class FakeClient:
+            api_key = "k"
+            seen_id = None
+
+            def get_character(self, character_id):
+                self.seen_id = character_id
+                return {
+                    "id": character_id,
+                    "rotation_urls": {
+                        "south": "https://cdn.example/s.png",
+                        "east": "https://cdn.example/e.png",
+                    },
+                }
+
+        fc = FakeClient()
+        wrapped = {
+            "id": "job-uuid",
+            "status": "completed",
+            "last_response": {"character_id": "char-from-last-response"},
+        }
+        with patch.object(sw, "_download_url_bytes", return_value=png_bytes):
+            out = sw._extract_pixellab_character_direction_images_b64(
+                wrapped,
+                ["south", "east"],
+                client=fc,
+            )
+        self.assertEqual(len(out), 2)
+        self.assertEqual(fc.seen_id, "char-from-last-response")
+
+    def test_pixellab_poll_job_prefers_last_response(self):
+        client = pl.PixelLabClient("fake-key")
+        seq = iter(
+            [
+                {"id": "j1", "status": "processing"},
+                {"id": "j1", "status": "completed", "last_response": {"character_id": "c1", "ok": True}},
+            ]
+        )
+
+        def fake_request(method, path):
+            return next(seq)
+
+        with patch.object(client, "_request_json", side_effect=fake_request):
+            out = client._poll_job("j1", timeout_seconds=15, interval_seconds=0)
+        self.assertEqual(out.get("character_id"), "c1")
+        self.assertTrue(out.get("ok"))
+
     def test_pixellab_client_get_balance_parses_json(self):
         client = pl.PixelLabClient("fake-key")
 

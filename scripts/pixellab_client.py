@@ -179,11 +179,17 @@ class PixelLabClient:
                 status = payload.get("status") or payload.get("job_status") or payload.get("state")
 
             if status in {"completed", "succeeded", "done", "success"}:
-                # Convention: results often live under result/output.
-                result = payload.get("result") or payload.get("output") or payload
-                if isinstance(result, dict):
-                    return result
-                return {"result": result}
+                # v2 background jobs use ``last_response`` (see OpenAPI BackgroundJobResponse).
+                # Older/alternate shapes use ``result`` / ``output``.
+                if isinstance(payload, dict):
+                    lr = payload.get("last_response")
+                    if isinstance(lr, dict) and lr:
+                        return lr
+                    inner = payload.get("result") or payload.get("output")
+                    if isinstance(inner, dict):
+                        return inner
+                    return payload
+                return {"result": payload}
             if status in {"failed", "error"}:
                 raise PixelLabError(f"Pixel Lab job failed: {payload!r}")
 
