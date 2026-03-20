@@ -29,6 +29,12 @@ logger = logging.getLogger(__name__)
 SizeLike = Union[Tuple[int, int], Dict[str, int]]
 
 
+def _pixel_lab_serial_animate_fallback_enabled() -> bool:
+    """If true (default), retry template animation with one POST per direction after multi-job failure."""
+    v = os.environ.get("PIXELLAB_ANIMATE_SERIAL_FALLBACK", "1")
+    return str(v).strip().lower() not in ("0", "false", "no", "off")
+
+
 def _log_pixellab_post_accepted(context: str, accepted: Any) -> None:
     """INFO log for async POST acceptance (job ids / status) so long polls are not silent."""
     if not isinstance(accepted, dict):
@@ -534,6 +540,61 @@ class PixelLabClient:
         }
         return self._request_json("POST", "/v1/estimate-skeleton", payload)
 
+    def _animate_character_serial_by_direction(
+        self,
+        character_id: str,
+        template_animation_id: str,
+        direction_list: List[str],
+        poll_timeout: int,
+        extra: Dict[str, Any],
+    ) -> Tuple[List[Dict[str, Any]], List[str]]:
+        """
+        One ``POST /v2/characters/animations`` per direction (avoids flaky multi-job "splitting" on Pixel Lab's side).
+        ``extra`` is the same optional fields as the multi-direction call (e.g. ``seed``), without ``directions``.
+        """
+        merged: List[Dict[str, Any]] = []
+        all_job_ids: List[str] = []
+        n = len(direction_list)
+        for i, d in enumerate(direction_list):
+            branch = dict(extra)
+            branch["directions"] = [d]
+            if "seed" in branch and branch["seed"] is not None:
+                try:
+                    base = int(branch["seed"])  # type: ignore[arg-type]
+                    branch["seed"] = (base + i * 7919) % (2**31 - 1)
+                except (TypeError, ValueError):
+                    pass
+            payload: Dict[str, Any] = {
+                "character_id": character_id,
+                "template_animation_id": template_animation_id,
+            }
+            payload.update(branch)
+            logger.info(
+                "Pixel Lab animate_character serial fallback: POST direction %s (%d/%d)",
+                d,
+                i + 1,
+                n,
+            )
+            accepted = self._request_json("POST", "/v2/characters/animations", payload)
+            _log_pixellab_post_accepted("animate_character_serial", accepted)
+            mids = self._extract_background_job_ids(accepted)
+            if mids:
+                all_job_ids.extend(mids)
+                part = self._poll_jobs_parallel(
+                    mids,
+                    direction_labels=[d],
+                    timeout_seconds=poll_timeout,
+                )
+                merged.extend(part)
+            else:
+                jid = self._extract_job_id(accepted)
+                if jid:
+                    all_job_ids.append(jid)
+                    merged.append(self._poll_job(jid, timeout_seconds=poll_timeout))
+                else:
+                    merged.append(accepted)
+        return merged, all_job_ids
+
     def animate_character(self, character_id: str, template_animation_id: str, **kwargs: Any) -> Dict[str, Any]:
         poll_timeout = int(kwargs.pop("poll_timeout_seconds", 420))
         payload: Dict[str, Any] = {
@@ -554,16 +615,39 @@ class PixelLabClient:
             dir_labels = accepted.get("directions") or accepted.get("Directions")
             if not isinstance(dir_labels, list):
                 dir_labels = None
-            merged = self._poll_jobs_parallel(
-                multi_ids,
-                direction_labels=dir_labels,
-                timeout_seconds=poll_timeout,
-            )
+            direction_list = kwargs.get("directions")
+            try:
+                merged = self._poll_jobs_parallel(
+                    multi_ids,
+                    direction_labels=dir_labels,
+                    timeout_seconds=poll_timeout,
+                )
+                job_ids_out: List[str] = list(multi_ids)
+            except PixelLabError as exc:
+                if (
+                    _pixel_lab_serial_animate_fallback_enabled()
+                    and isinstance(direction_list, list)
+                    and len(direction_list) > 1
+                    and len(multi_ids) > 1
+                ):
+                    logger.warning(
+                        "Pixel Lab multi-direction jobs failed (%s); retrying one API request per direction.",
+                        exc,
+                    )
+                    merged, job_ids_out = self._animate_character_serial_by_direction(
+                        character_id,
+                        template_animation_id,
+                        [str(x) for x in direction_list],
+                        poll_timeout,
+                        {k: v for k, v in kwargs.items() if k != "directions"},
+                    )
+                else:
+                    raise
             return {
                 "per_job_last_response": merged,
-                "directions": accepted.get("directions") or accepted.get("Directions"),
+                "directions": accepted.get("directions") or accepted.get("Directions") or direction_list,
                 "status": "completed",
-                "background_job_ids": multi_ids,
+                "background_job_ids": job_ids_out,
             }
         job_id = self._extract_job_id(accepted)
         if job_id:
