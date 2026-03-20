@@ -3815,6 +3815,14 @@ function applyModeVisibility() {
     const hiddenForAi = new Set([]);
     document.body.classList.toggle("wizard-mode", mode === "wizard");
     const allowedSections = new Set(mode === "wizard" ? wizardSectionIds(activeStep) : WORKBENCH_SECTION_IDS);
+    // Pixel Lab: Character lives in #character, which is only mapped to wizard step `clips`.
+    // If the server moves current_step (e.g. after reload) or the user is on review/animations,
+    // the panel was hidden while the board still updated — looks like "nothing changed".
+    if (mode === "wizard" && String(state.activeProject?.brief?.backend_mode || "") === "pixellab") {
+        if (["review", "clips", "animations", "qa", "export"].includes(activeStep)) {
+            allowedSections.add("character");
+        }
+    }
     WORKBENCH_SECTION_IDS.forEach((id) => {
         const node = document.querySelector(`#${id}`);
         if (!node) return;
@@ -4163,6 +4171,7 @@ async function api(path, options = {}) {
     try {
         response = await fetch(`${WORKBENCH_ORIGIN}${path}`, {
             headers: { "Content-Type": "application/json" },
+            cache: "no-store",
             ...options,
         });
     } catch (error) {
@@ -6043,7 +6052,15 @@ async function runPixellabCreateCharacter(pid, selId, directions) {
             state.activeProject.pixellab_character_ready = true;
             state.activeProject.pixellab_character_approved = false;
         }
+        if (String(state.activeProject?.brief?.backend_mode || "") === "pixellab") {
+            try {
+                await persistWizardState({ current_step: "clips", last_ui_mode: "wizard" });
+            } catch (err) {
+                log(normalizeErrorMessage(err.message), "error");
+            }
+        }
         renderAll();
+        document.querySelector("#character")?.scrollIntoView({ behavior: "smooth", block: "start" });
     } else {
         renderPixellabCharacterBoard();
     }
@@ -9025,8 +9042,10 @@ async function loadProject(projectId, mode = "wizard") {
     if (mode !== project.last_ui_mode) {
         const synced = await persistWizardState({
             last_ui_mode: mode,
+            // Prefer the persisted wizard step over recommended_next so we do not jump
+            // (e.g. to export) when only syncing last_ui_mode after a reload.
             current_step: mode === "wizard"
-                ? (project.recommended_next_step || project.wizard_state?.current_step || "brief")
+                ? (project.wizard_state?.current_step || project.recommended_next_step || "brief")
                 : project.wizard_state?.current_step,
         });
         if (synced) state.activeProject = synced;
