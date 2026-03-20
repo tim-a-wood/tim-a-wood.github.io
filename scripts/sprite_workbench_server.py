@@ -11956,21 +11956,37 @@ def run_pixellab_qa(project_id: str, progress: Optional[ProgressCallback] = None
             "Checking %s clip" % clip_name,
             "Validating Pixel Lab frames (size, transparency, clipping).",
         )
+        # Pixel Lab templates may return fewer frames than AI_CLIP_SPECS (deterministic workflow).
+        # QA trusts animation_clips.json built from pixellab_animations — not the AI pose-count spec.
         spec = AI_CLIP_SPECS.get(clip_name) or ANIMATION_SPECS.get(clip_name) or {}
-        expected_fc = int(spec.get("frame_count") or 0)
-        expected_fps = int(spec.get("fps") or 0)
+        spec_fc = int(spec.get("frame_count") or 0)
+        spec_fps = int(spec.get("fps") or 0)
 
         clip = clips[clip_name]
-        frame_count = int(clip.get("frame_count") or 0)
+        meta_fc = int(clip.get("frame_count") or 0)
         fps = int(clip.get("fps") or 0)
         frames = clip.get("frames") if isinstance(clip.get("frames"), list) else []
+        path_count = len(frames)
 
-        if expected_fc and frame_count != expected_fc:
-            raise ValueError("Pixel Lab QA blocked: %s.frame_count=%s but expected %s." % (clip_name, frame_count, expected_fc))
-        if expected_fps and fps != expected_fps:
-            raise ValueError("Pixel Lab QA blocked: %s.fps=%s but expected %s." % (clip_name, fps, expected_fps))
-        if expected_fc and len(frames) != expected_fc:
-            raise ValueError("Pixel Lab QA blocked: %s.frames length=%s but expected %s." % (clip_name, len(frames), expected_fc))
+        if not frames:
+            raise ValueError("Pixel Lab QA blocked: %s.frames is empty — run **Build canonical clips** after generating animations." % clip_name)
+        if meta_fc and meta_fc != path_count:
+            raise ValueError(
+                "Pixel Lab QA blocked: %s.frame_count=%s but frames list length=%s. "
+                "Re-run **Build canonical clips** on the Animations panel to resync metadata."
+                % (clip_name, meta_fc, path_count)
+            )
+        frame_count = int(meta_fc or path_count)
+        if spec_fc and spec_fc != frame_count:
+            report["notes"].append(
+                "%s clip has %d frame(s); AI deterministic spec suggests %d — Pixel Lab output is accepted."
+                % (clip_name, frame_count, spec_fc)
+            )
+        if spec_fps and spec_fps != fps:
+            report["notes"].append(
+                "%s clip fps=%d; AI deterministic spec suggests %d — Pixel Lab timing is accepted."
+                % (clip_name, fps, spec_fps)
+            )
 
         per_frame_states: List[str] = []
         for index in range(frame_count):
@@ -12016,7 +12032,9 @@ def run_pixellab_qa(project_id: str, progress: Optional[ProgressCallback] = None
             "status": animation_status,
             "checks": {
                 "correct_frame_count": check_state("pass" if len(frames) == frame_count else "fail"),
-                "metadata_correctness": check_state("pass" if frame_count == expected_fc and fps == expected_fps else "fail"),
+                "metadata_correctness": check_state(
+                    "pass" if len(frames) == frame_count and (meta_fc == 0 or meta_fc == len(frames)) else "fail"
+                ),
             },
         }
 
@@ -14206,6 +14224,7 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                             "Response keys: %s" % keys
                         )
                     # Heuristic ordering: direction-major then frame index.
+                    last_written_fc: Optional[int] = None
                     for dir_idx, direction in enumerate(direction_list):
                         frames: List[Image.Image] = []
                         for frame_idx in range(frame_count):
@@ -14213,14 +14232,30 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                             if flat_idx >= len(plate_frames):
                                 break
                             frames.append(plate_frames[flat_idx])
-                        frame_paths = _write_png_frames(frames[:frame_count], project_dir, animation_name, direction)
+                        actual_fc = len(frames)
+                        if actual_fc == 0:
+                            raise ValueError(
+                                "Pixel Lab returned no decodable frames for direction %r (resolved expect=%d). "
+                                "Try another template or retry — API output may be shorter than requested."
+                                % (direction, frame_count)
+                            )
+                        if actual_fc != frame_count:
+                            logger.warning(
+                                "[pixellab/animate] frame count mismatch animation=%s direction=%s written=%d resolved_meta=%d",
+                                animation_name,
+                                direction,
+                                actual_fc,
+                                frame_count,
+                            )
+                        frame_paths = _write_png_frames(frames, project_dir, animation_name, direction)
+                        written_fc = len(frame_paths)
                         _upsert_pixellab_animation_frames(
                             project_dir,
                             store,
                             animation_name=animation_name,
                             direction=direction,
                             fps=fps,
-                            frame_count=frame_count,
+                            frame_count=written_fc,
                             loop=loop,
                             frames_paths=frame_paths,
                             template_animation_id=str(template_animation_id),
@@ -14228,6 +14263,8 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                             seed=seed,
                             job_id=job_id,
                         )
+                        last_written_fc = written_fc
+                    frame_count = int(last_written_fc or frame_count)
 
                 logger.info(
                     "[pixellab/animate] ok project=%s animation=%s fps=%s frame_count=%s",
@@ -14362,14 +14399,15 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                             "Pixel Lab custom animation returned no decodable frames. Response keys: %s" % keys
                         )
                     frames = plate_frames[:frame_count]
-                    frame_paths = _write_png_frames(frames[:frame_count], project_dir, animation_name, direction)
+                    written_fc = len(frames)
+                    frame_paths = _write_png_frames(frames, project_dir, animation_name, direction)
                     _upsert_pixellab_animation_frames(
                         project_dir,
                         store,
                         animation_name=animation_name,
                         direction=direction,
                         fps=fps,
-                        frame_count=frame_count,
+                        frame_count=written_fc,
                         loop=loop,
                         frames_paths=frame_paths,
                         template_animation_id="custom",
@@ -14377,6 +14415,7 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                         seed=seed,
                         job_id=job_id,
                     )
+                    frame_count = written_fc
 
                 logger.info(
                     "[pixellab/animate-custom] ok project=%s animation=%s frames_written=%d",
@@ -14750,7 +14789,7 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                         continue
 
                     fps = anim.get("fps") or (AI_CLIP_SPECS.get(animation_name) or {}).get("fps") or ANIMATION_SPECS.get(animation_name, {}).get("fps") or 12
-                    frame_count = anim.get("frame_count") or (AI_CLIP_SPECS.get(animation_name) or {}).get("frame_count") or ANIMATION_SPECS.get(animation_name, {}).get("frame_count") or 4
+                    meta_frame_count = anim.get("frame_count") or (AI_CLIP_SPECS.get(animation_name) or {}).get("frame_count") or ANIMATION_SPECS.get(animation_name, {}).get("frame_count") or 4
                     loop = bool(anim.get("loop", True))
 
                     frames_by_direction = {}
@@ -14761,6 +14800,16 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
 
                     default_dir = "east" if "east" in frames_by_direction else (next(iter(frames_by_direction.keys())) if frames_by_direction else "east")
                     frames = frames_by_direction.get(default_dir) or []
+                    path_count = len(frames) if isinstance(frames, list) else 0
+                    if path_count and int(meta_frame_count) != path_count:
+                        logger.warning(
+                            "[pixellab/build-clips] %s: store frame_count=%s but default-dir %r has %d paths — using path count",
+                            animation_name,
+                            meta_frame_count,
+                            default_dir,
+                            path_count,
+                        )
+                    frame_count = int(path_count or meta_frame_count)
 
                     clip = existing.get(animation_name) if isinstance(existing.get(animation_name), dict) else {}
                     if not isinstance(clip, dict):
