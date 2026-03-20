@@ -13316,6 +13316,7 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                     project["pixellab_character_ready"] = True
                     project["current_stage"] = "concepts"
                     project["status"] = "pixellab_character_debug_ready"
+                    project["updated_at"] = now_iso()
                     save_project(project)
                     append_history_event(project_id, {
                         "type": "pixellab_character_created",
@@ -13413,6 +13414,7 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                 project["pixellab_character_approved"] = False
                 project["pixellab_character_ready"] = True
                 project["status"] = "pixellab_character_ready"
+                project["updated_at"] = now_iso()
                 save_project(project)
                 return self._send_json(char_payload, status=HTTPStatus.CREATED)
 

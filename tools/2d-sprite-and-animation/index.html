@@ -3452,6 +3452,15 @@ function pixellabCharacterApproved(project) {
     return Boolean(c.approved || c.pixellab_character_approved);
 }
 
+/** Cache-bust asset URLs when the Pixel Lab character or project changes (updated_at alone may stay stale). */
+function pixellabCharacterAssetVersion(project, pix = project?.pixellab_character) {
+    const p = project || {};
+    const c = pix && typeof pix === "object" ? pix : {};
+    return encodeURIComponent(
+        [p.updated_at || "", c.character_id || "", c.created_at || "", String(c.seed ?? "")].join("|"),
+    );
+}
+
 function aiWorkflowStore(project = state.activeProject) {
     return project?.ai_workflow || null;
 }
@@ -5999,8 +6008,9 @@ async function runPixellabCreateCharacter(pid, selId, directions) {
     }, 350);
 
     let ok = false;
+    let charPayload = null;
     try {
-        await api(`/api/projects/${pid}/pixellab/create-character`, {
+        charPayload = await api(`/api/projects/${pid}/pixellab/create-character`, {
             method: "POST",
             body: JSON.stringify({ directions, color_concept_id: selId }),
         });
@@ -6020,8 +6030,19 @@ async function runPixellabCreateCharacter(pid, selId, directions) {
         state.pixellabCreateCharacterBusy = false;
         clearActivity();
     }
+    if (ok && charPayload && state.activeProject?.project_id === pid) {
+        state.activeProject.pixellab_character = charPayload;
+        state.activeProject.pixellab_character_ready = true;
+        state.activeProject.pixellab_character_approved = false;
+        renderAll();
+    }
     if (ok) {
         await loadProject(pid, currentMode());
+        if (charPayload && state.activeProject?.project_id === pid && !state.activeProject.pixellab_character) {
+            state.activeProject.pixellab_character = charPayload;
+            state.activeProject.pixellab_character_ready = true;
+            state.activeProject.pixellab_character_approved = false;
+        }
         renderAll();
     } else {
         renderPixellabCharacterBoard();
@@ -6051,8 +6072,9 @@ function renderPixellabCharacterBoard() {
         ? (Array.isArray(pix.directions) && pix.directions.length ? pix.directions.length : Object.keys(pix.images || {}).length)
         : 0;
     const conceptPath = sel?.preview_image || sel?.original_preview_image;
+    const assetV = pixellabCharacterAssetVersion(project, pix);
     const conceptPreview = sel && conceptPath
-        ? `<div class="pixellab-character-source-preview"><img src="${projectAsset(project, conceptPath)}?v=${encodeURIComponent(project.updated_at || "")}" alt="Chosen concept"></div>`
+        ? `<div class="pixellab-character-source-preview"><img src="${projectAsset(project, conceptPath)}?v=${assetV}" alt="Chosen concept"></div>`
         : `<div class="empty">Choose a concept in the Concepts panel first.</div>`;
 
     const hasEastAsset = Boolean(pix?.images?.east);
@@ -6083,7 +6105,7 @@ function renderPixellabCharacterBoard() {
         const order = pixellabCharacterDirectionOrder(pix);
         directionsHtml = `<div class="section-head" style="margin-top: 18px;"><h4 style="font-size:0.95rem;">Direction previews</h4></div><div class="pixellab-direction-grid">${order.map((dir) => {
             const rel = pix.images[dir];
-            const src = rel ? `${projectAsset(project, rel)}?v=${encodeURIComponent(project.updated_at || "")}` : "";
+            const src = rel ? `${projectAsset(project, rel)}?v=${assetV}` : "";
             const isEast = dir === "east";
             if (isEast) {
                 return `<div class="pixellab-direction-cell">
