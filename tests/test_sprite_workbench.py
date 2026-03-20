@@ -1462,6 +1462,31 @@ class SpriteWorkbenchTests(unittest.TestCase):
             [],
         )
 
+    def test_hydrate_animation_clips_aligns_frame_count_with_raster_bridge_frames(self):
+        """animation_clips.json from Pixel Lab can list fewer paths than ANIMATION_SPECS."""
+        raw = {
+            "idle": {
+                "frame_count": 6,
+                "fps": 8,
+                "loop": True,
+                "frames": ["animations/idle/east/frame_%02d.png" % i for i in range(4)],
+                "frames_by_direction": {
+                    "east": ["animations/idle/east/frame_%02d.png" % i for i in range(4)],
+                },
+            },
+            "walk": {
+                "frame_count": 8,
+                "fps": 10,
+                "loop": True,
+                "frames": ["animations/walk/east/frame_%02d.png" % i for i in range(8)],
+            },
+        }
+        out = sw.hydrate_animation_clips(raw, None, rig_profile=sw.LEGACY_RIG_PROFILE)
+        self.assertEqual(out["idle"]["frame_count"], 4)
+        self.assertEqual(len(out["idle"]["frames"]), 4)
+        self.assertEqual(out["idle"]["fps"], 8)
+        self.assertEqual(out["walk"]["frame_count"], 8)
+
     def test_pixellab_animations_step_complete_requires_idle_and_walk_frames(self):
         with tempfile.TemporaryDirectory() as tmp:
             pdir = Path(tmp)

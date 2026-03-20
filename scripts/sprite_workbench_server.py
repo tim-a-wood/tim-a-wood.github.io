@@ -10667,6 +10667,20 @@ def hydrate_animation_clips(animation_clips: Optional[Dict[str, Any]], legacy_an
                 clip_out["frames"] = clip_source.get("frames")
             if isinstance(clip_source.get("frames_by_direction"), dict):
                 clip_out["frames_by_direction"] = clip_source.get("frames_by_direction")
+            # `clip_out` already merged ANIMATION_SPECS (idle=6, walk=8). On-disk bridge
+            # from pixellab/build-clips can have fewer raster paths; if we only copy `frames`
+            # and not timing/count, load_project leaves frame_count=6 with len(frames)=4 and
+            # Pixel Lab QA falsely asks to "rebuild canonical clips".
+            bridge_frames = clip_out.get("frames")
+            if isinstance(bridge_frames, list) and bridge_frames:
+                clip_out["frame_count"] = len(bridge_frames)
+                if clip_source.get("fps") is not None:
+                    try:
+                        clip_out["fps"] = int(clip_source["fps"])
+                    except (TypeError, ValueError):
+                        pass
+                if "loop" in clip_source:
+                    clip_out["loop"] = bool(clip_source["loop"])
 
         clips[animation_name] = clip_out
     return clips
