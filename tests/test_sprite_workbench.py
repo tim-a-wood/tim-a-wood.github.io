@@ -2519,5 +2519,58 @@ class SpriteWorkbenchTests(unittest.TestCase):
         self.assertTrue(any(name.startswith(f"frames/{clip['clip_id']}_") for name in export_result["files"]))
 
 
+class PixelLabAnimationFrameExtractionTests(unittest.TestCase):
+    """Regression: animation job parsing must accept WebP/JPEG, Base64Image dicts, small PNGs, and URL fallbacks."""
+
+    def _tiny_png_b64(self) -> str:
+        buf = io.BytesIO()
+        Image.new("RGBA", (4, 4), (255, 0, 0, 128)).save(buf, format="PNG")
+        return base64.b64encode(buf.getvalue()).decode("ascii")
+
+    def test_looks_like_accepts_png_data_url_and_plain_b64(self):
+        png = self._tiny_png_b64()
+        self.assertTrue(sw._looks_like_base64_image_string(png))
+        self.assertTrue(sw._looks_like_base64_image_string("data:image/png;base64," + png))
+
+    def test_find_extracts_nested_base64_image_objects(self):
+        png = self._tiny_png_b64()
+        payload = {"frames": [{"type": "base64", "base64": png, "format": "png"}]}
+        found = sw._find_all_base64_png_like(payload)
+        self.assertEqual(found, [png])
+
+    def test_find_extracts_webp_when_available(self):
+        buf = io.BytesIO()
+        try:
+            Image.new("RGBA", (2, 2), (0, 255, 0, 255)).save(buf, format="WEBP")
+        except Exception:
+            self.skipTest("WEBP encode not available in this PIL build")
+        webp_b64 = base64.b64encode(buf.getvalue()).decode("ascii")
+        self.assertTrue(sw._looks_like_base64_image_string(webp_b64))
+        found = sw._find_all_base64_png_like({"x": webp_b64})
+        self.assertEqual(found, [webp_b64])
+
+    def test_collect_pixellab_https_asset_urls_nested(self):
+        urls = sw._collect_pixellab_https_asset_urls(
+            {"out": [{"signed_url": "https://cdn.example/f1.webp"}, {"url": "http://legacy/x.png"}]}
+        )
+        self.assertEqual(urls, ["https://cdn.example/f1.webp", "http://legacy/x.png"])
+
+    @patch.object(sw, "_download_url_bytes")
+    def test_pixellab_animation_job_to_rgba_frames_url_fallback(self, mock_dl):
+        png = self._tiny_png_b64()
+        mock_dl.return_value = base64.b64decode(png)
+        client = MagicMock()
+        client.api_key = "test-key"
+        frames = sw._pixellab_animation_job_to_rgba_frames(
+            {"items": [{"url": "https://cdn.example/frame.png"}]},
+            canvas_size=64,
+            client=client,
+        )
+        self.assertEqual(len(frames), 1)
+        # URL path decodes the PNG at its native size (canvas hint is for raw RGBA only).
+        self.assertEqual(frames[0].size, (4, 4))
+        mock_dl.assert_called_once_with("https://cdn.example/frame.png", bearer="test-key")
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -312,6 +312,7 @@ class PixelLabClient:
         return self._request_json("POST", "/v1/estimate-skeleton", payload)
 
     def animate_character(self, character_id: str, template_animation_id: str, **kwargs: Any) -> Dict[str, Any]:
+        poll_timeout = int(kwargs.pop("poll_timeout_seconds", 420))
         payload: Dict[str, Any] = {
             "character_id": character_id,
             "template_animation_id": template_animation_id,
@@ -320,10 +321,11 @@ class PixelLabClient:
         accepted = self._request_json("POST", "/v2/characters/animations", payload)
         job_id = self._extract_job_id(accepted)
         if job_id:
-            return self._poll_job(job_id)
+            return self._poll_job(job_id, timeout_seconds=poll_timeout)
         return accepted
 
     def animate_with_text_v2(self, reference_image_b64: str, action: str, image_size: SizeLike, **kwargs: Any) -> Dict[str, Any]:
+        poll_timeout = int(kwargs.pop("poll_timeout_seconds", 420))
         payload: Dict[str, Any] = {
             "reference_image": {"type": "base64", "base64": reference_image_b64, "format": "png"},
             "reference_image_size": _normalize_size(image_size),
@@ -334,7 +336,7 @@ class PixelLabClient:
         accepted = self._request_json("POST", "/v2/animate-with-text-v2", payload)
         job_id = self._extract_job_id(accepted)
         if job_id:
-            return self._poll_job(job_id)
+            return self._poll_job(job_id, timeout_seconds=poll_timeout)
         return accepted
 
     def animate_with_skeleton(
@@ -344,13 +346,18 @@ class PixelLabClient:
         skeleton_keypoints: Any,
         **kwargs: Any,
     ) -> Dict[str, Any]:
+        poll_timeout = int(kwargs.pop("poll_timeout_seconds", 420))
         payload: Dict[str, Any] = {
             "image_size": _normalize_size(image_size),
             "reference_image": {"type": "base64", "base64": reference_image_b64, "format": "png"},
             "skeleton_keypoints": skeleton_keypoints,
         }
         payload.update(kwargs)
-        return self._request_json("POST", "/v1/animate-with-skeleton", payload)
+        accepted = self._request_json("POST", "/v1/animate-with-skeleton", payload)
+        job_id = self._extract_job_id(accepted)
+        if job_id:
+            return self._poll_job(job_id, timeout_seconds=poll_timeout)
+        return accepted
 
     def interpolation_v2(
         self,
@@ -383,6 +390,7 @@ class PixelLabClient:
     # Editing
     # -----------------------------
     def edit_animation_v2(self, description: str, frames: Any, image_size: SizeLike, **kwargs: Any) -> Dict[str, Any]:
+        poll_timeout = int(kwargs.pop("poll_timeout_seconds", 420))
         payload: Dict[str, Any] = {
             "description": description,
             "frames": frames,
@@ -392,7 +400,7 @@ class PixelLabClient:
         accepted = self._request_json("POST", "/v2/edit-animation-v2", payload)
         job_id = self._extract_job_id(accepted)
         if job_id:
-            return self._poll_job(job_id)
+            return self._poll_job(job_id, timeout_seconds=poll_timeout)
         return accepted
 
     def inpaint_v3(

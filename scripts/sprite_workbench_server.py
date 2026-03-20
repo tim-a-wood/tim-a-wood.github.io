@@ -4130,32 +4130,101 @@ def _pixellab_animation_frame_path(
     return _pixellab_animation_frames_dir(project_dir, animation_name, direction) / ("frame_%02d.png" % int(frame_index))
 
 
+def _looks_like_base64_image_string(value: str) -> bool:
+    """True if string looks like base64-encoded raster image (PNG / WebP / JPEG / GIF)."""
+    s = str(value).strip()
+    if "base64," in s:
+        s = s.split("base64,", 1)[1].strip()
+    s = re.sub(r"\s+", "", s)
+    if len(s) < 40:
+        return False
+    return (
+        s.startswith("iVBORw0")
+        or s.startswith("UklGR")
+        or s.startswith("/9j/")
+        or s.startswith("R0lGOD")
+    )
+
+
 def _find_all_base64_png_like(payload: Any) -> List[str]:
     """
-    Extract all base64-like PNG blobs from an unknown Pixel Lab response.
+    Extract base64-encoded image strings from a nested Pixel Lab response.
+    Accepts PNG, WebP, JPEG, GIF prefixes and v2 ``Base64Image`` objects (type=base64).
     """
     found: List[str] = []
 
     def walk(value: Any) -> None:
         if isinstance(value, dict):
+            t = str(value.get("type") or "").lower()
+            if t == "base64":
+                inner = value.get("base64") or value.get("b64") or value.get("data")
+                if isinstance(inner, str) and _looks_like_base64_image_string(inner):
+                    found.append(inner.strip())
+                return
             for v in value.values():
                 walk(v)
             return
         if isinstance(value, list):
-            for v in value:
-                walk(v)
+            for item in value:
+                walk(item)
             return
-        if isinstance(value, str):
-            s = value.strip()
-            if "base64," in s:
-                s = s.split("base64,", 1)[1].strip()
-            # PNG base64 usually starts with iVBORw0...
-            if s.startswith("iVBORw0") and len(s) > 2000:
-                found.append(value)
+        if isinstance(value, str) and _looks_like_base64_image_string(value):
+            found.append(value.strip())
 
     walk(payload)
-    # De-dupe while preserving order.
     return list(dict.fromkeys(found))
+
+
+def _collect_pixellab_https_asset_urls(payload: Any) -> List[str]:
+    """Collect https URLs from nested job payloads (e.g. signed frame CDN links)."""
+    urls: List[str] = []
+
+    def walk(o: Any) -> None:
+        if isinstance(o, dict):
+            for key in ("url", "signed_url", "image_url", "href"):
+                u = o.get(key)
+                if isinstance(u, str) and (u.startswith("http://") or u.startswith("https://")):
+                    urls.append(u.strip().split("#")[0])
+            for v in o.values():
+                walk(v)
+        elif isinstance(o, list):
+            for v in o:
+                walk(v)
+
+    walk(payload)
+    return list(dict.fromkeys(urls))
+
+
+def _pixellab_animation_job_to_rgba_frames(
+    result: Any,
+    *,
+    canvas_size: int,
+    client: Any,
+) -> List[Image.Image]:
+    """Decode frames from a completed Pixel Lab animation job (base64 and/or downloadable URLs)."""
+    rgba: Tuple[int, int] = (int(canvas_size), int(canvas_size))
+    decoded: List[Image.Image] = []
+    for s in _find_all_base64_png_like(result):
+        try:
+            decoded.append(_decode_base64_image_to_rgba(s, rgba_size=rgba))
+        except Exception:
+            continue
+    if decoded:
+        return decoded
+    bearer = getattr(client, "api_key", None) if client is not None else None
+    for url in _collect_pixellab_https_asset_urls(result)[:128]:
+        try:
+            raw = _download_url_bytes(url, bearer=bearer)
+            decoded.append(
+                _pixellab_open_image_bytes(
+                    raw,
+                    where="Pixel Lab animation frame URL",
+                    rgba_size=rgba,
+                )
+            )
+        except Exception:
+            continue
+    return decoded
 
 
 def _pixellab_character_path(project_dir: Path) -> Path:
@@ -13852,6 +13921,7 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                         str(template_animation_id),
                         directions=direction_list,
                         seed=seed,
+                        poll_timeout_seconds=480,
                     )
 
                     fps_frame = _resolve_animation_timing(
@@ -13867,20 +13937,25 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                     if isinstance(result, dict):
                         job_id = result.get("job_id") or result.get("jobId") or result.get("background_job_id") or result.get("backgroundJobId")
 
-                    images_b64 = _find_all_base64_png_like(result)
+                    plate_frames = _pixellab_animation_job_to_rgba_frames(
+                        result,
+                        canvas_size=canvas_size,
+                        client=client,
+                    )
+                    if not plate_frames:
+                        keys = list(result.keys()) if isinstance(result, dict) else type(result).__name__
+                        raise ValueError(
+                            "Pixel Lab animation returned no decodable frames (PNG/WebP/JPEG base64 or image URLs). "
+                            "Response keys: %s" % keys
+                        )
                     # Heuristic ordering: direction-major then frame index.
                     for dir_idx, direction in enumerate(direction_list):
                         frames: List[Image.Image] = []
                         for frame_idx in range(frame_count):
-                            b64_index = dir_idx * frame_count + frame_idx
-                            if b64_index >= len(images_b64):
+                            flat_idx = dir_idx * frame_count + frame_idx
+                            if flat_idx >= len(plate_frames):
                                 break
-                            frames.append(
-                                _decode_base64_image_to_rgba(
-                                    images_b64[b64_index],
-                                    rgba_size=(canvas_size, canvas_size),
-                                )
-                            )
+                            frames.append(plate_frames[flat_idx])
                         frame_paths = _write_png_frames(frames[:frame_count], project_dir, animation_name, direction)
                         _upsert_pixellab_animation_frames(
                             project_dir,
@@ -13967,7 +14042,12 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
 
                     ref_b64 = client.encode_image(str(ref_path))
                     image_size = {"width": canvas_size, "height": canvas_size}
-                    result = client.animate_with_text_v2(ref_b64, action, image_size)
+                    result = client.animate_with_text_v2(
+                        ref_b64,
+                        action,
+                        image_size,
+                        poll_timeout_seconds=480,
+                    )
 
                     fps_frame = _resolve_animation_timing(animation_name, pixel_lab_result=result)
                     fps = fps_frame["fps"]
@@ -13978,17 +14058,17 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                     if isinstance(result, dict):
                         job_id = result.get("job_id") or result.get("jobId") or result.get("background_job_id") or result.get("backgroundJobId")
 
-                    images_b64 = _find_all_base64_png_like(result)
-                    frames: List[Image.Image] = []
-                    for frame_idx in range(frame_count):
-                        if frame_idx >= len(images_b64):
-                            break
-                        frames.append(
-                            _decode_base64_image_to_rgba(
-                                images_b64[frame_idx],
-                                rgba_size=(canvas_size, canvas_size),
-                            )
+                    plate_frames = _pixellab_animation_job_to_rgba_frames(
+                        result,
+                        canvas_size=canvas_size,
+                        client=client,
+                    )
+                    if not plate_frames:
+                        keys = list(result.keys()) if isinstance(result, dict) else type(result).__name__
+                        raise ValueError(
+                            "Pixel Lab custom animation returned no decodable frames. Response keys: %s" % keys
                         )
+                    frames = plate_frames[:frame_count]
                     frame_paths = _write_png_frames(frames[:frame_count], project_dir, animation_name, direction)
                     _upsert_pixellab_animation_frames(
                         project_dir,
@@ -14086,27 +14166,34 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
 
                     ref_b64 = client.encode_image(str(ref_path))
                     image_size = {"width": canvas_size, "height": canvas_size}
-                    result = client.animate_with_skeleton(ref_b64, image_size, keypoint_frames)
+                    result = client.animate_with_skeleton(
+                        ref_b64,
+                        image_size,
+                        keypoint_frames,
+                        poll_timeout_seconds=480,
+                    )
 
                     fps_frame = _resolve_animation_timing(animation_name, pixel_lab_result=result)
                     fps = fps_frame["fps"]
                     loop = fps_frame["loop"]
                     # If Pixel Lab returns frames for a different count, trust the returned extraction.
-                    images_b64 = _find_all_base64_png_like(result)
-                    frame_count = min(int(frame_count), len(images_b64))
+                    plate_frames = _pixellab_animation_job_to_rgba_frames(
+                        result,
+                        canvas_size=canvas_size,
+                        client=client,
+                    )
 
                     job_id = None
                     if isinstance(result, dict):
                         job_id = result.get("job_id") or result.get("jobId") or result.get("background_job_id") or result.get("backgroundJobId")
 
-                    frames: List[Image.Image] = []
-                    for frame_idx in range(frame_count):
-                        frames.append(
-                            _decode_base64_image_to_rgba(
-                                images_b64[frame_idx],
-                                rgba_size=(canvas_size, canvas_size),
-                            )
+                    if not plate_frames:
+                        keys = list(result.keys()) if isinstance(result, dict) else type(result).__name__
+                        raise ValueError(
+                            "Pixel Lab skeleton animation returned no decodable frames. Response keys: %s" % keys
                         )
+                    frame_count = min(int(frame_count), len(plate_frames))
+                    frames = [plate_frames[i] for i in range(frame_count)]
                     frame_paths = _write_png_frames(frames[:frame_count], project_dir, animation_name, direction)
                     _upsert_pixellab_animation_frames(
                         project_dir,
@@ -14223,18 +14310,24 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                             frame_b64s.append(client.encode_image(str(fp)))
 
                         image_size = {"width": canvas_size, "height": canvas_size}
-                        result = client.edit_animation_v2(description, frame_b64s, image_size)
-                        images_b64 = _find_all_base64_png_like(result)
-
-                        frames: List[Image.Image] = []
-                        out_fc = min(frame_count, len(images_b64))
-                        for frame_idx in range(out_fc):
-                            frames.append(
-                                _decode_base64_image_to_rgba(
-                                    images_b64[frame_idx],
-                                    rgba_size=(canvas_size, canvas_size),
-                                )
+                        result = client.edit_animation_v2(
+                            description,
+                            frame_b64s,
+                            image_size,
+                            poll_timeout_seconds=480,
+                        )
+                        plate_frames = _pixellab_animation_job_to_rgba_frames(
+                            result,
+                            canvas_size=canvas_size,
+                            client=client,
+                        )
+                        if not plate_frames:
+                            keys = list(result.keys()) if isinstance(result, dict) else type(result).__name__
+                            raise ValueError(
+                                "Pixel Lab edit-animation returned no decodable frames. Response keys: %s" % keys
                             )
+                        out_fc = min(frame_count, len(plate_frames))
+                        frames = [plate_frames[i] for i in range(out_fc)]
                         frame_paths = _write_png_frames(frames, project_dir, animation_name, direction)
                         _upsert_pixellab_animation_frames(
                             project_dir,
