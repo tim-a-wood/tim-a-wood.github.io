@@ -1671,6 +1671,20 @@ class SpriteWorkbenchTests(unittest.TestCase):
         self.assertEqual(out.get("character_id"), "c1")
         self.assertTrue(out.get("ok"))
 
+    def test_format_background_job_failure_extracts_error_and_detail(self):
+        payload = {
+            "id": "6274163f-ac2b-42e5-9437-2ee19019389d",
+            "status": "failed",
+            "last_response": {
+                "error": "Animation splitting failed: Expected 4 frames but only got 0.",
+                "detail": "Request validation failed",
+            },
+        }
+        msg = pl.format_background_job_failure(payload)
+        self.assertIn("Animation splitting failed", msg)
+        self.assertIn("Request validation failed", msg)
+        self.assertNotIn("usd", msg)
+
     def test_pixellab_animate_character_polls_all_background_job_ids(self):
         """POST /v2/characters/animations may return ``background_job_ids`` (one per direction)."""
         client = pl.PixelLabClient("fake-key")

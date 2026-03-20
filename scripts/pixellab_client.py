@@ -105,6 +105,39 @@ class PixelLabHTTPError(PixelLabError):
         return f"Pixel Lab HTTP {self.status_code} for {self.url}: {detail or self.payload!r}"
 
 
+def format_background_job_failure(payload: Any) -> str:
+    """
+    Extract a short message from a failed ``GET /v2/background-jobs/{id}`` JSON body
+    (no full ``repr`` of usage / nested dicts). Callers add outer context (e.g. direction 3/4).
+    """
+    if not isinstance(payload, dict):
+        return "Background job failed (unexpected response shape)."
+    lr = payload.get("last_response")
+    primary = ""
+    if isinstance(lr, dict):
+        chunks: List[str] = []
+        for key in ("error", "message", "title", "detail"):
+            v = lr.get(key)
+            if isinstance(v, str) and v.strip() and v.strip() not in chunks:
+                chunks.append(v.strip())
+        if chunks:
+            primary = " — ".join(chunks)
+        if not primary and lr:
+            try:
+                primary = json.dumps(lr, ensure_ascii=False)[:600]
+            except Exception:
+                primary = repr(lr)[:600]
+    jid = payload.get("id") or payload.get("job_id")
+    job_note = ""
+    if isinstance(jid, str) and jid.strip():
+        job_note = " [job %s…]" % jid.strip()[:8]
+    if primary:
+        if len(primary) > 900:
+            primary = primary[:897] + "…"
+        return "%s%s" % (primary, job_note)
+    return "Job failed with no error message from Pixel Lab.%s" % job_note
+
+
 class PixelLabClient:
     def __init__(
         self,
@@ -278,7 +311,7 @@ class PixelLabClient:
                     return payload
                 return {"result": payload}
             if status in {"failed", "error"}:
-                raise PixelLabError(f"Pixel Lab job failed: {payload!r}")
+                raise PixelLabError(format_background_job_failure(payload))
 
             time.sleep(interval_seconds)
 
@@ -416,6 +449,7 @@ class PixelLabClient:
         multi_ids = self._extract_background_job_ids(accepted)
         if multi_ids:
             merged: List[Dict[str, Any]] = []
+            dir_labels = accepted.get("directions") or accepted.get("Directions") or []
             for i, jid in enumerate(multi_ids):
                 logger.info(
                     "Pixel Lab animate_character polling job %d/%d (timeout %ds)",
@@ -423,7 +457,15 @@ class PixelLabClient:
                     len(multi_ids),
                     poll_timeout,
                 )
-                merged.append(self._poll_job(jid, timeout_seconds=poll_timeout))
+                try:
+                    merged.append(self._poll_job(jid, timeout_seconds=poll_timeout))
+                except PixelLabError as exc:
+                    hint = ""
+                    if isinstance(dir_labels, list) and i < len(dir_labels):
+                        hint = " (%s)" % dir_labels[i]
+                    raise PixelLabError(
+                        "Pixel Lab direction job %d of %d%s failed: %s" % (i + 1, len(multi_ids), hint, exc)
+                    ) from exc
             return {
                 "per_job_last_response": merged,
                 "directions": accepted.get("directions") or accepted.get("Directions"),

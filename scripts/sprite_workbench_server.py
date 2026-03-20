@@ -12,6 +12,7 @@ import math
 import os
 import re
 import shutil
+import sys
 import threading
 import time
 import uuid
@@ -20,6 +21,13 @@ from datetime import datetime, timezone
 from http import HTTPStatus
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+
+# Running as `python3 scripts/sprite_workbench_server.py` puts ``scripts/`` on sys.path[0];
+# keep repo root first so ``import scripts.*`` resolves.
+_REPO_ROOT = Path(__file__).resolve().parent.parent
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+
 from typing import Any, Callable, Dict, List, Optional, Protocol, Set, Tuple
 from urllib.error import HTTPError, URLError
 from urllib.parse import parse_qs, quote, urlencode, urlparse, unquote
@@ -27,8 +35,10 @@ from urllib.request import Request, urlopen
 
 from PIL import Image, ImageChops, ImageDraw, ImageOps
 
+from scripts.pixellab_client import PixelLabError
 
-ROOT = Path(__file__).resolve().parent.parent
+
+ROOT = _REPO_ROOT
 TOOL_DIR = ROOT / "tools" / "2d-sprite-and-animation"
 PROJECTS_ROOT = TOOL_DIR / "projects-data"
 WORKFLOW_DIR = TOOL_DIR / "workflows"
@@ -15010,6 +15020,9 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
             return self._send_error_json(HTTPStatus.BAD_REQUEST, str(exc))
         except HttpRequestError as exc:
             logger.warning("POST %s — upstream error: %s", path, exc)
+            return self._send_error_json(HTTPStatus.BAD_GATEWAY, str(exc))
+        except PixelLabError as exc:
+            logger.warning("POST %s — Pixel Lab: %s", path, exc)
             return self._send_error_json(HTTPStatus.BAD_GATEWAY, str(exc))
         except Exception as exc:
             logger.exception("POST %s — unhandled error: %s", path, exc)
