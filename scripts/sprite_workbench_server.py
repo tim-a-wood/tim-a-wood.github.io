@@ -13347,15 +13347,16 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
 
                 images_b64: List[str] = []
                 try:
+                    from scripts.pixellab_client import base64_image_payload
+
+                    color_image = base64_image_payload(client.encode_image(source_path))
                     if directions == 4:
                         result = client.create_character_4dir(
                             character_description,
                             {"width": canvas_size, "height": canvas_size},
                             template_id=style["character_template_pixel_lab"],
                             view="side",
-                            direction="east",
-                            no_background=True,
-                            color_image=client.encode_image(source_path),
+                            color_image=color_image,
                             force_colors=True,
                             seed=seed,
                         )
@@ -13365,9 +13366,7 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                             {"width": canvas_size, "height": canvas_size},
                             template_id=style["character_template_pixel_lab"],
                             view="side",
-                            direction="east",
-                            no_background=True,
-                            color_image=client.encode_image(source_path),
+                            color_image=color_image,
                             force_colors=True,
                             seed=seed,
                         )

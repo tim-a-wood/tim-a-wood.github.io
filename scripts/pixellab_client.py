@@ -33,6 +33,16 @@ def _normalize_size(image_size: SizeLike) -> Dict[str, int]:
     return {"width": int(width), "height": int(height)}
 
 
+def base64_image_payload(image_b64: str, image_format: str = "png") -> Dict[str, Any]:
+    """
+    Build a Pixel Lab v2 ``Base64Image`` object.
+
+    Several endpoints (e.g. ``/v2/create-character-with-8-directions``) expect
+    ``color_image`` as this object, not a raw base64 string.
+    """
+    return {"type": "base64", "base64": image_b64, "format": image_format}
+
+
 def _json_dumps(payload: Dict[str, Any]) -> bytes:
     return json.dumps(payload, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
 

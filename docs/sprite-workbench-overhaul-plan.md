@@ -210,7 +210,7 @@ DESCRIBE → CONCEPTS → CHARACTER → ANIMATIONS → EXPORT
 
 ### 4.1 Add character creation endpoint
 - `POST /api/projects/<id>/pixellab/create-character` — body: `{ directions: 4|8, description, image_size, color_image_concept_id?, ... }`
-- If `color_image_concept_id` is provided, load that concept image and base64-encode it as `color_image`
+- If `color_image_concept_id` is provided, load that concept image and send it as Pixel Lab v2 `color_image` (`Base64Image`: `{ type: "base64", base64, format }`), not a raw string
 - Calls `create_character_4dir()` or `create_character_8dir()`
 - Polls async job until complete
 - Saves direction images to `character/south.png`, `character/west.png`, `character/east.png`, `character/north.png`

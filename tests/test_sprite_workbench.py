@@ -1498,6 +1498,17 @@ class SpriteWorkbenchTests(unittest.TestCase):
         finally:
             file_path.unlink(missing_ok=True)
 
+    def test_base64_image_payload_matches_v2_schema(self):
+        payload = pl.base64_image_payload("Zm9v")
+        self.assertEqual(
+            payload,
+            {"type": "base64", "base64": "Zm9v", "format": "png"},
+        )
+        self.assertEqual(
+            pl.base64_image_payload("eA==", image_format="jpeg"),
+            {"type": "base64", "base64": "eA==", "format": "jpeg"},
+        )
+
     def test_pixellab_client_get_balance_parses_json(self):
         client = pl.PixelLabClient("fake-key")
 
