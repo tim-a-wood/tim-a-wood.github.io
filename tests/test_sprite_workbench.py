@@ -1,5 +1,6 @@
 import http.client
 import base64
+import io
 import json
 import shutil
 import tempfile
@@ -1508,6 +1509,55 @@ class SpriteWorkbenchTests(unittest.TestCase):
             pl.base64_image_payload("eA==", image_format="jpeg"),
             {"type": "base64", "base64": "eA==", "format": "jpeg"},
         )
+
+    def test_normalize_pixellab_image_base64_strips_data_uri(self):
+        raw = "iVBORw0KGgo" + ("A" * 80)
+        uri = "data:image/png;base64," + raw
+        self.assertEqual(sw._normalize_pixellab_image_base64(uri), raw)
+
+    def test_collect_nested_images_dict_finds_result_branch(self):
+        got = sw._collect_nested_images_dict({"result": {"images": {"east": {"base64": "eA=="}}}})
+        self.assertIsNotNone(got)
+        self.assertIn("east", got)
+
+    def test_extract_pixellab_character_directions_from_images_map(self):
+        img = Image.new("RGBA", (2, 2), (10, 20, 30, 255))
+        buf = io.BytesIO()
+        img.save(buf, format="PNG")
+        b64 = base64.b64encode(buf.getvalue()).decode("ascii")
+        directions = ["south", "east"]
+        result = {"images": {d: {"type": "base64", "base64": b64} for d in directions}}
+        out = sw._extract_pixellab_character_direction_images_b64(result, directions, client=None)
+        self.assertEqual(len(out), 2)
+        self.assertEqual(out[0], b64)
+
+    def test_extract_pixellab_character_rotation_urls_fallback(self):
+        tiny = Image.new("RGBA", (1, 1), (1, 2, 3, 4))
+        png_buf = io.BytesIO()
+        tiny.save(png_buf, format="PNG")
+        png_bytes = png_buf.getvalue()
+
+        class FakeClient:
+            api_key = "k"
+
+            def get_character(self, character_id):
+                return {
+                    "id": character_id,
+                    "rotation_urls": {
+                        "south": "https://cdn.example/s.png",
+                        "east": "https://cdn.example/e.png",
+                    },
+                }
+
+        with patch.object(sw, "_download_url_bytes", return_value=png_bytes):
+            result = {"character_id": "char-123", "status": "completed"}
+            out = sw._extract_pixellab_character_direction_images_b64(
+                result,
+                ["south", "east"],
+                client=FakeClient(),
+            )
+        self.assertEqual(len(out), 2)
+        self.assertTrue(out[0].startswith("iVBORw"))
 
     def test_pixellab_client_get_balance_parses_json(self):
         client = pl.PixelLabClient("fake-key")

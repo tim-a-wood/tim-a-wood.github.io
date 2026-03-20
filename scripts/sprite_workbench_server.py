@@ -3707,6 +3707,100 @@ def _decode_base64_image_to_rgba(image_b64: str) -> Image.Image:
         return loaded.convert("RGBA")
 
 
+def _normalize_pixellab_image_base64(value: Any) -> Optional[str]:
+    """Normalize Pixel Lab Base64Image objects or data-URI strings to raw base64 text."""
+    if value is None:
+        return None
+    if isinstance(value, str):
+        s = value.strip()
+        if "base64," in s:
+            s = s.split("base64,", 1)[1].strip()
+        return s if len(s) > 40 else None
+    if isinstance(value, dict):
+        inner = value.get("base64") or value.get("b64") or value.get("data")
+        if isinstance(inner, str):
+            return _normalize_pixellab_image_base64(inner)
+    return None
+
+
+def _collect_nested_images_dict(payload: Any) -> Optional[Dict[str, Any]]:
+    """Find a direction-keyed ``images`` map on the payload or nested ``result`` / ``output``."""
+    if not isinstance(payload, dict):
+        return None
+    imgs = payload.get("images")
+    if isinstance(imgs, dict) and imgs:
+        return imgs
+    for key in ("result", "output", "data"):
+        nested = payload.get(key)
+        if isinstance(nested, dict):
+            found = _collect_nested_images_dict(nested)
+            if found:
+                return found
+    return None
+
+
+def _download_url_bytes(url: str, *, bearer: Optional[str] = None, timeout: int = 90) -> bytes:
+    headers = {"User-Agent": "MV-sprite-workbench/1.0 (Pixel Lab asset fetch)"}
+    if bearer:
+        headers["Authorization"] = "Bearer %s" % bearer
+    req = Request(url, headers=headers, method="GET")
+    with urlopen(req, timeout=timeout) as resp:
+        return resp.read()
+
+
+def _extract_pixellab_character_direction_images_b64(
+    result: Any,
+    direction_list: List[str],
+    *,
+    client: Any,
+) -> List[str]:
+    """
+    After async create-character completes, Pixel Lab returns either:
+    - ``images``: {direction: Base64Image | data-URI str, ...}
+    - or only ``character_id`` — then ``GET /v2/characters/{id}`` exposes ``rotation_urls``.
+    """
+    images_block = _collect_nested_images_dict(result)
+    if images_block:
+        out: List[str] = []
+        for d in direction_list:
+            b64 = _normalize_pixellab_image_base64(images_block.get(d))
+            if not b64:
+                return []
+            out.append(b64)
+        if len(out) == len(direction_list):
+            return out
+
+    cid: Optional[str] = None
+    if isinstance(result, dict):
+        cid = result.get("character_id") or result.get("id")
+        nested = result.get("result")
+        if not cid and isinstance(nested, dict):
+            cid = nested.get("character_id") or nested.get("id")
+
+    if cid and client is not None:
+        try:
+            detail = client.get_character(str(cid))
+        except Exception:
+            detail = {}
+        urls = detail.get("rotation_urls") if isinstance(detail, dict) else None
+        if isinstance(urls, dict):
+            bearer = getattr(client, "api_key", None)
+            out2: List[str] = []
+            for d in direction_list:
+                u = urls.get(d)
+                if not isinstance(u, str) or not u.strip():
+                    return []
+                try:
+                    raw = _download_url_bytes(u.strip(), bearer=bearer)
+                except Exception:
+                    return []
+                out2.append(base64.b64encode(raw).decode("ascii"))
+            if len(out2) == len(direction_list):
+                return out2
+
+    return []
+
+
 def debug_pixellab_concept_image(image_size: Dict[str, int], seed: Optional[int], label: str = "pixellab-debug") -> Image.Image:
     """
     Offline fallback that produces a stable transparent concept image.
@@ -13360,6 +13454,7 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                             color_image=color_image,
                             force_colors=True,
                             seed=seed,
+                            poll_timeout_seconds=300,
                         )
                     else:
                         result = client.create_character_8dir(
@@ -13370,22 +13465,20 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                             color_image=color_image,
                             force_colors=True,
                             seed=seed,
+                            poll_timeout_seconds=420,
                         )
                 except Exception as exc:
                     raise ValueError("Pixel Lab create-character failed: %s" % str(exc))
 
-                # Extract all PNG-like base64 blobs from the result.
-                b64_candidate = _find_first_base64_png_like(result)
-                if b64_candidate:
-                    images_b64 = [b64_candidate]
-                else:
-                    # If we can't find multiple images, we at least attempt one.
-                    images_b64 = []
-
-                # Without confirmed response schema, we require explicit multiple direction images.
+                images_b64 = _extract_pixellab_character_direction_images_b64(
+                    result,
+                    direction_list,
+                    client=client,
+                )
                 if len(images_b64) < len(direction_list):
                     raise ValueError(
-                        "Pixel Lab create-character response did not contain enough direction images to map into %s."
+                        "Pixel Lab create-character response did not contain enough direction images to map into %s "
+                        "(expected per-direction ``images`` or fetchable ``rotation_urls`` via ``character_id``)."
                         % str(direction_list)
                     )
 

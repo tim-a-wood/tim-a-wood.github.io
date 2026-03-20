@@ -259,6 +259,7 @@ class PixelLabClient:
     # Character creation & retrieval
     # -----------------------------
     def create_character_4dir(self, description: str, image_size: SizeLike, **kwargs: Any) -> Dict[str, Any]:
+        poll_timeout = int(kwargs.pop("poll_timeout_seconds", 300))
         payload: Dict[str, Any] = {
             "description": description,
             "image_size": _normalize_size(image_size),
@@ -268,10 +269,11 @@ class PixelLabClient:
         result = self._request_json("POST", "/v2/create-character-with-4-directions", payload)
         job_id = self._extract_job_id(result)
         if job_id:
-            return self._poll_job(job_id)
+            return self._poll_job(job_id, timeout_seconds=poll_timeout)
         return result
 
     def create_character_8dir(self, description: str, image_size: SizeLike, **kwargs: Any) -> Dict[str, Any]:
+        poll_timeout = int(kwargs.pop("poll_timeout_seconds", 420))
         payload: Dict[str, Any] = {
             "description": description,
             "image_size": _normalize_size(image_size),
@@ -281,7 +283,7 @@ class PixelLabClient:
         result = self._request_json("POST", "/v2/create-character-with-8-directions", payload)
         job_id = self._extract_job_id(result)
         if job_id:
-            return self._poll_job(job_id)
+            return self._poll_job(job_id, timeout_seconds=poll_timeout)
         return result
 
     def get_character(self, character_id: str) -> Dict[str, Any]:

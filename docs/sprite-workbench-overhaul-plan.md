@@ -111,6 +111,8 @@ DESCRIBE → CONCEPTS → CHARACTER → ANIMATIONS → EXPORT
 ### 1.4 Add character creation methods to client
 - `create_character_4dir(self, description, image_size, **kwargs)` — `POST /v2/create-character-with-4-directions` (async)
 - `create_character_8dir(self, description, image_size, **kwargs)` — `POST /v2/create-character-with-8-directions` (async)
+- Optional `poll_timeout_seconds` (kwargs, not sent to API) for long 8-dir jobs
+- After the job completes, the workbench reads per-direction frames from `images` (Base64Image map) or falls back to `GET /v2/characters/{id}` → `rotation_urls` (download PNGs)
 - `get_character(self, character_id)` — `GET /v2/characters/{character_id}`
 - `list_characters(self, limit=20, offset=0)` — `GET /v2/characters`
 - `download_character_zip(self, character_id)` — `GET /v2/characters/{character_id}/zip`
