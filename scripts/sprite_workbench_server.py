@@ -3877,12 +3877,25 @@ def _collect_nested_images_dict(payload: Any) -> Optional[Dict[str, Any]]:
     return None
 
 
+def _is_pixellab_api_url(url: str) -> bool:
+    """True when the URL points to the Pixel Lab API (not a CDN / object-storage host)."""
+    try:
+        host = url.split("//", 1)[1].split("/", 1)[0].split(":")[0].lower()
+    except (IndexError, ValueError):
+        return False
+    return host == "api.pixellab.ai"
+
+
 def _download_url_bytes(url: str, *, bearer: Optional[str] = None, timeout: int = 90) -> bytes:
     headers = {
         "User-Agent": "MV-sprite-workbench/1.0 (Pixel Lab asset fetch)",
         "Accept": "image/png,image/webp,image/jpeg,image/*;q=0.9,*/*;q=0.5",
     }
-    if bearer:
+    # Only send the Pixel Lab Bearer token to the Pixel Lab API itself.
+    # CDN / object-storage hosts (Backblaze B2, Supabase, etc.) reject foreign
+    # Authorization headers with 401, so skip Bearer for those URLs upfront.
+    use_bearer = bearer and _is_pixellab_api_url(url)
+    if use_bearer:
         headers["Authorization"] = "Bearer %s" % bearer
     req = Request(url, headers=headers, method="GET")
     with urlopen(req, timeout=timeout) as resp:
@@ -4305,12 +4318,16 @@ def _pixellab_decode_single_animation_payload_to_frames(
     for s in _find_all_base64_png_like(result):
         try:
             decoded.append(_decode_base64_image_to_rgba(s, rgba_size=rgba))
-        except Exception:
+        except Exception as exc:
+            logger.debug("[pixellab/decode] base64 decode failed: %s", exc)
             continue
     if decoded:
         return decoded
     bearer = getattr(client, "api_key", None) if client is not None else None
-    for url in _collect_pixellab_https_asset_urls(result)[:128]:
+    asset_urls = _collect_pixellab_https_asset_urls(result)[:128]
+    if asset_urls:
+        logger.info("[pixellab/decode] attempting %d URL downloads (no base64 found)", len(asset_urls))
+    for idx, url in enumerate(asset_urls):
         try:
             raw = _download_url_bytes(url, bearer=bearer)
             decoded.append(
@@ -4320,9 +4337,49 @@ def _pixellab_decode_single_animation_payload_to_frames(
                     rgba_size=rgba,
                 )
             )
-        except Exception:
+        except Exception as exc:
+            logger.warning(
+                "[pixellab/decode] URL %d/%d download/decode failed url=%s error=%s",
+                idx + 1, len(asset_urls), url[:120], exc,
+            )
             continue
     return decoded
+
+
+def _log_pixellab_job_images_shape(part: Dict[str, Any], idx: int) -> None:
+    """Log the shape/type of the ``images``, ``storage_urls``, and ``quantized_images`` fields for debugging."""
+    for key in ("images", "quantized_images", "storage_urls"):
+        val = part.get(key)
+        if val is None:
+            continue
+        if isinstance(val, list):
+            samples = []
+            for i, item in enumerate(val[:3]):
+                if isinstance(item, dict):
+                    samples.append("dict(keys=%s)" % sorted(item.keys()))
+                elif isinstance(item, str):
+                    samples.append("str(len=%d, head=%r)" % (len(item), item[:80]))
+                else:
+                    samples.append(type(item).__name__)
+            logger.info(
+                "[pixellab/decode] job[%d].%s is list[%d] samples=%s",
+                idx, key, len(val), samples,
+            )
+        elif isinstance(val, dict):
+            logger.info(
+                "[pixellab/decode] job[%d].%s is dict(keys=%s)",
+                idx, key, sorted(val.keys())[:10],
+            )
+        elif isinstance(val, str):
+            logger.info(
+                "[pixellab/decode] job[%d].%s is str(len=%d, head=%r)",
+                idx, key, len(val), val[:80],
+            )
+        else:
+            logger.info(
+                "[pixellab/decode] job[%d].%s is %s",
+                idx, key, type(val).__name__,
+            )
 
 
 def _pixellab_animation_job_to_rgba_frames(
@@ -4341,7 +4398,9 @@ def _pixellab_animation_job_to_rgba_frames(
         merged = result.get("per_job_last_response") or result.get("merged_last_responses")
         if isinstance(merged, list) and merged:
             out: List[Image.Image] = []
-            for part in merged:
+            for part_idx, part in enumerate(merged):
+                if isinstance(part, dict):
+                    _log_pixellab_job_images_shape(part, part_idx)
                 out.extend(
                     _pixellab_decode_single_animation_payload_to_frames(
                         part,

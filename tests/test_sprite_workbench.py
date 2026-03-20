@@ -2778,6 +2778,36 @@ class PixelLabAnimationFrameExtractionTests(unittest.TestCase):
             ["https://cdn.example/a.png", "https://cdn.example/b.png", "https://cdn.example/c.png"],
         )
 
+    def test_is_pixellab_api_url(self):
+        self.assertTrue(sw._is_pixellab_api_url("https://api.pixellab.ai/v2/characters/x"))
+        self.assertTrue(sw._is_pixellab_api_url("https://api.pixellab.ai:443/foo/bar"))
+        self.assertFalse(sw._is_pixellab_api_url("https://backblaze.pixellab.ai/file/pixellab-characters/x.png"))
+        self.assertFalse(sw._is_pixellab_api_url("https://supabase.pixellab.ai/storage/v1/object/public/x"))
+
+    @patch.object(sw, "urlopen", autospec=True)
+    def test_download_url_bytes_skips_bearer_on_cdn_host(self, mock_urlopen):
+        inner = MagicMock()
+        inner.read.return_value = b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR"
+        mock_urlopen.return_value.__enter__.return_value = inner
+        out = sw._download_url_bytes(
+            "https://backblaze.pixellab.ai/file/pixellab-characters/bucket/key.png",
+            bearer="pixellab-secret-key",
+        )
+        self.assertTrue(out.startswith(b"\x89PNG"))
+        req = mock_urlopen.call_args[0][0]
+        hdrs = dict(req.header_items())
+        self.assertNotIn("Authorization", hdrs)
+
+    @patch.object(sw, "urlopen", autospec=True)
+    def test_download_url_bytes_sends_bearer_only_for_api_host(self, mock_urlopen):
+        inner = MagicMock()
+        inner.read.return_value = b"zip-bytes"
+        mock_urlopen.return_value.__enter__.return_value = inner
+        sw._download_url_bytes("https://api.pixellab.ai/v2/characters/uuid/zip", bearer="pixellab-secret-key")
+        req = mock_urlopen.call_args[0][0]
+        hdrs = dict(req.header_items())
+        self.assertEqual(hdrs.get("Authorization"), "Bearer pixellab-secret-key")
+
     @patch.object(sw, "_download_url_bytes")
     def test_pixellab_animation_job_to_rgba_frames_url_fallback(self, mock_dl):
         png = self._tiny_png_b64()
