@@ -1735,16 +1735,16 @@ class SpriteWorkbenchTests(unittest.TestCase):
                     return {"background_job_ids": ["s2"], "directions": ["east"], "status": "p"}
             raise AssertionError((method, path))
 
+        def until_settled(job_ids, **kwargs):
+            # Parallel batch all failed/timed out → refill every direction serially.
+            return ({}, {str(j): "splitting failed" for j in job_ids})
+
         def parallel_poll(job_ids, **kwargs):
-            # First call: multi-direction poll from animate_character — fail to trigger serial fallback.
-            if list(job_ids) == ["m1", "m2"]:
-                raise pl.PixelLabError("splitting failed")
-            # Serial fallback polls one job per direction; avoid sleeping / GET by stubbing results.
             return [{"jid": jid} for jid in job_ids]
 
-        with patch.object(client, "_poll_jobs_parallel", side_effect=parallel_poll), patch.object(
-            client, "_request_json", side_effect=rq
-        ):
+        with patch.object(client, "_poll_jobs_parallel_until_settled", side_effect=until_settled), patch.object(
+            client, "_poll_jobs_parallel", side_effect=parallel_poll
+        ), patch.object(client, "_request_json", side_effect=rq):
             out = client.animate_character(
                 "cid",
                 "breathing-idle",
@@ -1754,6 +1754,50 @@ class SpriteWorkbenchTests(unittest.TestCase):
             )
         self.assertEqual([x.get("jid") for x in out["per_job_last_response"]], ["s1", "s2"])
         self.assertEqual(out["background_job_ids"], ["s1", "s2"])
+
+    def test_animate_character_serial_refill_only_failed_directions(self):
+        client = pl.PixelLabClient("fake-key")
+        post_n = {"n": 0}
+
+        def rq(method, path, payload=None):
+            if method == "POST":
+                post_n["n"] += 1
+                if post_n["n"] == 1:
+                    return {
+                        "background_job_ids": ["ja", "jb"],
+                        "directions": ["south", "east"],
+                        "status": "p",
+                    }
+                if post_n["n"] == 2:
+                    pl = (payload or {}).get("directions") or []
+                    self.assertEqual(pl, ["east"])
+                    return {"background_job_ids": ["jr"], "directions": ["east"], "status": "p"}
+            raise AssertionError((method, path))
+
+        def until_settled(job_ids, **kwargs):
+            self.assertEqual(list(job_ids), ["ja", "jb"])
+            return ({"ja": {"lane": "parallel"}}, {"jb": "east failed fast"})
+
+        def parallel_poll(job_ids, **kwargs):
+            if list(job_ids) == ["jr"]:
+                return [{"lane": "serial", "east": True}]
+            raise AssertionError(job_ids)
+
+        with patch.object(client, "_poll_jobs_parallel_until_settled", side_effect=until_settled), patch.object(
+            client, "_poll_jobs_parallel", side_effect=parallel_poll
+        ), patch.object(client, "_request_json", side_effect=rq):
+            out = client.animate_character(
+                "cid",
+                "breathing-idle",
+                directions=["south", "east"],
+                seed=9,
+                poll_timeout_seconds=20,
+            )
+        self.assertEqual(
+            out["per_job_last_response"],
+            [{"lane": "parallel"}, {"lane": "serial", "east": True}],
+        )
+        self.assertEqual(out["background_job_ids"], ["ja", "jr"])
 
     def test_animate_character_serial_by_direction_merges_in_order(self):
         client = pl.PixelLabClient("fake-key")
@@ -1805,6 +1849,35 @@ class SpriteWorkbenchTests(unittest.TestCase):
                     timeout_seconds=60,
                     interval_seconds=0,
                 )
+
+    def test_poll_jobs_parallel_until_settled_allows_other_jobs_to_finish(self):
+        client = pl.PixelLabClient("fake-key")
+        state = {"good_polls": 0}
+
+        def rq(method, path, payload=None):
+            if "job-bad" in path:
+                return {
+                    "id": "job-bad",
+                    "status": "failed",
+                    "last_response": {"error": "split failed", "detail": "x"},
+                }
+            if "job-good" in path:
+                state["good_polls"] += 1
+                if state["good_polls"] < 2:
+                    return {"id": "job-good", "status": "processing"}
+                return {"id": "job-good", "status": "completed", "last_response": {"ok": 1}}
+            raise AssertionError(path)
+
+        with patch.object(client, "_request_json", side_effect=rq):
+            completed, failed = client._poll_jobs_parallel_until_settled(
+                ["job-bad", "job-good"],
+                direction_labels=["west", "south"],
+                timeout_seconds=60,
+                interval_seconds=0,
+            )
+        self.assertIn("job-bad", failed)
+        self.assertIn("west", failed["job-bad"])
+        self.assertEqual(completed.get("job-good"), {"ok": 1})
 
     def test_pixellab_client_get_balance_parses_json(self):
         client = pl.PixelLabClient("fake-key")
