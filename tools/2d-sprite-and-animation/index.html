@@ -6237,6 +6237,37 @@ function pixellabPreviewFrameUrls(project, animName, direction) {
     return frames.map((rel) => `${projectAsset(project, rel)}?v=${v}`);
 }
 
+/** Matches server ``pixellab_missing_canonical_animation_clips`` — idle + walk each need ≥1 direction with frames. */
+function pixellabMissingCanonicalAnimationClips(project) {
+    const anims = project?.pixellab_animations?.animations;
+    const required = ["idle", "walk"];
+    if (!anims || typeof anims !== "object") return required.slice();
+    const missing = [];
+    for (const name of required) {
+        const entry = anims[name];
+        if (!entry || typeof entry !== "object") {
+            missing.push(name);
+            continue;
+        }
+        const dirs = entry.directions;
+        if (!dirs || typeof dirs !== "object" || !Object.keys(dirs).length) {
+            missing.push(name);
+            continue;
+        }
+        let hasFrames = false;
+        for (const d of Object.keys(dirs)) {
+            const data = dirs[d];
+            const frames = data && Array.isArray(data.frames) ? data.frames : [];
+            if (frames.length > 0) {
+                hasFrames = true;
+                break;
+            }
+        }
+        if (!hasFrames) missing.push(name);
+    }
+    return missing;
+}
+
 function renderPixellabAnimationsBoard() {
     const root = document.querySelector("#pixellab-animations-board");
     if (!root) return;
@@ -6266,6 +6297,15 @@ function renderPixellabAnimationsBoard() {
     };
     const idleTemplates = pixellabTemplatesForClip("idle");
     const walkTemplates = pixellabTemplatesForClip("walk");
+    const missingCanonical = pixellabMissingCanonicalAnimationClips(project);
+    const canBuildClips = missingCanonical.length === 0;
+    const buildClipsTitle = canBuildClips
+        ? "Merge pixellab_animations.json into animation_clips.json for export/QA."
+        : `Generate these first (template or custom on each card): ${missingCanonical.join(", ")}`;
+    const buildClipsHintHtml = canBuildClips
+        ? "Idle and walk are in the store — you can build canonical clips for QA/export."
+        : (`<strong>Next:</strong> generate <code>${escapeHtml(missingCanonical.join(", "))}</code> `
+            + "using the cards below (this button stays disabled until both exist).");
     const listRows = Object.keys(anims).length
         ? Object.entries(anims).map(([name, meta]) => {
             const dirs = meta?.directions ? Object.keys(meta.directions).join(", ") : "—";
@@ -6325,8 +6365,9 @@ function renderPixellabAnimationsBoard() {
                 <tbody>${listRows}</tbody>
             </table>
             <div class="actions" style="margin-top:12px;flex-wrap:wrap;gap:8px;">
-                <button type="button" id="pixellab-build-clips">Build canonical clips</button>
+                <button type="button" id="pixellab-build-clips" ${canBuildClips ? "" : "disabled"} title="${escapeHtml(buildClipsTitle)}">Build canonical clips</button>
             </div>
+            <p class="small-note" id="pixellab-build-clips-hint" style="margin-top:8px;">${buildClipsHintHtml}</p>
         </div>
         <div class="grid-2" style="align-items:start;">
             ${clipCard("idle", idleTemplates, "breathing-idle")}

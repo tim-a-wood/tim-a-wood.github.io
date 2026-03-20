@@ -4170,27 +4170,44 @@ def pixellab_character_wizard_complete(project: Dict[str, Any], project_dir: Pat
     return bool(char_data.get("approved"))
 
 
+def pixellab_missing_canonical_animation_clips(animations: Any) -> List[str]:
+    """
+    Canonical export/QA expects **idle** and **walk** in ``pixellab_animations.animations``,
+    each with at least one direction listing non-empty ``frames``.
+    Returns clip names still missing (empty list = ready for build-clips / wizard step).
+    """
+    required = ("idle", "walk")
+    if not isinstance(animations, dict):
+        return list(required)
+    missing: List[str] = []
+    for name in required:
+        entry = animations.get(name)
+        if not isinstance(entry, dict):
+            missing.append(name)
+            continue
+        dirs = entry.get("directions")
+        if not isinstance(dirs, dict) or not dirs:
+            missing.append(name)
+            continue
+        has_frames = False
+        for _d, data in dirs.items():
+            if isinstance(data, dict):
+                frames = data.get("frames")
+                if isinstance(frames, list) and len(frames) > 0:
+                    has_frames = True
+                    break
+        if not has_frames:
+            missing.append(name)
+    return missing
+
+
 def pixellab_animations_step_complete(project: Dict[str, Any], project_dir: Path) -> bool:
     """Idle + walk each have at least one direction with frame paths in pixellab_animations."""
     store = project.get("pixellab_animations")
     if not isinstance(store, dict) or not isinstance(store.get("animations"), dict):
         store = _load_pixellab_animations_store(project_dir)
     anims = store.get("animations") if isinstance(store.get("animations"), dict) else {}
-    for name in ("idle", "walk"):
-        entry = anims.get(name)
-        if not isinstance(entry, dict):
-            return False
-        dirs = entry.get("directions")
-        if not isinstance(dirs, dict) or not dirs:
-            return False
-        has_frames = False
-        for _d, data in dirs.items():
-            if isinstance(data, dict) and data.get("frames"):
-                has_frames = True
-                break
-        if not has_frames:
-            return False
-    return True
+    return not pixellab_missing_canonical_animation_clips(anims)
 
 
 def wizard_steps_active(project: Dict[str, Any]) -> List[str]:
@@ -11589,7 +11606,10 @@ def pixellab_pipeline_ready_for_qa(project: Dict[str, Any], project_dir: Path) -
     if not char_path.exists() or not anim_path.exists():
         return False
     anim_store = load_json(anim_path, None)
-    if not isinstance(anim_store, dict) or not anim_store.get("animations"):
+    if not isinstance(anim_store, dict):
+        return False
+    ab = anim_store.get("animations")
+    if pixellab_missing_canonical_animation_clips(ab if isinstance(ab, dict) else None):
         return False
     clips = project.get("animation_clips") or load_json(canonical_downstream_path(project_dir, "animation_clips"), {})
     return isinstance(clips, dict) and bool(clips)
@@ -11607,8 +11627,16 @@ def run_pixellab_qa(project_id: str, progress: Optional[ProgressCallback] = None
     _pixellab_character_approved_guard(project_dir)  # also enforces approval
 
     pix_store = load_json(anim_path, None) or {}
-    if not isinstance(pix_store, dict) or not pix_store.get("animations"):
-        raise ValueError("pixellab_animations.json is empty.")
+    if not isinstance(pix_store, dict):
+        pix_store = {}
+    anim_block = pix_store.get("animations")
+    miss_qa = pixellab_missing_canonical_animation_clips(anim_block if isinstance(anim_block, dict) else None)
+    if miss_qa:
+        raise ValueError(
+            "pixellab_animations.json is missing generated clips: %s. "
+            "Generate **idle** and **walk** on the Animations panel (template or custom), then run Build canonical clips."
+            % ", ".join(miss_qa)
+        )
 
     clips = project.get("animation_clips") or load_json(canonical_downstream_path(project_dir, "animation_clips"), {})
     if not isinstance(clips, dict) or not clips:
@@ -14209,8 +14237,13 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
 
                 pix_store = _load_pixellab_animations_store(project_dir)
                 anim_store = pix_store.get("animations") if isinstance(pix_store.get("animations"), dict) else {}
-                if not anim_store:
-                    raise ValueError("pixellab_animations.json is empty; generate animations first.")
+                miss = pixellab_missing_canonical_animation_clips(anim_store)
+                if miss:
+                    raise ValueError(
+                        "Cannot build canonical clips yet — no frame data in pixellab_animations.json for: %s. "
+                        "Use **Generate via template** or **Generate custom** on the Animations panel for each listed clip (character must be approved), then try again."
+                        % ", ".join(miss)
+                    )
 
                 animation_clips_path = canonical_downstream_path(project_dir, "animation_clips")
                 existing = load_json(animation_clips_path, {}) or {}

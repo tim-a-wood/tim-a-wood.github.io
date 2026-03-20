@@ -1426,6 +1426,21 @@ class SpriteWorkbenchTests(unittest.TestCase):
         self.assertNotIn("part_manifest", seq)
         self.assertIn("clips", seq)
 
+    def test_pixellab_missing_canonical_animation_clips_lists_gaps(self):
+        self.assertEqual(sw.pixellab_missing_canonical_animation_clips(None), ["idle", "walk"])
+        self.assertEqual(sw.pixellab_missing_canonical_animation_clips({}), ["idle", "walk"])
+        self.assertEqual(
+            sw.pixellab_missing_canonical_animation_clips({"idle": {"directions": {"east": {"frames": ["a"]}}}}),
+            ["walk"],
+        )
+        self.assertEqual(
+            sw.pixellab_missing_canonical_animation_clips({
+                "idle": {"directions": {"east": {"frames": ["a"]}}},
+                "walk": {"directions": {"east": {"frames": ["b"]}}},
+            }),
+            [],
+        )
+
     def test_pixellab_animations_step_complete_requires_idle_and_walk_frames(self):
         with tempfile.TemporaryDirectory() as tmp:
             pdir = Path(tmp)
@@ -2080,6 +2095,19 @@ class SpriteWorkbenchTests(unittest.TestCase):
                     if resp.status >= 400:
                         raise AssertionError(f"animate-custom HTTP {resp.status}: {raw}")
                     self.assertTrue(data.get("ok"))
+
+                    connection.request(
+                        "POST",
+                        f"/api/projects/{project_id}/pixellab/animate-custom",
+                        body=json.dumps({"action": "walking forward", "animation_name": "walk", "seed": 1000}).encode("utf-8"),
+                        headers={"Content-Type": "application/json"},
+                    )
+                    resp_w = connection.getresponse()
+                    raw_w = resp_w.read().decode("utf-8")
+                    data_w = json.loads(raw_w)
+                    if resp_w.status >= 400:
+                        raise AssertionError(f"animate-custom walk HTTP {resp_w.status}: {raw_w}")
+                    self.assertTrue(data_w.get("ok"))
                 finally:
                     server.shutdown()
                     thread.join(timeout=5)
@@ -2097,6 +2125,10 @@ class SpriteWorkbenchTests(unittest.TestCase):
                 dirs = store["animations"]["idle"].get("directions", {})
                 self.assertIn("east", dirs)
                 self.assertEqual(len(dirs["east"].get("frames") or []), 6)
+                self.assertIn("walk", store.get("animations", {}))
+                wdirs = store["animations"]["walk"].get("directions", {})
+                self.assertIn("east", wdirs)
+                self.assertGreater(len(wdirs["east"].get("frames") or []), 0)
 
                 # Build animation clips.
                 try:
@@ -2127,9 +2159,12 @@ class SpriteWorkbenchTests(unittest.TestCase):
                 self.assertTrue(clips_path.exists())
                 clips = json.loads(clips_path.read_text(encoding="utf-8"))
                 self.assertIn("idle", clips)
+                self.assertIn("walk", clips)
                 self.assertIn("frames", clips["idle"])
                 self.assertEqual(len(clips["idle"]["frames"]), 6)
                 self.assertIn("animations/idle/east/frame_00.png", clips["idle"]["frames"][0])
+                self.assertIn("frames", clips["walk"])
+                self.assertGreater(len(clips["walk"]["frames"]), 0)
 
                 # Phase 6: Pixel Lab QA + export integration.
                 qa = sw.run_qa(project_id)
@@ -2159,6 +2194,8 @@ class SpriteWorkbenchTests(unittest.TestCase):
                 canvas_size = sw.coerce_canvas_size(brief.get("canvas_size"), sw.DEFAULT_CANVAS_SIZE)
                 frame_count = sw.ANIMATION_SPECS["idle"]["frame_count"]
                 fps = sw.ANIMATION_SPECS["idle"]["fps"]
+                walk_fc = sw.ANIMATION_SPECS["walk"]["frame_count"]
+                walk_fps = sw.ANIMATION_SPECS["walk"]["fps"]
 
                 directions = ["south", "west", "east", "north"]
                 assets = sw.debug_pixellab_character_images(directions, canvas_size, seed=1)
@@ -2178,7 +2215,7 @@ class SpriteWorkbenchTests(unittest.TestCase):
                 }
                 (project_dir / "pixellab_character.json").write_text(json.dumps(char_payload, indent=2), encoding="utf-8")
 
-                # Write only idle/east frames.
+                # Write idle/east and walk/east frames (QA requires both clips in store).
                 frames_dir = project_dir / "animations" / "idle" / "east"
                 frames_dir.mkdir(parents=True, exist_ok=True)
                 frame_rel_paths = []
@@ -2195,7 +2232,23 @@ class SpriteWorkbenchTests(unittest.TestCase):
                     img.save(path)
                     frame_rel_paths.append(str(path.relative_to(project_dir)))
 
-                # Create pixellab_animations.json with at least one animation entry.
+                walk_frames_dir = project_dir / "animations" / "walk" / "east"
+                walk_frames_dir.mkdir(parents=True, exist_ok=True)
+                walk_rel_paths = []
+                walk_frames = sw.debug_pixellab_animation_frames(
+                    animation_name="walk",
+                    direction="east",
+                    canvas_size=canvas_size,
+                    frame_count=walk_fc,
+                    seed=4,
+                    description_hint="qa-walk",
+                )
+                for idx, img in enumerate(walk_frames):
+                    path = walk_frames_dir / ("frame_%02d.png" % idx)
+                    img.save(path)
+                    walk_rel_paths.append(str(path.relative_to(project_dir)))
+
+                # Create pixellab_animations.json with idle + walk.
                 pix_store = {
                     "project_id": project_id,
                     "updated_at": sw.now_iso(),
@@ -2217,7 +2270,25 @@ class SpriteWorkbenchTests(unittest.TestCase):
                                     "updated_at": sw.now_iso(),
                                 }
                             },
-                        }
+                        },
+                        "walk": {
+                            "animation_name": "walk",
+                            "fps": walk_fps,
+                            "frame_count": walk_fc,
+                            "loop": True,
+                            "backend_name": "debug_procedural",
+                            "seed": 4,
+                            "template_animation_id": None,
+                            "updated_at": sw.now_iso(),
+                            "directions": {
+                                "east": {
+                                    "frames": walk_rel_paths,
+                                    "frame_count": walk_fc,
+                                    "fps": walk_fps,
+                                    "updated_at": sw.now_iso(),
+                                }
+                            },
+                        },
                     },
                 }
                 (project_dir / "pixellab_animations.json").write_text(json.dumps(pix_store, indent=2), encoding="utf-8")
@@ -2230,7 +2301,14 @@ class SpriteWorkbenchTests(unittest.TestCase):
                         "frame_count": frame_count,
                         "frames": frame_rel_paths,
                         "frames_by_direction": {"east": frame_rel_paths},
-                    }
+                    },
+                    "walk": {
+                        "fps": walk_fps,
+                        "loop": True,
+                        "frame_count": walk_fc,
+                        "frames": walk_rel_paths,
+                        "frames_by_direction": {"east": walk_rel_paths},
+                    },
                 }
                 (project_dir / "animation_clips.json").write_text(json.dumps(anim_clips, indent=2), encoding="utf-8")
 
