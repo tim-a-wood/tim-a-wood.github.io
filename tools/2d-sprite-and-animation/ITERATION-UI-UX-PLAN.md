@@ -1,5 +1,25 @@
 # Sprite Workbench — UI/UX Overhaul Iteration Plan
 
+## Design Option Comparison
+
+### Option A: Signal
+- Strongest focus on the work itself; chrome stays quiet and technical depth is tucked away cleanly.
+- Best fit if the tool should feel fast, sharp, and low-distraction rather than expressive or brand-heavy.
+- Vertical indexed navigation makes phase order obvious, but the experience is intentionally austere.
+- Mobile bottom-sheet navigation is efficient, though it relies on one extra tap to expose the full phase list.
+
+### Option B: Studio
+- Most overtly creative and branded direction; it feels like a professional art workstation rather than a utility.
+- Primary actions read clearly because the chapter rail and warm accent colour create strong visual hierarchy.
+- The reduced status tray is the most contextual approach, but it shows less system state at once than the other options.
+- Mobile keeps the important action area prominent, though the horizontal chapter rail is denser than the other patterns.
+
+### Option C: Atlas
+- Most structured and trustworthy option; complex workflow state feels legible without looking heavy.
+- The context bar plus developer toggle gives the cleanest separation between everyday use and advanced data.
+- Project selector saves space, but it makes the project list feel less tactile than a persistent drawer or card list.
+- Mobile bottom tabs map well to the five phases, though the visual language is more product-dashboard than studio tool.
+
 **Iteration goal:** Overhaul the UI/UX of `tools/2d-sprite-and-animation/index.html` to deliver a complete, modern, production-ready visual and interaction design. The functional pipeline (Python server, API integrations, job processing) is out of scope for this iteration and must not be broken.
 
 **Definition of Done (Iteration):** The UI/UX is complete and production-ready across MacBook Air (≈1280–1440px) and iPhone 16 Pro portrait (393px). A user can load the tool, select a project, navigate all five phases forward and backward, interact with all panels, and see a polished, consistent design with no raw or placeholder UI. All existing functionality continues to work without regression.
@@ -572,7 +592,11 @@ Tab through the Describe panel and confirm visible focus rings on all inputs and
 *(Agent: record all Product Owner decisions and approved deviations here as the iteration progresses)*
 
 ### Approved Design Direction
-*(to be filled after Sprint 0)*
+- Approved base direction: Round 2 `hybrid-3-flightdeck` shell
+- Layout direction: retain the Studio-inspired chapter rail and two-column phase workspace
+- Colour direction: use the Atlas blue/green palette rather than the warmer Studio palette
+- Header direction: keep the process-forward graphical header that previews production state and outputs
+- Sidebar requirement: the left project panel must be collapsible toward the left edge as part of the app shell
 
 ### Sprint 1 Approved Changes
 *(to be filled after Sprint 1)*

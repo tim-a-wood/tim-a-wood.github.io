@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sprite Workbench - Option B Studio</title>
+  <style>
+    :root {
+      --bg: #161412;
+      --panel: #1f1b18;
+      --panel-strong: #241f1b;
+      --border: rgba(255, 200, 100, 0.1);
+      --text: #f0e8dc;
+      --muted: #8a7a6a;
+      --accent: #e8a842;
+      --accent-soft: rgba(232, 168, 66, 0.18);
+      --success: #4aaa8a;
+      --error: #c06050;
+      --radius: 20px;
+      --radius-sm: 14px;
+      --surface-glow: radial-gradient(ellipse at top right, rgba(240, 180, 80, 0.04), transparent 55%);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at top left, rgba(232, 168, 66, 0.08), transparent 28%),
+        linear-gradient(180deg, #171311, #14110f 48%, #110f0d);
+      color: var(--text);
+      font: 14px/1.5 "IBM Plex Sans", "Avenir Next", "Segoe UI", sans-serif;
+    }
+
+    button,
+    input,
+    textarea {
+      font: inherit;
+    }
+
+    .app {
+      display: grid;
+      grid-template-columns: 320px minmax(0, 1fr);
+      min-height: 100vh;
+    }
+
+    .drawer {
+      padding: 20px;
+      border-right: 1px solid var(--border);
+      background: rgba(20, 17, 15, 0.88);
+    }
+
+    .drawer-card,
+    .project-card,
+    .panel,
+    .phase-pill,
+    .tray-card,
+    .swatch,
+    .activity-dock {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface-glow), var(--panel);
+    }
+
+    .brand-line {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 18px;
+    }
+
+    .hamburger,
+    .icon-button,
+    .button {
+      border: 1px solid var(--border);
+      background: var(--panel-strong);
+      color: var(--text);
+      border-radius: 12px;
+      cursor: pointer;
+    }
+
+    .hamburger,
+    .icon-button {
+      width: 42px;
+      height: 42px;
+    }
+
+    .brand-line strong {
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .brand-line h1 {
+      margin: 8px 0 0;
+      font-size: 30px;
+      line-height: 1;
+    }
+
+    .drawer-card {
+      padding: 16px;
+      margin-bottom: 14px;
+    }
+
+    .drawer-card h2,
+    .panel h2,
+    .activity-dock h2 {
+      margin: 0;
+      font-size: 22px;
+      line-height: 1.1;
+    }
+
+    .drawer-card p,
+    .panel p,
+    .muted {
+      color: var(--muted);
+    }
+
+    .project-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .project-card {
+      padding: 14px;
+    }
+
+    .project-card.selected {
+      border-color: rgba(232, 168, 66, 0.35);
+      box-shadow: inset 0 0 0 1px rgba(232, 168, 66, 0.18);
+    }
+
+    .project-card:hover,
+    .project-card:focus-within,
+    .phase-pill:hover,
+    .phase-pill:focus-visible,
+    .button:hover,
+    .button:focus-visible,
+    .swatch:hover,
+    .swatch:focus-visible {
+      border-color: rgba(232, 168, 66, 0.34);
+      outline: none;
+    }
+
+    .meta {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border-radius: 999px;
+      padding: 5px 10px;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .chip.active {
+      color: #1b1714;
+      background: var(--accent);
+      border-color: transparent;
+    }
+
+    .chip.success {
+      color: var(--success);
+    }
+
+    .main {
+      padding: 18px;
+      display: grid;
+      gap: 16px;
+      align-content: start;
+    }
+
+    .chapter-rail {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .phase-pill {
+      padding: 14px;
+      text-decoration: none;
+      color: inherit;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-height: 84px;
+    }
+
+    .phase-pill.active {
+      background:
+        linear-gradient(180deg, rgba(232, 168, 66, 0.18), rgba(232, 168, 66, 0.06)),
+        var(--surface-glow), var(--panel);
+      border-color: rgba(232, 168, 66, 0.34);
+    }
+
+    .phase-pill.locked {
+      opacity: 0.52;
+    }
+
+    .phase-number {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border);
+      font-weight: 700;
+    }
+
+    .phase-pill.active .phase-number {
+      background: var(--accent);
+      color: #1b1714;
+      border-color: transparent;
+    }
+
+    .status-tray {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .tray-card {
+      padding: 14px 16px;
+    }
+
+    .tray-card span {
+      display: block;
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .tray-card strong {
+      display: block;
+      margin-top: 8px;
+      font-size: 16px;
+    }
+
+    .panel {
+      padding: 22px;
+    }
+
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 20px;
+      flex-wrap: wrap;
+      margin-bottom: 18px;
+    }
+
+    .inline-counts {
+      display: flex;
+      gap: 18px;
+      flex-wrap: wrap;
+      color: var(--muted);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .workspace {
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(300px, 0.9fr);
+      gap: 18px;
+    }
+
+    .primary-area {
+      display: grid;
+      gap: 14px;
+      align-content: start;
+    }
+
+    label {
+      display: grid;
+      gap: 8px;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+    }
+
+    textarea,
+    input {
+      width: 100%;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: rgba(12, 10, 9, 0.28);
+      color: var(--text);
+      padding: 12px 14px;
+    }
+
+    textarea {
+      min-height: 132px;
+      resize: vertical;
+    }
+
+    .button-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .button {
+      padding: 11px 16px;
+    }
+
+    .button.primary {
+      background: var(--accent);
+      color: #1b1714;
+      border-color: transparent;
+      font-weight: 600;
+    }
+
+    details {
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 12px 14px;
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    details summary {
+      cursor: pointer;
+      list-style: none;
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    details[open] .lab-notes {
+      margin-top: 12px;
+    }
+
+    .swatch-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .swatch {
+      padding: 12px;
+    }
+
+    .swatch.selected {
+      border-color: rgba(232, 168, 66, 0.36);
+      box-shadow: inset 0 0 0 1px rgba(232, 168, 66, 0.18);
+    }
+
+    .art {
+      height: 118px;
+      border-radius: 14px;
+      margin-bottom: 12px;
+      background:
+        radial-gradient(circle at 20% 25%, rgba(232, 168, 66, 0.22), transparent 25%),
+        linear-gradient(160deg, #3a2b20, #1b1815 58%, #10100f);
+    }
+
+    .activity-dock {
+      padding: 16px 18px;
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .track {
+      padding: 12px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border);
+    }
+
+    .track.active {
+      background: linear-gradient(180deg, rgba(232, 168, 66, 0.16), transparent 75%);
+    }
+
+    .mobile-project-drawer,
+    .mobile-rail {
+      display: none;
+    }
+
+    @media (max-width: 980px) {
+      .app {
+        grid-template-columns: 1fr;
+      }
+
+      .drawer {
+        display: none;
+      }
+
+      .chapter-rail,
+      .status-tray,
+      .workspace,
+      .activity-dock {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 430px) {
+      body {
+        padding-bottom: 84px;
+      }
+
+      .main {
+        padding: 12px;
+      }
+
+      .chapter-rail {
+        display: flex;
+        overflow-x: auto;
+        gap: 10px;
+        padding-bottom: 2px;
+        scroll-snap-type: x proximity;
+      }
+
+      .phase-pill {
+        min-width: 250px;
+        scroll-snap-align: start;
+      }
+
+      .panel {
+        padding: 18px;
+      }
+
+      .swatch-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .mobile-project-drawer {
+        display: block;
+        padding: 14px 16px;
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        background: var(--surface-glow), var(--panel);
+      }
+
+      .mobile-rail {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 8px;
+        position: fixed;
+        left: 12px;
+        right: 12px;
+        bottom: 12px;
+        padding: 8px;
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        background: rgba(31, 27, 24, 0.96);
+      }
+
+      .mobile-rail div {
+        padding: 10px 6px;
+        text-align: center;
+        border-radius: 12px;
+        color: var(--muted);
+        font-size: 11px;
+      }
+
+      .mobile-rail .active {
+        background: rgba(232, 168, 66, 0.16);
+        color: var(--text);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="drawer">
+      <div class="brand-line">
+        <div>
+          <strong>Option B / Studio</strong>
+          <h1>Sprite Workbench</h1>
+        </div>
+        <button class="hamburger" aria-label="Toggle project drawer">≡</button>
+      </div>
+
+      <section class="drawer-card">
+        <h2>Project Drawer</h2>
+        <p>Current productions and their active phase live here.</p>
+      </section>
+
+      <div class="project-list">
+        <article class="project-card selected" tabindex="0">
+          <strong>Forest Courier</strong>
+          <p class="muted">Messenger hero set for isometric scenes.</p>
+          <div class="meta">
+            <span class="chip active">Current</span>
+            <span class="chip success">Checks green</span>
+          </div>
+        </article>
+        <article class="project-card" tabindex="0">
+          <strong>Temple Mechanic</strong>
+          <p class="muted">Enemy repair bot with motion study in progress.</p>
+          <div class="meta">
+            <span class="chip">Character</span>
+          </div>
+        </article>
+        <article class="project-card" tabindex="0">
+          <strong>Dockside Vendor</strong>
+          <p class="muted">Finishing export-ready idle set.</p>
+          <div class="meta">
+            <span class="chip">Review</span>
+          </div>
+        </article>
+      </div>
+    </aside>
+
+    <main class="main">
+      <div class="mobile-project-drawer">
+        <strong>Projects</strong>
+        <p class="muted">Forest Courier selected. Drawer would open as a bottom sheet on mobile.</p>
+      </div>
+
+      <nav class="chapter-rail" aria-label="Phase chapter rail">
+        <a class="phase-pill" href="#">
+          <span class="phase-number">01</span>
+          <span><strong>Describe</strong><br><span class="muted">Creative brief</span></span>
+        </a>
+        <a class="phase-pill active" href="#">
+          <span class="phase-number">02</span>
+          <span><strong>Concepts</strong><br><span class="muted">Pick the look</span></span>
+        </a>
+        <a class="phase-pill" href="#">
+          <span class="phase-number">03</span>
+          <span><strong>Character</strong><br><span class="muted">Lock identity</span></span>
+        </a>
+        <a class="phase-pill locked" href="#">
+          <span class="phase-number">04</span>
+          <span><strong>Animations</strong><br><span class="muted">Motion passes</span></span>
+        </a>
+        <a class="phase-pill locked" href="#">
+          <span class="phase-number">05</span>
+          <span><strong>Review &amp; Export</strong><br><span class="muted">Package output</span></span>
+        </a>
+      </nav>
+
+      <section class="status-tray">
+        <article class="tray-card">
+          <span>Active project</span>
+          <strong>Forest Courier</strong>
+        </article>
+        <article class="tray-card">
+          <span>Pixel Lab credits</span>
+          <strong>82 remaining</strong>
+        </article>
+        <article class="tray-card">
+          <span>Checks</span>
+          <strong>Palette, silhouette, export path</strong>
+        </article>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <div>
+            <h2>Concept chapter</h2>
+            <p>Hero choices stay prominent. Technical notes are present, but visually secondary.</p>
+          </div>
+          <div class="inline-counts">
+            <span>4 concepts</span>
+            <span>2 approved</span>
+            <span>Status: stable</span>
+          </div>
+        </div>
+
+        <div class="workspace">
+          <div class="primary-area">
+            <label>
+              Art direction
+              <textarea>Messenger silhouette with a visible satchel, grounded proportions, limited palette, readable from 48px.</textarea>
+            </label>
+            <label>
+              Style family
+              <input value="Warm painterly pixel">
+            </label>
+            <div class="button-row">
+              <button class="button primary">Generate another pass</button>
+              <button class="button">Promote selected concept</button>
+            </div>
+            <details open>
+              <summary>Lab Notes</summary>
+              <div class="lab-notes muted">
+                Uses the current concept-refine chain, preserving palette lock and keeping seed continuity visible for advanced users.
+              </div>
+            </details>
+          </div>
+
+          <div class="swatch-grid">
+            <article class="swatch selected" tabindex="0">
+              <div class="art"></div>
+              <strong>Concept 2A</strong>
+              <p class="muted">Strong cape motion and clean read at small scale.</p>
+              <div class="meta">
+                <span class="chip active">Selected</span>
+                <span class="chip">Hero</span>
+              </div>
+            </article>
+            <article class="swatch" tabindex="0">
+              <div class="art"></div>
+              <strong>Concept 2B</strong>
+              <p class="muted">More ornate trim, but slightly busier silhouette.</p>
+              <div class="meta">
+                <span class="chip">Alt</span>
+              </div>
+            </article>
+            <article class="swatch" tabindex="0">
+              <div class="art"></div>
+              <strong>Concept 2C</strong>
+              <p class="muted">Lowest palette count and easiest to animate.</p>
+              <div class="meta">
+                <span class="chip success">Efficient</span>
+              </div>
+            </article>
+            <article class="swatch" tabindex="0">
+              <div class="art"></div>
+              <strong>Status</strong>
+              <p class="muted">Continuity checks passed. Contrast needs minor tuning.</p>
+              <div class="meta">
+                <span class="chip">Review</span>
+              </div>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="activity-dock">
+        <div class="track">
+          <strong>Brief Approved</strong>
+          <div class="muted">Describe chapter signed off</div>
+        </div>
+        <div class="track active">
+          <strong>Concept Batch</strong>
+          <div class="muted">2 of 4 concepts marked viable</div>
+        </div>
+        <div class="track">
+          <strong>Character Lock</strong>
+          <div class="muted">Waiting for promotion</div>
+        </div>
+        <div class="track">
+          <strong>Export Package</strong>
+          <div class="muted">Unavailable until animation review</div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="mobile-rail" aria-label="Mobile chapter rail">
+    <div>Brief</div>
+    <div class="active">Looks</div>
+    <div>Lock</div>
+    <div>Move</div>
+    <div>Export</div>
+  </div>
+</body>
+</html>

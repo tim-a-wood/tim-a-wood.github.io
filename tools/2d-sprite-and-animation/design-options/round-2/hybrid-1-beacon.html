@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sprite Workbench - Round 2 Beacon</title>
+  <style>
+    :root {
+      --bg: #0d1117;
+      --panel: rgba(22, 30, 42, 0.96);
+      --panel-soft: #111722;
+      --border: rgba(255, 255, 255, 0.09);
+      --text: #e6edf3;
+      --muted: #8b949e;
+      --accent: #4493f8;
+      --accent-soft: rgba(68, 147, 248, 0.16);
+      --success: #3fb950;
+      --error: #f85149;
+      --radius: 20px;
+      --radius-sm: 14px;
+      --shadow: 0 18px 48px rgba(0, 0, 0, 0.32);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      font: 14px/1.5 "IBM Plex Sans", Inter, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at top right, rgba(68, 147, 248, 0.12), transparent 24%),
+        radial-gradient(circle at bottom left, rgba(63, 185, 80, 0.08), transparent 22%),
+        linear-gradient(180deg, #0a0f15, #0d1117 48%, #111925);
+    }
+    button, input, textarea { font: inherit; }
+
+    .app {
+      display: grid;
+      grid-template-columns: 304px minmax(0, 1fr);
+      min-height: 100vh;
+    }
+    .drawer {
+      padding: 20px;
+      border-right: 1px solid var(--border);
+      background: rgba(10, 15, 21, 0.84);
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 18px;
+    }
+    .brand strong {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+    }
+    .brand h1 {
+      margin: 8px 0 0;
+      font-size: 30px;
+      line-height: 1;
+    }
+    .icon-button,
+    .button {
+      border: 1px solid var(--border);
+      background: var(--panel);
+      color: var(--text);
+      border-radius: 12px;
+      cursor: pointer;
+    }
+    .icon-button { width: 42px; height: 42px; }
+
+    .drawer-card,
+    .project-card,
+    .hero,
+    .phase-pill,
+    .status-tray,
+    .panel,
+    .option-card,
+    .activity-dock {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+    .drawer-card { padding: 16px; margin-bottom: 14px; }
+    .drawer-card p, .muted, .hero-copy p, .panel p { color: var(--muted); }
+    .project-list { display: grid; gap: 10px; }
+    .project-card {
+      padding: 14px;
+      text-decoration: none;
+      color: inherit;
+      display: block;
+    }
+    .project-card.selected,
+    .project-card:hover,
+    .project-card:focus-visible,
+    .phase-pill.active,
+    .phase-pill:hover,
+    .phase-pill:focus-visible,
+    .option-card.selected,
+    .option-card:hover,
+    .option-card:focus-visible,
+    .button:hover,
+    .button:focus-visible {
+      border-color: rgba(68, 147, 248, 0.34);
+      outline: none;
+    }
+    .project-card.selected,
+    .phase-pill.active,
+    .option-card.selected {
+      box-shadow: inset 0 0 0 1px rgba(68, 147, 248, 0.18), var(--shadow);
+    }
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .chip.active { color: var(--accent); background: var(--accent-soft); }
+    .chip.success { color: var(--success); }
+
+    .main { padding: 18px; display: grid; gap: 16px; align-content: start; }
+    .hero {
+      padding: 18px;
+      display: grid;
+      grid-template-columns: minmax(0, 1.05fr) minmax(320px, 0.95fr);
+      gap: 18px;
+      overflow: hidden;
+      position: relative;
+    }
+    .hero::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(120deg, rgba(68, 147, 248, 0.12), transparent 44%),
+        radial-gradient(circle at 78% 18%, rgba(68, 147, 248, 0.18), transparent 18%);
+      pointer-events: none;
+    }
+    .hero-copy {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      align-content: start;
+      gap: 14px;
+    }
+    .hero-copy h2 {
+      margin: 0;
+      font-size: clamp(28px, 4vw, 42px);
+      line-height: 0.98;
+    }
+    .hero-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+    .button { padding: 11px 16px; }
+    .button.primary {
+      background: var(--accent);
+      border-color: transparent;
+      color: white;
+      font-weight: 600;
+    }
+    .showcase {
+      position: relative;
+      min-height: 280px;
+      border-radius: 24px;
+      background:
+        radial-gradient(circle at 50% 44%, rgba(68, 147, 248, 0.24), transparent 24%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02));
+      border: 1px solid rgba(255, 255, 255, 0.07);
+    }
+    .grid-lines {
+      position: absolute;
+      inset: 16px;
+      border-radius: 18px;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px);
+      background-size: 22px 22px;
+      opacity: 0.45;
+    }
+    .sprite-figure,
+    .process-card {
+      position: absolute;
+      border-radius: 18px;
+      border: 1px solid var(--border);
+      background: rgba(17, 23, 34, 0.92);
+      backdrop-filter: blur(4px);
+    }
+    .sprite-figure {
+      left: 50%;
+      top: 52%;
+      width: 160px;
+      height: 204px;
+      transform: translate(-50%, -50%);
+      padding: 16px;
+      box-shadow: 0 0 0 1px rgba(68, 147, 248, 0.14), 0 18px 40px rgba(0,0,0,0.34);
+    }
+    .sprite {
+      width: 100%;
+      height: 100%;
+      border-radius: 12px;
+      background:
+        radial-gradient(circle at 50% 24%, rgba(255,255,255,0.16), transparent 12%),
+        linear-gradient(180deg, rgba(68,147,248,0.38), rgba(63,185,80,0.08)),
+        linear-gradient(160deg, #213249, #152233 52%, #101923);
+      position: relative;
+    }
+    .sprite::before,
+    .sprite::after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(230, 237, 243, 0.82);
+    }
+    .sprite::before {
+      top: 18px;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+    }
+    .sprite::after {
+      top: 58px;
+      width: 70px;
+      height: 92px;
+      border-radius: 24px 24px 18px 18px;
+    }
+    .process-card { padding: 12px; width: 150px; }
+    .process-card.top { top: 24px; left: 22px; }
+    .process-card.right { top: 72px; right: 18px; }
+    .process-card.bottom { bottom: 20px; left: 36px; }
+
+    .chapter-rail { display: grid; grid-template-columns: repeat(5, minmax(0,1fr)); gap: 10px; }
+    .phase-pill {
+      padding: 14px;
+      text-decoration: none;
+      color: inherit;
+      min-height: 84px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .phase-pill.locked { opacity: 0.5; }
+    .phase-number {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border);
+      font-weight: 700;
+    }
+    .phase-pill.active .phase-number { background: var(--accent); color: white; border-color: transparent; }
+    .status-tray {
+      padding: 12px;
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 10px;
+    }
+    .tray-item {
+      padding: 12px;
+      border-radius: 16px;
+      background: var(--panel-soft);
+      border: 1px solid var(--border);
+    }
+    .tray-item span {
+      display: block;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+    }
+    .tray-item strong { display: block; margin-top: 8px; }
+
+    .panel { padding: 22px; }
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      flex-wrap: wrap;
+      margin-bottom: 18px;
+    }
+    .workspace {
+      display: grid;
+      grid-template-columns: minmax(0, 1.05fr) minmax(300px, 0.95fr);
+      gap: 18px;
+    }
+    .form-area, .option-grid { display: grid; gap: 14px; }
+    label {
+      display: grid;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+    textarea, input {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: var(--panel-soft);
+      color: var(--text);
+    }
+    textarea { min-height: 132px; resize: vertical; }
+    details {
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 12px 14px;
+      background: rgba(255,255,255,0.02);
+    }
+    details summary {
+      cursor: pointer;
+      color: var(--accent);
+      font-weight: 600;
+    }
+    .option-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .option-card { padding: 12px; }
+    .art {
+      height: 118px;
+      border-radius: 14px;
+      margin-bottom: 12px;
+      background:
+        radial-gradient(circle at 28% 25%, rgba(68,147,248,0.26), transparent 20%),
+        linear-gradient(160deg, #223449, #182433 56%, #101721);
+    }
+    .activity-dock {
+      padding: 16px 18px;
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+    }
+    .track {
+      padding: 12px;
+      border-radius: 16px;
+      background: var(--panel-soft);
+      border: 1px solid var(--border);
+    }
+    .track.active {
+      background: linear-gradient(180deg, rgba(68,147,248,0.14), transparent 80%), var(--panel-soft);
+      border-color: rgba(68,147,248,0.3);
+    }
+    .mobile-drawer,
+    .mobile-rail { display: none; }
+
+    @media (max-width: 980px) {
+      .app { grid-template-columns: 1fr; }
+      .drawer { display: none; }
+      .hero, .chapter-rail, .status-tray, .workspace, .activity-dock { grid-template-columns: 1fr; }
+      .showcase { min-height: 240px; }
+    }
+
+    @media (max-width: 430px) {
+      body { padding-bottom: 84px; }
+      .main { padding: 12px; }
+      .hero, .panel { padding: 18px; }
+      .option-grid { grid-template-columns: 1fr; }
+      .mobile-drawer {
+        display: block;
+        padding: 14px 16px;
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        background: var(--panel);
+      }
+      .chapter-rail {
+        display: flex;
+        overflow-x: auto;
+        gap: 10px;
+        scroll-snap-type: x proximity;
+      }
+      .phase-pill { min-width: 248px; scroll-snap-align: start; }
+      .mobile-rail {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 8px;
+        position: fixed;
+        left: 12px;
+        right: 12px;
+        bottom: 12px;
+        padding: 8px;
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        background: rgba(17, 23, 34, 0.96);
+      }
+      .mobile-rail div {
+        padding: 10px 6px;
+        text-align: center;
+        border-radius: 12px;
+        color: var(--muted);
+        font-size: 11px;
+      }
+      .mobile-rail .active {
+        background: var(--accent-soft);
+        color: var(--text);
+      }
+      .process-card {
+        width: 128px;
+        padding: 10px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="drawer">
+      <div class="brand">
+        <div>
+          <strong>Round 2 / Beacon</strong>
+          <h1>Sprite Workbench</h1>
+        </div>
+        <button class="icon-button" aria-label="Open project drawer">≡</button>
+      </div>
+      <section class="drawer-card">
+        <strong>Project Drawer</strong>
+        <p>Studio-style layout, Atlas-style palette, and a more aspirational header.</p>
+      </section>
+      <div class="project-list">
+        <a class="project-card selected" href="#"><strong>Forest Courier</strong><div class="muted">Messenger hero production</div><div style="margin-top:10px;"><span class="chip active">Current</span></div></a>
+        <a class="project-card" href="#"><strong>Temple Mechanic</strong><div class="muted">Character lock in progress</div><div style="margin-top:10px;"><span class="chip">Queued</span></div></a>
+        <a class="project-card" href="#"><strong>Dockside Vendor</strong><div class="muted">Review and export pass</div><div style="margin-top:10px;"><span class="chip success">Ready</span></div></a>
+      </div>
+    </aside>
+
+    <main class="main">
+      <div class="mobile-drawer">
+        <strong>Projects</strong>
+        <div class="muted">Forest Courier selected. Mobile keeps the drawer as a bottom-sheet trigger.</div>
+      </div>
+
+      <section class="hero">
+        <div class="hero-copy">
+          <span class="chip active">Studio layout + Atlas palette</span>
+          <h2>Turn a rough brief into a trackable sprite production run.</h2>
+          <p>This header is meant to feel more like productized craft than a generic dashboard. It previews the character, the workflow, and the decision points before you scroll.</p>
+          <div class="hero-actions">
+            <button class="button primary">Open current phase</button>
+            <button class="button">View latest concept set</button>
+          </div>
+        </div>
+        <div class="showcase" aria-hidden="true">
+          <div class="grid-lines"></div>
+          <div class="process-card top"><strong>Describe</strong><div class="muted">Lock story, silhouette, palette.</div></div>
+          <div class="process-card right"><strong>Character</strong><div class="muted">Promote the most stable identity pass.</div></div>
+          <div class="process-card bottom"><strong>Animations</strong><div class="muted">Move from stills to loops without drift.</div></div>
+          <div class="sprite-figure"><div class="sprite"></div></div>
+        </div>
+      </section>
+
+      <nav class="chapter-rail" aria-label="Phase chapter rail">
+        <a class="phase-pill" href="#"><span class="phase-number">01</span><span><strong>Describe</strong><br><span class="muted">Creative brief</span></span></a>
+        <a class="phase-pill active" href="#"><span class="phase-number">02</span><span><strong>Concepts</strong><br><span class="muted">Pick the look</span></span></a>
+        <a class="phase-pill" href="#"><span class="phase-number">03</span><span><strong>Character</strong><br><span class="muted">Lock identity</span></span></a>
+        <a class="phase-pill locked" href="#"><span class="phase-number">04</span><span><strong>Animations</strong><br><span class="muted">Motion passes</span></span></a>
+        <a class="phase-pill locked" href="#"><span class="phase-number">05</span><span><strong>Review &amp; Export</strong><br><span class="muted">Package output</span></span></a>
+      </nav>
+
+      <section class="status-tray">
+        <article class="tray-item"><span>Project</span><strong>Forest Courier</strong></article>
+        <article class="tray-item"><span>Phase</span><strong>Concepts</strong></article>
+        <article class="tray-item"><span>Credits</span><strong>82 remaining</strong></article>
+        <article class="tray-item"><span>Checks</span><strong>4 / 5 passing</strong></article>
+        <article class="tray-item"><span>Mode</span><strong>Concept refine</strong></article>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <div>
+            <h2>Concept chapter</h2>
+            <p>Primary action stays dominant, while advanced details remain folded into a quieter Lab Notes treatment.</p>
+          </div>
+          <span class="chip success">Status healthy</span>
+        </div>
+        <div class="workspace">
+          <div class="form-area">
+            <label>Art direction<textarea>Courier silhouette with clear satchel read, compact proportions, low-noise palette, and cape motion that reads at 48px.</textarea></label>
+            <label>Style family<input value="Painterly pixel / twilight forest"></label>
+            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+              <button class="button primary">Generate another pass</button>
+              <button class="button">Promote selected concept</button>
+            </div>
+            <details open>
+              <summary>Lab Notes</summary>
+              <p class="muted">Preserve seed continuity, avoid noisy trim, bias for readable shape separation and export-safe palette count.</p>
+            </details>
+          </div>
+          <div class="option-grid">
+            <article class="option-card selected" tabindex="0"><div class="art"></div><strong>Concept 2A</strong><p class="muted">Best silhouette and cape motion.</p><span class="chip active">Selected</span></article>
+            <article class="option-card" tabindex="0"><div class="art"></div><strong>Concept 2B</strong><p class="muted">Sharper trim, noisier readability.</p><span class="chip">Alt</span></article>
+            <article class="option-card" tabindex="0"><div class="art"></div><strong>Concept 2C</strong><p class="muted">Cheapest to animate downstream.</p><span class="chip success">Efficient</span></article>
+            <article class="option-card" tabindex="0"><div class="art"></div><strong>Status</strong><p class="muted">Continuity passes. Contrast needs tuning.</p><span class="chip">Review</span></article>
+          </div>
+        </div>
+      </section>
+
+      <section class="activity-dock">
+        <div class="track"><strong>Brief approved</strong><div class="muted">Describe is signed off</div></div>
+        <div class="track active"><strong>Concept batch</strong><div class="muted">2 of 4 concepts viable</div></div>
+        <div class="track"><strong>Character lock</strong><div class="muted">Waiting for promotion</div></div>
+        <div class="track"><strong>Export pack</strong><div class="muted">Unavailable until animation review</div></div>
+      </section>
+    </main>
+  </div>
+
+  <div class="mobile-rail" aria-label="Mobile chapter rail">
+    <div>Brief</div>
+    <div class="active">Looks</div>
+    <div>Lock</div>
+    <div>Move</div>
+    <div>Export</div>
+  </div>
+</body>
+</html>

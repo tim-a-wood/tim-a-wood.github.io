@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sprite Workbench - Round 2 Flightdeck</title>
+  <style>
+    :root {
+      --bg: #0d1117;
+      --panel: rgba(22, 30, 42, 0.96);
+      --panel-soft: #111722;
+      --border: rgba(255,255,255,0.09);
+      --text: #e6edf3;
+      --muted: #8b949e;
+      --accent: #4493f8;
+      --accent-soft: rgba(68,147,248,0.16);
+      --success: #3fb950;
+      --radius: 20px;
+      --radius-sm: 14px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      font: 14px/1.5 "IBM Plex Sans", Inter, sans-serif;
+      background:
+        radial-gradient(circle at top right, rgba(68,147,248,0.14), transparent 24%),
+        linear-gradient(180deg, #0a1016, #0d1117 46%, #101824);
+    }
+    button, input, textarea { font: inherit; }
+    .app {
+      display: grid;
+      grid-template-columns: 300px minmax(0, 1fr);
+      min-height: 100vh;
+      transition: grid-template-columns 180ms ease;
+    }
+    .sidebar {
+      padding: 20px;
+      border-right: 1px solid var(--border);
+      background: rgba(10, 15, 21, 0.84);
+      overflow: hidden;
+      transition: padding 180ms ease, opacity 180ms ease;
+    }
+    .app.sidebar-collapsed {
+      grid-template-columns: 64px minmax(0, 1fr);
+    }
+    .app.sidebar-collapsed .sidebar {
+      padding: 16px 10px;
+    }
+    .app.sidebar-collapsed .sidebar-copy,
+    .app.sidebar-collapsed .stack {
+      display: none;
+    }
+    .brand strong {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+    .brand h1 { margin: 8px 0 18px; font-size: 30px; line-height: 1; }
+    .brand {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .rail-toggle {
+      width: 36px;
+      height: 36px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: var(--panel);
+      color: var(--text);
+      display: grid;
+      place-items: center;
+      flex: 0 0 auto;
+      cursor: pointer;
+    }
+    .collapsed-mark {
+      display: none;
+      width: 100%;
+      writing-mode: vertical-rl;
+      transform: rotate(180deg);
+      text-align: center;
+      color: var(--muted);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      padding-top: 8px;
+    }
+    .app.sidebar-collapsed .collapsed-mark {
+      display: block;
+    }
+    .stack { display: grid; gap: 10px; }
+    .card, .hero, .phase-pill, .status-row, .panel, .asset-card, .activity-row {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--panel);
+    }
+    .card {
+      padding: 14px;
+      text-decoration: none;
+      color: inherit;
+      display: block;
+    }
+    .card.selected,
+    .card:hover,
+    .phase-pill.active,
+    .phase-pill:hover,
+    .asset-card.selected,
+    .asset-card:hover,
+    .button:hover { border-color: rgba(68,147,248,0.34); outline: none; }
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .chip.active { color: var(--accent); background: var(--accent-soft); }
+    .chip.success { color: var(--success); }
+    .muted, .panel p { color: var(--muted); }
+    .main { padding: 18px; display: grid; gap: 16px; align-content: start; }
+    .hero {
+      padding: 18px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 380px;
+      gap: 18px;
+    }
+    .hero h2 { margin: 0; font-size: clamp(28px, 4vw, 42px); line-height: 1; }
+    .hero p { margin: 12px 0 0; }
+    .header-console {
+      display: grid;
+      grid-template-rows: auto 1fr;
+      gap: 12px;
+    }
+    .console-top {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+    .console-mini,
+    .preview-stage {
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      background: var(--panel-soft);
+    }
+    .console-mini {
+      padding: 12px;
+      min-height: 86px;
+    }
+    .console-mini span {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+    .console-mini strong { display: block; margin-top: 8px; }
+    .preview-stage {
+      padding: 14px;
+      position: relative;
+      overflow: hidden;
+      min-height: 190px;
+      background:
+        radial-gradient(circle at 70% 20%, rgba(68,147,248,0.18), transparent 18%),
+        linear-gradient(165deg, #162234, #101923 56%, #0d141d);
+    }
+    .preview-stage::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px);
+      background-size: 24px 24px;
+      opacity: 0.45;
+    }
+    .preview-stage .sprite {
+      position: absolute;
+      left: 42px;
+      bottom: 18px;
+      width: 110px;
+      height: 140px;
+      border-radius: 20px;
+      background:
+        radial-gradient(circle at 50% 20%, rgba(255,255,255,0.14), transparent 12%),
+        linear-gradient(180deg, rgba(68,147,248,0.34), transparent 46%),
+        linear-gradient(165deg, #24384f, #182434 58%, #111925);
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    .preview-stage .sprite::before,
+    .preview-stage .sprite::after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(230,237,243,0.84);
+    }
+    .preview-stage .sprite::before { top: 16px; width: 30px; height: 30px; border-radius: 50%; }
+    .preview-stage .sprite::after { top: 48px; width: 56px; height: 78px; border-radius: 20px 20px 16px 16px; }
+    .output-stack {
+      position: absolute;
+      right: 16px;
+      top: 18px;
+      width: 154px;
+      display: grid;
+      gap: 10px;
+    }
+    .output {
+      padding: 10px 12px;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      background: rgba(17,23,34,0.9);
+    }
+    .button-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+    .button {
+      padding: 11px 16px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: var(--panel);
+      color: var(--text);
+      cursor: pointer;
+    }
+    .button.primary { background: var(--accent); color: white; border-color: transparent; }
+    .phase-rail { display: grid; grid-template-columns: repeat(5, minmax(0,1fr)); gap: 10px; }
+    .phase-pill {
+      min-height: 84px;
+      padding: 14px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: inherit;
+    }
+    .phase-pill.locked { opacity: 0.5; }
+    .num {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border);
+      font-weight: 700;
+    }
+    .phase-pill.active .num { background: var(--accent); color: white; border-color: transparent; }
+    .status-row {
+      padding: 12px;
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0,1fr));
+      gap: 10px;
+    }
+    .status {
+      padding: 12px;
+      border-radius: 16px;
+      background: var(--panel-soft);
+      border: 1px solid var(--border);
+    }
+    .status span {
+      display: block;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+    }
+    .status strong { display: block; margin-top: 8px; }
+    .panel { padding: 22px; }
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      flex-wrap: wrap;
+      margin-bottom: 18px;
+    }
+    .workspace { display: grid; grid-template-columns: minmax(0,1fr) 320px; gap: 18px; }
+    .fields, .assets { display: grid; gap: 14px; }
+    label {
+      display: grid;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+    textarea, input {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: var(--panel-soft);
+      color: var(--text);
+    }
+    textarea { min-height: 126px; resize: vertical; }
+    details {
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 12px 14px;
+      background: rgba(255,255,255,0.02);
+    }
+    details summary { cursor: pointer; color: var(--accent); font-weight: 600; }
+    .assets { grid-template-columns: repeat(2, minmax(0,1fr)); }
+    .asset-card { padding: 12px; }
+    .thumb {
+      height: 116px;
+      border-radius: 14px;
+      margin-bottom: 12px;
+      background:
+        radial-gradient(circle at 28% 25%, rgba(68,147,248,0.26), transparent 20%),
+        linear-gradient(160deg, #223449, #182433 56%, #101721);
+    }
+    .activity-row {
+      padding: 16px 18px;
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0,1fr));
+      gap: 12px;
+    }
+    .activity {
+      padding: 12px;
+      border-radius: 16px;
+      background: var(--panel-soft);
+      border: 1px solid var(--border);
+    }
+    .activity.active {
+      border-color: rgba(68,147,248,0.3);
+      background: linear-gradient(180deg, rgba(68,147,248,0.14), transparent 80%), var(--panel-soft);
+    }
+    .mobile-project,
+    .mobile-tabs { display: none; }
+    @media (max-width: 980px) {
+      .app { grid-template-columns: 1fr; }
+      .sidebar { display: none; }
+      .hero, .phase-rail, .status-row, .workspace, .activity-row { grid-template-columns: 1fr; }
+      .console-top, .assets { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 430px) {
+      body { padding-bottom: 84px; }
+      .main { padding: 12px; }
+      .hero, .panel { padding: 18px; }
+      .assets { grid-template-columns: 1fr; }
+      .mobile-project {
+        display: block;
+        padding: 14px 16px;
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        background: var(--panel);
+      }
+      .phase-rail {
+        display: flex;
+        overflow-x: auto;
+        gap: 10px;
+      }
+      .phase-pill { min-width: 248px; }
+      .mobile-tabs {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0,1fr));
+        gap: 8px;
+        position: fixed;
+        left: 12px;
+        right: 12px;
+        bottom: 12px;
+        padding: 8px;
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        background: rgba(17,23,34,0.96);
+      }
+      .mobile-tabs div {
+        padding: 10px 6px;
+        text-align: center;
+        border-radius: 12px;
+        color: var(--muted);
+        font-size: 11px;
+      }
+      .mobile-tabs .active { background: var(--accent-soft); color: var(--text); }
+    }
+  </style>
+</head>
+<body>
+  <div class="app sidebar-collapsed">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="sidebar-copy">
+          <strong>Round 2 / Flightdeck</strong>
+          <h1>Sprite Workbench</h1>
+        </div>
+        <button class="rail-toggle" aria-label="Expand project panel">›</button>
+      </div>
+      <div class="stack">
+        <a class="card selected" href="#"><strong>Forest Courier</strong><div class="muted">Messenger hero production</div><div style="margin-top:10px;"><span class="chip active">Current</span></div></a>
+        <a class="card" href="#"><strong>Temple Mechanic</strong><div class="muted">Character lock in progress</div><div style="margin-top:10px;"><span class="chip">Queued</span></div></a>
+        <a class="card" href="#"><strong>Dockside Vendor</strong><div class="muted">Export pass in review</div><div style="margin-top:10px;"><span class="chip success">Ready</span></div></a>
+      </div>
+      <div class="collapsed-mark">Projects</div>
+    </aside>
+
+    <main class="main">
+      <div class="mobile-project">
+        <strong>Projects</strong>
+        <div class="muted">Forest Courier selected.</div>
+      </div>
+
+      <section class="hero">
+        <div>
+          <span class="chip active">Process-forward header</span>
+          <h2>A workbench header that shows production state, not just brand.</h2>
+          <p class="muted">This version is less theatrical than `Stage` and more operational than `Beacon`. It tries to make the top of the page feel like a mission control strip for the current asset.</p>
+          <div class="button-row">
+            <button class="button primary">Resume current run</button>
+            <button class="button">Open latest assets</button>
+          </div>
+        </div>
+        <div class="header-console" aria-hidden="true">
+          <div class="console-top">
+            <div class="console-mini"><span>Current phase</span><strong>Animations</strong></div>
+            <div class="console-mini"><span>Current step</span><strong>Motion pass 2</strong></div>
+            <div class="console-mini"><span>Credits</span><strong>82 remaining</strong></div>
+          </div>
+          <div class="preview-stage">
+            <div class="sprite"></div>
+            <div class="output-stack">
+              <div class="output"><strong>Idle loop</strong><div class="muted">Ready for review</div></div>
+              <div class="output"><strong>Walk cycle</strong><div class="muted">Generating frame cleanups</div></div>
+              <div class="output"><strong>Export pack</strong><div class="muted">Blocked until sign-off</div></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <nav class="phase-rail" aria-label="Phase chapter rail">
+        <a class="phase-pill" href="#"><span class="num">01</span><span><strong>Describe</strong><br><span class="muted">Creative brief</span></span></a>
+        <a class="phase-pill" href="#"><span class="num">02</span><span><strong>Concepts</strong><br><span class="muted">Pick the look</span></span></a>
+        <a class="phase-pill" href="#"><span class="num">03</span><span><strong>Character</strong><br><span class="muted">Lock identity</span></span></a>
+        <a class="phase-pill active" href="#"><span class="num">04</span><span><strong>Animations</strong><br><span class="muted">Motion passes</span></span></a>
+        <a class="phase-pill" href="#"><span class="num">05</span><span><strong>Review &amp; Export</strong><br><span class="muted">Package output</span></span></a>
+      </nav>
+
+      <section class="status-row">
+        <article class="status"><span>Project</span><strong>Forest Courier</strong></article>
+        <article class="status"><span>Phase</span><strong>Animations</strong></article>
+        <article class="status"><span>Credits</span><strong>82 remaining</strong></article>
+        <article class="status"><span>Checks</span><strong>Loop stability good</strong></article>
+        <article class="status"><span>Mode</span><strong>Motion ToonCrafter</strong></article>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <div>
+            <h2>Animation chapter</h2>
+            <p>The header previews downstream outputs while the body keeps the same Studio-style chapter structure and dual-column workflow.</p>
+          </div>
+          <span class="chip success">Run stable</span>
+        </div>
+        <div class="workspace">
+          <div class="fields">
+            <label>Motion brief<textarea>Carry the satchel weight through the stride, keep cape movement restrained, and preserve head shape between idle and walk loops.</textarea></label>
+            <label>Frame target<input value="12 frames / 2 directions"></label>
+            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+              <button class="button primary">Generate motion pass</button>
+              <button class="button">Promote loop</button>
+            </div>
+            <details open>
+              <summary>Lab Notes</summary>
+              <p class="muted">Maintain silhouette continuity, suppress cape flutter, and keep pose spacing export-safe for sprite cleanup.</p>
+            </details>
+          </div>
+          <div class="assets">
+            <article class="asset-card selected" tabindex="0"><div class="thumb"></div><strong>Walk Cycle A</strong><p class="muted">Best weight shift and cape restraint.</p><span class="chip active">Selected</span></article>
+            <article class="asset-card" tabindex="0"><div class="thumb"></div><strong>Walk Cycle B</strong><p class="muted">More energy, less stable silhouette.</p><span class="chip">Alt</span></article>
+            <article class="asset-card" tabindex="0"><div class="thumb"></div><strong>Idle Loop</strong><p class="muted">Approved for export package.</p><span class="chip success">Approved</span></article>
+            <article class="asset-card" tabindex="0"><div class="thumb"></div><strong>Status</strong><p class="muted">Walk loop is close. Cleanup pass still needed.</p><span class="chip">Review</span></article>
+          </div>
+        </div>
+      </section>
+
+      <section class="activity-row">
+        <div class="activity"><strong>Brief approved</strong><div class="muted">Done</div></div>
+        <div class="activity"><strong>Character lock</strong><div class="muted">Done</div></div>
+        <div class="activity active"><strong>Animation run</strong><div class="muted">Current focus</div></div>
+        <div class="activity"><strong>Export pack</strong><div class="muted">Waiting for sign-off</div></div>
+      </section>
+    </main>
+  </div>
+
+  <div class="mobile-tabs" aria-label="Mobile phase tabs">
+    <div>Brief</div>
+    <div>Looks</div>
+    <div>Lock</div>
+    <div class="active">Move</div>
+    <div>Export</div>
+  </div>
+</body>
+</html>

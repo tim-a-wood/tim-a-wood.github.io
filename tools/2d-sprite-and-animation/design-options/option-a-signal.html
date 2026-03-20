@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sprite Workbench - Option A Signal</title>
+  <style>
+    :root {
+      --bg: #0c0e11;
+      --surface: #14181d;
+      --surface-soft: #101418;
+      --surface-alt: #181d23;
+      --border: rgba(255, 255, 255, 0.07);
+      --text: #e8edf2;
+      --muted: #7a8a9a;
+      --accent: #5b8cf5;
+      --accent-soft: rgba(91, 140, 245, 0.18);
+      --success: #5cc29a;
+      --warning: #d7a34a;
+      --shadow: 0 18px 40px rgba(0, 0, 0, 0.34);
+      --radius: 18px;
+      --radius-sm: 12px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      font: 14px/1.45 system-ui, -apple-system, "SF Pro Text", "Segoe UI", sans-serif;
+    }
+
+    button,
+    input,
+    textarea {
+      font: inherit;
+    }
+
+    .app {
+      display: grid;
+      grid-template-columns: 280px minmax(0, 1fr);
+      min-height: 100vh;
+    }
+
+    .sidebar {
+      padding: 24px 18px;
+      border-right: 1px solid var(--border);
+      background: var(--surface-soft);
+    }
+
+    .brand {
+      margin-bottom: 24px;
+    }
+
+    .brand strong,
+    .sidebar-title {
+      display: block;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .brand h1 {
+      margin: 8px 0 0;
+      font-size: 28px;
+      line-height: 1;
+      font-weight: 650;
+    }
+
+    .nav {
+      display: grid;
+      gap: 8px;
+      margin-bottom: 24px;
+    }
+
+    .phase-link,
+    .project-card,
+    .panel,
+    .card,
+    .activity-dock,
+    .popover {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+    }
+
+    .phase-link {
+      display: grid;
+      grid-template-columns: 40px minmax(0, 1fr) auto;
+      gap: 12px;
+      padding: 14px 14px 14px 12px;
+      text-decoration: none;
+      color: inherit;
+      border-left: 3px solid transparent;
+      transition: border-color 120ms ease, background 120ms ease;
+    }
+
+    .phase-link:hover,
+    .phase-link:focus-visible,
+    .project-card:hover,
+    .project-card:focus-within,
+    .button:hover,
+    .button:focus-visible,
+    .card:hover,
+    .icon-button:hover,
+    .icon-button:focus-visible {
+      border-color: rgba(91, 140, 245, 0.4);
+      outline: none;
+    }
+
+    .phase-link.active {
+      border-left-color: var(--accent);
+      background: linear-gradient(90deg, rgba(91, 140, 245, 0.14), transparent 58%);
+    }
+
+    .phase-link.locked {
+      opacity: 0.48;
+    }
+
+    .phase-index {
+      color: var(--muted);
+      font-size: 12px;
+      letter-spacing: 0.12em;
+      padding-top: 2px;
+    }
+
+    .phase-link strong,
+    .project-card strong,
+    .card strong {
+      display: block;
+      font-size: 14px;
+    }
+
+    .chip,
+    .mini-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border-radius: 999px;
+      padding: 5px 9px;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .chip.active,
+    .mini-chip.active {
+      color: var(--accent);
+      background: var(--accent-soft);
+      border-color: rgba(91, 140, 245, 0.26);
+    }
+
+    .mini-chip.success {
+      color: var(--success);
+    }
+
+    .project-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .project-card {
+      padding: 14px;
+    }
+
+    .project-card.selected {
+      border-color: rgba(91, 140, 245, 0.4);
+      box-shadow: inset 0 0 0 1px rgba(91, 140, 245, 0.18);
+    }
+
+    .project-card p,
+    .muted {
+      margin: 6px 0 0;
+      color: var(--muted);
+    }
+
+    .main {
+      padding: 18px;
+      display: grid;
+      gap: 16px;
+      align-content: start;
+    }
+
+    .compact-bar {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr)) auto;
+      gap: 0;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: var(--surface-soft);
+    }
+
+    .compact-item,
+    .compact-info {
+      padding: 12px 14px;
+      border-right: 1px solid var(--border);
+    }
+
+    .compact-item:last-of-type,
+    .compact-info {
+      border-right: 0;
+    }
+
+    .compact-item span,
+    .compact-info span {
+      display: block;
+      color: var(--muted);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+
+    .compact-item strong,
+    .compact-info strong {
+      display: block;
+      margin-top: 4px;
+      font-size: 13px;
+    }
+
+    .compact-info {
+      display: grid;
+      place-items: center;
+      position: relative;
+    }
+
+    .icon-button {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      cursor: pointer;
+    }
+
+    .popover {
+      position: absolute;
+      right: 8px;
+      top: calc(100% + 10px);
+      width: 220px;
+      padding: 12px;
+      box-shadow: var(--shadow);
+      display: none;
+      z-index: 3;
+    }
+
+    .compact-info.active .popover {
+      display: block;
+    }
+
+    .panel {
+      padding: 22px;
+    }
+
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 18px;
+      flex-wrap: wrap;
+    }
+
+    .panel h2,
+    .activity-dock h2 {
+      margin: 0;
+      font-size: 24px;
+      line-height: 1.1;
+      font-weight: 620;
+    }
+
+    .panel p {
+      margin: 8px 0 0;
+      color: var(--muted);
+      max-width: 60ch;
+    }
+
+    .status-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--success);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+    }
+
+    .status-indicator::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    .panel-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(280px, 0.9fr);
+      gap: 18px;
+    }
+
+    .form-grid {
+      display: grid;
+      gap: 14px;
+    }
+
+    label {
+      display: grid;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+
+    textarea,
+    input {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: var(--surface-soft);
+      color: var(--text);
+    }
+
+    textarea {
+      min-height: 124px;
+      resize: vertical;
+    }
+
+    .advanced-toggle {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 13px;
+    }
+
+    .advanced-box {
+      border-top: 1px solid var(--border);
+      padding-top: 14px;
+      display: none;
+    }
+
+    .advanced-box.active {
+      display: block;
+    }
+
+    .button-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .button {
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      padding: 11px 16px;
+      background: var(--surface);
+      color: var(--text);
+      cursor: pointer;
+    }
+
+    .button.primary {
+      background: var(--accent);
+      border-color: transparent;
+      color: white;
+    }
+
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .card {
+      padding: 12px;
+    }
+
+    .card.selected {
+      border-color: rgba(91, 140, 245, 0.4);
+      box-shadow: inset 0 0 0 1px rgba(91, 140, 245, 0.18);
+    }
+
+    .thumb {
+      height: 116px;
+      border-radius: 12px;
+      background:
+        linear-gradient(135deg, rgba(91, 140, 245, 0.22), transparent 60%),
+        linear-gradient(160deg, #1a212b, #0f1318);
+      margin-bottom: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.04);
+    }
+
+    .meta {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+
+    .activity-dock {
+      padding: 18px 22px;
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .activity-step {
+      padding: 12px;
+      border-radius: 14px;
+      background: var(--surface-soft);
+      border: 1px solid var(--border);
+    }
+
+    .activity-step.active {
+      border-color: rgba(91, 140, 245, 0.36);
+      background: linear-gradient(180deg, rgba(91, 140, 245, 0.14), transparent 70%);
+    }
+
+    .activity-step strong {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 13px;
+    }
+
+    .mobile-phase-bar,
+    .mobile-sheet-trigger,
+    .mobile-sheet {
+      display: none;
+    }
+
+    @media (max-width: 920px) {
+      .app {
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar {
+        display: none;
+      }
+
+      .panel-grid,
+      .activity-dock {
+        grid-template-columns: 1fr;
+      }
+
+      .compact-bar {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        border-radius: 20px;
+      }
+
+      .compact-info {
+        grid-column: 1 / -1;
+        border-top: 1px solid var(--border);
+      }
+    }
+
+    @media (max-width: 430px) {
+      body {
+        padding-bottom: 88px;
+      }
+
+      .main {
+        padding: 12px;
+      }
+
+      .compact-bar {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .compact-item {
+        min-height: 68px;
+      }
+
+      .card-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .panel {
+        padding: 18px;
+      }
+
+      .mobile-sheet-trigger {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 14px 16px;
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        background: var(--surface);
+      }
+
+      .mobile-sheet {
+        display: block;
+        position: fixed;
+        left: 12px;
+        right: 12px;
+        bottom: 86px;
+        padding: 12px;
+        border: 1px solid var(--border);
+        border-radius: 24px;
+        background: var(--surface);
+        box-shadow: var(--shadow);
+      }
+
+      .mobile-sheet .nav {
+        margin: 0;
+      }
+
+      .mobile-phase-bar {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 8px;
+        position: fixed;
+        left: 12px;
+        right: 12px;
+        bottom: 12px;
+        padding: 8px;
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        background: rgba(16, 20, 24, 0.96);
+      }
+
+      .mobile-phase {
+        border-radius: 14px;
+        border: 1px solid transparent;
+        padding: 10px 6px;
+        text-align: center;
+        color: var(--muted);
+        font-size: 11px;
+      }
+
+      .mobile-phase.active {
+        color: var(--text);
+        border-color: rgba(91, 140, 245, 0.34);
+        background: var(--accent-soft);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <strong>Option A / Signal</strong>
+        <h1>Sprite Workbench</h1>
+      </div>
+
+      <span class="sidebar-title">Phases</span>
+      <nav class="nav" aria-label="Phase navigation">
+        <a class="phase-link active" href="#">
+          <span class="phase-index">01</span>
+          <span><strong>Describe</strong><span class="muted">Brief and references</span></span>
+          <span class="chip active">Active</span>
+        </a>
+        <a class="phase-link" href="#">
+          <span class="phase-index">02</span>
+          <span><strong>Concepts</strong><span class="muted">Explore looks</span></span>
+          <span class="chip">Ready</span>
+        </a>
+        <a class="phase-link" href="#">
+          <span class="phase-index">03</span>
+          <span><strong>Character</strong><span class="muted">Lock identity</span></span>
+          <span class="chip">Queued</span>
+        </a>
+        <a class="phase-link locked" href="#">
+          <span class="phase-index">04</span>
+          <span><strong>Animations</strong><span class="muted">Motion passes</span></span>
+          <span class="chip">Locked</span>
+        </a>
+        <a class="phase-link locked" href="#">
+          <span class="phase-index">05</span>
+          <span><strong>Review &amp; Export</strong><span class="muted">Package outputs</span></span>
+          <span class="chip">Locked</span>
+        </a>
+      </nav>
+
+      <span class="sidebar-title">Projects</span>
+      <div class="project-list">
+        <article class="project-card selected" tabindex="0">
+          <strong>Forest Courier</strong>
+          <p>Side-scrolling messenger sprite pack</p>
+          <div class="meta">
+            <span class="mini-chip active">Current</span>
+            <span class="mini-chip success">4 assets</span>
+          </div>
+        </article>
+        <article class="project-card" tabindex="0">
+          <strong>Temple Mechanic</strong>
+          <p>Combat-ready enemy variations</p>
+          <div class="meta">
+            <span class="mini-chip">Concepts</span>
+          </div>
+        </article>
+        <article class="project-card" tabindex="0">
+          <strong>Dockside Vendor</strong>
+          <p>NPC idle loop and export pass</p>
+          <div class="meta">
+            <span class="mini-chip">Review</span>
+          </div>
+        </article>
+      </div>
+    </aside>
+
+    <main class="main">
+      <div class="mobile-sheet-trigger">
+        <strong>01 Describe</strong>
+        <span class="chip active">Open phases</span>
+      </div>
+
+      <div class="compact-bar">
+        <div class="compact-item"><span>Project</span><strong>Forest Courier</strong></div>
+        <div class="compact-item"><span>Phase</span><strong>Describe</strong></div>
+        <div class="compact-item"><span>Style</span><strong>Pixel Lab</strong></div>
+        <div class="compact-item"><span>Checks</span><strong>4 / 5 passing</strong></div>
+        <div class="compact-item"><span>Credits</span><strong>82 remaining</strong></div>
+        <div class="compact-info active">
+          <button class="icon-button" aria-label="Open technical information">(i)</button>
+          <div class="popover">
+            <span>Generation mode</span>
+            <strong>Concept refine</strong>
+            <span style="margin-top:10px;">Job ID</span>
+            <strong>job_2391_signal</strong>
+          </div>
+        </div>
+      </div>
+
+      <section class="panel">
+        <div class="panel-header">
+          <div>
+            <h2>Describe the sprite brief</h2>
+            <p>Keep the creative brief in focus. Advanced controls stay quiet unless you need them.</p>
+          </div>
+          <div class="status-indicator">Ready for concept generation</div>
+        </div>
+
+        <div class="panel-grid">
+          <div class="form-grid">
+            <label>
+              Prompt brief
+              <textarea placeholder="A fast courier with a moss-green cape and satchel."></textarea>
+            </label>
+            <label>
+              Output goal
+              <input value="Top-down RPG sprite sheet">
+            </label>
+            <a class="advanced-toggle" href="#">▸ Advanced</a>
+            <div class="advanced-box active">
+              <label>
+                Negative prompt
+                <input value="No photoreal faces, no heavy armor, no UI text">
+              </label>
+            </div>
+            <div class="button-row">
+              <button class="button primary">Generate concepts</button>
+              <button class="button">Save draft</button>
+            </div>
+          </div>
+
+          <div class="card-grid">
+            <article class="card selected" tabindex="0">
+              <div class="thumb"></div>
+              <strong>Look 01</strong>
+              <p class="muted">Lean silhouette, readable satchel, muted forest palette.</p>
+              <div class="meta">
+                <span class="mini-chip active">Selected</span>
+                <span class="mini-chip">Readable</span>
+              </div>
+            </article>
+            <article class="card" tabindex="0">
+              <div class="thumb"></div>
+              <strong>Look 02</strong>
+              <p class="muted">Rounder proportions and stronger cape shape.</p>
+              <div class="meta">
+                <span class="mini-chip">Alternate</span>
+              </div>
+            </article>
+            <article class="card" tabindex="0">
+              <div class="thumb"></div>
+              <strong>Look 03</strong>
+              <p class="muted">Higher contrast lighting for silhouette testing.</p>
+              <div class="meta">
+                <span class="mini-chip">Queued</span>
+              </div>
+            </article>
+            <article class="card" tabindex="0">
+              <div class="thumb"></div>
+              <strong>Status</strong>
+              <p class="muted">Consistency check passed. Palette match is within tolerance.</p>
+              <div class="meta">
+                <span class="mini-chip success">Healthy</span>
+              </div>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="activity-dock">
+        <div class="activity-step active">
+          <strong>Prompt locked</strong>
+          <div class="muted">Brief approved for generation</div>
+        </div>
+        <div class="activity-step">
+          <strong>Concept run</strong>
+          <div class="muted">Estimated 2m remaining</div>
+        </div>
+        <div class="activity-step">
+          <strong>Character pass</strong>
+          <div class="muted">Waiting on concept selection</div>
+        </div>
+        <div class="activity-step">
+          <strong>Export pack</strong>
+          <div class="muted">Not yet available</div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="mobile-sheet">
+    <nav class="nav" aria-label="Mobile phase navigation">
+      <a class="phase-link active" href="#"><span class="phase-index">01</span><span><strong>Describe</strong><span class="muted">Active phase</span></span><span class="chip active">Now</span></a>
+      <a class="phase-link" href="#"><span class="phase-index">02</span><span><strong>Concepts</strong><span class="muted">Ready</span></span><span class="chip">Next</span></a>
+      <a class="phase-link" href="#"><span class="phase-index">03</span><span><strong>Character</strong><span class="muted">Queued</span></span><span class="chip">Later</span></a>
+    </nav>
+  </div>
+
+  <div class="mobile-phase-bar" aria-label="Mobile phase tabs">
+    <div class="mobile-phase active">Brief</div>
+    <div class="mobile-phase">Looks</div>
+    <div class="mobile-phase">Lock</div>
+    <div class="mobile-phase">Move</div>
+    <div class="mobile-phase">Export</div>
+  </div>
+</body>
+</html>
