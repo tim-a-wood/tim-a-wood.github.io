@@ -3707,9 +3707,51 @@ def _decode_base64_to_bytes_loose(value: str) -> bytes:
     return base64.b64decode(t, validate=False)
 
 
-def _pixellab_open_image_bytes(raw: bytes, *, where: str) -> Image.Image:
+def _try_pixellab_raw_packed_pixels(
+    raw: bytes,
+    *,
+    width: Optional[int] = None,
+    height: Optional[int] = None,
+) -> Optional[Image.Image]:
     """
-    Open image bytes from Pixel Lab (PNG/WebP/JPEG). Raises ValueError with context if not image data.
+    Pixel Lab sometimes returns raw packed pixels (no PNG/WebP header), e.g. 64×64×4 = 16384 bytes RGBA.
+    """
+    n = len(raw)
+    if width is not None and height is not None:
+        w, h = int(width), int(height)
+        if w > 0 and h > 0:
+            if n == w * h * 4:
+                try:
+                    return Image.frombytes("RGBA", (w, h), raw)
+                except Exception:
+                    return None
+            if n == w * h * 3:
+                try:
+                    return Image.frombytes("RGB", (w, h), raw).convert("RGBA")
+                except Exception:
+                    return None
+        return None
+    if n % 4 != 0:
+        return None
+    px = n // 4
+    side = math.isqrt(px)
+    if side * side != px or side < 8 or side > 4096:
+        return None
+    try:
+        return Image.frombytes("RGBA", (side, side), raw)
+    except Exception:
+        return None
+
+
+def _pixellab_open_image_bytes(
+    raw: bytes,
+    *,
+    where: str,
+    rgba_size: Optional[Tuple[int, int]] = None,
+) -> Image.Image:
+    """
+    Open image bytes from Pixel Lab (PNG/WebP/JPEG, or raw packed RGB/RGBA matching the canvas).
+    ``rgba_size`` is (width, height) when the API may return raw pixels for that canvas.
     """
     if not raw:
         raise ValueError("Empty image payload %s" % where)
@@ -3724,10 +3766,23 @@ def _pixellab_open_image_bytes(raw: bytes, *, where: str) -> Image.Image:
     try:
         with Image.open(io.BytesIO(raw)) as loaded:
             return loaded.convert("RGBA")
+    except Exception:
+        pass
+    if rgba_size:
+        unpacked = _try_pixellab_raw_packed_pixels(raw, width=rgba_size[0], height=rgba_size[1])
+        if unpacked is not None:
+            return unpacked
+    unpacked = _try_pixellab_raw_packed_pixels(raw)
+    if unpacked is not None:
+        return unpacked
+    try:
+        with Image.open(io.BytesIO(raw)) as loaded:
+            return loaded.convert("RGBA")
     except Exception as exc:
         raise ValueError(
-            "Cannot identify image file %s (%d bytes, starts with %r): %s"
-            % (where, len(raw), head, exc)
+            "Cannot identify image file %s (%d bytes, starts with %r). "
+            "Not a known image container and not raw RGBA/RGB for the expected canvas %s: %s"
+            % (where, len(raw), head, rgba_size or "(try square infer)", exc)
         ) from exc
 
 
@@ -13551,6 +13606,7 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                     img = _pixellab_open_image_bytes(
                         images_bytes[idx],
                         where="Pixel Lab direction %s" % d,
+                        rgba_size=(canvas_size, canvas_size),
                     )
                     asset_path = assets_dir / ("%s.png" % d)
                     img.save(asset_path)

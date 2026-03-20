@@ -1515,6 +1515,28 @@ class SpriteWorkbenchTests(unittest.TestCase):
         uri = "data:image/png;base64," + raw
         self.assertEqual(sw._normalize_pixellab_image_base64(uri), raw)
 
+    def test_pixellab_open_image_bytes_accepts_raw_rgba_square(self):
+        """API may return 64×64×4 packed RGBA with no PNG header (e.g. 16384 null bytes)."""
+        side = 64
+        raw = bytes(side * side * 4)  # transparent black
+        img = sw._pixellab_open_image_bytes(raw, where="test")
+        self.assertEqual(img.size, (side, side))
+        self.assertEqual(img.getpixel((0, 0)), (0, 0, 0, 0))
+
+    def test_pixellab_open_image_bytes_raw_rgba_uses_canvas_hint(self):
+        w, h = 64, 64
+        raw = bytes(w * h * 4)
+        img = sw._pixellab_open_image_bytes(
+            raw,
+            where="south",
+            rgba_size=(w, h),
+        )
+        self.assertEqual(img.size, (w, h))
+
+    def test_try_pixellab_raw_packed_pixels_rejects_wrong_length_for_canvas(self):
+        raw = bytes(100)  # not 64*64*4
+        self.assertIsNone(sw._try_pixellab_raw_packed_pixels(raw, width=64, height=64))
+
     def test_collect_nested_images_dict_finds_result_branch(self):
         got = sw._collect_nested_images_dict({"result": {"images": {"east": {"base64": "eA=="}}}})
         self.assertIsNotNone(got)
