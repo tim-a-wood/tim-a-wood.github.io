@@ -1462,6 +1462,14 @@ class SpriteWorkbenchTests(unittest.TestCase):
             [],
         )
 
+    def test_validate_pixellab_animation_name_slug(self):
+        self.assertEqual(sw.validate_pixellab_animation_name("Attack"), "attack")
+        self.assertEqual(sw.validate_pixellab_animation_name("cast_spell"), "cast_spell")
+        with self.assertRaises(ValueError):
+            sw.validate_pixellab_animation_name("9bad")
+        with self.assertRaises(ValueError):
+            sw.validate_pixellab_animation_name("no spaces")
+
     def test_hydrate_animation_clips_aligns_frame_count_with_raster_bridge_frames(self):
         """animation_clips.json from Pixel Lab can list fewer paths than ANIMATION_SPECS."""
         raw = {

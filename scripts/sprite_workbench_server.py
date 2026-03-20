@@ -4538,6 +4538,20 @@ def _save_pixellab_animations_store(project_dir: Path, store: Dict[str, Any]) ->
     path.write_text(json.dumps(store, indent=2), encoding="utf-8")
 
 
+PIXELLAB_CORE_ANIMATION_NAMES = frozenset({"idle", "walk"})
+_PIXELLAB_ANIMATION_NAME_RE = re.compile(r"^[a-z][a-z0-9_]{0,47}$")
+
+
+def validate_pixellab_animation_name(raw: Any) -> str:
+    """Lowercase slug for Pixel Lab clip keys (idle/walk + user-defined)."""
+    s = str(raw or "").strip().lower()
+    if not _PIXELLAB_ANIMATION_NAME_RE.fullmatch(s):
+        raise ValueError(
+            "animation_name must start with a letter, use only a-z, 0-9, underscore, max 48 characters."
+        )
+    return s
+
+
 def _infer_animation_name_from_template(template_animation_id: str) -> str:
     s = (template_animation_id or "").lower()
     if any(token in s for token in ["idle", "breathing"]):
@@ -10627,6 +10641,71 @@ def generate_clip_frames(animation_name: str, controls: Dict[str, float], overri
     return apply_frame_overrides(frames, overrides or [])
 
 
+def _animation_clip_source_has_raster_paths(clip_source: Dict[str, Any]) -> bool:
+    fr = clip_source.get("frames")
+    if isinstance(fr, list) and fr:
+        return True
+    fbd = clip_source.get("frames_by_direction")
+    if isinstance(fbd, dict):
+        for v in fbd.values():
+            if isinstance(v, list) and v:
+                return True
+    return False
+
+
+def _hydrate_raster_bridge_animation_clip(
+    animation_name: str,
+    clip_source: Dict[str, Any],
+    rig_profile: str,
+) -> Dict[str, Any]:
+    """
+    Hydrate a non-idle/walk animation_clips entry produced by pixellab/build-clips.
+
+    Deterministic rig preview still expects joint_transforms_per_frame; synthesize from the
+    walk cycle pattern, trimmed/padded to match exported raster frame count.
+    """
+    bridge_frames = clip_source.get("frames") if isinstance(clip_source.get("frames"), list) else []
+    n = len(bridge_frames) if bridge_frames else int(clip_source.get("frame_count") or 8)
+    n = max(1, min(int(n), 48))
+    controls = normalize_clip_controls("walk", None)
+    walk_fc = ANIMATION_SPECS["walk"]["frame_count"]
+    overrides_full = clip_frame_overrides(walk_fc, None)
+    base = generate_clip_frames("walk", controls, overrides_full, rig_profile=rig_profile)
+    jt: List[Dict[str, Any]] = [copy.deepcopy(base[i % len(base)]) for i in range(n)]
+    clip_out: Dict[str, Any] = {
+        "frame_count": n,
+        "fps": int(clip_source.get("fps") or 12),
+        "loop": bool(clip_source.get("loop", True)),
+        "root_motion_policy": "in_place",
+        "loop_continuity_rules": {"wrap_to_first_frame": True},
+        "controls": controls,
+        "frame_overrides": clip_frame_overrides(n, None),
+        "joint_transforms_per_frame": jt,
+        "neutral_pose_frame_index": 0,
+        "corrective_assets_per_frame": [[] for _ in jt],
+    }
+    if isinstance(clip_source.get("frames"), list):
+        clip_out["frames"] = clip_source.get("frames")
+    if isinstance(clip_source.get("frames_by_direction"), dict):
+        clip_out["frames_by_direction"] = clip_source.get("frames_by_direction")
+    bf = clip_out.get("frames")
+    if isinstance(bf, list) and bf:
+        fc = len(bf)
+        clip_out["frame_count"] = fc
+        if fc != len(clip_out["joint_transforms_per_frame"]):
+            clip_out["joint_transforms_per_frame"] = [copy.deepcopy(base[i % len(base)]) for i in range(fc)]
+            clip_out["frame_overrides"] = clip_frame_overrides(fc, None)
+            clip_out["corrective_assets_per_frame"] = [[] for _ in range(fc)]
+        if clip_source.get("fps") is not None:
+            try:
+                clip_out["fps"] = int(clip_source["fps"])
+            except (TypeError, ValueError):
+                pass
+        if "loop" in clip_source:
+            clip_out["loop"] = bool(clip_source["loop"])
+    return clip_out
+
+
 def hydrate_animation_clips(animation_clips: Optional[Dict[str, Any]], legacy_animation_templates: Optional[Dict[str, Any]], rig_profile: str = LEGACY_RIG_PROFILE) -> Dict[str, Any]:
     if not ((isinstance(animation_clips, dict) and animation_clips) or (isinstance(legacy_animation_templates, dict) and legacy_animation_templates)):
         return {}
@@ -10683,6 +10762,15 @@ def hydrate_animation_clips(animation_clips: Optional[Dict[str, Any]], legacy_an
                     clip_out["loop"] = bool(clip_source["loop"])
 
         clips[animation_name] = clip_out
+    if isinstance(source, dict):
+        for animation_name, clip_source in source.items():
+            if animation_name in clips or not isinstance(clip_source, dict):
+                continue
+            if not _animation_clip_source_has_raster_paths(clip_source):
+                continue
+            clips[str(animation_name)] = _hydrate_raster_bridge_animation_clip(
+                str(animation_name), clip_source, rig_profile
+            )
     return clips
 
 
@@ -12282,12 +12370,18 @@ def export_pixellab_project(project_id: str, progress: Optional[ProgressCallback
     if not isinstance(clips, dict) or not clips:
         raise ValueError("Export blocked: animation_clips.json must exist for Pixel Lab export.")
 
-    # Only procedural idle/walk for runtime export right now; manual clips still use deterministic render outputs.
+    # Procedural: any animation_clips entry with raster frames (idle + walk required below).
     procedural_names = [
         name
-        for name in ["idle", "walk"]
-        if name in clips and isinstance(clips.get(name), dict) and isinstance(clips[name].get("frames"), list)
+        for name, c in clips.items()
+        if isinstance(c, dict) and isinstance(c.get("frames"), list) and len(c["frames"]) > 0
     ]
+    priority = ["idle", "walk"]
+    procedural_names = [n for n in priority if n in procedural_names] + sorted(
+        n for n in procedural_names if n not in priority
+    )
+    if not {"idle", "walk"}.issubset(set(procedural_names)):
+        raise ValueError("Export blocked: idle and walk with frames are required in animation_clips.json.")
     if not procedural_names and not bool(approved_manual_animation_clips(project).keys()):
         raise ValueError("Export blocked: no Pixel Lab/procedural frames available.")
 
@@ -14066,6 +14160,46 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
             # -----------------------------
             # Phase 5: Pixel Lab animations
             # -----------------------------
+            define_anim_pixellab_match = re.fullmatch(r"/api/projects/([^/]+)/pixellab/define-animation", path)
+            if define_anim_pixellab_match:
+                project_id = define_anim_pixellab_match.group(1)
+                payload = read_body(self)
+                name = validate_pixellab_animation_name(payload.get("animation_name"))
+                if name in PIXELLAB_CORE_ANIMATION_NAMES:
+                    raise ValueError(
+                        "Idle and walk already have panels. Pick another name (e.g. attack, jump, cast)."
+                    )
+                project_dir = PROJECTS_ROOT / project_id
+                _pixellab_character_approved_guard(project_dir)
+                store = _load_pixellab_animations_store(project_dir)
+                anims = store.setdefault("animations", {})
+                existing_entry = anims.get(name) if isinstance(anims.get(name), dict) else None
+                if isinstance(existing_entry, dict):
+                    has_frames = False
+                    dirs = existing_entry.get("directions")
+                    if isinstance(dirs, dict):
+                        for ddata in dirs.values():
+                            if isinstance(ddata, dict) and isinstance(ddata.get("frames"), list) and ddata["frames"]:
+                                has_frames = True
+                                break
+                    if has_frames:
+                        return self._send_json({"ok": True, "animation_name": name, "already_existed": True})
+                anims[name] = {
+                    "animation_name": name,
+                    "fps": 12,
+                    "frame_count": 0,
+                    "loop": True,
+                    "backend_name": "pending",
+                    "updated_at": now_iso(),
+                    "directions": {},
+                }
+                store["updated_at"] = now_iso()
+                _save_pixellab_animations_store(project_dir, store)
+                proj_reload = load_project(project_id)
+                proj_reload["pixellab_animations"] = store
+                save_project(proj_reload)
+                return self._send_json({"ok": True, "animation_name": name})
+
             animate_pixellab_match = re.fullmatch(r"/api/projects/([^/]+)/pixellab/animate", path)
             if animate_pixellab_match:
                 project_id = animate_pixellab_match.group(1)
@@ -14087,10 +14221,13 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                 if directions not in {4, 8}:
                     raise ValueError("directions must be 4 or 8.")
 
-                animation_name = str(payload.get("animation_name") or "") or _infer_animation_name_from_template(template_animation_id)
-                if animation_name not in {"idle", "walk"}:
-                    # Current deterministic canonical pipeline only supports idle/walk.
-                    raise ValueError("Unsupported animation_name (expected idle or walk).")
+                explicit_anim = str(payload.get("animation_name") or "").strip()
+                if explicit_anim:
+                    animation_name = validate_pixellab_animation_name(explicit_anim)
+                else:
+                    animation_name = validate_pixellab_animation_name(
+                        _infer_animation_name_from_template(str(template_animation_id))
+                    )
 
                 if directions == 4:
                     direction_list = ["south", "west", "east", "north"]
@@ -14304,9 +14441,7 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                 if not action:
                     raise ValueError("animate-custom requires action.")
 
-                animation_name = str(payload.get("animation_name") or "idle").strip()
-                if animation_name not in {"idle", "walk"}:
-                    raise ValueError("Unsupported animation_name (expected idle or walk).")
+                animation_name = validate_pixellab_animation_name(payload.get("animation_name") or "idle")
 
                 backend_mode = str(brief.get("backend_mode") or "comfyui")
                 use_debug = backend_mode == "debug_procedural" or not pixellab_configured()
@@ -14454,9 +14589,7 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                 if not isinstance(keypoint_frames, list):
                     raise ValueError("animate-skeleton requires keypoint_frames: list.")
 
-                animation_name = str(payload.get("animation_name") or "idle").strip()
-                if animation_name not in {"idle", "walk"}:
-                    raise ValueError("Unsupported animation_name (expected idle or walk).")
+                animation_name = validate_pixellab_animation_name(payload.get("animation_name") or "idle")
 
                 direction = str(payload.get("direction") or "east").strip().lower() or "east"
                 if direction not in (char_data.get("directions") or ["east"]):
@@ -14620,8 +14753,7 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                 if not description:
                     raise ValueError("edit-animation requires description.")
 
-                if animation_name not in {"idle", "walk"}:
-                    raise ValueError("Unsupported animation_name (expected idle or walk).")
+                animation_name = validate_pixellab_animation_name(animation_name)
 
                 backend_mode = str(brief.get("backend_mode") or "comfyui")
                 use_debug = backend_mode == "debug_procedural" or not pixellab_configured()
@@ -14799,7 +14931,10 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                 for animation_name, anim in anim_store.items():
                     if not isinstance(anim, dict):
                         continue
-                    if animation_name not in {"idle", "walk"}:
+                    try:
+                        validate_pixellab_animation_name(animation_name)
+                    except ValueError:
+                        logger.warning("[pixellab/build-clips] skip invalid animation key %r", animation_name)
                         continue
 
                     fps = anim.get("fps") or (AI_CLIP_SPECS.get(animation_name) or {}).get("fps") or ANIMATION_SPECS.get(animation_name, {}).get("fps") or 12
@@ -14815,6 +14950,8 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                     default_dir = "east" if "east" in frames_by_direction else (next(iter(frames_by_direction.keys())) if frames_by_direction else "east")
                     frames = frames_by_direction.get(default_dir) or []
                     path_count = len(frames) if isinstance(frames, list) else 0
+                    if path_count == 0:
+                        continue
                     if path_count and int(meta_frame_count) != path_count:
                         logger.warning(
                             "[pixellab/build-clips] %s: store frame_count=%s but default-dir %r has %d paths — using path count",

@@ -1728,6 +1728,29 @@
             background: rgba(255, 255, 255, 0.03);
         }
 
+        .pixellab-clip-details > summary {
+            list-style: none;
+        }
+        .pixellab-clip-details > summary::-webkit-details-marker {
+            display: none;
+        }
+        .pixellab-clip-summary {
+            cursor: pointer;
+            user-select: none;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+        .pixellab-clip-chevron {
+            display: inline-block;
+            transition: transform 0.15s ease;
+            opacity: 0.75;
+        }
+        .pixellab-clip-details[open] .pixellab-clip-chevron {
+            transform: rotate(180deg);
+        }
+
         .pixellab-character-source-preview img {
             max-height: 220px;
             max-width: 100%;
@@ -3349,6 +3372,17 @@ function inferPixellabClipFromTemplateId(templateId) {
 
 function pixellabTemplatesForClip(clipName) {
     return PIXELLAB_ALL_TEMPLATE_IDS.filter((id) => inferPixellabClipFromTemplateId(id) === clipName);
+}
+
+/** Normalize user input to server slug (a-z, 0-9, underscore; max 48). Returns "" if invalid. */
+function normalizePixellabCustomAnimName(raw) {
+    const s = String(raw || "")
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, "_")
+        .replace(/[^a-z0-9_]/g, "");
+    if (!/^[a-z][a-z0-9_]{0,47}$/.test(s)) return "";
+    return s;
 }
 
 const JOB_TYPE_LABELS = {
@@ -6540,8 +6574,9 @@ async function withPixellabAnimationProgress(pid, run, options) {
 function renderPixellabAnimationsBoard() {
     const root = document.querySelector("#pixellab-animations-board");
     if (!root) return;
-    ["idle", "walk"].forEach((c) => clearPixellabAnimTimer(c));
     const project = state.activeProject;
+    const _prevAnims = project?.pixellab_animations?.animations || {};
+    ["idle", "walk", ...Object.keys(_prevAnims).filter((n) => n !== "idle" && n !== "walk")].forEach((c) => clearPixellabAnimTimer(c));
     root.innerHTML = "";
     if (!project) {
         root.innerHTML = `<div class="empty">Open a project to manage Pixel Lab animations.</div>`;
@@ -6558,6 +6593,24 @@ function renderPixellabAnimationsBoard() {
     }
     const store = project.pixellab_animations || { animations: {} };
     const anims = store.animations || {};
+    const clipsBridge = project.animation_clips || {};
+    const idleBridgeN = Array.isArray(clipsBridge.idle?.frames) ? clipsBridge.idle.frames.length : null;
+    const walkBridgeN = Array.isArray(clipsBridge.walk?.frames) ? clipsBridge.walk.frames.length : null;
+    const customClipNames = Object.keys(anims)
+        .filter((n) => n !== "idle" && n !== "walk")
+        .sort();
+    const extraBridgeBits = customClipNames
+        .map((n) => {
+            const L = Array.isArray(clipsBridge[n]?.frames) ? clipsBridge[n].frames.length : null;
+            return L != null ? `${escapeHtml(n)}: ${L}` : null;
+        })
+        .filter(Boolean);
+    const clipsBridgeHtml =
+        idleBridgeN == null && walkBridgeN == null
+            ? `<p class="small-note" style="margin-top:8px;"><strong>Export bridge:</strong> after idle + walk exist, <strong>Build canonical clips</strong> writes <code>animation_clips.json</code> (required for Checks / export). Custom clips are merged when they have generated frames.</p>`
+            : `<p class="small-note" style="margin-top:8px;"><strong>Export bridge (<code>animation_clips.json</code>):</strong> idle ${idleBridgeN ?? "—"} frames · walk ${walkBridgeN ?? "—"} frames${
+                  extraBridgeBits.length ? ` · ${extraBridgeBits.join(" · ")}` : ""
+              }. Re-build after you change animations.</p>`;
     const dirList = project.pixellab_character?.directions;
     const directionCount = Array.isArray(dirList) && dirList.length >= 8 ? 8 : 4;
     const pid = project.project_id;
@@ -6567,6 +6620,7 @@ function renderPixellabAnimationsBoard() {
     };
     const idleTemplates = pixellabTemplatesForClip("idle");
     const walkTemplates = pixellabTemplatesForClip("walk");
+    const allPixellabTemplateIds = [...PIXELLAB_ALL_TEMPLATE_IDS];
     const missingCanonical = pixellabMissingCanonicalAnimationClips(project);
     const canBuildClips = missingCanonical.length === 0;
     const buildClipsTitle = canBuildClips
@@ -6576,13 +6630,6 @@ function renderPixellabAnimationsBoard() {
         ? "Idle and walk are in the store — you can build canonical clips for QA/export."
         : (`<strong>Next:</strong> generate <code>${escapeHtml(missingCanonical.join(", "))}</code> `
             + "using the cards below (this button stays disabled until both exist).");
-    const clipsBridge = project.animation_clips || {};
-    const idleBridgeN = Array.isArray(clipsBridge.idle?.frames) ? clipsBridge.idle.frames.length : null;
-    const walkBridgeN = Array.isArray(clipsBridge.walk?.frames) ? clipsBridge.walk.frames.length : null;
-    const clipsBridgeHtml =
-        idleBridgeN == null && walkBridgeN == null
-            ? `<p class="small-note" style="margin-top:8px;"><strong>Export bridge:</strong> after idle + walk exist, <strong>Build canonical clips</strong> writes <code>animation_clips.json</code> (required for Checks / export).</p>`
-            : `<p class="small-note" style="margin-top:8px;"><strong>Export bridge (<code>animation_clips.json</code>):</strong> idle ${idleBridgeN ?? "—"} frames · walk ${walkBridgeN ?? "—"} frames. Re-build after you change animations.</p>`;
     const previewServeNote =
         window.location.protocol === "file:"
             ? `<div class="warning-box" style="margin-bottom:12px;"><p><strong>Previews need the dev server.</strong> Frame thumbnails load from <code>http://127.0.0.1:${DEFAULT_WORKBENCH_PORT}/…</code>. Open the tool from that URL (not <code>file://</code>) if images stay blank or never update.</p></div>`
@@ -6610,7 +6657,7 @@ function renderPixellabAnimationsBoard() {
         }).join("")
         : `<tr><td colspan="4" class="small-note">No clips in store yet.</td></tr>`;
 
-    function clipCard(clipName, templates, defaultTemplate) {
+    function clipCard(clipName, { isCore, templates, defaultTemplate }) {
         const meta = anims[clipName] || {};
         const previewDefault = pixellabFirstPreviewDirection(dirList, meta);
         const dis = animBusy ? " disabled" : "";
@@ -6621,45 +6668,64 @@ function renderPixellabAnimationsBoard() {
                 return `<option value="${escapeHtml(d)}"${d === previewDefault ? " selected" : ""}>${escapeHtml(label)}</option>`;
             })
             .join("");
-        const opts = templates.map((t) => `<option value="${escapeHtml(t)}"${t === defaultTemplate ? " selected" : ""}>${escapeHtml(t)}</option>`).join("");
+        const opts = (templates || []).map((t) => `<option value="${escapeHtml(t)}"${t === defaultTemplate ? " selected" : ""}>${escapeHtml(t)}</option>`).join("");
+        const subtitle = isCore
+            ? `Canonical name <code>${escapeHtml(clipName)}</code> for export and QA.`
+            : `Custom clip <code>${escapeHtml(clipName)}</code> — included in <code>animation_clips.json</code> after <strong>Build canonical clips</strong> when frames exist.`;
+        const templateLabel = isCore ? "Template animation" : "Template (saved under this clip name)";
         return `
-        <div class="clip-control-card" style="margin-bottom:14px;" data-pixellab-clip-card="${clipName}">
-            <h4 style="margin:0 0 8px;">${humanizeKey(clipName)} clip</h4>
-            <div class="small-note">Canonical name <code>${clipName}</code> for export and QA.</div>
-            <label class="small-note" style="display:block;margin-top:10px;">Template animation</label>
-            <select class="pixellab-template-select" data-clip="${clipName}" style="max-width:100%;"${dis}>${opts}</select>
+        <details class="pixellab-clip-details clip-control-card" data-pixellab-clip-details="${escapeHtml(clipName)}" style="margin-bottom:10px;">
+            <summary class="pixellab-clip-summary">
+                <span><strong>${escapeHtml(humanizeKey(clipName))}</strong> <span class="small-note">${isCore ? "· required for QA" : "· custom"}</span></span>
+                <span class="pixellab-clip-chevron small-note" aria-hidden="true">▾</span>
+            </summary>
+            <div class="pixellab-clip-details-body" style="margin-top:12px;border-top:1px solid var(--stroke);padding-top:12px;">
+            <div class="small-note">${subtitle}</div>
+            <label class="small-note" style="display:block;margin-top:10px;">${escapeHtml(templateLabel)}</label>
+            <select class="pixellab-template-select" data-clip="${escapeHtml(clipName)}" style="max-width:100%;"${dis}>${opts}</select>
             <div class="actions" style="margin-top:10px;flex-wrap:wrap;gap:8px;">
-                <button type="button" class="pixellab-gen-template" data-clip="${clipName}"${dis}>Generate via template</button>
+                <button type="button" class="pixellab-gen-template" data-clip="${escapeHtml(clipName)}"${dis}>Generate via template</button>
             </div>
             <label class="small-note" style="display:block;margin-top:14px;">Custom action (east-facing)</label>
-            <input type="text" class="pixellab-custom-action" data-clip="${clipName}" placeholder="e.g. heavy overhead slash" style="width:100%;"${dis}>
+            <input type="text" class="pixellab-custom-action" data-clip="${escapeHtml(clipName)}" placeholder="e.g. heavy overhead slash" style="width:100%;"${dis}>
             <div class="actions" style="margin-top:8px;">
-                <button type="button" class="secondary pixellab-gen-custom" data-clip="${clipName}"${dis}>Generate custom</button>
+                <button type="button" class="secondary pixellab-gen-custom" data-clip="${escapeHtml(clipName)}"${dis}>Generate custom</button>
             </div>
             <label class="small-note" style="display:block;margin-top:14px;">Edit existing frames</label>
-            <textarea class="pixellab-edit-desc" data-clip="${clipName}" rows="2" placeholder="Describe the change for Pixel Lab edit…" style="width:100%;"${dis}></textarea>
+            <textarea class="pixellab-edit-desc" data-clip="${escapeHtml(clipName)}" rows="2" placeholder="Describe the change for Pixel Lab edit…" style="width:100%;"${dis}></textarea>
             <div class="actions" style="margin-top:8px;">
-                <button type="button" class="secondary pixellab-edit-anim" data-clip="${clipName}"${dis}>Edit animation</button>
+                <button type="button" class="secondary pixellab-edit-anim" data-clip="${escapeHtml(clipName)}"${dis}>Edit animation</button>
             </div>
             <div class="pixellab-anim-preview-wrap" style="margin-top:14px;">
                 <div class="check-row wrap">
                     <span class="small-note">Preview direction</span>
-                    <select class="pixellab-preview-dir" data-clip="${clipName}"${dis}>${dirOptions}</select>
-                    <button type="button" class="secondary pixellab-preview-play" data-clip="${clipName}"${dis}>Play</button>
-                    <button type="button" class="secondary pixellab-preview-stop" data-clip="${clipName}"${dis}>Stop</button>
-                    <span class="small-note pixellab-preview-label" data-clip="${clipName}">—</span>
+                    <select class="pixellab-preview-dir" data-clip="${escapeHtml(clipName)}"${dis}>${dirOptions}</select>
+                    <button type="button" class="secondary pixellab-preview-play" data-clip="${escapeHtml(clipName)}"${dis}>Play</button>
+                    <button type="button" class="secondary pixellab-preview-stop" data-clip="${escapeHtml(clipName)}"${dis}>Stop</button>
+                    <span class="small-note pixellab-preview-label" data-clip="${escapeHtml(clipName)}">—</span>
                 </div>
-                <img class="pixellab-preview-img" data-clip="${clipName}" alt="" onerror="this.alt='Preview failed to load'; this.style.outline='2px solid rgba(220,90,90,0.9)';" style="max-height:min(50vh,280px);min-height:120px;margin-top:8px;background:rgba(0,0,0,0.25);border-radius:8px;object-fit:contain;">
-                <div class="pixellab-anim-strip" data-clip="${clipName}" style="margin-top:8px;display:flex;flex-wrap:wrap;gap:4px;"></div>
+                <img class="pixellab-preview-img" data-clip="${escapeHtml(clipName)}" alt="" onerror="this.alt='Preview failed to load'; this.style.outline='2px solid rgba(220,90,90,0.9)';" style="max-height:min(50vh,280px);min-height:120px;margin-top:8px;background:rgba(0,0,0,0.25);border-radius:8px;object-fit:contain;">
+                <div class="pixellab-anim-strip" data-clip="${escapeHtml(clipName)}" style="margin-top:8px;display:flex;flex-wrap:wrap;gap:4px;"></div>
             </div>
-        </div>`;
+            </div>
+        </details>`;
     }
+
+    const customCardsHtml = customClipNames
+        .map((cn) =>
+            clipCard(cn, {
+                isCore: false,
+                templates: allPixellabTemplateIds,
+                defaultTemplate: allPixellabTemplateIds[0] || "breathing-idle",
+            }),
+        )
+        .join("");
 
     root.innerHTML = `
         ${previewServeNote}
         ${animProgressBlock}
         <div class="warning-box" style="margin-bottom:12px;">
-            <p><strong>Idle</strong> and <strong>walk</strong> are required before <strong>Build canonical clips</strong> and QA. Pick templates that match each clip (server maps IDs to idle vs walk the same way as this UI).</p>
+            <p><strong>Idle</strong> and <strong>walk</strong> are required before <strong>Build canonical clips</strong> and QA. Custom clips are optional and export with the same bundle after a successful build.</p>
         </div>
         <div class="clip-control-card" style="margin-bottom:14px;">
             <h4 style="margin:0 0 8px;">Animation store</h4>
@@ -6673,11 +6739,33 @@ function renderPixellabAnimationsBoard() {
             </div>
             <p class="small-note" id="pixellab-build-clips-hint" style="margin-top:8px;">${buildClipsHintHtml}</p>
         </div>
-        <div class="grid-2" style="align-items:start;">
-            ${clipCard("idle", idleTemplates, "breathing-idle")}
-            ${clipCard("walk", walkTemplates, "walking-4-frames")}
+        <div class="clip-control-card" style="margin-bottom:12px;">
+            <h4 style="margin:0 0 8px;">Add custom animation</h4>
+            <p class="small-note">Name: lowercase letter first, then letters, digits, or underscore (max 48). Idle/walk already have panels above.</p>
+            <div class="actions" style="margin-top:8px;flex-wrap:wrap;gap:8px;align-items:center;">
+                <input type="text" id="pixellab-new-anim-name" placeholder="e.g. attack" maxlength="48" autocomplete="off"
+                    style="flex:1;min-width:160px;max-width:280px;padding:8px;border-radius:8px;border:1px solid var(--stroke);background:var(--panel);color:inherit;"${animBusy ? " disabled" : ""}>
+                <button type="button" class="secondary" id="pixellab-add-custom-anim"${animBusy ? " disabled" : ""}>Add animation</button>
+            </div>
+        </div>
+        <div class="pixellab-anim-clips-stack" style="display:flex;flex-direction:column;gap:4px;align-items:stretch;">
+            ${clipCard("idle", { isCore: true, templates: idleTemplates, defaultTemplate: "breathing-idle" })}
+            ${clipCard("walk", { isCore: true, templates: walkTemplates, defaultTemplate: "walking-4-frames" })}
+            ${customCardsHtml}
         </div>
     `;
+
+    root.querySelectorAll("details[data-pixellab-clip-details]").forEach((det) => {
+        const clipName = det.getAttribute("data-pixellab-clip-details") || "";
+        const k = `pixellab_anim_open_${pid}_${clipName}`;
+        const saved = storage.getItem(k);
+        if (saved === "1") det.open = true;
+        else if (saved === "0") det.open = false;
+        else det.open = clipName === "idle";
+        det.addEventListener("toggle", () => {
+            storage.setItem(k, det.open ? "1" : "0");
+        });
+    });
 
     function fillStrip(clipName, direction) {
         const urls = pixellabPreviewFrameUrls(project, clipName, direction);
@@ -6690,11 +6778,36 @@ function renderPixellabAnimationsBoard() {
         if (lab) lab.textContent = urls.length ? `0 / ${urls.length}` : "No frames";
     }
 
-    ["idle", "walk"].forEach((clipName) => {
+    const allPanelClips = ["idle", "walk", ...customClipNames];
+    allPanelClips.forEach((clipName) => {
         const dirSel = root.querySelector(`.pixellab-preview-dir[data-clip="${clipName}"]`);
         const d = dirSel?.value || "east";
         fillStrip(clipName, d);
         dirSel?.addEventListener("change", () => fillStrip(clipName, dirSel.value));
+    });
+
+    root.querySelector("#pixellab-add-custom-anim")?.addEventListener("click", async () => {
+        const input = root.querySelector("#pixellab-new-anim-name");
+        const name = normalizePixellabCustomAnimName(input?.value || "");
+        if (!name) {
+            notify("Enter a valid name: start with a letter; only a–z, 0–9, underscore; max 48 chars.", "error");
+            return;
+        }
+        if (name === "idle" || name === "walk") {
+            notify("Use the Idle and Walk panels for those clips.", "error");
+            return;
+        }
+        try {
+            await api(`/api/projects/${pid}/pixellab/define-animation`, {
+                method: "POST",
+                body: JSON.stringify({ animation_name: name }),
+            });
+            notify(`Animation “${name}” added.`, "success");
+            if (input) input.value = "";
+            await reload();
+        } catch (e) {
+            notify(normalizeErrorMessage(e.message), "error");
+        }
     });
 
     root.querySelectorAll(".pixellab-gen-template").forEach((btn) => {
@@ -6703,10 +6816,13 @@ function renderPixellabAnimationsBoard() {
             const sel = root.querySelector(`.pixellab-template-select[data-clip="${clip}"]`);
             const tid = sel?.value;
             if (!tid) return;
-            const inferred = inferPixellabClipFromTemplateId(tid);
-            if (inferred !== clip) {
-                notify(`Template "${tid}" maps to "${inferred}" on the server — use the ${inferred} card.`, "error");
-                return;
+            const isCore = clip === "idle" || clip === "walk";
+            if (isCore) {
+                const inferred = inferPixellabClipFromTemplateId(tid);
+                if (inferred !== clip) {
+                    notify(`Template "${tid}" maps to "${inferred}" on the server — use the ${inferred} card.`, "error");
+                    return;
+                }
             }
             try {
                 notify(`Generating ${clip} via ${tid}…`, "info");
@@ -6715,7 +6831,11 @@ function renderPixellabAnimationsBoard() {
                     pid,
                     () => api(`/api/projects/${pid}/pixellab/animate`, {
                         method: "POST",
-                        body: JSON.stringify({ template_animation_id: tid, directions: directionCount }),
+                        body: JSON.stringify({
+                            template_animation_id: tid,
+                            directions: directionCount,
+                            animation_name: clip,
+                        }),
                     }),
                     {
                         detail: `Generating ${clip} via template (${tid}, ${directionCount} directions)`,
@@ -6813,7 +6933,21 @@ function renderPixellabAnimationsBoard() {
             const p = state.activeProject;
             const idleN = Array.isArray(p?.animation_clips?.idle?.frames) ? p.animation_clips.idle.frames.length : 0;
             const walkN = Array.isArray(p?.animation_clips?.walk?.frames) ? p.animation_clips.walk.frames.length : 0;
-            notify(`Canonical clips built — idle: ${idleN} frames, walk: ${walkN} frames. Continue to Review & export when ready.`, "success");
+            const customNs = Object.keys(p?.animation_clips || {})
+                .filter((n) => n !== "idle" && n !== "walk")
+                .sort()
+                .map((n) => {
+                    const L = Array.isArray(p.animation_clips[n]?.frames) ? p.animation_clips[n].frames.length : 0;
+                    return L ? `${n}: ${L}` : null;
+                })
+                .filter(Boolean)
+                .join(", ");
+            notify(
+                `Canonical clips built — idle: ${idleN} frames, walk: ${walkN} frames${
+                    customNs ? `; ${customNs}` : ""
+                }. Continue to Review & export when ready.`,
+                "success",
+            );
         } catch (e) {
             notify(normalizeErrorMessage(e.message), "error");
         }
