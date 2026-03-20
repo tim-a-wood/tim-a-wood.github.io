@@ -327,14 +327,13 @@ keeping the app functional at every step.
 - [x] Wizard: `clips` → `#character`; `qa` → main `#qa` Checks panel; `load_project` hydrates `pixellab_character` + `pixellab_skeleton`; `compute_wizard_context` uses character approval when `brief.backend_mode === pixellab`
 
 ### 7.5 Build new Animations panel + remove old rig/part/production panels
-- Template animation picker (dropdown of available template IDs from appendix)
-- [Generate Animation] button per clip
-- Custom action text input + [Generate Custom] for freeform
-- Per-clip frame strip preview with playback controls
-- [Edit Animation] with text description input
-- Animation list showing all generated clips with status
-- Remove old sections from HTML: `rig-layout`, `part-manifest`, `part-shape-edit`, `split-build`, `split-review`, `layer-review`, `rig-review`, `production`
-- Remove associated JS render functions and event handlers
+- [x] Template pickers (idle vs walk lists from Appendix A IDs, server-matched inference)
+- [x] **Generate via template** per clip → `POST .../pixellab/animate` (4/8 dirs from character)
+- [x] Custom action + **Generate custom** → `animate-custom`; **Edit animation** → `edit-animation`
+- [x] Per-clip preview direction, frame strip, Play/Stop (FPS from store)
+- [x] Store summary table + **Build canonical clips** → `build-clips`
+- [x] Removed HTML panels: `rig-layout` … `production`; `renderAll` no longer calls legacy rig/part/clip renderers (functions remain as no-ops when DOM absent)
+- [x] `load_project` hydrates `pixellab_animations`; wizard step `animations` after `clips` for `backend_mode=pixellab` (`wizard_steps_active`, `pixellab_animations_step_complete`)
 
 ### 7.6 Adapt Review/QA + Export panel
 - Merge existing `qa` + `export` panels into single panel
@@ -439,7 +438,7 @@ Phase 3 (concepts):    3.1 ✅ → 3.2 ✅ → 3.3 ✅ → 3.4 (deferred)
 Phase 4 (character):   4.1 ✅ → 4.2 ✅ → 4.3 ✅
 Phase 5 (animation):   5.1 ✅ → 5.2 ✅ → 5.3 ✅ → 5.4 ✅ → 5.5 ✅
 Phase 6 (QA/export):   6.1 ✅ → 6.2 ✅
-Phase 7 (frontend):    7.1 ✅ → 7.2 ✅ → 7.3 ✅ → 7.4 ✅ → 7.5 → 7.6 → 7.7  ← NEXT
+Phase 7 (frontend):    7.1 ✅ → 7.2 ✅ → 7.3 ✅ → 7.4 ✅ → 7.5 ✅ → 7.6 → 7.7  ← NEXT
 Phase 8 (cleanup):     8.1 → 8.2 → 8.3 → 8.4 → 8.5 → 8.6
 Phase 9 (tests/docs):  9.1 → 9.2 → 9.3 → 9.4 → 9.5
 ```

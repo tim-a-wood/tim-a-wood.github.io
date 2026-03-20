@@ -144,6 +144,9 @@ INITIAL_CONCEPT_COUNT = 6
 REFINEMENT_CONCEPT_COUNT = 4
 JOB_HISTORY_LIMIT = 50
 WIZARD_STEPS = ["project", "brief", "references", "concepts", "review", "rig_layout", "part_manifest", "part_shape_edit", "split_build", "split_review", "sprite_model", "rig", "clips", "qa", "export"]
+# Inserted after "clips" for Pixel Lab guided flow (Phase 7.5).
+WIZARD_STEP_ANIMATIONS = "animations"
+WIZARD_STEPS_KNOWN = set(WIZARD_STEPS) | {WIZARD_STEP_ANIMATIONS}
 MASTER_POSE_COUNT = 3
 
 FRAME_SIZE = 256
@@ -2235,13 +2238,13 @@ def normalize_wizard_state(payload: Any) -> Dict[str, Any]:
     state = default_wizard_state()
     if isinstance(payload, dict):
         current_step = payload.get("current_step")
-        if current_step in WIZARD_STEPS:
+        if current_step in WIZARD_STEPS_KNOWN:
             state["current_step"] = current_step
         last_completed = payload.get("last_completed_step")
-        if last_completed in WIZARD_STEPS:
+        if last_completed in WIZARD_STEPS_KNOWN:
             state["last_completed_step"] = last_completed
-        completed = [item for item in payload.get("completed_steps", []) if item in WIZARD_STEPS]
-        skipped = [item for item in payload.get("skipped_optional_steps", []) if item in WIZARD_STEPS]
+        completed = [item for item in payload.get("completed_steps", []) if item in WIZARD_STEPS_KNOWN]
+        skipped = [item for item in payload.get("skipped_optional_steps", []) if item in WIZARD_STEPS_KNOWN]
         state["completed_steps"] = list(dict.fromkeys(completed))
         state["skipped_optional_steps"] = list(dict.fromkeys(skipped))
         state["show_advanced"] = bool(payload.get("show_advanced", False))
@@ -2827,13 +2830,15 @@ def compute_wizard_context(project: Dict[str, Any]) -> Dict[str, Any]:
             "qa": has_qa,
             "export": has_export,
         }
+        if pixellab_brief:
+            complete_map["animations"] = pixellab_animations_step_complete(project, project_dir)
         clips_blocker_msg = (
             "Approve a chosen concept before creating a Pixel Lab character."
             if pixellab_brief
             else "Approve a Key Pose Board before running Motion Workflow."
         )
         qa_blocker_msg = (
-            "Approve the Pixel Lab character before running checks."
+            "Complete the Animations step (idle + walk) before running checks."
             if pixellab_brief
             else "Approve cleaned idle and walk outputs before running Cleanup & QA."
         )
@@ -2858,12 +2863,20 @@ def compute_wizard_context(project: Dict[str, Any]) -> Dict[str, Any]:
             "sprite_model": [],
             "rig": [],
             "clips": [] if complete_map["part_manifest"] else [clips_blocker_msg],
-            "qa": [] if complete_map["clips"] else [qa_blocker_msg],
+            "qa": (
+                []
+                if (complete_map["clips"] and (not pixellab_brief or complete_map.get("animations")))
+                else [qa_blocker_msg]
+            ),
             "export": [] if complete_map["qa"] and project.get("qa_report", {}).get("status") == "pass" else ["Checks must pass before export."],
         }
+        if pixellab_brief:
+            blocking_reasons["animations"] = (
+                [] if complete_map["clips"] else ["Approve the Pixel Lab character before generating animations."]
+            )
         step_statuses: Dict[str, str] = {}
         active_step = None
-        for step in WIZARD_STEPS:
+        for step in wizard_steps_active(project):
             blockers = blocking_reasons.get(step, [])
             is_complete = complete_map.get(step, False)
             if step == "project":
@@ -2888,9 +2901,9 @@ def compute_wizard_context(project: Dict[str, Any]) -> Dict[str, Any]:
                 blocking_reasons["export"] = ["QA must pass before export."]
         recommended_next_step = active_step or "export"
         persisted_step = wizard_state.get("current_step")
-        if persisted_step in WIZARD_STEPS and step_statuses.get(persisted_step) in {"active", "ready", "attention"}:
+        if persisted_step in WIZARD_STEPS_KNOWN and step_statuses.get(persisted_step) in {"active", "ready", "attention"}:
             recommended_next_step = persisted_step
-        wizard_state["current_step"] = persisted_step if persisted_step in WIZARD_STEPS and step_statuses.get(persisted_step) != "locked" else recommended_next_step
+        wizard_state["current_step"] = persisted_step if persisted_step in WIZARD_STEPS_KNOWN and step_statuses.get(persisted_step) != "locked" else recommended_next_step
         for step_name, completed_flag in complete_map.items():
             if completed_flag:
                 wizard_state = set_wizard_step_complete(wizard_state, step_name)
@@ -2962,7 +2975,7 @@ def compute_wizard_context(project: Dict[str, Any]) -> Dict[str, Any]:
 
     step_statuses: Dict[str, str] = {}
     active_step = None
-    for step in WIZARD_STEPS:
+    for step in wizard_steps_active(project):
         blockers = blocking_reasons.get(step, [])
         is_complete = complete_map.get(step, False)
         if step == "project":
@@ -2994,10 +3007,10 @@ def compute_wizard_context(project: Dict[str, Any]) -> Dict[str, Any]:
 
     recommended_next_step = active_step or "export"
     persisted_step = wizard_state.get("current_step")
-    if persisted_step in WIZARD_STEPS and step_statuses.get(persisted_step) in {"active", "ready", "attention"}:
+    if persisted_step in WIZARD_STEPS_KNOWN and step_statuses.get(persisted_step) in {"active", "ready", "attention"}:
         recommended_next_step = persisted_step
 
-    if persisted_step in WIZARD_STEPS and step_statuses.get(persisted_step) != "locked":
+    if persisted_step in WIZARD_STEPS_KNOWN and step_statuses.get(persisted_step) != "locked":
         wizard_state["current_step"] = persisted_step
     else:
         wizard_state["current_step"] = recommended_next_step
@@ -3943,6 +3956,45 @@ def pixellab_character_wizard_complete(project: Dict[str, Any], project_dir: Pat
     if bool(char_data.get("pixellab_character_approved")):
         return True
     return bool(char_data.get("approved"))
+
+
+def pixellab_animations_step_complete(project: Dict[str, Any], project_dir: Path) -> bool:
+    """Idle + walk each have at least one direction with frame paths in pixellab_animations."""
+    store = project.get("pixellab_animations")
+    if not isinstance(store, dict) or not isinstance(store.get("animations"), dict):
+        store = _load_pixellab_animations_store(project_dir)
+    anims = store.get("animations") if isinstance(store.get("animations"), dict) else {}
+    for name in ("idle", "walk"):
+        entry = anims.get(name)
+        if not isinstance(entry, dict):
+            return False
+        dirs = entry.get("directions")
+        if not isinstance(dirs, dict) or not dirs:
+            return False
+        has_frames = False
+        for _d, data in dirs.items():
+            if isinstance(data, dict) and data.get("frames"):
+                has_frames = True
+                break
+        if not has_frames:
+            return False
+    return True
+
+
+def wizard_steps_active(project: Dict[str, Any]) -> List[str]:
+    """
+    Wizard step order. Pixel Lab AI projects insert `animations` after Character (`clips`).
+    """
+    seq = list(WIZARD_STEPS)
+    i = seq.index("clips") + 1
+    extended = seq[:i] + [WIZARD_STEP_ANIMATIONS] + seq[i:]
+    ai_workflow = project.get("ai_workflow") or {}
+    ai_enabled = bool(ai_workflow.get("enabled")) and not bool(ai_workflow.get("legacy_mode"))
+    brief = project.get("brief") or {}
+    pixellab_brief = str(brief.get("backend_mode") or "") == "pixellab"
+    if ai_enabled and pixellab_brief:
+        return extended
+    return seq
 
 
 def _pixellab_skeleton_path(project_dir: Path) -> Path:
@@ -5676,6 +5728,7 @@ def load_project(project_id: str) -> Dict[str, Any]:
     project["history"] = load_history(project_id)
     project["pixellab_character"] = load_json(_pixellab_character_path(project_dir), None)
     project["pixellab_skeleton"] = load_json(_pixellab_skeleton_path(project_dir), None)
+    project["pixellab_animations"] = _load_pixellab_animations_store(project_dir)
     project["concepts"] = [hydrate_concept(item, project["created_at"]) for item in load_concepts(project_dir)]
     project["prompt_history"] = prompt_history_entries(project["concepts"])
     project["latest_prompt"] = project["prompt_history"][0] if project["prompt_history"] else None
@@ -5741,6 +5794,7 @@ def save_project(project: Dict[str, Any]) -> None:
         "character_spec",
         "pixellab_character",
         "pixellab_skeleton",
+        "pixellab_animations",
         "rig_layout",
         "rig_layout_history",
         "part_manifest",
@@ -6050,14 +6104,14 @@ def update_wizard_state(project_id: str, payload: Dict[str, Any]) -> Dict[str, A
     wizard_state = normalize_wizard_state(project.get("wizard_state"))
 
     requested_step = payload.get("current_step")
-    if requested_step in WIZARD_STEPS:
+    if requested_step in WIZARD_STEPS_KNOWN:
         wizard_state["current_step"] = requested_step
 
     if isinstance(payload.get("show_advanced"), bool):
         wizard_state["show_advanced"] = payload["show_advanced"]
 
     for step in payload.get("completed_steps", []) or []:
-        if step in WIZARD_STEPS:
+        if step in WIZARD_STEPS_KNOWN:
             wizard_state = set_wizard_step_complete(wizard_state, step)
 
     for step in payload.get("skipped_optional_steps", []) or []:

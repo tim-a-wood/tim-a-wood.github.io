@@ -2576,12 +2576,7 @@
                 <a class="nav-link" href="#intake">Setup</a>
                 <a class="nav-link" href="#concepts">Concepts</a>
                 <a class="nav-link" href="#character">Character</a>
-                <a class="nav-link" href="#rig-layout">Rig Layout</a>
-                <a class="nav-link" href="#part-split">Part Split</a>
-                <a class="nav-link" href="#split-review">Split Review</a>
-                <a class="nav-link" href="#layer-review">Sprite Model</a>
-                <a class="nav-link" href="#rig-review">Set Up Motion</a>
-                <a class="nav-link" href="#production">Build Animations</a>
+                <a class="nav-link" href="#animations">Animations</a>
                 <a class="nav-link" href="#qa">Checks</a>
                 <a class="nav-link" href="#export">Export</a>
             </div>
@@ -2599,7 +2594,7 @@
     <main class="main-column">
         <section class="hero">
             <h2>Guide a sprite from idea to export without learning the pipeline first.</h2>
-            <p>Use the guided Workbench to move from concept approval through part split, sprite model, rigging, QA, and export.</p>
+            <p>Use the guided Workbench for Pixel Lab: setup, concepts, character, animations, checks, and export.</p>
             <div class="hero-actions">
                 <button id="launch-wizard">Create New Sprite</button>
                 <button class="secondary" id="open-workbench" hidden>Open Workbench</button>
@@ -3017,466 +3012,15 @@
             <div id="pixellab-character-board"></div>
         </section>
 
-        <section class="panel" id="rig-layout">
+        <section class="panel" id="animations">
             <div class="section-head">
                 <div>
-                    <h3>Rig Layout</h3>
-                    <p>Review the resolved rig layout before sprite extraction. This JSON becomes the deterministic source of truth for part extraction, joints, and overlays.</p>
+                    <h3>Animations (Pixel Lab)</h3>
+                    <p>Generate idle and walk via Pixel Lab templates or custom text actions. Build canonical clips before running checks.</p>
                 </div>
-                <div class="stage-meta" data-stage="rig_layout"></div>
+                <div class="stage-meta" data-stage="animations"></div>
             </div>
-
-            <div class="warning-box">
-                <p id="rig-layout-warning">Paste the concept image into Codex, ask it to validate the image and return the internal rig layout JSON if valid, then paste the Codex response here. The raw JSON stays internal.</p>
-            </div>
-
-            <div class="rig-layout-shell">
-                <div class="rig-layout-rail">
-                    <div class="rig-layout-card compact">
-                        <div class="rig-layout-inline-note">
-                            <h4>Concept Overlay</h4>
-                            <div class="small-note">Sticky reference while you validate part coverage and joint ownership.</div>
-                        </div>
-                        <div class="rig-layout-preview-frame" id="rig-layout-preview"></div>
-                    </div>
-                    <div class="rig-layout-card compact">
-                        <div class="rig-layout-inline-note">
-                            <h4>Revision History</h4>
-                            <div class="small-note">Recent snapshots only.</div>
-                        </div>
-                        <div class="revision-list" id="rig-layout-history"></div>
-                    </div>
-                </div>
-
-                <div class="rig-layout-workspace">
-                    <div class="rig-layout-card">
-                        <div class="rig-layout-actions">
-                            <div class="rig-layout-side-stack">
-                                <h4>Codex Check Workspace</h4>
-                                <p class="small-note">Keep the response field visible and move low-frequency actions into the overflow menu.</p>
-                            </div>
-                            <div class="rig-layout-primary-actions">
-                                <button class="secondary" id="copy-rig-layout-prompt">Copy Codex Prompt</button>
-                                <button class="secondary" id="save-rig-layout">Apply Codex Check</button>
-                                <button class="secondary" id="approve-rig-layout">Approve Rig Layout</button>
-                                <details class="panel-menu">
-                                    <summary class="panel-menu-trigger">More</summary>
-                                    <div class="panel-menu-sheet">
-                                        <button id="generate-rig-layout" type="button">Reset Suggested Layout</button>
-                                    </div>
-                                </details>
-                            </div>
-                        </div>
-
-                        <div class="rig-layout-metrics" id="rig-layout-metrics"></div>
-                        <div class="rig-layout-summary-stack" id="rig-layout-summary"></div>
-
-                        <label>
-                            <span class="field-label">Paste Codex Response</span>
-                            <textarea class="rig-layout-editor" id="rig-layout-json" placeholder='Paste a Codex response that includes fields like {"valid": true, "summary": "...", "rig_layout": {...}}'></textarea>
-                        </label>
-                        <div class="small-note">Codex can include explanation text around the JSON. The tool will extract the JSON payload and keep the layout itself hidden from the user-facing flow.</div>
-                    </div>
-
-                    <details class="advanced-settings rig-layout-disclosure">
-                        <summary>
-                            <span>Codex Handoff Prompt</span>
-                            <span>Open only when you need to recopy or inspect it.</span>
-                        </summary>
-                        <div class="advanced-content">
-                            <div class="warning-box">
-                                <pre id="rig-layout-handoff-prompt">No Codex handoff prompt available yet.</pre>
-                            </div>
-                            <div class="small-note">Copy this prompt, paste it into Codex with the Gemini image, then paste Codex’s response into the workspace above.</div>
-                        </div>
-                    </details>
-
-                    <details class="advanced-settings rig-layout-disclosure" open>
-                        <summary>
-                            <span>Part Breakdown</span>
-                            <span>Compact list of extraction regions, parents, and overlays.</span>
-                        </summary>
-                        <div class="advanced-content">
-                            <div class="rig-layout-parts" id="rig-layout-parts"></div>
-                        </div>
-                    </details>
-                </div>
-            </div>
-        </section>
-
-        <section class="panel" id="part-manifest">
-            <div class="section-head">
-                <div>
-                    <h3>Part Manifest</h3>
-                    <p>Approve the canonical authored part list before any shape editing begins. This is the editable contract between rig layout and shape-based splitting.</p>
-                </div>
-                <div class="stage-meta" data-stage="part_manifest"></div>
-            </div>
-
-            <div class="warning-box">
-                <p id="part-manifest-warning">Generate the part manifest, adjust the list if needed, then approve it before drawing or editing shapes.</p>
-            </div>
-
-            <div class="rig-layout-actions">
-                <div class="rig-layout-side-stack">
-                    <h4>Manifest Workspace</h4>
-                    <p class="small-note">Use Codex for a first-pass list, then make the actual authored list explicit here.</p>
-                </div>
-                <div class="rig-layout-primary-actions">
-                    <button id="generate-part-manifest">Generate Part Manifest</button>
-                    <button class="secondary" id="copy-part-manifest-prompt">Copy Codex Manifest Prompt</button>
-                    <button class="secondary" id="approve-part-manifest">Approve Part Manifest</button>
-                    <details class="panel-menu">
-                        <summary class="panel-menu-trigger">More</summary>
-                        <div class="panel-menu-sheet">
-                            <button id="add-optional-manifest-part" type="button">Add Optional Part</button>
-                        </div>
-                    </details>
-                </div>
-            </div>
-            <div class="grid-2" style="margin-top: 14px;">
-                <div>
-                    <h3 style="font-size: 0.95rem; margin: 0 0 10px;">Approved Source</h3>
-                    <div id="part-manifest-source"></div>
-                </div>
-                <div>
-                    <h3 style="font-size: 0.95rem; margin: 0 0 10px;">Manifest Summary</h3>
-                    <div id="part-manifest-summary"></div>
-                </div>
-            </div>
-            <div class="grid-2" style="margin-top: 14px;">
-                <div>
-                    <h3 style="font-size: 0.95rem; margin: 0 0 10px;">Current Part List</h3>
-                    <div class="check-list" id="part-manifest-list"></div>
-                </div>
-                <div>
-                    <h3 style="font-size: 0.95rem; margin: 0 0 10px;">Validation And Codex Apply</h3>
-                    <div class="check-list" id="part-manifest-checks"></div>
-                    <label style="margin-top: 12px; display: block;">
-                        <span class="field-label">Paste Codex Manifest Response</span>
-                        <textarea class="rig-layout-editor" id="part-manifest-json" placeholder='Paste a Codex response that includes {"valid": true, "summary": "...", "part_manifest": {...}}'></textarea>
-                    </label>
-                    <div class="actions" style="margin-top: 10px;">
-                        <button class="secondary" id="apply-part-manifest">Apply Codex Manifest Response</button>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <section class="panel" id="part-shape-edit">
-            <div class="section-head">
-                <div>
-                    <h3>Part Shape Edit</h3>
-                    <p>Use a lightweight polygon editor to initialize, inspect, and refine the actual authored shape for each manifest part.</p>
-                </div>
-                <div class="stage-meta" data-stage="part_shape_edit"></div>
-            </div>
-
-            <div class="warning-box">
-                <p id="part-shapes-warning">Initialize candidate shapes, edit vertices until the reconstruction path is production-ready, then approve the shapes.</p>
-            </div>
-
-            <div class="actions">
-                <button id="initialize-part-shapes">Initialize All Part Shapes</button>
-                <button class="secondary" id="copy-part-shapes-prompt">Copy Codex Shape Prompt</button>
-                <button class="secondary" id="approve-part-shapes">Approve Part Shapes</button>
-            </div>
-            <div class="actions" style="margin-top: 10px;">
-                <button class="secondary" id="shape-undo">Undo</button>
-                <button class="secondary" id="shape-redo">Redo</button>
-                <button class="secondary" id="shape-fit-view">Fit To Screen</button>
-                <button class="secondary" id="shape-zoom-out">Zoom Out</button>
-                <button class="secondary" id="shape-zoom-in">Zoom In</button>
-                <button class="secondary" id="shape-reset-selected">Reset Selected Shape</button>
-            </div>
-            <div class="grid-3" style="margin-top: 14px;">
-                <label>
-                    <span class="field-label">Selected Part</span>
-                    <select id="part-shapes-select"></select>
-                </label>
-                <label>
-                    <span class="field-label">Source Opacity</span>
-                    <input id="part-shapes-opacity" type="range" min="10" max="100" step="5" value="70">
-                </label>
-                <label>
-                    <span class="field-label">Editor Tip</span>
-                    <div class="small-note" style="padding-top: 9px;">Click empty canvas to add vertices. Drag points to move them. Alt-click a point to delete it.</div>
-                </label>
-            </div>
-            <div class="grid-2" style="margin-top: 14px;">
-                <div>
-                    <div id="part-shapes-editor"></div>
-                </div>
-                <div>
-                    <h3 style="font-size: 0.95rem; margin: 0 0 10px;">Part Controls</h3>
-                    <div class="check-list" id="part-shapes-list"></div>
-                    <h3 style="font-size: 0.95rem; margin: 16px 0 10px;">Validation</h3>
-                    <div class="check-list" id="part-shapes-checks"></div>
-                    <label style="margin-top: 12px; display: block;">
-                        <span class="field-label">Paste Codex Shape Response</span>
-                        <textarea class="rig-layout-editor" id="part-shapes-json" placeholder='Paste a Codex response that includes {"valid": true, "summary": "...", "part_shapes": {...}}'></textarea>
-                    </label>
-                    <div class="actions" style="margin-top: 10px;">
-                        <button class="secondary" id="apply-part-shapes">Apply Codex Shape Response</button>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <section class="panel" id="split-build">
-            <div class="section-head">
-                <div>
-                    <h3>Split Build</h3>
-                    <p>Convert approved polygons or masks into isolated part PNGs and a reconstruction preview.</p>
-                </div>
-                <div class="stage-meta" data-stage="split_build"></div>
-            </div>
-
-            <div class="warning-box">
-                <p id="part-split-warning">Build split assets from the approved shapes, compare the reconstruction preview to the source image, then send the result to split review.</p>
-            </div>
-
-            <div class="actions">
-                <button id="generate-part-split">Build Split Assets</button>
-                <button class="secondary" id="copy-part-split-prompt">Copy Codex Split Prompt</button>
-            </div>
-            <div class="grid-2" style="margin-top: 14px;">
-                <div>
-                    <h3 style="font-size: 0.95rem; margin: 0 0 10px;">Source</h3>
-                    <div id="part-split-source"></div>
-                </div>
-                <div>
-                    <h3 style="font-size: 0.95rem; margin: 0 0 10px;">Reconstruction</h3>
-                    <div id="part-split-preview"></div>
-                </div>
-            </div>
-            <div class="grid-2" style="margin-top: 14px;">
-                <div>
-                    <h3 style="font-size: 0.95rem; margin: 0 0 10px;">Candidate Parts</h3>
-                    <div class="thumb-grid" id="part-split-gallery"></div>
-                </div>
-                <div>
-                    <h3 style="font-size: 0.95rem; margin: 0 0 10px;">Validation</h3>
-                    <div class="check-list" id="part-split-checks"></div>
-                </div>
-            </div>
-        </section>
-
-        <section class="panel" id="split-review">
-            <div class="section-head">
-                <div>
-                    <h3>Review Split Parts</h3>
-                    <p>Approve the separated parts only when the reconstructed neutral pose cleanly matches the approved source image.</p>
-                </div>
-                <div class="stage-meta" data-stage="split_review"></div>
-            </div>
-
-            <div class="actions">
-                <button class="secondary" id="approve-part-split">Approve Split Parts</button>
-            </div>
-            <div class="grid-2" style="margin-top: 14px;">
-                <div>
-                    <h3 style="font-size: 0.95rem; margin: 0 0 10px;">Source</h3>
-                    <div id="split-review-source"></div>
-                </div>
-                <div>
-                    <h3 style="font-size: 0.95rem; margin: 0 0 10px;">Reconstructed Neutral Pose</h3>
-                    <div id="split-review-preview"></div>
-                </div>
-            </div>
-            <div class="check-list" id="split-review-checks" style="margin-top: 14px;"></div>
-        </section>
-
-        <section class="panel" id="layer-review">
-            <div class="section-head">
-                <div>
-                    <h3>Build Sprite Model</h3>
-                    <p>Build the canonical sprite model directly from approved split parts, inspect the result, and apply deterministic corrections in-tool before rigging.</p>
-                </div>
-                <div class="stage-meta" data-stage="sprite_model"></div>
-            </div>
-
-            <div class="warning-box">
-                <p id="layer-warning">The sprite model is built from approved split parts. Use deterministic cleanup here instead of rediscovering anatomy from the full concept image.</p>
-            </div>
-
-            <div class="actions">
-                <button id="build-layers">Build Sprite Model</button>
-                <button class="secondary" id="approve-layers">Approve Sprite Model</button>
-                <button class="secondary" id="sprite-undo-last">Undo Last Change</button>
-                <button class="secondary" id="sprite-restore-revision">Restore Selected Revision</button>
-            </div>
-            <div class="grid-3" style="margin-top: 14px;">
-                <label>
-                    <span class="field-label">Selected Part</span>
-                    <select id="sprite-part-select"></select>
-                </label>
-                <label>
-                    <span class="field-label">Parent Joint</span>
-                    <select id="sprite-parent-joint"></select>
-                </label>
-                <label>
-                    <span class="field-label">Revision Snapshot</span>
-                    <select id="sprite-revision-select"></select>
-                </label>
-            </div>
-            <div class="actions" style="margin-top: 12px;">
-                <button class="secondary" id="sprite-draw-order-back">Send Backward</button>
-                <button class="secondary" id="sprite-draw-order-forward">Bring Forward</button>
-                <button class="secondary" id="sprite-recover-occlusion">Recover Occlusion</button>
-            </div>
-            <div class="grid-2" style="margin-top: 14px;">
-                <div>
-                    <h3 style="font-size: 0.95rem; margin: 0 0 10px;">Direct Editor</h3>
-                    <div id="sprite-model-source"></div>
-                </div>
-                <div>
-                    <h3 style="font-size: 0.95rem; margin: 0 0 10px;">Selected Part And Recovery</h3>
-                    <div id="sprite-model-selected"></div>
-                </div>
-            </div>
-            <details class="advanced-settings" style="margin-top: 14px;">
-                <summary>Advanced Sprite-Model Controls</summary>
-                <div class="advanced-content">
-                    <div class="grid-3">
-                        <label>
-                            <span class="field-label">Rename Part</span>
-                            <input id="sprite-rename" placeholder="upper_arm_right">
-                        </label>
-                        <label>
-                            <span class="field-label">Pivot X</span>
-                            <input id="sprite-pivot-x" type="number" step="1">
-                        </label>
-                        <label>
-                            <span class="field-label">Pivot Y</span>
-                            <input id="sprite-pivot-y" type="number" step="1">
-                        </label>
-                        <label>
-                            <span class="field-label">Draw Order</span>
-                            <input id="sprite-draw-order" type="number" step="1">
-                        </label>
-                        <label>
-                            <span class="field-label">Move Part</span>
-                            <input id="sprite-translate" placeholder="dx,dy">
-                        </label>
-                        <label>
-                            <span class="field-label">Rotate Part</span>
-                            <input id="sprite-rotate" placeholder="degrees">
-                        </label>
-                        <label>
-                            <span class="field-label">Scale Part</span>
-                            <input id="sprite-scale" placeholder="1.0">
-                        </label>
-                        <label>
-                            <span class="field-label">Palette Replace</span>
-                            <input id="sprite-palette-map" placeholder="#445566:#c7aa74, #101820:#0b0f16">
-                        </label>
-                        <label>
-                            <span class="field-label">Mask Region</span>
-                            <input id="sprite-mask-region" placeholder="x0,y0,x1,y1">
-                        </label>
-                    </div>
-                    <div class="actions">
-                        <button class="secondary" id="sprite-set-pivot">Set Pivot</button>
-                        <button class="secondary" id="sprite-set-parent">Set Parent Joint</button>
-                        <button class="secondary" id="sprite-set-draw-order">Set Draw Order</button>
-                        <button class="secondary" id="sprite-rename-part">Rename Part</button>
-                        <button class="secondary" id="sprite-translate-part">Move Part</button>
-                        <button class="secondary" id="sprite-rotate-part">Rotate Part</button>
-                        <button class="secondary" id="sprite-scale-part">Scale Part</button>
-                        <button class="secondary" id="sprite-cleanup-alpha">Alpha Cleanup</button>
-                        <button class="secondary" id="sprite-normalize-outline">Normalize Outline</button>
-                        <button class="secondary" id="sprite-apply-palette">Replace Palette</button>
-                        <button class="secondary" id="sprite-add-mask">Add To Mask</button>
-                        <button class="secondary" id="sprite-remove-mask">Remove From Mask</button>
-                        <button class="secondary" id="sprite-mirror-part">Mirror Part</button>
-                        <button class="secondary" id="sprite-duplicate-part">Duplicate Part</button>
-                    </div>
-                </div>
-            </details>
-            <div class="grid-2" style="margin-top: 14px;">
-                <div>
-                    <h3 style="font-size: 0.95rem; margin: 0 0 10px;">Parts</h3>
-                    <div class="thumb-grid" id="layer-gallery"></div>
-                </div>
-                <div>
-                    <h3 style="font-size: 0.95rem; margin: 0 0 10px;">Build Diagnostics And History</h3>
-                    <div class="check-list" id="layer-checks"></div>
-                </div>
-            </div>
-        </section>
-
-        <section class="panel" id="rig-review">
-            <div class="section-head">
-                <div>
-                    <h3>Set Up Motion</h3>
-                    <p>Bind the extracted sprite model to a deterministic rig and inspect the neutral pose, joint map, and attachment points before rendering clips.</p>
-                </div>
-                <div class="stage-meta" data-stage="rig_review"></div>
-            </div>
-
-            <div class="actions">
-                <button id="build-rig">Build Rig</button>
-                <button class="secondary" id="approve-rig">Approve Rig</button>
-            </div>
-            <div class="grid-2" style="margin-top: 14px;">
-                <div class="warning-box">
-                    <div class="check-list" id="rig-summary"><div class="empty">No rig data yet.</div></div>
-                </div>
-                <div id="rig-preview"></div>
-            </div>
-        </section>
-
-        <section class="panel" id="production">
-            <div class="section-head">
-                <div>
-                    <h3>Build Animations</h3>
-                    <p>Render deterministic idle and walk clips from the approved sprite model and rig. No AI calls happen in this stage.</p>
-                </div>
-                <div class="stage-meta" data-stage="production"></div>
-            </div>
-
-            <div class="warning-box">
-                <p id="production-warning">Clip output is deterministic. Rebuilds from the same approved sprite model and rig should match exactly.</p>
-            </div>
-
-            <div class="actions">
-                <button id="render-idle">Build Idle</button>
-                <button id="render-walk">Build Walk</button>
-            </div>
-            <div class="grid-2" style="margin-top: 14px;">
-                <div>
-                    <h3 style="font-size: 0.95rem; margin: 0 0 10px;">Clip Editor</h3>
-                    <div id="clip-editor"></div>
-                </div>
-                <div>
-                    <h3 style="font-size: 0.95rem; margin: 0 0 10px;">Neutral Pose Comparison</h3>
-                    <div id="clip-preview"></div>
-                </div>
-            </div>
-            <div class="check-list" id="clip-summary" style="margin-top: 14px;"></div>
-            <div class="grid-2" style="margin-top: 14px;">
-                <div>
-                    <h3 style="font-size: 0.95rem; margin: 0 0 10px;">Idle Frames</h3>
-                    <div id="idle-loop-preview" style="margin-bottom: 12px;"></div>
-                    <div class="thumb-grid" id="idle-gallery"></div>
-                </div>
-                <div>
-                    <h3 style="font-size: 0.95rem; margin: 0 0 10px;">Walk Frames</h3>
-                    <div id="walk-loop-preview" style="margin-bottom: 12px;"></div>
-                    <div class="thumb-grid" id="walk-gallery"></div>
-                </div>
-            </div>
-            <div class="manual-studio-layout" style="margin-top: 14px;">
-                <div>
-                    <h3 style="font-size: 0.95rem; margin: 0 0 10px;">Manual Clip Studio</h3>
-                    <div id="manual-clips-editor"></div>
-                </div>
-                <div>
-                    <h3 style="font-size: 0.95rem; margin: 0 0 10px;">Manual Clip Review</h3>
-                    <div id="manual-clips-preview"></div>
-                </div>
-            </div>
+            <div id="pixellab-animations-board"></div>
         </section>
 
         <section class="panel" id="qa">
@@ -3570,7 +3114,7 @@ const STORAGE_KEYS = {
 };
 
 const WIZARD_STEPS = ["project", "brief", "references", "concepts", "review", "rig_layout", "part_manifest", "part_shape_edit", "split_build", "split_review", "sprite_model", "rig", "clips", "qa", "export"];
-const WORKBENCH_SECTION_IDS = ["intake", "concepts", "character", "rig-layout", "part-manifest", "part-shape-edit", "split-build", "split-review", "layer-review", "rig-review", "production", "qa", "export", "activity-log"];
+const WORKBENCH_SECTION_IDS = ["intake", "concepts", "character", "animations", "qa", "export", "activity-log"];
 const WIZARD_SECTION_MAP = {
     project: ["intake"],
     brief: ["intake"],
@@ -3579,12 +3123,13 @@ const WIZARD_SECTION_MAP = {
     review: ["concepts"],
     rig_layout: ["concepts"],
     part_manifest: ["concepts"],
-    part_shape_edit: ["part-shape-edit"],
-    split_build: ["split-build"],
-    split_review: ["split-review"],
-    sprite_model: ["layer-review"],
-    rig: ["rig-review"],
+    part_shape_edit: ["concepts"],
+    split_build: ["concepts"],
+    split_review: ["concepts"],
+    sprite_model: ["concepts"],
+    rig: ["concepts"],
     clips: ["character"],
+    animations: ["animations"],
     qa: ["qa"],
     export: ["export"],
 };
@@ -3667,6 +3212,12 @@ const WIZARD_META = {
         outcome: "You will have direction PNGs plus an optional skeleton JSON before moving on to template animations.",
         example: "Use Create Character (4 dir), open Est. skeleton on east if you want joint overlay, then Approve Character.",
     },
+    animations: {
+        label: "Animations",
+        description: "Generate idle and walk with Pixel Lab templates or custom actions, optionally edit, then build canonical animation_clips.json.",
+        outcome: "You will have frame sequences for QA/export and a merged clips file for the engine.",
+        example: "Pick a template per clip, Generate, run Build canonical clips when both idle and walk exist.",
+    },
     qa: {
         label: "Checks (QA)",
         description: "Run deterministic QA on the Pixel Lab pipeline (after animations) or legacy rig output before export.",
@@ -3700,7 +3251,30 @@ const FRIENDLY_STAGE_NAMES = {
     production_walk: "Building walk",
     qa: "Checks",
     export: "Export",
+    animations: "Animations",
 };
+
+/** Pixel Lab template_animation_id values (Appendix A); grouped by server-side idle vs walk inference. */
+const PIXELLAB_ALL_TEMPLATE_IDS = [
+    "breathing-idle", "walk", "walking", "walking-4-frames", "walking-6-frames", "walking-8-frames",
+    "running-4-frames", "running-6-frames", "running-8-frames", "jumping-1", "jumping-2", "two-footed-jump",
+    "crouching", "crouched-walking", "falling-back-death", "fight-stance-idle-8-frames", "lead-jab", "cross-punch",
+    "high-kick", "roundhouse-kick", "hurricane-kick", "surprise-uppercut", "leg-sweep", "flying-kick", "fireball",
+    "taking-punch", "getting-up", "backflip", "front-flip", "running-jump", "running-slide",
+    "drinking", "picking-up", "throw-object", "pushing", "pull-heavy-object", "sad-walk", "scary-walk",
+    "walk-1", "walk-2", "walking-2", "walking-3", "walking-4", "walking-5", "walking-6", "walking-7", "walking-8", "walking-9", "walking-10",
+];
+
+function inferPixellabClipFromTemplateId(templateId) {
+    const s = String(templateId || "").toLowerCase();
+    if (s.includes("idle") || s.includes("breathing")) return "idle";
+    if (s.includes("walk") || s.includes("walking")) return "walk";
+    return "idle";
+}
+
+function pixellabTemplatesForClip(clipName) {
+    return PIXELLAB_ALL_TEMPLATE_IDS.filter((id) => inferPixellabClipFromTemplateId(id) === clipName);
+}
 
 const JOB_TYPE_LABELS = {
     "concepts.generate": "Generating Gemini prompt",
@@ -3814,6 +3388,7 @@ const state = {
     conceptPreviewPanY: 0,
     conceptPreviewTransformKey: null,
     pixellabShowSkeleton: false,
+    pixellabAnimTimers: {},
 };
 
 function currentMode() {
@@ -3892,15 +3467,18 @@ function aiWorkflowApprovedRun(groupName, clipName = null, project = state.activ
 }
 
 function visibleWizardSteps(project = state.activeProject) {
-    return aiWorkflowEnabled(project)
-        ? ["project", "brief", "references", "concepts", "review", "rig_layout", "part_manifest", "clips", "qa", "export"]
-        : WIZARD_STEPS;
+    if (!aiWorkflowEnabled(project)) return WIZARD_STEPS;
+    const base = ["project", "brief", "references", "concepts", "review", "rig_layout", "part_manifest", "clips", "qa", "export"];
+    if (String(project?.brief?.backend_mode || "") !== "pixellab") return base;
+    const i = base.indexOf("clips") + 1;
+    return [...base.slice(0, i), "animations", ...base.slice(i)];
 }
 
 function wizardProgressSummary(project) {
     const statuses = project?.step_statuses || {};
     const completed = Object.values(statuses).filter((status) => status === "complete").length;
-    return `${completed}/${WIZARD_STEPS.length} steps complete`;
+    const total = visibleWizardSteps(project).length;
+    return `${completed}/${total} steps complete`;
 }
 
 function normalizeErrorMessage(message) {
@@ -4003,6 +3581,7 @@ function blankWizardModel() {
             sprite_model: "locked",
             rig: "locked",
             clips: "locked",
+            animations: "locked",
             qa: "locked",
             export: "locked",
         },
@@ -4019,6 +3598,7 @@ function blankWizardModel() {
             sprite_model: ["Approve the split parts first."],
             rig: ["Build and approve the sprite model first."],
             clips: ["Approve the rig first."],
+            animations: ["Approve the Pixel Lab character first."],
             qa: ["Render the clips first."],
             export: ["Checks must pass before export."],
         },
@@ -4108,6 +3688,16 @@ function wizardSummaryText(step) {
                 return `${idleRun ? "idle cleaned" : "idle pending"} · ${walkRun ? "walk cleaned" : "walk pending"}`;
             }
             return `${project.build_status?.idle_render_complete ? "idle ready" : "idle pending"} · ${project.build_status?.walk_render_complete ? "walk ready" : "walk pending"}`;
+        case "animations":
+            if (String(project.brief?.backend_mode || "") === "pixellab") {
+                const an = project.pixellab_animations?.animations || {};
+                const idleOk = Boolean(an.idle?.directions && Object.keys(an.idle.directions).length);
+                const walkOk = Boolean(an.walk?.directions && Object.keys(an.walk.directions).length);
+                const clips = project.animation_clips || {};
+                const built = Boolean(clips.idle && clips.walk);
+                return `${idleOk ? "idle frames" : "idle pending"} · ${walkOk ? "walk frames" : "walk pending"}${built ? " · clips built" : ""}`;
+            }
+            return "N/A";
         case "qa":
             return project.qa_report?.status || (aiWorkflowEnabled(project) ? "Cleanup & QA not run." : "Checks not run.");
         case "export":
@@ -4200,7 +3790,7 @@ function applyModeVisibility() {
     const mode = "wizard";
     const activeStep = activeWizardStep();
     const aiEnabled = aiWorkflowEnabled();
-    const hiddenForAi = new Set(["rig-layout", "part-manifest", "part-shape-edit", "split-build", "split-review", "layer-review", "rig-review", "production"]);
+    const hiddenForAi = new Set([]);
     document.body.classList.toggle("wizard-mode", mode === "wizard");
     const allowedSections = new Set(mode === "wizard" ? wizardSectionIds(activeStep) : WORKBENCH_SECTION_IDS);
     WORKBENCH_SECTION_IDS.forEach((id) => {
@@ -4398,8 +3988,9 @@ async function resumeWizardForCurrentProject() {
 async function handleWizardAction(actionId, currentStep) {
     switch (actionId) {
         case "wizard-back": {
-            const index = Math.max(0, WIZARD_STEPS.indexOf(currentStep) - 1);
-            await goToWizardStep(WIZARD_STEPS[index]);
+            const seq = visibleWizardSteps();
+            const index = Math.max(0, seq.indexOf(currentStep) - 1);
+            await goToWizardStep(seq[index] || "project");
             return;
         }
         case "wizard-create-project":
@@ -6523,6 +6114,246 @@ function renderPixellabCharacterBoard() {
     });
 }
 
+function clearPixellabAnimTimer(clipName) {
+    const t = state.pixellabAnimTimers?.[clipName];
+    if (t != null) window.clearInterval(t);
+    if (state.pixellabAnimTimers && Object.prototype.hasOwnProperty.call(state.pixellabAnimTimers, clipName)) {
+        delete state.pixellabAnimTimers[clipName];
+    }
+}
+
+function pixellabPreviewFrameUrls(project, animName, direction) {
+    const anim = project?.pixellab_animations?.animations?.[animName];
+    const block = anim?.directions?.[direction];
+    const frames = Array.isArray(block?.frames) ? block.frames : [];
+    const v = encodeURIComponent(project?.updated_at || "");
+    return frames.map((rel) => `${projectAsset(project, rel)}?v=${v}`);
+}
+
+function renderPixellabAnimationsBoard() {
+    const root = document.querySelector("#pixellab-animations-board");
+    if (!root) return;
+    ["idle", "walk"].forEach((c) => clearPixellabAnimTimer(c));
+    const project = state.activeProject;
+    root.innerHTML = "";
+    if (!project) {
+        root.innerHTML = `<div class="empty">Open a project to manage Pixel Lab animations.</div>`;
+        return;
+    }
+    if (String(project.brief?.backend_mode || "") !== "pixellab") {
+        root.innerHTML = `<div class="warning-box"><p>Animations (Pixel Lab) applies when <code>backend_mode</code> is <code>pixellab</code>.</p></div>`;
+        return;
+    }
+    if (!pixellabCharacterApproved(project)) {
+        root.innerHTML = `<div class="warning-box"><p>Approve the Pixel Lab character first (Character panel).</p></div>`;
+        return;
+    }
+    const store = project.pixellab_animations || { animations: {} };
+    const anims = store.animations || {};
+    const dirList = project.pixellab_character?.directions;
+    const directionCount = Array.isArray(dirList) && dirList.length >= 8 ? 8 : 4;
+    const pid = project.project_id;
+    const reload = async () => {
+        await loadProject(pid, currentMode());
+        renderAll();
+    };
+    const idleTemplates = pixellabTemplatesForClip("idle");
+    const walkTemplates = pixellabTemplatesForClip("walk");
+    const listRows = Object.keys(anims).length
+        ? Object.entries(anims).map(([name, meta]) => {
+            const dirs = meta?.directions ? Object.keys(meta.directions).join(", ") : "—";
+            const fc = meta?.frame_count ?? "—";
+            const tid = meta?.template_animation_id ?? "—";
+            return `<tr><td><strong>${escapeHtml(name)}</strong></td><td class="small-note">${escapeHtml(String(tid))}</td><td class="small-note">${escapeHtml(dirs)}</td><td class="small-note">${escapeHtml(String(fc))}</td></tr>`;
+        }).join("")
+        : `<tr><td colspan="4" class="small-note">No clips in store yet.</td></tr>`;
+
+    function clipCard(clipName, templates, defaultTemplate) {
+        const meta = anims[clipName] || {};
+        const dirsInStore = meta.directions ? Object.keys(meta.directions) : [];
+        const defaultDir = dirsInStore.includes("east") ? "east" : (dirsInStore[0] || "east");
+        const dirOptions = (dirList && dirList.length ? dirList : ["east"]).map((d) => `<option value="${escapeHtml(d)}"${d === defaultDir ? " selected" : ""}>${humanizeKey(d)}</option>`).join("");
+        const opts = templates.map((t) => `<option value="${escapeHtml(t)}"${t === defaultTemplate ? " selected" : ""}>${escapeHtml(t)}</option>`).join("");
+        return `
+        <div class="clip-control-card" style="margin-bottom:14px;" data-pixellab-clip-card="${clipName}">
+            <h4 style="margin:0 0 8px;">${humanizeKey(clipName)} clip</h4>
+            <div class="small-note">Canonical name <code>${clipName}</code> for export and QA.</div>
+            <label class="small-note" style="display:block;margin-top:10px;">Template animation</label>
+            <select class="pixellab-template-select" data-clip="${clipName}" style="max-width:100%;">${opts}</select>
+            <div class="actions" style="margin-top:10px;flex-wrap:wrap;gap:8px;">
+                <button type="button" class="pixellab-gen-template" data-clip="${clipName}">Generate via template</button>
+            </div>
+            <label class="small-note" style="display:block;margin-top:14px;">Custom action (east-facing)</label>
+            <input type="text" class="pixellab-custom-action" data-clip="${clipName}" placeholder="e.g. heavy overhead slash" style="width:100%;">
+            <div class="actions" style="margin-top:8px;">
+                <button type="button" class="secondary pixellab-gen-custom" data-clip="${clipName}">Generate custom</button>
+            </div>
+            <label class="small-note" style="display:block;margin-top:14px;">Edit existing frames</label>
+            <textarea class="pixellab-edit-desc" data-clip="${clipName}" rows="2" placeholder="Describe the change for Pixel Lab edit…" style="width:100%;"></textarea>
+            <div class="actions" style="margin-top:8px;">
+                <button type="button" class="secondary pixellab-edit-anim" data-clip="${clipName}">Edit animation</button>
+            </div>
+            <div class="pixellab-anim-preview-wrap" style="margin-top:14px;">
+                <div class="check-row wrap">
+                    <span class="small-note">Preview direction</span>
+                    <select class="pixellab-preview-dir" data-clip="${clipName}">${dirOptions}</select>
+                    <button type="button" class="secondary pixellab-preview-play" data-clip="${clipName}">Play</button>
+                    <button type="button" class="secondary pixellab-preview-stop" data-clip="${clipName}">Stop</button>
+                    <span class="small-note pixellab-preview-label" data-clip="${clipName}">—</span>
+                </div>
+                <img class="pixellab-preview-img" data-clip="${clipName}" alt="" style="max-height:160px;margin-top:8px;background:rgba(0,0,0,0.25);border-radius:8px;">
+                <div class="pixellab-anim-strip" data-clip="${clipName}" style="margin-top:8px;display:flex;flex-wrap:wrap;gap:4px;"></div>
+            </div>
+        </div>`;
+    }
+
+    root.innerHTML = `
+        <div class="warning-box" style="margin-bottom:12px;">
+            <p><strong>Idle</strong> and <strong>walk</strong> are required before <strong>Build canonical clips</strong> and QA. Pick templates that match each clip (server maps IDs to idle vs walk the same way as this UI).</p>
+        </div>
+        <div class="clip-control-card" style="margin-bottom:14px;">
+            <h4 style="margin:0 0 8px;">Animation store</h4>
+            <table class="small-note" style="width:100%;border-collapse:collapse;">
+                <thead><tr><th align="left">Clip</th><th align="left">Template</th><th align="left">Directions</th><th align="left">Frames (meta)</th></tr></thead>
+                <tbody>${listRows}</tbody>
+            </table>
+            <div class="actions" style="margin-top:12px;flex-wrap:wrap;gap:8px;">
+                <button type="button" id="pixellab-build-clips">Build canonical clips</button>
+            </div>
+        </div>
+        <div class="grid-2" style="align-items:start;">
+            ${clipCard("idle", idleTemplates, "breathing-idle")}
+            ${clipCard("walk", walkTemplates, "walking-4-frames")}
+        </div>
+    `;
+
+    function fillStrip(clipName, direction) {
+        const urls = pixellabPreviewFrameUrls(project, clipName, direction);
+        const strip = root.querySelector(`.pixellab-anim-strip[data-clip="${clipName}"]`);
+        const img = root.querySelector(`.pixellab-preview-img[data-clip="${clipName}"]`);
+        if (!strip || !img) return;
+        strip.innerHTML = urls.map((u, i) => `<img src="${u}" alt="f${i}" style="width:48px;height:48px;object-fit:contain;background:rgba(0,0,0,0.2);border-radius:6px;">`).join("");
+        img.src = urls[0] || "";
+        const lab = root.querySelector(`.pixellab-preview-label[data-clip="${clipName}"]`);
+        if (lab) lab.textContent = urls.length ? `0 / ${urls.length}` : "No frames";
+    }
+
+    ["idle", "walk"].forEach((clipName) => {
+        const dirSel = root.querySelector(`.pixellab-preview-dir[data-clip="${clipName}"]`);
+        const d = dirSel?.value || "east";
+        fillStrip(clipName, d);
+        dirSel?.addEventListener("change", () => fillStrip(clipName, dirSel.value));
+    });
+
+    root.querySelectorAll(".pixellab-gen-template").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+            const clip = btn.dataset.clip;
+            const sel = root.querySelector(`.pixellab-template-select[data-clip="${clip}"]`);
+            const tid = sel?.value;
+            if (!tid) return;
+            const inferred = inferPixellabClipFromTemplateId(tid);
+            if (inferred !== clip) {
+                notify(`Template "${tid}" maps to "${inferred}" on the server — use the ${inferred} card.`, "error");
+                return;
+            }
+            try {
+                notify(`Generating ${clip} via ${tid}…`, "info");
+                await api(`/api/projects/${pid}/pixellab/animate`, {
+                    method: "POST",
+                    body: JSON.stringify({ template_animation_id: tid, directions: directionCount }),
+                });
+                notify(`${clip} animation updated.`, "success");
+                await reload();
+            } catch (e) {
+                notify(normalizeErrorMessage(e.message), "error");
+            }
+        });
+    });
+
+    root.querySelectorAll(".pixellab-gen-custom").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+            const clip = btn.dataset.clip;
+            const input = root.querySelector(`.pixellab-custom-action[data-clip="${clip}"]`);
+            const action = input?.value?.trim();
+            if (!action) {
+                notify("Enter a custom action description.", "error");
+                return;
+            }
+            try {
+                await api(`/api/projects/${pid}/pixellab/animate-custom`, {
+                    method: "POST",
+                    body: JSON.stringify({ animation_name: clip, action }),
+                });
+                notify(`Custom ${clip} saved.`, "success");
+                await reload();
+            } catch (e) {
+                notify(normalizeErrorMessage(e.message), "error");
+            }
+        });
+    });
+
+    root.querySelectorAll(".pixellab-edit-anim").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+            const clip = btn.dataset.clip;
+            const ta = root.querySelector(`.pixellab-edit-desc[data-clip="${clip}"]`);
+            const description = ta?.value?.trim();
+            if (!description) {
+                notify("Enter an edit description.", "error");
+                return;
+            }
+            try {
+                await api(`/api/projects/${pid}/pixellab/edit-animation`, {
+                    method: "POST",
+                    body: JSON.stringify({ animation_name: clip, description }),
+                });
+                notify(`${clip} edit applied.`, "success");
+                await reload();
+            } catch (e) {
+                notify(normalizeErrorMessage(e.message), "error");
+            }
+        });
+    });
+
+    root.querySelector("#pixellab-build-clips")?.addEventListener("click", async () => {
+        try {
+            notify("Building animation_clips.json…", "info");
+            await api(`/api/projects/${pid}/pixellab/build-clips`, { method: "POST", body: "{}" });
+            notify("Canonical clips built.", "success");
+            await reload();
+        } catch (e) {
+            notify(normalizeErrorMessage(e.message), "error");
+        }
+    });
+
+    root.querySelectorAll(".pixellab-preview-play").forEach((btn) => {
+        btn.addEventListener("click", () => {
+            const clip = btn.dataset.clip;
+            const dirSel = root.querySelector(`.pixellab-preview-dir[data-clip="${clip}"]`);
+            const urls = pixellabPreviewFrameUrls(state.activeProject, clip, dirSel?.value || "east");
+            const img = root.querySelector(`.pixellab-preview-img[data-clip="${clip}"]`);
+            const lab = root.querySelector(`.pixellab-preview-label[data-clip="${clip}"]`);
+            const meta = state.activeProject?.pixellab_animations?.animations?.[clip];
+            const fps = Number(meta?.fps) || 12;
+            if (!urls.length || !img) return;
+            clearPixellabAnimTimer(clip);
+            let idx = 0;
+            img.src = urls[0];
+            if (lab) lab.textContent = `1 / ${urls.length}`;
+            state.pixellabAnimTimers = state.pixellabAnimTimers || {};
+            state.pixellabAnimTimers[clip] = window.setInterval(() => {
+                idx = (idx + 1) % urls.length;
+                img.src = urls[idx];
+                if (lab) lab.textContent = `${idx + 1} / ${urls.length}`;
+            }, Math.max(40, Math.round(1000 / fps)));
+        });
+    });
+    root.querySelectorAll(".pixellab-preview-stop").forEach((btn) => {
+        btn.addEventListener("click", () => {
+            clearPixellabAnimTimer(btn.dataset.clip);
+        });
+    });
+}
+
 function renderAiCharacterLockBoard() {
     /* Phase 7.2: Character Lock panel removed; server may still persist ai_workflow character_lock data. */
 }
@@ -6534,8 +6365,7 @@ function renderAiKeyPoseBoard() {
 function syncLegacyModeControls() {
     const legacy = aiWorkflowLegacyMode();
     const selectors = [
-        "#intake", "#concepts", "#character", "#rig-layout", "#part-manifest", "#part-shape-edit", "#split-build",
-        "#split-review", "#layer-review", "#rig-review", "#production", "#qa", "#export"
+        "#intake", "#concepts", "#character", "#animations", "#qa", "#export",
     ];
     const allowInLegacy = new Set(["create-project", "create-project-workbench", "refresh-projects-brief", "refresh-projects-references", "refresh-projects-workbench"]);
     selectors.forEach((selector) => {
@@ -9026,17 +8856,7 @@ function renderAll() {
     renderAiCharacterLockBoard();
     renderAiKeyPoseBoard();
     renderPixellabCharacterBoard();
-    renderRigLayout();
-    renderPartManifest();
-    renderPartShapeEdit();
-    renderPartSplit();
-    renderLayerReview();
-    renderRigReview();
-    renderClipSummary();
-    renderClipEditor();
-    renderAnimationGallery("idle");
-    renderAnimationGallery("walk");
-    renderManualClipStudio();
+    renderPixellabAnimationsBoard();
     renderQa();
     renderExport();
     applyModeVisibility();
@@ -9553,7 +9373,7 @@ function closeManualPoseEditor() {
     document.querySelector("#manual-pose-modal").classList.remove("open");
 }
 
-document.querySelector("#create-project").addEventListener("click", async () => {
+document.querySelector("#create-project")?.addEventListener("click", async () => {
     try {
         await createProject(currentMode());
     } catch (error) {
@@ -9562,7 +9382,7 @@ document.querySelector("#create-project").addEventListener("click", async () => 
     }
 });
 
-document.querySelector("#save-brief").addEventListener("click", async () => {
+document.querySelector("#save-brief")?.addEventListener("click", async () => {
     try {
         await saveBrief(currentMode());
     } catch (error) {
@@ -9571,7 +9391,7 @@ document.querySelector("#save-brief").addEventListener("click", async () => {
     }
 });
 
-document.querySelector("#create-project-workbench").addEventListener("click", async () => {
+document.querySelector("#create-project-workbench")?.addEventListener("click", async () => {
     try {
         await createProject("workbench");
     } catch (error) {
@@ -9580,7 +9400,7 @@ document.querySelector("#create-project-workbench").addEventListener("click", as
     }
 });
 
-document.querySelector("#save-brief-workbench").addEventListener("click", async () => {
+document.querySelector("#save-brief-workbench")?.addEventListener("click", async () => {
     try {
         await saveBrief("workbench");
     } catch (error) {
@@ -9589,7 +9409,7 @@ document.querySelector("#save-brief-workbench").addEventListener("click", async 
     }
 });
 
-document.querySelector("#save-references").addEventListener("click", async () => {
+document.querySelector("#save-references")?.addEventListener("click", async () => {
     try {
         await saveBrief(currentMode(), "concepts");
     } catch (error) {
@@ -9613,7 +9433,7 @@ document.querySelector("#save-references").addEventListener("click", async () =>
     });
 });
 
-document.querySelector("#toggle-archived").addEventListener("click", async () => {
+document.querySelector("#toggle-archived")?.addEventListener("click", async () => {
     state.includeArchived = !state.includeArchived;
     storage.setItem(STORAGE_KEYS.includeArchived, state.includeArchived ? "1" : "0");
     setArchivedToggleLabel();
@@ -9626,7 +9446,7 @@ document.querySelector("#toggle-archived").addEventListener("click", async () =>
     }
 });
 
-document.querySelector("#launch-wizard").addEventListener("click", async () => {
+document.querySelector("#launch-wizard")?.addEventListener("click", async () => {
     try {
         await startNewSpriteWizard();
     } catch (error) {
@@ -9635,7 +9455,7 @@ document.querySelector("#launch-wizard").addEventListener("click", async () => {
     }
 });
 
-document.querySelector("#open-workbench").addEventListener("click", async () => {
+document.querySelector("#open-workbench")?.addEventListener("click", async () => {
     try {
         await openWorkbenchMode();
     } catch (error) {
@@ -9644,7 +9464,7 @@ document.querySelector("#open-workbench").addEventListener("click", async () => 
     }
 });
 
-document.querySelector("#mode-workbench").addEventListener("click", async () => {
+document.querySelector("#mode-workbench")?.addEventListener("click", async () => {
     try {
         await openWorkbenchMode();
     } catch (error) {
@@ -9653,7 +9473,7 @@ document.querySelector("#mode-workbench").addEventListener("click", async () => 
     }
 });
 
-document.querySelector("#mode-wizard").addEventListener("click", async () => {
+document.querySelector("#mode-wizard")?.addEventListener("click", async () => {
     try {
         if (state.activeProject) {
             await resumeWizardForCurrentProject();
@@ -9666,7 +9486,7 @@ document.querySelector("#mode-wizard").addEventListener("click", async () => {
     }
 });
 
-document.querySelector("#add-reference-row").addEventListener("click", () => addReferenceRow());
+document.querySelector("#add-reference-row")?.addEventListener("click", () => addReferenceRow());
 
 document.querySelector("#import-concept-image")?.addEventListener("click", async () => {
     try {
@@ -9677,7 +9497,7 @@ document.querySelector("#import-concept-image")?.addEventListener("click", async
     }
 });
 
-document.querySelector("#build-layers").addEventListener("click", async () => {
+document.querySelector("#build-layers")?.addEventListener("click", async () => {
     try {
         await runJob(`/api/projects/${state.activeProject.project_id}/sprite-model/build`);
     } catch (error) {
@@ -9690,7 +9510,7 @@ function closeRigLayoutMenus() {
     document.querySelectorAll("#rig-layout .panel-menu[open]").forEach((node) => node.removeAttribute("open"));
 }
 
-document.querySelector("#generate-rig-layout").addEventListener("click", async () => {
+document.querySelector("#generate-rig-layout")?.addEventListener("click", async () => {
     try {
         closeRigLayoutMenus();
         await api(`/api/projects/${state.activeProject.project_id}/rig-layout/generate`, { method: "POST", body: "{}" });
@@ -9702,7 +9522,7 @@ document.querySelector("#generate-rig-layout").addEventListener("click", async (
     }
 });
 
-document.querySelector("#copy-rig-layout-prompt").addEventListener("click", async () => {
+document.querySelector("#copy-rig-layout-prompt")?.addEventListener("click", async () => {
     try {
         closeRigLayoutMenus();
         const prompt = state.activeProject?.rig_layout_handoff_prompt;
@@ -9715,7 +9535,7 @@ document.querySelector("#copy-rig-layout-prompt").addEventListener("click", asyn
     }
 });
 
-document.querySelector("#save-rig-layout").addEventListener("click", async () => {
+document.querySelector("#save-rig-layout")?.addEventListener("click", async () => {
     try {
         await api(`/api/projects/${state.activeProject.project_id}/rig-layout/update`, {
             method: "POST",
@@ -9733,7 +9553,7 @@ document.querySelector("#save-rig-layout").addEventListener("click", async () =>
     }
 });
 
-document.querySelector("#approve-rig-layout").addEventListener("click", async () => {
+document.querySelector("#approve-rig-layout")?.addEventListener("click", async () => {
     try {
         await api(`/api/projects/${state.activeProject.project_id}/rig-layout/approve`, { method: "POST", body: "{}" });
         await loadProject(state.activeProject.project_id, currentMode());
@@ -9752,7 +9572,7 @@ document.querySelector("#approve-rig-layout").addEventListener("click", async ()
     }
 });
 
-document.querySelector("#generate-part-manifest").addEventListener("click", async () => {
+document.querySelector("#generate-part-manifest")?.addEventListener("click", async () => {
     try {
         await api(`/api/projects/${state.activeProject.project_id}/part-manifest/generate`, { method: "POST", body: "{}" });
         await loadProject(state.activeProject.project_id, currentMode());
@@ -9770,7 +9590,7 @@ document.querySelector("#generate-part-manifest").addEventListener("click", asyn
     }
 });
 
-document.querySelector("#copy-part-manifest-prompt").addEventListener("click", async () => {
+document.querySelector("#copy-part-manifest-prompt")?.addEventListener("click", async () => {
     try {
         const prompt = state.activeProject?.part_manifest_handoff_prompt;
         if (!prompt) throw new Error("No Codex manifest prompt is available yet.");
@@ -9781,7 +9601,7 @@ document.querySelector("#copy-part-manifest-prompt").addEventListener("click", a
     }
 });
 
-document.querySelector("#apply-part-manifest").addEventListener("click", async () => {
+document.querySelector("#apply-part-manifest")?.addEventListener("click", async () => {
     try {
         await api(`/api/projects/${state.activeProject.project_id}/part-manifest/update`, {
             method: "POST",
@@ -9798,7 +9618,7 @@ document.querySelector("#apply-part-manifest").addEventListener("click", async (
     }
 });
 
-document.querySelector("#approve-part-manifest").addEventListener("click", async () => {
+document.querySelector("#approve-part-manifest")?.addEventListener("click", async () => {
     try {
         await api(`/api/projects/${state.activeProject.project_id}/part-manifest/approve`, { method: "POST", body: "{}" });
         await loadProject(state.activeProject.project_id, currentMode());
@@ -9816,7 +9636,7 @@ document.querySelector("#approve-part-manifest").addEventListener("click", async
     }
 });
 
-document.querySelector("#add-optional-manifest-part").addEventListener("click", async () => {
+document.querySelector("#add-optional-manifest-part")?.addEventListener("click", async () => {
     const partName = window.prompt("Optional part name", "optional_overlay");
     if (!partName) return;
     try {
@@ -9835,7 +9655,7 @@ document.querySelector("#add-optional-manifest-part").addEventListener("click", 
     }
 });
 
-document.querySelector("#initialize-part-shapes").addEventListener("click", async () => {
+document.querySelector("#initialize-part-shapes")?.addEventListener("click", async () => {
     try {
         await api(`/api/projects/${state.activeProject.project_id}/part-shapes/initialize`, { method: "POST", body: "{}" });
         await loadProject(state.activeProject.project_id, currentMode());
@@ -9853,7 +9673,7 @@ document.querySelector("#initialize-part-shapes").addEventListener("click", asyn
     }
 });
 
-document.querySelector("#copy-part-shapes-prompt").addEventListener("click", async () => {
+document.querySelector("#copy-part-shapes-prompt")?.addEventListener("click", async () => {
     try {
         const prompt = state.activeProject?.part_shapes_handoff_prompt;
         if (!prompt) throw new Error("No Codex shape prompt is available yet.");
@@ -9864,7 +9684,7 @@ document.querySelector("#copy-part-shapes-prompt").addEventListener("click", asy
     }
 });
 
-document.querySelector("#apply-part-shapes").addEventListener("click", async () => {
+document.querySelector("#apply-part-shapes")?.addEventListener("click", async () => {
     try {
         await api(`/api/projects/${state.activeProject.project_id}/part-shapes/update`, {
             method: "POST",
@@ -9881,7 +9701,7 @@ document.querySelector("#apply-part-shapes").addEventListener("click", async () 
     }
 });
 
-document.querySelector("#approve-part-shapes").addEventListener("click", async () => {
+document.querySelector("#approve-part-shapes")?.addEventListener("click", async () => {
     try {
         await api(`/api/projects/${state.activeProject.project_id}/part-shapes/approve`, { method: "POST", body: "{}" });
         await loadProject(state.activeProject.project_id, currentMode());
@@ -9899,7 +9719,7 @@ document.querySelector("#approve-part-shapes").addEventListener("click", async (
     }
 });
 
-document.querySelector("#shape-undo").addEventListener("click", async () => {
+document.querySelector("#shape-undo")?.addEventListener("click", async () => {
     if (state.partShapeHistoryIndex <= 0) return;
     state.partShapeHistoryIndex -= 1;
     const snapshot = cloneJson(state.partShapeHistory[state.partShapeHistoryIndex]);
@@ -9912,7 +9732,7 @@ document.querySelector("#shape-undo").addEventListener("click", async () => {
     }
 });
 
-document.querySelector("#shape-redo").addEventListener("click", async () => {
+document.querySelector("#shape-redo")?.addEventListener("click", async () => {
     if (state.partShapeHistoryIndex >= state.partShapeHistory.length - 1) return;
     state.partShapeHistoryIndex += 1;
     const snapshot = cloneJson(state.partShapeHistory[state.partShapeHistoryIndex]);
@@ -9925,25 +9745,25 @@ document.querySelector("#shape-redo").addEventListener("click", async () => {
     }
 });
 
-document.querySelector("#shape-fit-view").addEventListener("click", () => {
+document.querySelector("#shape-fit-view")?.addEventListener("click", () => {
     state.partShapeView.fitted = false;
     ensureShapeViewFit(state.activeProject);
     renderPartShapeEdit();
 });
 
-document.querySelector("#shape-zoom-in").addEventListener("click", () => {
+document.querySelector("#shape-zoom-in")?.addEventListener("click", () => {
     state.partShapeView.zoom = Math.min(3.5, state.partShapeView.zoom + 0.15);
     state.partShapeView.fitted = true;
     renderPartShapeEdit();
 });
 
-document.querySelector("#shape-zoom-out").addEventListener("click", () => {
+document.querySelector("#shape-zoom-out")?.addEventListener("click", () => {
     state.partShapeView.zoom = Math.max(0.35, state.partShapeView.zoom - 0.15);
     state.partShapeView.fitted = true;
     renderPartShapeEdit();
 });
 
-document.querySelector("#shape-reset-selected").addEventListener("click", async () => {
+document.querySelector("#shape-reset-selected")?.addEventListener("click", async () => {
     if (!state.selectedShapePart) return;
     try {
         await api(`/api/projects/${state.activeProject.project_id}/part-shapes/update`, {
@@ -9957,12 +9777,12 @@ document.querySelector("#shape-reset-selected").addEventListener("click", async 
     }
 });
 
-document.querySelector("#part-shapes-opacity").addEventListener("input", (event) => {
+document.querySelector("#part-shapes-opacity")?.addEventListener("input", (event) => {
     state.partShapeView.sourceOpacity = Number(event.target.value) / 100;
     renderPartShapeEdit();
 });
 
-document.querySelector("#generate-part-split").addEventListener("click", async () => {
+document.querySelector("#generate-part-split")?.addEventListener("click", async () => {
     try {
         await api(`/api/projects/${state.activeProject.project_id}/split-build`, { method: "POST", body: "{}" });
         await loadProject(state.activeProject.project_id, currentMode());
@@ -9981,7 +9801,7 @@ document.querySelector("#generate-part-split").addEventListener("click", async (
     }
 });
 
-document.querySelector("#copy-part-split-prompt").addEventListener("click", async () => {
+document.querySelector("#copy-part-split-prompt")?.addEventListener("click", async () => {
     try {
         const prompt = state.activeProject?.part_split_handoff_prompt;
         if (!prompt) throw new Error("No Codex split prompt is available yet.");
@@ -9993,7 +9813,7 @@ document.querySelector("#copy-part-split-prompt").addEventListener("click", asyn
     }
 });
 
-document.querySelector("#approve-part-split").addEventListener("click", async () => {
+document.querySelector("#approve-part-split")?.addEventListener("click", async () => {
     try {
         await api(`/api/projects/${state.activeProject.project_id}/part-split/approve`, { method: "POST", body: "{}" });
         await loadProject(state.activeProject.project_id, currentMode());
@@ -10012,7 +9832,7 @@ document.querySelector("#approve-part-split").addEventListener("click", async ()
     }
 });
 
-document.querySelector("#approve-layers").addEventListener("click", async () => {
+document.querySelector("#approve-layers")?.addEventListener("click", async () => {
     try {
         await api(`/api/projects/${state.activeProject.project_id}/sprite-model/approve`, { method: "POST", body: "{}" });
         await loadProject(state.activeProject.project_id, currentMode());
@@ -10032,7 +9852,7 @@ document.querySelector("#approve-layers").addEventListener("click", async () => 
     }
 });
 
-document.querySelector("#build-rig").addEventListener("click", async () => {
+document.querySelector("#build-rig")?.addEventListener("click", async () => {
     try {
         await runJob(`/api/projects/${state.activeProject.project_id}/rig/build`);
     } catch (error) {
@@ -10041,7 +9861,7 @@ document.querySelector("#build-rig").addEventListener("click", async () => {
     }
 });
 
-document.querySelector("#approve-rig").addEventListener("click", async () => {
+document.querySelector("#approve-rig")?.addEventListener("click", async () => {
     try {
         await api(`/api/projects/${state.activeProject.project_id}/rig/approve`, { method: "POST", body: "{}" });
         await loadProject(state.activeProject.project_id, currentMode());
@@ -10061,7 +9881,7 @@ document.querySelector("#approve-rig").addEventListener("click", async () => {
     }
 });
 
-document.querySelector("#render-idle").addEventListener("click", async () => {
+document.querySelector("#render-idle")?.addEventListener("click", async () => {
     try {
         await runJob(`/api/projects/${state.activeProject.project_id}/clips/idle/render`);
         if (currentMode() === "wizard" && state.activeProject?.build_status?.idle_render_complete && state.activeProject?.build_status?.walk_render_complete) {
@@ -10079,7 +9899,7 @@ document.querySelector("#render-idle").addEventListener("click", async () => {
     }
 });
 
-document.querySelector("#render-walk").addEventListener("click", async () => {
+document.querySelector("#render-walk")?.addEventListener("click", async () => {
     try {
         await runJob(`/api/projects/${state.activeProject.project_id}/clips/walk/render`);
         if (currentMode() === "wizard" && state.activeProject?.build_status?.idle_render_complete && state.activeProject?.build_status?.walk_render_complete) {
@@ -10097,7 +9917,7 @@ document.querySelector("#render-walk").addEventListener("click", async () => {
     }
 });
 
-document.querySelector("#sprite-undo-last").addEventListener("click", async () => {
+document.querySelector("#sprite-undo-last")?.addEventListener("click", async () => {
     try {
         await api(`/api/projects/${state.activeProject.project_id}/sprite-model/undo`, { method: "POST", body: "{}" });
         await loadProject(state.activeProject.project_id, currentMode());
@@ -10108,7 +9928,7 @@ document.querySelector("#sprite-undo-last").addEventListener("click", async () =
     }
 });
 
-document.querySelector("#sprite-restore-revision").addEventListener("click", async () => {
+document.querySelector("#sprite-restore-revision")?.addEventListener("click", async () => {
     try {
         const revisionId = document.querySelector("#sprite-revision-select").value;
         if (!revisionId) throw new Error("Choose a revision to restore.");
@@ -10124,7 +9944,7 @@ document.querySelector("#sprite-restore-revision").addEventListener("click", asy
     }
 });
 
-document.querySelector("#sprite-draw-order-back").addEventListener("click", async () => {
+document.querySelector("#sprite-draw-order-back")?.addEventListener("click", async () => {
     try {
         const active = selectedSpritePart();
         if (!active) throw new Error("Choose a sprite-model part first.");
@@ -10135,7 +9955,7 @@ document.querySelector("#sprite-draw-order-back").addEventListener("click", asyn
     }
 });
 
-document.querySelector("#sprite-draw-order-forward").addEventListener("click", async () => {
+document.querySelector("#sprite-draw-order-forward")?.addEventListener("click", async () => {
     try {
         const active = selectedSpritePart();
         if (!active) throw new Error("Choose a sprite-model part first.");
@@ -10146,7 +9966,7 @@ document.querySelector("#sprite-draw-order-forward").addEventListener("click", a
     }
 });
 
-document.querySelector("#sprite-set-pivot").addEventListener("click", async () => {
+document.querySelector("#sprite-set-pivot")?.addEventListener("click", async () => {
     try {
         await applySpriteOperation("set_pivot", {
             pivot_point: [
@@ -10160,7 +9980,7 @@ document.querySelector("#sprite-set-pivot").addEventListener("click", async () =
     }
 });
 
-document.querySelector("#sprite-set-parent").addEventListener("click", async () => {
+document.querySelector("#sprite-set-parent")?.addEventListener("click", async () => {
     try {
         await applySpriteOperation("set_parent_joint", { parent_joint: document.querySelector("#sprite-parent-joint").value });
     } catch (error) {
@@ -10169,7 +9989,7 @@ document.querySelector("#sprite-set-parent").addEventListener("click", async () 
     }
 });
 
-document.querySelector("#sprite-set-draw-order").addEventListener("click", async () => {
+document.querySelector("#sprite-set-draw-order")?.addEventListener("click", async () => {
     try {
         await applySpriteOperation("set_draw_order", { draw_order: Number(document.querySelector("#sprite-draw-order").value || 0) });
     } catch (error) {
@@ -10178,7 +9998,7 @@ document.querySelector("#sprite-set-draw-order").addEventListener("click", async
     }
 });
 
-document.querySelector("#sprite-rename-part").addEventListener("click", async () => {
+document.querySelector("#sprite-rename-part")?.addEventListener("click", async () => {
     try {
         await applySpriteOperation("rename_part", { new_part_name: document.querySelector("#sprite-rename").value.trim() });
     } catch (error) {
@@ -10187,7 +10007,7 @@ document.querySelector("#sprite-rename-part").addEventListener("click", async ()
     }
 });
 
-document.querySelector("#sprite-translate-part").addEventListener("click", async () => {
+document.querySelector("#sprite-translate-part")?.addEventListener("click", async () => {
     try {
         const [dx, dy] = parsePairInput(document.querySelector("#sprite-translate").value);
         await applySpriteOperation("translate_part", { dx: dx || 0, dy: dy || 0 });
@@ -10197,7 +10017,7 @@ document.querySelector("#sprite-translate-part").addEventListener("click", async
     }
 });
 
-document.querySelector("#sprite-rotate-part").addEventListener("click", async () => {
+document.querySelector("#sprite-rotate-part")?.addEventListener("click", async () => {
     try {
         await applySpriteOperation("rotate_part", { degrees: Number(document.querySelector("#sprite-rotate").value || 0) });
     } catch (error) {
@@ -10206,7 +10026,7 @@ document.querySelector("#sprite-rotate-part").addEventListener("click", async ()
     }
 });
 
-document.querySelector("#sprite-scale-part").addEventListener("click", async () => {
+document.querySelector("#sprite-scale-part")?.addEventListener("click", async () => {
     try {
         await applySpriteOperation("scale_part", { scale: Number(document.querySelector("#sprite-scale").value || 1) });
     } catch (error) {
@@ -10215,7 +10035,7 @@ document.querySelector("#sprite-scale-part").addEventListener("click", async () 
     }
 });
 
-document.querySelector("#sprite-cleanup-alpha").addEventListener("click", async () => {
+document.querySelector("#sprite-cleanup-alpha")?.addEventListener("click", async () => {
     try {
         await applySpriteOperation("cleanup_alpha");
     } catch (error) {
@@ -10224,7 +10044,7 @@ document.querySelector("#sprite-cleanup-alpha").addEventListener("click", async 
     }
 });
 
-document.querySelector("#sprite-normalize-outline").addEventListener("click", async () => {
+document.querySelector("#sprite-normalize-outline")?.addEventListener("click", async () => {
     try {
         await applySpriteOperation("normalize_outline");
     } catch (error) {
@@ -10233,7 +10053,7 @@ document.querySelector("#sprite-normalize-outline").addEventListener("click", as
     }
 });
 
-document.querySelector("#sprite-apply-palette").addEventListener("click", async () => {
+document.querySelector("#sprite-apply-palette")?.addEventListener("click", async () => {
     try {
         const replacements = spritePaletteReplacements();
         if (!replacements) throw new Error("Add at least one palette replacement first.");
@@ -10244,7 +10064,7 @@ document.querySelector("#sprite-apply-palette").addEventListener("click", async 
     }
 });
 
-document.querySelector("#sprite-add-mask").addEventListener("click", async () => {
+document.querySelector("#sprite-add-mask")?.addEventListener("click", async () => {
     try {
         const region = parsePairInput(document.querySelector("#sprite-mask-region").value);
         if (region.length !== 4) throw new Error("Enter mask region as x0,y0,x1,y1.");
@@ -10255,7 +10075,7 @@ document.querySelector("#sprite-add-mask").addEventListener("click", async () =>
     }
 });
 
-document.querySelector("#sprite-remove-mask").addEventListener("click", async () => {
+document.querySelector("#sprite-remove-mask")?.addEventListener("click", async () => {
     try {
         const region = parsePairInput(document.querySelector("#sprite-mask-region").value);
         if (region.length !== 4) throw new Error("Enter mask region as x0,y0,x1,y1.");
@@ -10266,7 +10086,7 @@ document.querySelector("#sprite-remove-mask").addEventListener("click", async ()
     }
 });
 
-document.querySelector("#sprite-mirror-part").addEventListener("click", async () => {
+document.querySelector("#sprite-mirror-part")?.addEventListener("click", async () => {
     try {
         await applySpriteOperation("mirror_part");
     } catch (error) {
@@ -10275,7 +10095,7 @@ document.querySelector("#sprite-mirror-part").addEventListener("click", async ()
     }
 });
 
-document.querySelector("#sprite-duplicate-part").addEventListener("click", async () => {
+document.querySelector("#sprite-duplicate-part")?.addEventListener("click", async () => {
     try {
         const active = selectedSpritePart();
         await applySpriteOperation("duplicate_part", { new_part_name: `${active.part_name}_copy` });
@@ -10285,7 +10105,7 @@ document.querySelector("#sprite-duplicate-part").addEventListener("click", async
     }
 });
 
-document.querySelector("#sprite-recover-occlusion").addEventListener("click", async () => {
+document.querySelector("#sprite-recover-occlusion")?.addEventListener("click", async () => {
     try {
         const active = selectedSpritePart();
         const result = await api(`/api/projects/${state.activeProject.project_id}/sprite-model/recover-occlusion`, {
@@ -10301,7 +10121,7 @@ document.querySelector("#sprite-recover-occlusion").addEventListener("click", as
     }
 });
 
-document.querySelector("#run-qa").addEventListener("click", async () => {
+document.querySelector("#run-qa")?.addEventListener("click", async () => {
     try {
         await runJob(`/api/projects/${state.activeProject.project_id}/qa/run`);
         if (currentMode() === "wizard" && state.activeProject?.qa_report) {
@@ -10319,7 +10139,7 @@ document.querySelector("#run-qa").addEventListener("click", async () => {
     }
 });
 
-document.querySelector("#run-export").addEventListener("click", async () => {
+document.querySelector("#run-export")?.addEventListener("click", async () => {
     try {
         await runJob(`/api/projects/${state.activeProject.project_id}/export`);
         if (currentMode() === "wizard" && state.activeProject) {
@@ -10337,11 +10157,11 @@ document.querySelector("#run-export").addEventListener("click", async () => {
     }
 });
 
-document.querySelector("#close-zoom").addEventListener("click", closeZoom);
-document.querySelector("#zoom-modal").addEventListener("click", (event) => {
+document.querySelector("#close-zoom")?.addEventListener("click", closeZoom);
+document.querySelector("#zoom-modal")?.addEventListener("click", (event) => {
     if (event.target === document.querySelector("#zoom-modal")) closeZoom();
 });
-document.querySelector("#manual-pose-modal").addEventListener("click", (event) => {
+document.querySelector("#manual-pose-modal")?.addEventListener("click", (event) => {
     if (event.target === document.querySelector("#manual-pose-modal")) closeManualPoseEditor();
 });
 

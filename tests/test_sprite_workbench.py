@@ -1391,8 +1391,48 @@ class SpriteWorkbenchTests(unittest.TestCase):
                 loaded = sw.load_project(pid)
                 self.assertEqual(loaded["pixellab_character"]["character_id"], "c1")
                 self.assertEqual(loaded["pixellab_skeleton"]["direction"], "east")
+                self.assertIn("animations", loaded["pixellab_animations"])
             finally:
                 sw.PROJECTS_ROOT = original_root
+
+    def test_wizard_steps_active_inserts_animations_for_pixellab(self):
+        project = {
+            "brief": {"backend_mode": "pixellab"},
+            "ai_workflow": {"enabled": True, "legacy_mode": False},
+        }
+        seq = sw.wizard_steps_active(project)
+        self.assertIn("animations", seq)
+        self.assertEqual(seq.index("animations"), seq.index("clips") + 1)
+
+    def test_wizard_steps_active_omits_animations_for_non_pixellab_ai(self):
+        project = {
+            "brief": {"backend_mode": "debug_procedural"},
+            "ai_workflow": {"enabled": True, "legacy_mode": False},
+        }
+        self.assertNotIn("animations", sw.wizard_steps_active(project))
+
+    def test_pixellab_animations_step_complete_requires_idle_and_walk_frames(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            pdir = Path(tmp)
+            doc_bad = {
+                "project_id": "x",
+                "animations": {
+                    "idle": {"directions": {"east": {"frames": ["a.png"]}}},
+                    "walk": {"directions": {}},
+                },
+            }
+            (pdir / "pixellab_animations.json").write_text(json.dumps(doc_bad), encoding="utf-8")
+            project = {"project_id": "x"}
+            self.assertFalse(sw.pixellab_animations_step_complete(project, pdir))
+            doc_ok = {
+                "project_id": "x",
+                "animations": {
+                    "idle": {"directions": {"east": {"frames": ["a.png"]}}},
+                    "walk": {"directions": {"east": {"frames": ["b.png"]}}},
+                },
+            }
+            (pdir / "pixellab_animations.json").write_text(json.dumps(doc_ok), encoding="utf-8")
+            self.assertTrue(sw.pixellab_animations_step_complete(project, pdir))
 
     def test_pixellab_health_endpoint_returns_configured_false_when_key_unset(self):
         original_key = sw.PIXELLAB_API_KEY
