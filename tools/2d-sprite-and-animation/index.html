@@ -2621,7 +2621,7 @@
 
         <div class="sidebar-block">
             <div class="nav-list">
-                <a class="nav-link" href="#intake">Setup</a>
+                <a class="nav-link" href="#intake">Describe</a>
                 <a class="nav-link" href="#concepts">Concepts</a>
                 <a class="nav-link" href="#character">Character</a>
                 <a class="nav-link" href="#animations">Animations</a>
@@ -2713,13 +2713,13 @@
                 <div class="stage-meta" data-stage="intake"></div>
             </div>
 
-            <div class="wizard-subview step-panel-note wizard-only" data-wizard-view="project">
+            <div class="wizard-subview step-panel-note wizard-only" data-wizard-view="describe">
                 <div class="info-box">
                     <p><strong>Start here.</strong> Give the sprite a project name first. You can add the full character description in the next step.</p>
                 </div>
             </div>
 
-            <div class="grid-2" data-wizard-view="project">
+            <div class="grid-2" data-wizard-view="describe">
                 <label>
                     <span class="field-label">Project Name <span class="help-tip" title="Used to organize the sprite project on disk. Pick something short and recognizable.">?</span></span>
                     <span class="field-help">Example: Ashen Sentinel, Lantern Pilgrim, Hollow Ranger.</span>
@@ -2727,13 +2727,13 @@
                 </label>
             </div>
 
-            <div class="wizard-subview step-panel-note wizard-only" data-wizard-view="brief">
+            <div class="wizard-subview step-panel-note wizard-only" data-wizard-view="describe">
                 <div class="info-box">
                     <p><strong>Describe the character like you would to an artist.</strong> Focus on role, mood, silhouette, clothing, and the one item they carry. The wizard will steer the prompt toward readable side-view game art.</p>
                 </div>
             </div>
 
-            <div class="grid-2" data-wizard-view="brief">
+            <div class="grid-2" data-wizard-view="describe">
                 <label>
                     <span class="field-label">Character Description <span class="help-tip" title="Freeform description of the character. This is the main input the concept prompt is built from.">?</span></span>
                     <span class="field-help">Good example: A watchful armored pilgrim carrying a hooded lantern, with worn plate over travel cloth and a cold steel palette.</span>
@@ -2776,7 +2776,7 @@
                 </label>
             </div>
 
-            <details class="advanced-settings" data-wizard-view="brief">
+            <details class="advanced-settings" data-wizard-view="describe">
                 <summary>Pixel Lab style &amp; advanced</summary>
                 <div class="advanced-content">
                     <p class="inline-hint">Pixel Lab parameters are saved with the brief. Debug vs ComfyUI is <strong>not</strong> selectable here—it stays on the value already stored for this project (new projects default to offline debug). Phase 8 will remove legacy ComfyUI paths.</p>
@@ -2853,13 +2853,13 @@
                 </div>
             </details>
 
-            <div class="wizard-subview step-panel-note wizard-only" data-wizard-view="references">
+            <div class="wizard-subview step-panel-note wizard-only" data-wizard-view="describe">
                 <div class="info-box">
                     <p><strong>References are optional.</strong> Add them if you want to push the tool toward a specific face, outfit, prop, or overall mood. If you skip this step, the wizard will rely on your written description alone.</p>
                 </div>
             </div>
 
-            <div style="margin-top: 18px;" data-wizard-view="references">
+            <div style="margin-top: 18px;" data-wizard-view="describe">
                 <div class="section-head" style="margin-bottom: 10px;">
                     <div>
                         <h3 style="font-size: 0.98rem;">References</h3>
@@ -2873,14 +2873,14 @@
                 </div>
             </div>
 
-            <div class="actions wizard-only" data-wizard-view="project">
+            <div class="actions wizard-only" data-wizard-view="describe">
                 <button id="create-project">Create Project</button>
             </div>
-            <div class="actions wizard-only" data-wizard-view="brief">
+            <div class="actions wizard-only" data-wizard-view="describe">
                 <button class="secondary" id="save-brief">Save Description</button>
                 <button class="secondary" id="refresh-projects-brief">Refresh Projects</button>
             </div>
-            <div class="actions wizard-only workbench-actions" data-wizard-view="references">
+            <div class="actions wizard-only workbench-actions" data-wizard-view="describe">
                 <button class="secondary" id="save-references">Save References</button>
                 <button class="secondary" id="refresh-projects-references">Refresh Projects</button>
             </div>
@@ -2907,13 +2907,13 @@
                 </div>
             </div>
 
-            <div class="concept-mode-row" data-wizard-view="concepts,review,workbench">
+            <div class="concept-mode-row" data-wizard-view="concepts,workbench">
                 <span class="field-label">Source</span>
                 <label><input type="radio" name="concept-source-mode" value="pixellab" checked> Pixel Lab</label>
                 <label><input type="radio" name="concept-source-mode" value="manual"> Manual import</label>
             </div>
 
-            <div class="grid-2" style="margin-top: 8px;" data-wizard-view="concepts,review,workbench">
+            <div class="grid-2" style="margin-top: 8px;" data-wizard-view="concepts,workbench">
                 <div>
                     <div class="actions" style="flex-wrap: wrap;">
                         <button id="build-concept-prompt">Build Prompt</button>
@@ -2930,7 +2930,7 @@
                 </div>
             </div>
 
-            <div class="concept-manual-only" data-wizard-view="concepts,review,workbench" style="margin-top: 16px;">
+            <div class="concept-manual-only" data-wizard-view="concepts,workbench" style="margin-top: 16px;">
                 <div class="section-head" style="margin-bottom: 10px;">
                     <div>
                         <h3 style="font-size: 0.98rem;">Import image</h3>
@@ -2952,7 +2952,7 @@
                 </div>
             </div>
 
-            <details class="advanced-settings" style="margin-top: 18px;" data-wizard-view="concepts,review,workbench">
+            <details class="advanced-settings" style="margin-top: 18px;" data-wizard-view="concepts,workbench">
                 <summary>Iterate on selected concept (Pixel Lab inpaint)</summary>
                 <div class="advanced-content">
                     <p class="inline-hint">Select a concept in the grid below, choose what to change, then build the iteration prompt. <strong>Generate iteration</strong> calls Pixel Lab inpaint (or debug placeholders).</p>
@@ -3006,13 +3006,13 @@
                 </div>
             </details>
 
-            <div class="wizard-subview step-panel-note wizard-only" data-wizard-view="review">
+            <div class="wizard-subview step-panel-note wizard-only" data-wizard-view="concepts">
                 <div class="info-box">
                     <p><strong>Review.</strong> Pixel Lab–generated concepts are marked valid for approval. Manual imports may stay <code>pending</code> until you use <strong>Mark valid</strong> (manual review) or the server completes checks.</p>
                 </div>
             </div>
 
-            <div class="grid-2 concept-browser-layout" style="margin-top: 16px;" data-wizard-view="concepts,review,workbench">
+            <div class="grid-2 concept-browser-layout" style="margin-top: 16px;" data-wizard-view="concepts,workbench">
                 <div>
                     <div class="section-head" style="margin-bottom: 10px;">
                         <div>
@@ -3177,11 +3177,13 @@ const STORAGE_KEYS = {
 const WIZARD_STEPS = ["project", "brief", "references", "concepts", "review", "rig_layout", "part_manifest", "part_shape_edit", "split_build", "split_review", "sprite_model", "rig", "clips", "qa", "export"];
 const WORKBENCH_SECTION_IDS = ["intake", "concepts", "character", "animations", "review-export", "activity-log"];
 const WIZARD_SECTION_MAP = {
+    describe: ["intake"],
     project: ["intake"],
     brief: ["intake"],
     references: ["intake"],
     concepts: ["concepts"],
     review: ["concepts"],
+    character: ["character"],
     rig_layout: ["concepts"],
     part_manifest: ["concepts"],
     part_shape_edit: ["concepts"],
@@ -3195,6 +3197,12 @@ const WIZARD_SECTION_MAP = {
     export: ["review-export"],
 };
 const WIZARD_META = {
+    describe: {
+        label: "Describe",
+        description: "Name the project, write the character brief, and optionally add reference images — all in Setup before concepts.",
+        outcome: "You will have a saved description (and optional references) ready for concept generation.",
+        example: "Fill role, silhouette, outfit, mood, and prop; add references or skip to concepts.",
+    },
     project: {
         label: "Start",
         description: "Create a new sprite project so the wizard has a place to store everything that follows.",
@@ -3267,6 +3275,12 @@ const WIZARD_META = {
         outcome: "The approved rig binds the canonical parts to deterministic motion controls.",
         example: "Check joint placement, prop attachment, and the neutral pose before rendering clips.",
     },
+    character: {
+        label: "Character",
+        description: "Create a Pixel Lab multi-direction character from your approved concept, estimate skeleton on east, then approve for animations.",
+        outcome: "You will have direction PNGs plus an optional skeleton JSON before moving on to template animations.",
+        example: "Use Create Character (4 dir), open Est. skeleton on east if you want joint overlay, then Approve Character.",
+    },
     clips: {
         label: "Character",
         description: "Create a Pixel Lab multi-direction character from your approved concept, estimate skeleton on east, then approve for animations.",
@@ -3286,10 +3300,10 @@ const WIZARD_META = {
         example: "Run checks after you have approved character and generated animation clips.",
     },
     export: {
-        label: "Export",
-        description: "Package the finished files and open the export artifacts.",
-        outcome: "You will get a spritesheet, frame images, metadata, and a preview.",
-        example: "Export stays blocked until checks pass.",
+        label: "Review & export",
+        description: "Preview loops, run checks, then package spritesheet, frames, metadata, and preview when QA passes.",
+        outcome: "You will get QA results and, after a passing run, an export folder with spritesheet + GIF preview.",
+        example: "Run checks first; export unlocks only after QA pass.",
     },
 };
 
@@ -3657,11 +3671,11 @@ function aiWorkflowApprovedRun(groupName, clipName = null, project = state.activ
 
 function visibleWizardSteps(project = state.activeProject) {
     if (!aiWorkflowEnabled(project)) return WIZARD_STEPS;
-    // Modern AI path: no legacy rig layout / part manifest steps (ComfyUI split pipeline).
-    const base = ["project", "brief", "references", "concepts", "review", "clips", "qa", "export"];
-    if (String(project?.brief?.backend_mode || "") !== "pixellab") return base;
-    const i = base.indexOf("clips") + 1;
-    return [...base.slice(0, i), "animations", ...base.slice(i)];
+    // Phase 7.7: five Pixel Lab steps or four steps for other AI backends (no Animations panel).
+    if (String(project?.brief?.backend_mode || "") === "pixellab") {
+        return ["describe", "concepts", "character", "animations", "export"];
+    }
+    return ["describe", "concepts", "character", "export"];
 }
 
 function wizardProgressSummary(project) {
@@ -3767,13 +3781,17 @@ function clearActivity() {
 
 function blankWizardModel() {
     return {
-        current_step: "project",
-        recommended_next_step: "project",
+        current_step: "describe",
+        recommended_next_step: "describe",
         step_statuses: {
+            describe: "active",
+            concepts: "locked",
+            character: "locked",
+            animations: "locked",
+            export: "locked",
             project: "active",
             brief: "locked",
             references: "locked",
-            concepts: "locked",
             review: "locked",
             rig_layout: "locked",
             part_manifest: "locked",
@@ -3783,14 +3801,16 @@ function blankWizardModel() {
             sprite_model: "locked",
             rig: "locked",
             clips: "locked",
-            animations: "locked",
             qa: "locked",
-            export: "locked",
         },
         blocking_reasons: {
+            describe: ["Create a project first."],
+            concepts: ["Save the character description first."],
+            character: ["Approve a chosen concept first."],
+            animations: ["Approve the Pixel Lab character first."],
+            export: ["Finish animations and canonical clips before review and export."],
             brief: ["Create a project first."],
             references: ["Save the character description first."],
-            concepts: ["Save the character description first."],
             review: ["Generate or import at least one valid concept image first."],
             rig_layout: ["Approve a source concept before continuing."],
             part_manifest: ["Complete rig layout approval before part manifest."],
@@ -3800,9 +3820,7 @@ function blankWizardModel() {
             sprite_model: ["Approve the split parts first."],
             rig: ["Build and approve the sprite model first."],
             clips: ["Approve the rig first."],
-            animations: ["Approve the Pixel Lab character first."],
             qa: ["Render the clips first."],
-            export: ["Checks must pass before export."],
         },
     };
 }
@@ -3811,15 +3829,15 @@ function wizardModel() {
     const project = state.activeProject;
     if (!project) return blankWizardModel();
     return {
-        current_step: project.wizard_state?.current_step || project.recommended_next_step || "brief",
-        recommended_next_step: project.recommended_next_step || project.wizard_state?.current_step || "brief",
+        current_step: project.wizard_state?.current_step || project.recommended_next_step || "describe",
+        recommended_next_step: project.recommended_next_step || project.wizard_state?.current_step || "describe",
         step_statuses: project.step_statuses || {},
         blocking_reasons: project.blocking_reasons || {},
     };
 }
 
 function activeWizardStep() {
-    return wizardModel().current_step || wizardModel().recommended_next_step || "project";
+    return wizardModel().current_step || wizardModel().recommended_next_step || "describe";
 }
 
 const WIZARD_LEGACY_LABELS = {
@@ -3842,6 +3860,8 @@ function wizardSummaryText(step) {
         return "Not started.";
     }
     switch (step) {
+        case "describe":
+            return `${project.project_name} · ${project.brief?.references?.length || 0} ref(s)`;
         case "project":
             return project.project_name;
         case "brief":
@@ -3878,6 +3898,7 @@ function wizardSummaryText(step) {
             return project.sprite_model?.parts?.length ? `${project.sprite_model.parts.length} parts extracted` : "Sprite model not built yet.";
         case "rig":
             return project.rig_review_approved ? "Rig approved." : project.rig ? "Rig built." : "Rig not built.";
+        case "character":
         case "clips":
             if (aiWorkflowEnabled(project)) {
                 if (String(project.brief?.backend_mode || "") === "pixellab") {
@@ -3984,8 +4005,8 @@ function nextClipAction() {
         return { label: "Build Walk", run: () => runJob(`/api/projects/${project.project_id}/clips/walk/render`) };
     }
     return {
-        label: "Continue To QA",
-        run: () => persistWizardState({ completed_steps: ["clips"], current_step: "qa", last_ui_mode: "wizard" }),
+        label: "Continue to review & export",
+        run: () => persistWizardState({ completed_steps: ["character"], current_step: "export", last_ui_mode: "wizard" }),
     };
 }
 
@@ -4182,7 +4203,7 @@ async function resumeWizardForCurrentProject() {
     if (!state.activeProject) return;
     const project = await persistWizardState({
         last_ui_mode: "wizard",
-        current_step: state.activeProject.recommended_next_step || state.activeProject.wizard_state?.current_step || "brief",
+        current_step: state.activeProject.recommended_next_step || state.activeProject.wizard_state?.current_step || "describe",
     });
     if (project) {
         state.uiMode = "wizard";
@@ -4195,7 +4216,7 @@ async function handleWizardAction(actionId, currentStep) {
         case "wizard-back": {
             const seq = visibleWizardSteps();
             const index = Math.max(0, seq.indexOf(currentStep) - 1);
-            await goToWizardStep(seq[index] || "project");
+            await goToWizardStep(seq[index] || "describe");
             return;
         }
         case "wizard-create-project":
@@ -4229,16 +4250,24 @@ async function handleWizardAction(actionId, currentStep) {
             return;
         }
         case "wizard-go-review":
-            await persistWizardState({ current_step: "review", last_ui_mode: "wizard" });
+            await persistWizardState({ current_step: "concepts", last_ui_mode: "wizard" });
             renderAll();
             return;
         case "wizard-continue-review":
             if (!selectedConcept()) return;
-            await persistWizardState({
-                completed_steps: ["review"],
-                current_step: "rig_layout",
-                last_ui_mode: "wizard",
-            });
+            if (aiWorkflowEnabled()) {
+                await persistWizardState({
+                    completed_steps: ["concepts"],
+                    current_step: "character",
+                    last_ui_mode: "wizard",
+                });
+            } else {
+                await persistWizardState({
+                    completed_steps: ["review"],
+                    current_step: "rig_layout",
+                    last_ui_mode: "wizard",
+                });
+            }
             renderAll();
             return;
         case "wizard-generate-rig-layout":
@@ -4304,20 +4333,24 @@ async function handleWizardAction(actionId, currentStep) {
             if (!action) return;
             await action.run();
             if (state.activeProject?.build_status?.idle_render_complete && state.activeProject?.build_status?.walk_render_complete) {
-                await persistWizardState({ completed_steps: ["clips"], current_step: "qa", last_ui_mode: "wizard" });
+                await persistWizardState({ completed_steps: ["character"], current_step: "export", last_ui_mode: "wizard" });
             }
             renderAll();
             return;
         }
         case "wizard-run-qa":
             if (state.activeProject?.qa_report?.status === "pass") {
-                await persistWizardState({ completed_steps: ["qa"], current_step: "export", last_ui_mode: "wizard" });
+                await persistWizardState({ completed_steps: ["export"], current_step: "export", last_ui_mode: "wizard" });
                 renderAll();
                 return;
             }
             await runJob(`/api/projects/${state.activeProject.project_id}/qa/run`);
             if (state.activeProject?.qa_report) {
-                await persistWizardState({ completed_steps: ["qa"], current_step: state.activeProject.qa_report.status === "pass" ? "export" : "qa", last_ui_mode: "wizard" });
+                await persistWizardState({
+                    completed_steps: ["export"],
+                    current_step: "export",
+                    last_ui_mode: "wizard",
+                });
             }
             renderAll();
             return;
@@ -4552,7 +4585,7 @@ function renderProjectList() {
             <strong>${project.project_name}</strong>
             <small>${stageDisplayName(project.current_stage)} · ${project.status}</small>
             <div class="small-note">Last modified ${formatDate(project.updated_at)}</div>
-            <div class="small-note">${wizardProgressSummary(project)} · next ${WIZARD_META[project.wizard_state?.current_step || "brief"]?.label || "Setup"}</div>
+            <div class="small-note">${wizardProgressSummary(project)} · next ${WIZARD_META[project.wizard_state?.current_step || "describe"]?.label || "Describe"}</div>
             <div class="inline-actions" style="margin-top: 10px;">
                 <span class="badge ${config.maturity}">${config.maturity}</span>
                 ${project.archived_at ? `<span class="pill warning">archived</span>` : ""}
@@ -6265,7 +6298,7 @@ async function runPixellabCreateCharacter(pid, selId, directions) {
         }
         if (String(state.activeProject?.brief?.backend_mode || "") === "pixellab") {
             try {
-                await persistWizardState({ current_step: "clips", last_ui_mode: "wizard" });
+                await persistWizardState({ current_step: "character", last_ui_mode: "wizard" });
             } catch (err) {
                 log(normalizeErrorMessage(err.message), "error");
             }
@@ -6771,7 +6804,7 @@ function renderPixellabAnimationsBoard() {
             const p = state.activeProject;
             const idleN = Array.isArray(p?.animation_clips?.idle?.frames) ? p.animation_clips.idle.frames.length : 0;
             const walkN = Array.isArray(p?.animation_clips?.walk?.frames) ? p.animation_clips.walk.frames.length : 0;
-            notify(`Canonical clips built — idle: ${idleN} frames, walk: ${walkN} frames. Continue to Checks when ready.`, "success");
+            notify(`Canonical clips built — idle: ${idleN} frames, walk: ${walkN} frames. Continue to Review & export when ready.`, "success");
         } catch (e) {
             notify(normalizeErrorMessage(e.message), "error");
         }
@@ -9420,7 +9453,7 @@ async function loadProject(projectId, mode = "wizard") {
             // Prefer the persisted wizard step over recommended_next so we do not jump
             // (e.g. to export) when only syncing last_ui_mode after a reload.
             current_step: mode === "wizard"
-                ? (project.wizard_state?.current_step || project.recommended_next_step || "brief")
+                ? (project.wizard_state?.current_step || project.recommended_next_step || "describe")
                 : project.wizard_state?.current_step,
         });
         if (synced) state.activeProject = synced;
@@ -9470,7 +9503,7 @@ async function saveBrief(mode = currentMode(), nextStep = null) {
     await refreshProjects();
     if (mode === "wizard") {
         const synced = await persistWizardState({
-            completed_steps: ["brief"],
+            completed_steps: ["brief", "describe"],
             current_step: nextStep || "references",
             last_ui_mode: "wizard",
         });
@@ -10370,8 +10403,8 @@ document.querySelector("#render-idle")?.addEventListener("click", async () => {
         await runJob(`/api/projects/${state.activeProject.project_id}/clips/idle/render`);
         if (currentMode() === "wizard" && state.activeProject?.build_status?.idle_render_complete && state.activeProject?.build_status?.walk_render_complete) {
             const synced = await persistWizardState({
-                completed_steps: ["clips"],
-                current_step: "qa",
+                completed_steps: ["character"],
+                current_step: "export",
                 last_ui_mode: "wizard",
             });
             if (synced) state.activeProject = synced;
@@ -10388,8 +10421,8 @@ document.querySelector("#render-walk")?.addEventListener("click", async () => {
         await runJob(`/api/projects/${state.activeProject.project_id}/clips/walk/render`);
         if (currentMode() === "wizard" && state.activeProject?.build_status?.idle_render_complete && state.activeProject?.build_status?.walk_render_complete) {
             const synced = await persistWizardState({
-                completed_steps: ["clips"],
-                current_step: "qa",
+                completed_steps: ["character"],
+                current_step: "export",
                 last_ui_mode: "wizard",
             });
             if (synced) state.activeProject = synced;
@@ -10610,8 +10643,8 @@ document.querySelector("#run-qa")?.addEventListener("click", async () => {
         await runJob(`/api/projects/${state.activeProject.project_id}/qa/run`);
         if (currentMode() === "wizard" && state.activeProject?.qa_report) {
             const synced = await persistWizardState({
-                completed_steps: ["qa"],
-                current_step: state.activeProject.qa_report.status === "pass" ? "export" : "qa",
+                completed_steps: ["export"],
+                current_step: "export",
                 last_ui_mode: "wizard",
             });
             if (synced) state.activeProject = synced;

@@ -346,10 +346,10 @@ keeping the app functional at every step.
 - [x] [Export] / Export Package button with spritesheet + GIF preview (`#export-summary` via `renderExport()`)
 
 ### 7.7 Update wizard flow and navigation
-- Update `WIZARD_SECTION_MAP` to map new 5-phase flow: describe → concepts → character → animations → export
-- Update sidebar navigation links (5 items instead of 13+)
-- Remove wizard steps that referenced old panels
-- Remove old nav entries
+- [x] Server `wizard_steps_active`: Pixel Lab → `describe, concepts, character, animations, export`; other AI → four steps (no `animations`)
+- [x] `migrate_modern_ai_wizard_state` maps legacy ids (`brief`/`clips`/`qa`/…) to new step ids; `compute_wizard_context` uses merged export step (QA attention on `export`)
+- [x] Frontend `visibleWizardSteps`, `WIZARD_SECTION_MAP` (`describe`→`#intake`, `character`→`#character`, `export`→`#review-export`), `data-wizard-view="describe"` for intake subviews
+- [x] Sidebar primary labels aligned (e.g. **Describe** for setup); workbench nav remains five main sections
 
 ---
 
@@ -441,7 +441,7 @@ Phase 3 (concepts):    3.1 ✅ → 3.2 ✅ → 3.3 ✅ → 3.4 (deferred)
 Phase 4 (character):   4.1 ✅ → 4.2 ✅ → 4.3 ✅
 Phase 5 (animation):   5.1 ✅ → 5.2 ✅ → 5.3 ✅ → 5.4 ✅ → 5.5 ✅
 Phase 6 (QA/export):   6.1 ✅ → 6.2 ✅
-Phase 7 (frontend):    7.1 ✅ → 7.2 ✅ → 7.3 ✅ → 7.4 ✅ → 7.5 ✅ → 7.6 ✅ → 7.7  ← NEXT
+Phase 7 (frontend):    7.1 ✅ → 7.2 ✅ → 7.3 ✅ → 7.4 ✅ → 7.5 ✅ → 7.6 ✅ → 7.7 ✅ → Phase 8  ← NEXT
 Phase 8 (cleanup):     8.1 → 8.2 → 8.3 → 8.4 → 8.5 → 8.6
 Phase 9 (tests/docs):  9.1 → 9.2 → 9.3 → 9.4 → 9.5
 ```

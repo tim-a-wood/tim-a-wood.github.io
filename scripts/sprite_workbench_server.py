@@ -191,9 +191,13 @@ JOB_HISTORY_LIMIT = 50
 WIZARD_STEPS = ["project", "brief", "references", "concepts", "review", "rig_layout", "part_manifest", "part_shape_edit", "split_build", "split_review", "sprite_model", "rig", "clips", "qa", "export"]
 # Guided AI workflow (non-legacy): no rig_layout / part_manifest steps in the stepper UI.
 WIZARD_STEPS_AI = ["project", "brief", "references", "concepts", "review", "clips", "qa", "export"]
+# Phase 7.7: Pixel Lab guided flow uses five visible steps (describe → concepts → character → animations → export).
+WIZARD_STEPS_PIXEL_LAB_UI = ["describe", "concepts", "character", "animations", "export"]
+# Non–Pixel Lab AI (e.g. debug_procedural / Comfy) uses four steps (no separate Animations panel).
+WIZARD_STEPS_AI_SIMPLE_UI = ["describe", "concepts", "character", "export"]
 # Inserted after "clips" for Pixel Lab guided flow (Phase 7.5).
 WIZARD_STEP_ANIMATIONS = "animations"
-WIZARD_STEPS_KNOWN = set(WIZARD_STEPS) | {WIZARD_STEP_ANIMATIONS}
+WIZARD_STEPS_KNOWN = set(WIZARD_STEPS) | {WIZARD_STEP_ANIMATIONS, "describe", "character"}
 MASTER_POSE_COUNT = 3
 
 FRAME_SIZE = 256
@@ -2298,6 +2302,29 @@ def normalize_wizard_state(payload: Any) -> Dict[str, Any]:
     return state
 
 
+def migrate_modern_ai_wizard_state(state: Dict[str, Any]) -> Dict[str, Any]:
+    """Map legacy guided-AI wizard ids to Phase 7.7 flow (describe / character / export)."""
+    ws = normalize_wizard_state(state)
+    alias = {
+        "project": "describe",
+        "brief": "describe",
+        "references": "describe",
+        "review": "concepts",
+        "clips": "character",
+        "qa": "export",
+    }
+    cur = ws.get("current_step")
+    if cur in alias:
+        ws["current_step"] = alias[cur]
+    new_completed: List[str] = []
+    for item in ws.get("completed_steps", []):
+        mapped = alias.get(item, item)
+        if mapped not in new_completed:
+            new_completed.append(mapped)
+    ws["completed_steps"] = new_completed
+    return ws
+
+
 def set_wizard_step_complete(state: Dict[str, Any], step: str) -> Dict[str, Any]:
     wizard_state = normalize_wizard_state(state)
     if step not in wizard_state["completed_steps"]:
@@ -2834,6 +2861,10 @@ def compute_wizard_context(project: Dict[str, Any]) -> Dict[str, Any]:
     valid_attempts = [item for item in imported_attempts if item.get("validation_status") == "valid"]
 
     if ai_enabled:
+        wizard_state = migrate_modern_ai_wizard_state(wizard_state)
+        completed = set(wizard_state.get("completed_steps", []))
+        skipped = set(wizard_state.get("skipped_optional_steps", []))
+
         character_lock = ai_workflow.get("character_lock") or {}
         key_pose_set = ai_workflow.get("key_pose_set") or {}
         cleanup_runs = ai_workflow.get("cleanup_runs") or {}
@@ -2849,88 +2880,63 @@ def compute_wizard_context(project: Dict[str, Any]) -> Dict[str, Any]:
 
         pixellab_clips_complete = pixellab_character_wizard_complete(project, project_dir) if pixellab_brief else approved_cleanup_ready
 
-        has_brief = "brief" in completed or bool((project.get("prompt_text") or "").strip())
-        has_references = bool(brief.get("references")) or "references" in completed or "references" in skipped or has_brief
+        has_brief = "describe" in completed or "brief" in completed or bool((project.get("prompt_text") or "").strip())
+        has_references = bool(brief.get("references")) or "references" in skipped or has_brief
         has_concepts = bool(project.get("prompt_history")) or bool(imported_attempts)
         has_review = bool(project.get("selected_concept_id"))
-        # Phase 7.2: Character Lock / Key Pose panels removed; approved concept unlocks the same gates.
         concept_path_ready = bool(project.get("selected_concept_id"))
         has_character_lock = bool(character_lock.get("approved_asset_id")) or concept_path_ready
         has_key_pose_set = bool(key_pose_set.get("approved_run_id")) or concept_path_ready
-        has_qa = bool(project.get("qa_report"))
         has_export = bool(project.get("last_export"))
 
-        complete_map = {
-            "project": True,
-            "brief": has_brief,
-            "references": has_references,
-            "concepts": has_concepts,
-            "review": has_review,
-            "rig_layout": has_character_lock,
-            "part_manifest": has_key_pose_set,
-            "part_shape_edit": has_key_pose_set,
-            "split_build": has_key_pose_set,
-            "split_review": has_key_pose_set,
-            "sprite_model": has_key_pose_set,
-            "rig": has_key_pose_set,
-            "clips": pixellab_clips_complete,
-            "qa": has_qa,
-            "export": has_export,
+        animations_complete = pixellab_animations_step_complete(project, project_dir) if pixellab_brief else True
+        describe_complete = has_brief
+        concepts_complete = has_review
+        character_complete = pixellab_clips_complete
+        export_complete = has_export
+
+        steps_seq = wizard_steps_active(project)
+        complete_map: Dict[str, bool] = {
+            "describe": describe_complete,
+            "concepts": concepts_complete,
+            "character": character_complete,
+            "export": export_complete,
         }
         if pixellab_brief:
-            complete_map["animations"] = pixellab_animations_step_complete(project, project_dir)
+            complete_map["animations"] = animations_complete
+
+        export_prereq_met = character_complete and (not pixellab_brief or animations_complete)
+
         clips_blocker_msg = (
             "Approve a chosen concept before creating a Pixel Lab character."
             if pixellab_brief
             else "Approve a Key Pose Board before running Motion Workflow."
         )
-        qa_blocker_msg = (
-            "Complete the Animations step (idle + walk) before running checks."
-            if pixellab_brief
-            else "Approve cleaned idle and walk outputs before running Cleanup & QA."
+        qa_blocker_msg_non_pl = "Approve cleaned idle and walk outputs before review and export."
+        export_blocker_msg_pl = (
+            "Complete idle + walk animations and build canonical clips before review and export."
         )
-        blocking_reasons = {
-            "brief": [] if complete_map["project"] else ["Create or open a project first."],
-            "references": [] if complete_map["brief"] else ["Save the character description before adding or skipping references."],
-            "concepts": [] if complete_map["brief"] else ["Save the character description before building a concept prompt."],
-            "review": [] if valid_attempts else ["Generate or import at least one valid concept before approving a look."],
-            "rig_layout": [] if complete_map["review"] else (
-                ["Approve a source concept before the Character step."]
-                if pixellab_brief
-                else ["Approve a source concept before Motion Workflow."]
-            ),
-            "part_manifest": [] if complete_map["rig_layout"] else (
-                ["Complete the prior step before creating a Pixel Lab character."]
-                if pixellab_brief
-                else ["Complete the prior step before running motion."]
-            ),
-            "part_shape_edit": [],
-            "split_build": [],
-            "split_review": [],
-            "sprite_model": [],
-            "rig": [],
-            "clips": [] if complete_map["part_manifest"] else [clips_blocker_msg],
-            "qa": (
+
+        blocking_reasons: Dict[str, List[str]] = {
+            "describe": [],
+            "concepts": [] if describe_complete else ["Save the character description before building concepts."],
+            "character": [] if concepts_complete else [clips_blocker_msg],
+            "export": (
                 []
-                if (complete_map["clips"] and (not pixellab_brief or complete_map.get("animations")))
-                else [qa_blocker_msg]
+                if export_prereq_met
+                else ([export_blocker_msg_pl] if pixellab_brief else [qa_blocker_msg_non_pl])
             ),
-            "export": [] if complete_map["qa"] and project.get("qa_report", {}).get("status") == "pass" else ["Checks must pass before export."],
         }
         if pixellab_brief:
             blocking_reasons["animations"] = (
-                [] if complete_map["clips"] else ["Approve the Pixel Lab character before generating animations."]
+                [] if character_complete else ["Approve the Pixel Lab character before generating animations."]
             )
+
         step_statuses: Dict[str, str] = {}
         active_step = None
-        for step in wizard_steps_active(project):
+        for step in steps_seq:
             blockers = blocking_reasons.get(step, [])
             is_complete = complete_map.get(step, False)
-            if step == "project":
-                step_statuses[step] = "complete"
-                continue
-            # Completed steps stay navigable (user can go back); do not mark them locked
-            # just because prerequisites for a *fresh* visit would fail.
             if is_complete:
                 step_statuses[step] = "complete"
                 continue
@@ -2942,12 +2948,12 @@ def compute_wizard_context(project: Dict[str, Any]) -> Dict[str, Any]:
                 active_step = step
             else:
                 step_statuses[step] = "ready"
-        if project.get("qa_report") and not complete_map["export"]:
+
+        if project.get("qa_report") and not export_complete:
             if project["qa_report"].get("status") != "pass":
-                step_statuses["qa"] = "attention"
-                active_step = "qa"
-                step_statuses["export"] = "locked"
-                blocking_reasons["export"] = ["QA must pass before export."]
+                step_statuses["export"] = "attention"
+                active_step = "export"
+
         recommended_next_step = active_step or "export"
         persisted_step = wizard_state.get("current_step")
         persisted_ok = persisted_step in WIZARD_STEPS_KNOWN and step_statuses.get(persisted_step) in {
@@ -2959,8 +2965,8 @@ def compute_wizard_context(project: Dict[str, Any]) -> Dict[str, Any]:
         if persisted_ok:
             recommended_next_step = persisted_step
         wizard_state["current_step"] = persisted_step if persisted_ok else recommended_next_step
-        for step_name, completed_flag in complete_map.items():
-            if completed_flag:
+        for step_name in steps_seq:
+            if complete_map.get(step_name):
                 wizard_state = set_wizard_step_complete(wizard_state, step_name)
         can_resume_wizard = recommended_next_step != "export" or step_statuses.get("export") != "complete"
         return {
@@ -4489,19 +4495,16 @@ def pixellab_animations_step_complete(project: Dict[str, Any], project_dir: Path
 def wizard_steps_active(project: Dict[str, Any]) -> List[str]:
     """
     Wizard step order. Legacy (non-AI or legacy_mode) uses full WIZARD_STEPS.
-    Modern AI uses WIZARD_STEPS_AI (no rig_layout / part_manifest in UI).
-    Pixel Lab AI projects insert `animations` after Character (`clips`).
+    Modern AI uses Phase 7.7 simplified steps (describe → … → export).
     """
     ai_workflow = project.get("ai_workflow") or {}
     ai_enabled = bool(ai_workflow.get("enabled")) and not bool(ai_workflow.get("legacy_mode"))
     brief = project.get("brief") or {}
     pixellab_brief = str(brief.get("backend_mode") or "") == "pixellab"
     if ai_enabled:
-        seq = list(WIZARD_STEPS_AI)
         if pixellab_brief:
-            i = seq.index("clips") + 1
-            seq = seq[:i] + [WIZARD_STEP_ANIMATIONS] + seq[i:]
-        return seq
+            return list(WIZARD_STEPS_PIXEL_LAB_UI)
+        return list(WIZARD_STEPS_AI_SIMPLE_UI)
     return list(WIZARD_STEPS)
 
 
@@ -6519,7 +6522,7 @@ def update_project_brief(project_id: str, payload: Dict[str, Any]) -> Dict[str, 
     project["updated_at"] = now_iso()
     project["status"] = "ready_for_concepts"
     project["wizard_state"] = set_wizard_step_complete(project.get("wizard_state"), "brief")
-    if project["last_ui_mode"] == "wizard" and project["wizard_state"]["current_step"] in {"project", "brief"}:
+    if project["last_ui_mode"] == "wizard" and project["wizard_state"]["current_step"] in {"project", "brief", "describe"}:
         project["wizard_state"]["current_step"] = "concepts"
     save_project(project)
     return load_project(project_id)
@@ -6658,7 +6661,7 @@ def update_external_authoring(project_id: str, payload: Dict[str, Any]) -> Dict[
     project["updated_at"] = now_iso()
     if store["enabled"]:
         project["wizard_state"] = set_wizard_step_complete(project.get("wizard_state"), "review")
-        project["wizard_state"]["current_step"] = "clips"
+        project["wizard_state"]["current_step"] = "character"
     save_project(project)
     return load_project(project_id)["external_authoring"]
 
@@ -6751,7 +6754,7 @@ def import_external_authoring_bundle(project_id: str, payload: Dict[str, Any]) -
     project["status"] = "external_authoring_bundle_imported"
     project["updated_at"] = now_iso()
     project["wizard_state"] = set_wizard_step_complete(project.get("wizard_state"), "clips")
-    project["wizard_state"]["current_step"] = "qa"
+    project["wizard_state"]["current_step"] = "export"
     save_project(project)
     return load_project(project_id)["external_authoring"]
 

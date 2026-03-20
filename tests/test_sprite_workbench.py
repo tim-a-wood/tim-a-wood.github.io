@@ -266,9 +266,9 @@ class SpriteWorkbenchTests(unittest.TestCase):
                 sw.PROJECTS_ROOT = original_root
 
         self.assertEqual(project["last_ui_mode"], "wizard")
-        self.assertIn("brief", project["wizard_state"]["completed_steps"])
-        # References counts satisfied once a brief exists; wizard focuses first incomplete step.
-        self.assertEqual(project["step_statuses"]["references"], "complete")
+        self.assertIn("describe", project["wizard_state"]["completed_steps"])
+        # Describe (brief + optional references) satisfied once a brief exists; wizard focuses first incomplete step.
+        self.assertEqual(project["step_statuses"]["describe"], "complete")
         self.assertEqual(project["wizard_state"]["current_step"], "concepts")
 
     def test_update_project_brief_advances_wizard_to_concepts_when_references_satisfied(self):
@@ -286,8 +286,8 @@ class SpriteWorkbenchTests(unittest.TestCase):
             finally:
                 sw.PROJECTS_ROOT = original_root
 
-        self.assertIn("brief", project["wizard_state"]["completed_steps"])
-        self.assertEqual(project["step_statuses"]["references"], "complete")
+        self.assertIn("describe", project["wizard_state"]["completed_steps"])
+        self.assertEqual(project["step_statuses"]["describe"], "complete")
         self.assertEqual(project["wizard_state"]["current_step"], "concepts")
 
     def test_wizard_navigate_back_preserves_completed_step(self):
@@ -301,12 +301,12 @@ class SpriteWorkbenchTests(unittest.TestCase):
                     "prompt_text": "a side-view scout",
                     "last_ui_mode": "wizard",
                 })
-                reloaded = sw.update_wizard_state(created["project_id"], {"current_step": "brief"})
+                reloaded = sw.update_wizard_state(created["project_id"], {"current_step": "describe"})
             finally:
                 sw.PROJECTS_ROOT = original_root
 
-        self.assertEqual(reloaded["wizard_state"]["current_step"], "brief")
-        self.assertEqual(reloaded["step_statuses"].get("brief"), "complete")
+        self.assertEqual(reloaded["wizard_state"]["current_step"], "describe")
+        self.assertEqual(reloaded["step_statuses"].get("describe"), "complete")
 
     def test_review_stays_locked_until_a_valid_import_exists_and_refine_step_is_gone(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -325,11 +325,12 @@ class SpriteWorkbenchTests(unittest.TestCase):
                 sw.PROJECTS_ROOT = original_root
 
         self.assertNotIn("refine", before_valid["step_statuses"])
-        self.assertEqual(before_valid["step_statuses"]["review"], "locked")
-        self.assertIn("valid concept", before_valid["blocking_reasons"]["review"][0].lower())
-        self.assertEqual(project["step_statuses"]["review"], "complete")
+        self.assertEqual(before_valid["step_statuses"]["concepts"], "active")
+        self.assertEqual(before_valid["step_statuses"]["character"], "locked")
+        self.assertIn("concept", before_valid["blocking_reasons"]["character"][0].lower())
+        self.assertEqual(project["step_statuses"]["concepts"], "complete")
         self.assertNotIn("rig_layout", project["step_statuses"])
-        self.assertIn(project["step_statuses"]["clips"], {"active", "ready", "complete"})
+        self.assertIn(project["step_statuses"]["character"], {"active", "ready", "complete"})
 
     def test_concept_approval_generates_rig_layout_before_sprite_model(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -365,7 +366,7 @@ class SpriteWorkbenchTests(unittest.TestCase):
         self.assertEqual(project["current_stage"], "rig_layout")
         if project["ai_workflow"]["enabled"] and not project["ai_workflow"].get("legacy_mode"):
             self.assertNotIn("rig_layout", project["step_statuses"])
-            self.assertIn(project["step_statuses"]["clips"], {"active", "ready", "complete"})
+            self.assertIn(project["step_statuses"]["character"], {"active", "ready", "complete"})
             self.assertEqual(project["ai_workflow"]["selected_assets"]["approved_concept_id"], imported["concept_id"])
         elif project["ai_workflow"]["enabled"]:
             self.assertIn(project["step_statuses"]["rig_layout"], {"active", "ready"})
@@ -1424,14 +1425,16 @@ class SpriteWorkbenchTests(unittest.TestCase):
             "ai_workflow": {"enabled": True, "legacy_mode": False},
         }
         seq = sw.wizard_steps_active(project)
+        self.assertEqual(seq, sw.WIZARD_STEPS_PIXEL_LAB_UI)
         self.assertIn("animations", seq)
-        self.assertEqual(seq.index("animations"), seq.index("clips") + 1)
+        self.assertEqual(seq.index("animations"), seq.index("character") + 1)
 
     def test_wizard_steps_active_omits_animations_for_non_pixellab_ai(self):
         project = {
             "brief": {"backend_mode": "debug_procedural"},
             "ai_workflow": {"enabled": True, "legacy_mode": False},
         }
+        self.assertEqual(sw.wizard_steps_active(project), sw.WIZARD_STEPS_AI_SIMPLE_UI)
         self.assertNotIn("animations", sw.wizard_steps_active(project))
 
     def test_wizard_steps_active_ai_omits_rig_layout_and_part_manifest(self):
@@ -1442,7 +1445,7 @@ class SpriteWorkbenchTests(unittest.TestCase):
         seq = sw.wizard_steps_active(project)
         self.assertNotIn("rig_layout", seq)
         self.assertNotIn("part_manifest", seq)
-        self.assertIn("clips", seq)
+        self.assertIn("character", seq)
 
     def test_pixellab_missing_canonical_animation_clips_lists_gaps(self):
         self.assertEqual(sw.pixellab_missing_canonical_animation_clips(None), ["idle", "walk"])
