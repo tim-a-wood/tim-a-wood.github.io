@@ -10,4 +10,4 @@
 | AT-07 | Death, Respawn, And Restart | Verify the life system, respawn behavior, game-over state, and restart control. | Not Run | Workbench-only change; game prototype not exercised. |
 | AT-08 | HUD And Feedback | Verify the HUD remains visible and updates during play. | Not Run | Workbench-only change; game prototype not exercised. |
 | AT-09 | Key Pickup And Door Unlock | Verify the first progression loop works end to end: collect the key on the high ledge, show it in the HUD inventory, then consume it to unlock the left-side door. | Not Run | Workbench-only change; game prototype not exercised. |
-| Unit Test Suite | Overall Unit Tests | General unit test suite status. | Not Run | CSS-only (`index.html` preview sizing); suite not re-run (no Python/game logic change). |
+| Unit Test Suite | Overall Unit Tests | General unit test suite status. | Not Run | CSS-only: SkelForm bundle GIF panel now uses `skelform-bundle-gif` on both preview cards; suite not re-run. |

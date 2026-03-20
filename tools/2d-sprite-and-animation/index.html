@@ -1481,6 +1481,22 @@
             background: rgba(255, 255, 255, 0.03);
         }
 
+        /* SkelForm imported bundle GIF — avoid full-column intrinsic width from width:100% parent */
+        .preview-card.skelform-bundle-gif {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .preview-card.skelform-bundle-gif img {
+            width: auto;
+            max-width: min(100%, 280px);
+            max-height: min(36vh, 280px);
+            height: auto;
+            object-fit: contain;
+            image-rendering: pixelated;
+        }
+
         .overlay-stack {
             position: relative;
         }
@@ -1841,7 +1857,7 @@
         .export-preview-panel .export-preview-spritesheet img {
             width: auto;
             max-width: 100%;
-            max-height: min(36vh, 260px);
+            max-height: min(32vh, 220px);
             height: auto;
             margin-inline: auto;
             object-fit: contain;
@@ -8344,7 +8360,7 @@ function renderClipEditor() {
             </div>
         `;
         previewRoot.innerHTML = bundle?.preview_gif_path
-            ? `<div class="preview-card"><img src="${projectAsset(project, bundle.preview_gif_path)}?v=${project.updated_at}" alt="Imported SkelForm preview"><div class="small-note" style="margin-top: 8px;">Imported preview GIF</div></div>`
+            ? `<div class="preview-card skelform-bundle-gif"><img src="${projectAsset(project, bundle.preview_gif_path)}?v=${project.updated_at}" alt="Imported SkelForm preview"><div class="small-note" style="margin-top: 8px;">Imported preview GIF</div></div>`
             : `<div class="empty">Import a SkelForm bundle to preview its GIF here.</div>`;
         const openButton = editorRoot.querySelector("#open-skelform-session");
         if (openButton) openButton.onclick = async () => {
@@ -8668,7 +8684,7 @@ function renderManualClipStudio() {
                         <div class="check-row"><span>Animations</span><a href="${projectAsset(project, bundle.animations_path)}" target="_blank">open</a></div>
                         ${bundle.preview_gif_path ? `<div class="check-row"><span>Preview GIF</span><a href="${projectAsset(project, bundle.preview_gif_path)}" target="_blank">open</a></div>` : ""}
                     </div>
-                    ${bundle.preview_gif_path ? `<div class="preview-card" style="margin-top: 12px;"><img src="${projectAsset(project, bundle.preview_gif_path)}?v=${project.updated_at}" alt="SkelForm preview gif"><div class="small-note" style="margin-top: 8px;">${bundle.source_label || "Imported bundle"}</div></div>` : `<div class="small-note" style="margin-top: 12px;">No preview GIF imported yet.</div>`}
+                    ${bundle.preview_gif_path ? `<div class="preview-card skelform-bundle-gif" style="margin-top: 12px;"><img src="${projectAsset(project, bundle.preview_gif_path)}?v=${project.updated_at}" alt="SkelForm preview gif"><div class="small-note" style="margin-top: 8px;">${bundle.source_label || "Imported bundle"}</div></div>` : `<div class="small-note" style="margin-top: 12px;">No preview GIF imported yet.</div>`}
                 </div>
             </div>
         ` : `<div class="empty">Import a SkelForm bundle to unlock QA and export.</div>`;
