@@ -2,6 +2,7 @@ import http.client
 import base64
 import io
 import json
+import os
 import shutil
 import tempfile
 import threading
@@ -1469,6 +1470,24 @@ class SpriteWorkbenchTests(unittest.TestCase):
             sw.validate_pixellab_animation_name("9bad")
         with self.assertRaises(ValueError):
             sw.validate_pixellab_animation_name("no spaces")
+
+    def test_pixellab_animate_custom_poll_timeout_constant_sane(self):
+        self.assertGreaterEqual(sw.PIXELLAB_ANIMATE_CUSTOM_POLL_TIMEOUT_SECONDS, 180)
+
+    def test_env_int_respects_minimum(self):
+        key = "__SW_ENV_INT_TEST__"
+        old = os.environ.pop(key, None)
+        try:
+            self.assertEqual(sw.env_int(key, 900, minimum=180), 900)
+            os.environ[key] = "50"
+            self.assertEqual(sw.env_int(key, 900, minimum=180), 900)
+            os.environ[key] = "1200"
+            self.assertEqual(sw.env_int(key, 900, minimum=180), 1200)
+        finally:
+            if old is None:
+                os.environ.pop(key, None)
+            else:
+                os.environ[key] = old
 
     def test_hydrate_animation_clips_aligns_frame_count_with_raster_bridge_frames(self):
         """animation_clips.json from Pixel Lab can list fewer paths than ANIMATION_SPECS."""

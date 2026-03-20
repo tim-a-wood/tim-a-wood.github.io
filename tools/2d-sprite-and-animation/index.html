@@ -4460,6 +4460,28 @@ function projectAsset(project, relativePath) {
     return `${WORKBENCH_BASE}/projects-data/${pid}/${encodedRel}`;
 }
 
+/** Relative paths from animation_clips when Pixel Lab wrote per-frame PNGs (e.g. animations/idle/south/frame_00.png). */
+function pixellabAnimationClipFrameRels(project, clipName) {
+    if (!project || clipName == null) return null;
+    if (String(project.brief?.backend_mode || "") !== "pixellab") return null;
+    const frames = project.animation_clips?.[clipName]?.frames;
+    return Array.isArray(frames) && frames.length ? frames : null;
+}
+
+/** Built frame preview URL: Pixel Lab bridge uses animation_clips.*.frames; deterministic rig uses animations/<clip>/<clip>_NN.png. */
+function animationClipFramePreviewUrl(project, clipName, frameIndex) {
+    if (!project || clipName == null) return null;
+    const rels = pixellabAnimationClipFrameRels(project, clipName);
+    const idx = Math.max(0, Number(frameIndex) || 0);
+    if (rels && rels[idx]) {
+        return `${projectAsset(project, rels[idx])}?v=${project.updated_at}`;
+    }
+    if (project.build_status?.[`${clipName}_render_complete`]) {
+        return `${projectAsset(project, `animations/${clipName}/${clipName}_${String(idx).padStart(2, "0")}.png`)}?v=${project.updated_at}`;
+    }
+    return null;
+}
+
 function formatDate(value) {
     if (!value) return "n/a";
     const date = new Date(value);
@@ -8306,9 +8328,7 @@ function renderClipEditor() {
     const selectedClipPart = selectedClipEditorPart(project);
     const selectedBinding = clipPartOverrideBinding(selectedClipPart, project);
     const neutralPosePath = project.rig?.neutral_pose_render ? `${projectAsset(project, project.rig.neutral_pose_render)}?v=${project.updated_at}` : null;
-    const builtFramePath = project.build_status?.[`${state.selectedClip}_render_complete`]
-        ? `${projectAsset(project, `animations/${state.selectedClip}/${state.selectedClip}_${String(state.selectedClipFrame).padStart(2, "0")}.png`)}?v=${project.updated_at}`
-        : null;
+    const builtFramePath = animationClipFramePreviewUrl(project, state.selectedClip, state.selectedClipFrame);
 
     editorRoot.innerHTML = `
         <div class="clip-editor-card">
@@ -9281,7 +9301,25 @@ function renderAnimationGallery(name) {
         root.innerHTML = `<div class="empty">SkelForm bundle import replaces this gallery.</div>`;
         return;
     }
-    const count = project.animation_clips?.[name]?.frame_count || (name === "idle" ? 6 : 8);
+    const clip = project.animation_clips?.[name];
+    const bridgeRels = pixellabAnimationClipFrameRels(project, name);
+    if (bridgeRels) {
+        const urls = bridgeRels.map((rel) => `${projectAsset(project, rel)}?v=${project.updated_at}`);
+        const fps = clip?.fps || (name === "idle" ? 8 : 10);
+        renderClipLoopPreview(name, urls.length, { frameUrls: urls, fps });
+        bridgeRels.forEach((rel, index) => {
+            const label = rel.split("/").pop() || `frame_${String(index).padStart(2, "0")}.png`;
+            const thumb = document.createElement("div");
+            thumb.className = "thumb";
+            thumb.innerHTML = `
+                <img src="${projectAsset(project, rel)}?v=${project.updated_at}" alt="${label}" onerror="this.parentElement.style.display='none'">
+                <div class="small-note" style="margin-top: 8px;">${label}</div>
+            `;
+            root.appendChild(thumb);
+        });
+        return;
+    }
+    const count = clip?.frame_count || (name === "idle" ? 6 : 8);
     renderClipLoopPreview(name, count);
     for (let index = 0; index < count; index += 1) {
         const frame = `${name}_${String(index).padStart(2, "0")}.png`;
@@ -9309,11 +9347,19 @@ function renderClipLoopPreview(name, count, opts = {}) {
     if (!root) return;
     root.innerHTML = "";
     const project = state.activeProject;
-    if (!project || !count) return;
-    const fps = project.animation_clips?.[name]?.fps || (name === "idle" ? 8 : 10);
-    const frames = Array.from({ length: count }, (_, index) =>
-        `${projectAsset(project, `animations/${name}/${name}_${String(index).padStart(2, "0")}.png`)}?v=${project.updated_at}`
-    );
+    const frameUrls = opts.frameUrls;
+    const n = frameUrls?.length || count;
+    if (!project || !n) return;
+    const fps =
+        opts.fps ??
+        project.animation_clips?.[name]?.fps ??
+        (name === "idle" ? 8 : 10);
+    const frames =
+        frameUrls && frameUrls.length
+            ? frameUrls
+            : Array.from({ length: n }, (_, index) =>
+                  `${projectAsset(project, `animations/${name}/${name}_${String(index).padStart(2, "0")}.png`)}?v=${project.updated_at}`
+              );
     const preview = document.createElement("div");
     preview.className = "thumb";
     preview.style.maxWidth = "280px";
@@ -9355,10 +9401,34 @@ function renderReviewExportClipPreviews() {
         walkRoot.innerHTML = "";
         return;
     }
-    const idleCount = project.animation_clips?.idle?.frame_count || 6;
-    const walkCount = project.animation_clips?.walk?.frame_count || 8;
-    renderClipLoopPreview("idle", idleCount, { root: idleRoot, timerKey: "review_idle" });
-    renderClipLoopPreview("walk", walkCount, { root: walkRoot, timerKey: "review_walk" });
+    const idleClip = project.animation_clips?.idle;
+    const walkClip = project.animation_clips?.walk;
+    const idleBridge = pixellabAnimationClipFrameRels(project, "idle");
+    const walkBridge = pixellabAnimationClipFrameRels(project, "walk");
+    const idleCount = idleBridge?.length || idleClip?.frame_count || 6;
+    const walkCount = walkBridge?.length || walkClip?.frame_count || 8;
+    if (idleBridge) {
+        const urls = idleBridge.map((rel) => `${projectAsset(project, rel)}?v=${project.updated_at}`);
+        renderClipLoopPreview("idle", urls.length, {
+            root: idleRoot,
+            timerKey: "review_idle",
+            frameUrls: urls,
+            fps: idleClip?.fps,
+        });
+    } else {
+        renderClipLoopPreview("idle", idleCount, { root: idleRoot, timerKey: "review_idle" });
+    }
+    if (walkBridge) {
+        const urls = walkBridge.map((rel) => `${projectAsset(project, rel)}?v=${project.updated_at}`);
+        renderClipLoopPreview("walk", urls.length, {
+            root: walkRoot,
+            timerKey: "review_walk",
+            frameUrls: urls,
+            fps: walkClip?.fps,
+        });
+    } else {
+        renderClipLoopPreview("walk", walkCount, { root: walkRoot, timerKey: "review_walk" });
+    }
 }
 
 function renderQa() {

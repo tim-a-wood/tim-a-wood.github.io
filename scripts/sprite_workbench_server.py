@@ -184,6 +184,10 @@ def env_int(name: str, default: int, minimum: int = 1) -> int:
         return default
     return value if value >= minimum else default
 
+
+# Custom animation (animate-with-text-v2) can stay in "processing" longer than idle/walk; override via env if needed.
+PIXELLAB_ANIMATE_CUSTOM_POLL_TIMEOUT_SECONDS = env_int("PIXELLAB_ANIMATE_CUSTOM_POLL_TIMEOUT_SECONDS", 900, minimum=180)
+
 CONCEPT_CANVAS = (640, 768)
 INITIAL_CONCEPT_COUNT = 6
 REFINEMENT_CONCEPT_COUNT = 4
@@ -14507,7 +14511,7 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                         ref_b64,
                         action,
                         image_size,
-                        poll_timeout_seconds=480,
+                        poll_timeout_seconds=PIXELLAB_ANIMATE_CUSTOM_POLL_TIMEOUT_SECONDS,
                     )
 
                     b64_n, url_n = _pixellab_frame_source_counts(result)
