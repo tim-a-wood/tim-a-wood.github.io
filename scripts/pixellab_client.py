@@ -138,6 +138,17 @@ def format_background_job_failure(payload: Any) -> str:
     return "Job failed with no error message from Pixel Lab.%s" % job_note
 
 
+def _unwrap_completed_job_payload(payload: Dict[str, Any]) -> Dict[str, Any]:
+    """Normalize a completed GET /v2/background-jobs/{id} body to the inner result dict."""
+    lr = payload.get("last_response")
+    if isinstance(lr, dict) and lr:
+        return lr
+    inner = payload.get("result") or payload.get("output")
+    if isinstance(inner, dict):
+        return inner
+    return payload
+
+
 class PixelLabClient:
     def __init__(
         self,
@@ -299,21 +310,113 @@ class PixelLabClient:
                 last_heartbeat = now
 
             if status in {"completed", "succeeded", "done", "success"}:
-                # v2 background jobs use ``last_response`` (see OpenAPI BackgroundJobResponse).
-                # Older/alternate shapes use ``result`` / ``output``.
                 if isinstance(payload, dict):
-                    lr = payload.get("last_response")
-                    if isinstance(lr, dict) and lr:
-                        return lr
-                    inner = payload.get("result") or payload.get("output")
-                    if isinstance(inner, dict):
-                        return inner
-                    return payload
+                    return _unwrap_completed_job_payload(payload)
                 return {"result": payload}
             if status in {"failed", "error"}:
                 raise PixelLabError(format_background_job_failure(payload))
 
             time.sleep(interval_seconds)
+
+    def _poll_jobs_parallel(
+        self,
+        job_ids: List[str],
+        *,
+        direction_labels: Optional[List[str]] = None,
+        timeout_seconds: int = 120,
+        interval_seconds: int = 3,
+    ) -> List[Dict[str, Any]]:
+        """
+        Poll multiple background jobs in round-robin each cycle.
+
+        Unlike sequential ``_poll_job`` calls, a failed or slow job is still polled every
+        cycle, so failures surface without waiting for earlier jobs to complete.
+        Budget: ``timeout_seconds * len(job_ids)`` wall-clock (same worst case as sequential).
+        """
+        if not job_ids:
+            return []
+        n = len(job_ids)
+        total_budget = max(int(timeout_seconds), 1) * n
+        parallel_start = time.monotonic()
+        deadline = parallel_start + float(total_budget)
+        results: Dict[str, Dict[str, Any]] = {}
+        pending = set(job_ids)
+        poll_counts: Dict[str, int] = {j: 0 for j in job_ids}
+        last_hb: Dict[str, float] = {j: parallel_start for j in job_ids}
+
+        def hint_for(jid: str) -> str:
+            try:
+                idx = job_ids.index(jid)
+            except ValueError:
+                return ""
+            if direction_labels and isinstance(direction_labels, list) and idx < len(direction_labels):
+                return " (%s)" % direction_labels[idx]
+            return ""
+
+        def one_based_index(jid: str) -> int:
+            try:
+                return job_ids.index(jid) + 1
+            except ValueError:
+                return -1
+
+        logger.info(
+            "Pixel Lab parallel poll: %d jobs, budget=%ds (%.0fs wall-clock max)",
+            n,
+            timeout_seconds,
+            total_budget,
+        )
+
+        while pending:
+            now = time.monotonic()
+            if now > deadline:
+                pend = ", ".join((p[:8] + "…") for p in sorted(pending)[:8])
+                raise PixelLabError(
+                    "Pixel Lab jobs still pending after %ds (budget=%ds): %s"
+                    % (int(now - parallel_start), total_budget, pend or "(none)")
+                )
+
+            for jid in list(job_ids):
+                if jid not in pending:
+                    continue
+                payload = self._request_json("GET", f"/v2/background-jobs/{jid}")
+                poll_counts[jid] += 1
+                status = None
+                if isinstance(payload, dict):
+                    status = payload.get("status") or payload.get("job_status") or payload.get("state")
+
+                short_id = (jid[:36] + "…") if len(jid) > 36 else jid
+                elapsed = now - parallel_start
+                if poll_counts[jid] == 1 or (now - last_hb[jid]) >= 15.0:
+                    logger.info(
+                        "Pixel Lab parallel poll job=%s status=%r elapsed=%.0fs poll#=%d finished=%d/%d",
+                        short_id,
+                        status,
+                        elapsed,
+                        poll_counts[jid],
+                        n - len(pending),
+                        n,
+                    )
+                    last_hb[jid] = now
+
+                if status in {"completed", "succeeded", "done", "success"}:
+                    if isinstance(payload, dict):
+                        results[jid] = _unwrap_completed_job_payload(payload)
+                    pending.discard(jid)
+                elif status in {"failed", "error"}:
+                    raise PixelLabError(
+                        "Pixel Lab direction job %d of %d%s failed: %s"
+                        % (
+                            one_based_index(jid),
+                            n,
+                            hint_for(jid),
+                            format_background_job_failure(payload),
+                        )
+                    )
+
+            if pending:
+                time.sleep(interval_seconds)
+
+        return [results[jid] for jid in job_ids]
 
     def get_balance(self) -> Dict[str, Any]:
         payload = self._request_json("GET", "/v1/balance")
@@ -448,24 +551,14 @@ class PixelLabClient:
         _log_pixellab_post_accepted("animate_character", accepted)
         multi_ids = self._extract_background_job_ids(accepted)
         if multi_ids:
-            merged: List[Dict[str, Any]] = []
-            dir_labels = accepted.get("directions") or accepted.get("Directions") or []
-            for i, jid in enumerate(multi_ids):
-                logger.info(
-                    "Pixel Lab animate_character polling job %d/%d (timeout %ds)",
-                    i + 1,
-                    len(multi_ids),
-                    poll_timeout,
-                )
-                try:
-                    merged.append(self._poll_job(jid, timeout_seconds=poll_timeout))
-                except PixelLabError as exc:
-                    hint = ""
-                    if isinstance(dir_labels, list) and i < len(dir_labels):
-                        hint = " (%s)" % dir_labels[i]
-                    raise PixelLabError(
-                        "Pixel Lab direction job %d of %d%s failed: %s" % (i + 1, len(multi_ids), hint, exc)
-                    ) from exc
+            dir_labels = accepted.get("directions") or accepted.get("Directions")
+            if not isinstance(dir_labels, list):
+                dir_labels = None
+            merged = self._poll_jobs_parallel(
+                multi_ids,
+                direction_labels=dir_labels,
+                timeout_seconds=poll_timeout,
+            )
             return {
                 "per_job_last_response": merged,
                 "directions": accepted.get("directions") or accepted.get("Directions"),

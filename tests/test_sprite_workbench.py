@@ -1686,7 +1686,7 @@ class SpriteWorkbenchTests(unittest.TestCase):
         self.assertNotIn("usd", msg)
 
     def test_pixellab_animate_character_polls_all_background_job_ids(self):
-        """POST /v2/characters/animations may return ``background_job_ids`` (one per direction)."""
+        """POST /v2/characters/animations may return ``background_job_ids`` (polled in parallel)."""
         client = pl.PixelLabClient("fake-key")
         accepted = {
             "background_job_ids": ["job-a", "job-b"],
@@ -1695,25 +1695,49 @@ class SpriteWorkbenchTests(unittest.TestCase):
         }
         lr_a = {"direction": "south", "ok": True}
         lr_b = {"direction": "east", "ok": True}
-        with patch.object(client, "_request_json", return_value=accepted), patch.object(
-            client, "_poll_job", side_effect=[lr_a, lr_b]
-        ) as poll:
+
+        def rq(method, path, payload=None):
+            if method == "POST":
+                return accepted
+            if "job-a" in path:
+                return {"id": "job-a", "status": "completed", "last_response": lr_a}
+            if "job-b" in path:
+                return {"id": "job-b", "status": "completed", "last_response": lr_b}
+            raise AssertionError((method, path))
+
+        with patch.object(client, "_request_json", side_effect=rq):
             out = client.animate_character(
                 "char-1",
                 "template_walk",
                 directions=["south", "east"],
                 poll_timeout_seconds=30,
             )
-        self.assertEqual(
-            poll.call_args_list,
-            [
-                call("job-a", timeout_seconds=30),
-                call("job-b", timeout_seconds=30),
-            ],
-        )
         self.assertEqual(out.get("per_job_last_response"), [lr_a, lr_b])
         self.assertEqual(out.get("background_job_ids"), ["job-a", "job-b"])
         self.assertEqual(out.get("status"), "completed")
+
+    def test_poll_jobs_parallel_surfaces_failure_without_finishing_first_job(self):
+        client = pl.PixelLabClient("fake-key")
+
+        def rq(method, path, payload=None):
+            if "job-slow" in path:
+                return {"id": "job-slow", "status": "processing"}
+            if "job-bad" in path:
+                return {
+                    "id": "job-bad",
+                    "status": "failed",
+                    "last_response": {"error": "split failed", "detail": "x"},
+                }
+            raise AssertionError(path)
+
+        with patch.object(client, "_request_json", side_effect=rq):
+            with self.assertRaisesRegex(pl.PixelLabError, "west"):
+                client._poll_jobs_parallel(
+                    ["job-slow", "job-bad"],
+                    direction_labels=["south", "west"],
+                    timeout_seconds=60,
+                    interval_seconds=0,
+                )
 
     def test_pixellab_client_get_balance_parses_json(self):
         client = pl.PixelLabClient("fake-key")
