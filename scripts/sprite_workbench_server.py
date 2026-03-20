@@ -7,6 +7,7 @@ import copy
 import hashlib
 import io
 import json
+import logging
 import math
 import os
 import re
@@ -102,6 +103,38 @@ GEMINI_API_BASE_URL = os.environ.get("GEMINI_API_BASE_URL", "https://generativel
 DEFAULT_GEMINI_VALIDATION_MODEL = os.environ.get("SPRITE_WORKBENCH_GEMINI_VALIDATION_MODEL", "gemini-2.5-flash")
 
 PIXELLAB_API_KEY = os.environ.get("PIXELLAB_API_KEY", "")
+
+logger = logging.getLogger("sprite_workbench")
+
+
+def _pixellab_api_result_summary(result: Any) -> str:
+    """Compact description of a Pixel Lab JSON payload for logs (no large base64 bodies)."""
+    if result is None:
+        return "None"
+    if not isinstance(result, dict):
+        return type(result).__name__
+    parts: List[str] = ["keys=%r" % list(result.keys())]
+    for k in (
+        "status",
+        "job_id",
+        "jobId",
+        "background_job_id",
+        "backgroundJobId",
+        "background_job_ids",
+        "backgroundJobIds",
+        "directions",
+    ):
+        if k in result:
+            parts.append("%s=%r" % (k, result.get(k)))
+    pj = result.get("per_job_last_response") or result.get("merged_last_responses")
+    if isinstance(pj, list):
+        parts.append("merged_jobs=%d" % len(pj))
+        for i, block in enumerate(pj[:16]):
+            if isinstance(block, dict):
+                parts.append("job[%d]_keys=%r" % (i, list(block.keys())[:32]))
+            else:
+                parts.append("job[%d]_type=%s" % (i, type(block).__name__))
+    return "; ".join(parts)
 
 
 def pixellab_configured() -> bool:
@@ -4193,6 +4226,14 @@ def _collect_pixellab_https_asset_urls(payload: Any) -> List[str]:
 
     walk(payload)
     return list(dict.fromkeys(urls))
+
+
+def _pixellab_frame_source_counts(result: Any) -> Tuple[int, int]:
+    """Counts of base64-like image strings and https URLs visible in nested JSON (before decode)."""
+    return (
+        len(_find_all_base64_png_like(result)),
+        len(_collect_pixellab_https_asset_urls(result)),
+    )
 
 
 def _pixellab_decode_single_animation_payload_to_frames(
@@ -13919,7 +13960,24 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
 
                 store = _load_pixellab_animations_store(project_dir)
 
+                logger.info(
+                    "[pixellab/animate] start project=%s animation=%s template=%s dir_count=%d "
+                    "use_debug=%s backend_mode=%s pixellab_configured=%s character_id=%s",
+                    project_id,
+                    animation_name,
+                    template_animation_id,
+                    len(direction_list),
+                    use_debug,
+                    backend_mode,
+                    pixellab_configured(),
+                    char_data.get("character_id"),
+                )
+
                 if use_debug:
+                    logger.info(
+                        "[pixellab/animate] debug_procedural — skipping Pixel Lab API (backend_mode=%s or no API key)",
+                        backend_mode,
+                    )
                     for dir_idx, direction in enumerate(direction_list):
                         frames = debug_pixellab_animation_frames(
                             animation_name,
@@ -13948,6 +14006,10 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                     if client is None:
                         raise ValueError("Pixel Lab client unavailable; missing PIXELLAB_API_KEY.")
 
+                    logger.info(
+                        "[pixellab/animate] calling Pixel Lab POST /v2/characters/animations character_id=%s",
+                        char_data.get("character_id"),
+                    )
                     # v2 endpoint call (async polling handled inside the client).
                     result = client.animate_character(
                         str(char_data.get("character_id") or ""),
@@ -13955,6 +14017,14 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                         directions=direction_list,
                         seed=seed,
                         poll_timeout_seconds=480,
+                    )
+
+                    b64_n, url_n = _pixellab_frame_source_counts(result)
+                    logger.info(
+                        "[pixellab/animate] api_returned %s; pre_decode b64_candidates=%d https_urls=%d",
+                        _pixellab_api_result_summary(result),
+                        b64_n,
+                        url_n,
                     )
 
                     fps_frame = _resolve_animation_timing(
@@ -13984,8 +14054,21 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                         canvas_size=canvas_size,
                         client=client,
                     )
+                    logger.info(
+                        "[pixellab/animate] decoded_rgba_frames=%d (expect up to %d for %d dirs × %d frames)",
+                        len(plate_frames),
+                        len(direction_list) * frame_count,
+                        len(direction_list),
+                        frame_count,
+                    )
                     if not plate_frames:
                         keys = list(result.keys()) if isinstance(result, dict) else type(result).__name__
+                        logger.warning(
+                            "[pixellab/animate] no decodable frames project=%s keys=%s summary=%s",
+                            project_id,
+                            keys,
+                            _pixellab_api_result_summary(result),
+                        )
                         raise ValueError(
                             "Pixel Lab animation returned no decodable frames (PNG/WebP/JPEG base64 or image URLs). "
                             "Response keys: %s" % keys
@@ -14014,6 +14097,13 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                             job_id=job_id,
                         )
 
+                logger.info(
+                    "[pixellab/animate] ok project=%s animation=%s fps=%s frame_count=%s",
+                    project_id,
+                    animation_name,
+                    fps,
+                    frame_count,
+                )
                 return self._send_json({"ok": True, "animation_name": animation_name, "fps": fps, "frame_count": frame_count})
 
             animate_custom_pixellab_match = re.fullmatch(r"/api/projects/([^/]+)/pixellab/animate-custom", path)
@@ -14054,7 +14144,17 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                 direction = "east"
                 store = _load_pixellab_animations_store(project_dir)
 
+                logger.info(
+                    "[pixellab/animate-custom] start project=%s animation=%s use_debug=%s backend_mode=%s action_len=%d",
+                    project_id,
+                    animation_name,
+                    use_debug,
+                    backend_mode,
+                    len(action),
+                )
+
                 if use_debug:
+                    logger.info("[pixellab/animate-custom] debug_procedural — skipping API")
                     frames = debug_pixellab_animation_frames(animation_name, direction, canvas_size, frame_count, seed, description_hint=action)
                     frame_paths = _write_png_frames(frames, project_dir, animation_name, direction)
                     _upsert_pixellab_animation_frames(
@@ -14084,11 +14184,20 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
 
                     ref_b64 = client.encode_image(str(ref_path))
                     image_size = {"width": canvas_size, "height": canvas_size}
+                    logger.info("[pixellab/animate-custom] calling POST /v2/animate-with-text-v2")
                     result = client.animate_with_text_v2(
                         ref_b64,
                         action,
                         image_size,
                         poll_timeout_seconds=480,
+                    )
+
+                    b64_n, url_n = _pixellab_frame_source_counts(result)
+                    logger.info(
+                        "[pixellab/animate-custom] api_returned %s; pre_decode b64_candidates=%d https_urls=%d",
+                        _pixellab_api_result_summary(result),
+                        b64_n,
+                        url_n,
                     )
 
                     fps_frame = _resolve_animation_timing(animation_name, pixel_lab_result=result)
@@ -14105,8 +14214,18 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                         canvas_size=canvas_size,
                         client=client,
                     )
+                    logger.info(
+                        "[pixellab/animate-custom] decoded_rgba_frames=%d (want up to %d)",
+                        len(plate_frames),
+                        frame_count,
+                    )
                     if not plate_frames:
                         keys = list(result.keys()) if isinstance(result, dict) else type(result).__name__
+                        logger.warning(
+                            "[pixellab/animate-custom] no decodable frames project=%s keys=%s",
+                            project_id,
+                            keys,
+                        )
                         raise ValueError(
                             "Pixel Lab custom animation returned no decodable frames. Response keys: %s" % keys
                         )
@@ -14127,6 +14246,12 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                         job_id=job_id,
                     )
 
+                logger.info(
+                    "[pixellab/animate-custom] ok project=%s animation=%s frames_written=%d",
+                    project_id,
+                    animation_name,
+                    len(frames),
+                )
                 return self._send_json({"ok": True, "animation_name": animation_name, "fps": fps, "frame_count": frame_count})
 
             animate_skeleton_pixellab_match = re.fullmatch(r"/api/projects/([^/]+)/pixellab/animate-skeleton", path)
@@ -14178,7 +14303,19 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
 
                 store = _load_pixellab_animations_store(project_dir)
 
+                logger.info(
+                    "[pixellab/animate-skeleton] start project=%s animation=%s direction=%s "
+                    "keypoint_frames=%d use_debug=%s backend_mode=%s",
+                    project_id,
+                    animation_name,
+                    direction,
+                    len(keypoint_frames),
+                    use_debug,
+                    backend_mode,
+                )
+
                 if use_debug:
+                    logger.info("[pixellab/animate-skeleton] debug_procedural — skipping API")
                     frames = debug_pixellab_animation_frames(animation_name, direction, canvas_size, frame_count, seed, description_hint="skel")
                     frame_paths = _write_png_frames(frames, project_dir, animation_name, direction)
                     _upsert_pixellab_animation_frames(
@@ -14208,11 +14345,20 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
 
                     ref_b64 = client.encode_image(str(ref_path))
                     image_size = {"width": canvas_size, "height": canvas_size}
+                    logger.info("[pixellab/animate-skeleton] calling POST /v1/animate-with-skeleton")
                     result = client.animate_with_skeleton(
                         ref_b64,
                         image_size,
                         keypoint_frames,
                         poll_timeout_seconds=480,
+                    )
+
+                    b64_n, url_n = _pixellab_frame_source_counts(result)
+                    logger.info(
+                        "[pixellab/animate-skeleton] api_returned %s; pre_decode b64_candidates=%d https_urls=%d",
+                        _pixellab_api_result_summary(result),
+                        b64_n,
+                        url_n,
                     )
 
                     fps_frame = _resolve_animation_timing(animation_name, pixel_lab_result=result)
@@ -14229,8 +14375,18 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                     if isinstance(result, dict):
                         job_id = result.get("job_id") or result.get("jobId") or result.get("background_job_id") or result.get("backgroundJobId")
 
+                    logger.info(
+                        "[pixellab/animate-skeleton] decoded_rgba_frames=%d requested_frame_count=%d",
+                        len(plate_frames),
+                        frame_count,
+                    )
                     if not plate_frames:
                         keys = list(result.keys()) if isinstance(result, dict) else type(result).__name__
+                        logger.warning(
+                            "[pixellab/animate-skeleton] no decodable frames project=%s keys=%s",
+                            project_id,
+                            keys,
+                        )
                         raise ValueError(
                             "Pixel Lab skeleton animation returned no decodable frames. Response keys: %s" % keys
                         )
@@ -14252,6 +14408,13 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                         job_id=job_id,
                     )
 
+                logger.info(
+                    "[pixellab/animate-skeleton] ok project=%s animation=%s direction=%s frame_count=%s",
+                    project_id,
+                    animation_name,
+                    direction,
+                    frame_count,
+                )
                 return self._send_json({"ok": True, "animation_name": animation_name, "direction": direction, "fps": fps, "frame_count": frame_count})
 
             edit_animation_pixellab_match = re.fullmatch(r"/api/projects/([^/]+)/pixellab/edit-animation", path)
@@ -14291,6 +14454,15 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                 if not directions:
                     raise ValueError("No existing animation frames found to edit.")
 
+                logger.info(
+                    "[pixellab/edit-animation] start project=%s animation=%s directions=%r use_debug=%s backend_mode=%s",
+                    project_id,
+                    animation_name,
+                    directions,
+                    use_debug,
+                    backend_mode,
+                )
+
                 # Use deterministic frame_count from AI specs when possible, otherwise infer from files.
                 fps_frame = _resolve_animation_timing(animation_name, pixel_lab_result=None)
                 fps = fps_frame["fps"]
@@ -14306,6 +14478,7 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
 
                 for dir_idx, direction in enumerate(directions):
                     direction = str(direction).strip().lower()
+                    logger.info("[pixellab/edit-animation] direction=%s index=%d/%d", direction, dir_idx + 1, len(directions))
                     # Infer frame_count from store if present.
                     inferred_fc = None
                     if isinstance(anim, dict) and isinstance(anim.get("directions"), dict):
@@ -14315,6 +14488,7 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                     frame_count = int(inferred_fc or fps_frame["frame_count"])
 
                     if use_debug:
+                        logger.info("[pixellab/edit-animation] debug_procedural direction=%s frame_count=%d", direction, frame_count)
                         frames = debug_pixellab_animation_frames(
                             animation_name,
                             direction,
@@ -14351,6 +14525,11 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                                 break
                             frame_b64s.append(client.encode_image(str(fp)))
 
+                        logger.info(
+                            "[pixellab/edit-animation] calling POST /v2/edit-animation-v2 direction=%s input_png_frames=%d",
+                            direction,
+                            len(frame_b64s),
+                        )
                         image_size = {"width": canvas_size, "height": canvas_size}
                         result = client.edit_animation_v2(
                             description,
@@ -14358,13 +14537,32 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                             image_size,
                             poll_timeout_seconds=480,
                         )
+                        b64_n, url_n = _pixellab_frame_source_counts(result)
+                        logger.info(
+                            "[pixellab/edit-animation] api_returned direction=%s %s; pre_decode b64_candidates=%d https_urls=%d",
+                            direction,
+                            _pixellab_api_result_summary(result),
+                            b64_n,
+                            url_n,
+                        )
                         plate_frames = _pixellab_animation_job_to_rgba_frames(
                             result,
                             canvas_size=canvas_size,
                             client=client,
                         )
+                        logger.info(
+                            "[pixellab/edit-animation] decoded_rgba_frames=%d direction=%s",
+                            len(plate_frames),
+                            direction,
+                        )
                         if not plate_frames:
                             keys = list(result.keys()) if isinstance(result, dict) else type(result).__name__
+                            logger.warning(
+                                "[pixellab/edit-animation] no decodable frames project=%s direction=%s keys=%s",
+                                project_id,
+                                direction,
+                                keys,
+                            )
                             raise ValueError(
                                 "Pixel Lab edit-animation returned no decodable frames. Response keys: %s" % keys
                             )
@@ -14386,11 +14584,13 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                             edited_description=description,
                         )
 
+                logger.info("[pixellab/edit-animation] ok project=%s animation=%s", project_id, animation_name)
                 return self._send_json({"ok": True, "animation_name": animation_name, "description": description})
 
             build_clips_pixellab_match = re.fullmatch(r"/api/projects/([^/]+)/pixellab/build-clips", path)
             if build_clips_pixellab_match:
                 project_id = build_clips_pixellab_match.group(1)
+                logger.info("[pixellab/build-clips] start project=%s", project_id)
                 project = load_project(project_id)
                 project_dir = PROJECTS_ROOT / project_id
                 _pixellab_character_approved_guard(project_dir)
@@ -14399,6 +14599,7 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                 anim_store = pix_store.get("animations") if isinstance(pix_store.get("animations"), dict) else {}
                 miss = pixellab_missing_canonical_animation_clips(anim_store)
                 if miss:
+                    logger.warning("[pixellab/build-clips] missing clips project=%s: %s", project_id, miss)
                     raise ValueError(
                         "Cannot build canonical clips yet — no frame data in pixellab_animations.json for: %s. "
                         "Use **Generate via template** or **Generate custom** on the Animations panel for each listed clip (character must be approved), then try again."
@@ -14448,6 +14649,16 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                 project["status"] = "pixellab_build_clips_complete"
                 project["updated_at"] = now_iso()
                 save_project(project)
+                idle_clip = existing.get("idle") if isinstance(existing.get("idle"), dict) else {}
+                walk_clip = existing.get("walk") if isinstance(existing.get("walk"), dict) else {}
+                idle_fc = len(idle_clip.get("frames") or []) if isinstance(idle_clip.get("frames"), list) else 0
+                walk_fc = len(walk_clip.get("frames") or []) if isinstance(walk_clip.get("frames"), list) else 0
+                logger.info(
+                    "[pixellab/build-clips] ok project=%s idle_frames_default_dir=%d walk_frames_default_dir=%d",
+                    project_id,
+                    idle_fc,
+                    walk_fc,
+                )
                 return self._send_json({"ok": True, "animation_clips_updated": True})
 
             improved_prompt_match = re.fullmatch(r"/api/projects/([^/]+)/concepts/([^/]+)/improve-prompt", path)
@@ -14790,12 +15001,16 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                 return self._send_json(approve_rig_review(approve_rig_direct_match.group(1)))
 
         except FileNotFoundError:
+            logger.warning("POST %s — project not found", path)
             return self._send_error_json(HTTPStatus.NOT_FOUND, "Project not found")
         except ValueError as exc:
+            logger.warning("POST %s — bad request: %s", path, exc)
             return self._send_error_json(HTTPStatus.BAD_REQUEST, str(exc))
         except HttpRequestError as exc:
+            logger.warning("POST %s — upstream error: %s", path, exc)
             return self._send_error_json(HTTPStatus.BAD_GATEWAY, str(exc))
         except Exception as exc:
+            logger.exception("POST %s — unhandled error: %s", path, exc)
             return self._send_error_json(HTTPStatus.INTERNAL_SERVER_ERROR, str(exc))
 
         return self._send_error_json(HTTPStatus.NOT_FOUND, "Unknown API route: %s" % path)
@@ -14817,7 +15032,21 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Local Solo AI Sprite Workbench server")
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8766)
+    parser.add_argument(
+        "--log-level",
+        default=os.environ.get("SPRITE_WORKBENCH_LOG_LEVEL", "INFO"),
+        help="Python logging level (DEBUG, INFO, WARNING, …). Env: SPRITE_WORKBENCH_LOG_LEVEL.",
+    )
     args = parser.parse_args()
+    log_level = getattr(logging, str(args.log_level).upper(), logging.INFO)
+    if not isinstance(log_level, int):
+        log_level = logging.INFO
+    logging.basicConfig(
+        level=log_level,
+        format="%(asctime)s %(levelname)s [%(name)s] %(message)s",
+        datefmt="%H:%M:%S",
+    )
+    logging.getLogger("PIL").setLevel(logging.WARNING)
     PROJECTS_ROOT.mkdir(parents=True, exist_ok=True)
     server = ThreadingHTTPServer((args.host, args.port), SpriteWorkbenchHandler)
     print("Sprite workbench running at http://%s:%s/tools/2d-sprite-and-animation/index.html" % (args.host, args.port))
