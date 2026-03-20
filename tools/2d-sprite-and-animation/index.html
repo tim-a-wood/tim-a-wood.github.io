@@ -3815,14 +3815,8 @@ function applyModeVisibility() {
     const hiddenForAi = new Set([]);
     document.body.classList.toggle("wizard-mode", mode === "wizard");
     const allowedSections = new Set(mode === "wizard" ? wizardSectionIds(activeStep) : WORKBENCH_SECTION_IDS);
-    // Pixel Lab: Character lives in #character, which is only mapped to wizard step `clips`.
-    // If the server moves current_step (e.g. after reload) or the user is on review/animations,
-    // the panel was hidden while the board still updated — looks like "nothing changed".
-    if (mode === "wizard" && String(state.activeProject?.brief?.backend_mode || "") === "pixellab") {
-        if (["review", "clips", "animations", "qa", "export"].includes(activeStep)) {
-            allowedSections.add("character");
-        }
-    }
+    // Pixel Lab: keep one main panel per wizard step. Do not also show #character on the
+    // animations/qa/export steps — that stacked Character under Animations and looked like one panel.
     WORKBENCH_SECTION_IDS.forEach((id) => {
         const node = document.querySelector(`#${id}`);
         if (!node) return;
@@ -6233,7 +6227,15 @@ function pixellabPreviewFrameUrls(project, animName, direction) {
     const anim = project?.pixellab_animations?.animations?.[animName];
     const block = anim?.directions?.[direction];
     const frames = Array.isArray(block?.frames) ? block.frames : [];
-    const v = encodeURIComponent(project?.updated_at || "");
+    const store = project?.pixellab_animations;
+    // project.updated_at is not bumped when only pixellab_animations.json changes — include store + per-direction timestamps for cache bust.
+    const v = encodeURIComponent(
+        [
+            project?.updated_at || "",
+            store && typeof store === "object" ? store.updated_at || "" : "",
+            block?.updated_at || "",
+        ].join("|"),
+    );
     return frames.map((rel) => `${projectAsset(project, rel)}?v=${v}`);
 }
 
@@ -6306,6 +6308,17 @@ function renderPixellabAnimationsBoard() {
         ? "Idle and walk are in the store — you can build canonical clips for QA/export."
         : (`<strong>Next:</strong> generate <code>${escapeHtml(missingCanonical.join(", "))}</code> `
             + "using the cards below (this button stays disabled until both exist).");
+    const clipsBridge = project.animation_clips || {};
+    const idleBridgeN = Array.isArray(clipsBridge.idle?.frames) ? clipsBridge.idle.frames.length : null;
+    const walkBridgeN = Array.isArray(clipsBridge.walk?.frames) ? clipsBridge.walk.frames.length : null;
+    const clipsBridgeHtml =
+        idleBridgeN == null && walkBridgeN == null
+            ? `<p class="small-note" style="margin-top:8px;"><strong>Export bridge:</strong> after idle + walk exist, <strong>Build canonical clips</strong> writes <code>animation_clips.json</code> (required for Checks / export).</p>`
+            : `<p class="small-note" style="margin-top:8px;"><strong>Export bridge (<code>animation_clips.json</code>):</strong> idle ${idleBridgeN ?? "—"} frames · walk ${walkBridgeN ?? "—"} frames. Re-build after you change animations.</p>`;
+    const previewServeNote =
+        window.location.protocol === "file:"
+            ? `<div class="warning-box" style="margin-bottom:12px;"><p><strong>Previews need the dev server.</strong> Frame thumbnails load from <code>http://127.0.0.1:${DEFAULT_WORKBENCH_PORT}/…</code>. Open the tool from that URL (not <code>file://</code>) if images stay blank or never update.</p></div>`
+            : "";
     const listRows = Object.keys(anims).length
         ? Object.entries(anims).map(([name, meta]) => {
             const dirs = meta?.directions ? Object.keys(meta.directions).join(", ") : "—";
@@ -6348,13 +6361,14 @@ function renderPixellabAnimationsBoard() {
                     <button type="button" class="secondary pixellab-preview-stop" data-clip="${clipName}">Stop</button>
                     <span class="small-note pixellab-preview-label" data-clip="${clipName}">—</span>
                 </div>
-                <img class="pixellab-preview-img" data-clip="${clipName}" alt="" style="max-height:160px;margin-top:8px;background:rgba(0,0,0,0.25);border-radius:8px;">
+                <img class="pixellab-preview-img" data-clip="${clipName}" alt="" onerror="this.alt='Preview failed to load'; this.style.outline='2px solid rgba(220,90,90,0.9)';" style="max-height:min(50vh,280px);min-height:120px;margin-top:8px;background:rgba(0,0,0,0.25);border-radius:8px;object-fit:contain;">
                 <div class="pixellab-anim-strip" data-clip="${clipName}" style="margin-top:8px;display:flex;flex-wrap:wrap;gap:4px;"></div>
             </div>
         </div>`;
     }
 
     root.innerHTML = `
+        ${previewServeNote}
         <div class="warning-box" style="margin-bottom:12px;">
             <p><strong>Idle</strong> and <strong>walk</strong> are required before <strong>Build canonical clips</strong> and QA. Pick templates that match each clip (server maps IDs to idle vs walk the same way as this UI).</p>
         </div>
@@ -6364,6 +6378,7 @@ function renderPixellabAnimationsBoard() {
                 <thead><tr><th align="left">Clip</th><th align="left">Template</th><th align="left">Directions</th><th align="left">Frames (meta)</th></tr></thead>
                 <tbody>${listRows}</tbody>
             </table>
+            ${clipsBridgeHtml}
             <div class="actions" style="margin-top:12px;flex-wrap:wrap;gap:8px;">
                 <button type="button" id="pixellab-build-clips" ${canBuildClips ? "" : "disabled"} title="${escapeHtml(buildClipsTitle)}">Build canonical clips</button>
             </div>
@@ -6380,7 +6395,7 @@ function renderPixellabAnimationsBoard() {
         const strip = root.querySelector(`.pixellab-anim-strip[data-clip="${clipName}"]`);
         const img = root.querySelector(`.pixellab-preview-img[data-clip="${clipName}"]`);
         if (!strip || !img) return;
-        strip.innerHTML = urls.map((u, i) => `<img src="${u}" alt="f${i}" style="width:48px;height:48px;object-fit:contain;background:rgba(0,0,0,0.2);border-radius:6px;">`).join("");
+        strip.innerHTML = urls.map((u, i) => `<img src="${u}" alt="f${i}" title="Frame ${i}" loading="lazy" onerror="this.style.boxShadow='inset 0 0 0 2px rgba(255,100,100,0.8)'; this.alt='×';" style="width:56px;height:56px;object-fit:contain;background:rgba(0,0,0,0.2);border-radius:6px;">`).join("");
         img.src = urls[0] || "";
         const lab = root.querySelector(`.pixellab-preview-label[data-clip="${clipName}"]`);
         if (lab) lab.textContent = urls.length ? `0 / ${urls.length}` : "No frames";
@@ -6466,8 +6481,11 @@ function renderPixellabAnimationsBoard() {
         try {
             notify("Building animation_clips.json…", "info");
             await api(`/api/projects/${pid}/pixellab/build-clips`, { method: "POST", body: "{}" });
-            notify("Canonical clips built.", "success");
             await reload();
+            const p = state.activeProject;
+            const idleN = Array.isArray(p?.animation_clips?.idle?.frames) ? p.animation_clips.idle.frames.length : 0;
+            const walkN = Array.isArray(p?.animation_clips?.walk?.frames) ? p.animation_clips.walk.frames.length : 0;
+            notify(`Canonical clips built — idle: ${idleN} frames, walk: ${walkN} frames. Continue to Checks when ready.`, "success");
         } catch (e) {
             notify(normalizeErrorMessage(e.message), "error");
         }
@@ -6482,7 +6500,10 @@ function renderPixellabAnimationsBoard() {
             const lab = root.querySelector(`.pixellab-preview-label[data-clip="${clip}"]`);
             const meta = state.activeProject?.pixellab_animations?.animations?.[clip];
             const fps = Number(meta?.fps) || 12;
-            if (!urls.length || !img) return;
+            if (!urls.length || !img) {
+                notify("No frames for this clip/direction — generate the animation first.", "error");
+                return;
+            }
             clearPixellabAnimTimer(clip);
             let idx = 0;
             img.src = urls[0];
