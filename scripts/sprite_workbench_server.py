@@ -4328,6 +4328,38 @@ def _pixellab_frame_source_counts(result: Any) -> Tuple[int, int]:
     )
 
 
+def _collect_rgba_bytes_frames(payload: Any) -> List[Dict[str, Any]]:
+    """Collect all ``{"type": "rgba_bytes", "width": W, "height": H, "base64": "..."}`` dicts."""
+    found: List[Dict[str, Any]] = []
+
+    def walk(value: Any) -> None:
+        if isinstance(value, dict):
+            if str(value.get("type") or "").lower() == "rgba_bytes":
+                if isinstance(value.get("base64"), str) and value.get("width") and value.get("height"):
+                    found.append(value)
+                    return
+            for v in value.values():
+                walk(v)
+        elif isinstance(value, list):
+            for item in value:
+                walk(item)
+
+    walk(payload)
+    return found
+
+
+def _decode_rgba_bytes_frame(frame_obj: Dict[str, Any], target_size: Tuple[int, int]) -> Image.Image:
+    """Decode a ``rgba_bytes`` frame dict to an RGBA PIL Image, resized to ``target_size``."""
+    import base64 as _base64
+    w = int(frame_obj["width"])
+    h = int(frame_obj["height"])
+    raw = _base64.b64decode(frame_obj["base64"])
+    img = Image.frombytes("RGBA", (w, h), raw)
+    if (w, h) != target_size:
+        img = img.resize(target_size, Image.NEAREST)
+    return img
+
+
 def _pixellab_decode_single_animation_payload_to_frames(
     result: Any,
     *,
@@ -4336,7 +4368,28 @@ def _pixellab_decode_single_animation_payload_to_frames(
 ) -> List[Image.Image]:
     """Decode frames from one job ``last_response`` blob (base64 and/or downloadable URLs)."""
     rgba: Tuple[int, int] = (int(canvas_size), int(canvas_size))
+    # Diagnostic: log the shape of images / quantized_images so we can debug decode failures.
+    if isinstance(result, dict):
+        _log_pixellab_job_images_shape(result, 0)
+        imgs = result.get("images")
+        if isinstance(imgs, list) and imgs:
+            first = imgs[0]
+            logger.info(
+                "[pixellab/decode] images[0] raw=%r",
+                repr(first)[:300] if not isinstance(first, str) else ("str(len=%d head=%r)" % (len(first), first[:80])),
+            )
     decoded: List[Image.Image] = []
+    # Handle Pixel Lab v2 rgba_bytes format: raw RGBA pixel data (not a PNG/WebP file).
+    rgba_frames = _collect_rgba_bytes_frames(result)
+    if rgba_frames:
+        logger.info("[pixellab/decode] found %d rgba_bytes frames", len(rgba_frames))
+        for frame_obj in rgba_frames:
+            try:
+                decoded.append(_decode_rgba_bytes_frame(frame_obj, rgba))
+            except Exception as exc:
+                logger.warning("[pixellab/decode] rgba_bytes decode failed: %s", exc)
+        if decoded:
+            return decoded
     for s in _find_all_base64_png_like(result):
         try:
             decoded.append(_decode_base64_image_to_rgba(s, rgba_size=rgba))
@@ -4378,7 +4431,14 @@ def _log_pixellab_job_images_shape(part: Dict[str, Any], idx: int) -> None:
             samples = []
             for i, item in enumerate(val[:3]):
                 if isinstance(item, dict):
-                    samples.append("dict(keys=%s)" % sorted(item.keys()))
+                    item_type = item.get("type")
+                    b64_head = None
+                    for bkey in ("base64", "b64", "data", "url"):
+                        bval = item.get(bkey)
+                        if isinstance(bval, str) and bval:
+                            b64_head = "%s=%r" % (bkey, bval[:60])
+                            break
+                    samples.append("dict(keys=%s type=%r %s)" % (sorted(item.keys()), item_type, b64_head or ""))
                 elif isinstance(item, str):
                     samples.append("str(len=%d, head=%r)" % (len(item), item[:80]))
                 else:
@@ -12028,17 +12088,19 @@ def run_pixellab_qa(project_id: str, progress: Optional[ProgressCallback] = None
     if not isinstance(clips, dict) or not clips:
         raise ValueError("animation_clips.json must exist (Phase 5.5) before Pixel Lab QA.")
 
-    # Only validate canonical idle/walk clips that actually contain Pixel Lab frame metadata
-    # (i.e. Phase 5.5 copied `frames` into `animation_clips.json`).
-    clip_names = [
-        name
-        for name in ["idle", "walk"]
-        if name in clips
-        and isinstance(clips.get(name), dict)
-        and isinstance(clips.get(name).get("frames"), list)
-    ]
+    # Every clip with raster `frames` in animation_clips.json (idle/walk + custom Pixel Lab clips).
+    clip_names = _pixellab_qa_clip_names(clips)
     if not clip_names:
-        raise ValueError("animation_clips.json contains no supported Pixel Lab animations (idle/walk).")
+        raise ValueError(
+            "animation_clips.json contains no Pixel Lab animations with frame paths. "
+            "Generate clips on the Animations panel, then run **Build canonical clips**."
+        )
+    total_frame_checks = sum(
+        len((clips.get(n) or {}).get("frames") or [])
+        for n in clip_names
+        if isinstance(clips.get(n), dict)
+    )
+    frames_done = 0
 
     report = {
         "project_id": project_id,
@@ -12058,7 +12120,7 @@ def run_pixellab_qa(project_id: str, progress: Optional[ProgressCallback] = None
     for clip_index, clip_name in enumerate(clip_names):
         call_progress(
             progress,
-            8 + int((clip_index / max(1, len(clip_names))) * 74),
+            8 + int((clip_index / max(1, len(clip_names))) * 12),
             "Checking %s clip" % clip_name,
             "Validating Pixel Lab frames (size, transparency, clipping).",
         )
@@ -12096,9 +12158,10 @@ def run_pixellab_qa(project_id: str, progress: Optional[ProgressCallback] = None
 
         per_frame_states: List[str] = []
         for index in range(frame_count):
+            frames_done += 1
             call_progress(
                 progress,
-                8 + int(((clip_index * frame_count + index) / max(1, len(clip_names) * frame_count)) * 82),
+                8 + int((frames_done / max(1, total_frame_checks)) * 82),
                 "Checking %s frame %d" % (clip_name, index + 1),
                 "Validating frame image.",
             )
@@ -12359,6 +12422,56 @@ def validate_export_bundle(
     }
 
 
+def _pixellab_qa_clip_names(clips: Dict[str, Any]) -> List[str]:
+    """Idle/walk first, then other Pixel Lab clips that have raster frame paths."""
+    names = [
+        name
+        for name, data in clips.items()
+        if isinstance(data, dict) and isinstance(data.get("frames"), list) and len(data["frames"]) > 0
+    ]
+    priority = ["idle", "walk"]
+    ordered = [n for n in priority if n in names]
+    ordered.extend(sorted(n for n in names if n not in priority))
+    return ordered
+
+
+def _write_per_animation_preview_gifs(
+    export_dir: Path,
+    ordered_frames: List[Tuple[str, str, Path]],
+    fps_for_animation: Callable[[str], int],
+) -> List[str]:
+    """
+    Write one looping preview GIF per animation (matches spritesheet segment order).
+    Returns basenames only, e.g. preview_idle.gif, preview_walk.gif.
+    """
+    order: List[str] = []
+    groups: Dict[str, List[Path]] = {}
+    for animation_name, _frame_name, path in ordered_frames:
+        if animation_name not in groups:
+            order.append(animation_name)
+            groups[animation_name] = []
+        groups[animation_name].append(path)
+    out_names: List[str] = []
+    for animation_name in order:
+        paths = groups[animation_name]
+        fps = max(1, int(fps_for_animation(animation_name)))
+        duration = int(1000 / fps)
+        imgs = [Image.open(p).convert("RGBA") for p in paths]
+        out_name = "preview_%s.gif" % animation_name
+        out_path = export_dir / out_name
+        imgs[0].save(
+            out_path,
+            save_all=True,
+            append_images=imgs[1:],
+            duration=duration,
+            loop=0,
+            disposal=2,
+            transparency=0,
+        )
+        out_names.append(out_name)
+    return out_names
+
+
 def export_pixellab_project(project_id: str, progress: Optional[ProgressCallback] = None) -> Dict[str, Any]:
     project = load_project(project_id)
     project_dir = PROJECTS_ROOT / project_id
@@ -12475,26 +12588,16 @@ def export_pixellab_project(project_id: str, progress: Optional[ProgressCallback
     write_json(export_dir / "animations.json", animations_payload)
     write_json(export_dir / "qa_report.json", project["qa_report"])
 
-    call_progress(progress, 72, "Building preview", "Creating an animated preview from the exported Pixel Lab frames.")
-    preview_frames = [Image.open(path).convert("RGBA") for _, _, path in ordered_frames]
-    durations: List[int] = []
-    for animation_name, _, _ in ordered_frames:
-        if animation_name in clips:
-            durations.append(int(1000 / int(clips[animation_name].get("fps") or 12)))
-        elif animation_name in manual_clips:
-            durations.append(int(1000 / max(1, int(manual_clips[animation_name].get("fps") or 12))))
-        else:
-            durations.append(100)
+    call_progress(progress, 72, "Building previews", "Creating one preview GIF per animation.")
 
-    preview_frames[0].save(
-        export_dir / "preview.gif",
-        save_all=True,
-        append_images=preview_frames[1:],
-        duration=durations,
-        loop=0,
-        disposal=2,
-        transparency=0,
-    )
+    def _pl_export_fps(anim_name: str) -> int:
+        if anim_name in clips and isinstance(clips.get(anim_name), dict):
+            return int(clips[anim_name].get("fps") or 12)
+        if anim_name in manual_clips:
+            return int(manual_clips[anim_name].get("fps") or 12)
+        return 12
+
+    preview_gif_names = _write_per_animation_preview_gifs(export_dir, ordered_frames, _pl_export_fps)
 
     char_data = load_json(char_path, {}) or {}
     pix_store = load_json(pix_anim_path, None) or {}
@@ -12519,13 +12622,16 @@ def export_pixellab_project(project_id: str, progress: Optional[ProgressCallback
         ],
     }
 
-    export_manifest["bundle_hashes"] = {
+    export_manifest["preview_gifs"] = preview_gif_names
+    bundle_hashes_pl = {
         "atlas.json": image_sha256(export_dir / "atlas.json"),
         "animations.json": image_sha256(export_dir / "animations.json"),
         "qa_report.json": image_sha256(export_dir / "qa_report.json"),
         "spritesheet.png": image_sha256(export_dir / "spritesheet.png"),
-        "preview.gif": image_sha256(export_dir / "preview.gif"),
     }
+    for pg in preview_gif_names:
+        bundle_hashes_pl[pg] = image_sha256(export_dir / pg)
+    export_manifest["bundle_hashes"] = bundle_hashes_pl
 
     call_progress(progress, 76, "Verifying export", "Validating packed spritesheet matches sources.")
     export_manifest["verification"] = validate_export_bundle(export_dir, ordered_frames, atlas_frames)
@@ -12538,14 +12644,17 @@ def export_pixellab_project(project_id: str, progress: Optional[ProgressCallback
     result = {
         "export_dir": str(export_dir.relative_to(project_dir)),
         "verification": verification,
+        "preview_gifs": preview_gif_names,
+        "preview_gif": None,
         "files": [
             "spritesheet.png",
             "atlas.json",
             "animations.json",
-            "preview.gif",
             "qa_report.json",
             "export_manifest.json",
-        ] + ["frames/%s" % name for _, name, _ in ordered_frames],
+        ]
+        + list(preview_gif_names)
+        + ["frames/%s" % name for _, name, _ in ordered_frames],
     }
     project["last_export"] = result
     project["current_stage"] = "export"
@@ -12600,17 +12709,11 @@ def export_project(project_id: str, progress: Optional[ProgressCallback] = None)
         write_json(export_dir / "atlas.json", {"image": "spritesheet.png", "frames": atlas_frames})
         write_json(export_dir / "animations.json", animations_payload)
         write_json(export_dir / "qa_report.json", project["qa_report"])
-        call_progress(progress, 72, "Building AI preview", "Creating a preview GIF from the cleaned AI workflow frames.")
-        preview_frames = [Image.open(path).convert("RGBA") for _, _, path in ordered_frames]
-        durations = [int(1000 / AI_CLIP_SPECS[name]["fps"]) for name, _, _ in ordered_frames]
-        preview_frames[0].save(
-            export_dir / "preview.gif",
-            save_all=True,
-            append_images=preview_frames[1:],
-            duration=durations,
-            loop=0,
-            disposal=2,
-            transparency=0,
+        call_progress(progress, 72, "Building AI previews", "Creating one preview GIF per AI workflow clip.")
+        ai_preview_names = _write_per_animation_preview_gifs(
+            export_dir,
+            ordered_frames,
+            lambda n: int(AI_CLIP_SPECS[n]["fps"]),
         )
         workflow_manifest = {
             "profile": ai_workflow.get("profile") or AI_WORKFLOW_PROFILE,
@@ -12640,6 +12743,7 @@ def export_project(project_id: str, progress: Optional[ProgressCallback] = None)
             "workflow_profile": ai_workflow.get("profile") or AI_WORKFLOW_PROFILE,
             "source_asset_hashes": project["qa_report"]["source_asset_hashes"],
             "workflow": workflow_manifest,
+            "preview_gifs": ai_preview_names,
         }
         write_json(export_dir / "export_manifest.json", export_manifest)
         verification = validate_export_bundle(export_dir, ordered_frames, atlas_frames)
@@ -12648,12 +12752,14 @@ def export_project(project_id: str, progress: Optional[ProgressCallback] = None)
             "spritesheet": "spritesheet.png",
             "atlas": "atlas.json",
             "animations": "animations.json",
-            "preview_gif": "preview.gif",
+            "preview_gif": None,
+            "preview_gifs": ai_preview_names,
             "export_manifest": "export_manifest.json",
             "generated_at": now_iso(),
             "mode": "ai_workflow",
             "verification": verification,
-            "files": ["spritesheet.png", "atlas.json", "animations.json", "preview.gif", "export_manifest.json", "qa_report.json"],
+            "files": ["spritesheet.png", "atlas.json", "animations.json", "export_manifest.json", "qa_report.json"]
+            + list(ai_preview_names),
         }
         project["current_stage"] = "export"
         project["status"] = "export_complete"
@@ -12801,32 +12907,26 @@ def export_project(project_id: str, progress: Optional[ProgressCallback] = None)
     write_json(export_dir / "animations.json", animations_payload)
     write_json(export_dir / "qa_report.json", project["qa_report"])
 
-    call_progress(progress, 72, "Building preview", "Creating an animated preview from the exported frames.")
-    preview_frames = [Image.open(path).convert("RGBA") for _, _, path in ordered_frames]
-    durations = []
-    for animation_name, _, _ in ordered_frames:
-        if animation_name in clips:
-            durations.append(int(1000 / clips[animation_name]["fps"]))
-        elif animation_name in manual_clips:
-            durations.append(int(1000 / max(1, int(manual_clips[animation_name].get("fps") or 12))))
-        else:
-            durations.append(100)
-    preview_frames[0].save(
-        export_dir / "preview.gif",
-        save_all=True,
-        append_images=preview_frames[1:],
-        duration=durations,
-        loop=0,
-        disposal=2,
-        transparency=0,
-    )
-    export_manifest["bundle_hashes"] = {
+    call_progress(progress, 72, "Building previews", "Creating one preview GIF per animation.")
+
+    def _det_export_fps(anim_name: str) -> int:
+        if anim_name in clips:
+            return int(clips[anim_name]["fps"])
+        if anim_name in manual_clips:
+            return int(manual_clips[anim_name].get("fps") or 12)
+        return 12
+
+    det_preview_names = _write_per_animation_preview_gifs(export_dir, ordered_frames, _det_export_fps)
+    export_manifest["preview_gifs"] = det_preview_names
+    bundle_hashes_det = {
         "atlas.json": image_sha256(export_dir / "atlas.json"),
         "animations.json": image_sha256(export_dir / "animations.json"),
         "qa_report.json": image_sha256(export_dir / "qa_report.json"),
         "spritesheet.png": image_sha256(export_dir / "spritesheet.png"),
-        "preview.gif": image_sha256(export_dir / "preview.gif"),
     }
+    for pg in det_preview_names:
+        bundle_hashes_det[pg] = image_sha256(export_dir / pg)
+    export_manifest["bundle_hashes"] = bundle_hashes_det
     export_manifest["verification"] = validate_export_bundle(export_dir, ordered_frames, atlas_frames)
     if export_manifest["verification"]["status"] != "pass":
         raise ValueError("Export verification failed: packed spritesheet did not match the frame manifest.")
@@ -12835,14 +12935,17 @@ def export_project(project_id: str, progress: Optional[ProgressCallback] = None)
     result = {
         "export_dir": str(export_dir.relative_to(project_dir)),
         "verification": export_manifest["verification"],
+        "preview_gifs": det_preview_names,
+        "preview_gif": None,
         "files": [
             "spritesheet.png",
             "atlas.json",
             "animations.json",
-            "preview.gif",
             "qa_report.json",
             "export_manifest.json",
-        ] + ["frames/%s" % name for _, name, _ in ordered_frames],
+        ]
+        + list(det_preview_names)
+        + ["frames/%s" % name for _, name, _ in ordered_frames],
     }
     project["last_export"] = result
     project["current_stage"] = "export"

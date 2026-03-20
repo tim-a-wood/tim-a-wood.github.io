@@ -9533,19 +9533,41 @@ function renderExport() {
             root.appendChild(row);
         });
     }
+    const previewGifs = Array.isArray(exportData.preview_gifs) && exportData.preview_gifs.length
+        ? exportData.preview_gifs
+        : exportData.preview_gif
+            ? [exportData.preview_gif]
+            : [];
     const preview = document.createElement("div");
-    preview.className = "grid-2";
     preview.style.marginTop = "10px";
-    preview.innerHTML = `
-        <div class="preview-card">
-            <img src="${projectAsset(state.activeProject, `${exportData.export_dir}/spritesheet.png`)}" alt="Spritesheet preview">
-            <div class="small-note" style="margin-top: 8px;">spritesheet</div>
-        </div>
-        <div class="preview-card">
-            ${exportData.preview_gif ? `<img src="${projectAsset(state.activeProject, `${exportData.export_dir}/${exportData.preview_gif}`)}" alt="Preview animation">` : `<div class="empty">No preview GIF in this export.</div>`}
-            <div class="small-note" style="margin-top: 8px;">preview animation</div>
-        </div>
+    const sheetCard = document.createElement("div");
+    sheetCard.className = "preview-card";
+    sheetCard.style.marginBottom = "12px";
+    sheetCard.innerHTML = `
+        <img src="${projectAsset(state.activeProject, `${exportData.export_dir}/spritesheet.png`)}" alt="Spritesheet preview">
+        <div class="small-note" style="margin-top: 8px;">spritesheet</div>
     `;
+    preview.appendChild(sheetCard);
+    if (previewGifs.length) {
+        const gifGrid = document.createElement("div");
+        gifGrid.className = "grid-2";
+        previewGifs.forEach((gifName) => {
+            const clipLabel = String(gifName).replace(/^preview_/, "").replace(/\.gif$/i, "");
+            const cell = document.createElement("div");
+            cell.className = "preview-card";
+            cell.innerHTML = `
+                <img src="${projectAsset(state.activeProject, `${exportData.export_dir}/${gifName}`)}" alt="${clipLabel} preview">
+                <div class="small-note" style="margin-top: 8px;">${humanizeKey(clipLabel)}</div>
+            `;
+            gifGrid.appendChild(cell);
+        });
+        preview.appendChild(gifGrid);
+    } else {
+        const empty = document.createElement("div");
+        empty.className = "preview-card";
+        empty.innerHTML = `<div class="empty">No preview GIF in this export.</div>`;
+        preview.appendChild(empty);
+    }
     root.appendChild(preview);
     if (!externalAuthoringEnabled(state.activeProject)) {
         const clips = state.activeProject?.animation_clips || {};
@@ -9559,13 +9581,20 @@ function renderExport() {
             root.appendChild(row);
         });
     }
-    (exportData.files || Object.values({
-        spritesheet: exportData.spritesheet,
-        atlas: exportData.atlas,
-        animations: exportData.animations,
-        preview_gif: exportData.preview_gif,
-        export_manifest: exportData.export_manifest,
-    }).filter(Boolean)).forEach((file) => {
+    const exportFileList = (() => {
+        if (Array.isArray(exportData.files) && exportData.files.length) {
+            return exportData.files;
+        }
+        return [
+            exportData.spritesheet,
+            exportData.atlas,
+            exportData.animations,
+            exportData.export_manifest,
+            ...(Array.isArray(exportData.preview_gifs) ? exportData.preview_gifs : []),
+            exportData.preview_gif,
+        ].filter(Boolean);
+    })();
+    exportFileList.forEach((file) => {
         const row = document.createElement("div");
         row.className = "check-row";
         row.innerHTML = `<span>${file}</span><a href="${projectAsset(state.activeProject, `${exportData.export_dir}/${file}`)}" target="_blank">open</a>`;

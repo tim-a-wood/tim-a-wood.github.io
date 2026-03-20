@@ -572,7 +572,9 @@ class SpriteWorkbenchTests(unittest.TestCase):
             self.assertTrue((export_dir / "spritesheet.png").exists())
             self.assertTrue((export_dir / "atlas.json").exists())
             self.assertTrue((export_dir / "animations.json").exists())
-            self.assertTrue((export_dir / "preview.gif").exists())
+            self.assertTrue((export_dir / "preview_idle.gif").exists())
+            self.assertTrue((export_dir / "preview_walk.gif").exists())
+            self.assertFalse((export_dir / "preview.gif").exists())
             self.assertTrue((export_dir / "export_manifest.json").exists())
 
     def test_ai_workflow_health_fails_cleanly_when_comfyui_is_down(self):
@@ -1470,6 +1472,24 @@ class SpriteWorkbenchTests(unittest.TestCase):
             sw.validate_pixellab_animation_name("9bad")
         with self.assertRaises(ValueError):
             sw.validate_pixellab_animation_name("no spaces")
+
+    def test_pixellab_qa_clip_names_orders_idle_walk_then_custom(self):
+        clips = {
+            "z_custom": {"frames": ["a.png"]},
+            "idle": {"frames": ["i0.png"]},
+            "walk": {"frames": ["w0.png"]},
+            "empty": {"frames": []},
+            "no_frames": {},
+        }
+        self.assertEqual(sw._pixellab_qa_clip_names(clips), ["idle", "walk", "z_custom"])
+
+    def test_pixellab_qa_clip_names_orders_idle_walk_then_custom(self):
+        clips = {
+            "z_custom": {"frames": ["a.png"]},
+            "idle": {"frames": ["i.png"]},
+            "walk": {"frames": ["w.png"]},
+        }
+        self.assertEqual(sw._pixellab_qa_clip_names(clips), ["idle", "walk", "z_custom"])
 
     def test_pixellab_animate_custom_poll_timeout_constant_sane(self):
         self.assertGreaterEqual(sw.PIXELLAB_ANIMATE_CUSTOM_POLL_TIMEOUT_SECONDS, 180)
@@ -2455,6 +2475,9 @@ class SpriteWorkbenchTests(unittest.TestCase):
                 self.assertIn("atlas.json", export.get("files") or [])
                 self.assertIn("animations.json", export.get("files") or [])
                 self.assertIn("export_manifest.json", export.get("files") or [])
+                self.assertIn("preview_idle.gif", export.get("files") or [])
+                self.assertIn("preview_walk.gif", export.get("files") or [])
+                self.assertEqual(export.get("preview_gif"), None)
             finally:
                 sw.PROJECTS_ROOT = original_root
 
@@ -2791,13 +2814,18 @@ class SpriteWorkbenchTests(unittest.TestCase):
                 export_result = sw.export_project(project["project_id"])
                 project_dir = sw.PROJECTS_ROOT / project["project_id"]
                 animations_payload = sw.load_json(project_dir / export_result["export_dir"] / "animations.json", {})
+                # Assert on disk before tempdir is torn down (with-block exit deletes tmpdir).
+                self.assertEqual(qa_report["status"], "pass")
+                self.assertIn(clip["clip_id"], animations_payload)
+                self.assertEqual(animations_payload[clip["clip_id"]]["frame_count"], 4)
+                self.assertTrue(any(name.startswith(f"frames/{clip['clip_id']}_") for name in export_result["files"]))
+                ed = project_dir / export_result["export_dir"]
+                self.assertTrue((ed / "preview_idle.gif").exists())
+                self.assertTrue((ed / "preview_walk.gif").exists())
+                self.assertTrue((ed / ("preview_%s.gif" % clip["clip_id"])).exists())
+                self.assertFalse((ed / "preview.gif").exists())
             finally:
                 sw.PROJECTS_ROOT = original_root
-
-        self.assertEqual(qa_report["status"], "pass")
-        self.assertIn(clip["clip_id"], animations_payload)
-        self.assertEqual(animations_payload[clip["clip_id"]]["frame_count"], 4)
-        self.assertTrue(any(name.startswith(f"frames/{clip['clip_id']}_") for name in export_result["files"]))
 
 
 class PixelLabAnimationFrameExtractionTests(unittest.TestCase):
