@@ -1718,6 +1718,54 @@
             background: rgba(255, 255, 255, 0.03);
         }
 
+        .pixellab-character-source-preview img {
+            max-height: 220px;
+            max-width: 100%;
+            object-fit: contain;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--stroke);
+        }
+
+        .pixellab-direction-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
+            gap: 12px;
+            margin-top: 12px;
+        }
+
+        .pixellab-direction-cell {
+            padding: 8px;
+            border-radius: var(--radius-tight);
+            border: 1px solid var(--stroke);
+            background: rgba(255, 255, 255, 0.03);
+            text-align: center;
+        }
+
+        .pixellab-direction-cell img {
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            object-fit: contain;
+            border-radius: 8px;
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        .pixellab-east-stack {
+            position: relative;
+            display: inline-block;
+            width: 100%;
+        }
+
+        .pixellab-east-stack .pixellab-skeleton-overlay {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            border-radius: 8px;
+        }
+
         .recovery-card img,
         .comparison-panel img {
             aspect-ratio: 1 / 1;
@@ -2527,8 +2575,7 @@
             <div class="nav-list">
                 <a class="nav-link" href="#intake">Setup</a>
                 <a class="nav-link" href="#concepts">Concepts</a>
-                <a class="nav-link" href="#ai-motion-workflow">Motion Workflow</a>
-                <a class="nav-link" href="#ai-cleanup-qa">Cleanup & QA</a>
+                <a class="nav-link" href="#character">Character</a>
                 <a class="nav-link" href="#rig-layout">Rig Layout</a>
                 <a class="nav-link" href="#part-split">Part Split</a>
                 <a class="nav-link" href="#split-review">Split Review</a>
@@ -2807,7 +2854,7 @@
             <div class="section-head">
                 <div>
                     <h3>Concepts</h3>
-                    <p>Build a deterministic Pixel Lab prompt from your brief, generate in-tool (or import externally in Manual mode), then pick the look to carry forward. Character Lock and Key Pose Board panels were removed in Phase 7.2 — use Pixel Lab character creation next, or the legacy Motion Workflow if <code>ai_workflow</code> is enabled.</p>
+                    <p>Build a deterministic Pixel Lab prompt from your brief, generate in-tool (or import externally in Manual mode), then pick the look to carry forward. Character Lock and Key Pose Board panels were removed in Phase 7.2 — use the Character panel (Pixel Lab) next.</p>
                 </div>
                 <div class="stage-meta" data-stage="concepts"></div>
             </div>
@@ -2959,26 +3006,15 @@
             </div>
         </section>
 
-        <section class="panel" id="ai-motion-workflow">
+        <section class="panel" id="character">
             <div class="section-head">
                 <div>
-                    <h3>Motion Workflow</h3>
-                    <p>Run motion, extraction, and pixel cleanup for idle and walk. Approve the cleaned outputs before Cleanup & QA.</p>
+                    <h3>Character (Pixel Lab)</h3>
+                    <p>Generate 4- or 8-direction sprites from your chosen concept, optionally estimate a skeleton on the east-facing frame, then approve before animations.</p>
                 </div>
-                <div class="stage-meta" data-stage="production"></div>
+                <div class="stage-meta" data-stage="character"></div>
             </div>
-            <div id="ai-motion-workflow-board"></div>
-        </section>
-
-        <section class="panel" id="ai-cleanup-qa">
-            <div class="section-head">
-                <div>
-                    <h3>Cleanup & QA</h3>
-                    <p>Review dependency readiness, approved lineage, and deterministic checks before export.</p>
-                </div>
-                <div class="stage-meta" data-stage="qa"></div>
-            </div>
-            <div id="ai-cleanup-qa-board"></div>
+            <div id="pixellab-character-board"></div>
         </section>
 
         <section class="panel" id="rig-layout">
@@ -3534,7 +3570,7 @@ const STORAGE_KEYS = {
 };
 
 const WIZARD_STEPS = ["project", "brief", "references", "concepts", "review", "rig_layout", "part_manifest", "part_shape_edit", "split_build", "split_review", "sprite_model", "rig", "clips", "qa", "export"];
-const WORKBENCH_SECTION_IDS = ["intake", "concepts", "ai-motion-workflow", "ai-cleanup-qa", "rig-layout", "part-manifest", "part-shape-edit", "split-build", "split-review", "layer-review", "rig-review", "production", "qa", "export", "activity-log"];
+const WORKBENCH_SECTION_IDS = ["intake", "concepts", "character", "rig-layout", "part-manifest", "part-shape-edit", "split-build", "split-review", "layer-review", "rig-review", "production", "qa", "export", "activity-log"];
 const WIZARD_SECTION_MAP = {
     project: ["intake"],
     brief: ["intake"],
@@ -3548,8 +3584,8 @@ const WIZARD_SECTION_MAP = {
     split_review: ["split-review"],
     sprite_model: ["layer-review"],
     rig: ["rig-review"],
-    clips: ["ai-motion-workflow"],
-    qa: ["ai-cleanup-qa"],
+    clips: ["character"],
+    qa: ["qa"],
     export: ["export"],
 };
 const WIZARD_META = {
@@ -3626,16 +3662,16 @@ const WIZARD_META = {
         example: "Check joint placement, prop attachment, and the neutral pose before rendering clips.",
     },
     clips: {
-        label: "Motion Workflow",
-        description: "Run pose-to-pose motion, extraction, and pixel cleanup for idle and walk until both clips are approved.",
-        outcome: "You will get cleaned 256x256 transparent frames ready for deterministic QA and export.",
-        example: "Run motion first, then extraction, then cleanup for each clip before approving the final output.",
+        label: "Character",
+        description: "Create a Pixel Lab multi-direction character from your approved concept, estimate skeleton on east, then approve for animations.",
+        outcome: "You will have direction PNGs plus an optional skeleton JSON before moving on to template animations.",
+        example: "Use Create Character (4 dir), open Est. skeleton on east if you want joint overlay, then Approve Character.",
     },
     qa: {
-        label: "Cleanup & QA",
-        description: "Review dependency health, approved lineage, and deterministic frame checks before export.",
-        outcome: "Failed checks stop export so alignment, transparency, and frame-count issues are visible before packaging.",
-        example: "Use this step to catch clipped bounds, opaque backgrounds, or shared-pivot drift.",
+        label: "Checks (QA)",
+        description: "Run deterministic QA on the Pixel Lab pipeline (after animations) or legacy rig output before export.",
+        outcome: "Failed checks stop export so structural issues are visible before packaging.",
+        example: "Run checks after you have approved character and generated animation clips.",
     },
     export: {
         label: "Export",
@@ -3648,6 +3684,7 @@ const WIZARD_META = {
 const FRIENDLY_STAGE_NAMES = {
     intake: "Setup",
     concepts: "Concepts",
+    character: "Character",
     concept_lock: "Look chosen",
     external_authoring: "External authoring",
     rig_layout: "Rig layout",
@@ -3776,6 +3813,7 @@ const state = {
     conceptPreviewPanX: 0,
     conceptPreviewPanY: 0,
     conceptPreviewTransformKey: null,
+    pixellabShowSkeleton: false,
 };
 
 function currentMode() {
@@ -3809,6 +3847,22 @@ function humanizeKey(value) {
     return String(value || "")
         .replace(/_/g, " ")
         .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function escapeHtml(value) {
+    return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+}
+
+function pixellabCharacterApproved(project) {
+    if (!project) return false;
+    if (project.pixellab_character_approved) return true;
+    const c = project.pixellab_character;
+    if (!c || typeof c !== "object") return false;
+    return Boolean(c.approved || c.pixellab_character_approved);
 }
 
 function aiWorkflowStore(project = state.activeProject) {
@@ -4018,11 +4072,17 @@ function wizardSummaryText(step) {
             return project.selected_concept_id ? `Chosen ${project.selected_concept_id}` : "No valid concept chosen yet.";
         case "rig_layout":
             if (aiWorkflowEnabled(project)) {
+                if (String(project.brief?.backend_mode || "") === "pixellab") {
+                    return project.selected_concept_id ? `Look ${project.selected_concept_id}` : "Choose a concept first.";
+                }
                 return project.ai_workflow?.character_lock?.approved_asset_id || "Character Lock not approved yet.";
             }
             return project.rig_layout_approved ? `${project.rig_layout?.rig_profile || "layout"} approved` : project.rig_layout ? `${project.rig_layout?.parts?.length || 0} parts in layout` : "Rig layout not generated yet.";
         case "part_manifest":
             if (aiWorkflowEnabled(project)) {
+                if (String(project.brief?.backend_mode || "") === "pixellab") {
+                    return project.selected_concept_id ? "Ready for Character panel." : "Approve a look first.";
+                }
                 return project.ai_workflow?.key_pose_set?.approved_run_id || "Key Pose Board not approved yet.";
             }
             return project.part_manifest_approved ? `${project.part_manifest?.parts?.length || 0} manifest parts approved` : project.part_manifest ? `${project.part_manifest?.parts?.length || 0} manifest parts` : "Part manifest not generated yet.";
@@ -4038,6 +4098,11 @@ function wizardSummaryText(step) {
             return project.rig_review_approved ? "Rig approved." : project.rig ? "Rig built." : "Rig not built.";
         case "clips":
             if (aiWorkflowEnabled(project)) {
+                if (String(project.brief?.backend_mode || "") === "pixellab") {
+                    if (pixellabCharacterApproved(project)) return "Pixel Lab character approved.";
+                    if (project.pixellab_character) return "Character generated — approve to continue.";
+                    return "Create character from concept.";
+                }
                 const idleRun = aiWorkflowApprovedRun("cleanup_runs", "idle", project);
                 const walkRun = aiWorkflowApprovedRun("cleanup_runs", "walk", project);
                 return `${idleRun ? "idle cleaned" : "idle pending"} · ${walkRun ? "walk cleaned" : "walk pending"}`;
@@ -4135,7 +4200,7 @@ function applyModeVisibility() {
     const mode = "wizard";
     const activeStep = activeWizardStep();
     const aiEnabled = aiWorkflowEnabled();
-    const hiddenForAi = new Set(["rig-layout", "part-manifest", "part-shape-edit", "split-build", "split-review", "layer-review", "rig-review", "production", "qa"]);
+    const hiddenForAi = new Set(["rig-layout", "part-manifest", "part-shape-edit", "split-build", "split-review", "layer-review", "rig-review", "production"]);
     document.body.classList.toggle("wizard-mode", mode === "wizard");
     const allowedSections = new Set(mode === "wizard" ? wizardSectionIds(activeStep) : WORKBENCH_SECTION_IDS);
     WORKBENCH_SECTION_IDS.forEach((id) => {
@@ -4188,10 +4253,12 @@ function syncWorkflowModeControls() {
     if (productionWarning) {
         if (!aiEnabled) {
             productionWarning.textContent = "Clip output is deterministic. Rebuilds from the same approved sprite model and rig should match exactly.";
+        } else if (backendMode === "pixellab") {
+            productionWarning.textContent = "Pixel Lab mode: use the Character panel for direction sprites, then the Animations panel for template clips (Phase 7.5). This legacy Production panel is hidden in the guided wizard.";
         } else if (backendMode === "debug_procedural") {
-            productionWarning.textContent = "AI workflow mode is active in Debug Placeholder mode. Motion, extraction, and cleanup run through deterministic local transforms only.";
+            productionWarning.textContent = "AI workflow mode is active in Debug Placeholder mode. Legacy motion, extraction, and cleanup use deterministic local transforms only.";
         } else {
-            productionWarning.textContent = "AI workflow mode is active. Motion uses ComfyUI when configured; extraction and pixel cleanup stay local. An approved concept can substitute for a Key Pose Board when that UI is absent.";
+            productionWarning.textContent = "AI workflow mode is active. Legacy motion uses ComfyUI when configured; extraction and pixel cleanup stay local.";
         }
     }
     ["#render-idle", "#render-walk"].forEach((selector) => {
@@ -4212,9 +4279,11 @@ function renderModeShell() {
         ? (aiWorkflowLegacyMode()
             ? "This project uses a retired workflow and is shown in read-only legacy mode. Create a new project to use ai_sideview_v1."
             : aiWorkflowEnabled()
-                ? backendMode === "debug_procedural"
-                    ? "ai_sideview_v1 is active in Debug Placeholder mode. Motion and Cleanup run via local deterministic transforms (no ComfyUI required)."
-                    : "ai_sideview_v1 is active. Motion Workflow and Cleanup & QA use ComfyUI when available; an approved concept can back motion if no Key Pose Board was generated."
+                ? backendMode === "pixellab"
+                    ? "Pixel Lab pipeline: Concepts → Character (multi-dir + skeleton) → Animations → QA/Export. Debug mode uses local placeholders without API calls."
+                    : backendMode === "debug_procedural"
+                        ? "ai_sideview_v1 is active in Debug Placeholder mode. Legacy ComfyUI motion path uses local deterministic transforms when enabled."
+                        : "ai_sideview_v1 is active with ComfyUI backend. Prefer new projects with Pixel Lab (Character panel) for the streamlined flow."
             : "Workbench is now a single guided production flow. Advance through the approved steps and keep each stage deterministic.")
         : "Create or open a project to start the guided Workbench flow.";
 
@@ -6251,34 +6320,207 @@ function aiDependencySummaryMarkup(store) {
     `).join("");
 }
 
-async function runAiWorkflowStage(stage, options = {}) {
-    if (!state.activeProject) throw new Error("Select or create a project first.");
-    if (aiWorkflowLegacyMode()) throw new Error("Legacy projects are read-only. Create a new project to use ai_sideview_v1.");
-    await runJob(`/api/projects/${state.activeProject.project_id}/ai-workflow/run`, {
-        stage,
-        workflow_profile: "ai_sideview_v1",
-        source_asset_ids: options.sourceAssetIds || [],
-        clip_name: options.clipName || null,
-        parameters: options.parameters || {},
+function pixellabCharacterDirectionOrder(charData) {
+    const dirs = charData?.directions;
+    if (Array.isArray(dirs) && dirs.length) return dirs;
+    const images = charData?.images;
+    if (images && typeof images === "object") return Object.keys(images);
+    return [];
+}
+
+function drawPixellabSkeletonOnCanvas(canvas, img, skeletonJson, visible) {
+    if (!canvas || !img) return;
+    const ctx = canvas.getContext("2d");
+    const w = img.clientWidth || img.naturalWidth;
+    const h = img.clientHeight || img.naturalHeight;
+    if (!w || !h) return;
+    canvas.width = w;
+    canvas.height = h;
+    canvas.style.width = `${w}px`;
+    canvas.style.height = `${h}px`;
+    ctx.clearRect(0, 0, w, h);
+    if (!visible || !skeletonJson?.skeleton_keypoints) return;
+    const pts = skeletonJson.skeleton_keypoints;
+    if (!Array.isArray(pts)) return;
+    const iw = Number(skeletonJson.image_size?.width) || img.naturalWidth || 64;
+    const ih = Number(skeletonJson.image_size?.height) || img.naturalHeight || 64;
+    const sx = w / iw;
+    const sy = h / ih;
+    ctx.fillStyle = "rgba(255, 92, 135, 0.95)";
+    ctx.strokeStyle = "rgba(12, 16, 22, 0.9)";
+    ctx.lineWidth = 2;
+    pts.forEach((p) => {
+        if (!Array.isArray(p) || p.length < 2) return;
+        const x = Number(p[0]) * sx;
+        const y = Number(p[1]) * sy;
+        ctx.beginPath();
+        ctx.arc(x, y, 3.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
     });
 }
 
-async function approveAiWorkflow(stage, payload = {}) {
-    if (!state.activeProject) throw new Error("Select or create a project first.");
-    await api(`/api/projects/${state.activeProject.project_id}/ai-workflow/approve`, {
-        method: "POST",
-        body: JSON.stringify({ stage, ...payload }),
-    });
-    await loadProject(state.activeProject.project_id, currentMode());
-}
+function renderPixellabCharacterBoard() {
+    const root = document.querySelector("#pixellab-character-board");
+    if (!root) return;
+    const project = state.activeProject;
+    root.innerHTML = "";
+    if (!project) {
+        root.innerHTML = `<div class="empty">Open or create a project to use the Character panel.</div>`;
+        return;
+    }
+    const brief = project.brief || {};
+    if (String(brief.backend_mode || "") !== "pixellab") {
+        root.innerHTML = `<div class="warning-box"><p>This panel is for Pixel Lab projects. Current brief <code>backend_mode</code> is <code>${escapeHtml(brief.backend_mode || "unset")}</code>.</p></div>`;
+        return;
+    }
+    const sel = selectedConcept();
+    const selId = project.selected_concept_id;
+    const pix = project.pixellab_character;
+    const skel = project.pixellab_skeleton;
+    const approved = pixellabCharacterApproved(project);
+    const dirCount = pix
+        ? (Array.isArray(pix.directions) && pix.directions.length ? pix.directions.length : Object.keys(pix.images || {}).length)
+        : 0;
+    const conceptPath = sel?.preview_image || sel?.original_preview_image;
+    const conceptPreview = sel && conceptPath
+        ? `<div class="pixellab-character-source-preview"><img src="${projectAsset(project, conceptPath)}?v=${encodeURIComponent(project.updated_at || "")}" alt="Chosen concept"></div>`
+        : `<div class="empty">Choose a concept in the Concepts panel first.</div>`;
 
-async function rejectAiWorkflow(stage, payload = {}) {
-    if (!state.activeProject) throw new Error("Select or create a project first.");
-    await api(`/api/projects/${state.activeProject.project_id}/ai-workflow/reject`, {
-        method: "POST",
-        body: JSON.stringify({ stage, ...payload }),
+    const hasEastAsset = Boolean(pix?.images?.east);
+    const charActions = `
+        <div class="actions" style="margin-top: 12px; flex-wrap: wrap; gap: 8px;">
+            <button type="button" id="pixellab-create-4" ${selId ? "" : "disabled"}>Create Character (4 dir)</button>
+            <button type="button" id="pixellab-create-8" ${selId ? "" : "disabled"}>Create Character (8 dir)</button>
+            <button type="button" class="secondary" id="pixellab-estimate-sk" ${hasEastAsset ? "" : "disabled"}>Estimate skeleton (east)</button>
+            <button type="button" id="pixellab-approve-char" ${pix && !approved ? "" : "disabled"}>Approve Character</button>
+        </div>
+    `;
+
+    let directionsHtml = "";
+    if (pix?.images && typeof pix.images === "object") {
+        const order = pixellabCharacterDirectionOrder(pix);
+        directionsHtml = `<div class="section-head" style="margin-top: 18px;"><h4 style="font-size:0.95rem;">Direction previews</h4></div><div class="pixellab-direction-grid">${order.map((dir) => {
+            const rel = pix.images[dir];
+            const src = rel ? `${projectAsset(project, rel)}?v=${encodeURIComponent(project.updated_at || "")}` : "";
+            const isEast = dir === "east";
+            if (isEast) {
+                return `<div class="pixellab-direction-cell">
+                    <div class="small-note">${humanizeKey(dir)}</div>
+                    <div class="pixellab-east-stack">
+                        <img data-pixellab-east-img src="${src}" alt="${dir}">
+                        <canvas class="pixellab-skeleton-overlay" data-pixellab-skeleton-canvas></canvas>
+                    </div>
+                    ${skel?.skeleton_keypoints ? `<label class="small-note" style="display:flex;gap:6px;align-items:center;justify-content:center;margin-top:6px;">
+                        <input type="checkbox" id="pixellab-toggle-skeleton" ${state.pixellabShowSkeleton ? "checked" : ""}> Skeleton overlay
+                    </label>` : `<div class="small-note" style="margin-top:6px;">Run <strong>Estimate skeleton</strong> to overlay keypoints.</div>`}
+                </div>`;
+            }
+            return `<div class="pixellab-direction-cell">
+                <div class="small-note">${humanizeKey(dir)}</div>
+                <img src="${src}" alt="${dir}">
+            </div>`;
+        }).join("")}</div>`;
+    }
+
+    root.innerHTML = `
+        <div class="grid-2" style="align-items: start;">
+            <div class="clip-control-card">
+                <h4 style="margin: 0 0 8px;">Chosen concept</h4>
+                ${conceptPreview}
+            </div>
+            <div class="clip-control-card">
+                <h4 style="margin: 0 0 8px;">Pixel Lab character</h4>
+                <div class="small-note">
+                    ${pix
+        ? `Directions: ${dirCount}. Id: <code>${escapeHtml(String(pix.character_id || ""))}</code>.`
+        : "No character yet — create from the concept on the left."}
+                    ${approved ? ` <span class="pill ok">Approved</span>` : pix ? ` <span class="pill warn">Not approved</span>` : ""}
+                </div>
+                ${skel ? `<div class="small-note" style="margin-top:8px;">Skeleton (${escapeHtml(String(skel.direction || "?"))}): ${(skel.skeleton_keypoints || []).length} keypoints.</div>` : ""}
+                ${charActions}
+            </div>
+        </div>
+        ${directionsHtml || ""}
+    `;
+
+    const eastImg = root.querySelector("[data-pixellab-east-img]");
+    const eastCanvas = root.querySelector("[data-pixellab-skeleton-canvas]");
+    const syncEastOverlay = () => {
+        if (eastImg && eastCanvas) drawPixellabSkeletonOnCanvas(eastCanvas, eastImg, skel, state.pixellabShowSkeleton);
+    };
+    if (eastImg) {
+        eastImg.addEventListener("load", syncEastOverlay);
+        if (eastImg.complete) syncEastOverlay();
+    }
+    const toggle = root.querySelector("#pixellab-toggle-skeleton");
+    if (toggle) {
+        toggle.addEventListener("change", () => {
+            state.pixellabShowSkeleton = toggle.checked;
+            syncEastOverlay();
+        });
+    }
+
+    const pid = project.project_id;
+    const reload = async () => {
+        await loadProject(pid, currentMode());
+        renderAll();
+    };
+
+    root.querySelector("#pixellab-create-4")?.addEventListener("click", async () => {
+        if (!selId) return;
+        try {
+            notify("Creating 4-direction character…", "info");
+            await api(`/api/projects/${pid}/pixellab/create-character`, {
+                method: "POST",
+                body: JSON.stringify({ directions: 4, color_concept_id: selId }),
+            });
+            notify("Character created.", "success");
+            await reload();
+        } catch (error) {
+            log(normalizeErrorMessage(error.message), "error");
+            notify(normalizeErrorMessage(error.message), "error");
+        }
     });
-    await loadProject(state.activeProject.project_id, currentMode());
+    root.querySelector("#pixellab-create-8")?.addEventListener("click", async () => {
+        if (!selId) return;
+        try {
+            notify("Creating 8-direction character…", "info");
+            await api(`/api/projects/${pid}/pixellab/create-character`, {
+                method: "POST",
+                body: JSON.stringify({ directions: 8, color_concept_id: selId }),
+            });
+            notify("Character created.", "success");
+            await reload();
+        } catch (error) {
+            log(normalizeErrorMessage(error.message), "error");
+            notify(normalizeErrorMessage(error.message), "error");
+        }
+    });
+    root.querySelector("#pixellab-estimate-sk")?.addEventListener("click", async () => {
+        try {
+            notify("Estimating skeleton on east frame…", "info");
+            await api(`/api/projects/${pid}/pixellab/estimate-skeleton`, {
+                method: "POST",
+                body: JSON.stringify({ direction: "east" }),
+            });
+            notify("Skeleton saved.", "success");
+            await reload();
+        } catch (error) {
+            log(normalizeErrorMessage(error.message), "error");
+            notify(normalizeErrorMessage(error.message), "error");
+        }
+    });
+    root.querySelector("#pixellab-approve-char")?.addEventListener("click", async () => {
+        try {
+            await api(`/api/projects/${pid}/pixellab/approve-character`, { method: "POST", body: "{}" });
+            notify("Character approved for animations.", "success");
+            await reload();
+        } catch (error) {
+            log(normalizeErrorMessage(error.message), "error");
+            notify(normalizeErrorMessage(error.message), "error");
+        }
+    });
 }
 
 function renderAiCharacterLockBoard() {
@@ -6289,144 +6531,10 @@ function renderAiKeyPoseBoard() {
     /* Phase 7.2: Key Pose Board panel removed. */
 }
 
-function renderAiMotionWorkflowBoard() {
-    const root = document.querySelector("#ai-motion-workflow-board");
-    if (!root) return;
-    root.innerHTML = "";
-    const project = state.activeProject;
-    if (!project || !aiWorkflowEnabled(project)) return;
-    const store = aiWorkflowStore(project);
-    const backendMode = (project.brief?.backend_mode) || "comfyui";
-    const approvedPoseRun = Boolean(aiWorkflowApprovedRun("key_pose_set", null, project))
-        || Boolean(project.selected_concept_id && selectedConcept()?.preview_image);
-    root.innerHTML = Object.keys({ idle: 1, walk: 1 }).map((clipName) => {
-        const motionGroup = aiWorkflowRunGroup("motion_runs", clipName, project);
-        const extractGroup = aiWorkflowRunGroup("extract_runs", clipName, project);
-        const cleanupGroup = aiWorkflowRunGroup("cleanup_runs", clipName, project);
-        const approvedCleanup = aiWorkflowApprovedRun("cleanup_runs", clipName, project);
-        const previewPath = approvedCleanup?.frames?.[0]?.runtime_image_path || approvedCleanup?.frames?.[0]?.image_path || null;
-        return `
-            <div class="clip-control-card" style="margin-bottom: 14px;">
-                <div class="check-row wrap">
-                    <span>${humanizeKey(clipName)}</span>
-                    <span class="small-note">${approvedCleanup ? "cleanup approved" : "pending"}</span>
-                </div>
-                <div class="small-note">
-                    Generate motion from an approved Key Pose Board, or from the approved concept when no pose board exists (Phase 7.2). Then extract and clean up runtime frames.
-                    ${backendMode === "debug_procedural"
-                        ? `<span class="pill warn" style="margin-left: 6px;">Debug placeholders</span>`
-                        : `<span class="pill ok" style="margin-left: 6px;">ToonCrafter via ComfyUI</span>`}
-                </div>
-                <div class="actions" style="margin-top: 12px;">
-                    <button data-ai-run-motion="${clipName}" ${approvedPoseRun ? "" : "disabled"}>Run Motion</button>
-                    <button data-ai-run-extract="${clipName}" ${(motionGroup?.approved_run_id || Object.keys(motionGroup?.runs || {}).length) ? "" : "disabled"}>Extract Frames</button>
-                    <button data-ai-run-cleanup="${clipName}" ${(extractGroup?.approved_run_id || Object.keys(extractGroup?.runs || {}).length) ? "" : "disabled"}>Pixel Cleanup</button>
-                    <button data-ai-approve-cleanup="${clipName}" ${Object.keys(cleanupGroup?.runs || {}).length ? "" : "disabled"}>Approve Cleanup</button>
-                </div>
-                <div class="small-note" style="margin-top: 10px;">
-                    motion runs ${Object.keys(motionGroup?.runs || {}).length} · extract runs ${Object.keys(extractGroup?.runs || {}).length} · cleanup runs ${Object.keys(cleanupGroup?.runs || {}).length}
-                </div>
-                ${previewPath ? `<div class="preview-card" style="margin-top: 12px; max-width: 220px;"><img src="${projectAsset(project, previewPath)}?v=${project.updated_at}" alt="${clipName} preview"><div class="small-note" style="margin-top: 8px;">Latest approved cleaned frame</div></div>` : ""}
-            </div>
-        `;
-    }).join("");
-    root.querySelectorAll("[data-ai-run-motion]").forEach((button) => {
-        button.onclick = async () => {
-            try {
-                await runAiWorkflowStage("motion_clip", { clipName: button.dataset.aiRunMotion });
-            } catch (error) {
-                log(normalizeErrorMessage(error.message), "error");
-                notify(normalizeErrorMessage(error.message), "error");
-            }
-        };
-    });
-    root.querySelectorAll("[data-ai-run-extract]").forEach((button) => {
-        button.onclick = async () => {
-            try {
-                await runAiWorkflowStage("extract_frames", { clipName: button.dataset.aiRunExtract });
-            } catch (error) {
-                log(normalizeErrorMessage(error.message), "error");
-                notify(normalizeErrorMessage(error.message), "error");
-            }
-        };
-    });
-    root.querySelectorAll("[data-ai-run-cleanup]").forEach((button) => {
-        button.onclick = async () => {
-            try {
-                await runAiWorkflowStage("pixel_cleanup", { clipName: button.dataset.aiRunCleanup });
-            } catch (error) {
-                log(normalizeErrorMessage(error.message), "error");
-                notify(normalizeErrorMessage(error.message), "error");
-            }
-        };
-    });
-    root.querySelectorAll("[data-ai-approve-cleanup]").forEach((button) => {
-        button.onclick = async () => {
-            try {
-                const clipName = button.dataset.aiApproveCleanup;
-                const cleanupGroup = aiWorkflowRunGroup("cleanup_runs", clipName);
-                const latestRunId = cleanupGroup?.approved_run_id || Object.keys(cleanupGroup?.runs || {}).slice(-1)[0];
-                if (!latestRunId) throw new Error(`No cleanup run found for ${clipName}.`);
-                await approveAiWorkflow("pixel_cleanup", { clip_name: clipName, run_id: latestRunId });
-                notify(`Approved cleaned ${clipName} output.`, "success");
-            } catch (error) {
-                log(normalizeErrorMessage(error.message), "error");
-                notify(normalizeErrorMessage(error.message), "error");
-            }
-        };
-    });
-}
-
-function renderAiCleanupQaBoard() {
-    const root = document.querySelector("#ai-cleanup-qa-board");
-    if (!root) return;
-    root.innerHTML = "";
-    const project = state.activeProject;
-    if (!project || !aiWorkflowEnabled(project)) return;
-    const store = aiWorkflowStore(project);
-    const selected = store?.selected_assets || {};
-    root.innerHTML = `
-        <div class="grid-2">
-            <div class="clip-control-card">
-                <div class="check-row wrap">
-                    <span>Dependency readiness</span>
-                    <span class="small-note">${store?.dependency_status?.overall_status || "unknown"}</span>
-                </div>
-                <div class="check-list" style="margin-top: 10px;">${aiDependencySummaryMarkup(store)}</div>
-            </div>
-            <div class="clip-control-card">
-                <div class="check-row wrap">
-                    <span>Approved lineage</span>
-                    <span class="small-note">${store?.profile || "ai_sideview_v1"}</span>
-                </div>
-                <div class="check-list" style="margin-top: 10px;">
-                    <div class="check-row"><span>Concept</span><span class="small-note">${selected.approved_concept_id || "none"}</span></div>
-                    <div class="check-row"><span>Character Lock</span><span class="small-note">${selected.character_lock_asset_id || "none"}</span></div>
-                    <div class="check-row"><span>Key Pose Board</span><span class="small-note">${selected.key_pose_run_id || "none"}</span></div>
-                    <div class="check-row"><span>Idle Cleanup</span><span class="small-note">${selected.cleanup_run_ids?.idle || "none"}</span></div>
-                    <div class="check-row"><span>Walk Cleanup</span><span class="small-note">${selected.cleanup_run_ids?.walk || "none"}</span></div>
-                </div>
-                <div class="actions" style="margin-top: 12px;">
-                    <button id="ai-run-qa">Run Cleanup & QA</button>
-                </div>
-            </div>
-        </div>
-    `;
-    const qaButton = root.querySelector("#ai-run-qa");
-    if (qaButton) qaButton.onclick = async () => {
-        try {
-            await runJob(`/api/projects/${project.project_id}/qa/run`);
-        } catch (error) {
-            log(normalizeErrorMessage(error.message), "error");
-            notify(normalizeErrorMessage(error.message), "error");
-        }
-    };
-}
-
 function syncLegacyModeControls() {
     const legacy = aiWorkflowLegacyMode();
     const selectors = [
-        "#intake", "#concepts", "#rig-layout", "#part-manifest", "#part-shape-edit", "#split-build",
+        "#intake", "#concepts", "#character", "#rig-layout", "#part-manifest", "#part-shape-edit", "#split-build",
         "#split-review", "#layer-review", "#rig-review", "#production", "#qa", "#export"
     ];
     const allowInLegacy = new Set(["create-project", "create-project-workbench", "refresh-projects-brief", "refresh-projects-references", "refresh-projects-workbench"]);
@@ -8917,8 +9025,7 @@ function renderAll() {
     renderConceptReview();
     renderAiCharacterLockBoard();
     renderAiKeyPoseBoard();
-    renderAiMotionWorkflowBoard();
-    renderAiCleanupQaBoard();
+    renderPixellabCharacterBoard();
     renderRigLayout();
     renderPartManifest();
     renderPartShapeEdit();

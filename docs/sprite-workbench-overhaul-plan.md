@@ -318,13 +318,13 @@ keeping the app functional at every step.
 - [x] Removed heavy Gemini validation UI from concept cards (revalidate / improve / override invalid paths not shown)
 
 ### 7.4 Build new Character panel + remove old motion/extraction/cleanup panels
-- Shows approved concept at top
-- [Create Character (4 dir)] / [Create Character (8 dir)] buttons
-- Direction image grid (south, west, east, north)
-- Skeleton overlay toggle on east-facing image (canvas with keypoint dots)
-- [Approve Character] button
-- Remove old sections from HTML: `ai-motion-workflow`, `ai-cleanup-qa`
-- Remove associated JS render functions and event handlers
+- [x] Shows chosen concept at top (`#character` / `pixellab-character-board`)
+- [x] [Create Character (4 dir)] / [Create Character (8 dir)] → `POST .../pixellab/create-character`
+- [x] Direction image grid (all dirs from `pixellab_character.json`; 4 or 8)
+- [x] [Estimate skeleton (east)] → `POST .../pixellab/estimate-skeleton`; skeleton overlay toggle on east (canvas keypoints)
+- [x] [Approve Character] → `POST .../pixellab/approve-character`
+- [x] Removed HTML: `ai-motion-workflow`, `ai-cleanup-qa`; removed `renderAiMotionWorkflowBoard` / `renderAiCleanupQaBoard` and Comfy-only motion handlers
+- [x] Wizard: `clips` → `#character`; `qa` → main `#qa` Checks panel; `load_project` hydrates `pixellab_character` + `pixellab_skeleton`; `compute_wizard_context` uses character approval when `brief.backend_mode === pixellab`
 
 ### 7.5 Build new Animations panel + remove old rig/part/production panels
 - Template animation picker (dropdown of available template IDs from appendix)
@@ -439,7 +439,7 @@ Phase 3 (concepts):    3.1 ✅ → 3.2 ✅ → 3.3 ✅ → 3.4 (deferred)
 Phase 4 (character):   4.1 ✅ → 4.2 ✅ → 4.3 ✅
 Phase 5 (animation):   5.1 ✅ → 5.2 ✅ → 5.3 ✅ → 5.4 ✅ → 5.5 ✅
 Phase 6 (QA/export):   6.1 ✅ → 6.2 ✅
-Phase 7 (frontend):    7.1 ✅ → 7.2 → 7.3 → 7.4 → 7.5 → 7.6 → 7.7  ← NEXT
+Phase 7 (frontend):    7.1 ✅ → 7.2 ✅ → 7.3 ✅ → 7.4 ✅ → 7.5 → 7.6 → 7.7  ← NEXT
 Phase 8 (cleanup):     8.1 → 8.2 → 8.3 → 8.4 → 8.5 → 8.6
 Phase 9 (tests/docs):  9.1 → 9.2 → 9.3 → 9.4 → 9.5
 ```

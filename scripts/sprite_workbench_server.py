@@ -2787,6 +2787,7 @@ def compute_wizard_context(project: Dict[str, Any]) -> Dict[str, Any]:
         character_lock = ai_workflow.get("character_lock") or {}
         key_pose_set = ai_workflow.get("key_pose_set") or {}
         cleanup_runs = ai_workflow.get("cleanup_runs") or {}
+        pixellab_brief = str(brief.get("backend_mode") or "") == "pixellab"
         approved_cleanup_ready = True
         for clip_name in AI_CLIP_SPECS:
             clip_group = cleanup_runs.get(clip_name) if isinstance(cleanup_runs.get(clip_name), dict) else {}
@@ -2795,6 +2796,8 @@ def compute_wizard_context(project: Dict[str, Any]) -> Dict[str, Any]:
             if not approved_run or not approved_run.get("frame_dir"):
                 approved_cleanup_ready = False
                 break
+
+        pixellab_clips_complete = pixellab_character_wizard_complete(project, project_dir) if pixellab_brief else approved_cleanup_ready
 
         has_brief = "brief" in completed or bool((project.get("prompt_text") or "").strip())
         has_references = bool(brief.get("references")) or "references" in completed or "references" in skipped or has_brief
@@ -2820,24 +2823,42 @@ def compute_wizard_context(project: Dict[str, Any]) -> Dict[str, Any]:
             "split_review": has_key_pose_set,
             "sprite_model": has_key_pose_set,
             "rig": has_key_pose_set,
-            "clips": approved_cleanup_ready,
+            "clips": pixellab_clips_complete,
             "qa": has_qa,
             "export": has_export,
         }
+        clips_blocker_msg = (
+            "Approve a chosen concept before creating a Pixel Lab character."
+            if pixellab_brief
+            else "Approve a Key Pose Board before running Motion Workflow."
+        )
+        qa_blocker_msg = (
+            "Approve the Pixel Lab character before running checks."
+            if pixellab_brief
+            else "Approve cleaned idle and walk outputs before running Cleanup & QA."
+        )
         blocking_reasons = {
             "brief": [] if complete_map["project"] else ["Create or open a project first."],
             "references": [] if complete_map["brief"] else ["Save the character description before adding or skipping references."],
             "concepts": [] if complete_map["brief"] else ["Save the character description before building a concept prompt."],
             "review": [] if valid_attempts else ["Generate or import at least one valid concept before approving a look."],
-            "rig_layout": [] if complete_map["review"] else ["Approve a source concept before Motion Workflow."],
-            "part_manifest": [] if complete_map["rig_layout"] else ["Complete the prior step before running motion."],
+            "rig_layout": [] if complete_map["review"] else (
+                ["Approve a source concept before the Character step."]
+                if pixellab_brief
+                else ["Approve a source concept before Motion Workflow."]
+            ),
+            "part_manifest": [] if complete_map["rig_layout"] else (
+                ["Complete the prior step before creating a Pixel Lab character."]
+                if pixellab_brief
+                else ["Complete the prior step before running motion."]
+            ),
             "part_shape_edit": [],
             "split_build": [],
             "split_review": [],
             "sprite_model": [],
             "rig": [],
-            "clips": [] if complete_map["part_manifest"] else ["Approve a Key Pose Board before running Motion Workflow."],
-            "qa": [] if complete_map["clips"] else ["Approve cleaned idle and walk outputs before running Cleanup & QA."],
+            "clips": [] if complete_map["part_manifest"] else [clips_blocker_msg],
+            "qa": [] if complete_map["clips"] else [qa_blocker_msg],
             "export": [] if complete_map["qa"] and project.get("qa_report", {}).get("status") == "pass" else ["Checks must pass before export."],
         }
         step_statuses: Dict[str, str] = {}
@@ -3909,6 +3930,19 @@ def _find_all_base64_png_like(payload: Any) -> List[str]:
 
 def _pixellab_character_path(project_dir: Path) -> Path:
     return project_dir / "pixellab_character.json"
+
+
+def pixellab_character_wizard_complete(project: Dict[str, Any], project_dir: Path) -> bool:
+    """True when Pixel Lab character exists and is approved (project flags and/or JSON)."""
+    if bool(project.get("pixellab_character_approved")):
+        return True
+    char_path = _pixellab_character_path(project_dir)
+    if not char_path.exists():
+        return False
+    char_data = load_json(char_path, None) or {}
+    if bool(char_data.get("pixellab_character_approved")):
+        return True
+    return bool(char_data.get("approved"))
 
 
 def _pixellab_skeleton_path(project_dir: Path) -> Path:
@@ -5640,6 +5674,8 @@ def load_project(project_id: str) -> Dict[str, Any]:
         project["part_split_approved"] = bool(project.get("part_split_approved") or project["part_split"].get("approved"))
         project["split_review_approved"] = bool(project.get("split_review_approved") or project.get("part_split_approved") or project["part_split"].get("approved"))
     project["history"] = load_history(project_id)
+    project["pixellab_character"] = load_json(_pixellab_character_path(project_dir), None)
+    project["pixellab_skeleton"] = load_json(_pixellab_skeleton_path(project_dir), None)
     project["concepts"] = [hydrate_concept(item, project["created_at"]) for item in load_concepts(project_dir)]
     project["prompt_history"] = prompt_history_entries(project["concepts"])
     project["latest_prompt"] = project["prompt_history"][0] if project["prompt_history"] else None
@@ -5703,6 +5739,8 @@ def save_project(project: Dict[str, Any]) -> None:
     core = {k: v for k, v in project.items() if k not in {
         "brief",
         "character_spec",
+        "pixellab_character",
+        "pixellab_skeleton",
         "rig_layout",
         "rig_layout_history",
         "part_manifest",

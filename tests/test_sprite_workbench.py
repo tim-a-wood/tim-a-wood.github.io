@@ -1360,6 +1360,40 @@ class SpriteWorkbenchTests(unittest.TestCase):
             if hasattr(sw, "_pixellab_client"):
                 sw._pixellab_client = None
 
+    def test_pixellab_character_wizard_complete_reads_json_and_project_flag(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            pdir = Path(tmp)
+            char_path = pdir / "pixellab_character.json"
+            project = {"project_id": "x"}
+            self.assertFalse(sw.pixellab_character_wizard_complete(project, pdir))
+            char_path.write_text(json.dumps({"approved": False}), encoding="utf-8")
+            self.assertFalse(sw.pixellab_character_wizard_complete(project, pdir))
+            char_path.write_text(json.dumps({"approved": True}), encoding="utf-8")
+            self.assertTrue(sw.pixellab_character_wizard_complete(project, pdir))
+            self.assertTrue(sw.pixellab_character_wizard_complete({"pixellab_character_approved": True}, pdir))
+
+    def test_load_project_hydrates_pixellab_character_and_skeleton(self):
+        original_root = sw.PROJECTS_ROOT
+        with tempfile.TemporaryDirectory() as tmp:
+            sw.PROJECTS_ROOT = Path(tmp)
+            try:
+                project = sw.create_project({
+                    "project_name": "PL Hydrate",
+                    "prompt_text": "a test hero",
+                    "last_ui_mode": "wizard",
+                })
+                pid = project["project_id"]
+                pdir = sw.PROJECTS_ROOT / pid
+                char_doc = {"character_id": "c1", "approved": False, "images": {"east": "character/east.png"}}
+                skel_doc = {"direction": "east", "skeleton_keypoints": [[1.0, 2.0]]}
+                (pdir / "pixellab_character.json").write_text(json.dumps(char_doc), encoding="utf-8")
+                (pdir / "pixellab_skeleton.json").write_text(json.dumps(skel_doc), encoding="utf-8")
+                loaded = sw.load_project(pid)
+                self.assertEqual(loaded["pixellab_character"]["character_id"], "c1")
+                self.assertEqual(loaded["pixellab_skeleton"]["direction"], "east")
+            finally:
+                sw.PROJECTS_ROOT = original_root
+
     def test_pixellab_health_endpoint_returns_configured_false_when_key_unset(self):
         original_key = sw.PIXELLAB_API_KEY
         sw.PIXELLAB_API_KEY = ""
