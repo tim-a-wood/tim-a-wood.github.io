@@ -3398,8 +3398,10 @@ function detectWorkbenchOrigin() {
     if (explicit) return explicit.replace(/\/$/, "");
     if (window.location.protocol === "file:") return `http://127.0.0.1:${DEFAULT_WORKBENCH_PORT}`;
     if (!window.location.hostname) return `http://127.0.0.1:${DEFAULT_WORKBENCH_PORT}`;
-    if (!window.location.port || window.location.port === DEFAULT_WORKBENCH_PORT) return "";
-    return `${window.location.protocol}//${window.location.hostname}:${DEFAULT_WORKBENCH_PORT}`;
+    // HTTP(S): `sprite_workbench_server.py` serves both `/api/...` and static files from the same
+    // origin as this page. Do not assume DEFAULT_WORKBENCH_PORT — users may run `--port` otherwise
+    // previews would 404 while JSON still loads if a proxy mixed origins. Use `?api=` to override.
+    return "";
 }
 
 const storage = createStorage();
@@ -4414,7 +4416,14 @@ function projectStageKey(stageName) {
 
 function projectAsset(project, relativePath) {
     if (!project || !relativePath) return "";
-    return `${WORKBENCH_BASE}/projects-data/${project.project_id}/${relativePath}`;
+    const rel = String(relativePath).trim().replace(/\\/g, "/").replace(/^\/+/, "");
+    const encodedRel = rel
+        .split("/")
+        .filter((s) => s.length)
+        .map((seg) => encodeURIComponent(seg))
+        .join("/");
+    const pid = encodeURIComponent(String(project.project_id));
+    return `${WORKBENCH_BASE}/projects-data/${pid}/${encodedRel}`;
 }
 
 function formatDate(value) {

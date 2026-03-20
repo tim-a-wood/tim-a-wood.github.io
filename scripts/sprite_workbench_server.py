@@ -4608,7 +4608,7 @@ def _write_png_frames(frames: List[Image.Image], project_dir: Path, animation_na
     for idx, img in enumerate(frames):
         path = frames_dir / ("frame_%02d.png" % int(idx))
         img.save(path)
-        frame_paths.append(str(path.relative_to(project_dir)))
+        frame_paths.append(path.relative_to(project_dir).as_posix())
     return frame_paths
 
 
