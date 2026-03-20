@@ -2690,6 +2690,21 @@ class PixelLabAnimationFrameExtractionTests(unittest.TestCase):
         )
         self.assertEqual(urls, ["https://cdn.example/f1.webp", "http://legacy/x.png"])
 
+    def test_collect_pixellab_https_storage_urls_list(self):
+        urls = sw._collect_pixellab_https_asset_urls(
+            {
+                "storage_urls": [
+                    "https://cdn.example/a.png",
+                    "https://cdn.example/b.png",
+                ],
+                "nested": {"StorageUrls": {"0": "https://cdn.example/c.png"}},
+            }
+        )
+        self.assertEqual(
+            urls,
+            ["https://cdn.example/a.png", "https://cdn.example/b.png", "https://cdn.example/c.png"],
+        )
+
     @patch.object(sw, "_download_url_bytes")
     def test_pixellab_animation_job_to_rgba_frames_url_fallback(self, mock_dl):
         png = self._tiny_png_b64()
@@ -2705,6 +2720,27 @@ class PixelLabAnimationFrameExtractionTests(unittest.TestCase):
         # URL path decodes the PNG at its native size (canvas hint is for raw RGBA only).
         self.assertEqual(frames[0].size, (4, 4))
         mock_dl.assert_called_once_with("https://cdn.example/frame.png", bearer="test-key")
+
+    @patch.object(sw, "_download_url_bytes")
+    def test_pixellab_animation_job_to_rgba_frames_storage_urls(self, mock_dl):
+        png = self._tiny_png_b64()
+        raw = base64.b64decode(png)
+        mock_dl.return_value = raw
+        client = MagicMock()
+        client.api_key = "test-key"
+        frames = sw._pixellab_animation_job_to_rgba_frames(
+            {
+                "per_job_last_response": [
+                    {"storage_urls": ["https://cdn.example/f0.png", "https://cdn.example/f1.png"]},
+                ]
+            },
+            canvas_size=64,
+            client=client,
+        )
+        self.assertEqual(len(frames), 2)
+        self.assertEqual(mock_dl.call_count, 2)
+        mock_dl.assert_any_call("https://cdn.example/f0.png", bearer="test-key")
+        mock_dl.assert_any_call("https://cdn.example/f1.png", bearer="test-key")
 
     def test_merged_per_job_last_response_concatenates_frames(self):
         png = self._tiny_png_b64()

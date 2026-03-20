@@ -4221,20 +4221,65 @@ def _find_all_base64_png_like(payload: Any) -> List[str]:
 
 
 def _collect_pixellab_https_asset_urls(payload: Any) -> List[str]:
-    """Collect https URLs from nested job payloads (e.g. signed frame CDN links)."""
+    """Collect https URLs from nested job payloads (e.g. signed frame CDN links).
+
+    Pixel Lab v2 animation jobs often put frame files in ``storage_urls`` (list of strings or
+    nested dicts) rather than ``url`` / inline base64. Also scans common alternate keys.
+    """
     urls: List[str] = []
+
+    def append_if_url(s: Any) -> None:
+        if isinstance(s, str):
+            t = s.strip().split("#")[0]
+            if t.startswith("http://") or t.startswith("https://"):
+                urls.append(t)
+
+    def walk_url_container(val: Any) -> None:
+        """Walk list/dict/string shapes used for URL batches (``storage_urls``, etc.)."""
+        if val is None:
+            return
+        if isinstance(val, str):
+            append_if_url(val)
+            return
+        if isinstance(val, list):
+            for item in val:
+                walk_url_container(item)
+            return
+        if isinstance(val, dict):
+            for v in val.values():
+                walk_url_container(v)
 
     def walk(o: Any) -> None:
         if isinstance(o, dict):
-            for key in ("url", "signed_url", "image_url", "href"):
-                u = o.get(key)
-                if isinstance(u, str) and (u.startswith("http://") or u.startswith("https://")):
-                    urls.append(u.strip().split("#")[0])
+            for key in (
+                "url",
+                "signed_url",
+                "image_url",
+                "href",
+                "storage_url",
+                "public_url",
+                "cdn_url",
+                "download_url",
+                "frame_url",
+                "presigned_url",
+            ):
+                append_if_url(o.get(key))
+            for bulk_key in (
+                "storage_urls",
+                "StorageUrls",
+                "frame_urls",
+                "download_urls",
+                "quantized_storage_urls",
+            ):
+                if bulk_key in o:
+                    walk_url_container(o.get(bulk_key))
             for v in o.values():
                 walk(v)
         elif isinstance(o, list):
             for v in o:
                 walk(v)
+        elif isinstance(o, str):
+            append_if_url(o)
 
     walk(payload)
     return list(dict.fromkeys(urls))
