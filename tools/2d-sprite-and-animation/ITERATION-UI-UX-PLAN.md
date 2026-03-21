@@ -182,7 +182,7 @@ The prototypes are **non-functional** (no JavaScript polling, no API calls) but 
 
 **Prerequisite:** Sprint 0 approved direction is recorded in this file. ✅
 
-**Sprint 1 status: CORRECTED.** The initial implementation placed the phase nav in the sidebar (wrong), retained the old `mode-shell` panel (wrong), and left a debug green outline on the status row. These were corrected manually. The corrected state is the baseline for Sprint 2.
+**Sprint 1 status: COMPLETE.** Shell is live. See Appendix B for all approved deviations from the original spec.
 
 **Objective:** Replace the current CSS design system and app shell structure in `index.html` with the approved `hybrid-3-flightdeck` design language. All five phases must be navigable and the page must load without errors. No panel content is restyled in this sprint — only the shell (sidebar, hero header, phase rail, status row, pipeline strip, and mobile navigation).
 
@@ -198,63 +198,59 @@ The single most important constraint in this sprint is **element placement**. Ea
 
 ### Required DOM skeleton
 
-The `<body>` must contain these elements in this exact order. Do not add, remove, or reorder top-level shell elements without PO approval.
+The `<body>` must contain these elements in this exact order. **This skeleton reflects the actual current state as of Sprint 1 completion.** Do not add, remove, or reorder top-level shell elements without PO approval.
 
 ```
 <body>
-  <!-- App shell: two-column grid -->
-  <div class="app-shell">
+  <!-- Site navigation bar (full-width, above all views) -->
+  <nav class="site-nav">
+    <!-- Brand: "Sprite Workbench" (links to home view) -->
+    <!-- Left links: Home · Sprite Creation · Docs -->
+    <!-- Right buttons: Account · Sign Out -->
+  </nav>
 
-    <!-- LEFT COLUMN: sidebar -->
-    <!-- Contains ONLY: brand + rail-toggle + collapsed-mark + project list -->
-    <!-- DOES NOT contain: phase navigation of any kind -->
-    <aside class="sidebar">
-      <div class="brand">
-        <div class="sidebar-copy">
-          <strong>Sprite Workbench</strong>
-          <h1 id="sidebar-project-name">…</h1>
-        </div>
-        <button class="rail-toggle" …>‹</button>
-      </div>
-      <div class="collapsed-mark">Projects</div>
-      <div class="sidebar-block sidebar-projects">
-        <!-- project list only -->
+  <!-- SPA views: only .active view is displayed -->
+  <div class="site-view" id="view-home">…placeholder…</div>
+  <div class="site-view" id="view-docs">…placeholder…</div>
+
+  <div class="site-view active" id="view-workbench">
+
+    <!-- App shell: two-column grid (sidebar + main) -->
+    <div class="app-shell">
+
+      <!-- LEFT COLUMN: sidebar — projects only -->
+      <aside class="sidebar">
+        <!-- New Project button -->
+        <!-- project-list: cards with Load Project / Duplicate / Delete -->
         <div class="project-list" id="project-list"></div>
-      </div>
-    </aside>
+      </aside>
 
-    <!-- RIGHT COLUMN: main content -->
-    <main class="main-column">
+      <!-- RIGHT COLUMN: main content -->
+      <main class="main-column">
 
-      <!-- 1. Mobile-only project strip (hidden on desktop ≥431px) -->
-      <section class="mobile-project" id="mobile-project">…</section>
+        <!-- 1. Phase rail — horizontal 5-pill strip, same width as panel-scroll -->
+        <nav class="phase-rail" id="phase-rail" aria-label="Phase navigation"></nav>
 
-      <!-- 2. Hero header (two-column: copy + header-console) -->
-      <section class="hero" id="hero">…</section>
+        <!-- 2. Panel scroll container — internal scroll, never moves phase rail -->
+        <div class="panel-scroll" id="panel-scroll">
 
-      <!-- 3. Phase rail — horizontal 5-column strip -->
-      <!-- NOT in the sidebar. NOT inside any panel. Standalone nav. -->
-      <nav class="phase-rail" id="phase-rail" aria-label="Phase navigation"></nav>
+          <!-- Phase panels — all present in DOM; hidden-by-mode class toggles visibility -->
+          <section class="panel" id="intake">…</section>
+          <section class="panel" id="concepts">…</section>
+          <section class="panel" id="character">…</section>
+          <section class="panel" id="animations">…</section>
+          <section class="panel" id="review-export">…</section>
+          <section class="panel" id="activity-log">…</section>
 
-      <!-- 4. Status row — 5 cards -->
-      <section class="status-row">…</section>
+        </div><!-- /.panel-scroll -->
 
-      <!-- 5. Pipeline strip — 4 stage cards -->
-      <section class="pipeline-strip" id="pipeline-strip"></section>
+      </main>
+    </div><!-- /.app-shell -->
 
-      <!-- 6. Mobile bottom tab bar (hidden on desktop, fixed on mobile) -->
-      <nav class="mobile-tabs" id="mobile-tabs" aria-label="Mobile phase navigation"></nav>
+  </div><!-- /#view-workbench -->
 
-      <!-- 7. Phase panels — in order, all present in DOM -->
-      <section class="panel" id="intake">…</section>
-      <section class="panel" id="concepts">…</section>
-      <section class="panel" id="character">…</section>
-      <section class="panel" id="animations">…</section>
-      <section class="panel" id="review-export">…</section>
-      <section class="panel" id="activity-log">…</section>
-
-    </main>
-  </div>
+  <!-- Mobile bottom tab bar (fixed, outside app-shell) -->
+  <nav class="mobile-tabs" id="mobile-tabs" aria-label="Mobile phase navigation"></nav>
 
   <!-- Toast stack -->
   <div class="toast-stack" id="toast-stack" aria-live="polite"></div>
@@ -265,6 +261,9 @@ The `<body>` must contain these elements in this exact order. Do not add, remove
   <!-- Modals -->
   <div class="modal" id="zoom-modal">…</div>
   <div class="modal" id="manual-pose-modal">…</div>
+
+  <!-- Status element IDs preserved as hidden spans so renderStatus() doesn't throw -->
+  <!-- #status-project, #status-stage, #status-backend, #status-pixellab-credits, #status-qa -->
 
   <script>…</script>
 </body>
@@ -865,37 +864,60 @@ Tab through the Describe panel and confirm visible focus rings on all inputs and
 
 ## Appendix B — Key Design Decisions Log
 
-*(Agent: record all Product Owner decisions and approved deviations here as the iteration progresses)*
-
 ### Approved Design Direction
 - Approved base direction: Round 2 `hybrid-3-flightdeck` shell
 - Layout direction: retain the Studio-inspired chapter rail and two-column phase workspace
 - Colour direction: use the Atlas blue/green palette rather than the warmer Studio palette
-- Sidebar requirement: the left project panel must be collapsible toward the left edge as part of the app shell
-- **Hero header: REMOVED** — PO decision. The hero section (`id="hero"`) is removed entirely. The page opens directly with the phase rail.
-- **Status row: REMOVED** — PO decision. The 5-card status row is removed. The status element IDs are preserved as hidden `<span>` elements so `renderStatus()` continues to function without errors. The pipeline strip below the phase rail remains as the primary project state indicator.
+- **Hero header: REMOVED** — PO decision. Page opens directly at the phase rail.
+- **Status row: REMOVED** — PO decision. Hidden status element IDs preserved so `renderStatus()` doesn't throw.
+- **Pipeline strip: REMOVED** — PO decision ("completely unnecessary, takes up too much space"). The phase rail is the sole navigation chrome.
+- **Sidebar collapsible toggle: REMOVED** — sidebar is a fixed-width project list. No collapse toggle in current build.
+- **Site navigation ADDED** — full-width `<nav class="site-nav">` above all views. Contains: "Sprite Workbench" brand (home link), "Sprite Creation" (workbench), "Docs" (placeholder), "Account" and "Sign Out" right-aligned.
+- **SPA view routing ADDED** — `data-nav` attribute event delegation; `site-view` / `active` class toggling. Views: `view-home`, `view-docs`, `view-workbench`.
+- **Panel-scroll wrapper ADDED** — `<div class="panel-scroll" id="panel-scroll">` wraps all phase panels. This is the scroll container; `body` and `.main-column` are `overflow: hidden`. Phase rail sits above panel-scroll as `flex-shrink: 0` and never scrolls.
+- **Phase rail width** — matches the panel width (same CSS column as panel-scroll), not full page width.
+- **Panel navigation** — all `scrollIntoView()` calls replaced with `panel-scroll.scrollTop = 0`. Gives perfectly consistent gap from phase rail to panel top on every step.
+- **Section-head descriptions hidden in wizard mode** — `body.wizard-mode .section-head p { display: none }` and `.step-panel-note { display: none }` in wizard mode. Keeps panel tops consistent.
+- **Project cards** — actions: "Load Project", "Duplicate", "Delete" (uses archive API + confirm dialog). "Show Archived" removed. "New" → "New Project". No status label rows.
 
-### Required main column element order (updated after PO changes)
+### Required actual DOM structure (Sprint 1 as-built)
 ```
-mobile-project strip (mobile only)
-phase-rail nav
-pipeline-strip section
-mobile-tabs nav (mobile only, fixed)
-#intake panel
-#concepts panel
-#character panel
-#animations panel
-#review-export panel
-#activity-log panel
+<nav class="site-nav">
+<div class="site-view" id="view-home">
+<div class="site-view" id="view-docs">
+<div class="site-view active" id="view-workbench">
+  <div class="app-shell">
+    <aside class="sidebar">        ← project list only
+    <main class="main-column">
+      <nav class="phase-rail">    ← flex-shrink: 0, never scrolls
+      <div class="panel-scroll">  ← overflow-y: auto, flex: 1
+        #intake #concepts #character #animations #review-export #activity-log
+<nav class="mobile-tabs">         ← outside app-shell, fixed bottom
+<div class="toast-stack">
+<div class="activity-dock">
+modals + script
 ```
 
 ### Sprint 1 Approved Changes
-*(to be filled after Sprint 1)*
+- All deviations from original Sprint 1 spec listed above under Approved Design Direction.
+- `wizard-mode` body class and `data-wizard-view` attribute visibility logic retained — panel content still depends on it.
+- Phase pill states: locked / available / active / complete — with tick (✓) replacing number for complete state.
 
-Audit note: `wizard-mode` body classes and `data-wizard-view` attributes were retained during Sprint 1 because panel visibility and step-specific subviews still depend on them. Shell chrome was replaced, but panel visibility logic was not removed in this sprint.
+### Sprint 2 Status — IN PROGRESS
+**Done:**
+- Phase state rendering: locked / available / active / complete correctly computed and rendered
+- Panel navigation: clicking a pill hides other panels (`hidden-by-mode`) and resets scroll to top
 
-### Sprint 2 Approved Changes
-*(to be filled after Sprint 2)*
+**Remaining for Sprint 2:**
+- Phase panel headers (number, name, status badge, back link to previous phase, primary action CTA) inside each of the 5 panels
+- Phase transition animation: 160ms ease-out fade + 8px translate-up on incoming panel; respect `prefers-reduced-motion`
+- Mobile phase nav refinement (pill strip scroll-snap, bottom tab bar state)
+
+### Sprint 3 Approved Changes
+*(to be filled after Sprint 3)*
+
+### Sprint 4 Approved Changes
+*(to be filled after Sprint 4)*
 
 ### Sprint 3 Approved Changes
 *(to be filled after Sprint 3)*

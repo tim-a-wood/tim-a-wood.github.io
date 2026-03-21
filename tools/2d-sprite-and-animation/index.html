@@ -2972,6 +2972,133 @@
             box-shadow: none;
         }
 
+        /* === Phase panel header === */
+        .phase-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .phase-header-left {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            min-width: 0;
+            flex: 1;
+        }
+
+        .phase-header-eyebrow {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 4px;
+        }
+
+        .phase-header-num {
+            font-size: var(--font-size-xs);
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            color: var(--text-muted);
+            font-variant-numeric: tabular-nums;
+        }
+
+        .phase-header-num.complete {
+            color: var(--success);
+            letter-spacing: 0;
+        }
+
+        .phase-header h2 {
+            margin: 0;
+            font-size: var(--font-size-lg);
+            font-weight: 600;
+            letter-spacing: -0.01em;
+            color: var(--text);
+            line-height: 1.2;
+        }
+
+        .phase-header-desc {
+            margin: 4px 0 0;
+            font-size: var(--font-size-sm);
+            color: var(--text-muted);
+        }
+
+        .phase-status-badge {
+            display: inline-flex;
+            align-items: center;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 3px 8px;
+            border-radius: 20px;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            flex-shrink: 0;
+        }
+
+        .phase-status-badge.active {
+            background: var(--accent-soft);
+            color: var(--accent);
+        }
+
+        .phase-status-badge.complete {
+            background: var(--success-soft);
+            color: var(--success);
+        }
+
+        .phase-status-badge.available {
+            background: rgba(255,255,255,0.06);
+            color: var(--text-muted);
+        }
+
+        .phase-status-badge.locked {
+            background: rgba(255,255,255,0.04);
+            color: var(--text-faint);
+        }
+
+        .phase-back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            background: none;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--text-muted);
+            font-size: var(--font-size-sm);
+            font-family: var(--font-sans);
+            padding: 6px 12px;
+            cursor: pointer;
+            flex-shrink: 0;
+            margin-top: 2px;
+            transition: color var(--transition-fast), border-color var(--transition-fast);
+        }
+
+        .phase-back-btn:hover {
+            color: var(--text);
+            border-color: var(--border-strong);
+        }
+
+        /* === Phase transition animation === */
+        @keyframes phaseIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to   { opacity: 1; transform: none; }
+        }
+
+        .phase-entering {
+            animation: phaseIn 160ms ease-out both;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .phase-entering { animation: none; }
+        }
+
+        /* Hide section-head in wizard mode — phase-header replaces it */
+        body.wizard-mode .panel:not(.hidden-by-mode) > .section-head {
+            display: none;
+        }
+
         @media (max-width: 1180px) {
             .phase-rail {
                 grid-template-columns: 1fr;
@@ -4687,8 +4814,13 @@ function applyModeVisibility() {
         const node = document.querySelector(`#${id}`);
         if (!node) return;
         const shouldHide = (mode === "wizard" && !allowedSections.has(id)) || (aiEnabled && hiddenForAi.has(id));
+        const wasHidden = node.classList.contains("hidden-by-mode");
         node.classList.toggle("hidden-by-mode", shouldHide);
         node.hidden = shouldHide;
+        if (wasHidden && !shouldHide) {
+            node.classList.remove("phase-entering");
+            requestAnimationFrame(() => requestAnimationFrame(() => node.classList.add("phase-entering")));
+        }
     });
     document.querySelectorAll(".nav-link").forEach((node) => {
         const href = node.getAttribute("href");
@@ -4747,6 +4879,40 @@ function syncWorkflowModeControls() {
     });
 }
 
+function getPhaseStateClass(phaseKey) {
+    const model = wizardModel();
+    const stepStatuses = model.step_statuses || {};
+    const currentPhase = activePhaseMeta(state.activeProject);
+    const rawStatus = stepStatuses[phaseKey] || (phaseKey === "describe" ? "active" : "locked");
+    if (rawStatus === "locked") return "locked";
+    if (phaseKey === currentPhase.key) return "active";
+    if (rawStatus === "complete") return "complete";
+    return "available";
+}
+
+function renderPhaseHeaders() {
+    FLIGHTDECK_PHASES.forEach((phase, index) => {
+        const section = document.getElementById(phase.sectionId);
+        if (!section) return;
+        section.querySelector(".phase-header")?.remove();
+        const stateClass = getPhaseStateClass(phase.key);
+        const number = stateClass === "complete" ? "✓" : String(index + 1).padStart(2, "0");
+        const prevPhase = index > 0 ? FLIGHTDECK_PHASES[index - 1] : null;
+        const header = document.createElement("div");
+        header.className = "phase-header";
+        header.innerHTML = `
+            <div class="phase-header-left">
+                <div class="phase-header-eyebrow">
+                    <span class="phase-header-num ${stateClass}">${number}</span>
+                </div>
+                <h2>${phase.label}</h2>
+                <p class="phase-header-desc">${phase.description}</p>
+            </div>
+        `;
+        section.insertBefore(header, section.firstChild);
+    });
+}
+
 function renderModeShell() {
     const phaseRail = document.querySelector("#phase-rail");
     const mobileTabs = document.querySelector("#mobile-tabs");
@@ -4780,12 +4946,13 @@ function renderModeShell() {
         phaseRail.innerHTML = pillMarkup();
     }
     if (mobileTabs) {
-        mobileTabs.innerHTML = FLIGHTDECK_PHASES.map((phase) => `
-            <a class="mobile-tab ${phase.key === currentPhase.key ? "active" : ""}" href="#${phase.sectionId}" data-step="${phase.key}" data-section="${phase.sectionId}">
-                ${phase.key === "describe" ? "Brief" : phase.key === "concepts" ? "Looks" : phase.key === "character" ? "Lock" : phase.key === "animations" ? "Move" : "Export"}
-            </a>
-        `).join("");
+        mobileTabs.innerHTML = FLIGHTDECK_PHASES.map((phase) => {
+            const tabState = getPhaseStateClass(phase.key);
+            const shortLabel = phase.key === "describe" ? "Brief" : phase.key === "concepts" ? "Looks" : phase.key === "character" ? "Lock" : phase.key === "animations" ? "Move" : "Export";
+            return `<a class="mobile-tab ${tabState}" href="#${phase.sectionId}" data-step="${phase.key}" data-section="${phase.sectionId}">${shortLabel}</a>`;
+        }).join("");
     }
+    renderPhaseHeaders();
 
     document.querySelectorAll("[data-step][data-section]").forEach((link) => {
         link.addEventListener("click", async (event) => {
