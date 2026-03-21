@@ -6,27 +6,68 @@
     <title>Sprite Workbench</title>
     <style>
         :root {
-            --bg: #0a0f14;
-            --bg-soft: #111922;
-            --panel: rgba(18, 24, 33, 0.94);
-            --panel-soft: rgba(25, 34, 45, 0.92);
-            --stroke: rgba(255, 255, 255, 0.1);
-            --stroke-strong: rgba(255, 255, 255, 0.16);
-            --text: #edf2f8;
-            --muted: #96a8ba;
-            --accent: #d4a752;
-            --accent-soft: rgba(212, 167, 82, 0.18);
-            --blue: #7cb5dc;
-            --blue-soft: rgba(124, 181, 220, 0.18);
-            --green: #75c498;
-            --green-soft: rgba(117, 196, 152, 0.18);
-            --red: #d37a7a;
-            --red-soft: rgba(211, 122, 122, 0.18);
-            --shadow: 0 12px 32px rgba(0, 0, 0, 0.26);
-            --radius: 16px;
-            --radius-tight: 12px;
+            --bg: #0d1117;
+            --bg-gradient: radial-gradient(circle at top right, rgba(68,147,248,0.14), transparent 24%),
+                linear-gradient(180deg, #0a1016, #0d1117 46%, #101824);
+            --bg-soft: #111722;
+            --bg-raised: rgba(22, 30, 42, 0.98);
+            --surface: rgba(22, 30, 42, 0.96);
+            --surface-hover: rgba(30, 40, 56, 0.98);
+            --panel: rgba(22, 30, 42, 0.96);
+            --panel-soft: #111722;
+            --border: rgba(255,255,255,0.09);
+            --border-strong: rgba(255,255,255,0.18);
+            --stroke: rgba(255,255,255,0.09);
+            --stroke-strong: rgba(255,255,255,0.18);
+            --text: #e6edf3;
+            --text-muted: #8b949e;
+            --text-faint: rgba(139,148,158,0.55);
+            --muted: #8b949e;
+            --accent: #4493f8;
+            --accent-hover: #5aa3ff;
+            --accent-soft: rgba(68,147,248,0.16);
+            --success: #3fb950;
+            --success-soft: rgba(63,185,80,0.16);
+            --warning: #d29922;
+            --warning-soft: rgba(210,153,34,0.16);
+            --error: #f85149;
+            --error-soft: rgba(248,81,73,0.16);
+            --blue: #4493f8;
+            --blue-soft: rgba(68,147,248,0.16);
+            --green: #3fb950;
+            --green-soft: rgba(63,185,80,0.16);
+            --red: #f85149;
+            --red-soft: rgba(248,81,73,0.16);
+            --radius-sm: 14px;
+            --radius-md: 18px;
+            --radius-lg: 20px;
+            --radius: 20px;
+            --radius-tight: 14px;
+            --space-1: 4px;
+            --space-2: 8px;
+            --space-3: 12px;
+            --space-4: 16px;
+            --space-5: 24px;
+            --space-6: 32px;
+            --space-7: 48px;
+            --space-8: 64px;
             --surface-gap: 12px;
             --surface-pad: 14px;
+            --font-sans: "IBM Plex Sans", Inter, -apple-system, sans-serif;
+            --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+            --font-size-xs: 11px;
+            --font-size-sm: 13px;
+            --font-size-base: 14px;
+            --font-size-md: 15px;
+            --font-size-lg: 18px;
+            --font-size-xl: 22px;
+            --shadow-sm: 0 2px 8px rgba(0,0,0,0.18);
+            --shadow-md: 0 6px 20px rgba(0,0,0,0.26);
+            --shadow-lg: 0 12px 40px rgba(0,0,0,0.38);
+            --shadow: 0 12px 40px rgba(0,0,0,0.38);
+            --transition-fast: 120ms ease;
+            --transition-base: 200ms ease;
+            --nav-h: 52px;
         }
 
         * {
@@ -36,19 +77,18 @@
 
         html, body {
             margin: 0;
-            min-height: 100%;
-            overflow-x: hidden;
+            height: 100%;
+            overflow: hidden;
         }
 
         body {
-            font-family: "IBM Plex Sans", "Avenir Next", "Segoe UI", sans-serif;
+            font-family: var(--font-sans);
             color: var(--text);
-            background:
-                radial-gradient(circle at top left, rgba(212, 167, 82, 0.13), transparent 28%),
-                radial-gradient(circle at bottom right, rgba(124, 181, 220, 0.12), transparent 24%),
-                linear-gradient(180deg, #091017 0%, #0d141d 44%, #121b24 100%);
-            font-size: 14px;
+            background: var(--bg-gradient);
+            font-size: var(--font-size-base);
             line-height: 1.45;
+            display: flex;
+            flex-direction: column;
         }
 
         a {
@@ -73,15 +113,13 @@
         .app-shell {
             display: grid;
             grid-template-columns: minmax(220px, 260px) minmax(0, 1fr);
-            min-height: 100vh;
+            flex: 1;
+            min-height: 0;
             width: 100%;
         }
 
         .sidebar {
-            position: sticky;
-            top: 0;
-            align-self: start;
-            height: 100vh;
+            height: 100%;
             overflow: auto;
             padding: 18px 14px 16px;
             border-right: 1px solid var(--stroke);
@@ -117,8 +155,6 @@
         .nav-link,
         .project-card,
         .panel,
-        .status-card,
-        .hero,
         .compare-slot,
         .run-card,
         .concept-card,
@@ -195,43 +231,23 @@
         }
 
         .main-column {
-            padding: 14px;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .panel-scroll {
+            flex: 1;
+            min-height: 0;
+            overflow-y: auto;
             display: grid;
             gap: 12px;
             align-content: start;
             grid-template-columns: repeat(12, minmax(0, 1fr));
+            padding: 14px 14px 32px;
         }
 
-        .hero {
-            grid-column: 1 / -1;
-            padding: 16px 18px;
-            background:
-                linear-gradient(140deg, rgba(21, 31, 43, 0.96), rgba(10, 15, 22, 0.94)),
-                radial-gradient(circle at top right, rgba(124, 181, 220, 0.12), transparent 30%);
-            display: grid;
-            grid-template-columns: minmax(0, 1.8fr) auto;
-            gap: 16px;
-            align-items: center;
-        }
-
-        .hero h2 {
-            margin: 0;
-            font-family: "Iowan Old Style", Georgia, serif;
-            font-size: clamp(1.5rem, 2.6vw, 2.1rem);
-            line-height: 0.96;
-        }
-
-        .hero p {
-            margin: 8px 0 0;
-            max-width: 64ch;
-            color: var(--muted);
-            line-height: 1.42;
-        }
-
-        .status-row,
-        .metric-grid,
-        .grid-2,
-        .grid-3,
         .concept-card.selected {
             outline: 2px solid rgba(117, 196, 152, 0.85);
             outline-offset: 2px;
@@ -423,16 +439,6 @@
             gap: 10px;
         }
 
-        .status-row {
-            grid-column: span 5;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-        }
-
-        .metric-grid {
-            grid-column: span 7;
-            grid-template-columns: repeat(4, minmax(0, 1fr));
-        }
-
         .grid-2 {
             grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
         }
@@ -453,29 +459,9 @@
             grid-template-columns: repeat(auto-fit, minmax(92px, 1fr));
         }
 
-        .status-card,
-        .metric-card {
-            padding: 12px;
-        }
-
-        .status-card span,
-        .metric-card span {
-            display: block;
-            font-size: 0.8rem;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-            color: var(--muted);
-        }
-
-        .status-card strong,
-        .metric-card strong {
-            display: block;
-            margin-top: 4px;
-            font-size: 1.05rem;
-        }
-
         .panel {
             grid-column: 1 / -1;
+            align-self: start;
             padding: var(--surface-pad);
         }
 
@@ -702,19 +688,12 @@
             cursor: not-allowed;
         }
 
-        .hero-actions,
         .mode-actions,
         .wizard-actions,
         .wizard-inline {
             display: flex;
             flex-wrap: wrap;
             gap: 8px;
-        }
-
-        .hero-actions {
-            margin-top: 0;
-            justify-content: flex-end;
-            align-items: center;
         }
 
         .mode-button.active {
@@ -2472,38 +2451,8 @@
             scroll-margin-top: 12px;
         }
 
-        body.wizard-mode .hero,
-        body.wizard-mode .status-row,
-        body.wizard-mode .metric-grid {
-            display: none;
-        }
-
-        body.wizard-mode .sidebar {
-            display: none;
-        }
-
-        body.wizard-mode .app-shell {
-            grid-template-columns: 1fr;
-        }
-
-        body.wizard-mode .main-column {
-            grid-template-columns: repeat(12, minmax(0, 1fr));
-        }
-
-        body.wizard-mode #mode-shell {
-            grid-column: 1 / span 4;
-            position: sticky;
-            top: 14px;
-            align-self: start;
-        }
-
         body.wizard-mode .panel.hidden-by-mode {
             display: none !important;
-        }
-
-        body.wizard-mode .panel:not(#mode-shell):not(.hidden-by-mode) {
-            grid-column: 5 / -1;
-            align-self: start;
         }
 
         body.wizard-mode #activity-log {
@@ -2515,50 +2464,22 @@
         }
 
         body.wizard-mode .panel:not(#mode-shell):not(.hidden-by-mode) .section-head p {
-            max-width: none;
+            display: none;
+        }
+
+        body.wizard-mode .step-panel-note {
+            display: none;
         }
 
         body.wizard-mode .panel:not(#mode-shell):not(.hidden-by-mode) .stage-meta {
             display: none;
         }
 
-        body.wizard-mode #intake,
-        body.wizard-mode #concepts,
-        body.wizard-mode #master-pose,
-        body.wizard-mode #layer-review,
-        body.wizard-mode #rig-review,
-        body.wizard-mode #production,
-        body.wizard-mode #review-export {
-            min-height: calc(100vh - 28px);
-        }
 
         body.wizard-mode.skelform-authoring #mode-shell,
         body.wizard-mode.skelform-authoring .panel:not(#mode-shell):not(.hidden-by-mode) {
             grid-column: 1 / -1;
             position: static;
-        }
-
-        @media (min-width: 1181px) {
-            #intake,
-            #concepts,
-            #master-pose,
-            #layer-review,
-            #production {
-                grid-column: 1 / span 8;
-            }
-
-            #rig-review,
-            #review-export,
-            #activity-log {
-                grid-column: 9 / -1;
-                align-self: start;
-            }
-
-            body.skelform-authoring #production,
-            body.skelform-authoring #review-export,
-            body.skelform-authoring #activity-log {
-                grid-column: 1 / -1;
-            }
         }
 
         @media (max-width: 1180px) {
@@ -2567,30 +2488,17 @@
             }
 
             .sidebar {
-                position: relative;
                 height: auto;
                 border-right: 0;
                 border-bottom: 1px solid var(--stroke);
             }
 
-            .main-column {
+            .panel-scroll {
                 grid-template-columns: 1fr;
             }
 
-            .hero,
-            .status-row,
-            .metric-grid,
             .panel {
                 grid-column: 1;
-            }
-
-            .hero {
-                grid-template-columns: 1fr;
-            }
-
-            .status-row,
-            .metric-grid {
-                grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
             }
 
             body.wizard-mode .sidebar {
@@ -2636,17 +2544,12 @@
         }
 
         @media (max-width: 760px) {
-            .main-column {
+            .panel-scroll {
                 padding: 12px;
             }
 
-            .panel,
-            .hero {
+            .panel {
                 padding: 12px;
-            }
-
-            .hero-actions {
-                justify-content: flex-start;
             }
 
             .mode-actions {
@@ -2723,101 +2626,715 @@
                 width: auto;
             }
         }
+
+        /* Sprint 1 shell overrides */
+        .app-shell {
+            grid-template-columns: 300px minmax(0, 1fr);
+            transition: grid-template-columns 180ms ease;
+        }
+
+        .app-shell.sidebar-collapsed {
+            grid-template-columns: 64px minmax(0, 1fr);
+        }
+
+        .sidebar {
+            padding: 20px;
+            border-right: 1px solid var(--border);
+            background: rgba(10, 15, 21, 0.84);
+            backdrop-filter: none;
+            transition: padding 180ms ease, opacity 180ms ease;
+        }
+
+        .app-shell.sidebar-collapsed .sidebar {
+            padding: 16px 10px;
+        }
+
+        .app-shell.sidebar-collapsed .sidebar-copy,
+        .app-shell.sidebar-collapsed .sidebar-projects {
+            display: none;
+        }
+
+        .brand {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 18px;
+        }
+
+        .sidebar-copy strong {
+            display: block;
+            color: var(--text-muted);
+            font-size: var(--font-size-xs);
+            text-transform: uppercase;
+            letter-spacing: 0.14em;
+        }
+
+        .brand h1 {
+            margin: 8px 0 8px;
+            font-family: var(--font-sans);
+            font-size: 30px;
+            line-height: 1;
+            font-weight: 650;
+        }
+
+        .brand p {
+            margin: 0;
+            color: var(--text-muted);
+            font-size: var(--font-size-sm);
+        }
+
+        .rail-toggle {
+            width: 36px;
+            height: 36px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            background: var(--panel);
+            color: var(--text);
+            display: grid;
+            place-items: center;
+            cursor: pointer;
+            flex: 0 0 auto;
+        }
+
+        .collapsed-mark {
+            display: none;
+            width: 100%;
+            padding-top: 8px;
+            color: var(--text-muted);
+            font-size: var(--font-size-xs);
+            text-transform: uppercase;
+            letter-spacing: 0.18em;
+            writing-mode: vertical-rl;
+            transform: rotate(180deg);
+            text-align: center;
+        }
+
+        .app-shell.sidebar-collapsed .collapsed-mark {
+            display: block;
+        }
+
+        .sidebar-title h2 {
+            color: var(--text-muted);
+            font-size: var(--font-size-xs);
+            letter-spacing: 0.14em;
+        }
+
+        .project-sidebar-actions {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+        }
+
+        .project-list {
+            gap: 8px;
+        }
+
+        .project-card {
+            padding: 10px 12px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border);
+            background: var(--panel);
+            box-shadow: none;
+        }
+
+        .project-card.active {
+            border-color: rgba(68,147,248,0.34);
+            box-shadow: inset 0 0 0 1px rgba(68,147,248,0.18);
+        }
+
+        .project-card:hover {
+            border-color: rgba(68,147,248,0.34);
+        }
+
+        .project-card strong {
+            display: block;
+            font-size: var(--font-size-base);
+        }
+
+        .project-card small,
+        .small-note,
+        .muted {
+            color: var(--text-muted);
+        }
+
+        .project-actions {
+            margin-top: 8px;
+            gap: 6px;
+        }
+
+        .project-actions button {
+            padding: 6px 10px;
+            border-radius: 10px;
+            font-size: var(--font-size-sm);
+        }
+
+        .nav-list {
+            display: none;
+        }
+
+        .panel-scroll {
+            padding: 18px;
+            gap: 16px;
+            grid-template-columns: 1fr;
+        }
+
+        .mobile-project,
+        .mobile-tabs {
+            display: none;
+        }
+
+        .mobile-project {
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            background: var(--panel);
+            padding: 14px 16px;
+        }
+
+        .mobile-project-label {
+            display: block;
+            color: var(--text-muted);
+            font-size: var(--font-size-xs);
+            text-transform: uppercase;
+            letter-spacing: 0.14em;
+            margin-bottom: 6px;
+        }
+
+        .mobile-project button {
+            margin-top: 10px;
+        }
+
+        .chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            width: fit-content;
+            border-radius: 999px;
+            padding: 5px 10px;
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            font-size: var(--font-size-xs);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        .chip.active {
+            color: var(--accent);
+            background: var(--accent-soft);
+            border-color: rgba(68,147,248,0.24);
+        }
+
+        .pipeline-stage {
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            background: var(--panel-soft);
+        }
+
+        .phase-shell {
+            display: grid;
+            gap: 10px;
+        }
+
+        .phase-rail {
+            display: grid;
+            flex-shrink: 0;
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+            gap: 8px;
+            padding: 12px 18px 10px;
+        }
+
+        /* === Phase pill base === */
+        .phase-pill {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-height: 84px;
+            padding: 14px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            background: var(--panel);
+            color: inherit;
+            text-decoration: none;
+            transition: border-color 0.15s, box-shadow 0.15s, background 0.15s, opacity 0.15s;
+        }
+
+        /* === Locked: ghost — not reachable yet === */
+        .phase-pill.locked {
+            opacity: 0.28;
+            pointer-events: none;
+        }
+
+        /* === Available: neutral ready — unlocked but not active === */
+        .phase-pill.available {
+            background: var(--panel-soft);
+        }
+
+        .phase-pill.available:hover,
+        .phase-pill.available:focus-visible {
+            border-color: rgba(68,147,248,0.28);
+            outline: none;
+        }
+
+        /* === Active: focal point — current phase === */
+        .phase-pill.active {
+            border: 2px solid var(--accent);
+            background: linear-gradient(160deg, rgba(68,147,248,0.10) 0%, transparent 70%), var(--panel);
+            box-shadow: 0 0 0 3px rgba(68,147,248,0.10), inset 0 1px 0 rgba(68,147,248,0.12);
+        }
+
+        .phase-pill.active:hover,
+        .phase-pill.active:focus-visible {
+            box-shadow: 0 0 0 4px rgba(68,147,248,0.16), inset 0 1px 0 rgba(68,147,248,0.16);
+            outline: none;
+        }
+
+        /* === Complete: receded / past — done, step back === */
+        .phase-pill.complete {
+            background: var(--panel-soft);
+            border-color: rgba(63,185,80,0.18);
+        }
+
+        .phase-pill.complete .phase-pill-copy strong,
+        .phase-pill.complete .phase-pill-copy small {
+            color: var(--text-muted);
+        }
+
+        .phase-pill.complete:hover,
+        .phase-pill.complete:focus-visible {
+            border-color: rgba(63,185,80,0.34);
+            outline: none;
+        }
+
+        /* === Phase number circle === */
+        .phase-number {
+            width: 36px;
+            height: 36px;
+            flex: 0 0 auto;
+            display: grid;
+            place-items: center;
+            border-radius: 50%;
+            border: 1px solid rgba(255,255,255,0.12);
+            background: rgba(255,255,255,0.04);
+            font-weight: 700;
+            font-size: 13px;
+            color: var(--text-muted);
+            transition: background 0.15s, border-color 0.15s, color 0.15s;
+        }
+
+        /* Active: solid accent fill */
+        .phase-pill.active .phase-number {
+            background: var(--accent);
+            border-color: transparent;
+            color: #fff;
+            font-size: 14px;
+        }
+
+        /* Complete: solid green fill with checkmark */
+        .phase-pill.complete .phase-number {
+            background: rgba(63,185,80,0.82);
+            border-color: transparent;
+            color: #fff;
+            font-size: 16px;
+        }
+
+        /* Available: subtle outline */
+        .phase-pill.available .phase-number {
+            border-color: rgba(255,255,255,0.08);
+            background: rgba(255,255,255,0.03);
+            color: var(--text-muted);
+        }
+
+        .phase-pill-copy {
+            min-width: 0;
+            flex: 1;
+        }
+
+        .phase-pill-copy strong {
+            display: block;
+            font-size: var(--font-size-sm);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .phase-pill-copy small {
+            display: block;
+            margin-top: 3px;
+            color: var(--text-muted);
+            font-size: var(--font-size-xs);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .mode-shell {
+            box-shadow: none;
+        }
+
+        @media (max-width: 1180px) {
+            .phase-rail {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 430px) {
+            .panel-scroll {
+                padding-bottom: 84px;
+            }
+
+            .sidebar,
+            body.wizard-mode .sidebar {
+                display: none;
+            }
+
+            .mobile-project {
+                display: block;
+            }
+
+            .panel {
+                grid-template-columns: 1fr;
+                padding: 18px;
+            }
+
+            .phase-rail {
+                display: flex;
+                overflow-x: auto;
+                gap: 10px;
+                scroll-snap-type: x proximity;
+            }
+
+            .phase-rail .phase-pill {
+                min-width: 248px;
+                scroll-snap-align: start;
+            }
+
+            .mobile-tabs {
+                display: grid;
+                grid-template-columns: repeat(5, minmax(0, 1fr));
+                gap: 8px;
+                position: fixed;
+                left: 12px;
+                right: 12px;
+                bottom: 12px;
+                padding: 8px;
+                border: 1px solid var(--border);
+                border-radius: 18px;
+                background: rgba(17,23,34,0.96);
+                z-index: 12;
+            }
+
+            .mobile-tab {
+                display: block;
+                padding: 10px 6px;
+                border-radius: 12px;
+                color: var(--text-muted);
+                text-align: center;
+                text-decoration: none;
+                font-size: var(--font-size-xs);
+            }
+
+            .mobile-tab.active {
+                background: var(--accent-soft);
+                color: var(--text);
+            }
+        }
+
+        /* =============================================
+           SITE NAVIGATION
+        ============================================= */
+
+        .site-nav {
+            flex-shrink: 0;
+            z-index: 30;
+            display: flex;
+            align-items: center;
+            height: var(--nav-h);
+            padding: 0 20px;
+            gap: 4px;
+            border-bottom: 1px solid var(--stroke);
+            background: rgba(8,11,16,0.92);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+        }
+
+        .site-nav-brand {
+            display: flex;
+            align-items: center;
+            margin-right: 8px;
+            flex-shrink: 0;
+        }
+
+        .site-nav-logo {
+            font-size: var(--font-size-base);
+            font-weight: 700;
+            color: var(--text);
+            text-decoration: none;
+            letter-spacing: -0.01em;
+            padding: 6px 10px;
+            border-radius: 10px;
+            transition: background var(--transition-fast);
+        }
+
+        .site-nav-logo:hover {
+            background: rgba(255,255,255,0.05);
+            color: var(--text);
+        }
+
+        .site-nav-divider {
+            width: 1px;
+            height: 18px;
+            background: var(--stroke);
+            margin: 0 8px;
+            flex-shrink: 0;
+        }
+
+        .site-nav-links {
+            display: flex;
+            align-items: center;
+            gap: 2px;
+            flex: 1;
+        }
+
+        .site-nav-link {
+            display: flex;
+            align-items: center;
+            padding: 6px 12px;
+            border-radius: 10px;
+            font-size: var(--font-size-sm);
+            font-weight: 500;
+            color: var(--text-muted);
+            text-decoration: none;
+            transition: background var(--transition-fast), color var(--transition-fast);
+            cursor: pointer;
+            border: none;
+            background: none;
+        }
+
+        .site-nav-link:hover {
+            background: rgba(255,255,255,0.06);
+            color: var(--text);
+        }
+
+        .site-nav-link.active {
+            background: rgba(255,255,255,0.06);
+            color: var(--text);
+        }
+
+        .site-nav-actions {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+
+        .btn-nav-account {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 12px;
+            border-radius: 10px;
+            font-size: var(--font-size-sm);
+            font-weight: 500;
+            color: var(--text-muted);
+            border: 1px solid var(--border);
+            background: rgba(255,255,255,0.04);
+            cursor: pointer;
+            transition: background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
+        }
+
+        .btn-nav-account:hover {
+            background: rgba(255,255,255,0.08);
+            color: var(--text);
+            border-color: var(--border-strong);
+        }
+
+        .btn-nav-signout {
+            display: flex;
+            align-items: center;
+            padding: 5px 12px;
+            border-radius: 10px;
+            font-size: var(--font-size-sm);
+            font-weight: 500;
+            color: var(--text-muted);
+            border: none;
+            background: none;
+            cursor: pointer;
+            transition: background var(--transition-fast), color var(--transition-fast);
+        }
+
+        .btn-nav-signout:hover {
+            background: rgba(255,255,255,0.06);
+            color: var(--text);
+        }
+
+        /* =============================================
+           VIEW SYSTEM (single-file SPA routing)
+        ============================================= */
+
+        .site-view {
+            display: none;
+        }
+
+        .site-view.active {
+            display: block;
+        }
+
+        /* Workbench view: fills remaining body flex height */
+        #view-workbench.site-view.active {
+            display: flex;
+            flex: 1;
+            min-height: 0;
+        }
+
+        /* Placeholder views */
+        .placeholder-view {
+            min-height: 80vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            padding: 60px 24px;
+            text-align: center;
+        }
+
+        .placeholder-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 99px;
+            font-size: var(--font-size-xs);
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            background: var(--accent-soft);
+            color: var(--accent);
+            border: 1px solid rgba(68,147,248,0.22);
+        }
+
+        .placeholder-view h2 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            color: var(--text);
+        }
+
+        .placeholder-view p {
+            margin: 0;
+            max-width: 400px;
+            font-size: var(--font-size-md);
+            color: var(--text-muted);
+            line-height: 1.6;
+        }
+
+        .placeholder-cta {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            border-radius: 12px;
+            font-size: var(--font-size-sm);
+            font-weight: 600;
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            text-decoration: none;
+            transition: background var(--transition-fast);
+        }
+
+        .placeholder-cta:hover {
+            background: var(--accent-hover);
+            color: #fff;
+        }
     </style>
 </head>
 <body>
+
+<nav class="site-nav" aria-label="Site navigation">
+    <div class="site-nav-brand">
+        <a class="site-nav-logo" data-nav="home" href="#" aria-label="Sprite Workbench home">Sprite Workbench</a>
+    </div>
+    <div class="site-nav-divider" aria-hidden="true"></div>
+    <div class="site-nav-links" role="list">
+        <a class="site-nav-link" data-nav="home" href="#" role="listitem">Home</a>
+        <a class="site-nav-link active" data-nav="workbench" href="#" role="listitem">Sprite Creation</a>
+        <a class="site-nav-link" data-nav="docs" href="#" role="listitem">Docs</a>
+    </div>
+    <div class="site-nav-actions">
+        <button class="btn-nav-account" type="button" aria-label="Account settings">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="8" cy="5" r="3" stroke="currentColor" stroke-width="1.5"/><path d="M2 14c0-3.314 2.686-5 6-5s6 1.686 6 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            Account
+        </button>
+        <button class="btn-nav-signout" type="button">Sign Out</button>
+    </div>
+</nav>
+
+<!-- ═══ Home view ═══ -->
+<div class="site-view" id="view-home">
+    <div class="placeholder-view">
+        <span class="placeholder-badge">Working Title</span>
+        <h2>Sprite Workbench</h2>
+        <p>A guided production pipeline for building side-view character sprites — from brief to animation-ready export.</p>
+        <a class="placeholder-cta" data-nav="workbench" href="#">Open Sprite Creation →</a>
+    </div>
+</div>
+
+<!-- ═══ Docs view ═══ -->
+<div class="site-view" id="view-docs">
+    <div class="placeholder-view">
+        <span class="placeholder-badge">Coming Soon</span>
+        <h2>Documentation</h2>
+        <p>Guides, pipeline references, and API documentation will live here.</p>
+        <a class="placeholder-cta" data-nav="workbench" href="#">Back to Sprite Creation →</a>
+    </div>
+</div>
+
+<!-- ═══ Workbench view ═══ -->
+<div class="site-view active" id="view-workbench">
 <div class="app-shell">
     <aside class="sidebar">
         <div class="brand">
-            <h1>Sprite<br>Workbench</h1>
-            <p>Build side-view character sprites with the guided Workbench production flow.</p>
-        </div>
-
-        <div class="sidebar-block">
-            <div class="nav-list">
-                <a class="nav-link" href="#intake">Describe</a>
-                <a class="nav-link" href="#concepts">Concepts</a>
-                <a class="nav-link" href="#character">Character</a>
-                <a class="nav-link" href="#animations">Animations</a>
-                <a class="nav-link" href="#review-export">Review &amp; export</a>
+            <div class="sidebar-copy">
+                <strong>Sprite Workbench</strong>
+                <h1 id="sidebar-project-name">No project selected</h1>
+                <p>Build side-view character sprites with the guided Workbench production flow.</p>
             </div>
+            <button class="rail-toggle" type="button" aria-label="Collapse project panel">‹</button>
         </div>
+        <div class="collapsed-mark">Projects</div>
 
-        <div class="sidebar-block">
+        <div class="sidebar-block sidebar-projects">
             <div class="sidebar-title">
                 <h2>Projects</h2>
-                <button class="secondary" id="toggle-archived">Show Archived</button>
+                <div class="project-sidebar-actions">
+                    <button id="sidebar-new-project">New Project</button>
+                </div>
             </div>
             <div class="project-list" id="project-list"></div>
         </div>
     </aside>
 
     <main class="main-column">
-        <section class="hero">
-            <h2>Guide a sprite from idea to export without learning the pipeline first.</h2>
-            <p>Use the guided Workbench for Pixel Lab: setup, concepts, character, animations, then review, checks, and export in one panel.</p>
-            <div class="hero-actions">
-                <button id="launch-wizard">Create New Sprite</button>
-                <button class="secondary" id="open-workbench" hidden>Open Workbench</button>
-            </div>
+        <section class="mobile-project" id="mobile-project">
+            <span class="mobile-project-label">Project</span>
+            <strong id="mobile-project-name">No project selected</strong>
+            <button id="mobile-new-project" type="button">New Project</button>
         </section>
 
-        <section class="panel mode-shell" id="mode-shell">
-            <div class="section-head">
-                <div>
-                    <h3>Workspace Mode</h3>
-                    <p id="mode-summary">Use the guided Workbench flow to move through the deterministic production pipeline.</p>
-                </div>
-                <div class="mode-actions">
-                    <button class="secondary" id="mode-workbench" hidden>Workbench</button>
-                    <button class="secondary" id="mode-wizard" hidden>New Sprite Wizard</button>
-                </div>
-            </div>
-            <div id="wizard-shell" class="wizard-shell"></div>
-        </section>
+        <nav class="phase-rail" id="phase-rail" aria-label="Phase navigation"></nav>
 
-        <section class="status-row">
-            <div class="status-card">
-                <span>Active Project</span>
-                <strong id="status-project">None</strong>
-            </div>
-            <div class="status-card">
-                <span>Current Step</span>
-                <strong id="status-stage">Idle</strong>
-            </div>
-            <div class="status-card">
-                <span>Generation mode</span>
-                <strong id="status-backend">Unknown</strong>
-            </div>
-            <div class="status-card">
-                <span>Pixel Lab</span>
-                <strong id="status-pixellab-credits">n/a</strong>
-            </div>
-            <div class="status-card">
-                <span>Checks</span>
-                <strong id="status-qa">Blocked</strong>
-            </div>
-        </section>
+        <!-- Status card IDs preserved for renderStatus() — values updated but elements hidden -->
+        <span id="status-project" hidden></span>
+        <span id="status-stage" hidden></span>
+        <span id="status-backend" hidden></span>
+        <span id="status-pixellab-credits" hidden></span>
+        <span id="status-qa" hidden></span>
 
-        <section class="metric-grid" id="metric-grid">
-            <div class="metric-card">
-                <span>Look Boards</span>
-                <strong>0</strong>
-            </div>
-            <div class="metric-card">
-                <span>Looks Chosen</span>
-                <strong>0</strong>
-            </div>
-            <div class="metric-card">
-                <span>Adjustments</span>
-                <strong>0</strong>
-            </div>
-            <div class="metric-card">
-                <span>Time To Chosen Look</span>
-                <strong>n/a</strong>
-            </div>
-        </section>
+        <nav class="mobile-tabs" id="mobile-tabs" aria-label="Mobile phase navigation"></nav>
 
+        <div class="panel-scroll" id="panel-scroll">
         <section class="panel" id="intake">
             <div class="section-head">
                 <div>
@@ -3228,8 +3745,10 @@
             </div>
             <ul class="log-list" id="job-log"></ul>
         </section>
+        </div><!-- /.panel-scroll -->
     </main>
-</div>
+</div><!-- /.app-shell -->
+</div><!-- /#view-workbench -->
 
 <div class="toast-stack" id="toast-stack" aria-live="polite"></div>
 
@@ -3278,6 +3797,7 @@ const STORAGE_KEYS = {
     activeProjectId: "spriteWorkbench.activeProjectId",
     includeArchived: "spriteWorkbench.includeArchived",
 };
+const SIDEBAR_KEY = "spriteWorkbench.sidebarCollapsed";
 
 const WIZARD_STEPS = ["project", "brief", "references", "concepts", "review", "rig_layout", "part_manifest", "part_shape_edit", "split_build", "split_review", "sprite_model", "rig", "clips", "qa", "export"];
 const WORKBENCH_SECTION_IDS = ["intake", "concepts", "character", "animations", "review-export", "activity-log"];
@@ -3627,6 +4147,32 @@ function escapeHtml(value) {
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;");
+}
+
+const FLIGHTDECK_PHASES = [
+    { key: "describe", label: "Describe", description: "Creative brief", sectionId: "intake" },
+    { key: "concepts", label: "Concepts", description: "Pick the look", sectionId: "concepts" },
+    { key: "character", label: "Character", description: "Lock identity", sectionId: "character" },
+    { key: "animations", label: "Animations", description: "Motion passes", sectionId: "animations" },
+    { key: "export", label: "Review & Export", description: "Package output", sectionId: "review-export" },
+];
+
+function phaseKeyForStep(step) {
+    if (["describe", "project", "brief", "references"].includes(step)) return "describe";
+    if (["concepts", "review"].includes(step)) return "concepts";
+    if (["character", "rig_layout", "part_manifest", "part_shape_edit", "split_build", "split_review", "sprite_model", "rig"].includes(step)) return "character";
+    if (["animations", "clips", "qa"].includes(step)) return "animations";
+    if (step === "export") return "export";
+    return "describe";
+}
+
+function phaseMetaByKey(key) {
+    return FLIGHTDECK_PHASES.find((phase) => phase.key === key) || FLIGHTDECK_PHASES[0];
+}
+
+function activePhaseMeta(project = state.activeProject) {
+    const step = project?.wizard_state?.current_step || project?.recommended_next_step || activeWizardStep();
+    return phaseMetaByKey(phaseKeyForStep(step));
 }
 
 function pixellabResolveDirectionBlock(directions, direction) {
@@ -4202,88 +4748,52 @@ function syncWorkflowModeControls() {
 }
 
 function renderModeShell() {
-    const modeSummary = document.querySelector("#mode-summary");
-    const wizardShell = document.querySelector("#wizard-shell");
-    const workbenchButton = document.querySelector("#mode-workbench");
-    const wizardButton = document.querySelector("#mode-wizard");
-    if (workbenchButton) workbenchButton.hidden = true;
-    if (wizardButton) wizardButton.hidden = true;
-    const backendMode = (state.activeProject?.brief?.backend_mode) || "comfyui";
-    modeSummary.textContent = state.activeProject
-        ? (aiWorkflowLegacyMode()
-            ? "This project uses a retired workflow and is shown in read-only legacy mode. Create a new project to use ai_sideview_v1."
-            : aiWorkflowEnabled()
-                ? backendMode === "pixellab"
-                    ? "Pixel Lab pipeline: Concepts → Character (multi-dir + skeleton) → Animations → QA/Export. Debug mode uses local placeholders without API calls."
-                    : backendMode === "debug_procedural"
-                        ? "ai_sideview_v1 is active in Debug Placeholder mode. Legacy ComfyUI motion path uses local deterministic transforms when enabled."
-                        : "ai_sideview_v1 is active with ComfyUI backend. Prefer new projects with Pixel Lab (Character panel) for the streamlined flow."
-            : "Workbench is now a single guided production flow. Advance through the approved steps and keep each stage deterministic.")
-        : "Create or open a project to start the guided Workbench flow.";
-
+    const phaseRail = document.querySelector("#phase-rail");
+    const mobileTabs = document.querySelector("#mobile-tabs");
     const model = wizardModel();
-    const step = activeWizardStep();
-    const steps = visibleWizardSteps();
+    const currentStep = activeWizardStep();
+    const currentPhase = activePhaseMeta(state.activeProject);
     const stepStatuses = model.step_statuses || {};
-    const blockers = model.blocking_reasons?.[step] || [];
-    const stepNumber = steps.indexOf(step) + 1;
-    const completedSteps = steps.filter((item) => stepStatuses[item] === "complete" && item !== step);
-    const recommendedNext = model.recommended_next_step;
 
-    wizardShell.innerHTML = `
-        <div class="wizard-progress">
-            <div class="wizard-progress-note">
-                <strong>Progress</strong>
-                <p>Step ${stepNumber} of ${steps.length}${recommendedNext ? `. Recommended next: ${wizardStepLabel(recommendedNext)}.` : "."}</p>
-            </div>
-            ${aiWorkflowLegacyMode() ? `<div class="warning-box" style="margin-top: 10px;"><p>Legacy project: mutating controls are disabled. New projects always use ai_sideview_v1.</p></div>` : ""}
-            ${blockers.length ? `
-                <div class="wizard-blockers">
-                    ${blockers.map((reason) => `<div class="warning-box"><p>${reason}</p></div>`).join("")}
-                </div>
-            ` : ""}
-            <div class="wizard-stepper">
-                ${steps.map((item, index) => `
-                    <button class="wizard-step ${item === step ? "selected" : ""} status-${stepStatuses[item] || "locked"}" data-step="${item}" ${stepStatuses[item] === "locked" ? "disabled" : ""}>
-                        <span class="wizard-step-index">${index + 1}</span>
-                        <span class="wizard-step-copy">
-                            <strong>${wizardStepLabel(item)}</strong>
-                            <small>${wizardSummaryText(item)}</small>
-                        </span>
-                        <span class="wizard-step-status">${stepStatuses[item] || "locked"}</span>
-                    </button>
-                `).join("")}
-            </div>
-            ${completedSteps.length ? `
-                <div class="wizard-summaries">
-                    <div class="wizard-summary-grid">
-                        ${completedSteps.map((completedStep) => `
-                            <div class="wizard-summary">
-                                <strong>${WIZARD_META[completedStep].label}</strong>
-                                <div class="small-note" style="margin-top: 6px;">${wizardSummaryText(completedStep)}</div>
-                            </div>
-                        `).join("")}
-                    </div>
-                </div>
-            ` : ""}
-        </div>
-    `;
+    const pillMarkup = () => FLIGHTDECK_PHASES.map((phase, index) => {
+        const rawStatus = stepStatuses[phase.key] || (phase.key === "describe" ? "active" : "locked");
+        const stateClass = rawStatus === "locked"
+            ? "locked"
+            : phase.key === currentPhase.key
+                ? "active"
+                : rawStatus === "complete"
+                    ? "complete"
+                    : "available";
+        const number = stateClass === "complete" ? "✓" : String(index + 1).padStart(2, "0");
+        return `
+            <a class="phase-pill ${stateClass}" href="#${phase.sectionId}" data-step="${phase.key}" data-section="${phase.sectionId}">
+                <span class="phase-number">${number}</span>
+                <span class="phase-pill-copy">
+                    <strong>${phase.label}</strong>
+                    <small>${phase.description}</small>
+                </span>
+            </a>
+        `;
+    }).join("");
 
-    wizardShell.querySelectorAll(".wizard-step[data-step]").forEach((button) => {
-        button.addEventListener("click", async () => {
+    if (phaseRail) {
+        phaseRail.innerHTML = pillMarkup();
+    }
+    if (mobileTabs) {
+        mobileTabs.innerHTML = FLIGHTDECK_PHASES.map((phase) => `
+            <a class="mobile-tab ${phase.key === currentPhase.key ? "active" : ""}" href="#${phase.sectionId}" data-step="${phase.key}" data-section="${phase.sectionId}">
+                ${phase.key === "describe" ? "Brief" : phase.key === "concepts" ? "Looks" : phase.key === "character" ? "Lock" : phase.key === "animations" ? "Move" : "Export"}
+            </a>
+        `).join("");
+    }
+
+    document.querySelectorAll("[data-step][data-section]").forEach((link) => {
+        link.addEventListener("click", async (event) => {
+            event.preventDefault();
+            if (link.classList.contains("locked")) return;
             try {
-                await goToWizardStep(button.dataset.step);
-            } catch (error) {
-                log(normalizeErrorMessage(error.message), "error");
-                notify(normalizeErrorMessage(error.message), "error");
-            }
-        });
-    });
-
-    wizardShell.querySelectorAll("[data-wizard-action]").forEach((button) => {
-        button.addEventListener("click", async () => {
-            try {
-                await handleWizardAction(button.dataset.wizardAction, step);
+                await goToWizardStep(link.dataset.step);
+                document.getElementById("panel-scroll").scrollTop = 0;
             } catch (error) {
                 log(normalizeErrorMessage(error.message), "error");
                 notify(normalizeErrorMessage(error.message), "error");
@@ -4314,7 +4824,7 @@ async function startNewSpriteWizard() {
     state.swapCompareView = false;
     resetReferenceEditor();
     renderAll();
-    document.querySelector("#intake")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    document.getElementById("panel-scroll").scrollTop = 0;
 }
 
 async function resumeWizardForCurrentProject() {
@@ -4579,10 +5089,6 @@ function formatDuration(seconds) {
     return remainder ? `${minutes}m ${remainder}s` : `${minutes}m`;
 }
 
-function setArchivedToggleLabel() {
-    document.querySelector("#toggle-archived").textContent = state.includeArchived ? "Hide Archived" : "Show Archived";
-}
-
 function renderStageMeta() {
     document.querySelectorAll(".stage-meta").forEach((node) => {
         const stage = node.dataset.stage;
@@ -4600,12 +5106,11 @@ function getReviewCounts(metrics) {
     return { approvals, refinements: promptIterations };
 }
 
+
 function renderStatus() {
     const project = state.activeProject;
     const backend = state.health?.backend;
     const pixellab = state.health?.pixellab;
-    const metrics = project?.metrics || {};
-    const counts = getReviewCounts(metrics);
 
     document.querySelector("#status-project").textContent = project ? project.project_name : "None";
     document.querySelector("#status-stage").textContent = project ? stageDisplayName(project.current_stage) : "Idle";
@@ -4635,26 +5140,11 @@ function renderStatus() {
             pixellabCredits.textContent = `PL: ${formatted} credits`;
         }
     }
-
-    const metricGrid = document.querySelector("#metric-grid");
-    metricGrid.innerHTML = `
-        <div class="metric-card">
-            <span>Look Boards</span>
-            <strong>${metrics.concept_runs_per_project || 0}</strong>
-        </div>
-        <div class="metric-card">
-            <span>Looks Chosen</span>
-            <strong>${counts.approvals}</strong>
-        </div>
-        <div class="metric-card">
-            <span>Prompt Iterations</span>
-            <strong>${counts.refinements}</strong>
-        </div>
-        <div class="metric-card">
-            <span>Time To Chosen Look</span>
-            <strong>${formatDuration(metrics.time_to_approved_concept_seconds)}</strong>
-        </div>
-    `;
+    const projectName = project?.project_name || "No project selected";
+    const sidebarName = document.querySelector("#sidebar-project-name");
+    const mobileName = document.querySelector("#mobile-project-name");
+    if (sidebarName) sidebarName.textContent = projectName;
+    if (mobileName) mobileName.textContent = projectName;
 }
 
 function renderActivity() {
@@ -4674,12 +5164,44 @@ function renderActivity() {
     node.classList.add("open");
 }
 
+function initSidebarToggle() {
+    const app = document.querySelector(".app-shell");
+    const btn = document.querySelector(".rail-toggle");
+    if (!app || !btn) return;
+    if (localStorage.getItem(SIDEBAR_KEY) === "1") app.classList.add("sidebar-collapsed");
+    const sync = () => {
+        const collapsed = app.classList.contains("sidebar-collapsed");
+        btn.setAttribute("aria-label", collapsed ? "Expand project panel" : "Collapse project panel");
+        btn.textContent = collapsed ? "›" : "‹";
+    };
+    sync();
+    btn.addEventListener("click", () => {
+        app.classList.toggle("sidebar-collapsed");
+        localStorage.setItem(SIDEBAR_KEY, app.classList.contains("sidebar-collapsed") ? "1" : "0");
+        sync();
+    });
+}
+
+async function openProjectFromList(project, mode = "wizard") {
+    await loadProject(project.project_id, mode);
+    const phase = activePhaseMeta(state.activeProject || project);
+    document.getElementById("panel-scroll").scrollTop = 0;
+}
+
 function attachProjectCard(card, project) {
-    card.addEventListener("click", () => loadProject(project.project_id, "workbench"));
-    card.querySelector("[data-action='resume']")?.addEventListener("click", async (event) => {
+    card.addEventListener("click", async (event) => {
+        if (event.target.closest("button")) return;
+        try {
+            await openProjectFromList(project, "wizard");
+        } catch (error) {
+            log(normalizeErrorMessage(error.message), "error");
+            notify(normalizeErrorMessage(error.message), "error");
+        }
+    });
+    card.querySelector("[data-action='load']").addEventListener("click", async (event) => {
         event.stopPropagation();
         try {
-            await loadProject(project.project_id, "wizard");
+            await openProjectFromList(project, "wizard");
         } catch (error) {
             log(normalizeErrorMessage(error.message), "error");
             notify(normalizeErrorMessage(error.message), "error");
@@ -4698,12 +5220,13 @@ function attachProjectCard(card, project) {
             notify(normalizeErrorMessage(error.message), "error");
         }
     });
-    card.querySelector("[data-action='archive']").addEventListener("click", async (event) => {
+    card.querySelector("[data-action='delete']").addEventListener("click", async (event) => {
         event.stopPropagation();
+        if (!confirm(`Delete "${project.project_name}"? This cannot be undone.`)) return;
         try {
             await api(`/api/projects/${project.project_id}/archive`, { method: "POST", body: "{}" });
-            log(`Archived ${project.project_name}`, "success");
-            notify(`Archived ${project.project_name}.`, "success");
+            log(`Deleted ${project.project_name}`, "success");
+            notify(`Deleted ${project.project_name}.`, "success");
             if (state.activeProject?.project_id === project.project_id) {
                 state.activeProject = null;
                 storage.removeItem(STORAGE_KEYS.activeProjectId);
@@ -4728,25 +5251,15 @@ function renderProjectList() {
         const config = stageConfig(stage);
         const card = document.createElement("div");
         card.className = `project-card ${state.activeProject?.project_id === project.project_id ? "active" : ""}`;
+        const nextStep = WIZARD_META[project.wizard_state?.current_step || "describe"]?.label || "Describe";
         card.innerHTML = `
             <strong>${project.project_name}</strong>
-            <small>${stageDisplayName(project.current_stage)} · ${project.status}</small>
+            <small>${stageDisplayName(project.current_stage)} · ${nextStep}</small>
             <div class="small-note">Last modified ${formatDate(project.updated_at)}</div>
-            <div class="small-note">${wizardProgressSummary(project)} · next ${WIZARD_META[project.wizard_state?.current_step || "describe"]?.label || "Describe"}</div>
-            <div class="inline-actions" style="margin-top: 10px;">
-                <span class="badge ${config.maturity}">${config.maturity}</span>
-                ${project.archived_at ? `<span class="pill warning">archived</span>` : ""}
-                ${project.can_resume_wizard ? `<span class="pill warning">wizard available</span>` : ""}
-                ${project.selected_concept_id ? `<span class="pill ok">look chosen</span>` : ""}
-                ${project.ai_workflow_enabled ? `<span class="pill ok">ai workflow</span>` : ""}
-                ${project.ai_workflow_legacy_mode ? `<span class="pill warning">legacy read-only</span>` : ""}
-                ${project.sprite_model_approved ? `<span class="pill ok">sprite model</span>` : ""}
-                ${project.rig_review_approved ? `<span class="pill ok">rig</span>` : ""}
-            </div>
             <div class="project-actions">
-                ${project.can_resume_wizard ? `<button class="secondary" data-action="resume">Resume Wizard</button>` : ""}
+                <button class="secondary" data-action="load">Load Project</button>
                 <button class="secondary" data-action="duplicate">Duplicate</button>
-                <button class="danger" data-action="archive">Archive</button>
+                <button class="danger" data-action="delete">Delete</button>
             </div>
         `;
         attachProjectCard(card, project);
@@ -6451,7 +6964,7 @@ async function runPixellabCreateCharacter(pid, selId, directions) {
             }
         }
         renderAll();
-        document.querySelector("#character")?.scrollIntoView({ behavior: "smooth", block: "start" });
+        document.getElementById("panel-scroll").scrollTop = 0;
     } else {
         renderPixellabCharacterBoard();
     }
@@ -9704,13 +10217,11 @@ async function loadHealth() {
         state.health.pixellab = { ok: false, configured: false, error: error.message || "unknown error" };
     }
     renderStageMeta();
-    setArchivedToggleLabel();
     renderStatus();
 }
 
 async function refreshProjects() {
-    const query = state.includeArchived ? "?include_archived=1" : "";
-    const data = await api(`/api/projects${query}`);
+    const data = await api(`/api/projects`);
     state.projects = data.projects;
     renderProjectList();
 }
@@ -10266,22 +10777,14 @@ document.querySelector("#save-references")?.addEventListener("click", async () =
     });
 });
 
-document.querySelector("#toggle-archived")?.addEventListener("click", async () => {
-    state.includeArchived = !state.includeArchived;
-    storage.setItem(STORAGE_KEYS.includeArchived, state.includeArchived ? "1" : "0");
-    setArchivedToggleLabel();
-    try {
-        await refreshProjects();
-        await restoreProjectSelection();
-    } catch (error) {
-        log(normalizeErrorMessage(error.message), "error");
-        notify(normalizeErrorMessage(error.message), "error");
-    }
-});
-
 document.querySelector("#launch-wizard")?.addEventListener("click", async () => {
     try {
-        await startNewSpriteWizard();
+        if (state.activeProject) {
+            const phase = activePhaseMeta(state.activeProject);
+            document.getElementById("panel-scroll").scrollTop = 0;
+        } else {
+            await startNewSpriteWizard();
+        }
     } catch (error) {
         log(normalizeErrorMessage(error.message), "error");
         notify(normalizeErrorMessage(error.message), "error");
@@ -10290,11 +10793,22 @@ document.querySelector("#launch-wizard")?.addEventListener("click", async () => 
 
 document.querySelector("#open-workbench")?.addEventListener("click", async () => {
     try {
-        await openWorkbenchMode();
+        document.getElementById("panel-scroll").scrollTop = 0;
     } catch (error) {
         log(normalizeErrorMessage(error.message), "error");
         notify(normalizeErrorMessage(error.message), "error");
     }
+});
+
+["#sidebar-new-project", "#mobile-new-project"].forEach((selector) => {
+    document.querySelector(selector)?.addEventListener("click", async () => {
+        try {
+            await startNewSpriteWizard();
+        } catch (error) {
+            log(normalizeErrorMessage(error.message), "error");
+            notify(normalizeErrorMessage(error.message), "error");
+        }
+    });
 });
 
 document.querySelector("#mode-workbench")?.addEventListener("click", async () => {
@@ -11000,7 +11514,7 @@ document.querySelector("#manual-pose-modal")?.addEventListener("click", (event) 
 
 async function boot() {
     resetReferenceEditor();
-    setArchivedToggleLabel();
+    initSidebarToggle();
     renderAll();
     await loadHealth();
     await refreshProjects();
@@ -11012,6 +11526,30 @@ boot().catch((error) => {
     log(message, "error");
     notify(message, "error");
 });
+
+// ── Site navigation view switching ──────────────────────────────────────────
+(function initSiteNav() {
+    const VIEWS = { home: "view-home", workbench: "view-workbench", docs: "view-docs" };
+
+    function activateView(name) {
+        const viewId = VIEWS[name] || VIEWS.workbench;
+        document.querySelectorAll(".site-view").forEach((el) => el.classList.remove("active"));
+        document.querySelectorAll(".site-nav-link").forEach((el) => el.classList.remove("active"));
+        const view = document.getElementById(viewId);
+        if (view) view.classList.add("active");
+        document.querySelectorAll(`[data-nav="${name}"]`).forEach((el) => {
+            if (el.classList.contains("site-nav-link")) el.classList.add("active");
+        });
+        window.scrollTo({ top: 0, behavior: "instant" });
+    }
+
+    document.addEventListener("click", (e) => {
+        const el = e.target.closest("[data-nav]");
+        if (!el) return;
+        e.preventDefault();
+        activateView(el.dataset.nav);
+    });
+})();
 </script>
 </body>
 </html>
