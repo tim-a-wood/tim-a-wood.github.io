@@ -564,6 +564,13 @@ class PixelLabClient:
                 raw = f.read()
         return base64.b64encode(raw).decode("ascii")
 
+    def encode_image_rgba(self, path_or_pil: Union[str, Path, Image.Image]) -> str:
+        if isinstance(path_or_pil, Image.Image):
+            image = path_or_pil.convert("RGBA")
+        else:
+            image = Image.open(os.fspath(path_or_pil)).convert("RGBA")
+        return base64.b64encode(image.tobytes()).decode("ascii")
+
     def decode_image(self, image_b64: str) -> Image.Image:
         raw = base64.b64decode(image_b64)
         return Image.open(io.BytesIO(raw)).convert("RGBA")
@@ -902,10 +909,22 @@ class PixelLabClient:
     # -----------------------------
     def edit_animation_v2(self, description: str, frames: Any, image_size: SizeLike, **kwargs: Any) -> Dict[str, Any]:
         poll_timeout = int(kwargs.pop("poll_timeout_seconds", 420))
+        normalized_size = _normalize_size(image_size)
+        normalized_frames = frames
+        if isinstance(frames, list):
+            normalized_frames = []
+            for frame in frames:
+                if isinstance(frame, str):
+                    normalized_frames.append({
+                        "image": {"type": "base64", "base64": frame, "format": "png"},
+                        "size": dict(normalized_size),
+                    })
+                else:
+                    normalized_frames.append(frame)
         payload: Dict[str, Any] = {
             "description": description,
-            "frames": frames,
-            "image_size": _normalize_size(image_size),
+            "frames": normalized_frames,
+            "image_size": normalized_size,
         }
         payload.update(kwargs)
         logger.info(
@@ -940,10 +959,11 @@ class PixelLabClient:
             },
         }
         payload.update(kwargs)
+        poll_timeout = int(kwargs.pop("poll_timeout_seconds", 300))
         accepted = self._request_json("POST", "/v2/inpaint-v3", payload)
         job_id = self._extract_job_id(accepted)
         if job_id:
-            return self._poll_job(job_id)
+            return self._poll_job(job_id, timeout_seconds=poll_timeout)
         return accepted
 
     def transfer_outfit_v2(self, reference_image_b64: str, frames: Any, image_size: SizeLike, **kwargs: Any) -> Dict[str, Any]:
@@ -958,4 +978,3 @@ class PixelLabClient:
         if job_id:
             return self._poll_job(job_id)
         return accepted
-

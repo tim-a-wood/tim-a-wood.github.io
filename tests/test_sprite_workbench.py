@@ -11,6 +11,7 @@ import unittest
 from contextlib import contextmanager
 from pathlib import Path
 from http.server import ThreadingHTTPServer
+from types import SimpleNamespace
 from unittest.mock import MagicMock, call, patch
 
 from PIL import Image, ImageDraw
@@ -1965,12 +1966,12 @@ class SpriteWorkbenchTests(unittest.TestCase):
 
         scaffold = sw.build_concept_prompt(brief)
         self.assertIn("DEBUG CONSTRAINTS", scaffold["display_prompt"])
-        self.assertIn("64x64", scaffold["display_prompt"])
-        self.assertEqual(scaffold["pixellab_params"]["image_size"]["width"], 64)
+        self.assertIn("128x128", scaffold["display_prompt"])
+        self.assertEqual(scaffold["pixellab_params"]["image_size"]["width"], 128)
         self.assertEqual(scaffold["pixellab_params"]["view"], "side")
         self.assertEqual(scaffold["pixellab_params"]["direction"], "east")
         self.assertIn("debug_constraints", scaffold)
-        self.assertEqual(scaffold["debug_constraints"]["canvas_size"]["width"], 64)
+        self.assertEqual(scaffold["debug_constraints"]["canvas_size"]["width"], 128)
 
     def test_build_iteration_prompt_inpaint_returns_base64_and_mask(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -1999,14 +2000,343 @@ class SpriteWorkbenchTests(unittest.TestCase):
                 source_concept_path=concept_path,
             )
             self.assertIn("DEBUG CONSTRAINTS", scaffold["display_prompt"])
+            self.assertIn("EDIT CONTRACT:", scaffold["display_prompt"])
+            self.assertIn("Editable aspect: outfit and materials", scaffold["display_prompt"])
+            self.assertIn("This is the ONLY aspect that may materially change.", scaffold["display_prompt"])
+            self.assertIn("LOCKED ASPECTS FOR THIS EDIT:", scaffold["display_prompt"])
+            self.assertIn("Never add a backing silhouette, halo, matte, cutout fill, shadow plate, or blocker shape behind the sprite.", scaffold["display_prompt"])
             self.assertIn("mask_boxes", scaffold["debug_constraints"]["inpaint"])
             self.assertTrue(len(scaffold["debug_constraints"]["inpaint"]["mask_boxes"]) >= 1)
             self.assertIn("inpainting_image_b64", scaffold["pixellab_params"])
             self.assertIn("mask_image_b64", scaffold["pixellab_params"])
             self.assertTrue(len(scaffold["pixellab_params"]["inpainting_image_b64"]) > 20)
             self.assertTrue(len(scaffold["pixellab_params"]["mask_image_b64"]) > 20)
-            self.assertEqual(scaffold["pixellab_params"]["image_size"]["width"], 64)
+            self.assertEqual(scaffold["pixellab_params"]["image_size"]["width"], 128)
             self.assertTrue(scaffold["pixellab_params"]["crop_to_mask"])
+
+    def test_build_iteration_prompt_pose_locks_non_pose_aspects(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            concept_path = Path(tmpdir) / "concept.png"
+            img = Image.new("RGBA", (96, 96), (0, 0, 0, 0))
+            draw = ImageDraw.Draw(img)
+            draw.rectangle((20, 10, 80, 90), fill=(180, 120, 90, 255))
+            img.save(concept_path)
+
+            brief = {
+                "raw_prompt": "a vigilant ranger with a lantern",
+                "role_archetype": "ashen hollow ranger",
+                "silhouette_intent": "broad guarded profile",
+                "outfit_materials": "weathered plate over travel cloth",
+                "prop": "lantern",
+                "palette_mood": "storm steel",
+                "shape_language": "balanced angular to rounded mix",
+                "mood_tone": "watchful and haunted",
+            }
+
+            scaffold = sw.build_iteration_prompt(
+                brief,
+                "pose",
+                "raise the front arm slightly and shift to a more guarded stance",
+                source_concept_path=concept_path,
+            )
+
+            self.assertIn("Editable aspect: pose", scaffold["display_prompt"])
+            self.assertIn("limb placement, arm angles, leg angles, and stance only while preserving the existing side-profile head and torso read", scaffold["display_prompt"])
+            self.assertIn("character identity, armor design, and prop design", scaffold["display_prompt"])
+            self.assertIn("head profile, face direction, and torso side-view read", scaffold["display_prompt"])
+            self.assertIn("The source image is the authority for identity, rendering, layout, and all untouched pixels.", scaffold["display_prompt"])
+
+    def test_build_iteration_prompt_pose_view_correction_unlocks_orientation_fix(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            concept_path = Path(tmpdir) / "concept.png"
+            img = Image.new("RGBA", (96, 96), (0, 0, 0, 0))
+            draw = ImageDraw.Draw(img)
+            draw.rectangle((20, 10, 80, 90), fill=(180, 120, 90, 255))
+            img.save(concept_path)
+
+            brief = {
+                "raw_prompt": "a vigilant ranger with a lantern",
+                "role_archetype": "ashen hollow ranger",
+                "silhouette_intent": "broad guarded profile",
+                "outfit_materials": "weathered plate over travel cloth",
+                "prop": "lantern",
+                "palette_mood": "storm steel",
+                "shape_language": "balanced angular to rounded mix",
+                "mood_tone": "watchful and haunted",
+            }
+
+            scaffold = sw.build_iteration_prompt(
+                brief,
+                "pose",
+                "convert this 3/4 view into a strict side view profile",
+                source_concept_path=concept_path,
+            )
+
+            self.assertIn("Editable aspect: pose and view correction", scaffold["display_prompt"])
+            self.assertIn("VIEW CORRECTION MODE:", scaffold["display_prompt"])
+            self.assertIn("Replace 3/4-view, front-facing, or camera-turned anatomy with a clean strict side profile.", scaffold["display_prompt"])
+
+    def test_build_iteration_prompt_strict_side_view_request_triggers_view_correction(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            concept_path = Path(tmpdir) / "concept.png"
+            img = Image.new("RGBA", (96, 96), (0, 0, 0, 0))
+            draw = ImageDraw.Draw(img)
+            draw.rectangle((20, 10, 80, 90), fill=(180, 120, 90, 255))
+            img.save(concept_path)
+
+            brief = {
+                "raw_prompt": "a vigilant ranger with a lantern",
+                "role_archetype": "ashen hollow ranger",
+                "silhouette_intent": "broad guarded profile",
+                "outfit_materials": "weathered plate over travel cloth",
+                "prop": "lantern",
+                "palette_mood": "storm steel",
+                "shape_language": "balanced angular to rounded mix",
+                "mood_tone": "watchful and haunted",
+            }
+
+            scaffold = sw.build_iteration_prompt(
+                brief,
+                "pose",
+                "change the pose to a strict side view",
+                source_concept_path=concept_path,
+            )
+
+            self.assertIn("Editable aspect: pose and view correction", scaffold["display_prompt"])
+            self.assertIn("VIEW CORRECTION MODE:", scaffold["display_prompt"])
+
+    def test_build_gemini_requirements_prompt_describes_single_aspect_contract(self):
+        brief = {
+            "raw_prompt": "a vigilant ranger with a lantern",
+            "role_archetype": "ashen hollow ranger",
+            "silhouette_intent": "broad guarded profile",
+            "outfit_materials": "weathered plate over travel cloth",
+            "prop": "lantern",
+            "palette_mood": "storm steel",
+            "shape_language": "balanced angular to rounded mix",
+            "mood_tone": "watchful and haunted",
+        }
+
+        prompt = sw._build_gemini_requirements_prompt(
+            brief,
+            "expression",
+            "make the eyes brighter",
+        )
+
+        self.assertIn("This is an image edit, not a redesign and not a fresh generation.", prompt)
+        self.assertIn("Aspect to change: expression", prompt)
+        self.assertIn("Editable zone: face or visor read only", prompt)
+        self.assertIn("Allowed changes:", prompt)
+        self.assertIn("Keep unchanged unless required by the requested edit:", prompt)
+        self.assertIn("Return one edited full sprite image only.", prompt)
+        self.assertNotIn("PIXEL OWNERSHIP RULES:", prompt)
+        self.assertNotIn("Treat areas outside the selected edit region as copy-from-source pixels", prompt)
+
+    def test_gemini_iteration_supported_for_all_iteration_elements(self):
+        for element in sw.ITERATION_ELEMENTS:
+            self.assertTrue(sw.gemini_iteration_supported_for_element(element))
+        self.assertFalse(sw.gemini_iteration_supported_for_element("unknown"))
+
+    def test_concept_source_image_relpath_prefers_original_preview(self):
+        concept = {
+            "processed_preview_image": "concepts/processed.png",
+            "preview_image": "concepts/preview.png",
+            "original_preview_image": "concepts/original.png",
+            "image_path": "concepts/fallback.png",
+        }
+        self.assertEqual(sw._concept_source_image_relpath(concept), "concepts/original.png")
+
+    def test_gemini_iteration_uses_raw_source_image_bytes(self):
+        source = Image.new("RGBA", (64, 64), (0, 0, 0, 0))
+        draw = ImageDraw.Draw(source)
+        draw.rectangle((8, 8, 56, 56), fill=(200, 10, 10, 255))
+        source_buf = io.BytesIO()
+        source.save(source_buf, format="PNG")
+        source_bytes = source_buf.getvalue()
+
+        generated = source.copy()
+        generated_draw = ImageDraw.Draw(generated)
+        generated_draw.rectangle((18, 14, 30, 22), fill=(10, 10, 200, 255))
+        generated_buf = io.BytesIO()
+        generated.save(generated_buf, format="PNG")
+
+        captured = {}
+
+        fake_response = SimpleNamespace(
+            candidates=[
+                SimpleNamespace(
+                    content=SimpleNamespace(
+                        parts=[SimpleNamespace(inline_data=SimpleNamespace(data=generated_buf.getvalue()))]
+                    )
+                )
+            ]
+        )
+        def fake_from_bytes(*, data, mime_type):
+            captured["image_bytes"] = data
+            captured["mime_type"] = mime_type
+            return SimpleNamespace(data=data, mime_type=mime_type)
+
+        def fake_generate_content(**kwargs):
+            captured["contents"] = kwargs["contents"]
+            return fake_response
+
+        fake_client = SimpleNamespace(
+            models=SimpleNamespace(
+                generate_content=fake_generate_content
+            )
+        )
+
+        brief = {
+            "raw_prompt": "a vigilant ranger with a lantern",
+            "role_archetype": "ashen hollow ranger",
+            "silhouette_intent": "broad guarded profile",
+            "outfit_materials": "weathered plate over travel cloth",
+            "prop": "lantern",
+            "palette_mood": "storm steel",
+            "shape_language": "balanced angular to rounded mix",
+            "mood_tone": "watchful and haunted",
+        }
+
+        with patch.object(sw, "get_gemini_client", return_value=fake_client), \
+             patch.object(sw._google_genai_types.Part, "from_bytes", side_effect=fake_from_bytes):
+            out_bytes = sw.gemini_iterate_concept(
+                source_bytes,
+                "expression",
+                "make the eyes brighter",
+                brief,
+            )
+
+        out = Image.open(io.BytesIO(out_bytes)).convert("RGBA")
+        self.assertEqual(captured["image_bytes"], source_bytes)
+        self.assertEqual(captured["mime_type"], "image/png")
+        self.assertEqual(out.getpixel((20, 16)), (10, 10, 200, 255))
+        self.assertIn("Aspect to change: expression", captured["contents"][1])
+        self.assertIn("User request: make the eyes brighter", captured["contents"][1])
+
+    def test_validate_prompt_constraints_allows_negated_multi_view_terms(self):
+        sw.validate_prompt_constraints("strict side view, not front view, one character only")
+        sw.validate_prompt_constraints("single side-view knight, no front view please")
+        sw.validate_prompt_constraints("avoid rear view and turnaround sheet")
+
+    def test_validate_prompt_constraints_rejects_positive_multi_view_terms(self):
+        with self.assertRaisesRegex(ValueError, "highly asymmetric multi-view requirements"):
+            sw.validate_prompt_constraints("front view knight turnaround")
+
+    def test_prepare_pixellab_character_color_source_fits_subject_to_canvas(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            source_path = Path(tmpdir) / "concept.png"
+            image = Image.new("RGBA", (640, 768), (0, 0, 0, 0))
+            draw = ImageDraw.Draw(image)
+            draw.rectangle((220, 120, 420, 700), fill=(180, 120, 90, 255))
+            image.save(source_path)
+
+            prepared = sw.prepare_pixellab_character_color_source(source_path, 64)
+
+            self.assertEqual(prepared.size, (64, 64))
+            self.assertGreater(sw.detect_mask(prepared).getbbox()[2], 0)
+
+    def test_prepare_pixellab_concept_init_image_fits_to_128_canvas(self):
+        image = Image.new("RGBA", (320, 180), (30, 40, 50, 255))
+        draw = ImageDraw.Draw(image)
+        draw.rectangle((90, 20, 230, 170), fill=(200, 180, 120, 255))
+        buf = io.BytesIO()
+        image.save(buf, format="PNG")
+
+        prepared = sw.prepare_pixellab_concept_init_image(buf.getvalue(), 128)
+
+        self.assertEqual(prepared.size, (128, 128))
+        self.assertIsNotNone(sw.detect_mask(prepared).getbbox())
+
+    def test_pixellab_client_encode_image_rgba_returns_raw_pixel_bytes(self):
+        image = Image.new("RGBA", (64, 64), (10, 20, 30, 255))
+        client = pl.PixelLabClient(api_key="test-key")
+        encoded = client.encode_image_rgba(image)
+        raw = base64.b64decode(encoded)
+        self.assertEqual(len(raw), 64 * 64 * 4)
+
+    def test_pixellab_client_edit_animation_v2_wraps_string_frames(self):
+        client = pl.PixelLabClient(api_key="test-key")
+        captured = {}
+
+        def fake_request(method, path, payload=None):
+            captured["method"] = method
+            captured["path"] = path
+            captured["payload"] = payload
+            return {"ok": True}
+
+        with patch.object(client, "_request_json", side_effect=fake_request):
+            client.edit_animation_v2(
+                "tighten the slash timing",
+                ["ZmFrZS1mcmFtZS0w", "ZmFrZS1mcmFtZS0x"],
+                {"width": 128, "height": 128},
+            )
+
+        self.assertEqual(captured["path"], "/v2/edit-animation-v2")
+        frames = captured["payload"]["frames"]
+        self.assertEqual(len(frames), 2)
+        self.assertEqual(frames[0]["image"]["type"], "base64")
+        self.assertEqual(frames[0]["image"]["format"], "png")
+        self.assertEqual(frames[0]["size"], {"width": 128, "height": 128})
+
+    def test_resolve_animation_timing_defaults_unknown_clips_to_8_frames(self):
+        timing = sw._resolve_animation_timing("attack")
+        self.assertEqual(timing["frame_count"], 8)
+        self.assertEqual(timing["fps"], 12)
+
+    def test_chunk_frame_indices_splits_edit_requests_into_four_frame_batches(self):
+        self.assertEqual(sw.chunk_frame_indices(0), [])
+        self.assertEqual(sw.chunk_frame_indices(3), [[0, 1, 2]])
+        self.assertEqual(sw.chunk_frame_indices(8), [[0, 1, 2, 3], [4, 5, 6, 7]])
+        self.assertEqual(sw.chunk_frame_indices(9), [[0, 1, 2, 3], [4, 5, 6, 7], [8]])
+
+    def test_gemini_iteration_returns_model_output_without_tool_compositing(self):
+        source = Image.new("RGBA", (64, 64), (0, 0, 0, 0))
+        draw = ImageDraw.Draw(source)
+        draw.rectangle((8, 8, 56, 56), fill=(200, 10, 10, 255))
+        source_buf = io.BytesIO()
+        source.save(source_buf, format="PNG")
+
+        generated = source.copy()
+        generated.putpixel((2, 50), (10, 10, 200, 255))
+        generated_buf = io.BytesIO()
+        generated.save(generated_buf, format="PNG")
+
+        fake_response = SimpleNamespace(
+            candidates=[
+                SimpleNamespace(
+                    content=SimpleNamespace(
+                        parts=[SimpleNamespace(inline_data=SimpleNamespace(data=generated_buf.getvalue()))]
+                    )
+                )
+            ]
+        )
+        fake_client = SimpleNamespace(
+            models=SimpleNamespace(
+                generate_content=lambda **kwargs: fake_response
+            )
+        )
+
+        brief = {
+            "raw_prompt": "a vigilant ranger with a lantern",
+            "role_archetype": "ashen hollow ranger",
+            "silhouette_intent": "broad guarded profile",
+            "outfit_materials": "weathered plate over travel cloth",
+            "prop": "lantern",
+            "palette_mood": "storm steel",
+            "shape_language": "balanced angular to rounded mix",
+            "mood_tone": "watchful and haunted",
+        }
+
+        with patch.object(sw, "get_gemini_client", return_value=fake_client):
+            out_bytes = sw.gemini_iterate_concept(
+                source_buf.getvalue(),
+                "expression",
+                "make the eyes brighter",
+                brief,
+            )
+
+        out = Image.open(io.BytesIO(out_bytes)).convert("RGBA")
+        self.assertEqual(out.getpixel((2, 50)), (10, 10, 200, 255))
 
     def test_scaffold_build_prompt_endpoint_returns_scaffold_shape(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -2100,6 +2430,101 @@ class SpriteWorkbenchTests(unittest.TestCase):
                     server.shutdown()
                     thread.join(timeout=5)
                     server.server_close()
+            finally:
+                sw.PROJECTS_ROOT = original_root
+
+    def test_generate_pixellab_endpoint_debug_with_init_upload_records_source(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            original_root = sw.PROJECTS_ROOT
+            sw.PROJECTS_ROOT = Path(tmpdir)
+            try:
+                project = sw.create_project({
+                    "project_name": "Generate Pixellab Init Hero",
+                    "prompt_text": "a vigilant ranger with a lantern",
+                    "backend_mode": "debug_procedural",
+                    "last_ui_mode": "wizard",
+                })
+                project_id = project["project_id"]
+                project_dir = sw.PROJECTS_ROOT / project_id
+
+                source = Image.new("RGBA", (320, 180), (0, 0, 0, 0))
+                draw = ImageDraw.Draw(source)
+                draw.rectangle((100, 20, 220, 170), fill=(180, 120, 90, 255))
+                source_buf = io.BytesIO()
+                source.save(source_buf, format="PNG")
+                source_data_url = "data:image/png;base64,%s" % base64.b64encode(source_buf.getvalue()).decode("ascii")
+
+                try:
+                    server = ThreadingHTTPServer(("127.0.0.1", 0), sw.SpriteWorkbenchHandler)
+                except PermissionError:
+                    self.skipTest("Sandbox does not allow binding a local socket.")
+                thread = threading.Thread(target=server.serve_forever, daemon=True)
+                thread.start()
+                try:
+                    connection = http.client.HTTPConnection("127.0.0.1", server.server_port, timeout=10)
+
+                    connection.request(
+                        "POST",
+                        f"/api/projects/{project_id}/concepts/build-prompt",
+                        body=b"{}",
+                        headers={"Content-Type": "application/json"},
+                    )
+                    response = connection.getresponse()
+                    data = json.loads(response.read().decode("utf-8"))
+                    pixellab_params = data["pixellab_params"]
+
+                    connection.request(
+                        "POST",
+                        f"/api/projects/{project_id}/concepts/generate-pixellab",
+                        body=json.dumps({
+                            "pixellab_params": pixellab_params,
+                            "mode": "pixflux",
+                            "init_image_name": "custom-source.png",
+                            "init_image_data_url": source_data_url,
+                        }).encode("utf-8"),
+                        headers={"Content-Type": "application/json"},
+                    )
+                    response2 = connection.getresponse()
+                    created = json.loads(response2.read().decode("utf-8"))
+
+                    self.assertEqual(created["concept_source_mode"], "custom_init_image")
+                    self.assertTrue(created["init_source_image"])
+                    init_path = project_dir / created["init_source_image"]
+                    self.assertTrue(init_path.exists())
+                    self.assertEqual(Image.open(init_path).size, (128, 128))
+                finally:
+                    server.shutdown()
+                    thread.join(timeout=5)
+                    server.server_close()
+            finally:
+                sw.PROJECTS_ROOT = original_root
+
+    def test_load_project_backfills_preview_image_from_original_preview_image(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            original_root = sw.PROJECTS_ROOT
+            sw.PROJECTS_ROOT = Path(tmpdir)
+            try:
+                project = sw.create_project({
+                    "project_name": "Preview Fallback Hero",
+                    "prompt_text": "a vigilant ranger with a lantern",
+                    "backend_mode": "debug_procedural",
+                    "last_ui_mode": "wizard",
+                })
+                project_id = project["project_id"]
+                project_dir = sw.PROJECTS_ROOT / project_id
+                sw.write_json(project_dir / "concepts" / "concept-0002.json", {
+                    "concept_id": "concept-0002",
+                    "created_at": sw.now_iso(),
+                    "run_kind": "pixellab_generate",
+                    "original_preview_image": "concepts/concept-0002.png",
+                    "processed_preview_image": None,
+                    "review_state": {"approved": False, "favorite": False, "rejected": False},
+                })
+
+                loaded = sw.load_project(project_id)
+                concept = next(item for item in loaded["concepts"] if item["concept_id"] == "concept-0002")
+                self.assertEqual(concept["preview_image"], "concepts/concept-0002.png")
+                self.assertEqual(concept["approved_source_image"], "concepts/concept-0002.png")
             finally:
                 sw.PROJECTS_ROOT = original_root
 
@@ -2220,6 +2645,7 @@ class SpriteWorkbenchTests(unittest.TestCase):
                     char_path = project_dir / "pixellab_character.json"
                     self.assertTrue(char_path.exists())
                     self.assertEqual(char_data.get("approved"), False)
+                    self.assertEqual(char_data.get("image_size"), {"width": 128, "height": 128})
 
                     # Directions should exist for 4-dir.
                     expected_dirs = ["south", "west", "east", "north"]
@@ -2300,6 +2726,206 @@ class SpriteWorkbenchTests(unittest.TestCase):
                     data = json.loads(raw)
                     self.assertGreaterEqual(resp.status, 400)
                     self.assertFalse(data.get("ok", True))
+                finally:
+                    server.shutdown()
+                    thread.join(timeout=5)
+                    server.server_close()
+            finally:
+                sw.PROJECTS_ROOT = original_root
+
+    def test_pixellab_use_concept_as_east_character_copies_selected_concept(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            original_root = sw.PROJECTS_ROOT
+            sw.PROJECTS_ROOT = Path(tmpdir)
+            try:
+                project = sw.create_project({
+                    "project_name": "Pixellab East Source",
+                    "prompt_text": "a vigilant ranger with a lantern",
+                    "backend_mode": "debug_procedural",
+                    "last_ui_mode": "wizard",
+                })
+                project_id = project["project_id"]
+                project_dir = sw.PROJECTS_ROOT / project_id
+
+                scaffold = sw.build_concept_prompt(project.get("brief") or {})
+                pixellab_params = scaffold["pixellab_params"]
+
+                try:
+                    server = ThreadingHTTPServer(("127.0.0.1", 0), sw.SpriteWorkbenchHandler)
+                except PermissionError:
+                    self.skipTest("Sandbox does not allow binding a local socket.")
+                thread = threading.Thread(target=server.serve_forever, daemon=True)
+                thread.start()
+                try:
+                    connection = http.client.HTTPConnection("127.0.0.1", server.server_port, timeout=10)
+                    connection.request(
+                        "POST",
+                        f"/api/projects/{project_id}/concepts/generate-pixellab",
+                        body=json.dumps({"pixellab_params": pixellab_params, "mode": "v2"}).encode("utf-8"),
+                        headers={"Content-Type": "application/json"},
+                    )
+                    resp = connection.getresponse()
+                    created = json.loads(resp.read().decode("utf-8"))
+                    concept_id = created["concept_id"]
+
+                    connection.request(
+                        "POST",
+                        f"/api/projects/{project_id}/pixellab/use-concept-character",
+                        body=json.dumps({"concept_id": concept_id}).encode("utf-8"),
+                        headers={"Content-Type": "application/json"},
+                    )
+                    resp2 = connection.getresponse()
+                    raw2 = resp2.read().decode("utf-8")
+                    if resp2.status >= 400:
+                        raise AssertionError(f"use-concept-character HTTP {resp2.status}: {raw2}")
+                    char_data = json.loads(raw2)
+
+                    self.assertEqual(char_data.get("directions"), ["east"])
+                    self.assertTrue(char_data.get("east_only_source"))
+                    self.assertEqual(char_data.get("image_size"), {"width": 128, "height": 128})
+                    east_rel = (char_data.get("images") or {}).get("east")
+                    self.assertTrue(east_rel)
+                    east_path = project_dir / east_rel
+                    self.assertTrue(east_path.exists())
+                    with Image.open(east_path) as east_img:
+                        self.assertEqual(east_img.size, (128, 128))
+
+                    connection.request(
+                        "POST",
+                        f"/api/projects/{project_id}/pixellab/estimate-skeleton",
+                        body=json.dumps({"direction": "east", "seed": 456}).encode("utf-8"),
+                        headers={"Content-Type": "application/json"},
+                    )
+                    resp3 = connection.getresponse()
+                    skel_data = json.loads(resp3.read().decode("utf-8"))
+                    self.assertEqual(len(skel_data.get("skeleton_keypoints") or []), 18)
+                finally:
+                    server.shutdown()
+                    thread.join(timeout=5)
+                    server.server_close()
+            finally:
+                sw.PROJECTS_ROOT = original_root
+
+    def test_load_project_normalizes_legacy_east_only_character_source_to_concept_canvas(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            original_root = sw.PROJECTS_ROOT
+            sw.PROJECTS_ROOT = Path(tmpdir)
+            try:
+                project = sw.create_project({
+                    "project_name": "Normalize East Only Character",
+                    "prompt_text": "a side-view armored knight",
+                    "backend_mode": "pixellab",
+                    "last_ui_mode": "wizard",
+                })
+                project_id = project["project_id"]
+                project_dir = sw.PROJECTS_ROOT / project_id
+
+                concepts_dir = project_dir / "concepts"
+                concepts_dir.mkdir(parents=True, exist_ok=True)
+                concept_png = concepts_dir / "concept-0001.png"
+                Image.new("RGBA", (2048, 2048), (0, 0, 0, 0)).save(concept_png)
+                concept_json = concepts_dir / "concept-0001.json"
+                concept_json.write_text(json.dumps({
+                    "concept_id": "concept-0001",
+                    "created_at": sw.now_iso(),
+                    "preview_image": str(concept_png.relative_to(project_dir)),
+                    "original_preview_image": str(concept_png.relative_to(project_dir)),
+                    "prompt_text": "legacy concept",
+                }, indent=2), encoding="utf-8")
+
+                char_dir = project_dir / "character"
+                char_dir.mkdir(parents=True, exist_ok=True)
+                east_png = char_dir / "east.png"
+                Image.new("RGBA", (2048, 2048), (30, 60, 90, 255)).save(east_png)
+                (project_dir / "pixellab_character.json").write_text(json.dumps({
+                    "approved": True,
+                    "east_only_source": True,
+                    "directions": ["east"],
+                    "image_size": {"width": 2048, "height": 2048},
+                    "source_concept_id": "concept-0001",
+                    "images": {"east": str(east_png.relative_to(project_dir))},
+                }, indent=2), encoding="utf-8")
+                (project_dir / "pixellab_skeleton.json").write_text(json.dumps({
+                    "approved": False,
+                    "direction": "east",
+                    "image_size": {"width": 2048, "height": 2048},
+                    "skeleton_keypoints": [],
+                }, indent=2), encoding="utf-8")
+                anim_dir = project_dir / "animations" / "attack" / "east"
+                anim_dir.mkdir(parents=True, exist_ok=True)
+                frame_png = anim_dir / "frame_00.png"
+                Image.new("RGBA", (64, 64), (200, 100, 50, 255)).save(frame_png)
+                (project_dir / "pixellab_animations.json").write_text(json.dumps({
+                    "animations": {
+                        "attack": {
+                            "animation_name": "attack",
+                            "directions": {
+                                "east": {
+                                    "frames": [str(frame_png.relative_to(project_dir))],
+                                    "frame_count": 1,
+                                    "fps": 12,
+                                }
+                            },
+                        }
+                    }
+                }, indent=2), encoding="utf-8")
+
+                loaded = sw.load_project(project_id)
+                self.assertEqual(loaded["pixellab_character"]["image_size"], {"width": 128, "height": 128})
+                with Image.open(project_dir / "character" / "east.png") as east_img:
+                    self.assertEqual(east_img.size, (128, 128))
+                with Image.open(frame_png) as anim_img:
+                    self.assertEqual(anim_img.size, (128, 128))
+                self.assertIsNone(loaded["pixellab_skeleton"])
+                self.assertFalse((project_dir / "pixellab_skeleton.json").exists())
+            finally:
+                sw.PROJECTS_ROOT = original_root
+
+    def test_pixellab_template_animation_rejects_east_only_concept_source(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            original_root = sw.PROJECTS_ROOT
+            sw.PROJECTS_ROOT = Path(tmpdir)
+            try:
+                project = sw.create_project({
+                    "project_name": "Pixellab East Source Animate Gate",
+                    "prompt_text": "a vigilant ranger with a lantern",
+                    "backend_mode": "debug_procedural",
+                    "last_ui_mode": "wizard",
+                })
+                project_id = project["project_id"]
+                project_dir = sw.PROJECTS_ROOT / project_id
+
+                assets_dir = project_dir / "character"
+                assets_dir.mkdir(parents=True, exist_ok=True)
+                east_path = assets_dir / "east.png"
+                Image.new("RGBA", (64, 64), (20, 40, 60, 255)).save(east_path)
+                project_dir.joinpath("pixellab_character.json").write_text(json.dumps({
+                    "approved": True,
+                    "east_only_source": True,
+                    "directions": ["east"],
+                    "images": {"east": str(east_path.relative_to(project_dir))},
+                }, indent=2), encoding="utf-8")
+                project["pixellab_character_approved"] = True
+                sw.save_project(project)
+
+                try:
+                    server = ThreadingHTTPServer(("127.0.0.1", 0), sw.SpriteWorkbenchHandler)
+                except PermissionError:
+                    self.skipTest("Sandbox does not allow binding a local socket.")
+                thread = threading.Thread(target=server.serve_forever, daemon=True)
+                thread.start()
+                try:
+                    connection = http.client.HTTPConnection("127.0.0.1", server.server_port, timeout=10)
+                    connection.request(
+                        "POST",
+                        f"/api/projects/{project_id}/pixellab/animate",
+                        body=json.dumps({"template_animation_id": "walking-4-frames", "animation_name": "walk", "directions": 4}).encode("utf-8"),
+                        headers={"Content-Type": "application/json"},
+                    )
+                    resp = connection.getresponse()
+                    raw = resp.read().decode("utf-8")
+                    self.assertGreaterEqual(resp.status, 400)
+                    self.assertIn("east-only source image", raw)
                 finally:
                     server.shutdown()
                     thread.join(timeout=5)
@@ -2802,6 +3428,9 @@ class PixelLabAnimationFrameExtractionTests(unittest.TestCase):
         Image.new("RGBA", (4, 4), (255, 0, 0, 128)).save(buf, format="PNG")
         return base64.b64encode(buf.getvalue()).decode("ascii")
 
+    def _rgba_bytes_b64(self, color) -> str:
+        return base64.b64encode(Image.new("RGBA", (4, 4), color).tobytes()).decode("ascii")
+
     def test_looks_like_accepts_png_data_url_and_plain_b64(self):
         png = self._tiny_png_b64()
         self.assertTrue(sw._looks_like_base64_image_string(png))
@@ -2844,6 +3473,24 @@ class PixelLabAnimationFrameExtractionTests(unittest.TestCase):
             urls,
             ["https://cdn.example/a.png", "https://cdn.example/b.png", "https://cdn.example/c.png"],
         )
+
+    def test_pixellab_animation_job_to_rgba_frames_prefers_images_over_quantized_images(self):
+        frames = sw._pixellab_animation_job_to_rgba_frames(
+            {
+                "images": [
+                    {"type": "rgba_bytes", "width": 4, "height": 4, "base64": self._rgba_bytes_b64((255, 0, 0, 255))}
+                    for _ in range(4)
+                ],
+                "quantized_images": [
+                    {"type": "rgba_bytes", "width": 4, "height": 4, "base64": self._rgba_bytes_b64((0, 255, 0, 255))}
+                    for _ in range(4)
+                ],
+            },
+            canvas_size=4,
+            client=None,
+        )
+        self.assertEqual(len(frames), 4)
+        self.assertEqual(frames[0].getpixel((0, 0)), (255, 0, 0, 255))
 
     def test_is_pixellab_api_url(self):
         self.assertTrue(sw._is_pixellab_api_url("https://api.pixellab.ai/v2/characters/x"))

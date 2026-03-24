@@ -1,7 +1,23 @@
 {
   "permissions": {
     "allow": [
-      "Bash(ls -la /Users/timwood/Desktop/projects/PWA/MV/tools/2d-sprite-and-animation/*.md)"
+      "Bash(ls -la /Users/timwood/Desktop/projects/PWA/MV/tools/2d-sprite-and-animation/*.md)",
+      "Bash(python -m pytest tests/test_sprite_workbench.py -x -q --tb=short)",
+      "Bash(python3 -m pytest tests/test_sprite_workbench.py::SpriteWorkbenchTests::test_load_project_backfills_preview_image_from_original_preview_image -xvs)",
+      "Bash(python3 -m pytest tests/test_sprite_workbench.py::SpriteWorkbenchTests::test_generate_pixellab_endpoint_debug_writes_concept -xvs)",
+      "Bash(python3 -m pytest tests/test_sprite_workbench.py -x -q --tb=short)",
+      "WebFetch(domain:www.pixellab.ai)",
+      "Bash(pip show:*)",
+      "Bash(python3 -c \"import google.generativeai; print\\(''''generativeai ok''''\\)\")",
+      "Bash(python3 -c \"import google.genai; print\\(''''genai ok''''\\)\")",
+      "Bash(pip3 list:*)",
+      "Bash(python3 -c \"import urllib.request; print\\(''''urllib ok''''\\)\")",
+      "Bash(python3 -m pip list)",
+      "Bash(source /Users/timwood/Desktop/projects/PWA/MV/.env.local)",
+      "Bash(python3 -c \":*)"
+    ],
+    "additionalDirectories": [
+      "/Users/timwood/.claude/skills"
     ]
   }
 }

@@ -1,0 +1,509 @@
+{
+  "model": "gemini-2.5-flash-image",
+  "scenarios": [
+    {
+      "scenario_id": "hero_expression",
+      "source_path": "/Users/timwood/Desktop/projects/PWA/MV/tools/2d-sprite-and-animation/projects-data/hero-knight-91c47779/concepts/concept-0006.png",
+      "brief": {
+        "raw_prompt": "hero knight side-view armored fighter with sword and shield",
+        "role_archetype": "ashen hollow knight",
+        "silhouette_intent": "broad guarded profile",
+        "outfit_materials": "weathered plate armor over dark cloth",
+        "prop": "sword and shield",
+        "palette_mood": "storm steel",
+        "shape_language": "angular disciplined silhouettes",
+        "mood_tone": "grim and vigilant"
+      },
+      "element": "expression",
+      "change_text": "make the eye slit slightly brighter and clearer"
+    },
+    {
+      "scenario_id": "hero_pose_guarded",
+      "source_path": "/Users/timwood/Desktop/projects/PWA/MV/tools/2d-sprite-and-animation/projects-data/hero-knight-91c47779/concepts/concept-0006.png",
+      "brief": {
+        "raw_prompt": "hero knight side-view armored fighter with sword and shield",
+        "role_archetype": "ashen hollow knight",
+        "silhouette_intent": "broad guarded profile",
+        "outfit_materials": "weathered plate armor over dark cloth",
+        "prop": "sword and shield",
+        "palette_mood": "storm steel",
+        "shape_language": "angular disciplined silhouettes",
+        "mood_tone": "grim and vigilant"
+      },
+      "element": "pose",
+      "change_text": "raise the front arm a little into a more guarded stance"
+    },
+    {
+      "scenario_id": "hero_side_correction",
+      "source_path": "/Users/timwood/Desktop/projects/PWA/MV/tools/2d-sprite-and-animation/projects-data/hero-knight-91c47779/concepts/concept-0006.png",
+      "brief": {
+        "raw_prompt": "hero knight side-view armored fighter with sword and shield",
+        "role_archetype": "ashen hollow knight",
+        "silhouette_intent": "broad guarded profile",
+        "outfit_materials": "weathered plate armor over dark cloth",
+        "prop": "sword and shield",
+        "palette_mood": "storm steel",
+        "shape_language": "angular disciplined silhouettes",
+        "mood_tone": "grim and vigilant"
+      },
+      "element": "pose",
+      "change_text": "change the pose to a strict side view"
+    },
+    {
+      "scenario_id": "ranger_outfit",
+      "source_path": "/Users/timwood/Desktop/projects/PWA/MV/tools/2d-sprite-and-animation/projects-data/test-player-0db89e30/concepts/concept-0002-processed.png",
+      "brief": {
+        "raw_prompt": "side-view ranger with lantern and layered travel gear",
+        "role_archetype": "ashen hollow ranger",
+        "silhouette_intent": "lean alert profile",
+        "outfit_materials": "layered cloth and leather travel gear",
+        "prop": "lantern",
+        "palette_mood": "storm steel",
+        "shape_language": "balanced angular to rounded mix",
+        "mood_tone": "watchful and haunted"
+      },
+      "element": "outfit",
+      "change_text": "add a slightly longer tattered cloth tabard"
+    }
+  ],
+  "results": [
+    {
+      "scenario_id": "hero_expression",
+      "variant": "current_requirements",
+      "status": "fail",
+      "reason": "Gemini changed too much of the requested region for this edit type.",
+      "metrics": {
+        "changed_inside_edit_mask": 935,
+        "changed_outside_edit_mask": 0,
+        "subject_pixels_inside_edit_mask": 394,
+        "changed_ratio_inside_edit_mask": 2.3730964467005076,
+        "background_contamination_pixels": 0,
+        "view_correction_mode": false,
+        "status": "fail",
+        "reason": "Gemini changed too much of the requested region for this edit type."
+      },
+      "output_path": "/Users/timwood/Desktop/projects/PWA/MV/tmp/gemini_prompt_experiments/20260322-125832/hero_expression__current_requirements.png",
+      "prompt": "Edit this existing pixel-art sprite.\nRequired result:\n- Keep the same character: hero knight side-view armored fighter with sword and shield.\n- Change only this aspect: expression.\n- Requested change: make the eye slit slightly brighter and clearer.\n- Keep these locked: head silhouette unless expression requires a tiny change, body pose and costume, weapons, shield, and background.\n- Keep the same pixel-art rendering style and overall design identity.\n- Return the full sprite with a transparent background.\n- Do not add background, shadows, halos, hidden body parts, matte shapes, or extra details.\n- Preserve all non-essential pixels whenever possible.\n- The final sprite must read as a strict side view.\n- Do not rotate the character toward the camera or change the viewing angle.",
+      "response_text": ""
+    },
+    {
+      "scenario_id": "hero_expression",
+      "variant": "concise_outcome",
+      "status": "fail",
+      "reason": "Gemini changed too much of the requested region for this edit type.",
+      "metrics": {
+        "changed_inside_edit_mask": 535,
+        "changed_outside_edit_mask": 0,
+        "subject_pixels_inside_edit_mask": 394,
+        "changed_ratio_inside_edit_mask": 1.3578680203045685,
+        "background_contamination_pixels": 0,
+        "view_correction_mode": false,
+        "status": "fail",
+        "reason": "Gemini changed too much of the requested region for this edit type."
+      },
+      "output_path": "/Users/timwood/Desktop/projects/PWA/MV/tmp/gemini_prompt_experiments/20260322-125832/hero_expression__concise_outcome.png",
+      "prompt": "Edit this existing pixel-art sprite.\nKeep the same character: hero knight side-view armored fighter with sword and shield.\nRequested result: make the eye slit slightly brighter and clearer.\nOnly change: expression.\nKeep the same identity, costume, gear, pixel-art style, and transparent background.\nPreserve all other pixels whenever possible.\nReturn the full sprite as a strict side view.",
+      "response_text": ""
+    },
+    {
+      "scenario_id": "hero_expression",
+      "variant": "acceptance_criteria",
+      "status": "fail",
+      "reason": "Gemini changed too much of the requested region for this edit type.",
+      "metrics": {
+        "changed_inside_edit_mask": 557,
+        "changed_outside_edit_mask": 0,
+        "subject_pixels_inside_edit_mask": 394,
+        "changed_ratio_inside_edit_mask": 1.4137055837563453,
+        "background_contamination_pixels": 0,
+        "view_correction_mode": false,
+        "status": "fail",
+        "reason": "Gemini changed too much of the requested region for this edit type."
+      },
+      "output_path": "/Users/timwood/Desktop/projects/PWA/MV/tmp/gemini_prompt_experiments/20260322-125832/hero_expression__acceptance_criteria.png",
+      "prompt": "Edit this sprite so it passes these acceptance criteria:\n1. Requested change is applied: make the eye slit slightly brighter and clearer.\n2. Only this aspect changes: expression.\n3. Locked attributes stay the same: head silhouette unless expression requires a tiny change, body pose and costume, weapons, shield, and background.\n4. The result stays pixel art and keeps a transparent background.\n5. The full image is returned and still reads as a strict side view.\nFail by changing too little rather than by redesigning the sprite.",
+      "response_text": ""
+    },
+    {
+      "scenario_id": "hero_expression",
+      "variant": "identity_locked",
+      "status": "fail",
+      "reason": "Gemini changed too much of the requested region for this edit type.",
+      "metrics": {
+        "changed_inside_edit_mask": 566,
+        "changed_outside_edit_mask": 0,
+        "subject_pixels_inside_edit_mask": 394,
+        "changed_ratio_inside_edit_mask": 1.4365482233502538,
+        "background_contamination_pixels": 0,
+        "view_correction_mode": false,
+        "status": "fail",
+        "reason": "Gemini changed too much of the requested region for this edit type."
+      },
+      "output_path": "/Users/timwood/Desktop/projects/PWA/MV/tmp/gemini_prompt_experiments/20260322-125832/hero_expression__identity_locked.png",
+      "prompt": "Use the input image as the source of truth for character identity.\nApply this single change: make the eye slit slightly brighter and clearer.\nDo not redesign the character.\nDo not add new objects, shadows, halos, or background elements.\nKeep the same armor, prop family, palette intent, and pixel-art rendering style.\nReturn a transparent full sprite.\nDo not change the viewing angle away from strict side view.",
+      "response_text": ""
+    },
+    {
+      "scenario_id": "hero_pose_guarded",
+      "variant": "current_requirements",
+      "status": "pass",
+      "reason": null,
+      "metrics": {
+        "changed_inside_edit_mask": 3469,
+        "changed_outside_edit_mask": 0,
+        "subject_pixels_inside_edit_mask": 4189,
+        "changed_ratio_inside_edit_mask": 0.8281212699928384,
+        "background_contamination_pixels": 0,
+        "view_correction_mode": false,
+        "status": "pass",
+        "reason": null
+      },
+      "output_path": "/Users/timwood/Desktop/projects/PWA/MV/tmp/gemini_prompt_experiments/20260322-125832/hero_pose_guarded__current_requirements.png",
+      "prompt": "Edit this existing pixel-art sprite.\nRequired result:\n- Keep the same character: hero knight side-view armored fighter with sword and shield.\n- Change only this aspect: pose.\n- Requested change: raise the front arm a little into a more guarded stance.\n- Keep these locked: character identity, armor design, and prop design, head profile, face direction, and torso side-view read, background and empty space.\n- Keep the same pixel-art rendering style and overall design identity.\n- Return the full sprite with a transparent background.\n- Do not add background, shadows, halos, hidden body parts, matte shapes, or extra details.\n- Preserve all non-essential pixels whenever possible.\n- The final sprite must read as a strict side view.\n- Do not rotate the character toward the camera or change the viewing angle.",
+      "response_text": ""
+    },
+    {
+      "scenario_id": "hero_pose_guarded",
+      "variant": "concise_outcome",
+      "status": "fail",
+      "reason": "Gemini changed too much of the requested region for this edit type.",
+      "metrics": {
+        "changed_inside_edit_mask": 5503,
+        "changed_outside_edit_mask": 0,
+        "subject_pixels_inside_edit_mask": 4189,
+        "changed_ratio_inside_edit_mask": 1.31367868226307,
+        "background_contamination_pixels": 0,
+        "view_correction_mode": false,
+        "status": "fail",
+        "reason": "Gemini changed too much of the requested region for this edit type."
+      },
+      "output_path": "/Users/timwood/Desktop/projects/PWA/MV/tmp/gemini_prompt_experiments/20260322-125832/hero_pose_guarded__concise_outcome.png",
+      "prompt": "Edit this existing pixel-art sprite.\nKeep the same character: hero knight side-view armored fighter with sword and shield.\nRequested result: raise the front arm a little into a more guarded stance.\nOnly change: pose.\nKeep the same identity, costume, gear, pixel-art style, and transparent background.\nPreserve all other pixels whenever possible.\nReturn the full sprite as a strict side view.",
+      "response_text": ""
+    },
+    {
+      "scenario_id": "hero_pose_guarded",
+      "variant": "acceptance_criteria",
+      "status": "pass",
+      "reason": null,
+      "metrics": {
+        "changed_inside_edit_mask": 3452,
+        "changed_outside_edit_mask": 0,
+        "subject_pixels_inside_edit_mask": 4189,
+        "changed_ratio_inside_edit_mask": 0.8240630222010026,
+        "background_contamination_pixels": 0,
+        "view_correction_mode": false,
+        "status": "pass",
+        "reason": null
+      },
+      "output_path": "/Users/timwood/Desktop/projects/PWA/MV/tmp/gemini_prompt_experiments/20260322-125832/hero_pose_guarded__acceptance_criteria.png",
+      "prompt": "Edit this sprite so it passes these acceptance criteria:\n1. Requested change is applied: raise the front arm a little into a more guarded stance.\n2. Only this aspect changes: pose.\n3. Locked attributes stay the same: character identity, armor design, and prop design, head profile, face direction, and torso side-view read, background and empty space.\n4. The result stays pixel art and keeps a transparent background.\n5. The full image is returned and still reads as a strict side view.\nFail by changing too little rather than by redesigning the sprite.",
+      "response_text": ""
+    },
+    {
+      "scenario_id": "hero_pose_guarded",
+      "variant": "identity_locked",
+      "status": "fail",
+      "reason": "Gemini changed too much of the requested region for this edit type.",
+      "metrics": {
+        "changed_inside_edit_mask": 5496,
+        "changed_outside_edit_mask": 0,
+        "subject_pixels_inside_edit_mask": 4189,
+        "changed_ratio_inside_edit_mask": 1.3120076390546669,
+        "background_contamination_pixels": 0,
+        "view_correction_mode": false,
+        "status": "fail",
+        "reason": "Gemini changed too much of the requested region for this edit type."
+      },
+      "output_path": "/Users/timwood/Desktop/projects/PWA/MV/tmp/gemini_prompt_experiments/20260322-125832/hero_pose_guarded__identity_locked.png",
+      "prompt": "Use the input image as the source of truth for character identity.\nApply this single change: raise the front arm a little into a more guarded stance.\nDo not redesign the character.\nDo not add new objects, shadows, halos, or background elements.\nKeep the same armor, prop family, palette intent, and pixel-art rendering style.\nReturn a transparent full sprite.\nDo not change the viewing angle away from strict side view.",
+      "response_text": ""
+    },
+    {
+      "scenario_id": "hero_side_correction",
+      "variant": "current_requirements",
+      "status": "pass",
+      "reason": null,
+      "metrics": {
+        "changed_inside_edit_mask": 8222,
+        "changed_outside_edit_mask": 0,
+        "subject_pixels_inside_edit_mask": 4189,
+        "changed_ratio_inside_edit_mask": 1.9627596084984482,
+        "background_contamination_pixels": 4043,
+        "view_correction_mode": true,
+        "status": "pass",
+        "reason": null
+      },
+      "output_path": "/Users/timwood/Desktop/projects/PWA/MV/tmp/gemini_prompt_experiments/20260322-125832/hero_side_correction__current_requirements.png",
+      "prompt": "Edit this existing pixel-art sprite.\nRequired result:\n- Keep the same character: hero knight side-view armored fighter with sword and shield.\n- Change only this aspect: pose and view correction.\n- Requested change: change the pose to a strict side view.\n- Keep these locked: character identity, costume identity, and prop identity, overall design language, palette intent, and pixel-art rendering style, background and empty space.\n- Keep the same pixel-art rendering style and overall design identity.\n- Return the full sprite with a transparent background.\n- Do not add background, shadows, halos, hidden body parts, matte shapes, or extra details.\n- Preserve all non-essential pixels whenever possible.\n- The final sprite must read as a strict side view.\n- The source view may be wrong.\n- Convert the character to a true side view while keeping the same identity, costume, and gear.",
+      "response_text": ""
+    },
+    {
+      "scenario_id": "hero_side_correction",
+      "variant": "concise_outcome",
+      "status": "pass",
+      "reason": null,
+      "metrics": {
+        "changed_inside_edit_mask": 8232,
+        "changed_outside_edit_mask": 0,
+        "subject_pixels_inside_edit_mask": 4189,
+        "changed_ratio_inside_edit_mask": 1.9651468130818812,
+        "background_contamination_pixels": 4043,
+        "view_correction_mode": true,
+        "status": "pass",
+        "reason": null
+      },
+      "output_path": "/Users/timwood/Desktop/projects/PWA/MV/tmp/gemini_prompt_experiments/20260322-125832/hero_side_correction__concise_outcome.png",
+      "prompt": "Edit this existing pixel-art sprite.\nKeep the same character: hero knight side-view armored fighter with sword and shield.\nRequested result: change the pose to a strict side view.\nOnly change: pose and view correction.\nKeep the same identity, costume, gear, pixel-art style, and transparent background.\nPreserve all other pixels whenever possible.\nReturn the full sprite as a strict side view.",
+      "response_text": ""
+    },
+    {
+      "scenario_id": "hero_side_correction",
+      "variant": "acceptance_criteria",
+      "status": "pass",
+      "reason": null,
+      "metrics": {
+        "changed_inside_edit_mask": 8217,
+        "changed_outside_edit_mask": 0,
+        "subject_pixels_inside_edit_mask": 4189,
+        "changed_ratio_inside_edit_mask": 1.961566006206732,
+        "background_contamination_pixels": 4043,
+        "view_correction_mode": true,
+        "status": "pass",
+        "reason": null
+      },
+      "output_path": "/Users/timwood/Desktop/projects/PWA/MV/tmp/gemini_prompt_experiments/20260322-125832/hero_side_correction__acceptance_criteria.png",
+      "prompt": "Edit this sprite so it passes these acceptance criteria:\n1. Requested change is applied: change the pose to a strict side view.\n2. Only this aspect changes: pose and view correction.\n3. Locked attributes stay the same: character identity, costume identity, and prop identity, overall design language, palette intent, and pixel-art rendering style, background and empty space.\n4. The result stays pixel art and keeps a transparent background.\n5. The full image is returned and still reads as a strict side view.\nFail by changing too little rather than by redesigning the sprite.",
+      "response_text": ""
+    },
+    {
+      "scenario_id": "hero_side_correction",
+      "variant": "identity_locked",
+      "status": "pass",
+      "reason": null,
+      "metrics": {
+        "changed_inside_edit_mask": 8222,
+        "changed_outside_edit_mask": 0,
+        "subject_pixels_inside_edit_mask": 4189,
+        "changed_ratio_inside_edit_mask": 1.9627596084984482,
+        "background_contamination_pixels": 4043,
+        "view_correction_mode": true,
+        "status": "pass",
+        "reason": null
+      },
+      "output_path": "/Users/timwood/Desktop/projects/PWA/MV/tmp/gemini_prompt_experiments/20260322-125832/hero_side_correction__identity_locked.png",
+      "prompt": "Use the input image as the source of truth for character identity.\nApply this single change: change the pose to a strict side view.\nDo not redesign the character.\nDo not add new objects, shadows, halos, or background elements.\nKeep the same armor, prop family, palette intent, and pixel-art rendering style.\nReturn a transparent full sprite.\nThe final image must read as a strict side view.",
+      "response_text": ""
+    },
+    {
+      "scenario_id": "ranger_outfit",
+      "variant": "current_requirements",
+      "status": "fail",
+      "reason": "Gemini changed too much of the requested region for this edit type.",
+      "metrics": {
+        "changed_inside_edit_mask": 181864,
+        "changed_outside_edit_mask": 0,
+        "subject_pixels_inside_edit_mask": 127218,
+        "changed_ratio_inside_edit_mask": 1.4295461334087944,
+        "background_contamination_pixels": 0,
+        "view_correction_mode": false,
+        "status": "fail",
+        "reason": "Gemini changed too much of the requested region for this edit type."
+      },
+      "output_path": "/Users/timwood/Desktop/projects/PWA/MV/tmp/gemini_prompt_experiments/20260322-125832/ranger_outfit__current_requirements.png",
+      "prompt": "Edit this existing pixel-art sprite.\nRequired result:\n- Keep the same character: side-view ranger with lantern and layered travel gear.\n- Change only this aspect: outfit and materials.\n- Requested change: add a slightly longer tattered cloth tabard.\n- Keep these locked: pose and body stance, head design and facial area unless covered by outfit changes, weapons, shield, and handheld props.\n- Keep the same pixel-art rendering style and overall design identity.\n- Return the full sprite with a transparent background.\n- Do not add background, shadows, halos, hidden body parts, matte shapes, or extra details.\n- Preserve all non-essential pixels whenever possible.\n- The final sprite must read as a strict side view.\n- Do not rotate the character toward the camera or change the viewing angle.",
+      "response_text": ""
+    },
+    {
+      "scenario_id": "ranger_outfit",
+      "variant": "concise_outcome",
+      "status": "fail",
+      "reason": "Gemini changed too much of the requested region for this edit type.",
+      "metrics": {
+        "changed_inside_edit_mask": 141681,
+        "changed_outside_edit_mask": 0,
+        "subject_pixels_inside_edit_mask": 127218,
+        "changed_ratio_inside_edit_mask": 1.1136867424421073,
+        "background_contamination_pixels": 0,
+        "view_correction_mode": false,
+        "status": "fail",
+        "reason": "Gemini changed too much of the requested region for this edit type."
+      },
+      "output_path": "/Users/timwood/Desktop/projects/PWA/MV/tmp/gemini_prompt_experiments/20260322-125832/ranger_outfit__concise_outcome.png",
+      "prompt": "Edit this existing pixel-art sprite.\nKeep the same character: side-view ranger with lantern and layered travel gear.\nRequested result: add a slightly longer tattered cloth tabard.\nOnly change: outfit and materials.\nKeep the same identity, costume, gear, pixel-art style, and transparent background.\nPreserve all other pixels whenever possible.\nReturn the full sprite as a strict side view.",
+      "response_text": ""
+    },
+    {
+      "scenario_id": "ranger_outfit",
+      "variant": "acceptance_criteria",
+      "status": "fail",
+      "reason": "Gemini changed too much of the requested region for this edit type.",
+      "metrics": {
+        "changed_inside_edit_mask": 141168,
+        "changed_outside_edit_mask": 0,
+        "subject_pixels_inside_edit_mask": 127218,
+        "changed_ratio_inside_edit_mask": 1.1096542942036505,
+        "background_contamination_pixels": 0,
+        "view_correction_mode": false,
+        "status": "fail",
+        "reason": "Gemini changed too much of the requested region for this edit type."
+      },
+      "output_path": "/Users/timwood/Desktop/projects/PWA/MV/tmp/gemini_prompt_experiments/20260322-125832/ranger_outfit__acceptance_criteria.png",
+      "prompt": "Edit this sprite so it passes these acceptance criteria:\n1. Requested change is applied: add a slightly longer tattered cloth tabard.\n2. Only this aspect changes: outfit and materials.\n3. Locked attributes stay the same: pose and body stance, head design and facial area unless covered by outfit changes, weapons, shield, and handheld props.\n4. The result stays pixel art and keeps a transparent background.\n5. The full image is returned and still reads as a strict side view.\nFail by changing too little rather than by redesigning the sprite.",
+      "response_text": ""
+    },
+    {
+      "scenario_id": "ranger_outfit",
+      "variant": "identity_locked",
+      "status": "fail",
+      "reason": "Gemini changed too much of the requested region for this edit type.",
+      "metrics": {
+        "changed_inside_edit_mask": 142116,
+        "changed_outside_edit_mask": 0,
+        "subject_pixels_inside_edit_mask": 127218,
+        "changed_ratio_inside_edit_mask": 1.1171060698957695,
+        "background_contamination_pixels": 0,
+        "view_correction_mode": false,
+        "status": "fail",
+        "reason": "Gemini changed too much of the requested region for this edit type."
+      },
+      "output_path": "/Users/timwood/Desktop/projects/PWA/MV/tmp/gemini_prompt_experiments/20260322-125832/ranger_outfit__identity_locked.png",
+      "prompt": "Use the input image as the source of truth for character identity.\nApply this single change: add a slightly longer tattered cloth tabard.\nDo not redesign the character.\nDo not add new objects, shadows, halos, or background elements.\nKeep the same armor, prop family, palette intent, and pixel-art rendering style.\nReturn a transparent full sprite.\nDo not change the viewing angle away from strict side view.",
+      "response_text": ""
+    }
+  ],
+  "summary": {
+    "variants": {
+      "current_requirements": {
+        "passes": 2,
+        "fails": 2,
+        "errors": 0,
+        "scenarios": [
+          {
+            "scenario_id": "hero_expression",
+            "status": "fail",
+            "reason": "Gemini changed too much of the requested region for this edit type.",
+            "output_path": "/Users/timwood/Desktop/projects/PWA/MV/tmp/gemini_prompt_experiments/20260322-125832/hero_expression__current_requirements.png"
+          },
+          {
+            "scenario_id": "hero_pose_guarded",
+            "status": "pass",
+            "reason": null,
+            "output_path": "/Users/timwood/Desktop/projects/PWA/MV/tmp/gemini_prompt_experiments/20260322-125832/hero_pose_guarded__current_requirements.png"
+          },
+          {
+            "scenario_id": "hero_side_correction",
+            "status": "pass",
+            "reason": null,
+            "output_path": "/Users/timwood/Desktop/projects/PWA/MV/tmp/gemini_prompt_experiments/20260322-125832/hero_side_correction__current_requirements.png"
+          },
+          {
+            "scenario_id": "ranger_outfit",
+            "status": "fail",
+            "reason": "Gemini changed too much of the requested region for this edit type.",
+            "output_path": "/Users/timwood/Desktop/projects/PWA/MV/tmp/gemini_prompt_experiments/20260322-125832/ranger_outfit__current_requirements.png"
+          }
+        ]
+      },
+      "concise_outcome": {
+        "passes": 1,
+        "fails": 3,
+        "errors": 0,
+        "scenarios": [
+          {
+            "scenario_id": "hero_expression",
+            "status": "fail",
+            "reason": "Gemini changed too much of the requested region for this edit type.",
+            "output_path": "/Users/timwood/Desktop/projects/PWA/MV/tmp/gemini_prompt_experiments/20260322-125832/hero_expression__concise_outcome.png"
+          },
+          {
+            "scenario_id": "hero_pose_guarded",
+            "status": "fail",
+            "reason": "Gemini changed too much of the requested region for this edit type.",
+            "output_path": "/Users/timwood/Desktop/projects/PWA/MV/tmp/gemini_prompt_experiments/20260322-125832/hero_pose_guarded__concise_outcome.png"
+          },
+          {
+            "scenario_id": "hero_side_correction",
+            "status": "pass",
+            "reason": null,
+            "output_path": "/Users/timwood/Desktop/projects/PWA/MV/tmp/gemini_prompt_experiments/20260322-125832/hero_side_correction__concise_outcome.png"
+          },
+          {
+            "scenario_id": "ranger_outfit",
+            "status": "fail",
+            "reason": "Gemini changed too much of the requested region for this edit type.",
+            "output_path": "/Users/timwood/Desktop/projects/PWA/MV/tmp/gemini_prompt_experiments/20260322-125832/ranger_outfit__concise_outcome.png"
+          }
+        ]
+      },
+      "acceptance_criteria": {
+        "passes": 2,
+        "fails": 2,
+        "errors": 0,
+        "scenarios": [
+          {
+            "scenario_id": "hero_expression",
+            "status": "fail",
+            "reason": "Gemini changed too much of the requested region for this edit type.",
+            "output_path": "/Users/timwood/Desktop/projects/PWA/MV/tmp/gemini_prompt_experiments/20260322-125832/hero_expression__acceptance_criteria.png"
+          },
+          {
+            "scenario_id": "hero_pose_guarded",
+            "status": "pass",
+            "reason": null,
+            "output_path": "/Users/timwood/Desktop/projects/PWA/MV/tmp/gemini_prompt_experiments/20260322-125832/hero_pose_guarded__acceptance_criteria.png"
+          },
+          {
+            "scenario_id": "hero_side_correction",
+            "status": "pass",
+            "reason": null,
+            "output_path": "/Users/timwood/Desktop/projects/PWA/MV/tmp/gemini_prompt_experiments/20260322-125832/hero_side_correction__acceptance_criteria.png"
+          },
+          {
+            "scenario_id": "ranger_outfit",
+            "status": "fail",
+            "reason": "Gemini changed too much of the requested region for this edit type.",
+            "output_path": "/Users/timwood/Desktop/projects/PWA/MV/tmp/gemini_prompt_experiments/20260322-125832/ranger_outfit__acceptance_criteria.png"
+          }
+        ]
+      },
+      "identity_locked": {
+        "passes": 1,
+        "fails": 3,
+        "errors": 0,
+        "scenarios": [
+          {
+            "scenario_id": "hero_expression",
+            "status": "fail",
+            "reason": "Gemini changed too much of the requested region for this edit type.",
+            "output_path": "/Users/timwood/Desktop/projects/PWA/MV/tmp/gemini_prompt_experiments/20260322-125832/hero_expression__identity_locked.png"
+          },
+          {
+            "scenario_id": "hero_pose_guarded",
+            "status": "fail",
+            "reason": "Gemini changed too much of the requested region for this edit type.",
+            "output_path": "/Users/timwood/Desktop/projects/PWA/MV/tmp/gemini_prompt_experiments/20260322-125832/hero_pose_guarded__identity_locked.png"
+          },
+          {
+            "scenario_id": "hero_side_correction",
+            "status": "pass",
+            "reason": null,
+            "output_path": "/Users/timwood/Desktop/projects/PWA/MV/tmp/gemini_prompt_experiments/20260322-125832/hero_side_correction__identity_locked.png"
+          },
+          {
+            "scenario_id": "ranger_outfit",
+            "status": "fail",
+            "reason": "Gemini changed too much of the requested region for this edit type.",
+            "output_path": "/Users/timwood/Desktop/projects/PWA/MV/tmp/gemini_prompt_experiments/20260322-125832/ranger_outfit__identity_locked.png"
+          }
+        ]
+      }
+    },
+    "ranking": [
+      "current_requirements",
+      "acceptance_criteria",
+      "concise_outcome",
+      "identity_locked"
+    ]
+  }
+}

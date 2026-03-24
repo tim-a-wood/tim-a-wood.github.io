@@ -35,7 +35,14 @@ from urllib.request import Request, urlopen
 
 from PIL import Image, ImageChops, ImageDraw, ImageOps
 
-from scripts.pixellab_client import PixelLabError
+from scripts.pixellab_client import PixelLabError, PixelLabHTTPError
+
+try:
+    from google import genai as _google_genai
+    from google.genai import types as _google_genai_types
+    _GOOGLE_GENAI_AVAILABLE = True
+except ImportError:
+    _GOOGLE_GENAI_AVAILABLE = False
 
 
 ROOT = _REPO_ROOT
@@ -212,6 +219,18 @@ REFINEMENT_STRENGTHS = {
     "strong": 0.65,
 }
 
+ITERATION_ELEMENTS = (
+    "outfit",
+    "weapon/prop",
+    "palette/colors",
+    "pose",
+    "silhouette",
+    "hair/head",
+    "accessories",
+    "expression",
+    "proportions",
+)
+
 REFERENCE_ROLES = ("identity", "costume", "style", "prop")
 BACKEND_MODES = ("debug_procedural", "pixellab")
 
@@ -245,6 +264,8 @@ DEFAULT_NEGATIVE_PROMPT = (
 # Pixel Lab scaffold defaults (kept server-side for deterministic prompt generation).
 SUPPORTED_CANVAS_SIZES = (32, 64, 128, 256)
 DEFAULT_CANVAS_SIZE = 64
+PIXELLAB_CONCEPT_IMAGE_SIZE = 128
+PIXELLAB_CONCEPT_INIT_IMAGE_STRENGTH = 820
 DEFAULT_OUTLINE_STYLE = "single color black outline"
 DEFAULT_SHADING_STYLE = "medium shading"
 DEFAULT_DETAIL_LEVEL = "medium detail"
@@ -262,8 +283,8 @@ SHADING_STYLE_MAP = {
     "flat shading": "flat shading",
     "basic shading": "basic shading",
     "medium shading": "medium shading",
-    "soft shading": "soft shading",
-    "hard shading": "hard shading",
+    "detailed shading": "detailed shading",
+    "highly detailed shading": "highly detailed shading",
 }
 
 DETAIL_LEVEL_MAP = {
@@ -291,6 +312,26 @@ def coerce_canvas_size(value: Any, default: int = DEFAULT_CANVAS_SIZE) -> int:
     except (TypeError, ValueError):
         return default
     return size if size in SUPPORTED_CANVAS_SIZES else default
+
+
+def preferred_supported_canvas_size(image_size: Any, default: int = DEFAULT_CANVAS_SIZE) -> int:
+    """Prefer a supported square size from stored image metadata before falling back to the brief default."""
+    if isinstance(image_size, dict):
+        width = image_size.get("width")
+        height = image_size.get("height")
+        try:
+            width_i = int(width)
+            height_i = int(height)
+        except (TypeError, ValueError):
+            return coerce_canvas_size(None, default)
+        if width_i == height_i and width_i in SUPPORTED_CANVAS_SIZES:
+            return width_i
+    return coerce_canvas_size(default, default)
+
+
+def preferred_concept_canvas_size(image_size: Any) -> int:
+    """Concept-derived Pixel Lab assets should normalize onto the shared concept canvas."""
+    return preferred_supported_canvas_size(image_size, PIXELLAB_CONCEPT_IMAGE_SIZE)
 
 
 def pick_mapped_style(mapping: Dict[str, str], user_value: Optional[str], default_user_value: str) -> Tuple[str, str]:
@@ -772,6 +813,8 @@ REJECT_PATTERNS = {
     "isometric designs": re.compile(r"\b(isometric)\b", re.I),
     "highly asymmetric multi-view requirements": re.compile(r"\b(front view|rear view|multi[- ]view|turnaround)\b", re.I),
 }
+
+NEGATING_PREFIX_PATTERN = re.compile(r"(?:^|[\s,;:()/-])(?:no|not|avoid|without|exclude|excluding|except|skip)\b", re.I)
 
 PROP_FAMILIES = {
     "lantern": ["hooded lantern", "cage lantern", "rail lantern", "storm lantern"],
@@ -3208,6 +3251,13 @@ def normalize_prompt_text(prompt_text: str) -> str:
 def validate_prompt_constraints(prompt_text: str) -> None:
     lowered = (prompt_text or "").lower()
     for reason, pattern in REJECT_PATTERNS.items():
+        if reason == "highly asymmetric multi-view requirements":
+            for match in pattern.finditer(lowered):
+                prefix = lowered[max(0, match.start() - 40):match.start()]
+                if NEGATING_PREFIX_PATTERN.search(prefix):
+                    continue
+                raise ValueError("Unsupported input: %s." % reason)
+            continue
         if pattern.search(lowered):
             raise ValueError("Unsupported input: %s." % reason)
 
@@ -3419,7 +3469,7 @@ def build_concept_prompt(brief: Dict[str, Any]) -> Dict[str, Any]:
     - debug_constraints: machine-readable summary (also injected into display_prompt)
     """
     style = _brief_pixel_lab_style(brief)
-    canvas_size = coerce_canvas_size(brief.get("canvas_size"), DEFAULT_CANVAS_SIZE)
+    canvas_size = PIXELLAB_CONCEPT_IMAGE_SIZE
     description = str(brief.get("raw_prompt") or "").strip() or str(brief.get("description") or "").strip() or str(brief.get("prompt_text") or "").strip()
 
     # Keep Pixel Lab description free of debug text; the UI can show debug separately.
@@ -3575,6 +3625,464 @@ def _encode_png_base64(image: Image.Image) -> str:
     return base64.b64encode(buf.getvalue()).decode("ascii")
 
 
+def _element_edit_mask_for_size(element: str, size: Tuple[int, int]) -> Image.Image:
+    square_mask, _ = _build_element_inpaint_mask(element, 64)
+    if square_mask.size == size:
+        return square_mask
+    return square_mask.resize(size, resample=Image.Resampling.NEAREST)
+
+
+def _is_side_view_correction_request(element: str, change_text: str) -> bool:
+    if element != "pose":
+        return False
+    text = str(change_text or "").lower()
+    side_terms = (
+        "side view",
+        "side-view",
+        "side profile",
+        "side-profile",
+        "strict profile",
+        "profile view",
+        "orthographic side",
+        "true side",
+    )
+    off_view_terms = (
+        "3/4",
+        "three quarter",
+        "three-quarter",
+        "front view",
+        "frontal",
+        "turned toward camera",
+        "not side view",
+        "wrong view",
+    )
+    correction_verbs = (
+        "change",
+        "make",
+        "turn",
+        "convert",
+        "fix",
+        "adjust",
+        "shift",
+    )
+    direct_side_requests = (
+        "strict side view",
+        "strict side-view",
+        "strict side profile",
+        "strict side-profile",
+        "true side view",
+        "true side profile",
+        "orthographic side view",
+        "full side view",
+    )
+    has_side_term = any(term in text for term in side_terms)
+    has_off_view_term = any(term in text for term in off_view_terms)
+    has_direct_side_request = any(term in text for term in direct_side_requests)
+    has_correction_verb = any(term in text for term in correction_verbs)
+    return (has_side_term and has_off_view_term) or (has_direct_side_request and has_correction_verb)
+
+
+def _protected_source_mask_for_element(element: str, size: Tuple[int, int], change_text: str = "") -> Image.Image:
+    if element != "pose" or _is_side_view_correction_request(element, change_text):
+        return Image.new("L", size, 0)
+    mask = Image.new("L", size, 0)
+    draw = ImageDraw.Draw(mask)
+    w, h = size
+    # Preserve the side-profile read by locking the head and torso core.
+    draw.rectangle((int(w * 0.30), int(h * 0.08), int(w * 0.66), int(h * 0.34)), fill=255)
+    draw.rectangle((int(w * 0.34), int(h * 0.28), int(w * 0.64), int(h * 0.62)), fill=255)
+    return mask
+
+
+def _iteration_element_contract(element: str) -> Dict[str, Any]:
+    contracts = {
+        "outfit": {
+            "label": "outfit and materials",
+            "editable_zone": "clothing, armor surface treatment, cloth shapes, and material accents for the outfit only",
+            "allowed": [
+                "change garment shape, trim, layering, or material treatment",
+                "extend or reduce cloth attached to the outfit",
+                "adjust outfit pixels where the requested outfit change physically requires it",
+            ],
+            "locked": [
+                "pose and body stance",
+                "head design and facial area unless covered by outfit changes",
+                "weapons, shield, and handheld props",
+            ],
+        },
+        "weapon/prop": {
+            "label": "weapon or handheld prop",
+            "editable_zone": "the held item only, including its silhouette, size, and attached details",
+            "allowed": [
+                "change the held item's shape, material read, or decoration",
+                "adjust the hand contact area only if needed to support the new prop shape",
+            ],
+            "locked": [
+                "body pose and limb placement",
+                "armor and clothing outside the hand contact area",
+                "head, torso, and leg silhouette",
+            ],
+        },
+        "palette/colors": {
+            "label": "palette and color treatment",
+            "editable_zone": "color choices only",
+            "allowed": [
+                "change hue, value, and saturation relationships",
+                "re-map existing rendered regions to a new palette",
+            ],
+            "locked": [
+                "silhouette and pose",
+                "pixel clusters and line placement",
+                "prop shape and costume design",
+            ],
+        },
+        "pose": {
+            "label": "pose",
+            "editable_zone": "limb placement, arm angles, leg angles, and stance only while preserving the existing side-profile head and torso read",
+            "allowed": [
+                "reposition limbs and shift stance to create the requested pose",
+                "shift prop placement only as a consequence of the new pose",
+            ],
+            "locked": [
+                "character identity, armor design, and prop design",
+                "head profile, face direction, and torso side-view read",
+                "background and empty space",
+            ],
+        },
+        "silhouette": {
+            "label": "overall silhouette",
+            "editable_zone": "outer contour of the character only",
+            "allowed": [
+                "broaden, narrow, lengthen, or simplify the readable outer shape",
+                "change contour mass where needed to satisfy the requested silhouette change",
+            ],
+            "locked": [
+                "core costume identity unless contour changes require minimal adjustment",
+                "background and empty space",
+                "rendering style and palette",
+            ],
+        },
+        "hair/head": {
+            "label": "hair or head treatment",
+            "editable_zone": "hair, helmet crest, head accessory, and head silhouette only",
+            "allowed": [
+                "change headgear shape, hair shape, or head accessory read",
+                "adjust adjacent neck pixels only if needed for a clean connection",
+            ],
+            "locked": [
+                "body pose and torso design",
+                "weapons, shield, and lower body",
+                "background and empty space",
+            ],
+        },
+        "accessories": {
+            "label": "accessories",
+            "editable_zone": "non-primary accessories only",
+            "allowed": [
+                "add, remove, or modify secondary straps, charms, pouches, or ornaments",
+                "adjust nearby attachment pixels only where required",
+            ],
+            "locked": [
+                "pose and anatomy",
+                "primary weapon or shield silhouette",
+                "base armor and clothing shapes",
+            ],
+        },
+        "expression": {
+            "label": "expression",
+            "editable_zone": "face or visor read only",
+            "allowed": [
+                "change eyes, mouth, visor opening, or faceplate read",
+                "make minimal head-area pixel edits necessary for the requested expression",
+            ],
+            "locked": [
+                "head silhouette unless expression requires a tiny change",
+                "body pose and costume",
+                "weapons, shield, and background",
+            ],
+        },
+        "proportions": {
+            "label": "proportions",
+            "editable_zone": "relative body part size and length relationships only",
+            "allowed": [
+                "lengthen or shorten limbs, torso, or head size relationships",
+                "rebalance mass distribution to satisfy the requested proportion change",
+            ],
+            "locked": [
+                "costume identity and accessory design unless geometry must follow the new proportions",
+                "background and empty space",
+                "rendering style and palette",
+            ],
+        },
+    }
+    return contracts[element]
+
+
+def _iteration_element_contract_with_request(element: str, change_text: str) -> Dict[str, Any]:
+    contract = copy.deepcopy(_iteration_element_contract(element))
+    if _is_side_view_correction_request(element, change_text):
+        contract["label"] = "pose and view correction"
+        contract["editable_zone"] = "the full body pose and orientation, specifically to convert a bad 3/4 or front-turned sprite into a strict side view"
+        contract["allowed"] = [
+            "rebuild head, torso, limbs, and prop placement as needed to achieve a true side view",
+            "remove 3/4-view or front-facing information that conflicts with a side-profile read",
+            "reposition the full figure if needed to land on a clean side-view stance",
+        ]
+        contract["locked"] = [
+            "character identity, costume identity, and prop identity",
+            "overall design language, palette intent, and pixel-art rendering style",
+            "background and empty space",
+        ]
+    return contract
+
+
+def _build_iteration_edit_prompt(
+    brief: Dict[str, Any],
+    element: str,
+    change_text: str,
+    *,
+    canvas_size: Optional[int] = None,
+) -> str:
+    style = _brief_pixel_lab_style(brief)
+    description = str(brief.get("raw_prompt") or "").strip() or str(brief.get("description") or "").strip()
+    contract = _iteration_element_contract_with_request(element, change_text)
+    correcting_view = _is_side_view_correction_request(element, change_text)
+
+    lines = [
+        "ROLE: pixel art revision engine.",
+        "JOB: edit the supplied source sprite by changing exactly one user-selected aspect.",
+        "The source image is the authority for identity, rendering, layout, and all untouched pixels.",
+        "Do not redesign the sprite. Do not perform a general cleanup pass. Do not make a second improvement.",
+        "",
+        "SOURCE OF TRUTH:",
+        f"  Character brief: {description}" if description else "  Character brief: pixel art game character",
+        f"  Outfit/materials: {brief.get('outfit_materials', '')}" if brief.get("outfit_materials") else "",
+        f"  Palette mood: {brief.get('palette_mood', '')}" if brief.get("palette_mood") else "",
+        f"  Silhouette intent: {brief.get('silhouette_intent', '')}" if brief.get("silhouette_intent") else "",
+        f"  Primary prop: {brief.get('prop', '')}" if brief.get("prop") else "",
+        f"  Rendering style: {style['outline_style_pixel_lab']}, {style['shading_style_pixel_lab']}, {style['detail_level_pixel_lab']}",
+        "  View: strict orthographic side view, facing right (east)",
+        f"  Canvas: {canvas_size}x{canvas_size} pixels" if canvas_size else "",
+        "",
+        "EDIT CONTRACT:",
+        f"  Editable aspect: {contract['label']}",
+        f"  User request: {change_text}",
+        f"  Editable zone: {contract['editable_zone']}",
+        "  This is the ONLY aspect that may materially change.",
+        "",
+        "ALLOWED CHANGES FOR THIS EDIT:",
+        *[f"  - {item}" for item in contract["allowed"]],
+        "",
+        "LOCKED ASPECTS FOR THIS EDIT:",
+        *[f"  - {item}" for item in contract["locked"]],
+        "",
+        "PIXEL OWNERSHIP RULES:",
+        "  - Source opaque pixels belong to the character or a carried item.",
+        "  - Source transparent pixels are empty background space.",
+        "  - Never add a backing silhouette, halo, matte, cutout fill, shadow plate, or blocker shape behind the sprite.",
+        "  - Never convert empty background into a black fill, white fill, checker pattern, or placeholder mass.",
+        "  - New opaque pixels are allowed only where the requested edit physically changes the selected aspect.",
+        "",
+        "GLOBAL INVARIANTS:",
+        "  - Preserve all untouched pixels exactly.",
+        "  - Outside the selected edit region, the output should be a verbatim copy of the source sprite.",
+        "  - Preserve the rendering style exactly: same pixel-art hardness, same anti-aliasing policy, same level of detail.",
+        "  - Preserve the character identity and design language unless the selected aspect directly requires a local change.",
+        "  - Preserve canvas size, crop, facing direction, and side-view presentation.",
+        "  - The character must remain a strict side-view sprite, not a 3/4 view or front-turned redraw.",
+        "  - If the request is specifically to fix a wrong view, prioritize reaching a true side view over preserving an incorrect source pose.",
+        "",
+        "BACKGROUND RULES:",
+        "  - Background pixels stay background pixels.",
+        "  - Do not place background-colored mass inside the character silhouette.",
+        "  - Do not infer or paint a hidden body chunk, drop shadow, or backdrop shape behind the sprite.",
+        "  - If the model is unsure whether a region is background or character, keep the source interpretation unchanged.",
+        "",
+        "DECISION RULE:",
+        "  - When choosing between 'apply the requested edit' and 'preserve the source', preserve the source everywhere outside the selected aspect.",
+        "  - If the requested edit can be satisfied with a smaller change, choose the smaller change.",
+        "",
+        "OUTPUT REQUIREMENT:",
+        "  - Return one full sprite image with exactly one intentional revision: the requested change to the selected aspect.",
+        "  - If the edit would break the strict side view, prefer a smaller side-view-safe change instead.",
+        "  - If the request is to convert a bad 3/4 or front-facing image into side view, perform that correction directly and do not preserve the incorrect viewing angle.",
+    ]
+    if correcting_view:
+        lines.extend([
+            "",
+            "VIEW CORRECTION MODE:",
+            "  - The source is allowed to be wrong about orientation.",
+            "  - Replace 3/4-view, front-facing, or camera-turned anatomy with a clean strict side profile.",
+            "  - Keep the same character, but fix the view.",
+        ])
+    return "\n".join(line for line in lines if line)
+
+
+def _build_gemini_requirements_prompt(
+    brief: Dict[str, Any],
+    element: str,
+    change_text: str,
+) -> str:
+    contract = _iteration_element_contract_with_request(element, change_text)
+    correcting_view = _is_side_view_correction_request(element, change_text)
+    description = str(brief.get("raw_prompt") or "").strip() or str(brief.get("description") or "").strip() or "pixel art character"
+    style = _brief_pixel_lab_style(brief)
+
+    lines = [
+        "Edit the attached sprite image.",
+        "This is an image edit, not a redesign and not a fresh generation.",
+        "Use the attached image as the visual source of truth.",
+        "",
+        "Target character:",
+        f"- {description}",
+        f"- Rendering style: {style['outline_style_pixel_lab']}, {style['shading_style_pixel_lab']}, {style['detail_level_pixel_lab']}",
+        "",
+        "Requested edit:",
+        f"- Aspect to change: {contract['label']}",
+        f"- User request: {change_text}",
+        f"- Editable zone: {contract['editable_zone']}",
+        "",
+        "Allowed changes:",
+        *[f"- {item}" for item in contract["allowed"]],
+        "",
+        "Keep unchanged unless required by the requested edit:",
+        *[f"- {item}" for item in contract["locked"]],
+        "",
+        "Output requirements:",
+        "- Return one edited full sprite image only.",
+        "- Keep the same character identity, costume identity, gear identity, and pixel-art style.",
+        "- Keep the same framing, crop, scale, and facing direction unless the request explicitly requires changing them.",
+        "- Make only the smallest set of changes needed to satisfy the request.",
+        "- Keep the background transparent and empty.",
+        "- Do not add a backdrop, matte, glow, cast shadow, extra silhouette, hidden body fill, or any other new background-shaped mass.",
+    ]
+    if correcting_view:
+        lines.extend([
+            "- The source view may be wrong.",
+            "- Correct the figure to a true strict side view while keeping the same identity, costume, and gear.",
+        ])
+    else:
+        lines.extend([
+            "- Keep the current viewing angle and body orientation unless the request explicitly asks to correct them.",
+            "- Preserve the side-view presentation.",
+        ])
+    return "\n".join(lines)
+
+
+def gemini_iteration_supported_for_element(element: str) -> bool:
+    return str(element or "").strip() in ITERATION_ELEMENTS
+
+
+def _concept_source_image_relpath(concept: Dict[str, Any]) -> Optional[str]:
+    return (
+        concept.get("original_preview_image")
+        or concept.get("preview_image")
+        or concept.get("processed_preview_image")
+        or concept.get("image_path")
+    )
+
+
+def _count_mask_pixels(mask: Image.Image) -> int:
+    normalized = normalize_mask(mask)
+    return sum(1 for value in normalized.getdata() if value > 0)
+
+
+def evaluate_gemini_iteration_result(
+    source_image: Image.Image,
+    result_image: Image.Image,
+    element: str,
+    change_text: str,
+) -> Dict[str, Any]:
+    edit_mask = _element_edit_mask_for_size(element, result_image.size).convert("L")
+    edit_pixels = edit_mask.load()
+    src_pixels = source_image.convert("RGBA").load()
+    out_pixels = result_image.convert("RGBA").load()
+    width, height = result_image.size
+
+    changed_inside = 0
+    changed_outside = 0
+    subject_pixels_inside = 0
+    for y in range(height):
+        for x in range(width):
+            inside = edit_pixels[x, y] > 0
+            if src_pixels[x, y][3] > 0 and inside:
+                subject_pixels_inside += 1
+            if src_pixels[x, y] != out_pixels[x, y]:
+                if inside:
+                    changed_inside += 1
+                else:
+                    changed_outside += 1
+
+    source_mask = largest_component_mask(detect_mask(source_image))
+    result_mask = largest_component_mask(detect_mask(result_image))
+    contamination_pixels = 0
+    srcm = source_mask.load()
+    outm = result_mask.load()
+    for y in range(height):
+        for x in range(width):
+            if srcm[x, y] <= 0 and outm[x, y] > 0:
+                contamination_pixels += 1
+
+    changed_ratio = float(changed_inside) / float(max(1, subject_pixels_inside))
+    result = {
+        "changed_inside_edit_mask": changed_inside,
+        "changed_outside_edit_mask": changed_outside,
+        "subject_pixels_inside_edit_mask": subject_pixels_inside,
+        "changed_ratio_inside_edit_mask": changed_ratio,
+        "background_contamination_pixels": contamination_pixels,
+        "view_correction_mode": _is_side_view_correction_request(element, change_text),
+    }
+
+    if result["view_correction_mode"]:
+        result["status"] = "pass"
+        result["reason"] = None
+        return result
+
+    min_changed = {
+        "expression": 2,
+        "accessories": 4,
+        "hair/head": 6,
+        "weapon/prop": 12,
+        "outfit": 16,
+        "palette/colors": 40,
+        "pose": 24,
+        "silhouette": 24,
+        "proportions": 24,
+    }.get(element, 4)
+    max_ratio = {
+        "expression": 0.38,
+        "accessories": 0.45,
+        "hair/head": 0.55,
+        "weapon/prop": 0.7,
+        "outfit": 0.75,
+        "palette/colors": 1.0,
+        "pose": 0.9,
+        "silhouette": 0.95,
+        "proportions": 0.95,
+    }.get(element, 0.8)
+
+    if changed_inside < min_changed:
+        result["status"] = "fail"
+        result["reason"] = "Gemini did not make a meaningful edit in the requested region."
+        return result
+    if changed_ratio > max_ratio:
+        result["status"] = "fail"
+        result["reason"] = "Gemini changed too much of the requested region for this edit type."
+        return result
+    if changed_outside > 0:
+        result["status"] = "fail"
+        result["reason"] = "Gemini changed pixels outside the requested edit region."
+        return result
+    if contamination_pixels > 0:
+        result["status"] = "fail"
+        result["reason"] = "Gemini introduced new foreground pixels outside the original character silhouette."
+        return result
+
+    result["status"] = "pass"
+    result["reason"] = None
+    return result
+
+
 def build_iteration_prompt(
     brief: Dict[str, Any],
     element: str,
@@ -3583,7 +4091,10 @@ def build_iteration_prompt(
     source_concept_path: Optional[Path] = None,
 ) -> Dict[str, Any]:
     """
-    Deterministically scaffold *targeted concept iteration* using inpaint-v3.
+    Scaffold targeted concept iteration using generate-image-pixflux with init_image (img2img).
+
+    init_image_strength (1-999): higher = closer to source. ~750 preserves character identity
+    while still applying the targeted change from the description.
     """
     element = (element or "").strip()
     change_text = (change_text or "").strip()
@@ -3592,57 +4103,21 @@ def build_iteration_prompt(
     if not change_text:
         raise ValueError("Iteration requires 'change_text'.")
 
-    allowed_elements = {
-        "outfit",
-        "weapon/prop",
-        "palette/colors",
-        "pose",
-        "silhouette",
-        "hair/head",
-        "accessories",
-        "expression",
-        "proportions",
-    }
+    allowed_elements = set(ITERATION_ELEMENTS)
     if element not in allowed_elements:
         raise ValueError("Invalid element. Must be one of: %s" % ", ".join(sorted(allowed_elements)))
 
     style = _brief_pixel_lab_style(brief)
-    canvas_size = coerce_canvas_size(brief.get("canvas_size"), DEFAULT_CANVAS_SIZE)
-    description = str(brief.get("raw_prompt") or "").strip() or str(brief.get("description") or "").strip()
-
-    pixellab_description = "\n".join(
-        [
-            "Inpaint-edit a single 2D side-view pixel art character concept.",
-            "Facing: right (east), strict orthographic side profile.",
-            "Background: plain flat color only; no environment; preserve transparency-ready look.",
-            "",
-            "CURRENT CHARACTER (must remain recognizable):",
-            f"- Role: {brief.get('role_archetype','')}",
-            f"- Description: {description}",
-            f"- Silhouette: {brief.get('silhouette_intent','')}",
-            f"- Outfit/Materials: {brief.get('outfit_materials','')}",
-            f"- Held Item: {brief.get('prop','')}",
-            f"- Shape Language: {brief.get('shape_language','')}",
-            f"- Mood/Tone: {brief.get('mood_tone','')}",
-            f"- Palette: {brief.get('palette_mood','')}",
-            "",
-            "STYLE (pixel art):",
-            f"- Outline: {style['outline_style_pixel_lab']}",
-            f"- Shading: {style['shading_style_pixel_lab']}",
-            f"- Detail: {style['detail_level_pixel_lab']}",
-            f"- Template: {style['character_template_pixel_lab']}",
-            "",
-            "ITERATION:",
-            f"- Element to change: {element}",
-            f"- Specific change: {change_text}",
-            "- Constraints: Keep ALL other visual elements unchanged except where the edit naturally affects continuity.",
-            "- Maintain the same style, palette, and proportions unless explicitly changed by the request.",
-        ]
+    canvas_size = PIXELLAB_CONCEPT_IMAGE_SIZE
+    pixellab_description = _build_iteration_edit_prompt(
+        brief,
+        element,
+        change_text,
+        canvas_size=canvas_size,
     )
 
-    # Mask + base64 are required for inpaint.
     if source_concept_path is None:
-        raise ValueError("Iteration scaffolding requires source_concept_path for inpaint-v3.")
+        raise ValueError("Iteration scaffolding requires source_concept_path.")
     if not isinstance(source_concept_path, Path):
         raise ValueError("source_concept_path must be a Path.")
     if not source_concept_path.exists():
@@ -3650,16 +4125,14 @@ def build_iteration_prompt(
 
     with Image.open(source_concept_path) as loaded:
         rgba = loaded.convert("RGBA")
-        # Deterministic center-square crop so mask and inpainting align.
         side = min(rgba.size[0], rgba.size[1])
         left = (rgba.size[0] - side) // 2
         top = (rgba.size[1] - side) // 2
         cropped = rgba.crop((left, top, left + side, top + side))
         resized = cropped.resize((canvas_size, canvas_size), resample=Image.Resampling.NEAREST)
-        inpainting_image_b64 = _encode_png_base64(resized)
-
-    mask_img, boxes = _build_element_inpaint_mask(element, canvas_size)
-    mask_image_b64 = _encode_png_base64(mask_img)
+        init_image_b64 = _encode_png_base64(resized)
+    mask_image, mask_boxes = _build_element_inpaint_mask(element, canvas_size)
+    mask_image_b64 = _encode_png_base64(mask_image)
 
     seed = stable_int(
         "iteration",
@@ -3690,11 +4163,14 @@ def build_iteration_prompt(
             "detail_level_user": style["detail_level_user"],
             "detail_level_pixel_lab": style["detail_level_pixel_lab"],
         },
-        "inpaint": {
+        "img2img": {
             "element": element,
-            "mask_boxes": boxes,
-            "strategy": "heuristic deterministic rectangles in canvas space",
-            "pixel_lab_endpoint": "POST /v2/inpaint-v3",
+            "init_image_strength": 750,
+            "pixel_lab_endpoint": "POST /v1/generate-image-pixflux",
+        },
+        "inpaint": {
+            "mask_boxes": mask_boxes,
+            "crop_to_mask": True,
         },
     }
 
@@ -3703,19 +4179,26 @@ def build_iteration_prompt(
             "DEBUG CONSTRAINTS (tool-enforced):",
             f"- Orientation: view=side, direction=east",
             f"- Canvas: {canvas_size}x{canvas_size}",
-            f"- Inpaint element: {element}",
-            f"- Mask boxes: {boxes}",
+            f"- img2img element: {element}",
+            f"- init_image_strength: 750",
             f"- Style mapping: outline={style['outline_style_user']} shading={style['shading_style_user']} detail={style['detail_level_user']}",
         ]
     )
 
     pixellab_params = {
         "description": pixellab_description,
-        "inpainting_image_b64": inpainting_image_b64,
-        "mask_image_b64": mask_image_b64,
+        "init_image_b64": init_image_b64,
+        "inpainting_image_b64": init_image_b64,
+        "init_image_strength": 750,
         "image_size": {"width": canvas_size, "height": canvas_size},
-        "no_background": True,
+        "mask_image_b64": mask_image_b64,
         "crop_to_mask": True,
+        "view": "side",
+        "direction": "east",
+        "outline": style["outline_style_pixel_lab"],
+        "shading": style["shading_style_pixel_lab"],
+        "detail": style["detail_level_pixel_lab"],
+        "no_background": True,
         "seed": seed,
     }
 
@@ -3724,6 +4207,57 @@ def build_iteration_prompt(
         "pixellab_params": pixellab_params,
         "debug_constraints": debug_constraints,
     }
+
+
+def get_gemini_client() -> Any:
+    if not _GOOGLE_GENAI_AVAILABLE:
+        raise ValueError("google-genai package not installed. Run: pip install google-genai")
+    api_key = os.environ.get("GEMINI_API_KEY", "").strip()
+    if not api_key:
+        raise ValueError("GEMINI_API_KEY environment variable not set.")
+    return _google_genai.Client(api_key=api_key)
+
+
+GEMINI_IMAGE_MODEL = "gemini-2.5-flash-image"
+
+
+def gemini_iterate_concept(
+    source_image_bytes: bytes,
+    element: str,
+    change_text: str,
+    brief: Dict[str, Any],
+) -> bytes:
+    """
+    Use Gemini image editing to apply one targeted change to a sprite.
+
+    Sends the original source image to Gemini and relies on the prompt to constrain the edit.
+    Returns the modified image as PNG bytes at the original dimensions.
+    """
+    src = Image.open(io.BytesIO(source_image_bytes)).convert("RGBA")
+    orig_w, orig_h = src.size
+    prompt = _build_gemini_requirements_prompt(brief, element, change_text)
+
+    client = get_gemini_client()
+    response = client.models.generate_content(
+        model=GEMINI_IMAGE_MODEL,
+        contents=[
+            _google_genai_types.Part.from_bytes(data=source_image_bytes, mime_type="image/png"),
+            prompt,
+        ],
+        config=_google_genai_types.GenerateContentConfig(response_modalities=["IMAGE", "TEXT"]),
+    )
+
+    for part in response.candidates[0].content.parts:
+        if part.inline_data:
+            result_img = Image.open(io.BytesIO(part.inline_data.data)).convert("RGBA")
+            if result_img.size != (orig_w, orig_h):
+                result_img = result_img.resize((orig_w, orig_h), resample=Image.Resampling.NEAREST)
+
+            out_buf = io.BytesIO()
+            result_img.save(out_buf, format="PNG")
+            return out_buf.getvalue()
+
+    raise ValueError("Gemini did not return an image. Response: %s" % str(response.candidates[0].content.parts))
 
 
 def _find_first_base64_png_like(payload: Any) -> Optional[str]:
@@ -4204,6 +4738,17 @@ def _pixellab_character_approved_guard(project_dir: Path) -> Dict[str, Any]:
     return char_data if isinstance(char_data, dict) else {}
 
 
+def _pixellab_character_requires_template_generation_guard(char_data: Dict[str, Any]) -> None:
+    if char_data.get("character_id"):
+        return
+    if char_data.get("east_only_source"):
+        raise ValueError(
+            "This character is using the approved concept as an east-only source image. "
+            "Pixel Lab template animations require Create Character (4 dir) or Create Character (8 dir)."
+        )
+    raise ValueError("Pixel Lab template animations require a generated Pixel Lab character_id.")
+
+
 def _pixellab_animation_frames_dir(project_dir: Path, animation_name: str, direction: str) -> Path:
     # Phase 5: animations/<animation_name>/<direction>/frame_NN.png
     return project_dir / "animations" / animation_name / direction
@@ -4387,10 +4932,22 @@ def _pixellab_decode_single_animation_payload_to_frames(
                 repr(first)[:300] if not isinstance(first, str) else ("str(len=%d head=%r)" % (len(first), first[:80])),
             )
     decoded: List[Image.Image] = []
-    # Handle Pixel Lab v2 rgba_bytes format: raw RGBA pixel data (not a PNG/WebP file).
-    rgba_frames = _collect_rgba_bytes_frames(result)
-    if rgba_frames:
-        logger.info("[pixellab/decode] found %d rgba_bytes frames", len(rgba_frames))
+    # Handle Pixel Lab v2 rgba_bytes format: prefer canonical ``images`` frames and
+    # only fall back to ``quantized_images`` if ``images`` are absent.
+    rgba_payloads: List[Tuple[str, Any]] = []
+    if isinstance(result, dict):
+        rgba_payloads.append(("images", result.get("images")))
+        rgba_payloads.append(("quantized_images", result.get("quantized_images")))
+    rgba_payloads.append(("payload", result))
+    seen_sources: Set[str] = set()
+    for label, payload in rgba_payloads:
+        if label in seen_sources:
+            continue
+        seen_sources.add(label)
+        rgba_frames = _collect_rgba_bytes_frames(payload)
+        if not rgba_frames:
+            continue
+        logger.info("[pixellab/decode] using %d rgba_bytes frames from %s", len(rgba_frames), label)
         for frame_obj in rgba_frames:
             try:
                 decoded.append(_decode_rgba_bytes_frame(frame_obj, rgba))
@@ -4509,6 +5066,124 @@ def _pixellab_animation_job_to_rgba_frames(
 
 def _pixellab_character_path(project_dir: Path) -> Path:
     return project_dir / "pixellab_character.json"
+
+
+def _normalize_east_only_character_source(
+    project_dir: Path,
+    char_data: Optional[Dict[str, Any]],
+    concepts: Optional[List[Dict[str, Any]]] = None,
+) -> Optional[Dict[str, Any]]:
+    if not isinstance(char_data, dict) or not char_data.get("east_only_source"):
+        return char_data
+
+    current_size = char_data.get("image_size")
+    target_size = preferred_concept_canvas_size(current_size)
+    if (
+        isinstance(current_size, dict)
+        and int(current_size.get("width") or 0) == target_size
+        and int(current_size.get("height") or 0) == target_size
+    ):
+        return char_data
+
+    east_rel = ((char_data.get("images") or {}) if isinstance(char_data.get("images"), dict) else {}).get("east")
+    east_path = (project_dir / str(east_rel)) if east_rel else (project_dir / "character" / "east.png")
+
+    source_path: Optional[Path] = None
+    if concepts and char_data.get("source_concept_id"):
+        concept = next((item for item in concepts if item.get("concept_id") == char_data.get("source_concept_id")), None)
+        if concept is not None:
+            source_rel = (
+                concept.get("processed_preview_image")
+                or concept.get("original_preview_image")
+                or concept.get("preview_image")
+                or concept.get("image_path")
+            )
+            if source_rel:
+                candidate = Path(str(source_rel))
+                source_path = candidate if candidate.is_absolute() else (project_dir / str(source_rel))
+                if not source_path.exists():
+                    source_path = None
+
+    if source_path is None and east_path.exists():
+        source_path = east_path
+
+    if source_path is None:
+        return char_data
+
+    with Image.open(source_path) as loaded:
+        source_size = {"width": loaded.size[0], "height": loaded.size[1]}
+    target_size = preferred_concept_canvas_size(source_size)
+    normalized = prepare_pixellab_character_color_source(source_path, target_size)
+
+    east_path.parent.mkdir(parents=True, exist_ok=True)
+    normalized.save(east_path)
+
+    char_data = dict(char_data)
+    images = dict(char_data.get("images") or {})
+    images["east"] = str(east_path.relative_to(project_dir))
+    char_data["images"] = images
+    char_data["image_size"] = {"width": target_size, "height": target_size}
+    char_data["updated_at"] = now_iso()
+    _pixellab_character_path(project_dir).write_text(json.dumps(char_data, indent=2), encoding="utf-8")
+
+    skel_path = _pixellab_skeleton_path(project_dir)
+    if skel_path.exists():
+        skel_data = load_json(skel_path, None) or {}
+        skel_size = skel_data.get("image_size") if isinstance(skel_data, dict) else {}
+        if (
+            not isinstance(skel_size, dict)
+            or int(skel_size.get("width") or 0) != target_size
+            or int(skel_size.get("height") or 0) != target_size
+        ):
+            skel_path.unlink(missing_ok=True)
+
+    return char_data
+
+
+def _upscale_legacy_east_only_animation_frames(
+    project_dir: Path,
+    char_data: Optional[Dict[str, Any]],
+    store: Optional[Dict[str, Any]],
+) -> Optional[Dict[str, Any]]:
+    if (
+        not isinstance(char_data, dict)
+        or not char_data.get("east_only_source")
+        or not isinstance(store, dict)
+        or not isinstance(store.get("animations"), dict)
+    ):
+        return store
+
+    target_size = preferred_concept_canvas_size(char_data.get("image_size"))
+    changed = False
+    animations = store.get("animations") or {}
+    for anim in animations.values():
+        if not isinstance(anim, dict):
+            continue
+        directions = anim.get("directions")
+        if not isinstance(directions, dict):
+            continue
+        for direction_meta in directions.values():
+            if not isinstance(direction_meta, dict):
+                continue
+            for rel_path in direction_meta.get("frames") or []:
+                frame_path = project_dir / str(rel_path)
+                if not frame_path.exists():
+                    continue
+                with Image.open(frame_path) as loaded:
+                    if loaded.size == (target_size, target_size):
+                        continue
+                    width, height = loaded.size
+                    if width != height or width >= target_size or width not in SUPPORTED_CANVAS_SIZES:
+                        continue
+                    upscaled = loaded.resize((target_size, target_size), Image.Resampling.NEAREST)
+                upscaled.save(frame_path)
+                changed = True
+
+    if changed:
+        store = dict(store)
+        store["updated_at"] = now_iso()
+        _save_pixellab_animations_store(project_dir, store)
+    return store
 
 
 def pixellab_character_wizard_complete(project: Dict[str, Any], project_dir: Path) -> bool:
@@ -4682,9 +5357,15 @@ def _resolve_animation_timing(
         frame_count = _infer_frame_count_from_template(template_animation_id)
 
     fps = int(fps or 12)
-    frame_count = int(frame_count or 4)
+    frame_count = int(frame_count or 8)
 
     return {"fps": fps, "frame_count": frame_count, "loop": loop}
+
+
+def chunk_frame_indices(frame_count: int, batch_size: int = 4) -> List[List[int]]:
+    total = max(0, int(frame_count))
+    size = max(1, int(batch_size))
+    return [list(range(start, min(total, start + size))) for start in range(0, total, size)]
 
 
 def _write_png_frames(frames: List[Image.Image], project_dir: Path, animation_name: str, direction: str) -> List[str]:
@@ -5107,6 +5788,8 @@ def hydrate_concept(concept: Dict[str, Any], fallback_created_at: Optional[str] 
     record.setdefault("postprocess_status", "not_needed")
     record.setdefault("postprocess_notes", None)
     record.setdefault("approved_source_image", record.get("processed_preview_image") or record.get("preview_image") or None)
+    record.setdefault("concept_source_mode", "legacy")
+    record.setdefault("init_source_image", None)
     record.setdefault("variation_axes", {})
     review_state = record.get("review_state") or {}
     record["review_state"] = {
@@ -5132,6 +5815,14 @@ def hydrate_concept(concept: Dict[str, Any], fallback_created_at: Optional[str] 
         "flags": [],
         "metrics": {},
     })
+    if not record.get("preview_image"):
+        record["preview_image"] = (
+            record.get("original_preview_image")
+            or record.get("processed_preview_image")
+            or record.get("approved_source_image")
+            or record.get("image_path")
+            or ""
+        )
     if not record.get("original_preview_image") and record.get("preview_image"):
         record["original_preview_image"] = record["preview_image"]
     if not record.get("approved_source_image"):
@@ -5786,6 +6477,17 @@ def fit_image(image: Image.Image, size: Tuple[int, int], background: Tuple[int, 
     return framed
 
 
+def prepare_pixellab_concept_init_image(raw: bytes, canvas_size: int) -> Image.Image:
+    loaded = ImageOps.exif_transpose(Image.open(io.BytesIO(raw))).convert("RGBA")
+    return fit_image(loaded, (canvas_size, canvas_size), (0, 0, 0, 0))
+
+
+def prepare_pixellab_character_color_source(source_path: Path, canvas_size: int) -> Image.Image:
+    source = Image.open(source_path).convert("RGBA")
+    cropped, _, _ = clean_source_subject(source)
+    return fit_image(cropped, (canvas_size, canvas_size), (0, 0, 0, 0))
+
+
 def detect_mask(image: Image.Image) -> Image.Image:
     rgba = image.convert("RGBA")
     alpha = rgba.getchannel("A")
@@ -6161,6 +6863,9 @@ def load_project(project_id: str) -> Dict[str, Any]:
     project["pixellab_skeleton"] = load_json(_pixellab_skeleton_path(project_dir), None)
     project["pixellab_animations"] = _load_pixellab_animations_store(project_dir)
     project["concepts"] = [hydrate_concept(item, project["created_at"]) for item in load_concepts(project_dir)]
+    project["pixellab_character"] = _normalize_east_only_character_source(project_dir, project["pixellab_character"], project["concepts"])
+    project["pixellab_skeleton"] = load_json(_pixellab_skeleton_path(project_dir), None)
+    project["pixellab_animations"] = _upscale_legacy_east_only_animation_frames(project_dir, project["pixellab_character"], project["pixellab_animations"])
     project["prompt_history"] = prompt_history_entries(project["concepts"])
     project["latest_prompt"] = project["prompt_history"][0] if project["prompt_history"] else None
     project["sprite_model_approved"] = bool(project.get("sprite_model_approved") or (not project.get("sprite_model_approved") and project.get("layer_review_approved")))
@@ -13160,7 +13865,7 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                 if concept is None:
                     raise ValueError("Concept not found: %s" % str(concept_id))
 
-                source_rel = concept.get("original_preview_image") or concept.get("preview_image") or concept.get("image_path")
+                source_rel = _concept_source_image_relpath(concept)
                 if not source_rel:
                     raise ValueError("Concept does not have a preview image path (expected preview_image/original_preview_image/image_path).")
 
@@ -13195,6 +13900,31 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                 serial = next_concept_serial(project["concepts"])
                 concept_id = "concept-%04d" % serial
                 output_path = project_dir / "concepts" / ("%s.png" % concept_id)
+                init_source_rel = None
+                init_image_b64 = None
+                concept_source_mode = "text_prompt"
+                try:
+                    requested_init_strength = int(
+                        payload.get("init_image_strength")
+                        or pixellab_params.get("init_image_strength")
+                        or PIXELLAB_CONCEPT_INIT_IMAGE_STRENGTH
+                    )
+                except (TypeError, ValueError):
+                    requested_init_strength = PIXELLAB_CONCEPT_INIT_IMAGE_STRENGTH
+
+                init_image_data_url = payload.get("init_image_data_url")
+                if init_image_data_url:
+                    _, init_raw = parse_data_url(str(init_image_data_url))
+                    prepared_init = prepare_pixellab_concept_init_image(
+                        init_raw,
+                        int(pixellab_params["image_size"]["width"]),
+                    )
+                    init_output_path = project_dir / "concepts" / ("%s-init.png" % concept_id)
+                    init_output_path.parent.mkdir(parents=True, exist_ok=True)
+                    prepared_init.save(init_output_path)
+                    init_source_rel = str(init_output_path.relative_to(project_dir))
+                    init_image_b64 = _encode_png_base64(prepared_init)
+                    concept_source_mode = "custom_init_image"
 
                 backend_mode = brief_backend_mode(project.get("brief"))
                 seed = pixellab_params.get("seed")
@@ -13203,7 +13933,10 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                 backend_run_id = None
 
                 if backend_mode == "debug_procedural" or not pixellab_configured():
-                    image = debug_pixellab_concept_image(pixellab_params["image_size"], seed, label="gen")
+                    if init_image_b64:
+                        image = debug_pixellab_iterate_from_inpainting(init_image_b64, seed)
+                    else:
+                        image = debug_pixellab_concept_image(pixellab_params["image_size"], seed, label="gen")
                     output_path.parent.mkdir(parents=True, exist_ok=True)
                     image.save(output_path)
                     backend_run_id = "debug"
@@ -13216,9 +13949,10 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                     image_size = pixellab_params["image_size"]
                     no_background = bool(pixellab_params.get("no_background", True))
 
-                    # Prefer v2 for best quality, but keep pixflux as a fallback.
+                    # Init-image post-processing is a Pixflux-only path; direct text generation can still try v2 first.
                     last_exc: Optional[str] = None
-                    for attempt in ([mode] + (["pixflux"] if mode != "pixflux" else [])):
+                    attempts = ["pixflux"] if init_image_b64 else ([mode] + (["pixflux"] if mode != "pixflux" else []))
+                    for attempt in attempts:
                         try:
                             if attempt == "v2":
                                 result = client.create_image_v2(
@@ -13228,17 +13962,23 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                                     seed=seed,
                                 )
                             else:
-                                result = client.create_image_pixflux(
-                                    desc,
-                                    image_size,
-                                    no_background=no_background,
-                                    outline=pixellab_params.get("outline"),
-                                    shading=pixellab_params.get("shading"),
-                                    detail=pixellab_params.get("detail"),
-                                    view=pixellab_params.get("view"),
-                                    direction=pixellab_params.get("direction"),
-                                    seed=seed,
-                                )
+                                pixflux_kwargs = {
+                                    "no_background": no_background,
+                                    "outline": pixellab_params.get("outline"),
+                                    "shading": pixellab_params.get("shading"),
+                                    "detail": pixellab_params.get("detail"),
+                                    "view": pixellab_params.get("view"),
+                                    "direction": pixellab_params.get("direction"),
+                                    "seed": seed,
+                                }
+                                if init_image_b64:
+                                    pixflux_kwargs["init_image"] = {
+                                        "type": "base64",
+                                        "base64": init_image_b64,
+                                        "format": "png",
+                                    }
+                                    pixflux_kwargs["init_image_strength"] = requested_init_strength
+                                result = client.create_image_pixflux(desc, image_size, **pixflux_kwargs)
 
                             backend_run_id = result.get("job_id") or result.get("id")
                             b64 = _find_first_base64_png_like(result)
@@ -13279,7 +14019,13 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                     "original_preview_image": str(output_path.relative_to(project_dir)),
                     "backend_name": used_backend,
                     "backend_run_id": backend_run_id,
-                    "difference_summary": "Pixel Lab generated concept (%s)" % mode,
+                    "difference_summary": (
+                        "Pixel Lab post-processed uploaded init image (pixflux)"
+                        if concept_source_mode == "custom_init_image"
+                        else "Pixel Lab generated concept (%s)" % mode
+                    ),
+                    "concept_source_mode": concept_source_mode,
+                    "init_source_image": init_source_rel,
                     "silhouette": project["brief"]["silhouette_intent"],
                     "outfit": project["brief"]["outfit_materials"],
                     "palette_direction": project["brief"]["palette_mood"],
@@ -13327,10 +14073,8 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                     raise ValueError("pixellab_params.description is required.")
                 if not pixellab_params.get("image_size"):
                     raise ValueError("pixellab_params.image_size is required.")
-                if not pixellab_params.get("inpainting_image_b64"):
-                    raise ValueError("pixellab_params.inpainting_image_b64 is required.")
-                if not pixellab_params.get("mask_image_b64"):
-                    raise ValueError("pixellab_params.mask_image_b64 is required.")
+                if not pixellab_params.get("init_image_b64"):
+                    raise ValueError("pixellab_params.init_image_b64 is required.")
 
                 project = load_project(project_id)
                 project_dir = PROJECTS_ROOT / project_id
@@ -13345,7 +14089,7 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
 
                 if backend_mode == "debug_procedural" or not pixellab_configured():
                     image = debug_pixellab_iterate_from_inpainting(
-                        pixellab_params["inpainting_image_b64"],
+                        pixellab_params["init_image_b64"],
                         seed,
                     )
                     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -13356,13 +14100,17 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                     if client is None:
                         raise ValueError("Pixel Lab client unavailable; missing PIXELLAB_API_KEY.")
 
-                    result = client.inpaint_v3(
+                    result = client.create_image_pixflux(
                         pixellab_params["description"],
-                        pixellab_params["inpainting_image_b64"],
-                        pixellab_params["mask_image_b64"],
                         pixellab_params["image_size"],
+                        init_image={"type": "base64", "base64": pixellab_params["init_image_b64"], "format": "png"},
+                        init_image_strength=pixellab_params.get("init_image_strength", 750),
+                        view=pixellab_params.get("view", "side"),
+                        direction=pixellab_params.get("direction", "east"),
+                        outline=pixellab_params.get("outline"),
+                        shading=pixellab_params.get("shading"),
+                        detail=pixellab_params.get("detail"),
                         no_background=bool(pixellab_params.get("no_background", True)),
-                        crop_to_mask=bool(pixellab_params.get("crop_to_mask", True)),
                         seed=seed,
                     )
 
@@ -13430,6 +14178,105 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
 
                 return self._send_json(concept, status=HTTPStatus.CREATED)
 
+            iterate_gemini_match = re.fullmatch(r"/api/projects/([^/]+)/concepts/iterate-gemini", path)
+            if iterate_gemini_match:
+                project_id = iterate_gemini_match.group(1)
+                payload = read_body(self)
+                source_concept_id = payload.get("concept_id")
+                element = (payload.get("element") or "").strip()
+                change_text = (payload.get("change_text") or "").strip()
+
+                if not source_concept_id:
+                    raise ValueError("iterate-gemini requires concept_id.")
+                if not element:
+                    raise ValueError("iterate-gemini requires element.")
+                if not change_text:
+                    raise ValueError("iterate-gemini requires change_text.")
+                if not gemini_iteration_supported_for_element(element):
+                    raise ValueError("Gemini iteration requires a supported element.")
+
+                project = load_project(project_id)
+                project_dir = PROJECTS_ROOT / project_id
+                brief = project.get("brief") or {}
+
+                source_concept = next(
+                    (c for c in project.get("concepts", []) if c["concept_id"] == source_concept_id), None
+                )
+                if source_concept is None:
+                    raise ValueError("Source concept not found: %s" % source_concept_id)
+
+                source_rel = _concept_source_image_relpath(source_concept)
+                if not source_rel:
+                    raise ValueError("Source concept has no image.")
+                source_path = project_dir / source_rel
+                if not source_path.exists():
+                    raise ValueError("Source concept image not found: %s" % source_path)
+
+                serial = next_concept_serial(project["concepts"])
+                concept_id = "concept-%04d" % serial
+                output_path = project_dir / "concepts" / ("%s.png" % concept_id)
+
+                source_bytes = source_path.read_bytes()
+                image_bytes = gemini_iterate_concept(source_bytes, element, change_text, brief)
+
+                image = Image.open(io.BytesIO(image_bytes)).convert("RGBA")
+                output_path.parent.mkdir(parents=True, exist_ok=True)
+                image.save(output_path)
+
+                preview_rel = str(output_path.relative_to(project_dir))
+                concept = hydrate_concept({
+                    "concept_id": concept_id,
+                    "run_id": stable_hash("gemini-iterate", project_id, concept_id)[:12],
+                    "run_kind": "pixellab_iterate",
+                    "created_at": now_iso(),
+                    "positive_prompt": "%s: %s" % (element, change_text),
+                    "prompt": "%s: %s" % (element, change_text),
+                    "prompt_text": "%s: %s" % (element, change_text),
+                    "prompt_version": 0,
+                    "prompt_source": "gemini",
+                    "attempt_group_id": stable_hash("gemini-iterate-group", project_id, source_concept_id)[:12],
+                    "attempt_index": 0,
+                    "import_source": None,
+                    "validation_status": "valid",
+                    "validation_source": "gemini",
+                    "validation_feedback": None,
+                    "accepted_for_review": False,
+                    "preview_image": preview_rel,
+                    "original_preview_image": preview_rel,
+                    "backend_name": "gemini",
+                    "backend_run_id": "gemini",
+                    "difference_summary": "Gemini iteration from %s: %s — %s" % (source_concept_id, element, change_text),
+                    "silhouette": brief.get("silhouette_intent", ""),
+                    "outfit": brief.get("outfit_materials", ""),
+                    "palette_direction": brief.get("palette_mood", ""),
+                    "palette": palette_from_seed(serial, 0, brief.get("palette_mood", "")),
+                    "prop_variant": brief.get("prop", ""),
+                    "face_head_shape": brief.get("shape_language", ""),
+                    "references_used": [],
+                    "review_state": {"approved": False, "favorite": False, "rejected": False},
+                    "lineage": {"run_id": "gemini", "parent_concept_id": source_concept_id},
+                })
+
+                try:
+                    concept["triage"] = analyze_concept_image(output_path)
+                except Exception:
+                    concept["triage"] = {"status": "not_evaluated", "flags": [], "metrics": {}}
+
+                project["concepts"].append(concept)
+                project["updated_at"] = now_iso()
+                project["current_stage"] = "concepts"
+                project["status"] = "concept_pixellab_iterated"
+                save_project(project)
+                save_concept(project_dir, concept)
+                append_history_event(project_id, {
+                    "type": "concept_gemini_iterate",
+                    "concept_id": concept_id,
+                    "source_concept_id": source_concept_id,
+                    "created_at": now_iso(),
+                })
+
+                return self._send_json(concept, status=HTTPStatus.CREATED)
+
             create_character_pixellab_match = re.fullmatch(r"/api/projects/([^/]+)/pixellab/create-character", path)
             if create_character_pixellab_match:
                 project_id = create_character_pixellab_match.group(1)
@@ -13446,13 +14293,17 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                 project = load_project(project_id)
                 project_dir = PROJECTS_ROOT / project_id
                 brief = project.get("brief") or {}
-                canvas_size = coerce_canvas_size(brief.get("canvas_size"), DEFAULT_CANVAS_SIZE)
 
                 concept = next((item for item in (project.get("concepts") or []) if item.get("concept_id") == color_concept_id), None)
                 if concept is None:
                     raise ValueError("color_concept_id concept not found.")
 
-                source_rel = concept.get("original_preview_image") or concept.get("preview_image") or concept.get("image_path")
+                source_rel = (
+                    concept.get("processed_preview_image")
+                    or concept.get("original_preview_image")
+                    or concept.get("preview_image")
+                    or concept.get("image_path")
+                )
                 if not source_rel:
                     raise ValueError("Concept does not have a preview image path.")
 
@@ -13461,6 +14312,10 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                     source_path = project_dir / source_rel
                 if not source_path.exists():
                     raise ValueError("Concept preview image is missing on disk.")
+
+                with Image.open(source_path) as source_loaded:
+                    source_size = {"width": source_loaded.size[0], "height": source_loaded.size[1]}
+                canvas_size = preferred_concept_canvas_size(source_size)
 
                 seed = payload.get("seed")
                 try:
@@ -13542,7 +14397,11 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                 try:
                     from scripts.pixellab_client import base64_image_payload
 
-                    color_image = base64_image_payload(client.encode_image(source_path))
+                    prepared_color_source = prepare_pixellab_character_color_source(source_path, canvas_size)
+                    color_image = base64_image_payload(
+                        client.encode_image_rgba(prepared_color_source),
+                        image_format="rgba",
+                    )
                     if directions == 4:
                         result = client.create_character_4dir(
                             character_description,
@@ -13565,6 +14424,14 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                             seed=seed,
                             poll_timeout_seconds=420,
                         )
+                except PixelLabHTTPError as exc:
+                    if exc.status_code >= 500:
+                        raise ValueError(
+                            "Pixel Lab create-character hit a server-side error after the request was accepted. "
+                            "The concept source image is compatible, but the Pixel Lab multi-direction endpoint failed internally. "
+                            "Retry later or use 'Use Concept as Character (East Only)' for a stable side-scroller path."
+                        )
+                    raise ValueError("Pixel Lab create-character failed: %s" % str(exc))
                 except Exception as exc:
                     raise ValueError("Pixel Lab create-character failed: %s" % str(exc))
 
@@ -13613,6 +14480,72 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                 save_project(project)
                 return self._send_json(char_payload, status=HTTPStatus.CREATED)
 
+            use_concept_character_pixellab_match = re.fullmatch(r"/api/projects/([^/]+)/pixellab/use-concept-character", path)
+            if use_concept_character_pixellab_match:
+                project_id = use_concept_character_pixellab_match.group(1)
+                payload = read_body(self)
+
+                concept_id = payload.get("concept_id") or payload.get("color_concept_id")
+                if not concept_id:
+                    raise ValueError("use-concept-character requires concept_id.")
+
+                project = load_project(project_id)
+                project_dir = PROJECTS_ROOT / project_id
+                concept = next((item for item in (project.get("concepts") or []) if item.get("concept_id") == concept_id), None)
+                if concept is None:
+                    raise ValueError("Concept not found for east-only character source.")
+
+                source_rel = (
+                    concept.get("processed_preview_image")
+                    or concept.get("original_preview_image")
+                    or concept.get("preview_image")
+                    or concept.get("image_path")
+                )
+                if not source_rel:
+                    raise ValueError("Concept does not have a preview image path.")
+
+                source_path = Path(source_rel)
+                if not source_path.is_absolute():
+                    source_path = project_dir / source_rel
+                if not source_path.exists():
+                    raise ValueError("Concept preview image is missing on disk.")
+
+                with Image.open(source_path) as loaded:
+                    source_size = {"width": loaded.size[0], "height": loaded.size[1]}
+                canvas_size = preferred_concept_canvas_size(source_size)
+                east_image = prepare_pixellab_character_color_source(source_path, canvas_size)
+
+                assets_dir = _pixellab_character_assets_dir(project_dir)
+                assets_dir.mkdir(parents=True, exist_ok=True)
+                east_path = assets_dir / "east.png"
+                east_image.save(east_path)
+
+                char_payload = {
+                    "character_id": None,
+                    "approved": False,
+                    "created_at": now_iso(),
+                    "directions": ["east"],
+                    "image_size": {"width": canvas_size, "height": canvas_size},
+                    "source_concept_id": concept_id,
+                    "backend_name": "approved_concept",
+                    "seed": None,
+                    "east_only_source": True,
+                    "images": {"east": str(east_path.relative_to(project_dir))},
+                }
+                _pixellab_character_path(project_dir).write_text(json.dumps(char_payload, indent=2), encoding="utf-8")
+                project["pixellab_character_approved"] = False
+                project["pixellab_character_ready"] = True
+                project["current_stage"] = "character"
+                project["status"] = "pixellab_character_concept_source_ready"
+                project["updated_at"] = now_iso()
+                save_project(project)
+                append_history_event(project_id, {
+                    "type": "pixellab_character_concept_source_ready",
+                    "concept_id": concept_id,
+                    "created_at": now_iso(),
+                })
+                return self._send_json(char_payload, status=HTTPStatus.CREATED)
+
             estimate_skeleton_pixellab_match = re.fullmatch(r"/api/projects/([^/]+)/pixellab/estimate-skeleton", path)
             if estimate_skeleton_pixellab_match:
                 project_id = estimate_skeleton_pixellab_match.group(1)
@@ -13622,16 +14555,18 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                 project = load_project(project_id)
                 project_dir = PROJECTS_ROOT / project_id
                 brief = project.get("brief") or {}
-                canvas_size = coerce_canvas_size(brief.get("canvas_size"), DEFAULT_CANVAS_SIZE)
-
                 # Require character assets.
                 char_path = _pixellab_character_path(project_dir)
                 if not char_path.exists():
                     raise ValueError("pixellab_character.json is missing; run create-character first.")
                 char_data = load_json(char_path, None) or {}
 
-                assets_dir = _pixellab_character_assets_dir(project_dir)
-                source_img_path = assets_dir / ("%s.png" % direction)
+                image_size = char_data.get("image_size") if isinstance(char_data, dict) else {}
+                canvas_size = coerce_canvas_size((image_size or {}).get("width"), DEFAULT_CANVAS_SIZE)
+                source_rel = (char_data.get("images") or {}).get(direction) if isinstance(char_data, dict) else None
+                if not source_rel:
+                    raise ValueError("Character direction image missing from pixellab_character.json: %s" % direction)
+                source_img_path = project_dir / str(source_rel)
                 if not source_img_path.exists():
                     raise ValueError("Character direction image missing: %s" % str(source_img_path))
 
@@ -13756,10 +14691,14 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                 project = load_project(project_id)
                 project_dir = PROJECTS_ROOT / project_id
                 brief = project.get("brief") or {}
-                canvas_size = coerce_canvas_size(brief.get("canvas_size"), DEFAULT_CANVAS_SIZE)
 
                 # Phase 5 gating (4.3 carry-forward).
                 char_data = _pixellab_character_approved_guard(project_dir)
+                _pixellab_character_requires_template_generation_guard(char_data)
+                canvas_size = preferred_supported_canvas_size(
+                    char_data.get("image_size") if isinstance(char_data, dict) else None,
+                    coerce_canvas_size(brief.get("canvas_size"), DEFAULT_CANVAS_SIZE),
+                )
 
                 template_animation_id = payload.get("template_animation_id")
                 if not template_animation_id:
@@ -13982,8 +14921,11 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                 project = load_project(project_id)
                 project_dir = PROJECTS_ROOT / project_id
                 brief = project.get("brief") or {}
-                canvas_size = coerce_canvas_size(brief.get("canvas_size"), DEFAULT_CANVAS_SIZE)
                 char_data = _pixellab_character_approved_guard(project_dir)
+                canvas_size = preferred_supported_canvas_size(
+                    char_data.get("image_size") if isinstance(char_data, dict) else None,
+                    coerce_canvas_size(brief.get("canvas_size"), DEFAULT_CANVAS_SIZE),
+                )
 
                 action = str(payload.get("action") or "").strip()
                 if not action:
@@ -14130,8 +15072,11 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                 project = load_project(project_id)
                 project_dir = PROJECTS_ROOT / project_id
                 brief = project.get("brief") or {}
-                canvas_size = coerce_canvas_size(brief.get("canvas_size"), DEFAULT_CANVAS_SIZE)
                 char_data = _pixellab_character_approved_guard(project_dir)
+                canvas_size = preferred_supported_canvas_size(
+                    char_data.get("image_size") if isinstance(char_data, dict) else None,
+                    coerce_canvas_size(brief.get("canvas_size"), DEFAULT_CANVAS_SIZE),
+                )
 
                 keypoint_frames = payload.get("keypoint_frames") if isinstance(payload, dict) else None
                 if not isinstance(keypoint_frames, list):
@@ -14291,8 +15236,11 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                 project = load_project(project_id)
                 project_dir = PROJECTS_ROOT / project_id
                 brief = project.get("brief") or {}
-                canvas_size = coerce_canvas_size(brief.get("canvas_size"), DEFAULT_CANVAS_SIZE)
                 char_data = _pixellab_character_approved_guard(project_dir)
+                canvas_size = preferred_supported_canvas_size(
+                    char_data.get("image_size") if isinstance(char_data, dict) else None,
+                    coerce_canvas_size(brief.get("canvas_size"), DEFAULT_CANVAS_SIZE),
+                )
 
                 animation_name = str(payload.get("animation_name") or "").strip()
                 description = str(payload.get("description") or "").strip()
@@ -14383,56 +15331,67 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                             raise ValueError("Pixel Lab client unavailable; missing PIXELLAB_API_KEY.")
 
                         frames_dir = _pixellab_animation_frames_dir(project_dir, animation_name, direction)
-                        frame_b64s: List[str] = []
+                        source_paths: List[Path] = []
                         for idx in range(frame_count):
                             fp = frames_dir / ("frame_%02d.png" % idx)
                             if not fp.exists():
                                 break
-                            frame_b64s.append(client.encode_image(str(fp)))
+                            source_paths.append(fp)
 
-                        logger.info(
-                            "[pixellab/edit-animation] calling POST /v2/edit-animation-v2 direction=%s input_png_frames=%d",
-                            direction,
-                            len(frame_b64s),
-                        )
                         image_size = {"width": canvas_size, "height": canvas_size}
-                        result = client.edit_animation_v2(
-                            description,
-                            frame_b64s,
-                            image_size,
-                            poll_timeout_seconds=480,
-                        )
-                        b64_n, url_n = _pixellab_frame_source_counts(result)
-                        logger.info(
-                            "[pixellab/edit-animation] api_returned direction=%s %s; pre_decode b64_candidates=%d https_urls=%d",
-                            direction,
-                            _pixellab_api_result_summary(result),
-                            b64_n,
-                            url_n,
-                        )
-                        plate_frames = _pixellab_animation_job_to_rgba_frames(
-                            result,
-                            canvas_size=canvas_size,
-                            client=client,
-                        )
-                        logger.info(
-                            "[pixellab/edit-animation] decoded_rgba_frames=%d direction=%s",
-                            len(plate_frames),
-                            direction,
-                        )
-                        if not plate_frames:
-                            keys = list(result.keys()) if isinstance(result, dict) else type(result).__name__
-                            logger.warning(
-                                "[pixellab/edit-animation] no decodable frames project=%s direction=%s keys=%s",
-                                project_id,
+                        frames: List[Image.Image] = []
+                        batches = chunk_frame_indices(len(source_paths), 4)
+                        for batch_idx, frame_indices in enumerate(batches, start=1):
+                            frame_b64s = [client.encode_image(str(source_paths[i])) for i in frame_indices]
+                            logger.info(
+                                "[pixellab/edit-animation] calling POST /v2/edit-animation-v2 direction=%s batch=%d/%d input_png_frames=%d",
                                 direction,
-                                keys,
+                                batch_idx,
+                                len(batches),
+                                len(frame_b64s),
                             )
-                            raise ValueError(
-                                "Pixel Lab edit-animation returned no decodable frames. Response keys: %s" % keys
+                            result = client.edit_animation_v2(
+                                description,
+                                frame_b64s,
+                                image_size,
+                                poll_timeout_seconds=480,
                             )
-                        out_fc = min(frame_count, len(plate_frames))
-                        frames = [plate_frames[i] for i in range(out_fc)]
+                            b64_n, url_n = _pixellab_frame_source_counts(result)
+                            logger.info(
+                                "[pixellab/edit-animation] api_returned direction=%s batch=%d %s; pre_decode b64_candidates=%d https_urls=%d",
+                                direction,
+                                batch_idx,
+                                _pixellab_api_result_summary(result),
+                                b64_n,
+                                url_n,
+                            )
+                            plate_frames = _pixellab_animation_job_to_rgba_frames(
+                                result,
+                                canvas_size=canvas_size,
+                                client=client,
+                            )
+                            logger.info(
+                                "[pixellab/edit-animation] decoded_rgba_frames=%d direction=%s batch=%d",
+                                len(plate_frames),
+                                direction,
+                                batch_idx,
+                            )
+                            if not plate_frames:
+                                keys = list(result.keys()) if isinstance(result, dict) else type(result).__name__
+                                logger.warning(
+                                    "[pixellab/edit-animation] no decodable frames project=%s direction=%s batch=%d keys=%s",
+                                    project_id,
+                                    direction,
+                                    batch_idx,
+                                    keys,
+                                )
+                                raise ValueError(
+                                    "Pixel Lab edit-animation returned no decodable frames. Response keys: %s" % keys
+                                )
+                            frames.extend(plate_frames[: len(frame_indices)])
+
+                        out_fc = min(frame_count, len(frames))
+                        frames = frames[:out_fc]
                         frame_paths = _write_png_frames(frames, project_dir, animation_name, direction)
                         _upsert_pixellab_animation_frames(
                             project_dir,

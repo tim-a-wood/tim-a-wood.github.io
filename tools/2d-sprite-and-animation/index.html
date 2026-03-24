@@ -4,38 +4,40 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sprite Workbench</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg: #0d1117;
-            --bg-gradient: radial-gradient(circle at top right, rgba(68,147,248,0.14), transparent 24%),
-                linear-gradient(180deg, #0a1016, #0d1117 46%, #101824);
-            --bg-soft: #111722;
-            --bg-raised: rgba(22, 30, 42, 0.98);
-            --surface: rgba(22, 30, 42, 0.96);
-            --surface-hover: rgba(30, 40, 56, 0.98);
-            --panel: rgba(22, 30, 42, 0.96);
-            --panel-soft: #111722;
-            --border: rgba(255,255,255,0.09);
-            --border-strong: rgba(255,255,255,0.18);
-            --stroke: rgba(255,255,255,0.09);
-            --stroke-strong: rgba(255,255,255,0.18);
-            --text: #e6edf3;
-            --text-muted: #8b949e;
-            --text-faint: rgba(139,148,158,0.55);
-            --muted: #8b949e;
-            --accent: #4493f8;
-            --accent-hover: #5aa3ff;
-            --accent-soft: rgba(68,147,248,0.16);
-            --success: #3fb950;
-            --success-soft: rgba(63,185,80,0.16);
+            --bg: #050709;
+            --bg-gradient: linear-gradient(180deg, #040608, #050709 52%, #060b0e);
+            --bg-soft: #07090c;
+            --bg-raised: rgba(4, 6, 10, 0.98);
+            --surface: rgba(4, 6, 10, 0.96);
+            --surface-hover: rgba(6, 9, 14, 0.98);
+            --panel: rgba(4, 6, 10, 0.96);
+            --panel-soft: #07090c;
+            --border: rgba(0,232,200,0.07);
+            --border-strong: rgba(0,232,200,0.14);
+            --stroke: rgba(0,232,200,0.07);
+            --stroke-strong: rgba(0,232,200,0.14);
+            --text: #cce8e0;
+            --text-muted: #5d7870;
+            --text-faint: rgba(204,232,224,0.25);
+            --muted: #5d7870;
+            --accent: #00e8c8;
+            --accent-hover: #20f4d4;
+            --accent-soft: rgba(0,232,200,0.08);
+            --success: #4ade80;
+            --success-soft: rgba(74,222,128,0.12);
             --warning: #d29922;
             --warning-soft: rgba(210,153,34,0.16);
             --error: #f85149;
             --error-soft: rgba(248,81,73,0.16);
-            --blue: #4493f8;
-            --blue-soft: rgba(68,147,248,0.16);
-            --green: #3fb950;
-            --green-soft: rgba(63,185,80,0.16);
+            --blue: #00e8c8;
+            --blue-soft: rgba(0,232,200,0.08);
+            --green: #4ade80;
+            --green-soft: rgba(74,222,128,0.12);
             --red: #f85149;
             --red-soft: rgba(248,81,73,0.16);
             --radius-sm: 14px;
@@ -53,8 +55,9 @@
             --space-8: 64px;
             --surface-gap: 12px;
             --surface-pad: 14px;
-            --font-sans: "IBM Plex Sans", Inter, -apple-system, sans-serif;
-            --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+            --font-sans: "Plus Jakarta Sans", -apple-system, sans-serif;
+            --font-display: "Bebas Neue", sans-serif;
+            --font-mono: "DM Mono", ui-monospace, monospace;
             --font-size-xs: 11px;
             --font-size-sm: 13px;
             --font-size-base: 14px;
@@ -478,8 +481,8 @@
 
         .section-head h3 {
             margin: 0;
-            font-size: 1rem;
-            text-transform: uppercase;
+            font-size: 18px;
+            font-family: var(--font-display);
             letter-spacing: 0.08em;
         }
 
@@ -635,7 +638,7 @@
             border-radius: 10px;
             padding: 8px 10px;
             border: 1px solid var(--stroke-strong);
-            background: rgba(7, 11, 16, 0.52);
+            background: rgba(0, 232, 200, 0.025);
             color: var(--text);
         }
 
@@ -1019,8 +1022,8 @@
 
         details.advanced-settings {
             margin-top: 10px;
-            border: 1px solid var(--stroke);
-            border-radius: var(--radius-tight);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
             background: rgba(255, 255, 255, 0.03);
             overflow: hidden;
         }
@@ -1028,13 +1031,39 @@
         details.advanced-settings summary {
             list-style: none;
             cursor: pointer;
-            padding: 11px 12px;
+            padding: 11px 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
             color: var(--text);
             font-weight: 600;
         }
 
         details.advanced-settings summary::-webkit-details-marker {
             display: none;
+        }
+
+        details.advanced-settings summary::before {
+            content: "▸";
+            font-size: 10px;
+            color: var(--text-muted);
+            transition: transform var(--transition-fast);
+            display: inline-block;
+            flex-shrink: 0;
+        }
+
+        details.advanced-settings[open] summary::before {
+            transform: rotate(90deg);
+        }
+
+        details.advanced-settings summary:hover {
+            color: var(--text);
+            background: rgba(255,255,255,0.03);
+        }
+
+        details.advanced-settings .advanced-content {
+            padding: 12px 14px;
+            border-top: 1px solid var(--border);
         }
 
         .advanced-content {
@@ -1759,6 +1788,7 @@
             border-radius: 12px;
             background: rgba(255, 255, 255, 0.04);
             border: 1px solid var(--stroke);
+            image-rendering: pixelated;
         }
 
         .pixellab-direction-grid {
@@ -1782,6 +1812,7 @@
             object-fit: contain;
             border-radius: 8px;
             background: rgba(0, 0, 0, 0.2);
+            image-rendering: pixelated;
         }
 
         .pixellab-east-stack {
@@ -2240,10 +2271,10 @@
 
         .check-row,
         .log-list li {
-            padding: 9px 11px;
-            border-radius: var(--radius-tight);
+            padding: 9px 12px;
+            border-radius: var(--radius-sm);
             background: rgba(255, 255, 255, 0.03);
-            border: 1px solid var(--stroke);
+            border: 1px solid var(--border);
         }
 
         .check-row {
@@ -2640,7 +2671,7 @@
         .sidebar {
             padding: 20px;
             border-right: 1px solid var(--border);
-            background: rgba(10, 15, 21, 0.84);
+            background: rgba(3, 4, 6, 0.97);
             backdrop-filter: none;
             transition: padding 180ms ease, opacity 180ms ease;
         }
@@ -2672,10 +2703,11 @@
 
         .brand h1 {
             margin: 8px 0 8px;
-            font-family: var(--font-sans);
-            font-size: 30px;
-            line-height: 1;
-            font-weight: 650;
+            font-family: var(--font-display);
+            font-size: 38px;
+            line-height: 0.9;
+            font-weight: 400;
+            letter-spacing: 0.04em;
         }
 
         .brand p {
@@ -2716,8 +2748,9 @@
 
         .sidebar-title h2 {
             color: var(--text-muted);
-            font-size: var(--font-size-xs);
-            letter-spacing: 0.14em;
+            font-size: 13px;
+            letter-spacing: 0.18em;
+            font-family: var(--font-display);
         }
 
         .project-sidebar-actions {
@@ -2740,12 +2773,12 @@
         }
 
         .project-card.active {
-            border-color: rgba(68,147,248,0.34);
-            box-shadow: inset 0 0 0 1px rgba(68,147,248,0.18);
+            border-color: rgba(0,232,200,0.30);
+            box-shadow: inset 0 0 0 1px rgba(0,232,200,0.10);
         }
 
         .project-card:hover {
-            border-color: rgba(68,147,248,0.34);
+            border-color: rgba(0,232,200,0.28);
         }
 
         .project-card strong {
@@ -2822,7 +2855,7 @@
         .chip.active {
             color: var(--accent);
             background: var(--accent-soft);
-            border-color: rgba(68,147,248,0.24);
+            border-color: rgba(0,232,200,0.22);
         }
 
         .pipeline-stage {
@@ -2872,20 +2905,20 @@
 
         .phase-pill.available:hover,
         .phase-pill.available:focus-visible {
-            border-color: rgba(68,147,248,0.28);
+            border-color: rgba(0,232,200,0.28);
             outline: none;
         }
 
         /* === Active: focal point — current phase === */
         .phase-pill.active {
             border: 2px solid var(--accent);
-            background: linear-gradient(160deg, rgba(68,147,248,0.10) 0%, transparent 70%), var(--panel);
-            box-shadow: 0 0 0 3px rgba(68,147,248,0.10), inset 0 1px 0 rgba(68,147,248,0.12);
+            background: linear-gradient(160deg, rgba(0,232,200,0.07) 0%, transparent 70%), var(--panel);
+            box-shadow: 0 0 0 3px rgba(0,232,200,0.08), inset 0 1px 0 rgba(0,232,200,0.10), 0 0 20px rgba(0,232,200,0.06);
         }
 
         .phase-pill.active:hover,
         .phase-pill.active:focus-visible {
-            box-shadow: 0 0 0 4px rgba(68,147,248,0.16), inset 0 1px 0 rgba(68,147,248,0.16);
+            box-shadow: 0 0 0 4px rgba(0,232,200,0.12), inset 0 1px 0 rgba(0,232,200,0.14), 0 0 24px rgba(0,232,200,0.08);
             outline: none;
         }
 
@@ -2999,9 +3032,10 @@
         }
 
         .phase-header-num {
-            font-size: var(--font-size-xs);
-            font-weight: 700;
-            letter-spacing: 0.12em;
+            font-size: 11px;
+            font-weight: 400;
+            font-family: var(--font-display);
+            letter-spacing: 0.16em;
             color: var(--text-muted);
             font-variant-numeric: tabular-nums;
         }
@@ -3013,11 +3047,12 @@
 
         .phase-header h2 {
             margin: 0;
-            font-size: var(--font-size-lg);
-            font-weight: 600;
-            letter-spacing: -0.01em;
+            font-size: 26px;
+            font-weight: 400;
+            font-family: var(--font-display);
+            letter-spacing: 0.04em;
             color: var(--text);
-            line-height: 1.2;
+            line-height: 1.0;
         }
 
         .phase-header-desc {
@@ -3314,6 +3349,27 @@
             min-height: 0;
         }
 
+        /* Home background */
+        #view-home {
+            position: relative;
+            height: 100%;
+        }
+
+        .home-bg {
+            position: absolute;
+            inset: 0;
+            background-size: cover;
+            background-position: center center;
+            background-repeat: no-repeat;
+            image-rendering: pixelated;
+            opacity: 0.35;
+        }
+
+        #view-home .placeholder-view {
+            position: relative;
+            z-index: 1;
+        }
+
         /* Placeholder views */
         .placeholder-view {
             min-height: 80vh;
@@ -3400,6 +3456,7 @@
 
 <!-- ═══ Home view ═══ -->
 <div class="site-view" id="view-home">
+    <div class="home-bg" style="background-image: url('image.png');"></div>
     <div class="placeholder-view">
         <span class="placeholder-badge">Working Title</span>
         <h2>Sprite Workbench</h2>
@@ -3567,8 +3624,8 @@
                                 <option value="flat shading">flat shading</option>
                                 <option value="basic shading">basic shading</option>
                                 <option value="medium shading">medium shading</option>
-                                <option value="soft shading">soft shading</option>
-                                <option value="hard shading">hard shading</option>
+                                <option value="detailed shading">detailed shading</option>
+                                <option value="highly detailed shading">highly detailed shading</option>
                             </select>
                         </label>
                         <label>
@@ -3632,15 +3689,7 @@
             </div>
 
             <div class="actions wizard-only" data-wizard-view="describe">
-                <button id="create-project">Create Project</button>
-            </div>
-            <div class="actions wizard-only" data-wizard-view="describe">
-                <button class="secondary" id="save-brief">Save Description</button>
-                <button class="secondary" id="refresh-projects-brief">Refresh Projects</button>
-            </div>
-            <div class="actions wizard-only workbench-actions" data-wizard-view="describe">
-                <button class="secondary" id="save-references">Save References</button>
-                <button class="secondary" id="refresh-projects-references">Refresh Projects</button>
+                <button id="confirm-describe-step">Confirm &amp; Continue</button>
             </div>
             <div class="actions" data-wizard-view="workbench">
                 <button id="create-project-workbench">Create Project</button>
@@ -3661,59 +3710,76 @@
 
             <div class="wizard-subview step-panel-note wizard-only" data-wizard-view="concepts">
                 <div class="info-box">
-                    <p><strong>Pixel Lab mode:</strong> <em>Build Prompt</em> saves a scaffold row and fills the textarea, then <em>Generate via Pixel Lab</em> creates a concept image. <strong>Manual mode:</strong> build/copy the prompt, create the image elsewhere, then import with upload or local path.</p>
+                    <p><strong>Concept entry is now explicit.</strong> Build the prompt once, then either generate a fresh <code>128x128</code> Pixel Lab concept from text or upload a custom image and post-process it through Pixel Lab with that image as the init source.</p>
                 </div>
             </div>
 
             <div class="concept-mode-row" data-wizard-view="concepts,workbench">
-                <span class="field-label">Source</span>
-                <label><input type="radio" name="concept-source-mode" value="pixellab" checked> Pixel Lab</label>
-                <label><input type="radio" name="concept-source-mode" value="manual"> Manual import</label>
+                <span class="field-label">Concept source</span>
+                <label><input type="radio" name="concept-source-mode" value="text" checked> Generate from text</label>
+                <label><input type="radio" name="concept-source-mode" value="custom_init"> Post-process uploaded init image</label>
             </div>
 
-            <div class="grid-2" style="margin-top: 8px;" data-wizard-view="concepts,workbench">
-                <div>
-                    <div class="actions" style="flex-wrap: wrap;">
-                        <button id="build-concept-prompt">Build Prompt</button>
-                        <button class="secondary" id="copy-scaffold-prompt">Copy Prompt</button>
-                        <button id="generate-concept-pixellab" class="concept-pixellab-only">Generate via Pixel Lab</button>
+            <div data-wizard-view="concepts,workbench" style="margin-top: 8px;">
+                <div class="actions" style="flex-wrap: wrap;">
+                    <button id="build-concept-prompt">Build Prompt</button>
+                    <button class="secondary" id="copy-scaffold-prompt">Copy Prompt</button>
+                    <button id="generate-concept-pixellab-text" class="concept-text-only">Generate 128x128 from Text</button>
+                </div>
+                <p class="small-note" id="concept-anchor-note" style="margin-top: 8px;">Build Prompt saves the shared Pixel Lab scaffold. Both concept paths use the same <code>128x128</code> output target.</p>
+                <details class="advanced-settings" style="margin-top: 12px;">
+                    <summary>View generated prompt</summary>
+                    <div class="advanced-content">
+                        <label>
+                            <span class="field-label">Scaffold prompt (read-only)</span>
+                            <textarea id="concept-scaffold-prompt" readonly rows="10" style="width:100%; font-family: ui-monospace, monospace; font-size: 0.82rem;" placeholder="Click Build Prompt to generate from the saved brief."></textarea>
+                        </label>
                     </div>
-                    <p class="small-note" id="concept-anchor-note" style="margin-top: 8px;">Build Prompt creates an import anchor for Manual mode.</p>
-                </div>
-                <div>
-                    <label>
-                        <span class="field-label">Scaffold prompt (read-only)</span>
-                        <textarea id="concept-scaffold-prompt" readonly rows="14" style="width:100%; font-family: ui-monospace, monospace; font-size: 0.82rem;" placeholder="Click Build Prompt to generate from the saved brief."></textarea>
-                    </label>
-                </div>
+                </details>
             </div>
 
-            <div class="concept-manual-only" data-wizard-view="concepts,workbench" style="margin-top: 16px;">
+            <div class="concept-init-only" data-wizard-view="concepts,workbench" style="margin-top: 16px;" hidden>
                 <div class="section-head" style="margin-bottom: 10px;">
                     <div>
-                        <h3 style="font-size: 0.98rem;">Import image</h3>
-                        <p>Requires <strong>Build Prompt</strong> first (creates a prompt anchor on the server). Then upload a file or enter an absolute local path on the machine running the workbench server.</p>
+                        <h3 style="font-size: 0.98rem;">Custom init image</h3>
+                        <p>Upload an image to act as the init source. Pixel Lab will post-process it into a consistent <code>128x128</code> side-view concept using the scaffold prompt from your brief.</p>
                     </div>
                 </div>
                 <div class="grid-2">
                     <label>
-                        <span class="field-label">Upload File</span>
-                        <input id="concept-import-file" type="file" accept="image/*">
-                    </label>
-                    <label>
-                        <span class="field-label">Local Image Path</span>
-                        <input id="concept-import-path" placeholder="/absolute/path/to/concept.png">
+                        <span class="field-label">Upload init image</span>
+                        <input id="concept-init-upload-file" type="file" accept="image/*">
                     </label>
                 </div>
                 <div class="actions" style="margin-top: 12px;">
-                    <button id="import-concept-image">Import Image</button>
+                    <button id="generate-concept-pixellab-init">Post-process Upload to 128x128</button>
                 </div>
             </div>
+
+            <details class="advanced-settings" style="margin-top: 16px;" data-wizard-view="concepts,workbench">
+                <summary>Manual import (fallback)</summary>
+                <div class="advanced-content">
+                    <p>Requires <strong>Build Prompt</strong> first so the server can anchor the imported image to the current brief. Use this only if you want to bypass Pixel Lab for the first concept.</p>
+                    <div class="grid-2">
+                        <label>
+                            <span class="field-label">Upload File</span>
+                            <input id="concept-import-file" type="file" accept="image/*">
+                        </label>
+                        <label>
+                            <span class="field-label">Local Image Path</span>
+                            <input id="concept-import-path" placeholder="/absolute/path/to/concept.png">
+                        </label>
+                    </div>
+                    <div class="actions" style="margin-top: 12px;">
+                        <button id="import-concept-image">Import Image</button>
+                    </div>
+                </div>
+            </details>
 
             <details class="advanced-settings" style="margin-top: 18px;" data-wizard-view="concepts,workbench">
                 <summary>Iterate on selected concept (Pixel Lab inpaint)</summary>
                 <div class="advanced-content">
-                    <p class="inline-hint">Select a concept in the grid below, choose what to change, then build the iteration prompt. <strong>Generate iteration</strong> calls Pixel Lab inpaint (or debug placeholders).</p>
+                    <p class="inline-hint">Select a concept in the grid below, choose what to change, then build the iteration prompt. <strong>Generate iteration</strong> calls Pixel Lab inpaint (or debug placeholders). <strong>Generate via Gemini</strong> sends the original concept image plus the single-aspect edit request directly to Gemini.</p>
                     <div class="grid-2">
                         <label>
                             <span class="field-label">Element</span>
@@ -3733,10 +3799,15 @@
                             <span class="field-label">Change request</span>
                             <input id="concept-iterate-change" placeholder="e.g. darken the cloak and add a torn hem">
                         </label>
+                        <label>
+                            <span class="field-label">Strength — <span id="iterate-strength-value">750</span> <span style="opacity:0.5;font-size:0.85em">(low = more change, high = less change)</span></span>
+                            <input type="range" id="concept-iterate-strength" min="100" max="950" step="50" value="750" style="width:100%;accent-color:var(--accent)">
+                        </label>
                     </div>
                     <div class="actions" style="margin-top: 10px;">
                         <button class="secondary" id="build-iteration-prompt">Build Iteration Prompt</button>
                         <button id="generate-concept-iterate-pixellab">Generate via Pixel Lab</button>
+                        <button id="generate-concept-iterate-gemini">Generate via Gemini</button>
                     </div>
                     <label style="margin-top: 12px; display: block;">
                         <span class="field-label">Iteration prompt (read-only)</span>
@@ -3759,6 +3830,11 @@
                         <div>
                             <div class="small-note">After (latest iteration)</div>
                             <div id="concept-iterate-after" class="concept-large-preview"><div class="empty">—</div></div>
+                            <div class="actions" style="margin-top: 10px; flex-wrap: wrap;">
+                                <button class="secondary" id="select-latest-iteration" disabled>Use Latest Iteration</button>
+                                <button class="secondary" id="download-latest-iteration" disabled>Download PNG</button>
+                            </div>
+                            <p class="small-note" id="latest-iteration-status" style="margin-top: 8px;">Generated iterations are saved as new concepts automatically.</p>
                         </div>
                     </div>
                 </div>
@@ -4219,7 +4295,7 @@ const state = {
     uiMode: "wizard",
     activity: null,
     clipPreviewTimers: {},
-    conceptSourceMode: "pixellab",
+    conceptSourceMode: "text",
     lastConceptScaffold: null,
     lastIterationScaffold: null,
     conceptUiSelectedId: null,
@@ -4355,23 +4431,6 @@ function pixellabPreviewFrameUrls(project, animName, direction) {
     }
     let frames = Array.isArray(block?.frames) ? block.frames : [];
 
-    const clip = project?.animation_clips?.[animName];
-    if (!frames.length && clip && typeof clip === "object") {
-        const byDir = clip.frames_by_direction;
-        if (byDir && typeof byDir === "object") {
-            const r2 = pixellabResolveDirectionBlock(byDir, normDir);
-            const raw = r2.block;
-            if (Array.isArray(raw) && raw.length) {
-                frames = raw;
-            } else if (raw && typeof raw === "object" && Array.isArray(raw.frames) && raw.frames.length) {
-                frames = raw.frames;
-            }
-        }
-        if (!frames.length && Array.isArray(clip.frames) && clip.frames.length) {
-            frames = clip.frames;
-        }
-    }
-
     const store = project?.pixellab_animations;
     const v = encodeURIComponent(
         [
@@ -4379,8 +4438,8 @@ function pixellabPreviewFrameUrls(project, animName, direction) {
             store && typeof store === "object" ? store.updated_at || "" : "",
             block?.updated_at || "",
             resolvedKey || "",
-            clip?.frame_count ?? "",
-            clip?.fps ?? "",
+            anim?.frame_count ?? "",
+            anim?.fps ?? "",
         ].join("|"),
     );
     return frames.map((rel) => `${projectAsset(project, rel)}?v=${v}`);
@@ -5675,9 +5734,17 @@ function wireConceptWorkbenchControlsOnce() {
             notify(normalizeErrorMessage(error.message), "error");
         }
     });
-    bind("#generate-concept-pixellab", async () => {
+    bind("#generate-concept-pixellab-text", async () => {
         try {
-            await generateConceptViaPixellab();
+            await generateConceptViaPixellab("text");
+        } catch (error) {
+            log(normalizeErrorMessage(error.message), "error");
+            notify(normalizeErrorMessage(error.message), "error");
+        }
+    });
+    bind("#generate-concept-pixellab-init", async () => {
+        try {
+            await generateConceptViaPixellab("custom_init");
         } catch (error) {
             log(normalizeErrorMessage(error.message), "error");
             notify(normalizeErrorMessage(error.message), "error");
@@ -5691,6 +5758,19 @@ function wireConceptWorkbenchControlsOnce() {
             notify(normalizeErrorMessage(error.message), "error");
         }
     });
+    document.querySelector("#concept-iterate-strength")?.addEventListener("input", (e) => {
+        document.querySelector("#iterate-strength-value").textContent = e.target.value;
+    });
+
+    bind("#generate-concept-iterate-gemini", async () => {
+        try {
+            await generateConceptIterationViaGemini();
+        } catch (error) {
+            log(normalizeErrorMessage(error.message), "error");
+            notify(normalizeErrorMessage(error.message), "error");
+        }
+    });
+
     bind("#generate-concept-iterate-pixellab", async () => {
         try {
             await generateConceptIterationViaPixellab();
@@ -5707,24 +5787,40 @@ function wireConceptWorkbenchControlsOnce() {
             notify(normalizeErrorMessage(error.message), "error");
         }
     });
+    bind("#select-latest-iteration", async () => {
+        try {
+            focusLatestIteration();
+        } catch (error) {
+            log(normalizeErrorMessage(error.message), "error");
+            notify(normalizeErrorMessage(error.message), "error");
+        }
+    });
+    bind("#download-latest-iteration", async () => {
+        try {
+            downloadLatestIteration();
+        } catch (error) {
+            log(normalizeErrorMessage(error.message), "error");
+            notify(normalizeErrorMessage(error.message), "error");
+        }
+    });
 }
 
 function syncConceptPanelMode() {
-    const mode = state.conceptSourceMode || "pixellab";
+    const mode = state.conceptSourceMode || "text";
     document.querySelectorAll('input[name="concept-source-mode"]').forEach((r) => {
         r.checked = r.value === mode;
     });
-    document.querySelectorAll(".concept-pixellab-only").forEach((n) => {
-        n.hidden = mode !== "pixellab";
+    document.querySelectorAll(".concept-text-only").forEach((n) => {
+        n.hidden = mode !== "text";
     });
-    document.querySelectorAll(".concept-manual-only").forEach((n) => {
-        n.hidden = mode !== "manual";
+    document.querySelectorAll(".concept-init-only").forEach((n) => {
+        n.hidden = mode !== "custom_init";
     });
 }
 
 function ensureConceptUiSelection() {
     const project = state.activeProject;
-    const withPreview = (project?.concepts || []).filter((c) => c.preview_image);
+    const withPreview = (project?.concepts || []).filter((c) => conceptDisplayImagePath(c));
     if (!withPreview.length) {
         state.conceptUiSelectedId = null;
         return;
@@ -5736,6 +5832,16 @@ function ensureConceptUiSelection() {
             ? preferred
             : withPreview[0].concept_id;
     }
+}
+
+function conceptDisplayImagePath(concept) {
+    if (!concept) return "";
+    return concept.processed_preview_image
+        || concept.preview_image
+        || concept.original_preview_image
+        || concept.approved_source_image
+        || concept.image_path
+        || "";
 }
 
 function applyConceptPreviewTransform() {
@@ -5886,12 +5992,12 @@ function renderConceptLargePreview() {
     const viewport = root.querySelector("[data-concept-preview-viewport]");
     const project = state.activeProject;
     const concept = state.conceptUiSelectedId ? conceptById(state.conceptUiSelectedId) : null;
-    if (!concept?.preview_image) {
+    const path = conceptDisplayImagePath(concept);
+    if (!path) {
         if (emptyEl) emptyEl.hidden = false;
         if (stackEl) stackEl.hidden = true;
         return;
     }
-    const path = concept.processed_preview_image || concept.preview_image;
     const tkey = `${concept.concept_id}|${path}|${project.updated_at}`;
     if (state.conceptPreviewTransformKey !== tkey) {
         state.conceptPreviewTransformKey = tkey;
@@ -5915,25 +6021,40 @@ function renderConceptLargePreview() {
 function renderIterationCompare() {
     const beforeRoot = document.querySelector("#concept-iterate-before");
     const afterRoot = document.querySelector("#concept-iterate-after");
+    const selectBtn = document.querySelector("#select-latest-iteration");
+    const downloadBtn = document.querySelector("#download-latest-iteration");
+    const statusEl = document.querySelector("#latest-iteration-status");
     const project = state.activeProject;
     if (!project) return;
     const selected = state.conceptUiSelectedId ? conceptById(state.conceptUiSelectedId) : null;
+    const after = state.lastIteratedConceptId ? conceptById(state.lastIteratedConceptId) : null;
     if (beforeRoot) {
-        if (selected?.preview_image) {
-            const path = selected.processed_preview_image || selected.preview_image;
+        const path = conceptDisplayImagePath(selected);
+        if (path) {
             beforeRoot.innerHTML = `<img src="${projectAsset(project, path)}?v=${project.updated_at}" alt="before">`;
         } else {
             beforeRoot.innerHTML = `<div class="empty">No selection</div>`;
         }
     }
     if (afterRoot) {
-        const after = state.lastIteratedConceptId ? conceptById(state.lastIteratedConceptId) : null;
-        if (after?.preview_image) {
-            const path = after.processed_preview_image || after.preview_image;
+        const path = conceptDisplayImagePath(after);
+        if (path) {
             afterRoot.innerHTML = `<img src="${projectAsset(project, path)}?v=${project.updated_at}" alt="after">`;
         } else {
             afterRoot.innerHTML = `<div class="empty">—</div>`;
         }
+    }
+    const hasAfter = !!after && !!conceptDisplayImagePath(after);
+    if (selectBtn) {
+        selectBtn.disabled = !hasAfter;
+    }
+    if (downloadBtn) {
+        downloadBtn.disabled = !hasAfter;
+    }
+    if (statusEl) {
+        statusEl.textContent = hasAfter
+            ? `Latest iteration ${after.concept_id} is already saved as a new concept.`
+            : "Generated iterations are saved as new concepts automatically.";
     }
 }
 
@@ -5944,7 +6065,7 @@ function renderConceptGrid() {
     wireConceptWorkbenchControlsOnce();
     syncConceptPanelMode();
     ensureConceptUiSelection();
-    const concepts = (state.activeProject?.concepts || []).filter((concept) => concept.preview_image);
+    const concepts = (state.activeProject?.concepts || []).filter((concept) => conceptDisplayImagePath(concept));
     if (!concepts.length) {
         root.innerHTML = `<div class="empty">No concept images yet. Use Pixel Lab or Manual import.</div>`;
         return;
@@ -5954,7 +6075,7 @@ function renderConceptGrid() {
         card.className = "concept-card";
         if (concept.concept_id === state.conceptUiSelectedId) card.classList.add("selected");
         const triage = concept.triage || {};
-        const previewPath = concept.processed_preview_image || concept.preview_image;
+        const previewPath = conceptDisplayImagePath(concept);
         const hasProcessed = Boolean(concept.processed_preview_image);
         const triageLabel = triage.status === "ok"
             ? "heuristics ok"
@@ -5973,19 +6094,8 @@ function renderConceptGrid() {
                         <strong>${concept.concept_id}</strong>
                         <span class="muted">v${concept.prompt_version || "?"} · ${concept.import_source || concept.run_kind || "concept"}</span>
                     </div>
-                    <span class="pill ${concept.validation_status === "valid" ? "ok" : concept.validation_status === "invalid" ? "fail" : "warning"}">${concept.validation_status || "pending"}</span>
                 </div>
-                <div class="meta-line">
-                    ${concept.review_state?.approved ? `<span class="pill ok">approved source</span>` : ""}
-                    ${concept.validation_source ? `<span class="pill">${String(concept.validation_source).replaceAll("_", " ")}</span>` : ""}
-                    <span class="pill ${triageClass(triage.status)}">${triageLabel}</span>
-                </div>
-                <div class="meta-line">
-                    ${concept.approved_source_image ? `<span class="pill ok">direct source ready</span>` : ""}
-                    ${concept.postprocess_status === "applied" ? `<span class="pill ok">normalized</span>` : ""}
-                    ${concept.postprocess_status === "failed" ? `<span class="pill fail">normalize failed</span>` : ""}
-                    ${hasProcessed ? `<span class="pill">processed preview</span>` : `<span class="pill">original preview</span>`}
-                </div>
+                ${concept.review_state?.approved ? `<div class="meta-line"><span class="pill ok">approved source</span></div>` : ""}
                 <div class="small-note">${summary}</div>
                 ${concept.validation_error ? `<div class="warning-box"><p>${concept.validation_error}</p></div>` : ""}
                 <div class="actions">
@@ -7157,6 +7267,7 @@ function renderPixellabCharacterBoard() {
     const pix = project.pixellab_character;
     const skel = project.pixellab_skeleton;
     const approved = pixellabCharacterApproved(project);
+    const eastOnlySource = Boolean(pix?.east_only_source);
     const dirCount = pix
         ? (Array.isArray(pix.directions) && pix.directions.length ? pix.directions.length : Object.keys(pix.images || {}).length)
         : 0;
@@ -7170,8 +7281,9 @@ function renderPixellabCharacterBoard() {
     const busyCreate = state.pixellabCreateCharacterBusy;
     const charActions = `
         <div class="actions" style="margin-top: 12px; flex-wrap: wrap; gap: 8px;">
-            <button type="button" id="pixellab-create-4" ${selId && !busyCreate ? "" : "disabled"}>Create Character (4 dir)</button>
-            <button type="button" id="pixellab-create-8" ${selId && !busyCreate ? "" : "disabled"}>Create Character (8 dir)</button>
+            <button type="button" id="pixellab-use-east-source" ${selId && !busyCreate ? "" : "disabled"}>Use Concept as Character (East Only)</button>
+            <button type="button" class="secondary" id="pixellab-create-4" ${selId && !busyCreate ? "" : "disabled"}>Create Character (4 dir)</button>
+            <button type="button" class="secondary" id="pixellab-create-8" ${selId && !busyCreate ? "" : "disabled"}>Create Character (8 dir)</button>
             <button type="button" class="secondary" id="pixellab-estimate-sk" ${hasEastAsset ? "" : "disabled"}>Estimate skeleton (east)</button>
             <button type="button" id="pixellab-approve-char" ${pix && !approved ? "" : "disabled"}>Approve Character</button>
         </div>
@@ -7223,14 +7335,17 @@ function renderPixellabCharacterBoard() {
             </div>
             <div class="clip-control-card">
                 <h4 style="margin: 0 0 8px;">Pixel Lab character</h4>
-                <div class="small-note">
+                <div class="small-note" style="margin-bottom:10px;">
                     ${pix
-        ? `Directions: ${dirCount}. Id: <code>${escapeHtml(String(pix.character_id || ""))}</code>.`
+        ? eastOnlySource
+            ? "Using the approved concept directly as the east-facing character source."
+            : `${dirCount} direction${dirCount !== 1 ? "s" : ""} generated.`
         : "No character yet — create from the concept on the left."}
                     ${approved ? ` <span class="pill ok">Approved</span>` : pix ? ` <span class="pill warn">Not approved</span>` : ""}
                 </div>
-                ${skel ? `<div class="small-note" style="margin-top:8px;">Skeleton (${escapeHtml(String(skel.direction || "?"))}): ${(skel.skeleton_keypoints || []).length} keypoints.</div>` : ""}
+                ${eastOnlySource ? `<div class="info-box" style="margin-bottom:10px;"><p><strong>East-only source mode</strong> keeps the approved concept unchanged. You can estimate skeleton on the east image and approve it for downstream use. Pixel Lab template animations still require a generated 4-dir or 8-dir character.</p></div>` : ""}
                 ${charActions}
+                ${pix ? `<details class="advanced-settings" style="margin-top:10px;"><summary>Technical details</summary><div class="advanced-content"><p class="small-note" style="margin:0;">Character id: <code>${escapeHtml(String(pix.character_id || ""))}</code></p>${skel ? `<p class="small-note" style="margin:6px 0 0;">Skeleton (${escapeHtml(String(skel.direction || "?"))}): ${(skel.skeleton_keypoints || []).length} keypoints.</p>` : ""}</div></details>` : ""}
             </div>
         </div>
         ${directionsHtml || ""}
@@ -7266,6 +7381,20 @@ function renderPixellabCharacterBoard() {
     root.querySelector("#pixellab-create-8")?.addEventListener("click", async () => {
         if (!selId || state.pixellabCreateCharacterBusy) return;
         await runPixellabCreateCharacter(pid, selId, 8);
+    });
+    root.querySelector("#pixellab-use-east-source")?.addEventListener("click", async () => {
+        if (!selId || state.pixellabCreateCharacterBusy) return;
+        try {
+            await api(`/api/projects/${pid}/pixellab/use-concept-character`, {
+                method: "POST",
+                body: JSON.stringify({ concept_id: selId }),
+            });
+            notify("Using the chosen concept directly as the east-facing character source.", "success");
+            await reload();
+        } catch (error) {
+            log(normalizeErrorMessage(error.message), "error");
+            notify(normalizeErrorMessage(error.message), "error");
+        }
     });
     root.querySelector("#pixellab-estimate-sk")?.addEventListener("click", async () => {
         try {
@@ -7395,6 +7524,7 @@ function renderPixellabAnimationsBoard() {
             : `<p class="small-note" style="margin-top:8px;"><strong>Export bridge (<code>animation_clips.json</code>):</strong> idle ${idleBridgeN ?? "—"} frames · walk ${walkBridgeN ?? "—"} frames${
                   extraBridgeBits.length ? ` · ${extraBridgeBits.join(" · ")}` : ""
               }. Re-build after you change animations.</p>`;
+    const templateAnimationCapable = Boolean(project.pixellab_character?.character_id);
     const dirList = project.pixellab_character?.directions;
     const directionCount = Array.isArray(dirList) && dirList.length >= 8 ? 8 : 4;
     const pid = project.project_id;
@@ -7414,6 +7544,9 @@ function renderPixellabAnimationsBoard() {
         ? "Idle and walk are in the store — you can build canonical clips for QA/export."
         : (`<strong>Next:</strong> generate <code>${escapeHtml(missingCanonical.join(", "))}</code> `
             + "using the cards below (this button stays disabled until both exist).");
+    const templateModeHintHtml = !templateAnimationCapable
+        ? `<div class="info-box" style="margin-bottom:12px;"><p><strong>Template animation mode is unavailable.</strong> This character is using an east-only concept source, so Pixel Lab does not have a generated <code>character_id</code> for 4-dir/8-dir template motion. You can still use east-facing custom or manual animation workflows.</p></div>`
+        : "";
     const previewServeNote =
         window.location.protocol === "file:"
             ? `<div class="warning-box" style="margin-bottom:12px;"><p><strong>Previews need the dev server.</strong> Frame thumbnails load from <code>http://127.0.0.1:${DEFAULT_WORKBENCH_PORT}/…</code>. Open the tool from that URL (not <code>file://</code>) if images stay blank or never update.</p></div>`
@@ -7468,7 +7601,7 @@ function renderPixellabAnimationsBoard() {
             <label class="small-note" style="display:block;margin-top:10px;">${escapeHtml(templateLabel)}</label>
             <select class="pixellab-template-select" data-clip="${escapeHtml(clipName)}" style="max-width:100%;"${dis}>${opts}</select>
             <div class="actions" style="margin-top:10px;flex-wrap:wrap;gap:8px;">
-                <button type="button" class="pixellab-gen-template" data-clip="${escapeHtml(clipName)}"${dis}>Generate via template</button>
+                <button type="button" class="pixellab-gen-template" data-clip="${escapeHtml(clipName)}"${dis}${templateAnimationCapable ? "" : " disabled"}>Generate via template</button>
             </div>
             <label class="small-note" style="display:block;margin-top:14px;">Custom action (east-facing)</label>
             <input type="text" class="pixellab-custom-action" data-clip="${escapeHtml(clipName)}" placeholder="e.g. heavy overhead slash" style="width:100%;"${dis}>
@@ -7488,7 +7621,7 @@ function renderPixellabAnimationsBoard() {
                     <button type="button" class="secondary pixellab-preview-stop" data-clip="${escapeHtml(clipName)}"${dis}>Stop</button>
                     <span class="small-note pixellab-preview-label" data-clip="${escapeHtml(clipName)}">—</span>
                 </div>
-                <img class="pixellab-preview-img" data-clip="${escapeHtml(clipName)}" alt="" onerror="this.alt='Preview failed to load'; this.style.outline='2px solid rgba(220,90,90,0.9)';" style="max-height:min(50vh,280px);min-height:120px;margin-top:8px;background:rgba(0,0,0,0.25);border-radius:8px;object-fit:contain;">
+                <img class="pixellab-preview-img" data-clip="${escapeHtml(clipName)}" alt="" onerror="this.alt='Preview failed to load'; this.style.outline='2px solid rgba(220,90,90,0.9)';" style="max-height:min(62vh,360px);min-height:160px;max-width:min(100%,420px);margin-top:8px;background:rgba(0,0,0,0.25);border-radius:8px;object-fit:contain;image-rendering:pixelated;">
                 <div class="pixellab-anim-strip" data-clip="${escapeHtml(clipName)}" style="margin-top:8px;display:flex;flex-wrap:wrap;gap:4px;"></div>
             </div>
             </div>
@@ -7508,21 +7641,24 @@ function renderPixellabAnimationsBoard() {
     root.innerHTML = `
         ${previewServeNote}
         ${animProgressBlock}
-        <div class="warning-box" style="margin-bottom:12px;">
-            <p><strong>Idle</strong> and <strong>walk</strong> are required before <strong>Build canonical clips</strong> and QA. Custom clips are optional and export with the same bundle after a successful build.</p>
+        ${templateModeHintHtml}
+        <div class="info-box" style="margin-bottom:12px;">
+            <p><strong>Idle</strong> and <strong>walk</strong> are required before <strong>Build canonical clips</strong> and QA. Custom clips are optional.</p>
         </div>
-        <div class="clip-control-card" style="margin-bottom:14px;">
-            <h4 style="margin:0 0 8px;">Animation store</h4>
-            <table class="small-note" style="width:100%;border-collapse:collapse;">
-                <thead><tr><th align="left">Clip</th><th align="left">Template</th><th align="left">Directions</th><th align="left">Frames (meta)</th></tr></thead>
-                <tbody>${listRows}</tbody>
-            </table>
-            ${clipsBridgeHtml}
-            <div class="actions" style="margin-top:12px;flex-wrap:wrap;gap:8px;">
-                <button type="button" id="pixellab-build-clips" ${canBuildClips && !animBusy ? "" : "disabled"} title="${escapeHtml(buildClipsTitle)}">Build canonical clips</button>
+        <div class="actions" style="margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+            <button type="button" id="pixellab-build-clips" ${canBuildClips && !animBusy ? "" : "disabled"} title="${escapeHtml(buildClipsTitle)}">Build canonical clips</button>
+        </div>
+        <p class="small-note" id="pixellab-build-clips-hint" style="margin-bottom:14px;">${buildClipsHintHtml}</p>
+        <details class="advanced-settings" style="margin-bottom:14px;">
+            <summary>Animation store</summary>
+            <div class="advanced-content">
+                <table class="small-note" style="width:100%;border-collapse:collapse;">
+                    <thead><tr><th align="left">Clip</th><th align="left">Template</th><th align="left">Directions</th><th align="left">Frames (meta)</th></tr></thead>
+                    <tbody>${listRows}</tbody>
+                </table>
+                ${clipsBridgeHtml}
             </div>
-            <p class="small-note" id="pixellab-build-clips-hint" style="margin-top:8px;">${buildClipsHintHtml}</p>
-        </div>
+        </details>
         <div class="clip-control-card" style="margin-bottom:12px;">
             <h4 style="margin:0 0 8px;">Add custom animation</h4>
             <p class="small-note">Name: lowercase letter first, then letters, digits, or underscore (max 48). Idle/walk already have panels above.</p>
@@ -7556,7 +7692,7 @@ function renderPixellabAnimationsBoard() {
         const strip = root.querySelector(`.pixellab-anim-strip[data-clip="${clipName}"]`);
         const img = root.querySelector(`.pixellab-preview-img[data-clip="${clipName}"]`);
         if (!strip || !img) return;
-        strip.innerHTML = urls.map((u, i) => `<img src="${u}" alt="f${i}" title="Frame ${i}" loading="lazy" onerror="this.style.boxShadow='inset 0 0 0 2px rgba(255,100,100,0.8)'; this.alt='×';" style="width:56px;height:56px;object-fit:contain;background:rgba(0,0,0,0.2);border-radius:6px;">`).join("");
+        strip.innerHTML = urls.map((u, i) => `<img src="${u}" alt="f${i}" title="Frame ${i}" loading="lazy" onerror="this.style.boxShadow='inset 0 0 0 2px rgba(255,100,100,0.8)'; this.alt='×';" style="width:72px;height:72px;object-fit:contain;background:rgba(0,0,0,0.2);border-radius:6px;image-rendering:pixelated;">`).join("");
         img.src = urls[0] || "";
         const lab = root.querySelector(`.pixellab-preview-label[data-clip="${clipName}"]`);
         if (lab) lab.textContent = urls.length ? `0 / ${urls.length}` : "No frames";
@@ -7782,7 +7918,7 @@ function syncLegacyModeControls() {
     const selectors = [
         "#intake", "#concepts", "#character", "#animations", "#review-export",
     ];
-    const allowInLegacy = new Set(["create-project", "create-project-workbench", "refresh-projects-brief", "refresh-projects-references", "refresh-projects-workbench"]);
+    const allowInLegacy = new Set(["confirm-describe-step", "create-project-workbench", "refresh-projects-workbench"]);
     selectors.forEach((selector) => {
         const root = document.querySelector(selector);
         if (!root) return;
@@ -10360,6 +10496,7 @@ function renderAll() {
     renderStageMeta();
     renderProjectList();
     populateIntakeForm();
+    renderDescribePrimaryAction();
     renderStatus();
     renderModeShell();
     renderConceptReview();
@@ -10426,6 +10563,19 @@ async function loadProject(projectId, mode = "wizard") {
     state.activeProject = project;
     state.uiMode = mode;
     storage.setItem(STORAGE_KEYS.activeProjectId, projectId);
+    // Restore iteration compare state from project data on load/reload.
+    if (!state.lastIteratedConceptId) {
+        const iterateConcepts = (project.concepts || [])
+            .filter((c) => c.run_kind === "pixellab_iterate")
+            .sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""));
+        if (iterateConcepts.length) {
+            state.lastIteratedConceptId = iterateConcepts[0].concept_id;
+            if (!state.conceptUiSelectedId) {
+                const parentId = iterateConcepts[0]?.lineage?.parent_concept_id;
+                if (parentId) state.conceptUiSelectedId = parentId;
+            }
+        }
+    }
     state.compareRightId = null;
     state.swapCompareView = false;
     state.selectedSpritePart = project.sprite_model?.parts?.[0]?.part_name || null;
@@ -10505,6 +10655,33 @@ async function saveBrief(mode = currentMode(), nextStep = null) {
         state.uiMode = "wizard";
     }
     renderAll();
+}
+
+async function confirmDescribeStep() {
+    if (!document.querySelector("#project-name").value.trim()) {
+        throw new Error("Add a project name before continuing.");
+    }
+    if (!document.querySelector("#prompt-text").value.trim()) {
+        throw new Error("Add a character description before continuing.");
+    }
+    if (!state.activeProject) {
+        await createProject("wizard");
+        const synced = await persistWizardState({
+            completed_steps: ["brief", "describe"],
+            current_step: "concepts",
+            last_ui_mode: "wizard",
+        });
+        if (synced) state.activeProject = synced;
+        renderAll();
+        return;
+    }
+    await saveBrief("wizard", "concepts");
+}
+
+function renderDescribePrimaryAction() {
+    const button = document.querySelector("#confirm-describe-step");
+    if (!button) return;
+    button.textContent = state.activeProject ? "Confirm & Continue" : "Create Project & Continue";
 }
 
 async function waitForJob(job) {
@@ -10634,26 +10811,56 @@ async function copyConceptScaffoldPrompt() {
     notify("Copied scaffold prompt.", "success");
 }
 
-async function generateConceptViaPixellab() {
+async function readFileAsDataUrl(file) {
+    return await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(new Error(`Failed to read ${file.name}`));
+        reader.readAsDataURL(file);
+    });
+}
+
+async function generateConceptViaPixellab(sourceMode = "text") {
     if (!state.activeProject) throw new Error("Select or create a project first.");
     if (!state.lastConceptScaffold?.pixellab_params) throw new Error('Use "Build Prompt" first to persist Pixel Lab parameters.');
+    const pixellabParams = { ...state.lastConceptScaffold.pixellab_params };
+    const payload = {
+        mode: "pixflux",
+        pixellab_params: pixellabParams,
+    };
+    if (sourceMode === "custom_init") {
+        const file = document.querySelector("#concept-init-upload-file")?.files?.[0];
+        if (!file) throw new Error("Choose an init image upload first.");
+        payload.init_image_name = file.name;
+        payload.init_image_data_url = await readFileAsDataUrl(file);
+        payload.init_image_strength = 820;
+    }
     setActivity({
         state: "Working",
         jobType: "concepts.generate_pixellab",
-        label: "Generating concept via Pixel Lab",
-        detail: "Calling Pixel Lab or debug placeholders.",
+        label: sourceMode === "custom_init" ? "Post-processing uploaded init image" : "Generating concept via Pixel Lab",
+        detail: sourceMode === "custom_init"
+            ? "Using the uploaded image as Pixel Lab init input."
+            : "Calling Pixel Lab to generate a fresh 128x128 concept.",
         percent: 25,
     });
     try {
         const concept = await api(`/api/projects/${state.activeProject.project_id}/concepts/generate-pixellab`, {
             method: "POST",
-            body: JSON.stringify({ mode: "v2", pixellab_params: state.lastConceptScaffold.pixellab_params }),
+            body: JSON.stringify(payload),
         });
+        const initInput = document.querySelector("#concept-init-upload-file");
+        if (initInput) initInput.value = "";
         state.lastIteratedConceptId = null;
         await loadProject(state.activeProject.project_id, currentMode());
         state.conceptUiSelectedId = concept.concept_id;
         log(`Pixel Lab concept ${concept.concept_id}`, "success");
-        notify(`Created ${concept.concept_id} via Pixel Lab.`, "success");
+        notify(
+            sourceMode === "custom_init"
+                ? `Created ${concept.concept_id} from the uploaded init image.`
+                : `Created ${concept.concept_id} via Pixel Lab.`,
+            "success"
+        );
         renderAll();
     } finally {
         clearActivity();
@@ -10677,6 +10884,35 @@ async function buildConceptIterationPrompt() {
     notify("Iteration prompt ready.", "success");
 }
 
+async function generateConceptIterationViaGemini() {
+    if (!state.activeProject) throw new Error("Select or create a project first.");
+    const cid = state.conceptUiSelectedId;
+    if (!cid) throw new Error("Select a source concept first.");
+    const element = document.querySelector("#concept-iterate-element")?.value;
+    const changeText = document.querySelector("#concept-iterate-change")?.value?.trim();
+    if (!changeText) throw new Error("Describe what to change.");
+    setActivity({
+        state: "Working",
+        jobType: "concepts.iterate_gemini",
+        label: "Gemini image iteration",
+        detail: "Sending sprite to Gemini for editing…",
+        percent: 25,
+    });
+    try {
+        const concept = await api(`/api/projects/${state.activeProject.project_id}/concepts/iterate-gemini`, {
+            method: "POST",
+            body: JSON.stringify({ concept_id: cid, element, change_text: changeText }),
+        });
+        state.lastIteratedConceptId = concept.concept_id;
+        await loadProject(state.activeProject.project_id, currentMode());
+        log(`Gemini iteration ${concept.concept_id}`, "success");
+        notify(`Saved iteration as ${concept.concept_id}.`, "success");
+        renderAll();
+    } finally {
+        clearActivity();
+    }
+}
+
 async function generateConceptIterationViaPixellab() {
     if (!state.activeProject) throw new Error("Select or create a project first.");
     if (!state.lastIterationScaffold?.pixellab_params) throw new Error('Use "Build Iteration Prompt" first.');
@@ -10690,15 +10926,16 @@ async function generateConceptIterationViaPixellab() {
         percent: 25,
     });
     try {
+        const strength = parseInt(document.querySelector("#concept-iterate-strength")?.value || "750", 10);
+        const params = { ...state.lastIterationScaffold.pixellab_params, init_image_strength: strength };
         const concept = await api(`/api/projects/${state.activeProject.project_id}/concepts/iterate-pixellab`, {
             method: "POST",
-            body: JSON.stringify({ concept_id: cid, pixellab_params: state.lastIterationScaffold.pixellab_params }),
+            body: JSON.stringify({ concept_id: cid, pixellab_params: params }),
         });
         state.lastIteratedConceptId = concept.concept_id;
         await loadProject(state.activeProject.project_id, currentMode());
-        state.conceptUiSelectedId = concept.concept_id;
         log(`Pixel Lab iteration ${concept.concept_id}`, "success");
-        notify(`Created iteration ${concept.concept_id}.`, "success");
+        notify(`Saved iteration as ${concept.concept_id}.`, "success");
         renderAll();
     } finally {
         clearActivity();
@@ -10789,6 +11026,29 @@ async function importIteratedConceptFile() {
     renderAll();
 }
 
+function focusLatestIteration() {
+    if (!state.activeProject) throw new Error("Select or create a project first.");
+    const concept = state.lastIteratedConceptId ? conceptById(state.lastIteratedConceptId) : null;
+    if (!concept) throw new Error("Generate an iteration first.");
+    state.conceptUiSelectedId = concept.concept_id;
+    renderAll();
+    notify(`Selected saved iteration ${concept.concept_id}.`, "success");
+}
+
+function downloadLatestIteration() {
+    if (!state.activeProject) throw new Error("Select or create a project first.");
+    const concept = state.lastIteratedConceptId ? conceptById(state.lastIteratedConceptId) : null;
+    const path = conceptDisplayImagePath(concept);
+    if (!concept || !path) throw new Error("Generate an iteration first.");
+    const link = document.createElement("a");
+    link.href = `${projectAsset(state.activeProject, path)}?v=${state.activeProject.updated_at}`;
+    link.download = `${concept.concept_id}.png`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    notify(`Downloading ${concept.concept_id}.png`, "success");
+}
+
 async function deleteConceptById(conceptId) {
     if (!state.activeProject) throw new Error("Select or create a project first.");
     await api(`/api/projects/${state.activeProject.project_id}/concepts/${encodeURIComponent(conceptId)}/delete`, {
@@ -10855,8 +11115,10 @@ async function applySpriteOperation(operation, extra = {}) {
 function openZoom(conceptId) {
     const concept = conceptById(conceptId);
     if (!concept) return;
+    const path = conceptDisplayImagePath(concept);
+    if (!path) return;
     state.zoomConceptId = conceptId;
-    document.querySelector("#zoom-image").src = `${projectAsset(state.activeProject, concept.preview_image)}?v=${state.activeProject.updated_at}`;
+    document.querySelector("#zoom-image").src = `${projectAsset(state.activeProject, path)}?v=${state.activeProject.updated_at}`;
     document.querySelector("#zoom-meta").textContent = `${concept.concept_id} · ${concept.difference_summary || "No summary"}`;
     document.querySelector("#zoom-details").textContent = JSON.stringify({
         run_id: concept.run_id,
@@ -10884,18 +11146,9 @@ function closeManualPoseEditor() {
     document.querySelector("#manual-pose-modal").classList.remove("open");
 }
 
-document.querySelector("#create-project")?.addEventListener("click", async () => {
+document.querySelector("#confirm-describe-step")?.addEventListener("click", async () => {
     try {
-        await createProject(currentMode());
-    } catch (error) {
-        log(normalizeErrorMessage(error.message), "error");
-        notify(normalizeErrorMessage(error.message), "error");
-    }
-});
-
-document.querySelector("#save-brief")?.addEventListener("click", async () => {
-    try {
-        await saveBrief(currentMode());
+        await confirmDescribeStep();
     } catch (error) {
         log(normalizeErrorMessage(error.message), "error");
         notify(normalizeErrorMessage(error.message), "error");
@@ -10920,16 +11173,7 @@ document.querySelector("#save-brief-workbench")?.addEventListener("click", async
     }
 });
 
-document.querySelector("#save-references")?.addEventListener("click", async () => {
-    try {
-        await saveBrief(currentMode(), "concepts");
-    } catch (error) {
-        log(normalizeErrorMessage(error.message), "error");
-        notify(normalizeErrorMessage(error.message), "error");
-    }
-});
-
-["#refresh-projects-brief", "#refresh-projects-references", "#refresh-projects-workbench"].forEach((selector) => {
+["#refresh-projects-workbench"].forEach((selector) => {
     document.querySelector(selector)?.addEventListener("click", async () => {
         try {
             await refreshProjects();
