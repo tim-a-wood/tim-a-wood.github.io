@@ -8,6 +8,7 @@ import tempfile
 import threading
 import time
 import unittest
+import zipfile
 from contextlib import contextmanager
 from pathlib import Path
 from http.server import ThreadingHTTPServer
@@ -272,6 +273,312 @@ class SpriteWorkbenchTests(unittest.TestCase):
         # Describe (brief + optional references) satisfied once a brief exists; wizard focuses first incomplete step.
         self.assertEqual(project["step_statuses"]["describe"], "complete")
         self.assertEqual(project["wizard_state"]["current_step"], "concepts")
+
+    def test_create_project_writes_bundle_manifest_and_health_report(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            original_root = sw.PROJECTS_ROOT
+            sw.PROJECTS_ROOT = Path(tmpdir)
+            try:
+                project = sw.create_project({
+                    "project_name": "Persistence Hero",
+                    "prompt_text": "a side-view knight",
+                })
+                project_dir = Path(tmpdir) / project["project_id"]
+                manifest = sw.load_json(sw.project_bundle_manifest_path(project_dir))
+                health = sw.load_json(sw.project_health_report_path(project_dir))
+            finally:
+                sw.PROJECTS_ROOT = original_root
+
+        self.assertEqual(project["project_schema_version"], sw.PROJECT_SCHEMA_VERSION)
+        self.assertEqual(project["project_bundle_manifest"]["project_schema_version"], sw.PROJECT_SCHEMA_VERSION)
+        self.assertEqual(project["health_report"]["status"], "pass")
+        self.assertEqual(manifest["project_id"], project["project_id"])
+        self.assertIn("project.json", [item["path"] for item in manifest["artifacts"]])
+        self.assertIn("brief.json", [item["path"] for item in manifest["artifacts"]])
+        self.assertEqual(health["status"], "pass")
+
+    def test_load_project_health_report_flags_missing_concept_assets(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            original_root = sw.PROJECTS_ROOT
+            sw.PROJECTS_ROOT = Path(tmpdir)
+            try:
+                project = sw.create_project({
+                    "project_name": "Broken Concept Project",
+                    "prompt_text": "a side-view ranger",
+                })
+                project_dir = Path(tmpdir) / project["project_id"]
+                concept = sw.hydrate_concept({
+                    "concept_id": "concept-0001",
+                    "project_id": project["project_id"],
+                    "preview_image": "concepts/missing.png",
+                    "original_preview_image": "concepts/missing.png",
+                    "approved_source_image": "concepts/missing.png",
+                    "review_state": {"approved": True},
+                }, project["created_at"])
+                project["selected_concept_id"] = concept["concept_id"]
+                project["concepts"] = [concept]
+                sw.save_project(project)
+                loaded = sw.load_project(project["project_id"])
+                stored_health = sw.load_json(sw.project_health_report_path(project_dir))
+            finally:
+                sw.PROJECTS_ROOT = original_root
+
+        self.assertEqual(loaded["health_report"]["status"], "warning")
+        self.assertEqual(stored_health["status"], "warning")
+        self.assertTrue(any(item["path"] == "concepts/missing.png" for item in loaded["health_report"]["missing_files"]))
+
+    def test_project_summary_reports_missing_export_directory(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            original_root = sw.PROJECTS_ROOT
+            sw.PROJECTS_ROOT = Path(tmpdir)
+            try:
+                project = sw.create_project({
+                    "project_name": "Missing Export Project",
+                    "prompt_text": "a side-view rogue",
+                })
+                project["last_export"] = {
+                    "export_dir": "exports/missing-build",
+                    "generated_at": sw.now_iso(),
+                }
+                sw.save_project(project)
+                summary = sw.project_summary(sw.list_projects(include_archived=True)[0])
+                loaded = sw.load_project(project["project_id"])
+            finally:
+                sw.PROJECTS_ROOT = original_root
+
+        self.assertEqual(summary["project_health_status"], "warning")
+        self.assertGreaterEqual(summary["project_health_missing_file_count"], 1)
+        self.assertTrue(any(item["type"] == "last_export_missing" for item in loaded["health_report"]["missing_files"]))
+
+    def test_workbench_settings_and_usage_ledger_round_trip(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            original_root = sw.PROJECTS_ROOT
+            sw.PROJECTS_ROOT = Path(tmpdir)
+            try:
+                defaults = sw.load_workbench_settings()
+                self.assertEqual(defaults["safe_mode"], False)
+                saved = sw.save_workbench_settings({"safe_mode": True, "confirm_paid_actions": False})
+                self.assertEqual(saved["safe_mode"], True)
+                self.assertEqual(saved["confirm_paid_actions"], False)
+                sw.append_usage_ledger_entry(
+                    provider="pixellab",
+                    endpoint="pixellab.animate-custom",
+                    project_id="demo-project",
+                    usage_cost_usd=1.25,
+                    metadata={"animation_name": "walk"},
+                )
+                summary = sw.summarize_usage_ledger()
+            finally:
+                sw.PROJECTS_ROOT = original_root
+
+        self.assertEqual(summary["entry_count"], 1)
+        self.assertAlmostEqual(summary["today_usage_cost_usd"], 1.25)
+        self.assertEqual(summary["recent_entries"][0]["endpoint"], "pixellab.animate-custom")
+
+    def test_provider_call_allowed_blocks_when_safe_mode_enabled(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            original_root = sw.PROJECTS_ROOT
+            sw.PROJECTS_ROOT = Path(tmpdir)
+            try:
+                sw.save_workbench_settings({"safe_mode": True})
+                with self.assertRaises(ValueError):
+                    sw.provider_call_allowed()
+            finally:
+                sw.PROJECTS_ROOT = original_root
+
+    def test_import_demo_project_rehomes_fixture_project(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            original_root = sw.PROJECTS_ROOT
+            original_demo_root = sw.DEMO_PROJECT_FIXTURE_ROOT
+            sw.PROJECTS_ROOT = Path(tmpdir)
+            sw.DEMO_PROJECT_FIXTURE_ROOT = self.FIXTURE_ROOT
+            try:
+                imported = sw.import_demo_project({"fixture_name": "canonical-sprite-model"})
+                loaded = sw.load_project(imported["project_id"])
+                project_json_exists = (Path(tmpdir) / imported["project_id"] / "project.json").exists()
+            finally:
+                sw.PROJECTS_ROOT = original_root
+                sw.DEMO_PROJECT_FIXTURE_ROOT = original_demo_root
+
+        self.assertNotEqual(imported["project_id"], "")
+        self.assertEqual(loaded["project_id"], imported["project_id"])
+        self.assertEqual(loaded["status"], "demo_imported")
+        self.assertTrue(project_json_exists)
+
+    def test_build_project_bundle_archive_includes_project_files(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            original_root = sw.PROJECTS_ROOT
+            sw.PROJECTS_ROOT = Path(tmpdir)
+            try:
+                project = sw.create_project({
+                    "project_name": "Bundle Hero",
+                    "prompt_text": "a side-view knight",
+                })
+                filename, payload = sw.build_project_bundle_archive(project["project_id"])
+            finally:
+                sw.PROJECTS_ROOT = original_root
+
+        self.assertTrue(filename.endswith(".spriteworkbench.zip"))
+        with zipfile.ZipFile(io.BytesIO(payload), "r") as zf:
+            names = set(zf.namelist())
+        prefix = f"{project['project_id']}/"
+        self.assertIn(f"{prefix}project.json", names)
+        self.assertIn(f"{prefix}brief.json", names)
+        self.assertIn(f"{prefix}{sw.ROOM_LAYOUT_FILENAME}", names)
+        self.assertIn(f"{prefix}{sw.ROOM_LAYOUT_HISTORY_FILENAME}", names)
+        self.assertIn(f"{prefix}{sw.LEVEL_VALIDATION_REPORT_FILENAME}", names)
+        self.assertIn(f"{prefix}{sw.PROJECT_BUNDLE_MANIFEST_FILENAME}", names)
+        self.assertIn(f"{prefix}{sw.PROJECT_HEALTH_REPORT_FILENAME}", names)
+
+    def test_import_project_bundle_round_trips_assets_and_rehomes_project_id(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            original_root = sw.PROJECTS_ROOT
+            sw.PROJECTS_ROOT = Path(tmpdir)
+            try:
+                project = sw.create_project({
+                    "project_name": "Import Hero",
+                    "prompt_text": "a side-view ranger",
+                })
+                project_dir = Path(tmpdir) / project["project_id"]
+                image_path = project_dir / "concepts" / "concept-0001.png"
+                self.create_manual_concept_asset(image_path)
+                concept = sw.hydrate_concept({
+                    "concept_id": "concept-0001",
+                    "project_id": project["project_id"],
+                    "preview_image": "concepts/concept-0001.png",
+                    "original_preview_image": "concepts/concept-0001.png",
+                    "approved_source_image": "concepts/concept-0001.png",
+                    "review_state": {"approved": True},
+                }, project["created_at"])
+                project["selected_concept_id"] = concept["concept_id"]
+                project["concepts"] = [concept]
+                sw.save_project(project)
+
+                _, archive_bytes = sw.build_project_bundle_archive(project["project_id"])
+                imported = sw.import_project_bundle({
+                    "name": "import-hero.spriteworkbench.zip",
+                    "data_url": "data:application/zip;base64,%s" % base64.b64encode(archive_bytes).decode("ascii"),
+                })
+                imported_dir = Path(tmpdir) / imported["project_id"]
+                imported_asset_exists = (imported_dir / "concepts" / "concept-0001.png").exists()
+            finally:
+                sw.PROJECTS_ROOT = original_root
+
+        self.assertNotEqual(imported["project_id"], project["project_id"])
+        self.assertEqual(imported["selected_concept_id"], "concept-0001")
+        self.assertTrue(imported_asset_exists)
+        self.assertEqual(imported["concepts"][0]["project_id"], imported["project_id"])
+        self.assertEqual(imported["project_schema_version"], sw.PROJECT_SCHEMA_VERSION)
+        self.assertEqual(imported["health_report"]["status"], "pass")
+        self.assertEqual(imported["room_layout"]["meta"]["project_id"], imported["project_id"])
+        self.assertEqual(imported["room_layout_history"]["project_id"], imported["project_id"])
+        self.assertEqual(imported["level_validation_report"]["project_id"], imported["project_id"])
+
+    def test_create_project_writes_room_layout_artifacts(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            original_root = sw.PROJECTS_ROOT
+            sw.PROJECTS_ROOT = Path(tmpdir)
+            try:
+                project = sw.create_project({
+                    "project_name": "Room Layout Hero",
+                    "prompt_text": "a side-view cartographer",
+                })
+                project_dir = Path(tmpdir) / project["project_id"]
+                room_layout = sw.load_json(project_dir / sw.ROOM_LAYOUT_FILENAME, {})
+                room_history = sw.load_json(project_dir / sw.ROOM_LAYOUT_HISTORY_FILENAME, {})
+                room_validation = sw.load_json(project_dir / sw.LEVEL_VALIDATION_REPORT_FILENAME, {})
+            finally:
+                sw.PROJECTS_ROOT = original_root
+
+        self.assertEqual(room_layout["meta"]["project_id"], project["project_id"])
+        self.assertEqual(len(room_layout["rooms"]), 1)
+        self.assertEqual(room_history["project_id"], project["project_id"])
+        self.assertEqual(room_history["current_revision_id"], "initial")
+        self.assertEqual(room_validation["status"], "pass")
+
+    def test_save_room_layout_persists_history_and_validation(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            original_root = sw.PROJECTS_ROOT
+            sw.PROJECTS_ROOT = Path(tmpdir)
+            try:
+                project = sw.create_project({
+                    "project_name": "Room Save Hero",
+                    "prompt_text": "a side-view architect",
+                })
+                room_layout = sw.get_room_layout(project["project_id"])
+                room_layout["rooms"].append({
+                    "id": "R2",
+                    "name": "Room 2",
+                    "size": {"width": 1600, "height": 1200},
+                    "global": {"x": 900, "y": 360},
+                    "polygon": [[160, 160], [1440, 160], [1440, 1040], [160, 1040]],
+                    "platforms": [],
+                    "movingPlatforms": [],
+                    "doors": [],
+                    "keys": [],
+                    "abilities": [],
+                    "playerStart": None,
+                    "edgeLinks": [],
+                    "removedEdges": [],
+                })
+                result = sw.save_room_layout(project["project_id"], room_layout)
+                reloaded = sw.load_project(project["project_id"])
+            finally:
+                sw.PROJECTS_ROOT = original_root
+
+        self.assertTrue(result["ok"])
+        self.assertEqual(reloaded["room_layout"]["meta"]["project_id"], project["project_id"])
+        self.assertEqual(len(reloaded["room_layout"]["rooms"]), 2)
+        self.assertGreaterEqual(len(reloaded["room_layout_history"]["revisions"]), 2)
+        self.assertEqual(reloaded["level_validation_report"]["status"], "warning")
+        self.assertEqual(reloaded["status"], "room_layout_saved")
+        self.assertTrue(any(item.get("type") == "room_layout_saved" for item in reloaded["history"]["events"]))
+
+    def test_room_layout_api_round_trips_project_layout(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            original_root = sw.PROJECTS_ROOT
+            sw.PROJECTS_ROOT = Path(tmpdir)
+            try:
+                project = sw.create_project({
+                    "project_name": "Room API Hero",
+                    "prompt_text": "a side-view surveyor",
+                })
+                try:
+                    server = ThreadingHTTPServer(("127.0.0.1", 0), sw.SpriteWorkbenchHandler)
+                except PermissionError:
+                    self.skipTest("Sandbox does not allow binding a local socket.")
+                thread = threading.Thread(target=server.serve_forever, daemon=True)
+                thread.start()
+                try:
+                    connection = http.client.HTTPConnection("127.0.0.1", server.server_port, timeout=10)
+                    connection.request("GET", f"/api/projects/{project['project_id']}/room-layout")
+                    response = connection.getresponse()
+                    self.assertEqual(response.status, 200)
+                    payload = json.loads(response.read().decode("utf-8"))
+                    self.assertEqual(payload["meta"]["project_id"], project["project_id"])
+
+                    payload["rooms"][0]["name"] = "Edited Room"
+                    body = json.dumps(payload)
+                    connection.request(
+                        "POST",
+                        f"/api/projects/{project['project_id']}/room-layout",
+                        body=body,
+                        headers={"Content-Type": "application/json"},
+                    )
+                    save_response = connection.getresponse()
+                    self.assertEqual(save_response.status, 200)
+                    save_payload = json.loads(save_response.read().decode("utf-8"))
+                    self.assertTrue(save_payload["ok"])
+                finally:
+                    server.shutdown()
+                    thread.join(timeout=5)
+                    server.server_close()
+
+                reloaded = sw.load_project(project["project_id"])
+            finally:
+                sw.PROJECTS_ROOT = original_root
+
+        self.assertEqual(reloaded["room_layout"]["rooms"][0]["name"], "Edited Room")
 
     def test_update_project_brief_advances_wizard_to_concepts_when_references_satisfied(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -573,6 +880,9 @@ class SpriteWorkbenchTests(unittest.TestCase):
             self.assertTrue((export_dir / "spritesheet.png").exists())
             self.assertTrue((export_dir / "atlas.json").exists())
             self.assertTrue((export_dir / "animations.json").exists())
+            self.assertIn("idle", export.get("animation_sheets") or {})
+            self.assertTrue((export_dir / "animation_sheets" / "idle.png").exists())
+            self.assertTrue((export_dir / "animation_sheets" / "idle.json").exists())
             self.assertTrue((export_dir / "preview_idle.gif").exists())
             self.assertTrue((export_dir / "preview_walk.gif").exists())
             self.assertFalse((export_dir / "preview.gif").exists())
@@ -862,6 +1172,7 @@ class SpriteWorkbenchTests(unittest.TestCase):
 
         self.assertEqual(export_manifest["verification"]["status"], "pass")
         self.assertIn("atlas.json", export_manifest["bundle_hashes"])
+        self.assertIn("animation_sheets", export_manifest)
         self.assertEqual(export["verification"]["status"], "pass")
 
     def test_hydrate_brief_is_backward_compatible(self):
@@ -1341,6 +1652,43 @@ class SpriteWorkbenchTests(unittest.TestCase):
             thread.join(timeout=5)
             server.server_close()
 
+    def test_health_endpoint_includes_settings_usage_and_demo_projects(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            original_root = sw.PROJECTS_ROOT
+            original_demo_root = sw.DEMO_PROJECT_FIXTURE_ROOT
+            sw.PROJECTS_ROOT = Path(tmpdir)
+            sw.DEMO_PROJECT_FIXTURE_ROOT = self.FIXTURE_ROOT
+            try:
+                sw.save_workbench_settings({"safe_mode": True, "confirm_paid_actions": True})
+                sw.append_usage_ledger_entry(
+                    provider="pixellab",
+                    endpoint="concepts.generate-pixellab",
+                    project_id="demo",
+                    usage_cost_usd=0.5,
+                )
+                try:
+                    server = ThreadingHTTPServer(("127.0.0.1", 0), sw.SpriteWorkbenchHandler)
+                except PermissionError:
+                    self.skipTest("Sandbox does not allow binding a local socket.")
+                thread = threading.Thread(target=server.serve_forever, daemon=True)
+                thread.start()
+                try:
+                    connection = http.client.HTTPConnection("127.0.0.1", server.server_port, timeout=5)
+                    connection.request("GET", "/api/health")
+                    response = connection.getresponse()
+                    raw = response.read().decode("utf-8")
+                    data = json.loads(raw)
+                    self.assertEqual(data["settings"]["safe_mode"], True)
+                    self.assertEqual(data["usage_summary"]["entry_count"], 1)
+                    self.assertGreaterEqual(len(data["demo_projects"]), 1)
+                finally:
+                    server.shutdown()
+                    thread.join(timeout=5)
+                    server.server_close()
+            finally:
+                sw.PROJECTS_ROOT = original_root
+                sw.DEMO_PROJECT_FIXTURE_ROOT = original_demo_root
+
     def test_pixellab_configured_false_when_key_unset(self):
         original_key = sw.PIXELLAB_API_KEY
         sw.PIXELLAB_API_KEY = ""
@@ -1417,19 +1765,16 @@ class SpriteWorkbenchTests(unittest.TestCase):
         self.assertNotIn("part_manifest", seq)
         self.assertIn("character", seq)
 
-    def test_pixellab_missing_canonical_animation_clips_lists_gaps(self):
-        self.assertEqual(sw.pixellab_missing_canonical_animation_clips(None), ["idle", "walk"])
-        self.assertEqual(sw.pixellab_missing_canonical_animation_clips({}), ["idle", "walk"])
-        self.assertEqual(
-            sw.pixellab_missing_canonical_animation_clips({"idle": {"directions": {"east": {"frames": ["a"]}}}}),
-            ["walk"],
+    def test_pixellab_animation_store_has_frames_detects_any_generated_clip(self):
+        self.assertFalse(sw.pixellab_animation_store_has_frames(None))
+        self.assertFalse(sw.pixellab_animation_store_has_frames({}))
+        self.assertTrue(
+            sw.pixellab_animation_store_has_frames({"idle": {"directions": {"east": {"frames": ["a"]}}}})
         )
-        self.assertEqual(
-            sw.pixellab_missing_canonical_animation_clips({
-                "idle": {"directions": {"east": {"frames": ["a"]}}},
-                "walk": {"directions": {"east": {"frames": ["b"]}}},
-            }),
-            [],
+        self.assertTrue(
+            sw.pixellab_animation_store_has_frames({
+                "jump": {"directions": {"east": {"frames": ["b"]}}},
+            })
         )
 
     def test_validate_pixellab_animation_name_slug(self):
@@ -1440,23 +1785,80 @@ class SpriteWorkbenchTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             sw.validate_pixellab_animation_name("no spaces")
 
-    def test_pixellab_qa_clip_names_orders_idle_walk_then_custom(self):
+    def test_pixellab_qa_clip_names_orders_default_set_then_custom(self):
         clips = {
             "z_custom": {"frames": ["a.png"]},
             "idle": {"frames": ["i0.png"]},
             "walk": {"frames": ["w0.png"]},
+            "run": {"frames": ["r0.png"]},
+            "jump": {"frames": ["j0.png"]},
             "empty": {"frames": []},
             "no_frames": {},
         }
-        self.assertEqual(sw._pixellab_qa_clip_names(clips), ["idle", "walk", "z_custom"])
+        self.assertEqual(sw._pixellab_qa_clip_names(clips), ["idle", "walk", "run", "jump", "z_custom"])
 
-    def test_pixellab_qa_clip_names_orders_idle_walk_then_custom(self):
-        clips = {
-            "z_custom": {"frames": ["a.png"]},
-            "idle": {"frames": ["i.png"]},
-            "walk": {"frames": ["w.png"]},
-        }
-        self.assertEqual(sw._pixellab_qa_clip_names(clips), ["idle", "walk", "z_custom"])
+    def test_sync_pixellab_animation_clips_merges_generated_frames(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            original_root = sw.PROJECTS_ROOT
+            sw.PROJECTS_ROOT = Path(tmpdir)
+            try:
+                project = sw.create_project({
+                    "project_name": "Pixel Lab Sync",
+                    "prompt_text": "a side-view pilot",
+                    "backend_mode": "pixellab",
+                })
+                project_id = project["project_id"]
+                project_dir = sw.PROJECTS_ROOT / project_id
+                char_payload = {
+                    "character_id": "char-test",
+                    "approved": True,
+                    "directions": ["east"],
+                    "image_size": {"width": 128, "height": 128},
+                    "images": {"east": "character/east.png"},
+                }
+                (project_dir / "character").mkdir(parents=True, exist_ok=True)
+                Image.new("RGBA", (128, 128), (0, 0, 0, 0)).save(project_dir / "character" / "east.png")
+                (project_dir / "pixellab_character.json").write_text(json.dumps(char_payload, indent=2), encoding="utf-8")
+
+                frames_dir = project_dir / "animations" / "run" / "east"
+                frames_dir.mkdir(parents=True, exist_ok=True)
+                frame_rel_paths = []
+                for idx in range(2):
+                    frame_path = frames_dir / ("frame_%02d.png" % idx)
+                    Image.new("RGBA", (128, 128), (idx * 40, 0, 0, 255)).save(frame_path)
+                    frame_rel_paths.append(str(frame_path.relative_to(project_dir)))
+
+                pix_store = {
+                    "project_id": project_id,
+                    "updated_at": sw.now_iso(),
+                    "animations": {
+                        "run": {
+                            "animation_name": "run",
+                            "fps": 14,
+                            "frame_count": 2,
+                            "loop": True,
+                            "directions": {
+                                "east": {
+                                    "frames": frame_rel_paths,
+                                    "frame_count": 2,
+                                    "fps": 14,
+                                    "updated_at": sw.now_iso(),
+                                }
+                            },
+                        }
+                    },
+                }
+                (project_dir / "pixellab_animations.json").write_text(json.dumps(pix_store, indent=2), encoding="utf-8")
+
+                clips = sw.sync_pixellab_animation_clips(project_id)
+                reloaded = sw.load_project(project_id)
+            finally:
+                sw.PROJECTS_ROOT = original_root
+
+        self.assertEqual(clips["run"]["frame_count"], 2)
+        self.assertEqual(clips["run"]["frames_by_direction"]["east"], frame_rel_paths)
+        self.assertEqual(reloaded["animation_clips"]["run"]["frames"], frame_rel_paths)
+        self.assertEqual(reloaded["status"], "pixellab_animation_clips_synced")
 
     def test_pixellab_animate_custom_poll_timeout_constant_sane(self):
         self.assertGreaterEqual(sw.PIXELLAB_ANIMATE_CUSTOM_POLL_TIMEOUT_SECONDS, 180)
@@ -1501,13 +1903,12 @@ class SpriteWorkbenchTests(unittest.TestCase):
         self.assertEqual(out["idle"]["fps"], 8)
         self.assertEqual(out["walk"]["frame_count"], 8)
 
-    def test_pixellab_animations_step_complete_requires_idle_and_walk_frames(self):
+    def test_pixellab_animations_step_complete_requires_any_generated_clip(self):
         with tempfile.TemporaryDirectory() as tmp:
             pdir = Path(tmp)
             doc_bad = {
                 "project_id": "x",
                 "animations": {
-                    "idle": {"directions": {"east": {"frames": ["a.png"]}}},
                     "walk": {"directions": {}},
                 },
             }
@@ -1517,8 +1918,7 @@ class SpriteWorkbenchTests(unittest.TestCase):
             doc_ok = {
                 "project_id": "x",
                 "animations": {
-                    "idle": {"directions": {"east": {"frames": ["a.png"]}}},
-                    "walk": {"directions": {"east": {"frames": ["b.png"]}}},
+                    "jump": {"directions": {"east": {"frames": ["b.png"]}}},
                 },
             }
             (pdir / "pixellab_animations.json").write_text(json.dumps(doc_ok), encoding="utf-8")
@@ -3066,6 +3466,8 @@ class SpriteWorkbenchTests(unittest.TestCase):
                 self.assertIn("spritesheet.png", export.get("files") or [])
                 self.assertIn("atlas.json", export.get("files") or [])
                 self.assertIn("animations.json", export.get("files") or [])
+                self.assertIn("animation_sheets/idle.png", export.get("files") or [])
+                self.assertIn("idle", export.get("animation_sheets") or {})
                 self.assertIn("export_manifest.json", export.get("files") or [])
                 self.assertIn("preview_idle.gif", export.get("files") or [])
                 self.assertIn("preview_walk.gif", export.get("files") or [])
@@ -3410,8 +3812,11 @@ class SpriteWorkbenchTests(unittest.TestCase):
                 self.assertEqual(qa_report["status"], "pass")
                 self.assertIn(clip["clip_id"], animations_payload)
                 self.assertEqual(animations_payload[clip["clip_id"]]["frame_count"], 4)
+                self.assertIn("animation_sheets", export_result)
+                self.assertIn(clip["clip_id"], export_result["animation_sheets"])
                 self.assertTrue(any(name.startswith(f"frames/{clip['clip_id']}_") for name in export_result["files"]))
                 ed = project_dir / export_result["export_dir"]
+                self.assertTrue((ed / "animation_sheets" / f"{clip['clip_id']}.png").exists())
                 self.assertTrue((ed / "preview_idle.gif").exists())
                 self.assertTrue((ed / "preview_walk.gif").exists())
                 self.assertTrue((ed / ("preview_%s.gif" % clip["clip_id"])).exists())

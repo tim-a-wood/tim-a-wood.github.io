@@ -265,8 +265,59 @@
         .concept-mode-row label {
             display: inline-flex;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
             cursor: pointer;
+            padding: 9px 12px;
+            border-radius: 999px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(255, 255, 255, 0.03);
+            color: var(--text);
+            transition: border-color var(--transition-base), background var(--transition-base), color var(--transition-base), box-shadow var(--transition-base);
+        }
+        .concept-mode-row label:hover {
+            border-color: rgba(0, 232, 200, 0.22);
+            background: rgba(0, 232, 200, 0.06);
+        }
+        .concept-mode-row label:has(input:checked) {
+            border-color: rgba(0, 232, 200, 0.22);
+            background: rgba(255, 255, 255, 0.05);
+            box-shadow: inset 0 0 0 1px rgba(0, 232, 200, 0.05);
+        }
+        .concept-mode-row input[type="radio"] {
+            appearance: none;
+            -webkit-appearance: none;
+            position: relative;
+            width: 16px;
+            height: 16px;
+            margin: 0;
+            border-radius: 999px;
+            border: 1px solid rgba(255, 255, 255, 0.22);
+            background: rgba(255, 255, 255, 0.02);
+            display: inline-block;
+            flex: 0 0 auto;
+        }
+        .concept-mode-row input[type="radio"]::before {
+            content: "";
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 6px;
+            height: 6px;
+            border-radius: 999px;
+            transform: translate(-50%, -50%) scale(0);
+            transition: transform var(--transition-fast);
+            background: var(--accent);
+        }
+        .concept-mode-row input[type="radio"]:checked {
+            border-color: rgba(0, 232, 200, 0.4);
+            background: rgba(0, 232, 200, 0.06);
+        }
+        .concept-mode-row input[type="radio"]:checked::before {
+            transform: translate(-50%, -50%) scale(1);
+        }
+        .concept-mode-row input[type="radio"]:focus-visible {
+            outline: 2px solid rgba(0, 232, 200, 0.22);
+            outline-offset: 2px;
         }
         .concept-large-preview {
             min-height: 120px;
@@ -283,35 +334,26 @@
             border-radius: 8px;
         }
         .concept-large-preview--main {
-            flex-direction: column;
-            align-items: stretch;
-            justify-content: flex-start;
+            display: grid;
+            gap: 10px;
+            align-items: start;
+            justify-items: stretch;
             padding: 0;
-            gap: 8px;
             background: transparent;
-            min-height: min(72vh, calc(100dvh - 13rem));
-        }
-        .concept-preview-hint {
-            margin: 0;
-            padding: 0 2px;
-            flex-shrink: 0;
+            min-height: 0;
         }
         .concept-preview-viewport {
             position: relative;
-            flex: 1 1 auto;
-            min-height: min(58vh, calc(100dvh - 16rem));
+            height: clamp(320px, 48vh, 560px);
             overflow: hidden;
-            touch-action: none;
             border-radius: 10px;
             background: rgba(0, 0, 0, 0.28);
-            cursor: grab;
-        }
-        .concept-preview-viewport.is-dragging {
-            cursor: grabbing;
+            padding: 12px;
+            box-sizing: border-box;
         }
         .concept-preview-stage {
             position: absolute;
-            inset: 0;
+            inset: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -319,10 +361,10 @@
             will-change: transform;
         }
         .concept-preview-stage img {
+            width: 100%;
+            height: 100%;
             max-width: 100%;
             max-height: 100%;
-            width: auto;
-            height: auto;
             object-fit: contain;
             border-radius: 8px;
             pointer-events: none;
@@ -336,36 +378,295 @@
             gap: 8px;
             flex-shrink: 0;
         }
-        .concept-preview-toolbar button {
-            min-width: 2.25rem;
+        .concept-create-layout {
+            display: grid;
+            grid-template-columns: minmax(300px, 0.42fr) minmax(320px, 0.58fr);
+            gap: 16px;
+            align-items: stretch;
+            margin-top: 16px;
         }
-        /* Selected preview dominates; unselected concepts stay compact in a narrow column */
-        .concept-browser-layout {
-            grid-template-columns: minmax(0, 1fr) minmax(200px, 17rem);
-            gap: 18px;
+        .stage-primary-grid {
+            display: grid;
+            grid-template-columns: minmax(280px, 0.46fr) minmax(320px, 0.54fr);
+            gap: 16px;
+            align-items: stretch;
+        }
+        .stage-column {
+            display: grid;
+            gap: 16px;
+            align-content: start;
+        }
+        .stage-card {
+            padding: 14px;
+            border-radius: var(--radius-tight);
+            border: 1px solid var(--stroke);
+            background: rgba(255, 255, 255, 0.03);
+            display: grid;
+            gap: 14px;
+            align-content: start;
+        }
+        .stage-card-head {
+            display: grid;
+            gap: 6px;
+        }
+        .stage-card-head h4 {
+            margin: 0;
+            font-size: 0.98rem;
+        }
+        .stage-card-head p {
+            margin: 0;
+        }
+        .stage-card .grid-2,
+        .stage-card .grid-3 {
+            display: grid;
+            gap: 12px;
+        }
+        .stage-card-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+        }
+        .stage-card-actions.primary-stack {
+            display: grid;
+            gap: 10px;
+        }
+        .stage-card-actions.secondary-row {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 8px;
+        }
+        .stage-card-actions.secondary-row button {
+            width: 100%;
+        }
+        .flow-collapsible {
+            border: 1px solid var(--stroke);
+            border-radius: var(--radius-tight);
+            background: rgba(255, 255, 255, 0.03);
+            padding: 10px 12px;
+        }
+        .flow-collapsible summary {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            cursor: pointer;
+            list-style: none;
+            font-weight: 700;
+        }
+        .flow-collapsible summary::-webkit-details-marker {
+            display: none;
+        }
+        .flow-collapsible-body {
+            margin-top: 12px;
+            display: grid;
+            gap: 12px;
+        }
+        .compact-panel-stack {
+            display: grid;
+            gap: 12px;
+        }
+        .review-flow-grid,
+        .animation-core-grid {
+            display: grid;
+            gap: 16px;
+        }
+        .animation-core-grid {
+            grid-template-columns: 1fr;
+        }
+        .animations-stage-layout {
+            grid-template-columns: 1fr;
+        }
+        .animations-main-stack {
+            display: grid;
+            gap: 14px;
+            max-width: 980px;
+        }
+        .review-flow-grid {
+            grid-template-columns: 1fr;
             align-items: start;
         }
-        @media (max-width: 960px) {
-            .concept-browser-layout {
+        .review-flow-grid .review-export-clip-block {
+            margin-top: 0;
+        }
+        .review-flow-grid .review-export-actions {
+            margin-top: 0;
+        }
+        .review-flow-grid .review-export-loop-row {
+            grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
+        }
+        .describe-reference-list {
+            display: grid;
+            gap: 12px;
+        }
+        .intake-layout {
+            grid-template-columns: minmax(420px, 1.14fr) minmax(320px, 0.86fr);
+            align-items: start;
+        }
+        .intake-core-column {
+            display: grid;
+            gap: 16px;
+            align-content: start;
+        }
+        .intake-brief-card {
+            gap: 16px;
+        }
+        .intake-core-fields {
+            display: grid;
+            gap: 12px;
+        }
+        .intake-project-row {
+            display: grid;
+            grid-template-columns: minmax(220px, 0.42fr) minmax(0, 1fr);
+            gap: 12px;
+            align-items: start;
+        }
+        .intake-core-fields textarea {
+            min-height: 280px;
+        }
+        .intake-support-fields {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .intake-visual-card {
+            gap: 16px;
+        }
+        .intake-visual-grid {
+            display: grid;
+            gap: 12px;
+        }
+        .intake-visual-section {
+            display: grid;
+            gap: 12px;
+            padding: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.02);
+        }
+        .intake-visual-section h5 {
+            margin: 0;
+            font-size: 0.8rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--muted);
+        }
+        .intake-actions-card {
+            margin-top: auto;
+        }
+        .character-stage-layout .pixellab-character-source-preview img {
+            max-height: 320px;
+            width: 100%;
+        }
+        .animations-stage-layout .clip-control-card,
+        .character-stage-layout .clip-control-card {
+            height: 100%;
+        }
+        @media (max-width: 980px) {
+            .concept-create-layout,
+            .stage-primary-grid,
+            .review-flow-grid,
+            .animation-core-grid {
+                grid-template-columns: 1fr;
+            }
+            .intake-project-row {
+                grid-template-columns: 1fr;
+            }
+            .intake-actions-card {
+                margin-top: 0;
+            }
+            .reference-row {
                 grid-template-columns: 1fr;
             }
         }
-        .concept-browser-layout > div:first-child {
+        .concept-action-card {
+            padding: 14px;
+            border-radius: var(--radius-tight);
+            border: 1px solid var(--stroke);
+            background: rgba(255, 255, 255, 0.03);
+            display: grid;
+            gap: 14px;
+            align-content: start;
+            height: 100%;
+        }
+        .concept-action-head {
+            display: grid;
+            gap: 8px;
+        }
+        .concept-action-head h3 {
+            margin: 0;
+            font-size: 0.98rem;
+        }
+        .concept-action-head p {
+            margin: 0;
+        }
+        .concept-action-group {
+            display: grid;
+            gap: 10px;
+        }
+        .concept-action-primary {
+            width: 100%;
+        }
+        .concept-action-secondary {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 8px;
+        }
+        @media (max-width: 720px) {
+            .concept-action-secondary {
+                grid-template-columns: 1fr;
+            }
+            .stage-card-actions.secondary-row {
+                grid-template-columns: 1fr;
+            }
+        }
+        .concept-action-secondary button {
+            width: 100%;
+        }
+        .concept-action-card .advanced-settings {
+            margin-top: 0;
+        }
+        .concept-browser-layout {
+            grid-template-columns: 1fr;
+            gap: 14px;
+            align-items: start;
+        }
+        .concept-preview-panel {
+            align-self: stretch;
+            display: grid;
+            grid-template-rows: auto 1fr;
+            max-width: none;
+            height: 100%;
+        }
+        .concept-preview-panel .concept-large-preview--main {
+            height: 100%;
+        }
+        .concept-collapsible {
+            border: 1px solid var(--stroke);
+            border-radius: var(--radius-tight);
+            background: rgba(255, 255, 255, 0.03);
+            padding: 10px 12px;
+        }
+        .concept-collapsible summary {
             display: flex;
-            flex-direction: column;
-            min-height: min(74vh, calc(100dvh - 11rem));
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            cursor: pointer;
+            list-style: none;
+            font-weight: 700;
         }
-        .concept-browser-layout .concept-large-preview--main {
-            flex: 1 1 auto;
-            min-height: min(68vh, calc(100dvh - 12rem));
+        .concept-collapsible summary::-webkit-details-marker {
+            display: none;
         }
-        .concept-browser-layout .concept-preview-viewport {
-            min-height: min(52vh, calc(100dvh - 18rem));
+        .concept-collapsible-body {
+            margin-top: 12px;
         }
-        .concept-browser-layout .concept-grid {
+        .concept-collapsible .concept-grid {
             grid-template-columns: 1fr;
             gap: 8px;
-            max-height: min(78vh, 760px);
+            max-height: min(54vh, 560px);
             overflow-y: auto;
             padding-right: 4px;
         }
@@ -555,7 +856,8 @@
             border-color: rgba(117, 196, 152, 0.24);
         }
 
-        .pill.warning {
+        .pill.warning,
+        .pill.warn {
             color: var(--accent);
             background: var(--accent-soft);
             border-color: rgba(212, 167, 82, 0.24);
@@ -643,7 +945,29 @@
         }
 
         input[type="file"] {
-            padding: 10px;
+            padding: 9px 10px;
+            border-radius: 12px;
+            border: 1px solid var(--stroke-strong);
+            background: rgba(255, 255, 255, 0.03);
+            color: var(--text-muted);
+        }
+
+        input[type="file"]::file-selector-button {
+            margin-right: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 999px;
+            padding: 7px 12px;
+            font: inherit;
+            font-weight: 700;
+            color: var(--text);
+            background: rgba(255, 255, 255, 0.05);
+            cursor: pointer;
+            transition: border-color var(--transition-base), background var(--transition-base);
+        }
+
+        input[type="file"]::file-selector-button:hover {
+            border-color: rgba(0, 232, 200, 0.22);
+            background: rgba(0, 232, 200, 0.08);
         }
 
         textarea {
@@ -950,19 +1274,32 @@
 
         .reference-row {
             display: grid;
-            grid-template-columns: 112px 84px minmax(0, 1fr);
-            gap: 8px;
-            padding: 10px;
+            grid-template-columns: minmax(120px, 136px) minmax(88px, 96px) minmax(0, 1fr) auto;
+            gap: 10px;
+            padding: 12px;
             border: 1px solid var(--stroke);
             border-radius: var(--radius-tight);
-            background: rgba(255, 255, 255, 0.03);
+            background: rgba(255, 255, 255, 0.035);
+            align-items: end;
         }
 
-        .reference-row .row-main {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 8px;
-            align-items: end;
+        .reference-row > label {
+            margin: 0;
+        }
+
+        .reference-row .inline-actions {
+            align-self: end;
+            justify-content: flex-end;
+        }
+
+        .reference-row .field-label-inline {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 0.74rem;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: var(--muted);
         }
 
         .reference-list {
@@ -972,21 +1309,44 @@
 
         .reference-chip {
             display: grid;
-            grid-template-columns: 64px minmax(0, 1fr);
-            gap: 10px;
-            padding: 10px 12px;
+            grid-template-columns: 72px minmax(0, 1fr);
+            gap: 12px;
+            align-items: start;
+            padding: 12px;
             border-radius: var(--radius-tight);
             background: rgba(255, 255, 255, 0.04);
             border: 1px solid var(--stroke);
         }
 
-        .reference-chip img {
-            width: 64px;
-            height: 64px;
+        .reference-chip img,
+        .reference-chip .reference-thumb-empty {
+            width: 72px;
+            height: 72px;
             border-radius: 10px;
             object-fit: cover;
             background: rgba(255, 255, 255, 0.03);
             border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .reference-thumb-empty {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--muted);
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            text-align: center;
+            padding: 8px;
+        }
+
+        .reference-chip .meta-line {
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .reference-chip .detail-grid {
+            min-width: 0;
         }
 
         .run-card,
@@ -1870,6 +2230,37 @@
             max-height: min(32vh, 220px);
             height: auto;
             margin-inline: auto;
+            object-fit: contain;
+            image-rendering: pixelated;
+        }
+
+        .export-preview-panel .export-preview-sheet-stack {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 14px;
+            align-items: start;
+        }
+
+        .export-preview-panel .export-preview-sheet-stack .export-preview-sheet-card {
+            width: fit-content;
+            max-width: min(100%, 760px);
+            justify-self: start;
+            padding: 12px 14px;
+            gap: 10px;
+        }
+
+        .export-preview-panel .export-preview-sheet-stack .export-preview-sheet-label {
+            margin: 0;
+            font-size: 0.9rem;
+            color: var(--text);
+        }
+
+        .export-preview-panel .export-preview-sheet-stack .export-preview-sheet-card img {
+            width: auto;
+            max-width: min(100%, 720px);
+            max-height: min(14vh, 96px);
+            height: auto;
+            margin: 0;
             object-fit: contain;
             image-rendering: pixelated;
         }
@@ -3443,6 +3834,7 @@
     <div class="site-nav-links" role="list">
         <a class="site-nav-link" data-nav="home" href="#" role="listitem">Home</a>
         <a class="site-nav-link active" data-nav="workbench" href="#" role="listitem">Sprite Creation</a>
+        <a class="site-nav-link" id="room-creation-link" href="/room-layout-editor.html" role="listitem">Room Creation</a>
         <a class="site-nav-link" data-nav="docs" href="#" role="listitem">Docs</a>
     </div>
     <div class="site-nav-actions">
@@ -3494,9 +3886,17 @@
                 <h2>Projects</h2>
                 <div class="project-sidebar-actions">
                     <button id="sidebar-new-project">New Project</button>
+                    <button id="sidebar-import-project" class="secondary">Import Project</button>
                 </div>
             </div>
+            <input id="project-bundle-import-file" type="file" accept=".zip,application/zip" hidden>
             <div class="project-list" id="project-list"></div>
+        </div>
+        <div class="sidebar-block" id="sidebar-warning-block" hidden>
+            <div class="sidebar-title">
+                <h2>Warnings</h2>
+            </div>
+            <div id="sidebar-warning-summary" class="detail-grid"></div>
         </div>
     </aside>
 
@@ -3534,61 +3934,127 @@
                 </div>
             </div>
 
-            <div class="grid-2" data-wizard-view="describe">
-                <label>
-                    <span class="field-label">Project Name <span class="help-tip" title="Used to organize the sprite project on disk. Pick something short and recognizable.">?</span></span>
-                    <span class="field-help">Example: Ashen Sentinel, Lantern Pilgrim, Hollow Ranger.</span>
-                    <input id="project-name" placeholder="Ashen Sentinel">
-                </label>
-            </div>
-
-            <div class="wizard-subview step-panel-note wizard-only" data-wizard-view="describe">
-                <div class="info-box">
-                    <p><strong>Describe the character like you would to an artist.</strong> Focus on role, mood, silhouette, clothing, and the one item they carry. The wizard will steer the prompt toward readable side-view game art.</p>
+            <div class="stage-primary-grid intake-layout" data-wizard-view="describe">
+                <div class="stage-column intake-core-column">
+                    <div class="stage-card intake-brief-card">
+                        <div class="stage-card-head">
+                            <h4>Core brief</h4>
+                            <p class="small-note">Start with the project name and the plain-language art brief. This is the fastest path to a usable concept prompt.</p>
+                        </div>
+                        <div class="wizard-subview step-panel-note wizard-only">
+                            <div class="info-box">
+                                <p><strong>Describe the character like you would to an artist.</strong> Focus on role, mood, silhouette, clothing, and the one item they carry. The wizard will steer the prompt toward readable side-view game art.</p>
+                            </div>
+                        </div>
+                        <div class="intake-core-fields">
+                            <div class="intake-project-row">
+                                <label>
+                                    <span class="field-label">Project Name <span class="help-tip" title="Used to organize the sprite project on disk. Pick something short and recognizable.">?</span></span>
+                                    <span class="field-help">Example: Ashen Sentinel, Lantern Pilgrim, Hollow Ranger.</span>
+                                    <input id="project-name" placeholder="Ashen Sentinel">
+                                </label>
+                                <div class="info-box">
+                                    <p><strong>Name first, describe second.</strong> Keep the project name short and let the description do the heavy lifting. This panel is the main source of truth for the concept prompt.</p>
+                                </div>
+                            </div>
+                            <label>
+                                <span class="field-label">Character Description <span class="help-tip" title="Freeform description of the character. This is the main input the concept prompt is built from.">?</span></span>
+                                <span class="field-help">Good example: A watchful armored pilgrim carrying a hooded lantern, with worn plate over travel cloth and a cold steel palette.</span>
+                                <textarea id="prompt-text" placeholder="A side-view armored pilgrim carrying a hooded lantern, with weathered plate, layered travel cloth, and a cold ash-and-steel palette."></textarea>
+                            </label>
+                        </div>
+                    </div>
+                    <details class="flow-collapsible">
+                        <summary>
+                            <span>References</span>
+                            <span class="small-note">Optional guide images</span>
+                        </summary>
+                        <div class="flow-collapsible-body describe-reference-list">
+                            <div class="wizard-subview step-panel-note wizard-only">
+                                <div class="info-box">
+                                    <p><strong>References are optional.</strong> Add them if you want to push the tool toward a specific face, outfit, prop, or overall mood. If you skip this step, the wizard will rely on your written description alone.</p>
+                                </div>
+                            </div>
+                            <div class="reference-list" id="attached-references"></div>
+                            <div class="reference-editor" id="reference-editor"></div>
+                            <div class="actions">
+                                <button class="secondary" id="add-reference-row">Add Reference Row</button>
+                            </div>
+                        </div>
+                    </details>
                 </div>
-            </div>
-
-            <div class="grid-2" data-wizard-view="describe">
-                <label>
-                    <span class="field-label">Character Description <span class="help-tip" title="Freeform description of the character. This is the main input the concept prompt is built from.">?</span></span>
-                    <span class="field-help">Good example: A watchful armored pilgrim carrying a hooded lantern, with worn plate over travel cloth and a cold steel palette.</span>
-                    <textarea id="prompt-text" placeholder="A side-view armored pilgrim carrying a hooded lantern, with weathered plate, layered travel cloth, and a cold ash-and-steel palette."></textarea>
-                </label>
-                <label>
-                    <span class="field-label">Character Type</span>
-                    <span class="field-help">Who are they in the world and how should they read at a glance?</span>
-                    <input id="role-archetype" placeholder="armored traveler">
-                </label>
-                <label>
-                    <span class="field-label">Main Shape</span>
-                    <span class="field-help">Describe the overall silhouette you want the player to notice first.</span>
-                    <input id="silhouette-intent" placeholder="broad guarded profile">
-                </label>
-                <label>
-                    <span class="field-label">Clothing and Materials</span>
-                    <span class="field-help">Keep this practical and readable for side-view animation.</span>
-                    <input id="outfit-materials" placeholder="plate fragments over travel layers">
-                </label>
-                <label>
-                    <span class="field-label">Held Item</span>
-                    <span class="field-help">Use one primary prop only for this version of the tool.</span>
-                    <input id="prop" placeholder="lantern">
-                </label>
-                <label>
-                    <span class="field-label">Color Mood</span>
-                    <span class="field-help">Short palette direction such as storm steel, ember dusk, or bone ash.</span>
-                    <input id="palette-mood" placeholder="storm steel">
-                </label>
-                <label>
-                    <span class="field-label">Shape Style</span>
-                    <span class="field-help">Rounded, angular, or balanced. This helps stabilize the overall look.</span>
-                    <input id="shape-language" placeholder="angular disciplined silhouettes">
-                </label>
-                <label>
-                    <span class="field-label">Personality and Tone</span>
-                    <span class="field-help">How should the character feel: grim, haunted, vigilant, severe, noble, worn, and so on.</span>
-                    <input id="mood-tone" placeholder="stoic and vigilant">
-                </label>
+                <div class="stage-column intake-support-fields">
+                    <div class="stage-card intake-visual-card">
+                        <div class="stage-card-head">
+                            <h4>Visual direction</h4>
+                            <p class="small-note">Use these to make the brief more legible and more consistent. Think in terms of identity, silhouette, materials, and tone.</p>
+                        </div>
+                        <div class="intake-visual-grid">
+                            <div class="intake-visual-section">
+                                <h5>Identity & silhouette</h5>
+                                <div class="grid-2">
+                                    <label>
+                                        <span class="field-label">Character Type</span>
+                                        <span class="field-help">Who are they in the world and how should they read at a glance?</span>
+                                        <input id="role-archetype" placeholder="armored traveler">
+                                    </label>
+                                    <label>
+                                        <span class="field-label">Main Shape</span>
+                                        <span class="field-help">Describe the overall silhouette you want the player to notice first.</span>
+                                        <input id="silhouette-intent" placeholder="broad guarded profile">
+                                    </label>
+                                    <label>
+                                        <span class="field-label">Held Item</span>
+                                        <span class="field-help">Use one primary prop only for this version of the tool.</span>
+                                        <input id="prop" placeholder="lantern">
+                                    </label>
+                                    <label>
+                                        <span class="field-label">Shape Style</span>
+                                        <span class="field-help">Rounded, angular, or balanced. This helps stabilize the overall look.</span>
+                                        <input id="shape-language" placeholder="angular disciplined silhouettes">
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="intake-visual-section">
+                                <h5>Materials & tone</h5>
+                                <div class="grid-2">
+                                    <label>
+                                        <span class="field-label">Clothing and Materials</span>
+                                        <span class="field-help">Keep this practical and readable for side-view animation.</span>
+                                        <input id="outfit-materials" placeholder="plate fragments over travel layers">
+                                    </label>
+                                    <label>
+                                        <span class="field-label">Color Mood</span>
+                                        <span class="field-help">Short palette direction such as storm steel, ember dusk, or bone ash.</span>
+                                        <input id="palette-mood" placeholder="storm steel">
+                                    </label>
+                                    <label style="grid-column: 1 / -1;">
+                                        <span class="field-label">Personality and Tone</span>
+                                        <span class="field-help">How should the character feel: grim, haunted, vigilant, severe, noble, worn, and so on.</span>
+                                        <input id="mood-tone" placeholder="stoic and vigilant">
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="stage-card intake-actions-card">
+                        <div class="stage-card-head">
+                            <h4>Save setup</h4>
+                            <p class="small-note">Confirm the description once the core brief and visual direction feel right. You can always come back and revise this step later.</p>
+                        </div>
+                        <div class="stage-card-actions primary-stack">
+                            <div class="actions wizard-only">
+                                <button id="confirm-describe-step">Confirm &amp; Continue</button>
+                            </div>
+                            <div class="actions" data-wizard-view="workbench">
+                                <button id="create-project-workbench">Create Project</button>
+                                <button class="secondary" id="save-brief-workbench">Save Setup</button>
+                                <button class="secondary" id="refresh-projects-workbench">Refresh Projects</button>
+                            </div>
+                        </div>
+                        <p class="small-note" id="intake-note" data-wizard-view="workbench">This version supports one side-view humanoid character. Unsupported prompt patterns are blocked early so you know what to fix before generation starts.</p>
+                    </div>
+                </div>
             </div>
 
             <details class="advanced-settings" data-wizard-view="describe">
@@ -3668,42 +4134,13 @@
                 </div>
             </details>
 
-            <div class="wizard-subview step-panel-note wizard-only" data-wizard-view="describe">
-                <div class="info-box">
-                    <p><strong>References are optional.</strong> Add them if you want to push the tool toward a specific face, outfit, prop, or overall mood. If you skip this step, the wizard will rely on your written description alone.</p>
-                </div>
-            </div>
-
-            <div style="margin-top: 18px;" data-wizard-view="describe">
-                <div class="section-head" style="margin-bottom: 10px;">
-                    <div>
-                        <h3 style="font-size: 0.98rem;">References</h3>
-                        <p>Add optional reference images for the face, outfit, world style, or held item. Uploaded images are stored with the project and passed into the concept generator as separate guide inputs.</p>
-                    </div>
-                </div>
-                <div class="reference-list" id="attached-references"></div>
-                <div class="reference-editor" id="reference-editor"></div>
-                <div class="actions">
-                    <button class="secondary" id="add-reference-row">Add Reference Row</button>
-                </div>
-            </div>
-
-            <div class="actions wizard-only" data-wizard-view="describe">
-                <button id="confirm-describe-step">Confirm &amp; Continue</button>
-            </div>
-            <div class="actions" data-wizard-view="workbench">
-                <button id="create-project-workbench">Create Project</button>
-                <button class="secondary" id="save-brief-workbench">Save Setup</button>
-                <button class="secondary" id="refresh-projects-workbench">Refresh Projects</button>
-            </div>
-            <p class="small-note" id="intake-note" data-wizard-view="workbench">This version supports one side-view humanoid character. Unsupported prompt patterns are blocked early so you know what to fix before generation starts.</p>
         </section>
 
         <section class="panel" id="concepts">
             <div class="section-head">
                 <div>
                     <h3>Concepts</h3>
-                    <p>Build a deterministic Pixel Lab prompt from your brief, generate in-tool (or import externally in Manual mode), then pick the look to carry forward. Character Lock and Key Pose Board panels were removed in Phase 7.2 — use the Character panel (Pixel Lab) next.</p>
+                    <p>Build a deterministic Pixel Lab prompt from your brief, generate in-tool (or import externally in Manual mode), then choose and lock the look you want to animate.</p>
                 </div>
                 <div class="stage-meta" data-stage="concepts"></div>
             </div>
@@ -3716,29 +4153,12 @@
 
             <div class="concept-mode-row" data-wizard-view="concepts,workbench">
                 <span class="field-label">Concept source</span>
-                <label><input type="radio" name="concept-source-mode" value="text" checked> Generate from text</label>
-                <label><input type="radio" name="concept-source-mode" value="custom_init"> Post-process uploaded init image</label>
+                <label><input type="radio" name="concept-source-mode" value="text" checked> Generate from brief text</label>
+                <label><input type="radio" name="concept-source-mode" value="custom_init"> Start from uploaded image</label>
             </div>
+            <p class="small-note" id="concept-source-summary" data-wizard-view="concepts,workbench" style="margin-top: 8px;">Generate a fresh <code>128x128</code> concept from your saved brief. The workbench will rebuild the prompt automatically before it runs.</p>
 
-            <div data-wizard-view="concepts,workbench" style="margin-top: 8px;">
-                <div class="actions" style="flex-wrap: wrap;">
-                    <button id="build-concept-prompt">Build Prompt</button>
-                    <button class="secondary" id="copy-scaffold-prompt">Copy Prompt</button>
-                    <button id="generate-concept-pixellab-text" class="concept-text-only">Generate 128x128 from Text</button>
-                </div>
-                <p class="small-note" id="concept-anchor-note" style="margin-top: 8px;">Build Prompt saves the shared Pixel Lab scaffold. Both concept paths use the same <code>128x128</code> output target.</p>
-                <details class="advanced-settings" style="margin-top: 12px;">
-                    <summary>View generated prompt</summary>
-                    <div class="advanced-content">
-                        <label>
-                            <span class="field-label">Scaffold prompt (read-only)</span>
-                            <textarea id="concept-scaffold-prompt" readonly rows="10" style="width:100%; font-family: ui-monospace, monospace; font-size: 0.82rem;" placeholder="Click Build Prompt to generate from the saved brief."></textarea>
-                        </label>
-                    </div>
-                </details>
-            </div>
-
-            <div class="concept-init-only" data-wizard-view="concepts,workbench" style="margin-top: 16px;" hidden>
+            <div class="concept-init-only" data-wizard-view="concepts,workbench" style="margin-top: 12px;" hidden>
                 <div class="section-head" style="margin-bottom: 10px;">
                     <div>
                         <h3 style="font-size: 0.98rem;">Custom init image</h3>
@@ -3751,15 +4171,12 @@
                         <input id="concept-init-upload-file" type="file" accept="image/*">
                     </label>
                 </div>
-                <div class="actions" style="margin-top: 12px;">
-                    <button id="generate-concept-pixellab-init">Post-process Upload to 128x128</button>
-                </div>
             </div>
 
             <details class="advanced-settings" style="margin-top: 16px;" data-wizard-view="concepts,workbench">
                 <summary>Manual import (fallback)</summary>
                 <div class="advanced-content">
-                    <p>Requires <strong>Build Prompt</strong> first so the server can anchor the imported image to the current brief. Use this only if you want to bypass Pixel Lab for the first concept.</p>
+                    <p>Requires <strong>Build Prompt Only</strong> first so the server can anchor the imported image to the current brief. Use this only if you want to bypass Pixel Lab for the first concept.</p>
                     <div class="grid-2">
                         <label>
                             <span class="field-label">Upload File</span>
@@ -3775,6 +4192,73 @@
                     </div>
                 </div>
             </details>
+
+            <div class="wizard-subview step-panel-note wizard-only" data-wizard-view="concepts">
+                <div class="info-box">
+                    <p><strong>Review.</strong> Pixel Lab–generated concepts are marked valid for approval. Manual imports may stay <code>pending</code> until you use <strong>Mark valid</strong> (manual review) or the server completes checks.</p>
+                </div>
+            </div>
+
+            <div class="concept-create-layout" data-wizard-view="concepts,workbench">
+                <div class="concept-action-card">
+                    <div class="concept-action-head">
+                        <h3>Create concept</h3>
+                        <p class="small-note" id="concept-anchor-note">Create Concept rebuilds the shared prompt automatically. Use Build Prompt Only if you want to inspect or copy it first.</p>
+                    </div>
+                    <div class="concept-action-group">
+                        <button id="generate-concept-primary" class="concept-action-primary">Create 128x128 Concept</button>
+                        <div class="concept-action-secondary">
+                            <button class="secondary" id="build-concept-prompt">Build Prompt Only</button>
+                            <button class="secondary" id="copy-scaffold-prompt">Copy Prompt</button>
+                        </div>
+                    </div>
+                    <details class="advanced-settings">
+                        <summary>View generated prompt</summary>
+                        <div class="advanced-content">
+                            <label>
+                                <span class="field-label">Scaffold prompt (read-only)</span>
+                                <textarea id="concept-scaffold-prompt" readonly rows="10" style="width:100%; font-family: ui-monospace, monospace; font-size: 0.82rem;" placeholder="Create a concept or click Build Prompt Only to generate from the saved brief."></textarea>
+                            </label>
+                        </div>
+                    </details>
+                </div>
+                <div class="concept-preview-panel">
+                    <div class="section-head" style="margin-bottom: 10px;">
+                        <div>
+                            <h3 style="font-size: 0.98rem;">Selected preview</h3>
+                            <p class="small-note" style="margin-top:4px;">The selected concept stays fit to view here. Use <strong>Open zoom view</strong> when you need a closer look.</p>
+                        </div>
+                    </div>
+                    <div id="concept-large-preview" class="concept-large-preview concept-large-preview--main">
+                        <div class="empty" data-concept-preview-empty>Select a concept below.</div>
+                        <div class="concept-preview-stack" data-concept-preview-stack hidden>
+                            <div class="concept-preview-viewport" data-concept-preview-viewport tabindex="0" role="img" aria-label="Selected concept preview">
+                                <div class="concept-preview-stage" data-concept-preview-stage>
+                                    <img alt="" data-concept-preview-img draggable="false" />
+                                </div>
+                            </div>
+                            <div class="concept-preview-toolbar">
+                                <button type="button" data-concept-preview-approve-lock>Approve &amp; lock source</button>
+                                <button type="button" class="secondary" data-concept-preview-estimate-skeleton>Estimate skeleton (east)</button>
+                                <button type="button" class="secondary" data-concept-preview-open-zoom>Open zoom view</button>
+                            </div>
+                            <p class="small-note" data-concept-preview-status style="margin: 0;"></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="concept-browser-layout" style="margin-top: 16px;" data-wizard-view="concepts,workbench">
+                <details class="concept-collapsible">
+                    <summary>
+                        <span>All concepts</span>
+                        <span class="small-note" id="concept-grid-count">0 items</span>
+                    </summary>
+                    <div class="concept-collapsible-body">
+                        <div class="concept-grid" id="concept-grid"></div>
+                    </div>
+                </details>
+            </div>
 
             <details class="advanced-settings" style="margin-top: 18px;" data-wizard-view="concepts,workbench">
                 <summary>Iterate on selected concept (Pixel Lab inpaint)</summary>
@@ -3839,65 +4323,13 @@
                     </div>
                 </div>
             </details>
-
-            <div class="wizard-subview step-panel-note wizard-only" data-wizard-view="concepts">
-                <div class="info-box">
-                    <p><strong>Review.</strong> Pixel Lab–generated concepts are marked valid for approval. Manual imports may stay <code>pending</code> until you use <strong>Mark valid</strong> (manual review) or the server completes checks.</p>
-                </div>
-            </div>
-
-            <div class="grid-2 concept-browser-layout" style="margin-top: 16px;" data-wizard-view="concepts,workbench">
-                <div>
-                    <div class="section-head" style="margin-bottom: 10px;">
-                        <div>
-                            <h3 style="font-size: 0.98rem;">Selected preview</h3>
-                        </div>
-                    </div>
-                    <div id="concept-large-preview" class="concept-large-preview concept-large-preview--main">
-                        <div class="empty" data-concept-preview-empty>Select a concept below.</div>
-                        <div class="concept-preview-stack" data-concept-preview-stack hidden>
-                            <p class="concept-preview-hint small-note">Scroll or pinch to zoom · drag to pan · double-click or <strong>Reset view</strong> to fit.</p>
-                            <div class="concept-preview-viewport" data-concept-preview-viewport tabindex="0" role="img" aria-label="Selected concept preview">
-                                <div class="concept-preview-stage" data-concept-preview-stage>
-                                    <img alt="" data-concept-preview-img draggable="false" />
-                                </div>
-                            </div>
-                            <div class="concept-preview-toolbar">
-                                <button type="button" class="secondary" data-concept-preview-out title="Zoom out">−</button>
-                                <button type="button" class="secondary" data-concept-preview-in title="Zoom in">+</button>
-                                <button type="button" class="secondary" data-concept-preview-fit title="Reset pan and zoom">Reset view</button>
-                                <span class="small-note" data-concept-preview-label>100%</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div>
-                    <div class="section-head" style="margin-bottom: 10px;">
-                        <div>
-                            <h3 style="font-size: 0.98rem;">All concepts</h3>
-                        </div>
-                    </div>
-                    <div class="concept-grid" id="concept-grid"></div>
-                </div>
-            </div>
-        </section>
-
-        <section class="panel" id="character">
-            <div class="section-head">
-                <div>
-                    <h3>Character (Pixel Lab)</h3>
-                    <p>Generate 4- or 8-direction sprites from your chosen concept, optionally estimate a skeleton on the east-facing frame, then approve before animations.</p>
-                </div>
-                <div class="stage-meta" data-stage="character"></div>
-            </div>
-            <div id="pixellab-character-board"></div>
         </section>
 
         <section class="panel" id="animations">
             <div class="section-head">
                 <div>
                     <h3>Animations (Pixel Lab)</h3>
-                    <p>Generate idle and walk via Pixel Lab templates or custom text actions. Build canonical clips before running checks.</p>
+                    <p>Generate animation clips from the locked east-facing source, then let the workbench keep review/export clips in sync automatically.</p>
                 </div>
                 <div class="stage-meta" data-stage="animations"></div>
             </div>
@@ -3916,15 +4348,22 @@
                 </div>
             </div>
 
-            <div class="review-export-clip-block">
-                <h4 class="review-export-subhead">Clip previews</h4>
-                <p class="small-note review-export-subnote">Looping animation previews before you run checks.</p>
-                <div class="review-export-loop-row" id="review-export-clip-previews-row"></div>
-            </div>
-
-            <div class="actions review-export-actions">
-                <button id="run-qa">Run Checks</button>
-                <button id="run-export" class="secondary">Export Package</button>
+            <div class="review-flow-grid">
+                <div class="stage-card">
+                    <div class="stage-card-head">
+                        <h4>Finish the package</h4>
+                        <p class="small-note">Run checks first, then export the runtime package once the workbench says it is ready.</p>
+                    </div>
+                    <div class="actions review-export-actions">
+                        <button id="run-qa">Run Checks</button>
+                        <button id="run-export" class="secondary">Export Package</button>
+                    </div>
+                    <div class="review-export-clip-block">
+                        <h4 class="review-export-subhead">Clip previews</h4>
+                        <p class="small-note review-export-subnote">Looping animation previews before you run checks.</p>
+                        <div class="review-export-loop-row" id="review-export-clip-previews-row"></div>
+                    </div>
+                </div>
             </div>
 
             <div class="grid-2 review-export-columns">
@@ -4003,7 +4442,7 @@ const STORAGE_KEYS = {
 const SIDEBAR_KEY = "spriteWorkbench.sidebarCollapsed";
 
 const WIZARD_STEPS = ["project", "brief", "references", "concepts", "review", "rig_layout", "part_manifest", "part_shape_edit", "split_build", "split_review", "sprite_model", "rig", "clips", "qa", "export"];
-const WORKBENCH_SECTION_IDS = ["intake", "concepts", "character", "animations", "review-export", "activity-log"];
+const WORKBENCH_SECTION_IDS = ["intake", "concepts", "animations", "review-export", "activity-log"];
 const WIZARD_SECTION_MAP = {
     describe: ["intake"],
     project: ["intake"],
@@ -4011,7 +4450,7 @@ const WIZARD_SECTION_MAP = {
     references: ["intake"],
     concepts: ["concepts"],
     review: ["concepts"],
-    character: ["character"],
+    character: ["concepts"],
     rig_layout: ["concepts"],
     part_manifest: ["concepts"],
     part_shape_edit: ["concepts"],
@@ -4019,7 +4458,7 @@ const WIZARD_SECTION_MAP = {
     split_review: ["concepts"],
     sprite_model: ["concepts"],
     rig: ["concepts"],
-    clips: ["character"],
+    clips: ["animations"],
     animations: ["animations"],
     qa: ["review-export"],
     export: ["review-export"],
@@ -4051,15 +4490,15 @@ const WIZARD_META = {
     },
     concepts: {
         label: "Concepts",
-        description: "Build a Pixel Lab scaffold from the brief, generate or import a concept image, then select one to approve.",
-        outcome: "You will have at least one concept image and a chosen look for downstream character creation.",
-        example: "Use Build Prompt → Generate via Pixel Lab, or Manual import after copying the scaffold.",
+        description: "Build a Pixel Lab scaffold from the brief, generate or import a concept image, then approve the one you want to lock as the animation source.",
+        outcome: "You will have at least one concept image and a locked east-facing source ready for animation.",
+        example: "Choose a source, click Create Concept, then use Approve & lock source on the concept you want to animate.",
     },
     review: {
         label: "Review concept",
         description: "Pick the concept to carry forward and approve it for the pipeline.",
         outcome: "The approved concept becomes the source for character / sprite work.",
-        example: "Select a thumbnail, confirm the large preview, then Approve as character source.",
+        example: "Select a thumbnail, confirm the large preview, then Approve & lock source.",
     },
     rig_layout: {
         label: "Rig layout",
@@ -4104,22 +4543,22 @@ const WIZARD_META = {
         example: "Check joint placement, prop attachment, and the neutral pose before rendering clips.",
     },
     character: {
-        label: "Character",
-        description: "Create a Pixel Lab multi-direction character from your approved concept, estimate skeleton on east, then approve for animations.",
-        outcome: "You will have direction PNGs plus an optional skeleton JSON before moving on to template animations.",
-        example: "Use Create Character (4 dir), open Est. skeleton on east if you want joint overlay, then Approve Character.",
+        label: "Concepts",
+        description: "Approve a concept to lock it as the east-facing source image, then optionally estimate the skeleton before animation.",
+        outcome: "You will have a locked source image, plus an optional skeleton overlay, ready for animation generation.",
+        example: "Select a concept, approve it as the source, then estimate the east skeleton only if you need the overlay.",
     },
     clips: {
-        label: "Character",
-        description: "Create a Pixel Lab multi-direction character from your approved concept, estimate skeleton on east, then approve for animations.",
-        outcome: "You will have direction PNGs plus an optional skeleton JSON before moving on to template animations.",
-        example: "Use Create Character (4 dir), open Est. skeleton on east if you want joint overlay, then Approve Character.",
+        label: "Animations",
+        description: "Generate custom animation clips from the locked source and let the workbench keep export clips in sync automatically.",
+        outcome: "You will have generated clip frames ready for checks and packaging.",
+        example: "Choose a common animation, adjust the motion prompt, then generate it from the locked concept source.",
     },
     animations: {
         label: "Animations",
-        description: "Generate idle and walk with Pixel Lab templates or custom actions, optionally edit, then build canonical animation_clips.json.",
-        outcome: "You will have frame sequences for QA/export and a merged clips file for the engine.",
-        example: "Pick a template per clip, Generate, run Build canonical clips when both idle and walk exist.",
+        description: "Generate custom motion clips from the locked concept source and let the workbench sync animation_clips.json automatically.",
+        outcome: "You will have frame sequences for QA/export and a synced clips file for the engine.",
+        example: "Pick a common animation preset or write your own, then generate clips and move on when the set feels complete.",
     },
     qa: {
         label: "Checks (QA)",
@@ -4157,26 +4596,32 @@ const FRIENDLY_STAGE_NAMES = {
     animations: "Animations",
 };
 
-/** Pixel Lab template_animation_id values (Appendix A); grouped by server-side idle vs walk inference. */
-const PIXELLAB_ALL_TEMPLATE_IDS = [
-    "breathing-idle", "walk", "walking", "walking-4-frames", "walking-6-frames", "walking-8-frames",
-    "running-4-frames", "running-6-frames", "running-8-frames", "jumping-1", "jumping-2", "two-footed-jump",
-    "crouching", "crouched-walking", "falling-back-death", "fight-stance-idle-8-frames", "lead-jab", "cross-punch",
-    "high-kick", "roundhouse-kick", "hurricane-kick", "surprise-uppercut", "leg-sweep", "flying-kick", "fireball",
-    "taking-punch", "getting-up", "backflip", "front-flip", "running-jump", "running-slide",
-    "drinking", "picking-up", "throw-object", "pushing", "pull-heavy-object", "sad-walk", "scary-walk",
-    "walk-1", "walk-2", "walking-2", "walking-3", "walking-4", "walking-5", "walking-6", "walking-7", "walking-8", "walking-9", "walking-10",
+const PIXELLAB_COMMON_ANIMATION_PRESETS = [
+    { clipName: "idle", label: "Idle", prompt: "subtle breathing idle, slight shield sway, stable side-view stance" },
+    { clipName: "walk", label: "Walk", prompt: "steady side-scrolling walk cycle with readable footfalls and gentle torso motion" },
+    { clipName: "run", label: "Run", prompt: "fast side-scrolling run cycle with stronger stride, forward lean, and energetic arm swing" },
+    { clipName: "jump", label: "Jump", prompt: "two-footed jump with clear anticipation, lift, hang time, and landing recovery" },
+    { clipName: "attack", label: "Attack", prompt: "side-view melee attack with clear anticipation, strike, and recovery silhouette" },
+    { clipName: "parry", label: "Parry", prompt: "quick defensive parry with a sharp guard motion and compact recovery" },
+    { clipName: "hurt", label: "Hurt", prompt: "brief hit reaction with recoil, balance loss, and quick reset to stance" },
+    { clipName: "cast", label: "Cast", prompt: "spell-casting motion with a deliberate windup, release, and magical follow-through" },
+    { clipName: "die", label: "Die", prompt: "clear death or collapse animation with impact, fall, and final resting pose" },
 ];
 
-function inferPixellabClipFromTemplateId(templateId) {
-    const s = String(templateId || "").toLowerCase();
-    if (s.includes("idle") || s.includes("breathing")) return "idle";
-    if (s.includes("walk") || s.includes("walking")) return "walk";
-    return "idle";
+const PIXELLAB_COMMON_ANIMATION_NAMES = PIXELLAB_COMMON_ANIMATION_PRESETS.map((preset) => preset.clipName);
+
+function pixellabAnimationPresetByName(name) {
+    return PIXELLAB_COMMON_ANIMATION_PRESETS.find((preset) => preset.clipName === name) || null;
 }
 
-function pixellabTemplatesForClip(clipName) {
-    return PIXELLAB_ALL_TEMPLATE_IDS.filter((id) => inferPixellabClipFromTemplateId(id) === clipName);
+function sortPixellabAnimationNames(names) {
+    const order = new Map(PIXELLAB_COMMON_ANIMATION_NAMES.map((name, index) => [name, index]));
+    return [...names].sort((a, b) => {
+        const ai = order.has(a) ? order.get(a) : Number.MAX_SAFE_INTEGER;
+        const bi = order.has(b) ? order.get(b) : Number.MAX_SAFE_INTEGER;
+        if (ai !== bi) return ai - bi;
+        return a.localeCompare(b);
+    });
 }
 
 /** Normalize user input to server slug (a-z, 0-9, underscore; max 48). Returns "" if invalid. */
@@ -4300,10 +4745,8 @@ const state = {
     lastIterationScaffold: null,
     conceptUiSelectedId: null,
     lastIteratedConceptId: null,
-    conceptPreviewZoom: 1,
-    conceptPreviewPanX: 0,
-    conceptPreviewPanY: 0,
-    conceptPreviewTransformKey: null,
+    conceptPreviewDisplayCache: {},
+    exportSheetPreviewDisplayCache: {},
     pixellabShowSkeleton: false,
     pixellabAnimTimers: {},
     pixellabCreateCharacterBusy: false,
@@ -4355,15 +4798,13 @@ function escapeHtml(value) {
 const FLIGHTDECK_PHASES = [
     { key: "describe", label: "Describe", description: "Creative brief", sectionId: "intake" },
     { key: "concepts", label: "Concepts", description: "Pick the look", sectionId: "concepts" },
-    { key: "character", label: "Character", description: "Lock identity", sectionId: "character" },
     { key: "animations", label: "Animations", description: "Motion passes", sectionId: "animations" },
     { key: "export", label: "Review & Export", description: "Package output", sectionId: "review-export" },
 ];
 
 function phaseKeyForStep(step) {
     if (["describe", "project", "brief", "references"].includes(step)) return "describe";
-    if (["concepts", "review"].includes(step)) return "concepts";
-    if (["character", "rig_layout", "part_manifest", "part_shape_edit", "split_build", "split_review", "sprite_model", "rig"].includes(step)) return "character";
+    if (["concepts", "review", "character", "rig_layout", "part_manifest", "part_shape_edit", "split_build", "split_review", "sprite_model", "rig"].includes(step)) return "concepts";
     if (["animations", "clips", "qa"].includes(step)) return "animations";
     if (step === "export") return "export";
     return "describe";
@@ -4445,35 +4886,21 @@ function pixellabPreviewFrameUrls(project, animName, direction) {
     return frames.map((rel) => `${projectAsset(project, rel)}?v=${v}`);
 }
 
-/** Matches server ``pixellab_missing_canonical_animation_clips`` — idle + walk each need ≥1 direction with frames. */
-function pixellabMissingCanonicalAnimationClips(project) {
+function pixellabAnimationStoreHasFrames(project) {
     const anims = project?.pixellab_animations?.animations;
-    const required = ["idle", "walk"];
-    if (!anims || typeof anims !== "object") return required.slice();
-    const missing = [];
-    for (const name of required) {
-        const entry = anims[name];
-        if (!entry || typeof entry !== "object") {
-            missing.push(name);
-            continue;
-        }
+    if (!anims || typeof anims !== "object") return false;
+    for (const entry of Object.values(anims)) {
+        if (!entry || typeof entry !== "object") continue;
         const dirs = entry.directions;
-        if (!dirs || typeof dirs !== "object" || !Object.keys(dirs).length) {
-            missing.push(name);
-            continue;
-        }
-        let hasFrames = false;
-        for (const d of Object.keys(dirs)) {
-            const data = dirs[d];
+        if (!dirs || typeof dirs !== "object") continue;
+        for (const data of Object.values(dirs)) {
             const frames = data && Array.isArray(data.frames) ? data.frames : [];
             if (frames.length > 0) {
-                hasFrames = true;
-                break;
+                return true;
             }
         }
-        if (!hasFrames) missing.push(name);
     }
-    return missing;
+    return false;
 }
 
 function pixellabCharacterApproved(project) {
@@ -4631,14 +5058,13 @@ function clearActivity() {
 
 function blankWizardModel() {
     return {
-        current_step: "describe",
-        recommended_next_step: "describe",
-        step_statuses: {
-            describe: "active",
-            concepts: "locked",
-            character: "locked",
-            animations: "locked",
-            export: "locked",
+    current_step: "describe",
+    recommended_next_step: "describe",
+    step_statuses: {
+        describe: "active",
+        concepts: "locked",
+        animations: "locked",
+        export: "locked",
             project: "active",
             brief: "locked",
             references: "locked",
@@ -4653,12 +5079,11 @@ function blankWizardModel() {
             clips: "locked",
             qa: "locked",
         },
-        blocking_reasons: {
-            describe: ["Create a project first."],
-            concepts: ["Save the character description first."],
-            character: ["Approve a chosen concept first."],
-            animations: ["Approve the Pixel Lab character first."],
-            export: ["Finish animations and canonical clips before review and export."],
+    blocking_reasons: {
+        describe: ["Create a project first."],
+        concepts: ["Save the character description first."],
+        animations: ["Approve and lock a concept source first."],
+        export: ["Finish animations and canonical clips before review and export."],
             brief: ["Create a project first."],
             references: ["Save the character description first."],
             review: ["Generate or import at least one valid concept image first."],
@@ -4725,7 +5150,7 @@ function wizardSummaryText(step) {
         case "rig_layout":
             if (aiWorkflowEnabled(project)) {
                 if (String(project.brief?.backend_mode || "") === "pixellab") {
-                    return project.selected_concept_id ? `Look ${project.selected_concept_id}` : "Choose a concept first.";
+                    return project.selected_concept_id ? `Locked ${project.selected_concept_id}` : "Choose a concept first.";
                 }
                 return project.ai_workflow?.character_lock?.approved_asset_id || "Character Lock not approved yet.";
             }
@@ -4733,7 +5158,7 @@ function wizardSummaryText(step) {
         case "part_manifest":
             if (aiWorkflowEnabled(project)) {
                 if (String(project.brief?.backend_mode || "") === "pixellab") {
-                    return project.selected_concept_id ? "Ready for Character panel." : "Approve a look first.";
+                    return pixellabCharacterApproved(project) ? "Source locked for animation." : "Approve and lock a look first.";
                 }
                 return project.ai_workflow?.key_pose_set?.approved_run_id || "Key Pose Board not approved yet.";
             }
@@ -4752,9 +5177,9 @@ function wizardSummaryText(step) {
         case "clips":
             if (aiWorkflowEnabled(project)) {
                 if (String(project.brief?.backend_mode || "") === "pixellab") {
-                    if (pixellabCharacterApproved(project)) return "Pixel Lab character approved.";
-                    if (project.pixellab_character) return "Character generated — approve to continue.";
-                    return "Create character from concept.";
+                    if (pixellabCharacterApproved(project)) return "Source locked for animation.";
+                    if (project.pixellab_character) return "Source prepared — approve from Concepts to continue.";
+                    return "Approve and lock a concept source.";
                 }
                 const idleRun = aiWorkflowApprovedRun("cleanup_runs", "idle", project);
                 const walkRun = aiWorkflowApprovedRun("cleanup_runs", "walk", project);
@@ -4764,11 +5189,11 @@ function wizardSummaryText(step) {
         case "animations":
             if (String(project.brief?.backend_mode || "") === "pixellab") {
                 const an = project.pixellab_animations?.animations || {};
-                const idleOk = pixellabAnyDirectionHasFrames(an.idle);
-                const walkOk = pixellabAnyDirectionHasFrames(an.walk);
+                const generatedNames = Object.keys(an)
+                    .filter((name) => pixellabAnyDirectionHasFrames(an[name]));
                 const clips = project.animation_clips || {};
-                const built = Boolean(clips.idle && clips.walk);
-                return `${idleOk ? "idle frames" : "idle pending"} · ${walkOk ? "walk frames" : "walk pending"}${built ? " · clips built" : ""}`;
+                const built = Object.values(clips).some((clip) => Array.isArray(clip?.frames) && clip.frames.length);
+                return `${generatedNames.length} clip${generatedNames.length === 1 ? "" : "s"} generated${built ? " · synced" : ""}`;
             }
             return "N/A";
         case "qa":
@@ -4856,7 +5281,7 @@ function nextClipAction() {
     }
     return {
         label: "Continue to review & export",
-        run: () => persistWizardState({ completed_steps: ["character"], current_step: "export", last_ui_mode: "wizard" }),
+        run: () => persistWizardState({ completed_steps: ["animations"], current_step: "export", last_ui_mode: "wizard" }),
     };
 }
 
@@ -4925,7 +5350,7 @@ function syncWorkflowModeControls() {
         if (!aiEnabled) {
             productionWarning.textContent = "Clip output is deterministic. Rebuilds from the same approved sprite model and rig should match exactly.";
         } else if (backendMode === "pixellab") {
-            productionWarning.textContent = "Pixel Lab mode: use the Character panel for direction sprites, then the Animations panel for template clips (Phase 7.5). This legacy Production panel is hidden in the guided wizard.";
+            productionWarning.textContent = "Pixel Lab mode: approve a concept to lock the east-facing source, then generate animations from that locked source. This legacy Production panel is hidden in the guided wizard.";
         } else if (backendMode === "debug_procedural") {
             productionWarning.textContent = "AI workflow mode is active in Debug Placeholder mode. Legacy motion, extraction, and cleanup use deterministic local transforms only.";
         } else {
@@ -5112,7 +5537,7 @@ async function handleWizardAction(actionId, currentStep) {
             if (aiWorkflowEnabled()) {
                 await persistWizardState({
                     completed_steps: ["concepts"],
-                    current_step: "character",
+                    current_step: String(state.activeProject?.brief?.backend_mode || "") === "pixellab" ? "animations" : "export",
                     last_ui_mode: "wizard",
                 });
             } else {
@@ -5187,7 +5612,7 @@ async function handleWizardAction(actionId, currentStep) {
             if (!action) return;
             await action.run();
             if (state.activeProject?.build_status?.idle_render_complete && state.activeProject?.build_status?.walk_render_complete) {
-                await persistWizardState({ completed_steps: ["character"], current_step: "export", last_ui_mode: "wizard" });
+                await persistWizardState({ completed_steps: ["animations"], current_step: "export", last_ui_mode: "wizard" });
             }
             renderAll();
             return;
@@ -5276,6 +5701,34 @@ function projectAsset(project, relativePath) {
         .join("/");
     const pid = encodeURIComponent(String(project.project_id));
     return `${WORKBENCH_BASE}/projects-data/${pid}/${encodedRel}`;
+}
+
+function roomCreationUrl(project = state.activeProject) {
+    const origin = WORKBENCH_ORIGIN || (window.location.origin && window.location.origin !== "null" ? window.location.origin : "http://127.0.0.1:8766");
+    const url = new URL(`${origin}/room-layout-editor.html`);
+    if (project?.project_id) {
+        url.searchParams.set("project_id", project.project_id);
+    }
+    return url.toString();
+}
+
+function updateRoomCreationLink() {
+    const link = document.getElementById("room-creation-link");
+    if (!link) return;
+    link.href = roomCreationUrl();
+}
+
+function paidActionAllowed(label) {
+    const settings = state.health?.settings || {};
+    if (settings.safe_mode) {
+        notify("Safe mode is enabled for this workbench, so paid generation is currently blocked.", "error");
+        return false;
+    }
+    if (settings.confirm_paid_actions !== false) {
+        const ok = window.confirm(`${label} will call an external model and may spend credits. Continue?`);
+        if (!ok) return false;
+    }
+    return true;
 }
 
 /** Relative paths from animation_clips when Pixel Lab wrote per-frame PNGs (e.g. animations/idle/south/frame_00.png). */
@@ -5373,6 +5826,37 @@ function renderStatus() {
     if (mobileName) mobileName.textContent = projectName;
 }
 
+function renderSidebarWarnings() {
+    const block = document.querySelector("#sidebar-warning-block");
+    const root = document.querySelector("#sidebar-warning-summary");
+    if (!block || !root) return;
+    const project = state.activeProject;
+    if (!project) {
+        block.hidden = true;
+        root.innerHTML = "";
+        return;
+    }
+    const report = project.health_report || {};
+    const warnings = Array.isArray(report.warnings) ? report.warnings : [];
+    const actions = Array.isArray(report.recommended_actions) ? report.recommended_actions : [];
+    const items = [
+        ...warnings.map((item) => ({ tone: "warning-box", title: "Warning", text: humanizeKey(item) })),
+        ...actions.map((item) => ({ tone: "info-box", title: "Suggested action", text: humanizeKey(item) })),
+    ];
+    if (!items.length) {
+        block.hidden = true;
+        root.innerHTML = "";
+        return;
+    }
+    block.hidden = false;
+    root.innerHTML = items.slice(0, 4).map((item) => `
+        <div class="${item.tone}">
+            <p><strong>${escapeHtml(item.title)}</strong></p>
+            <p class="small-note" style="margin-top:6px;">${escapeHtml(item.text)}</p>
+        </div>
+    `).join("");
+}
+
 function renderActivity() {
     const node = document.querySelector("#activity-dock");
     const activity = state.activity;
@@ -5446,6 +5930,15 @@ function attachProjectCard(card, project) {
             notify(normalizeErrorMessage(error.message), "error");
         }
     });
+    card.querySelector("[data-action='backup']").addEventListener("click", async (event) => {
+        event.stopPropagation();
+        try {
+            downloadProjectBundle(project);
+        } catch (error) {
+            log(normalizeErrorMessage(error.message), "error");
+            notify(normalizeErrorMessage(error.message), "error");
+        }
+    });
     card.querySelector("[data-action='delete']").addEventListener("click", async (event) => {
         event.stopPropagation();
         if (!confirm(`Delete "${project.project_name}"? This cannot be undone.`)) return;
@@ -5473,8 +5966,8 @@ function renderProjectList() {
         return;
     }
     state.projects.forEach((project) => {
-        const stage = projectStageKey(project.current_stage);
-        const config = stageConfig(stage);
+        const warningCount = Number(project.project_health_warning_count || 0);
+        const missingCount = Number(project.project_health_missing_file_count || 0);
         const card = document.createElement("div");
         card.className = `project-card ${state.activeProject?.project_id === project.project_id ? "active" : ""}`;
         const nextStep = WIZARD_META[project.wizard_state?.current_step || "describe"]?.label || "Describe";
@@ -5482,8 +5975,10 @@ function renderProjectList() {
             <strong>${project.project_name}</strong>
             <small>${stageDisplayName(project.current_stage)} · ${nextStep}</small>
             <div class="small-note">Last modified ${formatDate(project.updated_at)}</div>
+            ${warningCount || missingCount ? `<div class="small-note" style="margin-top:8px;">Needs attention: ${warningCount} warning${warningCount === 1 ? "" : "s"}${missingCount ? ` · ${missingCount} missing file${missingCount === 1 ? "" : "s"}` : ""}</div>` : ""}
             <div class="project-actions">
                 <button class="secondary" data-action="load">Load Project</button>
+                <button class="secondary" data-action="backup">Export Project</button>
                 <button class="secondary" data-action="duplicate">Duplicate</button>
                 <button class="danger" data-action="delete">Delete</button>
             </div>
@@ -5498,7 +5993,8 @@ function addReferenceRow(data = {}) {
     const row = document.createElement("div");
     row.className = "reference-row";
     row.innerHTML = `
-        <label>Role
+        <label>
+            <span class="field-label-inline">Role</span>
             <select class="ref-role">
                 <option value="identity">identity</option>
                 <option value="costume">costume</option>
@@ -5506,19 +6002,20 @@ function addReferenceRow(data = {}) {
                 <option value="prop">prop</option>
             </select>
         </label>
-        <label>Weight
+        <label>
+            <span class="field-label-inline">Weight</span>
             <input class="ref-weight" type="number" min="0.1" max="2.0" step="0.05" value="${data.weight || 1}">
         </label>
-        <div class="row-main">
-            <label>Local Path
-                <input class="ref-path" placeholder="/absolute/path/to/reference.png" value="${data.path || ""}">
-            </label>
-            <label>Upload File
-                <input class="ref-file" type="file" accept="image/*">
-            </label>
-            <div class="inline-actions" style="align-self: end;">
-                <button class="danger ref-remove" type="button">Remove</button>
-            </div>
+        <label>
+            <span class="field-label-inline">Local Path</span>
+            <input class="ref-path" placeholder="/absolute/path/to/reference.png" value="${data.path || ""}">
+        </label>
+        <label>
+            <span class="field-label-inline">Upload File</span>
+            <input class="ref-file" type="file" accept="image/*">
+        </label>
+        <div class="inline-actions">
+            <button class="danger ref-remove" type="button">Remove</button>
         </div>
     `;
     row.querySelector(".ref-role").value = data.role || "identity";
@@ -5545,7 +6042,7 @@ function renderAttachedReferences() {
         item.className = "reference-chip";
         const imagePath = reference.local_path ? projectAsset(state.activeProject, reference.local_path) : "";
         item.innerHTML = `
-            ${imagePath ? `<img src="${imagePath}?v=${state.activeProject.updated_at}" alt="${reference.role} reference">` : `<div class="empty">No preview</div>`}
+            ${imagePath ? `<img src="${imagePath}?v=${state.activeProject.updated_at}" alt="${reference.role} reference">` : `<div class="reference-thumb-empty">No preview</div>`}
             <div class="detail-grid">
                 <div class="meta-line">
                     <span class="pill">${reference.role}</span>
@@ -5726,25 +6223,17 @@ function wireConceptWorkbenchControlsOnce() {
             notify(normalizeErrorMessage(error.message), "error");
         }
     });
+    bind("#generate-concept-primary", async () => {
+        try {
+            await createConceptFromSelectedSource();
+        } catch (error) {
+            log(normalizeErrorMessage(error.message), "error");
+            notify(normalizeErrorMessage(error.message), "error");
+        }
+    });
     bind("#copy-scaffold-prompt", async () => {
         try {
             await copyConceptScaffoldPrompt();
-        } catch (error) {
-            log(normalizeErrorMessage(error.message), "error");
-            notify(normalizeErrorMessage(error.message), "error");
-        }
-    });
-    bind("#generate-concept-pixellab-text", async () => {
-        try {
-            await generateConceptViaPixellab("text");
-        } catch (error) {
-            log(normalizeErrorMessage(error.message), "error");
-            notify(normalizeErrorMessage(error.message), "error");
-        }
-    });
-    bind("#generate-concept-pixellab-init", async () => {
-        try {
-            await generateConceptViaPixellab("custom_init");
         } catch (error) {
             log(normalizeErrorMessage(error.message), "error");
             notify(normalizeErrorMessage(error.message), "error");
@@ -5810,12 +6299,21 @@ function syncConceptPanelMode() {
     document.querySelectorAll('input[name="concept-source-mode"]').forEach((r) => {
         r.checked = r.value === mode;
     });
-    document.querySelectorAll(".concept-text-only").forEach((n) => {
-        n.hidden = mode !== "text";
-    });
     document.querySelectorAll(".concept-init-only").forEach((n) => {
         n.hidden = mode !== "custom_init";
     });
+    const primary = document.querySelector("#generate-concept-primary");
+    const summary = document.querySelector("#concept-source-summary");
+    if (primary) {
+        primary.textContent = mode === "custom_init"
+            ? "Post-process Upload to 128x128"
+            : "Generate 128x128 from Brief";
+    }
+    if (summary) {
+        summary.innerHTML = mode === "custom_init"
+            ? 'Upload a starting image, then create a <code>128x128</code> concept from it. The workbench will rebuild the prompt automatically before it runs.'
+            : 'Generate a fresh <code>128x128</code> concept from your saved brief. The workbench will rebuild the prompt automatically before it runs.';
+    }
 }
 
 function ensureConceptUiSelection() {
@@ -5844,178 +6342,262 @@ function conceptDisplayImagePath(concept) {
         || "";
 }
 
-function applyConceptPreviewTransform() {
-    const stage = document.querySelector("[data-concept-preview-stage]");
-    const label = document.querySelector("[data-concept-preview-label]");
-    if (stage) {
-        stage.style.transform = `translate(${state.conceptPreviewPanX}px, ${state.conceptPreviewPanY}px) scale(${state.conceptPreviewZoom})`;
-    }
-    if (label) label.textContent = `${Math.round(state.conceptPreviewZoom * 100)}%`;
+async function conceptPreviewDisplayUrl(url) {
+    if (!url) return "";
+    if (state.conceptPreviewDisplayCache[url]) return state.conceptPreviewDisplayCache[url];
+
+    const trimmedPromise = new Promise((resolve) => {
+        const source = new Image();
+        source.decoding = "async";
+        source.onload = () => {
+            try {
+                const width = source.naturalWidth || source.width || 0;
+                const height = source.naturalHeight || source.height || 0;
+                if (!width || !height) {
+                    resolve(url);
+                    return;
+                }
+
+                const canvas = document.createElement("canvas");
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext("2d", { willReadFrequently: true });
+                if (!ctx) {
+                    resolve(url);
+                    return;
+                }
+                ctx.drawImage(source, 0, 0, width, height);
+                const data = ctx.getImageData(0, 0, width, height).data;
+
+                let minX = width;
+                let minY = height;
+                let maxX = -1;
+                let maxY = -1;
+                for (let y = 0; y < height; y += 1) {
+                    for (let x = 0; x < width; x += 1) {
+                        const alpha = data[(y * width + x) * 4 + 3];
+                        if (alpha <= 8) continue;
+                        if (x < minX) minX = x;
+                        if (y < minY) minY = y;
+                        if (x > maxX) maxX = x;
+                        if (y > maxY) maxY = y;
+                    }
+                }
+
+                if (maxX < minX || maxY < minY) {
+                    resolve(url);
+                    return;
+                }
+
+                const contentWidth = maxX - minX + 1;
+                const contentHeight = maxY - minY + 1;
+                const widthPadding = Math.max(8, Math.round(contentWidth * 0.06));
+                const heightPadding = Math.max(8, Math.round(contentHeight * 0.06));
+                const left = Math.max(0, minX - widthPadding);
+                const top = Math.max(0, minY - heightPadding);
+                const right = Math.min(width, maxX + widthPadding + 1);
+                const bottom = Math.min(height, maxY + heightPadding + 1);
+                const trimmedWidth = right - left;
+                const trimmedHeight = bottom - top;
+
+                if (
+                    trimmedWidth >= width * 0.96 &&
+                    trimmedHeight >= height * 0.96
+                ) {
+                    resolve(url);
+                    return;
+                }
+
+                const trimmed = document.createElement("canvas");
+                trimmed.width = trimmedWidth;
+                trimmed.height = trimmedHeight;
+                const trimmedCtx = trimmed.getContext("2d");
+                if (!trimmedCtx) {
+                    resolve(url);
+                    return;
+                }
+                trimmedCtx.drawImage(canvas, left, top, trimmedWidth, trimmedHeight, 0, 0, trimmedWidth, trimmedHeight);
+                resolve(trimmed.toDataURL("image/png"));
+            } catch (_error) {
+                resolve(url);
+            }
+        };
+        source.onerror = () => resolve(url);
+        source.src = url;
+    });
+
+    state.conceptPreviewDisplayCache[url] = trimmedPromise;
+    const resolved = await trimmedPromise;
+    state.conceptPreviewDisplayCache[url] = resolved;
+    return resolved;
 }
 
-function isConceptPreviewStackVisible() {
-    const stack = document.querySelector("[data-concept-preview-stack]");
-    return Boolean(stack && !stack.hidden);
-}
+async function exportSheetPreviewDisplayUrl(url) {
+    if (!url) return "";
+    if (state.exportSheetPreviewDisplayCache[url]) return state.exportSheetPreviewDisplayCache[url];
 
-let conceptPreviewInteractionsWired = false;
+    const trimmedPromise = new Promise((resolve) => {
+        const source = new Image();
+        source.decoding = "async";
+        source.onload = () => {
+            try {
+                const width = source.naturalWidth || source.width || 0;
+                const height = source.naturalHeight || source.height || 0;
+                if (!width || !height) {
+                    resolve(url);
+                    return;
+                }
 
-function wireConceptSelectedPreviewInteractionsOnce() {
-    if (conceptPreviewInteractionsWired) return;
-    conceptPreviewInteractionsWired = true;
-    const viewport = document.querySelector("[data-concept-preview-viewport]");
-    if (!viewport) return;
+                const canvas = document.createElement("canvas");
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext("2d", { willReadFrequently: true });
+                if (!ctx) {
+                    resolve(url);
+                    return;
+                }
+                ctx.drawImage(source, 0, 0, width, height);
+                const data = ctx.getImageData(0, 0, width, height).data;
 
-    let cpTouch = null;
+                let minY = height;
+                let maxY = -1;
+                for (let y = 0; y < height; y += 1) {
+                    for (let x = 0; x < width; x += 1) {
+                        const alpha = data[(y * width + x) * 4 + 3];
+                        if (alpha <= 8) continue;
+                        if (y < minY) minY = y;
+                        if (y > maxY) maxY = y;
+                    }
+                }
 
-    viewport.addEventListener("wheel", (e) => {
-        if (!isConceptPreviewStackVisible()) return;
-        e.preventDefault();
-        const rect = viewport.getBoundingClientRect();
-        const mx = e.clientX - rect.left;
-        const my = e.clientY - rect.top;
-        const cx = rect.width / 2;
-        const cy = rect.height / 2;
-        const oldZ = state.conceptPreviewZoom;
-        const delta = e.deltaY > 0 ? 0.9 : 1.1;
-        state.conceptPreviewZoom = clamp(oldZ * delta, 0.12, 14);
-        const ratio = state.conceptPreviewZoom / oldZ;
-        state.conceptPreviewPanX = mx - cx - ratio * (mx - cx - state.conceptPreviewPanX);
-        state.conceptPreviewPanY = my - cy - ratio * (my - cy - state.conceptPreviewPanY);
-        applyConceptPreviewTransform();
-    }, { passive: false });
+                if (maxY < minY) {
+                    resolve(url);
+                    return;
+                }
 
-    viewport.addEventListener("dblclick", (e) => {
-        if (!isConceptPreviewStackVisible()) return;
-        e.preventDefault();
-        state.conceptPreviewZoom = 1;
-        state.conceptPreviewPanX = 0;
-        state.conceptPreviewPanY = 0;
-        applyConceptPreviewTransform();
-    });
+                const contentHeight = maxY - minY + 1;
+                const verticalPadding = Math.max(2, Math.round(contentHeight * 0.03));
+                const top = Math.max(0, minY - verticalPadding);
+                const bottom = Math.min(height, maxY + verticalPadding + 1);
+                const trimmedHeight = bottom - top;
 
-    viewport.addEventListener("touchstart", (e) => {
-        if (!isConceptPreviewStackVisible()) return;
-        if (e.touches.length === 2) {
-            const a = e.touches[0];
-            const b = e.touches[1];
-            cpTouch = {
-                mode: "pinch",
-                startDist: Math.hypot(b.clientX - a.clientX, b.clientY - a.clientY),
-                startZoom: state.conceptPreviewZoom,
-            };
-        } else if (e.touches.length === 1) {
-            cpTouch = {
-                mode: "pan",
-                sx: e.touches[0].clientX,
-                sy: e.touches[0].clientY,
-                panX: state.conceptPreviewPanX,
-                panY: state.conceptPreviewPanY,
-            };
-        }
-    }, { passive: true });
+                if (trimmedHeight >= height * 0.96) {
+                    resolve(url);
+                    return;
+                }
 
-    viewport.addEventListener("touchmove", (e) => {
-        if (!cpTouch || !isConceptPreviewStackVisible()) return;
-        if (cpTouch.mode === "pinch" && e.touches.length === 2 && cpTouch.startDist && cpTouch.startDist > 4) {
-            e.preventDefault();
-            const a = e.touches[0];
-            const b = e.touches[1];
-            const dist = Math.hypot(b.clientX - a.clientX, b.clientY - a.clientY);
-            state.conceptPreviewZoom = clamp((cpTouch.startZoom || 1) * (dist / cpTouch.startDist), 0.12, 14);
-            applyConceptPreviewTransform();
-        } else if (cpTouch.mode === "pan" && e.touches.length === 1) {
-            e.preventDefault();
-            const t = e.touches[0];
-            state.conceptPreviewPanX = (cpTouch.panX || 0) + (t.clientX - (cpTouch.sx || 0));
-            state.conceptPreviewPanY = (cpTouch.panY || 0) + (t.clientY - (cpTouch.sy || 0));
-            applyConceptPreviewTransform();
-        }
-    }, { passive: false });
-
-    viewport.addEventListener("touchend", () => {
-        cpTouch = null;
-    });
-
-    viewport.addEventListener("mousedown", (e) => {
-        if (e.button !== 0) return;
-        if (!isConceptPreviewStackVisible()) return;
-        e.preventDefault();
-        viewport.classList.add("is-dragging");
-        const startX = e.clientX;
-        const startY = e.clientY;
-        const startPanX = state.conceptPreviewPanX;
-        const startPanY = state.conceptPreviewPanY;
-        const onMove = (me) => {
-            state.conceptPreviewPanX = startPanX + (me.clientX - startX);
-            state.conceptPreviewPanY = startPanY + (me.clientY - startY);
-            applyConceptPreviewTransform();
+                const trimmed = document.createElement("canvas");
+                trimmed.width = width;
+                trimmed.height = trimmedHeight;
+                const trimmedCtx = trimmed.getContext("2d");
+                if (!trimmedCtx) {
+                    resolve(url);
+                    return;
+                }
+                trimmedCtx.drawImage(canvas, 0, top, width, trimmedHeight, 0, 0, width, trimmedHeight);
+                resolve(trimmed.toDataURL("image/png"));
+            } catch (_error) {
+                resolve(url);
+            }
         };
-        const onUp = () => {
-            viewport.classList.remove("is-dragging");
-            window.removeEventListener("mousemove", onMove);
-            window.removeEventListener("mouseup", onUp);
-        };
-        window.addEventListener("mousemove", onMove);
-        window.addEventListener("mouseup", onUp, { once: true });
+        source.onerror = () => resolve(url);
+        source.src = url;
     });
 
-    const onZoomBtn = (factor) => {
-        if (!isConceptPreviewStackVisible()) return;
-        const rect = viewport.getBoundingClientRect();
-        const cx = rect.width / 2;
-        const cy = rect.height / 2;
-        const oldZ = state.conceptPreviewZoom;
-        state.conceptPreviewZoom = clamp(oldZ * factor, 0.12, 14);
-        const ratio = state.conceptPreviewZoom / oldZ;
-        state.conceptPreviewPanX = cx - ratio * (cx - state.conceptPreviewPanX);
-        state.conceptPreviewPanY = cy - ratio * (cy - state.conceptPreviewPanY);
-        applyConceptPreviewTransform();
-    };
-    document.querySelector("[data-concept-preview-in]")?.addEventListener("click", () => onZoomBtn(1.2));
-    document.querySelector("[data-concept-preview-out]")?.addEventListener("click", () => onZoomBtn(1 / 1.2));
-    document.querySelector("[data-concept-preview-fit]")?.addEventListener("click", () => {
-        state.conceptPreviewZoom = 1;
-        state.conceptPreviewPanX = 0;
-        state.conceptPreviewPanY = 0;
-        applyConceptPreviewTransform();
-    });
+    state.exportSheetPreviewDisplayCache[url] = trimmedPromise;
+    const resolved = await trimmedPromise;
+    state.exportSheetPreviewDisplayCache[url] = resolved;
+    return resolved;
 }
 
 function renderConceptLargePreview() {
     const root = document.querySelector("#concept-large-preview");
     if (!root) return;
-    wireConceptSelectedPreviewInteractionsOnce();
     const emptyEl = root.querySelector("[data-concept-preview-empty]");
     const stackEl = root.querySelector("[data-concept-preview-stack]");
     const img = root.querySelector("[data-concept-preview-img]");
-    const viewport = root.querySelector("[data-concept-preview-viewport]");
+    const stage = root.querySelector("[data-concept-preview-stage]");
+    const zoomBtn = root.querySelector("[data-concept-preview-open-zoom]");
+    const approveBtn = root.querySelector("[data-concept-preview-approve-lock]");
+    const skeletonBtn = root.querySelector("[data-concept-preview-estimate-skeleton]");
+    const statusEl = root.querySelector("[data-concept-preview-status]");
     const project = state.activeProject;
     const concept = state.conceptUiSelectedId ? conceptById(state.conceptUiSelectedId) : null;
     const path = conceptDisplayImagePath(concept);
     if (!path) {
         if (emptyEl) emptyEl.hidden = false;
         if (stackEl) stackEl.hidden = true;
+        if (zoomBtn) zoomBtn.disabled = true;
+        if (approveBtn) approveBtn.disabled = true;
+        if (skeletonBtn) {
+            skeletonBtn.disabled = true;
+            skeletonBtn.hidden = true;
+        }
+        if (statusEl) statusEl.textContent = "";
         return;
-    }
-    const tkey = `${concept.concept_id}|${path}|${project.updated_at}`;
-    if (state.conceptPreviewTransformKey !== tkey) {
-        state.conceptPreviewTransformKey = tkey;
-        state.conceptPreviewZoom = 1;
-        state.conceptPreviewPanX = 0;
-        state.conceptPreviewPanY = 0;
     }
     if (emptyEl) emptyEl.hidden = true;
     if (stackEl) stackEl.hidden = false;
+    if (stage) stage.style.transform = "translate(0px, 0px) scale(1)";
     if (img) {
         img.alt = concept.concept_id;
         const url = `${projectAsset(project, path)}?v=${project.updated_at}`;
-        if (img.getAttribute("src") !== url) {
-            img.onload = () => applyConceptPreviewTransform();
-            img.src = url;
+        const previewToken = `${concept.concept_id}|${url}`;
+        img.dataset.previewToken = previewToken;
+        img.src = url;
+        conceptPreviewDisplayUrl(url).then((displayUrl) => {
+            if (img.dataset.previewToken !== previewToken) return;
+            if (displayUrl) img.src = displayUrl;
+        });
+    }
+    if (zoomBtn) {
+        zoomBtn.disabled = false;
+        zoomBtn.onclick = () => openZoom(concept.concept_id);
+    }
+    const isPixellab = String(project?.brief?.backend_mode || "") === "pixellab";
+    const isApproved = Boolean(concept?.review_state?.approved);
+    const hasEastSource = Boolean(project?.pixellab_character?.images?.east);
+    const sourceMatchesSelection = project?.pixellab_character?.source_concept_id === concept?.concept_id;
+    const sourceLocked = Boolean(sourceMatchesSelection && pixellabCharacterApproved(project));
+    if (approveBtn) {
+        approveBtn.hidden = false;
+        approveBtn.textContent = isPixellab ? (sourceLocked ? "Source locked" : "Approve & lock source") : (isApproved ? "Approved source" : "Approve source");
+        approveBtn.disabled = concept?.validation_status !== "valid" || sourceLocked;
+        approveBtn.onclick = async () => {
+            await reviewConcept(concept.concept_id, "approve", true);
+        };
+    }
+    if (skeletonBtn) {
+        skeletonBtn.hidden = !isPixellab;
+        skeletonBtn.disabled = !sourceLocked || !hasEastSource;
+        skeletonBtn.onclick = async () => {
+            try {
+                if (!paidActionAllowed("Estimate skeleton via Pixel Lab")) return;
+                notify("Estimating skeleton on east frame…", "info");
+                await api(`/api/projects/${project.project_id}/pixellab/estimate-skeleton`, {
+                    method: "POST",
+                    body: JSON.stringify({ direction: "east" }),
+                });
+                notify("Skeleton saved.", "success");
+                await loadProject(project.project_id, currentMode());
+                renderAll();
+            } catch (error) {
+                log(normalizeErrorMessage(error.message), "error");
+                notify(normalizeErrorMessage(error.message), "error");
+            }
+        };
+    }
+    if (statusEl) {
+        if (isPixellab) {
+            statusEl.textContent = sourceLocked
+                ? "This concept is locked as the east-facing source for animation. Skeleton estimation is optional."
+                : "Approving a valid concept also locks it as the east-facing source for animation.";
+        } else {
+            statusEl.textContent = isApproved
+                ? "This concept is approved as the current source."
+                : "Select a valid concept and approve it to continue.";
         }
     }
-    applyConceptPreviewTransform();
 }
 
 function renderIterationCompare() {
@@ -6060,12 +6642,16 @@ function renderIterationCompare() {
 
 function renderConceptGrid() {
     const root = document.querySelector("#concept-grid");
+    const countEl = document.querySelector("#concept-grid-count");
     if (!root) return;
     root.innerHTML = "";
     wireConceptWorkbenchControlsOnce();
     syncConceptPanelMode();
     ensureConceptUiSelection();
     const concepts = (state.activeProject?.concepts || []).filter((concept) => conceptDisplayImagePath(concept));
+    if (countEl) {
+        countEl.textContent = `${concepts.length} item${concepts.length === 1 ? "" : "s"}`;
+    }
     if (!concepts.length) {
         root.innerHTML = `<div class="empty">No concept images yet. Use Pixel Lab or Manual import.</div>`;
         return;
@@ -6101,7 +6687,7 @@ function renderConceptGrid() {
                 <div class="actions">
                     <button class="secondary" data-action="select">Select</button>
                     <button class="secondary" data-action="mark-valid" ${concept.validation_status === "valid" ? "disabled" : ""}>Mark valid</button>
-                    <button data-action="approve" ${canApprove ? "" : "disabled"}>Approve as character source</button>
+                    <button data-action="approve" ${canApprove ? "" : "disabled"}>Approve &amp; lock source</button>
                     <button class="secondary" data-action="zoom">Zoom</button>
                     <button class="secondary danger" data-action="delete" title="Remove this concept from the project">Delete</button>
                 </div>
@@ -7165,6 +7751,7 @@ function drawPixellabSkeletonOnCanvas(canvas, img, skeletonJson, visible) {
 
 async function runPixellabCreateCharacter(pid, selId, directions) {
     if (!selId || !pid) return;
+    if (!paidActionAllowed(directions === 8 ? "Create 8-direction Pixel Lab character" : "Create 4-direction Pixel Lab character")) return;
     const detail =
         directions === 8
             ? "Creating 8-direction character (Pixel Lab may take 1–3 minutes)…"
@@ -7235,7 +7822,7 @@ async function runPixellabCreateCharacter(pid, selId, directions) {
         }
         if (String(state.activeProject?.brief?.backend_mode || "") === "pixellab") {
             try {
-                await persistWizardState({ current_step: "character", last_ui_mode: "wizard" });
+                await persistWizardState({ current_step: "animations", last_ui_mode: "wizard" });
             } catch (err) {
                 log(normalizeErrorMessage(err.message), "error");
             }
@@ -7304,7 +7891,13 @@ function renderPixellabCharacterBoard() {
     let directionsHtml = "";
     if (pix?.images && typeof pix.images === "object") {
         const order = pixellabCharacterDirectionOrder(pix);
-        directionsHtml = `<div class="section-head" style="margin-top: 18px;"><h4 style="font-size:0.95rem;">Direction previews</h4></div><div class="pixellab-direction-grid">${order.map((dir) => {
+        directionsHtml = `<details class="flow-collapsible" style="margin-top:18px;" open>
+            <summary>
+                <span>Direction previews</span>
+                <span class="small-note">${order.length} view${order.length === 1 ? "" : "s"}</span>
+            </summary>
+            <div class="flow-collapsible-body">
+                <div class="pixellab-direction-grid">${order.map((dir) => {
             const rel = pix.images[dir];
             const src = rel ? `${projectAsset(project, rel)}?v=${assetV}` : "";
             const isEast = dir === "east";
@@ -7324,17 +7917,25 @@ function renderPixellabCharacterBoard() {
                 <div class="small-note">${humanizeKey(dir)}</div>
                 <img src="${src}" alt="${dir}">
             </div>`;
-        }).join("")}</div>`;
+        }).join("")}</div>
+            </div>
+        </details>`;
     }
 
     root.innerHTML = `
-        <div class="grid-2" style="align-items: start;">
-            <div class="clip-control-card">
-                <h4 style="margin: 0 0 8px;">Chosen concept</h4>
+        <div class="stage-primary-grid character-stage-layout">
+            <div class="clip-control-card stage-card">
+                <div class="stage-card-head">
+                    <h4>Chosen concept</h4>
+                    <p class="small-note">This is the approved look you are carrying into the character stage.</p>
+                </div>
                 ${conceptPreview}
             </div>
-            <div class="clip-control-card">
-                <h4 style="margin: 0 0 8px;">Pixel Lab character</h4>
+            <div class="clip-control-card stage-card">
+                <div class="stage-card-head">
+                    <h4>Character actions</h4>
+                    <p class="small-note">Lock the concept as east-only or generate multi-direction character sheets, then approve when the identity feels stable.</p>
+                </div>
                 <div class="small-note" style="margin-bottom:10px;">
                     ${pix
         ? eastOnlySource
@@ -7343,7 +7944,7 @@ function renderPixellabCharacterBoard() {
         : "No character yet — create from the concept on the left."}
                     ${approved ? ` <span class="pill ok">Approved</span>` : pix ? ` <span class="pill warn">Not approved</span>` : ""}
                 </div>
-                ${eastOnlySource ? `<div class="info-box" style="margin-bottom:10px;"><p><strong>East-only source mode</strong> keeps the approved concept unchanged. You can estimate skeleton on the east image and approve it for downstream use. Pixel Lab template animations still require a generated 4-dir or 8-dir character.</p></div>` : ""}
+                ${eastOnlySource ? `<div class="info-box" style="margin-bottom:10px;"><p><strong>East-only source mode</strong> keeps the approved concept unchanged. You can estimate skeleton on the east image and approve it for downstream use. East-facing custom animation generation remains available from the Animations panel.</p></div>` : ""}
                 ${charActions}
                 ${pix ? `<details class="advanced-settings" style="margin-top:10px;"><summary>Technical details</summary><div class="advanced-content"><p class="small-note" style="margin:0;">Character id: <code>${escapeHtml(String(pix.character_id || ""))}</code></p>${skel ? `<p class="small-note" style="margin:6px 0 0;">Skeleton (${escapeHtml(String(skel.direction || "?"))}): ${(skel.skeleton_keypoints || []).length} keypoints.</p>` : ""}</div></details>` : ""}
             </div>
@@ -7398,6 +7999,7 @@ function renderPixellabCharacterBoard() {
     });
     root.querySelector("#pixellab-estimate-sk")?.addEventListener("click", async () => {
         try {
+            if (!paidActionAllowed("Estimate skeleton via Pixel Lab")) return;
             notify("Estimating skeleton on east frame…", "info");
             await api(`/api/projects/${pid}/pixellab/estimate-skeleton`, {
                 method: "POST",
@@ -7489,7 +8091,7 @@ function renderPixellabAnimationsBoard() {
     if (!root) return;
     const project = state.activeProject;
     const _prevAnims = project?.pixellab_animations?.animations || {};
-    ["idle", "walk", ...Object.keys(_prevAnims).filter((n) => n !== "idle" && n !== "walk")].forEach((c) => clearPixellabAnimTimer(c));
+    sortPixellabAnimationNames(Object.keys(_prevAnims)).forEach((c) => clearPixellabAnimTimer(c));
     root.innerHTML = "";
     if (!project) {
         root.innerHTML = `<div class="empty">Open a project to manage Pixel Lab animations.</div>`;
@@ -7501,52 +8103,28 @@ function renderPixellabAnimationsBoard() {
         return;
     }
     if (!pixellabCharacterApproved(project)) {
-        root.innerHTML = `<div class="warning-box"><p>Approve the Pixel Lab character first (Character panel).</p></div>`;
+        root.innerHTML = `<div class="warning-box"><p>Approve and lock a concept source first in Concepts. That locked east-facing source becomes the animation input.</p></div>`;
         return;
     }
     const store = project.pixellab_animations || { animations: {} };
     const anims = store.animations || {};
     const clipsBridge = project.animation_clips || {};
-    const idleBridgeN = Array.isArray(clipsBridge.idle?.frames) ? clipsBridge.idle.frames.length : null;
-    const walkBridgeN = Array.isArray(clipsBridge.walk?.frames) ? clipsBridge.walk.frames.length : null;
-    const customClipNames = Object.keys(anims)
-        .filter((n) => n !== "idle" && n !== "walk")
-        .sort();
-    const extraBridgeBits = customClipNames
-        .map((n) => {
-            const L = Array.isArray(clipsBridge[n]?.frames) ? clipsBridge[n].frames.length : null;
-            return L != null ? `${escapeHtml(n)}: ${L}` : null;
+    const existingClipNames = sortPixellabAnimationNames(Object.keys(anims));
+    const clipsBridgeBits = existingClipNames
+        .map((name) => {
+            const count = Array.isArray(clipsBridge[name]?.frames) ? clipsBridge[name].frames.length : null;
+            return count != null ? `${escapeHtml(name)}: ${count}` : null;
         })
         .filter(Boolean);
-    const clipsBridgeHtml =
-        idleBridgeN == null && walkBridgeN == null
-            ? `<p class="small-note" style="margin-top:8px;"><strong>Export bridge:</strong> after idle + walk exist, <strong>Build canonical clips</strong> writes <code>animation_clips.json</code> (required for Checks / export). Custom clips are merged when they have generated frames.</p>`
-            : `<p class="small-note" style="margin-top:8px;"><strong>Export bridge (<code>animation_clips.json</code>):</strong> idle ${idleBridgeN ?? "—"} frames · walk ${walkBridgeN ?? "—"} frames${
-                  extraBridgeBits.length ? ` · ${extraBridgeBits.join(" · ")}` : ""
-              }. Re-build after you change animations.</p>`;
-    const templateAnimationCapable = Boolean(project.pixellab_character?.character_id);
+    const clipsBridgeHtml = clipsBridgeBits.length
+        ? `<p class="small-note" style="margin-top:8px;"><strong>Export bridge (<code>animation_clips.json</code>):</strong> ${clipsBridgeBits.join(" · ")}. Synced automatically from your current generated clips.</p>`
+        : `<p class="small-note" style="margin-top:8px;"><strong>Export bridge:</strong> The workbench syncs <code>animation_clips.json</code> automatically from whatever generated clips currently exist.</p>`;
     const dirList = project.pixellab_character?.directions;
-    const directionCount = Array.isArray(dirList) && dirList.length >= 8 ? 8 : 4;
     const pid = project.project_id;
     const reload = async () => {
         await loadProject(pid, currentMode());
         renderAll();
     };
-    const idleTemplates = pixellabTemplatesForClip("idle");
-    const walkTemplates = pixellabTemplatesForClip("walk");
-    const allPixellabTemplateIds = [...PIXELLAB_ALL_TEMPLATE_IDS];
-    const missingCanonical = pixellabMissingCanonicalAnimationClips(project);
-    const canBuildClips = missingCanonical.length === 0;
-    const buildClipsTitle = canBuildClips
-        ? "Merge pixellab_animations.json into animation_clips.json for export/QA."
-        : `Generate these first (template or custom on each card): ${missingCanonical.join(", ")}`;
-    const buildClipsHintHtml = canBuildClips
-        ? "Idle and walk are in the store — you can build canonical clips for QA/export."
-        : (`<strong>Next:</strong> generate <code>${escapeHtml(missingCanonical.join(", "))}</code> `
-            + "using the cards below (this button stays disabled until both exist).");
-    const templateModeHintHtml = !templateAnimationCapable
-        ? `<div class="info-box" style="margin-bottom:12px;"><p><strong>Template animation mode is unavailable.</strong> This character is using an east-only concept source, so Pixel Lab does not have a generated <code>character_id</code> for 4-dir/8-dir template motion. You can still use east-facing custom or manual animation workflows.</p></div>`
-        : "";
     const previewServeNote =
         window.location.protocol === "file:"
             ? `<div class="warning-box" style="margin-bottom:12px;"><p><strong>Previews need the dev server.</strong> Frame thumbnails load from <code>http://127.0.0.1:${DEFAULT_WORKBENCH_PORT}/…</code>. Open the tool from that URL (not <code>file://</code>) if images stay blank or never update.</p></div>`
@@ -7565,16 +8143,13 @@ function renderPixellabAnimationsBoard() {
             </div>
         </div>`
         : "";
-    const listRows = Object.keys(anims).length
-        ? Object.entries(anims).map(([name, meta]) => {
-            const dirs = meta?.directions ? Object.keys(meta.directions).join(", ") : "—";
-            const fc = meta?.frame_count ?? "—";
-            const tid = meta?.template_animation_id ?? "—";
-            return `<tr><td><strong>${escapeHtml(name)}</strong></td><td class="small-note">${escapeHtml(String(tid))}</td><td class="small-note">${escapeHtml(dirs)}</td><td class="small-note">${escapeHtml(String(fc))}</td></tr>`;
-        }).join("")
-        : `<tr><td colspan="4" class="small-note">No clips in store yet.</td></tr>`;
+    const composerPresetOptions = [
+        ...PIXELLAB_COMMON_ANIMATION_PRESETS.map((preset) => `<option value="${escapeHtml(preset.clipName)}">${escapeHtml(preset.label)}</option>`),
+        `<option value="__custom__">Custom</option>`,
+    ].join("");
+    const initialPreset = PIXELLAB_COMMON_ANIMATION_PRESETS[0];
 
-    function clipCard(clipName, { isCore, templates, defaultTemplate }) {
+    function clipCard(clipName) {
         const meta = anims[clipName] || {};
         const previewDefault = pixellabFirstPreviewDirection(dirList, meta);
         const dis = animBusy ? " disabled" : "";
@@ -7585,28 +8160,25 @@ function renderPixellabAnimationsBoard() {
                 return `<option value="${escapeHtml(d)}"${d === previewDefault ? " selected" : ""}>${escapeHtml(label)}</option>`;
             })
             .join("");
-        const opts = (templates || []).map((t) => `<option value="${escapeHtml(t)}"${t === defaultTemplate ? " selected" : ""}>${escapeHtml(t)}</option>`).join("");
-        const subtitle = isCore
-            ? `Canonical name <code>${escapeHtml(clipName)}</code> for export and QA.`
-            : `Custom clip <code>${escapeHtml(clipName)}</code> — included in <code>animation_clips.json</code> after <strong>Build canonical clips</strong> when frames exist.`;
-        const templateLabel = isCore ? "Template animation" : "Template (saved under this clip name)";
+        const preset = pixellabAnimationPresetByName(clipName);
+        const isCommon = Boolean(preset);
+        const subtitle = isCommon
+            ? `Common animation <code>${escapeHtml(clipName)}</code> with a reusable motion prompt.`
+            : `Custom animation <code>${escapeHtml(clipName)}</code> — included in <code>animation_clips.json</code> automatically when frames exist.`;
+        const defaultActionPlaceholder = preset?.prompt || "e.g. heavy overhead slash";
+        const actionLabel = isCommon ? "Motion description" : "Custom motion description";
         return `
         <details class="pixellab-clip-details clip-control-card" data-pixellab-clip-details="${escapeHtml(clipName)}" style="margin-bottom:10px;">
             <summary class="pixellab-clip-summary">
-                <span><strong>${escapeHtml(humanizeKey(clipName))}</strong> <span class="small-note">${isCore ? "· required for QA" : "· custom"}</span></span>
+                <span><strong>${escapeHtml(humanizeKey(clipName))}</strong> <span class="small-note">${isCommon ? "· common" : "· custom"}</span></span>
                 <span class="pixellab-clip-chevron small-note" aria-hidden="true">▾</span>
             </summary>
             <div class="pixellab-clip-details-body" style="margin-top:12px;border-top:1px solid var(--stroke);padding-top:12px;">
             <div class="small-note">${subtitle}</div>
-            <label class="small-note" style="display:block;margin-top:10px;">${escapeHtml(templateLabel)}</label>
-            <select class="pixellab-template-select" data-clip="${escapeHtml(clipName)}" style="max-width:100%;"${dis}>${opts}</select>
-            <div class="actions" style="margin-top:10px;flex-wrap:wrap;gap:8px;">
-                <button type="button" class="pixellab-gen-template" data-clip="${escapeHtml(clipName)}"${dis}${templateAnimationCapable ? "" : " disabled"}>Generate via template</button>
-            </div>
-            <label class="small-note" style="display:block;margin-top:14px;">Custom action (east-facing)</label>
-            <input type="text" class="pixellab-custom-action" data-clip="${escapeHtml(clipName)}" placeholder="e.g. heavy overhead slash" style="width:100%;"${dis}>
+            <label class="small-note" style="display:block;margin-top:14px;">${escapeHtml(actionLabel)}</label>
+            <input type="text" class="pixellab-custom-action" data-clip="${escapeHtml(clipName)}" placeholder="${escapeHtml(defaultActionPlaceholder)}" style="width:100%;"${dis}>
             <div class="actions" style="margin-top:8px;">
-                <button type="button" class="secondary pixellab-gen-custom" data-clip="${escapeHtml(clipName)}"${dis}>Generate custom</button>
+                <button type="button" class="pixellab-gen-custom" data-clip="${escapeHtml(clipName)}"${dis}>Generate animation</button>
             </div>
             <label class="small-note" style="display:block;margin-top:14px;">Edit existing frames</label>
             <textarea class="pixellab-edit-desc" data-clip="${escapeHtml(clipName)}" rows="2" placeholder="Describe the change for Pixel Lab edit…" style="width:100%;"${dis}></textarea>
@@ -7627,51 +8199,41 @@ function renderPixellabAnimationsBoard() {
             </div>
         </details>`;
     }
-
-    const customCardsHtml = customClipNames
-        .map((cn) =>
-            clipCard(cn, {
-                isCore: false,
-                templates: allPixellabTemplateIds,
-                defaultTemplate: allPixellabTemplateIds[0] || "breathing-idle",
-            }),
-        )
-        .join("");
+    const existingCardsHtml = existingClipNames.map((cn) => clipCard(cn)).join("");
 
     root.innerHTML = `
         ${previewServeNote}
         ${animProgressBlock}
-        ${templateModeHintHtml}
-        <div class="info-box" style="margin-bottom:12px;">
-            <p><strong>Idle</strong> and <strong>walk</strong> are required before <strong>Build canonical clips</strong> and QA. Custom clips are optional.</p>
-        </div>
-        <div class="actions" style="margin-bottom:14px;flex-wrap:wrap;gap:8px;">
-            <button type="button" id="pixellab-build-clips" ${canBuildClips && !animBusy ? "" : "disabled"} title="${escapeHtml(buildClipsTitle)}">Build canonical clips</button>
-        </div>
-        <p class="small-note" id="pixellab-build-clips-hint" style="margin-bottom:14px;">${buildClipsHintHtml}</p>
-        <details class="advanced-settings" style="margin-bottom:14px;">
-            <summary>Animation store</summary>
-            <div class="advanced-content">
-                <table class="small-note" style="width:100%;border-collapse:collapse;">
-                    <thead><tr><th align="left">Clip</th><th align="left">Template</th><th align="left">Directions</th><th align="left">Frames (meta)</th></tr></thead>
-                    <tbody>${listRows}</tbody>
-                </table>
+        <div class="stage-primary-grid animations-stage-layout" style="margin-bottom:14px;">
+            <div class="stage-card">
+                <div class="stage-card-head">
+                    <h4>Create animation</h4>
+                    <p class="small-note">Choose a common animation to prefill the motion prompt, or change the name and description to create your own.</p>
+                </div>
+                <label class="small-note" style="display:block;">Common animation preset</label>
+                <select id="pixellab-animation-preset"${animBusy ? " disabled" : ""}>${composerPresetOptions}</select>
+                <label class="small-note" style="display:block;">Animation name</label>
+                <input type="text" id="pixellab-animation-name" value="${escapeHtml(initialPreset.clipName)}" maxlength="48" autocomplete="off"
+                    style="width:100%;padding:8px;border-radius:8px;border:1px solid var(--stroke);background:var(--panel);color:inherit;"${animBusy ? " disabled" : ""}>
+                <label class="small-note" style="display:block;">Motion description</label>
+                <textarea id="pixellab-animation-description" rows="3" style="width:100%;"${animBusy ? " disabled" : ""}>${escapeHtml(initialPreset.prompt)}</textarea>
+                <div class="actions" style="margin-top:4px;">
+                    <button type="button" id="pixellab-generate-animation"${animBusy ? " disabled" : ""}>Generate animation</button>
+                </div>
+                <p class="small-note">Generated clips are synced into <code>animation_clips.json</code> automatically for review, checks, and export.</p>
                 ${clipsBridgeHtml}
             </div>
-        </details>
-        <div class="clip-control-card" style="margin-bottom:12px;">
-            <h4 style="margin:0 0 8px;">Add custom animation</h4>
-            <p class="small-note">Name: lowercase letter first, then letters, digits, or underscore (max 48). Idle/walk already have panels above.</p>
-            <div class="actions" style="margin-top:8px;flex-wrap:wrap;gap:8px;align-items:center;">
-                <input type="text" id="pixellab-new-anim-name" placeholder="e.g. attack" maxlength="48" autocomplete="off"
-                    style="flex:1;min-width:160px;max-width:280px;padding:8px;border-radius:8px;border:1px solid var(--stroke);background:var(--panel);color:inherit;"${animBusy ? " disabled" : ""}>
-                <button type="button" class="secondary" id="pixellab-add-custom-anim"${animBusy ? " disabled" : ""}>Add animation</button>
-            </div>
         </div>
-        <div class="pixellab-anim-clips-stack" style="display:flex;flex-direction:column;gap:4px;align-items:stretch;">
-            ${clipCard("idle", { isCore: true, templates: idleTemplates, defaultTemplate: "breathing-idle" })}
-            ${clipCard("walk", { isCore: true, templates: walkTemplates, defaultTemplate: "walking-4-frames" })}
-            ${customCardsHtml}
+        <div class="animations-main-stack">
+            <div class="stage-card">
+                <div class="stage-card-head">
+                    <h4>Existing animations</h4>
+                    <p class="small-note">${existingClipNames.length ? "Open any clip to regenerate, edit, or preview it." : "Generate your first animation above to start building the set."}</p>
+                </div>
+                <div class="pixellab-anim-clips-stack compact-panel-stack">
+                    ${existingCardsHtml || `<div class="empty">No animations yet.</div>`}
+                </div>
+            </div>
         </div>
     `;
 
@@ -7681,7 +8243,7 @@ function renderPixellabAnimationsBoard() {
         const saved = storage.getItem(k);
         if (saved === "1") det.open = true;
         else if (saved === "0") det.open = false;
-        else det.open = clipName === "idle";
+        else det.open = clipName === existingClipNames[0];
         det.addEventListener("toggle", () => {
             storage.setItem(k, det.open ? "1" : "0");
         });
@@ -7698,7 +8260,11 @@ function renderPixellabAnimationsBoard() {
         if (lab) lab.textContent = urls.length ? `0 / ${urls.length}` : "No frames";
     }
 
-    const allPanelClips = ["idle", "walk", ...customClipNames];
+    async function syncPixellabCanonicalClips() {
+        await api(`/api/projects/${pid}/pixellab/build-clips`, { method: "POST", body: "{}" });
+    }
+
+    const allPanelClips = existingClipNames;
     allPanelClips.forEach((clipName) => {
         const dirSel = root.querySelector(`.pixellab-preview-dir[data-clip="${clipName}"]`);
         const d = dirSel?.value || "east";
@@ -7706,70 +8272,59 @@ function renderPixellabAnimationsBoard() {
         dirSel?.addEventListener("change", () => fillStrip(clipName, dirSel.value));
     });
 
-    root.querySelector("#pixellab-add-custom-anim")?.addEventListener("click", async () => {
-        const input = root.querySelector("#pixellab-new-anim-name");
-        const name = normalizePixellabCustomAnimName(input?.value || "");
-        if (!name) {
-            notify("Enter a valid name: start with a letter; only a–z, 0–9, underscore; max 48 chars.", "error");
+    const presetSelect = root.querySelector("#pixellab-animation-preset");
+    const nameInput = root.querySelector("#pixellab-animation-name");
+    const descriptionInput = root.querySelector("#pixellab-animation-description");
+    presetSelect?.addEventListener("change", () => {
+        if (!nameInput || !descriptionInput) return;
+        if (presetSelect.value === "__custom__") {
+            nameInput.value = "";
+            descriptionInput.value = "";
             return;
         }
-        if (name === "idle" || name === "walk") {
-            notify("Use the Idle and Walk panels for those clips.", "error");
+        const preset = pixellabAnimationPresetByName(presetSelect.value);
+        if (!preset) return;
+        nameInput.value = preset.clipName;
+        descriptionInput.value = preset.prompt;
+    });
+
+    async function generatePixellabAnimation(clip, action) {
+        if (!paidActionAllowed(`Generate ${clip} animation`)) return;
+        notify(`Generating ${clip}…`, "info");
+        await withPixellabAnimationProgress(
+            pid,
+            () => api(`/api/projects/${pid}/pixellab/animate-custom`, {
+                method: "POST",
+                body: JSON.stringify({ animation_name: clip, action }),
+            }),
+            {
+                detail: `${humanizeKey(clip)} (east-facing)`,
+                estimatedMs: 420000,
+                jobType: "pixellab.animate_custom",
+                label: `Pixel Lab: ${clip}`,
+            },
+        );
+        await syncPixellabCanonicalClips();
+    }
+
+    root.querySelector("#pixellab-generate-animation")?.addEventListener("click", async () => {
+        const clip = normalizePixellabCustomAnimName(nameInput?.value || "");
+        const action = descriptionInput?.value?.trim() || "";
+        if (!clip) {
+            notify("Enter a valid animation name: start with a letter; only a–z, 0–9, underscore; max 48 chars.", "error");
+            return;
+        }
+        if (!action) {
+            notify("Enter a motion description.", "error");
             return;
         }
         try {
-            await api(`/api/projects/${pid}/pixellab/define-animation`, {
-                method: "POST",
-                body: JSON.stringify({ animation_name: name }),
-            });
-            notify(`Animation “${name}” added.`, "success");
-            if (input) input.value = "";
+            await generatePixellabAnimation(clip, action);
+            notify(`${humanizeKey(clip)} animation saved.`, "success");
             await reload();
         } catch (e) {
             notify(normalizeErrorMessage(e.message), "error");
         }
-    });
-
-    root.querySelectorAll(".pixellab-gen-template").forEach((btn) => {
-        btn.addEventListener("click", async () => {
-            const clip = btn.dataset.clip;
-            const sel = root.querySelector(`.pixellab-template-select[data-clip="${clip}"]`);
-            const tid = sel?.value;
-            if (!tid) return;
-            const isCore = clip === "idle" || clip === "walk";
-            if (isCore) {
-                const inferred = inferPixellabClipFromTemplateId(tid);
-                if (inferred !== clip) {
-                    notify(`Template "${tid}" maps to "${inferred}" on the server — use the ${inferred} card.`, "error");
-                    return;
-                }
-            }
-            try {
-                notify(`Generating ${clip} via ${tid}…`, "info");
-                const templateEstMs = Math.min(900000, Math.max(240000, directionCount * 120000));
-                await withPixellabAnimationProgress(
-                    pid,
-                    () => api(`/api/projects/${pid}/pixellab/animate`, {
-                        method: "POST",
-                        body: JSON.stringify({
-                            template_animation_id: tid,
-                            directions: directionCount,
-                            animation_name: clip,
-                        }),
-                    }),
-                    {
-                        detail: `Generating ${clip} via template (${tid}, ${directionCount} directions)`,
-                        estimatedMs: templateEstMs,
-                        jobType: "pixellab.animate_template",
-                        label: `Pixel Lab: ${clip} (template)`,
-                    },
-                );
-                notify(`${clip} animation updated.`, "success");
-                await reload();
-            } catch (e) {
-                notify(normalizeErrorMessage(e.message), "error");
-            }
-        });
     });
 
     root.querySelectorAll(".pixellab-gen-custom").forEach((btn) => {
@@ -7778,25 +8333,12 @@ function renderPixellabAnimationsBoard() {
             const input = root.querySelector(`.pixellab-custom-action[data-clip="${clip}"]`);
             const action = input?.value?.trim();
             if (!action) {
-                notify("Enter a custom action description.", "error");
+                notify("Enter a motion description.", "error");
                 return;
             }
             try {
-                notify(`Generating custom ${clip}…`, "info");
-                await withPixellabAnimationProgress(
-                    pid,
-                    () => api(`/api/projects/${pid}/pixellab/animate-custom`, {
-                        method: "POST",
-                        body: JSON.stringify({ animation_name: clip, action }),
-                    }),
-                    {
-                        detail: `Custom ${clip} (east-facing)`,
-                        estimatedMs: 420000,
-                        jobType: "pixellab.animate_custom",
-                        label: `Pixel Lab: ${clip} (custom)`,
-                    },
-                );
-                notify(`Custom ${clip} saved.`, "success");
+                await generatePixellabAnimation(clip, action);
+                notify(`${humanizeKey(clip)} animation saved.`, "success");
                 await reload();
             } catch (e) {
                 notify(normalizeErrorMessage(e.message), "error");
@@ -7814,6 +8356,7 @@ function renderPixellabAnimationsBoard() {
                 return;
             }
             try {
+                if (!paidActionAllowed(`Edit ${clip} animation`)) return;
                 notify(`Editing ${clip} animation…`, "info");
                 await withPixellabAnimationProgress(
                     pid,
@@ -7828,49 +8371,13 @@ function renderPixellabAnimationsBoard() {
                         label: `Pixel Lab: edit ${clip}`,
                     },
                 );
+                await syncPixellabCanonicalClips();
                 notify(`${clip} edit applied.`, "success");
                 await reload();
             } catch (e) {
                 notify(normalizeErrorMessage(e.message), "error");
             }
         });
-    });
-
-    root.querySelector("#pixellab-build-clips")?.addEventListener("click", async () => {
-        try {
-            notify("Building animation_clips.json…", "info");
-            await withPixellabAnimationProgress(
-                pid,
-                () => api(`/api/projects/${pid}/pixellab/build-clips`, { method: "POST", body: "{}" }),
-                {
-                    detail: "Building canonical clips (animation_clips.json)",
-                    estimatedMs: 120000,
-                    jobType: "pixellab.build_clips",
-                    label: "Pixel Lab: build clips",
-                },
-            );
-            await reload();
-            const p = state.activeProject;
-            const idleN = Array.isArray(p?.animation_clips?.idle?.frames) ? p.animation_clips.idle.frames.length : 0;
-            const walkN = Array.isArray(p?.animation_clips?.walk?.frames) ? p.animation_clips.walk.frames.length : 0;
-            const customNs = Object.keys(p?.animation_clips || {})
-                .filter((n) => n !== "idle" && n !== "walk")
-                .sort()
-                .map((n) => {
-                    const L = Array.isArray(p.animation_clips[n]?.frames) ? p.animation_clips[n].frames.length : 0;
-                    return L ? `${n}: ${L}` : null;
-                })
-                .filter(Boolean)
-                .join(", ");
-            notify(
-                `Canonical clips built — idle: ${idleN} frames, walk: ${walkN} frames${
-                    customNs ? `; ${customNs}` : ""
-                }. Continue to Review & export when ready.`,
-                "success",
-            );
-        } catch (e) {
-            notify(normalizeErrorMessage(e.message), "error");
-        }
     });
 
     root.querySelectorAll(".pixellab-preview-play").forEach((btn) => {
@@ -10262,8 +10769,7 @@ function renderClipLoopPreview(name, count, opts = {}) {
     preview.className = "thumb";
     preview.style.maxWidth = "min(100%, 240px)";
     preview.innerHTML = `
-        <img alt="${humanizeKey(name)} looping preview" style="display:block;width:100%;max-width:240px;max-height:min(32vh,220px);height:auto;object-fit:contain;margin-inline:auto;">
-        <div class="small-note" style="margin-top: 8px;">Looping preview</div>
+        <img alt="${humanizeKey(name)} preview" style="display:block;width:100%;max-width:240px;max-height:min(32vh,220px);height:auto;object-fit:contain;margin-inline:auto;">
     `;
     const image = preview.querySelector("img");
     image.onerror = () => {
@@ -10320,6 +10826,18 @@ function renderReviewExportClipPreviews() {
     });
 }
 
+function createContextPanel(label = "Context", note = "Open for details") {
+    const details = document.createElement("details");
+    details.className = "flow-collapsible";
+    const summary = document.createElement("summary");
+    summary.innerHTML = `<span>${escapeHtml(label)}</span><span class="small-note">${escapeHtml(note)}</span>`;
+    const body = document.createElement("div");
+    body.className = "flow-collapsible-body";
+    details.appendChild(summary);
+    details.appendChild(body);
+    return { details, body };
+}
+
 function renderQa() {
     const root = document.querySelector("#qa-summary");
     root.innerHTML = "";
@@ -10332,6 +10850,21 @@ function renderQa() {
     overall.className = "check-row";
     overall.innerHTML = `<span>Overall status</span><span class="pill ${qa.status === "pass" ? "ok" : "fail"}">${qa.status}</span>`;
     root.appendChild(overall);
+    const metadataValues = Object.values(qa.metadata_checks || {});
+    const metadataIssues = metadataValues.filter((item) => item?.status && item.status !== "pass").length;
+    const animationValues = Object.values(qa.per_animation_checks || {});
+    const animationIssues = animationValues.filter((item) => item?.status && item.status !== "pass").length;
+    const frameIssues = (qa.per_frame_checks || []).filter((frame) => frame?.status && frame.status !== "pass").length;
+    const summary = document.createElement("div");
+    summary.className = "check-row wrap";
+    summary.innerHTML = `
+        <span>Summary</span>
+        <span class="small-note">${qa.status === "pass"
+            ? "All required QA checks passed."
+            : `${metadataIssues} metadata issue${metadataIssues === 1 ? "" : "s"} · ${animationIssues} animation issue${animationIssues === 1 ? "" : "s"} · ${frameIssues} frame issue${frameIssues === 1 ? "" : "s"}`}</span>
+    `;
+    root.appendChild(summary);
+    const { details, body } = createContextPanel("Context", "Full QA breakdown");
     const buildReport = qa.sprite_model_build_report;
     if (buildReport) {
         const nonDeterministicSource = qa.mode === "external_authoring" || qa.mode === "ai_workflow";
@@ -10346,13 +10879,13 @@ function renderQa() {
                     : `${buildReport.summary?.warning_count || 0} warning${(buildReport.summary?.warning_count || 0) === 1 ? "" : "s"} · ${buildReport.summary?.fail_count || 0} fail${(buildReport.summary?.fail_count || 0) === 1 ? "" : "s"}`}
             </span>
         `;
-        root.appendChild(buildRow);
+        body.appendChild(buildRow);
     }
     Object.entries(qa.metadata_checks || {}).forEach(([name, item]) => {
         const row = document.createElement("div");
         row.className = "check-row";
         row.innerHTML = `<span>${humanizeKey(name)}</span><span class="pill ${item.status === "pass" ? "ok" : "fail"}">${item.status}</span>`;
-        root.appendChild(row);
+        body.appendChild(row);
     });
     Object.entries(qa.per_animation_checks || {}).forEach(([animation, payload]) => {
         const row = document.createElement("div");
@@ -10361,7 +10894,7 @@ function renderQa() {
             .map(([name, item]) => `${humanizeKey(name)}: ${item.status}`)
             .join(" · ");
         row.innerHTML = `<span>${humanizeKey(animation)}</span><span class="small-note">${checks}</span>`;
-        root.appendChild(row);
+        body.appendChild(row);
     });
     const frameGrid = document.createElement("div");
     frameGrid.className = "thumb-grid";
@@ -10383,7 +10916,7 @@ function renderQa() {
         `;
         frameGrid.appendChild(card);
     });
-    root.appendChild(frameGrid);
+    body.appendChild(frameGrid);
     if (qa.mode !== "external_authoring" && qa.mode !== "ai_workflow" && (buildReport?.failures?.length || buildReport?.warnings?.length)) {
         const issueBlock = document.createElement("div");
         issueBlock.className = "detail-grid";
@@ -10391,22 +10924,69 @@ function renderQa() {
             ${buildIssueMarkup("Sprite-Model Failures", buildReport.failures || [], "fail")}
             ${buildIssueMarkup("Sprite-Model Warnings", buildReport.warnings || [], "warning")}
         `;
-        root.appendChild(issueBlock);
+        body.appendChild(issueBlock);
     }
+    root.appendChild(details);
 }
 
 function renderExport() {
     const root = document.querySelector("#export-summary");
     root.innerHTML = "";
+    const project = state.activeProject;
+    if (!project) {
+        root.innerHTML = `<div class="empty">Open a project to review exports.</div>`;
+        return;
+    }
     const exportData = state.activeProject?.last_export;
+    const healthReport = project.health_report || {};
+    const healthWarnings = Array.isArray(healthReport.warnings) ? healthReport.warnings : [];
+    const recommendedActions = Array.isArray(healthReport.recommended_actions) ? healthReport.recommended_actions : [];
+    const projectExportRow = document.createElement("div");
+    projectExportRow.className = "check-row wrap";
+    projectExportRow.innerHTML = `
+        <span><strong>Project export</strong></span>
+        <span class="small-note">Editable project bundle for restore, transfer, and backup.</span>
+        <button type="button" class="secondary" id="export-project-bundle">Export Project</button>
+    `;
+    root.appendChild(projectExportRow);
+    projectExportRow.querySelector("#export-project-bundle")?.addEventListener("click", () => downloadProjectBundle(project));
+    const runtimeHeading = document.createElement("div");
+    runtimeHeading.className = "check-row wrap";
+    runtimeHeading.style.marginTop = "14px";
+    runtimeHeading.innerHTML = `
+        <span><strong>Runtime export</strong></span>
+        <span class="small-note">Game-ready package generated from the current project state.</span>
+    `;
+    root.appendChild(runtimeHeading);
     if (!exportData) {
-        root.innerHTML = `<div class="empty">No export package yet.</div>`;
+        const summary = document.createElement("div");
+        summary.className = "check-row wrap";
+        summary.innerHTML = `<span>Status</span><span class="small-note">No runtime export package yet.</span>`;
+        root.appendChild(summary);
+        if (healthWarnings.length || recommendedActions.length) {
+            const warning = document.createElement("div");
+            warning.className = healthWarnings.length ? "warning-box" : "info-box";
+            warning.style.marginTop = "10px";
+            warning.innerHTML = `
+                <p><strong>What to do next</strong></p>
+                <p class="small-note" style="margin-top:8px;">Run checks and export when this project is ready.</p>
+            `;
+            root.appendChild(warning);
+        }
         return;
     }
     const top = document.createElement("div");
     top.className = "check-row";
     top.innerHTML = `<span>Export directory</span><span class="small-note">${exportData.export_dir}</span>`;
     root.appendChild(top);
+    const exportSummary = document.createElement("div");
+    exportSummary.className = "check-row wrap";
+    exportSummary.innerHTML = `
+        <span>Summary</span>
+        <span class="small-note">${Array.isArray(exportData.files) ? exportData.files.length : 0} files · ${(Array.isArray(exportData.preview_gifs) ? exportData.preview_gifs.length : 0) || (exportData.preview_gif ? 1 : 0)} preview GIF${(((Array.isArray(exportData.preview_gifs) ? exportData.preview_gifs.length : 0) || (exportData.preview_gif ? 1 : 0)) === 1) ? "" : "s"}</span>
+    `;
+    root.appendChild(exportSummary);
+    const { details, body } = createContextPanel("Context", "Export details and previews");
     if (exportData.verification) {
         const verification = document.createElement("div");
         verification.className = "check-row wrap";
@@ -10414,30 +10994,90 @@ function renderExport() {
             <span>Post-pack verification</span>
             <span class="small-note"><span class="pill ${statusTone(exportData.verification.status)}">${exportData.verification.status}</span></span>
         `;
-        root.appendChild(verification);
+        body.appendChild(verification);
         Object.entries(exportData.verification.checks || {}).forEach(([name, passed]) => {
             const row = document.createElement("div");
             row.className = "check-row";
             row.innerHTML = `<span>${humanizeKey(name)}</span><span class="pill ${passed ? "ok" : "fail"}">${passed ? "pass" : "fail"}</span>`;
-            root.appendChild(row);
+            body.appendChild(row);
         });
+    }
+    if (healthWarnings.length || recommendedActions.length) {
+        const healthBlock = document.createElement("div");
+        healthBlock.className = healthWarnings.length ? "warning-box" : "info-box";
+        healthBlock.innerHTML = `
+            <p><strong>Project health</strong></p>
+            ${healthWarnings.length ? `<div class="history-list" style="margin-top:8px;">${healthWarnings.slice(0, 4).map((item) => `<div class="history-item">${escapeHtml(humanizeKey(item))}</div>`).join("")}</div>` : ""}
+            ${recommendedActions.length ? `<p class="small-note" style="margin-top:8px;">Suggested next actions: ${recommendedActions.slice(0, 3).map((item) => humanizeKey(item)).join(", ")}</p>` : ""}
+        `;
+        body.appendChild(healthBlock);
     }
     const previewGifs = Array.isArray(exportData.preview_gifs) && exportData.preview_gifs.length
         ? exportData.preview_gifs
         : exportData.preview_gif
             ? [exportData.preview_gif]
             : [];
+    const animationSheets = exportData.animation_sheets && typeof exportData.animation_sheets === "object"
+        ? Object.entries(exportData.animation_sheets)
+        : [];
     const preview = document.createElement("div");
     preview.className = "export-preview-panel";
     preview.style.marginTop = "10px";
-    const sheetCard = document.createElement("div");
-    sheetCard.className = "preview-card export-preview-spritesheet";
-    sheetCard.style.marginBottom = "12px";
-    sheetCard.innerHTML = `
-        <img src="${projectAsset(state.activeProject, `${exportData.export_dir}/preview_spritesheet.png`)}" alt="Spritesheet preview" onerror="this.src='${projectAsset(state.activeProject, `${exportData.export_dir}/spritesheet.png`)}'">
-        <div class="small-note" style="margin-top: 8px;">spritesheet</div>
-    `;
-    preview.appendChild(sheetCard);
+    if (animationSheets.length) {
+        const sheetGrid = document.createElement("div");
+        sheetGrid.className = "export-preview-sheet-stack";
+        animationSheets.forEach(([clipName, meta]) => {
+            if (!meta?.image) return;
+            const cell = document.createElement("div");
+            cell.className = "preview-card export-preview-sheet-card";
+            const imageUrl = `${projectAsset(state.activeProject, `${exportData.export_dir}/${meta.image}`)}`;
+            const imageToken = `${clipName}|${imageUrl}|${state.activeProject?.updated_at || ""}`;
+            cell.innerHTML = `
+                <div class="export-preview-sheet-label">${humanizeKey(clipName)} sheet</div>
+                <img src="${imageUrl}" alt="${clipName} spritesheet" data-export-sheet-token="${imageToken}">
+            `;
+            const img = cell.querySelector("img");
+            if (img) {
+                exportSheetPreviewDisplayUrl(imageUrl).then((displayUrl) => {
+                    if (!displayUrl) return;
+                    if (img.dataset.exportSheetToken !== imageToken) return;
+                    img.src = displayUrl;
+                });
+            }
+            sheetGrid.appendChild(cell);
+        });
+        if (sheetGrid.childElementCount) {
+            preview.appendChild(sheetGrid);
+        }
+    } else {
+        const sheetCard = document.createElement("div");
+        sheetCard.className = "preview-card export-preview-spritesheet";
+        sheetCard.style.marginBottom = "12px";
+        const imageUrl = `${projectAsset(state.activeProject, `${exportData.export_dir}/preview_spritesheet.png`)}`;
+        const fallbackUrl = `${projectAsset(state.activeProject, `${exportData.export_dir}/spritesheet.png`)}`;
+        const imageToken = `combined|${imageUrl}|${state.activeProject?.updated_at || ""}`;
+        sheetCard.innerHTML = `
+            <img src="${imageUrl}" alt="Spritesheet preview" data-export-sheet-token="${imageToken}">
+            <div class="small-note" style="margin-top: 8px;">spritesheet</div>
+        `;
+        const img = sheetCard.querySelector("img");
+        if (img) {
+            img.onerror = () => {
+                img.src = fallbackUrl;
+                exportSheetPreviewDisplayUrl(fallbackUrl).then((displayUrl) => {
+                    if (!displayUrl) return;
+                    if (img.dataset.exportSheetToken !== imageToken) return;
+                    img.src = displayUrl;
+                });
+            };
+            exportSheetPreviewDisplayUrl(imageUrl).then((displayUrl) => {
+                if (!displayUrl) return;
+                if (img.dataset.exportSheetToken !== imageToken) return;
+                img.src = displayUrl;
+            });
+        }
+        preview.appendChild(sheetCard);
+    }
     if (previewGifs.length) {
         const gifGrid = document.createElement("div");
         gifGrid.className = "export-preview-gif-grid";
@@ -10458,7 +11098,7 @@ function renderExport() {
         empty.innerHTML = `<div class="empty">No preview GIF in this export.</div>`;
         preview.appendChild(empty);
     }
-    root.appendChild(preview);
+    body.appendChild(preview);
     if (!externalAuthoringEnabled(state.activeProject)) {
         const clips = state.activeProject?.animation_clips || {};
         Object.entries(clips).forEach(([clipName, clip]) => {
@@ -10468,7 +11108,7 @@ function renderExport() {
                 <span>${humanizeKey(clipName)} runtime order</span>
                 <span class="frame-sequence">${Array.from({ length: clip.frame_count }, (_, index) => `<code>${clipName}_${String(index).padStart(2, "0")}.png</code>`).join("")}</span>
             `;
-            root.appendChild(row);
+            body.appendChild(row);
         });
     }
     const exportFileList = (() => {
@@ -10488,16 +11128,19 @@ function renderExport() {
         const row = document.createElement("div");
         row.className = "check-row";
         row.innerHTML = `<span>${file}</span><a href="${projectAsset(state.activeProject, `${exportData.export_dir}/${file}`)}" target="_blank">open</a>`;
-        root.appendChild(row);
+        body.appendChild(row);
     });
+    root.appendChild(details);
 }
 
 function renderAll() {
+    updateRoomCreationLink();
     renderStageMeta();
     renderProjectList();
     populateIntakeForm();
     renderDescribePrimaryAction();
     renderStatus();
+    renderSidebarWarnings();
     renderModeShell();
     renderConceptReview();
     renderAiCharacterLockBoard();
@@ -10522,6 +11165,7 @@ async function loadHealth() {
     }
     renderStageMeta();
     renderStatus();
+    renderSidebarWarnings();
 }
 
 async function refreshProjects() {
@@ -10550,10 +11194,6 @@ async function loadProject(projectId, mode = "wizard") {
         state.lastIterationScaffold = null;
         state.conceptUiSelectedId = null;
         state.lastIteratedConceptId = null;
-        state.conceptPreviewTransformKey = null;
-        state.conceptPreviewZoom = 1;
-        state.conceptPreviewPanX = 0;
-        state.conceptPreviewPanY = 0;
         const sc = document.querySelector("#concept-scaffold-prompt");
         const it = document.querySelector("#concept-iteration-prompt");
         if (sc) sc.value = "";
@@ -10728,20 +11368,23 @@ async function runJob(path, payload = {}) {
 
 async function reviewConcept(conceptId, action, value) {
     if (!state.activeProject) return;
+    const isPixellab = String(state.activeProject?.brief?.backend_mode || "") === "pixellab";
     const project = await api(`/api/projects/${state.activeProject.project_id}/concepts/${conceptId}/${action}`, {
         method: "POST",
         body: JSON.stringify({ value }),
     });
     state.activeProject = project;
     log(`${action} updated for ${conceptId}`, "success");
-    if (action === "approve") notify(`${conceptId} is now the chosen look.`, "success");
+    if (action === "approve") notify(isPixellab ? `${conceptId} is now the chosen look and locked animation source.` : `${conceptId} is now the chosen look.`, "success");
     if (action === "favorite") notify(value ? `${conceptId} saved to the shortlist.` : `${conceptId} removed from the shortlist.`, "info");
     if (action === "reject") notify(value ? `${conceptId} hidden from consideration.` : `${conceptId} restored.`, "info");
     await refreshProjects();
     if (currentMode() === "wizard" && action === "approve" && value) {
         const synced = await persistWizardState({
             completed_steps: ["review"],
-            current_step: "rig_layout",
+            current_step: aiWorkflowEnabled(project)
+                ? (String(project?.brief?.backend_mode || "") === "pixellab" ? "animations" : "export")
+                : "rig_layout",
             last_ui_mode: "wizard",
         });
         if (synced) state.activeProject = synced;
@@ -10789,8 +11432,9 @@ async function generateImprovedPrompt(conceptId, feedback = "") {
     notify(`Generated Gemini prompt v${result.prompt_version}.`, "success");
 }
 
-async function persistConceptScaffoldPrompt() {
+async function persistConceptScaffoldPrompt(options = {}) {
     if (!state.activeProject) throw new Error("Select or create a project first.");
+    const { notifyUser = true, reloadProject = true } = options;
     const result = await api(`/api/projects/${state.activeProject.project_id}/concepts/persist-scaffold-prompt`, {
         method: "POST",
         body: "{}",
@@ -10798,15 +11442,19 @@ async function persistConceptScaffoldPrompt() {
     state.lastConceptScaffold = result;
     const ta = document.querySelector("#concept-scaffold-prompt");
     if (ta) ta.value = result.display_prompt || "";
-    notify("Scaffold saved. Manual import uses the new anchor row.", "success");
-    await loadProject(state.activeProject.project_id, currentMode());
+    if (notifyUser) {
+        notify("Prompt scaffold saved.", "success");
+    }
+    if (reloadProject) {
+        await loadProject(state.activeProject.project_id, currentMode());
+    }
 }
 
 async function copyConceptScaffoldPrompt() {
     const text = (state.lastConceptScaffold && state.lastConceptScaffold.display_prompt)
         || document.querySelector("#concept-scaffold-prompt")?.value
         || "";
-    if (!String(text).trim()) throw new Error('Use "Build Prompt" first.');
+    if (!String(text).trim()) throw new Error('Use "Build Prompt Only" or create a concept first.');
     await navigator.clipboard.writeText(text);
     notify("Copied scaffold prompt.", "success");
 }
@@ -10820,9 +11468,49 @@ async function readFileAsDataUrl(file) {
     });
 }
 
+function downloadProjectBundle(project) {
+    if (!project?.project_id) throw new Error("Select or create a project first.");
+    const link = document.createElement("a");
+    link.href = `${WORKBENCH_BASE}/api/projects/${encodeURIComponent(project.project_id)}/bundle-export`;
+    link.download = `${project.project_name || project.project_id}.spriteworkbench.zip`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    log(`Started project export for ${project.project_name}`, "success");
+    notify(`Exporting project ${project.project_name}.`, "success");
+}
+
+async function importProjectBundleFile(file) {
+    if (!file) throw new Error("Choose a project backup zip first.");
+    const dataUrl = await readFileAsDataUrl(file);
+    setActivity({
+        state: "Working",
+        jobType: "projects.import_bundle",
+        label: "Importing project backup",
+        detail: "Restoring the project bundle into the workbench.",
+        percent: 35,
+    });
+    try {
+        const project = await api(`/api/projects/import-bundle`, {
+            method: "POST",
+            body: JSON.stringify({
+                name: file.name,
+                data_url: dataUrl,
+            }),
+        });
+        await refreshProjects();
+        await loadProject(project.project_id, "wizard");
+        log(`Imported backup as ${project.project_name}`, "success");
+        notify(`Imported project backup as ${project.project_name}.`, "success");
+    } finally {
+        clearActivity();
+    }
+}
+
 async function generateConceptViaPixellab(sourceMode = "text") {
     if (!state.activeProject) throw new Error("Select or create a project first.");
-    if (!state.lastConceptScaffold?.pixellab_params) throw new Error('Use "Build Prompt" first to persist Pixel Lab parameters.');
+    if (!state.lastConceptScaffold?.pixellab_params) throw new Error('Build the prompt first, or use the main Create Concept action.');
+    if (!paidActionAllowed(sourceMode === "custom_init" ? "Generate concept from custom init image" : "Generate concept via Pixel Lab")) return;
     const pixellabParams = { ...state.lastConceptScaffold.pixellab_params };
     const payload = {
         mode: "pixflux",
@@ -10867,6 +11555,12 @@ async function generateConceptViaPixellab(sourceMode = "text") {
     }
 }
 
+async function createConceptFromSelectedSource() {
+    const mode = state.conceptSourceMode || "text";
+    await persistConceptScaffoldPrompt({ notifyUser: false, reloadProject: false });
+    await generateConceptViaPixellab(mode);
+}
+
 async function buildConceptIterationPrompt() {
     if (!state.activeProject) throw new Error("Select or create a project first.");
     const cid = state.conceptUiSelectedId;
@@ -10891,6 +11585,7 @@ async function generateConceptIterationViaGemini() {
     const element = document.querySelector("#concept-iterate-element")?.value;
     const changeText = document.querySelector("#concept-iterate-change")?.value?.trim();
     if (!changeText) throw new Error("Describe what to change.");
+    if (!paidActionAllowed("Run Gemini concept iteration")) return;
     setActivity({
         state: "Working",
         jobType: "concepts.iterate_gemini",
@@ -10918,6 +11613,7 @@ async function generateConceptIterationViaPixellab() {
     if (!state.lastIterationScaffold?.pixellab_params) throw new Error('Use "Build Iteration Prompt" first.');
     const cid = state.conceptUiSelectedId;
     if (!cid) throw new Error("Select a source concept.");
+    if (!paidActionAllowed("Run Pixel Lab concept iteration")) return;
     setActivity({
         state: "Working",
         jobType: "concepts.iterate_pixellab",
@@ -10945,7 +11641,7 @@ async function generateConceptIterationViaPixellab() {
 async function importConceptImage() {
     if (!state.activeProject) throw new Error("Select or create a project first.");
     const anchor = state.lastConceptScaffold?.anchor_concept_id;
-    if (!anchor) throw new Error('Use "Build Prompt" first (creates an import anchor on the server).');
+    if (!anchor) throw new Error('Use "Build Prompt Only" first so the server can create an import anchor.');
     const file = document.querySelector("#concept-import-file")?.files?.[0];
     const localPath = document.querySelector("#concept-import-path")?.value?.trim() || "";
     if (!file && !localPath) throw new Error("Choose an upload or enter a local image path.");
@@ -11220,6 +11916,22 @@ document.querySelector("#open-workbench")?.addEventListener("click", async () =>
             notify(normalizeErrorMessage(error.message), "error");
         }
     });
+});
+
+document.querySelector("#sidebar-import-project")?.addEventListener("click", () => {
+    document.querySelector("#project-bundle-import-file")?.click();
+});
+
+document.querySelector("#project-bundle-import-file")?.addEventListener("change", async (event) => {
+    const file = event.target?.files?.[0];
+    try {
+        await importProjectBundleFile(file);
+    } catch (error) {
+        log(normalizeErrorMessage(error.message), "error");
+        notify(normalizeErrorMessage(error.message), "error");
+    } finally {
+        if (event.target) event.target.value = "";
+    }
 });
 
 document.querySelector("#mode-workbench")?.addEventListener("click", async () => {
@@ -11644,7 +12356,7 @@ document.querySelector("#render-idle")?.addEventListener("click", async () => {
         await runJob(`/api/projects/${state.activeProject.project_id}/clips/idle/render`);
         if (currentMode() === "wizard" && state.activeProject?.build_status?.idle_render_complete && state.activeProject?.build_status?.walk_render_complete) {
             const synced = await persistWizardState({
-                completed_steps: ["character"],
+                completed_steps: ["animations"],
                 current_step: "export",
                 last_ui_mode: "wizard",
             });
@@ -11662,7 +12374,7 @@ document.querySelector("#render-walk")?.addEventListener("click", async () => {
         await runJob(`/api/projects/${state.activeProject.project_id}/clips/walk/render`);
         if (currentMode() === "wizard" && state.activeProject?.build_status?.idle_render_complete && state.activeProject?.build_status?.walk_render_complete) {
             const synced = await persistWizardState({
-                completed_steps: ["character"],
+                completed_steps: ["animations"],
                 current_step: "export",
                 last_ui_mode: "wizard",
             });

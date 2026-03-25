@@ -13,9 +13,11 @@ import os
 import re
 import shutil
 import sys
+import tempfile
 import threading
 import time
 import uuid
+import zipfile
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from http import HTTPStatus
@@ -83,6 +85,16 @@ LEGACY_DOWNSTREAM_FILES = {
 SPRITE_MODEL_REVISIONS_DIRNAME = "sprite_model_revisions"
 
 TOOL_VERSION = "solo-ai-sprite-workbench-v4"
+PROJECT_SCHEMA_VERSION = 1
+PROJECT_BUNDLE_MANIFEST_VERSION = 1
+PROJECT_HEALTH_REPORT_VERSION = 1
+PROJECT_BUNDLE_MANIFEST_FILENAME = "project_bundle_manifest.json"
+PROJECT_HEALTH_REPORT_FILENAME = "project_health.json"
+WORKBENCH_SETTINGS_FILENAME = "_workbench_settings.json"
+USAGE_LEDGER_FILENAME = "_usage_ledger.json"
+ROOM_LAYOUT_FILENAME = "room_layout.json"
+ROOM_LAYOUT_HISTORY_FILENAME = "room_layout_history.json"
+LEVEL_VALIDATION_REPORT_FILENAME = "level_validation_report.json"
 SKELFORM_EDITOR_URL = "https://skelform.org/editor/"
 SKELFORM_DOCS_URL = "https://skelform.org/user-docs/"
 AI_WORKFLOW_PROFILE = "ai_sideview_v1"
@@ -114,6 +126,12 @@ AI_CLIP_SPECS = {
     },
 }
 PIXELLAB_API_KEY = os.environ.get("PIXELLAB_API_KEY", "")
+DEMO_PROJECT_FIXTURE_ROOT = ROOT / "tests" / "fixtures" / "sprite_workbench"
+WORKBENCH_SETTINGS_DEFAULTS = {
+    "safe_mode": False,
+    "confirm_paid_actions": True,
+}
+USAGE_LEDGER_LIMIT = 2000
 
 logger = logging.getLogger("sprite_workbench")
 
@@ -196,10 +214,10 @@ JOB_HISTORY_LIMIT = 50
 WIZARD_STEPS = ["project", "brief", "references", "concepts", "review", "rig_layout", "part_manifest", "part_shape_edit", "split_build", "split_review", "sprite_model", "rig", "clips", "qa", "export"]
 # Guided AI workflow (non-legacy): no rig_layout / part_manifest steps in the stepper UI.
 WIZARD_STEPS_AI = ["project", "brief", "references", "concepts", "review", "clips", "qa", "export"]
-# Phase 7.7: Pixel Lab guided flow uses five visible steps (describe → concepts → character → animations → export).
-WIZARD_STEPS_PIXEL_LAB_UI = ["describe", "concepts", "character", "animations", "export"]
-# Non–Pixel Lab AI (debug_procedural) uses four steps (no separate Animations panel).
-WIZARD_STEPS_AI_SIMPLE_UI = ["describe", "concepts", "character", "export"]
+# Phase 8: Pixel Lab guided flow uses four visible steps (describe → concepts → animations → export).
+WIZARD_STEPS_PIXEL_LAB_UI = ["describe", "concepts", "animations", "export"]
+# Non–Pixel Lab AI (debug_procedural) uses three steps (no separate Character or Animations panel).
+WIZARD_STEPS_AI_SIMPLE_UI = ["describe", "concepts", "export"]
 # Inserted after "clips" for Pixel Lab guided flow (Phase 7.5).
 WIZARD_STEP_ANIMATIONS = "animations"
 WIZARD_STEPS_KNOWN = set(WIZARD_STEPS) | {WIZARD_STEP_ANIMATIONS, "describe", "character"}
@@ -981,6 +999,818 @@ def load_json(path: Path, default: Any = None) -> Any:
 def write_json(path: Path, payload: Any) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+
+
+def project_bundle_manifest_path(project_dir: Path) -> Path:
+    return project_dir / PROJECT_BUNDLE_MANIFEST_FILENAME
+
+
+def project_health_report_path(project_dir: Path) -> Path:
+    return project_dir / PROJECT_HEALTH_REPORT_FILENAME
+
+
+def workbench_settings_path() -> Path:
+    return PROJECTS_ROOT / WORKBENCH_SETTINGS_FILENAME
+
+
+def usage_ledger_path() -> Path:
+    return PROJECTS_ROOT / USAGE_LEDGER_FILENAME
+
+
+def room_layout_path(project_dir: Path) -> Path:
+    return project_dir / ROOM_LAYOUT_FILENAME
+
+
+def room_layout_history_path(project_dir: Path) -> Path:
+    return project_dir / ROOM_LAYOUT_HISTORY_FILENAME
+
+
+def level_validation_report_path(project_dir: Path) -> Path:
+    return project_dir / LEVEL_VALIDATION_REPORT_FILENAME
+
+
+def _artifact_kind_for_path(rel_path: Path) -> str:
+    head = rel_path.parts[0] if rel_path.parts else ""
+    if rel_path.name == "project.json":
+        return "project_core"
+    if rel_path.suffix.lower() == ".json":
+        if head == "concepts":
+            return "concept_metadata"
+        if head == "animations":
+            return "animation_metadata"
+        return "metadata"
+    if head == "concepts":
+        return "concept_asset"
+    if head == "character":
+        return "character_asset"
+    if head == "animations":
+        return "animation_asset"
+    if head == "references":
+        return "reference_asset"
+    if head == "exports":
+        return "export_asset"
+    return head or "asset"
+
+
+def iter_project_artifact_paths(project_dir: Path) -> List[Path]:
+    manifest_path = project_bundle_manifest_path(project_dir)
+    artifacts: List[Path] = []
+    for path in sorted(project_dir.rglob("*")):
+        if not path.is_file():
+            continue
+        if path == manifest_path or path.name == ".DS_Store":
+            continue
+        artifacts.append(path)
+    return artifacts
+
+
+def build_project_bundle_manifest(project_dir: Path, project: Dict[str, Any]) -> Dict[str, Any]:
+    artifacts = []
+    for path in iter_project_artifact_paths(project_dir):
+        stat = path.stat()
+        rel_path = path.relative_to(project_dir)
+        artifacts.append({
+            "path": rel_path.as_posix(),
+            "kind": _artifact_kind_for_path(rel_path),
+            "size_bytes": stat.st_size,
+            "modified_at": datetime.fromtimestamp(stat.st_mtime, tz=timezone.utc).isoformat(),
+        })
+    return {
+        "manifest_version": PROJECT_BUNDLE_MANIFEST_VERSION,
+        "project_id": project.get("project_id") or project_dir.name,
+        "project_schema_version": int(project.get("project_schema_version") or PROJECT_SCHEMA_VERSION),
+        "tool_version": TOOL_VERSION,
+        "generated_at": now_iso(),
+        "project_name": project.get("project_name") or project_dir.name,
+        "selected_concept_id": project.get("selected_concept_id"),
+        "artifact_count": len(artifacts),
+        "artifacts": artifacts,
+    }
+
+
+def _health_issue(
+    issue_type: str,
+    path_value: str,
+    *,
+    detail: Optional[str] = None,
+    concept_id: Optional[str] = None,
+    animation_name: Optional[str] = None,
+    direction: Optional[str] = None,
+) -> Dict[str, Any]:
+    issue = {"type": issue_type, "path": path_value}
+    if detail:
+        issue["detail"] = detail
+    if concept_id:
+        issue["concept_id"] = concept_id
+    if animation_name:
+        issue["animation_name"] = animation_name
+    if direction:
+        issue["direction"] = direction
+    return issue
+
+
+def build_project_health_report(project: Dict[str, Any], project_dir: Path) -> Dict[str, Any]:
+    missing_files: List[Dict[str, Any]] = []
+    warnings: List[str] = []
+    seen_missing: Set[Tuple[str, str]] = set()
+
+    def record_missing(issue_type: str, raw_path: Any, **extra: Any) -> None:
+        if not raw_path:
+            return
+        path_text = str(raw_path)
+        candidate = Path(path_text)
+        resolved = candidate if candidate.is_absolute() else (project_dir / candidate)
+        if resolved.exists():
+            return
+        key = (issue_type, path_text)
+        if key in seen_missing:
+            return
+        seen_missing.add(key)
+        missing_files.append(_health_issue(issue_type, path_text, **extra))
+
+    concepts = project.get("concepts") or []
+    selected_id = project.get("selected_concept_id")
+    selected = next((item for item in concepts if item.get("concept_id") == selected_id), None) if selected_id else None
+    if selected_id and selected is None:
+        warnings.append("selected_concept_record_missing")
+    for concept in concepts:
+        concept_id = concept.get("concept_id")
+        for field in ("preview_image", "original_preview_image", "processed_preview_image", "approved_source_image"):
+            record_missing(
+                "concept_asset_missing",
+                concept.get(field),
+                detail=field,
+                concept_id=concept_id,
+            )
+
+    char_data = project.get("pixellab_character")
+    if isinstance(char_data, dict):
+        images = char_data.get("images") or {}
+        if isinstance(images, dict):
+            for direction, rel_path in images.items():
+                record_missing(
+                    "character_direction_image_missing",
+                    rel_path,
+                    detail="pixellab_character.images",
+                    direction=str(direction),
+                )
+
+    pix_store = project.get("pixellab_animations")
+    if isinstance(pix_store, dict):
+        animations = pix_store.get("animations") or {}
+        if isinstance(animations, dict):
+            for animation_name, meta in animations.items():
+                directions = (meta or {}).get("directions") or {}
+                if not isinstance(directions, dict):
+                    continue
+                for direction, direction_meta in directions.items():
+                    frames = (direction_meta or {}).get("frames") or []
+                    if not isinstance(frames, list):
+                        continue
+                    for rel_path in frames:
+                        record_missing(
+                            "animation_frame_missing",
+                            rel_path,
+                            animation_name=str(animation_name),
+                            direction=str(direction),
+                        )
+
+    last_export = project.get("last_export") or {}
+    if isinstance(last_export, dict):
+        export_dir = last_export.get("export_dir")
+        if export_dir and not (project_dir / str(export_dir)).exists():
+            warnings.append("last_export_directory_missing")
+            record_missing("last_export_missing", export_dir, detail="last_export.export_dir")
+
+    recommended_actions: List[str] = []
+    if any(item["type"] == "concept_asset_missing" for item in missing_files):
+        recommended_actions.append("relink_or_regenerate_concept_assets")
+    if any(item["type"] == "character_direction_image_missing" for item in missing_files):
+        recommended_actions.append("rebuild_or_reimport_character_assets")
+    if any(item["type"] == "animation_frame_missing" for item in missing_files):
+        recommended_actions.append("regenerate_or_repair_animation_frames")
+    if any(item["type"] == "last_export_missing" for item in missing_files):
+        recommended_actions.append("rerun_export_to_refresh_output_bundle")
+    if "selected_concept_record_missing" in warnings:
+        recommended_actions.append("reselect_or_reapprove_a_concept")
+
+    room_validation = project.get("level_validation_report") or {}
+    if isinstance(room_validation, dict):
+        room_status = str(room_validation.get("status") or "").lower()
+        if room_status == "fail":
+            warnings.append("room_layout_validation_failed")
+            recommended_actions.append("repair_room_layout")
+        elif room_status == "warning":
+            warnings.append("room_layout_validation_warning")
+
+    status = "pass" if not missing_files and not warnings else "warning"
+    return {
+        "report_version": PROJECT_HEALTH_REPORT_VERSION,
+        "project_id": project.get("project_id") or project_dir.name,
+        "project_schema_version": int(project.get("project_schema_version") or PROJECT_SCHEMA_VERSION),
+        "tool_version": TOOL_VERSION,
+        "checked_at": now_iso(),
+        "status": status,
+        "missing_files": missing_files,
+        "warnings": warnings,
+        "recommended_actions": recommended_actions,
+        "repair_actions_taken": [],
+        "summary": {
+            "concept_count": len(concepts),
+            "missing_file_count": len(missing_files),
+            "warning_count": len(warnings),
+        },
+    }
+
+
+def persist_project_integrity_metadata(project: Dict[str, Any], project_dir: Path) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+    health = build_project_health_report(project, project_dir)
+    write_json(project_health_report_path(project_dir), health)
+    manifest = build_project_bundle_manifest(project_dir, project)
+    write_json(project_bundle_manifest_path(project_dir), manifest)
+    return health, manifest
+
+
+def load_project_health_summary(project_dir: Path) -> Dict[str, Any]:
+    report = load_json(project_health_report_path(project_dir), None)
+    if not isinstance(report, dict):
+        return {"status": "unknown", "warning_count": 0, "missing_file_count": 0}
+    summary = report.get("summary") or {}
+    return {
+        "status": report.get("status", "unknown"),
+        "warning_count": int(summary.get("warning_count") or 0),
+        "missing_file_count": int(summary.get("missing_file_count") or 0),
+    }
+
+
+def project_backup_filename(project: Dict[str, Any]) -> str:
+    base = slugify(project.get("project_name") or project.get("project_id") or "sprite-workbench-project")
+    return "%s.spriteworkbench.zip" % (base or "sprite-workbench-project")
+
+
+def load_workbench_settings() -> Dict[str, Any]:
+    payload = load_json(workbench_settings_path(), {})
+    if not isinstance(payload, dict):
+        payload = {}
+    normalized = dict(WORKBENCH_SETTINGS_DEFAULTS)
+    normalized["safe_mode"] = bool(payload.get("safe_mode", normalized["safe_mode"]))
+    normalized["confirm_paid_actions"] = bool(payload.get("confirm_paid_actions", normalized["confirm_paid_actions"]))
+    normalized["updated_at"] = payload.get("updated_at")
+    return normalized
+
+
+def save_workbench_settings(payload: Dict[str, Any]) -> Dict[str, Any]:
+    current = load_workbench_settings()
+    current.update({
+        "safe_mode": bool(payload.get("safe_mode", current["safe_mode"])),
+        "confirm_paid_actions": bool(payload.get("confirm_paid_actions", current["confirm_paid_actions"])),
+        "updated_at": now_iso(),
+    })
+    write_json(workbench_settings_path(), current)
+    return current
+
+
+def load_usage_ledger() -> Dict[str, Any]:
+    payload = load_json(usage_ledger_path(), None)
+    if not isinstance(payload, dict):
+        payload = {"entries": []}
+    payload.setdefault("entries", [])
+    if not isinstance(payload["entries"], list):
+        payload["entries"] = []
+    return payload
+
+
+def _coerce_usage_cost_usd(value: Any) -> Optional[float]:
+    if value is None:
+        return None
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return None
+    if math.isnan(number) or math.isinf(number):
+        return None
+    return number
+
+
+def append_usage_ledger_entry(
+    *,
+    provider: str,
+    endpoint: str,
+    project_id: Optional[str] = None,
+    status: str = "success",
+    usage: Optional[Dict[str, Any]] = None,
+    usage_cost_usd: Any = None,
+    job_id: Optional[str] = None,
+    generation_id: Optional[str] = None,
+    error: Optional[str] = None,
+    metadata: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    ledger = load_usage_ledger()
+    usage_obj = dict(usage) if isinstance(usage, dict) else None
+    inferred_cost = _coerce_usage_cost_usd(usage_cost_usd)
+    if inferred_cost is None and usage_obj:
+        inferred_cost = (
+            _coerce_usage_cost_usd(usage_obj.get("usage_cost_usd"))
+            or _coerce_usage_cost_usd(usage_obj.get("cost_usd"))
+            or _coerce_usage_cost_usd(usage_obj.get("usd"))
+        )
+    entry = {
+        "entry_id": uuid.uuid4().hex[:12],
+        "created_at": now_iso(),
+        "provider": provider,
+        "endpoint": endpoint,
+        "project_id": project_id,
+        "status": status,
+        "usage_cost_usd": inferred_cost,
+        "job_id": job_id,
+        "generation_id": generation_id,
+        "error": error,
+        "usage": usage_obj,
+        "metadata": metadata or {},
+    }
+    ledger["entries"].append(entry)
+    if len(ledger["entries"]) > USAGE_LEDGER_LIMIT:
+        ledger["entries"] = ledger["entries"][-USAGE_LEDGER_LIMIT:]
+    write_json(usage_ledger_path(), ledger)
+    return entry
+
+
+def summarize_usage_ledger() -> Dict[str, Any]:
+    ledger = load_usage_ledger()
+    entries = [item for item in ledger.get("entries", []) if isinstance(item, dict)]
+    today_prefix = datetime.now(timezone.utc).date().isoformat()
+    recent = entries[-10:]
+    today_entries = [item for item in entries if str(item.get("created_at") or "").startswith(today_prefix)]
+
+    def _total(items: List[Dict[str, Any]]) -> float:
+        return round(sum(_coerce_usage_cost_usd(item.get("usage_cost_usd")) or 0.0 for item in items), 4)
+
+    return {
+        "entry_count": len(entries),
+        "today_entry_count": len(today_entries),
+        "today_usage_cost_usd": _total(today_entries),
+        "total_usage_cost_usd": _total(entries),
+        "recent_entries": recent,
+    }
+
+
+def provider_call_allowed() -> None:
+    settings = load_workbench_settings()
+    if settings.get("safe_mode"):
+        raise ValueError("Safe mode is enabled. Turn it off in the Safety panel before running paid generation actions.")
+
+
+def list_demo_projects() -> List[Dict[str, Any]]:
+    if not DEMO_PROJECT_FIXTURE_ROOT.exists():
+        return []
+    descriptions = {
+        "canonical-sprite-model": "Canonical downstream contract with approved sprite-model, rig, clips, QA, and export data.",
+        "hybrid-mixed-pipeline": "Mixed legacy/canonical project for compatibility and migration testing.",
+        "legacy-layered-character": "Legacy layered-character project for older downstream contract coverage.",
+    }
+    demos: List[Dict[str, Any]] = []
+    for path in sorted(DEMO_PROJECT_FIXTURE_ROOT.iterdir()):
+        if not path.is_dir() or not (path / "project.json").exists():
+            continue
+        project = apply_project_defaults(load_json(path / "project.json", {}))
+        demos.append({
+            "fixture_name": path.name,
+            "project_id": project.get("project_id") or path.name,
+            "project_name": project.get("project_name") or humanize_key(path.name),
+            "description": descriptions.get(path.name, "Sprite Workbench sample project."),
+        })
+    return demos
+
+
+def import_demo_project(payload: Dict[str, Any]) -> Dict[str, Any]:
+    fixture_name = str(payload.get("fixture_name") or "").strip()
+    if not fixture_name:
+        raise ValueError("Demo import requires fixture_name.")
+    source_dir = DEMO_PROJECT_FIXTURE_ROOT / fixture_name
+    if not source_dir.exists() or not (source_dir / "project.json").exists():
+        raise ValueError("Unknown demo project: %s." % fixture_name)
+
+    imported_project_data = apply_project_defaults(load_json(source_dir / "project.json", {}))
+    imported_project_id = str(imported_project_data.get("project_id") or "").strip() or fixture_name
+    target_project_id = imported_project_id
+    if (PROJECTS_ROOT / target_project_id).exists():
+        target_project_id = "%s-%s" % (
+            slugify(imported_project_data.get("project_name") or imported_project_id) or imported_project_id,
+            stable_hash(imported_project_id, now_iso())[:8],
+        )
+
+    project_dir = PROJECTS_ROOT / target_project_id
+    ensure_dirs(project_dir)
+    for path in sorted(source_dir.rglob("*")):
+        if not path.is_file() or path.name == ".DS_Store":
+            continue
+        rel = path.relative_to(source_dir)
+        target = project_dir / rel
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(path, target)
+
+    imported = load_project(target_project_id)
+    imported["project_id"] = target_project_id
+    imported["project_schema_version"] = int(imported.get("project_schema_version") or PROJECT_SCHEMA_VERSION)
+    imported["archived_at"] = None
+    imported["updated_at"] = now_iso()
+    imported["status"] = "demo_imported"
+    history = imported.get("history") if isinstance(imported.get("history"), dict) else {}
+    if isinstance(history, dict):
+        history["project_id"] = target_project_id
+        imported["history"] = history
+    if isinstance(imported.get("room_layout"), dict):
+        imported["room_layout"].setdefault("meta", {})
+        imported["room_layout"]["meta"]["project_id"] = target_project_id
+        imported["room_layout"]["meta"]["project_name"] = imported.get("project_name") or target_project_id
+    for key in (
+        "room_layout_history",
+        "level_validation_report",
+        "rig_layout_history",
+        "part_manifest_history",
+        "part_shapes_history",
+        "part_split_history",
+        "sprite_model_history",
+        "manual_animation_clips",
+        "ai_workflow",
+        "external_authoring",
+        "pixellab_animations",
+    ):
+        value = imported.get(key)
+        if isinstance(value, dict):
+            value["project_id"] = target_project_id
+    for concept in imported.get("concepts", []) or []:
+        concept["project_id"] = target_project_id
+    save_project(imported)
+    append_history_event(target_project_id, {
+        "type": "demo_project_imported",
+        "fixture_name": fixture_name,
+        "created_at": now_iso(),
+    })
+    return load_project(target_project_id)
+
+
+def default_room_layout(project_id: str, project_name: str = "Untitled Project") -> Dict[str, Any]:
+    return {
+        "version": 1,
+        "meta": {
+            "project_id": project_id,
+            "project_name": project_name,
+            "source": "sprite_workbench",
+            "created_at": now_iso(),
+            "updated_at": now_iso(),
+            "notes": "Project-scoped room layout source of truth for the Room Creation tool.",
+        },
+        "rooms": [
+            {
+                "id": "R1",
+                "name": "Room 1",
+                "size": {"width": 1600, "height": 1200},
+                "global": {"x": 600, "y": 360},
+                "polygon": [[160, 160], [1440, 160], [1440, 1040], [160, 1040]],
+                "platforms": [
+                    {"id": "R1-P1", "x": 192, "y": 992, "len": 38, "tint": 0},
+                ],
+                "movingPlatforms": [],
+                "doors": [],
+                "keys": [],
+                "abilities": [],
+                "playerStart": {"x": 320, "y": 928},
+                "edgeLinks": [],
+                "removedEdges": [],
+            }
+        ],
+    }
+
+
+def default_room_layout_history(project_id: str, layout: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    return {
+        "project_id": project_id,
+        "current_revision_id": "initial",
+        "revisions": [
+            {
+                "revision_id": "initial",
+                "created_at": now_iso(),
+                "summary": "Initial room layout scaffold",
+                "room_count": len((layout or {}).get("rooms") or []),
+            }
+        ],
+    }
+
+
+def _room_layout_point_valid(point: Any) -> bool:
+    return (
+        isinstance(point, (list, tuple))
+        and len(point) == 2
+        and all(isinstance(value, (int, float)) for value in point)
+    )
+
+
+def validate_room_layout(layout: Any) -> Dict[str, Any]:
+    errors: List[str] = []
+    warnings: List[str] = []
+    room_index_by_id: Dict[str, Dict[str, Any]] = {}
+    room_ids: List[str] = []
+
+    if not isinstance(layout, dict):
+        return {
+            "status": "fail",
+            "errors": ["Layout payload must be a JSON object."],
+            "warnings": [],
+            "summary": {"room_count": 0, "door_count": 0, "platform_count": 0, "linked_edge_count": 0},
+            "checked_at": now_iso(),
+        }
+
+    rooms = layout.get("rooms")
+    if not isinstance(rooms, list) or not rooms:
+        errors.append("Layout must contain a non-empty rooms array.")
+        rooms = []
+
+    platform_count = 0
+    door_count = 0
+    linked_edge_count = 0
+
+    for idx, room in enumerate(rooms):
+        if not isinstance(room, dict):
+            errors.append("Room %d must be an object." % (idx + 1))
+            continue
+        room_id = str(room.get("id") or "").strip()
+        if not room_id:
+            errors.append("Room %d is missing an id." % (idx + 1))
+            continue
+        if room_id in room_index_by_id:
+            errors.append("Room id %s is duplicated." % room_id)
+            continue
+        room_index_by_id[room_id] = room
+        room_ids.append(room_id)
+
+        polygon = room.get("polygon")
+        if not isinstance(polygon, list) or len(polygon) < 3 or not all(_room_layout_point_valid(point) for point in polygon):
+            errors.append("Room %s must have a polygon with at least three numeric points." % room_id)
+
+        global_pos = room.get("global")
+        if not isinstance(global_pos, dict) or not isinstance(global_pos.get("x"), (int, float)) or not isinstance(global_pos.get("y"), (int, float)):
+            errors.append("Room %s must define numeric global.x and global.y." % room_id)
+
+        player_start = room.get("playerStart")
+        if player_start is None:
+            warnings.append("Room %s has no playerStart." % room_id)
+        elif not isinstance(player_start, dict) or not isinstance(player_start.get("x"), (int, float)) or not isinstance(player_start.get("y"), (int, float)):
+            errors.append("Room %s playerStart must contain numeric x/y." % room_id)
+
+        platforms = room.get("platforms") or []
+        if not isinstance(platforms, list):
+            errors.append("Room %s platforms must be a list." % room_id)
+        else:
+            platform_count += len(platforms)
+
+        doors = room.get("doors") or []
+        if not isinstance(doors, list):
+            errors.append("Room %s doors must be a list." % room_id)
+        else:
+            door_count += len(doors)
+
+        edge_links = room.get("edgeLinks") or []
+        if not isinstance(edge_links, list):
+            errors.append("Room %s edgeLinks must be a list." % room_id)
+            continue
+        for link in edge_links:
+            if not isinstance(link, dict):
+                errors.append("Room %s edge link entries must be objects." % room_id)
+                continue
+            edge_index = link.get("edgeIndex")
+            target_room_id = str(link.get("targetRoomId") or "").strip()
+            target_edge_index = link.get("targetEdgeIndex")
+            if not isinstance(edge_index, int) or edge_index < 0 or (isinstance(polygon, list) and edge_index >= len(polygon)):
+                errors.append("Room %s has an invalid edgeIndex in edgeLinks." % room_id)
+            if not target_room_id:
+                errors.append("Room %s edge link is missing targetRoomId." % room_id)
+            if not isinstance(target_edge_index, int) or target_edge_index < 0:
+                errors.append("Room %s edge link to %s has an invalid targetEdgeIndex." % (room_id, target_room_id or "unknown"))
+            linked_edge_count += 1
+
+    for room_id, room in room_index_by_id.items():
+        target_polygon_counts = {rid: len((room_index_by_id.get(rid) or {}).get("polygon") or []) for rid in room_index_by_id}
+        for link in room.get("edgeLinks") or []:
+            target_room_id = str(link.get("targetRoomId") or "").strip()
+            if target_room_id and target_room_id not in room_index_by_id:
+                errors.append("Room %s links to missing target room %s." % (room_id, target_room_id))
+                continue
+            if target_room_id:
+                target_edge_index = link.get("targetEdgeIndex")
+                target_polygon_len = target_polygon_counts.get(target_room_id, 0)
+                if isinstance(target_edge_index, int) and target_polygon_len and target_edge_index >= target_polygon_len:
+                    errors.append("Room %s links to out-of-range edge %s on %s." % (room_id, target_edge_index, target_room_id))
+
+    status = "pass"
+    if errors:
+        status = "fail"
+    elif warnings:
+        status = "warning"
+    return {
+        "status": status,
+        "errors": errors,
+        "warnings": warnings,
+        "summary": {
+            "room_count": len(room_ids),
+            "door_count": door_count,
+            "platform_count": platform_count,
+            "linked_edge_count": linked_edge_count,
+        },
+        "checked_at": now_iso(),
+    }
+
+
+def room_layout_wizard_complete(project: Dict[str, Any]) -> bool:
+    history = project.get("room_layout_history") or {}
+    validation = project.get("level_validation_report") or {}
+    current_revision_id = str(history.get("current_revision_id") or "").strip()
+    if not current_revision_id or current_revision_id == "initial":
+        return False
+    return str(validation.get("status") or "").lower() != "fail"
+
+
+def build_project_bundle_archive(project_id: str) -> Tuple[str, bytes]:
+    project = load_project(project_id)
+    project_dir = PROJECTS_ROOT / project_id
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, "w", compression=zipfile.ZIP_DEFLATED) as zf:
+        for path in sorted(project_dir.rglob("*")):
+            if not path.is_file() or path.name == ".DS_Store":
+                continue
+            arcname = "%s/%s" % (project_id, path.relative_to(project_dir).as_posix())
+            zf.write(path, arcname)
+    return project_backup_filename(project), buffer.getvalue()
+
+
+def _normalize_import_bundle_members(names: List[str]) -> Dict[str, str]:
+    files = [name for name in names if name and not name.endswith("/") and Path(name).name != ".DS_Store"]
+    if not files:
+        raise ValueError("Project bundle is empty.")
+    top_levels = {Path(name).parts[0] for name in files if Path(name).parts}
+    strip_prefix = None
+    if len(top_levels) == 1:
+        candidate = next(iter(top_levels))
+        if all(len(Path(name).parts) >= 2 for name in files):
+            strip_prefix = candidate
+    normalized: Dict[str, str] = {}
+    for name in files:
+        path = Path(name)
+        rel = Path(*path.parts[1:]) if strip_prefix and path.parts and path.parts[0] == strip_prefix else path
+        if not rel.parts:
+            continue
+        rel_text = rel.as_posix()
+        if rel_text.startswith("../") or rel_text.startswith("/"):
+            raise ValueError("Project bundle contains unsafe paths.")
+        normalized[name] = rel_text
+    return normalized
+
+
+def import_project_bundle(payload: Dict[str, Any]) -> Dict[str, Any]:
+    data_url = payload.get("data_url")
+    if not data_url:
+        raise ValueError("Import bundle requires data_url.")
+    mime_type, raw = parse_data_url(str(data_url))
+    if mime_type not in {"application/zip", "application/x-zip-compressed", "application/octet-stream"}:
+        # Safari sometimes reports generic octet-stream; allow that but reject obviously wrong types.
+        if ".zip" not in str(payload.get("name") or "").lower():
+            raise ValueError("Import bundle must be a .zip file.")
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        temp_root = Path(tmpdir)
+        try:
+            with zipfile.ZipFile(io.BytesIO(raw), "r") as zf:
+                member_map = _normalize_import_bundle_members(zf.namelist())
+                if "project.json" not in member_map.values():
+                    raise ValueError("Project bundle is missing project.json.")
+                for member_name, rel_text in member_map.items():
+                    target = temp_root / rel_text
+                    target.parent.mkdir(parents=True, exist_ok=True)
+                    with zf.open(member_name, "r") as source, target.open("wb") as dest:
+                        shutil.copyfileobj(source, dest)
+        except zipfile.BadZipFile as exc:
+            raise ValueError("Import bundle is not a valid zip archive.") from exc
+
+        imported_project_data = apply_project_defaults(load_json(temp_root / "project.json", {}))
+        imported_project_id = str(imported_project_data.get("project_id") or "").strip() or slugify(
+            str(imported_project_data.get("project_name") or Path(str(payload.get("name") or "imported-project")).stem)
+        )
+        if not imported_project_id:
+            imported_project_id = "imported-project"
+        target_project_id = imported_project_id
+        if (PROJECTS_ROOT / target_project_id).exists():
+            target_project_id = "%s-%s" % (
+                slugify(imported_project_data.get("project_name") or imported_project_id) or imported_project_id,
+                stable_hash(imported_project_id, now_iso())[:8],
+            )
+
+        project_dir = PROJECTS_ROOT / target_project_id
+        ensure_dirs(project_dir)
+        for path in sorted(temp_root.rglob("*")):
+            if not path.is_file():
+                continue
+            rel = path.relative_to(temp_root)
+            target = project_dir / rel
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(path, target)
+
+    imported = load_project(target_project_id)
+    imported["project_id"] = target_project_id
+    imported["project_schema_version"] = int(imported.get("project_schema_version") or PROJECT_SCHEMA_VERSION)
+    imported["archived_at"] = None
+    imported["updated_at"] = now_iso()
+    if imported.get("history"):
+        imported["history"]["project_id"] = target_project_id
+    if isinstance(imported.get("room_layout"), dict):
+        imported["room_layout"].setdefault("meta", {})
+        imported["room_layout"]["meta"]["project_id"] = target_project_id
+        imported["room_layout"]["meta"]["project_name"] = imported.get("project_name") or target_project_id
+    for key in (
+        "room_layout_history",
+        "level_validation_report",
+        "rig_layout_history",
+        "part_manifest_history",
+        "part_shapes_history",
+        "part_split_history",
+        "sprite_model_history",
+        "manual_animation_clips",
+        "ai_workflow",
+        "external_authoring",
+        "pixellab_animations",
+    ):
+        value = imported.get(key)
+        if isinstance(value, dict):
+            value["project_id"] = target_project_id
+    for concept in imported.get("concepts", []) or []:
+        concept["project_id"] = target_project_id
+    save_project(imported)
+    return load_project(target_project_id)
+
+
+def get_room_layout(project_id: str) -> Dict[str, Any]:
+    project = load_project(project_id)
+    return copy.deepcopy(project.get("room_layout") or default_room_layout(project_id, project.get("project_name") or "Untitled Project"))
+
+
+def save_room_layout(project_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+    if not isinstance(payload, dict):
+        raise ValueError("Room layout payload must be a JSON object.")
+    validation = validate_room_layout(payload)
+    if validation["status"] == "fail":
+        raise ValueError("Room layout is invalid: %s" % "; ".join(validation["errors"][:4]))
+
+    project = load_project(project_id)
+    project_dir = PROJECTS_ROOT / project_id
+    room_layout = copy.deepcopy(payload)
+    room_layout.setdefault("meta", {})
+    room_layout["meta"]["project_id"] = project_id
+    room_layout["meta"]["project_name"] = project.get("project_name") or project_id
+    room_layout["meta"]["updated_at"] = now_iso()
+    room_layout.setdefault("version", 1)
+
+    history_payload = project.get("room_layout_history") or default_room_layout_history(project_id, room_layout)
+    revisions = history_payload.setdefault("revisions", [])
+    revision_id = "room-layout-%s" % uuid.uuid4().hex[:8]
+    revisions.append({
+        "revision_id": revision_id,
+        "created_at": now_iso(),
+        "summary": "Saved room layout",
+        "room_count": len(room_layout.get("rooms") or []),
+    })
+    history_payload["current_revision_id"] = revision_id
+    history_payload["project_id"] = project_id
+
+    validation_payload = dict(validation)
+    validation_payload["project_id"] = project_id
+
+    project["room_layout"] = room_layout
+    project["room_layout_history"] = history_payload
+    project["level_validation_report"] = validation_payload
+    project["updated_at"] = now_iso()
+    project["status"] = "room_layout_saved"
+    save_project(project)
+    append_history_event(project_id, {
+        "type": "room_layout_saved",
+        "summary": "Saved room layout",
+        "room_count": len(room_layout.get("rooms") or []),
+        "revision_id": revision_id,
+        "created_at": now_iso(),
+    })
+    return {
+        "ok": True,
+        "project_id": project_id,
+        "room_layout_path": str(room_layout_path(project_dir).relative_to(project_dir)),
+        "validation": validation_payload,
+        "history_revision_id": revision_id,
+    }
+
+
+def validate_project_room_layout(project_id: str, payload: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    project = load_project(project_id)
+    room_layout = payload if isinstance(payload, dict) and payload else (project.get("room_layout") or default_room_layout(project_id, project.get("project_name") or "Untitled Project"))
+    validation = validate_room_layout(room_layout)
+    validation["project_id"] = project_id
+    return validation
 
 
 def image_sha256(path: Path) -> str:
@@ -2307,6 +3137,7 @@ def apply_project_defaults(project: Dict[str, Any]) -> Dict[str, Any]:
     normalized = dict(project or {})
     normalized.setdefault("project_id", "")
     normalized.setdefault("project_name", "Untitled Project")
+    normalized.setdefault("project_schema_version", PROJECT_SCHEMA_VERSION)
     normalized.setdefault("prompt_text", "")
     normalized.setdefault("created_at", now_iso())
     normalized.setdefault("updated_at", normalized["created_at"])
@@ -2358,14 +3189,15 @@ def normalize_wizard_state(payload: Any) -> Dict[str, Any]:
 
 
 def migrate_modern_ai_wizard_state(state: Dict[str, Any]) -> Dict[str, Any]:
-    """Map legacy guided-AI wizard ids to Phase 7.7 flow (describe / character / export)."""
+    """Map legacy guided-AI wizard ids to the current simplified flow."""
     ws = normalize_wizard_state(state)
     alias = {
         "project": "describe",
         "brief": "describe",
         "references": "describe",
         "review": "concepts",
-        "clips": "character",
+        "character": "concepts",
+        "clips": "animations",
         "qa": "export",
     }
     cur = ws.get("current_step")
@@ -2933,7 +3765,7 @@ def compute_wizard_context(project: Dict[str, Any]) -> Dict[str, Any]:
                 approved_cleanup_ready = False
                 break
 
-        pixellab_clips_complete = pixellab_character_wizard_complete(project, project_dir) if pixellab_brief else approved_cleanup_ready
+        pixellab_character_ready = pixellab_character_wizard_complete(project, project_dir) if pixellab_brief else approved_cleanup_ready
 
         has_brief = "describe" in completed or "brief" in completed or bool((project.get("prompt_text") or "").strip())
         has_references = bool(brief.get("references")) or "references" in skipped or has_brief
@@ -2946,36 +3778,32 @@ def compute_wizard_context(project: Dict[str, Any]) -> Dict[str, Any]:
 
         animations_complete = pixellab_animations_step_complete(project, project_dir) if pixellab_brief else True
         describe_complete = has_brief
-        concepts_complete = has_review
-        character_complete = pixellab_clips_complete
+        concepts_complete = has_review and (pixellab_character_ready if pixellab_brief else True)
         export_complete = has_export
 
         steps_seq = wizard_steps_active(project)
         complete_map: Dict[str, bool] = {
             "describe": describe_complete,
             "concepts": concepts_complete,
-            "character": character_complete,
             "export": export_complete,
         }
         if pixellab_brief:
             complete_map["animations"] = animations_complete
 
-        export_prereq_met = character_complete and (not pixellab_brief or animations_complete)
+        export_prereq_met = concepts_complete and (not pixellab_brief or animations_complete)
 
-        clips_blocker_msg = (
-            "Approve a chosen concept before creating a Pixel Lab character."
+        concepts_blocker_msg = (
+            "Approve a valid concept to lock it as the animation source."
             if pixellab_brief
             else "Approve a Key Pose Board before running Motion Workflow."
         )
         qa_blocker_msg_non_pl = "Approve cleaned idle and walk outputs before review and export."
         export_blocker_msg_pl = (
-            "Complete idle + walk animations and build canonical clips before review and export."
+            "Generate at least one animation before review and export."
         )
-
         blocking_reasons: Dict[str, List[str]] = {
             "describe": [],
             "concepts": [] if describe_complete else ["Save the character description before building concepts."],
-            "character": [] if concepts_complete else [clips_blocker_msg],
             "export": (
                 []
                 if export_prereq_met
@@ -2984,7 +3812,7 @@ def compute_wizard_context(project: Dict[str, Any]) -> Dict[str, Any]:
         }
         if pixellab_brief:
             blocking_reasons["animations"] = (
-                [] if character_complete else ["Approve the Pixel Lab character before generating animations."]
+                [] if concepts_complete else [concepts_blocker_msg]
             )
 
         step_statuses: Dict[str, str] = {}
@@ -3082,7 +3910,7 @@ def compute_wizard_context(project: Dict[str, Any]) -> Dict[str, Any]:
         "sprite_model": [] if complete_map["split_review"] else ["Approve the part split before building the sprite model."],
         "rig": [] if complete_map["sprite_model"] else ["Build and review the sprite model before rigging."],
         "clips": [] if complete_map["rig"] else ["Approve the rig before building clips."],
-        "qa": [] if complete_map["clips"] else ["Render idle and walk before running checks, or import a SkelForm bundle."],
+        "qa": [] if complete_map["clips"] else ["Render the required clips before running checks, or import a SkelForm bundle."],
         "export": [] if complete_map["qa"] and project.get("qa_report", {}).get("status") == "pass" else ["Checks must pass before export."],
     }
     if external_enabled:
@@ -5140,6 +5968,64 @@ def _normalize_east_only_character_source(
     return char_data
 
 
+def _set_pixellab_east_only_character_source(
+    project: Dict[str, Any],
+    project_dir: Path,
+    concept_id: str,
+    *,
+    approved: bool,
+) -> Dict[str, Any]:
+    concept = next((item for item in (project.get("concepts") or []) if item.get("concept_id") == concept_id), None)
+    if concept is None:
+        raise ValueError("Concept not found for east-only character source.")
+
+    source_rel = (
+        concept.get("processed_preview_image")
+        or concept.get("original_preview_image")
+        or concept.get("preview_image")
+        or concept.get("image_path")
+    )
+    if not source_rel:
+        raise ValueError("Concept does not have a preview image path.")
+
+    source_path = Path(str(source_rel))
+    if not source_path.is_absolute():
+        source_path = project_dir / str(source_rel)
+    if not source_path.exists():
+        raise ValueError("Concept preview image is missing on disk.")
+
+    with Image.open(source_path) as loaded:
+        source_size = {"width": loaded.size[0], "height": loaded.size[1]}
+    canvas_size = preferred_concept_canvas_size(source_size)
+    east_image = prepare_pixellab_character_color_source(source_path, canvas_size)
+
+    assets_dir = _pixellab_character_assets_dir(project_dir)
+    assets_dir.mkdir(parents=True, exist_ok=True)
+    east_path = assets_dir / "east.png"
+    east_image.save(east_path)
+
+    _pixellab_skeleton_path(project_dir).unlink(missing_ok=True)
+
+    char_payload = {
+        "character_id": None,
+        "approved": bool(approved),
+        "pixellab_character_approved": bool(approved),
+        "created_at": now_iso(),
+        "directions": ["east"],
+        "image_size": {"width": canvas_size, "height": canvas_size},
+        "source_concept_id": concept_id,
+        "backend_name": "approved_concept",
+        "seed": None,
+        "east_only_source": True,
+        "images": {"east": str(east_path.relative_to(project_dir))},
+    }
+    _pixellab_character_path(project_dir).write_text(json.dumps(char_payload, indent=2), encoding="utf-8")
+    project["pixellab_character_ready"] = True
+    project["pixellab_character_approved"] = bool(approved)
+    project["pixellab_skeleton_ready"] = False
+    return char_payload
+
+
 def _upscale_legacy_east_only_animation_frames(
     project_dir: Path,
     char_data: Optional[Dict[str, Any]],
@@ -5198,45 +6084,29 @@ def pixellab_character_wizard_complete(project: Dict[str, Any], project_dir: Pat
         return True
     return bool(char_data.get("approved"))
 
-
-def pixellab_missing_canonical_animation_clips(animations: Any) -> List[str]:
-    """
-    Canonical export/QA expects **idle** and **walk** in ``pixellab_animations.animations``,
-    each with at least one direction listing non-empty ``frames``.
-    Returns clip names still missing (empty list = ready for build-clips / wizard step).
-    """
-    required = ("idle", "walk")
+def pixellab_animation_store_has_frames(animations: Any) -> bool:
     if not isinstance(animations, dict):
-        return list(required)
-    missing: List[str] = []
-    for name in required:
-        entry = animations.get(name)
+        return False
+    for entry in animations.values():
         if not isinstance(entry, dict):
-            missing.append(name)
             continue
         dirs = entry.get("directions")
-        if not isinstance(dirs, dict) or not dirs:
-            missing.append(name)
+        if not isinstance(dirs, dict):
             continue
-        has_frames = False
-        for _d, data in dirs.items():
-            if isinstance(data, dict):
-                frames = data.get("frames")
-                if isinstance(frames, list) and len(frames) > 0:
-                    has_frames = True
-                    break
-        if not has_frames:
-            missing.append(name)
-    return missing
+        for data in dirs.values():
+            frames = data.get("frames") if isinstance(data, dict) else None
+            if isinstance(frames, list) and frames:
+                return True
+    return False
 
 
 def pixellab_animations_step_complete(project: Dict[str, Any], project_dir: Path) -> bool:
-    """Idle + walk each have at least one direction with frame paths in pixellab_animations."""
+    """At least one Pixel Lab animation clip has generated frame paths."""
     store = project.get("pixellab_animations")
     if not isinstance(store, dict) or not isinstance(store.get("animations"), dict):
         store = _load_pixellab_animations_store(project_dir)
     anims = store.get("animations") if isinstance(store.get("animations"), dict) else {}
-    return not pixellab_missing_canonical_animation_clips(anims)
+    return pixellab_animation_store_has_frames(anims)
 
 
 def wizard_steps_active(project: Dict[str, Any]) -> List[str]:
@@ -5285,7 +6155,13 @@ def _save_pixellab_animations_store(project_dir: Path, store: Dict[str, Any]) ->
     path.write_text(json.dumps(store, indent=2), encoding="utf-8")
 
 
-PIXELLAB_CORE_ANIMATION_NAMES = frozenset({"idle", "walk"})
+PIXELLAB_CORE_ANIMATION_NAMES = frozenset({"idle", "walk", "run", "jump"})
+PIXELLAB_DEFAULT_CLIP_TIMINGS = {
+    "idle": {"frame_count": 6, "fps": 8},
+    "walk": {"frame_count": 8, "fps": 10},
+    "run": {"frame_count": 8, "fps": 14},
+    "jump": {"frame_count": 6, "fps": 12},
+}
 _PIXELLAB_ANIMATION_NAME_RE = re.compile(r"^[a-z][a-z0-9_]{0,47}$")
 
 
@@ -5305,6 +6181,10 @@ def _infer_animation_name_from_template(template_animation_id: str) -> str:
         return "idle"
     if any(token in s for token in ["walk", "walking"]):
         return "walk"
+    if any(token in s for token in ["run", "running", "slide"]):
+        return "run"
+    if any(token in s for token in ["jump", "jumping", "flip"]):
+        return "jump"
     return "idle"
 
 
@@ -5349,9 +6229,9 @@ def _resolve_animation_timing(
                 frame_count = None
 
     if fps is None:
-        fps = (AI_CLIP_SPECS.get(animation_name) or ANIMATION_SPECS.get(animation_name) or {}).get("fps")
+        fps = (PIXELLAB_DEFAULT_CLIP_TIMINGS.get(animation_name) or AI_CLIP_SPECS.get(animation_name) or ANIMATION_SPECS.get(animation_name) or {}).get("fps")
     if frame_count is None:
-        frame_count = (AI_CLIP_SPECS.get(animation_name) or ANIMATION_SPECS.get(animation_name) or {}).get("frame_count")
+        frame_count = (PIXELLAB_DEFAULT_CLIP_TIMINGS.get(animation_name) or AI_CLIP_SPECS.get(animation_name) or ANIMATION_SPECS.get(animation_name) or {}).get("frame_count")
 
     if frame_count is None and template_animation_id:
         frame_count = _infer_frame_count_from_template(template_animation_id)
@@ -6859,6 +7739,12 @@ def load_project(project_id: str) -> Dict[str, Any]:
         project["part_split_approved"] = bool(project.get("part_split_approved") or project["part_split"].get("approved"))
         project["split_review_approved"] = bool(project.get("split_review_approved") or project.get("part_split_approved") or project["part_split"].get("approved"))
     project["history"] = load_history(project_id)
+    project["room_layout"] = load_json(room_layout_path(project_dir), default_room_layout(project_id, project.get("project_name") or "Untitled Project"))
+    project["room_layout_history"] = load_json(room_layout_history_path(project_dir), default_room_layout_history(project_id, project["room_layout"]))
+    project["level_validation_report"] = load_json(level_validation_report_path(project_dir), None)
+    if not isinstance(project["level_validation_report"], dict):
+        project["level_validation_report"] = validate_room_layout(project["room_layout"])
+        project["level_validation_report"]["project_id"] = project_id
     project["pixellab_character"] = load_json(_pixellab_character_path(project_dir), None)
     project["pixellab_skeleton"] = load_json(_pixellab_skeleton_path(project_dir), None)
     project["pixellab_animations"] = _load_pixellab_animations_store(project_dir)
@@ -6919,6 +7805,11 @@ def load_project(project_id: str) -> Dict[str, Any]:
     project["step_statuses"] = wizard_context["step_statuses"]
     project["blocking_reasons"] = wizard_context["blocking_reasons"]
     project["can_resume_wizard"] = wizard_context["can_resume_wizard"]
+    health_report, bundle_manifest = persist_project_integrity_metadata(project, project_dir)
+    project["health_report"] = health_report
+    project["health_report_path"] = str(project_health_report_path(project_dir).relative_to(project_dir))
+    project["project_bundle_manifest"] = bundle_manifest
+    project["project_bundle_manifest_path"] = str(project_bundle_manifest_path(project_dir).relative_to(project_dir))
     return project
 
 
@@ -6931,6 +7822,9 @@ def save_project(project: Dict[str, Any]) -> None:
         "pixellab_character",
         "pixellab_skeleton",
         "pixellab_animations",
+        "room_layout",
+        "room_layout_history",
+        "level_validation_report",
         "rig_layout",
         "rig_layout_history",
         "part_manifest",
@@ -6967,7 +7861,12 @@ def save_project(project: Dict[str, Any]) -> None:
         "blocking_reasons",
         "can_resume_wizard",
         "layer_review_approved",
+        "health_report",
+        "health_report_path",
+        "project_bundle_manifest",
+        "project_bundle_manifest_path",
     }}
+    core["project_schema_version"] = int(project.get("project_schema_version") or PROJECT_SCHEMA_VERSION)
     core["sprite_model_approved"] = bool(project.get("sprite_model_approved") or project.get("layer_review_approved"))
     write_json(project_dir / "project.json", core)
     write_json(project_dir / "brief.json", project["brief"])
@@ -7009,8 +7908,24 @@ def save_project(project: Dict[str, Any]) -> None:
         write_json(canonical_downstream_path(project_dir, "qa_report"), project["qa_report"])
     if project.get("history") is not None:
         write_json(project_dir / "history.json", project["history"])
+    if project.get("room_layout") is not None:
+        room_layout_payload = copy.deepcopy(project["room_layout"])
+        room_layout_payload.setdefault("meta", {})
+        room_layout_payload["meta"]["project_id"] = project["project_id"]
+        room_layout_payload["meta"]["project_name"] = project.get("project_name") or project["project_id"]
+        room_layout_payload["meta"]["updated_at"] = now_iso()
+        write_json(room_layout_path(project_dir), room_layout_payload)
+    if project.get("room_layout_history") is not None:
+        room_history_payload = copy.deepcopy(project["room_layout_history"])
+        room_history_payload["project_id"] = project["project_id"]
+        write_json(room_layout_history_path(project_dir), room_history_payload)
+    if project.get("level_validation_report") is not None:
+        validation_payload = copy.deepcopy(project["level_validation_report"])
+        validation_payload["project_id"] = project["project_id"]
+        write_json(level_validation_report_path(project_dir), validation_payload)
     for concept in project.get("concepts", []) or []:
         save_concept(project_dir, concept)
+    persist_project_integrity_metadata(project, project_dir)
 
 
 def list_projects(include_archived: bool) -> List[Dict[str, Any]]:
@@ -7024,6 +7939,7 @@ def list_projects(include_archived: bool) -> List[Dict[str, Any]]:
             continue
         if project.get("archived_at") and not include_archived:
             continue
+        project["project_health_summary"] = load_project_health_summary(path)
         items.append(project)
     return items
 
@@ -7031,9 +7947,11 @@ def list_projects(include_archived: bool) -> List[Dict[str, Any]]:
 def project_summary(project: Dict[str, Any]) -> Dict[str, Any]:
     wizard_state = normalize_wizard_state(project.get("wizard_state"))
     sprite_model_approved = bool(project.get("sprite_model_approved") or project.get("layer_review_approved"))
+    health_summary = project.get("project_health_summary") or {}
     return {
         "project_id": project["project_id"],
         "project_name": project["project_name"],
+        "project_schema_version": int(project.get("project_schema_version") or PROJECT_SCHEMA_VERSION),
         "created_at": project["created_at"],
         "updated_at": project["updated_at"],
         "current_stage": project["current_stage"],
@@ -7052,6 +7970,9 @@ def project_summary(project: Dict[str, Any]) -> Dict[str, Any]:
         "ai_workflow_enabled": bool((project.get("ai_workflow") or {}).get("enabled")),
         "ai_workflow_legacy_mode": bool((project.get("ai_workflow") or {}).get("legacy_mode")),
         "external_authoring_enabled": bool((project.get("external_authoring") or {}).get("enabled")),
+        "project_health_status": health_summary.get("status", "unknown"),
+        "project_health_warning_count": int(health_summary.get("warning_count") or 0),
+        "project_health_missing_file_count": int(health_summary.get("missing_file_count") or 0),
         "wizard_state": wizard_state,
         "can_resume_wizard": wizard_state.get("current_step") not in {None, "project", "export"},
     }
@@ -7130,7 +8051,13 @@ def create_project(payload: Dict[str, Any]) -> Dict[str, Any]:
         "qa_report": None,
         "history": {"project_id": project_id, "events": []},
         "concepts": [],
+        "room_layout": default_room_layout(project_id, project_name or brief["role_archetype"].title()),
+        "room_layout_history": None,
+        "level_validation_report": None,
     }
+    project["room_layout_history"] = default_room_layout_history(project_id, project["room_layout"])
+    project["level_validation_report"] = validate_room_layout(project["room_layout"])
+    project["level_validation_report"]["project_id"] = project_id
     save_project(project)
     return load_project(project_id)
 
@@ -7165,6 +8092,9 @@ def duplicate_project(project_id: str) -> Dict[str, Any]:
         "brief.json",
         "character_spec.json",
         "history.json",
+        ROOM_LAYOUT_FILENAME,
+        ROOM_LAYOUT_HISTORY_FILENAME,
+        LEVEL_VALIDATION_REPORT_FILENAME,
         CANONICAL_DOWNSTREAM_FILES["part_manifest"],
         CANONICAL_DOWNSTREAM_FILES["part_manifest_history"],
         CANONICAL_DOWNSTREAM_FILES["part_shapes"],
@@ -7216,6 +8146,14 @@ def duplicate_project(project_id: str) -> Dict[str, Any]:
     duplicated["wizard_state"] = normalize_wizard_state(source.get("wizard_state"))
     if duplicated.get("history"):
         duplicated["history"]["project_id"] = new_id
+    if isinstance(duplicated.get("room_layout"), dict):
+        duplicated["room_layout"].setdefault("meta", {})
+        duplicated["room_layout"]["meta"]["project_id"] = new_id
+        duplicated["room_layout"]["meta"]["project_name"] = duplicated["project_name"]
+    if isinstance(duplicated.get("room_layout_history"), dict):
+        duplicated["room_layout_history"]["project_id"] = new_id
+    if isinstance(duplicated.get("level_validation_report"), dict):
+        duplicated["level_validation_report"]["project_id"] = new_id
     for concept in duplicated.get("concepts", []) or []:
         concept["project_id"] = new_id
     save_project(duplicated)
@@ -8909,13 +9847,15 @@ def update_concept_review_state(project_id: str, concept_id: str, action: str, v
             ai_workflow["selected_assets"] = ai_workflow.get("selected_assets") or {}
             ai_workflow["selected_assets"]["approved_concept_id"] = concept_id
             project["ai_workflow"] = ai_workflow
+            if str((project.get("brief") or {}).get("backend_mode") or "") == "pixellab":
+                _set_pixellab_east_only_character_source(project, PROJECTS_ROOT / project_id, concept_id, approved=True)
         else:
             rig_layout = resolve_rig_layout(project, concept, rig_profile=project["character_spec"]["rig_profile"], persist=True)
             project["rig_layout"] = rig_layout
             project["rig_layout_history"] = load_json(rig_layout_history_path(PROJECTS_ROOT / project_id), default_rig_layout_history(project_id))
             project["rig_layout_approved"] = False
         project["rig_layout_approved"] = False
-        project["current_stage"] = "rig_layout"
+        project["current_stage"] = "concepts" if str((project.get("brief") or {}).get("backend_mode") or "") == "pixellab" else "rig_layout"
         project["status"] = "concept_approved"
         project["master_pose_approved"] = False
         project["sprite_model_approved"] = False
@@ -11119,9 +12059,9 @@ def hydrate_animation_clips(animation_clips: Optional[Dict[str, Any]], legacy_an
             if isinstance(clip_source.get("frames_by_direction"), dict):
                 clip_out["frames_by_direction"] = clip_source.get("frames_by_direction")
             # `clip_out` already merged ANIMATION_SPECS (idle=6, walk=8). On-disk bridge
-            # from pixellab/build-clips can have fewer raster paths; if we only copy `frames`
+            # from synced Pixel Lab clips can have fewer raster paths; if we only copy `frames`
             # and not timing/count, load_project leaves frame_count=6 with len(frames)=4 and
-            # Pixel Lab QA falsely asks to "rebuild canonical clips".
+            # Pixel Lab QA falsely asks for a re-sync.
             bridge_frames = clip_out.get("frames")
             if isinstance(bridge_frames, list) and bridge_frames:
                 clip_out["frame_count"] = len(bridge_frames)
@@ -12363,10 +13303,89 @@ def pixellab_pipeline_ready_for_qa(project: Dict[str, Any], project_dir: Path) -
     if not isinstance(anim_store, dict):
         return False
     ab = anim_store.get("animations")
-    if pixellab_missing_canonical_animation_clips(ab if isinstance(ab, dict) else None):
+    if not pixellab_animation_store_has_frames(ab if isinstance(ab, dict) else None):
         return False
     clips = project.get("animation_clips") or load_json(canonical_downstream_path(project_dir, "animation_clips"), {})
     return isinstance(clips, dict) and bool(clips)
+
+
+def sync_pixellab_animation_clips(
+    project_id: str,
+    *,
+    project: Optional[Dict[str, Any]] = None,
+    project_dir: Optional[Path] = None,
+) -> Dict[str, Any]:
+    if project is None:
+        project = load_project(project_id)
+    if project_dir is None:
+        project_dir = PROJECTS_ROOT / project_id
+
+    _pixellab_character_approved_guard(project_dir)
+    pix_store = _load_pixellab_animations_store(project_dir)
+    anim_store = pix_store.get("animations") if isinstance(pix_store.get("animations"), dict) else {}
+    if not pixellab_animation_store_has_frames(anim_store):
+        raise ValueError(
+            "Cannot sync animation clips yet — no generated animation frames were found in pixellab_animations.json. "
+            "Generate any default or custom animation first."
+        )
+
+    animation_clips_path = canonical_downstream_path(project_dir, "animation_clips")
+    existing = load_json(animation_clips_path, {}) or {}
+    if not isinstance(existing, dict):
+        existing = {}
+
+    for animation_name, anim in anim_store.items():
+        if not isinstance(anim, dict):
+            continue
+        try:
+            validate_pixellab_animation_name(animation_name)
+        except ValueError:
+            logger.warning("[pixellab/sync-clips] skip invalid animation key %r", animation_name)
+            continue
+
+        fps = anim.get("fps") or (AI_CLIP_SPECS.get(animation_name) or {}).get("fps") or ANIMATION_SPECS.get(animation_name, {}).get("fps") or 12
+        meta_frame_count = anim.get("frame_count") or (AI_CLIP_SPECS.get(animation_name) or {}).get("frame_count") or ANIMATION_SPECS.get(animation_name, {}).get("frame_count") or 4
+        loop = bool(anim.get("loop", True))
+
+        frames_by_direction = {}
+        if isinstance(anim.get("directions"), dict):
+            for direction, ddata in anim["directions"].items():
+                if isinstance(ddata, dict) and isinstance(ddata.get("frames"), list):
+                    frames_by_direction[str(direction)] = ddata["frames"]
+
+        default_dir = "east" if "east" in frames_by_direction else (next(iter(frames_by_direction.keys())) if frames_by_direction else "east")
+        frames = frames_by_direction.get(default_dir) or []
+        path_count = len(frames) if isinstance(frames, list) else 0
+        if path_count == 0:
+            continue
+        if path_count and int(meta_frame_count) != path_count:
+            logger.warning(
+                "[pixellab/sync-clips] %s: store frame_count=%s but default-dir %r has %d paths — using path count",
+                animation_name,
+                meta_frame_count,
+                default_dir,
+                path_count,
+            )
+        frame_count = int(path_count or meta_frame_count)
+
+        clip = existing.get(animation_name) if isinstance(existing.get(animation_name), dict) else {}
+        if not isinstance(clip, dict):
+            clip = {}
+        clip.update({
+            "fps": int(fps),
+            "loop": loop,
+            "frame_count": int(frame_count),
+            "frames": frames,
+            "frames_by_direction": frames_by_direction,
+        })
+        existing[animation_name] = clip
+
+    project["animation_clips"] = existing
+    project["current_stage"] = "animations"
+    project["status"] = "pixellab_animation_clips_synced"
+    project["updated_at"] = now_iso()
+    save_project(project)
+    return existing
 
 
 def run_pixellab_qa(project_id: str, progress: Optional[ProgressCallback] = None) -> Dict[str, Any]:
@@ -12384,15 +13403,13 @@ def run_pixellab_qa(project_id: str, progress: Optional[ProgressCallback] = None
     if not isinstance(pix_store, dict):
         pix_store = {}
     anim_block = pix_store.get("animations")
-    miss_qa = pixellab_missing_canonical_animation_clips(anim_block if isinstance(anim_block, dict) else None)
-    if miss_qa:
+    if not pixellab_animation_store_has_frames(anim_block if isinstance(anim_block, dict) else None):
         raise ValueError(
-            "pixellab_animations.json is missing generated clips: %s. "
-            "Generate **idle** and **walk** on the Animations panel (template or custom), then run Build canonical clips."
-            % ", ".join(miss_qa)
+            "pixellab_animations.json does not contain any generated animation frames yet. "
+            "Generate at least one clip on the Animations panel first."
         )
 
-    clips = project.get("animation_clips") or load_json(canonical_downstream_path(project_dir, "animation_clips"), {})
+    clips = sync_pixellab_animation_clips(project_id, project=project, project_dir=project_dir)
     if not isinstance(clips, dict) or not clips:
         raise ValueError("animation_clips.json must exist (Phase 5.5) before Pixel Lab QA.")
 
@@ -12401,7 +13418,7 @@ def run_pixellab_qa(project_id: str, progress: Optional[ProgressCallback] = None
     if not clip_names:
         raise ValueError(
             "animation_clips.json contains no Pixel Lab animations with frame paths. "
-            "Generate clips on the Animations panel, then run **Build canonical clips**."
+            "Generate clips on the Animations panel first."
         )
     total_frame_checks = sum(
         len((clips.get(n) or {}).get("frames") or [])
@@ -12445,11 +13462,11 @@ def run_pixellab_qa(project_id: str, progress: Optional[ProgressCallback] = None
         path_count = len(frames)
 
         if not frames:
-            raise ValueError("Pixel Lab QA blocked: %s.frames is empty — run **Build canonical clips** after generating animations." % clip_name)
+            raise ValueError("Pixel Lab QA blocked: %s.frames is empty — generate the animation again so the synced clip store has frames." % clip_name)
         if meta_fc and meta_fc != path_count:
             raise ValueError(
                 "Pixel Lab QA blocked: %s.frame_count=%s but frames list length=%s. "
-                "Re-run **Build canonical clips** on the Animations panel to resync metadata."
+                "Re-generate or re-edit the animation so the synced clip metadata is refreshed."
                 % (clip_name, meta_fc, path_count)
             )
         frame_count = int(meta_fc or path_count)
@@ -12731,13 +13748,13 @@ def validate_export_bundle(
 
 
 def _pixellab_qa_clip_names(clips: Dict[str, Any]) -> List[str]:
-    """Idle/walk first, then other Pixel Lab clips that have raster frame paths."""
+    """Default workflow clips first, then other Pixel Lab clips that have raster frame paths."""
     names = [
         name
         for name, data in clips.items()
         if isinstance(data, dict) and isinstance(data.get("frames"), list) and len(data["frames"]) > 0
     ]
-    priority = ["idle", "walk"]
+    priority = ["idle", "walk", "run", "jump"]
     ordered = [n for n in priority if n in names]
     ordered.extend(sorted(n for n in names if n not in priority))
     return ordered
@@ -12809,6 +13826,69 @@ def _write_preview_spritesheet(spritesheet: Image.Image, export_dir: Path) -> No
     preview.save(export_dir / "preview_spritesheet.png")
 
 
+def _write_per_animation_spritesheets(
+    export_dir: Path,
+    ordered_frames: List[Tuple[str, str, Path]],
+    animations_payload: Dict[str, Dict[str, Any]],
+) -> Dict[str, Dict[str, Any]]:
+    """Write one spritesheet + atlas JSON per animation and return relative-path metadata."""
+    sheets_dir = export_dir / "animation_sheets"
+    sheets_dir.mkdir(parents=True, exist_ok=True)
+    groups: Dict[str, List[Tuple[str, Path]]] = {}
+    order: List[str] = []
+    for animation_name, frame_name, path in ordered_frames:
+        if animation_name not in groups:
+            groups[animation_name] = []
+            order.append(animation_name)
+        groups[animation_name].append((frame_name, path))
+    manifest: Dict[str, Dict[str, Any]] = {}
+    for animation_name in order:
+        frames = groups[animation_name]
+        spritesheet = Image.new("RGBA", (FRAME_SIZE * len(frames), FRAME_SIZE), (0, 0, 0, 0))
+        atlas_frames: Dict[str, Dict[str, Any]] = {}
+        frame_names: List[str] = []
+        for index, (frame_name, path) in enumerate(frames):
+            frame_image = Image.open(path).convert("RGBA")
+            x = index * FRAME_SIZE
+            spritesheet.alpha_composite(frame_image, (x, 0))
+            atlas_frames[frame_name] = {
+                "x": x,
+                "y": 0,
+                "w": FRAME_SIZE,
+                "h": FRAME_SIZE,
+                "pivot": list(FRAME_PIVOT),
+                "animation": animation_name,
+            }
+            frame_names.append(frame_name)
+        image_name = f"{animation_name}.png"
+        atlas_name = f"{animation_name}.json"
+        image_rel = f"animation_sheets/{image_name}"
+        atlas_rel = f"animation_sheets/{atlas_name}"
+        spritesheet.save(sheets_dir / image_name)
+        meta = animations_payload.get(animation_name) or {}
+        write_json(
+            sheets_dir / atlas_name,
+            {
+                "image": image_name,
+                "animation": animation_name,
+                "fps": int(meta.get("fps") or 12),
+                "loop": bool(meta.get("loop", True)),
+                "frame_count": len(frames),
+                "order": frame_names,
+                "frames": atlas_frames,
+            },
+        )
+        manifest[animation_name] = {
+            "image": image_rel,
+            "atlas": atlas_rel,
+            "frame_count": len(frames),
+            "fps": int(meta.get("fps") or 12),
+            "loop": bool(meta.get("loop", True)),
+            "frames": frame_names,
+        }
+    return manifest
+
+
 def export_pixellab_project(project_id: str, progress: Optional[ProgressCallback] = None) -> Dict[str, Any]:
     project = load_project(project_id)
     project_dir = PROJECTS_ROOT / project_id
@@ -12820,24 +13900,22 @@ def export_pixellab_project(project_id: str, progress: Optional[ProgressCallback
     if not project.get("qa_report") or project["qa_report"].get("status") != "pass":
         raise ValueError("Export blocked: QA must pass first.")
 
-    clips = project.get("animation_clips") or load_json(canonical_downstream_path(project_dir, "animation_clips"), {})
+    clips = sync_pixellab_animation_clips(project_id, project=project, project_dir=project_dir)
     if not isinstance(clips, dict) or not clips:
         raise ValueError("Export blocked: animation_clips.json must exist for Pixel Lab export.")
 
-    # Procedural: any animation_clips entry with raster frames (idle + walk required below).
+    # Procedural: any animation_clips entry with raster frames.
     procedural_names = [
         name
         for name, c in clips.items()
         if isinstance(c, dict) and isinstance(c.get("frames"), list) and len(c["frames"]) > 0
     ]
-    priority = ["idle", "walk"]
+    priority = ["idle", "walk", "run", "jump"]
     procedural_names = [n for n in priority if n in procedural_names] + sorted(
         n for n in procedural_names if n not in priority
     )
-    if not {"idle", "walk"}.issubset(set(procedural_names)):
-        raise ValueError("Export blocked: idle and walk with frames are required in animation_clips.json.")
     if not procedural_names and not bool(approved_manual_animation_clips(project).keys()):
-        raise ValueError("Export blocked: no Pixel Lab/procedural frames available.")
+        raise ValueError("Export blocked: no generated animation clips are available.")
 
     manual_clips = approved_manual_animation_clips(project)
 
@@ -12925,6 +14003,7 @@ def export_pixellab_project(project_id: str, progress: Optional[ProgressCallback
     write_json(export_dir / "atlas.json", {"image": "spritesheet.png", "frames": atlas_frames})
     write_json(export_dir / "animations.json", animations_payload)
     write_json(export_dir / "qa_report.json", project["qa_report"])
+    per_animation_sheets = _write_per_animation_spritesheets(export_dir, ordered_frames, animations_payload)
 
     call_progress(progress, 72, "Building previews", "Creating one preview GIF per animation.")
 
@@ -12961,12 +14040,16 @@ def export_pixellab_project(project_id: str, progress: Optional[ProgressCallback
     }
 
     export_manifest["preview_gifs"] = preview_gif_names
+    export_manifest["animation_sheets"] = per_animation_sheets
     bundle_hashes_pl = {
         "atlas.json": image_sha256(export_dir / "atlas.json"),
         "animations.json": image_sha256(export_dir / "animations.json"),
         "qa_report.json": image_sha256(export_dir / "qa_report.json"),
         "spritesheet.png": image_sha256(export_dir / "spritesheet.png"),
     }
+    for animation_name, meta in per_animation_sheets.items():
+        bundle_hashes_pl[str(meta["image"])] = image_sha256(export_dir / str(meta["image"]))
+        bundle_hashes_pl[str(meta["atlas"])] = image_sha256(export_dir / str(meta["atlas"]))
     for pg in preview_gif_names:
         bundle_hashes_pl[pg] = image_sha256(export_dir / pg)
     export_manifest["bundle_hashes"] = bundle_hashes_pl
@@ -12982,6 +14065,7 @@ def export_pixellab_project(project_id: str, progress: Optional[ProgressCallback
     result = {
         "export_dir": str(export_dir.relative_to(project_dir)),
         "verification": verification,
+        "animation_sheets": per_animation_sheets,
         "preview_gifs": preview_gif_names,
         "preview_gif": None,
         "files": [
@@ -12991,6 +14075,8 @@ def export_pixellab_project(project_id: str, progress: Optional[ProgressCallback
             "qa_report.json",
             "export_manifest.json",
         ]
+        + [str(meta["image"]) for meta in per_animation_sheets.values()]
+        + [str(meta["atlas"]) for meta in per_animation_sheets.values()]
         + list(preview_gif_names)
         + ["frames/%s" % name for _, name, _ in ordered_frames],
     }
@@ -13048,6 +14134,7 @@ def export_project(project_id: str, progress: Optional[ProgressCallback] = None)
         write_json(export_dir / "atlas.json", {"image": "spritesheet.png", "frames": atlas_frames})
         write_json(export_dir / "animations.json", animations_payload)
         write_json(export_dir / "qa_report.json", project["qa_report"])
+        ai_animation_sheets = _write_per_animation_spritesheets(export_dir, ordered_frames, animations_payload)
         call_progress(progress, 72, "Building AI previews", "Creating one preview GIF per AI workflow clip.")
         ai_preview_names = _write_per_animation_preview_gifs(
             export_dir,
@@ -13083,6 +14170,7 @@ def export_project(project_id: str, progress: Optional[ProgressCallback] = None)
             "source_asset_hashes": project["qa_report"]["source_asset_hashes"],
             "workflow": workflow_manifest,
             "preview_gifs": ai_preview_names,
+            "animation_sheets": ai_animation_sheets,
         }
         write_json(export_dir / "export_manifest.json", export_manifest)
         verification = validate_export_bundle(export_dir, ordered_frames, atlas_frames)
@@ -13091,6 +14179,7 @@ def export_project(project_id: str, progress: Optional[ProgressCallback] = None)
             "spritesheet": "spritesheet.png",
             "atlas": "atlas.json",
             "animations": "animations.json",
+            "animation_sheets": ai_animation_sheets,
             "preview_gif": None,
             "preview_gifs": ai_preview_names,
             "export_manifest": "export_manifest.json",
@@ -13098,6 +14187,8 @@ def export_project(project_id: str, progress: Optional[ProgressCallback] = None)
             "mode": "ai_workflow",
             "verification": verification,
             "files": ["spritesheet.png", "atlas.json", "animations.json", "export_manifest.json", "qa_report.json"]
+            + [str(meta["image"]) for meta in ai_animation_sheets.values()]
+            + [str(meta["atlas"]) for meta in ai_animation_sheets.values()]
             + list(ai_preview_names),
         }
         project["current_stage"] = "export"
@@ -13246,6 +14337,7 @@ def export_project(project_id: str, progress: Optional[ProgressCallback] = None)
     write_json(export_dir / "atlas.json", {"image": "spritesheet.png", "frames": atlas_frames})
     write_json(export_dir / "animations.json", animations_payload)
     write_json(export_dir / "qa_report.json", project["qa_report"])
+    det_animation_sheets = _write_per_animation_spritesheets(export_dir, ordered_frames, animations_payload)
 
     call_progress(progress, 72, "Building previews", "Creating one preview GIF per animation.")
 
@@ -13258,12 +14350,16 @@ def export_project(project_id: str, progress: Optional[ProgressCallback] = None)
 
     det_preview_names = _write_per_animation_preview_gifs(export_dir, ordered_frames, _det_export_fps)
     export_manifest["preview_gifs"] = det_preview_names
+    export_manifest["animation_sheets"] = det_animation_sheets
     bundle_hashes_det = {
         "atlas.json": image_sha256(export_dir / "atlas.json"),
         "animations.json": image_sha256(export_dir / "animations.json"),
         "qa_report.json": image_sha256(export_dir / "qa_report.json"),
         "spritesheet.png": image_sha256(export_dir / "spritesheet.png"),
     }
+    for animation_name, meta in det_animation_sheets.items():
+        bundle_hashes_det[str(meta["image"])] = image_sha256(export_dir / str(meta["image"]))
+        bundle_hashes_det[str(meta["atlas"])] = image_sha256(export_dir / str(meta["atlas"]))
     for pg in det_preview_names:
         bundle_hashes_det[pg] = image_sha256(export_dir / pg)
     export_manifest["bundle_hashes"] = bundle_hashes_det
@@ -13275,6 +14371,7 @@ def export_project(project_id: str, progress: Optional[ProgressCallback] = None)
     result = {
         "export_dir": str(export_dir.relative_to(project_dir)),
         "verification": export_manifest["verification"],
+        "animation_sheets": det_animation_sheets,
         "preview_gifs": det_preview_names,
         "preview_gif": None,
         "files": [
@@ -13284,6 +14381,8 @@ def export_project(project_id: str, progress: Optional[ProgressCallback] = None)
             "qa_report.json",
             "export_manifest.json",
         ]
+        + [str(meta["image"]) for meta in det_animation_sheets.values()]
+        + [str(meta["atlas"]) for meta in det_animation_sheets.values()]
         + list(det_preview_names)
         + ["frames/%s" % name for _, name, _ in ordered_frames],
     }
@@ -13689,7 +14788,13 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                 "stage_maturity": load_stage_maturity(),
                 "concept_backend": concept_backend,
                 "legacy_comfyui": "removed",
+                "settings": load_workbench_settings(),
+                "usage_summary": summarize_usage_ledger(),
+                "demo_projects": list_demo_projects(),
             })
+
+        if path == "/api/demo-projects":
+            return self._send_json({"projects": list_demo_projects()})
 
         if path == "/api/pixellab/health":
             configured = pixellab_configured()
@@ -13731,10 +14836,29 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
             include_archived = query.get("include_archived", ["0"])[0] in {"1", "true", "yes"}
             return self._send_json({"projects": [project_summary(item) for item in list_projects(include_archived)]})
 
+        bundle_export_match = re.fullmatch(r"/api/projects/([^/]+)/bundle-export", path)
+        if bundle_export_match:
+            try:
+                filename, payload = build_project_bundle_archive(bundle_export_match.group(1))
+            except FileNotFoundError:
+                return self._send_error_json(HTTPStatus.NOT_FOUND, "Project not found")
+            return self._send_bytes(
+                payload,
+                content_type="application/zip",
+                filename=filename,
+            )
+
         project_match = re.fullmatch(r"/api/projects/([^/]+)", path)
         if project_match:
             try:
                 return self._send_json(load_project(project_match.group(1)))
+            except FileNotFoundError:
+                return self._send_error_json(HTTPStatus.NOT_FOUND, "Project not found")
+
+        room_layout_match = re.fullmatch(r"/api/projects/([^/]+)/room-layout", path)
+        if room_layout_match:
+            try:
+                return self._send_json(get_room_layout(room_layout_match.group(1)))
             except FileNotFoundError:
                 return self._send_error_json(HTTPStatus.NOT_FOUND, "Project not found")
 
@@ -13806,6 +14930,29 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
         try:
             if path == "/api/projects":
                 return self._send_json(create_project(read_body(self)), status=HTTPStatus.CREATED)
+
+            if path == "/api/projects/import-bundle":
+                return self._send_json(import_project_bundle(read_body(self)), status=HTTPStatus.CREATED)
+
+            if path == "/api/projects/import-demo":
+                return self._send_json(import_demo_project(read_body(self)), status=HTTPStatus.CREATED)
+
+            if path == "/api/settings":
+                settings = save_workbench_settings(read_body(self))
+                return self._send_json({
+                    "ok": True,
+                    "settings": settings,
+                    "usage_summary": summarize_usage_ledger(),
+                })
+
+            room_layout_match = re.fullmatch(r"/api/projects/([^/]+)/room-layout", path)
+            if room_layout_match:
+                return self._send_json(save_room_layout(room_layout_match.group(1), read_body(self)))
+
+            room_validate_match = re.fullmatch(r"/api/projects/([^/]+)/room-layout/validate", path)
+            if room_validate_match:
+                payload = read_body(self)
+                return self._send_json(validate_project_room_layout(room_validate_match.group(1), payload))
 
             update_match = re.fullmatch(r"/api/projects/([^/]+)/brief", path)
             if update_match:
@@ -13941,6 +15088,7 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                     image.save(output_path)
                     backend_run_id = "debug"
                 else:
+                    provider_call_allowed()
                     client = get_pixellab_client()
                     if client is None:
                         raise ValueError("Pixel Lab client unavailable; missing PIXELLAB_API_KEY.")
@@ -13989,9 +15137,36 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                             image.save(output_path)
                             used_backend = "pixellab"
                             backend_run_id = backend_run_id or "pixellab"
+                            append_usage_ledger_entry(
+                                provider="pixellab",
+                                endpoint="concepts.generate-pixellab",
+                                project_id=project_id,
+                                status="success",
+                                usage=client.last_usage,
+                                job_id=result.get("job_id") or result.get("background_job_id"),
+                                generation_id=result.get("generation_id") or result.get("id"),
+                                metadata={
+                                    "mode": attempt,
+                                    "concept_id": concept_id,
+                                    "source_mode": concept_source_mode,
+                                },
+                            )
                             last_exc = None
                             break
                         except Exception as exc:
+                            append_usage_ledger_entry(
+                                provider="pixellab",
+                                endpoint="concepts.generate-pixellab",
+                                project_id=project_id,
+                                status="error",
+                                usage=client.last_usage if client else None,
+                                error=str(exc),
+                                metadata={
+                                    "mode": attempt,
+                                    "concept_id": concept_id,
+                                    "source_mode": concept_source_mode,
+                                },
+                            )
                             last_exc = str(exc)
                             continue
 
@@ -14096,23 +15271,36 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                     image.save(output_path)
                     backend_run_id = "debug"
                 else:
+                    provider_call_allowed()
                     client = get_pixellab_client()
                     if client is None:
                         raise ValueError("Pixel Lab client unavailable; missing PIXELLAB_API_KEY.")
 
-                    result = client.create_image_pixflux(
-                        pixellab_params["description"],
-                        pixellab_params["image_size"],
-                        init_image={"type": "base64", "base64": pixellab_params["init_image_b64"], "format": "png"},
-                        init_image_strength=pixellab_params.get("init_image_strength", 750),
-                        view=pixellab_params.get("view", "side"),
-                        direction=pixellab_params.get("direction", "east"),
-                        outline=pixellab_params.get("outline"),
-                        shading=pixellab_params.get("shading"),
-                        detail=pixellab_params.get("detail"),
-                        no_background=bool(pixellab_params.get("no_background", True)),
-                        seed=seed,
-                    )
+                    try:
+                        result = client.create_image_pixflux(
+                            pixellab_params["description"],
+                            pixellab_params["image_size"],
+                            init_image={"type": "base64", "base64": pixellab_params["init_image_b64"], "format": "png"},
+                            init_image_strength=pixellab_params.get("init_image_strength", 750),
+                            view=pixellab_params.get("view", "side"),
+                            direction=pixellab_params.get("direction", "east"),
+                            outline=pixellab_params.get("outline"),
+                            shading=pixellab_params.get("shading"),
+                            detail=pixellab_params.get("detail"),
+                            no_background=bool(pixellab_params.get("no_background", True)),
+                            seed=seed,
+                        )
+                    except Exception as exc:
+                        append_usage_ledger_entry(
+                            provider="pixellab",
+                            endpoint="concepts.iterate-pixellab",
+                            project_id=project_id,
+                            status="error",
+                            usage=client.last_usage if client else None,
+                            error=str(exc),
+                            metadata={"concept_id": concept_id, "source_concept_id": source_concept_id},
+                        )
+                        raise
 
                     backend_run_id = result.get("job_id") or result.get("id")
                     b64 = _find_first_base64_png_like(result)
@@ -14124,6 +15312,16 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                     image.save(output_path)
                     used_backend = "pixellab"
                     backend_run_id = backend_run_id or "pixellab"
+                    append_usage_ledger_entry(
+                        provider="pixellab",
+                        endpoint="concepts.iterate-pixellab",
+                        project_id=project_id,
+                        status="success",
+                        usage=client.last_usage,
+                        job_id=result.get("job_id") or result.get("background_job_id"),
+                        generation_id=result.get("generation_id") or result.get("id"),
+                        metadata={"concept_id": concept_id, "source_concept_id": source_concept_id},
+                    )
 
                 concept = hydrate_concept({
                     "concept_id": concept_id,
@@ -14217,11 +15415,30 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                 output_path = project_dir / "concepts" / ("%s.png" % concept_id)
 
                 source_bytes = source_path.read_bytes()
-                image_bytes = gemini_iterate_concept(source_bytes, element, change_text, brief)
+                provider_call_allowed()
+                try:
+                    image_bytes = gemini_iterate_concept(source_bytes, element, change_text, brief)
+                except Exception as exc:
+                    append_usage_ledger_entry(
+                        provider="gemini",
+                        endpoint="concepts.iterate-gemini",
+                        project_id=project_id,
+                        status="error",
+                        error=str(exc),
+                        metadata={"source_concept_id": source_concept_id, "element": element},
+                    )
+                    raise
 
                 image = Image.open(io.BytesIO(image_bytes)).convert("RGBA")
                 output_path.parent.mkdir(parents=True, exist_ok=True)
                 image.save(output_path)
+                append_usage_ledger_entry(
+                    provider="gemini",
+                    endpoint="concepts.iterate-gemini",
+                    project_id=project_id,
+                    status="success",
+                    metadata={"concept_id": concept_id, "source_concept_id": source_concept_id, "element": element},
+                )
 
                 preview_rel = str(output_path.relative_to(project_dir))
                 concept = hydrate_concept({
@@ -14374,6 +15591,7 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                     })
                     return self._send_json(char_payload, status=HTTPStatus.CREATED)
 
+                provider_call_allowed()
                 client = get_pixellab_client()
                 if client is None:
                     raise ValueError("Pixel Lab client unavailable; missing PIXELLAB_API_KEY.")
@@ -14425,6 +15643,15 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                             poll_timeout_seconds=420,
                         )
                 except PixelLabHTTPError as exc:
+                    append_usage_ledger_entry(
+                        provider="pixellab",
+                        endpoint="pixellab.create-character",
+                        project_id=project_id,
+                        status="error",
+                        usage=client.last_usage if client else None,
+                        error=str(exc),
+                        metadata={"concept_id": color_concept_id, "directions": directions},
+                    )
                     if exc.status_code >= 500:
                         raise ValueError(
                             "Pixel Lab create-character hit a server-side error after the request was accepted. "
@@ -14433,6 +15660,15 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                         )
                     raise ValueError("Pixel Lab create-character failed: %s" % str(exc))
                 except Exception as exc:
+                    append_usage_ledger_entry(
+                        provider="pixellab",
+                        endpoint="pixellab.create-character",
+                        project_id=project_id,
+                        status="error",
+                        usage=client.last_usage if client else None,
+                        error=str(exc),
+                        metadata={"concept_id": color_concept_id, "directions": directions},
+                    )
                     raise ValueError("Pixel Lab create-character failed: %s" % str(exc))
 
                 images_bytes = _extract_pixellab_character_direction_image_bytes(
@@ -14478,6 +15714,16 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                 project["status"] = "pixellab_character_ready"
                 project["updated_at"] = now_iso()
                 save_project(project)
+                append_usage_ledger_entry(
+                    provider="pixellab",
+                    endpoint="pixellab.create-character",
+                    project_id=project_id,
+                    status="success",
+                    usage=client.last_usage,
+                    job_id=result.get("job_id") or result.get("background_job_id"),
+                    generation_id=result.get("generation_id") or result.get("character_id") or result.get("id"),
+                    metadata={"concept_id": color_concept_id, "directions": directions},
+                )
                 return self._send_json(char_payload, status=HTTPStatus.CREATED)
 
             use_concept_character_pixellab_match = re.fullmatch(r"/api/projects/([^/]+)/pixellab/use-concept-character", path)
@@ -14510,32 +15756,8 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                 if not source_path.exists():
                     raise ValueError("Concept preview image is missing on disk.")
 
-                with Image.open(source_path) as loaded:
-                    source_size = {"width": loaded.size[0], "height": loaded.size[1]}
-                canvas_size = preferred_concept_canvas_size(source_size)
-                east_image = prepare_pixellab_character_color_source(source_path, canvas_size)
-
-                assets_dir = _pixellab_character_assets_dir(project_dir)
-                assets_dir.mkdir(parents=True, exist_ok=True)
-                east_path = assets_dir / "east.png"
-                east_image.save(east_path)
-
-                char_payload = {
-                    "character_id": None,
-                    "approved": False,
-                    "created_at": now_iso(),
-                    "directions": ["east"],
-                    "image_size": {"width": canvas_size, "height": canvas_size},
-                    "source_concept_id": concept_id,
-                    "backend_name": "approved_concept",
-                    "seed": None,
-                    "east_only_source": True,
-                    "images": {"east": str(east_path.relative_to(project_dir))},
-                }
-                _pixellab_character_path(project_dir).write_text(json.dumps(char_payload, indent=2), encoding="utf-8")
-                project["pixellab_character_approved"] = False
-                project["pixellab_character_ready"] = True
-                project["current_stage"] = "character"
+                char_payload = _set_pixellab_east_only_character_source(project, project_dir, concept_id, approved=False)
+                project["current_stage"] = "concepts"
                 project["status"] = "pixellab_character_concept_source_ready"
                 project["updated_at"] = now_iso()
                 save_project(project)
@@ -14596,12 +15818,25 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                     append_history_event(project_id, {"type": "pixellab_skeleton_estimated", "direction": direction, "created_at": now_iso()})
                     return self._send_json(skel_payload, status=HTTPStatus.CREATED)
 
+                provider_call_allowed()
                 client = get_pixellab_client()
                 if client is None:
                     raise ValueError("Pixel Lab client unavailable; missing PIXELLAB_API_KEY.")
 
                 image_b64 = client.encode_image(source_img_path)
-                result = client.estimate_skeleton(image_b64)
+                try:
+                    result = client.estimate_skeleton(image_b64)
+                except Exception as exc:
+                    append_usage_ledger_entry(
+                        provider="pixellab",
+                        endpoint="pixellab.estimate-skeleton",
+                        project_id=project_id,
+                        status="error",
+                        usage=client.last_usage if client else None,
+                        error=str(exc),
+                        metadata={"direction": direction},
+                    )
+                    raise
                 # Heuristic: locate keypoints array.
                 keypoints = result.get("skeleton_keypoints") or result.get("keypoints") or result.get("result", {}).get("skeleton_keypoints")
                 if not isinstance(keypoints, list) or len(keypoints) != 18:
@@ -14619,6 +15854,15 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                 _pixellab_skeleton_path(project_dir).write_text(json.dumps(skel_payload, indent=2), encoding="utf-8")
                 project["pixellab_skeleton_ready"] = True
                 save_project(project)
+                append_usage_ledger_entry(
+                    provider="pixellab",
+                    endpoint="pixellab.estimate-skeleton",
+                    project_id=project_id,
+                    status="success",
+                    usage=client.last_usage,
+                    generation_id=result.get("generation_id") if isinstance(result, dict) else None,
+                    metadata={"direction": direction},
+                )
                 return self._send_json(skel_payload, status=HTTPStatus.CREATED)
 
             approve_character_pixellab_match = re.fullmatch(r"/api/projects/([^/]+)/pixellab/approve-character", path)
@@ -14632,6 +15876,7 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
 
                 char_data = load_json(char_path, None) or {}
                 char_data["approved"] = True
+                char_data["pixellab_character_approved"] = True
                 char_path.write_text(json.dumps(char_data, indent=2), encoding="utf-8")
 
                 project["pixellab_character_approved"] = True
@@ -14650,7 +15895,7 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                 name = validate_pixellab_animation_name(payload.get("animation_name"))
                 if name in PIXELLAB_CORE_ANIMATION_NAMES:
                     raise ValueError(
-                        "Idle and walk already have panels. Pick another name (e.g. attack, jump, cast)."
+                        "Idle, walk, run, and jump already have panels. Pick another name (e.g. attack, cast, parry)."
                     )
                 project_dir = PROJECTS_ROOT / project_id
                 _pixellab_character_approved_guard(project_dir)
@@ -14790,6 +16035,7 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                             seed=seed,
                         )
                 else:
+                    provider_call_allowed()
                     client = get_pixellab_client()
                     if client is None:
                         raise ValueError("Pixel Lab client unavailable; missing PIXELLAB_API_KEY.")
@@ -14799,13 +16045,25 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                         char_data.get("character_id"),
                     )
                     # v2 endpoint call (async polling handled inside the client).
-                    result = client.animate_character(
-                        str(char_data.get("character_id") or ""),
-                        str(template_animation_id),
-                        directions=direction_list,
-                        seed=seed,
-                        poll_timeout_seconds=480,
-                    )
+                    try:
+                        result = client.animate_character(
+                            str(char_data.get("character_id") or ""),
+                            str(template_animation_id),
+                            directions=direction_list,
+                            seed=seed,
+                            poll_timeout_seconds=480,
+                        )
+                    except Exception as exc:
+                        append_usage_ledger_entry(
+                            provider="pixellab",
+                            endpoint="pixellab.animate-template",
+                            project_id=project_id,
+                            status="error",
+                            usage=client.last_usage if client else None,
+                            error=str(exc),
+                            metadata={"animation_name": animation_name, "template_animation_id": str(template_animation_id), "directions": len(direction_list)},
+                        )
+                        raise
 
                     b64_n, url_n = _pixellab_frame_source_counts(result)
                     logger.info(
@@ -14903,6 +16161,16 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                         )
                         last_written_fc = written_fc
                     frame_count = int(last_written_fc or frame_count)
+                    append_usage_ledger_entry(
+                        provider="pixellab",
+                        endpoint="pixellab.animate-template",
+                        project_id=project_id,
+                        status="success",
+                        usage=client.last_usage,
+                        job_id=job_id,
+                        generation_id=result.get("generation_id") if isinstance(result, dict) else None,
+                        metadata={"animation_name": animation_name, "template_animation_id": str(template_animation_id), "directions": len(direction_list)},
+                    )
 
                 logger.info(
                     "[pixellab/animate] ok project=%s animation=%s fps=%s frame_count=%s",
@@ -14979,6 +16247,7 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                         seed=seed,
                     )
                 else:
+                    provider_call_allowed()
                     client = get_pixellab_client()
                     if client is None:
                         raise ValueError("Pixel Lab client unavailable; missing PIXELLAB_API_KEY.")
@@ -14993,12 +16262,24 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                     ref_b64 = client.encode_image(str(ref_path))
                     image_size = {"width": canvas_size, "height": canvas_size}
                     logger.info("[pixellab/animate-custom] calling POST /v2/animate-with-text-v2")
-                    result = client.animate_with_text_v2(
-                        ref_b64,
-                        action,
-                        image_size,
-                        poll_timeout_seconds=PIXELLAB_ANIMATE_CUSTOM_POLL_TIMEOUT_SECONDS,
-                    )
+                    try:
+                        result = client.animate_with_text_v2(
+                            ref_b64,
+                            action,
+                            image_size,
+                            poll_timeout_seconds=PIXELLAB_ANIMATE_CUSTOM_POLL_TIMEOUT_SECONDS,
+                        )
+                    except Exception as exc:
+                        append_usage_ledger_entry(
+                            provider="pixellab",
+                            endpoint="pixellab.animate-custom",
+                            project_id=project_id,
+                            status="error",
+                            usage=client.last_usage if client else None,
+                            error=str(exc),
+                            metadata={"animation_name": animation_name, "action": action[:120]},
+                        )
+                        raise
 
                     b64_n, url_n = _pixellab_frame_source_counts(result)
                     logger.info(
@@ -15055,6 +16336,16 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                         job_id=job_id,
                     )
                     frame_count = written_fc
+                    append_usage_ledger_entry(
+                        provider="pixellab",
+                        endpoint="pixellab.animate-custom",
+                        project_id=project_id,
+                        status="success",
+                        usage=client.last_usage,
+                        job_id=job_id,
+                        generation_id=result.get("generation_id") if isinstance(result, dict) else None,
+                        metadata={"animation_name": animation_name, "action": action[:120]},
+                    )
 
                 logger.info(
                     "[pixellab/animate-custom] ok project=%s animation=%s frames_written=%d",
@@ -15143,6 +16434,7 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                         seed=seed,
                     )
                 else:
+                    provider_call_allowed()
                     client = get_pixellab_client()
                     if client is None:
                         raise ValueError("Pixel Lab client unavailable; missing PIXELLAB_API_KEY.")
@@ -15157,12 +16449,24 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                     ref_b64 = client.encode_image(str(ref_path))
                     image_size = {"width": canvas_size, "height": canvas_size}
                     logger.info("[pixellab/animate-skeleton] calling POST /v1/animate-with-skeleton")
-                    result = client.animate_with_skeleton(
-                        ref_b64,
-                        image_size,
-                        keypoint_frames,
-                        poll_timeout_seconds=480,
-                    )
+                    try:
+                        result = client.animate_with_skeleton(
+                            ref_b64,
+                            image_size,
+                            keypoint_frames,
+                            poll_timeout_seconds=480,
+                        )
+                    except Exception as exc:
+                        append_usage_ledger_entry(
+                            provider="pixellab",
+                            endpoint="pixellab.animate-skeleton",
+                            project_id=project_id,
+                            status="error",
+                            usage=client.last_usage if client else None,
+                            error=str(exc),
+                            metadata={"animation_name": animation_name, "direction": direction, "keypoint_frame_count": len(keypoint_frames)},
+                        )
+                        raise
 
                     b64_n, url_n = _pixellab_frame_source_counts(result)
                     logger.info(
@@ -15217,6 +16521,16 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                         backend_name="pixellab",
                         seed=seed,
                         job_id=job_id,
+                    )
+                    append_usage_ledger_entry(
+                        provider="pixellab",
+                        endpoint="pixellab.animate-skeleton",
+                        project_id=project_id,
+                        status="success",
+                        usage=client.last_usage,
+                        job_id=job_id,
+                        generation_id=result.get("generation_id") if isinstance(result, dict) else None,
+                        metadata={"animation_name": animation_name, "direction": direction, "keypoint_frame_count": len(keypoint_frames)},
                     )
 
                 logger.info(
@@ -15326,6 +16640,7 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                             edited_description=description,
                         )
                     else:
+                        provider_call_allowed()
                         client = get_pixellab_client()
                         if client is None:
                             raise ValueError("Pixel Lab client unavailable; missing PIXELLAB_API_KEY.")
@@ -15350,12 +16665,24 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                                 len(batches),
                                 len(frame_b64s),
                             )
-                            result = client.edit_animation_v2(
-                                description,
-                                frame_b64s,
-                                image_size,
-                                poll_timeout_seconds=480,
-                            )
+                            try:
+                                result = client.edit_animation_v2(
+                                    description,
+                                    frame_b64s,
+                                    image_size,
+                                    poll_timeout_seconds=480,
+                                )
+                            except Exception as exc:
+                                append_usage_ledger_entry(
+                                    provider="pixellab",
+                                    endpoint="pixellab.edit-animation",
+                                    project_id=project_id,
+                                    status="error",
+                                    usage=client.last_usage if client else None,
+                                    error=str(exc),
+                                    metadata={"animation_name": animation_name, "direction": direction, "batch": batch_idx},
+                                )
+                                raise
                             b64_n, url_n = _pixellab_frame_source_counts(result)
                             logger.info(
                                 "[pixellab/edit-animation] api_returned direction=%s batch=%d %s; pre_decode b64_candidates=%d https_urls=%d",
@@ -15389,6 +16716,16 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                                     "Pixel Lab edit-animation returned no decodable frames. Response keys: %s" % keys
                                 )
                             frames.extend(plate_frames[: len(frame_indices)])
+                            append_usage_ledger_entry(
+                                provider="pixellab",
+                                endpoint="pixellab.edit-animation",
+                                project_id=project_id,
+                                status="success",
+                                usage=client.last_usage,
+                                job_id=result.get("job_id") if isinstance(result, dict) else None,
+                                generation_id=result.get("generation_id") if isinstance(result, dict) else None,
+                                metadata={"animation_name": animation_name, "direction": direction, "batch": batch_idx},
+                            )
 
                         out_fc = min(frame_count, len(frames))
                         frames = frames[:out_fc]
@@ -15417,86 +16754,18 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                 logger.info("[pixellab/build-clips] start project=%s", project_id)
                 project = load_project(project_id)
                 project_dir = PROJECTS_ROOT / project_id
-                _pixellab_character_approved_guard(project_dir)
-
-                pix_store = _load_pixellab_animations_store(project_dir)
-                anim_store = pix_store.get("animations") if isinstance(pix_store.get("animations"), dict) else {}
-                miss = pixellab_missing_canonical_animation_clips(anim_store)
-                if miss:
-                    logger.warning("[pixellab/build-clips] missing clips project=%s: %s", project_id, miss)
-                    raise ValueError(
-                        "Cannot build canonical clips yet — no frame data in pixellab_animations.json for: %s. "
-                        "Use **Generate via template** or **Generate custom** on the Animations panel for each listed clip (character must be approved), then try again."
-                        % ", ".join(miss)
-                    )
-
-                animation_clips_path = canonical_downstream_path(project_dir, "animation_clips")
-                existing = load_json(animation_clips_path, {}) or {}
-                if not isinstance(existing, dict):
-                    existing = {}
-
-                for animation_name, anim in anim_store.items():
-                    if not isinstance(anim, dict):
-                        continue
-                    try:
-                        validate_pixellab_animation_name(animation_name)
-                    except ValueError:
-                        logger.warning("[pixellab/build-clips] skip invalid animation key %r", animation_name)
-                        continue
-
-                    fps = anim.get("fps") or (AI_CLIP_SPECS.get(animation_name) or {}).get("fps") or ANIMATION_SPECS.get(animation_name, {}).get("fps") or 12
-                    meta_frame_count = anim.get("frame_count") or (AI_CLIP_SPECS.get(animation_name) or {}).get("frame_count") or ANIMATION_SPECS.get(animation_name, {}).get("frame_count") or 4
-                    loop = bool(anim.get("loop", True))
-
-                    frames_by_direction = {}
-                    if isinstance(anim.get("directions"), dict):
-                        for direction, ddata in anim["directions"].items():
-                            if isinstance(ddata, dict) and isinstance(ddata.get("frames"), list):
-                                frames_by_direction[str(direction)] = ddata["frames"]
-
-                    default_dir = "east" if "east" in frames_by_direction else (next(iter(frames_by_direction.keys())) if frames_by_direction else "east")
-                    frames = frames_by_direction.get(default_dir) or []
-                    path_count = len(frames) if isinstance(frames, list) else 0
-                    if path_count == 0:
-                        continue
-                    if path_count and int(meta_frame_count) != path_count:
-                        logger.warning(
-                            "[pixellab/build-clips] %s: store frame_count=%s but default-dir %r has %d paths — using path count",
-                            animation_name,
-                            meta_frame_count,
-                            default_dir,
-                            path_count,
-                        )
-                    frame_count = int(path_count or meta_frame_count)
-
-                    clip = existing.get(animation_name) if isinstance(existing.get(animation_name), dict) else {}
-                    if not isinstance(clip, dict):
-                        clip = {}
-                    clip.update({
-                        "fps": int(fps),
-                        "loop": loop,
-                        "frame_count": int(frame_count),
-                        "frames": frames,
-                        "frames_by_direction": frames_by_direction,
-                    })
-                    existing[animation_name] = clip
-
-                # Persist via save_project() so we don't get overwritten by the
-                # hydrated `project["animation_clips"]` value.
-                project["animation_clips"] = existing
-                project["current_stage"] = "animations"
-                project["status"] = "pixellab_build_clips_complete"
-                project["updated_at"] = now_iso()
-                save_project(project)
-                idle_clip = existing.get("idle") if isinstance(existing.get("idle"), dict) else {}
-                walk_clip = existing.get("walk") if isinstance(existing.get("walk"), dict) else {}
-                idle_fc = len(idle_clip.get("frames") or []) if isinstance(idle_clip.get("frames"), list) else 0
-                walk_fc = len(walk_clip.get("frames") or []) if isinstance(walk_clip.get("frames"), list) else 0
+                existing = sync_pixellab_animation_clips(project_id, project=project, project_dir=project_dir)
+                core_counts = {
+                    name: (len((existing.get(name) or {}).get("frames") or []) if isinstance(existing.get(name), dict) else 0)
+                    for name in ("idle", "walk", "run", "jump")
+                }
                 logger.info(
-                    "[pixellab/build-clips] ok project=%s idle_frames_default_dir=%d walk_frames_default_dir=%d",
+                    "[pixellab/build-clips] ok project=%s idle=%d walk=%d run=%d jump=%d",
                     project_id,
-                    idle_fc,
-                    walk_fc,
+                    core_counts["idle"],
+                    core_counts["walk"],
+                    core_counts["run"],
+                    core_counts["jump"],
                 )
                 return self._send_json({"ok": True, "animation_clips_updated": True})
 
@@ -15865,6 +17134,23 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
         self.send_header("Cache-Control", "no-store")
         self.end_headers()
         self.wfile.write(body)
+
+    def _send_bytes(
+        self,
+        payload: bytes,
+        *,
+        content_type: str,
+        filename: Optional[str] = None,
+        status: HTTPStatus = HTTPStatus.OK,
+    ) -> None:
+        self.send_response(status)
+        self.send_header("Content-Type", content_type)
+        self.send_header("Content-Length", str(len(payload)))
+        self.send_header("Cache-Control", "no-store")
+        if filename:
+            self.send_header("Content-Disposition", 'attachment; filename="%s"' % filename.replace('"', ""))
+        self.end_headers()
+        self.wfile.write(payload)
 
     def _send_error_json(self, status: HTTPStatus, message: str) -> None:
         return self._send_json({"ok": False, "error": message}, status=status)

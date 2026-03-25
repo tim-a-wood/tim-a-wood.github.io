@@ -18,7 +18,7 @@
     </style>
 </head>
 <body>
-<!-- CACHE_BUST: activity6dungeon5 -->
+<!-- CACHE_BUST: activity6dungeon6 -->
 <div id="game-container"></div>
 <script>
 const CONFIG = {
@@ -66,6 +66,36 @@ rebuildRoomGeometry();
 const ENABLE_DEBUG_UNLOCK = true;
 const LAYOUT_STORAGE_KEY = 'ashen-hollow-room-layout-v1';
 const TEMP_SHOW_FULL_MAP = true;
+const WORKBENCH_HERO_EXPORT = {
+    basePath: 'assets/test-hero-frames',
+    frameWidth: 256,
+    frameHeight: 256,
+    pivot: { x: 128, y: 245 },
+    scale: 0.525,
+    body: {
+        width: 28,
+        height: 40,
+        offsetX: 114,
+        offsetY: 205
+    },
+    clips: {
+        idle: { fps: 8, frameCount: 4, loop: true },
+        walk: { fps: 10, frameCount: 4, loop: true },
+        run: { fps: 12, frameCount: 4, loop: true },
+        jump: { fps: 12, frameCount: 4, loop: true },
+        attack: { fps: 12, frameCount: 4, loop: false },
+        parry: { fps: 12, frameCount: 4, loop: false }
+    },
+    debugBindings: {
+        ZERO: null,
+        ONE: 'idle',
+        TWO: 'walk',
+        THREE: 'jump',
+        FOUR: 'run',
+        FIVE: 'attack',
+        SIX: 'parry'
+    }
+};
 const TEMP_TEST_START = {
     room: 'R1',
     x: 220,
@@ -875,6 +905,15 @@ class AshenHollow extends Phaser.Scene {
         this.mapPinchStartZoom = 1;
         this.continuousTransferFrames = 0;
         this.continuousTransferVelocity = null;
+        this.currentPlayerClip = null;
+        this.debugAnimationOverride = null;
+        this.debugActionClip = null;
+        this.debugActionFramesRemaining = 0;
+        this.heroLoadFailures = [];
+        this.heroLoadSuccesses = [];
+        this.jumpRiseTicks = 0;
+        this.jumpFallTicks = 0;
+        this.jumpHasEnteredFall = false;
 
         this.r9ShellComplete = false;
         this.preFinalCheckpointUnlocked = false;
@@ -882,7 +921,12 @@ class AshenHollow extends Phaser.Scene {
     }
 
     preload() {
+        this.heroLoadFailures = [];
+        this.heroLoadSuccesses = [];
+        this.load.on('loaderror', this.handleHeroLoadError, this);
+        this.load.on('filecomplete', this.handleHeroFileComplete, this);
         this.generateAssetTextures();
+        this.preloadWorkbenchHero();
     }
 
     generateAssetTextures() {
@@ -938,7 +982,7 @@ class AshenHollow extends Phaser.Scene {
         g.fillStyle(0xff00bb).fillRect(8, 10, 12, 8);
         g.fillStyle(0x007799).fillRect(4, 32, 8, 8);
         g.fillStyle(0x007799).fillRect(16, 32, 8, 8);
-        g.generateTexture('hero', 28, 40);
+        g.generateTexture('heroFallback', 28, 40);
 
         g.clear().fillStyle(0xffffff, 0.13).fillCircle(40, 40, 40);
         g.generateTexture('btn', 80, 80);
@@ -952,11 +996,66 @@ class AshenHollow extends Phaser.Scene {
         g.destroy();
     }
 
+    preloadWorkbenchHero() {
+        Object.entries(WORKBENCH_HERO_EXPORT.clips).forEach(([clipName, clip]) => {
+            for (let frameIndex = 0; frameIndex < clip.frameCount; frameIndex += 1) {
+                const frameName = `${clipName}_${String(frameIndex).padStart(2, '0')}`;
+                this.load.image(`wb-${frameName}`, `${WORKBENCH_HERO_EXPORT.basePath}/${frameName}.png`);
+            }
+        });
+    }
+
+    handleHeroLoadError(fileObj) {
+        if (!fileObj?.key || !String(fileObj.key).startsWith('wb-')) return;
+        this.heroLoadFailures.push({
+            key: fileObj.key,
+            src: fileObj.src || fileObj.url || 'unknown-src'
+        });
+    }
+
+    handleHeroFileComplete(key) {
+        if (!key || !String(key).startsWith('wb-')) return;
+        this.heroLoadSuccesses.push(key);
+    }
+
+    createWorkbenchHeroAnimations() {
+        Object.entries(WORKBENCH_HERO_EXPORT.clips).forEach(([clipName, clip]) => {
+            const animKey = `hero-${clipName}`;
+            const frameTextureKeys = Array.from({ length: clip.frameCount }, (_, frameIndex) =>
+                `wb-${clipName}_${String(frameIndex).padStart(2, '0')}`
+            );
+            if (!frameTextureKeys.every((textureKey) => this.textures.exists(textureKey)) || this.anims.exists(animKey)) return;
+            this.anims.create({
+                key: animKey,
+                frames: frameTextureKeys.map((textureKey) => ({ key: textureKey })),
+                frameRate: clip.fps,
+                repeat: clip.loop ? -1 : 0
+            });
+        });
+    }
+
+    configureWorkbenchPlayerSprite() {
+        this.player.setScale(WORKBENCH_HERO_EXPORT.scale);
+        this.player.setOrigin(
+            WORKBENCH_HERO_EXPORT.pivot.x / WORKBENCH_HERO_EXPORT.frameWidth,
+            WORKBENCH_HERO_EXPORT.pivot.y / WORKBENCH_HERO_EXPORT.frameHeight
+        );
+        this.player.body.setSize(
+            WORKBENCH_HERO_EXPORT.body.width,
+            WORKBENCH_HERO_EXPORT.body.height
+        );
+        this.player.body.setOffset(
+            WORKBENCH_HERO_EXPORT.body.offsetX,
+            WORKBENCH_HERO_EXPORT.body.offsetY
+        );
+    }
+
     create() {
         this.resetInternalState();
         this.physics.world.setBounds(0, 0, CONFIG.WORLD_WIDTH, CONFIG.WORLD_HEIGHT);
         this.cameras.main.setBounds(0, 0, CONFIG.WORLD_WIDTH, CONFIG.WORLD_HEIGHT);
         this.cameras.main.setBackgroundColor('#050510');
+        this.createWorkbenchHeroAnimations();
 
         this.starField = this.add.tileSprite(CONFIG.W / 2, CONFIG.H / 2, CONFIG.W, CONFIG.H, 'stars')
             .setScrollFactor(0).setDepth(-1);
@@ -967,7 +1066,14 @@ class AshenHollow extends Phaser.Scene {
         const initialSpawn = TEMP_TEST_START.doorId
             ? getDoorStandPosition(TEMP_TEST_START.room, TEMP_TEST_START.doorId, ROOM_IDS[TEMP_TEST_START.room].start + TEMP_TEST_START.x, TEMP_TEST_START.y)
             : getRoomSpawnPoint(TEMP_TEST_START.room, TEMP_TEST_START.x, TEMP_TEST_START.y);
-        this.player = this.physics.add.sprite(initialSpawn.x, initialSpawn.y, 'hero');
+        const heroTextureKey = this.textures.exists('wb-idle_00') ? 'wb-idle_00' : 'heroFallback';
+        this.player = this.physics.add.sprite(initialSpawn.x, initialSpawn.y, heroTextureKey, 0);
+        this.heroAssetMode = heroTextureKey === 'wb-idle_00' ? 'workbench' : 'fallback';
+        if (heroTextureKey === 'wb-idle_00') {
+            this.configureWorkbenchPlayerSprite();
+            this.player.play('hero-idle');
+            this.currentPlayerClip = 'idle';
+        }
         this.player.setCollideWorldBounds(true);
         this.physics.add.collider(this.player, this.platforms);
         this.physics.add.collider(this.player, this.dynamicPlatforms);
@@ -986,7 +1092,10 @@ class AshenHollow extends Phaser.Scene {
         this.runSequenceChecks();
         this.refreshBranchBoard();
         this.refreshObjectiveText();
-        this.setStatusMessage('Activity 6: dungeon branches live in R3-R8. Use INTERACT in R2 doors.', 240);
+        const heroStatus = this.heroAssetMode === 'workbench'
+            ? 'Workbench hero loaded. Activity 6: dungeon branches live in R3-R8. Use INTERACT in R2 doors.'
+            : `Fallback hero active. Loaded ${this.heroLoadSuccesses.length}/6 sheets.${this.heroLoadFailures.length ? ` Failed: ${this.heroLoadFailures.map((item) => `${item.key}`).join(', ')}` : ''}`;
+        this.setStatusMessage(heroStatus, 300);
     }
 
     getBranchIdForRoom(roomId) {
@@ -1903,8 +2012,16 @@ class AshenHollow extends Phaser.Scene {
         this.spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
         this.interactKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E);
         this.mapKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.M);
+        this.attackPreviewKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Q);
+        this.parryPreviewKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.R);
         this.debugBypassKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.B);
         this.debugUnlockKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.U);
+        this.debugAnimationKeys = Object.fromEntries(
+            Object.keys(WORKBENCH_HERO_EXPORT.debugBindings).map((code) => [
+                code,
+                this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes[code])
+            ])
+        );
         this.input.addPointer(2);
 
         if (this.mapKeyboardHandler) this.input.keyboard.off('keydown', this.mapKeyboardHandler);
@@ -1974,6 +2091,22 @@ class AshenHollow extends Phaser.Scene {
         this.interactBtn.on('pointerdown', () => { this.interactQueued = true; });
         this.interactBtn.setVisible(false);
         this.interactBtnLabel.setVisible(false);
+
+        const spawnActionButton = (x, y, label, clip, tint) => {
+            const button = this.add.rectangle(x, y, 112, 42, 0x112233, 0.92)
+                .setScrollFactor(0)
+                .setStrokeStyle(2, tint, 0.9)
+                .setInteractive({ useHandCursor: true });
+            const text = this.add.text(x, y, label, {
+                fontSize: '14px',
+                fill: '#e8f6f8'
+            }).setOrigin(0.5).setScrollFactor(0);
+            button.on('pointerdown', () => this.triggerDebugActionPreview(clip));
+            return { button, text };
+        };
+
+        this.attackPreviewButton = spawnActionButton(640, 286, 'ATTACK', 'attack', 0xff9955);
+        this.parryPreviewButton = spawnActionButton(640, 394, 'PARRY', 'parry', 0x77ffee);
 
         const leftMidX = 14;
         const leftMidY = Math.floor(CONFIG.H / 2) - 52;
@@ -2502,6 +2635,109 @@ class AshenHollow extends Phaser.Scene {
         }
     }
 
+    handleDebugAnimationOverride() {
+        if (!this.debugAnimationKeys) return;
+        Object.entries(this.debugAnimationKeys).forEach(([code, key]) => {
+            if (!key || !Phaser.Input.Keyboard.JustDown(key)) return;
+            const clip = WORKBENCH_HERO_EXPORT.debugBindings[code];
+            this.debugAnimationOverride = clip;
+            if (clip) {
+                this.setStatusMessage(`Debug animation override: ${clip}. Press 0 to return to auto.`, 180);
+            } else {
+                this.setStatusMessage('Debug animation override cleared.', 120);
+            }
+        });
+    }
+
+    triggerDebugActionPreview(clip) {
+        this.debugActionClip = clip;
+        this.debugActionFramesRemaining = 20;
+        this.currentPlayerClip = null;
+        this.setStatusMessage(`Previewing ${clip}.`, 90);
+    }
+
+    updateDebugActionPreview() {
+        if (this.attackPreviewKey && Phaser.Input.Keyboard.JustDown(this.attackPreviewKey)) {
+            this.triggerDebugActionPreview('attack');
+        }
+        if (this.parryPreviewKey && Phaser.Input.Keyboard.JustDown(this.parryPreviewKey)) {
+            this.triggerDebugActionPreview('parry');
+        }
+        if (this.debugActionFramesRemaining > 0) {
+            this.debugActionFramesRemaining -= 1;
+            if (this.debugActionFramesRemaining === 0) {
+                this.debugActionClip = null;
+                this.currentPlayerClip = null;
+            }
+        }
+    }
+
+    updateJumpPose(onGround, velocityY) {
+        if (!this.player || !this.textures.exists('wb-jump_00')) return;
+
+        if (this.currentPlayerClip !== 'jump') {
+            this.player.anims.stop();
+            this.currentPlayerClip = 'jump';
+            this.jumpRiseTicks = 0;
+            this.jumpFallTicks = 0;
+            this.jumpHasEnteredFall = false;
+        }
+
+        if (onGround && !this.debugAnimationOverride) {
+            this.jumpRiseTicks = 0;
+            this.jumpFallTicks = 0;
+            this.jumpHasEnteredFall = false;
+            return;
+        }
+
+        const isRising = velocityY < -20;
+        const isFalling = velocityY > 20;
+        let frameIndex = 1;
+
+        if (isRising) {
+            this.jumpRiseTicks += 1;
+            this.jumpFallTicks = 0;
+            this.jumpHasEnteredFall = false;
+            frameIndex = this.jumpRiseTicks <= 6 ? 0 : 1;
+        } else if (isFalling) {
+            if (!this.jumpHasEnteredFall) {
+                this.jumpHasEnteredFall = true;
+                this.jumpFallTicks = 0;
+            }
+            this.jumpFallTicks += 1;
+            frameIndex = this.jumpFallTicks <= 6 ? 2 : 3;
+        } else {
+            frameIndex = this.jumpHasEnteredFall ? 2 : 1;
+        }
+
+        this.player.setTexture(`wb-jump_${String(frameIndex).padStart(2, '0')}`);
+    }
+
+    updatePlayerAnimation() {
+        if (!this.player || !this.textures.exists('wb-idle_00')) return;
+
+        const body = this.player.body;
+        const onGround = body.blocked.down && body.velocity.y >= 0;
+        const movingHorizontally = Math.abs(body.velocity.x) > 20;
+        const clip = this.debugActionClip || this.debugAnimationOverride || (!onGround ? 'jump' : (movingHorizontally ? 'run' : 'idle'));
+        if (!clip) return;
+
+        if (clip === 'jump') {
+            this.updateJumpPose(onGround, body.velocity.y);
+            return;
+        }
+
+        this.jumpRiseTicks = 0;
+        this.jumpFallTicks = 0;
+        this.jumpHasEnteredFall = false;
+        if (this.currentPlayerClip === clip) return;
+
+        const animKey = `hero-${clip}`;
+        if (!this.anims.exists(animKey)) return;
+        this.player.play(animKey, true);
+        this.currentPlayerClip = clip;
+    }
+
     update() {
         if (this.mapKey && Phaser.Input.Keyboard.JustDown(this.mapKey)) {
             this.toggleMapOverlay();
@@ -2517,6 +2753,8 @@ class AshenHollow extends Phaser.Scene {
         }
         if (this.isGameOver || this.inRoomTransition) return;
 
+        this.handleDebugAnimationOverride();
+        this.updateDebugActionPreview();
         this.updateRuntimeMovers();
         this.sustainContinuousTransferMomentum();
 
@@ -2528,6 +2766,7 @@ class AshenHollow extends Phaser.Scene {
         }
 
         this.handleMovement();
+        this.updatePlayerAnimation();
         this.handleInteractionsAndTransitions();
         this.drawMotionTrail();
 
@@ -3053,7 +3292,7 @@ class AshenHollow extends Phaser.Scene {
     updateLifeDisplay() {
         this.lifeIcons.clear(true, true);
         for (let i = 0; i < this.lives; i++) {
-            this.lifeIcons.create(CONFIG.W - 30 - (i * 25), 25, 'hero').setScale(0.5).setScrollFactor(0);
+            this.lifeIcons.create(CONFIG.W - 30 - (i * 25), 25, 'heroFallback').setScale(0.5).setScrollFactor(0);
         }
     }
 

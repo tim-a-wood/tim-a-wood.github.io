@@ -4,54 +4,314 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Ashen Hollow Room Layout Editor</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #0b1117;
-      --panel: #111b24;
-      --panel-2: #162635;
-      --line: #2b445c;
-      --text: #e6eef7;
-      --muted: #95aabd;
-      --accent: #f5c156;
-      --good: #59d8a1;
+      --bg: #050709;
+      --bg-gradient: linear-gradient(180deg, #040608, #050709 52%, #060b0e);
+      --panel: rgba(4, 6, 10, 0.96);
+      --panel-2: #07090c;
+      --line: rgba(0, 232, 200, 0.1);
+      --line-strong: rgba(0, 232, 200, 0.18);
+      --text: #cce8e0;
+      --muted: #5d7870;
+      --accent: #00e8c8;
+      --accent-soft: rgba(0, 232, 200, 0.08);
+      --good: #4ade80;
+      --good-soft: rgba(74, 222, 128, 0.12);
+      --warning: #d29922;
+      --warning-soft: rgba(210, 153, 34, 0.16);
+      --error: #f85149;
+      --error-soft: rgba(248, 81, 73, 0.16);
       --door: #f5986e;
       --platform: #77b8ff;
       --vertex: #ff6b8a;
+      --font-sans: "Plus Jakarta Sans", -apple-system, sans-serif;
+      --font-display: "Bebas Neue", sans-serif;
+      --font-mono: "DM Mono", ui-monospace, monospace;
+      --radius: 20px;
+      --radius-tight: 14px;
+      --shadow: 0 12px 40px rgba(0,0,0,0.38);
     }
     * { box-sizing: border-box; }
-    body {
+    html, body {
       margin: 0;
+      min-height: 100%;
+    }
+    body {
       background:
-        radial-gradient(circle at top left, rgba(58, 92, 128, 0.18), transparent 25%),
-        radial-gradient(circle at bottom right, rgba(176, 110, 67, 0.18), transparent 25%),
-        var(--bg);
+        radial-gradient(circle at top left, rgba(0, 232, 200, 0.08), transparent 22%),
+        radial-gradient(circle at bottom right, rgba(210, 153, 34, 0.08), transparent 24%),
+        var(--bg-gradient);
       color: var(--text);
-      font-family: "Avenir Next", "Segoe UI", sans-serif;
+      font-family: var(--font-sans);
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      line-height: 1.45;
+    }
+    a { color: var(--accent); }
+    .site-nav {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 18px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(4, 6, 10, 0.94);
+      backdrop-filter: blur(14px);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    .site-nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+    .site-nav-logo {
+      text-decoration: none;
+      color: var(--text);
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      padding: 6px 8px;
+      border-radius: 10px;
+    }
+    .site-nav-logo:hover {
+      background: rgba(255,255,255,0.05);
+    }
+    .site-nav-divider {
+      width: 1px;
+      height: 18px;
+      background: var(--line);
+      flex-shrink: 0;
+    }
+    .site-nav-links {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      flex: 1;
+      min-width: 0;
+    }
+    .site-nav-link {
+      display: flex;
+      align-items: center;
+      padding: 6px 12px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--muted);
+      text-decoration: none;
+      transition: background 120ms ease, color 120ms ease;
+      background: none;
+      border: none;
+    }
+    .site-nav-link:hover,
+    .site-nav-link.active {
+      background: rgba(255,255,255,0.06);
+      color: var(--text);
+    }
+    .app-shell {
+      display: grid;
+      grid-template-columns: 300px minmax(0, 1fr);
+      flex: 1;
+      min-height: 0;
+      width: 100%;
+      transition: grid-template-columns 180ms ease;
+    }
+    .app-shell.sidebar-collapsed {
+      grid-template-columns: 64px minmax(0, 1fr);
+    }
+    .sidebar {
+      height: 100%;
+      overflow: auto;
+      padding: 20px;
+      border-right: 1px solid var(--line);
+      background: rgba(3, 4, 6, 0.97);
+      transition: padding 180ms ease;
+    }
+    .app-shell.sidebar-collapsed .sidebar {
+      padding: 16px 10px;
+    }
+    .app-shell.sidebar-collapsed .sidebar-copy,
+    .app-shell.sidebar-collapsed .sidebar-projects {
+      display: none;
+    }
+    .brand {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+    .sidebar-copy strong {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+    }
+    .brand h1 {
+      margin: 8px 0 8px;
+      font-family: var(--font-display);
+      font-size: 38px;
+      line-height: 0.9;
+      font-weight: 400;
+      letter-spacing: 0.04em;
+    }
+    .brand p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+    .rail-toggle {
+      width: 36px;
+      height: 36px;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      background: var(--panel);
+      color: var(--text);
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      flex: 0 0 auto;
+      min-height: 36px;
+      padding: 0;
+    }
+    .collapsed-mark {
+      display: none;
+      width: 100%;
+      padding-top: 8px;
+      color: var(--muted);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      writing-mode: vertical-rl;
+      transform: rotate(180deg);
+      text-align: center;
+    }
+    .app-shell.sidebar-collapsed .collapsed-mark {
+      display: block;
+    }
+    .sidebar-block + .sidebar-block {
+      margin-top: 16px;
+    }
+    .sidebar-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+    .sidebar-title h2 {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      letter-spacing: 0.18em;
+      font-family: var(--font-display);
+    }
+    .project-list {
+      display: grid;
+      gap: 8px;
+    }
+    .project-card {
+      padding: 10px 12px;
+      border-radius: 18px;
+      border: 1px solid var(--line);
+      background: var(--panel);
+      box-shadow: none;
+      cursor: pointer;
+      transition: border-color 120ms ease, background 120ms ease, box-shadow 120ms ease;
+    }
+    .project-card.active {
+      border-color: rgba(0,232,200,0.30);
+      box-shadow: inset 0 0 0 1px rgba(0,232,200,0.10);
+    }
+    .project-card:hover {
+      border-color: rgba(0,232,200,0.28);
+      background: rgba(7, 11, 15, 0.98);
+    }
+    .project-card strong {
+      display: block;
+      font-size: 14px;
+      color: var(--text);
+    }
+    .project-card small,
+    .small-note,
+    .muted {
+      color: var(--muted);
+    }
+    .project-card small {
+      display: block;
+      margin-top: 4px;
+      font-size: 12px;
+      line-height: 1.4;
+    }
+    .project-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
+    }
+    .project-actions button {
+      width: auto;
+      min-height: 34px;
+      padding: 6px 10px;
+      border-radius: 10px;
+      font-size: 13px;
+    }
+    .main-column {
+      min-height: 0;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
     }
     .app {
       display: grid;
-      grid-template-columns: minmax(0, 1fr) 380px;
-      gap: 12px;
-      padding: 12px;
-      min-height: 100vh;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 18px;
+      padding: 18px;
+      flex: 1;
+      min-height: 0;
+      overflow: auto;
+      align-content: start;
     }
     .panel {
       background: linear-gradient(180deg, var(--panel-2), var(--panel));
       border: 1px solid var(--line);
-      border-radius: 14px;
-      padding: 12px;
+      border-radius: var(--radius);
+      padding: 18px;
+      box-shadow: var(--shadow);
       min-height: 0;
     }
     h1, h2, h3 {
       margin: 0;
+      letter-spacing: 0.04em;
+    }
+    h1 {
+      font-family: var(--font-display);
+      font-size: 40px;
+      line-height: 0.92;
+      letter-spacing: 0.05em;
+    }
+    h2, h3 {
       font-size: 15px;
-      letter-spacing: 0.02em;
     }
     .sub {
       margin-top: 6px;
       color: var(--muted);
       font-size: 12px;
       line-height: 1.4;
+    }
+    .eyebrow {
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      font-weight: 700;
     }
     .stack { display: grid; gap: 10px; }
     .row {
@@ -74,35 +334,56 @@
     }
     input, select, textarea, button {
       width: 100%;
-      border-radius: 10px;
+      border-radius: 14px;
       border: 1px solid var(--line);
-      background: #0d1821;
+      background: rgba(255,255,255,0.04);
       color: var(--text);
-      padding: 8px 10px;
+      padding: 10px 12px;
       font: inherit;
+      min-height: 44px;
     }
     textarea {
       min-height: 280px;
       resize: vertical;
-      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-family: var(--font-mono);
       font-size: 12px;
       line-height: 1.5;
     }
     button {
       cursor: pointer;
-      background: #132637;
+      background: rgba(255,255,255,0.045);
+      transition: background 120ms ease, border-color 120ms ease, color 120ms ease, transform 120ms ease;
+      font-weight: 600;
+    }
+    button:hover {
+      border-color: var(--line-strong);
+      background: rgba(255,255,255,0.08);
+      transform: translateY(-1px);
     }
     button.active {
       border-color: var(--accent);
-      color: #fff4d7;
-      background: #3a2b14;
+      color: var(--text);
+      background: rgba(0, 232, 200, 0.12);
+      box-shadow: inset 0 0 0 1px rgba(0, 232, 200, 0.1);
     }
     button:disabled {
       opacity: 0.45;
       cursor: not-allowed;
     }
-    button.secondary { background: #102331; }
-    button.good { background: #16372b; border-color: #255c48; }
+    button.secondary {
+      background: rgba(255,255,255,0.03);
+      color: var(--text);
+    }
+    button.good {
+      background: linear-gradient(180deg, rgba(245, 208, 116, 0.92), rgba(220, 176, 73, 0.92));
+      border-color: rgba(245, 208, 116, 0.48);
+      color: #16120a;
+      box-shadow: 0 10px 24px rgba(220, 176, 73, 0.16);
+    }
+    button.good:hover {
+      background: linear-gradient(180deg, rgba(249, 216, 132, 0.98), rgba(226, 184, 84, 0.96));
+      border-color: rgba(249, 216, 132, 0.62);
+    }
     .toolbar {
       display: flex;
       flex-wrap: wrap;
@@ -115,38 +396,74 @@
     }
     .canvas-wrap {
       display: grid;
-      gap: 10px;
+      gap: 14px;
       min-height: 0;
     }
     .canvas-header {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      gap: 12px;
+      display: grid;
+      gap: 14px;
     }
     .canvas-header-text {
       min-width: 0;
+      max-width: 760px;
     }
     .canvas-controls {
       display: grid;
-      gap: 8px;
-      min-width: min(560px, 100%);
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
     }
-    .canvas-controls .row {
+    .control-card {
+      display: grid;
+      gap: 12px;
+      min-height: 100%;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.02)),
+        rgba(6, 10, 14, 0.88);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
+    }
+    .control-card-title {
+      display: grid;
+      gap: 4px;
+    }
+    .control-card-title h3 {
+      font-size: 14px;
+      letter-spacing: 0.02em;
+    }
+    .control-card-title p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+    .control-card .row {
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
-    .canvas-controls .row-3 {
+    .control-card .row-3 {
       grid-template-columns: repeat(3, minmax(0, 1fr));
     }
-    .canvas-controls .row-4 {
-      display: grid;
+    .control-card .row-4 {
       grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+    .control-card .row,
+    .control-card .row-3,
+    .control-card .row-4 {
+      display: grid;
       gap: 8px;
     }
+    .control-card-actions {
+      display: grid;
+      gap: 8px;
+    }
+    .control-card .hint {
+      margin-top: -4px;
+    }
     .canvas-box {
-      border: 1px solid var(--line);
-      border-radius: 12px;
-      background: #09121a;
+      border: 1px solid var(--line-strong);
+      border-radius: 18px;
+      background: linear-gradient(180deg, rgba(10, 14, 18, 0.98), rgba(6, 9, 12, 0.98));
       overflow: hidden;
       position: relative;
     }
@@ -166,26 +483,34 @@
     }
     .list {
       display: grid;
-      gap: 6px;
-      max-height: 200px;
+      gap: 8px;
+      max-height: min(62vh, 720px);
       overflow: auto;
+      padding-right: 4px;
     }
     .chip {
-      padding: 8px 10px;
+      padding: 11px 12px;
       border: 1px solid var(--line);
-      border-radius: 10px;
-      background: #0b1620;
+      border-radius: 14px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.025));
       cursor: pointer;
       font-size: 12px;
+      line-height: 1.45;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.025);
     }
     .chip.active {
       border-color: var(--accent);
-      background: #1c2530;
+      background: rgba(0, 232, 200, 0.12);
+      box-shadow: inset 0 0 0 1px rgba(0, 232, 200, 0.08);
     }
     .status {
       font-size: 12px;
       color: var(--muted);
-      min-height: 18px;
+      min-height: 20px;
+      padding: 10px 12px;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.03);
     }
     .toast {
       position: fixed;
@@ -193,9 +518,9 @@
       bottom: 18px;
       max-width: min(360px, calc(100vw - 36px));
       padding: 12px 14px;
-      border-radius: 12px;
+      border-radius: 14px;
       border: 1px solid var(--line);
-      background: rgba(16, 35, 49, 0.96);
+      background: rgba(4, 6, 10, 0.96);
       color: var(--text);
       box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
       z-index: 20;
@@ -203,18 +528,31 @@
       line-height: 1.4;
     }
     .toast.success {
-      border-color: #255c48;
-      background: rgba(22, 55, 43, 0.96);
+      border-color: rgba(74,222,128,0.24);
+      background: rgba(11, 29, 21, 0.96);
       color: #dff7ec;
     }
     .badge {
-      display: inline-block;
-      padding: 3px 8px;
-      border-radius: 999px;
+      display: grid;
+      gap: 6px;
+      padding: 12px;
+      border-radius: 16px;
       border: 1px solid var(--line);
+      background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+      min-width: 0;
+    }
+    .badge-label {
+      font-size: 10px;
       color: var(--muted);
-      font-size: 11px;
-      margin-right: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      font-weight: 700;
+    }
+    .badge-value {
+      font-size: 24px;
+      line-height: 1;
+      font-weight: 700;
+      color: var(--text);
     }
     .hidden { display: none; }
     .steps {
@@ -229,9 +567,9 @@
     }
     details {
       border: 1px solid var(--line);
-      border-radius: 12px;
+      border-radius: 16px;
       padding: 10px;
-      background: #0b1620;
+      background: rgba(255,255,255,0.03);
     }
     summary {
       cursor: pointer;
@@ -244,12 +582,12 @@
       top: 64px;
       right: 12px;
       width: min(220px, calc(100% - 24px));
-      background: rgba(9, 19, 28, 0.94);
-      border: 1px solid var(--line);
-      border-radius: 12px;
-      padding: 8px;
+      background: linear-gradient(180deg, rgba(11, 16, 20, 0.98), rgba(7, 10, 13, 0.98));
+      border: 1px solid var(--line-strong);
+      border-radius: 16px;
+      padding: 10px;
       display: grid;
-      gap: 6px;
+      gap: 8px;
       z-index: 3;
       box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
     }
@@ -270,15 +608,23 @@
       position: absolute;
       top: 92px;
       left: 12px;
-      width: 110px;
+      width: 132px;
       display: grid;
       gap: 6px;
       z-index: 3;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: rgba(7, 10, 13, 0.92);
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
+      backdrop-filter: blur(10px);
     }
     .canvas-toolbar button {
-      padding: 6px 8px;
+      min-height: 36px;
+      padding: 6px 9px;
       font-size: 11px;
       text-align: left;
+      border-radius: 12px;
     }
     .canvas-toolbar .toolbar-divider {
       height: 1px;
@@ -295,9 +641,9 @@
       display: flex;
       flex-wrap: wrap;
       gap: 8px;
-      padding: 10px 12px;
+      padding: 12px 14px;
       border-bottom: 1px solid var(--line);
-      background: #0b1620;
+      background: rgba(255,255,255,0.035);
       align-items: center;
     }
     .view-control-group {
@@ -309,6 +655,7 @@
     .view-control-bar button {
       width: auto;
       min-width: 44px;
+      min-height: 38px;
       padding: 7px 10px;
     }
     .view-zoom-readout {
@@ -324,92 +671,231 @@
     }
     .global-link-panel {
       display: grid;
-      grid-template-columns: minmax(220px, 1.3fr) minmax(0, 1fr) minmax(0, 1fr) auto auto auto;
-      gap: 8px;
-      padding: 12px;
+      grid-template-columns: minmax(220px, 1.2fr) minmax(0, 1fr) minmax(0, 1fr) auto auto auto;
+      gap: 10px;
+      padding: 14px;
       border-bottom: 1px solid var(--line);
-      background: #0b1620;
+      background: rgba(255,255,255,0.035);
       align-items: end;
     }
     .global-link-summary {
       font-size: 12px;
       color: var(--text);
       line-height: 1.45;
-      min-height: 42px;
+      min-height: 48px;
       display: flex;
       align-items: center;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: rgba(255,255,255,0.025);
     }
     .global-link-panel button {
       height: 40px;
       align-self: end;
     }
+    .sidebar-panel {
+      display: grid;
+      gap: 14px;
+      align-content: start;
+      max-width: 980px;
+    }
+    .sidebar-header {
+      display: grid;
+      gap: 8px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--line);
+    }
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+    .item-list-panel {
+      display: grid;
+      gap: 10px;
+      min-height: 0;
+    }
+    .item-list-header {
+      display: grid;
+      gap: 4px;
+    }
+    .item-list-header h3 {
+      font-size: 14px;
+      letter-spacing: 0.02em;
+    }
+    .item-list-header p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
     @media (max-width: 1300px) {
-      .app {
+      .canvas-controls {
         grid-template-columns: 1fr;
       }
       .global-link-panel {
         grid-template-columns: 1fr 1fr;
       }
     }
+    @media (max-width: 840px) {
+      .app-shell,
+      .app-shell.sidebar-collapsed {
+        grid-template-columns: 1fr;
+      }
+      .sidebar,
+      .app-shell.sidebar-collapsed .sidebar {
+        border-right: none;
+        border-bottom: 1px solid var(--line);
+        padding: 14px;
+      }
+      .app-shell.sidebar-collapsed .sidebar-copy,
+      .app-shell.sidebar-collapsed .sidebar-projects {
+        display: block;
+      }
+      .collapsed-mark,
+      .rail-toggle {
+        display: none;
+      }
+      .site-nav {
+        flex-wrap: wrap;
+      }
+      .site-nav-divider {
+        display: none;
+      }
+      .site-nav-links {
+        flex-basis: 100%;
+        overflow-x: auto;
+        padding-bottom: 2px;
+      }
+      .app {
+        padding: 10px;
+      }
+      h1 {
+        font-size: 32px;
+      }
+      .metric-grid,
+      .control-card .row-4,
+      .control-card .row-3,
+      .global-link-panel {
+        grid-template-columns: 1fr;
+      }
+    }
   </style>
 </head>
 <body>
-  <main class="app">
+  <nav class="site-nav" aria-label="Site navigation">
+    <div class="site-nav-brand">
+      <a class="site-nav-logo" id="navLogo" href="./tools/2d-sprite-and-animation/index.html">Sprite Workbench</a>
+    </div>
+    <div class="site-nav-divider" aria-hidden="true"></div>
+    <div class="site-nav-links" role="list">
+      <a class="site-nav-link" id="navHome" href="./tools/2d-sprite-and-animation/index.html" role="listitem">Home</a>
+      <a class="site-nav-link" id="navSpriteCreation" href="./tools/2d-sprite-and-animation/index.html" role="listitem">Sprite Creation</a>
+      <a class="site-nav-link active" id="navRoomCreation" href="./room-layout-editor.html" role="listitem">Room Creation</a>
+      <a class="site-nav-link" id="navDocs" href="./tools/2d-sprite-and-animation/index.html" role="listitem">Docs</a>
+    </div>
+  </nav>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="sidebar-copy">
+          <strong>Room Creator</strong>
+          <h1 id="sidebar-project-name">Loading…</h1>
+          <p>Edit room geometry, room links, and traversal data inside the same project shell as Sprite Creation.</p>
+        </div>
+        <button class="rail-toggle" type="button" aria-label="Collapse project panel">‹</button>
+      </div>
+      <div class="collapsed-mark">Projects</div>
+      <div class="sidebar-block sidebar-projects">
+        <div class="sidebar-title">
+          <h2>Projects</h2>
+        </div>
+        <div class="project-list" id="room-project-list"></div>
+      </div>
+    </aside>
+
+    <main class="main-column">
+  <div class="app">
     <section class="panel canvas-wrap">
       <div class="canvas-header">
         <div class="canvas-header-text">
+          <div class="eyebrow">Room Creation</div>
           <h1 id="canvasTitle">Room Layout Editor</h1>
           <div class="sub" id="canvasSub">Drag vertices, platforms, doors, keys, and abilities in the active map view.</div>
         </div>
         <div class="canvas-controls">
-          <div class="row">
-            <label>
-              Room
-              <select id="roomSelect"></select>
-            </label>
-            <label>
-              View
-              <select id="viewMode">
-                <option value="room">Room Editor</option>
-                <option value="global">Global Map</option>
-              </select>
-            </label>
-          </div>
-          <div class="row-4">
-            <label>
-              Room Width
-              <input id="roomWidth" type="number" step="32" min="320" />
-            </label>
-            <label>
-              Room Height
-              <input id="roomHeight" type="number" step="32" min="320" />
-            </label>
-            <button id="addRoom">Add Room</button>
-            <button id="deleteRoom">Delete Room</button>
-          </div>
-          <div class="row-4">
-            <label>
-              Grid Snap
-              <select id="snapSize">
-                <option value="0">Off</option>
-                <option value="8">8</option>
-                <option value="16">16</option>
-                <option value="32" selected>32</option>
-                <option value="64">64</option>
-              </select>
-            </label>
-            <label>
-              Global Zoom
-              <input id="globalZoom" type="range" min="40" max="200" step="5" value="100" />
-            </label>
-            <button id="savePermanent" class="good">Save Device</button>
-            <button id="downloadJson" class="good">Export JSON</button>
-          </div>
-          <div class="row-3">
-            <button id="syncCanonicalJson" class="good">Sync Canonical</button>
-            <button id="openGameWithLayout">Open Game</button>
-            <button id="reloadJson">Reload Disk</button>
-          </div>
+          <section class="control-card">
+            <div class="control-card-title">
+              <h3>Current map</h3>
+              <p>Choose the room you are editing, switch views, and manage the room shell.</p>
+            </div>
+            <div class="row">
+              <label>
+                Room
+                <select id="roomSelect"></select>
+              </label>
+              <label>
+                View
+                <select id="viewMode">
+                  <option value="room">Room Editor</option>
+                  <option value="global">Global Map</option>
+                </select>
+              </label>
+            </div>
+            <div class="row">
+              <label>
+                Room Width
+                <input id="roomWidth" type="number" step="32" min="320" />
+              </label>
+              <label>
+                Room Height
+                <input id="roomHeight" type="number" step="32" min="320" />
+              </label>
+            </div>
+            <div class="row">
+              <button id="addRoom">Add Room</button>
+              <button id="deleteRoom">Delete Room</button>
+            </div>
+          </section>
+          <section class="control-card">
+            <div class="control-card-title">
+              <h3>Editing controls</h3>
+              <p>Set snap behavior, adjust the global overview, and jump into the current playable state.</p>
+            </div>
+            <div class="row">
+              <label>
+                Grid Snap
+                <select id="snapSize">
+                  <option value="0">Off</option>
+                  <option value="8">8</option>
+                  <option value="16">16</option>
+                  <option value="32" selected>32</option>
+                  <option value="64">64</option>
+                </select>
+              </label>
+              <label>
+                Global Zoom
+                <input id="globalZoom" type="range" min="40" max="200" step="5" value="100" />
+              </label>
+            </div>
+            <div class="control-card-actions">
+              <button id="openGameWithLayout">Open Game</button>
+              <button id="reloadJson">Reload Disk</button>
+            </div>
+            <div class="hint">Use the room canvas for local geometry and switch to Global Map when linking edges between rooms.</div>
+          </section>
+          <section class="control-card">
+            <div class="control-card-title">
+              <h3>Save and share</h3>
+              <p>Write your local working copy, export a portable JSON snapshot, or sync the canonical layout file.</p>
+            </div>
+            <div class="control-card-actions">
+              <button id="savePermanent" class="good">Save Device</button>
+              <button id="downloadJson" class="good">Export JSON</button>
+              <button id="syncCanonicalJson">Sync Canonical</button>
+            </div>
+          </section>
         </div>
       </div>
       <div class="canvas-box" id="roomCanvasBox">
@@ -550,20 +1036,50 @@
       <div class="status" id="statusText">Loading layout data…</div>
     </section>
 
-    <section class="panel stack">
-      <div class="stack">
+    <section class="panel sidebar-panel">
+      <div class="sidebar-header">
+        <div class="eyebrow">Active Room</div>
         <h2>Room Contents</h2>
-        <div class="badge" id="vertexCount">Vertices: 0</div>
-        <div class="badge" id="platformCount">Platforms: 0</div>
-        <div class="badge" id="doorCount">Doors: 0</div>
-        <div class="badge" id="keyCount">Keys: 0</div>
-        <div class="badge" id="abilityCount">Abilities: 0</div>
-        <div class="badge" id="moverCount">Movers: 0</div>
+        <div class="sub">Review the current room inventory and click any item to jump selection back to the canvas.</div>
+      </div>
+      <div class="metric-grid">
+        <div class="badge">
+          <div class="badge-label">Vertices</div>
+          <div class="badge-value" id="vertexCount">0</div>
+        </div>
+        <div class="badge">
+          <div class="badge-label">Platforms</div>
+          <div class="badge-value" id="platformCount">0</div>
+        </div>
+        <div class="badge">
+          <div class="badge-label">Doors</div>
+          <div class="badge-value" id="doorCount">0</div>
+        </div>
+        <div class="badge">
+          <div class="badge-label">Keys</div>
+          <div class="badge-value" id="keyCount">0</div>
+        </div>
+        <div class="badge">
+          <div class="badge-label">Abilities</div>
+          <div class="badge-value" id="abilityCount">0</div>
+        </div>
+        <div class="badge">
+          <div class="badge-label">Movers</div>
+          <div class="badge-value" id="moverCount">0</div>
+        </div>
+      </div>
+      <div class="item-list-panel">
+        <div class="item-list-header">
+          <h3>Selectable items</h3>
+          <p>Platforms, doors, keys, abilities, movers, and the player start are listed here for quick access.</p>
+        </div>
         <div class="list" id="itemList"></div>
       </div>
     </section>
 
-  </main>
+  </div>
+    </main>
+  </div>
   <div class="toast hidden" id="toast"></div>
 
   <script id="seedData" type="application/json">
@@ -781,7 +1297,18 @@
       const DATA_URL = './room-layout-data.json';
       const API_PING_URL = '/api/ping';
       const API_LAYOUT_URL = '/api/layout';
-      const LAYOUT_STORAGE_KEY = 'ashen-hollow-room-layout-v1';
+      const PAGE_PARAMS = new URLSearchParams(window.location.search);
+      const PROJECT_ID = (PAGE_PARAMS.get('project_id') || '').trim();
+      const SIDEBAR_KEY = 'roomCreator.sidebarCollapsed';
+      const WORKBENCH_URL = new URL('./tools/2d-sprite-and-animation/index.html', window.location.href);
+      const ROOM_EDITOR_URL = new URL('./room-layout-editor.html', window.location.href);
+      const PROJECT_LAYOUT_API_URL = PROJECT_ID
+        ? `/api/projects/${encodeURIComponent(PROJECT_ID)}/room-layout`
+        : API_LAYOUT_URL;
+      const PROJECT_LAYOUT_DOWNLOAD_NAME = PROJECT_ID ? `${PROJECT_ID}-room-layout.json` : 'room-layout-data.json';
+      const LAYOUT_STORAGE_KEY = PROJECT_ID
+        ? `ashen-hollow-room-layout-v1:${PROJECT_ID}`
+        : 'ashen-hollow-room-layout-v1';
       const SEED_DATA = JSON.parse(document.getElementById('seedData').textContent);
       const ROOM_W = 1600;
       const ROOM_H = 1200;
@@ -813,7 +1340,71 @@
       const globalCanvas = document.getElementById('globalCanvas');
       const globalCtx = globalCanvas.getContext('2d');
 
+      function configureNav() {
+        const navHome = document.getElementById('navHome');
+        const navSpriteCreation = document.getElementById('navSpriteCreation');
+        const navRoomCreation = document.getElementById('navRoomCreation');
+        const navDocs = document.getElementById('navDocs');
+        const navLogo = document.getElementById('navLogo');
+        const roomUrl = new URL(ROOM_EDITOR_URL.toString());
+        const spriteUrl = new URL(WORKBENCH_URL.toString());
+        const homeUrl = new URL(WORKBENCH_URL.toString());
+        const docsUrl = new URL(WORKBENCH_URL.toString());
+
+        if (PROJECT_ID) {
+          roomUrl.searchParams.set('project_id', PROJECT_ID);
+          spriteUrl.searchParams.set('project_id', PROJECT_ID);
+          homeUrl.searchParams.set('project_id', PROJECT_ID);
+          docsUrl.searchParams.set('project_id', PROJECT_ID);
+        }
+        docsUrl.hash = 'docs';
+
+        if (navLogo) navLogo.href = homeUrl.toString();
+        if (navHome) navHome.href = homeUrl.toString();
+        if (navSpriteCreation) navSpriteCreation.href = spriteUrl.toString();
+        if (navRoomCreation) navRoomCreation.href = roomUrl.toString();
+        if (navDocs) navDocs.href = docsUrl.toString();
+      }
+      configureNav();
+
+      function roomEditorProjectUrl(projectId) {
+        const url = new URL(ROOM_EDITOR_URL.toString());
+        if (projectId) url.searchParams.set('project_id', projectId);
+        return url.toString();
+      }
+
+      function spriteWorkbenchProjectUrl(projectId) {
+        const url = new URL(WORKBENCH_URL.toString());
+        if (projectId) url.searchParams.set('project_id', projectId);
+        return url.toString();
+      }
+
+      function escapeHtml(value) {
+        return String(value ?? '').replace(/[&<>"']/g, (match) => ({
+          '&': '&amp;',
+          '<': '&lt;',
+          '>': '&gt;',
+          '"': '&quot;',
+          "'": '&#39;'
+        }[match]));
+      }
+
+      function formatDate(value) {
+        if (!value) return 'Unknown';
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return String(value);
+        return date.toLocaleString([], {
+          month: 'numeric',
+          day: 'numeric',
+          year: 'numeric',
+          hour: 'numeric',
+          minute: '2-digit'
+        });
+      }
+
       const ui = {
+        sidebarProjectName: document.getElementById('sidebar-project-name'),
+        roomProjectList: document.getElementById('room-project-list'),
         roomSelect: document.getElementById('roomSelect'),
         viewMode: document.getElementById('viewMode'),
         snapSize: document.getElementById('snapSize'),
@@ -920,8 +1511,98 @@
         globalSnapPreview: null,
         fileHandle: null,
         apiAvailable: false,
-        toastTimer: null
+        toastTimer: null,
+        projects: []
       };
+
+      function syncSidebarProjectName() {
+        if (!ui.sidebarProjectName) return;
+        if (!PROJECT_ID) {
+          ui.sidebarProjectName.textContent = 'Local Layout';
+          return;
+        }
+        const project = state.projects.find((entry) => entry.project_id === PROJECT_ID);
+        ui.sidebarProjectName.textContent = project?.project_name || PROJECT_ID;
+      }
+
+      function initSidebarToggle() {
+        const appShell = document.querySelector('.app-shell');
+        const toggle = document.querySelector('.rail-toggle');
+        if (!appShell || !toggle) return;
+        if (window.localStorage.getItem(SIDEBAR_KEY) === '1') {
+          appShell.classList.add('sidebar-collapsed');
+        }
+        const sync = () => {
+          const collapsed = appShell.classList.contains('sidebar-collapsed');
+          toggle.setAttribute('aria-label', collapsed ? 'Expand project panel' : 'Collapse project panel');
+          toggle.textContent = collapsed ? '›' : '‹';
+        };
+        sync();
+        toggle.addEventListener('click', () => {
+          appShell.classList.toggle('sidebar-collapsed');
+          window.localStorage.setItem(SIDEBAR_KEY, appShell.classList.contains('sidebar-collapsed') ? '1' : '0');
+          sync();
+        });
+      }
+
+      function renderProjectList() {
+        if (!ui.roomProjectList) return;
+        const cards = [];
+        cards.push(`
+          <div class="project-card ${PROJECT_ID ? '' : 'active'}" data-room-url="${escapeHtml(roomEditorProjectUrl(''))}">
+            <strong>Local Layout</strong>
+            <small>Standalone canonical room-layout-data.json mode.</small>
+            <div class="small-note">Use this when you want to edit the shared local room file outside of a specific workbench project.</div>
+            <div class="project-actions">
+              <button class="secondary" data-action="open-room">Open Local</button>
+            </div>
+          </div>
+        `);
+        state.projects.forEach((project) => {
+          const active = project.project_id === PROJECT_ID ? 'active' : '';
+          cards.push(`
+            <div class="project-card ${active}" data-room-url="${escapeHtml(roomEditorProjectUrl(project.project_id))}" data-sprite-url="${escapeHtml(spriteWorkbenchProjectUrl(project.project_id))}">
+              <strong>${escapeHtml(project.project_name || project.project_id)}</strong>
+              <small>${escapeHtml(project.current_stage || 'Sprite Creation')} · Last modified ${escapeHtml(formatDate(project.updated_at))}</small>
+              <div class="small-note">Open this project’s room layout without leaving the shared workbench project structure.</div>
+              <div class="project-actions">
+                <button class="secondary" data-action="open-room">Load Room</button>
+                <button class="secondary" data-action="open-sprite">Sprite Creation</button>
+              </div>
+            </div>
+          `);
+        });
+        ui.roomProjectList.innerHTML = cards.join('');
+        Array.from(ui.roomProjectList.querySelectorAll('.project-card')).forEach((card) => {
+          const roomUrl = card.dataset.roomUrl;
+          const spriteUrl = card.dataset.spriteUrl;
+          card.addEventListener('click', (event) => {
+            if (event.target.closest('button')) return;
+            if (roomUrl) window.location.href = roomUrl;
+          });
+          card.querySelector('[data-action="open-room"]')?.addEventListener('click', (event) => {
+            event.stopPropagation();
+            if (roomUrl) window.location.href = roomUrl;
+          });
+          card.querySelector('[data-action="open-sprite"]')?.addEventListener('click', (event) => {
+            event.stopPropagation();
+            if (spriteUrl) window.location.href = spriteUrl;
+          });
+        });
+      }
+
+      async function refreshProjectList() {
+        try {
+          const response = await fetch('/api/projects', { cache: 'no-store' });
+          if (!response.ok) throw new Error(`Project load failed (${response.status})`);
+          const payload = await response.json();
+          state.projects = Array.isArray(payload.projects) ? payload.projects : [];
+        } catch (_) {
+          state.projects = [];
+        }
+        syncSidebarProjectName();
+        renderProjectList();
+      }
 
       function getAbilityDef(type) {
         return ABILITY_DEFS.find((entry) => entry.id === type) || ABILITY_DEFS[0];
@@ -978,7 +1659,7 @@
       function updateSyncButtonState() {
         ui.syncCanonicalJson.disabled = !state.apiAvailable;
         ui.syncCanonicalJson.title = state.apiAvailable
-          ? 'Overwrite room-layout-data.json on this dev machine'
+          ? (PROJECT_ID ? 'Save this layout into the active workbench project' : 'Overwrite room-layout-data.json on this dev machine')
           : 'Launch through the local editor server to enable canonical sync';
       }
 
@@ -1729,12 +2410,12 @@
       }
 
       function updateCounts(room) {
-        ui.vertexCount.textContent = `Vertices: ${room.polygon.length}`;
-        ui.platformCount.textContent = `Platforms: ${room.platforms.length}`;
-        ui.doorCount.textContent = `Doors: ${room.doors.length}`;
-        ui.keyCount.textContent = `Keys: ${room.keys.length}`;
-        ui.abilityCount.textContent = `Abilities: ${room.abilities.length}`;
-        ui.moverCount.textContent = `Movers: ${room.movingPlatforms.length}`;
+        ui.vertexCount.textContent = String(room.polygon.length);
+        ui.platformCount.textContent = String(room.platforms.length);
+        ui.doorCount.textContent = String(room.doors.length);
+        ui.keyCount.textContent = String(room.keys.length);
+        ui.abilityCount.textContent = String(room.abilities.length);
+        ui.moverCount.textContent = String(room.movingPlatforms.length);
       }
 
       function updateSelectionSummary() {
@@ -3597,7 +4278,7 @@
 
       async function loadCanonicalLayoutFromApi() {
         try {
-          const response = await fetch(API_LAYOUT_URL, { cache: 'no-store' });
+          const response = await fetch(PROJECT_LAYOUT_API_URL, { cache: 'no-store' });
           if (!response.ok) return null;
           const parsed = await response.json();
           if (!parsed || !Array.isArray(parsed.rooms)) return null;
@@ -3616,8 +4297,8 @@
           initializeData(
             apiLayout,
             forceDisk
-              ? `Reloaded ${apiLayout.rooms.length} rooms from local canonical room-layout-data.json`
-              : `Loaded ${apiLayout.rooms.length} rooms from local canonical room-layout-data.json`
+              ? `Reloaded ${apiLayout.rooms.length} rooms from ${PROJECT_ID ? 'the active workbench project' : 'local canonical room-layout-data.json'}`
+              : `Loaded ${apiLayout.rooms.length} rooms from ${PROJECT_ID ? 'the active workbench project' : 'local canonical room-layout-data.json'}`
           );
           return;
         }
@@ -3674,10 +4355,10 @@
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = 'room-layout-data.json';
+        a.download = PROJECT_LAYOUT_DOWNLOAD_NAME;
         a.click();
         URL.revokeObjectURL(url);
-        setStatus('Downloaded room-layout-data.json');
+        setStatus(`Downloaded ${PROJECT_LAYOUT_DOWNLOAD_NAME}`);
       }
 
       function encodeLayoutForHash() {
@@ -3715,7 +4396,7 @@
         }
         try {
           const serialized = JSON.stringify(state.data, null, 2);
-          const response = await fetch(API_LAYOUT_URL, {
+          const response = await fetch(PROJECT_LAYOUT_API_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: serialized
@@ -3723,7 +4404,9 @@
           if (!response.ok) {
             throw new Error(`HTTP ${response.status}`);
           }
-          setStatus('Synced current layout into canonical room-layout-data.json. Commit and push next.');
+          setStatus(PROJECT_ID
+            ? 'Saved current layout into the active workbench project.'
+            : 'Synced current layout into canonical room-layout-data.json. Commit and push next.');
           showToast('Canonical layout synced successfully.');
         } catch (error) {
           setStatus(`Canonical sync cancelled or failed: ${error.message}`);
@@ -3744,7 +4427,7 @@
           }
           if (!state.fileHandle) {
             state.fileHandle = await window.showSaveFilePicker({
-              suggestedName: 'room-layout-data.json',
+              suggestedName: PROJECT_LAYOUT_DOWNLOAD_NAME,
               types: [{ description: 'JSON Files', accept: { 'application/json': ['.json'] } }]
             });
           }
@@ -3844,7 +4527,9 @@
       }
 
       populateAbilityOptions();
+      initSidebarToggle();
       wireEvents();
+      refreshProjectList().catch(() => {});
       loadData().catch((error) => {
         setStatus(`Load failed: ${error.message}`);
       });
