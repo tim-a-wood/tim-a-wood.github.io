@@ -3740,87 +3740,506 @@
             min-height: 0;
         }
 
-        /* Home background */
-        #view-home {
-            position: relative;
-            height: 100%;
+        #view-home.site-view.active,
+        #view-docs.site-view.active {
+            display: block;
+            flex: 1;
+            min-height: 0;
+            overflow-y: auto;
         }
 
-        .home-bg {
+        .marketing-splash {
+            position: relative;
+            min-height: calc(100vh - var(--nav-h));
+            display: flex;
+            align-items: flex-end;
+            background:
+                linear-gradient(180deg, rgba(5, 9, 13, 0.28) 0%, rgba(5, 9, 13, 0.6) 48%, rgba(5, 9, 13, 0.92) 100%),
+                url("image.png") center center / cover no-repeat;
+        }
+
+        .marketing-splash::after {
+            content: "";
             position: absolute;
             inset: 0;
-            background-size: cover;
-            background-position: center center;
-            background-repeat: no-repeat;
-            image-rendering: pixelated;
-            opacity: 0.35;
+            background:
+                radial-gradient(circle at 18% 24%, rgba(0, 232, 200, 0.12), transparent 26%),
+                radial-gradient(circle at 78% 16%, rgba(212, 167, 82, 0.08), transparent 22%);
+            pointer-events: none;
         }
 
-        #view-home .placeholder-view {
+        .marketing-splash-inner,
+        .marketing-page {
+            width: min(1180px, calc(100vw - 48px));
+            margin: 0 auto;
+        }
+
+        .marketing-splash-inner {
             position: relative;
             z-index: 1;
+            padding: 72px 0 88px;
         }
 
-        /* Placeholder views */
-        .placeholder-view {
-            min-height: 80vh;
+        .marketing-splash-copy {
+            max-width: 34rem;
+        }
+
+        .marketing-eyebrow {
+            display: inline-flex;
+            align-items: center;
+            min-height: 34px;
+            padding: 0 12px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.06);
+            color: #cae8df;
+            font-size: 0.76rem;
+            font-weight: 700;
+            letter-spacing: 0.16em;
+            text-transform: uppercase;
+        }
+
+        .marketing-splash h1,
+        .marketing-section-title h2,
+        .marketing-docs-hero h1 {
+            margin: 14px 0 0;
+            font-family: var(--font-display);
+            font-weight: 400;
+            letter-spacing: 0.03em;
+            line-height: 0.94;
+        }
+
+        .marketing-splash h1 {
+            font-size: clamp(4rem, 8vw, 7rem);
+        }
+
+        .marketing-splash p {
+            margin: 16px 0 0;
+            color: var(--text-muted);
+            font-size: 1.08rem;
+            line-height: 1.7;
+            max-width: 34rem;
+        }
+
+        .marketing-splash-actions {
             display: flex;
-            flex-direction: column;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 26px;
+        }
+
+        .marketing-btn {
+            display: inline-flex;
             align-items: center;
             justify-content: center;
-            gap: 20px;
-            padding: 60px 24px;
-            text-align: center;
-        }
-
-        .placeholder-badge {
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 99px;
-            font-size: var(--font-size-xs);
-            font-weight: 600;
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
-            background: var(--accent-soft);
-            color: var(--accent);
-            border: 1px solid rgba(68,147,248,0.22);
-        }
-
-        .placeholder-view h2 {
-            margin: 0;
-            font-size: 28px;
+            min-height: 46px;
+            padding: 0 18px;
+            border-radius: 14px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(255, 255, 255, 0.04);
+            color: var(--text);
             font-weight: 700;
-            letter-spacing: -0.02em;
+            text-decoration: none;
+            transition: 160ms ease;
+        }
+
+        .marketing-btn:hover {
+            transform: translateY(-1px);
+            background: rgba(255, 255, 255, 0.06);
+            border-color: rgba(255, 255, 255, 0.16);
             color: var(--text);
         }
 
-        .placeholder-view p {
-            margin: 0;
-            max-width: 400px;
-            font-size: var(--font-size-md);
-            color: var(--text-muted);
-            line-height: 1.6;
+        .marketing-btn-primary {
+            background: linear-gradient(135deg, #d4a752, #f1d9a2);
+            color: #151108;
+            border-color: transparent;
+            box-shadow: 0 12px 24px rgba(212, 167, 82, 0.2);
         }
 
-        .placeholder-cta {
+        .marketing-scroll-hint {
+            margin-top: 34px;
+            color: rgba(231, 241, 238, 0.66);
+            font-size: 0.88rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .marketing-page {
+            padding: 38px 0 78px;
+        }
+
+        .marketing-section {
+            margin-top: 34px;
+        }
+
+        .marketing-section-title {
+            margin-bottom: 16px;
+        }
+
+        .marketing-section-title h2,
+        .marketing-docs-hero h1 {
+            font-size: clamp(2.4rem, 4vw, 4rem);
+        }
+
+        .marketing-section-title p,
+        .marketing-docs-hero p {
+            max-width: 42rem;
+            margin: 10px 0 0;
+            color: var(--text-muted);
+            line-height: 1.7;
+        }
+
+        .marketing-editorial {
+            padding: 10px 0 4px;
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .marketing-editorial-grid {
+            display: grid;
+            grid-template-columns: minmax(220px, 0.8fr) minmax(0, 1.2fr);
+            gap: 22px;
+            align-items: start;
+        }
+
+        .marketing-kicker {
+            color: #cce3db;
+            font-size: 0.76rem;
+            font-weight: 700;
+            letter-spacing: 0.16em;
+            text-transform: uppercase;
+        }
+
+        .marketing-copy p {
+            margin: 0;
+            color: var(--text-muted);
+            line-height: 1.8;
+            font-size: 1rem;
+        }
+
+        .marketing-copy p + p {
+            margin-top: 14px;
+        }
+
+        .marketing-notes {
+            display: grid;
+            gap: 10px;
+        }
+
+        .marketing-note {
+            color: var(--text-muted);
+            line-height: 1.65;
+        }
+
+        .marketing-note strong,
+        .marketing-artifact-copy h3,
+        .marketing-docs-card h3 {
+            margin: 0;
+            font-size: 1rem;
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            color: var(--text);
+        }
+
+        .marketing-note p,
+        .marketing-artifact-copy p,
+        .marketing-docs-card p {
+            margin: 8px 0 0;
+            color: var(--text-muted);
+            line-height: 1.65;
+        }
+
+        .marketing-pipeline {
+            display: grid;
+            grid-template-columns: minmax(205px, 0.5fr) minmax(0, 1.5fr);
+            gap: 24px;
+            align-items: stretch;
+        }
+
+        .marketing-brief {
+            align-self: stretch;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding-left: 18px;
+            border-left: 1px solid rgba(0, 232, 200, 0.3);
+        }
+
+        .marketing-brief span {
+            display: block;
+            color: #c7ddd6;
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+        }
+
+        .marketing-brief p {
+            margin: 12px 0 0;
+            color: var(--text);
+            line-height: 1.72;
+            font-size: 1.18rem;
+        }
+
+        .marketing-pipeline-flow {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 16px;
+        }
+
+        .marketing-pipeline-asset {
+            padding: 14px;
+            border-radius: 18px;
+            background: rgba(255, 255, 255, 0.004);
+            border: 1px solid rgba(255, 255, 255, 0.01);
+        }
+
+        .marketing-stage {
+            position: relative;
+            width: 100%;
+            height: 260px;
+            border-radius: 14px;
+            overflow: hidden;
+            background:
+                radial-gradient(circle at center, rgba(255, 255, 255, 0.007), rgba(255, 255, 255, 0.003) 68%, transparent 100%);
+        }
+
+        .marketing-stage-image {
+            position: absolute;
+            display: block;
+            width: auto;
+            bottom: 0;
+            left: 0;
+            image-rendering: pixelated;
+        }
+
+        .marketing-pipeline-asset strong {
+            display: block;
+            margin-top: 12px;
+            font-size: 1rem;
+        }
+
+        .marketing-pipeline-asset span {
+            display: block;
+            margin-top: 6px;
+            color: var(--text-muted);
+            font-size: 0.92rem;
+            line-height: 1.55;
+        }
+
+        .marketing-artifact-flow,
+        .marketing-docs-stack,
+        .marketing-local-grid {
+            display: grid;
+            gap: 16px;
+        }
+
+        .marketing-artifact-flow {
+            gap: 26px;
+        }
+
+        .marketing-artifact-block {
+            display: grid;
+            grid-template-columns: 190px minmax(0, 1fr);
+            gap: 28px;
+            align-items: start;
+        }
+
+        .marketing-sheet-stack,
+        .marketing-gif-stack {
+            display: grid;
+            gap: 12px;
+            margin-top: 6px;
+        }
+
+        .marketing-sheet-row,
+        .marketing-gif-row {
+            display: grid;
+            grid-template-columns: 150px minmax(0, 1fr);
+            gap: 18px;
+            align-items: center;
+            padding: 12px 0;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .marketing-sheet-row strong,
+        .marketing-gif-row strong {
+            font-size: 1rem;
+        }
+
+        .marketing-sheet-row img {
+            width: 100%;
+            max-height: 140px;
+            object-fit: contain;
+            image-rendering: pixelated;
+        }
+
+        .marketing-gif-row img {
+            width: auto;
+            max-width: 100%;
+            max-height: 170px;
+            object-fit: contain;
+            image-rendering: pixelated;
+        }
+
+        .marketing-fit-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 16px;
+        }
+
+        .marketing-fit-card {
+            padding: 0;
+            background: transparent;
+            border: 0;
+        }
+
+        .marketing-fit-card ul,
+        .marketing-docs-card ul,
+        .marketing-docs-card ol {
+            margin: 12px 0 0;
+            padding-left: 20px;
+            color: var(--text-muted);
+            line-height: 1.72;
+        }
+
+        .marketing-detail-list {
+            display: grid;
+            gap: 0;
+        }
+
+        .marketing-detail-row {
+            padding: 16px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .marketing-detail-row strong {
+            display: block;
+        }
+
+        .marketing-detail-row span {
+            display: block;
+            margin-top: 6px;
+            color: var(--text-muted);
+        }
+
+        .marketing-docs-hero,
+        .marketing-docs-nav,
+        .marketing-docs-card {
+            border-radius: var(--radius-lg);
+            background: linear-gradient(180deg, rgba(10, 15, 20, 0.96), rgba(8, 12, 17, 0.92));
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow);
+        }
+
+        .marketing-docs-hero {
+            padding: 30px;
+        }
+
+        .marketing-docs-layout {
+            display: grid;
+            grid-template-columns: 260px 1fr;
+            gap: 18px;
+            margin-top: 24px;
+        }
+
+        .marketing-docs-nav {
+            position: sticky;
+            top: 72px;
+            align-self: start;
+            padding: 18px;
+        }
+
+        .marketing-docs-nav h3 {
+            margin: 0 0 12px;
+            font-size: 0.9rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: #c5dbd4;
+        }
+
+        .marketing-docs-nav a {
+            display: block;
+            padding: 12px 14px;
+            border-radius: 14px;
+            color: var(--text-muted);
+            font-weight: 600;
+            text-decoration: none;
+        }
+
+        .marketing-docs-nav a:hover {
+            color: var(--text);
+            background: rgba(255, 255, 255, 0.04);
+        }
+
+        .marketing-docs-card {
+            padding: 24px;
+        }
+
+        .marketing-callout {
+            margin-top: 16px;
+            padding: 14px 16px;
+            border-radius: 14px;
+            background: rgba(0, 232, 200, 0.08);
+            border: 1px solid rgba(0, 232, 200, 0.16);
+            color: #caf8f1;
+        }
+
+        .marketing-code-pill {
             display: inline-flex;
             align-items: center;
-            gap: 8px;
-            padding: 10px 20px;
-            border-radius: 12px;
-            font-size: var(--font-size-sm);
-            font-weight: 600;
-            background: var(--accent);
-            color: #fff;
-            border: none;
-            cursor: pointer;
-            text-decoration: none;
-            transition: background var(--transition-fast);
+            min-height: 26px;
+            padding: 0 10px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.06);
+            color: #d7e8e2;
+            font-family: var(--font-mono);
+            font-size: 0.82rem;
         }
 
-        .placeholder-cta:hover {
-            background: var(--accent-hover);
-            color: #fff;
+        .marketing-footer-note {
+            margin-top: 30px;
+            color: var(--text-muted);
+            text-align: center;
+        }
+
+        @media (max-width: 1100px) {
+            .marketing-editorial-grid,
+            .marketing-artifact-block,
+            .marketing-fit-grid,
+            .marketing-pipeline,
+            .marketing-docs-layout {
+                grid-template-columns: 1fr;
+            }
+
+            .marketing-pipeline-flow {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .marketing-docs-nav {
+                position: static;
+            }
+        }
+
+        @media (max-width: 760px) {
+            .marketing-page,
+            .marketing-splash-inner {
+                width: min(1180px, calc(100vw - 24px));
+            }
+
+            .marketing-splash-inner {
+                padding: 54px 0 64px;
+            }
+
+            .marketing-docs-hero,
+            .marketing-docs-card {
+                padding: 20px;
+            }
+
+            .marketing-pipeline-flow,
+            .marketing-sheet-row,
+            .marketing-gif-row {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
@@ -3848,23 +4267,283 @@
 
 <!-- ═══ Home view ═══ -->
 <div class="site-view" id="view-home">
-    <div class="home-bg" style="background-image: url('image.png');"></div>
-    <div class="placeholder-view">
-        <span class="placeholder-badge">Working Title</span>
-        <h2>Sprite Workbench</h2>
-        <p>A guided production pipeline for building side-view character sprites — from brief to animation-ready export.</p>
-        <a class="placeholder-cta" data-nav="workbench" href="#">Open Sprite Creation →</a>
-    </div>
+    <section class="marketing-splash">
+        <div class="marketing-splash-inner">
+            <div class="marketing-splash-copy">
+                <span class="marketing-eyebrow">Side-view character workbench</span>
+                <h1>Sprite Workbench</h1>
+                <p>Build a side-view character once, then carry that same character through look, motion, and export.</p>
+                <div class="marketing-splash-actions">
+                    <a class="marketing-btn marketing-btn-primary" data-nav="workbench" href="#">Open Sprite Creation</a>
+                    <a class="marketing-btn" data-nav="docs" href="#">Browse docs</a>
+                </div>
+                <div class="marketing-scroll-hint">Scroll for the workflow</div>
+            </div>
+        </div>
+    </section>
+
+    <main class="marketing-page">
+        <section class="marketing-section">
+            <div class="marketing-section-title">
+                <h2>A focused pipeline for side-view characters.</h2>
+                <p>Not a general art tool. A production path for one kind of game asset.</p>
+            </div>
+            <div class="marketing-editorial marketing-editorial-grid">
+                <div>
+                    <div class="marketing-kicker">Positioning</div>
+                </div>
+                <div class="marketing-copy">
+                    <p>Sprite Workbench is for building a single side-view character all the way through to game-ready output. The value is continuity: one brief, one look, one motion pass, one clean handoff.</p>
+                    <p>The workflow stays simple on purpose: describe the character, choose the look, animate it, export the package.</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="marketing-section">
+            <div class="marketing-editorial marketing-editorial-grid">
+                <div>
+                    <div class="marketing-kicker">What it gives you</div>
+                </div>
+                <div class="marketing-notes">
+                    <div class="marketing-note"><strong>One character brief.</strong><p>Keep the role, silhouette, materials, prop, and tone attached to the project instead of scattering them across prompts and folders.</p></div>
+                    <div class="marketing-note"><strong>One visual identity.</strong><p>Lock a side-view source before animation so the character stays recognisable through the full pass.</p></div>
+                    <div class="marketing-note"><strong>One clean handoff.</strong><p>Export per-animation sheets, metadata, previews, and a package that is ready for the engine.</p></div>
+                </div>
+            </div>
+        </section>
+
+        <section class="marketing-section">
+            <div class="marketing-section-title">
+                <h2>One brief to one runtime package.</h2>
+                <p>The same character carries through the whole pass.</p>
+            </div>
+            <div class="marketing-editorial">
+                <div class="marketing-pipeline">
+                    <div class="marketing-brief">
+                        <span>Brief</span>
+                        <p>"A strict side-view knight with sword and shield, plate armor, overgarment, and a dark fantasy feel."</p>
+                    </div>
+                    <div class="marketing-pipeline-flow">
+                        <div class="marketing-pipeline-asset">
+                            <div class="marketing-stage" aria-label="Selected concept preview">
+                                <img
+                                    class="marketing-stage-image"
+                                    src="./projects-data/test-40b4b333/concepts/concept-0003-processed.png"
+                                    alt="Selected concept"
+                                    data-marketing-fit-sprite
+                                    data-fit-height="0.82"
+                                >
+                            </div>
+                            <strong>Chosen look</strong>
+                            <span>The approved side-view source that anchors the rest of the build.</span>
+                        </div>
+                        <div class="marketing-pipeline-asset">
+                            <div class="marketing-stage" aria-label="Animation preview">
+                                <img
+                                    class="marketing-stage-image"
+                                    src="./projects-data/test-40b4b333/animations/attack/east/frame_00.png"
+                                    alt="Animation preview"
+                                    data-marketing-fit-sprite
+                                    data-fit-height="0.82"
+                                    data-fit-reference="./projects-data/test-40b4b333/animations/attack/east/frame_00.png"
+                                    data-frame-prefix="./projects-data/test-40b4b333/animations/attack/east/frame_"
+                                    data-frame-suffix=".png"
+                                    data-frame-pad="2"
+                                    data-frame-count="4"
+                                    data-frame-delay="180"
+                                >
+                            </div>
+                            <strong>Animate</strong>
+                            <span>Build motion from the locked source, then carry it forward into export.</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="marketing-section">
+            <div class="marketing-section-title">
+                <h2>Export that looks like handoff.</h2>
+                <p>The package should already look like something a game can consume.</p>
+            </div>
+            <div class="marketing-editorial marketing-artifact-flow">
+                <div class="marketing-artifact-block">
+                    <div class="marketing-artifact-copy">
+                        <h3>Per-animation sheets</h3>
+                        <p>One sheet per clip keeps the package easy to inspect, easy to replace, and easy to wire into runtime.</p>
+                    </div>
+                    <div class="marketing-sheet-stack">
+                        <div class="marketing-sheet-row">
+                            <strong>Idle</strong>
+                            <img src="./projects-data/test-40b4b333/exports/20260325T135640Z/animation_sheets/idle.png" alt="Idle sheet">
+                        </div>
+                        <div class="marketing-sheet-row">
+                            <strong>Run</strong>
+                            <img src="./projects-data/test-40b4b333/exports/20260325T135640Z/animation_sheets/run.png" alt="Run sheet">
+                        </div>
+                        <div class="marketing-sheet-row">
+                            <strong>Attack</strong>
+                            <img src="./projects-data/test-40b4b333/exports/20260325T135640Z/animation_sheets/attack.png" alt="Attack sheet">
+                        </div>
+                    </div>
+                </div>
+                <div class="marketing-artifact-block">
+                    <div class="marketing-artifact-copy">
+                        <h3>Quick motion review</h3>
+                        <p>Preview clips make it easy to judge timing and silhouette before the engine pass.</p>
+                    </div>
+                    <div class="marketing-gif-stack">
+                        <div class="marketing-gif-row">
+                            <strong>Run preview</strong>
+                            <img src="./projects-data/test-40b4b333/exports/20260325T135640Z/preview_run.gif" alt="Run GIF preview">
+                        </div>
+                        <div class="marketing-gif-row">
+                            <strong>Parry preview</strong>
+                            <img src="./projects-data/test-40b4b333/exports/20260325T135640Z/preview_parry.gif" alt="Parry GIF preview">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="marketing-section">
+            <div class="marketing-section-title">
+                <h2>Who it fits.</h2>
+                <p>Best when the job is specific and the handoff matters.</p>
+            </div>
+            <div class="marketing-editorial marketing-fit-grid">
+                <div class="marketing-fit-card">
+                    <h3>Best for</h3>
+                    <ul>
+                        <li>Solo devs and small teams building side-view 2D games</li>
+                        <li>Projects that need a direct line from character concept to runtime assets</li>
+                        <li>Teams that want local project ownership instead of cloud-only state</li>
+                    </ul>
+                </div>
+                <div class="marketing-fit-card">
+                    <h3>Not for</h3>
+                    <ul>
+                        <li>Broad concept exploration across many styles</li>
+                        <li>Front-view, isometric, or full-sheet character pipelines</li>
+                        <li>Large collaboration suites or marketplace workflows</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <section class="marketing-section">
+            <div class="marketing-section-title">
+                <h2>Local-first by design.</h2>
+                <p>Project export and runtime export stay separate because they solve different problems.</p>
+            </div>
+            <div class="marketing-editorial marketing-editorial-grid">
+                <div>
+                    <div class="marketing-kicker">Ownership</div>
+                </div>
+                <div class="marketing-copy">
+                    <p>The editable project belongs to you. The runtime package belongs to the game. Keeping those exports separate makes the workflow easier to trust, easier to recover, and easier to move between machines.</p>
+                </div>
+            </div>
+            <div class="marketing-local-grid" style="margin-top:12px;">
+                <div class="marketing-detail-list">
+                    <div class="marketing-detail-row">
+                        <strong>Import Project</strong>
+                        <span>Restore a local project bundle into the workbench.</span>
+                    </div>
+                    <div class="marketing-detail-row">
+                        <strong>Export Project</strong>
+                        <span>Preserve editable project state for transfer, backup, or recovery.</span>
+                    </div>
+                    <div class="marketing-detail-row">
+                        <strong>Export Package</strong>
+                        <span>Produce the runtime-facing bundle with sheets, metadata, and previews.</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
 </div>
 
 <!-- ═══ Docs view ═══ -->
 <div class="site-view" id="view-docs">
-    <div class="placeholder-view">
-        <span class="placeholder-badge">Coming Soon</span>
-        <h2>Documentation</h2>
-        <p>Guides, pipeline references, and API documentation will live here.</p>
-        <a class="placeholder-cta" data-nav="workbench" href="#">Back to Sprite Creation →</a>
-    </div>
+    <main class="marketing-page">
+        <section class="marketing-docs-hero">
+            <span class="marketing-eyebrow">Documentation</span>
+            <h1>How the workbench is meant to be used.</h1>
+            <p>Keep the workflow narrow: define the character, lock the look, build the motion, and export assets the game can use.</p>
+        </section>
+
+        <div class="marketing-docs-layout">
+            <aside class="marketing-docs-nav">
+                <h3>Docs</h3>
+                <a href="#quickstart">Quickstart</a>
+                <a href="#workflow">Workflow overview</a>
+                <a href="#export-format">Export format</a>
+                <a href="#phaser-guide">Phaser guide</a>
+                <a href="#faq">FAQ</a>
+            </aside>
+
+            <div class="marketing-docs-stack">
+                <section class="marketing-docs-card" id="quickstart">
+                    <h3>Quickstart</h3>
+                    <ol>
+                        <li>Open <a data-nav="workbench" href="#"><strong>Sprite Creation</strong></a> and create a project.</li>
+                        <li>Describe the character in plain language and save the setup.</li>
+                        <li>Create or import concepts, then lock one side-view source.</li>
+                        <li>Generate motion clips in the Animations step.</li>
+                        <li>Run checks and export the runtime package in Review &amp; Export.</li>
+                    </ol>
+                    <div class="marketing-callout">The intended output is a side-view character package you can carry into runtime.</div>
+                </section>
+
+                <section class="marketing-docs-card" id="workflow">
+                    <h3>Workflow overview</h3>
+                    <ul>
+                        <li><strong>Describe</strong>: capture role, silhouette, materials, prop, and tone.</li>
+                        <li><strong>Concepts</strong>: generate or import options, then lock the side-view source you want to keep.</li>
+                        <li><strong>Animations</strong>: build named motion clips from that locked source.</li>
+                        <li><strong>Review &amp; Export</strong>: check the package and ship the runtime outputs.</li>
+                    </ul>
+                </section>
+
+                <section class="marketing-docs-card" id="export-format">
+                    <h3>Export format</h3>
+                    <p>The workbench separates editable project preservation from runtime output.</p>
+                    <ul>
+                        <li><strong>Project export</strong>: a restorable project bundle for backup and transfer.</li>
+                        <li><strong>Runtime export</strong>: the package the game consumes.</li>
+                    </ul>
+                    <p>The current runtime package includes:</p>
+                    <ul>
+                        <li><span class="marketing-code-pill">animation_sheets/&lt;clip&gt;.png</span></li>
+                        <li><span class="marketing-code-pill">animation_sheets/&lt;clip&gt;.json</span></li>
+                        <li><span class="marketing-code-pill">atlas.json</span> and <span class="marketing-code-pill">animations.json</span></li>
+                        <li>Preview GIFs for quick review</li>
+                        <li>Export manifest and verification output</li>
+                    </ul>
+                </section>
+
+                <section class="marketing-docs-card" id="phaser-guide">
+                    <h3>Phaser guide</h3>
+                    <p>Ashen Hollow already makes Phaser the clearest target for the current runtime package.</p>
+                    <ul>
+                        <li>Use the per-animation sheets and metadata as the first-class runtime source.</li>
+                        <li>Map locomotion states to clips like <strong>idle</strong>, <strong>run</strong>, and <strong>jump</strong>.</li>
+                        <li>Treat action states like <strong>attack</strong> and <strong>parry</strong> as deliberate runtime triggers.</li>
+                        <li>Expect to tune scale, origin, and collision fit once the sprite is in-engine.</li>
+                    </ul>
+                </section>
+
+                <section class="marketing-docs-card" id="faq">
+                    <h3>FAQ</h3>
+                    <p><strong>Who is this for?</strong><br>Small teams and solo devs building side-view 2D characters.</p>
+                    <p><strong>Why local-first?</strong><br>So projects can be restored, moved, and backed up without treating the browser as the only home for the work.</p>
+                    <p><strong>Why separate Export Project from Export Package?</strong><br>One preserves the editable project. The other produces the runtime artifact.</p>
+                    <p><strong>Is this meant to be a general-purpose sprite editor?</strong><br>No. The current product direction is intentionally narrower than that.</p>
+                </section>
+            </div>
+        </div>
+    </main>
 </div>
 
 <!-- ═══ Workbench view ═══ -->
@@ -12672,6 +13351,143 @@ boot().catch((error) => {
         e.preventDefault();
         activateView(el.dataset.nav);
     });
+})();
+
+(function initMarketingSprites() {
+    const spriteNodes = Array.from(document.querySelectorAll("[data-marketing-fit-sprite]"));
+    if (!spriteNodes.length) return;
+
+    const cache = new Map();
+
+    function loadImage(src) {
+        return new Promise((resolve, reject) => {
+            const image = new Image();
+            image.addEventListener("load", () => resolve(image), { once: true });
+            image.addEventListener("error", reject, { once: true });
+            image.src = src;
+            if (image.complete && image.naturalWidth > 0) {
+                resolve(image);
+            }
+        });
+    }
+
+    async function getBounds(src) {
+        if (cache.has(src)) return cache.get(src);
+        const image = await loadImage(src);
+        const canvas = document.createElement("canvas");
+        const context = canvas.getContext("2d", { willReadFrequently: true });
+        if (!context) {
+            const fallback = {
+                image,
+                bounds: { x: 0, y: 0, width: image.naturalWidth, height: image.naturalHeight, bottomPad: 0 },
+            };
+            cache.set(src, fallback);
+            return fallback;
+        }
+
+        canvas.width = image.naturalWidth;
+        canvas.height = image.naturalHeight;
+        context.clearRect(0, 0, canvas.width, canvas.height);
+        context.drawImage(image, 0, 0);
+        const { data } = context.getImageData(0, 0, canvas.width, canvas.height);
+
+        let minX = canvas.width;
+        let minY = canvas.height;
+        let maxX = -1;
+        let maxY = -1;
+
+        for (let y = 0; y < canvas.height; y += 1) {
+            for (let x = 0; x < canvas.width; x += 1) {
+                const alpha = data[(y * canvas.width + x) * 4 + 3];
+                if (alpha > 0) {
+                    if (x < minX) minX = x;
+                    if (y < minY) minY = y;
+                    if (x > maxX) maxX = x;
+                    if (y > maxY) maxY = y;
+                }
+            }
+        }
+
+        const bounds = (maxX < minX || maxY < minY)
+            ? { x: 0, y: 0, width: canvas.width, height: canvas.height, bottomPad: 0 }
+            : {
+                x: minX,
+                y: minY,
+                width: maxX - minX + 1,
+                height: maxY - minY + 1,
+                bottomPad: canvas.height - maxY - 1,
+            };
+        const result = { image, bounds };
+        cache.set(src, result);
+        return result;
+    }
+
+    async function applyFit(node) {
+        const stage = node.closest(".marketing-stage");
+        if (!stage) return;
+        const referenceSrc = node.dataset.fitReference || node.currentSrc || node.src;
+        if (!referenceSrc) return;
+
+        try {
+            const { image, bounds } = await getBounds(referenceSrc);
+            const stageWidth = stage.clientWidth;
+            const stageHeight = stage.clientHeight;
+            if (!stageWidth || !stageHeight) return;
+
+            const targetVisibleHeight = stageHeight * Math.max(0.4, Math.min(0.95, Number(node.dataset.fitHeight || "0.82")));
+            const scale = targetVisibleHeight / bounds.height;
+            const renderedWidth = image.naturalWidth * scale;
+            const renderedHeight = image.naturalHeight * scale;
+            const visibleWidth = bounds.width * scale;
+            const left = ((stageWidth - visibleWidth) / 2) - (bounds.x * scale);
+            const bottom = -(bounds.bottomPad * scale);
+
+            node.style.width = `${renderedWidth}px`;
+            node.style.height = `${renderedHeight}px`;
+            node.style.left = `${left}px`;
+            node.style.bottom = `${bottom}px`;
+        } catch (error) {
+            console.warn("Marketing sprite fit failed", referenceSrc, error);
+        }
+    }
+
+    function refreshFits() {
+        spriteNodes.forEach((node) => applyFit(node));
+    }
+
+    spriteNodes.forEach((node) => {
+        if (!node.complete) {
+            node.addEventListener("load", () => applyFit(node), { once: true });
+        }
+    });
+
+    const animatedNodes = Array.from(document.querySelectorAll("[data-frame-prefix]"));
+    animatedNodes.forEach((node) => {
+        const prefix = node.dataset.framePrefix || "";
+        const suffix = node.dataset.frameSuffix || "";
+        const frameStart = Math.max(0, Number(node.dataset.frameStart || "0"));
+        const frameCount = Math.max(1, Number(node.dataset.frameCount || "1"));
+        const framePad = Math.max(0, Number(node.dataset.framePad || "2"));
+        const frameDelay = Math.max(120, Number(node.dataset.frameDelay || "700"));
+        const frameSources = Array.from({ length: frameCount }, (_, index) => {
+            const frameId = String(frameStart + index).padStart(framePad, "0");
+            return `${prefix}${frameId}${suffix}`;
+        });
+
+        frameSources.forEach((src) => {
+            const preload = new Image();
+            preload.src = src;
+        });
+
+        let frameIndex = 0;
+        window.setInterval(() => {
+            frameIndex = (frameIndex + 1) % frameSources.length;
+            node.src = frameSources[frameIndex];
+        }, frameDelay);
+    });
+
+    refreshFits();
+    window.addEventListener("resize", refreshFits);
 })();
 </script>
 </body>
