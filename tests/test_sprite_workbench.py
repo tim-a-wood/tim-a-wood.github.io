@@ -635,11 +635,12 @@ class SpriteWorkbenchTests(unittest.TestCase):
 
         self.assertNotIn("refine", before_valid["step_statuses"])
         self.assertEqual(before_valid["step_statuses"]["concepts"], "active")
-        self.assertEqual(before_valid["step_statuses"]["character"], "locked")
-        self.assertIn("concept", before_valid["blocking_reasons"]["character"][0].lower())
+        self.assertEqual(before_valid["step_statuses"]["export"], "locked")
+        self.assertIn("animation", before_valid["blocking_reasons"]["export"][0].lower())
         self.assertEqual(project["step_statuses"]["concepts"], "complete")
         self.assertNotIn("rig_layout", project["step_statuses"])
-        self.assertIn(project["step_statuses"]["character"], {"active", "ready", "complete"})
+        self.assertEqual(project["step_statuses"]["export"], "locked")
+        self.assertIn("animation", project["blocking_reasons"]["export"][0].lower())
 
     def test_concept_approval_generates_rig_layout_before_sprite_model(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -672,15 +673,17 @@ class SpriteWorkbenchTests(unittest.TestCase):
             finally:
                 sw.PROJECTS_ROOT = original_root
 
-        self.assertEqual(project["current_stage"], "rig_layout")
         if project["ai_workflow"]["enabled"] and not project["ai_workflow"].get("legacy_mode"):
+            self.assertEqual(project["current_stage"], "concepts")
             self.assertNotIn("rig_layout", project["step_statuses"])
-            self.assertIn(project["step_statuses"]["character"], {"active", "ready", "complete"})
+            self.assertIn(project["step_statuses"]["export"], {"active", "ready", "complete", "locked"})
             self.assertEqual(project["ai_workflow"]["selected_assets"]["approved_concept_id"], imported["concept_id"])
         elif project["ai_workflow"]["enabled"]:
+            self.assertEqual(project["current_stage"], "rig_layout")
             self.assertIn(project["step_statuses"]["rig_layout"], {"active", "ready"})
             self.assertEqual(project["ai_workflow"]["selected_assets"]["approved_concept_id"], imported["concept_id"])
         else:
+            self.assertEqual(project["current_stage"], "rig_layout")
             self.assertIn(project["step_statuses"]["rig_layout"], {"active", "ready"})
             self.assertFalse(project["rig_layout_approved"])
             self.assertEqual(project["rig_layout"]["rig_profile"], sw.SIDE_KNIGHT_SIMPLE_7)
@@ -1745,7 +1748,8 @@ class SpriteWorkbenchTests(unittest.TestCase):
         seq = sw.wizard_steps_active(project)
         self.assertEqual(seq, sw.WIZARD_STEPS_PIXEL_LAB_UI)
         self.assertIn("animations", seq)
-        self.assertEqual(seq.index("animations"), seq.index("character") + 1)
+        self.assertEqual(seq, ["describe", "concepts", "animations", "export"])
+        self.assertNotIn("character", seq)
 
     def test_wizard_steps_active_omits_animations_for_non_pixellab_ai(self):
         project = {
@@ -1763,7 +1767,8 @@ class SpriteWorkbenchTests(unittest.TestCase):
         seq = sw.wizard_steps_active(project)
         self.assertNotIn("rig_layout", seq)
         self.assertNotIn("part_manifest", seq)
-        self.assertIn("character", seq)
+        self.assertNotIn("character", seq)
+        self.assertEqual(seq, ["describe", "concepts", "export"])
 
     def test_pixellab_animation_store_has_frames_detects_any_generated_clip(self):
         self.assertFalse(sw.pixellab_animation_store_has_frames(None))
