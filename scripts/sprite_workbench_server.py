@@ -38,6 +38,19 @@ from urllib.request import Request, urlopen
 from PIL import Image, ImageChops, ImageDraw, ImageOps
 
 from scripts.pixellab_client import PixelLabError, PixelLabHTTPError
+from scripts import workbench_brief as workbench_brief
+from scripts import workbench_concepts as workbench_concepts
+from scripts import workbench_export as workbench_export
+from scripts import workbench_iteration as workbench_iteration
+from scripts import workbench_legacy_concept_runs as workbench_legacy_concept_runs
+from scripts import workbench_legacy_animation_production as workbench_legacy_animation_production
+from scripts import workbench_manual_clips as workbench_manual_clips
+from scripts import workbench_persistence as persistence
+from scripts import workbench_pixellab_store as workbench_pixellab_store
+from scripts import workbench_project_catalog as project_catalog
+from scripts import workbench_project_io as project_io
+from scripts import workbench_project_lifecycle as project_lifecycle
+from scripts import workbench_workflow_state as workbench_workflow_state
 
 try:
     from google import genai as _google_genai
@@ -938,813 +951,880 @@ def slugify(text: str) -> str:
     return re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-") or "project"
 
 
-def stable_hash(*parts: str) -> str:
-    return hashlib.sha256("||".join(parts).encode("utf-8")).hexdigest()
-
-
-def stable_int(*parts: str, mod: int = 1_000_000) -> int:
-    return int(stable_hash(*parts)[:12], 16) % mod
-
-
-def parse_iso(value: Optional[str]) -> datetime:
-    if not value:
-        return datetime.fromtimestamp(0, tz=timezone.utc)
-    try:
-        return datetime.fromisoformat(value)
-    except ValueError:
-        return datetime.fromtimestamp(0, tz=timezone.utc)
-
-
-def ensure_dirs(project_dir: Path) -> None:
-    for rel in [
-        "concepts",
-        "prompts/history",
-        "layers",
-        "master_pose",
-        "part_manifest",
-        "part_shapes",
-        "part_shapes/masks",
-        "part_shapes/previews",
-        "part_split",
-        "part_split/parts",
-        "part_split/masks",
-        "parts",
-        "parts/masks",
-        "parts/recovery",
-        "rig",
-        "animations/idle",
-        "animations/walk",
-        "manual_clips",
-        "ai_workflow",
-        "ai_workflow/character_lock",
-        "ai_workflow/key_poses",
-        "ai_workflow/motion",
-        "ai_workflow/extract",
-        "ai_workflow/cleanup",
-        "external_authoring",
-        "external_authoring/imports",
-        "exports",
-        "logs",
-        "references",
-    ]:
-        (project_dir / rel).mkdir(parents=True, exist_ok=True)
-
-
-def load_json(path: Path, default: Any = None) -> Any:
-    if not path.exists():
-        return default
-    return json.loads(path.read_text(encoding="utf-8"))
-
-
-def write_json(path: Path, payload: Any) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
-
-
-def project_bundle_manifest_path(project_dir: Path) -> Path:
-    return project_dir / PROJECT_BUNDLE_MANIFEST_FILENAME
-
-
-def project_health_report_path(project_dir: Path) -> Path:
-    return project_dir / PROJECT_HEALTH_REPORT_FILENAME
-
-
-def workbench_settings_path() -> Path:
-    return PROJECTS_ROOT / WORKBENCH_SETTINGS_FILENAME
-
-
-def usage_ledger_path() -> Path:
-    return PROJECTS_ROOT / USAGE_LEDGER_FILENAME
-
-
-def room_layout_path(project_dir: Path) -> Path:
-    return project_dir / ROOM_LAYOUT_FILENAME
-
-
-def room_layout_history_path(project_dir: Path) -> Path:
-    return project_dir / ROOM_LAYOUT_HISTORY_FILENAME
-
-
-def level_validation_report_path(project_dir: Path) -> Path:
-    return project_dir / LEVEL_VALIDATION_REPORT_FILENAME
-
-
-def _artifact_kind_for_path(rel_path: Path) -> str:
-    head = rel_path.parts[0] if rel_path.parts else ""
-    if rel_path.name == "project.json":
-        return "project_core"
-    if rel_path.suffix.lower() == ".json":
-        if head == "concepts":
-            return "concept_metadata"
-        if head == "animations":
-            return "animation_metadata"
-        return "metadata"
-    if head == "concepts":
-        return "concept_asset"
-    if head == "character":
-        return "character_asset"
-    if head == "animations":
-        return "animation_asset"
-    if head == "references":
-        return "reference_asset"
-    if head == "exports":
-        return "export_asset"
-    return head or "asset"
-
-
-def iter_project_artifact_paths(project_dir: Path) -> List[Path]:
-    manifest_path = project_bundle_manifest_path(project_dir)
-    artifacts: List[Path] = []
-    for path in sorted(project_dir.rglob("*")):
-        if not path.is_file():
-            continue
-        if path == manifest_path or path.name == ".DS_Store":
-            continue
-        artifacts.append(path)
-    return artifacts
-
-
-def build_project_bundle_manifest(project_dir: Path, project: Dict[str, Any]) -> Dict[str, Any]:
-    artifacts = []
-    for path in iter_project_artifact_paths(project_dir):
-        stat = path.stat()
-        rel_path = path.relative_to(project_dir)
-        artifacts.append({
-            "path": rel_path.as_posix(),
-            "kind": _artifact_kind_for_path(rel_path),
-            "size_bytes": stat.st_size,
-            "modified_at": datetime.fromtimestamp(stat.st_mtime, tz=timezone.utc).isoformat(),
-        })
-    return {
-        "manifest_version": PROJECT_BUNDLE_MANIFEST_VERSION,
-        "project_id": project.get("project_id") or project_dir.name,
-        "project_schema_version": int(project.get("project_schema_version") or PROJECT_SCHEMA_VERSION),
-        "tool_version": TOOL_VERSION,
-        "generated_at": now_iso(),
-        "project_name": project.get("project_name") or project_dir.name,
-        "selected_concept_id": project.get("selected_concept_id"),
-        "artifact_count": len(artifacts),
-        "artifacts": artifacts,
-    }
-
-
-def _health_issue(
-    issue_type: str,
-    path_value: str,
-    *,
-    detail: Optional[str] = None,
-    concept_id: Optional[str] = None,
-    animation_name: Optional[str] = None,
-    direction: Optional[str] = None,
-) -> Dict[str, Any]:
-    issue = {"type": issue_type, "path": path_value}
-    if detail:
-        issue["detail"] = detail
-    if concept_id:
-        issue["concept_id"] = concept_id
-    if animation_name:
-        issue["animation_name"] = animation_name
-    if direction:
-        issue["direction"] = direction
-    return issue
-
-
-def build_project_health_report(project: Dict[str, Any], project_dir: Path) -> Dict[str, Any]:
-    missing_files: List[Dict[str, Any]] = []
-    warnings: List[str] = []
-    seen_missing: Set[Tuple[str, str]] = set()
-
-    def record_missing(issue_type: str, raw_path: Any, **extra: Any) -> None:
-        if not raw_path:
-            return
-        path_text = str(raw_path)
-        candidate = Path(path_text)
-        resolved = candidate if candidate.is_absolute() else (project_dir / candidate)
-        if resolved.exists():
-            return
-        key = (issue_type, path_text)
-        if key in seen_missing:
-            return
-        seen_missing.add(key)
-        missing_files.append(_health_issue(issue_type, path_text, **extra))
-
-    concepts = project.get("concepts") or []
-    selected_id = project.get("selected_concept_id")
-    selected = next((item for item in concepts if item.get("concept_id") == selected_id), None) if selected_id else None
-    if selected_id and selected is None:
-        warnings.append("selected_concept_record_missing")
-    for concept in concepts:
-        concept_id = concept.get("concept_id")
-        for field in ("preview_image", "original_preview_image", "processed_preview_image", "approved_source_image"):
-            record_missing(
-                "concept_asset_missing",
-                concept.get(field),
-                detail=field,
-                concept_id=concept_id,
-            )
-
-    char_data = project.get("pixellab_character")
-    if isinstance(char_data, dict):
-        images = char_data.get("images") or {}
-        if isinstance(images, dict):
-            for direction, rel_path in images.items():
-                record_missing(
-                    "character_direction_image_missing",
-                    rel_path,
-                    detail="pixellab_character.images",
-                    direction=str(direction),
-                )
-
-    pix_store = project.get("pixellab_animations")
-    if isinstance(pix_store, dict):
-        animations = pix_store.get("animations") or {}
-        if isinstance(animations, dict):
-            for animation_name, meta in animations.items():
-                directions = (meta or {}).get("directions") or {}
-                if not isinstance(directions, dict):
-                    continue
-                for direction, direction_meta in directions.items():
-                    frames = (direction_meta or {}).get("frames") or []
-                    if not isinstance(frames, list):
-                        continue
-                    for rel_path in frames:
-                        record_missing(
-                            "animation_frame_missing",
-                            rel_path,
-                            animation_name=str(animation_name),
-                            direction=str(direction),
-                        )
-
-    last_export = project.get("last_export") or {}
-    if isinstance(last_export, dict):
-        export_dir = last_export.get("export_dir")
-        if export_dir and not (project_dir / str(export_dir)).exists():
-            warnings.append("last_export_directory_missing")
-            record_missing("last_export_missing", export_dir, detail="last_export.export_dir")
-
-    recommended_actions: List[str] = []
-    if any(item["type"] == "concept_asset_missing" for item in missing_files):
-        recommended_actions.append("relink_or_regenerate_concept_assets")
-    if any(item["type"] == "character_direction_image_missing" for item in missing_files):
-        recommended_actions.append("rebuild_or_reimport_character_assets")
-    if any(item["type"] == "animation_frame_missing" for item in missing_files):
-        recommended_actions.append("regenerate_or_repair_animation_frames")
-    if any(item["type"] == "last_export_missing" for item in missing_files):
-        recommended_actions.append("rerun_export_to_refresh_output_bundle")
-    if "selected_concept_record_missing" in warnings:
-        recommended_actions.append("reselect_or_reapprove_a_concept")
-
-    room_validation = project.get("level_validation_report") or {}
-    if isinstance(room_validation, dict):
-        room_status = str(room_validation.get("status") or "").lower()
-        if room_status == "fail":
-            warnings.append("room_layout_validation_failed")
-            recommended_actions.append("repair_room_layout")
-        elif room_status == "warning":
-            warnings.append("room_layout_validation_warning")
-
-    status = "pass" if not missing_files and not warnings else "warning"
-    return {
-        "report_version": PROJECT_HEALTH_REPORT_VERSION,
-        "project_id": project.get("project_id") or project_dir.name,
-        "project_schema_version": int(project.get("project_schema_version") or PROJECT_SCHEMA_VERSION),
-        "tool_version": TOOL_VERSION,
-        "checked_at": now_iso(),
-        "status": status,
-        "missing_files": missing_files,
-        "warnings": warnings,
-        "recommended_actions": recommended_actions,
-        "repair_actions_taken": [],
-        "summary": {
-            "concept_count": len(concepts),
-            "missing_file_count": len(missing_files),
-            "warning_count": len(warnings),
-        },
-    }
-
-
-def persist_project_integrity_metadata(project: Dict[str, Any], project_dir: Path) -> Tuple[Dict[str, Any], Dict[str, Any]]:
-    health = build_project_health_report(project, project_dir)
-    write_json(project_health_report_path(project_dir), health)
-    manifest = build_project_bundle_manifest(project_dir, project)
-    write_json(project_bundle_manifest_path(project_dir), manifest)
-    return health, manifest
-
-
-def load_project_health_summary(project_dir: Path) -> Dict[str, Any]:
-    report = load_json(project_health_report_path(project_dir), None)
-    if not isinstance(report, dict):
-        return {"status": "unknown", "warning_count": 0, "missing_file_count": 0}
-    summary = report.get("summary") or {}
-    return {
-        "status": report.get("status", "unknown"),
-        "warning_count": int(summary.get("warning_count") or 0),
-        "missing_file_count": int(summary.get("missing_file_count") or 0),
-    }
-
-
-def project_backup_filename(project: Dict[str, Any]) -> str:
-    base = slugify(project.get("project_name") or project.get("project_id") or "sprite-workbench-project")
-    return "%s.spriteworkbench.zip" % (base or "sprite-workbench-project")
-
-
-def load_workbench_settings() -> Dict[str, Any]:
-    payload = load_json(workbench_settings_path(), {})
-    if not isinstance(payload, dict):
-        payload = {}
-    normalized = dict(WORKBENCH_SETTINGS_DEFAULTS)
-    normalized["safe_mode"] = bool(payload.get("safe_mode", normalized["safe_mode"]))
-    normalized["confirm_paid_actions"] = bool(payload.get("confirm_paid_actions", normalized["confirm_paid_actions"]))
-    normalized["updated_at"] = payload.get("updated_at")
-    return normalized
-
-
-def save_workbench_settings(payload: Dict[str, Any]) -> Dict[str, Any]:
-    current = load_workbench_settings()
-    current.update({
-        "safe_mode": bool(payload.get("safe_mode", current["safe_mode"])),
-        "confirm_paid_actions": bool(payload.get("confirm_paid_actions", current["confirm_paid_actions"])),
-        "updated_at": now_iso(),
-    })
-    write_json(workbench_settings_path(), current)
-    return current
-
-
-def load_usage_ledger() -> Dict[str, Any]:
-    payload = load_json(usage_ledger_path(), None)
-    if not isinstance(payload, dict):
-        payload = {"entries": []}
-    payload.setdefault("entries", [])
-    if not isinstance(payload["entries"], list):
-        payload["entries"] = []
-    return payload
-
-
-def _coerce_usage_cost_usd(value: Any) -> Optional[float]:
-    if value is None:
-        return None
-    try:
-        number = float(value)
-    except (TypeError, ValueError):
-        return None
-    if math.isnan(number) or math.isinf(number):
-        return None
-    return number
-
-
-def append_usage_ledger_entry(
-    *,
-    provider: str,
-    endpoint: str,
-    project_id: Optional[str] = None,
-    status: str = "success",
-    usage: Optional[Dict[str, Any]] = None,
-    usage_cost_usd: Any = None,
-    job_id: Optional[str] = None,
-    generation_id: Optional[str] = None,
-    error: Optional[str] = None,
-    metadata: Optional[Dict[str, Any]] = None,
-) -> Dict[str, Any]:
-    ledger = load_usage_ledger()
-    usage_obj = dict(usage) if isinstance(usage, dict) else None
-    inferred_cost = _coerce_usage_cost_usd(usage_cost_usd)
-    if inferred_cost is None and usage_obj:
-        inferred_cost = (
-            _coerce_usage_cost_usd(usage_obj.get("usage_cost_usd"))
-            or _coerce_usage_cost_usd(usage_obj.get("cost_usd"))
-            or _coerce_usage_cost_usd(usage_obj.get("usd"))
-        )
-    entry = {
-        "entry_id": uuid.uuid4().hex[:12],
-        "created_at": now_iso(),
-        "provider": provider,
-        "endpoint": endpoint,
-        "project_id": project_id,
-        "status": status,
-        "usage_cost_usd": inferred_cost,
-        "job_id": job_id,
-        "generation_id": generation_id,
-        "error": error,
-        "usage": usage_obj,
-        "metadata": metadata or {},
-    }
-    ledger["entries"].append(entry)
-    if len(ledger["entries"]) > USAGE_LEDGER_LIMIT:
-        ledger["entries"] = ledger["entries"][-USAGE_LEDGER_LIMIT:]
-    write_json(usage_ledger_path(), ledger)
-    return entry
-
-
-def summarize_usage_ledger() -> Dict[str, Any]:
-    ledger = load_usage_ledger()
-    entries = [item for item in ledger.get("entries", []) if isinstance(item, dict)]
-    today_prefix = datetime.now(timezone.utc).date().isoformat()
-    recent = entries[-10:]
-    today_entries = [item for item in entries if str(item.get("created_at") or "").startswith(today_prefix)]
-
-    def _total(items: List[Dict[str, Any]]) -> float:
-        return round(sum(_coerce_usage_cost_usd(item.get("usage_cost_usd")) or 0.0 for item in items), 4)
-
-    return {
-        "entry_count": len(entries),
-        "today_entry_count": len(today_entries),
-        "today_usage_cost_usd": _total(today_entries),
-        "total_usage_cost_usd": _total(entries),
-        "recent_entries": recent,
-    }
-
-
-def provider_call_allowed() -> None:
-    settings = load_workbench_settings()
-    if settings.get("safe_mode"):
-        raise ValueError("Safe mode is enabled. Turn it off in the Safety panel before running paid generation actions.")
-
-
-def list_demo_projects() -> List[Dict[str, Any]]:
-    if not DEMO_PROJECT_FIXTURE_ROOT.exists():
-        return []
-    descriptions = {
-        "canonical-sprite-model": "Canonical downstream contract with approved sprite-model, rig, clips, QA, and export data.",
-        "hybrid-mixed-pipeline": "Mixed legacy/canonical project for compatibility and migration testing.",
-        "legacy-layered-character": "Legacy layered-character project for older downstream contract coverage.",
-    }
-    demos: List[Dict[str, Any]] = []
-    for path in sorted(DEMO_PROJECT_FIXTURE_ROOT.iterdir()):
-        if not path.is_dir() or not (path / "project.json").exists():
-            continue
-        project = apply_project_defaults(load_json(path / "project.json", {}))
-        demos.append({
-            "fixture_name": path.name,
-            "project_id": project.get("project_id") or path.name,
-            "project_name": project.get("project_name") or humanize_key(path.name),
-            "description": descriptions.get(path.name, "Sprite Workbench sample project."),
-        })
-    return demos
-
-
-def import_demo_project(payload: Dict[str, Any]) -> Dict[str, Any]:
-    fixture_name = str(payload.get("fixture_name") or "").strip()
-    if not fixture_name:
-        raise ValueError("Demo import requires fixture_name.")
-    source_dir = DEMO_PROJECT_FIXTURE_ROOT / fixture_name
-    if not source_dir.exists() or not (source_dir / "project.json").exists():
-        raise ValueError("Unknown demo project: %s." % fixture_name)
-
-    imported_project_data = apply_project_defaults(load_json(source_dir / "project.json", {}))
-    imported_project_id = str(imported_project_data.get("project_id") or "").strip() or fixture_name
-    target_project_id = imported_project_id
-    if (PROJECTS_ROOT / target_project_id).exists():
-        target_project_id = "%s-%s" % (
-            slugify(imported_project_data.get("project_name") or imported_project_id) or imported_project_id,
-            stable_hash(imported_project_id, now_iso())[:8],
-        )
-
-    project_dir = PROJECTS_ROOT / target_project_id
-    ensure_dirs(project_dir)
-    for path in sorted(source_dir.rglob("*")):
-        if not path.is_file() or path.name == ".DS_Store":
-            continue
-        rel = path.relative_to(source_dir)
-        target = project_dir / rel
-        target.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(path, target)
-
-    imported = load_project(target_project_id)
-    imported["project_id"] = target_project_id
-    imported["project_schema_version"] = int(imported.get("project_schema_version") or PROJECT_SCHEMA_VERSION)
-    imported["archived_at"] = None
-    imported["updated_at"] = now_iso()
-    imported["status"] = "demo_imported"
-    history = imported.get("history") if isinstance(imported.get("history"), dict) else {}
-    if isinstance(history, dict):
-        history["project_id"] = target_project_id
-        imported["history"] = history
-    if isinstance(imported.get("room_layout"), dict):
-        imported["room_layout"].setdefault("meta", {})
-        imported["room_layout"]["meta"]["project_id"] = target_project_id
-        imported["room_layout"]["meta"]["project_name"] = imported.get("project_name") or target_project_id
-    for key in (
-        "room_layout_history",
-        "level_validation_report",
-        "rig_layout_history",
-        "part_manifest_history",
-        "part_shapes_history",
-        "part_split_history",
-        "sprite_model_history",
-        "manual_animation_clips",
-        "ai_workflow",
-        "external_authoring",
-        "pixellab_animations",
-    ):
-        value = imported.get(key)
-        if isinstance(value, dict):
-            value["project_id"] = target_project_id
-    for concept in imported.get("concepts", []) or []:
-        concept["project_id"] = target_project_id
-    save_project(imported)
-    append_history_event(target_project_id, {
-        "type": "demo_project_imported",
-        "fixture_name": fixture_name,
-        "created_at": now_iso(),
-    })
-    return load_project(target_project_id)
-
-
-def default_room_layout(project_id: str, project_name: str = "Untitled Project") -> Dict[str, Any]:
-    return {
-        "version": 1,
-        "meta": {
-            "project_id": project_id,
-            "project_name": project_name,
-            "source": "sprite_workbench",
-            "created_at": now_iso(),
-            "updated_at": now_iso(),
-            "notes": "Project-scoped room layout source of truth for the Room Creation tool.",
-        },
-        "rooms": [
-            {
-                "id": "R1",
-                "name": "Room 1",
-                "size": {"width": 1600, "height": 1200},
-                "global": {"x": 600, "y": 360},
-                "polygon": [[160, 160], [1440, 160], [1440, 1040], [160, 1040]],
-                "platforms": [
-                    {"id": "R1-P1", "x": 192, "y": 992, "len": 38, "tint": 0},
-                ],
-                "movingPlatforms": [],
-                "doors": [],
-                "keys": [],
-                "abilities": [],
-                "playerStart": {"x": 320, "y": 928},
-                "edgeLinks": [],
-                "removedEdges": [],
-            }
-        ],
-    }
-
-
-def default_room_layout_history(project_id: str, layout: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-    return {
-        "project_id": project_id,
-        "current_revision_id": "initial",
-        "revisions": [
-            {
-                "revision_id": "initial",
-                "created_at": now_iso(),
-                "summary": "Initial room layout scaffold",
-                "room_count": len((layout or {}).get("rooms") or []),
-            }
-        ],
-    }
-
-
-def _room_layout_point_valid(point: Any) -> bool:
-    return (
-        isinstance(point, (list, tuple))
-        and len(point) == 2
-        and all(isinstance(value, (int, float)) for value in point)
+persistence.configure(
+    PROJECTS_ROOT=PROJECTS_ROOT,
+    PROJECT_SCHEMA_VERSION=PROJECT_SCHEMA_VERSION,
+    PROJECT_BUNDLE_MANIFEST_VERSION=PROJECT_BUNDLE_MANIFEST_VERSION,
+    PROJECT_HEALTH_REPORT_VERSION=PROJECT_HEALTH_REPORT_VERSION,
+    PROJECT_BUNDLE_MANIFEST_FILENAME=PROJECT_BUNDLE_MANIFEST_FILENAME,
+    PROJECT_HEALTH_REPORT_FILENAME=PROJECT_HEALTH_REPORT_FILENAME,
+    WORKBENCH_SETTINGS_FILENAME=WORKBENCH_SETTINGS_FILENAME,
+    USAGE_LEDGER_FILENAME=USAGE_LEDGER_FILENAME,
+    ROOM_LAYOUT_FILENAME=ROOM_LAYOUT_FILENAME,
+    ROOM_LAYOUT_HISTORY_FILENAME=ROOM_LAYOUT_HISTORY_FILENAME,
+    LEVEL_VALIDATION_REPORT_FILENAME=LEVEL_VALIDATION_REPORT_FILENAME,
+    TOOL_VERSION=TOOL_VERSION,
+    WORKBENCH_SETTINGS_DEFAULTS=WORKBENCH_SETTINGS_DEFAULTS,
+    USAGE_LEDGER_LIMIT=USAGE_LEDGER_LIMIT,
+    now_iso=now_iso,
+    slugify=slugify,
+)
+
+def _sync_persistence_config() -> None:
+    persistence.configure(
+        PROJECTS_ROOT=PROJECTS_ROOT,
+        PROJECT_SCHEMA_VERSION=PROJECT_SCHEMA_VERSION,
+        PROJECT_BUNDLE_MANIFEST_VERSION=PROJECT_BUNDLE_MANIFEST_VERSION,
+        PROJECT_HEALTH_REPORT_VERSION=PROJECT_HEALTH_REPORT_VERSION,
+        PROJECT_BUNDLE_MANIFEST_FILENAME=PROJECT_BUNDLE_MANIFEST_FILENAME,
+        PROJECT_HEALTH_REPORT_FILENAME=PROJECT_HEALTH_REPORT_FILENAME,
+        WORKBENCH_SETTINGS_FILENAME=WORKBENCH_SETTINGS_FILENAME,
+        USAGE_LEDGER_FILENAME=USAGE_LEDGER_FILENAME,
+        ROOM_LAYOUT_FILENAME=ROOM_LAYOUT_FILENAME,
+        ROOM_LAYOUT_HISTORY_FILENAME=ROOM_LAYOUT_HISTORY_FILENAME,
+        LEVEL_VALIDATION_REPORT_FILENAME=LEVEL_VALIDATION_REPORT_FILENAME,
+        TOOL_VERSION=TOOL_VERSION,
+        WORKBENCH_SETTINGS_DEFAULTS=WORKBENCH_SETTINGS_DEFAULTS,
+        USAGE_LEDGER_LIMIT=USAGE_LEDGER_LIMIT,
+        now_iso=now_iso,
+        slugify=slugify,
     )
 
 
-def validate_room_layout(layout: Any) -> Dict[str, Any]:
-    errors: List[str] = []
-    warnings: List[str] = []
-    room_index_by_id: Dict[str, Dict[str, Any]] = {}
-    room_ids: List[str] = []
-
-    if not isinstance(layout, dict):
-        return {
-            "status": "fail",
-            "errors": ["Layout payload must be a JSON object."],
-            "warnings": [],
-            "summary": {"room_count": 0, "door_count": 0, "platform_count": 0, "linked_edge_count": 0},
-            "checked_at": now_iso(),
-        }
-
-    rooms = layout.get("rooms")
-    if not isinstance(rooms, list) or not rooms:
-        errors.append("Layout must contain a non-empty rooms array.")
-        rooms = []
-
-    platform_count = 0
-    door_count = 0
-    linked_edge_count = 0
-
-    for idx, room in enumerate(rooms):
-        if not isinstance(room, dict):
-            errors.append("Room %d must be an object." % (idx + 1))
-            continue
-        room_id = str(room.get("id") or "").strip()
-        if not room_id:
-            errors.append("Room %d is missing an id." % (idx + 1))
-            continue
-        if room_id in room_index_by_id:
-            errors.append("Room id %s is duplicated." % room_id)
-            continue
-        room_index_by_id[room_id] = room
-        room_ids.append(room_id)
-
-        polygon = room.get("polygon")
-        if not isinstance(polygon, list) or len(polygon) < 3 or not all(_room_layout_point_valid(point) for point in polygon):
-            errors.append("Room %s must have a polygon with at least three numeric points." % room_id)
-
-        global_pos = room.get("global")
-        if not isinstance(global_pos, dict) or not isinstance(global_pos.get("x"), (int, float)) or not isinstance(global_pos.get("y"), (int, float)):
-            errors.append("Room %s must define numeric global.x and global.y." % room_id)
-
-        player_start = room.get("playerStart")
-        if player_start is None:
-            warnings.append("Room %s has no playerStart." % room_id)
-        elif not isinstance(player_start, dict) or not isinstance(player_start.get("x"), (int, float)) or not isinstance(player_start.get("y"), (int, float)):
-            errors.append("Room %s playerStart must contain numeric x/y." % room_id)
-
-        platforms = room.get("platforms") or []
-        if not isinstance(platforms, list):
-            errors.append("Room %s platforms must be a list." % room_id)
-        else:
-            platform_count += len(platforms)
-
-        doors = room.get("doors") or []
-        if not isinstance(doors, list):
-            errors.append("Room %s doors must be a list." % room_id)
-        else:
-            door_count += len(doors)
-
-        edge_links = room.get("edgeLinks") or []
-        if not isinstance(edge_links, list):
-            errors.append("Room %s edgeLinks must be a list." % room_id)
-            continue
-        for link in edge_links:
-            if not isinstance(link, dict):
-                errors.append("Room %s edge link entries must be objects." % room_id)
-                continue
-            edge_index = link.get("edgeIndex")
-            target_room_id = str(link.get("targetRoomId") or "").strip()
-            target_edge_index = link.get("targetEdgeIndex")
-            if not isinstance(edge_index, int) or edge_index < 0 or (isinstance(polygon, list) and edge_index >= len(polygon)):
-                errors.append("Room %s has an invalid edgeIndex in edgeLinks." % room_id)
-            if not target_room_id:
-                errors.append("Room %s edge link is missing targetRoomId." % room_id)
-            if not isinstance(target_edge_index, int) or target_edge_index < 0:
-                errors.append("Room %s edge link to %s has an invalid targetEdgeIndex." % (room_id, target_room_id or "unknown"))
-            linked_edge_count += 1
-
-    for room_id, room in room_index_by_id.items():
-        target_polygon_counts = {rid: len((room_index_by_id.get(rid) or {}).get("polygon") or []) for rid in room_index_by_id}
-        for link in room.get("edgeLinks") or []:
-            target_room_id = str(link.get("targetRoomId") or "").strip()
-            if target_room_id and target_room_id not in room_index_by_id:
-                errors.append("Room %s links to missing target room %s." % (room_id, target_room_id))
-                continue
-            if target_room_id:
-                target_edge_index = link.get("targetEdgeIndex")
-                target_polygon_len = target_polygon_counts.get(target_room_id, 0)
-                if isinstance(target_edge_index, int) and target_polygon_len and target_edge_index >= target_polygon_len:
-                    errors.append("Room %s links to out-of-range edge %s on %s." % (room_id, target_edge_index, target_room_id))
-
-    status = "pass"
-    if errors:
-        status = "fail"
-    elif warnings:
-        status = "warning"
-    return {
-        "status": status,
-        "errors": errors,
-        "warnings": warnings,
-        "summary": {
-            "room_count": len(room_ids),
-            "door_count": door_count,
-            "platform_count": platform_count,
-            "linked_edge_count": linked_edge_count,
-        },
-        "checked_at": now_iso(),
-    }
+def _sync_project_catalog_config() -> None:
+    project_catalog.configure(
+        PROJECTS_ROOT=PROJECTS_ROOT,
+        PROJECT_SCHEMA_VERSION=PROJECT_SCHEMA_VERSION,
+        DEMO_PROJECT_FIXTURE_ROOT=DEMO_PROJECT_FIXTURE_ROOT,
+        ROOM_LAYOUT_FILENAME=ROOM_LAYOUT_FILENAME,
+        ROOM_LAYOUT_HISTORY_FILENAME=ROOM_LAYOUT_HISTORY_FILENAME,
+        LEVEL_VALIDATION_REPORT_FILENAME=LEVEL_VALIDATION_REPORT_FILENAME,
+        now_iso=now_iso,
+        slugify=slugify,
+        stable_hash=stable_hash,
+        load_json=load_json,
+        load_project=load_project,
+        save_project=save_project,
+        apply_project_defaults=apply_project_defaults,
+        ensure_dirs=ensure_dirs,
+        append_history_event=append_history_event,
+        parse_data_url=parse_data_url,
+        project_backup_filename=project_backup_filename,
+        load_project_health_summary=load_project_health_summary,
+        normalize_wizard_state=normalize_wizard_state,
+    )
 
 
-def room_layout_wizard_complete(project: Dict[str, Any]) -> bool:
-    history = project.get("room_layout_history") or {}
-    validation = project.get("level_validation_report") or {}
-    current_revision_id = str(history.get("current_revision_id") or "").strip()
-    if not current_revision_id or current_revision_id == "initial":
-        return False
-    return str(validation.get("status") or "").lower() != "fail"
+def _sync_project_io_config() -> None:
+    project_io.configure(
+        PROJECTS_ROOT=PROJECTS_ROOT,
+        PROJECT_SCHEMA_VERSION=PROJECT_SCHEMA_VERSION,
+        apply_project_defaults=apply_project_defaults,
+        ensure_dirs=ensure_dirs,
+        hydrate_brief=hydrate_brief,
+        load_json=load_json,
+        write_json=write_json,
+        canonical_downstream_path=canonical_downstream_path,
+        rig_layout_history_path=rig_layout_history_path,
+        default_rig_layout_history=default_rig_layout_history,
+        part_manifest_history_path=part_manifest_history_path,
+        default_part_manifest_history=default_part_manifest_history,
+        validate_part_manifest=validate_part_manifest,
+        part_shapes_history_path=part_shapes_history_path,
+        default_part_shapes_history=default_part_shapes_history,
+        validate_part_shapes=validate_part_shapes,
+        part_split_history_path=part_split_history_path,
+        default_part_split_history=default_part_split_history,
+        normalize_mask=normalize_mask,
+        detect_mask=detect_mask,
+        validate_part_split=validate_part_split,
+        load_master_pose_manifest=load_master_pose_manifest,
+        legacy_downstream_path=legacy_downstream_path,
+        hydrate_legacy_sprite_model=hydrate_legacy_sprite_model,
+        validate_sprite_model=validate_sprite_model,
+        active_rig_profile_name=active_rig_profile_name,
+        hydrate_animation_clips=hydrate_animation_clips,
+        hydrate_manual_animation_clips=hydrate_manual_animation_clips,
+        hydrate_ai_workflow=hydrate_ai_workflow,
+        hydrate_external_authoring=hydrate_external_authoring,
+        load_sprite_model_history=load_sprite_model_history,
+        resolve_rig_layout=resolve_rig_layout,
+        load_history=load_history,
+        room_layout_path=room_layout_path,
+        default_room_layout=default_room_layout,
+        room_layout_history_path=room_layout_history_path,
+        default_room_layout_history=default_room_layout_history,
+        validate_room_layout=validate_room_layout,
+        level_validation_report_path=level_validation_report_path,
+        _pixellab_character_path=_pixellab_character_path,
+        _pixellab_skeleton_path=_pixellab_skeleton_path,
+        _load_pixellab_animations_store=_load_pixellab_animations_store,
+        load_concepts=load_concepts,
+        hydrate_concept=hydrate_concept,
+        _normalize_east_only_character_source=_normalize_east_only_character_source,
+        _upscale_legacy_east_only_animation_frames=_upscale_legacy_east_only_animation_frames,
+        prompt_history_entries=prompt_history_entries,
+        build_rig_layout_handoff_prompt=build_rig_layout_handoff_prompt,
+        build_part_manifest_handoff_prompt=build_part_manifest_handoff_prompt,
+        build_part_shapes_handoff_prompt=build_part_shapes_handoff_prompt,
+        build_part_split_handoff_prompt=build_part_split_handoff_prompt,
+        load_stage_maturity=load_stage_maturity,
+        derive_metrics=derive_metrics,
+        build_run_summaries=build_run_summaries,
+        selected_concept=selected_concept,
+        animation_render_complete=animation_render_complete,
+        compute_wizard_context=compute_wizard_context,
+        persist_project_integrity_metadata=persist_project_integrity_metadata,
+        project_health_report_path=project_health_report_path,
+        project_bundle_manifest_path=project_bundle_manifest_path,
+        analyze_reference_asset=analyze_reference_asset,
+        save_master_pose_manifest=save_master_pose_manifest,
+        save_sprite_model_history=save_sprite_model_history,
+        serialize_manual_animation_clips=serialize_manual_animation_clips,
+        serialize_ai_workflow=serialize_ai_workflow,
+        serialize_external_authoring=serialize_external_authoring,
+        save_concept=save_concept,
+        now_iso=now_iso,
+    )
+
+
+def _sync_project_lifecycle_config() -> None:
+    project_lifecycle.configure(
+        PROJECTS_ROOT=PROJECTS_ROOT,
+        ROOM_LAYOUT_FILENAME=ROOM_LAYOUT_FILENAME,
+        ROOM_LAYOUT_HISTORY_FILENAME=ROOM_LAYOUT_HISTORY_FILENAME,
+        LEVEL_VALIDATION_REPORT_FILENAME=LEVEL_VALIDATION_REPORT_FILENAME,
+        CANONICAL_DOWNSTREAM_FILES=CANONICAL_DOWNSTREAM_FILES,
+        LEGACY_DOWNSTREAM_FILES=LEGACY_DOWNSTREAM_FILES,
+        normalize_prompt_text=normalize_prompt_text,
+        build_brief_from_payload=build_brief_from_payload,
+        merge_new_references=merge_new_references,
+        slugify=slugify,
+        stable_hash=stable_hash,
+        now_iso=now_iso,
+        ensure_dirs=ensure_dirs,
+        normalize_wizard_state=normalize_wizard_state,
+        set_wizard_step_complete=set_wizard_step_complete,
+        default_ai_workflow=default_ai_workflow,
+        default_external_authoring=default_external_authoring,
+        default_room_layout=default_room_layout,
+        default_room_layout_history=default_room_layout_history,
+        validate_room_layout=validate_room_layout,
+        save_project=save_project,
+        load_project=load_project,
+        delete_path=delete_path,
+        legacy_downstream_path=legacy_downstream_path,
+    )
+
+
+def _sync_workbench_export_config() -> None:
+    workbench_export.configure(
+        AI_CLIP_SPECS=AI_CLIP_SPECS,
+        AI_WORKFLOW_PROFILE=AI_WORKFLOW_PROFILE,
+        ANIMATION_SPECS=ANIMATION_SPECS,
+        FRAME_PIVOT=FRAME_PIVOT,
+        FRAME_SIZE=FRAME_SIZE,
+        PROJECTS_ROOT=PROJECTS_ROOT,
+        TOOL_VERSION=TOOL_VERSION,
+        _pixellab_animations_path=_pixellab_animations_path,
+        _pixellab_character_approved_guard=_pixellab_character_approved_guard,
+        _pixellab_character_path=_pixellab_character_path,
+        ai_workflow_or_error=ai_workflow_or_error,
+        alpha_bbox=alpha_bbox,
+        border_has_alpha=border_has_alpha,
+        call_progress=call_progress,
+        canonical_downstream_path=canonical_downstream_path,
+        cleanup_frame=cleanup_frame,
+        clip_root_motion_policy=clip_root_motion_policy,
+        hydrate_external_authoring=hydrate_external_authoring,
+        image_sha256=image_sha256,
+        load_json=load_json,
+        load_part_asset=load_part_asset,
+        load_project=load_project,
+        now_iso=now_iso,
+        pixellab_animation_store_has_frames=pixellab_animation_store_has_frames,
+        save_project=save_project,
+        sync_pixellab_animation_clips=sync_pixellab_animation_clips,
+        validate_sprite_model=validate_sprite_model,
+        write_json=write_json,
+    )
+
+
+def _sync_workbench_concepts_config() -> None:
+    workbench_concepts.configure(
+        DEFAULT_NEGATIVE_PROMPT=DEFAULT_NEGATIVE_PROMPT,
+        PROJECTS_ROOT=PROJECTS_ROOT,
+        _CONCEPT_ARTIFACT_IMAGE_KEYS=_CONCEPT_ARTIFACT_IMAGE_KEYS,
+        _set_pixellab_east_only_character_source=_set_pixellab_east_only_character_source,
+        append_history_event=append_history_event,
+        apply_validation_state=apply_validation_state,
+        clear_project_downstream_state=clear_project_downstream_state,
+        default_rig_layout_history=default_rig_layout_history,
+        delete_path=delete_path,
+        load_json=load_json,
+        load_project=load_project,
+        make_character_spec=make_character_spec,
+        now_iso=now_iso,
+        parse_iso=parse_iso,
+        reset_downstream_assets=reset_downstream_assets,
+        resolve_rig_layout=resolve_rig_layout,
+        rig_layout_history_path=rig_layout_history_path,
+        save_project=save_project,
+        write_json=write_json,
+    )
+
+
+def _sync_workbench_brief_config() -> None:
+    workbench_brief.configure(
+        CHARACTER_TEMPLATE_MAP=CHARACTER_TEMPLATE_MAP,
+        DEFAULT_CANVAS_SIZE=DEFAULT_CANVAS_SIZE,
+        DEFAULT_CHARACTER_TEMPLATE=DEFAULT_CHARACTER_TEMPLATE,
+        DEFAULT_DETAIL_LEVEL=DEFAULT_DETAIL_LEVEL,
+        DEFAULT_NEGATIVE_PROMPT=DEFAULT_NEGATIVE_PROMPT,
+        DEFAULT_OUTLINE_STYLE=DEFAULT_OUTLINE_STYLE,
+        DEFAULT_SHADING_STYLE=DEFAULT_SHADING_STYLE,
+        DETAIL_LEVEL_MAP=DETAIL_LEVEL_MAP,
+        HOUSE_STYLE_PROMPT_RULES=HOUSE_STYLE_PROMPT_RULES,
+        METROIDVANIA_PROMPT_CONTEXT=METROIDVANIA_PROMPT_CONTEXT,
+        NEGATING_PREFIX_PATTERN=NEGATING_PREFIX_PATTERN,
+        OUTLINE_STYLE_MAP=OUTLINE_STYLE_MAP,
+        PIXELLAB_CONCEPT_IMAGE_SIZE=PIXELLAB_CONCEPT_IMAGE_SIZE,
+        REFERENCE_ROLES=REFERENCE_ROLES,
+        REFERENCE_SPRITESHEET_HINTS=REFERENCE_SPRITESHEET_HINTS,
+        REJECT_PATTERNS=REJECT_PATTERNS,
+        SHADING_STYLE_MAP=SHADING_STYLE_MAP,
+        clamp=clamp,
+        coerce_canvas_size=coerce_canvas_size,
+        detect_mask=detect_mask,
+        guess_extension=guess_extension,
+        mask_connected_components=mask_connected_components,
+        normalize_brief_backend_mode=normalize_brief_backend_mode,
+        now_iso=now_iso,
+        parse_data_url=parse_data_url,
+        pick_mapped_style=pick_mapped_style,
+        sanitize_filename=sanitize_filename,
+        stable_hash=stable_hash,
+        stable_int=stable_int,
+        summarize_iteration_feedback=summarize_iteration_feedback,
+    )
+
+
+def _sync_workbench_iteration_config() -> None:
+    workbench_iteration.configure(
+        GEMINI_IMAGE_MODEL=GEMINI_IMAGE_MODEL,
+        ITERATION_ELEMENTS=ITERATION_ELEMENTS,
+        PIXELLAB_CONCEPT_IMAGE_SIZE=PIXELLAB_CONCEPT_IMAGE_SIZE,
+        _GOOGLE_GENAI_AVAILABLE=_GOOGLE_GENAI_AVAILABLE,
+        _brief_pixel_lab_style=_brief_pixel_lab_style,
+        _google_genai=_google_genai if _GOOGLE_GENAI_AVAILABLE else None,
+        _google_genai_types=_google_genai_types if _GOOGLE_GENAI_AVAILABLE else None,
+        detect_mask=detect_mask,
+        gemini_client_factory=lambda: get_gemini_client(),
+        largest_component_mask=largest_component_mask,
+        normalize_mask=normalize_mask,
+        stable_int=stable_int,
+    )
+
+
+def _sync_workbench_pixellab_store_config() -> None:
+    workbench_pixellab_store.configure(
+        SUPPORTED_CANVAS_SIZES=SUPPORTED_CANVAS_SIZES,
+        _PIXELLAB_ANIMATION_NAME_RE=_PIXELLAB_ANIMATION_NAME_RE,
+        load_json=load_json,
+        now_iso=now_iso,
+        preferred_concept_canvas_size=preferred_concept_canvas_size,
+        prepare_pixellab_character_color_source=prepare_pixellab_character_color_source,
+    )
+
+
+def _sync_workbench_workflow_state_config() -> None:
+    workbench_workflow_state.configure(
+        AI_CLIP_SPECS=AI_CLIP_SPECS,
+        AI_WORKFLOW_PROFILE=AI_WORKFLOW_PROFILE,
+        ANIMATION_SPECS=ANIMATION_SPECS,
+        CANONICAL_DOWNSTREAM_FILES=CANONICAL_DOWNSTREAM_FILES,
+        LEGACY_DOWNSTREAM_FILES=LEGACY_DOWNSTREAM_FILES,
+        PROJECT_SCHEMA_VERSION=PROJECT_SCHEMA_VERSION,
+        SKELFORM_DOCS_URL=SKELFORM_DOCS_URL,
+        SKELFORM_EDITOR_URL=SKELFORM_EDITOR_URL,
+        WIZARD_STEPS_KNOWN=WIZARD_STEPS_KNOWN,
+        humanize_identifier=humanize_identifier,
+        image_sha256=image_sha256,
+        load_json=load_json,
+        neutral_pose_transforms=neutral_pose_transforms,
+        now_iso=now_iso,
+        sanitize_filename=sanitize_filename,
+        skelform_provider_profile=skelform_provider_profile,
+    )
+
+
+def _sync_workbench_manual_clips_config() -> None:
+    workbench_manual_clips.configure(
+        PROJECTS_ROOT=PROJECTS_ROOT,
+        call_progress=call_progress,
+        cleanup_frame=cleanup_frame,
+        clear_directory=clear_directory,
+        default_manual_animation_clips=default_manual_animation_clips,
+        default_manual_clip=default_manual_clip,
+        hydrate_manual_animation_clips=hydrate_manual_animation_clips,
+        humanize_identifier=humanize_identifier,
+        invalidate_manual_clip_preview=invalidate_manual_clip_preview,
+        load_project=load_project,
+        manual_clip_frame_count=manual_clip_frame_count,
+        manual_clip_render_root=manual_clip_render_root,
+        manual_clip_source_hashes=manual_clip_source_hashes,
+        normalize_manual_clip_frame=normalize_manual_clip_frame,
+        normalize_manual_clip_frame_entry=normalize_manual_clip_frame_entry,
+        normalize_manual_frame_patches=normalize_manual_frame_patches,
+        normalize_manual_frame_repairs=normalize_manual_frame_repairs,
+        now_iso=now_iso,
+        neutral_pose_transforms=neutral_pose_transforms,
+        recover_sprite_model_occlusion=recover_sprite_model_occlusion,
+        render_pose_from_sprite_model=render_pose_from_sprite_model,
+        sanitize_filename=sanitize_filename,
+        save_project=save_project,
+        slugify=slugify,
+        write_json=write_json,
+    )
+
+
+def _sync_workbench_legacy_animation_production_config() -> None:
+    workbench_legacy_animation_production.configure(
+        ANIMATION_SPECS=ANIMATION_SPECS,
+        DEFAULT_CLIP_CONTROLS=DEFAULT_CLIP_CONTROLS,
+        PROJECTS_ROOT=PROJECTS_ROOT,
+        active_rig_profile_name=active_rig_profile_name,
+        call_progress=call_progress,
+        canonical_downstream_path=canonical_downstream_path,
+        cleanup_frame=cleanup_frame,
+        clear_directory=clear_directory,
+        clear_project_downstream_state=clear_project_downstream_state,
+        clip_frame_overrides=clip_frame_overrides,
+        default_clip_controls=default_clip_controls,
+        delete_path=delete_path,
+        generate_clip_frames=generate_clip_frames,
+        hydrate_animation_clips=hydrate_animation_clips,
+        load_json=load_json,
+        load_project=load_project,
+        normalize_clip_controls=normalize_clip_controls,
+        now_iso=now_iso,
+        render_pose_from_sprite_model=render_pose_from_sprite_model,
+        reset_downstream_assets=reset_downstream_assets,
+        save_project=save_project,
+        write_json=write_json,
+    )
+
+
+def _sync_workbench_legacy_concept_runs_config() -> None:
+    workbench_legacy_concept_runs.configure(
+        CONCEPT_CANVAS=CONCEPT_CANVAS,
+        INITIAL_CONCEPT_COUNT=INITIAL_CONCEPT_COUNT,
+        MAJOR_REFINEMENT_LOCKS=MAJOR_REFINEMENT_LOCKS,
+        PROJECTS_ROOT=PROJECTS_ROOT,
+        REFINEMENT_CONCEPT_COUNT=REFINEMENT_CONCEPT_COUNT,
+        REFINEMENT_STRENGTHS=REFINEMENT_STRENGTHS,
+        ConceptRequest=ConceptRequest,
+        annotate_run_triage=annotate_run_triage,
+        append_history_event=append_history_event,
+        brief_backend_mode=brief_backend_mode,
+        build_initial_variation_axes=build_initial_variation_axes,
+        build_prompt_bundle=build_prompt_bundle,
+        build_refinement_variation_axes=build_refinement_variation_axes,
+        call_progress=call_progress,
+        get_concept_backend=get_concept_backend,
+        load_project=load_project,
+        make_reference_inputs=make_reference_inputs,
+        now_iso=now_iso,
+        palette_from_seed=palette_from_seed,
+        save_concept=save_concept,
+        save_project=save_project,
+        stable_int=stable_int,
+        summarize_run_triage=summarize_run_triage,
+        next_concept_serial=next_concept_serial,
+    )
+
+
+load_json = persistence.load_json
+write_json = persistence.write_json
+project_bundle_manifest_path = persistence.project_bundle_manifest_path
+project_health_report_path = persistence.project_health_report_path
+room_layout_path = persistence.room_layout_path
+room_layout_history_path = persistence.room_layout_history_path
+level_validation_report_path = persistence.level_validation_report_path
+iter_project_artifact_paths = persistence.iter_project_artifact_paths
+build_project_bundle_manifest = persistence.build_project_bundle_manifest
+build_project_health_report = persistence.build_project_health_report
+persist_project_integrity_metadata = persistence.persist_project_integrity_metadata
+load_project_health_summary = persistence.load_project_health_summary
+project_backup_filename = persistence.project_backup_filename
+default_room_layout = persistence.default_room_layout
+default_room_layout_history = persistence.default_room_layout_history
+validate_room_layout = persistence.validate_room_layout
+room_layout_wizard_complete = persistence.room_layout_wizard_complete
+
+
+def workbench_settings_path() -> Path:
+    _sync_persistence_config()
+    return persistence.workbench_settings_path()
+
+
+def usage_ledger_path() -> Path:
+    _sync_persistence_config()
+    return persistence.usage_ledger_path()
+
+
+def load_workbench_settings() -> Dict[str, Any]:
+    _sync_persistence_config()
+    return persistence.load_workbench_settings()
+
+
+def save_workbench_settings(payload: Dict[str, Any]) -> Dict[str, Any]:
+    _sync_persistence_config()
+    return persistence.save_workbench_settings(payload)
+
+
+def load_usage_ledger() -> Dict[str, Any]:
+    _sync_persistence_config()
+    return persistence.load_usage_ledger()
+
+
+def append_usage_ledger_entry(**kwargs: Any) -> Dict[str, Any]:
+    _sync_persistence_config()
+    return persistence.append_usage_ledger_entry(**kwargs)
+
+
+def summarize_usage_ledger() -> Dict[str, Any]:
+    _sync_persistence_config()
+    return persistence.summarize_usage_ledger()
+
+
+def provider_call_allowed() -> None:
+    _sync_persistence_config()
+    persistence.provider_call_allowed()
+
+
+def list_demo_projects() -> List[Dict[str, Any]]:
+    _sync_project_catalog_config()
+    return project_catalog.list_demo_projects()
+
+
+def import_demo_project(payload: Dict[str, Any]) -> Dict[str, Any]:
+    _sync_project_catalog_config()
+    return project_catalog.import_demo_project(payload)
 
 
 def build_project_bundle_archive(project_id: str) -> Tuple[str, bytes]:
-    project = load_project(project_id)
-    project_dir = PROJECTS_ROOT / project_id
-    buffer = io.BytesIO()
-    with zipfile.ZipFile(buffer, "w", compression=zipfile.ZIP_DEFLATED) as zf:
-        for path in sorted(project_dir.rglob("*")):
-            if not path.is_file() or path.name == ".DS_Store":
-                continue
-            arcname = "%s/%s" % (project_id, path.relative_to(project_dir).as_posix())
-            zf.write(path, arcname)
-    return project_backup_filename(project), buffer.getvalue()
-
-
-def _normalize_import_bundle_members(names: List[str]) -> Dict[str, str]:
-    files = [name for name in names if name and not name.endswith("/") and Path(name).name != ".DS_Store"]
-    if not files:
-        raise ValueError("Project bundle is empty.")
-    top_levels = {Path(name).parts[0] for name in files if Path(name).parts}
-    strip_prefix = None
-    if len(top_levels) == 1:
-        candidate = next(iter(top_levels))
-        if all(len(Path(name).parts) >= 2 for name in files):
-            strip_prefix = candidate
-    normalized: Dict[str, str] = {}
-    for name in files:
-        path = Path(name)
-        rel = Path(*path.parts[1:]) if strip_prefix and path.parts and path.parts[0] == strip_prefix else path
-        if not rel.parts:
-            continue
-        rel_text = rel.as_posix()
-        if rel_text.startswith("../") or rel_text.startswith("/"):
-            raise ValueError("Project bundle contains unsafe paths.")
-        normalized[name] = rel_text
-    return normalized
+    _sync_project_catalog_config()
+    return project_catalog.build_project_bundle_archive(project_id)
 
 
 def import_project_bundle(payload: Dict[str, Any]) -> Dict[str, Any]:
-    data_url = payload.get("data_url")
-    if not data_url:
-        raise ValueError("Import bundle requires data_url.")
-    mime_type, raw = parse_data_url(str(data_url))
-    if mime_type not in {"application/zip", "application/x-zip-compressed", "application/octet-stream"}:
-        # Safari sometimes reports generic octet-stream; allow that but reject obviously wrong types.
-        if ".zip" not in str(payload.get("name") or "").lower():
-            raise ValueError("Import bundle must be a .zip file.")
+    _sync_project_catalog_config()
+    return project_catalog.import_project_bundle(payload)
 
-    with tempfile.TemporaryDirectory() as tmpdir:
-        temp_root = Path(tmpdir)
-        try:
-            with zipfile.ZipFile(io.BytesIO(raw), "r") as zf:
-                member_map = _normalize_import_bundle_members(zf.namelist())
-                if "project.json" not in member_map.values():
-                    raise ValueError("Project bundle is missing project.json.")
-                for member_name, rel_text in member_map.items():
-                    target = temp_root / rel_text
-                    target.parent.mkdir(parents=True, exist_ok=True)
-                    with zf.open(member_name, "r") as source, target.open("wb") as dest:
-                        shutil.copyfileobj(source, dest)
-        except zipfile.BadZipFile as exc:
-            raise ValueError("Import bundle is not a valid zip archive.") from exc
 
-        imported_project_data = apply_project_defaults(load_json(temp_root / "project.json", {}))
-        imported_project_id = str(imported_project_data.get("project_id") or "").strip() or slugify(
-            str(imported_project_data.get("project_name") or Path(str(payload.get("name") or "imported-project")).stem)
-        )
-        if not imported_project_id:
-            imported_project_id = "imported-project"
-        target_project_id = imported_project_id
-        if (PROJECTS_ROOT / target_project_id).exists():
-            target_project_id = "%s-%s" % (
-                slugify(imported_project_data.get("project_name") or imported_project_id) or imported_project_id,
-                stable_hash(imported_project_id, now_iso())[:8],
-            )
+def list_projects(include_archived: bool) -> List[Dict[str, Any]]:
+    _sync_project_catalog_config()
+    return project_catalog.list_projects(include_archived)
 
-        project_dir = PROJECTS_ROOT / target_project_id
-        ensure_dirs(project_dir)
-        for path in sorted(temp_root.rglob("*")):
-            if not path.is_file():
-                continue
-            rel = path.relative_to(temp_root)
-            target = project_dir / rel
-            target.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(path, target)
 
-    imported = load_project(target_project_id)
-    imported["project_id"] = target_project_id
-    imported["project_schema_version"] = int(imported.get("project_schema_version") or PROJECT_SCHEMA_VERSION)
-    imported["archived_at"] = None
-    imported["updated_at"] = now_iso()
-    if imported.get("history"):
-        imported["history"]["project_id"] = target_project_id
-    if isinstance(imported.get("room_layout"), dict):
-        imported["room_layout"].setdefault("meta", {})
-        imported["room_layout"]["meta"]["project_id"] = target_project_id
-        imported["room_layout"]["meta"]["project_name"] = imported.get("project_name") or target_project_id
-    for key in (
-        "room_layout_history",
-        "level_validation_report",
-        "rig_layout_history",
-        "part_manifest_history",
-        "part_shapes_history",
-        "part_split_history",
-        "sprite_model_history",
-        "manual_animation_clips",
-        "ai_workflow",
-        "external_authoring",
-        "pixellab_animations",
-    ):
-        value = imported.get(key)
-        if isinstance(value, dict):
-            value["project_id"] = target_project_id
-    for concept in imported.get("concepts", []) or []:
-        concept["project_id"] = target_project_id
-    save_project(imported)
-    return load_project(target_project_id)
+def project_summary(project: Dict[str, Any]) -> Dict[str, Any]:
+    _sync_project_catalog_config()
+    return project_catalog.project_summary(project)
+
+
+def create_project(payload: Dict[str, Any]) -> Dict[str, Any]:
+    _sync_project_lifecycle_config()
+    return project_lifecycle.create_project(payload)
+
+
+def update_project_brief(project_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+    _sync_project_lifecycle_config()
+    return project_lifecycle.update_project_brief(project_id, payload)
+
+
+def duplicate_project(project_id: str) -> Dict[str, Any]:
+    _sync_project_lifecycle_config()
+    return project_lifecycle.duplicate_project(project_id)
+
+
+def enrich_brief_references(project_dir: Path, brief: Dict[str, Any]) -> Dict[str, Any]:
+    _sync_project_io_config()
+    return project_io.enrich_brief_references(project_dir, brief)
+
+
+def load_project(project_id: str) -> Dict[str, Any]:
+    _sync_project_io_config()
+    return project_io.load_project(project_id)
+
+
+def save_project(project: Dict[str, Any]) -> None:
+    _sync_project_io_config()
+    project_io.save_project(project)
+
+
+def legacy_reference_entries(brief: Dict[str, Any]) -> List[Dict[str, Any]]:
+    _sync_workbench_brief_config()
+    return workbench_brief.legacy_reference_entries(brief)
+
+
+def normalize_prompt_text(prompt_text: str) -> str:
+    _sync_workbench_brief_config()
+    return workbench_brief.normalize_prompt_text(prompt_text)
+
+
+def validate_prompt_constraints(prompt_text: str) -> None:
+    _sync_workbench_brief_config()
+    workbench_brief.validate_prompt_constraints(prompt_text)
+
+
+def infer_prop(prompt_text: str) -> str:
+    _sync_workbench_brief_config()
+    return workbench_brief.infer_prop(prompt_text)
+
+
+def infer_brief_defaults(prompt_text: str) -> Dict[str, str]:
+    _sync_workbench_brief_config()
+    return workbench_brief.infer_brief_defaults(prompt_text)
+
+
+def hydrate_brief(brief: Optional[Dict[str, Any]], prompt_text: str) -> Dict[str, Any]:
+    _sync_workbench_brief_config()
+    return workbench_brief.hydrate_brief(brief, prompt_text)
+
+
+def build_positive_prompt_base(brief: Dict[str, Any]) -> str:
+    _sync_workbench_brief_config()
+    return workbench_brief.build_positive_prompt_base(brief)
+
+
+def _brief_pixel_lab_style(brief: Dict[str, Any]) -> Dict[str, str]:
+    _sync_workbench_brief_config()
+    return workbench_brief._brief_pixel_lab_style(brief)
+
+
+def build_concept_prompt(brief: Dict[str, Any]) -> Dict[str, Any]:
+    _sync_workbench_brief_config()
+    return workbench_brief.build_concept_prompt(brief)
+
+
+def _build_element_inpaint_mask(element: str, canvas_size: int) -> Tuple[Image.Image, List[Dict[str, int]]]:
+    _sync_workbench_iteration_config()
+    return workbench_iteration._build_element_inpaint_mask(element, canvas_size)
+
+
+def _encode_png_base64(image: Image.Image) -> str:
+    _sync_workbench_iteration_config()
+    return workbench_iteration._encode_png_base64(image)
+
+
+def _element_edit_mask_for_size(element: str, size: Tuple[int, int]) -> Image.Image:
+    _sync_workbench_iteration_config()
+    return workbench_iteration._element_edit_mask_for_size(element, size)
+
+
+def _is_side_view_correction_request(element: str, change_text: str) -> bool:
+    _sync_workbench_iteration_config()
+    return workbench_iteration._is_side_view_correction_request(element, change_text)
+
+
+def _protected_source_mask_for_element(element: str, size: Tuple[int, int], change_text: str = "") -> Image.Image:
+    _sync_workbench_iteration_config()
+    return workbench_iteration._protected_source_mask_for_element(element, size, change_text)
+
+
+def _iteration_element_contract(element: str) -> Dict[str, Any]:
+    _sync_workbench_iteration_config()
+    return workbench_iteration._iteration_element_contract(element)
+
+
+def _iteration_element_contract_with_request(element: str, change_text: str) -> Dict[str, Any]:
+    _sync_workbench_iteration_config()
+    return workbench_iteration._iteration_element_contract_with_request(element, change_text)
+
+
+def _build_iteration_edit_prompt(
+    brief: Dict[str, Any],
+    element: str,
+    change_text: str,
+    *,
+    canvas_size: Optional[int] = None,
+) -> str:
+    _sync_workbench_iteration_config()
+    return workbench_iteration._build_iteration_edit_prompt(brief, element, change_text, canvas_size=canvas_size)
+
+
+def _build_gemini_requirements_prompt(
+    brief: Dict[str, Any],
+    element: str,
+    change_text: str,
+) -> str:
+    _sync_workbench_iteration_config()
+    return workbench_iteration._build_gemini_requirements_prompt(brief, element, change_text)
+
+
+def gemini_iteration_supported_for_element(element: str) -> bool:
+    _sync_workbench_iteration_config()
+    return workbench_iteration.gemini_iteration_supported_for_element(element)
+
+
+def _concept_source_image_relpath(concept: Dict[str, Any]) -> Optional[str]:
+    _sync_workbench_iteration_config()
+    return workbench_iteration._concept_source_image_relpath(concept)
+
+
+def _count_mask_pixels(mask: Image.Image) -> int:
+    _sync_workbench_iteration_config()
+    return workbench_iteration._count_mask_pixels(mask)
+
+
+def evaluate_gemini_iteration_result(
+    concept_path: Path,
+    element: str,
+    change_text: str,
+    result_image: Image.Image,
+) -> Dict[str, Any]:
+    _sync_workbench_iteration_config()
+    return workbench_iteration.evaluate_gemini_iteration_result(concept_path, element, change_text, result_image)
+
+
+def build_iteration_prompt(
+    brief: Dict[str, Any],
+    element: str,
+    change_text: str,
+    *,
+    source_concept_path: Optional[Path] = None,
+) -> Dict[str, Any]:
+    _sync_workbench_iteration_config()
+    return workbench_iteration.build_iteration_prompt(
+        brief,
+        element,
+        change_text,
+        source_concept_path=source_concept_path,
+    )
+
+
+def get_gemini_client() -> Any:
+    _sync_workbench_iteration_config()
+    return workbench_iteration.get_gemini_client()
+
+
+def gemini_iterate_concept(
+    source_image_bytes: bytes,
+    element: str,
+    change_text: str,
+    brief: Dict[str, Any],
+) -> bytes:
+    _sync_workbench_iteration_config()
+    return workbench_iteration.gemini_iterate_concept(source_image_bytes, element, change_text, brief)
+
+
+def build_gemini_prompt(
+    prompt_text: str,
+    previous_prompt: Optional[str],
+    validation_feedback: Optional[str],
+    imported_attempt: Optional[Dict[str, Any]],
+) -> str:
+    _sync_workbench_brief_config()
+    return workbench_brief.build_gemini_prompt(prompt_text, previous_prompt, validation_feedback, imported_attempt)
+
+
+def analyze_reference_asset(path: Optional[Path], source_value: Optional[str] = None) -> Dict[str, Any]:
+    _sync_workbench_brief_config()
+    return workbench_brief.analyze_reference_asset(path, source_value)
+
+
+def store_reference(project_dir: Path, descriptor: Dict[str, Any]) -> Dict[str, Any]:
+    _sync_workbench_brief_config()
+    return workbench_brief.store_reference(project_dir, descriptor)
+
+
+def merge_new_references(project_dir: Path, brief: Dict[str, Any], payload: Dict[str, Any]) -> Dict[str, Any]:
+    _sync_workbench_brief_config()
+    return workbench_brief.merge_new_references(project_dir, brief, payload)
+
+
+def load_concepts(project_dir: Path) -> List[Dict[str, Any]]:
+    _sync_workbench_concepts_config()
+    return workbench_concepts.load_concepts(project_dir)
+
+
+def prompt_history_entries(concepts: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    _sync_workbench_concepts_config()
+    return workbench_concepts.prompt_history_entries(concepts)
+
+
+def hydrate_concept(concept: Dict[str, Any], fallback_created_at: Optional[str] = None) -> Dict[str, Any]:
+    _sync_workbench_concepts_config()
+    return workbench_concepts.hydrate_concept(concept, fallback_created_at=fallback_created_at)
+
+
+def save_concept(project_dir: Path, concept: Dict[str, Any]) -> None:
+    _sync_workbench_concepts_config()
+    workbench_concepts.save_concept(project_dir, concept)
+
+
+def next_concept_serial(concepts: List[Dict[str, Any]]) -> int:
+    _sync_workbench_concepts_config()
+    return workbench_concepts.next_concept_serial(concepts)
+
+
+def next_prompt_version(concepts: List[Dict[str, Any]]) -> int:
+    _sync_workbench_concepts_config()
+    return workbench_concepts.next_prompt_version(concepts)
+
+
+def save_prompt_artifacts(project_dir: Path, prompt_version: int, prompt_text: str) -> Tuple[str, str]:
+    _sync_workbench_concepts_config()
+    return workbench_concepts.save_prompt_artifacts(project_dir, prompt_version, prompt_text)
+
+
+def update_concept_validation(project_id: str, concept_id: str, validation_status: str, feedback: Optional[str] = None) -> Dict[str, Any]:
+    _sync_workbench_concepts_config()
+    return workbench_concepts.update_concept_validation(project_id, concept_id, validation_status, feedback=feedback)
+
+
+def update_concept_review_state(project_id: str, concept_id: str, action: str, value: Optional[bool]) -> Dict[str, Any]:
+    _sync_workbench_concepts_config()
+    return workbench_concepts.update_concept_review_state(project_id, concept_id, action, value)
+
+
+def _concept_image_rel_paths(concept: Dict[str, Any]) -> List[str]:
+    _sync_workbench_concepts_config()
+    return workbench_concepts._concept_image_rel_paths(concept)
+
+
+def _delete_concept_disk_artifacts(project_dir: Path, removed: Dict[str, Any], remaining: List[Dict[str, Any]]) -> None:
+    _sync_workbench_concepts_config()
+    workbench_concepts._delete_concept_disk_artifacts(project_dir, removed, remaining)
+
+
+def delete_concept(project_id: str, concept_id: str) -> Dict[str, Any]:
+    _sync_workbench_concepts_config()
+    return workbench_concepts.delete_concept(project_id, concept_id)
+
+
+def selected_concept(project: Dict[str, Any]) -> Dict[str, Any]:
+    _sync_workbench_concepts_config()
+    return workbench_concepts.selected_concept(project)
+
+
+def _pixellab_character_path(project_dir: Path) -> Path:
+    _sync_workbench_pixellab_store_config()
+    return workbench_pixellab_store._pixellab_character_path(project_dir)
+
+
+def _normalize_east_only_character_source(
+    project_dir: Path,
+    char_data: Optional[Dict[str, Any]],
+    concepts: Optional[List[Dict[str, Any]]] = None,
+) -> Optional[Dict[str, Any]]:
+    _sync_workbench_pixellab_store_config()
+    return workbench_pixellab_store._normalize_east_only_character_source(project_dir, char_data, concepts)
+
+
+def _set_pixellab_east_only_character_source(
+    project: Dict[str, Any],
+    project_dir: Path,
+    concept_id: str,
+    *,
+    approved: bool,
+) -> Dict[str, Any]:
+    _sync_workbench_pixellab_store_config()
+    return workbench_pixellab_store._set_pixellab_east_only_character_source(project, project_dir, concept_id, approved=approved)
+
+
+def _upscale_legacy_east_only_animation_frames(
+    project_dir: Path,
+    char_data: Optional[Dict[str, Any]],
+    store: Optional[Dict[str, Any]],
+) -> Optional[Dict[str, Any]]:
+    _sync_workbench_pixellab_store_config()
+    return workbench_pixellab_store._upscale_legacy_east_only_animation_frames(project_dir, char_data, store)
+
+
+def pixellab_character_wizard_complete(project: Dict[str, Any], project_dir: Path) -> bool:
+    _sync_workbench_pixellab_store_config()
+    return workbench_pixellab_store.pixellab_character_wizard_complete(project, project_dir)
+
+
+def pixellab_animation_store_has_frames(animations: Any) -> bool:
+    _sync_workbench_pixellab_store_config()
+    return workbench_pixellab_store.pixellab_animation_store_has_frames(animations)
+
+
+def pixellab_animations_step_complete(project: Dict[str, Any], project_dir: Path) -> bool:
+    _sync_workbench_pixellab_store_config()
+    return workbench_pixellab_store.pixellab_animations_step_complete(project, project_dir)
+
+
+def _pixellab_skeleton_path(project_dir: Path) -> Path:
+    _sync_workbench_pixellab_store_config()
+    return workbench_pixellab_store._pixellab_skeleton_path(project_dir)
+
+
+def _pixellab_character_assets_dir(project_dir: Path) -> Path:
+    _sync_workbench_pixellab_store_config()
+    return workbench_pixellab_store._pixellab_character_assets_dir(project_dir)
+
+
+def _pixellab_animations_path(project_dir: Path) -> Path:
+    _sync_workbench_pixellab_store_config()
+    return workbench_pixellab_store._pixellab_animations_path(project_dir)
+
+
+def _load_pixellab_animations_store(project_dir: Path) -> Dict[str, Any]:
+    _sync_workbench_pixellab_store_config()
+    return workbench_pixellab_store._load_pixellab_animations_store(project_dir)
+
+
+def _save_pixellab_animations_store(project_dir: Path, store: Dict[str, Any]) -> None:
+    _sync_workbench_pixellab_store_config()
+    workbench_pixellab_store._save_pixellab_animations_store(project_dir, store)
+
+
+def validate_pixellab_animation_name(raw: Any) -> str:
+    _sync_workbench_pixellab_store_config()
+    return workbench_pixellab_store.validate_pixellab_animation_name(raw)
+
+
+def _infer_animation_name_from_template(template_animation_id: str) -> str:
+    _sync_workbench_pixellab_store_config()
+    return workbench_pixellab_store._infer_animation_name_from_template(template_animation_id)
+
+
+def _upsert_pixellab_animation_frames(
+    project_dir: Path,
+    store: Dict[str, Any],
+    *,
+    animation_name: str,
+    direction: str,
+    frames_paths: List[str],
+    fps: int,
+    loop: bool,
+    seed: Optional[int] = None,
+    backend_name: str,
+    job_id: Optional[str] = None,
+    edited_description: Optional[str] = None,
+    frame_count: int,
+    template_animation_id: Optional[str] = None,
+) -> Dict[str, Any]:
+    _sync_workbench_pixellab_store_config()
+    return workbench_pixellab_store._upsert_pixellab_animation_frames(
+        project_dir,
+        store,
+        animation_name=animation_name,
+        direction=direction,
+        frames_paths=frames_paths,
+        fps=fps,
+        loop=loop,
+        seed=seed,
+        backend_name=backend_name,
+        job_id=job_id,
+        edited_description=edited_description,
+        frame_count=frame_count,
+        template_animation_id=template_animation_id,
+    )
 
 
 def get_room_layout(project_id: str) -> Dict[str, Any]:
@@ -1803,6 +1883,150 @@ def save_room_layout(project_id: str, payload: Dict[str, Any]) -> Dict[str, Any]
         "validation": validation_payload,
         "history_revision_id": revision_id,
     }
+
+
+def check_state(status: str, details: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    _sync_workbench_export_config()
+    return workbench_export.check_state(status, details)
+
+
+def aggregate_check_state(states: List[str]) -> str:
+    _sync_workbench_export_config()
+    return workbench_export.aggregate_check_state(states)
+
+
+def approved_manual_animation_clips(project: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
+    _sync_workbench_export_config()
+    return workbench_export.approved_manual_animation_clips(project)
+
+
+def run_external_authoring_qa(project_id: str, progress: Optional[ProgressCallback] = None) -> Dict[str, Any]:
+    _sync_workbench_export_config()
+    return workbench_export.run_external_authoring_qa(project_id, progress=progress)
+
+
+def run_ai_workflow_qa(project_id: str, progress: Optional[ProgressCallback] = None) -> Dict[str, Any]:
+    _sync_workbench_export_config()
+    return workbench_export.run_ai_workflow_qa(project_id, progress=progress)
+
+
+def ai_workflow_ready_for_qa(store: Dict[str, Any]) -> bool:
+    _sync_workbench_export_config()
+    return workbench_export.ai_workflow_ready_for_qa(store)
+
+
+def pixellab_pipeline_ready_for_qa(project: Dict[str, Any], project_dir: Path) -> bool:
+    _sync_workbench_export_config()
+    return workbench_export.pixellab_pipeline_ready_for_qa(project, project_dir)
+
+
+def run_pixellab_qa(project_id: str, progress: Optional[ProgressCallback] = None) -> Dict[str, Any]:
+    _sync_workbench_export_config()
+    return workbench_export.run_pixellab_qa(project_id, progress=progress)
+
+
+def run_qa(project_id: str, progress: Optional[ProgressCallback] = None) -> Dict[str, Any]:
+    _sync_workbench_export_config()
+    return workbench_export.run_qa(project_id, progress=progress)
+
+
+def validate_export_bundle(
+    export_dir: Path,
+    ordered_frames: List[Tuple[str, str, Path]],
+    atlas_frames: Dict[str, Dict[str, Any]],
+) -> Dict[str, Any]:
+    _sync_workbench_export_config()
+    return workbench_export.validate_export_bundle(export_dir, ordered_frames, atlas_frames)
+
+
+def _pixellab_qa_clip_names(clips: Dict[str, Any]) -> List[str]:
+    _sync_workbench_export_config()
+    return workbench_export._pixellab_qa_clip_names(clips)
+
+
+def _write_per_animation_preview_gifs(
+    export_dir: Path,
+    ordered_frames: List[Tuple[str, str, Path]],
+    fps_for_animation: Callable[[str], int],
+) -> List[str]:
+    _sync_workbench_export_config()
+    return workbench_export._write_per_animation_preview_gifs(export_dir, ordered_frames, fps_for_animation)
+
+
+def _write_preview_spritesheet(spritesheet: Image.Image, export_dir: Path) -> None:
+    _sync_workbench_export_config()
+    workbench_export._write_preview_spritesheet(spritesheet, export_dir)
+
+
+def _write_per_animation_spritesheets(
+    export_dir: Path,
+    ordered_frames: List[Tuple[str, str, Path]],
+    animations_payload: Dict[str, Dict[str, Any]],
+) -> Dict[str, Dict[str, Any]]:
+    _sync_workbench_export_config()
+    return workbench_export._write_per_animation_spritesheets(export_dir, ordered_frames, animations_payload)
+
+
+def export_pixellab_project(project_id: str, progress: Optional[ProgressCallback] = None) -> Dict[str, Any]:
+    _sync_workbench_export_config()
+    return workbench_export.export_pixellab_project(project_id, progress=progress)
+
+
+def export_project(project_id: str, progress: Optional[ProgressCallback] = None) -> Dict[str, Any]:
+    _sync_workbench_export_config()
+    return workbench_export.export_project(project_id, progress=progress)
+
+
+def stable_hash(*parts: str) -> str:
+    return hashlib.sha256("||".join(parts).encode("utf-8")).hexdigest()
+
+
+def stable_int(*parts: str, mod: int = 1_000_000) -> int:
+    return int(stable_hash(*parts)[:12], 16) % mod
+
+
+def parse_iso(value: Optional[str]) -> datetime:
+    if not value:
+        return datetime.fromtimestamp(0, tz=timezone.utc)
+    try:
+        return datetime.fromisoformat(value)
+    except ValueError:
+        return datetime.fromtimestamp(0, tz=timezone.utc)
+
+
+def ensure_dirs(project_dir: Path) -> None:
+    for rel in [
+        "concepts",
+        "prompts/history",
+        "layers",
+        "master_pose",
+        "part_manifest",
+        "part_shapes",
+        "part_shapes/masks",
+        "part_shapes/previews",
+        "part_split",
+        "part_split/parts",
+        "part_split/masks",
+        "parts",
+        "parts/masks",
+        "parts/recovery",
+        "rig",
+        "animations/idle",
+        "animations/walk",
+        "manual_clips",
+        "ai_workflow",
+        "ai_workflow/character_lock",
+        "ai_workflow/key_poses",
+        "ai_workflow/motion",
+        "ai_workflow/extract",
+        "ai_workflow/cleanup",
+        "external_authoring",
+        "external_authoring/imports",
+        "exports",
+        "logs",
+        "references",
+    ]:
+        (project_dir / rel).mkdir(parents=True, exist_ok=True)
 
 
 def validate_project_room_layout(project_id: str, payload: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
@@ -3134,263 +3358,83 @@ def build_rig_layout_handoff_prompt(project: Dict[str, Any], rig_layout: Optiona
 
 
 def apply_project_defaults(project: Dict[str, Any]) -> Dict[str, Any]:
-    normalized = dict(project or {})
-    normalized.setdefault("project_id", "")
-    normalized.setdefault("project_name", "Untitled Project")
-    normalized.setdefault("project_schema_version", PROJECT_SCHEMA_VERSION)
-    normalized.setdefault("prompt_text", "")
-    normalized.setdefault("created_at", now_iso())
-    normalized.setdefault("updated_at", normalized["created_at"])
-    normalized.setdefault("current_stage", "intake")
-    normalized.setdefault("status", "ready_for_concepts")
-    normalized.setdefault("layer_review_approved", False)
-    normalized.setdefault("rig_review_approved", False)
-    normalized.setdefault("master_pose_approved", False)
-    normalized.setdefault("sprite_model_approved", False)
-    normalized.setdefault("rig_layout_approved", False)
-    normalized.setdefault("part_manifest_approved", False)
-    normalized.setdefault("part_shapes_approved", False)
-    normalized.setdefault("part_split_approved", False)
-    normalized.setdefault("split_review_approved", False)
-    normalized.setdefault("selected_concept_id", None)
-    normalized.setdefault("archived_at", None)
-    normalized.setdefault("last_ui_mode", "wizard")
-    normalized.setdefault("wizard_state", None)
-    normalized.setdefault("ai_workflow", None)
-    normalized.setdefault("external_authoring", None)
-    return normalized
+    _sync_workbench_workflow_state_config()
+    return workbench_workflow_state.apply_project_defaults(project)
 
 
 def default_wizard_state() -> Dict[str, Any]:
-    return {
-        "current_step": "project",
-        "last_completed_step": None,
-        "completed_steps": [],
-        "skipped_optional_steps": [],
-        "show_advanced": False,
-    }
+    _sync_workbench_workflow_state_config()
+    return workbench_workflow_state.default_wizard_state()
 
 
 def normalize_wizard_state(payload: Any) -> Dict[str, Any]:
-    state = default_wizard_state()
-    if isinstance(payload, dict):
-        current_step = payload.get("current_step")
-        if current_step in WIZARD_STEPS_KNOWN:
-            state["current_step"] = current_step
-        last_completed = payload.get("last_completed_step")
-        if last_completed in WIZARD_STEPS_KNOWN:
-            state["last_completed_step"] = last_completed
-        completed = [item for item in payload.get("completed_steps", []) if item in WIZARD_STEPS_KNOWN]
-        skipped = [item for item in payload.get("skipped_optional_steps", []) if item in WIZARD_STEPS_KNOWN]
-        state["completed_steps"] = list(dict.fromkeys(completed))
-        state["skipped_optional_steps"] = list(dict.fromkeys(skipped))
-        state["show_advanced"] = bool(payload.get("show_advanced", False))
-    return state
+    _sync_workbench_workflow_state_config()
+    return workbench_workflow_state.normalize_wizard_state(payload)
 
 
 def migrate_modern_ai_wizard_state(state: Dict[str, Any]) -> Dict[str, Any]:
-    """Map legacy guided-AI wizard ids to the current simplified flow."""
-    ws = normalize_wizard_state(state)
-    alias = {
-        "project": "describe",
-        "brief": "describe",
-        "references": "describe",
-        "review": "concepts",
-        "character": "concepts",
-        "clips": "animations",
-        "qa": "export",
-    }
-    cur = ws.get("current_step")
-    if cur in alias:
-        ws["current_step"] = alias[cur]
-    new_completed: List[str] = []
-    for item in ws.get("completed_steps", []):
-        mapped = alias.get(item, item)
-        if mapped not in new_completed:
-            new_completed.append(mapped)
-    ws["completed_steps"] = new_completed
-    return ws
+    _sync_workbench_workflow_state_config()
+    return workbench_workflow_state.migrate_modern_ai_wizard_state(state)
 
 
 def set_wizard_step_complete(state: Dict[str, Any], step: str) -> Dict[str, Any]:
-    wizard_state = normalize_wizard_state(state)
-    if step not in wizard_state["completed_steps"]:
-        wizard_state["completed_steps"].append(step)
-    wizard_state["last_completed_step"] = step
-    return wizard_state
+    _sync_workbench_workflow_state_config()
+    return workbench_workflow_state.set_wizard_step_complete(state, step)
 
 
 def set_wizard_optional_step_skipped(state: Dict[str, Any], step: str) -> Dict[str, Any]:
-    wizard_state = normalize_wizard_state(state)
-    if step not in wizard_state["skipped_optional_steps"]:
-        wizard_state["skipped_optional_steps"].append(step)
-    return wizard_state
+    _sync_workbench_workflow_state_config()
+    return workbench_workflow_state.set_wizard_optional_step_skipped(state, step)
 
 
 def animation_render_complete(project_dir: Path, animation_name: str) -> bool:
-    manifest = load_json(project_dir / "animations" / animation_name / "render_manifest.json", None)
-    if not isinstance(manifest, dict):
-        return False
-    frames = manifest.get("frames") or []
-    return len(frames) == ANIMATION_SPECS[animation_name]["frame_count"]
+    _sync_workbench_workflow_state_config()
+    return workbench_workflow_state.animation_render_complete(project_dir, animation_name)
 
 
 def canonical_downstream_path(project_dir: Path, key: str) -> Path:
-    return project_dir / CANONICAL_DOWNSTREAM_FILES[key]
+    _sync_workbench_workflow_state_config()
+    return workbench_workflow_state.canonical_downstream_path(project_dir, key)
 
 
 def legacy_downstream_path(project_dir: Path, key: str) -> Path:
-    return project_dir / LEGACY_DOWNSTREAM_FILES[key]
+    _sync_workbench_workflow_state_config()
+    return workbench_workflow_state.legacy_downstream_path(project_dir, key)
 
 
 def default_sprite_model_history(project_id: str) -> Dict[str, Any]:
-    return {
-        "project_id": project_id,
-        "current_revision_id": None,
-        "events": [],
-        "revisions": [],
-    }
+    _sync_workbench_workflow_state_config()
+    return workbench_workflow_state.default_sprite_model_history(project_id)
 
 
 def default_manual_animation_clips(project_id: str) -> Dict[str, Any]:
-    return {
-        "project_id": project_id,
-        "clips": {},
-        "updated_at": now_iso(),
-    }
+    _sync_workbench_workflow_state_config()
+    return workbench_workflow_state.default_manual_animation_clips(project_id)
 
 
 def default_ai_dependency_status() -> Dict[str, Any]:
-    return {
-        "generated_at": now_iso(),
-        "overall_status": "unknown",
-        "dependencies": {},
-    }
+    _sync_workbench_workflow_state_config()
+    return workbench_workflow_state.default_ai_dependency_status()
 
 
 def default_ai_workflow(project_id: str) -> Dict[str, Any]:
-    return {
-        "project_id": project_id,
-        "enabled": True,
-        "profile": AI_WORKFLOW_PROFILE,
-        "dependency_status": default_ai_dependency_status(),
-        "legacy_mode": False,
-        "character_lock": {
-            "runs": {},
-            "approved_run_id": None,
-            "approved_asset_id": None,
-        },
-        "key_pose_set": {
-            "runs": {},
-            "approved_run_id": None,
-        },
-        "motion_runs": {clip_name: {"runs": {}, "approved_run_id": None} for clip_name in AI_CLIP_SPECS},
-        "extract_runs": {clip_name: {"runs": {}, "approved_run_id": None} for clip_name in AI_CLIP_SPECS},
-        "cleanup_runs": {clip_name: {"runs": {}, "approved_run_id": None} for clip_name in AI_CLIP_SPECS},
-        "selected_assets": {
-            "approved_concept_id": None,
-            "character_lock_asset_id": None,
-            "character_lock_run_id": None,
-            "key_pose_run_id": None,
-            "motion_run_ids": {},
-            "extract_run_ids": {},
-            "cleanup_run_ids": {},
-        },
-        "updated_at": now_iso(),
-    }
-
-
-def _normalize_run_group(value: Any) -> Dict[str, Any]:
-    if not isinstance(value, dict):
-        return {"runs": {}, "approved_run_id": None}
-    return {
-        "runs": copy.deepcopy(value.get("runs") or {}),
-        "approved_run_id": value.get("approved_run_id"),
-    }
+    _sync_workbench_workflow_state_config()
+    return workbench_workflow_state.default_ai_workflow(project_id)
 
 
 def hydrate_ai_workflow(store: Any, project: Dict[str, Any], project_dir: Path) -> Dict[str, Any]:
-    hydrated = default_ai_workflow(project_dir.name)
-    if isinstance(store, dict):
-        hydrated["enabled"] = bool(store.get("enabled", True))
-        hydrated["profile"] = str(store.get("profile") or AI_WORKFLOW_PROFILE)
-        if isinstance(store.get("dependency_status"), dict):
-            hydrated["dependency_status"] = copy.deepcopy(store["dependency_status"])
-        hydrated["legacy_mode"] = bool(store.get("legacy_mode", False))
-        character_lock = _normalize_run_group(store.get("character_lock"))
-        hydrated["character_lock"]["runs"] = character_lock["runs"]
-        hydrated["character_lock"]["approved_run_id"] = character_lock["approved_run_id"]
-        hydrated["character_lock"]["approved_asset_id"] = (store.get("character_lock") or {}).get("approved_asset_id")
-        key_pose_set = _normalize_run_group(store.get("key_pose_set"))
-        hydrated["key_pose_set"]["runs"] = key_pose_set["runs"]
-        hydrated["key_pose_set"]["approved_run_id"] = key_pose_set["approved_run_id"]
-        for group_name in ("motion_runs", "extract_runs", "cleanup_runs"):
-            source_group = store.get(group_name) if isinstance(store.get(group_name), dict) else {}
-            target_group = hydrated[group_name]
-            for clip_name in AI_CLIP_SPECS:
-                normalized = _normalize_run_group(source_group.get(clip_name))
-                target_group[clip_name] = normalized
-        if isinstance(store.get("selected_assets"), dict):
-            hydrated["selected_assets"].update(copy.deepcopy(store["selected_assets"]))
-        hydrated["updated_at"] = str(store.get("updated_at") or hydrated["updated_at"])
-    has_legacy_data = bool(
-        project.get("external_authoring")
-        or project.get("rig")
-        or project.get("sprite_model")
-        or project.get("part_split")
-        or (project.get("manual_animation_clips", {}).get("clips") if isinstance(project.get("manual_animation_clips"), dict) else None)
-    )
-    if not isinstance(store, dict) and has_legacy_data:
-        hydrated["enabled"] = False
-        hydrated["legacy_mode"] = True
-    if hydrated["legacy_mode"]:
-        hydrated["enabled"] = False
-    return hydrated
+    _sync_workbench_workflow_state_config()
+    return workbench_workflow_state.hydrate_ai_workflow(store, project, project_dir)
 
 
 def serialize_ai_workflow(store: Any, project_id: str) -> Dict[str, Any]:
-    serialized = default_ai_workflow(project_id)
-    if not isinstance(store, dict):
-        return serialized
-    serialized["enabled"] = bool(store.get("enabled", True))
-    serialized["profile"] = str(store.get("profile") or AI_WORKFLOW_PROFILE)
-    if isinstance(store.get("dependency_status"), dict):
-        serialized["dependency_status"] = copy.deepcopy(store["dependency_status"])
-    serialized["legacy_mode"] = bool(store.get("legacy_mode", False))
-    serialized["character_lock"] = copy.deepcopy(store.get("character_lock") or serialized["character_lock"])
-    serialized["key_pose_set"] = copy.deepcopy(store.get("key_pose_set") or serialized["key_pose_set"])
-    for group_name in ("motion_runs", "extract_runs", "cleanup_runs"):
-        source_group = store.get(group_name) if isinstance(store.get(group_name), dict) else {}
-        serialized[group_name] = {
-            clip_name: copy.deepcopy(source_group.get(clip_name) or serialized[group_name][clip_name])
-            for clip_name in AI_CLIP_SPECS
-        }
-    if isinstance(store.get("selected_assets"), dict):
-        serialized["selected_assets"].update(copy.deepcopy(store["selected_assets"]))
-    serialized["updated_at"] = str(store.get("updated_at") or serialized["updated_at"])
-    return serialized
+    _sync_workbench_workflow_state_config()
+    return workbench_workflow_state.serialize_ai_workflow(store, project_id)
 
 
 def ai_workflow_root(project_dir: Path, stage: str, clip_name: Optional[str] = None, run_id: Optional[str] = None) -> Path:
-    if stage == "character_lock":
-        root = project_dir / "ai_workflow" / "character_lock"
-    elif stage == "key_pose_set":
-        root = project_dir / "ai_workflow" / "key_poses"
-    elif stage in {"motion_clip", "extract_frames", "pixel_cleanup"}:
-        if clip_name not in AI_CLIP_SPECS:
-            raise ValueError("Unknown clip: %s." % clip_name)
-        mapping = {
-            "motion_clip": "motion",
-            "extract_frames": "extract",
-            "pixel_cleanup": "cleanup",
-        }
-        root = project_dir / "ai_workflow" / mapping[stage] / clip_name
-    else:
-        raise ValueError("Unknown AI workflow stage: %s." % stage)
-    if run_id:
-        root = root / run_id
-    root.mkdir(parents=True, exist_ok=True)
-    return root
+    _sync_workbench_workflow_state_config()
+    return workbench_workflow_state.ai_workflow_root(project_dir, stage, clip_name=clip_name, run_id=run_id)
 
 
 def skelform_provider_profile() -> Dict[str, Any]:
@@ -3414,290 +3458,93 @@ def skelform_provider_profile() -> Dict[str, Any]:
 
 
 def default_external_authoring(project_id: str) -> Dict[str, Any]:
-    return {
-        "project_id": project_id,
-        "enabled": False,
-        "provider": "skelform",
-        "provider_profile": skelform_provider_profile(),
-        "session": {
-            "editor_url": SKELFORM_EDITOR_URL,
-            "embed_url": SKELFORM_EDITOR_URL,
-            "can_embed": True,
-            "source_mode": "hosted",
-            "last_opened_at": None,
-        },
-        "validation": {
-            "license": "MIT",
-            "docs_url": SKELFORM_DOCS_URL,
-            "embed_test": "passed",
-            "build_flow": "remote-hosted editor embedded first, local vendoring deferred",
-            "runtime_format": ".skf plus exported sheets/metadata",
-            "validated_at": now_iso(),
-        },
-        "imported_bundle": None,
-        "updated_at": now_iso(),
-    }
+    _sync_workbench_workflow_state_config()
+    return workbench_workflow_state.default_external_authoring(project_id)
 
 
 def hydrate_external_authoring(store: Any, project_dir: Path) -> Dict[str, Any]:
-    hydrated = default_external_authoring(project_dir.name)
-    if not isinstance(store, dict):
-        return hydrated
-    hydrated["enabled"] = bool(store.get("enabled", False))
-    hydrated["provider"] = str(store.get("provider") or "skelform")
-    if isinstance(store.get("provider_profile"), dict):
-        hydrated["provider_profile"].update(store["provider_profile"])
-    if isinstance(store.get("session"), dict):
-        hydrated["session"].update(store["session"])
-    if isinstance(store.get("validation"), dict):
-        hydrated["validation"].update(store["validation"])
-    bundle = store.get("imported_bundle")
-    if isinstance(bundle, dict):
-        hydrated["imported_bundle"] = copy.deepcopy(bundle)
-    hydrated["updated_at"] = str(store.get("updated_at") or hydrated["updated_at"])
-    return hydrated
+    _sync_workbench_workflow_state_config()
+    return workbench_workflow_state.hydrate_external_authoring(store, project_dir)
 
 
 def serialize_external_authoring(store: Any, project_id: str) -> Dict[str, Any]:
-    serialized = default_external_authoring(project_id)
-    if not isinstance(store, dict):
-        return serialized
-    serialized["enabled"] = bool(store.get("enabled", False))
-    serialized["provider"] = str(store.get("provider") or "skelform")
-    if isinstance(store.get("provider_profile"), dict):
-        serialized["provider_profile"].update(copy.deepcopy(store["provider_profile"]))
-    if isinstance(store.get("session"), dict):
-        serialized["session"].update(copy.deepcopy(store["session"]))
-    if isinstance(store.get("validation"), dict):
-        serialized["validation"].update(copy.deepcopy(store["validation"]))
-    if isinstance(store.get("imported_bundle"), dict):
-        serialized["imported_bundle"] = copy.deepcopy(store["imported_bundle"])
-    serialized["updated_at"] = str(store.get("updated_at") or serialized["updated_at"])
-    return serialized
+    _sync_workbench_workflow_state_config()
+    return workbench_workflow_state.serialize_external_authoring(store, project_id)
 
 
 def external_authoring_import_root(project_dir: Path) -> Path:
-    root = project_dir / "external_authoring" / "imports"
-    root.mkdir(parents=True, exist_ok=True)
-    return root
+    _sync_workbench_workflow_state_config()
+    return workbench_workflow_state.external_authoring_import_root(project_dir)
 
 
 def manual_clip_render_root(project_dir: Path) -> Path:
-    return project_dir / "manual_clips"
+    _sync_workbench_workflow_state_config()
+    return workbench_workflow_state.manual_clip_render_root(project_dir)
 
 
 def manual_clip_source_hashes(project_dir: Path) -> Dict[str, Optional[str]]:
-    rig_path = canonical_downstream_path(project_dir, "rig")
-    sprite_model_path = canonical_downstream_path(project_dir, "sprite_model")
-    return {
-        "rig_hash": image_sha256(rig_path) if rig_path.exists() else None,
-        "sprite_model_hash": image_sha256(sprite_model_path) if sprite_model_path.exists() else None,
-    }
+    _sync_workbench_workflow_state_config()
+    return workbench_workflow_state.manual_clip_source_hashes(project_dir)
 
 
 def manual_clip_frame_count(value: Any, default: int = 8) -> int:
-    try:
-        parsed = int(value)
-    except (TypeError, ValueError):
-        return default
-    return max(1, min(64, parsed))
+    _sync_workbench_workflow_state_config()
+    return workbench_workflow_state.manual_clip_frame_count(value, default=default)
 
 
 def normalize_manual_clip_frame(frame: Any) -> Dict[str, Any]:
-    base = neutral_pose_transforms()
-    normalized = dict(base)
-    if isinstance(frame, dict):
-        for key, value in frame.items():
-            if key == "root_offset" and isinstance(value, list) and len(value) == 2:
-                normalized[key] = [round(float(value[0]), 2), round(float(value[1]), 2)]
-            elif key in normalized and isinstance(value, (int, float)):
-                normalized[key] = round(float(value), 2)
-    return normalized
+    _sync_workbench_workflow_state_config()
+    return workbench_workflow_state.normalize_manual_clip_frame(frame)
 
 
 def normalize_manual_frame_repairs(value: Any) -> Dict[str, Any]:
-    normalized: Dict[str, Any] = {}
-    if not isinstance(value, dict):
-        return normalized
-    for part_name, payload in value.items():
-        if not isinstance(payload, dict):
-            continue
-        image_path = str(payload.get("image_path") or "").strip()
-        if not image_path:
-            continue
-        normalized[str(part_name)] = {
-            "variant_id": str(payload.get("variant_id") or "").strip() or None,
-            "image_path": image_path,
-            "mask_path": str(payload.get("mask_path") or "").strip() or None,
-            "source": str(payload.get("source") or "recover-occlusion").strip() or "recover-occlusion",
-            "summary": str(payload.get("summary") or "").strip() or None,
-            "applied_at": str(payload.get("applied_at") or now_iso()),
-        }
-    return normalized
+    _sync_workbench_workflow_state_config()
+    return workbench_workflow_state.normalize_manual_frame_repairs(value)
 
 
 def normalize_manual_frame_patches(value: Any) -> Dict[str, Any]:
-    normalized: Dict[str, Any] = {}
-    if not isinstance(value, dict):
-        return normalized
-    for patch_id, payload in value.items():
-        if not isinstance(payload, dict):
-            continue
-        source_part = str(payload.get("source_part_name") or payload.get("part_name") or "").strip()
-        image_path = str(payload.get("image_path") or "").strip()
-        keep_behind_part = str(payload.get("keep_behind_part_name") or "").strip()
-        if not source_part or not image_path or not keep_behind_part:
-            continue
-        normalized[str(patch_id)] = {
-            "patch_id": str(payload.get("patch_id") or patch_id).strip() or str(patch_id),
-            "source_part_name": source_part,
-            "keep_behind_part_name": keep_behind_part,
-            "variant_id": str(payload.get("variant_id") or "").strip() or None,
-            "image_path": image_path,
-            "mask_path": str(payload.get("mask_path") or "").strip() or None,
-            "source": str(payload.get("source") or "recover-occlusion").strip() or "recover-occlusion",
-            "summary": str(payload.get("summary") or "").strip() or None,
-            "applied_at": str(payload.get("applied_at") or now_iso()),
-        }
-    return normalized
+    _sync_workbench_workflow_state_config()
+    return workbench_workflow_state.normalize_manual_frame_patches(value)
 
 
 def normalize_manual_clip_frame_entry(frame: Any) -> Dict[str, Any]:
-    if isinstance(frame, dict) and ("transforms" in frame or "part_repairs" in frame or "corrective_patches" in frame):
-        transforms = normalize_manual_clip_frame(frame.get("transforms"))
-        part_repairs = normalize_manual_frame_repairs(frame.get("part_repairs"))
-        corrective_patches = normalize_manual_frame_patches(frame.get("corrective_patches"))
-    else:
-        transforms = normalize_manual_clip_frame(frame)
-        part_repairs = {}
-        corrective_patches = {}
-    return {
-        "transforms": transforms,
-        "part_repairs": part_repairs,
-        "corrective_patches": corrective_patches,
-    }
+    _sync_workbench_workflow_state_config()
+    return workbench_workflow_state.normalize_manual_clip_frame_entry(frame)
 
 
 def manual_clip_frame_transforms(frame: Any) -> Dict[str, Any]:
-    return normalize_manual_clip_frame_entry(frame)["transforms"]
+    _sync_workbench_workflow_state_config()
+    return workbench_workflow_state.manual_clip_frame_transforms(frame)
 
 
 def blank_manual_clip_frames(frame_count: int) -> List[Dict[str, Any]]:
-    return [normalize_manual_clip_frame_entry({}) for _ in range(frame_count)]
+    _sync_workbench_workflow_state_config()
+    return workbench_workflow_state.blank_manual_clip_frames(frame_count)
 
 
 def default_manual_clip(project_dir: Path, clip_id: str, clip_name: str, frame_count: int = 8, fps: int = 12, loop: bool = True) -> Dict[str, Any]:
-    render_root = manual_clip_render_root(project_dir) / clip_id
-    frame_count = manual_clip_frame_count(frame_count)
-    fps_value = max(1, min(60, int(fps)))
-    return {
-        "clip_id": clip_id,
-        "clip_name": clip_name,
-        "authoring_mode": "manual",
-        "approval_status": "draft",
-        "frame_count": frame_count,
-        "fps": fps_value,
-        "loop": bool(loop),
-        "frames": blank_manual_clip_frames(frame_count),
-        "source_hashes": manual_clip_source_hashes(project_dir),
-        "preview_render": {
-            "status": "not_rendered",
-            "gif_path": str((render_root / "preview.gif").relative_to(project_dir)),
-            "render_manifest_path": str((render_root / "render_manifest.json").relative_to(project_dir)),
-            "frame_dir": str((render_root / "frames").relative_to(project_dir)),
-            "frames": [],
-            "generated_at": None,
-        },
-        "created_at": now_iso(),
-        "updated_at": now_iso(),
-        "approved_at": None,
-    }
+    _sync_workbench_workflow_state_config()
+    return workbench_workflow_state.default_manual_clip(project_dir, clip_id, clip_name, frame_count=frame_count, fps=fps, loop=loop)
 
 
 def invalidate_manual_clip_preview(clip: Dict[str, Any]) -> Dict[str, Any]:
-    preview = dict(clip.get("preview_render") or {})
-    preview["status"] = "outdated"
-    preview["frames"] = []
-    preview["generated_at"] = None
-    clip["preview_render"] = preview
-    clip["approval_status"] = "draft"
-    clip["approved_at"] = None
-    clip["updated_at"] = now_iso()
-    return clip
+    _sync_workbench_workflow_state_config()
+    return workbench_workflow_state.invalidate_manual_clip_preview(clip)
 
 
 def normalize_manual_clip(project_dir: Path, clip_id: str, payload: Any) -> Dict[str, Any]:
-    clip = default_manual_clip(project_dir, clip_id, humanize_identifier(clip_id))
-    if isinstance(payload, dict):
-        clip["clip_name"] = str(payload.get("clip_name") or clip["clip_name"]).strip() or clip["clip_name"]
-        clip["frame_count"] = manual_clip_frame_count(payload.get("frame_count"), clip["frame_count"])
-        clip["fps"] = max(1, min(60, int(payload.get("fps") or clip["fps"])))
-        clip["loop"] = bool(payload.get("loop", clip["loop"]))
-        clip["authoring_mode"] = "manual"
-        clip["approval_status"] = str(payload.get("approval_status") or clip["approval_status"])
-        clip["source_hashes"] = payload.get("source_hashes") if isinstance(payload.get("source_hashes"), dict) else clip["source_hashes"]
-        clip["created_at"] = str(payload.get("created_at") or clip["created_at"])
-        clip["updated_at"] = str(payload.get("updated_at") or clip["updated_at"])
-        clip["approved_at"] = payload.get("approved_at")
-        preview = payload.get("preview_render") if isinstance(payload.get("preview_render"), dict) else {}
-        clip["preview_render"] = {
-            "status": str(preview.get("status") or "not_rendered"),
-            "gif_path": str(preview.get("gif_path") or clip["preview_render"]["gif_path"]),
-            "render_manifest_path": str(preview.get("render_manifest_path") or clip["preview_render"]["render_manifest_path"]),
-            "frame_dir": str(preview.get("frame_dir") or clip["preview_render"]["frame_dir"]),
-            "frames": list(preview.get("frames") or []),
-            "generated_at": preview.get("generated_at"),
-        }
-        raw_frames = payload.get("frames") if isinstance(payload.get("frames"), list) else []
-        normalized_frames = [normalize_manual_clip_frame_entry(frame) for frame in raw_frames[:clip["frame_count"]]]
-        while len(normalized_frames) < clip["frame_count"]:
-            normalized_frames.append(normalize_manual_clip_frame_entry({}))
-        clip["frames"] = normalized_frames
-    return clip
+    _sync_workbench_workflow_state_config()
+    return workbench_workflow_state.normalize_manual_clip(project_dir, clip_id, payload)
 
 
 def hydrate_manual_animation_clips(store: Any, project_dir: Path) -> Dict[str, Any]:
-    hydrated = default_manual_animation_clips(project_dir.name)
-    raw_clips = store.get("clips") if isinstance(store, dict) else {}
-    normalized: Dict[str, Any] = {}
-    for clip_id, payload in (raw_clips or {}).items():
-        if not isinstance(payload, dict):
-            continue
-        safe_clip_id = sanitize_filename(str(payload.get("clip_id") or clip_id), "manual-clip")
-        clip = normalize_manual_clip(project_dir, safe_clip_id, payload)
-        current_hashes = manual_clip_source_hashes(project_dir)
-        stale_reasons = []
-        if clip["source_hashes"].get("rig_hash") != current_hashes.get("rig_hash"):
-            stale_reasons.append("rig changed")
-        if clip["source_hashes"].get("sprite_model_hash") != current_hashes.get("sprite_model_hash"):
-            stale_reasons.append("sprite model changed")
-        preview_gif = project_dir / str(clip["preview_render"].get("gif_path") or "")
-        manifest_path = project_dir / str(clip["preview_render"].get("render_manifest_path") or "")
-        clip["is_stale"] = bool(stale_reasons)
-        clip["stale_reasons"] = stale_reasons
-        clip["preview_render_complete"] = bool(preview_gif.exists() and manifest_path.exists())
-        normalized[safe_clip_id] = clip
-    hydrated["clips"] = normalized
-    hydrated["updated_at"] = str(store.get("updated_at") or hydrated["updated_at"]) if isinstance(store, dict) else hydrated["updated_at"]
-    return hydrated
+    _sync_workbench_workflow_state_config()
+    return workbench_workflow_state.hydrate_manual_animation_clips(store, project_dir)
 
 
 def serialize_manual_animation_clips(store: Any, project_id: str) -> Dict[str, Any]:
-    serialized = default_manual_animation_clips(project_id)
-    raw_clips = store.get("clips") if isinstance(store, dict) else {}
-    clips: Dict[str, Any] = {}
-    for clip_id, payload in (raw_clips or {}).items():
-        if not isinstance(payload, dict):
-            continue
-        clip = copy.deepcopy(payload)
-        clip.pop("is_stale", None)
-        clip.pop("stale_reasons", None)
-        clip.pop("preview_render_complete", None)
-        clips[str(clip_id)] = clip
-    serialized["clips"] = clips
-    if isinstance(store, dict) and store.get("updated_at"):
-        serialized["updated_at"] = str(store["updated_at"])
-    return serialized
+    _sync_workbench_workflow_state_config()
+    return workbench_workflow_state.serialize_manual_animation_clips(store, project_id)
 
 def sprite_model_revisions_path(project_dir: Path) -> Path:
     return project_dir / SPRITE_MODEL_REVISIONS_DIRNAME
@@ -4047,1045 +3894,57 @@ def load_stage_maturity() -> Dict[str, Any]:
     return payload
 
 
-def legacy_reference_entries(brief: Dict[str, Any]) -> List[Dict[str, Any]]:
-    entries = []
-    for item in brief.get("reference_images", []) or []:
-        entries.append({
-            "reference_id": stable_hash("legacy-ref", str(item))[:12],
-            "role": "identity",
-            "weight": 1.0,
-            "source_type": "legacy",
-            "source_value": item,
-            "local_path": None,
-            "added_at": brief.get("created_at") or now_iso(),
-        })
-    for item in brief.get("style_references", []) or []:
-        entries.append({
-            "reference_id": stable_hash("legacy-style", str(item))[:12],
-            "role": "style",
-            "weight": 1.0,
-            "source_type": "legacy",
-            "source_value": item,
-            "local_path": None,
-            "added_at": brief.get("created_at") or now_iso(),
-        })
-    return entries
-
-
-def normalize_prompt_text(prompt_text: str) -> str:
-    return " ".join((prompt_text or "").strip().split())
-
-
-def validate_prompt_constraints(prompt_text: str) -> None:
-    lowered = (prompt_text or "").lower()
-    for reason, pattern in REJECT_PATTERNS.items():
-        if reason == "highly asymmetric multi-view requirements":
-            for match in pattern.finditer(lowered):
-                prefix = lowered[max(0, match.start() - 40):match.start()]
-                if NEGATING_PREFIX_PATTERN.search(prefix):
-                    continue
-                raise ValueError("Unsupported input: %s." % reason)
-            continue
-        if pattern.search(lowered):
-            raise ValueError("Unsupported input: %s." % reason)
-
-
-def infer_prop(prompt_text: str) -> str:
-    lowered = prompt_text.lower()
-    if any(word in lowered for word in ["lantern", "lamp"]):
-        return "lantern"
-    if "staff" in lowered:
-        return "staff"
-    if any(word in lowered for word in ["dagger", "knife", "dirk"]):
-        return "dagger"
-    if any(word in lowered for word in ["sword", "blade", "saber", "falchion"]):
-        return "sword"
-    return "tool"
-
-
-def infer_brief_defaults(prompt_text: str) -> Dict[str, str]:
-    prompt = normalize_prompt_text(prompt_text)
-    validate_prompt_constraints(prompt)
-    lowered = prompt.lower()
-    if not prompt:
-        return {
-            "role_archetype": "ashen hollow adventurer",
-            "silhouette_intent": "clear side-view traveler silhouette with one dominant read",
-            "outfit_materials": "layered dark-fantasy travel gear with practical medieval materials",
-            "prop": "tool",
-            "palette_mood": "storm steel",
-            "shape_language": "balanced angular to rounded masses",
-            "mood_tone": "watchful, haunted, and grounded",
-            "side_view_constraints": "strict side view, one humanoid character, clean background, held item clearly separated from torso, strong low-resolution readability for a 2d metroidvania sprite pipeline",
-            # Pixel Lab scaffold parameters.
-            "outline_style": DEFAULT_OUTLINE_STYLE,
-            "shading_style": DEFAULT_SHADING_STYLE,
-            "detail_level": DEFAULT_DETAIL_LEVEL,
-            "canvas_size": DEFAULT_CANVAS_SIZE,
-            "character_template": DEFAULT_CHARACTER_TEMPLATE,
-        }
-
-    if any(word in lowered for word in ["knight", "armored", "guardian", "sentinel", "warden"]):
-        role = "ashen hollow sentinel"
-        silhouette = "broad guarded profile"
-        outfit = "weathered plate fragments over travel layers with matte metal surfaces"
-        tone = "stoic, vigilant, and battle-worn"
-    elif any(word in lowered for word in ["rogue", "thief", "scout", "nimble", "hunter", "ranger"]):
-        role = "ashen hollow scout"
-        silhouette = "compact and forward-leaning profile"
-        outfit = "light leathers, wraps, utility straps, and worn medieval layers"
-        tone = "cautious, severe, and alert"
-    elif any(word in lowered for word in ["mage", "witch", "scholar", "mystic", "seer", "pilgrim"]):
-        role = "ashen hollow pilgrim"
-        silhouette = "tall readable profile with clear head-to-prop separation"
-        outfit = "layered cloth, trim armor accents, and weathered ritual fabric"
-        tone = "mysterious, austere, and self-possessed"
-    else:
-        role = "ashen hollow adventurer"
-        silhouette = "balanced readable profile with one dominant read"
-        outfit = "field-ready medieval layers with one dominant material family"
-        tone = "grounded, capable, and somber"
-
-    if any(word in lowered for word in ["green", "jade", "verdant", "moss"]):
-        palette = "verdigris slate"
-    elif any(word in lowered for word in ["ember", "red", "crimson", "rust"]):
-        palette = "ember dusk"
-    elif any(word in lowered for word in ["ivory", "bone", "ashen", "pale"]):
-        palette = "bone ash"
-    else:
-        palette = "storm steel"
-
-    if any(word in lowered for word in ["round", "soft", "gentle"]):
-        shape = "rounded readable masses"
-    elif any(word in lowered for word in ["spike", "sharp", "angular", "blade"]):
-        shape = "angular disciplined silhouettes"
-    else:
-        shape = "balanced angular to rounded mix"
-
-    prop = infer_prop(prompt)
-    return {
-        "role_archetype": role,
-        "silhouette_intent": silhouette,
-        "outfit_materials": outfit,
-        "prop": prop,
-        "palette_mood": palette,
-        "shape_language": shape,
-        "mood_tone": tone,
-        "side_view_constraints": "strict side view, one humanoid character, clean background, held item clearly separated from torso, strong low-resolution readability for a 2d metroidvania sprite pipeline",
-        # Pixel Lab scaffold parameters.
-        "outline_style": DEFAULT_OUTLINE_STYLE,
-        "shading_style": DEFAULT_SHADING_STYLE,
-        "detail_level": DEFAULT_DETAIL_LEVEL,
-        "canvas_size": DEFAULT_CANVAS_SIZE,
-        "character_template": DEFAULT_CHARACTER_TEMPLATE,
-    }
-
-
-def hydrate_brief(brief: Optional[Dict[str, Any]], prompt_text: str) -> Dict[str, Any]:
-    source = dict(brief or {})
-    prompt = normalize_prompt_text(source.get("raw_prompt") or source.get("normalized_prompt") or prompt_text or "")
-    defaults = infer_brief_defaults(prompt)
-    hydrated = {
-        "raw_prompt": prompt,
-        "role_archetype": source.get("role_archetype") or source.get("subject") or defaults["role_archetype"],
-        "silhouette_intent": source.get("silhouette_intent") or source.get("silhouette") or defaults["silhouette_intent"],
-        "outfit_materials": source.get("outfit_materials") or source.get("outfit") or defaults["outfit_materials"],
-        "prop": source.get("prop") or defaults["prop"],
-        "palette_mood": source.get("palette_mood") or source.get("palette_direction") or defaults["palette_mood"],
-        "shape_language": source.get("shape_language") or defaults["shape_language"],
-        "mood_tone": source.get("mood_tone") or defaults["mood_tone"],
-        "side_view_constraints": source.get("side_view_constraints") or source.get("side_view_readability_notes") or defaults["side_view_constraints"],
-        "negative_prompt": source.get("negative_prompt") or DEFAULT_NEGATIVE_PROMPT,
-        # Prompt scaffold style parameters.
-        "outline_style": source.get("outline_style") or defaults.get("outline_style") or DEFAULT_OUTLINE_STYLE,
-        "shading_style": source.get("shading_style") or defaults.get("shading_style") or DEFAULT_SHADING_STYLE,
-        "detail_level": source.get("detail_level") or defaults.get("detail_level") or DEFAULT_DETAIL_LEVEL,
-        "canvas_size": coerce_canvas_size(source.get("canvas_size") if "canvas_size" in source else None, DEFAULT_CANVAS_SIZE),
-        "character_template": source.get("character_template") or defaults.get("character_template") or DEFAULT_CHARACTER_TEMPLATE,
-        "backend_mode": normalize_brief_backend_mode(source.get("backend_mode") or "pixellab"),
-        "comfyui_checkpoint": source.get("comfyui_checkpoint"),
-    }
-    references = source.get("references")
-    if not isinstance(references, list):
-        references = legacy_reference_entries(source)
-    normalized_refs = []
-    for item in references:
-        if not isinstance(item, dict):
-            continue
-        role = item.get("role") if item.get("role") in REFERENCE_ROLES else "identity"
-        normalized_refs.append({
-            "reference_id": item.get("reference_id") or stable_hash(role, str(item.get("local_path") or item.get("source_value") or ""))[:12],
-            "role": role,
-            "weight": float(item.get("weight", 1.0)),
-            "source_type": item.get("source_type") or ("local" if item.get("local_path") else "legacy"),
-            "source_value": item.get("source_value"),
-            "local_path": item.get("local_path"),
-            "added_at": item.get("added_at") or now_iso(),
-            "reference_kind": item.get("reference_kind"),
-            "reference_warning": item.get("reference_warning"),
-            "usable_for_concepts": item.get("usable_for_concepts"),
-        })
-    hydrated["references"] = normalized_refs
-    hydrated["positive_prompt_base"] = build_positive_prompt_base(hydrated)
-    return hydrated
-
-
-def build_positive_prompt_base(brief: Dict[str, Any]) -> str:
-    return (
-        "single humanoid side-view character concept art, full body, plain light background, "
-        "clean silhouette, readable negative space, %s, %s, "
-        "character role: %s, silhouette intent: %s, outfit and materials: %s, "
-        "primary handheld prop: %s, palette mood: %s, shape language: %s, mood: %s, "
-        "readability constraints: %s"
-        % (
-            METROIDVANIA_PROMPT_CONTEXT,
-            HOUSE_STYLE_PROMPT_RULES,
-            brief["role_archetype"],
-            brief["silhouette_intent"],
-            brief["outfit_materials"],
-            brief["prop"],
-            brief["palette_mood"],
-            brief["shape_language"],
-            brief["mood_tone"],
-            brief["side_view_constraints"],
-        )
-    )
-
-
-def _brief_pixel_lab_style(brief: Dict[str, Any]) -> Dict[str, str]:
-    """Maps user-friendly brief style choices into Pixel Lab string values."""
-    user_outline, pixel_outline = pick_mapped_style(
-        OUTLINE_STYLE_MAP,
-        brief.get("outline_style"),
-        DEFAULT_OUTLINE_STYLE,
-    )
-    user_shading, pixel_shading = pick_mapped_style(
-        SHADING_STYLE_MAP,
-        brief.get("shading_style"),
-        DEFAULT_SHADING_STYLE,
-    )
-    user_detail, pixel_detail = pick_mapped_style(
-        DETAIL_LEVEL_MAP,
-        brief.get("detail_level"),
-        DEFAULT_DETAIL_LEVEL,
-    )
-    user_template, pixel_template = pick_mapped_style(
-        CHARACTER_TEMPLATE_MAP,
-        brief.get("character_template"),
-        DEFAULT_CHARACTER_TEMPLATE,
-    )
-
-    return {
-        "outline_style_user": user_outline,
-        "shading_style_user": user_shading,
-        "detail_level_user": user_detail,
-        "character_template_user": user_template,
-        "outline_style_pixel_lab": pixel_outline,
-        "shading_style_pixel_lab": pixel_shading,
-        "detail_level_pixel_lab": pixel_detail,
-        "character_template_pixel_lab": pixel_template,
-    }
-
-
-def build_concept_prompt(brief: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    Deterministically scaffold the prompt + Pixel Lab params for *concept generation*.
-
-    Output shape includes:
-    - display_prompt: copyable prompt (includes DEBUG CONSTRAINTS section)
-    - pixellab_params: params suitable for `PixelLabClient.create_image_pixflux(...)`
-    - debug_constraints: machine-readable summary (also injected into display_prompt)
-    """
-    style = _brief_pixel_lab_style(brief)
-    canvas_size = PIXELLAB_CONCEPT_IMAGE_SIZE
-    description = str(brief.get("raw_prompt") or "").strip() or str(brief.get("description") or "").strip() or str(brief.get("prompt_text") or "").strip()
-
-    # Keep Pixel Lab description free of debug text; the UI can show debug separately.
-    pixellab_description = "\n".join(
-        [
-            "Create exactly one full-body 2D side-view pixel art character concept.",
-            "Facing: right (east), strict orthographic side profile.",
-            "Background: plain single flat color background only; no environment and no ground.",
-            "Framing: full body visible, centered, animation-friendly proportions.",
-            "",
-            "CHARACTER:",
-            f"- Role: {brief.get('role_archetype','')}",
-            f"- Description: {description}",
-            f"- Silhouette: {brief.get('silhouette_intent','')}",
-            f"- Outfit/Materials: {brief.get('outfit_materials','')}",
-            f"- Held Item: {brief.get('prop','')}",
-            f"- Shape Language: {brief.get('shape_language','')}",
-            f"- Mood/Tone: {brief.get('mood_tone','')}",
-            f"- Palette: {brief.get('palette_mood','')}",
-            "",
-            "STYLE (pixel art):",
-            f"- Outline: {style['outline_style_pixel_lab']}",
-            f"- Shading: {style['shading_style_pixel_lab']}",
-            f"- Detail: {style['detail_level_pixel_lab']}",
-            f"- Template: {style['character_template_pixel_lab']}",
-            "",
-            "TECHNICAL REQUIREMENTS (tool-enforced):",
-            f"- Output size: {canvas_size}x{canvas_size} pixels",
-            "- Single character only, no text, no watermark, no UI elements.",
-            "- No front view / 3/4 view / top-down view.",
-        ]
-    )
-
-    debug_constraints = {
-        "orientation": {"view": "side", "direction": "east", "facing": "right"},
-        "canvas_size": {"width": canvas_size, "height": canvas_size},
-        "background_rule": "plain flat color only; no environment; output must be transparent-ready via Pixel Lab no_background",
-        "style_mapping": {
-            "outline_style_user": style["outline_style_user"],
-            "outline_style_pixel_lab": style["outline_style_pixel_lab"],
-            "shading_style_user": style["shading_style_user"],
-            "shading_style_pixel_lab": style["shading_style_pixel_lab"],
-            "detail_level_user": style["detail_level_user"],
-            "detail_level_pixel_lab": style["detail_level_pixel_lab"],
-            "character_template_user": style["character_template_user"],
-            "character_template_pixel_lab": style["character_template_pixel_lab"],
-        },
-        "pixel_lab_endpoint": "POST /v1/generate-image-pixflux",
-    }
-
-    display_prompt = pixellab_description + "\n\n" + "\n".join(
-        [
-            "DEBUG CONSTRAINTS (tool-enforced):",
-            f"- Orientation: view={debug_constraints['orientation']['view']}, direction={debug_constraints['orientation']['direction']}",
-            f"- Canvas: {debug_constraints['canvas_size']['width']}x{debug_constraints['canvas_size']['height']}",
-            f"- Background rule: {debug_constraints['background_rule']}",
-            "- Style mapping:",
-            f"  - outline: {style['outline_style_user']} -> {style['outline_style_pixel_lab']}",
-            f"  - shading: {style['shading_style_user']} -> {style['shading_style_pixel_lab']}",
-            f"  - detail: {style['detail_level_user']} -> {style['detail_level_pixel_lab']}",
-            f"  - template: {style['character_template_user']} -> {style['character_template_pixel_lab']}",
-        ]
-    )
-
-    seed = stable_int(
-        "concept",
-        str(brief.get("project_hint") or ""),
-        str(brief.get("role_archetype") or ""),
-        str(brief.get("silhouette_intent") or ""),
-        str(brief.get("outfit_materials") or ""),
-        str(brief.get("prop") or ""),
-        str(brief.get("palette_mood") or ""),
-        str(brief.get("shape_language") or ""),
-        str(brief.get("mood_tone") or ""),
-        str(brief.get("outline_style") or ""),
-        str(brief.get("shading_style") or ""),
-        str(brief.get("detail_level") or ""),
-        str(canvas_size),
-        mod=4_294_967_295,
-    )
-
-    pixellab_params = {
-        "description": pixellab_description,
-        "image_size": {"width": canvas_size, "height": canvas_size},
-        "view": "side",
-        "direction": "east",
-        "no_background": True,
-        "outline": style["outline_style_pixel_lab"],
-        "shading": style["shading_style_pixel_lab"],
-        "detail": style["detail_level_pixel_lab"],
-        "seed": seed,
-    }
-
-    return {
-        "display_prompt": display_prompt,
-        "pixellab_params": pixellab_params,
-        "debug_constraints": debug_constraints,
-    }
-
-
-def _build_element_inpaint_mask(element: str, canvas_size: int) -> Tuple[Image.Image, List[Dict[str, int]]]:
-    """
-    Returns (mask_image, debug_boxes) for inpaint-v3.
-    mask: 'L' mode with 255 in the region to edit.
-    """
-    from PIL import ImageDraw
-
-    w = canvas_size
-    h = canvas_size
-    mask = Image.new("L", (w, h), 0)
-    draw = ImageDraw.Draw(mask)
-
-    # Boxes are heuristic pixel-aligned regions in the 64x64 canvas.
-    # The goal is determinism + "good enough" targeting before more advanced segmentation exists.
-    boxes: List[Dict[str, int]] = []
-
-    def rect(x0: int, y0: int, x1: int, y1: int):
-        draw.rectangle((x0, y0, x1, y1), fill=255)
-        boxes.append({"x0": x0, "y0": y0, "x1": x1, "y1": y1})
-
-    element = element.strip().lower()
-    if element in {"outfit", "outfit/materials", "costume"}:
-        rect(int(w * 0.22), int(h * 0.28), int(w * 0.78), int(h * 0.82))  # torso + legs
-        rect(int(w * 0.14), int(h * 0.28), int(w * 0.36), int(h * 0.55))  # left arm area
-        rect(int(w * 0.64), int(h * 0.28), int(w * 0.86), int(h * 0.55))  # right arm area
-    elif element in {"weapon/prop", "prop", "weapon", "held item"}:
-        rect(int(w * 0.48), int(h * 0.38), int(w * 0.96), int(h * 0.78))
-    elif element in {"palette/colors", "palette", "colors"}:
-        rect(int(w * 0.16), int(h * 0.10), int(w * 0.84), int(h * 0.88))  # whole character
-    elif element in {"pose"}:
-        rect(int(w * 0.18), int(h * 0.14), int(w * 0.82), int(h * 0.88))  # character body area
-    elif element in {"silhouette"}:
-        rect(int(w * 0.14), int(h * 0.08), int(w * 0.86), int(h * 0.92))  # full silhouette area
-    elif element in {"hair/head", "hair", "head"}:
-        rect(int(w * 0.20), int(h * 0.04), int(w * 0.80), int(h * 0.42))
-    elif element in {"accessories"}:
-        rect(int(w * 0.20), int(h * 0.18), int(w * 0.80), int(h * 0.62))  # mid accessory band
-        rect(int(w * 0.26), int(h * 0.00), int(w * 0.74), int(h * 0.28))  # crown area
-    elif element in {"expression"}:
-        rect(int(w * 0.30), int(h * 0.14), int(w * 0.70), int(h * 0.26))  # face / eyes region
-    elif element in {"proportions"}:
-        rect(int(w * 0.14), int(h * 0.10), int(w * 0.86), int(h * 0.90))
-    else:
-        # Fallback: edit whole character.
-        rect(int(w * 0.16), int(h * 0.08), int(w * 0.84), int(h * 0.92))
-
-    return mask, boxes
-
-
-def _encode_png_base64(image: Image.Image) -> str:
-    buf = io.BytesIO()
-    image.save(buf, format="PNG")
-    return base64.b64encode(buf.getvalue()).decode("ascii")
-
-
-def _element_edit_mask_for_size(element: str, size: Tuple[int, int]) -> Image.Image:
-    square_mask, _ = _build_element_inpaint_mask(element, 64)
-    if square_mask.size == size:
-        return square_mask
-    return square_mask.resize(size, resample=Image.Resampling.NEAREST)
-
-
-def _is_side_view_correction_request(element: str, change_text: str) -> bool:
-    if element != "pose":
-        return False
-    text = str(change_text or "").lower()
-    side_terms = (
-        "side view",
-        "side-view",
-        "side profile",
-        "side-profile",
-        "strict profile",
-        "profile view",
-        "orthographic side",
-        "true side",
-    )
-    off_view_terms = (
-        "3/4",
-        "three quarter",
-        "three-quarter",
-        "front view",
-        "frontal",
-        "turned toward camera",
-        "not side view",
-        "wrong view",
-    )
-    correction_verbs = (
-        "change",
-        "make",
-        "turn",
-        "convert",
-        "fix",
-        "adjust",
-        "shift",
-    )
-    direct_side_requests = (
-        "strict side view",
-        "strict side-view",
-        "strict side profile",
-        "strict side-profile",
-        "true side view",
-        "true side profile",
-        "orthographic side view",
-        "full side view",
-    )
-    has_side_term = any(term in text for term in side_terms)
-    has_off_view_term = any(term in text for term in off_view_terms)
-    has_direct_side_request = any(term in text for term in direct_side_requests)
-    has_correction_verb = any(term in text for term in correction_verbs)
-    return (has_side_term and has_off_view_term) or (has_direct_side_request and has_correction_verb)
-
-
-def _protected_source_mask_for_element(element: str, size: Tuple[int, int], change_text: str = "") -> Image.Image:
-    if element != "pose" or _is_side_view_correction_request(element, change_text):
-        return Image.new("L", size, 0)
-    mask = Image.new("L", size, 0)
-    draw = ImageDraw.Draw(mask)
-    w, h = size
-    # Preserve the side-profile read by locking the head and torso core.
-    draw.rectangle((int(w * 0.30), int(h * 0.08), int(w * 0.66), int(h * 0.34)), fill=255)
-    draw.rectangle((int(w * 0.34), int(h * 0.28), int(w * 0.64), int(h * 0.62)), fill=255)
-    return mask
-
-
-def _iteration_element_contract(element: str) -> Dict[str, Any]:
-    contracts = {
-        "outfit": {
-            "label": "outfit and materials",
-            "editable_zone": "clothing, armor surface treatment, cloth shapes, and material accents for the outfit only",
-            "allowed": [
-                "change garment shape, trim, layering, or material treatment",
-                "extend or reduce cloth attached to the outfit",
-                "adjust outfit pixels where the requested outfit change physically requires it",
-            ],
-            "locked": [
-                "pose and body stance",
-                "head design and facial area unless covered by outfit changes",
-                "weapons, shield, and handheld props",
-            ],
-        },
-        "weapon/prop": {
-            "label": "weapon or handheld prop",
-            "editable_zone": "the held item only, including its silhouette, size, and attached details",
-            "allowed": [
-                "change the held item's shape, material read, or decoration",
-                "adjust the hand contact area only if needed to support the new prop shape",
-            ],
-            "locked": [
-                "body pose and limb placement",
-                "armor and clothing outside the hand contact area",
-                "head, torso, and leg silhouette",
-            ],
-        },
-        "palette/colors": {
-            "label": "palette and color treatment",
-            "editable_zone": "color choices only",
-            "allowed": [
-                "change hue, value, and saturation relationships",
-                "re-map existing rendered regions to a new palette",
-            ],
-            "locked": [
-                "silhouette and pose",
-                "pixel clusters and line placement",
-                "prop shape and costume design",
-            ],
-        },
-        "pose": {
-            "label": "pose",
-            "editable_zone": "limb placement, arm angles, leg angles, and stance only while preserving the existing side-profile head and torso read",
-            "allowed": [
-                "reposition limbs and shift stance to create the requested pose",
-                "shift prop placement only as a consequence of the new pose",
-            ],
-            "locked": [
-                "character identity, armor design, and prop design",
-                "head profile, face direction, and torso side-view read",
-                "background and empty space",
-            ],
-        },
-        "silhouette": {
-            "label": "overall silhouette",
-            "editable_zone": "outer contour of the character only",
-            "allowed": [
-                "broaden, narrow, lengthen, or simplify the readable outer shape",
-                "change contour mass where needed to satisfy the requested silhouette change",
-            ],
-            "locked": [
-                "core costume identity unless contour changes require minimal adjustment",
-                "background and empty space",
-                "rendering style and palette",
-            ],
-        },
-        "hair/head": {
-            "label": "hair or head treatment",
-            "editable_zone": "hair, helmet crest, head accessory, and head silhouette only",
-            "allowed": [
-                "change headgear shape, hair shape, or head accessory read",
-                "adjust adjacent neck pixels only if needed for a clean connection",
-            ],
-            "locked": [
-                "body pose and torso design",
-                "weapons, shield, and lower body",
-                "background and empty space",
-            ],
-        },
-        "accessories": {
-            "label": "accessories",
-            "editable_zone": "non-primary accessories only",
-            "allowed": [
-                "add, remove, or modify secondary straps, charms, pouches, or ornaments",
-                "adjust nearby attachment pixels only where required",
-            ],
-            "locked": [
-                "pose and anatomy",
-                "primary weapon or shield silhouette",
-                "base armor and clothing shapes",
-            ],
-        },
-        "expression": {
-            "label": "expression",
-            "editable_zone": "face or visor read only",
-            "allowed": [
-                "change eyes, mouth, visor opening, or faceplate read",
-                "make minimal head-area pixel edits necessary for the requested expression",
-            ],
-            "locked": [
-                "head silhouette unless expression requires a tiny change",
-                "body pose and costume",
-                "weapons, shield, and background",
-            ],
-        },
-        "proportions": {
-            "label": "proportions",
-            "editable_zone": "relative body part size and length relationships only",
-            "allowed": [
-                "lengthen or shorten limbs, torso, or head size relationships",
-                "rebalance mass distribution to satisfy the requested proportion change",
-            ],
-            "locked": [
-                "costume identity and accessory design unless geometry must follow the new proportions",
-                "background and empty space",
-                "rendering style and palette",
-            ],
-        },
-    }
-    return contracts[element]
-
-
-def _iteration_element_contract_with_request(element: str, change_text: str) -> Dict[str, Any]:
-    contract = copy.deepcopy(_iteration_element_contract(element))
-    if _is_side_view_correction_request(element, change_text):
-        contract["label"] = "pose and view correction"
-        contract["editable_zone"] = "the full body pose and orientation, specifically to convert a bad 3/4 or front-turned sprite into a strict side view"
-        contract["allowed"] = [
-            "rebuild head, torso, limbs, and prop placement as needed to achieve a true side view",
-            "remove 3/4-view or front-facing information that conflicts with a side-profile read",
-            "reposition the full figure if needed to land on a clean side-view stance",
-        ]
-        contract["locked"] = [
-            "character identity, costume identity, and prop identity",
-            "overall design language, palette intent, and pixel-art rendering style",
-            "background and empty space",
-        ]
-    return contract
-
-
-def _build_iteration_edit_prompt(
-    brief: Dict[str, Any],
-    element: str,
-    change_text: str,
-    *,
-    canvas_size: Optional[int] = None,
-) -> str:
-    style = _brief_pixel_lab_style(brief)
-    description = str(brief.get("raw_prompt") or "").strip() or str(brief.get("description") or "").strip()
-    contract = _iteration_element_contract_with_request(element, change_text)
-    correcting_view = _is_side_view_correction_request(element, change_text)
-
-    lines = [
-        "ROLE: pixel art revision engine.",
-        "JOB: edit the supplied source sprite by changing exactly one user-selected aspect.",
-        "The source image is the authority for identity, rendering, layout, and all untouched pixels.",
-        "Do not redesign the sprite. Do not perform a general cleanup pass. Do not make a second improvement.",
-        "",
-        "SOURCE OF TRUTH:",
-        f"  Character brief: {description}" if description else "  Character brief: pixel art game character",
-        f"  Outfit/materials: {brief.get('outfit_materials', '')}" if brief.get("outfit_materials") else "",
-        f"  Palette mood: {brief.get('palette_mood', '')}" if brief.get("palette_mood") else "",
-        f"  Silhouette intent: {brief.get('silhouette_intent', '')}" if brief.get("silhouette_intent") else "",
-        f"  Primary prop: {brief.get('prop', '')}" if brief.get("prop") else "",
-        f"  Rendering style: {style['outline_style_pixel_lab']}, {style['shading_style_pixel_lab']}, {style['detail_level_pixel_lab']}",
-        "  View: strict orthographic side view, facing right (east)",
-        f"  Canvas: {canvas_size}x{canvas_size} pixels" if canvas_size else "",
-        "",
-        "EDIT CONTRACT:",
-        f"  Editable aspect: {contract['label']}",
-        f"  User request: {change_text}",
-        f"  Editable zone: {contract['editable_zone']}",
-        "  This is the ONLY aspect that may materially change.",
-        "",
-        "ALLOWED CHANGES FOR THIS EDIT:",
-        *[f"  - {item}" for item in contract["allowed"]],
-        "",
-        "LOCKED ASPECTS FOR THIS EDIT:",
-        *[f"  - {item}" for item in contract["locked"]],
-        "",
-        "PIXEL OWNERSHIP RULES:",
-        "  - Source opaque pixels belong to the character or a carried item.",
-        "  - Source transparent pixels are empty background space.",
-        "  - Never add a backing silhouette, halo, matte, cutout fill, shadow plate, or blocker shape behind the sprite.",
-        "  - Never convert empty background into a black fill, white fill, checker pattern, or placeholder mass.",
-        "  - New opaque pixels are allowed only where the requested edit physically changes the selected aspect.",
-        "",
-        "GLOBAL INVARIANTS:",
-        "  - Preserve all untouched pixels exactly.",
-        "  - Outside the selected edit region, the output should be a verbatim copy of the source sprite.",
-        "  - Preserve the rendering style exactly: same pixel-art hardness, same anti-aliasing policy, same level of detail.",
-        "  - Preserve the character identity and design language unless the selected aspect directly requires a local change.",
-        "  - Preserve canvas size, crop, facing direction, and side-view presentation.",
-        "  - The character must remain a strict side-view sprite, not a 3/4 view or front-turned redraw.",
-        "  - If the request is specifically to fix a wrong view, prioritize reaching a true side view over preserving an incorrect source pose.",
-        "",
-        "BACKGROUND RULES:",
-        "  - Background pixels stay background pixels.",
-        "  - Do not place background-colored mass inside the character silhouette.",
-        "  - Do not infer or paint a hidden body chunk, drop shadow, or backdrop shape behind the sprite.",
-        "  - If the model is unsure whether a region is background or character, keep the source interpretation unchanged.",
-        "",
-        "DECISION RULE:",
-        "  - When choosing between 'apply the requested edit' and 'preserve the source', preserve the source everywhere outside the selected aspect.",
-        "  - If the requested edit can be satisfied with a smaller change, choose the smaller change.",
-        "",
-        "OUTPUT REQUIREMENT:",
-        "  - Return one full sprite image with exactly one intentional revision: the requested change to the selected aspect.",
-        "  - If the edit would break the strict side view, prefer a smaller side-view-safe change instead.",
-        "  - If the request is to convert a bad 3/4 or front-facing image into side view, perform that correction directly and do not preserve the incorrect viewing angle.",
-    ]
-    if correcting_view:
-        lines.extend([
-            "",
-            "VIEW CORRECTION MODE:",
-            "  - The source is allowed to be wrong about orientation.",
-            "  - Replace 3/4-view, front-facing, or camera-turned anatomy with a clean strict side profile.",
-            "  - Keep the same character, but fix the view.",
-        ])
-    return "\n".join(line for line in lines if line)
-
-
-def _build_gemini_requirements_prompt(
-    brief: Dict[str, Any],
-    element: str,
-    change_text: str,
-) -> str:
-    contract = _iteration_element_contract_with_request(element, change_text)
-    correcting_view = _is_side_view_correction_request(element, change_text)
-    description = str(brief.get("raw_prompt") or "").strip() or str(brief.get("description") or "").strip() or "pixel art character"
-    style = _brief_pixel_lab_style(brief)
-
-    lines = [
-        "Edit the attached sprite image.",
-        "This is an image edit, not a redesign and not a fresh generation.",
-        "Use the attached image as the visual source of truth.",
-        "",
-        "Target character:",
-        f"- {description}",
-        f"- Rendering style: {style['outline_style_pixel_lab']}, {style['shading_style_pixel_lab']}, {style['detail_level_pixel_lab']}",
-        "",
-        "Requested edit:",
-        f"- Aspect to change: {contract['label']}",
-        f"- User request: {change_text}",
-        f"- Editable zone: {contract['editable_zone']}",
-        "",
-        "Allowed changes:",
-        *[f"- {item}" for item in contract["allowed"]],
-        "",
-        "Keep unchanged unless required by the requested edit:",
-        *[f"- {item}" for item in contract["locked"]],
-        "",
-        "Output requirements:",
-        "- Return one edited full sprite image only.",
-        "- Keep the same character identity, costume identity, gear identity, and pixel-art style.",
-        "- Keep the same framing, crop, scale, and facing direction unless the request explicitly requires changing them.",
-        "- Make only the smallest set of changes needed to satisfy the request.",
-        "- Keep the background transparent and empty.",
-        "- Do not add a backdrop, matte, glow, cast shadow, extra silhouette, hidden body fill, or any other new background-shaped mass.",
-    ]
-    if correcting_view:
-        lines.extend([
-            "- The source view may be wrong.",
-            "- Correct the figure to a true strict side view while keeping the same identity, costume, and gear.",
-        ])
-    else:
-        lines.extend([
-            "- Keep the current viewing angle and body orientation unless the request explicitly asks to correct them.",
-            "- Preserve the side-view presentation.",
-        ])
-    return "\n".join(lines)
-
-
-def gemini_iteration_supported_for_element(element: str) -> bool:
-    return str(element or "").strip() in ITERATION_ELEMENTS
-
-
-def _concept_source_image_relpath(concept: Dict[str, Any]) -> Optional[str]:
-    return (
-        concept.get("original_preview_image")
-        or concept.get("preview_image")
-        or concept.get("processed_preview_image")
-        or concept.get("image_path")
-    )
-
-
-def _count_mask_pixels(mask: Image.Image) -> int:
-    normalized = normalize_mask(mask)
-    return sum(1 for value in normalized.getdata() if value > 0)
-
-
-def evaluate_gemini_iteration_result(
-    source_image: Image.Image,
-    result_image: Image.Image,
-    element: str,
-    change_text: str,
-) -> Dict[str, Any]:
-    edit_mask = _element_edit_mask_for_size(element, result_image.size).convert("L")
-    edit_pixels = edit_mask.load()
-    src_pixels = source_image.convert("RGBA").load()
-    out_pixels = result_image.convert("RGBA").load()
-    width, height = result_image.size
-
-    changed_inside = 0
-    changed_outside = 0
-    subject_pixels_inside = 0
-    for y in range(height):
-        for x in range(width):
-            inside = edit_pixels[x, y] > 0
-            if src_pixels[x, y][3] > 0 and inside:
-                subject_pixels_inside += 1
-            if src_pixels[x, y] != out_pixels[x, y]:
-                if inside:
-                    changed_inside += 1
-                else:
-                    changed_outside += 1
-
-    source_mask = largest_component_mask(detect_mask(source_image))
-    result_mask = largest_component_mask(detect_mask(result_image))
-    contamination_pixels = 0
-    srcm = source_mask.load()
-    outm = result_mask.load()
-    for y in range(height):
-        for x in range(width):
-            if srcm[x, y] <= 0 and outm[x, y] > 0:
-                contamination_pixels += 1
-
-    changed_ratio = float(changed_inside) / float(max(1, subject_pixels_inside))
-    result = {
-        "changed_inside_edit_mask": changed_inside,
-        "changed_outside_edit_mask": changed_outside,
-        "subject_pixels_inside_edit_mask": subject_pixels_inside,
-        "changed_ratio_inside_edit_mask": changed_ratio,
-        "background_contamination_pixels": contamination_pixels,
-        "view_correction_mode": _is_side_view_correction_request(element, change_text),
-    }
-
-    if result["view_correction_mode"]:
-        result["status"] = "pass"
-        result["reason"] = None
-        return result
-
-    min_changed = {
-        "expression": 2,
-        "accessories": 4,
-        "hair/head": 6,
-        "weapon/prop": 12,
-        "outfit": 16,
-        "palette/colors": 40,
-        "pose": 24,
-        "silhouette": 24,
-        "proportions": 24,
-    }.get(element, 4)
-    max_ratio = {
-        "expression": 0.38,
-        "accessories": 0.45,
-        "hair/head": 0.55,
-        "weapon/prop": 0.7,
-        "outfit": 0.75,
-        "palette/colors": 1.0,
-        "pose": 0.9,
-        "silhouette": 0.95,
-        "proportions": 0.95,
-    }.get(element, 0.8)
-
-    if changed_inside < min_changed:
-        result["status"] = "fail"
-        result["reason"] = "Gemini did not make a meaningful edit in the requested region."
-        return result
-    if changed_ratio > max_ratio:
-        result["status"] = "fail"
-        result["reason"] = "Gemini changed too much of the requested region for this edit type."
-        return result
-    if changed_outside > 0:
-        result["status"] = "fail"
-        result["reason"] = "Gemini changed pixels outside the requested edit region."
-        return result
-    if contamination_pixels > 0:
-        result["status"] = "fail"
-        result["reason"] = "Gemini introduced new foreground pixels outside the original character silhouette."
-        return result
-
-    result["status"] = "pass"
-    result["reason"] = None
-    return result
-
-
-def build_iteration_prompt(
-    brief: Dict[str, Any],
-    element: str,
-    change_text: str,
-    *,
-    source_concept_path: Optional[Path] = None,
-) -> Dict[str, Any]:
-    """
-    Scaffold targeted concept iteration using generate-image-pixflux with init_image (img2img).
-
-    init_image_strength (1-999): higher = closer to source. ~750 preserves character identity
-    while still applying the targeted change from the description.
-    """
-    element = (element or "").strip()
-    change_text = (change_text or "").strip()
-    if not element:
-        raise ValueError("Iteration requires 'element'.")
-    if not change_text:
-        raise ValueError("Iteration requires 'change_text'.")
-
-    allowed_elements = set(ITERATION_ELEMENTS)
-    if element not in allowed_elements:
-        raise ValueError("Invalid element. Must be one of: %s" % ", ".join(sorted(allowed_elements)))
-
-    style = _brief_pixel_lab_style(brief)
-    canvas_size = PIXELLAB_CONCEPT_IMAGE_SIZE
-    pixellab_description = _build_iteration_edit_prompt(
-        brief,
-        element,
-        change_text,
-        canvas_size=canvas_size,
-    )
-
-    if source_concept_path is None:
-        raise ValueError("Iteration scaffolding requires source_concept_path.")
-    if not isinstance(source_concept_path, Path):
-        raise ValueError("source_concept_path must be a Path.")
-    if not source_concept_path.exists():
-        raise ValueError("source_concept_path does not exist: %s" % str(source_concept_path))
-
-    with Image.open(source_concept_path) as loaded:
-        rgba = loaded.convert("RGBA")
-        side = min(rgba.size[0], rgba.size[1])
-        left = (rgba.size[0] - side) // 2
-        top = (rgba.size[1] - side) // 2
-        cropped = rgba.crop((left, top, left + side, top + side))
-        resized = cropped.resize((canvas_size, canvas_size), resample=Image.Resampling.NEAREST)
-        init_image_b64 = _encode_png_base64(resized)
-    mask_image, mask_boxes = _build_element_inpaint_mask(element, canvas_size)
-    mask_image_b64 = _encode_png_base64(mask_image)
-
-    seed = stable_int(
-        "iteration",
-        str(brief.get("role_archetype") or ""),
-        str(brief.get("silhouette_intent") or ""),
-        str(brief.get("outfit_materials") or ""),
-        str(brief.get("prop") or ""),
-        str(brief.get("palette_mood") or ""),
-        str(brief.get("shape_language") or ""),
-        str(brief.get("mood_tone") or ""),
-        str(style.get("outline_style_user") or ""),
-        str(style.get("shading_style_user") or ""),
-        str(style.get("detail_level_user") or ""),
-        str(canvas_size),
-        element,
-        change_text,
-        mod=4_294_967_295,
-    )
-
-    debug_constraints = {
-        "orientation": {"view": "side", "direction": "east", "facing": "right"},
-        "canvas_size": {"width": canvas_size, "height": canvas_size},
-        "style_mapping": {
-            "outline_style_user": style["outline_style_user"],
-            "outline_style_pixel_lab": style["outline_style_pixel_lab"],
-            "shading_style_user": style["shading_style_user"],
-            "shading_style_pixel_lab": style["shading_style_pixel_lab"],
-            "detail_level_user": style["detail_level_user"],
-            "detail_level_pixel_lab": style["detail_level_pixel_lab"],
-        },
-        "img2img": {
-            "element": element,
-            "init_image_strength": 750,
-            "pixel_lab_endpoint": "POST /v1/generate-image-pixflux",
-        },
-        "inpaint": {
-            "mask_boxes": mask_boxes,
-            "crop_to_mask": True,
-        },
-    }
-
-    display_prompt = pixellab_description + "\n\n" + "\n".join(
-        [
-            "DEBUG CONSTRAINTS (tool-enforced):",
-            f"- Orientation: view=side, direction=east",
-            f"- Canvas: {canvas_size}x{canvas_size}",
-            f"- img2img element: {element}",
-            f"- init_image_strength: 750",
-            f"- Style mapping: outline={style['outline_style_user']} shading={style['shading_style_user']} detail={style['detail_level_user']}",
-        ]
-    )
-
-    pixellab_params = {
-        "description": pixellab_description,
-        "init_image_b64": init_image_b64,
-        "inpainting_image_b64": init_image_b64,
-        "init_image_strength": 750,
-        "image_size": {"width": canvas_size, "height": canvas_size},
-        "mask_image_b64": mask_image_b64,
-        "crop_to_mask": True,
-        "view": "side",
-        "direction": "east",
-        "outline": style["outline_style_pixel_lab"],
-        "shading": style["shading_style_pixel_lab"],
-        "detail": style["detail_level_pixel_lab"],
-        "no_background": True,
-        "seed": seed,
-    }
-
-    return {
-        "display_prompt": display_prompt,
-        "pixellab_params": pixellab_params,
-        "debug_constraints": debug_constraints,
-    }
-
-
-def get_gemini_client() -> Any:
-    if not _GOOGLE_GENAI_AVAILABLE:
-        raise ValueError("google-genai package not installed. Run: pip install google-genai")
-    api_key = os.environ.get("GEMINI_API_KEY", "").strip()
-    if not api_key:
-        raise ValueError("GEMINI_API_KEY environment variable not set.")
-    return _google_genai.Client(api_key=api_key)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 GEMINI_IMAGE_MODEL = "gemini-2.5-flash-image"
 
 
-def gemini_iterate_concept(
-    source_image_bytes: bytes,
-    element: str,
-    change_text: str,
-    brief: Dict[str, Any],
-) -> bytes:
-    """
-    Use Gemini image editing to apply one targeted change to a sprite.
-
-    Sends the original source image to Gemini and relies on the prompt to constrain the edit.
-    Returns the modified image as PNG bytes at the original dimensions.
-    """
-    src = Image.open(io.BytesIO(source_image_bytes)).convert("RGBA")
-    orig_w, orig_h = src.size
-    prompt = _build_gemini_requirements_prompt(brief, element, change_text)
-
-    client = get_gemini_client()
-    response = client.models.generate_content(
-        model=GEMINI_IMAGE_MODEL,
-        contents=[
-            _google_genai_types.Part.from_bytes(data=source_image_bytes, mime_type="image/png"),
-            prompt,
-        ],
-        config=_google_genai_types.GenerateContentConfig(response_modalities=["IMAGE", "TEXT"]),
-    )
-
-    for part in response.candidates[0].content.parts:
-        if part.inline_data:
-            result_img = Image.open(io.BytesIO(part.inline_data.data)).convert("RGBA")
-            if result_img.size != (orig_w, orig_h):
-                result_img = result_img.resize((orig_w, orig_h), resample=Image.Resampling.NEAREST)
-
-            out_buf = io.BytesIO()
-            result_img.save(out_buf, format="PNG")
-            return out_buf.getvalue()
-
-    raise ValueError("Gemini did not return an image. Response: %s" % str(response.candidates[0].content.parts))
 
 
 def _find_first_base64_png_like(payload: Any) -> Optional[str]:
@@ -5892,221 +4751,17 @@ def _pixellab_animation_job_to_rgba_frames(
     )
 
 
-def _pixellab_character_path(project_dir: Path) -> Path:
-    return project_dir / "pixellab_character.json"
 
 
-def _normalize_east_only_character_source(
-    project_dir: Path,
-    char_data: Optional[Dict[str, Any]],
-    concepts: Optional[List[Dict[str, Any]]] = None,
-) -> Optional[Dict[str, Any]]:
-    if not isinstance(char_data, dict) or not char_data.get("east_only_source"):
-        return char_data
-
-    current_size = char_data.get("image_size")
-    target_size = preferred_concept_canvas_size(current_size)
-    if (
-        isinstance(current_size, dict)
-        and int(current_size.get("width") or 0) == target_size
-        and int(current_size.get("height") or 0) == target_size
-    ):
-        return char_data
-
-    east_rel = ((char_data.get("images") or {}) if isinstance(char_data.get("images"), dict) else {}).get("east")
-    east_path = (project_dir / str(east_rel)) if east_rel else (project_dir / "character" / "east.png")
-
-    source_path: Optional[Path] = None
-    if concepts and char_data.get("source_concept_id"):
-        concept = next((item for item in concepts if item.get("concept_id") == char_data.get("source_concept_id")), None)
-        if concept is not None:
-            source_rel = (
-                concept.get("processed_preview_image")
-                or concept.get("original_preview_image")
-                or concept.get("preview_image")
-                or concept.get("image_path")
-            )
-            if source_rel:
-                candidate = Path(str(source_rel))
-                source_path = candidate if candidate.is_absolute() else (project_dir / str(source_rel))
-                if not source_path.exists():
-                    source_path = None
-
-    if source_path is None and east_path.exists():
-        source_path = east_path
-
-    if source_path is None:
-        return char_data
-
-    with Image.open(source_path) as loaded:
-        source_size = {"width": loaded.size[0], "height": loaded.size[1]}
-    target_size = preferred_concept_canvas_size(source_size)
-    normalized = prepare_pixellab_character_color_source(source_path, target_size)
-
-    east_path.parent.mkdir(parents=True, exist_ok=True)
-    normalized.save(east_path)
-
-    char_data = dict(char_data)
-    images = dict(char_data.get("images") or {})
-    images["east"] = str(east_path.relative_to(project_dir))
-    char_data["images"] = images
-    char_data["image_size"] = {"width": target_size, "height": target_size}
-    char_data["updated_at"] = now_iso()
-    _pixellab_character_path(project_dir).write_text(json.dumps(char_data, indent=2), encoding="utf-8")
-
-    skel_path = _pixellab_skeleton_path(project_dir)
-    if skel_path.exists():
-        skel_data = load_json(skel_path, None) or {}
-        skel_size = skel_data.get("image_size") if isinstance(skel_data, dict) else {}
-        if (
-            not isinstance(skel_size, dict)
-            or int(skel_size.get("width") or 0) != target_size
-            or int(skel_size.get("height") or 0) != target_size
-        ):
-            skel_path.unlink(missing_ok=True)
-
-    return char_data
 
 
-def _set_pixellab_east_only_character_source(
-    project: Dict[str, Any],
-    project_dir: Path,
-    concept_id: str,
-    *,
-    approved: bool,
-) -> Dict[str, Any]:
-    concept = next((item for item in (project.get("concepts") or []) if item.get("concept_id") == concept_id), None)
-    if concept is None:
-        raise ValueError("Concept not found for east-only character source.")
-
-    source_rel = (
-        concept.get("processed_preview_image")
-        or concept.get("original_preview_image")
-        or concept.get("preview_image")
-        or concept.get("image_path")
-    )
-    if not source_rel:
-        raise ValueError("Concept does not have a preview image path.")
-
-    source_path = Path(str(source_rel))
-    if not source_path.is_absolute():
-        source_path = project_dir / str(source_rel)
-    if not source_path.exists():
-        raise ValueError("Concept preview image is missing on disk.")
-
-    with Image.open(source_path) as loaded:
-        source_size = {"width": loaded.size[0], "height": loaded.size[1]}
-    canvas_size = preferred_concept_canvas_size(source_size)
-    east_image = prepare_pixellab_character_color_source(source_path, canvas_size)
-
-    assets_dir = _pixellab_character_assets_dir(project_dir)
-    assets_dir.mkdir(parents=True, exist_ok=True)
-    east_path = assets_dir / "east.png"
-    east_image.save(east_path)
-
-    _pixellab_skeleton_path(project_dir).unlink(missing_ok=True)
-
-    char_payload = {
-        "character_id": None,
-        "approved": bool(approved),
-        "pixellab_character_approved": bool(approved),
-        "created_at": now_iso(),
-        "directions": ["east"],
-        "image_size": {"width": canvas_size, "height": canvas_size},
-        "source_concept_id": concept_id,
-        "backend_name": "approved_concept",
-        "seed": None,
-        "east_only_source": True,
-        "images": {"east": str(east_path.relative_to(project_dir))},
-    }
-    _pixellab_character_path(project_dir).write_text(json.dumps(char_payload, indent=2), encoding="utf-8")
-    project["pixellab_character_ready"] = True
-    project["pixellab_character_approved"] = bool(approved)
-    project["pixellab_skeleton_ready"] = False
-    return char_payload
 
 
-def _upscale_legacy_east_only_animation_frames(
-    project_dir: Path,
-    char_data: Optional[Dict[str, Any]],
-    store: Optional[Dict[str, Any]],
-) -> Optional[Dict[str, Any]]:
-    if (
-        not isinstance(char_data, dict)
-        or not char_data.get("east_only_source")
-        or not isinstance(store, dict)
-        or not isinstance(store.get("animations"), dict)
-    ):
-        return store
-
-    target_size = preferred_concept_canvas_size(char_data.get("image_size"))
-    changed = False
-    animations = store.get("animations") or {}
-    for anim in animations.values():
-        if not isinstance(anim, dict):
-            continue
-        directions = anim.get("directions")
-        if not isinstance(directions, dict):
-            continue
-        for direction_meta in directions.values():
-            if not isinstance(direction_meta, dict):
-                continue
-            for rel_path in direction_meta.get("frames") or []:
-                frame_path = project_dir / str(rel_path)
-                if not frame_path.exists():
-                    continue
-                with Image.open(frame_path) as loaded:
-                    if loaded.size == (target_size, target_size):
-                        continue
-                    width, height = loaded.size
-                    if width != height or width >= target_size or width not in SUPPORTED_CANVAS_SIZES:
-                        continue
-                    upscaled = loaded.resize((target_size, target_size), Image.Resampling.NEAREST)
-                upscaled.save(frame_path)
-                changed = True
-
-    if changed:
-        store = dict(store)
-        store["updated_at"] = now_iso()
-        _save_pixellab_animations_store(project_dir, store)
-    return store
 
 
-def pixellab_character_wizard_complete(project: Dict[str, Any], project_dir: Path) -> bool:
-    """True when Pixel Lab character exists and is approved (project flags and/or JSON)."""
-    if bool(project.get("pixellab_character_approved")):
-        return True
-    char_path = _pixellab_character_path(project_dir)
-    if not char_path.exists():
-        return False
-    char_data = load_json(char_path, None) or {}
-    if bool(char_data.get("pixellab_character_approved")):
-        return True
-    return bool(char_data.get("approved"))
-
-def pixellab_animation_store_has_frames(animations: Any) -> bool:
-    if not isinstance(animations, dict):
-        return False
-    for entry in animations.values():
-        if not isinstance(entry, dict):
-            continue
-        dirs = entry.get("directions")
-        if not isinstance(dirs, dict):
-            continue
-        for data in dirs.values():
-            frames = data.get("frames") if isinstance(data, dict) else None
-            if isinstance(frames, list) and frames:
-                return True
-    return False
 
 
-def pixellab_animations_step_complete(project: Dict[str, Any], project_dir: Path) -> bool:
-    """At least one Pixel Lab animation clip has generated frame paths."""
-    store = project.get("pixellab_animations")
-    if not isinstance(store, dict) or not isinstance(store.get("animations"), dict):
-        store = _load_pixellab_animations_store(project_dir)
-    anims = store.get("animations") if isinstance(store.get("animations"), dict) else {}
-    return pixellab_animation_store_has_frames(anims)
+
 
 
 def wizard_steps_active(project: Dict[str, Any]) -> List[str]:
@@ -6125,34 +4780,14 @@ def wizard_steps_active(project: Dict[str, Any]) -> List[str]:
     return list(WIZARD_STEPS)
 
 
-def _pixellab_skeleton_path(project_dir: Path) -> Path:
-    return project_dir / "pixellab_skeleton.json"
 
 
-def _pixellab_character_assets_dir(project_dir: Path) -> Path:
-    return project_dir / "character"
 
 
-def _pixellab_animations_path(project_dir: Path) -> Path:
-    return project_dir / "pixellab_animations.json"
 
 
-def _load_pixellab_animations_store(project_dir: Path) -> Dict[str, Any]:
-    path = _pixellab_animations_path(project_dir)
-    if not path.exists():
-        return {"project_id": project_dir.name, "updated_at": now_iso(), "animations": {}}
-    store = load_json(path, None) or {}
-    if not isinstance(store, dict):
-        store = {}
-    store.setdefault("project_id", project_dir.name)
-    store.setdefault("animations", {})
-    store.setdefault("updated_at", now_iso())
-    return store
 
 
-def _save_pixellab_animations_store(project_dir: Path, store: Dict[str, Any]) -> None:
-    path = _pixellab_animations_path(project_dir)
-    path.write_text(json.dumps(store, indent=2), encoding="utf-8")
 
 
 PIXELLAB_CORE_ANIMATION_NAMES = frozenset({"idle", "walk", "run", "jump"})
@@ -6165,27 +4800,8 @@ PIXELLAB_DEFAULT_CLIP_TIMINGS = {
 _PIXELLAB_ANIMATION_NAME_RE = re.compile(r"^[a-z][a-z0-9_]{0,47}$")
 
 
-def validate_pixellab_animation_name(raw: Any) -> str:
-    """Lowercase slug for Pixel Lab clip keys (idle/walk + user-defined)."""
-    s = str(raw or "").strip().lower()
-    if not _PIXELLAB_ANIMATION_NAME_RE.fullmatch(s):
-        raise ValueError(
-            "animation_name must start with a letter, use only a-z, 0-9, underscore, max 48 characters."
-        )
-    return s
 
 
-def _infer_animation_name_from_template(template_animation_id: str) -> str:
-    s = (template_animation_id or "").lower()
-    if any(token in s for token in ["idle", "breathing"]):
-        return "idle"
-    if any(token in s for token in ["walk", "walking"]):
-        return "walk"
-    if any(token in s for token in ["run", "running", "slide"]):
-        return "run"
-    if any(token in s for token in ["jump", "jumping", "flip"]):
-        return "jump"
-    return "idle"
 
 
 def _infer_frame_count_from_template(template_animation_id: str) -> Optional[int]:
@@ -6259,54 +4875,6 @@ def _write_png_frames(frames: List[Image.Image], project_dir: Path, animation_na
     return frame_paths
 
 
-def _upsert_pixellab_animation_frames(
-    project_dir: Path,
-    store: Dict[str, Any],
-    *,
-    animation_name: str,
-    direction: str,
-    fps: int,
-    frame_count: int,
-    loop: bool,
-    frames_paths: List[str],
-    template_animation_id: Optional[str],
-    backend_name: str,
-    seed: Optional[int],
-    job_id: Optional[str] = None,
-    edited_description: Optional[str] = None,
-) -> Dict[str, Any]:
-    store.setdefault("animations", {})
-    animations = store["animations"]
-    anim = animations.get(animation_name) if isinstance(animations, dict) else None
-    if not isinstance(anim, dict):
-        anim = {}
-    anim.update({
-        "animation_name": animation_name,
-        "fps": int(fps),
-        "frame_count": int(frame_count),
-        "loop": bool(loop),
-        "backend_name": backend_name,
-        "seed": seed,
-        "template_animation_id": template_animation_id,
-        "updated_at": now_iso(),
-    })
-    if job_id:
-        anim["latest_job_id"] = job_id
-    if edited_description:
-        anim["latest_edited_description"] = edited_description
-
-    anim.setdefault("directions", {})
-    if isinstance(anim["directions"], dict):
-        anim["directions"][direction] = {
-            "frames": list(frames_paths),
-            "frame_count": int(frame_count),
-            "fps": int(fps),
-            "updated_at": now_iso(),
-        }
-    animations[animation_name] = anim
-    store["updated_at"] = now_iso()
-    _save_pixellab_animations_store(project_dir, store)
-    return anim
 
 
 def build_identity_lock_lines(brief: Dict[str, Any]) -> List[str]:
@@ -6342,69 +4910,6 @@ def summarize_iteration_feedback(brief: Dict[str, Any], feedback: Optional[str])
     return instructions
 
 
-def build_gemini_prompt(
-    brief: Dict[str, Any],
-    previous_prompt: Optional[str] = None,
-    validation_feedback: Optional[str] = None,
-    imported_attempt: Optional[Dict[str, Any]] = None,
-) -> str:
-    iteration_mode = bool(previous_prompt or imported_attempt)
-    if iteration_mode:
-        lines = [
-            "Use the attached previous image as the direct reference.",
-            "Edit or regenerate the same character, not a redesign.",
-            "Keep the same side-view composition, same character identity, same costume logic, same proportions, same palette direction, and same silhouette family.",
-            "Exactly one full-body humanoid character on a plain removable background.",
-            "Strict orthographic side profile only.",
-            "Do not change the character into a different knight or different costume interpretation.",
-            "",
-            "Keep these identity anchors fixed:",
-            "- role/archetype: %s" % brief["role_archetype"],
-            "- silhouette family: %s" % brief["silhouette_intent"],
-            "- outfit/materials: %s" % brief["outfit_materials"],
-            "- held item intent: %s" % brief["prop"],
-            "- palette direction: %s" % brief["palette_mood"],
-            "- shape language: %s" % brief["shape_language"],
-            "- mood/tone: %s" % brief["mood_tone"],
-            "",
-            "Make only these corrections:",
-            *["- %s" % item for item in summarize_iteration_feedback(brief, validation_feedback)],
-            "",
-            "Hard constraints:",
-            "- one character only",
-            "- full body visible",
-            "- no front view, 3/4 view, top-down view, or dramatic camera angle",
-            "- no background scene, no collage, no concept page, no turnaround, no sprite sheet, no multiple poses",
-            "- do not crop head or feet",
-            "- preserve low-resolution readability",
-        ]
-        return "\n".join(lines)
-    lines = [
-        "Create exactly one full-body side-view humanoid character concept for a 2D metroidvania sprite pipeline.",
-        "Plain removable background only.",
-        "Strict orthographic side profile only.",
-        "Full body visible, centered, readable, and animation-friendly.",
-        "",
-        "Character brief:",
-        "- role/archetype: %s" % brief["role_archetype"],
-        "- silhouette family: %s" % brief["silhouette_intent"],
-        "- outfit/materials: %s" % brief["outfit_materials"],
-        "- held item: %s" % brief["prop"],
-        "- palette direction: %s" % brief["palette_mood"],
-        "- shape language: %s" % brief["shape_language"],
-        "- mood/tone: %s" % brief["mood_tone"],
-        "- readability constraints: %s" % brief["side_view_constraints"],
-        "",
-        "Composition requirements:",
-        "- one character only",
-        "- no background scene or environment storytelling",
-        "- no front view, 3/4 view, top-down view, or dramatic camera angle",
-        "- no action montage, no multiple poses, no turnaround, no sprite sheet, no collage, no concept page",
-        "- do not crop head or feet",
-        "- maintain clear negative space between head, torso, limbs, and held item",
-        "- held item must read as a separate silhouette from the torso when present",
-    ]
-    return "\n".join(lines)
 
 
 def build_brief_from_payload(payload: Dict[str, Any], existing_brief: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
@@ -6452,117 +4957,10 @@ def parse_data_url(value: str) -> Tuple[str, bytes]:
     return mime_type, base64.b64decode(encoded)
 
 
-def analyze_reference_asset(path: Optional[Path], source_value: Optional[str] = None) -> Dict[str, Any]:
-    name_bits = [str(source_value or "")]
-    if path:
-        name_bits.append(path.name)
-        name_bits.append(path.stem)
-    lowered_name = " ".join(name_bits).lower()
-    if any(hint in lowered_name for hint in REFERENCE_SPRITESHEET_HINTS):
-        return {
-            "reference_kind": "sprite_sheet",
-            "reference_warning": "Looks like a sprite or animation sheet. The concept generator will ignore it because it tends to produce layout-copy artifacts instead of usable concept art.",
-            "usable_for_concepts": False,
-        }
-
-    if path and path.exists():
-        try:
-            with Image.open(path) as loaded:
-                image = loaded.convert("RGBA")
-            mask = detect_mask(image)
-            component_count = mask_connected_components(mask)
-            width, height = image.size
-            aspect_ratio = width / max(height, 1)
-            if width >= 384 and aspect_ratio >= 1.2 and component_count >= 8:
-                return {
-                    "reference_kind": "sprite_sheet",
-                    "reference_warning": "This reference reads like a multi-frame sprite sheet. The concept generator will ignore it to avoid copying sheet structure into the concept board.",
-                    "usable_for_concepts": False,
-                }
-        except Exception:
-            pass
-
-    return {
-        "reference_kind": "illustration",
-        "reference_warning": None,
-        "usable_for_concepts": True,
-    }
 
 
-def store_reference(project_dir: Path, descriptor: Dict[str, Any]) -> Dict[str, Any]:
-    role = descriptor.get("role")
-    if role not in REFERENCE_ROLES:
-        raise ValueError("Reference role must be one of: %s." % ", ".join(REFERENCE_ROLES))
-    try:
-        weight = float(descriptor.get("weight", 1.0))
-    except (TypeError, ValueError):
-        raise ValueError("Reference weight must be numeric.")
-    weight = clamp(weight, 0.1, 2.0)
-
-    reference_id = uuid.uuid4().hex[:10]
-    references_dir = project_dir / "references"
-    references_dir.mkdir(parents=True, exist_ok=True)
-
-    data_url = descriptor.get("data_url")
-    local_path = descriptor.get("path")
-    original_name = descriptor.get("name") or descriptor.get("filename") or "reference"
-    source_type = "upload" if data_url else "local"
-
-    if data_url:
-        mime_type, payload = parse_data_url(data_url)
-        extension = guess_extension(original_name, mime_type)
-        filename = "%s_%s%s" % (role, sanitize_filename(Path(original_name).stem, "reference"), extension)
-        output_path = references_dir / filename
-        output_path.write_bytes(payload)
-        source_value = original_name
-    elif local_path:
-        source = Path(local_path).expanduser()
-        if not source.exists() or not source.is_file():
-            raise ValueError("Reference path does not exist: %s" % local_path)
-        extension = source.suffix or ".png"
-        filename = "%s_%s%s" % (role, sanitize_filename(source.stem, "reference"), extension)
-        output_path = references_dir / filename
-        shutil.copy2(source, output_path)
-        source_value = str(source)
-    else:
-        raise ValueError("Reference entry must include either a file upload or a local path.")
-
-    analysis = analyze_reference_asset(output_path, source_value)
-
-    return {
-        "reference_id": reference_id,
-        "role": role,
-        "weight": weight,
-        "source_type": source_type,
-        "source_value": source_value,
-        "local_path": str(output_path.relative_to(project_dir)),
-        "added_at": now_iso(),
-        "reference_kind": analysis["reference_kind"],
-        "reference_warning": analysis["reference_warning"],
-        "usable_for_concepts": analysis["usable_for_concepts"],
-    }
 
 
-def merge_new_references(project_dir: Path, brief: Dict[str, Any], payload: Dict[str, Any]) -> Dict[str, Any]:
-    references = list(brief.get("references") or [])
-    new_refs = payload.get("references") or payload.get("new_references") or []
-    if not isinstance(new_refs, list):
-        raise ValueError("references must be an array.")
-
-    legacy_ref_images = payload.get("reference_images") or []
-    legacy_style_refs = payload.get("style_references") or []
-    for item in legacy_ref_images:
-        new_refs.append({"role": "identity", "weight": 1.0, "path": item} if isinstance(item, str) else item)
-    for item in legacy_style_refs:
-        new_refs.append({"role": "style", "weight": 1.0, "path": item} if isinstance(item, str) else item)
-
-    for descriptor in new_refs:
-        if not isinstance(descriptor, dict):
-            raise ValueError("Reference entries must be objects.")
-        references.append(store_reference(project_dir, descriptor))
-
-    brief["references"] = references
-    return brief
 
 
 def history_path(project_id: str) -> Path:
@@ -6601,145 +4999,18 @@ def append_history_event(project_id: str, event: Dict[str, Any]) -> Dict[str, An
     return history
 
 
-def load_concepts(project_dir: Path) -> List[Dict[str, Any]]:
-    concepts = []
-    concepts_dir = project_dir / "concepts"
-    if not concepts_dir.exists():
-        return concepts
-    for path in concepts_dir.glob("*.json"):
-        payload = load_json(path, None)
-        if isinstance(payload, dict):
-            concepts.append(payload)
-    concepts.sort(key=lambda item: (parse_iso(item.get("created_at")), item.get("concept_id", "")))
-    return concepts
 
 
-def prompt_history_entries(concepts: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    entries = []
-    for concept in concepts:
-        if not concept.get("prompt_text"):
-            continue
-        entries.append({
-            "concept_id": concept.get("concept_id"),
-            "attempt_group_id": concept.get("attempt_group_id"),
-            "attempt_index": concept.get("attempt_index"),
-            "prompt_version": concept.get("prompt_version"),
-            "prompt_source": concept.get("prompt_source"),
-            "prompt_text": concept.get("prompt_text"),
-            "prompt_file": concept.get("prompt_file"),
-            "created_at": concept.get("created_at"),
-            "validation_feedback": concept.get("validation_feedback"),
-        })
-    entries.sort(key=lambda item: (item.get("prompt_version") or 0, parse_iso(item.get("created_at"))), reverse=True)
-    return entries
 
 
-def hydrate_concept(concept: Dict[str, Any], fallback_created_at: Optional[str] = None) -> Dict[str, Any]:
-    record = dict(concept or {})
-    record.setdefault("concept_id", "")
-    record.setdefault("run_id", record.get("lineage", {}).get("run_id") if isinstance(record.get("lineage"), dict) else "legacy")
-    record.setdefault("run_kind", "legacy")
-    record.setdefault("created_at", fallback_created_at or now_iso())
-    record.setdefault("positive_prompt", record.get("prompt") or "")
-    record.setdefault("prompt_text", record.get("prompt") or record.get("positive_prompt") or "")
-    record.setdefault("prompt_version", 0)
-    record.setdefault("prompt_source", "initial")
-    record.setdefault("attempt_group_id", record.get("run_id") or "legacy")
-    record.setdefault("attempt_index", 1)
-    record.setdefault("import_source", None)
-    record.setdefault("validation_status", "valid" if record.get("review_state", {}).get("approved") else "pending")
-    record.setdefault("validation_feedback", None)
-    validation_source = record.get("validation_source")
-    if validation_source == "codex":
-        validation_source = "gemini"
-    elif validation_source == "codex_overridden":
-        validation_source = "gemini_overridden"
-    record.setdefault("validation_source", validation_source or "manual")
-    record.setdefault("validation_updated_at", record.get("created_at"))
-    record.setdefault("validation_error", None)
-    record.setdefault("codex_review_summary", None)
-    record.setdefault("codex_response_id", None)
-    record.setdefault("accepted_for_review", bool(record.get("review_state", {}).get("approved")))
-    record.setdefault("prompt_file", None)
-    record.setdefault("negative_prompt", DEFAULT_NEGATIVE_PROMPT)
-    record.setdefault("preview_image", "")
-    record.setdefault("original_preview_image", record.get("preview_image") or "")
-    record.setdefault("processed_preview_image", None)
-    record.setdefault("postprocess_status", "not_needed")
-    record.setdefault("postprocess_notes", None)
-    record.setdefault("approved_source_image", record.get("processed_preview_image") or record.get("preview_image") or None)
-    record.setdefault("concept_source_mode", "legacy")
-    record.setdefault("init_source_image", None)
-    record.setdefault("variation_axes", {})
-    review_state = record.get("review_state") or {}
-    record["review_state"] = {
-        "approved": bool(review_state.get("approved", record.get("approved", False))),
-        "favorite": bool(review_state.get("favorite", record.get("favorite", False))),
-        "rejected": bool(review_state.get("rejected", record.get("rejected", False))),
-    }
-    record["approved"] = record["review_state"]["approved"]
-    record["favorite"] = record["review_state"]["favorite"]
-    record["rejected"] = record["review_state"]["rejected"]
-    if record["review_state"]["approved"]:
-        record["validation_status"] = "valid"
-        record["accepted_for_review"] = True
-        if not record.get("approved_source_image"):
-            record["approved_source_image"] = record.get("processed_preview_image") or record.get("original_preview_image") or record.get("preview_image")
-    if "difference_summary" not in record:
-        silhouette = record.get("silhouette") or record.get("variation_axes", {}).get("silhouette")
-        outfit = record.get("outfit") or record.get("variation_axes", {}).get("outfit_complexity")
-        record["difference_summary"] = ", ".join([item for item in [silhouette, outfit] if item]) or "legacy concept"
-    record.setdefault("references_used", [])
-    record.setdefault("triage", {
-        "status": "not_evaluated",
-        "flags": [],
-        "metrics": {},
-    })
-    if not record.get("preview_image"):
-        record["preview_image"] = (
-            record.get("original_preview_image")
-            or record.get("processed_preview_image")
-            or record.get("approved_source_image")
-            or record.get("image_path")
-            or ""
-        )
-    if not record.get("original_preview_image") and record.get("preview_image"):
-        record["original_preview_image"] = record["preview_image"]
-    if not record.get("approved_source_image"):
-        record["approved_source_image"] = record.get("processed_preview_image") or record.get("original_preview_image") or record.get("preview_image")
-    return record
 
 
-def save_concept(project_dir: Path, concept: Dict[str, Any]) -> None:
-    path = project_dir / "concepts" / ("%s.json" % concept["concept_id"])
-    write_json(path, concept)
 
 
-def next_concept_serial(concepts: List[Dict[str, Any]]) -> int:
-    highest = 0
-    for concept in concepts:
-        match = re.search(r"(\d+)$", concept.get("concept_id", ""))
-        if match:
-            highest = max(highest, int(match.group(1)))
-    return highest + 1
 
 
-def next_prompt_version(concepts: List[Dict[str, Any]]) -> int:
-    highest = 0
-    for concept in concepts:
-        highest = max(highest, int(concept.get("prompt_version") or 0))
-    return highest + 1
 
 
-def save_prompt_artifacts(project_dir: Path, prompt_version: int, prompt_text: str) -> Tuple[str, str]:
-    prompts_dir = project_dir / "prompts"
-    history_dir = prompts_dir / "history"
-    history_dir.mkdir(parents=True, exist_ok=True)
-    latest_path = prompts_dir / "latest-gemini-prompt.txt"
-    history_path = history_dir / ("prompt-v%03d.txt" % prompt_version)
-    latest_path.write_text(prompt_text.strip() + "\n", encoding="utf-8")
-    history_path.write_text(prompt_text.strip() + "\n", encoding="utf-8")
-    return str(latest_path.relative_to(project_dir)), str(history_path.relative_to(project_dir))
 
 
 def image_data_url(path: Path) -> str:
@@ -7647,337 +5918,6 @@ def build_run_summaries(history: Dict[str, Any], concepts: List[Dict[str, Any]])
     return summaries
 
 
-def enrich_brief_references(project_dir: Path, brief: Dict[str, Any]) -> Dict[str, Any]:
-    references = []
-    for item in brief.get("references") or []:
-        if not isinstance(item, dict):
-            continue
-        local_path = project_dir / item["local_path"] if item.get("local_path") else None
-        analysis = analyze_reference_asset(local_path if local_path and local_path.exists() else None, item.get("source_value"))
-        enriched = dict(item)
-        enriched["reference_kind"] = analysis["reference_kind"]
-        enriched["reference_warning"] = analysis["reference_warning"]
-        enriched["usable_for_concepts"] = analysis["usable_for_concepts"]
-        references.append(enriched)
-    brief["references"] = references
-    return brief
-
-
-def load_project(project_id: str) -> Dict[str, Any]:
-    project_dir = PROJECTS_ROOT / project_id
-    project_path = project_dir / "project.json"
-    if not project_path.exists():
-        raise FileNotFoundError(project_id)
-
-    project = apply_project_defaults(load_json(project_path, {}))
-    ensure_dirs(project_dir)
-    project["brief"] = enrich_brief_references(project_dir, hydrate_brief(load_json(project_dir / "brief.json", {}), project.get("prompt_text", "")))
-    project["character_spec"] = load_json(project_dir / "character_spec.json")
-    project["rig_layout"] = load_json(canonical_downstream_path(project_dir, "rig_layout"))
-    project["rig_layout_history"] = load_json(rig_layout_history_path(project_dir), default_rig_layout_history(project_id))
-    project["part_manifest"] = load_json(canonical_downstream_path(project_dir, "part_manifest"))
-    project["part_manifest_history"] = load_json(part_manifest_history_path(project_dir), default_part_manifest_history(project_id))
-    if project["part_manifest"] is not None and not project["part_manifest"].get("validation"):
-        project["part_manifest"]["validation"] = validate_part_manifest(project["part_manifest"])
-    project["part_shapes"] = load_json(canonical_downstream_path(project_dir, "part_shapes"))
-    project["part_shapes_history"] = load_json(part_shapes_history_path(project_dir), default_part_shapes_history(project_id))
-    if project["part_shapes"] is not None and not project["part_shapes"].get("validation"):
-        project["part_shapes"]["validation"] = validate_part_shapes(project_dir, project["part_shapes"], project.get("part_manifest"))
-    project["part_split"] = load_json(canonical_downstream_path(project_dir, "part_split"))
-    project["part_split_history"] = load_json(part_split_history_path(project_dir), default_part_split_history(project_id))
-    if project["part_split"] is not None and not project["part_split"].get("validation"):
-        source_rel = str(project["part_split"].get("source_image") or "")
-        source_mask = None
-        if source_rel and (project_dir / source_rel).exists():
-            source_mask = normalize_mask(detect_mask(Image.open(project_dir / source_rel).convert("RGBA")))
-        project["part_split"]["validation"] = validate_part_split(project_dir, project["part_split"], source_mask)
-    project["master_pose_manifest"] = load_master_pose_manifest(project_dir)
-    legacy_layered_character = load_json(legacy_downstream_path(project_dir, "layered_character"))
-    project["rig"] = load_json(canonical_downstream_path(project_dir, "rig"))
-    sprite_model = load_json(canonical_downstream_path(project_dir, "sprite_model"))
-    legacy_palette = load_json(legacy_downstream_path(project_dir, "palette"))
-    if sprite_model is None and legacy_layered_character:
-        sprite_model = hydrate_legacy_sprite_model(project_dir, legacy_layered_character, project.get("rig"), legacy_palette, project.get("character_spec"))
-    if sprite_model is not None and not sprite_model.get("build_report"):
-        sprite_model["build_report"] = validate_sprite_model(project_dir, sprite_model)
-        sprite_model["status"] = sprite_model["build_report"]["status"]
-    project["sprite_model"] = sprite_model
-    project["palette"] = (sprite_model or {}).get("palette") or legacy_palette
-    project["layered_character"] = sprite_model or legacy_layered_character
-    legacy_animation_templates = load_json(legacy_downstream_path(project_dir, "animation_templates"))
-    project["animation_clips"] = hydrate_animation_clips(
-        load_json(canonical_downstream_path(project_dir, "animation_clips")),
-        legacy_animation_templates,
-        rig_profile=active_rig_profile_name(project, project.get("rig_layout")),
-    )
-    project["manual_animation_clips"] = hydrate_manual_animation_clips(
-        load_json(canonical_downstream_path(project_dir, "manual_animation_clips")),
-        project_dir,
-    )
-    project["ai_workflow"] = hydrate_ai_workflow(
-        load_json(canonical_downstream_path(project_dir, "ai_workflow")),
-        project,
-        project_dir,
-    )
-    project["external_authoring"] = hydrate_external_authoring(
-        load_json(canonical_downstream_path(project_dir, "external_authoring")),
-        project_dir,
-    )
-    project["animation_templates"] = project["animation_clips"] or legacy_animation_templates
-    project["qa_report"] = load_json(canonical_downstream_path(project_dir, "qa_report"))
-    project["sprite_model_history"] = load_sprite_model_history(project_dir)
-    if project["rig_layout"] is None and project.get("selected_concept_id"):
-        project["rig_layout"] = resolve_rig_layout(project, persist=False)
-        project["rig_layout_approved"] = True
-    elif project["rig_layout"] is not None:
-        project["rig_layout_approved"] = bool(project.get("rig_layout_approved") or project["rig_layout"].get("approved"))
-    if project["part_manifest"] is not None:
-        project["part_manifest_approved"] = bool(project.get("part_manifest_approved") or project["part_manifest"].get("approved"))
-    if project["part_shapes"] is not None:
-        project["part_shapes_approved"] = bool(project.get("part_shapes_approved") or project["part_shapes"].get("approved"))
-    if project["part_split"] is not None:
-        project["part_split_approved"] = bool(project.get("part_split_approved") or project["part_split"].get("approved"))
-        project["split_review_approved"] = bool(project.get("split_review_approved") or project.get("part_split_approved") or project["part_split"].get("approved"))
-    project["history"] = load_history(project_id)
-    project["room_layout"] = load_json(room_layout_path(project_dir), default_room_layout(project_id, project.get("project_name") or "Untitled Project"))
-    project["room_layout_history"] = load_json(room_layout_history_path(project_dir), default_room_layout_history(project_id, project["room_layout"]))
-    project["level_validation_report"] = load_json(level_validation_report_path(project_dir), None)
-    if not isinstance(project["level_validation_report"], dict):
-        project["level_validation_report"] = validate_room_layout(project["room_layout"])
-        project["level_validation_report"]["project_id"] = project_id
-    project["pixellab_character"] = load_json(_pixellab_character_path(project_dir), None)
-    project["pixellab_skeleton"] = load_json(_pixellab_skeleton_path(project_dir), None)
-    project["pixellab_animations"] = _load_pixellab_animations_store(project_dir)
-    project["concepts"] = [hydrate_concept(item, project["created_at"]) for item in load_concepts(project_dir)]
-    project["pixellab_character"] = _normalize_east_only_character_source(project_dir, project["pixellab_character"], project["concepts"])
-    project["pixellab_skeleton"] = load_json(_pixellab_skeleton_path(project_dir), None)
-    project["pixellab_animations"] = _upscale_legacy_east_only_animation_frames(project_dir, project["pixellab_character"], project["pixellab_animations"])
-    project["prompt_history"] = prompt_history_entries(project["concepts"])
-    project["latest_prompt"] = project["prompt_history"][0] if project["prompt_history"] else None
-    project["sprite_model_approved"] = bool(project.get("sprite_model_approved") or (not project.get("sprite_model_approved") and project.get("layer_review_approved")))
-    project["layer_review_approved"] = bool(project.get("layer_review_approved") or project.get("sprite_model_approved"))
-    if project.get("selected_concept_id") is None:
-        for concept in project["concepts"]:
-            if concept["review_state"]["approved"]:
-                project["selected_concept_id"] = concept["concept_id"]
-                break
-    project["rig_layout_handoff_prompt"] = build_rig_layout_handoff_prompt(project, project.get("rig_layout")) if project.get("selected_concept_id") else None
-    project["part_manifest_handoff_prompt"] = build_part_manifest_handoff_prompt(project, project.get("part_manifest")) if project.get("selected_concept_id") and project.get("rig_layout_approved") else None
-    project["part_shapes_handoff_prompt"] = build_part_shapes_handoff_prompt(project, project.get("part_shapes")) if project.get("selected_concept_id") and project.get("part_manifest_approved") else None
-    project["part_split_handoff_prompt"] = build_part_split_handoff_prompt(project, project.get("part_split")) if project.get("selected_concept_id") and project.get("rig_layout_approved") else None
-    project["exports"] = [
-        str(path.relative_to(project_dir))
-        for path in sorted((project_dir / "exports").glob("*"), key=lambda item: item.name)
-    ]
-    project["project_dir"] = str(project_dir)
-    project["stage_maturity"] = load_stage_maturity()
-    project["metrics"] = derive_metrics(project["history"])
-    project["concept_runs"] = build_run_summaries(project["history"], project["concepts"])
-    project["latest_concept_run"] = next((item for item in project["concept_runs"] if item["run_kind"] == "initial"), None)
-    project["latest_refinement_run"] = next((item for item in project["concept_runs"] if item["run_kind"] in ("refinement", "similar")), None)
-    project["build_status"] = {
-        "master_pose_ready": bool(project["master_pose_manifest"].get("candidates")),
-        "master_pose_approved": bool(project.get("master_pose_approved") and project["master_pose_manifest"].get("approved_image")),
-        "concept_source_ready": bool(selected_concept(project).get("approved_source_image")) if project.get("selected_concept_id") else False,
-        "rig_layout_ready": bool(project.get("rig_layout")) and bool(project.get("rig_layout_approved")),
-        "part_manifest_ready": bool(project.get("part_manifest")) and bool(project.get("part_manifest_approved")),
-        "part_shapes_ready": bool(project.get("part_shapes")) and bool(project.get("part_shapes_approved")),
-        "part_split_ready": bool(project.get("part_split")) and bool(project.get("part_split_approved")),
-        "sprite_model_ready": bool(project["sprite_model"]),
-        "idle_render_complete": animation_render_complete(project_dir, "idle"),
-        "walk_render_complete": animation_render_complete(project_dir, "walk"),
-        "manual_clip_count": len(project["manual_animation_clips"]["clips"]),
-        "approved_manual_clip_count": sum(
-            1
-            for clip in project["manual_animation_clips"]["clips"].values()
-            if clip.get("approval_status") == "approved" and not clip.get("is_stale")
-        ),
-        "stale_manual_clip_count": sum(1 for clip in project["manual_animation_clips"]["clips"].values() if clip.get("is_stale")),
-    }
-    project["production_warnings"] = [
-        "Final frames are deterministic and built from persisted extracted parts.",
-        "Use sprite-model edits for corrections instead of rerunning downstream AI generation.",
-        "QA covers implemented structural/image checks; final style judgment still needs human review.",
-    ]
-    wizard_context = compute_wizard_context(project)
-    project["wizard_state"] = wizard_context["wizard_state"]
-    project["recommended_next_step"] = wizard_context["recommended_next_step"]
-    project["step_statuses"] = wizard_context["step_statuses"]
-    project["blocking_reasons"] = wizard_context["blocking_reasons"]
-    project["can_resume_wizard"] = wizard_context["can_resume_wizard"]
-    health_report, bundle_manifest = persist_project_integrity_metadata(project, project_dir)
-    project["health_report"] = health_report
-    project["health_report_path"] = str(project_health_report_path(project_dir).relative_to(project_dir))
-    project["project_bundle_manifest"] = bundle_manifest
-    project["project_bundle_manifest_path"] = str(project_bundle_manifest_path(project_dir).relative_to(project_dir))
-    return project
-
-
-def save_project(project: Dict[str, Any]) -> None:
-    project_dir = PROJECTS_ROOT / project["project_id"]
-    ensure_dirs(project_dir)
-    core = {k: v for k, v in project.items() if k not in {
-        "brief",
-        "character_spec",
-        "pixellab_character",
-        "pixellab_skeleton",
-        "pixellab_animations",
-        "room_layout",
-        "room_layout_history",
-        "level_validation_report",
-        "rig_layout",
-        "rig_layout_history",
-        "part_manifest",
-        "part_manifest_history",
-        "part_shapes",
-        "part_shapes_history",
-        "part_split",
-        "part_split_history",
-        "master_pose_manifest",
-        "sprite_model",
-        "palette",
-        "sprite_model_history",
-        "layered_character",
-        "rig",
-        "animation_clips",
-        "manual_animation_clips",
-        "ai_workflow",
-        "external_authoring",
-        "animation_templates",
-        "qa_report",
-        "history",
-        "concepts",
-        "exports",
-        "project_dir",
-        "stage_maturity",
-        "metrics",
-        "concept_runs",
-        "latest_concept_run",
-        "latest_refinement_run",
-        "production_warnings",
-        "build_status",
-        "recommended_next_step",
-        "step_statuses",
-        "blocking_reasons",
-        "can_resume_wizard",
-        "layer_review_approved",
-        "health_report",
-        "health_report_path",
-        "project_bundle_manifest",
-        "project_bundle_manifest_path",
-    }}
-    core["project_schema_version"] = int(project.get("project_schema_version") or PROJECT_SCHEMA_VERSION)
-    core["sprite_model_approved"] = bool(project.get("sprite_model_approved") or project.get("layer_review_approved"))
-    write_json(project_dir / "project.json", core)
-    write_json(project_dir / "brief.json", project["brief"])
-    if project.get("character_spec") is not None:
-        write_json(project_dir / "character_spec.json", project["character_spec"])
-    if project.get("rig_layout") is not None:
-        write_json(canonical_downstream_path(project_dir, "rig_layout"), project["rig_layout"])
-    if project.get("rig_layout_history") is not None:
-        write_json(rig_layout_history_path(project_dir), project["rig_layout_history"])
-    if project.get("part_manifest") is not None:
-        write_json(canonical_downstream_path(project_dir, "part_manifest"), project["part_manifest"])
-    if project.get("part_manifest_history") is not None:
-        write_json(part_manifest_history_path(project_dir), project["part_manifest_history"])
-    if project.get("part_shapes") is not None:
-        write_json(canonical_downstream_path(project_dir, "part_shapes"), project["part_shapes"])
-    if project.get("part_shapes_history") is not None:
-        write_json(part_shapes_history_path(project_dir), project["part_shapes_history"])
-    if project.get("part_split") is not None:
-        write_json(canonical_downstream_path(project_dir, "part_split"), project["part_split"])
-    if project.get("part_split_history") is not None:
-        write_json(part_split_history_path(project_dir), project["part_split_history"])
-    if project.get("master_pose_manifest") is not None:
-        save_master_pose_manifest(project_dir, project["master_pose_manifest"])
-    if project.get("sprite_model") is not None:
-        write_json(canonical_downstream_path(project_dir, "sprite_model"), project["sprite_model"])
-    if project.get("sprite_model_history") is not None:
-        save_sprite_model_history(project_dir, project["sprite_model_history"])
-    if project.get("rig") is not None:
-        write_json(canonical_downstream_path(project_dir, "rig"), project["rig"])
-    if project.get("animation_clips") is not None:
-        write_json(canonical_downstream_path(project_dir, "animation_clips"), project["animation_clips"])
-    if project.get("manual_animation_clips") is not None:
-        write_json(canonical_downstream_path(project_dir, "manual_animation_clips"), serialize_manual_animation_clips(project["manual_animation_clips"], project["project_id"]))
-    if project.get("ai_workflow") is not None:
-        write_json(canonical_downstream_path(project_dir, "ai_workflow"), serialize_ai_workflow(project["ai_workflow"], project["project_id"]))
-    if project.get("external_authoring") is not None:
-        write_json(canonical_downstream_path(project_dir, "external_authoring"), serialize_external_authoring(project["external_authoring"], project["project_id"]))
-    if project.get("qa_report") is not None:
-        write_json(canonical_downstream_path(project_dir, "qa_report"), project["qa_report"])
-    if project.get("history") is not None:
-        write_json(project_dir / "history.json", project["history"])
-    if project.get("room_layout") is not None:
-        room_layout_payload = copy.deepcopy(project["room_layout"])
-        room_layout_payload.setdefault("meta", {})
-        room_layout_payload["meta"]["project_id"] = project["project_id"]
-        room_layout_payload["meta"]["project_name"] = project.get("project_name") or project["project_id"]
-        room_layout_payload["meta"]["updated_at"] = now_iso()
-        write_json(room_layout_path(project_dir), room_layout_payload)
-    if project.get("room_layout_history") is not None:
-        room_history_payload = copy.deepcopy(project["room_layout_history"])
-        room_history_payload["project_id"] = project["project_id"]
-        write_json(room_layout_history_path(project_dir), room_history_payload)
-    if project.get("level_validation_report") is not None:
-        validation_payload = copy.deepcopy(project["level_validation_report"])
-        validation_payload["project_id"] = project["project_id"]
-        write_json(level_validation_report_path(project_dir), validation_payload)
-    for concept in project.get("concepts", []) or []:
-        save_concept(project_dir, concept)
-    persist_project_integrity_metadata(project, project_dir)
-
-
-def list_projects(include_archived: bool) -> List[Dict[str, Any]]:
-    PROJECTS_ROOT.mkdir(parents=True, exist_ok=True)
-    items = []
-    for path in sorted(PROJECTS_ROOT.iterdir()):
-        if not path.is_dir():
-            continue
-        project = apply_project_defaults(load_json(path / "project.json", {}))
-        if not project.get("project_id"):
-            continue
-        if project.get("archived_at") and not include_archived:
-            continue
-        project["project_health_summary"] = load_project_health_summary(path)
-        items.append(project)
-    return items
-
-
-def project_summary(project: Dict[str, Any]) -> Dict[str, Any]:
-    wizard_state = normalize_wizard_state(project.get("wizard_state"))
-    sprite_model_approved = bool(project.get("sprite_model_approved") or project.get("layer_review_approved"))
-    health_summary = project.get("project_health_summary") or {}
-    return {
-        "project_id": project["project_id"],
-        "project_name": project["project_name"],
-        "project_schema_version": int(project.get("project_schema_version") or PROJECT_SCHEMA_VERSION),
-        "created_at": project["created_at"],
-        "updated_at": project["updated_at"],
-        "current_stage": project["current_stage"],
-        "status": project["status"],
-        "selected_concept_id": project.get("selected_concept_id"),
-        "master_pose_approved": project.get("master_pose_approved", False),
-        "rig_layout_approved": project.get("rig_layout_approved", False),
-        "part_split_approved": project.get("part_split_approved", False),
-        "split_review_approved": project.get("split_review_approved", False),
-        "sprite_model_approved": sprite_model_approved,
-        "layer_review_approved": sprite_model_approved,
-        "rig_review_approved": project.get("rig_review_approved", False),
-        "archived_at": project.get("archived_at"),
-        "last_export": project.get("last_export"),
-        "last_ui_mode": project.get("last_ui_mode", "wizard"),
-        "ai_workflow_enabled": bool((project.get("ai_workflow") or {}).get("enabled")),
-        "ai_workflow_legacy_mode": bool((project.get("ai_workflow") or {}).get("legacy_mode")),
-        "external_authoring_enabled": bool((project.get("external_authoring") or {}).get("enabled")),
-        "project_health_status": health_summary.get("status", "unknown"),
-        "project_health_warning_count": int(health_summary.get("warning_count") or 0),
-        "project_health_missing_file_count": int(health_summary.get("missing_file_count") or 0),
-        "wizard_state": wizard_state,
-        "can_resume_wizard": wizard_state.get("current_step") not in {None, "project", "export"},
-    }
-
-
 def read_body(handler: "SpriteWorkbenchHandler") -> Dict[str, Any]:
     try:
         content_length = int(handler.headers.get("Content-Length", "0"))
@@ -7991,176 +5931,6 @@ def read_body(handler: "SpriteWorkbenchHandler") -> Dict[str, Any]:
     if not isinstance(payload, dict):
         raise ValueError("JSON body must be an object.")
     return payload
-
-
-def create_project(payload: Dict[str, Any]) -> Dict[str, Any]:
-    project_name = (payload.get("project_name") or "").strip()
-    prompt = normalize_prompt_text(payload.get("prompt_text") or "")
-    if not project_name and not prompt:
-        raise ValueError("Project name or prompt is required.")
-
-    brief = build_brief_from_payload(payload)
-    project_id = "%s-%s" % (
-        slugify(project_name or brief["role_archetype"]),
-        stable_hash(project_name, prompt, now_iso())[:8],
-    )
-    project_dir = PROJECTS_ROOT / project_id
-    ensure_dirs(project_dir)
-    brief = merge_new_references(project_dir, brief, payload)
-
-    now = now_iso()
-    initial_mode = "wizard"
-    wizard_state = normalize_wizard_state(payload.get("wizard_state"))
-    wizard_state = set_wizard_step_complete(wizard_state, "project")
-    if prompt or any(payload.get(key) for key in [
-        "role_archetype",
-        "silhouette_intent",
-        "outfit_materials",
-        "prop",
-        "palette_mood",
-        "shape_language",
-        "mood_tone",
-        "side_view_constraints",
-        "negative_prompt",
-    ]):
-        wizard_state = set_wizard_step_complete(wizard_state, "brief")
-        # References are optional once a brief exists; land on Concepts (tests + UX).
-        wizard_state["current_step"] = "concepts"
-
-    project = {
-        "project_id": project_id,
-        "project_name": project_name or brief["role_archetype"].title(),
-        "prompt_text": prompt,
-        "created_at": now,
-        "updated_at": now,
-        "current_stage": "intake",
-        "status": "ready_for_concepts",
-        "layer_review_approved": False,
-        "rig_review_approved": False,
-        "selected_concept_id": None,
-        "archived_at": None,
-        "last_ui_mode": initial_mode,
-        "wizard_state": wizard_state,
-        "brief": brief,
-        "character_spec": None,
-        "layered_character": None,
-        "rig": None,
-        "animation_templates": None,
-        "ai_workflow": default_ai_workflow(project_id),
-        "external_authoring": default_external_authoring(project_id),
-        "qa_report": None,
-        "history": {"project_id": project_id, "events": []},
-        "concepts": [],
-        "room_layout": default_room_layout(project_id, project_name or brief["role_archetype"].title()),
-        "room_layout_history": None,
-        "level_validation_report": None,
-    }
-    project["room_layout_history"] = default_room_layout_history(project_id, project["room_layout"])
-    project["level_validation_report"] = validate_room_layout(project["room_layout"])
-    project["level_validation_report"]["project_id"] = project_id
-    save_project(project)
-    return load_project(project_id)
-
-
-def update_project_brief(project_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:
-    project = load_project(project_id)
-    brief = build_brief_from_payload(payload, project["brief"])
-    project_dir = PROJECTS_ROOT / project_id
-    brief = merge_new_references(project_dir, brief, payload)
-    project["brief"] = brief
-    project["prompt_text"] = brief["raw_prompt"]
-    project["updated_at"] = now_iso()
-    project["status"] = "ready_for_concepts"
-    project["wizard_state"] = set_wizard_step_complete(project.get("wizard_state"), "brief")
-    if project["last_ui_mode"] == "wizard" and project["wizard_state"]["current_step"] in {"project", "brief", "describe"}:
-        project["wizard_state"]["current_step"] = "concepts"
-    save_project(project)
-    return load_project(project_id)
-
-
-def duplicate_project(project_id: str) -> Dict[str, Any]:
-    source = load_project(project_id)
-    new_id = "%s-%s" % (
-        slugify("%s copy" % source["project_name"]),
-        stable_hash(source["project_id"], now_iso())[:8],
-    )
-    new_dir = PROJECTS_ROOT / new_id
-    ensure_dirs(new_dir)
-
-    for filename in [
-        "project.json",
-        "brief.json",
-        "character_spec.json",
-        "history.json",
-        ROOM_LAYOUT_FILENAME,
-        ROOM_LAYOUT_HISTORY_FILENAME,
-        LEVEL_VALIDATION_REPORT_FILENAME,
-        CANONICAL_DOWNSTREAM_FILES["part_manifest"],
-        CANONICAL_DOWNSTREAM_FILES["part_manifest_history"],
-        CANONICAL_DOWNSTREAM_FILES["part_shapes"],
-        CANONICAL_DOWNSTREAM_FILES["part_shapes_history"],
-        CANONICAL_DOWNSTREAM_FILES["part_split"],
-        CANONICAL_DOWNSTREAM_FILES["part_split_history"],
-        CANONICAL_DOWNSTREAM_FILES["sprite_model"],
-        CANONICAL_DOWNSTREAM_FILES["sprite_model_history"],
-        CANONICAL_DOWNSTREAM_FILES["rig"],
-        CANONICAL_DOWNSTREAM_FILES["animation_clips"],
-        CANONICAL_DOWNSTREAM_FILES["manual_animation_clips"],
-        CANONICAL_DOWNSTREAM_FILES["ai_workflow"],
-        CANONICAL_DOWNSTREAM_FILES["external_authoring"],
-        CANONICAL_DOWNSTREAM_FILES["qa_report"],
-        LEGACY_DOWNSTREAM_FILES["layered_character"],
-        LEGACY_DOWNSTREAM_FILES["animation_templates"],
-        LEGACY_DOWNSTREAM_FILES["palette"],
-    ]:
-        src = PROJECTS_ROOT / project_id / filename
-        if src.exists():
-            shutil.copy2(src, new_dir / filename)
-
-    for folder in ["concepts", "prompts", "references", "master_pose", "part_shapes", "part_split", "parts", "rig", "animations", "manual_clips", "ai_workflow", "external_authoring", "layers", "logs"]:
-        src_folder = PROJECTS_ROOT / project_id / folder
-        dst_folder = new_dir / folder
-        dst_folder.mkdir(parents=True, exist_ok=True)
-        if src_folder.exists():
-            for path in src_folder.rglob("*"):
-                target = dst_folder / path.relative_to(src_folder)
-                if path.is_dir():
-                    target.mkdir(parents=True, exist_ok=True)
-                elif path.is_file():
-                    target.parent.mkdir(parents=True, exist_ok=True)
-                    shutil.copy2(path, target)
-
-    duplicated = load_project(new_id)
-    duplicated["project_id"] = new_id
-    duplicated["project_name"] = "%s Copy" % source["project_name"]
-    duplicated["created_at"] = now_iso()
-    duplicated["updated_at"] = now_iso()
-    duplicated["current_stage"] = "concept_lock" if source.get("character_spec") else "concepts"
-    duplicated["status"] = "branched_from_%s" % source["project_id"]
-    duplicated["sprite_model_approved"] = False
-    duplicated["layer_review_approved"] = False
-    duplicated["rig_review_approved"] = False
-    duplicated["last_export"] = None
-    duplicated["archived_at"] = None
-    duplicated["last_ui_mode"] = "wizard"
-    duplicated["wizard_state"] = normalize_wizard_state(source.get("wizard_state"))
-    if duplicated.get("history"):
-        duplicated["history"]["project_id"] = new_id
-    if isinstance(duplicated.get("room_layout"), dict):
-        duplicated["room_layout"].setdefault("meta", {})
-        duplicated["room_layout"]["meta"]["project_id"] = new_id
-        duplicated["room_layout"]["meta"]["project_name"] = duplicated["project_name"]
-    if isinstance(duplicated.get("room_layout_history"), dict):
-        duplicated["room_layout_history"]["project_id"] = new_id
-    if isinstance(duplicated.get("level_validation_report"), dict):
-        duplicated["level_validation_report"]["project_id"] = new_id
-    for concept in duplicated.get("concepts", []) or []:
-        concept["project_id"] = new_id
-    save_project(duplicated)
-    delete_path(legacy_downstream_path(new_dir, "layered_character"))
-    delete_path(legacy_downstream_path(new_dir, "animation_templates"))
-    delete_path(legacy_downstream_path(new_dir, "palette"))
-    return load_project(new_id)
 
 
 def archive_project(project_id: str) -> Dict[str, Any]:
@@ -9779,119 +7549,8 @@ def approve_part_split(project_id: str) -> Dict[str, Any]:
     return load_project(project_id)
 
 
-def update_concept_validation(project_id: str, concept_id: str, validation_status: str, feedback: Optional[str] = None) -> Dict[str, Any]:
-    if validation_status not in {"pending", "valid", "invalid"}:
-        raise ValueError("validation_status must be pending, valid, or invalid.")
-    project = load_project(project_id)
-    concept = next((item for item in project["concepts"] if item["concept_id"] == concept_id), None)
-    if concept is None:
-        raise ValueError("Concept not found.")
-    if not concept.get("preview_image"):
-        raise ValueError("Only imported concept attempts can be validated.")
-    source = "gemini_overridden" if concept.get("validation_source") == "gemini" else "manual"
-    project = apply_validation_state(
-        project,
-        concept,
-        validation_status,
-        feedback=feedback,
-        summary=concept.get("codex_review_summary"),
-        validation_source=source,
-        validation_error=None,
-        codex_response_id=concept.get("codex_response_id"),
-    )
-    project["updated_at"] = now_iso()
-    save_concept(PROJECTS_ROOT / project_id, concept)
-    save_project(project)
-    append_history_event(project_id, {
-        "type": "concept_validation",
-        "concept_id": concept_id,
-        "validation_status": validation_status,
-        "validation_feedback": concept["validation_feedback"],
-        "validation_source": concept["validation_source"],
-        "created_at": now_iso(),
-    })
-    return load_project(project_id)
 
 
-def update_concept_review_state(project_id: str, concept_id: str, action: str, value: Optional[bool]) -> Dict[str, Any]:
-    if action not in {"approve", "favorite", "reject"}:
-        raise ValueError("Unsupported review action.")
-
-    project = load_project(project_id)
-    concept = next((item for item in project["concepts"] if item["concept_id"] == concept_id), None)
-    if concept is None:
-        raise ValueError("Concept not found.")
-
-    event_value = True if value is None else bool(value)
-
-    if action == "approve":
-        event_value = True
-        if concept.get("validation_status") != "valid":
-            raise ValueError("Only valid imported concepts can be accepted.")
-        if not concept.get("approved_source_image"):
-            raise ValueError("Only valid imported concepts with an approved source image can be accepted.")
-        reset_downstream_assets(project_id, "concept")
-        project = clear_project_downstream_state(project, "concept")
-        for item in project["concepts"]:
-            item["review_state"]["approved"] = item["concept_id"] == concept_id
-            item["approved"] = item["review_state"]["approved"]
-            item["accepted_for_review"] = item["concept_id"] == concept_id
-            save_concept(PROJECTS_ROOT / project_id, item)
-        project["selected_concept_id"] = concept_id
-        project["character_spec"] = make_character_spec(project, concept)
-        ai_workflow = project.get("ai_workflow") or {}
-        if ai_workflow.get("enabled") and not ai_workflow.get("legacy_mode"):
-            project["rig_layout"] = None
-            project["rig_layout_history"] = default_rig_layout_history(project_id)
-            project["rig_layout_approved"] = False
-            ai_workflow["selected_assets"] = ai_workflow.get("selected_assets") or {}
-            ai_workflow["selected_assets"]["approved_concept_id"] = concept_id
-            project["ai_workflow"] = ai_workflow
-            if str((project.get("brief") or {}).get("backend_mode") or "") == "pixellab":
-                _set_pixellab_east_only_character_source(project, PROJECTS_ROOT / project_id, concept_id, approved=True)
-        else:
-            rig_layout = resolve_rig_layout(project, concept, rig_profile=project["character_spec"]["rig_profile"], persist=True)
-            project["rig_layout"] = rig_layout
-            project["rig_layout_history"] = load_json(rig_layout_history_path(PROJECTS_ROOT / project_id), default_rig_layout_history(project_id))
-            project["rig_layout_approved"] = False
-        project["rig_layout_approved"] = False
-        project["current_stage"] = "concepts" if str((project.get("brief") or {}).get("backend_mode") or "") == "pixellab" else "rig_layout"
-        project["status"] = "concept_approved"
-        project["master_pose_approved"] = False
-        project["sprite_model_approved"] = False
-        project["layer_review_approved"] = False
-        project["rig_review_approved"] = False
-        project["qa_report"] = None
-        project["last_export"] = None
-    else:
-        concept["review_state"]["favorite"] = event_value if action == "favorite" else concept["review_state"]["favorite"]
-        concept["review_state"]["rejected"] = event_value if action == "reject" else concept["review_state"]["rejected"]
-        concept["favorite"] = concept["review_state"]["favorite"]
-        concept["rejected"] = concept["review_state"]["rejected"]
-        if action == "reject" and project.get("selected_concept_id") == concept_id and event_value:
-            reset_downstream_assets(project_id, "concept")
-            project = clear_project_downstream_state(project, "concept")
-            concept["review_state"]["approved"] = False
-            concept["approved"] = False
-            project["selected_concept_id"] = None
-            project["character_spec"] = None
-            project["master_pose_approved"] = False
-            project["sprite_model_approved"] = False
-            project["layer_review_approved"] = False
-            project["rig_review_approved"] = False
-            concept["accepted_for_review"] = False
-        save_concept(PROJECTS_ROOT / project_id, concept)
-
-    project["updated_at"] = now_iso()
-    save_project(project)
-    append_history_event(project_id, {
-        "type": "review_action",
-        "run_id": concept.get("run_id"),
-        "concept_id": concept_id,
-        "action": action,
-        "value": event_value,
-    })
-    return load_project(project_id)
 
 
 _CONCEPT_ARTIFACT_IMAGE_KEYS = (
@@ -9902,83 +7561,10 @@ _CONCEPT_ARTIFACT_IMAGE_KEYS = (
 )
 
 
-def _concept_image_rel_paths(concept: Dict[str, Any]) -> List[str]:
-    out: List[str] = []
-    seen: Set[str] = set()
-    for key in _CONCEPT_ARTIFACT_IMAGE_KEYS:
-        rel = concept.get(key)
-        if rel and isinstance(rel, str) and rel not in seen:
-            seen.add(rel)
-            out.append(rel)
-    return out
 
 
-def _delete_concept_disk_artifacts(project_dir: Path, removed: Dict[str, Any], remaining: List[Dict[str, Any]]) -> None:
-    still_used: Set[str] = set()
-    for c in remaining:
-        for rel in _concept_image_rel_paths(c):
-            still_used.add(rel)
-    for rel in _concept_image_rel_paths(removed):
-        if rel in still_used:
-            continue
-        target = project_dir / rel
-        if target.exists() and target.is_file():
-            delete_path(target)
-    prompt_file = removed.get("prompt_file")
-    if prompt_file and isinstance(prompt_file, str):
-        if not any((c.get("prompt_file") == prompt_file) for c in remaining):
-            pf = project_dir / prompt_file
-            if pf.exists() and pf.is_file():
-                delete_path(pf)
 
 
-def delete_concept(project_id: str, concept_id: str) -> Dict[str, Any]:
-    project = load_project(project_id)
-    concepts = list(project.get("concepts") or [])
-    removed = next((c for c in concepts if c.get("concept_id") == concept_id), None)
-    if removed is None:
-        raise ValueError("Concept not found.")
-
-    project_dir = PROJECTS_ROOT / project_id
-    remaining = [c for c in concepts if c.get("concept_id") != concept_id]
-    was_selected = project.get("selected_concept_id") == concept_id
-    was_approved_look = bool(removed.get("review_state", {}).get("approved"))
-
-    if was_selected or was_approved_look:
-        reset_downstream_assets(project_id, "concept")
-        project = clear_project_downstream_state(project, "concept")
-        project["selected_concept_id"] = None
-        project["character_spec"] = None
-        delete_path(project_dir / "character_spec.json")
-        for item in remaining:
-            item.setdefault("review_state", {"approved": False, "favorite": False, "rejected": False})
-            item["review_state"]["approved"] = False
-            item["review_state"]["favorite"] = item["review_state"].get("favorite") or False
-            item["review_state"]["rejected"] = item["review_state"].get("rejected") or False
-            item["approved"] = False
-            item["accepted_for_review"] = False
-        ai_workflow = project.get("ai_workflow") or {}
-        if ai_workflow.get("enabled") and not ai_workflow.get("legacy_mode"):
-            ai_workflow.setdefault("selected_assets", {})
-            ai_workflow["selected_assets"]["approved_concept_id"] = None
-        project["ai_workflow"] = ai_workflow
-        project["current_stage"] = "concepts"
-        project["status"] = "concept_deleted"
-
-    project["concepts"] = remaining
-    _delete_concept_disk_artifacts(project_dir, removed, remaining)
-    delete_path(project_dir / "concepts" / ("%s.json" % concept_id))
-
-    project["updated_at"] = now_iso()
-    save_project(project)
-    append_history_event(project_id, {
-        "type": "concept_deleted",
-        "concept_id": concept_id,
-        "was_selected": was_selected,
-        "cleared_pipeline": was_selected or was_approved_look,
-        "created_at": now_iso(),
-    })
-    return load_project(project_id)
 
 
 def generate_initial_prompt(project_id: str) -> Dict[str, Any]:
@@ -10170,11 +7756,6 @@ def save_master_pose_manifest(project_dir: Path, manifest: Dict[str, Any]) -> No
     write_json(master_pose_manifest_path(project_dir), manifest)
 
 
-def selected_concept(project: Dict[str, Any]) -> Dict[str, Any]:
-    concept = next((item for item in (project.get("concepts") or []) if item["concept_id"] == project.get("selected_concept_id")), None)
-    if concept is None:
-        raise ValueError("Concept approval is required before this stage.")
-    return concept
 
 
 def resolve_sprite_source_image(project: Dict[str, Any], project_dir: Path) -> Tuple[Path, str]:
@@ -11593,18 +9174,8 @@ def border_has_alpha(image: Image.Image) -> bool:
     return False
 
 
-def check_state(status: str, details: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-    if status not in {"pass", "fail", "not_implemented"}:
-        raise ValueError("Invalid check state.")
-    return {"status": status, "details": details or {}}
 
 
-def aggregate_check_state(states: List[str]) -> str:
-    if any(state == "fail" for state in states):
-        return "fail"
-    if any(state == "pass" for state in states):
-        return "pass"
-    return "not_implemented"
 
 
 def world_pivot(part: Dict[str, Any]) -> Tuple[float, float]:
@@ -12585,728 +10156,113 @@ def build_rig(project_id: str, progress: Optional[ProgressCallback] = None) -> D
 
 
 def get_manual_animation_clips(project_id: str) -> Dict[str, Any]:
-    project = load_project(project_id)
-    return project.get("manual_animation_clips") or default_manual_animation_clips(project_id)
+    _sync_workbench_manual_clips_config()
+    return workbench_manual_clips.get_manual_animation_clips(project_id)
 
 
 def create_manual_animation_clip(project_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:
-    project = load_project(project_id)
-    if not project.get("rig"):
-        raise ValueError("Build the rig before creating manual clips.")
-    project_dir = PROJECTS_ROOT / project_id
-    store = project.get("manual_animation_clips") or default_manual_animation_clips(project_id)
-    clip_name = str(payload.get("clip_name") or "Manual Clip").strip() or "Manual Clip"
-    base_id = sanitize_filename(slugify(clip_name), "manual-clip")
-    clip_id = base_id
-    counter = 2
-    while clip_id in (store.get("clips") or {}):
-        clip_id = "%s-%d" % (base_id, counter)
-        counter += 1
-    clip = default_manual_clip(
-        project_dir,
-        clip_id,
-        clip_name,
-        frame_count=manual_clip_frame_count(payload.get("frame_count"), 8),
-        fps=max(1, min(60, int(payload.get("fps") or 12))),
-        loop=bool(payload.get("loop", True)),
-    )
-    store.setdefault("clips", {})[clip_id] = clip
-    store["updated_at"] = now_iso()
-    project["manual_animation_clips"] = store
-    project["current_stage"] = "clips"
-    project["status"] = "manual_clip_created"
-    project["updated_at"] = now_iso()
-    save_project(project)
-    return hydrate_manual_animation_clips(project["manual_animation_clips"], project_dir)["clips"][clip_id]
+    _sync_workbench_manual_clips_config()
+    return workbench_manual_clips.create_manual_animation_clip(project_id, payload)
 
 
 def manual_clip_or_error(project: Dict[str, Any], clip_id: str) -> Dict[str, Any]:
-    store = project.get("manual_animation_clips") or default_manual_animation_clips(project["project_id"])
-    clip = (store.get("clips") or {}).get(clip_id)
-    if not clip:
-        raise ValueError("Unknown manual clip: %s." % clip_id)
-    return clip
+    _sync_workbench_manual_clips_config()
+    return workbench_manual_clips.manual_clip_or_error(project, clip_id)
 
 
 def update_manual_animation_clip_meta(project_id: str, clip_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:
-    project = load_project(project_id)
-    project_dir = PROJECTS_ROOT / project_id
-    store = project.get("manual_animation_clips") or default_manual_animation_clips(project_id)
-    clip = manual_clip_or_error(project, clip_id)
-    next_frame_count = manual_clip_frame_count(payload.get("frame_count"), clip.get("frame_count") or 8)
-    clip["clip_name"] = str(payload.get("clip_name") or clip.get("clip_name") or humanize_identifier(clip_id)).strip() or clip["clip_name"]
-    clip["fps"] = max(1, min(60, int(payload.get("fps") or clip.get("fps") or 12)))
-    clip["loop"] = bool(payload.get("loop", clip.get("loop", True)))
-    current_frames = [normalize_manual_clip_frame_entry(frame) for frame in (clip.get("frames") or [])]
-    while len(current_frames) < next_frame_count:
-        current_frames.append(normalize_manual_clip_frame_entry({}))
-    clip["frame_count"] = next_frame_count
-    clip["frames"] = current_frames[:next_frame_count]
-    clip["source_hashes"] = manual_clip_source_hashes(project_dir)
-    invalidate_manual_clip_preview(clip)
-    store["updated_at"] = now_iso()
-    project["manual_animation_clips"] = store
-    project["status"] = "manual_clip_updated"
-    project["updated_at"] = now_iso()
-    save_project(project)
-    return hydrate_manual_animation_clips(project["manual_animation_clips"], project_dir)["clips"][clip_id]
+    _sync_workbench_manual_clips_config()
+    return workbench_manual_clips.update_manual_animation_clip_meta(project_id, clip_id, payload)
 
 
 def update_manual_animation_clip_frame(project_id: str, clip_id: str, frame_index: int, payload: Dict[str, Any]) -> Dict[str, Any]:
-    project = load_project(project_id)
-    project_dir = PROJECTS_ROOT / project_id
-    store = project.get("manual_animation_clips") or default_manual_animation_clips(project_id)
-    clip = manual_clip_or_error(project, clip_id)
-    if frame_index < 0 or frame_index >= int(clip.get("frame_count") or 0):
-        raise ValueError("Frame index out of range.")
-    current_entry = normalize_manual_clip_frame_entry((clip.get("frames") or [])[frame_index])
-    incoming = payload.get("transforms") if isinstance(payload.get("transforms"), dict) else payload
-    next_entry = dict(current_entry)
-    next_entry["transforms"] = normalize_manual_clip_frame(incoming)
-    if isinstance(payload.get("part_repairs"), dict):
-        next_entry["part_repairs"] = normalize_manual_frame_repairs(payload.get("part_repairs"))
-    if isinstance(payload.get("corrective_patches"), dict):
-        next_entry["corrective_patches"] = normalize_manual_frame_patches(payload.get("corrective_patches"))
-    clip["frames"][frame_index] = normalize_manual_clip_frame_entry(next_entry)
-    clip["source_hashes"] = manual_clip_source_hashes(project_dir)
-    invalidate_manual_clip_preview(clip)
-    store["updated_at"] = now_iso()
-    project["manual_animation_clips"] = store
-    project["status"] = "manual_clip_frame_updated"
-    project["updated_at"] = now_iso()
-    save_project(project)
-    return hydrate_manual_animation_clips(project["manual_animation_clips"], project_dir)["clips"][clip_id]
+    _sync_workbench_manual_clips_config()
+    return workbench_manual_clips.update_manual_animation_clip_frame(project_id, clip_id, frame_index, payload)
 
 
 def copy_manual_animation_clip_frame(project_id: str, clip_id: str, frame_index: int, payload: Dict[str, Any]) -> Dict[str, Any]:
-    project = load_project(project_id)
-    project_dir = PROJECTS_ROOT / project_id
-    store = project.get("manual_animation_clips") or default_manual_animation_clips(project_id)
-    clip = manual_clip_or_error(project, clip_id)
-    if frame_index < 0 or frame_index >= int(clip.get("frame_count") or 0):
-        raise ValueError("Frame index out of range.")
-    source_index = int(payload.get("source_index", max(0, frame_index - 1)))
-    if source_index < 0 or source_index >= int(clip.get("frame_count") or 0):
-        raise ValueError("Source frame index out of range.")
-    clip["frames"][frame_index] = normalize_manual_clip_frame_entry(clip["frames"][source_index])
-    clip["source_hashes"] = manual_clip_source_hashes(project_dir)
-    invalidate_manual_clip_preview(clip)
-    store["updated_at"] = now_iso()
-    project["manual_animation_clips"] = store
-    project["status"] = "manual_clip_frame_copied"
-    project["updated_at"] = now_iso()
-    save_project(project)
-    return hydrate_manual_animation_clips(project["manual_animation_clips"], project_dir)["clips"][clip_id]
+    _sync_workbench_manual_clips_config()
+    return workbench_manual_clips.copy_manual_animation_clip_frame(project_id, clip_id, frame_index, payload)
 
 
 def reset_manual_animation_clip_frame(project_id: str, clip_id: str, frame_index: int) -> Dict[str, Any]:
-    return update_manual_animation_clip_frame(project_id, clip_id, frame_index, {"transforms": neutral_pose_transforms(), "part_repairs": {}, "corrective_patches": {}})
+    _sync_workbench_manual_clips_config()
+    return workbench_manual_clips.reset_manual_animation_clip_frame(project_id, clip_id, frame_index)
 
 
 def generate_manual_animation_clip_frame_repair(project_id: str, clip_id: str, frame_index: int, part_name: str, payload: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-    project = load_project(project_id)
-    clip = manual_clip_or_error(project, clip_id)
-    if frame_index < 0 or frame_index >= int(clip.get("frame_count") or 0):
-        raise ValueError("Frame index out of range.")
-    result = recover_sprite_model_occlusion(project_id, {"part_name": part_name})
-    return {
-        "clip_id": clip_id,
-        "frame_index": frame_index,
-        "part_name": part_name,
-        "variants": result.get("variants") or [],
-    }
+    _sync_workbench_manual_clips_config()
+    return workbench_manual_clips.generate_manual_animation_clip_frame_repair(project_id, clip_id, frame_index, part_name, payload)
 
 
 def apply_manual_animation_clip_frame_repair(project_id: str, clip_id: str, frame_index: int, part_name: str, payload: Dict[str, Any]) -> Dict[str, Any]:
-    project = load_project(project_id)
-    project_dir = PROJECTS_ROOT / project_id
-    store = project.get("manual_animation_clips") or default_manual_animation_clips(project_id)
-    clip = manual_clip_or_error(project, clip_id)
-    if frame_index < 0 or frame_index >= int(clip.get("frame_count") or 0):
-        raise ValueError("Frame index out of range.")
-    image_path = str(payload.get("image_path") or "").strip()
-    if not image_path:
-        raise ValueError("repair/apply requires image_path.")
-    frame_entry = normalize_manual_clip_frame_entry((clip.get("frames") or [])[frame_index])
-    repairs = dict(frame_entry.get("part_repairs") or {})
-    repairs[part_name] = {
-        "variant_id": str(payload.get("variant_id") or "").strip() or None,
-        "image_path": image_path,
-        "mask_path": str(payload.get("mask_path") or "").strip() or None,
-        "source": str(payload.get("source") or "recover-occlusion").strip() or "recover-occlusion",
-        "summary": str(payload.get("summary") or "").strip() or None,
-        "applied_at": now_iso(),
-    }
-    frame_entry["part_repairs"] = repairs
-    clip["frames"][frame_index] = normalize_manual_clip_frame_entry(frame_entry)
-    clip["source_hashes"] = manual_clip_source_hashes(project_dir)
-    invalidate_manual_clip_preview(clip)
-    store["updated_at"] = now_iso()
-    project["manual_animation_clips"] = store
-    project["status"] = "manual_clip_frame_repair_applied"
-    project["updated_at"] = now_iso()
-    save_project(project)
-    hydrated = hydrate_manual_animation_clips(project["manual_animation_clips"], project_dir)["clips"][clip_id]
-    return {
-        "clip_id": clip_id,
-        "frame_index": frame_index,
-        "part_name": part_name,
-        "frame": hydrated["frames"][frame_index],
-        "clip": hydrated,
-    }
+    _sync_workbench_manual_clips_config()
+    return workbench_manual_clips.apply_manual_animation_clip_frame_repair(project_id, clip_id, frame_index, part_name, payload)
 
 
 def clear_manual_animation_clip_frame_repair(project_id: str, clip_id: str, frame_index: int, part_name: str) -> Dict[str, Any]:
-    project = load_project(project_id)
-    project_dir = PROJECTS_ROOT / project_id
-    store = project.get("manual_animation_clips") or default_manual_animation_clips(project_id)
-    clip = manual_clip_or_error(project, clip_id)
-    if frame_index < 0 or frame_index >= int(clip.get("frame_count") or 0):
-        raise ValueError("Frame index out of range.")
-    frame_entry = normalize_manual_clip_frame_entry((clip.get("frames") or [])[frame_index])
-    repairs = dict(frame_entry.get("part_repairs") or {})
-    repairs.pop(part_name, None)
-    frame_entry["part_repairs"] = repairs
-    clip["frames"][frame_index] = normalize_manual_clip_frame_entry(frame_entry)
-    clip["source_hashes"] = manual_clip_source_hashes(project_dir)
-    invalidate_manual_clip_preview(clip)
-    store["updated_at"] = now_iso()
-    project["manual_animation_clips"] = store
-    project["status"] = "manual_clip_frame_repair_cleared"
-    project["updated_at"] = now_iso()
-    save_project(project)
-    hydrated = hydrate_manual_animation_clips(project["manual_animation_clips"], project_dir)["clips"][clip_id]
-    return {
-        "clip_id": clip_id,
-        "frame_index": frame_index,
-        "part_name": part_name,
-        "frame": hydrated["frames"][frame_index],
-        "clip": hydrated,
-    }
+    _sync_workbench_manual_clips_config()
+    return workbench_manual_clips.clear_manual_animation_clip_frame_repair(project_id, clip_id, frame_index, part_name)
 
 
 def generate_manual_animation_clip_frame_patch(project_id: str, clip_id: str, frame_index: int, source_part_name: str, payload: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-    project = load_project(project_id)
-    clip = manual_clip_or_error(project, clip_id)
-    if frame_index < 0 or frame_index >= int(clip.get("frame_count") or 0):
-        raise ValueError("Frame index out of range.")
-    result = recover_sprite_model_occlusion(project_id, {"part_name": source_part_name})
-    return {
-        "clip_id": clip_id,
-        "frame_index": frame_index,
-        "source_part_name": source_part_name,
-        "variants": result.get("variants") or [],
-    }
+    _sync_workbench_manual_clips_config()
+    return workbench_manual_clips.generate_manual_animation_clip_frame_patch(project_id, clip_id, frame_index, source_part_name, payload)
 
 
 def apply_manual_animation_clip_frame_patch(project_id: str, clip_id: str, frame_index: int, source_part_name: str, payload: Dict[str, Any]) -> Dict[str, Any]:
-    project = load_project(project_id)
-    project_dir = PROJECTS_ROOT / project_id
-    store = project.get("manual_animation_clips") or default_manual_animation_clips(project_id)
-    clip = manual_clip_or_error(project, clip_id)
-    if frame_index < 0 or frame_index >= int(clip.get("frame_count") or 0):
-        raise ValueError("Frame index out of range.")
-    image_path = str(payload.get("image_path") or "").strip()
-    keep_behind_part_name = str(payload.get("keep_behind_part_name") or "").strip()
-    if not image_path:
-        raise ValueError("patch/apply requires image_path.")
-    if not keep_behind_part_name:
-        raise ValueError("patch/apply requires keep_behind_part_name.")
-    sprite_parts = project.get("sprite_model", {}).get("parts") or []
-    part_names = {str(item.get("part_name")) for item in sprite_parts if item.get("part_name")}
-    if source_part_name not in part_names:
-        raise ValueError("Unknown source part: %s." % source_part_name)
-    if keep_behind_part_name not in part_names:
-        raise ValueError("Unknown keep_behind_part_name: %s." % keep_behind_part_name)
-    patch_id = "patch:%s" % source_part_name
-    frame_entry = normalize_manual_clip_frame_entry((clip.get("frames") or [])[frame_index])
-    patches = dict(frame_entry.get("corrective_patches") or {})
-    patches[patch_id] = {
-        "patch_id": patch_id,
-        "source_part_name": source_part_name,
-        "keep_behind_part_name": keep_behind_part_name,
-        "variant_id": str(payload.get("variant_id") or "").strip() or None,
-        "image_path": image_path,
-        "mask_path": str(payload.get("mask_path") or "").strip() or None,
-        "source": str(payload.get("source") or "recover-occlusion").strip() or "recover-occlusion",
-        "summary": str(payload.get("summary") or "").strip() or None,
-        "applied_at": now_iso(),
-    }
-    frame_entry["corrective_patches"] = patches
-    clip["frames"][frame_index] = normalize_manual_clip_frame_entry(frame_entry)
-    clip["source_hashes"] = manual_clip_source_hashes(project_dir)
-    invalidate_manual_clip_preview(clip)
-    store["updated_at"] = now_iso()
-    project["manual_animation_clips"] = store
-    project["status"] = "manual_clip_frame_patch_applied"
-    project["updated_at"] = now_iso()
-    save_project(project)
-    hydrated = hydrate_manual_animation_clips(project["manual_animation_clips"], project_dir)["clips"][clip_id]
-    return {
-        "clip_id": clip_id,
-        "frame_index": frame_index,
-        "source_part_name": source_part_name,
-        "frame": hydrated["frames"][frame_index],
-        "clip": hydrated,
-    }
+    _sync_workbench_manual_clips_config()
+    return workbench_manual_clips.apply_manual_animation_clip_frame_patch(project_id, clip_id, frame_index, source_part_name, payload)
 
 
 def clear_manual_animation_clip_frame_patch(project_id: str, clip_id: str, frame_index: int, source_part_name: str) -> Dict[str, Any]:
-    project = load_project(project_id)
-    project_dir = PROJECTS_ROOT / project_id
-    store = project.get("manual_animation_clips") or default_manual_animation_clips(project_id)
-    clip = manual_clip_or_error(project, clip_id)
-    if frame_index < 0 or frame_index >= int(clip.get("frame_count") or 0):
-        raise ValueError("Frame index out of range.")
-    frame_entry = normalize_manual_clip_frame_entry((clip.get("frames") or [])[frame_index])
-    patches = dict(frame_entry.get("corrective_patches") or {})
-    patches.pop("patch:%s" % source_part_name, None)
-    frame_entry["corrective_patches"] = patches
-    clip["frames"][frame_index] = normalize_manual_clip_frame_entry(frame_entry)
-    clip["source_hashes"] = manual_clip_source_hashes(project_dir)
-    invalidate_manual_clip_preview(clip)
-    store["updated_at"] = now_iso()
-    project["manual_animation_clips"] = store
-    project["status"] = "manual_clip_frame_patch_cleared"
-    project["updated_at"] = now_iso()
-    save_project(project)
-    hydrated = hydrate_manual_animation_clips(project["manual_animation_clips"], project_dir)["clips"][clip_id]
-    return {
-        "clip_id": clip_id,
-        "frame_index": frame_index,
-        "source_part_name": source_part_name,
-        "frame": hydrated["frames"][frame_index],
-        "clip": hydrated,
-    }
+    _sync_workbench_manual_clips_config()
+    return workbench_manual_clips.clear_manual_animation_clip_frame_patch(project_id, clip_id, frame_index, source_part_name)
 
 
 def render_manual_animation_clip_preview(project_id: str, clip_id: str, progress: Optional[ProgressCallback] = None) -> Dict[str, Any]:
-    project = load_project(project_id)
-    if not project.get("rig"):
-        raise ValueError("Build the rig before rendering manual clips.")
-    project_dir = PROJECTS_ROOT / project_id
-    store = project.get("manual_animation_clips") or default_manual_animation_clips(project_id)
-    clip = manual_clip_or_error(project, clip_id)
-    render_root = manual_clip_render_root(project_dir) / clip_id
-    frame_dir = render_root / "frames"
-    clear_directory(render_root)
-    frame_dir.mkdir(parents=True, exist_ok=True)
-    manifests = []
-    frame_total = int(clip.get("frame_count") or len(clip.get("frames") or []))
-    for frame_index, frame_entry in enumerate((clip.get("frames") or [])[:frame_total]):
-        normalized_frame = normalize_manual_clip_frame_entry(frame_entry)
-        transforms = normalized_frame["transforms"]
-        part_repairs = normalized_frame["part_repairs"]
-        corrective_patches = normalized_frame["corrective_patches"]
-        call_progress(progress, 10 + int((frame_index / max(1, frame_total)) * 78), "Rendering manual frame %d of %d" % (frame_index + 1, frame_total), "Compositing the authored manual pose against the current rig and sprite model.")
-        raw, render_meta = render_pose_from_sprite_model(project, project["rig"], transforms, part_asset_overrides=part_repairs, corrective_patches=corrective_patches)
-        foot_anchor = render_meta.get("foot_anchor") or {}
-        anchor_candidates = [
-            tuple(foot_anchor[name])
-            for name in ("left", "right")
-            if isinstance(foot_anchor.get(name), list) and len(foot_anchor.get(name)) == 2
-        ]
-        anchor_point = None
-        if anchor_candidates:
-            anchor_point = (
-                sum(point[0] for point in anchor_candidates) / float(len(anchor_candidates)),
-                sum(point[1] for point in anchor_candidates) / float(len(anchor_candidates)),
-            )
-        final_frame, cleanup = cleanup_frame(raw, anchor_point=anchor_point)
-        frame_name = "%s_%02d.png" % (clip_id, frame_index)
-        final_path = frame_dir / frame_name
-        final_frame.save(final_path)
-        manifests.append({
-            "frame_name": frame_name,
-            "path": str(final_path.relative_to(project_dir)),
-            "cleanup": cleanup,
-            "render_meta": render_meta,
-            "joint_transforms": transforms,
-            "part_repairs": part_repairs,
-            "corrective_patches": corrective_patches,
-        })
-    manifest_path = render_root / "render_manifest.json"
-    gif_path = render_root / "preview.gif"
-    write_json(manifest_path, {"animation": clip_id, "clip_name": clip.get("clip_name"), "frames": manifests})
-    preview_frames = [Image.open(project_dir / item["path"]).convert("RGBA") for item in manifests]
-    if preview_frames:
-        preview_frames[0].save(
-            gif_path,
-            save_all=True,
-            append_images=preview_frames[1:],
-            duration=[int(1000 / max(1, int(clip.get("fps") or 12)))] * len(preview_frames),
-            loop=0 if clip.get("loop", True) else 1,
-            disposal=2,
-            transparency=0,
-        )
-    clip["preview_render"] = {
-        "status": "complete",
-        "gif_path": str(gif_path.relative_to(project_dir)),
-        "render_manifest_path": str(manifest_path.relative_to(project_dir)),
-        "frame_dir": str(frame_dir.relative_to(project_dir)),
-        "frames": [item["path"] for item in manifests],
-        "generated_at": now_iso(),
-    }
-    clip["source_hashes"] = manual_clip_source_hashes(project_dir)
-    clip["updated_at"] = now_iso()
-    store["updated_at"] = now_iso()
-    project["manual_animation_clips"] = store
-    project["status"] = "manual_clip_preview_rendered"
-    project["current_stage"] = "clips"
-    project["updated_at"] = now_iso()
-    save_project(project)
-    call_progress(progress, 100, "Manual preview ready", "Review the generated GIF before approving this clip.")
-    return hydrate_manual_animation_clips(project["manual_animation_clips"], project_dir)["clips"][clip_id]
+    _sync_workbench_manual_clips_config()
+    return workbench_manual_clips.render_manual_animation_clip_preview(project_id, clip_id, progress)
 
 
 def approve_manual_animation_clip(project_id: str, clip_id: str, approved: bool) -> Dict[str, Any]:
-    project = load_project(project_id)
-    project_dir = PROJECTS_ROOT / project_id
-    store = project.get("manual_animation_clips") or default_manual_animation_clips(project_id)
-    clip = manual_clip_or_error(project, clip_id)
-    hydrated = hydrate_manual_animation_clips(store, project_dir)["clips"][clip_id]
-    if approved:
-        if hydrated.get("is_stale"):
-            raise ValueError("Manual clip approval is blocked until the clip is re-rendered against the current rig and sprite model.")
-        if not hydrated.get("preview_render_complete"):
-            raise ValueError("Render the manual preview before approving the clip.")
-        clip["approval_status"] = "approved"
-        clip["approved_at"] = now_iso()
-    else:
-        clip["approval_status"] = "draft"
-        clip["approved_at"] = None
-    clip["updated_at"] = now_iso()
-    store["updated_at"] = now_iso()
-    project["manual_animation_clips"] = store
-    project["status"] = "manual_clip_%s" % ("approved" if approved else "unapproved")
-    project["updated_at"] = now_iso()
-    save_project(project)
-    return hydrate_manual_animation_clips(project["manual_animation_clips"], project_dir)["clips"][clip_id]
+    _sync_workbench_manual_clips_config()
+    return workbench_manual_clips.approve_manual_animation_clip(project_id, clip_id, approved)
 
 
 def update_animation_clip(project_id: str, animation_name: str, payload: Dict[str, Any]) -> Dict[str, Any]:
-    if animation_name not in ANIMATION_SPECS:
-        raise ValueError("Unknown clip: %s." % animation_name)
-    project = load_project(project_id)
-    if not project.get("rig"):
-        raise ValueError("Build the rig before editing clips.")
-    clips = hydrate_animation_clips(project.get("animation_clips"), project.get("animation_templates"), rig_profile=active_rig_profile_name(project, project.get("rig_layout")))
-    clip = clips[animation_name]
-    merged_controls = dict(clip.get("controls") or {})
-    incoming_controls = payload.get("controls") if isinstance(payload.get("controls"), dict) else payload
-    if isinstance(incoming_controls, dict):
-        merged_controls.update({key: value for key, value in incoming_controls.items() if key in DEFAULT_CLIP_CONTROLS[animation_name]})
-    controls = normalize_clip_controls(animation_name, merged_controls)
-    overrides = clip_frame_overrides(ANIMATION_SPECS[animation_name]["frame_count"], payload.get("frame_overrides") if "frame_overrides" in payload else clip.get("frame_overrides"))
-    clip["controls"] = controls
-    clip["frame_overrides"] = overrides
-    clip["joint_transforms_per_frame"] = generate_clip_frames(animation_name, controls, overrides, rig_profile=active_rig_profile_name(project, project.get("rig_layout")))
-    clips[animation_name] = clip
-    reset_downstream_assets(project_id, "clips")
-    project = clear_project_downstream_state(project, "clips")
-    project["animation_clips"] = clips
-    project["animation_templates"] = clips
-    project["current_stage"] = "clips"
-    project["status"] = "%s_clip_updated" % animation_name
-    project["updated_at"] = now_iso()
-    save_project(project)
-    return clip
+    _sync_workbench_legacy_animation_production_config()
+    return workbench_legacy_animation_production.update_animation_clip(project_id, animation_name, payload)
 
 
 def reset_animation_clip(project_id: str, animation_name: str) -> Dict[str, Any]:
-    return update_animation_clip(project_id, animation_name, {
-        "controls": default_clip_controls(animation_name),
-        "frame_overrides": [{} for _ in range(ANIMATION_SPECS[animation_name]["frame_count"])],
-    })
+    _sync_workbench_legacy_animation_production_config()
+    return workbench_legacy_animation_production.reset_animation_clip(project_id, animation_name)
 
 
 def approve_sprite_model_review(project_id: str) -> Dict[str, Any]:
-    project = load_project(project_id)
-    sprite_model = project.get("sprite_model")
-    if not sprite_model:
-        raise ValueError("Sprite model cannot be approved before a build.")
-    if sprite_model.get("status") == "fail":
-        raise ValueError("Sprite model approval is blocked until build failures are resolved.")
-    project["sprite_model_approved"] = True
-    project["layer_review_approved"] = True
-    project["sprite_model"]["approved_for_rigging"] = True
-    project["updated_at"] = now_iso()
-    save_project(project)
-    return {"ok": True}
+    _sync_workbench_legacy_animation_production_config()
+    return workbench_legacy_animation_production.approve_sprite_model_review(project_id)
 
 
 def approve_rig_review(project_id: str) -> Dict[str, Any]:
-    project = load_project(project_id)
-    if not project.get("rig"):
-        raise ValueError("Rig review cannot be approved before rig build.")
-    if not project.get("sprite_model_approved") and not project.get("layer_review_approved"):
-        raise ValueError("Sprite-model approval is required before rig review approval.")
-    project["rig_review_approved"] = True
-    project["rig"]["approved_for_production"] = True
-    project["updated_at"] = now_iso()
-    save_project(project)
-    return {"ok": True}
+    _sync_workbench_legacy_animation_production_config()
+    return workbench_legacy_animation_production.approve_rig_review(project_id)
 
 
 def render_animation(project_id: str, animation_name: str, progress: Optional[ProgressCallback] = None) -> Dict[str, Any]:
-    project = load_project(project_id)
-    if not project.get("rig"):
-        raise ValueError("Build the rig before rendering clips.")
-    if not project.get("rig_review_approved"):
-        raise ValueError("Rig review approval is required before production.")
-    clips = project.get("animation_clips") or load_json(canonical_downstream_path(PROJECTS_ROOT / project_id, "animation_clips"))
-    if animation_name not in clips:
-        raise ValueError("Unknown clip: %s." % animation_name)
-    delete_path(canonical_downstream_path(PROJECTS_ROOT / project_id, "qa_report"))
-    clear_directory(PROJECTS_ROOT / project_id / "exports")
-    project["qa_report"] = None
-    project["last_export"] = None
-
-    clip = clips[animation_name]
-    project_dir = PROJECTS_ROOT / project_id
-    output_dir = project_dir / "animations" / animation_name
-    output_dir.mkdir(parents=True, exist_ok=True)
-    clear_directory(output_dir)
-    manifests = []
-    frame_total = len(clip["joint_transforms_per_frame"])
-    for frame_index, transforms in enumerate(clip["joint_transforms_per_frame"]):
-        call_progress(progress, 12 + int((frame_index / max(1, frame_total)) * 80), "Rendering %s frame %d of %d" % (animation_name, frame_index + 1, frame_total), "Compositing extracted parts with deterministic rig transforms.")
-        raw, render_meta = render_pose_from_sprite_model(project, project["rig"], transforms)
-        foot_anchor = render_meta.get("foot_anchor") or {}
-        anchor_candidates = [
-            tuple(foot_anchor[name])
-            for name in ("left", "right")
-            if isinstance(foot_anchor.get(name), list) and len(foot_anchor.get(name)) == 2
-        ]
-        anchor_point = None
-        if anchor_candidates:
-            anchor_point = (
-                sum(point[0] for point in anchor_candidates) / float(len(anchor_candidates)),
-                sum(point[1] for point in anchor_candidates) / float(len(anchor_candidates)),
-            )
-        final_frame, cleanup = cleanup_frame(raw, anchor_point=anchor_point)
-        frame_name = "%s_%02d.png" % (animation_name, frame_index)
-        final_path = output_dir / frame_name
-        final_frame.save(final_path)
-        manifests.append({
-            "frame_name": frame_name,
-            "path": str(final_path.relative_to(project_dir)),
-            "cleanup": cleanup,
-            "render_meta": render_meta,
-            "joint_transforms": transforms,
-        })
-    write_json(output_dir / "render_manifest.json", {"animation": animation_name, "frames": manifests})
-    project["current_stage"] = "production_%s" % animation_name
-    project["status"] = "%s_rendered" % animation_name
-    project["updated_at"] = now_iso()
-    save_project(project)
-    call_progress(progress, 100, "%s ready" % animation_name.title(), "The deterministic clip frames are ready for QA.")
-    return {"animation": animation_name, "frames": manifests, "fps": clip["fps"], "frame_count": clip["frame_count"]}
+    _sync_workbench_legacy_animation_production_config()
+    return workbench_legacy_animation_production.render_animation(project_id, animation_name, progress)
 
 
-def approved_manual_animation_clips(project: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
-    store = project.get("manual_animation_clips") or {"clips": {}}
-    return {
-        clip_id: clip
-        for clip_id, clip in (store.get("clips") or {}).items()
-        if clip.get("approval_status") == "approved" and not clip.get("is_stale") and clip.get("preview_render_complete")
-    }
 
 
-def run_external_authoring_qa(project_id: str, progress: Optional[ProgressCallback] = None) -> Dict[str, Any]:
-    project = load_project(project_id)
-    project_dir = PROJECTS_ROOT / project_id
-    store = hydrate_external_authoring(project.get("external_authoring"), project_dir)
-    bundle = store.get("imported_bundle") if isinstance(store.get("imported_bundle"), dict) else None
-    if not store.get("enabled") or not bundle:
-        raise ValueError("External authoring bundle is required before QA.")
-    call_progress(progress, 12, "Checking SkelForm bundle", "Validating imported spritesheet and metadata files.")
-    spritesheet_path = project_dir / str(bundle.get("spritesheet_image_path") or "")
-    atlas_path = project_dir / str(bundle.get("atlas_path") or "")
-    animations_path = project_dir / str(bundle.get("animations_path") or "")
-    preview_gif_path = project_dir / str(bundle.get("preview_gif_path") or "") if bundle.get("preview_gif_path") else None
-    atlas = load_json(atlas_path, None) if atlas_path.exists() else None
-    animations = load_json(animations_path, None) if animations_path.exists() else None
-    atlas_frames = atlas.get("frames") if isinstance(atlas, dict) else None
-    animation_names = sorted(animations.keys()) if isinstance(animations, dict) else []
-    referenced_frames: List[str] = []
-    if isinstance(animations, dict):
-        for clip in animations.values():
-            if isinstance(clip, dict):
-                referenced_frames.extend([str(name) for name in (clip.get("frames") or [])])
-    frame_lookup = set((atlas_frames or {}).keys()) if isinstance(atlas_frames, dict) else set()
-    missing_frame_refs = sorted(set(referenced_frames).difference(frame_lookup))
-    report = {
-        "project_id": project_id,
-        "generated_at": now_iso(),
-        "status": "pass",
-        "mode": "external_authoring",
-        "per_frame_checks": [],
-        "per_animation_checks": {},
-        "source_asset_hashes": {},
-        "metadata_checks": {
-            "external_authoring_enabled": check_state("pass" if store.get("enabled") else "fail"),
-            "has_spritesheet": check_state("pass" if spritesheet_path.exists() else "fail"),
-            "has_atlas": check_state("pass" if atlas_path.exists() else "fail"),
-            "has_animations": check_state("pass" if animations_path.exists() else "fail"),
-            "atlas_has_frames": check_state("pass" if isinstance(atlas_frames, dict) and atlas_frames else "fail"),
-            "animations_non_empty": check_state("pass" if animation_names else "fail"),
-            "animation_frames_resolve_in_atlas": check_state("pass" if not missing_frame_refs else "fail", {"missing_frames": missing_frame_refs}),
-            "has_preview_gif": check_state("pass" if preview_gif_path and preview_gif_path.exists() else "warning"),
-        },
-        "notes": [
-            "QA validated the imported external-authoring bundle rather than the legacy deterministic rig pipeline.",
-            "Semantic animation quality still requires human review in the workbench.",
-        ],
-        "sprite_model_build_report": {"status": "pass", "source": "external_authoring"},
-    }
-    if spritesheet_path.exists():
-        report["source_asset_hashes"][str(spritesheet_path.relative_to(project_dir))] = image_sha256(spritesheet_path)
-    if atlas_path.exists():
-        report["source_asset_hashes"][str(atlas_path.relative_to(project_dir))] = image_sha256(atlas_path)
-    if animations_path.exists():
-        report["source_asset_hashes"][str(animations_path.relative_to(project_dir))] = image_sha256(animations_path)
-    if preview_gif_path and preview_gif_path.exists():
-        report["source_asset_hashes"][str(preview_gif_path.relative_to(project_dir))] = image_sha256(preview_gif_path)
-    if any(item["status"] == "fail" for item in report["metadata_checks"].values()):
-        report["status"] = "fail"
-    write_json(canonical_downstream_path(project_dir, "qa_report"), report)
-    project["qa_report"] = report
-    project["current_stage"] = "qa"
-    project["status"] = "qa_%s" % report["status"]
-    project["updated_at"] = now_iso()
-    save_project(project)
-    call_progress(progress, 100, "Checks complete", "Imported SkelForm bundle validation finished.")
-    return report
 
 
-def run_ai_workflow_qa(project_id: str, progress: Optional[ProgressCallback] = None) -> Dict[str, Any]:
-    project = load_project(project_id)
-    project_dir = PROJECTS_ROOT / project_id
-    store = ai_workflow_or_error(project)
-    cleanup_runs = store.get("cleanup_runs") or {}
-    report = {
-        "project_id": project_id,
-        "generated_at": now_iso(),
-        "status": "pass",
-        "mode": "ai_workflow",
-        "workflow_profile": store.get("profile") or AI_WORKFLOW_PROFILE,
-        "per_frame_checks": [],
-        "per_animation_checks": {},
-        "source_asset_hashes": {},
-        "metadata_checks": {},
-        "notes": [
-            "QA validated AI-produced cleaned frames with deterministic pivot, transparency, and export checks.",
-            "Semantic art direction still requires human review in the workbench.",
-        ],
-        "sprite_model_build_report": {"status": "pass", "source": "ai_workflow"},
-    }
-    for clip_index, clip_name in enumerate(AI_CLIP_SPECS):
-        clip_group = cleanup_runs.get(clip_name) if isinstance(cleanup_runs.get(clip_name), dict) else {}
-        approved_run_id = clip_group.get("approved_run_id")
-        approved_run = (clip_group.get("runs") or {}).get(approved_run_id) if approved_run_id else None
-        if not approved_run:
-            raise ValueError("Approve cleaned %s frames before QA." % clip_name)
-        animation_dir = project_dir / "animations" / clip_name
-        manifest = load_json(animation_dir / "render_manifest.json", {"frames": []})
-        frames = manifest.get("frames") or []
-        draw_orders = []
-        foot_anchors = []
-        manifest_names = [item.get("frame_name") for item in frames]
-        spec = AI_CLIP_SPECS[clip_name]
-        for index in range(spec["frame_count"]):
-            call_progress(progress, 8 + int(((clip_index * spec["frame_count"] + index) / max(1, sum(item["frame_count"] for item in AI_CLIP_SPECS.values()))) * 82), "Checking %s frame %d" % (clip_name, index + 1), "Validating cleaned frame dimensions, alpha, clipping, and pivot alignment.")
-            frame_name = "%s_%02d.png" % (clip_name, index)
-            path = animation_dir / frame_name
-            if not path.exists():
-                raise ValueError("Missing cleaned frame: %s" % frame_name)
-            image = Image.open(path).convert("RGBA")
-            alpha = image.getchannel("A")
-            alpha_bounds = alpha.getbbox()
-            frame_meta = next((item for item in frames if item.get("frame_name") == frame_name), None)
-            if frame_meta is None:
-                raise ValueError("Missing manifest row: %s" % frame_name)
-            draw_orders.append(tuple(frame_meta.get("render_meta", {}).get("draw_sequence") or []))
-            foot_anchors.append(frame_meta.get("render_meta", {}).get("foot_anchor") or {"left": [0, 0], "right": [0, 0]})
-            report["source_asset_hashes"][str(path.relative_to(project_dir))] = image_sha256(path)
-            checks = {
-                "exact_frame_size": check_state("pass" if list(image.size) == [FRAME_SIZE, FRAME_SIZE] else "fail"),
-                "transparent_background": check_state("pass" if alpha_bounds is not None and any(value < 255 for value in alpha.getdata()) else "fail"),
-                "exact_pivot": check_state("pass" if frame_meta.get("cleanup", {}).get("pivot") == list(FRAME_PIVOT) else "fail", {"expected": list(FRAME_PIVOT)}),
-                "no_clipping": check_state("fail" if border_has_alpha(image) else "pass"),
-            }
-            frame_status = aggregate_check_state([item["status"] for item in checks.values()])
-            if frame_status == "fail":
-                report["status"] = "fail"
-            report["per_frame_checks"].append({
-                "frame_name": frame_name,
-                "status": frame_status,
-                "checks": checks,
-            })
-        foot_y_values = [anchor["left"][1] for anchor in foot_anchors] + [anchor["right"][1] for anchor in foot_anchors]
-        foot_anchor_stable = (max(foot_y_values) - min(foot_y_values)) <= 1 if foot_y_values else False
-        first_left = (frames[0].get("render_meta", {}).get("foot_anchor", {}) if frames else {}).get("left", [0, 0])
-        last_left = (frames[-1].get("render_meta", {}).get("foot_anchor", {}) if frames else {}).get("left", [0, 0])
-        animation_checks = {
-            "correct_frame_count": check_state("pass" if len(frames) == spec["frame_count"] else "fail"),
-            "render_manifest_completeness": check_state("pass" if manifest_names == ["%s_%02d.png" % (clip_name, index) for index in range(spec["frame_count"])] else "fail"),
-            "stable_draw_order": check_state("pass" if len(set(draw_orders)) == 1 else "fail"),
-            "stable_foot_anchor": check_state("pass" if foot_anchor_stable else "fail"),
-            "loop_seam_continuity": check_state("pass" if abs(first_left[1] - last_left[1]) <= 1 else "fail"),
-            "metadata_correctness": check_state("pass" if (project.get("animation_clips", {}).get(clip_name, {}).get("frame_count") == spec["frame_count"] and project.get("animation_clips", {}).get(clip_name, {}).get("fps") == spec["fps"]) else "fail"),
-        }
-        animation_status = aggregate_check_state([item["status"] for item in animation_checks.values()])
-        if animation_status == "fail":
-            report["status"] = "fail"
-        report["per_animation_checks"][clip_name] = {"status": animation_status, "checks": animation_checks}
-    report["metadata_checks"] = {
-        "ai_workflow_enabled": check_state("pass" if store.get("enabled") else "fail"),
-        "workflow_profile_is_active": check_state("pass" if store.get("profile") == AI_WORKFLOW_PROFILE else "fail"),
-        "has_approved_character_lock": check_state("pass" if bool((store.get("character_lock") or {}).get("approved_asset_id")) else "fail"),
-        "has_approved_key_pose_set": check_state("pass" if bool((store.get("key_pose_set") or {}).get("approved_run_id")) else "fail"),
-        "has_clean_idle_and_walk": check_state("pass" if all(bool((cleanup_runs.get(clip_name) or {}).get("approved_run_id")) for clip_name in AI_CLIP_SPECS) else "fail"),
-        "dependency_health_snapshot": check_state("pass" if isinstance(store.get("dependency_status"), dict) and bool(store.get("dependency_status")) else "fail"),
-    }
-    if any(item["status"] == "fail" for item in report["metadata_checks"].values()):
-        report["status"] = "fail"
-    write_json(canonical_downstream_path(project_dir, "qa_report"), report)
-    project["qa_report"] = report
-    project["current_stage"] = "qa"
-    project["status"] = "qa_%s" % report["status"]
-    project["updated_at"] = now_iso()
-    save_project(project)
-    call_progress(progress, 100, "Checks complete", "AI workflow cleanup outputs passed through deterministic QA.")
-    return report
 
 
-def ai_workflow_ready_for_qa(store: Dict[str, Any]) -> bool:
-    if not isinstance(store, dict) or not store.get("enabled") or store.get("legacy_mode"):
-        return False
-    cleanup_runs = store.get("cleanup_runs") or {}
-    return all(bool((cleanup_runs.get(clip_name) or {}).get("approved_run_id")) for clip_name in AI_CLIP_SPECS)
 
 
-def pixellab_pipeline_ready_for_qa(project: Dict[str, Any], project_dir: Path) -> bool:
-    """
-    Phase 6: Pixel Lab QA readiness check.
-
-    Canonical inputs:
-    - `pixellab_character.json`
-    - `pixellab_animations.json`
-    - `animation_clips.json` (built in Phase 5.5)
-    """
-    char_path = _pixellab_character_path(project_dir)
-    anim_path = _pixellab_animations_path(project_dir)
-    if not char_path.exists() or not anim_path.exists():
-        return False
-    anim_store = load_json(anim_path, None)
-    if not isinstance(anim_store, dict):
-        return False
-    ab = anim_store.get("animations")
-    if not pixellab_animation_store_has_frames(ab if isinstance(ab, dict) else None):
-        return False
-    clips = project.get("animation_clips") or load_json(canonical_downstream_path(project_dir, "animation_clips"), {})
-    return isinstance(clips, dict) and bool(clips)
 
 
 def sync_pixellab_animation_clips(
@@ -13388,1011 +10344,22 @@ def sync_pixellab_animation_clips(
     return existing
 
 
-def run_pixellab_qa(project_id: str, progress: Optional[ProgressCallback] = None) -> Dict[str, Any]:
-    project = load_project(project_id)
-    project_dir = PROJECTS_ROOT / project_id
-
-    # Must exist and be non-empty.
-    char_path = _pixellab_character_path(project_dir)
-    anim_path = _pixellab_animations_path(project_dir)
-    if not char_path.exists() or not anim_path.exists():
-        raise ValueError("Pixel Lab canonical inputs missing; expected pixellab_character.json and pixellab_animations.json.")
-    _pixellab_character_approved_guard(project_dir)  # also enforces approval
-
-    pix_store = load_json(anim_path, None) or {}
-    if not isinstance(pix_store, dict):
-        pix_store = {}
-    anim_block = pix_store.get("animations")
-    if not pixellab_animation_store_has_frames(anim_block if isinstance(anim_block, dict) else None):
-        raise ValueError(
-            "pixellab_animations.json does not contain any generated animation frames yet. "
-            "Generate at least one clip on the Animations panel first."
-        )
-
-    clips = sync_pixellab_animation_clips(project_id, project=project, project_dir=project_dir)
-    if not isinstance(clips, dict) or not clips:
-        raise ValueError("animation_clips.json must exist (Phase 5.5) before Pixel Lab QA.")
-
-    # Every clip with raster `frames` in animation_clips.json (idle/walk + custom Pixel Lab clips).
-    clip_names = _pixellab_qa_clip_names(clips)
-    if not clip_names:
-        raise ValueError(
-            "animation_clips.json contains no Pixel Lab animations with frame paths. "
-            "Generate clips on the Animations panel first."
-        )
-    total_frame_checks = sum(
-        len((clips.get(n) or {}).get("frames") or [])
-        for n in clip_names
-        if isinstance(clips.get(n), dict)
-    )
-    frames_done = 0
-
-    report = {
-        "project_id": project_id,
-        "generated_at": now_iso(),
-        "status": "pass",
-        "mode": "pixellab",
-        "per_frame_checks": [],
-        "per_animation_checks": {},
-        "source_asset_hashes": {},
-        "metadata_checks": {},
-        "notes": [
-            "QA validates Pixel Lab canonical animation frames for size, transparency, and border clipping.",
-            "Semantic art direction still requires human review in the workbench.",
-        ],
-    }
-
-    for clip_index, clip_name in enumerate(clip_names):
-        call_progress(
-            progress,
-            8 + int((clip_index / max(1, len(clip_names))) * 12),
-            "Checking %s clip" % clip_name,
-            "Validating Pixel Lab frames (size, transparency, clipping).",
-        )
-        # Pixel Lab templates may return fewer frames than AI_CLIP_SPECS (deterministic workflow).
-        # QA trusts animation_clips.json built from pixellab_animations — not the AI pose-count spec.
-        spec = AI_CLIP_SPECS.get(clip_name) or ANIMATION_SPECS.get(clip_name) or {}
-        spec_fc = int(spec.get("frame_count") or 0)
-        spec_fps = int(spec.get("fps") or 0)
-
-        clip = clips[clip_name]
-        meta_fc = int(clip.get("frame_count") or 0)
-        fps = int(clip.get("fps") or 0)
-        frames = clip.get("frames") if isinstance(clip.get("frames"), list) else []
-        path_count = len(frames)
-
-        if not frames:
-            raise ValueError("Pixel Lab QA blocked: %s.frames is empty — generate the animation again so the synced clip store has frames." % clip_name)
-        if meta_fc and meta_fc != path_count:
-            raise ValueError(
-                "Pixel Lab QA blocked: %s.frame_count=%s but frames list length=%s. "
-                "Re-generate or re-edit the animation so the synced clip metadata is refreshed."
-                % (clip_name, meta_fc, path_count)
-            )
-        frame_count = int(meta_fc or path_count)
-        if spec_fc and spec_fc != frame_count:
-            report["notes"].append(
-                "%s clip has %d frame(s); AI deterministic spec suggests %d — Pixel Lab output is accepted."
-                % (clip_name, frame_count, spec_fc)
-            )
-        if spec_fps and spec_fps != fps:
-            report["notes"].append(
-                "%s clip fps=%d; AI deterministic spec suggests %d — Pixel Lab timing is accepted."
-                % (clip_name, fps, spec_fps)
-            )
-
-        per_frame_states: List[str] = []
-        for index in range(frame_count):
-            frames_done += 1
-            call_progress(
-                progress,
-                8 + int((frames_done / max(1, total_frame_checks)) * 82),
-                "Checking %s frame %d" % (clip_name, index + 1),
-                "Validating frame image.",
-            )
-            frame_rel = frames[index] if index < len(frames) else None
-            if not frame_rel:
-                raise ValueError("Pixel Lab QA blocked: missing frame path for %s index %d." % (clip_name, index))
-            path = project_dir / str(frame_rel)
-            if not path.exists():
-                raise ValueError("Pixel Lab QA blocked: missing frame file %s." % str(path))
-
-            image = Image.open(path).convert("RGBA")
-            # Pixel Lab animation frames may be produced at a smaller canvas size
-            # (e.g. 64x64). Normalize to the canonical export size so QA checks and
-            # atlas packing use the same invariants as deterministic/AI workflows.
-            if list(image.size) != [FRAME_SIZE, FRAME_SIZE]:
-                image, _ = cleanup_frame(image)
-            alpha = image.getchannel("A")
-            alpha_bounds = alpha.getbbox()
-            checks = {
-                "exact_frame_size": check_state("pass" if list(image.size) == [FRAME_SIZE, FRAME_SIZE] else "fail"),
-                "transparent_background": check_state("pass" if alpha_bounds is not None and any(value < 255 for value in alpha.getdata()) else "fail"),
-                "no_clipping": check_state("fail" if border_has_alpha(image) else "pass"),
-            }
-            frame_status = aggregate_check_state([item["status"] for item in checks.values()])
-            per_frame_states.append(frame_status)
-            if frame_status == "fail":
-                report["status"] = "fail"
-            report["per_frame_checks"].append({
-                "frame_name": "%s_%02d.png" % (clip_name, index),
-                "status": frame_status,
-                "checks": checks,
-            })
-            report["source_asset_hashes"][str(path.relative_to(project_dir))] = image_sha256(path)
-
-        animation_status = aggregate_check_state(per_frame_states)
-        report["per_animation_checks"][clip_name] = {
-            "status": animation_status,
-            "checks": {
-                "correct_frame_count": check_state("pass" if len(frames) == frame_count else "fail"),
-                "metadata_correctness": check_state(
-                    "pass" if len(frames) == frame_count and (meta_fc == 0 or meta_fc == len(frames)) else "fail"
-                ),
-            },
-        }
-
-    report["metadata_checks"] = {
-        "has_pixellab_character": check_state("pass" if char_path.exists() else "fail"),
-        "has_pixellab_animations": check_state("pass" if anim_path.exists() and bool(pix_store.get("animations")) else "fail"),
-        "has_animation_clips": check_state("pass" if isinstance(clips, dict) and bool(clips) else "fail"),
-    }
-    if any(item["status"] == "fail" for item in report["metadata_checks"].values()):
-        report["status"] = "fail"
-
-    write_json(canonical_downstream_path(project_dir, "qa_report"), report)
-    project["qa_report"] = report
-    project["current_stage"] = "qa"
-    project["status"] = "qa_%s" % report["status"]
-    project["updated_at"] = now_iso()
-    save_project(project)
-    call_progress(progress, 100, "Checks complete", "Pixel Lab QA finished.")
-    return report
 
 
-def run_qa(project_id: str, progress: Optional[ProgressCallback] = None) -> Dict[str, Any]:
-    project = load_project(project_id)
-    ai_workflow = project.get("ai_workflow") or {}
-    if ai_workflow_ready_for_qa(ai_workflow):
-        return run_ai_workflow_qa(project_id, progress=progress)
-    external_authoring = project.get("external_authoring") or {}
-    imported_bundle = external_authoring.get("imported_bundle") if isinstance(external_authoring.get("imported_bundle"), dict) else None
-    if external_authoring.get("enabled") and imported_bundle:
-        return run_external_authoring_qa(project_id, progress=progress)
-    project_dir = PROJECTS_ROOT / project_id
-    if pixellab_pipeline_ready_for_qa(project, project_dir):
-        return run_pixellab_qa(project_id, progress=progress)
-    sprite_model = project.get("sprite_model")
-    rig = project.get("rig")
-    clips = project.get("animation_clips") or load_json(canonical_downstream_path(project_dir, "animation_clips"), {})
-    if not sprite_model or not rig or not clips:
-        raise ValueError("Sprite model, rig, and animation clips must exist before QA.")
-    build_report = sprite_model.get("build_report") or validate_sprite_model(project_dir, sprite_model)
-    sprite_model["build_report"] = build_report
-    sprite_model["status"] = build_report["status"]
-
-    report = {
-        "project_id": project_id,
-        "generated_at": now_iso(),
-        "status": "pass",
-        "per_frame_checks": [],
-        "per_animation_checks": {},
-        "source_asset_hashes": {},
-        "metadata_checks": {},
-        "notes": [
-            "QA validates deterministic asset structure and implemented image checks.",
-            "Semantic art direction still requires a human review pass in the workbench.",
-        ],
-        "sprite_model_build_report": build_report,
-    }
-
-    rig_layout = sprite_model.get("rig_layout") or project.get("rig_layout") or {}
-    required_roles = {item["part_name"] for item in (rig_layout.get("parts") or []) if item.get("required")}
-    required_parts = set()
-    for part in sprite_model["parts"]:
-        role = part.get("part_role", part["part_name"])
-        if required_roles and role not in required_roles:
-            continue
-        image, _ = load_part_asset(project_dir, part)
-        if alpha_bbox(image) is not None:
-            required_parts.add(role)
-    manual_clips = approved_manual_animation_clips(project)
-    runtime_animations: List[Tuple[str, Dict[str, Any], Path, str]] = [
-        (animation_name, dict(spec), project_dir / "animations" / animation_name, "procedural")
-        for animation_name, spec in ANIMATION_SPECS.items()
-    ] + [
-        (
-            clip_id,
-            {"frame_count": int(clip.get("frame_count") or 0), "fps": int(clip.get("fps") or 12), "loop": bool(clip.get("loop", True))},
-            project_dir / str(clip.get("preview_render", {}).get("frame_dir") or ""),
-            "manual",
-        )
-        for clip_id, clip in manual_clips.items()
-    ]
-    for animation_index, (animation_name, spec, animation_dir, animation_kind) in enumerate(runtime_animations):
-        call_progress(progress, 8 + int((animation_index / max(1, len(runtime_animations))) * 74), "Checking %s clip" % animation_name, "Validating frame dimensions, pivots, parts, draw order, and loop continuity.")
-        manifest = load_json((animation_dir.parent if animation_kind == "manual" else animation_dir) / "render_manifest.json", {"frames": []}) if animation_kind == "manual" else load_json(animation_dir / "render_manifest.json", {"frames": []})
-        frames = manifest.get("frames", [])
-        draw_orders = []
-        foot_anchors = []
-        frame_hashes = []
-        manifest_names = [item.get("frame_name") for item in frames]
-        for index in range(spec["frame_count"]):
-            frame_name = "%s_%02d.png" % (animation_name, index)
-            path = animation_dir / frame_name
-            if not path.exists():
-                raise ValueError("Missing frame: %s" % frame_name)
-            image = Image.open(path).convert("RGBA")
-            alpha = image.getchannel("A")
-            alpha_bounds = alpha.getbbox()
-            frame_meta = next((item for item in frames if item["frame_name"] == frame_name), None)
-            if frame_meta is None:
-                raise ValueError("Missing manifest row: %s" % frame_name)
-            draw_sequence = frame_meta["render_meta"]["draw_sequence"]
-            draw_roles = [item.get("part_role", item["part"]) for item in frame_meta["render_meta"]["render_log"]]
-            draw_orders.append(tuple(draw_sequence))
-            foot_anchors.append(frame_meta["render_meta"]["foot_anchor"])
-            frame_hash = image_sha256(path)
-            frame_hashes.append(frame_hash)
-            report["source_asset_hashes"][str(path.relative_to(project_dir))] = frame_hash
-            missing_parts = sorted(required_parts.difference(draw_roles))
-            duplicate_prop = draw_roles.count("prop") > 1
-            checks = {
-                "exact_frame_size": check_state("pass" if list(image.size) == [FRAME_SIZE, FRAME_SIZE] else "fail"),
-                "transparent_background": check_state("pass" if alpha_bounds is not None and any(value < 255 for value in alpha.getdata()) else "fail"),
-                "exact_pivot": check_state("pass" if frame_meta.get("cleanup", {}).get("pivot") == list(FRAME_PIVOT) else "fail", {"expected": list(FRAME_PIVOT)}),
-                "no_clipping": check_state("fail" if border_has_alpha(image) else "pass"),
-                "no_missing_parts": check_state("fail" if missing_parts else "pass", {"missing_parts": missing_parts}),
-                "no_duplicate_prop": check_state("fail" if duplicate_prop else "pass"),
-            }
-            frame_status = aggregate_check_state([item["status"] for item in checks.values()])
-            if frame_status == "fail":
-                report["status"] = "fail"
-            report["per_frame_checks"].append({
-                "frame_name": frame_name,
-                "status": frame_status,
-                "checks": checks,
-            })
-
-        stable_draw_order = len(set(draw_orders)) == 1
-        foot_y_values = [anchor["left"][1] for anchor in foot_anchors] + [anchor["right"][1] for anchor in foot_anchors]
-        foot_anchor_stable = (max(foot_y_values) - min(foot_y_values)) <= 30 if foot_y_values else False
-        first_meta = frames[0] if frames else {}
-        last_meta = frames[-1] if frames else {}
-        first_left = first_meta.get("render_meta", {}).get("foot_anchor", {}).get("left", [0, 0])
-        last_left = last_meta.get("render_meta", {}).get("foot_anchor", {}).get("left", [999, 999])
-        loop_ok = abs(first_left[1] - last_left[1]) <= 6
-        animation_checks = {
-            "correct_frame_count": check_state("pass" if len(frames) == spec["frame_count"] else "fail"),
-            "render_manifest_completeness": check_state(
-                "pass" if manifest_names == ["%s_%02d.png" % (animation_name, index) for index in range(spec["frame_count"])] else "fail"
-            ),
-            "stable_draw_order": check_state("pass" if stable_draw_order else "fail"),
-            "stable_foot_anchor": check_state("pass" if foot_anchor_stable else "fail"),
-            "loop_seam_continuity": check_state("pass" if loop_ok else "fail"),
-            "metadata_correctness": check_state(
-                "pass"
-                if (
-                    (animation_kind == "procedural" and clips.get(animation_name, {}).get("frame_count") == spec["frame_count"] and clips.get(animation_name, {}).get("fps") == spec["fps"])
-                    or (animation_kind == "manual" and manual_clips.get(animation_name, {}).get("frame_count") == spec["frame_count"] and manual_clips.get(animation_name, {}).get("fps") == spec["fps"])
-                )
-                else "fail"
-            ),
-            "clip_control_persistence": check_state("pass" if animation_kind == "manual" or isinstance(clips.get(animation_name, {}).get("controls"), dict) else "fail"),
-        }
-        animation_status = aggregate_check_state([item["status"] for item in animation_checks.values()])
-        if animation_status == "fail":
-            report["status"] = "fail"
-        report["per_animation_checks"][animation_name] = {"status": animation_status, "checks": animation_checks}
-
-    report["metadata_checks"] = {
-        "has_approved_source_image": check_state(
-            "pass"
-            if (sprite_model.get("approved_source_image") or project.get("master_pose_approved"))
-            else "fail"
-        ),
-        "has_sprite_model": check_state("pass" if bool(sprite_model.get("parts")) else "fail"),
-        "sprite_model_build_report": check_state("pass" if build_report.get("status") != "fail" else "fail", {"status": build_report.get("status")}),
-        "has_rig": check_state("pass" if bool(rig.get("rig_joint_map")) else "fail"),
-        "has_animation_clips": check_state("pass" if set(clips.keys()) >= {"idle", "walk"} else "fail"),
-        "manual_clips_not_stale": check_state("pass" if not any(clip.get("is_stale") for clip in (project.get("manual_animation_clips", {}).get("clips") or {}).values() if clip.get("approval_status") == "approved") else "fail"),
-    }
-    if any(item["status"] == "fail" for item in report["metadata_checks"].values()):
-        report["status"] = "fail"
-    write_json(canonical_downstream_path(project_dir, "qa_report"), report)
-    project["qa_report"] = report
-    project["sprite_model"] = sprite_model
-    project["current_stage"] = "qa"
-    project["status"] = "qa_%s" % report["status"]
-    project["updated_at"] = now_iso()
-    save_project(project)
-    call_progress(progress, 100, "Checks complete", "QA finished. Export stays blocked until every required check passes.")
-    return report
 
 
-def validate_export_bundle(
-    export_dir: Path,
-    ordered_frames: List[Tuple[str, str, Path]],
-    atlas_frames: Dict[str, Dict[str, Any]],
-) -> Dict[str, Any]:
-    spritesheet_path = export_dir / "spritesheet.png"
-    spritesheet = Image.open(spritesheet_path).convert("RGBA")
-    expected_order = [frame_name for _, frame_name, _ in ordered_frames]
-    atlas_order = list(atlas_frames.keys())
-    crop_checks = []
-    for animation_name, frame_name, path in ordered_frames:
-        atlas = atlas_frames[frame_name]
-        crop = spritesheet.crop((atlas["x"], atlas["y"], atlas["x"] + atlas["w"], atlas["y"] + atlas["h"]))
-        source = Image.open(path).convert("RGBA")
-        crop_checks.append({
-            "frame_name": frame_name,
-            "animation": animation_name,
-            "matches_source": list(crop.getdata()) == list(source.getdata()),
-        })
-    status = "pass" if (
-        list(spritesheet.size) == [FRAME_SIZE * len(ordered_frames), FRAME_SIZE]
-        and atlas_order == expected_order
-        and all(item["matches_source"] for item in crop_checks)
-    ) else "fail"
-    return {
-        "status": status,
-        "checks": {
-            "spritesheet_dimensions": list(spritesheet.size) == [FRAME_SIZE * len(ordered_frames), FRAME_SIZE],
-            "atlas_order_matches_frames": atlas_order == expected_order,
-            "packed_pixels_match_sources": all(item["matches_source"] for item in crop_checks),
-        },
-        "atlas_order": atlas_order,
-        "expected_order": expected_order,
-        "per_frame": crop_checks,
-    }
 
 
-def _pixellab_qa_clip_names(clips: Dict[str, Any]) -> List[str]:
-    """Default workflow clips first, then other Pixel Lab clips that have raster frame paths."""
-    names = [
-        name
-        for name, data in clips.items()
-        if isinstance(data, dict) and isinstance(data.get("frames"), list) and len(data["frames"]) > 0
-    ]
-    priority = ["idle", "walk", "run", "jump"]
-    ordered = [n for n in priority if n in names]
-    ordered.extend(sorted(n for n in names if n not in priority))
-    return ordered
 
 
-def _write_per_animation_preview_gifs(
-    export_dir: Path,
-    ordered_frames: List[Tuple[str, str, Path]],
-    fps_for_animation: Callable[[str], int],
-) -> List[str]:
-    """
-    Write one looping preview GIF per animation (matches spritesheet segment order).
-    Returns basenames only, e.g. preview_idle.gif, preview_walk.gif.
-    """
-    order: List[str] = []
-    groups: Dict[str, List[Path]] = {}
-    for animation_name, _frame_name, path in ordered_frames:
-        if animation_name not in groups:
-            order.append(animation_name)
-            groups[animation_name] = []
-        groups[animation_name].append(path)
-    out_names: List[str] = []
-    for animation_name in order:
-        paths = groups[animation_name]
-        fps = max(1, int(fps_for_animation(animation_name)))
-        duration = int(1000 / fps)
-        imgs = [Image.open(p).convert("RGBA") for p in paths]
-        # Compute union bbox of non-transparent pixels across all frames so the
-        # crop is stable (no jitter) and the sprite fills the preview.
-        union_bbox = None
-        for img in imgs:
-            bb = img.split()[3].getbbox()  # alpha channel bbox
-            if bb is None:
-                continue
-            if union_bbox is None:
-                union_bbox = bb
-            else:
-                union_bbox = (
-                    min(union_bbox[0], bb[0]),
-                    min(union_bbox[1], bb[1]),
-                    max(union_bbox[2], bb[2]),
-                    max(union_bbox[3], bb[3]),
-                )
-        if union_bbox is not None:
-            imgs = [img.crop(union_bbox) for img in imgs]
-        out_name = "preview_%s.gif" % animation_name
-        out_path = export_dir / out_name
-        imgs[0].save(
-            out_path,
-            save_all=True,
-            append_images=imgs[1:],
-            duration=duration,
-            loop=0,
-            disposal=2,
-            transparency=0,
-        )
-        out_names.append(out_name)
-    return out_names
 
 
-def _write_preview_spritesheet(spritesheet: Image.Image, export_dir: Path) -> None:
-    """Save a vertically-trimmed copy of the spritesheet as preview_spritesheet.png for workbench display."""
-    alpha = spritesheet.getchannel("A")
-    bbox = alpha.getbbox()
-    if bbox is not None and (bbox[1] > 0 or bbox[3] < spritesheet.height):
-        preview = spritesheet.crop((0, bbox[1], spritesheet.width, bbox[3]))
-    else:
-        preview = spritesheet
-    preview.save(export_dir / "preview_spritesheet.png")
 
 
-def _write_per_animation_spritesheets(
-    export_dir: Path,
-    ordered_frames: List[Tuple[str, str, Path]],
-    animations_payload: Dict[str, Dict[str, Any]],
-) -> Dict[str, Dict[str, Any]]:
-    """Write one spritesheet + atlas JSON per animation and return relative-path metadata."""
-    sheets_dir = export_dir / "animation_sheets"
-    sheets_dir.mkdir(parents=True, exist_ok=True)
-    groups: Dict[str, List[Tuple[str, Path]]] = {}
-    order: List[str] = []
-    for animation_name, frame_name, path in ordered_frames:
-        if animation_name not in groups:
-            groups[animation_name] = []
-            order.append(animation_name)
-        groups[animation_name].append((frame_name, path))
-    manifest: Dict[str, Dict[str, Any]] = {}
-    for animation_name in order:
-        frames = groups[animation_name]
-        spritesheet = Image.new("RGBA", (FRAME_SIZE * len(frames), FRAME_SIZE), (0, 0, 0, 0))
-        atlas_frames: Dict[str, Dict[str, Any]] = {}
-        frame_names: List[str] = []
-        for index, (frame_name, path) in enumerate(frames):
-            frame_image = Image.open(path).convert("RGBA")
-            x = index * FRAME_SIZE
-            spritesheet.alpha_composite(frame_image, (x, 0))
-            atlas_frames[frame_name] = {
-                "x": x,
-                "y": 0,
-                "w": FRAME_SIZE,
-                "h": FRAME_SIZE,
-                "pivot": list(FRAME_PIVOT),
-                "animation": animation_name,
-            }
-            frame_names.append(frame_name)
-        image_name = f"{animation_name}.png"
-        atlas_name = f"{animation_name}.json"
-        image_rel = f"animation_sheets/{image_name}"
-        atlas_rel = f"animation_sheets/{atlas_name}"
-        spritesheet.save(sheets_dir / image_name)
-        meta = animations_payload.get(animation_name) or {}
-        write_json(
-            sheets_dir / atlas_name,
-            {
-                "image": image_name,
-                "animation": animation_name,
-                "fps": int(meta.get("fps") or 12),
-                "loop": bool(meta.get("loop", True)),
-                "frame_count": len(frames),
-                "order": frame_names,
-                "frames": atlas_frames,
-            },
-        )
-        manifest[animation_name] = {
-            "image": image_rel,
-            "atlas": atlas_rel,
-            "frame_count": len(frames),
-            "fps": int(meta.get("fps") or 12),
-            "loop": bool(meta.get("loop", True)),
-            "frames": frame_names,
-        }
-    return manifest
 
 
-def export_pixellab_project(project_id: str, progress: Optional[ProgressCallback] = None) -> Dict[str, Any]:
-    project = load_project(project_id)
-    project_dir = PROJECTS_ROOT / project_id
-    char_path = _pixellab_character_path(project_dir)
-    pix_anim_path = _pixellab_animations_path(project_dir)
-    if not char_path.exists() or not pix_anim_path.exists():
-        raise ValueError("Export blocked: Pixel Lab canonical inputs missing.")
-
-    if not project.get("qa_report") or project["qa_report"].get("status") != "pass":
-        raise ValueError("Export blocked: QA must pass first.")
-
-    clips = sync_pixellab_animation_clips(project_id, project=project, project_dir=project_dir)
-    if not isinstance(clips, dict) or not clips:
-        raise ValueError("Export blocked: animation_clips.json must exist for Pixel Lab export.")
-
-    # Procedural: any animation_clips entry with raster frames.
-    procedural_names = [
-        name
-        for name, c in clips.items()
-        if isinstance(c, dict) and isinstance(c.get("frames"), list) and len(c["frames"]) > 0
-    ]
-    priority = ["idle", "walk", "run", "jump"]
-    procedural_names = [n for n in priority if n in procedural_names] + sorted(
-        n for n in procedural_names if n not in priority
-    )
-    if not procedural_names and not bool(approved_manual_animation_clips(project).keys()):
-        raise ValueError("Export blocked: no generated animation clips are available.")
-
-    manual_clips = approved_manual_animation_clips(project)
-
-    export_dir = project_dir / "exports" / datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-    export_dir.mkdir(parents=True, exist_ok=True)
-    ordered_frames: List[Tuple[str, str, Path]] = []
-
-    target_dir = export_dir / "frames"
-    target_dir.mkdir(parents=True, exist_ok=True)
-
-    call_progress(progress, 8, "Preparing Pixel Lab export", "Collecting Pixel Lab frames and runtime metadata.")
-
-    for clip_name in procedural_names:
-        clip = clips[clip_name]
-        frame_count = int(clip.get("frame_count") or 0)
-        fps = int(clip.get("fps") or 12)
-        loop = bool(clip.get("loop", True))
-        frames = clip.get("frames") if isinstance(clip.get("frames"), list) else []
-        if frame_count and len(frames) < frame_count:
-            raise ValueError("Export blocked: Pixel Lab %s frames missing (have %d need %d)." % (clip_name, len(frames), frame_count))
-        if not frame_count:
-            frame_count = len(frames)
-        for index in range(frame_count):
-            source_rel = frames[index] if index < len(frames) else None
-            if not source_rel:
-                raise ValueError("Export blocked: missing frame path for %s index %d." % (clip_name, index))
-            source = project_dir / str(source_rel)
-            if not source.exists():
-                raise ValueError("Export blocked: missing frame file %s." % source)
-            frame_name = "%s_%02d.png" % (clip_name, index)
-            target = target_dir / frame_name
-            img = Image.open(source).convert("RGBA")
-            if list(img.size) != [FRAME_SIZE, FRAME_SIZE]:
-                img, _ = cleanup_frame(img)
-            img.save(target)
-            ordered_frames.append((clip_name, frame_name, target))
-
-    for clip_id, clip in manual_clips.items():
-        frame_count = int(clip.get("frame_count") or 0)
-        if not frame_count:
-            continue
-        source_root = project_dir / str(clip.get("preview_render", {}).get("frame_dir") or "")
-        if not source_root.exists():
-            raise ValueError("Export blocked: missing manual clip frame_dir for %s." % clip_id)
-        for index in range(frame_count):
-            source = source_root / ("%s_%02d.png" % (clip_id, index))
-            if not source.exists():
-                raise ValueError("Export blocked: missing manual frame %s." % source.name)
-            frame_name = "%s_%02d.png" % (clip_id, index)
-            target = target_dir / frame_name
-            target.write_bytes(source.read_bytes())
-            ordered_frames.append((clip_id, frame_name, target))
-
-    call_progress(progress, 40, "Packing spritesheet", "Packing frame images into a deterministic atlas.")
-    spritesheet = Image.new("RGBA", (FRAME_SIZE * len(ordered_frames), FRAME_SIZE), (0, 0, 0, 0))
-    atlas_frames: Dict[str, Dict[str, Any]] = {}
-    for index, (animation_name, frame_name, path) in enumerate(ordered_frames):
-        frame_image = Image.open(path).convert("RGBA")
-        x = index * FRAME_SIZE
-        spritesheet.alpha_composite(frame_image, (x, 0))
-        atlas_frames[frame_name] = {"x": x, "y": 0, "w": FRAME_SIZE, "h": FRAME_SIZE, "pivot": list(FRAME_PIVOT), "animation": animation_name}
-    spritesheet.save(export_dir / "spritesheet.png")
-    _write_preview_spritesheet(spritesheet, export_dir)
-
-    animations_payload: Dict[str, Any] = {}
-    for name in procedural_names:
-        clip = clips[name]
-        frame_count = int(clip.get("frame_count") or 0)
-        animations_payload[name] = {
-            "fps": int(clip.get("fps") or 12),
-            "loop": bool(clip.get("loop", True)),
-            "frame_count": frame_count,
-            "frames": ["%s_%02d.png" % (name, index) for index in range(frame_count)],
-            "root_motion_policy": clip.get("root_motion_policy") or clip_root_motion_policy(name),
-        }
-    for clip_id, clip in manual_clips.items():
-        animations_payload[clip_id] = {
-            "fps": int(clip.get("fps") or 12),
-            "loop": bool(clip.get("loop", True)),
-            "frame_count": int(clip.get("frame_count") or 0),
-            "frames": ["%s_%02d.png" % (clip_id, index) for index in range(int(clip.get("frame_count") or 0))],
-            "root_motion_policy": "manual",
-        }
-
-    write_json(export_dir / "atlas.json", {"image": "spritesheet.png", "frames": atlas_frames})
-    write_json(export_dir / "animations.json", animations_payload)
-    write_json(export_dir / "qa_report.json", project["qa_report"])
-    per_animation_sheets = _write_per_animation_spritesheets(export_dir, ordered_frames, animations_payload)
-
-    call_progress(progress, 72, "Building previews", "Creating one preview GIF per animation.")
-
-    def _pl_export_fps(anim_name: str) -> int:
-        if anim_name in clips and isinstance(clips.get(anim_name), dict):
-            return int(clips[anim_name].get("fps") or 12)
-        if anim_name in manual_clips:
-            return int(manual_clips[anim_name].get("fps") or 12)
-        return 12
-
-    preview_gif_names = _write_per_animation_preview_gifs(export_dir, ordered_frames, _pl_export_fps)
-
-    char_data = load_json(char_path, {}) or {}
-    pix_store = load_json(pix_anim_path, None) or {}
-    pix_animations = pix_store.get("animations") if isinstance(pix_store, dict) else {}
-    pix_job_ids: Dict[str, Any] = {}
-    if isinstance(pix_animations, dict):
-        for anim_name, anim in pix_animations.items():
-            if isinstance(anim, dict):
-                pix_job_ids[anim_name] = anim.get("latest_job_id")
-
-    export_manifest: Dict[str, Any] = {
-        "project_id": project_id,
-        "export_timestamp": now_iso(),
-        "tool_version": TOOL_VERSION,
-        "export_mode": "pixellab",
-        "pixellab_character_id": char_data.get("character_id"),
-        "pixellab_latest_job_ids": pix_job_ids,
-        "source_asset_hashes": project["qa_report"]["source_asset_hashes"],
-        "approved_manual_clips": [
-            {"clip_id": clip_id, "clip_name": clip.get("clip_name"), "frame_count": clip.get("frame_count"), "fps": clip.get("fps")}
-            for clip_id, clip in manual_clips.items()
-        ],
-    }
-
-    export_manifest["preview_gifs"] = preview_gif_names
-    export_manifest["animation_sheets"] = per_animation_sheets
-    bundle_hashes_pl = {
-        "atlas.json": image_sha256(export_dir / "atlas.json"),
-        "animations.json": image_sha256(export_dir / "animations.json"),
-        "qa_report.json": image_sha256(export_dir / "qa_report.json"),
-        "spritesheet.png": image_sha256(export_dir / "spritesheet.png"),
-    }
-    for animation_name, meta in per_animation_sheets.items():
-        bundle_hashes_pl[str(meta["image"])] = image_sha256(export_dir / str(meta["image"]))
-        bundle_hashes_pl[str(meta["atlas"])] = image_sha256(export_dir / str(meta["atlas"]))
-    for pg in preview_gif_names:
-        bundle_hashes_pl[pg] = image_sha256(export_dir / pg)
-    export_manifest["bundle_hashes"] = bundle_hashes_pl
-
-    call_progress(progress, 76, "Verifying export", "Validating packed spritesheet matches sources.")
-    export_manifest["verification"] = validate_export_bundle(export_dir, ordered_frames, atlas_frames)
-    write_json(export_dir / "export_manifest.json", export_manifest)
-
-    verification = export_manifest["verification"]
-    if verification.get("status") != "pass":
-        raise ValueError("Export verification failed: packed spritesheet did not match the frame manifest.")
-
-    result = {
-        "export_dir": str(export_dir.relative_to(project_dir)),
-        "verification": verification,
-        "animation_sheets": per_animation_sheets,
-        "preview_gifs": preview_gif_names,
-        "preview_gif": None,
-        "files": [
-            "spritesheet.png",
-            "atlas.json",
-            "animations.json",
-            "qa_report.json",
-            "export_manifest.json",
-        ]
-        + [str(meta["image"]) for meta in per_animation_sheets.values()]
-        + [str(meta["atlas"]) for meta in per_animation_sheets.values()]
-        + list(preview_gif_names)
-        + ["frames/%s" % name for _, name, _ in ordered_frames],
-    }
-    project["last_export"] = result
-    project["current_stage"] = "export"
-    project["status"] = "export_ready"
-    project["updated_at"] = now_iso()
-    save_project(project)
-    call_progress(progress, 100, "Export ready", "The Pixel Lab sprite package is ready.")
-    return result
 
 
-def export_project(project_id: str, progress: Optional[ProgressCallback] = None) -> Dict[str, Any]:
-    project = load_project(project_id)
-    if not project.get("qa_report") or project["qa_report"]["status"] != "pass":
-        raise ValueError("Export blocked: QA must pass first.")
-    ai_workflow = project.get("ai_workflow") or {}
-    if project.get("qa_report", {}).get("mode") == "ai_workflow" and ai_workflow_ready_for_qa(ai_workflow):
-        project_dir = PROJECTS_ROOT / project_id
-        export_dir = project_dir / "exports" / datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-        export_dir.mkdir(parents=True, exist_ok=True)
-        ordered_frames: List[Tuple[str, str, Path]] = []
-        call_progress(progress, 8, "Preparing AI export", "Collecting cleaned AI workflow frames for atlas packing.")
-        for clip_name, spec in AI_CLIP_SPECS.items():
-            source_root = project_dir / "animations" / clip_name
-            for index in range(spec["frame_count"]):
-                source = source_root / ("%s_%02d.png" % (clip_name, index))
-                if not source.exists():
-                    raise ValueError("Export blocked: missing cleaned frame %s." % source.name)
-                target_dir = export_dir / "frames"
-                target_dir.mkdir(parents=True, exist_ok=True)
-                target = target_dir / source.name
-                target.write_bytes(source.read_bytes())
-                ordered_frames.append((clip_name, source.name, target))
-        call_progress(progress, 40, "Packing AI spritesheet", "Packing cleaned AI frames into the runtime atlas.")
-        spritesheet = Image.new("RGBA", (FRAME_SIZE * len(ordered_frames), FRAME_SIZE), (0, 0, 0, 0))
-        atlas_frames = {}
-        for index, (animation_name, frame_name, path) in enumerate(ordered_frames):
-            frame_image = Image.open(path).convert("RGBA")
-            x = index * FRAME_SIZE
-            spritesheet.alpha_composite(frame_image, (x, 0))
-            atlas_frames[frame_name] = {"x": x, "y": 0, "w": FRAME_SIZE, "h": FRAME_SIZE, "pivot": list(FRAME_PIVOT), "animation": animation_name}
-        spritesheet.save(export_dir / "spritesheet.png")
-        _write_preview_spritesheet(spritesheet, export_dir)
-        animations_payload = {
-            clip_name: {
-                "fps": spec["fps"],
-                "loop": True,
-                "frame_count": spec["frame_count"],
-                "frames": ["%s_%02d.png" % (clip_name, index) for index in range(spec["frame_count"])],
-                "root_motion_policy": AI_WORKFLOW_PROFILE,
-            }
-            for clip_name, spec in AI_CLIP_SPECS.items()
-        }
-        write_json(export_dir / "atlas.json", {"image": "spritesheet.png", "frames": atlas_frames})
-        write_json(export_dir / "animations.json", animations_payload)
-        write_json(export_dir / "qa_report.json", project["qa_report"])
-        ai_animation_sheets = _write_per_animation_spritesheets(export_dir, ordered_frames, animations_payload)
-        call_progress(progress, 72, "Building AI previews", "Creating one preview GIF per AI workflow clip.")
-        ai_preview_names = _write_per_animation_preview_gifs(
-            export_dir,
-            ordered_frames,
-            lambda n: int(AI_CLIP_SPECS[n]["fps"]),
-        )
-        workflow_manifest = {
-            "profile": ai_workflow.get("profile") or AI_WORKFLOW_PROFILE,
-            "character_lock_run_id": (ai_workflow.get("character_lock") or {}).get("approved_run_id"),
-            "character_lock_asset_id": (ai_workflow.get("character_lock") or {}).get("approved_asset_id"),
-            "key_pose_run_id": (ai_workflow.get("key_pose_set") or {}).get("approved_run_id"),
-            "motion_run_ids": (ai_workflow.get("selected_assets") or {}).get("motion_run_ids") or {},
-            "extract_run_ids": (ai_workflow.get("selected_assets") or {}).get("extract_run_ids") or {},
-            "cleanup_run_ids": (ai_workflow.get("selected_assets") or {}).get("cleanup_run_ids") or {},
-            "dependency_health_snapshot": ai_workflow.get("dependency_status") or {},
-            "model_versions": {
-                "comfyui": "removed-phase-8",
-                "photomaker": "configured-via-environment",
-                "ipadapter_plus": "configured-via-environment",
-                "tooncrafter": "configured-via-environment",
-                "anime_segmentation": "configured-via-environment",
-                "pixelart_cleanup": "configured-via-environment",
-            },
-        }
-        export_manifest = {
-            "project_id": project_id,
-            "approved_concept_id": (project.get("character_spec") or {}).get("approved_concept_id"),
-            "approved_master_pose": None,
-            "approved_source_image": (project.get("character_spec") or {}).get("approved_source_image"),
-            "export_timestamp": now_iso(),
-            "tool_version": TOOL_VERSION,
-            "workflow_profile": ai_workflow.get("profile") or AI_WORKFLOW_PROFILE,
-            "source_asset_hashes": project["qa_report"]["source_asset_hashes"],
-            "workflow": workflow_manifest,
-            "preview_gifs": ai_preview_names,
-            "animation_sheets": ai_animation_sheets,
-        }
-        write_json(export_dir / "export_manifest.json", export_manifest)
-        verification = validate_export_bundle(export_dir, ordered_frames, atlas_frames)
-        project["last_export"] = {
-            "export_dir": str(export_dir.relative_to(project_dir)),
-            "spritesheet": "spritesheet.png",
-            "atlas": "atlas.json",
-            "animations": "animations.json",
-            "animation_sheets": ai_animation_sheets,
-            "preview_gif": None,
-            "preview_gifs": ai_preview_names,
-            "export_manifest": "export_manifest.json",
-            "generated_at": now_iso(),
-            "mode": "ai_workflow",
-            "verification": verification,
-            "files": ["spritesheet.png", "atlas.json", "animations.json", "export_manifest.json", "qa_report.json"]
-            + [str(meta["image"]) for meta in ai_animation_sheets.values()]
-            + [str(meta["atlas"]) for meta in ai_animation_sheets.values()]
-            + list(ai_preview_names),
-        }
-        project["current_stage"] = "export"
-        project["status"] = "export_complete"
-        project["updated_at"] = now_iso()
-        save_project(project)
-        call_progress(progress, 100, "AI export ready", "AI workflow frames were packaged into the runtime atlas/export bundle.")
-        return project["last_export"]
-    external_authoring = project.get("external_authoring") or {}
-    imported_bundle = external_authoring.get("imported_bundle") if isinstance(external_authoring.get("imported_bundle"), dict) else None
-    project_dir = PROJECTS_ROOT / project_id
-    pix_char_exists = _pixellab_character_path(project_dir).exists()
-    pix_anim_exists = _pixellab_animations_path(project_dir).exists()
-    if not project.get("sprite_model") and not (external_authoring.get("enabled") and imported_bundle) and not (pix_char_exists and pix_anim_exists):
-        raise ValueError("Export blocked: sprite model is missing.")
-    if external_authoring.get("enabled") and imported_bundle:
-        export_dir = project_dir / "exports" / datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-        export_dir.mkdir(parents=True, exist_ok=True)
-        call_progress(progress, 12, "Preparing external export", "Copying imported SkelForm assets into the standard export bundle.")
-        spritesheet_source = project_dir / str(imported_bundle.get("spritesheet_image_path") or "")
-        atlas_source = project_dir / str(imported_bundle.get("atlas_path") or "")
-        animations_source = project_dir / str(imported_bundle.get("animations_path") or "")
-        preview_source = project_dir / str(imported_bundle.get("preview_gif_path") or "") if imported_bundle.get("preview_gif_path") else None
-        for source, target_name in [
-            (spritesheet_source, "spritesheet.png"),
-            (atlas_source, "atlas.json"),
-            (animations_source, "animations.json"),
-        ]:
-            if not source.exists():
-                raise ValueError("Export blocked: missing imported bundle asset %s." % source)
-            (export_dir / target_name).write_bytes(source.read_bytes())
-        write_json(export_dir / "qa_report.json", project["qa_report"])
-        if preview_source and preview_source.exists():
-            (export_dir / "preview.gif").write_bytes(preview_source.read_bytes())
-        export_manifest = {
-            "project_id": project_id,
-            "approved_concept_id": (project.get("character_spec") or {}).get("approved_concept_id"),
-            "approved_master_pose": None,
-            "approved_source_image": (project.get("sprite_model") or {}).get("approved_source_image"),
-            "export_timestamp": now_iso(),
-            "tool_version": TOOL_VERSION,
-            "export_mode": "external_authoring",
-            "external_authoring_provider": external_authoring.get("provider"),
-            "external_bundle": {
-                "bundle_id": imported_bundle.get("bundle_id"),
-                "animation_names": imported_bundle.get("animation_names") or [],
-                "frame_count": imported_bundle.get("frame_count"),
-                "source_label": imported_bundle.get("source_label"),
-            },
-            "source_asset_hashes": project["qa_report"]["source_asset_hashes"],
-        }
-        write_json(export_dir / "export_manifest.json", export_manifest)
-        project["last_export"] = {
-            "export_dir": str(export_dir.relative_to(project_dir)),
-            "spritesheet": "spritesheet.png",
-            "atlas": "atlas.json",
-            "animations": "animations.json",
-            "preview_gif": "preview.gif" if preview_source and preview_source.exists() else None,
-            "export_manifest": "export_manifest.json",
-            "generated_at": now_iso(),
-            "mode": "external_authoring",
-        }
-        project["current_stage"] = "export"
-        project["status"] = "export_complete"
-        project["updated_at"] = now_iso()
-        save_project(project)
-        call_progress(progress, 100, "External export ready", "Imported SkelForm assets were packaged into the standard export directory.")
-        return {
-            "export_dir": str(export_dir.relative_to(project_dir)),
-            "spritesheet": "spritesheet.png",
-            "atlas": "atlas.json",
-            "animations": "animations.json",
-            "preview_gif": "preview.gif" if preview_source and preview_source.exists() else None,
-            "export_manifest": "export_manifest.json",
-            "mode": "external_authoring",
-        }
-    # Phase 6: Pixel Lab export path (no sprite_model/rig dependency).
-    if pix_char_exists and pix_anim_exists:
-        return export_pixellab_project(project_id, progress=progress)
-    clips = project.get("animation_clips") or load_json(canonical_downstream_path(project_dir, "animation_clips"), {})
-    manual_clips = approved_manual_animation_clips(project)
-    export_dir = project_dir / "exports" / datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-    export_dir.mkdir(parents=True, exist_ok=True)
-    ordered_frames = []
-    call_progress(progress, 8, "Preparing export", "Collecting deterministic clip frames and runtime metadata.")
-    runtime_exports: List[Tuple[str, int, Path]] = [
-        (animation_name, ANIMATION_SPECS[animation_name]["frame_count"], project_dir / "animations" / animation_name)
-        for animation_name in ["idle", "walk"]
-    ] + [
-        (clip_id, int(clip.get("frame_count") or 0), project_dir / str(clip.get("preview_render", {}).get("frame_dir") or ""))
-        for clip_id, clip in manual_clips.items()
-    ]
-    for animation_name, frame_count, source_root in runtime_exports:
-        for index in range(frame_count):
-            source = source_root / ("%s_%02d.png" % (animation_name, index))
-            target_dir = export_dir / "frames"
-            target_dir.mkdir(parents=True, exist_ok=True)
-            target = target_dir / source.name
-            target.write_bytes(source.read_bytes())
-            ordered_frames.append((animation_name, source.name, target))
-
-    call_progress(progress, 40, "Packing spritesheet", "Packing frame images into a deterministic atlas.")
-    spritesheet = Image.new("RGBA", (FRAME_SIZE * len(ordered_frames), FRAME_SIZE), (0, 0, 0, 0))
-    atlas_frames = {}
-    for index, (animation_name, frame_name, path) in enumerate(ordered_frames):
-        frame_image = Image.open(path).convert("RGBA")
-        x = index * FRAME_SIZE
-        spritesheet.alpha_composite(frame_image, (x, 0))
-        atlas_frames[frame_name] = {"x": x, "y": 0, "w": FRAME_SIZE, "h": FRAME_SIZE, "pivot": list(FRAME_PIVOT), "animation": animation_name}
-    spritesheet.save(export_dir / "spritesheet.png")
-    _write_preview_spritesheet(spritesheet, export_dir)
-
-    animations_payload = {
-        name: {
-            "fps": clips[name]["fps"],
-            "loop": clips[name]["loop"],
-            "frame_count": clips[name]["frame_count"],
-            "frames": ["%s_%02d.png" % (name, index) for index in range(clips[name]["frame_count"])],
-            "root_motion_policy": clips[name]["root_motion_policy"],
-        }
-        for name in ["idle", "walk"]
-    }
-    for clip_id, clip in manual_clips.items():
-        animations_payload[clip_id] = {
-            "fps": int(clip.get("fps") or 12),
-            "loop": bool(clip.get("loop", True)),
-            "frame_count": int(clip.get("frame_count") or 0),
-            "frames": ["%s_%02d.png" % (clip_id, index) for index in range(int(clip.get("frame_count") or 0))],
-            "root_motion_policy": "manual",
-        }
-    export_manifest = {
-        "project_id": project_id,
-        "approved_concept_id": project["character_spec"]["approved_concept_id"],
-        "approved_master_pose": project.get("sprite_model", {}).get("approved_master_pose"),
-        "approved_source_image": project.get("sprite_model", {}).get("approved_source_image"),
-        "export_timestamp": now_iso(),
-        "tool_version": TOOL_VERSION,
-        "sprite_model_hash": hashlib.sha256(canonical_downstream_path(project_dir, "sprite_model").read_bytes()).hexdigest(),
-        "rig_hash": hashlib.sha256(canonical_downstream_path(project_dir, "rig").read_bytes()).hexdigest(),
-        "source_asset_hashes": project["qa_report"]["source_asset_hashes"],
-        "approved_manual_clips": [
-            {"clip_id": clip_id, "clip_name": clip.get("clip_name"), "frame_count": clip.get("frame_count"), "fps": clip.get("fps")}
-            for clip_id, clip in manual_clips.items()
-        ],
-    }
-    write_json(export_dir / "atlas.json", {"image": "spritesheet.png", "frames": atlas_frames})
-    write_json(export_dir / "animations.json", animations_payload)
-    write_json(export_dir / "qa_report.json", project["qa_report"])
-    det_animation_sheets = _write_per_animation_spritesheets(export_dir, ordered_frames, animations_payload)
-
-    call_progress(progress, 72, "Building previews", "Creating one preview GIF per animation.")
-
-    def _det_export_fps(anim_name: str) -> int:
-        if anim_name in clips:
-            return int(clips[anim_name]["fps"])
-        if anim_name in manual_clips:
-            return int(manual_clips[anim_name].get("fps") or 12)
-        return 12
-
-    det_preview_names = _write_per_animation_preview_gifs(export_dir, ordered_frames, _det_export_fps)
-    export_manifest["preview_gifs"] = det_preview_names
-    export_manifest["animation_sheets"] = det_animation_sheets
-    bundle_hashes_det = {
-        "atlas.json": image_sha256(export_dir / "atlas.json"),
-        "animations.json": image_sha256(export_dir / "animations.json"),
-        "qa_report.json": image_sha256(export_dir / "qa_report.json"),
-        "spritesheet.png": image_sha256(export_dir / "spritesheet.png"),
-    }
-    for animation_name, meta in det_animation_sheets.items():
-        bundle_hashes_det[str(meta["image"])] = image_sha256(export_dir / str(meta["image"]))
-        bundle_hashes_det[str(meta["atlas"])] = image_sha256(export_dir / str(meta["atlas"]))
-    for pg in det_preview_names:
-        bundle_hashes_det[pg] = image_sha256(export_dir / pg)
-    export_manifest["bundle_hashes"] = bundle_hashes_det
-    export_manifest["verification"] = validate_export_bundle(export_dir, ordered_frames, atlas_frames)
-    if export_manifest["verification"]["status"] != "pass":
-        raise ValueError("Export verification failed: packed spritesheet did not match the frame manifest.")
-    write_json(export_dir / "export_manifest.json", export_manifest)
-
-    result = {
-        "export_dir": str(export_dir.relative_to(project_dir)),
-        "verification": export_manifest["verification"],
-        "animation_sheets": det_animation_sheets,
-        "preview_gifs": det_preview_names,
-        "preview_gif": None,
-        "files": [
-            "spritesheet.png",
-            "atlas.json",
-            "animations.json",
-            "qa_report.json",
-            "export_manifest.json",
-        ]
-        + [str(meta["image"]) for meta in det_animation_sheets.values()]
-        + [str(meta["atlas"]) for meta in det_animation_sheets.values()]
-        + list(det_preview_names)
-        + ["frames/%s" % name for _, name, _ in ordered_frames],
-    }
-    project["last_export"] = result
-    project["current_stage"] = "export"
-    project["status"] = "export_ready"
-    project["updated_at"] = now_iso()
-    save_project(project)
-    call_progress(progress, 100, "Export ready", "The deterministic sprite package is ready.")
-    return result
 
 
 class HttpRequestError(RuntimeError):
@@ -14483,7 +10450,8 @@ def get_concept_backend(mode: str) -> ConceptBackend:
 
 
 def relative_preview_path(project_dir: Path, image_path: Path) -> str:
-    return str(image_path.relative_to(project_dir))
+    _sync_workbench_legacy_concept_runs_config()
+    return workbench_legacy_concept_runs.relative_preview_path(project_dir, image_path)
 
 
 def generate_run(
@@ -14495,180 +10463,16 @@ def generate_run(
     strength_label: Optional[str] = None,
     progress: Optional[ProgressCallback] = None,
 ) -> Dict[str, Any]:
-    project = load_project(project_id)
-    project_dir = PROJECTS_ROOT / project_id
-    backend_mode = brief_backend_mode(project.get("brief"))
-    if backend_mode == "pixellab":
-        raise ValueError(
-            "Legacy concept generation (similar/refinement) is not used for Pixel Lab projects; use the Pixel Lab concept endpoints."
-        )
-    backend = get_concept_backend(backend_mode)
-    call_progress(progress, 5, "Checking the image generator", "Making sure concept generation is available.")
-    health = backend.healthcheck()
-    if not health.get("ok"):
-        raise ValueError("Concept backend unavailable: %s" % health.get("error", "unknown backend error"))
-
-    if run_kind == "initial":
-        variation_axes_list = build_initial_variation_axes(project["brief"])
-    else:
-        if source_concept_id is None:
-            raise ValueError("Refinement and similar runs require a source concept.")
-        base_concept = next((item for item in project["concepts"] if item["concept_id"] == source_concept_id), None)
-        if base_concept is None:
-            raise ValueError("Source concept not found.")
-        if run_kind == "similar":
-            variation_axes_list = build_refinement_variation_axes(base_concept, "silhouette", base_concept.get("silhouette"), "subtle", "similar")
-            strength_label = "subtle"
-        else:
-            if attribute_group not in MAJOR_REFINEMENT_LOCKS:
-                raise ValueError("Refinement must change exactly one supported major attribute group.")
-            if not target_value:
-                raise ValueError("Refinement target value is required.")
-            if strength_label not in REFINEMENT_STRENGTHS:
-                raise ValueError("Refinement strength must be one of: %s." % ", ".join(sorted(REFINEMENT_STRENGTHS)))
-            variation_axes_list = build_refinement_variation_axes(base_concept, attribute_group, target_value, strength_label, "refinement")
-
-    run_id = "run-%s" % uuid.uuid4().hex[:10]
-    concepts = project["concepts"]
-    serial = next_concept_serial(concepts)
-    request_references = make_reference_inputs(project_dir, project["brief"])
-    start_time = time.monotonic()
-
-    if run_kind == "initial":
-        base_concept = None
-        refine_source = None
-        concept_count = INITIAL_CONCEPT_COUNT
-    else:
-        base_concept = next(item for item in project["concepts"] if item["concept_id"] == source_concept_id)
-        refine_source = project_dir / base_concept["preview_image"]
-        concept_count = REFINEMENT_CONCEPT_COUNT
-
-    def generate_records_for_attempt(rescue_mode: bool) -> List[Dict[str, Any]]:
-        generated_records: List[Dict[str, Any]] = []
-        for index, variation_axes in enumerate(variation_axes_list[:concept_count]):
-            call_progress(
-                progress,
-                12 + int((index / max(1, concept_count)) * 72),
-                "Generating look %d of %d" % (index + 1, concept_count),
-                variation_axes.get("summary"),
-            )
-            concept_id = "concept-%04d" % (serial + index)
-            output_path = project_dir / "concepts" / ("%s.png" % concept_id)
-            positive_prompt, negative_prompt = build_prompt_bundle(project["brief"], variation_axes, base_concept, rescue_mode=rescue_mode)
-            seed = stable_int(project_id, run_id, concept_id, positive_prompt, "rescue" if rescue_mode else "base", mod=4_294_967_295)
-            refine_strength = None
-            if run_kind in ("refinement", "similar"):
-                refine_strength = REFINEMENT_STRENGTHS[strength_label or "subtle"]
-            request = ConceptRequest(
-                project_id=project_id,
-                positive_prompt=positive_prompt,
-                negative_prompt=negative_prompt,
-                width=CONCEPT_CANVAS[0],
-                height=CONCEPT_CANVAS[1],
-                seed=seed,
-                count=1,
-                references=request_references,
-                mode=run_kind,
-                refine_from_image=refine_source,
-                refine_strength=refine_strength,
-                variation_axes=variation_axes,
-                output_path=output_path,
-                checkpoint_name=project["brief"].get("comfyui_checkpoint"),
-            )
-            generated = backend.generate(request)[0]
-            concept = {
-                "concept_id": concept_id,
-                "run_id": run_id,
-                "run_kind": run_kind,
-                "created_at": now_iso(),
-                "seed": seed,
-                "positive_prompt": generated.positive_prompt,
-                "negative_prompt": generated.negative_prompt,
-                "prompt": generated.positive_prompt,
-                "preview_image": relative_preview_path(project_dir, generated.image_path),
-                "backend_name": generated.backend_name,
-                "backend_run_id": generated.backend_run_id,
-                "variation_axes": variation_axes,
-                "difference_summary": variation_axes.get("summary"),
-                "silhouette": variation_axes.get("silhouette") or project["brief"]["silhouette_intent"],
-                "outfit": variation_axes.get("outfit_complexity") or project["brief"]["outfit_materials"],
-                "palette_direction": variation_axes.get("palette_direction") or project["brief"]["palette_mood"],
-                "palette": palette_from_seed(seed, index, project["brief"]["palette_mood"]),
-                "prop_variant": variation_axes.get("prop_variant") or project["brief"]["prop"],
-                "face_head_shape": project["brief"]["shape_language"],
-                "references_used": generated.references_used,
-                "review_state": {"approved": False, "favorite": False, "rejected": False},
-                "approved": False,
-                "favorite": False,
-                "rejected": False,
-                "lineage": {"run_id": run_id, "parent_concept_id": source_concept_id},
-            }
-            generated_records.append(concept)
-        return generated_records
-
-    generated_records = generate_records_for_attempt(False)
-    call_progress(progress, 88, "Reviewing generated looks", "Running lightweight triage and saving concept metadata.")
-    annotate_run_triage(project_dir, generated_records)
-    triage_summary = summarize_run_triage(generated_records)
-    rescue_attempted = False
-    quality_gate_failed = False
-    usable_count = triage_summary.get("ok", 0) + triage_summary.get("warning", 0)
-    if run_kind == "initial" and usable_count < 2:
-        rescue_attempted = True
-        call_progress(progress, 90, "Board quality too low", "Retrying with stricter single-character framing rules.")
-        generated_records = generate_records_for_attempt(True)
-        annotate_run_triage(project_dir, generated_records)
-        triage_summary = summarize_run_triage(generated_records)
-        usable_count = triage_summary.get("ok", 0) + triage_summary.get("warning", 0)
-        quality_gate_failed = usable_count < 2
-
-    for concept in generated_records:
-        concepts.append(concept)
-        save_concept(project_dir, concept)
-
-    summary = {
-        "type": "concept_run",
-        "run_id": run_id,
-        "run_kind": run_kind,
-        "status": "quality_failed" if quality_gate_failed else "completed",
-        "created_at": now_iso(),
-        "completed_at": now_iso(),
-        "concept_ids": [item["concept_id"] for item in generated_records],
-        "concept_count": len(generated_records),
-        "backend_name": generated_records[0]["backend_name"] if generated_records else backend_mode,
-        "backend_mode": backend_mode,
-        "source_concept_id": source_concept_id,
-        "attribute_group": attribute_group,
-        "target_value": target_value,
-        "refinement_strength_label": strength_label,
-        "refinement_strength": REFINEMENT_STRENGTHS.get(strength_label) if strength_label else None,
-        "references_used": generated_records[0]["references_used"] if generated_records else [],
-        "summary": "Concept board failed quality gate; generated outputs were kept for inspection only." if quality_gate_failed else "%s run with %d concepts" % (run_kind, len(generated_records)),
-        "rescue_attempted": rescue_attempted,
-        "quality_gate_failed": quality_gate_failed,
-        "duration_ms": int((time.monotonic() - start_time) * 1000),
-    }
-    history = append_history_event(project_id, summary)
-    project["history"] = history
-    project["concepts"] = concepts
-    project["current_stage"] = "concepts" if run_kind == "initial" else "refine"
-    project["status"] = "concepts_quality_failed" if quality_gate_failed else ("concepts_generated" if run_kind == "initial" else "concepts_refined")
-    project["updated_at"] = now_iso()
-    save_project(project)
-    call_progress(
-        progress,
-        100,
-        "Looks ready" if not quality_gate_failed else "Board needs attention",
-        "The concept board has been updated." if not quality_gate_failed else "No usable concepts passed triage. Adjust the brief or checkpoint, then regenerate.",
+    _sync_workbench_legacy_concept_runs_config()
+    return workbench_legacy_concept_runs.generate_run(
+        project_id,
+        run_kind,
+        source_concept_id=source_concept_id,
+        attribute_group=attribute_group,
+        target_value=target_value,
+        strength_label=strength_label,
+        progress=progress,
     )
-    return {
-        "run_id": run_id,
-        "run_kind": run_kind,
-        "concept_ids": [item["concept_id"] for item in generated_records],
-        "triage": triage_summary,
-        "rescue_attempted": rescue_attempted,
-        "quality_gate_failed": quality_gate_failed,
-    }
 
 
 def create_job(project_id: Optional[str], job_type: str, target: Callable[[ProgressCallback], Any]) -> Dict[str, Any]:
