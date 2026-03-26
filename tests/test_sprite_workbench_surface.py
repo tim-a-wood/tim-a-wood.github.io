@@ -50,6 +50,17 @@ class SpriteWorkbenchSurfaceTests(unittest.TestCase):
         self.assertIn("../../docs/sprite-workbench-phaser-handoff.md", html)
         self.assertIn("Read the Phaser handoff guide", html)
 
+    def test_sidebar_contains_sample_project_surface_for_no_credit_testing(self):
+        html = self.index_html
+        self.assertIn('id="sample-project-block"', html)
+        self.assertIn(">Sample Project<", html)
+        self.assertIn('id="sample-project-card"', html)
+
+    def test_animations_stage_exposes_confirm_and_continue_action(self):
+        html = self.index_html
+        self.assertIn('id="confirm-animations-step"', html)
+        self.assertIn("Confirm &amp; Continue", html)
+
 
 if __name__ == "__main__":
     unittest.main()

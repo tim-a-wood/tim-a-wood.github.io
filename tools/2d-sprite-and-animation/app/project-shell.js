@@ -1,3 +1,9 @@
+const SAMPLE_PROJECT_CANDIDATES = [
+    "canonical-sprite-model",
+    "canonical-fixture-46ad415d",
+    "test-40b4b333",
+];
+
 async function openWorkbenchMode() {
     if (!state.activeProject) {
         state.uiMode = "wizard";
@@ -88,14 +94,69 @@ function attachProjectCard(card, project) {
     });
 }
 
+function selectSampleProject(projects) {
+    for (const candidate of SAMPLE_PROJECT_CANDIDATES) {
+        const match = projects.find((project) => project.project_id === candidate);
+        if (match) return match;
+    }
+    return projects.find((project) => String(project.project_name || "").toLowerCase() === "canonical fixture") || null;
+}
+
+function renderSampleProjectCard(project) {
+    const block = document.querySelector("#sample-project-block");
+    const root = document.querySelector("#sample-project-card");
+    if (!block || !root) return;
+    if (!project) {
+        block.hidden = true;
+        root.innerHTML = "";
+        return;
+    }
+    block.hidden = false;
+    const nextStep = WIZARD_META[project.wizard_state?.current_step || "describe"]?.label || "Describe";
+    root.innerHTML = `
+        <div class="sample-project-card">
+            <span class="sample-project-kicker">No-credit workflow</span>
+            <strong>${project.project_name}</strong>
+            <div class="small-note">${stageDisplayName(project.current_stage)} · ${nextStep}</div>
+            <p class="sample-project-note">Use this populated project to explore the workflow, review the export surface, and test the game handoff without spending credits.</p>
+            <div class="project-actions">
+                <button data-action="load-sample">Open Sample</button>
+                <button class="secondary" data-action="backup-sample">Export Project</button>
+            </div>
+        </div>
+    `;
+    root.querySelector("[data-action='load-sample']")?.addEventListener("click", async () => {
+        try {
+            await openProjectFromList(project, "wizard");
+        } catch (error) {
+            log(normalizeErrorMessage(error.message), "error");
+            notify(normalizeErrorMessage(error.message), "error");
+        }
+    });
+    root.querySelector("[data-action='backup-sample']")?.addEventListener("click", (event) => {
+        event.stopPropagation();
+        try {
+            downloadProjectBundle(project);
+        } catch (error) {
+            log(normalizeErrorMessage(error.message), "error");
+            notify(normalizeErrorMessage(error.message), "error");
+        }
+    });
+}
+
 function renderProjectList() {
     const root = document.querySelector("#project-list");
     root.innerHTML = "";
-    if (!state.projects.length) {
-        root.innerHTML = `<div class="empty">No projects yet.</div>`;
+    const sampleProject = selectSampleProject(state.projects);
+    renderSampleProjectCard(sampleProject);
+    const regularProjects = sampleProject
+        ? state.projects.filter((project) => project.project_id !== sampleProject.project_id)
+        : state.projects.slice();
+    if (!regularProjects.length) {
+        root.innerHTML = `<div class="empty">${sampleProject ? "No additional projects yet." : "No projects yet."}</div>`;
         return;
     }
-    state.projects.forEach((project) => {
+    regularProjects.forEach((project) => {
         const warningCount = Number(project.project_health_warning_count || 0);
         const missingCount = Number(project.project_health_missing_file_count || 0);
         const card = document.createElement("div");

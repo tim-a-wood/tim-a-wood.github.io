@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="./product-shell.css">
+    <link rel="stylesheet" href="./app/product-shell.css">
     <style>
         :root {
             --bg: #050709;
@@ -3156,6 +3156,33 @@
             gap: 8px;
         }
 
+        .sample-project-card {
+            padding: 12px;
+            border-radius: var(--radius-md);
+            border: 1px solid rgba(212, 167, 82, 0.24);
+            background: linear-gradient(180deg, rgba(212, 167, 82, 0.08), rgba(255, 255, 255, 0.02));
+        }
+
+        .sample-project-card strong {
+            display: block;
+            font-size: var(--font-size-base);
+        }
+
+        .sample-project-card .sample-project-kicker {
+            display: inline-block;
+            margin-bottom: 8px;
+            color: #e7d19a;
+            font-size: 11px;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+        }
+
+        .sample-project-card .sample-project-note {
+            margin-top: 8px;
+            color: var(--text-muted);
+            line-height: 1.55;
+        }
+
         .project-card {
             padding: 10px 12px;
             border-radius: var(--radius-md);
@@ -3918,11 +3945,18 @@
             <div class="sidebar-copy">
                 <strong>Sprite Workbench</strong>
                 <h1 id="sidebar-project-name">No project selected</h1>
-                <p>Build side-view character sprites with the guided Workbench production flow.</p>
+                <p>Build side-view character sprites with a focused, guided workflow.</p>
             </div>
             <button class="rail-toggle" type="button" aria-label="Collapse project panel">‹</button>
         </div>
         <div class="collapsed-mark">Projects</div>
+
+        <div class="sidebar-block" id="sample-project-block" hidden>
+            <div class="sidebar-title">
+                <h2>Sample Project</h2>
+            </div>
+            <div id="sample-project-card"></div>
+        </div>
 
         <div class="sidebar-block sidebar-projects">
             <div class="sidebar-title">
@@ -3966,7 +4000,7 @@
             <div class="section-head">
                 <div>
                     <h3>Setup</h3>
-                    <p>Start with a project name, then describe the character in plain language. The wizard uses these fields to build a stronger concept prompt tuned for readable Ashen Hollow sprites.</p>
+                    <p>Start with a project name, then describe the character in plain language. These fields shape the concept prompt and keep the output readable in-game.</p>
                 </div>
                 <div class="stage-meta" data-stage="intake"></div>
             </div>
@@ -3986,7 +4020,7 @@
                         </div>
                         <div class="wizard-subview step-panel-note wizard-only">
                             <div class="info-box">
-                                <p><strong>Describe the character like you would to an artist.</strong> Focus on role, mood, silhouette, clothing, and the one item they carry. The wizard will steer the prompt toward readable side-view game art.</p>
+                                <p><strong>Describe the character like you would to an artist.</strong> Focus on role, mood, silhouette, clothing, and the one item they carry. The tool will steer the prompt toward readable side-view game art.</p>
                             </div>
                         </div>
                         <div class="intake-core-fields">
@@ -4015,7 +4049,7 @@
                         <div class="flow-collapsible-body describe-reference-list">
                             <div class="wizard-subview step-panel-note wizard-only">
                                 <div class="info-box">
-                                    <p><strong>References are optional.</strong> Add them if you want to push the tool toward a specific face, outfit, prop, or overall mood. If you skip this step, the wizard will rely on your written description alone.</p>
+                                    <p><strong>References are optional.</strong> Add them if you want to push the tool toward a specific face, outfit, prop, or overall mood. If you skip this step, the tool will rely on your written description alone.</p>
                                 </div>
                             </div>
                             <div class="reference-list" id="attached-references"></div>
@@ -4095,15 +4129,15 @@
                                 <button class="secondary" id="refresh-projects-workbench">Refresh Projects</button>
                             </div>
                         </div>
-                        <p class="small-note" id="intake-note" data-wizard-view="workbench">This version supports one side-view humanoid character. Unsupported prompt patterns are blocked early so you know what to fix before generation starts.</p>
+                        <p class="small-note" id="intake-note" data-wizard-view="workbench">This version is tuned for one side-view humanoid character. Unsupported prompt patterns are caught early so you know what to fix before generation starts.</p>
                     </div>
                 </div>
             </div>
 
             <details class="advanced-settings" data-wizard-view="describe">
-                <summary>Pixel Lab style &amp; advanced</summary>
+                <summary>Style &amp; advanced</summary>
                 <div class="advanced-content">
-                    <p class="inline-hint">Pixel Lab parameters are saved with the brief. Debug vs ComfyUI is <strong>not</strong> selectable here—it stays on the value already stored for this project (new projects default to offline debug). Phase 8 will remove legacy ComfyUI paths.</p>
+                    <p class="inline-hint">These settings are saved with the brief and shape the first concept pass. Older imported projects may keep a compatibility mode behind the scenes.</p>
                     <div class="grid-3">
                         <label>
                             <span class="field-label">Side-View Rules</span>
@@ -4117,7 +4151,7 @@
                         </label>
                         <label>
                             <span class="field-label">Outline style</span>
-                            <span class="field-help">Passed into Pixel Lab prompt scaffolding (brief).</span>
+                            <span class="field-help">Controls how cleanly the silhouette reads in the first pass.</span>
                             <select id="pixellab-outline-style">
                                 <option value="single color black outline">single color black outline</option>
                                 <option value="selective outline">selective outline</option>
@@ -4128,7 +4162,7 @@
                     <div class="grid-3">
                         <label>
                             <span class="field-label">Shading</span>
-                            <span class="field-help">Shading strength for scaffolded Pixel Lab prompts.</span>
+                            <span class="field-help">Controls how much form and surface detail appears in the concept.</span>
                             <select id="pixellab-shading-style">
                                 <option value="flat shading">flat shading</option>
                                 <option value="basic shading">basic shading</option>
@@ -4139,7 +4173,7 @@
                         </label>
                         <label>
                             <span class="field-label">Detail level</span>
-                            <span class="field-help">Detail density hint for Pixel Lab.</span>
+                            <span class="field-help">Sets how dense and intricate the first pass should feel.</span>
                             <select id="pixellab-detail-level">
                                 <option value="low detail">low detail</option>
                                 <option value="medium detail">medium detail</option>
@@ -4148,7 +4182,7 @@
                         </label>
                         <label>
                             <span class="field-label">Canvas size</span>
-                            <span class="field-help">Square canvas for Pixel Lab generation (32–256).</span>
+                            <span class="field-help">Square concept canvas size.</span>
                             <select id="pixellab-canvas-size">
                                 <option value="32">32 × 32</option>
                                 <option value="64">64 × 64</option>
@@ -4160,7 +4194,7 @@
                     <div class="grid-2">
                         <label>
                             <span class="field-label">Character template</span>
-                            <span class="field-help">Pixel Lab character template id (stored on brief).</span>
+                            <span class="field-help">A starting shape family for the initial concept pass.</span>
                             <select id="pixellab-character-template">
                                 <option value="mannequin">mannequin</option>
                                 <option value="bear">bear</option>
@@ -4171,7 +4205,7 @@
                             </select>
                         </label>
                         <div class="info-box">
-                            <p><strong>Status row “Generation mode”</strong> shows whether this project uses <code>debug_procedural</code> (offline placeholders) or ComfyUI for any remaining legacy steps. To change it for an existing project, edit <code>brief.json</code> or use the API—Phase 7 keeps the server branch intact without a user-facing toggle.</p>
+                            <p><strong>Compatibility note.</strong> Older projects may carry generation settings from earlier versions of the workbench. Those are preserved so existing work can still open cleanly.</p>
                         </div>
                     </div>
                 </div>
@@ -4183,14 +4217,14 @@
             <div class="section-head">
                 <div>
                     <h3>Concepts</h3>
-                    <p>Build a deterministic Pixel Lab prompt from your brief, generate in-tool (or import externally in Manual mode), then choose and lock the look you want to animate.</p>
+                    <p>Build the concept prompt from your brief, generate or import options, then choose and lock the look you want to animate.</p>
                 </div>
                 <div class="stage-meta" data-stage="concepts"></div>
             </div>
 
             <div class="wizard-subview step-panel-note wizard-only" data-wizard-view="concepts">
                 <div class="info-box">
-                    <p><strong>Concept entry is now explicit.</strong> Build the prompt once, then either generate a fresh <code>128x128</code> Pixel Lab concept from text or upload a custom image and post-process it through Pixel Lab with that image as the init source.</p>
+                    <p><strong>Choose how you want to start.</strong> Build the prompt once, then either generate a fresh <code>128x128</code> concept from text or upload a custom image and use it as the starting point.</p>
                 </div>
             </div>
 
@@ -4205,7 +4239,7 @@
                 <div class="section-head" style="margin-bottom: 10px;">
                     <div>
                         <h3 style="font-size: 0.98rem;">Custom init image</h3>
-                        <p>Upload an image to act as the init source. Pixel Lab will post-process it into a consistent <code>128x128</code> side-view concept using the scaffold prompt from your brief.</p>
+                        <p>Upload an image to act as the starting point. The workbench will turn it into a consistent <code>128x128</code> side-view concept using the prompt from your brief.</p>
                     </div>
                 </div>
                 <div class="grid-2">
@@ -4219,7 +4253,7 @@
             <details class="advanced-settings" style="margin-top: 16px;" data-wizard-view="concepts,workbench">
                 <summary>Manual import (fallback)</summary>
                 <div class="advanced-content">
-                    <p>Requires <strong>Build Prompt Only</strong> first so the server can anchor the imported image to the current brief. Use this only if you want to bypass Pixel Lab for the first concept.</p>
+                    <p>Requires <strong>Build Prompt Only</strong> first so the imported image can still be anchored to the current brief. Use this if you want to bring in a concept from outside the workbench.</p>
                     <div class="grid-2">
                         <label>
                             <span class="field-label">Upload File</span>
@@ -4238,7 +4272,7 @@
 
             <div class="wizard-subview step-panel-note wizard-only" data-wizard-view="concepts">
                 <div class="info-box">
-                    <p><strong>Review.</strong> Pixel Lab–generated concepts are marked valid for approval. Manual imports may stay <code>pending</code> until you use <strong>Mark valid</strong> (manual review) or the server completes checks.</p>
+                    <p><strong>Review.</strong> Generated concepts are ready for approval once they pass validation. Manual imports may stay <code>pending</code> until you confirm them or the workbench finishes its checks.</p>
                 </div>
             </div>
 
@@ -4304,9 +4338,9 @@
             </div>
 
             <details class="advanced-settings" style="margin-top: 18px;" data-wizard-view="concepts,workbench">
-                <summary>Iterate on selected concept (Pixel Lab inpaint)</summary>
+                <summary>Iterate on selected concept</summary>
                 <div class="advanced-content">
-                    <p class="inline-hint">Select a concept in the grid below, choose what to change, then build the iteration prompt. <strong>Generate iteration</strong> calls Pixel Lab inpaint (or debug placeholders). <strong>Generate via Gemini</strong> sends the original concept image plus the single-aspect edit request directly to Gemini.</p>
+                    <p class="inline-hint">Select a concept in the grid below, choose what to change, then build the iteration prompt. Use the main iteration action for the standard pass, or the alternate pass if you want a second take from a different model.</p>
                     <div class="grid-2">
                         <label>
                             <span class="field-label">Element</span>
@@ -4333,8 +4367,8 @@
                     </div>
                     <div class="actions" style="margin-top: 10px;">
                         <button class="secondary" id="build-iteration-prompt">Build Iteration Prompt</button>
-                        <button id="generate-concept-iterate-pixellab">Generate via Pixel Lab</button>
-                        <button id="generate-concept-iterate-gemini">Generate via Gemini</button>
+                        <button id="generate-concept-iterate-pixellab">Generate Iteration</button>
+                        <button id="generate-concept-iterate-gemini">Generate Alternate Pass</button>
                     </div>
                     <label style="margin-top: 12px; display: block;">
                         <span class="field-label">Iteration prompt (read-only)</span>
@@ -4371,12 +4405,18 @@
         <section class="panel" id="animations">
             <div class="section-head">
                 <div>
-                    <h3>Animations (Pixel Lab)</h3>
-                    <p>Generate animation clips from the locked east-facing source, then let the workbench keep review/export clips in sync automatically.</p>
+                    <h3>Animations</h3>
+                    <p>Generate animation clips from the locked source, then let the workbench keep review and export assets in sync automatically.</p>
                 </div>
                 <div class="stage-meta" data-stage="animations"></div>
             </div>
             <div id="pixellab-animations-board"></div>
+            <div class="wizard-subview step-panel-note wizard-only" data-wizard-view="animations">
+                <p id="animations-stage-note" class="small-note">Generate at least one clip, then confirm this stage to move into Review &amp; Export.</p>
+                <div class="actions wizard-actions">
+                    <button id="confirm-animations-step" disabled>Confirm &amp; Continue</button>
+                </div>
+            </div>
         </section>
 
         <section class="panel" id="review-export">
@@ -4425,7 +4465,7 @@
             <div class="section-head">
                 <div>
                     <h3>Activity Log</h3>
-                    <p>Recent background activity is shown here. In wizard mode, active progress and notifications are surfaced directly on screen so you do not have to watch this log.</p>
+                    <p>Recent background activity is shown here. In the guided flow, active progress and notifications are surfaced directly on screen so you do not have to watch this log.</p>
                 </div>
             </div>
             <ul class="log-list" id="job-log"></ul>
@@ -4515,14 +4555,14 @@ const WIZARD_META = {
     },
     project: {
         label: "Start",
-        description: "Create a new sprite project so the wizard has a place to store everything that follows.",
+        description: "Create a new sprite project so the workflow has a place to store everything that follows.",
         outcome: "You will have a named project ready for the rest of the flow.",
         example: "Example: Lantern Pilgrim or Ashen Sentinel.",
     },
     brief: {
         label: "Describe Your Character",
         description: "Describe the character in plain language and fill in the main art-direction fields.",
-        outcome: "The tool will build a stronger Ashen Hollow prompt scaffold for concept generation.",
+        outcome: "The tool will build a stronger prompt scaffold for concept generation.",
         example: "Focus on role, silhouette, clothing, mood, and one held item.",
     },
     references: {
@@ -4533,7 +4573,7 @@ const WIZARD_META = {
     },
     concepts: {
         label: "Concepts",
-        description: "Build a Pixel Lab scaffold from the brief, generate or import a concept image, then approve the one you want to lock as the animation source.",
+        description: "Build a concept scaffold from the brief, generate or import a concept image, then approve the one you want to lock as the animation source.",
         outcome: "You will have at least one concept image and a locked east-facing source ready for animation.",
         example: "Choose a source, click Create Concept, then use Approve & lock source on the concept you want to animate.",
     },
@@ -4605,7 +4645,7 @@ const WIZARD_META = {
     },
     qa: {
         label: "Checks (QA)",
-        description: "Run deterministic QA on the Pixel Lab pipeline (after animations) or legacy rig output before export.",
+        description: "Run checks on the current animation package before export.",
         outcome: "Failed checks stop export so structural issues are visible before packaging.",
         example: "Run checks after you have approved character and generated animation clips.",
     },
@@ -4641,26 +4681,26 @@ const FRIENDLY_STAGE_NAMES = {
 
 
 </script>
-<script src="./pixellab-animation-helpers.js"></script>
-<script src="./core-helpers.js"></script>
-<script src="./intake-stage.js"></script>
-<script src="./concept-view-stage.js"></script>
-<script src="./sprite-model-helpers.js"></script>
-<script src="./manual-pose-helpers.js"></script>
-<script src="./legacy-layout-helpers.js"></script>
-<script src="./project-shell.js"></script>
-<script src="./workflow-shell.js"></script>
-<script src="./editor-helpers.js"></script>
-<script src="./describe-stage.js"></script>
-<script src="./concepts-stage.js"></script>
-<script src="./animations-stage.js"></script>
-<script src="./review-export-stage.js"></script>
-<script src="./legacy-render-stage.js"></script>
-<script src="./manual-clip-stage.js"></script>
-<script src="./workbench-runtime.js"></script>
-<script src="./legacy-production-stage.js"></script>
-<script src="./legacy-clips-stage.js"></script>
-<script src="./product-shell.js"></script>
+<script src="./app/pixellab-animation-helpers.js"></script>
+<script src="./app/core-helpers.js"></script>
+<script src="./app/intake-stage.js"></script>
+<script src="./app/concept-view-stage.js"></script>
+<script src="./app/sprite-model-helpers.js"></script>
+<script src="./app/manual-pose-helpers.js"></script>
+<script src="./app/legacy-layout-helpers.js"></script>
+<script src="./app/project-shell.js"></script>
+<script src="./app/workflow-shell.js"></script>
+<script src="./app/editor-helpers.js"></script>
+<script src="./app/describe-stage.js"></script>
+<script src="./app/concepts-stage.js"></script>
+<script src="./app/animations-stage.js"></script>
+<script src="./app/review-export-stage.js"></script>
+<script src="./app/legacy-render-stage.js"></script>
+<script src="./app/manual-clip-stage.js"></script>
+<script src="./app/workbench-runtime.js"></script>
+<script src="./app/legacy-production-stage.js"></script>
+<script src="./app/legacy-clips-stage.js"></script>
+<script src="./app/product-shell.js"></script>
 <script>
 boot().catch((error) => {
     const message = normalizeErrorMessage(`${error.message}. Open ${WORKBENCH_BASE}/index.html if you want the page and API on the same origin.`);

@@ -151,7 +151,7 @@
             align-items: flex-end;
             background:
                 linear-gradient(180deg, rgba(5, 9, 13, 0.28) 0%, rgba(5, 9, 13, 0.6) 48%, rgba(5, 9, 13, 0.92) 100%),
-                url("image.png") center center / cover no-repeat;
+                url("../assets/splash-image.png") center center / cover no-repeat;
         }
 
         .marketing-splash::after {

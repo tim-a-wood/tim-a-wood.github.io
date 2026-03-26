@@ -148,7 +148,7 @@ Current workbench notes:
 - Export verification now checks the packed spritesheet pixels and atlas order after packing, not just the pre-pack frame manifest.
 - References are copied into each project under `references/` and recorded in `history.json`.
 
-Canonical route and file contract notes live in `tools/2d-sprite-and-animation/CANONICAL-DOWNSTREAM-CONTRACT.md`.
+Canonical route and file contract notes live in `tools/2d-sprite-and-animation/docs/CANONICAL-DOWNSTREAM-CONTRACT.md`.
 
 Sprite workbench regression tests:
 

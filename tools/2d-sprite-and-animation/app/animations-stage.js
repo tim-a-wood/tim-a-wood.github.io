@@ -388,15 +388,18 @@ function renderPixellabAnimationsBoard() {
     sortPixellabAnimationNames(Object.keys(prevAnims)).forEach((clipName) => clearPixellabAnimTimer(clipName));
     root.innerHTML = "";
     if (!project) {
+        renderPixellabAnimationsPrimaryAction(null);
         root.innerHTML = `<div class="empty">Open a project to manage Pixel Lab animations.</div>`;
         return;
     }
     if (String(project.brief?.backend_mode || "") !== "pixellab") {
+        renderPixellabAnimationsPrimaryAction(project);
         root.innerHTML = pixellabBackendModeMismatchBox(project.brief?.backend_mode);
         wirePixellabSwitchBackendButton(root);
         return;
     }
     if (!pixellabCharacterApproved(project)) {
+        renderPixellabAnimationsPrimaryAction(project);
         root.innerHTML = `<div class="warning-box"><p>Approve and lock a concept source first in Concepts. That locked east-facing source becomes the animation input.</p></div>`;
         return;
     }
@@ -413,6 +416,7 @@ function renderPixellabAnimationsBoard() {
     const clipsBridgeHtml = clipsBridgeBits.length
         ? `<p class="small-note" style="margin-top:8px;"><strong>Export bridge (<code>animation_clips.json</code>):</strong> ${clipsBridgeBits.join(" · ")}. Synced automatically from your current generated clips.</p>`
         : `<p class="small-note" style="margin-top:8px;"><strong>Export bridge:</strong> The workbench syncs <code>animation_clips.json</code> automatically from whatever generated clips currently exist.</p>`;
+    renderPixellabAnimationsPrimaryAction(project, { existingClipNames, clipsBridge });
     const dirList = project.pixellab_character?.directions;
     const pid = project.project_id;
     const reload = async () => {
@@ -706,6 +710,60 @@ function renderPixellabAnimationsBoard() {
         });
     });
 }
+
+function renderPixellabAnimationsPrimaryAction(project, context = {}) {
+    const note = document.querySelector("#animations-stage-note");
+    const button = document.querySelector("#confirm-animations-step");
+    if (!note || !button) return;
+
+    const backendMode = String(project?.brief?.backend_mode || "");
+    const clipsBridge = context.clipsBridge || project?.animation_clips || {};
+    const generatedClipNames = (context.existingClipNames || sortPixellabAnimationNames(Object.keys(project?.pixellab_animations?.animations || {})))
+        .filter((name) => pixellabAnyDirectionHasFrames((project?.pixellab_animations?.animations || {})[name]));
+    const syncedClipNames = Object.keys(clipsBridge).filter((name) => Array.isArray(clipsBridge[name]?.frames) && clipsBridge[name].frames.length);
+    const ready = generatedClipNames.length > 0 || syncedClipNames.length > 0;
+
+    button.disabled = true;
+    if (!project) {
+        note.textContent = "Open a project to continue the animation stage.";
+        return;
+    }
+    if (backendMode !== "pixellab") {
+        note.textContent = "Switch this project to Pixel Lab mode if you want to use the current animation flow.";
+        return;
+    }
+    if (!pixellabCharacterApproved(project)) {
+        note.textContent = "Approve and lock a concept source in Concepts before continuing here.";
+        return;
+    }
+
+    if (!ready) {
+        note.textContent = "Generate at least one clip, then confirm this stage to move into Review & Export.";
+        return;
+    }
+
+    const generatedSummary = generatedClipNames.length
+        ? `${generatedClipNames.length} generated clip${generatedClipNames.length === 1 ? "" : "s"}`
+        : `${syncedClipNames.length} synced clip${syncedClipNames.length === 1 ? "" : "s"}`;
+    note.textContent = `${generatedSummary} ready. Confirm this stage to move into Review & Export.`;
+    button.disabled = false;
+}
+
+document.querySelector("#confirm-animations-step")?.addEventListener("click", async () => {
+    if (!state.activeProject) return;
+    try {
+        await persistWizardState({
+            completed_steps: ["animations"],
+            current_step: "export",
+            last_ui_mode: "wizard",
+        });
+        renderAll();
+        document.getElementById("panel-scroll").scrollTop = 0;
+    } catch (error) {
+        log(normalizeErrorMessage(error.message), "error");
+        notify(normalizeErrorMessage(error.message), "error");
+    }
+});
 
 function renderAiCharacterLockBoard() {
     /* Phase 7.2: Character Lock panel removed; server may still persist ai_workflow character_lock data. */
