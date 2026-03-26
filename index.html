@@ -66,7 +66,7 @@ rebuildRoomGeometry();
 const ENABLE_DEBUG_UNLOCK = true;
 const LAYOUT_STORAGE_KEY = 'ashen-hollow-room-layout-v1';
 const TEMP_SHOW_FULL_MAP = true;
-const WORKBENCH_HERO_EXPORT = {
+const DEFAULT_WORKBENCH_HERO_EXPORT = {
     basePath: 'assets/test-hero-frames',
     frameWidth: 256,
     frameHeight: 256,
@@ -96,6 +96,59 @@ const WORKBENCH_HERO_EXPORT = {
         SIX: 'parry'
     }
 };
+const WORKBENCH_HERO_MANIFEST_URL = 'assets/test-hero/runtime-manifest.json';
+let WORKBENCH_HERO_EXPORT = DEFAULT_WORKBENCH_HERO_EXPORT;
+
+function normalizeWorkbenchHeroExport(manifest) {
+    const fallback = DEFAULT_WORKBENCH_HERO_EXPORT;
+    const clips = {};
+    const sourceClips = manifest?.clips && typeof manifest.clips === 'object' ? manifest.clips : fallback.clips;
+    Object.entries(sourceClips).forEach(([clipName, clip]) => {
+        const frames = Array.isArray(clip?.frames) && clip.frames.length
+            ? clip.frames.map((frame) => String(frame))
+            : Array.from({ length: Number(clip?.frame_count ?? clip?.frameCount ?? fallback.clips[clipName]?.frameCount ?? 0) }, (_, frameIndex) =>
+                `${clipName}_${String(frameIndex).padStart(2, '0')}.png`
+            );
+        clips[clipName] = {
+            fps: Number(clip?.fps ?? fallback.clips[clipName]?.fps ?? 12),
+            loop: clip?.loop ?? fallback.clips[clipName]?.loop ?? true,
+            frameCount: Number(clip?.frame_count ?? clip?.frameCount ?? frames.length),
+            frames
+        };
+    });
+    return {
+        basePath: String(manifest?.basePath || fallback.basePath),
+        frameWidth: Number(manifest?.frameWidth || fallback.frameWidth),
+        frameHeight: Number(manifest?.frameHeight || fallback.frameHeight),
+        pivot: {
+            x: Number(manifest?.pivot?.x ?? fallback.pivot.x),
+            y: Number(manifest?.pivot?.y ?? fallback.pivot.y)
+        },
+        scale: Number(manifest?.scale ?? fallback.scale),
+        body: {
+            width: Number(manifest?.body?.width ?? fallback.body.width),
+            height: Number(manifest?.body?.height ?? fallback.body.height),
+            offsetX: Number(manifest?.body?.offsetX ?? fallback.body.offsetX),
+            offsetY: Number(manifest?.body?.offsetY ?? fallback.body.offsetY)
+        },
+        clips,
+        debugBindings: manifest?.debugBindings && typeof manifest.debugBindings === 'object'
+            ? manifest.debugBindings
+            : fallback.debugBindings
+    };
+}
+
+async function loadWorkbenchHeroExport() {
+    try {
+        const response = await fetch(WORKBENCH_HERO_MANIFEST_URL, { cache: 'no-store' });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const manifest = await response.json();
+        return normalizeWorkbenchHeroExport(manifest);
+    } catch (error) {
+        console.warn('Falling back to embedded workbench hero export config.', error);
+        return normalizeWorkbenchHeroExport(DEFAULT_WORKBENCH_HERO_EXPORT);
+    }
+}
 const TEMP_TEST_START = {
     room: 'R1',
     x: 220,
@@ -998,10 +1051,13 @@ class AshenHollow extends Phaser.Scene {
 
     preloadWorkbenchHero() {
         Object.entries(WORKBENCH_HERO_EXPORT.clips).forEach(([clipName, clip]) => {
-            for (let frameIndex = 0; frameIndex < clip.frameCount; frameIndex += 1) {
-                const frameName = `${clipName}_${String(frameIndex).padStart(2, '0')}`;
-                this.load.image(`wb-${frameName}`, `${WORKBENCH_HERO_EXPORT.basePath}/${frameName}.png`);
-            }
+            const frameNames = Array.isArray(clip.frames) && clip.frames.length
+                ? clip.frames
+                : Array.from({ length: clip.frameCount }, (_, frameIndex) => `${clipName}_${String(frameIndex).padStart(2, '0')}.png`);
+            frameNames.forEach((frameName) => {
+                const textureKey = `wb-${String(frameName).replace(/\.png$/i, '')}`;
+                this.load.image(textureKey, `${WORKBENCH_HERO_EXPORT.basePath}/${frameName}`);
+            });
         });
     }
 
@@ -1021,9 +1077,10 @@ class AshenHollow extends Phaser.Scene {
     createWorkbenchHeroAnimations() {
         Object.entries(WORKBENCH_HERO_EXPORT.clips).forEach(([clipName, clip]) => {
             const animKey = `hero-${clipName}`;
-            const frameTextureKeys = Array.from({ length: clip.frameCount }, (_, frameIndex) =>
-                `wb-${clipName}_${String(frameIndex).padStart(2, '0')}`
-            );
+            const frameTextureKeys = (Array.isArray(clip.frames) && clip.frames.length
+                ? clip.frames
+                : Array.from({ length: clip.frameCount }, (_, frameIndex) => `${clipName}_${String(frameIndex).padStart(2, '0')}.png`)
+            ).map((frameName) => `wb-${String(frameName).replace(/\.png$/i, '')}`);
             if (!frameTextureKeys.every((textureKey) => this.textures.exists(textureKey)) || this.anims.exists(animKey)) return;
             this.anims.create({
                 key: animKey,
@@ -3327,6 +3384,7 @@ if ('serviceWorker' in navigator) {
 }
 
 async function bootGame() {
+    WORKBENCH_HERO_EXPORT = await loadWorkbenchHeroExport();
     const canonicalData = await loadCanonicalLayoutData();
     applyRuntimeLayoutData(canonicalData);
 
