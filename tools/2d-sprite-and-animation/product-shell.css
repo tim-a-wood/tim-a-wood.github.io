@@ -580,6 +580,25 @@
             color: #caf8f1;
         }
 
+        .marketing-docs-linkout {
+            margin-top: 16px;
+            color: var(--text-dim);
+            font-size: 0.95rem;
+            line-height: 1.65;
+        }
+
+        .marketing-docs-linkout a {
+            color: var(--text-muted);
+            text-decoration: none;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+            transition: color var(--transition-fast), border-color var(--transition-fast);
+        }
+
+        .marketing-docs-linkout a:hover {
+            color: var(--text);
+            border-color: rgba(212, 167, 82, 0.48);
+        }
+
         .marketing-code-pill {
             display: inline-flex;
             align-items: center;

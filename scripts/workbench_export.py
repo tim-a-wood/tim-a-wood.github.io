@@ -1154,6 +1154,7 @@ def export_project(project_id: str, progress: Optional[ProgressCallback] = None)
         "approved_source_image": project.get("sprite_model", {}).get("approved_source_image"),
         "export_timestamp": now_iso(),
         "tool_version": TOOL_VERSION,
+        "export_mode": "deterministic",
         "sprite_model_hash": hashlib.sha256(canonical_downstream_path(project_dir, "sprite_model").read_bytes()).hexdigest(),
         "rig_hash": hashlib.sha256(canonical_downstream_path(project_dir, "rig").read_bytes()).hexdigest(),
         "source_asset_hashes": project["qa_report"]["source_asset_hashes"],

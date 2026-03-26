@@ -43,6 +43,13 @@ class SpriteWorkbenchSurfaceTests(unittest.TestCase):
         self.assertIn("Project export", html)
         self.assertIn("Phaser guide", html)
 
+    def test_docs_view_links_to_export_contract_and_phaser_handoff_guides(self):
+        html = self.index_html
+        self.assertIn("../../docs/sprite-workbench-runtime-export-contract.md", html)
+        self.assertIn("Read the full runtime export contract", html)
+        self.assertIn("../../docs/sprite-workbench-phaser-handoff.md", html)
+        self.assertIn("Read the Phaser handoff guide", html)
+
 
 if __name__ == "__main__":
     unittest.main()

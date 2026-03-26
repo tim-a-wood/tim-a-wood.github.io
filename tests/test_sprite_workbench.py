@@ -1178,6 +1178,89 @@ class SpriteWorkbenchTests(unittest.TestCase):
         self.assertIn("animation_sheets", export_manifest)
         self.assertEqual(export["verification"]["status"], "pass")
 
+    def test_runtime_export_contract_includes_required_files_and_manifest_keys(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            original_root = sw.PROJECTS_ROOT
+            sw.PROJECTS_ROOT = Path(tmpdir)
+            try:
+                project = self.build_debug_pipeline(tmpdir)
+                sw.approve_rig_review(project["project_id"])
+                sw.render_animation(project["project_id"], "idle")
+                sw.render_animation(project["project_id"], "walk")
+                sw.run_qa(project["project_id"])
+                export = sw.export_project(project["project_id"])
+                export_dir = Path(tmpdir) / project["project_id"] / export["export_dir"]
+                export_manifest = sw.load_json(export_dir / "export_manifest.json", {})
+                animations_payload = sw.load_json(export_dir / "animations.json", {})
+                idle_sheet = sw.load_json(export_dir / "animation_sheets" / "idle.json", {})
+                required_files = {
+                    "spritesheet.png",
+                    "atlas.json",
+                    "animations.json",
+                    "qa_report.json",
+                    "export_manifest.json",
+                    "animation_sheets/idle.png",
+                    "animation_sheets/idle.json",
+                    "frames/idle_00.png",
+                    "preview_idle.gif",
+                }
+                required_manifest_keys = {
+                    "project_id",
+                    "export_timestamp",
+                    "tool_version",
+                    "export_mode",
+                    "preview_gifs",
+                    "animation_sheets",
+                    "bundle_hashes",
+                    "verification",
+                }
+            finally:
+                sw.PROJECTS_ROOT = original_root
+
+        self.assertTrue(required_files.issubset(set(export["files"])))
+        self.assertTrue(required_manifest_keys.issubset(set(export_manifest)))
+        self.assertEqual(export_manifest["verification"]["status"], "pass")
+        self.assertEqual(export_manifest["export_mode"], "deterministic")
+        self.assertIn("spritesheet.png", export_manifest["bundle_hashes"])
+        self.assertIn("atlas.json", export_manifest["bundle_hashes"])
+        self.assertIn("animations.json", export_manifest["bundle_hashes"])
+        self.assertIn("qa_report.json", export_manifest["bundle_hashes"])
+        self.assertIn("animation_sheets/idle.png", export_manifest["bundle_hashes"])
+        self.assertIn("animation_sheets/idle.json", export_manifest["bundle_hashes"])
+        self.assertIn("idle", animations_payload)
+        self.assertEqual(idle_sheet.get("animation"), "idle")
+
+    def test_runtime_export_animation_payload_matches_per_animation_sheet_metadata(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            original_root = sw.PROJECTS_ROOT
+            sw.PROJECTS_ROOT = Path(tmpdir)
+            try:
+                project = self.build_debug_pipeline(tmpdir)
+                sw.approve_rig_review(project["project_id"])
+                sw.render_animation(project["project_id"], "idle")
+                sw.render_animation(project["project_id"], "walk")
+                sw.run_qa(project["project_id"])
+                export = sw.export_project(project["project_id"])
+                export_dir = Path(tmpdir) / project["project_id"] / export["export_dir"]
+                animations_payload = sw.load_json(export_dir / "animations.json", {})
+                idle_sheet = sw.load_json(export_dir / "animation_sheets" / "idle.json", {})
+                frame_exists = {
+                    frame_name: (export_dir / "frames" / frame_name).exists()
+                    for frame_name in animations_payload["idle"]["frames"]
+                }
+            finally:
+                sw.PROJECTS_ROOT = original_root
+
+        idle_animation = animations_payload["idle"]
+        self.assertEqual(idle_animation["fps"], idle_sheet["fps"])
+        self.assertEqual(idle_animation["loop"], idle_sheet["loop"])
+        self.assertEqual(idle_animation["frame_count"], idle_sheet["frame_count"])
+        self.assertEqual(idle_animation["frames"], idle_sheet["order"])
+        self.assertEqual(set(idle_sheet["order"]), set(idle_sheet["frames"]))
+        for frame_name in idle_animation["frames"]:
+            self.assertTrue(frame_exists[frame_name])
+            self.assertIn(frame_name, idle_sheet["frames"])
+
     def test_hydrate_brief_is_backward_compatible(self):
         legacy = {
             "subject": "humanoid biped",
