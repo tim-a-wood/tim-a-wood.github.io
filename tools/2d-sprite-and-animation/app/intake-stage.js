@@ -21,7 +21,7 @@ function addReferenceRow(data = {}) {
     const row = document.createElement("div");
     row.className = "reference-row";
     row.innerHTML = `
-        <label>
+        <label class="ref-role-wrap">
             <span class="field-label-inline">Role</span>
             <select class="ref-role">
                 <option value="identity">identity</option>
@@ -30,20 +30,24 @@ function addReferenceRow(data = {}) {
                 <option value="prop">prop</option>
             </select>
         </label>
-        <label>
+        <label class="ref-weight-wrap">
             <span class="field-label-inline">Weight</span>
             <input class="ref-weight" type="number" min="0.1" max="2.0" step="0.05" value="${data.weight || 1}">
         </label>
-        <label>
-            <span class="field-label-inline">Local Path</span>
-            <input class="ref-path" placeholder="/absolute/path/to/reference.png" value="${data.path || ""}">
-        </label>
-        <label>
-            <span class="field-label-inline">Upload File</span>
-            <input class="ref-file" type="file" accept="image/*">
-        </label>
         <div class="inline-actions">
             <button class="danger ref-remove" type="button">Remove</button>
+        </div>
+        <label class="ref-path-wrap">
+            <span class="field-label-inline">Local Path</span>
+            <span class="field-help">Optional absolute path if the image is already on disk.</span>
+            <input class="ref-path" placeholder="/absolute/path/to/reference.png" value="${data.path || ""}">
+        </label>
+        <label class="ref-upload-wrap">
+            <span class="field-label-inline">Upload File</span>
+            <span class="field-help">Or upload an image directly into the project.</span>
+            <span class="ref-upload-control">
+                <input class="ref-file" type="file" accept="image/*">
+            </span>
         </div>
     `;
     row.querySelector(".ref-role").value = data.role || "identity";

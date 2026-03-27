@@ -501,7 +501,7 @@
             gap: 12px;
         }
         .intake-layout {
-            grid-template-columns: minmax(420px, 1.14fr) minmax(320px, 0.86fr);
+            grid-template-columns: minmax(460px, 1.2fr) minmax(300px, 0.8fr);
             align-items: start;
         }
         .intake-core-column {
@@ -526,24 +526,24 @@
             min-height: 280px;
         }
         .intake-support-fields {
-            display: flex;
-            flex-direction: column;
+            display: grid;
             gap: 16px;
+            align-content: start;
         }
         .intake-visual-card {
             gap: 16px;
         }
         .intake-visual-grid {
             display: grid;
-            gap: 12px;
+            gap: 14px;
         }
         .intake-visual-section {
             display: grid;
             gap: 12px;
-            padding: 12px;
-            border: 1px solid rgba(255, 255, 255, 0.06);
-            border-radius: 12px;
-            background: rgba(255, 255, 255, 0.02);
+            padding: 0;
+            border: 0;
+            border-radius: 0;
+            background: transparent;
         }
         .intake-visual-section h5 {
             margin: 0;
@@ -553,8 +553,14 @@
             text-transform: uppercase;
             color: var(--muted);
         }
-        .intake-actions-card {
-            margin-top: auto;
+        .intake-visual-fields {
+            display: grid;
+            gap: 12px;
+        }
+        .intake-visual-save {
+            margin-top: 4px;
+            padding-top: 16px;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
         }
         .character-stage-layout .pixellab-character-source-preview img {
             max-height: 320px;
@@ -1275,22 +1281,64 @@
 
         .reference-row {
             display: grid;
-            grid-template-columns: minmax(120px, 136px) minmax(88px, 96px) minmax(0, 1fr) auto;
-            gap: 10px;
+            grid-template-columns: minmax(132px, 168px) minmax(92px, 108px) auto;
+            gap: 12px;
             padding: 12px;
             border: 1px solid var(--stroke);
             border-radius: var(--radius-tight);
             background: rgba(255, 255, 255, 0.035);
-            align-items: end;
+            align-items: start;
+            grid-template-areas:
+                "role weight remove"
+                "path path path"
+                "upload upload upload";
         }
 
         .reference-row > label {
             margin: 0;
         }
 
+        .reference-row .ref-role-wrap {
+            grid-area: role;
+        }
+
+        .reference-row .ref-weight-wrap {
+            grid-area: weight;
+        }
+
+        .reference-row .ref-path-wrap {
+            grid-area: path;
+        }
+
+        .reference-row .ref-upload-wrap {
+            grid-area: upload;
+        }
+
         .reference-row .inline-actions {
+            grid-area: remove;
             align-self: end;
             justify-content: flex-end;
+        }
+
+        .reference-row .ref-upload-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-height: 48px;
+            padding: 0 14px;
+            border: 1px solid var(--stroke);
+            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .reference-row .ref-upload-control input[type="file"] {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .reference-row .field-help {
+            display: block;
+            margin-bottom: 8px;
         }
 
         .reference-row .field-label-inline {
@@ -4069,7 +4117,7 @@
                         <div class="intake-visual-grid">
                             <div class="intake-visual-section">
                                 <h5>Identity & silhouette</h5>
-                                <div class="grid-2">
+                                <div class="intake-visual-fields">
                                     <label>
                                         <span class="field-label">Character Type</span>
                                         <span class="field-help">Who are they in the world and how should they read at a glance?</span>
@@ -4094,7 +4142,7 @@
                             </div>
                             <div class="intake-visual-section">
                                 <h5>Materials & tone</h5>
-                                <div class="grid-2">
+                                <div class="intake-visual-fields">
                                     <label>
                                         <span class="field-label">Clothing and Materials</span>
                                         <span class="field-help">Keep this practical and readable for side-view animation.</span>
@@ -4112,24 +4160,24 @@
                                     </label>
                                 </div>
                             </div>
-                        </div>
-                    </div>
-                    <div class="stage-card intake-actions-card">
-                        <div class="stage-card-head">
-                            <h4>Save setup</h4>
-                            <p class="small-note">Confirm the description once the core brief and visual direction feel right. You can always come back and revise this step later.</p>
-                        </div>
-                        <div class="stage-card-actions primary-stack">
-                            <div class="actions wizard-only">
-                                <button id="confirm-describe-step">Confirm &amp; Continue</button>
+                            <div class="intake-visual-save">
+                                <div class="stage-card-head">
+                                    <h5>Save setup</h5>
+                                    <p class="small-note">Confirm the setup once the brief and visual direction feel right. You can always come back and refine it later.</p>
+                                </div>
+                                <div class="stage-card-actions primary-stack">
+                                    <div class="actions wizard-only">
+                                        <button id="confirm-describe-step">Confirm &amp; Continue</button>
+                                    </div>
+                                    <div class="actions" data-wizard-view="workbench">
+                                        <button id="create-project-workbench">Create Project</button>
+                                        <button class="secondary" id="save-brief-workbench">Save Setup</button>
+                                        <button class="secondary" id="refresh-projects-workbench">Refresh Projects</button>
+                                    </div>
+                                </div>
+                                <p class="small-note" id="intake-note" data-wizard-view="workbench">This version is tuned for one side-view humanoid character. Unsupported prompt patterns are caught early so you know what to fix before generation starts.</p>
                             </div>
-                            <div class="actions" data-wizard-view="workbench">
-                                <button id="create-project-workbench">Create Project</button>
-                                <button class="secondary" id="save-brief-workbench">Save Setup</button>
-                                <button class="secondary" id="refresh-projects-workbench">Refresh Projects</button>
-                            </div>
                         </div>
-                        <p class="small-note" id="intake-note" data-wizard-view="workbench">This version is tuned for one side-view humanoid character. Unsupported prompt patterns are caught early so you know what to fix before generation starts.</p>
                     </div>
                 </div>
             </div>
