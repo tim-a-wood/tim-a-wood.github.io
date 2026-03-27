@@ -777,4 +777,15 @@ function computeDoorStandPosition(roomWidth, door) {
     assert.strictEqual(state.doorBodyEnabled, false);
 })();
 
+(function testRoomLayoutEditorValidateLayoutSmoke() {
+    const fs = require('fs');
+    const path = require('path');
+    const htmlPath = path.join(__dirname, '../room-layout-editor.html');
+    if (!fs.existsSync(htmlPath)) return;
+    const html = fs.readFileSync(htmlPath, 'utf8');
+    assert.ok(html.includes('function validateLayout'), 'validateLayout should exist in room-layout-editor.html');
+    assert.ok(html.includes('L1-001') && html.includes('L2-003'), 'validation rule IDs should be present');
+    assert.ok(html.includes('renderValidationResults'), 'renderValidationResults should exist');
+})();
+
 console.log('All game-logic tests passed.');

@@ -1354,6 +1354,113 @@
       from { opacity: 0; transform: translateY(-4px); }
       to   { opacity: 1; transform: translateY(0); }
     }
+    /* ── Sprint 3: Validation panel ── */
+    .validation-panel {
+      display: grid;
+      gap: 12px;
+      align-content: start;
+      max-width: 980px;
+    }
+    .validation-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 4px;
+    }
+    .validation-header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+    .validation-summary-badge {
+      font-size: var(--font-size-xs);
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 999px;
+    }
+    .validation-summary-badge.pass { background: var(--good-soft); color: var(--good); }
+    .validation-summary-badge.fail { background: var(--error-soft); color: var(--error); }
+    .validation-summary-badge.warn { background: var(--warning-soft); color: var(--warning); }
+    .validation-results {
+      display: grid;
+      gap: 6px;
+    }
+    .validation-results-intro {
+      min-height: 100px;
+      padding: 20px 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+    .validation-results-intro .empty-state-sub {
+      margin: 0;
+      max-width: 320px;
+    }
+    .validation-result-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.02);
+      cursor: pointer;
+      transition: background var(--transition-fast), border-color var(--transition-fast);
+    }
+    .validation-result-item:hover {
+      background: rgba(255,255,255,0.04);
+      border-color: var(--line-strong);
+    }
+    .validation-result-item.error {
+      border-color: rgba(248,81,73,0.2);
+      background: var(--error-soft);
+    }
+    .validation-result-item.warning {
+      border-color: rgba(210,153,34,0.2);
+      background: var(--warning-soft);
+    }
+    .validation-result-icon {
+      font-size: 12px;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .validation-result-item.error .validation-result-icon::before { content: "✕"; color: var(--error); }
+    .validation-result-item.warning .validation-result-icon::before { content: "⚠"; color: var(--warning); }
+    .validation-result-body {
+      flex: 1;
+      min-width: 0;
+    }
+    .validation-result-id {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--muted);
+    }
+    .validation-result-msg {
+      font-size: var(--font-size-xs);
+      color: var(--text);
+      line-height: 1.4;
+      margin-top: 2px;
+    }
+    .validation-result-room {
+      font-size: 10px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+    .validation-pass-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 12px;
+      background: var(--good-soft);
+      border: 1px solid rgba(74,222,128,0.2);
+      font-size: var(--font-size-sm);
+      color: var(--good);
+      font-weight: 600;
+    }
   </style>
 </head>
 <body>
@@ -1742,6 +1849,24 @@
           <div class="inventory-section-body" id="invListMovers"></div>
         </div>
 
+      </div>
+    </section>
+
+    <section class="panel validation-panel" id="validationPanel">
+      <div class="validation-header">
+        <div>
+          <div class="eyebrow">Level Design</div>
+          <h2>Validation</h2>
+        </div>
+        <div class="validation-header-actions">
+          <span class="validation-summary-badge" id="validationSummaryBadge" aria-live="polite"></span>
+          <button id="runValidation" class="btn-sm" type="button">Run Validation</button>
+        </div>
+      </div>
+      <div id="validationResults" class="validation-results">
+        <div class="validation-results-intro">
+          <div class="empty-state-sub">Run validation to check your level's structural soundness and traversal rules.</div>
+        </div>
       </div>
     </section>
 
@@ -2184,7 +2309,8 @@
         toastTimer: null,
         projects: [],
         isDirty: false,
-        lastPlacedId: null
+        lastPlacedId: null,
+        lastValidationReport: null
       };
 
       function syncSidebarProjectName() {
@@ -5445,8 +5571,197 @@
         ctx.restore();
       }
 
+      // ── Sprint 3: validateLayout (pure) + validation UI ──
+      function validateLayout(data) {
+        const report = {
+          run_at: new Date().toISOString(),
+          level_1: { passed: true, checks: [] },
+          level_2: { passed: true, checks: [] },
+          summary: { errors: 0, warnings: 0 }
+        };
+
+        function fail(level, id, roomId, msg) {
+          report[`level_${level}`].passed = false;
+          report[`level_${level}`].checks.push({ id, room: roomId, severity: 'error', message: msg });
+          report.summary.errors += 1;
+        }
+
+        function warn(level, id, roomId, msg) {
+          report[`level_${level}`].checks.push({ id, room: roomId, severity: 'warning', message: msg });
+          report.summary.warnings += 1;
+        }
+
+        const rooms = (data && data.rooms) || [];
+        const roomIds = new Set(rooms.map((r) => r && r.id).filter(Boolean));
+
+        const seenIds = {};
+        rooms.forEach((r) => {
+          const rid = r && r.id;
+          if (rid == null || rid === '') return;
+          if (seenIds[rid]) fail(1, 'L1-001', rid, `Duplicate room ID: ${rid}`);
+          seenIds[rid] = true;
+        });
+
+        rooms.forEach((room) => {
+          const rid = room && room.id != null ? room.id : '?';
+
+          if (!room.polygon || room.polygon.length < 3) {
+            fail(1, 'L1-002', rid, `Room ${rid} has fewer than 3 vertices (has ${(room.polygon || []).length})`);
+          }
+
+          (room.doors || []).forEach((door) => {
+            if (door.targetRoom && !roomIds.has(door.targetRoom)) {
+              fail(1, 'L1-003', rid, `Door ${door.id} targets non-existent room: ${door.targetRoom}`);
+            }
+          });
+
+          (room.edgeLinks || []).forEach((link) => {
+            const polyLen = (room.polygon || []).length;
+            const targetRoom = rooms.find((r) => r.id === link.targetRoomId);
+            const ei = Number(link.edgeIndex);
+            if (Number.isInteger(ei) && ei >= polyLen) {
+              fail(1, 'L1-004', rid, `Edge link in ${rid} references edge index ${link.edgeIndex} but room only has ${polyLen} edges`);
+            }
+            if (targetRoom) {
+              const targetPolyLen = (targetRoom.polygon || []).length;
+              const tei = Number(link.targetEdgeIndex);
+              if (Number.isInteger(tei) && tei >= targetPolyLen) {
+                fail(1, 'L1-004', rid, `Edge link in ${rid} targets edge index ${link.targetEdgeIndex} in ${link.targetRoomId} which only has ${targetPolyLen} edges`);
+              }
+            } else if (link.targetRoomId) {
+              fail(1, 'L1-003', rid, `Edge link in ${rid} targets non-existent room: ${link.targetRoomId}`);
+            }
+          });
+
+          const elementIds = new Set();
+          [room.platforms, room.doors, room.keys, room.abilities, room.movingPlatforms].forEach((list) => {
+            (list || []).forEach((el) => {
+              if (!el || el.id == null) return;
+              if (elementIds.has(el.id)) fail(1, 'L1-005', rid, `Duplicate element ID ${el.id} in room ${rid}`);
+              elementIds.add(el.id);
+            });
+          });
+        });
+
+        const hasPlayerStart = rooms.some((r) => {
+          const p = r.playerStart;
+          return p && Number.isFinite(Number(p.x)) && Number.isFinite(Number(p.y));
+        });
+        if (!hasPlayerStart) fail(1, 'L1-006', null, 'No player start position defined in any room');
+
+        rooms.forEach((room) => {
+          const rid = room && room.id != null ? room.id : '?';
+          const platforms = room.platforms || [];
+          if (platforms.length < 2) return;
+
+          const sorted = [...platforms].sort((a, b) => a.y - b.y);
+
+          for (let i = 0; i < sorted.length - 1; i += 1) {
+            const a = sorted[i];
+            const b = sorted[i + 1];
+            const verticalDelta = Math.abs(b.y - a.y);
+            const aRight = a.x + (a.len || 1) * 32;
+            const bLeft = b.x;
+            const bRight = b.x + (b.len || 1) * 32;
+            const aLeft = a.x;
+            const horizontalGap = Math.max(0, Math.max(bLeft - aRight, aLeft - bRight));
+
+            if (verticalDelta > 120) {
+              warn(2, 'L2-001', rid, `Platforms ${a.id} and ${b.id} in ${rid}: vertical step ${verticalDelta}px exceeds 120px limit`);
+            }
+            if (horizontalGap > 220) {
+              warn(2, 'L2-002', rid, `Platforms ${a.id} and ${b.id} in ${rid}: horizontal gap ${horizontalGap}px exceeds 220px limit`);
+            }
+          }
+
+          const allInteractable = [
+            ...(room.doors || []),
+            ...(room.keys || []),
+            ...(room.abilities || [])
+          ];
+          allInteractable.forEach((item) => {
+            if (item.x == null || item.y == null) return;
+            const nearPlatform = platforms.some((p) => {
+              const pRight = p.x + (p.len || 1) * 32;
+              const dx = Math.max(0, Math.max(p.x - item.x, item.x - pRight));
+              const dy = Math.abs(item.y - p.y);
+              return Math.sqrt(dx * dx + dy * dy) <= 140;
+            });
+            if (!nearPlatform) {
+              warn(2, 'L2-003', rid, `Element ${item.id} in ${rid} is more than 140px from any platform`);
+            }
+          });
+        });
+
+        report.level_1.passed = report.level_1.checks.filter((c) => c.severity === 'error').length === 0;
+        report.level_2.passed = report.level_2.checks.filter((c) => c.severity === 'error').length === 0;
+
+        return report;
+      }
+
+      function renderValidationResults(report) {
+        const container = document.getElementById('validationResults');
+        const badge = document.getElementById('validationSummaryBadge');
+        if (!container) return;
+
+        const allChecks = [...report.level_1.checks, ...report.level_2.checks];
+
+        if (badge) {
+          if (report.summary.errors > 0) {
+            badge.textContent = `${report.summary.errors} error${report.summary.errors > 1 ? 's' : ''}`;
+            badge.className = 'validation-summary-badge fail';
+          } else if (report.summary.warnings > 0) {
+            badge.textContent = `${report.summary.warnings} warning${report.summary.warnings > 1 ? 's' : ''}`;
+            badge.className = 'validation-summary-badge warn';
+          } else {
+            badge.textContent = 'All checks passed';
+            badge.className = 'validation-summary-badge pass';
+          }
+        }
+
+        if (allChecks.length === 0) {
+          container.innerHTML = '<div class="validation-pass-row">✓ All structural and traversal checks passed</div>';
+          return;
+        }
+
+        container.innerHTML = allChecks
+          .map((check) => {
+            const sev = check.severity === 'error' ? 'error' : 'warning';
+            const roomAttr = check.room != null && check.room !== '' ? ` data-room="${escapeHtml(String(check.room))}"` : '';
+            return `
+    <div class="validation-result-item ${sev}"${roomAttr}>
+      <div class="validation-result-icon"></div>
+      <div class="validation-result-body">
+        <div class="validation-result-id">${escapeHtml(String(check.id))}</div>
+        <div class="validation-result-msg">${escapeHtml(String(check.message))}</div>
+        ${check.room ? `<div class="validation-result-room">Room: ${escapeHtml(String(check.room))}</div>` : ''}
+      </div>
+    </div>`;
+          })
+          .join('');
+
+        container.querySelectorAll('.validation-result-item[data-room]').forEach((el) => {
+          const roomId = el.getAttribute('data-room');
+          if (!roomId) return;
+          el.addEventListener('click', () => {
+            const roomSelect = document.getElementById('roomSelect');
+            if (!roomSelect) return;
+            const opt = Array.from(roomSelect.options).find((o) => o.value === roomId);
+            if (!opt) return;
+            roomSelect.value = roomId;
+            roomSelect.dispatchEvent(new Event('change'));
+          });
+        });
+      }
+
       function wireEvents() {
         updateSyncButtonState();
+        document.getElementById('runValidation')?.addEventListener('click', () => {
+          if (!state.data) return;
+          const report = validateLayout(state.data);
+          state.lastValidationReport = report;
+          renderValidationResults(report);
+        });
         ui.advancedToggle?.addEventListener('click', () => {
           const expanded = ui.advancedToggle.getAttribute('aria-expanded') === 'true';
           ui.advancedToggle.setAttribute('aria-expanded', String(!expanded));
@@ -5597,6 +5912,8 @@
           event.preventDefault();
         });
       }
+
+      window.validateLayout = validateLayout;
 
       populateAbilityOptions();
       initSidebarToggle();
