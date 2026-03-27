@@ -33,10 +33,28 @@ const CONFIG = {
     COLORS: [0x2a3a5a, 0x3a2a5a, 0x2a4a3a, 0x4a3a2a, 0x2a4050]
 };
 
-const ROOM_SEQUENCE = ['R1', 'R2', 'R3', 'R4', 'R5', 'R6', 'R7', 'R8', 'R9', 'R10', 'R11'];
+const BASE_ROOM_SEQUENCE = ['R1', 'R2', 'R3', 'R4', 'R5', 'R6', 'R7', 'R8', 'R9', 'R10', 'R11'];
+let ROOM_SEQUENCE = [...BASE_ROOM_SEQUENCE];
+
+function mergeRoomSequence(layoutData) {
+    const base = [...BASE_ROOM_SEQUENCE];
+    const inBase = new Set(base);
+    const extra = new Set();
+    if (layoutData && Array.isArray(layoutData.rooms)) {
+        layoutData.rooms.forEach((room) => {
+            const id = room?.id;
+            if (typeof id !== 'string' || !/^R\d+$/.test(id)) return;
+            if (!inBase.has(id)) extra.add(id);
+        });
+    }
+    const extrasSorted = [...extra].sort((a, b) => Number(a.slice(1)) - Number(b.slice(1)));
+    return [...base, ...extrasSorted];
+}
+
 const ROOM_IDS = {};
 
 function rebuildRoomGeometry(layoutData = null) {
+    ROOM_SEQUENCE = mergeRoomSequence(layoutData);
     const roomWidths = new Map();
     if (layoutData && Array.isArray(layoutData.rooms)) {
         layoutData.rooms.forEach((room) => {
@@ -154,6 +172,7 @@ let TEMP_TEST_START = {
     x: 220,
     y: 1020
 };
+let PREVIEW_START_APPLIED = false;
 
 const BRANCH_CONFIG = {
     A: {
@@ -908,6 +927,7 @@ function getRoomSpawnPoint(roomId, fallbackX, fallbackY) {
 }
 
 function applyPreviewStartFromHash() {
+    PREVIEW_START_APPLIED = false;
     try {
         const hash = window.location.hash || '';
         const startMatch = hash.match(/[&?]start=([^&]+)/);
@@ -925,6 +945,7 @@ function applyPreviewStartFromHash() {
         TEMP_TEST_START.x = spawn.x;
         TEMP_TEST_START.y = spawn.y;
         delete TEMP_TEST_START.doorId;
+        PREVIEW_START_APPLIED = true;
     } catch (_) {
         /* ignore malformed preview hash */
     }
@@ -1147,6 +1168,8 @@ class AshenHollow extends Phaser.Scene {
         this.dynamicPlatforms = this.physics.add.group({ allowGravity: false, immovable: true });
         const initialSpawn = TEMP_TEST_START.doorId
             ? getDoorStandPosition(TEMP_TEST_START.room, TEMP_TEST_START.doorId, ROOM_IDS[TEMP_TEST_START.room].start + TEMP_TEST_START.x, TEMP_TEST_START.y)
+            : PREVIEW_START_APPLIED
+            ? { x: TEMP_TEST_START.x, y: TEMP_TEST_START.y }
             : getRoomSpawnPoint(TEMP_TEST_START.room, TEMP_TEST_START.x, TEMP_TEST_START.y);
         const heroTextureKey = this.textures.exists('wb-idle_00') ? 'wb-idle_00' : 'heroFallback';
         this.player = this.physics.add.sprite(initialSpawn.x, initialSpawn.y, heroTextureKey, 0);

@@ -798,6 +798,8 @@ function computeDoorStandPosition(roomWidth, door) {
     const html = fs.readFileSync(htmlPath, 'utf8');
     assert.ok(html.includes('applyPreviewStartFromHash'), 'applyPreviewStartFromHash should exist');
     assert.ok(html.includes('let TEMP_TEST_START'), 'mutable TEMP_TEST_START for preview spawn');
+    assert.ok(html.includes('PREVIEW_START_APPLIED'), 'preview spawn flag for create()');
+    assert.ok(html.includes('mergeRoomSequence'), 'mergeRoomSequence for layout rooms beyond R11');
 })();
 
 (function testPreviewStartHashParsing() {
