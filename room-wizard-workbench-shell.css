@@ -162,38 +162,6 @@
   outline: none;
 }
 
-/* World map: same palette as room steps — dashed ring + inset line reads as “global” vs solid numbered pills */
-.workflow-rail-wrap .phase-pill--world {
-  border: 2px dashed var(--line-strong);
-  box-shadow: inset 0 0 0 1px var(--line);
-  background: var(--panel-2);
-}
-
-.workflow-rail-wrap .phase-pill--world.available {
-  background: var(--panel-soft);
-  border-color: var(--border-strong);
-}
-
-.workflow-rail-wrap .phase-pill--world.available:hover,
-.workflow-rail-wrap .phase-pill--world.available:focus-visible {
-  border-color: rgba(0, 232, 200, 0.28);
-  box-shadow: inset 0 0 0 1px var(--line);
-  outline: none;
-}
-
-.workflow-rail-wrap .phase-pill--world.active {
-  border: 2px solid var(--accent);
-  border-style: solid;
-  background: linear-gradient(160deg, rgba(0, 232, 200, 0.07) 0%, transparent 70%), var(--panel);
-  box-shadow: 0 0 0 3px rgba(0, 232, 200, 0.08), inset 0 1px 0 rgba(0, 232, 200, 0.1), 0 0 20px rgba(0, 232, 200, 0.06);
-}
-
-.workflow-rail-wrap .phase-pill--world.active:hover,
-.workflow-rail-wrap .phase-pill--world.active:focus-visible {
-  box-shadow: 0 0 0 4px rgba(0, 232, 200, 0.12), inset 0 1px 0 rgba(0, 232, 200, 0.14), 0 0 24px rgba(0, 232, 200, 0.08);
-  outline: none;
-}
-
 .workflow-rail-wrap .phase-number {
   width: 36px;
   height: 36px;
@@ -209,55 +177,22 @@
   transition: background 0.15s, border-color 0.15s, color 0.15s;
 }
 
-/* World map: icon slot — not a step number */
-.workflow-rail-wrap .phase-glyph {
-  width: 36px;
-  height: 36px;
-  flex: 0 0 auto;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.04);
-  font-size: 15px;
-  line-height: 1;
-  color: var(--text-muted);
-  transition: background 0.15s, border-color 0.15s, color 0.15s;
-}
-
-.workflow-rail-wrap .phase-pill.active .phase-number,
-.workflow-rail-wrap .phase-pill.active .phase-glyph {
+.workflow-rail-wrap .phase-pill.active .phase-number {
   background: var(--accent);
   border-color: transparent;
   color: #fff;
   font-size: 14px;
 }
 
-.workflow-rail-wrap .phase-pill.available .phase-number,
-.workflow-rail-wrap .phase-pill.available .phase-glyph {
+.workflow-rail-wrap .phase-pill.available .phase-number {
   border-color: rgba(255, 255, 255, 0.08);
   background: rgba(255, 255, 255, 0.03);
   color: var(--text-muted);
 }
 
-/* World map glyph: palette-aligned; active state uses same accent treatment as numbered steps (rules below) */
-.workflow-rail-wrap .phase-pill--world .phase-glyph {
-  border-color: var(--line-strong);
-  background: var(--accent-soft);
-  color: var(--text-muted);
-}
-
-.workflow-rail-wrap .phase-pill--world.available .phase-glyph {
-  border-color: var(--line);
-  background: rgba(255, 255, 255, 0.03);
-  color: var(--text-muted);
-}
-
-.workflow-rail-wrap .phase-pill--world.active .phase-glyph {
-  background: var(--accent);
-  border-color: transparent;
-  color: #fff;
-  font-size: 14px;
+/* Pills without a phase number (World map): align copy with numbered pills’ text column */
+.workflow-rail-wrap .phase-pill:not(:has(.phase-number)) {
+  padding-left: 62px;
 }
 
 .workflow-rail-wrap .phase-pill-copy {
