@@ -29,8 +29,8 @@ This file records product/architecture choices so Sprint work and specs stay ali
 
 ## Room creation wizard
 
-**Plan:** `docs/room-creation-wizard-plan.md` — **product vision** (audience, global map vs wizard, **Layout → Terrain → Environment → Objects → Review**), **neighbor alignment** ideas, and technical appendix.
+**Plan:** `docs/room-creation-wizard-plan.md` — **product vision**, **Sprite Workbench–style phase rail**, **five phases**, **no skip wizard** for new rooms, **uneven terrain** (Terrain), **objects + assets** (import + future Asset Workbench sync), **per-tab preview** (embedded + placeholder player), **neighbor alignment**.
 
-**Product bullets:** Global map = maintain world; wizard = **new room** (e.g. launch on **Add Room**); optional skip for power users; plain-language UX.
+**Product bullets:** Global map = maintain world; **Add Room** = always enter wizard; plain-language UX; Advanced JSON for maintenance only.
 
-**Technical phases** (from plan appendix): single-file UI, import/templates/first-run polish as phased engineering.
+**References:** `tools/2d-sprite-and-animation/app/core-helpers.js` (`FLIGHTDECK_PHASES`), `workflow-shell.js` (wizard state).
