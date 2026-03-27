@@ -1049,6 +1049,311 @@
         width: 100%;
       }
     }
+    /* ── Task 2.1: Compact Header Bar ── */
+    .canvas-header-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(255,255,255,0.025);
+      flex-wrap: wrap;
+    }
+    .canvas-header-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .header-label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: var(--font-size-xs);
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      white-space: nowrap;
+    }
+    .header-select {
+      min-height: 32px;
+      padding: 4px 10px;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.04);
+      color: var(--text);
+      font-size: var(--font-size-sm);
+      font: inherit;
+      width: auto;
+      min-width: 160px;
+    }
+    .canvas-header-actions {
+      display: flex;
+      gap: 6px;
+      margin-left: auto;
+      align-items: center;
+    }
+    .btn-save {
+      min-height: 32px;
+      padding: 6px 14px;
+      width: auto;
+      font-size: var(--font-size-sm);
+    }
+    .btn-secondary {
+      min-height: 32px;
+      padding: 6px 12px;
+      width: auto;
+      font-size: var(--font-size-sm);
+      background: rgba(255,255,255,0.04);
+      color: var(--muted);
+      border-color: var(--line);
+    }
+    .btn-secondary:hover { color: var(--text); }
+    .btn-icon {
+      width: 32px;
+      min-height: 32px;
+      padding: 0 8px;
+      display: grid;
+      place-items: center;
+      border-radius: 10px;
+      color: var(--muted);
+      width: auto;
+    }
+    .btn-icon:hover { color: var(--text); transform: none; }
+    .btn-sm {
+      min-height: 28px;
+      padding: 4px 10px;
+      width: auto;
+      font-size: var(--font-size-xs);
+      border-radius: 10px;
+    }
+    .btn-danger {
+      color: var(--error);
+      border-color: rgba(248,81,73,0.2);
+    }
+    .btn-danger:hover {
+      background: var(--error-soft);
+      border-color: rgba(248,81,73,0.4);
+    }
+    .canvas-settings-panel {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(255,255,255,0.02);
+    }
+    .settings-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: flex-end;
+    }
+    .setting-item {
+      display: grid;
+      gap: 4px;
+      font-size: var(--font-size-xs);
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .setting-item input,
+    .setting-item select {
+      min-height: 32px;
+      padding: 4px 10px;
+      font-size: var(--font-size-sm);
+      width: auto;
+      min-width: 80px;
+    }
+    .setting-actions {
+      display: flex;
+      gap: 6px;
+      align-items: flex-end;
+      padding-bottom: 2px;
+    }
+    /* ── Task 2.2: Inventory Sections ── */
+    .inventory-sections {
+      display: grid;
+      gap: 2px;
+      margin-top: 14px;
+    }
+    .inventory-section {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      overflow: hidden;
+    }
+    .inventory-section + .inventory-section {
+      margin-top: 4px;
+    }
+    .inventory-section-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      width: 100%;
+      padding: 8px 12px;
+      background: rgba(255,255,255,0.03);
+      border: none;
+      border-radius: 0;
+      color: var(--text);
+      font-size: var(--font-size-sm);
+      font-weight: 500;
+      min-height: 36px;
+      cursor: pointer;
+      text-align: left;
+    }
+    .inventory-section-header:hover {
+      background: rgba(255,255,255,0.06);
+      transform: none;
+    }
+    .inventory-section-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+    .inventory-section-title {
+      flex: 1;
+    }
+    .inventory-section-count {
+      font-size: var(--font-size-xs);
+      color: var(--muted);
+      font-weight: 400;
+      margin-right: 4px;
+    }
+    .inventory-section-body {
+      display: grid;
+      gap: 2px;
+      padding: 4px;
+      border-top: 1px solid var(--line);
+    }
+    .inventory-section-body:empty::after {
+      content: "None";
+      display: block;
+      padding: 8px 10px;
+      font-size: var(--font-size-xs);
+      color: var(--muted);
+      text-align: center;
+    }
+    .inventory-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 8px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: var(--font-size-xs);
+      transition: background var(--transition-fast);
+      border: 1px solid transparent;
+    }
+    .inventory-item:hover {
+      background: rgba(255,255,255,0.05);
+      border-color: var(--line);
+    }
+    .inventory-item.active {
+      background: var(--accent-soft);
+      border-color: rgba(0,232,200,0.2);
+    }
+    .inventory-item-id {
+      font-family: var(--font-mono);
+      color: var(--muted);
+      font-size: 10px;
+      flex-shrink: 0;
+    }
+    .inventory-item-info {
+      flex: 1;
+      min-width: 0;
+      color: var(--text);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .inventory-item-delete {
+      width: 20px;
+      min-height: 20px;
+      padding: 0;
+      border-radius: 6px;
+      opacity: 0;
+      color: var(--muted);
+      font-size: 12px;
+      display: grid;
+      place-items: center;
+      transition: opacity var(--transition-fast), color var(--transition-fast);
+    }
+    .inventory-item:hover .inventory-item-delete {
+      opacity: 1;
+    }
+    .inventory-item-delete:hover {
+      color: var(--error);
+      background: var(--error-soft);
+      transform: none;
+    }
+    .validation-badge {
+      font-size: var(--font-size-xs);
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-weight: 600;
+    }
+    .validation-badge.pass { background: var(--good-soft); color: var(--good); }
+    .validation-badge.warn { background: var(--warning-soft); color: var(--warning); }
+    .validation-badge.fail { background: var(--error-soft); color: var(--error); }
+    /* ── Task 2.3: Empty States ── */
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      padding: 48px 24px;
+      text-align: center;
+      min-height: 200px;
+    }
+    .empty-state-icon {
+      font-size: 32px;
+      opacity: 0.3;
+      line-height: 1;
+    }
+    .empty-state-title {
+      font-size: var(--font-size-base);
+      font-weight: 600;
+      color: var(--text);
+    }
+    .empty-state-sub {
+      font-size: var(--font-size-sm);
+      color: var(--muted);
+      line-height: 1.5;
+      max-width: 280px;
+    }
+    .empty-state .btn-primary {
+      min-height: 36px;
+      padding: 8px 16px;
+      width: auto;
+      font-size: var(--font-size-sm);
+      background: rgba(0,232,200,0.1);
+      border-color: rgba(0,232,200,0.24);
+      color: var(--accent);
+    }
+    .empty-state .btn-primary:hover {
+      background: rgba(0,232,200,0.18);
+    }
+    /* ── Task 2.4: Dirty Dot ── */
+    .dirty-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #fff;
+      opacity: 0.7;
+      display: inline-block;
+      margin-left: 4px;
+      vertical-align: middle;
+    }
+    /* ── Task 2.5d: Inspector slide-in ── */
+    .inspector {
+      transform-origin: top right;
+      transition: opacity var(--transition-fast), transform var(--transition-fast);
+    }
+    .inspector.showing {
+      animation: inspectorIn 120ms ease forwards;
+    }
+    @keyframes inspectorIn {
+      from { opacity: 0; transform: translateY(-4px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
   </style>
 </head>
 <body>
@@ -1086,86 +1391,79 @@
     <main class="main-column">
   <div class="app">
     <section class="panel canvas-wrap">
-      <div class="canvas-header">
-        <div class="canvas-header-text">
-          <div class="eyebrow">Room Creation</div>
-          <h1 id="canvasTitle">Room Layout Editor</h1>
-          <div class="sub" id="canvasSub">Drag vertices, platforms, doors, keys, and abilities in the active map view.</div>
+      <div class="canvas-header-bar">
+        <!-- Left: Room selector -->
+        <div class="canvas-header-group">
+          <label class="header-label">Room
+            <select id="roomSelect" class="header-select"></select>
+          </label>
         </div>
-        <div class="canvas-controls">
-          <section class="control-card">
-            <div class="control-card-title">
-              <h3>Current map</h3>
-              <p>Choose the room you are editing, switch views, and manage the room shell.</p>
-            </div>
-            <div class="row">
-              <label>
-                Room
-                <select id="roomSelect"></select>
-              </label>
-              <div>
-                <span class="eyebrow">View</span>
-                <div class="tab-strip" id="viewModeStrip">
-                  <button class="tab-btn active" data-view="room" type="button">Room View</button>
-                  <button class="tab-btn" data-view="global" type="button">Global Map</button>
-                </div>
-              </div>
-            </div>
-            <div class="row">
-              <label>
-                Room Width
-                <input id="roomWidth" type="number" step="32" min="320" />
-              </label>
-              <label>
-                Room Height
-                <input id="roomHeight" type="number" step="32" min="320" />
-              </label>
-            </div>
-            <div class="row">
-              <button id="addRoom">Add Room</button>
-              <button id="deleteRoom">Delete Room</button>
-            </div>
-          </section>
-          <section class="control-card">
-            <div class="control-card-title">
-              <h3>Editing controls</h3>
-              <p>Set snap behavior, adjust the global overview, and jump into the current playable state.</p>
-            </div>
-            <div class="row">
-              <label>
-                Grid Snap
-                <select id="snapSize">
-                  <option value="0">Off</option>
-                  <option value="8">8</option>
-                  <option value="16">16</option>
-                  <option value="32" selected>32</option>
-                  <option value="64">64</option>
-                </select>
-              </label>
-              <label>
-                Global Zoom
-                <input id="globalZoom" type="range" min="40" max="200" step="5" value="100" />
-              </label>
-            </div>
-            <div class="control-card-actions">
-              <button id="openGameWithLayout">Open Game</button>
-              <button id="reloadJson">Reload Disk</button>
-            </div>
-            <div class="hint">Use the room canvas for local geometry and switch to Global Map when linking edges between rooms.</div>
-          </section>
-          <section class="control-card">
-            <div class="control-card-title">
-              <h3>Save and share</h3>
-              <p>Write your local working copy, export a portable JSON snapshot, or sync the canonical layout file.</p>
-            </div>
-            <div class="control-card-actions">
-              <button id="savePermanent" class="good">Save Device</button>
-              <button id="downloadJson" class="good">Export JSON</button>
-              <button id="syncCanonicalJson">Sync Canonical</button>
-            </div>
-          </section>
+
+        <!-- Center: View tab strip -->
+        <div class="tab-strip" id="viewModeStrip">
+          <button class="tab-btn active" data-view="room" type="button">Room View</button>
+          <button class="tab-btn" data-view="global" type="button">Global Map</button>
+        </div>
+
+        <!-- Right: Primary actions -->
+        <div class="canvas-header-actions">
+          <button id="savePermanent" class="btn-save good">Save
+            <span class="dirty-dot" id="dirtyDot" style="display:none;"></span>
+          </button>
+          <button id="downloadJson" class="btn-secondary">Export</button>
+          <button id="openGameWithLayout" class="btn-secondary">Open Game</button>
+          <button class="btn-icon" id="settingsToggle" type="button" title="Canvas Settings">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <circle cx="7" cy="7" r="2" stroke="currentColor" stroke-width="1.5"/>
+              <path d="M7 1v1M7 12v1M1 7h1M12 7h1M2.5 2.5l.7.7M10.8 10.8l.7.7M2.5 11.5l.7-.7M10.8 3.2l.7-.7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </button>
         </div>
       </div>
+
+      <!-- Collapsible settings (hidden by default) -->
+      <div class="canvas-settings-panel collapsible-body" id="canvasSettingsBody" hidden>
+        <div class="settings-row">
+          <label class="setting-item">Grid Snap
+            <select id="snapSize">
+              <option value="0">Off</option>
+              <option value="8">8px</option>
+              <option value="16">16px</option>
+              <option value="32" selected>32px</option>
+              <option value="64">64px</option>
+            </select>
+          </label>
+          <label class="setting-item">Global Zoom
+            <input id="globalZoom" type="range" min="40" max="200" step="5" value="100" />
+          </label>
+          <label class="setting-item">Room Width
+            <input id="roomWidth" type="number" step="32" min="320" />
+          </label>
+          <label class="setting-item">Room Height
+            <input id="roomHeight" type="number" step="32" min="320" />
+          </label>
+          <div class="setting-actions">
+            <button id="addRoom" class="btn-sm">+ Add Room</button>
+            <button id="deleteRoom" class="btn-sm btn-danger">Delete Room</button>
+            <button id="reloadJson" class="btn-sm">Reload Disk</button>
+            <button id="syncCanonicalJson" class="btn-sm">Sync Canonical</button>
+          </div>
+        </div>
+      </div>
+      <!-- Task 2.3: Empty States -->
+      <div class="empty-state" id="emptyStateNoRooms" style="display:none;">
+        <div class="empty-state-icon">⬡</div>
+        <div class="empty-state-title">No rooms yet</div>
+        <div class="empty-state-sub">Add your first room to start building your level layout.</div>
+        <button class="btn-primary" type="button" onclick="document.getElementById('addRoom').click()">+ Add Room</button>
+      </div>
+      <div class="empty-state" id="emptyStateNoData" style="display:none;">
+        <div class="empty-state-icon">📂</div>
+        <div class="empty-state-title">No layout data</div>
+        <div class="empty-state-sub">No saved layout found. Import a JSON file or create rooms from scratch.</div>
+        <button class="btn-primary" type="button" onclick="document.getElementById('advancedToggle').click()">Import JSON</button>
+      </div>
+
       <div class="canvas-with-inspector" id="canvasWithInspector">
         <div class="canvas-box" id="roomCanvasBox">
           <div class="canvas-toolbar" id="canvasToolButtons">
@@ -1347,9 +1645,13 @@
     <section class="panel sidebar-panel">
       <div class="sidebar-header">
         <div class="eyebrow">Active Room</div>
-        <h2>Room Contents</h2>
-        <div class="sub">Review the current room inventory and click any item to jump selection back to the canvas.</div>
+        <h2 id="inventoryRoomName">Room Contents</h2>
+        <div class="inventory-meta">
+          <span class="validation-badge" id="inventoryValidationBadge"></span>
+        </div>
       </div>
+
+      <!-- Metric grid stays as-is -->
       <div class="metric-grid">
         <div class="badge">
           <div class="badge-label">Vertices</div>
@@ -1376,12 +1678,70 @@
           <div class="badge-value" id="moverCount">0</div>
         </div>
       </div>
-      <div class="item-list-panel">
-        <div class="item-list-header">
-          <h3>Selectable items</h3>
-          <p>Platforms, doors, keys, abilities, movers, and the player start are listed here for quick access.</p>
+
+      <!-- Expandable inventory sections -->
+      <div class="inventory-sections" id="inventorySections">
+
+        <div class="inventory-section" data-type="platforms">
+          <button class="inventory-section-header" aria-expanded="true" type="button">
+            <span class="inventory-section-dot" style="background: var(--platform)"></span>
+            <span class="inventory-section-title">Platforms</span>
+            <span class="inventory-section-count" id="invCountPlatforms">0</span>
+            <svg class="collapsible-chevron" width="12" height="12" viewBox="0 0 12 12" fill="none">
+              <path d="M2.5 4.5L6 8L9.5 4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </button>
+          <div class="inventory-section-body" id="invListPlatforms"></div>
         </div>
-        <div class="list" id="itemList"></div>
+
+        <div class="inventory-section" data-type="doors">
+          <button class="inventory-section-header" aria-expanded="true" type="button">
+            <span class="inventory-section-dot" style="background: var(--door)"></span>
+            <span class="inventory-section-title">Doors</span>
+            <span class="inventory-section-count" id="invCountDoors">0</span>
+            <svg class="collapsible-chevron" width="12" height="12" viewBox="0 0 12 12" fill="none">
+              <path d="M2.5 4.5L6 8L9.5 4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </button>
+          <div class="inventory-section-body" id="invListDoors"></div>
+        </div>
+
+        <div class="inventory-section" data-type="keys">
+          <button class="inventory-section-header" aria-expanded="true" type="button">
+            <span class="inventory-section-dot" style="background: var(--color-key)"></span>
+            <span class="inventory-section-title">Keys</span>
+            <span class="inventory-section-count" id="invCountKeys">0</span>
+            <svg class="collapsible-chevron" width="12" height="12" viewBox="0 0 12 12" fill="none">
+              <path d="M2.5 4.5L6 8L9.5 4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </button>
+          <div class="inventory-section-body" id="invListKeys"></div>
+        </div>
+
+        <div class="inventory-section" data-type="abilities">
+          <button class="inventory-section-header" aria-expanded="true" type="button">
+            <span class="inventory-section-dot" style="background: var(--color-ability)"></span>
+            <span class="inventory-section-title">Abilities</span>
+            <span class="inventory-section-count" id="invCountAbilities">0</span>
+            <svg class="collapsible-chevron" width="12" height="12" viewBox="0 0 12 12" fill="none">
+              <path d="M2.5 4.5L6 8L9.5 4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </button>
+          <div class="inventory-section-body" id="invListAbilities"></div>
+        </div>
+
+        <div class="inventory-section" data-type="movers">
+          <button class="inventory-section-header" aria-expanded="true" type="button">
+            <span class="inventory-section-dot" style="background: var(--color-mover)"></span>
+            <span class="inventory-section-title">Movers</span>
+            <span class="inventory-section-count" id="invCountMovers">0</span>
+            <svg class="collapsible-chevron" width="12" height="12" viewBox="0 0 12 12" fill="none">
+              <path d="M2.5 4.5L6 8L9.5 4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </button>
+          <div class="inventory-section-body" id="invListMovers"></div>
+        </div>
+
       </div>
     </section>
 
@@ -1772,7 +2132,6 @@
         keyDoorTarget: document.getElementById('keyDoorTarget'),
         abilityType: document.getElementById('abilityType'),
         applyProps: document.getElementById('applyProps'),
-        itemList: document.getElementById('itemList'),
         toggleSelectedEdge: document.getElementById('toggleSelectedEdge'),
         vertexCount: document.getElementById('vertexCount'),
         platformCount: document.getElementById('platformCount'),
@@ -1789,8 +2148,6 @@
         linkSelectedEdge: document.getElementById('linkSelectedEdge'),
         clearSelectedEdgeLink: document.getElementById('clearSelectedEdgeLink'),
         snapSelectedEdge: document.getElementById('snapSelectedEdge'),
-        canvasTitle: document.getElementById('canvasTitle'),
-        canvasSub: document.getElementById('canvasSub'),
         advancedToggle: document.getElementById('advancedToggle'),
         advancedBody: document.getElementById('advancedBody'),
         jsonText: document.getElementById('jsonText'),
@@ -1825,7 +2182,9 @@
         fileHandle: null,
         apiAvailable: false,
         toastTimer: null,
-        projects: []
+        projects: [],
+        isDirty: false,
+        lastPlacedId: null
       };
 
       function syncSidebarProjectName() {
@@ -2821,6 +3180,9 @@
         }
 
         ui.selectionInspector.classList.remove('hidden');
+        // Task 2.5d: Inspector slide-in animation
+        ui.selectionInspector.classList.add('showing');
+        setTimeout(() => ui.selectionInspector.classList.remove('showing'), 120);
         if (ui.inspectorTypeIcon) {
           ui.inspectorTypeIcon.style.background = typeColors[state.selected.kind] || 'var(--muted)';
         }
@@ -2896,40 +3258,9 @@
         ui.roomSelect.value = state.currentRoomId;
       }
 
+      /** Sidebar inventory lists (Task 2.2); chips replaced by `renderInventory`. */
       function populateItemList() {
-        const room = currentRoom();
-        const rows = [];
-        room.platforms.forEach((platform) => {
-          rows.push({ kind: 'platform', id: platform.id, label: `${platform.id} · x ${platform.x} · y ${platform.y} · len ${platform.len}` });
-        });
-        room.doors.forEach((door) => {
-          rows.push({ kind: 'door', id: door.id, label: `${door.id} · ${door.label || door.kind} · -> ${door.targetRoom || '-'}` });
-        });
-        room.keys.forEach((key) => {
-          rows.push({ kind: 'key', id: key.id, label: `${key.id} · ${key.label || 'Key'} · unlocks ${key.unlocksTarget || '-'}` });
-        });
-        room.abilities.forEach((ability) => {
-          rows.push({ kind: 'ability', id: ability.id, label: `${ability.id} · ${getAbilityLabel(ability.type)}` });
-        });
-        room.movingPlatforms.forEach((mover) => {
-          rows.push({ kind: 'mover', id: mover.id, label: `${mover.id} · (${mover.x},${mover.y}) -> (${mover.endX},${mover.endY}) · ${mover.initialState}` });
-        });
-        if (room.playerStart) {
-          rows.push({ kind: 'start', id: 'player-start', label: `Player Start · x ${room.playerStart.x} · y ${room.playerStart.y}` });
-        }
-        ui.itemList.innerHTML = rows.map((row) => {
-          const active = selectionContains(row.kind === 'start' ? { kind: 'start' } : { kind: row.kind, id: row.id }) ? 'active' : '';
-          return `<div class="chip ${active}" data-kind="${row.kind}" data-id="${row.id}">${row.label}</div>`;
-        }).join('');
-        Array.from(ui.itemList.querySelectorAll('.chip')).forEach((chip) => {
-          chip.addEventListener('click', () => {
-            setSelection([chip.dataset.kind === 'start'
-              ? { kind: 'start' }
-              : { kind: chip.dataset.kind, id: chip.dataset.id }]);
-            syncPropertyInputs();
-            redraw();
-          });
-        });
+        renderInventory(currentRoom());
       }
 
       function syncPropertyInputs() {
@@ -3359,7 +3690,8 @@
           const width = platform.len * TILE * scale.x;
           const height = PLATFORM_H * scale.y;
           const selected = selectionContains({ kind: 'platform', id: platform.id });
-          roomCtx.fillStyle = selected ? '#ffd166' : '#6eaef6';
+          const justPlaced = platform.id === state.lastPlacedId;
+          roomCtx.fillStyle = selected ? '#ffd166' : justPlaced ? '#a8d8ff' : '#6eaef6';
           roomCtx.fillRect(p.x, p.y, width, height);
           roomCtx.strokeStyle = '#102334';
           roomCtx.strokeRect(p.x, p.y, width, height);
@@ -3409,7 +3741,8 @@
         room.doors.forEach((door) => {
           const p = roomToCanvasPoint(door.x, door.y);
           const selected = selectionContains({ kind: 'door', id: door.id });
-          roomCtx.fillStyle = selected ? '#ffe0b3' : '#f5986e';
+          const justPlaced = door.id === state.lastPlacedId;
+          roomCtx.fillStyle = selected ? '#ffe0b3' : justPlaced ? '#ffc59f' : '#f5986e';
           roomCtx.fillRect(p.x - 10, p.y - 24, 20, 48);
           roomCtx.strokeStyle = '#3e2315';
           roomCtx.strokeRect(p.x - 10, p.y - 24, 20, 48);
@@ -3603,6 +3936,8 @@
         if (!room) return;
         setViewMode(state.viewMode);
         updateCounts(room);
+        renderInventory(room);
+        updateEmptyStates();
         syncPropertyInputs();
         updateViewControlReadouts();
         ui.toggleSelectedEdge.disabled = !(state.viewMode === 'room' && state.selectionItems.length === 1 && state.selected?.kind === 'room-edge');
@@ -3611,12 +3946,9 @@
         ui.globalLinkPanel.classList.toggle('hidden', state.viewMode !== 'global');
         document.getElementById('canvasToolButtons').classList.toggle('hidden', state.viewMode !== 'room');
         if (state.viewMode !== 'room') ui.selectionInspector.classList.add('hidden');
-        ui.canvasTitle.textContent = state.viewMode === 'room' ? `${room.id} Room Editor` : 'Global Map Editor';
-        ui.canvasSub.textContent = state.viewMode === 'room'
-          ? 'Drag vertices, platforms, moving platforms, doors, keys, abilities, and the player start. Add new items with the active tool.'
-          : 'Click an edge to link rooms. Drag room interiors to move rooms; linked edges highlight and snap together.';
         updateGlobalLinkControls();
         drawRoomView();
+        renderEmptyRoomHint();
         drawGlobalView();
         updateJsonText();
       }
@@ -4041,6 +4373,7 @@
           return edgeIndex >= best.index ? edgeIndex + 1 : edgeIndex;
         });
         setSelection([{ kind: 'vertex', index: best.index }]);
+        setDirty(true);
       }
 
       function addPlatformAt(mouse) {
@@ -4054,7 +4387,11 @@
           tint: 0
         };
         room.platforms.push(platform);
+        // Task 2.5a: glow pulse on placement
+        state.lastPlacedId = platform.id;
+        setTimeout(() => { state.lastPlacedId = null; redraw(); }, 600);
         setSelection([{ kind: 'platform', id: platform.id }]);
+        setDirty(true);
       }
 
       function addDoorAt(mouse) {
@@ -4073,7 +4410,10 @@
           }
         };
         room.doors.push(door);
+        state.lastPlacedId = door.id;
+        setTimeout(() => { state.lastPlacedId = null; redraw(); }, 600);
         setSelection([{ kind: 'door', id: door.id }]);
+        setDirty(true);
         setStatus(`Added door ${door.id} at ${door.x}, ${door.y}`);
       }
 
@@ -4088,7 +4428,10 @@
           unlocksTarget: ''
         };
         room.keys.push(key);
+        state.lastPlacedId = key.id;
+        setTimeout(() => { state.lastPlacedId = null; redraw(); }, 600);
         setSelection([{ kind: 'key', id: key.id }]);
+        setDirty(true);
         setStatus(`Added key ${key.id} at ${key.x}, ${key.y}.`);
       }
 
@@ -4102,7 +4445,10 @@
           type: ui.abilityType.value || ABILITY_DEFS[0].id
         };
         room.abilities.push(ability);
+        state.lastPlacedId = ability.id;
+        setTimeout(() => { state.lastPlacedId = null; redraw(); }, 600);
         setSelection([{ kind: 'ability', id: ability.id }]);
+        setDirty(true);
         setStatus(`Added ${getAbilityLabel(ability.type)} ${ability.id} at ${ability.x}, ${ability.y}.`);
       }
 
@@ -4134,7 +4480,10 @@
         room.movingPlatforms.push(mover);
         state.pendingMoverStart = null;
         state.hoverLocal = null;
+        state.lastPlacedId = mover.id;
+        setTimeout(() => { state.lastPlacedId = null; redraw(); }, 600);
         setSelection([{ kind: 'mover', id: mover.id }]);
+        setDirty(true);
         setStatus(`Added mover ${mover.id} from ${mover.x},${mover.y} to ${mover.endX},${mover.endY}.`);
       }
 
@@ -4143,6 +4492,7 @@
         const local = canvasToRoomPoint(mouse.x, mouse.y);
         room.playerStart = { x: local.x, y: local.y };
         setSelection([{ kind: 'start' }]);
+        setDirty(true);
         setStatus(`Set player start for ${room.id} at ${room.playerStart.x}, ${room.playerStart.y}.`);
       }
 
@@ -4411,6 +4761,7 @@
 
       function endDrag() {
         const hadGlobalRoomDrag = state.drag && state.drag.type === 'room';
+        const hadMoveDrag = state.drag && ['selection-move', 'vertex', 'platform', 'door', 'key', 'ability', 'mover', 'mover-start', 'mover-end', 'start'].includes(state.drag.type);
         if (state.drag && state.drag.type === 'marquee') {
           const items = buildSelectionFromRect(state.drag.startLocal, state.drag.currentLocal);
           setSelection(items);
@@ -4421,6 +4772,7 @@
         if (state.tool !== 'mover') {
           state.hoverLocal = null;
         }
+        if (hadMoveDrag || hadGlobalRoomDrag) setDirty(true);
         if (hadGlobalRoomDrag) redraw();
       }
 
@@ -4463,6 +4815,7 @@
             selected.item.type = getAbilityDef(ui.abilityType.value)?.id || ABILITY_DEFS[0].id;
           }
         }
+        setDirty(true);
         redraw();
       }
 
@@ -4473,6 +4826,7 @@
         room.size.height = Math.max(320, snap(Number(ui.roomHeight.value || room.size.height)));
         ui.roomWidth.value = room.size.width;
         ui.roomHeight.value = room.size.height;
+        setDirty(true);
         redraw();
         setStatus(`Resized ${room.id} workspace to ${room.size.width} x ${room.size.height}.`);
       }
@@ -4481,6 +4835,7 @@
         if (state.viewMode !== 'room' || state.selectionItems.length !== 1 || state.selected?.kind !== 'room-edge') return;
         const room = currentRoom();
         const isRemoved = toggleRoomEdgeRemoved(room.id, state.selected.edgeIndex);
+        setDirty(true);
         redraw();
         setStatus(`${room.id} edge ${state.selected.edgeIndex + 1} is now ${isRemoved ? 'open' : 'solid'}.`);
       }
@@ -4546,6 +4901,7 @@
           room.playerStart = null;
         }
         setSelection([]);
+        setDirty(true);
         redraw();
       }
 
@@ -4563,6 +4919,7 @@
         };
         room.platforms.push(clone);
         setSelection([{ kind: 'platform', id: clone.id }]);
+        setDirty(true);
         redraw();
       }
 
@@ -4595,6 +4952,8 @@
         state.selectedGlobalEdge = null;
         setSelection([]);
         populateRoomSelect();
+        updateEmptyStates();
+        setDirty(true);
         redraw();
         setStatus(`Added ${roomId}.`);
       }
@@ -4613,6 +4972,8 @@
         }
         setSelection([]);
         populateRoomSelect();
+        updateEmptyStates();
+        setDirty(true);
         redraw();
         setStatus(`Deleted ${roomId}.`);
       }
@@ -4624,6 +4985,8 @@
         state.selectedGlobalEdge = null;
         state.globalSnapPreview = null;
         populateRoomSelect();
+        updateEmptyStates();
+        setDirty(false);
         redraw();
         setStatus(message);
       }
@@ -4745,11 +5108,29 @@
             const writable = await state.fileHandle.createWritable();
             await writable.write(serialized);
             await writable.close();
+            setDirty(false);
+            // Task 2.5c: Show "Saved ✓" briefly — use text-node manipulation to preserve dirty dot span
+            const saveBtn = document.getElementById('savePermanent');
+            const textNode = Array.from(saveBtn.childNodes).find((n) => n.nodeType === Node.TEXT_NODE);
+            const originalText = textNode ? textNode.textContent : 'Save';
+            if (textNode) textNode.textContent = ' Saved ✓ ';
+            setTimeout(() => {
+              if (textNode) textNode.textContent = originalText;
+            }, 1800);
             setStatus('Saved to this device and to the selected file.', 'success');
             return;
           } catch (_) {}
         }
 
+        setDirty(false);
+        // Task 2.5c: Show "Saved ✓" briefly — use text-node manipulation to preserve dirty dot span
+        const saveBtn = document.getElementById('savePermanent');
+        const textNode = Array.from(saveBtn.childNodes).find((n) => n.nodeType === Node.TEXT_NODE);
+        const originalText = textNode ? textNode.textContent : 'Save';
+        if (textNode) textNode.textContent = ' Saved ✓ ';
+        setTimeout(() => {
+          if (textNode) textNode.textContent = originalText;
+        }, 1800);
         setStatus('Saved to this device. Use Advanced > Save To File or Export Layout for git sync.', 'success');
       }
 
@@ -4768,6 +5149,7 @@
           if (!response.ok) {
             throw new Error(`HTTP ${response.status}`);
           }
+          setDirty(false);
           setStatus(PROJECT_ID
             ? 'Saved current layout into the active workbench project.'
             : 'Synced current layout into canonical room-layout-data.json. Commit and push next.');
@@ -4804,12 +5186,209 @@
         }
       }
 
+      // ── Task 2.4: Dirty State ──
+      function setDirty(isDirty) {
+        state.isDirty = isDirty;
+        const dot = document.getElementById('dirtyDot');
+        if (dot) dot.style.display = isDirty ? 'inline-block' : 'none';
+        document.title = isDirty
+          ? '• Room Layout Editor'
+          : 'Room Layout Editor';
+      }
+
+      // ── Task 2.2: renderInventory and renderInventorySection ──
+      function selectItemById(itemId) {
+        const room = currentRoom();
+        if (!room) return;
+        // Check all item types
+        for (const platform of room.platforms) {
+          if (platform.id === itemId) {
+            setSelection([{ kind: 'platform', id: itemId }]);
+            syncPropertyInputs();
+            redraw();
+            return;
+          }
+        }
+        for (const door of room.doors) {
+          if (door.id === itemId) {
+            setSelection([{ kind: 'door', id: itemId }]);
+            syncPropertyInputs();
+            redraw();
+            return;
+          }
+        }
+        for (const key of room.keys) {
+          if (key.id === itemId) {
+            setSelection([{ kind: 'key', id: itemId }]);
+            syncPropertyInputs();
+            redraw();
+            return;
+          }
+        }
+        for (const ability of room.abilities) {
+          if (ability.id === itemId) {
+            setSelection([{ kind: 'ability', id: itemId }]);
+            syncPropertyInputs();
+            redraw();
+            return;
+          }
+        }
+        for (const mover of room.movingPlatforms) {
+          if (mover.id === itemId) {
+            setSelection([{ kind: 'mover', id: itemId }]);
+            syncPropertyInputs();
+            redraw();
+            return;
+          }
+        }
+      }
+
+      function deleteItemById(itemId) {
+        const room = currentRoom();
+        if (!room) return;
+        const prevSelected = state.selected;
+        // Find and remove from whichever collection
+        if (room.platforms.some((p) => p.id === itemId)) {
+          room.platforms = room.platforms.filter((p) => p.id !== itemId);
+        } else if (room.doors.some((d) => d.id === itemId)) {
+          room.doors = room.doors.filter((d) => d.id !== itemId);
+        } else if (room.keys.some((k) => k.id === itemId)) {
+          room.keys = room.keys.filter((k) => k.id !== itemId);
+        } else if (room.abilities.some((a) => a.id === itemId)) {
+          room.abilities = room.abilities.filter((a) => a.id !== itemId);
+        } else if (room.movingPlatforms.some((m) => m.id === itemId)) {
+          room.movingPlatforms = room.movingPlatforms.filter((m) => m.id !== itemId);
+        }
+        if (prevSelected && prevSelected.id === itemId) {
+          setSelection([]);
+        }
+        setDirty(true);
+        redraw();
+      }
+
+      function renderInventorySection(type, items, labelFn, listId, countId) {
+        const list = document.getElementById(listId);
+        const count = document.getElementById(countId);
+        if (!list) return;
+        if (count) count.textContent = items.length;
+        list.innerHTML = '';
+        items.forEach((item) => {
+          const row = document.createElement('div');
+          row.className = 'inventory-item';
+          row.dataset.id = item.id;
+          if (state.selected && state.selected.id === item.id) row.classList.add('active');
+          const idSpan = document.createElement('span');
+          idSpan.className = 'inventory-item-id';
+          idSpan.textContent = item.id;
+          const infoSpan = document.createElement('span');
+          infoSpan.className = 'inventory-item-info';
+          infoSpan.textContent = labelFn(item);
+          const delBtn = document.createElement('button');
+          delBtn.className = 'inventory-item-delete';
+          delBtn.dataset.itemId = item.id;
+          delBtn.title = 'Delete';
+          delBtn.type = 'button';
+          delBtn.textContent = '×';
+          row.appendChild(idSpan);
+          row.appendChild(infoSpan);
+          row.appendChild(delBtn);
+          row.addEventListener('click', (e) => {
+            if (e.target.classList.contains('inventory-item-delete')) return;
+            selectItemById(item.id);
+          });
+          delBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            deleteItemById(item.id);
+          });
+          list.appendChild(row);
+        });
+      }
+
+      function renderInventory(room) {
+        if (!room) return;
+        const nameEl = document.getElementById('inventoryRoomName');
+        if (nameEl) nameEl.textContent = room.name || room.id;
+
+        // Update count badges (existing IDs stay updated via updateCounts too)
+        const vc = document.getElementById('vertexCount');
+        if (vc) vc.textContent = (room.polygon || []).length;
+        const pc = document.getElementById('platformCount');
+        if (pc) pc.textContent = (room.platforms || []).length;
+        const dc = document.getElementById('doorCount');
+        if (dc) dc.textContent = (room.doors || []).length;
+        const kc = document.getElementById('keyCount');
+        if (kc) kc.textContent = (room.keys || []).length;
+        const ac = document.getElementById('abilityCount');
+        if (ac) ac.textContent = (room.abilities || []).length;
+        const mc = document.getElementById('moverCount');
+        if (mc) mc.textContent = (room.movingPlatforms || []).length;
+
+        renderInventorySection('platforms', room.platforms || [], (p) => `x:${p.x} y:${p.y} len:${p.len}`, 'invListPlatforms', 'invCountPlatforms');
+        renderInventorySection('doors', room.doors || [], (d) => `${d.label || ''} → ${d.targetRoom || '?'} (${d.kind})`, 'invListDoors', 'invCountDoors');
+        renderInventorySection('keys', room.keys || [], (k) => k.label || k.id, 'invListKeys', 'invCountKeys');
+        renderInventorySection('abilities', room.abilities || [], (a) => getAbilityLabel(a.type) || a.id, 'invListAbilities', 'invCountAbilities');
+        renderInventorySection('movers', room.movingPlatforms || [], (m) => `(${m.x},${m.y})→(${m.endX},${m.endY})`, 'invListMovers', 'invCountMovers');
+
+        const valBadge = document.getElementById('inventoryValidationBadge');
+        if (valBadge) {
+          const vertCount = (room.polygon || []).length;
+          if (vertCount >= 3) {
+            valBadge.textContent = 'Shape OK';
+            valBadge.className = 'validation-badge pass';
+          } else {
+            valBadge.textContent = vertCount ? 'Open shape' : 'No shell';
+            valBadge.className = 'validation-badge warn';
+          }
+        }
+      }
+
+      // ── Task 2.3: Empty States ──
+      function updateEmptyStates() {
+        const noRooms = !state.data || !state.data.rooms || state.data.rooms.length === 0;
+        const noRoomsEl = document.getElementById('emptyStateNoRooms');
+        const roomCanvasEl = document.getElementById('roomCanvas');
+        if (noRoomsEl) noRoomsEl.style.display = noRooms ? 'flex' : 'none';
+        if (roomCanvasEl) roomCanvasEl.style.display = noRooms ? 'none' : 'block';
+      }
+
+      // ── Task 2.3: Empty canvas hint ──
+      function renderEmptyRoomHint() {
+        const room = currentRoom();
+        if (!room || (room.polygon && room.polygon.length > 0)) return;
+        const ctx = roomCanvas.getContext('2d');
+        ctx.save();
+        ctx.fillStyle = 'rgba(93, 120, 112, 0.6)';
+        ctx.font = '14px "Plus Jakarta Sans", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('Click to place vertices and define this room\'s shape', roomCanvas.width / 2, roomCanvas.height / 2 - 10);
+        ctx.font = '12px "Plus Jakarta Sans", sans-serif';
+        ctx.fillStyle = 'rgba(93, 120, 112, 0.4)';
+        ctx.fillText('Hold Shift and click to close the polygon', roomCanvas.width / 2, roomCanvas.height / 2 + 14);
+        ctx.restore();
+      }
+
       function wireEvents() {
         updateSyncButtonState();
         ui.advancedToggle?.addEventListener('click', () => {
           const expanded = ui.advancedToggle.getAttribute('aria-expanded') === 'true';
           ui.advancedToggle.setAttribute('aria-expanded', String(!expanded));
           if (ui.advancedBody) ui.advancedBody.hidden = expanded;
+        });
+        // ── Task 2.1: Settings toggle ──
+        document.getElementById('settingsToggle')?.addEventListener('click', () => {
+          const body = document.getElementById('canvasSettingsBody');
+          if (body) body.hidden = !body.hidden;
+        });
+        // ── Task 2.2: Section collapse toggles ──
+        document.querySelectorAll('.inventory-section-header').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            const expanded = btn.getAttribute('aria-expanded') !== 'false';
+            btn.setAttribute('aria-expanded', String(!expanded));
+            const chevron = btn.querySelector('.collapsible-chevron');
+            if (chevron) chevron.style.transform = expanded ? 'rotate(-90deg)' : '';
+            const body = btn.nextElementSibling;
+            if (body) body.style.display = expanded ? 'none' : '';
+          });
         });
         ui.roomSelect.addEventListener('change', () => {
           state.currentRoomId = ui.roomSelect.value;
@@ -4819,7 +5398,13 @@
             state.selectedGlobalEdge = null;
           }
           setSelection([]);
-          redraw();
+          // ── Task 2.5b: Room switch canvas fade ──
+          roomCanvas.style.transition = 'opacity 80ms ease';
+          roomCanvas.style.opacity = '0';
+          setTimeout(() => {
+            redraw();
+            roomCanvas.style.opacity = '1';
+          }, 80);
         });
         ui.viewModeTabs.forEach((button) => {
           button.addEventListener('click', () => {
@@ -4827,7 +5412,7 @@
             redraw();
           });
         });
-        ui.globalZoom.addEventListener('input', () => {
+        ui.globalZoom?.addEventListener('input', () => {
           state.globalZoom = clampZoom(Number(ui.globalZoom.value || 100) / 100, GLOBAL_ZOOM_MIN, GLOBAL_ZOOM_MAX);
           updateViewControlReadouts();
           if (state.viewMode === 'global') redraw();

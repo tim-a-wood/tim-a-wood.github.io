@@ -1006,6 +1006,43 @@ Output full demo report before proceeding to Sprint 2.
 
 ---
 
+### Pre-Sprint Spec Corrections
+
+Two bugs were identified in this sprint's spec during review. Apply these corrections as you encounter the relevant tasks — they override the original spec text.
+
+**Correction A — `room.movers` → `room.movingPlatforms` (affects Task 2.2)**
+
+The spec's `renderInventory` function uses `room.movers` but the actual data model throughout the file uses `room.movingPlatforms`. Every reference to `room.movers` in Task 2.2 must be changed to `room.movingPlatforms`. The UI label stays "Movers". The `invCountMovers` / `invListMovers` IDs are correct and unchanged.
+
+**Correction B — `saveBtn.textContent` destroys dirty dot span (affects Task 2.5c)**
+
+The spec's 2.5c code uses `saveBtn.textContent = 'Saved ✓'` which would destroy the `<span class="dirty-dot">` child added in Task 2.4. Replace the 2.5c implementation with an approach that only changes the button's text node:
+
+```js
+// In the existing save success handler, after setDirty(false):
+const saveBtn = document.getElementById('savePermanent');
+const dot = document.getElementById('dirtyDot');
+// Temporarily replace text node only — do NOT touch the dirty dot span
+const textNode = Array.from(saveBtn.childNodes).find(n => n.nodeType === Node.TEXT_NODE);
+const originalText = textNode ? textNode.textContent : 'Save';
+if (textNode) textNode.textContent = ' Saved ✓ ';
+setTimeout(() => {
+  if (textNode) textNode.textContent = originalText;
+}, 1800);
+```
+
+**Correction C — `globalZoom` range input must be preserved (affects Task 2.1)**
+
+The existing `<input id="globalZoom" type="range">` is referenced by the JS event system and must not be removed. Include it in the collapsible settings panel. Add it to the `settings-row` in `canvasSettingsBody`:
+
+```html
+<label class="setting-item">Global Zoom
+  <input id="globalZoom" type="range" min="40" max="200" step="5" value="100" />
+</label>
+```
+
+---
+
 ### Task 2.1 — Restructure the 3-Card Header into a Compact Toolbar Strip
 
 **Location:** The `.canvas-header` / `.canvas-controls` block above the canvas (the 3 control cards).
