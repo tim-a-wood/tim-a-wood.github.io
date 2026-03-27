@@ -27,14 +27,14 @@ This file records product/architecture choices so Sprint work and specs stay ali
 
 **Spec samples** that used `movers` should be treated as **documentation drift** — runtime export must emit `movingPlatforms` unless the game loader is changed (not planned).
 
-## Future: level design wizard (TBD)
+## Room creation wizard
 
-When we define the wizard, candidate dimensions to decide (not commitments):
+**Plan:** `docs/room-creation-wizard-plan.md` — scoped steps, single-file UI, phased implementation (P1 = guided new layout + first room; P2 import; P3 templates; P4 first-run polish).
+
+Earlier exploratory dimensions (still useful for later phases):
 
 - New layout vs edit existing / import
 - World graph vs single room
 - Validation gate (L1/L2/L3) before export
 - Tileset / collision profile
 - Playtest / embed preview
-
-Refine steps in a short design note before building UI.
