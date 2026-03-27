@@ -789,6 +789,8 @@ function computeDoorStandPosition(roomWidth, door) {
     assert.ok(html.includes('VALIDATION_L2'), 'VALIDATION_L2 tunable thresholds should exist');
     assert.ok(html.includes('gamePreviewOverlay') && html.includes('gamePreviewFrame'), 'in-page playtest overlay should exist');
     assert.ok(html.includes('ASHEN_HOLLOW_PREVIEW') && html.includes('preview=embed'), 'editor posts layout + embed hash');
+    assert.ok(html.includes('workflowRailsStack') && html.includes('editorWorkflowRail'), 'two-tier workflow rails');
+    assert.ok(html.includes('setEditorWorkflowStep') && html.includes('editorWorkflowStep'), 'main workflow step state');
 })();
 
 (function testIndexPreviewStartFromHashSmoke() {

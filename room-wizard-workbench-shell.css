@@ -96,7 +96,69 @@
   display: none !important;
 }
 
-.workflow-rail-wrap .phase-rail {
+/* Stacked main workflow (3 steps) + room sub-workflow (shown in step 2) */
+.workflow-rails-stack {
+  display: flex;
+  flex-direction: column;
+}
+
+.workflow-rails-stack .phase-rail--primary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  padding: 12px 18px 10px;
+  border-bottom: none;
+}
+
+.workflow-secondary-rail {
+  border-top: 1px solid var(--border);
+  background: rgba(3, 5, 8, 0.55);
+}
+
+.workflow-secondary-rail[hidden] {
+  display: none !important;
+}
+
+.workflow-secondary-rail-label {
+  padding: 8px 18px 0;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  font-family: var(--font-display);
+}
+
+.workflow-rails-stack .phase-rail--room {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+  padding: 10px 18px 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+@media (max-width: 1280px) {
+  .workflow-rails-stack .phase-rail--primary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .workflow-rails-stack .phase-rail--room {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .workflow-rails-stack .phase-rail--room {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 560px) {
+  .workflow-rails-stack .phase-rail--primary {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Non-stacked shells only (stacked workflow uses .phase-rail--primary / --room above) */
+.workflow-rail-wrap:not(.workflow-rails-stack) .phase-rail {
   display: grid;
   flex-shrink: 0;
   grid-template-columns: repeat(6, minmax(0, 1fr));
@@ -106,13 +168,13 @@
 }
 
 @media (max-width: 1280px) {
-  .workflow-rail-wrap .phase-rail {
+  .workflow-rail-wrap:not(.workflow-rails-stack) .phase-rail {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @media (max-width: 560px) {
-  .workflow-rail-wrap .phase-rail {
+  .workflow-rail-wrap:not(.workflow-rails-stack) .phase-rail {
     grid-template-columns: 1fr;
   }
 }
