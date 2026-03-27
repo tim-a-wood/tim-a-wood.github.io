@@ -1759,21 +1759,11 @@
                   </label>
                   <label>
                     <span class="field-label">This room’s edge</span>
-                    <select id="roomWizardMyEdge">
-                      <option value="0">Top (edge 0)</option>
-                      <option value="1">Right (edge 1)</option>
-                      <option value="2">Bottom (edge 2)</option>
-                      <option value="3">Left (edge 3)</option>
-                    </select>
+                    <select id="roomWizardMyEdge" aria-label="This room edge index"></select>
                   </label>
                   <label>
                     <span class="field-label">Neighbor’s edge</span>
-                    <select id="roomWizardNeighborEdge">
-                      <option value="0">Top (edge 0)</option>
-                      <option value="1">Right (edge 1)</option>
-                      <option value="2">Bottom (edge 2)</option>
-                      <option value="3">Left (edge 3)</option>
-                    </select>
+                    <select id="roomWizardNeighborEdge" aria-label="Neighbor room edge index"></select>
                   </label>
                   <div class="rw-neighbor-actions">
                     <button type="button" class="btn-secondary" id="roomWizardBtnAlign">Align with neighbor</button>
@@ -4994,6 +4984,7 @@
         });
         setSelection([{ kind: 'vertex', index: best.index }]);
         setDirty(true);
+        syncRoomWizardEdgeSelects();
       }
 
       function addPlatformAt(mouse) {
@@ -5503,6 +5494,7 @@
             const shift = removedIndexesAsc.filter((index) => index < edgeIndex).length;
             return edgeIndex - shift;
           });
+          syncRoomWizardEdgeSelects();
         }
         if (platformIds.size) {
           room.platforms = room.platforms.filter((item) => !platformIds.has(item.id));
@@ -5611,11 +5603,62 @@
         syncRoomWizardNeighborFromRoom();
       }
 
+      function syncRoomWizardEdgeSelects() {
+        const room = getRoomWizardRoom();
+        const myEl = document.getElementById('roomWizardMyEdge');
+        const nbEl = document.getElementById('roomWizardNeighborEdge');
+        const neighborSel = document.getElementById('roomWizardNeighbor');
+        if (!myEl || !nbEl) return;
+        if (!room || !state.data) {
+          myEl.innerHTML = '';
+          nbEl.innerHTML = '<option value="">—</option>';
+          return;
+        }
+        ensureRoomShape(room);
+        const myCount = getEdgeCount(room);
+        const prevMy = myEl.value;
+        myEl.innerHTML = '';
+        for (let i = 0; i < myCount; i += 1) {
+          const opt = document.createElement('option');
+          opt.value = String(i);
+          opt.textContent = edgeLabel(room, i);
+          myEl.appendChild(opt);
+        }
+        if (prevMy && Number(prevMy) < myCount) {
+          myEl.value = prevMy;
+        } else if (myCount) {
+          myEl.value = '0';
+        }
+
+        const neighborId = neighborSel?.value;
+        const neighbor = neighborId ? getRoomById(neighborId) : null;
+        const prevNb = nbEl.value;
+        nbEl.innerHTML = '';
+        if (neighbor) {
+          ensureRoomShape(neighbor);
+          const nbCount = getEdgeCount(neighbor);
+          for (let i = 0; i < nbCount; i += 1) {
+            const opt = document.createElement('option');
+            opt.value = String(i);
+            opt.textContent = edgeLabel(neighbor, i);
+            nbEl.appendChild(opt);
+          }
+          if (prevNb && Number(prevNb) < nbCount) {
+            nbEl.value = prevNb;
+          } else if (nbCount) {
+            nbEl.value = '0';
+          }
+        } else {
+          const opt = document.createElement('option');
+          opt.value = '';
+          opt.textContent = '— Pick neighbor first —';
+          nbEl.appendChild(opt);
+        }
+      }
+
       function syncRoomWizardNeighborFromRoom() {
         const room = getRoomWizardRoom();
         const sel = document.getElementById('roomWizardNeighbor');
-        const myEdge = document.getElementById('roomWizardMyEdge');
-        const nbEdge = document.getElementById('roomWizardNeighborEdge');
         const card = document.getElementById('roomWizardNeighborsCard');
         if (!sel || !room || !state.data) return;
         const cur = room.id;
@@ -5640,11 +5683,21 @@
           pick = link && link.targetRoomId ? link.targetRoomId : '';
         }
         sel.value = pick;
-        if (pick && myEdge && nbEdge) {
+
+        syncRoomWizardEdgeSelects();
+
+        if (pick) {
+          const neighbor = getRoomById(pick);
           const link = (room.edgeLinks || []).find((l) => l.targetRoomId === pick);
-          if (link) {
-            myEdge.value = String(link.edgeIndex);
-            nbEdge.value = String(link.targetEdgeIndex);
+          const myEl = document.getElementById('roomWizardMyEdge');
+          const nbEl = document.getElementById('roomWizardNeighborEdge');
+          if (link && neighbor && myEl && nbEl) {
+            if (link.edgeIndex >= 0 && link.edgeIndex < getEdgeCount(room)) {
+              myEl.value = String(link.edgeIndex);
+            }
+            if (link.targetEdgeIndex >= 0 && link.targetEdgeIndex < getEdgeCount(neighbor)) {
+              nbEl.value = String(link.targetEdgeIndex);
+            }
           }
         }
       }
@@ -6064,14 +6117,20 @@
         document.getElementById('roomWizardNeighbor')?.addEventListener('change', () => {
           const room = getRoomWizardRoom();
           const neighborId = document.getElementById('roomWizardNeighbor')?.value;
+          if (!room) return;
+          syncRoomWizardEdgeSelects();
+          if (!neighborId) return;
+          const neighbor = getRoomById(neighborId);
           const myEdge = document.getElementById('roomWizardMyEdge');
           const nbEdge = document.getElementById('roomWizardNeighborEdge');
-          if (!room || !myEdge || !nbEdge) return;
-          if (!neighborId) return;
           const link = (room.edgeLinks || []).find((l) => l.targetRoomId === neighborId);
-          if (link) {
-            myEdge.value = String(link.edgeIndex);
-            nbEdge.value = String(link.targetEdgeIndex);
+          if (link && neighbor && myEdge && nbEdge) {
+            if (link.edgeIndex >= 0 && link.edgeIndex < getEdgeCount(room)) {
+              myEdge.value = String(link.edgeIndex);
+            }
+            if (link.targetEdgeIndex >= 0 && link.targetEdgeIndex < getEdgeCount(neighbor)) {
+              nbEdge.value = String(link.targetEdgeIndex);
+            }
           }
         });
         document.getElementById('roomWizardBtnAlign')?.addEventListener('click', () => applyRoomWizardAlign());
