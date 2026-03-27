@@ -24,6 +24,73 @@
   display: none !important;
 }
 
+/* Compact strip under canvas header when room workflow step 2 is active */
+.room-wizard-dock.room-wizard-dock--compact {
+  border-radius: 0;
+  border-left: none;
+  border-right: none;
+  margin: 0;
+  background: rgba(4, 6, 10, 0.88);
+}
+
+.room-wizard-dock.room-wizard-dock--compact .room-wizard-sheet {
+  max-height: min(36vh, 320px);
+}
+
+.room-wizard-dock.room-wizard-dock--compact .room-wizard-sheet-top {
+  padding: 8px 14px 6px;
+  border-bottom: 1px solid var(--stroke);
+}
+
+.room-wizard-dock.room-wizard-dock--compact .room-wizard-sheet-title {
+  font-size: 1.15rem;
+  margin-top: 2px;
+}
+
+.room-wizard-dock.room-wizard-dock--compact .room-wizard-sub {
+  display: none;
+}
+
+.room-wizard-dock.room-wizard-dock--compact .room-wizard-scroll {
+  padding: 0 14px 12px;
+}
+
+.room-wizard-dock.room-wizard-dock--compact .phase-header {
+  display: none;
+}
+
+.room-wizard-dock.room-wizard-dock--compact .stage-card {
+  padding: 10px 12px;
+  margin-bottom: 10px;
+}
+
+.room-wizard-dock.room-wizard-dock--compact .stage-card-head h4 {
+  font-size: 0.82rem;
+  margin: 0 0 6px;
+}
+
+.room-wizard-dock.room-wizard-dock--compact .stage-card-head .small-note {
+  display: none;
+}
+
+.room-wizard-dock.room-wizard-dock--compact .info-box {
+  display: none;
+}
+
+.room-wizard-dock.room-wizard-dock--compact .field-grid {
+  gap: 8px;
+}
+
+@media (min-width: 900px) {
+  .room-wizard-dock.room-wizard-dock--compact .field-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .room-wizard-dock.room-wizard-dock--compact .rw-footprint-grid {
+    flex-wrap: wrap;
+    gap: 6px 12px;
+  }
+}
+
 /* Sheet: full width inside dashboard; scrolls internally */
 .room-wizard-dock .room-wizard-sheet {
   position: relative;

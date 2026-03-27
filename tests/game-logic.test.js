@@ -791,6 +791,23 @@ function computeDoorStandPosition(roomWidth, door) {
     assert.ok(html.includes('ASHEN_HOLLOW_PREVIEW') && html.includes('preview=embed'), 'editor posts layout + embed hash');
     assert.ok(html.includes('workflowRailsStack') && html.includes('editorWorkflowRail'), 'two-tier workflow rails');
     assert.ok(html.includes('setEditorWorkflowStep') && html.includes('editorWorkflowStep'), 'main workflow step state');
+    assert.ok(html.includes('room-wizard-dock--compact'), 'room setup dock toggles compact class');
+    assert.ok(
+        html.includes('!state.roomWizard.active') && html.includes('state.editorWorkflowStep === 2'),
+        'close dismisses step 2 when wizard already inactive'
+    );
+})();
+
+(function testRoomWizardWorkbenchShellCompactCss() {
+    const fs = require('fs');
+    const path = require('path');
+    const cssPath = path.join(__dirname, '../room-wizard-workbench-shell.css');
+    if (!fs.existsSync(cssPath)) return;
+    const css = fs.readFileSync(cssPath, 'utf8');
+    assert.ok(
+        css.includes('.room-wizard-dock.room-wizard-dock--compact'),
+        'compact room setup strip styles should exist'
+    );
 })();
 
 (function testIndexPreviewStartFromHashSmoke() {

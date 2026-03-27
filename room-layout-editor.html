@@ -1661,37 +1661,7 @@
         </div>
       </div>
 
-      <!-- Collapsible settings (hidden by default) -->
-      <div class="canvas-settings-panel collapsible-body" id="canvasSettingsBody" hidden>
-        <div class="settings-row">
-          <label class="setting-item">Grid Snap
-            <select id="snapSize">
-              <option value="0">Off</option>
-              <option value="8">8px</option>
-              <option value="16">16px</option>
-              <option value="32" selected>32px</option>
-              <option value="64">64px</option>
-            </select>
-          </label>
-          <label class="setting-item">Global Zoom
-            <input id="globalZoom" type="range" min="40" max="200" step="5" value="100" />
-          </label>
-          <label class="setting-item">Room Width
-            <input id="roomWidth" type="number" step="32" min="320" />
-          </label>
-          <label class="setting-item">Room Height
-            <input id="roomHeight" type="number" step="32" min="320" />
-          </label>
-          <div class="setting-actions">
-            <button id="addRoom" class="btn-sm">+ Add Room</button>
-            <button id="deleteRoom" class="btn-sm btn-danger">Delete Room</button>
-            <button id="reloadJson" class="btn-sm">Reload Disk</button>
-            <button id="syncCanonicalJson" class="btn-sm">Sync Canonical</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- RW-1 Room wizard — sheet below header -->
+      <!-- Room setup (compact strip) — shown under header when room workflow step is active -->
       <div id="roomWizardDock" class="room-wizard-dock" hidden aria-hidden="true">
         <div class="room-wizard-sheet">
           <div class="room-wizard-sheet-top">
@@ -1781,6 +1751,36 @@
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Collapsible settings (hidden by default) -->
+      <div class="canvas-settings-panel collapsible-body" id="canvasSettingsBody" hidden>
+        <div class="settings-row">
+          <label class="setting-item">Grid Snap
+            <select id="snapSize">
+              <option value="0">Off</option>
+              <option value="8">8px</option>
+              <option value="16">16px</option>
+              <option value="32" selected>32px</option>
+              <option value="64">64px</option>
+            </select>
+          </label>
+          <label class="setting-item">Global Zoom
+            <input id="globalZoom" type="range" min="40" max="200" step="5" value="100" />
+          </label>
+          <label class="setting-item">Room Width
+            <input id="roomWidth" type="number" step="32" min="320" />
+          </label>
+          <label class="setting-item">Room Height
+            <input id="roomHeight" type="number" step="32" min="320" />
+          </label>
+          <div class="setting-actions">
+            <button id="addRoom" class="btn-sm">+ Add Room</button>
+            <button id="deleteRoom" class="btn-sm btn-danger">Delete Room</button>
+            <button id="reloadJson" class="btn-sm">Reload Disk</button>
+            <button id="syncCanonicalJson" class="btn-sm">Sync Canonical</button>
           </div>
         </div>
       </div>
@@ -5389,8 +5389,10 @@
       };
 
       function getRoomWizardRoom() {
-        if (!state.roomWizard.roomId || !state.data) return null;
-        return state.data.rooms.find((r) => r.id === state.roomWizard.roomId) || null;
+        if (!state.data) return null;
+        const id = state.roomWizard.roomId || state.currentRoomId;
+        if (!id) return null;
+        return state.data.rooms.find((r) => r.id === id) || null;
       }
 
       function applyFootprintDimensionsToRoom(room, w, h) {
@@ -5583,10 +5585,18 @@
             return;
           }
         }
-        const room = getRoomWizardRoom();
-        const show = state.roomWizard.active && state.viewMode === 'room' && !!room;
+        const room =
+          state.currentRoomId && state.data
+            ? state.data.rooms.find((r) => r.id === state.currentRoomId)
+            : null;
+        const show =
+          state.editorWorkflowStep === 2 &&
+          state.viewMode === 'room' &&
+          !!state.data &&
+          !!room;
         dock.hidden = !show;
         dock.setAttribute('aria-hidden', show ? 'false' : 'true');
+        dock.classList.toggle('room-wizard-dock--compact', show);
         if (ui.roomSetupBtn) {
           ui.roomSetupBtn.disabled = !state.currentRoomId || !state.data?.rooms?.length;
         }
@@ -5614,7 +5624,18 @@
       }
 
       function closeRoomWizard(skipConfirm) {
-        if (!state.roomWizard.active) return;
+        if (!state.roomWizard.active) {
+          if (state.editorWorkflowStep === 2) {
+            state.editorWorkflowStep = 1;
+            setViewMode('global');
+            updateWorkflowRailPills();
+            updateEditorWorkflowPrimaryPills();
+            syncEditorWorkflowSecondaryRail();
+            syncRoomWizardDock();
+            redraw();
+          }
+          return;
+        }
         if (!skipConfirm && state.roomWizard.touched) {
           const ok = window.confirm(
             'Dismiss room setup? Your edits stay in this session — use Save or Export to write files.'
@@ -5625,6 +5646,7 @@
         state.roomWizard.roomId = null;
         state.roomWizard.phase = 'layout';
         state.roomWizard.touched = false;
+        syncRoomWizardFormFromRoom();
         syncRoomWizardDock();
         updateWorkflowRailPills();
         updateEditorWorkflowPrimaryPills();
@@ -6593,6 +6615,9 @@
             state.selectedGlobalEdge = null;
           }
           setSelection([]);
+          if (state.editorWorkflowStep === 2) {
+            syncRoomWizardFormFromRoom();
+          }
           // ── Task 2.5b: Room switch canvas fade ──
           roomCanvas.style.transition = 'opacity 80ms ease';
           roomCanvas.style.opacity = '0';
