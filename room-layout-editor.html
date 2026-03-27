@@ -174,6 +174,20 @@
     .app-shell.sidebar-collapsed .sidebar-projects {
       display: none;
     }
+    .sidebar-local-actions {
+      margin-bottom: 14px;
+    }
+    .sidebar-local-actions #btnNewLocalProject {
+      width: 100%;
+    }
+    .sidebar-local-hint {
+      margin: 8px 0 0;
+      line-height: 1.35;
+      font-size: var(--font-size-xs);
+    }
+    .app-shell.sidebar-collapsed .sidebar-local-actions {
+      display: none;
+    }
     .brand {
       display: flex;
       align-items: flex-start;
@@ -1559,6 +1573,10 @@
         <div class="sidebar-title">
           <h2>Projects</h2>
         </div>
+        <div class="sidebar-local-actions">
+          <button type="button" class="secondary" id="btnNewLocalProject">New local project</button>
+          <p class="small-note sidebar-local-hint">Sandbox projects use <code>?local_slot=…</code> and their own save slot. Default <strong>Local Layout</strong> keeps the original browser key so your main work is not replaced.</p>
+        </div>
         <div class="project-list" id="room-project-list"></div>
       </div>
     </aside>
@@ -2385,16 +2403,34 @@
       const API_LAYOUT_URL = '/api/layout';
       const PAGE_PARAMS = new URLSearchParams(window.location.search);
       const PROJECT_ID = (PAGE_PARAMS.get('project_id') || '').trim();
+
+      function sanitizeLocalSlot(raw) {
+        const s = String(raw ?? '')
+          .trim()
+          .slice(0, 64);
+        if (!/^[a-zA-Z0-9][a-zA-Z0-9_-]*$/.test(s)) return '';
+        return s;
+      }
+
+      /** Separate browser projects for workflow testing; does not touch default scratch storage when unset. */
+      const LOCAL_SLOT = !PROJECT_ID ? sanitizeLocalSlot(PAGE_PARAMS.get('local_slot') || '') : '';
+      const LOCAL_STORAGE_PREFIX = 'ashen-hollow-room-layout-v1:local:';
       const SIDEBAR_KEY = 'roomCreator.sidebarCollapsed';
       const WORKBENCH_URL = new URL('./tools/2d-sprite-and-animation/index.html', window.location.href);
       const ROOM_EDITOR_URL = new URL('./room-layout-editor.html', window.location.href);
       const PROJECT_LAYOUT_API_URL = PROJECT_ID
         ? `/api/projects/${encodeURIComponent(PROJECT_ID)}/room-layout`
         : API_LAYOUT_URL;
-      const PROJECT_LAYOUT_DOWNLOAD_NAME = PROJECT_ID ? `${PROJECT_ID}-room-layout.json` : 'room-layout-data.json';
+      const PROJECT_LAYOUT_DOWNLOAD_NAME = PROJECT_ID
+        ? `${PROJECT_ID}-room-layout.json`
+        : LOCAL_SLOT
+          ? `local-${LOCAL_SLOT}-room-layout.json`
+          : 'room-layout-data.json';
       const LAYOUT_STORAGE_KEY = PROJECT_ID
         ? `ashen-hollow-room-layout-v1:${PROJECT_ID}`
-        : 'ashen-hollow-room-layout-v1';
+        : LOCAL_SLOT
+          ? `${LOCAL_STORAGE_PREFIX}${LOCAL_SLOT}`
+          : 'ashen-hollow-room-layout-v1';
       const SEED_DATA = JSON.parse(document.getElementById('seedData').textContent);
       const ROOM_W = 1600;
       const ROOM_H = 1200;
@@ -2457,6 +2493,8 @@
           spriteUrl.searchParams.set('project_id', PROJECT_ID);
           homeUrl.searchParams.set('project_id', PROJECT_ID);
           docsUrl.searchParams.set('project_id', PROJECT_ID);
+        } else if (LOCAL_SLOT) {
+          roomUrl.searchParams.set('local_slot', LOCAL_SLOT);
         }
         docsUrl.hash = 'docs';
 
@@ -2472,6 +2510,76 @@
         const url = new URL(ROOM_EDITOR_URL.toString());
         if (projectId) url.searchParams.set('project_id', projectId);
         return url.toString();
+      }
+
+      function roomEditorLocalSlotUrl(slot) {
+        const url = new URL(ROOM_EDITOR_URL.toString());
+        const s = sanitizeLocalSlot(slot);
+        if (s) url.searchParams.set('local_slot', s);
+        return url.toString();
+      }
+
+      function listLocalProjectSlots() {
+        const out = [];
+        try {
+          for (let i = 0; i < window.localStorage.length; i += 1) {
+            const k = window.localStorage.key(i);
+            if (k && k.startsWith(LOCAL_STORAGE_PREFIX)) {
+              out.push(k.slice(LOCAL_STORAGE_PREFIX.length));
+            }
+          }
+        } catch (_) {}
+        return out.sort((a, b) => a.localeCompare(b));
+      }
+
+      function persistCurrentLayoutToStorage() {
+        if (!state.data) return;
+        try {
+          window.localStorage.setItem(LAYOUT_STORAGE_KEY, JSON.stringify(state.data, null, 2));
+        } catch (err) {
+          setStatus(`Could not save to browser storage: ${err.message}`, 'error');
+        }
+      }
+
+      function navigateToRoomEditorUrl(url) {
+        if (state.isDirty) {
+          persistCurrentLayoutToStorage();
+          setDirty(false);
+        }
+        window.location.href = url;
+      }
+
+      function createNewLocalProject() {
+        const suggested = `sandbox-${Date.now()}`;
+        const raw = window.prompt(
+          'New local project id (letters, numbers, dashes, underscores; must start with a letter or number). Your other saved projects are not changed.',
+          suggested
+        );
+        if (raw == null) return;
+        const slot = sanitizeLocalSlot(raw);
+        if (!slot) {
+          setStatus('Invalid id. Use 1–64 chars: start with a letter or number, then letters, numbers, - or _.', 'error');
+          return;
+        }
+        navigateToRoomEditorUrl(roomEditorLocalSlotUrl(slot));
+      }
+
+      function deleteLocalProjectSlot(slot) {
+        const s = sanitizeLocalSlot(slot);
+        if (!s) return;
+        const key = `${LOCAL_STORAGE_PREFIX}${s}`;
+        if (!window.confirm(`Remove saved data for local project “${s}” from this browser? This does not delete other projects.`)) {
+          return;
+        }
+        try {
+          window.localStorage.removeItem(key);
+        } catch (_) {}
+        if (LOCAL_SLOT === s) {
+          window.location.href = roomEditorProjectUrl('');
+          return;
+        }
+        refreshProjectList().catch(() => {});
+        setStatus(`Removed local project “${s}”.`, 'success');
       }
 
       function spriteWorkbenchProjectUrl(projectId) {
@@ -2632,7 +2740,11 @@
       function syncSidebarProjectName() {
         if (!ui.sidebarProjectName) return;
         if (!PROJECT_ID) {
-          ui.sidebarProjectName.textContent = 'Local Layout';
+          if (LOCAL_SLOT) {
+            ui.sidebarProjectName.textContent = `Local · ${LOCAL_SLOT}`;
+          } else {
+            ui.sidebarProjectName.textContent = 'Local Layout';
+          }
           return;
         }
         const project = state.projects.find((entry) => entry.project_id === PROJECT_ID);
@@ -2662,16 +2774,31 @@
       function renderProjectList() {
         if (!ui.roomProjectList) return;
         const cards = [];
+        const defaultLocalActive = !PROJECT_ID && !LOCAL_SLOT ? 'active' : '';
         cards.push(`
-          <div class="project-card ${PROJECT_ID ? '' : 'active'}" data-room-url="${escapeHtml(roomEditorProjectUrl(''))}">
+          <div class="project-card ${defaultLocalActive}" data-room-url="${escapeHtml(roomEditorProjectUrl(''))}">
             <strong>Local Layout</strong>
-            <small>Standalone canonical room-layout-data.json mode.</small>
-            <div class="small-note">Use this when you want to edit the shared local room file outside of a specific workbench project.</div>
+            <small>Default scratch · <code>ashen-hollow-room-layout-v1</code></small>
+            <div class="small-note">Your original browser save and canonical file workflow. Not replaced when you create sandbox projects.</div>
             <div class="project-actions">
-              <button class="secondary" data-action="open-room">Open Local</button>
+              <button class="secondary" data-action="open-room">Open</button>
             </div>
           </div>
         `);
+        listLocalProjectSlots().forEach((slot) => {
+          const active = !PROJECT_ID && LOCAL_SLOT === slot ? 'active' : '';
+          cards.push(`
+            <div class="project-card ${active}" data-room-url="${escapeHtml(roomEditorLocalSlotUrl(slot))}" data-local-slot="${escapeHtml(slot)}">
+              <strong>Local · ${escapeHtml(slot)}</strong>
+              <small>Browser sandbox</small>
+              <div class="small-note">Separate storage key. Safe for experiments.</div>
+              <div class="project-actions">
+                <button class="secondary" data-action="open-room">Open</button>
+                <button class="secondary" data-action="delete-local" type="button">Remove</button>
+              </div>
+            </div>
+          `);
+        });
         state.projects.forEach((project) => {
           const active = project.project_id === PROJECT_ID ? 'active' : '';
           cards.push(`
@@ -2692,11 +2819,16 @@
           const spriteUrl = card.dataset.spriteUrl;
           card.addEventListener('click', (event) => {
             if (event.target.closest('button')) return;
-            if (roomUrl) window.location.href = roomUrl;
+            if (roomUrl) navigateToRoomEditorUrl(roomUrl);
           });
           card.querySelector('[data-action="open-room"]')?.addEventListener('click', (event) => {
             event.stopPropagation();
-            if (roomUrl) window.location.href = roomUrl;
+            if (roomUrl) navigateToRoomEditorUrl(roomUrl);
+          });
+          card.querySelector('[data-action="delete-local"]')?.addEventListener('click', (event) => {
+            event.stopPropagation();
+            const slot = card.dataset.localSlot;
+            if (slot) deleteLocalProjectSlot(slot);
           });
           card.querySelector('[data-action="open-sprite"]')?.addEventListener('click', (event) => {
             event.stopPropagation();
@@ -5986,6 +6118,36 @@
         openRoomWizard(roomId);
       }
 
+      function createEmptyLayoutData() {
+        const roomId = 'R1';
+        const room = {
+          id: roomId,
+          name: 'Room 1',
+          global: { x: 600, y: 360 },
+          size: { width: ROOM_W, height: ROOM_H },
+          polygon: [],
+          playerStart: null,
+          platforms: [],
+          movingPlatforms: [],
+          doors: [],
+          keys: [],
+          abilities: [],
+          edgeLinks: [],
+          removedEdges: []
+        };
+        applyFootprintDimensionsToRoom(room, ROOM_W, ROOM_H);
+        return {
+          version: 1,
+          meta: {
+            worldWidth: 3200,
+            worldHeight: 1200,
+            grid: 32,
+            notes: 'Local sandbox project'
+          },
+          rooms: [room]
+        };
+      }
+
       function deleteRoom() {
         const roomId = state.currentRoomId;
         if (state.roomWizard.active && state.roomWizard.roomId === roomId) {
@@ -6081,6 +6243,25 @@
 
         state.apiAvailable = false;
         updateSyncButtonState();
+
+        if (LOCAL_SLOT && !PROJECT_ID) {
+          const saved = loadSavedLayout();
+          if (saved) {
+            initializeData(
+              saved,
+              forceDisk
+                ? `Reloaded ${saved.rooms.length} rooms from local project “${LOCAL_SLOT}”.`
+                : `Loaded ${saved.rooms.length} rooms from local project “${LOCAL_SLOT}”.`
+            );
+          } else {
+            initializeData(
+              createEmptyLayoutData(),
+              `New empty local project “${LOCAL_SLOT}”. Use Save to persist in this browser slot.`
+            );
+          }
+          return;
+        }
+
         try {
           const response = await fetch(DATA_URL, { cache: 'no-store' });
           if (!response.ok) throw new Error(`Failed to load ${DATA_URL}`);
@@ -6931,6 +7112,7 @@
 
       populateAbilityOptions();
       initSidebarToggle();
+      document.getElementById('btnNewLocalProject')?.addEventListener('click', createNewLocalProject);
       wireRoomWizardEvents();
       wireGamePreview();
       wireEvents();
