@@ -3347,12 +3347,67 @@
         return best;
       }
 
+      function worldDistancePointToSegment(px, py, ax, ay, bx, by) {
+        const abx = bx - ax;
+        const aby = by - ay;
+        const apx = px - ax;
+        const apy = py - ay;
+        const l2 = abx * abx + aby * aby;
+        if (l2 < 1e-18) return Math.hypot(px - ax, py - ay);
+        let t = (apx * abx + apy * aby) / l2;
+        t = Math.max(0, Math.min(1, t));
+        const qx = ax + t * abx;
+        const qy = ay + t * aby;
+        return Math.hypot(px - qx, py - qy);
+      }
+
+      /** How far two edge segments are from lying on each other (world space); works for different edge lengths. */
+      function edgeSnapAlignmentErrorWorld(snappedEdge, targetEdge) {
+        const aToB = Math.max(
+          worldDistancePointToSegment(
+            snappedEdge.start.x,
+            snappedEdge.start.y,
+            targetEdge.start.x,
+            targetEdge.start.y,
+            targetEdge.end.x,
+            targetEdge.end.y
+          ),
+          worldDistancePointToSegment(
+            snappedEdge.end.x,
+            snappedEdge.end.y,
+            targetEdge.start.x,
+            targetEdge.start.y,
+            targetEdge.end.x,
+            targetEdge.end.y
+          )
+        );
+        const bToA = Math.max(
+          worldDistancePointToSegment(
+            targetEdge.start.x,
+            targetEdge.start.y,
+            snappedEdge.start.x,
+            snappedEdge.start.y,
+            snappedEdge.end.x,
+            snappedEdge.end.y
+          ),
+          worldDistancePointToSegment(
+            targetEdge.end.x,
+            targetEdge.end.y,
+            snappedEdge.start.x,
+            snappedEdge.start.y,
+            snappedEdge.end.x,
+            snappedEdge.end.y
+          )
+        );
+        return Math.max(aToB, bToA);
+      }
+
       function getRoomSnapCandidate(room) {
         ensureRoomShape(room);
         if (!room.edgeLinks.length) return null;
 
         const projection = globalScale();
-        const snapThreshold = 28 / projection.scale;
+        const snapThreshold = 36 / projection.scale;
         let best = null;
 
         room.edgeLinks.forEach((link) => {
@@ -3407,15 +3462,7 @@
           candidateDeltas.forEach((entry) => {
             const snappedEdge = getEdgeGlobalPoints(room, link.edgeIndex, entry.proposedGlobal);
             if (!snappedEdge) return;
-            const sameError = Math.max(
-              pointDistance(snappedEdge.start, targetEdge.start),
-              pointDistance(snappedEdge.end, targetEdge.end)
-            );
-            const reversedError = Math.max(
-              pointDistance(snappedEdge.start, targetEdge.end),
-              pointDistance(snappedEdge.end, targetEdge.start)
-            );
-            const error = Math.min(sameError, reversedError);
+            const error = edgeSnapAlignmentErrorWorld(snappedEdge, targetEdge);
             const candidate = {
               roomId: room.id,
               edgeIndex: link.edgeIndex,

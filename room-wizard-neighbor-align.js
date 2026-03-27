@@ -57,8 +57,8 @@ function edgeOrientation(seg) {
 }
 
 /**
- * Snap room A's global position so edge A is flush with edge B (room B fixed).
- * Requires both edges axis-aligned and parallel (horizontal↔horizontal or vertical↔vertical).
+ * Snap room A's global position so edge A lies on the same infinite line as edge B (room B fixed).
+ * Requires parallel edges; uses midpoint translation in world space (works for any polygon, not only quads).
  * @returns {{ ok: true, global: {x:number,y:number} } | { ok: false, reason: string }}
  */
 function computeAlignedGlobal(roomA, roomB, edgeIndexA, edgeIndexB, scale) {
@@ -75,31 +75,34 @@ function computeAlignedGlobal(roomA, roomB, edgeIndexA, edgeIndexB, scale) {
   const segA = getEdgeSegmentLocal(roomA, edgeIndexA);
   const segB = getEdgeSegmentLocal(roomB, edgeIndexB);
   if (!segA || !segB) return { ok: false, reason: 'bad_edge' };
-  const oA = edgeOrientation(segA);
-  const oB = edgeOrientation(segB);
-  if (oA === 'other' || oB === 'other' || oA === 'point' || oB === 'point') {
-    return { ok: false, reason: 'not_axis_aligned' };
+  const uAx = segA.end.x - segA.start.x;
+  const uAy = segA.end.y - segA.start.y;
+  const uBx = segB.end.x - segB.start.x;
+  const uBy = segB.end.y - segB.start.y;
+  const lenA = Math.hypot(uAx, uAy);
+  const lenB = Math.hypot(uBx, uBy);
+  if (lenA < 1e-9 || lenB < 1e-9) return { ok: false, reason: 'degenerate_edge' };
+  const cross = uAx * uBy - uAy * uBx;
+  const parallelEps = Math.max(1e-6, 1e-9 * lenA * lenB);
+  if (Math.abs(cross) > parallelEps) {
+    return { ok: false, reason: 'edges_not_parallel' };
   }
-  if (oA !== oB) return { ok: false, reason: 'orientation_mismatch' };
 
   const midAx = (segA.start.x + segA.end.x) / 2;
   const midAy = (segA.start.y + segA.end.y) / 2;
   const midBx = (segB.start.x + segB.end.x) / 2;
   const midBy = (segB.start.y + segB.end.y) / 2;
 
-  if (oA === 'vertical') {
-    const worldXB = localToWorld(gB, sizeB, segB.start.x, segB.start.y, s).x;
-    const worldYMidB = localToWorld(gB, sizeB, midBx, midBy, s).y;
-    const newGx = worldXB - (segA.start.x - sizeA.width / 2) * s;
-    const newGy = worldYMidB - (midAy - sizeA.height / 2) * s;
-    return { ok: true, global: { x: newGx, y: newGy } };
-  }
+  const midAWorld = localToWorld(gA, sizeA, midAx, midAy, s);
+  const midBWorld = localToWorld(gB, sizeB, midBx, midBy, s);
 
-  const worldYB = localToWorld(gB, sizeB, segB.start.x, segB.start.y, s).y;
-  const worldXMidB = localToWorld(gB, sizeB, midBx, midBy, s).x;
-  const newGy = worldYB - (segA.start.y - sizeA.height / 2) * s;
-  const newGx = worldXMidB - (midAx - sizeA.width / 2) * s;
-  return { ok: true, global: { x: newGx, y: newGy } };
+  return {
+    ok: true,
+    global: {
+      x: gA.x + (midBWorld.x - midAWorld.x),
+      y: gA.y + (midBWorld.y - midAWorld.y)
+    }
+  };
 }
 
 function distancePointToSegment(px, py, ax, ay, bx, by) {

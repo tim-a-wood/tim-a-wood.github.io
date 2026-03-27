@@ -54,12 +54,42 @@ function axisRoom(id, W, H, inset, gx, gy) {
   assert.ok(Math.abs(worldYA - worldYB) < 1e-5);
 })();
 
-(function testOrientationMismatch() {
+(function testNonParallelEdges() {
   const A = axisRoom('A', 800, 600, 80, 0, 0);
   const B = axisRoom('B', 800, 600, 80, 100, 0);
   const r = computeAlignedGlobal(A, B, 0, 1, S);
   assert.strictEqual(r.ok, false);
-  assert.strictEqual(r.reason, 'orientation_mismatch');
+  assert.strictEqual(r.reason, 'edges_not_parallel');
+})();
+
+(function testParallelDiagonalEdges() {
+  const roomA = {
+    id: 'A',
+    global: { x: 0, y: 0 },
+    size: { width: 400, height: 400 },
+    polygon: [
+      [0, 0],
+      [200, 100],
+      [0, 200],
+      [-200, 100]
+    ],
+    doors: []
+  };
+  const roomB = {
+    id: 'B',
+    global: { x: 50, y: 25 },
+    size: { width: 400, height: 400 },
+    polygon: [
+      [0, 0],
+      [100, 50],
+      [0, 100],
+      [-100, 50]
+    ],
+    doors: []
+  };
+  const r = computeAlignedGlobal(roomA, roomB, 0, 0, S);
+  assert.strictEqual(r.ok, true);
+  assert.ok(r.global && Number.isFinite(r.global.x));
 })();
 
 (function testHatchDeltaVertical() {
