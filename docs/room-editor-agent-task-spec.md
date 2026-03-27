@@ -2333,11 +2333,13 @@ Output full demo report before proceeding to Sprint 4.
 
 ## Sprint 4 — Export Contract & Workbench Integration
 
-**Goal:** Produce a structured runtime export package, and add a Level Design stage card inside the Sprite Workbench.
+> **Scope note (2026-03-27):** Creative decisions are recorded in `docs/room-editor-creative-decisions.md`. In short: **two export actions** in the room editor (raw JSON + runtime package); **do not** add Level Design as a Sprite Workbench phase for now — level tooling stays a **separate tool** with a **future wizard** (steps TBD). Sprint 4 implementation focuses on **`room-layout-editor.html`** export/package behavior; workbench `index.html` stage-card work below is **deferred** unless/until product asks for a cross-link only.
+
+**Goal:** Produce a structured runtime export package from the room editor, alongside the existing raw JSON export. ~~Add a Level Design stage card inside the Sprite Workbench~~ **Deferred** per creative decisions doc.
 
 **Files to modify:**
-- `room-layout-editor.html` (export UI)
-- `tools/2d-sprite-and-animation/index.html` (Level Design stage card)
+- `room-layout-editor.html` (export UI — raw + package)
+- ~~`tools/2d-sprite-and-animation/index.html` (Level Design stage card)~~ **Deferred**
 
 **Read before starting:**
 - `docs/room-editor-workbench-integration-plan.md` (full integration architecture)
@@ -2368,7 +2370,7 @@ function generateExportPackage(data, validationReport) {
       doors: room.doors,
       keys: room.keys,
       abilities: room.abilities,
-      movers: room.movers,
+      movingPlatforms: room.movingPlatforms,
       playerStart: room.playerStart,
       edgeLinks: room.edgeLinks,
     };
@@ -2460,24 +2462,30 @@ async function downloadExportPackage() {
 }
 ```
 
-**Wire to Export button:**
+**Wire export UI (two actions):**
 ```js
-// Replace or supplement the existing downloadJson handler:
-document.getElementById('downloadJson')?.addEventListener('click', downloadExportPackage);
+// Keep existing raw JSON export on #downloadJson (or equivalent).
+// Add a separate control, e.g. #downloadRuntimePackage, for downloadExportPackage.
+document.getElementById('downloadRuntimePackage')?.addEventListener('click', downloadExportPackage);
 ```
 
 **Verification:**
-- Clicking "Export" downloads `level_manifest.json` and `room_layout.json`
+- Raw export still downloads the full editor document as today
+- Runtime package control downloads `level_manifest.json` and `room_layout.json` (and any additional files per implementation)
 - Manifest contains correct room count, timestamp, hash, and engine hints
 - Manifest `validation_passed` is null if validation hasn't been run, or true/false if it has
 
 ---
 
-### Task 4.2 — Level Design Stage Card in Sprite Workbench
+### Task 4.2 — Level Design Stage Card in Sprite Workbench — **DEFERRED**
+
+**Status:** Not in current scope. Level design stays a **separate tool**; a **future wizard** (steps TBD) may live in or next to the room editor — see `docs/room-editor-creative-decisions.md`. Do not add a Sprite Workbench phase for this until product revisits.
+
+The following remains as **reference** if the workbench integration is revived later:
 
 **Read first:** Find how existing stage cards are structured in `tools/2d-sprite-and-animation/index.html`. Look for the stage navigation pattern and the panel/card structure used for each pipeline stage.
 
-**What to add:** A new stage entry in the workbench stage list, and a new stage panel showing the level design summary.
+**What was proposed:** A new stage entry in the workbench stage list, and a new stage panel showing the level design summary.
 
 **Find the stage navigation list** (look for a `<nav>` or list of stage buttons). Add an entry:
 ```html

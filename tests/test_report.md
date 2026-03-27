@@ -1,7 +1,7 @@
 # Test Report
 | ID | Line Item | Description | Result | Notes |
 |---|---|---|---|---|
-| AT-01 | Fresh Load And Startup | Verify the prototype loads into the playable zone without crashes or blank screens. | Not Run | Documentation-only change; `index.html` not exercised. |
+| AT-01 | Fresh Load And Startup | Verify the prototype loads into the playable zone without crashes or blank screens. | Not Run | Documentation-only change (`docs/room-editor-creative-decisions.md`, Sprint 4 scope in `room-editor-agent-task-spec.md`); `index.html` not exercised. |
 | AT-02 | Movement, Camera, And World Bounds | Verify left/right movement works and the player/camera stay inside the intended bounded world. | Not Run | Documentation-only change. |
 | AT-03 | Ground Jump | Verify the first jump works consistently from solid ground. | Not Run | Documentation-only change. |
 | AT-04 | Mid-Air Double Jump | Verify the second jump works in mid-air and creates a clear extra hop. | Not Run | Documentation-only change. |
