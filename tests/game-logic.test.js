@@ -787,6 +787,27 @@ function computeDoorStandPosition(roomWidth, door) {
     assert.ok(html.includes('L1-001') && html.includes('L2-003'), 'validation rule IDs should be present');
     assert.ok(html.includes('renderValidationResults'), 'renderValidationResults should exist');
     assert.ok(html.includes('VALIDATION_L2'), 'VALIDATION_L2 tunable thresholds should exist');
+    assert.ok(html.includes('gamePreviewOverlay') && html.includes('gamePreviewFrame'), 'in-page playtest overlay should exist');
+})();
+
+(function testIndexPreviewStartFromHashSmoke() {
+    const fs = require('fs');
+    const path = require('path');
+    const htmlPath = path.join(__dirname, '../index.html');
+    if (!fs.existsSync(htmlPath)) return;
+    const html = fs.readFileSync(htmlPath, 'utf8');
+    assert.ok(html.includes('applyPreviewStartFromHash'), 'applyPreviewStartFromHash should exist');
+    assert.ok(html.includes('let TEMP_TEST_START'), 'mutable TEMP_TEST_START for preview spawn');
+})();
+
+(function testPreviewStartHashParsing() {
+    function parsePreviewStartRoomId(hash) {
+        const m = hash.match(/[&?]start=([^&]+)/);
+        return m ? decodeURIComponent(m[1].trim()) : null;
+    }
+    assert.strictEqual(parsePreviewStartRoomId('#layout=abc&start=R5'), 'R5');
+    assert.strictEqual(parsePreviewStartRoomId('#layout=abc'), null);
+    assert.strictEqual(parsePreviewStartRoomId(''), null);
 })();
 
 console.log('All game-logic tests passed.');

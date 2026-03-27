@@ -1139,6 +1139,68 @@
       background: var(--error-soft);
       border-color: rgba(248,81,73,0.4);
     }
+    .game-preview-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 250;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 5vh 3.5vw;
+      box-sizing: border-box;
+    }
+    .game-preview-overlay[hidden] {
+      display: none !important;
+    }
+    .game-preview-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(2, 4, 8, 0.75);
+      backdrop-filter: blur(14px);
+    }
+    .game-preview-dialog {
+      position: relative;
+      z-index: 1;
+      width: min(92vw, 1320px);
+      height: min(88vh, 940px);
+      max-height: 88vh;
+      display: flex;
+      flex-direction: column;
+      border-radius: var(--radius-tight);
+      border: 1px solid var(--border-strong);
+      background: var(--panel);
+      box-shadow: var(--shadow-lg);
+      overflow: hidden;
+      min-height: 0;
+    }
+    .game-preview-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+      background: rgba(4, 6, 10, 0.98);
+    }
+    .game-preview-header h2 {
+      margin: 0;
+      font-family: var(--font-display);
+      font-size: 22px;
+      letter-spacing: 0.06em;
+      font-weight: 400;
+      color: var(--text);
+    }
+    .game-preview-frame {
+      flex: 1;
+      min-height: 0;
+      width: 100%;
+      border: 0;
+      background: #020308;
+    }
+    body.game-preview-open {
+      overflow: hidden;
+    }
     .canvas-settings-panel {
       padding: 12px 14px;
       border-bottom: 1px solid var(--line);
@@ -2018,6 +2080,30 @@
 
   </div>
     </main>
+  </div>
+
+  <div
+    id="gamePreviewOverlay"
+    class="game-preview-overlay"
+    hidden
+    aria-hidden="true"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="gamePreviewTitle"
+  >
+    <div class="game-preview-backdrop" id="gamePreviewBackdrop" aria-hidden="true"></div>
+    <div class="game-preview-dialog">
+      <header class="game-preview-header">
+        <h2 id="gamePreviewTitle">Playtest</h2>
+        <button type="button" class="btn-icon" id="gamePreviewClose" aria-label="Close game">×</button>
+      </header>
+      <iframe
+        id="gamePreviewFrame"
+        class="game-preview-frame"
+        title="Ashen Hollow playtest"
+        src="about:blank"
+      ></iframe>
+    </div>
   </div>
 
   <div class="toast hidden" id="toast"></div>
@@ -5593,7 +5679,8 @@
           downloadExportPackage();
         });
         document.getElementById('roomWizardBtnOpenGame')?.addEventListener('click', () => {
-          openGameWithLayout();
+          const id = state.roomWizard.roomId || state.currentRoomId;
+          openGameWithLayout(id);
         });
       }
 
@@ -5828,9 +5915,37 @@
         return encodeURIComponent(btoa(unescape(encodeURIComponent(JSON.stringify(state.data)))));
       }
 
-      function openGameWithLayout() {
+      function closeGamePreview() {
+        const iframe = document.getElementById('gamePreviewFrame');
+        const overlay = document.getElementById('gamePreviewOverlay');
+        if (iframe) iframe.src = 'about:blank';
+        if (overlay) {
+          overlay.hidden = true;
+          overlay.setAttribute('aria-hidden', 'true');
+        }
+        document.body.classList.remove('game-preview-open');
+      }
+
+      function openGameWithLayout(previewRoomId) {
+        if (!state.data) return;
         const encoded = encodeLayoutForHash();
-        window.location.href = `./index.html#layout=${encoded}`;
+        let hash = `layout=${encoded}`;
+        if (previewRoomId && state.data.rooms.some((r) => r.id === previewRoomId)) {
+          hash += `&start=${encodeURIComponent(previewRoomId)}`;
+        }
+        const iframe = document.getElementById('gamePreviewFrame');
+        const overlay = document.getElementById('gamePreviewOverlay');
+        if (!iframe || !overlay) return;
+        iframe.src = `./index.html#${hash}`;
+        overlay.hidden = false;
+        overlay.setAttribute('aria-hidden', 'false');
+        document.body.classList.add('game-preview-open');
+        document.getElementById('gamePreviewClose')?.focus();
+      }
+
+      function wireGamePreview() {
+        document.getElementById('gamePreviewClose')?.addEventListener('click', closeGamePreview);
+        document.getElementById('gamePreviewBackdrop')?.addEventListener('click', closeGamePreview);
       }
 
       async function savePermanent() {
@@ -6470,6 +6585,12 @@
           const tagName = target?.tagName;
           const isTypingTarget = target?.isContentEditable || tagName === 'INPUT' || tagName === 'TEXTAREA' || tagName === 'SELECT';
           if (event.key === 'Escape') {
+            const gp = document.getElementById('gamePreviewOverlay');
+            if (gp && !gp.hidden) {
+              closeGamePreview();
+              event.preventDefault();
+              return;
+            }
             if (state.roomWizard.active) {
               requestCloseRoomWizard();
               event.preventDefault();
@@ -6512,6 +6633,7 @@
       populateAbilityOptions();
       initSidebarToggle();
       wireRoomWizardEvents();
+      wireGamePreview();
       wireEvents();
       refreshProjectList().catch(() => {});
       loadData().catch((error) => {

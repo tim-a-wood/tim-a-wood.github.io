@@ -149,7 +149,7 @@ async function loadWorkbenchHeroExport() {
         return normalizeWorkbenchHeroExport(DEFAULT_WORKBENCH_HERO_EXPORT);
     }
 }
-const TEMP_TEST_START = {
+let TEMP_TEST_START = {
     room: 'R1',
     x: 220,
     y: 1020
@@ -725,6 +725,8 @@ function applyRuntimeLayoutData(canonicalData = null) {
                 room.removedEdges || []
             )
         }));
+
+    applyPreviewStartFromHash();
 }
 
 function getLayoutRoom(roomId) {
@@ -903,6 +905,29 @@ function getRoomSpawnPoint(roomId, fallbackX, fallbackY) {
         x: centeredX,
         y: spawnY
     };
+}
+
+function applyPreviewStartFromHash() {
+    try {
+        const hash = window.location.hash || '';
+        const startMatch = hash.match(/[&?]start=([^&]+)/);
+        if (!startMatch) return;
+        const roomId = decodeURIComponent(startMatch[1]).trim();
+        if (!ROOM_IDS[roomId]) return;
+        const room = getLayoutRoom(roomId);
+        if (!room) return;
+        const roomStart = ROOM_IDS[roomId].start;
+        const rw = Number(room?.size?.width) || CONFIG.ROOM_WIDTH;
+        const fallbackX = roomStart + Math.floor(rw * 0.5);
+        const fallbackY = CONFIG.WORLD_HEIGHT - 120;
+        const spawn = getRoomSpawnPoint(roomId, fallbackX, fallbackY);
+        TEMP_TEST_START.room = roomId;
+        TEMP_TEST_START.x = spawn.x;
+        TEMP_TEST_START.y = spawn.y;
+        delete TEMP_TEST_START.doorId;
+    } catch (_) {
+        /* ignore malformed preview hash */
+    }
 }
 
 class AshenHollow extends Phaser.Scene {
