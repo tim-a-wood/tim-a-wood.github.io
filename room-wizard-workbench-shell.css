@@ -1,0 +1,424 @@
+/**
+ * Room layout editor — room wizard UI aligned with Sprite Workbench
+ * (tools/2d-sprite-and-animation/index.html phase rail, phase pills, stage cards).
+ * Loaded only by room-layout-editor.html.
+ */
+
+.room-wizard-overlay {
+  --stroke: rgba(0, 232, 200, 0.1);
+  --stroke-strong: rgba(0, 232, 200, 0.14);
+  --panel-soft: #07090c;
+  --success: #4ade80;
+  --success-soft: rgba(74, 222, 128, 0.12);
+  --radius-lg: 20px;
+  --radius-sm: 14px;
+}
+
+body.room-wizard-open {
+  overflow: hidden;
+}
+
+.room-wizard-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  padding: 24px;
+  box-sizing: border-box;
+}
+
+.room-wizard-overlay[hidden] {
+  display: none !important;
+}
+
+.room-wizard-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(2, 4, 6, 0.75);
+  backdrop-filter: blur(8px);
+}
+
+/* Sheet: matches Sprite .panel treatment */
+.room-wizard-sheet {
+  position: relative;
+  z-index: 1;
+  width: min(900px, 100%);
+  max-height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--stroke);
+  border-radius: var(--radius);
+  background: var(--panel);
+  box-shadow: var(--shadow-lg);
+}
+
+.room-wizard-sheet-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 18px 12px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.room-wizard-sheet-top .room-wizard-sub {
+  margin: 8px 0 0;
+  font-size: var(--font-size-sm);
+  color: var(--muted);
+  max-width: 42em;
+  line-height: 1.45;
+}
+
+.room-wizard-sheet-title {
+  margin: 4px 0 0;
+  font-size: 26px;
+  font-weight: 400;
+  font-family: var(--font-display);
+  letter-spacing: 0.04em;
+  color: var(--text);
+  line-height: 1;
+}
+
+.room-wizard-scroll {
+  flex: 1;
+  overflow: auto;
+  padding: 0 18px 20px;
+}
+
+/* ── Phase rail (Sprite Workbench) ── */
+.room-wizard-overlay .phase-rail {
+  display: grid;
+  flex-shrink: 0;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+  padding: 12px 18px 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+@media (max-width: 1180px) {
+  .room-wizard-overlay .phase-rail {
+    grid-template-columns: 1fr;
+  }
+}
+
+.room-wizard-overlay .phase-pill {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 84px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--panel);
+  color: inherit;
+  text-decoration: none;
+  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s, opacity 0.15s;
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+}
+
+.room-wizard-overlay .phase-pill.locked {
+  opacity: 0.28;
+  pointer-events: none;
+}
+
+.room-wizard-overlay .phase-pill.available {
+  background: var(--panel-soft);
+}
+
+.room-wizard-overlay .phase-pill.available:hover,
+.room-wizard-overlay .phase-pill.available:focus-visible {
+  border-color: rgba(0, 232, 200, 0.28);
+  outline: none;
+}
+
+.room-wizard-overlay .phase-pill.active {
+  border: 2px solid var(--accent);
+  background: linear-gradient(160deg, rgba(0, 232, 200, 0.07) 0%, transparent 70%), var(--panel);
+  box-shadow: 0 0 0 3px rgba(0, 232, 200, 0.08), inset 0 1px 0 rgba(0, 232, 200, 0.1), 0 0 20px rgba(0, 232, 200, 0.06);
+}
+
+.room-wizard-overlay .phase-pill.active:hover,
+.room-wizard-overlay .phase-pill.active:focus-visible {
+  box-shadow: 0 0 0 4px rgba(0, 232, 200, 0.12), inset 0 1px 0 rgba(0, 232, 200, 0.14), 0 0 24px rgba(0, 232, 200, 0.08);
+  outline: none;
+}
+
+.room-wizard-overlay .phase-number {
+  width: 36px;
+  height: 36px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--text-muted);
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.room-wizard-overlay .phase-pill.active .phase-number {
+  background: var(--accent);
+  border-color: transparent;
+  color: #fff;
+  font-size: 14px;
+}
+
+.room-wizard-overlay .phase-pill.available .phase-number {
+  border-color: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-muted);
+}
+
+.room-wizard-overlay .phase-pill-copy {
+  min-width: 0;
+  flex: 1;
+}
+
+.room-wizard-overlay .phase-pill-copy strong {
+  display: block;
+  font-size: var(--font-size-sm);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.room-wizard-overlay .phase-pill-copy small {
+  display: block;
+  margin-top: 3px;
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Phase header (Sprite) */
+.room-wizard-overlay .phase-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.room-wizard-overlay .phase-header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  flex: 1;
+}
+
+.room-wizard-overlay .phase-header-num {
+  font-size: 11px;
+  font-weight: 400;
+  font-family: var(--font-display);
+  letter-spacing: 0.16em;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.room-wizard-overlay .phase-header h2 {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 400;
+  font-family: var(--font-display);
+  letter-spacing: 0.04em;
+  color: var(--text);
+  line-height: 1;
+}
+
+.room-wizard-overlay .phase-header-desc {
+  margin: 4px 0 0;
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+}
+
+/* Stage card (Sprite) */
+.room-wizard-overlay .stage-card {
+  padding: 14px;
+  border-radius: var(--radius-tight);
+  border: 1px solid var(--stroke);
+  background: rgba(255, 255, 255, 0.03);
+  display: grid;
+  gap: 14px;
+  align-content: start;
+  margin-bottom: 16px;
+}
+
+.room-wizard-overlay .stage-card-head {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.room-wizard-overlay .stage-card-head h4 {
+  margin: 0;
+  font-size: 0.98rem;
+}
+
+.room-wizard-overlay .stage-card-head p {
+  margin: 0;
+}
+
+.room-wizard-overlay .field-grid {
+  display: grid;
+  gap: 14px;
+}
+
+.room-wizard-overlay .small-note {
+  font-size: 0.76rem;
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+/* Fields (Sprite) */
+.room-wizard-overlay .info-box {
+  padding: 10px 12px;
+  border: 1px solid var(--stroke);
+  border-radius: var(--radius-tight);
+  background: rgba(124, 181, 220, 0.08);
+  margin-bottom: 16px;
+}
+
+.room-wizard-overlay .info-box p {
+  margin: 0;
+  line-height: 1.5;
+}
+
+.room-wizard-overlay label {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.room-wizard-overlay .field-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text);
+  font-weight: 600;
+}
+
+.room-wizard-overlay .field-help {
+  font-size: 0.76rem;
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+.room-wizard-overlay .rw-footprint-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.room-wizard-overlay .rw-footprint-grid label {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  color: var(--text);
+  font-size: var(--font-size-sm);
+}
+
+.room-wizard-overlay input[type="text"],
+.room-wizard-overlay input[type="number"] {
+  width: 100%;
+  border-radius: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--stroke-strong);
+  background: rgba(4, 6, 10, 0.85);
+  color: var(--text);
+}
+
+.room-wizard-overlay .rw-custom-footprint {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.room-wizard-overlay .rw-validation-inline {
+  margin-top: 16px;
+  padding: 12px;
+  border-radius: var(--radius-tight);
+  border: 1px solid var(--stroke);
+  background: rgba(0, 0, 0, 0.2);
+  font-size: var(--font-size-xs);
+  max-height: 180px;
+  overflow: auto;
+}
+
+.room-wizard-overlay .rw-validation-inline .vw-item {
+  margin-bottom: 6px;
+  color: var(--text-muted);
+}
+
+.room-wizard-overlay .rw-validation-inline .vw-item.err {
+  color: var(--error);
+}
+
+.room-wizard-overlay .rw-validation-inline .vw-item.warn {
+  color: var(--warning);
+}
+
+.room-wizard-overlay .rw-review-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.room-wizard-overlay .phase-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+  font-family: var(--font-sans);
+  padding: 6px 12px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.room-wizard-overlay .phase-back-btn:hover {
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+
+.room-wizard-overlay .rw-review-summary dl {
+  margin: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.room-wizard-overlay .rw-review-summary dt {
+  font-size: var(--font-size-xs);
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.room-wizard-overlay .rw-review-summary dd {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+}

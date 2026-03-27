@@ -11,4 +11,4 @@
 | AT-08 | HUD And Feedback | Verify the HUD remains visible and updates during play. | Not Run | Same as AT-01. |
 | AT-09 | Key Pickup And Door Unlock | Verify the first progression loop works end to end: collect the key on the high ledge, show it in the HUD inventory, then consume it to unlock the left-side door. | Not Run | Same as AT-01. |
 | Unit Test Suite | Overall Unit Tests | General unit test suite status. | Pass | Ran `node tests/game-logic.test.js`, `room-editor-export.test.js`, `room-wizard-footprint.test.js` (2026-03-27); all exited 0. |
-| RW-1 manual | Room wizard vertical slice | Add Room → Layout → Review → Export JSON (per `docs/room-wizard-implementation-sprints.md`). | Not Run | Automated unit tests only; browser demo not executed in CI. |
+| RW-1 manual | Room wizard vertical slice | Add Room → Layout → Review → Export JSON (per `docs/room-wizard-implementation-sprints.md`). | Not Run | Automated unit tests only; browser demo not executed in CI. 2026-03-27: wizard UI refactored to Sprite Workbench scaffold (`phase-rail` / `phase-pill` / `stage-card`); not manually verified in browser. |

@@ -7,6 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./room-wizard-workbench-shell.css" />
   <style>
     :root {
       --bg: #050709;
@@ -1462,185 +1463,6 @@
       font-weight: 600;
     }
 
-    /* RW-1 Room wizard */
-    .room-wizard-overlay {
-      position: fixed;
-      inset: 0;
-      z-index: 200;
-      display: flex;
-      align-items: stretch;
-      justify-content: center;
-      padding: var(--space-5);
-      box-sizing: border-box;
-    }
-    .room-wizard-overlay[hidden] {
-      display: none !important;
-    }
-    .room-wizard-backdrop {
-      position: absolute;
-      inset: 0;
-      background: rgba(2, 4, 6, 0.72);
-      backdrop-filter: blur(6px);
-    }
-    .room-wizard-dialog {
-      position: relative;
-      z-index: 1;
-      width: min(720px, 100%);
-      max-height: 100%;
-      display: flex;
-      flex-direction: column;
-      background: var(--panel);
-      border: 1px solid var(--line-strong);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow-lg);
-      overflow: hidden;
-    }
-    .room-wizard-header {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      gap: var(--space-4);
-      padding: var(--space-5);
-      border-bottom: 1px solid var(--line);
-    }
-    .room-wizard-header h2 {
-      margin: 4px 0 0;
-      font-family: var(--font-display);
-      font-size: var(--font-size-xl);
-      letter-spacing: 0.04em;
-    }
-    .room-wizard-sub {
-      margin: 6px 0 0;
-      font-size: var(--font-size-sm);
-      color: var(--muted);
-    }
-    .room-wizard-rail {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      padding: var(--space-3) var(--space-5);
-      border-bottom: 1px solid var(--line);
-      background: rgba(0, 0, 0, 0.2);
-    }
-    .room-wizard-phase {
-      padding: 8px 14px;
-      border-radius: 999px;
-      border: 1px solid var(--line);
-      background: transparent;
-      color: var(--text-muted);
-      font-size: var(--font-size-xs);
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      cursor: pointer;
-      transition: background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
-    }
-    .room-wizard-phase:hover:not(:disabled) {
-      color: var(--text);
-      border-color: var(--border-strong);
-    }
-    .room-wizard-phase.active {
-      color: var(--accent);
-      border-color: rgba(0, 232, 200, 0.35);
-      background: var(--accent-soft);
-    }
-    .room-wizard-phase.locked:disabled {
-      opacity: 0.45;
-      cursor: not-allowed;
-    }
-    .room-wizard-body {
-      flex: 1;
-      overflow: auto;
-      padding: var(--space-5);
-    }
-    .room-wizard-panel .field-grid {
-      display: grid;
-      gap: var(--space-4);
-    }
-    .room-wizard-panel label {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      font-size: var(--font-size-xs);
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-    }
-    .room-wizard-panel input[type="text"],
-    .room-wizard-panel input[type="number"] {
-      padding: 10px 12px;
-      border-radius: var(--radius-tight);
-      border: 1px solid var(--line);
-      background: var(--bg-soft);
-      color: var(--text);
-      font-size: var(--font-size-base);
-      font-family: var(--font-sans);
-    }
-    .room-wizard-footprint-presets {
-      display: flex;
-      flex-wrap: wrap;
-      gap: var(--space-2);
-    }
-    .room-wizard-footprint-presets label {
-      flex-direction: row;
-      align-items: center;
-      gap: 8px;
-      text-transform: none;
-      letter-spacing: 0;
-      font-size: var(--font-size-sm);
-      color: var(--text);
-      cursor: pointer;
-    }
-    .room-wizard-review-summary {
-      font-size: var(--font-size-sm);
-      color: var(--text);
-      line-height: 1.5;
-      margin-bottom: var(--space-4);
-    }
-    .room-wizard-review-summary dl {
-      margin: 0;
-      display: grid;
-      gap: 8px;
-    }
-    .room-wizard-review-summary dt {
-      font-size: var(--font-size-xs);
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-    }
-    .room-wizard-review-summary dd {
-      margin: 0;
-      font-family: var(--font-mono);
-      font-size: var(--font-size-sm);
-    }
-    .room-wizard-review-actions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: var(--space-2);
-      margin-top: var(--space-4);
-    }
-    .room-wizard-validation-inline {
-      margin-top: var(--space-4);
-      padding: var(--space-3);
-      border-radius: var(--radius-tight);
-      border: 1px solid var(--line);
-      background: rgba(0, 0, 0, 0.2);
-      font-size: var(--font-size-xs);
-      max-height: 180px;
-      overflow: auto;
-    }
-    .room-wizard-validation-inline .vw-item {
-      margin-bottom: 6px;
-      color: var(--text-muted);
-    }
-    .room-wizard-validation-inline .vw-item.err { color: var(--error); }
-    .room-wizard-validation-inline .vw-item.warn { color: var(--warning); }
-    .room-wizard-custom-footprint {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: var(--space-3);
-      margin-top: var(--space-3);
-    }
   </style>
 </head>
 <body>
@@ -2055,64 +1877,132 @@
     </main>
   </div>
 
-  <!-- RW-1 Room wizard (Add Room) -->
+  <!-- RW-1 Room wizard — scaffold matches Sprite Workbench (phase rail, phase pills, stage cards) -->
   <div id="roomWizardOverlay" class="room-wizard-overlay" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="roomWizardTitle">
     <div class="room-wizard-backdrop" id="roomWizardBackdrop" aria-hidden="true"></div>
-    <div class="room-wizard-dialog">
-      <header class="room-wizard-header">
+    <div class="room-wizard-sheet">
+      <div class="room-wizard-sheet-top">
         <div>
           <div class="eyebrow">New room</div>
-          <h2 id="roomWizardTitle">Room wizard</h2>
-          <p class="room-wizard-sub">Guided steps — same spirit as Sprite Workbench. More phases unlock in later releases.</p>
+          <h2 id="roomWizardTitle" class="room-wizard-sheet-title">Room wizard</h2>
+          <p class="room-wizard-sub">Same phased flow as Sprite Workbench. Locked steps unlock in later releases.</p>
         </div>
         <button type="button" class="btn-icon" id="roomWizardClose" aria-label="Close room wizard">×</button>
-      </header>
-      <nav class="room-wizard-rail" aria-label="Wizard phases">
-        <button type="button" class="room-wizard-phase active" data-rw-phase="layout" id="roomWizardTabLayout">Layout</button>
-        <button type="button" class="room-wizard-phase locked" disabled title="Coming in a later update">Terrain</button>
-        <button type="button" class="room-wizard-phase locked" disabled title="Coming in a later update">Environment</button>
-        <button type="button" class="room-wizard-phase locked" disabled title="Coming in a later update">Objects</button>
-        <button type="button" class="room-wizard-phase" data-rw-phase="review" id="roomWizardTabReview">Review &amp; Export</button>
+      </div>
+      <nav id="roomWizardPhaseRail" class="phase-rail" aria-label="Wizard phases">
+        <button type="button" class="phase-pill active" data-rw-phase="layout" id="roomWizardTabLayout">
+          <span class="phase-number">1</span>
+          <span class="phase-pill-copy">
+            <strong>Layout</strong>
+            <small>Identity &amp; footprint</small>
+          </span>
+        </button>
+        <button type="button" class="phase-pill locked" disabled title="Coming in a later update">
+          <span class="phase-number">2</span>
+          <span class="phase-pill-copy">
+            <strong>Terrain</strong>
+            <small>Coming soon</small>
+          </span>
+        </button>
+        <button type="button" class="phase-pill locked" disabled title="Coming in a later update">
+          <span class="phase-number">3</span>
+          <span class="phase-pill-copy">
+            <strong>Environment</strong>
+            <small>Coming soon</small>
+          </span>
+        </button>
+        <button type="button" class="phase-pill locked" disabled title="Coming in a later update">
+          <span class="phase-number">4</span>
+          <span class="phase-pill-copy">
+            <strong>Objects</strong>
+            <small>Coming soon</small>
+          </span>
+        </button>
+        <button type="button" class="phase-pill available" data-rw-phase="review" id="roomWizardTabReview">
+          <span class="phase-number">5</span>
+          <span class="phase-pill-copy">
+            <strong>Review</strong>
+            <small>Validation &amp; export</small>
+          </span>
+        </button>
       </nav>
-      <div class="room-wizard-body">
-        <div id="roomWizardPanelLayout" class="room-wizard-panel">
-          <div class="field-grid">
-            <label>Room name
-              <input type="text" id="roomWizardRoomName" autocomplete="off" />
-            </label>
-            <label>Room id
-              <input type="text" id="roomWizardRoomId" autocomplete="off" spellcheck="false" />
-            </label>
-            <div>
-              <span class="eyebrow" style="display:block;margin-bottom:8px;">Footprint</span>
-              <div class="room-wizard-footprint-presets" id="roomWizardFootprintGroup">
-                <label><input type="radio" name="roomWizardFootprint" value="small" /> Small (960×720)</label>
-                <label><input type="radio" name="roomWizardFootprint" value="medium" /> Medium (1600×1200)</label>
-                <label><input type="radio" name="roomWizardFootprint" value="large" /> Large (2240×1200)</label>
-                <label><input type="radio" name="roomWizardFootprint" value="custom" /> Custom</label>
-              </div>
-              <div id="roomWizardCustomFootprint" class="room-wizard-custom-footprint field-grid" hidden>
-                <label>Width (px)
-                  <input type="number" id="roomWizardCustomW" min="320" step="32" />
-                </label>
-                <label>Height (px)
-                  <input type="number" id="roomWizardCustomH" min="320" step="32" />
-                </label>
-                <div style="grid-column:1/-1;">
-                  <button type="button" class="btn-secondary" id="roomWizardApplyCustomFootprint">Apply custom size</button>
-                </div>
+      <div class="room-wizard-scroll">
+        <div id="roomWizardPanelLayout">
+          <div class="phase-header">
+            <div class="phase-header-left">
+              <span class="phase-header-num">Phase 1 · Layout</span>
+              <h2>Layout</h2>
+              <p class="phase-header-desc">Name the room, set its id, and choose the canvas footprint.</p>
+            </div>
+          </div>
+          <div class="stage-card">
+            <div class="stage-card-head">
+              <h4>Identity</h4>
+              <p class="small-note">Display name and canonical id are used in the editor, map graph, and exports.</p>
+            </div>
+            <div class="field-grid">
+              <label>
+                <span class="field-label">Room name</span>
+                <input type="text" id="roomWizardRoomName" autocomplete="off" />
+              </label>
+              <label>
+                <span class="field-label">Room id</span>
+                <span class="field-help">Must match R1, R2, …</span>
+                <input type="text" id="roomWizardRoomId" autocomplete="off" spellcheck="false" />
+              </label>
+            </div>
+          </div>
+          <div class="stage-card">
+            <div class="stage-card-head">
+              <h4>Footprint</h4>
+              <p class="small-note">Preset sizes match common viewports; custom uses your width and height in pixels.</p>
+            </div>
+            <div class="info-box">
+              <p>Pick a preset or custom dimensions. Changing footprint rescales room-local coordinates — review doors and platforms after large changes.</p>
+            </div>
+            <div class="rw-footprint-grid" id="roomWizardFootprintGroup">
+              <label><input type="radio" name="roomWizardFootprint" value="small" /> Small (960×720)</label>
+              <label><input type="radio" name="roomWizardFootprint" value="medium" /> Medium (1600×1200)</label>
+              <label><input type="radio" name="roomWizardFootprint" value="large" /> Large (2240×1200)</label>
+              <label><input type="radio" name="roomWizardFootprint" value="custom" /> Custom</label>
+            </div>
+            <div id="roomWizardCustomFootprint" class="rw-custom-footprint field-grid" hidden>
+              <label>
+                <span class="field-label">Width (px)</span>
+                <input type="number" id="roomWizardCustomW" min="320" step="32" />
+              </label>
+              <label>
+                <span class="field-label">Height (px)</span>
+                <input type="number" id="roomWizardCustomH" min="320" step="32" />
+              </label>
+              <div style="grid-column:1/-1;">
+                <button type="button" class="btn-secondary" id="roomWizardApplyCustomFootprint">Apply custom size</button>
               </div>
             </div>
           </div>
         </div>
-        <div id="roomWizardPanelReview" class="room-wizard-panel" hidden>
-          <div class="room-wizard-review-summary" id="roomWizardReviewSummary"></div>
-          <div class="room-wizard-validation-inline" id="roomWizardValidationInline" aria-live="polite"></div>
-          <p class="empty-state-sub" style="margin-top:12px;">Full validation panel is below the canvas. Export uses your whole layout file.</p>
-          <div class="room-wizard-review-actions">
-            <button type="button" class="btn-secondary" id="roomWizardBtnExportJson">Export JSON</button>
-            <button type="button" class="btn-secondary" id="roomWizardBtnExportRuntime">Export runtime</button>
-            <button type="button" class="btn-secondary" id="roomWizardBtnOpenGame">Open game</button>
+        <div id="roomWizardPanelReview" hidden>
+          <div class="phase-header">
+            <div class="phase-header-left">
+              <span class="phase-header-num">Phase 5 · Review</span>
+              <h2>Review &amp; export</h2>
+              <p class="phase-header-desc">Confirm summary, scan validation, then export or open the game.</p>
+            </div>
+            <button type="button" class="phase-back-btn" id="roomWizardBackToLayout">← Layout</button>
+          </div>
+          <div class="stage-card">
+            <div class="stage-card-head">
+              <h4>Summary &amp; checks</h4>
+              <p class="small-note">Structural validation mirrors the panel below the canvas.</p>
+            </div>
+            <div class="rw-review-summary" id="roomWizardReviewSummary"></div>
+            <div class="rw-validation-inline" id="roomWizardValidationInline" aria-live="polite"></div>
+            <p class="small-note">Full validation panel is below the canvas. Export uses your whole layout file.</p>
+            <div class="rw-review-actions">
+              <button type="button" class="btn-secondary" id="roomWizardBtnExportJson">Export JSON</button>
+              <button type="button" class="btn-secondary" id="roomWizardBtnExportRuntime">Export runtime</button>
+              <button type="button" class="btn-secondary" id="roomWizardBtnOpenGame">Open game</button>
+            </div>
           </div>
         </div>
       </div>
@@ -5426,17 +5316,29 @@
         syncRoomWizardFootprintRadios();
       }
 
+      function updateRoomWizardPhasePills() {
+        const ph = state.roomWizard.phase;
+        const rail = document.getElementById('roomWizardPhaseRail');
+        if (!rail) return;
+        rail.querySelectorAll('.phase-pill[data-rw-phase]').forEach((pill) => {
+          const key = pill.dataset.rwPhase;
+          pill.classList.remove('active', 'available', 'locked', 'complete');
+          if (key === 'layout') {
+            pill.classList.add(ph === 'layout' ? 'active' : 'available');
+          } else if (key === 'review') {
+            pill.classList.add(ph === 'review' ? 'active' : 'available');
+          }
+        });
+      }
+
       function setRoomWizardPhase(phase) {
         if (phase !== 'layout' && phase !== 'review') return;
         state.roomWizard.phase = phase;
-        const tabL = document.getElementById('roomWizardTabLayout');
-        const tabR = document.getElementById('roomWizardTabReview');
         const panL = document.getElementById('roomWizardPanelLayout');
         const panR = document.getElementById('roomWizardPanelReview');
-        if (tabL) tabL.classList.toggle('active', phase === 'layout');
-        if (tabR) tabR.classList.toggle('active', phase === 'review');
         if (panL) panL.hidden = phase !== 'layout';
         if (panR) panR.hidden = phase !== 'review';
+        updateRoomWizardPhasePills();
         if (phase === 'review') {
           updateRoomWizardReviewPanel();
         }
@@ -5487,6 +5389,7 @@
           overlay.hidden = false;
           overlay.setAttribute('aria-hidden', 'false');
         }
+        document.body.classList.add('room-wizard-open');
         syncRoomWizardFormFromRoom();
         setRoomWizardPhase('layout');
         const nameInput = document.getElementById('roomWizardRoomName');
@@ -5512,6 +5415,7 @@
           overlay.hidden = true;
           overlay.setAttribute('aria-hidden', 'true');
         }
+        document.body.classList.remove('room-wizard-open');
       }
 
       function requestCloseRoomWizard() {
@@ -5523,6 +5427,7 @@
         document.getElementById('roomWizardBackdrop')?.addEventListener('click', requestCloseRoomWizard);
         document.getElementById('roomWizardTabLayout')?.addEventListener('click', () => setRoomWizardPhase('layout'));
         document.getElementById('roomWizardTabReview')?.addEventListener('click', () => setRoomWizardPhase('review'));
+        document.getElementById('roomWizardBackToLayout')?.addEventListener('click', () => setRoomWizardPhase('layout'));
         document.getElementById('roomWizardRoomName')?.addEventListener('input', () => {
           const room = getRoomWizardRoom();
           if (!room) return;
