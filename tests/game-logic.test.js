@@ -791,6 +791,8 @@ function computeDoorStandPosition(roomWidth, door) {
     assert.ok(html.includes('ASHEN_HOLLOW_PREVIEW') && html.includes('preview=embed'), 'editor posts layout + embed hash');
     assert.ok(html.includes('workflowRailsStack') && html.includes('editorWorkflowRail'), 'two-tier workflow rails');
     assert.ok(html.includes('setEditorWorkflowStep') && html.includes('editorWorkflowStep'), 'main workflow step state');
+    assert.ok(html.includes('room-wizard-neighbor-align.js'), 'RW-2 neighbor align script');
+    assert.ok(html.includes('RoomWizardNeighborAlign') || html.includes('roomWizardBtnAlign'), 'RW-2 align UI wired');
     assert.ok(html.includes('room-wizard-dock--compact'), 'room setup dock toggles compact class');
     assert.ok(
         html.includes('!state.roomWizard.active') && html.includes('state.editorWorkflowStep === 2'),

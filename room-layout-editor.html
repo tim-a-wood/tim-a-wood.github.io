@@ -1726,6 +1726,43 @@
                   </div>
                 </div>
               </div>
+              <div class="stage-card" id="roomWizardNeighborsCard">
+                <div class="stage-card-head">
+                  <h4>Neighbors &amp; alignment</h4>
+                  <p class="small-note">Connect this room to another, snap to a shared edge on the global map, then match door height at the opening.</p>
+                </div>
+                <div class="info-box" id="roomWizardNeighborHint">
+                  <p>Pick a neighboring room and which edges meet. <strong>Align</strong> moves this room so those edges line up; <strong>Match opening height</strong> uses doors near each edge (place doors within ~72px of the edge). With only one room in the project, add another room first.</p>
+                </div>
+                <div class="field-grid rw-neighbor-grid">
+                  <label>
+                    <span class="field-label">Adjoining room</span>
+                    <select id="roomWizardNeighbor"></select>
+                  </label>
+                  <label>
+                    <span class="field-label">This room’s edge</span>
+                    <select id="roomWizardMyEdge">
+                      <option value="0">Top (edge 0)</option>
+                      <option value="1">Right (edge 1)</option>
+                      <option value="2">Bottom (edge 2)</option>
+                      <option value="3">Left (edge 3)</option>
+                    </select>
+                  </label>
+                  <label>
+                    <span class="field-label">Neighbor’s edge</span>
+                    <select id="roomWizardNeighborEdge">
+                      <option value="0">Top (edge 0)</option>
+                      <option value="1">Right (edge 1)</option>
+                      <option value="2">Bottom (edge 2)</option>
+                      <option value="3">Left (edge 3)</option>
+                    </select>
+                  </label>
+                  <div class="rw-neighbor-actions">
+                    <button type="button" class="btn-secondary" id="roomWizardBtnAlign">Align with neighbor</button>
+                    <button type="button" class="btn-secondary" id="roomWizardBtnHatch">Match opening height</button>
+                  </div>
+                </div>
+              </div>
             </div>
             <div id="roomWizardPanelReview" hidden>
               <div class="phase-header">
@@ -2340,6 +2377,7 @@
 
   <script src="room-layout-export-package.js"></script>
   <script src="room-layout-wizard-footprint.js"></script>
+  <script src="room-wizard-neighbor-align.js"></script>
   <script>
     (() => {
       const DATA_URL = './room-layout-data.json';
@@ -5438,6 +5476,120 @@
         if (nameEl) nameEl.value = room.name || '';
         if (idEl) idEl.value = room.id || '';
         syncRoomWizardFootprintRadios();
+        syncRoomWizardNeighborFromRoom();
+      }
+
+      function syncRoomWizardNeighborFromRoom() {
+        const room = getRoomWizardRoom();
+        const sel = document.getElementById('roomWizardNeighbor');
+        const myEdge = document.getElementById('roomWizardMyEdge');
+        const nbEdge = document.getElementById('roomWizardNeighborEdge');
+        const card = document.getElementById('roomWizardNeighborsCard');
+        if (!sel || !room || !state.data) return;
+        const cur = room.id;
+        const prev = sel.value;
+        sel.innerHTML = '';
+        const empty = document.createElement('option');
+        empty.value = '';
+        empty.textContent = '— None yet —';
+        sel.appendChild(empty);
+        const others = state.data.rooms.filter((r) => r.id !== cur);
+        others.forEach((r) => {
+          const opt = document.createElement('option');
+          opt.value = r.id;
+          opt.textContent = `${r.name || r.id} (${r.id})`;
+          sel.appendChild(opt);
+        });
+        if (card) card.style.opacity = others.length ? '' : '0.65';
+        let pick = prev;
+        const prevOk = pick && others.some((r) => r.id === pick);
+        if (!prevOk) {
+          const link = (room.edgeLinks || [])[0];
+          pick = link && link.targetRoomId ? link.targetRoomId : '';
+        }
+        sel.value = pick;
+        if (pick && myEdge && nbEdge) {
+          const link = (room.edgeLinks || []).find((l) => l.targetRoomId === pick);
+          if (link) {
+            myEdge.value = String(link.edgeIndex);
+            nbEdge.value = String(link.targetEdgeIndex);
+          }
+        }
+      }
+
+      function applyRoomWizardAlign() {
+        const mod = globalThis.RoomWizardNeighborAlign;
+        if (!mod || typeof mod.computeAlignedGlobal !== 'function') {
+          setStatus('Neighbor align module not loaded.', 'error');
+          return;
+        }
+        const room = getRoomWizardRoom();
+        if (!room) return;
+        const neighborId = document.getElementById('roomWizardNeighbor')?.value;
+        if (!neighborId) {
+          setStatus('Pick an adjoining room first.', 'warning');
+          return;
+        }
+        const neighbor = getRoomById(neighborId);
+        if (!neighbor) return;
+        ensureRoomShape(room);
+        ensureRoomShape(neighbor);
+        const myEdge = Number(document.getElementById('roomWizardMyEdge')?.value);
+        const nEdge = Number(document.getElementById('roomWizardNeighborEdge')?.value);
+        const result = mod.computeAlignedGlobal(room, neighbor, myEdge, nEdge, mod.ROOM_WIZARD_NEIGHBOR_SCALE);
+        if (!result.ok) {
+          setStatus(`Align: ${result.reason}`, 'error');
+          return;
+        }
+        room.global = { x: result.global.x, y: result.global.y };
+        setRoomEdgeLink(room.id, myEdge, neighborId, nEdge);
+        state.roomWizard.touched = true;
+        setDirty(true);
+        updateJsonText();
+        if (state.data) {
+          state.lastValidationReport = validateLayout(state.data);
+          renderValidationResults(state.lastValidationReport);
+        }
+        redraw();
+        setStatus('Aligned to neighbor; edge link saved.', 'success');
+      }
+
+      function applyRoomWizardHatch() {
+        const mod = globalThis.RoomWizardNeighborAlign;
+        if (!mod || typeof mod.computeHatchHeightDelta !== 'function') {
+          setStatus('Neighbor align module not loaded.', 'error');
+          return;
+        }
+        const room = getRoomWizardRoom();
+        if (!room) return;
+        const neighborId = document.getElementById('roomWizardNeighbor')?.value;
+        if (!neighborId) {
+          setStatus('Pick an adjoining room first.', 'warning');
+          return;
+        }
+        const neighbor = getRoomById(neighborId);
+        if (!neighbor) return;
+        ensureRoomShape(room);
+        ensureRoomShape(neighbor);
+        const myEdge = Number(document.getElementById('roomWizardMyEdge')?.value);
+        const nEdge = Number(document.getElementById('roomWizardNeighborEdge')?.value);
+        const d = mod.computeHatchHeightDelta(room, neighbor, myEdge, nEdge, mod.ROOM_WIZARD_NEIGHBOR_SCALE);
+        if (!d.deltaX && !d.deltaY) {
+          setStatus('No doors on both edges to match — place doors near each edge (within ~72px), or edges are not both horizontal/vertical.', 'warning');
+          return;
+        }
+        const gx = Number.isFinite(Number(room.global?.x)) ? Number(room.global.x) : 0;
+        const gy = Number.isFinite(Number(room.global?.y)) ? Number(room.global.y) : 0;
+        room.global = { x: gx + d.deltaX, y: gy + d.deltaY };
+        state.roomWizard.touched = true;
+        setDirty(true);
+        updateJsonText();
+        if (state.data) {
+          state.lastValidationReport = validateLayout(state.data);
+          renderValidationResults(state.lastValidationReport);
+        }
+        redraw();
+        setStatus('Adjusted global position to match door heights at the opening.', 'success');
       }
 
       function updateEditorWorkflowPrimaryPills() {
@@ -5541,10 +5693,18 @@
         if (!room || !summary) return;
         const W = room.size?.width ?? '?';
         const H = room.size?.height ?? '?';
+        const links = room.edgeLinks || [];
+        const neighborLine =
+          links.length > 0
+            ? `<dt>Edge links</dt><dd>${links
+                .map((l) => `${escapeHtml(room.id)}[${l.edgeIndex}] ↔ ${escapeHtml(l.targetRoomId)}[${l.targetEdgeIndex}]`)
+                .join('<br/>')}</dd>`
+            : '<dt>Edge links</dt><dd>None yet</dd>';
         summary.innerHTML = `
           <dl>
             <dt>Room</dt><dd>${escapeHtml(room.name)} (${escapeHtml(room.id)})</dd>
             <dt>Footprint</dt><dd>${escapeHtml(String(W))} × ${escapeHtml(String(H))} px</dd>
+            ${neighborLine}
           </dl>`;
         if (!state.data) return;
         const report = validateLayout(state.data);
@@ -5769,6 +5929,21 @@
           setDirty(true);
           redraw();
         });
+        document.getElementById('roomWizardNeighbor')?.addEventListener('change', () => {
+          const room = getRoomWizardRoom();
+          const neighborId = document.getElementById('roomWizardNeighbor')?.value;
+          const myEdge = document.getElementById('roomWizardMyEdge');
+          const nbEdge = document.getElementById('roomWizardNeighborEdge');
+          if (!room || !myEdge || !nbEdge) return;
+          if (!neighborId) return;
+          const link = (room.edgeLinks || []).find((l) => l.targetRoomId === neighborId);
+          if (link) {
+            myEdge.value = String(link.edgeIndex);
+            nbEdge.value = String(link.targetEdgeIndex);
+          }
+        });
+        document.getElementById('roomWizardBtnAlign')?.addEventListener('click', () => applyRoomWizardAlign());
+        document.getElementById('roomWizardBtnHatch')?.addEventListener('click', () => applyRoomWizardHatch());
         document.getElementById('roomWizardBtnExportJson')?.addEventListener('click', () => {
           downloadJson();
         });

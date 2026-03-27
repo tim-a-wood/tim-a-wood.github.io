@@ -84,10 +84,10 @@ This document turns [`room-creation-wizard-plan.md`](room-creation-wizard-plan.m
 
 ### Tasks
 
-- [ ] UI: adjoining room, edge pickers (or simplified), align button, height match.
-- [ ] Implement `alignRoomToNeighbor(roomId, neighborId, …)` pure helpers + tests.
-- [ ] Persist `edgeLinks` / `global` updates; run `validateLayout` after apply.
-- [ ] Document edge cases (no neighbor, single room in project) in UI copy.
+- [x] UI: adjoining room, edge pickers (or simplified), align button, height match.
+- [x] Implement `computeAlignedGlobal` / `computeHatchHeightDelta` in `room-wizard-neighbor-align.js` + tests.
+- [x] Persist `edgeLinks` / `global` updates; run `validateLayout` after apply.
+- [x] Document edge cases (no neighbor, single room in project) in UI copy.
 
 ### Demo script
 

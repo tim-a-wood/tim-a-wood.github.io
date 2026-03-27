@@ -77,6 +77,18 @@
   display: none;
 }
 
+.rw-neighbor-grid {
+  align-items: end;
+}
+
+.rw-neighbor-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 4px;
+}
+
 .room-wizard-dock.room-wizard-dock--compact .field-grid {
   gap: 8px;
 }
