@@ -2106,12 +2106,19 @@
       const ROOM_W = 1600;
       const ROOM_H = 1200;
       const TILE = 32;
-      /** Level 2 traversal warnings — tune here (also exposed as window.VALIDATION_L2). */
+      /** Level 2 traversal warnings — advisory only; tune via window.VALIDATION_L2. */
       const VALIDATION_L2 = {
-        maxVerticalStepPx: 192,
-        maxHorizontalGapPx: 400,
-        interactMaxDistPx: 176,
-        /** Only compare platform A to B when their x-intervals are this close (overlap counts as 0 gap). Prevents unrelated platforms across the room from pairing. */
+        /** Warn if vertical drop to the nearest “related” platform below exceeds this. */
+        maxVerticalStepPx: 240,
+        /**
+         * Horizontal gap between paired platforms (see maxHorizontalSeparationForPairPx).
+         * Kept equal to the pair cap so we do not warn on gaps we already allowed when pairing —
+         * otherwise 400–520px gaps spuriously warn (see L2-002).
+         */
+        maxHorizontalGapPx: 520,
+        /** Doors / keys / abilities farther than this from any platform surface (Manhattan-ish via spec). */
+        interactMaxDistPx: 240,
+        /** Only pair platform A→B for L2-001/L2-002 when x-interval gap ≤ this (overlap = 0 gap). */
         maxHorizontalSeparationForPairPx: 520
       };
       const PLATFORM_H = 14;
