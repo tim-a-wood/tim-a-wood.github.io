@@ -1889,6 +1889,8 @@ Output full demo report before proceeding to Sprint 3.
 
 **Goal:** Implement the three-tier validation system and surface results in the UI.
 
+**Canonical doc (maintain in sync with code):** [`room-layout-validation.md`](./room-layout-validation.md) — project convention for levels/IDs; **not** an external industry standard. User-facing excerpt placeholder: **DOC-ROOM-VALIDATION-001**.
+
 **Files to modify:** `room-layout-editor.html` only.
 
 **Important:** Sprint 3 adds new JS logic. Read all existing room data access patterns in the JS before writing any validation code.

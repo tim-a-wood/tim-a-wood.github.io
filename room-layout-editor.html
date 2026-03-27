@@ -2106,7 +2106,7 @@
       const ROOM_W = 1600;
       const ROOM_H = 1200;
       const TILE = 32;
-      /** Level 2 traversal warnings — advisory only; tune via window.VALIDATION_L2. */
+      /** Level 2 traversal warnings — advisory only; tune via window.VALIDATION_L2. See docs/room-layout-validation.md (DOC-ROOM-VALIDATION-001). */
       const VALIDATION_L2 = {
         /** Warn if vertical drop to the nearest “related” platform below exceeds this. */
         maxVerticalStepPx: 240,
@@ -5586,7 +5586,7 @@
         ctx.restore();
       }
 
-      // ── Sprint 3: validateLayout (pure) + validation UI ──
+      // ── Sprint 3: validateLayout (pure) + validation UI — docs/room-layout-validation.md ──
       function validateLayout(data) {
         const report = {
           run_at: new Date().toISOString(),

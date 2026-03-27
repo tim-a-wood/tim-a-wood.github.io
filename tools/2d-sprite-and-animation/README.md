@@ -23,6 +23,7 @@ This folder now separates the live workbench from historical planning material.
 
 - `docs/`
   - current workbench reference docs
+- Room layout **validation** (Level 1–3, traceability, user-doc placeholder `DOC-ROOM-VALIDATION-001`): stub at [`docs/Room-Layout-Validation.md`](docs/Room-Layout-Validation.md) → canonical [`../../../docs/room-layout-validation.md`](../../../docs/room-layout-validation.md)
 - `docs/archive/`
   - historical specs, handover notes, and retired planning material
 - `docs/archive/design-options/`

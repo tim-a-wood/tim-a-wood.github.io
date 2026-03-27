@@ -82,6 +82,8 @@ Local editor workflow:
 
 If you open the editor outside the local server, canonical sync is unavailable and you should use `Export JSON` instead.
 
+**Validation (Level 1–3):** Canonical definitions, check IDs (`L1-001`, `L2-001`, …), and the **user-docs placeholder** (`DOC-ROOM-VALIDATION-001`) live in [`docs/room-layout-validation.md`](docs/room-layout-validation.md). Level 2 thresholds are project conventions, not an external industry standard; tune via `VALIDATION_L2` in the editor script.
+
 ## Solo AI Sprite Workbench
 
 The sprite workbench lives at `tools/2d-sprite-and-animation/index.html` and uses a local filesystem-backed API server.

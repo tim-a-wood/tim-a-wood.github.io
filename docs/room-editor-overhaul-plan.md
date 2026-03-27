@@ -375,6 +375,8 @@ history.push({ type: 'DELETE_DOOR', roomId, doorId, doorData })
 
 **Goal:** Room editor has a first-class validation system matching Sprite Workbench's QA pipeline.
 
+**Canonical reference (IDs, severity, traceability, user-doc placeholder):** [`room-layout-validation.md`](./room-layout-validation.md) — **DOC-ROOM-VALIDATION-001** for published user-facing help.
+
 **Three validation levels:**
 
 **Level 1 — Structural Correctness**
