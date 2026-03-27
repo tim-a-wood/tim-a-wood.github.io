@@ -42,13 +42,13 @@ This document turns [`room-creation-wizard-plan.md`](room-creation-wizard-plan.m
 
 ### Tasks (checklist)
 
-- [ ] Introduce `state.roomWizard` (or equivalent): `{ active, phase, roomId, draft }`.
-- [ ] Wire `#addRoom` → `openRoomWizard()` after `addRoom()` creates room (or refactor `addRoom` to create empty room + open wizard).
-- [ ] Build phase rail component (HTML + CSS matching editor tokens).
-- [ ] Implement Layout panel markup + bind to `currentRoom()`.
-- [ ] Implement Review panel + call `validateLayout`, `downloadJson`, `downloadExportPackage`, `openGameWithLayout`.
-- [ ] Lock Terrain / Environment / Objects with clear copy.
-- [ ] Confirm discard if `isDirty` when closing wizard (product rule).
+- [x] Introduce `state.roomWizard`: `{ active, phase, roomId, touched }` (+ `room-layout-wizard-footprint.js` for axis-aligned footprint).
+- [x] Wire `#addRoom` → `openRoomWizard()` after `addRoom()` creates room.
+- [x] Build phase rail component (HTML + CSS matching editor tokens).
+- [x] Implement Layout panel markup + bind to wizard room.
+- [x] Implement Review panel + `validateLayout`, `downloadJson`, `downloadExportPackage`, `openGameWithLayout`.
+- [x] Lock Terrain / Environment / Objects with disabled + title tooltip.
+- [x] Confirm on close when `roomWizard.touched` (after user edits in wizard).
 
 ### Demo script (5 min)
 
