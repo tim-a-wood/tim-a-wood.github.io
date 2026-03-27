@@ -33,6 +33,26 @@ const CONFIG = {
     COLORS: [0x2a3a5a, 0x3a2a5a, 0x2a4a3a, 0x4a3a2a, 0x2a4050]
 };
 
+window.__previewLayoutFromParent = null;
+window.addEventListener('message', (event) => {
+    if (event.origin !== window.location.origin) return;
+    const d = event.data;
+    if (d && d.type === 'ASHEN_HOLLOW_PREVIEW' && d.layout && Array.isArray(d.layout.rooms)) {
+        window.__previewLayoutFromParent = {
+            layout: d.layout,
+            startRoom: d.startRoom == null || d.startRoom === undefined ? null : d.startRoom
+        };
+    }
+});
+
+if (window.parent !== window && /#preview=embed/.test(window.location.hash || '')) {
+    requestAnimationFrame(() => {
+        try {
+            window.parent.postMessage({ type: 'ASHEN_HOLLOW_PREVIEW_READY' }, window.location.origin);
+        } catch (_) {}
+    });
+}
+
 const BASE_ROOM_SEQUENCE = ['R1', 'R2', 'R3', 'R4', 'R5', 'R6', 'R7', 'R8', 'R9', 'R10', 'R11'];
 let ROOM_SEQUENCE = [...BASE_ROOM_SEQUENCE];
 
@@ -708,9 +728,15 @@ function loadLayoutDataFromHash() {
 }
 
 function applyRuntimeLayoutData(canonicalData = null) {
+    const layoutFromEmbed = window.__previewLayoutFromParent;
+    const embedMeta = layoutFromEmbed ? { startRoom: layoutFromEmbed.startRoom } : null;
+    if (layoutFromEmbed) window.__previewLayoutFromParent = null;
+
     const hashData = loadLayoutDataFromHash();
     const storageData = loadLayoutDataFromStorage();
-    const data = normalizeLayoutData(hashData || canonicalData || storageData);
+    const data = normalizeLayoutData(
+        layoutFromEmbed?.layout || hashData || canonicalData || storageData
+    );
     rebuildRoomGeometry(data);
     if (!data) {
         ACTIVE_LAYOUT_DATA = null;
@@ -719,7 +745,7 @@ function applyRuntimeLayoutData(canonicalData = null) {
     }
 
     ACTIVE_LAYOUT_DATA = data;
-    ACTIVE_LAYOUT_SOURCE = hashData ? 'hash' : canonicalData ? 'canonical' : 'storage';
+    ACTIVE_LAYOUT_SOURCE = layoutFromEmbed ? 'embed' : hashData ? 'hash' : canonicalData ? 'canonical' : 'storage';
     const runtimeRooms = data.rooms.filter((room) => ROOM_IDS[room.id]);
 
     const nextPlatforms = {};
@@ -745,7 +771,7 @@ function applyRuntimeLayoutData(canonicalData = null) {
             )
         }));
 
-    applyPreviewStartFromHash();
+    applyPreviewStartFromHash(embedMeta);
 }
 
 function getLayoutRoom(roomId) {
@@ -926,13 +952,22 @@ function getRoomSpawnPoint(roomId, fallbackX, fallbackY) {
     };
 }
 
-function applyPreviewStartFromHash() {
+function applyPreviewStartFromHash(embedMeta) {
     PREVIEW_START_APPLIED = false;
     try {
-        const hash = window.location.hash || '';
-        const startMatch = hash.match(/[&?]start=([^&]+)/);
-        if (!startMatch) return;
-        const roomId = decodeURIComponent(startMatch[1]).trim();
+        let roomId = null;
+        if (embedMeta) {
+            const s = embedMeta.startRoom;
+            if (s != null && String(s).trim()) {
+                roomId = String(s).trim();
+            }
+        }
+        if (!roomId) {
+            const hash = window.location.hash || '';
+            const startMatch = hash.match(/[&?]start=([^&]+)/);
+            if (startMatch) roomId = decodeURIComponent(startMatch[1]).trim();
+        }
+        if (!roomId) return;
         if (!ROOM_IDS[roomId]) return;
         const room = getLayoutRoom(roomId);
         if (!room) return;
@@ -3434,6 +3469,13 @@ if ('serviceWorker' in navigator) {
 async function bootGame() {
     WORKBENCH_HERO_EXPORT = await loadWorkbenchHeroExport();
     const canonicalData = await loadCanonicalLayoutData();
+    if (/#preview=embed/.test(window.location.hash || '')) {
+        let attempts = 0;
+        while (!window.__previewLayoutFromParent?.layout && attempts < 40) {
+            await new Promise((r) => setTimeout(r, 25));
+            attempts += 1;
+        }
+    }
     applyRuntimeLayoutData(canonicalData);
 
     new Phaser.Game({

@@ -788,6 +788,7 @@ function computeDoorStandPosition(roomWidth, door) {
     assert.ok(html.includes('renderValidationResults'), 'renderValidationResults should exist');
     assert.ok(html.includes('VALIDATION_L2'), 'VALIDATION_L2 tunable thresholds should exist');
     assert.ok(html.includes('gamePreviewOverlay') && html.includes('gamePreviewFrame'), 'in-page playtest overlay should exist');
+    assert.ok(html.includes('ASHEN_HOLLOW_PREVIEW') && html.includes('preview=embed'), 'editor posts layout + embed hash');
 })();
 
 (function testIndexPreviewStartFromHashSmoke() {
@@ -800,6 +801,9 @@ function computeDoorStandPosition(roomWidth, door) {
     assert.ok(html.includes('let TEMP_TEST_START'), 'mutable TEMP_TEST_START for preview spawn');
     assert.ok(html.includes('PREVIEW_START_APPLIED'), 'preview spawn flag for create()');
     assert.ok(html.includes('mergeRoomSequence'), 'mergeRoomSequence for layout rooms beyond R11');
+    assert.ok(html.includes('ASHEN_HOLLOW_PREVIEW'), 'postMessage layout embed for room editor iframe');
+    assert.ok(html.includes('ASHEN_HOLLOW_PREVIEW_READY'), 'child signals when listener can receive layout');
+    assert.ok(html.includes('preview=embed'), 'hash flag for embed wait in bootGame');
 })();
 
 (function testPreviewStartHashParsing() {

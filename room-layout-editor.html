@@ -5929,13 +5929,35 @@
       function openGameWithLayout(previewRoomId) {
         if (!state.data) return;
         const encoded = encodeLayoutForHash();
-        let hash = `layout=${encoded}`;
-        if (previewRoomId && state.data.rooms.some((r) => r.id === previewRoomId)) {
-          hash += `&start=${encodeURIComponent(previewRoomId)}`;
-        }
+        const startArg =
+          previewRoomId && state.data.rooms.some((r) => r.id === previewRoomId) ? previewRoomId : null;
+        let hash = `preview=embed&layout=${encoded}`;
+        if (startArg) hash += `&start=${encodeURIComponent(startArg)}`;
         const iframe = document.getElementById('gamePreviewFrame');
         const overlay = document.getElementById('gamePreviewOverlay');
         if (!iframe || !overlay) return;
+        const origin = window.location.origin;
+        const payload = {
+          type: 'ASHEN_HOLLOW_PREVIEW',
+          layout: state.data,
+          startRoom: startArg
+        };
+        const sendPreviewToFrame = () => {
+          try {
+            iframe.contentWindow?.postMessage(payload, origin);
+          } catch (_) {}
+        };
+        const onChildReady = (event) => {
+          if (event.origin !== origin) return;
+          if (event.data?.type !== 'ASHEN_HOLLOW_PREVIEW_READY') return;
+          clearTimeout(readyFallbackTimer);
+          window.removeEventListener('message', onChildReady);
+          sendPreviewToFrame();
+        };
+        window.addEventListener('message', onChildReady);
+        const readyFallbackTimer = setTimeout(() => {
+          window.removeEventListener('message', onChildReady);
+        }, 8000);
         iframe.src = `./index.html#${hash}`;
         overlay.hidden = false;
         overlay.setAttribute('aria-hidden', 'false');
@@ -6563,7 +6585,7 @@
         ui.saveJsonFile.addEventListener('click', saveJsonToFile);
         ui.savePermanent.addEventListener('click', savePermanent);
         ui.syncCanonicalJson.addEventListener('click', syncCanonicalJson);
-        ui.openGameWithLayout.addEventListener('click', openGameWithLayout);
+        ui.openGameWithLayout.addEventListener('click', () => openGameWithLayout(state.currentRoomId));
         ui.clearSavedLayout.addEventListener('click', clearSavedLayout);
         ui.inspectorClose?.addEventListener('click', dismissSelection);
 
