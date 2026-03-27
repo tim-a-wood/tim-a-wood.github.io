@@ -3,6 +3,7 @@
 Unit tests for the metroidvania PWA. Game logic lives in `index.html`; these tests duplicate deterministic algorithms to verify behavior without loading Phaser.
 
 **Current coverage:**
+- Room layout **runtime export package** (`room-layout-export-package.js`): manifest, per-room runtime slice, `movingPlatforms` key — see `tests/room-editor-export.test.js`
 - Seeded RNG helper behavior retained for future procedural terrain work
 - Legacy pit-zone helper behavior retained for regression safety
 - Current movement rules from `handleMovement()`:
@@ -22,7 +23,7 @@ Unit tests for the metroidvania PWA. Game logic lives in `index.html`; these tes
 ## Run
 
 ```bash
-node tests/game-logic.test.js
+node tests/game-logic.test.js && node tests/room-editor-export.test.js
 ```
 
 Exit code 0 = pass; non-zero or uncaught exception = fail.

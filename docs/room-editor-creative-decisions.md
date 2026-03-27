@@ -17,6 +17,8 @@ This file records product/architecture choices so Sprint work and specs stay ali
 1. **Raw / git-friendly JSON** — current behavior (full editor document, human diffable). Keep as primary for version control and hand edits.
 2. **Runtime / package export** — structured multi-file bundle (manifest + per-room JSON + optional world graph) for game integration. Separate control; does **not** replace the raw export.
 
+**Implementation:** Pure logic lives in `room-layout-export-package.js` (`generateExportPackage`). The editor loads it and triggers **Export runtime** (`downloadExportPackage` in `room-layout-editor.html`).
+
 ## Movers field name (2026-03-27)
 
 **Canonical name for runtime-compatible layout:** `movingPlatforms`.

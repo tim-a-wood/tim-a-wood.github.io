@@ -1517,7 +1517,8 @@
           <button id="savePermanent" class="btn-save good">Save
             <span class="dirty-dot" id="dirtyDot" style="display:none;"></span>
           </button>
-          <button id="downloadJson" class="btn-secondary">Export</button>
+          <button type="button" id="downloadJson" class="btn-secondary" title="Download full editor document (git-friendly JSON)">Export JSON</button>
+          <button type="button" id="downloadRuntimePackage" class="btn-secondary" title="Download runtime bundle: manifest, world graph, per-room JSON, and full layout">Export runtime</button>
           <button id="openGameWithLayout" class="btn-secondary">Open Game</button>
           <button class="btn-icon" id="settingsToggle" type="button" title="Canvas Settings">
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
@@ -2085,6 +2086,7 @@
 }
   </script>
 
+  <script src="room-layout-export-package.js"></script>
   <script>
     (() => {
       const DATA_URL = './room-layout-data.json';
@@ -2294,6 +2296,7 @@
         reloadJson: document.getElementById('reloadJson'),
         applyJson: document.getElementById('applyJson'),
         downloadJson: document.getElementById('downloadJson'),
+        downloadRuntimePackage: document.getElementById('downloadRuntimePackage'),
         saveJsonFile: document.getElementById('saveJsonFile'),
         savePermanent: document.getElementById('savePermanent'),
         syncCanonicalJson: document.getElementById('syncCanonicalJson'),
@@ -5287,6 +5290,53 @@
         setStatus(`Downloaded ${PROJECT_LAYOUT_DOWNLOAD_NAME}`);
       }
 
+      function sleep(ms) {
+        return new Promise((resolve) => setTimeout(resolve, ms));
+      }
+
+      async function downloadExportPackage() {
+        if (!state.data) {
+          setStatus('No layout data to export', 'error');
+          return;
+        }
+        const gen = globalThis.RoomLayoutExportPackage && globalThis.RoomLayoutExportPackage.generateExportPackage;
+        if (typeof gen !== 'function') {
+          setStatus('Runtime export module failed to load (room-layout-export-package.js).', 'error');
+          return;
+        }
+        const report = state.lastValidationReport || validateLayout(state.data);
+        state.lastValidationReport = report;
+        const pkg = gen(state.data, report);
+
+        const downloads = [
+          { name: 'level_manifest.json', data: pkg.manifest },
+          { name: 'room_layout.json', data: pkg.roomLayout },
+          { name: 'world_graph.json', data: pkg.worldGraph },
+          ...Object.entries(pkg.roomFiles).map(([fname, data]) => ({
+            name: `room_${fname}`,
+            data
+          }))
+        ];
+
+        for (let i = 0; i < downloads.length; i += 1) {
+          const { name, data } = downloads[i];
+          const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = name;
+          a.click();
+          URL.revokeObjectURL(url);
+          if (i < downloads.length - 1) await sleep(200);
+        }
+
+        const roomFileCount = Object.keys(pkg.roomFiles).length;
+        setStatus(
+          `Runtime export: ${downloads.length} files (manifest, full layout, world graph, ${roomFileCount} room file${roomFileCount === 1 ? '' : 's'}). Allow multiple downloads if the browser prompts.`,
+          'success'
+        );
+      }
+
       function encodeLayoutForHash() {
         return encodeURIComponent(btoa(unescape(encodeURIComponent(JSON.stringify(state.data)))));
       }
@@ -5904,6 +5954,7 @@
         ui.reloadJson.addEventListener('click', () => loadData(true));
         ui.applyJson.addEventListener('click', applyJsonText);
         ui.downloadJson.addEventListener('click', downloadJson);
+        ui.downloadRuntimePackage?.addEventListener('click', downloadExportPackage);
         ui.saveJsonFile.addEventListener('click', saveJsonToFile);
         ui.savePermanent.addEventListener('click', savePermanent);
         ui.syncCanonicalJson.addEventListener('click', syncCanonicalJson);

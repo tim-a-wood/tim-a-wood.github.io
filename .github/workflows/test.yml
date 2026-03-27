@@ -16,4 +16,4 @@ jobs:
           node-version: '20'
 
       - name: Run tests
-        run: node tests/game-logic.test.js
+        run: node tests/game-logic.test.js && node tests/room-editor-export.test.js
