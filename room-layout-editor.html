@@ -897,6 +897,10 @@
       letter-spacing: 0.06em;
       text-align: center;
     }
+    .canvas-header-spacer {
+      flex: 1;
+      min-width: 8px;
+    }
     .tab-strip {
       display: flex;
       gap: 4px;
@@ -1509,11 +1513,8 @@
           <button type="button" class="btn-sm" id="roomSetupBtn" title="Open guided room setup (identity, footprint, review)">Room setup</button>
         </div>
 
-        <!-- Center: View tab strip -->
-        <div class="tab-strip" id="viewModeStrip">
-          <button class="tab-btn active" data-view="room" type="button" title="Room canvas and guided setup">Room</button>
-          <button class="tab-btn" data-view="global" type="button" title="World map and room links">Global map</button>
-        </div>
+        <!-- Center: workflow uses phase rail below (World map + numbered steps) -->
+        <div class="canvas-header-spacer" aria-hidden="true"></div>
 
         <!-- Right: Primary actions -->
         <div class="canvas-header-actions">
@@ -1562,7 +1563,55 @@
         </div>
       </div>
 
-      <!-- RW-1 Room wizard — inline in dashboard (Room tab); toggle vs Global map in header -->
+      <!-- Workflow rail: world map (unnumbered) + Sprite-style numbered steps -->
+      <div class="workflow-rail-wrap" id="workflowRailWrap" hidden>
+        <nav id="roomWizardPhaseRail" class="phase-rail" aria-label="Editor workflow">
+          <button type="button" class="phase-pill phase-pill--world" data-rw-phase="global" id="rwWorldMapPill" title="World map — room placement and links">
+            <span class="phase-glyph" aria-hidden="true">⌖</span>
+            <span class="phase-pill-copy">
+              <strong>World map</strong>
+              <small>Placement &amp; links</small>
+            </span>
+          </button>
+          <button type="button" class="phase-pill active" data-rw-phase="layout" id="roomWizardTabLayout">
+            <span class="phase-number">1</span>
+            <span class="phase-pill-copy">
+              <strong>Layout</strong>
+              <small>Identity &amp; footprint</small>
+            </span>
+          </button>
+          <button type="button" class="phase-pill locked" disabled title="Coming in a later update">
+            <span class="phase-number">2</span>
+            <span class="phase-pill-copy">
+              <strong>Terrain</strong>
+              <small>Coming soon</small>
+            </span>
+          </button>
+          <button type="button" class="phase-pill locked" disabled title="Coming in a later update">
+            <span class="phase-number">3</span>
+            <span class="phase-pill-copy">
+              <strong>Environment</strong>
+              <small>Coming soon</small>
+            </span>
+          </button>
+          <button type="button" class="phase-pill locked" disabled title="Coming in a later update">
+            <span class="phase-number">4</span>
+            <span class="phase-pill-copy">
+              <strong>Objects</strong>
+              <small>Coming soon</small>
+            </span>
+          </button>
+          <button type="button" class="phase-pill available" data-rw-phase="review" id="roomWizardTabReview">
+            <span class="phase-number">5</span>
+            <span class="phase-pill-copy">
+              <strong>Review</strong>
+              <small>Validation &amp; export</small>
+            </span>
+          </button>
+        </nav>
+      </div>
+
+      <!-- RW-1 Room wizard — sheet below workflow rail -->
       <div id="roomWizardDock" class="room-wizard-dock" hidden aria-hidden="true">
         <div class="room-wizard-sheet">
           <div class="room-wizard-sheet-top">
@@ -1573,43 +1622,6 @@
             </div>
             <button type="button" class="btn-icon" id="roomWizardClose" aria-label="Dismiss room setup">×</button>
           </div>
-          <nav id="roomWizardPhaseRail" class="phase-rail" aria-label="Wizard phases">
-            <button type="button" class="phase-pill active" data-rw-phase="layout" id="roomWizardTabLayout">
-              <span class="phase-number">1</span>
-              <span class="phase-pill-copy">
-                <strong>Layout</strong>
-                <small>Identity &amp; footprint</small>
-              </span>
-            </button>
-            <button type="button" class="phase-pill locked" disabled title="Coming in a later update">
-              <span class="phase-number">2</span>
-              <span class="phase-pill-copy">
-                <strong>Terrain</strong>
-                <small>Coming soon</small>
-              </span>
-            </button>
-            <button type="button" class="phase-pill locked" disabled title="Coming in a later update">
-              <span class="phase-number">3</span>
-              <span class="phase-pill-copy">
-                <strong>Environment</strong>
-                <small>Coming soon</small>
-              </span>
-            </button>
-            <button type="button" class="phase-pill locked" disabled title="Coming in a later update">
-              <span class="phase-number">4</span>
-              <span class="phase-pill-copy">
-                <strong>Objects</strong>
-                <small>Coming soon</small>
-              </span>
-            </button>
-            <button type="button" class="phase-pill available" data-rw-phase="review" id="roomWizardTabReview">
-              <span class="phase-number">5</span>
-              <span class="phase-pill-copy">
-                <strong>Review</strong>
-                <small>Validation &amp; export</small>
-              </span>
-            </button>
-          </nav>
           <div class="room-wizard-scroll">
             <div id="roomWizardPanelLayout">
               <div class="phase-header">
@@ -2354,7 +2366,6 @@
         roomProjectList: document.getElementById('room-project-list'),
         roomSelect: document.getElementById('roomSelect'),
         roomSetupBtn: document.getElementById('roomSetupBtn'),
-        viewModeTabs: Array.from(document.querySelectorAll('#viewModeStrip .tab-btn')),
         snapSize: document.getElementById('snapSize'),
         globalZoom: document.getElementById('globalZoom'),
         roomZoomOut: document.getElementById('roomZoomOut'),
@@ -2629,9 +2640,7 @@
 
       function setViewMode(view) {
         state.viewMode = view === 'global' ? 'global' : 'room';
-        ui.viewModeTabs.forEach((button) => {
-          button.classList.toggle('active', button.dataset.view === state.viewMode);
-        });
+        updateWorkflowRailPills();
       }
 
       function fitRoomToCanvas() {
@@ -4263,7 +4272,9 @@
           roomCtx.fillRect(0, 0, roomCanvas.width, roomCanvas.height);
           drawGlobalView();
           updateJsonText();
+          syncWorkflowRailVisibility();
           syncRoomWizardDock();
+          updateWorkflowRailPills();
           return;
         }
         setViewMode(state.viewMode);
@@ -4282,7 +4293,9 @@
         renderEmptyRoomHint();
         drawGlobalView();
         updateJsonText();
+        syncWorkflowRailVisibility();
         syncRoomWizardDock();
+        updateWorkflowRailPills();
       }
 
       function pointDistance(a, b) {
@@ -5320,17 +5333,39 @@
         syncRoomWizardFootprintRadios();
       }
 
-      function updateRoomWizardPhasePills() {
+      function updateWorkflowRailPills() {
         const ph = state.roomWizard.phase;
+        const wizardOn = state.roomWizard.active;
+        const vm = state.viewMode;
         const rail = document.getElementById('roomWizardPhaseRail');
         if (!rail) return;
         rail.querySelectorAll('.phase-pill[data-rw-phase]').forEach((pill) => {
           const key = pill.dataset.rwPhase;
           pill.classList.remove('active', 'available', 'locked', 'complete');
+          if (key === 'global') {
+            pill.classList.add(vm === 'global' ? 'active' : 'available');
+            return;
+          }
           if (key === 'layout') {
-            pill.classList.add(ph === 'layout' ? 'active' : 'available');
-          } else if (key === 'review') {
-            pill.classList.add(ph === 'review' ? 'active' : 'available');
+            if (vm === 'global') {
+              pill.classList.add('available');
+            } else if (wizardOn && ph === 'layout') {
+              pill.classList.add('active');
+            } else if (!wizardOn && vm === 'room') {
+              pill.classList.add('active');
+            } else {
+              pill.classList.add('available');
+            }
+            return;
+          }
+          if (key === 'review') {
+            if (vm === 'global') {
+              pill.classList.add('available');
+            } else if (wizardOn && ph === 'review') {
+              pill.classList.add('active');
+            } else {
+              pill.classList.add('available');
+            }
           }
         });
       }
@@ -5342,7 +5377,7 @@
         const panR = document.getElementById('roomWizardPanelReview');
         if (panL) panL.hidden = phase !== 'layout';
         if (panR) panR.hidden = phase !== 'review';
-        updateRoomWizardPhasePills();
+        updateWorkflowRailPills();
         if (phase === 'review') {
           updateRoomWizardReviewPanel();
         }
@@ -5379,6 +5414,14 @@
         }
       }
 
+      function syncWorkflowRailVisibility() {
+        const wrap = document.getElementById('workflowRailWrap');
+        if (!wrap) return;
+        const show = !!state.data;
+        wrap.hidden = !show;
+        wrap.setAttribute('aria-hidden', show ? 'false' : 'true');
+      }
+
       function syncRoomWizardDock() {
         const dock = document.getElementById('roomWizardDock');
         if (!dock) return;
@@ -5411,6 +5454,7 @@
         syncRoomWizardFormFromRoom();
         setRoomWizardPhase('layout');
         syncRoomWizardDock();
+        syncWorkflowRailVisibility();
         const nameInput = document.getElementById('roomWizardRoomName');
         if (nameInput) {
           setTimeout(() => nameInput.focus(), 0);
@@ -5430,6 +5474,7 @@
         state.roomWizard.phase = 'layout';
         state.roomWizard.touched = false;
         syncRoomWizardDock();
+        updateWorkflowRailPills();
       }
 
       function requestCloseRoomWizard() {
@@ -5438,8 +5483,31 @@
 
       function wireRoomWizardEvents() {
         document.getElementById('roomWizardClose')?.addEventListener('click', requestCloseRoomWizard);
-        document.getElementById('roomWizardTabLayout')?.addEventListener('click', () => setRoomWizardPhase('layout'));
-        document.getElementById('roomWizardTabReview')?.addEventListener('click', () => setRoomWizardPhase('review'));
+        document.getElementById('rwWorldMapPill')?.addEventListener('click', () => {
+          setViewMode('global');
+          redraw();
+        });
+        document.getElementById('roomWizardTabLayout')?.addEventListener('click', () => {
+          if (state.viewMode === 'global') setViewMode('room');
+          if (!state.currentRoomId || !state.data) return;
+          if (!state.roomWizard.active) {
+            openRoomWizard(state.currentRoomId);
+          } else {
+            setRoomWizardPhase('layout');
+          }
+          redraw();
+        });
+        document.getElementById('roomWizardTabReview')?.addEventListener('click', () => {
+          if (state.viewMode === 'global') setViewMode('room');
+          if (!state.currentRoomId || !state.data) return;
+          if (!state.roomWizard.active) {
+            openRoomWizard(state.currentRoomId);
+            setRoomWizardPhase('review');
+          } else {
+            setRoomWizardPhase('review');
+          }
+          redraw();
+        });
         document.getElementById('roomWizardBackToLayout')?.addEventListener('click', () => setRoomWizardPhase('layout'));
         document.getElementById('roomWizardRoomName')?.addEventListener('input', () => {
           const room = getRoomWizardRoom();
@@ -6320,12 +6388,6 @@
             redraw();
             roomCanvas.style.opacity = '1';
           }, 80);
-        });
-        ui.viewModeTabs.forEach((button) => {
-          button.addEventListener('click', () => {
-            setViewMode(button.dataset.view);
-            redraw();
-          });
         });
         ui.globalZoom?.addEventListener('input', () => {
           state.globalZoom = clampZoom(Number(ui.globalZoom.value || 100) / 100, GLOBAL_ZOOM_MIN, GLOBAL_ZOOM_MAX);

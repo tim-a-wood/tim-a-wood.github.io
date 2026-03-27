@@ -73,23 +73,46 @@
   padding: 0 18px 20px;
 }
 
-/* ── Phase rail (Sprite Workbench) ── */
-.room-wizard-dock .phase-rail {
+/* ── Workflow rail (world map + numbered steps) — not a numbered “step 0” ── */
+.workflow-rail-wrap {
+  --stroke: rgba(0, 232, 200, 0.1);
+  --stroke-strong: rgba(0, 232, 200, 0.14);
+  --panel-soft: #07090c;
+  --radius-lg: 20px;
+  --radius-sm: 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-tight);
+  background: rgba(4, 6, 10, 0.55);
+  box-sizing: border-box;
+  margin-bottom: 0;
+}
+
+.workflow-rail-wrap[hidden] {
+  display: none !important;
+}
+
+.workflow-rail-wrap .phase-rail {
   display: grid;
   flex-shrink: 0;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 8px;
   padding: 12px 18px 10px;
   border-bottom: 1px solid var(--border);
 }
 
-@media (max-width: 1180px) {
-  .room-wizard-dock .phase-rail {
+@media (max-width: 1280px) {
+  .workflow-rail-wrap .phase-rail {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .workflow-rail-wrap .phase-rail {
     grid-template-columns: 1fr;
   }
 }
 
-.room-wizard-dock .phase-pill {
+.workflow-rail-wrap .phase-pill {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -107,34 +130,34 @@
   width: 100%;
 }
 
-.room-wizard-dock .phase-pill.locked {
+.workflow-rail-wrap .phase-pill.locked {
   opacity: 0.28;
   pointer-events: none;
 }
 
-.room-wizard-dock .phase-pill.available {
+.workflow-rail-wrap .phase-pill.available {
   background: var(--panel-soft);
 }
 
-.room-wizard-dock .phase-pill.available:hover,
-.room-wizard-dock .phase-pill.available:focus-visible {
+.workflow-rail-wrap .phase-pill.available:hover,
+.workflow-rail-wrap .phase-pill.available:focus-visible {
   border-color: rgba(0, 232, 200, 0.28);
   outline: none;
 }
 
-.room-wizard-dock .phase-pill.active {
+.workflow-rail-wrap .phase-pill.active {
   border: 2px solid var(--accent);
   background: linear-gradient(160deg, rgba(0, 232, 200, 0.07) 0%, transparent 70%), var(--panel);
   box-shadow: 0 0 0 3px rgba(0, 232, 200, 0.08), inset 0 1px 0 rgba(0, 232, 200, 0.1), 0 0 20px rgba(0, 232, 200, 0.06);
 }
 
-.room-wizard-dock .phase-pill.active:hover,
-.room-wizard-dock .phase-pill.active:focus-visible {
+.workflow-rail-wrap .phase-pill.active:hover,
+.workflow-rail-wrap .phase-pill.active:focus-visible {
   box-shadow: 0 0 0 4px rgba(0, 232, 200, 0.12), inset 0 1px 0 rgba(0, 232, 200, 0.14), 0 0 24px rgba(0, 232, 200, 0.08);
   outline: none;
 }
 
-.room-wizard-dock .phase-number {
+.workflow-rail-wrap .phase-number {
   width: 36px;
   height: 36px;
   flex: 0 0 auto;
@@ -149,25 +172,43 @@
   transition: background 0.15s, border-color 0.15s, color 0.15s;
 }
 
-.room-wizard-dock .phase-pill.active .phase-number {
+/* World map: icon slot — not a step number */
+.workflow-rail-wrap .phase-glyph {
+  width: 36px;
+  height: 36px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  font-size: 15px;
+  line-height: 1;
+  color: var(--text-muted);
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.workflow-rail-wrap .phase-pill.active .phase-number,
+.workflow-rail-wrap .phase-pill.active .phase-glyph {
   background: var(--accent);
   border-color: transparent;
   color: #fff;
   font-size: 14px;
 }
 
-.room-wizard-dock .phase-pill.available .phase-number {
+.workflow-rail-wrap .phase-pill.available .phase-number,
+.workflow-rail-wrap .phase-pill.available .phase-glyph {
   border-color: rgba(255, 255, 255, 0.08);
   background: rgba(255, 255, 255, 0.03);
   color: var(--text-muted);
 }
 
-.room-wizard-dock .phase-pill-copy {
+.workflow-rail-wrap .phase-pill-copy {
   min-width: 0;
   flex: 1;
 }
 
-.room-wizard-dock .phase-pill-copy strong {
+.workflow-rail-wrap .phase-pill-copy strong {
   display: block;
   font-size: var(--font-size-sm);
   white-space: nowrap;
@@ -175,7 +216,7 @@
   text-overflow: ellipsis;
 }
 
-.room-wizard-dock .phase-pill-copy small {
+.workflow-rail-wrap .phase-pill-copy small {
   display: block;
   margin-top: 3px;
   color: var(--text-muted);
