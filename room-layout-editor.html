@@ -2928,6 +2928,9 @@
           xs.push(room.global.x - previewHalfWidth, room.global.x + previewHalfWidth);
           ys.push(room.global.y - previewHalfHeight, room.global.y + previewHalfHeight);
         });
+        if (!xs.length) {
+          return { minX: -800, maxX: 800, minY: -600, maxY: 600 };
+        }
         const minX = Math.min(...xs) - 220;
         const maxX = Math.max(...xs) + 220;
         const minY = Math.min(...ys) - 220;
@@ -3251,6 +3254,11 @@
       }
 
       function populateRoomSelect() {
+        if (!state.data?.rooms?.length) {
+          ui.roomSelect.innerHTML = '';
+          ui.roomSelect.value = '';
+          return;
+        }
         state.data.rooms.forEach(ensureRoomShape);
         ui.roomSelect.innerHTML = state.data.rooms
           .map((room) => `<option value="${room.id}">${room.id} - ${room.name}</option>`)
@@ -3258,13 +3266,30 @@
         ui.roomSelect.value = state.currentRoomId;
       }
 
-      /** Sidebar inventory lists (Task 2.2); chips replaced by `renderInventory`. */
-      function populateItemList() {
-        renderInventory(currentRoom());
-      }
-
       function syncPropertyInputs() {
         const room = currentRoom();
+        if (!room) {
+          ui.itemX.value = '';
+          ui.itemY.value = '';
+          ui.itemLen.value = '';
+          ui.itemTint.value = '';
+          ui.moverEndX.value = '';
+          ui.moverEndY.value = '';
+          ui.moverLen.value = '';
+          ui.moverTint.value = '';
+          ui.moverInitialState.value = 'unlocked';
+          ui.doorLabel.value = '';
+          ui.doorTarget.value = '';
+          ui.doorStateForward.value = 'unlocked';
+          ui.doorStateReverse.value = 'unlocked';
+          ui.keyLabel.value = '';
+          ui.keyDoorTarget.value = '';
+          ui.abilityType.value = ABILITY_DEFS[0].id;
+          updateSelectionSummary();
+          updateInspector();
+          renderInventory(null);
+          return;
+        }
         ensureRoomShape(room);
         ui.roomWidth.value = room.size.width;
         ui.roomHeight.value = room.size.height;
@@ -3291,7 +3316,7 @@
           ui.abilityType.value = ABILITY_DEFS[0].id;
           updateSelectionSummary();
           updateInspector();
-          populateItemList();
+          renderInventory(room);
           return;
         }
         ui.itemX.value = selected.item.x ?? '';
@@ -3312,7 +3337,7 @@
         ui.abilityType.value = getAbilityDef(selected.item.type)?.id || ABILITY_DEFS[0].id;
         updateSelectionSummary();
         updateInspector();
-        populateItemList();
+        renderInventory(room);
       }
 
       function setSelectedGlobalEdge(selection) {
@@ -3933,11 +3958,28 @@
 
       function redraw() {
         const room = currentRoom();
-        if (!room) return;
+        updateEmptyStates();
+        if (!room) {
+          setViewMode(state.viewMode);
+          syncPropertyInputs();
+          updateViewControlReadouts();
+          ui.toggleSelectedEdge.disabled = true;
+          ui.roomCanvasBox.classList.add('hidden');
+          ui.globalCanvasBox.classList.toggle('hidden', state.viewMode !== 'global');
+          ui.globalLinkPanel.classList.toggle('hidden', state.viewMode !== 'global');
+          document.getElementById('canvasToolButtons').classList.add('hidden');
+          ui.selectionInspector.classList.add('hidden');
+          updateGlobalLinkControls();
+          roomCtx.clearRect(0, 0, roomCanvas.width, roomCanvas.height);
+          roomCtx.fillStyle = '#071018';
+          roomCtx.fillRect(0, 0, roomCanvas.width, roomCanvas.height);
+          drawGlobalView();
+          updateJsonText();
+          return;
+        }
         setViewMode(state.viewMode);
         updateCounts(room);
         renderInventory(room);
-        updateEmptyStates();
         syncPropertyInputs();
         updateViewControlReadouts();
         ui.toggleSelectedEdge.disabled = !(state.viewMode === 'room' && state.selectionItems.length === 1 && state.selected?.kind === 'room-edge');
@@ -4513,6 +4555,7 @@
 
       function onRoomPointerDown(event) {
         if (event.cancelable) event.preventDefault();
+        if (!currentRoom()) return;
         if (typeof event.pointerId === 'number' && roomCanvas.setPointerCapture) {
           roomCanvas.setPointerCapture(event.pointerId);
         }
@@ -4610,6 +4653,7 @@
 
       function onRoomPointerMove(event) {
         if (event.cancelable) event.preventDefault();
+        if (!currentRoom()) return;
         const mouse = getCanvasPointer(event, roomCanvas);
         const local = canvasToRoomPoint(mouse.x, mouse.y);
         if (!state.drag) {
@@ -4959,11 +5003,23 @@
       }
 
       function deleteRoom() {
+        const roomId = state.currentRoomId;
         if (state.data.rooms.length <= 1) {
-          setStatus('Cannot delete the last room.');
+          if (!window.confirm('Delete the last room? The layout will be empty until you add a room (settings panel: + Add Room).')) {
+            return;
+          }
+          clearAllRoomEdgeLinks(roomId);
+          state.data.rooms = [];
+          state.currentRoomId = null;
+          state.selectedGlobalEdge = null;
+          setSelection([]);
+          populateRoomSelect();
+          updateEmptyStates();
+          setDirty(true);
+          redraw();
+          setStatus('All rooms removed. Add a room to continue editing.');
           return;
         }
-        const roomId = state.currentRoomId;
         clearAllRoomEdgeLinks(roomId);
         state.data.rooms = state.data.rooms.filter((room) => room.id !== roomId);
         state.currentRoomId = state.data.rooms[0].id;
@@ -4980,8 +5036,9 @@
 
       function initializeData(data, message) {
         state.data = data;
+        if (!Array.isArray(state.data.rooms)) state.data.rooms = [];
         state.data.rooms.forEach(ensureRoomShape);
-        state.currentRoomId = state.data.rooms[0].id;
+        state.currentRoomId = state.data.rooms[0]?.id ?? null;
         state.selectedGlobalEdge = null;
         state.globalSnapPreview = null;
         populateRoomSelect();
@@ -5069,6 +5126,7 @@
           state.selectedGlobalEdge = null;
           state.globalSnapPreview = null;
           populateRoomSelect();
+          setDirty(true);
           redraw();
           setStatus('Applied JSON from editor.');
         } catch (error) {
@@ -5305,7 +5363,25 @@
       }
 
       function renderInventory(room) {
-        if (!room) return;
+        if (!room) {
+          const nameEl = document.getElementById('inventoryRoomName');
+          if (nameEl) nameEl.textContent = 'No room';
+          ['vertexCount', 'platformCount', 'doorCount', 'keyCount', 'abilityCount', 'moverCount'].forEach((id) => {
+            const el = document.getElementById(id);
+            if (el) el.textContent = '0';
+          });
+          renderInventorySection('platforms', [], () => '', 'invListPlatforms', 'invCountPlatforms');
+          renderInventorySection('doors', [], () => '', 'invListDoors', 'invCountDoors');
+          renderInventorySection('keys', [], () => '', 'invListKeys', 'invCountKeys');
+          renderInventorySection('abilities', [], () => '', 'invListAbilities', 'invCountAbilities');
+          renderInventorySection('movers', [], () => '', 'invListMovers', 'invCountMovers');
+          const valBadge = document.getElementById('inventoryValidationBadge');
+          if (valBadge) {
+            valBadge.textContent = '';
+            valBadge.className = 'validation-badge';
+          }
+          return;
+        }
         const nameEl = document.getElementById('inventoryRoomName');
         if (nameEl) nameEl.textContent = room.name || room.id;
 
@@ -5346,8 +5422,10 @@
       function updateEmptyStates() {
         const noRooms = !state.data || !state.data.rooms || state.data.rooms.length === 0;
         const noRoomsEl = document.getElementById('emptyStateNoRooms');
+        const noDataEl = document.getElementById('emptyStateNoData');
         const roomCanvasEl = document.getElementById('roomCanvas');
         if (noRoomsEl) noRoomsEl.style.display = noRooms ? 'flex' : 'none';
+        if (noDataEl) noDataEl.style.display = 'none';
         if (roomCanvasEl) roomCanvasEl.style.display = noRooms ? 'none' : 'block';
       }
 
@@ -5391,6 +5469,7 @@
           });
         });
         ui.roomSelect.addEventListener('change', () => {
+          if (!ui.roomSelect.value) return;
           state.currentRoomId = ui.roomSelect.value;
           state.pendingMoverStart = null;
           state.hoverLocal = null;
