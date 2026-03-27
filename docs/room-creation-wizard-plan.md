@@ -2,7 +2,7 @@
 
 This document defines **who** the wizard is for, **how** it feels in the product, and **how** to implement it. It aligns with `docs/room-editor-creative-decisions.md` (level tooling stays separate from the Sprite Workbench).
 
-**Contents:** **[Product](#product-vision--audience)** · **[Sprite wizard alignment](#alignment-with-sprite-workbench-wizard)** · **[Five phases](#room-wizard-five-phases-layout--terrain--environment--objects--review)** · **[Per-tab preview](#per-tab-preview-panel)** · **[Assets & workbench](#assets-imports--future-asset-workbench)** · **[Neighbors & alignment](#neighbors--alignment)** · **[Technical appendix](#1-purpose)** (constraints, implementation phases, testing).
+**Contents:** **[Product](#product-vision--audience)** · **[Sprite wizard alignment](#alignment-with-sprite-workbench-wizard)** · **[Five phases](#room-wizard-five-phases-layout--terrain--environment--objects--review)** · **[Per-tab preview](#per-tab-preview-panel)** · **[Assets & workbench](#assets-imports--future-asset-workbench)** · **[Neighbors & alignment](#neighbors--alignment)** · **[Sprint roadmap (RW-1–RW-8)](room-wizard-implementation-sprints.md)** · **[Technical appendix](#1-purpose)** (constraints, testing).
 
 ---
 
@@ -398,16 +398,22 @@ Use this to prioritize after P1 ships.
 
 ---
 
-## 7. Implementation phases
+## 7. Implementation phases & demonstrable sprints
 
-| Phase | Scope | Done when |
-|-------|--------|-----------|
-| **P0** | Spec + this plan | You are reading it. |
-| **P1** | **Add Room** → wizard shell + **phase rail** + **Layout** + **Review** (minimal) + `initializeData` | New room flows through wizard; no skip. |
-| **P2** | **Terrain** (uneven terrain / platforms on footprint) + **Environment** stubs | Footprint from Layout drives editable walkable height variation. |
-| **P3** | **Objects** + **asset import** + placeholders for **Asset Workbench** sync | Objects phase can attach imports; sync spec documented. |
-| **P4** | **Per-tab preview** + placeholder player | Each phase tab has embedded preview separate from main canvas. |
-| **P5** | Polish: locking, blocking copy, parity with sprite wizard UX | Feels like Sprite Workbench flight deck. |
+**Actionable breakdown:** [`docs/room-wizard-implementation-sprints.md`](room-wizard-implementation-sprints.md) — **RW-1** through **RW-8**, each with **deliverables**, **task checklists**, **demo scripts**, and **definition of done**.
+
+| Sprint | Theme |
+|--------|--------|
+| **RW-1** | Vertical slice: shell, rail, Layout + Review, Export |
+| **RW-2** | Neighbors, alignment, hatch height |
+| **RW-3** | Terrain (uneven) |
+| **RW-4** | Environment |
+| **RW-5** | Objects + asset import |
+| **RW-6** | Per-tab preview + placeholder player |
+| **RW-7** | Flight-deck parity (locking, progress) |
+| **RW-8** | Workbench sync + ship hardening |
+
+Legacy **P0–P5** map: P0 = spec; P1 ≈ RW-1; P2 ≈ RW-3+RW-4; P3 ≈ RW-5; P4 ≈ RW-6; P5 ≈ RW-7+RW-8.
 
 ---
 
@@ -420,8 +426,9 @@ Use this to prioritize after P1 ships.
 
 ## 9. Documentation updates after implementation
 
-- Append **Sprint 5** (or “Wizard”) section to `docs/room-editor-agent-task-spec.md` with verification checklist.
-- Update `docs/room-editor-creative-decisions.md` — replace “wizard TBD” with link to this plan and note shipped phase.
+- Track execution in [`room-wizard-implementation-sprints.md`](room-wizard-implementation-sprints.md) (rolling checklists per **RW-n**).
+- Append **Room Wizard (RW)** verification to `docs/room-editor-agent-task-spec.md` when RW-8 hardening lands.
+- Keep `docs/room-editor-creative-decisions.md` in sync with shipped RW phases.
 
 ---
 

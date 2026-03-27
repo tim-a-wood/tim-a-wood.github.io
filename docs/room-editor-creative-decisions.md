@@ -29,7 +29,9 @@ This file records product/architecture choices so Sprint work and specs stay ali
 
 ## Room creation wizard
 
-**Plan:** `docs/room-creation-wizard-plan.md` — **product vision**, **Sprite Workbench–style phase rail**, **five phases**, **no skip wizard** for new rooms, **uneven terrain** (Terrain), **objects + assets** (import + future Asset Workbench sync), **per-tab preview** (embedded + placeholder player), **neighbor alignment**.
+**Plan:** `docs/room-creation-wizard-plan.md` — product vision, five phases, no skip, preview, assets.
+
+**Sprints:** `docs/room-wizard-implementation-sprints.md` — **RW-1–RW-8** (demonstrable milestones, demo scripts, DoD).
 
 **Product bullets:** Global map = maintain world; **Add Room** = always enter wizard; plain-language UX; Advanced JSON for maintenance only.
 
