@@ -786,6 +786,7 @@ function computeDoorStandPosition(roomWidth, door) {
     assert.ok(html.includes('function validateLayout'), 'validateLayout should exist in room-layout-editor.html');
     assert.ok(html.includes('L1-001') && html.includes('L2-003'), 'validation rule IDs should be present');
     assert.ok(html.includes('renderValidationResults'), 'renderValidationResults should exist');
+    assert.ok(html.includes('VALIDATION_L2'), 'VALIDATION_L2 tunable thresholds should exist');
 })();
 
 console.log('All game-logic tests passed.');

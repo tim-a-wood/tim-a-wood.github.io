@@ -10,4 +10,4 @@
 | AT-07 | Death, Respawn, And Restart | Verify the life system, respawn behavior, game-over state, and restart control. | Not Run | Room editor changes only. |
 | AT-08 | HUD And Feedback | Verify the HUD remains visible and updates during play. | Not Run | Room editor changes only. |
 | AT-09 | Key Pickup And Door Unlock | Verify the first progression loop works end to end: collect the key on the high ledge, show it in the HUD inventory, then consume it to unlock the left-side door. | Not Run | Room editor changes only. |
-| Unit Test Suite | Overall Unit Tests | General unit test suite status. | Pass | `python3 -m unittest discover -s tests -p "test_*.py"` — 161 tests OK (14 skipped). `node tests/game-logic.test.js` — all passed (includes Sprint 3 `validateLayout` smoke on `room-layout-editor.html`). |
+| Unit Test Suite | Overall Unit Tests | General unit test suite status. | Pass | `node tests/game-logic.test.js` — all passed (Sprint 3 smoke + `VALIDATION_L2`). Python suite not re-run for this editor-only thresholds tweak. |

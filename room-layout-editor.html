@@ -2106,6 +2106,14 @@
       const ROOM_W = 1600;
       const ROOM_H = 1200;
       const TILE = 32;
+      /** Level 2 traversal warnings — tune here (also exposed as window.VALIDATION_L2). */
+      const VALIDATION_L2 = {
+        maxVerticalStepPx: 192,
+        maxHorizontalGapPx: 400,
+        interactMaxDistPx: 176,
+        /** Only compare platform A to B when their x-intervals are this close (overlap counts as 0 gap). Prevents unrelated platforms across the room from pairing. */
+        maxHorizontalSeparationForPairPx: 520
+      };
       const PLATFORM_H = 14;
       const ROOM_MARGIN_LEFT = 132;
       const ROOM_MARGIN_RIGHT = 236;
@@ -5649,28 +5657,60 @@
         });
         if (!hasPlayerStart) fail(1, 'L1-006', null, 'No player start position defined in any room');
 
+        function platformSpanX(p) {
+          const w = (p.len || 1) * TILE;
+          return { left: p.x, right: p.x + w };
+        }
+
+        function horizontalGapBetweenPlatforms(a, b) {
+          const A = platformSpanX(a);
+          const B = platformSpanX(b);
+          return Math.max(0, Math.max(B.left - A.right, A.left - B.right));
+        }
+
         rooms.forEach((room) => {
           const rid = room && room.id != null ? room.id : '?';
           const platforms = room.platforms || [];
           if (platforms.length < 2) return;
 
-          const sorted = [...platforms].sort((a, b) => a.y - b.y);
+          const pairCap = VALIDATION_L2.maxHorizontalSeparationForPairPx;
+          const vMax = VALIDATION_L2.maxVerticalStepPx;
+          const hMax = VALIDATION_L2.maxHorizontalGapPx;
+          const interactD = VALIDATION_L2.interactMaxDistPx;
 
-          for (let i = 0; i < sorted.length - 1; i += 1) {
-            const a = sorted[i];
-            const b = sorted[i + 1];
-            const verticalDelta = Math.abs(b.y - a.y);
-            const aRight = a.x + (a.len || 1) * 32;
-            const bLeft = b.x;
-            const bRight = b.x + (b.len || 1) * 32;
-            const aLeft = a.x;
-            const horizontalGap = Math.max(0, Math.max(bLeft - aRight, aLeft - bRight));
-
-            if (verticalDelta > 120) {
-              warn(2, 'L2-001', rid, `Platforms ${a.id} and ${b.id} in ${rid}: vertical step ${verticalDelta}px exceeds 120px limit`);
+          for (let ai = 0; ai < platforms.length; ai += 1) {
+            const a = platforms[ai];
+            let best = null;
+            let bestY = Infinity;
+            for (let bi = 0; bi < platforms.length; bi += 1) {
+              if (bi === ai) continue;
+              const b = platforms[bi];
+              if (b.y <= a.y) continue;
+              const gx = horizontalGapBetweenPlatforms(a, b);
+              if (gx > pairCap) continue;
+              if (b.y < bestY) {
+                bestY = b.y;
+                best = b;
+              }
             }
-            if (horizontalGap > 220) {
-              warn(2, 'L2-002', rid, `Platforms ${a.id} and ${b.id} in ${rid}: horizontal gap ${horizontalGap}px exceeds 220px limit`);
+            if (!best) continue;
+            const verticalDelta = best.y - a.y;
+            const hGap = horizontalGapBetweenPlatforms(a, best);
+            if (verticalDelta > vMax) {
+              warn(
+                2,
+                'L2-001',
+                rid,
+                `Platforms ${a.id} and ${best.id} in ${rid}: vertical step ${Math.round(verticalDelta)}px exceeds ${vMax}px (nearest related platform below)`
+              );
+            }
+            if (hGap > hMax) {
+              warn(
+                2,
+                'L2-002',
+                rid,
+                `Platforms ${a.id} and ${best.id} in ${rid}: horizontal gap ${Math.round(hGap)}px exceeds ${hMax}px (nearest related platform below)`
+              );
             }
           }
 
@@ -5682,13 +5722,13 @@
           allInteractable.forEach((item) => {
             if (item.x == null || item.y == null) return;
             const nearPlatform = platforms.some((p) => {
-              const pRight = p.x + (p.len || 1) * 32;
+              const pRight = p.x + (p.len || 1) * TILE;
               const dx = Math.max(0, Math.max(p.x - item.x, item.x - pRight));
               const dy = Math.abs(item.y - p.y);
-              return Math.sqrt(dx * dx + dy * dy) <= 140;
+              return Math.sqrt(dx * dx + dy * dy) <= interactD;
             });
             if (!nearPlatform) {
-              warn(2, 'L2-003', rid, `Element ${item.id} in ${rid} is more than 140px from any platform`);
+              warn(2, 'L2-003', rid, `Element ${item.id} in ${rid} is more than ${interactD}px from any platform`);
             }
           });
         });
@@ -5914,6 +5954,7 @@
       }
 
       window.validateLayout = validateLayout;
+      window.VALIDATION_L2 = VALIDATION_L2;
 
       populateAbilityOptions();
       initSidebarToggle();
