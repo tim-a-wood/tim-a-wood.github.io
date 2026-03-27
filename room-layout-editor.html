@@ -13,12 +13,20 @@
       --bg-gradient: linear-gradient(180deg, #040608, #050709 52%, #060b0e);
       --panel: rgba(4, 6, 10, 0.96);
       --panel-2: #07090c;
+      --border: rgba(0,232,200,0.07);
+      --border-strong: rgba(0,232,200,0.14);
       --line: rgba(0, 232, 200, 0.1);
       --line-strong: rgba(0, 232, 200, 0.18);
       --text: #cce8e0;
+      --text-muted: #5d7870;
+      --text-faint: rgba(204,232,224,0.25);
       --muted: #5d7870;
       --accent: #00e8c8;
+      --accent-hover: #20f4d4;
       --accent-soft: rgba(0, 232, 200, 0.08);
+      --surface-hover: rgba(6, 9, 14, 0.98);
+      --bg-raised: rgba(4, 6, 10, 0.98);
+      --bg-soft: #07090c;
       --good: #4ade80;
       --good-soft: rgba(74, 222, 128, 0.12);
       --warning: #d29922;
@@ -28,12 +36,38 @@
       --door: #f5986e;
       --platform: #77b8ff;
       --vertex: #ff6b8a;
+      --color-key: #4ade80;
+      --color-ability: #a78bfa;
+      --color-mover: #fbbf24;
+      --color-start: #f0abfc;
+      --space-1: 4px;
+      --space-2: 8px;
+      --space-3: 12px;
+      --space-4: 16px;
+      --space-5: 24px;
+      --space-6: 32px;
+      --space-7: 48px;
+      --space-8: 64px;
+      --surface-gap: 12px;
+      --surface-pad: 14px;
       --font-sans: "Plus Jakarta Sans", -apple-system, sans-serif;
       --font-display: "Bebas Neue", sans-serif;
       --font-mono: "DM Mono", ui-monospace, monospace;
+      --font-size-xs: 11px;
+      --font-size-sm: 13px;
+      --font-size-base: 14px;
+      --font-size-md: 15px;
+      --font-size-lg: 18px;
+      --font-size-xl: 22px;
       --radius: 20px;
       --radius-tight: 14px;
+      --shadow-sm: 0 2px 8px rgba(0,0,0,0.18);
+      --shadow-md: 0 6px 20px rgba(0,0,0,0.26);
+      --shadow-lg: 0 12px 40px rgba(0,0,0,0.38);
       --shadow: 0 12px 40px rgba(0,0,0,0.38);
+      --transition-fast: 120ms ease;
+      --transition-base: 200ms ease;
+      --nav-h: 52px;
     }
     * { box-sizing: border-box; }
     html, body {
@@ -100,11 +134,11 @@
       align-items: center;
       padding: 6px 12px;
       border-radius: 10px;
-      font-size: 13px;
+      font-size: var(--font-size-sm);
       font-weight: 500;
       color: var(--muted);
       text-decoration: none;
-      transition: background 120ms ease, color 120ms ease;
+      transition: background var(--transition-fast), color var(--transition-fast);
       background: none;
       border: none;
     }
@@ -119,7 +153,7 @@
       flex: 1;
       min-height: 0;
       width: 100%;
-      transition: grid-template-columns 180ms ease;
+      transition: grid-template-columns var(--transition-base);
     }
     .app-shell.sidebar-collapsed {
       grid-template-columns: 64px minmax(0, 1fr);
@@ -130,7 +164,7 @@
       padding: 20px;
       border-right: 1px solid var(--line);
       background: rgba(3, 4, 6, 0.97);
-      transition: padding 180ms ease;
+      transition: padding var(--transition-base);
     }
     .app-shell.sidebar-collapsed .sidebar {
       padding: 16px 10px;
@@ -149,7 +183,7 @@
     .sidebar-copy strong {
       display: block;
       color: var(--muted);
-      font-size: 11px;
+      font-size: var(--font-size-xs);
       text-transform: uppercase;
       letter-spacing: 0.14em;
     }
@@ -164,7 +198,7 @@
     .brand p {
       margin: 0;
       color: var(--muted);
-      font-size: 13px;
+      font-size: var(--font-size-sm);
       line-height: 1.45;
     }
     .rail-toggle {
@@ -186,7 +220,7 @@
       width: 100%;
       padding-top: 8px;
       color: var(--muted);
-      font-size: 11px;
+      font-size: var(--font-size-xs);
       text-transform: uppercase;
       letter-spacing: 0.18em;
       writing-mode: vertical-rl;
@@ -209,7 +243,7 @@
     .sidebar-title h2 {
       margin: 0;
       color: var(--muted);
-      font-size: 13px;
+      font-size: var(--font-size-sm);
       letter-spacing: 0.18em;
       font-family: var(--font-display);
     }
@@ -224,11 +258,11 @@
       background: var(--panel);
       box-shadow: none;
       cursor: pointer;
-      transition: border-color 120ms ease, background 120ms ease, box-shadow 120ms ease;
+      transition: border-color var(--transition-fast), background var(--transition-fast), box-shadow var(--transition-fast);
     }
     .project-card.active {
       border-color: rgba(0,232,200,0.30);
-      box-shadow: inset 0 0 0 1px rgba(0,232,200,0.10);
+      box-shadow: inset 0 0 0 1px var(--line);
     }
     .project-card:hover {
       border-color: rgba(0,232,200,0.28);
@@ -236,7 +270,7 @@
     }
     .project-card strong {
       display: block;
-      font-size: 14px;
+      font-size: var(--font-size-base);
       color: var(--text);
     }
     .project-card small,
@@ -247,7 +281,7 @@
     .project-card small {
       display: block;
       margin-top: 4px;
-      font-size: 12px;
+      font-size: var(--font-size-xs);
       line-height: 1.4;
     }
     .project-actions {
@@ -261,7 +295,7 @@
       min-height: 34px;
       padding: 6px 10px;
       border-radius: 10px;
-      font-size: 13px;
+      font-size: var(--font-size-sm);
     }
     .main-column {
       min-height: 0;
@@ -298,16 +332,16 @@
       letter-spacing: 0.05em;
     }
     h2, h3 {
-      font-size: 15px;
+      font-size: var(--font-size-md);
     }
     .sub {
       margin-top: 6px;
       color: var(--muted);
-      font-size: 12px;
+      font-size: var(--font-size-xs);
       line-height: 1.4;
     }
     .eyebrow {
-      font-size: 11px;
+      font-size: var(--font-size-xs);
       color: var(--muted);
       text-transform: uppercase;
       letter-spacing: 0.18em;
@@ -327,7 +361,7 @@
     label {
       display: grid;
       gap: 4px;
-      font-size: 11px;
+      font-size: var(--font-size-xs);
       color: var(--muted);
       text-transform: uppercase;
       letter-spacing: 0.06em;
@@ -346,13 +380,13 @@
       min-height: 280px;
       resize: vertical;
       font-family: var(--font-mono);
-      font-size: 12px;
+      font-size: var(--font-size-xs);
       line-height: 1.5;
     }
     button {
       cursor: pointer;
       background: rgba(255,255,255,0.045);
-      transition: background 120ms ease, border-color 120ms ease, color 120ms ease, transform 120ms ease;
+      transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast), transform var(--transition-fast);
       font-weight: 600;
     }
     button:hover {
@@ -360,11 +394,15 @@
       background: rgba(255,255,255,0.08);
       transform: translateY(-1px);
     }
+    button:active {
+      transform: translateY(0);
+      box-shadow: none;
+    }
     button.active {
       border-color: var(--accent);
       color: var(--text);
       background: rgba(0, 232, 200, 0.12);
-      box-shadow: inset 0 0 0 1px rgba(0, 232, 200, 0.1);
+      box-shadow: inset 0 0 0 1px var(--line);
     }
     button:disabled {
       opacity: 0.45;
@@ -429,13 +467,13 @@
       gap: 4px;
     }
     .control-card-title h3 {
-      font-size: 14px;
+      font-size: var(--font-size-base);
       letter-spacing: 0.02em;
     }
     .control-card-title p {
       margin: 0;
       color: var(--muted);
-      font-size: 12px;
+      font-size: var(--font-size-xs);
       line-height: 1.45;
     }
     .control-card .row {
@@ -478,7 +516,7 @@
     }
     .hint {
       color: var(--muted);
-      font-size: 12px;
+      font-size: var(--font-size-xs);
       line-height: 1.45;
     }
     .list {
@@ -494,7 +532,7 @@
       border-radius: 14px;
       background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.025));
       cursor: pointer;
-      font-size: 12px;
+      font-size: var(--font-size-xs);
       line-height: 1.45;
       box-shadow: inset 0 1px 0 rgba(255,255,255,0.025);
     }
@@ -504,13 +542,47 @@
       box-shadow: inset 0 0 0 1px rgba(0, 232, 200, 0.08);
     }
     .status {
-      font-size: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: var(--font-size-xs);
       color: var(--muted);
-      min-height: 20px;
-      padding: 10px 12px;
-      border-radius: 14px;
+      min-height: 36px;
+      padding: 8px 14px;
+      border-radius: 12px;
       border: 1px solid var(--line);
       background: rgba(255,255,255,0.03);
+      transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
+    }
+    .status::before {
+      content: "●";
+      font-size: 8px;
+      flex-shrink: 0;
+      color: var(--muted);
+    }
+    .status.status-success {
+      background: var(--good-soft);
+      border-color: rgba(74,222,128,0.24);
+      color: #dff7ec;
+    }
+    .status.status-success::before {
+      color: var(--good);
+    }
+    .status.status-error {
+      background: var(--error-soft);
+      border-color: rgba(248,81,73,0.24);
+      color: #fdd8d6;
+    }
+    .status.status-error::before {
+      color: var(--error);
+    }
+    .status.status-warning {
+      background: var(--warning-soft);
+      border-color: rgba(210,153,34,0.24);
+      color: #f5e6c0;
+    }
+    .status.status-warning::before {
+      color: var(--warning);
     }
     .toast {
       position: fixed;
@@ -522,9 +594,9 @@
       border: 1px solid var(--line);
       background: rgba(4, 6, 10, 0.96);
       color: var(--text);
-      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+      box-shadow: var(--shadow-lg);
       z-index: 20;
-      font-size: 12px;
+      font-size: var(--font-size-xs);
       line-height: 1.4;
     }
     .toast.success {
@@ -559,50 +631,126 @@
       margin: 0;
       padding-left: 18px;
       color: var(--text);
-      font-size: 12px;
+      font-size: var(--font-size-xs);
       line-height: 1.5;
     }
     .steps li + li {
       margin-top: 6px;
     }
-    details {
+    .collapsible-section {
       border: 1px solid var(--line);
       border-radius: 16px;
-      padding: 10px;
-      background: rgba(255,255,255,0.03);
+      overflow: hidden;
     }
-    summary {
-      cursor: pointer;
+    .collapsible-toggle {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      padding: 10px 14px;
+      background: rgba(255,255,255,0.03);
+      border: none;
+      border-radius: 0;
       color: var(--muted);
-      font-size: 12px;
-      user-select: none;
+      font-size: var(--font-size-sm);
+      font-weight: 500;
+      cursor: pointer;
+      min-height: 40px;
+      text-align: left;
+    }
+    .collapsible-toggle:hover {
+      background: rgba(255,255,255,0.06);
+      color: var(--text);
+      transform: none;
+    }
+    .collapsible-chevron {
+      flex-shrink: 0;
+      color: var(--muted);
+      transition: transform var(--transition-fast);
+    }
+    .collapsible-toggle[aria-expanded="true"] .collapsible-chevron {
+      transform: rotate(180deg);
+    }
+    .collapsible-body {
+      padding: 14px;
+      display: grid;
+      gap: 10px;
+      border-top: 1px solid var(--line);
+    }
+    .collapsible-body[hidden] {
+      display: none;
+    }
+    .canvas-with-inspector {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      min-height: 0;
+    }
+    .canvas-with-inspector .canvas-box {
+      flex: 1;
+      min-width: 0;
     }
     .inspector {
-      position: absolute;
-      top: 64px;
-      right: 12px;
-      width: min(220px, calc(100% - 24px));
+      width: 240px;
+      flex-shrink: 0;
       background: linear-gradient(180deg, rgba(11, 16, 20, 0.98), rgba(7, 10, 13, 0.98));
       border: 1px solid var(--line-strong);
-      border-radius: 16px;
-      padding: 10px;
+      border-radius: 18px;
+      padding: 12px;
       display: grid;
       gap: 8px;
-      z-index: 3;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+      box-shadow: var(--shadow-md);
+      align-self: start;
     }
     .inspector.hidden {
       display: none;
     }
+    .inspector-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--line);
+    }
+    .inspector-type-icon {
+      width: 12px;
+      height: 12px;
+      border-radius: 3px;
+      flex-shrink: 0;
+      background: var(--muted);
+    }
     .inspector-title {
-      font-size: 12px;
+      flex: 1;
+      font-size: var(--font-size-sm);
+      font-weight: 600;
       color: var(--text);
+    }
+    .inspector-close {
+      width: 24px;
+      min-height: 24px;
+      padding: 0;
+      border-radius: 6px;
+      font-size: 14px;
+      color: var(--muted);
+      line-height: 1;
+      display: grid;
+      place-items: center;
+    }
+    .inspector-close:hover {
+      color: var(--text);
+      transform: none;
     }
     .inspector .row {
       grid-template-columns: 1fr 1fr;
     }
     .inspector label {
       font-size: 10px;
+    }
+    .inspector input,
+    .inspector select {
+      min-height: 32px;
+      padding: 6px 10px;
+      font-size: var(--font-size-xs);
     }
     .canvas-toolbar {
       position: absolute;
@@ -616,26 +764,75 @@
       border: 1px solid var(--line);
       border-radius: 16px;
       background: rgba(7, 10, 13, 0.92);
-      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
+      box-shadow: var(--shadow-md);
       backdrop-filter: blur(10px);
     }
     .canvas-toolbar button {
+      display: flex;
+      align-items: center;
       min-height: 36px;
       padding: 6px 9px;
-      font-size: 11px;
+      font-size: var(--font-size-xs);
       text-align: left;
       border-radius: 12px;
     }
+    .canvas-toolbar button[data-tool="platform"]::before,
+    .canvas-toolbar button[data-tool="door"]::before,
+    .canvas-toolbar button[data-tool="vertex"]::before,
+    .canvas-toolbar button[data-tool="key"]::before,
+    .canvas-toolbar button[data-tool="ability"]::before,
+    .canvas-toolbar button[data-tool="mover"]::before,
+    .canvas-toolbar button[data-tool="start"]::before {
+      content: "";
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      margin-right: 6px;
+      flex-shrink: 0;
+    }
+    .canvas-toolbar button[data-tool="platform"]::before { border-radius: 2px; background: var(--platform); }
+    .canvas-toolbar button[data-tool="door"]::before { border-radius: 50%; background: var(--door); }
+    .canvas-toolbar button[data-tool="vertex"]::before { border-radius: 50%; background: var(--vertex); }
+    .canvas-toolbar button[data-tool="key"]::before { border-radius: 2px; background: var(--color-key); }
+    .canvas-toolbar button[data-tool="ability"]::before { border-radius: 50%; background: var(--color-ability); }
+    .canvas-toolbar button[data-tool="mover"]::before { border-radius: 2px; background: var(--color-mover); }
+    .canvas-toolbar button[data-tool="start"]::before { border-radius: 50%; background: var(--color-start); }
+    .canvas-toolbar kbd {
+      margin-left: auto;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-faint);
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 4px;
+      padding: 0 4px;
+      min-width: 18px;
+      text-align: center;
+      line-height: 16px;
+    }
     .canvas-toolbar .toolbar-divider {
       height: 1px;
-      background: rgba(127, 178, 223, 0.2);
-      margin: 2px 0;
+      background: var(--line);
+      margin: 4px 0;
     }
     .canvas-toolbar .toolbar-note {
       font-size: 10px;
       color: var(--muted);
       line-height: 1.3;
       padding: 2px 2px 0 2px;
+    }
+    .canvas-toolbar button#deleteSelected,
+    .canvas-toolbar button#duplicatePlatform,
+    .canvas-toolbar button#toggleSelectedEdge,
+    .canvas-toolbar button#centerRoom {
+      color: var(--muted);
+      font-size: var(--font-size-xs);
+    }
+    .canvas-toolbar button#deleteSelected:hover,
+    .canvas-toolbar button#duplicatePlatform:hover,
+    .canvas-toolbar button#toggleSelectedEdge:hover,
+    .canvas-toolbar button#centerRoom:hover {
+      color: var(--text);
     }
     .view-control-bar {
       display: flex;
@@ -658,13 +855,78 @@
       min-height: 38px;
       padding: 7px 10px;
     }
+    .pan-controls {
+      display: grid;
+      grid-template-rows: auto auto auto;
+      gap: 2px;
+      align-items: center;
+      justify-items: center;
+    }
+    .pan-middle-row {
+      display: flex;
+      gap: 2px;
+      align-items: center;
+    }
+    .pan-btn {
+      width: 28px;
+      min-width: 28px;
+      min-height: 28px;
+      padding: 0;
+      display: grid;
+      place-items: center;
+      border-radius: 8px;
+      color: var(--muted);
+    }
+    .pan-btn:hover {
+      color: var(--text);
+      transform: none;
+    }
+    .pan-center-dot {
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: var(--line);
+      margin: 0 2px;
+    }
     .view-zoom-readout {
       min-width: 62px;
-      font-size: 11px;
+      font-size: var(--font-size-xs);
       color: var(--muted);
       text-transform: uppercase;
       letter-spacing: 0.06em;
       text-align: center;
+    }
+    .tab-strip {
+      display: flex;
+      gap: 4px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 3px;
+    }
+    .tab-btn {
+      flex: 1;
+      min-height: 32px;
+      padding: 5px 10px;
+      border-radius: 11px;
+      border: none;
+      background: none;
+      color: var(--muted);
+      font-size: var(--font-size-sm);
+      font-weight: 500;
+      cursor: pointer;
+      transition: background var(--transition-fast), color var(--transition-fast);
+    }
+    .tab-btn:hover {
+      color: var(--text);
+      background: rgba(255,255,255,0.06);
+      transform: none;
+    }
+    .tab-btn.active {
+      background: rgba(0,232,200,0.12);
+      color: var(--text);
+      border-color: transparent;
+      box-shadow: none;
     }
     .field-hidden {
       display: none;
@@ -679,7 +941,7 @@
       align-items: end;
     }
     .global-link-summary {
-      font-size: 12px;
+      font-size: var(--font-size-xs);
       color: var(--text);
       line-height: 1.45;
       min-height: 48px;
@@ -721,13 +983,13 @@
       gap: 4px;
     }
     .item-list-header h3 {
-      font-size: 14px;
+      font-size: var(--font-size-base);
       letter-spacing: 0.02em;
     }
     .item-list-header p {
       margin: 0;
       color: var(--muted);
-      font-size: 12px;
+      font-size: var(--font-size-xs);
       line-height: 1.45;
     }
     @media (max-width: 1300px) {
@@ -779,6 +1041,12 @@
       .control-card .row-3,
       .global-link-panel {
         grid-template-columns: 1fr;
+      }
+      .canvas-with-inspector {
+        flex-direction: column;
+      }
+      .inspector {
+        width: 100%;
       }
     }
   </style>
@@ -835,13 +1103,13 @@
                 Room
                 <select id="roomSelect"></select>
               </label>
-              <label>
-                View
-                <select id="viewMode">
-                  <option value="room">Room Editor</option>
-                  <option value="global">Global Map</option>
-                </select>
-              </label>
+              <div>
+                <span class="eyebrow">View</span>
+                <div class="tab-strip" id="viewModeStrip">
+                  <button class="tab-btn active" data-view="room" type="button">Room View</button>
+                  <button class="tab-btn" data-view="global" type="button">Global Map</button>
+                </div>
+              </div>
             </div>
             <div class="row">
               <label>
@@ -898,40 +1166,61 @@
           </section>
         </div>
       </div>
-      <div class="canvas-box" id="roomCanvasBox">
-        <div class="canvas-toolbar" id="canvasToolButtons">
-          <button data-tool="select" class="active">Select</button>
-          <button data-tool="vertex">Add Vertex</button>
-          <button data-tool="platform">Add Platform</button>
-          <button data-tool="door">Add Door</button>
-          <button data-tool="key">Add Key</button>
-          <button data-tool="ability">Add Ability</button>
-          <button data-tool="mover">Add Mover</button>
-          <button data-tool="start">Set Start</button>
-          <button data-tool="room-move">Move Room</button>
+      <div class="canvas-with-inspector" id="canvasWithInspector">
+        <div class="canvas-box" id="roomCanvasBox">
+          <div class="canvas-toolbar" id="canvasToolButtons">
+          <button data-tool="select" class="active" type="button">Select <kbd>V</kbd></button>
+          <button data-tool="vertex" type="button">Add Vertex <kbd>E</kbd></button>
+          <button data-tool="platform" type="button">Add Platform <kbd>P</kbd></button>
+          <button data-tool="door" type="button">Add Door <kbd>D</kbd></button>
+          <button data-tool="key" type="button">Add Key <kbd>K</kbd></button>
+          <button data-tool="ability" type="button">Add Ability <kbd>A</kbd></button>
+          <button data-tool="mover" type="button">Add Mover <kbd>M</kbd></button>
+          <button data-tool="start" type="button">Set Start <kbd>S</kbd></button>
+          <button data-tool="room-move" type="button">Move Room <kbd>G</kbd></button>
           <div class="toolbar-divider"></div>
-          <button id="deleteSelected">Delete</button>
-          <button id="toggleSelectedEdge">Toggle Edge</button>
-          <button id="duplicatePlatform">Duplicate</button>
-          <button id="centerRoom">Center Room</button>
+          <button id="deleteSelected" type="button">Delete</button>
+          <button id="toggleSelectedEdge" type="button">Toggle Edge</button>
+          <button id="duplicatePlatform" type="button">Duplicate</button>
+          <button id="centerRoom" type="button">Center Room</button>
           <div class="toolbar-note" id="selectionSummary">Nothing selected.</div>
-        </div>
-        <div class="view-control-bar" id="roomViewControls">
+          </div>
+          <div class="view-control-bar" id="roomViewControls">
           <div class="view-control-group">
-            <button id="roomZoomOut">-</button>
+            <button id="roomZoomOut" type="button" title="Zoom Out (-)">−</button>
             <div class="view-zoom-readout" id="roomZoomReadout">100%</div>
-            <button id="roomZoomIn">+</button>
-            <button id="roomZoomReset">100%</button>
+            <button id="roomZoomIn" type="button" title="Zoom In (+)">+</button>
+            <button id="roomZoomFit" type="button" title="Fit Room">Fit</button>
+            <button id="roomZoomReset" type="button">100%</button>
           </div>
           <div class="view-control-group">
-            <button id="roomPanLeft">Pan L</button>
-            <button id="roomPanUp">Pan U</button>
-            <button id="roomPanDown">Pan D</button>
-            <button id="roomPanRight">Pan R</button>
+            <div class="pan-controls">
+              <button id="roomPanUp" class="pan-btn pan-up" type="button" title="Pan Up (↑)">
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 9V3M6 3L3 6M6 3L9 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+              <div class="pan-middle-row">
+                <button id="roomPanLeft" class="pan-btn pan-left" type="button" title="Pan Left (←)">
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M9 6H3M3 6L6 3M3 6L6 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </button>
+                <div class="pan-center-dot"></div>
+                <button id="roomPanRight" class="pan-btn pan-right" type="button" title="Pan Right (→)">
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M3 6H9M9 6L6 3M9 6L6 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </button>
+              </div>
+              <button id="roomPanDown" class="pan-btn pan-down" type="button" title="Pan Down (↓)">
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 3V9M6 9L3 6M6 9L9 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+            </div>
           </div>
+        </div>
+          <canvas id="roomCanvas" width="960" height="720"></canvas>
         </div>
         <div class="inspector hidden" id="selectionInspector">
-          <div class="inspector-title" id="inspectorTitle">Selection</div>
+          <div class="inspector-header">
+            <div class="inspector-type-icon" id="inspectorTypeIcon"></div>
+            <div class="inspector-title" id="inspectorTitle">Selection</div>
+            <button class="inspector-close" id="inspectorClose" type="button" title="Deselect (Esc)">×</button>
+          </div>
           <div class="row" id="globalFields">
             <label>Global X<input id="globalX" type="number" step="1" /></label>
             <label>Global Y<input id="globalY" type="number" step="1" /></label>
@@ -985,9 +1274,8 @@
               <select id="abilityType"></select>
             </label>
           </div>
-          <button id="applyProps" class="good">Apply Properties</button>
+          <button id="applyProps" class="good" type="button">Apply Properties</button>
         </div>
-        <canvas id="roomCanvas" width="960" height="720"></canvas>
       </div>
       <div class="canvas-box hidden" id="globalCanvasBox">
         <div class="global-link-panel" id="globalLinkPanel">
@@ -1006,33 +1294,53 @@
         </div>
         <div class="view-control-bar" id="globalViewControls">
           <div class="view-control-group">
-            <button id="globalZoomOut">-</button>
+            <button id="globalZoomOut" type="button" title="Zoom Out (-)">−</button>
             <div class="view-zoom-readout" id="globalZoomReadout">100%</div>
-            <button id="globalZoomIn">+</button>
-            <button id="globalZoomReset">100%</button>
+            <button id="globalZoomIn" type="button" title="Zoom In (+)">+</button>
+            <button id="globalZoomReset" type="button">100%</button>
           </div>
           <div class="view-control-group">
-            <button id="globalPanLeft">Pan L</button>
-            <button id="globalPanUp">Pan U</button>
-            <button id="globalPanDown">Pan D</button>
-            <button id="globalPanRight">Pan R</button>
+            <div class="pan-controls">
+              <button id="globalPanUp" class="pan-btn pan-up" type="button" title="Pan Up (↑)">
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 9V3M6 3L3 6M6 3L9 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+              <div class="pan-middle-row">
+                <button id="globalPanLeft" class="pan-btn pan-left" type="button" title="Pan Left (←)">
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M9 6H3M3 6L6 3M3 6L6 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </button>
+                <div class="pan-center-dot"></div>
+                <button id="globalPanRight" class="pan-btn pan-right" type="button" title="Pan Right (→)">
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M3 6H9M9 6L6 3M9 6L6 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </button>
+              </div>
+              <button id="globalPanDown" class="pan-btn pan-down" type="button" title="Pan Down (↓)">
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 3V9M6 9L3 6M6 9L9 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+            </div>
           </div>
         </div>
         <canvas id="globalCanvas" width="960" height="720"></canvas>
       </div>
-      <details>
-        <summary>Advanced Import / Scratch / Raw JSON</summary>
-        <div class="stack" style="margin-top: 10px;">
+      <div class="collapsible-section" id="advancedSection">
+        <button class="collapsible-toggle" id="advancedToggle" type="button" aria-expanded="false">
+          <span class="collapsible-label">Raw JSON / Debug Tools</span>
+          <svg class="collapsible-chevron" width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <path d="M3 5L7 9L11 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <div class="collapsible-body" id="advancedBody" hidden>
+          <div class="stack">
           <div class="row">
-            <button id="applyJson">Import Layout</button>
-            <button id="saveJsonFile" class="secondary">Save To File</button>
+            <button id="applyJson" type="button">Import Layout</button>
+            <button id="saveJsonFile" class="secondary" type="button">Save To File</button>
           </div>
           <div class="row">
-            <button id="clearSavedLayout" class="secondary">Clear Scratch Save</button>
+            <button id="clearSavedLayout" class="secondary" type="button">Clear Scratch Save</button>
           </div>
           <textarea id="jsonText" spellcheck="false"></textarea>
         </div>
-      </details>
+        </div>
+      </div>
       <div class="status" id="statusText">Loading layout data…</div>
     </section>
 
@@ -1406,11 +1714,12 @@
         sidebarProjectName: document.getElementById('sidebar-project-name'),
         roomProjectList: document.getElementById('room-project-list'),
         roomSelect: document.getElementById('roomSelect'),
-        viewMode: document.getElementById('viewMode'),
+        viewModeTabs: Array.from(document.querySelectorAll('#viewModeStrip .tab-btn')),
         snapSize: document.getElementById('snapSize'),
         globalZoom: document.getElementById('globalZoom'),
         roomZoomOut: document.getElementById('roomZoomOut'),
         roomZoomIn: document.getElementById('roomZoomIn'),
+        roomZoomFit: document.getElementById('roomZoomFit'),
         roomZoomReset: document.getElementById('roomZoomReset'),
         roomZoomReadout: document.getElementById('roomZoomReadout'),
         roomPanLeft: document.getElementById('roomPanLeft'),
@@ -1429,6 +1738,8 @@
         selectionSummary: document.getElementById('selectionSummary'),
         selectionInspector: document.getElementById('selectionInspector'),
         inspectorTitle: document.getElementById('inspectorTitle'),
+        inspectorTypeIcon: document.getElementById('inspectorTypeIcon'),
+        inspectorClose: document.getElementById('inspectorClose'),
         globalFields: document.getElementById('globalFields'),
         platformFields: document.getElementById('platformFields'),
         moverFields: document.getElementById('moverFields'),
@@ -1480,6 +1791,8 @@
         snapSelectedEdge: document.getElementById('snapSelectedEdge'),
         canvasTitle: document.getElementById('canvasTitle'),
         canvasSub: document.getElementById('canvasSub'),
+        advancedToggle: document.getElementById('advancedToggle'),
+        advancedBody: document.getElementById('advancedBody'),
         jsonText: document.getElementById('jsonText'),
         reloadJson: document.getElementById('reloadJson'),
         applyJson: document.getElementById('applyJson'),
@@ -1618,8 +1931,24 @@
           .join('');
       }
 
-      function setStatus(message) {
-        ui.statusText.textContent = message;
+      function setStatus(message, type = 'info') {
+        if (!ui.statusText) return;
+        const normalized = String(message || '');
+        let resolvedType = type;
+        if (resolvedType === 'info') {
+          if (/warning/i.test(normalized)) resolvedType = 'warning';
+          else if (/(error|failed|cancelled)/i.test(normalized)) resolvedType = 'error';
+          else if (/(saved|applied|downloaded|linked|cleared|added|deleted|set |snapped|resized)/i.test(normalized)) resolvedType = 'success';
+        }
+        window.clearTimeout(ui.statusText._clearTimer);
+        ui.statusText.textContent = normalized;
+        ui.statusText.className = 'status' + (resolvedType !== 'info' ? ` status-${resolvedType}` : '');
+        if (resolvedType === 'success') {
+          ui.statusText._clearTimer = window.setTimeout(() => {
+            ui.statusText.className = 'status';
+            ui.statusText.textContent = 'Ready';
+          }, 2500);
+        }
       }
 
       function showToast(message, kind = 'success') {
@@ -1649,6 +1978,24 @@
       function setSelection(items) {
         state.selectionItems = items.slice();
         state.selected = state.selectionItems[0] || null;
+      }
+
+      function setViewMode(view) {
+        state.viewMode = view === 'global' ? 'global' : 'room';
+        ui.viewModeTabs.forEach((button) => {
+          button.classList.toggle('active', button.dataset.view === state.viewMode);
+        });
+      }
+
+      function fitRoomToCanvas() {
+        resetRoomView();
+      }
+
+      function dismissSelection() {
+        state.pendingMoverStart = null;
+        state.hoverLocal = null;
+        setSelection([]);
+        redraw();
       }
 
       function selectionContains(item) {
@@ -2455,12 +2802,28 @@
 
       function updateInspector() {
         const room = currentRoom();
+        const typeColors = {
+          vertex: 'var(--vertex)',
+          platform: 'var(--platform)',
+          door: 'var(--door)',
+          key: 'var(--color-key)',
+          ability: 'var(--color-ability)',
+          mover: 'var(--color-mover)',
+          'mover-start': 'var(--color-mover)',
+          'mover-end': 'var(--color-mover)',
+          start: 'var(--color-start)',
+          'room-shell': 'var(--accent)',
+          'room-edge': 'var(--muted)'
+        };
         if (!room || !state.selected || state.viewMode !== 'room' || state.selectionItems.length !== 1) {
           ui.selectionInspector.classList.add('hidden');
           return;
         }
 
         ui.selectionInspector.classList.remove('hidden');
+        if (ui.inspectorTypeIcon) {
+          ui.inspectorTypeIcon.style.background = typeColors[state.selected.kind] || 'var(--muted)';
+        }
         ui.globalFields.classList.add('field-hidden');
         ui.platformFields.classList.add('field-hidden');
         ui.moverFields.classList.add('field-hidden');
@@ -3238,6 +3601,7 @@
       function redraw() {
         const room = currentRoom();
         if (!room) return;
+        setViewMode(state.viewMode);
         updateCounts(room);
         syncPropertyInputs();
         updateViewControlReadouts();
@@ -4442,6 +4806,11 @@
 
       function wireEvents() {
         updateSyncButtonState();
+        ui.advancedToggle?.addEventListener('click', () => {
+          const expanded = ui.advancedToggle.getAttribute('aria-expanded') === 'true';
+          ui.advancedToggle.setAttribute('aria-expanded', String(!expanded));
+          if (ui.advancedBody) ui.advancedBody.hidden = expanded;
+        });
         ui.roomSelect.addEventListener('change', () => {
           state.currentRoomId = ui.roomSelect.value;
           state.pendingMoverStart = null;
@@ -4452,9 +4821,11 @@
           setSelection([]);
           redraw();
         });
-        ui.viewMode.addEventListener('change', () => {
-          state.viewMode = ui.viewMode.value;
-          redraw();
+        ui.viewModeTabs.forEach((button) => {
+          button.addEventListener('click', () => {
+            setViewMode(button.dataset.view);
+            redraw();
+          });
         });
         ui.globalZoom.addEventListener('input', () => {
           state.globalZoom = clampZoom(Number(ui.globalZoom.value || 100) / 100, GLOBAL_ZOOM_MIN, GLOBAL_ZOOM_MAX);
@@ -4463,6 +4834,7 @@
         });
         ui.roomZoomOut.addEventListener('click', () => adjustRoomZoom(-0.1));
         ui.roomZoomIn.addEventListener('click', () => adjustRoomZoom(0.1));
+        ui.roomZoomFit?.addEventListener('click', fitRoomToCanvas);
         ui.roomZoomReset.addEventListener('click', resetRoomView);
         ui.roomPanLeft.addEventListener('click', () => panRoomView(-VIEW_PAN_STEP, 0));
         ui.roomPanUp.addEventListener('click', () => panRoomView(0, -VIEW_PAN_STEP));
@@ -4511,6 +4883,7 @@
         ui.syncCanonicalJson.addEventListener('click', syncCanonicalJson);
         ui.openGameWithLayout.addEventListener('click', openGameWithLayout);
         ui.clearSavedLayout.addEventListener('click', clearSavedLayout);
+        ui.inspectorClose?.addEventListener('click', dismissSelection);
 
         roomCanvas.addEventListener('pointerdown', onRoomPointerDown);
         roomCanvas.addEventListener('pointermove', onRoomPointerMove);
@@ -4524,6 +4897,41 @@
         window.addEventListener('pointercancel', endDrag);
         window.addEventListener('touchend', endDrag, { passive: false });
         window.addEventListener('touchcancel', endDrag, { passive: false });
+        window.addEventListener('keydown', (event) => {
+          if (event.defaultPrevented) return;
+          const target = event.target;
+          const tagName = target?.tagName;
+          const isTypingTarget = target?.isContentEditable || tagName === 'INPUT' || tagName === 'TEXTAREA' || tagName === 'SELECT';
+          if (event.key === 'Escape') {
+            if (state.selectionItems.length) {
+              dismissSelection();
+              event.preventDefault();
+            }
+            return;
+          }
+          if (isTypingTarget || event.metaKey || event.ctrlKey || event.altKey) return;
+          const toolMap = {
+            v: 'select',
+            e: 'vertex',
+            p: 'platform',
+            d: 'door',
+            k: 'key',
+            a: 'ability',
+            m: 'mover',
+            s: 'start',
+            g: 'room-move'
+          };
+          const tool = toolMap[event.key.toLowerCase()];
+          if (!tool) return;
+          state.tool = tool;
+          if (state.tool !== 'mover') {
+            state.pendingMoverStart = null;
+            state.hoverLocal = null;
+          }
+          ui.toolButtons.forEach((button) => button.classList.toggle('active', button.dataset.tool === tool));
+          redraw();
+          event.preventDefault();
+        });
       }
 
       populateAbilityOptions();
