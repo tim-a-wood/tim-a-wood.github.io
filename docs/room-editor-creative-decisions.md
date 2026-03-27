@@ -6,7 +6,7 @@ This file records product/architecture choices so Sprint work and specs stay ali
 
 **Decision:** Level design is **not** part of the existing Sprite Workbench workflow (no extra `FLIGHTDECK_PHASE` / stage panel in `tools/2d-sprite-and-animation/` for now).
 
-**Direction:** Treat level layout as a **separate tool** (the room layout editor and related flows). A **dedicated wizard** for level design may be added later; **wizard steps are not fixed yet** — refine in a design pass before implementation.
+**Direction:** Treat level layout as a **separate tool** (the room layout editor and related flows). The **room wizard** is product-facing for **novice/solo** creators: **global map** stays the one place to maintain the whole world; **adding a new room** should launch the **guided room flow** (see `docs/room-creation-wizard-plan.md`).
 
 **Implication:** Sprint 4 “Workbench Integration” does **not** mean embedding Level Design into the sprite phase rail. Optional: a simple cross-link from docs or README to `room-layout-editor.html` is fine; deep UI integration is deferred.
 
@@ -29,12 +29,8 @@ This file records product/architecture choices so Sprint work and specs stay ali
 
 ## Room creation wizard
 
-**Plan:** `docs/room-creation-wizard-plan.md` — scoped steps, single-file UI, phased implementation (P1 = guided new layout + first room; P2 import; P3 templates; P4 first-run polish).
+**Plan:** `docs/room-creation-wizard-plan.md` — **product vision** (audience, global map vs wizard, **Layout → Terrain → Environment → Objects → Review**), **neighbor alignment** ideas, and technical appendix.
 
-Earlier exploratory dimensions (still useful for later phases):
+**Product bullets:** Global map = maintain world; wizard = **new room** (e.g. launch on **Add Room**); optional skip for power users; plain-language UX.
 
-- New layout vs edit existing / import
-- World graph vs single room
-- Validation gate (L1/L2/L3) before export
-- Tileset / collision profile
-- Playtest / embed preview
+**Technical phases** (from plan appendix): single-file UI, import/templates/first-run polish as phased engineering.

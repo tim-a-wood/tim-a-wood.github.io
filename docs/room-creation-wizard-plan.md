@@ -1,26 +1,160 @@
-# Room creation wizard — implementation plan
+# Room creation wizard — product & implementation plan
 
-This document defines **what** the wizard is for, **how** it should behave, and **how** to implement it in phases. It aligns with `docs/room-editor-creative-decisions.md` (level tooling stays separate from the Sprite Workbench).
+This document defines **who** the wizard is for, **how** it feels in the product, and **how** to implement it. It aligns with `docs/room-editor-creative-decisions.md` (level tooling stays separate from the Sprite Workbench).
 
-**Contents:** §1 Purpose · §2 Constraints · §3 Current behavior · §4 Flows · §5 v1 stages (per-stage tables + §5.2 order variants) · §5b Brainstorm · §5c Ideas matrix · §6–11 Technical design, phases, testing, open decisions, refs.
+**Contents:** **[Product](#product-vision--audience)** (vision, global map vs wizard, five phases, neighbors & alignment, brainstorm) · **[Technical appendix](#1-purpose)** (constraints, baseline behavior, earlier layout-from-scratch stages, implementation phases, testing).
+
+---
+
+## Product vision & audience
+
+### Who it’s for
+
+- **Novice and solo game developers** who want to shape a level without thinking like a programmer.
+- People who are comfortable with **visual tools** (drag, click, simple choices) and want **plain-language** labels, short explanations, and **optional** “advanced” detail tucked away—not raw JSON as the default path.
+
+### What we promise
+
+- **You stay in one room layout tool** for building spaces; the **global map** is the single place where the **whole world** is maintained (add, remove, move, and link rooms)—behavior that **already exists** in the editor.
+- **Creating a new room** is a **guided experience** (the wizard), not a blank polygon dropped with jargon.
+- Over time: **less manual math** when two rooms should meet cleanly (alignment, door/hatch height).
+
+### Tone & UX principles
+
+| Principle | Example |
+|-----------|--------|
+| **Friendly defaults** | Pre-filled sizes, sensible grid, “Recommended” badges. |
+| **Explain in place** | One-line help under scary fields; “What’s this?” for edge links, validation. |
+| **Progress, not homework** | Five clear phases (below); skip / “decide later” where safe. |
+| **Review before share** | Last step is confidence: export or open game without surprises. |
+
+---
+
+## Two surfaces: global map vs room wizard
+
+These are **separate jobs** in the product—not one mega-wizard that does everything.
+
+| Surface | Job | Notes |
+|---------|-----|--------|
+| **Global map** (existing **Global Map** view) | **Maintain the world:** add/remove rooms, position them, connect edges, see the big picture. | Treat as the **single home** for “where does this room live relative to others?” Keep improving this view rather than duplicating it inside the wizard. |
+| **Room wizard** (new / expanded flow) | **Shape one new room** from a friendly flow: footprint, connections to neighbors, gameplay ingredients, polish, then review. | **Launch when the user adds a new room** (see below). Not a replacement for global map editing. |
+
+**Implication:** The wizard focuses on **one room at a time**. World-level operations stay on the **global map**; the wizard may **read** neighbor context (which room is next door) and **write** things that the global map already shows (position, links), but the **primary canvas for panning the whole map** remains global view.
+
+---
+
+## When the wizard opens (product rule)
+
+| Trigger | Behavior |
+|---------|----------|
+| **User adds a new room** (`+ Add Room` or equivalent) | **Start the room wizard** for that new room—this is the default happy path for novices. |
+| **First room in an empty project** | Same flow: wizard is the friendly way to define that first room. |
+| **Power users** | Optional: “Skip wizard” or “Edit raw” links to land in the current fast path (direct canvas + inventory). |
+
+Earlier ideas in this doc about a separate **“new empty layout”** entry from a menu can remain **secondary** (e.g. Advanced or rare case), since the product story centers on **global map + per-room wizard**.
+
+---
+
+## Room wizard: five high-level phases (brainstorm)
+
+These are **product buckets**—not all need full UI in v1. They give marketing and UX a shared language: **Layout → Terrain → Environment → Objects → Review**.
+
+### 1) Layout
+
+**Intent:** Room shape, size, and how it **connects** to the rest of the world.
+
+- Footprint: rectangle vs simple polygon; room name and id in **human terms** (“Spawn hall”) with automatic safe ids behind the scenes if needed.
+- **Adjoining room:** pick which existing room this one **touches** (dropdown or map thumbnail).
+- **Alignment helper:** snap the new room’s global position so shared edges line up with the neighbor; optional “same width along shared edge.”
+- **Opening height:** match **corridor** or **hatch** height on the **connecting wall** so doorways feel continuous (maps to consistent y / edge parameters—implementation ties to polygon edges + door/mover placement).
+- Spawn point (optional in this phase or later): “Put spawn here” on the floor.
+
+*Brainstorm:* Step-by-step illustrations; “show me the neighbor” side-by-side mini view.
+
+### 2) Terrain
+
+**Intent:** Walkable structure inside the room—what the player stands on and moves across.
+
+- Platforms, ledges, gaps (the editor already has **platforms**).
+- For novices, language like **“floors and ledges”** rather than “platform entities.”
+- Optional presets: “flat arena”, “two-level”, “small jumps only.”
+
+*Brainstorm:* Later: slope or hazard language if the game supports it; for now 2D rects are enough.
+
+### 3) Environment
+
+**Intent:** Look and feel—**textures**, materials, lighting mood (where the engine supports it).
+
+- May start as **labels / tags** (“cave”, “ruins”, “metal”) that map to game themes later.
+- Placeholder swatches or color chips before real texture pipeline exists.
+
+*Brainstorm:* Tie to export `engine_hints` or a future `theme` field; avoid promising full material editor until scope is clear.
+
+### 4) Objects / details
+
+**Intent:** Gameplay things and props: doors, keys, movers, pickups, ability gates, decorations.
+
+- Guided placement: “Add a door”, “Add a moving platform” with **simple** forms (the inspector already exists—surface the essentials first).
+- Duplicate less: one object at a time with clear icons.
+
+*Brainstorm:* “Details” as optional sub-step so speedrunners can skip to Review.
+
+### 5) Review & export
+
+**Intent:** Confidence and shipping.
+
+- Plain-language **checklist**: spawn set?, doors reachable?, validation (errors vs warnings).
+- Actions: **Export JSON**, **Export runtime**, **Open game** (existing actions), short explanations of each for non-technical users.
+
+*Brainstorm:* “Share” or “copy link” later; screenshot of minimap for docs.
+
+---
+
+## Neighbors & alignment (deepening the product story)
+
+This is the **differentiator** for solo devs who don’t want to manually align coordinates.
+
+| Concept | User-facing idea | Implementation direction (sketch) |
+|---------|------------------|-----------------------------------|
+| **Adjoining room** | “This room connects to: [Room B ▼]” | Store selection in wizard state; drive `global` placement and/or **edge link** creation between the two rooms. |
+| **Align** | “Line up with neighbor” button | Snap `global` x/y (and optionally rotation if ever added) so shared boundary matches; may use same logic as global map snap. |
+| **Corridor / hatch height** | “Match opening height with neighbor” | Align **door** or **cut** y-position on the shared edge, or match **platform** floor height at the threshold; may require picking **which edge** connects (edge index UI). |
+
+*Open product questions:* One neighbor only in v1 vs multiple; what if rooms don’t share an edge yet (wizard creates link vs prompts user to draw on global map).
+
+---
+
+## Continuing brainstorm (backlog prompts)
+
+- **Onboarding:** 60-second tour the first time someone opens the editor: global map vs room view, then disable nag.
+- **Language pack:** Replace internal terms (`edgeLinks`, `polygon`) in UI with **doors/walls/openings** where accurate.
+- **Templates per phase:** “Boss arena”, “key room”, “corridor” could jump-start Terrain + Objects.
+- **Solo dev workflow:** Save often, scratch persistence, “revert room to last save” for one room only.
+- **Marketing line:** *“Lay out your map. Build each room step by step. Export when it feels right.”*
+
+---
+
+## Relationship to technical sections below
+
+The rest of this document retains **constraints**, **current editor behavior**, and an **earlier “layout-from-scratch” step breakdown** (§5 onward) useful for implementation. **Product direction:** prioritize **per-room wizard** triggered by **Add Room**, **five phases** above, and **neighbor alignment** features; reconcile or replace older “intent → world_meta → first_room” linear spec as engineering proceeds.
 
 ---
 
 ## 1. Purpose
 
-**Problem:** New authors hit the editor with either a full embedded seed layout, a loaded canonical file, or empty states that say “import JSON or add a room” — without guidance on world bounds, naming, or a sensible first room.
+**Problem (original framing):** New authors hit the editor with either a full embedded seed layout, a loaded canonical file, or empty states that say “import JSON or add a room” — without guidance on world bounds, naming, or a sensible first room.
 
-**Goal:** A **short, optional guided flow** that:
+**Goal (technical):** A flow that can still support **optional** “new project” or **import** paths:
 
-- Chooses **how** a session starts (continue existing work vs new vs import).
+- Chooses **how** a session starts when not using Add Room (continue existing work vs new vs import).
 - For **new** layouts, collects **metadata** and creates a **minimal valid** first room (or applies a **template**) so `validateLayout` and export have something coherent to work with.
 - Stays **inside** `room-layout-editor.html` (see constraints below).
 
 **Non-goals (v1):**
 
 - Replacing Advanced → JSON import or file-based load.
-- Embedding the game for playtest (future).
-- Sprite / tileset pipelines (future).
+- Embedding the game for playtest (future)—except **Open game** as today.
+- Full sprite / tileset pipelines inside the wizard until Environment phase scope is defined.
 
 ---
 
