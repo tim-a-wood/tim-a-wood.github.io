@@ -6227,6 +6227,27 @@
       }
 
       async function loadData(forceDisk = false) {
+        // Local sandbox (?local_slot=): own storage only — do not seed or API-load the big layout.
+        if (LOCAL_SLOT && !PROJECT_ID) {
+          state.apiAvailable = false;
+          updateSyncButtonState();
+          const saved = loadSavedLayout();
+          if (saved) {
+            initializeData(
+              saved,
+              forceDisk
+                ? `Reloaded ${saved.rooms.length} rooms from local project “${LOCAL_SLOT}”.`
+                : `Loaded ${saved.rooms.length} rooms from local project “${LOCAL_SLOT}”.`
+            );
+          } else {
+            initializeData(
+              createEmptyLayoutData(),
+              `New local project “${LOCAL_SLOT}” — one room (R1). Save to persist in this browser.`
+            );
+          }
+          return;
+        }
+
         initializeData(structuredClone(SEED_DATA), 'Loaded embedded seed data.');
         const apiLayout = await loadCanonicalLayoutFromApi();
         if (apiLayout) {
@@ -6243,24 +6264,6 @@
 
         state.apiAvailable = false;
         updateSyncButtonState();
-
-        if (LOCAL_SLOT && !PROJECT_ID) {
-          const saved = loadSavedLayout();
-          if (saved) {
-            initializeData(
-              saved,
-              forceDisk
-                ? `Reloaded ${saved.rooms.length} rooms from local project “${LOCAL_SLOT}”.`
-                : `Loaded ${saved.rooms.length} rooms from local project “${LOCAL_SLOT}”.`
-            );
-          } else {
-            initializeData(
-              createEmptyLayoutData(),
-              `New empty local project “${LOCAL_SLOT}”. Use Save to persist in this browser slot.`
-            );
-          }
-          return;
-        }
 
         try {
           const response = await fetch(DATA_URL, { cache: 'no-store' });

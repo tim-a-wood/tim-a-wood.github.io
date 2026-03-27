@@ -1,7 +1,7 @@
 # Test Report
 | ID | Line Item | Description | Result | Notes |
 |---|---|---|---|---|
-| AT-01 | Fresh Load And Startup | Verify the prototype loads into the playable zone without crashes or blank screens. | Not Run | Browser not exercised in this run; latest editor change: local sandbox projects (`?local_slot=`) without touching default scratch storage. |
+| AT-01 | Fresh Load And Startup | Verify the prototype loads into the playable zone without crashes or blank screens. | Not Run | Browser not exercised in this run; latest editor change: `local_slot` loads skip seed/API so new sandboxes start with one room only. |
 | AT-02 | Movement, Camera, And World Bounds | Verify left/right movement works and the player/camera stay inside the intended bounded world. | Not Run | Same as AT-01. |
 | AT-03 | Ground Jump | Verify the first jump works consistently from solid ground. | Not Run | Same as AT-01. |
 | AT-04 | Mid-Air Double Jump | Verify the second jump works in mid-air and creates a clear extra hop. | Not Run | Same as AT-01. |
