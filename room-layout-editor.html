@@ -1503,6 +1503,54 @@
 
     <main class="main-column">
   <div class="app">
+      <!-- Workflow rail: top of main column (above canvas + validation) -->
+      <div class="workflow-rail-wrap" id="workflowRailWrap" hidden>
+        <nav id="roomWizardPhaseRail" class="phase-rail" aria-label="Editor workflow">
+          <button type="button" class="phase-pill phase-pill--world" data-rw-phase="global" id="rwWorldMapPill" title="World map — room placement and links">
+            <span class="phase-glyph" aria-hidden="true">⌖</span>
+            <span class="phase-pill-copy">
+              <strong>World map</strong>
+              <small>Placement &amp; links</small>
+            </span>
+          </button>
+          <button type="button" class="phase-pill active" data-rw-phase="layout" id="roomWizardTabLayout">
+            <span class="phase-number">1</span>
+            <span class="phase-pill-copy">
+              <strong>Layout</strong>
+              <small>Identity &amp; footprint</small>
+            </span>
+          </button>
+          <button type="button" class="phase-pill locked" disabled title="Coming in a later update">
+            <span class="phase-number">2</span>
+            <span class="phase-pill-copy">
+              <strong>Terrain</strong>
+              <small>Coming soon</small>
+            </span>
+          </button>
+          <button type="button" class="phase-pill locked" disabled title="Coming in a later update">
+            <span class="phase-number">3</span>
+            <span class="phase-pill-copy">
+              <strong>Environment</strong>
+              <small>Coming soon</small>
+            </span>
+          </button>
+          <button type="button" class="phase-pill locked" disabled title="Coming in a later update">
+            <span class="phase-number">4</span>
+            <span class="phase-pill-copy">
+              <strong>Objects</strong>
+              <small>Coming soon</small>
+            </span>
+          </button>
+          <button type="button" class="phase-pill available" data-rw-phase="review" id="roomWizardTabReview">
+            <span class="phase-number">5</span>
+            <span class="phase-pill-copy">
+              <strong>Review</strong>
+              <small>Validation &amp; export</small>
+            </span>
+          </button>
+        </nav>
+      </div>
+
     <section class="panel canvas-wrap">
       <div class="canvas-header-bar">
         <!-- Left: Room selector -->
@@ -1513,7 +1561,6 @@
           <button type="button" class="btn-sm" id="roomSetupBtn" title="Open guided room setup (identity, footprint, review)">Room setup</button>
         </div>
 
-        <!-- Center: workflow uses phase rail below (World map + numbered steps) -->
         <div class="canvas-header-spacer" aria-hidden="true"></div>
 
         <!-- Right: Primary actions -->
@@ -1563,55 +1610,7 @@
         </div>
       </div>
 
-      <!-- Workflow rail: world map (unnumbered) + Sprite-style numbered steps -->
-      <div class="workflow-rail-wrap" id="workflowRailWrap" hidden>
-        <nav id="roomWizardPhaseRail" class="phase-rail" aria-label="Editor workflow">
-          <button type="button" class="phase-pill phase-pill--world" data-rw-phase="global" id="rwWorldMapPill" title="World map — room placement and links">
-            <span class="phase-glyph" aria-hidden="true">⌖</span>
-            <span class="phase-pill-copy">
-              <strong>World map</strong>
-              <small>Placement &amp; links</small>
-            </span>
-          </button>
-          <button type="button" class="phase-pill active" data-rw-phase="layout" id="roomWizardTabLayout">
-            <span class="phase-number">1</span>
-            <span class="phase-pill-copy">
-              <strong>Layout</strong>
-              <small>Identity &amp; footprint</small>
-            </span>
-          </button>
-          <button type="button" class="phase-pill locked" disabled title="Coming in a later update">
-            <span class="phase-number">2</span>
-            <span class="phase-pill-copy">
-              <strong>Terrain</strong>
-              <small>Coming soon</small>
-            </span>
-          </button>
-          <button type="button" class="phase-pill locked" disabled title="Coming in a later update">
-            <span class="phase-number">3</span>
-            <span class="phase-pill-copy">
-              <strong>Environment</strong>
-              <small>Coming soon</small>
-            </span>
-          </button>
-          <button type="button" class="phase-pill locked" disabled title="Coming in a later update">
-            <span class="phase-number">4</span>
-            <span class="phase-pill-copy">
-              <strong>Objects</strong>
-              <small>Coming soon</small>
-            </span>
-          </button>
-          <button type="button" class="phase-pill available" data-rw-phase="review" id="roomWizardTabReview">
-            <span class="phase-number">5</span>
-            <span class="phase-pill-copy">
-              <strong>Review</strong>
-              <small>Validation &amp; export</small>
-            </span>
-          </button>
-        </nav>
-      </div>
-
-      <!-- RW-1 Room wizard — sheet below workflow rail -->
+      <!-- RW-1 Room wizard — sheet below header -->
       <div id="roomWizardDock" class="room-wizard-dock" hidden aria-hidden="true">
         <div class="room-wizard-sheet">
           <div class="room-wizard-sheet-top">

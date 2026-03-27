@@ -80,11 +80,16 @@
   --panel-soft: #07090c;
   --radius-lg: 20px;
   --radius-sm: 14px;
+  position: sticky;
+  top: 0;
+  z-index: 30;
   border: 1px solid var(--border);
   border-radius: var(--radius-tight);
-  background: rgba(4, 6, 10, 0.55);
+  background: rgba(4, 6, 10, 0.92);
+  backdrop-filter: blur(10px);
   box-sizing: border-box;
   margin-bottom: 0;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
 }
 
 .workflow-rail-wrap[hidden] {
