@@ -147,10 +147,20 @@ function meanWorldXForDoors(global, size, doors, scale) {
   return xs.reduce((a, b) => a + b, 0) / xs.length;
 }
 
+function edgeMidpointWorld(room, edgeIndex, global, size, scale) {
+  const seg = getEdgeSegmentLocal(room, edgeIndex);
+  if (!seg) return null;
+  const mx = (seg.start.x + seg.end.x) / 2;
+  const my = (seg.start.y + seg.end.y) / 2;
+  return localToWorld(global, size, mx, my, scale);
+}
+
 /**
- * After edges are aligned, nudge room A's global along the opening axis so average door world position
- * on the shared edges matches (vertical edges → adjust Y; horizontal → adjust X).
- * @returns {{ deltaX: number, deltaY: number }} — add to room A global
+ * After edges are aligned, nudge room A's global along the opening (tangential to the wall):
+ * prefers average door world position on each edge when doors exist within ~72px of the edge;
+ * otherwise uses edge midpoints in world space (same axis as before: vertical wall → Y, horizontal → X).
+ * Parallel slanted edges: nudge along the wall direction in world space.
+ * @returns {{ deltaX: number, deltaY: number, reason?: string }}
  */
 function computeHatchHeightDelta(roomA, roomB, edgeIndexA, edgeIndexB, scale) {
   const s = scale == null ? ROOM_WIZARD_NEIGHBOR_SCALE : Number(scale);
@@ -164,24 +174,79 @@ function computeHatchHeightDelta(roomA, roomB, edgeIndexA, edgeIndexB, scale) {
   const sizeB = ensureSize(roomB);
   const segA = getEdgeSegmentLocal(roomA, edgeIndexA);
   const segB = getEdgeSegmentLocal(roomB, edgeIndexB);
-  if (!segA || !segB) return { deltaX: 0, deltaY: 0 };
-  const oA = edgeOrientation(segA);
-  if (oA !== 'vertical' && oA !== 'horizontal') return { deltaX: 0, deltaY: 0 };
+  if (!segA || !segB) return { deltaX: 0, deltaY: 0, reason: 'bad_edge' };
 
   const nearA = doorsNearEdge(roomA.doors, segA);
   const nearB = doorsNearEdge(roomB.doors, segB);
 
-  if (oA === 'vertical') {
-    const yA = meanWorldYForDoors(gA, sizeA, nearA, s);
-    const yB = meanWorldYForDoors(gB, sizeB, nearB, s);
-    if (yA == null || yB == null) return { deltaX: 0, deltaY: 0 };
-    return { deltaX: 0, deltaY: yB - yA };
+  const oA = edgeOrientation(segA);
+  if (oA === 'vertical' || oA === 'horizontal') {
+    if (oA === 'vertical') {
+      let yA = meanWorldYForDoors(gA, sizeA, nearA, s);
+      let yB = meanWorldYForDoors(gB, sizeB, nearB, s);
+      if (yA == null) {
+        const m = edgeMidpointWorld(roomA, edgeIndexA, gA, sizeA, s);
+        yA = m ? m.y : null;
+      }
+      if (yB == null) {
+        const m = edgeMidpointWorld(roomB, edgeIndexB, gB, sizeB, s);
+        yB = m ? m.y : null;
+      }
+      if (yA == null || yB == null) return { deltaX: 0, deltaY: 0, reason: 'bad_edge' };
+      const dy = yB - yA;
+      if (Math.abs(dy) < 1e-9) return { deltaX: 0, deltaY: 0, reason: 'already_aligned' };
+      return { deltaX: 0, deltaY: dy };
+    }
+
+    let xA = meanWorldXForDoors(gA, sizeA, nearA, s);
+    let xB = meanWorldXForDoors(gB, sizeB, nearB, s);
+    if (xA == null) {
+      const m = edgeMidpointWorld(roomA, edgeIndexA, gA, sizeA, s);
+      xA = m ? m.x : null;
+    }
+    if (xB == null) {
+      const m = edgeMidpointWorld(roomB, edgeIndexB, gB, sizeB, s);
+      xB = m ? m.x : null;
+    }
+    if (xA == null || xB == null) return { deltaX: 0, deltaY: 0, reason: 'bad_edge' };
+    const dx = xB - xA;
+    if (Math.abs(dx) < 1e-9) return { deltaX: 0, deltaY: 0, reason: 'already_aligned' };
+    return { deltaX: dx, deltaY: 0 };
   }
 
-  const xA = meanWorldXForDoors(gA, sizeA, nearA, s);
-  const xB = meanWorldXForDoors(gB, sizeB, nearB, s);
-  if (xA == null || xB == null) return { deltaX: 0, deltaY: 0 };
-  return { deltaX: xB - xA, deltaY: 0 };
+  const wa = edgeEndpointsWorld(roomA, edgeIndexA, gA, sizeA, s);
+  const wb = edgeEndpointsWorld(roomB, edgeIndexB, gB, sizeB, s);
+  if (!wa || !wb) return { deltaX: 0, deltaY: 0, reason: 'bad_edge' };
+  const uAx = wa.b.x - wa.a.x;
+  const uAy = wa.b.y - wa.a.y;
+  const uBx = wb.b.x - wb.a.x;
+  const uBy = wb.b.y - wb.a.y;
+  const lenA = Math.hypot(uAx, uAy);
+  const lenB = Math.hypot(uBx, uBy);
+  if (lenA < 1e-9 || lenB < 1e-9) return { deltaX: 0, deltaY: 0, reason: 'degenerate_edge' };
+  const cross = uAx * uBy - uAy * uBx;
+  const parallelEps = Math.max(1e-6, 1e-9 * lenA * lenB);
+  if (Math.abs(cross) > parallelEps) {
+    return { deltaX: 0, deltaY: 0, reason: 'edges_not_parallel' };
+  }
+
+  const tx = uBx / lenB;
+  const ty = uBy / lenB;
+  const midAx = (wa.a.x + wa.b.x) / 2;
+  const midAy = (wa.a.y + wa.b.y) / 2;
+  const midBx = (wb.a.x + wb.b.x) / 2;
+  const midBy = (wb.a.y + wb.b.y) / 2;
+  const d = (midBx - midAx) * tx + (midBy - midAy) * ty;
+  if (Math.abs(d) < 1e-9) return { deltaX: 0, deltaY: 0, reason: 'already_aligned' };
+  return { deltaX: d * tx, deltaY: d * ty };
+}
+
+function edgeEndpointsWorld(room, edgeIndex, global, size, scale) {
+  const seg = getEdgeSegmentLocal(room, edgeIndex);
+  if (!seg) return null;
+  const a = localToWorld(global, size, seg.start.x, seg.start.y, scale);
+  const b = localToWorld(global, size, seg.end.x, seg.end.y, scale);
+  return { a, b };
 }
 
 if (typeof module !== 'undefined' && module.exports) {

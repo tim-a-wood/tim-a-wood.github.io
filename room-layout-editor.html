@@ -1750,7 +1750,7 @@
                   <p class="small-note">Connect this room to another, snap to a shared edge on the global map, then match door height at the opening.</p>
                 </div>
                 <div class="info-box" id="roomWizardNeighborHint">
-                  <p>Pick a neighboring room and which edges meet. <strong>Align</strong> moves this room so those edges line up; <strong>Match opening height</strong> uses doors near each edge (place doors within ~72px of the edge). With only one room in the project, add another room first.</p>
+                  <p>Pick a neighboring room and which edges meet. <strong>Align</strong> moves this room so those edges line up (no doors required). <strong>Match opening height</strong> slides along the wall: it prefers doors within ~72px of each edge, otherwise uses the midpoint of each edge. With only one room in the project, add another room first.</p>
                 </div>
                 <div class="field-grid rw-neighbor-grid">
                   <label>
@@ -5807,7 +5807,17 @@
         const nEdge = Number(document.getElementById('roomWizardNeighborEdge')?.value);
         const d = mod.computeHatchHeightDelta(room, neighbor, myEdge, nEdge, mod.ROOM_WIZARD_NEIGHBOR_SCALE);
         if (!d.deltaX && !d.deltaY) {
-          setStatus('No doors on both edges to match — place doors near each edge (within ~72px), or edges are not both horizontal/vertical.', 'warning');
+          const r = d.reason;
+          let msg =
+            'Could not adjust along the opening — check that the selected edges exist and (for slanted walls) are parallel.';
+          if (r === 'already_aligned') {
+            msg = 'Opening positions already match (using doors or edge midpoints).';
+          } else if (r === 'edges_not_parallel') {
+            msg = 'Match opening height needs parallel edges along the opening (for slanted walls, align first).';
+          } else if (r === 'degenerate_edge') {
+            msg = 'Selected edge is too short to use.';
+          }
+          setStatus(msg, 'warning');
           return;
         }
         const gx = Number.isFinite(Number(room.global?.x)) ? Number(room.global.x) : 0;
@@ -5821,7 +5831,7 @@
           renderValidationResults(state.lastValidationReport);
         }
         redraw();
-        setStatus('Adjusted global position to match door heights at the opening.', 'success');
+        setStatus('Adjusted position along the opening (doors or edge midpoints).', 'success');
       }
 
       function updateEditorWorkflowPrimaryPills() {

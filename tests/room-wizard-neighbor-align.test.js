@@ -104,4 +104,27 @@ function axisRoom(id, W, H, inset, gx, gy) {
   assert.ok(Math.abs(d.deltaY - (yB - yA)) < 1e-5);
 })();
 
+(function testHatchHorizontalNoDoorsMidpointFallback() {
+  const A = axisRoom('A', 1000, 800, 100, 0, 0);
+  const B = axisRoom('B', 1000, 800, 100, 200, 0);
+  const d = computeHatchHeightDelta(A, B, 2, 2, S);
+  assert.ok(Math.abs(d.deltaX - 200) < 1e-5, `deltaX ${d.deltaX}`);
+  assert.ok(Math.abs(d.deltaY) < 1e-9);
+})();
+
+(function testHatchVerticalNoDoorsMidpointFallback() {
+  const A = axisRoom('A', 1000, 800, 100, 0, 0);
+  const B = axisRoom('B', 1000, 800, 100, 0, 80);
+  const d = computeHatchHeightDelta(A, B, 1, 3, S);
+  assert.ok(Math.abs(d.deltaX) < 1e-9);
+  assert.ok(Math.abs(d.deltaY - 80) < 1e-5, `deltaY ${d.deltaY}`);
+})();
+
+(function testHatchAlreadyAlignedMidpoints() {
+  const A = axisRoom('A', 1000, 800, 100, 0, 0);
+  const B = axisRoom('B', 1000, 800, 100, 0, 0);
+  const d = computeHatchHeightDelta(A, B, 1, 3, S);
+  assert.strictEqual(d.reason, 'already_aligned');
+})();
+
 console.log('room-wizard-neighbor-align.test.js: all assertions passed');
