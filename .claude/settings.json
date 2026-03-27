@@ -14,7 +14,15 @@
       "Bash(python3 -c \"import urllib.request; print\\(''''urllib ok''''\\)\")",
       "Bash(python3 -m pip list)",
       "Bash(source /Users/timwood/Desktop/projects/PWA/MV/.env.local)",
-      "Bash(python3 -c \":*)"
+      "Bash(python3 -c \":*)",
+      "Bash(ls -la /Users/timwood/Desktop/projects/PWA/MV/*.html)",
+      "Bash(wc -l /Users/timwood/Desktop/projects/PWA/MV/tools/2d-sprite-and-animation/app/*.js)",
+      "WebFetch(domain:www.wayline.io)",
+      "WebFetch(domain:itch.io)",
+      "WebFetch(domain:games-stats.com)",
+      "WebFetch(domain:www.autosprite.io)",
+      "WebFetch(domain:gamedevaihub.com)",
+      "Bash(open /Users/timwood/Desktop/projects/PWA/MV/docs/room-editor-agent-task-spec.md)"
     ],
     "additionalDirectories": [
       "/Users/timwood/.claude/skills"

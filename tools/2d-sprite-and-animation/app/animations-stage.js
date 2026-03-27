@@ -738,14 +738,14 @@ function renderPixellabAnimationsPrimaryAction(project, context = {}) {
     }
 
     if (!ready) {
-        note.textContent = "Generate at least one clip, then confirm this stage to move into Review & Export.";
+        note.textContent = "Create at least one clip, then confirm this step to continue.";
         return;
     }
 
     const generatedSummary = generatedClipNames.length
         ? `${generatedClipNames.length} generated clip${generatedClipNames.length === 1 ? "" : "s"}`
         : `${syncedClipNames.length} synced clip${syncedClipNames.length === 1 ? "" : "s"}`;
-    note.textContent = `${generatedSummary} ready. Confirm this stage to move into Review & Export.`;
+    note.textContent = `${generatedSummary} ready. Confirm this step to continue.`;
     button.disabled = false;
 }
 

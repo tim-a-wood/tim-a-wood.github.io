@@ -115,10 +115,10 @@ function renderSampleProjectCard(project) {
     const nextStep = WIZARD_META[project.wizard_state?.current_step || "describe"]?.label || "Describe";
     root.innerHTML = `
         <div class="sample-project-card">
-            <span class="sample-project-kicker">No-credit workflow</span>
+            <span class="sample-project-kicker">Sample flow</span>
             <strong>${project.project_name}</strong>
             <div class="small-note">${stageDisplayName(project.current_stage)} · ${nextStep}</div>
-            <p class="sample-project-note">Use this populated project to explore the workflow, review the export surface, and test the game handoff without spending credits.</p>
+            <p class="sample-project-note">Open this populated project to walk the flow, inspect the export, and test the game handoff without running generation.</p>
             <div class="project-actions">
                 <button data-action="load-sample">Open Sample</button>
                 <button class="secondary" data-action="backup-sample">Export Project</button>
@@ -153,7 +153,7 @@ function renderProjectList() {
         ? state.projects.filter((project) => project.project_id !== sampleProject.project_id)
         : state.projects.slice();
     if (!regularProjects.length) {
-        root.innerHTML = `<div class="empty">${sampleProject ? "No additional projects yet." : "No projects yet."}</div>`;
+        root.innerHTML = `<div class="empty">${sampleProject ? "No other projects yet." : "No projects yet."}</div>`;
         return;
     }
     regularProjects.forEach((project) => {

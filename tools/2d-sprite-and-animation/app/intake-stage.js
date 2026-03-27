@@ -38,17 +38,17 @@ function addReferenceRow(data = {}) {
             <button class="danger ref-remove" type="button">Remove</button>
         </div>
         <label class="ref-path-wrap">
-            <span class="field-label-inline">Local Path</span>
+            <span class="field-label-inline">Path on disk</span>
             <span class="field-help">Optional absolute path if the image is already on disk.</span>
             <input class="ref-path" placeholder="/absolute/path/to/reference.png" value="${data.path || ""}">
         </label>
         <label class="ref-upload-wrap">
             <span class="field-label-inline">Upload File</span>
-            <span class="field-help">Or upload an image directly into the project.</span>
+            <span class="field-help">Or add an image directly to the project.</span>
             <span class="ref-upload-control">
                 <input class="ref-file" type="file" accept="image/*">
             </span>
-        </div>
+        </label>
     `;
     row.querySelector(".ref-role").value = data.role || "identity";
     row.querySelector(".ref-remove").addEventListener("click", () => row.remove());
@@ -66,7 +66,7 @@ function renderAttachedReferences() {
     root.innerHTML = "";
     const references = state.activeProject?.brief?.references || [];
     if (!references.length) {
-        root.innerHTML = `<div class="empty">No stored references yet. Add them when you need help with face, outfit, prop, or overall style direction.</div>`;
+        root.innerHTML = `<div class="empty">No references yet. Add them only when they will help steer the face, outfit, prop, or overall mood.</div>`;
         return;
     }
     references.forEach((reference) => {

@@ -22,18 +22,18 @@ class SpriteWorkbenchSurfaceTests(unittest.TestCase):
 
     def test_home_view_contains_integrated_product_marketing_sections(self):
         html = self.index_html
-        self.assertIn("A focused pipeline for side-view characters.", html)
-        self.assertIn("What it gives you", html)
-        self.assertIn("One brief to one runtime package.", html)
+        self.assertIn("One character, carried cleanly through production.", html)
+        self.assertIn("What you keep", html)
+        self.assertIn("From brief to runtime package.", html)
         self.assertIn(">Chosen look<", html)
         self.assertIn(">Animate<", html)
-        self.assertIn("Export that looks like handoff.", html)
-        self.assertIn("Who it fits.", html)
-        self.assertIn("Local-first by design.", html)
+        self.assertIn("Exports that already look usable.", html)
+        self.assertIn("Where it fits best.", html)
+        self.assertIn("Keep the project. Export the game package.", html)
 
     def test_docs_view_contains_quickstart_and_export_guidance(self):
         html = self.index_html
-        self.assertIn("How the workbench is meant to be used.", html)
+        self.assertIn("A short guide to the workbench.", html)
         self.assertIn('id="quickstart"', html)
         self.assertIn('id="workflow"', html)
         self.assertIn('id="export-format"', html)
