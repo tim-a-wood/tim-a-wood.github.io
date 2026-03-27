@@ -1506,12 +1506,13 @@
           <label class="header-label">Room
             <select id="roomSelect" class="header-select"></select>
           </label>
+          <button type="button" class="btn-sm" id="roomSetupBtn" title="Open guided room setup (identity, footprint, review)">Room setup</button>
         </div>
 
         <!-- Center: View tab strip -->
         <div class="tab-strip" id="viewModeStrip">
-          <button class="tab-btn active" data-view="room" type="button">Room View</button>
-          <button class="tab-btn" data-view="global" type="button">Global Map</button>
+          <button class="tab-btn active" data-view="room" type="button" title="Room canvas and guided setup">Room</button>
+          <button class="tab-btn" data-view="global" type="button" title="World map and room links">Global map</button>
         </div>
 
         <!-- Right: Primary actions -->
@@ -1560,6 +1561,138 @@
           </div>
         </div>
       </div>
+
+      <!-- RW-1 Room wizard — inline in dashboard (Room tab); toggle vs Global map in header -->
+      <div id="roomWizardDock" class="room-wizard-dock" hidden aria-hidden="true">
+        <div class="room-wizard-sheet">
+          <div class="room-wizard-sheet-top">
+            <div>
+              <div class="eyebrow">Room setup</div>
+              <h2 id="roomWizardTitle" class="room-wizard-sheet-title">Room wizard</h2>
+              <p class="room-wizard-sub">Same phased flow as Sprite Workbench. Locked steps unlock in later releases.</p>
+            </div>
+            <button type="button" class="btn-icon" id="roomWizardClose" aria-label="Dismiss room setup">×</button>
+          </div>
+          <nav id="roomWizardPhaseRail" class="phase-rail" aria-label="Wizard phases">
+            <button type="button" class="phase-pill active" data-rw-phase="layout" id="roomWizardTabLayout">
+              <span class="phase-number">1</span>
+              <span class="phase-pill-copy">
+                <strong>Layout</strong>
+                <small>Identity &amp; footprint</small>
+              </span>
+            </button>
+            <button type="button" class="phase-pill locked" disabled title="Coming in a later update">
+              <span class="phase-number">2</span>
+              <span class="phase-pill-copy">
+                <strong>Terrain</strong>
+                <small>Coming soon</small>
+              </span>
+            </button>
+            <button type="button" class="phase-pill locked" disabled title="Coming in a later update">
+              <span class="phase-number">3</span>
+              <span class="phase-pill-copy">
+                <strong>Environment</strong>
+                <small>Coming soon</small>
+              </span>
+            </button>
+            <button type="button" class="phase-pill locked" disabled title="Coming in a later update">
+              <span class="phase-number">4</span>
+              <span class="phase-pill-copy">
+                <strong>Objects</strong>
+                <small>Coming soon</small>
+              </span>
+            </button>
+            <button type="button" class="phase-pill available" data-rw-phase="review" id="roomWizardTabReview">
+              <span class="phase-number">5</span>
+              <span class="phase-pill-copy">
+                <strong>Review</strong>
+                <small>Validation &amp; export</small>
+              </span>
+            </button>
+          </nav>
+          <div class="room-wizard-scroll">
+            <div id="roomWizardPanelLayout">
+              <div class="phase-header">
+                <div class="phase-header-left">
+                  <span class="phase-header-num">Phase 1 · Layout</span>
+                  <h2>Layout</h2>
+                  <p class="phase-header-desc">Name the room, set its id, and choose the canvas footprint.</p>
+                </div>
+              </div>
+              <div class="stage-card">
+                <div class="stage-card-head">
+                  <h4>Identity</h4>
+                  <p class="small-note">Display name and canonical id are used in the editor, map graph, and exports.</p>
+                </div>
+                <div class="field-grid">
+                  <label>
+                    <span class="field-label">Room name</span>
+                    <input type="text" id="roomWizardRoomName" autocomplete="off" />
+                  </label>
+                  <label>
+                    <span class="field-label">Room id</span>
+                    <span class="field-help">Must match R1, R2, …</span>
+                    <input type="text" id="roomWizardRoomId" autocomplete="off" spellcheck="false" />
+                  </label>
+                </div>
+              </div>
+              <div class="stage-card">
+                <div class="stage-card-head">
+                  <h4>Footprint</h4>
+                  <p class="small-note">Preset sizes match common viewports; custom uses your width and height in pixels.</p>
+                </div>
+                <div class="info-box">
+                  <p>Pick a preset or custom dimensions. Changing footprint rescales room-local coordinates — review doors and platforms after large changes.</p>
+                </div>
+                <div class="rw-footprint-grid" id="roomWizardFootprintGroup">
+                  <label><input type="radio" name="roomWizardFootprint" value="small" /> Small (960×720)</label>
+                  <label><input type="radio" name="roomWizardFootprint" value="medium" /> Medium (1600×1200)</label>
+                  <label><input type="radio" name="roomWizardFootprint" value="large" /> Large (2240×1200)</label>
+                  <label><input type="radio" name="roomWizardFootprint" value="custom" /> Custom</label>
+                </div>
+                <div id="roomWizardCustomFootprint" class="rw-custom-footprint field-grid" hidden>
+                  <label>
+                    <span class="field-label">Width (px)</span>
+                    <input type="number" id="roomWizardCustomW" min="320" step="32" />
+                  </label>
+                  <label>
+                    <span class="field-label">Height (px)</span>
+                    <input type="number" id="roomWizardCustomH" min="320" step="32" />
+                  </label>
+                  <div style="grid-column:1/-1;">
+                    <button type="button" class="btn-secondary" id="roomWizardApplyCustomFootprint">Apply custom size</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div id="roomWizardPanelReview" hidden>
+              <div class="phase-header">
+                <div class="phase-header-left">
+                  <span class="phase-header-num">Phase 5 · Review</span>
+                  <h2>Review &amp; export</h2>
+                  <p class="phase-header-desc">Confirm summary, scan validation, then export or open the game.</p>
+                </div>
+                <button type="button" class="phase-back-btn" id="roomWizardBackToLayout">← Layout</button>
+              </div>
+              <div class="stage-card">
+                <div class="stage-card-head">
+                  <h4>Summary &amp; checks</h4>
+                  <p class="small-note">Structural validation mirrors the panel below the canvas.</p>
+                </div>
+                <div class="rw-review-summary" id="roomWizardReviewSummary"></div>
+                <div class="rw-validation-inline" id="roomWizardValidationInline" aria-live="polite"></div>
+                <p class="small-note">Full validation panel is below the canvas. Export uses your whole layout file.</p>
+                <div class="rw-review-actions">
+                  <button type="button" class="btn-secondary" id="roomWizardBtnExportJson">Export JSON</button>
+                  <button type="button" class="btn-secondary" id="roomWizardBtnExportRuntime">Export runtime</button>
+                  <button type="button" class="btn-secondary" id="roomWizardBtnOpenGame">Open game</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Task 2.3: Empty States -->
       <div class="empty-state" id="emptyStateNoRooms" style="display:none;">
         <div class="empty-state-icon">⬡</div>
@@ -1875,138 +2008,6 @@
 
   </div>
     </main>
-  </div>
-
-  <!-- RW-1 Room wizard — scaffold matches Sprite Workbench (phase rail, phase pills, stage cards) -->
-  <div id="roomWizardOverlay" class="room-wizard-overlay" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="roomWizardTitle">
-    <div class="room-wizard-backdrop" id="roomWizardBackdrop" aria-hidden="true"></div>
-    <div class="room-wizard-sheet">
-      <div class="room-wizard-sheet-top">
-        <div>
-          <div class="eyebrow">New room</div>
-          <h2 id="roomWizardTitle" class="room-wizard-sheet-title">Room wizard</h2>
-          <p class="room-wizard-sub">Same phased flow as Sprite Workbench. Locked steps unlock in later releases.</p>
-        </div>
-        <button type="button" class="btn-icon" id="roomWizardClose" aria-label="Close room wizard">×</button>
-      </div>
-      <nav id="roomWizardPhaseRail" class="phase-rail" aria-label="Wizard phases">
-        <button type="button" class="phase-pill active" data-rw-phase="layout" id="roomWizardTabLayout">
-          <span class="phase-number">1</span>
-          <span class="phase-pill-copy">
-            <strong>Layout</strong>
-            <small>Identity &amp; footprint</small>
-          </span>
-        </button>
-        <button type="button" class="phase-pill locked" disabled title="Coming in a later update">
-          <span class="phase-number">2</span>
-          <span class="phase-pill-copy">
-            <strong>Terrain</strong>
-            <small>Coming soon</small>
-          </span>
-        </button>
-        <button type="button" class="phase-pill locked" disabled title="Coming in a later update">
-          <span class="phase-number">3</span>
-          <span class="phase-pill-copy">
-            <strong>Environment</strong>
-            <small>Coming soon</small>
-          </span>
-        </button>
-        <button type="button" class="phase-pill locked" disabled title="Coming in a later update">
-          <span class="phase-number">4</span>
-          <span class="phase-pill-copy">
-            <strong>Objects</strong>
-            <small>Coming soon</small>
-          </span>
-        </button>
-        <button type="button" class="phase-pill available" data-rw-phase="review" id="roomWizardTabReview">
-          <span class="phase-number">5</span>
-          <span class="phase-pill-copy">
-            <strong>Review</strong>
-            <small>Validation &amp; export</small>
-          </span>
-        </button>
-      </nav>
-      <div class="room-wizard-scroll">
-        <div id="roomWizardPanelLayout">
-          <div class="phase-header">
-            <div class="phase-header-left">
-              <span class="phase-header-num">Phase 1 · Layout</span>
-              <h2>Layout</h2>
-              <p class="phase-header-desc">Name the room, set its id, and choose the canvas footprint.</p>
-            </div>
-          </div>
-          <div class="stage-card">
-            <div class="stage-card-head">
-              <h4>Identity</h4>
-              <p class="small-note">Display name and canonical id are used in the editor, map graph, and exports.</p>
-            </div>
-            <div class="field-grid">
-              <label>
-                <span class="field-label">Room name</span>
-                <input type="text" id="roomWizardRoomName" autocomplete="off" />
-              </label>
-              <label>
-                <span class="field-label">Room id</span>
-                <span class="field-help">Must match R1, R2, …</span>
-                <input type="text" id="roomWizardRoomId" autocomplete="off" spellcheck="false" />
-              </label>
-            </div>
-          </div>
-          <div class="stage-card">
-            <div class="stage-card-head">
-              <h4>Footprint</h4>
-              <p class="small-note">Preset sizes match common viewports; custom uses your width and height in pixels.</p>
-            </div>
-            <div class="info-box">
-              <p>Pick a preset or custom dimensions. Changing footprint rescales room-local coordinates — review doors and platforms after large changes.</p>
-            </div>
-            <div class="rw-footprint-grid" id="roomWizardFootprintGroup">
-              <label><input type="radio" name="roomWizardFootprint" value="small" /> Small (960×720)</label>
-              <label><input type="radio" name="roomWizardFootprint" value="medium" /> Medium (1600×1200)</label>
-              <label><input type="radio" name="roomWizardFootprint" value="large" /> Large (2240×1200)</label>
-              <label><input type="radio" name="roomWizardFootprint" value="custom" /> Custom</label>
-            </div>
-            <div id="roomWizardCustomFootprint" class="rw-custom-footprint field-grid" hidden>
-              <label>
-                <span class="field-label">Width (px)</span>
-                <input type="number" id="roomWizardCustomW" min="320" step="32" />
-              </label>
-              <label>
-                <span class="field-label">Height (px)</span>
-                <input type="number" id="roomWizardCustomH" min="320" step="32" />
-              </label>
-              <div style="grid-column:1/-1;">
-                <button type="button" class="btn-secondary" id="roomWizardApplyCustomFootprint">Apply custom size</button>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div id="roomWizardPanelReview" hidden>
-          <div class="phase-header">
-            <div class="phase-header-left">
-              <span class="phase-header-num">Phase 5 · Review</span>
-              <h2>Review &amp; export</h2>
-              <p class="phase-header-desc">Confirm summary, scan validation, then export or open the game.</p>
-            </div>
-            <button type="button" class="phase-back-btn" id="roomWizardBackToLayout">← Layout</button>
-          </div>
-          <div class="stage-card">
-            <div class="stage-card-head">
-              <h4>Summary &amp; checks</h4>
-              <p class="small-note">Structural validation mirrors the panel below the canvas.</p>
-            </div>
-            <div class="rw-review-summary" id="roomWizardReviewSummary"></div>
-            <div class="rw-validation-inline" id="roomWizardValidationInline" aria-live="polite"></div>
-            <p class="small-note">Full validation panel is below the canvas. Export uses your whole layout file.</p>
-            <div class="rw-review-actions">
-              <button type="button" class="btn-secondary" id="roomWizardBtnExportJson">Export JSON</button>
-              <button type="button" class="btn-secondary" id="roomWizardBtnExportRuntime">Export runtime</button>
-              <button type="button" class="btn-secondary" id="roomWizardBtnOpenGame">Open game</button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
   </div>
 
   <div class="toast hidden" id="toast"></div>
@@ -2352,6 +2353,7 @@
         sidebarProjectName: document.getElementById('sidebar-project-name'),
         roomProjectList: document.getElementById('room-project-list'),
         roomSelect: document.getElementById('roomSelect'),
+        roomSetupBtn: document.getElementById('roomSetupBtn'),
         viewModeTabs: Array.from(document.querySelectorAll('#viewModeStrip .tab-btn')),
         snapSize: document.getElementById('snapSize'),
         globalZoom: document.getElementById('globalZoom'),
@@ -4261,6 +4263,7 @@
           roomCtx.fillRect(0, 0, roomCanvas.width, roomCanvas.height);
           drawGlobalView();
           updateJsonText();
+          syncRoomWizardDock();
           return;
         }
         setViewMode(state.viewMode);
@@ -4279,6 +4282,7 @@
         renderEmptyRoomHint();
         drawGlobalView();
         updateJsonText();
+        syncRoomWizardDock();
       }
 
       function pointDistance(a, b) {
@@ -5375,8 +5379,28 @@
         }
       }
 
+      function syncRoomWizardDock() {
+        const dock = document.getElementById('roomWizardDock');
+        if (!dock) return;
+        if (state.roomWizard.active && state.data && state.roomWizard.roomId) {
+          const exists = state.data.rooms.some((r) => r.id === state.roomWizard.roomId);
+          if (!exists) {
+            closeRoomWizard(true);
+            return;
+          }
+        }
+        const room = getRoomWizardRoom();
+        const show = state.roomWizard.active && state.viewMode === 'room' && !!room;
+        dock.hidden = !show;
+        dock.setAttribute('aria-hidden', show ? 'false' : 'true');
+        if (ui.roomSetupBtn) {
+          ui.roomSetupBtn.disabled = !state.currentRoomId || !state.data?.rooms?.length;
+        }
+      }
+
       function openRoomWizard(roomId) {
         if (!state.data || !roomId) return;
+        setViewMode('room');
         state.roomWizard.active = true;
         state.roomWizard.roomId = roomId;
         state.roomWizard.phase = 'layout';
@@ -5384,14 +5408,9 @@
         state.currentRoomId = roomId;
         populateRoomSelect();
         ui.roomSelect.value = roomId;
-        const overlay = document.getElementById('roomWizardOverlay');
-        if (overlay) {
-          overlay.hidden = false;
-          overlay.setAttribute('aria-hidden', 'false');
-        }
-        document.body.classList.add('room-wizard-open');
         syncRoomWizardFormFromRoom();
         setRoomWizardPhase('layout');
+        syncRoomWizardDock();
         const nameInput = document.getElementById('roomWizardRoomName');
         if (nameInput) {
           setTimeout(() => nameInput.focus(), 0);
@@ -5402,7 +5421,7 @@
         if (!state.roomWizard.active) return;
         if (!skipConfirm && state.roomWizard.touched) {
           const ok = window.confirm(
-            'Close the room wizard? Your edits stay in this session — use Save or Export to write files.'
+            'Dismiss room setup? Your edits stay in this session — use Save or Export to write files.'
           );
           if (!ok) return;
         }
@@ -5410,12 +5429,7 @@
         state.roomWizard.roomId = null;
         state.roomWizard.phase = 'layout';
         state.roomWizard.touched = false;
-        const overlay = document.getElementById('roomWizardOverlay');
-        if (overlay) {
-          overlay.hidden = true;
-          overlay.setAttribute('aria-hidden', 'true');
-        }
-        document.body.classList.remove('room-wizard-open');
+        syncRoomWizardDock();
       }
 
       function requestCloseRoomWizard() {
@@ -5424,7 +5438,6 @@
 
       function wireRoomWizardEvents() {
         document.getElementById('roomWizardClose')?.addEventListener('click', requestCloseRoomWizard);
-        document.getElementById('roomWizardBackdrop')?.addEventListener('click', requestCloseRoomWizard);
         document.getElementById('roomWizardTabLayout')?.addEventListener('click', () => setRoomWizardPhase('layout'));
         document.getElementById('roomWizardTabReview')?.addEventListener('click', () => setRoomWizardPhase('review'));
         document.getElementById('roomWizardBackToLayout')?.addEventListener('click', () => setRoomWizardPhase('layout'));
@@ -6337,6 +6350,12 @@
         ui.roomWidth.addEventListener('change', applyRoomSizeInputs);
         ui.roomHeight.addEventListener('change', applyRoomSizeInputs);
         ui.addRoom.addEventListener('click', addRoom);
+        ui.roomSetupBtn?.addEventListener('click', () => {
+          const id = state.currentRoomId;
+          if (!id || !state.data) return;
+          openRoomWizard(id);
+          redraw();
+        });
         ui.deleteRoom.addEventListener('click', deleteRoom);
         ui.toolButtons.forEach((button) => {
           button.addEventListener('click', () => {
