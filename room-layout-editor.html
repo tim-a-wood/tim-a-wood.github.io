@@ -730,7 +730,7 @@
       min-height: 24px;
       padding: 0;
       border-radius: 6px;
-      font-size: 14px;
+      font-size: var(--font-size-base);
       color: var(--muted);
       line-height: 1;
       display: grid;
@@ -4709,7 +4709,7 @@
           redraw();
           setStatus('Applied JSON from editor.');
         } catch (error) {
-          setStatus(`JSON error: ${error.message}`);
+          setStatus(`JSON error: ${error.message}`, 'error');
         }
       }
 
@@ -4745,12 +4745,12 @@
             const writable = await state.fileHandle.createWritable();
             await writable.write(serialized);
             await writable.close();
-            setStatus('Saved to this device and to the selected file.');
+            setStatus('Saved to this device and to the selected file.', 'success');
             return;
           } catch (_) {}
         }
 
-        setStatus('Saved to this device. Use Advanced > Save To File or Export Layout for git sync.');
+        setStatus('Saved to this device. Use Advanced > Save To File or Export Layout for git sync.', 'success');
       }
 
       async function syncCanonicalJson() {
@@ -4798,9 +4798,9 @@
           const writable = await state.fileHandle.createWritable();
           await writable.write(JSON.stringify(state.data, null, 2));
           await writable.close();
-          setStatus('Saved JSON to file.');
+          setStatus('Saved JSON to file.', 'success');
         } catch (error) {
-          setStatus(`Save cancelled or failed: ${error.message}`);
+          setStatus(`Save cancelled or failed: ${error.message}`, 'error');
         }
       }
 
@@ -4939,7 +4939,7 @@
       wireEvents();
       refreshProjectList().catch(() => {});
       loadData().catch((error) => {
-        setStatus(`Load failed: ${error.message}`);
+        setStatus(`Load failed: ${error.message}`, 'error');
       });
     })();
   </script>

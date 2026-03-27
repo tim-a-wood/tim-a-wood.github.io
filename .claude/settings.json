@@ -22,7 +22,27 @@
       "WebFetch(domain:games-stats.com)",
       "WebFetch(domain:www.autosprite.io)",
       "WebFetch(domain:gamedevaihub.com)",
-      "Bash(open /Users/timwood/Desktop/projects/PWA/MV/docs/room-editor-agent-task-spec.md)"
+      "Bash(open /Users/timwood/Desktop/projects/PWA/MV/docs/room-editor-agent-task-spec.md)",
+      "Bash(open /Users/timwood/Desktop/projects/PWA/MV/room-layout-editor.html)",
+      "Bash(screencapture -x /tmp/demo-s1-default.png)",
+      "Bash(open -a \"Safari\" /Users/timwood/Desktop/projects/PWA/MV/room-layout-editor.html)",
+      "Bash(screencapture -x /tmp/demo-s1-browser.png)",
+      "Bash(osascript -e 'tell application \"\"Safari\"\" to activate')",
+      "Bash(screencapture -x /tmp/demo-s1-safari.png)",
+      "Bash(osascript -e 'tell application \"\"Safari\"\":*)",
+      "Bash(osascript -e ':*)",
+      "Bash(screencapture -x /tmp/demo-s1-sized.png)",
+      "Bash(screencapture -x /tmp/demo-s1-v2.png)",
+      "Bash(screencapture -R 50,50,1300,850 /tmp/demo-s1-region.png)",
+      "Bash(screencapture -o /tmp/demo-s1-onscreen.png)",
+      "Bash(screencapture -x /tmp/demo-s1-final.png)",
+      "Read(//Users/timwood/Desktop/projects/PWA/MV/**)",
+      "Bash(FILE=/Users/timwood/Desktop/projects/PWA/MV/room-layout-editor.html echo \"=== Full canvas toolbar HTML ===\")",
+      "Bash(sed -n '/canvasToolButtons/,/\\\\/div>/p' $FILE)",
+      "Bash(sed -n '/selectionInspector/,/applyProps/p' $FILE)",
+      "Bash(FILE=/Users/timwood/Desktop/projects/PWA/MV/room-layout-editor.html __NEW_LINE_82413bf4d3072753__ echo \"=== Pan button text content check \\(should be SVGs, not text\\) ===\" sed -n '/roomPanUp/,/roomPanDown/p' $FILE)",
+      "Bash(FILE=/Users/timwood/Desktop/projects/PWA/MV/room-layout-editor.html __NEW_LINE_2f5a0cef2733b772__ echo \"=== viewMode select gone? ===\" grep -n 'id=\"\"\"\"viewMode\"\"\"\"\\\\|select.*viewMode' $FILE)",
+      "Bash(FILE=/Users/timwood/Desktop/projects/PWA/MV/room-layout-editor.html __NEW_LINE_f4b590c3ed69fa53__ echo \"=== setStatus type parameter usage ===\" grep -n 'setStatus\\(' $FILE)"
     ],
     "additionalDirectories": [
       "/Users/timwood/.claude/skills"
