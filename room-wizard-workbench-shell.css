@@ -259,6 +259,12 @@
   border-bottom: none;
 }
 
+/* [hidden] alone loses to `.workflow-rails-stack .phase-rail--world { display: grid }` specificity */
+#worldWorkflowRail[hidden],
+.workflow-rails-stack .phase-rail--world[hidden] {
+  display: none !important;
+}
+
 .workflow-secondary-rail {
   border-top: 1px solid var(--border);
   background: rgba(3, 5, 8, 0.55);

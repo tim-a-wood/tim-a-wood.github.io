@@ -816,6 +816,10 @@ function computeDoorStandPosition(roomWidth, door) {
         css.includes('.room-wizard-dock.room-wizard-dock--compact'),
         'compact room setup strip styles should exist'
     );
+    assert.ok(
+        css.includes('worldWorkflowRail[hidden]') && css.includes('display: none !important'),
+        'world workflow rail must hide with [hidden] (beats display:grid specificity)'
+    );
 })();
 
 (function testIndexPreviewStartFromHashSmoke() {
