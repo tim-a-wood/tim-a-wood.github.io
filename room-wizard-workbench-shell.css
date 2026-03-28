@@ -274,15 +274,6 @@
   display: none !important;
 }
 
-.workflow-secondary-rail-label {
-  padding: 8px 18px 0;
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--text-muted);
-  font-family: var(--font-display);
-}
-
 .workflow-rails-stack .phase-rail--room {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
