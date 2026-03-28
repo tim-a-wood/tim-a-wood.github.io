@@ -83,7 +83,7 @@ Current weakness:
 Primary files:
 
 - `/Users/timwood/Desktop/projects/PWA/MV/room-layout-editor.html`
-- `/Users/timwood/Desktop/projects/PWA/MV/scripts/layout_editor_server.py`
+- ~~`scripts/layout_editor_server.py`~~ (removed — canonical layout API is on `sprite_workbench_server.py`)
 - `/Users/timwood/Desktop/projects/PWA/MV/room-layout-data.json`
 - `/Users/timwood/Desktop/projects/PWA/MV/level-viewer.html`
 - `/Users/timwood/Desktop/projects/PWA/MV/map-graph-viewer.html`
@@ -393,7 +393,7 @@ Keep optional local affordances later:
 Exit criteria:
 
 - The editor can run against project-scoped endpoints.
-- The editor no longer requires `layout_editor_server.py`.
+- The standalone `layout_editor_server.py` was removed; use `sprite_workbench_server.py` only.
 
 ## Phase 4: Add a Rooms Stage to the Workbench UI
 

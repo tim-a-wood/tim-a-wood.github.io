@@ -1,7 +1,7 @@
 """
 Read/write repo-root `room-layout-data.json` for local dev (canonical layout sync in room-layout-editor).
 
-Used by `sprite_workbench_server.py` (primary) and optionally `layout_editor_server.py` (layout-only).
+Used by `sprite_workbench_server.py` for `GET`/`POST` `/api/layout` (repo-root `room-layout-data.json`).
 """
 from __future__ import annotations
 

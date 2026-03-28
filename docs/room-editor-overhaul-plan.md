@@ -34,7 +34,7 @@ This plan closes both gaps: lifting the room editor to Sprite Workbench producti
 **Architecture:**
 - 4,539-line monolithic HTML file — no JS module separation
 - Single global `room-layout-data.json` (not per-project)
-- Thin standalone server (`layout_editor_server.py`) — no project API
+- ~~Thin standalone server (`layout_editor_server.py`)~~ — **removed**; canonical + Copilot live on `sprite_workbench_server.py` (`/api/layout`, `/api/ping`, `/api/copilot`) alongside project APIs
 - No shared code with Sprite Workbench (identical CSS, but siloed)
 
 **Workflow:**
@@ -177,7 +177,7 @@ The AI layer adds:
    - `POST /api/projects/:id/room-layout`
    - `POST /api/projects/:id/room-layout/validate`
 4. Prove persistence: copy current canonical layout into one test project
-5. Keep `layout_editor_server.py` running in parallel until new path is proven
+5. ~~Keep `layout_editor_server.py` in parallel~~ — superseded: workbench serves canonical routes + project room-layout
 
 **Room Layout Artifact Contract:**
 ```json
@@ -245,7 +245,7 @@ room-editor/
 **Goal:** Room editor operates as a project-scoped tool, not a standalone utility.
 
 **Work:**
-1. Wire room editor to workbench project APIs (replace `layout_editor_server.py` calls)
+1. Wire room editor to workbench project APIs (canonical `room-layout-data.json` flow uses workbench `GET`/`POST` `/api/layout` when not using `?project_id=`)
 2. Add project selector panel (list workbench projects, select active)
 3. Add project context header (name, last saved, room count)
 4. Add per-project room layout load/save/dirty-state tracking

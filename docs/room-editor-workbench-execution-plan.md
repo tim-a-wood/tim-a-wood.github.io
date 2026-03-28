@@ -364,7 +364,7 @@ Definition of done:
 Files:
 
 - [`/Users/timwood/Desktop/projects/PWA/MV/room-layout-editor.html`](/Users/timwood/Desktop/projects/PWA/MV/room-layout-editor.html)
-- [`/Users/timwood/Desktop/projects/PWA/MV/scripts/layout_editor_server.py`](/Users/timwood/Desktop/projects/PWA/MV/scripts/layout_editor_server.py)
+- ~~`layout_editor_server.py`~~ — removed; use [`sprite_workbench_server.py`](/Users/timwood/Desktop/projects/PWA/MV/scripts/sprite_workbench_server.py) + [`room_layout_canonical.py`](/Users/timwood/Desktop/projects/PWA/MV/scripts/room_layout_canonical.py)
 
 Work:
 
@@ -493,7 +493,7 @@ Definition of done:
 Files:
 
 - [`/Users/timwood/Desktop/projects/PWA/MV/room-layout-editor.html`](/Users/timwood/Desktop/projects/PWA/MV/room-layout-editor.html)
-- [`/Users/timwood/Desktop/projects/PWA/MV/scripts/layout_editor_server.py`](/Users/timwood/Desktop/projects/PWA/MV/scripts/layout_editor_server.py)
+- ~~`layout_editor_server.py`~~ — removed; use [`sprite_workbench_server.py`](/Users/timwood/Desktop/projects/PWA/MV/scripts/sprite_workbench_server.py) + [`room_layout_canonical.py`](/Users/timwood/Desktop/projects/PWA/MV/scripts/room_layout_canonical.py)
 
 Work:
 

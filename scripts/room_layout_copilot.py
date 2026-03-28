@@ -1,8 +1,7 @@
 """
 Shared Environment Copilot (Gemini) for room-layout-editor.html.
 
-Used by sprite_workbench_server.py (primary) and layout_editor_server.py (optional layout-only)
-so /api/ping and /api/copilot work on the same origin as room-layout-editor.html.
+Served by `sprite_workbench_server.py` (`GET /api/ping`, `POST /api/copilot`) on the same origin as `room-layout-editor.html`.
 """
 from __future__ import annotations
 

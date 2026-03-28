@@ -84,8 +84,6 @@ Local editor workflow:
 
 If you open the editor outside a server that implements those routes, canonical sync is unavailable — use **Export JSON** instead.
 
-**Optional — layout-only server:** `python3 scripts/layout_editor_server.py` serves the repo root with the same **`/api/layout`**, **`/api/ping`**, and **`/api/copilot`** handlers for a lighter process (default port **8765**) when you are not running the full workbench.
-
 **Environment Copilot (Gemini):** In **Room wizard → Environment**, describe a room’s mood; the server calls Gemini using **`GEMINI_API_KEY`** from **`.env.local`**. Restart after env changes. Optional **`GEMINI_MODEL`** (default `gemini-2.0-flash`). Nothing is applied until you click **Apply**; the game never calls Gemini at runtime.
 
 **Validation (Level 1–3):** Canonical definitions, check IDs (`L1-001`, `L2-001`, …), and the **user-docs placeholder** (`DOC-ROOM-VALIDATION-001`) live in [`docs/room-layout-validation.md`](docs/room-layout-validation.md). Level 2 thresholds are project conventions, not an external industry standard; tune via `VALIDATION_L2` in the editor script.
