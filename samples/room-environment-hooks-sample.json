@@ -1,0 +1,61 @@
+{
+  "version": 1,
+  "meta": {
+    "worldWidth": 3200,
+    "worldHeight": 1200,
+    "grid": 32,
+    "notes": "Minimal layout to verify RW-4 environment hooks in index.html (HUD line + background tint per themeId)."
+  },
+  "rooms": [
+    {
+      "id": "R1",
+      "name": "Sample — cave",
+      "environment": {
+        "version": 1,
+        "themeId": "cave",
+        "tags": ["sample", "hook-test"]
+      },
+      "global": { "x": 400, "y": 400 },
+      "size": { "width": 1600, "height": 1200 },
+      "polygon": [
+        [40, 40],
+        [1560, 40],
+        [1560, 1160],
+        [40, 1160]
+      ],
+      "platforms": [{ "id": "R1-P1", "x": 200, "y": 1100, "len": 20, "tint": 0 }],
+      "doors": [],
+      "keys": [],
+      "abilities": [],
+      "movingPlatforms": [],
+      "playerStart": { "x": 400, "y": 1050 },
+      "edgeLinks": [],
+      "removedEdges": []
+    },
+    {
+      "id": "R2",
+      "name": "Sample — ruins",
+      "environment": {
+        "version": 1,
+        "themeId": "ruins",
+        "tags": ["sample", "second-room"]
+      },
+      "global": { "x": 2100, "y": 400 },
+      "size": { "width": 1600, "height": 1200 },
+      "polygon": [
+        [40, 40],
+        [1560, 40],
+        [1560, 1160],
+        [40, 1160]
+      ],
+      "platforms": [{ "id": "R2-P1", "x": 200, "y": 1100, "len": 20, "tint": 1 }],
+      "doors": [],
+      "keys": [],
+      "abilities": [],
+      "movingPlatforms": [],
+      "playerStart": { "x": 400, "y": 1050 },
+      "edgeLinks": [],
+      "removedEdges": []
+    }
+  ]
+}

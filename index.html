@@ -615,6 +615,8 @@ function normalizeLayoutRoom(room) {
             .filter((edgeIndex) => Number.isInteger(edgeIndex) && edgeIndex >= 0 && edgeIndex < normalizedRoom.polygon.length)
     )].sort((a, b) => a - b);
 
+    normalizedRoom.environment = normalizeEnvironmentFromLayout(room);
+
     return normalizedRoom;
 }
 
@@ -777,6 +779,42 @@ function applyRuntimeLayoutData(canonicalData = null) {
 function getLayoutRoom(roomId) {
     if (!ACTIVE_LAYOUT_DATA) return null;
     return ACTIVE_LAYOUT_DATA.rooms.find((room) => room.id === roomId) || null;
+}
+
+/** RW-4 — matches `normalizeRuntimeEnvironment` in room-layout-export-package.js */
+const ROOM_ENV_THEME_BG = {
+    cave: '#050510',
+    ruins: '#0f1518',
+    forest: '#051208',
+    shrine: '#100818',
+    sewer: '#080c14',
+    void: '#0a0614',
+    custom: '#050510'
+};
+
+function normalizeEnvironmentFromLayout(room) {
+    const defaults = { version: 1, themeId: 'cave', tags: [] };
+    if (!room || !room.environment || typeof room.environment !== 'object') {
+        return { ...defaults };
+    }
+    const e = room.environment;
+    const tags = Array.isArray(e.tags) ? e.tags.map((t) => String(t).trim()).filter(Boolean) : [];
+    const themeId =
+        typeof e.themeId === 'string' && e.themeId.trim() ? e.themeId.trim() : defaults.themeId;
+    const version = typeof e.version === 'number' && e.version >= 1 ? e.version : defaults.version;
+    return { version, themeId, tags };
+}
+
+function getEnvironmentHudLine(roomId) {
+    const room = getLayoutRoom(roomId);
+    const env = normalizeEnvironmentFromLayout(room);
+    const tagStr = env.tags.length ? env.tags.join(', ') : '—';
+    return `ENV: ${env.themeId} · ${tagStr}`;
+}
+
+function getEnvironmentBackgroundColor(roomId) {
+    const env = normalizeEnvironmentFromLayout(getLayoutRoom(roomId));
+    return ROOM_ENV_THEME_BG[env.themeId] || ROOM_ENV_THEME_BG.cave;
 }
 
 function getLayoutRoomEdge(roomId, edgeIndex) {
@@ -2126,7 +2164,11 @@ class AshenHollow extends Phaser.Scene {
             fontSize: '12px', fill: '#a6ffb5', stroke: '#000', strokeThickness: 3
         }).setScrollFactor(0).setOrigin(0.5, 0);
 
-        this.objectiveText = this.add.text(CONFIG.W / 2, 48, '', {
+        this.envHudText = this.add.text(CONFIG.W / 2, 44, '', {
+            fontSize: '11px', fill: '#d4c4f7', stroke: '#000', strokeThickness: 3
+        }).setScrollFactor(0).setOrigin(0.5, 0);
+
+        this.objectiveText = this.add.text(CONFIG.W / 2, 58, '', {
             fontSize: '12px', fill: '#ffe082', stroke: '#000', strokeThickness: 3
         }).setScrollFactor(0).setOrigin(0.5, 0);
 
@@ -2330,6 +2372,7 @@ class AshenHollow extends Phaser.Scene {
         this.markRoomVisited(roomId);
         const room = ROOM_IDS[roomId];
         this.cameras.main.setBounds(room.start, 0, room.width, CONFIG.WORLD_HEIGHT);
+        this.cameras.main.setBackgroundColor(getEnvironmentBackgroundColor(roomId));
         this.roomEnteredAtMs = this.time.now;
         this.roomStallLogged = false;
         this.logNavigationEvent('room_enter', { room: roomId, from: this.previousRoomId || 'NONE' });
@@ -2920,6 +2963,9 @@ class AshenHollow extends Phaser.Scene {
         this.starField.tilePositionX = this.player.x * 0.15;
         this.distText.setText(`DIST ${Math.floor(this.player.x / 10)} m`);
         this.roomText.setText(`ROOM: ${this.currentRoomId}`);
+        if (this.envHudText) {
+            this.envHudText.setText(getEnvironmentHudLine(this.currentRoomId));
+        }
 
         if (!this.roomStallLogged && this.roomEnteredAtMs > 0) {
             const dwellMs = this.time.now - this.roomEnteredAtMs;

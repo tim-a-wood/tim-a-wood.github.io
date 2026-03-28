@@ -10,6 +10,11 @@
     {
       "id": "R1",
       "name": "Spawn + Final Gate Chamber",
+      "environment": {
+        "version": 1,
+        "themeId": "cave",
+        "tags": ["spawn", "final-gate", "sample"]
+      },
       "global": {
         "x": 468,
         "y": 396
@@ -268,6 +273,11 @@
     {
       "id": "R2",
       "name": "Central Hub",
+      "environment": {
+        "version": 1,
+        "themeId": "ruins",
+        "tags": ["hub", "checkpoint", "sample"]
+      },
       "global": {
         "x": 722,
         "y": 372
@@ -469,6 +479,11 @@
     {
       "id": "R3",
       "name": "Branch A Entry Trial",
+      "environment": {
+        "version": 1,
+        "themeId": "forest",
+        "tags": ["branch-a", "sample"]
+      },
       "global": {
         "x": 661,
         "y": 244
