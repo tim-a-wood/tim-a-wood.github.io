@@ -1,6 +1,7 @@
 /**
  * Room layout editor — room wizard UI aligned with Sprite Workbench
- * (tools/2d-sprite-and-animation/index.html phase rail, phase pills, stage cards).
+ * (tools/2d-sprite-and-animation/index.html: .phase-pill, .chip tokens, same accent #00e8c8).
+ * “Room setup” band = nested group: accent strip + chip label; primary workflow rail stays default pills.
  * Loaded only by room-layout-editor.html.
  */
 
@@ -16,6 +17,7 @@
   border: 1px solid var(--border);
   border-radius: var(--radius-tight);
   background: rgba(4, 6, 10, 0.55);
+  box-shadow: inset 3px 0 0 rgba(0, 232, 200, 0.28);
   min-height: 0;
   box-sizing: border-box;
 }
@@ -31,6 +33,7 @@
   border-right: none;
   margin: 0;
   background: rgba(4, 6, 10, 0.88);
+  box-shadow: inset 3px 0 0 rgba(0, 232, 200, 0.28);
 }
 
 .room-wizard-dock.room-wizard-dock--compact .room-wizard-sheet {
@@ -189,9 +192,11 @@
   border-bottom: none;
 }
 
+/* Nested “room setup” band — same palette as Sprite Workbench (accent strip + soft tint, no alternate theme) */
 .workflow-secondary-rail {
   border-top: 1px solid var(--border);
-  background: rgba(3, 5, 8, 0.55);
+  background: linear-gradient(90deg, rgba(0, 232, 200, 0.07) 0%, rgba(3, 5, 8, 0.78) min(56px, 18%));
+  box-shadow: inset 3px 0 0 rgba(0, 232, 200, 0.32);
 }
 
 .workflow-secondary-rail[hidden] {
@@ -199,12 +204,18 @@
 }
 
 .workflow-secondary-rail-label {
-  padding: 8px 18px 0;
-  font-size: 11px;
+  margin: 10px 18px 4px;
+  padding: 6px 14px;
+  width: fit-content;
+  max-width: calc(100% - 36px);
+  font-size: var(--font-size-xs);
   text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--text-muted);
+  letter-spacing: 0.12em;
+  color: var(--accent);
   font-family: var(--font-display);
+  border-radius: 999px;
+  border: 1px solid rgba(0, 232, 200, 0.22);
+  background: rgba(0, 232, 200, 0.08);
 }
 
 .workflow-rails-stack .phase-rail--room {
