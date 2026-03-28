@@ -1585,9 +1585,11 @@
   <div class="app">
       <!-- World / Room toggle + per-view workflow (world: 4 steps; room: existing room wizard rail) -->
       <div class="workflow-rails-stack workflow-rail-wrap" id="workflowRailsStack" hidden>
-        <div class="workflow-view-toggle" role="tablist" aria-label="Editor view">
-          <button type="button" role="tab" class="workflow-scope-btn active" id="workflowScopeWorld" data-workflow-scope="world" aria-selected="true">World view</button>
-          <button type="button" role="tab" class="workflow-scope-btn" id="workflowScopeRoom" data-workflow-scope="room" aria-selected="false">Room view</button>
+        <div class="workflow-view-toggle">
+          <div class="workflow-scope-track" role="tablist" aria-label="Editor view">
+            <button type="button" role="tab" class="workflow-scope-btn active" id="workflowScopeWorld" data-workflow-scope="world" aria-selected="true" title="World map and graph">World</button>
+            <button type="button" role="tab" class="workflow-scope-btn" id="workflowScopeRoom" data-workflow-scope="room" aria-selected="false" title="Selected room: layout and detail">Room</button>
+          </div>
         </div>
         <nav class="phase-rail phase-rail--world" id="worldWorkflowRail" aria-label="World workflow" hidden>
           <button type="button" class="phase-pill active" data-world-workflow-step="1" id="worldWorkflowStep1">
@@ -5910,12 +5912,15 @@
       function updateWorkflowScopeToggle() {
         const w = document.getElementById('workflowScopeWorld');
         const r = document.getElementById('workflowScopeRoom');
+        const stack = document.getElementById('workflowRailsStack');
         if (!w || !r) return;
         const world = state.workflowScope === 'world';
         w.classList.toggle('active', world);
         r.classList.toggle('active', !world);
         w.setAttribute('aria-selected', world ? 'true' : 'false');
         r.setAttribute('aria-selected', world ? 'false' : 'true');
+        stack?.classList.toggle('workflow-rails-stack--room', !world);
+        stack?.classList.toggle('workflow-rails-stack--world', world);
       }
 
       function syncWorldWorkflowRailVisibility() {
