@@ -180,7 +180,7 @@ This document turns [`room-creation-wizard-plan.md`](room-creation-wizard-plan.m
 
 ### Tasks (checklist)
 
-- [x] Prompt + system message (dark fantasy metroidvania; JSON-only `themeId` / `tags` / `rationale` in `scripts/room_layout_copilot.py`, served by workbench + optional layout server).
+- [x] Prompt + system message (dark fantasy metroidvania; JSON-only `themeId` / `tags` / `rationale` in `scripts/room_layout_copilot.py`, served by `sprite_workbench_server.py`).
 - [x] `.env.local` + `GEMINI_API_KEY` (optional `GEMINI_MODEL`); documented in `README.md` and `.env.local.example`.
 - [x] `room-layout-editor.html` + `room-wizard-environment-copilot.js` (normalize + apply).
 - [x] Tests: `tests/room-wizard-environment-copilot.test.js`.

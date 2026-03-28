@@ -3089,7 +3089,7 @@
         ui.syncCanonicalJson.disabled = !state.apiAvailable;
         ui.syncCanonicalJson.title = state.apiAvailable
           ? (PROJECT_ID ? 'Save this layout into the active workbench project' : 'Overwrite room-layout-data.json on this dev machine')
-          : 'Launch through the local editor server to enable canonical sync';
+          : 'Open from the Sprite Workbench server (same origin as /api/layout) to enable canonical sync';
       }
 
       function snap(value) {
@@ -6020,11 +6020,11 @@
         }
         if (!geminiConfigured) {
           hint.innerHTML =
-            'Server is up, but <code>GEMINI_API_KEY</code> was not found. Add it to <code>.env.local</code> in the project root and restart the layout server.';
+            'Server is up, but <code>GEMINI_API_KEY</code> was not found. Add it to <code>.env.local</code> in the project root and restart the Sprite Workbench server.';
           return;
         }
         hint.innerHTML =
-          'Gemini is configured on the layout server. Describe the room and click <strong>Generate</strong>.';
+          'Gemini is configured. Describe the room and click <strong>Generate</strong>.';
       }
 
       async function refreshCopilotStatus() {
@@ -6738,7 +6738,7 @@
             return;
           }
           if (!state.copilot.serverReachable || !state.copilot.geminiConfigured) {
-            if (st) st.textContent = 'Layout server or Gemini key unavailable — see note above.';
+            if (st) st.textContent = 'Workbench API or Gemini key unavailable — see note above.';
             return;
           }
           clearRoomWizardCopilotPreview();
@@ -7299,7 +7299,7 @@
 
       async function syncCanonicalJson() {
         if (!state.apiAvailable) {
-          setStatus('Canonical sync requires the local editor server. Use Export JSON instead.');
+          setStatus('Canonical sync requires the Sprite Workbench server (same origin as this page). Use Export JSON instead.');
           return;
         }
         try {
