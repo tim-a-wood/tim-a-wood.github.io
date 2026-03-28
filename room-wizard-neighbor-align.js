@@ -262,15 +262,122 @@ function computeHatchHeightDelta(roomA, roomB, edgeIndexA, edgeIndexB, scale) {
   return { deltaX: d * tx, deltaY: d * ty };
 }
 
+var ROOM_WIZARD_FOOTPRINT_MARGIN_DEFAULT = 160;
+
+/**
+ * True if polygon is a 4-vertex axis-aligned rectangle (each edge horizontal or vertical).
+ */
+function isAxisAlignedRectangle(poly) {
+  if (!Array.isArray(poly) || poly.length !== 4) return false;
+  for (let i = 0; i < 4; i++) {
+    const a = poly[i];
+    const b = poly[(i + 1) % 4];
+    if (!a || !b || a.length < 2 || b.length < 2) return false;
+    const dx = Math.abs(Number(b[0]) - Number(a[0]));
+    const dy = Math.abs(Number(b[1]) - Number(a[1]));
+    const eps = 1e-3;
+    if (!(dx < eps || dy < eps)) return false;
+  }
+  return true;
+}
+
+function insetForFootprint(W, H, margin) {
+  const m = margin == null ? ROOM_WIZARD_FOOTPRINT_MARGIN_DEFAULT : Number(margin);
+  return Math.max(32, Math.min(m, Math.floor(Math.min(W, H) / 4)));
+}
+
+/**
+ * Solve W >= 320 such that W - 2*inset(W,H) ≈ targetLen (horizontal wall length).
+ */
+function widthForHorizontalEdgeLength(targetLen, H, margin) {
+  let W = Math.max(320, targetLen + 64);
+  for (let i = 0; i < 24; i++) {
+    const inset = insetForFootprint(W, H, margin);
+    const len = W - 2 * inset;
+    const err = targetLen - len;
+    if (Math.abs(err) < 0.6) return W;
+    W += err;
+    if (W < 320) W = 320;
+  }
+  return Math.max(320, W);
+}
+
+/**
+ * Solve H >= 320 such that H - 2*inset(W,H) ≈ targetLen (vertical wall length).
+ */
+function heightForVerticalEdgeLength(targetLen, W, margin) {
+  let H = Math.max(320, targetLen + 64);
+  for (let i = 0; i < 24; i++) {
+    const inset = insetForFootprint(W, H, margin);
+    const len = H - 2 * inset;
+    const err = targetLen - len;
+    if (Math.abs(err) < 0.6) return H;
+    H += err;
+    if (H < 320) H = 320;
+  }
+  return Math.max(320, H);
+}
+
+/**
+ * Resize this room's axis-aligned rectangle footprint so the selected edge length (local px)
+ * matches the neighbor's edge. Only moves polygon + size on room A; neighbor unchanged.
+ * @param {number} [margin] - same cap as room-layout-wizard-footprint (default 160)
+ * @returns {{ ok: true, size: {width:number,height:number}, polygon: number[][] } | { ok: false, reason: string }}
+ */
+function computeMatchWallLengthPatch(roomA, roomB, edgeIndexA, edgeIndexB, margin) {
+  if (!roomA || !roomB || roomA === roomB) return { ok: false, reason: 'bad_room' };
+  const polyA = getPolygon(roomA);
+  const polyB = getPolygon(roomB);
+  if (!polyA || !polyB) return { ok: false, reason: 'bad_polygon' };
+  if (!isAxisAlignedRectangle(polyA) || !isAxisAlignedRectangle(polyB)) {
+    return { ok: false, reason: 'need_axis_aligned_rectangles' };
+  }
+  const segA = getEdgeSegmentLocal(roomA, edgeIndexA);
+  const segB = getEdgeSegmentLocal(roomB, edgeIndexB);
+  if (!segA || !segB) return { ok: false, reason: 'bad_edge' };
+  const oA = edgeOrientation(segA);
+  const oB = edgeOrientation(segB);
+  if (oA !== oB || (oA !== 'horizontal' && oA !== 'vertical')) {
+    return { ok: false, reason: 'edge_orientation_mismatch' };
+  }
+  const lenB = Math.hypot(segB.end.x - segB.start.x, segB.end.y - segB.start.y);
+  if (lenB < 1e-6) return { ok: false, reason: 'degenerate_edge' };
+
+  const W0 = Math.max(1, Number(roomA.size?.width || 800));
+  const H0 = Math.max(1, Number(roomA.size?.height || 600));
+  let W = W0;
+  let H = H0;
+  if (oA === 'horizontal') {
+    W = widthForHorizontalEdgeLength(lenB, H0, margin);
+  } else {
+    H = heightForVerticalEdgeLength(lenB, W0, margin);
+  }
+  const inset = insetForFootprint(W, H, margin);
+  const polygon = [
+    [inset, inset],
+    [W - inset, inset],
+    [W - inset, H - inset],
+    [inset, H - inset]
+  ];
+  return {
+    ok: true,
+    size: { width: W, height: H },
+    polygon
+  };
+}
+
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
     ROOM_WIZARD_NEIGHBOR_SCALE,
     getEdgeSegmentLocal,
     computeAlignedGlobal,
     computeHatchHeightDelta,
+    computeMatchWallLengthPatch,
     edgeOrientation,
     doorsNearEdge,
-    localToWorld
+    localToWorld,
+    isAxisAlignedRectangle,
+    insetForFootprint
   };
 }
 if (typeof globalThis !== 'undefined') {
@@ -279,8 +386,11 @@ if (typeof globalThis !== 'undefined') {
     getEdgeSegmentLocal,
     computeAlignedGlobal,
     computeHatchHeightDelta,
+    computeMatchWallLengthPatch,
     edgeOrientation,
     doorsNearEdge,
-    localToWorld
+    localToWorld,
+    isAxisAlignedRectangle,
+    insetForFootprint
   };
 }

@@ -1747,10 +1747,10 @@
               <div class="stage-card" id="roomWizardNeighborsCard">
                 <div class="stage-card-head">
                   <h4>Neighbors &amp; alignment</h4>
-                  <p class="small-note">Connect this room to another, snap to a shared edge on the global map, then match door height at the opening.</p>
+                  <p class="small-note">Connect this room to another, align edges, optionally match wall length (rectangle rooms), then match opening along the wall.</p>
                 </div>
                 <div class="info-box" id="roomWizardNeighborHint">
-                  <p>Pick a neighboring room and which edges meet. <strong>Align</strong> snaps the shared edges flush in world space (perpendicular only, no doors required). <strong>Match opening height</strong> then slides <em>along</em> that wall so openings line up: it prefers doors within ~72px of each edge, otherwise edge midpoints. Use both for stacked or side-by-side rooms. With only one room in the project, add another room first.</p>
+                  <p>Pick a neighboring room and which edges meet. <strong>Align</strong> snaps the shared edges flush in world space (perpendicular only, no doors required). <strong>Match opening height</strong> slides <em>along</em> that wall (doors or edge midpoints). <strong>Match wall length</strong> resizes <em>this</em> room’s rectangle footprint so the selected edge length (local px) matches the neighbor’s edge — use for axis-aligned rectangle rooms only; recheck doors/platforms after. With only one room in the project, add another room first.</p>
                 </div>
                 <div class="field-grid rw-neighbor-grid">
                   <label>
@@ -1768,6 +1768,7 @@
                   <div class="rw-neighbor-actions">
                     <button type="button" class="btn-secondary" id="roomWizardBtnAlign">Align with neighbor</button>
                     <button type="button" class="btn-secondary" id="roomWizardBtnHatch">Match opening height</button>
+                    <button type="button" class="btn-secondary" id="roomWizardBtnMatchWallLen">Match wall length</button>
                   </div>
                 </div>
               </div>
@@ -5834,6 +5835,52 @@
         setStatus('Adjusted position along the opening (doors or edge midpoints).', 'success');
       }
 
+      function applyRoomWizardMatchWallLength() {
+        const mod = globalThis.RoomWizardNeighborAlign;
+        if (!mod || typeof mod.computeMatchWallLengthPatch !== 'function') {
+          setStatus('Neighbor align module not loaded.', 'error');
+          return;
+        }
+        const room = getRoomWizardRoom();
+        if (!room) return;
+        const neighborId = document.getElementById('roomWizardNeighbor')?.value;
+        if (!neighborId) {
+          setStatus('Pick an adjoining room first.', 'warning');
+          return;
+        }
+        const neighbor = getRoomById(neighborId);
+        if (!neighbor) return;
+        ensureRoomShape(room);
+        ensureRoomShape(neighbor);
+        const myEdge = Number(document.getElementById('roomWizardMyEdge')?.value);
+        const nEdge = Number(document.getElementById('roomWizardNeighborEdge')?.value);
+        const fp = globalThis.RoomLayoutWizardFootprint;
+        const margin = fp && Number.isFinite(fp.ROOM_WIZARD_FOOTPRINT_MARGIN)
+          ? fp.ROOM_WIZARD_FOOTPRINT_MARGIN
+          : 160;
+        const result = mod.computeMatchWallLengthPatch(room, neighbor, myEdge, nEdge, margin);
+        if (!result.ok) {
+          const map = {
+            need_axis_aligned_rectangles: 'Match wall length needs both rooms to be axis-aligned rectangle footprints (4 straight walls).',
+            edge_orientation_mismatch: 'Pick matching edge types (e.g. top to top), both horizontal or both vertical.',
+            bad_polygon: 'Room polygon missing or invalid.'
+          };
+          setStatus(map[result.reason] || `Match wall length: ${result.reason}`, 'warning');
+          return;
+        }
+        room.size = { width: result.size.width, height: result.size.height };
+        room.polygon = result.polygon.map((pt) => [pt[0], pt[1]]);
+        state.roomWizard.touched = true;
+        setDirty(true);
+        updateJsonText();
+        if (state.data) {
+          state.lastValidationReport = validateLayout(state.data);
+          renderValidationResults(state.lastValidationReport);
+        }
+        redraw();
+        setStatus('Resized this room so the selected wall length matches the neighbor (recheck doors/platforms).', 'success');
+      }
+
       function updateEditorWorkflowPrimaryPills() {
         const rail = document.getElementById('editorWorkflowRail');
         if (!rail) return;
@@ -6192,6 +6239,7 @@
         });
         document.getElementById('roomWizardBtnAlign')?.addEventListener('click', () => applyRoomWizardAlign());
         document.getElementById('roomWizardBtnHatch')?.addEventListener('click', () => applyRoomWizardHatch());
+        document.getElementById('roomWizardBtnMatchWallLen')?.addEventListener('click', () => applyRoomWizardMatchWallLength());
         document.getElementById('roomWizardBtnExportJson')?.addEventListener('click', () => {
           downloadJson();
         });

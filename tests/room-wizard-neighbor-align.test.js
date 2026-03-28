@@ -7,6 +7,7 @@ const assert = require('assert');
 const {
   computeAlignedGlobal,
   computeHatchHeightDelta,
+  computeMatchWallLengthPatch,
   getEdgeSegmentLocal,
   edgeOrientation,
   localToWorld,
@@ -142,6 +143,40 @@ function axisRoom(id, W, H, inset, gx, gy) {
   const B = axisRoom('B', 1000, 800, 100, 0, 0);
   const d = computeHatchHeightDelta(A, B, 1, 3, S);
   assert.strictEqual(d.reason, 'already_aligned');
+})();
+
+(function testMatchWallLengthHorizontal() {
+  const A = axisRoom('A', 1000, 800, 100, 0, 0);
+  const B = axisRoom('B', 800, 600, 100, 0, 0);
+  const p = computeMatchWallLengthPatch(A, B, 0, 0, 160);
+  assert.strictEqual(p.ok, true);
+  const segB = getEdgeSegmentLocal(B, 0);
+  const lenB = Math.hypot(segB.end.x - segB.start.x, segB.end.y - segB.start.y);
+  const roomPatched = { ...A, size: p.size, polygon: p.polygon };
+  const segNew = getEdgeSegmentLocal(roomPatched, 0);
+  const lenNew = Math.hypot(segNew.end.x - segNew.start.x, segNew.end.y - segNew.start.y);
+  assert.ok(Math.abs(lenNew - lenB) < 1.5, `lenNew=${lenNew} lenB=${lenB}`);
+})();
+
+(function testMatchWallLengthVertical() {
+  const A = axisRoom('A', 1000, 800, 100, 0, 0);
+  const B = axisRoom('B', 800, 600, 100, 0, 0);
+  const p = computeMatchWallLengthPatch(A, B, 1, 1, 160);
+  assert.strictEqual(p.ok, true);
+  const segB = getEdgeSegmentLocal(B, 1);
+  const lenB = Math.hypot(segB.end.x - segB.start.x, segB.end.y - segB.start.y);
+  const roomPatched = { ...A, size: p.size, polygon: p.polygon };
+  const segNew = getEdgeSegmentLocal(roomPatched, 1);
+  const lenNew = Math.hypot(segNew.end.x - segNew.start.x, segNew.end.y - segNew.start.y);
+  assert.ok(Math.abs(lenNew - lenB) < 1.5, `lenNew=${lenNew} lenB=${lenB}`);
+})();
+
+(function testMatchWallLengthRejectsOddPolygon() {
+  const A = { id: 'A', size: { width: 400, height: 400 }, polygon: [[0, 0], [200, 100], [0, 200], [-200, 100]] };
+  const B = axisRoom('B', 800, 600, 100, 0, 0);
+  const p = computeMatchWallLengthPatch(A, B, 0, 0, 160);
+  assert.strictEqual(p.ok, false);
+  assert.strictEqual(p.reason, 'need_axis_aligned_rectangles');
 })();
 
 console.log('room-wizard-neighbor-align.test.js: all assertions passed');
