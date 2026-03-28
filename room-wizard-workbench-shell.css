@@ -808,3 +808,94 @@
 .room-wizard-dock.room-wizard-dock--compact .room-wizard-sheet-top {
   border-bottom-color: var(--rw-border);
 }
+
+/* Primary workflow: each top-level step has its own accent (World = cyan, Room = warm, Review = violet) */
+.workflow-rails-stack > .phase-rail--primary .phase-pill.available[data-editor-step="1"]:not(.active) {
+  border-color: rgba(0, 232, 200, 0.22);
+  background: linear-gradient(165deg, rgba(0, 232, 200, 0.06) 0%, transparent 55%), var(--panel-soft);
+}
+
+.workflow-rails-stack > .phase-rail--primary .phase-pill.available[data-editor-step="2"]:not(.active) {
+  border-color: rgba(194, 65, 12, 0.28);
+  background: linear-gradient(165deg, rgba(194, 65, 12, 0.08) 0%, transparent 55%), var(--panel-soft);
+}
+
+.workflow-rails-stack > .phase-rail--primary .phase-pill.available[data-editor-step="3"]:not(.active) {
+  border-color: rgba(139, 92, 246, 0.26);
+  background: linear-gradient(165deg, rgba(139, 92, 246, 0.07) 0%, transparent 55%), var(--panel-soft);
+}
+
+.workflow-rails-stack > .phase-rail--primary .phase-pill[data-editor-step="1"].active {
+  border: 2px solid var(--accent);
+  background: linear-gradient(160deg, rgba(0, 232, 200, 0.09) 0%, transparent 72%), var(--panel);
+  box-shadow:
+    0 0 0 3px rgba(0, 232, 200, 0.1),
+    inset 0 1px 0 rgba(0, 232, 200, 0.12),
+    0 0 22px rgba(0, 232, 200, 0.07);
+}
+
+.workflow-rails-stack > .phase-rail--primary .phase-pill[data-editor-step="1"].active:hover,
+.workflow-rails-stack > .phase-rail--primary .phase-pill[data-editor-step="1"].active:focus-visible {
+  box-shadow:
+    0 0 0 4px rgba(0, 232, 200, 0.14),
+    inset 0 1px 0 rgba(0, 232, 200, 0.16),
+    0 0 26px rgba(0, 232, 200, 0.1);
+  outline: none;
+}
+
+.workflow-rails-stack > .phase-rail--primary .phase-pill[data-editor-step="1"].active .phase-number {
+  background: var(--accent);
+  border-color: transparent;
+  color: #fff;
+  font-size: 14px;
+}
+
+.workflow-rails-stack > .phase-rail--primary .phase-pill[data-editor-step="2"].active {
+  border: 2px solid #c2410c;
+  background: linear-gradient(160deg, rgba(194, 65, 12, 0.12) 0%, transparent 72%), var(--panel);
+  box-shadow:
+    0 0 0 3px rgba(194, 65, 12, 0.11),
+    inset 0 1px 0 rgba(194, 65, 12, 0.14),
+    0 0 22px rgba(194, 65, 12, 0.08);
+}
+
+.workflow-rails-stack > .phase-rail--primary .phase-pill[data-editor-step="2"].active:hover,
+.workflow-rails-stack > .phase-rail--primary .phase-pill[data-editor-step="2"].active:focus-visible {
+  box-shadow:
+    0 0 0 4px rgba(194, 65, 12, 0.16),
+    inset 0 1px 0 rgba(194, 65, 12, 0.18),
+    0 0 28px rgba(194, 65, 12, 0.1);
+  outline: none;
+}
+
+.workflow-rails-stack > .phase-rail--primary .phase-pill[data-editor-step="2"].active .phase-number {
+  background: #c2410c;
+  border-color: transparent;
+  color: #fff;
+  font-size: 14px;
+}
+
+.workflow-rails-stack > .phase-rail--primary .phase-pill[data-editor-step="3"].active {
+  border: 2px solid #7c3aed;
+  background: linear-gradient(160deg, rgba(124, 58, 237, 0.1) 0%, transparent 72%), var(--panel);
+  box-shadow:
+    0 0 0 3px rgba(124, 58, 237, 0.1),
+    inset 0 1px 0 rgba(124, 58, 237, 0.12),
+    0 0 22px rgba(124, 58, 237, 0.07);
+}
+
+.workflow-rails-stack > .phase-rail--primary .phase-pill[data-editor-step="3"].active:hover,
+.workflow-rails-stack > .phase-rail--primary .phase-pill[data-editor-step="3"].active:focus-visible {
+  box-shadow:
+    0 0 0 4px rgba(124, 58, 237, 0.14),
+    inset 0 1px 0 rgba(124, 58, 237, 0.16),
+    0 0 26px rgba(124, 58, 237, 0.09);
+  outline: none;
+}
+
+.workflow-rails-stack > .phase-rail--primary .phase-pill[data-editor-step="3"].active .phase-number {
+  background: #7c3aed;
+  border-color: transparent;
+  color: #fff;
+  font-size: 14px;
+}
