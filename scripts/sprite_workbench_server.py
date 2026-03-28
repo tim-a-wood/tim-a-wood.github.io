@@ -56,6 +56,7 @@ from scripts import workbench_project_lifecycle as project_lifecycle
 from scripts import workbench_rig_parts as workbench_rig_parts
 from scripts import workbench_sprite_model_rig as workbench_sprite_model_rig
 from scripts import workbench_workflow_state as workbench_workflow_state
+from scripts import room_layout_copilot as room_layout_copilot
 
 try:
     from google import genai as _google_genai
@@ -7610,6 +7611,9 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
         path = _normalize_api_path(unquote(parsed.path))
         query = parse_qs(parsed.query)
 
+        if path == "/api/ping":
+            return self._send_json(room_layout_copilot.copilot_ping_payload())
+
         if path == "/api/health":
             concept_backend = DebugProceduralConceptBackend().healthcheck()
             return self._send_json({
@@ -7759,6 +7763,11 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
         parsed = urlparse(self.path)
         path = _normalize_api_path(unquote(parsed.path))
         try:
+            if path == "/api/copilot":
+                body = read_body(self)
+                payload, status_code = room_layout_copilot.copilot_handle_post(body)
+                return self._send_json(payload, status=status_code)
+
             if path == "/api/projects":
                 return self._send_json(create_project(read_body(self)), status=HTTPStatus.CREATED)
 

@@ -82,7 +82,7 @@ Local editor workflow:
 
 If you open the editor outside the local server, canonical sync is unavailable and you should use `Export JSON` instead.
 
-**Environment Copilot (Gemini):** In **Room wizard → Environment**, you can describe a room’s mood in plain language and get suggested **theme** and **tags**. The layout server calls the Gemini API using your key from **`.env.local`** (same pattern as other local tools — e.g. `export GEMINI_API_KEY="…"`). Restart the server after changing env vars. Optional: `GEMINI_MODEL` (default `gemini-2.0-flash`). Nothing is written to the room until you click **Apply**; the game never calls Gemini at runtime.
+**Environment Copilot (Gemini):** In **Room wizard → Environment**, you can describe a room’s mood in plain language and get suggested **theme** and **tags**. The **same** Copilot endpoints (`GET /api/ping`, `POST /api/copilot`) are served by **`python3 scripts/layout_editor_server.py`** and by the **Sprite Workbench** server (`scripts/sprite_workbench_server.py`), so Copilot works when you open **`/room-layout-editor.html`** from either process. The server reads **`GEMINI_API_KEY`** from **`.env.local`** (e.g. `export GEMINI_API_KEY="…"`). Restart the server after changing env vars. Optional: `GEMINI_MODEL` (default `gemini-2.0-flash`). Nothing is written to the room until you click **Apply**; the game never calls Gemini at runtime.
 
 **Validation (Level 1–3):** Canonical definitions, check IDs (`L1-001`, `L2-001`, …), and the **user-docs placeholder** (`DOC-ROOM-VALIDATION-001`) live in [`docs/room-layout-validation.md`](docs/room-layout-validation.md). Level 2 thresholds are project conventions, not an external industry standard; tune via `VALIDATION_L2` in the editor script.
 
