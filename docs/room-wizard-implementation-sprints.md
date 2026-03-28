@@ -151,18 +151,18 @@ This document turns [`room-creation-wizard-plan.md`](room-creation-wizard-plan.m
 
 ### Tasks
 
-- [ ] Add `room.theme` or `room.environment` object (versioned) — align with game loader or stub for now.
-- [ ] UI: tag chips, preset themes.
-- [ ] Export: include in runtime room slice if applicable.
+- [x] `room.environment` object `{ version, themeId, tags[] }` — `room-wizard-environment.js` + wizard Environment phase.
+- [x] UI: theme preset `<select>`, comma-separated tags; unlock when layout complete (same gate as platform tools).
+- [x] Export: `buildRuntimeRoom` + `worldGraph.rooms[]` include normalized `environment` (`room-layout-export-package.js`).
 
 ### Demo script
 
-1. Set theme “cave” → export runtime → room file contains theme.
+1. Set theme “cave” → export runtime → room file contains `environment`.
 2. Reload editor → theme still visible in wizard Review.
 
 ### Definition of done
 
-- [ ] Schema documented; demo passes.
+- [x] Schema in export helpers; unit tests green.
 
 ---
 

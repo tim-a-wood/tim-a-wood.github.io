@@ -16,4 +16,4 @@ jobs:
           node-version: '20'
 
       - name: Run tests
-        run: node tests/game-logic.test.js && node tests/room-editor-export.test.js && node tests/room-wizard-footprint.test.js && node tests/room-wizard-neighbor-align.test.js && node tests/room-wizard-terrain.test.js
+        run: node tests/game-logic.test.js && node tests/room-editor-export.test.js && node tests/room-wizard-footprint.test.js && node tests/room-wizard-neighbor-align.test.js && node tests/room-wizard-terrain.test.js && node tests/room-wizard-environment.test.js

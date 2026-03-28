@@ -5,6 +5,22 @@
 'use strict';
 
 /**
+ * RW-4 — stable `environment` slice for runtime room JSON (theme + tags).
+ * @param {object} room
+ * @returns {{ version: number, themeId: string, tags: string[] }}
+ */
+function normalizeRuntimeEnvironment(room) {
+  const defaults = { version: 1, themeId: 'cave', tags: [] };
+  const e = room && room.environment && typeof room.environment === 'object' ? room.environment : null;
+  if (!e) return { ...defaults };
+  const tags = Array.isArray(e.tags) ? e.tags.map((t) => String(t).trim()).filter(Boolean) : [];
+  const themeId =
+    typeof e.themeId === 'string' && e.themeId.trim() ? e.themeId.trim() : defaults.themeId;
+  const version = typeof e.version === 'number' && e.version >= 1 ? e.version : defaults.version;
+  return { version, themeId, tags };
+}
+
+/**
  * @param {object|null} room
  * @returns {object|null}
  */
@@ -16,6 +32,7 @@ function buildRuntimeRoom(room) {
       : Array.isArray(room.openEdges)
         ? room.openEdges
         : undefined;
+  const environment = normalizeRuntimeEnvironment(room);
   return {
     id: room.id,
     name: room.name,
@@ -29,6 +46,7 @@ function buildRuntimeRoom(room) {
     movingPlatforms: room.movingPlatforms,
     playerStart: room.playerStart,
     edgeLinks: room.edgeLinks,
+    environment,
     ...(removed != null ? { removedEdges: removed } : {})
   };
 }
@@ -57,6 +75,7 @@ function generateExportPackage(data, validationReport) {
       name: room.name,
       global: room.global,
       size: room.size,
+      environment: normalizeRuntimeEnvironment(room),
       connections: (room.edgeLinks || []).map((link) => ({
         toRoom: link.targetRoomId,
         fromEdge: link.edgeIndex,
@@ -119,12 +138,14 @@ function generateExportPackage(data, validationReport) {
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
     generateExportPackage,
-    buildRuntimeRoom
+    buildRuntimeRoom,
+    normalizeRuntimeEnvironment
   };
 }
 if (typeof globalThis !== 'undefined') {
   globalThis.RoomLayoutExportPackage = {
     generateExportPackage,
-    buildRuntimeRoom
+    buildRuntimeRoom,
+    normalizeRuntimeEnvironment
   };
 }

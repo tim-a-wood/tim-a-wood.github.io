@@ -1661,11 +1661,11 @@
                 <small>Footprint &amp; platforms</small>
               </span>
             </button>
-            <button type="button" class="phase-pill locked" disabled data-rw-phase="environment" title="Coming in a later update">
+            <button type="button" class="phase-pill locked" disabled data-rw-phase="environment" id="roomWizardTabEnvironment" title="Complete layout (name, id, footprint) first">
               <span class="phase-number">2</span>
               <span class="phase-pill-copy">
                 <strong>Environment</strong>
-                <small>Coming soon</small>
+                <small>Theme &amp; tags</small>
               </span>
             </button>
             <button type="button" class="phase-pill locked" disabled data-rw-phase="objects" title="Coming in a later update">
@@ -1845,6 +1845,38 @@
                 <div class="info-box" id="roomWizardTerrainWarnings"><p class="hint">Complete layout (name, id, footprint) to refresh checks.</p></div>
               </div>
             </div>
+            <div id="roomWizardPanelEnvironment" hidden>
+              <div class="phase-header">
+                <div class="phase-header-left">
+                  <span class="phase-header-num">Phase 2 · Environment</span>
+                  <h2>Environment</h2>
+                  <p class="phase-header-desc">
+                    Look-and-feel hints for this room (exported with the layout; the game can use them later for lighting, audio, or palette).
+                  </p>
+                </div>
+                <button type="button" class="phase-back-btn" id="roomWizardBackToLayoutFromEnv">← Layout</button>
+              </div>
+              <div class="stage-card">
+                <div class="stage-card-head">
+                  <h4>Theme preset</h4>
+                  <p class="small-note">Broad bucket for atmosphere. Pick <strong>Custom</strong> if you only use tags below.</p>
+                </div>
+                <label>
+                  <span class="field-label">Theme</span>
+                  <select id="roomWizardThemeSelect"></select>
+                </label>
+              </div>
+              <div class="stage-card">
+                <div class="stage-card-head">
+                  <h4>Mood tags</h4>
+                  <p class="small-note">Comma-separated labels (e.g. <code>wet, cold, boss-arena</code>) for search and future tooling.</p>
+                </div>
+                <label>
+                  <span class="field-label">Tags</span>
+                  <input type="text" id="roomWizardTagsInput" autocomplete="off" placeholder="tag one, tag two" spellcheck="false" />
+                </label>
+              </div>
+            </div>
             <div id="roomWizardPanelReview" hidden>
               <div class="phase-header">
                 <div class="phase-header-left">
@@ -1853,6 +1885,7 @@
                   <p class="phase-header-desc">Confirm summary, scan validation, then export or open the game.</p>
                 </div>
                 <div class="phase-back-row">
+                  <button type="button" class="phase-back-btn" id="roomWizardBackToEnvironment">← Environment</button>
                   <button type="button" class="phase-back-btn" id="roomWizardBackToLayout">← Layout</button>
                 </div>
               </div>
@@ -2462,6 +2495,7 @@
   <script src="room-layout-wizard-footprint.js"></script>
   <script src="room-wizard-neighbor-align.js"></script>
   <script src="room-wizard-terrain.js"></script>
+  <script src="room-wizard-environment.js"></script>
   <script>
     (() => {
       const DATA_URL = './room-layout-data.json';
@@ -5897,6 +5931,34 @@
         if (ch) ch.value = String(Math.round(H));
       }
 
+      function populateRoomWizardThemeSelect() {
+        const envMod = globalThis.RoomWizardEnvironment;
+        const sel = document.getElementById('roomWizardThemeSelect');
+        if (!envMod || !sel || sel.options.length) return;
+        envMod.THEME_PRESETS.forEach((p) => {
+          const opt = document.createElement('option');
+          opt.value = p.id;
+          opt.textContent = p.label;
+          sel.appendChild(opt);
+        });
+      }
+
+      function syncRoomWizardEnvironmentFromRoom() {
+        const room = getRoomWizardRoom();
+        const envMod = globalThis.RoomWizardEnvironment;
+        if (!room || !envMod) return;
+        populateRoomWizardThemeSelect();
+        envMod.ensureRoomEnvironment(room);
+        const e = room.environment;
+        const sel = document.getElementById('roomWizardThemeSelect');
+        const tagsEl = document.getElementById('roomWizardTagsInput');
+        if (sel) {
+          const ids = envMod.THEME_PRESETS.map((p) => p.id);
+          sel.value = ids.includes(e.themeId) ? e.themeId : 'custom';
+        }
+        if (tagsEl) tagsEl.value = envMod.tagsToInputString(e.tags);
+      }
+
       function syncRoomWizardFormFromRoom() {
         const room = getRoomWizardRoom();
         if (!room) return;
@@ -5906,6 +5968,7 @@
         if (idEl) idEl.value = room.id || '';
         syncRoomWizardFootprintRadios();
         syncRoomWizardNeighborFromRoom();
+        syncRoomWizardEnvironmentFromRoom();
       }
 
       function syncRoomWizardEdgeSelects() {
@@ -6266,6 +6329,9 @@
         const vm = state.viewMode;
         const rail = document.getElementById('roomWizardPhaseRail');
         if (!rail) return;
+        const room = getRoomWizardRoom();
+        const mod = globalThis.RoomWizardTerrain;
+        const layoutOk = !!(room && mod && mod.isLayoutCompleteForTerrain(room));
 
         rail.querySelectorAll('.phase-pill[data-rw-phase]').forEach((pill) => {
           const key = pill.dataset.rwPhase;
@@ -6280,7 +6346,23 @@
             }
             return;
           }
-          if (key === 'environment' || key === 'objects') {
+          if (key === 'environment') {
+            if (!layoutOk) {
+              pill.classList.add('locked');
+              pill.disabled = true;
+              pill.title = 'Complete layout (name, id, footprint) first.';
+              return;
+            }
+            pill.disabled = false;
+            pill.title = '';
+            if (wizardOn && ph === 'environment') {
+              pill.classList.add('active');
+            } else {
+              pill.classList.add('available');
+            }
+            return;
+          }
+          if (key === 'objects') {
             pill.classList.add('locked');
             pill.disabled = true;
             pill.title = 'Coming in a later update';
@@ -6299,11 +6381,13 @@
       }
 
       function setRoomWizardPhase(phase) {
-        if (phase !== 'layout' && phase !== 'review') return;
+        if (phase !== 'layout' && phase !== 'environment' && phase !== 'review') return;
         state.roomWizard.phase = phase;
         const panL = document.getElementById('roomWizardPanelLayout');
+        const panE = document.getElementById('roomWizardPanelEnvironment');
         const panR = document.getElementById('roomWizardPanelReview');
         if (panL) panL.hidden = phase !== 'layout';
+        if (panE) panE.hidden = phase !== 'environment';
         if (panR) panR.hidden = phase !== 'review';
         updateWorkflowRailPills();
         if (phase === 'review') {
@@ -6312,6 +6396,9 @@
         if (phase === 'layout') {
           updateRoomWizardTerrainControls();
           refreshTerrainWarnings();
+        }
+        if (phase === 'environment') {
+          syncRoomWizardEnvironmentFromRoom();
         }
       }
 
@@ -6329,10 +6416,19 @@
                 .map((l) => `${escapeHtml(room.id)}[${l.edgeIndex}] ↔ ${escapeHtml(l.targetRoomId)}[${l.targetEdgeIndex}]`)
                 .join('<br/>')}</dd>`
             : '<dt>Edge links</dt><dd>None yet</dd>';
+        const envMod = globalThis.RoomWizardEnvironment;
+        let envBlock = '';
+        if (envMod) {
+          envMod.ensureRoomEnvironment(room);
+          const e = room.environment;
+          const tagStr = e.tags && e.tags.length ? e.tags.join(', ') : '—';
+          envBlock = `<dt>Environment</dt><dd>${escapeHtml(e.themeId)} · tags: ${escapeHtml(tagStr)}</dd>`;
+        }
         summary.innerHTML = `
           <dl>
             <dt>Room</dt><dd>${escapeHtml(room.name)} (${escapeHtml(room.id)})</dd>
             <dt>Footprint</dt><dd>${escapeHtml(String(W))} × ${escapeHtml(String(H))} px</dd>
+            ${envBlock}
             ${neighborLine}
           </dl>`;
         if (!state.data) return;
@@ -6492,7 +6588,49 @@
           syncEditorWorkflowSecondaryRail();
           redraw();
         });
+        document.getElementById('roomWizardTabEnvironment')?.addEventListener('click', () => {
+          if (state.viewMode === 'global') setViewMode('room');
+          if (!state.currentRoomId || !state.data) return;
+          const mod = globalThis.RoomWizardTerrain;
+          const room = getRoomWizardRoom();
+          if (!mod || !room || !mod.isLayoutCompleteForTerrain(room)) {
+            setStatus('Complete layout (name, id, footprint) before Environment.', 'warning');
+            return;
+          }
+          if (state.workflowScope !== 'room') {
+            setWorkflowScope('room');
+          } else if (!state.roomWizard.active) {
+            openRoomWizard(state.currentRoomId);
+          }
+          setRoomWizardPhase('environment');
+          updateWorldWorkflowPills();
+          syncEditorWorkflowSecondaryRail();
+          redraw();
+        });
+        document.getElementById('roomWizardBackToLayoutFromEnv')?.addEventListener('click', () => setRoomWizardPhase('layout'));
+        document.getElementById('roomWizardBackToEnvironment')?.addEventListener('click', () => setRoomWizardPhase('environment'));
         document.getElementById('roomWizardBackToLayout')?.addEventListener('click', () => setRoomWizardPhase('layout'));
+        document.getElementById('roomWizardThemeSelect')?.addEventListener('change', () => {
+          const room = getRoomWizardRoom();
+          const envMod = globalThis.RoomWizardEnvironment;
+          if (!room || !envMod) return;
+          envMod.ensureRoomEnvironment(room);
+          const v = document.getElementById('roomWizardThemeSelect')?.value;
+          if (v) room.environment.themeId = v;
+          state.roomWizard.touched = true;
+          setDirty(true);
+          updateJsonText();
+        });
+        document.getElementById('roomWizardTagsInput')?.addEventListener('input', () => {
+          const room = getRoomWizardRoom();
+          const envMod = globalThis.RoomWizardEnvironment;
+          if (!room || !envMod) return;
+          envMod.ensureRoomEnvironment(room);
+          room.environment.tags = envMod.parseTagsInput(document.getElementById('roomWizardTagsInput')?.value);
+          state.roomWizard.touched = true;
+          setDirty(true);
+          updateJsonText();
+        });
         document.querySelectorAll('#roomWizardTerrainPresets [data-terrain-preset]').forEach((btn) => {
           btn.addEventListener('click', () => applyTerrainPresetFromWizard(btn.getAttribute('data-terrain-preset')));
         });
@@ -6630,7 +6768,8 @@
           keys: [],
           abilities: [],
           edgeLinks: [],
-          removedEdges: []
+          removedEdges: [],
+          environment: { version: 1, themeId: 'cave', tags: [] }
         };
         applyFootprintDimensionsToRoom(room, ROOM_W, ROOM_H);
         state.data.rooms.push(room);
@@ -6660,7 +6799,8 @@
           keys: [],
           abilities: [],
           edgeLinks: [],
-          removedEdges: []
+          removedEdges: [],
+          environment: { version: 1, themeId: 'cave', tags: [] }
         };
         applyFootprintDimensionsToRoom(room, ROOM_W, ROOM_H);
         return {

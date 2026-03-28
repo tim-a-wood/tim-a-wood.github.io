@@ -5,7 +5,8 @@
 const assert = require('assert');
 const {
   generateExportPackage,
-  buildRuntimeRoom
+  buildRuntimeRoom,
+  normalizeRuntimeEnvironment
 } = require('../room-layout-export-package.js');
 
 const minimalLayout = {
@@ -55,6 +56,8 @@ const roomFile = pkg.roomFiles['R1.json'];
 assert.ok(roomFile, 'per-room file uses safe id as filename');
 assert.deepStrictEqual(roomFile.movingPlatforms, minimalLayout.rooms[0].movingPlatforms);
 assert.strictEqual(roomFile.movers, undefined);
+assert.deepStrictEqual(roomFile.environment, normalizeRuntimeEnvironment(minimalLayout.rooms[0]));
+assert.ok(pkg.worldGraph.rooms[0].environment);
 
 const failedL1 = {
   ...validationReport,
