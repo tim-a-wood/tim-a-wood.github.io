@@ -1583,25 +1583,36 @@
 
     <main class="main-column">
   <div class="app">
-      <!-- Two-tier workflow: main (world → room → review) + room sub-steps when step 2 is active -->
+      <!-- World / Room toggle + per-view workflow (world: 4 steps; room: existing room wizard rail) -->
       <div class="workflow-rails-stack workflow-rail-wrap" id="workflowRailsStack" hidden>
-        <nav class="phase-rail phase-rail--primary" id="editorWorkflowRail" aria-label="Main layout workflow">
-          <button type="button" class="phase-pill active" data-editor-step="1" id="editorWorkflowStepWorld">
+        <div class="workflow-view-toggle" role="tablist" aria-label="Editor view">
+          <button type="button" role="tab" class="workflow-scope-btn active" id="workflowScopeWorld" data-workflow-scope="world" aria-selected="true">World view</button>
+          <button type="button" role="tab" class="workflow-scope-btn" id="workflowScopeRoom" data-workflow-scope="room" aria-selected="false">Room view</button>
+        </div>
+        <nav class="phase-rail phase-rail--world" id="worldWorkflowRail" aria-label="World workflow" hidden>
+          <button type="button" class="phase-pill active" data-world-workflow-step="1" id="worldWorkflowStep1">
             <span class="phase-number">1</span>
             <span class="phase-pill-copy">
               <strong>World layout</strong>
               <small>Placement &amp; links</small>
             </span>
           </button>
-          <button type="button" class="phase-pill available" data-editor-step="2" id="editorWorkflowStepRoom">
+          <button type="button" class="phase-pill available" data-world-workflow-step="2" id="worldWorkflowStep2">
             <span class="phase-number">2</span>
             <span class="phase-pill-copy">
-              <strong>Room</strong>
-              <small>Shape, platforms &amp; doors</small>
+              <strong>Placeholder</strong>
+              <small>Reserved</small>
             </span>
           </button>
-          <button type="button" class="phase-pill available" data-editor-step="3" id="editorWorkflowStepReview">
+          <button type="button" class="phase-pill available" data-world-workflow-step="3" id="worldWorkflowStep3">
             <span class="phase-number">3</span>
+            <span class="phase-pill-copy">
+              <strong>Placeholder</strong>
+              <small>Reserved</small>
+            </span>
+          </button>
+          <button type="button" class="phase-pill available" data-world-workflow-step="4" id="worldWorkflowStep4">
+            <span class="phase-number">4</span>
             <span class="phase-pill-copy">
               <strong>Review &amp; export</strong>
               <small>Validation &amp; files</small>
@@ -1651,6 +1662,10 @@
       </div>
 
     <section class="panel canvas-wrap">
+      <div id="worldWorkflowPlaceholderPanel" class="world-workflow-placeholder" hidden aria-hidden="true">
+        <p><strong>Placeholder</strong> — a future world-level phase will live here.</p>
+      </div>
+
       <div class="canvas-header-bar">
         <!-- Left: Room selector -->
         <div class="canvas-header-group">
@@ -2725,8 +2740,19 @@
           roomId: null,
           touched: false
         },
+        /** 'world' | 'room' — top toggle; room uses the existing room wizard rail. */
+        workflowScope: 'world',
+        /** 1–4 when scope is world: layout, placeholder, placeholder, review/export. */
+        worldWorkflowStep: 1,
+        /** Mirrors legacy 1=world, 2=room, 3=review for tests and older call sites. */
         editorWorkflowStep: 1
       };
+
+      function syncLegacyEditorWorkflowStep() {
+        if (state.workflowScope === 'room') state.editorWorkflowStep = 2;
+        else if (state.worldWorkflowStep === 4) state.editorWorkflowStep = 3;
+        else state.editorWorkflowStep = 1;
+      }
 
       function syncSidebarProjectName() {
         if (!ui.sidebarProjectName) return;
@@ -5881,56 +5907,123 @@
         setStatus('Resized this room so the selected wall length matches the neighbor (recheck doors/platforms).', 'success');
       }
 
-      function updateEditorWorkflowPrimaryPills() {
-        const rail = document.getElementById('editorWorkflowRail');
+      function updateWorkflowScopeToggle() {
+        const w = document.getElementById('workflowScopeWorld');
+        const r = document.getElementById('workflowScopeRoom');
+        if (!w || !r) return;
+        const world = state.workflowScope === 'world';
+        w.classList.toggle('active', world);
+        r.classList.toggle('active', !world);
+        w.setAttribute('aria-selected', world ? 'true' : 'false');
+        r.setAttribute('aria-selected', world ? 'false' : 'true');
+      }
+
+      function syncWorldWorkflowRailVisibility() {
+        const rail = document.getElementById('worldWorkflowRail');
         if (!rail) return;
-        const step = state.editorWorkflowStep;
-        rail.querySelectorAll('[data-editor-step]').forEach((pill) => {
-          const n = Number(pill.dataset.editorStep);
+        const show = state.workflowScope === 'world';
+        rail.hidden = !show;
+        rail.setAttribute('aria-hidden', show ? 'false' : 'true');
+      }
+
+      function syncWorldPlaceholderPanel() {
+        const el = document.getElementById('worldWorkflowPlaceholderPanel');
+        if (!el) return;
+        const show =
+          state.workflowScope === 'world' && (state.worldWorkflowStep === 2 || state.worldWorkflowStep === 3);
+        el.hidden = !show;
+        el.setAttribute('aria-hidden', show ? 'false' : 'true');
+      }
+
+      function updateWorldWorkflowPills() {
+        const rail = document.getElementById('worldWorkflowRail');
+        if (!rail) return;
+        const step = state.worldWorkflowStep;
+        rail.querySelectorAll('[data-world-workflow-step]').forEach((pill) => {
+          const n = Number(pill.dataset.worldWorkflowStep);
           pill.classList.remove('active', 'available');
           if (n === step) pill.classList.add('active');
           else pill.classList.add('available');
         });
       }
 
+      function updateEditorWorkflowPrimaryPills() {
+        updateWorldWorkflowPills();
+      }
+
       function syncEditorWorkflowSecondaryRail() {
         const wrap = document.getElementById('roomWizardPhaseRailWrap');
         if (!wrap) return;
-        const show = state.editorWorkflowStep === 2 && !!state.data;
+        const show = state.workflowScope === 'room' && !!state.data;
         wrap.hidden = !show;
         wrap.setAttribute('aria-hidden', show ? 'false' : 'true');
+      }
+
+      function setWorldWorkflowStep(step) {
+        if (step < 1 || step > 4) return;
+        if (state.workflowScope !== 'world') return;
+        state.worldWorkflowStep = step;
+        closeRoomWizard(true);
+        setViewMode('global');
+        if (step === 4 && state.data) {
+          const report = validateLayout(state.data);
+          state.lastValidationReport = report;
+          renderValidationResults(report);
+          document.getElementById('validationPanel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+        syncLegacyEditorWorkflowStep();
+        updateWorldWorkflowPills();
+        syncWorldPlaceholderPanel();
+        syncWorldWorkflowRailVisibility();
+        syncEditorWorkflowSecondaryRail();
+        updateWorkflowRailPills();
+        syncRoomWizardDock();
+        redraw();
+      }
+
+      function setWorkflowScope(scope) {
+        if (scope !== 'world' && scope !== 'room') return;
+        if (scope === 'room' && (!state.data?.rooms?.length)) {
+          setStatus('Add a room first (world layout, or + Add Room in settings).', 'warning');
+          return;
+        }
+        state.workflowScope = scope;
+        updateWorkflowScopeToggle();
+        syncWorldWorkflowRailVisibility();
+        if (scope === 'world') {
+          closeRoomWizard(true);
+          setWorldWorkflowStep(state.worldWorkflowStep);
+        } else {
+          setViewMode('room');
+          if (state.currentRoomId && !state.roomWizard.active) {
+            openRoomWizard(state.currentRoomId);
+          } else {
+            syncLegacyEditorWorkflowStep();
+            updateWorldWorkflowPills();
+            syncWorldPlaceholderPanel();
+            syncEditorWorkflowSecondaryRail();
+            updateWorkflowRailPills();
+            syncRoomWizardDock();
+            redraw();
+          }
+        }
       }
 
       function setEditorWorkflowStep(step) {
         if (step !== 1 && step !== 2 && step !== 3) return;
         if (step === 2 && (!state.data?.rooms?.length)) {
-          setStatus('Add a room first (step 1 — world layout, or + Add Room in settings).', 'warning');
+          setStatus('Add a room first (world layout, or + Add Room in settings).', 'warning');
           return;
         }
-        state.editorWorkflowStep = step;
         if (step === 1) {
-          closeRoomWizard(true);
-          setViewMode('global');
+          state.worldWorkflowStep = 1;
+          setWorkflowScope('world');
         } else if (step === 2) {
-          setViewMode('room');
-          if (state.currentRoomId && !state.roomWizard.active) {
-            openRoomWizard(state.currentRoomId);
-          }
-        } else if (step === 3) {
-          closeRoomWizard(true);
-          setViewMode('global');
-          if (state.data) {
-            const report = validateLayout(state.data);
-            state.lastValidationReport = report;
-            renderValidationResults(report);
-          }
-          document.getElementById('validationPanel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          setWorkflowScope('room');
+        } else {
+          state.worldWorkflowStep = 4;
+          setWorkflowScope('world');
         }
-        updateEditorWorkflowPrimaryPills();
-        syncEditorWorkflowSecondaryRail();
-        updateWorkflowRailPills();
-        syncRoomWizardDock();
-        redraw();
       }
 
       function updateWorkflowRailPills() {
@@ -5945,7 +6038,7 @@
           if (key === 'layout') {
             if (wizardOn && ph === 'layout') {
               pill.classList.add('active');
-            } else if (!wizardOn && vm === 'room' && state.editorWorkflowStep === 2) {
+            } else if (!wizardOn && vm === 'room' && state.workflowScope === 'room') {
               pill.classList.add('active');
             } else {
               pill.classList.add('available');
@@ -6021,7 +6114,10 @@
         stack.hidden = !show;
         stack.setAttribute('aria-hidden', show ? 'false' : 'true');
         syncEditorWorkflowSecondaryRail();
-        updateEditorWorkflowPrimaryPills();
+        syncWorldWorkflowRailVisibility();
+        updateWorkflowScopeToggle();
+        updateWorldWorkflowPills();
+        syncWorldPlaceholderPanel();
       }
 
       function syncRoomWizardDock() {
@@ -6039,7 +6135,7 @@
             ? state.data.rooms.find((r) => r.id === state.currentRoomId)
             : null;
         const show =
-          state.editorWorkflowStep === 2 &&
+          state.workflowScope === 'room' &&
           state.viewMode === 'room' &&
           !!state.data &&
           !!room;
@@ -6053,7 +6149,8 @@
 
       function openRoomWizard(roomId) {
         if (!state.data || !roomId) return;
-        state.editorWorkflowStep = 2;
+        state.workflowScope = 'room';
+        syncLegacyEditorWorkflowStep();
         setViewMode('room');
         state.roomWizard.active = true;
         state.roomWizard.roomId = roomId;
@@ -6074,11 +6171,16 @@
 
       function closeRoomWizard(skipConfirm) {
         if (!state.roomWizard.active) {
-          if (state.editorWorkflowStep === 2) {
-            state.editorWorkflowStep = 1;
+          if (state.workflowScope === 'room') {
+            state.workflowScope = 'world';
+            state.worldWorkflowStep = 1;
             setViewMode('global');
+            syncLegacyEditorWorkflowStep();
+            updateWorkflowScopeToggle();
+            updateWorldWorkflowPills();
+            syncWorldPlaceholderPanel();
+            syncWorldWorkflowRailVisibility();
             updateWorkflowRailPills();
-            updateEditorWorkflowPrimaryPills();
             syncEditorWorkflowSecondaryRail();
             syncRoomWizardDock();
             redraw();
@@ -6098,8 +6200,11 @@
         syncRoomWizardFormFromRoom();
         syncRoomWizardDock();
         updateWorkflowRailPills();
-        updateEditorWorkflowPrimaryPills();
+        updateWorldWorkflowPills();
+        updateWorkflowScopeToggle();
+        syncWorldWorkflowRailVisibility();
         syncEditorWorkflowSecondaryRail();
+        redraw();
       }
 
       function requestCloseRoomWizard() {
@@ -6108,33 +6213,34 @@
 
       function wireRoomWizardEvents() {
         document.getElementById('roomWizardClose')?.addEventListener('click', requestCloseRoomWizard);
-        document.querySelectorAll('#editorWorkflowRail [data-editor-step]').forEach((btn) => {
-          btn.addEventListener('click', () => setEditorWorkflowStep(Number(btn.dataset.editorStep)));
+        document.getElementById('workflowScopeWorld')?.addEventListener('click', () => setWorkflowScope('world'));
+        document.getElementById('workflowScopeRoom')?.addEventListener('click', () => setWorkflowScope('room'));
+        document.querySelectorAll('#worldWorkflowRail [data-world-workflow-step]').forEach((btn) => {
+          btn.addEventListener('click', () => setWorldWorkflowStep(Number(btn.dataset.worldWorkflowStep)));
         });
         document.getElementById('roomWizardTabLayout')?.addEventListener('click', () => {
-          state.editorWorkflowStep = 2;
           if (state.viewMode === 'global') setViewMode('room');
           if (!state.currentRoomId || !state.data) return;
-          if (!state.roomWizard.active) {
+          if (state.workflowScope !== 'room') {
+            setWorkflowScope('room');
+          } else if (!state.roomWizard.active) {
             openRoomWizard(state.currentRoomId);
-          } else {
-            setRoomWizardPhase('layout');
           }
-          updateEditorWorkflowPrimaryPills();
+          setRoomWizardPhase('layout');
+          updateWorldWorkflowPills();
           syncEditorWorkflowSecondaryRail();
           redraw();
         });
         document.getElementById('roomWizardTabReview')?.addEventListener('click', () => {
-          state.editorWorkflowStep = 2;
           if (state.viewMode === 'global') setViewMode('room');
           if (!state.currentRoomId || !state.data) return;
-          if (!state.roomWizard.active) {
+          if (state.workflowScope !== 'room') {
+            setWorkflowScope('room');
+          } else if (!state.roomWizard.active) {
             openRoomWizard(state.currentRoomId);
-            setRoomWizardPhase('review');
-          } else {
-            setRoomWizardPhase('review');
           }
-          updateEditorWorkflowPrimaryPills();
+          setRoomWizardPhase('review');
+          updateWorldWorkflowPills();
           syncEditorWorkflowSecondaryRail();
           redraw();
         });
@@ -6360,7 +6466,9 @@
         populateRoomSelect();
         updateEmptyStates();
         setDirty(false);
-        state.editorWorkflowStep = 1;
+        state.workflowScope = 'world';
+        state.worldWorkflowStep = 1;
+        syncLegacyEditorWorkflowStep();
         setViewMode('global');
         redraw();
         setStatus(message);
@@ -7138,7 +7246,7 @@
             state.selectedGlobalEdge = null;
           }
           setSelection([]);
-          if (state.editorWorkflowStep === 2) {
+          if (state.workflowScope === 'room') {
             syncRoomWizardFormFromRoom();
           }
           // ── Task 2.5b: Room switch canvas fade ──

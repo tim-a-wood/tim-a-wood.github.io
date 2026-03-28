@@ -175,15 +175,52 @@
   display: none !important;
 }
 
-/* Stacked main workflow (3 steps) + room sub-workflow (shown in step 2) */
+/* Stacked view toggle + world workflow (4 steps) or room sub-workflow */
 .workflow-rails-stack {
   display: flex;
   flex-direction: column;
 }
 
-.workflow-rails-stack .phase-rail--primary {
+.workflow-view-toggle {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  padding: 10px 18px 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.workflow-scope-btn {
+  flex: 1;
+  min-width: 120px;
+  max-width: 220px;
+  padding: 10px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--panel);
+  color: var(--muted);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+
+.workflow-scope-btn:hover {
+  color: var(--text);
+  border-color: var(--stroke-strong);
+}
+
+.workflow-scope-btn.active {
+  color: var(--accent);
+  border-color: rgba(0, 232, 200, 0.35);
+  background: rgba(0, 232, 200, 0.08);
+  box-shadow: 0 0 0 1px rgba(0, 232, 200, 0.12);
+}
+
+.workflow-rails-stack .phase-rail--world {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;
   padding: 12px 18px 10px;
   border-bottom: none;
@@ -216,7 +253,7 @@
 }
 
 @media (max-width: 1280px) {
-  .workflow-rails-stack .phase-rail--primary {
+  .workflow-rails-stack .phase-rail--world {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   .workflow-rails-stack .phase-rail--room {
@@ -231,9 +268,22 @@
 }
 
 @media (max-width: 560px) {
-  .workflow-rails-stack .phase-rail--primary {
+  .workflow-rails-stack .phase-rail--world {
     grid-template-columns: 1fr;
   }
+}
+
+.world-workflow-placeholder {
+  padding: 12px 18px;
+  margin: 0;
+  background: rgba(0, 232, 200, 0.06);
+  border-bottom: 1px solid var(--border);
+  font-size: var(--font-size-sm);
+  color: var(--muted);
+}
+
+.world-workflow-placeholder strong {
+  color: var(--text);
 }
 
 /* Non-stacked shells only (stacked workflow uses .phase-rail--primary / --room above) */
