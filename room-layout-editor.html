@@ -6015,7 +6015,7 @@
         const { serverReachable, geminiConfigured } = state.copilot;
         if (!serverReachable) {
           hint.innerHTML =
-            'Run <code>python3 scripts/layout_editor_server.py</code> and open this page from that server so Copilot can call Gemini with your <code>.env.local</code> key.';
+            'Run the <strong>Sprite Workbench</strong> server (e.g. <code>./scripts/start_sprite_workbench_with_env.sh</code> or <code>python3 scripts/sprite_workbench_server.py</code>) and open this page from that server so Copilot and Sync Canonical can use your <code>.env.local</code> key.';
           return;
         }
         if (!geminiConfigured) {

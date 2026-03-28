@@ -61,28 +61,32 @@ To test on an iPhone on the same Wi-Fi, use your computer's LAN IP instead of `1
 
 ## Local Room Editor
 
-For canonical room authoring on your MacBook, use the local editor server instead of opening `room-layout-editor.html` directly.
+Do not open `room-layout-editor.html` as a raw file — run a local HTTP server so **Sync Canonical JSON** and **Environment Copilot** work.
+
+**Recommended: Sprite Workbench** (one process for sprites + room layout + Copilot). The workbench server exposes:
+
+- **`GET` / `POST` `/api/layout`** — read/write repo-root **`room-layout-data.json`** (canonical sync when not using `?project_id=…`)
+- **`GET` `/api/ping`**, **`POST` `/api/copilot`** — Environment Copilot (Gemini)
+- **`/api/projects/…/room-layout`** — per-project layout when the editor URL includes **`project_id`**
 
 ```bash
-python3 scripts/layout_editor_server.py --host 127.0.0.1 --port 8765
+./scripts/start_sprite_workbench_with_env.sh
 ```
 
-Then open:
-
-```text
-http://127.0.0.1:8765/room-layout-editor.html
-```
+Then open **`/room-layout-editor.html`** on the same host/port (defaults are documented in the launcher; often port **8766**).
 
 Local editor workflow:
 
 1. Edit the layout in the browser.
-2. Click `Sync Canonical JSON` to overwrite `room-layout-data.json`.
-3. Open the game from the editor to test against that same canonical file.
+2. Click **Sync Canonical JSON** to overwrite `room-layout-data.json` (or use project sync when linked to a workbench project).
+3. Open the game from the editor to test against that file.
 4. Run `git add room-layout-data.json && git commit && git push`.
 
-If you open the editor outside the local server, canonical sync is unavailable and you should use `Export JSON` instead.
+If you open the editor outside a server that implements those routes, canonical sync is unavailable — use **Export JSON** instead.
 
-**Environment Copilot (Gemini):** In **Room wizard → Environment**, you can describe a room’s mood in plain language and get suggested **theme** and **tags**. The **same** Copilot endpoints (`GET /api/ping`, `POST /api/copilot`) are served by **`python3 scripts/layout_editor_server.py`** and by the **Sprite Workbench** server (`scripts/sprite_workbench_server.py`), so Copilot works when you open **`/room-layout-editor.html`** from either process. The server reads **`GEMINI_API_KEY`** from **`.env.local`** (e.g. `export GEMINI_API_KEY="…"`). Restart the server after changing env vars. Optional: `GEMINI_MODEL` (default `gemini-2.0-flash`). Nothing is written to the room until you click **Apply**; the game never calls Gemini at runtime.
+**Optional — layout-only server:** `python3 scripts/layout_editor_server.py` serves the repo root with the same **`/api/layout`**, **`/api/ping`**, and **`/api/copilot`** handlers for a lighter process (default port **8765**) when you are not running the full workbench.
+
+**Environment Copilot (Gemini):** In **Room wizard → Environment**, describe a room’s mood; the server calls Gemini using **`GEMINI_API_KEY`** from **`.env.local`**. Restart after env changes. Optional **`GEMINI_MODEL`** (default `gemini-2.0-flash`). Nothing is applied until you click **Apply**; the game never calls Gemini at runtime.
 
 **Validation (Level 1–3):** Canonical definitions, check IDs (`L1-001`, `L2-001`, …), and the **user-docs placeholder** (`DOC-ROOM-VALIDATION-001`) live in [`docs/room-layout-validation.md`](docs/room-layout-validation.md). Level 2 thresholds are project conventions, not an external industry standard; tune via `VALIDATION_L2` in the editor script.
 

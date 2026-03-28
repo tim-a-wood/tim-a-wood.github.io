@@ -56,6 +56,7 @@ from scripts import workbench_project_lifecycle as project_lifecycle
 from scripts import workbench_rig_parts as workbench_rig_parts
 from scripts import workbench_sprite_model_rig as workbench_sprite_model_rig
 from scripts import workbench_workflow_state as workbench_workflow_state
+from scripts import room_layout_canonical as room_layout_canonical
 from scripts import room_layout_copilot as room_layout_copilot
 
 try:
@@ -7614,6 +7615,14 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
         if path == "/api/ping":
             return self._send_json(room_layout_copilot.copilot_ping_payload())
 
+        if path == "/api/layout":
+            try:
+                return self._send_json(room_layout_canonical.read_canonical_layout())
+            except FileNotFoundError:
+                return self._send_error_json(HTTPStatus.NOT_FOUND, "room-layout-data.json not found")
+            except json.JSONDecodeError as exc:
+                return self._send_error_json(HTTPStatus.INTERNAL_SERVER_ERROR, f"Invalid JSON: {exc}")
+
         if path == "/api/health":
             concept_backend = DebugProceduralConceptBackend().healthcheck()
             return self._send_json({
@@ -7767,6 +7776,15 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                 body = read_body(self)
                 payload, status_code = room_layout_copilot.copilot_handle_post(body)
                 return self._send_json(payload, status=status_code)
+
+            if path == "/api/layout":
+                body = read_body(self)
+                try:
+                    return self._send_json(room_layout_canonical.save_canonical_layout(body))
+                except ValueError as exc:
+                    return self._send_error_json(HTTPStatus.BAD_REQUEST, str(exc))
+                except OSError as exc:
+                    return self._send_error_json(HTTPStatus.INTERNAL_SERVER_ERROR, f"Write failed: {exc}")
 
             if path == "/api/projects":
                 return self._send_json(create_project(read_body(self)), status=HTTPStatus.CREATED)

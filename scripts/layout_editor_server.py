@@ -1,4 +1,9 @@
 #!/usr/bin/env python3
+"""
+Optional lightweight HTTP server: repo static files + canonical room layout + Copilot APIs.
+
+For day-to-day use, prefer `sprite_workbench_server.py` (same routes + workbench + projects).
+"""
 from __future__ import annotations
 
 import argparse
@@ -13,8 +18,8 @@ ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from scripts.room_layout_canonical import CANONICAL_LAYOUT_PATH, read_canonical_layout, save_canonical_layout
 from scripts.room_layout_copilot import copilot_handle_post, copilot_ping_payload, gemini_configured
-LAYOUT_PATH = ROOT / "room-layout-data.json"
 
 
 class LayoutEditorHandler(SimpleHTTPRequestHandler):
@@ -41,8 +46,7 @@ class LayoutEditorHandler(SimpleHTTPRequestHandler):
 
     def _handle_get_layout(self):
         try:
-            data = json.loads(LAYOUT_PATH.read_text(encoding="utf-8"))
-            self._send_json(data)
+            self._send_json(read_canonical_layout())
         except FileNotFoundError:
             self.send_error(HTTPStatus.NOT_FOUND, "room-layout-data.json not found")
         except json.JSONDecodeError as exc:
@@ -58,13 +62,14 @@ class LayoutEditorHandler(SimpleHTTPRequestHandler):
         try:
             raw = self.rfile.read(content_length)
             payload = json.loads(raw.decode("utf-8"))
-            if not isinstance(payload, dict) or not isinstance(payload.get("rooms"), list):
-                self.send_error(HTTPStatus.BAD_REQUEST, "Payload must contain a rooms array")
+            if not isinstance(payload, dict):
+                self.send_error(HTTPStatus.BAD_REQUEST, "Body must be a JSON object")
                 return
-            LAYOUT_PATH.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
-            self._send_json({"ok": True, "path": str(LAYOUT_PATH)})
+            self._send_json(save_canonical_layout(payload))
         except json.JSONDecodeError as exc:
             self.send_error(HTTPStatus.BAD_REQUEST, f"Invalid JSON: {exc}")
+        except ValueError as exc:
+            self.send_error(HTTPStatus.BAD_REQUEST, str(exc))
         except OSError as exc:
             self.send_error(HTTPStatus.INTERNAL_SERVER_ERROR, f"Write failed: {exc}")
 
@@ -104,7 +109,7 @@ def main():
 
     server = ThreadingHTTPServer((args.host, args.port), LayoutEditorHandler)
     print(f"Layout editor server running at http://{args.host}:{args.port}/room-layout-editor.html")
-    print(f"Canonical layout file: {LAYOUT_PATH}")
+    print(f"Canonical layout file: {CANONICAL_LAYOUT_PATH}")
     if gemini_configured():
         model = os.environ.get("GEMINI_MODEL", "gemini-2.0-flash")
         print(f"Environment Copilot: Gemini enabled (model={model})")
