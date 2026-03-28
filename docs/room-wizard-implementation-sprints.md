@@ -16,7 +16,7 @@ This document turns [`room-creation-wizard-plan.md`](room-creation-wizard-plan.m
 |--------|----------|-------------------------------|
 | **RW-1** | Vertical slice | Add Room → phase rail → Layout fields → Review → **Export JSON** works. |
 | **RW-2** | Neighbors | Layout includes **adjoining room**, **align**, **hatch height**; data visible on global map. |
-| **RW-3** | Terrain | **Terrain** phase: **rect** platforms (Arcade-friendly), **preset library**, duplicate/mirror, **footprint + door warnings**; visible in Room view. |
+| **RW-3** | Platforms | **Layout** phase includes **rect** platforms (Arcade-friendly), **preset library**, duplicate/mirror, **door warnings**; visible in Room view (no separate Terrain step). |
 | **RW-4** | Environment | **Environment** phase applies **tags / theme** to room; persisted in JSON. |
 | **RW-5** | Objects & assets | **Objects** phase: place core entities + **local asset import** stub. |
 | **RW-6** | Preview | **Per-tab preview** + **placeholder player** movement (separate from main canvas). |
@@ -34,7 +34,7 @@ This document turns [`room-creation-wizard-plan.md`](room-creation-wizard-plan.m
 ### Deliverables
 
 1. **Wizard shell** — Full-width or overlay panel inside `room-layout-editor.html`; `role="dialog"`, focus trap, Esc/close behavior defined.
-2. **Phase rail** — Five labels: **Layout | Terrain | Environment | Objects | Review & Export**; **Layout** and **Review** active; middle three **locked** (disabled + tooltip “Coming in a later update” until RW-3+).
+2. **Phase rail** — Four labels: **Layout | Environment | Objects | Review & Export**; **Layout** and **Review** active; **Environment** and **Objects** locked (disabled + tooltip “Coming in a later update” until RW-4+).
 3. **Add Room** — Intercepts current `addRoom()` flow: **always** opens wizard for the new room (room row may be created first with defaults, then wizard edits that room).
 4. **Layout phase (minimal)** — Fields: display name, room id (auto-suggest `nextRoomId()`), footprint preset (small/medium/large) **or** width×height; writes to **current room** in `state.data`.
 5. **Review phase** — Plain-language summary; **`validateLayout`** results; buttons: **Export JSON**, **Export runtime**, **Open game** (reuse existing handlers); link to validation panel.
@@ -47,7 +47,7 @@ This document turns [`room-creation-wizard-plan.md`](room-creation-wizard-plan.m
 - [x] Build phase rail component (HTML + CSS matching editor tokens).
 - [x] Implement Layout panel markup + bind to wizard room.
 - [x] Implement Review panel + `validateLayout`, `downloadJson`, `downloadExportPackage`, `openGameWithLayout`.
-- [x] Lock Terrain / Environment / Objects with disabled + title tooltip.
+- [x] Lock Environment / Objects with disabled + title tooltip (terrain tools live under Layout after RW-3).
 - [x] Confirm on close when `roomWizard.touched` (after user edits in wizard).
 
 ### Demo script (5 min)
@@ -102,32 +102,32 @@ This document turns [`room-creation-wizard-plan.md`](room-creation-wizard-plan.m
 
 ### Out of scope
 
-- Terrain phase content; preview.
+- Standalone terrain phase (merged into Layout); preview.
 
 ---
 
-## RW-3 — Terrain phase (axis-aligned platforms)
+## RW-3 — Platforms in Layout (axis-aligned)
 
 **Goal (locked):** **Rect-only** walkable surfaces for **Phaser Arcade** alignment; **minimal preset library**; **no** arbitrary polygon floors in this sprint (see project discussion). Technical copy in UI.
 
 ### Deliverables
 
-1. Unlock **Terrain** when Layout is complete: `isLayoutCompleteForTerrain(room)` — non-empty name, `R#` id, size ≥ 320×320, polygon ≥ 3 vertices (`room-wizard-terrain.js`).
-2. **Terrain** panel: preset buttons (**ground band**, **two levels**, **step up**, **ledge pair**, **island**) that **append** platforms inside footprint; **Duplicate** / **Mirror**; canvas **Add Platform** + editor **snap** (no numeric placement / import in v1).
+1. When Layout is complete (`isLayoutCompleteForTerrain(room)` — non-empty name, `R#` id, size ≥ 320×320, polygon ≥ 3 vertices), **enable** preset / duplicate / mirror controls in the **Layout** sheet (`room-wizard-terrain.js`).
+2. **Preset library** (**ground band**, **two levels**, **step up**, **ledge pair**, **island**) **appends** platforms inside footprint; **Duplicate** / **Mirror**; canvas **Add Platform** + editor **snap** (no numeric placement / import in v1).
 3. **Warnings:** door anchor overlapping platform top band (in-wizard list); full **validateLayout** still in Review.
 4. All edits are existing **`platforms`** `{ id, x, y, len, tint }` on the room.
 
 ### Tasks
 
 - [x] `isLayoutCompleteForTerrain` + `buildTerrainPresetPlatforms` + `doorPlatformOverlapWarnings` in `room-wizard-terrain.js` + `tests/room-wizard-terrain.test.js`.
-- [x] Terrain tab + panel in `room-layout-editor.html`; rail unlock when layout complete.
+- [x] Platform tools in `room-layout-editor.html` Layout panel (merged from former Terrain tab); controls disabled until layout complete.
 - [ ] Optional follow-up: height histogram; stronger “inside footprint” checks on canvas place.
 
 ### Demo script
 
-1. Complete Layout → **Terrain** unlocks.
+1. Complete Layout fields → preset buttons unlock.
 2. Apply **Two levels** preset → two platforms at different Y in Room view.
-3. **Review** → validation unchanged; terrain warnings show if door sits in platform band.
+3. **Review** → validation unchanged; door/platform warnings show if door sits in platform band.
 
 ### Definition of done
 
@@ -145,7 +145,7 @@ This document turns [`room-creation-wizard-plan.md`](room-creation-wizard-plan.m
 
 ### Deliverables
 
-1. Unlock **Environment** after Terrain (or after Layout if Terrain empty — product decision: default **after Terrain**).
+1. Unlock **Environment** after Layout is satisfiable for gameplay (product decision: default **after** platform placement is “good enough” or skip).
 2. Fields: theme tags, optional swatches, optional `meta`-level vs **room-level** theme field (extend JSON schema in one place; document in `room-layout-export-package.js` if needed).
 3. **Review** shows environment summary.
 
@@ -281,7 +281,7 @@ This document turns [`room-creation-wizard-plan.md`](room-creation-wizard-plan.m
 ```mermaid
 flowchart LR
   RW1[RW-1 Shell] --> RW2[RW-2 Neighbors]
-  RW2 --> RW3[RW-3 Terrain]
+  RW2 --> RW3[RW-3 Platforms in Layout]
   RW3 --> RW4[RW-4 Environment]
   RW4 --> RW5[RW-5 Objects]
   RW5 --> RW6[RW-6 Preview]

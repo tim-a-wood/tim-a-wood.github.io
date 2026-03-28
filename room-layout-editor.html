@@ -1627,32 +1627,25 @@
               <span class="phase-number">1</span>
               <span class="phase-pill-copy">
                 <strong>Layout</strong>
-                <small>Identity &amp; footprint</small>
-              </span>
-            </button>
-            <button type="button" class="phase-pill locked" disabled data-rw-phase="terrain" id="roomWizardTabTerrain" title="Complete layout (name, id, footprint) first">
-              <span class="phase-number">2</span>
-              <span class="phase-pill-copy">
-                <strong>Terrain</strong>
-                <small>Platforms &amp; floors</small>
+                <small>Footprint &amp; platforms</small>
               </span>
             </button>
             <button type="button" class="phase-pill locked" disabled data-rw-phase="environment" title="Coming in a later update">
-              <span class="phase-number">3</span>
+              <span class="phase-number">2</span>
               <span class="phase-pill-copy">
                 <strong>Environment</strong>
                 <small>Coming soon</small>
               </span>
             </button>
             <button type="button" class="phase-pill locked" disabled data-rw-phase="objects" title="Coming in a later update">
-              <span class="phase-number">4</span>
+              <span class="phase-number">3</span>
               <span class="phase-pill-copy">
                 <strong>Objects</strong>
                 <small>Coming soon</small>
               </span>
             </button>
             <button type="button" class="phase-pill available" data-rw-phase="review" id="roomWizardTabReview">
-              <span class="phase-number">5</span>
+              <span class="phase-number">4</span>
               <span class="phase-pill-copy">
                 <strong>Review</strong>
                 <small>Room validation &amp; export</small>
@@ -1702,7 +1695,7 @@
             <div>
               <div class="eyebrow">Room setup</div>
               <h2 id="roomWizardTitle" class="room-wizard-sheet-title">Room wizard</h2>
-              <p class="room-wizard-sub">Layout → Terrain (axis-aligned platforms) → Review. Environment and Objects unlock in later releases.</p>
+              <p class="room-wizard-sub">Layout (footprint + axis-aligned platforms) → Review. Environment and Objects unlock in later releases.</p>
             </div>
             <button type="button" class="btn-icon" id="roomWizardClose" aria-label="Dismiss room setup">×</button>
           </div>
@@ -1712,7 +1705,9 @@
                 <div class="phase-header-left">
                   <span class="phase-header-num">Phase 1 · Layout</span>
                   <h2>Layout</h2>
-                  <p class="phase-header-desc">Name the room, set its id, and choose the canvas footprint.</p>
+                  <p class="phase-header-desc">
+                    Name the room, set its id, define the footprint polygon, then add walkable platforms (axis-aligned rects for Phaser Arcade) with the canvas tools or presets below.
+                  </p>
                 </div>
               </div>
               <div class="stage-card">
@@ -1788,20 +1783,10 @@
                   </div>
                 </div>
               </div>
-            </div>
-            <div id="roomWizardPanelTerrain" hidden>
-              <div class="phase-header">
-                <div class="phase-header-left">
-                  <span class="phase-header-num">Phase 2 · Terrain</span>
-                  <h2>Terrain</h2>
-                  <p class="phase-header-desc">Walkable surfaces are axis-aligned platform rectangles (Phaser Arcade). Use canvas <strong>Add Platform</strong>, editor snap, and presets below.</p>
-                </div>
-                <button type="button" class="phase-back-btn" id="roomWizardBackToLayoutFromTerrain">← Layout</button>
-              </div>
-              <div class="stage-card">
+              <div class="stage-card" id="roomWizardTerrainPresetsCard">
                 <div class="stage-card-head">
                   <h4>Preset library</h4>
-                  <p class="small-note">Appends platforms inside the room footprint. Adjust or delete on the canvas after placing.</p>
+                  <p class="small-note">Appends platforms inside the room footprint (unlocks when name, id, and footprint are valid). Adjust or delete on the canvas after placing.</p>
                 </div>
                 <div class="rw-terrain-preset-grid" id="roomWizardTerrainPresets">
                   <button type="button" class="btn-secondary" data-terrain-preset="ground_band" title="Wide run along the bottom of the room (shrinks to fit odd footprints)">Ground band</button>
@@ -1813,7 +1798,7 @@
               </div>
               <div class="stage-card">
                 <div class="stage-card-head">
-                  <h4>Selection</h4>
+                  <h4>Platform selection</h4>
                   <p class="small-note">Duplicate uses editor snap step for horizontal offset. Mirror clones across room horizontal center.</p>
                 </div>
                 <div class="toolbar">
@@ -1826,18 +1811,17 @@
                   <h4>Door / platform checks</h4>
                   <p class="small-note">Warns when a door anchor sits inside a platform’s walkable band.</p>
                 </div>
-                <div class="info-box" id="roomWizardTerrainWarnings"><p class="hint">Open Terrain after layout to refresh warnings.</p></div>
+                <div class="info-box" id="roomWizardTerrainWarnings"><p class="hint">Complete layout (name, id, footprint) to refresh checks.</p></div>
               </div>
             </div>
             <div id="roomWizardPanelReview" hidden>
               <div class="phase-header">
                 <div class="phase-header-left">
-                  <span class="phase-header-num">Phase 5 · Review</span>
+                  <span class="phase-header-num">Phase 4 · Review</span>
                   <h2>Review &amp; export</h2>
                   <p class="phase-header-desc">Confirm summary, scan validation, then export or open the game.</p>
                 </div>
                 <div class="phase-back-row">
-                  <button type="button" class="phase-back-btn" id="roomWizardBackToTerrain">← Terrain</button>
                   <button type="button" class="phase-back-btn" id="roomWizardBackToLayout">← Layout</button>
                 </div>
               </div>
@@ -4659,7 +4643,8 @@
           syncWorkflowRailVisibility();
           syncRoomWizardDock();
           updateWorkflowRailPills();
-          if (state.roomWizard.active && state.roomWizard.phase === 'terrain') {
+          if (state.roomWizard.active && state.roomWizard.phase === 'layout') {
+            updateRoomWizardTerrainControls();
             refreshTerrainWarnings();
           }
           return;
@@ -4683,7 +4668,8 @@
         syncWorkflowRailVisibility();
         syncRoomWizardDock();
         updateWorkflowRailPills();
-        if (state.roomWizard.active && state.roomWizard.phase === 'terrain') {
+        if (state.roomWizard.active && state.roomWizard.phase === 'layout') {
+          updateRoomWizardTerrainControls();
           refreshTerrainWarnings();
         }
       }
@@ -5678,6 +5664,11 @@
         const mod = globalThis.RoomWizardTerrain;
         const room = getRoomWizardRoom();
         if (!el || !mod || !room) return;
+        if (!mod.isLayoutCompleteForTerrain(room)) {
+          el.innerHTML =
+            '<p class="hint">Complete name, id, and footprint to use presets and see door/platform checks.</p>';
+          return;
+        }
         const lines = mod.doorPlatformOverlapWarnings(room, TILE, PLATFORM_H);
         if (lines.length === 0) {
           el.innerHTML = '<p class="hint">No door / platform band overlap warnings.</p>';
@@ -5686,6 +5677,19 @@
             .map((t) => `<li>${escapeHtml(t)}</li>`)
             .join('')}</ul>`;
         }
+      }
+
+      function updateRoomWizardTerrainControls() {
+        const mod = globalThis.RoomWizardTerrain;
+        const room = getRoomWizardRoom();
+        const layoutOk = !!(room && mod && mod.isLayoutCompleteForTerrain(room));
+        document.querySelectorAll('#roomWizardTerrainPresets [data-terrain-preset]').forEach((b) => {
+          b.disabled = !layoutOk;
+        });
+        const dup = document.getElementById('roomWizardTerrainDuplicate');
+        const mir = document.getElementById('roomWizardTerrainMirror');
+        if (dup) dup.disabled = !layoutOk;
+        if (mir) mir.disabled = !layoutOk;
       }
 
       const TERRAIN_PRESET_FAIL = {
@@ -5701,6 +5705,10 @@
         const mod = globalThis.RoomWizardTerrain;
         const room = getRoomWizardRoom();
         if (!mod || !room) return;
+        if (!mod.isLayoutCompleteForTerrain(room)) {
+          setStatus('Complete layout (name, id, footprint) before using presets.', 'warning');
+          return;
+        }
         const r = mod.buildTerrainPresetPlatforms(room, presetId, {
           tile: TILE,
           platformH: PLATFORM_H,
@@ -6227,9 +6235,6 @@
         const vm = state.viewMode;
         const rail = document.getElementById('roomWizardPhaseRail');
         if (!rail) return;
-        const room = getRoomWizardRoom();
-        const mod = globalThis.RoomWizardTerrain;
-        const layoutOk = !!(room && mod && mod.isLayoutCompleteForTerrain(room));
 
         rail.querySelectorAll('.phase-pill[data-rw-phase]').forEach((pill) => {
           const key = pill.dataset.rwPhase;
@@ -6238,22 +6243,6 @@
             if (wizardOn && ph === 'layout') {
               pill.classList.add('active');
             } else if (!wizardOn && vm === 'room' && state.workflowScope === 'room') {
-              pill.classList.add('active');
-            } else {
-              pill.classList.add('available');
-            }
-            return;
-          }
-          if (key === 'terrain') {
-            if (!layoutOk) {
-              pill.classList.add('locked');
-              pill.disabled = true;
-              pill.title = 'Complete layout (name, id, footprint) first.';
-              return;
-            }
-            pill.disabled = false;
-            pill.title = '';
-            if (wizardOn && ph === 'terrain') {
               pill.classList.add('active');
             } else {
               pill.classList.add('available');
@@ -6279,20 +6268,18 @@
       }
 
       function setRoomWizardPhase(phase) {
-        if (phase !== 'layout' && phase !== 'terrain' && phase !== 'review') return;
+        if (phase !== 'layout' && phase !== 'review') return;
         state.roomWizard.phase = phase;
         const panL = document.getElementById('roomWizardPanelLayout');
-        const panT = document.getElementById('roomWizardPanelTerrain');
         const panR = document.getElementById('roomWizardPanelReview');
         if (panL) panL.hidden = phase !== 'layout';
-        if (panT) panT.hidden = phase !== 'terrain';
         if (panR) panR.hidden = phase !== 'review';
         updateWorkflowRailPills();
         if (phase === 'review') {
           updateRoomWizardReviewPanel();
         }
-        if (phase === 'terrain') {
-          selectCanvasTool('platform');
+        if (phase === 'layout') {
+          updateRoomWizardTerrainControls();
           refreshTerrainWarnings();
         }
       }
@@ -6474,27 +6461,6 @@
           syncEditorWorkflowSecondaryRail();
           redraw();
         });
-        document.getElementById('roomWizardTabTerrain')?.addEventListener('click', () => {
-          if (state.viewMode === 'global') setViewMode('room');
-          if (!state.currentRoomId || !state.data) return;
-          const mod = globalThis.RoomWizardTerrain;
-          const room = getRoomWizardRoom();
-          if (!mod || !room || !mod.isLayoutCompleteForTerrain(room)) {
-            setStatus('Complete layout (name, id, footprint) before Terrain.', 'warning');
-            return;
-          }
-          if (state.workflowScope !== 'room') {
-            setWorkflowScope('room');
-          } else if (!state.roomWizard.active) {
-            openRoomWizard(state.currentRoomId);
-          }
-          setRoomWizardPhase('terrain');
-          updateWorldWorkflowPills();
-          syncEditorWorkflowSecondaryRail();
-          redraw();
-        });
-        document.getElementById('roomWizardBackToLayoutFromTerrain')?.addEventListener('click', () => setRoomWizardPhase('layout'));
-        document.getElementById('roomWizardBackToTerrain')?.addEventListener('click', () => setRoomWizardPhase('terrain'));
         document.getElementById('roomWizardBackToLayout')?.addEventListener('click', () => setRoomWizardPhase('layout'));
         document.querySelectorAll('#roomWizardTerrainPresets [data-terrain-preset]').forEach((btn) => {
           btn.addEventListener('click', () => applyTerrainPresetFromWizard(btn.getAttribute('data-terrain-preset')));
