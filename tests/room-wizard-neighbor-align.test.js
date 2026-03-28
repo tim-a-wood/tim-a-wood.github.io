@@ -37,8 +37,9 @@ function axisRoom(id, W, H, inset, gx, gy) {
   const r = computeAlignedGlobal(A, B, 3, 1, S);
   assert.strictEqual(r.ok, true);
   assert.ok(r.global);
+  // Perpendicular-only align: lines coincide in X; tangential (Y) offset left for Match opening height.
   assert.ok(Math.abs(r.global.x - 96) < 1e-6, `expected x≈96, got ${r.global.x}`);
-  assert.ok(Math.abs(r.global.y - 0) < 1e-6, `expected y≈0, got ${r.global.y}`);
+  assert.ok(Math.abs(r.global.y - 50) < 1e-6, `expected y≈50, got ${r.global.y}`);
 })();
 
 (function testHorizontalFlushBottomToTop() {
@@ -90,6 +91,22 @@ function axisRoom(id, W, H, inset, gx, gy) {
   const r = computeAlignedGlobal(roomA, roomB, 0, 0, S);
   assert.strictEqual(r.ok, true);
   assert.ok(r.global && Number.isFinite(r.global.x));
+})();
+
+(function testAlignThenHatchVerticalMidpointsMeet() {
+  const B = axisRoom('B', 1000, 800, 100, 0, 0);
+  const A = axisRoom('A', 1000, 800, 100, 200, 50);
+  const r = computeAlignedGlobal(A, B, 3, 1, S);
+  assert.strictEqual(r.ok, true);
+  const AAligned = { ...A, global: r.global };
+  const d = computeHatchHeightDelta(AAligned, B, 3, 1, S);
+  assert.ok(Math.abs(d.deltaX) < 1e-9);
+  assert.ok(Math.abs(d.deltaY + 50) < 1e-5, `deltaY ${d.deltaY}`);
+  const gx = AAligned.global.x + d.deltaX;
+  const gy = AAligned.global.y + d.deltaY;
+  const mA = localToWorld({ x: gx, y: gy }, A.size, 100, 400, S);
+  const mB = localToWorld(B.global, B.size, 900, 400, S);
+  assert.ok(Math.abs(mA.y - mB.y) < 1e-4);
 })();
 
 (function testHatchDeltaVertical() {

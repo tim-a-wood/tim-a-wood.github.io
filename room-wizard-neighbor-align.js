@@ -56,9 +56,18 @@ function edgeOrientation(seg) {
   return 'other';
 }
 
+function edgeEndpointsWorld(room, edgeIndex, global, size, scale) {
+  const seg = getEdgeSegmentLocal(room, edgeIndex);
+  if (!seg) return null;
+  const a = localToWorld(global, size, seg.start.x, seg.start.y, scale);
+  const b = localToWorld(global, size, seg.end.x, seg.end.y, scale);
+  return { a, b };
+}
+
 /**
- * Snap room A's global position so edge A lies on the same infinite line as edge B (room B fixed).
- * Requires parallel edges; uses midpoint translation in world space (works for any polygon, not only quads).
+ * Snap room A's global so edge A lies on the same infinite line as edge B (room B fixed).
+ * Uses only the perpendicular offset between the two parallel lines in world space so that
+ * "Match opening height" can still slide along the wall (tangential) afterward.
  * @returns {{ ok: true, global: {x:number,y:number} } | { ok: false, reason: string }}
  */
 function computeAlignedGlobal(roomA, roomB, edgeIndexA, edgeIndexB, scale) {
@@ -96,11 +105,23 @@ function computeAlignedGlobal(roomA, roomB, edgeIndexA, edgeIndexB, scale) {
   const midAWorld = localToWorld(gA, sizeA, midAx, midAy, s);
   const midBWorld = localToWorld(gB, sizeB, midBx, midBy, s);
 
+  const wa = edgeEndpointsWorld(roomA, edgeIndexA, gA, sizeA, s);
+  if (!wa) return { ok: false, reason: 'bad_edge' };
+  const wx = wa.b.x - wa.a.x;
+  const wy = wa.b.y - wa.a.y;
+  const lenW = Math.hypot(wx, wy);
+  if (lenW < 1e-9) return { ok: false, reason: 'degenerate_edge' };
+  const nx = -wy / lenW;
+  const ny = wx / lenW;
+  const vx = midBWorld.x - midAWorld.x;
+  const vy = midBWorld.y - midAWorld.y;
+  const perp = vx * nx + vy * ny;
+
   return {
     ok: true,
     global: {
-      x: gA.x + (midBWorld.x - midAWorld.x),
-      y: gA.y + (midBWorld.y - midAWorld.y)
+      x: gA.x + perp * nx,
+      y: gA.y + perp * ny
     }
   };
 }
@@ -239,14 +260,6 @@ function computeHatchHeightDelta(roomA, roomB, edgeIndexA, edgeIndexB, scale) {
   const d = (midBx - midAx) * tx + (midBy - midAy) * ty;
   if (Math.abs(d) < 1e-9) return { deltaX: 0, deltaY: 0, reason: 'already_aligned' };
   return { deltaX: d * tx, deltaY: d * ty };
-}
-
-function edgeEndpointsWorld(room, edgeIndex, global, size, scale) {
-  const seg = getEdgeSegmentLocal(room, edgeIndex);
-  if (!seg) return null;
-  const a = localToWorld(global, size, seg.start.x, seg.start.y, scale);
-  const b = localToWorld(global, size, seg.end.x, seg.end.y, scale);
-  return { a, b };
 }
 
 if (typeof module !== 'undefined' && module.exports) {
