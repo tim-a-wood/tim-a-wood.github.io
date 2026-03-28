@@ -10,6 +10,7 @@ const {
   buildTerrainPresetPlatforms,
   doorPlatformOverlapWarnings,
   platformFullyInsidePolygon,
+  fitPlatformToFootprint,
   DEFAULT_TILE,
   DEFAULT_PLATFORM_H
 } = require('../room-wizard-terrain.js');
@@ -61,6 +62,48 @@ const {
   assert.strictEqual(r.platforms[0].len >= 1, true);
   const withId = { ...r.platforms[0], id: 'R9-P99' };
   assert.strictEqual(platformFullyInsidePolygon(withId, room.polygon, DEFAULT_TILE, DEFAULT_PLATFORM_H), true);
+})();
+
+(function testConcaveLFitsGroundBand() {
+  const room = {
+    name: 'L',
+    id: 'R1',
+    size: { width: 800, height: 1200 },
+    polygon: [
+      [0, 0],
+      [600, 0],
+      [600, 400],
+      [200, 400],
+      [200, 1000],
+      [0, 1000]
+    ],
+    platforms: []
+  };
+  const r = buildTerrainPresetPlatforms(room, 'ground_band', { tile: DEFAULT_TILE, platformH: DEFAULT_PLATFORM_H });
+  assert.strictEqual(r.ok, true);
+  assert.strictEqual(r.platforms.length, 1);
+  const withId = { ...r.platforms[0], id: 'R1-P1' };
+  assert.strictEqual(platformFullyInsidePolygon(withId, room.polygon, DEFAULT_TILE, DEFAULT_PLATFORM_H), true);
+})();
+
+(function testFitPlatformShrinksLength() {
+  const room = {
+    name: 'Narrow',
+    id: 'R2',
+    size: { width: 400, height: 400 },
+    polygon: [
+      [0, 0],
+      [400, 0],
+      [400, 400],
+      [0, 400]
+    ],
+    platforms: []
+  };
+  const partial = { x: 40, y: 380, len: 20, tint: 0 };
+  const f = fitPlatformToFootprint(room, partial, DEFAULT_TILE, DEFAULT_PLATFORM_H);
+  assert.ok(f);
+  assert.ok(f.len < partial.len);
+  assert.strictEqual(platformFullyInsidePolygon({ ...f, id: 'x' }, room.polygon, DEFAULT_TILE, DEFAULT_PLATFORM_H), true);
 })();
 
 (function testDoorPlatformWarning() {

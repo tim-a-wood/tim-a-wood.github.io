@@ -88,6 +88,36 @@ function platformFullyInsidePolygon(platform, polygon, tile, platformH) {
 }
 
 /**
+ * Shrink length and nudge X so the platform rect lies fully inside the polygon (concave-safe).
+ * @returns {Omit<PlatformDef,'id'> | null}
+ */
+function fitPlatformToFootprint(room, partial, tile, platformH) {
+  const poly = room.polygon;
+  if (!Array.isArray(poly) || poly.length < 3) return null;
+  const bbox = boundingBox(poly);
+  if (!bbox) return null;
+  const { minX, maxX } = bbox;
+  let len = Math.max(1, Math.floor(Number(partial.len)));
+  const y = Number(partial.y);
+  const tint = Number(partial.tint) || 0;
+  const x0 = Number(partial.x);
+  if (!Number.isFinite(x0) || !Number.isFinite(y)) return null;
+
+  for (let L = len; L >= 1; L--) {
+    for (let dx = -10; dx <= 10; dx++) {
+      const tryX = x0 + dx * tile;
+      if (tryX < minX) continue;
+      if (tryX + L * tile > maxX) continue;
+      const test = { x: tryX, y, len: L, tint };
+      if (platformFullyInsidePolygon(test, poly, tile, platformH)) {
+        return test;
+      }
+    }
+  }
+  return null;
+}
+
+/**
  * Warnings when a door’s anchor sits inside a platform’s top band (traversal concern).
  * @returns {string[]}
  */
@@ -131,7 +161,7 @@ function buildTerrainPresetPlatforms(room, presetId, ctx) {
   const bbox = boundingBox(room.polygon);
   if (!bbox) return { ok: false, reason: 'bad_polygon' };
   const { minX, minY, maxX, maxY } = bbox;
-  const margin = 40;
+  const margin = 72;
   const innerW = maxX - minX - 2 * margin;
   const innerH = maxY - minY - 2 * margin;
   if (innerW < tile * 2 || innerH < platformH * 3) return { ok: false, reason: 'room_too_tight' };
@@ -200,13 +230,17 @@ function buildTerrainPresetPlatforms(room, presetId, ctx) {
       return { ok: false, reason: 'unknown_preset' };
   }
 
+  const fitted = [];
   for (const p of out) {
-    if (!platformFullyInsidePolygon(p, room.polygon, tile, platformH)) {
-      return { ok: false, reason: 'preset_outside_footprint' };
-    }
+    const f = fitPlatformToFootprint(room, p, tile, platformH);
+    if (f) fitted.push(f);
   }
 
-  return { ok: true, platforms: out };
+  if (fitted.length === 0) {
+    return { ok: false, reason: 'preset_outside_footprint' };
+  }
+
+  return { ok: true, platforms: fitted };
 }
 
 if (typeof module !== 'undefined' && module.exports) {
@@ -218,6 +252,7 @@ if (typeof module !== 'undefined' && module.exports) {
     boundingBox,
     platformAabb,
     platformFullyInsidePolygon,
+    fitPlatformToFootprint,
     doorPlatformOverlapWarnings,
     buildTerrainPresetPlatforms
   };
@@ -231,6 +266,7 @@ if (typeof globalThis !== 'undefined') {
     boundingBox,
     platformAabb,
     platformFullyInsidePolygon,
+    fitPlatformToFootprint,
     doorPlatformOverlapWarnings,
     buildTerrainPresetPlatforms
   };

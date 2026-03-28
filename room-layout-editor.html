@@ -1804,11 +1804,11 @@
                   <p class="small-note">Appends platforms inside the room footprint. Adjust or delete on the canvas after placing.</p>
                 </div>
                 <div class="rw-terrain-preset-grid" id="roomWizardTerrainPresets">
-                  <button type="button" class="btn-secondary" data-terrain-preset="ground_band">Ground band</button>
-                  <button type="button" class="btn-secondary" data-terrain-preset="two_level">Two levels</button>
-                  <button type="button" class="btn-secondary" data-terrain-preset="step_up">Step up</button>
-                  <button type="button" class="btn-secondary" data-terrain-preset="ledge_pair">Ledge pair</button>
-                  <button type="button" class="btn-secondary" data-terrain-preset="island">Island</button>
+                  <button type="button" class="btn-secondary" data-terrain-preset="ground_band" title="Wide run along the bottom of the room (shrinks to fit odd footprints)">Ground band</button>
+                  <button type="button" class="btn-secondary" data-terrain-preset="two_level" title="Floor band plus a second platform higher up">Two levels</button>
+                  <button type="button" class="btn-secondary" data-terrain-preset="step_up" title="Three steps rising diagonally (shrinks to fit)">Step up</button>
+                  <button type="button" class="btn-secondary" data-terrain-preset="ledge_pair" title="Two mid-height ledges toward left and right">Ledge pair</button>
+                  <button type="button" class="btn-secondary" data-terrain-preset="island" title="One platform near the middle of the room">Island</button>
                 </div>
               </div>
               <div class="stage-card">
@@ -5688,6 +5688,15 @@
         }
       }
 
+      const TERRAIN_PRESET_FAIL = {
+        layout_incomplete: 'Finish Layout first (name, id, footprint).',
+        room_too_tight: 'Room is too small for that preset.',
+        bad_polygon: 'Invalid room polygon.',
+        preset_outside_footprint:
+          'Could not fit preset inside this room outline — try another preset or place platforms manually.',
+        unknown_preset: 'Unknown preset.'
+      };
+
       function applyTerrainPresetFromWizard(presetId) {
         const mod = globalThis.RoomWizardTerrain;
         const room = getRoomWizardRoom();
@@ -5698,19 +5707,26 @@
           tintBase: room.platforms.length
         });
         if (!r.ok || !r.platforms?.length) {
-          setStatus(r.reason ? `Terrain preset: ${r.reason}` : 'Terrain preset failed.', 'warning');
+          const msg =
+            TERRAIN_PRESET_FAIL[r.reason] ||
+            (r.reason ? `Terrain preset: ${r.reason}` : 'Terrain preset failed.');
+          setStatus(msg, 'warning');
           return;
         }
+        const addedIds = [];
         for (const p of r.platforms) {
-          room.platforms.push({
-            ...p,
-            id: nextId(`${room.id}-P`, room.platforms)
-          });
+          const id = nextId(`${room.id}-P`, room.platforms);
+          room.platforms.push({ ...p, id });
+          addedIds.push(id);
         }
+        setSelection(addedIds.map((id) => ({ kind: 'platform', id })));
         state.roomWizard.touched = true;
         setDirty(true);
         updateJsonText();
-        setStatus(`Added ${r.platforms.length} platform(s) (${presetId}).`, 'success');
+        setStatus(
+          `Added ${r.platforms.length} platform(s) (${presetId}). Selected on canvas — switch to Room view if needed.`,
+          'success'
+        );
         redraw();
         refreshTerrainWarnings();
       }
