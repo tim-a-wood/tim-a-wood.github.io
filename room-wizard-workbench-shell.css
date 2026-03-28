@@ -4,7 +4,7 @@
  * Loaded only by room-layout-editor.html.
  */
 
-/* Integrated into main canvas panel (not a modal). */
+/* Integrated into main canvas panel (not a modal). Fills flex height from canvas-wrap when open. */
 .room-wizard-dock {
   --stroke: rgba(0, 232, 200, 0.1);
   --stroke-strong: rgba(0, 232, 200, 0.14);
@@ -24,57 +24,40 @@
   display: none !important;
 }
 
-/* Compact strip under canvas header when room workflow step 2 is active */
+/* Open state: edge-to-edge in canvas panel, fills allocated flex height */
 .room-wizard-dock.room-wizard-dock--compact {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
   border-radius: 0;
   border-left: none;
   border-right: none;
   margin: 0;
-  background: rgba(4, 6, 10, 0.88);
+  background: rgba(4, 6, 10, 0.92);
 }
 
 .room-wizard-dock.room-wizard-dock--compact .room-wizard-sheet {
-  max-height: min(36vh, 320px);
+  flex: 1;
+  min-height: 0;
+  max-height: none;
 }
 
 .room-wizard-dock.room-wizard-dock--compact .room-wizard-sheet-top {
-  padding: 8px 14px 6px;
+  padding: 12px 18px 10px;
   border-bottom: 1px solid var(--stroke);
+  flex-shrink: 0;
 }
 
 .room-wizard-dock.room-wizard-dock--compact .room-wizard-sheet-title {
-  font-size: 1.15rem;
+  font-size: 1.25rem;
   margin-top: 2px;
 }
 
-.room-wizard-dock.room-wizard-dock--compact .room-wizard-sub {
-  display: none;
-}
-
 .room-wizard-dock.room-wizard-dock--compact .room-wizard-scroll {
-  padding: 0 14px 12px;
-}
-
-.room-wizard-dock.room-wizard-dock--compact .phase-header {
-  display: none;
-}
-
-.room-wizard-dock.room-wizard-dock--compact .stage-card {
-  padding: 10px 12px;
-  margin-bottom: 10px;
-}
-
-.room-wizard-dock.room-wizard-dock--compact .stage-card-head h4 {
-  font-size: 0.82rem;
-  margin: 0 0 6px;
-}
-
-.room-wizard-dock.room-wizard-dock--compact .stage-card-head .small-note {
-  display: none;
-}
-
-.room-wizard-dock.room-wizard-dock--compact .info-box {
-  display: none;
+  padding: 0 18px 18px;
+  flex: 1;
+  min-height: 0;
 }
 
 .rw-neighbor-grid {
@@ -103,12 +86,12 @@
   }
 }
 
-/* Sheet: full width inside dashboard; scrolls internally */
+/* Sheet: full width; scroll body via .room-wizard-scroll */
 .room-wizard-dock .room-wizard-sheet {
   position: relative;
   z-index: 1;
   width: 100%;
-  max-height: min(70vh, 720px);
+  max-height: none;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -276,7 +259,7 @@
 
 .workflow-rails-stack .phase-rail--room {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;
   padding: 10px 18px 12px;
   border-bottom: 1px solid var(--border);

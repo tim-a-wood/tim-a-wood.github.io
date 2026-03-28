@@ -319,14 +319,20 @@
       flex-direction: column;
     }
     .app {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr);
+      display: flex;
+      flex-direction: column;
       gap: 18px;
       padding: 18px;
       flex: 1;
       min-height: 0;
-      overflow: auto;
-      align-content: start;
+      overflow: hidden;
+    }
+    .app > .workflow-rails-stack {
+      flex-shrink: 0;
+    }
+    .app > .panel.canvas-wrap {
+      flex: 1;
+      min-height: 0;
     }
     .panel {
       background: linear-gradient(180deg, var(--panel-2), var(--panel));
@@ -448,8 +454,32 @@
       padding: 8px 12px;
     }
     .canvas-wrap {
-      display: grid;
+      display: flex;
+      flex-direction: column;
       gap: 14px;
+      min-height: 0;
+      flex: 1;
+    }
+    .canvas-wrap > .canvas-header-bar {
+      flex-shrink: 0;
+    }
+    /* Room wizard + canvas share vertical space when setup is open */
+    .canvas-wrap:has(#roomWizardDock:not([hidden])) #roomWizardDock {
+      flex: 1 1 58%;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      margin-left: -18px;
+      margin-right: -18px;
+      width: calc(100% + 36px);
+      align-self: stretch;
+    }
+    .canvas-wrap:has(#roomWizardDock:not([hidden])) .canvas-with-inspector {
+      flex: 1 1 38%;
+      min-height: 160px;
+    }
+    .canvas-wrap:not(:has(#roomWizardDock:not([hidden]))) .canvas-with-inspector {
+      flex: 1;
       min-height: 0;
     }
     .canvas-header {
@@ -700,6 +730,7 @@
       gap: 12px;
       align-items: flex-start;
       min-height: 0;
+      overflow: auto;
     }
     .canvas-with-inspector .canvas-box {
       flex: 1;
