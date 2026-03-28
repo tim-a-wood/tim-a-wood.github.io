@@ -2,10 +2,12 @@
 
 ## `room-environment-hooks-sample.json`
 
-Minimal two-room layout used to **manually verify** that `room.environment` is read by the game:
+Three **intentionally contrasting** `room.environment` rows for hook QA in `index.html`:
 
-1. Open `index.html` with this file as the active layout (e.g. import via editor **Advanced JSON**, or replace `room-layout-data.json` temporarily, or pass a hash payload if you use that flow).
-2. **HUD** — Top center should show a line like `ENV: cave · sample, hook-test` in **R1**, changing when you move to **R2** (e.g. `ENV: ruins · …`).
-3. **Background** — `cameras.main` tint shifts slightly per `themeId` (`cave`, `ruins`, `forest`, …).
+| Room | `themeId` | Look (camera BG + starfield tint) | Tags (all different vocabulary) |
+|------|-----------|-----------------------------------|--------------------------------|
+| **R1** | `cave` | Cold blue void | underground, limestone, dripping, … |
+| **R2** | `void` | Wine / magenta cast | zero-g, whisper, purple-haze, … |
+| **R3** | `shrine` | Deep violet | incense, gong, ritual, … |
 
-Canonical data for day-to-day work also includes `environment` on **R1–R3** in `room-layout-data.json` so the hooks are visible without swapping files.
+**In-game:** top HUD shows `ENV: {themeId} · …` and changes sharply when you change rooms. **Canonical** `room-layout-data.json` uses **cave / void / sewer** on **R1–R3** with equally distinct tag sets so the main play path doubles as a hook test.

@@ -781,15 +781,29 @@ function getLayoutRoom(roomId) {
     return ACTIVE_LAYOUT_DATA.rooms.find((room) => room.id === roomId) || null;
 }
 
-/** RW-4 — matches `normalizeRuntimeEnvironment` in room-layout-export-package.js */
+/**
+ * RW-4 — strongly differentiated for QA (background + starfield read as different biomes).
+ * Editor `themeId` values must match room-wizard-environment.js THEME_PRESETS ids.
+ */
 const ROOM_ENV_THEME_BG = {
-    cave: '#050510',
-    ruins: '#0f1518',
-    forest: '#051208',
-    shrine: '#100818',
-    sewer: '#080c14',
-    void: '#0a0614',
-    custom: '#050510'
+    cave: '#0a1628',
+    ruins: '#2a1a0a',
+    forest: '#061a0c',
+    shrine: '#1f0a2a',
+    sewer: '#0a2a22',
+    void: '#240818',
+    custom: '#101018'
+};
+
+/** Multiply tint on the parallax star tile (Phaser hex). */
+const ROOM_ENV_STARFIELD_TINT = {
+    cave: 0x8899dd,
+    ruins: 0xddaa77,
+    forest: 0x77dd99,
+    shrine: 0xbb88ff,
+    sewer: 0x55eedd,
+    void: 0xee77cc,
+    custom: 0xcccccc
 };
 
 function normalizeEnvironmentFromLayout(room) {
@@ -815,6 +829,13 @@ function getEnvironmentHudLine(roomId) {
 function getEnvironmentBackgroundColor(roomId) {
     const env = normalizeEnvironmentFromLayout(getLayoutRoom(roomId));
     return ROOM_ENV_THEME_BG[env.themeId] || ROOM_ENV_THEME_BG.cave;
+}
+
+function getEnvironmentStarfieldTint(roomId) {
+    const env = normalizeEnvironmentFromLayout(getLayoutRoom(roomId));
+    return ROOM_ENV_STARFIELD_TINT[env.themeId] != null
+        ? ROOM_ENV_STARFIELD_TINT[env.themeId]
+        : ROOM_ENV_STARFIELD_TINT.custom;
 }
 
 function getLayoutRoomEdge(roomId, edgeIndex) {
@@ -2373,6 +2394,9 @@ class AshenHollow extends Phaser.Scene {
         const room = ROOM_IDS[roomId];
         this.cameras.main.setBounds(room.start, 0, room.width, CONFIG.WORLD_HEIGHT);
         this.cameras.main.setBackgroundColor(getEnvironmentBackgroundColor(roomId));
+        if (this.starField && this.starField.setTint) {
+            this.starField.setTint(getEnvironmentStarfieldTint(roomId));
+        }
         this.roomEnteredAtMs = this.time.now;
         this.roomStallLogged = false;
         this.logNavigationEvent('room_enter', { room: roomId, from: this.previousRoomId || 'NONE' });

@@ -1,19 +1,19 @@
 {
   "version": 1,
   "meta": {
-    "worldWidth": 3200,
+    "worldWidth": 6400,
     "worldHeight": 1200,
     "grid": 32,
-    "notes": "Minimal layout to verify RW-4 environment hooks in index.html (HUD line + background tint per themeId)."
+    "notes": "Three deliberately contrasting environments for hook QA: cold cave / magenta void / violet shrine."
   },
   "rooms": [
     {
       "id": "R1",
-      "name": "Sample — cave",
+      "name": "Hook test — dripping grotto",
       "environment": {
         "version": 1,
         "themeId": "cave",
-        "tags": ["sample", "hook-test"]
+        "tags": ["underground", "limestone", "dripping", "bioluminescent-moss", "hook-test-a"]
       },
       "global": { "x": 400, "y": 400 },
       "size": { "width": 1600, "height": 1200 },
@@ -34,11 +34,11 @@
     },
     {
       "id": "R2",
-      "name": "Sample — ruins",
+      "name": "Hook test — starless rift",
       "environment": {
         "version": 1,
-        "themeId": "ruins",
-        "tags": ["sample", "second-room"]
+        "themeId": "void",
+        "tags": ["zero-g", "whisper", "purple-haze", "no-floor", "hook-test-b"]
       },
       "global": { "x": 2100, "y": 400 },
       "size": { "width": 1600, "height": 1200 },
@@ -49,6 +49,31 @@
         [40, 1160]
       ],
       "platforms": [{ "id": "R2-P1", "x": 200, "y": 1100, "len": 20, "tint": 1 }],
+      "doors": [],
+      "keys": [],
+      "abilities": [],
+      "movingPlatforms": [],
+      "playerStart": { "x": 400, "y": 1050 },
+      "edgeLinks": [],
+      "removedEdges": []
+    },
+    {
+      "id": "R3",
+      "name": "Hook test — bell shrine",
+      "environment": {
+        "version": 1,
+        "themeId": "shrine",
+        "tags": ["incense", "gong", "ritual", "warm-stone", "hook-test-c"]
+      },
+      "global": { "x": 3800, "y": 400 },
+      "size": { "width": 1600, "height": 1200 },
+      "polygon": [
+        [40, 40],
+        [1560, 40],
+        [1560, 1160],
+        [40, 1160]
+      ],
+      "platforms": [{ "id": "R3-P1", "x": 200, "y": 1100, "len": 20, "tint": 2 }],
       "doors": [],
       "keys": [],
       "abilities": [],

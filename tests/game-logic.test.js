@@ -814,7 +814,13 @@ function computeDoorStandPosition(roomWidth, door) {
     const htmlPath = path.join(__dirname, '../index.html');
     if (!fs.existsSync(htmlPath)) return;
     const html = fs.readFileSync(htmlPath, 'utf8');
-    assert.ok(html.includes('getEnvironmentHudLine') && html.includes('ROOM_ENV_THEME_BG'), 'game reads room.environment for HUD + tint');
+    assert.ok(
+        html.includes('getEnvironmentHudLine') &&
+            html.includes('ROOM_ENV_THEME_BG') &&
+            html.includes('ROOM_ENV_STARFIELD_TINT') &&
+            html.includes('getEnvironmentStarfieldTint'),
+        'game reads room.environment for HUD + BG + starfield tint'
+    );
 })();
 
 (function testRoomWizardWorkbenchShellCompactCss() {

@@ -13,7 +13,7 @@
       "environment": {
         "version": 1,
         "themeId": "cave",
-        "tags": ["spawn", "final-gate", "sample"]
+        "tags": ["cold-stone", "damp", "spawn-gate", "torch-glow", "boss-visible"]
       },
       "global": {
         "x": 468,
@@ -275,8 +275,8 @@
       "name": "Central Hub",
       "environment": {
         "version": 1,
-        "themeId": "ruins",
-        "tags": ["hub", "checkpoint", "sample"]
+        "themeId": "void",
+        "tags": ["astral", "hub", "rotunda", "crossroads", "four-doors"]
       },
       "global": {
         "x": 722,
@@ -481,8 +481,8 @@
       "name": "Branch A Entry Trial",
       "environment": {
         "version": 1,
-        "themeId": "forest",
-        "tags": ["branch-a", "sample"]
+        "themeId": "sewer",
+        "tags": ["toxic", "flooded", "branch-a", "trial-entry", "slippery"]
       },
       "global": {
         "x": 661,
