@@ -16,7 +16,7 @@ This document turns [`room-creation-wizard-plan.md`](room-creation-wizard-plan.m
 |--------|----------|-------------------------------|
 | **RW-1** | Vertical slice | Add Room → phase rail → Layout fields → Review → **Export JSON** works. |
 | **RW-2** | Neighbors | Layout includes **adjoining room**, **align**, **hatch height**; data visible on global map. |
-| **RW-3** | Terrain | **Terrain** phase edits **uneven** walkable surfaces on footprint; visible in Room view. |
+| **RW-3** | Terrain | **Terrain** phase: **rect** platforms (Arcade-friendly), **preset library**, duplicate/mirror, **footprint + door warnings**; visible in Room view. |
 | **RW-4** | Environment | **Environment** phase applies **tags / theme** to room; persisted in JSON. |
 | **RW-5** | Objects & assets | **Objects** phase: place core entities + **local asset import** stub. |
 | **RW-6** | Preview | **Per-tab preview** + **placeholder player** movement (separate from main canvas). |
@@ -106,37 +106,36 @@ This document turns [`room-creation-wizard-plan.md`](room-creation-wizard-plan.m
 
 ---
 
-## RW-3 — Terrain phase (uneven terrain)
+## RW-3 — Terrain phase (axis-aligned platforms)
 
-**Goal:** **Terrain** tab unlocks; user builds **uneven** walkable surfaces on the **footprint** from Layout — not a single flat floor.
+**Goal (locked):** **Rect-only** walkable surfaces for **Phaser Arcade** alignment; **minimal preset library**; **no** arbitrary polygon floors in this sprint (see project discussion). Technical copy in UI.
 
 ### Deliverables
 
-1. Unlock **Terrain** when Layout is “complete” (footprint + name; rules in code).
-2. **Terrain** UI: presets (flat / two-level / stepped), **add ledge** actions, or **embedded mini-editor** that mirrors **platform** placement for **this room only**.
-3. All edits write **platforms** (and any new terrain fields) on **current room**; visible in existing **Room view** canvas.
-4. Copy: **floors / ledges / uneven ground** — hide internal jargon in primary labels.
+1. Unlock **Terrain** when Layout is complete: `isLayoutCompleteForTerrain(room)` — non-empty name, `R#` id, size ≥ 320×320, polygon ≥ 3 vertices (`room-wizard-terrain.js`).
+2. **Terrain** panel: preset buttons (**ground band**, **two levels**, **step up**, **ledge pair**, **island**) that **append** platforms inside footprint; **Duplicate** / **Mirror**; canvas **Add Platform** + editor **snap** (no numeric placement / import in v1).
+3. **Warnings:** door anchor overlapping platform top band (in-wizard list); full **validateLayout** still in Review.
+4. All edits are existing **`platforms`** `{ id, x, y, len, tint }` on the room.
 
 ### Tasks
 
-- [ ] Define `isLayoutCompleteForTerrain(room)` predicate.
-- [ ] Terrain panel: presets apply platform arrays (or call existing placement logic).
-- [ ] Optional: height histogram or “lowest floor” line for clarity.
-- [ ] Tests: preset → expected platform count / y spread.
+- [x] `isLayoutCompleteForTerrain` + `buildTerrainPresetPlatforms` + `doorPlatformOverlapWarnings` in `room-wizard-terrain.js` + `tests/room-wizard-terrain.test.js`.
+- [x] Terrain tab + panel in `room-layout-editor.html`; rail unlock when layout complete.
+- [ ] Optional follow-up: height histogram; stronger “inside footprint” checks on canvas place.
 
 ### Demo script
 
 1. Complete Layout → **Terrain** unlocks.
-2. Apply “two-level” preset → two distinct heights visible in Room view.
-3. Run validation → L2 warnings acceptable; L1 passes.
+2. Apply **Two levels** preset → two platforms at different Y in Room view.
+3. **Review** → validation unchanged; terrain warnings show if door sits in platform band.
 
 ### Definition of done
 
-- [ ] Demo script passes; platforms visible and editable in main canvas after wizard.
+- [x] Presets append rects; duplicate/mirror respect snap / room center; tests green.
 
-### Out of scope
+### Out of scope (RW-3)
 
-- True mesh / non-rect terrain (future engine).
+- Arbitrary polygon walk meshes; Phaser Matter migration; asset import.
 
 ---
 

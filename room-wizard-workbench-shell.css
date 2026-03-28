@@ -316,6 +316,31 @@
   color: var(--text);
 }
 
+.phase-back-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.rw-terrain-preset-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.rw-terrain-preset-grid .btn-secondary {
+  width: auto;
+  min-width: 0;
+}
+
+.rw-terrain-warn-list {
+  margin: 0;
+  padding-left: 1.2em;
+  font-size: var(--font-size-xs);
+  color: var(--muted);
+}
+
 /* Non-stacked shells only (stacked workflow uses .phase-rail--primary / --room above) */
 .workflow-rail-wrap:not(.workflow-rails-stack) .phase-rail {
   display: grid;

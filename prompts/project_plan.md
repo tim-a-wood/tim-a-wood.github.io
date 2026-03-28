@@ -23,6 +23,7 @@
 ## Current State
 
 - **Codebase:** Single `index.html` with Phaser 3; monolithic layout for simplicity and portability.
+- **Room layout editor (`room-layout-editor.html`):** World/Room workflow toggle; **RW-3 Terrain** uses **axis-aligned platform rectangles** only (matches Phaser Arcade statics). Preset library + duplicate/mirror + door/platform warnings; arbitrary polygon floors deferred. See `docs/room-wizard-implementation-sprints.md`.
 - **Gameplay:** **Ashen Hollow** — bounded world (3200×1200): room 1 (right, 1600–3200) is the Hollow Knight–style cave with key/door; room 2 (left, 0–1600) is reached through the unlocked door and has a reachable exit in the top left. Camera/world bounds, lives, restart, double jump (relic-unlock), key-to-door loop, and exit trigger in room 2.
 - **Tech:** HTML/JS, Phaser 3 (Arcade Physics), texture generation at runtime. No external art assets. `manifest.json` is present; service-worker caching is intentionally disabled during rapid iteration on GitHub Pages to avoid stale installs.
 - **Quality:** Unit tests in `./tests/` cover current movement/jump state logic and first-zone layout; CI via `.github/workflows/test.yml`. Manual acceptance checks live in `tests/acceptance_tests.md`, with per-change outcomes recorded in `tests/test_report.md`.

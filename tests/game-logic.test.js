@@ -795,6 +795,7 @@ function computeDoorStandPosition(roomWidth, door) {
     );
     assert.ok(html.includes('setEditorWorkflowStep') && html.includes('editorWorkflowStep'), 'main workflow step state');
     assert.ok(html.includes('room-wizard-neighbor-align.js'), 'RW-2 neighbor align script');
+    assert.ok(html.includes('room-wizard-terrain.js'), 'RW-3 terrain module script');
     assert.ok(html.includes('local_slot') && html.includes('LOCAL_STORAGE_PREFIX'), 'local sandbox projects via local_slot');
     assert.ok(html.includes('btnNewLocalProject'), 'New local project control');
     assert.ok(html.includes('syncRoomWizardEdgeSelects'), 'dynamic edge dropdowns for non-quad rooms');
