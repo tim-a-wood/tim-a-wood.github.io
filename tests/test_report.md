@@ -1,7 +1,7 @@
 # Test Report
 | ID | Line Item | Description | Result | Notes |
 |---|---|---|---|---|
-| AT-01 | Fresh Load And Startup | Verify the prototype loads into the playable zone without crashes or blank screens. | Not Run | Browser not exercised in this run; latest editor change: room wizard neighbor edges list all polygon edges (not only four). |
+| AT-01 | Fresh Load And Startup | Verify the prototype loads into the playable zone without crashes or blank screens. | Not Run | Browser not exercised in this run; latest editor change: Environment Copilot (Gemini) in room wizard Environment phase via layout server. |
 | AT-02 | Movement, Camera, And World Bounds | Verify left/right movement works and the player/camera stay inside the intended bounded world. | Not Run | Same as AT-01. |
 | AT-03 | Ground Jump | Verify the first jump works consistently from solid ground. | Not Run | Same as AT-01. |
 | AT-04 | Mid-Air Double Jump | Verify the second jump works in mid-air and creates a clear extra hop. | Not Run | Same as AT-01. |
@@ -10,6 +10,6 @@
 | AT-07 | Death, Respawn, And Restart | Verify the life system, respawn behavior, game-over state, and restart control. | Not Run | Same as AT-01. |
 | AT-08 | HUD And Feedback | Verify the HUD remains visible and updates during play. | Not Run | Same as AT-01. |
 | AT-09 | Key Pickup And Door Unlock | Verify the first progression loop works end to end: collect the key on the high ledge, show it in the HUD inventory, then consume it to unlock the left-side door. | Not Run | Same as AT-01. |
-| Unit Test Suite | Overall Unit Tests | General unit test suite status. | Pass | Ran `game-logic`, `room-editor-export`, `room-wizard-footprint`, `room-wizard-neighbor-align`, `room-wizard-terrain`, `room-wizard-environment` (2026-03-27); all exited 0. Latest doc-only change: `prompts/project_plan.md` + `docs/room-wizard-implementation-sprints.md` (RW-4b Environment Copilot + product intent). |
+| Unit Test Suite | Overall Unit Tests | General unit test suite status. | Pass | Ran full CI chain including `room-wizard-environment-copilot` (2026-03-27); all exited 0. RW-4b: Gemini Copilot wired in editor + `scripts/layout_editor_server.py` `POST /api/copilot`. |
 | RW-1 manual | Room wizard vertical slice | Add Room → Layout → Review → Export JSON (per `docs/room-wizard-implementation-sprints.md`). | Not Run | Automated unit tests only; browser demo not executed in CI. |
 | RW-2 manual | Neighbors & alignment | Adjoining room → Align → Match opening height; global map shows link (per `docs/room-wizard-implementation-sprints.md` §RW-2). | Not Run | Automated unit tests only; browser not exercised in CI. |

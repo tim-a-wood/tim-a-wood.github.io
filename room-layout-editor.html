@@ -1876,6 +1876,39 @@
                   <input type="text" id="roomWizardTagsInput" autocomplete="off" placeholder="tag one, tag two" spellcheck="false" />
                 </label>
               </div>
+              <div class="stage-card" id="roomWizardCopilotCard">
+                <div class="stage-card-head">
+                  <h4>Environment Copilot (Gemini)</h4>
+                  <p class="small-note">
+                    Describe the mood in plain language. The model suggests a theme and tags — nothing is saved until you click
+                    <strong>Apply</strong>.
+                  </p>
+                </div>
+                <p class="hint" id="roomWizardCopilotServerHint">
+                  Checking local server…
+                </p>
+                <label>
+                  <span class="field-label">Describe this room</span>
+                  <textarea
+                    id="roomWizardCopilotPrompt"
+                    rows="3"
+                    placeholder="e.g. flooded crypt, dripping water, faint green glow from below"
+                    spellcheck="true"
+                  ></textarea>
+                </label>
+                <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 8px">
+                  <button type="button" class="btn-secondary" id="roomWizardCopilotGenerate">Generate</button>
+                  <span id="roomWizardCopilotStatus" class="small-note" aria-live="polite"></span>
+                </div>
+                <div id="roomWizardCopilotPreview" hidden class="info-box" style="margin-top: 12px">
+                  <p><strong>Preview</strong> — confirm before applying to this room.</p>
+                  <p id="roomWizardCopilotPreviewText"></p>
+                  <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px">
+                    <button type="button" class="btn-secondary" id="roomWizardCopilotApply">Apply to theme &amp; tags</button>
+                    <button type="button" class="btn-secondary" id="roomWizardCopilotDiscard">Discard</button>
+                  </div>
+                </div>
+              </div>
             </div>
             <div id="roomWizardPanelReview" hidden>
               <div class="phase-header">
@@ -2496,11 +2529,13 @@
   <script src="room-wizard-neighbor-align.js"></script>
   <script src="room-wizard-terrain.js"></script>
   <script src="room-wizard-environment.js"></script>
+  <script src="room-wizard-environment-copilot.js"></script>
   <script>
     (() => {
       const DATA_URL = './room-layout-data.json';
       const API_PING_URL = '/api/ping';
       const API_LAYOUT_URL = '/api/layout';
+      const API_COPILOT_URL = '/api/copilot';
       const PAGE_PARAMS = new URLSearchParams(window.location.search);
       const PROJECT_ID = (PAGE_PARAMS.get('project_id') || '').trim();
 
@@ -2832,7 +2867,12 @@
           active: false,
           phase: 'layout',
           roomId: null,
-          touched: false
+          touched: false,
+          copilotPreview: null
+        },
+        copilot: {
+          serverReachable: false,
+          geminiConfigured: false
         },
         /** 'world' | 'room' — top toggle; room uses the existing room wizard rail. */
         workflowScope: 'world',
@@ -5959,6 +5999,58 @@
         if (tagsEl) tagsEl.value = envMod.tagsToInputString(e.tags);
       }
 
+      function clearRoomWizardCopilotPreview() {
+        state.roomWizard.copilotPreview = null;
+        const prev = document.getElementById('roomWizardCopilotPreview');
+        const prevText = document.getElementById('roomWizardCopilotPreviewText');
+        const st = document.getElementById('roomWizardCopilotStatus');
+        if (prev) prev.hidden = true;
+        if (prevText) prevText.textContent = '';
+        if (st) st.textContent = '';
+      }
+
+      function updateRoomWizardCopilotHintUi() {
+        const hint = document.getElementById('roomWizardCopilotServerHint');
+        if (!hint) return;
+        const { serverReachable, geminiConfigured } = state.copilot;
+        if (!serverReachable) {
+          hint.innerHTML =
+            'Run <code>python3 scripts/layout_editor_server.py</code> and open this page from that server so Copilot can call Gemini with your <code>.env.local</code> key.';
+          return;
+        }
+        if (!geminiConfigured) {
+          hint.innerHTML =
+            'Server is up, but <code>GEMINI_API_KEY</code> was not found. Add it to <code>.env.local</code> in the project root and restart the layout server.';
+          return;
+        }
+        hint.innerHTML =
+          'Gemini is configured on the layout server. Describe the room and click <strong>Generate</strong>.';
+      }
+
+      async function refreshCopilotStatus() {
+        try {
+          const r = await fetch(API_PING_URL, { cache: 'no-store' });
+          if (!r.ok) throw new Error('bad status');
+          const j = await r.json();
+          state.copilot.serverReachable = true;
+          state.copilot.geminiConfigured = !!(j.copilot && j.copilot.geminiConfigured);
+        } catch (_) {
+          state.copilot.serverReachable = false;
+          state.copilot.geminiConfigured = false;
+        }
+        updateRoomWizardCopilotHintUi();
+      }
+
+      function renderRoomWizardCopilotPreview(payload) {
+        const prev = document.getElementById('roomWizardCopilotPreview');
+        const prevText = document.getElementById('roomWizardCopilotPreviewText');
+        if (!prev || !prevText || !payload) return;
+        const tagStr = Array.isArray(payload.tags) ? payload.tags.join(', ') : '';
+        const rat = payload.rationale ? `<br/><em>${escapeHtml(payload.rationale)}</em>` : '';
+        prevText.innerHTML = `<strong>${escapeHtml(payload.themeId)}</strong> · ${escapeHtml(tagStr)}${rat}`;
+        prev.hidden = false;
+      }
+
       function syncRoomWizardFormFromRoom() {
         const room = getRoomWizardRoom();
         if (!room) return;
@@ -6399,6 +6491,7 @@
         }
         if (phase === 'environment') {
           syncRoomWizardEnvironmentFromRoom();
+          refreshCopilotStatus();
         }
       }
 
@@ -6500,6 +6593,7 @@
         state.roomWizard.roomId = roomId;
         state.roomWizard.phase = 'layout';
         state.roomWizard.touched = false;
+        clearRoomWizardCopilotPreview();
         state.currentRoomId = roomId;
         populateRoomSelect();
         ui.roomSelect.value = roomId;
@@ -6630,6 +6724,75 @@
           state.roomWizard.touched = true;
           setDirty(true);
           updateJsonText();
+        });
+        document.getElementById('roomWizardCopilotGenerate')?.addEventListener('click', async () => {
+          const copilotMod = globalThis.RoomWizardEnvironmentCopilot;
+          const room = getRoomWizardRoom();
+          const promptEl = document.getElementById('roomWizardCopilotPrompt');
+          const st = document.getElementById('roomWizardCopilotStatus');
+          const btn = document.getElementById('roomWizardCopilotGenerate');
+          if (!copilotMod || !room || !promptEl) return;
+          const prompt = String(promptEl.value || '').trim();
+          if (!prompt) {
+            if (st) st.textContent = 'Enter a short description first.';
+            return;
+          }
+          if (!state.copilot.serverReachable || !state.copilot.geminiConfigured) {
+            if (st) st.textContent = 'Layout server or Gemini key unavailable — see note above.';
+            return;
+          }
+          clearRoomWizardCopilotPreview();
+          if (st) st.textContent = 'Generating…';
+          if (btn) btn.disabled = true;
+          try {
+            const res = await fetch(API_COPILOT_URL, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                prompt,
+                roomName: room.name || '',
+                roomId: room.id || ''
+              })
+            });
+            const json = await res.json().catch(() => ({}));
+            if (!res.ok || !json.ok) {
+              const err = (json && json.error) || res.statusText || 'Request failed';
+              if (st) st.textContent = String(err).slice(0, 200);
+              return;
+            }
+            const raw = json.data;
+            let payload;
+            try {
+              payload = copilotMod.normalizeCopilotPayload(raw);
+            } catch (e) {
+              if (st) st.textContent = (e && e.message) || 'Invalid Copilot payload';
+              return;
+            }
+            state.roomWizard.copilotPreview = payload;
+            renderRoomWizardCopilotPreview(payload);
+            if (st) st.textContent = 'Preview ready — apply or discard.';
+          } catch (e) {
+            if (st) st.textContent = (e && e.message) || 'Network error';
+          } finally {
+            if (btn) btn.disabled = false;
+          }
+        });
+        document.getElementById('roomWizardCopilotApply')?.addEventListener('click', () => {
+          const copilotMod = globalThis.RoomWizardEnvironmentCopilot;
+          const envMod = globalThis.RoomWizardEnvironment;
+          const room = getRoomWizardRoom();
+          const preview = state.roomWizard.copilotPreview;
+          if (!copilotMod || !envMod || !room || !preview) return;
+          copilotMod.applyCopilotPayloadToRoom(room, preview, envMod);
+          state.roomWizard.touched = true;
+          setDirty(true);
+          updateJsonText();
+          syncRoomWizardEnvironmentFromRoom();
+          clearRoomWizardCopilotPreview();
+          setStatus('Applied Copilot suggestion to theme and tags.', 'success');
+        });
+        document.getElementById('roomWizardCopilotDiscard')?.addEventListener('click', () => {
+          clearRoomWizardCopilotPreview();
         });
         document.querySelectorAll('#roomWizardTerrainPresets [data-terrain-preset]').forEach((btn) => {
           btn.addEventListener('click', () => applyTerrainPresetFromWizard(btn.getAttribute('data-terrain-preset')));
@@ -7792,6 +7955,7 @@
       loadData().catch((error) => {
         setStatus(`Load failed: ${error.message}`, 'error');
       });
+      refreshCopilotStatus().catch(() => {});
     })();
   </script>
 </body>

@@ -174,16 +174,16 @@ This document turns [`room-creation-wizard-plan.md`](room-creation-wizard-plan.m
 ### Deliverables
 
 1. **Editor UI** — In **Environment** phase: short prompt (“Describe this room’s atmosphere”), **Generate** / **Apply** / **Discard**; show a **human-readable preview** before writing to the room.
-2. **Backend** — Call OpenAI-compatible API **from the editor** (local dev server or `fetch` with key from env / settings); **never** call from `index.html` gameplay at runtime.
+2. **Backend** — Call an LLM API **from the local layout server** (Gemini via `POST /api/copilot`, key in `.env.local`); editor uses `fetch` to same origin; **never** call from `index.html` gameplay at runtime.
 3. **Output contract** — Model returns **validated JSON** (theme preset id, tags array, optional numeric recipe for future Phaser layers). Merge into `room.environment` on Apply.
 4. **Safety** — No auto-apply without click; **Undo** uses existing dirty/layout history if possible, else re-sync from last save.
 
 ### Tasks (checklist)
 
-- [ ] Prompt + system message (style: dark fantasy metroidvania; output **only** JSON schema X).
-- [ ] Wire **Settings** or `.env.local` pattern for API base URL + key (document in `README` or `docs/`).
-- [ ] `room-layout-editor.html` + small module if needed (same pattern as export package).
-- [ ] Tests for **pure** JSON merge / validation helpers in `tests/`.
+- [x] Prompt + system message (dark fantasy metroidvania; JSON-only `themeId` / `tags` / `rationale` in `scripts/layout_editor_server.py`).
+- [x] `.env.local` + `GEMINI_API_KEY` (optional `GEMINI_MODEL`); documented in `README.md` and `.env.local.example`.
+- [x] `room-layout-editor.html` + `room-wizard-environment-copilot.js` (normalize + apply).
+- [x] Tests: `tests/room-wizard-environment-copilot.test.js`.
 
 ### Out of scope (RW-4b v1)
 
