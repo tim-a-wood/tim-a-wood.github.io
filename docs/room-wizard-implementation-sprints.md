@@ -18,6 +18,7 @@ This document turns [`room-creation-wizard-plan.md`](room-creation-wizard-plan.m
 | **RW-2** | Neighbors | Layout includes **adjoining room**, **align**, **hatch height**; data visible on global map. |
 | **RW-3** | Platforms | **Layout** phase includes **rect** platforms (Arcade-friendly), **preset library**, duplicate/mirror, **door warnings**; visible in Room view (no separate Terrain step). |
 | **RW-4** | Environment | **Environment** phase applies **tags / theme** to room; persisted in JSON. |
+| **RW-4b** | Environment Copilot | **AI-assisted** mood (plain language → structured `theme`/`tags` and optional render recipe); **approve before apply**; no runtime LLM in the game. |
 | **RW-5** | Objects & assets | **Objects** phase: place core entities + **local asset import** stub. |
 | **RW-6** | Preview | **Per-tab preview** + **placeholder player** movement (separate from main canvas). |
 | **RW-7** | Flight-deck parity | **Locked steps**, **blocking reasons**, **progress** string; sprite-style UX. |
@@ -163,6 +164,30 @@ This document turns [`room-creation-wizard-plan.md`](room-creation-wizard-plan.m
 ### Definition of done
 
 - [x] Schema in export helpers; unit tests green.
+
+---
+
+## RW-4b — Environment Copilot (AI-assisted authoring)
+
+**Goal:** Let **solo, entry-level** authors describe a room’s mood in **plain language**; an **LLM (or local model) returns structured JSON** that maps to **existing** `room.environment` (and optionally a small `environment.render` or `environment.copilot` blob). The **dev never has to edit raw schema** unless they choose to. **Product = the tool** — complexity stays in advanced panels and export.
+
+### Deliverables
+
+1. **Editor UI** — In **Environment** phase: short prompt (“Describe this room’s atmosphere”), **Generate** / **Apply** / **Discard**; show a **human-readable preview** before writing to the room.
+2. **Backend** — Call OpenAI-compatible API **from the editor** (local dev server or `fetch` with key from env / settings); **never** call from `index.html` gameplay at runtime.
+3. **Output contract** — Model returns **validated JSON** (theme preset id, tags array, optional numeric recipe for future Phaser layers). Merge into `room.environment` on Apply.
+4. **Safety** — No auto-apply without click; **Undo** uses existing dirty/layout history if possible, else re-sync from last save.
+
+### Tasks (checklist)
+
+- [ ] Prompt + system message (style: dark fantasy metroidvania; output **only** JSON schema X).
+- [ ] Wire **Settings** or `.env.local` pattern for API base URL + key (document in `README` or `docs/`).
+- [ ] `room-layout-editor.html` + small module if needed (same pattern as export package).
+- [ ] Tests for **pure** JSON merge / validation helpers in `tests/`.
+
+### Out of scope (RW-4b v1)
+
+- Image generation / SD pipeline; **runtime** LLM calls; **mandatory** Copilot (manual theme/tags always work without AI).
 
 ---
 
