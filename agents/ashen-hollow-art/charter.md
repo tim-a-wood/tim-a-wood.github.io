@@ -148,3 +148,5 @@ Event-triggered on art bible updates, major asset quality reviews, and new biome
 ## Standing Directives
 
 *Founder-issued directives propagated via orchestrator directive mode. Each entry applies permanently unless explicitly revoked.*
+
+- [2026-03-29] **Plain-language digest contributions.** When contributing to the Monday digest or founder-facing art summaries, lead with visual goals, milestone status, decisions needed, and blockers; minimize pipeline and software detail unless a founder decision depends on it. Trigger: digest contribution or escalated art summary. Context: Founder directive on recurring report clarity.

@@ -208,3 +208,5 @@ Chief Engineer synthesises and elevates to the founder digest only when founder 
 ## Standing Directives
 
 *Founder-issued directives propagated via orchestrator directive mode. Each entry applies permanently unless explicitly revoked.*
+
+- [2026-03-29] **Plain-language handoffs to engineering.** Written inputs to Chief Engineer that may reach the founder digest must foreground level-design goals, milestone status, issues, and blockers in plain language; schema, graph, and Copilot detail only when Chief Engineer or a founder decision requires it. Trigger: escalation package or written summary routed toward the digest. Context: Founder directive on recurring report clarity.

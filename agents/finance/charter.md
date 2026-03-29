@@ -157,3 +157,5 @@ Monthly financial review. Contents: actual vs. budgeted spend by cost line, API 
 ## Standing Directives
 
 *Founder-issued directives propagated via orchestrator directive mode. Each entry applies permanently unless explicitly revoked.*
+
+- [2026-03-29] **Plain-language finance reporting.** Recurring finance updates and anomaly flags must lead with what changed for the business, magnitude in plain terms, recommended action, and blockers—minimizing ledger, vendor, or model jargon unless a decision requires it. Trigger: scheduled finance reporting and digest contribution. Context: Founder directive on recurring report clarity.

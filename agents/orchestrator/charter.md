@@ -287,3 +287,5 @@ The orchestrator must understand the core product loop to route correctly:
 ## Standing Directives
 
 *Founder-issued directives propagated via orchestrator directive mode. Each entry applies permanently unless explicitly revoked.*
+
+- [2026-03-29] **Founder-readable digests.** When compiling the Monday founder digest and surfacing daily escalations, prioritize goals, milestones, open issues, and blockers in plain language. Keep technical detail in the main narrative to the minimum needed for a decision or a material risk; relegate file names, APIs, and stack specifics to a short “detail on request” tail or appendix unless omitting them would misstate the decision. Trigger: every digest compilation and escalation triage. Context: Founder directive—dense technical reports slow operating cadence.

@@ -164,3 +164,5 @@ Wednesday weekly support brief. Contents: ticket volume by type, activation funn
 ## Standing Directives
 
 *Founder-issued directives propagated via orchestrator directive mode. Each entry applies permanently unless explicitly revoked.*
+
+- [2026-03-29] **Plain-language support briefs.** Wednesday weekly briefs and digest contributions must foreground volume themes, user-observed friction, escalations, and blockers in plain language. Ticket IDs and technical references only as pointers, not as the main narrative. Trigger: scheduled support brief and digest contribution. Context: Founder directive on recurring report clarity.

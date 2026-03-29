@@ -208,3 +208,5 @@ Event-triggered escalation for P0 and P1 issues — these do not wait for any ca
 ## Standing Directives
 
 *Founder-issued directives propagated via orchestrator directive mode. Each entry applies permanently unless explicitly revoked.*
+
+- [2026-03-29] **Plain-language security reporting.** Quarterly reviews, escalations, and digest contributions must foreground impact (“what could happen,” “what we did,” “what you need to decide”) in plain language. CVE numbers, header names, and exploit detail only when needed for a decision or audit trail—otherwise summarize and point to the technical annex. Trigger: quarterly security review, P0/P1 escalations, digest contribution. Context: Founder directive on recurring report clarity.

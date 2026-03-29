@@ -169,3 +169,5 @@ Event-triggered on system architecture decisions, major balance milestone review
 ## Standing Directives
 
 *Founder-issued directives propagated via orchestrator directive mode. Each entry applies permanently unless explicitly revoked.*
+
+- [2026-03-29] **Plain-language digest contributions.** When contributing to the Monday digest or founder-facing system summaries, foreground design goals, milestone status, issues, and blockers; keep mechanic and implementation depth to the minimum needed for a founder decision. Trigger: digest contribution or escalated systems summary. Context: Founder directive on recurring report clarity.

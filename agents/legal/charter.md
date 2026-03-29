@@ -140,3 +140,5 @@ Monthly legal review covering: ToS changes from API providers, open IP litigatio
 ## Standing Directives
 
 *Founder-issued directives propagated via orchestrator directive mode. Each entry applies permanently unless explicitly revoked.*
+
+- [2026-03-29] **Plain-language legal reporting.** Monthly reviews and digest contributions must foreground what matters for the product, risk posture, and any founder decision in plain language. Preserve precise citations, clause references, or statutory hooks when legally material—but isolate them so the executive summary stays scannable. Trigger: scheduled legal reporting and digest contribution. Context: Founder directive on recurring report clarity.

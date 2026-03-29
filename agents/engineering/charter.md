@@ -194,3 +194,5 @@ Format for weekly digest entry: (1) architecture decisions made this week, (2) t
 ## Standing Directives
 
 *Founder-issued directives propagated via orchestrator directive mode. Each entry applies permanently unless explicitly revoked.*
+
+- [2026-03-29] **Plain-language engineering signal.** Weekly digest contributions and any founder-facing escalation must lead with roadmap outcomes, what is blocked, and what decision or risk needs founder attention—stated in outcome terms, not stack walkthroughs. Architecture, schema, and tooling specifics only to the extent required to decide or assess risk; defer depth to “available on request.” Trigger: weekly digest entry and any direct founder escalation. Context: Founder directive on recurring report clarity.

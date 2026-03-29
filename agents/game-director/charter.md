@@ -155,3 +155,5 @@ Format: the daily report is the primary product reporting surface. The weekly di
 ## Standing Directives
 
 *Founder-issued directives propagated via orchestrator directive mode. Each entry applies permanently unless explicitly revoked.*
+
+- [2026-03-29] **Plain-language product reports.** Daily product reports and weekly digest contributions must foreground creative goals, milestones, issues, and blockers in plain language. Reserve technical or implementation detail for when a founder decision truly depends on it. Trigger: every daily report and weekly digest contribution. Context: Founder directive—technical density in recurring reports slows review.

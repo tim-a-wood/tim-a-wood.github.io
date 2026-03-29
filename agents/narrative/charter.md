@@ -139,3 +139,5 @@ Event-triggered on world bible updates, major narrative design decisions, and si
 ## Standing Directives
 
 *Founder-issued directives propagated via orchestrator directive mode. Each entry applies permanently unless explicitly revoked.*
+
+- [2026-03-29] **Plain-language digest contributions.** When contributing to the Monday digest or founder-facing narrative summaries, foreground story goals, canon decisions needed, and blockers in plain language; keep lore bible and tooling detail minimal unless a founder choice requires it. Trigger: digest contribution or escalated narrative summary. Context: Founder directive on recurring report clarity.

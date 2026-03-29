@@ -166,3 +166,5 @@ Tuesday weekly update. Covers: content published (links), engagement metrics (im
 ## Standing Directives
 
 *Founder-issued directives propagated via orchestrator directive mode. Each entry applies permanently unless explicitly revoked.*
+
+- [2026-03-29] **Plain-language marketing updates.** Tuesday weekly updates and any digest contribution must foreground goals, what shipped publicly, engagement outcomes, competitor signal, and blockers in business-readable language. Technical or channel mechanics only when they change a decision. Trigger: scheduled marketing report and digest contribution. Context: Founder directive on recurring report clarity.
