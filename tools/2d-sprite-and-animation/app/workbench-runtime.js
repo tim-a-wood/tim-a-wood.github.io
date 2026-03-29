@@ -42,7 +42,6 @@ async function waitForJob(job) {
         detail: "Waiting for the server to start work.",
         percent: job.progress_percent || 2,
     });
-    notify(`${jobDisplayName(job.job_type)} started.`, "info", "Working");
     while (true) {
         await new Promise((resolve) => setTimeout(resolve, 1000));
         const update = await api(`/api/projects/${job.project_id}/jobs/${job.job_id}`);

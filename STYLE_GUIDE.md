@@ -21,13 +21,14 @@
    - [Segmented Controls & Tabs](#85-segmented-controls--tabs)
    - [Workflow Rails & Phase Pills](#86-workflow-rails--phase-pills)
    - [Status Indicators & Badges](#87-status-indicators--badges)
-   - [Toasts & Notifications](#88-toasts--notifications)
-   - [Modals & Dialogs](#89-modals--dialogs)
-   - [Collapsible Sections](#810-collapsible-sections)
-   - [Canvas & Drawing Areas](#811-canvas--drawing-areas)
-   - [Inspector / Sidebar Panels](#812-inspector--sidebar-panels)
-   - [Inventory Lists](#813-inventory-lists)
-   - [Metric / Stat Cards](#814-metric--stat-cards)
+   - [Wait bars & estimated progress](#88-wait-bars--estimated-progress)
+   - [Toasts & notification stack](#89-toasts--notification-stack)
+   - [Modals & Dialogs](#810-modals--dialogs)
+   - [Collapsible Sections](#811-collapsible-sections)
+   - [Canvas & Drawing Areas](#812-canvas--drawing-areas)
+   - [Inspector / Sidebar Panels](#813-inspector--sidebar-panels)
+   - [Inventory Lists](#814-inventory-lists)
+   - [Metric / Stat Cards](#815-metric--stat-cards)
 9. [Layout Patterns](#9-layout-patterns)
 10. [Interaction Patterns](#10-interaction-patterns)
 11. [Domain Color Palette](#11-domain-color-palette)
@@ -699,29 +700,137 @@ text-transform: uppercase;
 
 ---
 
-### 8.8 Toasts & Notifications
+### 8.8 Wait bars & estimated progress
+
+**Use for:** Long-running or server-bound work (AI generation, saves, batch previews) where duration is unknown. Prefer **one** primary surface: in-panel wait bar and/or floating **activity dock** — do not also fire an informational toast for the same phase (success, warning, and error toasts stay).
+
+**Semantic color:** Fill uses **`var(--warning)`** (warm amber), not primary CTA gold and not **`var(--accent)`**. This reads as “work in flight / indeterminate” and avoids implying completion or clickable primary action.
+
+**In-panel wait bar** (e.g. room wizard `.rw-waitbar`):
 
 ```css
-position: fixed;
-right: 18px;
-bottom: 18px;
-max-width: min(360px, calc(100vw - 36px));
-padding: 12px 14px;
-border-radius: 14px;
-border: 1px solid var(--line);
-background: rgba(4, 6, 10, 0.96);
-box-shadow: var(--shadow-lg);
-z-index: 20;
-
-/* Success toast */
-border-color: rgba(74, 222, 128, 0.24);
-background: rgba(11, 29, 21, 0.96);
-color: #dff7ec;
+margin-top: 12px;
+padding-top: 12px;
+border-top: 1px solid var(--line);
 ```
+
+**Detail line** above the track: `small-note` / muted body; optional `aria-live="polite"` on the container.
+
+**Progress track & fill** (shared: room wizard dock, floating activity dock, sprite workbench in-panel):
+
+```css
+.progress-track {
+  width: 100%;
+  height: 10px;
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  background: color-mix(in srgb, var(--text) 8%, transparent);
+}
+
+.progress-fill {
+  height: 100%;
+  width: 0%; /* set inline or via JS */
+  border-radius: var(--radius-full);
+  background: linear-gradient(
+    135deg,
+    var(--warning),
+    color-mix(in srgb, var(--warning) 55%, var(--text))
+  );
+  transition: width 200ms ease-out;
+}
+```
+
+**Meta row** (percentage + short disclaimer), `.progress-meta` or `.activity-progress-meta`:
+
+```css
+display: flex;
+justify-content: space-between;
+align-items: center;
+gap: 12px;
+margin-top: 8px;
+color: var(--muted);
+font-size: var(--font-size-xs);
+```
+
+**Copy pattern:** e.g. “Progress is estimated until the server finishes.”
+
+**Floating activity dock** (`z-index: 38`, bottom-right): Same track/fill/meta tokens; pairs with in-panel wait bar for visibility when the wizard scrolls away. Implementations live in `room-wizard-workbench-shell.css` (selectors include `.activity-dock`).
+
+**Governance note:** If `color-mix` is unsupported in a target browser, fall back to `rgba(255, 255, 255, 0.08)` for the track only; keep fill on tokens above. See `docs/design/workbench-feedback-root-cause.md` for why the guide lagged implementations.
 
 ---
 
-### 8.9 Modals & Dialogs
+### 8.9 Toasts & notification stack
+
+**Placement:** Fixed **top-right** stack (`#toast-stack`), not a single bottom toast — multiple messages can queue without overlapping the canvas toolbar.
+
+```css
+.toast-stack {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 40;
+  display: grid;
+  gap: 12px;
+  width: min(360px, calc(100vw - 32px));
+  pointer-events: none;
+}
+
+.toast {
+  padding: 12px 16px;
+  border-radius: var(--radius-card);
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--text);
+  box-shadow: var(--shadow-lg);
+  font-size: var(--font-size-xs);
+  line-height: 1.4;
+  pointer-events: auto;
+}
+
+.toast strong {
+  display: block;
+  margin-bottom: 4px;
+  font-size: var(--font-size-sm);
+  color: var(--text);
+}
+
+.toast p {
+  margin: 0;
+  color: var(--muted);
+}
+```
+
+**Variants** (border + background tuning; pair with icon or title — not color alone):
+
+```css
+/* Info (default) */
+.toast.info { border-color: var(--line-strong); }
+
+/* Success */
+.toast.success {
+  border-color: rgba(74, 222, 128, 0.24);
+  background: rgba(4, 16, 10, 0.96);
+}
+
+/* Warning */
+.toast.warning {
+  border-color: rgba(210, 153, 34, 0.24);
+  background: rgba(23, 17, 6, 0.96);
+}
+
+/* Error */
+.toast.error {
+  border-color: rgba(248, 81, 73, 0.24);
+  background: rgba(25, 9, 11, 0.96);
+}
+```
+
+**Duration:** ~4s default; ~6.5s for `error`. **Content:** `<strong>` title + `<p>` body; escape user text in JS.
+
+---
+
+### 8.10 Modals & Dialogs
 
 ```css
 /* Overlay */
@@ -750,7 +859,7 @@ color: var(--text);
 
 ---
 
-### 8.10 Collapsible Sections
+### 8.11 Collapsible Sections
 
 ```css
 /* Toggle button */
@@ -781,12 +890,12 @@ transform: rotate(180deg);
 padding: 14px;
 border-top: 1px solid var(--line);
 display: grid;
-gap: 10px;
+gap: 12px;
 ```
 
 ---
 
-### 8.11 Canvas & Drawing Areas
+### 8.12 Canvas & Drawing Areas
 
 ```css
 background: linear-gradient(
@@ -803,7 +912,7 @@ image-rendering: pixelated;
 
 ---
 
-### 8.12 Inspector / Sidebar Panels
+### 8.13 Inspector / Sidebar Panels
 
 ```css
 width: 240px;
@@ -821,7 +930,7 @@ animation: slideIn 120ms ease forwards;
 
 ---
 
-### 8.13 Inventory Lists
+### 8.14 Inventory Lists
 
 ```css
 /* Section container */
@@ -861,7 +970,7 @@ border-color: rgba(0, 232, 200, 0.20);
 
 ---
 
-### 8.14 Metric / Stat Cards
+### 8.15 Metric / Stat Cards
 
 ```css
 padding: 12px;

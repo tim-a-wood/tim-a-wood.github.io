@@ -362,7 +362,7 @@ function notify(message, tone = "info", title = "") {
     const node = document.createElement("div");
     node.className = `toast ${tone}`;
     node.innerHTML = `
-        <strong>${title || (tone === "error" ? "Something needs attention" : tone === "success" ? "Done" : "Update")}</strong>
+        <strong>${title || (tone === "error" ? "Something needs attention" : tone === "success" ? "Done" : tone === "warning" ? "Warning" : "Update")}</strong>
         <p>${message}</p>
     `;
     root.appendChild(node);

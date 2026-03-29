@@ -727,14 +727,6 @@
       letter-spacing: 0.08em;
       text-transform: uppercase;
     }
-    .activity-progress-meta {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      color: var(--muted);
-      font-size: var(--font-size-xs);
-    }
     .badge {
       display: grid;
       gap: 6px;
@@ -6791,7 +6783,6 @@
         const status = document.getElementById('roomWizardArtDirectionStatus');
         if (!sel || !summary || !negative) return;
         if (status) status.textContent = 'Saving direction…';
-        showToast('Saving project art direction…', 'info', 'Working');
         startRoomWizardWaitbar('art-direction', 'Saving project art direction.');
         try {
           const res = await fetch(PROJECT_ART_DIRECTION_URL, {
@@ -6849,7 +6840,6 @@
         const btn = document.getElementById('roomWizardGenerateArtDirectionConcepts');
         if (!sel || !summary || !negative || !status || !btn) return;
         status.textContent = 'Generating art direction concepts…';
-        showToast('Generating art direction concepts…', 'info', 'Working');
         btn.disabled = true;
         startRoomWizardWaitbar('art-direction', 'Generating art direction concept board.');
         try {
@@ -6892,7 +6882,6 @@
           return;
         }
         if (st) st.textContent = 'Adapting draft…';
-        showToast('Adapting the room draft…', 'info', 'Working');
         startRoomWizardWaitbar('copilot', 'Adapting the room draft to the current art direction.');
         try {
           const res = await fetch(projectRoomEnvironmentApiUrl(room.id, 'adapt-template'), {
