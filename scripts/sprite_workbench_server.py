@@ -1708,6 +1708,11 @@ def generate_project_room_environment_previews(project_id: str, room_id: str, pa
     return room_environment_system.generate_room_environment_previews(project_id, room_id, payload)
 
 
+def generate_project_room_environment_assets(project_id: str, room_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+    _sync_room_environment_system_config()
+    return room_environment_system.generate_room_environment_asset_pack(project_id, room_id, payload)
+
+
 def revise_project_room_environment(project_id: str, room_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:
     _sync_room_environment_system_config()
     return room_environment_system.revise_room_environment(project_id, room_id, payload)
@@ -7934,6 +7939,11 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
             if room_preview_match:
                 project_id, room_id = room_preview_match.groups()
                 return self._send_json(generate_project_room_environment_previews(project_id, room_id, read_body(self)))
+
+            room_assets_match = re.fullmatch(r"/api/projects/([^/]+)/rooms/([^/]+)/environment/generate-assets", path)
+            if room_assets_match:
+                project_id, room_id = room_assets_match.groups()
+                return self._send_json(generate_project_room_environment_assets(project_id, room_id, read_body(self)))
 
             room_revise_match = re.fullmatch(r"/api/projects/([^/]+)/rooms/([^/]+)/environment/revise", path)
             if room_revise_match:

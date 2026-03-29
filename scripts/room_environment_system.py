@@ -537,6 +537,7 @@ def _ensure_room_environment(room: Dict[str, Any]) -> Dict[str, Any]:
     preview.setdefault("last_job_id", None)
     preview.setdefault("last_generated_at", None)
     preview.setdefault("fallback_reason", None)
+    preview.setdefault("approved_palette", None)
     template_context = env.get("template_context")
     if not isinstance(template_context, dict):
         template_context = {}
@@ -545,6 +546,26 @@ def _ensure_room_environment(room: Dict[str, Any]) -> Dict[str, Any]:
     template_context.setdefault("source_template_label", None)
     template_context.setdefault("adapted_from_art_direction_template_id", None)
     template_context.setdefault("last_adapted_at", None)
+    runtime = env.get("runtime")
+    if not isinstance(runtime, dict):
+        runtime = {}
+        env["runtime"] = runtime
+    runtime.setdefault("status", "idle")
+    runtime.setdefault("source", None)
+    runtime.setdefault("applied_preview_id", None)
+    runtime.setdefault("surface_palette", None)
+    runtime.setdefault("material_keywords", [])
+    runtime.setdefault("lighting_mode", "")
+    runtime.setdefault("last_applied_at", None)
+    asset_pack = runtime.get("asset_pack")
+    if not isinstance(asset_pack, dict):
+        asset_pack = {}
+        runtime["asset_pack"] = asset_pack
+    asset_pack.setdefault("status", "idle")
+    asset_pack.setdefault("used_ai", False)
+    asset_pack.setdefault("generated_at", None)
+    asset_pack.setdefault("source_preview_id", None)
+    asset_pack.setdefault("assets", {})
     return env
 
 
@@ -678,6 +699,14 @@ def update_project_art_direction(project_id: str, payload: Dict[str, Any]) -> Di
         preview = env["preview"]
         preview["status"] = "outdated"
         preview["fallback_reason"] = "art_direction_changed"
+        preview["approved_image_id"] = None
+        preview["approved_palette"] = None
+        runtime = env["runtime"]
+        runtime["status"] = "outdated"
+        runtime["source"] = None
+        runtime["applied_preview_id"] = None
+        runtime["surface_palette"] = None
+        runtime["last_applied_at"] = None
         invalidated_rooms.append(str(room.get("id") or ""))
     project["updated_at"] = now_iso()
     save_project(project)
@@ -763,6 +792,7 @@ def _normalize_spec_response(raw: Dict[str, Any], fallback_description: str) -> 
     )
     tags = raw.get("tags") if isinstance(raw.get("tags"), list) else _keywords(fallback_description)
     cleaned_tags = [str(item).strip().lower() for item in tags if str(item).strip()][:8]
+    scene_schema = raw.get("sceneSchema") if isinstance(raw.get("sceneSchema"), dict) else raw.get("scene_schema")
     return {
         "theme_id": str(raw.get("themeId") or theme_id).strip().lower() or theme_id,
         "tags": cleaned_tags,
@@ -775,6 +805,113 @@ def _normalize_spec_response(raw: Dict[str, Any], fallback_description: str) -> 
         "hazards": [str(item).strip() for item in (raw.get("hazards") or []) if str(item).strip()][:6],
         "composition_focus": str(raw.get("compositionFocus") or raw.get("composition_focus") or "center the most important landmark around the main route").strip(),
         "readability_notes": [str(item).strip() for item in (raw.get("readabilityNotes") or raw.get("readability_notes") or []) if str(item).strip()][:6],
+        "scene_schema": scene_schema if isinstance(scene_schema, dict) else {},
+    }
+
+
+def _default_scene_schema(spec: Dict[str, Any], geometry: Dict[str, Any]) -> Dict[str, Any]:
+    text = " ".join([
+        str(spec.get("theme_id") or ""),
+        str(spec.get("description") or ""),
+        str(spec.get("mood") or ""),
+        " ".join(spec.get("materials") or []),
+        " ".join(spec.get("tags") or []),
+    ]).lower()
+    set_dressing: List[Dict[str, Any]] = []
+    background_layers: List[Dict[str, Any]] = []
+    effects = {
+        "fog_profile": "low_ground_mist" if "fog" in text or "mist" in text or "damp" in text else "light_depth_haze",
+        "particle_profile": "dust_motes",
+        "lighting_profile": "single_focal_glow",
+    }
+    kit = {
+        "wall_family": "broken_gothic_stone" if any(word in text for word in ("gothic", "ruin", "shrine", "ritual")) else "weathered_stone",
+        "platform_family": "carved_ledge" if any(word in text for word in ("shrine", "ritual", "altar")) else "broken_masonry_ledge",
+        "door_family": "ritual_gate" if any(word in text for word in ("shrine", "ritual", "sacred")) else "arch_door",
+        "backdrop_family": "flooded_arch_hall" if any(word in text for word in ("wet", "damp", "flood")) else "ruined_arch_hall",
+        "prop_density": "medium",
+    }
+    background_layers.append({
+        "kind": "architecture",
+        "motif": "gothic_arches" if any(word in text for word in ("gothic", "shrine", "ritual", "ruin")) else "stone_mass",
+        "depth": "far",
+        "density": "medium",
+    })
+    if any(word in text for word in ("fog", "mist", "wet", "damp", "water")):
+        background_layers.append({
+            "kind": "fog_band",
+            "motif": "ground_mist",
+            "depth": "mid",
+            "density": "medium",
+        })
+    if any(word in text for word in ("shrine", "altar", "ritual", "sacred")):
+        set_dressing.append({
+            "type": "altar",
+            "anchor": "floor",
+            "zone": "center",
+            "count": 1,
+            "priority": "high",
+            "avoid": ["door", "main_path"],
+        })
+        set_dressing.append({
+            "type": "brazier",
+            "anchor": "platform",
+            "zone": "center",
+            "count": 1,
+            "priority": "medium",
+            "avoid": ["door", "main_path"],
+        })
+        set_dressing.append({
+            "type": "banner",
+            "anchor": "ceiling",
+            "zone": "right",
+            "count": 1,
+            "priority": "low",
+            "avoid": ["door"],
+        })
+    if any(word in text for word in ("gothic", "ruin", "stone", "buttress", "arch")):
+        set_dressing.append({
+            "type": "statue",
+            "anchor": "floor",
+            "zone": "left",
+            "count": 1,
+            "priority": "medium",
+            "avoid": ["door"],
+        })
+        background_layers.append({
+            "kind": "architecture",
+            "motif": "columns",
+            "depth": "mid",
+            "density": "medium",
+        })
+    if any(word in text for word in ("damp", "wet", "moss", "root", "overgrown")):
+        set_dressing.append({
+            "type": "roots",
+            "anchor": "wall",
+            "zone": "right",
+            "count": 2,
+            "priority": "medium",
+            "avoid": ["door"],
+        })
+    if geometry.get("height", 0) >= 900:
+        set_dressing.append({
+            "type": "chains",
+            "anchor": "ceiling",
+            "zone": "left",
+            "count": 2,
+            "priority": "low",
+            "avoid": ["door"],
+        })
+    return {
+        "background_layers": background_layers,
+        "set_dressing": set_dressing,
+        "effects": effects,
+        "kit": kit,
+        "placement_rules": {
+            "keep_main_route_clear": True,
+            "door_clearance_tiles": 2,
+            "platform_clearance_tiles": 1,
+        },
     }
 
 
@@ -793,7 +930,7 @@ def build_room_environment_spec(project_id: str, room_id: str, payload: Dict[str
         Respect the locked art direction strictly.
         Keep results readable for a platforming game.
         Return ONLY valid JSON in this shape:
-        {"themeId":"cave|ruins|forest|shrine|sewer|void|custom","tags":["a"],"description":"...","mood":"...","lighting":"...","fog":"...","materials":["..."],"landmarks":["..."],"hazards":["..."],"compositionFocus":"...","readabilityNotes":["..."]}
+        {"themeId":"cave|ruins|forest|shrine|sewer|void|custom","tags":["a"],"description":"...","mood":"...","lighting":"...","fog":"...","materials":["..."],"landmarks":["..."],"hazards":["..."],"compositionFocus":"...","readabilityNotes":["..."],"sceneSchema":{"backgroundLayers":[{"kind":"architecture|fog_band|roots|void_forms","motif":"...","depth":"far|mid|near","density":"low|medium|high"}],"setDressing":[{"type":"brazier|chains|altar|roots|statue|banner","anchor":"floor|platform|ceiling|wall","zone":"left|center|right|focal","count":1,"priority":"low|medium|high","avoid":["door","main_path"]}],"effects":{"fog_profile":"...","particle_profile":"...","lighting_profile":"..."},"kit":{"wall_family":"weathered_stone|broken_gothic_stone|industrial_ribbed","platform_family":"broken_masonry_ledge|carved_ledge|iron_walkway","door_family":"arch_door|ritual_gate|iron_gate","backdrop_family":"ruined_arch_hall|flooded_arch_hall|industrial_depth","prop_density":"low|medium|high"}}}
         """
     )
     user_prompt = json.dumps({
@@ -805,6 +942,7 @@ def build_room_environment_spec(project_id: str, room_id: str, payload: Dict[str
     }, indent=2)
     ai_payload = _gemini_json(system_prompt, user_prompt)
     spec = _normalize_spec_response(ai_payload or {}, description)
+    spec["scene_schema"] = spec["scene_schema"] if spec["scene_schema"] else _default_scene_schema(spec, geometry)
     env["themeId"] = spec["theme_id"]
     env["tags"] = list(spec["tags"])
     env["spec"] = copy.deepcopy(spec)
@@ -812,6 +950,19 @@ def build_room_environment_spec(project_id: str, room_id: str, payload: Dict[str
     env["preview"]["fallback_reason"] = None
     env["preview"]["images"] = []
     env["preview"]["approved_image_id"] = None
+    env["preview"]["approved_palette"] = None
+    env["runtime"]["status"] = "needs_generation"
+    env["runtime"]["source"] = None
+    env["runtime"]["applied_preview_id"] = None
+    env["runtime"]["surface_palette"] = None
+    env["runtime"]["material_keywords"] = list(spec.get("materials") or [])
+    env["runtime"]["lighting_mode"] = str(spec.get("lighting") or "")
+    env["runtime"]["last_applied_at"] = None
+    env["runtime"]["asset_pack"]["status"] = "idle"
+    env["runtime"]["asset_pack"]["used_ai"] = False
+    env["runtime"]["asset_pack"]["generated_at"] = None
+    env["runtime"]["asset_pack"]["source_preview_id"] = None
+    env["runtime"]["asset_pack"]["assets"] = {}
     project["updated_at"] = now_iso()
     save_project(project)
     return {
@@ -1103,6 +1254,126 @@ def _render_level1_image(path: Path, direction: Dict[str, Any], spec: Dict[str, 
     image.save(path)
 
 
+def _rgb_to_hex(rgb: Tuple[int, int, int]) -> str:
+    return "#{:02x}{:02x}{:02x}".format(*[max(0, min(255, int(v))) for v in rgb])
+
+
+def _extract_preview_runtime_palette(path: Path) -> Dict[str, Any]:
+    image = Image.open(path).convert("RGB").resize((80, 48))
+    pixels = list(image.getdata())
+    if not pixels:
+        return {
+            "dominant": [],
+            "accent": [],
+            "shadow": None,
+            "glow": None,
+            "average": None,
+        }
+    luminance_sorted = sorted(
+        pixels,
+        key=lambda px: ((0.2126 * px[0]) + (0.7152 * px[1]) + (0.0722 * px[2]))
+    )
+    low_band = luminance_sorted[: max(24, len(luminance_sorted) // 6)]
+    high_band = luminance_sorted[-max(24, len(luminance_sorted) // 10):]
+    mid_band = luminance_sorted[len(luminance_sorted) // 3: (len(luminance_sorted) * 2) // 3] or luminance_sorted
+
+    def average_color(items: List[Tuple[int, int, int]]) -> Tuple[int, int, int]:
+        if not items:
+            return (0, 0, 0)
+        count = float(len(items))
+        return (
+            int(sum(px[0] for px in items) / count),
+            int(sum(px[1] for px in items) / count),
+            int(sum(px[2] for px in items) / count),
+        )
+
+    avg = average_color(pixels)
+    shadow = average_color(low_band)
+    accent = average_color(high_band)
+    mid = average_color(mid_band)
+    return {
+        "dominant": [_rgb_to_hex(shadow), _rgb_to_hex(mid)],
+        "accent": [_rgb_to_hex(accent)],
+        "shadow": _rgb_to_hex(shadow),
+        "glow": _rgb_to_hex(accent),
+        "average": _rgb_to_hex(avg),
+    }
+
+
+def _project_url_to_path(project_dir: Path, url: str) -> Optional[Path]:
+    text = str(url or "").strip()
+    if not text.startswith("/tools/2d-sprite-and-animation/projects-data/"):
+        return None
+    rel = text.lstrip("/")
+    path = ROOT / rel
+    return path if path.exists() else None
+
+
+def _generate_image_from_references(path: Path, prompt: str, reference_paths: List[Path], size_hint: str = "") -> bool:
+    client = _gemini_client()
+    if client is None or not _GOOGLE_GENAI_AVAILABLE:
+        return False
+    contents: List[Any] = []
+    try:
+        for ref_path in reference_paths:
+            if not ref_path.exists():
+                continue
+            contents.append(_google_genai_types.Part.from_bytes(
+                data=ref_path.read_bytes(),
+                mime_type="image/png",
+            ))
+        contents.append(f"{prompt}\nSize intent: {size_hint}".strip())
+        model = os.environ.get("GEMINI_IMAGE_MODEL", "gemini-2.5-flash-image").strip() or "gemini-2.5-flash-image"
+        response = client.models.generate_content(
+            model=model,
+            contents=contents,
+            config=_google_genai_types.GenerateContentConfig(response_modalities=["IMAGE", "TEXT"]),
+        )
+        for part in response.candidates[0].content.parts:
+            inline = getattr(part, "inline_data", None)
+            if inline and getattr(inline, "data", None):
+                image = Image.open(io.BytesIO(inline.data)).convert("RGBA")
+                path.parent.mkdir(parents=True, exist_ok=True)
+                image.save(path)
+                return True
+    except Exception:
+        return False
+    return False
+
+
+def _fallback_background_asset(output_path: Path, preview_path: Path) -> None:
+    source = Image.open(preview_path).convert("RGBA").resize((1600, 1200))
+    blurred = source.filter(ImageFilter.GaussianBlur(radius=12))
+    overlay = Image.new("RGBA", blurred.size, (8, 10, 14, 84))
+    blurred.alpha_composite(overlay)
+    blurred.save(output_path)
+
+
+def _fallback_surface_asset(output_path: Path, preview_path: Path, size: Tuple[int, int]) -> None:
+    source = Image.open(preview_path).convert("RGBA")
+    crop_size = min(source.size)
+    left = max(0, (source.width - crop_size) // 2)
+    top = max(0, (source.height - crop_size) // 2)
+    crop = source.crop((left, top, left + crop_size, top + crop_size)).resize(size)
+    crop.save(output_path)
+
+
+def _fallback_platform_asset(output_path: Path, preview_path: Path) -> None:
+    source = Image.open(preview_path).convert("RGBA")
+    width = source.width
+    height = source.height
+    crop = source.crop((0, int(height * 0.58), width, int(height * 0.8))).resize((256, 96))
+    crop.save(output_path)
+
+
+def _fallback_door_asset(output_path: Path, preview_path: Path) -> None:
+    source = Image.open(preview_path).convert("RGBA")
+    width = source.width
+    height = source.height
+    crop = source.crop((int(width * 0.32), int(height * 0.14), int(width * 0.68), int(height * 0.86))).resize((192, 288))
+    crop.save(output_path)
+
+
 def generate_room_environment_previews(project_id: str, room_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:
     project = load_project(project_id)
     room = _find_room(project, room_id)
@@ -1130,12 +1401,14 @@ def generate_room_environment_previews(project_id: str, room_id: str, payload: D
                 used_ai = True
             else:
                 _render_level3_image(abs_path, direction, geometry, spec, variant_index)
+            palette = _extract_preview_runtime_palette(abs_path)
             preview_images.append({
                 "preview_id": preview_id,
                 "label": labels[variant_index],
                 "render_level": "level3",
                 "url": None,
                 "used_ai": generated,
+                "palette": palette,
             })
         for item in preview_images:
             rel_path = Path("tools") / "2d-sprite-and-animation" / "projects-data" / project_id / "room_environment_previews" / room_id / f"{item['preview_id']}.png"
@@ -1148,11 +1421,13 @@ def generate_room_environment_previews(project_id: str, room_id: str, payload: D
         preview_id = f"{room_id}-lvl2-1"
         rel_path = preview_root / f"{preview_id}.png"
         _render_level2_image(rel_path, direction, spec)
+        palette = _extract_preview_runtime_palette(rel_path)
         preview_images.append({
             "preview_id": preview_id,
             "label": "Concept fallback",
             "render_level": "level2",
             "url": f"/tools/2d-sprite-and-animation/projects-data/{project_id}/room_environment_previews/{room_id}/{preview_id}.png",
+            "palette": palette,
         })
     if not preview_images:
         render_level = "level1"
@@ -1160,11 +1435,13 @@ def generate_room_environment_previews(project_id: str, room_id: str, payload: D
         preview_id = f"{room_id}-lvl1-1"
         rel_path = preview_root / f"{preview_id}.png"
         _render_level1_image(rel_path, direction, spec)
+        palette = _extract_preview_runtime_palette(rel_path)
         preview_images.append({
             "preview_id": preview_id,
             "label": "Deterministic fallback",
             "render_level": "level1",
             "url": f"/tools/2d-sprite-and-animation/projects-data/{project_id}/room_environment_previews/{room_id}/{preview_id}.png",
+            "palette": palette,
         })
     env["preview"]["status"] = "ready"
     env["preview"]["render_level"] = render_level
@@ -1172,6 +1449,7 @@ def generate_room_environment_previews(project_id: str, room_id: str, payload: D
     env["preview"]["approved_image_id"] = None
     env["preview"]["last_generated_at"] = now_iso()
     env["preview"]["fallback_reason"] = fallback_reason
+    env["preview"]["approved_palette"] = None
     env["preview"]["geometry_summary"] = geometry
     env["preview"]["scene_plan"] = {
         "style_family": direction.get("style_family"),
@@ -1183,6 +1461,18 @@ def generate_room_environment_previews(project_id: str, room_id: str, payload: D
         "fog": spec.get("fog"),
         "landmarks": spec.get("landmarks"),
     }
+    env["runtime"]["status"] = "needs_approval"
+    env["runtime"]["source"] = None
+    env["runtime"]["applied_preview_id"] = None
+    env["runtime"]["surface_palette"] = None
+    env["runtime"]["material_keywords"] = list(spec.get("materials") or [])
+    env["runtime"]["lighting_mode"] = str(spec.get("lighting") or "")
+    env["runtime"]["last_applied_at"] = None
+    env["runtime"]["asset_pack"]["status"] = "idle"
+    env["runtime"]["asset_pack"]["used_ai"] = False
+    env["runtime"]["asset_pack"]["generated_at"] = None
+    env["runtime"]["asset_pack"]["source_preview_id"] = None
+    env["runtime"]["asset_pack"]["assets"] = {}
     project["updated_at"] = now_iso()
     save_project(project)
     return {
@@ -1209,6 +1499,149 @@ def revise_room_environment(project_id: str, room_id: str, payload: Dict[str, An
     return revised
 
 
+def generate_room_environment_asset_pack(project_id: str, room_id: str, payload: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    project = load_project(project_id)
+    room = _find_room(project, room_id)
+    env = _ensure_room_environment(room)
+    preview = env["preview"]
+    spec = env["spec"]
+    direction = normalize_art_direction(project.get("art_direction"), project.get("art_direction"))
+    preview_id = str((payload or {}).get("preview_id") or preview.get("approved_image_id") or "").strip()
+    if not preview_id:
+        raise ValueError("Approve a room preview before generating production assets.")
+    approved = next((item for item in (preview.get("images") or []) if item.get("preview_id") == preview_id), None)
+    if not approved:
+        raise ValueError("Approved preview not found.")
+    project_dir = PROJECTS_ROOT / project_id
+    preview_path = _project_url_to_path(project_dir, str(approved.get("url") or ""))
+    if preview_path is None or not preview_path.exists():
+        raise ValueError("Approved preview image is missing on disk.")
+
+    asset_root = project_dir / "room_environment_assets" / room_id
+    asset_root.mkdir(parents=True, exist_ok=True)
+    background_path = asset_root / "background.png"
+    surface_path = asset_root / "surface.png"
+    platform_path = asset_root / "platform.png"
+    door_path = asset_root / "door.png"
+
+    refs = [preview_path]
+    for frozen in (direction.get("frozen_concepts") or [])[:3]:
+        rel = str(frozen.get("image_path") or "").strip()
+        frozen_path = project_dir / rel if rel else None
+        if frozen_path and frozen_path.exists():
+            refs.append(frozen_path)
+
+    base_context = textwrap.dedent(
+        f"""\
+        Match the approved room environment closely.
+        This is for production-ready 2D metroidvania environment assets.
+        Art direction: {direction.get('high_level_direction') or ''}
+        Avoid: {direction.get('negative_direction') or ''}
+        Theme: {spec.get('theme_id') or env.get('themeId') or 'custom'}
+        Materials: {', '.join(spec.get('materials') or []) or 'aged environmental materials'}
+        Lighting: {spec.get('lighting') or 'controlled focal light'}
+        Mood: {spec.get('mood') or 'moody'}
+        Room description: {spec.get('description') or ''}
+        """
+    ).strip()
+
+    results = {}
+    results["background"] = _generate_image_from_references(
+        background_path,
+        f"""{base_context}
+Create a side-view background matte for this room only.
+Show deep background architecture, atmosphere, and environment painting.
+No foreground collision blocks, no UI, no characters, no text.
+""",
+        refs,
+        size_hint="wide room background 1600x1200",
+    )
+    if not results["background"]:
+        _fallback_background_asset(background_path, preview_path)
+
+    results["surface"] = _generate_image_from_references(
+        surface_path,
+        f"""{base_context}
+Create a seamless tileable wall/floor material texture sheet for this room.
+It should read clearly when repeated across walls and floors in a 2D platformer.
+No text, no characters, no scene composition, just material texture.
+""",
+        refs,
+        size_hint="seamless square texture 256x256",
+    )
+    if not results["surface"]:
+        _fallback_surface_asset(surface_path, preview_path, (256, 256))
+
+    results["platform"] = _generate_image_from_references(
+        platform_path,
+        f"""{base_context}
+Create a tileable platform ledge texture for side-view gameplay.
+Clear top edge, readable collision silhouette, production-ready material treatment.
+No text, no characters.
+""",
+        refs,
+        size_hint="platform strip texture 256x96",
+    )
+    if not results["platform"]:
+        _fallback_platform_asset(platform_path, preview_path)
+
+    results["door"] = _generate_image_from_references(
+        door_path,
+        f"""{base_context}
+Create a doorway or gate asset for this room style.
+Readable in side view, centered, production-ready environment prop.
+No characters, no text.
+""",
+        refs,
+        size_hint="door prop 192x288",
+    )
+    if not results["door"]:
+        _fallback_door_asset(door_path, preview_path)
+
+    used_ai = any(results.values())
+    env["runtime"]["asset_pack"] = {
+        "status": "ready",
+        "used_ai": used_ai,
+        "generated_at": now_iso(),
+        "source_preview_id": preview_id,
+        "assets": {
+            "background": {
+                "url": f"/tools/2d-sprite-and-animation/projects-data/{project_id}/room_environment_assets/{room_id}/background.png",
+                "kind": "background",
+            },
+            "surface": {
+                "url": f"/tools/2d-sprite-and-animation/projects-data/{project_id}/room_environment_assets/{room_id}/surface.png",
+                "kind": "surface",
+            },
+            "platform": {
+                "url": f"/tools/2d-sprite-and-animation/projects-data/{project_id}/room_environment_assets/{room_id}/platform.png",
+                "kind": "platform",
+            },
+            "door": {
+                "url": f"/tools/2d-sprite-and-animation/projects-data/{project_id}/room_environment_assets/{room_id}/door.png",
+                "kind": "door",
+            },
+        },
+    }
+    env["runtime"]["status"] = "ready"
+    env["runtime"]["source"] = "approved_preview"
+    env["runtime"]["applied_preview_id"] = preview_id
+    project["updated_at"] = now_iso()
+    save_project(project)
+    append_history_event(project_id, {
+        "type": "room_environment_assets_generated",
+        "room_id": room_id,
+        "preview_id": preview_id,
+        "used_ai": used_ai,
+        "created_at": now_iso(),
+    })
+    return {
+        "ok": True,
+        "environment": copy.deepcopy(env),
+        "asset_pack": copy.deepcopy(env["runtime"]["asset_pack"]),
+    }
+
+
 def approve_room_environment_preview(project_id: str, room_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:
     project = load_project(project_id)
     room = _find_room(project, room_id)
@@ -1220,7 +1653,20 @@ def approve_room_environment_preview(project_id: str, room_id: str, payload: Dic
     if not found:
         raise ValueError("Preview not found.")
     env["preview"]["approved_image_id"] = preview_id
+    env["preview"]["approved_palette"] = copy.deepcopy(found.get("palette"))
     env["preview"]["status"] = "approved"
+    env["runtime"]["status"] = "ready"
+    env["runtime"]["source"] = "approved_preview"
+    env["runtime"]["applied_preview_id"] = preview_id
+    env["runtime"]["surface_palette"] = copy.deepcopy(found.get("palette"))
+    env["runtime"]["material_keywords"] = list(env["spec"].get("materials") or [])
+    env["runtime"]["lighting_mode"] = str(env["spec"].get("lighting") or "")
+    env["runtime"]["last_applied_at"] = now_iso()
+    env["runtime"]["asset_pack"]["status"] = "idle"
+    env["runtime"]["asset_pack"]["used_ai"] = False
+    env["runtime"]["asset_pack"]["generated_at"] = None
+    env["runtime"]["asset_pack"]["source_preview_id"] = preview_id
+    env["runtime"]["asset_pack"]["assets"] = {}
     project["updated_at"] = now_iso()
     save_project(project)
     append_history_event(project_id, {

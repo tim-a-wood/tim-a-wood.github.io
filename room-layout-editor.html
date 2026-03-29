@@ -1915,38 +1915,11 @@
                 </div>
                 <div id="roomWizardArchetypeGrid" class="rw-template-grid"></div>
               </div>
-              <div class="stage-card">
-                <div class="stage-card-head">
-                  <h4>Theme preset</h4>
-                  <p class="small-note">Broad bucket for atmosphere. Pick <strong>Custom</strong> if you only use tags below.</p>
-                </div>
-                <label>
-                  <span class="field-label">Theme</span>
-                  <select id="roomWizardThemeSelect"></select>
-                </label>
-              </div>
-              <div class="stage-card">
-                <div class="stage-card-head">
-                  <h4>Mood tags</h4>
-                  <p class="small-note">Comma-separated labels (e.g. <code>wet, cold, boss-arena</code>) for search and future tooling.</p>
-                </div>
-                <label>
-                  <span class="field-label">Tags</span>
-                  <input type="text" id="roomWizardTagsInput" autocomplete="off" placeholder="tag one, tag two" spellcheck="false" />
-                </label>
-              </div>
-              <div class="stage-card">
-                <div class="stage-card-head">
-                  <h4>Visual preview</h4>
-                  <p class="small-note">Shows the generated room preview when available. Before generation, this falls back to a quick mood board based on the current room atmosphere.</p>
-                </div>
-                <div id="roomWizardEnvironmentPreview" class="rw-environment-preview" aria-live="polite"></div>
-              </div>
               <div class="stage-card" id="roomWizardCopilotCard">
                 <div class="stage-card-head">
-                  <h4>Environment planner</h4>
+                  <h4>Environment builder</h4>
                   <p class="small-note">
-                    Start from a template or describe the room in plain language. The planner will adapt the draft to your locked art direction, build a room spec, and generate previews.
+                    Start from a template or describe the room in plain language. The builder adapts the draft to your locked art direction, creates a Phaser-facing environment schema, generates previews, and can turn an approved preview into room assets.
                   </p>
                 </div>
                 <p class="hint" id="roomWizardCopilotServerHint">
@@ -1962,9 +1935,8 @@
                   ></textarea>
                 </label>
                 <div class="rw-copilot-actions">
-                  <button type="button" class="btn-secondary" id="roomWizardAdaptTemplate">Rewrite For Project Style</button>
-                  <button type="button" class="btn-secondary" id="roomWizardSimplifyDraft">Simplify</button>
-                  <button type="button" class="btn-secondary" id="roomWizardCopilotGenerate">Generate Previews</button>
+                  <button type="button" class="btn-secondary" id="roomWizardAdaptTemplate">Rewrite Draft</button>
+                  <button type="button" class="btn-secondary" id="roomWizardCopilotGenerate">Build Environment</button>
                   <span id="roomWizardCopilotStatus" class="small-note" aria-live="polite"></span>
                 </div>
                 <div id="roomWizardCopilotProgress" class="rw-waitbar" hidden aria-live="polite" aria-busy="true">
@@ -1978,11 +1950,24 @@
                   </div>
                 </div>
                 <div id="roomWizardCopilotPreview" hidden class="info-box rw-copilot-preview-box">
-                  <p><strong>Preview</strong> — review the spec summary and generated candidates, then approve one for this room.</p>
+                  <p><strong>Environment result</strong> — review the schema summary and generated candidates, approve one, then build production assets for this room.</p>
+                  <div id="roomWizardEnvironmentPreview" class="rw-environment-preview" aria-live="polite"></div>
                   <div id="roomWizardCopilotPreviewVisual" class="rw-environment-preview"></div>
+                  <div id="roomWizardEnvironmentOutputSummary" class="rw-environment-output"></div>
                   <div id="roomWizardPreviewGallery" class="rw-preview-gallery"></div>
+                  <label>
+                    <span class="field-label">Revision request</span>
+                    <textarea
+                      id="roomWizardPreviewRevision"
+                      rows="2"
+                      placeholder="e.g. push more wet stone texture, make the central route easier to read, add heavier shrine architecture"
+                      spellcheck="true"
+                    ></textarea>
+                  </label>
                   <div class="rw-copilot-actions">
-                    <button type="button" class="btn-secondary" id="roomWizardCopilotApply">Apply theme &amp; tags locally</button>
+                    <button type="button" class="btn-secondary" id="roomWizardPreviewRevise">Revise &amp; Generate Again</button>
+                    <button type="button" class="btn-secondary" id="roomWizardBuildEnvironmentAssets">Build Production Assets</button>
+                    <button type="button" class="btn-secondary" id="roomWizardPreviewOpenGame">Open Game With This Room</button>
                     <button type="button" class="btn-secondary" id="roomWizardCopilotDiscard">Discard</button>
                   </div>
                 </div>
@@ -6097,11 +6082,16 @@
         }
         if (tagsEl) tagsEl.value = envMod.tagsToInputString(e.tags);
         const promptEl = document.getElementById('roomWizardCopilotPrompt');
+        const previewBox = document.getElementById('roomWizardCopilotPreview');
         if (promptEl && !String(promptEl.value || '').trim()) {
           promptEl.value = e.spec?.description || '';
         }
         renderRoomWizardEnvironmentPreview(e);
         renderRoomWizardPreviewGallery(e.preview || {});
+        renderRoomWizardEnvironmentOutputSummary(e);
+        if (previewBox) previewBox.hidden = !(Array.isArray(e.preview?.images) && e.preview.images.length);
+        const applyBtn = document.getElementById('roomWizardCopilotApply');
+        if (applyBtn) applyBtn.hidden = !!PROJECT_ID;
       }
 
       function clearRoomWizardCopilotPreview() {
@@ -6109,10 +6099,14 @@
         const prev = document.getElementById('roomWizardCopilotPreview');
         const prevVisual = document.getElementById('roomWizardCopilotPreviewVisual');
         const gallery = document.getElementById('roomWizardPreviewGallery');
+        const output = document.getElementById('roomWizardEnvironmentOutputSummary');
+        const revision = document.getElementById('roomWizardPreviewRevision');
         const st = document.getElementById('roomWizardCopilotStatus');
         if (prev) prev.hidden = true;
         if (prevVisual) prevVisual.innerHTML = '';
         if (gallery) gallery.innerHTML = '';
+        if (output) output.innerHTML = '';
+        if (revision) revision.value = '';
         if (st) st.textContent = '';
       }
 
@@ -6188,7 +6182,9 @@
         const summaryBits = [
           scenePlan.lighting ? `Lighting: ${scenePlan.lighting}` : '',
           scenePlan.fog ? `Atmosphere: ${scenePlan.fog}` : '',
-          Array.isArray(scenePlan.landmarks) && scenePlan.landmarks.length ? `Landmarks: ${scenePlan.landmarks.slice(0, 3).join(', ')}` : ''
+          Array.isArray(scenePlan.landmarks) && scenePlan.landmarks.length ? `Landmarks: ${scenePlan.landmarks.slice(0, 3).join(', ')}` : '',
+          previewState.fallback_reason ? `Fallback: ${String(previewState.fallback_reason).replace(/_/g, ' ')}` : '',
+          scenePlan.used_ai === false ? 'Renderer fallback used' : 'AI-assisted preview'
         ].filter(Boolean);
         const chips = (envState.tags || [])
           .map((tag) => `<span class="rw-environment-chip">${escapeHtml(tag)}</span>`)
@@ -6223,6 +6219,74 @@
         }
         const preview = buildRoomWizardEnvironmentPreviewModel(envState.themeId, envState.tags || []);
         target.innerHTML = renderEnvironmentPreviewMarkup(preview, 'Current room mood');
+      }
+
+      function renderRoomWizardEnvironmentOutputSummary(envState) {
+        const target = document.getElementById('roomWizardEnvironmentOutputSummary');
+        if (!target) return;
+        const preview = envState?.preview || {};
+        const runtime = envState?.runtime || {};
+        const assetPack = runtime?.asset_pack || {};
+        const spec = envState?.spec || {};
+        const sceneSchema = spec?.scene_schema || {};
+        const kit = sceneSchema?.kit || {};
+        const approved = Array.isArray(preview.images)
+          ? preview.images.find((item) => item.preview_id === preview.approved_image_id)
+          : null;
+        const bits = [];
+        bits.push(`Theme: ${envState?.themeId || 'custom'}`);
+        if (preview.render_level) bits.push(`Preview source: ${String(preview.render_level).toUpperCase()}`);
+        if (preview.fallback_reason) bits.push(`Fallback: ${String(preview.fallback_reason).replace(/_/g, ' ')}`);
+        if (approved?.label) bits.push(`Approved: ${approved.label}`);
+        if (runtime.status === 'ready') {
+          bits.push('Open Game will style walls, platforms, movers, and doors from the approved preview palette.');
+        } else if (Array.isArray(preview.images) && preview.images.length) {
+          bits.push('Approve one preview to push its palette and materials into the playable room preview.');
+        } else {
+          bits.push('Generate previews to produce a room image, then approve one to drive runtime surfaces.');
+        }
+        if (assetPack.status === 'ready') {
+          bits.push(`Backdrop + reference assets ready${assetPack.used_ai ? ' from AI generation' : ' from fallback extraction'}. Core room geometry is now Phaser-kit driven.`);
+        } else if (preview.approved_image_id) {
+          bits.push('Build backdrop and reference assets for this room. Core geometry still comes from the Phaser environment kit.');
+        }
+        const materialText = Array.isArray(spec.materials) && spec.materials.length
+          ? spec.materials.slice(0, 4).join(', ')
+          : 'No materials planned yet';
+        const lightingText = spec.lighting || 'Lighting not planned yet';
+        const templateText = envState?.template_context?.source_template_label || 'Freeform draft';
+        const assetText = assetPack.status === 'ready'
+          ? `Assets: backdrop + reference kit · Generated ${assetPack.generated_at || 'recently'}`
+          : 'Assets: not built yet';
+        const schemaText = `Schema: ${(sceneSchema.background_layers || []).length} background layer${(sceneSchema.background_layers || []).length === 1 ? '' : 's'}, ${(sceneSchema.set_dressing || []).length} dressing rule${(sceneSchema.set_dressing || []).length === 1 ? '' : 's'}, effects ${Object.keys(sceneSchema.effects || {}).length}`;
+        const kitText = [kit.wall_family, kit.platform_family, kit.door_family, kit.backdrop_family].filter(Boolean).join(', ');
+        const ruleChips = (sceneSchema.set_dressing || []).slice(0, 6).map((item) => {
+          const label = `${item.type || 'prop'} · ${item.anchor || 'anchor'} · ${item.zone || 'zone'}`;
+          return `<span class="rw-environment-chip">${escapeHtml(label)}</span>`;
+        }).join('');
+        const assetThumbs = assetPack.status === 'ready'
+          ? Object.values(assetPack.assets || {}).map((item) => `
+              <div class="rw-environment-asset-thumb">
+                <img src="${escapeHtml(assetUrlWithVersion(item.url || '', assetPack.generated_at || ''))}" alt="${escapeHtml(item.kind || 'asset')}" />
+                <span>${escapeHtml(item.kind || 'asset')}</span>
+              </div>
+            `).join('')
+          : '';
+        target.innerHTML = `
+          <section class="rw-environment-output-card">
+            <div class="rw-environment-output-grid">
+              <div>
+                <p class="rw-environment-preview-label">Environment output</p>
+                <p class="rw-environment-output-copy">${escapeHtml(bits.join(' · '))}</p>
+              </div>
+              <div>
+                <p class="rw-environment-preview-label">Schema + build plan</p>
+                <p class="rw-environment-output-copy">${escapeHtml(`${schemaText} · Kit: ${kitText || 'default'} · Template: ${templateText} · Materials: ${materialText} · Lighting: ${lightingText} · ${assetText}`)}</p>
+              </div>
+            </div>
+            ${ruleChips ? `<div class="rw-environment-chip-row">${ruleChips}</div>` : ''}
+            ${assetThumbs ? `<div class="rw-environment-asset-grid">${assetThumbs}</div>` : ''}
+          </section>`;
       }
 
       function renderRoomWizardPreviewGallery(previewState) {
@@ -6513,6 +6577,18 @@
             envMod.ensureRoomEnvironment(room);
             room.environment.preview.status = 'outdated';
             room.environment.preview.fallback_reason = 'art_direction_changed';
+            room.environment.preview.approved_image_id = null;
+            room.environment.preview.approved_palette = null;
+            room.environment.runtime.status = 'outdated';
+            room.environment.runtime.source = null;
+            room.environment.runtime.applied_preview_id = null;
+            room.environment.runtime.surface_palette = null;
+            room.environment.runtime.last_applied_at = null;
+            room.environment.runtime.asset_pack.status = 'idle';
+            room.environment.runtime.asset_pack.used_ai = false;
+            room.environment.runtime.asset_pack.generated_at = null;
+            room.environment.runtime.asset_pack.source_preview_id = null;
+            room.environment.runtime.asset_pack.assets = {};
           });
           renderRoomWizardArtDirectionUi();
           updateRoomWizardCopilotHintUi();
@@ -6609,10 +6685,18 @@
           const envMod = globalThis.RoomWizardEnvironment;
           if (envMod) envMod.ensureRoomEnvironment(room);
           room.environment = json.environment || room.environment;
+          renderRoomWizardEnvironmentPreview(room.environment);
           renderRoomWizardPreviewGallery(room.environment.preview || {});
+          renderRoomWizardEnvironmentOutputSummary(room.environment);
+          renderRoomWizardCopilotPreview({
+            themeId: room.environment?.themeId || 'custom',
+            tags: room.environment?.tags || [],
+            rationale: room.environment?.spec?.description || ''
+          });
           state.roomWizard.approvedPreviewId = previewId;
-          if (st) st.textContent = 'Preview approved for this room.';
+          if (st) st.textContent = 'Preview approved. Open Game now uses this preview’s palette on room surfaces.';
           updateJsonText();
+          setDirty(true);
           stopRoomWizardWaitbar('copilot', 100);
         } catch (e) {
           stopRoomWizardWaitbar('copilot', 100);
@@ -7410,7 +7494,9 @@
                 rationale: room.environment?.spec?.description || ''
               };
               renderRoomWizardCopilotPreview(state.roomWizard.copilotPreview);
+              renderRoomWizardEnvironmentPreview(room.environment);
               renderRoomWizardPreviewGallery(room.environment?.preview || {});
+              renderRoomWizardEnvironmentOutputSummary(room.environment);
               updateJsonText();
               if (st) st.textContent = 'Preview candidates ready — approve one below.';
               stopRoomWizardWaitbar('copilot', 100);
@@ -7488,6 +7574,100 @@
           syncRoomWizardEnvironmentFromRoom();
           clearRoomWizardCopilotPreview();
           setStatus(PROJECT_ID ? 'Applied planner suggestion to local room fields.' : 'Applied Copilot suggestion to theme and tags.', 'success');
+        });
+        document.getElementById('roomWizardPreviewRevise')?.addEventListener('click', async () => {
+          const room = getRoomWizardRoom();
+          const st = document.getElementById('roomWizardCopilotStatus');
+          const revisionEl = document.getElementById('roomWizardPreviewRevision');
+          const promptEl = document.getElementById('roomWizardCopilotPrompt');
+          if (!PROJECT_ID || !room || !revisionEl || !promptEl) return;
+          const instruction = String(revisionEl.value || '').trim();
+          if (!instruction) {
+            if (st) st.textContent = 'Add a revision request first.';
+            return;
+          }
+          startRoomWizardWaitbar('copilot', 'Revising the room environment and regenerating previews.');
+          if (st) st.textContent = 'Revising environment…';
+          try {
+            const reviseRes = await fetch(projectRoomEnvironmentApiUrl(room.id, 'revise'), {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ instruction })
+            });
+            const reviseJson = await reviseRes.json().catch(() => ({}));
+            if (!reviseRes.ok || !reviseJson.ok) throw new Error(reviseJson.error || 'Could not revise room environment');
+            promptEl.value = reviseJson.draft_description || promptEl.value;
+            if (st) st.textContent = 'Building revised room spec…';
+            const specRes = await fetch(projectRoomEnvironmentApiUrl(room.id, 'spec'), {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ description: promptEl.value })
+            });
+            const specJson = await specRes.json().catch(() => ({}));
+            if (!specRes.ok || !specJson.ok) throw new Error(specJson.error || 'Could not build revised room spec');
+            room.environment = specJson.environment || room.environment;
+            if (st) st.textContent = 'Rendering revised previews…';
+            const previewRes = await fetch(projectRoomEnvironmentApiUrl(room.id, 'previews'), {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ spec: room.environment?.spec || {} })
+            });
+            const previewJson = await previewRes.json().catch(() => ({}));
+            if (!previewRes.ok || !previewJson.ok) throw new Error(previewJson.error || 'Could not render revised previews');
+            room.environment = previewJson.environment || room.environment;
+            revisionEl.value = '';
+            renderRoomWizardEnvironmentPreview(room.environment);
+            renderRoomWizardCopilotPreview({
+              themeId: room.environment?.themeId || 'custom',
+              tags: room.environment?.tags || [],
+              rationale: room.environment?.spec?.description || ''
+            });
+            renderRoomWizardPreviewGallery(room.environment?.preview || {});
+            renderRoomWizardEnvironmentOutputSummary(room.environment);
+            updateJsonText();
+            setDirty(true);
+            if (st) st.textContent = 'Revised previews ready — approve one to push it into Open Game.';
+            stopRoomWizardWaitbar('copilot', 100);
+          } catch (e) {
+            stopRoomWizardWaitbar('copilot', 100);
+            if (st) st.textContent = (e && e.message) || 'Revision failed';
+          }
+        });
+        document.getElementById('roomWizardPreviewOpenGame')?.addEventListener('click', () => {
+          const room = getRoomWizardRoom();
+          if (!room?.id) return;
+          openGameWithLayout(room.id);
+        });
+        document.getElementById('roomWizardBuildEnvironmentAssets')?.addEventListener('click', async () => {
+          const room = getRoomWizardRoom();
+          const st = document.getElementById('roomWizardCopilotStatus');
+          if (!PROJECT_ID || !room?.id) return;
+          if (!room.environment?.preview?.approved_image_id) {
+            if (st) st.textContent = 'Approve a room preview before building production assets.';
+            return;
+          }
+          startRoomWizardWaitbar('copilot', 'Generating production assets from the approved room preview.');
+          if (st) st.textContent = 'Building production assets…';
+          try {
+            const res = await fetch(projectRoomEnvironmentApiUrl(room.id, 'generate-assets'), {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ preview_id: room.environment.preview.approved_image_id })
+            });
+            const json = await res.json().catch(() => ({}));
+            if (!res.ok || !json.ok) throw new Error(json.error || 'Could not build production assets');
+            room.environment = json.environment || room.environment;
+            renderRoomWizardEnvironmentPreview(room.environment);
+            renderRoomWizardPreviewGallery(room.environment.preview || {});
+            renderRoomWizardEnvironmentOutputSummary(room.environment);
+            updateJsonText();
+            setDirty(true);
+            if (st) st.textContent = 'Production assets ready. Open Game now uses generated background and environment textures for this room.';
+            stopRoomWizardWaitbar('copilot', 100);
+          } catch (e) {
+            stopRoomWizardWaitbar('copilot', 100);
+            if (st) st.textContent = (e && e.message) || 'Asset generation failed';
+          }
         });
         document.getElementById('roomWizardCopilotDiscard')?.addEventListener('click', () => {
           clearRoomWizardCopilotPreview();

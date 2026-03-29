@@ -621,6 +621,11 @@ body::before {
         <span class="nav-item-text">Finance</span>
         <span class="nav-item-path">charter.md</span>
       </button>
+      <button class="nav-item" data-path="agents/design/charter.md">
+        <span class="nav-dot" style="background:#fb7185"></span>
+        <span class="nav-item-text">Design</span>
+        <span class="nav-item-path">charter.md</span>
+      </button>
       <button class="nav-item" data-path="agents/cybersecurity/charter.md">
         <span class="nav-dot" style="background:#f85149"></span>
         <span class="nav-item-text">Cybersecurity</span>
@@ -670,6 +675,9 @@ body::before {
       </button>
       <button class="nav-item" data-path="templates/approval-matrix.md">
         <span class="nav-item-text">Approval Matrix</span>
+      </button>
+      <button class="nav-item" data-path="templates/directive-summary.md">
+        <span class="nav-item-text">Directive Summary</span>
       </button>
     </div>
 
@@ -728,6 +736,11 @@ body::before {
           <span class="agent-card-icon">💰</span>
           <span class="agent-card-name">Finance</span>
           <span class="agent-card-desc">Costs, revenue & API budgets</span>
+        </button>
+        <button class="agent-card" data-agent="design" style="--agent-color:#fb7185">
+          <span class="agent-card-icon">🎨</span>
+          <span class="agent-card-name">Design</span>
+          <span class="agent-card-desc">STYLE_GUIDE, UX & accessibility</span>
         </button>
         <button class="agent-card" data-agent="cybersecurity" style="--agent-color:#f85149">
           <span class="agent-card-icon">🛡️</span>
@@ -790,7 +803,7 @@ const AGENTS = {
   orchestrator: {
     label: 'Orchestrator',
     charter: 'agents/orchestrator/charter.md',
-    modes: ['brainstorm', 'decision', 'red-team', 'launch', 'incident', 'weekly-review'],
+    modes: ['brainstorm', 'decision', 'red-team', 'launch', 'incident', 'weekly-review', 'directive'],
     modePlaybooks: {
       'brainstorm':     'playbooks/brainstorming-session.md',
       'decision':       null,
@@ -798,6 +811,7 @@ const AGENTS = {
       'launch':         'playbooks/release-readiness.md',
       'incident':       'playbooks/incident-response.md',
       'weekly-review':  'playbooks/weekly-founder-review.md',
+      'directive':      null,
     },
     modeTemplates: {
       'brainstorm':    'templates/brainstorming-summary.md',
@@ -806,6 +820,7 @@ const AGENTS = {
       'launch':        'templates/launch-readiness.md',
       'incident':      'templates/incident-report.md',
       'weekly-review': 'templates/weekly-founder-digest.md',
+      'directive':     'templates/directive-summary.md',
     },
     placeholders: {
       'brainstorm':    'e.g. "What pricing model should we use for the AI Copilot feature?"',
@@ -814,6 +829,7 @@ const AGENTS = {
       'launch':        'e.g. "We\'re releasing v0.3 of the room editor with AI Copilot tomorrow."',
       'incident':      'e.g. "The Room Copilot is returning invalid JSON and corrupting layouts."',
       'weekly-review': 'e.g. "Compile the weekly founder digest for the week of [date]."',
+      'directive':     'e.g. "Always flag EU AI Act compliance whenever reviewing a new AI feature." or "Whenever a cost spike is detected, include a model substitution analysis."',
     },
   },
   qa: {
@@ -889,6 +905,18 @@ const AGENTS = {
       'report':           'e.g. "Produce the weekly finance snapshot."',
       'escalation-check': 'e.g. "Our Gemini API costs are 3x this week — is this a problem?"',
       'advise':           'e.g. "What unit economics model should we use for the AI feature paywall?"',
+    },
+  },
+  design: {
+    label: 'Design',
+    charter: 'agents/design/charter.md',
+    modes: ['analyze', 'review', 'report', 'escalation-check', 'advise'],
+    placeholders: {
+      'analyze':          'e.g. "Audit the room editor toolbar for Fitts\'s Law and target size compliance."',
+      'review':           'e.g. "Review this new panel component for STYLE_GUIDE token compliance."',
+      'report':           'e.g. "Produce a design quality report for the Room Copilot UI."',
+      'escalation-check': 'e.g. "Is the current Copilot preview UX causing mode errors?"',
+      'advise':           'e.g. "How should we design the revision textarea in the Copilot flow?"',
     },
   },
   cybersecurity: {

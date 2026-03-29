@@ -5,19 +5,22 @@
 'use strict';
 
 /**
- * RW-4 — stable `environment` slice for runtime room JSON (theme + tags).
+ * RW-4 — stable `environment` slice for runtime room JSON.
  * @param {object} room
- * @returns {{ version: number, themeId: string, tags: string[] }}
+ * @returns {{ version: number, themeId: string, tags: string[], spec: object, preview: object, runtime: object }}
  */
 function normalizeRuntimeEnvironment(room) {
-  const defaults = { version: 1, themeId: 'cave', tags: [] };
+  const defaults = { version: 1, themeId: 'cave', tags: [], spec: {}, preview: {}, runtime: {} };
   const e = room && room.environment && typeof room.environment === 'object' ? room.environment : null;
   if (!e) return { ...defaults };
   const tags = Array.isArray(e.tags) ? e.tags.map((t) => String(t).trim()).filter(Boolean) : [];
   const themeId =
     typeof e.themeId === 'string' && e.themeId.trim() ? e.themeId.trim() : defaults.themeId;
   const version = typeof e.version === 'number' && e.version >= 1 ? e.version : defaults.version;
-  return { version, themeId, tags };
+  const spec = e.spec && typeof e.spec === 'object' ? e.spec : {};
+  const preview = e.preview && typeof e.preview === 'object' ? e.preview : {};
+  const runtime = e.runtime && typeof e.runtime === 'object' ? e.runtime : {};
+  return { version, themeId, tags, spec, preview, runtime };
 }
 
 /**

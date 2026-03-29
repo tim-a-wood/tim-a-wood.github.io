@@ -807,7 +807,7 @@ const ROOM_ENV_STARFIELD_TINT = {
 };
 
 function normalizeEnvironmentFromLayout(room) {
-    const defaults = { version: 1, themeId: 'cave', tags: [], spec: {}, preview: {} };
+    const defaults = { version: 1, themeId: 'cave', tags: [], spec: {}, preview: {}, runtime: {} };
     if (!room || !room.environment || typeof room.environment !== 'object') {
         return { ...defaults };
     }
@@ -818,7 +818,8 @@ function normalizeEnvironmentFromLayout(room) {
     const version = typeof e.version === 'number' && e.version >= 1 ? e.version : defaults.version;
     const spec = e.spec && typeof e.spec === 'object' ? e.spec : {};
     const preview = e.preview && typeof e.preview === 'object' ? e.preview : {};
-    return { version, themeId, tags, spec, preview };
+    const runtime = e.runtime && typeof e.runtime === 'object' ? e.runtime : {};
+    return { version, themeId, tags, spec, preview, runtime };
 }
 
 function getEnvironmentHudLine(roomId) {
@@ -884,10 +885,90 @@ function roomDoorTextureKey(roomId) {
     return `env-door-${roomId}`;
 }
 
+function roomPropTextureKey(roomId, propType) {
+    return `env-prop-${propType}-${roomId}`;
+}
+
+function roomBackgroundAssetKey(roomId) {
+    return `env-bg-asset-${roomId}`;
+}
+
+function roomSurfaceAssetKey(roomId) {
+    return `env-surface-asset-${roomId}`;
+}
+
+function roomPlatformAssetKey(roomId) {
+    return `env-platform-asset-${roomId}`;
+}
+
+function roomDoorAssetKey(roomId) {
+    return `env-door-asset-${roomId}`;
+}
+
+function getRoomEnvironmentAssetPack(roomId) {
+    const env = normalizeEnvironmentFromLayout(getLayoutRoom(roomId));
+    const pack = env.runtime?.asset_pack;
+    return pack && typeof pack === 'object' ? pack : null;
+}
+
+function getRoomEnvironmentSceneSchema(roomId) {
+    const env = normalizeEnvironmentFromLayout(getLayoutRoom(roomId));
+    const schema = env.spec?.scene_schema;
+    if (!schema || typeof schema !== 'object') {
+        return { background_layers: [], set_dressing: [], effects: {} };
+    }
+    return {
+        background_layers: Array.isArray(schema.background_layers) ? schema.background_layers : [],
+        set_dressing: Array.isArray(schema.set_dressing) ? schema.set_dressing : [],
+        effects: schema.effects && typeof schema.effects === 'object' ? schema.effects : {}
+    };
+}
+
+function resolveRoomSurfaceTexture(scene, roomId) {
+    return roomSurfaceTextureKey(roomId);
+}
+
+function resolveRoomPlatformTexture(scene, roomId, tint = 0) {
+    return roomPlatformTextureKey(roomId, tint);
+}
+
+function resolveRoomDoorTexture(scene, roomId) {
+    return roomDoorTextureKey(roomId);
+}
+
+function isResolvedRoomSurfaceAsset(roomId, textureKey) {
+    return false;
+}
+
+function isResolvedRoomPlatformAsset(roomId, textureKey) {
+    return false;
+}
+
+function isResolvedRoomDoorAsset(roomId, textureKey) {
+    return false;
+}
+
+function resolveZoneTargetX(roomId, zone) {
+    const room = getLayoutRoom(roomId);
+    const width = Math.max(320, Number(room?.size?.width || 1600));
+    if (zone === 'left') return width * 0.22;
+    if (zone === 'right') return width * 0.78;
+    if (zone === 'focal') return width * 0.55;
+    return width * 0.5;
+}
+
 function deriveRoomEnvironmentRuntimeStyle(roomId) {
     const env = normalizeEnvironmentFromLayout(getLayoutRoom(roomId));
-    const dominant = Array.isArray(env.spec?.palette?.dominant) ? env.spec.palette.dominant : [];
-    const accent = Array.isArray(env.spec?.palette?.accent) ? env.spec.palette.accent : [];
+    const kit = env.spec?.scene_schema?.kit || {};
+    const runtimePalette = env.runtime?.surface_palette && typeof env.runtime.surface_palette === 'object'
+        ? env.runtime.surface_palette
+        : (env.preview?.approved_palette && typeof env.preview.approved_palette === 'object' ? env.preview.approved_palette : null);
+    const dominant = Array.isArray(runtimePalette?.dominant)
+        ? runtimePalette.dominant
+        : (Array.isArray(env.spec?.palette?.dominant) ? env.spec.palette.dominant : []);
+    const accent = Array.isArray(runtimePalette?.accent)
+        ? runtimePalette.accent
+        : (Array.isArray(env.spec?.palette?.accent) ? env.spec.palette.accent : []);
     const baseThemes = {
         cave: { floor: { r: 46, g: 60, b: 88 }, accent: { r: 138, g: 160, b: 220 } },
         ruins: { floor: { r: 76, g: 58, b: 38 }, accent: { r: 212, g: 170, b: 92 } },
@@ -898,13 +979,19 @@ function deriveRoomEnvironmentRuntimeStyle(roomId) {
         custom: { floor: { r: 62, g: 64, b: 74 }, accent: { r: 174, g: 182, b: 194 } }
     };
     const preset = baseThemes[env.themeId] || baseThemes.cave;
-    const floorBase = dominant.length ? hexToRgb(dominant[0], preset.floor) : preset.floor;
-    const floorAlt = dominant.length > 1 ? hexToRgb(dominant[1], adjustRgb(floorBase, 16)) : adjustRgb(floorBase, 16);
-    const accentBase = accent.length ? hexToRgb(accent[0], preset.accent) : preset.accent;
-    const moodText = `${env.themeId} ${(env.tags || []).join(' ')} ${(env.spec?.materials || []).join(' ')}`.toLowerCase();
+    const shadowHex = typeof runtimePalette?.shadow === 'string' ? runtimePalette.shadow : '';
+    const glowHex = typeof runtimePalette?.glow === 'string' ? runtimePalette.glow : '';
+    const floorBase = shadowHex ? hexToRgb(shadowHex, preset.floor) : (dominant.length ? hexToRgb(dominant[0], preset.floor) : preset.floor);
+    const floorAlt = dominant.length > 1
+        ? hexToRgb(dominant[1], adjustRgb(floorBase, 16))
+        : (runtimePalette?.average ? hexToRgb(runtimePalette.average, adjustRgb(floorBase, 16)) : adjustRgb(floorBase, 16));
+    const accentBase = glowHex ? hexToRgb(glowHex, preset.accent) : (accent.length ? hexToRgb(accent[0], preset.accent) : preset.accent);
+    const moodText = `${env.themeId} ${(env.tags || []).join(' ')} ${(env.spec?.materials || []).join(' ')} ${(env.runtime?.material_keywords || []).join(' ')} ${Object.values(kit).join(' ')}`.toLowerCase();
     const mossy = /(moss|overgrow|root|shrine|forest)/.test(moodText);
     const wet = /(wet|flood|water|damp|sewer)/.test(moodText);
     const ritual = /(ritual|sacred|shrine|altar)/.test(moodText);
+    const industrial = /(industrial|iron|ribbed|gate|walkway)/.test(moodText);
+    const carved = /(carved|gothic|arch|ritual|shrine)/.test(moodText);
     return {
         floorBase,
         floorAlt,
@@ -916,7 +1003,14 @@ function deriveRoomEnvironmentRuntimeStyle(roomId) {
         glow: ritual ? mixRgb(accentBase, { r: 240, g: 234, b: 206 }, 0.38) : accentBase,
         mossy,
         wet,
-        ritual
+        ritual,
+        industrial,
+        carved,
+        wallFamily: String(kit.wall_family || ''),
+        platformFamily: String(kit.platform_family || ''),
+        doorFamily: String(kit.door_family || ''),
+        backdropFamily: String(kit.backdrop_family || ''),
+        propDensity: String(kit.prop_density || 'medium')
     };
 }
 
@@ -1201,7 +1295,17 @@ class AshenHollow extends Phaser.Scene {
         this.load.on('loaderror', this.handleHeroLoadError, this);
         this.load.on('filecomplete', this.handleHeroFileComplete, this);
         this.generateAssetTextures();
+        this.preloadRoomEnvironmentAssets();
         this.preloadWorkbenchHero();
+    }
+
+    preloadRoomEnvironmentAssets() {
+        ROOM_SEQUENCE.forEach((roomId) => {
+            const pack = getRoomEnvironmentAssetPack(roomId);
+            const assets = pack?.assets;
+            if (!assets || pack?.status !== 'ready') return;
+            if (assets.background?.url) this.load.image(roomBackgroundAssetKey(roomId), assets.background.url);
+        });
     }
 
     generateAssetTextures() {
@@ -1278,18 +1382,29 @@ class AshenHollow extends Phaser.Scene {
             g.clear().fillStyle(rgbToHexInt(style.floorBase)).fillRect(0, 0, 32, 32);
             g.fillStyle(rgbToHexInt(style.floorAlt), 0.5).fillRect(0, 22, 32, 10);
             g.fillStyle(rgbToHexInt(style.edge), 0.9).fillRect(0, 0, 32, 3);
-            g.fillStyle(rgbToHexInt(style.crack), 0.65).fillRect(6, 10, 18, 2);
-            g.fillStyle(rgbToHexInt(style.crack), 0.5).fillRect(18, 18, 10, 2);
+            if (style.industrial) {
+                g.fillStyle(rgbToHexInt(style.crack), 0.45).fillRect(0, 8, 32, 2);
+                g.fillStyle(rgbToHexInt(style.crack), 0.45).fillRect(0, 18, 32, 2);
+                g.lineStyle(1, rgbToHexInt(style.edge), 0.55);
+                g.strokeCircle(8, 8, 3);
+                g.strokeCircle(24, 8, 3);
+                g.strokeCircle(8, 24, 3);
+                g.strokeCircle(24, 24, 3);
+            } else if (style.carved) {
+                g.fillStyle(rgbToHexInt(style.crack), 0.55).fillRect(6, 10, 18, 2);
+                g.fillStyle(rgbToHexInt(style.crack), 0.4).fillRect(18, 18, 10, 2);
+                g.lineStyle(1, rgbToHexInt(style.glow), style.ritual ? 0.45 : 0.18);
+                g.strokeCircle(16, 16, 7);
+            } else {
+                g.fillStyle(rgbToHexInt(style.crack), 0.65).fillRect(6, 10, 18, 2);
+                g.fillStyle(rgbToHexInt(style.crack), 0.5).fillRect(18, 18, 10, 2);
+            }
             if (style.mossy) {
                 g.fillStyle(rgbToHexInt(style.moss), 0.8).fillRect(3, 3, 7, 4);
                 g.fillStyle(rgbToHexInt(style.moss), 0.55).fillRect(20, 4, 9, 3);
             }
             if (style.wet) {
                 g.fillStyle(rgbToHexInt(style.water), 0.42).fillRect(0, 24, 32, 6);
-            }
-            if (style.ritual) {
-                g.lineStyle(1, rgbToHexInt(style.glow), 0.65);
-                g.strokeCircle(16, 16, 7);
             }
             g.generateTexture(floorKey, 32, 32);
 
@@ -1300,7 +1415,18 @@ class AshenHollow extends Phaser.Scene {
                 g.clear().fillStyle(rgbToHexInt(platformBase)).fillRect(0, 0, 32, 14);
                 g.fillStyle(rgbToHexInt(style.edge), 0.92).fillRect(0, 0, 32, 2);
                 g.fillStyle(rgbToHexInt(platformShade), 0.7).fillRect(0, 10, 32, 4);
-                g.fillStyle(rgbToHexInt(style.crack), 0.45).fillRect(6, 6, 11, 1);
+                if (style.platformFamily === 'iron_walkway' || style.industrial) {
+                    g.fillStyle(rgbToHexInt(style.crack), 0.45).fillRect(0, 6, 32, 1);
+                    g.fillStyle(rgbToHexInt(style.edge), 0.4).fillRect(5, 4, 2, 6);
+                    g.fillStyle(rgbToHexInt(style.edge), 0.4).fillRect(16, 4, 2, 6);
+                    g.fillStyle(rgbToHexInt(style.edge), 0.4).fillRect(26, 4, 2, 6);
+                } else if (style.platformFamily === 'carved_ledge') {
+                    g.fillStyle(rgbToHexInt(style.crack), 0.3).fillRect(6, 6, 11, 1);
+                    g.lineStyle(1, rgbToHexInt(style.glow), style.ritual ? 0.35 : 0.12);
+                    g.strokeCircle(16, 8, 3);
+                } else {
+                    g.fillStyle(rgbToHexInt(style.crack), 0.45).fillRect(6, 6, 11, 1);
+                }
                 if (style.mossy) {
                     g.fillStyle(rgbToHexInt(style.moss), 0.8).fillRect(2, 2, 6, 2);
                     g.fillStyle(rgbToHexInt(style.moss), 0.5).fillRect(22, 2, 7, 2);
@@ -1315,17 +1441,60 @@ class AshenHollow extends Phaser.Scene {
             }
 
             g.clear().fillStyle(rgbToHexInt(mixRgb(style.floorBase, style.accent, 0.2))).fillRect(0, 0, 48, 72);
-            g.fillStyle(rgbToHexInt(style.crack), 0.85).fillRect(10, 0, 28, 72);
-            g.fillStyle(rgbToHexInt(style.edge), 0.65).fillRect(8, 0, 2, 72);
-            g.fillStyle(rgbToHexInt(style.edge), 0.65).fillRect(38, 0, 2, 72);
-            if (style.ritual) {
-                g.fillStyle(rgbToHexInt(style.glow), 0.55).fillRect(22, 6, 4, 56);
+            if (style.doorFamily === 'iron_gate' || style.industrial) {
+                g.fillStyle(rgbToHexInt(style.crack), 0.55).fillRect(0, 10, 48, 6);
+                g.fillStyle(rgbToHexInt(style.crack), 0.55).fillRect(0, 56, 48, 6);
+                for (let x = 8; x <= 36; x += 10) {
+                    g.fillStyle(rgbToHexInt(style.edge), 0.75).fillRect(x, 0, 4, 72);
+                }
+            } else {
+                g.fillStyle(rgbToHexInt(style.crack), 0.85).fillRect(10, 0, 28, 72);
+                g.fillStyle(rgbToHexInt(style.edge), 0.65).fillRect(8, 0, 2, 72);
+                g.fillStyle(rgbToHexInt(style.edge), 0.65).fillRect(38, 0, 2, 72);
+                if (style.ritual) {
+                    g.fillStyle(rgbToHexInt(style.glow), 0.55).fillRect(22, 6, 4, 56);
+                }
             }
             if (style.mossy) {
                 g.fillStyle(rgbToHexInt(style.moss), 0.7).fillRect(4, 6, 6, 8);
                 g.fillStyle(rgbToHexInt(style.moss), 0.5).fillRect(38, 10, 4, 8);
             }
             g.generateTexture(doorKey, 48, 72);
+
+            g.clear().fillStyle(rgbToHexInt(mixRgb(style.floorBase, { r: 52, g: 28, b: 20 }, 0.5))).fillRect(0, 24, 32, 22);
+            g.fillStyle(rgbToHexInt(mixRgb(style.edge, style.accent, 0.45))).fillRect(6, 18, 20, 8);
+            g.fillStyle(rgbToHexInt(style.glow), 0.85).fillCircle(16, 12, style.ritual ? 8 : 6);
+            if (style.industrial) g.fillStyle(rgbToHexInt(style.edge), 0.55).fillRect(4, 20, 24, 2);
+            g.generateTexture(roomPropTextureKey(roomId, 'brazier'), 32, 48);
+
+            g.clear().fillStyle(rgbToHexInt(mixRgb(style.floorBase, style.floorAlt, 0.35))).fillRect(0, 20, 52, 12);
+            g.fillStyle(rgbToHexInt(style.edge), 0.85).fillRect(8, 8, 36, 16);
+            if (style.carved) {
+                g.lineStyle(1, rgbToHexInt(style.glow), style.ritual ? 0.35 : 0.16);
+                g.strokeCircle(26, 16, 6);
+            } else {
+                g.fillStyle(rgbToHexInt(style.crack), 0.35).fillRect(20, 8, 8, 18);
+            }
+            g.generateTexture(roomPropTextureKey(roomId, 'altar'), 52, 32);
+
+            g.clear().fillStyle(rgbToHexInt(mixRgb(style.floorBase, style.moss, 0.4)), 0.9).fillRect(10, 8, 16, 56);
+            g.fillStyle(rgbToHexInt(style.moss), 0.9).fillRect(0, 42, 34, 22);
+            g.fillStyle(rgbToHexInt(style.moss), 0.55).fillRect(4, 28, 8, 12);
+            g.generateTexture(roomPropTextureKey(roomId, 'roots'), 34, 64);
+
+            g.clear().fillStyle(rgbToHexInt(mixRgb(style.floorAlt, style.edge, 0.35))).fillRect(10, 8, 20, 56);
+            g.fillStyle(rgbToHexInt(style.crack), 0.45).fillRect(14, 18, 12, 20);
+            if (style.ritual) g.fillStyle(rgbToHexInt(style.glow), 0.22).fillRect(17, 10, 6, 8);
+            g.generateTexture(roomPropTextureKey(roomId, 'statue'), 40, 64);
+
+            g.clear().fillStyle(rgbToHexInt(style.crack), 0.95).fillRect(7, 0, 4, 80);
+            g.fillStyle(rgbToHexInt(style.edge), 0.72).fillRect(15, 0, 4, 64);
+            g.generateTexture(roomPropTextureKey(roomId, 'chains'), 24, 80);
+
+            g.clear().fillStyle(rgbToHexInt(mixRgb(style.floorBase, { r: 88, g: 28, b: 24 }, 0.45))).fillRect(0, 0, 22, 64);
+            g.fillStyle(rgbToHexInt(style.accent), 0.65).fillRect(0, 0, 22, 10);
+            if (style.ritual) g.fillStyle(rgbToHexInt(style.glow), 0.22).fillRect(8, 18, 6, 30);
+            g.generateTexture(roomPropTextureKey(roomId, 'banner'), 22, 64);
         });
         g.destroy();
     }
@@ -1397,6 +1566,8 @@ class AshenHollow extends Phaser.Scene {
 
         this.starField = this.add.tileSprite(CONFIG.W / 2, CONFIG.H / 2, CONFIG.W, CONFIG.H, 'stars')
             .setScrollFactor(0).setDepth(-1);
+        this.roomBackgroundSprites = {};
+        this.createRoomEnvironmentBackgrounds();
         this.trail = this.add.graphics();
 
         this.platforms = this.physics.add.staticGroup();
@@ -1421,6 +1592,7 @@ class AshenHollow extends Phaser.Scene {
         this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
 
         this.buildWorldGeometry();
+        this.buildEnvironmentSetDressing();
         this.buildWorldInteractables();
         this.createHUD();
         this.createMapOverlay();
@@ -1436,6 +1608,194 @@ class AshenHollow extends Phaser.Scene {
             ? 'Workbench hero loaded. Activity 6: dungeon branches live in R3-R8. Use INTERACT in R2 doors.'
             : `Fallback hero active. Loaded ${this.heroLoadSuccesses.length}/6 sheets.${this.heroLoadFailures.length ? ` Failed: ${this.heroLoadFailures.map((item) => `${item.key}`).join(', ')}` : ''}`;
         this.setStatusMessage(heroStatus, 300);
+    }
+
+    createRoomEnvironmentBackgrounds() {
+        ROOM_SEQUENCE.forEach((roomId) => {
+            const room = ROOM_IDS[roomId];
+            const textureKey = roomBackgroundAssetKey(roomId);
+            if (!room || !this.textures.exists(textureKey)) return;
+            const sprite = this.add.image(room.start + (room.width / 2), CONFIG.WORLD_HEIGHT / 2, textureKey)
+                .setDisplaySize(room.width, CONFIG.WORLD_HEIGHT)
+                .setDepth(-2)
+                .setVisible(false)
+                .setAlpha(0.7);
+            this.roomBackgroundSprites[roomId] = sprite;
+        });
+    }
+
+    createRoomSurfaceTile(x, y, roomId, textureKey) {
+        const sprite = this.platforms.create(x, y, textureKey);
+        if (isResolvedRoomSurfaceAsset(roomId, textureKey)) {
+            sprite.setDisplaySize(32, 32);
+        }
+        sprite.refreshBody();
+        return sprite;
+    }
+
+    createRoomPlatformTile(x, y, roomId, textureKey) {
+        const sprite = this.platforms.create(x, y, textureKey);
+        if (isResolvedRoomPlatformAsset(roomId, textureKey)) {
+            sprite.setDisplaySize(32, 14);
+        }
+        sprite.refreshBody();
+        return sprite;
+    }
+
+    buildEnvironmentSetDressing() {
+        this.environmentDecor = [];
+        ROOM_SEQUENCE.forEach((roomId) => {
+            const room = getLayoutRoom(roomId);
+            const roomBounds = ROOM_IDS[roomId];
+            if (!room || !roomBounds) return;
+            const schema = getRoomEnvironmentSceneSchema(roomId);
+            const platforms = Array.isArray(room.platforms) ? room.platforms : [];
+            const doorXs = (room.doors || []).map((door) => Number(door.x || 0));
+            const spawnX = Number(room.playerStart?.x || (roomBounds.width * 0.5));
+            const targetXForZone = (zone) => resolveZoneTargetX(roomId, zone);
+            const isBlockedX = (localX, avoidList = []) => {
+                if (avoidList.includes('door') && doorXs.some((doorX) => Math.abs(doorX - localX) < 88)) return true;
+                if (avoidList.includes('main_path') && Math.abs(localX - spawnX) < 120) return true;
+                return localX < 48 || localX > roomBounds.width - 48;
+            };
+            const choosePlatform = (zone, avoidList = []) => {
+                if (!platforms.length) return null;
+                const targetX = targetXForZone(zone);
+                const ranked = platforms
+                    .map((platform) => {
+                        const centerX = Number(platform.x || 0) + (Math.max(1, Number(platform.len || 1)) * 16);
+                        let score = Math.abs(centerX - targetX);
+                        if (isBlockedX(centerX, avoidList)) score += 900;
+                        if (Number(platform.len || 0) < 3) score += 120;
+                        return { platform, centerX, score };
+                    })
+                    .sort((a, b) => a.score - b.score);
+                return ranked[0]?.platform || null;
+            };
+            const chooseFloorX = (zone, avoidList = [], variantIndex = 0) => {
+                const target = targetXForZone(zone);
+                const variants = [target, target - 132, target + 132, target - 220, target + 220];
+                return variants.find((candidate) => !isBlockedX(candidate, avoidList)) || target;
+            };
+            const addProp = (textureKey, localX, y, options = {}) => {
+                const sprite = this.add.image(roomBounds.start + localX, y, textureKey)
+                    .setDepth(options.depth != null ? options.depth : -0.1)
+                    .setAlpha(options.alpha != null ? options.alpha : 0.92);
+                if (options.scale) sprite.setScale(options.scale);
+                this.environmentDecor.push(sprite);
+            };
+            const addGraphicsLayer = (drawer, depth = -0.7) => {
+                const g = this.add.graphics();
+                g.setDepth(depth);
+                drawer(g);
+                this.environmentDecor.push(g);
+            };
+            const addBackdropOverlay = () => {
+                const style = deriveRoomEnvironmentRuntimeStyle(roomId);
+                const family = String(style.backdropFamily || 'ruined_arch_hall');
+                if (family === 'industrial_depth') {
+                    addGraphicsLayer((g) => {
+                        g.fillStyle(rgbToHexInt(style.edge), 0.18);
+                        for (let y = 220; y < 980; y += 120) {
+                            g.fillRect(roomBounds.start, y, roomBounds.width, 28);
+                        }
+                        g.lineStyle(3, rgbToHexInt(style.crack), 0.3);
+                        for (let x = roomBounds.start + 90; x < roomBounds.start + roomBounds.width; x += 180) {
+                            g.strokeCircle(x, 320, 30);
+                            g.strokeCircle(x, 620, 30);
+                        }
+                    }, -1.45);
+                    return;
+                }
+                addGraphicsLayer((g) => {
+                    const archColor = rgbToHexInt(style.edge);
+                    g.fillStyle(archColor, 0.12);
+                    const count = family === 'flooded_arch_hall' ? 4 : 3;
+                    for (let i = 0; i < count; i += 1) {
+                        const width = roomBounds.width / (count + 1);
+                        const x = roomBounds.start + (i + 0.7) * width;
+                        g.fillRect(x - 20, 220, 40, 720);
+                        g.fillRoundedRect(x - 84, 160, 168, 120, 56);
+                    }
+                    if (family === 'flooded_arch_hall') {
+                        g.fillStyle(rgbToHexInt(style.water), 0.14);
+                        g.fillRect(roomBounds.start, 880, roomBounds.width, 160);
+                    }
+                }, -1.38);
+            };
+
+            addBackdropOverlay();
+
+            (schema.background_layers || []).forEach((layer, index) => {
+                if (layer.kind === 'fog_band') {
+                    const fog = this.add.rectangle(
+                        roomBounds.start + (roomBounds.width / 2),
+                        CONFIG.WORLD_HEIGHT - 116 - (index * 48),
+                        roomBounds.width,
+                        160,
+                        rgbToHexInt(deriveRoomEnvironmentRuntimeStyle(roomId).glow),
+                        0.08
+                    ).setDepth(-0.5);
+                    this.environmentDecor.push(fog);
+                    return;
+                }
+                if (layer.kind === 'architecture' && layer.motif === 'gothic_arches' && !this.textures.exists(roomBackgroundAssetKey(roomId))) {
+                    addGraphicsLayer((g) => {
+                        const color = rgbToHexInt(deriveRoomEnvironmentRuntimeStyle(roomId).edge);
+                        g.fillStyle(color, 0.16);
+                        const count = layer.density === 'high' ? 5 : 3;
+                        for (let i = 0; i < count; i += 1) {
+                            const width = roomBounds.width / (count + 1);
+                            const x = roomBounds.start + (i + 0.5) * width;
+                            g.fillRect(x - 18, 280, 36, 560);
+                            g.fillRoundedRect(x - 64, 220, 128, 96, 48);
+                        }
+                    }, -0.8);
+                    return;
+                }
+                if (layer.kind === 'architecture' && layer.motif === 'columns' && !this.textures.exists(roomBackgroundAssetKey(roomId))) {
+                    addGraphicsLayer((g) => {
+                        const style = deriveRoomEnvironmentRuntimeStyle(roomId);
+                        g.fillStyle(rgbToHexInt(style.floorAlt), 0.12);
+                        const count = layer.density === 'high' ? 8 : 5;
+                        for (let i = 0; i < count; i += 1) {
+                            const x = roomBounds.start + ((i + 1) * roomBounds.width / (count + 1));
+                            g.fillRect(x - 12, 180, 24, 720);
+                        }
+                    }, -0.72);
+                }
+            });
+
+            (schema.set_dressing || []).forEach((item) => {
+                const count = Math.max(1, Number(item.count || 1));
+                for (let i = 0; i < count; i += 1) {
+                    const zone = i === 0 ? (item.zone || 'center') : (item.zone === 'left' ? 'center' : item.zone === 'right' ? 'center' : 'left');
+                    const anchor = item.anchor || 'floor';
+                    const avoidList = Array.isArray(item.avoid) ? item.avoid : [];
+                    let localX = chooseFloorX(zone, avoidList, i);
+                    let y = CONFIG.WORLD_HEIGHT - 56;
+                    if (anchor === 'platform') {
+                        const platform = choosePlatform(zone, avoidList);
+                        if (platform) {
+                            localX = Number(platform.x || 0) + (Math.max(1, Number(platform.len || 1)) * 16);
+                            y = Number(platform.y || 0) - 18;
+                        }
+                    } else if (anchor === 'ceiling') {
+                        y = 78;
+                    } else if (anchor === 'wall') {
+                        localX = zone === 'left' ? 52 : roomBounds.width - 52;
+                        y = CONFIG.WORLD_HEIGHT - 156;
+                    }
+                    if (isBlockedX(localX, avoidList)) continue;
+                    if (item.type === 'brazier') addProp(roomPropTextureKey(roomId, 'brazier'), localX, y, { depth: -0.02 });
+                    if (item.type === 'altar') addProp(roomPropTextureKey(roomId, 'altar'), localX, y, { depth: -0.04 });
+                    if (item.type === 'roots') addProp(roomPropTextureKey(roomId, 'roots'), localX, y, { depth: -0.08 });
+                    if (item.type === 'statue') addProp(roomPropTextureKey(roomId, 'statue'), localX, y, { depth: -0.06 });
+                    if (item.type === 'chains') addProp(roomPropTextureKey(roomId, 'chains'), localX, y, { depth: -0.12, alpha: 0.82 });
+                    if (item.type === 'banner') addProp(roomPropTextureKey(roomId, 'banner'), localX, y, { depth: -0.09 });
+                }
+            });
+        });
     }
 
     getBranchIdForRoom(roomId) {
@@ -1567,15 +1927,15 @@ class AshenHollow extends Phaser.Scene {
         ROOM_SEQUENCE.forEach((roomId) => {
             const roomBounds = ROOM_IDS[roomId];
             const roomWidth = roomBounds?.width || getRoomWidth(roomId);
-            const floorTexture = roomSurfaceTextureKey(roomId);
+            const floorTexture = resolveRoomSurfaceTexture(this, roomId);
             if (!roomBounds || roomWidth <= 0) return;
             for (let localX = 0; localX < roomWidth; localX += tile) {
                 const centerX = localX + 16;
                 if (shouldPlaceBoundaryTile(roomId, { x: centerX, y: 16 })) {
-                    this.platforms.create(roomBounds.start + centerX, 16, floorTexture).refreshBody();
+                    this.createRoomSurfaceTile(roomBounds.start + centerX, 16, roomId, floorTexture);
                 }
                 if (shouldPlaceBoundaryTile(roomId, { x: centerX, y: CONFIG.WORLD_HEIGHT - 16 })) {
-                    this.platforms.create(roomBounds.start + centerX, CONFIG.WORLD_HEIGHT - 16, floorTexture).refreshBody();
+                    this.createRoomSurfaceTile(roomBounds.start + centerX, CONFIG.WORLD_HEIGHT - 16, roomId, floorTexture);
                 }
             }
         });
@@ -1588,7 +1948,7 @@ class AshenHollow extends Phaser.Scene {
             for (let localY = tile; localY < CONFIG.WORLD_HEIGHT - 32; localY += tile) {
                 const centerY = localY + 16;
                 if (shouldPlaceBoundaryTile(firstRoomId, { x: 16, y: centerY })) {
-                    this.platforms.create(16, centerY, roomSurfaceTextureKey(firstRoomId)).refreshBody();
+                    this.createRoomSurfaceTile(16, centerY, firstRoomId, resolveRoomSurfaceTexture(this, firstRoomId));
                 }
             }
         }
@@ -1597,27 +1957,27 @@ class AshenHollow extends Phaser.Scene {
             for (let localY = tile; localY < CONFIG.WORLD_HEIGHT - 32; localY += tile) {
                 const centerY = localY + 16;
                 if (shouldPlaceBoundaryTile(lastRoomId, { x: localX, y: centerY })) {
-                    this.platforms.create(CONFIG.WORLD_WIDTH - 16, centerY, roomSurfaceTextureKey(lastRoomId)).refreshBody();
+                    this.createRoomSurfaceTile(CONFIG.WORLD_WIDTH - 16, centerY, lastRoomId, resolveRoomSurfaceTexture(this, lastRoomId));
                 }
             }
         }
 
         Object.entries(ROOM_PLATFORM_LAYOUTS).forEach(([roomId, ledges]) => {
             ledges.forEach(({ x, y, len, tint }) => {
-                const textureKey = roomPlatformTextureKey(roomId, tint || 0);
+                const resolvedTextureKey = resolveRoomPlatformTexture(this, roomId, tint || 0);
                 for (let i = 0; i < len; i++) {
-                    this.platforms.create(x + (i * tile) + 16, y, textureKey).refreshBody();
+                    this.createRoomPlatformTile(x + (i * tile) + 16, y, roomId, resolvedTextureKey);
                 }
             });
         });
 
         DUNGEON_WALL_RECTS.forEach(({ room, rects }) => {
             const roomStart = ROOM_IDS[room].start;
-            const floorTexture = roomSurfaceTextureKey(room);
+            const floorTexture = resolveRoomSurfaceTexture(this, room);
             rects.forEach(({ x, y, wTiles, hTiles }) => {
                 for (let xi = 0; xi < wTiles; xi++) {
                     for (let yi = 0; yi < hTiles; yi++) {
-                        this.platforms.create(roomStart + x + (xi * tile) + 16, y + (yi * tile), floorTexture).refreshBody();
+                        this.createRoomSurfaceTile(roomStart + x + (xi * tile) + 16, y + (yi * tile), room, floorTexture);
                     }
                 }
             });
@@ -1635,8 +1995,13 @@ class AshenHollow extends Phaser.Scene {
             fontSize: '11px', fill: '#ffd78a', stroke: '#000', strokeThickness: 2
         }).setOrigin(0.5).setVisible(false);
         const createThemedDoor = (roomId, x, y, tint = null) => {
-            const sprite = this.physics.add.staticImage(x, y, roomDoorTextureKey(roomId)).refreshBody();
+            const textureKey = resolveRoomDoorTexture(this, roomId);
+            const sprite = this.physics.add.staticImage(x, y, textureKey);
+            if (isResolvedRoomDoorAsset(roomId, textureKey)) {
+                sprite.setDisplaySize(48, 72);
+            }
             if (tint != null) sprite.setTint(tint);
+            sprite.refreshBody();
             return sprite;
         };
 
@@ -1733,7 +2098,7 @@ class AshenHollow extends Phaser.Scene {
             });
 
             roomMovers.forEach((moverDef) => {
-                const textureKey = roomPlatformTextureKey(roomId, Number(moverDef.tint || 0));
+                const textureKey = resolveRoomPlatformTexture(this, roomId, Number(moverDef.tint || 0));
                 const moverWidth = Math.max(32, moverDef.len * 32);
                 const sprite = this.dynamicPlatforms.create(roomStart + moverDef.x + (moverWidth / 2), moverDef.y, textureKey);
                 sprite.setDisplaySize(moverWidth, 14);
@@ -2516,6 +2881,13 @@ class AshenHollow extends Phaser.Scene {
         this.cameras.main.setBackgroundColor(getEnvironmentBackgroundColor(roomId));
         if (this.starField && this.starField.setTint) {
             this.starField.setTint(getEnvironmentStarfieldTint(roomId));
+            this.starField.setAlpha(this.roomBackgroundSprites?.[roomId] ? 0.3 : 1);
+        }
+        if (this.roomBackgroundSprites) {
+            Object.entries(this.roomBackgroundSprites).forEach(([id, sprite]) => {
+                if (!sprite) return;
+                sprite.setVisible(id === roomId);
+            });
         }
         this.roomEnteredAtMs = this.time.now;
         this.roomStallLogged = false;

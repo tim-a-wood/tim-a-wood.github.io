@@ -131,7 +131,8 @@ function ensureRoomEnvironment(room) {
       tags: [],
       spec: {},
       preview: {},
-      template_context: {}
+      template_context: {},
+      runtime: {}
     };
   }
   const e = room.environment;
@@ -144,6 +145,7 @@ function ensureRoomEnvironment(room) {
   if (!e.spec || typeof e.spec !== 'object') e.spec = {};
   if (!e.preview || typeof e.preview !== 'object') e.preview = {};
   if (!e.template_context || typeof e.template_context !== 'object') e.template_context = {};
+  if (!e.runtime || typeof e.runtime !== 'object') e.runtime = {};
   if (typeof e.spec.theme_id !== 'string' || !e.spec.theme_id.trim()) e.spec.theme_id = e.themeId;
   if (!Array.isArray(e.spec.tags)) e.spec.tags = [...e.tags];
   if (typeof e.spec.description !== 'string') e.spec.description = '';
@@ -155,6 +157,11 @@ function ensureRoomEnvironment(room) {
   if (!Array.isArray(e.spec.hazards)) e.spec.hazards = [];
   if (typeof e.spec.composition_focus !== 'string') e.spec.composition_focus = '';
   if (!Array.isArray(e.spec.readability_notes)) e.spec.readability_notes = [];
+  if (!e.spec.scene_schema || typeof e.spec.scene_schema !== 'object') e.spec.scene_schema = {};
+  if (!Array.isArray(e.spec.scene_schema.background_layers)) e.spec.scene_schema.background_layers = [];
+  if (!Array.isArray(e.spec.scene_schema.set_dressing)) e.spec.scene_schema.set_dressing = [];
+  if (!e.spec.scene_schema.effects || typeof e.spec.scene_schema.effects !== 'object') e.spec.scene_schema.effects = {};
+  if (!e.spec.scene_schema.kit || typeof e.spec.scene_schema.kit !== 'object') e.spec.scene_schema.kit = {};
   if (typeof e.preview.status !== 'string') e.preview.status = 'idle';
   if (typeof e.preview.render_level !== 'string' && e.preview.render_level !== null) e.preview.render_level = null;
   if (!Array.isArray(e.preview.images)) e.preview.images = [];
@@ -166,6 +173,9 @@ function ensureRoomEnvironment(room) {
   }
   if (typeof e.preview.last_generated_at !== 'string' && e.preview.last_generated_at !== null) {
     e.preview.last_generated_at = null;
+  }
+  if (typeof e.preview.approved_palette !== 'object' && e.preview.approved_palette !== null) {
+    e.preview.approved_palette = null;
   }
   if (typeof e.template_context.source_template_id !== 'string' && e.template_context.source_template_id !== null) {
     e.template_context.source_template_id = null;
@@ -182,6 +192,29 @@ function ensureRoomEnvironment(room) {
   if (typeof e.template_context.last_adapted_at !== 'string' && e.template_context.last_adapted_at !== null) {
     e.template_context.last_adapted_at = null;
   }
+  if (typeof e.runtime.status !== 'string') e.runtime.status = 'idle';
+  if (typeof e.runtime.source !== 'string' && e.runtime.source !== null) e.runtime.source = null;
+  if (typeof e.runtime.applied_preview_id !== 'string' && e.runtime.applied_preview_id !== null) {
+    e.runtime.applied_preview_id = null;
+  }
+  if (typeof e.runtime.surface_palette !== 'object' && e.runtime.surface_palette !== null) {
+    e.runtime.surface_palette = null;
+  }
+  if (!Array.isArray(e.runtime.material_keywords)) e.runtime.material_keywords = [];
+  if (typeof e.runtime.lighting_mode !== 'string') e.runtime.lighting_mode = '';
+  if (typeof e.runtime.last_applied_at !== 'string' && e.runtime.last_applied_at !== null) {
+    e.runtime.last_applied_at = null;
+  }
+  if (!e.runtime.asset_pack || typeof e.runtime.asset_pack !== 'object') e.runtime.asset_pack = {};
+  if (typeof e.runtime.asset_pack.status !== 'string') e.runtime.asset_pack.status = 'idle';
+  if (typeof e.runtime.asset_pack.used_ai !== 'boolean') e.runtime.asset_pack.used_ai = false;
+  if (typeof e.runtime.asset_pack.generated_at !== 'string' && e.runtime.asset_pack.generated_at !== null) {
+    e.runtime.asset_pack.generated_at = null;
+  }
+  if (typeof e.runtime.asset_pack.source_preview_id !== 'string' && e.runtime.asset_pack.source_preview_id !== null) {
+    e.runtime.asset_pack.source_preview_id = null;
+  }
+  if (!e.runtime.asset_pack.assets || typeof e.runtime.asset_pack.assets !== 'object') e.runtime.asset_pack.assets = {};
   return e;
 }
 

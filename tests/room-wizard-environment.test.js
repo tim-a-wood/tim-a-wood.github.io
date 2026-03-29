@@ -32,18 +32,21 @@ const { buildRuntimeRoom, normalizeRuntimeEnvironment } = require('../room-layou
   assert.strictEqual(e.themeId, DEFAULT_THEME_ID);
   assert.deepStrictEqual(e.tags, []);
   assert.ok(e.spec);
+  assert.ok(e.spec.scene_schema);
+  assert.ok(e.spec.scene_schema.kit);
   assert.ok(e.preview);
   assert.ok(e.template_context);
+  assert.ok(e.runtime);
   assert.strictEqual(room.environment, e);
 })();
 
 (function testExportNormalize() {
-  assert.deepStrictEqual(normalizeRuntimeEnvironment({}), { version: 1, themeId: 'cave', tags: [] });
+  assert.deepStrictEqual(normalizeRuntimeEnvironment({}), { version: 1, themeId: 'cave', tags: [], spec: {}, preview: {}, runtime: {} });
   assert.deepStrictEqual(
     normalizeRuntimeEnvironment({
       environment: { version: 1, themeId: 'ruins', tags: ['x'] }
     }),
-    { version: 1, themeId: 'ruins', tags: ['x'] }
+    { version: 1, themeId: 'ruins', tags: ['x'], spec: {}, preview: {}, runtime: {} }
   );
 })();
 

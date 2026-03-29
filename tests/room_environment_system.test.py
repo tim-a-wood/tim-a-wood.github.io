@@ -125,6 +125,9 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         self.assertIn("spec", env)
         self.assertIn("preview", env)
         self.assertTrue(env["tags"])
+        self.assertIn("scene_schema", env["spec"])
+        self.assertIn("set_dressing", env["spec"]["scene_schema"])
+        self.assertIn("kit", env["spec"]["scene_schema"])
 
     def test_generate_and_approve_previews(self):
         envsys.update_project_art_direction(self.project_id, {"template_id": "overgrown-shrine", "locked": True})
@@ -149,6 +152,22 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
             approved["environment"]["preview"]["approved_image_id"],
             preview["images"][0]["preview_id"],
         )
+        self.assertIsNotNone(approved["environment"]["preview"]["approved_palette"])
+        self.assertEqual(approved["environment"]["runtime"]["status"], "ready")
+        self.assertEqual(
+            approved["environment"]["runtime"]["applied_preview_id"],
+            preview["images"][0]["preview_id"],
+        )
+        self.assertIsNotNone(approved["environment"]["runtime"]["surface_palette"])
+        asset_pack = envsys.generate_room_environment_asset_pack(
+            self.project_id,
+            "R1",
+            {"preview_id": preview["images"][0]["preview_id"]},
+        )
+        self.assertEqual(asset_pack["environment"]["runtime"]["asset_pack"]["status"], "ready")
+        for item in asset_pack["environment"]["runtime"]["asset_pack"]["assets"].values():
+            rel_url = item["url"].lstrip("/")
+            self.assertTrue((self.root / rel_url).exists())
 
 
 if __name__ == "__main__":

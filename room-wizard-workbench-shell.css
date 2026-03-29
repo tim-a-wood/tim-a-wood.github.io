@@ -1099,6 +1099,57 @@
   gap: 12px;
 }
 
+.room-wizard-dock .rw-environment-output {
+  display: grid;
+  gap: 12px;
+}
+
+.room-wizard-dock .rw-environment-output-card {
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.room-wizard-dock .rw-environment-output-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.room-wizard-dock .rw-environment-output-copy {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--font-size-sm);
+  line-height: 1.6;
+}
+
+.room-wizard-dock .rw-environment-asset-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
+  gap: 12px;
+}
+
+.room-wizard-dock .rw-environment-asset-thumb {
+  display: grid;
+  gap: 8px;
+}
+
+.room-wizard-dock .rw-environment-asset-thumb img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  border-radius: var(--radius-default);
+  border: 1px solid var(--line);
+  background: var(--panel-2);
+}
+
+.room-wizard-dock .rw-environment-asset-thumb span {
+  color: var(--muted);
+  font-size: var(--font-size-xs);
+  text-transform: capitalize;
+}
+
 .room-wizard-dock .rw-preview-card {
   display: grid;
   gap: 10px;
@@ -1159,5 +1210,9 @@
 
   .room-wizard-dock .rw-preview-gallery {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .room-wizard-dock .rw-environment-output-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
