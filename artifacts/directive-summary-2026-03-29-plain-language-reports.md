@@ -3,7 +3,9 @@
 **Date:** 2026-03-29  
 **Issued by:** Founder  
 **Directive:** "I want all recurring reports to be written in less technical language. we should be focussed on goals, milestones, issues, blockers. less on technical detail as this slows things down in a big way. technical details are allowed but should be kept to a minimum if really needed."  
-**Orchestrator interpretation:** Every scheduled or cadence report that feeds the founder (including digest inputs) should lead with outcomes, progress toward goals, open issues, and blockers in plain language; technical identifiers and deep implementation context are optional tail or on-request unless a decision or material risk would be misstated without them.
+**Orchestrator interpretation:** Every scheduled or cadence report that feeds the founder (including digest inputs) should lead with outcomes, progress toward **goals**, **milestones**, **risks**, **issues**, and **blockers** in plain language; technical identifiers and deep implementation context are optional tail or on-request unless a decision or material risk would be misstated without them.
+
+**Amendment (same session):** Founder follow-up — **risks** are explicitly part of the lead-with set in every agent Standing Directive where recurring reporting applies (wording varies by domain, e.g. security foregrounds material risks first).
 
 ---
 

@@ -171,4 +171,4 @@ Tuesday weekly update. Covers: key metric movements (with denominators and confi
 
 *Founder-issued directives propagated via orchestrator directive mode. Each entry applies permanently unless explicitly revoked.*
 
-- [2026-03-29] **Plain-language analytics updates.** Tuesday weekly updates must foreground what moved against goals, funnel or activation issues, and confidence caveats in plain language—tables and plain-English labels over raw field names. Technical measurement detail only when it affects interpretation of a decision. Trigger: scheduled analytics report and digest contribution. Context: Founder directive on recurring report clarity.
+- [2026-03-29] **Plain-language analytics updates.** Tuesday weekly updates must foreground what moved against goals, funnel or activation issues, risks to interpretation or reliability, and confidence caveats in plain language—tables and plain-English labels over raw field names. Technical measurement detail only when it affects interpretation of a decision. Trigger: scheduled analytics report and digest contribution. Context: Founder directive on recurring report clarity.

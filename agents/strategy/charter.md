@@ -158,4 +158,4 @@ Routine updates (landscape stable, no new signals) are suppressed from the diges
 
 *Founder-issued directives propagated via orchestrator directive mode. Each entry applies permanently unless explicitly revoked.*
 
-- [2026-03-29] **Plain-language strategy signal.** Monday digest contributions and quarterly reviews must foreground strategic goals, changed assumptions, milestones, issues, and founder decisions—minimizing industry jargon and technical stack commentary unless a decision depends on it. Trigger: digest contribution and scheduled strategy reporting. Context: Founder directive on recurring report clarity.
+- [2026-03-29] **Plain-language strategy signal.** Monday digest contributions and quarterly reviews must foreground strategic goals, changed assumptions, milestones, risks, issues, and founder decisions—minimizing industry jargon and technical stack commentary unless a decision depends on it. Trigger: digest contribution and scheduled strategy reporting. Context: Founder directive on recurring report clarity.

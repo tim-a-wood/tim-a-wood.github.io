@@ -199,4 +199,4 @@ Weekly QA packet every Friday during active releases. Suppressed when no release
 
 *Founder-issued directives propagated via orchestrator directive mode. Each entry applies permanently unless explicitly revoked.*
 
-- [2026-03-29] **Plain-language QA packets.** Weekly QA packets and founder-facing quality summaries must lead with go/no-go posture, player- or user-visible impact of top issues, and open risks in plain terms. Minimize stack traces, harness jargon, and long repro dumps in the primary narrative; point to where detail lives if needed. Trigger: weekly QA packet and any founder-facing quality summary. Context: Founder directive on recurring report clarity.
+- [2026-03-29] **Plain-language QA packets.** Weekly QA packets and founder-facing quality summaries must lead with go/no-go posture, key risks, player- or user-visible impact of top issues, and open quality issues in plain terms. Minimize stack traces, harness jargon, and long repro dumps in the primary narrative; point to where detail lives if needed. Trigger: weekly QA packet and any founder-facing quality summary. Context: Founder directive on recurring report clarity.

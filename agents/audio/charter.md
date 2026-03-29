@@ -165,4 +165,4 @@ Event-triggered on audio identity document creation, major score direction decis
 
 *Founder-issued directives propagated via orchestrator directive mode. Each entry applies permanently unless explicitly revoked.*
 
-- [2026-03-29] **Plain-language digest contributions.** When contributing to the Monday digest or founder-facing audio summaries, lead with creative goals, decisions needed, and blockers; minimize DAW, middleware, and format jargon unless a decision depends on it. Trigger: digest contribution or escalated audio summary. Context: Founder directive on recurring report clarity.
+- [2026-03-29] **Plain-language digest contributions.** When contributing to the Monday digest or founder-facing audio summaries, lead with creative goals, risks, decisions needed, and blockers; minimize DAW, middleware, and format jargon unless a decision depends on it. Trigger: digest contribution or escalated audio summary. Context: Founder directive on recurring report clarity.
