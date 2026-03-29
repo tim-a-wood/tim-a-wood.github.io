@@ -1,100 +1,138 @@
-# Brainstorming Summary — Game engine fit (dashboard / runtime)
+# Brainstorming summary — picking the right “play” technology for the toolchain
 
-**Date:** 2026-03-29  
-**Topic:** Whether Phaser remains the best runtime fit for a metroidvania in the dashboard versus Unity, Godot, or other stacks—aligned with an AI-enabled product that lowers technical barriers for solo, non-technical creators.  
-**Specialists involved:** Chief Engineer (architecture / runtime), Marketing + Product (ICP), QA (testability)—simulated perspectives  
-**Mode:** brainstorm  
+**Date:** 2026-03-29 · **Rewritten:** plain-language reporting directive (goals, milestones, risks, issues, blockers first)
 
 ---
 
-## Vision anchor
+## At a glance (read this first)
 
-- **Product:** Browser toolchain (sprite workbench, room editor, world flow) with plain-language UX and AI that **proposes** structured data users **approve**—no silent mutation.  
-- **Game:** Dark-fantasy metroidvania pillars (combat, movement, bosses, maze-like maps, meaningful loot); **PWA / web** in the plan.  
-- **Today:** Game in **index.html + Phaser 3**; editors export **deterministic JSON** for the runtime.
+**Goals we’re protecting**
 
-**Two questions:** (1) authoring surface (already web), (2) playable runtime (in-browser preview vs download vs store).
+- Solo and non-technical creators can build a metroidvania-style game with AI help, without getting lost in expert tooling.
+- The workbench stays in the browser; “Play” should feel like part of one product, not a separate universe.
+- We ship a playable dark-fantasy exploration game that matches our pillars: good movement, combat, bosses, maze-like maps, meaningful rewards.
 
----
+**Milestones this ties to**
 
-## Options generated
+- **Now:** Prove the loop — editors → export → playable preview — without forcing users to install a heavy game studio.
+- **Later:** If we promise “ship on PC/console/store,” the answer may change; this brainstorm separates “browser-first” from “ship anywhere.”
 
-### Option 1: Stay on Phaser (web-first runtime)
+**Risks if we choose wrong**
 
-- **Source:** Chief Engineer + Product  
-- **Core idea:** Web runtime with Phaser 3; same JS ecosystem as tools; GitHub Pages–style deploy.  
-- **Best case:** Fast iteration, agent-friendly repo, no separate engine install for browser-only creators; thin JSON → runtime.  
-- **Weak assumption:** Browser performance and long-term combat/boss/polish complexity stay manageable.
+- **Switch too early:** We split attention across two products (browser tools + a big external engine) and slow everyone down, including AI-assisted workflows tied to our current stack.
+- **Stay too long on the wrong stack:** We hit a ceiling on polish, performance, or content scale and pay for a painful migration later.
+- **Confusing “Play”:** Users don’t know whether the game opens in the tab, downloads, or launches something else — trust drops.
 
-### Option 2: Unity (WebGL + desktop)
+**Issues on the table**
 
-- **Source:** Chief Engineer + Marketing  
-- **Core idea:** Unity as primary runtime; web via WebGL for preview.  
-- **Best case:** Strong desktop/console path; huge ecosystem; visual tooling.  
-- **Weak assumption:** WebGL + C# + editor complexity still fits non-technical solo + AI story.
+- We’re already running the prototype in the browser with one technology; the question is whether that remains the right default as scope grows.
+- “Best engine” depends on whether our promise is **instant play in the browser** or **ship a standalone/desktop/console build** as the main story.
 
-### Option 3: Godot (2D-first, multi-export)
+**Blockers to a final call**
 
-- **Source:** Chief Engineer  
-- **Core idea:** Godot 4 for 2D; evaluate HTML5 export for browser.  
-- **Best case:** Strong 2D workflow; license clarity; approachable GDScript.  
-- **Weak assumption:** Web export + deploy rhythm matches PWA cadence; JSON pipeline maps cleanly.
+- We haven’t locked **browser-first preview** vs **multi-platform ship** as the primary customer promise.
+- We haven’t run a small, timed comparison (same slice of game) on the serious alternatives — evidence beats debate.
 
-### Option 4: Hybrid — web shell + engine build
+**Decisions needed soon**
 
-- **Source:** Product + QA  
-- **Core idea:** Dashboard stays web; Play opens WebGL or desktop wrapper.  
-- **Best case:** Browser UX + heavier engine where it wins.  
-- **Weak assumption:** Two pipelines stay in sync without confusing users.
-
-### Option 5: Lighter web (PixiJS, Kaboom, custom canvas)
-
-- **Source:** Chief Engineer  
-- **Core idea:** Thinner 2D if Phaser abstractions limit you.  
-- **Best case:** Control and smaller surface.  
-- **Weak assumption:** Rewrite is worth schedule/risk vs Phaser.
+- Founder / product: one clear line on **where “Play” must work first** (browser only vs browser + download vs store-first).
+- Whether to run a **short spike** before decision mode, and who owns it.
 
 ---
 
-## Cross-specialist stress test
+## Why this topic matters (vision, in plain terms)
 
-| Option | Weakest assumption | Raised by |
-|--------|-------------------|-----------|
-| Phaser | Browser + Arcade physics scale to combat/boss polish. | Chief Engineer |
-| Unity | Solo non-dev + AI not blocked by editor/C#/build; WebGL good enough for preview. | Product |
-| Godot | Web export + CI matches workbench product feel. | Chief Engineer |
-| Hybrid | One clear “Play” story for users with two runtimes. | Product |
-| Lighter web | Benefit justifies rewrite. | QA |
+We’re building an **AI-enabled** toolchain so people without a engineering background can **author** games: guided flows, plain language, AI suggests and the human **approves** — no silent changes.
+
+The **game** is a dark-fantasy metroidvania: exploration, backtracking, abilities that open new paths, strong movement and combat, memorable bosses, and loot that matters.
+
+Today the **tools** live on the web, and the **playable game** also runs in the browser using tech we already chose. Exported layout data feeds that game. The open question is: **keep that path**, or **move (or split)** where the “real” game runs — for example a mainstream game editor with a web preview — without breaking the solo-creator story.
 
 ---
 
-## Synthesis
+## Choices we brainstormed (five paths)
 
-- **Aligned with vision today:** Option 1 (Phaser), then Option 5 if Phaser limits you—not a default jump to Unity/Godot.  
-- **Explore 2/3 if north star shifts** to store-first or maximum artist tooling—prefer Option 4 so workbench stays web.
+### A — Stay browser-first with what we use today
 
-Open product question: must **Play** stay **instant in-tab**, or can it be heavier WebGL / download as content grows?
+**Idea:** Keep one family of technology for tools and runtime; ship updates like a normal web app.
+
+**Upside:** Fast iteration; fits “everything in the browser”; keeps AI and contributors working in one familiar codebase.
+
+**What we’re betting on:** The browser can carry the game as fights, bosses, and polish ramp up — or we’re willing to invest in custom work if we hit limits.
+
+### B — Use a major studio-style engine (example: Unity), web only as a preview
+
+**Idea:** The “real” game lives in a full game editor; browser shows a preview build when needed.
+
+**Upside:** Well-worn path to desktop/console, huge learning material, strong artist tooling.
+
+**What we’re betting on:** Preview-in-browser stays good enough for our users, and we don’t drown non-technical creators in installs, accounts, and build steps.
+
+### C — Use a strong 2D-first engine (example: Godot)
+
+**Idea:** Favor an engine built for 2D; still consider web output for preview.
+
+**Upside:** Friendly for 2D metroidvania work; clear licensing story; approachable scripting.
+
+**What we’re betting on:** Web export and our release rhythm still feel like **one product** with the workbench, and our exported data plugs in cleanly.
+
+### D — Hybrid
+
+**Idea:** Tools stay in the browser; “Play” sometimes opens a heavier build (web preview or a small desktop launcher).
+
+**Upside:** Match each piece to its strength.
+
+**What we’re betting on:** We can keep **one simple story** for users (“press Play and you know what happens”) while operating two pipelines behind the scenes.
+
+### E — Lighter browser tech (replace our current runtime layer only)
+
+**Idea:** If our current stack feels heavy or limiting, swap for a slimmer browser graphics layer — not necessarily jump to Unity/Godot.
+
+**Upside:** More control, possibly smaller surface area.
+
+**What we’re betting on:** A rewrite pays for itself in schedule and risk — otherwise we’re churning.
 
 ---
 
-## Next step
+## Stress test — where each path is weakest
 
-- [ ] Take to **decision mode** for a single recommended path.  
-- [ ] **Spike** same JSON slice in Godot vs WebGL Unity vs Phaser.  
-- [x] Founder weighs **browser-first preview** vs **ship anywhere**.
-
----
-
-**Recommendation:** Keep **Phaser as default** for in-dashboard / PWA runtime until a short **Chief Engineer spike** proves a gap Unity/Godot closes better—or founder locks preview vs ship target.  
-
-**Risks:** Early engine switch fragments the AI-friendly monolith; “Unity = standard” can hurt the non-technical story; ignoring native engines may cap later console/desktop polish.  
-
-**Confidence:** Medium on product alignment; Low–Medium on WebGL/Godot-web without measured spikes.  
-
-**Founder approval needed:** Yes before Unity/Godot as **primary** runtime or dual-pipeline hybrid.  
-
-**Next actions:** (1) Founder/PO: lock browser-first vs multi-platform promise. (2) Chief Engineer: one-page evaluation matrix. (3) Optional time-boxed spike on one vertical slice.
+| Path | Main weak bet | Who flagged it |
+|------|----------------|----------------|
+| A (stay browser + current stack) | Browser and our current physics style may feel tight as combat and boss polish grow. | Engineering |
+| B (big studio engine) | Non-technical solo flow + AI story may clash with editor/install/build friction; preview quality varies. | Product |
+| C (2D-first engine) | Web export + “always fresh deploy” may not match how fast we ship the workbench today. | Engineering |
+| D (hybrid) | Two pipelines can confuse users and operations unless “Play” is crystal clear. | Product |
+| E (lighter browser layer) | Easy to underestimate cost of rebuilding what we already have. | QA |
 
 ---
 
-*Orchestrator brainstorm — use decision brief for a binding engine choice.*
+## Synthesis (brainstorm — not a binding decision)
+
+- **Best match for today’s vision** (browser workbench, web game, AI-friendly single repo): **stay on A**, and only consider **E** if we hit a concrete wall — not an automatic jump to B or C.
+- **Worth exploring B or C** if we **change the north star** toward store-first or maximum artist-studio depth — ideally under **D** so the workbench **stays web** and non-technical creators aren’t forced into expert workflows day one.
+
+The product question to settle: **Must “Play” be instant in the tab forever, or can it become a heavier preview or download as the game grows?**
+
+---
+
+## Next steps
+
+- [ ] Move to **decision mode** when you want one recommended path and explicit “what would change our mind.”
+- [ ] **Time-box a spike:** same small vertical slice through one alternative preview path vs current — only if we want data before deciding.
+- [x] Founder direction: **browser-first preview** vs **ship anywhere** — partial input; lock when ready.
+
+---
+
+**Recommendation (orchestrator):** Treat **stay browser-first (A)** as the default until a **short, owned spike** shows a specific gap that B or C fixes better — or until the founder **locks** the customer promise on preview vs ship.
+
+**Risks:** Switching engines too soon fragments how we build; “everyone uses Unity” can **hurt** non-technical solo positioning; ignoring B/C entirely may **cap** later if we pivot to console/desktop as revenue.
+
+**Confidence:** **Medium** on direction; **lower** on web-preview quality for B/C until we try a slice.
+
+**Founder approval needed:** **Yes** before adopting B or C as the **primary** runtime, or before committing to a **hybrid (D)** that users will feel.
+
+**Next actions:** (1) One-line product lock: browser-first vs multi-platform promise. (2) One-page comparison: deploy, ease of solo use, AI workflow fit, cost/licensing — minimal jargon, decision-oriented. (3) Optional spike: same slice, timed.
+
+---
+
+*Brainstorm only — use a decision brief when you want a binding engine choice.*
