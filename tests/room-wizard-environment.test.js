@@ -8,6 +8,8 @@ const {
   parseTagsInput,
   tagsToInputString,
   ensureRoomEnvironment,
+  getThemeLabel,
+  buildEnvironmentPreviewModel,
   THEME_PRESETS,
   DEFAULT_THEME_ID
 } = require('../room-wizard-environment.js');
@@ -26,9 +28,12 @@ const { buildRuntimeRoom, normalizeRuntimeEnvironment } = require('../room-layou
 (function testEnsureRoomEnvironment() {
   const room = { id: 'R1' };
   const e = ensureRoomEnvironment(room);
-  assert.strictEqual(e.version, 1);
+  assert.strictEqual(e.version, 2);
   assert.strictEqual(e.themeId, DEFAULT_THEME_ID);
   assert.deepStrictEqual(e.tags, []);
+  assert.ok(e.spec);
+  assert.ok(e.preview);
+  assert.ok(e.template_context);
   assert.strictEqual(room.environment, e);
 })();
 
@@ -63,6 +68,19 @@ const { buildRuntimeRoom, normalizeRuntimeEnvironment } = require('../room-layou
 
 (function testThemePresets() {
   assert.ok(THEME_PRESETS.some((p) => p.id === 'cave'));
+})();
+
+(function testThemeLabelLookup() {
+  assert.strictEqual(getThemeLabel('forest'), 'Forest / overgrowth');
+  assert.strictEqual(getThemeLabel('missing-theme'), 'Cave / hollow');
+})();
+
+(function testBuildEnvironmentPreviewModel() {
+  const preview = buildEnvironmentPreviewModel('void', ['cold', 'echoing'], 'Sparse and unreal.');
+  assert.strictEqual(preview.themeId, 'void');
+  assert.strictEqual(preview.themeLabel, 'Void / ethereal');
+  assert.deepStrictEqual(preview.tags, ['cold', 'echoing']);
+  assert.strictEqual(preview.sceneClass, 'rw-environment-scene--void');
 })();
 
 console.log('room-wizard-environment.test.js: all assertions passed');

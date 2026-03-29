@@ -4,7 +4,6 @@ import shutil
 from pathlib import Path
 from typing import Any, Callable, Dict
 
-
 PROJECTS_ROOT: Path
 ROOM_LAYOUT_FILENAME: str
 ROOM_LAYOUT_HISTORY_FILENAME: str
@@ -84,6 +83,25 @@ def create_project(payload: Dict[str, Any]) -> Dict[str, Any]:
         "last_ui_mode": initial_mode,
         "wizard_state": wizard_state,
         "brief": brief,
+        "art_direction": {
+            "version": 1,
+            "locked": False,
+            "template_id": "ruined-gothic",
+            "template_origin": "builtin",
+            "style_family": "dark fantasy ruins",
+            "high_level_direction": "Broken gothic halls, damp stone, restrained color, readable traversal silhouettes, and sacred decay.",
+            "negative_direction": "clean sci-fi surfaces, cartoon props, glossy plastics, bright cheerful saturation",
+            "palette": {
+                "dominant": ["#11161d", "#24343a", "#6f7f79"],
+                "accent": ["#b58f52"],
+                "avoid": ["#ffffff", "#ff3bf1"],
+            },
+            "shape_language": ["heavy arches", "fractured buttresses", "ritual circles"],
+            "lighting_rules": ["low-key lighting", "single focal glow", "fog depth near floor"],
+            "material_rules": ["wet stone", "aged iron", "dusty carvings"],
+            "reference_suggestions": ["collapsed cathedral alcoves", "mossy stone vaults"],
+            "updated_at": now,
+        },
         "character_spec": None,
         "layered_character": None,
         "rig": None,

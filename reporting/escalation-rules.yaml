@@ -1,0 +1,57 @@
+# Escalation Rules — Metroidvania Toolchain OS
+
+rules:
+  - id: security_critical
+    description: "Any security vulnerability or credential exposure"
+    trigger: security_vulnerability OR api_key_in_client OR api_key_in_git
+    severity: P0
+    agents: [cybersecurity, legal]
+    founder_required: true
+    sla: immediate
+
+  - id: data_privacy
+    description: "User data sent to external API without consent"
+    trigger: user_data_external_api_without_consent
+    severity: P0
+    agents: [legal, cybersecurity]
+    founder_required: true
+    sla: immediate
+
+  - id: p0_quality
+    description: "Complete tool failure or export corruption"
+    trigger: p0_bug_confirmed
+    severity: P0
+    agents: [qa]
+    founder_required: true
+    sla: immediate
+
+  - id: legal_ip_risk
+    description: "IP or copyright risk identified in AI-generated content"
+    trigger: ai_ip_risk_flagged
+    severity: P1
+    agents: [legal]
+    founder_required: true
+    sla: 24h
+
+  - id: cost_spike
+    description: "API costs exceed budget threshold"
+    trigger: api_cost_exceeds_500_monthly OR cost_spike_2x_weekly_average
+    severity: P1
+    agents: [finance]
+    founder_required: true
+    sla: 24h
+
+  - id: legal_document
+    description: "Any legal document requires review or signature"
+    trigger: legal_document_action_required
+    severity: P1
+    agents: [legal]
+    founder_required: true
+    sla: 48h
+    note: "Always requires real attorney for material decisions"
+
+defaults:
+  suppress_redundant: true
+  combine_low_priority: true
+  max_weekly_digest_pages: 2
+  escalation_always_overrides_cadence: true

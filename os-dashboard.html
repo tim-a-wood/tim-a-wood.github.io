@@ -1,0 +1,1077 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agent OS — MV Toolchain</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #050709; --panel: rgba(4,6,10,0.96); --panel-2: #07090c; --panel-soft: #07090c;
+  --accent: #00e8c8; --accent-soft: rgba(0,232,200,0.08);
+  --text: #cce8e0; --muted: #5d7870;
+  --stroke: rgba(0,232,200,0.07); --stroke-strong: rgba(0,232,200,0.14);
+  --line: rgba(0,232,200,0.10); --line-strong: rgba(0,232,200,0.18);
+  --border: rgba(0,232,200,0.07); --border-strong: rgba(0,232,200,0.14);
+  --good: #4ade80; --good-soft: rgba(74,222,128,0.12);
+  --warning: #d29922; --warning-soft: rgba(210,153,34,0.16);
+  --error: #f85149; --error-soft: rgba(248,81,73,0.16);
+  --font-sans: "Plus Jakarta Sans", -apple-system, sans-serif;
+  --font-display: "Bebas Neue", sans-serif;
+  --font-mono: "DM Mono", ui-monospace, monospace;
+  --font-size-xs: 11px; --font-size-sm: 13px; --font-size-base: 14px;
+  --font-size-md: 15px; --font-size-lg: 18px; --font-size-xl: 22px;
+  --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px;
+  --space-5: 24px; --space-6: 32px; --space-7: 48px; --space-8: 64px;
+  --radius-xs: 4px; --radius-sm: 8px; --radius-md: 10px; --radius-default: 12px;
+  --radius-tight: 14px; --radius-card: 18px; --radius-lg: 20px; --radius-full: 999px;
+  --shadow-sm: 0 2px 8px rgba(0,0,0,0.18);
+  --shadow-md: 0 6px 20px rgba(0,0,0,0.26);
+  --shadow-lg: 0 12px 40px rgba(0,0,0,0.38);
+  --transition-fast: 120ms ease; --transition-base: 200ms ease;
+
+  /* agent colors */
+  --c-orchestrator: #00e8c8;
+  --c-qa: #77b8ff;
+  --c-marketing: #f5986e;
+  --c-legal: #a78bfa;
+  --c-analytics: #4ade80;
+  --c-support: #fbbf24;
+  --c-finance: #f0abfc;
+  --c-cybersecurity: #f85149;
+}
+
+:focus-visible { outline: 2px solid rgba(0,232,200,0.35); outline-offset: 2px; }
+
+html, body {
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-base);
+  line-height: 1.5;
+}
+
+/* top accent bar */
+body::before {
+  content: '';
+  display: block;
+  height: 3px;
+  background: var(--accent);
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 100;
+}
+
+/* ─── SHELL ─────────────────────────────────── */
+.shell {
+  display: grid;
+  grid-template-columns: 216px 1fr 272px;
+  grid-template-rows: 56px 1fr;
+  grid-template-areas:
+    "header header header"
+    "left   main   right";
+  height: 100vh;
+  padding-top: 3px; /* account for top bar */
+  gap: 0;
+}
+
+/* ─── HEADER ─────────────────────────────────── */
+.header {
+  grid-area: header;
+  display: flex;
+  align-items: center;
+  padding: 0 var(--space-5);
+  border-bottom: 1px solid var(--line);
+  background: var(--panel);
+  backdrop-filter: blur(12px);
+  gap: var(--space-4);
+}
+
+.header-title {
+  font-family: var(--font-display);
+  font-size: 26px;
+  letter-spacing: 0.06em;
+  color: var(--accent);
+  line-height: 1;
+}
+
+.header-sub {
+  font-size: var(--font-size-sm);
+  color: var(--muted);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+.header-spacer { flex: 1; }
+
+.status-badge {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-xs);
+  color: var(--good);
+  font-family: var(--font-mono);
+  font-weight: 500;
+  background: var(--good-soft);
+  border: 1px solid rgba(74,222,128,0.2);
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+}
+
+.status-badge::before {
+  content: '●';
+  font-size: 8px;
+}
+
+/* ─── LEFT SIDEBAR ─────────────────────────────── */
+.sidebar-left {
+  grid-area: left;
+  border-right: 1px solid var(--line);
+  background: var(--panel-2);
+  overflow-y: auto;
+  padding: var(--space-4) 0;
+}
+
+.sidebar-left::-webkit-scrollbar { width: 4px; }
+.sidebar-left::-webkit-scrollbar-track { background: transparent; }
+.sidebar-left::-webkit-scrollbar-thumb { background: var(--stroke-strong); border-radius: 2px; }
+
+.nav-section { margin-bottom: var(--space-4); }
+
+.nav-label {
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: var(--space-2) var(--space-4);
+  display: block;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 6px var(--space-4);
+  font-size: var(--font-size-sm);
+  color: var(--muted);
+  cursor: pointer;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+  transition: color var(--transition-fast), background var(--transition-fast);
+  border-radius: 0;
+  min-height: 28px;
+  font-family: var(--font-sans);
+}
+
+.nav-item:hover {
+  color: var(--text);
+  background: var(--accent-soft);
+}
+
+.nav-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.nav-item-text { flex: 1; }
+
+.nav-item-path {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--stroke-strong);
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+
+.nav-item:hover .nav-item-path { opacity: 1; }
+
+.nav-divider {
+  height: 1px;
+  background: var(--line);
+  margin: var(--space-2) var(--space-4);
+}
+
+/* ─── MAIN ─────────────────────────────────── */
+.main {
+  grid-area: main;
+  overflow-y: auto;
+  padding: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.main::-webkit-scrollbar { width: 4px; }
+.main::-webkit-scrollbar-track { background: transparent; }
+.main::-webkit-scrollbar-thumb { background: var(--stroke-strong); border-radius: 2px; }
+
+.step-label {
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: var(--space-3);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.step-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: var(--radius-full);
+  background: var(--accent-soft);
+  border: 1px solid var(--line-strong);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--accent);
+  font-family: var(--font-mono);
+}
+
+/* ─── AGENT CARDS ─────────────────────────────── */
+.agent-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-2);
+}
+
+.agent-card {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  padding: var(--space-3) var(--space-4);
+  cursor: pointer;
+  transition: border-color var(--transition-base), background var(--transition-base), transform var(--transition-fast);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-height: 72px;
+  position: relative;
+  overflow: hidden;
+}
+
+.agent-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: var(--agent-color, var(--accent));
+  opacity: 0;
+  transition: opacity var(--transition-base);
+}
+
+.agent-card:hover {
+  border-color: var(--border-strong);
+  transform: translateY(-1px);
+}
+
+.agent-card:hover::before { opacity: 1; }
+
+.agent-card.selected {
+  border-color: var(--agent-color, var(--accent));
+  background: rgba(0,232,200,0.04);
+}
+
+.agent-card.selected::before { opacity: 1; }
+
+.agent-card-icon { font-size: 16px; line-height: 1; }
+
+.agent-card-name {
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.2;
+}
+
+.agent-card-desc {
+  font-size: var(--font-size-xs);
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+/* ─── MODE PILLS ─────────────────────────────── */
+.mode-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.mode-pill {
+  padding: 6px 14px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-strong);
+  background: none;
+  font-size: var(--font-size-sm);
+  font-family: var(--font-sans);
+  font-weight: 500;
+  color: var(--muted);
+  cursor: pointer;
+  transition: color var(--transition-fast), border-color var(--transition-fast), background var(--transition-fast), transform var(--transition-fast);
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.mode-pill:hover {
+  color: var(--text);
+  border-color: var(--line-strong);
+  transform: translateY(-1px);
+}
+
+.mode-pill.selected {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* ─── TASK INPUT ─────────────────────────────── */
+.task-textarea {
+  width: 100%;
+  min-height: 120px;
+  background: var(--panel-2);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-card);
+  padding: var(--space-4);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-base);
+  line-height: 1.6;
+  resize: vertical;
+  transition: border-color var(--transition-base);
+  outline: none;
+}
+
+.task-textarea::placeholder { color: var(--muted); }
+.task-textarea:focus { border-color: var(--line-strong); }
+
+/* ─── GENERATE BTN ─────────────────────────────── */
+.btn-generate {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: 12px var(--space-6);
+  background: var(--accent);
+  color: #050709;
+  border: none;
+  border-radius: var(--radius-tight);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-base);
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity var(--transition-fast), transform var(--transition-fast);
+  min-height: 44px;
+  letter-spacing: 0.02em;
+}
+
+.btn-generate:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+.btn-generate:active { transform: translateY(0); }
+
+/* ─── RIGHT SIDEBAR ─────────────────────────────── */
+.sidebar-right {
+  grid-area: right;
+  border-left: 1px solid var(--line);
+  background: var(--panel-2);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.output-header {
+  padding: var(--space-4) var(--space-5);
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+
+.output-title {
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.output-refs {
+  padding: var(--space-3) var(--space-5);
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  flex-shrink: 0;
+  min-height: 52px;
+}
+
+.ref-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--accent);
+  background: var(--accent-soft);
+  border: 1px solid var(--line-strong);
+  padding: 2px 8px;
+  border-radius: var(--radius-xs);
+  width: fit-content;
+}
+
+.output-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-4) var(--space-5);
+}
+
+.output-body::-webkit-scrollbar { width: 4px; }
+.output-body::-webkit-scrollbar-track { background: transparent; }
+.output-body::-webkit-scrollbar-thumb { background: var(--stroke-strong); border-radius: 2px; }
+
+.prompt-block {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--text);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.prompt-empty {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+  color: var(--muted);
+  text-align: center;
+  padding: var(--space-7) var(--space-5);
+  line-height: 1.6;
+}
+
+.output-footer {
+  padding: var(--space-4) var(--space-5);
+  border-top: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+.btn-copy {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: 10px var(--space-4);
+  background: var(--accent);
+  color: #050709;
+  border: none;
+  border-radius: var(--radius-tight);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity var(--transition-fast), transform var(--transition-fast);
+  min-height: 36px;
+}
+
+.btn-copy:hover { opacity: 0.9; transform: translateY(-1px); }
+.btn-copy:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+.btn-outline {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: 8px var(--space-4);
+  background: none;
+  color: var(--muted);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-tight);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: color var(--transition-fast), border-color var(--transition-fast), transform var(--transition-fast);
+  min-height: 36px;
+}
+
+.btn-outline:hover { color: var(--text); border-color: var(--line-strong); transform: translateY(-1px); }
+
+.output-tip {
+  font-size: 10px;
+  color: var(--muted);
+  text-align: center;
+  font-family: var(--font-mono);
+  line-height: 1.5;
+}
+
+/* ─── TOAST ─────────────────────────────── */
+.toast {
+  position: fixed;
+  bottom: var(--space-6);
+  left: 50%;
+  transform: translateX(-50%) translateY(8px);
+  background: var(--panel);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-full);
+  padding: 8px 20px;
+  font-size: var(--font-size-sm);
+  color: var(--accent);
+  font-family: var(--font-mono);
+  font-weight: 500;
+  backdrop-filter: blur(12px);
+  opacity: 0;
+  transition: opacity 200ms ease, transform 200ms ease;
+  pointer-events: none;
+  z-index: 200;
+  white-space: nowrap;
+}
+
+.toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* ─── RESPONSIVE ─────────────────────────────── */
+@media (max-width: 900px) {
+  .shell {
+    grid-template-columns: 1fr;
+    grid-template-rows: 56px auto 1fr auto;
+    grid-template-areas:
+      "header"
+      "left"
+      "main"
+      "right";
+    height: auto;
+    min-height: 100vh;
+  }
+
+  .sidebar-left { border-right: none; border-bottom: 1px solid var(--line); padding: var(--space-3) 0; }
+  .sidebar-right { border-left: none; border-top: 1px solid var(--line); min-height: 320px; }
+  .agent-grid { grid-template-columns: repeat(2, 1fr); }
+}
+</style>
+</head>
+<body>
+
+<div class="shell">
+
+  <!-- HEADER -->
+  <header class="header">
+    <span class="header-title">AGENT OS</span>
+    <span class="header-sub">Metroidvania Toolchain</span>
+    <span class="header-spacer"></span>
+    <span class="status-badge">System Ready</span>
+  </header>
+
+  <!-- LEFT SIDEBAR -->
+  <nav class="sidebar-left" aria-label="Resources">
+
+    <div class="nav-section">
+      <span class="nav-label">Agents</span>
+      <button class="nav-item" data-path="agents/orchestrator/charter.md">
+        <span class="nav-dot" style="background:#00e8c8"></span>
+        <span class="nav-item-text">Orchestrator</span>
+        <span class="nav-item-path">charter.md</span>
+      </button>
+      <button class="nav-item" data-path="agents/qa/charter.md">
+        <span class="nav-dot" style="background:#77b8ff"></span>
+        <span class="nav-item-text">QA</span>
+        <span class="nav-item-path">charter.md</span>
+      </button>
+      <button class="nav-item" data-path="agents/marketing/charter.md">
+        <span class="nav-dot" style="background:#f5986e"></span>
+        <span class="nav-item-text">Marketing</span>
+        <span class="nav-item-path">charter.md</span>
+      </button>
+      <button class="nav-item" data-path="agents/legal/charter.md">
+        <span class="nav-dot" style="background:#a78bfa"></span>
+        <span class="nav-item-text">Legal</span>
+        <span class="nav-item-path">charter.md</span>
+      </button>
+      <button class="nav-item" data-path="agents/analytics/charter.md">
+        <span class="nav-dot" style="background:#4ade80"></span>
+        <span class="nav-item-text">Analytics</span>
+        <span class="nav-item-path">charter.md</span>
+      </button>
+      <button class="nav-item" data-path="agents/support/charter.md">
+        <span class="nav-dot" style="background:#fbbf24"></span>
+        <span class="nav-item-text">Support</span>
+        <span class="nav-item-path">charter.md</span>
+      </button>
+      <button class="nav-item" data-path="agents/finance/charter.md">
+        <span class="nav-dot" style="background:#f0abfc"></span>
+        <span class="nav-item-text">Finance</span>
+        <span class="nav-item-path">charter.md</span>
+      </button>
+      <button class="nav-item" data-path="agents/cybersecurity/charter.md">
+        <span class="nav-dot" style="background:#f85149"></span>
+        <span class="nav-item-text">Cybersecurity</span>
+        <span class="nav-item-path">charter.md</span>
+      </button>
+    </div>
+
+    <div class="nav-divider"></div>
+
+    <div class="nav-section">
+      <span class="nav-label">Playbooks</span>
+      <button class="nav-item" data-path="playbooks/release-readiness.md">
+        <span class="nav-item-text">Release Readiness</span>
+      </button>
+      <button class="nav-item" data-path="playbooks/brainstorming-session.md">
+        <span class="nav-item-text">Brainstorming</span>
+      </button>
+      <button class="nav-item" data-path="playbooks/incident-response.md">
+        <span class="nav-item-text">Incident Response</span>
+      </button>
+      <button class="nav-item" data-path="playbooks/weekly-founder-review.md">
+        <span class="nav-item-text">Weekly Review</span>
+      </button>
+      <button class="nav-item" data-path="playbooks/legal-review-ai-assets.md">
+        <span class="nav-item-text">Legal AI Assets</span>
+      </button>
+      <button class="nav-item" data-path="playbooks/pricing-review.md">
+        <span class="nav-item-text">Pricing Review</span>
+      </button>
+    </div>
+
+    <div class="nav-divider"></div>
+
+    <div class="nav-section">
+      <span class="nav-label">Templates</span>
+      <button class="nav-item" data-path="templates/decision-brief.md">
+        <span class="nav-item-text">Decision Brief</span>
+      </button>
+      <button class="nav-item" data-path="templates/weekly-founder-digest.md">
+        <span class="nav-item-text">Weekly Digest</span>
+      </button>
+      <button class="nav-item" data-path="templates/launch-readiness.md">
+        <span class="nav-item-text">Launch Readiness</span>
+      </button>
+      <button class="nav-item" data-path="templates/escalation-alert.md">
+        <span class="nav-item-text">Escalation Alert</span>
+      </button>
+      <button class="nav-item" data-path="templates/approval-matrix.md">
+        <span class="nav-item-text">Approval Matrix</span>
+      </button>
+    </div>
+
+    <div class="nav-divider"></div>
+
+    <div class="nav-section">
+      <span class="nav-label">Knowledge</span>
+      <button class="nav-item" data-path="knowledge/ai-capabilities-q1-2026.md">
+        <span class="nav-item-text">AI Q1 2026</span>
+      </button>
+      <button class="nav-item" data-path="knowledge/metroidvania-design.md">
+        <span class="nav-item-text">Metroidvania Design</span>
+      </button>
+    </div>
+
+  </nav>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- Step 1: Pick agent -->
+    <section>
+      <div class="step-label"><span class="step-num">1</span> Pick an Agent</div>
+      <div class="agent-grid" id="agentGrid">
+        <button class="agent-card selected" data-agent="orchestrator" style="--agent-color:#00e8c8">
+          <span class="agent-card-icon">🎯</span>
+          <span class="agent-card-name">Orchestrator</span>
+          <span class="agent-card-desc">Multi-agent sessions & founder digest</span>
+        </button>
+        <button class="agent-card" data-agent="qa" style="--agent-color:#77b8ff">
+          <span class="agent-card-icon">🔍</span>
+          <span class="agent-card-name">QA</span>
+          <span class="agent-card-desc">Release gate & quality validation</span>
+        </button>
+        <button class="agent-card" data-agent="marketing" style="--agent-color:#f5986e">
+          <span class="agent-card-icon">📣</span>
+          <span class="agent-card-name">Marketing</span>
+          <span class="agent-card-desc">Positioning, content & growth</span>
+        </button>
+        <button class="agent-card" data-agent="legal" style="--agent-color:#a78bfa">
+          <span class="agent-card-icon">⚖️</span>
+          <span class="agent-card-name">Legal</span>
+          <span class="agent-card-desc">IP, compliance & risk flags</span>
+        </button>
+        <button class="agent-card" data-agent="analytics" style="--agent-color:#4ade80">
+          <span class="agent-card-icon">📊</span>
+          <span class="agent-card-name">Analytics</span>
+          <span class="agent-card-desc">Usage metrics & AI feature performance</span>
+        </button>
+        <button class="agent-card" data-agent="support" style="--agent-color:#fbbf24">
+          <span class="agent-card-icon">💬</span>
+          <span class="agent-card-name">Support</span>
+          <span class="agent-card-desc">User success & feedback synthesis</span>
+        </button>
+        <button class="agent-card" data-agent="finance" style="--agent-color:#f0abfc">
+          <span class="agent-card-icon">💰</span>
+          <span class="agent-card-name">Finance</span>
+          <span class="agent-card-desc">Costs, revenue & API budgets</span>
+        </button>
+        <button class="agent-card" data-agent="cybersecurity" style="--agent-color:#f85149">
+          <span class="agent-card-icon">🛡️</span>
+          <span class="agent-card-name">Cybersecurity</span>
+          <span class="agent-card-desc">Security audit & risk identification</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- Step 2: Pick mode -->
+    <section>
+      <div class="step-label"><span class="step-num">2</span> Pick a Mode</div>
+      <div class="mode-row" id="modeRow"></div>
+    </section>
+
+    <!-- Step 3: Task -->
+    <section>
+      <div class="step-label"><span class="step-num">3</span> Describe Your Task</div>
+      <textarea
+        class="task-textarea"
+        id="taskInput"
+        placeholder="What do you need?"
+      ></textarea>
+    </section>
+
+    <!-- Step 4: Generate -->
+    <section>
+      <button class="btn-generate" id="generateBtn">
+        Generate Prompt →
+      </button>
+    </section>
+
+  </main>
+
+  <!-- RIGHT SIDEBAR -->
+  <aside class="sidebar-right">
+    <div class="output-header">
+      <span class="output-title">Generated Prompt</span>
+    </div>
+    <div class="output-refs" id="outputRefs">
+      <span style="font-size:var(--font-size-xs);color:var(--muted);font-family:var(--font-mono)">— no prompt yet —</span>
+    </div>
+    <div class="output-body" id="outputBody">
+      <div class="prompt-empty">Select an agent, pick a mode,<br>describe your task,<br>then generate.</div>
+    </div>
+    <div class="output-footer">
+      <button class="btn-copy" id="copyBtn" disabled>Copy Prompt</button>
+      <button class="btn-outline" id="claudeBtn">Open Claude Code Instructions</button>
+      <div class="output-tip">Run in Claude Code from your /MV project directory</div>
+    </div>
+  </aside>
+
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+const AGENTS = {
+  orchestrator: {
+    label: 'Orchestrator',
+    charter: 'agents/orchestrator/charter.md',
+    modes: ['brainstorm', 'decision', 'red-team', 'launch', 'incident', 'weekly-review'],
+    modePlaybooks: {
+      'brainstorm':     'playbooks/brainstorming-session.md',
+      'decision':       null,
+      'red-team':       null,
+      'launch':         'playbooks/release-readiness.md',
+      'incident':       'playbooks/incident-response.md',
+      'weekly-review':  'playbooks/weekly-founder-review.md',
+    },
+    modeTemplates: {
+      'brainstorm':    'templates/brainstorming-summary.md',
+      'decision':      'templates/decision-brief.md',
+      'red-team':      'templates/decision-brief.md',
+      'launch':        'templates/launch-readiness.md',
+      'incident':      'templates/incident-report.md',
+      'weekly-review': 'templates/weekly-founder-digest.md',
+    },
+    placeholders: {
+      'brainstorm':    'e.g. "What pricing model should we use for the AI Copilot feature?"',
+      'decision':      'e.g. "Should we add a world builder tool in the next sprint?"',
+      'red-team':      'e.g. "Challenge our plan to ship the Room Copilot feature next week."',
+      'launch':        'e.g. "We\'re releasing v0.3 of the room editor with AI Copilot tomorrow."',
+      'incident':      'e.g. "The Room Copilot is returning invalid JSON and corrupting layouts."',
+      'weekly-review': 'e.g. "Compile the weekly founder digest for the week of [date]."',
+    },
+  },
+  qa: {
+    label: 'QA',
+    charter: 'agents/qa/charter.md',
+    modes: ['analyze', 'review', 'report', 'escalation-check', 'advise'],
+    placeholders: {
+      'analyze':          'e.g. "Analyze test coverage gaps for the new AI Copilot suggestion workflow."',
+      'review':           'e.g. "Review the export pipeline changes in this PR for regression risk."',
+      'report':           'e.g. "Generate the QA release packet for v0.3."',
+      'escalation-check': 'e.g. "Are there any P0/P1 bugs that should block the upcoming release?"',
+      'advise':           'e.g. "What testing strategy should we use for AI-generated room layouts?"',
+    },
+  },
+  marketing: {
+    label: 'Marketing',
+    charter: 'agents/marketing/charter.md',
+    modes: ['analyze', 'review', 'report', 'escalation-check', 'advise'],
+    placeholders: {
+      'analyze':          'e.g. "Analyze the positioning of our AI Copilot feature vs LDtk."',
+      'review':           'e.g. "Review this launch announcement for accurate AI capability claims."',
+      'report':           'e.g. "Produce the weekly marketing update."',
+      'escalation-check': 'e.g. "Does this marketing copy make any claims that could be a legal risk?"',
+      'advise':           'e.g. "What content format would work best for our itch.io launch?"',
+    },
+  },
+  legal: {
+    label: 'Legal',
+    charter: 'agents/legal/charter.md',
+    modes: ['analyze', 'review', 'report', 'escalation-check', 'advise'],
+    modePlaybooks: {
+      'review': 'playbooks/legal-review-ai-assets.md',
+    },
+    placeholders: {
+      'analyze':          'e.g. "What IP risks exist with our AI-generated room layout suggestions?"',
+      'review':           'e.g. "Review the AI asset provenance for the upcoming sprite cleanup feature."',
+      'report':           'e.g. "Produce the monthly legal review."',
+      'escalation-check': 'e.g. "We\'re adding Gemini API calls to the room editor. What are the risks?"',
+      'advise':           'e.g. "What should our ToS say about AI-generated content ownership?"',
+    },
+  },
+  analytics: {
+    label: 'Analytics',
+    charter: 'agents/analytics/charter.md',
+    modes: ['analyze', 'review', 'report', 'escalation-check', 'advise'],
+    placeholders: {
+      'analyze':          'e.g. "What metrics should we track for the AI Copilot acceptance rate?"',
+      'review':           'e.g. "Review our current tracking plan for gaps."',
+      'report':           'e.g. "Produce the weekly analytics update."',
+      'escalation-check': 'e.g. "Our export rate dropped 40% this week — what could explain this?"',
+      'advise':           'e.g. "How should we define activation for the room editor?"',
+    },
+  },
+  support: {
+    label: 'Support',
+    charter: 'agents/support/charter.md',
+    modes: ['analyze', 'review', 'report', 'escalation-check', 'advise'],
+    placeholders: {
+      'analyze':          'e.g. "Analyze support patterns around the AI Copilot to find UX failures."',
+      'review':           'e.g. "Review our onboarding flow for common drop-off causes."',
+      'report':           'e.g. "Produce the weekly support update."',
+      'escalation-check': 'e.g. "Multiple users are reporting export failures after the v0.3 update."',
+      'advise':           'e.g. "Draft an FAQ for the Room Copilot AI feature."',
+    },
+  },
+  finance: {
+    label: 'Finance',
+    charter: 'agents/finance/charter.md',
+    modes: ['analyze', 'review', 'report', 'escalation-check', 'advise'],
+    placeholders: {
+      'analyze':          'e.g. "Model the Gemini API cost curve if we scale to 500 MAU."',
+      'review':           'e.g. "Review our current API cost spend vs. budget."',
+      'report':           'e.g. "Produce the weekly finance snapshot."',
+      'escalation-check': 'e.g. "Our Gemini API costs are 3x this week — is this a problem?"',
+      'advise':           'e.g. "What unit economics model should we use for the AI feature paywall?"',
+    },
+  },
+  cybersecurity: {
+    label: 'Cybersecurity',
+    charter: 'agents/cybersecurity/charter.md',
+    modes: ['analyze', 'review', 'report', 'escalation-check', 'advise'],
+    placeholders: {
+      'analyze':          'e.g. "Analyze the security surface of the new Copilot API endpoint."',
+      'review':           'e.g. "Review the room editor Python server for input validation issues."',
+      'report':           'e.g. "Produce a security assessment for the upcoming release."',
+      'escalation-check': 'e.g. "Is there a prompt injection risk in the Room Copilot feature?"',
+      'advise':           'e.g. "How should we handle API key rotation for the Gemini integration?"',
+    },
+  },
+};
+
+let selectedAgent = 'orchestrator';
+let selectedMode = 'brainstorm';
+let generatedPrompt = '';
+
+// ── DOM refs ────────────────────────────────────
+const agentGrid   = document.getElementById('agentGrid');
+const modeRow     = document.getElementById('modeRow');
+const taskInput   = document.getElementById('taskInput');
+const generateBtn = document.getElementById('generateBtn');
+const outputRefs  = document.getElementById('outputRefs');
+const outputBody  = document.getElementById('outputBody');
+const copyBtn     = document.getElementById('copyBtn');
+const claudeBtn   = document.getElementById('claudeBtn');
+const toast       = document.getElementById('toast');
+
+// ── Agent selection ─────────────────────────────
+agentGrid.addEventListener('click', e => {
+  const card = e.target.closest('.agent-card');
+  if (!card) return;
+  document.querySelectorAll('.agent-card').forEach(c => c.classList.remove('selected'));
+  card.classList.add('selected');
+  selectedAgent = card.dataset.agent;
+  renderModes();
+  clearOutput();
+});
+
+function renderModes() {
+  const agent = AGENTS[selectedAgent];
+  modeRow.innerHTML = '';
+  selectedMode = agent.modes[0];
+  agent.modes.forEach((mode, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'mode-pill' + (i === 0 ? ' selected' : '');
+    btn.textContent = mode;
+    btn.dataset.mode = mode;
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.mode-pill').forEach(p => p.classList.remove('selected'));
+      btn.classList.add('selected');
+      selectedMode = mode;
+      updatePlaceholder();
+      clearOutput();
+    });
+    modeRow.appendChild(btn);
+  });
+  updatePlaceholder();
+}
+
+function updatePlaceholder() {
+  const agent = AGENTS[selectedAgent];
+  const ph = (agent.placeholders || {})[selectedMode] || 'Describe what you need...';
+  taskInput.placeholder = ph;
+}
+
+// ── Generate ────────────────────────────────────
+generateBtn.addEventListener('click', () => {
+  const task = taskInput.value.trim();
+  if (!task) {
+    showToast('Add a task description first');
+    taskInput.focus();
+    return;
+  }
+  buildPrompt(task);
+});
+
+function buildPrompt(task) {
+  const agent   = AGENTS[selectedAgent];
+  const isOrch  = selectedAgent === 'orchestrator';
+  const charter = agent.charter;
+  const playbook = (agent.modePlaybooks || {})[selectedMode] || null;
+  const template = (agent.modeTemplates || {})[selectedMode] || null;
+
+  let lines = [];
+
+  lines.push(`You are the ${agent.label} agent for the MV metroidvania toolchain business.`);
+  lines.push('');
+  lines.push(`Read: ${charter}`);
+  if (isOrch) lines.push(`Mode: ${selectedMode}`);
+  if (playbook) lines.push(`Playbook: ${playbook}`);
+  if (template) lines.push(`Output using: ${template}`);
+  lines.push('');
+  lines.push(`Task: ${task}`);
+  lines.push('');
+  lines.push('End your response with:');
+  lines.push('- Recommendation:');
+  lines.push('- Risks:');
+  lines.push('- Confidence:');
+  lines.push('- Founder approval needed:');
+  lines.push('- Next actions:');
+
+  generatedPrompt = lines.join('\n');
+
+  // refs
+  const refs = [charter];
+  if (playbook) refs.push(playbook);
+  if (template) refs.push(template);
+
+  outputRefs.innerHTML = refs.map(r =>
+    `<span class="ref-chip">📄 ${r}</span>`
+  ).join('');
+
+  outputBody.innerHTML = `<pre class="prompt-block">${escapeHtml(generatedPrompt)}</pre>`;
+  copyBtn.disabled = false;
+}
+
+function clearOutput() {
+  generatedPrompt = '';
+  outputRefs.innerHTML = '<span style="font-size:var(--font-size-xs);color:var(--muted);font-family:var(--font-mono)">— no prompt yet —</span>';
+  outputBody.innerHTML = '<div class="prompt-empty">Select an agent, pick a mode,<br>describe your task,<br>then generate.</div>';
+  copyBtn.disabled = true;
+}
+
+// ── Copy ────────────────────────────────────────
+copyBtn.addEventListener('click', () => {
+  if (!generatedPrompt) return;
+  navigator.clipboard.writeText(generatedPrompt).then(() => {
+    showToast('Prompt copied!');
+    copyBtn.textContent = '✓ Copied';
+    setTimeout(() => { copyBtn.textContent = 'Copy Prompt'; }, 2000);
+  }).catch(() => {
+    fallbackCopy(generatedPrompt);
+    showToast('Prompt copied!');
+  });
+});
+
+claudeBtn.addEventListener('click', () => {
+  showToast('Open Claude Code, paste the prompt, and run it from /MV');
+});
+
+// ── Left sidebar nav ────────────────────────────
+document.querySelectorAll('.nav-item[data-path]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const path = btn.dataset.path;
+    navigator.clipboard.writeText(path).then(() => {
+      showToast(`Copied: ${path}`);
+    }).catch(() => {
+      fallbackCopy(path);
+      showToast(`Copied: ${path}`);
+    });
+  });
+});
+
+// ── Toast ────────────────────────────────────────
+let toastTimer = null;
+function showToast(msg) {
+  toast.textContent = msg;
+  toast.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toast.classList.remove('show'), 2200);
+}
+
+function fallbackCopy(text) {
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.focus(); ta.select();
+  document.execCommand('copy');
+  document.body.removeChild(ta);
+}
+
+function escapeHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ── Init ────────────────────────────────────────
+renderModes();
+</script>
+</body>
+</html>

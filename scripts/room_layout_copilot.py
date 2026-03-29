@@ -96,7 +96,7 @@ def call_gemini_copilot(user_prompt: str) -> dict:
     if not api_key:
         raise RuntimeError("GEMINI_API_KEY is not set")
 
-    model = os.environ.get("GEMINI_MODEL", "gemini-2.0-flash").strip() or "gemini-2.0-flash"
+    model = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash").strip() or "gemini-2.5-flash"
     url = (
         "https://generativelanguage.googleapis.com/v1beta/models/"
         f"{model}:generateContent?key={api_key}"

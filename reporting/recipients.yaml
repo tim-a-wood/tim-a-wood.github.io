@@ -1,0 +1,14 @@
+# Report Recipients
+
+founder:
+  name: "Founder"
+  role: "Final decision-maker"
+  receives:
+    - weekly-founder-digest
+    - all escalation alerts
+    - launch readiness reports
+    - incident reports
+
+reporting_channel: "Direct to founder — no third-party distribution"
+
+note: "This is a solo-founder operation. All reports go directly to the founder. No external distribution without explicit approval."

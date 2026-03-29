@@ -58,6 +58,7 @@ from scripts import workbench_sprite_model_rig as workbench_sprite_model_rig
 from scripts import workbench_workflow_state as workbench_workflow_state
 from scripts import room_layout_canonical as room_layout_canonical
 from scripts import room_layout_copilot as room_layout_copilot
+from scripts import room_environment_system as room_environment_system
 
 try:
     from google import genai as _google_genai
@@ -1124,6 +1125,18 @@ def _sync_project_lifecycle_config() -> None:
     )
 
 
+def _sync_room_environment_system_config() -> None:
+    room_environment_system.configure(
+        PROJECTS_ROOT=PROJECTS_ROOT,
+        ROOT=ROOT,
+        load_project=load_project,
+        save_project=save_project,
+        now_iso=now_iso,
+        stable_hash=stable_hash,
+        append_history_event=append_history_event,
+    )
+
+
 def _sync_workbench_export_config() -> None:
     workbench_export.configure(
         AI_CLIP_SPECS=AI_CLIP_SPECS,
@@ -1648,6 +1661,61 @@ def enrich_brief_references(project_dir: Path, brief: Dict[str, Any]) -> Dict[st
 def load_project(project_id: str) -> Dict[str, Any]:
     _sync_project_io_config()
     return project_io.load_project(project_id)
+
+
+def list_art_direction_templates() -> List[Dict[str, Any]]:
+    _sync_room_environment_system_config()
+    return room_environment_system.list_art_direction_templates()
+
+
+def list_project_frozen_concept_candidates(project_id: str) -> List[Dict[str, Any]]:
+    _sync_room_environment_system_config()
+    return room_environment_system.list_project_frozen_concept_candidates(project_id)
+
+
+def generate_project_art_direction_concepts(project_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+    _sync_room_environment_system_config()
+    return room_environment_system.generate_project_art_direction_concepts(project_id, payload)
+
+
+def list_room_environment_archetypes() -> List[Dict[str, Any]]:
+    _sync_room_environment_system_config()
+    return room_environment_system.list_room_environment_archetypes()
+
+
+def get_project_art_direction(project_id: str) -> Dict[str, Any]:
+    _sync_room_environment_system_config()
+    return room_environment_system.get_project_art_direction(project_id)
+
+
+def update_project_art_direction(project_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+    _sync_room_environment_system_config()
+    return room_environment_system.update_project_art_direction(project_id, payload)
+
+
+def adapt_room_environment_template(project_id: str, room_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+    _sync_room_environment_system_config()
+    return room_environment_system.adapt_room_template(project_id, room_id, payload)
+
+
+def build_project_room_environment_spec(project_id: str, room_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+    _sync_room_environment_system_config()
+    return room_environment_system.build_room_environment_spec(project_id, room_id, payload)
+
+
+def generate_project_room_environment_previews(project_id: str, room_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+    _sync_room_environment_system_config()
+    return room_environment_system.generate_room_environment_previews(project_id, room_id, payload)
+
+
+def revise_project_room_environment(project_id: str, room_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+    _sync_room_environment_system_config()
+    return room_environment_system.revise_room_environment(project_id, room_id, payload)
+
+
+def approve_project_room_environment_preview(project_id: str, room_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+    _sync_room_environment_system_config()
+    return room_environment_system.approve_room_environment_preview(project_id, room_id, payload)
 
 
 def save_project(project: Dict[str, Any]) -> None:
@@ -7680,6 +7748,30 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
             include_archived = query.get("include_archived", ["0"])[0] in {"1", "true", "yes"}
             return self._send_json({"projects": [project_summary(item) for item in list_projects(include_archived)]})
 
+        if path == "/api/room-environment/archetypes":
+            return self._send_json({"archetypes": list_room_environment_archetypes()})
+
+        art_direction_templates_match = re.fullmatch(r"/api/projects/([^/]+)/art-direction/templates", path)
+        if art_direction_templates_match:
+            project_id = art_direction_templates_match.group(1)
+            try:
+                current = get_project_art_direction(project_id)
+            except FileNotFoundError:
+                return self._send_error_json(HTTPStatus.NOT_FOUND, "Project not found")
+            return self._send_json({
+                "project_id": project_id,
+                "art_direction": current,
+                "templates": list_art_direction_templates(),
+                "available_concepts": list_project_frozen_concept_candidates(project_id),
+            })
+
+        art_direction_match = re.fullmatch(r"/api/projects/([^/]+)/art-direction", path)
+        if art_direction_match:
+            try:
+                return self._send_json(get_project_art_direction(art_direction_match.group(1)))
+            except FileNotFoundError:
+                return self._send_error_json(HTTPStatus.NOT_FOUND, "Project not found")
+
         bundle_export_match = re.fullmatch(r"/api/projects/([^/]+)/bundle-export", path)
         if bundle_export_match:
             try:
@@ -7819,6 +7911,39 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
             wizard_match = re.fullmatch(r"/api/projects/([^/]+)/wizard-state", path)
             if wizard_match:
                 return self._send_json(update_wizard_state(wizard_match.group(1), read_body(self)))
+
+            art_direction_match = re.fullmatch(r"/api/projects/([^/]+)/art-direction", path)
+            if art_direction_match:
+                return self._send_json(update_project_art_direction(art_direction_match.group(1), read_body(self)))
+
+            art_direction_generate_match = re.fullmatch(r"/api/projects/([^/]+)/art-direction/generate-concepts", path)
+            if art_direction_generate_match:
+                return self._send_json(generate_project_art_direction_concepts(art_direction_generate_match.group(1), read_body(self)))
+
+            room_adapt_match = re.fullmatch(r"/api/projects/([^/]+)/rooms/([^/]+)/environment/adapt-template", path)
+            if room_adapt_match:
+                project_id, room_id = room_adapt_match.groups()
+                return self._send_json(adapt_room_environment_template(project_id, room_id, read_body(self)))
+
+            room_spec_match = re.fullmatch(r"/api/projects/([^/]+)/rooms/([^/]+)/environment/spec", path)
+            if room_spec_match:
+                project_id, room_id = room_spec_match.groups()
+                return self._send_json(build_project_room_environment_spec(project_id, room_id, read_body(self)))
+
+            room_preview_match = re.fullmatch(r"/api/projects/([^/]+)/rooms/([^/]+)/environment/previews", path)
+            if room_preview_match:
+                project_id, room_id = room_preview_match.groups()
+                return self._send_json(generate_project_room_environment_previews(project_id, room_id, read_body(self)))
+
+            room_revise_match = re.fullmatch(r"/api/projects/([^/]+)/rooms/([^/]+)/environment/revise", path)
+            if room_revise_match:
+                project_id, room_id = room_revise_match.groups()
+                return self._send_json(revise_project_room_environment(project_id, room_id, read_body(self)))
+
+            room_approve_match = re.fullmatch(r"/api/projects/([^/]+)/rooms/([^/]+)/environment/approve-preview", path)
+            if room_approve_match:
+                project_id, room_id = room_approve_match.groups()
+                return self._send_json(approve_project_room_environment_preview(project_id, room_id, read_body(self)))
 
             duplicate_match = re.fullmatch(r"/api/projects/([^/]+)/duplicate", path)
             if duplicate_match:

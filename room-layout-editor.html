@@ -1856,6 +1856,65 @@
                 </div>
                 <button type="button" class="phase-back-btn" id="roomWizardBackToLayoutFromEnv">← Layout</button>
               </div>
+              <div class="stage-card" id="roomWizardArtDirectionCard">
+                <div class="stage-card-head">
+                  <h4>Project art direction</h4>
+                  <p class="small-note">Pick a project-wide visual direction, adjust it if needed, then lock it so room suggestions stay consistent.</p>
+                </div>
+                <p class="hint" id="roomWizardArtDirectionHint">Open this room through a workbench project to use project-wide direction templates.</p>
+                <label>
+                  <span class="field-label">Direction template</span>
+                  <select id="roomWizardArtDirectionTemplate"></select>
+                </label>
+                <label>
+                  <span class="field-label">Direction summary</span>
+                  <textarea id="roomWizardArtDirectionSummary" rows="3" placeholder="Describe the overall visual direction for this project."></textarea>
+                </label>
+                <label>
+                  <span class="field-label">Avoid</span>
+                  <textarea id="roomWizardArtDirectionNegative" rows="2" placeholder="List the traits this project should avoid."></textarea>
+                </label>
+                <section class="rw-direction-concept-board" aria-labelledby="roomWizardDirectionConceptBoardTitle">
+                  <div class="stage-card-head">
+                    <h5 id="roomWizardDirectionConceptBoardTitle">Art direction concept board</h5>
+                    <p class="small-note">Generate a few world-level concept paintings here, then freeze the ones that should anchor later room planning and preview generation.</p>
+                  </div>
+                <div class="rw-copilot-actions">
+                  <button type="button" class="btn-secondary" id="roomWizardGenerateArtDirectionConcepts">Generate Concepts</button>
+                  <span id="roomWizardGenerateArtDirectionConceptsStatus" class="small-note" aria-live="polite"></span>
+                </div>
+                <div id="roomWizardArtDirectionProgress" class="rw-waitbar" hidden aria-live="polite" aria-busy="true">
+                  <div class="small-note rw-waitbar-detail" id="roomWizardArtDirectionProgressDetail">Working…</div>
+                  <div class="progress-track">
+                    <div class="progress-fill" id="roomWizardArtDirectionProgressFill" style="width:6%"></div>
+                  </div>
+                  <div class="progress-meta">
+                    <span id="roomWizardArtDirectionProgressPct">6%</span>
+                    <span class="small-note">Progress is estimated until the server finishes.</span>
+                  </div>
+                </div>
+                <div id="roomWizardDirectionConceptBoardGrid" class="rw-direction-concept-grid"></div>
+              </section>
+                <section class="rw-frozen-concepts-card" aria-labelledby="roomWizardFrozenConceptsTitle">
+                  <div class="stage-card-head">
+                    <h5 id="roomWizardFrozenConceptsTitle">Frozen art concepts</h5>
+                    <p class="small-note">Freeze the generated art direction concepts that should act as recurring visual anchors for the project.</p>
+                  </div>
+                  <div id="roomWizardFrozenConceptsSummary" class="small-note">No frozen concept anchors selected yet.</div>
+                  <div id="roomWizardFrozenConceptGrid" class="rw-frozen-concept-grid"></div>
+                </section>
+                <div class="rw-copilot-actions">
+                  <button type="button" class="btn-secondary" id="roomWizardArtDirectionSave">Save &amp; lock direction</button>
+                  <span id="roomWizardArtDirectionStatus" class="small-note" aria-live="polite"></span>
+                </div>
+              </div>
+              <div class="stage-card" id="roomWizardRoomTemplateCard">
+                <div class="stage-card-head">
+                  <h4>Room starting template</h4>
+                  <p class="small-note">Start from a room archetype, then let the planner adapt it to the project direction and this room’s layout.</p>
+                </div>
+                <div id="roomWizardArchetypeGrid" class="rw-template-grid"></div>
+              </div>
               <div class="stage-card">
                 <div class="stage-card-head">
                   <h4>Theme preset</h4>
@@ -1876,35 +1935,54 @@
                   <input type="text" id="roomWizardTagsInput" autocomplete="off" placeholder="tag one, tag two" spellcheck="false" />
                 </label>
               </div>
+              <div class="stage-card">
+                <div class="stage-card-head">
+                  <h4>Visual preview</h4>
+                  <p class="small-note">Shows the generated room preview when available. Before generation, this falls back to a quick mood board based on the current room atmosphere.</p>
+                </div>
+                <div id="roomWizardEnvironmentPreview" class="rw-environment-preview" aria-live="polite"></div>
+              </div>
               <div class="stage-card" id="roomWizardCopilotCard">
                 <div class="stage-card-head">
-                  <h4>Environment Copilot (Gemini)</h4>
+                  <h4>Environment planner</h4>
                   <p class="small-note">
-                    Describe the mood in plain language. The model suggests a theme and tags — nothing is saved until you click
-                    <strong>Apply</strong>.
+                    Start from a template or describe the room in plain language. The planner will adapt the draft to your locked art direction, build a room spec, and generate previews.
                   </p>
                 </div>
                 <p class="hint" id="roomWizardCopilotServerHint">
                   Checking local server…
                 </p>
                 <label>
-                  <span class="field-label">Describe this room</span>
+                  <span class="field-label">Room environment draft</span>
                   <textarea
                     id="roomWizardCopilotPrompt"
-                    rows="3"
+                    rows="4"
                     placeholder="e.g. flooded crypt, dripping water, faint green glow from below"
                     spellcheck="true"
                   ></textarea>
                 </label>
-                <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 8px">
-                  <button type="button" class="btn-secondary" id="roomWizardCopilotGenerate">Generate</button>
+                <div class="rw-copilot-actions">
+                  <button type="button" class="btn-secondary" id="roomWizardAdaptTemplate">Rewrite For Project Style</button>
+                  <button type="button" class="btn-secondary" id="roomWizardSimplifyDraft">Simplify</button>
+                  <button type="button" class="btn-secondary" id="roomWizardCopilotGenerate">Generate Previews</button>
                   <span id="roomWizardCopilotStatus" class="small-note" aria-live="polite"></span>
                 </div>
-                <div id="roomWizardCopilotPreview" hidden class="info-box" style="margin-top: 12px">
-                  <p><strong>Preview</strong> — confirm before applying to this room.</p>
-                  <p id="roomWizardCopilotPreviewText"></p>
-                  <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px">
-                    <button type="button" class="btn-secondary" id="roomWizardCopilotApply">Apply to theme &amp; tags</button>
+                <div id="roomWizardCopilotProgress" class="rw-waitbar" hidden aria-live="polite" aria-busy="true">
+                  <div class="small-note rw-waitbar-detail" id="roomWizardCopilotProgressDetail">Working…</div>
+                  <div class="progress-track">
+                    <div class="progress-fill" id="roomWizardCopilotProgressFill" style="width:6%"></div>
+                  </div>
+                  <div class="progress-meta">
+                    <span id="roomWizardCopilotProgressPct">6%</span>
+                    <span class="small-note">Progress is estimated until the server finishes.</span>
+                  </div>
+                </div>
+                <div id="roomWizardCopilotPreview" hidden class="info-box rw-copilot-preview-box">
+                  <p><strong>Preview</strong> — review the spec summary and generated candidates, then approve one for this room.</p>
+                  <div id="roomWizardCopilotPreviewVisual" class="rw-environment-preview"></div>
+                  <div id="roomWizardPreviewGallery" class="rw-preview-gallery"></div>
+                  <div class="rw-copilot-actions">
+                    <button type="button" class="btn-secondary" id="roomWizardCopilotApply">Apply theme &amp; tags locally</button>
                     <button type="button" class="btn-secondary" id="roomWizardCopilotDiscard">Discard</button>
                   </div>
                 </div>
@@ -2538,6 +2616,16 @@
       const API_COPILOT_URL = '/api/copilot';
       const PAGE_PARAMS = new URLSearchParams(window.location.search);
       const PROJECT_ID = (PAGE_PARAMS.get('project_id') || '').trim();
+      const PROJECT_ART_DIRECTION_URL = PROJECT_ID
+        ? `/api/projects/${encodeURIComponent(PROJECT_ID)}/art-direction`
+        : '';
+      const PROJECT_ART_DIRECTION_GENERATE_CONCEPTS_URL = PROJECT_ID
+        ? `/api/projects/${encodeURIComponent(PROJECT_ID)}/art-direction/generate-concepts`
+        : '';
+      const PROJECT_ART_DIRECTION_TEMPLATES_URL = PROJECT_ID
+        ? `/api/projects/${encodeURIComponent(PROJECT_ID)}/art-direction/templates`
+        : '';
+      const ROOM_ENV_ARCHETYPES_URL = '/api/room-environment/archetypes';
 
       function sanitizeLocalSlot(raw) {
         const s = String(raw ?? '')
@@ -2556,6 +2644,10 @@
       const PROJECT_LAYOUT_API_URL = PROJECT_ID
         ? `/api/projects/${encodeURIComponent(PROJECT_ID)}/room-layout`
         : API_LAYOUT_URL;
+      function projectRoomEnvironmentApiUrl(roomId, action) {
+        if (!PROJECT_ID || !roomId) return '';
+        return `/api/projects/${encodeURIComponent(PROJECT_ID)}/rooms/${encodeURIComponent(roomId)}/environment/${action}`;
+      }
       const PROJECT_LAYOUT_DOWNLOAD_NAME = PROJECT_ID
         ? `${PROJECT_ID}-room-layout.json`
         : LOCAL_SLOT
@@ -2868,12 +2960,19 @@
           phase: 'layout',
           roomId: null,
           touched: false,
-          copilotPreview: null
+          copilotPreview: null,
+          selectedArchetypeId: '',
+          approvedPreviewId: null,
+          progressTimers: {}
         },
         copilot: {
           serverReachable: false,
           geminiConfigured: false
         },
+        artDirection: null,
+        artDirectionTemplates: [],
+        artDirectionConceptOptions: [],
+        roomEnvironmentArchetypes: [],
         /** 'world' | 'room' — top toggle; room uses the existing room wizard rail. */
         workflowScope: 'world',
         /** 1–4 when scope is world: layout, placeholder, placeholder, review/export. */
@@ -5997,22 +6096,541 @@
           sel.value = ids.includes(e.themeId) ? e.themeId : 'custom';
         }
         if (tagsEl) tagsEl.value = envMod.tagsToInputString(e.tags);
+        const promptEl = document.getElementById('roomWizardCopilotPrompt');
+        if (promptEl && !String(promptEl.value || '').trim()) {
+          promptEl.value = e.spec?.description || '';
+        }
+        renderRoomWizardEnvironmentPreview(e);
+        renderRoomWizardPreviewGallery(e.preview || {});
       }
 
       function clearRoomWizardCopilotPreview() {
         state.roomWizard.copilotPreview = null;
         const prev = document.getElementById('roomWizardCopilotPreview');
-        const prevText = document.getElementById('roomWizardCopilotPreviewText');
+        const prevVisual = document.getElementById('roomWizardCopilotPreviewVisual');
+        const gallery = document.getElementById('roomWizardPreviewGallery');
         const st = document.getElementById('roomWizardCopilotStatus');
         if (prev) prev.hidden = true;
-        if (prevText) prevText.textContent = '';
+        if (prevVisual) prevVisual.innerHTML = '';
+        if (gallery) gallery.innerHTML = '';
         if (st) st.textContent = '';
+      }
+
+      function buildRoomWizardEnvironmentPreviewModel(themeId, tags, rationale) {
+        const envMod = globalThis.RoomWizardEnvironment;
+        if (envMod && typeof envMod.buildEnvironmentPreviewModel === 'function') {
+          return envMod.buildEnvironmentPreviewModel(themeId, tags, rationale);
+        }
+        const normalizedThemeId = typeof themeId === 'string' && themeId.trim() ? themeId.trim() : 'cave';
+        const cleanedTags = Array.isArray(tags)
+          ? tags.map((tag) => String(tag).trim()).filter(Boolean).slice(0, 6)
+          : [];
+        const fallbackLabel =
+          envMod && Array.isArray(envMod.THEME_PRESETS)
+            ? (envMod.THEME_PRESETS.find((preset) => preset.id === normalizedThemeId) || {}).label
+            : '';
+        return {
+          themeId: normalizedThemeId,
+          themeLabel: fallbackLabel || normalizedThemeId,
+          eyebrow: 'Room atmosphere',
+          summary: 'Preview available after the environment helpers finish loading.',
+          rationale: typeof rationale === 'string' ? rationale.trim() : '',
+          tags: cleanedTags,
+          sceneClass: `rw-environment-scene--${normalizedThemeId}`
+        };
+      }
+
+      function assetUrlWithVersion(url, version) {
+        const raw = String(url || '').trim();
+        if (!raw) return '';
+        const stamp = String(version || '').trim();
+        if (!stamp) return raw;
+        return `${raw}${raw.includes('?') ? '&' : '?'}v=${encodeURIComponent(stamp)}`;
+      }
+
+      function renderEnvironmentPreviewMarkup(preview, heading) {
+        const chips = (preview.tags || [])
+          .map((tag) => `<span class="rw-environment-chip">${escapeHtml(tag)}</span>`)
+          .join('');
+        const rationale = preview.rationale
+          ? `<p class="rw-environment-preview-rationale">${escapeHtml(preview.rationale)}</p>`
+          : '';
+        return `
+          <section class="rw-environment-preview-card">
+            <div class="rw-environment-scene ${escapeHtml(preview.sceneClass)}" aria-hidden="true">
+              <div class="rw-environment-scene__mist"></div>
+              <div class="rw-environment-scene__glow"></div>
+              <div class="rw-environment-scene__monolith rw-environment-scene__monolith--left"></div>
+              <div class="rw-environment-scene__monolith rw-environment-scene__monolith--right"></div>
+              <div class="rw-environment-scene__ground"></div>
+            </div>
+            <div class="rw-environment-preview-copy">
+              <p class="rw-environment-preview-label">${escapeHtml(heading)}</p>
+              <div class="rw-environment-preview-headline">
+                <strong>${escapeHtml(preview.themeLabel)}</strong>
+                <span>${escapeHtml(preview.eyebrow)}</span>
+              </div>
+              <p class="rw-environment-preview-summary">${escapeHtml(preview.summary)}</p>
+              ${rationale}
+              <div class="rw-environment-chip-row">${chips}</div>
+            </div>
+          </section>`;
+      }
+
+      function renderGeneratedEnvironmentPreviewMarkup(envState) {
+        const previewState = envState?.preview || {};
+        const items = Array.isArray(previewState.images) ? previewState.images : [];
+        if (!items.length) return '';
+        const approvedId = previewState.approved_image_id || '';
+        const active = items.find((item) => item.preview_id === approvedId) || items[0];
+        const activeUrl = assetUrlWithVersion(active.url || '', previewState.last_generated_at || active.preview_id || '');
+        const scenePlan = previewState.scene_plan || {};
+        const summaryBits = [
+          scenePlan.lighting ? `Lighting: ${scenePlan.lighting}` : '',
+          scenePlan.fog ? `Atmosphere: ${scenePlan.fog}` : '',
+          Array.isArray(scenePlan.landmarks) && scenePlan.landmarks.length ? `Landmarks: ${scenePlan.landmarks.slice(0, 3).join(', ')}` : ''
+        ].filter(Boolean);
+        const chips = (envState.tags || [])
+          .map((tag) => `<span class="rw-environment-chip">${escapeHtml(tag)}</span>`)
+          .join('');
+        return `
+          <section class="rw-generated-environment-card">
+            <div class="rw-generated-environment-media">
+              <img src="${escapeHtml(activeUrl)}" alt="${escapeHtml(active.label || 'Generated room preview')}" />
+            </div>
+            <div class="rw-generated-environment-copy">
+              <p class="rw-environment-preview-label">Generated room preview</p>
+              <div class="rw-environment-preview-headline">
+                <strong>${escapeHtml(active.label || 'Preview')}</strong>
+                <span>${escapeHtml((active.render_level || previewState.render_level || '').toUpperCase())}</span>
+              </div>
+              <p class="rw-environment-preview-summary">
+                ${escapeHtml(envState.spec?.description || 'Generated environment concept based on the room draft, project art direction, and room layout.')}
+              </p>
+              ${summaryBits.length ? `<p class="rw-environment-preview-rationale">${escapeHtml(summaryBits.join(' · '))}</p>` : ''}
+              <div class="rw-environment-chip-row">${chips}</div>
+            </div>
+          </section>`;
+      }
+
+      function renderRoomWizardEnvironmentPreview(envState) {
+        const target = document.getElementById('roomWizardEnvironmentPreview');
+        if (!target || !envState) return;
+        const generatedMarkup = renderGeneratedEnvironmentPreviewMarkup(envState);
+        if (generatedMarkup) {
+          target.innerHTML = generatedMarkup;
+          return;
+        }
+        const preview = buildRoomWizardEnvironmentPreviewModel(envState.themeId, envState.tags || []);
+        target.innerHTML = renderEnvironmentPreviewMarkup(preview, 'Current room mood');
+      }
+
+      function renderRoomWizardPreviewGallery(previewState) {
+        const gallery = document.getElementById('roomWizardPreviewGallery');
+        if (!gallery) return;
+        const items = Array.isArray(previewState?.images) ? previewState.images : [];
+        if (!items.length) {
+          gallery.innerHTML = '';
+          return;
+        }
+        const approved = previewState?.approved_image_id || null;
+        const version = previewState?.last_generated_at || '';
+        gallery.innerHTML = items.map((item) => {
+          const active = approved && approved === item.preview_id ? ' active' : '';
+          return `
+            <article class="rw-preview-card${active}">
+              <div class="rw-preview-card-media">
+                <img src="${escapeHtml(assetUrlWithVersion(item.url || '', version || item.preview_id || ''))}" alt="${escapeHtml(item.label || 'Room preview')}" />
+              </div>
+              <div class="rw-preview-card-copy">
+                <strong>${escapeHtml(item.label || 'Preview')}</strong>
+                <span>${escapeHtml((item.render_level || '').toUpperCase())}</span>
+              </div>
+              <button type="button" class="btn-secondary rw-preview-approve" data-preview-id="${escapeHtml(item.preview_id || '')}">
+                ${active ? 'Approved' : 'Approve Preview'}
+              </button>
+            </article>`;
+        }).join('');
+        gallery.querySelectorAll('.rw-preview-approve').forEach((btn) => {
+          btn.addEventListener('click', () => approveRoomWizardPreview(btn.dataset.previewId || ''));
+        });
+      }
+
+      function stopRoomWizardWaitbar(slot, finalPercent = 100) {
+        const root = document.getElementById(slot === 'art-direction' ? 'roomWizardArtDirectionProgress' : 'roomWizardCopilotProgress');
+        const fill = document.getElementById(slot === 'art-direction' ? 'roomWizardArtDirectionProgressFill' : 'roomWizardCopilotProgressFill');
+        const pct = document.getElementById(slot === 'art-direction' ? 'roomWizardArtDirectionProgressPct' : 'roomWizardCopilotProgressPct');
+        const timer = state.roomWizard?.progressTimers?.[slot];
+        if (timer) {
+          clearInterval(timer);
+          state.roomWizard.progressTimers[slot] = null;
+        }
+        if (fill) fill.style.width = `${Math.max(0, Math.min(100, finalPercent))}%`;
+        if (pct) pct.textContent = `${Math.round(Math.max(0, Math.min(100, finalPercent)))}%`;
+        if (root) {
+          window.setTimeout(() => {
+            root.hidden = true;
+          }, 180);
+        }
+      }
+
+      function startRoomWizardWaitbar(slot, detail) {
+        const root = document.getElementById(slot === 'art-direction' ? 'roomWizardArtDirectionProgress' : 'roomWizardCopilotProgress');
+        const fill = document.getElementById(slot === 'art-direction' ? 'roomWizardArtDirectionProgressFill' : 'roomWizardCopilotProgressFill');
+        const pct = document.getElementById(slot === 'art-direction' ? 'roomWizardArtDirectionProgressPct' : 'roomWizardCopilotProgressPct');
+        const label = document.getElementById(slot === 'art-direction' ? 'roomWizardArtDirectionProgressDetail' : 'roomWizardCopilotProgressDetail');
+        stopRoomWizardWaitbar(slot, 6);
+        if (label) label.textContent = detail || 'Working…';
+        if (root) root.hidden = false;
+        let value = 6;
+        if (fill) fill.style.width = `${value}%`;
+        if (pct) pct.textContent = `${value}%`;
+        state.roomWizard.progressTimers[slot] = window.setInterval(() => {
+          value = Math.min(92, value + (value < 30 ? 8 : value < 60 ? 5 : 3));
+          if (fill) fill.style.width = `${value}%`;
+          if (pct) pct.textContent = `${Math.round(value)}%`;
+        }, 420);
+      }
+
+      function renderRoomWizardDirectionConceptBoard() {
+        const grid = document.getElementById('roomWizardDirectionConceptBoardGrid');
+        const status = document.getElementById('roomWizardGenerateArtDirectionConceptsStatus');
+        if (!grid || !status) return;
+        if (!PROJECT_ID) {
+          grid.innerHTML = '';
+          status.textContent = 'Open this room through a project to generate art direction concepts.';
+          return;
+        }
+        const items = Array.isArray(state.artDirectionConceptOptions) ? state.artDirectionConceptOptions : [];
+        if (!items.length) {
+          grid.innerHTML = '';
+          status.textContent = 'No art direction concepts yet. Generate a first concept board from the direction summary above.';
+          return;
+        }
+        const selectedIds = new Set(Array.isArray(state.artDirection?.frozen_concept_ids) ? state.artDirection.frozen_concept_ids : []);
+        const boardStatus = state.artDirection?.concept_board?.generation_error;
+        status.textContent = boardStatus === 'gemini_image_unavailable_fallback_used'
+          ? 'Gemini image generation was unavailable, so the concept board used local fallback images.'
+          : `${items.length} art direction concept${items.length === 1 ? '' : 's'} ready. Click cards below to freeze the strongest anchors.`;
+        grid.innerHTML = items.map((item) => {
+          const active = selectedIds.has(item.concept_id) ? ' active' : '';
+          return `
+            <article class="rw-direction-concept-card${active}">
+              <div class="rw-direction-concept-media">
+                <img src="${escapeHtml(item.url || '')}" alt="${escapeHtml(item.label || item.concept_id || 'Art direction concept')}" />
+              </div>
+              <div class="rw-direction-concept-copy">
+                <strong>${escapeHtml(item.label || 'Concept')}</strong>
+                <p>${escapeHtml(item.prompt || '')}</p>
+              </div>
+              <button type="button" class="btn-secondary rw-direction-concept-toggle" data-concept-id="${escapeHtml(item.concept_id || '')}">
+                ${active ? 'Frozen Anchor' : 'Freeze As Anchor'}
+              </button>
+            </article>
+          `;
+        }).join('');
+        grid.querySelectorAll('.rw-direction-concept-toggle').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            const conceptId = btn.dataset.conceptId || '';
+            if (!conceptId) return;
+            const direction = state.artDirection || {};
+            const current = Array.isArray(direction.frozen_concept_ids) ? [...direction.frozen_concept_ids] : [];
+            const set = new Set(current);
+            if (set.has(conceptId)) set.delete(conceptId);
+            else if (set.size < 3) set.add(conceptId);
+            else {
+              const saveStatus = document.getElementById('roomWizardArtDirectionStatus');
+              if (saveStatus) saveStatus.textContent = 'Keep at most 3 frozen anchors so the art direction stays coherent.';
+              return;
+            }
+            state.artDirection = { ...direction, frozen_concept_ids: Array.from(set) };
+            renderRoomWizardDirectionConceptBoard();
+            renderRoomWizardFrozenConceptGrid();
+          });
+        });
+      }
+
+      function renderRoomWizardFrozenConceptGrid() {
+        const grid = document.getElementById('roomWizardFrozenConceptGrid');
+        const summary = document.getElementById('roomWizardFrozenConceptsSummary');
+        if (!grid || !summary) return;
+        const projectMode = !!PROJECT_ID;
+        if (!projectMode) {
+          grid.innerHTML = '';
+          summary.textContent = 'Open this room through a workbench project to freeze concept anchors.';
+          return;
+        }
+        const options = Array.isArray(state.artDirectionConceptOptions) ? state.artDirectionConceptOptions : [];
+        const selectedIds = new Set(Array.isArray(state.artDirection?.frozen_concept_ids) ? state.artDirection.frozen_concept_ids : []);
+        if (!options.length) {
+          grid.innerHTML = '';
+          summary.textContent = 'Generate an art direction concept board above, then freeze the concepts you want to keep referencing.';
+          return;
+        }
+        const selected = options.filter((item) => selectedIds.has(item.concept_id));
+        const selectedCount = selected.length;
+        summary.textContent = selectedCount
+          ? `Frozen anchors: ${selected.map((item) => item.label || item.concept_id).join(', ')}.`
+          : 'Choose 1-3 concepts to freeze as recurring visual anchors for the project.';
+        grid.innerHTML = options.map((item) => {
+          const active = selectedIds.has(item.concept_id) ? ' active' : '';
+          const status = item.approved ? 'Approved' : (item.selected ? 'Selected' : 'Available');
+          return `
+            <button type="button" class="rw-frozen-concept${active}" data-concept-id="${escapeHtml(item.concept_id || '')}" aria-pressed="${selectedIds.has(item.concept_id) ? 'true' : 'false'}">
+              <span class="rw-frozen-concept-media">
+                <img src="${escapeHtml(item.url || '')}" alt="${escapeHtml(item.label || item.concept_id || 'Concept anchor')}" />
+              </span>
+              <span class="rw-frozen-concept-copy">
+                <strong>${escapeHtml(item.label || item.concept_id || 'Concept')}</strong>
+                <span>${escapeHtml(status)}</span>
+              </span>
+            </button>
+          `;
+        }).join('');
+        grid.querySelectorAll('[data-concept-id]').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            const conceptId = btn.dataset.conceptId || '';
+            if (!conceptId) return;
+            const direction = state.artDirection || {};
+            const current = Array.isArray(direction.frozen_concept_ids) ? [...direction.frozen_concept_ids] : [];
+            const set = new Set(current);
+            if (set.has(conceptId)) {
+              set.delete(conceptId);
+            } else if (set.size < 3) {
+              set.add(conceptId);
+            } else {
+              const status = document.getElementById('roomWizardArtDirectionStatus');
+              if (status) status.textContent = 'Keep at most 3 frozen concepts so the visual direction stays focused.';
+              return;
+            }
+            state.artDirection = { ...direction, frozen_concept_ids: Array.from(set) };
+            renderRoomWizardFrozenConceptGrid();
+          });
+        });
+      }
+
+      function renderRoomWizardArtDirectionUi() {
+        const card = document.getElementById('roomWizardArtDirectionCard');
+        const hint = document.getElementById('roomWizardArtDirectionHint');
+        const sel = document.getElementById('roomWizardArtDirectionTemplate');
+        const summary = document.getElementById('roomWizardArtDirectionSummary');
+        const negative = document.getElementById('roomWizardArtDirectionNegative');
+        const btn = document.getElementById('roomWizardArtDirectionSave');
+        if (!card || !hint || !sel || !summary || !negative || !btn) return;
+        const projectMode = !!PROJECT_ID;
+        card.style.display = projectMode ? '' : 'none';
+        if (!projectMode) return;
+        if (!sel.options.length) {
+          state.artDirectionTemplates.forEach((item) => {
+            const opt = document.createElement('option');
+            opt.value = item.template_id;
+            opt.textContent = item.label;
+            sel.appendChild(opt);
+          });
+        }
+        const direction = state.artDirection || {};
+        if (direction.template_id) sel.value = direction.template_id;
+        summary.value = direction.high_level_direction || '';
+        negative.value = direction.negative_direction || '';
+        hint.textContent = direction.locked
+          ? 'Project art direction is locked. New room drafts and previews must stay inside this direction.'
+          : 'Choose a direction template, adjust it if needed, then lock it before generating room previews.';
+        btn.textContent = direction.locked ? 'Update Locked Direction' : 'Save & lock direction';
+        renderRoomWizardDirectionConceptBoard();
+        renderRoomWizardFrozenConceptGrid();
+      }
+
+      function renderRoomWizardArchetypeGrid() {
+        const grid = document.getElementById('roomWizardArchetypeGrid');
+        if (!grid) return;
+        const projectMode = !!PROJECT_ID;
+        grid.parentElement.style.display = projectMode ? '' : 'none';
+        if (!projectMode) return;
+        const active = state.roomWizard.selectedArchetypeId || '';
+        grid.innerHTML = state.roomEnvironmentArchetypes.map((item) => `
+          <button type="button" class="btn-secondary rw-template-chip${active === item.archetype_id ? ' active' : ''}" data-archetype-id="${escapeHtml(item.archetype_id)}" title="${escapeHtml(item.starter_brief || '')}">
+            ${escapeHtml(item.label)}
+          </button>
+        `).join('');
+        grid.querySelectorAll('[data-archetype-id]').forEach((btn) => {
+          btn.addEventListener('click', async () => {
+            state.roomWizard.selectedArchetypeId = btn.dataset.archetypeId || '';
+            renderRoomWizardArchetypeGrid();
+            await adaptSelectedRoomArchetype('Adapt this room template to the locked project style.');
+          });
+        });
+      }
+
+      async function loadRoomEnvironmentProjectData() {
+        if (!PROJECT_ID) return;
+        try {
+          const [templateRes, archetypeRes] = await Promise.all([
+            fetch(PROJECT_ART_DIRECTION_TEMPLATES_URL, { cache: 'no-store' }),
+            fetch(ROOM_ENV_ARCHETYPES_URL, { cache: 'no-store' })
+          ]);
+          const templateJson = await templateRes.json().catch(() => ({}));
+          const archetypeJson = await archetypeRes.json().catch(() => ({}));
+          state.artDirectionTemplates = Array.isArray(templateJson.templates) ? templateJson.templates : [];
+          state.artDirection = templateJson.art_direction || null;
+          state.artDirectionConceptOptions = Array.isArray(templateJson.available_concepts) ? templateJson.available_concepts : [];
+          state.roomEnvironmentArchetypes = Array.isArray(archetypeJson.archetypes) ? archetypeJson.archetypes : [];
+          renderRoomWizardArtDirectionUi();
+          renderRoomWizardArchetypeGrid();
+          updateRoomWizardCopilotHintUi();
+        } catch (_) {
+          const hint = document.getElementById('roomWizardArtDirectionHint');
+          if (hint) hint.textContent = 'Could not load project art-direction templates.';
+        }
+      }
+
+      async function saveProjectArtDirectionFromWizard() {
+        if (!PROJECT_ID || !PROJECT_ART_DIRECTION_URL) return;
+        const sel = document.getElementById('roomWizardArtDirectionTemplate');
+        const summary = document.getElementById('roomWizardArtDirectionSummary');
+        const negative = document.getElementById('roomWizardArtDirectionNegative');
+        const status = document.getElementById('roomWizardArtDirectionStatus');
+        if (!sel || !summary || !negative) return;
+        if (status) status.textContent = 'Saving direction…';
+        startRoomWizardWaitbar('art-direction', 'Saving project art direction.');
+        try {
+          const res = await fetch(PROJECT_ART_DIRECTION_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              template_id: sel.value,
+              high_level_direction: summary.value,
+              negative_direction: negative.value,
+              frozen_concept_ids: Array.isArray(state.artDirection?.frozen_concept_ids) ? state.artDirection.frozen_concept_ids : [],
+              locked: true
+            })
+          });
+          const json = await res.json().catch(() => ({}));
+          if (!res.ok || !json.ok) throw new Error(json.error || 'Could not save art direction');
+          state.artDirection = json.art_direction || null;
+          (state.data?.rooms || []).forEach((room) => {
+            const envMod = globalThis.RoomWizardEnvironment;
+            if (!envMod) return;
+            envMod.ensureRoomEnvironment(room);
+            room.environment.preview.status = 'outdated';
+            room.environment.preview.fallback_reason = 'art_direction_changed';
+          });
+          renderRoomWizardArtDirectionUi();
+          updateRoomWizardCopilotHintUi();
+          if (status) status.textContent = 'Project direction locked.';
+          stopRoomWizardWaitbar('art-direction', 100);
+        } catch (e) {
+          stopRoomWizardWaitbar('art-direction', 100);
+          if (status) status.textContent = (e && e.message) || 'Save failed';
+        }
+      }
+
+      async function generateArtDirectionConceptBoard() {
+        if (!PROJECT_ID || !PROJECT_ART_DIRECTION_GENERATE_CONCEPTS_URL) return;
+        const sel = document.getElementById('roomWizardArtDirectionTemplate');
+        const summary = document.getElementById('roomWizardArtDirectionSummary');
+        const negative = document.getElementById('roomWizardArtDirectionNegative');
+        const status = document.getElementById('roomWizardGenerateArtDirectionConceptsStatus');
+        const btn = document.getElementById('roomWizardGenerateArtDirectionConcepts');
+        if (!sel || !summary || !negative || !status || !btn) return;
+        status.textContent = 'Generating art direction concepts…';
+        btn.disabled = true;
+        startRoomWizardWaitbar('art-direction', 'Generating art direction concept board.');
+        try {
+          const res = await fetch(PROJECT_ART_DIRECTION_GENERATE_CONCEPTS_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              template_id: sel.value,
+              high_level_direction: summary.value,
+              negative_direction: negative.value,
+              frozen_concept_ids: Array.isArray(state.artDirection?.frozen_concept_ids) ? state.artDirection.frozen_concept_ids : []
+            })
+          });
+          const json = await res.json().catch(() => ({}));
+          if (!res.ok || !json.ok) throw new Error(json.error || 'Could not generate art direction concepts');
+          state.artDirection = json.art_direction || state.artDirection;
+          state.artDirectionConceptOptions = Array.isArray(json.available_concepts) ? json.available_concepts : [];
+          renderRoomWizardArtDirectionUi();
+          updateRoomWizardCopilotHintUi();
+          stopRoomWizardWaitbar('art-direction', 100);
+        } catch (e) {
+          stopRoomWizardWaitbar('art-direction', 100);
+          status.textContent = (e && e.message) || 'Generation failed';
+        } finally {
+          btn.disabled = false;
+        }
+      }
+
+      async function adaptSelectedRoomArchetype(instruction) {
+        const room = getRoomWizardRoom();
+        const promptEl = document.getElementById('roomWizardCopilotPrompt');
+        const st = document.getElementById('roomWizardCopilotStatus');
+        if (!PROJECT_ID || !room || !promptEl) return;
+        if (!state.roomWizard.selectedArchetypeId && !String(promptEl.value || '').trim()) {
+          if (st) st.textContent = 'Choose a room template or enter a draft first.';
+          return;
+        }
+        if (st) st.textContent = 'Adapting draft…';
+        startRoomWizardWaitbar('copilot', 'Adapting the room draft to the current art direction.');
+        try {
+          const res = await fetch(projectRoomEnvironmentApiUrl(room.id, 'adapt-template'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              archetype_id: state.roomWizard.selectedArchetypeId || null,
+              user_text: promptEl.value,
+              instruction
+            })
+          });
+          const json = await res.json().catch(() => ({}));
+          if (!res.ok || !json.ok) throw new Error(json.error || 'Could not adapt room template');
+          promptEl.value = json.draft_description || promptEl.value;
+          if (st) st.textContent = 'Draft updated for the current project direction.';
+          stopRoomWizardWaitbar('copilot', 100);
+        } catch (e) {
+          stopRoomWizardWaitbar('copilot', 100);
+          if (st) st.textContent = (e && e.message) || 'Adaptation failed';
+        }
+      }
+
+      async function approveRoomWizardPreview(previewId) {
+        const room = getRoomWizardRoom();
+        const st = document.getElementById('roomWizardCopilotStatus');
+        if (!PROJECT_ID || !room || !previewId) return;
+        startRoomWizardWaitbar('copilot', 'Approving the selected preview.');
+        try {
+          const res = await fetch(projectRoomEnvironmentApiUrl(room.id, 'approve-preview'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ preview_id: previewId })
+          });
+          const json = await res.json().catch(() => ({}));
+          if (!res.ok || !json.ok) throw new Error(json.error || 'Approve failed');
+          const envMod = globalThis.RoomWizardEnvironment;
+          if (envMod) envMod.ensureRoomEnvironment(room);
+          room.environment = json.environment || room.environment;
+          renderRoomWizardPreviewGallery(room.environment.preview || {});
+          state.roomWizard.approvedPreviewId = previewId;
+          if (st) st.textContent = 'Preview approved for this room.';
+          updateJsonText();
+          stopRoomWizardWaitbar('copilot', 100);
+        } catch (e) {
+          stopRoomWizardWaitbar('copilot', 100);
+          if (st) st.textContent = (e && e.message) || 'Approve failed';
+        }
       }
 
       function updateRoomWizardCopilotHintUi() {
         const hint = document.getElementById('roomWizardCopilotServerHint');
         if (!hint) return;
         const { serverReachable, geminiConfigured } = state.copilot;
+        if (PROJECT_ID) {
+          const frozenCount = Array.isArray(state.artDirection?.frozen_concept_ids) ? state.artDirection.frozen_concept_ids.length : 0;
+          hint.innerHTML = state.artDirection?.locked
+            ? `Project direction is locked${frozenCount ? ` with ${frozenCount} frozen concept anchor${frozenCount === 1 ? '' : 's'}` : ''}. Generate room-aware previews from a room template or your own room draft.`
+            : 'Lock a project art direction first so room drafts and previews stay consistent.';
+          return;
+        }
         if (!serverReachable) {
           hint.innerHTML =
             'Run the <strong>Sprite Workbench</strong> server (e.g. <code>./scripts/start_sprite_workbench_with_env.sh</code> or <code>python3 scripts/sprite_workbench_server.py</code>) and open this page from that server so Copilot and Sync Canonical can use your <code>.env.local</code> key.';
@@ -6043,11 +6661,22 @@
 
       function renderRoomWizardCopilotPreview(payload) {
         const prev = document.getElementById('roomWizardCopilotPreview');
-        const prevText = document.getElementById('roomWizardCopilotPreviewText');
-        if (!prev || !prevText || !payload) return;
-        const tagStr = Array.isArray(payload.tags) ? payload.tags.join(', ') : '';
-        const rat = payload.rationale ? `<br/><em>${escapeHtml(payload.rationale)}</em>` : '';
-        prevText.innerHTML = `<strong>${escapeHtml(payload.themeId)}</strong> · ${escapeHtml(tagStr)}${rat}`;
+        const prevVisual = document.getElementById('roomWizardCopilotPreviewVisual');
+        if (!prev || !prevVisual || !payload) return;
+        if (PROJECT_ID) {
+          const room = getRoomWizardRoom();
+          if (room?.environment?.preview?.images?.length) {
+            prevVisual.innerHTML = renderGeneratedEnvironmentPreviewMarkup(room.environment);
+            prev.hidden = false;
+            return;
+          }
+        }
+        const preview = buildRoomWizardEnvironmentPreviewModel(
+          payload.themeId,
+          payload.tags || [],
+          payload.rationale || ''
+        );
+        prevVisual.innerHTML = renderEnvironmentPreviewMarkup(preview, 'Copilot suggestion');
         prev.hidden = false;
       }
 
@@ -6491,6 +7120,7 @@
         }
         if (phase === 'environment') {
           syncRoomWizardEnvironmentFromRoom();
+          loadRoomEnvironmentProjectData();
           refreshCopilotStatus();
         }
       }
@@ -6725,6 +7355,14 @@
           setDirty(true);
           updateJsonText();
         });
+        document.getElementById('roomWizardArtDirectionSave')?.addEventListener('click', saveProjectArtDirectionFromWizard);
+        document.getElementById('roomWizardGenerateArtDirectionConcepts')?.addEventListener('click', generateArtDirectionConceptBoard);
+        document.getElementById('roomWizardAdaptTemplate')?.addEventListener('click', () => {
+          adaptSelectedRoomArchetype('Rewrite this room draft so it fits the locked project style.');
+        });
+        document.getElementById('roomWizardSimplifyDraft')?.addEventListener('click', () => {
+          adaptSelectedRoomArchetype('Simplify this room draft so a novice creator can understand and edit it quickly.');
+        });
         document.getElementById('roomWizardCopilotGenerate')?.addEventListener('click', async () => {
           const copilotMod = globalThis.RoomWizardEnvironmentCopilot;
           const room = getRoomWizardRoom();
@@ -6737,6 +7375,53 @@
             if (st) st.textContent = 'Enter a short description first.';
             return;
           }
+          if (PROJECT_ID) {
+            clearRoomWizardCopilotPreview();
+            if (st) st.textContent = 'Building room spec…';
+            if (btn) btn.disabled = true;
+            startRoomWizardWaitbar('copilot', 'Building the room environment spec.');
+            try {
+              const specRes = await fetch(projectRoomEnvironmentApiUrl(room.id, 'spec'), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ description: prompt })
+              });
+              const specJson = await specRes.json().catch(() => ({}));
+              if (!specRes.ok || !specJson.ok) {
+                throw new Error(specJson.error || 'Could not build room environment spec');
+              }
+              room.environment = specJson.environment || room.environment;
+              syncRoomWizardEnvironmentFromRoom();
+              if (st) st.textContent = 'Rendering previews…';
+              startRoomWizardWaitbar('copilot', 'Rendering room-aware environment previews.');
+              const previewRes = await fetch(projectRoomEnvironmentApiUrl(room.id, 'previews'), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ spec: room.environment?.spec || {} })
+              });
+              const previewJson = await previewRes.json().catch(() => ({}));
+              if (!previewRes.ok || !previewJson.ok) {
+                throw new Error(previewJson.error || 'Could not generate previews');
+              }
+              room.environment = previewJson.environment || room.environment;
+              state.roomWizard.copilotPreview = {
+                themeId: room.environment?.themeId || 'custom',
+                tags: room.environment?.tags || [],
+                rationale: room.environment?.spec?.description || ''
+              };
+              renderRoomWizardCopilotPreview(state.roomWizard.copilotPreview);
+              renderRoomWizardPreviewGallery(room.environment?.preview || {});
+              updateJsonText();
+              if (st) st.textContent = 'Preview candidates ready — approve one below.';
+              stopRoomWizardWaitbar('copilot', 100);
+            } catch (e) {
+              stopRoomWizardWaitbar('copilot', 100);
+              if (st) st.textContent = (e && e.message) || 'Environment generation failed';
+            } finally {
+              if (btn) btn.disabled = false;
+            }
+            return;
+          }
           if (!state.copilot.serverReachable || !state.copilot.geminiConfigured) {
             if (st) st.textContent = 'Workbench API or Gemini key unavailable — see note above.';
             return;
@@ -6744,6 +7429,7 @@
           clearRoomWizardCopilotPreview();
           if (st) st.textContent = 'Generating…';
           if (btn) btn.disabled = true;
+          startRoomWizardWaitbar('copilot', 'Generating a Gemini environment suggestion.');
           try {
             const res = await fetch(API_COPILOT_URL, {
               method: 'POST',
@@ -6758,6 +7444,7 @@
             if (!res.ok || !json.ok) {
               const err = (json && json.error) || res.statusText || 'Request failed';
               if (st) st.textContent = String(err).slice(0, 200);
+              stopRoomWizardWaitbar('copilot', 100);
               return;
             }
             const raw = json.data;
@@ -6766,12 +7453,15 @@
               payload = copilotMod.normalizeCopilotPayload(raw);
             } catch (e) {
               if (st) st.textContent = (e && e.message) || 'Invalid Copilot payload';
+              stopRoomWizardWaitbar('copilot', 100);
               return;
             }
             state.roomWizard.copilotPreview = payload;
             renderRoomWizardCopilotPreview(payload);
             if (st) st.textContent = 'Preview ready — apply or discard.';
+            stopRoomWizardWaitbar('copilot', 100);
           } catch (e) {
+            stopRoomWizardWaitbar('copilot', 100);
             if (st) st.textContent = (e && e.message) || 'Network error';
           } finally {
             if (btn) btn.disabled = false;
@@ -6782,14 +7472,22 @@
           const envMod = globalThis.RoomWizardEnvironment;
           const room = getRoomWizardRoom();
           const preview = state.roomWizard.copilotPreview;
-          if (!copilotMod || !envMod || !room || !preview) return;
-          copilotMod.applyCopilotPayloadToRoom(room, preview, envMod);
+          if (!envMod || !room || !preview) return;
+          if (PROJECT_ID) {
+            envMod.ensureRoomEnvironment(room);
+            room.environment.themeId = preview.themeId;
+            room.environment.tags = Array.isArray(preview.tags) ? [...preview.tags] : [];
+            room.environment.spec.description = preview.rationale || room.environment.spec.description || '';
+          } else {
+            if (!copilotMod) return;
+            copilotMod.applyCopilotPayloadToRoom(room, preview, envMod);
+          }
           state.roomWizard.touched = true;
           setDirty(true);
           updateJsonText();
           syncRoomWizardEnvironmentFromRoom();
           clearRoomWizardCopilotPreview();
-          setStatus('Applied Copilot suggestion to theme and tags.', 'success');
+          setStatus(PROJECT_ID ? 'Applied planner suggestion to local room fields.' : 'Applied Copilot suggestion to theme and tags.', 'success');
         });
         document.getElementById('roomWizardCopilotDiscard')?.addEventListener('click', () => {
           clearRoomWizardCopilotPreview();

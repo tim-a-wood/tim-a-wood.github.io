@@ -1,0 +1,64 @@
+# Reporting Schedule — Metroidvania Toolchain OS
+# Owner: Orchestrator
+
+cadence:
+  monday:
+    - agent: orchestrator
+      report: weekly-founder-digest
+      time: "09:00"
+      template: templates/weekly-founder-digest.md
+
+  tuesday:
+    - agent: marketing
+      report: weekly-marketing-update
+      time: "10:00"
+      template: templates/specialist-weekly.md
+
+  wednesday:
+    - agent: analytics
+      report: weekly-analytics-update
+      time: "10:00"
+      template: templates/specialist-weekly.md
+
+  thursday:
+    - agent: support
+      report: weekly-support-update
+      time: "10:00"
+      template: templates/specialist-weekly.md
+
+  friday:
+    - agent: finance
+      report: weekly-finance-snapshot
+      time: "10:00"
+      template: templates/specialist-weekly.md
+    - agent: qa
+      report: release-qa-packet
+      time: "10:00"
+      template: templates/specialist-weekly.md
+      condition: "active_release == true"
+
+monthly:
+  - agent: legal
+    report: monthly-legal-review
+    template: templates/specialist-monthly.md
+  - agent: finance
+    report: monthly-finance-review
+    template: templates/specialist-monthly.md
+
+event_triggered:
+  - trigger: security_incident
+    agents: [cybersecurity, legal]
+    template: templates/escalation-alert.md
+    urgency: immediate
+  - trigger: api_key_exposure
+    agents: [cybersecurity]
+    template: templates/escalation-alert.md
+    urgency: immediate
+  - trigger: cost_spike_500
+    agents: [finance]
+    template: templates/escalation-alert.md
+    urgency: within_24h
+  - trigger: p0_bug
+    agents: [qa]
+    template: templates/escalation-alert.md
+    urgency: immediate

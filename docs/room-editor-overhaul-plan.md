@@ -106,6 +106,44 @@ What LDtk does NOT have: any AI features whatsoever.
 | Biome-aware asset generation (sprites + tiles share palette) | Not available | Medium |
 | Godot/Phaser export from the same tool that generated your sprites | Neither tool does the other's job | Medium |
 
+### AI Image Generation Landscape (2026 Research)
+
+The 2026 competitive landscape for AI image generation has matured significantly. Key findings for this tool:
+
+**No level editor has AI image generation.** LDtk, Tiled, and Godot TileSet have zero AI integration. A Godot plugin (`godot-ai-image-generator`) calls Gemini 2.5 Flash Image directly from the in-editor panel — this is the closest precedent for what we're building.
+
+**Solo dev workflow pattern (established):** AI generates environment concept/mood → dev curates → AI generates tileset/background layers → cleanup → in-engine. The 2025–26 shift is devs accepting AI output directly for parallax backgrounds rather than only as reference.
+
+#### Recommended Tool Stack
+
+| Tool | Purpose | API | Cost |
+|---|---|---|---|
+| **Nano Banana 2** (Gemini 3.1 Flash Image) | Room concept/mood generation, conversational iteration | `@google/generative-ai` | $0.039/image, free tier |
+| **PixelLab Bitforge** | Pixel art assets with style-reference locking | `pixellab-js` (official JS SDK) | $0.008–$0.013/image |
+| **PixelLab Pixflux** | Text-to-pixel-art (no reference needed) | Same SDK | $0.008–$0.013/image |
+| **Retro Diffusion** (via Replicate) | Tileset sheets with dual-prompt biome blending | Replicate JS SDK | $0.005–$0.02/image |
+| **FLUX.1 Kontext** (via fal.ai) | Iterative painted background editing (upgrade path) | `@fal-ai/client` | $0.04/image |
+
+**Nano Banana 2 is the Gemini 3.1 Flash Image model** (`gemini-3.1-flash-image-preview`). The existing Environment Copilot already runs on Gemini — extending it to also generate the environment image is a natural evolution of the same API session.
+
+**Style consistency strategy (no model training required):**
+1. Generate one canonical environment image per biome (ruins, cavern, lab, etc.) using Nano Banana 2 or FLUX.1 Kontext
+2. Store canonical images as biome style references in the project
+3. When generating pixel art assets for a room, pass the biome's canonical image to PixelLab Bitforge as the style reference
+4. Vary only room-specific prompt terms (specific props, entities, lighting adjustments)
+
+**Integration architecture:**
+```
+Browser (Room Editor)
+  → POST /api/generate-environment { room_type, theme_keywords, biome, style_ref_id, output_type }
+
+Node.js Server (sprite_workbench_server.py)
+  → Nano Banana 2 (Gemini)     → room concept/mood images, conversational Copilot flow
+  → PixelLab Bitforge           → pixel art assets (style-ref locked to biome canonical)
+  → Retro Diffusion / Replicate → tileset sheets (dual-prompt biome blending) [deferred]
+  → fal.ai FLUX.1 Kontext       → iterative painted backgrounds [upgrade path]
+```
+
 ### Target User Profile
 
 **The programmer-first solo indie developer** building a metroidvania or 2D side-scroller who:
@@ -490,22 +528,83 @@ The #1 unoccupied product feature in the competitive landscape.
 - Apply validation checks before presenting to user
 - Show diff of what will change if merging with existing room
 
-#### 6B — Style-Coherent World Theming
+#### 6B — Environment Visualization (Nano Banana 2)
+
+The Environment Copilot (already live on `sprite_workbench_server.py`) describes room environments via Gemini. This phase extends that into visual output — the Copilot's description becomes the image generation prompt.
 
 **User flow:**
-1. Project has a character locked (from Sprite Workbench character pipeline)
-2. In Level Design stage, user selects biome type per room (hub, branch-A, branch-B, branch-C, final)
-3. System suggests color palette per biome based on character's dominant colors
-4. Platform tint assignments auto-suggest per biome (can be overridden)
-5. Future: tileset generation matching character palette
+1. User has a room selected with a biome assigned (hub, branch-A, branch-B, branch-C, final)
+2. Environment Copilot describes the room (existing behavior)
+3. New: "Visualize" button generates a concept image from the Copilot's description
+4. Image is shown as a moodboard panel alongside the canvas — not replacing geometry, informing it
+5. User can iterate: "make it darker", "add glowing fungi", "colder color temperature" — multi-turn Gemini conversation
+6. "Set as Biome Reference" stores the approved image as the canonical style reference for this biome
+7. All future asset generation for rooms in this biome uses this image as the style anchor
 
 **Technical approach:**
-- Extract dominant palette from character's approved concept art
-- Apply palette rotation per biome (hue shift, value range constraints)
-- Map palette to existing tint slots (tint 0–4)
-- Store theming in `room_layout.meta.biome_themes`
+- Extend existing `/api/copilot` endpoint to optionally trigger image generation via Nano Banana 2 (`gemini-3.1-flash-image-preview`)
+- Same Gemini API session = conversational iteration without re-prompting from scratch
+- Biome canonical images stored in `project/<id>/biome-refs/<biome>.png` on the server
+- `room_layout.meta.biome_themes` extended: `{ biome: "branch-a", canonical_ref: "biome-refs/branch-a.png", palette: [...] }`
+- Palette extraction from canonical image (dominant color analysis) → auto-suggest platform tints (can be overridden)
 
-#### 6C — Layout Validation Suggestions
+**Prompt strategy:**
+```
+[Style]: 2D side-scroller game environment concept art, dark atmospheric
+[Biome]: {copilot-generated description}
+[Lighting]: {lighting from description}
+[Technical]: no characters, paralax background layer, game art reference
+[Palette]: {derived from character's approved concept art if available}
+```
+
+#### 6C — Style-Coherent Tint Theming (Palette → Room Editor)
+
+Lighter precursor to full asset generation — applies the biome palette to the existing tint system.
+
+**User flow:**
+1. Biome canonical image is set (from 6B)
+2. "Apply Biome Palette" extracts dominant colors and maps them to platform tint slots
+3. Rooms in this biome get auto-suggested tint assignments matching the canonical image
+4. User reviews and accepts per-biome (never auto-applied)
+
+**Technical approach:**
+- DOM-based color extraction or server-side dominant color analysis from canonical PNG
+- Map extracted colors to `tint 0–4` slots in `room_layout.meta.biome_themes`
+- Per-element tint overrides always take precedence over biome suggestion
+
+---
+
+#### 6D — Art Asset Generation (Deferred — Objects Step)
+
+> **This phase is explicitly deferred.** It belongs to the Objects step of the workbench wizard, not the room editor's geometry/layout flow. Do not start until Phase 6A–6C are solid and the Objects wizard step is scoped.
+
+**What this covers:**
+- Pixel art sprite generation for room objects (platforms, pickups, doors, environmental props)
+- Tileset generation for room backgrounds
+- All output is style-locked to the biome's canonical reference image (set in 6B)
+
+**Planned tool stack:**
+- **PixelLab Bitforge** — pixel art sprites and objects, style-reference locked to biome canonical image
+  - `POST /api/generate-asset { prompt, biome_ref, output_type: "sprite" }`
+  - Returns: transparent PNG, 64×64–256×256px, palette-consistent with biome ref
+- **PixelLab Pixflux** — fallback when no biome reference is set yet (text-to-pixel-art)
+- **Retro Diffusion via Replicate** — tileset sheets with dual-prompt biome blending
+  - `rd_tile__tileset_advanced` endpoint: describe primary material + transition material
+  - Returns: grid-aligned tileset, seamless edges, palette-limited — usable in-engine without post-processing
+  - Uniquely valuable for biome transitions (stone → ice, ruins → jungle)
+
+**Style consistency enforcement:**
+- Biome canonical image (from 6B) is passed as style reference to every PixelLab Bitforge call
+- All sprites generated for a biome are visually anchored to the same canonical image
+- No model training required — Bitforge's reference mode handles this per-call
+
+**Upgrade path (later):**
+- FLUX.1 Kontext (fal.ai) for iterative painted background layer generation
+- Custom LoRA training via Scenario if cross-biome consistency degrades
+
+---
+
+#### 6E — Layout Validation Suggestions (formerly 6C)
 
 **User flow:**
 1. Validation runs and reports "Step from R3-P4 to R3-P5 is 148px, exceeds 120px limit"
@@ -966,10 +1065,19 @@ This is the full set of UI/UX polish items, ordered by visual impact:
 - **Exit criteria:** Workbench can produce a bundled character + level export package
 
 ### Sprint 5 — AI Features (1–2 weeks)
-- Phase 6A: Room generation from description
-- Phase 6B: Style-coherent world theming
-- Phase 6C: Layout validation suggestions
-- **Exit criteria:** AI features functional, gated by project having character lock
+- Phase 6A: Room generation from description (Claude API → structured room JSON)
+- Phase 6B: Environment visualization via Nano Banana 2 (extend Copilot to generate concept images; store biome canonical refs)
+- Phase 6C: Style-coherent tint theming (palette extraction from canonical → auto-suggest platform tints)
+- Phase 6E: Layout validation suggestions (Claude API → platform placement proposals)
+- **Exit criteria:** Copilot produces visual output; biome canonical images set per project; validation suggestions functional; all AI features gated by project having character lock
+
+### Sprint 6 — Art Asset Generation (Deferred — Objects Step)
+- Phase 6D: PixelLab Bitforge integration (pixel art sprites/objects, style-ref locked to biome canonical)
+- Phase 6D: PixelLab Pixflux fallback (text-to-pixel-art when no biome ref set)
+- Phase 6D: Retro Diffusion tileset generation via Replicate (dual-prompt biome blending, in-engine-ready tilesets)
+- Phase 6D: `/api/generate-asset` endpoint on workbench server
+- **Exit criteria:** Objects wizard step can generate style-locked pixel art assets and tilesets per biome; output passes visual consistency check against canonical ref
+- **Do not start** until Objects wizard step is scoped and Sprints 0–5 are complete
 
 ---
 
@@ -1049,8 +1157,16 @@ The room editor already uses the correct design tokens. The overhaul must mainta
 **AI features (Sprint 5):**
 - [ ] Room generation from description produces valid room JSON
 - [ ] Generated rooms pass Level 1 validation before being presented to user
-- [ ] Style theming applies project character palette to room biomes
+- [ ] Nano Banana 2 generates concept image from Copilot description; conversational iteration works
+- [ ] Biome canonical reference images stored per project and used as style anchor
+- [ ] Palette extracted from canonical image auto-suggests platform tints per biome
 - [ ] Validation suggestions produce actionable, targeted platform placement proposals
+
+**Art asset generation (Sprint 6 — deferred):**
+- [ ] PixelLab Bitforge generates pixel art sprites style-locked to biome canonical image
+- [ ] Retro Diffusion generates tileset sheets usable in-engine without post-processing
+- [ ] `/api/generate-asset` endpoint functional on workbench server
+- [ ] Generated assets visually consistent with biome canonical reference
 
 ---
 
@@ -1074,7 +1190,15 @@ Auto-assigned biome colors overwrite intentional user choices.
 
 ### Risk 5: Over-scoping AI features pushes core work out
 If AI work starts before the core tool is solid, bugs compound.
-**Mitigation:** AI features are Sprint 5 only. Sprints 0–4 contain zero AI work.
+**Mitigation:** AI features are Sprint 5 only. Sprints 0–4 contain zero AI work. Art asset generation (Sprint 6) explicitly blocked until Sprint 5 is complete.
+
+### Risk 6: Style drift across generated biome assets
+Each image generation call introduces variation. Without active consistency enforcement, rooms in the same biome look visually unrelated.
+**Mitigation:** Biome canonical reference images are stored once and passed as style reference on every subsequent generation call (PixelLab Bitforge reference mode, Nano Banana 2 style anchoring). No generation proceeds without a biome canonical. Escalation path: Scenario custom LoRA training if per-call reference mode proves insufficient.
+
+### Risk 7: Nano Banana 2 / Gemini API pricing for iterative generation
+Multi-turn conversational image editing can accumulate API costs quickly during development and heavy use.
+**Mitigation:** Free tier in Google AI Studio is sufficient for development. Add per-project generation count tracking. Consider caching canonical images server-side to avoid re-generation. PixelLab ($0.008–$0.013/image) is more economical for high-volume sprite generation in Sprint 6.
 
 ---
 

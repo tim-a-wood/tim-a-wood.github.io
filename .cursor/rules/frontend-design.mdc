@@ -1,0 +1,336 @@
+---
+description: Frontend design rules for MV / Sprite Workbench. Apply to all HTML, CSS, and frontend JS files in this project.
+globs: ["**/*.html", "**/*.css", "tools/**/*.js", "tools/**/*.ts"]
+alwaysApply: true
+---
+
+# Sprite Workbench Design System Rules
+
+This project is a browser-based game development toolchain with a hand-crafted dark-theme design system. **No framework, no build step, no Tailwind.** Pure HTML/CSS/JS.
+
+The canonical style guide is at `STYLE_GUIDE.md` in the project root. Read it before any frontend work.
+
+---
+
+## Color Rules
+
+**ONLY use these CSS custom properties. Never hardcode hex values.**
+
+```css
+/* Backgrounds */
+var(--bg)         /* #050709  — page background */
+var(--panel)      /* rgba(4,6,10,0.96) — panel surfaces */
+var(--panel-soft) /* #07090c — secondary panel */
+
+/* Accent (cyan — active/selected/focused states ONLY) */
+var(--accent)      /* #00e8c8 */
+var(--accent-soft) /* rgba(0,232,200,0.08) */
+
+/* Text */
+var(--text)   /* #cce8e0 — primary */
+var(--muted)  /* #5d7870 — secondary/labels */
+
+/* Borders */
+var(--stroke)        /* rgba(0,232,200,0.07) — default panel border */
+var(--stroke-strong) /* rgba(0,232,200,0.14) */
+var(--line)          /* rgba(0,232,200,0.10) — dividers */
+var(--line-strong)   /* rgba(0,232,200,0.18) */
+
+/* Semantic */
+var(--good)         /* #4ade80 — success */
+var(--good-soft)    /* rgba(74,222,128,0.12) */
+var(--warning)      /* #d29922 — caution */
+var(--warning-soft) /* rgba(210,153,34,0.16) */
+var(--error)        /* #f85149 — error/destructive */
+var(--error-soft)   /* rgba(248,81,73,0.16) */
+```
+
+**Gold (primary CTA only):**
+```css
+background: linear-gradient(180deg, rgba(245,208,116,0.92), rgba(220,176,73,0.92));
+color: #16120a;
+```
+
+---
+
+## Typography Rules
+
+**Always load these fonts on new pages:**
+```html
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+```
+
+**Font assignment:**
+- `var(--font-display)` = `"Bebas Neue"` → panel titles, dialog headers, section headers
+- `var(--font-sans)` = `"Plus Jakarta Sans"` → all UI text (body, buttons, labels, nav)
+- `var(--font-mono)` = `"DM Mono"` → code, hex values, numeric readouts
+
+**Size scale — use ONLY these values:**
+```
+--font-size-xs:   11px   (labels, chips, uppercase tags)
+--font-size-sm:   13px   (secondary UI)
+--font-size-base: 14px   (default body)
+--font-size-md:   15px   (emphasised body)
+--font-size-lg:   18px   (section subtitles)
+--font-size-xl:   22px   (panel/dialog titles)
+```
+
+**Uppercase label pattern:**
+```css
+font-size: var(--font-size-xs);
+font-weight: 700;
+letter-spacing: 0.12em;
+text-transform: uppercase;
+color: var(--muted);
+```
+
+---
+
+## Spacing Rules
+
+**All spacing MUST be a multiple of 4px.** No exceptions.
+
+```
+4px  8px  12px  16px  24px  32px  48px  64px
+```
+
+**Common patterns:**
+```css
+--surface-pad: 14px;   /* Panel inner padding */
+--surface-gap: 12px;   /* Between panels */
+```
+
+Never use: `5px, 6px, 7px, 9px, 10px, 11px, 13px, 15px, 17px, 18px, 19px, 21px, 22px, 23px, 25px`
+
+> Exception: `10px` is acceptable ONLY for button padding (established pattern).
+
+---
+
+## Border Radius Rules
+
+**Use only these values:**
+```
+4px   — tool indicators (square)
+8px   — small elements
+10px  — compact buttons
+12px  — toolbar buttons, status chips
+14px  — standard: buttons, inputs, chips (--radius-tight)
+18px  — panels, control cards (--radius-card)
+20px  — workflow pills, major panels (--radius-lg)
+999px — full-round pills, eyebrow badges (--radius-full)
+50%   — circular indicators
+```
+
+**Never use:** `6px, 16px, 24px, 30px, 50px` (not in scale)
+
+---
+
+## Component Patterns
+
+### Button (standard)
+```css
+min-height: 44px;
+padding: 10px 12px;
+border-radius: 14px;
+border: 1px solid var(--line);
+background: rgba(255,255,255,0.045);
+color: var(--text);
+font-family: var(--font-sans);
+font-size: var(--font-size-sm);
+font-weight: 600;
+transition: background 200ms ease, border-color 200ms ease,
+            color 200ms ease, transform 200ms ease;
+cursor: pointer;
+```
+
+Hover: `border-color: var(--line-strong); background: rgba(255,255,255,0.08); transform: translateY(-1px);`
+Active: `border-color: var(--accent); background: rgba(0,232,200,0.12);`
+Disabled: `opacity: 0.45; cursor: not-allowed; pointer-events: none;`
+
+### Input (standard)
+```css
+min-height: 44px;
+padding: 10px 12px;
+border-radius: 14px;
+border: 1px solid var(--line);
+background: rgba(255,255,255,0.04);
+color: var(--text);
+font-family: var(--font-sans);
+font-size: var(--font-size-base);
+```
+
+### Card / Panel
+```css
+padding: 14px;
+border-radius: 18px;
+border: 1px solid var(--stroke);
+background: rgba(255,255,255,0.03);
+```
+
+### Floating Panel (toolbar, inspector)
+```css
+border-radius: 16px;
+border: 1px solid var(--line);
+background: rgba(7,10,13,0.92);
+backdrop-filter: blur(10px);
+box-shadow: var(--shadow-md);
+```
+
+### Segmented Control Active State
+```css
+border-color: var(--accent);
+background: rgba(0,232,200,0.12);
+box-shadow: inset 0 0 0 1px rgba(0,232,200,0.08);
+```
+
+---
+
+## Transition Rules
+
+```css
+--transition-fast: 120ms ease;   /* Hover reveals, icon states */
+--transition-base: 200ms ease;   /* Default interactions */
+```
+
+- **Always** specify individual properties: `transition: background 200ms ease, border-color 200ms ease`
+- **Never** use `transition: all`
+- **Never** exceed 300ms for UI interactions
+- **Never** use spring/bounce easings — only `ease` or `ease-out`
+- **Hover lift max:** `transform: translateY(-1px)`
+
+---
+
+## Animations
+
+```css
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+/* animation: slideIn 120ms ease forwards; */
+```
+
+Only use for panel/inspector entrances. No page-level transitions, no character animations in UI.
+
+---
+
+## Focus States (Accessibility)
+
+```css
+:focus-visible {
+  outline: 2px solid rgba(0,232,200,0.35);
+  outline-offset: 2px;
+}
+```
+
+All interactive elements must have visible `:focus-visible` styles.
+
+---
+
+## Shadow Rules
+
+```css
+--shadow-sm: 0 2px 8px rgba(0,0,0,0.18);
+--shadow-md: 0 6px 20px rgba(0,0,0,0.26);
+--shadow-lg: 0 12px 40px rgba(0,0,0,0.38);
+```
+
+- Use `--shadow-sm` for cards, `--shadow-md` for floating panels, `--shadow-lg` for modals/toasts
+- **Never** use colored shadows (except the cyan glow on active phase pills — see style guide §8.6)
+- Inset highlight (top edge): `inset 0 1px 0 rgba(255,255,255,0.045)`
+
+---
+
+## New Page Bootstrap
+
+Every new `.html` page must include:
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #050709;
+      --panel: rgba(4,6,10,0.96);
+      --panel-2: #07090c;
+      --panel-soft: #07090c;
+      --accent: #00e8c8;
+      --accent-soft: rgba(0,232,200,0.08);
+      --text: #cce8e0;
+      --muted: #5d7870;
+      --stroke: rgba(0,232,200,0.07);
+      --stroke-strong: rgba(0,232,200,0.14);
+      --line: rgba(0,232,200,0.10);
+      --line-strong: rgba(0,232,200,0.18);
+      --border: rgba(0,232,200,0.07);
+      --border-strong: rgba(0,232,200,0.14);
+      --good: #4ade80;
+      --good-soft: rgba(74,222,128,0.12);
+      --warning: #d29922;
+      --warning-soft: rgba(210,153,34,0.16);
+      --error: #f85149;
+      --error-soft: rgba(248,81,73,0.16);
+      --font-sans: "Plus Jakarta Sans", -apple-system, sans-serif;
+      --font-display: "Bebas Neue", sans-serif;
+      --font-mono: "DM Mono", ui-monospace, monospace;
+      --font-size-xs: 11px;
+      --font-size-sm: 13px;
+      --font-size-base: 14px;
+      --font-size-md: 15px;
+      --font-size-lg: 18px;
+      --font-size-xl: 22px;
+      --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px;
+      --space-5: 24px; --space-6: 32px; --space-7: 48px; --space-8: 64px;
+      --surface-gap: 12px; --surface-pad: 14px;
+      --radius-xs: 4px; --radius-sm: 8px; --radius-md: 10px;
+      --radius-default: 12px; --radius-tight: 14px; --radius-card: 18px;
+      --radius-lg: 20px; --radius-full: 999px;
+      --shadow-sm: 0 2px 8px rgba(0,0,0,0.18);
+      --shadow-md: 0 6px 20px rgba(0,0,0,0.26);
+      --shadow-lg: 0 12px 40px rgba(0,0,0,0.38);
+      --transition-fast: 120ms ease;
+      --transition-base: 200ms ease;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-sans);
+      font-size: var(--font-size-base);
+      line-height: 1.45;
+    }
+
+    :focus-visible {
+      outline: 2px solid rgba(0,232,200,0.35);
+      outline-offset: 2px;
+    }
+  </style>
+</head>
+```
+
+---
+
+## Anti-Patterns (Forbidden)
+
+| ❌ Never | ✅ Instead |
+|---|---|
+| `color: white` / `#fff` | `color: var(--text)` |
+| `background: black` / `#000` | `background: var(--bg)` |
+| `border-radius: 6px` | `var(--radius-sm)` (8px) |
+| `gap: 10px` | `gap: 8px` or `gap: 12px` |
+| `font-size: 16px` | `var(--font-size-base)` (14px) or `var(--font-size-lg)` (18px) |
+| `transition: all 0.3s` | Explicit properties, 200ms |
+| `font-family: Inter` | `var(--font-sans)` |
+| Colored shadows | Black-only shadows |
+| Light/white backgrounds | Dark backgrounds only |
+| `transform: translateY(-3px)` on hover | Max `-1px` |
+| Arbitrary spacing (5px, 7px, etc.) | 4px grid multiples |
+| `font-weight: 900` | Max 800 |
