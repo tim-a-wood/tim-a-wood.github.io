@@ -706,13 +706,21 @@ text-transform: uppercase;
 
 **Semantic color:** Fill uses **`var(--warning)`** (warm amber), not primary CTA gold and not **`var(--accent)`**. This reads as “work in flight / indeterminate” and avoids implying completion or clickable primary action.
 
-**In-panel wait bar** (e.g. room wizard `.rw-waitbar`):
+**In-panel wait bar** — use class **`workbench-waitbar`** (room editor also keeps `.rw-waitbar`; sprite keeps `.pixellab-char-progress` for JS hooks). Structure: **`.workbench-waitbar-detail`** (or `.small-note` + detail) → **`.progress-track`** / **`.progress-fill`** → **`.progress-meta`**.
 
 ```css
-margin-top: 12px;
-padding-top: 12px;
-border-top: 1px solid var(--line);
+.workbench-waitbar {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.workbench-waitbar-detail {
+  margin-bottom: 8px;
+}
 ```
+
+**Page `:root` must define** `--radius-full`, `--radius-card`, `--radius-lg`, `--radius-sm`, and `--radius-default` wherever `room-wizard-workbench-shell.css` is loaded (room layout editor), or progress pills and wizard chrome lose `border-radius`.
 
 **Detail line** above the track: `small-note` / muted body; optional `aria-live="polite"` on the container.
 

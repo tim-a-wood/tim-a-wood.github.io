@@ -61,7 +61,14 @@
       --font-size-lg: 18px;
       --font-size-xl: 22px;
       --radius: 20px;
+      --radius-xs: 4px;
+      --radius-sm: 8px;
+      --radius-md: 10px;
+      --radius-default: 12px;
       --radius-tight: 14px;
+      --radius-card: 18px;
+      --radius-lg: 20px;
+      --radius-full: 999px;
       --shadow-sm: 0 2px 8px rgba(0,0,0,0.18);
       --shadow-md: 0 6px 20px rgba(0,0,0,0.26);
       --shadow-lg: 0 12px 40px rgba(0,0,0,0.38);
@@ -1995,8 +2002,8 @@
                     </label>
                   </div>
                 </section>
-                <div id="roomWizardCopilotProgress" class="rw-waitbar" hidden aria-live="polite" aria-busy="true">
-                  <div class="small-note rw-waitbar-detail" id="roomWizardCopilotProgressDetail">Working…</div>
+                <div id="roomWizardCopilotProgress" class="workbench-waitbar rw-waitbar" hidden aria-live="polite" aria-busy="true">
+                  <div class="small-note workbench-waitbar-detail rw-waitbar-detail" id="roomWizardCopilotProgressDetail">Working…</div>
                   <div class="progress-track">
                     <div class="progress-fill" id="roomWizardCopilotProgressFill" style="width:6%"></div>
                   </div>
@@ -2066,8 +2073,8 @@
                     <button type="button" class="btn-secondary" id="roomWizardGenerateArtDirectionConcepts">Generate Concepts</button>
                     <span id="roomWizardGenerateArtDirectionConceptsStatus" class="small-note" aria-live="polite"></span>
                   </div>
-                  <div id="roomWizardArtDirectionProgress" class="rw-waitbar" hidden aria-live="polite" aria-busy="true">
-                    <div class="small-note rw-waitbar-detail" id="roomWizardArtDirectionProgressDetail">Working…</div>
+                  <div id="roomWizardArtDirectionProgress" class="workbench-waitbar rw-waitbar" hidden aria-live="polite" aria-busy="true">
+                    <div class="small-note workbench-waitbar-detail rw-waitbar-detail" id="roomWizardArtDirectionProgressDetail">Working…</div>
                     <div class="progress-track">
                       <div class="progress-fill" id="roomWizardArtDirectionProgressFill" style="width:6%"></div>
                     </div>

@@ -175,12 +175,12 @@ function renderPixellabCharacterBoard() {
             <button type="button" id="pixellab-approve-char" ${pix && !approved ? "" : "disabled"}>Approve Character</button>
         </div>
         ${busyCreate
-        ? `<div class="pixellab-char-progress" role="status" aria-live="polite" aria-busy="true">
-            <div class="small-note" style="margin-bottom:8px;">Creating character — this can take a few minutes while Pixel Lab generates all directions.</div>
+        ? `<div class="pixellab-char-progress workbench-waitbar" role="status" aria-live="polite" aria-busy="true">
+            <div class="small-note workbench-waitbar-detail">Creating character — this can take a few minutes while Pixel Lab generates all directions.</div>
             <div class="progress-track">
                 <div class="progress-fill" data-pixellab-char-progress-fill style="width:6%"></div>
             </div>
-            <div class="progress-meta" style="margin-top:8px;">
+            <div class="progress-meta">
                 <span data-pixellab-char-progress-pct>6%</span>
                 <span class="small-note">Progress is estimated until the server finishes.</span>
             </div>
@@ -430,12 +430,12 @@ function renderPixellabAnimationsBoard() {
     const animBusy = Boolean(state.pixellabAnimGenBusy);
     const animBusyDetail = animBusy ? escapeHtml(String(state.pixellabAnimGenBusy.detail || "Working…")) : "";
     const animProgressBlock = animBusy
-        ? `<div class="pixellab-char-progress pixellab-anim-gen-progress" role="status" aria-live="polite" aria-busy="true" style="margin-bottom:14px;">
-            <div class="small-note" style="margin-bottom:8px;"><strong>${animBusyDetail}</strong> — this can take several minutes while Pixel Lab renders (especially for all directions).</div>
+        ? `<div class="pixellab-char-progress pixellab-anim-gen-progress workbench-waitbar" role="status" aria-live="polite" aria-busy="true" style="margin-bottom:14px;">
+            <div class="small-note workbench-waitbar-detail"><strong>${animBusyDetail}</strong> — this can take several minutes while Pixel Lab renders (especially for all directions).</div>
             <div class="progress-track">
                 <div class="progress-fill" data-pixellab-anim-progress-fill style="width:6%"></div>
             </div>
-            <div class="progress-meta" style="margin-top:8px;">
+            <div class="progress-meta">
                 <span data-pixellab-anim-progress-pct>6%</span>
                 <span class="small-note">Progress is estimated until the server finishes.</span>
             </div>

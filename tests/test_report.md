@@ -10,6 +10,6 @@
 | AT-07 | Death, Respawn, And Restart | Verify the life system, respawn behavior, game-over state, and restart control. | Not Run | Same as AT-01. |
 | AT-08 | HUD And Feedback | Verify the HUD remains visible and updates during play. | Not Run | Same as AT-01. |
 | AT-09 | Key Pickup And Door Unlock | Verify the first progression loop works end to end: collect the key on the high ledge, show it in the HUD inventory, then consume it to unlock the left-side door. | Not Run | Same as AT-01. |
-| Unit Test Suite | Overall Unit Tests | General unit test suite status. | Pass | Ran full CI Node chain (2026-03-29); all exited 0. Workbench change: wait bar + toast CSS/docs only; no game logic edits. |
+| Unit Test Suite | Overall Unit Tests | General unit test suite status. | Pass | Spot-check 2026-03-29: game-logic + room-wizard-environment passed. Room editor `:root` radius tokens + shared `workbench-waitbar` class aligned with sprite wait bars. |
 | RW-1 manual | Room wizard vertical slice | Add Room → Layout → Review → Export JSON (per `docs/room-wizard-implementation-sprints.md`). | Not Run | Automated unit tests only; browser demo not executed in CI. |
 | RW-2 manual | Neighbors & alignment | Adjoining room → Align → Match opening height; global map shows link (per `docs/room-wizard-implementation-sprints.md` §RW-2). | Not Run | Automated unit tests only; browser not exercised in CI. |

@@ -1800,14 +1800,21 @@
             justify-content: space-between;
             align-items: center;
             gap: 12px;
+            margin-top: 8px;
             color: var(--muted);
             font-size: var(--font-size-xs);
         }
 
+        /* Same shell pattern as room editor `.workbench-waitbar` */
+        .workbench-waitbar,
         .pixellab-char-progress {
             margin-top: 12px;
             padding-top: 12px;
             border-top: 1px solid var(--line);
+        }
+
+        .workbench-waitbar-detail {
+            margin-bottom: 8px;
         }
 
         .status-inline {

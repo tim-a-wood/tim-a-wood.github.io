@@ -683,12 +683,15 @@
   margin-top: 8px;
 }
 
+/* Shared with sprite workbench `.pixellab-char-progress` (same structure: detail + track + meta) */
+.room-wizard-dock .workbench-waitbar,
 .room-wizard-dock .rw-waitbar {
   margin-top: 12px;
   padding-top: 12px;
   border-top: 1px solid var(--line);
 }
 
+.room-wizard-dock .workbench-waitbar-detail,
 .room-wizard-dock .rw-waitbar-detail {
   margin-bottom: 8px;
 }

@@ -8,6 +8,8 @@
 
 3. **Scoped CSS oversight** — Progress rules were written under `.room-wizard-dock` only. The **activity dock** reused class names but lived **outside** that scope, so styling never applied. This was a **selector bug**, not intentional design.
 
+4. **Missing `:root` tokens on the room page** — `room-layout-editor.html` did not define `--radius-full`, `--radius-card`, `--radius-lg`, `--radius-sm`, or `--radius-default` while `room-wizard-workbench-shell.css` uses them for wait bars and wizard UI. Invalid `var()` values caused **rounded progress and other radii to fall through**, so room wait bars did not match the sprite workbench even after token alignment.
+
 4. **Agent / human process** — Cursor and repo rules reference the style guide, but **nothing required** updating the guide when adding new feedback components. Drift is expected without an explicit “UI PR updates §8” check.
 
 ## Corrective actions (done or ongoing)
