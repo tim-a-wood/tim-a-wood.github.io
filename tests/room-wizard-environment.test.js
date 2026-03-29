@@ -32,6 +32,8 @@ const { buildRuntimeRoom, normalizeRuntimeEnvironment } = require('../room-layou
   assert.strictEqual(e.themeId, DEFAULT_THEME_ID);
   assert.deepStrictEqual(e.tags, []);
   assert.ok(e.spec);
+  assert.ok(e.spec.components);
+  assert.ok(e.spec.components.floor);
   assert.ok(e.spec.scene_schema);
   assert.ok(e.spec.scene_schema.kit);
   assert.ok(e.preview);

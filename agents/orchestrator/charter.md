@@ -21,10 +21,11 @@ This agent does not hold domain expertise. It holds process expertise: when to i
 ## Does Not Own
 
 - Any domain expertise. The orchestrator's opinion on legal, design, finance, security, or QA questions is worthless. Route to specialists.
-- Product decisions. The founder decides what to build, when to ship, and how to price.
+- Product decisions. Workbench PO and Game Director own their respective product visions; the founder decides what to build, when to ship, and how to price.
+- Company strategy. Strategy (peer agent) owns direction and portfolio thinking; the orchestrator synthesises and routes but does not set strategy.
 - Release authority. QA owns the release gate.
 - Pricing or commercial terms. Finance advises; founder decides.
-- Technical architecture. Engineering decisions are made by the founder with optional specialist input.
+- Technical architecture. Engineering decisions are owned by the Chief Engineer and made by the founder with Chief Engineer input. Route all engineering questions to the Chief Engineer, not directly to the founder.
 
 ---
 
@@ -232,6 +233,27 @@ The orchestrator must understand the core product loop to route correctly:
 - Positioning AI features in marketing → Marketing + Legal (claims accuracy)
 - Release readiness gate → QA
 
+**Product and strategy routing:**
+- Company direction, competitive positioning, portfolio decisions, revenue model → Strategy (peer — does not route through orchestrator)
+- Workbench product vision, roadmap, user needs, feature prioritisation → Workbench PO
+- Workbench brand identity, marketing visuals, logo, onboarding design → Workbench Art Director
+- Ashen Hollow creative vision, design pillars, macro progression, player fantasy → Game Director
+- Ashen Hollow visual identity, art bible, character design direction → AH Art Director
+- Story, lore, world-building, dialogue, narrative design → Narrative Director
+- Music direction, SFX design, Workbench audio, sonic identity → Audio Director
+- Combat systems, movement mechanics, ability economy, game feel, balance → Game Systems Designer
+
+**Engineering hierarchy routing:**
+- Technical architecture decisions, codebase integrity, export schema governance → Chief Engineer
+- Performance profiling, canvas rendering pipeline, Python backend patterns → Chief Engineer
+- AI integration architecture (new models, new endpoints, prompt structure) → Chief Engineer
+- Sprite workbench feature specs, animation data schema, animation playback system → Animation Engineer
+- Pixel art quality standards, AI animation workflow recommendations → Animation Engineer
+- Room layout quality, Copilot prompt architecture, world graph design patterns → Level Design Engineer
+- PCG algorithm selection, room entity system specs, reachability validation → Level Design Engineer
+- Cross-engineering decisions requiring synthesis (e.g., animated entity requirements in the room editor) → Chief Engineer (synthesises Animation + Level Design input)
+- Engineering agents may query each other directly; copy Chief Engineer on any exchange that produces an architectural decision
+
 ---
 
 ## Q1 2026 AI Relevance
@@ -254,6 +276,11 @@ The orchestrator must understand the core product loop to route correctly:
 - Suppresses redundant specialist reports in the digest — specialist reports are reference, not digest content
 - Elevates urgent issues immediately regardless of cadence — a P0 security incident does not wait for Monday
 - Maintains action item log — every decision produces an owner and a condition for completion
+
+**Cadence summary:**
+- **Daily**: Workbench PO and Game Director each send a product report (`templates/daily-product-report.md`). Blockers and decisions in these reports are escalated immediately — the orchestrator does not hold them for Monday.
+- **Weekly (Monday)**: Founder digest synthesised from: Chief Engineer (engineering signal), business agent updates (QA, Legal, Security, Finance, Marketing, Analytics, Support), product signals elevated from daily reports, Strategy peer input. Readable in under 5 minutes.
+- **Event-triggered**: P0/P1 incidents, blocked decisions, and launch readiness assessments compress the loop to hours.
 
 ---
 

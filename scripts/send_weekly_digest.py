@@ -138,7 +138,7 @@ def md_to_html(md: str) -> str:
     return "\n".join(html_lines)
 
 
-def wrap_html(body_html: str, week_of: str) -> str:
+def wrap_html(body_html: str, week_of: str, subtitle: str = "Metroidvania Toolchain — Weekly Founder Digest") -> str:
     return f"""<!DOCTYPE html>
 <html>
 <head>
@@ -162,7 +162,7 @@ def wrap_html(body_html: str, week_of: str) -> str:
             <tr>
               <td>
                 <div style="font-family:'Bebas Neue',sans-serif;font-size:32px;font-weight:400;letter-spacing:0.08em;color:#00e8c8;line-height:1">AGENT OS</div>
-                <div style="font-size:12px;color:#5d7870;letter-spacing:0.06em;text-transform:uppercase;margin-top:2px">Metroidvania Toolchain — Weekly Founder Digest</div>
+                <div style="font-size:12px;color:#5d7870;letter-spacing:0.06em;text-transform:uppercase;margin-top:2px">{subtitle}</div>
               </td>
               <td align="right" style="vertical-align:top">
                 <span style="display:inline-block;background:rgba(74,222,128,0.1);border:1px solid rgba(74,222,128,0.25);color:#4ade80;font-size:11px;font-family:'DM Mono',monospace;padding:4px 10px;border-radius:999px">● {week_of}</span>
@@ -227,6 +227,7 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--file", help="Path to digest markdown file (default: stdin)")
     parser.add_argument("--subject", help="Email subject override")
+    parser.add_argument("--subtitle", help="Header subtitle override (default: Weekly Founder Digest)")
     args = parser.parse_args()
 
     api_key = os.environ.get("RESEND_API_KEY", "")
@@ -242,11 +243,12 @@ def main() -> None:
         print("ERROR: Empty digest body.", file=sys.stderr)
         sys.exit(1)
 
-    today   = date.today().strftime("%Y-%m-%d")
-    subject = args.subject or f"[MV Toolchain] Weekly Founder Digest — {today}"
+    today    = date.today().strftime("%Y-%m-%d")
+    subject  = args.subject or f"[MV Toolchain] Weekly Founder Digest — {today}"
+    subtitle = args.subtitle or "Metroidvania Toolchain — Weekly Founder Digest"
 
     body_html = md_to_html(text)
-    full_html = wrap_html(body_html, today)
+    full_html = wrap_html(body_html, today, subtitle)
 
     print(f"Sending to {to}...")
     send(text, full_html, subject, to, sender, api_key)

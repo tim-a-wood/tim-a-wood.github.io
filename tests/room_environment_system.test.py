@@ -115,16 +115,24 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
             {"archetype_id": "shrine-chamber", "instruction": "Adapt this room to the locked style."},
         )
         self.assertTrue(adapted["draft_description"])
-        spec = envsys.build_room_environment_spec(
+        prompts = envsys.generate_room_environment_component_prompts(
             self.project_id,
             "R1",
             {"description": adapted["draft_description"]},
+        )
+        self.assertIn("floor", prompts["components"])
+        spec = envsys.build_room_environment_spec(
+            self.project_id,
+            "R1",
+            {"description": adapted["draft_description"], "components": prompts["components"]},
         )
         self.assertTrue(spec["ok"])
         env = spec["environment"]
         self.assertIn("spec", env)
         self.assertIn("preview", env)
         self.assertTrue(env["tags"])
+        self.assertIn("components", env["spec"])
+        self.assertIn("background", env["spec"]["components"])
         self.assertIn("scene_schema", env["spec"])
         self.assertIn("set_dressing", env["spec"]["scene_schema"])
         self.assertIn("kit", env["spec"]["scene_schema"])
@@ -165,6 +173,10 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
             {"preview_id": preview["images"][0]["preview_id"]},
         )
         self.assertEqual(asset_pack["environment"]["runtime"]["asset_pack"]["status"], "ready")
+        self.assertEqual(
+            set(asset_pack["environment"]["runtime"]["asset_pack"]["assets"].keys()),
+            {"background", "wall_tile", "floor_tile", "platform_tile", "door", "midground_arches"},
+        )
         for item in asset_pack["environment"]["runtime"]["asset_pack"]["assets"].values():
             rel_url = item["url"].lstrip("/")
             self.assertTrue((self.root / rel_url).exists())

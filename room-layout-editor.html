@@ -629,25 +629,111 @@
     .status.status-warning::before {
       color: var(--warning);
     }
-    .toast {
+    .toast-stack {
       position: fixed;
-      right: 18px;
-      bottom: 18px;
-      max-width: min(360px, calc(100vw - 36px));
-      padding: 12px 14px;
-      border-radius: 14px;
+      top: 16px;
+      right: 16px;
+      z-index: 40;
+      display: grid;
+      gap: 12px;
+      width: min(360px, calc(100vw - 32px));
+      pointer-events: none;
+    }
+    .toast {
+      padding: 12px 16px;
+      border-radius: var(--radius-card);
       border: 1px solid var(--line);
-      background: rgba(4, 6, 10, 0.96);
+      background: var(--panel);
       color: var(--text);
       box-shadow: var(--shadow-lg);
-      z-index: 20;
       font-size: var(--font-size-xs);
       line-height: 1.4;
+      pointer-events: auto;
+    }
+    .toast.info {
+      border-color: var(--line-strong);
     }
     .toast.success {
-      border-color: rgba(74,222,128,0.24);
-      background: rgba(11, 29, 21, 0.96);
-      color: #dff7ec;
+      border-color: rgba(74, 222, 128, 0.24);
+      background: rgba(4, 16, 10, 0.96);
+    }
+    .toast.warning {
+      border-color: rgba(210, 153, 34, 0.24);
+      background: rgba(23, 17, 6, 0.96);
+    }
+    .toast.error {
+      border-color: rgba(248, 81, 73, 0.24);
+      background: rgba(25, 9, 11, 0.96);
+    }
+    .toast strong {
+      display: block;
+      margin-bottom: 4px;
+      font-size: var(--font-size-sm);
+      color: var(--text);
+    }
+    .toast p {
+      margin: 0;
+      color: var(--muted);
+    }
+    .activity-dock {
+      position: fixed;
+      right: 16px;
+      bottom: 16px;
+      z-index: 38;
+      width: min(380px, calc(100vw - 32px));
+      display: grid;
+      gap: 12px;
+      padding: 16px;
+      border-radius: var(--radius-card);
+      border: 1px solid var(--line);
+      background: var(--panel);
+      box-shadow: var(--shadow-lg);
+    }
+    .activity-dock[hidden] {
+      display: none;
+    }
+    .activity-dock-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .activity-dock-copy {
+      display: grid;
+      gap: 4px;
+      min-width: 0;
+    }
+    .activity-dock-copy strong {
+      font-size: var(--font-size-sm);
+      color: var(--text);
+    }
+    .activity-dock-copy p {
+      margin: 0;
+      color: var(--muted);
+      font-size: var(--font-size-xs);
+      line-height: 1.45;
+    }
+    .activity-pill {
+      display: inline-flex;
+      align-items: center;
+      min-height: 28px;
+      padding: 6px 10px;
+      border-radius: var(--radius-full);
+      border: 1px solid rgba(210, 153, 34, 0.24);
+      background: var(--warning-soft);
+      color: var(--warning);
+      font-size: var(--font-size-xs);
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .activity-progress-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      color: var(--muted);
+      font-size: var(--font-size-xs);
     }
     .badge {
       display: grid;
@@ -1620,6 +1706,7 @@
           <div class="workflow-scope-chips" role="tablist" aria-label="Editor view">
             <button type="button" role="tab" class="workflow-scope-chip active" id="workflowScopeWorld" data-workflow-scope="world" aria-selected="true" title="World map and graph">World</button>
             <button type="button" role="tab" class="workflow-scope-chip" id="workflowScopeRoom" data-workflow-scope="room" aria-selected="false" title="Selected room: layout and detail">Room</button>
+            <button type="button" role="tab" class="workflow-scope-chip" id="workflowScopeArtDirection" data-workflow-scope="art-direction" aria-selected="false" title="Project-wide visual direction">Art Direction</button>
           </div>
         </div>
         <nav class="phase-rail phase-rail--world" id="worldWorkflowRail" aria-label="World workflow" hidden>
@@ -1665,7 +1752,7 @@
               <span class="phase-number">2</span>
               <span class="phase-pill-copy">
                 <strong>Environment</strong>
-                <small>Theme &amp; tags</small>
+                <small>Room components</small>
               </span>
             </button>
             <button type="button" class="phase-pill locked" disabled data-rw-phase="objects" title="Coming in a later update">
@@ -1851,67 +1938,15 @@
                   <span class="phase-header-num">Phase 2 · Environment</span>
                   <h2>Environment</h2>
                   <p class="phase-header-desc">
-                    Look-and-feel hints for this room (exported with the layout; the game can use them later for lighting, audio, or palette).
+                    Describe the room shell by component so Phaser can assemble floors, platforms, walls, doors, and background with more intent.
                   </p>
                 </div>
                 <button type="button" class="phase-back-btn" id="roomWizardBackToLayoutFromEnv">← Layout</button>
               </div>
-              <div class="stage-card" id="roomWizardArtDirectionCard">
-                <div class="stage-card-head">
-                  <h4>Project art direction</h4>
-                  <p class="small-note">Pick a project-wide visual direction, adjust it if needed, then lock it so room suggestions stay consistent.</p>
-                </div>
-                <p class="hint" id="roomWizardArtDirectionHint">Open this room through a workbench project to use project-wide direction templates.</p>
-                <label>
-                  <span class="field-label">Direction template</span>
-                  <select id="roomWizardArtDirectionTemplate"></select>
-                </label>
-                <label>
-                  <span class="field-label">Direction summary</span>
-                  <textarea id="roomWizardArtDirectionSummary" rows="3" placeholder="Describe the overall visual direction for this project."></textarea>
-                </label>
-                <label>
-                  <span class="field-label">Avoid</span>
-                  <textarea id="roomWizardArtDirectionNegative" rows="2" placeholder="List the traits this project should avoid."></textarea>
-                </label>
-                <section class="rw-direction-concept-board" aria-labelledby="roomWizardDirectionConceptBoardTitle">
-                  <div class="stage-card-head">
-                    <h5 id="roomWizardDirectionConceptBoardTitle">Art direction concept board</h5>
-                    <p class="small-note">Generate a few world-level concept paintings here, then freeze the ones that should anchor later room planning and preview generation.</p>
-                  </div>
-                <div class="rw-copilot-actions">
-                  <button type="button" class="btn-secondary" id="roomWizardGenerateArtDirectionConcepts">Generate Concepts</button>
-                  <span id="roomWizardGenerateArtDirectionConceptsStatus" class="small-note" aria-live="polite"></span>
-                </div>
-                <div id="roomWizardArtDirectionProgress" class="rw-waitbar" hidden aria-live="polite" aria-busy="true">
-                  <div class="small-note rw-waitbar-detail" id="roomWizardArtDirectionProgressDetail">Working…</div>
-                  <div class="progress-track">
-                    <div class="progress-fill" id="roomWizardArtDirectionProgressFill" style="width:6%"></div>
-                  </div>
-                  <div class="progress-meta">
-                    <span id="roomWizardArtDirectionProgressPct">6%</span>
-                    <span class="small-note">Progress is estimated until the server finishes.</span>
-                  </div>
-                </div>
-                <div id="roomWizardDirectionConceptBoardGrid" class="rw-direction-concept-grid"></div>
-              </section>
-                <section class="rw-frozen-concepts-card" aria-labelledby="roomWizardFrozenConceptsTitle">
-                  <div class="stage-card-head">
-                    <h5 id="roomWizardFrozenConceptsTitle">Frozen art concepts</h5>
-                    <p class="small-note">Freeze the generated art direction concepts that should act as recurring visual anchors for the project.</p>
-                  </div>
-                  <div id="roomWizardFrozenConceptsSummary" class="small-note">No frozen concept anchors selected yet.</div>
-                  <div id="roomWizardFrozenConceptGrid" class="rw-frozen-concept-grid"></div>
-                </section>
-                <div class="rw-copilot-actions">
-                  <button type="button" class="btn-secondary" id="roomWizardArtDirectionSave">Save &amp; lock direction</button>
-                  <span id="roomWizardArtDirectionStatus" class="small-note" aria-live="polite"></span>
-                </div>
-              </div>
               <div class="stage-card" id="roomWizardRoomTemplateCard">
                 <div class="stage-card-head">
                   <h4>Room starting template</h4>
-                  <p class="small-note">Start from a room archetype, then let the planner adapt it to the project direction and this room’s layout.</p>
+                  <p class="small-note">Start from a room archetype, then adapt it to the locked project direction and this room’s layout.</p>
                 </div>
                 <div id="roomWizardArchetypeGrid" class="rw-template-grid"></div>
               </div>
@@ -1919,7 +1954,7 @@
                 <div class="stage-card-head">
                   <h4>Environment builder</h4>
                   <p class="small-note">
-                    Start from a template or describe the room in plain language. The builder adapts the draft to your locked art direction, creates a Phaser-facing environment schema, generates previews, and can turn an approved preview into room assets.
+                    Start from a template or describe the room in plain language. The builder can spin that into component prompts for the room shell, then build a Phaser-facing environment schema, previews, and production assets.
                   </p>
                 </div>
                 <p class="hint" id="roomWizardCopilotServerHint">
@@ -1936,9 +1971,38 @@
                 </label>
                 <div class="rw-copilot-actions">
                   <button type="button" class="btn-secondary" id="roomWizardAdaptTemplate">Rewrite Draft</button>
+                  <button type="button" class="btn-secondary" id="roomWizardGenerateComponentPrompts">Generate Component Prompts</button>
                   <button type="button" class="btn-secondary" id="roomWizardCopilotGenerate">Build Environment</button>
                   <span id="roomWizardCopilotStatus" class="small-note" aria-live="polite"></span>
                 </div>
+                <section class="rw-component-card" aria-labelledby="roomWizardComponentPromptsTitle">
+                  <div class="stage-card-head">
+                    <h5 id="roomWizardComponentPromptsTitle">Room components</h5>
+                    <p class="small-note">Edit the visible traits for each major room component. These prompts drive the Phaser environment schema.</p>
+                  </div>
+                  <div class="rw-component-grid">
+                    <label class="rw-component-field">
+                      <span class="field-label">Floor</span>
+                      <textarea id="roomWizardComponentFloor" rows="2" placeholder="Describe the floor surface, slabs, cracks, wear, and readability."></textarea>
+                    </label>
+                    <label class="rw-component-field">
+                      <span class="field-label">Platforms</span>
+                      <textarea id="roomWizardComponentPlatforms" rows="2" placeholder="Describe platform tops, faces, supports, and edge damage."></textarea>
+                    </label>
+                    <label class="rw-component-field">
+                      <span class="field-label">Walls</span>
+                      <textarea id="roomWizardComponentWalls" rows="2" placeholder="Describe the walls, architecture rhythm, damage, and depth."></textarea>
+                    </label>
+                    <label class="rw-component-field">
+                      <span class="field-label">Doors</span>
+                      <textarea id="roomWizardComponentDoors" rows="2" placeholder="Describe frames, gates, seals, motifs, and thresholds."></textarea>
+                    </label>
+                    <label class="rw-component-field rw-component-field--wide">
+                      <span class="field-label">Background</span>
+                      <textarea id="roomWizardComponentBackground" rows="2" placeholder="Describe the background, midground silhouettes, landmarks, and atmosphere."></textarea>
+                    </label>
+                  </div>
+                </section>
                 <div id="roomWizardCopilotProgress" class="rw-waitbar" hidden aria-live="polite" aria-busy="true">
                   <div class="small-note rw-waitbar-detail" id="roomWizardCopilotProgressDetail">Working…</div>
                   <div class="progress-track">
@@ -1970,6 +2034,69 @@
                     <button type="button" class="btn-secondary" id="roomWizardPreviewOpenGame">Open Game With This Room</button>
                     <button type="button" class="btn-secondary" id="roomWizardCopilotDiscard">Discard</button>
                   </div>
+                </div>
+              </div>
+            </div>
+            <div id="roomWizardPanelArtDirection" hidden>
+              <div class="phase-header">
+                <div class="phase-header-left">
+                  <span class="phase-header-num">Project scope · Art direction</span>
+                  <h2>Art Direction</h2>
+                  <p class="phase-header-desc">
+                    Configure the project-wide visual direction here so room component prompts and previews stay coherent.
+                  </p>
+                </div>
+              </div>
+              <div class="stage-card" id="roomWizardArtDirectionCard">
+                <div class="stage-card-head">
+                  <h4>Project art direction</h4>
+                  <p class="small-note">Pick a project-wide visual direction, adjust it if needed, then lock it so room suggestions stay consistent.</p>
+                </div>
+                <p class="hint" id="roomWizardArtDirectionHint">Open this room through a workbench project to use project-wide direction templates.</p>
+                <label>
+                  <span class="field-label">Direction template</span>
+                  <select id="roomWizardArtDirectionTemplate"></select>
+                </label>
+                <label>
+                  <span class="field-label">Direction summary</span>
+                  <textarea id="roomWizardArtDirectionSummary" rows="3" placeholder="Describe the overall visual direction for this project."></textarea>
+                </label>
+                <label>
+                  <span class="field-label">Avoid</span>
+                  <textarea id="roomWizardArtDirectionNegative" rows="2" placeholder="List the traits this project should avoid."></textarea>
+                </label>
+                <section class="rw-direction-concept-board" aria-labelledby="roomWizardDirectionConceptBoardTitle">
+                  <div class="stage-card-head">
+                    <h5 id="roomWizardDirectionConceptBoardTitle">Art direction concept board</h5>
+                    <p class="small-note">Generate a few world-level concept paintings here, then freeze the ones that should anchor later room planning and preview generation.</p>
+                  </div>
+                  <div class="rw-copilot-actions">
+                    <button type="button" class="btn-secondary" id="roomWizardGenerateArtDirectionConcepts">Generate Concepts</button>
+                    <span id="roomWizardGenerateArtDirectionConceptsStatus" class="small-note" aria-live="polite"></span>
+                  </div>
+                  <div id="roomWizardArtDirectionProgress" class="rw-waitbar" hidden aria-live="polite" aria-busy="true">
+                    <div class="small-note rw-waitbar-detail" id="roomWizardArtDirectionProgressDetail">Working…</div>
+                    <div class="progress-track">
+                      <div class="progress-fill" id="roomWizardArtDirectionProgressFill" style="width:6%"></div>
+                    </div>
+                    <div class="progress-meta">
+                      <span id="roomWizardArtDirectionProgressPct">6%</span>
+                      <span class="small-note">Progress is estimated until the server finishes.</span>
+                    </div>
+                  </div>
+                  <div id="roomWizardDirectionConceptBoardGrid" class="rw-direction-concept-grid"></div>
+                </section>
+                <section class="rw-frozen-concepts-card" aria-labelledby="roomWizardFrozenConceptsTitle">
+                  <div class="stage-card-head">
+                    <h5 id="roomWizardFrozenConceptsTitle">Frozen art concepts</h5>
+                    <p class="small-note">Freeze the generated art direction concepts that should act as recurring visual anchors for the project.</p>
+                  </div>
+                  <div id="roomWizardFrozenConceptsSummary" class="small-note">No frozen concept anchors selected yet.</div>
+                  <div id="roomWizardFrozenConceptGrid" class="rw-frozen-concept-grid"></div>
+                </section>
+                <div class="rw-copilot-actions">
+                  <button type="button" class="btn-secondary" id="roomWizardArtDirectionSave">Save &amp; lock direction</button>
+                  <span id="roomWizardArtDirectionStatus" class="small-note" aria-live="polite"></span>
                 </div>
               </div>
             </div>
@@ -2375,7 +2502,23 @@
     </div>
   </div>
 
-  <div class="toast hidden" id="toast"></div>
+  <div class="toast-stack" id="toast-stack" aria-live="polite"></div>
+  <div class="activity-dock" id="activity-dock" aria-live="polite" hidden>
+    <div class="activity-dock-head">
+      <div class="activity-dock-copy">
+        <strong id="activity-title">Working</strong>
+        <p id="activity-detail">The current room task is still running.</p>
+      </div>
+      <span class="activity-pill" id="activity-state">Working</span>
+    </div>
+    <div class="progress-track">
+      <div class="progress-fill" id="activity-progress" style="width:6%"></div>
+    </div>
+    <div class="activity-progress-meta">
+      <span id="activity-progress-text">6%</span>
+      <span>Progress is estimated until the server finishes.</span>
+    </div>
+  </div>
 
   <script id="seedData" type="application/json">
 {
@@ -2914,7 +3057,13 @@
         openGameWithLayout: document.getElementById('openGameWithLayout'),
         clearSavedLayout: document.getElementById('clearSavedLayout'),
         statusText: document.getElementById('statusText'),
-        toast: document.getElementById('toast')
+        toastStack: document.getElementById('toast-stack'),
+        activityDock: document.getElementById('activity-dock'),
+        activityTitle: document.getElementById('activity-title'),
+        activityDetail: document.getElementById('activity-detail'),
+        activityState: document.getElementById('activity-state'),
+        activityProgress: document.getElementById('activity-progress'),
+        activityProgressText: document.getElementById('activity-progress-text')
       };
 
       const state = {
@@ -2936,6 +3085,7 @@
         fileHandle: null,
         apiAvailable: false,
         toastTimer: null,
+        activity: null,
         projects: [],
         isDirty: false,
         lastPlacedId: null,
@@ -2958,7 +3108,7 @@
         artDirectionTemplates: [],
         artDirectionConceptOptions: [],
         roomEnvironmentArchetypes: [],
-        /** 'world' | 'room' — top toggle; room uses the existing room wizard rail. */
+        /** 'world' | 'room' | 'art-direction' — top toggle; room uses the existing room wizard rail. */
         workflowScope: 'world',
         /** 1–4 when scope is world: layout, placeholder, placeholder, review/export. */
         worldWorkflowStep: 1,
@@ -2967,7 +3117,7 @@
       };
 
       function syncLegacyEditorWorkflowStep() {
-        if (state.workflowScope === 'room') state.editorWorkflowStep = 2;
+        if (state.workflowScope === 'room' || state.workflowScope === 'art-direction') state.editorWorkflowStep = 2;
         else if (state.worldWorkflowStep === 4) state.editorWorkflowStep = 3;
         else state.editorWorkflowStep = 1;
       }
@@ -3117,22 +3267,50 @@
             ui.statusText.textContent = 'Ready';
           }, 2500);
         }
+        if (resolvedType === 'warning' || resolvedType === 'error') {
+          showToast(normalized, resolvedType);
+        }
       }
 
-      function showToast(message, kind = 'success') {
-        if (!ui.toast) return;
-        if (state.toastTimer) {
-          window.clearTimeout(state.toastTimer);
-          state.toastTimer = null;
+      function showToast(message, kind = 'success', title = '') {
+        if (!ui.toastStack) return;
+        const node = document.createElement('div');
+        node.className = `toast ${kind || 'info'}`;
+        const resolvedTitle =
+          title ||
+          (kind === 'error'
+            ? 'Something Needs Attention'
+            : kind === 'warning'
+              ? 'Warning'
+              : kind === 'success'
+                ? 'Done'
+                : 'Update');
+        node.innerHTML = `<strong>${escapeHtml(resolvedTitle)}</strong><p>${escapeHtml(String(message || ''))}</p>`;
+        ui.toastStack.appendChild(node);
+        window.setTimeout(() => {
+          node.remove();
+        }, kind === 'error' ? 6500 : 4000);
+      }
+
+      function setActivity(activity) {
+        state.activity = activity || null;
+        const root = ui.activityDock;
+        if (!root) return;
+        if (!activity) {
+          root.hidden = true;
+          return;
         }
-        ui.toast.textContent = message;
-        ui.toast.classList.remove('hidden', 'success');
-        if (kind) ui.toast.classList.add(kind);
-        state.toastTimer = window.setTimeout(() => {
-          ui.toast.classList.add('hidden');
-          ui.toast.classList.remove('success');
-          state.toastTimer = null;
-        }, 2600);
+        root.hidden = false;
+        if (ui.activityTitle) ui.activityTitle.textContent = String(activity.label || 'Working');
+        if (ui.activityDetail) ui.activityDetail.textContent = String(activity.detail || 'Still running…');
+        if (ui.activityState) ui.activityState.textContent = String(activity.state || 'Working');
+        const pct = Math.max(0, Math.min(100, Number(activity.percent || 0)));
+        if (ui.activityProgress) ui.activityProgress.style.width = `${pct}%`;
+        if (ui.activityProgressText) ui.activityProgressText.textContent = `${Math.round(pct)}%`;
+      }
+
+      function clearActivity() {
+        setActivity(null);
       }
 
       function selectionKey(item) {
@@ -6086,12 +6264,55 @@
         if (promptEl && !String(promptEl.value || '').trim()) {
           promptEl.value = e.spec?.description || '';
         }
+        syncRoomWizardComponentFields(e);
         renderRoomWizardEnvironmentPreview(e);
         renderRoomWizardPreviewGallery(e.preview || {});
         renderRoomWizardEnvironmentOutputSummary(e);
         if (previewBox) previewBox.hidden = !(Array.isArray(e.preview?.images) && e.preview.images.length);
         const applyBtn = document.getElementById('roomWizardCopilotApply');
         if (applyBtn) applyBtn.hidden = !!PROJECT_ID;
+      }
+
+      function roomWizardComponentFieldMap() {
+        return {
+          floor: document.getElementById('roomWizardComponentFloor'),
+          platforms: document.getElementById('roomWizardComponentPlatforms'),
+          walls: document.getElementById('roomWizardComponentWalls'),
+          doors: document.getElementById('roomWizardComponentDoors'),
+          background: document.getElementById('roomWizardComponentBackground')
+        };
+      }
+
+      function syncRoomWizardComponentFields(envState) {
+        const envMod = globalThis.RoomWizardEnvironment;
+        if (!envMod || !envState?.spec) return;
+        if (typeof envMod.ensureEnvironmentComponents === 'function') {
+          envMod.ensureEnvironmentComponents(envState.spec);
+        }
+        const fields = roomWizardComponentFieldMap();
+        const components = envState.spec.components || {};
+        Object.entries(fields).forEach(([key, el]) => {
+          if (!el) return;
+          el.value = String((components[key] || {}).prompt || '');
+        });
+      }
+
+      function collectRoomWizardComponentPrompts() {
+        const envMod = globalThis.RoomWizardEnvironment;
+        const fields = roomWizardComponentFieldMap();
+        const room = getRoomWizardRoom();
+        const description = String(document.getElementById('roomWizardCopilotPrompt')?.value || room?.environment?.spec?.description || '').trim();
+        let fallback = {};
+        if (envMod && typeof envMod.defaultEnvironmentComponents === 'function') {
+          fallback = envMod.defaultEnvironmentComponents(description);
+        }
+        return {
+          floor: { label: 'Floor', prompt: String(fields.floor?.value || fallback.floor?.prompt || '').trim() },
+          platforms: { label: 'Platforms', prompt: String(fields.platforms?.value || fallback.platforms?.prompt || '').trim() },
+          walls: { label: 'Walls', prompt: String(fields.walls?.value || fallback.walls?.prompt || '').trim() },
+          doors: { label: 'Doors', prompt: String(fields.doors?.value || fallback.doors?.prompt || '').trim() },
+          background: { label: 'Background', prompt: String(fields.background?.value || fallback.background?.prompt || '').trim() }
+        };
       }
 
       function clearRoomWizardCopilotPreview() {
@@ -6230,6 +6451,7 @@
         const spec = envState?.spec || {};
         const sceneSchema = spec?.scene_schema || {};
         const kit = sceneSchema?.kit || {};
+        const components = spec?.components || {};
         const approved = Array.isArray(preview.images)
           ? preview.images.find((item) => item.preview_id === preview.approved_image_id)
           : null;
@@ -6246,9 +6468,9 @@
           bits.push('Generate previews to produce a room image, then approve one to drive runtime surfaces.');
         }
         if (assetPack.status === 'ready') {
-          bits.push(`Backdrop + reference assets ready${assetPack.used_ai ? ' from AI generation' : ' from fallback extraction'}. Core room geometry is now Phaser-kit driven.`);
+          bits.push(`Environment asset kit ready${assetPack.used_ai ? ' from AI generation' : ' from fallback extraction'}. Open Game will use wall, floor, platform, door, and midground art from this pack.`);
         } else if (preview.approved_image_id) {
-          bits.push('Build backdrop and reference assets for this room. Core geometry still comes from the Phaser environment kit.');
+          bits.push('Build the environment asset kit for this room to generate modular wall, floor, platform, door, and midground art.');
         }
         const materialText = Array.isArray(spec.materials) && spec.materials.length
           ? spec.materials.slice(0, 4).join(', ')
@@ -6256,12 +6478,12 @@
         const lightingText = spec.lighting || 'Lighting not planned yet';
         const templateText = envState?.template_context?.source_template_label || 'Freeform draft';
         const assetText = assetPack.status === 'ready'
-          ? `Assets: backdrop + reference kit · Generated ${assetPack.generated_at || 'recently'}`
+          ? `Assets: modular environment kit · Generated ${assetPack.generated_at || 'recently'}`
           : 'Assets: not built yet';
         const schemaText = `Schema: ${(sceneSchema.background_layers || []).length} background layer${(sceneSchema.background_layers || []).length === 1 ? '' : 's'}, ${(sceneSchema.set_dressing || []).length} dressing rule${(sceneSchema.set_dressing || []).length === 1 ? '' : 's'}, effects ${Object.keys(sceneSchema.effects || {}).length}`;
         const kitText = [kit.wall_family, kit.platform_family, kit.door_family, kit.backdrop_family].filter(Boolean).join(', ');
-        const ruleChips = (sceneSchema.set_dressing || []).slice(0, 6).map((item) => {
-          const label = `${item.type || 'prop'} · ${item.anchor || 'anchor'} · ${item.zone || 'zone'}`;
+        const componentChips = Object.entries(components).map(([key, item]) => {
+          const label = `${String((item || {}).label || key)} · ${String((item || {}).prompt || '').slice(0, 44)}`;
           return `<span class="rw-environment-chip">${escapeHtml(label)}</span>`;
         }).join('');
         const assetThumbs = assetPack.status === 'ready'
@@ -6284,7 +6506,7 @@
                 <p class="rw-environment-output-copy">${escapeHtml(`${schemaText} · Kit: ${kitText || 'default'} · Template: ${templateText} · Materials: ${materialText} · Lighting: ${lightingText} · ${assetText}`)}</p>
               </div>
             </div>
-            ${ruleChips ? `<div class="rw-environment-chip-row">${ruleChips}</div>` : ''}
+            ${componentChips ? `<div class="rw-environment-chip-row">${componentChips}</div>` : ''}
             ${assetThumbs ? `<div class="rw-environment-asset-grid">${assetThumbs}</div>` : ''}
           </section>`;
       }
@@ -6336,6 +6558,7 @@
             root.hidden = true;
           }, 180);
         }
+        clearActivity();
       }
 
       function startRoomWizardWaitbar(slot, detail) {
@@ -6349,10 +6572,22 @@
         let value = 6;
         if (fill) fill.style.width = `${value}%`;
         if (pct) pct.textContent = `${value}%`;
+        setActivity({
+          label: slot === 'art-direction' ? 'Art Direction Processing' : 'Environment Processing',
+          detail: detail || 'Working…',
+          state: 'Working',
+          percent: value
+        });
         state.roomWizard.progressTimers[slot] = window.setInterval(() => {
           value = Math.min(92, value + (value < 30 ? 8 : value < 60 ? 5 : 3));
           if (fill) fill.style.width = `${value}%`;
           if (pct) pct.textContent = `${Math.round(value)}%`;
+          setActivity({
+            label: slot === 'art-direction' ? 'Art Direction Processing' : 'Environment Processing',
+            detail: detail || 'Working…',
+            state: 'Working',
+            percent: value
+          });
         }, 420);
       }
 
@@ -6544,6 +6779,7 @@
         } catch (_) {
           const hint = document.getElementById('roomWizardArtDirectionHint');
           if (hint) hint.textContent = 'Could not load project art-direction templates.';
+          showToast('Could not load project art-direction templates.', 'warning');
         }
       }
 
@@ -6555,6 +6791,7 @@
         const status = document.getElementById('roomWizardArtDirectionStatus');
         if (!sel || !summary || !negative) return;
         if (status) status.textContent = 'Saving direction…';
+        showToast('Saving project art direction…', 'info', 'Working');
         startRoomWizardWaitbar('art-direction', 'Saving project art direction.');
         try {
           const res = await fetch(PROJECT_ART_DIRECTION_URL, {
@@ -6593,10 +6830,13 @@
           renderRoomWizardArtDirectionUi();
           updateRoomWizardCopilotHintUi();
           if (status) status.textContent = 'Project direction locked.';
+          showToast('Project direction locked.', 'success');
           stopRoomWizardWaitbar('art-direction', 100);
         } catch (e) {
           stopRoomWizardWaitbar('art-direction', 100);
-          if (status) status.textContent = (e && e.message) || 'Save failed';
+          const message = (e && e.message) || 'Save failed';
+          if (status) status.textContent = message;
+          setStatus(message, 'error');
         }
       }
 
@@ -6609,6 +6849,7 @@
         const btn = document.getElementById('roomWizardGenerateArtDirectionConcepts');
         if (!sel || !summary || !negative || !status || !btn) return;
         status.textContent = 'Generating art direction concepts…';
+        showToast('Generating art direction concepts…', 'info', 'Working');
         btn.disabled = true;
         startRoomWizardWaitbar('art-direction', 'Generating art direction concept board.');
         try {
@@ -6628,10 +6869,13 @@
           state.artDirectionConceptOptions = Array.isArray(json.available_concepts) ? json.available_concepts : [];
           renderRoomWizardArtDirectionUi();
           updateRoomWizardCopilotHintUi();
+          showToast('Art direction concepts are ready to review.', 'success');
           stopRoomWizardWaitbar('art-direction', 100);
         } catch (e) {
           stopRoomWizardWaitbar('art-direction', 100);
-          status.textContent = (e && e.message) || 'Generation failed';
+          const message = (e && e.message) || 'Generation failed';
+          status.textContent = message;
+          setStatus(message, 'error');
         } finally {
           btn.disabled = false;
         }
@@ -6644,9 +6888,11 @@
         if (!PROJECT_ID || !room || !promptEl) return;
         if (!state.roomWizard.selectedArchetypeId && !String(promptEl.value || '').trim()) {
           if (st) st.textContent = 'Choose a room template or enter a draft first.';
+          setStatus('Choose a room template or enter a draft first.', 'warning');
           return;
         }
         if (st) st.textContent = 'Adapting draft…';
+        showToast('Adapting the room draft…', 'info', 'Working');
         startRoomWizardWaitbar('copilot', 'Adapting the room draft to the current art direction.');
         try {
           const res = await fetch(projectRoomEnvironmentApiUrl(room.id, 'adapt-template'), {
@@ -6662,10 +6908,13 @@
           if (!res.ok || !json.ok) throw new Error(json.error || 'Could not adapt room template');
           promptEl.value = json.draft_description || promptEl.value;
           if (st) st.textContent = 'Draft updated for the current project direction.';
+          showToast('Draft updated for the current project direction.', 'success');
           stopRoomWizardWaitbar('copilot', 100);
         } catch (e) {
           stopRoomWizardWaitbar('copilot', 100);
-          if (st) st.textContent = (e && e.message) || 'Adaptation failed';
+          const message = (e && e.message) || 'Adaptation failed';
+          if (st) st.textContent = message;
+          setStatus(message, 'error');
         }
       }
 
@@ -6695,12 +6944,15 @@
           });
           state.roomWizard.approvedPreviewId = previewId;
           if (st) st.textContent = 'Preview approved. Open Game now uses this preview’s palette on room surfaces.';
+          showToast('Preview approved. Open Game will use it now.', 'success');
           updateJsonText();
           setDirty(true);
           stopRoomWizardWaitbar('copilot', 100);
         } catch (e) {
           stopRoomWizardWaitbar('copilot', 100);
-          if (st) st.textContent = (e && e.message) || 'Approve failed';
+          const message = (e && e.message) || 'Approve failed';
+          if (st) st.textContent = message;
+          setStatus(message, 'error');
         }
       }
 
@@ -7009,14 +7261,19 @@
       function updateWorkflowScopeToggle() {
         const w = document.getElementById('workflowScopeWorld');
         const r = document.getElementById('workflowScopeRoom');
+        const a = document.getElementById('workflowScopeArtDirection');
         const stack = document.getElementById('workflowRailsStack');
-        if (!w || !r) return;
+        if (!w || !r || !a) return;
         const world = state.workflowScope === 'world';
+        const room = state.workflowScope === 'room';
+        const artDirection = state.workflowScope === 'art-direction';
         w.classList.toggle('active', world);
-        r.classList.toggle('active', !world);
+        r.classList.toggle('active', room);
+        a.classList.toggle('active', artDirection);
         w.setAttribute('aria-selected', world ? 'true' : 'false');
-        r.setAttribute('aria-selected', world ? 'false' : 'true');
-        stack?.classList.toggle('workflow-rails-stack--room', !world);
+        r.setAttribute('aria-selected', room ? 'true' : 'false');
+        a.setAttribute('aria-selected', artDirection ? 'true' : 'false');
+        stack?.classList.toggle('workflow-rails-stack--room', room || artDirection);
         stack?.classList.toggle('workflow-rails-stack--world', world);
       }
 
@@ -7061,6 +7318,23 @@
         wrap.setAttribute('aria-hidden', show ? 'false' : 'true');
       }
 
+      function syncRoomWizardScopePanels() {
+        const panL = document.getElementById('roomWizardPanelLayout');
+        const panE = document.getElementById('roomWizardPanelEnvironment');
+        const panA = document.getElementById('roomWizardPanelArtDirection');
+        const panR = document.getElementById('roomWizardPanelReview');
+        const artScope = state.workflowScope === 'art-direction';
+        if (panA) {
+          panA.hidden = !artScope;
+          panA.setAttribute('aria-hidden', artScope ? 'false' : 'true');
+        }
+        if (artScope) {
+          if (panL) panL.hidden = true;
+          if (panE) panE.hidden = true;
+          if (panR) panR.hidden = true;
+        }
+      }
+
       function setWorldWorkflowStep(step) {
         if (step < 1 || step > 4) return;
         if (state.workflowScope !== 'world') return;
@@ -7084,9 +7358,13 @@
       }
 
       function setWorkflowScope(scope) {
-        if (scope !== 'world' && scope !== 'room') return;
+        if (scope !== 'world' && scope !== 'room' && scope !== 'art-direction') return;
         if (scope === 'room' && (!state.data?.rooms?.length)) {
           setStatus('Add a room first (world layout, or + Add Room in settings).', 'warning');
+          return;
+        }
+        if (scope === 'art-direction' && !PROJECT_ID) {
+          setStatus('Open a workbench project to edit project-wide art direction.', 'warning');
           return;
         }
         state.workflowScope = scope;
@@ -7095,6 +7373,20 @@
         if (scope === 'world') {
           closeRoomWizard(true);
           setWorldWorkflowStep(state.worldWorkflowStep);
+        } else if (scope === 'art-direction') {
+          if (state.currentRoomId && !state.roomWizard.active) {
+            openRoomWizard(state.currentRoomId);
+          }
+          setViewMode('room');
+          loadRoomEnvironmentProjectData();
+          syncLegacyEditorWorkflowStep();
+          updateWorldWorkflowPills();
+          syncWorldPlaceholderPanel();
+          syncEditorWorkflowSecondaryRail();
+          updateWorkflowRailPills();
+          syncRoomWizardDock();
+          syncRoomWizardScopePanels();
+          redraw();
         } else {
           setViewMode('room');
           if (state.currentRoomId && !state.roomWizard.active) {
@@ -7190,10 +7482,13 @@
         state.roomWizard.phase = phase;
         const panL = document.getElementById('roomWizardPanelLayout');
         const panE = document.getElementById('roomWizardPanelEnvironment');
+        const panA = document.getElementById('roomWizardPanelArtDirection');
         const panR = document.getElementById('roomWizardPanelReview');
-        if (panL) panL.hidden = phase !== 'layout';
-        if (panE) panE.hidden = phase !== 'environment';
-        if (panR) panR.hidden = phase !== 'review';
+        const artScope = state.workflowScope === 'art-direction';
+        if (panL) panL.hidden = artScope || phase !== 'layout';
+        if (panE) panE.hidden = artScope || phase !== 'environment';
+        if (panA) panA.hidden = !artScope;
+        if (panR) panR.hidden = artScope || phase !== 'review';
         updateWorkflowRailPills();
         if (phase === 'review') {
           updateRoomWizardReviewPanel();
@@ -7207,6 +7502,7 @@
           loadRoomEnvironmentProjectData();
           refreshCopilotStatus();
         }
+        syncRoomWizardScopePanels();
       }
 
       function updateRoomWizardReviewPanel() {
@@ -7269,6 +7565,7 @@
         updateWorldWorkflowPills();
         syncWorldPlaceholderPanel();
         updateWorkflowRailPills();
+        syncRoomWizardScopePanels();
       }
 
       function syncRoomWizardDock() {
@@ -7286,10 +7583,10 @@
             ? state.data.rooms.find((r) => r.id === state.currentRoomId)
             : null;
         const show =
-          state.workflowScope === 'room' &&
+          (state.workflowScope === 'room' || state.workflowScope === 'art-direction') &&
           state.viewMode === 'room' &&
           !!state.data &&
-          !!room;
+          (state.workflowScope === 'art-direction' ? !!PROJECT_ID : !!room);
         dock.hidden = !show;
         dock.setAttribute('aria-hidden', show ? 'false' : 'true');
         dock.classList.toggle('room-wizard-dock--compact', show);
@@ -7323,7 +7620,7 @@
 
       function closeRoomWizard(skipConfirm) {
         if (!state.roomWizard.active) {
-          if (state.workflowScope === 'room') {
+          if (state.workflowScope === 'room' || state.workflowScope === 'art-direction') {
             state.workflowScope = 'world';
             state.worldWorkflowStep = 1;
             setViewMode('global');
@@ -7367,6 +7664,7 @@
         document.getElementById('roomWizardClose')?.addEventListener('click', requestCloseRoomWizard);
         document.getElementById('workflowScopeWorld')?.addEventListener('click', () => setWorkflowScope('world'));
         document.getElementById('workflowScopeRoom')?.addEventListener('click', () => setWorkflowScope('room'));
+        document.getElementById('workflowScopeArtDirection')?.addEventListener('click', () => setWorkflowScope('art-direction'));
         document.querySelectorAll('#worldWorkflowRail [data-world-workflow-step]').forEach((btn) => {
           btn.addEventListener('click', () => setWorldWorkflowStep(Number(btn.dataset.worldWorkflowStep)));
         });
@@ -7418,6 +7716,21 @@
         document.getElementById('roomWizardBackToLayoutFromEnv')?.addEventListener('click', () => setRoomWizardPhase('layout'));
         document.getElementById('roomWizardBackToEnvironment')?.addEventListener('click', () => setRoomWizardPhase('environment'));
         document.getElementById('roomWizardBackToLayout')?.addEventListener('click', () => setRoomWizardPhase('layout'));
+        Object.entries(roomWizardComponentFieldMap()).forEach(([key, el]) => {
+          el?.addEventListener('input', () => {
+            const room = getRoomWizardRoom();
+            const envMod = globalThis.RoomWizardEnvironment;
+            if (!room || !envMod) return;
+            envMod.ensureRoomEnvironment(room);
+            if (typeof envMod.ensureEnvironmentComponents === 'function') {
+              envMod.ensureEnvironmentComponents(room.environment.spec);
+            }
+            room.environment.spec.components[key].prompt = String(el.value || '').trim();
+            state.roomWizard.touched = true;
+            setDirty(true);
+            updateJsonText();
+          });
+        });
         document.getElementById('roomWizardThemeSelect')?.addEventListener('change', () => {
           const room = getRoomWizardRoom();
           const envMod = globalThis.RoomWizardEnvironment;
@@ -7444,6 +7757,43 @@
         document.getElementById('roomWizardAdaptTemplate')?.addEventListener('click', () => {
           adaptSelectedRoomArchetype('Rewrite this room draft so it fits the locked project style.');
         });
+        document.getElementById('roomWizardGenerateComponentPrompts')?.addEventListener('click', async () => {
+          const room = getRoomWizardRoom();
+          const promptEl = document.getElementById('roomWizardCopilotPrompt');
+          const st = document.getElementById('roomWizardCopilotStatus');
+          if (!PROJECT_ID || !room || !promptEl) return;
+          const description = String(promptEl.value || '').trim();
+          if (!description) {
+            if (st) st.textContent = 'Write a short room draft first.';
+            return;
+          }
+          startRoomWizardWaitbar('copilot', 'Generating component prompts from the current art direction and room draft.');
+          if (st) st.textContent = 'Generating component prompts…';
+          try {
+            const res = await fetch(projectRoomEnvironmentApiUrl(room.id, 'component-prompts'), {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                description,
+                components: collectRoomWizardComponentPrompts()
+              })
+            });
+            const json = await res.json().catch(() => ({}));
+            if (!res.ok || !json.ok) throw new Error(json.error || 'Could not generate component prompts');
+            const envMod = globalThis.RoomWizardEnvironment;
+            if (envMod) envMod.ensureRoomEnvironment(room);
+            room.environment.spec.description = description;
+            room.environment.spec.components = json.components || room.environment.spec.components || {};
+            syncRoomWizardComponentFields(room.environment);
+            updateJsonText();
+            setDirty(true);
+            if (st) st.textContent = 'Component prompts ready — tweak them if needed, then build the environment.';
+            stopRoomWizardWaitbar('copilot', 100);
+          } catch (e) {
+            stopRoomWizardWaitbar('copilot', 100);
+            if (st) st.textContent = (e && e.message) || 'Component prompt generation failed';
+          }
+        });
         document.getElementById('roomWizardSimplifyDraft')?.addEventListener('click', () => {
           adaptSelectedRoomArchetype('Simplify this room draft so a novice creator can understand and edit it quickly.');
         });
@@ -7468,7 +7818,7 @@
               const specRes = await fetch(projectRoomEnvironmentApiUrl(room.id, 'spec'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ description: prompt })
+                body: JSON.stringify({ description: prompt, components: collectRoomWizardComponentPrompts() })
               });
               const specJson = await specRes.json().catch(() => ({}));
               if (!specRes.ok || !specJson.ok) {
@@ -7601,7 +7951,7 @@
             const specRes = await fetch(projectRoomEnvironmentApiUrl(room.id, 'spec'), {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ description: promptEl.value })
+              body: JSON.stringify({ description: promptEl.value, components: collectRoomWizardComponentPrompts() })
             });
             const specJson = await specRes.json().catch(() => ({}));
             if (!specRes.ok || !specJson.ok) throw new Error(specJson.error || 'Could not build revised room spec');
@@ -8105,6 +8455,7 @@
         const overlay = document.getElementById('gamePreviewOverlay');
         if (!iframe || !overlay) return;
         const origin = window.location.origin;
+        const cacheBust = `preview_v=${Date.now()}`;
         const payload = {
           type: 'ASHEN_HOLLOW_PREVIEW',
           layout: state.data,
@@ -8126,7 +8477,7 @@
         const readyFallbackTimer = setTimeout(() => {
           window.removeEventListener('message', onChildReady);
         }, 8000);
-        iframe.src = `./index.html#${hash}`;
+        iframe.src = `./index.html?${cacheBust}#${hash}`;
         overlay.hidden = false;
         overlay.setAttribute('aria-hidden', 'false');
         document.body.classList.add('game-preview-open');
@@ -8684,7 +9035,7 @@
             state.selectedGlobalEdge = null;
           }
           setSelection([]);
-          if (state.workflowScope === 'room') {
+          if (state.workflowScope === 'room' || state.workflowScope === 'art-direction') {
             syncRoomWizardFormFromRoom();
           }
           // ── Task 2.5b: Room switch canvas fade ──

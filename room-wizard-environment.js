@@ -6,6 +6,40 @@
 const ENVIRONMENT_SCHEMA_VERSION = 1;
 const ENVIRONMENT_RENDER_SCHEMA_VERSION = 2;
 const DEFAULT_THEME_ID = 'cave';
+const ENVIRONMENT_COMPONENTS = [
+  ['floor', 'Floor'],
+  ['platforms', 'Platforms'],
+  ['walls', 'Walls'],
+  ['doors', 'Doors'],
+  ['background', 'Background']
+];
+
+function defaultEnvironmentComponents(description = '') {
+  const base = String(description || '').trim() || 'Keep this room aligned to the current project art direction.';
+  return {
+    floor: { label: 'Floor', prompt: `${base} Describe the floor surface, pattern, wear, cracks, and traversal readability.` },
+    platforms: { label: 'Platforms', prompt: `${base} Describe platform tops, faces, edge damage, supports, and ledge readability.` },
+    walls: { label: 'Walls', prompt: `${base} Describe the wall structure, repeating architecture, depth, and damage.` },
+    doors: { label: 'Doors', prompt: `${base} Describe the doorway treatment, frame, gate material, and motifs.` },
+    background: { label: 'Background', prompt: `${base} Describe the background and midground architecture, silhouettes, depth, and atmosphere.` }
+  };
+}
+
+function ensureEnvironmentComponents(spec) {
+  if (!spec.components || typeof spec.components !== 'object') {
+    spec.components = {};
+  }
+  const fallback = defaultEnvironmentComponents(spec.description || '');
+  ENVIRONMENT_COMPONENTS.forEach(([key, label]) => {
+    const item = spec.components[key];
+    if (!item || typeof item !== 'object') {
+      spec.components[key] = { ...fallback[key] };
+      return;
+    }
+    if (typeof item.label !== 'string' || !item.label.trim()) item.label = label;
+    if (typeof item.prompt !== 'string' || !item.prompt.trim()) item.prompt = fallback[key].prompt;
+  });
+}
 
 /** @type {{ id: string, label: string }[]} */
 const THEME_PRESETS = [
@@ -157,6 +191,7 @@ function ensureRoomEnvironment(room) {
   if (!Array.isArray(e.spec.hazards)) e.spec.hazards = [];
   if (typeof e.spec.composition_focus !== 'string') e.spec.composition_focus = '';
   if (!Array.isArray(e.spec.readability_notes)) e.spec.readability_notes = [];
+  ensureEnvironmentComponents(e.spec);
   if (!e.spec.scene_schema || typeof e.spec.scene_schema !== 'object') e.spec.scene_schema = {};
   if (!Array.isArray(e.spec.scene_schema.background_layers)) e.spec.scene_schema.background_layers = [];
   if (!Array.isArray(e.spec.scene_schema.set_dressing)) e.spec.scene_schema.set_dressing = [];
@@ -234,7 +269,10 @@ if (typeof module !== 'undefined' && module.exports) {
     ENVIRONMENT_SCHEMA_VERSION,
     ENVIRONMENT_RENDER_SCHEMA_VERSION,
     DEFAULT_THEME_ID,
+    ENVIRONMENT_COMPONENTS,
     THEME_PRESETS,
+    defaultEnvironmentComponents,
+    ensureEnvironmentComponents,
     getThemeLabel,
     buildEnvironmentPreviewModel,
     parseTagsInput,

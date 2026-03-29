@@ -204,16 +204,41 @@ body::before {
 /* ─── MAIN ─────────────────────────────────── */
 .main {
   grid-area: main;
-  overflow-y: auto;
-  padding: var(--space-6);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-6);
+  overflow: hidden;
+  padding: var(--space-4);
+  display: grid;
+  grid-template-columns: 1fr 256px;
+  gap: var(--space-4);
 }
 
-.main::-webkit-scrollbar { width: 4px; }
-.main::-webkit-scrollbar-track { background: transparent; }
-.main::-webkit-scrollbar-thumb { background: var(--stroke-strong); border-radius: 2px; }
+.main-left {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.main-right {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-height: 0;
+}
+
+.agent-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.task-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  gap: var(--space-2);
+}
 
 .step-label {
   font-size: var(--font-size-xs);
@@ -221,10 +246,11 @@ body::before {
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--muted);
-  margin-bottom: var(--space-3);
+  margin-bottom: var(--space-2);
   display: flex;
   align-items: center;
   gap: var(--space-2);
+  flex-shrink: 0;
 }
 
 .step-num {
@@ -245,21 +271,29 @@ body::before {
 /* ─── AGENT CARDS ─────────────────────────────── */
 .agent-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: var(--space-2);
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+  flex: 1;
+  overflow-y: auto;
+  align-content: start;
+  min-height: 0;
 }
+
+.agent-grid::-webkit-scrollbar { width: 4px; }
+.agent-grid::-webkit-scrollbar-track { background: transparent; }
+.agent-grid::-webkit-scrollbar-thumb { background: var(--stroke-strong); border-radius: 2px; }
 
 .agent-card {
   background: var(--panel-2);
   border: 1px solid var(--border);
-  border-radius: var(--radius-card);
-  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  padding: 6px 10px;
   cursor: pointer;
   transition: border-color var(--transition-base), background var(--transition-base), transform var(--transition-fast);
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
-  min-height: 72px;
+  gap: 2px;
+  min-height: 52px;
   position: relative;
   overflow: hidden;
 }
@@ -288,19 +322,19 @@ body::before {
 
 .agent-card.selected::before { opacity: 1; }
 
-.agent-card-icon { font-size: 16px; line-height: 1; }
+.agent-card-icon { font-size: 13px; line-height: 1; }
 
 .agent-card-name {
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-xs);
   font-weight: 700;
   color: var(--text);
   line-height: 1.2;
 }
 
 .agent-card-desc {
-  font-size: var(--font-size-xs);
+  font-size: 10px;
   color: var(--muted);
-  line-height: 1.4;
+  line-height: 1.3;
 }
 
 /* ─── MODE PILLS ─────────────────────────────── */
@@ -341,16 +375,17 @@ body::before {
 /* ─── TASK INPUT ─────────────────────────────── */
 .task-textarea {
   width: 100%;
-  min-height: 120px;
+  flex: 1;
+  min-height: 80px;
   background: var(--panel-2);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-card);
-  padding: var(--space-4);
+  padding: var(--space-3) var(--space-4);
   color: var(--text);
   font-family: var(--font-sans);
-  font-size: var(--font-size-base);
+  font-size: var(--font-size-sm);
   line-height: 1.6;
-  resize: vertical;
+  resize: none;
   transition: border-color var(--transition-base);
   outline: none;
 }
@@ -360,11 +395,12 @@ body::before {
 
 /* ─── GENERATE BTN ─────────────────────────────── */
 .btn-generate {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   justify-content: center;
   gap: var(--space-2);
-  padding: 12px var(--space-6);
+  padding: 10px var(--space-4);
+  width: 100%;
   background: var(--accent);
   color: #050709;
   border: none;
@@ -565,8 +601,186 @@ body::before {
 
   .sidebar-left { border-right: none; border-bottom: 1px solid var(--line); padding: var(--space-3) 0; }
   .sidebar-right { border-left: none; border-top: 1px solid var(--line); min-height: 320px; }
-  .agent-grid { grid-template-columns: repeat(2, 1fr); }
+  .main { grid-template-columns: 1fr; grid-template-rows: 1fr auto; overflow-y: auto; }
+  .main-left { min-height: 400px; }
+  .agent-grid { grid-template-columns: repeat(3, 1fr); }
 }
+
+/* ─── AGENT GROUP LABELS ───────────────────────── */
+.agent-group-label {
+  grid-column: 1 / -1;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: var(--space-1) 0 2px;
+  border-bottom: 1px solid var(--line);
+}
+.agent-group-label:first-child { padding-top: 0; }
+
+/* ─── DASHBOARD NAV ACTIVE ───────────────────────── */
+.nav-item.db-active {
+  color: var(--text);
+  background: var(--accent-soft);
+}
+
+/* ─── DASHBOARD VIEWS ────────────────────────────── */
+.dashboard-view {
+  display: none;
+  flex-direction: column;
+  gap: var(--space-4);
+  height: 100%;
+  overflow-y: auto;
+  padding-bottom: var(--space-4);
+}
+.dashboard-view.active { display: flex; }
+.dashboard-view::-webkit-scrollbar { width: 4px; }
+.dashboard-view::-webkit-scrollbar-track { background: transparent; }
+.dashboard-view::-webkit-scrollbar-thumb { background: var(--stroke-strong); border-radius: 2px; }
+
+.db-view-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-shrink: 0;
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--line);
+}
+.db-view-icon { font-size: 20px; line-height: 1; }
+.db-view-title {
+  font-family: var(--font-display);
+  font-size: 20px;
+  letter-spacing: 0.06em;
+  color: var(--text);
+  line-height: 1;
+}
+.db-view-subtitle { font-size: var(--font-size-xs); color: var(--muted); margin-top: 2px; }
+
+/* ─── DB SECTIONS ────────────────────────────────── */
+.db-section { display: flex; flex-direction: column; gap: var(--space-2); flex-shrink: 0; }
+
+.db-section-label {
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--line);
+}
+
+/* ─── METRIC CARDS ───────────────────────────────── */
+.db-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
+  gap: var(--space-2);
+}
+
+.db-card {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--muted);
+  border-radius: var(--radius-md);
+  padding: 10px var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  position: relative;
+  min-height: 72px;
+}
+.db-card--live   { border-left-color: var(--accent); }
+.db-card--manual { border-left-color: var(--warning); }
+.db-card--instrumented { border-left-color: var(--muted); border-left-style: dashed; }
+
+.db-card-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--muted);
+  line-height: 1.2;
+}
+.db-card-value {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-lg);
+  font-weight: 500;
+  color: var(--text);
+  line-height: 1.1;
+}
+.db-card-value--good    { color: var(--good); }
+.db-card-value--warning { color: var(--warning); }
+.db-card-value--error   { color: var(--error); }
+.db-card-value--muted   { color: var(--muted); font-size: var(--font-size-sm); font-family: var(--font-sans); }
+.db-card-sub { font-size: 10px; color: var(--muted); line-height: 1.3; }
+
+.db-tier {
+  position: absolute;
+  top: 6px; right: 6px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  padding: 1px 5px;
+  border-radius: var(--radius-xs);
+}
+.db-tier--live   { color: var(--accent);   background: var(--accent-soft); }
+.db-tier--manual { color: var(--warning);  background: var(--warning-soft); }
+.db-tier--post   { color: var(--muted);    background: rgba(93,120,112,0.12); }
+
+/* ─── RELEASE GATE ───────────────────────────────── */
+.db-gate {
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-card);
+  padding: var(--space-4) var(--space-5);
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  background: var(--panel-2);
+}
+.db-gate--go      { border-color: rgba(74,222,128,0.3);  background: rgba(74,222,128,0.04); }
+.db-gate--nogo    { border-color: rgba(248,81,73,0.3);   background: rgba(248,81,73,0.04); }
+.db-gate--unknown { border-color: var(--border-strong); }
+.db-gate-status {
+  font-family: var(--font-display);
+  font-size: 30px;
+  letter-spacing: 0.08em;
+  line-height: 1;
+}
+.db-gate--go      .db-gate-status { color: var(--good); }
+.db-gate--nogo    .db-gate-status { color: var(--error); }
+.db-gate--unknown .db-gate-status { color: var(--muted); }
+.db-gate-info { flex: 1; }
+.db-gate-label { font-size: var(--font-size-xs); font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+.db-gate-desc  { font-size: var(--font-size-sm); color: var(--text); margin-top: 2px; }
+
+/* ─── SCOPED AGENT PICKER ────────────────────────── */
+.scoped-agents { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+
+.scoped-agent-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-strong);
+  background: none;
+  font-size: var(--font-size-sm);
+  font-family: var(--font-sans);
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+  transition: color var(--transition-fast), border-color var(--transition-fast), background var(--transition-fast);
+  min-height: 30px;
+}
+.scoped-agent-btn:hover { color: var(--text); border-color: var(--line-strong); }
+.scoped-agent-btn.selected {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.scoped-agent-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
 </style>
 </head>
 <body>
@@ -585,51 +799,57 @@ body::before {
   <nav class="sidebar-left" aria-label="Resources">
 
     <div class="nav-section">
-      <span class="nav-label">Agents</span>
-      <button class="nav-item" data-path="agents/orchestrator/charter.md">
+      <span class="nav-label">Dashboards</span>
+      <button class="nav-item db-active" data-dashboard="orchestration">
         <span class="nav-dot" style="background:#00e8c8"></span>
-        <span class="nav-item-text">Orchestrator</span>
-        <span class="nav-item-path">charter.md</span>
+        <span class="nav-item-text">Orchestration</span>
       </button>
-      <button class="nav-item" data-path="agents/qa/charter.md">
+      <button class="nav-item" data-dashboard="strategy">
+        <span class="nav-dot" style="background:#94a3b8"></span>
+        <span class="nav-item-text">Strategy</span>
+      </button>
+      <div class="nav-divider" style="margin:4px 16px"></div>
+      <button class="nav-item" data-dashboard="engineering">
+        <span class="nav-dot" style="background:#ff9500"></span>
+        <span class="nav-item-text">Engineering</span>
+      </button>
+      <button class="nav-item" data-dashboard="qa">
         <span class="nav-dot" style="background:#77b8ff"></span>
         <span class="nav-item-text">QA</span>
-        <span class="nav-item-path">charter.md</span>
       </button>
-      <button class="nav-item" data-path="agents/marketing/charter.md">
-        <span class="nav-dot" style="background:#f5986e"></span>
-        <span class="nav-item-text">Marketing</span>
-        <span class="nav-item-path">charter.md</span>
-      </button>
-      <button class="nav-item" data-path="agents/legal/charter.md">
-        <span class="nav-dot" style="background:#a78bfa"></span>
-        <span class="nav-item-text">Legal</span>
-        <span class="nav-item-path">charter.md</span>
-      </button>
-      <button class="nav-item" data-path="agents/analytics/charter.md">
-        <span class="nav-dot" style="background:#4ade80"></span>
-        <span class="nav-item-text">Analytics</span>
-        <span class="nav-item-path">charter.md</span>
-      </button>
-      <button class="nav-item" data-path="agents/support/charter.md">
-        <span class="nav-dot" style="background:#fbbf24"></span>
-        <span class="nav-item-text">Support</span>
-        <span class="nav-item-path">charter.md</span>
-      </button>
-      <button class="nav-item" data-path="agents/finance/charter.md">
-        <span class="nav-dot" style="background:#f0abfc"></span>
-        <span class="nav-item-text">Finance</span>
-        <span class="nav-item-path">charter.md</span>
-      </button>
-      <button class="nav-item" data-path="agents/design/charter.md">
-        <span class="nav-dot" style="background:#fb7185"></span>
-        <span class="nav-item-text">Design</span>
-        <span class="nav-item-path">charter.md</span>
-      </button>
-      <button class="nav-item" data-path="agents/cybersecurity/charter.md">
+      <button class="nav-item" data-dashboard="cybersecurity">
         <span class="nav-dot" style="background:#f85149"></span>
         <span class="nav-item-text">Cybersecurity</span>
-        <span class="nav-item-path">charter.md</span>
+      </button>
+      <div class="nav-divider" style="margin:4px 16px"></div>
+      <button class="nav-item" data-dashboard="legal">
+        <span class="nav-dot" style="background:#a78bfa"></span>
+        <span class="nav-item-text">Legal</span>
+      </button>
+      <button class="nav-item" data-dashboard="finance">
+        <span class="nav-dot" style="background:#f0abfc"></span>
+        <span class="nav-item-text">Finance</span>
+      </button>
+      <button class="nav-item" data-dashboard="analytics">
+        <span class="nav-dot" style="background:#4ade80"></span>
+        <span class="nav-item-text">Analytics</span>
+      </button>
+      <button class="nav-item" data-dashboard="support">
+        <span class="nav-dot" style="background:#fbbf24"></span>
+        <span class="nav-item-text">Support</span>
+      </button>
+      <button class="nav-item" data-dashboard="marketing">
+        <span class="nav-dot" style="background:#f5986e"></span>
+        <span class="nav-item-text">Marketing</span>
+      </button>
+      <div class="nav-divider" style="margin:4px 16px"></div>
+      <button class="nav-item" data-dashboard="workbench">
+        <span class="nav-dot" style="background:#38bdf8"></span>
+        <span class="nav-item-text">Workbench</span>
+      </button>
+      <button class="nav-item" data-dashboard="ashen-hollow">
+        <span class="nav-dot" style="background:#818cf8"></span>
+        <span class="nav-item-text">Ashen Hollow</span>
       </button>
     </div>
 
@@ -698,56 +918,319 @@ body::before {
   <!-- MAIN -->
   <main class="main">
 
-    <!-- Step 1: Pick agent -->
+    <div class="main-left">
+
+      <!-- ── ORCHESTRATION DASHBOARD ─────────────────────────── -->
+      <div class="dashboard-view active" data-dashboard-view="orchestration">
+        <div class="db-view-header">
+          <span class="db-view-icon">🎯</span>
+          <div><div class="db-view-title">ORCHESTRATION</div><div class="db-view-subtitle">Agent coordination, digest pipeline &amp; standing directives</div></div>
+        </div>
+        <div class="db-section">
+          <div class="db-section-label">System Status</div>
+          <div class="db-grid">
+            <div class="db-card db-card--live"><span class="db-tier db-tier--live">LIVE</span><div class="db-card-label">Agents Chartered</div><div class="db-card-value">16</div><div class="db-card-sub">All domains active</div></div>
+            <div class="db-card db-card--live"><span class="db-tier db-tier--live">LIVE</span><div class="db-card-label">Weekly Digest Cron</div><div class="db-card-value db-card-value--good">Mon 9:07am</div><div class="db-card-sub">scripts/weekly_digest.sh</div></div>
+            <div class="db-card db-card--live"><span class="db-tier db-tier--live">LIVE</span><div class="db-card-label">Daily Report Cron</div><div class="db-card-value db-card-value--good">6:07pm daily</div><div class="db-card-sub">scripts/daily_product_report.sh</div></div>
+            <div class="db-card db-card--live"><span class="db-tier db-tier--live">LIVE</span><div class="db-card-label">Email Delivery</div><div class="db-card-value db-card-value--good">Resend</div><div class="db-card-sub">RESEND_API_KEY required</div></div>
+          </div>
+        </div>
+        <div class="db-section">
+          <div class="db-section-label">Digest Pipeline</div>
+          <div class="db-grid">
+            <div class="db-card db-card--manual"><span class="db-tier db-tier--manual">MANUAL</span><div class="db-card-label">Last Weekly Digest</div><div class="db-card-value db-card-value--muted">No data</div><div class="db-card-sub">Run weekly_digest.sh</div></div>
+            <div class="db-card db-card--manual"><span class="db-tier db-tier--manual">MANUAL</span><div class="db-card-label">Last Daily Report</div><div class="db-card-value db-card-value--muted">No data</div><div class="db-card-sub">Check artifacts/</div></div>
+            <div class="db-card db-card--manual"><span class="db-tier db-tier--manual">MANUAL</span><div class="db-card-label">Pending Escalations</div><div class="db-card-value db-card-value--good">0</div><div class="db-card-sub">Updated by Orchestrator</div></div>
+            <div class="db-card db-card--manual"><span class="db-tier db-tier--manual">MANUAL</span><div class="db-card-label">Active Directives</div><div class="db-card-value db-card-value--muted">No data</div><div class="db-card-sub">From Standing Directives</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── STRATEGY DASHBOARD ──────────────────────────────── -->
+      <div class="dashboard-view" data-dashboard-view="strategy">
+        <div class="db-view-header">
+          <span class="db-view-icon">🧭</span>
+          <div><div class="db-view-title">STRATEGY</div><div class="db-view-subtitle">Company direction, portfolio health &amp; competitive positioning</div></div>
+        </div>
+        <div class="db-section">
+          <div class="db-section-label">Strategic Position</div>
+          <div class="db-grid">
+            <div class="db-card db-card--manual"><span class="db-tier db-tier--manual">MANUAL</span><div class="db-card-label">Strategic Decisions Q1</div><div class="db-card-value db-card-value--muted">No data</div><div class="db-card-sub">Run strategy review</div></div>
+            <div class="db-card db-card--manual"><span class="db-tier db-tier--manual">MANUAL</span><div class="db-card-label">Competitive Analyses</div><div class="db-card-value db-card-value--muted">No data</div><div class="db-card-sub">Run strategy · analyze</div></div>
+            <div class="db-card db-card--manual"><span class="db-tier db-tier--manual">MANUAL</span><div class="db-card-label">Portfolio Health</div><div class="db-card-value db-card-value--muted">No data</div><div class="db-card-sub">Tool + Game flywheel</div></div>
+            <div class="db-card db-card--manual"><span class="db-tier db-tier--manual">MANUAL</span><div class="db-card-label">Last Strategic Review</div><div class="db-card-value db-card-value--muted">No data</div><div class="db-card-sub">Quarterly cadence</div></div>
+          </div>
+        </div>
+        <div class="db-section">
+          <div class="db-section-label">Moats &amp; Risks</div>
+          <div class="db-grid">
+            <div class="db-card db-card--manual"><span class="db-tier db-tier--manual">MANUAL</span><div class="db-card-label">Open Strategic Risks</div><div class="db-card-value db-card-value--muted">No data</div><div class="db-card-sub">Run strategy · red-team</div></div>
+            <div class="db-card db-card--manual"><span class="db-tier db-tier--manual">MANUAL</span><div class="db-card-label">Moat Assessment</div><div class="db-card-value db-card-value--muted">No data</div><div class="db-card-sub">Run strategy · analyze</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── ENGINEERING DASHBOARD ───────────────────────────── -->
+      <div class="dashboard-view" data-dashboard-view="engineering">
+        <div class="db-view-header">
+          <span class="db-view-icon">⚙️</span>
+          <div><div class="db-view-title">ENGINEERING</div><div class="db-view-subtitle">Codebase health, server status &amp; API connectivity</div></div>
+        </div>
+        <div class="db-section">
+          <div class="db-section-label">Codebase Health</div>
+          <div class="db-grid">
+            <div class="db-card db-card--live"><span class="db-tier db-tier--live">LIVE</span><div class="db-card-label">Commits (7 days)</div><div class="db-card-value" id="db-eng-commits">—</div><div class="db-card-sub">git log --since 7 days</div></div>
+            <div class="db-card db-card--live"><span class="db-tier db-tier--live">LIVE</span><div class="db-card-label">Modified Files</div><div class="db-card-value" id="db-eng-modified">—</div><div class="db-card-sub">git status --short</div></div>
+            <div class="db-card db-card--manual"><span class="db-tier db-tier--manual">MANUAL</span><div class="db-card-label">Python Tests</div><div class="db-card-value db-card-value--muted">No data</div><div class="db-card-sub">pytest tests/</div></div>
+            <div class="db-card db-card--manual"><span class="db-tier db-tier--manual">MANUAL</span><div class="db-card-label">JS Tests</div><div class="db-card-value db-card-value--muted">No data</div><div class="db-card-sub">node tests/</div></div>
+          </div>
+        </div>
+        <div class="db-section">
+          <div class="db-section-label">Environment &amp; Services</div>
+          <div class="db-grid">
+            <div class="db-card db-card--live"><span class="db-tier db-tier--live">LIVE</span><div class="db-card-label">Pixellab API Key</div><div class="db-card-value" id="db-eng-pixellab">—</div><div class="db-card-sub">PIXELLAB_API_KEY</div></div>
+            <div class="db-card db-card--live"><span class="db-tier db-tier--live">LIVE</span><div class="db-card-label">Gemini API Key</div><div class="db-card-value" id="db-eng-gemini">—</div><div class="db-card-sub">GEMINI_API_KEY</div></div>
+            <div class="db-card db-card--live"><span class="db-tier db-tier--live">LIVE</span><div class="db-card-label">Sprite Workbench</div><div class="db-card-value" id="db-eng-server">—</div><div class="db-card-sub">sprite_workbench_server.py</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── QA DASHBOARD ────────────────────────────────────── -->
+      <div class="dashboard-view" data-dashboard-view="qa">
+        <div class="db-view-header">
+          <span class="db-view-icon">🔍</span>
+          <div><div class="db-view-title">QA</div><div class="db-view-subtitle">Release gate, bug counts &amp; test coverage</div></div>
+        </div>
+        <div class="db-section">
+          <div class="db-section-label">Release Gate</div>
+          <div class="db-gate db-gate--unknown">
+            <div class="db-gate-status">?</div>
+            <div class="db-gate-info">
+              <div class="db-gate-label">Gate Status</div>
+              <div class="db-gate-desc">No QA report on file. Run QA · report to generate a release packet.</div>
+            </div>
+          </div>
+        </div>
+        <div class="db-section">
+          <div class="db-section-label">Bug Counts</div>
+          <div class="db-grid">
+            <div class="db-card db-card--manual"><span class="db-tier db-tier--manual">MANUAL</span><div class="db-card-label">P0 Bugs</div><div class="db-card-value db-card-value--muted">—</div><div class="db-card-sub">Blocking release</div></div>
+            <div class="db-card db-card--manual"><span class="db-tier db-tier--manual">MANUAL</span><div class="db-card-label">P1 Bugs</div><div class="db-card-value db-card-value--muted">—</div><div class="db-card-sub">High priority</div></div>
+            <div class="db-card db-card--manual"><span class="db-tier db-tier--manual">MANUAL</span><div class="db-card-label">Last QA Report</div><div class="db-card-value db-card-value--muted">No data</div><div class="db-card-sub">Run QA · report</div></div>
+            <div class="db-card db-card--manual"><span class="db-tier db-tier--manual">MANUAL</span><div class="db-card-label">Test Coverage</div><div class="db-card-value db-card-value--muted">No data</div><div class="db-card-sub">Run QA · analyze</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── CYBERSECURITY DASHBOARD ────────────────────────── -->
+      <div class="dashboard-view" data-dashboard-view="cybersecurity">
+        <div class="db-view-header">
+          <span class="db-view-icon">🛡️</span>
+          <div><div class="db-view-title">CYBERSECURITY</div><div class="db-view-subtitle">Environment security, API keys &amp; server hardening</div></div>
+        </div>
+        <div class="db-section">
+          <div class="db-section-label">Environment Checks</div>
+          <div class="db-grid">
+            <div class="db-card db-card--live"><span class="db-tier db-tier--live">LIVE</span><div class="db-card-label">Pixellab Key Set</div><div class="db-card-value" id="db-sec-pixellab">—</div><div class="db-card-sub">Never exposed in HTML</div></div>
+            <div class="db-card db-card--live"><span class="db-tier db-tier--live">LIVE</span><div class="db-card-label">Gemini Key Set</div><div class="db-card-value" id="db-sec-gemini">—</div><div class="db-card-sub">Never exposed in HTML</div></div>
+            <div class="db-card db-card--live"><span class="db-tier db-tier--live">LIVE</span><div class="db-card-label">Resend Key Set</div><div class="db-card-value" id="db-sec-resend">—</div><div class="db-card-sub">Never exposed in HTML</div></div>
+          </div>
+        </div>
+        <div class="db-section">
+          <div class="db-section-label">Audit Trail</div>
+          <div class="db-grid">
+            <div class="db-card db-card--manual"><span class="db-tier db-tier--manual">MANUAL</span><div class="db-card-label">Last Security Audit</div><div class="db-card-value db-card-value--muted">No data</div><div class="db-card-sub">Run cybersecurity · report</div></div>
+            <div class="db-card db-card--manual"><span class="db-tier db-tier--manual">MANUAL</span><div class="db-card-label">Open Security Flags</div><div class="db-card-value db-card-value--muted">—</div><div class="db-card-sub">Run cybersecurity · analyze</div></div>
+            <div class="db-card db-card--manual"><span class="db-tier db-tier--manual">MANUAL</span><div class="db-card-label">Prompt Injection Risk</div><div class="db-card-value db-card-value--muted">—</div><div class="db-card-sub">Copilot API surface</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── LEGAL DASHBOARD ────────────────────────────────── -->
+      <div class="dashboard-view" data-dashboard-view="legal">
+        <div class="db-view-header">
+          <span class="db-view-icon">⚖️</span>
+          <div><div class="db-view-title">LEGAL</div><div class="db-view-subtitle">IP exposure, AI asset compliance &amp; ToS status</div></div>
+        </div>
+        <div class="db-section">
+          <div class="db-section-label">AI Asset Compliance</div>
+          <div class="db-grid">
+            <div class="db-card db-card--manual"><span class="db-tier db-tier--manual">MANUAL</span><div class="db-card-label">AI Assets Reviewed</div><div class="db-card-value db-card-value--muted">No data</div><div class="db-card-sub">Run legal · review</div></div>
+            <div class="db-card db-card--manual"><span class="db-tier db-tier--manual">MANUAL</span><div class="db-card-label">Pending Legal Flags</div><div class="db-card-value db-card-value--muted">—</div><div class="db-card-sub">Run legal · escalation-check</div></div>
+            <div class="db-card db-card--manual"><span class="db-tier db-tier--manual">MANUAL</span><div class="db-card-label">IP Exposure Level</div><div class="db-card-value db-card-value--muted">—</div><div class="db-card-sub">3P licenses, ToS gaps</div></div>
+            <div class="db-card db-card--manual"><span class="db-tier db-tier--manual">MANUAL</span><div class="db-card-label">Last Legal Review</div><div class="db-card-value db-card-value--muted">No data</div><div class="db-card-sub">Run legal · report</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── FINANCE DASHBOARD ──────────────────────────────── -->
+      <div class="dashboard-view" data-dashboard-view="finance">
+        <div class="db-view-header">
+          <span class="db-view-icon">💰</span>
+          <div><div class="db-view-title">FINANCE</div><div class="db-view-subtitle">API costs, budget tracking &amp; unit economics</div></div>
+        </div>
+        <div class="db-section">
+          <div class="db-section-label">Monthly API Spend</div>
+          <div class="db-grid">
+            <div class="db-card db-card--manual"><span class="db-tier db-tier--manual">MANUAL</span><div class="db-card-label">Pixellab API</div><div class="db-card-value db-card-value--muted">No data</div><div class="db-card-sub">Per-image + animation</div></div>
+            <div class="db-card db-card--manual"><span class="db-tier db-tier--manual">MANUAL</span><div class="db-card-label">Gemini API</div><div class="db-card-value db-card-value--muted">No data</div><div class="db-card-sub">Copilot calls</div></div>
+            <div class="db-card db-card--manual"><span class="db-tier db-tier--manual">MANUAL</span><div class="db-card-label">Resend (Email)</div><div class="db-card-value db-card-value--muted">No data</div><div class="db-card-sub">Digest + daily reports</div></div>
+            <div class="db-card db-card--manual"><span class="db-tier db-tier--manual">MANUAL</span><div class="db-card-label">Budget Remaining</div><div class="db-card-value db-card-value--muted">No data</div><div class="db-card-sub">Run finance · report</div></div>
+          </div>
+        </div>
+        <div class="db-section">
+          <div class="db-section-label">Unit Economics</div>
+          <div class="db-grid">
+            <div class="db-card db-card--instrumented"><span class="db-tier db-tier--post">POST-LAUNCH</span><div class="db-card-label">Cost per Session</div><div class="db-card-value db-card-value--muted">—</div><div class="db-card-sub">Requires usage tracking</div></div>
+            <div class="db-card db-card--instrumented"><span class="db-tier db-tier--post">POST-LAUNCH</span><div class="db-card-label">Revenue per User</div><div class="db-card-value db-card-value--muted">—</div><div class="db-card-sub">After monetisation launch</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── ANALYTICS DASHBOARD ────────────────────────────── -->
+      <div class="dashboard-view" data-dashboard-view="analytics">
+        <div class="db-view-header">
+          <span class="db-view-icon">📊</span>
+          <div><div class="db-view-title">ANALYTICS</div><div class="db-view-subtitle">Usage metrics, funnel health &amp; AI feature performance</div></div>
+        </div>
+        <div class="db-section">
+          <div class="db-section-label">Funnel Metrics</div>
+          <div class="db-grid">
+            <div class="db-card db-card--instrumented"><span class="db-tier db-tier--post">POST-LAUNCH</span><div class="db-card-label">Activation Rate</div><div class="db-card-value db-card-value--muted">—</div><div class="db-card-sub">First export event</div></div>
+            <div class="db-card db-card--instrumented"><span class="db-tier db-tier--post">POST-LAUNCH</span><div class="db-card-label">Export Rate</div><div class="db-card-value db-card-value--muted">—</div><div class="db-card-sub">Exports / sessions</div></div>
+            <div class="db-card db-card--instrumented"><span class="db-tier db-tier--post">POST-LAUNCH</span><div class="db-card-label">Retention D7</div><div class="db-card-value db-card-value--muted">—</div><div class="db-card-sub">7-day return rate</div></div>
+          </div>
+        </div>
+        <div class="db-section">
+          <div class="db-section-label">AI Feature Performance</div>
+          <div class="db-grid">
+            <div class="db-card db-card--instrumented"><span class="db-tier db-tier--post">POST-LAUNCH</span><div class="db-card-label">Copilot Accept Rate</div><div class="db-card-value db-card-value--muted">—</div><div class="db-card-sub">Suggestions accepted</div></div>
+            <div class="db-card db-card--instrumented"><span class="db-tier db-tier--post">POST-LAUNCH</span><div class="db-card-label">Copilot Edit Rate</div><div class="db-card-value db-card-value--muted">—</div><div class="db-card-sub">Accepted then modified</div></div>
+            <div class="db-card db-card--instrumented"><span class="db-tier db-tier--post">POST-LAUNCH</span><div class="db-card-label">AI Feature MAU</div><div class="db-card-value db-card-value--muted">—</div><div class="db-card-sub">Monthly active users</div></div>
+          </div>
+        </div>
+        <div class="db-section">
+          <div class="db-section-label">Tracking Plan</div>
+          <div class="db-grid">
+            <div class="db-card db-card--manual"><span class="db-tier db-tier--manual">MANUAL</span><div class="db-card-label">Tracking Coverage</div><div class="db-card-value db-card-value--muted">No data</div><div class="db-card-sub">Run analytics · review</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── SUPPORT DASHBOARD ───────────────────────────────── -->
+      <div class="dashboard-view" data-dashboard-view="support">
+        <div class="db-view-header">
+          <span class="db-view-icon">💬</span>
+          <div><div class="db-view-title">SUPPORT</div><div class="db-view-subtitle">User issues, feedback synthesis &amp; onboarding health</div></div>
+        </div>
+        <div class="db-section">
+          <div class="db-section-label">Issue Queue</div>
+          <div class="db-grid">
+            <div class="db-card db-card--instrumented"><span class="db-tier db-tier--post">POST-LAUNCH</span><div class="db-card-label">Open Tickets</div><div class="db-card-value db-card-value--muted">—</div><div class="db-card-sub">Requires user base</div></div>
+            <div class="db-card db-card--instrumented"><span class="db-tier db-tier--post">POST-LAUNCH</span><div class="db-card-label">Avg Resolution</div><div class="db-card-value db-card-value--muted">—</div><div class="db-card-sub">Hours to close</div></div>
+            <div class="db-card db-card--instrumented"><span class="db-tier db-tier--post">POST-LAUNCH</span><div class="db-card-label">User Satisfaction</div><div class="db-card-value db-card-value--muted">—</div><div class="db-card-sub">CSAT / NPS</div></div>
+          </div>
+        </div>
+        <div class="db-section">
+          <div class="db-section-label">Feedback Synthesis</div>
+          <div class="db-grid">
+            <div class="db-card db-card--manual"><span class="db-tier db-tier--manual">MANUAL</span><div class="db-card-label">Top Pain Points</div><div class="db-card-value db-card-value--muted">No data</div><div class="db-card-sub">Run support · analyze</div></div>
+            <div class="db-card db-card--manual"><span class="db-tier db-tier--manual">MANUAL</span><div class="db-card-label">Onboarding Drop-off</div><div class="db-card-value db-card-value--muted">No data</div><div class="db-card-sub">Run support · review</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── MARKETING DASHBOARD ────────────────────────────── -->
+      <div class="dashboard-view" data-dashboard-view="marketing">
+        <div class="db-view-header">
+          <span class="db-view-icon">📣</span>
+          <div><div class="db-view-title">MARKETING</div><div class="db-view-subtitle">Launch readiness, content pipeline &amp; channel health</div></div>
+        </div>
+        <div class="db-section">
+          <div class="db-section-label">Launch Readiness</div>
+          <div class="db-grid">
+            <div class="db-card db-card--manual"><span class="db-tier db-tier--manual">MANUAL</span><div class="db-card-label">Launch Readiness Score</div><div class="db-card-value db-card-value--muted">No data</div><div class="db-card-sub">Run marketing · report</div></div>
+            <div class="db-card db-card--manual"><span class="db-tier db-tier--manual">MANUAL</span><div class="db-card-label">itch.io Page Status</div><div class="db-card-value db-card-value--muted">No data</div><div class="db-card-sub">Run marketing · analyze</div></div>
+            <div class="db-card db-card--manual"><span class="db-tier db-tier--manual">MANUAL</span><div class="db-card-label">Product Hunt Draft</div><div class="db-card-value db-card-value--muted">No data</div><div class="db-card-sub">Gallery, copy, assets</div></div>
+          </div>
+        </div>
+        <div class="db-section">
+          <div class="db-section-label">Content Pipeline</div>
+          <div class="db-grid">
+            <div class="db-card db-card--manual"><span class="db-tier db-tier--manual">MANUAL</span><div class="db-card-label">Content Published Q1</div><div class="db-card-value db-card-value--muted">No data</div><div class="db-card-sub">Posts, announcements</div></div>
+            <div class="db-card db-card--instrumented"><span class="db-tier db-tier--post">POST-LAUNCH</span><div class="db-card-label">Referral Traffic</div><div class="db-card-value db-card-value--muted">—</div><div class="db-card-sub">Requires GA / Plausible</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── WORKBENCH DASHBOARD ─────────────────────────────── -->
+      <div class="dashboard-view" data-dashboard-view="workbench">
+        <div class="db-view-header">
+          <span class="db-view-icon">🖥️</span>
+          <div><div class="db-view-title">WORKBENCH</div><div class="db-view-subtitle">Sprite Workbench product health, daily reports &amp; brand</div></div>
+        </div>
+        <div class="db-section">
+          <div class="db-section-label">Daily Reports</div>
+          <div class="db-grid">
+            <div class="db-card db-card--live"><span class="db-tier db-tier--live">LIVE</span><div class="db-card-label">Last Daily Report</div><div class="db-card-value" id="db-wb-last-report">—</div><div class="db-card-sub">artifacts/daily-report-*.md</div></div>
+            <div class="db-card db-card--live"><span class="db-tier db-tier--live">LIVE</span><div class="db-card-label">Report Cron</div><div class="db-card-value db-card-value--good">6:07pm</div><div class="db-card-sub">Weekdays via cron</div></div>
+          </div>
+        </div>
+        <div class="db-section">
+          <div class="db-section-label">Product Health</div>
+          <div class="db-grid">
+            <div class="db-card db-card--manual"><span class="db-tier db-tier--manual">MANUAL</span><div class="db-card-label">Backlog Items</div><div class="db-card-value db-card-value--muted">No data</div><div class="db-card-sub">Run workbench-po · report</div></div>
+            <div class="db-card db-card--manual"><span class="db-tier db-tier--manual">MANUAL</span><div class="db-card-label">Design Debt</div><div class="db-card-value db-card-value--muted">No data</div><div class="db-card-sub">Run design · analyze</div></div>
+            <div class="db-card db-card--instrumented"><span class="db-tier db-tier--post">POST-LAUNCH</span><div class="db-card-label">Copilot Accept Rate</div><div class="db-card-value db-card-value--muted">—</div><div class="db-card-sub">Requires instrumentation</div></div>
+          </div>
+        </div>
+        <div class="db-section">
+          <div class="db-section-label">Brand</div>
+          <div class="db-grid">
+            <div class="db-card db-card--manual"><span class="db-tier db-tier--manual">MANUAL</span><div class="db-card-label">Brand Assets</div><div class="db-card-value db-card-value--muted">No data</div><div class="db-card-sub">Run workbench-art · analyze</div></div>
+            <div class="db-card db-card--manual"><span class="db-tier db-tier--manual">MANUAL</span><div class="db-card-label">Logo Status</div><div class="db-card-value db-card-value--muted">No data</div><div class="db-card-sub">Final / WIP / Needed</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── ASHEN HOLLOW DASHBOARD ─────────────────────────── -->
+      <div class="dashboard-view" data-dashboard-view="ashen-hollow">
+        <div class="db-view-header">
+          <span class="db-view-icon">🎮</span>
+          <div><div class="db-view-title">ASHEN HOLLOW</div><div class="db-view-subtitle">Game design progress, daily reports &amp; production status</div></div>
+        </div>
+        <div class="db-section">
+          <div class="db-section-label">Daily Reports</div>
+          <div class="db-grid">
+            <div class="db-card db-card--live"><span class="db-tier db-tier--live">LIVE</span><div class="db-card-label">Last Daily Report</div><div class="db-card-value" id="db-ah-last-report">—</div><div class="db-card-sub">artifacts/daily-report-*.md</div></div>
+            <div class="db-card db-card--live"><span class="db-tier db-tier--live">LIVE</span><div class="db-card-label">Report Cron</div><div class="db-card-value db-card-value--good">6:07pm</div><div class="db-card-sub">Weekdays via cron</div></div>
+          </div>
+        </div>
+        <div class="db-section">
+          <div class="db-section-label">Game Design</div>
+          <div class="db-grid">
+            <div class="db-card db-card--manual"><span class="db-tier db-tier--manual">MANUAL</span><div class="db-card-label">Game Pillars</div><div class="db-card-value db-card-value--muted">No data</div><div class="db-card-sub">Run game-director · analyze</div></div>
+            <div class="db-card db-card--manual"><span class="db-tier db-tier--manual">MANUAL</span><div class="db-card-label">Biomes Designed</div><div class="db-card-value db-card-value--muted">No data</div><div class="db-card-sub">Run game-director · report</div></div>
+            <div class="db-card db-card--manual"><span class="db-tier db-tier--manual">MANUAL</span><div class="db-card-label">Narrative Docs</div><div class="db-card-value db-card-value--muted">No data</div><div class="db-card-sub">Run narrative · analyze</div></div>
+            <div class="db-card db-card--manual"><span class="db-tier db-tier--manual">MANUAL</span><div class="db-card-label">Art Bible Status</div><div class="db-card-value db-card-value--muted">No data</div><div class="db-card-sub">Run ashen-hollow-art · analyze</div></div>
+          </div>
+        </div>
+        <div class="db-section">
+          <div class="db-section-label">Production</div>
+          <div class="db-grid">
+            <div class="db-card db-card--manual"><span class="db-tier db-tier--manual">MANUAL</span><div class="db-card-label">Systems Designed</div><div class="db-card-value db-card-value--muted">No data</div><div class="db-card-sub">Combat, abilities, progression</div></div>
+            <div class="db-card db-card--manual"><span class="db-tier db-tier--manual">MANUAL</span><div class="db-card-label">Audio Direction</div><div class="db-card-value db-card-value--muted">No data</div><div class="db-card-sub">Run audio · analyze</div></div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /.main-left -->
+
+    <div class="main-right">
+    <!-- Step 1: Pick agent (scoped to current dashboard) -->
     <section>
       <div class="step-label"><span class="step-num">1</span> Pick an Agent</div>
-      <div class="agent-grid" id="agentGrid">
-        <button class="agent-card selected" data-agent="orchestrator" style="--agent-color:#00e8c8">
-          <span class="agent-card-icon">🎯</span>
-          <span class="agent-card-name">Orchestrator</span>
-          <span class="agent-card-desc">Multi-agent sessions & founder digest</span>
-        </button>
-        <button class="agent-card" data-agent="qa" style="--agent-color:#77b8ff">
-          <span class="agent-card-icon">🔍</span>
-          <span class="agent-card-name">QA</span>
-          <span class="agent-card-desc">Release gate & quality validation</span>
-        </button>
-        <button class="agent-card" data-agent="marketing" style="--agent-color:#f5986e">
-          <span class="agent-card-icon">📣</span>
-          <span class="agent-card-name">Marketing</span>
-          <span class="agent-card-desc">Positioning, content & growth</span>
-        </button>
-        <button class="agent-card" data-agent="legal" style="--agent-color:#a78bfa">
-          <span class="agent-card-icon">⚖️</span>
-          <span class="agent-card-name">Legal</span>
-          <span class="agent-card-desc">IP, compliance & risk flags</span>
-        </button>
-        <button class="agent-card" data-agent="analytics" style="--agent-color:#4ade80">
-          <span class="agent-card-icon">📊</span>
-          <span class="agent-card-name">Analytics</span>
-          <span class="agent-card-desc">Usage metrics & AI feature performance</span>
-        </button>
-        <button class="agent-card" data-agent="support" style="--agent-color:#fbbf24">
-          <span class="agent-card-icon">💬</span>
-          <span class="agent-card-name">Support</span>
-          <span class="agent-card-desc">User success & feedback synthesis</span>
-        </button>
-        <button class="agent-card" data-agent="finance" style="--agent-color:#f0abfc">
-          <span class="agent-card-icon">💰</span>
-          <span class="agent-card-name">Finance</span>
-          <span class="agent-card-desc">Costs, revenue & API budgets</span>
-        </button>
-        <button class="agent-card" data-agent="design" style="--agent-color:#fb7185">
-          <span class="agent-card-icon">🎨</span>
-          <span class="agent-card-name">Design</span>
-          <span class="agent-card-desc">STYLE_GUIDE, UX & accessibility</span>
-        </button>
-        <button class="agent-card" data-agent="cybersecurity" style="--agent-color:#f85149">
-          <span class="agent-card-icon">🛡️</span>
-          <span class="agent-card-name">Cybersecurity</span>
-          <span class="agent-card-desc">Security audit & risk identification</span>
-        </button>
-      </div>
+      <div class="scoped-agents" id="scopedAgents"></div>
     </section>
 
     <!-- Step 2: Pick mode -->
@@ -757,7 +1240,7 @@ body::before {
     </section>
 
     <!-- Step 3: Task -->
-    <section>
+    <section class="task-section">
       <div class="step-label"><span class="step-num">3</span> Describe Your Task</div>
       <textarea
         class="task-textarea"
@@ -772,6 +1255,7 @@ body::before {
         Generate Prompt →
       </button>
     </section>
+    </div><!-- /.main-right -->
 
   </main>
 
@@ -931,14 +1415,194 @@ const AGENTS = {
       'advise':           'e.g. "How should we handle API key rotation for the Gemini integration?"',
     },
   },
+
+  // ── Engineering ──────────────────────────────────────────────────────────
+  engineering: {
+    label: 'Chief Engineer',
+    charter: 'agents/engineering/charter.md',
+    modes: ['analyze', 'review', 'spec', 'advise', 'red-team'],
+    placeholders: {
+      'analyze':   'e.g. "Analyze the canvas rendering pipeline performance in the Sprite Workbench."',
+      'review':    'e.g. "Review the room editor Python server architecture for scalability concerns."',
+      'spec':      'e.g. "Spec the export schema for animated entity data in the room editor."',
+      'advise':    'e.g. "What AI integration architecture should we use for the next Copilot feature?"',
+      'red-team':  'e.g. "Red-team the Copilot API integration — what could go wrong in production?"',
+    },
+  },
+  animation: {
+    label: 'Animation Engineer',
+    charter: 'agents/animation/charter.md',
+    modes: ['analyze', 'review', 'spec', 'advise'],
+    placeholders: {
+      'analyze': 'e.g. "Analyze the current sprite sheet packing approach for efficiency."',
+      'review':  'e.g. "Review this AnimateDiff workflow for production use in our pipeline."',
+      'spec':    'e.g. "Spec the frame metadata schema for the animation export format."',
+      'advise':  'e.g. "What AI workflow should we recommend for generating walk cycle variations?"',
+    },
+  },
+  'level-design': {
+    label: 'Level Design Engineer',
+    charter: 'agents/level-design/charter.md',
+    modes: ['analyze', 'review', 'spec', 'advise'],
+    placeholders: {
+      'analyze': 'e.g. "Analyze the current Room Copilot output quality against metroidvania design principles."',
+      'review':  'e.g. "Review this room layout for traversal and reachability issues."',
+      'spec':    'e.g. "Spec the world graph validation rules for door pairing and progression gates."',
+      'advise':  'e.g. "What WFC constraints should we apply to the PCG room generation system?"',
+    },
+  },
+
+  // ── Workbench ─────────────────────────────────────────────────────────────
+  'workbench-po': {
+    label: 'Workbench PO',
+    charter: 'agents/workbench-po/charter.md',
+    modes: ['analyze', 'review', 'report', 'prioritize', 'advise'],
+    modeTemplates: {
+      'report': 'templates/daily-product-report.md',
+    },
+    placeholders: {
+      'analyze':   'e.g. "Analyze user friction points in the first-export flow."',
+      'review':    'e.g. "Review the proposed Copilot UX changes against user needs."',
+      'report':    'e.g. "Daily product report for Sprite Workbench — 2026-03-28."',
+      'prioritize':'e.g. "Prioritize the Q2 feature backlog given our solo-founder constraints."',
+      'advise':    'e.g. "Should we add team collaboration features before or after public launch?"',
+    },
+  },
+  'workbench-art': {
+    label: 'Workbench Art Director',
+    charter: 'agents/workbench-art/charter.md',
+    modes: ['analyze', 'review', 'brief', 'advise'],
+    placeholders: {
+      'analyze': 'e.g. "Analyze the Workbench brand identity against its target audience."',
+      'review':  'e.g. "Review the new onboarding illustration concepts for brand alignment."',
+      'brief':   'e.g. "Brief the logo refresh for the Sprite Workbench public launch."',
+      'advise':  'e.g. "What visual direction should the Workbench marketing site use?"',
+    },
+  },
+
+  // ── Ashen Hollow ──────────────────────────────────────────────────────────
+  'game-director': {
+    label: 'Game Director',
+    charter: 'agents/game-director/charter.md',
+    modes: ['analyze', 'review', 'report', 'brainstorm', 'advise'],
+    modeTemplates: {
+      'report': 'templates/daily-product-report.md',
+    },
+    placeholders: {
+      'analyze':   'e.g. "Analyze the current macro progression structure against genre benchmarks."',
+      'review':    'e.g. "Review the proposed ability unlock sequence for design pillar alignment."',
+      'report':    'e.g. "Daily product report for Ashen Hollow — 2026-03-28."',
+      'brainstorm':'e.g. "Brainstorm biome concepts that serve the game\'s core player fantasy."',
+      'advise':    'e.g. "How should we handle the player\'s first encounter with a boss?"',
+    },
+  },
+  'ashen-hollow-art': {
+    label: 'AH Art Director',
+    charter: 'agents/ashen-hollow-art/charter.md',
+    modes: ['analyze', 'review', 'brief', 'advise'],
+    placeholders: {
+      'analyze': 'e.g. "Analyze the current character design concepts for art bible consistency."',
+      'review':  'e.g. "Review the LoRA training set for the first biome tileset."',
+      'brief':   'e.g. "Brief the visual direction for the Ashen Hollow opening area."',
+      'advise':  'e.g. "What AI art workflow should we use for enemy concept generation?"',
+    },
+  },
+  narrative: {
+    label: 'Narrative Director',
+    charter: 'agents/narrative/charter.md',
+    modes: ['analyze', 'review', 'draft', 'advise'],
+    placeholders: {
+      'analyze': 'e.g. "Analyze the current world lore structure for internal consistency."',
+      'review':  'e.g. "Review the tutorial sequence for ludonarrative coherence."',
+      'draft':   'e.g. "Draft the item description text for the first ability pickup."',
+      'advise':  'e.g. "How should the game communicate faction relationships without explicit exposition?"',
+    },
+  },
+  audio: {
+    label: 'Audio Director',
+    charter: 'agents/audio/charter.md',
+    modes: ['analyze', 'review', 'brief', 'advise'],
+    placeholders: {
+      'analyze': 'e.g. "Analyze the current Workbench UI sound set for completeness and quality."',
+      'review':  'e.g. "Review these Suno-generated sketches against the Ashen Hollow score direction."',
+      'brief':   'e.g. "Brief the audio identity for the first biome — instrumentation, energy range, motif."',
+      'advise':  'e.g. "What Web Audio API approach should we use for the Workbench UI feedback sounds?"',
+    },
+  },
+  'game-systems': {
+    label: 'Game Systems Designer',
+    charter: 'agents/game-systems/charter.md',
+    modes: ['analyze', 'review', 'spec', 'balance', 'advise'],
+    placeholders: {
+      'analyze':  'e.g. "Analyze the current movement parameter values against our design pillars."',
+      'review':   'e.g. "Review the dash ability design for second-order interaction effects."',
+      'spec':     'e.g. "Spec the base combat system — hitbox architecture, frame data ranges, iFrame windows."',
+      'balance':  'e.g. "Balance the first boss health and damage values against the player\'s base stats."',
+      'advise':   'e.g. "What accessibility options should we ship with at launch?"',
+    },
+  },
+
+  // ── Leadership ────────────────────────────────────────────────────────────
+  strategy: {
+    label: 'Strategy',
+    charter: 'agents/strategy/charter.md',
+    modes: ['analyze', 'decision', 'brainstorm', 'red-team', 'advise'],
+    placeholders: {
+      'analyze':   'e.g. "Analyze the competitive landscape for browser-based sprite editors."',
+      'decision':  'e.g. "Should we pursue a freemium SaaS model or a one-time purchase?"',
+      'brainstorm':'e.g. "Brainstorm distribution strategies for the Workbench public launch."',
+      'red-team':  'e.g. "Red-team the tool+game flywheel — what breaks the model?"',
+      'advise':    'e.g. "How should we position the Workbench relative to Aseprite?"',
+    },
+  },
 };
 
+// ── Dashboard config ─────────────────────────────
+const DASHBOARDS = {
+  orchestration:   { label: 'Orchestration', color: '#00e8c8', agents: ['orchestrator'] },
+  strategy:        { label: 'Strategy',       color: '#94a3b8', agents: ['strategy'] },
+  engineering:     { label: 'Engineering',    color: '#ff9500', agents: ['engineering', 'animation', 'level-design'] },
+  qa:              { label: 'QA',             color: '#77b8ff', agents: ['qa'] },
+  cybersecurity:   { label: 'Cybersecurity',  color: '#f85149', agents: ['cybersecurity'] },
+  legal:           { label: 'Legal',          color: '#a78bfa', agents: ['legal'] },
+  finance:         { label: 'Finance',        color: '#f0abfc', agents: ['finance'] },
+  analytics:       { label: 'Analytics',      color: '#4ade80', agents: ['analytics'] },
+  support:         { label: 'Support',        color: '#fbbf24', agents: ['support'] },
+  marketing:       { label: 'Marketing',      color: '#f5986e', agents: ['marketing'] },
+  workbench:       { label: 'Workbench',      color: '#38bdf8', agents: ['workbench-po', 'workbench-art', 'design'] },
+  'ashen-hollow':  { label: 'Ashen Hollow',   color: '#818cf8', agents: ['game-director', 'ashen-hollow-art', 'narrative', 'audio', 'game-systems'] },
+};
+
+const AGENT_META = {
+  'orchestrator':     { icon: '🎯', color: '#00e8c8' },
+  'strategy':         { icon: '🧭', color: '#94a3b8' },
+  'engineering':      { icon: '⚙️', color: '#ff9500' },
+  'animation':        { icon: '🎬', color: '#e879f9' },
+  'level-design':     { icon: '🗺️', color: '#a3e635' },
+  'qa':               { icon: '🔍', color: '#77b8ff' },
+  'cybersecurity':    { icon: '🛡️', color: '#f85149' },
+  'legal':            { icon: '⚖️', color: '#a78bfa' },
+  'finance':          { icon: '💰', color: '#f0abfc' },
+  'analytics':        { icon: '📊', color: '#4ade80' },
+  'support':          { icon: '💬', color: '#fbbf24' },
+  'marketing':        { icon: '📣', color: '#f5986e' },
+  'workbench-po':     { icon: '📋', color: '#38bdf8' },
+  'workbench-art':    { icon: '🖌️', color: '#fde047' },
+  'design':           { icon: '🎨', color: '#fb7185' },
+  'game-director':    { icon: '🎮', color: '#818cf8' },
+  'ashen-hollow-art': { icon: '🏔️', color: '#fb923c' },
+  'narrative':        { icon: '📖', color: '#6ee7b7' },
+  'audio':            { icon: '🎵', color: '#67e8f9' },
+  'game-systems':     { icon: '⚔️', color: '#fca5a5' },
+};
+
+let selectedDashboard = 'orchestration';
 let selectedAgent = 'orchestrator';
 let selectedMode = 'brainstorm';
 let generatedPrompt = '';
 
 // ── DOM refs ────────────────────────────────────
-const agentGrid   = document.getElementById('agentGrid');
+const scopedAgents = document.getElementById('scopedAgents');
 const modeRow     = document.getElementById('modeRow');
 const taskInput   = document.getElementById('taskInput');
 const generateBtn = document.getElementById('generateBtn');
@@ -948,16 +1612,52 @@ const copyBtn     = document.getElementById('copyBtn');
 const claudeBtn   = document.getElementById('claudeBtn');
 const toast       = document.getElementById('toast');
 
-// ── Agent selection ─────────────────────────────
-agentGrid.addEventListener('click', e => {
-  const card = e.target.closest('.agent-card');
-  if (!card) return;
-  document.querySelectorAll('.agent-card').forEach(c => c.classList.remove('selected'));
-  card.classList.add('selected');
-  selectedAgent = card.dataset.agent;
+// ── Dashboard selection ──────────────────────────
+function selectDashboard(id) {
+  selectedDashboard = id;
+
+  // update nav active state
+  document.querySelectorAll('.nav-item[data-dashboard]').forEach(btn => {
+    btn.classList.toggle('db-active', btn.dataset.dashboard === id);
+  });
+
+  // show/hide dashboard views
+  document.querySelectorAll('.dashboard-view').forEach(view => {
+    view.classList.toggle('active', view.dataset.dashboardView === id);
+  });
+
+  // render scoped agent picker
+  renderScopedAgents(id);
+
+  // load live data for this dashboard
+  loadDashboardData(id);
+}
+
+function renderScopedAgents(dashId) {
+  const dash = DASHBOARDS[dashId];
+  scopedAgents.innerHTML = '';
+  dash.agents.forEach((agentId, i) => {
+    const meta = AGENT_META[agentId] || {};
+    const agent = AGENTS[agentId] || {};
+    const btn = document.createElement('button');
+    btn.className = 'scoped-agent-btn' + (i === 0 ? ' selected' : '');
+    btn.dataset.agent = agentId;
+    btn.innerHTML = `<span class="scoped-agent-dot" style="background:${meta.color || '#888'}"></span>${meta.icon || ''} ${agent.label || agentId}`;
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.scoped-agent-btn').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      selectedAgent = agentId;
+      renderModes();
+      clearOutput();
+    });
+    scopedAgents.appendChild(btn);
+  });
+
+  // auto-select first agent
+  selectedAgent = dash.agents[0];
   renderModes();
   clearOutput();
-});
+}
 
 function renderModes() {
   const agent = AGENTS[selectedAgent];
@@ -1061,7 +1761,14 @@ claudeBtn.addEventListener('click', () => {
   showToast('Open Claude Code, paste the prompt, and run it from /MV');
 });
 
-// ── Left sidebar nav ────────────────────────────
+// ── Left sidebar — dashboard nav ───────────────
+document.querySelectorAll('.nav-item[data-dashboard]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    selectDashboard(btn.dataset.dashboard);
+  });
+});
+
+// ── Left sidebar — resource path copy ──────────
 document.querySelectorAll('.nav-item[data-path]').forEach(btn => {
   btn.addEventListener('click', () => {
     const path = btn.dataset.path;
@@ -1098,8 +1805,63 @@ function escapeHtml(str) {
   return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
+// ── Live data loader ─────────────────────────────
+async function loadDashboardData(dashId) {
+  try {
+    const resp = await fetch('/api/dashboard-data');
+    if (!resp.ok) return;
+    const d = await resp.json();
+
+    if (dashId === 'engineering' || dashId === 'cybersecurity') {
+      const setVal = (id, val, cls) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.textContent = val;
+        if (cls) el.className = 'db-card-value ' + cls;
+      };
+
+      if (dashId === 'engineering') {
+        setVal('db-eng-commits', d.git_commits_7d ?? '—');
+        setVal('db-eng-modified', d.git_modified_count ?? '—');
+        setVal('db-eng-pixellab', d.pixellab_key_set ? '✓ Set' : '✗ Missing',
+          d.pixellab_key_set ? 'db-card-value--good' : 'db-card-value--error');
+        setVal('db-eng-gemini', d.gemini_key_set ? '✓ Set' : '✗ Missing',
+          d.gemini_key_set ? 'db-card-value--good' : 'db-card-value--error');
+        setVal('db-eng-server', d.workbench_server_running ? '● Running' : '○ Offline',
+          d.workbench_server_running ? 'db-card-value--good' : 'db-card-value--warning');
+      }
+
+      if (dashId === 'cybersecurity') {
+        setVal('db-sec-pixellab', d.pixellab_key_set ? '✓ Set' : '✗ Missing',
+          d.pixellab_key_set ? 'db-card-value--good' : 'db-card-value--error');
+        setVal('db-sec-gemini', d.gemini_key_set ? '✓ Set' : '✗ Missing',
+          d.gemini_key_set ? 'db-card-value--good' : 'db-card-value--error');
+        setVal('db-sec-resend', d.resend_key_set ? '✓ Set' : '✗ Missing',
+          d.resend_key_set ? 'db-card-value--good' : 'db-card-value--error');
+      }
+    }
+
+    if (dashId === 'workbench' || dashId === 'ashen-hollow') {
+      const setVal = (id, val, cls) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.textContent = val;
+        if (cls) el.className = 'db-card-value ' + cls;
+      };
+      if (dashId === 'workbench') {
+        setVal('db-wb-last-report', d.last_daily_report ?? 'None', d.last_daily_report ? 'db-card-value--good' : 'db-card-value--muted');
+      }
+      if (dashId === 'ashen-hollow') {
+        setVal('db-ah-last-report', d.last_daily_report ?? 'None', d.last_daily_report ? 'db-card-value--good' : 'db-card-value--muted');
+      }
+    }
+  } catch {
+    // API not available — leave placeholders
+  }
+}
+
 // ── Init ────────────────────────────────────────
-renderModes();
+selectDashboard('orchestration');
 </script>
 </body>
 </html>

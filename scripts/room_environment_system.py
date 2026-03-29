@@ -793,6 +793,7 @@ def _normalize_spec_response(raw: Dict[str, Any], fallback_description: str) -> 
     tags = raw.get("tags") if isinstance(raw.get("tags"), list) else _keywords(fallback_description)
     cleaned_tags = [str(item).strip().lower() for item in tags if str(item).strip()][:8]
     scene_schema = raw.get("sceneSchema") if isinstance(raw.get("sceneSchema"), dict) else raw.get("scene_schema")
+    components = raw.get("components") if isinstance(raw.get("components"), dict) else {}
     return {
         "theme_id": str(raw.get("themeId") or theme_id).strip().lower() or theme_id,
         "tags": cleaned_tags,
@@ -805,17 +806,148 @@ def _normalize_spec_response(raw: Dict[str, Any], fallback_description: str) -> 
         "hazards": [str(item).strip() for item in (raw.get("hazards") or []) if str(item).strip()][:6],
         "composition_focus": str(raw.get("compositionFocus") or raw.get("composition_focus") or "center the most important landmark around the main route").strip(),
         "readability_notes": [str(item).strip() for item in (raw.get("readabilityNotes") or raw.get("readability_notes") or []) if str(item).strip()][:6],
+        "components": _normalize_component_prompts_response(components, fallback_description),
         "scene_schema": scene_schema if isinstance(scene_schema, dict) else {},
     }
 
 
+COMPONENT_KEYS: Tuple[Tuple[str, str], ...] = (
+    ("floor", "Floor"),
+    ("platforms", "Platforms"),
+    ("walls", "Walls"),
+    ("doors", "Doors"),
+    ("background", "Background"),
+)
+
+
+def _default_component_prompts(description: str, direction: Optional[Dict[str, Any]] = None) -> Dict[str, Dict[str, str]]:
+    base = str(description or "").strip() or "A readable room that stays inside the project art direction."
+    direction_text = ""
+    if isinstance(direction, dict):
+        chunks = [
+            str(direction.get("high_level_direction") or "").strip(),
+            ", ".join(str(item).strip() for item in (direction.get("material_rules") or []) if str(item).strip()),
+            ", ".join(str(item).strip() for item in (direction.get("shape_language") or []) if str(item).strip()),
+        ]
+        direction_text = " ".join(chunk for chunk in chunks if chunk).strip()
+    suffix = f" Keep it aligned to {direction_text}." if direction_text else ""
+    return {
+        "floor": {
+            "label": "Floor",
+            "prompt": f"{base} Describe the floor surface, slab pattern, cracks, wear, moisture, and traversal readability.{suffix}".strip(),
+        },
+        "platforms": {
+            "label": "Platforms",
+            "prompt": f"{base} Describe platform tops, front faces, edge damage, supports, and how ledges should read in gameplay.{suffix}".strip(),
+        },
+        "walls": {
+            "label": "Walls",
+            "prompt": f"{base} Describe the wall structure, repeating architecture, depth rhythm, damage, and any buttresses, arches, or overgrowth.{suffix}".strip(),
+        },
+        "doors": {
+            "label": "Doors",
+            "prompt": f"{base} Describe door frames, gate material, motifs, and how thresholds should feel inside this room.{suffix}".strip(),
+        },
+        "background": {
+            "label": "Background",
+            "prompt": f"{base} Describe the background and midground architecture, silhouettes, depth, fog, landmarks, and distant atmosphere.{suffix}".strip(),
+        },
+    }
+
+
+def _normalize_component_prompts_response(raw: Any, fallback_description: str, direction: Optional[Dict[str, Any]] = None) -> Dict[str, Dict[str, str]]:
+    fallback = _default_component_prompts(fallback_description, direction)
+    source = raw if isinstance(raw, dict) else {}
+    out: Dict[str, Dict[str, str]] = {}
+    for key, label in COMPONENT_KEYS:
+        item = source.get(key)
+        if isinstance(item, dict):
+            prompt = str(item.get("prompt") or item.get("description") or "").strip()
+            item_label = str(item.get("label") or label).strip() or label
+        else:
+            prompt = str(item or "").strip()
+            item_label = label
+        if not prompt:
+            prompt = fallback[key]["prompt"]
+        out[key] = {
+            "label": item_label,
+            "prompt": prompt,
+        }
+    return out
+
+
+def generate_room_environment_component_prompts(project_id: str, room_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+    project = load_project(project_id)
+    room = _find_room(project, room_id)
+    env = _ensure_room_environment(room)
+    direction = normalize_art_direction(project.get("art_direction"), project.get("art_direction"))
+    description = str(payload.get("description") or env["spec"].get("description") or "").strip()
+    if not description:
+        raise ValueError("Environment description is required.")
+    geometry = _room_geometry(room)
+    existing = _normalize_component_prompts_response(
+        payload.get("components") if isinstance(payload.get("components"), dict) else env["spec"].get("components"),
+        description,
+        direction,
+    )
+    system_prompt = textwrap.dedent(
+        """\
+        You generate room-environment component prompts for a Phaser-based game editor.
+        Respect the locked art direction strictly.
+        Keep the prompts novice-friendly, concrete, and focused on visible room features.
+        Return ONLY valid JSON in this shape:
+        {
+          "components": {
+            "floor": {"label": "Floor", "prompt": "..."},
+            "platforms": {"label": "Platforms", "prompt": "..."},
+            "walls": {"label": "Walls", "prompt": "..."},
+            "doors": {"label": "Doors", "prompt": "..."},
+            "background": {"label": "Background", "prompt": "..."}
+          },
+          "notes": ["...", "..."]
+        }
+        """
+    )
+    user_prompt = json.dumps({
+        "art_direction": direction,
+        "frozen_concepts": direction.get("frozen_concepts") or [],
+        "room_geometry": geometry,
+        "template_context": env["template_context"],
+        "room_description": description,
+        "existing_components": existing,
+        "instruction": str(payload.get("instruction") or "Generate concise prompts for floor, platforms, walls, doors, and background."),
+    }, indent=2)
+    ai_payload = _gemini_json(system_prompt, user_prompt)
+    components = _normalize_component_prompts_response(
+        (ai_payload or {}).get("components"),
+        description,
+        direction,
+    )
+    env["spec"]["description"] = description
+    env["spec"]["components"] = copy.deepcopy(components)
+    project["updated_at"] = now_iso()
+    save_project(project)
+    return {
+        "ok": True,
+        "components": copy.deepcopy(components),
+        "notes": [str(item).strip() for item in ((ai_payload or {}).get("notes") or []) if str(item).strip()][:6],
+        "used_ai": bool(ai_payload),
+        "room_geometry": geometry,
+    }
+
+
 def _default_scene_schema(spec: Dict[str, Any], geometry: Dict[str, Any]) -> Dict[str, Any]:
+    component_text = " ".join(
+        str(((spec.get("components") or {}).get(key) or {}).get("prompt") or "")
+        for key, _label in COMPONENT_KEYS
+    )
     text = " ".join([
         str(spec.get("theme_id") or ""),
         str(spec.get("description") or ""),
         str(spec.get("mood") or ""),
         " ".join(spec.get("materials") or []),
         " ".join(spec.get("tags") or []),
+        component_text,
     ]).lower()
     set_dressing: List[Dict[str, Any]] = []
     background_layers: List[Dict[str, Any]] = []
@@ -923,6 +1055,11 @@ def build_room_environment_spec(project_id: str, room_id: str, payload: Dict[str
     description = str(payload.get("description") or env["spec"].get("description") or "").strip()
     if not description:
         raise ValueError("Environment description is required.")
+    components = _normalize_component_prompts_response(
+        payload.get("components") if isinstance(payload.get("components"), dict) else env["spec"].get("components"),
+        description,
+        direction,
+    )
     geometry = _room_geometry(room)
     system_prompt = textwrap.dedent(
         """\
@@ -930,7 +1067,7 @@ def build_room_environment_spec(project_id: str, room_id: str, payload: Dict[str
         Respect the locked art direction strictly.
         Keep results readable for a platforming game.
         Return ONLY valid JSON in this shape:
-        {"themeId":"cave|ruins|forest|shrine|sewer|void|custom","tags":["a"],"description":"...","mood":"...","lighting":"...","fog":"...","materials":["..."],"landmarks":["..."],"hazards":["..."],"compositionFocus":"...","readabilityNotes":["..."],"sceneSchema":{"backgroundLayers":[{"kind":"architecture|fog_band|roots|void_forms","motif":"...","depth":"far|mid|near","density":"low|medium|high"}],"setDressing":[{"type":"brazier|chains|altar|roots|statue|banner","anchor":"floor|platform|ceiling|wall","zone":"left|center|right|focal","count":1,"priority":"low|medium|high","avoid":["door","main_path"]}],"effects":{"fog_profile":"...","particle_profile":"...","lighting_profile":"..."},"kit":{"wall_family":"weathered_stone|broken_gothic_stone|industrial_ribbed","platform_family":"broken_masonry_ledge|carved_ledge|iron_walkway","door_family":"arch_door|ritual_gate|iron_gate","backdrop_family":"ruined_arch_hall|flooded_arch_hall|industrial_depth","prop_density":"low|medium|high"}}}
+        {"themeId":"cave|ruins|forest|shrine|sewer|void|custom","tags":["a"],"description":"...","mood":"...","lighting":"...","fog":"...","materials":["..."],"landmarks":["..."],"hazards":["..."],"compositionFocus":"...","readabilityNotes":["..."],"components":{"floor":{"label":"Floor","prompt":"..."},"platforms":{"label":"Platforms","prompt":"..."},"walls":{"label":"Walls","prompt":"..."},"doors":{"label":"Doors","prompt":"..."},"background":{"label":"Background","prompt":"..."}},"sceneSchema":{"backgroundLayers":[{"kind":"architecture|fog_band|roots|void_forms","motif":"...","depth":"far|mid|near","density":"low|medium|high"}],"setDressing":[{"type":"brazier|chains|altar|roots|statue|banner","anchor":"floor|platform|ceiling|wall","zone":"left|center|right|focal","count":1,"priority":"low|medium|high","avoid":["door","main_path"]}],"effects":{"fog_profile":"...","particle_profile":"...","lighting_profile":"..."},"kit":{"wall_family":"weathered_stone|broken_gothic_stone|industrial_ribbed","platform_family":"broken_masonry_ledge|carved_ledge|iron_walkway","door_family":"arch_door|ritual_gate|iron_gate","backdrop_family":"ruined_arch_hall|flooded_arch_hall|industrial_depth","prop_density":"low|medium|high"}}}
         """
     )
     user_prompt = json.dumps({
@@ -939,9 +1076,11 @@ def build_room_environment_spec(project_id: str, room_id: str, payload: Dict[str
         "room_geometry": geometry,
         "template_context": env["template_context"],
         "description": description,
+        "components": components,
     }, indent=2)
     ai_payload = _gemini_json(system_prompt, user_prompt)
     spec = _normalize_spec_response(ai_payload or {}, description)
+    spec["components"] = _normalize_component_prompts_response(spec.get("components"), description, direction)
     spec["scene_schema"] = spec["scene_schema"] if spec["scene_schema"] else _default_scene_schema(spec, geometry)
     env["themeId"] = spec["theme_id"]
     env["tags"] = list(spec["tags"])
@@ -1349,13 +1488,31 @@ def _fallback_background_asset(output_path: Path, preview_path: Path) -> None:
     blurred.save(output_path)
 
 
-def _fallback_surface_asset(output_path: Path, preview_path: Path, size: Tuple[int, int]) -> None:
-    source = Image.open(preview_path).convert("RGBA")
-    crop_size = min(source.size)
-    left = max(0, (source.width - crop_size) // 2)
-    top = max(0, (source.height - crop_size) // 2)
-    crop = source.crop((left, top, left + crop_size, top + crop_size)).resize(size)
-    crop.save(output_path)
+def _fallback_tile_asset(output_path: Path, palette: Dict[str, Any], size: Tuple[int, int], mode: str) -> None:
+    base = _hex_to_rgb(str((palette.get("dominant") or ["#2a2522"])[0]), (42, 37, 34))
+    alt = _hex_to_rgb(str((palette.get("dominant") or ["#2a2522", "#4a4038"])[1] if len(palette.get("dominant") or []) > 1 else "#4a4038"), (74, 64, 56))
+    accent = _hex_to_rgb(str((palette.get("accent") or ["#8d7a5f"])[0]), (141, 122, 95))
+    img = Image.new("RGBA", size, base + (255,))
+    draw = ImageDraw.Draw(img)
+    if mode == "wall":
+        block_w = max(18, size[0] // 4)
+        block_h = max(18, size[1] // 4)
+        for y in range(0, size[1], block_h):
+            offset = 0 if (y // block_h) % 2 == 0 else block_w // 3
+            for x in range(-offset, size[0], block_w):
+                draw.rectangle((x, y, x + block_w - 2, y + block_h - 2), outline=accent + (110,), fill=alt + (42,))
+    elif mode == "floor":
+        slab_h = max(24, size[1] // 3)
+        for y in range(0, size[1], slab_h):
+            draw.line((0, y, size[0], y), fill=accent + (120,), width=2)
+        for x in range(0, size[0], max(28, size[0] // 5)):
+            draw.line((x, 0, x + 18, size[1]), fill=accent + (90,), width=1)
+    elif mode == "platform":
+        draw.rectangle((0, 0, size[0], size[1]), fill=alt + (255,))
+        draw.rectangle((0, 0, size[0], max(6, size[1] // 6)), fill=accent + (150,))
+        for x in range(12, size[0] - 12, 48):
+            draw.line((x, size[1] // 2, x + 10, size[1] - 1), fill=accent + (110,), width=2)
+    img.save(output_path)
 
 
 def _fallback_platform_asset(output_path: Path, preview_path: Path) -> None:
@@ -1372,6 +1529,19 @@ def _fallback_door_asset(output_path: Path, preview_path: Path) -> None:
     height = source.height
     crop = source.crop((int(width * 0.32), int(height * 0.14), int(width * 0.68), int(height * 0.86))).resize((192, 288))
     crop.save(output_path)
+
+
+def _fallback_midground_asset(output_path: Path, palette: Dict[str, Any]) -> None:
+    size = (1600, 1200)
+    base = _hex_to_rgb(str((palette.get("dominant") or ["#181614"])[0]), (24, 22, 20))
+    accent = _hex_to_rgb(str((palette.get("accent") or ["#6f624e"])[0]), (111, 98, 78))
+    img = Image.new("RGBA", size, (0, 0, 0, 0))
+    draw = ImageDraw.Draw(img)
+    for i in range(4):
+        x = 160 + (i * 340)
+        draw.rectangle((x, 240, x + 44, 1080), fill=base + (92,))
+        draw.rounded_rectangle((x - 84, 160, x + 128, 316), radius=60, fill=base + (74,), outline=accent + (54,))
+    img.save(output_path)
 
 
 def generate_room_environment_previews(project_id: str, room_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:
@@ -1520,9 +1690,11 @@ def generate_room_environment_asset_pack(project_id: str, room_id: str, payload:
     asset_root = project_dir / "room_environment_assets" / room_id
     asset_root.mkdir(parents=True, exist_ok=True)
     background_path = asset_root / "background.png"
-    surface_path = asset_root / "surface.png"
-    platform_path = asset_root / "platform.png"
+    wall_tile_path = asset_root / "wall_tile.png"
+    floor_tile_path = asset_root / "floor_tile.png"
+    platform_tile_path = asset_root / "platform_tile.png"
     door_path = asset_root / "door.png"
+    midground_arches_path = asset_root / "midground_arches.png"
 
     refs = [preview_path]
     for frozen in (direction.get("frozen_concepts") or [])[:3]:
@@ -1544,6 +1716,13 @@ def generate_room_environment_asset_pack(project_id: str, room_id: str, payload:
         Room description: {spec.get('description') or ''}
         """
     ).strip()
+    components = spec.get("components") if isinstance(spec.get("components"), dict) else {}
+    floor_prompt = str(((components.get("floor") or {}).get("prompt")) or "").strip()
+    platforms_prompt = str(((components.get("platforms") or {}).get("prompt")) or "").strip()
+    walls_prompt = str(((components.get("walls") or {}).get("prompt")) or "").strip()
+    doors_prompt = str(((components.get("doors") or {}).get("prompt")) or "").strip()
+    background_prompt = str(((components.get("background") or {}).get("prompt")) or "").strip()
+    palette = _extract_preview_runtime_palette(preview_path)
 
     results = {}
     results["background"] = _generate_image_from_references(
@@ -1551,6 +1730,7 @@ def generate_room_environment_asset_pack(project_id: str, room_id: str, payload:
         f"""{base_context}
 Create a side-view background matte for this room only.
 Show deep background architecture, atmosphere, and environment painting.
+Use this direction for the background: {background_prompt or 'Distant ruined architecture, atmospheric depth, and room-specific environment silhouettes.'}
 No foreground collision blocks, no UI, no characters, no text.
 """,
         refs,
@@ -1559,36 +1739,53 @@ No foreground collision blocks, no UI, no characters, no text.
     if not results["background"]:
         _fallback_background_asset(background_path, preview_path)
 
-    results["surface"] = _generate_image_from_references(
-        surface_path,
+    results["wall_tile"] = _generate_image_from_references(
+        wall_tile_path,
         f"""{base_context}
-Create a seamless tileable wall/floor material texture sheet for this room.
-It should read clearly when repeated across walls and floors in a 2D platformer.
-No text, no characters, no scene composition, just material texture.
+Create a seamless wall tile texture for a side-view metroidvania room.
+Use this direction for the wall tile: {walls_prompt or 'Broken gothic wet stone with carved vertical structure, fractured masonry, and subtle age damage.'}
+The result must be modular, tileable, and production-ready for repeated room wall geometry.
+No text, no characters, no full scene composition, no perspective room painting.
 """,
         refs,
         size_hint="seamless square texture 256x256",
     )
-    if not results["surface"]:
-        _fallback_surface_asset(surface_path, preview_path, (256, 256))
+    if not results["wall_tile"]:
+        _fallback_tile_asset(wall_tile_path, palette, (256, 256), "wall")
 
-    results["platform"] = _generate_image_from_references(
-        platform_path,
+    results["floor_tile"] = _generate_image_from_references(
+        floor_tile_path,
         f"""{base_context}
-Create a tileable platform ledge texture for side-view gameplay.
-Clear top edge, readable collision silhouette, production-ready material treatment.
-No text, no characters.
+Create a seamless floor tile texture for a side-view metroidvania room.
+Use this direction for the floor tile: {floor_prompt or 'Large ritual stone slabs, cracked and damp, with subtle carved structure and readable top-down surface rhythm.'}
+The result must be modular, tileable, and production-ready for repeated floor or ceiling bands.
+No text, no characters, no full scene composition.
+""",
+        refs,
+        size_hint="seamless square texture 256x256",
+    )
+    if not results["floor_tile"]:
+        _fallback_tile_asset(floor_tile_path, palette, (256, 256), "floor")
+
+    results["platform_tile"] = _generate_image_from_references(
+        platform_tile_path,
+        f"""{base_context}
+Create a modular platform ledge texture for a side-view metroidvania room.
+Use this direction for the platform tile: {platforms_prompt or 'Fractured shrine ledges with chipped stone lips, readable collision tops, and subtle support detail.'}
+This asset should work as a repeated platform strip with a clear top edge and readable front face.
+No text, no characters, no full scene composition.
 """,
         refs,
         size_hint="platform strip texture 256x96",
     )
-    if not results["platform"]:
-        _fallback_platform_asset(platform_path, preview_path)
+    if not results["platform_tile"]:
+        _fallback_tile_asset(platform_tile_path, palette, (256, 96), "platform")
 
     results["door"] = _generate_image_from_references(
         door_path,
         f"""{base_context}
 Create a doorway or gate asset for this room style.
+Use this direction for the doorway: {doors_prompt or 'Heavy aged iron shrine gate set inside carved wet stone masonry.'}
 Readable in side view, centered, production-ready environment prop.
 No characters, no text.
 """,
@@ -1597,6 +1794,20 @@ No characters, no text.
     )
     if not results["door"]:
         _fallback_door_asset(door_path, preview_path)
+
+    results["midground_arches"] = _generate_image_from_references(
+        midground_arches_path,
+        f"""{base_context}
+Create a transparent-background midground environment strip for a 2D metroidvania room.
+Use this direction for the midground layer: {background_prompt or 'Broken gothic arches, columns, hanging silhouettes, and deep architectural rhythm.'}
+The result should contain reusable arch or column silhouettes that can sit in front of the far background but behind gameplay.
+Transparent background, no text, no characters, no UI.
+""",
+        refs,
+        size_hint="transparent midground strip 1600x800",
+    )
+    if not results["midground_arches"]:
+        _fallback_midground_asset(midground_arches_path, palette)
 
     used_ai = any(results.values())
     env["runtime"]["asset_pack"] = {
@@ -1609,17 +1820,25 @@ No characters, no text.
                 "url": f"/tools/2d-sprite-and-animation/projects-data/{project_id}/room_environment_assets/{room_id}/background.png",
                 "kind": "background",
             },
-            "surface": {
-                "url": f"/tools/2d-sprite-and-animation/projects-data/{project_id}/room_environment_assets/{room_id}/surface.png",
-                "kind": "surface",
+            "wall_tile": {
+                "url": f"/tools/2d-sprite-and-animation/projects-data/{project_id}/room_environment_assets/{room_id}/wall_tile.png",
+                "kind": "wall_tile",
             },
-            "platform": {
-                "url": f"/tools/2d-sprite-and-animation/projects-data/{project_id}/room_environment_assets/{room_id}/platform.png",
-                "kind": "platform",
+            "floor_tile": {
+                "url": f"/tools/2d-sprite-and-animation/projects-data/{project_id}/room_environment_assets/{room_id}/floor_tile.png",
+                "kind": "floor_tile",
+            },
+            "platform_tile": {
+                "url": f"/tools/2d-sprite-and-animation/projects-data/{project_id}/room_environment_assets/{room_id}/platform_tile.png",
+                "kind": "platform_tile",
             },
             "door": {
                 "url": f"/tools/2d-sprite-and-animation/projects-data/{project_id}/room_environment_assets/{room_id}/door.png",
                 "kind": "door",
+            },
+            "midground_arches": {
+                "url": f"/tools/2d-sprite-and-animation/projects-data/{project_id}/room_environment_assets/{room_id}/midground_arches.png",
+                "kind": "midground_arches",
             },
         },
     }

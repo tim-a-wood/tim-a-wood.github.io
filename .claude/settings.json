@@ -87,7 +87,9 @@
       "Bash(wc -l tests/*.test.js tests/*.test.py scripts/workbench_export.py)",
       "Bash(python3 scripts/send_weekly_digest.py --file artifacts/qa-report-sprite-workbench-2026-03-28.md)",
       "Bash(grep -rn \"append_history_event\" /Users/timwood/Desktop/projects/PWA/MV/scripts/*.py)",
-      "Bash(python3 scripts/send_weekly_digest.py --file artifacts/analytics-opportunities-2026-03-28.md)"
+      "Bash(python3 scripts/send_weekly_digest.py --file artifacts/analytics-opportunities-2026-03-28.md)",
+      "Bash(chmod +x /Users/timwood/Desktop/projects/PWA/MV/scripts/daily_product_report.sh)",
+      "Bash(/Users/timwood/Desktop/projects/PWA/MV/scripts/daily_product_report.sh)"
     ],
     "additionalDirectories": [
       "/Users/timwood/.claude/skills"

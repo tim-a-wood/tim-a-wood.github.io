@@ -1703,6 +1703,11 @@ def build_project_room_environment_spec(project_id: str, room_id: str, payload: 
     return room_environment_system.build_room_environment_spec(project_id, room_id, payload)
 
 
+def generate_project_room_environment_component_prompts(project_id: str, room_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+    _sync_room_environment_system_config()
+    return room_environment_system.generate_room_environment_component_prompts(project_id, room_id, payload)
+
+
 def generate_project_room_environment_previews(project_id: str, room_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:
     _sync_room_environment_system_config()
     return room_environment_system.generate_room_environment_previews(project_id, room_id, payload)
@@ -7934,6 +7939,11 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
             if room_spec_match:
                 project_id, room_id = room_spec_match.groups()
                 return self._send_json(build_project_room_environment_spec(project_id, room_id, read_body(self)))
+
+            room_component_prompts_match = re.fullmatch(r"/api/projects/([^/]+)/rooms/([^/]+)/environment/component-prompts", path)
+            if room_component_prompts_match:
+                project_id, room_id = room_component_prompts_match.groups()
+                return self._send_json(generate_project_room_environment_component_prompts(project_id, room_id, read_body(self)))
 
             room_preview_match = re.fullmatch(r"/api/projects/([^/]+)/rooms/([^/]+)/environment/previews", path)
             if room_preview_match:
