@@ -1,5 +1,13 @@
 # Design agent handoff — Agent OS Home hub
 
+## Status (2026-03-29)
+
+Polish pass **implemented in repo** (`os-dashboard.html`): staggered entrance (`.os-dash-enter`), `prefers-reduced-motion` fallbacks, token-based hub glyph, chart `role="img"` + `aria-labelledby` / `aria-describedby`, skeleton + error layers (`setAgentOsChartCanvasState('loading'|'error'|'idle')` on `window`), donut reflow when canvas width &lt; 440px, taller donut card under 900px breakpoint.
+
+**Remaining for Design:** STYLE_GUIDE.md cross-links if new patterns become canonical elsewhere; optional illustration assets; audit with real ledger data when available.
+
+---
+
 ## Paste to Design agent (invocation)
 
 ```
