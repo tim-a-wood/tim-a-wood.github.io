@@ -825,37 +825,10 @@ body::before {
   gap: var(--space-2);
 }
 
-/* Analytics: dense + side-by-side groups so the board fits typical laptop viewports */
-.dashboard-view--analytics-fit {
+.db-qa-signpost--stack {
+  display: flex;
+  flex-direction: column;
   gap: var(--space-2);
-}
-.db-analytics-board {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--space-4);
-  align-items: start;
-}
-@media (max-width: 900px) {
-  .db-analytics-board {
-    grid-template-columns: 1fr;
-  }
-}
-.db-analytics-board .db-section {
-  gap: var(--space-2);
-}
-.dashboard-view--analytics-fit .db-grid {
-  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-  gap: var(--space-2);
-}
-.dashboard-view--analytics-fit .db-card {
-  min-height: 56px;
-  padding: var(--space-2) var(--space-3);
-}
-.dashboard-view--analytics-fit .db-card-value {
-  font-size: var(--font-size-md);
-}
-.dashboard-view--analytics-fit .db-view-header {
-  padding-bottom: var(--space-2);
 }
 
 .db-card {
@@ -2445,101 +2418,141 @@ h3.os-chart-card-title {
       </div>
 
       <!-- ── ANALYTICS DASHBOARD ────────────────────────────── -->
-      <div class="dashboard-view dashboard-view--analytics-fit" data-dashboard-view="analytics">
+      <div class="dashboard-view" data-dashboard-view="analytics">
         <div class="db-view-header">
           <span class="db-view-icon">📊</span>
-          <div><div class="db-view-title" style="color:#4ade80">ANALYTICS</div><div class="db-view-subtitle">Internal ledger KPIs, tracking plan &amp; post-launch funnel</div></div>
+          <div><div class="db-view-title" style="color:#4ade80">ANALYTICS</div><div class="db-view-subtitle">Priorities, risks &amp; internal ledger signal</div></div>
         </div>
-        <div class="db-analytics-board">
-          <div class="db-section">
-            <div class="db-section-label">Priorities</div>
-            <div class="db-priority-list" id="db-analytics-priorities">
-              <div class="db-priority-row">
-                <span class="db-priority-rank">01</span>
-                <span class="db-priority-title">Loading…</span>
-                <span class="db-status-pill db-status-pill--paused">PAUSED</span>
-                <span class="db-priority-risk db-priority-risk--low">—</span>
-                <span class="db-priority-note"></span>
-              </div>
+        <!-- ── Priorities ── -->
+        <div class="db-section">
+          <div class="db-section-label">Priorities</div>
+          <div class="db-priority-list" id="db-analytics-priorities">
+            <div class="db-priority-row">
+              <span class="db-priority-rank">01</span>
+              <span class="db-priority-title">Loading…</span>
+              <span class="db-status-pill db-status-pill--paused">PAUSED</span>
+              <span class="db-priority-risk db-priority-risk--low">—</span>
+              <span class="db-priority-note"></span>
             </div>
           </div>
-          <div class="db-section">
-            <div class="db-section-label">Risk Register</div>
-            <div class="db-risk-grid">
-              <div class="db-risk-panel">
-                <div class="db-risk-panel-label">P0 ANALYTICS BLOCKERS</div>
-                <div id="db-analytics-risks-p0">
-                  <div class="db-risk-clear">
-                    <span style="color:var(--good)">✓ No active blockers</span>
-                  </div>
-                </div>
-              </div>
-              <div class="db-risk-panel">
-                <div class="db-risk-panel-label">GOVERNANCE / FOUNDER</div>
-                <div id="db-analytics-founder-decisions">
-                  <div style="background:rgba(93,120,112,0.08);color:var(--muted);border-radius:var(--radius-md);padding:12px;font-size:var(--font-size-sm);font-weight:500;">✓ No pending decisions</div>
+        </div>
+        <!-- ── Risk Register ── -->
+        <div class="db-section">
+          <div class="db-section-label">Risk Register</div>
+          <div class="db-risk-grid">
+            <div class="db-risk-panel">
+              <div class="db-risk-panel-label">P0 BLOCKERS</div>
+              <div id="db-analytics-risks-p0">
+                <div class="db-risk-clear">
+                  <span style="color:var(--good)">✓ No active blockers</span>
                 </div>
               </div>
             </div>
-          </div>
-          <div class="db-section">
-            <div class="db-section-label">Internal · usage ledger (live)</div>
-            <p style="color:var(--muted);font-size:var(--font-size-sm);margin:0 0 var(--space-2) 0;max-width:820px">First-party counts from <span style="font-family:var(--font-mono)">projects-data/_usage_ledger.json</span> — see <span style="font-family:var(--font-mono)">docs/analytics-dashboard-kpis.md</span>. Denominators shown on cards.</p>
-            <div class="db-grid">
-              <div class="db-card db-card--live">
-                <div class="db-card-header"><div class="db-card-label">Ledger rows (all-time)</div><span class="db-tier db-tier--live">LIVE</span></div>
-                <div class="db-card-value" id="db-analytics-ledger-total">—</div>
-                <div class="db-card-sub">n = rows in file</div>
-              </div>
-              <div class="db-card db-card--live">
-                <div class="db-card-header"><div class="db-card-label">Calls · 8-wk window</div><span class="db-tier db-tier--live">LIVE</span></div>
-                <div class="db-card-value" id="db-analytics-window-calls">—</div>
-                <div class="db-card-sub">Rolling ISO weeks (UTC)</div>
-              </div>
-              <div class="db-card db-card--live">
-                <div class="db-card-header"><div class="db-card-label">Today (UTC)</div><span class="db-tier db-tier--live">LIVE</span></div>
-                <div class="db-card-value" id="db-analytics-today-calls">—</div>
-                <div class="db-card-sub">Ledger rows with today’s date prefix</div>
-              </div>
-              <div class="db-card db-card--live">
-                <div class="db-card-header"><div class="db-card-label">Est. cost (ledger)</div><span class="db-tier db-tier--live">LIVE</span></div>
-                <div class="db-card-value" id="db-analytics-ledger-cost">—</div>
-                <div class="db-card-sub">Sum of usage_cost_usd · Finance owns ground truth</div>
-              </div>
-            </div>
-          </div>
-          <div class="db-section">
-            <div class="db-section-label">Time-series charts</div>
-            <p style="color:var(--muted);font-size:var(--font-size-sm);margin:0;max-width:820px">Weekly volume, provider mix, and API outcome split are on <strong>Home</strong> (and mirrored on <strong>Engineering</strong>). Use the links below or the sidebar to open Home.</p>
-          </div>
-          <div class="db-section">
-            <div class="db-section-label">Tracking plan &amp; post-launch</div>
-            <div class="db-grid">
-              <div class="db-card db-card--live">
-                <div class="db-card-header"><div class="db-card-label">Instrumentation</div><span class="db-tier db-tier--live">LIVE</span></div>
-                <div class="db-card-value db-card-value--good">Ledger + dashboard</div>
-                <div class="db-card-sub">Workbench API calls · v1 KPIs in docs</div>
-              </div>
-              <div class="db-card db-card--manual">
-                <div class="db-card-header"><div class="db-card-label">Tracking plan review</div><span class="db-tier db-tier--manual">MANUAL</span></div>
-                <div class="db-card-value db-card-value--muted">—</div>
-                <button type="button" class="db-run-btn">Run analytics · review →</button>
-              </div>
-              <div class="db-card db-card--instrumented">
-                <div class="db-card-header"><div class="db-card-label">Activation / retention</div><span class="db-tier db-tier--post">POST-LAUNCH</span></div>
-                <div class="db-card-value db-card-value--muted">—</div>
-                <div class="db-card-sub">First export · D7 — needs product telemetry</div>
-              </div>
-              <div class="db-card db-card--instrumented">
-                <div class="db-card-header"><div class="db-card-label">Copilot accept rate</div><span class="db-tier db-tier--post">POST-LAUNCH</span></div>
-                <div class="db-card-value db-card-value--muted">—</div>
-                <div class="db-card-sub">Not inferrable from ledger alone</div>
+            <div class="db-risk-panel">
+              <div class="db-risk-panel-label">FOUNDER DECISIONS</div>
+              <div id="db-analytics-founder-decisions">
+                <div style="background:rgba(93,120,112,0.08);color:var(--muted);border-radius:var(--radius-md);padding:12px;font-size:var(--font-size-sm);font-weight:500;">✓ No pending decisions</div>
               </div>
             </div>
           </div>
         </div>
-        <div class="db-qa-signpost" style="display:flex;flex-direction:column;gap:var(--space-2)">
-          <button type="button" class="db-qa-link" onclick="selectDashboard('home')">→ Home · AI usage charts</button>
+        <!-- ── Usage ledger (live) ── -->
+        <div class="db-section">
+          <div class="db-section-label">Usage ledger (live)</div>
+          <p style="color:var(--muted);font-size:var(--font-size-sm);margin:0 0 var(--space-2) 0;max-width:820px">First-party counts from <span style="font-family:var(--font-mono)">projects-data/_usage_ledger.json</span> — see <span style="font-family:var(--font-mono)">docs/analytics-dashboard-kpis.md</span>.</p>
+          <div class="db-grid">
+            <div class="db-card db-card--live">
+              <div class="db-card-header"><div class="db-card-label">Ledger rows (all-time)</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-value" id="db-analytics-ledger-total">—</div>
+              <div class="db-card-sub">n = rows in file</div>
+            </div>
+            <div class="db-card db-card--live">
+              <div class="db-card-header"><div class="db-card-label">Calls · 8-wk window</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-value" id="db-analytics-window-calls">—</div>
+              <div class="db-card-sub">Rolling ISO weeks (UTC)</div>
+            </div>
+            <div class="db-card db-card--live">
+              <div class="db-card-header"><div class="db-card-label">Today (UTC)</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-value" id="db-analytics-today-calls">—</div>
+              <div class="db-card-sub">Ledger rows with today’s date prefix</div>
+            </div>
+            <div class="db-card db-card--live">
+              <div class="db-card-header"><div class="db-card-label">Est. cost (ledger)</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-value" id="db-analytics-ledger-cost">—</div>
+              <div class="db-card-sub">Sum of usage_cost_usd · Finance owns ground truth</div>
+            </div>
+          </div>
+        </div>
+        <!-- ── Tracking plan &amp; post-launch ── -->
+        <div class="db-section">
+          <div class="db-section-label">Tracking plan &amp; post-launch</div>
+          <div class="db-grid">
+            <div class="db-card db-card--live">
+              <div class="db-card-header"><div class="db-card-label">Instrumentation</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-value db-card-value--good">Ledger + dashboard</div>
+              <div class="db-card-sub">Workbench API calls · v1 KPIs in docs</div>
+            </div>
+            <div class="db-card db-card--manual">
+              <div class="db-card-header"><div class="db-card-label">Tracking plan review</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-value db-card-value--muted">—</div>
+              <button type="button" class="db-run-btn">Run analytics · review →</button>
+            </div>
+            <div class="db-card db-card--instrumented">
+              <div class="db-card-header"><div class="db-card-label">Activation / retention</div><span class="db-tier db-tier--post">POST-LAUNCH</span></div>
+              <div class="db-card-value db-card-value--muted">—</div>
+              <div class="db-card-sub">First export · D7 — needs product telemetry</div>
+            </div>
+            <div class="db-card db-card--instrumented">
+              <div class="db-card-header"><div class="db-card-label">Copilot accept rate</div><span class="db-tier db-tier--post">POST-LAUNCH</span></div>
+              <div class="db-card-value db-card-value--muted">—</div>
+              <div class="db-card-sub">Not inferrable from ledger alone</div>
+            </div>
+          </div>
+        </div>
+        <div class="db-section">
+          <div class="db-section-label">AI pipeline signal · same viz language as Home</div>
+          <p style="color:var(--muted);font-size:var(--font-size-sm);margin:0 0 var(--space-2) 0;max-width:820px">Same data as Home and Engineering — from <span style="font-family:var(--font-mono)">projects-data/_usage_ledger.json</span> via GET /api/dashboard-data.</p>
+          <div class="os-chart-grid" id="analytics-os-chart-grid">
+            <div class="os-chart-card os-chart-card--wide">
+              <div class="os-chart-card-head">
+                <h3 class="os-chart-card-title" id="analytics-chart-area-title">Paid API calls · weekly (analytics)</h3>
+                <span class="os-chart-card-tier">AREA</span>
+              </div>
+              <div class="os-chart-canvas-wrap os-chart-canvas-wrap--tall" data-os-canvas-state="idle" role="img" aria-labelledby="analytics-chart-area-title" aria-describedby="analytics-chart-area-desc">
+                <div class="os-chart-skeleton" aria-hidden="true"></div>
+                <div class="os-chart-error" role="alert" aria-live="polite"></div>
+                <canvas data-os-chart="area-requests" width="800" height="300" aria-hidden="true"></canvas>
+              </div>
+              <p class="os-chart-foot" id="analytics-chart-area-desc">Weekly volume from the usage ledger (UTC ISO weeks).</p>
+            </div>
+            <div class="os-chart-card">
+              <div class="os-chart-card-head">
+                <h3 class="os-chart-card-title" id="analytics-chart-bars-title">Provider mix</h3>
+                <span class="os-chart-card-tier">SPLIT</span>
+              </div>
+              <div class="os-chart-canvas-wrap" data-os-canvas-state="idle" role="img" aria-labelledby="analytics-chart-bars-title" aria-describedby="analytics-chart-bars-desc">
+                <div class="os-chart-skeleton" aria-hidden="true"></div>
+                <div class="os-chart-error" role="alert" aria-live="polite"></div>
+                <canvas data-os-chart="bars-purpose" width="480" height="260" aria-hidden="true"></canvas>
+              </div>
+              <p class="os-chart-foot" id="analytics-chart-bars-desc">Split Copilot / eval / dev from ledger purpose tags.</p>
+            </div>
+            <div class="os-chart-card os-chart-card--donut">
+              <div class="os-chart-card-head">
+                <h3 class="os-chart-card-title" id="analytics-chart-donut-title">Ledger outcomes (API)</h3>
+                <span class="os-chart-card-tier">DONUT</span>
+              </div>
+              <div class="os-chart-canvas-wrap" data-os-canvas-state="idle" role="img" aria-labelledby="analytics-chart-donut-title" aria-describedby="analytics-chart-donut-desc">
+                <div class="os-chart-skeleton" aria-hidden="true"></div>
+                <div class="os-chart-error" role="alert" aria-live="polite"></div>
+                <canvas data-os-chart="donut-outcomes" width="480" height="260" aria-hidden="true"></canvas>
+              </div>
+              <p class="os-chart-foot" id="analytics-chart-donut-desc">API outcome mix from ledger rows — product UX outcomes need separate events.</p>
+            </div>
+          </div>
+        </div>
+        <div class="db-qa-signpost db-qa-signpost--stack">
+          <button type="button" class="db-qa-link" onclick="selectDashboard('home')">→ Home · AI usage overview</button>
           <button type="button" class="db-qa-link" onclick="selectDashboard('engineering')">→ Engineering · pipeline &amp; keys</button>
           <button type="button" class="db-qa-link" onclick="selectDashboard('design')">→ Design · governance &amp; Copilot UX gate</button>
         </div>
@@ -4177,11 +4190,12 @@ window.setAgentOsChartCanvasState = function (state, message) {
   if (s === 'idle') {
     paintOsChartsForView('home');
     paintOsChartsForView('engineering');
+    paintOsChartsForView('analytics');
   }
 };
 
 function paintOsChartsForView(dashId) {
-  if (dashId !== 'home' && dashId !== 'engineering') return;
+  if (dashId !== 'home' && dashId !== 'engineering' && dashId !== 'analytics') return;
   if ((window.__osChartCanvasState || 'idle') !== 'idle') return;
   const view = document.querySelector('[data-dashboard-view="' + dashId + '"]');
   if (!view) return;
@@ -4213,7 +4227,7 @@ let osChartResizeTimer;
 window.addEventListener('resize', () => {
   clearTimeout(osChartResizeTimer);
   osChartResizeTimer = setTimeout(() => {
-    if (selectedDashboard === 'home' || selectedDashboard === 'engineering') {
+    if (selectedDashboard === 'home' || selectedDashboard === 'engineering' || selectedDashboard === 'analytics') {
       paintOsChartsForView(selectedDashboard);
     }
   }, 120);
@@ -4284,7 +4298,7 @@ async function loadDashboardData(dashId) {
       void loadAnalyticsStatus();
     }
     updateHomeChartLiveStatus(d, dashboardReachable);
-    if (dashId === 'home' || dashId === 'engineering') {
+    if (dashId === 'home' || dashId === 'engineering' || dashId === 'analytics') {
       paintOsChartsForView(dashId);
     }
 
@@ -4364,7 +4378,7 @@ async function pulseGlobalWorkbenchOnly() {
       void loadAnalyticsStatus();
     }
     updateHomeChartLiveStatus(d, dashboardReachable);
-    if (selectedDashboard === 'home' || selectedDashboard === 'engineering') {
+    if (selectedDashboard === 'home' || selectedDashboard === 'engineering' || selectedDashboard === 'analytics') {
       paintOsChartsForView(selectedDashboard);
     }
   } catch {
@@ -4406,12 +4420,12 @@ document.getElementById('toggleSidePanel').addEventListener('click', function() 
   function onResize() {
     clearTimeout(resizeTimer);
     resizeTimer = setTimeout(() => {
-      if (selectedDashboard === 'home' || selectedDashboard === 'engineering') {
+      if (selectedDashboard === 'home' || selectedDashboard === 'engineering' || selectedDashboard === 'analytics') {
         paintOsChartsForView(selectedDashboard);
       }
     }, 48);
   }
-  ['home-os-chart-grid', 'eng-os-chart-grid'].forEach(function (gridId) {
+  ['home-os-chart-grid', 'eng-os-chart-grid', 'analytics-os-chart-grid'].forEach(function (gridId) {
     const grid = document.getElementById(gridId);
     if (!grid) return;
     const ro = new ResizeObserver(onResize);
