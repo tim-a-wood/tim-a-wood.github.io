@@ -1352,7 +1352,15 @@ body::before {
   gap: var(--space-3);
 }
 @media (max-width: 900px) {
-  .os-chart-grid { grid-template-columns: 1fr; }
+  .os-chart-grid:not(.os-chart-grid--home) { grid-template-columns: 1fr; }
+}
+.os-chart-grid.os-chart-grid--home {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-2);
+  align-items: stretch;
+}
+@media (max-width: 1024px) {
+  .os-chart-grid.os-chart-grid--home { grid-template-columns: 1fr; }
 }
 
 .os-chart-card {
@@ -1406,6 +1414,67 @@ body::before {
   min-height: 180px;
 }
 .os-chart-canvas-wrap--tall { min-height: 220px; }
+/* Home hub: short chart row (fits viewport without scrolling on typical laptops) */
+.os-chart-canvas-wrap--compact {
+  flex: 0 0 auto;
+  min-height: 0;
+}
+.os-chart-canvas-wrap--compact.os-chart-canvas-wrap--tall { min-height: 88px; }
+.os-chart-card--donut .os-chart-canvas-wrap--compact { min-height: 104px; }
+.dashboard-view[data-dashboard-view="home"] {
+  gap: var(--space-2);
+}
+.dashboard-view[data-dashboard-view="home"] .db-view-header {
+  padding-bottom: var(--space-2);
+}
+.dashboard-view[data-dashboard-view="home"] .os-home-hero {
+  padding: var(--space-3);
+}
+.dashboard-view[data-dashboard-view="home"] .os-home-hero-inner {
+  gap: var(--space-3);
+  align-items: center;
+}
+.dashboard-view[data-dashboard-view="home"] .os-home-hero-title {
+  font-size: var(--font-size-lg);
+  letter-spacing: 0.06em;
+}
+.dashboard-view[data-dashboard-view="home"] .os-home-kpi {
+  padding: var(--space-2);
+  min-width: 120px;
+}
+.dashboard-view[data-dashboard-view="home"] .os-home-kpi-sub {
+  display: none;
+}
+.dashboard-view[data-dashboard-view="home"] .os-home-kpi canvas {
+  max-width: 120px;
+  height: 28px;
+  margin-top: var(--space-1);
+}
+.dashboard-view[data-dashboard-view="home"] .os-chart-card {
+  padding: var(--space-2);
+  gap: var(--space-1);
+}
+.dashboard-view[data-dashboard-view="home"] .os-chart-card-tier {
+  padding: 2px 8px;
+}
+.dashboard-view[data-dashboard-view="home"] .os-home-actions {
+  padding-top: 0;
+  gap: var(--space-2);
+}
+.dashboard-view[data-dashboard-view="home"] .db-section:has(#home-os-chart-grid) {
+  gap: var(--space-2);
+}
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
 .os-chart-canvas-wrap canvas {
   display: block;
   width: 100%;
@@ -1798,43 +1867,43 @@ h3.os-chart-card-title {
 
         <div class="db-section">
           <div class="db-section-label">AI usage &amp; quality signal</div>
-          <p style="color:var(--muted);font-size:var(--font-size-sm);margin:0;max-width:820px;line-height:1.45">Charts use design-system colors only. Data are <strong style="color:var(--text);font-weight:520">placeholders</strong> until the internal ledger and Copilot tracking plan feed this view — see Analytics charter.</p>
-          <div class="os-chart-grid" id="home-os-chart-grid">
-            <div class="os-chart-card os-chart-card--wide">
+          <p class="visually-hidden" id="home-chart-section-intro">Placeholder data until the internal ledger and Copilot tracking plan ship. Chart footnotes describe each graphic.</p>
+          <div class="os-chart-grid os-chart-grid--home" id="home-os-chart-grid" aria-describedby="home-chart-section-intro">
+            <div class="os-chart-card">
               <div class="os-chart-card-head">
                 <h3 class="os-chart-card-title" id="home-chart-area-title">Estimated AI API activity · weekly</h3>
                 <span class="os-chart-card-tier">AREA</span>
               </div>
-              <div class="os-chart-canvas-wrap os-chart-canvas-wrap--tall" data-os-canvas-state="idle" role="img" aria-labelledby="home-chart-area-title" aria-describedby="home-chart-area-desc">
+              <div class="os-chart-canvas-wrap os-chart-canvas-wrap--compact os-chart-canvas-wrap--tall" data-os-canvas-state="idle" role="img" aria-labelledby="home-chart-area-title" aria-describedby="home-chart-area-desc">
                 <div class="os-chart-skeleton" aria-hidden="true"></div>
                 <div class="os-chart-error" role="alert" aria-live="polite"></div>
                 <canvas data-os-chart="area-requests" width="800" height="320" aria-hidden="true"></canvas>
               </div>
-              <p class="os-chart-foot" id="home-chart-area-desc">Denominator: weeks 1–8 of rolling window · Y-axis normalized until currency coupling lands · Finance dashboard owns ground-truth spend.</p>
+              <p class="os-chart-foot visually-hidden" id="home-chart-area-desc">Denominator: weeks 1–8 of rolling window · Y-axis normalized until currency coupling lands · Finance dashboard owns ground-truth spend.</p>
             </div>
             <div class="os-chart-card">
               <div class="os-chart-card-head">
                 <h3 class="os-chart-card-title" id="home-chart-bars-title">Mix by purpose</h3>
                 <span class="os-chart-card-tier">SPLIT</span>
               </div>
-              <div class="os-chart-canvas-wrap" data-os-canvas-state="idle" role="img" aria-labelledby="home-chart-bars-title" aria-describedby="home-chart-bars-desc">
+              <div class="os-chart-canvas-wrap os-chart-canvas-wrap--compact" data-os-canvas-state="idle" role="img" aria-labelledby="home-chart-bars-title" aria-describedby="home-chart-bars-desc">
                 <div class="os-chart-skeleton" aria-hidden="true"></div>
                 <div class="os-chart-error" role="alert" aria-live="polite"></div>
                 <canvas data-os-chart="bars-purpose" width="480" height="280" aria-hidden="true"></canvas>
               </div>
-              <p class="os-chart-foot" id="home-chart-bars-desc">Copilot vs eval harness vs dev agents — tag exports from your ops ledger.</p>
+              <p class="os-chart-foot visually-hidden" id="home-chart-bars-desc">Copilot vs eval harness vs dev agents — tag exports from your ops ledger.</p>
             </div>
             <div class="os-chart-card os-chart-card--donut">
               <div class="os-chart-card-head">
                 <h3 class="os-chart-card-title" id="home-chart-donut-title">Copilot outcomes (proxy)</h3>
                 <span class="os-chart-card-tier">DONUT</span>
               </div>
-              <div class="os-chart-canvas-wrap" data-os-canvas-state="idle" role="img" aria-labelledby="home-chart-donut-title" aria-describedby="home-chart-donut-desc">
+              <div class="os-chart-canvas-wrap os-chart-canvas-wrap--compact" data-os-canvas-state="idle" role="img" aria-labelledby="home-chart-donut-title" aria-describedby="home-chart-donut-desc">
                 <div class="os-chart-skeleton" aria-hidden="true"></div>
                 <div class="os-chart-error" role="alert" aria-live="polite"></div>
                 <canvas data-os-chart="donut-outcomes" width="480" height="280" aria-hidden="true"></canvas>
               </div>
-              <p class="os-chart-foot" id="home-chart-donut-desc">Accept · revise · discard without revision — needs event instrumentation + explicit <em>n</em> on each slice.</p>
+              <p class="os-chart-foot visually-hidden" id="home-chart-donut-desc">Accept · revise · discard without revision — needs event instrumentation + explicit <em>n</em> on each slice.</p>
             </div>
           </div>
         </div>
@@ -3638,9 +3707,18 @@ function prepCanvasInWrap(canvas) {
   const wrap = canvas.parentElement;
   if (!wrap) return null;
   const rect = wrap.getBoundingClientRect();
-  const cssW = Math.max(200, Math.floor(rect.width));
+  const cssW = Math.max(160, Math.floor(rect.width));
+  const compact = wrap.classList.contains('os-chart-canvas-wrap--compact');
   const tall = wrap.classList.contains('os-chart-canvas-wrap--tall');
-  const cssH = tall ? 220 : 200;
+  const isDonut = canvas.getAttribute('data-os-chart') === 'donut-outcomes';
+  let cssH;
+  if (compact) {
+    if (isDonut) cssH = 132;
+    else if (tall) cssH = 108;
+    else cssH = 96;
+  } else {
+    cssH = tall ? 220 : 200;
+  }
   return prepCanvas(canvas, cssW, cssH);
 }
 
@@ -3649,7 +3727,8 @@ function paintAreaRequests(canvas) {
   if (!prep) return;
   const { ctx, cssW: W, cssH: H } = prep;
   const t = osChartTheme();
-  const pad = { t: 20, r: 12, b: 28, l: 40 };
+  const short = H < 140;
+  const pad = short ? { t: 8, r: 8, b: 16, l: 28 } : { t: 20, r: 12, b: 28, l: 40 };
   const data = OS_CHART_PLACEHOLDER.areaRequests;
   const labels = OS_CHART_PLACEHOLDER.areaLabels;
   const innerW = W - pad.l - pad.r;
@@ -3713,7 +3792,9 @@ function paintBarsPurpose(canvas) {
   const { ctx, cssW: W, cssH: H } = prep;
   const t = osChartTheme();
   const rows = OS_CHART_PLACEHOLDER.purposeBars;
-  const pad = { t: 16, r: 16, b: 16, l: 92 };
+  const short = H < 120;
+  const pad = short ? { t: 6, r: 8, b: 8, l: 72 } : { t: 16, r: 16, b: 16, l: 92 };
+  const barH = short ? 12 : 16;
   const innerW = W - pad.l - pad.r;
   const innerH = H - pad.t - pad.b;
   const rowH = innerH / Math.max(1, rows.length);
@@ -3721,22 +3802,22 @@ function paintBarsPurpose(canvas) {
   ctx.clearRect(0, 0, W, H);
   const monoFamily = getComputedStyle(document.documentElement).getPropertyValue('--font-mono') || '"DM Mono",monospace';
   rows.forEach((row, i) => {
-    const y0 = pad.t + i * rowH + 6;
+    const y0 = pad.t + i * rowH + (short ? 2 : 6);
     const barW = (row.value / maxV) * innerW * 0.98;
     ctx.fillStyle = t.muted;
     ctx.font = '500 11px ' + (getComputedStyle(document.documentElement).getPropertyValue('--font-sans') || 'sans-serif');
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
-    ctx.fillText(row.label, 8, y0 + 14);
+    ctx.fillText(row.label, 8, y0 + (short ? 10 : 14));
     ctx.fillStyle = 'rgba(93,120,112,0.12)';
-    const barY = y0 + 4;
-    ctx.fillRect(pad.l, barY, innerW, 16);
+    const barY = y0 + (short ? 2 : 4);
+    ctx.fillRect(pad.l, barY, innerW, barH);
     ctx.fillStyle = osThemeColor(t, row.key);
-    ctx.fillRect(pad.l, barY, barW, 16);
+    ctx.fillRect(pad.l, barY, barW, barH);
     ctx.fillStyle = t.text;
     ctx.font = '600 10px ' + monoFamily;
     ctx.textAlign = 'right';
-    ctx.fillText(String(row.value) + '%', pad.l + innerW, y0 + 12);
+    ctx.fillText(String(row.value) + '%', pad.l + innerW, y0 + (short ? 8 : 12));
   });
 }
 
@@ -3750,12 +3831,19 @@ function paintDonutOutcomes(canvas) {
   const sans = getComputedStyle(document.documentElement).getPropertyValue('--font-sans') || 'sans-serif';
   const monoFamily = getComputedStyle(document.documentElement).getPropertyValue('--font-mono') || '"DM Mono",monospace';
   ctx.clearRect(0, 0, W, H);
-  const compact = W < 440;
+  const microDonut = H < 150;
+  let compact = W < 440;
   let cx;
   let cy;
   let r0;
   let r1;
-  if (compact) {
+  if (microDonut) {
+    compact = true;
+    cx = W / 2;
+    cy = 34;
+    r0 = 11;
+    r1 = 23;
+  } else if (compact) {
     cx = W / 2;
     cy = 72;
     r0 = 26;
@@ -3778,26 +3866,29 @@ function paintDonutOutcomes(canvas) {
     ang += slice;
   });
   ctx.fillStyle = t.text;
-  ctx.font = '600 12px ' + sans;
+  ctx.font = (microDonut ? '600 11px ' : '600 12px ') + sans;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText('n=', cx, cy - 6);
+  ctx.fillText('n=', cx, cy - (microDonut ? 5 : 6));
   ctx.font = '500 10px ' + monoFamily;
   ctx.fillStyle = t.muted;
-  ctx.fillText('illustrative', cx, cy + 10);
+  ctx.fillText('illustrative', cx, cy + (microDonut ? 8 : 10));
   ctx.textBaseline = 'top';
   ctx.font = '500 10px ' + monoFamily;
+  const legendStep = microDonut ? 15 : 20;
+  const legendTop = microDonut ? (cy + r1 + 6) : (cy + r1 + 24);
   if (compact) {
-    let y = cy + r1 + 24;
+    let y = legendTop;
     const margin = W < 360 ? 12 : 16;
     const lx2 = Math.max(margin, (W - 200) / 2);
     segs.forEach((seg) => {
       ctx.fillStyle = osThemeColor(t, seg.key);
-      ctx.fillRect(lx2, y, 8, 8);
+      ctx.fillRect(lx2, y, microDonut ? 6 : 8, microDonut ? 6 : 8);
       ctx.fillStyle = t.muted;
       ctx.textAlign = 'left';
-      ctx.fillText(seg.label + ' · ' + String(seg.value) + '%', lx2 + 14, y - 1);
-      y += 20;
+      ctx.font = '500 10px ' + monoFamily;
+      ctx.fillText(seg.label + ' · ' + String(seg.value) + '%', lx2 + (microDonut ? 12 : 14), y - 1);
+      y += legendStep;
     });
   } else {
     const lx = cx + r1 + 20;
@@ -3808,13 +3899,16 @@ function paintDonutOutcomes(canvas) {
       ctx.fillStyle = t.muted;
       ctx.textAlign = 'left';
       ctx.fillText(seg.label + ' · ' + String(seg.value) + '%', lx + 14, y - 1);
-      y += 20;
+      y += legendStep;
     });
   }
 }
 
 function paintMiniSpark(canvas) {
-  const prep = prepCanvas(canvas, 160, 36);
+  const rect = canvas.getBoundingClientRect();
+  const cssW = Math.max(64, Math.floor(rect.width) || 120);
+  const cssH = Math.max(20, Math.floor(rect.height) || 28);
+  const prep = prepCanvas(canvas, cssW, cssH);
   if (!prep) return;
   const { ctx, cssW: W, cssH: H } = prep;
   const t = osChartTheme();
