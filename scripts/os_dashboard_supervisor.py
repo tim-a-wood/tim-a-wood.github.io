@@ -60,6 +60,7 @@ def make_handler(
             "os-dashboard.html",
             "engineering-status.json",
             "design-status.json",
+            "orchestration-status.json",
         }
     )
 
