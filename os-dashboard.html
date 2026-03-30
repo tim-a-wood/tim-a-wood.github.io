@@ -1186,6 +1186,17 @@ body::before {
   font-size: var(--font-size-xs);
   color: var(--muted);
   line-height: 1.4;
+  max-width: 920px;
+}
+.home-chart-live-status {
+  margin: 0 0 var(--space-3) 0;
+  font-size: var(--font-size-sm);
+  color: var(--muted);
+  max-width: 920px;
+  line-height: 1.45;
+}
+.home-chart-live-status--warn {
+  color: var(--warning);
 }
 
 .db-status-row {
@@ -1891,6 +1902,7 @@ h3.os-chart-card-title {
 
         <div class="db-section">
           <div class="db-section-label">AI usage &amp; quality signal</div>
+          <p id="home-chart-live-status" class="home-chart-live-status visually-hidden" role="status" aria-live="polite"></p>
           <p class="visually-hidden" id="home-chart-section-intro">Charts reflect the local usage ledger when Agent OS can reach GET /api/dashboard-data. Copilot accept or revise rates require separate product events.</p>
           <div class="os-chart-grid os-chart-grid--home" id="home-os-chart-grid" aria-describedby="home-chart-section-intro">
             <div class="os-chart-card">
@@ -3751,7 +3763,7 @@ function applyGlobalWorkbenchBar(d) {
   const host = d && d.workbench_host ? d.workbench_host : '127.0.0.1';
   const port = d && d.workbench_port != null ? d.workbench_port : 8766;
   const bridge = d && typeof d.agent_os_control_base === 'string' ? d.agent_os_control_base.replace(/\/$/, '') : '';
-  const canControl = d && (d.supervisor === true || bridge.length > 0);
+  const canControl = d && (d.supervisor === true || bridge.length > 0 || d.workbench_server_running === true);
   if (d && canControl) {
     if (d.supervisor !== true && bridge.length > 0) {
       lastWorkbenchControlBase = bridge;
@@ -3777,9 +3789,41 @@ function applyGlobalWorkbenchBar(d) {
     statusEl.textContent = 'Not connected';
     statusEl.className = 'global-wb-status global-wb-status--na';
     if (hintEl) {
-      hintEl.innerHTML = 'Open Agent OS via <span style="font-family:var(--font-mono)">bash scripts/start_agent_os_dashboard.sh</span> (port 8769), or open this file from the workbench server (8766) while Agent OS is running.';
+      const origin = (typeof window !== 'undefined' && window.location && window.location.origin) ? window.location.origin : '';
+      hintEl.innerHTML =
+        'This page did not receive <span style="font-family:var(--font-mono)">GET /api/dashboard-data</span> from the same origin '
+        + '(you may be on <span style="font-family:var(--font-mono)">file://</span>, a static preview, or the wrong port). '
+        + 'Current origin: <span style="font-family:var(--font-mono)">' + escapeHtml(origin || '(unknown)') + '</span>. '
+        + 'Run <span style="font-family:var(--font-mono)">bash scripts/start_agent_os_dashboard.sh</span> — it starts the supervisor and opens '
+        + '<span style="font-family:var(--font-mono)">http://127.0.0.1:8769/os-dashboard.html</span>. '
+        + 'Alternatively open the dashboard from <span style="font-family:var(--font-mono)">sprite_workbench_server</span> (port 8766) so the API exists on that origin.';
     }
     setBtns(false);
+  }
+}
+
+function updateHomeChartLiveStatus(d, dashboardReachable) {
+  const el = document.getElementById('home-chart-live-status');
+  if (!el) return;
+  if (!dashboardReachable || !d) {
+    el.textContent = 'Charts and key readouts need the dashboard API. Open via Agent OS (port 8769) or the workbench server (8766) — see the workbench bar above.';
+    el.classList.remove('visually-hidden');
+    el.classList.add('home-chart-live-status--warn');
+    return;
+  }
+  el.classList.remove('home-chart-live-status--warn');
+  const uc = d.usage_charts;
+  const total = d.usage_summary && d.usage_summary.entry_count != null ? d.usage_summary.entry_count : 0;
+  const wk = uc && uc.ledger_entry_count_window != null ? uc.ledger_entry_count_window : 0;
+  if (total === 0) {
+    el.textContent = 'API is reachable; the usage ledger is still empty. Run a Pixel Lab or Gemini action in the Sprite Workbench to create projects-data/_usage_ledger.json rows.';
+    el.classList.remove('visually-hidden');
+  } else if (wk === 0) {
+    el.textContent = 'API is reachable; no ledger rows fall in the last 8 ISO weeks (UTC). Check Analytics for all-time count — older calls are outside this window.';
+    el.classList.remove('visually-hidden');
+  } else {
+    el.textContent = '';
+    el.classList.add('visually-hidden');
   }
 }
 
@@ -4223,15 +4267,22 @@ async function loadDashboardData(dashId) {
   }
   try {
     const resp = await fetch('/api/dashboard-data');
+    let dashboardReachable = resp.ok;
     let d = null;
     if (resp.ok) {
-      d = await resp.json();
+      try {
+        d = await resp.json();
+      } catch (e) {
+        d = null;
+        dashboardReachable = false;
+      }
     }
     applyGlobalWorkbenchBar(d);
     syncEngineeringWorkbenchCard(d);
     syncHomeKpis(d);
     applyUsageChartsFromDashboard(d);
     syncAnalyticsKpis(d);
+    updateHomeChartLiveStatus(d, dashboardReachable);
     if (dashId === 'home' || dashId === 'engineering' || dashId === 'analytics') {
       paintOsChartsForView(dashId);
     }
@@ -4281,18 +4332,29 @@ async function loadDashboardData(dashId) {
     applyGlobalWorkbenchBar(null);
     syncHomeKpis(null);
     syncAnalyticsKpis(null);
+    updateHomeChartLiveStatus(null, false);
   }
 }
 
 async function pulseGlobalWorkbenchOnly() {
   try {
     const resp = await fetch('/api/dashboard-data');
-    const d = resp.ok ? await resp.json() : null;
+    let dashboardReachable = resp.ok;
+    let d = null;
+    if (resp.ok) {
+      try {
+        d = await resp.json();
+      } catch (e) {
+        d = null;
+        dashboardReachable = false;
+      }
+    }
     applyGlobalWorkbenchBar(d);
     syncEngineeringWorkbenchCard(d);
     syncHomeKpis(d);
     applyUsageChartsFromDashboard(d);
     syncAnalyticsKpis(d);
+    updateHomeChartLiveStatus(d, dashboardReachable);
     if (selectedDashboard === 'home' || selectedDashboard === 'engineering' || selectedDashboard === 'analytics') {
       paintOsChartsForView(selectedDashboard);
     }
@@ -4300,6 +4362,7 @@ async function pulseGlobalWorkbenchOnly() {
     applyGlobalWorkbenchBar(null);
     syncHomeKpis(null);
     syncAnalyticsKpis(null);
+    updateHomeChartLiveStatus(null, false);
   }
 }
 
