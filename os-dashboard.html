@@ -110,27 +110,70 @@ body::before {
 .header-spacer { flex: 1; }
 
 /* ─── PANEL COLLAPSE TOGGLES ──────────────────────── */
+.header-panel-toggle-group {
+  display: inline-flex;
+  align-items: stretch;
+  margin-right: var(--space-3);
+  border-radius: var(--radius-default);
+  border: 1px solid var(--line);
+  background: rgba(255,255,255,0.03);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.045);
+  overflow: hidden;
+  flex-shrink: 0;
+}
 .panel-toggle-btn {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: var(--radius-xs);
-  border: 1px solid var(--stroke-strong);
-  background: none;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 8px var(--space-3);
+  border: none;
+  border-radius: 0;
+  background: transparent;
   color: var(--muted);
-  font-size: 14px;
   cursor: pointer;
   flex-shrink: 0;
-  transition: color var(--transition-fast), border-color var(--transition-fast), background var(--transition-fast);
-  font-family: var(--font-mono);
-  line-height: 1;
+  transition: background var(--transition-base), color var(--transition-base), border-color var(--transition-base);
+  font-family: var(--font-sans);
+}
+.panel-toggle-btn + .panel-toggle-btn {
+  border-left: 1px solid var(--line);
 }
 .panel-toggle-btn:hover {
   color: var(--text);
-  border-color: var(--accent);
-  background: var(--accent-soft);
+  background: rgba(255,255,255,0.06);
+}
+.panel-toggle-btn:focus-visible {
+  outline: 2px solid rgba(0,232,200,0.35);
+  outline-offset: -2px;
+  z-index: 1;
+}
+.panel-toggle-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  text-align: center;
+}
+.panel-toggle-label {
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  line-height: 1.15;
+}
+.panel-toggle-chevron {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  line-height: 1;
+  color: var(--accent);
+  opacity: 0.9;
+}
+.panel-toggle-btn:hover .panel-toggle-chevron {
+  opacity: 1;
 }
 
 /* Collapsible main-right (agent picker) */
@@ -330,7 +373,7 @@ body::before {
 .agent-grid {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
-  gap: 6px;
+  gap: var(--space-2);
   flex: 1;
   overflow-y: auto;
   align-content: start;
@@ -801,54 +844,67 @@ body::before {
 .db-tier--static { color: var(--muted);   background: rgba(93,120,112,0.10); }
 
 /* ─── PRIORITY LIST ──────────────────────────────── */
-/* Grid with display:contents on rows = true column alignment */
 .db-priority-list {
-  display: grid;
-  grid-template-columns: 28px 1fr 108px 68px minmax(0, 200px);
-  column-gap: var(--space-3);
-}
-/* Orchestration priorities: source badge column before rank */
-.db-priority-list--orch {
-  grid-template-columns: minmax(68px, 80px) 28px 1fr 108px 68px minmax(0, 200px);
+  display: flex;
+  flex-direction: column;
+  gap: 0;
 }
 .db-priority-row {
-  display: contents;
-}
-/* Apply padding + border to each cell so rows appear separated */
-.db-priority-row > * {
-  padding: 10px 0;
+  display: grid;
+  align-items: center;
+  column-gap: var(--space-3);
+  row-gap: var(--space-1);
+  padding: var(--space-3) 0;
   border-bottom: 1px solid var(--line);
+}
+.db-priority-row:last-child {
+  border-bottom: none;
+}
+.db-priority-row > * {
+  padding: 0;
+  border-bottom: none;
   display: flex;
   align-items: center;
+  min-width: 0;
 }
-.db-priority-row:last-child > * { border-bottom: none; }
+.db-priority-row > .db-priority-title,
+.db-priority-row > .db-priority-note {
+  align-items: flex-start;
+  white-space: normal;
+  word-break: break-word;
+  hyphens: auto;
+}
+/* Rank | title (wraps) | pill | risk | note (wraps) */
+.db-priority-list:not(.db-priority-list--orch) .db-priority-row {
+  grid-template-columns: 28px minmax(0, 1fr) max-content max-content minmax(140px, 36%);
+}
+/* Source | rank | title | pill | risk | note — title gets flexible width for laptop screens */
+.db-priority-list--orch .db-priority-row {
+  grid-template-columns: minmax(56px, 76px) 28px minmax(0, 1fr) max-content max-content minmax(132px, 32%);
+}
 .db-priority-rank {
   font-family: var(--font-mono);
   font-size: var(--font-size-xs);
   color: var(--muted);
+  justify-content: center;
 }
 .db-priority-title {
   font-size: var(--font-size-sm);
   font-weight: 500;
   color: var(--text);
   min-width: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  line-height: 1.4;
 }
 .db-priority-note {
   font-size: var(--font-size-xs);
   color: var(--muted);
-  line-height: 1.3;
+  line-height: 1.35;
   min-width: 0;
-  /* allow wrapping in note column */
-  white-space: normal;
-  align-items: flex-start;
-  padding-left: var(--space-2);
 }
 .db-priority-risk {
   font-family: var(--font-mono);
   font-size: var(--font-size-xs);
+  white-space: nowrap;
 }
 .db-priority-risk--high { color: var(--error); }
 .db-priority-risk--med  { color: var(--warning); }
@@ -858,11 +914,15 @@ body::before {
 .db-status-pill {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   border-radius: var(--radius-full);
-  padding: 2px 8px;
+  padding: 0 var(--space-2);
+  min-height: 24px;
+  line-height: 1.15;
   font-family: var(--font-mono);
   font-size: var(--font-size-xs);
   font-weight: 600;
+  letter-spacing: 0.04em;
   white-space: nowrap;
   flex-shrink: 0;
 }
@@ -933,11 +993,14 @@ body::before {
 .db-risk-row-title {
   font-size: var(--font-size-sm);
   font-weight: 500;
+  word-break: break-word;
+  line-height: 1.35;
 }
 .db-risk-row-note {
   font-size: var(--font-size-xs);
   color: var(--muted);
   line-height: 1.4;
+  word-break: break-word;
 }
 .db-risk-row--p0 .db-risk-row-title { color: var(--error); }
 .db-risk-row--founder .db-risk-row-title { color: var(--warning); }
@@ -1142,9 +1205,19 @@ body::before {
     <span class="header-title">AGENT OS</span>
     <span class="header-sub">Metroidvania Toolchain</span>
     <span class="header-spacer"></span>
-    <div style="display:flex;gap:var(--space-1);margin-right:var(--space-3)">
-      <button type="button" class="panel-toggle-btn" id="toggleAgentPanel" title="Collapse agent panel">⟨</button>
-      <button type="button" class="panel-toggle-btn" id="togglePromptPanel" title="Collapse prompt panel">⟩</button>
+    <div class="header-panel-toggle-group" role="group" aria-label="Panel layout">
+      <button type="button" class="panel-toggle-btn" id="toggleAgentPanel" aria-expanded="true" aria-controls="mainRightPanel" title="Hide agent column">
+        <span class="panel-toggle-stack">
+          <span class="panel-toggle-label">Agents</span>
+          <span class="panel-toggle-chevron" aria-hidden="true">◀</span>
+        </span>
+      </button>
+      <button type="button" class="panel-toggle-btn" id="togglePromptPanel" aria-expanded="true" aria-controls="promptPanel" title="Hide prompt column">
+        <span class="panel-toggle-stack">
+          <span class="panel-toggle-label">Prompt</span>
+          <span class="panel-toggle-chevron" aria-hidden="true">▶</span>
+        </span>
+      </button>
     </div>
     <span class="status-badge">System Ready</span>
   </header>
@@ -1466,11 +1539,13 @@ body::before {
         <div class="db-section">
           <div class="db-section-label">Priorities</div>
           <div class="db-priority-list" id="db-eng-priorities">
-            <!-- placeholder rows — JS replaces these on load -->
+            <!-- placeholder row — JS replaces on load -->
             <div class="db-priority-row">
               <span class="db-priority-rank">01</span>
               <span class="db-priority-title">Loading…</span>
               <span class="db-status-pill db-status-pill--paused">PAUSED</span>
+              <span class="db-priority-risk db-priority-risk--low">—</span>
+              <span class="db-priority-note"></span>
             </div>
           </div>
         </div>
@@ -1922,6 +1997,8 @@ body::before {
               <span class="db-priority-rank">01</span>
               <span class="db-priority-title">Loading…</span>
               <span class="db-status-pill db-status-pill--paused">PAUSED</span>
+              <span class="db-priority-risk db-priority-risk--low">—</span>
+              <span class="db-priority-note"></span>
             </div>
           </div>
         </div>
@@ -2130,7 +2207,7 @@ body::before {
 
     </div><!-- /.main-left -->
 
-    <div class="main-right">
+    <div class="main-right" id="mainRightPanel">
     <!-- Step 1: Pick agent (scoped to current dashboard) -->
     <section>
       <div class="step-label"><span class="step-num">1</span> Pick an Agent</div>
@@ -2164,7 +2241,7 @@ body::before {
   </main>
 
   <!-- RIGHT SIDEBAR -->
-  <aside class="sidebar-right">
+  <aside class="sidebar-right" id="promptPanel">
     <div class="output-header">
       <span class="output-title">Generated Prompt</span>
     </div>
@@ -2712,9 +2789,9 @@ function escapeHtml(str) {
 
 // ── Engineering status (engineering-status.json) ──
 const STATUS_PILL_MAP = {
-  'in-progress':  { cls: 'db-status-pill--in-progress',  label: 'IN PROGRESS' },
+  'in-progress':  { cls: 'db-status-pill--in-progress',  label: 'ACTIVE' },
   'blocked':      { cls: 'db-status-pill--blocked',       label: 'BLOCKED' },
-  'needs-review': { cls: 'db-status-pill--needs-review',  label: 'NEEDS REVIEW' },
+  'needs-review': { cls: 'db-status-pill--needs-review',  label: 'REVIEW' },
   'done':         { cls: 'db-status-pill--done',          label: 'DONE' },
   'paused':       { cls: 'db-status-pill--paused',        label: 'PAUSED' },
 };
@@ -2722,14 +2799,20 @@ const STATUS_PILL_MAP = {
 function renderPriorityRows(priorities, container) {
   container.innerHTML = priorities.map(p => {
     const rank = String(p.id).padStart(2, '0');
-    const pill = STATUS_PILL_MAP[p.status] ?? { cls: 'db-status-pill--paused', label: p.status.toUpperCase() };
+    const pill = STATUS_PILL_MAP[p.status] ?? { cls: 'db-status-pill--paused', label: (p.status || '').toUpperCase() };
     const riskCls = p.risk === 'high' ? 'db-priority-risk--high' : p.risk === 'med' ? 'db-priority-risk--med' : 'db-priority-risk--low';
+    const riskCell = p.risk
+      ? '<span class="db-priority-risk ' + riskCls + '">' + escapeHtml(p.risk.toUpperCase()) + ' RISK</span>'
+      : '<span class="db-priority-risk db-priority-risk--low"></span>';
+    const noteCell = p.note
+      ? '<span class="db-priority-note">' + escapeHtml(p.note) + '</span>'
+      : '<span class="db-priority-note"></span>';
     return '<div class="db-priority-row">'
       + '<span class="db-priority-rank">' + escapeHtml(rank) + '</span>'
       + '<span class="db-priority-title">' + escapeHtml(p.title) + '</span>'
       + '<span class="db-status-pill ' + pill.cls + '">' + pill.label + '</span>'
-      + (p.risk ? '<span class="db-priority-risk ' + riskCls + '">' + escapeHtml(p.risk.toUpperCase()) + ' RISK</span>' : '')
-      + (p.note ? '<span class="db-priority-note">' + escapeHtml(p.note) + '</span>' : '')
+      + riskCell
+      + noteCell
       + '</div>';
   }).join('');
 }
@@ -2824,13 +2907,19 @@ function renderOrchPriorityRows(priorities, container) {
     const srcBadge = src
       ? '<span style="font-family:var(--font-mono);font-size:var(--font-size-xs);font-weight:600;letter-spacing:0.06em;color:' + src.color + ';opacity:0.85;min-width:68px;flex-shrink:0;">' + escapeHtml(src.label) + '</span>'
       : '<span style="min-width:68px"></span>';
+    const riskCell = p.risk
+      ? '<span class="db-priority-risk ' + riskCls + '">' + escapeHtml(p.risk.toUpperCase()) + ' RISK</span>'
+      : '<span class="db-priority-risk db-priority-risk--low"></span>';
+    const noteCell = p.note
+      ? '<span class="db-priority-note">' + escapeHtml(p.note) + '</span>'
+      : '<span class="db-priority-note"></span>';
     return '<div class="db-priority-row">'
       + srcBadge
       + '<span class="db-priority-rank">' + escapeHtml(rank) + '</span>'
       + '<span class="db-priority-title">' + escapeHtml(p.title) + '</span>'
       + '<span class="db-status-pill ' + pill.cls + '">' + pill.label + '</span>'
-      + (p.risk ? '<span class="db-priority-risk ' + riskCls + '">' + escapeHtml(p.risk.toUpperCase()) + ' RISK</span>' : '')
-      + (p.note ? '<span class="db-priority-note">' + escapeHtml(p.note) + '</span>' : '')
+      + riskCell
+      + noteCell
       + '</div>';
   }).join('');
 }
@@ -3033,14 +3122,18 @@ const shellEl  = document.querySelector('.shell');
 
 document.getElementById('toggleAgentPanel').addEventListener('click', function() {
   const collapsed = mainEl.classList.toggle('agent-collapsed');
-  this.textContent = collapsed ? '⟩' : '⟨';
-  this.title = collapsed ? 'Expand agent panel' : 'Collapse agent panel';
+  const ch = this.querySelector('.panel-toggle-chevron');
+  if (ch) ch.textContent = collapsed ? '▶' : '◀';
+  this.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+  this.title = collapsed ? 'Show agent column' : 'Hide agent column';
 });
 
 document.getElementById('togglePromptPanel').addEventListener('click', function() {
   const collapsed = shellEl.classList.toggle('prompt-collapsed');
-  this.textContent = collapsed ? '⟨' : '⟩';
-  this.title = collapsed ? 'Expand prompt panel' : 'Collapse prompt panel';
+  const ch = this.querySelector('.panel-toggle-chevron');
+  if (ch) ch.textContent = collapsed ? '◀' : '▶';
+  this.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+  this.title = collapsed ? 'Show prompt column' : 'Hide prompt column';
 });
 
 (function setupGlobalWorkbenchButtons() {
