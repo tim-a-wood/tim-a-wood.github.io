@@ -1054,6 +1054,52 @@ body::before {
 }
 .db-qa-link:hover { color: var(--accent); }
 
+/* ── Strategy: assumption register ── */
+.db-assumption-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-sm);
+}
+.db-assumption-table th {
+  text-align: left;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  color: var(--muted);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 0 var(--space-3) var(--space-2) 0;
+  border-bottom: 1px solid var(--line);
+}
+.db-assumption-table td {
+  padding: var(--space-3) var(--space-3) var(--space-3) 0;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+  line-height: 1.45;
+}
+.db-assumption-table tr:last-child td { border-bottom: none; }
+.db-assumption-col-status { width: 100px; white-space: nowrap; }
+.db-assumption-col-assumption { min-width: 200px; color: var(--text); font-weight: 500; }
+.db-assumption-col-monitor { color: var(--muted); font-size: var(--font-size-xs); }
+.db-assumption-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.db-assumption-badge--monitoring { background: rgba(0,232,200,0.10); color: var(--accent); }
+.db-assumption-badge--watch      { background: rgba(210,153,34,0.16); color: var(--warning); }
+.db-assumption-badge--alert      { background: rgba(248,81,73,0.16);  color: var(--error); }
+
+/* ── Strategy: competitor grid cards ── */
+.db-competitor-threat--high { color: var(--error); }
+.db-competitor-threat--med  { color: var(--warning); }
+.db-competitor-threat--low  { color: var(--good); }
+
 .db-card-value {
   font-family: var(--font-mono);
   font-size: var(--font-size-lg);
@@ -2031,6 +2077,52 @@ h3.os-chart-card-title {
           <span class="db-view-icon">🧭</span>
           <div><div class="db-view-title" style="color:#94a3b8">STRATEGY</div><div class="db-view-subtitle">Company direction, portfolio health &amp; competitive positioning</div></div>
         </div>
+
+        <!-- ── Priorities ── -->
+        <div class="db-section">
+          <div class="db-section-label">Priorities</div>
+          <div class="db-priority-list" id="db-strategy-priorities">
+            <div class="db-priority-row">
+              <span class="db-priority-rank">01</span>
+              <span class="db-priority-title">Loading…</span>
+              <span class="db-status-pill db-status-pill--paused">PAUSED</span>
+              <span class="db-priority-risk db-priority-risk--low">—</span>
+              <span class="db-priority-note"></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Risk Register ── -->
+        <div class="db-section">
+          <div class="db-section-label">Risk Register</div>
+          <div class="db-risk-grid">
+            <div class="db-risk-panel">
+              <div class="db-risk-panel-label">P0 BLOCKERS</div>
+              <div id="db-strategy-risks-p0">
+                <div class="db-risk-clear">
+                  <span style="color:var(--good)">✓ No active blockers</span>
+                </div>
+              </div>
+            </div>
+            <div class="db-risk-panel">
+              <div class="db-risk-panel-label">FOUNDER DECISIONS</div>
+              <div id="db-strategy-founder-decisions">
+                <div style="background:rgba(93,120,112,0.08);color:var(--muted);border-radius:var(--radius-md);padding:12px;font-size:var(--font-size-sm);font-weight:500;">✓ No pending decisions</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Strategic Assumption Register ── -->
+        <div class="db-section">
+          <div class="db-section-label">Strategic assumption register</div>
+          <p style="color:var(--muted);font-size:var(--font-size-sm);margin:0 0 12px 0;max-width:820px">The assumptions the current strategy rests on. Strategy agent monitors and updates status — <span style="font-family:var(--font-mono)">strategy-status.json</span>.</p>
+          <div id="db-strategy-assumption-register">
+            <div style="color:var(--muted);font-size:var(--font-size-sm);font-weight:500;padding:12px 0">Loading assumptions…</div>
+          </div>
+        </div>
+
+        <!-- ── Portfolio ── -->
         <div class="db-section">
           <div class="db-section-label">Portfolio</div>
           <div class="db-grid">
@@ -2041,45 +2133,91 @@ h3.os-chart-card-title {
             </div>
             <div class="db-card db-card--live">
               <div class="db-card-header"><div class="db-card-label">Strategic Flywheel</div><span class="db-tier db-tier--live">LIVE</span></div>
-              <div class="db-card-value db-card-value--muted" style="font-size:var(--font-size-sm);font-family:var(--font-sans)">Tool → Game</div>
+              <div class="db-card-value db-card-value--muted" style="font-size:var(--font-size-sm);font-family:var(--font-sans)" id="db-strategy-flywheel">Tool → Game</div>
               <div class="db-card-sub">Workbench enables Ashen Hollow</div>
             </div>
             <div class="db-card db-card--live">
-              <div class="db-card-header"><div class="db-card-label">Planning Horizon</div><span class="db-tier db-tier--live">LIVE</span></div>
-              <div class="db-card-value">12 mo</div>
-              <div class="db-card-sub">Rolling quarterly reviews</div>
+              <div class="db-card-header"><div class="db-card-label">Stage</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-value db-card-value--muted" style="font-size:var(--font-size-sm);font-family:var(--font-sans)" id="db-strategy-stage">Pre-launch</div>
+              <div class="db-card-sub">Both products in development</div>
             </div>
             <div class="db-card db-card--live">
-              <div class="db-card-header"><div class="db-card-label">Stage</div><span class="db-tier db-tier--live">LIVE</span></div>
-              <div class="db-card-value db-card-value--muted" style="font-size:var(--font-size-sm);font-family:var(--font-sans)">Pre-launch</div>
-              <div class="db-card-sub">Both products in development</div>
+              <div class="db-card-header"><div class="db-card-label">AI-native window</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-value db-card-value--warning" id="db-strategy-window">18–36 mo</div>
+              <div class="db-card-sub">Months before category crowded</div>
             </div>
           </div>
         </div>
+
+        <!-- ── Revenue Model ── -->
         <div class="db-section">
-          <div class="db-section-label">Strategic Intelligence</div>
+          <div class="db-section-label">Revenue model</div>
           <div class="db-grid">
+            <div class="db-card db-card--live">
+              <div class="db-card-header"><div class="db-card-label">Recommended Path</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-value db-card-value--muted" style="font-size:var(--font-size-sm);font-family:var(--font-sans)" id="db-strategy-revenue-model">Freemium SaaS</div>
+              <div class="db-card-sub">Core free · AI features on subscription</div>
+            </div>
             <div class="db-card db-card--manual">
-              <div class="db-card-header"><div class="db-card-label">Competitive Analyses</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-header"><div class="db-card-label">Copilot Launch Bar</div><span class="db-tier db-tier--manual">MANUAL</span></div>
               <div class="db-card-value db-card-value--muted">—</div>
+              <div class="db-card-sub">Trigger: demonstrably superior AI</div>
+              <button type="button" class="db-run-btn">Run strategy · decision →</button>
+            </div>
+            <div class="db-card db-card--manual">
+              <div class="db-card-header"><div class="db-card-label">Last Competitive Review</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-value db-card-value--muted" id="db-strategy-last-competitive">—</div>
               <button type="button" class="db-run-btn">Run strategy · analyze →</button>
             </div>
             <div class="db-card db-card--manual">
-              <div class="db-card-header"><div class="db-card-label">Open Strategic Risks</div><span class="db-tier db-tier--manual">MANUAL</span></div>
-              <div class="db-card-value db-card-value--muted">—</div>
-              <button type="button" class="db-run-btn">Run strategy · red-team →</button>
+              <div class="db-card-header"><div class="db-card-label">Last Quarterly Review</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-value db-card-value--muted" id="db-strategy-last-quarterly">—</div>
+              <button type="button" class="db-run-btn">Run strategy · report →</button>
             </div>
+          </div>
+        </div>
+
+        <!-- ── Competitive Watch ── -->
+        <div class="db-section">
+          <div class="db-section-label">Competitive watch</div>
+          <p style="color:var(--muted);font-size:var(--font-size-sm);margin:0 0 12px 0;max-width:820px">Threat levels set by Strategy agent in <span style="font-family:var(--font-mono)">strategy-status.json</span>. High = requires quarterly attention. Low = monitor passively.</p>
+          <div id="db-strategy-competitor-grid" class="db-grid">
+            <div style="color:var(--muted);font-size:var(--font-size-sm);font-weight:500;padding:12px 0;grid-column:1/-1">Loading competitors…</div>
+          </div>
+        </div>
+
+        <!-- ── Strategic Intelligence run buttons ── -->
+        <div class="db-section">
+          <div class="db-section-label">Strategic intelligence</div>
+          <div class="db-grid">
             <div class="db-card db-card--manual">
               <div class="db-card-header"><div class="db-card-label">Moat Assessment</div><span class="db-tier db-tier--manual">MANUAL</span></div>
               <div class="db-card-value db-card-value--muted">—</div>
               <button type="button" class="db-run-btn">Run strategy · analyze →</button>
             </div>
             <div class="db-card db-card--manual">
-              <div class="db-card-header"><div class="db-card-label">Last Strategic Review</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-header"><div class="db-card-label">Red-team the Flywheel</div><span class="db-tier db-tier--manual">MANUAL</span></div>
               <div class="db-card-value db-card-value--muted">—</div>
+              <button type="button" class="db-run-btn">Run strategy · red-team →</button>
+            </div>
+            <div class="db-card db-card--manual">
+              <div class="db-card-header"><div class="db-card-label">Platform Decision</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-value db-card-value--muted">—</div>
+              <div class="db-card-sub">Web → Desktop timing</div>
+              <button type="button" class="db-run-btn">Run strategy · advise →</button>
+            </div>
+            <div class="db-card db-card--manual">
+              <div class="db-card-header"><div class="db-card-label">Monday Digest Signal</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-value db-card-value--muted">—</div>
+              <div class="db-card-sub">Escalate when assumption changes</div>
               <button type="button" class="db-run-btn">Run strategy · report →</button>
             </div>
           </div>
+        </div>
+
+        <div class="db-qa-signpost" style="display:flex;flex-direction:column;gap:8px">
+          <button type="button" class="db-qa-link" onclick="selectDashboard('finance')">→ Finance · unit economics &amp; revenue model</button>
+          <button type="button" class="db-qa-link" onclick="selectDashboard('marketing')">→ Marketing · competitive framing &amp; messaging</button>
         </div>
       </div>
 
@@ -2620,52 +2758,102 @@ h3.os-chart-card-title {
       <div class="dashboard-view" data-dashboard-view="marketing">
         <div class="db-view-header">
           <span class="db-view-icon">📣</span>
-          <div><div class="db-view-title" style="color:#f5986e">MARKETING</div><div class="db-view-subtitle">Launch readiness, content pipeline &amp; channel strategy</div></div>
+          <div><div class="db-view-title" style="color:#f5986e">MARKETING</div><div class="db-view-subtitle">Priorities, risks &amp; pre-launch audience building</div></div>
         </div>
         <div class="db-section">
-          <div class="db-section-label">Go-to-Market</div>
-          <div class="db-grid">
-            <div class="db-card db-card--live">
-              <div class="db-card-header"><div class="db-card-label">Target Audience</div><span class="db-tier db-tier--live">LIVE</span></div>
-              <div class="db-card-value db-card-value--muted" style="font-size:var(--font-size-sm);font-family:var(--font-sans)">Indie devs</div>
-              <div class="db-card-sub">Pixel art · metroidvania fans</div>
-            </div>
-            <div class="db-card db-card--live">
-              <div class="db-card-header"><div class="db-card-label">Primary Channels</div><span class="db-tier db-tier--live">LIVE</span></div>
-              <div class="db-card-value db-card-value--muted" style="font-size:var(--font-size-sm);font-family:var(--font-sans)">itch.io · PH</div>
-              <div class="db-card-sub">itch.io + Product Hunt</div>
-            </div>
-            <div class="db-card db-card--live">
-              <div class="db-card-header"><div class="db-card-label">Launch Stage</div><span class="db-tier db-tier--live">LIVE</span></div>
-              <div class="db-card-value db-card-value--warning">Pre-launch</div>
-              <div class="db-card-sub">Pages not yet live</div>
+          <div class="db-section-label">Priorities</div>
+          <div class="db-priority-list" id="db-marketing-priorities">
+            <div class="db-priority-row">
+              <span class="db-priority-rank">01</span>
+              <span class="db-priority-title">Loading…</span>
+              <span class="db-status-pill db-status-pill--paused">PAUSED</span>
+              <span class="db-priority-risk db-priority-risk--low">—</span>
+              <span class="db-priority-note"></span>
             </div>
           </div>
         </div>
         <div class="db-section">
-          <div class="db-section-label">Launch Assets</div>
+          <div class="db-section-label">Risk Register</div>
+          <div class="db-risk-grid">
+            <div class="db-risk-panel">
+              <div class="db-risk-panel-label">P0 MARKETING BLOCKERS</div>
+              <div id="db-marketing-risks-p0">
+                <div class="db-risk-clear">
+                  <span style="color:var(--good)">✓ No active blockers</span>
+                </div>
+              </div>
+            </div>
+            <div class="db-risk-panel">
+              <div class="db-risk-panel-label">GOVERNANCE / FOUNDER</div>
+              <div id="db-marketing-founder-decisions">
+                <div style="background:rgba(93,120,112,0.08);color:var(--muted);border-radius:var(--radius-md);padding:12px;font-size:var(--font-size-sm);font-weight:500;">✓ No pending decisions</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="db-section">
+          <div class="db-section-label">Reporting &amp; channel signal</div>
+          <p style="color:var(--muted);font-size:var(--font-size-sm);margin:0 0 var(--space-3) 0;max-width:720px">Aligned with <span style="font-family:var(--font-mono)">agents/marketing/charter.md</span> — update narrative fields in <span style="font-family:var(--font-mono)">marketing-status.json</span> after each Tuesday weekly update or material change.</p>
           <div class="db-grid">
             <div class="db-card db-card--manual">
-              <div class="db-card-header"><div class="db-card-label">Launch Readiness Score</div><span class="db-tier db-tier--manual">MANUAL</span></div>
-              <div class="db-card-value db-card-value--muted">—</div>
+              <div class="db-card-header"><div class="db-card-label">Tuesday weekly update</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-value db-card-value--muted" style="font-size:var(--font-size-sm);font-family:var(--font-sans)" id="db-marketing-metric-tuesday">—</div>
+              <div class="db-card-sub">Links · engagement · competitor note · plan (max one page)</div>
               <button type="button" class="db-run-btn">Run marketing · report →</button>
             </div>
             <div class="db-card db-card--manual">
-              <div class="db-card-header"><div class="db-card-label">itch.io Page</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-header"><div class="db-card-label">Content &amp; devlog</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-value db-card-value--muted" style="font-size:var(--font-size-sm);font-family:var(--font-sans)" id="db-marketing-metric-content">—</div>
+              <div class="db-card-sub">Published pieces · itch.io archive · #screenshotsaturday</div>
+              <button type="button" class="db-run-btn">Run marketing · review →</button>
+            </div>
+            <div class="db-card db-card--manual">
+              <div class="db-card-header"><div class="db-card-label">Channels &amp; cadence</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-value db-card-value--muted" style="font-size:var(--font-size-sm);font-family:var(--font-sans)" id="db-marketing-metric-channels">—</div>
+              <div class="db-card-sub">Charter: 3–5 posts/wk sustainable · video/GIF first</div>
+              <button type="button" class="db-run-btn">Run marketing · advise →</button>
+            </div>
+            <div class="db-card db-card--manual">
+              <div class="db-card-header"><div class="db-card-label">Competitor watch</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-value db-card-value--muted" style="font-size:var(--font-size-sm);font-family:var(--font-sans)" id="db-marketing-metric-competitors">—</div>
+              <div class="db-card-sub">Tiled · LDtk · Godot editor · emerging AI level tools</div>
+              <button type="button" class="db-run-btn">Run marketing · analyze →</button>
+            </div>
+          </div>
+        </div>
+        <div class="db-section">
+          <div class="db-section-label">Launch &amp; distribution assets</div>
+          <div class="db-grid">
+            <div class="db-card db-card--manual">
+              <div class="db-card-header"><div class="db-card-label">Launch readiness score</div><span class="db-tier db-tier--manual">MANUAL</span></div>
               <div class="db-card-value db-card-value--muted">—</div>
+              <div class="db-card-sub">Pre-revenue phase — trust &amp; recognition before conversion</div>
+              <button type="button" class="db-run-btn">Run marketing · report →</button>
+            </div>
+            <div class="db-card db-card--manual">
+              <div class="db-card-header"><div class="db-card-label">itch.io page</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-value db-card-value--muted">—</div>
+              <div class="db-card-sub">Devlog home · project page when live</div>
               <button type="button" class="db-run-btn">Run marketing · analyze →</button>
             </div>
             <div class="db-card db-card--manual">
-              <div class="db-card-header"><div class="db-card-label">Product Hunt Draft</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-header"><div class="db-card-label">Product Hunt draft</div><span class="db-tier db-tier--manual">MANUAL</span></div>
               <div class="db-card-value db-card-value--muted">—</div>
+              <div class="db-card-sub">Hold until early-adopter story is documented</div>
               <button type="button" class="db-run-btn">Run marketing · draft →</button>
             </div>
             <div class="db-card db-card--manual">
-              <div class="db-card-header"><div class="db-card-label">Content Published Q1</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-header"><div class="db-card-label">PLG · shareable first session</div><span class="db-tier db-tier--manual">MANUAL</span></div>
               <div class="db-card-value db-card-value--muted">—</div>
-              <button type="button" class="db-run-btn">Run marketing · report →</button>
+              <div class="db-card-sub">First room export · screen-recordable Copilot flow</div>
+              <button type="button" class="db-run-btn">Run marketing · review →</button>
             </div>
           </div>
+        </div>
+        <div class="db-qa-signpost db-qa-signpost--stack">
+          <button type="button" class="db-qa-link" onclick="selectDashboard('strategy')">→ Strategy · positioning &amp; competitors</button>
+          <button type="button" class="db-qa-link" onclick="selectDashboard('orchestration')">→ Orchestration · cross-agent priorities</button>
+          <button type="button" class="db-qa-link" onclick="selectDashboard('design')">→ Design · UX &amp; Copilot charter</button>
         </div>
       </div>
 
@@ -3624,6 +3812,109 @@ async function loadDesignStatus() {
   }
 }
 
+async function loadMarketingStatus() {
+  try {
+    const resp = await fetch('marketing-status.json');
+    if (!resp.ok) return;
+    const s = await resp.json();
+
+    const prioritiesEl = document.getElementById('db-marketing-priorities');
+    const risksP0El = document.getElementById('db-marketing-risks-p0');
+    const founderEl = document.getElementById('db-marketing-founder-decisions');
+
+    if (prioritiesEl && Array.isArray(s.priorities) && s.priorities.length > 0) {
+      renderPriorityRows(s.priorities, prioritiesEl);
+    }
+    if (risksP0El) renderRisksP0(s.risks_p0 ?? [], risksP0El);
+    if (founderEl) renderFounderDecisions(s.founder_decisions ?? [], founderEl);
+
+    const m = s.metrics ?? {};
+    const setMetric = (id, val) => {
+      const el = document.getElementById(id);
+      if (el && val != null && val !== '') el.textContent = val;
+    };
+    setMetric('db-marketing-metric-tuesday', m.tuesday_update);
+    setMetric('db-marketing-metric-content', m.content_devlog);
+    setMetric('db-marketing-metric-channels', m.channels_cadence);
+    setMetric('db-marketing-metric-competitors', m.competitor_watch);
+  } catch {
+    // Leave placeholder content in place
+  }
+}
+
+// ── Strategy status (strategy-status.json) ──
+async function loadStrategyStatus() {
+  try {
+    const resp = await fetch('strategy-status.json');
+    if (!resp.ok) return;
+    const s = await resp.json();
+
+    const prioritiesEl = document.getElementById('db-strategy-priorities');
+    const risksP0El    = document.getElementById('db-strategy-risks-p0');
+    const founderEl    = document.getElementById('db-strategy-founder-decisions');
+
+    if (prioritiesEl && s.priorities) renderPriorityRows(s.priorities, prioritiesEl);
+    if (risksP0El) renderRisksP0(s.risks_p0 ?? [], risksP0El);
+    if (founderEl) renderFounderDecisions(s.founder_decisions ?? [], founderEl);
+
+    // Assumption register
+    const assumptionEl = document.getElementById('db-strategy-assumption-register');
+    if (assumptionEl && Array.isArray(s.risk_register) && s.risk_register.length > 0) {
+      const BADGE_MAP = {
+        monitoring: '<span class="db-assumption-badge db-assumption-badge--monitoring">Monitoring</span>',
+        watch:      '<span class="db-assumption-badge db-assumption-badge--watch">Watch</span>',
+        alert:      '<span class="db-assumption-badge db-assumption-badge--alert">Alert</span>',
+      };
+      const rows = s.risk_register.map(r => {
+        const badge = BADGE_MAP[r.status] ?? BADGE_MAP.monitoring;
+        return '<tr>'
+          + '<td class="db-assumption-col-status">' + badge + '</td>'
+          + '<td class="db-assumption-col-assumption">' + escapeHtml(r.assumption) + '</td>'
+          + '<td class="db-assumption-col-monitor">' + escapeHtml(r.monitor) + '</td>'
+          + '</tr>';
+      }).join('');
+      assumptionEl.innerHTML = '<table class="db-assumption-table"><thead><tr>'
+        + '<th class="db-assumption-col-status">Status</th>'
+        + '<th class="db-assumption-col-assumption">Assumption</th>'
+        + '<th class="db-assumption-col-monitor">Monitor signal</th>'
+        + '</tr></thead><tbody>' + rows + '</tbody></table>';
+    }
+
+    // Competitor grid
+    const competitorEl = document.getElementById('db-strategy-competitor-grid');
+    if (competitorEl && Array.isArray(s.competitors) && s.competitors.length > 0) {
+      competitorEl.innerHTML = s.competitors.map(c => {
+        const threatCls = c.threat === 'high' ? 'db-competitor-threat--high'
+                        : c.threat === 'med'  ? 'db-competitor-threat--med'
+                        : 'db-competitor-threat--low';
+        const threatLabel = (c.threat || 'low').toUpperCase();
+        return '<div class="db-card db-card--manual">'
+          + '<div class="db-card-header"><div class="db-card-label">' + escapeHtml(c.name) + '</div>'
+          + '<span class="db-tier db-tier--manual">' + escapeHtml(c.category) + '</span></div>'
+          + '<div class="db-card-value db-card-value--muted ' + threatCls + '" style="font-size:var(--font-size-sm);font-family:var(--font-sans)">'
+          + threatLabel + ' THREAT</div>'
+          + '<div class="db-card-sub">' + escapeHtml(c.note) + '</div>'
+          + '</div>';
+      }).join('');
+    }
+
+    // Metrics
+    const m = s.metrics ?? {};
+    const setVal = (id, val) => {
+      const el = document.getElementById(id);
+      if (el && val != null && val !== '') el.textContent = val;
+    };
+    setVal('db-strategy-flywheel', m.flywheel_status);
+    setVal('db-strategy-stage', m.flywheel_status);
+    setVal('db-strategy-window', m.ai_window_months_remaining ? m.ai_window_months_remaining + ' mo' : null);
+    setVal('db-strategy-revenue-model', m.revenue_model);
+    setVal('db-strategy-last-competitive', m.last_competitive_review ?? '—');
+    setVal('db-strategy-last-quarterly', m.last_quarterly_review ?? '—');
+  } catch {
+    // Leave placeholder content in place
+  }
+}
+
 function renderAnalyticsPrioritiesEmpty(container) {
   container.innerHTML =
     '<div style="color:var(--muted);font-size:var(--font-size-sm);font-weight:500;padding:12px 0;line-height:1.45">'
@@ -4271,6 +4562,12 @@ async function loadDashboardData(dashId) {
   }
   if (dashId === 'design') {
     loadDesignStatus();
+  }
+  if (dashId === 'marketing') {
+    loadMarketingStatus();
+  }
+  if (dashId === 'strategy') {
+    loadStrategyStatus();
   }
   if (dashId === 'orchestration') {
     loadOrchestrationStatus();

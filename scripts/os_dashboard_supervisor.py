@@ -61,6 +61,7 @@ def make_handler(
             "engineering-status.json",
             "design-status.json",
             "analytics-status.json",
+            "marketing-status.json",
             "orchestration-status.json",
         }
     )

@@ -1,0 +1,50 @@
+{
+  "_note": "Marketing agent maintains this file. Dashboard reads it when you open the Marketing view.",
+  "updated": "2026-03-30",
+  "schema_version": "v1.0",
+  "priorities": [
+    {
+      "id": 1,
+      "title": "Building in public + devlog flywheel (itch.io archive)",
+      "status": "in-progress",
+      "risk": "med",
+      "note": "Charter: searchable arc, credibility, shareable Copilot moments"
+    },
+    {
+      "id": 2,
+      "title": "Precise AI-assisted messaging (not “AI slop” backlash)",
+      "status": "needs-review",
+      "risk": "high",
+      "note": "Lead with workflow: suggests · human-directed · not automated generation claims"
+    },
+    {
+      "id": 3,
+      "title": "Video/GIF workflow demos — highest-converting format",
+      "status": "paused",
+      "risk": "low",
+      "note": "Charter Q1 2026: 15–60s screen cap beats copy for indie dev trust"
+    },
+    {
+      "id": 4,
+      "title": "Tuesday weekly update (one page max)",
+      "status": "in-progress",
+      "risk": "low",
+      "note": "Charter reporting: links, engagement, competitor signal, upcoming plan"
+    },
+    {
+      "id": 5,
+      "title": "Competitor monitor — Tiled, LDtk, emerging AI level tools",
+      "status": "in-progress",
+      "risk": "med",
+      "note": "Charter: quarterly scan; white space = AI + human-directed workflow"
+    }
+  ],
+  "risks_p0": [],
+  "founder_decisions": [],
+  "metrics": {
+    "tuesday_update": "—",
+    "content_devlog": "—",
+    "channels_cadence": "itch.io devlog · X — target 3–5 posts/wk",
+    "competitor_watch": "Q1 2026 · Tiled · LDtk · scan AI level-design positioning"
+  }
+}
