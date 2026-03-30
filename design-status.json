@@ -1,0 +1,50 @@
+{
+  "_note": "Design agent maintains this file. Dashboard reads it when you open the Design view.",
+  "updated": "2026-03-29",
+  "priorities": [
+    {
+      "id": 1,
+      "title": "Room editor: mode clarity (place vs select) — cursor, rail, overlay",
+      "status": "in-progress",
+      "risk": "high",
+      "note": "Charter: mode errors corrupt layouts; toolbar highlight alone is insufficient"
+    },
+    {
+      "id": 2,
+      "title": "STYLE_GUIDE.md: motion + Copilot UI patterns referenced in agent prompts",
+      "status": "needs-review",
+      "risk": "med",
+      "note": "Reduce LLM default transitions and generic AI UI in new PRs"
+    },
+    {
+      "id": 3,
+      "title": "Token audit pass: room-layout-editor + product-shell CSS",
+      "status": "paused",
+      "risk": "low",
+      "note": "Mechanical scan for hardcoded hex, off-grid spacing, forbidden radius"
+    },
+    {
+      "id": 4,
+      "title": "WCAG 2.2 AA + keyboard order on new inspector / modal flows",
+      "status": "in-progress",
+      "risk": "med",
+      "note": "Focus trap, visible :focus-visible, 44px targets on standard controls"
+    },
+    {
+      "id": 5,
+      "title": "Visual regression baseline (Playwright + pixelmatch) for canvas tools",
+      "status": "paused",
+      "risk": "low",
+      "note": "Charter: deterministic pixel compares require image-rendering: pixelated"
+    }
+  ],
+  "risks_p0": [],
+  "founder_decisions": [],
+  "metrics": {
+    "token_violations_open": "—",
+    "a11y_critical_open": "—",
+    "copilot_ux_charter": "Review on change",
+    "style_guide_last_touch": "See repo",
+    "next_audit": "On demand / Q2"
+  }
+}

@@ -109,6 +109,57 @@ body::before {
 
 .header-spacer { flex: 1; }
 
+/* ─── PANEL COLLAPSE TOGGLES ──────────────────────── */
+.panel-toggle-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-xs);
+  border: 1px solid var(--stroke-strong);
+  background: none;
+  color: var(--muted);
+  font-size: 14px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: color var(--transition-fast), border-color var(--transition-fast), background var(--transition-fast);
+  font-family: var(--font-mono);
+  line-height: 1;
+}
+.panel-toggle-btn:hover {
+  color: var(--text);
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+/* Collapsible main-right (agent picker) */
+.main {
+  transition: grid-template-columns 200ms ease;
+}
+.main.agent-collapsed {
+  grid-template-columns: 1fr 0px;
+}
+.main.agent-collapsed .main-right {
+  overflow: hidden;
+  padding: 0;
+  border-left: none;
+  min-width: 0;
+}
+
+/* Collapsible sidebar-right (prompt panel) */
+.shell {
+  transition: grid-template-columns 200ms ease;
+}
+.shell.prompt-collapsed {
+  grid-template-columns: 216px 1fr 0px;
+}
+.shell.prompt-collapsed .sidebar-right {
+  overflow: hidden;
+  border-left: none;
+  min-width: 0;
+}
+
 .status-badge {
   display: flex;
   align-items: center;
@@ -223,6 +274,8 @@ body::before {
   flex-direction: column;
   gap: var(--space-3);
   min-height: 0;
+  overflow: hidden;
+  min-width: 0;
 }
 
 .agent-section {
@@ -429,6 +482,7 @@ body::before {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  min-width: 0;
 }
 
 .output-header {
@@ -742,44 +796,50 @@ body::before {
 .db-tier--static { color: var(--muted);   background: rgba(93,120,112,0.10); }
 
 /* ─── PRIORITY LIST ──────────────────────────────── */
+/* Grid with display:contents on rows = true column alignment */
 .db-priority-list {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: 28px 1fr 108px 68px minmax(0, 200px);
+  column-gap: var(--space-3);
 }
 .db-priority-row {
+  display: contents;
+}
+/* Apply padding + border to each cell so rows appear separated */
+.db-priority-row > * {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
   display: flex;
   align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-2) 0;
-  border-bottom: 1px solid var(--line);
 }
-.db-priority-row:last-child { border-bottom: none; }
+.db-priority-row:last-child > * { border-bottom: none; }
 .db-priority-rank {
   font-family: var(--font-mono);
   font-size: var(--font-size-xs);
   color: var(--muted);
-  min-width: 20px;
-  flex-shrink: 0;
 }
 .db-priority-title {
-  font-size: var(--font-size-base);
+  font-size: var(--font-size-sm);
   font-weight: 500;
   color: var(--text);
-  flex: 1;
   min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .db-priority-note {
   font-size: var(--font-size-xs);
   color: var(--muted);
-  text-align: right;
-  flex-shrink: 0;
-  max-width: 260px;
   line-height: 1.3;
+  min-width: 0;
+  /* allow wrapping in note column */
+  white-space: normal;
+  align-items: flex-start;
+  padding-left: var(--space-2);
 }
 .db-priority-risk {
   font-family: var(--font-mono);
   font-size: var(--font-size-xs);
-  flex-shrink: 0;
 }
 .db-priority-risk--high { color: var(--error); }
 .db-priority-risk--med  { color: var(--warning); }
@@ -998,6 +1058,10 @@ body::before {
     <span class="header-title">AGENT OS</span>
     <span class="header-sub">Metroidvania Toolchain</span>
     <span class="header-spacer"></span>
+    <div style="display:flex;gap:var(--space-1);margin-right:var(--space-3)">
+      <button type="button" class="panel-toggle-btn" id="toggleAgentPanel" title="Collapse agent panel">⟨</button>
+      <button type="button" class="panel-toggle-btn" id="togglePromptPanel" title="Collapse prompt panel">⟩</button>
+    </div>
     <span class="status-badge">System Ready</span>
   </header>
 
@@ -1711,87 +1775,70 @@ body::before {
       <div class="dashboard-view" data-dashboard-view="design">
         <div class="db-view-header">
           <span class="db-view-icon">🎨</span>
-          <div><div class="db-view-title" style="color:#fb7185">DESIGN</div><div class="db-view-subtitle">Cross-product UX, visual systems &amp; design quality — Workbench &amp; Ashen Hollow</div></div>
+          <div><div class="db-view-title" style="color:#fb7185">DESIGN</div><div class="db-view-subtitle">STYLE_GUIDE governance, toolchain UX, accessibility &amp; AI UI patterns</div></div>
         </div>
         <div class="db-section">
-          <div class="db-section-label">Design System</div>
-          <div class="db-grid">
-            <div class="db-card db-card--live">
-              <div class="db-card-header"><div class="db-card-label">Style Guide</div><span class="db-tier db-tier--live">LIVE</span></div>
-              <div class="db-card-value db-card-value--good">Active</div>
-              <div class="db-card-sub">STYLE_GUIDE.md · canonical tokens</div>
-            </div>
-            <div class="db-card db-card--live">
-              <div class="db-card-header"><div class="db-card-label">Design Language</div><span class="db-tier db-tier--live">LIVE</span></div>
-              <div class="db-card-value db-card-value--muted" style="font-size:var(--font-size-sm);font-family:var(--font-sans)">Dark · Pixel</div>
-              <div class="db-card-sub">Near-black · pixelated rendering</div>
-            </div>
-            <div class="db-card db-card--live">
-              <div class="db-card-header"><div class="db-card-label">Products Covered</div><span class="db-tier db-tier--live">LIVE</span></div>
-              <div class="db-card-value">2</div>
-              <div class="db-card-sub">Sprite Workbench · Ashen Hollow</div>
-            </div>
-            <div class="db-card db-card--live">
-              <div class="db-card-header"><div class="db-card-label">Font Stack</div><span class="db-tier db-tier--live">LIVE</span></div>
-              <div class="db-card-value db-card-value--muted" style="font-size:11px;font-family:var(--font-sans)">Bebas + Jakarta + DM Mono</div>
-              <div class="db-card-sub">Display · sans · mono</div>
+          <div class="db-section-label">Priorities</div>
+          <div class="db-priority-list" id="db-design-priorities">
+            <div class="db-priority-row">
+              <span class="db-priority-rank">01</span>
+              <span class="db-priority-title">Loading…</span>
+              <span class="db-status-pill db-status-pill--paused">PAUSED</span>
             </div>
           </div>
         </div>
         <div class="db-section">
-          <div class="db-section-label">Workbench UX</div>
+          <div class="db-section-label">Risk Register</div>
+          <div class="db-risk-grid">
+            <div class="db-risk-panel">
+              <div class="db-risk-panel-label">P0 DESIGN BLOCKERS</div>
+              <div id="db-design-risks-p0">
+                <div class="db-risk-clear">
+                  <span style="color:var(--good)">✓ No active blockers</span>
+                </div>
+              </div>
+            </div>
+            <div class="db-risk-panel">
+              <div class="db-risk-panel-label">GOVERNANCE / FOUNDER</div>
+              <div id="db-design-founder-decisions">
+                <div style="background:rgba(93,120,112,0.08);color:var(--muted);border-radius:var(--radius-md);padding:12px;font-size:var(--font-size-sm);font-weight:500;">✓ No pending decisions</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="db-section">
+          <div class="db-section-label">Design quality metrics</div>
+          <p style="color:var(--muted);font-size:var(--font-size-sm);margin:0 0 12px 0;max-width:720px">Signals aligned with <span style="font-family:var(--font-mono)">agents/design/charter.md</span> — update counts and dates in <span style="font-family:var(--font-mono)">design-status.json</span> after each audit or review.</p>
           <div class="db-grid">
             <div class="db-card db-card--manual">
-              <div class="db-card-header"><div class="db-card-label">UX Audit</div><span class="db-tier db-tier--manual">MANUAL</span></div>
-              <div class="db-card-value db-card-value--muted">—</div>
+              <div class="db-card-header"><div class="db-card-label">Token violations (open)</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-value db-card-value--muted" id="db-design-metric-tokens">—</div>
+              <div class="db-card-sub">Hardcoded color · off 4px grid · forbidden radius · <code style="font-family:var(--font-mono);font-size:var(--font-size-xs)">transition: all</code></div>
               <button class="db-run-btn">Run design · analyze →</button>
             </div>
             <div class="db-card db-card--manual">
-              <div class="db-card-header"><div class="db-card-label">Design Debt</div><span class="db-tier db-tier--manual">MANUAL</span></div>
-              <div class="db-card-value db-card-value--muted">—</div>
-              <button class="db-run-btn">Run design · report →</button>
-            </div>
-            <div class="db-card db-card--manual">
-              <div class="db-card-header"><div class="db-card-label">Component Quality</div><span class="db-tier db-tier--manual">MANUAL</span></div>
-              <div class="db-card-value db-card-value--muted">—</div>
+              <div class="db-card-header"><div class="db-card-label">A11y — critical / serious</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-value db-card-value--muted" id="db-design-metric-a11y">—</div>
+              <div class="db-card-sub">WCAG 2.2 AA target · keyboard · contrast · focus order</div>
               <button class="db-run-btn">Run design · review →</button>
             </div>
             <div class="db-card db-card--manual">
-              <div class="db-card-header"><div class="db-card-label">Last Design Report</div><span class="db-tier db-tier--manual">MANUAL</span></div>
-              <div class="db-card-value db-card-value--muted">—</div>
+              <div class="db-card-header"><div class="db-card-label">AI UI (Copilot) charter gate</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-value db-card-value--muted" id="db-design-metric-copilot">—</div>
+              <div class="db-card-sub">Confirm before mutate · specific errors · no optimistic apply</div>
+              <button class="db-run-btn">Run design · advise →</button>
+            </div>
+            <div class="db-card db-card--manual">
+              <div class="db-card-header"><div class="db-card-label">STYLE_GUIDE &amp; audit cadence</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-value db-card-value--muted" style="font-size:var(--font-size-sm);font-family:var(--font-sans)" id="db-design-metric-guide">—</div>
+              <div class="db-card-sub">Last doc touch · next quarterly / on-demand audit</div>
               <button class="db-run-btn">Run design · report →</button>
             </div>
           </div>
         </div>
-        <div class="db-section">
-          <div class="db-section-label">Ashen Hollow Visual</div>
-          <div class="db-grid">
-            <div class="db-card db-card--manual">
-              <div class="db-card-header"><div class="db-card-label">Art Direction Alignment</div><span class="db-tier db-tier--manual">MANUAL</span></div>
-              <div class="db-card-value db-card-value--muted">—</div>
-              <button class="db-run-btn">Run design · advise →</button>
-            </div>
-            <div class="db-card db-card--manual">
-              <div class="db-card-header"><div class="db-card-label">UI/UX Spec Coverage</div><span class="db-tier db-tier--manual">MANUAL</span></div>
-              <div class="db-card-value db-card-value--muted">—</div>
-              <button class="db-run-btn">Run design · analyze →</button>
-            </div>
-          </div>
-        </div>
-        <div class="db-section">
-          <div class="db-section-label">Cross-product</div>
-          <div class="db-grid">
-            <div class="db-card db-card--manual">
-              <div class="db-card-header"><div class="db-card-label">Brand Cohesion</div><span class="db-tier db-tier--manual">MANUAL</span></div>
-              <div class="db-card-value db-card-value--muted">—</div>
-              <div class="db-card-sub">Workbench ↔ Ashen Hollow</div>
-            </div>
-            <div class="db-card db-card--instrumented">
-              <div class="db-card-header"><div class="db-card-label">Design System Adoption</div><span class="db-tier db-tier--post">POST-LAUNCH</span></div>
-              <div class="db-card-value db-card-value--muted">—</div>
-              <div class="db-card-sub">Token compliance rate</div>
-            </div>
-          </div>
+        <div class="db-qa-signpost" style="display:flex;flex-direction:column;gap:8px">
+          <button type="button" class="db-qa-link" onclick="selectDashboard('workbench')">→ Workbench dashboard for product health</button>
+          <button type="button" class="db-qa-link" onclick="selectDashboard('ashen-hollow')">→ Ashen Hollow for game pillars &amp; production docs</button>
         </div>
       </div>
 
@@ -2593,10 +2640,42 @@ async function loadEngineeringStatus() {
   }
 }
 
+async function loadDesignStatus() {
+  try {
+    const resp = await fetch('design-status.json');
+    if (!resp.ok) return;
+    const s = await resp.json();
+
+    const prioritiesEl = document.getElementById('db-design-priorities');
+    const risksP0El = document.getElementById('db-design-risks-p0');
+    const founderEl = document.getElementById('db-design-founder-decisions');
+
+    if (prioritiesEl && s.priorities) renderPriorityRows(s.priorities, prioritiesEl);
+    if (risksP0El) renderRisksP0(s.risks_p0 ?? [], risksP0El);
+    if (founderEl) renderFounderDecisions(s.founder_decisions ?? [], founderEl);
+
+    const m = s.metrics ?? {};
+    const setMetric = (id, val) => {
+      const el = document.getElementById(id);
+      if (el && val != null && val !== '') el.textContent = val;
+    };
+    setMetric('db-design-metric-tokens', m.token_violations_open);
+    setMetric('db-design-metric-a11y', m.a11y_critical_open);
+    setMetric('db-design-metric-copilot', m.copilot_ux_charter);
+    const guideParts = [m.style_guide_last_touch, m.next_audit].filter(function (x) { return x != null && x !== ''; });
+    setMetric('db-design-metric-guide', guideParts.length ? guideParts.join(' · ') : '—');
+  } catch {
+    // Leave placeholder content in place
+  }
+}
+
 // ── Live data loader ─────────────────────────────
 async function loadDashboardData(dashId) {
   if (dashId === 'engineering') {
     loadEngineeringStatus();
+  }
+  if (dashId === 'design') {
+    loadDesignStatus();
   }
   try {
     const resp = await fetch('/api/dashboard-data');
@@ -2648,6 +2727,22 @@ async function loadDashboardData(dashId) {
     // API not available — leave placeholders
   }
 }
+
+// ── Panel collapse toggles ───────────────────────
+const mainEl   = document.querySelector('.main');
+const shellEl  = document.querySelector('.shell');
+
+document.getElementById('toggleAgentPanel').addEventListener('click', function() {
+  const collapsed = mainEl.classList.toggle('agent-collapsed');
+  this.textContent = collapsed ? '⟩' : '⟨';
+  this.title = collapsed ? 'Expand agent panel' : 'Collapse agent panel';
+});
+
+document.getElementById('togglePromptPanel').addEventListener('click', function() {
+  const collapsed = shellEl.classList.toggle('prompt-collapsed');
+  this.textContent = collapsed ? '⟨' : '⟩';
+  this.title = collapsed ? 'Expand prompt panel' : 'Collapse prompt panel';
+});
 
 // ── Init ────────────────────────────────────────
 selectDashboard('orchestration');
