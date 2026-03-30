@@ -1,0 +1,108 @@
+{
+  "_note": "Updated daily at noon by the strategy agent. Plain language — no jargon.",
+  "updated": "2026-03-30",
+  "priorities": [
+    {
+      "id": 1,
+      "title": "Establish our position as the go-to AI-native game dev tool before the window closes",
+      "status": "in-progress",
+      "risk": "high",
+      "note": "We have roughly 18 to 36 months before well-funded competitors crowd this space. The plan is to be the established name before that happens — not try to fight our way in after."
+    },
+    {
+      "id": 2,
+      "title": "Define what 'good enough to charge for' looks like for the AI room assistant",
+      "status": "paused",
+      "risk": "high",
+      "note": "We want to launch as a paid tool when the AI features are clearly better than anything else. No one has defined the bar yet. That needs to happen."
+    },
+    {
+      "id": 3,
+      "title": "Lock the scope of Ashen Hollow so it can actually be finished",
+      "status": "paused",
+      "risk": "high",
+      "note": "An unfinished game breaks the whole argument for the tools. We need a hard ceiling on what v1.0 of the game contains — biomes, rooms, mechanics — and a founder decision to commit to it."
+    },
+    {
+      "id": 4,
+      "title": "Plan the right time to release a desktop app version",
+      "status": "paused",
+      "risk": "low",
+      "note": "The browser-first approach is working. A desktop version comes after we've proven the web product, not before."
+    },
+    {
+      "id": 5,
+      "title": "Plan when to build an engine plugin for Godot",
+      "status": "paused",
+      "risk": "low",
+      "note": "Makes the tools much stickier with a real user base. A phase two move — only after the saved file format is stable and enough people are using the tools."
+    }
+  ],
+  "risks_p0": [],
+  "risks_p1": [
+    {
+      "title": "No one has defined what makes the AI assistant good enough to charge for",
+      "note": "Without a clear bar, the commercial launch keeps getting pushed back. This is a real risk of indefinite delay."
+    },
+    {
+      "title": "Ashen Hollow has no agreed scope ceiling",
+      "note": "Scope creep on the game is the most likely thing to break the whole strategy. A game that never ships proves nothing."
+    }
+  ],
+  "founder_decisions": [
+    {
+      "title": "What does the AI assistant need to do before we charge for it?",
+      "note": "What does 'clearly better than anything else' look like in practice? We need a measurable answer, not a feeling."
+    },
+    {
+      "title": "What's in Ashen Hollow v1.0 — and what isn't?",
+      "note": "How many biomes, rooms, and mechanics make a shippable first version? This needs a decision, not a roadmap."
+    }
+  ],
+  "risk_register": [
+    {
+      "assumption": "There's a real market for AI-native game development tools",
+      "risk_if_wrong": "Not enough people want this to build a business around it",
+      "monitor": "Watch for funded competitors entering the space — if they're coming, the market is real",
+      "status": "monitoring"
+    },
+    {
+      "assumption": "AI models will keep getting better at spatial tasks like room layout",
+      "risk_if_wrong": "The AI assistant stays a novelty rather than becoming genuinely useful",
+      "monitor": "Test each major new model release against room layout quality",
+      "status": "watch"
+    },
+    {
+      "assumption": "One person can finish Ashen Hollow",
+      "risk_if_wrong": "The game never ships, which breaks the proof that the tools work",
+      "monitor": "Quarterly scope reviews — ruthless about cutting",
+      "status": "watch"
+    },
+    {
+      "assumption": "A browser-based tool is good enough for serious pixel art work",
+      "risk_if_wrong": "Professional users hit a performance wall and leave",
+      "monitor": "Watch why users stop using the tool if and when that data exists",
+      "status": "monitoring"
+    },
+    {
+      "assumption": "No big company builds a competing all-in-one AI game dev tool before we establish ourselves",
+      "risk_if_wrong": "Adobe, Unity, or Epic enters the space and outspends us",
+      "monitor": "Check major player announcements each quarter",
+      "status": "monitoring"
+    }
+  ],
+  "metrics": {
+    "last_competitive_review": null,
+    "last_risk_register_review": "2026-03-30",
+    "last_quarterly_review": null,
+    "revenue_model": "Free to use, pay for AI features",
+    "ai_window_months_remaining": "18–36",
+    "flywheel_status": "Pre-launch"
+  },
+  "competitors": [
+    { "name": "Aseprite", "category": "Sprite tools", "threat": "low", "note": "Great pixel art editor but no level design, no AI, no full pipeline. Different ceiling." },
+    { "name": "LDtk", "category": "Level editors", "threat": "low", "note": "The best free level editor out there, but no sprite creation and no AI. Solves one piece of the puzzle." },
+    { "name": "Godot editor", "category": "Game engines", "threat": "med", "note": "Watch how its built-in tools improve. If they get good enough, some users won't need a separate tool." },
+    { "name": "AI-native tools (emerging)", "category": "Emerging", "threat": "high", "note": "No one has cracked integrated AI game dev tooling yet. The window to be first is 18 to 36 months. No new entrants spotted this quarter." }
+  ]
+}

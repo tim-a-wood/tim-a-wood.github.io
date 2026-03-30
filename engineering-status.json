@@ -1,55 +1,55 @@
 {
-  "_note": "Agent-maintained. Update statuses as priorities change. Dashboard reads this file directly.",
-  "updated": "2026-03-29",
+  "_note": "Updated daily at noon by the engineering agent. Plain language — no jargon.",
+  "updated": "2026-03-30",
   "schema_version": "v1.0",
   "priorities": [
     {
       "id": 1,
-      "title": "Room Editor: Production overhaul — Sprint 1",
+      "title": "Rebuilding the room editor — cleaner panels and easier entity selection",
       "status": "in-progress",
       "risk": "med",
-      "note": "Inspector panel rebuild, entity type system, workflow rail refinements"
+      "note": "The inspector side panel is being rebuilt from scratch. Entity types (platforms, doors, keys) are getting a proper system so they behave consistently."
     },
     {
       "id": 2,
-      "title": "AI Copilot: Gemini 2.5 spatial reasoning evaluation",
+      "title": "Testing whether a newer AI model does a better job placing things in rooms",
       "status": "paused",
       "risk": "low",
-      "note": "Monitor Gemini 2.5 benchmarks; current zone-based abstraction is stable"
+      "note": "The current AI room assistant works well enough. Waiting to see benchmark results before deciding whether to switch models."
     },
     {
       "id": 3,
-      "title": "Sprite Workbench: AI pipeline integration (Pixellab)",
+      "title": "Connecting the AI image generator to the sprite editor",
       "status": "in-progress",
       "risk": "med",
-      "note": "Backend connected; frontend generation flow in progress"
+      "note": "The server connection is working. The part where you actually generate sprites in the editor is still being built."
     },
     {
       "id": 4,
-      "title": "Export schema: Version field + validation layer",
+      "title": "Adding version numbers to saved room files",
       "status": "needs-review",
       "risk": "high",
-      "note": "No schema_version field on exported JSON — breaking change risk if schema evolves"
+      "note": "Right now saved files have no version label. If we change the format later, old files could break silently. This needs fixing before any more format changes."
     },
     {
       "id": 5,
-      "title": "Canvas performance: Dirty-rect audit on room editor",
+      "title": "Speed check on the room editor drawing",
       "status": "paused",
       "risk": "low",
-      "note": "Deferred until room editor core is stable"
+      "note": "Deferred until the room editor rebuild is stable."
     }
   ],
   "risks_p0": [],
   "risks_p1": [
     {
-      "title": "Export schema has no version field",
-      "note": "Any schema change will silently break game runtime. Versioning is P1 before next schema-touching feature."
+      "title": "Saved files have no version number",
+      "note": "If the room file format changes, old saved rooms could break without any warning. Needs to be fixed before the next format update ships."
     }
   ],
   "founder_decisions": [
     {
-      "title": "Gemini vs. Claude for room Copilot",
-      "note": "Gemini 2.5 spatial benchmarks may justify a model swap. Needs evaluation trigger decision: when to test?"
+      "title": "Which AI model should power the room assistant?",
+      "note": "A newer model may be significantly better at placing objects in rooms. We need to agree on when to run the test and what 'good enough to switch' looks like."
     }
   ]
 }

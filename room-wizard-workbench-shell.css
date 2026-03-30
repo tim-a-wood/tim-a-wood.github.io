@@ -1171,6 +1171,19 @@
   background: var(--panel-2);
 }
 
+.room-wizard-dock .rw-environment-asset-thumb-empty {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: var(--radius-default);
+  border: 1px dashed var(--line-strong);
+  background: var(--panel-2);
+  color: var(--warning);
+  font-size: var(--font-size-xs);
+  text-transform: capitalize;
+}
+
 .room-wizard-dock .rw-environment-asset-thumb span {
   color: var(--muted);
   font-size: var(--font-size-xs);

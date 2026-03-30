@@ -2342,42 +2342,148 @@ h3.os-chart-card-title {
       <div class="dashboard-view" data-dashboard-view="qa">
         <div class="db-view-header">
           <span class="db-view-icon">🔍</span>
-          <div><div class="db-view-title" style="color:#77b8ff">QA</div><div class="db-view-subtitle">Release gate, bug counts &amp; test coverage</div></div>
+          <div><div class="db-view-title" style="color:#77b8ff">QA</div><div class="db-view-subtitle">Release readiness, test health &amp; known issues</div></div>
         </div>
+
+        <!-- ── Release Gate ── -->
         <div class="db-section">
-          <div class="db-section-label">Release Gate</div>
-          <div class="db-gate db-gate--unknown">
-            <div class="db-gate-status">?</div>
+          <div class="db-section-label">Release gate</div>
+          <div class="db-gate db-gate--unknown" id="db-qa-gate">
+            <div class="db-gate-status" id="db-qa-gate-status">?</div>
             <div class="db-gate-info">
-              <div class="db-gate-label">Gate Status</div>
-              <div class="db-gate-desc">No QA report on file. Run QA · report to generate a release packet.</div>
+              <div class="db-gate-label" id="db-qa-gate-label">Loading…</div>
+              <div class="db-gate-desc" id="db-qa-gate-desc"></div>
             </div>
           </div>
         </div>
+
+        <!-- ── Priorities ── -->
         <div class="db-section">
-          <div class="db-section-label">Bug Counts</div>
+          <div class="db-section-label">Priorities</div>
+          <div class="db-priority-list" id="db-qa-priorities">
+            <div class="db-priority-row">
+              <span class="db-priority-rank">01</span>
+              <span class="db-priority-title">Loading…</span>
+              <span class="db-status-pill db-status-pill--paused">PAUSED</span>
+              <span class="db-priority-risk db-priority-risk--low">—</span>
+              <span class="db-priority-note"></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Risk Register ── -->
+        <div class="db-section">
+          <div class="db-section-label">Risk register</div>
+          <div class="db-risk-grid">
+            <div class="db-risk-panel">
+              <div class="db-risk-panel-label">BLOCKING ISSUES</div>
+              <div id="db-qa-risks-p0">
+                <div class="db-risk-clear"><span style="color:var(--good)">✓ No blockers</span></div>
+              </div>
+            </div>
+            <div class="db-risk-panel">
+              <div class="db-risk-panel-label">HIGH PRIORITY GAPS</div>
+              <div id="db-qa-risks-p1">
+                <div style="background:rgba(93,120,112,0.08);color:var(--muted);border-radius:var(--radius-md);padding:12px;font-size:var(--font-size-sm);font-weight:500;">Loading…</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Test suite health ── -->
+        <div class="db-section">
+          <div class="db-section-label">Test suite health</div>
+          <p style="color:var(--muted);font-size:var(--font-size-sm);margin:0 0 12px 0;max-width:820px">Updated daily from <span style="font-family:var(--font-mono)">qa-status.json</span>. Numbers reflect the last time tests were run manually or by the daily update.</p>
           <div class="db-grid">
-            <div class="db-card db-card--manual">
-              <div class="db-card-header"><div class="db-card-label">P0 Bugs</div><span class="db-tier db-tier--manual">MANUAL</span></div>
-              <div class="db-card-value db-card-value--muted">—</div>
-              <div class="db-card-sub">Release blockers</div>
+            <div class="db-card db-card--live">
+              <div class="db-card-header"><div class="db-card-label">Tests passing</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-value db-card-value--good" id="db-qa-tests-passing">—</div>
+              <div class="db-card-sub" id="db-qa-tests-sub">of — total</div>
+            </div>
+            <div class="db-card db-card--live">
+              <div class="db-card-header"><div class="db-card-label">Tests failing</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-value" id="db-qa-tests-failing">—</div>
+              <div class="db-card-sub">Should always be 0</div>
+            </div>
+            <div class="db-card db-card--live">
+              <div class="db-card-header"><div class="db-card-label">Broken test files</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-value" id="db-qa-broken-files">—</div>
+              <div class="db-card-sub">Files that can't even be loaded</div>
+            </div>
+            <div class="db-card db-card--live">
+              <div class="db-card-header"><div class="db-card-label">Last run</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-value db-card-value--muted" style="font-size:var(--font-size-sm);font-family:var(--font-sans)" id="db-qa-last-run">—</div>
+              <div class="db-card-sub">Date tests were last executed</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Bug counts ── -->
+        <div class="db-section">
+          <div class="db-section-label">Known bugs</div>
+          <div class="db-grid">
+            <div class="db-card db-card--live">
+              <div class="db-card-header"><div class="db-card-label">Complete blockers</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-value" id="db-qa-bugs-p0">—</div>
+              <div class="db-card-sub">Would prevent any release</div>
+            </div>
+            <div class="db-card db-card--live">
+              <div class="db-card-header"><div class="db-card-label">Serious bugs</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-value" id="db-qa-bugs-p1">—</div>
+              <div class="db-card-sub">Major feature broken; founder decides if acceptable</div>
+            </div>
+            <div class="db-card db-card--live">
+              <div class="db-card-header"><div class="db-card-label">Minor issues</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-value" id="db-qa-bugs-p2p3">—</div>
+              <div class="db-card-sub">Workable around; tracked for later</div>
+            </div>
+            <div class="db-card db-card--live">
+              <div class="db-card-header"><div class="db-card-label">Last bug triage</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-value db-card-value--muted" style="font-size:var(--font-size-sm);font-family:var(--font-sans)" id="db-qa-last-triage">—</div>
+              <div class="db-card-sub">Date bugs were last reviewed and categorised</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Coverage gaps ── -->
+        <div class="db-section">
+          <div class="db-section-label">What isn't tested yet</div>
+          <p style="color:var(--muted);font-size:var(--font-size-sm);margin:0 0 12px 0;max-width:820px">Areas of the tools with no automated safety net. High risk = a bug here could hurt real users without any warning.</p>
+          <div id="db-qa-coverage-gaps">
+            <div style="color:var(--muted);font-size:var(--font-size-sm);font-weight:500;padding:12px 0">Loading coverage gaps…</div>
+          </div>
+        </div>
+
+        <!-- ── Automated coverage capabilities ── -->
+        <div class="db-section">
+          <div class="db-section-label">Test automation status</div>
+          <div class="db-grid">
+            <div class="db-card db-card--live">
+              <div class="db-card-header"><div class="db-card-label">Automated browser tests</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-value" id="db-qa-has-e2e">—</div>
+              <div class="db-card-sub">Playwright end-to-end tests</div>
+            </div>
+            <div class="db-card db-card--live">
+              <div class="db-card-header"><div class="db-card-label">Visual regression tests</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-value" id="db-qa-has-visual">—</div>
+              <div class="db-card-sub">Screenshot comparison on canvas</div>
+            </div>
+            <div class="db-card db-card--live">
+              <div class="db-card-header"><div class="db-card-label">Acceptance tests written</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-value" id="db-qa-acceptance-count">—</div>
+              <div class="db-card-sub">Manual test cases documented</div>
             </div>
             <div class="db-card db-card--manual">
-              <div class="db-card-header"><div class="db-card-label">P1 Bugs</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-header"><div class="db-card-label">QA report</div><span class="db-tier db-tier--manual">MANUAL</span></div>
               <div class="db-card-value db-card-value--muted">—</div>
-              <div class="db-card-sub">High priority</div>
-            </div>
-            <div class="db-card db-card--manual">
-              <div class="db-card-header"><div class="db-card-label">Last QA Report</div><span class="db-tier db-tier--manual">MANUAL</span></div>
-              <div class="db-card-value db-card-value--muted">—</div>
+              <div class="db-card-sub">Run when a release is in flight</div>
               <button type="button" class="db-run-btn">Run QA · report →</button>
             </div>
-            <div class="db-card db-card--manual">
-              <div class="db-card-header"><div class="db-card-label">Test Coverage</div><span class="db-tier db-tier--manual">MANUAL</span></div>
-              <div class="db-card-value db-card-value--muted">—</div>
-              <button type="button" class="db-run-btn">Run QA · analyze →</button>
-            </div>
           </div>
+        </div>
+
+        <div class="db-qa-signpost">
+          <button type="button" class="db-qa-link" onclick="selectDashboard('engineering')">→ Engineering · what's being built</button>
         </div>
       </div>
 
@@ -3842,6 +3948,113 @@ async function loadMarketingStatus() {
   }
 }
 
+// ── QA status (qa-status.json) ──
+async function loadQaStatus() {
+  try {
+    const resp = await fetch('qa-status.json');
+    if (!resp.ok) return;
+    const s = await resp.json();
+
+    // Release gate
+    const GATE_MAP = {
+      'go':       { cls: 'db-gate--go',      symbol: '✓', labelDefault: 'Go for release' },
+      'no-go':    { cls: 'db-gate--blocked',  symbol: '✗', labelDefault: 'Not ready to ship' },
+      'not-ready':{ cls: 'db-gate--unknown',  symbol: '—', labelDefault: 'No release in flight' },
+    };
+    const gate = s.release_gate ?? {};
+    const gateConf = GATE_MAP[gate.status] ?? GATE_MAP['not-ready'];
+    const gateEl     = document.getElementById('db-qa-gate');
+    const gateStatus = document.getElementById('db-qa-gate-status');
+    const gateLabel  = document.getElementById('db-qa-gate-label');
+    const gateDesc   = document.getElementById('db-qa-gate-desc');
+    if (gateEl) { gateEl.className = 'db-gate ' + gateConf.cls; }
+    if (gateStatus) gateStatus.textContent = gateConf.symbol;
+    if (gateLabel)  gateLabel.textContent  = gate.label || gateConf.labelDefault;
+    if (gateDesc)   gateDesc.textContent   = gate.description || '';
+
+    // Priorities
+    const prioritiesEl = document.getElementById('db-qa-priorities');
+    if (prioritiesEl && s.priorities) renderPriorityRows(s.priorities, prioritiesEl);
+
+    // Risk panels
+    const risksP0El = document.getElementById('db-qa-risks-p0');
+    if (risksP0El) renderRisksP0(s.risks_p0 ?? [], risksP0El);
+
+    const risksP1El = document.getElementById('db-qa-risks-p1');
+    if (risksP1El) {
+      const p1 = s.risks_p1 ?? [];
+      if (p1.length === 0) {
+        risksP1El.innerHTML = '<div style="background:rgba(93,120,112,0.08);color:var(--muted);border-radius:var(--radius-md);padding:12px;font-size:var(--font-size-sm);font-weight:500;">✓ No high priority gaps</div>';
+      } else {
+        risksP1El.innerHTML = p1.map(r =>
+          '<div class="db-risk-row db-risk-row--p0">'
+          + '<div class="db-risk-row-title">' + escapeHtml(r.title) + '</div>'
+          + (r.note ? '<div class="db-risk-row-note">' + escapeHtml(r.note) + '</div>' : '')
+          + '</div>'
+        ).join('');
+      }
+    }
+
+    // Coverage gaps table
+    const gapsEl = document.getElementById('db-qa-coverage-gaps');
+    if (gapsEl && Array.isArray(s.coverage_gaps) && s.coverage_gaps.length > 0) {
+      const RISK_GAP_MAP = {
+        high: '<span class="db-assumption-badge db-assumption-badge--alert">High risk</span>',
+        med:  '<span class="db-assumption-badge db-assumption-badge--watch">Medium</span>',
+        low:  '<span class="db-assumption-badge db-assumption-badge--monitoring">Low</span>',
+      };
+      const rows = s.coverage_gaps.map(g => {
+        const badge = RISK_GAP_MAP[g.risk] ?? RISK_GAP_MAP.low;
+        return '<tr>'
+          + '<td class="db-assumption-col-status">' + badge + '</td>'
+          + '<td class="db-assumption-col-assumption">' + escapeHtml(g.area) + '</td>'
+          + '<td class="db-assumption-col-monitor">' + escapeHtml(g.gap) + '</td>'
+          + '</tr>';
+      }).join('');
+      gapsEl.innerHTML = '<table class="db-assumption-table"><thead><tr>'
+        + '<th class="db-assumption-col-status">Risk</th>'
+        + '<th class="db-assumption-col-assumption">Area</th>'
+        + '<th class="db-assumption-col-monitor">What\'s missing</th>'
+        + '</tr></thead><tbody>' + rows + '</tbody></table>';
+    }
+
+    // Test suite metrics
+    const m = s.metrics ?? {};
+    const ts = s.test_suite ?? {};
+    const setVal = (id, val, colorFn) => {
+      const el = document.getElementById(id);
+      if (!el || val == null) return;
+      el.textContent = String(val);
+      if (colorFn) { el.className = el.className.replace(/db-card-value--\w+/g, '').trim() + ' ' + colorFn(val); }
+    };
+
+    const passing = ts.js_pass != null && ts.py_pass != null ? ts.js_pass + ts.py_pass : (m.tests_passing ?? null);
+    const failing = ts.js_fail != null && ts.py_fail != null ? ts.js_fail + ts.py_fail : (m.tests_failing ?? null);
+    const total = m.total_tests ?? (passing != null ? passing : null);
+
+    setVal('db-qa-tests-passing', passing, v => v > 0 ? 'db-card-value--good' : '');
+    setVal('db-qa-tests-failing', failing, v => v > 0 ? 'db-card-value--error' : 'db-card-value--good');
+    const subEl = document.getElementById('db-qa-tests-sub');
+    if (subEl && total != null) subEl.textContent = 'of ' + total + ' total';
+
+    setVal('db-qa-broken-files', m.broken_test_files ?? ts.broken_collection, v => v > 0 ? 'db-card-value--warning' : 'db-card-value--good');
+    setVal('db-qa-last-run', ts.last_run ?? m.last_full_run);
+    setVal('db-qa-last-triage', s.bugs?.last_triage);
+
+    const bugs = s.bugs ?? {};
+    setVal('db-qa-bugs-p0', bugs.p0 ?? 0, v => v > 0 ? 'db-card-value--error' : 'db-card-value--good');
+    setVal('db-qa-bugs-p1', bugs.p1 ?? 0, v => v > 0 ? 'db-card-value--warning' : 'db-card-value--good');
+    const minor = (bugs.p2 ?? 0) + (bugs.p3 ?? 0);
+    setVal('db-qa-bugs-p2p3', minor, v => v > 0 ? 'db-card-value--muted' : 'db-card-value--good');
+
+    setVal('db-qa-has-e2e', m.has_e2e_tests ? 'Yes' : 'None yet', v => v === 'Yes' ? 'db-card-value--good' : 'db-card-value--warning');
+    setVal('db-qa-has-visual', m.has_visual_regression ? 'Yes' : 'None yet', v => v === 'Yes' ? 'db-card-value--good' : 'db-card-value--warning');
+    setVal('db-qa-acceptance-count', m.acceptance_tests_documented);
+  } catch(e) {
+    // Leave placeholder content in place
+  }
+}
+
 // ── Strategy status (strategy-status.json) ──
 async function loadStrategyStatus() {
   try {
@@ -4565,6 +4778,9 @@ async function loadDashboardData(dashId) {
   }
   if (dashId === 'marketing') {
     loadMarketingStatus();
+  }
+  if (dashId === 'qa') {
+    loadQaStatus();
   }
   if (dashId === 'strategy') {
     loadStrategyStatus();

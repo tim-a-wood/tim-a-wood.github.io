@@ -1,41 +1,41 @@
 {
-  "_note": "Design agent maintains this file. Dashboard reads it when you open the Design view.",
-  "updated": "2026-03-29",
+  "_note": "Updated daily at noon by the design agent. Plain language — no jargon.",
+  "updated": "2026-03-30",
   "priorities": [
     {
       "id": 1,
-      "title": "Room editor: mode clarity (place vs select) — cursor, rail, overlay",
+      "title": "Making it obvious whether you're placing or selecting things in the room editor",
       "status": "in-progress",
       "risk": "high",
-      "note": "Charter: mode errors corrupt layouts; toolbar highlight alone is insufficient"
+      "note": "Right now it's easy to accidentally move things when you meant to place new ones, or vice versa. This causes layouts to get corrupted. Fixing the visual cues so the current mode is always clear."
     },
     {
       "id": 2,
-      "title": "STYLE_GUIDE.md: motion + Copilot UI patterns referenced in agent prompts",
+      "title": "Writing down the rules for animations and AI panel behaviour",
       "status": "needs-review",
       "risk": "med",
-      "note": "Reduce LLM default transitions and generic AI UI in new PRs"
+      "note": "Without documented rules, things end up looking slightly different every time. Getting these written down prevents inconsistency creeping in."
     },
     {
       "id": 3,
-      "title": "Token audit pass: room-layout-editor + product-shell CSS",
+      "title": "Checking the tools for design inconsistencies — wrong colours, spacing, etc.",
       "status": "paused",
       "risk": "low",
-      "note": "Mechanical scan for hardcoded hex, off-grid spacing, forbidden radius"
+      "note": "A pass through the styles to find anything that doesn't follow the design system."
     },
     {
       "id": 4,
-      "title": "WCAG 2.2 AA + keyboard order on new inspector / modal flows",
+      "title": "Making sure everything works with a keyboard and meets accessibility standards",
       "status": "in-progress",
       "risk": "med",
-      "note": "Focus trap, visible :focus-visible, 44px targets on standard controls"
+      "note": "Focus order, keyboard navigation, and visible focus rings on all the new panels being built in the room editor."
     },
     {
       "id": 5,
-      "title": "Visual regression baseline (Playwright + pixelmatch) for canvas tools",
+      "title": "Automated screenshots to catch accidental visual regressions",
       "status": "paused",
       "risk": "low",
-      "note": "Charter: deterministic pixel compares require image-rendering: pixelated"
+      "note": "Would let us catch visual breakage automatically. Low priority until the tool is more stable."
     }
   ],
   "risks_p0": [],
@@ -44,7 +44,7 @@
     "token_violations_open": "—",
     "a11y_critical_open": "—",
     "copilot_ux_charter": "Review on change",
-    "style_guide_last_touch": "See repo",
-    "next_audit": "On demand / Q2"
+    "style_guide_last_touch": "2026-03-27",
+    "next_audit": "Next quarter"
   }
 }

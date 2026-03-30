@@ -1,0 +1,113 @@
+{
+  "_note": "Updated daily at noon by the QA agent. Plain language — no jargon.",
+  "updated": "2026-03-30",
+  "schema_version": "v1.0",
+  "release_gate": {
+    "status": "not-ready",
+    "label": "No release in flight",
+    "description": "Tools are in active development. No public release is being prepared right now, so the release gate is not formally open. When a release is in flight, this will show a clear go or no-go."
+  },
+  "bugs": {
+    "p0": 0,
+    "p1": 0,
+    "p2": 0,
+    "p3": 0,
+    "last_triage": "2026-03-30",
+    "open_items": []
+  },
+  "test_suite": {
+    "js_pass": 7,
+    "js_fail": 0,
+    "py_pass": 162,
+    "py_fail": 0,
+    "broken_collection": 1,
+    "last_run": "2026-03-30",
+    "notes": "All runnable tests passing. One test file can't be run due to a missing module path — it exists but the test runner can't find the code it's testing."
+  },
+  "coverage_gaps": [
+    {
+      "area": "Room editor — placing and moving things on the canvas",
+      "gap": "No automated tests for the actual canvas interaction. If drag-and-drop placement breaks, nothing will catch it automatically.",
+      "risk": "high"
+    },
+    {
+      "area": "Saving and loading rooms",
+      "gap": "No test that a saved room opens back to exactly the same state it was saved in. This is the most important thing to get right for game production.",
+      "risk": "high"
+    },
+    {
+      "area": "The AI room assistant (Copilot)",
+      "gap": "No test that an AI suggestion, once accepted, actually updates the room correctly. We're trusting this works without checking.",
+      "risk": "high"
+    },
+    {
+      "area": "Cross-browser (Firefox and Safari)",
+      "gap": "Everything is tested on Chrome. The canvas drawing code can behave differently in Safari and Firefox. We haven't checked.",
+      "risk": "med"
+    },
+    {
+      "area": "Visual appearance of the tools",
+      "gap": "No screenshot comparison tests. A visual change to a button or panel won't be caught automatically.",
+      "risk": "low"
+    }
+  ],
+  "priorities": [
+    {
+      "id": 1,
+      "title": "Fix the one test file that can't run — the room environment tests",
+      "status": "needs-review",
+      "risk": "med",
+      "note": "One test file exists but fails to load because the code it's testing isn't being found. The tests may be perfectly good — they just need a path fix to run."
+    },
+    {
+      "id": 2,
+      "title": "Write a save/load round-trip test — save a room, reload it, confirm nothing changed",
+      "status": "paused",
+      "risk": "high",
+      "note": "This is the single most valuable test we could add. If a room saves and reloads identically every time, we know the most critical production path is solid."
+    },
+    {
+      "id": 3,
+      "title": "Test the AI room assistant end to end — ask it to generate, accept the result, check the room",
+      "status": "paused",
+      "risk": "high",
+      "note": "The AI Copilot is a key feature and nothing currently checks that accepting a suggestion actually does what it should. Needs to be automated before any release."
+    },
+    {
+      "id": 4,
+      "title": "Check the tools work properly in Safari and Firefox",
+      "status": "paused",
+      "risk": "med",
+      "note": "Canvas drawing behaves slightly differently between browsers. Before any public release we need to confirm the tools work in all three major browsers."
+    },
+    {
+      "id": 5,
+      "title": "Set up a basic automated browser test to run before each release",
+      "status": "paused",
+      "risk": "low",
+      "note": "Currently all browser testing is manual. A small set of automated 'open the tool and check it loads' tests would catch the worst regressions instantly."
+    }
+  ],
+  "risks_p0": [],
+  "risks_p1": [
+    {
+      "title": "Saving and loading rooms has no automated safety net",
+      "note": "A bug in room saving could corrupt work silently. This is the highest-value test gap to close."
+    },
+    {
+      "title": "AI Copilot accept flow is untested",
+      "note": "We can't confidently release the AI room assistant without a test that confirms the accept/apply path works end to end."
+    }
+  ],
+  "founder_decisions": [],
+  "metrics": {
+    "total_tests": 169,
+    "tests_passing": 169,
+    "tests_failing": 0,
+    "broken_test_files": 1,
+    "has_e2e_tests": false,
+    "has_visual_regression": false,
+    "last_full_run": "2026-03-30",
+    "acceptance_tests_documented": 9
+  }
+}

@@ -90,7 +90,23 @@
       "Bash(python3 scripts/send_weekly_digest.py --file artifacts/analytics-opportunities-2026-03-28.md)",
       "Bash(chmod +x /Users/timwood/Desktop/projects/PWA/MV/scripts/daily_product_report.sh)",
       "Bash(/Users/timwood/Desktop/projects/PWA/MV/scripts/daily_product_report.sh)",
-      "Bash(grep -n \"use_reloader\\\\|debug\\\\|livereload\\\\|auto_reload\" tools/2d-sprite-and-animation/app/*.py sprite_workbench_server.py)"
+      "Bash(grep -n \"use_reloader\\\\|debug\\\\|livereload\\\\|auto_reload\" tools/2d-sprite-and-animation/app/*.py sprite_workbench_server.py)",
+      "Bash(ls /Users/timwood/Desktop/projects/PWA/MV/*.html /Users/timwood/Desktop/projects/PWA/MV/*.py)",
+      "Bash(ls /Users/timwood/Desktop/projects/PWA/MV/*.html)",
+      "Bash(ls /Users/timwood/Desktop/projects/PWA/MV/*status*.json /Users/timwood/Desktop/projects/PWA/MV/*orchestrat*.json)",
+      "Bash(ls /Users/timwood/Desktop/projects/PWA/MV/*status*.json)",
+      "Bash(pkill -f os_dashboard_supervisor.py)",
+      "Bash(chmod +x /Users/timwood/Desktop/projects/PWA/MV/scripts/update_dashboards.sh)",
+      "Bash(kill 24786)",
+      "Bash(pkill -f update_dashboards.sh)",
+      "Bash(ls /Users/timwood/Desktop/projects/PWA/MV/tests/*.py)",
+      "Bash(echo none:*)",
+      "Bash(node --test tests/room-editor-export.test.js tests/game-logic.test.js tests/room-wizard-footprint.test.js tests/room-wizard-terrain.test.js tests/room-wizard-neighbor-align.test.js tests/room-wizard-environment.test.js)",
+      "Bash(python3 -m pytest tests/room_environment_system.test.py tests/test_sprite_workbench.py tests/test_sprite_workbench_surface.py tests/test_project_asset_path_encoding.py -q)",
+      "Bash(python3 -m pytest tests/test_sprite_workbench.py tests/test_sprite_workbench_surface.py tests/test_project_asset_path_encoding.py tests/test_ashen_hollow_runtime_manifest.py -q)",
+      "Bash(python3 -m pytest tests/room_environment_system.test.py -q)",
+      "Bash(node --test tests/room-wizard-environment-copilot.test.js)",
+      "Bash(node -e \":*)"
     ],
     "additionalDirectories": [
       "/Users/timwood/.claude/skills"

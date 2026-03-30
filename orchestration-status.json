@@ -1,76 +1,76 @@
 {
-  "_note": "Orchestrator-maintained. Synthesized by analyzing specialist priorities from engineering-status.json and design-status.json. Update when specialist priorities change or on weekly review. Rows with source \"design\" are execution-owned by the design agent (see design-status.json); \"eng\" by engineering. Cross-cutting items may split work across both charters.",
-  "updated": "2026-03-29",
+  "_note": "Updated daily at noon by the orchestrator. Synthesised from all agent statuses. Plain language — no jargon.",
+  "updated": "2026-03-30",
   "schema_version": "v1.0",
   "synthesis_sources": ["engineering-status.json", "design-status.json"],
   "priorities": [
     {
       "id": 1,
       "source": "eng+design",
-      "title": "Room Editor Sprint 1: inspector rebuild + mode clarity (cursor, rail, overlay)",
+      "title": "Room editor overhaul — new inspector panel and fixing confusing mode switching",
       "status": "in-progress",
       "risk": "high",
-      "note": "Cross-agent P1 — Eng: inspector panel + entity type system; Design: place-vs-select mode errors corrupt layouts. Must land together."
+      "note": "Engineering and design are working on this together. Engineering is rebuilding the side panel; design is fixing the place-vs-select confusion. These need to land at the same time."
     },
     {
       "id": 2,
       "source": "eng",
-      "title": "Export schema: version field + validation layer before next schema-touching feature",
+      "title": "Adding version numbers to saved room files — must happen before any format changes",
       "status": "needs-review",
       "risk": "high",
-      "note": "Unversioned exports are a silent breaking-change risk. Founder decision required: greenlight before any further schema work."
+      "note": "Without version numbers, any change to how rooms are saved could silently break old files. Needs founder sign-off to proceed."
     },
     {
       "id": 3,
       "source": "eng",
-      "title": "Sprite Workbench: AI pipeline integration (Pixellab) — frontend generation flow",
+      "title": "Connecting the AI image generator to the sprite editor",
       "status": "in-progress",
       "risk": "med",
-      "note": "Backend connected; frontend flow in progress. Core differentiator for the workbench value prop."
+      "note": "The server side is done. The editor interface for generating sprites is still being built."
     },
     {
       "id": 4,
       "source": "design",
-      "title": "STYLE_GUIDE: motion + Copilot UI patterns — add to agent prompt references",
+      "title": "Writing down the animation and AI panel rules so all tools stay consistent",
       "status": "needs-review",
       "risk": "med",
-      "note": "Prevents LLM-default transitions and generic AI UI from shipping in new PRs. Low effort, high leverage."
+      "note": "Without these documented, every new feature risks looking slightly different from the last. Quick win with high ongoing value."
     },
     {
       "id": 5,
       "source": "design",
-      "title": "WCAG 2.2 AA + keyboard order on new inspector and modal flows",
+      "title": "Accessibility pass on the new inspector and side panels",
       "status": "in-progress",
       "risk": "med",
-      "note": "Focus trap, :focus-visible, 44px targets. Linked to Room Editor sprint — review accessibility as inspector lands."
+      "note": "Keyboard navigation and visible focus states on everything being built in the room editor."
     },
     {
       "id": 6,
       "source": "eng",
-      "title": "AI Copilot: Gemini 2.5 spatial reasoning evaluation (trigger decision)",
+      "title": "Decide when to test the newer AI model for room layout suggestions",
       "status": "paused",
       "risk": "low",
-      "note": "Founder decision needed: define the trigger criteria for starting the Gemini 2.5 evaluation."
+      "note": "A newer model may be meaningfully better. We need a founder decision on when to run the test."
     }
   ],
   "risks_p0": [],
   "risks_p1": [
     {
-      "title": "Export schema has no version field",
+      "title": "Saved room files have no version number",
       "source": "eng",
-      "note": "Any schema change will silently break game runtime. Versioning is P1 before next schema-touching feature."
+      "note": "Any change to the room format could silently break old saves. Needs fixing before the next format change ships."
     }
   ],
   "founder_decisions": [
     {
-      "title": "Export schema versioning — greenlight before next schema-touching feature",
+      "title": "Sign off on adding version numbers to saved room files",
       "source": "eng",
-      "note": "Blocks: room editor entity type additions, any future schema evolution."
+      "note": "This blocks room editor entity additions and any future format changes."
     },
     {
-      "title": "Gemini vs. Claude for room Copilot — define evaluation trigger criteria",
+      "title": "When should we test the newer AI room assistant model?",
       "source": "eng",
-      "note": "When should the team start the Gemini 2.5 spatial benchmarks? Time-boxed evaluation needed."
+      "note": "We need a time-boxed evaluation. When should it happen, and what does 'good enough to switch' look like?"
     }
   ]
 }

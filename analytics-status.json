@@ -1,42 +1,42 @@
 {
-  "_note": "Analytics agent maintains this file. Dashboard reads it when you open the Analytics view.",
-  "updated": "2026-03-29",
+  "_note": "Updated daily at noon by the analytics agent. Plain language — no jargon.",
+  "updated": "2026-03-30",
   "schema_version": "v1.0",
   "priorities": [
     {
       "id": 1,
-      "title": "Wire Copilot accept / revise / discard events from Room editor",
+      "title": "Track whether the AI's room suggestions are actually helpful — accept, tweak, or reject",
       "status": "in-progress",
       "risk": "high",
-      "note": "Ledger records API calls only; UX outcomes need explicit instrumentation + schema"
+      "note": "We can count how many times the AI is asked to generate a room, but we have no way to tell if the result was good. Until we can see whether designers accept, adjust, or throw away those suggestions, we're flying blind on quality."
     },
     {
       "id": 2,
-      "title": "North Star: rooms exported per active user per month (post-launch)",
+      "title": "Measure the one number that matters most: how many finished rooms each user produces per month",
       "status": "paused",
       "risk": "low",
-      "note": "Blocked on external users and export telemetry"
+      "note": "There are no external users yet, so this number would be zero. We'll start tracking it properly at the first public release."
     },
     {
       "id": 3,
-      "title": "Weekly rollup job for ledger → dashboard (optional hardening)",
-      "status": "needs-review",
+      "title": "Automate the daily dashboard refresh so it runs without anyone pressing a button",
+      "status": "done",
       "risk": "low",
-      "note": "Current: on-demand rollups in workbench_persistence.summarize_usage_ledger_charts"
+      "note": "The automated system went live today. Every dashboard — including this one — now updates itself each day at noon. No manual work required."
     },
     {
       "id": 4,
-      "title": "Disclosure copy for any user-identifiable analytics",
+      "title": "Write clear privacy notices before we start tracking individual user behaviour",
       "status": "paused",
       "risk": "med",
-      "note": "Coordinate with Legal before shipping product analytics"
+      "note": "We can't track what specific people do until we tell them we're doing it and get their agreement. Legal needs to sign off first. On hold until that conversation happens."
     },
     {
       "id": 5,
-      "title": "PostHog or self-hosted event pipeline evaluation",
+      "title": "Choose a privacy-respecting analytics service for when the tool goes public",
       "status": "paused",
       "risk": "low",
-      "note": "Pre-launch: ledger-first; revisit at first external release"
+      "note": "Not needed before launch. We'll revisit this when the first external release is close."
     }
   ],
   "risks_p0": [],

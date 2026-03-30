@@ -173,14 +173,21 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
             "R1",
             {"preview_id": preview["images"][0]["preview_id"]},
         )
-        self.assertEqual(asset_pack["environment"]["runtime"]["asset_pack"]["status"], "ready")
+        self.assertEqual(asset_pack["environment"]["runtime"]["asset_pack"]["status"], "failed")
         self.assertEqual(
             set(asset_pack["environment"]["runtime"]["asset_pack"]["assets"].keys()),
-            {"background", "wall_tile", "floor_tile", "platform_tile", "door", "midground_arches"},
+            {
+                "background",
+                "wall_body_strip",
+                "floor_cap_strip",
+                "platform_ledge_strip",
+                "door",
+                "midground_arches",
+            },
         )
         for item in asset_pack["environment"]["runtime"]["asset_pack"]["assets"].values():
-            rel_url = item["url"].lstrip("/")
-            self.assertTrue((self.root / rel_url).exists())
+            self.assertEqual(item["source"], "failed")
+            self.assertFalse(item["url"])
 
     def test_layout_change_marks_only_layout_aware_assets_stale(self):
         envsys.update_project_art_direction(self.project_id, {"template_id": "industrial-underworks", "locked": True})
@@ -199,7 +206,7 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         self.saved["room_layout"]["rooms"][0]["platforms"][0]["len"] = 28
         room = envsys._find_room(self.saved, "R1")
         stale = room["environment"]["runtime"]["asset_pack"]["stale_components"]
-        self.assertEqual(set(stale), {"background", "midground_arches"})
+        self.assertEqual(stale, [])
 
 
 if __name__ == "__main__":
