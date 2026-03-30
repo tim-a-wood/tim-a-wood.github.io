@@ -281,10 +281,10 @@ body::before {
 .main {
   grid-area: main;
   overflow: hidden;
-  padding: var(--space-4);
+  padding: var(--space-3) var(--space-4);
   display: grid;
-  grid-template-columns: 1fr minmax(300px, 440px);
-  gap: var(--space-4);
+  grid-template-columns: 1fr minmax(220px, 280px);
+  gap: var(--space-3);
   transition: grid-template-columns 200ms ease;
 }
 .main.side-collapsed {
@@ -323,8 +323,8 @@ body::before {
 .side-panel-flow {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
-  padding: var(--space-4);
+  gap: var(--space-2);
+  padding: var(--space-3);
   overflow-y: auto;
   min-height: 0;
   flex-shrink: 0;
@@ -359,7 +359,7 @@ body::before {
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--muted);
-  margin-bottom: var(--space-2);
+  margin-bottom: var(--space-1);
   display: flex;
   align-items: center;
   gap: var(--space-2);
@@ -489,11 +489,11 @@ body::before {
 .task-textarea {
   width: 100%;
   flex: 1;
-  min-height: 80px;
+  min-height: 64px;
   background: var(--panel-2);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-card);
-  padding: var(--space-3) var(--space-4);
+  padding: var(--space-2) var(--space-3);
   color: var(--text);
   font-family: var(--font-sans);
   font-size: var(--font-size-sm);
@@ -536,7 +536,7 @@ body::before {
 
 /* ─── PROMPT OUTPUT (lower half of side panel) ─── */
 .output-header {
-  padding: var(--space-4) var(--space-5);
+  padding: var(--space-3) var(--space-3);
   border-bottom: 1px solid var(--line);
   display: flex;
   align-items: center;
@@ -553,13 +553,13 @@ body::before {
 }
 
 .output-refs {
-  padding: var(--space-3) var(--space-5);
+  padding: var(--space-2) var(--space-3);
   border-bottom: 1px solid var(--line);
   display: flex;
   flex-direction: column;
   gap: var(--space-1);
   flex-shrink: 0;
-  min-height: 52px;
+  min-height: 44px;
 }
 
 .ref-chip {
@@ -579,7 +579,7 @@ body::before {
 .output-body {
   flex: 1;
   overflow-y: auto;
-  padding: var(--space-4) var(--space-5);
+  padding: var(--space-3);
 }
 
 .output-body::-webkit-scrollbar { width: 4px; }
@@ -600,12 +600,12 @@ body::before {
   font-size: var(--font-size-sm);
   color: var(--muted);
   text-align: center;
-  padding: var(--space-7) var(--space-5);
+  padding: var(--space-5) var(--space-3);
   line-height: 1.6;
 }
 
 .output-footer {
-  padding: var(--space-4) var(--space-5);
+  padding: var(--space-3);
   border-top: 1px solid var(--line);
   display: flex;
   flex-direction: column;
@@ -774,10 +774,10 @@ body::before {
 .dashboard-view {
   display: none;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--space-3);
   height: 100%;
   overflow-y: auto;
-  padding-bottom: var(--space-4);
+  padding-bottom: var(--space-2);
 }
 .dashboard-view.active { display: flex; }
 .dashboard-view::-webkit-scrollbar { width: 4px; }
@@ -789,13 +789,13 @@ body::before {
   align-items: center;
   gap: var(--space-3);
   flex-shrink: 0;
-  padding-bottom: var(--space-3);
+  padding-bottom: var(--space-2);
   border-bottom: 1px solid var(--line);
 }
-.db-view-icon { font-size: 20px; line-height: 1; }
+.db-view-icon { font-size: var(--font-size-lg); line-height: 1; }
 .db-view-title {
   font-family: var(--font-display);
-  font-size: 20px;
+  font-size: var(--font-size-lg);
   letter-spacing: 0.06em;
   color: var(--text);
   line-height: 1;
@@ -811,14 +811,14 @@ body::before {
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--muted);
-  padding-bottom: 6px;
+  padding-bottom: var(--space-1);
   border-bottom: 1px solid var(--line);
 }
 
 /* ─── METRIC CARDS ───────────────────────────────── */
 .db-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(124px, 1fr));
   gap: var(--space-2);
 }
 
@@ -827,11 +827,11 @@ body::before {
   border: 1px solid var(--border);
   border-left: 3px solid var(--muted);
   border-radius: var(--radius-md);
-  padding: 10px var(--space-3);
+  padding: 8px var(--space-3);
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  min-height: 80px;
+  gap: var(--space-1);
+  min-height: 68px;
 }
 .db-card--live        { border-left-color: var(--accent); }
 .db-card--manual      { border-left-color: var(--warning); }
@@ -879,9 +879,9 @@ body::before {
 .db-priority-row {
   display: grid;
   align-items: center;
-  column-gap: var(--space-3);
+  column-gap: var(--space-2);
   row-gap: var(--space-1);
-  padding: var(--space-3) 0;
+  padding: var(--space-2) 0;
   border-bottom: 1px solid var(--line);
 }
 .db-priority-row:last-child {
@@ -983,14 +983,14 @@ body::before {
 .db-risk-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: var(--space-4);
+  gap: var(--space-3);
 }
 .db-risk-panel {
   background: var(--panel-soft);
   border: 1px solid var(--border);
   border-radius: var(--radius-card);
-  padding: var(--space-4);
-  min-height: 72px;
+  padding: var(--space-3);
+  min-height: 64px;
 }
 .db-risk-panel-label {
   font-family: var(--font-mono);
@@ -998,7 +998,7 @@ body::before {
   font-weight: 700;
   letter-spacing: 0.08em;
   color: var(--muted);
-  margin-bottom: var(--space-3);
+  margin-bottom: var(--space-2);
   text-transform: uppercase;
 }
 .db-risk-clear {
@@ -1080,7 +1080,7 @@ body::before {
 /* ─── Global workbench bar (all dashboards) ─ */
 .global-workbench-bar {
   flex-shrink: 0;
-  padding: var(--space-3) var(--surface-pad);
+  padding: var(--space-2) var(--surface-pad);
   border-bottom: 1px solid var(--line);
   background: rgba(255, 255, 255, 0.02);
 }
