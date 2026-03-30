@@ -268,6 +268,11 @@ body::before {
   min-height: 0;
   overflow: hidden;
 }
+.main-left-views {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
 
 .main-right {
   display: flex;
@@ -978,24 +983,42 @@ body::before {
 }
 .db-run-btn:hover { opacity: 1; }
 
-/* ─── Engineering: workbench supervisor (Agent OS server) ─ */
-.db-os-workbench-panel {
-  margin-top: var(--space-3);
-  padding-top: var(--space-3);
-  border-top: 1px solid var(--line);
+/* ─── Global workbench bar (all dashboards) ─ */
+.global-workbench-bar {
+  flex-shrink: 0;
+  padding: var(--space-3) var(--surface-pad);
+  border-bottom: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.02);
+}
+.global-wb-inner {
   display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
 }
-.db-os-workbench-panel[hidden] {
-  display: none !important;
+.global-wb-label {
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
 }
-.db-os-workbench-actions {
+.global-wb-status {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+  color: var(--text);
+  flex: 1;
+  min-width: 140px;
+}
+.global-wb-status--run { color: var(--good); }
+.global-wb-status--off { color: var(--warning); }
+.global-wb-status--na { color: var(--muted); }
+.global-wb-actions {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2);
 }
-.db-os-wb-btn {
+.global-wb-btn {
   min-height: 44px;
   padding: 10px 12px;
   border-radius: var(--radius-tight);
@@ -1008,49 +1031,28 @@ body::before {
   cursor: pointer;
   transition: background 200ms ease, border-color 200ms ease, color 200ms ease, transform 200ms ease;
 }
-.db-os-wb-btn:hover:not(:disabled) {
+.global-wb-btn:hover:not(:disabled) {
   border-color: var(--line-strong);
   background: rgba(255, 255, 255, 0.08);
   transform: translateY(-1px);
 }
-.db-os-wb-btn:active:not(:disabled) {
+.global-wb-btn:active:not(:disabled) {
   border-color: var(--accent);
   background: rgba(0, 232, 200, 0.12);
   transform: translateY(0);
 }
-.db-os-wb-btn:disabled {
+.global-wb-btn:disabled {
   opacity: 0.45;
   cursor: not-allowed;
   pointer-events: none;
 }
-.db-os-wb-btn--danger:hover:not(:disabled) {
+.global-wb-btn--danger:hover:not(:disabled) {
   border-color: var(--error);
   background: var(--error-soft);
   color: var(--error);
 }
-.db-os-wb-token-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-  align-items: center;
-}
-.db-os-wb-token-row input {
-  flex: 1;
-  min-width: 160px;
-  min-height: 44px;
-  padding: 10px 12px;
-  border-radius: var(--radius-tight);
-  border: 1px solid var(--line);
-  background: rgba(255, 255, 255, 0.04);
-  color: var(--text);
-  font-family: var(--font-mono);
-  font-size: var(--font-size-xs);
-}
-.db-os-wb-token-row input:focus-visible {
-  outline: 2px solid rgba(0, 232, 200, 0.35);
-  outline-offset: 2px;
-}
-.db-os-wb-msg {
+.global-wb-hint {
+  margin: var(--space-2) 0 0;
   font-size: var(--font-size-xs);
   color: var(--muted);
   line-height: 1.4;
@@ -1280,6 +1282,21 @@ body::before {
 
     <div class="main-left">
 
+      <div id="global-workbench-bar" class="global-workbench-bar" aria-label="Sprite Workbench server">
+        <div class="global-wb-inner">
+          <span class="global-wb-label">Workbench server</span>
+          <span id="global-wb-status" class="global-wb-status">—</span>
+          <div class="global-wb-actions">
+            <button type="button" class="global-wb-btn" id="global-wb-start">Start</button>
+            <button type="button" class="global-wb-btn" id="global-wb-restart">Restart</button>
+            <button type="button" class="global-wb-btn global-wb-btn--danger" id="global-wb-stop">Stop</button>
+          </div>
+        </div>
+        <p id="global-wb-hint" class="global-wb-hint"></p>
+      </div>
+
+      <div class="main-left-views">
+
       <!-- ── ORCHESTRATION DASHBOARD ─────────────────────────── -->
       <div class="dashboard-view active" data-dashboard-view="orchestration">
         <div class="db-view-header">
@@ -1443,19 +1460,7 @@ body::before {
             <div class="db-card db-card--live">
               <div class="db-card-header"><div class="db-card-label">Workbench Server</div><span class="db-tier db-tier--live">LIVE</span></div>
               <div class="db-card-value" id="db-eng-server">—</div>
-              <div class="db-card-sub" id="db-eng-server-detail">127.0.0.1:8766 · sprite_workbench_server.py</div>
-              <div id="db-os-workbench-panel" class="db-os-workbench-panel" hidden>
-                <div class="db-os-workbench-actions">
-                  <button type="button" class="db-os-wb-btn" id="db-os-wb-start">Start</button>
-                  <button type="button" class="db-os-wb-btn" id="db-os-wb-restart">Restart</button>
-                  <button type="button" class="db-os-wb-btn db-os-wb-btn--danger" id="db-os-wb-stop">Stop</button>
-                </div>
-                <div class="db-os-wb-token-row">
-                  <input type="password" id="db-os-wb-token-input" autocomplete="off" placeholder="Supervisor token (session)" aria-label="Supervisor token for this session">
-                  <button type="button" class="db-os-wb-btn" id="db-os-wb-token-save">Save token</button>
-                </div>
-                <p class="db-os-wb-msg" id="db-os-wb-msg">Open this dashboard via <span style="font-family:var(--font-mono)">python3 scripts/os_dashboard_supervisor.py</span> · set <span style="font-family:var(--font-mono)">OS_DASHBOARD_SUPERVISOR_TOKEN</span> in <span style="font-family:var(--font-mono)">.env.local</span></p>
-              </div>
+              <div class="db-card-sub">127.0.0.1:8766 · sprite_workbench_server.py</div>
             </div>
             <div class="db-card db-card--live">
               <div class="db-card-header"><div class="db-card-label">Pixellab API Key</div><span class="db-tier db-tier--live">LIVE</span></div>
@@ -2077,6 +2082,8 @@ body::before {
           </div>
         </div>
       </div>
+
+      </div><!-- /.main-left-views -->
 
     </div><!-- /.main-left -->
 
@@ -2759,60 +2766,65 @@ async function loadDesignStatus() {
   }
 }
 
-// ── Agent OS supervisor (local) — workbench start/stop/restart ──
-const OS_SUPERVISOR_TOKEN_KEY = 'osDashboardSupervisorToken';
-
-async function initEngineeringWorkbenchControls() {
-  const panel = document.getElementById('db-os-workbench-panel');
-  const msg = document.getElementById('db-os-wb-msg');
-  if (!panel) return;
-  try {
-    const r = await fetch('/api/os/supervisor-config');
-    if (!r.ok) {
-      panel.hidden = true;
-      return;
+// ── Global workbench bar (local Agent OS server runs the script) ──
+function applyGlobalWorkbenchBar(d) {
+  const statusEl = document.getElementById('global-wb-status');
+  const hintEl = document.getElementById('global-wb-hint');
+  const startBtn = document.getElementById('global-wb-start');
+  const restartBtn = document.getElementById('global-wb-restart');
+  const stopBtn = document.getElementById('global-wb-stop');
+  const setBtns = (on) => {
+    if (startBtn) startBtn.disabled = !on;
+    if (restartBtn) restartBtn.disabled = !on;
+    if (stopBtn) stopBtn.disabled = !on;
+  };
+  if (!statusEl) return;
+  if (d && d.supervisor === true) {
+    const host = d.workbench_host || '127.0.0.1';
+    const port = d.workbench_port != null ? d.workbench_port : 8766;
+    if (d.workbench_server_running) {
+      let line = '● Running · ' + host + ':' + port;
+      if (d.workbench_pid) line += ' · PID ' + d.workbench_pid;
+      statusEl.textContent = line;
+      statusEl.className = 'global-wb-status global-wb-status--run';
+    } else {
+      statusEl.textContent = '○ Offline · ' + host + ':' + port;
+      statusEl.className = 'global-wb-status global-wb-status--off';
     }
-    const c = await r.json();
-    if (!c.supervisor) {
-      panel.hidden = true;
-      return;
+    if (hintEl) {
+      hintEl.textContent = 'Buttons call the local helper (same origin). Runs sprite_workbench_server.py with your .env.local.';
     }
-    panel.hidden = false;
-    const hasSessionToken = !!sessionStorage.getItem(OS_SUPERVISOR_TOKEN_KEY);
-    const startBtn = document.getElementById('db-os-wb-start');
-    const restartBtn = document.getElementById('db-os-wb-restart');
-    const stopBtn = document.getElementById('db-os-wb-stop');
-    const canPost = !!c.token_configured && hasSessionToken;
-    if (startBtn) startBtn.disabled = !canPost;
-    if (restartBtn) restartBtn.disabled = !canPost;
-    if (stopBtn) stopBtn.disabled = !canPost;
-    if (msg) {
-      if (!c.token_configured) {
-        msg.textContent = 'Add OS_DASHBOARD_SUPERVISOR_TOKEN to .env.local and restart the supervisor to enable Start, Restart, and Stop.';
-      } else if (!hasSessionToken) {
-        msg.textContent = 'Paste the same token and click Save token (stored in this tab only).';
-      } else {
-        msg.textContent = 'Controls apply to the workbench at ' + (c.workbench_host || '127.0.0.1') + ':' + c.workbench_port + '.';
-      }
+    setBtns(true);
+  } else {
+    statusEl.textContent = 'Not connected';
+    statusEl.className = 'global-wb-status global-wb-status--na';
+    if (hintEl) {
+      hintEl.innerHTML = 'Start the dashboard server: <span style="font-family:var(--font-mono)">python3 scripts/os_dashboard_supervisor.py</span> or <span style="font-family:var(--font-mono)">bash scripts/start_agent_os_dashboard.sh</span>, then reload this page.';
     }
-  } catch (err) {
-    panel.hidden = true;
+    setBtns(false);
   }
 }
 
-async function postWorkbenchAction(action) {
-  const token = sessionStorage.getItem(OS_SUPERVISOR_TOKEN_KEY);
-  if (!token) {
-    showToast('Save your supervisor token first');
-    return;
+function syncEngineeringWorkbenchCard(d) {
+  if (!d) return;
+  const setVal = (id, val, cls) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = val;
+    if (cls) el.className = 'db-card-value ' + cls;
+  };
+  const eng = document.getElementById('db-eng-server');
+  if (eng) {
+    setVal('db-eng-server', d.workbench_server_running ? '● Running' : '○ Offline',
+      d.workbench_server_running ? 'db-card-value--good' : 'db-card-value--warning');
   }
+}
+
+async function postGlobalWorkbenchAction(action) {
   try {
-    const r = await fetch('/api/os/workbench/' + action, {
+    const r = await fetch('/api/workbench/' + action, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-OS-Dashboard-Token': token
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: '{}'
     });
     let j = {};
@@ -2828,9 +2840,9 @@ async function postWorkbenchAction(action) {
     if (j.ok === false) {
       showToast(j.message || 'Action failed');
     } else {
-      showToast(j.message || action + ' ok');
+      showToast(j.message || 'OK');
     }
-    await loadDashboardData('engineering');
+    await loadDashboardData(selectedDashboard);
   } catch (err) {
     showToast('Request failed');
   }
@@ -2850,6 +2862,8 @@ async function loadDashboardData(dashId) {
     if (resp.ok) {
       d = await resp.json();
     }
+    applyGlobalWorkbenchBar(d);
+    syncEngineeringWorkbenchCard(d);
 
     if (d && (dashId === 'engineering' || dashId === 'cybersecurity')) {
       const setVal = (id, val, cls) => {
@@ -2866,15 +2880,6 @@ async function loadDashboardData(dashId) {
           d.gemini_key_set ? 'db-card-value--good' : 'db-card-value--error');
         setVal('db-eng-server', d.workbench_server_running ? '● Running' : '○ Offline',
           d.workbench_server_running ? 'db-card-value--good' : 'db-card-value--warning');
-        const det = document.getElementById('db-eng-server-detail');
-        if (det && d.workbench_port != null) {
-          const host = d.workbench_host || '127.0.0.1';
-          let line = host + ':' + d.workbench_port + ' · sprite_workbench_server.py';
-          if (d.workbench_pid) {
-            line = host + ':' + d.workbench_port + ' · PID ' + d.workbench_pid;
-          }
-          det.textContent = line;
-        }
       }
 
       if (dashId === 'cybersecurity') {
@@ -2902,10 +2907,18 @@ async function loadDashboardData(dashId) {
       }
     }
   } catch {
-    // API not available — leave placeholders
+    applyGlobalWorkbenchBar(null);
   }
-  if (dashId === 'engineering') {
-    void initEngineeringWorkbenchControls();
+}
+
+async function pulseGlobalWorkbenchOnly() {
+  try {
+    const resp = await fetch('/api/dashboard-data');
+    const d = resp.ok ? await resp.json() : null;
+    applyGlobalWorkbenchBar(d);
+    syncEngineeringWorkbenchCard(d);
+  } catch {
+    applyGlobalWorkbenchBar(null);
   }
 }
 
@@ -2925,34 +2938,18 @@ document.getElementById('togglePromptPanel').addEventListener('click', function(
   this.title = collapsed ? 'Expand prompt panel' : 'Collapse prompt panel';
 });
 
-// ── Workbench supervisor buttons ────────────────
-(function setupWorkbenchSupervisorUi() {
-  const save = document.getElementById('db-os-wb-token-save');
-  const inp = document.getElementById('db-os-wb-token-input');
-  if (save && inp) {
-    save.addEventListener('click', function() {
-      const v = inp.value.trim();
-      if (v) {
-        sessionStorage.setItem(OS_SUPERVISOR_TOKEN_KEY, v);
-        inp.value = '';
-        showToast('Token saved for this tab');
-      } else {
-        sessionStorage.removeItem(OS_SUPERVISOR_TOKEN_KEY);
-        showToast('Token cleared');
-      }
-      void initEngineeringWorkbenchControls();
-    });
-  }
-  const startBtn = document.getElementById('db-os-wb-start');
-  const restartBtn = document.getElementById('db-os-wb-restart');
-  const stopBtn = document.getElementById('db-os-wb-stop');
-  if (startBtn) startBtn.addEventListener('click', function() { void postWorkbenchAction('start'); });
-  if (restartBtn) restartBtn.addEventListener('click', function() { void postWorkbenchAction('restart'); });
-  if (stopBtn) stopBtn.addEventListener('click', function() { void postWorkbenchAction('stop'); });
+(function setupGlobalWorkbenchButtons() {
+  const startBtn = document.getElementById('global-wb-start');
+  const restartBtn = document.getElementById('global-wb-restart');
+  const stopBtn = document.getElementById('global-wb-stop');
+  if (startBtn) startBtn.addEventListener('click', function() { void postGlobalWorkbenchAction('start'); });
+  if (restartBtn) restartBtn.addEventListener('click', function() { void postGlobalWorkbenchAction('restart'); });
+  if (stopBtn) stopBtn.addEventListener('click', function() { void postGlobalWorkbenchAction('stop'); });
 })();
 
 // ── Init ────────────────────────────────────────
 selectDashboard('orchestration');
+setInterval(function() { void pulseGlobalWorkbenchOnly(); }, 12000);
 </script>
 </body>
 </html>

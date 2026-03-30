@@ -140,39 +140,23 @@ source .env.local
 python3 scripts/sprite_workbench_server.py --host 127.0.0.1 --port 8766
 ```
 
-### Agent OS dashboard (local supervisor)
+### Agent OS dashboard (local)
 
-To use **Agent OS** (`os-dashboard.html`) with live **Engineering** data and **Start / Restart / Stop** for the workbench from the dashboard:
+**Agent OS** (`os-dashboard.html`) shows a **global workbench bar** on every view: status plus **Start / Restart / Stop** (runs `sprite_workbench_server.py` via a tiny local HTTP helper).
 
-1. Add `OS_DASHBOARD_SUPERVISOR_TOKEN` to `.env.local` (see `.env.local.example`).
-2. Start the supervisor and open the browser in one step:
+1. Start the helper and open the browser:
 
 ```bash
 bash scripts/start_agent_os_dashboard.sh
 ```
 
-Or double-click **`Agent-OS-Dashboard.command`** in the repo root (opens a brief Terminal session).
+Or double-click **`Agent-OS-Dashboard.command`** in the repo root.
 
-**Dock / one-click (no Terminal window):** run once:
+2. Open `http://127.0.0.1:8769/os-dashboard.html` (default). The helper binds **127.0.0.1** only.
 
-```bash
-bash macos/install_agent_os_launcher_app.sh
-```
+Optional env: `OS_AGENT_OS_PORT` (or legacy `OS_DASHBOARD_SUPERVISOR_PORT`), `OS_DASHBOARD_WORKBENCH_PORT` for the workbench port.
 
-That installs **`Agent OS Dashboard.app`** into `~/Applications`. Drag it to the **Dock** (or keep it in Applications). Each launch starts the supervisor if needed and opens the dashboard.
-
-**Menu bar (Shortcuts):** Shortcuts → **+** → add **Run Shell Script** (shell: `/bin/bash`), paste (fix the path to your clone):
-
-```bash
-cd "/Users/timwood/Desktop/projects/PWA/MV" && bash scripts/start_agent_os_dashboard.sh
-```
-
-Turn on **Pin in Menu Bar** for the shortcut (shortcut settings).
-
-3. Default URL: `http://127.0.0.1:8769/os-dashboard.html` (supervisor port `8769`).
-4. In **Engineering → Workbench Server**, paste the **same** value as `OS_DASHBOARD_SUPERVISOR_TOKEN` from `.env.local` and click **Save token** (stored in the browser tab only).
-
-The supervisor binds **127.0.0.1** only, serves the dashboard and `/api/dashboard-data`, and controls the workbench on **8766** by default (`--workbench-port` to override). Override ports with `OS_DASHBOARD_SUPERVISOR_PORT` / `OS_DASHBOARD_WORKBENCH_PORT` if needed.
+You can drag **`Agent-OS-Dashboard.command`** or a Shortcuts “Run Shell Script” action to the **Dock** or **menu bar** — same one-liner as step 1.
 
 The server writes local-first project data and exports under `tools/2d-sprite-and-animation/projects-data/`.
 

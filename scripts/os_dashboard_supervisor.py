@@ -1,10 +1,7 @@
 #!/usr/bin/env python3
 """
-Local Agent OS dashboard server: serves os-dashboard.html and optional JSON,
-implements GET /api/dashboard-data, and authenticated workbench lifecycle APIs.
-
-Bind 127.0.0.1 only by default. Set OS_DASHBOARD_SUPERVISOR_TOKEN in .env.local
-for POST /api/os/workbench/* (start | stop | restart).
+Local Agent OS dashboard: serves os-dashboard.html, GET /api/dashboard-data,
+and POST /api/workbench/{start|stop|restart} (no auth — binds 127.0.0.1 only).
 
 Usage:
   python3 scripts/os_dashboard_supervisor.py
@@ -34,8 +31,6 @@ ENV_FILE = REPO_ROOT / ".env.local"
 PID_FILE = Path("/tmp/sprite_workbench_server.pid")
 LOG_FILE = Path("/tmp/sprite_workbench_server.log")
 SERVER_SCRIPT = REPO_ROOT / "scripts" / "sprite_workbench_server.py"
-
-TOKEN_HEADER = "X-OS-Dashboard-Token"
 
 
 def _parse_env_local(path: Path) -> dict[str, str]:
@@ -198,7 +193,6 @@ def make_handler(
     repo_root: Path,
     workbench_host: str,
     workbench_port: int,
-    supervisor_token: str | None,
 ) -> type[BaseHTTPRequestHandler]:
     static_allow = frozenset(
         {
@@ -231,43 +225,17 @@ def make_handler(
             self.end_headers()
             self.wfile.write(body)
 
-        def _read_json_body(self) -> Any:
-            length = int(self.headers.get("Content-Length", "0") or "0")
-            if length <= 0:
-                return None
-            raw = self.rfile.read(length)
-            try:
-                return json.loads(raw.decode("utf-8"))
-            except (json.JSONDecodeError, UnicodeDecodeError):
-                return None
-
-        def _check_token(self) -> bool:
-            if not supervisor_token:
-                return False
-            got = self.headers.get(TOKEN_HEADER, "").strip()
-            return bool(got) and got == supervisor_token
-
         def do_OPTIONS(self) -> None:
             self.send_response(HTTPStatus.NO_CONTENT)
             self.send_header("Access-Control-Allow-Origin", self.headers.get("Origin", "*"))
             self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-            self.send_header("Access-Control-Allow-Headers", f"Content-Type, {TOKEN_HEADER}")
+            self.send_header("Access-Control-Allow-Headers", "Content-Type")
             self.send_header("Access-Control-Max-Age", "600")
             self.end_headers()
 
         def do_GET(self) -> None:
             path = self.path.split("?", 1)[0].rstrip("/") or "/"
-            if path == "/api/os/supervisor-config":
-                return self._send_json(
-                    HTTPStatus.OK,
-                    {
-                        "supervisor": True,
-                        "workbench_port": workbench_port,
-                        "workbench_host": workbench_host,
-                        "token_configured": bool(supervisor_token),
-                    },
-                )
-            if path == "/api/os/workbench/status":
+            if path == "/api/workbench/status":
                 pl = build_dashboard_payload(workbench_host, workbench_port)
                 return self._send_json(
                     HTTPStatus.OK,
@@ -306,14 +274,9 @@ def make_handler(
 
         def do_POST(self) -> None:
             path = self.path.split("?", 1)[0].rstrip("/")
-            if not path.startswith("/api/os/workbench/"):
+            if not path.startswith("/api/workbench/"):
                 return self._send_json(HTTPStatus.NOT_FOUND, {"error": "Not found"})
-            if not self._check_token():
-                return self._send_json(
-                    HTTPStatus.UNAUTHORIZED,
-                    {"error": f"Missing or invalid {TOKEN_HEADER} (set OS_DASHBOARD_SUPERVISOR_TOKEN in .env.local)"},
-                )
-            action = path.removeprefix("/api/os/workbench/").strip()
+            action = path.removeprefix("/api/workbench/").strip()
             if action == "start":
                 ok, msg = _start_workbench(workbench_host, workbench_port)
                 return self._send_json(HTTPStatus.OK if ok else HTTPStatus.BAD_REQUEST, {"ok": ok, "message": msg})
@@ -338,22 +301,14 @@ def main() -> None:
     parser.add_argument("--workbench-port", type=int, default=8766, help="Workbench port")
     args = parser.parse_args()
 
-    env_local = _parse_env_local(ENV_FILE)
-    token = (os.environ.get("OS_DASHBOARD_SUPERVISOR_TOKEN") or env_local.get("OS_DASHBOARD_SUPERVISOR_TOKEN") or "").strip() or None
-
     handler = make_handler(
         repo_root=REPO_ROOT,
         workbench_host=args.workbench_host,
         workbench_port=args.workbench_port,
-        supervisor_token=token,
     )
     server = ThreadingHTTPServer((args.host, args.port), handler)
-    print(f"Agent OS supervisor at http://{args.host}:{args.port}/os-dashboard.html", file=sys.stderr)
-    print(f"Workbench expected at http://{args.workbench_host}:{args.workbench_port}/", file=sys.stderr)
-    if token:
-        print("POST controls require X-OS-Dashboard-Token (set in dashboard session).", file=sys.stderr)
-    else:
-        print("Warning: OS_DASHBOARD_SUPERVISOR_TOKEN not set — start/stop/restart disabled.", file=sys.stderr)
+    print(f"Agent OS at http://{args.host}:{args.port}/os-dashboard.html", file=sys.stderr)
+    print(f"Workbench: http://{args.workbench_host}:{args.workbench_port}/ (Start/Stop from dashboard)", file=sys.stderr)
     try:
         server.serve_forever()
     except KeyboardInterrupt:
