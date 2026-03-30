@@ -570,6 +570,7 @@ def _ensure_room_environment(room: Dict[str, Any]) -> Dict[str, Any]:
     asset_pack.setdefault("component_dependencies", {})
     asset_pack.setdefault("component_fingerprints", {})
     asset_pack.setdefault("stale_components", [])
+    asset_pack.setdefault("failed_assets", [])
     asset_pack.setdefault("assets", {})
     return env
 
@@ -688,9 +689,9 @@ def _build_asset_component_dependency_payloads(room: Dict[str, Any], spec: Dict[
     return {
         "background": {"component": component_text("background"), "visual": visual_context, "layout": layout_context},
         "midground_arches": {"component": component_text("background"), "visual": visual_context, "layout": layout_context},
-        "wall_tile": {"component": component_text("walls"), "visual": visual_context},
-        "floor_tile": {"component": component_text("floor"), "visual": visual_context},
-        "platform_tile": {"component": component_text("platforms"), "visual": visual_context},
+        "wall_body_strip": {"component": component_text("walls"), "visual": visual_context},
+        "floor_cap_strip": {"component": component_text("floor"), "visual": visual_context},
+        "platform_ledge_strip": {"component": component_text("platforms"), "visual": visual_context},
         "door": {"component": component_text("doors"), "visual": visual_context},
     }
 
@@ -784,7 +785,7 @@ def update_project_art_direction(project_id: str, payload: Dict[str, Any]) -> Di
         runtime["last_applied_at"] = None
         asset_pack = runtime["asset_pack"]
         asset_pack["status"] = "ready" if asset_pack.get("assets") else "idle"
-        asset_pack["stale_components"] = ["background", "midground_arches", "wall_tile", "floor_tile", "platform_tile", "door"] if asset_pack.get("assets") else []
+        asset_pack["stale_components"] = ["background", "midground_arches", "wall_body_strip", "floor_cap_strip", "platform_ledge_strip", "door"] if asset_pack.get("assets") else []
         invalidated_rooms.append(str(room.get("id") or ""))
     project["updated_at"] = now_iso()
     save_project(project)
@@ -1255,8 +1256,8 @@ def build_room_environment_spec(project_id: str, room_id: str, payload: Dict[str
     if asset_pack.get("assets"):
         _refresh_asset_pack_staleness(room, env, direction)
         if not asset_pack.get("stale_components"):
-            asset_pack["stale_components"] = ["wall_tile", "floor_tile", "platform_tile", "background", "midground_arches", "door"]
-        asset_pack["status"] = "ready"
+            asset_pack["stale_components"] = ["wall_body_strip", "floor_cap_strip", "platform_ledge_strip", "background", "midground_arches", "door"]
+        asset_pack["status"] = "partial" if asset_pack.get("failed_assets") else "ready"
     else:
         asset_pack["status"] = "idle"
         asset_pack["used_ai"] = False
@@ -1738,13 +1739,21 @@ def _validate_environment_asset(path: Path, kind: str, expected_size: Tuple[int,
         return False
     luminance = _sample_luminance(path)
     alpha_ratio = _alpha_ratio(path)
-    if kind in {"wall_tile", "floor_tile", "platform_tile", "door"}:
+    if kind in {"wall_tile", "floor_tile", "platform_tile", "wall_body_strip", "floor_cap_strip", "platform_ledge_strip", "door"}:
         if alpha_ratio > 0.02:
             return False
     if kind in {"wall_tile", "floor_tile", "platform_tile"}:
         if luminance > 155:
             return False
         if _edge_mismatch(path) > 95:
+            return False
+    if kind in {"wall_body_strip", "floor_cap_strip", "platform_ledge_strip"}:
+        if luminance > 160:
+            return False
+        if kind == "floor_cap_strip":
+            if _edge_mismatch(path) > 140:
+                return False
+        elif _edge_mismatch(path) > 115:
             return False
     if kind == "door" and luminance > 170:
         return False
@@ -1758,7 +1767,12 @@ def _validate_environment_asset(path: Path, kind: str, expected_size: Tuple[int,
     return True
 
 
-def _fallback_background_asset(output_path: Path, palette: Dict[str, Any], flags: Optional[Dict[str, bool]] = None) -> None:
+def _fallback_background_asset(
+    output_path: Path,
+    palette: Dict[str, Any],
+    flags: Optional[Dict[str, bool]] = None,
+    shell_family: str = "weathered_stone",
+) -> None:
     flags = flags or {}
     size = (1600, 1200)
     base = _hex_to_rgb(str((palette.get("dominant") or ["#1c1714"])[0]), (28, 23, 20))
@@ -1819,7 +1833,14 @@ def _fallback_background_asset(output_path: Path, palette: Dict[str, Any], flags
     img.save(output_path)
 
 
-def _fallback_tile_asset(output_path: Path, palette: Dict[str, Any], size: Tuple[int, int], mode: str, flags: Optional[Dict[str, bool]] = None) -> None:
+def _fallback_tile_asset(
+    output_path: Path,
+    palette: Dict[str, Any],
+    size: Tuple[int, int],
+    mode: str,
+    flags: Optional[Dict[str, bool]] = None,
+    shell_family: str = "weathered_stone",
+) -> None:
     flags = flags or {}
     base = _hex_to_rgb(str((palette.get("dominant") or ["#2a2522"])[0]), (42, 37, 34))
     alt = _hex_to_rgb(str((palette.get("dominant") or ["#2a2522", "#4a4038"])[1] if len(palette.get("dominant") or []) > 1 else "#4a4038"), (74, 64, 56))
@@ -1915,7 +1936,12 @@ def _fallback_door_asset(output_path: Path, preview_path: Path) -> None:
     crop.save(output_path)
 
 
-def _fallback_curated_door_asset(output_path: Path, palette: Dict[str, Any], flags: Optional[Dict[str, bool]] = None) -> None:
+def _fallback_curated_door_asset(
+    output_path: Path,
+    palette: Dict[str, Any],
+    flags: Optional[Dict[str, bool]] = None,
+    shell_family: str = "weathered_stone",
+) -> None:
     flags = flags or {}
     base = _hex_to_rgb(str((palette.get("dominant") or ["#2a2522"])[0]), (42, 37, 34))
     alt = _hex_to_rgb(str((palette.get("dominant") or ["#2a2522", "#4a4038"])[1] if len(palette.get("dominant") or []) > 1 else "#4a4038"), (74, 64, 56))
@@ -1934,7 +1960,7 @@ def _fallback_curated_door_asset(output_path: Path, palette: Dict[str, Any], fla
     img.save(output_path)
 
 
-def _fallback_midground_asset(output_path: Path, palette: Dict[str, Any]) -> None:
+def _fallback_midground_asset(output_path: Path, palette: Dict[str, Any], shell_family: str = "weathered_stone") -> None:
     size = (1600, 1200)
     base = _hex_to_rgb(str((palette.get("dominant") or ["#181614"])[0]), (24, 22, 20))
     accent = _hex_to_rgb(str((palette.get("accent") or ["#6f624e"])[0]), (111, 98, 78))
@@ -2099,8 +2125,11 @@ def generate_room_environment_asset_pack(project_id: str, room_id: str, payload:
     asset_root.mkdir(parents=True, exist_ok=True)
     background_path = asset_root / "background.png"
     wall_tile_path = asset_root / "wall_tile.png"
+    wall_body_strip_path = asset_root / "wall_body_strip.png"
     floor_tile_path = asset_root / "floor_tile.png"
+    floor_cap_strip_path = asset_root / "floor_cap_strip.png"
     platform_tile_path = asset_root / "platform_tile.png"
+    platform_ledge_strip_path = asset_root / "platform_ledge_strip.png"
     door_path = asset_root / "door.png"
     midground_arches_path = asset_root / "midground_arches.png"
 
@@ -2125,11 +2154,15 @@ def generate_room_environment_asset_pack(project_id: str, room_id: str, payload:
         """
     ).strip()
     components = spec.get("components") if isinstance(spec.get("components"), dict) else {}
+    floor_prompt = str(((components.get("floor") or {}).get("prompt")) or "").strip()
+    walls_prompt = str(((components.get("walls") or {}).get("prompt")) or "").strip()
+    platforms_prompt = str(((components.get("platforms") or {}).get("prompt")) or "").strip()
     doors_prompt = str(((components.get("doors") or {}).get("prompt")) or "").strip()
     palette = _extract_preview_runtime_palette(preview_path)
     flags = _environment_style_flags(spec)
+    shell_family = str((((spec.get("scene_schema") or {}).get("kit") or {}).get("shell_family")) or _infer_shell_family(spec))
     requested_components = payload.get("components") if isinstance(payload, dict) else None
-    allowed_components = {"background", "wall_tile", "floor_tile", "platform_tile", "door", "midground_arches"}
+    allowed_components = {"background", "wall_body_strip", "floor_cap_strip", "platform_ledge_strip", "door", "midground_arches"}
     target_components = [
         str(item).strip()
         for item in (requested_components or [])
@@ -2143,33 +2176,134 @@ def generate_room_environment_asset_pack(project_id: str, room_id: str, payload:
             _fit_image_to_size(path, size, transparent=transparent)
         return _validate_environment_asset(path, kind, size)
 
+    def shell_asset_prompt(kind: str) -> str:
+        if kind == "background":
+            return f"""{base_context}
+Create a far background plate for a 2D metroidvania room.
+Shell family: {shell_family}
+Direction: {str(((components.get('background') or {}).get('prompt')) or '').strip() or 'Distant shrine architecture fading into fog and depth.'}
+Requirements:
+- distant architecture only, background depth layer
+- keep the center gameplay lane calm and readable
+- no close props, no braziers, no torches, no altars, no doors, no characters
+- no large foreground object, no centered hero prop, no full-scene focal object
+- side-on 2D game background, not a concept painting with perspective-heavy close detail
+"""
+        if kind == "wall_body_strip":
+            return f"""{base_context}
+Create a larger side-view wall body strip for a 2D metroidvania room shell.
+Shell family: {shell_family}
+Direction: {walls_prompt or 'Broken shrine wall body with gothic masonry, heavy vertical bays, restrained carved detail, and damp age.'}
+Requirements:
+- wide reusable strip, not a full room scene
+- should carry the main wall identity for the room
+- readable at gameplay scale with larger structural forms, not tiny noisy texture
+- avoid a grid of repeating mini-arches or icon-like tiles; use broad masonry masses that stay coherent when stretched
+- shrine/gothic rooms must feel like aged stone architecture, not rails or grating
+- no text, no props, no doors, no characters
+"""
+        if kind == "floor_cap_strip":
+            return f"""{base_context}
+Create a larger floor cap strip for a 2D metroidvania room shell.
+Shell family: {shell_family}
+Direction: {floor_prompt or 'Ritual shrine floor edge with cracked slab top, worn trim, and readable footing.'}
+Requirements:
+- side-view gameplay floor edge only, viewed perfectly straight-on
+- one continuous horizontal floor-cap strip with a clearly readable top walking edge
+- broad stone slab forms and trim, not tiny pattern noise
+- reusable strip across long room floors with seamless left/right continuation
+- fully opaque artwork with no transparency, no glow bloom, and no isolated object silhouettes
+- shrine/gothic rooms must feel like cracked stone slab edges with subtle chisel detail
+- no text, no perspective scene, no props, no characters
+"""
+        if kind == "platform_ledge_strip":
+            return f"""{base_context}
+Create a larger platform ledge strip for a 2D metroidvania room shell.
+Shell family: {shell_family}
+Direction: {platforms_prompt or 'Fractured shrine balcony ledge with a clear stone lip, chipped front face, and restrained support rhythm.'}
+Requirements:
+- side-view gameplay platform edge only
+- readable top cap and front face
+- broad forms, low noise, reusable across long ledges
+- shrine/gothic rooms must feel like carved or broken stone ledges, not catwalks
+- no text, no props, no scene composition
+"""
+        if kind == "midground_arches":
+            return f"""{base_context}
+Create a transparent midground framing layer for a 2D metroidvania room.
+Shell family: {shell_family}
+Direction: {str(((components.get('background') or {}).get('prompt')) or '').strip() or 'Broken shrine arches and side-framing columns fading into depth.'}
+Requirements:
+- side framing only, keep the central gameplay lane mostly open
+- architecture silhouettes only
+- no braziers, flames, altars, doors, statues, or close props
+- no text, no characters, no UI, no opaque full-panel backdrop
+"""
+        return base_context
+
     results = {}
+    asset_sources: Dict[str, str] = {}
+    asset_errors: Dict[str, str] = {}
     component_dependencies = _build_asset_component_dependency_payloads(room, spec, direction, preview_id)
     component_fingerprints = _asset_component_fingerprints_from_dependencies(component_dependencies)
     existing_pack = env["runtime"].get("asset_pack") if isinstance(env["runtime"].get("asset_pack"), dict) else {}
     next_assets = copy.deepcopy(existing_pack.get("assets") or {}) if isinstance(existing_pack, dict) else {}
+    ai_first_shell = True
 
-    # Runtime background and midground need deterministic framing, so build them
-    # from a constrained composition system instead of a freeform generated plate.
+    def set_failed_asset(kind: str, path: Path, error: str) -> None:
+        if path.exists():
+            path.unlink()
+        results[kind] = False
+        asset_sources[kind] = "failed"
+        asset_errors[kind] = error
+
     if "background" in target_components:
-        _fallback_background_asset(background_path, palette, flags)
-        finalize_asset("background", background_path, (1600, 1200))
-        results["background"] = False
+        results["background"] = _generate_image_from_references(
+            background_path,
+            shell_asset_prompt("background"),
+            refs,
+            size_hint="far background plate 1600x1200",
+        )
+        if not results["background"] or not finalize_asset("background", background_path, (1600, 1200)):
+            set_failed_asset("background", background_path, "ai_generation_failed")
+        else:
+            asset_sources["background"] = "ai"
 
-    if "wall_tile" in target_components:
-        _fallback_tile_asset(wall_tile_path, palette, (32, 32), "wall", flags)
-        finalize_asset("wall_tile", wall_tile_path, (32, 32))
-        results["wall_tile"] = False
+    if "wall_body_strip" in target_components:
+        results["wall_body_strip"] = _generate_image_from_references(
+            wall_body_strip_path,
+            shell_asset_prompt("wall_body_strip"),
+            refs,
+            size_hint="large wall body strip 512x512 for metroidvania room shell",
+        )
+        if not results["wall_body_strip"] or not finalize_asset("wall_body_strip", wall_body_strip_path, (512, 512)):
+            set_failed_asset("wall_body_strip", wall_body_strip_path, "ai_generation_failed")
+        else:
+            asset_sources["wall_body_strip"] = "ai"
 
-    if "floor_tile" in target_components:
-        _fallback_tile_asset(floor_tile_path, palette, (32, 32), "floor", flags)
-        finalize_asset("floor_tile", floor_tile_path, (32, 32))
-        results["floor_tile"] = False
+    if "floor_cap_strip" in target_components:
+        results["floor_cap_strip"] = _generate_image_from_references(
+            floor_cap_strip_path,
+            shell_asset_prompt("floor_cap_strip"),
+            refs,
+            size_hint="large floor cap strip 512x96 for metroidvania room shell",
+        )
+        if not results["floor_cap_strip"] or not finalize_asset("floor_cap_strip", floor_cap_strip_path, (512, 96)):
+            set_failed_asset("floor_cap_strip", floor_cap_strip_path, "ai_generation_failed")
+        else:
+            asset_sources["floor_cap_strip"] = "ai"
 
-    if "platform_tile" in target_components:
-        _fallback_tile_asset(platform_tile_path, palette, (32, 14), "platform", flags)
-        finalize_asset("platform_tile", platform_tile_path, (32, 14))
-        results["platform_tile"] = False
+    if "platform_ledge_strip" in target_components:
+        results["platform_ledge_strip"] = _generate_image_from_references(
+            platform_ledge_strip_path,
+            shell_asset_prompt("platform_ledge_strip"),
+            refs,
+            size_hint="large platform ledge strip 512x72 for metroidvania room shell",
+        )
+        if not results["platform_ledge_strip"] or not finalize_asset("platform_ledge_strip", platform_ledge_strip_path, (512, 72)):
+            set_failed_asset("platform_ledge_strip", platform_ledge_strip_path, "ai_generation_failed")
+        else:
+            asset_sources["platform_ledge_strip"] = "ai"
 
     if "door" in target_components:
         results["door"] = _generate_image_from_references(
@@ -2185,45 +2319,69 @@ Avoid scene composition, room background, floor plane, giant glow bloom, text, c
             size_hint="door prop 192x288",
         )
         if not results["door"] or not finalize_asset("door", door_path, (192, 288)):
-            _fallback_curated_door_asset(door_path, palette, flags)
-            finalize_asset("door", door_path, (192, 288))
-            results["door"] = False
+            set_failed_asset("door", door_path, "ai_generation_failed")
+        else:
+            asset_sources["door"] = "ai"
 
     if "midground_arches" in target_components:
-        _fallback_midground_asset(midground_arches_path, palette)
-        finalize_asset("midground_arches", midground_arches_path, (1600, 1200), transparent=True)
-        results["midground_arches"] = False
+        results["midground_arches"] = _generate_image_from_references(
+            midground_arches_path,
+            shell_asset_prompt("midground_arches"),
+            refs,
+            size_hint="transparent midground framing layer 1600x1200",
+        )
+        if not results["midground_arches"] or not finalize_asset("midground_arches", midground_arches_path, (1600, 1200), transparent=True):
+            set_failed_asset("midground_arches", midground_arches_path, "ai_generation_failed")
+        else:
+            asset_sources["midground_arches"] = "ai"
 
     used_ai = any(results.values())
     next_assets.update({
         "background": {
-            "url": f"/tools/2d-sprite-and-animation/projects-data/{project_id}/room_environment_assets/{room_id}/background.png",
+            "url": f"/tools/2d-sprite-and-animation/projects-data/{project_id}/room_environment_assets/{room_id}/background.png" if asset_sources.get("background") == "ai" else "",
             "kind": "background",
+            "source": asset_sources.get("background", (next_assets.get("background") or {}).get("source") or "unknown"),
+            "error": asset_errors.get("background"),
         },
-        "wall_tile": {
-            "url": f"/tools/2d-sprite-and-animation/projects-data/{project_id}/room_environment_assets/{room_id}/wall_tile.png",
-            "kind": "wall_tile",
+        "wall_body_strip": {
+            "url": f"/tools/2d-sprite-and-animation/projects-data/{project_id}/room_environment_assets/{room_id}/wall_body_strip.png" if asset_sources.get("wall_body_strip") == "ai" else "",
+            "kind": "wall_body_strip",
+            "source": asset_sources.get("wall_body_strip", (next_assets.get("wall_body_strip") or {}).get("source") or "unknown"),
+            "error": asset_errors.get("wall_body_strip"),
         },
-        "floor_tile": {
-            "url": f"/tools/2d-sprite-and-animation/projects-data/{project_id}/room_environment_assets/{room_id}/floor_tile.png",
-            "kind": "floor_tile",
+        "floor_cap_strip": {
+            "url": f"/tools/2d-sprite-and-animation/projects-data/{project_id}/room_environment_assets/{room_id}/floor_cap_strip.png" if asset_sources.get("floor_cap_strip") == "ai" else "",
+            "kind": "floor_cap_strip",
+            "source": asset_sources.get("floor_cap_strip", (next_assets.get("floor_cap_strip") or {}).get("source") or "unknown"),
+            "error": asset_errors.get("floor_cap_strip"),
         },
-        "platform_tile": {
-            "url": f"/tools/2d-sprite-and-animation/projects-data/{project_id}/room_environment_assets/{room_id}/platform_tile.png",
-            "kind": "platform_tile",
+        "platform_ledge_strip": {
+            "url": f"/tools/2d-sprite-and-animation/projects-data/{project_id}/room_environment_assets/{room_id}/platform_ledge_strip.png" if asset_sources.get("platform_ledge_strip") == "ai" else "",
+            "kind": "platform_ledge_strip",
+            "source": asset_sources.get("platform_ledge_strip", (next_assets.get("platform_ledge_strip") or {}).get("source") or "unknown"),
+            "error": asset_errors.get("platform_ledge_strip"),
         },
         "door": {
-            "url": f"/tools/2d-sprite-and-animation/projects-data/{project_id}/room_environment_assets/{room_id}/door.png",
+            "url": f"/tools/2d-sprite-and-animation/projects-data/{project_id}/room_environment_assets/{room_id}/door.png" if asset_sources.get("door") == "ai" else "",
             "kind": "door",
+            "source": asset_sources.get("door", (next_assets.get("door") or {}).get("source") or "unknown"),
+            "error": asset_errors.get("door"),
         },
         "midground_arches": {
-            "url": f"/tools/2d-sprite-and-animation/projects-data/{project_id}/room_environment_assets/{room_id}/midground_arches.png",
+            "url": f"/tools/2d-sprite-and-animation/projects-data/{project_id}/room_environment_assets/{room_id}/midground_arches.png" if asset_sources.get("midground_arches") == "ai" else "",
             "kind": "midground_arches",
+            "source": asset_sources.get("midground_arches", (next_assets.get("midground_arches") or {}).get("source") or "unknown"),
+            "error": asset_errors.get("midground_arches"),
         },
     })
+    next_assets.pop("wall_tile", None)
+    next_assets.pop("floor_tile", None)
+    next_assets.pop("platform_tile", None)
+    ready_count = sum(1 for item in next_assets.values() if isinstance(item, dict) and item.get("source") == "ai")
+    failed_count = sum(1 for item in next_assets.values() if isinstance(item, dict) and item.get("source") == "failed")
     env["runtime"]["asset_pack"] = {
-        "status": "ready",
-        "asset_schema_version": 2,
+        "status": "ready" if failed_count == 0 and ready_count > 0 else ("partial" if ready_count > 0 else "failed"),
+        "asset_schema_version": 3,
         "used_ai": used_ai,
         "generated_at": now_iso(),
         "source_preview_id": preview_id,
@@ -2231,9 +2389,10 @@ Avoid scene composition, room background, floor plane, giant glow bloom, text, c
         "component_dependencies": component_dependencies,
         "component_fingerprints": component_fingerprints,
         "stale_components": [],
+        "failed_assets": sorted([kind for kind, source in asset_sources.items() if source == "failed"]),
         "assets": next_assets,
     }
-    env["runtime"]["status"] = "ready"
+    env["runtime"]["status"] = "ready" if ready_count > 0 else "failed"
     env["runtime"]["source"] = "approved_preview"
     env["runtime"]["applied_preview_id"] = preview_id
     project["updated_at"] = now_iso()
@@ -2275,8 +2434,8 @@ def approve_room_environment_preview(project_id: str, room_id: str, payload: Dic
     asset_pack = env["runtime"]["asset_pack"]
     asset_pack["source_preview_id"] = preview_id
     if asset_pack.get("assets"):
-        asset_pack["status"] = "ready"
-        asset_pack["stale_components"] = ["background", "midground_arches", "wall_tile", "floor_tile", "platform_tile", "door"]
+        asset_pack["status"] = "partial" if asset_pack.get("failed_assets") else "ready"
+        asset_pack["stale_components"] = ["background", "midground_arches", "wall_body_strip", "floor_cap_strip", "platform_ledge_strip", "door"]
     else:
         asset_pack["status"] = "idle"
         asset_pack["used_ai"] = False
