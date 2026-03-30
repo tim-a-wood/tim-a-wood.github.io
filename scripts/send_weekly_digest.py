@@ -5,14 +5,17 @@ Send the weekly founder digest via Resend API as a formatted HTML email.
 Usage:
   python3 scripts/send_weekly_digest.py --file artifacts/weekly-digest-2026-03-28.md
   python3 scripts/send_weekly_digest.py < digest.md
+  python3 scripts/send_weekly_digest.py --file body.md --attach docs/report.pdf
 """
 import os
 import sys
 import re
 import json
+import base64
 import argparse
 import subprocess
 from datetime import date
+from typing import List, Optional
 
 RESEND_API_URL = "https://api.resend.com/emails"
 
@@ -242,14 +245,37 @@ def wrap_html(body_html: str, week_of: str, subtitle: str = "Metroidvania Toolch
 
 # ── Send ─────────────────────────────────────────────────────────────────────
 
-def send(text: str, html: str, subject: str, to: str, sender: str, api_key: str) -> None:
-    payload = json.dumps({
+def send(
+    text: str,
+    html: str,
+    subject: str,
+    to: str,
+    sender: str,
+    api_key: str,
+    attachment_paths: Optional[List[str]] = None,
+) -> None:
+    body: dict = {
         "from": sender,
         "to": [to],
         "subject": subject,
         "text": text,
         "html": html,
-    })
+    }
+    if attachment_paths:
+        atts = []
+        for path in attachment_paths:
+            if not os.path.isfile(path):
+                print(f"ERROR: attachment not found: {path}", file=sys.stderr)
+                sys.exit(1)
+            with open(path, "rb") as f:
+                raw = f.read()
+            atts.append({
+                "filename": os.path.basename(path),
+                "content": base64.standard_b64encode(raw).decode("ascii"),
+            })
+        body["attachments"] = atts
+
+    payload = json.dumps(body)
 
     result = subprocess.run(
         ["curl", "-s", "-X", "POST", RESEND_API_URL,
@@ -276,6 +302,14 @@ def main() -> None:
     parser.add_argument("--file", help="Path to digest markdown file (default: stdin)")
     parser.add_argument("--subject", help="Email subject override")
     parser.add_argument("--subtitle", help="Header subtitle override (default: Weekly Founder Digest)")
+    parser.add_argument(
+        "--attach",
+        action="append",
+        dest="attachments",
+        metavar="PATH",
+        default=None,
+        help="Attach file via Resend (repeatable). Same API as dashboard notification emails.",
+    )
     args = parser.parse_args()
 
     api_key = os.environ.get("RESEND_API_KEY", "")
@@ -299,7 +333,7 @@ def main() -> None:
     full_html = wrap_html(body_html, today, subtitle)
 
     print(f"Sending to {to}...")
-    send(text, full_html, subject, to, sender, api_key)
+    send(text, full_html, subject, to, sender, api_key, attachment_paths=args.attachments)
 
 
 if __name__ == "__main__":

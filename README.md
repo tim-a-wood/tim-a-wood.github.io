@@ -158,6 +158,8 @@ Optional env: `OS_AGENT_OS_PORT` (or legacy `OS_DASHBOARD_SUPERVISOR_PORT`), `OS
 
 If you open `os-dashboard.html` from the **workbench** (`http://127.0.0.1:8766/...`), Start/Restart/Stop POST to **Agent OS** (default `http://127.0.0.1:8769`). Override with `AGENT_OS_CONTROL_BASE` in the environment if you use another port.
 
+**Founder email (Resend):** The daily dashboard job (`scripts/update_dashboards.sh`) finishes by piping markdown into `scripts/send_weekly_digest.py`, using `RESEND_API_KEY` and `DIGEST_EMAIL_TO` from `.env.local`. To send the company brand charter PDF the same way, run `./scripts/send_brand_charter_email.sh` from the repo root.
+
 You can drag **`Agent-OS-Dashboard.command`** or a Shortcuts “Run Shell Script” action to the **Dock** or **menu bar** — same one-liner as step 1.
 
 The server writes local-first project data and exports under `tools/2d-sprite-and-animation/projects-data/`.
