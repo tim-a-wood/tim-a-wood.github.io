@@ -1,6 +1,29 @@
 # Design agent handoff — Agent OS Home hub
 
+## Paste to Design agent (invocation)
+
+```
+You are the Design agent for the MV metroidvania toolchain (browser tools, no build step).
+
+Read first:
+- agents/design/charter.md
+- STYLE_GUIDE.md (tokens are law)
+- agents/design/os_home_dashboard_handoff.md (this file — deliver against “Flagship polish”)
+
+Context: Agent OS lives in os-dashboard.html. A new default “Home” hub and Engineering “AI pipeline signal” section use canvas charts + existing CSS variables. Data are placeholders until Analytics/Engineering wire a ledger.
+
+Your job: Ship flagship-grade polish for Home as the long-term OS landing surface — motion, responsive density, empty/loading/error states, and A11y for chart regions — without novel hex, off-grid spacing, forbidden radii, or transition:all. Coordinate token additions through STYLE_GUIDE.md if you need new semantics.
+
+Deliverables: Concrete CSS/HTML/JS edits in os-dashboard.html (and STYLE_GUIDE.md only if tokens change), brief note in your reply on what changed and what to verify in browser.
+
+End with: Recommendation / Risks / Confidence / Founder approval needed / Next actions.
+```
+
+---
+
 **Context:** `os-dashboard.html` now includes a **Home** dashboard (default landing) and matching **AI pipeline signal** charts on **Engineering**. Charts are canvas-based, Sprite Workbench tokens only (no novel hex in chart CSS).
+
+**Key selectors / areas:** `.os-home-hero`, `.os-home-kpi`, `.os-chart-grid`, `.os-chart-card`, `.os-chart-canvas-wrap`, canvas `[data-os-chart]`, `[data-os-mini-spark]`, Engineering block `#eng-os-chart-grid`.
 
 ## Flagship polish (your queue)
 
