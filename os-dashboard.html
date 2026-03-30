@@ -78,6 +78,15 @@ body::before {
   height: 100vh;
   padding-top: 3px; /* account for top bar */
   gap: 0;
+  transition: grid-template-columns 200ms ease;
+}
+.shell.prompt-collapsed {
+  grid-template-columns: 216px 1fr 0px;
+}
+.shell.prompt-collapsed .sidebar-right {
+  overflow: hidden;
+  border-left: none;
+  min-width: 0;
 }
 
 /* ─── HEADER ─────────────────────────────────── */
@@ -109,98 +118,93 @@ body::before {
 
 .header-spacer { flex: 1; }
 
-/* ─── PANEL COLLAPSE TOGGLES ──────────────────────── */
-.header-panel-toggle-group {
-  display: inline-flex;
-  align-items: stretch;
-  margin-right: var(--space-3);
-  border-radius: var(--radius-default);
-  border: 1px solid var(--line);
-  background: rgba(255,255,255,0.03);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.045);
-  overflow: hidden;
-  flex-shrink: 0;
+/* ─── SIDE PANEL EDGE HANDLES (Agents + Prompt) ─── */
+.main-agent-dock,
+.prompt-dock {
+  position: relative;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
-.panel-toggle-btn {
-  display: inline-flex;
+.main-agent-dock {
+  overflow: hidden;
+}
+.main.agent-collapsed .main-agent-dock {
+  overflow: visible;
+}
+.prompt-dock {
+  grid-area: right;
+  overflow: hidden;
+}
+.shell.prompt-collapsed .prompt-dock {
+  overflow: visible;
+}
+/* Seam-mounted control: sits on the left edge of each dock, protruding toward main content */
+.panel-edge-handle {
+  position: absolute;
+  left: 0;
+  top: 42%;
+  z-index: 30;
+  transform: translate(-100%, -50%);
+  display: flex;
   align-items: center;
   justify-content: center;
-  min-width: 44px;
-  min-height: 44px;
-  padding: 8px var(--space-3);
-  border: none;
-  border-radius: 0;
-  background: transparent;
+  width: 32px;
+  min-height: 104px;
+  padding: var(--space-3) var(--space-1);
+  margin: 0;
+  border: 1px solid var(--line);
+  border-right: none;
+  border-radius: var(--radius-md) 0 0 var(--radius-md);
+  background: var(--panel);
   color: var(--muted);
   cursor: pointer;
-  flex-shrink: 0;
-  transition: background var(--transition-base), color var(--transition-base), border-color var(--transition-base);
+  box-shadow: var(--shadow-sm);
+  transition: background var(--transition-base), border-color var(--transition-base),
+    color var(--transition-base), box-shadow var(--transition-base);
   font-family: var(--font-sans);
 }
-.panel-toggle-btn + .panel-toggle-btn {
-  border-left: 1px solid var(--line);
+.panel-edge-handle--prompt {
+  top: 58%;
 }
-.panel-toggle-btn:hover {
+.panel-edge-handle:hover {
+  background: rgba(255,255,255,0.05);
   color: var(--text);
-  background: rgba(255,255,255,0.06);
+  border-color: var(--line-strong);
+  box-shadow: var(--shadow-md);
 }
-.panel-toggle-btn:focus-visible {
+.panel-edge-handle:focus-visible {
   outline: 2px solid rgba(0,232,200,0.35);
-  outline-offset: -2px;
-  z-index: 1;
+  outline-offset: 2px;
 }
-.panel-toggle-stack {
+.panel-edge-handle-inner {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: var(--space-1);
-  text-align: center;
+  gap: var(--space-2);
+  pointer-events: none;
 }
-.panel-toggle-label {
-  font-size: var(--font-size-xs);
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  line-height: 1.15;
-}
-.panel-toggle-chevron {
+.panel-edge-handle-glyph {
   font-family: var(--font-mono);
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-md);
   font-weight: 600;
   line-height: 1;
   color: var(--accent);
-  opacity: 0.9;
 }
-.panel-toggle-btn:hover .panel-toggle-chevron {
-  opacity: 1;
-}
-
-/* Collapsible main-right (agent picker) */
-.main {
-  transition: grid-template-columns 200ms ease;
-}
-.main.agent-collapsed {
-  grid-template-columns: 1fr 0px;
-}
-.main.agent-collapsed .main-right {
+.panel-edge-handle-label {
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  max-height: 80px;
   overflow: hidden;
-  padding: 0;
-  border-left: none;
-  min-width: 0;
 }
-
-/* Collapsible sidebar-right (prompt panel) */
-.shell {
-  transition: grid-template-columns 200ms ease;
-}
-.shell.prompt-collapsed {
-  grid-template-columns: 216px 1fr 0px;
-}
-.shell.prompt-collapsed .sidebar-right {
-  overflow: hidden;
-  border-left: none;
-  min-width: 0;
+.panel-edge-handle:hover .panel-edge-handle-glyph {
+  color: var(--accent);
 }
 
 .status-badge {
@@ -303,6 +307,16 @@ body::before {
   display: grid;
   grid-template-columns: 1fr 256px;
   gap: var(--space-4);
+  transition: grid-template-columns 200ms ease;
+}
+.main.agent-collapsed {
+  grid-template-columns: 1fr 0px;
+}
+.main.agent-collapsed .main-right {
+  overflow: hidden;
+  padding: 0;
+  border-left: none;
+  min-width: 0;
 }
 
 .main-left {
@@ -318,6 +332,7 @@ body::before {
 }
 
 .main-right {
+  flex: 1;
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
@@ -524,7 +539,7 @@ body::before {
 
 /* ─── RIGHT SIDEBAR ─────────────────────────────── */
 .sidebar-right {
-  grid-area: right;
+  flex: 1;
   border-left: 1px solid var(--line);
   background: var(--panel-2);
   display: flex;
@@ -702,10 +717,36 @@ body::before {
   }
 
   .sidebar-left { border-right: none; border-bottom: 1px solid var(--line); padding: var(--space-3) 0; }
-  .sidebar-right { border-left: none; border-top: 1px solid var(--line); min-height: 320px; }
+  .sidebar-right { border-left: none; border-top: none; min-height: 320px; }
+  .prompt-dock { border-top: 1px solid var(--line); }
   .main { grid-template-columns: 1fr; grid-template-rows: 1fr auto; overflow-y: auto; }
   .main-left { min-height: 400px; }
   .agent-grid { grid-template-columns: repeat(3, 1fr); }
+  /* Full-width strip: seam handles are off-screen when column is full-bleed */
+  .panel-edge-handle {
+    position: relative;
+    left: auto;
+    top: auto;
+    transform: none;
+    width: 100%;
+    min-height: 44px;
+    flex-direction: row;
+    border-radius: 0;
+    border-right: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+    justify-content: flex-start;
+    padding: 0 var(--space-4);
+    box-shadow: none;
+  }
+  .panel-edge-handle--prompt { top: auto; }
+  .panel-edge-handle-inner {
+    flex-direction: row;
+    gap: var(--space-3);
+  }
+  .panel-edge-handle-label {
+    writing-mode: horizontal-tb;
+    max-height: none;
+  }
 }
 
 /* ─── AGENT GROUP LABELS ───────────────────────── */
@@ -1198,27 +1239,13 @@ body::before {
 </head>
 <body>
 
-<div class="shell">
+<div class="shell prompt-collapsed">
 
   <!-- HEADER -->
   <header class="header">
     <span class="header-title">AGENT OS</span>
     <span class="header-sub">Metroidvania Toolchain</span>
     <span class="header-spacer"></span>
-    <div class="header-panel-toggle-group" role="group" aria-label="Panel layout">
-      <button type="button" class="panel-toggle-btn" id="toggleAgentPanel" aria-expanded="true" aria-controls="mainRightPanel" title="Hide agent column">
-        <span class="panel-toggle-stack">
-          <span class="panel-toggle-label">Agents</span>
-          <span class="panel-toggle-chevron" aria-hidden="true">◀</span>
-        </span>
-      </button>
-      <button type="button" class="panel-toggle-btn" id="togglePromptPanel" aria-expanded="true" aria-controls="promptPanel" title="Hide prompt column">
-        <span class="panel-toggle-stack">
-          <span class="panel-toggle-label">Prompt</span>
-          <span class="panel-toggle-chevron" aria-hidden="true">▶</span>
-        </span>
-      </button>
-    </div>
     <span class="status-badge">System Ready</span>
   </header>
 
@@ -1355,7 +1382,7 @@ body::before {
   </nav>
 
   <!-- MAIN -->
-  <main class="main">
+  <main class="main agent-collapsed">
 
     <div class="main-left">
 
@@ -2207,6 +2234,13 @@ body::before {
 
     </div><!-- /.main-left -->
 
+    <div class="main-agent-dock">
+      <button type="button" class="panel-edge-handle panel-edge-handle--agents" id="toggleAgentPanel" aria-expanded="false" aria-controls="mainRightPanel" title="Show Agents panel">
+        <span class="panel-edge-handle-inner">
+          <span class="panel-edge-handle-glyph" aria-hidden="true">▶</span>
+          <span class="panel-edge-handle-label">Agents</span>
+        </span>
+      </button>
     <div class="main-right" id="mainRightPanel">
     <!-- Step 1: Pick agent (scoped to current dashboard) -->
     <section>
@@ -2237,10 +2271,18 @@ body::before {
       </button>
     </section>
     </div><!-- /.main-right -->
+    </div><!-- /.main-agent-dock -->
 
   </main>
 
   <!-- RIGHT SIDEBAR -->
+  <div class="prompt-dock">
+      <button type="button" class="panel-edge-handle panel-edge-handle--prompt" id="togglePromptPanel" aria-expanded="false" aria-controls="promptPanel" title="Show Prompt panel">
+        <span class="panel-edge-handle-inner">
+          <span class="panel-edge-handle-glyph" aria-hidden="true">▶</span>
+          <span class="panel-edge-handle-label">Prompt</span>
+        </span>
+      </button>
   <aside class="sidebar-right" id="promptPanel">
     <div class="output-header">
       <span class="output-title">Generated Prompt</span>
@@ -2257,6 +2299,7 @@ body::before {
       <div class="output-tip">Run in Claude Code from your /MV project directory</div>
     </div>
   </aside>
+  </div><!-- /.prompt-dock -->
 
 </div>
 
@@ -3121,19 +3164,21 @@ const mainEl   = document.querySelector('.main');
 const shellEl  = document.querySelector('.shell');
 
 document.getElementById('toggleAgentPanel').addEventListener('click', function() {
-  const collapsed = mainEl.classList.toggle('agent-collapsed');
-  const ch = this.querySelector('.panel-toggle-chevron');
-  if (ch) ch.textContent = collapsed ? '▶' : '◀';
-  this.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
-  this.title = collapsed ? 'Show agent column' : 'Hide agent column';
+  mainEl.classList.toggle('agent-collapsed');
+  const nowCollapsed = mainEl.classList.contains('agent-collapsed');
+  const g = this.querySelector('.panel-edge-handle-glyph');
+  if (g) g.textContent = nowCollapsed ? '▶' : '◀';
+  this.setAttribute('aria-expanded', nowCollapsed ? 'false' : 'true');
+  this.title = nowCollapsed ? 'Show Agents panel' : 'Hide Agents panel';
 });
 
 document.getElementById('togglePromptPanel').addEventListener('click', function() {
-  const collapsed = shellEl.classList.toggle('prompt-collapsed');
-  const ch = this.querySelector('.panel-toggle-chevron');
-  if (ch) ch.textContent = collapsed ? '◀' : '▶';
-  this.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
-  this.title = collapsed ? 'Show prompt column' : 'Hide prompt column';
+  shellEl.classList.toggle('prompt-collapsed');
+  const nowCollapsed = shellEl.classList.contains('prompt-collapsed');
+  const g = this.querySelector('.panel-edge-handle-glyph');
+  if (g) g.textContent = nowCollapsed ? '▶' : '◀';
+  this.setAttribute('aria-expanded', nowCollapsed ? 'false' : 'true');
+  this.title = nowCollapsed ? 'Show Prompt panel' : 'Hide Prompt panel';
 });
 
 (function setupGlobalWorkbenchButtons() {
