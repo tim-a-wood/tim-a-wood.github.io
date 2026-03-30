@@ -2823,7 +2823,7 @@ function renderOrchPriorityRows(priorities, container) {
     const src = p.source ? SOURCE_BADGE_MAP[p.source] ?? { label: p.source.toUpperCase(), color: 'var(--muted)' } : null;
     const srcBadge = src
       ? '<span style="font-family:var(--font-mono);font-size:var(--font-size-xs);font-weight:600;letter-spacing:0.06em;color:' + src.color + ';opacity:0.85;min-width:68px;flex-shrink:0;">' + escapeHtml(src.label) + '</span>'
-      : '';
+      : '<span style="min-width:68px"></span>';
     return '<div class="db-priority-row">'
       + srcBadge
       + '<span class="db-priority-rank">' + escapeHtml(rank) + '</span>'
