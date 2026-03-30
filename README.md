@@ -140,6 +140,22 @@ source .env.local
 python3 scripts/sprite_workbench_server.py --host 127.0.0.1 --port 8766
 ```
 
+### Agent OS dashboard (local supervisor)
+
+To use **Agent OS** (`os-dashboard.html`) with live **Engineering** data and **Start / Restart / Stop** for the workbench from the dashboard:
+
+1. Add `OS_DASHBOARD_SUPERVISOR_TOKEN` to `.env.local` (see `.env.local.example`).
+2. Run:
+
+```bash
+python3 scripts/os_dashboard_supervisor.py
+```
+
+3. Open `http://127.0.0.1:8769/os-dashboard.html` (default supervisor port `8769`).
+4. In **Engineering → Workbench Server**, paste the same token and click **Save token** (stored in the browser tab only).
+
+The supervisor binds **127.0.0.1** only, serves the dashboard and `/api/dashboard-data`, and controls the workbench on **8766** by default (`--workbench-port` to override).
+
 The server writes local-first project data and exports under `tools/2d-sprite-and-animation/projects-data/`.
 
 Current workbench notes:

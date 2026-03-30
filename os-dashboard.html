@@ -978,6 +978,84 @@ body::before {
 }
 .db-run-btn:hover { opacity: 1; }
 
+/* ─── Engineering: workbench supervisor (Agent OS server) ─ */
+.db-os-workbench-panel {
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.db-os-workbench-panel[hidden] {
+  display: none !important;
+}
+.db-os-workbench-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.db-os-wb-btn {
+  min-height: 44px;
+  padding: 10px 12px;
+  border-radius: var(--radius-tight);
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.045);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 200ms ease, border-color 200ms ease, color 200ms ease, transform 200ms ease;
+}
+.db-os-wb-btn:hover:not(:disabled) {
+  border-color: var(--line-strong);
+  background: rgba(255, 255, 255, 0.08);
+  transform: translateY(-1px);
+}
+.db-os-wb-btn:active:not(:disabled) {
+  border-color: var(--accent);
+  background: rgba(0, 232, 200, 0.12);
+  transform: translateY(0);
+}
+.db-os-wb-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+.db-os-wb-btn--danger:hover:not(:disabled) {
+  border-color: var(--error);
+  background: var(--error-soft);
+  color: var(--error);
+}
+.db-os-wb-token-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+}
+.db-os-wb-token-row input {
+  flex: 1;
+  min-width: 160px;
+  min-height: 44px;
+  padding: 10px 12px;
+  border-radius: var(--radius-tight);
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+}
+.db-os-wb-token-row input:focus-visible {
+  outline: 2px solid rgba(0, 232, 200, 0.35);
+  outline-offset: 2px;
+}
+.db-os-wb-msg {
+  font-size: var(--font-size-xs);
+  color: var(--muted);
+  line-height: 1.4;
+}
+
 .db-status-row {
   display: flex;
   align-items: center;
@@ -1365,7 +1443,19 @@ body::before {
             <div class="db-card db-card--live">
               <div class="db-card-header"><div class="db-card-label">Workbench Server</div><span class="db-tier db-tier--live">LIVE</span></div>
               <div class="db-card-value" id="db-eng-server">—</div>
-              <div class="db-card-sub">:5000 · sprite_workbench_server.py</div>
+              <div class="db-card-sub" id="db-eng-server-detail">127.0.0.1:8766 · sprite_workbench_server.py</div>
+              <div id="db-os-workbench-panel" class="db-os-workbench-panel" hidden>
+                <div class="db-os-workbench-actions">
+                  <button type="button" class="db-os-wb-btn" id="db-os-wb-start">Start</button>
+                  <button type="button" class="db-os-wb-btn" id="db-os-wb-restart">Restart</button>
+                  <button type="button" class="db-os-wb-btn db-os-wb-btn--danger" id="db-os-wb-stop">Stop</button>
+                </div>
+                <div class="db-os-wb-token-row">
+                  <input type="password" id="db-os-wb-token-input" autocomplete="off" placeholder="Supervisor token (session)" aria-label="Supervisor token for this session">
+                  <button type="button" class="db-os-wb-btn" id="db-os-wb-token-save">Save token</button>
+                </div>
+                <p class="db-os-wb-msg" id="db-os-wb-msg">Open this dashboard via <span style="font-family:var(--font-mono)">python3 scripts/os_dashboard_supervisor.py</span> · set <span style="font-family:var(--font-mono)">OS_DASHBOARD_SUPERVISOR_TOKEN</span> in <span style="font-family:var(--font-mono)">.env.local</span></p>
+              </div>
             </div>
             <div class="db-card db-card--live">
               <div class="db-card-header"><div class="db-card-label">Pixellab API Key</div><span class="db-tier db-tier--live">LIVE</span></div>
@@ -2669,6 +2759,83 @@ async function loadDesignStatus() {
   }
 }
 
+// ── Agent OS supervisor (local) — workbench start/stop/restart ──
+const OS_SUPERVISOR_TOKEN_KEY = 'osDashboardSupervisorToken';
+
+async function initEngineeringWorkbenchControls() {
+  const panel = document.getElementById('db-os-workbench-panel');
+  const msg = document.getElementById('db-os-wb-msg');
+  if (!panel) return;
+  try {
+    const r = await fetch('/api/os/supervisor-config');
+    if (!r.ok) {
+      panel.hidden = true;
+      return;
+    }
+    const c = await r.json();
+    if (!c.supervisor) {
+      panel.hidden = true;
+      return;
+    }
+    panel.hidden = false;
+    const hasSessionToken = !!sessionStorage.getItem(OS_SUPERVISOR_TOKEN_KEY);
+    const startBtn = document.getElementById('db-os-wb-start');
+    const restartBtn = document.getElementById('db-os-wb-restart');
+    const stopBtn = document.getElementById('db-os-wb-stop');
+    const canPost = !!c.token_configured && hasSessionToken;
+    if (startBtn) startBtn.disabled = !canPost;
+    if (restartBtn) restartBtn.disabled = !canPost;
+    if (stopBtn) stopBtn.disabled = !canPost;
+    if (msg) {
+      if (!c.token_configured) {
+        msg.textContent = 'Add OS_DASHBOARD_SUPERVISOR_TOKEN to .env.local and restart the supervisor to enable Start, Restart, and Stop.';
+      } else if (!hasSessionToken) {
+        msg.textContent = 'Paste the same token and click Save token (stored in this tab only).';
+      } else {
+        msg.textContent = 'Controls apply to the workbench at ' + (c.workbench_host || '127.0.0.1') + ':' + c.workbench_port + '.';
+      }
+    }
+  } catch (err) {
+    panel.hidden = true;
+  }
+}
+
+async function postWorkbenchAction(action) {
+  const token = sessionStorage.getItem(OS_SUPERVISOR_TOKEN_KEY);
+  if (!token) {
+    showToast('Save your supervisor token first');
+    return;
+  }
+  try {
+    const r = await fetch('/api/os/workbench/' + action, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-OS-Dashboard-Token': token
+      },
+      body: '{}'
+    });
+    let j = {};
+    try {
+      j = await r.json();
+    } catch (e2) {
+      j = {};
+    }
+    if (!r.ok) {
+      showToast(j.error || j.message || ('HTTP ' + r.status));
+      return;
+    }
+    if (j.ok === false) {
+      showToast(j.message || 'Action failed');
+    } else {
+      showToast(j.message || action + ' ok');
+    }
+    await loadDashboardData('engineering');
+  } catch (err) {
+    showToast('Request failed');
+  }
+}
+
 // ── Live data loader ─────────────────────────────
 async function loadDashboardData(dashId) {
   if (dashId === 'engineering') {
@@ -2679,10 +2846,12 @@ async function loadDashboardData(dashId) {
   }
   try {
     const resp = await fetch('/api/dashboard-data');
-    if (!resp.ok) return;
-    const d = await resp.json();
+    let d = null;
+    if (resp.ok) {
+      d = await resp.json();
+    }
 
-    if (dashId === 'engineering' || dashId === 'cybersecurity') {
+    if (d && (dashId === 'engineering' || dashId === 'cybersecurity')) {
       const setVal = (id, val, cls) => {
         const el = document.getElementById(id);
         if (!el) return;
@@ -2697,6 +2866,15 @@ async function loadDashboardData(dashId) {
           d.gemini_key_set ? 'db-card-value--good' : 'db-card-value--error');
         setVal('db-eng-server', d.workbench_server_running ? '● Running' : '○ Offline',
           d.workbench_server_running ? 'db-card-value--good' : 'db-card-value--warning');
+        const det = document.getElementById('db-eng-server-detail');
+        if (det && d.workbench_port != null) {
+          const host = d.workbench_host || '127.0.0.1';
+          let line = host + ':' + d.workbench_port + ' · sprite_workbench_server.py';
+          if (d.workbench_pid) {
+            line = host + ':' + d.workbench_port + ' · PID ' + d.workbench_pid;
+          }
+          det.textContent = line;
+        }
       }
 
       if (dashId === 'cybersecurity') {
@@ -2709,7 +2887,7 @@ async function loadDashboardData(dashId) {
       }
     }
 
-    if (dashId === 'workbench' || dashId === 'ashen-hollow') {
+    if (d && (dashId === 'workbench' || dashId === 'ashen-hollow')) {
       const setVal = (id, val, cls) => {
         const el = document.getElementById(id);
         if (!el) return;
@@ -2725,6 +2903,9 @@ async function loadDashboardData(dashId) {
     }
   } catch {
     // API not available — leave placeholders
+  }
+  if (dashId === 'engineering') {
+    void initEngineeringWorkbenchControls();
   }
 }
 
@@ -2743,6 +2924,32 @@ document.getElementById('togglePromptPanel').addEventListener('click', function(
   this.textContent = collapsed ? '⟨' : '⟩';
   this.title = collapsed ? 'Expand prompt panel' : 'Collapse prompt panel';
 });
+
+// ── Workbench supervisor buttons ────────────────
+(function setupWorkbenchSupervisorUi() {
+  const save = document.getElementById('db-os-wb-token-save');
+  const inp = document.getElementById('db-os-wb-token-input');
+  if (save && inp) {
+    save.addEventListener('click', function() {
+      const v = inp.value.trim();
+      if (v) {
+        sessionStorage.setItem(OS_SUPERVISOR_TOKEN_KEY, v);
+        inp.value = '';
+        showToast('Token saved for this tab');
+      } else {
+        sessionStorage.removeItem(OS_SUPERVISOR_TOKEN_KEY);
+        showToast('Token cleared');
+      }
+      void initEngineeringWorkbenchControls();
+    });
+  }
+  const startBtn = document.getElementById('db-os-wb-start');
+  const restartBtn = document.getElementById('db-os-wb-restart');
+  const stopBtn = document.getElementById('db-os-wb-stop');
+  if (startBtn) startBtn.addEventListener('click', function() { void postWorkbenchAction('start'); });
+  if (restartBtn) restartBtn.addEventListener('click', function() { void postWorkbenchAction('restart'); });
+  if (stopBtn) stopBtn.addEventListener('click', function() { void postWorkbenchAction('stop'); });
+})();
 
 // ── Init ────────────────────────────────────────
 selectDashboard('orchestration');
