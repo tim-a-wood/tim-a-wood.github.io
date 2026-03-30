@@ -807,6 +807,10 @@ body::before {
   grid-template-columns: 28px 1fr 108px 68px minmax(0, 200px);
   column-gap: var(--space-3);
 }
+/* Orchestration priorities: source badge column before rank */
+.db-priority-list--orch {
+  grid-template-columns: minmax(68px, 80px) 28px 1fr 108px 68px minmax(0, 200px);
+}
 .db-priority-row {
   display: contents;
 }
@@ -1303,6 +1307,45 @@ body::before {
           <span class="db-view-icon">🎯</span>
           <div><div class="db-view-title" style="color:#00e8c8">ORCHESTRATION</div><div class="db-view-subtitle">Agent coordination, digest pipeline &amp; standing directives</div></div>
         </div>
+
+        <!-- ── Cross-Agent Priorities ── -->
+        <div class="db-section">
+          <div class="db-section-label">Cross-Agent Priorities</div>
+          <p style="color:var(--muted);font-size:var(--font-size-sm);margin:0 0 12px 0;max-width:720px">Synthesized from specialist agent priorities — <span style="font-family:var(--font-mono)">orchestration-status.json</span>. Updated by the orchestrator after reviewing engineering and design agent outputs.</p>
+          <div class="db-priority-list db-priority-list--orch" id="db-orch-priorities">
+            <!-- placeholder row — JS replaces on load (six columns: source, rank, title, pill, risk, note) -->
+            <div class="db-priority-row">
+              <span style="color:var(--muted);font-family:var(--font-mono);font-size:var(--font-size-xs)">—</span>
+              <span class="db-priority-rank">01</span>
+              <span class="db-priority-title">Loading…</span>
+              <span class="db-status-pill db-status-pill--paused">PAUSED</span>
+              <span class="db-priority-risk db-priority-risk--low">—</span>
+              <span class="db-priority-note"></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Risk Register ── -->
+        <div class="db-section">
+          <div class="db-section-label">Risk Register</div>
+          <div class="db-risk-grid">
+            <div class="db-risk-panel">
+              <div class="db-risk-panel-label">P0 BLOCKERS</div>
+              <div id="db-orch-risks-p0">
+                <div class="db-risk-clear">
+                  <span style="color:var(--good)">✓ No active blockers</span>
+                </div>
+              </div>
+            </div>
+            <div class="db-risk-panel">
+              <div class="db-risk-panel-label">FOUNDER DECISIONS</div>
+              <div id="db-orch-founder-decisions">
+                <div style="background:rgba(93,120,112,0.08);color:var(--muted);border-radius:var(--radius-md);padding:12px;font-size:var(--font-size-sm);font-weight:500;">✓ No pending decisions</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div class="db-section">
           <div class="db-section-label">System Status</div>
           <div class="db-grid">
@@ -2766,6 +2809,50 @@ async function loadDesignStatus() {
   }
 }
 
+const SOURCE_BADGE_MAP = {
+  'eng':        { label: 'ENG',        color: 'var(--warning)' },
+  'design':     { label: 'DESIGN',     color: 'var(--c-finance)' },
+  'eng+design': { label: 'ENG+DESIGN', color: 'var(--c-legal)' },
+};
+
+function renderOrchPriorityRows(priorities, container) {
+  container.innerHTML = priorities.map(p => {
+    const rank = String(p.id).padStart(2, '0');
+    const pill = STATUS_PILL_MAP[p.status] ?? { cls: 'db-status-pill--paused', label: (p.status || '').toUpperCase() };
+    const riskCls = p.risk === 'high' ? 'db-priority-risk--high' : p.risk === 'med' ? 'db-priority-risk--med' : 'db-priority-risk--low';
+    const src = p.source ? SOURCE_BADGE_MAP[p.source] ?? { label: p.source.toUpperCase(), color: 'var(--muted)' } : null;
+    const srcBadge = src
+      ? '<span style="font-family:var(--font-mono);font-size:var(--font-size-xs);font-weight:600;letter-spacing:0.06em;color:' + src.color + ';opacity:0.85;min-width:68px;flex-shrink:0;">' + escapeHtml(src.label) + '</span>'
+      : '';
+    return '<div class="db-priority-row">'
+      + srcBadge
+      + '<span class="db-priority-rank">' + escapeHtml(rank) + '</span>'
+      + '<span class="db-priority-title">' + escapeHtml(p.title) + '</span>'
+      + '<span class="db-status-pill ' + pill.cls + '">' + pill.label + '</span>'
+      + (p.risk ? '<span class="db-priority-risk ' + riskCls + '">' + escapeHtml(p.risk.toUpperCase()) + ' RISK</span>' : '')
+      + (p.note ? '<span class="db-priority-note">' + escapeHtml(p.note) + '</span>' : '')
+      + '</div>';
+  }).join('');
+}
+
+async function loadOrchestrationStatus() {
+  try {
+    const resp = await fetch('orchestration-status.json');
+    if (!resp.ok) return;
+    const s = await resp.json();
+
+    const prioritiesEl = document.getElementById('db-orch-priorities');
+    const risksP0El = document.getElementById('db-orch-risks-p0');
+    const founderEl = document.getElementById('db-orch-founder-decisions');
+
+    if (prioritiesEl && s.priorities) renderOrchPriorityRows(s.priorities, prioritiesEl);
+    if (risksP0El) renderRisksP0(s.risks_p0 ?? [], risksP0El);
+    if (founderEl) renderFounderDecisions(s.founder_decisions ?? [], founderEl);
+  } catch {
+    // Leave placeholder content in place
+  }
+}
+
 // ── Global workbench bar (POST goes to Agent OS on 8769, or same-origin when on 8769) ──
 let lastWorkbenchControlBase = '';
 
@@ -2870,6 +2957,9 @@ async function loadDashboardData(dashId) {
   }
   if (dashId === 'design') {
     loadDesignStatus();
+  }
+  if (dashId === 'orchestration') {
+    loadOrchestrationStatus();
   }
   try {
     const resp = await fetch('/api/dashboard-data');

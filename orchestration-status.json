@@ -1,0 +1,76 @@
+{
+  "_note": "Orchestrator-maintained. Synthesized by analyzing specialist priorities from engineering-status.json and design-status.json. Update when specialist priorities change or on weekly review. Rows with source \"design\" are execution-owned by the design agent (see design-status.json); \"eng\" by engineering. Cross-cutting items may split work across both charters.",
+  "updated": "2026-03-29",
+  "schema_version": "v1.0",
+  "synthesis_sources": ["engineering-status.json", "design-status.json"],
+  "priorities": [
+    {
+      "id": 1,
+      "source": "eng+design",
+      "title": "Room Editor Sprint 1: inspector rebuild + mode clarity (cursor, rail, overlay)",
+      "status": "in-progress",
+      "risk": "high",
+      "note": "Cross-agent P1 — Eng: inspector panel + entity type system; Design: place-vs-select mode errors corrupt layouts. Must land together."
+    },
+    {
+      "id": 2,
+      "source": "eng",
+      "title": "Export schema: version field + validation layer before next schema-touching feature",
+      "status": "needs-review",
+      "risk": "high",
+      "note": "Unversioned exports are a silent breaking-change risk. Founder decision required: greenlight before any further schema work."
+    },
+    {
+      "id": 3,
+      "source": "eng",
+      "title": "Sprite Workbench: AI pipeline integration (Pixellab) — frontend generation flow",
+      "status": "in-progress",
+      "risk": "med",
+      "note": "Backend connected; frontend flow in progress. Core differentiator for the workbench value prop."
+    },
+    {
+      "id": 4,
+      "source": "design",
+      "title": "STYLE_GUIDE: motion + Copilot UI patterns — add to agent prompt references",
+      "status": "needs-review",
+      "risk": "med",
+      "note": "Prevents LLM-default transitions and generic AI UI from shipping in new PRs. Low effort, high leverage."
+    },
+    {
+      "id": 5,
+      "source": "design",
+      "title": "WCAG 2.2 AA + keyboard order on new inspector and modal flows",
+      "status": "in-progress",
+      "risk": "med",
+      "note": "Focus trap, :focus-visible, 44px targets. Linked to Room Editor sprint — review accessibility as inspector lands."
+    },
+    {
+      "id": 6,
+      "source": "eng",
+      "title": "AI Copilot: Gemini 2.5 spatial reasoning evaluation (trigger decision)",
+      "status": "paused",
+      "risk": "low",
+      "note": "Founder decision needed: define the trigger criteria for starting the Gemini 2.5 evaluation."
+    }
+  ],
+  "risks_p0": [],
+  "risks_p1": [
+    {
+      "title": "Export schema has no version field",
+      "source": "eng",
+      "note": "Any schema change will silently break game runtime. Versioning is P1 before next schema-touching feature."
+    }
+  ],
+  "founder_decisions": [
+    {
+      "title": "Export schema versioning — greenlight before next schema-touching feature",
+      "source": "eng",
+      "note": "Blocks: room editor entity type additions, any future schema evolution."
+    },
+    {
+      "title": "Gemini vs. Claude for room Copilot — define evaluation trigger criteria",
+      "source": "eng",
+      "note": "When should the team start the Gemini 2.5 spatial benchmarks? Time-boxed evaluation needed."
+    }
+  ]
+}
