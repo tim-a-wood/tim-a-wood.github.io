@@ -1221,6 +1221,199 @@ body::before {
   color: var(--accent);
 }
 .scoped-agent-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+
+/* ─── AGENT OS HOME (flagship hub) ─────────────────
+   Visual direction: mission-control depth, design tokens only.
+   Design agent: extend per agents/design/os_home_dashboard_handoff.md
+─────────────────────────────────────────────────── */
+.os-home-hero {
+  position: relative;
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  background: linear-gradient(165deg, rgba(0,232,200,0.06) 0%, rgba(4,6,10,0.92) 48%, var(--panel-soft) 100%);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-md), inset 0 1px 0 rgba(255,255,255,0.045);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.os-home-hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 80% 60% at 100% -20%, rgba(0,232,200,0.12), transparent 55%);
+  pointer-events: none;
+}
+.os-home-hero-inner {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+.os-home-hero-title {
+  font-family: var(--font-display);
+  font-size: var(--font-size-xl);
+  letter-spacing: 0.08em;
+  color: var(--accent);
+  line-height: 1.05;
+}
+.os-home-hero-tag {
+  display: inline-block;
+  margin-top: var(--space-2);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.os-home-hero-kpis {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.os-home-kpi {
+  min-width: 140px;
+  padding: var(--space-3);
+  border-radius: var(--radius-card);
+  background: rgba(0,0,0,0.2);
+  border: 1px solid var(--stroke);
+  backdrop-filter: blur(8px);
+}
+.os-home-kpi-label {
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: var(--space-1);
+}
+.os-home-kpi-value {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.15;
+}
+.os-home-kpi-sub {
+  font-size: 10px;
+  color: var(--muted);
+  margin-top: var(--space-1);
+  line-height: 1.35;
+}
+.os-home-kpi canvas {
+  display: block;
+  margin-top: var(--space-2);
+  width: 100%;
+  max-width: 160px;
+  height: 36px;
+}
+
+.os-chart-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+@media (max-width: 900px) {
+  .os-chart-grid { grid-template-columns: 1fr; }
+}
+
+.os-chart-card {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  padding: var(--surface-pad);
+  box-shadow: var(--shadow-sm), inset 0 1px 0 rgba(255,255,255,0.045);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-height: 0;
+}
+.os-chart-card--wide {
+  grid-column: 1 / -1;
+}
+.os-chart-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+.os-chart-card-title {
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  line-height: 1.35;
+}
+.os-chart-card-tier {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-xs);
+  color: var(--accent);
+  background: var(--accent-soft);
+  border: 1px solid rgba(0,232,200,0.14);
+  white-space: nowrap;
+}
+.os-chart-canvas-wrap {
+  position: relative;
+  width: 100%;
+  flex: 1;
+  min-height: 180px;
+}
+.os-chart-canvas-wrap--tall { min-height: 220px; }
+.os-chart-canvas-wrap canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  vertical-align: top;
+}
+.os-chart-foot {
+  font-size: 10px;
+  color: var(--muted);
+  line-height: 1.4;
+  font-family: var(--font-sans);
+}
+
+.os-home-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  padding-top: var(--space-1);
+}
+.os-home-action {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 44px;
+  padding: 10px var(--space-4);
+  border-radius: var(--radius-tight);
+  border: 1px solid var(--line);
+  background: rgba(255,255,255,0.04);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 200ms ease, border-color 200ms ease, color 200ms ease, transform 200ms ease;
+}
+.os-home-action:hover {
+  border-color: var(--line-strong);
+  background: rgba(255,255,255,0.08);
+  transform: translateY(-1px);
+}
+.os-home-action:focus-visible {
+  outline: 2px solid rgba(0,232,200,0.35);
+  outline-offset: 2px;
+}
+.os-home-action-dot {
+  font-size: var(--font-size-xs);
+  white-space: nowrap;
+}
 </style>
 </head>
 <body>
@@ -1241,8 +1434,14 @@ body::before {
     <div class="nav-section">
       <span class="nav-label">Dashboards</span>
 
+      <span class="nav-group-label">Core</span>
+      <button type="button" class="nav-item db-active" data-dashboard="home">
+        <span class="nav-dot" style="background:var(--accent)"></span>
+        <span class="nav-item-text">Home</span>
+      </button>
+
       <span class="nav-group-label">Leadership</span>
-      <button type="button" class="nav-item db-active" data-dashboard="orchestration">
+      <button type="button" class="nav-item" data-dashboard="orchestration">
         <span class="nav-dot" style="background:#00e8c8"></span>
         <span class="nav-item-text">Orchestration</span>
       </button>
@@ -1387,8 +1586,96 @@ body::before {
 
       <div class="main-left-views">
 
+      <!-- ── AGENT OS HOME ─────────────────────────────────────
+           Illustrative internal AI / ops charts — wire to ledger JSON when available.
+           Design polish: agents/design/os_home_dashboard_handoff.md
+      ───────────────────────────────────────────────────── -->
+      <div class="dashboard-view active" data-dashboard-view="home">
+        <div class="db-view-header">
+          <span class="db-view-icon">◆</span>
+          <div>
+            <div class="db-view-title" style="color:var(--accent)">HOME</div>
+            <div class="db-view-subtitle">Agent OS hub · internal analytics &amp; AI usage signal</div>
+          </div>
+        </div>
+
+        <section class="os-home-hero" aria-label="Hub overview">
+          <div class="os-home-hero-inner">
+            <div>
+              <div class="os-home-hero-title">COMMAND SURFACE</div>
+              <p class="os-home-hero-tag">Metroidvania toolchain · pre-launch</p>
+            </div>
+            <div class="os-home-hero-kpis">
+              <div class="os-home-kpi">
+                <div class="os-home-kpi-label">8-week AI units</div>
+                <div class="os-home-kpi-value" id="home-kpi-ai-units">189</div>
+                <canvas data-os-mini-spark="trend" width="320" height="72" aria-hidden="true"></canvas>
+                <p class="os-home-kpi-sub">Illustrative series · replace with ledger totals</p>
+              </div>
+              <div class="os-home-kpi">
+                <div class="os-home-kpi-label">Keys (live)</div>
+                <div class="os-home-kpi-value" id="home-kpi-keys">—</div>
+                <p class="os-home-kpi-sub">Gemini · Pixellab · from supervisor</p>
+              </div>
+              <div class="os-home-kpi">
+                <div class="os-home-kpi-label">Workbench</div>
+                <div class="os-home-kpi-value" id="home-kpi-workbench">—</div>
+                <p class="os-home-kpi-sub">Sprite server · same row as Engineering</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <div class="db-section">
+          <div class="db-section-label">AI usage &amp; quality signal</div>
+          <p style="color:var(--muted);font-size:var(--font-size-sm);margin:0;max-width:820px;line-height:1.45">Charts use design-system colors only. Data are <strong style="color:var(--text);font-weight:520">placeholders</strong> until the internal ledger and Copilot tracking plan feed this view — see Analytics charter.</p>
+          <div class="os-chart-grid" id="home-os-chart-grid">
+            <div class="os-chart-card os-chart-card--wide">
+              <div class="os-chart-card-head">
+                <span class="os-chart-card-title">Estimated AI API activity · weekly</span>
+                <span class="os-chart-card-tier">AREA</span>
+              </div>
+              <div class="os-chart-canvas-wrap os-chart-canvas-wrap--tall">
+                <canvas data-os-chart="area-requests" width="800" height="320"></canvas>
+              </div>
+              <p class="os-chart-foot">Denominator: weeks 1–8 of rolling window · Y-axis normalized until currency coupling lands · Finance dashboard owns ground-truth spend.</p>
+            </div>
+            <div class="os-chart-card">
+              <div class="os-chart-card-head">
+                <span class="os-chart-card-title">Mix by purpose</span>
+                <span class="os-chart-card-tier">SPLIT</span>
+              </div>
+              <div class="os-chart-canvas-wrap">
+                <canvas data-os-chart="bars-purpose" width="480" height="280"></canvas>
+              </div>
+              <p class="os-chart-foot">Copilot vs eval harness vs dev agents — tag exports from your ops ledger.</p>
+            </div>
+            <div class="os-chart-card">
+              <div class="os-chart-card-head">
+                <span class="os-chart-card-title">Copilot outcomes (proxy)</span>
+                <span class="os-chart-card-tier">DONUT</span>
+              </div>
+              <div class="os-chart-canvas-wrap">
+                <canvas data-os-chart="donut-outcomes" width="480" height="280"></canvas>
+              </div>
+              <p class="os-chart-foot">Accept · revise · discard without revision — needs event instrumentation + explicit <em>n</em> on each slice.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="db-section">
+          <div class="db-section-label">Jump to domain</div>
+          <div class="os-home-actions">
+            <button type="button" class="os-home-action" data-home-jump="analytics"><span class="os-home-action-dot" style="color:var(--c-analytics)">●</span> Analytics · tracking plan</button>
+            <button type="button" class="os-home-action" data-home-jump="engineering"><span class="os-home-action-dot" style="color:#ff9500">●</span> Engineering · pipeline</button>
+            <button type="button" class="os-home-action" data-home-jump="finance"><span class="os-home-action-dot" style="color:var(--c-finance)">●</span> Finance · API spend</button>
+            <button type="button" class="os-home-action" data-home-jump="orchestration"><span class="os-home-action-dot" style="color:var(--accent)">●</span> Orchestration · digests</button>
+          </div>
+        </div>
+      </div>
+
       <!-- ── ORCHESTRATION DASHBOARD ─────────────────────────── -->
-      <div class="dashboard-view active" data-dashboard-view="orchestration">
+      <div class="dashboard-view" data-dashboard-view="orchestration">
         <div class="db-view-header">
           <span class="db-view-icon">🎯</span>
           <div><div class="db-view-title" style="color:#00e8c8">ORCHESTRATION</div><div class="db-view-subtitle">Agent coordination, digest pipeline &amp; standing directives</div></div>
@@ -1607,6 +1894,43 @@ body::before {
               <div class="db-card-header"><div class="db-card-label">Schema Version</div><span class="db-tier db-tier--static">STATIC</span></div>
               <div class="db-card-value db-card-value--muted" id="db-eng-schema-version">v1.0</div>
               <div class="db-card-sub">Export schema · bump on breaking change</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="db-section">
+          <div class="db-section-label">AI pipeline signal · same viz language as Home</div>
+          <p style="color:var(--muted);font-size:var(--font-size-sm);margin:0 0 var(--space-2) 0;max-width:820px">Engineering view mirrors the hub charts for side-by-side review during incidents or prompt experiments. Placeholder series until telemetry lands.</p>
+          <div class="os-chart-grid" id="eng-os-chart-grid">
+            <div class="os-chart-card os-chart-card--wide">
+              <div class="os-chart-card-head">
+                <span class="os-chart-card-title">AI activity · weekly (engineering context)</span>
+                <span class="os-chart-card-tier">AREA</span>
+              </div>
+              <div class="os-chart-canvas-wrap os-chart-canvas-wrap--tall">
+                <canvas data-os-chart="area-requests" width="800" height="300"></canvas>
+              </div>
+              <p class="os-chart-foot">Align prompt-version tags with Analytics timeline when regressions spike.</p>
+            </div>
+            <div class="os-chart-card">
+              <div class="os-chart-card-head">
+                <span class="os-chart-card-title">Purpose mix</span>
+                <span class="os-chart-card-tier">SPLIT</span>
+              </div>
+              <div class="os-chart-canvas-wrap">
+                <canvas data-os-chart="bars-purpose" width="480" height="260"></canvas>
+              </div>
+              <p class="os-chart-foot">Split Copilot / eval / dev — tie to GEMINI calls in server logs when available.</p>
+            </div>
+            <div class="os-chart-card">
+              <div class="os-chart-card-head">
+                <span class="os-chart-card-title">Outcome proxy</span>
+                <span class="os-chart-card-tier">DONUT</span>
+              </div>
+              <div class="os-chart-canvas-wrap">
+                <canvas data-os-chart="donut-outcomes" width="480" height="260"></canvas>
+              </div>
+              <p class="os-chart-foot">Room Copilot UX charter + QA gate — replace with measured accept / revise / discard.</p>
             </div>
           </div>
         </div>
@@ -2562,6 +2886,7 @@ const AGENTS = {
 
 // ── Dashboard config ─────────────────────────────
 const DASHBOARDS = {
+  home:            { label: 'Home',           color: '#00e8c8', agents: ['orchestrator'] },
   orchestration:   { label: 'Orchestration', color: '#00e8c8', agents: ['orchestrator'] },
   strategy:        { label: 'Strategy',       color: '#94a3b8', agents: ['strategy'] },
   engineering:     { label: 'Engineering',    color: '#ff9500', agents: ['engineering', 'animation', 'level-design'] },
@@ -2600,7 +2925,7 @@ const AGENT_META = {
   'game-systems':     { icon: '⚔️', color: '#fca5a5' },
 };
 
-let selectedDashboard = 'orchestration';
+let selectedDashboard = 'home';
 let selectedAgent = 'orchestrator';
 let selectedMode = 'brainstorm';
 let generatedPrompt = '';
@@ -2619,7 +2944,7 @@ const toast       = document.getElementById('toast');
 const DASHBOARD_STORAGE_KEY = 'mv-agent-os-dashboard';
 
 function getInitialDashboardId() {
-  let id = 'orchestration';
+  let id = 'home';
   try {
     const saved = sessionStorage.getItem(DASHBOARD_STORAGE_KEY);
     if (saved && DASHBOARDS[saved]) id = saved;
@@ -2650,6 +2975,9 @@ function selectDashboard(id) {
 
   // load live data for this dashboard
   loadDashboardData(id);
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => paintOsChartsForView(id));
+  });
 }
 
 function renderScopedAgents(dashId) {
@@ -2786,6 +3114,13 @@ claudeBtn.addEventListener('click', () => {
 document.querySelectorAll('.nav-item[data-dashboard]').forEach(btn => {
   btn.addEventListener('click', () => {
     selectDashboard(btn.dataset.dashboard);
+  });
+});
+
+document.querySelectorAll('[data-home-jump]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const target = btn.getAttribute('data-home-jump');
+    if (target && DASHBOARDS[target]) selectDashboard(target);
   });
 });
 
@@ -3047,6 +3382,286 @@ function syncEngineeringWorkbenchCard(d) {
   }
 }
 
+// ── Agent OS Home / Engineering charts (canvas, CSS variables) ──
+// Replace OS_CHART_PLACEHOLDER with fetch JSON when internal ledger exists.
+const OS_CHART_PLACEHOLDER = {
+  areaRequests: [12, 18, 15, 22, 19, 28, 24, 31],
+  areaLabels: ['W1', 'W2', 'W3', 'W4', 'W5', 'W6', 'W7', 'W8'],
+  purposeBars: [
+    { label: 'Copilot', value: 45, key: 'accent' },
+    { label: 'Eval harness', value: 20, key: 'good' },
+    { label: 'Dev agents', value: 35, key: 'warning' },
+  ],
+  donut: [
+    { label: 'Accepted', value: 32, key: 'good' },
+    { label: 'Revised', value: 41, key: 'accent' },
+    { label: 'Discarded', value: 27, key: 'warning' },
+  ],
+};
+
+(function initHomeKpiAiSum() {
+  const el = document.getElementById('home-kpi-ai-units');
+  if (!el) return;
+  const s = OS_CHART_PLACEHOLDER.areaRequests.reduce((a, b) => a + b, 0);
+  el.textContent = String(s);
+})();
+
+function osChartTheme() {
+  const r = document.documentElement;
+  const g = (n) => getComputedStyle(r).getPropertyValue(n).trim();
+  return {
+    accent: g('--accent'),
+    text: g('--text'),
+    muted: g('--muted'),
+    good: g('--good'),
+    warning: g('--warning'),
+    line: g('--line'),
+    stroke: g('--stroke-strong'),
+  };
+}
+
+function osThemeColor(theme, key) {
+  if (key === 'good') return theme.good;
+  if (key === 'warning') return theme.warning;
+  if (key === 'muted') return theme.muted;
+  return theme.accent;
+}
+
+function prepCanvas(canvas, cssW, cssH) {
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  const bw = Math.max(1, Math.floor(cssW * dpr));
+  const bh = Math.max(1, Math.floor(cssH * dpr));
+  canvas.width = bw;
+  canvas.height = bh;
+  canvas.style.width = cssW + 'px';
+  canvas.style.height = cssH + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return { ctx, cssW, cssH };
+}
+
+function prepCanvasInWrap(canvas) {
+  const wrap = canvas.parentElement;
+  if (!wrap) return null;
+  const rect = wrap.getBoundingClientRect();
+  const cssW = Math.max(200, Math.floor(rect.width));
+  const tall = wrap.classList.contains('os-chart-canvas-wrap--tall');
+  const cssH = tall ? 220 : 200;
+  return prepCanvas(canvas, cssW, cssH);
+}
+
+function paintAreaRequests(canvas) {
+  const prep = prepCanvasInWrap(canvas);
+  if (!prep) return;
+  const { ctx, cssW: W, cssH: H } = prep;
+  const t = osChartTheme();
+  const pad = { t: 20, r: 12, b: 28, l: 40 };
+  const data = OS_CHART_PLACEHOLDER.areaRequests;
+  const labels = OS_CHART_PLACEHOLDER.areaLabels;
+  const innerW = W - pad.l - pad.r;
+  const innerH = H - pad.t - pad.b;
+  const max = Math.max.apply(null, data.concat([1]));
+  const min = 0;
+  const span = max - min || 1;
+  ctx.clearRect(0, 0, W, H);
+  ctx.strokeStyle = t.line;
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 4; i += 1) {
+    const y = pad.t + (innerH * i) / 4;
+    ctx.beginPath();
+    ctx.moveTo(pad.l, y);
+    ctx.lineTo(W - pad.r, y);
+    ctx.stroke();
+  }
+  const n = data.length;
+  const stepX = innerW / Math.max(1, n - 1);
+  const points = data.map((v, i) => ({
+    x: pad.l + i * stepX,
+    y: pad.t + innerH - ((v - min) / span) * innerH * 0.92,
+  }));
+  const grad = ctx.createLinearGradient(0, pad.t, 0, pad.t + innerH);
+  grad.addColorStop(0, 'rgba(0,232,200,0.28)');
+  grad.addColorStop(1, 'rgba(0,232,200,0)');
+  ctx.beginPath();
+  ctx.moveTo(points[0].x, pad.t + innerH);
+  points.forEach((p) => ctx.lineTo(p.x, p.y));
+  ctx.lineTo(points[n - 1].x, pad.t + innerH);
+  ctx.closePath();
+  ctx.fillStyle = grad;
+  ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(points[0].x, points[0].y);
+  for (let i = 1; i < points.length; i += 1) ctx.lineTo(points[i].x, points[i].y);
+  ctx.strokeStyle = t.accent;
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  points.forEach((p) => {
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+    ctx.fillStyle = t.accent;
+    ctx.fill();
+  });
+  const monoFamily = getComputedStyle(document.documentElement).getPropertyValue('--font-mono') || '"DM Mono",monospace';
+  ctx.font = '500 10px ' + monoFamily;
+  ctx.fillStyle = t.muted;
+  ctx.textAlign = 'center';
+  labels.forEach((lb, i) => {
+    const x = pad.l + i * stepX;
+    ctx.fillText(lb, x, H - 8);
+  });
+  ctx.textAlign = 'right';
+  ctx.fillText(String(max), pad.l - 4, pad.t + 10);
+}
+
+function paintBarsPurpose(canvas) {
+  const prep = prepCanvasInWrap(canvas);
+  if (!prep) return;
+  const { ctx, cssW: W, cssH: H } = prep;
+  const t = osChartTheme();
+  const rows = OS_CHART_PLACEHOLDER.purposeBars;
+  const pad = { t: 16, r: 16, b: 16, l: 92 };
+  const innerW = W - pad.l - pad.r;
+  const innerH = H - pad.t - pad.b;
+  const rowH = innerH / Math.max(1, rows.length);
+  const maxV = Math.max.apply(null, rows.map((r) => r.value).concat([1]));
+  ctx.clearRect(0, 0, W, H);
+  const monoFamily = getComputedStyle(document.documentElement).getPropertyValue('--font-mono') || '"DM Mono",monospace';
+  rows.forEach((row, i) => {
+    const y0 = pad.t + i * rowH + 6;
+    const barW = (row.value / maxV) * innerW * 0.98;
+    ctx.fillStyle = t.muted;
+    ctx.font = '500 11px ' + (getComputedStyle(document.documentElement).getPropertyValue('--font-sans') || 'sans-serif');
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(row.label, 8, y0 + 14);
+    ctx.fillStyle = 'rgba(93,120,112,0.12)';
+    const barY = y0 + 4;
+    ctx.fillRect(pad.l, barY, innerW, 16);
+    ctx.fillStyle = osThemeColor(t, row.key);
+    ctx.fillRect(pad.l, barY, barW, 16);
+    ctx.fillStyle = t.text;
+    ctx.font = '600 10px ' + monoFamily;
+    ctx.textAlign = 'right';
+    ctx.fillText(String(row.value) + '%', pad.l + innerW, y0 + 12);
+  });
+}
+
+function paintDonutOutcomes(canvas) {
+  const prep = prepCanvasInWrap(canvas);
+  if (!prep) return;
+  const { ctx, cssW: W, cssH: H } = prep;
+  const t = osChartTheme();
+  const segs = OS_CHART_PLACEHOLDER.donut;
+  const total = segs.reduce((s, x) => s + x.value, 0) || 1;
+  ctx.clearRect(0, 0, W, H);
+  const cx = Math.min(W, H) * 0.36;
+  const cy = H * 0.5;
+  const r0 = Math.min(W, H) * 0.2;
+  const r1 = r0 * 1.62;
+  let ang = -Math.PI / 2;
+  segs.forEach((seg) => {
+    const slice = (seg.value / total) * Math.PI * 2;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r1, ang, ang + slice);
+    ctx.arc(cx, cy, r0, ang + slice, ang, true);
+    ctx.closePath();
+    ctx.fillStyle = osThemeColor(t, seg.key);
+    ctx.fill();
+    ang += slice;
+  });
+  ctx.fillStyle = t.text;
+  ctx.font = '600 12px ' + (getComputedStyle(document.documentElement).getPropertyValue('--font-sans') || 'sans-serif');
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('n=', cx, cy - 6);
+  ctx.font = '500 10px ' + (getComputedStyle(document.documentElement).getPropertyValue('--font-mono') || 'monospace');
+  ctx.fillStyle = t.muted;
+  ctx.fillText('illustrative', cx, cy + 10);
+  const lx = cx + r1 + 20;
+  let y = cy - (segs.length * 20) / 2;
+  const monoFamily = getComputedStyle(document.documentElement).getPropertyValue('--font-mono') || '"DM Mono",monospace';
+  segs.forEach((seg) => {
+    ctx.fillStyle = osThemeColor(t, seg.key);
+    ctx.fillRect(lx, y, 8, 8);
+    ctx.fillStyle = t.muted;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    ctx.font = '500 10px ' + monoFamily;
+    ctx.fillText(seg.label + ' · ' + String(seg.value) + '%', lx + 14, y - 1);
+    y += 20;
+  });
+}
+
+function paintMiniSpark(canvas) {
+  const prep = prepCanvas(canvas, 160, 36);
+  if (!prep) return;
+  const { ctx, cssW: W, cssH: H } = prep;
+  const t = osChartTheme();
+  const data = OS_CHART_PLACEHOLDER.areaRequests;
+  const max = Math.max.apply(null, data.concat([1]));
+  const min = Math.min.apply(null, data.concat([0]));
+  const span = max - min || 1;
+  ctx.clearRect(0, 0, W, H);
+  const n = data.length;
+  const step = W / Math.max(1, n - 1);
+  const pts = data.map((v, i) => ({
+    x: i * step,
+    y: H - 4 - ((v - min) / span) * (H - 10),
+  }));
+  const grad = ctx.createLinearGradient(0, 0, 0, H);
+  grad.addColorStop(0, 'rgba(0,232,200,0.4)');
+  grad.addColorStop(1, 'rgba(0,232,200,0)');
+  ctx.beginPath();
+  ctx.moveTo(pts[0].x, H);
+  pts.forEach((p) => ctx.lineTo(p.x, p.y));
+  ctx.lineTo(pts[n - 1].x, H);
+  ctx.closePath();
+  ctx.fillStyle = grad;
+  ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(pts[0].x, pts[0].y);
+  for (let i = 1; i < pts.length; i += 1) ctx.lineTo(pts[i].x, pts[i].y);
+  ctx.strokeStyle = t.accent;
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+}
+
+function paintOsChartsForView(dashId) {
+  if (dashId !== 'home' && dashId !== 'engineering') return;
+  const view = document.querySelector('[data-dashboard-view="' + dashId + '"]');
+  if (!view) return;
+  view.querySelectorAll('[data-os-chart]').forEach((c) => {
+    const kind = c.getAttribute('data-os-chart');
+    if (kind === 'area-requests') paintAreaRequests(c);
+    else if (kind === 'bars-purpose') paintBarsPurpose(c);
+    else if (kind === 'donut-outcomes') paintDonutOutcomes(c);
+  });
+  view.querySelectorAll('[data-os-mini-spark]').forEach((c) => paintMiniSpark(c));
+}
+
+function syncHomeKpis(d) {
+  const keysEl = document.getElementById('home-kpi-keys');
+  const wbEl = document.getElementById('home-kpi-workbench');
+  if (!keysEl || !wbEl) return;
+  if (!d) {
+    keysEl.textContent = '—';
+    wbEl.textContent = '—';
+    return;
+  }
+  const g = d.gemini_key_set ? 'G✓' : 'G—';
+  const p = d.pixellab_key_set ? 'P✓' : 'P—';
+  keysEl.textContent = g + ' · ' + p;
+  wbEl.textContent = d.workbench_server_running ? '● Up' : '○ Down';
+}
+
+let osChartResizeTimer;
+window.addEventListener('resize', () => {
+  clearTimeout(osChartResizeTimer);
+  osChartResizeTimer = setTimeout(() => {
+    paintOsChartsForView(selectedDashboard);
+  }, 120);
+});
+
 async function postGlobalWorkbenchAction(action) {
   try {
     const base = typeof lastWorkbenchControlBase === 'string' ? lastWorkbenchControlBase : '';
@@ -3097,6 +3712,7 @@ async function loadDashboardData(dashId) {
     }
     applyGlobalWorkbenchBar(d);
     syncEngineeringWorkbenchCard(d);
+    syncHomeKpis(d);
 
     if (d && (dashId === 'engineering' || dashId === 'cybersecurity')) {
       const setVal = (id, val, cls) => {
@@ -3141,6 +3757,7 @@ async function loadDashboardData(dashId) {
     }
   } catch {
     applyGlobalWorkbenchBar(null);
+    syncHomeKpis(null);
   }
 }
 
@@ -3150,8 +3767,10 @@ async function pulseGlobalWorkbenchOnly() {
     const d = resp.ok ? await resp.json() : null;
     applyGlobalWorkbenchBar(d);
     syncEngineeringWorkbenchCard(d);
+    syncHomeKpis(d);
   } catch {
     applyGlobalWorkbenchBar(null);
+    syncHomeKpis(null);
   }
 }
 
