@@ -375,6 +375,39 @@ class SpriteWorkbenchTests(unittest.TestCase):
         self.assertAlmostEqual(summary["today_usage_cost_usd"], 1.25)
         self.assertEqual(summary["recent_entries"][0]["endpoint"], "pixellab.animate-custom")
 
+    def test_usage_ledger_charts_rollup(self):
+        from datetime import datetime, timedelta, timezone
+
+        from scripts.workbench_persistence import build_usage_ledger_charts_from_entries
+
+        now = datetime.now(timezone.utc)
+        d0 = now.date()
+        monday = d0 - timedelta(days=d0.weekday())
+        monday_dt = datetime.combine(monday, datetime.min.time(), tzinfo=timezone.utc)
+
+        entries = [
+            {
+                "created_at": monday_dt.isoformat(),
+                "provider": "pixellab",
+                "endpoint": "pixellab.animate-custom",
+                "status": "success",
+            },
+            {
+                "created_at": monday_dt.isoformat(),
+                "provider": "gemini",
+                "endpoint": "concepts.iterate-gemini",
+                "status": "error",
+            },
+        ]
+        out = build_usage_ledger_charts_from_entries(entries)
+        self.assertEqual(out["version"], 1)
+        self.assertEqual(len(out["area_requests"]), 8)
+        self.assertEqual(sum(out["area_requests"]), 2)
+        self.assertEqual(out["ledger_entry_count_window"], 2)
+        self.assertEqual(out["eight_week_call_total"], 2)
+        self.assertEqual(len(out["purpose_bars"]), 4)
+        self.assertEqual(out["donut_n"], 2)
+
     def test_provider_call_allowed_blocks_when_safe_mode_enabled(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             original_root = sw.PROJECTS_ROOT

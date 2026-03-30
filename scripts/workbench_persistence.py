@@ -8,7 +8,7 @@ import shutil
 import tempfile
 import uuid
 import zipfile
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple
 
@@ -381,9 +381,7 @@ def append_usage_ledger_entry(
     return entry
 
 
-def summarize_usage_ledger() -> Dict[str, Any]:
-    ledger = load_usage_ledger()
-    entries = [item for item in ledger.get("entries", []) if isinstance(item, dict)]
+def summarize_usage_ledger_entries(entries: List[Dict[str, Any]]) -> Dict[str, Any]:
     today_prefix = datetime.now(timezone.utc).date().isoformat()
     recent = entries[-10:]
     today_entries = [item for item in entries if str(item.get("created_at") or "").startswith(today_prefix)]
@@ -398,6 +396,149 @@ def summarize_usage_ledger() -> Dict[str, Any]:
         "total_usage_cost_usd": _total(entries),
         "recent_entries": recent,
     }
+
+
+def summarize_usage_ledger() -> Dict[str, Any]:
+    ledger = load_usage_ledger()
+    entries = [item for item in ledger.get("entries", []) if isinstance(item, dict)]
+    return summarize_usage_ledger_entries(entries)
+
+
+def _parse_iso_datetime_utc(value: Any) -> Optional[datetime]:
+    if not value or not isinstance(value, str):
+        return None
+    raw = value.strip()
+    if raw.endswith("Z"):
+        raw = raw[:-1] + "+00:00"
+    try:
+        dt = datetime.fromisoformat(raw)
+    except ValueError:
+        return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc)
+
+
+def _monday_start_utc(dt: datetime) -> datetime:
+    dt = dt.astimezone(timezone.utc)
+    d = dt.date()
+    monday = d - timedelta(days=d.weekday())
+    return datetime.combine(monday, datetime.min.time(), tzinfo=timezone.utc)
+
+
+def _iso_week_label(monday_utc: datetime) -> str:
+    d = monday_utc.astimezone(timezone.utc).date()
+    iw = d.isocalendar()
+    return f"{iw[0]}-W{iw[1]:02d}"
+
+
+def build_usage_ledger_charts_from_entries(entries: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """
+    Roll up usage ledger rows into shapes consumed by Agent OS (os-dashboard.html).
+
+    KPIs (8-week rolling window, UTC, ISO weeks):
+    - area_requests: count of ledger rows per week (paid API calls recorded in _usage_ledger.json).
+    - purpose_bars: share by provider/route bucket (Pixel Lab vs Gemini vs Room AI vs other).
+    - donut: API outcome mix (success vs error vs other status) — not Copilot accept/revise until instrumented.
+    """
+    now = datetime.now(timezone.utc)
+    this_monday = _monday_start_utc(now)
+    week_starts: List[datetime] = [this_monday - timedelta(weeks=(7 - i)) for i in range(8)]
+    window_start = week_starts[0]
+    window_end = week_starts[7]
+
+    filtered: List[Dict[str, Any]] = []
+    for item in entries:
+        if not isinstance(item, dict):
+            continue
+        created = _parse_iso_datetime_utc(item.get("created_at"))
+        if created is None:
+            continue
+        wk = _monday_start_utc(created)
+        if wk < window_start or wk > window_end:
+            continue
+        filtered.append(item)
+
+    area_counts = [0] * 8
+    purpose_counts = {"pixel_lab": 0, "gemini": 0, "room_ai": 0, "other": 0}
+    outcome_counts = {"success": 0, "error": 0, "other": 0}
+
+    for item in filtered:
+        wm = _monday_start_utc(_parse_iso_datetime_utc(item.get("created_at")) or now)
+        try:
+            idx = week_starts.index(wm)
+        except ValueError:
+            continue
+        area_counts[idx] += 1
+
+        prov = str(item.get("provider") or "").lower()
+        ep = str(item.get("endpoint") or "").lower()
+        if prov == "pixellab":
+            purpose_counts["pixel_lab"] += 1
+        elif prov == "gemini":
+            purpose_counts["gemini"] += 1
+        elif "room" in ep or "layout" in ep or "copilot" in ep or "environment" in ep:
+            purpose_counts["room_ai"] += 1
+        else:
+            purpose_counts["other"] += 1
+
+        st = str(item.get("status") or "").lower()
+        if st == "success":
+            outcome_counts["success"] += 1
+        elif st == "error":
+            outcome_counts["error"] += 1
+        else:
+            outcome_counts["other"] += 1
+
+    area_labels = [_iso_week_label(ws) for ws in week_starts]
+    window_n = len(filtered)
+    total_purpose = sum(purpose_counts.values()) or 1
+
+    def _pct(part: int) -> int:
+        return int(round(100.0 * float(part) / float(total_purpose)))
+
+    purpose_bars = [
+        {"label": "Pixel Lab", "value": _pct(purpose_counts["pixel_lab"]), "key": "good", "count": purpose_counts["pixel_lab"]},
+        {"label": "Gemini", "value": _pct(purpose_counts["gemini"]), "key": "accent", "count": purpose_counts["gemini"]},
+        {"label": "Room AI", "value": _pct(purpose_counts["room_ai"]), "key": "warning", "count": purpose_counts["room_ai"]},
+        {"label": "Other", "value": _pct(purpose_counts["other"]), "key": "muted", "count": purpose_counts["other"]},
+    ]
+
+    oc = outcome_counts
+    total_o = oc["success"] + oc["error"] + oc["other"]
+    if total_o == 0:
+        donut = [
+            {"label": "No calls (window)", "value": 100, "key": "muted", "count": 0},
+        ]
+        donut_n = 0
+    else:
+        donut = [
+            {"label": "Success", "value": int(round(100.0 * oc["success"] / total_o)), "key": "good", "count": oc["success"]},
+            {"label": "Error", "value": int(round(100.0 * oc["error"] / total_o)), "key": "warning", "count": oc["error"]},
+            {"label": "Other", "value": int(round(100.0 * oc["other"] / total_o)), "key": "accent", "count": oc["other"]},
+        ]
+        donut_n = total_o
+
+    eight_week_total = sum(area_counts)
+
+    return {
+        "version": 1,
+        "window_weeks": 8,
+        "window_label_utc": "last_8_iso_weeks",
+        "area_labels": area_labels,
+        "area_requests": area_counts,
+        "purpose_bars": purpose_bars,
+        "donut": donut,
+        "donut_n": donut_n,
+        "ledger_entry_count_window": window_n,
+        "eight_week_call_total": eight_week_total,
+    }
+
+
+def summarize_usage_ledger_charts() -> Dict[str, Any]:
+    ledger = load_usage_ledger()
+    raw = [item for item in ledger.get("entries", []) if isinstance(item, dict)]
+    return build_usage_ledger_charts_from_entries(raw)
 
 
 def provider_call_allowed() -> None:

@@ -1,0 +1,44 @@
+{
+  "_note": "Analytics agent maintains this file. Dashboard reads it when you open the Analytics view.",
+  "updated": "2026-03-29",
+  "schema_version": "v1.0",
+  "priorities": [
+    {
+      "id": 1,
+      "title": "Wire Copilot accept / revise / discard events from Room editor",
+      "status": "in-progress",
+      "risk": "high",
+      "note": "Ledger records API calls only; UX outcomes need explicit instrumentation + schema"
+    },
+    {
+      "id": 2,
+      "title": "North Star: rooms exported per active user per month (post-launch)",
+      "status": "paused",
+      "risk": "low",
+      "note": "Blocked on external users and export telemetry"
+    },
+    {
+      "id": 3,
+      "title": "Weekly rollup job for ledger → dashboard (optional hardening)",
+      "status": "needs-review",
+      "risk": "low",
+      "note": "Current: on-demand rollups in workbench_persistence.summarize_usage_ledger_charts"
+    },
+    {
+      "id": 4,
+      "title": "Disclosure copy for any user-identifiable analytics",
+      "status": "paused",
+      "risk": "med",
+      "note": "Coordinate with Legal before shipping product analytics"
+    },
+    {
+      "id": 5,
+      "title": "PostHog or self-hosted event pipeline evaluation",
+      "status": "paused",
+      "risk": "low",
+      "note": "Pre-launch: ledger-first; revisit at first external release"
+    }
+  ],
+  "risks_p0": [],
+  "founder_decisions": []
+}

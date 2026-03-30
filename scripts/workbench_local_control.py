@@ -13,11 +13,13 @@ import sys
 import time
 import urllib.error
 import urllib.request
+import json
 from pathlib import Path
 from typing import Any
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 ENV_FILE = REPO_ROOT / ".env.local"
+USAGE_LEDGER_REL = Path("projects-data") / "_usage_ledger.json"
 PID_FILE = Path("/tmp/sprite_workbench_server.pid")
 LOG_FILE = Path("/tmp/sprite_workbench_server.log")
 SERVER_SCRIPT = REPO_ROOT / "scripts" / "sprite_workbench_server.py"
@@ -99,6 +101,32 @@ def default_agent_os_control_base() -> str:
     return os.environ.get("AGENT_OS_CONTROL_BASE", "http://127.0.0.1:8769").strip().rstrip("/")
 
 
+def _ledger_entries_from_repo_disk() -> list[dict[str, Any]]:
+    path = REPO_ROOT / USAGE_LEDGER_REL
+    if not path.is_file():
+        return []
+    try:
+        raw = json.loads(path.read_text(encoding="utf-8"))
+        if isinstance(raw, dict):
+            return [e for e in raw.get("entries", []) if isinstance(e, dict)]
+    except (json.JSONDecodeError, OSError):
+        pass
+    return []
+
+
+def _usage_charts_from_repo_disk() -> dict[str, Any]:
+    """Read projects-data/_usage_ledger.json when workbench persistence is not configured (supervisor)."""
+    from scripts.workbench_persistence import build_usage_ledger_charts_from_entries
+
+    return build_usage_ledger_charts_from_entries(_ledger_entries_from_repo_disk())
+
+
+def _usage_summary_from_repo_disk() -> dict[str, Any]:
+    from scripts.workbench_persistence import summarize_usage_ledger_entries
+
+    return summarize_usage_ledger_entries(_ledger_entries_from_repo_disk())
+
+
 def build_workbench_server_dashboard_payload(bind_host: str, bind_port: int) -> dict[str, Any]:
     """When the JSON is served from sprite_workbench_server (this process is the workbench)."""
     env = merge_env_for_workbench()
@@ -107,6 +135,14 @@ def build_workbench_server_dashboard_payload(bind_host: str, bind_port: int) -> 
     if display_host.startswith("::ffff:"):
         display_host = display_host.split("::ffff:", 1)[-1]
     ctrl = default_agent_os_control_base()
+    from scripts.workbench_persistence import summarize_usage_ledger, summarize_usage_ledger_charts
+
+    try:
+        usage_charts = summarize_usage_ledger_charts()
+        usage_summary = summarize_usage_ledger()
+    except Exception:
+        usage_charts = _usage_charts_from_repo_disk()
+        usage_summary = _usage_summary_from_repo_disk()
     return {
         "supervisor": False,
         "agent_os_control_base": ctrl,
@@ -115,6 +151,8 @@ def build_workbench_server_dashboard_payload(bind_host: str, bind_port: int) -> 
         "workbench_host": display_host,
         "workbench_pid": os.getpid(),
         "last_daily_report": latest_daily_report_name(),
+        "usage_charts": usage_charts,
+        "usage_summary": usage_summary,
         **keys,
     }
 
@@ -124,6 +162,8 @@ def build_supervisor_dashboard_payload(host: str, wb_port: int) -> dict[str, Any
     keys = keys_from_env(env)
     running = workbench_health_ok(host, wb_port)
     pid = read_workbench_pid() if running else None
+    usage_charts = _usage_charts_from_repo_disk()
+    usage_summary = _usage_summary_from_repo_disk()
     return {
         "supervisor": True,
         "workbench_server_running": running,
@@ -131,6 +171,8 @@ def build_supervisor_dashboard_payload(host: str, wb_port: int) -> dict[str, Any
         "workbench_host": host,
         "workbench_pid": pid,
         "last_daily_report": latest_daily_report_name(),
+        "usage_charts": usage_charts,
+        "usage_summary": usage_summary,
         **keys,
     }
 
