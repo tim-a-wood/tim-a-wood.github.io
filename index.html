@@ -2132,6 +2132,7 @@ class AshenHollow extends Phaser.Scene {
         const sprite = this.add.tileSprite(x + (width / 2), y + (height / 2), width, height, textureKey)
             .setDepth(-0.04)
             .setAlpha(0.9);
+        applyEnvironmentStripTileScale(sprite, width, height, 32, 32);
         this.environmentDecor.push(sprite);
         return sprite;
     }
@@ -2528,19 +2529,14 @@ class AshenHollow extends Phaser.Scene {
                 const lowerFloorHeight = Math.max(48, visualBottom - lowerFloorTop - 12);
                 this.addRoomFloorBandDecor(roomId, primaryFloorX, lowerFloorTop, primaryFloorWidth, lowerFloorHeight);
                 this.addRoomFloorCapDecor(roomId, primaryFloorX, primaryFloorY, primaryFloorWidth, 24);
-            } else {
-                const lowestPlatformY = platforms.reduce((maxY, platform) => Math.max(maxY, Number(platform.y || 0)), 0);
-                if (lowestPlatformY > 0 && lowestPlatformY < visualBottom - 48) {
-                    const lowerFloorTop = Math.min(visualBottom - 72, lowestPlatformY + 64);
-                    const lowerFloorHeight = Math.max(64, visualBottom - lowerFloorTop - 12);
-                    this.addRoomFloorBandDecor(roomId, roomBounds.start, lowerFloorTop, roomWidth, lowerFloorHeight);
-                    this.addRoomFloorCapDecor(roomId, roomBounds.start, lowerFloorTop, roomWidth, 24);
-                }
             }
+            // Do not add a second "underfloor" band + cap when !primaryFloorPlatform: the world floor row + cap
+            // already fills the bottom; the old else branch stacked a second cap ~50px higher and caused a dark seam.
             if (!roomsWithExplicitWallRects.has(roomId)) {
                 const sideMassWidth = 112;
                 const upperMassY = roomTop + 64;
-                const upperMassHeight = Math.max(128, visualBottom - upperMassY - 64);
+                const floorPlaneTop = floorWorldY - 16;
+                const upperMassHeight = Math.max(128, floorPlaneTop - upperMassY);
                 this.addRoomWallMassDecor(roomId, roomBounds.start, upperMassY, sideMassWidth, upperMassHeight, 0.98);
                 this.addRoomWallMassDecor(roomId, roomBounds.end - sideMassWidth, upperMassY, sideMassWidth, upperMassHeight, 0.98);
             }
@@ -2630,7 +2626,8 @@ class AshenHollow extends Phaser.Scene {
         const finalGatePos = getLayoutDoorWorldPosition('R1', 'R1-D2', 500, 1000);
         const r1GateTexture = roomFinalGateTextureKey('R1', this.finalGateState === 'UNLOCKED' ? 'open' : 'locked');
         this.finalGate = this.physics.add.staticImage(finalGatePos.x, finalGatePos.y, r1GateTexture).refreshBody();
-        this.add.text(finalGatePos.x, finalGatePos.y - 62, 'sealed threshold', { fontSize: '11px', fill: '#d7b57b', stroke: '#000', strokeThickness: 2 }).setOrigin(0.5).setAlpha(0.78);
+        this.finalGate.setDepth(0.22);
+        this.add.text(finalGatePos.x, finalGatePos.y - 62, 'sealed threshold', { fontSize: '11px', fill: '#d7b57b', stroke: '#000', strokeThickness: 2 }).setOrigin(0.5).setAlpha(0.78).setDepth(0.23);
         this.gateFeedbackText = this.add.text(500, 885, '', {
             fontSize: '11px', fill: '#ffd78a', stroke: '#000', strokeThickness: 2
         }).setOrigin(0.5).setVisible(false);
@@ -2641,6 +2638,7 @@ class AshenHollow extends Phaser.Scene {
                 sprite.setDisplaySize(48, 72);
             }
             if (tint != null) sprite.setTint(tint);
+            sprite.setDepth(0.22);
             sprite.refreshBody();
             return sprite;
         };
