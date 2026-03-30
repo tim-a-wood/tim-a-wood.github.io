@@ -2766,8 +2766,11 @@ async function loadDesignStatus() {
   }
 }
 
-// ── Global workbench bar (local Agent OS server runs the script) ──
+// ── Global workbench bar (POST goes to Agent OS on 8769, or same-origin when on 8769) ──
+let lastWorkbenchControlBase = '';
+
 function applyGlobalWorkbenchBar(d) {
+  lastWorkbenchControlBase = '';
   const statusEl = document.getElementById('global-wb-status');
   const hintEl = document.getElementById('global-wb-hint');
   const startBtn = document.getElementById('global-wb-start');
@@ -2779,9 +2782,14 @@ function applyGlobalWorkbenchBar(d) {
     if (stopBtn) stopBtn.disabled = !on;
   };
   if (!statusEl) return;
-  if (d && d.supervisor === true) {
-    const host = d.workbench_host || '127.0.0.1';
-    const port = d.workbench_port != null ? d.workbench_port : 8766;
+  const host = d && d.workbench_host ? d.workbench_host : '127.0.0.1';
+  const port = d && d.workbench_port != null ? d.workbench_port : 8766;
+  const bridge = d && typeof d.agent_os_control_base === 'string' ? d.agent_os_control_base.replace(/\/$/, '') : '';
+  const canControl = d && (d.supervisor === true || bridge.length > 0);
+  if (d && canControl) {
+    if (d.supervisor !== true && bridge.length > 0) {
+      lastWorkbenchControlBase = bridge;
+    }
     if (d.workbench_server_running) {
       let line = '● Running · ' + host + ':' + port;
       if (d.workbench_pid) line += ' · PID ' + d.workbench_pid;
@@ -2792,14 +2800,18 @@ function applyGlobalWorkbenchBar(d) {
       statusEl.className = 'global-wb-status global-wb-status--off';
     }
     if (hintEl) {
-      hintEl.textContent = 'Buttons call the local helper (same origin). Runs sprite_workbench_server.py with your .env.local.';
+      if (d.supervisor === true) {
+        hintEl.textContent = 'Buttons run sprite_workbench_server.py via this page\'s server (same origin).';
+      } else {
+        hintEl.textContent = 'Buttons call Agent OS at ' + bridge + ' — run python3 scripts/os_dashboard_supervisor.py there (default port 8769).';
+      }
     }
     setBtns(true);
   } else {
     statusEl.textContent = 'Not connected';
     statusEl.className = 'global-wb-status global-wb-status--na';
     if (hintEl) {
-      hintEl.innerHTML = 'Start the dashboard server: <span style="font-family:var(--font-mono)">python3 scripts/os_dashboard_supervisor.py</span> or <span style="font-family:var(--font-mono)">bash scripts/start_agent_os_dashboard.sh</span>, then reload this page.';
+      hintEl.innerHTML = 'Open Agent OS via <span style="font-family:var(--font-mono)">bash scripts/start_agent_os_dashboard.sh</span> (port 8769), or open this file from the workbench server (8766) while Agent OS is running.';
     }
     setBtns(false);
   }
@@ -2822,7 +2834,10 @@ function syncEngineeringWorkbenchCard(d) {
 
 async function postGlobalWorkbenchAction(action) {
   try {
-    const r = await fetch('/api/workbench/' + action, {
+    const base = typeof lastWorkbenchControlBase === 'string' ? lastWorkbenchControlBase : '';
+    const path = '/api/workbench/' + action;
+    const url = base ? base + path : path;
+    const r = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: '{}'

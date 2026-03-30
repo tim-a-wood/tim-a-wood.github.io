@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Local Agent OS dashboard: serves os-dashboard.html, GET /api/dashboard-data,
-and POST /api/workbench/{start|stop|restart} (no auth — binds 127.0.0.1 only).
+and POST /api/workbench/{start|stop|restart} (binds 127.0.0.1 only).
 
 Usage:
   python3 scripts/os_dashboard_supervisor.py
@@ -13,179 +13,40 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
-import signal
-import socket
-import subprocess
 import sys
-import time
-import urllib.error
-import urllib.request
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
+from urllib.parse import unquote, urlparse
 
-REPO_ROOT = Path(__file__).resolve().parent.parent
-ENV_FILE = REPO_ROOT / ".env.local"
-PID_FILE = Path("/tmp/sprite_workbench_server.pid")
-LOG_FILE = Path("/tmp/sprite_workbench_server.log")
-SERVER_SCRIPT = REPO_ROOT / "scripts" / "sprite_workbench_server.py"
+_REPO_ROOT = Path(__file__).resolve().parent.parent
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
 
+from scripts.workbench_local_control import (
+    build_supervisor_dashboard_payload,
+    restart_workbench,
+    start_workbench,
+    stop_workbench,
+)
 
-def _parse_env_local(path: Path) -> dict[str, str]:
-    out: dict[str, str] = {}
-    if not path.is_file():
-        return out
-    for raw in path.read_text(encoding="utf-8", errors="replace").splitlines():
-        line = raw.strip()
-        if not line or line.startswith("#"):
-            continue
-        if line.startswith("export "):
-            line = line[7:].strip()
-        if "=" not in line:
-            continue
-        key, _, val = line.partition("=")
-        key = key.strip()
-        val = val.strip().strip('"').strip("'")
-        out[key] = val
-    return out
+REPO_ROOT = _REPO_ROOT
 
 
-def _merge_env_for_workbench() -> dict[str, str]:
-    env = os.environ.copy()
-    env.update({k: v for k, v in _parse_env_local(ENV_FILE).items() if v})
-    return env
+def _norm_path(handler: BaseHTTPRequestHandler) -> str:
+    p = urlparse(handler.path).path
+    p = unquote(p)
+    p = p.rstrip("/")
+    return p if p else "/"
 
 
-def _port_listening(host: str, port: int, timeout: float = 0.4) -> bool:
-    try:
-        with socket.create_connection((host, port), timeout=timeout):
-            return True
-    except OSError:
-        return False
-
-
-def _workbench_health_ok(host: str, port: int) -> bool:
-    url = f"http://{host}:{port}/api/health"
-    try:
-        req = urllib.request.Request(url, method="GET")
-        with urllib.request.urlopen(req, timeout=3) as resp:
-            return 200 <= resp.status < 300
-    except (urllib.error.URLError, OSError, TimeoutError):
-        return False
-
-
-def _read_pid() -> int | None:
-    try:
-        if PID_FILE.is_file():
-            return int(PID_FILE.read_text(encoding="utf-8").strip())
-    except (ValueError, OSError):
-        pass
-    return None
-
-
-def _keys_from_env(env: dict[str, str]) -> dict[str, bool]:
-    def set_(k: str) -> bool:
-        v = env.get(k, "").strip()
-        return bool(v)
-
-    return {
-        "pixellab_key_set": set_("PIXELLAB_API_KEY"),
-        "gemini_key_set": set_("GEMINI_API_KEY"),
-        "resend_key_set": set_("RESEND_API_KEY"),
-    }
-
-
-def _latest_daily_report_name() -> str | None:
-    art = REPO_ROOT / "artifacts"
-    if not art.is_dir():
+def _normalize_workbench_post_path(path: str) -> str | None:
+    if path.startswith("/api/os/workbench/"):
+        path = "/api/workbench/" + path[len("/api/os/workbench/") :]
+    if not path.startswith("/api/workbench/"):
         return None
-    candidates = sorted(art.glob("daily-report-*.md"), key=lambda p: p.stat().st_mtime, reverse=True)
-    return candidates[0].name if candidates else None
-
-
-def build_dashboard_payload(host: str, wb_port: int) -> dict[str, Any]:
-    env = _merge_env_for_workbench()
-    keys = _keys_from_env(env)
-    running = _workbench_health_ok(host, wb_port)
-    pid = _read_pid() if running else None
-    return {
-        "supervisor": True,
-        "workbench_server_running": running,
-        "workbench_port": wb_port,
-        "workbench_host": host,
-        "workbench_pid": pid,
-        "last_daily_report": _latest_daily_report_name(),
-        **keys,
-    }
-
-
-def _start_workbench(host: str, wb_port: int) -> tuple[bool, str]:
-    if _workbench_health_ok(host, wb_port):
-        return True, "Already running"
-    if _port_listening(host, wb_port):
-        return False, f"Port {wb_port} is in use but /api/health did not respond"
-    env = _merge_env_for_workbench()
-    if not env.get("GEMINI_API_KEY", "").strip():
-        return False, "GEMINI_API_KEY missing in environment (.env.local)"
-    if not SERVER_SCRIPT.is_file():
-        return False, f"Missing {SERVER_SCRIPT}"
-    python = sys.executable
-    cmd = [python, str(SERVER_SCRIPT), "--host", host, "--port", str(wb_port)]
-    LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
-    try:
-        log_f = open(LOG_FILE, "ab")
-    except OSError as e:
-        return False, f"Cannot open log file: {e}"
-    try:
-        proc = subprocess.Popen(
-            cmd,
-            stdin=subprocess.DEVNULL,
-            stdout=log_f,
-            stderr=log_f,
-            env=env,
-            cwd=str(REPO_ROOT),
-            start_new_session=True,
-            close_fds=True,
-        )
-    except OSError as e:
-        log_f.close()
-        return False, str(e)
-    log_f.close()
-    try:
-        PID_FILE.write_text(str(proc.pid), encoding="utf-8")
-    except OSError:
-        pass
-    for _ in range(30):
-        if _workbench_health_ok(host, wb_port):
-            return True, f"Started (PID {proc.pid})"
-        if proc.poll() is not None:
-            return False, "Server exited before health check; see /tmp/sprite_workbench_server.log"
-        time.sleep(1)
-    return False, "Timeout waiting for /api/health"
-
-
-def _stop_workbench(host: str, wb_port: int) -> tuple[bool, str]:
-    pid = _read_pid()
-    if pid is not None:
-        try:
-            os.kill(pid, signal.SIGTERM)
-        except ProcessLookupError:
-            pass
-        except PermissionError as e:
-            return False, str(e)
-    for _ in range(30):
-        if not _port_listening(host, wb_port) and not _workbench_health_ok(host, wb_port):
-            break
-        time.sleep(0.2)
-    else:
-        return False, "Workbench port still listening after SIGTERM"
-    try:
-        PID_FILE.unlink(missing_ok=True)
-    except OSError:
-        pass
-    return True, "Stopped"
+    return path
 
 
 def make_handler(
@@ -214,6 +75,7 @@ def make_handler(
             self.send_header("Content-Type", "application/json; charset=utf-8")
             self.send_header("Content-Length", str(len(body)))
             self.send_header("Cache-Control", "no-store")
+            self.send_header("Access-Control-Allow-Origin", "*")
             self.end_headers()
             self.wfile.write(body)
 
@@ -222,21 +84,22 @@ def make_handler(
             self.send_header("Content-Type", content_type)
             self.send_header("Content-Length", str(len(body)))
             self.send_header("Cache-Control", "no-store")
+            self.send_header("Access-Control-Allow-Origin", "*")
             self.end_headers()
             self.wfile.write(body)
 
         def do_OPTIONS(self) -> None:
             self.send_response(HTTPStatus.NO_CONTENT)
-            self.send_header("Access-Control-Allow-Origin", self.headers.get("Origin", "*"))
+            self.send_header("Access-Control-Allow-Origin", "*")
             self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
             self.send_header("Access-Control-Allow-Headers", "Content-Type")
             self.send_header("Access-Control-Max-Age", "600")
             self.end_headers()
 
         def do_GET(self) -> None:
-            path = self.path.split("?", 1)[0].rstrip("/") or "/"
+            path = _norm_path(self)
             if path == "/api/workbench/status":
-                pl = build_dashboard_payload(workbench_host, workbench_port)
+                pl = build_supervisor_dashboard_payload(workbench_host, workbench_port)
                 return self._send_json(
                     HTTPStatus.OK,
                     {
@@ -247,7 +110,10 @@ def make_handler(
                     },
                 )
             if path == "/api/dashboard-data":
-                return self._send_json(HTTPStatus.OK, build_dashboard_payload(workbench_host, workbench_port))
+                return self._send_json(
+                    HTTPStatus.OK,
+                    build_supervisor_dashboard_payload(workbench_host, workbench_port),
+                )
 
             rel = path.lstrip("/")
             if rel in static_allow:
@@ -273,20 +139,18 @@ def make_handler(
             return self._send_json(HTTPStatus.NOT_FOUND, {"error": "Not found"})
 
         def do_POST(self) -> None:
-            path = self.path.split("?", 1)[0].rstrip("/")
-            if not path.startswith("/api/workbench/"):
+            path = _normalize_workbench_post_path(_norm_path(self))
+            if path is None:
                 return self._send_json(HTTPStatus.NOT_FOUND, {"error": "Not found"})
-            action = path.removeprefix("/api/workbench/").strip()
+            action = path[len("/api/workbench/") :].strip()
             if action == "start":
-                ok, msg = _start_workbench(workbench_host, workbench_port)
+                ok, msg = start_workbench(workbench_host, workbench_port)
                 return self._send_json(HTTPStatus.OK if ok else HTTPStatus.BAD_REQUEST, {"ok": ok, "message": msg})
             if action == "stop":
-                ok, msg = _stop_workbench(workbench_host, workbench_port)
+                ok, msg = stop_workbench(workbench_host, workbench_port)
                 return self._send_json(HTTPStatus.OK if ok else HTTPStatus.BAD_REQUEST, {"ok": ok, "message": msg})
             if action == "restart":
-                _stop_workbench(workbench_host, workbench_port)
-                time.sleep(0.5)
-                ok, msg = _start_workbench(workbench_host, workbench_port)
+                ok, msg = restart_workbench(workbench_host, workbench_port)
                 return self._send_json(HTTPStatus.OK if ok else HTTPStatus.BAD_REQUEST, {"ok": ok, "message": msg})
             return self._send_json(HTTPStatus.NOT_FOUND, {"error": "Unknown action"})
 

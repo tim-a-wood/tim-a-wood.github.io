@@ -156,6 +156,8 @@ Or double-click **`Agent-OS-Dashboard.command`** in the repo root.
 
 Optional env: `OS_AGENT_OS_PORT` (or legacy `OS_DASHBOARD_SUPERVISOR_PORT`), `OS_DASHBOARD_WORKBENCH_PORT` for the workbench port.
 
+If you open `os-dashboard.html` from the **workbench** (`http://127.0.0.1:8766/...`), Start/Restart/Stop POST to **Agent OS** (default `http://127.0.0.1:8769`). Override with `AGENT_OS_CONTROL_BASE` in the environment if you use another port.
+
 You can drag **`Agent-OS-Dashboard.command`** or a Shortcuts “Run Shell Script” action to the **Dock** or **menu bar** — same one-liner as step 1.
 
 The server writes local-first project data and exports under `tools/2d-sprite-and-animation/projects-data/`.

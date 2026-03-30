@@ -7715,6 +7715,12 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                 "demo_projects": list_demo_projects(),
             })
 
+        if path == "/api/dashboard-data":
+            from scripts.workbench_local_control import build_workbench_server_dashboard_payload
+
+            bind_host, bind_port = self.server.server_address
+            return self._send_json(build_workbench_server_dashboard_payload(bind_host, bind_port))
+
         if path == "/api/demo-projects":
             return self._send_json({"projects": list_demo_projects()})
 
