@@ -10,6 +10,6 @@
 | AT-07 | Death, Respawn, And Restart | Verify the life system, respawn behavior, game-over state, and restart control. | Not Run | Same as AT-01. |
 | AT-08 | HUD And Feedback | Verify the HUD remains visible and updates during play. | Not Run | Same as AT-01. |
 | AT-09 | Key Pickup And Door Unlock | Verify the first progression loop works end to end: collect the key on the high ledge, show it in the HUD inventory, then consume it to unlock the left-side door. | Not Run | Same as AT-01. |
-| Unit Test Suite | Overall Unit Tests | General unit test suite status. | Pass | 2026-03-29: `node --test tests/*.js` — 7 files passed. OS dashboard: Agents/Prompt default collapsed; seam-mounted edge handles on each dock (▶ expand / ◀ collapse); narrow breakpoints use full-width strip handles. |
+| Unit Test Suite | Overall Unit Tests | General unit test suite status. | Pass | 2026-03-29: `node --test tests/*.js` — 7 files passed. OS dashboard: single combined workflow side panel (agent steps + generated prompt), default expanded; shell is two-column (nav + main). |
 | RW-1 manual | Room wizard vertical slice | Add Room → Layout → Review → Export JSON (per `docs/room-wizard-implementation-sprints.md`). | Not Run | Automated unit tests only; browser demo not executed in CI. |
 | RW-2 manual | Neighbors & alignment | Adjoining room → Align → Match opening height; global map shows link (per `docs/room-wizard-implementation-sprints.md` §RW-2). | Not Run | Automated unit tests only; browser not exercised in CI. |

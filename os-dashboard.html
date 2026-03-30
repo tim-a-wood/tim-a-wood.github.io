@@ -70,23 +70,14 @@ body::before {
 /* ─── SHELL ─────────────────────────────────── */
 .shell {
   display: grid;
-  grid-template-columns: 216px 1fr 272px;
+  grid-template-columns: 216px 1fr;
   grid-template-rows: 56px 1fr;
   grid-template-areas:
-    "header header header"
-    "left   main   right";
+    "header header"
+    "left   main";
   height: 100vh;
   padding-top: 3px; /* account for top bar */
   gap: 0;
-  transition: grid-template-columns 200ms ease;
-}
-.shell.prompt-collapsed {
-  grid-template-columns: 216px 1fr 0px;
-}
-.shell.prompt-collapsed .sidebar-right {
-  overflow: hidden;
-  border-left: none;
-  min-width: 0;
 }
 
 /* ─── HEADER ─────────────────────────────────── */
@@ -118,26 +109,16 @@ body::before {
 
 .header-spacer { flex: 1; }
 
-/* ─── SIDE PANEL EDGE HANDLES (Agents + Prompt) ─── */
-.main-agent-dock,
-.prompt-dock {
+/* ─── SIDE PANEL (workflow + generated prompt) ─── */
+.main-side-dock {
   position: relative;
   min-width: 0;
   display: flex;
   flex-direction: column;
   min-height: 0;
-}
-.main-agent-dock {
   overflow: hidden;
 }
-.main.agent-collapsed .main-agent-dock {
-  overflow: visible;
-}
-.prompt-dock {
-  grid-area: right;
-  overflow: hidden;
-}
-.shell.prompt-collapsed .prompt-dock {
+.main.side-collapsed .main-side-dock {
   overflow: visible;
 }
 /* Seam-mounted control: sits on the left edge of each dock, protruding toward main content */
@@ -164,9 +145,6 @@ body::before {
   transition: background var(--transition-base), border-color var(--transition-base),
     color var(--transition-base), box-shadow var(--transition-base);
   font-family: var(--font-sans);
-}
-.panel-edge-handle--prompt {
-  top: 58%;
 }
 .panel-edge-handle:hover {
   background: rgba(255,255,255,0.05);
@@ -305,17 +283,17 @@ body::before {
   overflow: hidden;
   padding: var(--space-4);
   display: grid;
-  grid-template-columns: 1fr 256px;
+  grid-template-columns: 1fr minmax(300px, 440px);
   gap: var(--space-4);
   transition: grid-template-columns 200ms ease;
 }
-.main.agent-collapsed {
+.main.side-collapsed {
   grid-template-columns: 1fr 0px;
 }
-.main.agent-collapsed .main-right {
+.main.side-collapsed .side-panel {
   overflow: hidden;
   padding: 0;
-  border-left: none;
+  border: none;
   min-width: 0;
 }
 
@@ -331,14 +309,33 @@ body::before {
   overflow-y: auto;
 }
 
-.main-right {
+.side-panel {
   flex: 1;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+  border-left: 1px solid var(--line);
+  background: var(--panel-2);
+  border-radius: var(--radius-sm);
+}
+.side-panel-flow {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
+  padding: var(--space-4);
+  overflow-y: auto;
+  min-height: 0;
+  flex-shrink: 0;
+}
+.side-panel-prompt {
   min-height: 0;
   overflow: hidden;
-  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--line);
+  background: var(--panel-soft);
 }
 
 .agent-section {
@@ -537,17 +534,7 @@ body::before {
 
 .btn-generate:active { transform: translateY(0); }
 
-/* ─── RIGHT SIDEBAR ─────────────────────────────── */
-.sidebar-right {
-  flex: 1;
-  border-left: 1px solid var(--line);
-  background: var(--panel-2);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  min-width: 0;
-}
-
+/* ─── PROMPT OUTPUT (lower half of side panel) ─── */
 .output-header {
   padding: var(--space-4) var(--space-5);
   border-bottom: 1px solid var(--line);
@@ -717,8 +704,7 @@ body::before {
   }
 
   .sidebar-left { border-right: none; border-bottom: 1px solid var(--line); padding: var(--space-3) 0; }
-  .sidebar-right { border-left: none; border-top: none; min-height: 320px; }
-  .prompt-dock { border-top: 1px solid var(--line); }
+  .side-panel { border-left: none; border-top: 1px solid var(--line); border-radius: 0; min-height: 320px; }
   .main { grid-template-columns: 1fr; grid-template-rows: 1fr auto; overflow-y: auto; }
   .main-left { min-height: 400px; }
   .agent-grid { grid-template-columns: repeat(3, 1fr); }
@@ -1239,7 +1225,7 @@ body::before {
 </head>
 <body>
 
-<div class="shell prompt-collapsed">
+<div class="shell">
 
   <!-- HEADER -->
   <header class="header">
@@ -1382,7 +1368,7 @@ body::before {
   </nav>
 
   <!-- MAIN -->
-  <main class="main agent-collapsed">
+  <main class="main">
 
     <div class="main-left">
 
@@ -2234,14 +2220,15 @@ body::before {
 
     </div><!-- /.main-left -->
 
-    <div class="main-agent-dock">
-      <button type="button" class="panel-edge-handle panel-edge-handle--agents" id="toggleAgentPanel" aria-expanded="false" aria-controls="mainRightPanel" title="Show Agents panel">
+    <div class="main-side-dock">
+      <button type="button" class="panel-edge-handle" id="toggleSidePanel" aria-expanded="true" aria-controls="workflowSidePanel" title="Hide workflow panel">
         <span class="panel-edge-handle-inner">
-          <span class="panel-edge-handle-glyph" aria-hidden="true">▶</span>
-          <span class="panel-edge-handle-label">Agents</span>
+          <span class="panel-edge-handle-glyph" aria-hidden="true">◀</span>
+          <span class="panel-edge-handle-label">Workflow</span>
         </span>
       </button>
-    <div class="main-right" id="mainRightPanel">
+      <div class="side-panel" id="workflowSidePanel">
+        <div class="side-panel-flow">
     <!-- Step 1: Pick agent (scoped to current dashboard) -->
     <section>
       <div class="step-label"><span class="step-num">1</span> Pick an Agent</div>
@@ -2270,20 +2257,9 @@ body::before {
         Generate Prompt →
       </button>
     </section>
-    </div><!-- /.main-right -->
-    </div><!-- /.main-agent-dock -->
+        </div><!-- /.side-panel-flow -->
 
-  </main>
-
-  <!-- RIGHT SIDEBAR -->
-  <div class="prompt-dock">
-      <button type="button" class="panel-edge-handle panel-edge-handle--prompt" id="togglePromptPanel" aria-expanded="false" aria-controls="promptPanel" title="Show Prompt panel">
-        <span class="panel-edge-handle-inner">
-          <span class="panel-edge-handle-glyph" aria-hidden="true">▶</span>
-          <span class="panel-edge-handle-label">Prompt</span>
-        </span>
-      </button>
-  <aside class="sidebar-right" id="promptPanel">
+        <div class="side-panel-prompt" id="promptPanel">
     <div class="output-header">
       <span class="output-title">Generated Prompt</span>
     </div>
@@ -2298,8 +2274,11 @@ body::before {
       <button class="btn-outline" id="claudeBtn">Open Claude Code Instructions</button>
       <div class="output-tip">Run in Claude Code from your /MV project directory</div>
     </div>
-  </aside>
-  </div><!-- /.prompt-dock -->
+        </div><!-- /.side-panel-prompt -->
+      </div><!-- /.side-panel -->
+    </div><!-- /.main-side-dock -->
+
+  </main>
 
 </div>
 
@@ -3159,26 +3138,16 @@ async function pulseGlobalWorkbenchOnly() {
   }
 }
 
-// ── Panel collapse toggles ───────────────────────
-const mainEl   = document.querySelector('.main');
-const shellEl  = document.querySelector('.shell');
+// ── Side panel (workflow + prompt) collapse ──────
+const mainEl = document.querySelector('.main');
 
-document.getElementById('toggleAgentPanel').addEventListener('click', function() {
-  mainEl.classList.toggle('agent-collapsed');
-  const nowCollapsed = mainEl.classList.contains('agent-collapsed');
+document.getElementById('toggleSidePanel').addEventListener('click', function() {
+  mainEl.classList.toggle('side-collapsed');
+  const nowCollapsed = mainEl.classList.contains('side-collapsed');
   const g = this.querySelector('.panel-edge-handle-glyph');
   if (g) g.textContent = nowCollapsed ? '▶' : '◀';
   this.setAttribute('aria-expanded', nowCollapsed ? 'false' : 'true');
-  this.title = nowCollapsed ? 'Show Agents panel' : 'Hide Agents panel';
-});
-
-document.getElementById('togglePromptPanel').addEventListener('click', function() {
-  shellEl.classList.toggle('prompt-collapsed');
-  const nowCollapsed = shellEl.classList.contains('prompt-collapsed');
-  const g = this.querySelector('.panel-edge-handle-glyph');
-  if (g) g.textContent = nowCollapsed ? '▶' : '◀';
-  this.setAttribute('aria-expanded', nowCollapsed ? 'false' : 'true');
-  this.title = nowCollapsed ? 'Show Prompt panel' : 'Hide Prompt panel';
+  this.title = nowCollapsed ? 'Show workflow panel' : 'Hide workflow panel';
 });
 
 (function setupGlobalWorkbenchButtons() {
