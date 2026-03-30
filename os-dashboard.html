@@ -3611,24 +3611,55 @@ async function loadDesignStatus() {
   }
 }
 
+function renderAnalyticsPrioritiesEmpty(container) {
+  container.innerHTML =
+    '<div style="color:var(--muted);font-size:var(--font-size-sm);font-weight:500;padding:12px 0;line-height:1.45">'
+    + 'No priorities listed in <span style="font-family:var(--font-mono)">analytics-status.json</span>.'
+    + '</div>';
+}
+
 function applyAnalyticsStatusPayload(s) {
   if (!s || typeof s !== 'object' || Array.isArray(s)) return;
   const prioritiesEl = document.getElementById('db-analytics-priorities');
   const risksP0El = document.getElementById('db-analytics-risks-p0');
   const founderEl = document.getElementById('db-analytics-founder-decisions');
-  if (prioritiesEl && s.priorities) renderPriorityRows(s.priorities, prioritiesEl);
+  if (prioritiesEl) {
+    const list = Array.isArray(s.priorities) ? s.priorities : [];
+    if (list.length > 0) {
+      renderPriorityRows(list, prioritiesEl);
+    } else {
+      renderAnalyticsPrioritiesEmpty(prioritiesEl);
+    }
+  }
   if (risksP0El) renderRisksP0(s.risks_p0 ?? [], risksP0El);
   if (founderEl) renderFounderDecisions(s.founder_decisions ?? [], founderEl);
 }
 
 async function loadAnalyticsStatus() {
+  const prioritiesEl = document.getElementById('db-analytics-priorities');
+  const showFetchHint = () => {
+    if (!prioritiesEl) return;
+    prioritiesEl.innerHTML =
+      '<div style="color:var(--muted);font-size:var(--font-size-sm);font-weight:500;padding:12px 0;line-height:1.45">'
+      + 'Could not load <span style="font-family:var(--font-mono)">analytics-status.json</span> on this origin. '
+      + 'Open the dashboard via Agent OS (8769) or the Sprite Workbench server (8766), or rely on '
+      + '<span style="font-family:var(--font-mono)">GET /api/dashboard-data</span> (embedded <span style="font-family:var(--font-mono)">analytics_status</span>).'
+      + '</div>';
+  };
   try {
     const resp = await fetch('analytics-status.json');
-    if (!resp.ok) return;
+    if (!resp.ok) {
+      showFetchHint();
+      return;
+    }
     const s = await resp.json();
+    if (!s || typeof s !== 'object' || Array.isArray(s)) {
+      showFetchHint();
+      return;
+    }
     applyAnalyticsStatusPayload(s);
   } catch {
-    // Leave placeholder content in place
+    showFetchHint();
   }
 }
 
@@ -4247,10 +4278,10 @@ async function loadDashboardData(dashId) {
     syncHomeKpis(d);
     applyUsageChartsFromDashboard(d);
     syncAnalyticsKpis(d);
-    if (d && d.analytics_status) {
+    if (d && d.analytics_status != null && typeof d.analytics_status === 'object' && !Array.isArray(d.analytics_status)) {
       applyAnalyticsStatusPayload(d.analytics_status);
     } else if (dashId === 'analytics') {
-      loadAnalyticsStatus();
+      void loadAnalyticsStatus();
     }
     updateHomeChartLiveStatus(d, dashboardReachable);
     if (dashId === 'home' || dashId === 'engineering') {
@@ -4303,6 +4334,9 @@ async function loadDashboardData(dashId) {
     syncHomeKpis(null);
     syncAnalyticsKpis(null);
     updateHomeChartLiveStatus(null, false);
+    if (dashId === 'analytics') {
+      void loadAnalyticsStatus();
+    }
   }
 }
 
@@ -4324,8 +4358,10 @@ async function pulseGlobalWorkbenchOnly() {
     syncHomeKpis(d);
     applyUsageChartsFromDashboard(d);
     syncAnalyticsKpis(d);
-    if (d && d.analytics_status) {
+    if (d && d.analytics_status != null && typeof d.analytics_status === 'object' && !Array.isArray(d.analytics_status)) {
       applyAnalyticsStatusPayload(d.analytics_status);
+    } else if (selectedDashboard === 'analytics') {
+      void loadAnalyticsStatus();
     }
     updateHomeChartLiveStatus(d, dashboardReachable);
     if (selectedDashboard === 'home' || selectedDashboard === 'engineering') {
@@ -4336,6 +4372,9 @@ async function pulseGlobalWorkbenchOnly() {
     syncHomeKpis(null);
     syncAnalyticsKpis(null);
     updateHomeChartLiveStatus(null, false);
+    if (selectedDashboard === 'analytics') {
+      void loadAnalyticsStatus();
+    }
   }
 }
 
