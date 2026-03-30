@@ -1861,7 +1861,7 @@ h3.os-chart-card-title {
       <div class="main-left-views">
 
       <!-- ── AGENT OS HOME ─────────────────────────────────────
-           Home / Engineering / Analytics charts — data from GET /api/dashboard-data (usage_charts).
+           Home / Engineering charts — data from GET /api/dashboard-data (usage_charts). Analytics uses KPI cards only.
            Design polish: agents/design/os_home_dashboard_handoff.md
       ───────────────────────────────────────────────────── -->
       <div class="dashboard-view active" data-dashboard-view="home">
@@ -2509,46 +2509,8 @@ h3.os-chart-card-title {
             </div>
           </div>
           <div class="db-section">
-            <div class="db-section-label">AI usage · same viz as Home / Engineering</div>
-            <p style="color:var(--muted);font-size:var(--font-size-sm);margin:0 0 var(--space-2) 0;max-width:820px">Provider mix and outcome donut describe <strong>recorded API calls</strong>, not Room Copilot UX accept / revise / discard until those events ship.</p>
-            <div class="os-chart-grid" id="analytics-os-chart-grid">
-              <div class="os-chart-card os-chart-card--wide">
-                <div class="os-chart-card-head">
-                  <h3 class="os-chart-card-title" id="analytics-chart-area-title">Paid API calls · by ISO week (UTC)</h3>
-                  <span class="os-chart-card-tier">AREA</span>
-                </div>
-                <div class="os-chart-canvas-wrap os-chart-canvas-wrap--tall" data-os-canvas-state="idle" role="img" aria-labelledby="analytics-chart-area-title" aria-describedby="analytics-chart-area-desc">
-                  <div class="os-chart-skeleton" aria-hidden="true"></div>
-                  <div class="os-chart-error" role="alert" aria-live="polite"></div>
-                  <canvas data-os-chart="area-requests" width="800" height="300" aria-hidden="true"></canvas>
-                </div>
-                <p class="os-chart-foot" id="analytics-chart-area-desc">8-week rolling window · empty weeks show 0.</p>
-              </div>
-              <div class="os-chart-card">
-                <div class="os-chart-card-head">
-                  <h3 class="os-chart-card-title" id="analytics-chart-bars-title">Provider mix</h3>
-                  <span class="os-chart-card-tier">SPLIT</span>
-                </div>
-                <div class="os-chart-canvas-wrap" data-os-canvas-state="idle" role="img" aria-labelledby="analytics-chart-bars-title" aria-describedby="analytics-chart-bars-desc">
-                  <div class="os-chart-skeleton" aria-hidden="true"></div>
-                  <div class="os-chart-error" role="alert" aria-live="polite"></div>
-                  <canvas data-os-chart="bars-purpose" width="480" height="260" aria-hidden="true"></canvas>
-                </div>
-                <p class="os-chart-foot" id="analytics-chart-bars-desc">% of window calls · Pixel Lab vs Gemini vs Room AI vs other.</p>
-              </div>
-              <div class="os-chart-card os-chart-card--donut">
-                <div class="os-chart-card-head">
-                  <h3 class="os-chart-card-title" id="analytics-chart-donut-title">Ledger outcomes (API)</h3>
-                  <span class="os-chart-card-tier">DONUT</span>
-                </div>
-                <div class="os-chart-canvas-wrap" data-os-canvas-state="idle" role="img" aria-labelledby="analytics-chart-donut-title" aria-describedby="analytics-chart-donut-desc">
-                  <div class="os-chart-skeleton" aria-hidden="true"></div>
-                  <div class="os-chart-error" role="alert" aria-live="polite"></div>
-                  <canvas data-os-chart="donut-outcomes" width="480" height="260" aria-hidden="true"></canvas>
-                </div>
-                <p class="os-chart-foot" id="analytics-chart-donut-desc">Success vs error vs other status on ledger rows in the 8-wk window.</p>
-              </div>
-            </div>
+            <div class="db-section-label">Time-series charts</div>
+            <p style="color:var(--muted);font-size:var(--font-size-sm);margin:0;max-width:820px">Weekly volume, provider mix, and API outcome split are on <strong>Home</strong> (and mirrored on <strong>Engineering</strong>). Use the links below or the sidebar to open Home.</p>
           </div>
           <div class="db-section">
             <div class="db-section-label">Tracking plan &amp; post-launch</div>
@@ -2576,7 +2538,8 @@ h3.os-chart-card-title {
             </div>
           </div>
         </div>
-        <div class="db-qa-signpost" style="display:flex;flex-direction:column;gap:8px">
+        <div class="db-qa-signpost" style="display:flex;flex-direction:column;gap:var(--space-2)">
+          <button type="button" class="db-qa-link" onclick="selectDashboard('home')">→ Home · AI usage charts</button>
           <button type="button" class="db-qa-link" onclick="selectDashboard('engineering')">→ Engineering · pipeline &amp; keys</button>
           <button type="button" class="db-qa-link" onclick="selectDashboard('design')">→ Design · governance &amp; Copilot UX gate</button>
         </div>
@@ -3842,7 +3805,7 @@ function syncEngineeringWorkbenchCard(d) {
   }
 }
 
-// ── Agent OS Home / Engineering / Analytics charts (canvas, CSS variables) ──
+// ── Agent OS Home / Engineering charts (canvas, CSS variables) ──
 // Populated from GET /api/dashboard-data → usage_charts (ledger rollup).
 const OS_CHART_DEFAULTS = {
   areaRequests: [0, 0, 0, 0, 0, 0, 0, 0],
@@ -4179,12 +4142,11 @@ window.setAgentOsChartCanvasState = function (state, message) {
   if (s === 'idle') {
     paintOsChartsForView('home');
     paintOsChartsForView('engineering');
-    paintOsChartsForView('analytics');
   }
 };
 
 function paintOsChartsForView(dashId) {
-  if (dashId !== 'home' && dashId !== 'engineering' && dashId !== 'analytics') return;
+  if (dashId !== 'home' && dashId !== 'engineering') return;
   if ((window.__osChartCanvasState || 'idle') !== 'idle') return;
   const view = document.querySelector('[data-dashboard-view="' + dashId + '"]');
   if (!view) return;
@@ -4216,7 +4178,9 @@ let osChartResizeTimer;
 window.addEventListener('resize', () => {
   clearTimeout(osChartResizeTimer);
   osChartResizeTimer = setTimeout(() => {
-    paintOsChartsForView(selectedDashboard);
+    if (selectedDashboard === 'home' || selectedDashboard === 'engineering') {
+      paintOsChartsForView(selectedDashboard);
+    }
   }, 120);
 });
 
@@ -4283,7 +4247,7 @@ async function loadDashboardData(dashId) {
     applyUsageChartsFromDashboard(d);
     syncAnalyticsKpis(d);
     updateHomeChartLiveStatus(d, dashboardReachable);
-    if (dashId === 'home' || dashId === 'engineering' || dashId === 'analytics') {
+    if (dashId === 'home' || dashId === 'engineering') {
       paintOsChartsForView(dashId);
     }
 
@@ -4355,7 +4319,7 @@ async function pulseGlobalWorkbenchOnly() {
     applyUsageChartsFromDashboard(d);
     syncAnalyticsKpis(d);
     updateHomeChartLiveStatus(d, dashboardReachable);
-    if (selectedDashboard === 'home' || selectedDashboard === 'engineering' || selectedDashboard === 'analytics') {
+    if (selectedDashboard === 'home' || selectedDashboard === 'engineering') {
       paintOsChartsForView(selectedDashboard);
     }
   } catch {
@@ -4394,12 +4358,12 @@ document.getElementById('toggleSidePanel').addEventListener('click', function() 
   function onResize() {
     clearTimeout(resizeTimer);
     resizeTimer = setTimeout(() => {
-      if (selectedDashboard === 'home' || selectedDashboard === 'engineering' || selectedDashboard === 'analytics') {
+      if (selectedDashboard === 'home' || selectedDashboard === 'engineering') {
         paintOsChartsForView(selectedDashboard);
       }
     }, 48);
   }
-  ['home-os-chart-grid', 'eng-os-chart-grid', 'analytics-os-chart-grid'].forEach(function (gridId) {
+  ['home-os-chart-grid', 'eng-os-chart-grid'].forEach(function (gridId) {
     const grid = document.getElementById(gridId);
     if (!grid) return;
     const ro = new ResizeObserver(onResize);
