@@ -6447,10 +6447,12 @@
         const preview = envState?.preview || {};
         const runtime = envState?.runtime || {};
         const assetPack = runtime?.asset_pack || {};
+        const staleComponents = Array.isArray(assetPack.stale_components) ? assetPack.stale_components : [];
         const spec = envState?.spec || {};
         const sceneSchema = spec?.scene_schema || {};
         const kit = sceneSchema?.kit || {};
         const components = spec?.components || {};
+        const buildButton = document.getElementById('roomWizardBuildEnvironmentAssets');
         const approved = Array.isArray(preview.images)
           ? preview.images.find((item) => item.preview_id === preview.approved_image_id)
           : null;
@@ -6471,6 +6473,9 @@
         } else if (preview.approved_image_id) {
           bits.push('Build the environment asset kit for this room to generate modular wall, floor, platform, door, and midground art.');
         }
+        if (staleComponents.length) {
+          bits.push(`Impacted by the latest room changes: ${staleComponents.join(', ').replace(/_/g, ' ')}.`);
+        }
         const materialText = Array.isArray(spec.materials) && spec.materials.length
           ? spec.materials.slice(0, 4).join(', ')
           : 'No materials planned yet';
@@ -6480,11 +6485,14 @@
           ? `Assets: modular environment kit · Generated ${assetPack.generated_at || 'recently'}`
           : 'Assets: not built yet';
         const schemaText = `Schema: ${(sceneSchema.background_layers || []).length} background layer${(sceneSchema.background_layers || []).length === 1 ? '' : 's'}, ${(sceneSchema.set_dressing || []).length} dressing rule${(sceneSchema.set_dressing || []).length === 1 ? '' : 's'}, effects ${Object.keys(sceneSchema.effects || {}).length}`;
-        const kitText = [kit.wall_family, kit.platform_family, kit.door_family, kit.backdrop_family].filter(Boolean).join(', ');
+        const kitText = [kit.shell_family, kit.wall_family, kit.platform_family, kit.door_family, kit.backdrop_family].filter(Boolean).join(', ');
         const componentChips = Object.entries(components).map(([key, item]) => {
           const label = `${String((item || {}).label || key)} · ${String((item || {}).prompt || '').slice(0, 44)}`;
           return `<span class="rw-environment-chip">${escapeHtml(label)}</span>`;
         }).join('');
+        const staleChips = staleComponents.map((item) => (
+          `<span class="rw-environment-chip">${escapeHtml(`Needs refresh: ${String(item).replace(/_/g, ' ')}`)}</span>`
+        )).join('');
         const assetThumbs = assetPack.status === 'ready'
           ? Object.values(assetPack.assets || {}).map((item) => `
               <div class="rw-environment-asset-thumb">
@@ -6493,6 +6501,11 @@
               </div>
             `).join('')
           : '';
+        if (buildButton) {
+          buildButton.textContent = assetPack.status === 'ready' && staleComponents.length
+            ? 'Regenerate Impacted Assets'
+            : 'Build Production Assets';
+        }
         target.innerHTML = `
           <section class="rw-environment-output-card">
             <div class="rw-environment-output-grid">
@@ -6506,6 +6519,7 @@
               </div>
             </div>
             ${componentChips ? `<div class="rw-environment-chip-row">${componentChips}</div>` : ''}
+            ${staleChips ? `<div class="rw-environment-chip-row">${staleChips}</div>` : ''}
             ${assetThumbs ? `<div class="rw-environment-asset-grid">${assetThumbs}</div>` : ''}
           </section>`;
       }
@@ -7992,13 +8006,24 @@
             if (st) st.textContent = 'Approve a room preview before building production assets.';
             return;
           }
-          startRoomWizardWaitbar('copilot', 'Generating production assets from the approved room preview.');
-          if (st) st.textContent = 'Building production assets…';
+          const staleComponents = Array.isArray(room.environment?.runtime?.asset_pack?.stale_components)
+            ? room.environment.runtime.asset_pack.stale_components.filter(Boolean)
+            : [];
+          const targetedBuild = room.environment?.runtime?.asset_pack?.status === 'ready' && staleComponents.length;
+          startRoomWizardWaitbar('copilot', targetedBuild
+            ? 'Regenerating only the environment assets impacted by the latest room changes.'
+            : 'Generating production assets from the approved room preview.');
+          if (st) st.textContent = targetedBuild
+            ? `Regenerating impacted assets: ${staleComponents.join(', ').replace(/_/g, ' ')}…`
+            : 'Building production assets…';
           try {
             const res = await fetch(projectRoomEnvironmentApiUrl(room.id, 'generate-assets'), {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ preview_id: room.environment.preview.approved_image_id })
+              body: JSON.stringify({
+                preview_id: room.environment.preview.approved_image_id,
+                components: targetedBuild ? staleComponents : undefined
+              })
             });
             const json = await res.json().catch(() => ({}));
             if (!res.ok || !json.ok) throw new Error(json.error || 'Could not build production assets');
@@ -8008,7 +8033,9 @@
             renderRoomWizardEnvironmentOutputSummary(room.environment);
             updateJsonText();
             setDirty(true);
-            if (st) st.textContent = 'Production assets ready. Open Game now uses generated background and environment textures for this room.';
+            if (st) st.textContent = targetedBuild
+              ? 'Impacted environment assets refreshed. Open Game now uses the updated room kit.'
+              : 'Production assets ready. Open Game now uses generated background and environment textures for this room.';
             stopRoomWizardWaitbar('copilot', 100);
           } catch (e) {
             stopRoomWizardWaitbar('copilot', 100);

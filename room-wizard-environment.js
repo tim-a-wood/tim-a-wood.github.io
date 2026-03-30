@@ -241,6 +241,9 @@ function ensureRoomEnvironment(room) {
     e.runtime.last_applied_at = null;
   }
   if (!e.runtime.asset_pack || typeof e.runtime.asset_pack !== 'object') e.runtime.asset_pack = {};
+  if (typeof e.runtime.asset_pack.asset_schema_version !== 'number' && e.runtime.asset_pack.asset_schema_version !== null) {
+    e.runtime.asset_pack.asset_schema_version = null;
+  }
   if (typeof e.runtime.asset_pack.status !== 'string') e.runtime.asset_pack.status = 'idle';
   if (typeof e.runtime.asset_pack.used_ai !== 'boolean') e.runtime.asset_pack.used_ai = false;
   if (typeof e.runtime.asset_pack.generated_at !== 'string' && e.runtime.asset_pack.generated_at !== null) {
@@ -249,6 +252,16 @@ function ensureRoomEnvironment(room) {
   if (typeof e.runtime.asset_pack.source_preview_id !== 'string' && e.runtime.asset_pack.source_preview_id !== null) {
     e.runtime.asset_pack.source_preview_id = null;
   }
+  if (typeof e.runtime.asset_pack.layout_fingerprint !== 'string' && e.runtime.asset_pack.layout_fingerprint !== null) {
+    e.runtime.asset_pack.layout_fingerprint = null;
+  }
+  if (!e.runtime.asset_pack.component_dependencies || typeof e.runtime.asset_pack.component_dependencies !== 'object') {
+    e.runtime.asset_pack.component_dependencies = {};
+  }
+  if (!e.runtime.asset_pack.component_fingerprints || typeof e.runtime.asset_pack.component_fingerprints !== 'object') {
+    e.runtime.asset_pack.component_fingerprints = {};
+  }
+  if (!Array.isArray(e.runtime.asset_pack.stale_components)) e.runtime.asset_pack.stale_components = [];
   if (!e.runtime.asset_pack.assets || typeof e.runtime.asset_pack.assets !== 'object') e.runtime.asset_pack.assets = {};
   return e;
 }

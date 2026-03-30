@@ -620,6 +620,21 @@ body::before {
 }
 .agent-group-label:first-child { padding-top: 0; }
 
+/* ─── DASHBOARD NAV GROUP LABELS ─────────────────── */
+.nav-group-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  opacity: 0.6;
+  padding: 8px 16px 4px;
+  display: block;
+  pointer-events: none;
+  user-select: none;
+}
+.nav-group-label:first-child { padding-top: 4px; }
+
 /* ─── DASHBOARD NAV ACTIVE ───────────────────────── */
 .nav-item.db-active {
   color: var(--text);
@@ -686,22 +701,191 @@ body::before {
   padding: 10px var(--space-3);
   display: flex;
   flex-direction: column;
-  gap: 3px;
-  position: relative;
-  min-height: 72px;
+  gap: 4px;
+  min-height: 80px;
 }
-.db-card--live   { border-left-color: var(--accent); }
-.db-card--manual { border-left-color: var(--warning); }
-.db-card--instrumented { border-left-color: var(--muted); border-left-style: dashed; }
+.db-card--live        { border-left-color: var(--accent); }
+.db-card--manual      { border-left-color: var(--warning); }
+.db-card--instrumented{ border-left-color: var(--muted); border-left-style: dashed; }
+.db-card--wide        { grid-column: span 2; }
 
+.db-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 4px;
+  margin-bottom: 2px;
+}
 .db-card-label {
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.07em;
   text-transform: uppercase;
   color: var(--muted);
-  line-height: 1.2;
+  line-height: 1.3;
+  flex: 1;
 }
+.db-tier {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  padding: 1px 5px;
+  border-radius: var(--radius-xs);
+  white-space: nowrap;
+  flex-shrink: 0;
+  line-height: 1.6;
+}
+.db-tier--live   { color: var(--accent);  background: var(--accent-soft); }
+.db-tier--manual { color: var(--warning); background: var(--warning-soft); }
+.db-tier--post   { color: var(--muted);   background: rgba(93,120,112,0.12); }
+.db-tier--static { color: var(--muted);   background: rgba(93,120,112,0.10); }
+
+/* ─── PRIORITY LIST ──────────────────────────────── */
+.db-priority-list {
+  display: flex;
+  flex-direction: column;
+}
+.db-priority-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--line);
+}
+.db-priority-row:last-child { border-bottom: none; }
+.db-priority-rank {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  color: var(--muted);
+  min-width: 20px;
+  flex-shrink: 0;
+}
+.db-priority-title {
+  font-size: var(--font-size-base);
+  font-weight: 500;
+  color: var(--text);
+  flex: 1;
+  min-width: 0;
+}
+.db-priority-note {
+  font-size: var(--font-size-xs);
+  color: var(--muted);
+  text-align: right;
+  flex-shrink: 0;
+  max-width: 260px;
+  line-height: 1.3;
+}
+.db-priority-risk {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  flex-shrink: 0;
+}
+.db-priority-risk--high { color: var(--error); }
+.db-priority-risk--med  { color: var(--warning); }
+.db-priority-risk--low  { color: var(--muted); }
+
+/* ─── STATUS PILLS ───────────────────────────────── */
+.db-status-pill {
+  display: inline-flex;
+  align-items: center;
+  border-radius: var(--radius-full);
+  padding: 2px 8px;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.db-status-pill--in-progress {
+  background: rgba(0,232,200,0.12);
+  color: var(--accent);
+  border: 1px solid rgba(0,232,200,0.2);
+}
+.db-status-pill--blocked {
+  background: var(--error-soft);
+  color: var(--error);
+  border: 1px solid rgba(248,81,73,0.2);
+}
+.db-status-pill--needs-review {
+  background: var(--warning-soft);
+  color: var(--warning);
+  border: 1px solid rgba(210,153,34,0.2);
+}
+.db-status-pill--done {
+  background: var(--good-soft);
+  color: var(--good);
+  border: 1px solid rgba(74,222,128,0.2);
+}
+.db-status-pill--paused {
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid var(--stroke-strong);
+}
+
+/* ─── RISK REGISTER ──────────────────────────────── */
+.db-risk-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+}
+.db-risk-panel {
+  background: var(--panel-soft);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  padding: var(--space-4);
+  min-height: 72px;
+}
+.db-risk-panel-label {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  margin-bottom: var(--space-3);
+  text-transform: uppercase;
+}
+.db-risk-clear {
+  background: var(--good-soft);
+  border-radius: var(--radius-md);
+  padding: 12px;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--good);
+}
+.db-risk-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--line);
+}
+.db-risk-row:last-child { border-bottom: none; }
+.db-risk-row-title {
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+}
+.db-risk-row-note {
+  font-size: var(--font-size-xs);
+  color: var(--muted);
+  line-height: 1.4;
+}
+.db-risk-row--p0 .db-risk-row-title { color: var(--error); }
+.db-risk-row--founder .db-risk-row-title { color: var(--warning); }
+
+/* ─── QA SIGNPOST ────────────────────────────────── */
+.db-qa-signpost {
+  padding: var(--space-4) 0 var(--space-2);
+}
+.db-qa-link {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  color: var(--muted);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+.db-qa-link:hover { color: var(--accent); }
+
 .db-card-value {
   font-family: var(--font-mono);
   font-size: var(--font-size-lg);
@@ -715,19 +899,41 @@ body::before {
 .db-card-value--muted   { color: var(--muted); font-size: var(--font-size-sm); font-family: var(--font-sans); }
 .db-card-sub { font-size: 10px; color: var(--muted); line-height: 1.3; }
 
-.db-tier {
-  position: absolute;
-  top: 6px; right: 6px;
+.db-run-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
   font-family: var(--font-mono);
   font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.05em;
-  padding: 1px 5px;
-  border-radius: var(--radius-xs);
+  color: var(--accent);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  margin-top: 2px;
+  opacity: 0.55;
+  transition: opacity var(--transition-fast);
 }
-.db-tier--live   { color: var(--accent);   background: var(--accent-soft); }
-.db-tier--manual { color: var(--warning);  background: var(--warning-soft); }
-.db-tier--post   { color: var(--muted);    background: rgba(93,120,112,0.12); }
+.db-run-btn:hover { opacity: 1; }
+
+.db-status-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+}
+.db-status-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.db-status-dot--good    { background: var(--good); box-shadow: 0 0 5px rgba(74,222,128,0.45); }
+.db-status-dot--warning { background: var(--warning); }
+.db-status-dot--error   { background: var(--error); }
+.db-status-dot--muted   { background: var(--muted); }
+.db-status-label { font-size: var(--font-size-sm); color: var(--text); }
 
 /* ─── RELEASE GATE ───────────────────────────────── */
 .db-gate {
@@ -800,6 +1006,8 @@ body::before {
 
     <div class="nav-section">
       <span class="nav-label">Dashboards</span>
+
+      <span class="nav-group-label">Leadership</span>
       <button class="nav-item db-active" data-dashboard="orchestration">
         <span class="nav-dot" style="background:#00e8c8"></span>
         <span class="nav-item-text">Orchestration</span>
@@ -808,10 +1016,16 @@ body::before {
         <span class="nav-dot" style="background:#94a3b8"></span>
         <span class="nav-item-text">Strategy</span>
       </button>
+
       <div class="nav-divider" style="margin:4px 16px"></div>
+      <span class="nav-group-label">Engineering</span>
       <button class="nav-item" data-dashboard="engineering">
         <span class="nav-dot" style="background:#ff9500"></span>
         <span class="nav-item-text">Engineering</span>
+      </button>
+      <button class="nav-item" data-dashboard="design">
+        <span class="nav-dot" style="background:#fb7185"></span>
+        <span class="nav-item-text">Design</span>
       </button>
       <button class="nav-item" data-dashboard="qa">
         <span class="nav-dot" style="background:#77b8ff"></span>
@@ -821,7 +1035,9 @@ body::before {
         <span class="nav-dot" style="background:#f85149"></span>
         <span class="nav-item-text">Cybersecurity</span>
       </button>
+
       <div class="nav-divider" style="margin:4px 16px"></div>
+      <span class="nav-group-label">Business</span>
       <button class="nav-item" data-dashboard="legal">
         <span class="nav-dot" style="background:#a78bfa"></span>
         <span class="nav-item-text">Legal</span>
@@ -842,7 +1058,9 @@ body::before {
         <span class="nav-dot" style="background:#f5986e"></span>
         <span class="nav-item-text">Marketing</span>
       </button>
+
       <div class="nav-divider" style="margin:4px 16px"></div>
+      <span class="nav-group-label">Product</span>
       <button class="nav-item" data-dashboard="workbench">
         <span class="nav-dot" style="background:#38bdf8"></span>
         <span class="nav-item-text">Workbench</span>
@@ -924,24 +1142,56 @@ body::before {
       <div class="dashboard-view active" data-dashboard-view="orchestration">
         <div class="db-view-header">
           <span class="db-view-icon">🎯</span>
-          <div><div class="db-view-title">ORCHESTRATION</div><div class="db-view-subtitle">Agent coordination, digest pipeline &amp; standing directives</div></div>
+          <div><div class="db-view-title" style="color:#00e8c8">ORCHESTRATION</div><div class="db-view-subtitle">Agent coordination, digest pipeline &amp; standing directives</div></div>
         </div>
         <div class="db-section">
           <div class="db-section-label">System Status</div>
           <div class="db-grid">
-            <div class="db-card db-card--live"><span class="db-tier db-tier--live">LIVE</span><div class="db-card-label">Agents Chartered</div><div class="db-card-value">16</div><div class="db-card-sub">All domains active</div></div>
-            <div class="db-card db-card--live"><span class="db-tier db-tier--live">LIVE</span><div class="db-card-label">Weekly Digest Cron</div><div class="db-card-value db-card-value--good">Mon 9:07am</div><div class="db-card-sub">scripts/weekly_digest.sh</div></div>
-            <div class="db-card db-card--live"><span class="db-tier db-tier--live">LIVE</span><div class="db-card-label">Daily Report Cron</div><div class="db-card-value db-card-value--good">6:07pm daily</div><div class="db-card-sub">scripts/daily_product_report.sh</div></div>
-            <div class="db-card db-card--live"><span class="db-tier db-tier--live">LIVE</span><div class="db-card-label">Email Delivery</div><div class="db-card-value db-card-value--good">Resend</div><div class="db-card-sub">RESEND_API_KEY required</div></div>
+            <div class="db-card db-card--live">
+              <div class="db-card-header"><div class="db-card-label">Agents Chartered</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-value">16</div>
+              <div class="db-card-sub">All domains active</div>
+            </div>
+            <div class="db-card db-card--live">
+              <div class="db-card-header"><div class="db-card-label">Weekly Digest</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-value db-card-value--good">Mon 9:07am</div>
+              <div class="db-card-sub">scripts/weekly_digest.sh</div>
+            </div>
+            <div class="db-card db-card--live">
+              <div class="db-card-header"><div class="db-card-label">Daily Report</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-value db-card-value--good">6:07pm daily</div>
+              <div class="db-card-sub">scripts/daily_product_report.sh</div>
+            </div>
+            <div class="db-card db-card--live">
+              <div class="db-card-header"><div class="db-card-label">Email Delivery</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-value db-card-value--good">Resend</div>
+              <div class="db-card-sub">7 days/week</div>
+            </div>
           </div>
         </div>
         <div class="db-section">
           <div class="db-section-label">Digest Pipeline</div>
           <div class="db-grid">
-            <div class="db-card db-card--manual"><span class="db-tier db-tier--manual">MANUAL</span><div class="db-card-label">Last Weekly Digest</div><div class="db-card-value db-card-value--muted">No data</div><div class="db-card-sub">Run weekly_digest.sh</div></div>
-            <div class="db-card db-card--manual"><span class="db-tier db-tier--manual">MANUAL</span><div class="db-card-label">Last Daily Report</div><div class="db-card-value db-card-value--muted">No data</div><div class="db-card-sub">Check artifacts/</div></div>
-            <div class="db-card db-card--manual"><span class="db-tier db-tier--manual">MANUAL</span><div class="db-card-label">Pending Escalations</div><div class="db-card-value db-card-value--good">0</div><div class="db-card-sub">Updated by Orchestrator</div></div>
-            <div class="db-card db-card--manual"><span class="db-tier db-tier--manual">MANUAL</span><div class="db-card-label">Active Directives</div><div class="db-card-value db-card-value--muted">No data</div><div class="db-card-sub">From Standing Directives</div></div>
+            <div class="db-card db-card--manual">
+              <div class="db-card-header"><div class="db-card-label">Last Weekly Digest</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-value db-card-value--muted">—</div>
+              <button class="db-run-btn">Run weekly_digest.sh →</button>
+            </div>
+            <div class="db-card db-card--manual">
+              <div class="db-card-header"><div class="db-card-label">Pending Escalations</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-value db-card-value--good">0</div>
+              <div class="db-card-sub">Default — update via orchestrator</div>
+            </div>
+            <div class="db-card db-card--manual">
+              <div class="db-card-header"><div class="db-card-label">Active Directives</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-value db-card-value--muted">—</div>
+              <button class="db-run-btn">Run orchestrator · directive →</button>
+            </div>
+            <div class="db-card db-card--manual">
+              <div class="db-card-header"><div class="db-card-label">Agent Coverage</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-value">12</div>
+              <div class="db-card-sub">Domains with dashboards</div>
+            </div>
           </div>
         </div>
       </div>
@@ -950,22 +1200,56 @@ body::before {
       <div class="dashboard-view" data-dashboard-view="strategy">
         <div class="db-view-header">
           <span class="db-view-icon">🧭</span>
-          <div><div class="db-view-title">STRATEGY</div><div class="db-view-subtitle">Company direction, portfolio health &amp; competitive positioning</div></div>
+          <div><div class="db-view-title" style="color:#94a3b8">STRATEGY</div><div class="db-view-subtitle">Company direction, portfolio health &amp; competitive positioning</div></div>
         </div>
         <div class="db-section">
-          <div class="db-section-label">Strategic Position</div>
+          <div class="db-section-label">Portfolio</div>
           <div class="db-grid">
-            <div class="db-card db-card--manual"><span class="db-tier db-tier--manual">MANUAL</span><div class="db-card-label">Strategic Decisions Q1</div><div class="db-card-value db-card-value--muted">No data</div><div class="db-card-sub">Run strategy review</div></div>
-            <div class="db-card db-card--manual"><span class="db-tier db-tier--manual">MANUAL</span><div class="db-card-label">Competitive Analyses</div><div class="db-card-value db-card-value--muted">No data</div><div class="db-card-sub">Run strategy · analyze</div></div>
-            <div class="db-card db-card--manual"><span class="db-tier db-tier--manual">MANUAL</span><div class="db-card-label">Portfolio Health</div><div class="db-card-value db-card-value--muted">No data</div><div class="db-card-sub">Tool + Game flywheel</div></div>
-            <div class="db-card db-card--manual"><span class="db-tier db-tier--manual">MANUAL</span><div class="db-card-label">Last Strategic Review</div><div class="db-card-value db-card-value--muted">No data</div><div class="db-card-sub">Quarterly cadence</div></div>
+            <div class="db-card db-card--live">
+              <div class="db-card-header"><div class="db-card-label">Products</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-value">2</div>
+              <div class="db-card-sub">Sprite Workbench · Ashen Hollow</div>
+            </div>
+            <div class="db-card db-card--live">
+              <div class="db-card-header"><div class="db-card-label">Strategic Flywheel</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-value db-card-value--muted" style="font-size:var(--font-size-sm);font-family:var(--font-sans)">Tool → Game</div>
+              <div class="db-card-sub">Workbench enables Ashen Hollow</div>
+            </div>
+            <div class="db-card db-card--live">
+              <div class="db-card-header"><div class="db-card-label">Planning Horizon</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-value">12 mo</div>
+              <div class="db-card-sub">Rolling quarterly reviews</div>
+            </div>
+            <div class="db-card db-card--live">
+              <div class="db-card-header"><div class="db-card-label">Stage</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-value db-card-value--muted" style="font-size:var(--font-size-sm);font-family:var(--font-sans)">Pre-launch</div>
+              <div class="db-card-sub">Both products in development</div>
+            </div>
           </div>
         </div>
         <div class="db-section">
-          <div class="db-section-label">Moats &amp; Risks</div>
+          <div class="db-section-label">Strategic Intelligence</div>
           <div class="db-grid">
-            <div class="db-card db-card--manual"><span class="db-tier db-tier--manual">MANUAL</span><div class="db-card-label">Open Strategic Risks</div><div class="db-card-value db-card-value--muted">No data</div><div class="db-card-sub">Run strategy · red-team</div></div>
-            <div class="db-card db-card--manual"><span class="db-tier db-tier--manual">MANUAL</span><div class="db-card-label">Moat Assessment</div><div class="db-card-value db-card-value--muted">No data</div><div class="db-card-sub">Run strategy · analyze</div></div>
+            <div class="db-card db-card--manual">
+              <div class="db-card-header"><div class="db-card-label">Competitive Analyses</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-value db-card-value--muted">—</div>
+              <button class="db-run-btn">Run strategy · analyze →</button>
+            </div>
+            <div class="db-card db-card--manual">
+              <div class="db-card-header"><div class="db-card-label">Open Strategic Risks</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-value db-card-value--muted">—</div>
+              <button class="db-run-btn">Run strategy · red-team →</button>
+            </div>
+            <div class="db-card db-card--manual">
+              <div class="db-card-header"><div class="db-card-label">Moat Assessment</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-value db-card-value--muted">—</div>
+              <button class="db-run-btn">Run strategy · analyze →</button>
+            </div>
+            <div class="db-card db-card--manual">
+              <div class="db-card-header"><div class="db-card-label">Last Strategic Review</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-value db-card-value--muted">—</div>
+              <button class="db-run-btn">Run strategy · report →</button>
+            </div>
           </div>
         </div>
       </div>
@@ -974,24 +1258,71 @@ body::before {
       <div class="dashboard-view" data-dashboard-view="engineering">
         <div class="db-view-header">
           <span class="db-view-icon">⚙️</span>
-          <div><div class="db-view-title">ENGINEERING</div><div class="db-view-subtitle">Codebase health, server status &amp; API connectivity</div></div>
+          <div><div class="db-view-title" style="color:#ff9500">ENGINEERING</div><div class="db-view-subtitle">Priorities, risks &amp; AI pipeline health</div></div>
         </div>
+        <!-- ── Priorities ── -->
         <div class="db-section">
-          <div class="db-section-label">Codebase Health</div>
-          <div class="db-grid">
-            <div class="db-card db-card--live"><span class="db-tier db-tier--live">LIVE</span><div class="db-card-label">Commits (7 days)</div><div class="db-card-value" id="db-eng-commits">—</div><div class="db-card-sub">git log --since 7 days</div></div>
-            <div class="db-card db-card--live"><span class="db-tier db-tier--live">LIVE</span><div class="db-card-label">Modified Files</div><div class="db-card-value" id="db-eng-modified">—</div><div class="db-card-sub">git status --short</div></div>
-            <div class="db-card db-card--manual"><span class="db-tier db-tier--manual">MANUAL</span><div class="db-card-label">Python Tests</div><div class="db-card-value db-card-value--muted">No data</div><div class="db-card-sub">pytest tests/</div></div>
-            <div class="db-card db-card--manual"><span class="db-tier db-tier--manual">MANUAL</span><div class="db-card-label">JS Tests</div><div class="db-card-value db-card-value--muted">No data</div><div class="db-card-sub">node tests/</div></div>
+          <div class="db-section-label">Priorities</div>
+          <div class="db-priority-list" id="db-eng-priorities">
+            <!-- placeholder rows — JS replaces these on load -->
+            <div class="db-priority-row">
+              <span class="db-priority-rank">01</span>
+              <span class="db-priority-title">Loading…</span>
+              <span class="db-status-pill db-status-pill--paused">PAUSED</span>
+            </div>
           </div>
         </div>
+
+        <!-- ── Risk Register ── -->
         <div class="db-section">
-          <div class="db-section-label">Environment &amp; Services</div>
-          <div class="db-grid">
-            <div class="db-card db-card--live"><span class="db-tier db-tier--live">LIVE</span><div class="db-card-label">Pixellab API Key</div><div class="db-card-value" id="db-eng-pixellab">—</div><div class="db-card-sub">PIXELLAB_API_KEY</div></div>
-            <div class="db-card db-card--live"><span class="db-tier db-tier--live">LIVE</span><div class="db-card-label">Gemini API Key</div><div class="db-card-value" id="db-eng-gemini">—</div><div class="db-card-sub">GEMINI_API_KEY</div></div>
-            <div class="db-card db-card--live"><span class="db-tier db-tier--live">LIVE</span><div class="db-card-label">Sprite Workbench</div><div class="db-card-value" id="db-eng-server">—</div><div class="db-card-sub">sprite_workbench_server.py</div></div>
+          <div class="db-section-label">Risk Register</div>
+          <div class="db-risk-grid">
+            <div class="db-risk-panel">
+              <div class="db-risk-panel-label">P0 BLOCKERS</div>
+              <div id="db-eng-risks-p0">
+                <div class="db-risk-clear">
+                  <span style="color:var(--good)">✓ No active blockers</span>
+                </div>
+              </div>
+            </div>
+            <div class="db-risk-panel">
+              <div class="db-risk-panel-label">FOUNDER DECISIONS</div>
+              <div id="db-eng-founder-decisions">
+                <div style="background:rgba(93,120,112,0.08);color:var(--muted);border-radius:var(--radius-md);padding:12px;font-size:var(--font-size-sm);font-weight:500;">✓ No pending decisions</div>
+              </div>
+            </div>
           </div>
+        </div>
+
+        <!-- ── Services & Keys ── -->
+        <div class="db-section">
+          <div class="db-section-label">Services &amp; Keys</div>
+          <div class="db-grid">
+            <div class="db-card db-card--live">
+              <div class="db-card-header"><div class="db-card-label">Workbench Server</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-value" id="db-eng-server">—</div>
+              <div class="db-card-sub">:5000 · sprite_workbench_server.py</div>
+            </div>
+            <div class="db-card db-card--live">
+              <div class="db-card-header"><div class="db-card-label">Pixellab API Key</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-value" id="db-eng-pixellab">—</div>
+              <div class="db-card-sub">PIXELLAB_API_KEY env var</div>
+            </div>
+            <div class="db-card db-card--live">
+              <div class="db-card-header"><div class="db-card-label">Gemini API Key</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-value" id="db-eng-gemini">—</div>
+              <div class="db-card-sub">GEMINI_API_KEY env var</div>
+            </div>
+            <div class="db-card">
+              <div class="db-card-header"><div class="db-card-label">Schema Version</div><span class="db-tier db-tier--static">STATIC</span></div>
+              <div class="db-card-value db-card-value--muted" id="db-eng-schema-version">v1.0</div>
+              <div class="db-card-sub">Export schema · bump on breaking change</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="db-qa-signpost">
+          <button type="button" class="db-qa-link" onclick="selectDashboard('qa')">→ QA dashboard for test coverage</button>
         </div>
       </div>
 
@@ -999,7 +1330,7 @@ body::before {
       <div class="dashboard-view" data-dashboard-view="qa">
         <div class="db-view-header">
           <span class="db-view-icon">🔍</span>
-          <div><div class="db-view-title">QA</div><div class="db-view-subtitle">Release gate, bug counts &amp; test coverage</div></div>
+          <div><div class="db-view-title" style="color:#77b8ff">QA</div><div class="db-view-subtitle">Release gate, bug counts &amp; test coverage</div></div>
         </div>
         <div class="db-section">
           <div class="db-section-label">Release Gate</div>
@@ -1014,10 +1345,26 @@ body::before {
         <div class="db-section">
           <div class="db-section-label">Bug Counts</div>
           <div class="db-grid">
-            <div class="db-card db-card--manual"><span class="db-tier db-tier--manual">MANUAL</span><div class="db-card-label">P0 Bugs</div><div class="db-card-value db-card-value--muted">—</div><div class="db-card-sub">Blocking release</div></div>
-            <div class="db-card db-card--manual"><span class="db-tier db-tier--manual">MANUAL</span><div class="db-card-label">P1 Bugs</div><div class="db-card-value db-card-value--muted">—</div><div class="db-card-sub">High priority</div></div>
-            <div class="db-card db-card--manual"><span class="db-tier db-tier--manual">MANUAL</span><div class="db-card-label">Last QA Report</div><div class="db-card-value db-card-value--muted">No data</div><div class="db-card-sub">Run QA · report</div></div>
-            <div class="db-card db-card--manual"><span class="db-tier db-tier--manual">MANUAL</span><div class="db-card-label">Test Coverage</div><div class="db-card-value db-card-value--muted">No data</div><div class="db-card-sub">Run QA · analyze</div></div>
+            <div class="db-card db-card--manual">
+              <div class="db-card-header"><div class="db-card-label">P0 Bugs</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-value db-card-value--muted">—</div>
+              <div class="db-card-sub">Release blockers</div>
+            </div>
+            <div class="db-card db-card--manual">
+              <div class="db-card-header"><div class="db-card-label">P1 Bugs</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-value db-card-value--muted">—</div>
+              <div class="db-card-sub">High priority</div>
+            </div>
+            <div class="db-card db-card--manual">
+              <div class="db-card-header"><div class="db-card-label">Last QA Report</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-value db-card-value--muted">—</div>
+              <button class="db-run-btn">Run QA · report →</button>
+            </div>
+            <div class="db-card db-card--manual">
+              <div class="db-card-header"><div class="db-card-label">Test Coverage</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-value db-card-value--muted">—</div>
+              <button class="db-run-btn">Run QA · analyze →</button>
+            </div>
           </div>
         </div>
       </div>
@@ -1026,22 +1373,51 @@ body::before {
       <div class="dashboard-view" data-dashboard-view="cybersecurity">
         <div class="db-view-header">
           <span class="db-view-icon">🛡️</span>
-          <div><div class="db-view-title">CYBERSECURITY</div><div class="db-view-subtitle">Environment security, API keys &amp; server hardening</div></div>
+          <div><div class="db-view-title" style="color:#f85149">CYBERSECURITY</div><div class="db-view-subtitle">Environment security, API key hygiene &amp; threat surface</div></div>
         </div>
         <div class="db-section">
-          <div class="db-section-label">Environment Checks</div>
+          <div class="db-section-label">API Key Presence</div>
           <div class="db-grid">
-            <div class="db-card db-card--live"><span class="db-tier db-tier--live">LIVE</span><div class="db-card-label">Pixellab Key Set</div><div class="db-card-value" id="db-sec-pixellab">—</div><div class="db-card-sub">Never exposed in HTML</div></div>
-            <div class="db-card db-card--live"><span class="db-tier db-tier--live">LIVE</span><div class="db-card-label">Gemini Key Set</div><div class="db-card-value" id="db-sec-gemini">—</div><div class="db-card-sub">Never exposed in HTML</div></div>
-            <div class="db-card db-card--live"><span class="db-tier db-tier--live">LIVE</span><div class="db-card-label">Resend Key Set</div><div class="db-card-value" id="db-sec-resend">—</div><div class="db-card-sub">Never exposed in HTML</div></div>
+            <div class="db-card db-card--live">
+              <div class="db-card-header"><div class="db-card-label">Pixellab Key</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-value" id="db-sec-pixellab">—</div>
+              <div class="db-card-sub">Presence check only</div>
+            </div>
+            <div class="db-card db-card--live">
+              <div class="db-card-header"><div class="db-card-label">Gemini Key</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-value" id="db-sec-gemini">—</div>
+              <div class="db-card-sub">Presence check only</div>
+            </div>
+            <div class="db-card db-card--live">
+              <div class="db-card-header"><div class="db-card-label">Resend Key</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-value" id="db-sec-resend">—</div>
+              <div class="db-card-sub">Presence check only</div>
+            </div>
           </div>
         </div>
         <div class="db-section">
-          <div class="db-section-label">Audit Trail</div>
+          <div class="db-section-label">Security Posture</div>
           <div class="db-grid">
-            <div class="db-card db-card--manual"><span class="db-tier db-tier--manual">MANUAL</span><div class="db-card-label">Last Security Audit</div><div class="db-card-value db-card-value--muted">No data</div><div class="db-card-sub">Run cybersecurity · report</div></div>
-            <div class="db-card db-card--manual"><span class="db-tier db-tier--manual">MANUAL</span><div class="db-card-label">Open Security Flags</div><div class="db-card-value db-card-value--muted">—</div><div class="db-card-sub">Run cybersecurity · analyze</div></div>
-            <div class="db-card db-card--manual"><span class="db-tier db-tier--manual">MANUAL</span><div class="db-card-label">Prompt Injection Risk</div><div class="db-card-value db-card-value--muted">—</div><div class="db-card-sub">Copilot API surface</div></div>
+            <div class="db-card db-card--live">
+              <div class="db-card-header"><div class="db-card-label">Keys in HTML</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-value db-card-value--good">None</div>
+              <div class="db-card-sub">Server-side only</div>
+            </div>
+            <div class="db-card db-card--live">
+              <div class="db-card-header"><div class="db-card-label">Threat Surface</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-value db-card-value--muted" style="font-size:var(--font-size-sm);font-family:var(--font-sans)">Local dev</div>
+              <div class="db-card-sub">No public endpoints yet</div>
+            </div>
+            <div class="db-card db-card--manual">
+              <div class="db-card-header"><div class="db-card-label">Last Security Audit</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-value db-card-value--muted">—</div>
+              <button class="db-run-btn">Run cybersecurity · report →</button>
+            </div>
+            <div class="db-card db-card--manual">
+              <div class="db-card-header"><div class="db-card-label">Prompt Injection Risk</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-value db-card-value--muted">—</div>
+              <button class="db-run-btn">Run cybersecurity · analyze →</button>
+            </div>
           </div>
         </div>
       </div>
@@ -1050,15 +1426,51 @@ body::before {
       <div class="dashboard-view" data-dashboard-view="legal">
         <div class="db-view-header">
           <span class="db-view-icon">⚖️</span>
-          <div><div class="db-view-title">LEGAL</div><div class="db-view-subtitle">IP exposure, AI asset compliance &amp; ToS status</div></div>
+          <div><div class="db-view-title" style="color:#a78bfa">LEGAL</div><div class="db-view-subtitle">IP exposure, AI asset compliance &amp; ToS status</div></div>
         </div>
         <div class="db-section">
-          <div class="db-section-label">AI Asset Compliance</div>
+          <div class="db-section-label">Standing Facts</div>
           <div class="db-grid">
-            <div class="db-card db-card--manual"><span class="db-tier db-tier--manual">MANUAL</span><div class="db-card-label">AI Assets Reviewed</div><div class="db-card-value db-card-value--muted">No data</div><div class="db-card-sub">Run legal · review</div></div>
-            <div class="db-card db-card--manual"><span class="db-tier db-tier--manual">MANUAL</span><div class="db-card-label">Pending Legal Flags</div><div class="db-card-value db-card-value--muted">—</div><div class="db-card-sub">Run legal · escalation-check</div></div>
-            <div class="db-card db-card--manual"><span class="db-tier db-tier--manual">MANUAL</span><div class="db-card-label">IP Exposure Level</div><div class="db-card-value db-card-value--muted">—</div><div class="db-card-sub">3P licenses, ToS gaps</div></div>
-            <div class="db-card db-card--manual"><span class="db-tier db-tier--manual">MANUAL</span><div class="db-card-label">Last Legal Review</div><div class="db-card-value db-card-value--muted">No data</div><div class="db-card-sub">Run legal · report</div></div>
+            <div class="db-card db-card--live">
+              <div class="db-card-header"><div class="db-card-label">Jurisdiction</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-value db-card-value--muted" style="font-size:var(--font-size-sm);font-family:var(--font-sans)">Ireland / EU</div>
+              <div class="db-card-sub">GDPR applicable</div>
+            </div>
+            <div class="db-card db-card--live">
+              <div class="db-card-header"><div class="db-card-label">Asset Type</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-value db-card-value--muted" style="font-size:var(--font-size-sm);font-family:var(--font-sans)">AI-generated</div>
+              <div class="db-card-sub">Sprites, animations, audio</div>
+            </div>
+            <div class="db-card db-card--live">
+              <div class="db-card-header"><div class="db-card-label">Monetisation Stage</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-value db-card-value--muted" style="font-size:var(--font-size-sm);font-family:var(--font-sans)">Pre-launch</div>
+              <div class="db-card-sub">No ToS published yet</div>
+            </div>
+          </div>
+        </div>
+        <div class="db-section">
+          <div class="db-section-label">Compliance Reviews</div>
+          <div class="db-grid">
+            <div class="db-card db-card--manual">
+              <div class="db-card-header"><div class="db-card-label">AI Assets Reviewed</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-value db-card-value--muted">—</div>
+              <button class="db-run-btn">Run legal · review →</button>
+            </div>
+            <div class="db-card db-card--manual">
+              <div class="db-card-header"><div class="db-card-label">Pending Legal Flags</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-value db-card-value--muted">—</div>
+              <button class="db-run-btn">Run legal · escalation-check →</button>
+            </div>
+            <div class="db-card db-card--manual">
+              <div class="db-card-header"><div class="db-card-label">IP Exposure Level</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-value db-card-value--muted">—</div>
+              <button class="db-run-btn">Run legal · analyze →</button>
+            </div>
+            <div class="db-card db-card--manual">
+              <div class="db-card-header"><div class="db-card-label">Last Legal Review</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-value db-card-value--muted">—</div>
+              <button class="db-run-btn">Run legal · report →</button>
+            </div>
           </div>
         </div>
       </div>
@@ -1067,22 +1479,66 @@ body::before {
       <div class="dashboard-view" data-dashboard-view="finance">
         <div class="db-view-header">
           <span class="db-view-icon">💰</span>
-          <div><div class="db-view-title">FINANCE</div><div class="db-view-subtitle">API costs, budget tracking &amp; unit economics</div></div>
+          <div><div class="db-view-title" style="color:#f0abfc">FINANCE</div><div class="db-view-subtitle">API costs, budget tracking &amp; unit economics</div></div>
+        </div>
+        <div class="db-section">
+          <div class="db-section-label">Business Context</div>
+          <div class="db-grid">
+            <div class="db-card db-card--live">
+              <div class="db-card-header"><div class="db-card-label">Revenue Stage</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-value db-card-value--muted" style="font-size:var(--font-size-sm);font-family:var(--font-sans)">Pre-revenue</div>
+              <div class="db-card-sub">Both products in development</div>
+            </div>
+            <div class="db-card db-card--live">
+              <div class="db-card-header"><div class="db-card-label">Currency</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-value">EUR</div>
+              <div class="db-card-sub">Ireland-based entity</div>
+            </div>
+            <div class="db-card db-card--live">
+              <div class="db-card-header"><div class="db-card-label">Cost Drivers</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-value db-card-value--muted" style="font-size:var(--font-size-sm);font-family:var(--font-sans)">3 APIs</div>
+              <div class="db-card-sub">Pixellab · Gemini · Resend</div>
+            </div>
+          </div>
         </div>
         <div class="db-section">
           <div class="db-section-label">Monthly API Spend</div>
           <div class="db-grid">
-            <div class="db-card db-card--manual"><span class="db-tier db-tier--manual">MANUAL</span><div class="db-card-label">Pixellab API</div><div class="db-card-value db-card-value--muted">No data</div><div class="db-card-sub">Per-image + animation</div></div>
-            <div class="db-card db-card--manual"><span class="db-tier db-tier--manual">MANUAL</span><div class="db-card-label">Gemini API</div><div class="db-card-value db-card-value--muted">No data</div><div class="db-card-sub">Copilot calls</div></div>
-            <div class="db-card db-card--manual"><span class="db-tier db-tier--manual">MANUAL</span><div class="db-card-label">Resend (Email)</div><div class="db-card-value db-card-value--muted">No data</div><div class="db-card-sub">Digest + daily reports</div></div>
-            <div class="db-card db-card--manual"><span class="db-tier db-tier--manual">MANUAL</span><div class="db-card-label">Budget Remaining</div><div class="db-card-value db-card-value--muted">No data</div><div class="db-card-sub">Run finance · report</div></div>
+            <div class="db-card db-card--manual">
+              <div class="db-card-header"><div class="db-card-label">Pixellab API</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-value db-card-value--muted">—</div>
+              <div class="db-card-sub">Per-image + animation calls</div>
+            </div>
+            <div class="db-card db-card--manual">
+              <div class="db-card-header"><div class="db-card-label">Gemini API</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-value db-card-value--muted">—</div>
+              <div class="db-card-sub">Copilot &amp; generation calls</div>
+            </div>
+            <div class="db-card db-card--manual">
+              <div class="db-card-header"><div class="db-card-label">Resend (Email)</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-value db-card-value--muted">—</div>
+              <div class="db-card-sub">Digest + daily reports</div>
+            </div>
+            <div class="db-card db-card--manual">
+              <div class="db-card-header"><div class="db-card-label">Budget Remaining</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-value db-card-value--muted">—</div>
+              <button class="db-run-btn">Run finance · report →</button>
+            </div>
           </div>
         </div>
         <div class="db-section">
           <div class="db-section-label">Unit Economics</div>
           <div class="db-grid">
-            <div class="db-card db-card--instrumented"><span class="db-tier db-tier--post">POST-LAUNCH</span><div class="db-card-label">Cost per Session</div><div class="db-card-value db-card-value--muted">—</div><div class="db-card-sub">Requires usage tracking</div></div>
-            <div class="db-card db-card--instrumented"><span class="db-tier db-tier--post">POST-LAUNCH</span><div class="db-card-label">Revenue per User</div><div class="db-card-value db-card-value--muted">—</div><div class="db-card-sub">After monetisation launch</div></div>
+            <div class="db-card db-card--instrumented">
+              <div class="db-card-header"><div class="db-card-label">Cost per Session</div><span class="db-tier db-tier--post">POST-LAUNCH</span></div>
+              <div class="db-card-value db-card-value--muted">—</div>
+              <div class="db-card-sub">Requires usage tracking</div>
+            </div>
+            <div class="db-card db-card--instrumented">
+              <div class="db-card-header"><div class="db-card-label">Revenue per User</div><span class="db-tier db-tier--post">POST-LAUNCH</span></div>
+              <div class="db-card-value db-card-value--muted">—</div>
+              <div class="db-card-sub">After monetisation launch</div>
+            </div>
           </div>
         </div>
       </div>
@@ -1091,28 +1547,51 @@ body::before {
       <div class="dashboard-view" data-dashboard-view="analytics">
         <div class="db-view-header">
           <span class="db-view-icon">📊</span>
-          <div><div class="db-view-title">ANALYTICS</div><div class="db-view-subtitle">Usage metrics, funnel health &amp; AI feature performance</div></div>
+          <div><div class="db-view-title" style="color:#4ade80">ANALYTICS</div><div class="db-view-subtitle">Usage metrics, funnel health &amp; AI feature performance</div></div>
         </div>
         <div class="db-section">
-          <div class="db-section-label">Funnel Metrics</div>
+          <div class="db-section-label">Pre-launch Readiness</div>
           <div class="db-grid">
-            <div class="db-card db-card--instrumented"><span class="db-tier db-tier--post">POST-LAUNCH</span><div class="db-card-label">Activation Rate</div><div class="db-card-value db-card-value--muted">—</div><div class="db-card-sub">First export event</div></div>
-            <div class="db-card db-card--instrumented"><span class="db-tier db-tier--post">POST-LAUNCH</span><div class="db-card-label">Export Rate</div><div class="db-card-value db-card-value--muted">—</div><div class="db-card-sub">Exports / sessions</div></div>
-            <div class="db-card db-card--instrumented"><span class="db-tier db-tier--post">POST-LAUNCH</span><div class="db-card-label">Retention D7</div><div class="db-card-value db-card-value--muted">—</div><div class="db-card-sub">7-day return rate</div></div>
+            <div class="db-card db-card--live">
+              <div class="db-card-header"><div class="db-card-label">Instrumentation Stage</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-value db-card-value--warning">Pre-launch</div>
+              <div class="db-card-sub">Events not yet firing</div>
+            </div>
+            <div class="db-card db-card--manual">
+              <div class="db-card-header"><div class="db-card-label">Tracking Plan Coverage</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-value db-card-value--muted">—</div>
+              <button class="db-run-btn">Run analytics · review →</button>
+            </div>
+            <div class="db-card db-card--manual">
+              <div class="db-card-header"><div class="db-card-label">Events Defined</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-value db-card-value--muted">—</div>
+              <button class="db-run-btn">Run analytics · analyze →</button>
+            </div>
           </div>
         </div>
         <div class="db-section">
-          <div class="db-section-label">AI Feature Performance</div>
+          <div class="db-section-label">Funnel Metrics — Post-launch</div>
           <div class="db-grid">
-            <div class="db-card db-card--instrumented"><span class="db-tier db-tier--post">POST-LAUNCH</span><div class="db-card-label">Copilot Accept Rate</div><div class="db-card-value db-card-value--muted">—</div><div class="db-card-sub">Suggestions accepted</div></div>
-            <div class="db-card db-card--instrumented"><span class="db-tier db-tier--post">POST-LAUNCH</span><div class="db-card-label">Copilot Edit Rate</div><div class="db-card-value db-card-value--muted">—</div><div class="db-card-sub">Accepted then modified</div></div>
-            <div class="db-card db-card--instrumented"><span class="db-tier db-tier--post">POST-LAUNCH</span><div class="db-card-label">AI Feature MAU</div><div class="db-card-value db-card-value--muted">—</div><div class="db-card-sub">Monthly active users</div></div>
-          </div>
-        </div>
-        <div class="db-section">
-          <div class="db-section-label">Tracking Plan</div>
-          <div class="db-grid">
-            <div class="db-card db-card--manual"><span class="db-tier db-tier--manual">MANUAL</span><div class="db-card-label">Tracking Coverage</div><div class="db-card-value db-card-value--muted">No data</div><div class="db-card-sub">Run analytics · review</div></div>
+            <div class="db-card db-card--instrumented">
+              <div class="db-card-header"><div class="db-card-label">Activation Rate</div><span class="db-tier db-tier--post">POST-LAUNCH</span></div>
+              <div class="db-card-value db-card-value--muted">—</div>
+              <div class="db-card-sub">First export event</div>
+            </div>
+            <div class="db-card db-card--instrumented">
+              <div class="db-card-header"><div class="db-card-label">Export Rate</div><span class="db-tier db-tier--post">POST-LAUNCH</span></div>
+              <div class="db-card-value db-card-value--muted">—</div>
+              <div class="db-card-sub">Exports per session</div>
+            </div>
+            <div class="db-card db-card--instrumented">
+              <div class="db-card-header"><div class="db-card-label">Retention D7</div><span class="db-tier db-tier--post">POST-LAUNCH</span></div>
+              <div class="db-card-value db-card-value--muted">—</div>
+              <div class="db-card-sub">7-day return rate</div>
+            </div>
+            <div class="db-card db-card--instrumented">
+              <div class="db-card-header"><div class="db-card-label">Copilot Accept Rate</div><span class="db-tier db-tier--post">POST-LAUNCH</span></div>
+              <div class="db-card-value db-card-value--muted">—</div>
+              <div class="db-card-sub">AI suggestions accepted</div>
+            </div>
           </div>
         </div>
       </div>
@@ -1121,21 +1600,56 @@ body::before {
       <div class="dashboard-view" data-dashboard-view="support">
         <div class="db-view-header">
           <span class="db-view-icon">💬</span>
-          <div><div class="db-view-title">SUPPORT</div><div class="db-view-subtitle">User issues, feedback synthesis &amp; onboarding health</div></div>
+          <div><div class="db-view-title" style="color:#fbbf24">SUPPORT</div><div class="db-view-subtitle">User issues, feedback synthesis &amp; onboarding health</div></div>
         </div>
         <div class="db-section">
-          <div class="db-section-label">Issue Queue</div>
+          <div class="db-section-label">Support Context</div>
           <div class="db-grid">
-            <div class="db-card db-card--instrumented"><span class="db-tier db-tier--post">POST-LAUNCH</span><div class="db-card-label">Open Tickets</div><div class="db-card-value db-card-value--muted">—</div><div class="db-card-sub">Requires user base</div></div>
-            <div class="db-card db-card--instrumented"><span class="db-tier db-tier--post">POST-LAUNCH</span><div class="db-card-label">Avg Resolution</div><div class="db-card-value db-card-value--muted">—</div><div class="db-card-sub">Hours to close</div></div>
-            <div class="db-card db-card--instrumented"><span class="db-tier db-tier--post">POST-LAUNCH</span><div class="db-card-label">User Satisfaction</div><div class="db-card-value db-card-value--muted">—</div><div class="db-card-sub">CSAT / NPS</div></div>
+            <div class="db-card db-card--live">
+              <div class="db-card-header"><div class="db-card-label">User Base Stage</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-value db-card-value--warning">Pre-launch</div>
+              <div class="db-card-sub">No live users yet</div>
+            </div>
+            <div class="db-card db-card--live">
+              <div class="db-card-header"><div class="db-card-label">Channels</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-value db-card-value--muted" style="font-size:var(--font-size-sm);font-family:var(--font-sans)">itch.io · Discord</div>
+              <div class="db-card-sub">Planned post-launch</div>
+            </div>
           </div>
         </div>
         <div class="db-section">
-          <div class="db-section-label">Feedback Synthesis</div>
+          <div class="db-section-label">Issue Queue — Post-launch</div>
           <div class="db-grid">
-            <div class="db-card db-card--manual"><span class="db-tier db-tier--manual">MANUAL</span><div class="db-card-label">Top Pain Points</div><div class="db-card-value db-card-value--muted">No data</div><div class="db-card-sub">Run support · analyze</div></div>
-            <div class="db-card db-card--manual"><span class="db-tier db-tier--manual">MANUAL</span><div class="db-card-label">Onboarding Drop-off</div><div class="db-card-value db-card-value--muted">No data</div><div class="db-card-sub">Run support · review</div></div>
+            <div class="db-card db-card--instrumented">
+              <div class="db-card-header"><div class="db-card-label">Open Tickets</div><span class="db-tier db-tier--post">POST-LAUNCH</span></div>
+              <div class="db-card-value db-card-value--muted">—</div>
+              <div class="db-card-sub">Requires user base</div>
+            </div>
+            <div class="db-card db-card--instrumented">
+              <div class="db-card-header"><div class="db-card-label">Avg Resolution Time</div><span class="db-tier db-tier--post">POST-LAUNCH</span></div>
+              <div class="db-card-value db-card-value--muted">—</div>
+              <div class="db-card-sub">Hours to close</div>
+            </div>
+            <div class="db-card db-card--instrumented">
+              <div class="db-card-header"><div class="db-card-label">CSAT</div><span class="db-tier db-tier--post">POST-LAUNCH</span></div>
+              <div class="db-card-value db-card-value--muted">—</div>
+              <div class="db-card-sub">Customer satisfaction score</div>
+            </div>
+          </div>
+        </div>
+        <div class="db-section">
+          <div class="db-section-label">Research</div>
+          <div class="db-grid">
+            <div class="db-card db-card--manual">
+              <div class="db-card-header"><div class="db-card-label">Top Pain Points</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-value db-card-value--muted">—</div>
+              <button class="db-run-btn">Run support · analyze →</button>
+            </div>
+            <div class="db-card db-card--manual">
+              <div class="db-card-header"><div class="db-card-label">Onboarding Drop-off</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-value db-card-value--muted">—</div>
+              <button class="db-run-btn">Run support · review →</button>
+            </div>
           </div>
         </div>
       </div>
@@ -1144,21 +1658,139 @@ body::before {
       <div class="dashboard-view" data-dashboard-view="marketing">
         <div class="db-view-header">
           <span class="db-view-icon">📣</span>
-          <div><div class="db-view-title">MARKETING</div><div class="db-view-subtitle">Launch readiness, content pipeline &amp; channel health</div></div>
+          <div><div class="db-view-title" style="color:#f5986e">MARKETING</div><div class="db-view-subtitle">Launch readiness, content pipeline &amp; channel strategy</div></div>
         </div>
         <div class="db-section">
-          <div class="db-section-label">Launch Readiness</div>
+          <div class="db-section-label">Go-to-Market</div>
           <div class="db-grid">
-            <div class="db-card db-card--manual"><span class="db-tier db-tier--manual">MANUAL</span><div class="db-card-label">Launch Readiness Score</div><div class="db-card-value db-card-value--muted">No data</div><div class="db-card-sub">Run marketing · report</div></div>
-            <div class="db-card db-card--manual"><span class="db-tier db-tier--manual">MANUAL</span><div class="db-card-label">itch.io Page Status</div><div class="db-card-value db-card-value--muted">No data</div><div class="db-card-sub">Run marketing · analyze</div></div>
-            <div class="db-card db-card--manual"><span class="db-tier db-tier--manual">MANUAL</span><div class="db-card-label">Product Hunt Draft</div><div class="db-card-value db-card-value--muted">No data</div><div class="db-card-sub">Gallery, copy, assets</div></div>
+            <div class="db-card db-card--live">
+              <div class="db-card-header"><div class="db-card-label">Target Audience</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-value db-card-value--muted" style="font-size:var(--font-size-sm);font-family:var(--font-sans)">Indie devs</div>
+              <div class="db-card-sub">Pixel art · metroidvania fans</div>
+            </div>
+            <div class="db-card db-card--live">
+              <div class="db-card-header"><div class="db-card-label">Primary Channels</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-value db-card-value--muted" style="font-size:var(--font-size-sm);font-family:var(--font-sans)">itch.io · PH</div>
+              <div class="db-card-sub">itch.io + Product Hunt</div>
+            </div>
+            <div class="db-card db-card--live">
+              <div class="db-card-header"><div class="db-card-label">Launch Stage</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-value db-card-value--warning">Pre-launch</div>
+              <div class="db-card-sub">Pages not yet live</div>
+            </div>
           </div>
         </div>
         <div class="db-section">
-          <div class="db-section-label">Content Pipeline</div>
+          <div class="db-section-label">Launch Assets</div>
           <div class="db-grid">
-            <div class="db-card db-card--manual"><span class="db-tier db-tier--manual">MANUAL</span><div class="db-card-label">Content Published Q1</div><div class="db-card-value db-card-value--muted">No data</div><div class="db-card-sub">Posts, announcements</div></div>
-            <div class="db-card db-card--instrumented"><span class="db-tier db-tier--post">POST-LAUNCH</span><div class="db-card-label">Referral Traffic</div><div class="db-card-value db-card-value--muted">—</div><div class="db-card-sub">Requires GA / Plausible</div></div>
+            <div class="db-card db-card--manual">
+              <div class="db-card-header"><div class="db-card-label">Launch Readiness Score</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-value db-card-value--muted">—</div>
+              <button class="db-run-btn">Run marketing · report →</button>
+            </div>
+            <div class="db-card db-card--manual">
+              <div class="db-card-header"><div class="db-card-label">itch.io Page</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-value db-card-value--muted">—</div>
+              <button class="db-run-btn">Run marketing · analyze →</button>
+            </div>
+            <div class="db-card db-card--manual">
+              <div class="db-card-header"><div class="db-card-label">Product Hunt Draft</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-value db-card-value--muted">—</div>
+              <button class="db-run-btn">Run marketing · draft →</button>
+            </div>
+            <div class="db-card db-card--manual">
+              <div class="db-card-header"><div class="db-card-label">Content Published Q1</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-value db-card-value--muted">—</div>
+              <button class="db-run-btn">Run marketing · report →</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── DESIGN DASHBOARD ───────────────────────────────── -->
+      <div class="dashboard-view" data-dashboard-view="design">
+        <div class="db-view-header">
+          <span class="db-view-icon">🎨</span>
+          <div><div class="db-view-title" style="color:#fb7185">DESIGN</div><div class="db-view-subtitle">Cross-product UX, visual systems &amp; design quality — Workbench &amp; Ashen Hollow</div></div>
+        </div>
+        <div class="db-section">
+          <div class="db-section-label">Design System</div>
+          <div class="db-grid">
+            <div class="db-card db-card--live">
+              <div class="db-card-header"><div class="db-card-label">Style Guide</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-value db-card-value--good">Active</div>
+              <div class="db-card-sub">STYLE_GUIDE.md · canonical tokens</div>
+            </div>
+            <div class="db-card db-card--live">
+              <div class="db-card-header"><div class="db-card-label">Design Language</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-value db-card-value--muted" style="font-size:var(--font-size-sm);font-family:var(--font-sans)">Dark · Pixel</div>
+              <div class="db-card-sub">Near-black · pixelated rendering</div>
+            </div>
+            <div class="db-card db-card--live">
+              <div class="db-card-header"><div class="db-card-label">Products Covered</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-value">2</div>
+              <div class="db-card-sub">Sprite Workbench · Ashen Hollow</div>
+            </div>
+            <div class="db-card db-card--live">
+              <div class="db-card-header"><div class="db-card-label">Font Stack</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-value db-card-value--muted" style="font-size:11px;font-family:var(--font-sans)">Bebas + Jakarta + DM Mono</div>
+              <div class="db-card-sub">Display · sans · mono</div>
+            </div>
+          </div>
+        </div>
+        <div class="db-section">
+          <div class="db-section-label">Workbench UX</div>
+          <div class="db-grid">
+            <div class="db-card db-card--manual">
+              <div class="db-card-header"><div class="db-card-label">UX Audit</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-value db-card-value--muted">—</div>
+              <button class="db-run-btn">Run design · analyze →</button>
+            </div>
+            <div class="db-card db-card--manual">
+              <div class="db-card-header"><div class="db-card-label">Design Debt</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-value db-card-value--muted">—</div>
+              <button class="db-run-btn">Run design · report →</button>
+            </div>
+            <div class="db-card db-card--manual">
+              <div class="db-card-header"><div class="db-card-label">Component Quality</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-value db-card-value--muted">—</div>
+              <button class="db-run-btn">Run design · review →</button>
+            </div>
+            <div class="db-card db-card--manual">
+              <div class="db-card-header"><div class="db-card-label">Last Design Report</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-value db-card-value--muted">—</div>
+              <button class="db-run-btn">Run design · report →</button>
+            </div>
+          </div>
+        </div>
+        <div class="db-section">
+          <div class="db-section-label">Ashen Hollow Visual</div>
+          <div class="db-grid">
+            <div class="db-card db-card--manual">
+              <div class="db-card-header"><div class="db-card-label">Art Direction Alignment</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-value db-card-value--muted">—</div>
+              <button class="db-run-btn">Run design · advise →</button>
+            </div>
+            <div class="db-card db-card--manual">
+              <div class="db-card-header"><div class="db-card-label">UI/UX Spec Coverage</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-value db-card-value--muted">—</div>
+              <button class="db-run-btn">Run design · analyze →</button>
+            </div>
+          </div>
+        </div>
+        <div class="db-section">
+          <div class="db-section-label">Cross-product</div>
+          <div class="db-grid">
+            <div class="db-card db-card--manual">
+              <div class="db-card-header"><div class="db-card-label">Brand Cohesion</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-value db-card-value--muted">—</div>
+              <div class="db-card-sub">Workbench ↔ Ashen Hollow</div>
+            </div>
+            <div class="db-card db-card--instrumented">
+              <div class="db-card-header"><div class="db-card-label">Design System Adoption</div><span class="db-tier db-tier--post">POST-LAUNCH</span></div>
+              <div class="db-card-value db-card-value--muted">—</div>
+              <div class="db-card-sub">Token compliance rate</div>
+            </div>
           </div>
         </div>
       </div>
@@ -1167,28 +1799,71 @@ body::before {
       <div class="dashboard-view" data-dashboard-view="workbench">
         <div class="db-view-header">
           <span class="db-view-icon">🖥️</span>
-          <div><div class="db-view-title">WORKBENCH</div><div class="db-view-subtitle">Sprite Workbench product health, daily reports &amp; brand</div></div>
+          <div><div class="db-view-title" style="color:#38bdf8">WORKBENCH</div><div class="db-view-subtitle">Sprite Workbench product health, daily reports &amp; brand</div></div>
         </div>
         <div class="db-section">
-          <div class="db-section-label">Daily Reports</div>
+          <div class="db-section-label">Product Overview</div>
           <div class="db-grid">
-            <div class="db-card db-card--live"><span class="db-tier db-tier--live">LIVE</span><div class="db-card-label">Last Daily Report</div><div class="db-card-value" id="db-wb-last-report">—</div><div class="db-card-sub">artifacts/daily-report-*.md</div></div>
-            <div class="db-card db-card--live"><span class="db-tier db-tier--live">LIVE</span><div class="db-card-label">Report Cron</div><div class="db-card-value db-card-value--good">6:07pm</div><div class="db-card-sub">Weekdays via cron</div></div>
+            <div class="db-card db-card--live">
+              <div class="db-card-header"><div class="db-card-label">Tools Shipped</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-value">2</div>
+              <div class="db-card-sub">Sprite Editor · Room Editor</div>
+            </div>
+            <div class="db-card db-card--live">
+              <div class="db-card-header"><div class="db-card-label">Stack</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-value db-card-value--muted" style="font-size:var(--font-size-sm);font-family:var(--font-sans)">Browser-native</div>
+              <div class="db-card-sub">HTML/CSS/JS · no build step</div>
+            </div>
+            <div class="db-card db-card--live">
+              <div class="db-card-header"><div class="db-card-label">AI Feature</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-value db-card-value--muted" style="font-size:var(--font-size-sm);font-family:var(--font-sans)">Gemini Copilot</div>
+              <div class="db-card-sub">Sprite generation + suggestions</div>
+            </div>
+            <div class="db-card db-card--live">
+              <div class="db-card-header"><div class="db-card-label">Daily Report Cron</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-value db-card-value--good">6:07pm</div>
+              <div class="db-card-sub">7 days/week via cron</div>
+            </div>
           </div>
         </div>
         <div class="db-section">
           <div class="db-section-label">Product Health</div>
           <div class="db-grid">
-            <div class="db-card db-card--manual"><span class="db-tier db-tier--manual">MANUAL</span><div class="db-card-label">Backlog Items</div><div class="db-card-value db-card-value--muted">No data</div><div class="db-card-sub">Run workbench-po · report</div></div>
-            <div class="db-card db-card--manual"><span class="db-tier db-tier--manual">MANUAL</span><div class="db-card-label">Design Debt</div><div class="db-card-value db-card-value--muted">No data</div><div class="db-card-sub">Run design · analyze</div></div>
-            <div class="db-card db-card--instrumented"><span class="db-tier db-tier--post">POST-LAUNCH</span><div class="db-card-label">Copilot Accept Rate</div><div class="db-card-value db-card-value--muted">—</div><div class="db-card-sub">Requires instrumentation</div></div>
+            <div class="db-card db-card--live">
+              <div class="db-card-header"><div class="db-card-label">Last Daily Report</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-value" id="db-wb-last-report">—</div>
+              <div class="db-card-sub">artifacts/daily-report-*.md</div>
+            </div>
+            <div class="db-card db-card--manual">
+              <div class="db-card-header"><div class="db-card-label">Backlog Items</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-value db-card-value--muted">—</div>
+              <button class="db-run-btn">Run workbench-po · report →</button>
+            </div>
+            <div class="db-card db-card--manual">
+              <div class="db-card-header"><div class="db-card-label">Design Debt</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-value db-card-value--muted">—</div>
+              <button class="db-run-btn">Run design · analyze →</button>
+            </div>
+            <div class="db-card db-card--instrumented">
+              <div class="db-card-header"><div class="db-card-label">Copilot Accept Rate</div><span class="db-tier db-tier--post">POST-LAUNCH</span></div>
+              <div class="db-card-value db-card-value--muted">—</div>
+              <div class="db-card-sub">Requires instrumentation</div>
+            </div>
           </div>
         </div>
         <div class="db-section">
           <div class="db-section-label">Brand</div>
           <div class="db-grid">
-            <div class="db-card db-card--manual"><span class="db-tier db-tier--manual">MANUAL</span><div class="db-card-label">Brand Assets</div><div class="db-card-value db-card-value--muted">No data</div><div class="db-card-sub">Run workbench-art · analyze</div></div>
-            <div class="db-card db-card--manual"><span class="db-tier db-tier--manual">MANUAL</span><div class="db-card-label">Logo Status</div><div class="db-card-value db-card-value--muted">No data</div><div class="db-card-sub">Final / WIP / Needed</div></div>
+            <div class="db-card db-card--manual">
+              <div class="db-card-header"><div class="db-card-label">Brand Assets</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-value db-card-value--muted">—</div>
+              <button class="db-run-btn">Run workbench-art · analyze →</button>
+            </div>
+            <div class="db-card db-card--manual">
+              <div class="db-card-header"><div class="db-card-label">Logo Status</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-value db-card-value--muted">—</div>
+              <button class="db-run-btn">Run workbench-art · report →</button>
+            </div>
           </div>
         </div>
       </div>
@@ -1197,29 +1872,71 @@ body::before {
       <div class="dashboard-view" data-dashboard-view="ashen-hollow">
         <div class="db-view-header">
           <span class="db-view-icon">🎮</span>
-          <div><div class="db-view-title">ASHEN HOLLOW</div><div class="db-view-subtitle">Game design progress, daily reports &amp; production status</div></div>
+          <div><div class="db-view-title" style="color:#818cf8">ASHEN HOLLOW</div><div class="db-view-subtitle">Metroidvania game production — design, narrative &amp; art</div></div>
         </div>
         <div class="db-section">
-          <div class="db-section-label">Daily Reports</div>
+          <div class="db-section-label">Game Facts</div>
           <div class="db-grid">
-            <div class="db-card db-card--live"><span class="db-tier db-tier--live">LIVE</span><div class="db-card-label">Last Daily Report</div><div class="db-card-value" id="db-ah-last-report">—</div><div class="db-card-sub">artifacts/daily-report-*.md</div></div>
-            <div class="db-card db-card--live"><span class="db-tier db-tier--live">LIVE</span><div class="db-card-label">Report Cron</div><div class="db-card-value db-card-value--good">6:07pm</div><div class="db-card-sub">Weekdays via cron</div></div>
+            <div class="db-card db-card--live">
+              <div class="db-card-header"><div class="db-card-label">Genre</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-value db-card-value--muted" style="font-size:var(--font-size-sm);font-family:var(--font-sans)">Metroidvania</div>
+              <div class="db-card-sub">2D action-exploration</div>
+            </div>
+            <div class="db-card db-card--live">
+              <div class="db-card-header"><div class="db-card-label">Stage</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-value db-card-value--warning">Pre-production</div>
+              <div class="db-card-sub">Design &amp; toolchain phase</div>
+            </div>
+            <div class="db-card db-card--live">
+              <div class="db-card-header"><div class="db-card-label">Setting</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-value db-card-value--muted" style="font-size:var(--font-size-sm);font-family:var(--font-sans)">Dark Fantasy</div>
+              <div class="db-card-sub">Ashen world · hollow lore</div>
+            </div>
+            <div class="db-card db-card--live">
+              <div class="db-card-header"><div class="db-card-label">Daily Report Cron</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-value db-card-value--good">6:07pm</div>
+              <div class="db-card-sub">7 days/week via cron</div>
+            </div>
           </div>
         </div>
         <div class="db-section">
-          <div class="db-section-label">Game Design</div>
+          <div class="db-section-label">Design &amp; Production Docs</div>
           <div class="db-grid">
-            <div class="db-card db-card--manual"><span class="db-tier db-tier--manual">MANUAL</span><div class="db-card-label">Game Pillars</div><div class="db-card-value db-card-value--muted">No data</div><div class="db-card-sub">Run game-director · analyze</div></div>
-            <div class="db-card db-card--manual"><span class="db-tier db-tier--manual">MANUAL</span><div class="db-card-label">Biomes Designed</div><div class="db-card-value db-card-value--muted">No data</div><div class="db-card-sub">Run game-director · report</div></div>
-            <div class="db-card db-card--manual"><span class="db-tier db-tier--manual">MANUAL</span><div class="db-card-label">Narrative Docs</div><div class="db-card-value db-card-value--muted">No data</div><div class="db-card-sub">Run narrative · analyze</div></div>
-            <div class="db-card db-card--manual"><span class="db-tier db-tier--manual">MANUAL</span><div class="db-card-label">Art Bible Status</div><div class="db-card-value db-card-value--muted">No data</div><div class="db-card-sub">Run ashen-hollow-art · analyze</div></div>
-          </div>
-        </div>
-        <div class="db-section">
-          <div class="db-section-label">Production</div>
-          <div class="db-grid">
-            <div class="db-card db-card--manual"><span class="db-tier db-tier--manual">MANUAL</span><div class="db-card-label">Systems Designed</div><div class="db-card-value db-card-value--muted">No data</div><div class="db-card-sub">Combat, abilities, progression</div></div>
-            <div class="db-card db-card--manual"><span class="db-tier db-tier--manual">MANUAL</span><div class="db-card-label">Audio Direction</div><div class="db-card-value db-card-value--muted">No data</div><div class="db-card-sub">Run audio · analyze</div></div>
+            <div class="db-card db-card--live">
+              <div class="db-card-header"><div class="db-card-label">Last Daily Report</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-value" id="db-ah-last-report">—</div>
+              <div class="db-card-sub">artifacts/daily-report-*.md</div>
+            </div>
+            <div class="db-card db-card--manual">
+              <div class="db-card-header"><div class="db-card-label">Game Pillars</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-value db-card-value--muted">—</div>
+              <button class="db-run-btn">Run game-director · analyze →</button>
+            </div>
+            <div class="db-card db-card--manual">
+              <div class="db-card-header"><div class="db-card-label">Biomes Designed</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-value db-card-value--muted">—</div>
+              <button class="db-run-btn">Run game-director · report →</button>
+            </div>
+            <div class="db-card db-card--manual">
+              <div class="db-card-header"><div class="db-card-label">Narrative Docs</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-value db-card-value--muted">—</div>
+              <button class="db-run-btn">Run narrative · analyze →</button>
+            </div>
+            <div class="db-card db-card--manual">
+              <div class="db-card-header"><div class="db-card-label">Art Bible</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-value db-card-value--muted">—</div>
+              <button class="db-run-btn">Run ashen-hollow-art · analyze →</button>
+            </div>
+            <div class="db-card db-card--manual">
+              <div class="db-card-header"><div class="db-card-label">Systems Designed</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-value db-card-value--muted">—</div>
+              <button class="db-run-btn">Run game-systems · report →</button>
+            </div>
+            <div class="db-card db-card--manual">
+              <div class="db-card-header"><div class="db-card-label">Audio Direction</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-value db-card-value--muted">—</div>
+              <button class="db-run-btn">Run audio · analyze →</button>
+            </div>
           </div>
         </div>
       </div>
@@ -1569,7 +2286,8 @@ const DASHBOARDS = {
   analytics:       { label: 'Analytics',      color: '#4ade80', agents: ['analytics'] },
   support:         { label: 'Support',        color: '#fbbf24', agents: ['support'] },
   marketing:       { label: 'Marketing',      color: '#f5986e', agents: ['marketing'] },
-  workbench:       { label: 'Workbench',      color: '#38bdf8', agents: ['workbench-po', 'workbench-art', 'design'] },
+  design:          { label: 'Design',          color: '#fb7185', agents: ['design'] },
+  workbench:       { label: 'Workbench',      color: '#38bdf8', agents: ['workbench-po', 'workbench-art'] },
   'ashen-hollow':  { label: 'Ashen Hollow',   color: '#818cf8', agents: ['game-director', 'ashen-hollow-art', 'narrative', 'audio', 'game-systems'] },
 };
 
@@ -1805,8 +2523,81 @@ function escapeHtml(str) {
   return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
+// ── Engineering status (engineering-status.json) ──
+const STATUS_PILL_MAP = {
+  'in-progress':  { cls: 'db-status-pill--in-progress',  label: 'IN PROGRESS' },
+  'blocked':      { cls: 'db-status-pill--blocked',       label: 'BLOCKED' },
+  'needs-review': { cls: 'db-status-pill--needs-review',  label: 'NEEDS REVIEW' },
+  'done':         { cls: 'db-status-pill--done',          label: 'DONE' },
+  'paused':       { cls: 'db-status-pill--paused',        label: 'PAUSED' },
+};
+
+function renderPriorityRows(priorities, container) {
+  container.innerHTML = priorities.map(p => {
+    const rank = String(p.id).padStart(2, '0');
+    const pill = STATUS_PILL_MAP[p.status] ?? { cls: 'db-status-pill--paused', label: p.status.toUpperCase() };
+    const riskCls = p.risk === 'high' ? 'db-priority-risk--high' : p.risk === 'med' ? 'db-priority-risk--med' : 'db-priority-risk--low';
+    return '<div class="db-priority-row">'
+      + '<span class="db-priority-rank">' + escapeHtml(rank) + '</span>'
+      + '<span class="db-priority-title">' + escapeHtml(p.title) + '</span>'
+      + '<span class="db-status-pill ' + pill.cls + '">' + pill.label + '</span>'
+      + (p.risk ? '<span class="db-priority-risk ' + riskCls + '">' + escapeHtml(p.risk.toUpperCase()) + ' RISK</span>' : '')
+      + (p.note ? '<span class="db-priority-note">' + escapeHtml(p.note) + '</span>' : '')
+      + '</div>';
+  }).join('');
+}
+
+function renderRisksP0(risks, container) {
+  if (!risks || risks.length === 0) {
+    container.innerHTML = '<div class="db-risk-clear"><span style="color:var(--good)">✓ No active blockers</span></div>';
+    return;
+  }
+  container.innerHTML = risks.map(r =>
+    '<div class="db-risk-row db-risk-row--p0">'
+    + '<div class="db-risk-row-title">' + escapeHtml(r.title) + '</div>'
+    + (r.note ? '<div class="db-risk-row-note">' + escapeHtml(r.note) + '</div>' : '')
+    + '</div>'
+  ).join('');
+}
+
+function renderFounderDecisions(decisions, container) {
+  if (!decisions || decisions.length === 0) {
+    container.innerHTML = '<div style="background:rgba(93,120,112,0.08);color:var(--muted);border-radius:var(--radius-md);padding:12px;font-size:var(--font-size-sm);font-weight:500;">✓ No pending decisions</div>';
+    return;
+  }
+  container.innerHTML = decisions.map(d =>
+    '<div class="db-risk-row db-risk-row--founder">'
+    + '<div class="db-risk-row-title">' + escapeHtml(d.title) + '</div>'
+    + (d.note ? '<div class="db-risk-row-note">' + escapeHtml(d.note) + '</div>' : '')
+    + '</div>'
+  ).join('');
+}
+
+async function loadEngineeringStatus() {
+  try {
+    const resp = await fetch('engineering-status.json');
+    if (!resp.ok) return;
+    const s = await resp.json();
+
+    const prioritiesEl = document.getElementById('db-eng-priorities');
+    const risksP0El = document.getElementById('db-eng-risks-p0');
+    const founderEl = document.getElementById('db-eng-founder-decisions');
+    const schemaEl = document.getElementById('db-eng-schema-version');
+
+    if (prioritiesEl && s.priorities) renderPriorityRows(s.priorities, prioritiesEl);
+    if (risksP0El) renderRisksP0(s.risks_p0 ?? [], risksP0El);
+    if (founderEl) renderFounderDecisions(s.founder_decisions ?? [], founderEl);
+    if (schemaEl && s.schema_version) schemaEl.textContent = s.schema_version;
+  } catch {
+    // Leave placeholder content in place
+  }
+}
+
 // ── Live data loader ─────────────────────────────
 async function loadDashboardData(dashId) {
+  if (dashId === 'engineering') {
+    loadEngineeringStatus();
+  }
   try {
     const resp = await fetch('/api/dashboard-data');
     if (!resp.ok) return;
@@ -1821,8 +2612,6 @@ async function loadDashboardData(dashId) {
       };
 
       if (dashId === 'engineering') {
-        setVal('db-eng-commits', d.git_commits_7d ?? '—');
-        setVal('db-eng-modified', d.git_modified_count ?? '—');
         setVal('db-eng-pixellab', d.pixellab_key_set ? '✓ Set' : '✗ Missing',
           d.pixellab_key_set ? 'db-card-value--good' : 'db-card-value--error');
         setVal('db-eng-gemini', d.gemini_key_set ? '✓ Set' : '✗ Missing',

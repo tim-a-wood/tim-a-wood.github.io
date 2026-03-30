@@ -1,0 +1,55 @@
+{
+  "_note": "Agent-maintained. Update statuses as priorities change. Dashboard reads this file directly.",
+  "updated": "2026-03-29",
+  "schema_version": "v1.0",
+  "priorities": [
+    {
+      "id": 1,
+      "title": "Room Editor: Production overhaul — Sprint 1",
+      "status": "in-progress",
+      "risk": "med",
+      "note": "Inspector panel rebuild, entity type system, workflow rail refinements"
+    },
+    {
+      "id": 2,
+      "title": "AI Copilot: Gemini 2.5 spatial reasoning evaluation",
+      "status": "paused",
+      "risk": "low",
+      "note": "Monitor Gemini 2.5 benchmarks; current zone-based abstraction is stable"
+    },
+    {
+      "id": 3,
+      "title": "Sprite Workbench: AI pipeline integration (Pixellab)",
+      "status": "in-progress",
+      "risk": "med",
+      "note": "Backend connected; frontend generation flow in progress"
+    },
+    {
+      "id": 4,
+      "title": "Export schema: Version field + validation layer",
+      "status": "needs-review",
+      "risk": "high",
+      "note": "No schema_version field on exported JSON — breaking change risk if schema evolves"
+    },
+    {
+      "id": 5,
+      "title": "Canvas performance: Dirty-rect audit on room editor",
+      "status": "paused",
+      "risk": "low",
+      "note": "Deferred until room editor core is stable"
+    }
+  ],
+  "risks_p0": [],
+  "risks_p1": [
+    {
+      "title": "Export schema has no version field",
+      "note": "Any schema change will silently break game runtime. Versioning is P1 before next schema-touching feature."
+    }
+  ],
+  "founder_decisions": [
+    {
+      "title": "Gemini vs. Claude for room Copilot",
+      "note": "Gemini 2.5 spatial benchmarks may justify a model swap. Needs evaluation trigger decision: when to test?"
+    }
+  ]
+}

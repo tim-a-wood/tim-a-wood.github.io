@@ -562,9 +562,14 @@ def _ensure_room_environment(room: Dict[str, Any]) -> Dict[str, Any]:
         asset_pack = {}
         runtime["asset_pack"] = asset_pack
     asset_pack.setdefault("status", "idle")
+    asset_pack.setdefault("asset_schema_version", 1)
     asset_pack.setdefault("used_ai", False)
     asset_pack.setdefault("generated_at", None)
     asset_pack.setdefault("source_preview_id", None)
+    asset_pack.setdefault("layout_fingerprint", None)
+    asset_pack.setdefault("component_dependencies", {})
+    asset_pack.setdefault("component_fingerprints", {})
+    asset_pack.setdefault("stale_components", [])
     asset_pack.setdefault("assets", {})
     return env
 
@@ -575,7 +580,9 @@ def _find_room(project: Dict[str, Any], room_id: str) -> Dict[str, Any]:
     room = next((item for item in rooms if str(item.get("id") or "") == room_id), None)
     if not isinstance(room, dict):
         raise ValueError("Room not found.")
-    _ensure_room_environment(room)
+    env = _ensure_room_environment(room)
+    direction = normalize_art_direction(project.get("art_direction"), project.get("art_direction"))
+    _refresh_asset_pack_staleness(room, env, direction)
     return room
 
 
@@ -640,6 +647,74 @@ def _room_geometry(room: Dict[str, Any]) -> Dict[str, Any]:
             "avoid visual clutter over platform edges",
         ],
     }
+
+
+def _fingerprint_payload(value: Any) -> str:
+    return stable_hash(json.dumps(value, sort_keys=True, separators=(",", ":")))
+
+
+def _asset_component_fingerprints_from_dependencies(dependencies: Dict[str, Any]) -> Dict[str, str]:
+    return {
+        key: _fingerprint_payload(value)
+        for key, value in dependencies.items()
+    }
+
+
+def _build_asset_component_dependency_payloads(room: Dict[str, Any], spec: Dict[str, Any], direction: Dict[str, Any], preview_id: str) -> Dict[str, Any]:
+    geometry = _room_geometry(room)
+    components = spec.get("components") if isinstance(spec.get("components"), dict) else {}
+
+    def component_text(name: str) -> str:
+        item = components.get(name) or {}
+        return str(item.get("prompt") or item.get("description") or "").strip()
+
+    visual_context = {
+        "art_direction": str(direction.get("high_level_direction") or ""),
+        "negative": str(direction.get("negative_direction") or ""),
+        "preview_id": preview_id,
+        "theme": str(spec.get("theme_id") or ""),
+        "tags": list(spec.get("tags") or []),
+        "materials": list(spec.get("materials") or []),
+    }
+    layout_context = {
+        "room_id": geometry.get("room_id"),
+        "width": geometry.get("width"),
+        "height": geometry.get("height"),
+        "polygon": geometry.get("polygon"),
+        "door_positions": geometry.get("door_positions"),
+        "platforms": geometry.get("platforms"),
+        "removed_edges": list(room.get("removedEdges") or []),
+    }
+    return {
+        "background": {"component": component_text("background"), "visual": visual_context, "layout": layout_context},
+        "midground_arches": {"component": component_text("background"), "visual": visual_context, "layout": layout_context},
+        "wall_tile": {"component": component_text("walls"), "visual": visual_context},
+        "floor_tile": {"component": component_text("floor"), "visual": visual_context},
+        "platform_tile": {"component": component_text("platforms"), "visual": visual_context},
+        "door": {"component": component_text("doors"), "visual": visual_context},
+    }
+
+
+def _detect_stale_asset_components(room: Dict[str, Any], spec: Dict[str, Any], direction: Dict[str, Any], asset_pack: Dict[str, Any]) -> List[str]:
+    preview_id = str((asset_pack.get("source_preview_id") or "")).strip()
+    current_dependencies = _build_asset_component_dependency_payloads(room, spec, direction, preview_id)
+    current = _asset_component_fingerprints_from_dependencies(current_dependencies)
+    previous = asset_pack.get("component_fingerprints") if isinstance(asset_pack.get("component_fingerprints"), dict) else {}
+    stale = [name for name, value in current.items() if previous.get(name) and previous.get(name) != value]
+    return stale
+
+
+def _refresh_asset_pack_staleness(room: Dict[str, Any], env: Dict[str, Any], direction: Dict[str, Any]) -> None:
+    asset_pack = ((env.get("runtime") or {}).get("asset_pack") or {})
+    if not isinstance(asset_pack, dict):
+        return
+    if asset_pack.get("status") != "ready":
+        asset_pack["stale_components"] = []
+        return
+    stale = _detect_stale_asset_components(room, env.get("spec") or {}, direction, asset_pack)
+    asset_pack["stale_components"] = stale
+    if stale and env.get("runtime"):
+        env["runtime"]["status"] = "outdated"
 
 
 def _gemini_json(system_prompt: str, user_prompt: str) -> Optional[Dict[str, Any]]:
@@ -707,6 +782,9 @@ def update_project_art_direction(project_id: str, payload: Dict[str, Any]) -> Di
         runtime["applied_preview_id"] = None
         runtime["surface_palette"] = None
         runtime["last_applied_at"] = None
+        asset_pack = runtime["asset_pack"]
+        asset_pack["status"] = "ready" if asset_pack.get("assets") else "idle"
+        asset_pack["stale_components"] = ["background", "midground_arches", "wall_tile", "floor_tile", "platform_tile", "door"] if asset_pack.get("assets") else []
         invalidated_rooms.append(str(room.get("id") or ""))
     project["updated_at"] = now_iso()
     save_project(project)
@@ -819,6 +897,51 @@ COMPONENT_KEYS: Tuple[Tuple[str, str], ...] = (
     ("background", "Background"),
 )
 
+SHELL_FAMILY_PRESETS: Dict[str, Dict[str, str]] = {
+    "gothic_ruin": {
+        "wall_family": "broken_gothic_stone",
+        "platform_family": "broken_masonry_ledge",
+        "door_family": "arch_door",
+        "backdrop_family": "ruined_arch_hall",
+    },
+    "ritual_shrine": {
+        "wall_family": "broken_gothic_stone",
+        "platform_family": "carved_ledge",
+        "door_family": "ritual_gate",
+        "backdrop_family": "ruined_arch_hall",
+    },
+    "flooded_stone": {
+        "wall_family": "weathered_stone",
+        "platform_family": "broken_masonry_ledge",
+        "door_family": "arch_door",
+        "backdrop_family": "flooded_arch_hall",
+    },
+    "industrial_underworks": {
+        "wall_family": "industrial_ribbed",
+        "platform_family": "iron_walkway",
+        "door_family": "iron_gate",
+        "backdrop_family": "industrial_depth",
+    },
+    "rooted_overgrowth": {
+        "wall_family": "weathered_stone",
+        "platform_family": "broken_masonry_ledge",
+        "door_family": "arch_door",
+        "backdrop_family": "ruined_arch_hall",
+    },
+    "void_structure": {
+        "wall_family": "weathered_stone",
+        "platform_family": "carved_ledge",
+        "door_family": "ritual_gate",
+        "backdrop_family": "ruined_arch_hall",
+    },
+    "weathered_stone": {
+        "wall_family": "weathered_stone",
+        "platform_family": "broken_masonry_ledge",
+        "door_family": "arch_door",
+        "backdrop_family": "ruined_arch_hall",
+    },
+}
+
 
 def _default_component_prompts(description: str, direction: Optional[Dict[str, Any]] = None) -> Dict[str, Dict[str, str]]:
     base = str(description or "").strip() or "A readable room that stays inside the project art direction."
@@ -853,6 +976,34 @@ def _default_component_prompts(description: str, direction: Optional[Dict[str, A
             "prompt": f"{base} Describe the background and midground architecture, silhouettes, depth, fog, landmarks, and distant atmosphere.{suffix}".strip(),
         },
     }
+
+
+def _infer_shell_family(spec: Dict[str, Any]) -> str:
+    component_text = " ".join(
+        str(((spec.get("components") or {}).get(key) or {}).get("prompt") or "")
+        for key, _label in COMPONENT_KEYS
+    )
+    text = " ".join([
+        str(spec.get("theme_id") or ""),
+        str(spec.get("description") or ""),
+        str(spec.get("mood") or ""),
+        " ".join(spec.get("materials") or []),
+        " ".join(spec.get("tags") or []),
+        component_text,
+    ]).lower()
+    if any(word in text for word in ("industrial", "underworks", "steel", "pipe", "boiler", "machinery", "factory")):
+        return "industrial_underworks"
+    if any(word in text for word in ("void", "astral", "ethereal", "dream", "abyss", "spectral")):
+        return "void_structure"
+    if any(word in text for word in ("forest", "root", "roots", "overgrown", "moss", "ivy", "vine")):
+        return "rooted_overgrowth"
+    if any(word in text for word in ("flood", "water", "drip", "seep", "wet", "damp", "catacomb")):
+        return "flooded_stone"
+    if any(word in text for word in ("shrine", "altar", "ritual", "sacred", "temple")):
+        return "ritual_shrine"
+    if any(word in text for word in ("gothic", "cathedral", "crypt", "ruin", "ruined", "buttress", "arch")):
+        return "gothic_ruin"
+    return "weathered_stone"
 
 
 def _normalize_component_prompts_response(raw: Any, fallback_description: str, direction: Optional[Dict[str, Any]] = None) -> Dict[str, Dict[str, str]]:
@@ -956,11 +1107,14 @@ def _default_scene_schema(spec: Dict[str, Any], geometry: Dict[str, Any]) -> Dic
         "particle_profile": "dust_motes",
         "lighting_profile": "single_focal_glow",
     }
+    shell_family = _infer_shell_family(spec)
+    preset = SHELL_FAMILY_PRESETS.get(shell_family, SHELL_FAMILY_PRESETS["weathered_stone"])
     kit = {
-        "wall_family": "broken_gothic_stone" if any(word in text for word in ("gothic", "ruin", "shrine", "ritual")) else "weathered_stone",
-        "platform_family": "carved_ledge" if any(word in text for word in ("shrine", "ritual", "altar")) else "broken_masonry_ledge",
-        "door_family": "ritual_gate" if any(word in text for word in ("shrine", "ritual", "sacred")) else "arch_door",
-        "backdrop_family": "flooded_arch_hall" if any(word in text for word in ("wet", "damp", "flood")) else "ruined_arch_hall",
+        "shell_family": shell_family,
+        "wall_family": preset["wall_family"],
+        "platform_family": preset["platform_family"],
+        "door_family": preset["door_family"],
+        "backdrop_family": preset["backdrop_family"],
         "prop_density": "medium",
     }
     background_layers.append({
@@ -1067,7 +1221,7 @@ def build_room_environment_spec(project_id: str, room_id: str, payload: Dict[str
         Respect the locked art direction strictly.
         Keep results readable for a platforming game.
         Return ONLY valid JSON in this shape:
-        {"themeId":"cave|ruins|forest|shrine|sewer|void|custom","tags":["a"],"description":"...","mood":"...","lighting":"...","fog":"...","materials":["..."],"landmarks":["..."],"hazards":["..."],"compositionFocus":"...","readabilityNotes":["..."],"components":{"floor":{"label":"Floor","prompt":"..."},"platforms":{"label":"Platforms","prompt":"..."},"walls":{"label":"Walls","prompt":"..."},"doors":{"label":"Doors","prompt":"..."},"background":{"label":"Background","prompt":"..."}},"sceneSchema":{"backgroundLayers":[{"kind":"architecture|fog_band|roots|void_forms","motif":"...","depth":"far|mid|near","density":"low|medium|high"}],"setDressing":[{"type":"brazier|chains|altar|roots|statue|banner","anchor":"floor|platform|ceiling|wall","zone":"left|center|right|focal","count":1,"priority":"low|medium|high","avoid":["door","main_path"]}],"effects":{"fog_profile":"...","particle_profile":"...","lighting_profile":"..."},"kit":{"wall_family":"weathered_stone|broken_gothic_stone|industrial_ribbed","platform_family":"broken_masonry_ledge|carved_ledge|iron_walkway","door_family":"arch_door|ritual_gate|iron_gate","backdrop_family":"ruined_arch_hall|flooded_arch_hall|industrial_depth","prop_density":"low|medium|high"}}}
+        {"themeId":"cave|ruins|forest|shrine|sewer|void|custom","tags":["a"],"description":"...","mood":"...","lighting":"...","fog":"...","materials":["..."],"landmarks":["..."],"hazards":["..."],"compositionFocus":"...","readabilityNotes":["..."],"components":{"floor":{"label":"Floor","prompt":"..."},"platforms":{"label":"Platforms","prompt":"..."},"walls":{"label":"Walls","prompt":"..."},"doors":{"label":"Doors","prompt":"..."},"background":{"label":"Background","prompt":"..."}},"sceneSchema":{"backgroundLayers":[{"kind":"architecture|fog_band|roots|void_forms","motif":"...","depth":"far|mid|near","density":"low|medium|high"}],"setDressing":[{"type":"brazier|chains|altar|roots|statue|banner","anchor":"floor|platform|ceiling|wall","zone":"left|center|right|focal","count":1,"priority":"low|medium|high","avoid":["door","main_path"]}],"effects":{"fog_profile":"...","particle_profile":"...","lighting_profile":"..."},"kit":{"shell_family":"gothic_ruin|ritual_shrine|flooded_stone|industrial_underworks|rooted_overgrowth|void_structure|weathered_stone","wall_family":"weathered_stone|broken_gothic_stone|industrial_ribbed","platform_family":"broken_masonry_ledge|carved_ledge|iron_walkway","door_family":"arch_door|ritual_gate|iron_gate","backdrop_family":"ruined_arch_hall|flooded_arch_hall|industrial_depth","prop_density":"low|medium|high"}}}
         """
     )
     user_prompt = json.dumps({
@@ -1097,11 +1251,18 @@ def build_room_environment_spec(project_id: str, room_id: str, payload: Dict[str
     env["runtime"]["material_keywords"] = list(spec.get("materials") or [])
     env["runtime"]["lighting_mode"] = str(spec.get("lighting") or "")
     env["runtime"]["last_applied_at"] = None
-    env["runtime"]["asset_pack"]["status"] = "idle"
-    env["runtime"]["asset_pack"]["used_ai"] = False
-    env["runtime"]["asset_pack"]["generated_at"] = None
-    env["runtime"]["asset_pack"]["source_preview_id"] = None
-    env["runtime"]["asset_pack"]["assets"] = {}
+    asset_pack = env["runtime"]["asset_pack"]
+    if asset_pack.get("assets"):
+        _refresh_asset_pack_staleness(room, env, direction)
+        if not asset_pack.get("stale_components"):
+            asset_pack["stale_components"] = ["wall_tile", "floor_tile", "platform_tile", "background", "midground_arches", "door"]
+        asset_pack["status"] = "ready"
+    else:
+        asset_pack["status"] = "idle"
+        asset_pack["used_ai"] = False
+        asset_pack["generated_at"] = None
+        asset_pack["source_preview_id"] = None
+        asset_pack["assets"] = {}
     project["updated_at"] = now_iso()
     save_project(project)
     return {
@@ -1480,38 +1641,261 @@ def _generate_image_from_references(path: Path, prompt: str, reference_paths: Li
     return False
 
 
-def _fallback_background_asset(output_path: Path, preview_path: Path) -> None:
-    source = Image.open(preview_path).convert("RGBA").resize((1600, 1200))
-    blurred = source.filter(ImageFilter.GaussianBlur(radius=12))
-    overlay = Image.new("RGBA", blurred.size, (8, 10, 14, 84))
-    blurred.alpha_composite(overlay)
-    blurred.save(output_path)
+def _fit_image_to_size(path: Path, size: Tuple[int, int], transparent: bool = False) -> None:
+    image = Image.open(path).convert("RGBA")
+    target_w, target_h = size
+    if transparent:
+        image = image.copy()
+        image.thumbnail((target_w, target_h), Image.Resampling.LANCZOS)
+        canvas = Image.new("RGBA", size, (0, 0, 0, 0))
+        offset = ((target_w - image.width) // 2, (target_h - image.height) // 2)
+        canvas.alpha_composite(image, dest=offset)
+        canvas.save(path)
+        return
+    src_ratio = image.width / max(1, image.height)
+    target_ratio = target_w / max(1, target_h)
+    if src_ratio > target_ratio:
+        crop_w = int(image.height * target_ratio)
+        left = max(0, (image.width - crop_w) // 2)
+        image = image.crop((left, 0, left + crop_w, image.height))
+    else:
+        crop_h = int(image.width / target_ratio)
+        top = max(0, (image.height - crop_h) // 2)
+        image = image.crop((0, top, image.width, top + crop_h))
+    image.resize(size, Image.Resampling.LANCZOS).save(path)
 
 
-def _fallback_tile_asset(output_path: Path, palette: Dict[str, Any], size: Tuple[int, int], mode: str) -> None:
+def _component_keyword_blob(spec: Dict[str, Any]) -> str:
+    components = spec.get("components") if isinstance(spec.get("components"), dict) else {}
+    phrases: List[str] = []
+    for key in ("floor", "platforms", "walls", "doors", "background"):
+        item = components.get(key) or {}
+        text = str(item.get("prompt") or item.get("description") or "").strip()
+        if text:
+            phrases.append(text.lower())
+    phrases.extend([str(tag).lower() for tag in (spec.get("tags") or []) if str(tag).strip()])
+    for text in (spec.get("theme_id"), spec.get("mood"), spec.get("lighting")):
+        if text:
+            phrases.append(str(text).lower())
+    return " ".join(phrases)
+
+
+def _environment_style_flags(spec: Dict[str, Any]) -> Dict[str, bool]:
+    blob = _component_keyword_blob(spec)
+    has = lambda *tokens: any(token in blob for token in tokens)
+    return {
+        "gothic": has("gothic", "arch", "cathedral", "buttress", "shrine"),
+        "ritual": has("ritual", "altar", "sacred", "sigil", "circle"),
+        "wet": has("wet", "damp", "flood", "water", "slick"),
+        "mossy": has("moss", "roots", "overgrown", "ivy"),
+        "fractured": has("fractured", "broken", "cracked", "ruined", "collapsed", "chipped"),
+        "iron": has("iron", "metal", "forged", "gate", "brace", "chain"),
+    }
+
+
+def _sample_luminance(path: Path) -> float:
+    img = Image.open(path).convert("RGB").resize((64, 64))
+    pixels = list(img.getdata())
+    if not pixels:
+        return 0.0
+    return sum((0.2126 * r) + (0.7152 * g) + (0.0722 * b) for r, g, b in pixels) / len(pixels)
+
+
+def _edge_mismatch(path: Path) -> float:
+    img = Image.open(path).convert("RGB")
+    w, h = img.size
+    if w < 4 or h < 4:
+        return 999.0
+    left = [img.getpixel((0, y)) for y in range(h)]
+    right = [img.getpixel((w - 1, y)) for y in range(h)]
+    top = [img.getpixel((x, 0)) for x in range(w)]
+    bottom = [img.getpixel((x, h - 1)) for x in range(w)]
+
+    def avg_delta(a: List[Tuple[int, int, int]], b: List[Tuple[int, int, int]]) -> float:
+        if not a:
+            return 0.0
+        total = 0.0
+        for (ar, ag, ab), (br, bg, bb) in zip(a, b):
+            total += abs(ar - br) + abs(ag - bg) + abs(ab - bb)
+        return total / len(a)
+
+    return max(avg_delta(left, right), avg_delta(top, bottom))
+
+
+def _alpha_ratio(path: Path) -> float:
+    img = Image.open(path).convert("RGBA")
+    alpha = list(img.getchannel("A").getdata())
+    if not alpha:
+        return 0.0
+    return sum(1 for value in alpha if value < 250) / len(alpha)
+
+
+def _validate_environment_asset(path: Path, kind: str, expected_size: Tuple[int, int]) -> bool:
+    if not path.exists():
+        return False
+    img = Image.open(path).convert("RGBA")
+    if img.size != expected_size:
+        return False
+    luminance = _sample_luminance(path)
+    alpha_ratio = _alpha_ratio(path)
+    if kind in {"wall_tile", "floor_tile", "platform_tile", "door"}:
+        if alpha_ratio > 0.02:
+            return False
+    if kind in {"wall_tile", "floor_tile", "platform_tile"}:
+        if luminance > 155:
+            return False
+        if _edge_mismatch(path) > 95:
+            return False
+    if kind == "door" and luminance > 170:
+        return False
+    if kind == "midground_arches":
+        if alpha_ratio < 0.2:
+            return False
+        if luminance > 145:
+            return False
+    if kind == "background" and luminance > 165:
+        return False
+    return True
+
+
+def _fallback_background_asset(output_path: Path, palette: Dict[str, Any], flags: Optional[Dict[str, bool]] = None) -> None:
+    flags = flags or {}
+    size = (1600, 1200)
+    base = _hex_to_rgb(str((palette.get("dominant") or ["#1c1714"])[0]), (28, 23, 20))
+    alt = _hex_to_rgb(str((palette.get("dominant") or ["#1c1714", "#43382f"])[1] if len(palette.get("dominant") or []) > 1 else "#43382f"), (67, 56, 47))
+    accent = _hex_to_rgb(str((palette.get("accent") or ["#8d7a5f"])[0]), (141, 122, 95))
+    fog = tuple(min(255, c + 34) for c in alt)
+    img = Image.new("RGBA", size, base + (255,))
+    draw = ImageDraw.Draw(img)
+
+    # Vertical atmospheric gradient with calm center window for gameplay.
+    for y in range(size[1]):
+        t = y / max(1, size[1] - 1)
+        line = (
+            int(base[0] * (1 - t) + alt[0] * t * 0.9),
+            int(base[1] * (1 - t) + alt[1] * t * 0.9),
+            int(base[2] * (1 - t) + alt[2] * t * 0.9),
+            255,
+        )
+        draw.line((0, y, size[0], y), fill=line)
+
+    def add_column(x: int, width: int, top: int, bottom: int, arch: bool = True) -> None:
+        col = tuple(max(0, c - 18) for c in alt)
+        shade = tuple(max(0, c - 38) for c in base)
+        draw.rectangle((x, top, x + width, bottom), fill=col + (230,))
+        draw.rectangle((x + width - 18, top, x + width, bottom), fill=shade + (140,))
+        if arch:
+            draw.arc((x - width // 2, top - 40, x + width + width // 2, top + 180), 180, 360, fill=accent + (120,), width=4)
+
+    # Keep the center third open; push structure to sides and upper depth bands.
+    side_positions = [80, 210, 360, 1160, 1310, 1450]
+    for index, x in enumerate(side_positions):
+        width = 72 if index % 2 == 0 else 96
+        top = 120 if index < 3 else 160
+        bottom = 1020
+        add_column(x, width, top, bottom, arch=flags.get("gothic", True))
+
+    if flags.get("gothic"):
+        for x in (120, 1240):
+            draw.arc((x, 120, x + 260, 420), 180, 360, fill=accent + (85,), width=6)
+    if flags.get("ritual"):
+        draw.ellipse((610, 690, 990, 940), outline=accent + (48,), width=4)
+        draw.ellipse((690, 760, 910, 900), outline=accent + (34,), width=3)
+
+    # Distant floor haze only, no readable floor plane detail.
+    haze = Image.new("RGBA", size, (0, 0, 0, 0))
+    haze_draw = ImageDraw.Draw(haze)
+    haze_draw.rectangle((0, 720, size[0], size[1]), fill=fog + (58,))
+    haze = haze.filter(ImageFilter.GaussianBlur(radius=28))
+    img.alpha_composite(haze)
+
+    # Darken edges and protect central gameplay read window.
+    vignette = Image.new("RGBA", size, (0, 0, 0, 0))
+    vdraw = ImageDraw.Draw(vignette)
+    vdraw.rectangle((0, 0, 220, size[1]), fill=(8, 10, 12, 120))
+    vdraw.rectangle((size[0] - 220, 0, size[0], size[1]), fill=(8, 10, 12, 120))
+    vdraw.rectangle((0, 0, size[0], 140), fill=(8, 10, 12, 74))
+    img.alpha_composite(vignette)
+    img.save(output_path)
+
+
+def _fallback_tile_asset(output_path: Path, palette: Dict[str, Any], size: Tuple[int, int], mode: str, flags: Optional[Dict[str, bool]] = None) -> None:
+    flags = flags or {}
     base = _hex_to_rgb(str((palette.get("dominant") or ["#2a2522"])[0]), (42, 37, 34))
     alt = _hex_to_rgb(str((palette.get("dominant") or ["#2a2522", "#4a4038"])[1] if len(palette.get("dominant") or []) > 1 else "#4a4038"), (74, 64, 56))
     accent = _hex_to_rgb(str((palette.get("accent") or ["#8d7a5f"])[0]), (141, 122, 95))
-    img = Image.new("RGBA", size, base + (255,))
+    glow = tuple(min(255, c + 22) for c in accent)
+    moss = (68, 90, 62)
+    shadow = tuple(max(0, c - 18) for c in base)
+    img = Image.new("RGBA", size, shadow + (255,))
     draw = ImageDraw.Draw(img)
+
+    def softened(rgb: Tuple[int, int, int], amount: int) -> Tuple[int, int, int]:
+        return tuple(max(0, min(255, c + amount)) for c in rgb)
+
     if mode == "wall":
-        block_w = max(18, size[0] // 4)
-        block_h = max(18, size[1] // 4)
-        for y in range(0, size[1], block_h):
-            offset = 0 if (y // block_h) % 2 == 0 else block_w // 3
-            for x in range(-offset, size[0], block_w):
-                draw.rectangle((x, y, x + block_w - 2, y + block_h - 2), outline=accent + (110,), fill=alt + (42,))
+        block_w = max(56, size[0] // 3)
+        block_h = max(72, size[1] // 3)
+        draw.rectangle((0, 0, size[0], size[1]), fill=softened(base, -8) + (255,))
+        if flags.get("gothic"):
+            bay_w = max(88, size[0] // 2)
+            for x in range(-24, size[0] + 24, bay_w):
+                draw.rectangle((x + 18, 0, x + 36, size[1]), fill=shadow + (255,))
+                draw.rectangle((x + 36, 0, x + bay_w - 24, size[1]), fill=softened(base, 6) + (255,))
+                draw.arc((x + 8, 18, x + bay_w - 8, 126), 180, 360, fill=accent + (145,), width=3)
+                draw.line((x + 24, size[1] * 0.18, x + bay_w - 24, size[1] * 0.18), fill=accent + (96,), width=2)
+        else:
+            for y in range(0, size[1], block_h):
+                offset = 0 if (y // block_h) % 2 == 0 else block_w // 2
+                for x in range(-offset, size[0], block_w):
+                    fill = softened(alt, ((x + y) // 37) % 6 - 3)
+                    draw.rectangle((x, y, x + block_w - 6, y + block_h - 6), outline=accent + (90,), fill=fill + (255,))
+        if flags.get("fractured"):
+            cracks = [
+                (22, 30, 54, 86),
+                (size[0] - 74, 18, size[0] - 40, 78),
+                (size[0] // 2 - 12, size[1] - 90, size[0] // 2 + 18, size[1] - 32),
+            ]
+            for x1, y1, x2, y2 in cracks:
+                draw.line((x1, y1, x2, y2), fill=accent + (110,), width=2)
+                draw.line((x2, y2, x2 + 12, y2 + 20), fill=accent + (76,), width=1)
+        if flags.get("mossy"):
+            draw.rectangle((0, size[1] - 18, size[0], size[1]), fill=moss + (52,))
     elif mode == "floor":
-        slab_h = max(24, size[1] // 3)
+        draw.rectangle((0, 0, size[0], size[1]), fill=softened(alt, -8) + (255,))
+        slab_h = max(88, size[1] // 2)
+        slab_w = max(92, size[0] // 2)
         for y in range(0, size[1], slab_h):
-            draw.line((0, y, size[0], y), fill=accent + (120,), width=2)
-        for x in range(0, size[0], max(28, size[0] // 5)):
-            draw.line((x, 0, x + 18, size[1]), fill=accent + (90,), width=1)
+            offset = 0 if (y // slab_h) % 2 == 0 else slab_w // 2
+            for x in range(-offset, size[0], slab_w):
+                fill = softened(base, ((x + y) // 53) % 8 - 4)
+                draw.rectangle((x, y, x + slab_w - 8, y + slab_h - 8), outline=accent + (120,), fill=fill + (255,))
+        if flags.get("ritual"):
+            center = (size[0] // 2, size[1] // 2)
+            for radius in (size[0] // 5, size[0] // 3):
+                draw.ellipse((center[0] - radius, center[1] - radius, center[0] + radius, center[1] + radius), outline=glow + (104,), width=2)
+            draw.line((center[0] - size[0] // 4, center[1], center[0] + size[0] // 4, center[1]), fill=accent + (70,), width=1)
+        if flags.get("wet"):
+            draw.rectangle((0, size[1] - 22, size[0], size[1]), fill=(80, 96, 102, 42))
+        if flags.get("fractured"):
+            draw.line((26, size[1] // 2 + 16, size[0] // 2 - 20, size[1] // 2 - 10), fill=accent + (82,), width=2)
+            draw.line((size[0] // 2 + 18, size[1] // 2 - 12, size[0] - 22, size[1] // 2 + 8), fill=accent + (82,), width=2)
     elif mode == "platform":
-        draw.rectangle((0, 0, size[0], size[1]), fill=alt + (255,))
-        draw.rectangle((0, 0, size[0], max(6, size[1] // 6)), fill=accent + (150,))
-        for x in range(12, size[0] - 12, 48):
-            draw.line((x, size[1] // 2, x + 10, size[1] - 1), fill=accent + (110,), width=2)
+        draw.rectangle((0, 0, size[0], size[1]), fill=softened(alt, -10) + (255,))
+        top_h = max(10, size[1] // 7)
+        draw.rectangle((0, 0, size[0], top_h), fill=softened(accent, 8) + (255,))
+        draw.rectangle((0, top_h, size[0], size[1]), fill=softened(alt, -2) + (255,))
+        segment_w = max(72, size[0] // 3)
+        panel_top = min(size[1] - 4, top_h + 2)
+        panel_bottom = max(panel_top + 1, size[1] - 3)
+        for x in range(0, size[0], segment_w):
+            panel_right = max(x + 8, min(size[0], x + segment_w - 6))
+            draw.rectangle((x, panel_top, panel_right, panel_bottom), outline=accent + (84,), fill=softened(base, -4) + (120,))
+        draw.line((0, top_h + 2, size[0], top_h + 2), fill=accent + (150,), width=2)
+        if flags.get("fractured"):
+            draw.line((18, size[1] // 2, size[0] // 2, size[1] // 2 + 8), fill=accent + (96,), width=2)
+        if flags.get("mossy"):
+            draw.rectangle((8, size[1] - 10, size[0] - 8, size[1] - 4), fill=moss + (52,))
     img.save(output_path)
 
 
@@ -1531,16 +1915,40 @@ def _fallback_door_asset(output_path: Path, preview_path: Path) -> None:
     crop.save(output_path)
 
 
+def _fallback_curated_door_asset(output_path: Path, palette: Dict[str, Any], flags: Optional[Dict[str, bool]] = None) -> None:
+    flags = flags or {}
+    base = _hex_to_rgb(str((palette.get("dominant") or ["#2a2522"])[0]), (42, 37, 34))
+    alt = _hex_to_rgb(str((palette.get("dominant") or ["#2a2522", "#4a4038"])[1] if len(palette.get("dominant") or []) > 1 else "#4a4038"), (74, 64, 56))
+    accent = _hex_to_rgb(str((palette.get("accent") or ["#8d7a5f"])[0]), (141, 122, 95))
+    glow = tuple(min(255, c + 18) for c in accent)
+    img = Image.new("RGBA", (192, 288), tuple(max(0, c - 12) for c in base) + (255,))
+    draw = ImageDraw.Draw(img)
+    draw.rounded_rectangle((24, 20, 168, 276), radius=28, fill=alt + (255,), outline=accent + (180,), width=6)
+    draw.rounded_rectangle((48, 38, 144, 260), radius=16, fill=tuple(max(0, c - 28) for c in base) + (255,), outline=accent + (150,), width=4)
+    if flags.get("ritual"):
+        draw.rectangle((92, 58, 100, 220), fill=glow + (220,))
+        draw.ellipse((72, 72, 120, 120), outline=glow + (120,), width=4)
+    if flags.get("gothic"):
+        draw.arc((34, 0, 158, 132), 180, 360, fill=accent + (200,), width=8)
+    draw.rectangle((54, 230, 138, 248), fill=alt + (255,))
+    img.save(output_path)
+
+
 def _fallback_midground_asset(output_path: Path, palette: Dict[str, Any]) -> None:
     size = (1600, 1200)
     base = _hex_to_rgb(str((palette.get("dominant") or ["#181614"])[0]), (24, 22, 20))
     accent = _hex_to_rgb(str((palette.get("accent") or ["#6f624e"])[0]), (111, 98, 78))
     img = Image.new("RGBA", size, (0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
-    for i in range(4):
-        x = 160 + (i * 340)
-        draw.rectangle((x, 240, x + 44, 1080), fill=base + (92,))
-        draw.rounded_rectangle((x - 84, 160, x + 128, 316), radius=60, fill=base + (74,), outline=accent + (54,))
+    # Side framing only: leave the middle mostly open so gameplay reads cleanly.
+    left_clusters = [40, 150, 280]
+    right_clusters = [1180, 1310, 1440]
+    for x in left_clusters + right_clusters:
+        width = 42 if x % 2 == 0 else 54
+        draw.rectangle((x, 220, x + width, 1120), fill=base + (86,))
+        draw.arc((x - 70, 120, x + width + 70, 320), 180, 360, fill=accent + (60,), width=4)
+    draw.polygon([(0, 0), (220, 0), (180, 1200), (0, 1200)], fill=base + (42,))
+    draw.polygon([(1600, 0), (1380, 0), (1420, 1200), (1600, 1200)], fill=base + (42,))
     img.save(output_path)
 
 
@@ -1717,130 +2125,113 @@ def generate_room_environment_asset_pack(project_id: str, room_id: str, payload:
         """
     ).strip()
     components = spec.get("components") if isinstance(spec.get("components"), dict) else {}
-    floor_prompt = str(((components.get("floor") or {}).get("prompt")) or "").strip()
-    platforms_prompt = str(((components.get("platforms") or {}).get("prompt")) or "").strip()
-    walls_prompt = str(((components.get("walls") or {}).get("prompt")) or "").strip()
     doors_prompt = str(((components.get("doors") or {}).get("prompt")) or "").strip()
-    background_prompt = str(((components.get("background") or {}).get("prompt")) or "").strip()
     palette = _extract_preview_runtime_palette(preview_path)
+    flags = _environment_style_flags(spec)
+    requested_components = payload.get("components") if isinstance(payload, dict) else None
+    allowed_components = {"background", "wall_tile", "floor_tile", "platform_tile", "door", "midground_arches"}
+    target_components = [
+        str(item).strip()
+        for item in (requested_components or [])
+        if str(item).strip() in allowed_components
+    ]
+    if not target_components:
+        target_components = list(allowed_components)
+
+    def finalize_asset(kind: str, path: Path, size: Tuple[int, int], *, transparent: bool = False) -> bool:
+        if path.exists():
+            _fit_image_to_size(path, size, transparent=transparent)
+        return _validate_environment_asset(path, kind, size)
 
     results = {}
-    results["background"] = _generate_image_from_references(
-        background_path,
-        f"""{base_context}
-Create a side-view background matte for this room only.
-Show deep background architecture, atmosphere, and environment painting.
-Use this direction for the background: {background_prompt or 'Distant ruined architecture, atmospheric depth, and room-specific environment silhouettes.'}
-No foreground collision blocks, no UI, no characters, no text.
-""",
-        refs,
-        size_hint="wide room background 1600x1200",
-    )
-    if not results["background"]:
-        _fallback_background_asset(background_path, preview_path)
+    component_dependencies = _build_asset_component_dependency_payloads(room, spec, direction, preview_id)
+    component_fingerprints = _asset_component_fingerprints_from_dependencies(component_dependencies)
+    existing_pack = env["runtime"].get("asset_pack") if isinstance(env["runtime"].get("asset_pack"), dict) else {}
+    next_assets = copy.deepcopy(existing_pack.get("assets") or {}) if isinstance(existing_pack, dict) else {}
 
-    results["wall_tile"] = _generate_image_from_references(
-        wall_tile_path,
-        f"""{base_context}
-Create a seamless wall tile texture for a side-view metroidvania room.
-Use this direction for the wall tile: {walls_prompt or 'Broken gothic wet stone with carved vertical structure, fractured masonry, and subtle age damage.'}
-The result must be modular, tileable, and production-ready for repeated room wall geometry.
-No text, no characters, no full scene composition, no perspective room painting.
-""",
-        refs,
-        size_hint="seamless square texture 256x256",
-    )
-    if not results["wall_tile"]:
-        _fallback_tile_asset(wall_tile_path, palette, (256, 256), "wall")
+    # Runtime background and midground need deterministic framing, so build them
+    # from a constrained composition system instead of a freeform generated plate.
+    if "background" in target_components:
+        _fallback_background_asset(background_path, palette, flags)
+        finalize_asset("background", background_path, (1600, 1200))
+        results["background"] = False
 
-    results["floor_tile"] = _generate_image_from_references(
-        floor_tile_path,
-        f"""{base_context}
-Create a seamless floor tile texture for a side-view metroidvania room.
-Use this direction for the floor tile: {floor_prompt or 'Large ritual stone slabs, cracked and damp, with subtle carved structure and readable top-down surface rhythm.'}
-The result must be modular, tileable, and production-ready for repeated floor or ceiling bands.
-No text, no characters, no full scene composition.
-""",
-        refs,
-        size_hint="seamless square texture 256x256",
-    )
-    if not results["floor_tile"]:
-        _fallback_tile_asset(floor_tile_path, palette, (256, 256), "floor")
+    if "wall_tile" in target_components:
+        _fallback_tile_asset(wall_tile_path, palette, (32, 32), "wall", flags)
+        finalize_asset("wall_tile", wall_tile_path, (32, 32))
+        results["wall_tile"] = False
 
-    results["platform_tile"] = _generate_image_from_references(
-        platform_tile_path,
-        f"""{base_context}
-Create a modular platform ledge texture for a side-view metroidvania room.
-Use this direction for the platform tile: {platforms_prompt or 'Fractured shrine ledges with chipped stone lips, readable collision tops, and subtle support detail.'}
-This asset should work as a repeated platform strip with a clear top edge and readable front face.
-No text, no characters, no full scene composition.
-""",
-        refs,
-        size_hint="platform strip texture 256x96",
-    )
-    if not results["platform_tile"]:
-        _fallback_tile_asset(platform_tile_path, palette, (256, 96), "platform")
+    if "floor_tile" in target_components:
+        _fallback_tile_asset(floor_tile_path, palette, (32, 32), "floor", flags)
+        finalize_asset("floor_tile", floor_tile_path, (32, 32))
+        results["floor_tile"] = False
 
-    results["door"] = _generate_image_from_references(
-        door_path,
-        f"""{base_context}
+    if "platform_tile" in target_components:
+        _fallback_tile_asset(platform_tile_path, palette, (32, 14), "platform", flags)
+        finalize_asset("platform_tile", platform_tile_path, (32, 14))
+        results["platform_tile"] = False
+
+    if "door" in target_components:
+        results["door"] = _generate_image_from_references(
+            door_path,
+            f"""{base_context}
 Create a doorway or gate asset for this room style.
 Use this direction for the doorway: {doors_prompt or 'Heavy aged iron shrine gate set inside carved wet stone masonry.'}
 Readable in side view, centered, production-ready environment prop.
-No characters, no text.
+Keep the silhouette clear and self-contained with transparent surroundings if possible.
+Avoid scene composition, room background, floor plane, giant glow bloom, text, characters, and decorative borders.
 """,
-        refs,
-        size_hint="door prop 192x288",
-    )
-    if not results["door"]:
-        _fallback_door_asset(door_path, preview_path)
+            refs,
+            size_hint="door prop 192x288",
+        )
+        if not results["door"] or not finalize_asset("door", door_path, (192, 288)):
+            _fallback_curated_door_asset(door_path, palette, flags)
+            finalize_asset("door", door_path, (192, 288))
+            results["door"] = False
 
-    results["midground_arches"] = _generate_image_from_references(
-        midground_arches_path,
-        f"""{base_context}
-Create a transparent-background midground environment strip for a 2D metroidvania room.
-Use this direction for the midground layer: {background_prompt or 'Broken gothic arches, columns, hanging silhouettes, and deep architectural rhythm.'}
-The result should contain reusable arch or column silhouettes that can sit in front of the far background but behind gameplay.
-Transparent background, no text, no characters, no UI.
-""",
-        refs,
-        size_hint="transparent midground strip 1600x800",
-    )
-    if not results["midground_arches"]:
+    if "midground_arches" in target_components:
         _fallback_midground_asset(midground_arches_path, palette)
+        finalize_asset("midground_arches", midground_arches_path, (1600, 1200), transparent=True)
+        results["midground_arches"] = False
 
     used_ai = any(results.values())
+    next_assets.update({
+        "background": {
+            "url": f"/tools/2d-sprite-and-animation/projects-data/{project_id}/room_environment_assets/{room_id}/background.png",
+            "kind": "background",
+        },
+        "wall_tile": {
+            "url": f"/tools/2d-sprite-and-animation/projects-data/{project_id}/room_environment_assets/{room_id}/wall_tile.png",
+            "kind": "wall_tile",
+        },
+        "floor_tile": {
+            "url": f"/tools/2d-sprite-and-animation/projects-data/{project_id}/room_environment_assets/{room_id}/floor_tile.png",
+            "kind": "floor_tile",
+        },
+        "platform_tile": {
+            "url": f"/tools/2d-sprite-and-animation/projects-data/{project_id}/room_environment_assets/{room_id}/platform_tile.png",
+            "kind": "platform_tile",
+        },
+        "door": {
+            "url": f"/tools/2d-sprite-and-animation/projects-data/{project_id}/room_environment_assets/{room_id}/door.png",
+            "kind": "door",
+        },
+        "midground_arches": {
+            "url": f"/tools/2d-sprite-and-animation/projects-data/{project_id}/room_environment_assets/{room_id}/midground_arches.png",
+            "kind": "midground_arches",
+        },
+    })
     env["runtime"]["asset_pack"] = {
         "status": "ready",
+        "asset_schema_version": 2,
         "used_ai": used_ai,
         "generated_at": now_iso(),
         "source_preview_id": preview_id,
-        "assets": {
-            "background": {
-                "url": f"/tools/2d-sprite-and-animation/projects-data/{project_id}/room_environment_assets/{room_id}/background.png",
-                "kind": "background",
-            },
-            "wall_tile": {
-                "url": f"/tools/2d-sprite-and-animation/projects-data/{project_id}/room_environment_assets/{room_id}/wall_tile.png",
-                "kind": "wall_tile",
-            },
-            "floor_tile": {
-                "url": f"/tools/2d-sprite-and-animation/projects-data/{project_id}/room_environment_assets/{room_id}/floor_tile.png",
-                "kind": "floor_tile",
-            },
-            "platform_tile": {
-                "url": f"/tools/2d-sprite-and-animation/projects-data/{project_id}/room_environment_assets/{room_id}/platform_tile.png",
-                "kind": "platform_tile",
-            },
-            "door": {
-                "url": f"/tools/2d-sprite-and-animation/projects-data/{project_id}/room_environment_assets/{room_id}/door.png",
-                "kind": "door",
-            },
-            "midground_arches": {
-                "url": f"/tools/2d-sprite-and-animation/projects-data/{project_id}/room_environment_assets/{room_id}/midground_arches.png",
-                "kind": "midground_arches",
-            },
-        },
+        "layout_fingerprint": _fingerprint_payload(_room_geometry(room)),
+        "component_dependencies": component_dependencies,
+        "component_fingerprints": component_fingerprints,
+        "stale_components": [],
+        "assets": next_assets,
     }
     env["runtime"]["status"] = "ready"
     env["runtime"]["source"] = "approved_preview"
@@ -1881,11 +2272,16 @@ def approve_room_environment_preview(project_id: str, room_id: str, payload: Dic
     env["runtime"]["material_keywords"] = list(env["spec"].get("materials") or [])
     env["runtime"]["lighting_mode"] = str(env["spec"].get("lighting") or "")
     env["runtime"]["last_applied_at"] = now_iso()
-    env["runtime"]["asset_pack"]["status"] = "idle"
-    env["runtime"]["asset_pack"]["used_ai"] = False
-    env["runtime"]["asset_pack"]["generated_at"] = None
-    env["runtime"]["asset_pack"]["source_preview_id"] = preview_id
-    env["runtime"]["asset_pack"]["assets"] = {}
+    asset_pack = env["runtime"]["asset_pack"]
+    asset_pack["source_preview_id"] = preview_id
+    if asset_pack.get("assets"):
+        asset_pack["status"] = "ready"
+        asset_pack["stale_components"] = ["background", "midground_arches", "wall_tile", "floor_tile", "platform_tile", "door"]
+    else:
+        asset_pack["status"] = "idle"
+        asset_pack["used_ai"] = False
+        asset_pack["generated_at"] = None
+        asset_pack["assets"] = {}
     project["updated_at"] = now_iso()
     save_project(project)
     append_history_event(project_id, {

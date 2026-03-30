@@ -917,6 +917,33 @@ function roomMidgroundAssetKey(roomId) {
     return `env-midground-asset-${roomId}`;
 }
 
+function textureMatchesExpectedSize(scene, textureKey, width, height) {
+    if (!scene?.textures?.exists(textureKey)) return false;
+    const texture = scene.textures.get(textureKey);
+    const source = texture?.getSourceImage?.() || texture?.source?.[0]?.image || texture?.source?.[0];
+    const frame = texture?.frames?.__BASE || texture?.get?.('__BASE') || null;
+    const sourceWidth = Number(
+        frame?.cutWidth
+        || frame?.realWidth
+        || frame?.width
+        || source?.naturalWidth
+        || source?.videoWidth
+        || source?.width
+        || 0
+    );
+    const sourceHeight = Number(
+        frame?.cutHeight
+        || frame?.realHeight
+        || frame?.height
+        || source?.naturalHeight
+        || source?.videoHeight
+        || source?.height
+        || 0
+    );
+    if (!sourceWidth || !sourceHeight) return false;
+    return sourceWidth === width && sourceHeight === height;
+}
+
 function getRoomEnvironmentAssetPack(roomId) {
     const env = normalizeEnvironmentFromLayout(getLayoutRoom(roomId));
     const pack = env.runtime?.asset_pack;
@@ -939,7 +966,10 @@ function getRoomEnvironmentSceneSchema(roomId) {
 function resolveRoomWallTexture(scene, roomId) {
     const pack = getRoomEnvironmentAssetPack(roomId);
     const wallUrl = pack?.assets?.wall_tile?.url || pack?.assets?.surface?.url;
-    if (wallUrl && scene?.textures?.exists(roomWallAssetKey(roomId))) {
+    if (wallUrl && (
+        textureMatchesExpectedSize(scene, roomWallAssetKey(roomId), 32, 32)
+        || textureMatchesExpectedSize(scene, roomWallAssetKey(roomId), 256, 256)
+    )) {
         return roomWallAssetKey(roomId);
     }
     return roomSurfaceTextureKey(roomId, 0);
@@ -948,7 +978,10 @@ function resolveRoomWallTexture(scene, roomId) {
 function resolveRoomFloorTexture(scene, roomId) {
     const pack = getRoomEnvironmentAssetPack(roomId);
     const floorUrl = pack?.assets?.floor_tile?.url || pack?.assets?.surface?.url;
-    if (floorUrl && scene?.textures?.exists(roomFloorAssetKey(roomId))) {
+    if (floorUrl && (
+        textureMatchesExpectedSize(scene, roomFloorAssetKey(roomId), 32, 32)
+        || textureMatchesExpectedSize(scene, roomFloorAssetKey(roomId), 256, 256)
+    )) {
         return roomFloorAssetKey(roomId);
     }
     return roomSurfaceTextureKey(roomId, 0);
@@ -961,7 +994,10 @@ function resolveRoomSurfaceTexture(scene, roomId, role = 'wall') {
 function resolveRoomPlatformTexture(scene, roomId, tint = 0) {
     const pack = getRoomEnvironmentAssetPack(roomId);
     const platformUrl = pack?.assets?.platform_tile?.url || pack?.assets?.platform?.url;
-    if (platformUrl && scene?.textures?.exists(roomPlatformAssetKey(roomId))) {
+    if (platformUrl && (
+        textureMatchesExpectedSize(scene, roomPlatformAssetKey(roomId), 32, 14)
+        || textureMatchesExpectedSize(scene, roomPlatformAssetKey(roomId), 256, 96)
+    )) {
         return roomPlatformAssetKey(roomId);
     }
     return roomPlatformTextureKey(roomId, tint, 0);
@@ -969,10 +1005,18 @@ function resolveRoomPlatformTexture(scene, roomId, tint = 0) {
 
 function resolveRoomDoorTexture(scene, roomId) {
     const pack = getRoomEnvironmentAssetPack(roomId);
-    if (pack?.assets?.door?.url && scene?.textures?.exists(roomDoorAssetKey(roomId))) {
+    if (pack?.assets?.door?.url && textureMatchesExpectedSize(scene, roomDoorAssetKey(roomId), 192, 288)) {
         return roomDoorAssetKey(roomId);
     }
     return roomDoorTextureKey(roomId);
+}
+
+function resolveRoomMidgroundTexture(scene, roomId) {
+    const pack = getRoomEnvironmentAssetPack(roomId);
+    if (pack?.assets?.midground_arches?.url && textureMatchesExpectedSize(scene, roomMidgroundAssetKey(roomId), 1600, 1200)) {
+        return roomMidgroundAssetKey(roomId);
+    }
+    return null;
 }
 
 function isResolvedRoomSurfaceAsset(roomId, textureKey) {
@@ -1010,6 +1054,7 @@ function deriveRoomEnvironmentRuntimeStyle(roomId) {
     const env = normalizeEnvironmentFromLayout(getLayoutRoom(roomId));
     const kit = env.spec?.scene_schema?.kit || {};
     const components = env.spec?.components || {};
+    const shellFamily = String(kit.shell_family || '');
     const runtimePalette = env.runtime?.surface_palette && typeof env.runtime.surface_palette === 'object'
         ? env.runtime.surface_palette
         : (env.preview?.approved_palette && typeof env.preview.approved_palette === 'object' ? env.preview.approved_palette : null);
@@ -1040,13 +1085,14 @@ function deriveRoomEnvironmentRuntimeStyle(roomId) {
         .map((item) => String(item?.prompt || ''))
         .join(' ');
     const moodText = `${env.themeId} ${(env.tags || []).join(' ')} ${(env.spec?.materials || []).join(' ')} ${(env.runtime?.material_keywords || []).join(' ')} ${Object.values(kit).join(' ')} ${componentText}`.toLowerCase();
-    const mossy = /(moss|overgrow|root|shrine|forest)/.test(moodText);
+    const mossy = /(moss|overgrow|root|shrine|forest)/.test(moodText) || /rooted_overgrowth/.test(shellFamily);
     const wet = /(wet|flood|water|damp|sewer)/.test(moodText);
-    const ritual = /(ritual|sacred|shrine|altar)/.test(moodText);
+    const ritual = /(ritual|sacred|shrine|altar)/.test(moodText) || /ritual_shrine|void_structure/.test(shellFamily);
     const industrial = /(industrial|underworks|steel|pipe|boiler|machinery)/.test(moodText)
-        || /(industrial_ribbed|iron_walkway|iron_gate|industrial_depth)/.test(String(Object.values(kit).join(' ')).toLowerCase());
-    const carved = /(carved|gothic|arch|ritual|shrine)/.test(moodText);
-    const fracturedStone = /(fractured|broken|cracked|masonry|stone|buttress|gothic|arch)/.test(moodText);
+        || /(industrial_ribbed|iron_walkway|iron_gate|industrial_depth|industrial_underworks)/.test(String(Object.values(kit).join(' ')).toLowerCase());
+    const carved = /(carved|gothic|arch|ritual|shrine)/.test(moodText) || /gothic_ruin|ritual_shrine/.test(shellFamily);
+    const fracturedStone = /(fractured|broken|cracked|masonry|stone|buttress|gothic|arch)/.test(moodText)
+        || /gothic_ruin|flooded_stone|weathered_stone/.test(shellFamily);
     const circularFloor = /(ritual circle|circular|circle carving|slab)/.test(moodText);
     return {
         floorBase,
@@ -1064,6 +1110,7 @@ function deriveRoomEnvironmentRuntimeStyle(roomId) {
         carved,
         fracturedStone,
         circularFloor,
+        shellFamily,
         wallFamily: String(kit.wall_family || ''),
         platformFamily: String(kit.platform_family || ''),
         doorFamily: String(kit.door_family || ''),
@@ -1759,21 +1806,23 @@ class AshenHollow extends Phaser.Scene {
             const room = ROOM_IDS[roomId];
             const textureKey = roomBackgroundAssetKey(roomId);
             if (room && this.textures.exists(textureKey)) {
-                const sprite = this.add.image(room.start + (room.width / 2), CONFIG.WORLD_HEIGHT / 2, textureKey)
+                const sprite = this.add.image(room.start + (room.width / 2), CONFIG.WORLD_HEIGHT, textureKey)
                     .setDisplaySize(room.width, CONFIG.WORLD_HEIGHT)
+                    .setOrigin(0.5, 1)
                     .setDepth(-2)
                     .setVisible(false)
-                    .setAlpha(0.28)
-                    .setTint(0xa8b2b1);
+                    .setAlpha(0.26)
+                    .setTint(0xa6aeab);
                 this.roomBackgroundSprites[roomId] = sprite;
             }
-            const midgroundKey = roomMidgroundAssetKey(roomId);
-            if (room && this.textures.exists(midgroundKey)) {
-                const sprite = this.add.image(room.start + (room.width / 2), CONFIG.WORLD_HEIGHT * 0.48, midgroundKey)
-                    .setDisplaySize(room.width, CONFIG.WORLD_HEIGHT * 0.72)
+            const midgroundKey = resolveRoomMidgroundTexture(this, roomId);
+            if (room && midgroundKey) {
+                const sprite = this.add.image(room.start + (room.width / 2), CONFIG.WORLD_HEIGHT, midgroundKey)
+                    .setDisplaySize(room.width, CONFIG.WORLD_HEIGHT)
+                    .setOrigin(0.5, 1)
                     .setDepth(-0.35)
                     .setVisible(false)
-                    .setAlpha(0.62);
+                    .setAlpha(0.28);
                 this.roomMidgroundSprites[roomId] = sprite;
             }
         });

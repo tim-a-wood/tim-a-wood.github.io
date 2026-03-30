@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import hashlib
 import sys
 import tempfile
 import unittest
@@ -66,7 +67,7 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
             load_project=load_project,
             save_project=save_project,
             now_iso=lambda: "2026-03-28T12:00:00Z",
-            stable_hash=lambda *parts: "hash-" + "-".join(str(p) for p in parts)[:12],
+            stable_hash=lambda *parts: "hash-" + hashlib.sha1("||".join(str(p) for p in parts).encode("utf-8")).hexdigest()[:12],
             append_history_event=append_history_event,
         )
 
@@ -180,6 +181,25 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         for item in asset_pack["environment"]["runtime"]["asset_pack"]["assets"].values():
             rel_url = item["url"].lstrip("/")
             self.assertTrue((self.root / rel_url).exists())
+
+    def test_layout_change_marks_only_layout_aware_assets_stale(self):
+        envsys.update_project_art_direction(self.project_id, {"template_id": "industrial-underworks", "locked": True})
+        spec_result = envsys.build_room_environment_spec(
+            self.project_id,
+            "R1",
+            {"description": "A grim machinery room with readable catwalks, pressure pipes, and deep utility shadows."},
+        )
+        env = spec_result["environment"]
+        self.assertEqual(env["spec"]["scene_schema"]["kit"]["shell_family"], "industrial_underworks")
+        generated = envsys.generate_room_environment_previews(self.project_id, "R1", {})
+        preview_id = generated["environment"]["preview"]["images"][0]["preview_id"]
+        envsys.approve_room_environment_preview(self.project_id, "R1", {"preview_id": preview_id})
+        envsys.generate_room_environment_asset_pack(self.project_id, "R1", {"preview_id": preview_id})
+
+        self.saved["room_layout"]["rooms"][0]["platforms"][0]["len"] = 28
+        room = envsys._find_room(self.saved, "R1")
+        stale = room["environment"]["runtime"]["asset_pack"]["stale_components"]
+        self.assertEqual(set(stale), {"background", "midground_arches"})
 
 
 if __name__ == "__main__":

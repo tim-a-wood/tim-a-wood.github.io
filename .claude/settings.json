@@ -89,7 +89,8 @@
       "Bash(grep -rn \"append_history_event\" /Users/timwood/Desktop/projects/PWA/MV/scripts/*.py)",
       "Bash(python3 scripts/send_weekly_digest.py --file artifacts/analytics-opportunities-2026-03-28.md)",
       "Bash(chmod +x /Users/timwood/Desktop/projects/PWA/MV/scripts/daily_product_report.sh)",
-      "Bash(/Users/timwood/Desktop/projects/PWA/MV/scripts/daily_product_report.sh)"
+      "Bash(/Users/timwood/Desktop/projects/PWA/MV/scripts/daily_product_report.sh)",
+      "Bash(grep -n \"use_reloader\\\\|debug\\\\|livereload\\\\|auto_reload\" tools/2d-sprite-and-animation/app/*.py sprite_workbench_server.py)"
     ],
     "additionalDirectories": [
       "/Users/timwood/.claude/skills"
