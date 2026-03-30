@@ -307,6 +307,8 @@ body::before {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  display: flex;
+  flex-direction: column;
 }
 
 .side-panel {
@@ -775,7 +777,8 @@ body::before {
   display: none;
   flex-direction: column;
   gap: var(--space-3);
-  height: 100%;
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
   padding-bottom: var(--space-2);
 }
@@ -820,6 +823,39 @@ body::before {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(124px, 1fr));
   gap: var(--space-2);
+}
+
+/* Analytics: dense + side-by-side groups so the board fits typical laptop viewports */
+.dashboard-view--analytics-fit {
+  gap: var(--space-2);
+}
+.db-analytics-board {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+  align-items: start;
+}
+@media (max-width: 900px) {
+  .db-analytics-board {
+    grid-template-columns: 1fr;
+  }
+}
+.db-analytics-board .db-section {
+  gap: var(--space-2);
+}
+.dashboard-view--analytics-fit .db-grid {
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: var(--space-2);
+}
+.dashboard-view--analytics-fit .db-card {
+  min-height: 56px;
+  padding: var(--space-2) var(--space-3);
+}
+.dashboard-view--analytics-fit .db-card-value {
+  font-size: var(--font-size-md);
+}
+.dashboard-view--analytics-fit .db-view-header {
+  padding-bottom: var(--space-2);
 }
 
 .db-card {
@@ -2304,53 +2340,55 @@ h3.os-chart-card-title {
       </div>
 
       <!-- ── ANALYTICS DASHBOARD ────────────────────────────── -->
-      <div class="dashboard-view" data-dashboard-view="analytics">
+      <div class="dashboard-view dashboard-view--analytics-fit" data-dashboard-view="analytics">
         <div class="db-view-header">
           <span class="db-view-icon">📊</span>
           <div><div class="db-view-title" style="color:#4ade80">ANALYTICS</div><div class="db-view-subtitle">Usage metrics, funnel health &amp; AI feature performance</div></div>
         </div>
-        <div class="db-section">
-          <div class="db-section-label">Pre-launch Readiness</div>
-          <div class="db-grid">
-            <div class="db-card db-card--live">
-              <div class="db-card-header"><div class="db-card-label">Instrumentation Stage</div><span class="db-tier db-tier--live">LIVE</span></div>
-              <div class="db-card-value db-card-value--warning">Pre-launch</div>
-              <div class="db-card-sub">Events not yet firing</div>
-            </div>
-            <div class="db-card db-card--manual">
-              <div class="db-card-header"><div class="db-card-label">Tracking Plan Coverage</div><span class="db-tier db-tier--manual">MANUAL</span></div>
-              <div class="db-card-value db-card-value--muted">—</div>
-              <button type="button" class="db-run-btn">Run analytics · review →</button>
-            </div>
-            <div class="db-card db-card--manual">
-              <div class="db-card-header"><div class="db-card-label">Events Defined</div><span class="db-tier db-tier--manual">MANUAL</span></div>
-              <div class="db-card-value db-card-value--muted">—</div>
-              <button type="button" class="db-run-btn">Run analytics · analyze →</button>
+        <div class="db-analytics-board">
+          <div class="db-section">
+            <div class="db-section-label">Pre-launch Readiness</div>
+            <div class="db-grid">
+              <div class="db-card db-card--live">
+                <div class="db-card-header"><div class="db-card-label">Instrumentation Stage</div><span class="db-tier db-tier--live">LIVE</span></div>
+                <div class="db-card-value db-card-value--warning">Pre-launch</div>
+                <div class="db-card-sub">Events not yet firing</div>
+              </div>
+              <div class="db-card db-card--manual">
+                <div class="db-card-header"><div class="db-card-label">Tracking Plan Coverage</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+                <div class="db-card-value db-card-value--muted">—</div>
+                <button type="button" class="db-run-btn">Run analytics · review →</button>
+              </div>
+              <div class="db-card db-card--manual">
+                <div class="db-card-header"><div class="db-card-label">Events Defined</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+                <div class="db-card-value db-card-value--muted">—</div>
+                <button type="button" class="db-run-btn">Run analytics · analyze →</button>
+              </div>
             </div>
           </div>
-        </div>
-        <div class="db-section">
-          <div class="db-section-label">Funnel Metrics — Post-launch</div>
-          <div class="db-grid">
-            <div class="db-card db-card--instrumented">
-              <div class="db-card-header"><div class="db-card-label">Activation Rate</div><span class="db-tier db-tier--post">POST-LAUNCH</span></div>
-              <div class="db-card-value db-card-value--muted">—</div>
-              <div class="db-card-sub">First export event</div>
-            </div>
-            <div class="db-card db-card--instrumented">
-              <div class="db-card-header"><div class="db-card-label">Export Rate</div><span class="db-tier db-tier--post">POST-LAUNCH</span></div>
-              <div class="db-card-value db-card-value--muted">—</div>
-              <div class="db-card-sub">Exports per session</div>
-            </div>
-            <div class="db-card db-card--instrumented">
-              <div class="db-card-header"><div class="db-card-label">Retention D7</div><span class="db-tier db-tier--post">POST-LAUNCH</span></div>
-              <div class="db-card-value db-card-value--muted">—</div>
-              <div class="db-card-sub">7-day return rate</div>
-            </div>
-            <div class="db-card db-card--instrumented">
-              <div class="db-card-header"><div class="db-card-label">Copilot Accept Rate</div><span class="db-tier db-tier--post">POST-LAUNCH</span></div>
-              <div class="db-card-value db-card-value--muted">—</div>
-              <div class="db-card-sub">AI suggestions accepted</div>
+          <div class="db-section">
+            <div class="db-section-label">Funnel Metrics — Post-launch</div>
+            <div class="db-grid">
+              <div class="db-card db-card--instrumented">
+                <div class="db-card-header"><div class="db-card-label">Activation Rate</div><span class="db-tier db-tier--post">POST-LAUNCH</span></div>
+                <div class="db-card-value db-card-value--muted">—</div>
+                <div class="db-card-sub">First export event</div>
+              </div>
+              <div class="db-card db-card--instrumented">
+                <div class="db-card-header"><div class="db-card-label">Export Rate</div><span class="db-tier db-tier--post">POST-LAUNCH</span></div>
+                <div class="db-card-value db-card-value--muted">—</div>
+                <div class="db-card-sub">Exports per session</div>
+              </div>
+              <div class="db-card db-card--instrumented">
+                <div class="db-card-header"><div class="db-card-label">Retention D7</div><span class="db-tier db-tier--post">POST-LAUNCH</span></div>
+                <div class="db-card-value db-card-value--muted">—</div>
+                <div class="db-card-sub">7-day return rate</div>
+              </div>
+              <div class="db-card db-card--instrumented">
+                <div class="db-card-header"><div class="db-card-label">Copilot Accept Rate</div><span class="db-tier db-tier--post">POST-LAUNCH</span></div>
+                <div class="db-card-value db-card-value--muted">—</div>
+                <div class="db-card-sub">AI suggestions accepted</div>
+              </div>
             </div>
           </div>
         </div>
