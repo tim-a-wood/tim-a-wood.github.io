@@ -3611,19 +3611,22 @@ async function loadDesignStatus() {
   }
 }
 
+function applyAnalyticsStatusPayload(s) {
+  if (!s || typeof s !== 'object' || Array.isArray(s)) return;
+  const prioritiesEl = document.getElementById('db-analytics-priorities');
+  const risksP0El = document.getElementById('db-analytics-risks-p0');
+  const founderEl = document.getElementById('db-analytics-founder-decisions');
+  if (prioritiesEl && s.priorities) renderPriorityRows(s.priorities, prioritiesEl);
+  if (risksP0El) renderRisksP0(s.risks_p0 ?? [], risksP0El);
+  if (founderEl) renderFounderDecisions(s.founder_decisions ?? [], founderEl);
+}
+
 async function loadAnalyticsStatus() {
   try {
     const resp = await fetch('analytics-status.json');
     if (!resp.ok) return;
     const s = await resp.json();
-
-    const prioritiesEl = document.getElementById('db-analytics-priorities');
-    const risksP0El = document.getElementById('db-analytics-risks-p0');
-    const founderEl = document.getElementById('db-analytics-founder-decisions');
-
-    if (prioritiesEl && s.priorities) renderPriorityRows(s.priorities, prioritiesEl);
-    if (risksP0El) renderRisksP0(s.risks_p0 ?? [], risksP0El);
-    if (founderEl) renderFounderDecisions(s.founder_decisions ?? [], founderEl);
+    applyAnalyticsStatusPayload(s);
   } catch {
     // Leave placeholder content in place
   }
@@ -3643,7 +3646,8 @@ function syncAnalyticsKpis(d) {
   }
   const s = d.usage_summary;
   const c = d.usage_charts;
-  if (s) {
+  const hasSummary = s != null && typeof s === 'object' && !Array.isArray(s);
+  if (hasSummary) {
     setText('db-analytics-ledger-total', s.entry_count != null ? String(s.entry_count) : '—');
     setText('db-analytics-today-calls', s.today_entry_count != null ? String(s.today_entry_count) : '—');
     if (s.total_usage_cost_usd != null) {
@@ -3652,7 +3656,7 @@ function syncAnalyticsKpis(d) {
       setText('db-analytics-ledger-cost', '—');
     }
   }
-  if (c && c.ledger_entry_count_window != null) {
+  if (c != null && typeof c === 'object' && !Array.isArray(c) && c.ledger_entry_count_window != null) {
     setText('db-analytics-window-calls', String(c.ledger_entry_count_window));
   }
 }
@@ -4226,9 +4230,6 @@ async function loadDashboardData(dashId) {
   if (dashId === 'orchestration') {
     loadOrchestrationStatus();
   }
-  if (dashId === 'analytics') {
-    loadAnalyticsStatus();
-  }
   try {
     const resp = await fetch('/api/dashboard-data');
     let dashboardReachable = resp.ok;
@@ -4246,6 +4247,11 @@ async function loadDashboardData(dashId) {
     syncHomeKpis(d);
     applyUsageChartsFromDashboard(d);
     syncAnalyticsKpis(d);
+    if (d && d.analytics_status) {
+      applyAnalyticsStatusPayload(d.analytics_status);
+    } else if (dashId === 'analytics') {
+      loadAnalyticsStatus();
+    }
     updateHomeChartLiveStatus(d, dashboardReachable);
     if (dashId === 'home' || dashId === 'engineering') {
       paintOsChartsForView(dashId);
@@ -4318,6 +4324,9 @@ async function pulseGlobalWorkbenchOnly() {
     syncHomeKpis(d);
     applyUsageChartsFromDashboard(d);
     syncAnalyticsKpis(d);
+    if (d && d.analytics_status) {
+      applyAnalyticsStatusPayload(d.analytics_status);
+    }
     updateHomeChartLiveStatus(d, dashboardReachable);
     if (selectedDashboard === 'home' || selectedDashboard === 'engineering') {
       paintOsChartsForView(selectedDashboard);

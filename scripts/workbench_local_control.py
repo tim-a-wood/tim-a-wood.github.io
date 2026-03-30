@@ -13,7 +13,6 @@ import sys
 import time
 import urllib.error
 import urllib.request
-import json
 from pathlib import Path
 from typing import Any
 
@@ -101,6 +100,18 @@ def default_agent_os_control_base() -> str:
     return os.environ.get("AGENT_OS_CONTROL_BASE", "http://127.0.0.1:8769").strip().rstrip("/")
 
 
+def read_repo_json_object(filename: str) -> dict[str, Any] | None:
+    """Best-effort load of a JSON object from repo root (Agent OS status files)."""
+    path = REPO_ROOT / filename
+    if not path.is_file():
+        return None
+    try:
+        raw = json.loads(path.read_text(encoding="utf-8"))
+        return raw if isinstance(raw, dict) else None
+    except (json.JSONDecodeError, OSError):
+        return None
+
+
 def _ledger_entries_from_repo_disk() -> list[dict[str, Any]]:
     path = REPO_ROOT / USAGE_LEDGER_REL
     if not path.is_file():
@@ -143,6 +154,7 @@ def build_workbench_server_dashboard_payload(bind_host: str, bind_port: int) -> 
     except Exception:
         usage_charts = _usage_charts_from_repo_disk()
         usage_summary = _usage_summary_from_repo_disk()
+    analytics_status = read_repo_json_object("analytics-status.json")
     return {
         "supervisor": False,
         "agent_os_control_base": ctrl,
@@ -153,6 +165,7 @@ def build_workbench_server_dashboard_payload(bind_host: str, bind_port: int) -> 
         "last_daily_report": latest_daily_report_name(),
         "usage_charts": usage_charts,
         "usage_summary": usage_summary,
+        "analytics_status": analytics_status,
         **keys,
     }
 
@@ -164,6 +177,7 @@ def build_supervisor_dashboard_payload(host: str, wb_port: int) -> dict[str, Any
     pid = read_workbench_pid() if running else None
     usage_charts = _usage_charts_from_repo_disk()
     usage_summary = _usage_summary_from_repo_disk()
+    analytics_status = read_repo_json_object("analytics-status.json")
     return {
         "supervisor": True,
         "workbench_server_running": running,
@@ -173,6 +187,7 @@ def build_supervisor_dashboard_payload(host: str, wb_port: int) -> dict[str, Any
         "last_daily_report": latest_daily_report_name(),
         "usage_charts": usage_charts,
         "usage_summary": usage_summary,
+        "analytics_status": analytics_status,
         **keys,
     }
 
