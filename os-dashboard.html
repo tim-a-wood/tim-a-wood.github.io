@@ -818,6 +818,629 @@ body::before {
   border-bottom: 1px solid var(--line);
 }
 
+/* ─── ISSUES VIEW (priority list) ───────────────── */
+.av-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+}
+.av-sort-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin-top: var(--space-2);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--line-strong);
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: help;
+}
+.av-filter-group {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.av-filter-label {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.av-select {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-tight);
+  color: var(--text);
+  font-size: var(--font-size-sm);
+  font-family: var(--font-sans);
+  padding: 5px 10px;
+  min-height: 32px;
+  cursor: pointer;
+  transition: border-color var(--transition-fast);
+}
+.av-select:hover { border-color: var(--border-strong); }
+.av-select:focus { outline: 2px solid rgba(0,232,200,0.35); outline-offset: 2px; }
+.av-search {
+  flex: 1;
+  min-width: 180px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-tight);
+  color: var(--text);
+  font-size: var(--font-size-sm);
+  font-family: var(--font-sans);
+  padding: 5px 12px;
+  min-height: 32px;
+  transition: border-color var(--transition-fast);
+}
+.av-search::placeholder { color: var(--muted); opacity: 0.6; }
+.av-search:hover { border-color: var(--border-strong); }
+.av-search:focus { outline: 2px solid rgba(0,232,200,0.35); outline-offset: 2px; border-color: transparent; }
+.av-count {
+  font-size: var(--font-size-xs);
+  color: var(--muted);
+  font-family: var(--font-mono);
+  margin-left: auto;
+  white-space: nowrap;
+}
+.av-add-btn {
+  min-height: 32px;
+  padding: 6px 12px;
+  border-radius: var(--radius-tight);
+}
+.av-add-panel {
+  display: none;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: rgba(255,255,255,0.02);
+  padding: var(--space-3);
+  margin-top: var(--space-2);
+}
+.av-add-panel.visible { display: grid; }
+.av-add-panel .av-field { min-height: 32px; }
+.av-add-panel .av-field-wide { grid-column: 1 / -1; }
+.av-add-actions { grid-column: 1 / -1; display:flex; gap: var(--space-2); justify-content:flex-end; }
+.av-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  flex: 1;
+  min-height: 0;
+}
+.av-row {
+  display: grid;
+  grid-template-columns: 24px 24px 1fr auto;
+  align-items: start;
+  gap: 0 var(--space-3);
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--line);
+  transition: background var(--transition-fast);
+}
+.av-row:hover { background: rgba(255,255,255,0.015); }
+.av-drag-handle {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 13px;
+  color: var(--muted);
+  opacity: 0.3;
+  font-size: 15px;
+  cursor: grab;
+  user-select: none;
+  transition: opacity var(--transition-fast);
+}
+.av-drag-handle:hover { opacity: 1; }
+.av-drag-handle:active { cursor: grabbing; }
+.av-row--drag-over { border-top: 2px solid var(--accent); }
+.av-row--dragging { opacity: 0.4; }
+.av-sort-num {
+  font-size: var(--font-size-xs);
+  font-family: var(--font-mono);
+  color: var(--muted);
+  opacity: 0.4;
+  padding-top: 14px;
+  text-align: right;
+}
+.av-row-main { display: flex; flex-direction: column; gap: var(--space-1); min-width: 0; cursor: pointer; }
+.av-row-top {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  min-width: 0;
+}
+.av-owner-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  white-space: nowrap;
+  flex-shrink: 0;
+  letter-spacing: 0.04em;
+}
+.av-action-name {
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  color: var(--text);
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.4;
+  flex: 1 1 auto;
+}
+.av-trigger {
+  font-size: var(--font-size-xs);
+  color: var(--muted);
+  line-height: 1.4;
+}
+.av-state-row {
+  display: grid;
+  grid-template-columns: minmax(112px, auto) minmax(96px, auto);
+  gap: var(--space-2);
+  align-items: center;
+  margin-left: 0;
+  flex-shrink: 0;
+}
+.av-status-col,
+.av-risk-col {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 28px;
+  padding: 4px 8px;
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-xs);
+  font-family: var(--font-mono);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.av-status-col {
+  border: 1px solid var(--line);
+  color: var(--text);
+  background: rgba(255,255,255,0.03);
+}
+.av-status-col--in-progress { color: var(--accent); border-color: var(--line-strong); background: var(--accent-soft); }
+.av-status-col--needs-review { color: var(--warning); border-color: rgba(210,153,34,0.28); background: var(--warning-soft); }
+.av-status-col--queued { color: var(--muted); border-color: var(--line); background: rgba(255,255,255,0.02); }
+.av-status-col--paused { color: var(--muted); border-color: var(--line); background: rgba(255,255,255,0.02); }
+.av-status-col--done { color: var(--good); border-color: rgba(74,222,128,0.28); background: var(--good-soft); }
+.av-risk-col {
+  border: 1px solid var(--line);
+  color: var(--muted);
+  background: rgba(255,255,255,0.02);
+}
+.av-risk-col--high { color: var(--error); border-color: rgba(248,81,73,0.28); background: var(--error-soft); }
+.av-risk-col--med { color: var(--warning); border-color: rgba(210,153,34,0.28); background: var(--warning-soft); }
+.av-risk-col--low { color: var(--good); border-color: rgba(74,222,128,0.28); background: var(--good-soft); }
+.av-detail {
+  display: none;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-3) 0 var(--space-2) 0;
+  border-top: 1px solid var(--line);
+  margin-top: var(--space-2);
+}
+.av-row--expanded .av-detail { display: flex; }
+.av-detail-label {
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 3px;
+}
+.av-detail-text { font-size: var(--font-size-sm); color: var(--text); line-height: 1.5; }
+.av-detail-mono { font-size: var(--font-size-xs); font-family: var(--font-mono); color: var(--muted); }
+.av-field {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-size: var(--font-size-sm);
+  font-family: var(--font-sans);
+  padding: 6px 10px;
+  width: 100%;
+  transition: border-color var(--transition-fast);
+}
+.av-field:hover { border-color: var(--border-strong); }
+.av-field:focus { outline: 2px solid rgba(0,232,200,0.35); outline-offset: 2px; border-color: transparent; }
+textarea.av-field { resize: vertical; min-height: 72px; line-height: 1.45; }
+.av-row-btns {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-2);
+  padding-top: 4px;
+  flex-shrink: 0;
+}
+.av-btn-row { display: flex; align-items: center; gap: 4px; }
+.av-btn {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  font-family: var(--font-sans);
+  padding: 4px 10px;
+  border-radius: var(--radius-tight);
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  white-space: nowrap;
+  min-height: 28px;
+  transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
+}
+.av-btn:hover { background: rgba(255,255,255,0.05); color: var(--text); border-color: var(--border-strong); }
+.av-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+.av-btn--accent { border-color: var(--accent); color: var(--accent); }
+.av-btn--accent:hover { background: var(--accent-soft); }
+.av-btn--icon {
+  padding: 4px 7px;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-size: 13px;
+  min-height: 28px;
+}
+.av-btn--icon:hover { color: var(--text); background: rgba(255,255,255,0.05); }
+.av-btn--save {
+  font-size: var(--font-size-sm);
+  padding: 6px 16px;
+  min-height: 32px;
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.av-btn--save:hover { background: var(--accent-soft); }
+.av-save-hint { font-size: var(--font-size-xs); color: var(--muted); }
+.av-save-hint--err { color: var(--error); }
+.av-save-hint--ok { color: var(--good); }
+.av-discuss-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--line);
+  margin-top: var(--space-2);
+}
+.av-discuss-row .av-discuss-btn {
+  min-height: 32px;
+  padding: 6px 12px;
+  font-size: var(--font-size-sm);
+}
+.issue-chat-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(5, 7, 9, 0.72);
+  backdrop-filter: blur(4px);
+  align-items: flex-end;
+  justify-content: flex-end;
+  padding: var(--space-4);
+  box-sizing: border-box;
+}
+.issue-chat-backdrop.visible {
+  display: flex;
+}
+.issue-chat-panel {
+  width: min(420px, 92vw);
+  max-height: min(560px, 85vh);
+  display: flex;
+  flex-direction: column;
+  background: rgba(7, 10, 13, 0.96);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+}
+.issue-chat-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--surface-pad);
+  border-bottom: 1px solid var(--line);
+}
+.issue-chat-header-title {
+  font-family: var(--font-display);
+  font-size: var(--font-size-lg);
+  letter-spacing: 0.04em;
+  color: var(--text);
+  line-height: 1.2;
+}
+.issue-chat-header-sub {
+  font-size: var(--font-size-xs);
+  color: var(--muted);
+  margin-top: 4px;
+  font-family: var(--font-mono);
+}
+.issue-chat-close {
+  flex-shrink: 0;
+  min-height: 32px;
+  min-width: 32px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
+}
+.issue-chat-close:hover {
+  color: var(--text);
+  border-color: var(--line-strong);
+  background: rgba(255, 255, 255, 0.05);
+}
+.issue-chat-scroll {
+  flex: 1;
+  min-height: 120px;
+  overflow-y: auto;
+  padding: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.issue-chat-thinking-block {
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--stroke);
+  background: rgba(0, 232, 200, 0.06);
+  padding: var(--space-2) var(--space-3);
+}
+.issue-chat-thinking-label {
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 4px;
+}
+.issue-chat-thinking-body {
+  font-size: var(--font-size-xs);
+  font-family: var(--font-mono);
+  color: var(--muted);
+  margin: 0;
+  white-space: pre-wrap;
+  line-height: 1.45;
+  max-height: 140px;
+  overflow-y: auto;
+}
+.issue-chat-bubble {
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--font-size-sm);
+  line-height: 1.45;
+  max-width: 100%;
+}
+.issue-chat-bubble--user {
+  align-self: flex-end;
+  background: rgba(0, 232, 200, 0.12);
+  border: 1px solid var(--line);
+  color: var(--text);
+}
+.issue-chat-bubble--assistant {
+  align-self: flex-start;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--stroke);
+  color: var(--text);
+}
+.issue-chat-bubble--err {
+  border-color: rgba(248, 81, 73, 0.35);
+  color: var(--error);
+}
+.issue-chat-footer {
+  padding: var(--space-3);
+  border-top: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.issue-chat-row {
+  display: flex;
+  gap: var(--space-2);
+  align-items: flex-end;
+}
+.issue-chat-input {
+  flex: 1;
+  min-height: 44px;
+  max-height: 120px;
+  padding: 10px 12px;
+  border-radius: var(--radius-tight);
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-sm);
+  resize: vertical;
+  box-sizing: border-box;
+  transition: border-color var(--transition-fast);
+}
+.issue-chat-input:hover {
+  border-color: var(--border-strong);
+}
+.issue-chat-input:focus {
+  outline: 2px solid rgba(0, 232, 200, 0.35);
+  outline-offset: 2px;
+  border-color: transparent;
+}
+.issue-chat-send {
+  min-height: 44px;
+  padding: 10px 12px;
+  border-radius: var(--radius-tight);
+  border: 1px solid var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+.issue-chat-send:hover {
+  background: rgba(0, 232, 200, 0.16);
+}
+.issue-chat-send:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.issue-chat-apply {
+  min-height: 44px;
+  padding: 10px 12px;
+  border-radius: var(--radius-tight);
+  border: 1px solid var(--good);
+  background: var(--good-soft);
+  color: var(--good);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  cursor: pointer;
+  width: 100%;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+.issue-chat-apply:hover:not(:disabled) {
+  background: rgba(74, 222, 128, 0.2);
+}
+.issue-chat-apply:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+.issue-chat-close:focus-visible,
+.issue-chat-send:focus-visible,
+.issue-chat-apply:focus-visible {
+  outline: 2px solid rgba(0, 232, 200, 0.35);
+  outline-offset: 2px;
+}
+.issue-chat-hint {
+  font-size: var(--font-size-xs);
+  color: var(--muted);
+  margin: 0;
+  line-height: 1.4;
+}
+.av-toast {
+  position: fixed;
+  bottom: var(--space-5);
+  left: 50%;
+  transform: translateX(-50%) translateY(12px);
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-tight);
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  box-shadow: var(--shadow-md);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 200ms ease, transform 200ms ease;
+  z-index: 200;
+  white-space: nowrap;
+}
+.av-toast.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
+.av-toast--ok { border-color: rgba(74,222,128,0.3); color: var(--good); }
+.av-toast--err { border-color: rgba(248,81,73,0.3); color: var(--error); }
+.av-conflict-pop {
+  position: fixed;
+  right: var(--space-4);
+  bottom: var(--space-4);
+  width: min(420px, calc(100vw - 24px));
+  background: var(--panel);
+  border: 1px solid rgba(248,81,73,0.28);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-lg);
+  backdrop-filter: blur(10px);
+  padding: var(--space-3);
+  display: none;
+  z-index: 260;
+}
+.av-conflict-pop.visible { display: block; }
+.av-conflict-title {
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  color: var(--error);
+  margin-bottom: var(--space-2);
+}
+.av-conflict-body {
+  font-size: var(--font-size-sm);
+  color: var(--text);
+  line-height: 1.45;
+}
+.av-conflict-actions {
+  margin-top: var(--space-3);
+  display: flex;
+  gap: var(--space-2);
+}
+
+/* ─── ACTION CARDS ──────────────────────────────── */
+.db-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: var(--space-3);
+}
+.db-action-card {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.db-action-name {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--text);
+}
+.db-action-desc {
+  font-size: var(--font-size-sm);
+  color: var(--muted);
+  line-height: 1.4;
+  flex: 1;
+}
+.db-action-trigger {
+  font-size: var(--font-size-xs);
+  color: var(--muted);
+  opacity: 0.7;
+}
+.db-action-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: var(--space-1);
+  border-top: 1px solid var(--line);
+  padding-top: var(--space-2);
+}
+.db-action-last-run {
+  font-size: var(--font-size-xs);
+  font-family: var(--font-mono);
+  color: var(--muted);
+}
+.db-action-last-run--never {
+  color: rgba(93,120,112,0.45);
+  font-style: italic;
+}
+.db-action-output {
+  font-size: var(--font-size-xs);
+  font-family: var(--font-mono);
+  color: var(--muted);
+  opacity: 0.7;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* ─── METRIC CARDS ───────────────────────────────── */
 .db-grid {
   display: grid;
@@ -1739,6 +2362,10 @@ h3.os-chart-card-title {
         <span class="nav-dot" style="background:var(--accent)"></span>
         <span class="nav-item-text">Home</span>
       </button>
+      <button type="button" class="nav-item" data-dashboard="issues">
+        <span class="nav-dot" style="background:#a5b4fc"></span>
+        <span class="nav-item-text">Issues</span>
+  </button>
 
       <span class="nav-group-label">Leadership</span>
       <button type="button" class="nav-item" data-dashboard="orchestration">
@@ -2083,9 +2710,17 @@ h3.os-chart-card-title {
             </div>
             <div class="db-card db-card--manual">
               <div class="db-card-header"><div class="db-card-label">Agent Coverage</div><span class="db-tier db-tier--manual">MANUAL</span></div>
-              <div class="db-card-value">12</div>
+              <div class="db-card-value">20</div>
               <div class="db-card-sub">Domains with dashboards</div>
             </div>
+          </div>
+        </div>
+
+        <!-- ── Runbooks ── -->
+        <div class="db-section">
+          <div class="db-section-label">Runbooks</div>
+          <div class="db-actions-grid" id="db-orch-actions">
+            <div style="color:var(--muted);font-size:var(--font-size-sm);padding:8px 0">Loading…</div>
           </div>
         </div>
       </div>
@@ -2172,6 +2807,14 @@ h3.os-chart-card-title {
           <div class="db-section-label">Competitive watch</div>
           <div id="db-strategy-competitor-grid" class="db-grid">
             <div style="color:var(--muted);font-size:var(--font-size-sm);font-weight:500;padding:12px 0;grid-column:1/-1">Loading competitors…</div>
+          </div>
+        </div>
+
+        <!-- ── Runbooks ── -->
+        <div class="db-section">
+          <div class="db-section-label">Runbooks</div>
+          <div class="db-actions-grid" id="db-strategy-actions">
+            <div style="color:var(--muted);font-size:var(--font-size-sm);padding:8px 0">Loading…</div>
           </div>
         </div>
 
@@ -2290,6 +2933,14 @@ h3.os-chart-card-title {
               </div>
               <p class="os-chart-foot" id="eng-chart-donut-desc">Room Copilot UX charter + QA gate — replace with measured accept / revise / discard.</p>
             </div>
+          </div>
+        </div>
+
+        <!-- ── Runbooks ── -->
+        <div class="db-section">
+          <div class="db-section-label">Runbooks</div>
+          <div class="db-actions-grid" id="db-eng-actions">
+            <div style="color:var(--muted);font-size:var(--font-size-sm);padding:8px 0">Loading…</div>
           </div>
         </div>
 
@@ -2419,6 +3070,14 @@ h3.os-chart-card-title {
               <div class="db-card-value" id="db-qa-acceptance-count">—</div>
               <div class="db-card-sub">Manual test cases documented</div>
             </div>
+          </div>
+        </div>
+
+        <!-- ── Runbooks ── -->
+        <div class="db-section">
+          <div class="db-section-label">Runbooks</div>
+          <div class="db-actions-grid" id="db-qa-actions">
+            <div style="color:var(--muted);font-size:var(--font-size-sm);padding:8px 0">Loading…</div>
           </div>
         </div>
 
@@ -2728,6 +3387,14 @@ h3.os-chart-card-title {
             </div>
           </div>
         </div>
+        <!-- ── Runbooks ── -->
+        <div class="db-section">
+          <div class="db-section-label">Runbooks</div>
+          <div class="db-actions-grid" id="db-analytics-actions">
+            <div style="color:var(--muted);font-size:var(--font-size-sm);padding:8px 0">Loading…</div>
+          </div>
+        </div>
+
         <div class="db-qa-signpost db-qa-signpost--stack">
           <button type="button" class="db-qa-link" onclick="selectDashboard('home')">→ Home · AI usage overview</button>
           <button type="button" class="db-qa-link" onclick="selectDashboard('engineering')">→ Engineering · pipeline &amp; keys</button>
@@ -2880,6 +3547,14 @@ h3.os-chart-card-title {
             </div>
           </div>
         </div>
+        <!-- ── Runbooks ── -->
+        <div class="db-section">
+          <div class="db-section-label">Runbooks</div>
+          <div class="db-actions-grid" id="db-marketing-actions">
+            <div style="color:var(--muted);font-size:var(--font-size-sm);padding:8px 0">Loading…</div>
+          </div>
+        </div>
+
         <div class="db-qa-signpost db-qa-signpost--stack">
           <button type="button" class="db-qa-link" onclick="selectDashboard('strategy')">→ Strategy · positioning &amp; competitors</button>
           <button type="button" class="db-qa-link" onclick="selectDashboard('orchestration')">→ Orchestration · cross-agent priorities</button>
@@ -2954,6 +3629,14 @@ h3.os-chart-card-title {
             </div>
           </div>
         </div>
+        <!-- ── Runbooks ── -->
+        <div class="db-section">
+          <div class="db-section-label">Runbooks</div>
+          <div class="db-actions-grid" id="db-design-actions">
+            <div style="color:var(--muted);font-size:var(--font-size-sm);padding:8px 0">Loading…</div>
+          </div>
+        </div>
+
         <div class="db-qa-signpost" style="display:flex;flex-direction:column;gap:8px">
           <button type="button" class="db-qa-link" onclick="selectDashboard('workbench')">→ Workbench dashboard for product health</button>
           <button type="button" class="db-qa-link" onclick="selectDashboard('ashen-hollow')">→ Ashen Hollow for game pillars &amp; production docs</button>
@@ -3106,6 +3789,72 @@ h3.os-chart-card-title {
         </div>
       </div>
 
+      <!-- ISSUES VIEW (priority rows across agents) -->
+      <div class="dashboard-view" data-dashboard-view="issues">
+        <div class="db-view-header">
+          <span class="db-view-icon">⚡</span>
+          <div>
+            <div class="db-view-title" style="color:#a5b4fc">ISSUES</div>
+            <div class="db-view-subtitle">All agent priority issues — filter by owner/status, reorder, edit inline, discuss with the agent</div>
+            <div
+              class="av-sort-badge"
+              title="Sorted by Orchestrator: status (in-progress → needs-review → queued → paused → done), then risk (high → med → low), then ID."
+            >
+              Sorted by Orchestrator
+            </div>
+          </div>
+        </div>
+        <div class="av-toolbar">
+          <div class="av-filter-group">
+            <span class="av-filter-label">Owner</span>
+            <select class="av-select" id="av-filter-owner">
+              <option value="">All agents</option>
+            </select>
+          </div>
+          <div class="av-filter-group">
+            <span class="av-filter-label">Status</span>
+            <select class="av-select" id="av-filter-status">
+              <option value="">All</option>
+              <option value="in-progress">In Progress</option>
+              <option value="needs-review">Needs Review</option>
+              <option value="paused">Paused</option>
+              <option value="queued">Queued</option>
+              <option value="done">Done</option>
+            </select>
+          </div>
+          <input type="text" class="av-search" id="av-search" placeholder="Search issues…" autocomplete="off" spellcheck="false">
+          <button type="button" class="av-btn av-btn--accent av-add-btn" id="av-add-btn">+ Add Issue</button>
+          <span class="av-count" id="av-count"></span>
+        </div>
+        <div class="av-add-panel" id="av-add-panel">
+          <select class="av-field" id="av-add-owner">
+            <option value="">Assign owner agent…</option>
+          </select>
+          <select class="av-field" id="av-add-status">
+            <option value="queued">queued</option>
+            <option value="in-progress">in-progress</option>
+            <option value="needs-review">needs-review</option>
+            <option value="paused">paused</option>
+            <option value="done">done</option>
+          </select>
+          <select class="av-field" id="av-add-risk">
+            <option value="low">low</option>
+            <option value="med">med</option>
+            <option value="high">high</option>
+          </select>
+          <input class="av-field av-field-wide" id="av-add-title" placeholder="Issue title">
+          <textarea class="av-field av-field-wide" id="av-add-note" rows="2" placeholder="Detail/context"></textarea>
+          <textarea class="av-field av-field-wide" id="av-add-solution" rows="2" placeholder="Proposed solution"></textarea>
+          <div class="av-add-actions">
+            <button type="button" class="av-btn" id="av-add-cancel">Cancel</button>
+            <button type="button" class="av-btn av-btn--accent" id="av-add-save">Add to agent priorities</button>
+          </div>
+        </div>
+        <div class="av-list" id="av-list">
+          <div style="color:var(--muted);font-size:var(--font-size-sm);padding:var(--space-5) 0">Select Issues from the nav to load…</div>
+        </div>
+      </div>
+
       </div><!-- /.main-left-views -->
 
     </div><!-- /.main-left -->
@@ -3172,8 +3921,41 @@ h3.os-chart-card-title {
 
 </div>
 
+<!-- Issue discussion (OpenAI via supervisor; requires OPENAI_API_KEY) -->
+<div class="issue-chat-backdrop" id="issue-chat-backdrop" aria-hidden="true">
+  <div class="issue-chat-panel" role="dialog" aria-labelledby="issue-chat-title" aria-modal="true">
+    <div class="issue-chat-header">
+      <div>
+        <div class="issue-chat-header-title" id="issue-chat-title">Discuss issue</div>
+        <div class="issue-chat-header-sub" id="issue-chat-sub"></div>
+      </div>
+      <button type="button" class="issue-chat-close" id="issue-chat-close" title="Close">✕</button>
+    </div>
+    <div class="issue-chat-scroll" id="issue-chat-scroll"></div>
+    <div class="issue-chat-footer">
+      <p class="issue-chat-hint" id="issue-chat-api-hint">
+        Chat uses the supervisor <code style="font-family:var(--font-mono);font-size:11px">/api/issue-chat</code> endpoint (OpenAI API). Set <code style="font-family:var(--font-mono);font-size:11px">OPENAI_API_KEY</code> when starting the dashboard server. Cursor IDE does not expose a browser API; this is the supported server-side hook.
+      </p>
+      <button type="button" class="issue-chat-apply" id="issue-chat-apply" disabled>Apply suggested priority updates</button>
+      <div class="issue-chat-row">
+        <textarea class="issue-chat-input" id="issue-chat-input" rows="2" placeholder="Message the agent…" autocomplete="off"></textarea>
+        <button type="button" class="issue-chat-send" id="issue-chat-send">Send</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
+<div class="av-toast" id="av-toast"></div>
+<div class="av-conflict-pop" id="av-conflict-pop" role="alert" aria-live="assertive">
+  <div class="av-conflict-title">Manual Priority Override Conflict</div>
+  <div class="av-conflict-body" id="av-conflict-body">An agent update changed a priority list you previously edited manually.</div>
+  <div class="av-conflict-actions">
+    <button type="button" class="av-btn av-btn--accent" id="av-conflict-open">Open Issues</button>
+    <button type="button" class="av-btn" id="av-conflict-dismiss">Dismiss</button>
+  </div>
+</div>
 
 <script>
 const AGENTS = {
@@ -3453,6 +4235,7 @@ const AGENTS = {
 // ── Dashboard config ─────────────────────────────
 const DASHBOARDS = {
   home:            { label: 'Home',           color: '#00e8c8', agents: ['orchestrator'] },
+  issues:          { label: 'Issues',          color: '#a5b4fc', agents: ['orchestrator'] },
   orchestration:   { label: 'Orchestration', color: '#00e8c8', agents: ['orchestrator'] },
   strategy:        { label: 'Strategy',       color: '#94a3b8', agents: ['strategy'] },
   engineering:     { label: 'Engineering',    color: '#ff9500', agents: ['engineering', 'animation', 'level-design'] },
@@ -3513,7 +4296,8 @@ function getInitialDashboardId() {
   let id = 'home';
   try {
     const saved = sessionStorage.getItem(DASHBOARD_STORAGE_KEY);
-    if (saved && DASHBOARDS[saved]) id = saved;
+    if (saved === 'actions') id = 'issues';
+    else if (saved && DASHBOARDS[saved]) id = saved;
   } catch (e) { /* private mode / blocked */ }
   return id;
 }
@@ -3734,7 +4518,8 @@ function fallbackCopy(text) {
 }
 
 function escapeHtml(str) {
-  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const safe = str == null ? '' : String(str);
+  return safe.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
 // ── Engineering status (engineering-status.json) ──
@@ -3793,6 +4578,27 @@ function renderFounderDecisions(decisions, container) {
   ).join('');
 }
 
+function renderActions(actions, container) {
+  if (!Array.isArray(actions) || actions.length === 0) {
+    container.innerHTML = '<div style="color:var(--muted);font-size:var(--font-size-sm);padding:8px 0">No runbooks defined.</div>';
+    return;
+  }
+  container.innerHTML = actions.map(function(a) {
+    var lastRunHtml = a.last_run
+      ? '<span class="db-action-last-run">Last run: ' + escapeHtml(a.last_run) + '</span>'
+      : '<span class="db-action-last-run db-action-last-run--never">Never run</span>';
+    var outputHtml = a.output_location
+      ? '<span class="db-action-output" title="' + escapeHtml(a.output_location) + '">' + escapeHtml(a.output_location.length > 48 ? a.output_location.slice(0, 48) + '\u2026' : a.output_location) + '</span>'
+      : '';
+    return '<div class="db-action-card">'
+      + '<div class="db-action-name">' + escapeHtml(a.name) + '</div>'
+      + '<div class="db-action-desc">' + escapeHtml(a.description) + '</div>'
+      + '<div class="db-action-trigger">\u21b3 ' + escapeHtml(a.trigger) + '</div>'
+      + '<div class="db-action-meta">' + lastRunHtml + outputHtml + '</div>'
+      + '</div>';
+  }).join('');
+}
+
 async function loadEngineeringStatus() {
   try {
     const resp = await fetch('engineering-status.json');
@@ -3808,6 +4614,8 @@ async function loadEngineeringStatus() {
     if (risksP0El) renderRisksP0(s.risks_p0 ?? [], risksP0El);
     if (founderEl) renderFounderDecisions(s.founder_decisions ?? [], founderEl);
     if (schemaEl && s.schema_version) schemaEl.textContent = s.schema_version;
+    const actionsEl = document.getElementById('db-eng-actions');
+    if (actionsEl) renderActions(s.actions ?? [], actionsEl);
   } catch {
     // Leave placeholder content in place
   }
@@ -3826,6 +4634,8 @@ async function loadDesignStatus() {
     if (prioritiesEl && s.priorities) renderPriorityRows(s.priorities, prioritiesEl);
     if (risksP0El) renderRisksP0(s.risks_p0 ?? [], risksP0El);
     if (founderEl) renderFounderDecisions(s.founder_decisions ?? [], founderEl);
+    const actionsEl = document.getElementById('db-design-actions');
+    if (actionsEl) renderActions(s.actions ?? [], actionsEl);
 
     const m = s.metrics ?? {};
     const setMetric = (id, val) => {
@@ -3857,6 +4667,8 @@ async function loadMarketingStatus() {
     }
     if (risksP0El) renderRisksP0(s.risks_p0 ?? [], risksP0El);
     if (founderEl) renderFounderDecisions(s.founder_decisions ?? [], founderEl);
+    const actionsEl = document.getElementById('db-marketing-actions');
+    if (actionsEl) renderActions(s.actions ?? [], actionsEl);
 
     const m = s.metrics ?? {};
     const setMetric = (id, val) => {
@@ -3899,6 +4711,8 @@ async function loadQaStatus() {
     // Priorities
     const prioritiesEl = document.getElementById('db-qa-priorities');
     if (prioritiesEl && s.priorities) renderPriorityRows(s.priorities, prioritiesEl);
+    const actionsEl = document.getElementById('db-qa-actions');
+    if (actionsEl) renderActions(s.actions ?? [], actionsEl);
 
     // Risk panels
     const risksP0El = document.getElementById('db-qa-risks-p0');
@@ -3993,6 +4807,8 @@ async function loadStrategyStatus() {
     if (prioritiesEl && s.priorities) renderPriorityRows(s.priorities, prioritiesEl);
     if (risksP0El) renderRisksP0(s.risks_p0 ?? [], risksP0El);
     if (founderEl) renderFounderDecisions(s.founder_decisions ?? [], founderEl);
+    const actionsEl = document.getElementById('db-strategy-actions');
+    if (actionsEl) renderActions(s.actions ?? [], actionsEl);
 
     // Assumption register
     const assumptionEl = document.getElementById('db-strategy-assumption-register');
@@ -4074,6 +4890,8 @@ function applyAnalyticsStatusPayload(s) {
   }
   if (risksP0El) renderRisksP0(s.risks_p0 ?? [], risksP0El);
   if (founderEl) renderFounderDecisions(s.founder_decisions ?? [], founderEl);
+  const actionsEl = document.getElementById('db-analytics-actions');
+  if (actionsEl) renderActions(s.actions ?? [], actionsEl);
 }
 
 async function loadAnalyticsStatus() {
@@ -4178,6 +4996,8 @@ async function loadOrchestrationStatus() {
     if (prioritiesEl && s.priorities) renderOrchPriorityRows(s.priorities, prioritiesEl);
     if (risksP0El) renderRisksP0(s.risks_p0 ?? [], risksP0El);
     if (founderEl) renderFounderDecisions(s.founder_decisions ?? [], founderEl);
+    const actionsEl = document.getElementById('db-orch-actions');
+    if (actionsEl) renderActions(s.actions ?? [], actionsEl);
   } catch {
     // Leave placeholder content in place
   }
@@ -4857,7 +5677,924 @@ async function postGlobalWorkbenchAction(action) {
 }
 
 // ── Live data loader ─────────────────────────────
+// ── ISSUES VIEW (priorities across agents) ────────────────────────────────────
+
+const AV_STATUS_FILES = [
+  { file: 'engineering-status.json',      agent: 'engineering' },
+  { file: 'design-status.json',           agent: 'design' },
+  { file: 'analytics-status.json',        agent: 'analytics' },
+  { file: 'marketing-status.json',        agent: 'marketing' },
+  { file: 'orchestration-status.json',    agent: 'orchestrator' },
+  { file: 'strategy-status.json',         agent: 'strategy' },
+  { file: 'qa-status.json',               agent: 'qa' },
+  { file: 'game-director-status.json',    agent: 'game-director' },
+  { file: 'game-systems-status.json',     agent: 'game-systems' },
+  { file: 'level-design-status.json',     agent: 'level-design' },
+  { file: 'workbench-po-status.json',     agent: 'workbench-po' },
+  { file: 'finance-status.json',          agent: 'finance' },
+  { file: 'legal-status.json',            agent: 'legal' },
+  { file: 'cybersecurity-status.json',    agent: 'cybersecurity' },
+  { file: 'support-status.json',          agent: 'support' },
+  { file: 'animation-status.json',        agent: 'animation' },
+  { file: 'narrative-status.json',        agent: 'narrative' },
+  { file: 'audio-status.json',            agent: 'audio' },
+  { file: 'workbench-art-status.json',    agent: 'workbench-art' },
+  { file: 'ashen-hollow-art-status.json', agent: 'ashen-hollow-art' },
+];
+
+// file -> full parsed JSON object
+const avCache = {};
+// flat list of enriched action-item objects sourced from `priorities`
+let avAllActions = [];
+let avLoaded = false;
+let avAddBound = false;
+const AV_MANUAL_BASELINES_KEY = 'agentos.manualPriorityBaselines.v1';
+const AV_CONFLICTS_KEY = 'agentos.priorityConflicts.v1';
+
+function avReadStore(key) {
+  try {
+    return JSON.parse(localStorage.getItem(key) || '{}');
+  } catch {
+    return {};
+  }
+}
+
+function avWriteStore(key, value) {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    // Ignore quota/storage failures.
+  }
+}
+
+function avPriorityHash(priorities) {
+  var input = JSON.stringify(Array.isArray(priorities) ? priorities : []);
+  var hash = 5381;
+  for (var i = 0; i < input.length; i++) {
+    hash = ((hash << 5) + hash) ^ input.charCodeAt(i);
+  }
+  return String(hash >>> 0);
+}
+
+function avRecordManualBaseline(file, priorities) {
+  var map = avReadStore(AV_MANUAL_BASELINES_KEY);
+  map[file] = {
+    hash: avPriorityHash(priorities),
+    at: new Date().toISOString()
+  };
+  avWriteStore(AV_MANUAL_BASELINES_KEY, map);
+}
+
+function avShowConflictPopup(message) {
+  var pop = document.getElementById('av-conflict-pop');
+  var body = document.getElementById('av-conflict-body');
+  if (!pop || !body) return;
+  body.textContent = message;
+  pop.classList.add('visible');
+}
+
+function avInitConflictPopupActions() {
+  var openBtn = document.getElementById('av-conflict-open');
+  var dismissBtn = document.getElementById('av-conflict-dismiss');
+  var pop = document.getElementById('av-conflict-pop');
+  if (openBtn) {
+    openBtn.addEventListener('click', function() {
+      selectDashboard('issues');
+      if (pop) pop.classList.remove('visible');
+    });
+  }
+  if (dismissBtn) {
+    dismissBtn.addEventListener('click', function() {
+      if (pop) pop.classList.remove('visible');
+    });
+  }
+}
+
+// ── Issue discussion overlay (POST /api/issue-chat → OpenAI via supervisor) ──
+let issueChatAction = null;
+let issueChatMessages = [];
+let issueChatPendingUpdates = [];
+let issueChatLoading = false;
+
+function issueChatAgentMeta(agentId) {
+  var agent = AGENTS[agentId] || {};
+  var meta = AGENT_META[agentId] || {};
+  return {
+    label: agent.label || agentId,
+    charter: agent.charter || '',
+    icon: meta.icon || ''
+  };
+}
+
+function issueChatOpen(action) {
+  issueChatAction = action;
+  issueChatMessages = [];
+  issueChatPendingUpdates = [];
+  issueChatLoading = false;
+  var am = issueChatAgentMeta(action._agent);
+  var titleEl = document.getElementById('issue-chat-title');
+  var subEl = document.getElementById('issue-chat-sub');
+  var backdrop = document.getElementById('issue-chat-backdrop');
+  var applyBtn = document.getElementById('issue-chat-apply');
+  if (titleEl) titleEl.textContent = 'Discuss issue';
+  if (subEl) subEl.textContent = (am.icon ? am.icon + ' ' : '') + am.label + ' · ' + (action._file || '');
+  if (applyBtn) applyBtn.disabled = true;
+  if (backdrop) {
+    backdrop.classList.add('visible');
+    backdrop.setAttribute('aria-hidden', 'false');
+  }
+  var scroll = document.getElementById('issue-chat-scroll');
+  if (scroll) {
+    scroll.innerHTML = '';
+    var intro = document.createElement('div');
+    intro.className = 'issue-chat-bubble issue-chat-bubble--assistant';
+    intro.textContent = 'Context loaded: priority #' + String(action.id || '') + ' — ' + (action.title || 'Untitled') + '. Ask a question or propose a change.';
+    scroll.appendChild(intro);
+  }
+  var inp = document.getElementById('issue-chat-input');
+  if (inp) { inp.value = ''; inp.focus(); }
+}
+
+function issueChatClose() {
+  var backdrop = document.getElementById('issue-chat-backdrop');
+  if (backdrop) {
+    backdrop.classList.remove('visible');
+    backdrop.setAttribute('aria-hidden', 'true');
+  }
+  issueChatAction = null;
+  issueChatMessages = [];
+  issueChatPendingUpdates = [];
+  issueChatLoading = false;
+  var applyBtn = document.getElementById('issue-chat-apply');
+  if (applyBtn) applyBtn.disabled = true;
+}
+
+function issueChatAppendBubble(role, text, thinking, isErr) {
+  var scroll = document.getElementById('issue-chat-scroll');
+  if (!scroll) return;
+  if (thinking) {
+    var wrap = document.createElement('div');
+    wrap.className = 'issue-chat-thinking-block';
+    wrap.innerHTML = '<div class="issue-chat-thinking-label">Agent reasoning</div><pre class="issue-chat-thinking-body"></pre>';
+    wrap.querySelector('pre').textContent = thinking;
+    scroll.appendChild(wrap);
+  }
+  var bubble = document.createElement('div');
+  bubble.className = 'issue-chat-bubble issue-chat-bubble--' + role + (isErr ? ' issue-chat-bubble--err' : '');
+  bubble.textContent = text || '';
+  scroll.appendChild(bubble);
+  scroll.scrollTop = scroll.scrollHeight;
+}
+
+async function issueChatSend() {
+  var input = document.getElementById('issue-chat-input');
+  var sendBtn = document.getElementById('issue-chat-send');
+  var applyBtn = document.getElementById('issue-chat-apply');
+  if (!issueChatAction || !input || issueChatLoading) return;
+  var text = (input.value || '').trim();
+  if (!text) return;
+  issueChatMessages.push({ role: 'user', content: text });
+  input.value = '';
+  issueChatAppendBubble('user', text, null, false);
+  issueChatLoading = true;
+  if (sendBtn) sendBtn.disabled = true;
+  var am = issueChatAgentMeta(issueChatAction._agent);
+  try {
+    var resp = await fetch('/api/issue-chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        messages: issueChatMessages,
+        issue: issueChatAction,
+        agentCharter: am.charter,
+        agentLabel: am.label
+      })
+    });
+    var j = await resp.json().catch(function() { return {}; });
+    if (!resp.ok) {
+      var errMsg = j.message || j.error || ('HTTP ' + resp.status);
+      issueChatAppendBubble('assistant', errMsg, null, true);
+      issueChatPendingUpdates = [];
+      if (applyBtn) applyBtn.disabled = true;
+      return;
+    }
+    var r = j.result || {};
+    var thinking = typeof r.thinking === 'string' ? r.thinking : '';
+    var msg = typeof r.assistant_message === 'string' ? r.assistant_message : JSON.stringify(r);
+    issueChatMessages.push({ role: 'assistant', content: msg });
+    issueChatAppendBubble('assistant', msg, thinking, false);
+    issueChatPendingUpdates = Array.isArray(r.priority_updates) ? r.priority_updates : [];
+    if (applyBtn) applyBtn.disabled = issueChatPendingUpdates.length === 0;
+  } catch (e) {
+    issueChatAppendBubble('assistant', String(e), null, true);
+    issueChatPendingUpdates = [];
+    if (applyBtn) applyBtn.disabled = true;
+  } finally {
+    issueChatLoading = false;
+    if (sendBtn) sendBtn.disabled = false;
+  }
+}
+
+function issueChatValidateUpdateFile(fname) {
+  return AV_STATUS_FILES.some(function(x) { return x.file === fname; });
+}
+
+async function issueChatApplyUpdates() {
+  if (!issueChatPendingUpdates.length) return;
+  var touched = {};
+  for (var i = 0; i < issueChatPendingUpdates.length; i++) {
+    var u = issueChatPendingUpdates[i];
+    var file = u && u.file;
+    var id = u && u.id;
+    var fields = u && u.fields;
+    if (!file || !issueChatValidateUpdateFile(file)) continue;
+    var data = avCache[file];
+    if (!data || !Array.isArray(data.priorities)) continue;
+    var pid = Number(id);
+    if (!Number.isFinite(pid)) continue;
+    var p = data.priorities.find(function(x) { return Number(x.id) === pid; });
+    if (!p || !fields || typeof fields !== 'object') continue;
+    Object.keys(fields).forEach(function(k) {
+      if (['title', 'status', 'risk', 'note', 'proposed_solution'].indexOf(k) !== -1) {
+        p[k] = fields[k];
+      }
+    });
+    data.updated = new Date().toISOString().slice(0, 10);
+    touched[file] = true;
+  }
+  var files = Object.keys(touched);
+  if (files.length === 0) {
+    avShowToast('No valid updates to apply', false);
+    return;
+  }
+  var results = await Promise.all(files.map(function(file) { return avPersist(file); }));
+  if (results.every(Boolean)) {
+    files.forEach(function(file) {
+      avRecordManualBaseline(file, avCache[file].priorities || []);
+    });
+    avRebuildAllActionsFromCache();
+    avApplyFilters();
+    issueChatClose();
+    avShowToast('Applied priority updates', true);
+  } else {
+    avShowToast('Save failed — is the supervisor running?', false);
+  }
+}
+
+(function issueChatSetup() {
+  var closeBtn = document.getElementById('issue-chat-close');
+  var backdrop = document.getElementById('issue-chat-backdrop');
+  var sendBtn = document.getElementById('issue-chat-send');
+  var applyBtn = document.getElementById('issue-chat-apply');
+  var inp = document.getElementById('issue-chat-input');
+  if (closeBtn) closeBtn.addEventListener('click', issueChatClose);
+  if (backdrop) {
+    backdrop.addEventListener('click', function(e) {
+      if (e.target === backdrop) issueChatClose();
+    });
+  }
+  if (sendBtn) sendBtn.addEventListener('click', function() { void issueChatSend(); });
+  if (applyBtn) applyBtn.addEventListener('click', function() { void issueChatApplyUpdates(); });
+  if (inp) {
+    inp.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        void issueChatSend();
+      }
+    });
+  }
+})();
+
+async function avCheckManualConflicts() {
+  var baselines = avReadStore(AV_MANUAL_BASELINES_KEY);
+  var files = Object.keys(baselines);
+  if (files.length === 0) return;
+
+  var conflicts = avReadStore(AV_CONFLICTS_KEY);
+  var foundMessage = null;
+
+  for (var i = 0; i < files.length; i++) {
+    var file = files[i];
+    try {
+      var resp = await fetch(file, { cache: 'no-store' });
+      if (!resp.ok) continue;
+      var data = await resp.json();
+      var currentHash = avPriorityHash(data.priorities || []);
+      var baselineHash = baselines[file] && baselines[file].hash;
+      if (!baselineHash || currentHash === baselineHash) continue;
+
+      var prev = conflicts[file];
+      if (!prev || prev.currentHash !== currentHash) {
+        conflicts[file] = {
+          detected_at: new Date().toISOString(),
+          baseline_hash: baselineHash,
+          current_hash: currentHash
+        };
+        foundMessage = 'Detected a conflict in ' + file + ': manual priority order/details changed externally.';
+      }
+    } catch {
+      // Continue other files.
+    }
+  }
+
+  avWriteStore(AV_CONFLICTS_KEY, conflicts);
+  if (foundMessage) avShowConflictPopup(foundMessage);
+}
+
+function avLabel(slug) {
+  return slug.split('-').map(function(w) { return w.charAt(0).toUpperCase() + w.slice(1); }).join(' ');
+}
+
+function avAgentForFile(file) {
+  var found = AV_STATUS_FILES.find(function(x) { return x.file === file; });
+  return found ? found.agent : null;
+}
+
+function avFileForAgent(agent) {
+  var found = AV_STATUS_FILES.find(function(x) { return x.agent === agent; });
+  return found ? found.file : null;
+}
+
+function avRebuildAllActionsFromCache() {
+  avAllActions = [];
+  Object.keys(avCache).forEach(function(file) {
+    var data = avCache[file];
+    if (!data || !Array.isArray(data.priorities)) return;
+    var agent = avAgentForFile(file) || 'orchestrator';
+    data.priorities.forEach(function(item, idx) {
+      var enriched = Object.assign({ _file: file, _agent: agent, _idx: idx }, item);
+      enriched._priorityId = item.id;
+      avAllActions.push(enriched);
+    });
+  });
+}
+
+function avShowToast(msg, ok) {
+  const el = document.getElementById('av-toast');
+  if (!el) return;
+  el.textContent = msg;
+  el.className = 'av-toast ' + (ok ? 'av-toast--ok' : 'av-toast--err') + ' visible';
+  clearTimeout(el._avTimer);
+  el._avTimer = setTimeout(function() {
+    el.classList.remove('visible');
+  }, 3200);
+}
+
+async function loadActionsView() {
+  const listEl = document.getElementById('av-list');
+  if (!listEl) return;
+
+  try {
+    if (!avLoaded) {
+      listEl.innerHTML = '<div style="color:var(--muted);font-size:var(--font-size-sm);padding:var(--space-5) 0">Loading…</div>';
+      const results = await Promise.allSettled(
+        AV_STATUS_FILES.map(async function(entry) {
+          try {
+            const ctrl = new AbortController();
+            const t = setTimeout(function() { ctrl.abort(); }, 4000);
+            const resp = await fetch(entry.file, { signal: ctrl.signal });
+            clearTimeout(t);
+            if (!resp.ok) return null;
+            const data = await resp.json();
+            avCache[entry.file] = data;
+            return { file: entry.file, agent: entry.agent, data: data };
+          } catch (e) { return null; }
+        })
+      );
+
+      var agentsPresent = [];
+      results.forEach(function(r) {
+        if (r.status !== 'fulfilled' || !r.value) return;
+        var entry = r.value;
+        if (!Array.isArray(entry.data.priorities)) return;
+        agentsPresent.push(entry.agent);
+      });
+      avRebuildAllActionsFromCache();
+
+      // Populate owner filter
+      var ownerSel = document.getElementById('av-filter-owner');
+      var addOwnerSel = document.getElementById('av-add-owner');
+      if (ownerSel && ownerSel.options.length === 1) {
+        agentsPresent.sort().forEach(function(ag) {
+          var meta = AGENT_META[ag] || { icon: '•' };
+          var opt = document.createElement('option');
+          opt.value = ag;
+          opt.textContent = (meta.icon || '') + ' ' + avLabel(ag);
+          ownerSel.appendChild(opt);
+          if (addOwnerSel) {
+            var opt2 = document.createElement('option');
+            opt2.value = ag;
+            opt2.textContent = (meta.icon || '') + ' ' + avLabel(ag);
+            addOwnerSel.appendChild(opt2);
+          }
+        });
+        ownerSel.addEventListener('change', avApplyFilters);
+        var statusSel = document.getElementById('av-filter-status');
+        if (statusSel) statusSel.addEventListener('change', avApplyFilters);
+        var searchEl = document.getElementById('av-search');
+        if (searchEl) searchEl.addEventListener('input', avApplyFilters);
+      }
+      if (!avAddBound) {
+        avInitAddPanel();
+        avAddBound = true;
+      }
+      avLoaded = true;
+    }
+
+    avApplyFilters();
+  } catch (e) {
+    listEl.innerHTML = '<div style="color:var(--error);font-size:var(--font-size-sm);padding:var(--space-5) 0">Could not load issues. Reload the dashboard or start the dashboard server.</div>';
+  }
+}
+
+function avGetFiltered() {
+  var ownerSel = document.getElementById('av-filter-owner');
+  var statusSel = document.getElementById('av-filter-status');
+  var searchEl = document.getElementById('av-search');
+  var owner = ownerSel ? ownerSel.value : '';
+  var status = statusSel ? statusSel.value : '';
+  var query = searchEl ? searchEl.value.toLowerCase().trim() : '';
+
+  return avAllActions.filter(function(a) {
+    if (owner && a._agent !== owner) return false;
+    if (status && (a.status || '') !== status) return false;
+    if (query) {
+      var hay = [a.title, a.note, a.status, a.risk, avLabel(a._agent)].join(' ').toLowerCase();
+      if (hay.indexOf(query) === -1) return false;
+    }
+    return true;
+  });
+}
+
+function avSortedActions(filtered) {
+  return filtered.slice().sort(function(a, b) {
+    var ap = avPriorityScore(a);
+    var bp = avPriorityScore(b);
+    if (ap !== bp) return ap - bp;
+    if (a._agent < b._agent) return -1;
+    if (a._agent > b._agent) return 1;
+    var ao = (a.sort_order != null) ? a.sort_order : a._idx;
+    var bo = (b.sort_order != null) ? b.sort_order : b._idx;
+    return ao - bo;
+  });
+}
+
+function avPriorityScore(item) {
+  var statusRank = { 'in-progress': 0, 'needs-review': 1, 'queued': 2, 'paused': 3, 'done': 4 };
+  var riskRank = { high: 0, med: 1, low: 2 };
+  var s = statusRank[item.status] != null ? statusRank[item.status] : 3;
+  var r = riskRank[item.risk] != null ? riskRank[item.risk] : 2;
+  return s * 10 + r;
+}
+
+function avOrchestratorSortPriorities(priorities) {
+  priorities.sort(function(a, b) {
+    var ap = avPriorityScore(a);
+    var bp = avPriorityScore(b);
+    if (ap !== bp) return ap - bp;
+    var ai = Number(a.id) || 0;
+    var bi = Number(b.id) || 0;
+    return ai - bi;
+  });
+}
+
+function avApplyFilters() {
+  var filtered = avGetFiltered();
+  var countEl = document.getElementById('av-count');
+  if (countEl) countEl.textContent = filtered.length + ' issue' + (filtered.length !== 1 ? 's' : '');
+  avRenderList(avSortedActions(filtered));
+}
+
+function avRenderList(sorted) {
+  var listEl = document.getElementById('av-list');
+  if (!listEl) return;
+  if (sorted.length === 0) {
+    listEl.innerHTML = '<div style="color:var(--muted);font-size:var(--font-size-sm);padding:var(--space-5) 0;text-align:center">No issues match the filter.</div>';
+    return;
+  }
+
+  listEl.innerHTML = sorted.map(function(a, i) {
+    return avRowHtml(a, i, sorted.length);
+  }).join('');
+
+  // Bind row interactions
+  listEl.querySelectorAll('.av-row').forEach(function(row, i) {
+    var action = sorted[i];
+    function toggleExpanded() {
+      row.classList.toggle('av-row--expanded');
+      var isExpanded = row.classList.contains('av-row--expanded');
+      var btn = row.querySelector('.av-expand-btn');
+      if (btn) btn.textContent = isExpanded ? '▲' : '▼';
+      if (main) main.setAttribute('aria-expanded', isExpanded ? 'true' : 'false');
+    }
+    var main = row.querySelector('.av-row-main');
+    if (main) {
+      main.addEventListener('click', function() { toggleExpanded(); });
+      main.addEventListener('keydown', function(event) {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          toggleExpanded();
+        }
+      });
+    }
+    row.querySelector('.av-expand-btn').addEventListener('click', function(event) {
+      event.stopPropagation();
+      toggleExpanded();
+    });
+    var editBtn = row.querySelector('.av-edit-btn');
+    if (editBtn) editBtn.addEventListener('click', function(event) { event.stopPropagation(); avToggleEdit(row, action); });
+    var runBtn = row.querySelector('.av-run-action-btn');
+    if (runBtn) runBtn.addEventListener('click', function(event) {
+      event.stopPropagation();
+      avDispatchActionToAgent(action);
+    });
+    var discussBtn = row.querySelector('.av-discuss-btn');
+    if (discussBtn) discussBtn.addEventListener('click', function(event) {
+      event.stopPropagation();
+      issueChatOpen(action);
+    });
+    var upBtn = row.querySelector('.av-up-btn');
+    if (upBtn) upBtn.addEventListener('click', function() { avMove(action, sorted, -1); });
+    var downBtn = row.querySelector('.av-down-btn');
+    if (downBtn) downBtn.addEventListener('click', function() { avMove(action, sorted, 1); });
+  });
+
+  avInitDrag(listEl, sorted);
+}
+
+function avRowHtml(action, idx, total) {
+  var meta = AGENT_META[action._agent] || { icon: '•', color: '#5d7870' };
+  var label = avLabel(action._agent);
+  var badgeStyle = 'background:' + meta.color + '22;color:' + meta.color + ';border:1px solid ' + meta.color + '33';
+  var status = action.status || 'queued';
+  var risk = action.risk || 'low';
+  var riskCls = risk === 'high' ? 'av-risk-col--high' : risk === 'med' ? 'av-risk-col--med' : 'av-risk-col--low';
+  var statusCls = status === 'in-progress'
+    ? 'av-status-col--in-progress'
+    : status === 'needs-review'
+      ? 'av-status-col--needs-review'
+      : status === 'done'
+        ? 'av-status-col--done'
+        : status === 'paused'
+          ? 'av-status-col--paused'
+          : 'av-status-col--queued';
+  var lineItem = action.title || '';
+  var proposedSolution = action.proposed_solution || '';
+  var noteHtml = action.note
+    ? '<div><div class="av-detail-label">Detail</div><div class="av-detail-text">' + escapeHtml(action.note) + '</div></div>'
+    : '';
+  var solutionHtml = proposedSolution
+    ? '<div><div class="av-detail-label">Proposed Solution</div><div class="av-detail-text">' + escapeHtml(proposedSolution) + '</div></div>'
+    : '<div><div class="av-detail-label">Proposed Solution</div><div class="av-detail-text">No proposed solution recorded yet.</div></div>';
+  var runActionHtml = '<div style="display:flex;justify-content:flex-start;padding-top:var(--space-1)">'
+    + '<button class="av-btn av-btn--accent av-run-action-btn" type="button">Run in workflow panel</button>'
+    + '</div>';
+  var discussHtml = '<div class="av-discuss-row">'
+    + '<button type="button" class="av-btn av-btn--accent av-discuss-btn">Start discussion</button>'
+    + '</div>';
+  var metaHtml = '<div><div class="av-detail-label">Metadata</div><div class="av-detail-mono">id: ' + escapeHtml(String(action._priorityId ?? '')) + ' · owner: ' + escapeHtml(action._agent) + '</div></div>';
+  var upDisabled = idx === 0 ? ' disabled' : '';
+  var downDisabled = idx === total - 1 ? ' disabled' : '';
+  var num = String(idx + 1).padStart(2, '0');
+
+  return '<div class="av-row" data-file="' + escapeHtml(action._file) + '" data-id="' + escapeHtml(action.id || '') + '">'
+    + '<div class="av-drag-handle" draggable="true" title="Drag to reorder">⠿</div>'
+    + '<div class="av-sort-num">' + num + '</div>'
+    + '<div class="av-row-main" role="button" tabindex="0" aria-expanded="false">'
+    +   '<div class="av-row-top">'
+    +     '<span class="av-owner-badge" style="' + badgeStyle + '">' + escapeHtml(meta.icon || '') + ' ' + escapeHtml(label) + '</span>'
+    +     '<span class="av-action-name">' + escapeHtml(lineItem || '—') + '</span>'
+    +     '<div class="av-state-row">'
+    +       '<span class="av-status-col ' + statusCls + '">Status: ' + escapeHtml(status) + '</span>'
+    +       '<span class="av-risk-col ' + riskCls + '">Risk: ' + escapeHtml(risk) + '</span>'
+    +     '</div>'
+    +     '<button class="av-btn av-btn--accent av-edit-btn">Edit</button>'
+    +   '</div>'
+    +   '<div class="av-detail">'
+    +     noteHtml + solutionHtml + metaHtml + runActionHtml + discussHtml
+    +     '<div class="av-edit-area" style="display:none"></div>'
+    +   '</div>'
+    + '</div>'
+    + '<div class="av-row-btns">'
+    +   '<div class="av-btn-row">'
+    +     '<button class="av-btn av-btn--icon av-up-btn" title="Move up"' + upDisabled + '>↑</button>'
+    +     '<button class="av-btn av-btn--icon av-down-btn" title="Move down"' + downDisabled + '>↓</button>'
+    +     '<button class="av-btn av-expand-btn" title="Expand">▼</button>'
+    +   '</div>'
+    + '</div>'
+    + '</div>';
+}
+
+function avToggleEdit(row, action) {
+  var editArea = row.querySelector('.av-edit-area');
+  var detailEl = row.querySelector('.av-detail > div:not(.av-edit-area)');
+  var editBtn  = row.querySelector('.av-edit-btn');
+  var expandBtn = row.querySelector('.av-expand-btn');
+
+  var isEditing = editArea.style.display !== 'none';
+  if (isEditing) {
+    editArea.style.display = 'none';
+    editArea.innerHTML = '';
+    if (detailEl) detailEl.style.display = '';
+    editBtn.textContent = 'Edit';
+    editBtn.classList.add('av-btn--accent');
+    return;
+  }
+
+  // Expand row first
+  row.classList.add('av-row--expanded');
+  expandBtn.textContent = '▲';
+  if (detailEl) detailEl.style.display = 'none';
+  editBtn.textContent = 'Cancel';
+  editBtn.classList.remove('av-btn--accent');
+  editArea.style.display = 'flex';
+  editArea.style.flexDirection = 'column';
+  editArea.style.gap = 'var(--space-3)';
+
+  editArea.innerHTML = '<div><div class="av-detail-label">Issue</div>'
+    + '<input class="av-field" data-field="title" value="' + escapeHtml(action.title || '') + '" placeholder="One-line issue title"></div>'
+    + '<div><div class="av-detail-label">ID</div>'
+    + '<input class="av-field" data-field="id" value="' + escapeHtml(action.id || '') + '" placeholder="Numeric ID"></div>'
+    + '<div><div class="av-detail-label">Status</div>'
+    + '<select class="av-field" data-field="status">'
+    +   '<option value="queued"' + ((action.status || '') === 'queued' ? ' selected' : '') + '>queued</option>'
+    +   '<option value="in-progress"' + ((action.status || '') === 'in-progress' ? ' selected' : '') + '>in-progress</option>'
+    +   '<option value="needs-review"' + ((action.status || '') === 'needs-review' ? ' selected' : '') + '>needs-review</option>'
+    +   '<option value="paused"' + ((action.status || '') === 'paused' ? ' selected' : '') + '>paused</option>'
+    +   '<option value="done"' + ((action.status || '') === 'done' ? ' selected' : '') + '>done</option>'
+    + '</select></div>'
+    + '<div><div class="av-detail-label">Risk</div>'
+    + '<select class="av-field" data-field="risk">'
+    +   '<option value="low"' + ((action.risk || '') === 'low' ? ' selected' : '') + '>low</option>'
+    +   '<option value="med"' + ((action.risk || '') === 'med' ? ' selected' : '') + '>med</option>'
+    +   '<option value="high"' + ((action.risk || '') === 'high' ? ' selected' : '') + '>high</option>'
+    + '</select></div>'
+    + '<div><div class="av-detail-label">Detail (plain English)</div>'
+    + '<textarea class="av-field" data-field="note" rows="3">' + escapeHtml(action.note || '') + '</textarea></div>'
+    + '<div><div class="av-detail-label">Proposed solution (plain English)</div>'
+    + '<textarea class="av-field" data-field="proposed_solution" rows="3">' + escapeHtml(action.proposed_solution || '') + '</textarea></div>'
+    + '<div style="display:flex;align-items:center;gap:var(--space-3)">'
+    + '<button class="av-btn av-btn--save">Save changes</button>'
+    + '<span class="av-save-hint"></span></div>';
+
+  editArea.querySelector('.av-btn--save').addEventListener('click', function() {
+    avCommitEdit(row, action, editArea, detailEl, editBtn);
+  });
+}
+
+async function avCommitEdit(row, action, editArea, detailEl, editBtn) {
+  var saveBtn = editArea.querySelector('.av-btn--save');
+  var hint = editArea.querySelector('.av-save-hint');
+  saveBtn.disabled = true;
+  if (hint) hint.textContent = 'Saving…';
+
+  var fields = {};
+  editArea.querySelectorAll('[data-field]').forEach(function(el) {
+    fields[el.dataset.field] = el.value.trim() || null;
+  });
+  if (fields.id != null) {
+    var parsedId = Number(fields.id);
+    fields.id = Number.isFinite(parsedId) ? parsedId : action.id;
+  }
+
+  // Update in-memory
+  Object.assign(action, fields);
+  action._priorityId = action.id;
+
+  // Update cache
+  var data = avCache[action._file];
+  if (data && Array.isArray(data.priorities)) {
+    var target = data.priorities[action._idx];
+    if (target) Object.assign(target, fields);
+    avOrchestratorSortPriorities(data.priorities);
+    data.updated = new Date().toISOString().slice(0,10);
+    avAllActions
+      .filter(function(a) { return a._file === action._file; })
+      .forEach(function(a) {
+        var idx = data.priorities.findIndex(function(p) { return p.id === a._priorityId; });
+        if (idx >= 0) a._idx = idx;
+      });
+  }
+
+  var ok = await avPersist(action._file);
+  saveBtn.disabled = false;
+  if (ok) {
+    avRecordManualBaseline(action._file, data.priorities || []);
+    // Close edit, refresh display
+    editArea.style.display = 'none';
+    editArea.innerHTML = '';
+    editBtn.textContent = 'Edit';
+    editBtn.classList.add('av-btn--accent');
+    if (detailEl) {
+      detailEl.style.display = '';
+    }
+    // Re-render list so status/risk columns reflect updated values
+    avApplyFilters();
+    avShowToast('Saved · ' + action._file, true);
+  } else {
+    if (hint) { hint.textContent = 'Server not available — run the dashboard server to persist changes.'; hint.className = 'av-save-hint av-save-hint--err'; }
+    avShowToast('Save failed — server not running', false);
+  }
+}
+
+async function avPersist(file) {
+  var data = avCache[file];
+  if (!data) return false;
+  try {
+    var resp = await fetch('/api/status-update', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ file: file, data: data }),
+    });
+    return resp.ok;
+  } catch (e) { return false; }
+}
+
+function avMove(action, sorted, dir) {
+  // Reorder priority items within the same agent file
+  var data = avCache[action._file];
+  if (!data || !Array.isArray(data.priorities)) return;
+  var arrIdx = action._idx;
+  var newArrIdx = arrIdx + dir;
+  if (newArrIdx < 0 || newArrIdx >= data.priorities.length) return;
+  var tmp = data.priorities[arrIdx];
+  data.priorities[arrIdx] = data.priorities[newArrIdx];
+  data.priorities[newArrIdx] = tmp;
+  data.updated = new Date().toISOString().slice(0,10);
+  avAllActions
+    .filter(function(a) { return a._file === action._file; })
+    .forEach(function(a) {
+      var idx = data.priorities.findIndex(function(p) { return p.id === a._priorityId; });
+      if (idx >= 0) a._idx = idx;
+    });
+  avPersist(action._file).then(function(ok) {
+    if (ok) avRecordManualBaseline(action._file, data.priorities || []);
+  });
+  avApplyFilters();
+}
+
+function avFindDashboardForAgent(agentId) {
+  for (var dashId in DASHBOARDS) {
+    if (!Object.prototype.hasOwnProperty.call(DASHBOARDS, dashId)) continue;
+    var agents = (DASHBOARDS[dashId] && DASHBOARDS[dashId].agents) || [];
+    if (agents.indexOf(agentId) !== -1) return dashId;
+  }
+  return 'home';
+}
+
+function avDispatchActionToAgent(action) {
+  var agentId = action._agent;
+  var dashId = avFindDashboardForAgent(agentId);
+  if (selectedDashboard !== dashId) {
+    selectDashboard(dashId);
+  }
+
+  // Select the requested agent in scoped picker if present.
+  var scoped = document.querySelector('.scoped-agent-btn[data-agent="' + agentId + '"]');
+  if (scoped) scoped.click();
+
+  // Prefer analyze mode when available, otherwise keep default first mode.
+  var agent = AGENTS[agentId];
+  if (agent && Array.isArray(agent.modes) && agent.modes.indexOf('analyze') !== -1) {
+    var analyzeBtn = Array.from(document.querySelectorAll('.mode-pill')).find(function(btn) { return btn.dataset.mode === 'analyze'; });
+    if (analyzeBtn) analyzeBtn.click();
+  }
+
+  var task = [
+    'Execute this priority issue now and complete it end-to-end if feasible.',
+    '',
+    'Issue: ' + (action.title || 'Untitled'),
+    'Current status: ' + (action.status || 'queued'),
+    'Risk: ' + (action.risk || 'low'),
+    'Context: ' + (action.note || 'No additional context provided.'),
+    'Proposed solution: ' + (action.proposed_solution || 'No proposed solution provided.'),
+    '',
+    'Required outcome:',
+    '- Perform the work, not just analysis.',
+    '- Update the owner status file priorities entry after completion.',
+    '- Reflect any status/risk/note/proposed_solution changes needed.'
+  ].join('\n');
+
+  taskInput.value = task;
+  buildPrompt(task);
+  taskInput.focus();
+  avShowToast('Prepared task for ' + avLabel(agentId), true);
+}
+
+function avInitAddPanel() {
+  var addBtn = document.getElementById('av-add-btn');
+  var panel = document.getElementById('av-add-panel');
+  var cancelBtn = document.getElementById('av-add-cancel');
+  var saveBtn = document.getElementById('av-add-save');
+  if (!addBtn || !panel || !cancelBtn || !saveBtn) return;
+
+  addBtn.addEventListener('click', function() {
+    panel.classList.toggle('visible');
+  });
+  cancelBtn.addEventListener('click', function() {
+    panel.classList.remove('visible');
+  });
+  saveBtn.addEventListener('click', function() {
+    void avAddActionItem();
+  });
+}
+
+async function avAddActionItem() {
+  var owner = (document.getElementById('av-add-owner') || {}).value || '';
+  var title = (document.getElementById('av-add-title') || {}).value || '';
+  var status = (document.getElementById('av-add-status') || {}).value || 'queued';
+  var risk = (document.getElementById('av-add-risk') || {}).value || 'low';
+  var note = (document.getElementById('av-add-note') || {}).value || '';
+  var solution = (document.getElementById('av-add-solution') || {}).value || '';
+  if (!owner) return avShowToast('Pick an owner agent first', false);
+  if (!title.trim()) return avShowToast('Add an issue title', false);
+
+  var file = avFileForAgent(owner);
+  if (!file) return avShowToast('Could not resolve owner file', false);
+  var data = avCache[file];
+  if (!data || !Array.isArray(data.priorities)) return avShowToast('Owner priorities unavailable', false);
+
+  var maxId = data.priorities.reduce(function(m, p) {
+    var n = Number(p && p.id);
+    return Number.isFinite(n) ? Math.max(m, n) : m;
+  }, 0);
+  data.priorities.push({
+    id: maxId + 1,
+    title: title.trim(),
+    status: status,
+    risk: risk,
+    note: note.trim() || '',
+    proposed_solution: solution.trim() || ''
+  });
+  avOrchestratorSortPriorities(data.priorities);
+  data.updated = new Date().toISOString().slice(0, 10);
+  var ok = await avPersist(file);
+  if (!ok) return avShowToast('Save failed — server not running', false);
+
+  avRecordManualBaseline(file, data.priorities || []);
+  avRebuildAllActionsFromCache();
+  avApplyFilters();
+
+  document.getElementById('av-add-title').value = '';
+  document.getElementById('av-add-note').value = '';
+  document.getElementById('av-add-solution').value = '';
+  document.getElementById('av-add-panel').classList.remove('visible');
+  avShowToast('Added issue to ' + file, true);
+}
+
+// Drag-and-drop reordering
+function avInitDrag(listEl, sorted) {
+  var rows = listEl.querySelectorAll('.av-row');
+  var dragSrc = null;
+
+  rows.forEach(function(row, i) {
+    var handle = row.querySelector('.av-drag-handle');
+    if (!handle) return;
+
+    handle.addEventListener('mousedown', function() { row.draggable = true; });
+    row.addEventListener('dragstart', function(e) {
+      dragSrc = i;
+      row.classList.add('av-row--dragging');
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    row.addEventListener('dragend', function() {
+      row.draggable = false;
+      row.classList.remove('av-row--dragging');
+      listEl.querySelectorAll('.av-row--drag-over').forEach(function(r) { r.classList.remove('av-row--drag-over'); });
+      dragSrc = null;
+    });
+    row.addEventListener('dragover', function(e) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      if (dragSrc !== null && dragSrc !== i) {
+        listEl.querySelectorAll('.av-row--drag-over').forEach(function(r) { r.classList.remove('av-row--drag-over'); });
+        row.classList.add('av-row--drag-over');
+      }
+    });
+    row.addEventListener('drop', function(e) {
+      e.preventDefault();
+      if (dragSrc === null || dragSrc === i) return;
+      row.classList.remove('av-row--drag-over');
+      var src = sorted[dragSrc];
+      var dst = sorted[i];
+      if (!src || !dst) return;
+      // Move src so it appears at dst's position
+      var diff = i - dragSrc;
+      var step = diff > 0 ? 1 : -1;
+      var cur = dragSrc;
+      while (cur !== i) {
+        avMove(sorted[cur], sorted, step);
+        // avMove triggers avApplyFilters which re-renders, so break
+        return;
+      }
+    });
+  });
+}
+
 async function loadDashboardData(dashId) {
+  if (dashId === 'issues') {
+    loadActionsView();
+  }
   if (dashId === 'engineering') {
     loadEngineeringStatus();
   }
@@ -5041,6 +6778,9 @@ document.getElementById('toggleSidePanel').addEventListener('click', function() 
 })();
 
 selectDashboard(getInitialDashboardId());
+avInitConflictPopupActions();
+void avCheckManualConflicts();
+setInterval(function() { void avCheckManualConflicts(); }, 15000);
 setInterval(function() { void pulseGlobalWorkbenchOnly(); }, 12000);
 </script>
 </body>
