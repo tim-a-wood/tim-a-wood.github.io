@@ -1391,6 +1391,7 @@ body::before {
   flex: 1 1 auto;
   min-height: 200px;
   grid-auto-rows: minmax(200px, 1fr);
+  margin-bottom: var(--space-4);
 }
 .db-grid.db-grid--home-health {
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1514,7 +1515,7 @@ body::before {
   padding: 2px 8px;
 }
 .dashboard-view[data-dashboard-view="home"] .os-home-actions {
-  padding-top: 0;
+  padding-top: var(--space-3);
   gap: var(--space-2);
 }
 .dashboard-view[data-dashboard-view="home"] .db-section:has(#home-os-chart-grid) {
@@ -1974,7 +1975,7 @@ h3.os-chart-card-title {
               <div class="os-chart-canvas-wrap os-chart-canvas-wrap--compact os-chart-canvas-wrap--tall" data-os-canvas-state="idle" role="img" aria-labelledby="home-chart-area-title" aria-describedby="home-chart-area-desc">
                 <div class="os-chart-skeleton" aria-hidden="true"></div>
                 <div class="os-chart-error" role="alert" aria-live="polite"></div>
-                <canvas data-os-chart="area-requests" width="800" height="320" aria-hidden="true"></canvas>
+                <canvas id="home-area-chart" data-os-chart="area-requests" width="800" height="320" aria-hidden="true"></canvas>
               </div>
               <p class="os-chart-foot visually-hidden" id="home-chart-area-desc">Eight week window. Counts are calls, not dollars. Finance owns spend truth.</p>
             </div>
@@ -4240,6 +4241,84 @@ function applyGlobalWorkbenchBar(d) {
   }
 }
 
+/** Mirrors scripts/workbench_local_control.build_home_internal_snapshot — used when /api/dashboard-data omits home_internal (stale server). */
+function buildHomeInternalFromStatusJson(orch, qa) {
+  orch = orch && typeof orch === 'object' ? orch : {};
+  qa = qa && typeof qa === 'object' ? qa : {};
+  const listLen = function (k, o) {
+    const v = o[k];
+    return Array.isArray(v) ? v.length : 0;
+  };
+  const orchP0 = listLen('risks_p0', orch);
+  const bugs = qa.bugs && typeof qa.bugs === 'object' ? qa.bugs : {};
+  const qaP0 = Number(bugs.p0) || 0;
+  const blocking = orchP0 + qaP0;
+  const serious = listLen('risks_p1', orch) + listLen('risks_p1', qa);
+  const fdO = orch.founder_decisions;
+  const fdQ = qa.founder_decisions;
+  const founderOpen = (Array.isArray(fdO) ? fdO.length : 0) + (Array.isArray(fdQ) ? fdQ.length : 0);
+  let inProgress = 0;
+  if (Array.isArray(orch.priorities)) {
+    orch.priorities.forEach(function (p) {
+      if (p && p.status === 'in-progress') inProgress += 1;
+    });
+  }
+  const ts = qa.test_suite && typeof qa.test_suite === 'object' ? qa.test_suite : {};
+  const jsP = Number(ts.js_pass) || 0;
+  const jsF = Number(ts.js_fail) || 0;
+  const pyP = Number(ts.py_pass) || 0;
+  const pyF = Number(ts.py_fail) || 0;
+  const testsPassing = jsP + pyP;
+  const testsFailing = jsF + pyF;
+  let broken = Number(ts.broken_collection) || 0;
+  if (!broken && qa.metrics && qa.metrics.broken_test_files != null) {
+    broken = Number(qa.metrics.broken_test_files) || 0;
+  }
+  const rg = qa.release_gate && typeof qa.release_gate === 'object' ? qa.release_gate : {};
+  const releaseLabel = String(rg.label || '').trim() || '—';
+  const updatedO = String(orch.updated || '').trim();
+  const updatedQ = String(qa.updated || '').trim();
+  const cand = [updatedO, updatedQ].filter(Boolean);
+  const statusUpdated = cand.length ? cand.reduce(function (a, b) { return a > b ? a : b; }) : null;
+  let acceptanceDoc = null;
+  if (qa.metrics && qa.metrics.acceptance_tests_documented != null) {
+    const n = Number(qa.metrics.acceptance_tests_documented);
+    if (Number.isFinite(n)) acceptanceDoc = n;
+  }
+  const testLastRun = ts.last_run ? String(ts.last_run).trim() : null;
+  return {
+    status_updated: statusUpdated,
+    blocking_issue_count: blocking,
+    serious_issue_count: serious,
+    founder_decisions_open: founderOpen,
+    priorities_in_progress: inProgress,
+    tests_passing: testsPassing,
+    tests_failing: testsFailing,
+    broken_test_collections: broken,
+    test_last_run: testLastRun,
+    release_gate_label: releaseLabel,
+    acceptance_tests_documented: acceptanceDoc,
+  };
+}
+
+async function ensureHomeInternal(d) {
+  if (!d || typeof d !== 'object') return d;
+  const hi = d.home_internal;
+  if (hi && typeof hi === 'object' && !Array.isArray(hi) && Object.prototype.hasOwnProperty.call(hi, 'tests_passing')) {
+    return d;
+  }
+  try {
+    const [qa, orch] = await Promise.all([
+      fetch('qa-status.json', { cache: 'no-store' }).then(function (res) { return res.ok ? res.json() : null; }),
+      fetch('orchestration-status.json', { cache: 'no-store' }).then(function (res) { return res.ok ? res.json() : null; }),
+    ]);
+    if (!qa && !orch) return d;
+    const built = buildHomeInternalFromStatusJson(orch || {}, qa || {});
+    if (built) return Object.assign({}, d, { home_internal: built });
+  } catch (e) {}
+  return d;
+}
+
 function updateHomeChartLiveStatus(d, dashboardReachable) {
   const el = document.getElementById('home-chart-live-status');
   if (!el) return;
@@ -4455,9 +4534,17 @@ function paintAreaRequests(canvas) {
   const { ctx, cssW: W, cssH: H } = prep;
   const t = osChartTheme();
   const short = H < 140;
-  const pad = short ? { t: 8, r: 8, b: 16, l: 28 } : { t: 20, r: 12, b: 28, l: 40 };
   const data = osChartData.areaRequests;
   const labels = osChartData.areaLabels;
+  const n = data.length;
+  const isHomeChart = canvas.id === 'home-area-chart' || (canvas.closest && canvas.closest('.os-chart-grid--home'));
+  const stepGuess = n > 1 ? (W - 52) / (n - 1) : W;
+  const rotateLabels = stepGuess < 56 || n >= 7;
+  let padBottom = rotateLabels ? 48 : (short ? 20 : 32);
+  if (isHomeChart) padBottom = Math.max(padBottom, 44);
+  const pad = short
+    ? { t: 8, r: 8, b: padBottom, l: 28 }
+    : { t: 20, r: 12, b: padBottom, l: 40 };
   const innerW = W - pad.l - pad.r;
   const innerH = H - pad.t - pad.b;
   const max = Math.max.apply(null, data.concat([1]));
@@ -4473,7 +4560,6 @@ function paintAreaRequests(canvas) {
     ctx.lineTo(W - pad.r, y);
     ctx.stroke();
   }
-  const n = data.length;
   const stepX = innerW / Math.max(1, n - 1);
   const points = data.map((v, i) => ({
     x: pad.l + i * stepX,
@@ -4502,14 +4588,26 @@ function paintAreaRequests(canvas) {
     ctx.fill();
   });
   const monoFamily = getComputedStyle(document.documentElement).getPropertyValue('--font-mono') || '"DM Mono",monospace';
-  ctx.font = '500 10px ' + monoFamily;
+  ctx.font = (rotateLabels ? '500 9px ' : '500 10px ') + monoFamily;
   ctx.fillStyle = t.muted;
-  ctx.textAlign = 'center';
   labels.forEach((lb, i) => {
     const x = pad.l + i * stepX;
-    ctx.fillText(lb, x, H - 8);
+    if (rotateLabels) {
+      ctx.save();
+      ctx.translate(x, H - 8);
+      ctx.rotate(-Math.PI / 4);
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(String(lb), 0, 0);
+      ctx.restore();
+    } else {
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+      ctx.fillText(String(lb), x, H - pad.b + 4);
+    }
   });
   ctx.textAlign = 'right';
+  ctx.textBaseline = 'alphabetic';
   ctx.fillText(String(max), pad.l - 4, pad.t + 10);
 }
 
@@ -4790,6 +4888,7 @@ async function loadDashboardData(dashId) {
         dashboardReachable = false;
       }
     }
+    d = await ensureHomeInternal(d);
     applyGlobalWorkbenchBar(d);
     syncEngineeringWorkbenchCard(d);
     syncHomeKpis(d);
@@ -4872,6 +4971,7 @@ async function pulseGlobalWorkbenchOnly() {
         dashboardReachable = false;
       }
     }
+    d = await ensureHomeInternal(d);
     applyGlobalWorkbenchBar(d);
     syncEngineeringWorkbenchCard(d);
     syncHomeKpis(d);
