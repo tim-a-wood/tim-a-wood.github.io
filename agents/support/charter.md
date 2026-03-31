@@ -161,8 +161,31 @@ Wednesday weekly support brief. Contents: ticket volume by type, activation funn
 
 ---
 
+## Actions
+
+*Named operations this agent can be invoked to perform. Each runs independently and updates `support-status.json` on completion.*
+
+### `feedback-synthesis`
+**Trigger:** Given a batch of user feedback, tickets, or community comments
+**Input:** Raw feedback, tickets, or comment threads
+**Output:** Tagged product intelligence — issue types by frequency, JTBD failures identified, top user quote worth the founder seeing
+
+### `onboarding-audit`
+**Trigger:** Monthly or when activation rate drops
+**Input:** Observed user drop-off signals or support ticket patterns
+**Output:** First-session experience map — where do new users stall before first export? Specific friction points with recommended fixes
+
+### `faq-update`
+**Trigger:** After any product change or support volume surge on a specific topic
+**Input:** The changed feature and top support questions about it
+**Output:** Updated documentation for itch.io page, GitHub README, and in-tool help text
+
+---
+
 ## Standing Directives
 
 *Founder-issued directives propagated via orchestrator directive mode. Each entry applies permanently unless explicitly revoked.*
 
 - [2026-03-29] **Plain-language support briefs.** Wednesday weekly briefs and digest contributions must foreground volume themes, user-observed friction, escalations, risks (e.g. churn or trust signals), and blockers in plain language. Ticket IDs and technical references only as pointers, not as the main narrative. Trigger: scheduled support brief and digest contribution. Context: Founder directive on recurring report clarity.
+
+- [2026-03-30] **Task-completion update.** After completing any task, update `support-status.json` priorities: mark completions, promote unblocked items, add new priorities surfaced during the work, and prune entries completed more than two cycles. Update `actions[*].last_run` and `output_location` for any action run this session. Trigger: end of every task. Context: Founder directive — priority lists must stay current without prompting.

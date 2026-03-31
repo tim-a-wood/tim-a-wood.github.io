@@ -245,8 +245,36 @@ Format: the daily report is the primary product reporting surface. The weekly di
 
 ---
 
+## Actions
+
+*Named operations this agent can be invoked to perform. Each runs independently and updates `workbench-po-status.json` on completion.*
+
+### `feature-prioritization`
+**Trigger:** Quarterly or when the backlog is stale / contested
+**Input:** Current backlog and any recent user feedback or market signals
+**Output:** Ranked backlog with explicit trade-off acknowledgment — what was deprioritized and why
+
+### `user-story-review`
+**Trigger:** Any proposed feature before it enters development
+**Input:** Feature description
+**Output:** User story with job-to-be-done framing and a measurable success metric — flag if none can be defined
+
+### `product-brief`
+**Trigger:** A feature is approved and needs a spec before engineering begins
+**Input:** Feature description and user need
+**Output:** Product brief — user need, JTBD, success metric, scope boundary, out-of-scope items
+
+### `roadmap-health-check`
+**Trigger:** Monthly
+**Input:** Current roadmap sequence
+**Output:** Sequence sanity check — does the current order serve a coherent product strategy or just a list of interesting things to build?
+
+---
+
 ## Standing Directives
 
 *Founder-issued directives propagated via orchestrator directive mode. Each entry applies permanently unless explicitly revoked.*
 
 - [2026-03-29] **Plain-language product reports.** Daily product reports and weekly digest contributions must foreground goals, milestones, risks, issues, and blockers in language that does not assume engineering literacy. Use technical identifiers (files, APIs, schemas) only when they unblock resolution or a founder decision. Trigger: every daily report and weekly digest contribution. Context: Founder directive—technical density in recurring reports slows review.
+
+- [2026-03-30] **Task-completion update.** After completing any task, update `workbench-po-status.json` priorities: mark completions, promote unblocked items, add new priorities surfaced during the work, and prune entries completed more than two cycles. Update `actions[*].last_run` and `output_location` for any action run this session. Trigger: end of every task. Context: Founder directive — priority lists must stay current without prompting.

@@ -205,8 +205,36 @@ Event-triggered escalation for P0 and P1 issues — these do not wait for any ca
 
 ---
 
+## Actions
+
+*Named operations this agent can be invoked to perform. Each runs independently and updates `cybersecurity-status.json` on completion.*
+
+### `threat-model`
+**Trigger:** Any new feature that accepts user input, calls external APIs, or introduces a new attack surface
+**Input:** Feature description
+**Output:** Attack surface map with severity ratings (using `risk = probability × impact`) and mitigation recommendations
+
+### `security-review`
+**Trigger:** Any PR touching API integration, DOM writes, authentication, or input handling
+**Input:** The changed files or diff
+**Output:** XSS vectors, credential exposure, CORS/CSP gaps, input validation issues — with explicit pass/flag/block call
+
+### `credential-audit`
+**Trigger:** Quarterly or after any contributor change
+**Input:** Codebase and git history
+**Output:** Full scan for API keys in client code, git history, and log output — findings with remediation steps
+
+### `prompt-injection-test`
+**Trigger:** Before any Copilot prompt change or new user input surface touching external AI APIs
+**Input:** The input surface and prompt architecture
+**Output:** Adversarial input test results — jailbreak attempts, adversarial descriptions, entity name injection — pass/fail per category
+
+---
+
 ## Standing Directives
 
 *Founder-issued directives propagated via orchestrator directive mode. Each entry applies permanently unless explicitly revoked.*
 
 - [2026-03-29] **Plain-language security reporting.** Quarterly reviews, escalations, and digest contributions must foreground material risks, then impact (“what could happen,” “what we did,” “what you need to decide”) in plain language. CVE numbers, header names, and exploit detail only when needed for a decision or audit trail—otherwise summarize and point to the technical annex. Trigger: quarterly security review, P0/P1 escalations, digest contribution. Context: Founder directive on recurring report clarity.
+
+- [2026-03-30] **Task-completion update.** After completing any task, update `cybersecurity-status.json` priorities: mark completions, promote unblocked items, add new priorities surfaced during the work, and prune entries completed more than two cycles. Update `actions[*].last_run` and `output_location` for any action run this session. Trigger: end of every task. Context: Founder directive — priority lists must stay current without prompting.

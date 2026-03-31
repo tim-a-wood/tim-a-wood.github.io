@@ -104,5 +104,39 @@
     { "name": "LDtk", "category": "Level editors", "threat": "low", "note": "The best free level editor out there, but no sprite creation and no AI. Solves one piece of the puzzle." },
     { "name": "Godot editor", "category": "Game engines", "threat": "med", "note": "Watch how its built-in tools improve. If they get good enough, some users won't need a separate tool." },
     { "name": "AI-native tools (emerging)", "category": "Emerging", "threat": "high", "note": "No one has cracked integrated AI game dev tooling yet. The window to be first is 18 to 36 months. No new entrants spotted this quarter." }
+  ],
+  "actions": [
+    {
+      "id": "strategic-review",
+      "name": "Strategic Review",
+      "description": "Review all strategic assumptions — what held, what was falsified, what changed — and update the risk register.",
+      "trigger": "Quarterly",
+      "last_run": "2026-03-30",
+      "output_location": "strategy-status.json risk_register and metrics sections"
+    },
+    {
+      "id": "risk-register-review",
+      "name": "Risk Register Review",
+      "description": "Sweep the risk register, update the status of each assumption, add new risks, close resolved ones.",
+      "trigger": "Quarterly or after any major market event",
+      "last_run": "2026-03-30",
+      "output_location": "strategy-status.json risk_register section"
+    },
+    {
+      "id": "window-assessment",
+      "name": "Competitive Window Assessment",
+      "description": "Update the estimate of the competitive window with current evidence for and against the 18-36 month thesis.",
+      "trigger": "Quarterly or when a new AI game tool competitor appears",
+      "last_run": null,
+      "output_location": null
+    },
+    {
+      "id": "competitor-deep-dive",
+      "name": "Competitor Deep Dive",
+      "description": "Assess a specific competitor or new entrant — positioning overlap, feature comparison, founder decision implications.",
+      "trigger": "When a new entrant is spotted or an existing competitor ships a significant feature",
+      "last_run": null,
+      "output_location": null
+    }
   ]
 }

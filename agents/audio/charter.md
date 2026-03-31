@@ -161,8 +161,31 @@ Event-triggered on audio identity document creation, major score direction decis
 
 ---
 
+## Actions
+
+*Named operations this agent can be invoked to perform. Each runs independently and updates `audio-status.json` on completion.*
+
+### `audio-brief`
+**Trigger:** A new game element, UI pattern, or feature needs sound design
+**Input:** Element description and intended emotional response
+**Output:** Sound design brief — sonic identity, emotional register, reference points, trigger events, implementation notes
+
+### `sfx-spec`
+**Trigger:** A specific sound effect is approved for production
+**Input:** Trigger event, context, and feel requirements
+**Output:** Full SFX spec — trigger conditions, duration, frequency range, spatial properties, variation requirements
+
+### `music-direction-memo`
+**Trigger:** A new biome, major narrative moment, or boss fight is entering production
+**Input:** Biome or scene description and emotional arc
+**Output:** Music direction memo — instrumentation, adaptive system design, emotional arc, reference tracks
+
+---
+
 ## Standing Directives
 
 *Founder-issued directives propagated via orchestrator directive mode. Each entry applies permanently unless explicitly revoked.*
 
 - [2026-03-29] **Plain-language digest contributions.** When contributing to the Monday digest or founder-facing audio summaries, lead with creative goals, risks, decisions needed, and blockers; minimize DAW, middleware, and format jargon unless a decision depends on it. Trigger: digest contribution or escalated audio summary. Context: Founder directive on recurring report clarity.
+
+- [2026-03-30] **Task-completion update.** After completing any task, update `audio-status.json` priorities: mark completions, promote unblocked items, add new priorities surfaced during the work, and prune entries completed more than two cycles. Update `actions[*].last_run` and `output_location` for any action run this session. Trigger: end of every task. Context: Founder directive — priority lists must stay current without prompting.

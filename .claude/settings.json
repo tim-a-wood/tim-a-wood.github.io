@@ -106,7 +106,19 @@
       "Bash(python3 -m pytest tests/test_sprite_workbench.py tests/test_sprite_workbench_surface.py tests/test_project_asset_path_encoding.py tests/test_ashen_hollow_runtime_manifest.py -q)",
       "Bash(python3 -m pytest tests/room_environment_system.test.py -q)",
       "Bash(node --test tests/room-wizard-environment-copilot.test.js)",
-      "Bash(node -e \":*)"
+      "Bash(node -e \":*)",
+      "Bash(ls /Users/timwood/Desktop/projects/PWA/MV/agents/*/charter.md)",
+      "Bash(grep -l \"dashboard-standard\\\\|agents/directives/dashboard\" /Users/timwood/Desktop/projects/PWA/MV/agents/*/charter.md)",
+      "Bash(python3 -:*)",
+      "Bash(curl -s http://127.0.0.1:8766/api/dashboard-data)",
+      "Bash(python3 -m json.tool)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(''''usage_summary:'''', d.get\\(''''usage_summary''''\\)\\); print\\(''''ledger_entry_count_window:'''', d.get\\(''''usage_charts'''',{}\\).get\\(''''ledger_entry_count_window''''\\)\\)\")",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); uc=d.get\\(''''usage_charts'''',{}\\); print\\(json.dumps\\({k:v for k,v in uc.items\\(\\) if k not in [''''area_labels'''',''''area_requests'''',''''purpose_bars'''',''''donut'''']}, indent=2\\)\\)\")",
+      "Bash(ls /Users/timwood/Desktop/projects/PWA/MV/*.json)",
+      "Bash(for f:*)",
+      "Read(//Users/timwood/Desktop/projects/PWA/MV/agents/$f/**)",
+      "Bash(for agent:*)",
+      "Read(//Users/timwood/Desktop/projects/PWA/MV/agents/$agent/**)"
     ],
     "additionalDirectories": [
       "/Users/timwood/.claude/skills"

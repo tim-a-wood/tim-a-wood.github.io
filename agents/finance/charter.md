@@ -154,8 +154,36 @@ Monthly financial review. Contents: actual vs. budgeted spend by cost line, API 
 
 ---
 
+## Actions
+
+*Named operations this agent can be invoked to perform. Each runs independently and updates `finance-status.json` on completion.*
+
+### `unit-economics-update`
+**Trigger:** Monthly or after any AI API pricing change
+**Input:** Current token consumption data and API pricing
+**Output:** Updated contribution margin model — revenue per user, API cost per user, margin per paying user
+
+### `runway-check`
+**Trigger:** Monthly
+**Input:** Current actual spend and cash position
+**Output:** Runway calculation under current, optimistic, and bear spend scenarios — months remaining, break-even conditions
+
+### `pricing-model`
+**Trigger:** Before any paid tier decision
+**Input:** Usage data, willingness-to-pay signals, unit economics
+**Output:** Van Westendorp price sensitivity analysis + three-scenario unit economics (base / bull / bear)
+
+### `api-cost-alert`
+**Trigger:** Any API call volume change exceeding 150% of the 4-week average
+**Input:** API usage data
+**Output:** Cost spike analysis — root cause, projection at current growth rate, options to contain
+
+---
+
 ## Standing Directives
 
 *Founder-issued directives propagated via orchestrator directive mode. Each entry applies permanently unless explicitly revoked.*
 
 - [2026-03-29] **Plain-language finance reporting.** Recurring finance updates and anomaly flags must lead with what changed for the business, magnitude in plain terms, recommended action, risks, and blockers—minimizing ledger, vendor, or model jargon unless a decision requires it. Trigger: scheduled finance reporting and digest contribution. Context: Founder directive on recurring report clarity.
+
+- [2026-03-30] **Task-completion update.** After completing any task, update `finance-status.json` priorities: mark completions, promote unblocked items, add new priorities surfaced during the work, and prune entries completed more than two cycles. Update `actions[*].last_run` and `output_location` for any action run this session. Trigger: end of every task. Context: Founder directive — priority lists must stay current without prompting.

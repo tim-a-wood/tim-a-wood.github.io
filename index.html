@@ -963,6 +963,8 @@ function adjustRgb(rgb, delta) {
     return { r: clamp8(rgb.r + delta), g: clamp8(rgb.g + delta), b: clamp8(rgb.b + delta) };
 }
 
+const ENABLE_BESPOKE_ROOM_RUNTIME = true;
+
 function roomSurfaceTextureKey(roomId, role = 'wall', variant = 0) {
     return `env-surface-${role}-${roomId}-${variant}`;
 }
@@ -1052,11 +1054,52 @@ function getRoomEnvironmentAssetPack(roomId) {
     return pack && typeof pack === 'object' ? pack : null;
 }
 
+function getRoomEnvironmentBespokeManifest(roomId) {
+    const env = normalizeEnvironmentFromLayout(getLayoutRoom(roomId));
+    const manifest = env.runtime?.bespoke_asset_manifest;
+    return manifest && typeof manifest === 'object' ? manifest : null;
+}
+
 function getRoomEnvironmentAsset(roomId, kind) {
     const pack = getRoomEnvironmentAssetPack(roomId);
     const assets = pack?.assets;
     const asset = assets && typeof assets === 'object' ? assets[kind] : null;
     return asset && typeof asset === 'object' ? asset : null;
+}
+
+function getRoomEnvironmentBespokeAsset(roomId, componentType) {
+    if (!ENABLE_BESPOKE_ROOM_RUNTIME) return null;
+    const manifest = getRoomEnvironmentBespokeManifest(roomId);
+    if (!manifest || manifest.status !== 'ready') return null;
+    const assets = manifest.assets && typeof manifest.assets === 'object' ? Object.values(manifest.assets) : [];
+    return assets.find((item) => item && item.component_type === componentType && item.url) || null;
+}
+
+function getRoomEnvironmentBespokePlatformAsset(roomId, slotId) {
+    if (!ENABLE_BESPOKE_ROOM_RUNTIME) return null;
+    const manifest = getRoomEnvironmentBespokeManifest(roomId);
+    if (!manifest || manifest.status !== 'ready') return null;
+    const asset = manifest.assets && typeof manifest.assets === 'object' ? manifest.assets[slotId] : null;
+    return asset && typeof asset === 'object' && asset.url ? asset : null;
+}
+
+function getRoomEnvironmentBespokePrimaryFloorAsset(roomId) {
+    return getRoomEnvironmentBespokeAsset(roomId, 'primary_floor_piece');
+}
+
+function getRoomEnvironmentBespokeHeroPlatformAsset(roomId, platform) {
+    if (!ENABLE_BESPOKE_ROOM_RUNTIME) return null;
+    const manifest = getRoomEnvironmentBespokeManifest(roomId);
+    if (!manifest || manifest.status !== 'ready') return null;
+    const localX = Number(platform?.x || 0);
+    const localY = Number(platform?.y || 0);
+    const width = Math.max(1, Number(platform?.len || 1)) * 32;
+    const assets = manifest.assets && typeof manifest.assets === 'object' ? Object.values(manifest.assets) : [];
+    return assets.find((asset) => {
+        if (!asset || asset.component_type !== 'hero_platform_piece' || !asset.url) return false;
+        const placement = asset.placement || {};
+        return Number(placement.x || 0) === localX && Number(placement.y || 0) === localY && Number(placement.display_width || 0) === width;
+    }) || null;
 }
 
 function getRoomEnvironmentSceneSchema(roomId) {
@@ -1089,6 +1132,8 @@ function resolveRoomFloorTexture(scene, roomId) {
 }
 
 function resolveRoomFloorCapTexture(scene, roomId) {
+    const bespoke = getRoomEnvironmentBespokeAsset(roomId, 'primary_floor_piece');
+    if (bespoke?.url) return null;
     const asset = getRoomEnvironmentAsset(roomId, 'floor_cap_strip');
     if (asset?.source === 'ai' && asset?.url && textureMatchesExpectedSize(scene, roomFloorCapAssetKey(roomId), 512, 96)) {
         return roomFloorCapAssetKey(roomId);
@@ -1105,6 +1150,8 @@ function resolveRoomPlatformTexture(scene, roomId, tint = 0) {
 }
 
 function resolveRoomPlatformLedgeTexture(scene, roomId) {
+    const manifest = getRoomEnvironmentBespokeManifest(roomId);
+    if (ENABLE_BESPOKE_ROOM_RUNTIME && manifest?.status === 'ready') return null;
     const asset = getRoomEnvironmentAsset(roomId, 'platform_ledge_strip');
     if (asset?.source === 'ai' && asset?.url && textureMatchesExpectedSize(scene, roomPlatformLedgeAssetKey(roomId), 512, 72)) {
         return roomPlatformLedgeAssetKey(roomId);
@@ -1113,6 +1160,10 @@ function resolveRoomPlatformLedgeTexture(scene, roomId) {
 }
 
 function resolveRoomDoorTexture(scene, roomId) {
+    const bespoke = getRoomEnvironmentBespokeAsset(roomId, 'door_piece');
+    if (bespoke?.url && textureMatchesExpectedSize(scene, roomDoorAssetKey(roomId), 192, 288)) {
+        return roomDoorAssetKey(roomId);
+    }
     const pack = getRoomEnvironmentAssetPack(roomId);
     if (pack?.assets?.door?.url && textureMatchesExpectedSize(scene, roomDoorAssetKey(roomId), 192, 288)) {
         return roomDoorAssetKey(roomId);
@@ -1121,9 +1172,21 @@ function resolveRoomDoorTexture(scene, roomId) {
 }
 
 function resolveRoomMidgroundTexture(scene, roomId) {
+    const bespoke = getRoomEnvironmentBespokeAsset(roomId, 'midground_frame');
+    if (bespoke?.url && textureMatchesExpectedSize(scene, roomMidgroundAssetKey(roomId), 1600, 1200)) {
+        return roomMidgroundAssetKey(roomId);
+    }
     const pack = getRoomEnvironmentAssetPack(roomId);
     if (pack?.assets?.midground_arches?.url && textureMatchesExpectedSize(scene, roomMidgroundAssetKey(roomId), 1600, 1200)) {
         return roomMidgroundAssetKey(roomId);
+    }
+    return null;
+}
+
+function resolveRoomBackgroundTexture(scene, roomId) {
+    const bespoke = getRoomEnvironmentBespokeAsset(roomId, 'background_plate');
+    if (bespoke?.url && textureMatchesExpectedSize(scene, roomBackgroundAssetKey(roomId), 1600, 1200)) {
+        return roomBackgroundAssetKey(roomId);
     }
     return null;
 }
@@ -1527,6 +1590,21 @@ class AshenHollow extends Phaser.Scene {
 
     preloadRoomEnvironmentAssets() {
         ROOM_SEQUENCE.forEach((roomId) => {
+            if (ENABLE_BESPOKE_ROOM_RUNTIME) {
+                const bespoke = getRoomEnvironmentBespokeManifest(roomId);
+                const bespokeAssets = bespoke?.assets;
+                if (bespokeAssets && bespoke?.status === 'ready') {
+                    Object.values(bespokeAssets).forEach((asset) => {
+                        if (!asset?.url) return;
+                        if (asset.component_type === 'background_plate') this.load.image(roomBackgroundAssetKey(roomId), asset.url);
+                        if (asset.component_type === 'midground_frame') this.load.image(roomMidgroundAssetKey(roomId), asset.url);
+                        if (asset.component_type === 'door_piece') this.load.image(roomDoorAssetKey(roomId), asset.url);
+                        if (asset.component_type === 'primary_floor_piece' || asset.component_type === 'hero_platform_piece') {
+                            this.load.image(`env-bespoke-${asset.slot_id}`, asset.url);
+                        }
+                    });
+                }
+            }
             const pack = getRoomEnvironmentAssetPack(roomId);
             const assets = pack?.assets;
             if (!assets || !['ready', 'partial'].includes(pack?.status)) return;
@@ -2115,6 +2193,16 @@ class AshenHollow extends Phaser.Scene {
     }
 
     addRoomFloorCapDecor(roomId, x, y, width, height = 24) {
+        const bespoke = getRoomEnvironmentBespokePrimaryFloorAsset(roomId);
+        if (bespoke?.url && this.textures.exists(`env-bespoke-${bespoke.slot_id}`)) {
+            const sprite = this.add.image(x + (width / 2), y, `env-bespoke-${bespoke.slot_id}`)
+                .setOrigin(0.5, 0.68)
+                .setDisplaySize(width, Math.max(height, Number(bespoke.final_dimensions?.height || 96) * 0.45))
+                .setDepth(0.08)
+                .setAlpha(0.98);
+            this.environmentDecor.push(sprite);
+            return sprite;
+        }
         const textureKey = resolveRoomFloorCapTexture(this, roomId);
         if (!textureKey || width < 24) return null;
         const sprite = this.add.tileSprite(x + (width / 2), y, width, height, textureKey)
@@ -2138,6 +2226,18 @@ class AshenHollow extends Phaser.Scene {
     }
 
     addRoomPlatformLedgeDecor(roomId, x, y, width, height = 22) {
+        const room = getLayoutRoom(roomId);
+        const platform = (room?.platforms || []).find((item) => Number(item.x || 0) === Number(x - ROOM_IDS[roomId].start) && Number(item.y || 0) === Number(y) && (Math.max(1, Number(item.len || 1)) * 32) === Number(width));
+        const bespoke = platform ? getRoomEnvironmentBespokeHeroPlatformAsset(roomId, platform) : null;
+        if (bespoke?.url && this.textures.exists(`env-bespoke-${bespoke.slot_id}`)) {
+            const sprite = this.add.image(x + (width / 2), y, `env-bespoke-${bespoke.slot_id}`)
+                .setOrigin(0.5, 0.68)
+                .setDisplaySize(width, Math.max(height, Number(bespoke.final_dimensions?.height || 72) * 0.4))
+                .setDepth(0.11)
+                .setAlpha(0.98);
+            this.environmentDecor.push(sprite);
+            return sprite;
+        }
         const textureKey = resolveRoomPlatformLedgeTexture(this, roomId);
         if (!textureKey || width < 24) return null;
         const sprite = this.add.tileSprite(x + (width / 2), y, width, height, textureKey)

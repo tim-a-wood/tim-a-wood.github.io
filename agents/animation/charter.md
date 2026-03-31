@@ -206,8 +206,31 @@ Chief Engineer synthesises and elevates to the founder digest only when founder 
 
 ---
 
+## Actions
+
+*Named operations this agent can be invoked to perform. Each runs independently and updates `animation-status.json` on completion.*
+
+### `animation-spec`
+**Trigger:** A new character, ability, or effect is approved for production
+**Input:** Character or effect description, movement context, game system requirements
+**Output:** Complete animation spec — frame count, pixel dimensions, state machine, timing parameters, export format
+
+### `spritesheet-audit`
+**Trigger:** Any submitted sprite or animation asset
+**Input:** The sprite asset
+**Output:** Quality assessment — palette compliance, silhouette clarity, anti-aliasing compliance, frame consistency
+
+### `ai-pipeline-recommendation`
+**Trigger:** AI-assisted animation workflow is requested for a new asset type
+**Input:** Asset type and style requirements
+**Output:** Model or LoRA recommendation, prompt architecture, validation criteria for output quality
+
+---
+
 ## Standing Directives
 
 *Founder-issued directives propagated via orchestrator directive mode. Each entry applies permanently unless explicitly revoked.*
 
 - [2026-03-29] **Plain-language handoffs to engineering.** Written inputs to Chief Engineer that may reach the founder digest must foreground animation goals, risks (including export or pipeline), issues, and blockers in plain language; technical depth only when Chief Engineer or a founder decision requires it. Trigger: escalation package or written summary routed toward the digest. Context: Founder directive on recurring report clarity.
+
+- [2026-03-30] **Task-completion update.** After completing any task, update `animation-status.json` priorities: mark completions, promote unblocked items, add new priorities surfaced during the work, and prune entries completed more than two cycles. Update `actions[*].last_run` and `output_location` for any action run this session. Trigger: end of every task. Context: Founder directive — priority lists must stay current without prompting.

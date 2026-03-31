@@ -186,8 +186,26 @@ Event-triggered: on product launches, major feature announcements, and brand ide
 
 ---
 
+## Actions
+
+*Named operations this agent can be invoked to perform. Each runs independently and updates `workbench-art-status.json` on completion.*
+
+### `brand-review`
+**Trigger:** Any marketing asset, social post, screenshot, or public-facing visual before publication
+**Input:** The asset or draft
+**Output:** On-brand / off-brand assessment with specific corrections — color, typography, figure-ground, product representation
+
+### `asset-brief`
+**Trigger:** A marketing visual, UI illustration, or onboarding asset is needed
+**Input:** Purpose, context, and target platform
+**Output:** Creative brief — style constraints, figure-ground requirements, color guidance, deliverable format and dimensions
+
+---
+
 ## Standing Directives
 
 *Founder-issued directives propagated via orchestrator directive mode. Each entry applies permanently unless explicitly revoked.*
 
 - [2026-03-29] **Plain-language digest contributions.** When contributing to the Monday digest or founder-facing brand summaries, lead with goals, risks, decisions needed, and blockers in plain language; keep toolchain or asset-pipeline detail minimal unless a founder choice requires it. Trigger: digest contribution or escalated brand summary. Context: Founder directive on recurring report clarity.
+
+- [2026-03-30] **Task-completion update.** After completing any task, update `workbench-art-status.json` priorities: mark completions, promote unblocked items, add new priorities surfaced during the work, and prune entries completed more than two cycles. Update `actions[*].last_run` and `output_location` for any action run this session. Trigger: end of every task. Context: Founder directive — priority lists must stay current without prompting.

@@ -195,8 +195,38 @@ Weekly QA packet every Friday during active releases. Suppressed when no release
 
 ---
 
+## Actions
+
+*Named operations this agent can be invoked to perform. Each runs independently and updates `qa-status.json` on completion.*
+
+### `release-gate`
+**Trigger:** Before any public-facing release
+**Input:** Scope of changes in the release
+**Output:** Go/no-go with P0/P1 list, cross-browser status, and export determinism confirmation
+
+### `regression-plan`
+**Trigger:** Given a set of changes to assess
+**Input:** Description or diff of changes
+**Output:** Test plan mapping each change to its risk area — with Playwright and unit test coverage specified
+
+### `bug-triage`
+**Trigger:** Given a batch of reported issues
+**Input:** Raw issue reports or support escalations
+**Output:** P0–P3 classifications with reproduction steps and assigned owner per issue
+
+### `copilot-fixture-run`
+**Trigger:** After any Copilot model version or prompt architecture change
+**Input:** Golden file fixture set
+**Output:** Schema validity rate, entity distribution comparison, content quality delta vs. previous pinned version
+
+---
+
 ## Standing Directives
 
 *Founder-issued directives propagated via orchestrator directive mode. Each entry applies permanently unless explicitly revoked.*
 
 - [2026-03-29] **Plain-language QA packets.** Weekly QA packets and founder-facing quality summaries must lead with go/no-go posture, key risks, player- or user-visible impact of top issues, and open quality issues in plain terms. Minimize stack traces, harness jargon, and long repro dumps in the primary narrative; point to where detail lives if needed. Trigger: weekly QA packet and any founder-facing quality summary. Context: Founder directive on recurring report clarity.
+
+- [2026-03-30] **Dashboard standard.** Before creating or updating your dashboard (the `*-status.json` file), read and follow `agents/design/dashboard-standard.md`. Max 4 sections. Plain English only. No empty run buttons. No file-path explanation paragraphs. Context: Design agent directive on dashboard quality.
+
+- [2026-03-30] **Task-completion update.** After completing any task, update `qa-status.json` priorities: mark completions, promote unblocked items, add new priorities surfaced during the work, and prune entries completed more than two cycles. Update `actions[*].last_run` and `output_location` for any action run this session. Trigger: end of every task. Context: Founder directive — priority lists must stay current without prompting.

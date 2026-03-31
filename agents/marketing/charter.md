@@ -163,8 +163,38 @@ Tuesday weekly update. Covers: content published (links), engagement metrics (im
 
 ---
 
+## Actions
+
+*Named operations this agent can be invoked to perform. Each runs independently and updates `marketing-status.json` on completion.*
+
+### `content-brief`
+**Trigger:** A feature ships or a milestone is reached that warrants public communication
+**Input:** Bullet-point notes or a description of what happened
+**Output:** Devlog draft or social post in the correct voice — founder-authentic, not corporate
+
+### `competitor-monitor`
+**Trigger:** Quarterly or when a new entrant is flagged
+**Input:** Recent itch.io, Twitter, GitHub, and Product Hunt signals
+**Output:** Competitive landscape update: new entrants, community sentiment shifts, AI game tool developments
+
+### `launch-checklist`
+**Trigger:** Before any feature or product release
+**Input:** Feature description and target audience
+**Output:** Messaging readiness assessment, channel plan, risks to authenticity or accuracy
+
+### `positioning-review`
+**Trigger:** Any AI feature claim, marketing copy, or public announcement draft
+**Input:** The draft copy
+**Output:** Accuracy check against actual capabilities; flag over-claims; rewrite where needed
+
+---
+
 ## Standing Directives
 
 *Founder-issued directives propagated via orchestrator directive mode. Each entry applies permanently unless explicitly revoked.*
 
 - [2026-03-29] **Plain-language marketing updates.** Tuesday weekly updates and any digest contribution must foreground goals, what shipped publicly, engagement outcomes, competitor signal, risks, and blockers in business-readable language. Technical or channel mechanics only when they change a decision. Trigger: scheduled marketing report and digest contribution. Context: Founder directive on recurring report clarity.
+
+- [2026-03-30] **Dashboard standard.** Before creating or updating your dashboard (the `*-status.json` file), read and follow `agents/design/dashboard-standard.md`. Max 4 sections. Plain English only. No empty run buttons. No file-path explanation paragraphs. Context: Design agent directive on dashboard quality.
+
+- [2026-03-30] **Task-completion update.** After completing any task, update `marketing-status.json` priorities: mark completions, promote unblocked items, add new priorities surfaced during the work, and prune entries completed more than two cycles. Update `actions[*].last_run` and `output_location` for any action run this session. Trigger: end of every task. Context: Founder directive — priority lists must stay current without prompting.

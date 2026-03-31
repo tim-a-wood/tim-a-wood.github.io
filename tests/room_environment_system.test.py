@@ -6,6 +6,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
@@ -87,6 +88,7 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         self.assertTrue(result["ok"])
         self.assertTrue(result["art_direction"]["locked"])
         self.assertEqual(result["art_direction"]["frozen_concept_ids"], ["art-direction-02"])
+        self.assertTrue(result["art_direction"]["biome_packs"])
         room = self.saved["room_layout"]["rooms"][0]
         self.assertEqual(room["environment"]["preview"]["status"], "outdated")
 
@@ -173,21 +175,12 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
             "R1",
             {"preview_id": preview["images"][0]["preview_id"]},
         )
-        self.assertEqual(asset_pack["environment"]["runtime"]["asset_pack"]["status"], "failed")
-        self.assertEqual(
-            set(asset_pack["environment"]["runtime"]["asset_pack"]["assets"].keys()),
-            {
-                "background",
-                "wall_body_strip",
-                "floor_cap_strip",
-                "platform_ledge_strip",
-                "door",
-                "midground_arches",
-            },
-        )
-        for item in asset_pack["environment"]["runtime"]["asset_pack"]["assets"].values():
-            self.assertEqual(item["source"], "failed")
-            self.assertFalse(item["url"])
+        bespoke = asset_pack["environment"]["runtime"]["bespoke_asset_manifest"]
+        self.assertEqual(bespoke["status"], "ready")
+        self.assertFalse(bespoke["failed_assets"])
+        self.assertTrue(bespoke["assets"])
+        self.assertEqual(asset_pack["environment"]["runtime"]["status"], "ready")
+        self.assertFalse(bespoke["used_ai"])
 
     def test_layout_change_marks_only_layout_aware_assets_stale(self):
         envsys.update_project_art_direction(self.project_id, {"template_id": "industrial-underworks", "locked": True})
@@ -207,6 +200,47 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         room = envsys._find_room(self.saved, "R1")
         stale = room["environment"]["runtime"]["asset_pack"]["stale_components"]
         self.assertEqual(stale, [])
+
+    def test_generate_bespoke_assets_ready_when_generator_is_mocked(self):
+        envsys.update_project_art_direction(self.project_id, {"template_id": "ruined-gothic", "locked": True})
+        envsys.build_room_environment_spec(
+            self.project_id,
+            "R1",
+            {"description": "A readable ruined hall with heavy stone and a strong central route."},
+        )
+        generated = envsys.generate_room_environment_previews(self.project_id, "R1", {})
+        preview_id = generated["environment"]["preview"]["images"][0]["preview_id"]
+        envsys.approve_room_environment_preview(self.project_id, "R1", {"preview_id": preview_id})
+
+        def fake_generate(output_path, prompt, refs, size, transparent):
+            img = envsys.Image.new("RGBA", size, (40, 50, 60, 0 if transparent else 255))
+            img.save(output_path)
+            return True
+
+        with mock.patch.object(envsys, "_generate_bespoke_component_from_references", side_effect=fake_generate):
+            result = envsys.generate_room_environment_asset_pack(self.project_id, "R1", {"preview_id": preview_id})
+        bespoke = result["environment"]["runtime"]["bespoke_asset_manifest"]
+        self.assertEqual(bespoke["status"], "ready")
+        self.assertEqual(result["environment"]["runtime"]["status"], "ready")
+        self.assertGreaterEqual(len(bespoke["assets"]), 4)
+
+    def test_generate_bespoke_assets_block_room_when_template_render_fails(self):
+        envsys.update_project_art_direction(self.project_id, {"template_id": "ruined-gothic", "locked": True})
+        envsys.build_room_environment_spec(
+            self.project_id,
+            "R1",
+            {"description": "A readable ruined hall with heavy stone and a strong central route."},
+        )
+        generated = envsys.generate_room_environment_previews(self.project_id, "R1", {})
+        preview_id = generated["environment"]["preview"]["images"][0]["preview_id"]
+        envsys.approve_room_environment_preview(self.project_id, "R1", {"preview_id": preview_id})
+
+        with mock.patch.object(envsys, "_render_bespoke_component_from_template", return_value=False):
+            result = envsys.generate_room_environment_asset_pack(self.project_id, "R1", {"preview_id": preview_id})
+        bespoke = result["environment"]["runtime"]["bespoke_asset_manifest"]
+        self.assertEqual(bespoke["status"], "failed")
+        self.assertTrue(bespoke["failed_assets"])
+        self.assertEqual(result["environment"]["runtime"]["status"], "blocked")
 
 
 if __name__ == "__main__":

@@ -7,6 +7,7 @@ import io
 import json
 import math
 import os
+import shutil
 import textwrap
 import urllib.error
 import urllib.request
@@ -284,8 +285,157 @@ def normalize_art_direction(payload: Optional[Dict[str, Any]], current: Optional
         "generation_error": concept_board.get("generation_error"),
         "prompt_summary": str(concept_board.get("prompt_summary") or ""),
     }
+    biome_packs = raw.get("biome_packs")
+    if not isinstance(biome_packs, list):
+        biome_packs = copy.deepcopy(source.get("biome_packs") or [])
+    normalized_biome_packs: List[Dict[str, Any]] = []
+    for item in biome_packs:
+        if not isinstance(item, dict):
+            continue
+        biome_id = str(item.get("biome_id") or "").strip()
+        if not biome_id:
+            continue
+        normalized_biome_packs.append({
+            "biome_id": biome_id,
+            "label": str(item.get("label") or biome_id.replace("-", " ").title()).strip() or biome_id,
+            "locked_direction": copy.deepcopy(item.get("locked_direction") or {}),
+            "locked_concept_ids": [str(entry).strip() for entry in (item.get("locked_concept_ids") or []) if str(entry).strip()],
+            "template_library": copy.deepcopy(item.get("template_library") or []),
+            "version": int(item.get("version") or 1),
+            "locked": bool(item.get("locked", True)),
+            "updated_at": item.get("updated_at") or now_iso(),
+        })
+    out["biome_packs"] = normalized_biome_packs
     out["updated_at"] = now_iso()
     return out
+
+
+def _slugify(text: str, fallback: str = "value") -> str:
+    cleaned = "".join(ch.lower() if ch.isalnum() else "-" for ch in str(text or "").strip()).strip("-")
+    cleaned = "-".join(chunk for chunk in cleaned.split("-") if chunk)
+    return cleaned or fallback
+
+
+V1_BESPOKE_COMPONENTS: Tuple[Dict[str, Any], ...] = (
+    {"component_type": "background_plate", "variant_family": "background", "size": (1600, 1200), "orientation": "full", "transparency_mode": "opaque", "visual_role": "far_depth"},
+    {"component_type": "midground_frame", "variant_family": "midground", "size": (1600, 1200), "orientation": "full", "transparency_mode": "alpha", "visual_role": "side_frame"},
+    {"component_type": "primary_floor_piece", "variant_family": "floor", "size": (512, 96), "orientation": "horizontal", "transparency_mode": "opaque", "visual_role": "main_route"},
+    {"component_type": "hero_platform_piece", "variant_family": "platform", "size": (320, 72), "orientation": "horizontal", "transparency_mode": "opaque", "visual_role": "hero_platform"},
+    {"component_type": "door_piece", "variant_family": "door", "size": (192, 288), "orientation": "vertical", "transparency_mode": "alpha", "visual_role": "transition"},
+)
+
+
+V1_TEMPLATE_SOURCE_CANDIDATES: Dict[str, Tuple[str, ...]] = {
+    "background_plate": ("background.png",),
+    "midground_frame": ("midground_arches.png",),
+    "primary_floor_piece": ("floor_cap_strip.png",),
+    "hero_platform_piece": ("platform_ledge_strip.png", "floor_cap_strip.png"),
+    "door_piece": ("door.png",),
+}
+
+
+def _default_biome_id(direction: Dict[str, Any]) -> str:
+    template_id = str(direction.get("template_id") or "ruined-gothic").strip()
+    return f"{_slugify(template_id, 'biome')}-v1"
+
+
+def _default_biome_label(direction: Dict[str, Any]) -> str:
+    return str(direction.get("style_family") or direction.get("template_id") or "Biome").strip().title()
+
+
+def _component_adaptation_mode(component_type: str) -> str:
+    if component_type in {"background_plate", "midground_frame", "door_piece"}:
+        return "direct"
+    if component_type in {"primary_floor_piece", "hero_platform_piece"}:
+        return "stretch"
+    return "gemini"
+
+
+def _find_curated_template_source(project_id: str, component_type: str) -> Optional[Path]:
+    root = PROJECTS_ROOT / project_id / "room_environment_assets"
+    if not root.exists():
+        return None
+    for room_dir in sorted(path for path in root.iterdir() if path.is_dir()):
+        for filename in V1_TEMPLATE_SOURCE_CANDIDATES.get(component_type, ()):
+            candidate = room_dir / filename
+            if candidate.exists():
+                return candidate
+    return None
+
+
+def _install_component_template_asset(
+    project_id: str,
+    output_path: Path,
+    component_type: str,
+    palette: Dict[str, Any],
+    flags: Dict[str, bool],
+    shell_family: str,
+    target_size: Tuple[int, int],
+    transparent: bool,
+) -> Tuple[str, Optional[str]]:
+    curated_source = _find_curated_template_source(project_id, component_type)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    if curated_source and curated_source.exists():
+        shutil.copyfile(curated_source, output_path)
+        _fit_image_to_size(output_path, target_size, transparent=transparent)
+        return "legacy_asset", str(curated_source.relative_to(PROJECTS_ROOT / project_id).as_posix())
+    _seed_biome_template_asset(output_path, component_type, palette, flags, shell_family)
+    _fit_image_to_size(output_path, target_size, transparent=transparent)
+    return "fallback_seed", None
+
+
+def _refresh_biome_pack_templates(project: Dict[str, Any], direction: Dict[str, Any]) -> Dict[str, Any]:
+    project_id = str(project.get("project_id") or "").strip()
+    if not project_id:
+        return direction
+    palette = copy.deepcopy(direction.get("palette") or {})
+    spec = {
+        "theme_id": str(direction.get("template_id") or ""),
+        "description": str(direction.get("high_level_direction") or ""),
+        "mood": str(direction.get("style_family") or ""),
+        "lighting": ", ".join(direction.get("lighting_rules") or []),
+        "tags": [_slugify(direction.get("template_id") or "biome")],
+        "components": {},
+    }
+    flags = _environment_style_flags(spec)
+    shell_family = _infer_shell_family(spec)
+    for pack in direction.get("biome_packs") or []:
+        if not isinstance(pack, dict):
+            continue
+        for template in pack.get("template_library") or []:
+            if not isinstance(template, dict):
+                continue
+            component_type = str(template.get("component_type") or "").strip()
+            if not component_type:
+                continue
+            rel_path = Path(str(template.get("image_path") or "").strip())
+            if not rel_path:
+                continue
+            abs_path = PROJECTS_ROOT / project_id / rel_path
+            target_size = (int(template.get("width") or 0), int(template.get("height") or 0))
+            if not all(target_size):
+                spec_entry = next((item for item in V1_BESPOKE_COMPONENTS if item["component_type"] == component_type), None)
+                if spec_entry:
+                    target_size = spec_entry["size"]
+                    template["width"] = target_size[0]
+                    template["height"] = target_size[1]
+            transparency_mode = str(template.get("transparency_mode") or "opaque")
+            transparent = transparency_mode == "alpha"
+            source_kind, source_rel = _install_component_template_asset(
+                project_id,
+                abs_path,
+                component_type,
+                palette,
+                flags,
+                shell_family,
+                target_size,
+                transparent,
+            )
+            template["adaptation_mode"] = _component_adaptation_mode(component_type)
+            template["source_template_kind"] = source_kind
+            template["source_template_path"] = source_rel
+            template["updated_at"] = now_iso()
+    return direction
 
 
 def _concept_asset_url(project_id: str, rel_path: str) -> str:
@@ -472,6 +622,7 @@ def generate_project_art_direction_concepts(project_id: str, payload: Optional[D
     }
     if not direction.get("frozen_concept_ids"):
         direction["frozen_concept_ids"] = [generated[0]["concept_id"]] if generated else []
+    direction = _attach_default_biome_pack(project, direction)
     project["art_direction"] = direction
     frozen = _resolve_frozen_concepts(project, direction.get("frozen_concept_ids") or [])
     project["art_direction"]["frozen_concepts"] = frozen
@@ -495,6 +646,7 @@ def generate_project_art_direction_concepts(project_id: str, payload: Optional[D
 def get_project_art_direction(project_id: str) -> Dict[str, Any]:
     project = load_project(project_id)
     direction = normalize_art_direction(project.get("art_direction"), project.get("art_direction"))
+    direction = _attach_default_biome_pack(project, direction)
     frozen = _resolve_frozen_concepts(project, direction.get("frozen_concept_ids") or [])
     direction["frozen_concepts"] = frozen
     direction["frozen_concept_ids"] = [item["concept_id"] for item in frozen]
@@ -572,6 +724,20 @@ def _ensure_room_environment(room: Dict[str, Any]) -> Dict[str, Any]:
     asset_pack.setdefault("stale_components", [])
     asset_pack.setdefault("failed_assets", [])
     asset_pack.setdefault("assets", {})
+    bespoke_manifest = runtime.get("bespoke_asset_manifest")
+    if not isinstance(bespoke_manifest, dict):
+        bespoke_manifest = {}
+        runtime["bespoke_asset_manifest"] = bespoke_manifest
+    bespoke_manifest.setdefault("schema_version", 1)
+    bespoke_manifest.setdefault("status", "idle")
+    bespoke_manifest.setdefault("biome_id", None)
+    bespoke_manifest.setdefault("source_preview_id", None)
+    bespoke_manifest.setdefault("generation_plan", [])
+    bespoke_manifest.setdefault("assets", {})
+    bespoke_manifest.setdefault("failed_assets", [])
+    bespoke_manifest.setdefault("used_ai", False)
+    bespoke_manifest.setdefault("generated_at", None)
+    bespoke_manifest.setdefault("validation_errors", [])
     return env
 
 
@@ -763,6 +929,7 @@ def _gemini_json(system_prompt: str, user_prompt: str) -> Optional[Dict[str, Any
 def update_project_art_direction(project_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:
     project = load_project(project_id)
     direction = normalize_art_direction(payload, project.get("art_direction"))
+    direction = _attach_default_biome_pack(project, direction)
     frozen = _resolve_frozen_concepts(project, direction.get("frozen_concept_ids") or [])
     direction["frozen_concepts"] = frozen
     direction["frozen_concept_ids"] = [item["concept_id"] for item in frozen]
@@ -783,6 +950,18 @@ def update_project_art_direction(project_id: str, payload: Dict[str, Any]) -> Di
         runtime["applied_preview_id"] = None
         runtime["surface_palette"] = None
         runtime["last_applied_at"] = None
+        runtime["bespoke_asset_manifest"] = {
+            "schema_version": 1,
+            "status": "idle",
+            "biome_id": None,
+            "source_preview_id": None,
+            "generation_plan": [],
+            "assets": {},
+            "failed_assets": [],
+            "used_ai": False,
+            "generated_at": None,
+            "validation_errors": [],
+        }
         asset_pack = runtime["asset_pack"]
         asset_pack["status"] = "ready" if asset_pack.get("assets") else "idle"
         asset_pack["stale_components"] = ["background", "midground_arches", "wall_body_strip", "floor_cap_strip", "platform_ledge_strip", "door"] if asset_pack.get("assets") else []
@@ -1252,6 +1431,18 @@ def build_room_environment_spec(project_id: str, room_id: str, payload: Dict[str
     env["runtime"]["material_keywords"] = list(spec.get("materials") or [])
     env["runtime"]["lighting_mode"] = str(spec.get("lighting") or "")
     env["runtime"]["last_applied_at"] = None
+    env["runtime"]["bespoke_asset_manifest"] = {
+        "schema_version": 1,
+        "status": "idle",
+        "biome_id": None,
+        "source_preview_id": None,
+        "generation_plan": [],
+        "assets": {},
+        "failed_assets": [],
+        "used_ai": False,
+        "generated_at": None,
+        "validation_errors": [],
+    }
     asset_pack = env["runtime"]["asset_pack"]
     if asset_pack.get("assets"):
         _refresh_asset_pack_staleness(room, env, direction)
@@ -1653,6 +1844,10 @@ def _fit_image_to_size(path: Path, size: Tuple[int, int], transparent: bool = Fa
         canvas.alpha_composite(image, dest=offset)
         canvas.save(path)
         return
+    if image.getbbox() and _alpha_ratio(path) > 0.0:
+        opaque = Image.new("RGBA", image.size, (0, 0, 0, 255))
+        opaque.alpha_composite(image)
+        image = opaque
     src_ratio = image.width / max(1, image.height)
     target_ratio = target_w / max(1, target_h)
     if src_ratio > target_ratio:
@@ -1978,6 +2173,96 @@ def _fallback_midground_asset(output_path: Path, palette: Dict[str, Any], shell_
     img.save(output_path)
 
 
+def _seed_biome_template_asset(output_path: Path, component_type: str, palette: Dict[str, Any], flags: Dict[str, bool], shell_family: str) -> None:
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    if component_type == "background_plate":
+        _fallback_background_asset(output_path, palette, flags, shell_family)
+        return
+    if component_type == "midground_frame":
+        _fallback_midground_asset(output_path, palette, shell_family)
+        return
+    if component_type == "primary_floor_piece":
+        _fallback_tile_asset(output_path, palette, (512, 96), "floor", flags, shell_family)
+        return
+    if component_type == "hero_platform_piece":
+        _fallback_tile_asset(output_path, palette, (320, 72), "platform", flags, shell_family)
+        return
+    if component_type == "door_piece":
+        _fallback_curated_door_asset(output_path, palette, flags, shell_family)
+        return
+
+
+def _attach_default_biome_pack(project: Dict[str, Any], direction: Dict[str, Any]) -> Dict[str, Any]:
+    biome_packs = copy.deepcopy(direction.get("biome_packs") or [])
+    if biome_packs:
+        direction["biome_packs"] = biome_packs
+        return _refresh_biome_pack_templates(project, direction)
+    project_id = str(project.get("project_id") or "").strip()
+    if not project_id:
+        return direction
+    palette = copy.deepcopy(direction.get("palette") or {})
+    spec = {
+        "theme_id": str(direction.get("template_id") or ""),
+        "description": str(direction.get("high_level_direction") or ""),
+        "mood": str(direction.get("style_family") or ""),
+        "lighting": ", ".join(direction.get("lighting_rules") or []),
+        "tags": [_slugify(direction.get("template_id") or "biome")],
+        "components": {},
+    }
+    flags = _environment_style_flags(spec)
+    shell_family = _infer_shell_family(spec)
+    biome_id = _default_biome_id(direction)
+    biome_root = PROJECTS_ROOT / project_id / "art_direction_biomes" / biome_id
+    template_library: List[Dict[str, Any]] = []
+    for entry in V1_BESPOKE_COMPONENTS:
+        filename = f"{entry['component_type']}.png"
+        rel_path = Path("art_direction_biomes") / biome_id / filename
+        abs_path = PROJECTS_ROOT / project_id / rel_path
+        source_kind, source_rel = _install_component_template_asset(
+            project_id,
+            abs_path,
+            entry["component_type"],
+            palette,
+            flags,
+            shell_family,
+            entry["size"],
+            entry["transparency_mode"] == "alpha",
+        )
+        template_library.append({
+            "template_id": f"{biome_id}-{entry['component_type']}",
+            "component_type": entry["component_type"],
+            "variant_family": entry["variant_family"],
+            "image_path": rel_path.as_posix(),
+            "width": entry["size"][0],
+            "height": entry["size"][1],
+            "orientation": entry["orientation"],
+            "transparency_mode": entry["transparency_mode"],
+            "visual_role": entry["visual_role"],
+            "source_art_direction_version": int(direction.get("version") or 1),
+            "approved": True,
+            "locked": True,
+            "adaptation_mode": _component_adaptation_mode(entry["component_type"]),
+            "source_template_kind": source_kind,
+            "source_template_path": source_rel,
+        })
+    direction["biome_packs"] = [{
+        "biome_id": biome_id,
+        "label": _default_biome_label(direction),
+        "locked_direction": {
+            "template_id": direction.get("template_id"),
+            "style_family": direction.get("style_family"),
+            "high_level_direction": direction.get("high_level_direction"),
+            "negative_direction": direction.get("negative_direction"),
+        },
+        "locked_concept_ids": [str(item.get("concept_id") or "").strip() for item in (direction.get("frozen_concepts") or []) if str(item.get("concept_id") or "").strip()],
+        "template_library": template_library,
+        "version": 1,
+        "locked": True,
+        "updated_at": now_iso(),
+    }]
+    return _refresh_biome_pack_templates(project, direction)
+
+
 def generate_room_environment_previews(project_id: str, room_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:
     project = load_project(project_id)
     room = _find_room(project, room_id)
@@ -2072,6 +2357,18 @@ def generate_room_environment_previews(project_id: str, room_id: str, payload: D
     env["runtime"]["material_keywords"] = list(spec.get("materials") or [])
     env["runtime"]["lighting_mode"] = str(spec.get("lighting") or "")
     env["runtime"]["last_applied_at"] = None
+    env["runtime"]["bespoke_asset_manifest"] = {
+        "schema_version": 1,
+        "status": "idle",
+        "biome_id": None,
+        "source_preview_id": None,
+        "generation_plan": [],
+        "assets": {},
+        "failed_assets": [],
+        "used_ai": False,
+        "generated_at": None,
+        "validation_errors": [],
+    }
     env["runtime"]["asset_pack"]["status"] = "idle"
     env["runtime"]["asset_pack"]["used_ai"] = False
     env["runtime"]["asset_pack"]["generated_at"] = None
@@ -2103,6 +2400,249 @@ def revise_room_environment(project_id: str, room_id: str, payload: Dict[str, An
     return revised
 
 
+def _select_biome_pack(direction: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    packs = direction.get("biome_packs") or []
+    return copy.deepcopy(packs[0]) if packs else None
+
+
+def _template_by_component(biome_pack: Dict[str, Any], component_type: str) -> Optional[Dict[str, Any]]:
+    for item in biome_pack.get("template_library") or []:
+        if str(item.get("component_type") or "").strip() == component_type:
+            return copy.deepcopy(item)
+    return None
+
+
+def _room_component_plan(room: Dict[str, Any], preview_id: str, biome_pack: Dict[str, Any]) -> List[Dict[str, Any]]:
+    geometry = _room_geometry(room)
+    room_id = str(room.get("id") or "room")
+    width = int(geometry.get("width") or 1600)
+    height = int(geometry.get("height") or 1200)
+    platforms = sorted(
+        [
+            {
+                "platform_id": str(item.get("id") or ""),
+                "x": int(item.get("x") or 0),
+                "y": int(item.get("y") or 0),
+                "width": max(1, int(item.get("len") or 1)) * 32,
+                "len": max(1, int(item.get("len") or 1)),
+            }
+            for item in (room.get("platforms") or [])
+            if isinstance(item, dict)
+        ],
+        key=lambda item: (-item["width"], -item["y"], item["x"]),
+    )
+    primary_floor = next((item for item in platforms if item["width"] >= int(width * 0.68)), platforms[0] if platforms else None)
+    hero_platforms = [item for item in platforms if primary_floor is None or item["platform_id"] != primary_floor["platform_id"]][:3]
+    active_door = next((item for item in (room.get("doors") or []) if isinstance(item, dict)), None)
+    plan: List[Dict[str, Any]] = []
+    background_template = _template_by_component(biome_pack, "background_plate")
+    if background_template:
+        plan.append({
+            "slot_id": f"{room_id}-background",
+            "component_type": "background_plate",
+            "source_template_id": background_template["template_id"],
+            "target_dimensions": {"width": width, "height": height},
+            "placement": {"x": int(width / 2), "y": height, "display_width": width, "display_height": height, "origin_x": 0.5, "origin_y": 1},
+            "orientation": "full",
+            "protected_zones": [{"type": "center_lane", "x": int(width * 0.25), "y": 0, "width": int(width * 0.5), "height": height}],
+            "local_geometry": {"room_width": width, "room_height": height},
+        })
+    midground_template = _template_by_component(biome_pack, "midground_frame")
+    if midground_template:
+        plan.append({
+            "slot_id": f"{room_id}-midground",
+            "component_type": "midground_frame",
+            "source_template_id": midground_template["template_id"],
+            "target_dimensions": {"width": width, "height": height},
+            "placement": {"x": int(width / 2), "y": height, "display_width": width, "display_height": height, "origin_x": 0.5, "origin_y": 1},
+            "orientation": "full",
+            "protected_zones": [{"type": "main_route", "x": int(width * 0.3), "y": 0, "width": int(width * 0.4), "height": height}],
+            "local_geometry": {"room_width": width, "room_height": height},
+        })
+    floor_template = _template_by_component(biome_pack, "primary_floor_piece")
+    if floor_template and primary_floor:
+        plan.append({
+            "slot_id": f"{room_id}-primary-floor",
+            "component_type": "primary_floor_piece",
+            "source_template_id": floor_template["template_id"],
+            "target_dimensions": {"width": primary_floor["width"], "height": 96},
+            "placement": {"x": primary_floor["x"], "y": primary_floor["y"], "display_width": primary_floor["width"], "display_height": 96, "origin_x": 0, "origin_y": 0.75},
+            "orientation": "horizontal",
+            "protected_zones": [{"type": "platform_top", "x": primary_floor["x"], "y": primary_floor["y"] - 18, "width": primary_floor["width"], "height": 22}],
+            "local_geometry": primary_floor,
+        })
+    platform_template = _template_by_component(biome_pack, "hero_platform_piece")
+    for index, platform in enumerate(hero_platforms[:3]):
+        if not platform_template:
+            break
+        plan.append({
+            "slot_id": f"{room_id}-hero-platform-{index + 1}",
+            "component_type": "hero_platform_piece",
+            "source_template_id": platform_template["template_id"],
+            "target_dimensions": {"width": platform["width"], "height": 72},
+            "placement": {"x": platform["x"], "y": platform["y"], "display_width": platform["width"], "display_height": 72, "origin_x": 0, "origin_y": 0.68},
+            "orientation": "horizontal",
+            "protected_zones": [{"type": "platform_top", "x": platform["x"], "y": platform["y"] - 16, "width": platform["width"], "height": 20}],
+            "local_geometry": platform,
+        })
+    door_template = _template_by_component(biome_pack, "door_piece")
+    if door_template and active_door:
+        plan.append({
+            "slot_id": f"{room_id}-door-1",
+            "component_type": "door_piece",
+            "source_template_id": door_template["template_id"],
+            "target_dimensions": {"width": 192, "height": 288},
+            "placement": {"x": int(active_door.get("x") or 0), "y": int(active_door.get("y") or 0), "display_width": 96, "display_height": 144, "origin_x": 0.5, "origin_y": 1},
+            "orientation": "vertical",
+            "protected_zones": [{"type": "door_mouth", "x": int(active_door.get("x") or 0) - 48, "y": int(active_door.get("y") or 0) - 144, "width": 96, "height": 160}],
+            "local_geometry": {"door_id": str(active_door.get("id") or ""), "x": int(active_door.get("x") or 0), "y": int(active_door.get("y") or 0)},
+        })
+    return plan
+
+
+def _build_bespoke_prompt(direction: Dict[str, Any], spec: Dict[str, Any], plan_entry: Dict[str, Any], template: Dict[str, Any]) -> str:
+    dims = plan_entry.get("target_dimensions") or {}
+    component_type = str(plan_entry.get("component_type") or "")
+    protected = ", ".join(
+        f"{zone.get('type')}@({int(zone.get('x') or 0)},{int(zone.get('y') or 0)},{int(zone.get('width') or 0)},{int(zone.get('height') or 0)})"
+        for zone in (plan_entry.get("protected_zones") or [])
+        if isinstance(zone, dict)
+    ) or "none"
+    component_rules = {
+        "background_plate": "Treat the approved room preview as context only. Do not copy its focal landmark, altar, platform staging, or center floor graphic. Preserve a calm far-depth backdrop, soft depth falloff, and an open readable center lane.",
+        "midground_frame": "Keep the middle third open. Concentrate architecture on the left and right framing edges. No center object, no floor plane, and no props that cross the playable route.",
+        "primary_floor_piece": "Preserve a clean readable top lip, straight side-view silhouette, and shallow underside detail. Do not introduce props, braziers, or deep scenic perspective.",
+        "hero_platform_piece": "Preserve a crisp horizontal traversal surface with restrained underside variation. No attached scenic background, no braziers, and no large dangling ornaments.",
+        "door_piece": "Preserve a centered door silhouette with clear opening read. No extra scene dressing, no floor plane, no surrounding chamber composition.",
+    }
+    return textwrap.dedent(
+        f"""\
+        Create a single 2D metroidvania environment component that is a tightly matched equivalent adaptation of the attached template.
+        Preserve the same biome family, silhouette role, and composition discipline.
+        Do not redesign the piece. Do not invent a new scene. Only adapt it to the requested fit, dimensions, orientation, and subtle local wear.
+
+        Component type: {component_type}
+        Variant family: {template.get('variant_family')}
+        Requested width: {int(dims.get('width') or 0)} px
+        Requested height: {int(dims.get('height') or 0)} px
+        Orientation: {plan_entry.get('orientation') or template.get('orientation') or 'unspecified'}
+        Room mood: {spec.get('mood') or ''}
+        Room lighting: {spec.get('lighting') or ''}
+        Room description: {spec.get('description') or ''}
+        Art direction: {direction.get('high_level_direction') or ''}
+        Avoid: {direction.get('negative_direction') or ''}
+        Protected zones: {protected}
+        Gameplay constraints: keep protected readability zones clear, preserve silhouette readability, and stay close to the source template family.
+        Component-specific rules: {component_rules.get(component_type, 'Preserve the source template closely and keep gameplay-facing surfaces readable.')}
+        Output a single production-ready component image only. No text, no characters, no UI.
+        """
+    ).strip()
+
+
+def _render_bespoke_component_from_template(template_path: Path, output_path: Path, size: Tuple[int, int], transparent: bool) -> bool:
+    try:
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(template_path, output_path)
+        _fit_image_to_size(output_path, size, transparent=transparent)
+        return True
+    except Exception:
+        return False
+
+
+def _generate_bespoke_component_from_references(output_path: Path, prompt: str, refs: List[Path], size: Tuple[int, int], transparent: bool) -> bool:
+    if _generate_image_from_references(output_path, prompt, refs, size_hint=f"{size[0]}x{size[1]}"):
+        _fit_image_to_size(output_path, size, transparent=transparent)
+        return True
+    return False
+
+
+def _template_delta(path: Path, template_path: Path) -> float:
+    try:
+        a = Image.open(path).convert("RGBA").resize((96, 96), Image.Resampling.LANCZOS)
+        b = Image.open(template_path).convert("RGBA").resize((96, 96), Image.Resampling.LANCZOS)
+    except Exception:
+        return 999.0
+    total = 0.0
+    count = 0
+    for px_a, px_b in zip(a.getdata(), b.getdata()):
+        total += sum(abs(int(px_a[idx]) - int(px_b[idx])) for idx in range(4))
+        count += 4
+    return total / max(1, count)
+
+
+def _region_luminance(path: Path, box: Tuple[float, float, float, float]) -> float:
+    img = Image.open(path).convert("RGB")
+    w, h = img.size
+    left = max(0, min(w, int(w * box[0])))
+    top = max(0, min(h, int(h * box[1])))
+    right = max(left + 1, min(w, int(w * box[2])))
+    bottom = max(top + 1, min(h, int(h * box[3])))
+    region = img.crop((left, top, right, bottom)).resize((48, 48), Image.Resampling.LANCZOS)
+    pixels = list(region.getdata())
+    if not pixels:
+        return 0.0
+    return sum((0.2126 * r) + (0.7152 * g) + (0.0722 * b) for r, g, b in pixels) / len(pixels)
+
+
+def _region_alpha_ratio(path: Path, box: Tuple[float, float, float, float]) -> float:
+    img = Image.open(path).convert("RGBA")
+    w, h = img.size
+    left = max(0, min(w, int(w * box[0])))
+    top = max(0, min(h, int(h * box[1])))
+    right = max(left + 1, min(w, int(w * box[2])))
+    bottom = max(top + 1, min(h, int(h * box[3])))
+    region = img.crop((left, top, right, bottom)).resize((48, 48), Image.Resampling.LANCZOS)
+    alpha = list(region.getchannel("A").getdata())
+    if not alpha:
+        return 0.0
+    return sum(1 for value in alpha if value > 24) / len(alpha)
+
+
+def _validate_bespoke_component(
+    path: Path,
+    component_type: str,
+    expected_size: Tuple[int, int],
+    transparency_mode: str,
+    template_path: Optional[Path] = None,
+) -> Tuple[bool, List[str]]:
+    errors: List[str] = []
+    if not path.exists():
+        return False, ["missing_file"]
+    img = Image.open(path).convert("RGBA")
+    if img.size != expected_size:
+        errors.append("size_mismatch")
+    alpha_ratio = _alpha_ratio(path)
+    luminance = _sample_luminance(path)
+    if transparency_mode == "alpha" and alpha_ratio < 0.05:
+        errors.append("missing_required_transparency")
+    if component_type in {"background_plate", "midground_frame"} and luminance > 185:
+        errors.append("too_bright")
+    if component_type in {"primary_floor_piece", "hero_platform_piece"} and luminance > 170:
+        errors.append("platform_readability_risk")
+    trusted_template_copy = False
+    if template_path and template_path.exists():
+        delta = _template_delta(path, template_path)
+        trusted_template_copy = delta <= 1.5
+        if component_type in {"background_plate", "midground_frame"} and delta > 42:
+            errors.append("template_family_drift")
+        if component_type in {"primary_floor_piece", "hero_platform_piece", "door_piece"} and delta > 54:
+            errors.append("template_family_drift")
+    if transparency_mode == "opaque" and alpha_ratio > (0.08 if trusted_template_copy else 0.02):
+        errors.append("unexpected_transparency")
+    if component_type == "background_plate" and not trusted_template_copy:
+        center = _region_luminance(path, (0.34, 0.22, 0.66, 0.78))
+        edges = (_region_luminance(path, (0.0, 0.18, 0.18, 0.82)) + _region_luminance(path, (0.82, 0.18, 1.0, 0.82))) / 2.0
+        if center - edges > 18:
+            errors.append("center_lane_too_hot")
+    if component_type == "midground_frame" and not trusted_template_copy:
+        center = _region_alpha_ratio(path, (0.32, 0.18, 0.68, 0.82))
+        side_a = _region_alpha_ratio(path, (0.0, 0.18, 0.2, 0.82))
+        side_b = _region_alpha_ratio(path, (0.8, 0.18, 1.0, 0.82))
+        if center > max(side_a, side_b) + 0.15:
+            errors.append("midground_center_clutter")
+    return len(errors) == 0, errors
+
+
 def generate_room_environment_asset_pack(project_id: str, room_id: str, payload: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     project = load_project(project_id)
     room = _find_room(project, room_id)
@@ -2110,295 +2650,136 @@ def generate_room_environment_asset_pack(project_id: str, room_id: str, payload:
     preview = env["preview"]
     spec = env["spec"]
     direction = normalize_art_direction(project.get("art_direction"), project.get("art_direction"))
+    direction = _attach_default_biome_pack(project, direction)
     preview_id = str((payload or {}).get("preview_id") or preview.get("approved_image_id") or "").strip()
     if not preview_id:
         raise ValueError("Approve a room preview before generating production assets.")
     approved = next((item for item in (preview.get("images") or []) if item.get("preview_id") == preview_id), None)
     if not approved:
         raise ValueError("Approved preview not found.")
+    biome_pack = _select_biome_pack(direction)
+    if not biome_pack:
+        raise ValueError("No biome template pack is available for this project.")
     project_dir = PROJECTS_ROOT / project_id
     preview_path = _project_url_to_path(project_dir, str(approved.get("url") or ""))
     if preview_path is None or not preview_path.exists():
         raise ValueError("Approved preview image is missing on disk.")
-
-    asset_root = project_dir / "room_environment_assets" / room_id
+    asset_root = project_dir / "room_environment_assets" / room_id / "bespoke"
     asset_root.mkdir(parents=True, exist_ok=True)
-    background_path = asset_root / "background.png"
-    wall_tile_path = asset_root / "wall_tile.png"
-    wall_body_strip_path = asset_root / "wall_body_strip.png"
-    floor_tile_path = asset_root / "floor_tile.png"
-    floor_cap_strip_path = asset_root / "floor_cap_strip.png"
-    platform_tile_path = asset_root / "platform_tile.png"
-    platform_ledge_strip_path = asset_root / "platform_ledge_strip.png"
-    door_path = asset_root / "door.png"
-    midground_arches_path = asset_root / "midground_arches.png"
-
     refs = [preview_path]
     for frozen in (direction.get("frozen_concepts") or [])[:3]:
         rel = str(frozen.get("image_path") or "").strip()
         frozen_path = project_dir / rel if rel else None
         if frozen_path and frozen_path.exists():
             refs.append(frozen_path)
-
-    base_context = textwrap.dedent(
-        f"""\
-        Match the approved room environment closely.
-        This is for production-ready 2D metroidvania environment assets.
-        Art direction: {direction.get('high_level_direction') or ''}
-        Avoid: {direction.get('negative_direction') or ''}
-        Theme: {spec.get('theme_id') or env.get('themeId') or 'custom'}
-        Materials: {', '.join(spec.get('materials') or []) or 'aged environmental materials'}
-        Lighting: {spec.get('lighting') or 'controlled focal light'}
-        Mood: {spec.get('mood') or 'moody'}
-        Room description: {spec.get('description') or ''}
-        """
-    ).strip()
-    components = spec.get("components") if isinstance(spec.get("components"), dict) else {}
-    floor_prompt = str(((components.get("floor") or {}).get("prompt")) or "").strip()
-    walls_prompt = str(((components.get("walls") or {}).get("prompt")) or "").strip()
-    platforms_prompt = str(((components.get("platforms") or {}).get("prompt")) or "").strip()
-    doors_prompt = str(((components.get("doors") or {}).get("prompt")) or "").strip()
-    palette = _extract_preview_runtime_palette(preview_path)
-    flags = _environment_style_flags(spec)
-    shell_family = str((((spec.get("scene_schema") or {}).get("kit") or {}).get("shell_family")) or _infer_shell_family(spec))
-    requested_components = payload.get("components") if isinstance(payload, dict) else None
-    allowed_components = {"background", "wall_body_strip", "floor_cap_strip", "platform_ledge_strip", "door", "midground_arches"}
-    target_components = [
-        str(item).strip()
-        for item in (requested_components or [])
-        if str(item).strip() in allowed_components
-    ]
-    if not target_components:
-        target_components = list(allowed_components)
-
-    def finalize_asset(kind: str, path: Path, size: Tuple[int, int], *, transparent: bool = False) -> bool:
-        if path.exists():
-            _fit_image_to_size(path, size, transparent=transparent)
-        return _validate_environment_asset(path, kind, size)
-
-    def shell_asset_prompt(kind: str) -> str:
-        if kind == "background":
-            return f"""{base_context}
-Create a far background plate for a 2D metroidvania room.
-Shell family: {shell_family}
-Direction: {str(((components.get('background') or {}).get('prompt')) or '').strip() or 'Distant shrine architecture fading into fog and depth.'}
-Requirements:
-- distant architecture only, background depth layer
-- keep the center gameplay lane calm and readable
-- no close props, no braziers, no torches, no altars, no doors, no characters
-- no large foreground object, no centered hero prop, no full-scene focal object
-- side-on 2D game background, not a concept painting with perspective-heavy close detail
-"""
-        if kind == "wall_body_strip":
-            return f"""{base_context}
-Create a larger side-view wall body strip for a 2D metroidvania room shell.
-Shell family: {shell_family}
-Direction: {walls_prompt or 'Broken shrine wall body with gothic masonry, heavy vertical bays, restrained carved detail, and damp age.'}
-Requirements:
-- wide reusable strip, not a full room scene
-- should carry the main wall identity for the room
-- readable at gameplay scale with larger structural forms, not tiny noisy texture
-- avoid a grid of repeating mini-arches or icon-like tiles; use broad masonry masses that stay coherent when stretched
-- shrine/gothic rooms must feel like aged stone architecture, not rails or grating
-- no text, no props, no doors, no characters
-"""
-        if kind == "floor_cap_strip":
-            return f"""{base_context}
-Create a larger floor cap strip for a 2D metroidvania room shell.
-Shell family: {shell_family}
-Direction: {floor_prompt or 'Ritual shrine floor edge with cracked slab top, worn trim, and readable footing.'}
-Requirements:
-- side-view gameplay floor edge only, viewed perfectly straight-on
-- one continuous horizontal floor-cap strip with a clearly readable top walking edge
-- broad stone slab forms and trim, not tiny pattern noise
-- reusable strip across long room floors with seamless left/right continuation
-- fully opaque artwork with no transparency, no glow bloom, and no isolated object silhouettes
-- shrine/gothic rooms must feel like cracked stone slab edges with subtle chisel detail
-- no text, no perspective scene, no props, no characters
-"""
-        if kind == "platform_ledge_strip":
-            return f"""{base_context}
-Create a larger platform ledge strip for a 2D metroidvania room shell.
-Shell family: {shell_family}
-Direction: {platforms_prompt or 'Fractured shrine balcony ledge with a clear stone lip, chipped front face, and restrained support rhythm.'}
-Requirements:
-- side-view gameplay platform edge only
-- readable top cap and front face
-- broad forms, low noise, reusable across long ledges
-- shrine/gothic rooms must feel like carved or broken stone ledges, not catwalks
-- no text, no props, no scene composition
-"""
-        if kind == "midground_arches":
-            return f"""{base_context}
-Create a transparent midground framing layer for a 2D metroidvania room.
-Shell family: {shell_family}
-Direction: {str(((components.get('background') or {}).get('prompt')) or '').strip() or 'Broken shrine arches and side-framing columns fading into depth.'}
-Requirements:
-- side framing only, keep the central gameplay lane mostly open
-- architecture silhouettes only
-- no braziers, flames, altars, doors, statues, or close props
-- no text, no characters, no UI, no opaque full-panel backdrop
-"""
-        return base_context
-
-    results = {}
-    asset_sources: Dict[str, str] = {}
-    asset_errors: Dict[str, str] = {}
-    component_dependencies = _build_asset_component_dependency_payloads(room, spec, direction, preview_id)
-    component_fingerprints = _asset_component_fingerprints_from_dependencies(component_dependencies)
-    existing_pack = env["runtime"].get("asset_pack") if isinstance(env["runtime"].get("asset_pack"), dict) else {}
-    next_assets = copy.deepcopy(existing_pack.get("assets") or {}) if isinstance(existing_pack, dict) else {}
-    ai_first_shell = True
-
-    def set_failed_asset(kind: str, path: Path, error: str) -> None:
-        if path.exists():
-            path.unlink()
-        results[kind] = False
-        asset_sources[kind] = "failed"
-        asset_errors[kind] = error
-
-    if "background" in target_components:
-        results["background"] = _generate_image_from_references(
-            background_path,
-            shell_asset_prompt("background"),
-            refs,
-            size_hint="far background plate 1600x1200",
-        )
-        if not results["background"] or not finalize_asset("background", background_path, (1600, 1200)):
-            set_failed_asset("background", background_path, "ai_generation_failed")
+    plan = _room_component_plan(room, preview_id, biome_pack)
+    assets: Dict[str, Any] = {}
+    failed_assets: List[str] = []
+    validation_errors: List[str] = []
+    used_ai = False
+    template_library = {str(item.get("template_id") or ""): item for item in (biome_pack.get("template_library") or []) if isinstance(item, dict)}
+    for entry in plan:
+        template = template_library.get(str(entry.get("source_template_id") or ""))
+        if not template:
+            failed_assets.append(str(entry.get("slot_id") or "unknown"))
+            validation_errors.append(f"{entry.get('slot_id')}:missing_template")
+            continue
+        rel_path = str(template.get("image_path") or "").strip()
+        template_path = project_dir / rel_path if rel_path else None
+        if not template_path or not template_path.exists():
+            failed_assets.append(str(entry.get("slot_id") or "unknown"))
+            validation_errors.append(f"{entry.get('slot_id')}:missing_template_image")
+            continue
+        output_name = f"{entry['slot_id']}.png"
+        output_path = asset_root / output_name
+        prompt = _build_bespoke_prompt(direction, spec, entry, template)
+        expected_size = (int(entry["target_dimensions"]["width"]), int(entry["target_dimensions"]["height"]))
+        transparent = str(template.get("transparency_mode") or "opaque") == "alpha"
+        adaptation_mode = str(template.get("adaptation_mode") or _component_adaptation_mode(str(entry.get("component_type") or "")))
+        generation_source = "template"
+        if adaptation_mode in {"direct", "stretch"}:
+            generated = _render_bespoke_component_from_template(template_path, output_path, expected_size, transparent)
         else:
-            asset_sources["background"] = "ai"
-
-    if "wall_body_strip" in target_components:
-        results["wall_body_strip"] = _generate_image_from_references(
-            wall_body_strip_path,
-            shell_asset_prompt("wall_body_strip"),
-            refs,
-            size_hint="large wall body strip 512x512 for metroidvania room shell",
+            refs_for_job = [template_path] + [path for path in refs if path != template_path]
+            generated = _generate_bespoke_component_from_references(output_path, prompt, refs_for_job, expected_size, transparent)
+            if generated:
+                used_ai = True
+                generation_source = "ai"
+        if not generated:
+            if output_path.exists():
+                output_path.unlink()
+        valid, errors = _validate_bespoke_component(
+            output_path,
+            str(entry.get("component_type") or ""),
+            expected_size,
+            str(template.get("transparency_mode") or "opaque"),
+            template_path,
         )
-        if not results["wall_body_strip"] or not finalize_asset("wall_body_strip", wall_body_strip_path, (512, 512)):
-            set_failed_asset("wall_body_strip", wall_body_strip_path, "ai_generation_failed")
-        else:
-            asset_sources["wall_body_strip"] = "ai"
-
-    if "floor_cap_strip" in target_components:
-        results["floor_cap_strip"] = _generate_image_from_references(
-            floor_cap_strip_path,
-            shell_asset_prompt("floor_cap_strip"),
-            refs,
-            size_hint="large floor cap strip 512x96 for metroidvania room shell",
-        )
-        if not results["floor_cap_strip"] or not finalize_asset("floor_cap_strip", floor_cap_strip_path, (512, 96)):
-            set_failed_asset("floor_cap_strip", floor_cap_strip_path, "ai_generation_failed")
-        else:
-            asset_sources["floor_cap_strip"] = "ai"
-
-    if "platform_ledge_strip" in target_components:
-        results["platform_ledge_strip"] = _generate_image_from_references(
-            platform_ledge_strip_path,
-            shell_asset_prompt("platform_ledge_strip"),
-            refs,
-            size_hint="large platform ledge strip 512x72 for metroidvania room shell",
-        )
-        if not results["platform_ledge_strip"] or not finalize_asset("platform_ledge_strip", platform_ledge_strip_path, (512, 72)):
-            set_failed_asset("platform_ledge_strip", platform_ledge_strip_path, "ai_generation_failed")
-        else:
-            asset_sources["platform_ledge_strip"] = "ai"
-
-    if "door" in target_components:
-        results["door"] = _generate_image_from_references(
-            door_path,
-            f"""{base_context}
-Create a doorway or gate asset for this room style.
-Use this direction for the doorway: {doors_prompt or 'Heavy aged iron shrine gate set inside carved wet stone masonry.'}
-Readable in side view, centered, production-ready environment prop.
-Keep the silhouette clear and self-contained with transparent surroundings if possible.
-Avoid scene composition, room background, floor plane, giant glow bloom, text, characters, and decorative borders.
-""",
-            refs,
-            size_hint="door prop 192x288",
-        )
-        if not results["door"] or not finalize_asset("door", door_path, (192, 288)):
-            set_failed_asset("door", door_path, "ai_generation_failed")
-        else:
-            asset_sources["door"] = "ai"
-
-    if "midground_arches" in target_components:
-        results["midground_arches"] = _generate_image_from_references(
-            midground_arches_path,
-            shell_asset_prompt("midground_arches"),
-            refs,
-            size_hint="transparent midground framing layer 1600x1200",
-        )
-        if not results["midground_arches"] or not finalize_asset("midground_arches", midground_arches_path, (1600, 1200), transparent=True):
-            set_failed_asset("midground_arches", midground_arches_path, "ai_generation_failed")
-        else:
-            asset_sources["midground_arches"] = "ai"
-
-    used_ai = any(results.values())
-    next_assets.update({
-        "background": {
-            "url": f"/tools/2d-sprite-and-animation/projects-data/{project_id}/room_environment_assets/{room_id}/background.png" if asset_sources.get("background") == "ai" else "",
-            "kind": "background",
-            "source": asset_sources.get("background", (next_assets.get("background") or {}).get("source") or "unknown"),
-            "error": asset_errors.get("background"),
-        },
-        "wall_body_strip": {
-            "url": f"/tools/2d-sprite-and-animation/projects-data/{project_id}/room_environment_assets/{room_id}/wall_body_strip.png" if asset_sources.get("wall_body_strip") == "ai" else "",
-            "kind": "wall_body_strip",
-            "source": asset_sources.get("wall_body_strip", (next_assets.get("wall_body_strip") or {}).get("source") or "unknown"),
-            "error": asset_errors.get("wall_body_strip"),
-        },
-        "floor_cap_strip": {
-            "url": f"/tools/2d-sprite-and-animation/projects-data/{project_id}/room_environment_assets/{room_id}/floor_cap_strip.png" if asset_sources.get("floor_cap_strip") == "ai" else "",
-            "kind": "floor_cap_strip",
-            "source": asset_sources.get("floor_cap_strip", (next_assets.get("floor_cap_strip") or {}).get("source") or "unknown"),
-            "error": asset_errors.get("floor_cap_strip"),
-        },
-        "platform_ledge_strip": {
-            "url": f"/tools/2d-sprite-and-animation/projects-data/{project_id}/room_environment_assets/{room_id}/platform_ledge_strip.png" if asset_sources.get("platform_ledge_strip") == "ai" else "",
-            "kind": "platform_ledge_strip",
-            "source": asset_sources.get("platform_ledge_strip", (next_assets.get("platform_ledge_strip") or {}).get("source") or "unknown"),
-            "error": asset_errors.get("platform_ledge_strip"),
-        },
-        "door": {
-            "url": f"/tools/2d-sprite-and-animation/projects-data/{project_id}/room_environment_assets/{room_id}/door.png" if asset_sources.get("door") == "ai" else "",
-            "kind": "door",
-            "source": asset_sources.get("door", (next_assets.get("door") or {}).get("source") or "unknown"),
-            "error": asset_errors.get("door"),
-        },
-        "midground_arches": {
-            "url": f"/tools/2d-sprite-and-animation/projects-data/{project_id}/room_environment_assets/{room_id}/midground_arches.png" if asset_sources.get("midground_arches") == "ai" else "",
-            "kind": "midground_arches",
-            "source": asset_sources.get("midground_arches", (next_assets.get("midground_arches") or {}).get("source") or "unknown"),
-            "error": asset_errors.get("midground_arches"),
-        },
-    })
-    next_assets.pop("wall_tile", None)
-    next_assets.pop("floor_tile", None)
-    next_assets.pop("platform_tile", None)
-    ready_count = sum(1 for item in next_assets.values() if isinstance(item, dict) and item.get("source") == "ai")
-    failed_count = sum(1 for item in next_assets.values() if isinstance(item, dict) and item.get("source") == "failed")
-    env["runtime"]["asset_pack"] = {
-        "status": "ready" if failed_count == 0 and ready_count > 0 else ("partial" if ready_count > 0 else "failed"),
-        "asset_schema_version": 3,
+        if not generated:
+            errors = ["generation_failed"]
+        if not valid or errors:
+            if output_path.exists():
+                output_path.unlink()
+            failed_assets.append(entry["slot_id"])
+            validation_errors.extend(f"{entry['slot_id']}:{error}" for error in errors)
+            assets[entry["slot_id"]] = {
+                "slot_id": entry["slot_id"],
+                "component_type": entry["component_type"],
+                "source_template_id": entry["source_template_id"],
+                "requested_dimensions": copy.deepcopy(entry["target_dimensions"]),
+                "final_dimensions": None,
+                "placement": copy.deepcopy(entry["placement"]),
+                "url": "",
+                "transparency_mode": template.get("transparency_mode"),
+                "validation": {"status": "fail", "errors": errors},
+                "generation_source": "failed",
+            }
+            continue
+        assets[entry["slot_id"]] = {
+            "slot_id": entry["slot_id"],
+            "component_type": entry["component_type"],
+            "source_template_id": entry["source_template_id"],
+            "requested_dimensions": copy.deepcopy(entry["target_dimensions"]),
+            "final_dimensions": {"width": expected_size[0], "height": expected_size[1]},
+            "placement": copy.deepcopy(entry["placement"]),
+            "url": f"/tools/2d-sprite-and-animation/projects-data/{project_id}/room_environment_assets/{room_id}/bespoke/{output_name}",
+            "transparency_mode": template.get("transparency_mode"),
+            "validation": {"status": "pass", "errors": []},
+            "generation_source": generation_source,
+        }
+    status = "ready" if assets and not failed_assets and len(assets) == len(plan) else "failed"
+    env["runtime"]["bespoke_asset_manifest"] = {
+        "schema_version": 1,
+        "status": status,
+        "biome_id": biome_pack.get("biome_id"),
+        "source_preview_id": preview_id,
+        "generation_plan": copy.deepcopy(plan),
+        "assets": assets,
+        "failed_assets": failed_assets,
         "used_ai": used_ai,
         "generated_at": now_iso(),
-        "source_preview_id": preview_id,
-        "layout_fingerprint": _fingerprint_payload(_room_geometry(room)),
-        "component_dependencies": component_dependencies,
-        "component_fingerprints": component_fingerprints,
-        "stale_components": [],
-        "failed_assets": sorted([kind for kind, source in asset_sources.items() if source == "failed"]),
-        "assets": next_assets,
+        "validation_errors": validation_errors,
     }
-    env["runtime"]["status"] = "ready" if ready_count > 0 else "failed"
-    env["runtime"]["source"] = "approved_preview"
-    env["runtime"]["applied_preview_id"] = preview_id
+    env["runtime"]["asset_pack"] = {
+        "status": "idle",
+        "asset_schema_version": 3,
+        "used_ai": False,
+        "generated_at": None,
+        "source_preview_id": None,
+        "layout_fingerprint": None,
+        "component_dependencies": {},
+        "component_fingerprints": {},
+        "stale_components": [],
+        "failed_assets": [],
+        "assets": {},
+    }
+    env["runtime"]["status"] = "ready" if status == "ready" else "blocked"
+    env["runtime"]["source"] = "approved_preview" if status == "ready" else "bespoke_generation_failed"
+    env["runtime"]["applied_preview_id"] = preview_id if status == "ready" else None
     project["updated_at"] = now_iso()
     save_project(project)
     append_history_event(project_id, {
-        "type": "room_environment_assets_generated",
+        "type": "room_environment_bespoke_assets_generated",
         "room_id": room_id,
         "preview_id": preview_id,
         "used_ai": used_ai,
@@ -2407,7 +2788,7 @@ Avoid scene composition, room background, floor plane, giant glow bloom, text, c
     return {
         "ok": True,
         "environment": copy.deepcopy(env),
-        "asset_pack": copy.deepcopy(env["runtime"]["asset_pack"]),
+        "asset_pack": copy.deepcopy(env["runtime"]["bespoke_asset_manifest"]),
     }
 
 
@@ -2431,6 +2812,9 @@ def approve_room_environment_preview(project_id: str, room_id: str, payload: Dic
     env["runtime"]["material_keywords"] = list(env["spec"].get("materials") or [])
     env["runtime"]["lighting_mode"] = str(env["spec"].get("lighting") or "")
     env["runtime"]["last_applied_at"] = now_iso()
+    bespoke_manifest = env["runtime"]["bespoke_asset_manifest"]
+    bespoke_manifest["biome_id"] = ((_select_biome_pack(normalize_art_direction(project.get("art_direction"), project.get("art_direction"))) or {}).get("biome_id"))
+    bespoke_manifest["source_preview_id"] = preview_id
     asset_pack = env["runtime"]["asset_pack"]
     asset_pack["source_preview_id"] = preview_id
     if asset_pack.get("assets"):

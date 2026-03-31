@@ -205,8 +205,36 @@ Chief Engineer synthesises and elevates to the founder digest only when founder 
 
 ---
 
+## Actions
+
+*Named operations this agent can be invoked to perform. Each runs independently and updates `level-design-status.json` on completion.*
+
+### `room-audit`
+**Trigger:** Any room layout submitted for review — manual or AI-generated
+**Input:** Room layout data or description
+**Output:** Design quality assessment: progression logic, reachability, entity placement validity, metroidvania design compliance
+
+### `copilot-prompt-review`
+**Trigger:** Before any Copilot prompt architecture change
+**Input:** The proposed new prompt
+**Output:** Validation round-trip test results + design quality assessment of sample outputs — pass/flag/reject
+
+### `world-graph-audit`
+**Trigger:** After rooms are connected in the world builder, or before any release
+**Input:** Current world graph structure
+**Output:** Reachability analysis, deadlock detection, progression gate ordering assessment
+
+### `entity-spec-review`
+**Trigger:** When a new entity type is proposed
+**Input:** Proposed entity description and intended role
+**Output:** Schema contract assessment, level design role validation, placement constraint recommendations
+
+---
+
 ## Standing Directives
 
 *Founder-issued directives propagated via orchestrator directive mode. Each entry applies permanently unless explicitly revoked.*
 
 - [2026-03-29] **Plain-language handoffs to engineering.** Written inputs to Chief Engineer that may reach the founder digest must foreground level-design goals, milestone status, risks, issues, and blockers in plain language; schema, graph, and Copilot detail only when Chief Engineer or a founder decision requires it. Trigger: escalation package or written summary routed toward the digest. Context: Founder directive on recurring report clarity.
+
+- [2026-03-30] **Task-completion update.** After completing any task, update `level-design-status.json` priorities: mark completions, promote unblocked items, add new priorities surfaced during the work, and prune entries completed more than two cycles. Update `actions[*].last_run` and `output_location` for any action run this session. Trigger: end of every task. Context: Founder directive — priority lists must stay current without prompting.

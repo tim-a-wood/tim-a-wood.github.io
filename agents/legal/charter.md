@@ -137,8 +137,36 @@ Monthly legal review covering: ToS changes from API providers, open IP litigatio
 
 ---
 
+## Actions
+
+*Named operations this agent can be invoked to perform. Each runs independently and updates `legal-status.json` on completion.*
+
+### `ip-review`
+**Trigger:** Any new AI feature, content generation workflow, or user-generated content surface
+**Input:** Description of the feature and how AI is used
+**Output:** IP exposure assessment — user IP status, output ownership, training data risk, recommended disclosures
+
+### `tos-check`
+**Trigger:** Before any new API integration, or when a provider updates their ToS
+**Input:** The API ToS document or change summary
+**Output:** Material obligations and restrictions relevant to this product's use case — plain language summary with citations
+
+### `privacy-audit`
+**Trigger:** Any new data flow to external APIs or new user data collection
+**Input:** Description of what data flows where
+**Output:** GDPR/CCPA/EU AI Act disclosure obligations, DPA status, consent requirements — what must change before launch
+
+### `launch-legal-review`
+**Trigger:** Before any public-facing launch or feature release
+**Input:** Feature description and any AI involvement
+**Output:** AI disclosure compliance status, output IP status, data processing obligations — go/flag/block recommendation
+
+---
+
 ## Standing Directives
 
 *Founder-issued directives propagated via orchestrator directive mode. Each entry applies permanently unless explicitly revoked.*
 
 - [2026-03-29] **Plain-language legal reporting.** Monthly reviews and digest contributions must foreground what matters for the product, risk posture (including material legal or compliance risks), issues, and any founder decision in plain language. Preserve precise citations, clause references, or statutory hooks when legally material—but isolate them so the executive summary stays scannable. Trigger: scheduled legal reporting and digest contribution. Context: Founder directive on recurring report clarity.
+
+- [2026-03-30] **Task-completion update.** After completing any task, update `legal-status.json` priorities: mark completions, promote unblocked items, add new priorities surfaced during the work, and prune entries completed more than two cycles. Update `actions[*].last_run` and `output_location` for any action run this session. Trigger: end of every task. Context: Founder directive — priority lists must stay current without prompting.

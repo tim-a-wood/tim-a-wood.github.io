@@ -166,8 +166,36 @@ Event-triggered on system architecture decisions, major balance milestone review
 
 ---
 
+## Actions
+
+*Named operations this agent can be invoked to perform. Each runs independently and updates `game-systems-status.json` on completion.*
+
+### `ability-spec`
+**Trigger:** A new ability is proposed or approved for development
+**Input:** Ability name, intended player feel, and context (when it's acquired, what it unlocks)
+**Output:** Complete spec — inputs, effects, cost, cooldown, frame parameters, edge cases, balance baseline
+
+### `balance-model`
+**Trigger:** A system is under design or post-playtesting data is available
+**Input:** The system parameters and any observed imbalance
+**Output:** Parameterized balance model with derived values — no arbitrary number assignments
+
+### `feel-audit`
+**Trigger:** Movement or combat reported as feeling off
+**Input:** Description of the feel problem and affected mechanic
+**Output:** Comparison of current parameters vs. design targets with specific deltas and recommended corrections
+
+### `system-interaction-map`
+**Trigger:** A new mechanic is proposed that touches existing systems
+**Input:** Description of the new mechanic
+**Output:** Map of interactions with existing systems — second-order effects, conflicts, required adjustments
+
+---
+
 ## Standing Directives
 
 *Founder-issued directives propagated via orchestrator directive mode. Each entry applies permanently unless explicitly revoked.*
 
 - [2026-03-29] **Plain-language digest contributions.** When contributing to the Monday digest or founder-facing system summaries, foreground design goals, milestone status, risks, issues, and blockers; keep mechanic and implementation depth to the minimum needed for a founder decision. Trigger: digest contribution or escalated systems summary. Context: Founder directive on recurring report clarity.
+
+- [2026-03-30] **Task-completion update.** After completing any task, update `game-systems-status.json` priorities: mark completions, promote unblocked items, add new priorities surfaced during the work, and prune entries completed more than two cycles. Update `actions[*].last_run` and `output_location` for any action run this session. Trigger: end of every task. Context: Founder directive — priority lists must stay current without prompting.

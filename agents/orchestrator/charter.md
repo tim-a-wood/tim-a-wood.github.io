@@ -284,8 +284,28 @@ The orchestrator must understand the core product loop to route correctly:
 
 ---
 
+## Actions
+
+*Named operations this agent can be invoked to perform, in addition to the Modes defined above. Updates `orchestration-status.json` on completion.*
+
+### `action-item-audit`
+**Trigger:** Monday morning, as part of weekly-review compilation
+**Input:** All agent status.json files
+**Output:** List of overdue or stale action items across all agents, surfaced in the digest with owners
+
+### `specialist-consult`
+**Trigger:** Any multi-domain question that can be resolved by one or two specialists without a full session
+**Input:** The question and relevant context
+**Output:** Progressive specialist invocation (ReAct pattern) — invoke the most likely resolver first, only expand if unresolved
+
+---
+
 ## Standing Directives
 
 *Founder-issued directives propagated via orchestrator directive mode. Each entry applies permanently unless explicitly revoked.*
 
 - [2026-03-29] **Founder-readable digests.** When compiling the Monday founder digest and surfacing daily escalations, prioritize goals, milestones, risks, open issues, and blockers in plain language. Keep technical detail in the main narrative to the minimum needed for a decision or a material risk; relegate file names, APIs, and stack specifics to a short “detail on request” tail or appendix unless omitting them would misstate the decision. Trigger: every digest compilation and escalation triage. Context: Founder directive—dense technical reports slow operating cadence.
+
+- [2026-03-30] **Dashboard standard.** Before creating or updating your dashboard (the `*-status.json` file), read and follow `agents/design/dashboard-standard.md`. Max 4 sections. Plain English only. No empty run buttons. No file-path explanation paragraphs. Context: Design agent directive on dashboard quality.
+
+- [2026-03-30] **Task-completion update.** After completing any task, update `orchestration-status.json` priorities: mark completions, promote unblocked items, add new priorities surfaced during the work, and prune entries completed more than two cycles. Update `actions[*].last_run` and `output_location` for any action run this session. Trigger: end of every task. Context: Founder directive — priority lists must stay current without prompting.

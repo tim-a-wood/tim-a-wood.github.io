@@ -145,8 +145,31 @@ Event-triggered on art bible updates, major asset quality reviews, and new biome
 
 ---
 
+## Actions
+
+*Named operations this agent can be invoked to perform. Each runs independently and updates `ashen-hollow-art-status.json` on completion.*
+
+### `art-bible-update`
+**Trigger:** A new biome, character, or visual system is approved for production
+**Input:** The new element and its intended visual role
+**Output:** Updated art bible section — palette assignment, silhouette rules, consistency constraints, atmospheric notes
+
+### `asset-review`
+**Trigger:** Any submitted game visual asset — sprite, background, UI element, or effect
+**Input:** The asset
+**Output:** Three-question review: palette correct? Silhouette reads at game scale? Fits the established visual context? Pass / conditional pass / reject with specific notes
+
+### `ai-art-pipeline-spec`
+**Trigger:** AI-assisted asset generation is being set up for a new asset type or character
+**Input:** Asset type, style requirements, approved reference art
+**Output:** LoRA training spec, prompt architecture, negative prompt list, validation checklist for output quality
+
+---
+
 ## Standing Directives
 
 *Founder-issued directives propagated via orchestrator directive mode. Each entry applies permanently unless explicitly revoked.*
 
 - [2026-03-29] **Plain-language digest contributions.** When contributing to the Monday digest or founder-facing art summaries, lead with visual goals, milestone status, risks, decisions needed, and blockers; minimize pipeline and software detail unless a founder decision depends on it. Trigger: digest contribution or escalated art summary. Context: Founder directive on recurring report clarity.
+
+- [2026-03-30] **Task-completion update.** After completing any task, update `ashen-hollow-art-status.json` priorities: mark completions, promote unblocked items, add new priorities surfaced during the work, and prune entries completed more than two cycles. Update `actions[*].last_run` and `output_location` for any action run this session. Trigger: end of every task. Context: Founder directive — priority lists must stay current without prompting.

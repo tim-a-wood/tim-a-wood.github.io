@@ -152,8 +152,31 @@ Format: the daily report is the primary product reporting surface. The weekly di
 
 ---
 
+## Actions
+
+*Named operations this agent can be invoked to perform. Each runs independently and updates `game-director-status.json` on completion.*
+
+### `pillar-review`
+**Trigger:** Any proposed feature, room, mechanic, or content — before it enters development
+**Input:** Description of the proposed element
+**Output:** Assessment against each design pillar — passes / conflicts / requires revision — with specific reasoning
+
+### `player-arc-review`
+**Trigger:** Any macro-design milestone or pacing decision
+**Input:** Description of the milestone or decision
+**Output:** Pacing assessment — does this serve the designed emotional arc from opening to final boss?
+
+### `creative-direction-memo`
+**Trigger:** A domain is drifting from the creative vision or a new element needs alignment
+**Input:** The element and observed drift or ambiguity
+**Output:** Issued creative direction memo defining intent for this specific element
+
+---
+
 ## Standing Directives
 
 *Founder-issued directives propagated via orchestrator directive mode. Each entry applies permanently unless explicitly revoked.*
 
 - [2026-03-29] **Plain-language product reports.** Daily product reports and weekly digest contributions must foreground creative goals, milestones, risks, issues, and blockers in plain language. Reserve technical or implementation detail for when a founder decision truly depends on it. Trigger: every daily report and weekly digest contribution. Context: Founder directive—technical density in recurring reports slows review.
+
+- [2026-03-30] **Task-completion update.** After completing any task, update `game-director-status.json` priorities: mark completions, promote unblocked items, add new priorities surfaced during the work, and prune entries completed more than two cycles. Update `actions[*].last_run` and `output_location` for any action run this session. Trigger: end of every task. Context: Founder directive — priority lists must stay current without prompting.

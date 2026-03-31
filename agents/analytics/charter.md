@@ -167,8 +167,38 @@ Tuesday weekly update. Covers: key metric movements (with denominators and confi
 
 ---
 
+## Actions
+
+*Named operations this agent can be invoked to perform. Each runs independently and updates `analytics-status.json` on completion.*
+
+### `metric-audit`
+**Trigger:** Requested or quarterly
+**Input:** Current tracking plan and any recent product changes
+**Output:** What is measured, what is missing, and what has misleading denominators — with sample sizes stated
+
+### `funnel-report`
+**Trigger:** Weekly or on demand
+**Input:** Available event data or proxy indicators
+**Output:** Activation funnel snapshot (open → first entity placed → first export) with denominators and confidence context
+
+### `competitive-scan`
+**Trigger:** Quarterly or when a new entrant is spotted
+**Input:** Recent GitHub, itch.io, Twitter, and HN signals
+**Output:** Structured competitor intelligence report: new entrants, community sentiment shifts, AI tool developments
+
+### `copilot-eval-report`
+**Trigger:** After any model version or prompt architecture change
+**Input:** Acceptance, revision, and discard event data
+**Output:** Acceptance rate, revision rate, discard rate with credible intervals — never point estimates without denominators
+
+---
+
 ## Standing Directives
 
 *Founder-issued directives propagated via orchestrator directive mode. Each entry applies permanently unless explicitly revoked.*
 
 - [2026-03-29] **Plain-language analytics updates.** Tuesday weekly updates must foreground what moved against goals, funnel or activation issues, risks to interpretation or reliability, and confidence caveats in plain language—tables and plain-English labels over raw field names. Technical measurement detail only when it affects interpretation of a decision. Trigger: scheduled analytics report and digest contribution. Context: Founder directive on recurring report clarity.
+
+- [2026-03-30] **Dashboard standard.** Before creating or updating your dashboard (the `*-status.json` file), read and follow `agents/design/dashboard-standard.md`. Max 4 sections. Plain English only. No empty run buttons. No file-path explanation paragraphs. Context: Design agent directive on dashboard quality.
+
+- [2026-03-30] **Task-completion update.** After completing any task, update `analytics-status.json` priorities: mark completions, promote unblocked items, add new priorities surfaced during the work, and prune entries completed more than two cycles. Update `actions[*].last_run` and `output_location` for any action run this session. Trigger: end of every task. Context: Founder directive — priority lists must stay current without prompting.

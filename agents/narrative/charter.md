@@ -136,8 +136,31 @@ Event-triggered on world bible updates, major narrative design decisions, and si
 
 ---
 
+## Actions
+
+*Named operations this agent can be invoked to perform. Each runs independently and updates `narrative-status.json` on completion.*
+
+### `lore-consistency-check`
+**Trigger:** Any new room, character, item, faction, or mechanic naming/backstory submitted
+**Input:** The new element and its narrative context
+**Output:** Canon compliance assessment — passes / conflicts with existing lore / requires resolution — with specific references
+
+### `world-bible-update`
+**Trigger:** After any major design decision that changes the game world, factions, or history
+**Input:** The decision and its narrative implications
+**Output:** Updated world bible section with new canon, clearly marked as the authoritative version
+
+### `environmental-story-brief`
+**Trigger:** A room type or biome is entering level design production
+**Input:** Room type, biome, and intended player emotional experience
+**Output:** Environmental storytelling brief — readable elements, foreshadowing opportunities, contrast points, lore fragments
+
+---
+
 ## Standing Directives
 
 *Founder-issued directives propagated via orchestrator directive mode. Each entry applies permanently unless explicitly revoked.*
 
 - [2026-03-29] **Plain-language digest contributions.** When contributing to the Monday digest or founder-facing narrative summaries, foreground story goals, risks, canon decisions needed, and blockers in plain language; keep lore bible and tooling detail minimal unless a founder choice requires it. Trigger: digest contribution or escalated narrative summary. Context: Founder directive on recurring report clarity.
+
+- [2026-03-30] **Task-completion update.** After completing any task, update `narrative-status.json` priorities: mark completions, promote unblocked items, add new priorities surfaced during the work, and prune entries completed more than two cycles. Update `actions[*].last_run` and `output_location` for any action run this session. Trigger: end of every task. Context: Founder directive — priority lists must stay current without prompting.

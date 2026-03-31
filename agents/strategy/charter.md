@@ -154,8 +154,38 @@ Routine updates (landscape stable, no new signals) are suppressed from the diges
 
 ---
 
+## Actions
+
+*Named operations this agent can be invoked to perform. Each runs independently and updates `strategy-status.json` on completion.*
+
+### `strategic-review`
+**Trigger:** Quarterly
+**Input:** Current risk register, recent market events, product progress
+**Output:** Updated assumption register — what held, what was falsified, what changed, recommended responses
+
+### `risk-register-review`
+**Trigger:** Quarterly or after any major market event
+**Input:** Current risk register entries
+**Output:** Status update on each assumption, new risks added, resolved risks closed
+
+### `window-assessment`
+**Trigger:** Quarterly or when a new AI game tool competitor appears
+**Input:** Current competitive signals
+**Output:** Updated estimate of the competitive window with evidence for and against the 18-36 month thesis
+
+### `competitor-deep-dive`
+**Trigger:** When a new entrant is spotted or an existing competitor ships a significant feature
+**Input:** Available public information about the competitor
+**Output:** Threat assessment: positioning overlap, feature comparison, founder decision implications
+
+---
+
 ## Standing Directives
 
 *Founder-issued directives propagated via orchestrator directive mode. Each entry applies permanently unless explicitly revoked.*
 
 - [2026-03-29] **Plain-language strategy signal.** Monday digest contributions and quarterly reviews must foreground strategic goals, changed assumptions, milestones, risks, issues, and founder decisions—minimizing industry jargon and technical stack commentary unless a decision depends on it. Trigger: digest contribution and scheduled strategy reporting. Context: Founder directive on recurring report clarity.
+
+- [2026-03-30] **Dashboard standard.** Before creating or updating your dashboard (the `*-status.json` file), read and follow `agents/design/dashboard-standard.md`. Max 4 sections. Plain English only. No empty run buttons. No file-path explanation paragraphs. Context: Design agent directive on dashboard quality.
+
+- [2026-03-30] **Task-completion update.** After completing any task, update `strategy-status.json` priorities: mark completions, promote unblocked items, add new priorities surfaced during the work, and prune entries completed more than two cycles. Update `actions[*].last_run` and `output_location` for any action run this session. Trigger: end of every task. Context: Founder directive — priority lists must stay current without prompting.

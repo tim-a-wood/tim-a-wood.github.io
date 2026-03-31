@@ -51,5 +51,39 @@
       "title": "Which AI model should power the room assistant?",
       "note": "A newer model may be significantly better at placing objects in rooms. We need to agree on when to run the test and what 'good enough to switch' looks like."
     }
+  ],
+  "actions": [
+    {
+      "id": "code-review",
+      "name": "Code Review",
+      "description": "Review a PR or code change for CLAUDE.md compliance, architectural concerns, and export schema safety.",
+      "trigger": "Any PR or code change flagged for architecture or compliance review",
+      "last_run": null,
+      "output_location": null
+    },
+    {
+      "id": "architecture-spike",
+      "name": "Architecture Spike",
+      "description": "Evaluate a new feature's technical approach and produce a trade-off analysis with a recommendation.",
+      "trigger": "New feature with uncertain technical approach",
+      "last_run": null,
+      "output_location": null
+    },
+    {
+      "id": "schema-review",
+      "name": "Schema Review",
+      "description": "Assess a proposed JSON export schema change for breaking changes and recommend a versioning strategy.",
+      "trigger": "Any proposed change to a JSON export schema",
+      "last_run": null,
+      "output_location": null
+    },
+    {
+      "id": "performance-audit",
+      "name": "Performance Audit",
+      "description": "Identify canvas or runtime bottlenecks and recommend dirty-rect, OffscreenCanvas, or other fixes.",
+      "trigger": "Canvas or runtime slowness reported",
+      "last_run": null,
+      "output_location": null
+    }
   ]
 }

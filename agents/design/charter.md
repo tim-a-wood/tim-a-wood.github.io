@@ -193,6 +193,36 @@ On-demand. This agent does not produce a standing weekly report — design gover
 
 ---
 
+## Actions
+
+*Named operations this agent can be invoked to perform. Each runs independently and updates `design-status.json` on completion.*
+
+### `design-review`
+**Trigger:** Any PR touching HTML, CSS, or frontend JS
+**Input:** The changed files or diff
+**Output:** Token compliance, accessibility, and interaction compliance assessment — approve / approve with conditions / reject
+
+### `token-audit`
+**Trigger:** Quarterly or after any major CSS refactor
+**Input:** All CSS files in the codebase
+**Output:** Full list of off-token values: colors, spacing, radius, fonts — with file and line references
+
+### `style-guide-proposal`
+**Trigger:** A new UI pattern is needed that isn't in the current spec
+**Input:** Description of the new pattern and its use case
+**Output:** Proposed token or component definition with rationale, migration notes, and before/after comparison
+
+### `ia-review`
+**Trigger:** New tool feature or significant workflow change
+**Input:** Feature spec or description of the workflow change
+**Output:** Information architecture assessment against cognitive load and mode-error principles
+
+---
+
 ## Standing Directives
 
 *Founder-issued directives propagated via orchestrator directive mode. Each entry applies permanently unless explicitly revoked.*
+
+- [2026-03-30] **Dashboard standard.** Before creating or updating your dashboard (the `*-status.json` file), read and follow `agents/design/dashboard-standard.md`. Max 4 sections. Plain English only. No empty run buttons. No file-path explanation paragraphs. Context: Design agent directive on dashboard quality.
+
+- [2026-03-30] **Task-completion update.** After completing any task, update `design-status.json` priorities: mark completions, promote unblocked items, add new priorities surfaced during the work, and prune entries completed more than two cycles. Update `actions[*].last_run` and `output_location` for any action run this session. Trigger: end of every task. Context: Founder directive — priority lists must stay current without prompting.

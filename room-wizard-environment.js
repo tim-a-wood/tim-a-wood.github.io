@@ -263,6 +263,27 @@ function ensureRoomEnvironment(room) {
   }
   if (!Array.isArray(e.runtime.asset_pack.stale_components)) e.runtime.asset_pack.stale_components = [];
   if (!e.runtime.asset_pack.assets || typeof e.runtime.asset_pack.assets !== 'object') e.runtime.asset_pack.assets = {};
+  if (!e.runtime.bespoke_asset_manifest || typeof e.runtime.bespoke_asset_manifest !== 'object') {
+    e.runtime.bespoke_asset_manifest = {};
+  }
+  if (typeof e.runtime.bespoke_asset_manifest.schema_version !== 'number') e.runtime.bespoke_asset_manifest.schema_version = 1;
+  if (typeof e.runtime.bespoke_asset_manifest.status !== 'string') e.runtime.bespoke_asset_manifest.status = 'idle';
+  if (typeof e.runtime.bespoke_asset_manifest.biome_id !== 'string' && e.runtime.bespoke_asset_manifest.biome_id !== null) {
+    e.runtime.bespoke_asset_manifest.biome_id = null;
+  }
+  if (typeof e.runtime.bespoke_asset_manifest.source_preview_id !== 'string' && e.runtime.bespoke_asset_manifest.source_preview_id !== null) {
+    e.runtime.bespoke_asset_manifest.source_preview_id = null;
+  }
+  if (!Array.isArray(e.runtime.bespoke_asset_manifest.generation_plan)) e.runtime.bespoke_asset_manifest.generation_plan = [];
+  if (!e.runtime.bespoke_asset_manifest.assets || typeof e.runtime.bespoke_asset_manifest.assets !== 'object') {
+    e.runtime.bespoke_asset_manifest.assets = {};
+  }
+  if (!Array.isArray(e.runtime.bespoke_asset_manifest.failed_assets)) e.runtime.bespoke_asset_manifest.failed_assets = [];
+  if (typeof e.runtime.bespoke_asset_manifest.used_ai !== 'boolean') e.runtime.bespoke_asset_manifest.used_ai = false;
+  if (typeof e.runtime.bespoke_asset_manifest.generated_at !== 'string' && e.runtime.bespoke_asset_manifest.generated_at !== null) {
+    e.runtime.bespoke_asset_manifest.generated_at = null;
+  }
+  if (!Array.isArray(e.runtime.bespoke_asset_manifest.validation_errors)) e.runtime.bespoke_asset_manifest.validation_errors = [];
   return e;
 }
 

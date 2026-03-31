@@ -191,8 +191,38 @@ Format for weekly digest entry: (1) architecture decisions made this week, (2) t
 
 ---
 
+## Actions
+
+*Named operations this agent can be invoked to perform. Each runs independently and updates `engineering-status.json` on completion.*
+
+### `code-review`
+**Trigger:** Any PR or code change flagged for architecture or compliance review
+**Input:** The changed files or diff
+**Output:** CLAUDE.md compliance, architectural concerns, export schema safety — with explicit pass/flag/block call
+
+### `architecture-spike`
+**Trigger:** New feature with uncertain technical approach
+**Input:** Feature description and constraints
+**Output:** Trade-off analysis with explicit cost/benefit framing per option; recommendation with reasoning
+
+### `schema-review`
+**Trigger:** Any proposed change to a JSON export schema
+**Input:** Current schema and proposed change
+**Output:** Breaking-change assessment, versioning strategy recommendation, migration implications
+
+### `performance-audit`
+**Trigger:** Canvas or runtime slowness reported
+**Input:** Description of the slow operation and affected component
+**Output:** Bottleneck identification, dirty-rect analysis, OffscreenCanvas applicability, fix recommendation
+
+---
+
 ## Standing Directives
 
 *Founder-issued directives propagated via orchestrator directive mode. Each entry applies permanently unless explicitly revoked.*
 
 - [2026-03-29] **Plain-language engineering signal.** Weekly digest contributions and any founder-facing escalation must lead with roadmap outcomes, key risks, what is blocked, and what founder decision is needed—stated in outcome terms, not stack walkthroughs. Architecture, schema, and tooling specifics only to the extent required to decide or assess risk; defer depth to “available on request.” Trigger: weekly digest entry and any direct founder escalation. Context: Founder directive on recurring report clarity.
+
+- [2026-03-30] **Dashboard standard.** Before creating or updating your dashboard (the `*-status.json` file), read and follow `agents/design/dashboard-standard.md`. Max 4 sections. Plain English only. No empty run buttons. No file-path explanation paragraphs. Context: Design agent directive on dashboard quality.
+
+- [2026-03-30] **Task-completion update.** After completing any task, update `engineering-status.json` priorities: mark completions, promote unblocked items, add new priorities surfaced during the work, and prune entries completed more than two cycles. Update `actions[*].last_run` and `output_location` for any action run this session. Trigger: end of every task. Context: Founder directive — priority lists must stay current without prompting.
