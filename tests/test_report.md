@@ -1,7 +1,7 @@
 # Test Report
 | ID | Line Item | Description | Result | Notes |
 |---|---|---|---|---|
-| AT-01 | Fresh Load And Startup | Verify the prototype loads into the playable zone without crashes or blank screens. | Not Run | Browser not exercised in this run; latest editor change: UI copy points Copilot/sync at Sprite Workbench server only (no separate layout server). |
+| AT-01 | Fresh Load And Startup | Verify the prototype loads into the playable zone without crashes or blank screens. | Not Run | Browser not exercised; 2026-03-31 session only updated agent `*-status.json` priorities (no gameplay change). |
 | AT-02 | Movement, Camera, And World Bounds | Verify left/right movement works and the player/camera stay inside the intended bounded world. | Not Run | Same as AT-01. |
 | AT-03 | Ground Jump | Verify the first jump works consistently from solid ground. | Not Run | Same as AT-01. |
 | AT-04 | Mid-Air Double Jump | Verify the second jump works in mid-air and creates a clear extra hop. | Not Run | Same as AT-01. |
@@ -10,6 +10,6 @@
 | AT-07 | Death, Respawn, And Restart | Verify the life system, respawn behavior, game-over state, and restart control. | Not Run | Same as AT-01. |
 | AT-08 | HUD And Feedback | Verify the HUD remains visible and updates during play. | Not Run | Same as AT-01. |
 | AT-09 | Key Pickup And Door Unlock | Verify the first progression loop works end to end: collect the key on the high ledge, show it in the HUD inventory, then consume it to unlock the left-side door. | Not Run | Same as AT-01. |
-| Unit Test Suite | Overall Unit Tests | General unit test suite status. | Pass | 2026-03-30: `node tests/game-logic.test.js` OK; `python3 tests/home_internal_snapshot.test.py` OK. Agent OS Home: client-side `ensureHomeInternal` fallback if API omits `home_internal`; chart week labels rotated when crowded. Browser ATs not run. |
+| Unit Test Suite | Overall Unit Tests | General unit test suite status. | Not Run | No test commands executed this session; change was JSON dashboard priorities only, not application code. |
 | RW-1 manual | Room wizard vertical slice | Add Room → Layout → Review → Export JSON (per `docs/room-wizard-implementation-sprints.md`). | Not Run | Automated unit tests only; browser demo not executed in CI. |
 | RW-2 manual | Neighbors & alignment | Adjoining room → Align → Match opening height; global map shows link (per `docs/room-wizard-implementation-sprints.md` §RW-2). | Not Run | Automated unit tests only; browser not exercised in CI. |

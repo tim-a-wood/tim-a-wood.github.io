@@ -1,76 +1,85 @@
 {
-  "_note": "Updated daily at noon by the orchestrator. Synthesised from all agent statuses. Plain language — no jargon.",
-  "updated": "2026-03-30",
+  "_note": "Updated daily at noon by the orchestrator. Synthesised from all agent statuses. Plain language \u2014 no jargon.",
+  "updated": "2026-03-31",
   "schema_version": "v1.0",
-  "synthesis_sources": ["engineering-status.json", "design-status.json"],
+  "synthesis_sources": [
+    "engineering-status.json",
+    "design-status.json",
+    "workbench-po-status.json",
+    "qa-status.json",
+    "level-design-status.json",
+    "cybersecurity-status.json"
+  ],
   "priorities": [
     {
       "id": 1,
       "source": "eng+design",
-      "title": "Room editor overhaul — new inspector panel and fixing confusing mode switching",
+      "title": "Ship the room editor milestone \u2014 rebuilt inspector, obvious place vs select, keyboard and focus on new panels",
       "status": "in-progress",
       "risk": "high",
-      "note": "Engineering and design are working on this together. Engineering is rebuilding the side panel; design is fixing the place-vs-select confusion. These need to land at the same time."
+      "note": "One release slice: engineering rebuilds the inspector and entity model; design makes place vs select unmistakable and finishes keyboard order and visible focus on new panels.",
+      "proposed_solution": "Coordinate a single milestone so structure, mode clarity, and baseline accessibility land together."
     },
     {
       "id": 2,
-      "source": "eng",
-      "title": "Adding version numbers to saved room files — must happen before any format changes",
+      "source": "eng+qa",
+      "title": "Room save contract \u2014 version field and migration, then automated save/load round-trip",
       "status": "needs-review",
       "risk": "high",
-      "note": "Without version numbers, any change to how rooms are saved could silently break old files. Needs founder sign-off to proceed."
+      "note": "Founder sign-off on versioning before more format churn. QA lands the round-trip test once the on-disk contract is stable.",
+      "proposed_solution": "Approve versioning, ship the field and migration notes, then add the automated save/load test as the production safety net."
     },
     {
       "id": 3,
-      "source": "eng",
-      "title": "Connecting the AI image generator to the sprite editor",
+      "source": "po+eng+ld+qa+cyber",
+      "title": "Copilot readiness program \u2014 bar, prompt and model evaluation, tests, and security gate",
       "status": "in-progress",
-      "risk": "med",
-      "note": "The server side is done. The editor interface for generating sprites is still being built."
+      "risk": "high",
+      "note": "PO publishes measurable commercial criteria. Level design owns room quality standards and prompt iteration. Engineering runs a time-boxed newer-model benchmark after the founder sets schedule and switch criteria. QA automates generate, accept, verify. Cybersecurity runs prompt injection before public exposure.",
+      "proposed_solution": "Treat this as one program with one founder decision frame on bar, timing, and what good enough to switch means."
     },
     {
       "id": 4,
-      "source": "design",
-      "title": "Writing down the animation and AI panel rules so all tools stay consistent",
-      "status": "needs-review",
+      "source": "eng+design",
+      "title": "Finish wiring the AI image generator into the sprite editor",
+      "status": "in-progress",
       "risk": "med",
-      "note": "Without these documented, every new feature risks looking slightly different from the last. Quick win with high ongoing value."
+      "note": "Server side is working; in-editor generation and workflow integration are still in progress. Design rules for AI panels support visual consistency.",
+      "proposed_solution": "Complete the in-editor UI and apply path; keep panels aligned with documented animation and AI panel rules."
     },
     {
       "id": 5,
       "source": "design",
-      "title": "Accessibility pass on the new inspector and side panels",
-      "status": "in-progress",
+      "title": "Document animation and AI panel rules so all tools stay consistent",
+      "status": "needs-review",
       "risk": "med",
-      "note": "Keyboard navigation and visible focus states on everything being built in the room editor."
-    },
-    {
-      "id": 6,
-      "source": "eng",
-      "title": "Decide when to test the newer AI model for room layout suggestions",
-      "status": "paused",
-      "risk": "low",
-      "note": "A newer model may be meaningfully better. We need a founder decision on when to run the test."
+      "note": "Canonical rules in STYLE_GUIDE.md or a linked spec so new UI does not drift.",
+      "proposed_solution": "Land the doc, route review, and point engineering at the same reference."
     }
   ],
   "risks_p0": [],
   "risks_p1": [
     {
-      "title": "Saved room files have no version number",
-      "source": "eng",
-      "note": "Any change to the room format could silently break old saves. Needs fixing before the next format change ships."
+      "title": "Saved room files have no version number yet",
+      "source": "eng+qa",
+      "note": "Format changes can still break old saves until versioning ships; round-trip test follows the contract."
+    },
+    {
+      "title": "Copilot readiness is split across several teams",
+      "source": "orchestration",
+      "note": "If the program is not tracked as one slice, commercial bar, model timing, and tests can drift."
     }
   ],
   "founder_decisions": [
     {
-      "title": "Sign off on adding version numbers to saved room files",
-      "source": "eng",
-      "note": "This blocks room editor entity additions and any future format changes."
+      "title": "Sign off on room file versioning and migration approach",
+      "source": "eng+qa",
+      "note": "Unblocks the room save contract and the automated save/load test."
     },
     {
-      "title": "When should we test the newer AI room assistant model?",
-      "source": "eng",
-      "note": "We need a time-boxed evaluation. When should it happen, and what does 'good enough to switch' look like?"
+      "title": "Copilot program \u2014 commercial bar, when to benchmark the newer model, and model switch criteria",
+      "source": "po+eng",
+      "note": "Answer once so paid tier planning, engineering benchmark, and switch threshold stay aligned."
     }
   ],
   "actions": [
@@ -79,16 +88,16 @@
       "name": "Action Item Audit",
       "description": "Sweep all agent status files for overdue or stale priorities and surface them in the Monday digest.",
       "trigger": "Monday morning, as part of weekly-review compilation",
-      "last_run": null,
-      "output_location": null
+      "last_run": "2026-03-28",
+      "output_location": "artifacts/weekly-digest-2026-03-28.md"
     },
     {
       "id": "specialist-consult",
       "name": "Specialist Consult",
-      "description": "Progressive specialist invocation (ReAct pattern) — invoke the most likely resolver first, expand only if unresolved.",
+      "description": "Progressive specialist invocation (ReAct pattern) \u2014 invoke the most likely resolver first, expand only if unresolved.",
       "trigger": "Any multi-domain question that can be resolved by one or two specialists",
-      "last_run": null,
-      "output_location": null
+      "last_run": "2026-03-29",
+      "output_location": "artifacts/brainstorm-engine-choice-2026-03-29.md"
     }
   ]
 }

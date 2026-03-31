@@ -1,42 +1,47 @@
 {
-  "_note": "Updated daily at noon by the engineering agent. Plain language — no jargon.",
-  "updated": "2026-03-30",
+  "_note": "Updated daily at noon by the engineering agent. Plain language \u2014 no jargon.",
+  "updated": "2026-03-31",
   "schema_version": "v1.0",
   "priorities": [
     {
       "id": 1,
-      "title": "Rebuilding the room editor — cleaner panels and easier entity selection",
+      "title": "Rebuilding the room editor \u2014 cleaner panels and easier entity selection",
       "status": "in-progress",
       "risk": "med",
-      "note": "The inspector side panel is being rebuilt from scratch. Entity types (platforms, doors, keys) are getting a proper system so they behave consistently."
+      "note": "The inspector side panel is being rebuilt from scratch. Entity types (platforms, doors, keys) are getting a proper system so they behave consistently.",
+      "proposed_solution": "Ship the rebuilt inspector with a consistent entity-type model and regression-test selection, editing, and export flows."
     },
     {
       "id": 2,
-      "title": "Testing whether a newer AI model does a better job placing things in rooms",
-      "status": "paused",
-      "risk": "low",
-      "note": "The current AI room assistant works well enough. Waiting to see benchmark results before deciding whether to switch models."
+      "title": "Adding version numbers to saved room files",
+      "status": "needs-review",
+      "risk": "high",
+      "note": "Right now saved files have no version label. If we change the format later, old files could break silently. This needs fixing before any more format changes.",
+      "proposed_solution": "Add an explicit version field to saved room JSON plus a documented migration path before any further format changes ship."
     },
     {
       "id": 3,
       "title": "Connecting the AI image generator to the sprite editor",
       "status": "in-progress",
       "risk": "med",
-      "note": "The server connection is working. The part where you actually generate sprites in the editor is still being built."
+      "note": "The server connection is working. The part where you actually generate sprites in the editor is still being built.",
+      "proposed_solution": "Finish the in-editor UI that triggers image generation and applies results into the sprite workflow on top of the live server."
     },
     {
       "id": 4,
-      "title": "Adding version numbers to saved room files",
-      "status": "needs-review",
-      "risk": "high",
-      "note": "Right now saved files have no version label. If we change the format later, old files could break silently. This needs fixing before any more format changes."
+      "title": "Room Copilot \u2014 time-boxed benchmark of a newer model after the founder sets schedule and switch criteria",
+      "status": "paused",
+      "risk": "low",
+      "note": "Part of the Copilot readiness program with workbench PO and orchestration. Paused until commercial bar and timing are decided.",
+      "proposed_solution": "Run the benchmark once criteria and a window are set; compare against the pinned model using the same fixtures QA and level design use."
     },
     {
       "id": 5,
-      "title": "Speed check on the room editor drawing",
+      "title": "Performance pass on the room editor canvas after the rebuild is stable",
       "status": "paused",
       "risk": "low",
-      "note": "Deferred until the room editor rebuild is stable."
+      "note": "Deferred until the inspector rebuild and interaction paths are stable.",
+      "proposed_solution": "Profile the draw loop after stabilization, then apply dirty rectangles or OffscreenCanvas only where profiling shows need."
     }
   ],
   "risks_p0": [],
@@ -48,8 +53,8 @@
   ],
   "founder_decisions": [
     {
-      "title": "Which AI model should power the room assistant?",
-      "note": "A newer model may be significantly better at placing objects in rooms. We need to agree on when to run the test and what 'good enough to switch' looks like."
+      "title": "Copilot program \u2014 commercial bar, benchmark timing, and model switch criteria",
+      "note": "Same decision as orchestration-status.json founder decisions; engineering executes the benchmark after sign-off."
     }
   ],
   "actions": [
@@ -66,8 +71,8 @@
       "name": "Architecture Spike",
       "description": "Evaluate a new feature's technical approach and produce a trade-off analysis with a recommendation.",
       "trigger": "New feature with uncertain technical approach",
-      "last_run": null,
-      "output_location": null
+      "last_run": "2026-03-29",
+      "output_location": "artifacts/brainstorm-engine-choice-2026-03-29.md"
     },
     {
       "id": "schema-review",

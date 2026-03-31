@@ -1,35 +1,31 @@
 {
-  "_note": "Updated by the level design engineer after each task. Reports to Chief Engineer. Plain language — no jargon.",
-  "updated": "2026-03-30",
+  "_note": "Updated by the level design engineer after each task. Reports to Chief Engineer. Plain language \u2014 no jargon.",
+  "updated": "2026-03-31",
   "schema_version": "v1.0",
   "priorities": [
     {
       "id": 1,
-      "title": "Document the room layout quality standards — what makes a room good in a metroidvania context",
+      "title": "Room quality standards and Copilot prompt quality \u2014 document criteria and iterate the system prompt",
       "status": "in-progress",
       "risk": "high",
-      "note": "Without written standards, AI Copilot output and manually designed rooms can't be evaluated consistently. This is the baseline document everything else depends on."
+      "note": "Part of the orchestration Copilot readiness program. Standards doc is the baseline; prompt iteration makes suggestions match metroidvania logic, then validate with schema and round-trips.",
+      "proposed_solution": "Publish metroidvania room quality criteria, then iterate the Copilot system prompt and examples; validate with the same fixtures QA uses for apply-path tests."
     },
     {
       "id": 2,
-      "title": "Review and strengthen the AI Copilot's prompt to improve suggestion quality",
-      "status": "in-progress",
-      "risk": "med",
-      "note": "The current Copilot prompt produces structurally valid suggestions but doesn't reliably reflect metroidvania design logic. A prompt improvement pass is needed before the feature is considered release-ready."
+      "title": "Build the world graph validation logic \u2014 catch unreachable rooms before export",
+      "status": "paused",
+      "risk": "high",
+      "note": "A room that can't be reached from the start point breaks the game silently. Automated reachability checking must be in place before any world graph is exported to the game runtime.",
+      "proposed_solution": "Implement automated world-graph reachability validation on export so unreachable rooms fail before they hit the runtime."
     },
     {
       "id": 3,
-      "title": "Build the world graph validation logic — catch unreachable rooms before export",
-      "status": "paused",
-      "risk": "high",
-      "note": "A room that can't be reached from the start point breaks the game silently. Automated reachability checking must be in place before any world graph is exported to the game runtime."
-    },
-    {
-      "id": 4,
       "title": "Validate level design gap/platform geometry against the locked movement parameters",
       "status": "paused",
       "risk": "high",
-      "note": "Blocked on game systems locking the movement values. Once those are finalized, all room geometry should be reviewed for playability."
+      "note": "Blocked on game systems locking the movement values. Once those are finalized, all room geometry should be reviewed for playability.",
+      "proposed_solution": "When movement values freeze, audit room geometry against those parameters for fair gaps, platforms, and gates."
     }
   ],
   "risks_p0": [],
@@ -44,15 +40,15 @@
     {
       "id": "room-audit",
       "name": "Room Audit",
-      "description": "Design quality assessment of a room layout — progression logic, reachability, entity placement validity, metroidvania design compliance.",
-      "trigger": "Any room layout submitted for review — manual or AI-generated",
+      "description": "Design quality assessment of a room layout \u2014 progression logic, reachability, entity placement validity, metroidvania design compliance.",
+      "trigger": "Any room layout submitted for review \u2014 manual or AI-generated",
       "last_run": null,
       "output_location": null
     },
     {
       "id": "copilot-prompt-review",
       "name": "Copilot Prompt Review",
-      "description": "Validation round-trip test + design quality assessment of sample outputs for a proposed prompt change — pass/flag/reject.",
+      "description": "Validation round-trip test + design quality assessment of sample outputs for a proposed prompt change \u2014 pass/flag/reject.",
       "trigger": "Before any Copilot prompt architecture change",
       "last_run": null,
       "output_location": null
