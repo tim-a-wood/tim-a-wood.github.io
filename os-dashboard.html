@@ -3934,7 +3934,7 @@ h3.os-chart-card-title {
     <div class="issue-chat-scroll" id="issue-chat-scroll"></div>
     <div class="issue-chat-footer">
       <p class="issue-chat-hint" id="issue-chat-api-hint">
-        Chat uses the supervisor <code style="font-family:var(--font-mono);font-size:11px">/api/issue-chat</code> endpoint (OpenAI API). Set <code style="font-family:var(--font-mono);font-size:11px">OPENAI_API_KEY</code> when starting the dashboard server. Cursor IDE does not expose a browser API; this is the supported server-side hook.
+        Chat calls the Agent OS supervisor <code style="font-family:var(--font-mono);font-size:11px">/api/issue-chat</code> (OpenAI API). Use <code style="font-family:var(--font-mono);font-size:11px">http://127.0.0.1:8769/os-dashboard.html</code> or keep <code style="font-family:var(--font-mono);font-size:11px">os_dashboard_supervisor.py</code> running so requests can reach that port. Set <code style="font-family:var(--font-mono);font-size:11px">OPENAI_API_KEY</code> on the supervisor process.
       </p>
       <button type="button" class="issue-chat-apply" id="issue-chat-apply" disabled>Apply suggested priority updates</button>
       <div class="issue-chat-row">
@@ -5006,6 +5006,13 @@ async function loadOrchestrationStatus() {
 // ── Global workbench bar (POST goes to Agent OS on 8769, or same-origin when on 8769) ──
 let lastWorkbenchControlBase = '';
 
+/** Prefix for Agent OS REST paths when the HTML is served from another origin (e.g. workbench :8766). */
+function agentOsApiUrl(path) {
+  var p = path.charAt(0) === '/' ? path : '/' + path;
+  var b = typeof lastWorkbenchControlBase === 'string' ? lastWorkbenchControlBase.replace(/\/$/, '') : '';
+  return b ? b + p : p;
+}
+
 function applyGlobalWorkbenchBar(d) {
   lastWorkbenchControlBase = '';
   const statusEl = document.getElementById('global-wb-status');
@@ -5860,7 +5867,8 @@ async function issueChatSend() {
   if (sendBtn) sendBtn.disabled = true;
   var am = issueChatAgentMeta(issueChatAction._agent);
   try {
-    var resp = await fetch('/api/issue-chat', {
+    var chatUrl = agentOsApiUrl('/api/issue-chat');
+    var resp = await fetch(chatUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -5873,6 +5881,12 @@ async function issueChatSend() {
     var j = await resp.json().catch(function() { return {}; });
     if (!resp.ok) {
       var errMsg = j.message || j.error || ('HTTP ' + resp.status);
+      if (resp.status === 404) {
+        errMsg = 'Issue chat API not found on this page\'s server. Open Agent OS via '
+          + 'python3 scripts/os_dashboard_supervisor.py (default http://127.0.0.1:8769/os-dashboard.html), '
+          + 'or start the supervisor so the workbench can use agent_os_control_base. '
+          + 'Raw error: Not found';
+      }
       issueChatAppendBubble('assistant', errMsg, null, true);
       issueChatPendingUpdates = [];
       if (applyBtn) applyBtn.disabled = true;
@@ -6401,7 +6415,7 @@ async function avPersist(file) {
   var data = avCache[file];
   if (!data) return false;
   try {
-    var resp = await fetch('/api/status-update', {
+    var resp = await fetch(agentOsApiUrl('/api/status-update'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ file: file, data: data }),
