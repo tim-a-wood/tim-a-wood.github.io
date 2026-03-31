@@ -72,5 +72,23 @@
       "source": "eng",
       "note": "We need a time-boxed evaluation. When should it happen, and what does 'good enough to switch' look like?"
     }
+  ],
+  "actions": [
+    {
+      "id": "action-item-audit",
+      "name": "Action Item Audit",
+      "description": "Sweep all agent status files for overdue or stale priorities and surface them in the Monday digest.",
+      "trigger": "Monday morning, as part of weekly-review compilation",
+      "last_run": null,
+      "output_location": null
+    },
+    {
+      "id": "specialist-consult",
+      "name": "Specialist Consult",
+      "description": "Progressive specialist invocation (ReAct pattern) — invoke the most likely resolver first, expand only if unresolved.",
+      "trigger": "Any multi-domain question that can be resolved by one or two specialists",
+      "last_run": null,
+      "output_location": null
+    }
   ]
 }

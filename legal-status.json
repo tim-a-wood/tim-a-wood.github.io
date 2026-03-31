@@ -1,0 +1,86 @@
+{
+  "_note": "Updated by the legal agent after each task. Plain language — no jargon. This is risk analysis, not legal advice.",
+  "updated": "2026-03-30",
+  "schema_version": "v1.0",
+  "priorities": [
+    {
+      "id": 1,
+      "title": "Verify the EU AI Act disclosure requirements are met by the Copilot UI",
+      "status": "in-progress",
+      "risk": "high",
+      "note": "The EU AI Act (enforcement began August 2024) requires synthetic content to be disclosed. The Copilot suggestions must clearly say they are AI-generated. Current UI appears to do this but hasn't been formally verified against the specific disclosure language requirements."
+    },
+    {
+      "id": 2,
+      "title": "Check whether the Gemini API Data Processing Addendum opt-out applies to our usage tier",
+      "status": "in-progress",
+      "risk": "high",
+      "note": "By default, Google may use API inputs to train future models. User-authored room descriptions are user content. We need to know if we can opt out and what tier that requires."
+    },
+    {
+      "id": 3,
+      "title": "Draft the user-facing disclosure for AI-generated content before public launch",
+      "status": "paused",
+      "risk": "med",
+      "note": "Users need to understand their IP position when using the Copilot. A short, plain-English disclosure covering output ownership and data usage is needed before any public launch."
+    },
+    {
+      "id": 4,
+      "title": "Review all open-source dependencies for GPL or AGPL license exposure",
+      "status": "paused",
+      "risk": "med",
+      "note": "Any GPL/AGPL dependency could impose copyleft obligations on the product. Needs a full dependency audit before commercial launch."
+    }
+  ],
+  "risks_p0": [],
+  "risks_p1": [
+    {
+      "title": "EU AI Act disclosure compliance not yet formally verified",
+      "note": "A disclosure failure is a compliance violation, not just a UX gap. Must be verified before any EU-facing launch."
+    },
+    {
+      "title": "Gemini API data processing opt-out status unknown",
+      "note": "Until we know our DPA status, user-authored content may be used for model training without user consent. GDPR Article 6 exposure."
+    }
+  ],
+  "founder_decisions": [
+    {
+      "title": "Does the current Gemini API plan include the Data Processing Addendum opt-out?",
+      "note": "This determines whether user room descriptions can be sent to the Gemini API without additional consent mechanisms."
+    }
+  ],
+  "actions": [
+    {
+      "id": "ip-review",
+      "name": "IP Review",
+      "description": "IP exposure assessment for an AI feature — user IP status, output ownership, training data risk, recommended disclosures.",
+      "trigger": "Any new AI feature, content generation workflow, or user-generated content surface",
+      "last_run": null,
+      "output_location": null
+    },
+    {
+      "id": "tos-check",
+      "name": "ToS Check",
+      "description": "Material obligations and restrictions of an API ToS relevant to this product — plain language summary with citations.",
+      "trigger": "Before any new API integration, or when a provider updates their ToS",
+      "last_run": null,
+      "output_location": null
+    },
+    {
+      "id": "privacy-audit",
+      "name": "Privacy Audit",
+      "description": "GDPR/CCPA/EU AI Act obligations for a new data flow — disclosure requirements, consent mechanisms, DPA status.",
+      "trigger": "Any new data flow to external APIs or new user data collection",
+      "last_run": null,
+      "output_location": null
+    },
+    {
+      "id": "launch-legal-review",
+      "name": "Launch Legal Review",
+      "description": "AI disclosure compliance, output IP status, and data processing obligations — go/flag/block recommendation.",
+      "trigger": "Before any public-facing launch or feature release",
+      "last_run": null,
+      "output_location": null
+    }
+  ]
+}

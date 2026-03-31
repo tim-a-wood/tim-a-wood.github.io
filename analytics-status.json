@@ -40,5 +40,39 @@
     }
   ],
   "risks_p0": [],
-  "founder_decisions": []
+  "founder_decisions": [],
+  "actions": [
+    {
+      "id": "metric-audit",
+      "name": "Metric Audit",
+      "description": "Review what is measured, what is missing, and what has misleading denominators — with sample sizes stated.",
+      "trigger": "Requested or quarterly",
+      "last_run": null,
+      "output_location": null
+    },
+    {
+      "id": "funnel-report",
+      "name": "Funnel Report",
+      "description": "Activation funnel snapshot (open → first entity placed → first export) with denominators and confidence context.",
+      "trigger": "Weekly or on demand",
+      "last_run": null,
+      "output_location": null
+    },
+    {
+      "id": "competitive-scan",
+      "name": "Competitive Scan",
+      "description": "Structured competitor intelligence report: new entrants, community sentiment shifts, AI tool developments.",
+      "trigger": "Quarterly or when a new entrant is spotted",
+      "last_run": null,
+      "output_location": null
+    },
+    {
+      "id": "copilot-eval-report",
+      "name": "Copilot Eval Report",
+      "description": "Acceptance, revision, and discard rates with credible intervals — never point estimates without denominators.",
+      "trigger": "After any model version or prompt architecture change",
+      "last_run": null,
+      "output_location": null
+    }
+  ]
 }

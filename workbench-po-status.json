@@ -1,0 +1,82 @@
+{
+  "_note": "Updated by the workbench PO after each task. Plain language — no jargon.",
+  "updated": "2026-03-30",
+  "schema_version": "v1.0",
+  "priorities": [
+    {
+      "id": 1,
+      "title": "Define what 'good enough to charge for' looks like for the AI room assistant",
+      "status": "in-progress",
+      "risk": "high",
+      "note": "We need a measurable bar — not a feeling — for when the Copilot is ready to be part of a paid tier. Without this, the commercial launch keeps getting pushed back indefinitely."
+    },
+    {
+      "id": 2,
+      "title": "Write user stories for the top three features in the backlog so engineering has clear success criteria",
+      "status": "in-progress",
+      "risk": "med",
+      "note": "Features that enter development without user stories routinely get built to the wrong spec. Each of the top three backlog items needs a job-to-be-done framing and a measurable success metric before work starts."
+    },
+    {
+      "id": 3,
+      "title": "Run a prioritization pass on the full backlog — the current order isn't justified",
+      "status": "paused",
+      "risk": "med",
+      "note": "The backlog has grown without formal prioritization. The current sequence reflects what was added last, not what matters most to users."
+    },
+    {
+      "id": 4,
+      "title": "Document the onboarding flow — what does a new user do in their first session?",
+      "status": "paused",
+      "risk": "med",
+      "note": "No one has defined the intended first-session experience. If we don't know what success looks like, we can't measure whether new users are reaching it."
+    }
+  ],
+  "risks_p0": [],
+  "risks_p1": [
+    {
+      "title": "No defined bar for Copilot commercial readiness",
+      "note": "Without a clear threshold, the paid launch will keep slipping. This is a strategic risk as much as a product risk."
+    }
+  ],
+  "founder_decisions": [
+    {
+      "title": "What does the AI assistant need to do before we charge for it?",
+      "note": "What does 'clearly better than anything else' look like in practice? Needs a measurable answer."
+    }
+  ],
+  "actions": [
+    {
+      "id": "feature-prioritization",
+      "name": "Feature Prioritization",
+      "description": "Ranked backlog with explicit trade-off acknowledgment — what was deprioritized and why.",
+      "trigger": "Quarterly or when the backlog is stale or contested",
+      "last_run": null,
+      "output_location": null
+    },
+    {
+      "id": "user-story-review",
+      "name": "User Story Review",
+      "description": "User story with JTBD framing and a measurable success metric for a proposed feature — flag if none can be defined.",
+      "trigger": "Any proposed feature before it enters development",
+      "last_run": null,
+      "output_location": null
+    },
+    {
+      "id": "product-brief",
+      "name": "Product Brief",
+      "description": "Full brief for an approved feature — user need, JTBD, success metric, scope boundary, out-of-scope items.",
+      "trigger": "A feature is approved and needs a spec before engineering begins",
+      "last_run": null,
+      "output_location": null
+    },
+    {
+      "id": "roadmap-health-check",
+      "name": "Roadmap Health Check",
+      "description": "Sequence sanity check — does the current roadmap order serve a coherent product strategy?",
+      "trigger": "Monthly",
+      "last_run": null,
+      "output_location": null
+    }
+  ]
+}

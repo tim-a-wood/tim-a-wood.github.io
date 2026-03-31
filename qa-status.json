@@ -100,6 +100,40 @@
     }
   ],
   "founder_decisions": [],
+  "actions": [
+    {
+      "id": "release-gate",
+      "name": "Release Gate",
+      "description": "Go/no-go assessment with P0/P1 list, cross-browser status, and export determinism confirmation.",
+      "trigger": "Before any public-facing release",
+      "last_run": null,
+      "output_location": null
+    },
+    {
+      "id": "regression-plan",
+      "name": "Regression Plan",
+      "description": "Test plan mapping a set of changes to risk areas — with Playwright and unit test coverage specified.",
+      "trigger": "Given a set of changes to assess",
+      "last_run": null,
+      "output_location": null
+    },
+    {
+      "id": "bug-triage",
+      "name": "Bug Triage",
+      "description": "P0–P3 classifications with reproduction steps and assigned owner per issue.",
+      "trigger": "Given a batch of reported issues",
+      "last_run": null,
+      "output_location": null
+    },
+    {
+      "id": "copilot-fixture-run",
+      "name": "Copilot Fixture Run",
+      "description": "Schema validity rate, entity distribution, and content quality delta vs. previous pinned Copilot version.",
+      "trigger": "After any Copilot model version or prompt architecture change",
+      "last_run": null,
+      "output_location": null
+    }
+  ],
   "metrics": {
     "total_tests": 169,
     "tests_passing": 169,

@@ -46,5 +46,39 @@
     "copilot_ux_charter": "Review on change",
     "style_guide_last_touch": "2026-03-27",
     "next_audit": "Next quarter"
-  }
+  },
+  "actions": [
+    {
+      "id": "design-review",
+      "name": "Design Review",
+      "description": "Token compliance, accessibility, and interaction compliance assessment on a PR — approve / approve with conditions / reject.",
+      "trigger": "Any PR touching HTML, CSS, or frontend JS",
+      "last_run": null,
+      "output_location": null
+    },
+    {
+      "id": "token-audit",
+      "name": "Token Audit",
+      "description": "Full audit of all CSS files for off-token values: colors, spacing, radius, fonts — with file and line references.",
+      "trigger": "Quarterly or after any major CSS refactor",
+      "last_run": null,
+      "output_location": null
+    },
+    {
+      "id": "style-guide-proposal",
+      "name": "Style Guide Proposal",
+      "description": "Propose a new token or component definition with rationale, migration notes, and before/after comparison.",
+      "trigger": "A new UI pattern is needed that isn't in the current spec",
+      "last_run": null,
+      "output_location": null
+    },
+    {
+      "id": "ia-review",
+      "name": "IA Review",
+      "description": "Information architecture assessment of a new feature against cognitive load and mode-error principles.",
+      "trigger": "New tool feature or significant workflow change",
+      "last_run": null,
+      "output_location": null
+    }
+  ]
 }

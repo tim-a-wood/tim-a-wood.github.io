@@ -46,5 +46,39 @@
     "content_devlog": "—",
     "channels_cadence": "itch.io devlog and X — aiming for 3 to 5 posts a week",
     "competitor_watch": "Quarterly — Tiled, LDtk, and any AI level-design tools"
-  }
+  },
+  "actions": [
+    {
+      "id": "content-brief",
+      "name": "Content Brief",
+      "description": "Draft a devlog or social post from bullet-point notes — founder-authentic voice, not corporate.",
+      "trigger": "A feature ships or a milestone is reached that warrants public communication",
+      "last_run": null,
+      "output_location": null
+    },
+    {
+      "id": "competitor-monitor",
+      "name": "Competitor Monitor",
+      "description": "Competitive landscape update: new entrants, community sentiment shifts, AI game tool developments.",
+      "trigger": "Quarterly or when a new entrant is flagged",
+      "last_run": null,
+      "output_location": null
+    },
+    {
+      "id": "launch-checklist",
+      "name": "Launch Checklist",
+      "description": "Messaging readiness assessment, channel plan, and risks to authenticity or accuracy for a feature release.",
+      "trigger": "Before any feature or product release",
+      "last_run": null,
+      "output_location": null
+    },
+    {
+      "id": "positioning-review",
+      "name": "Positioning Review",
+      "description": "Accuracy check on AI feature claims or marketing copy — flag over-claims, rewrite where needed.",
+      "trigger": "Any AI feature claim, marketing copy, or public announcement draft",
+      "last_run": null,
+      "output_location": null
+    }
+  ]
 }

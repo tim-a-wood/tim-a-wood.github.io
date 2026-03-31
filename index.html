@@ -1087,6 +1087,13 @@ function getRoomEnvironmentBespokePrimaryFloorAsset(roomId) {
     return getRoomEnvironmentBespokeAsset(roomId, 'primary_floor_piece');
 }
 
+function getRoomEnvironmentBespokePlanEntry(roomId, componentType) {
+    if (!ENABLE_BESPOKE_ROOM_RUNTIME) return null;
+    const manifest = getRoomEnvironmentBespokeManifest(roomId);
+    if (!manifest || manifest.status !== 'ready' || !Array.isArray(manifest.generation_plan)) return null;
+    return manifest.generation_plan.find((item) => item && item.component_type === componentType) || null;
+}
+
 function getRoomEnvironmentBespokeHeroPlatformAsset(roomId, platform) {
     if (!ENABLE_BESPOKE_ROOM_RUNTIME) return null;
     const manifest = getRoomEnvironmentBespokeManifest(roomId);
@@ -1112,6 +1119,31 @@ function getRoomEnvironmentSceneSchema(roomId) {
         background_layers: Array.isArray(schema.background_layers) ? schema.background_layers : [],
         set_dressing: Array.isArray(schema.set_dressing) ? schema.set_dressing : [],
         effects: schema.effects && typeof schema.effects === 'object' ? schema.effects : {}
+    };
+}
+
+function getRoomEnvironmentRuntimeComposition(roomId) {
+    const manifest = getRoomEnvironmentBespokeManifest(roomId);
+    const hasBespokeManifest = Boolean(ENABLE_BESPOKE_ROOM_RUNTIME && manifest?.status === 'ready');
+    const backgroundAsset = hasBespokeManifest ? getRoomEnvironmentBespokeAsset(roomId, 'background_plate') : null;
+    const midgroundAsset = hasBespokeManifest ? getRoomEnvironmentBespokeAsset(roomId, 'midground_frame') : null;
+    const backgroundPlan = hasBespokeManifest ? getRoomEnvironmentBespokePlanEntry(roomId, 'background_plate') : null;
+    const midgroundPlan = hasBespokeManifest ? getRoomEnvironmentBespokePlanEntry(roomId, 'midground_frame') : null;
+    const midgroundZone = Array.isArray(midgroundPlan?.protected_zones)
+        ? midgroundPlan.protected_zones.find((zone) => zone && Number(zone.width || 0) > 0)
+        : null;
+    return {
+        hasBespokeManifest,
+        hasBespokeBackground: Boolean(backgroundAsset?.url),
+        hasBespokeMidground: Boolean(midgroundAsset?.url),
+        backgroundAsset,
+        midgroundAsset,
+        backgroundPlan,
+        midgroundPlan,
+        midgroundZone,
+        suppressBackdropOverlay: Boolean(backgroundAsset?.url),
+        suppressFocalSetDressing: Boolean(backgroundAsset?.url || midgroundAsset?.url),
+        emphasizeWalls: hasBespokeManifest
     };
 }
 
@@ -2101,6 +2133,7 @@ class AshenHollow extends Phaser.Scene {
             const { top: roomTop } = getRoomVerticalBounds(roomId);
             const roomBottom = getRoomVisualWorldBottom();
             const roomHeight = Math.max(64, roomBottom - roomTop);
+            const composition = getRoomEnvironmentRuntimeComposition(roomId);
             const textureKey = roomBackgroundAssetKey(roomId);
             if (room && this.textures.exists(textureKey)) {
                 const sprite = this.add.image(room.start + (room.width / 2), roomBottom, textureKey)
@@ -2108,7 +2141,7 @@ class AshenHollow extends Phaser.Scene {
                     .setOrigin(0.5, 1)
                     .setDepth(-2)
                     .setVisible(false)
-                    .setAlpha(0.5);
+                    .setAlpha(composition.hasBespokeBackground ? 0.4 : 0.5);
                 this.roomBackgroundSprites[roomId] = sprite;
                 const feathers = [];
                 const leftFade = this.add.image(room.start + 96, roomTop + (roomHeight / 2), 'fade-edge-left')
@@ -2139,33 +2172,58 @@ class AshenHollow extends Phaser.Scene {
             }
             const midgroundKey = resolveRoomMidgroundTexture(this, roomId);
             if (room && midgroundKey) {
-                const sprite = this.add.image(room.start + (room.width / 2), roomBottom, midgroundKey)
-                    .setDisplaySize(room.width, roomHeight)
-                    .setOrigin(0.5, 1)
-                    .setDepth(-0.35)
-                    .setVisible(false)
-                    .setAlpha(0.34);
-                this.roomMidgroundSprites[roomId] = sprite;
+                if (composition.hasBespokeMidground && composition.midgroundZone) {
+                    const sourceWidth = Number(composition.midgroundAsset?.final_dimensions?.width || composition.midgroundPlan?.target_dimensions?.width || room.width || 1600);
+                    const sourceHeight = Number(composition.midgroundAsset?.final_dimensions?.height || composition.midgroundPlan?.target_dimensions?.height || roomHeight || 1200);
+                    const safeLeft = Phaser.Math.Clamp(Number(composition.midgroundZone.x || 0), 0, sourceWidth);
+                    const safeRight = Phaser.Math.Clamp(safeLeft + Number(composition.midgroundZone.width || 0), safeLeft, sourceWidth);
+                    const slices = [
+                        { cropX: 0, cropWidth: safeLeft, worldX: room.start },
+                        { cropX: safeRight, cropWidth: sourceWidth - safeRight, worldX: room.start + (safeRight / sourceWidth) * room.width }
+                    ].filter((slice) => slice.cropWidth >= 64);
+                    const sprites = slices.map((slice) => this.add.image(slice.worldX, roomBottom, midgroundKey)
+                        .setDisplaySize((slice.cropWidth / sourceWidth) * room.width, roomHeight)
+                        .setCrop(slice.cropX, 0, slice.cropWidth, sourceHeight)
+                        .setOrigin(0, 1)
+                        .setDepth(-0.18)
+                        .setVisible(false)
+                        .setAlpha(0.52));
+                    this.roomMidgroundSprites[roomId] = sprites;
+                } else {
+                    const sprite = this.add.image(room.start + (room.width / 2), roomBottom, midgroundKey)
+                        .setDisplaySize(room.width, roomHeight)
+                        .setOrigin(0.5, 1)
+                        .setDepth(composition.hasBespokeMidground ? -0.22 : -0.35)
+                        .setVisible(false)
+                        .setAlpha(composition.hasBespokeMidground ? 0.24 : 0.34);
+                    this.roomMidgroundSprites[roomId] = sprite;
+                }
             }
         });
     }
 
     createRoomSurfaceTile(x, y, roomId, textureKey, role = 'wall') {
         const sprite = this.platforms.create(x, y, textureKey);
+        const composition = getRoomEnvironmentRuntimeComposition(roomId);
         if (isResolvedRoomSurfaceAsset(roomId, textureKey)) {
             sprite.setDisplaySize(32, 32);
         }
-        sprite.setAlpha(role === 'floor' ? 0.18 : 0.12);
+        let alpha = role === 'floor' ? 0.18 : 0.12;
+        if (composition.emphasizeWalls && isResolvedRoomSurfaceAsset(roomId, textureKey)) {
+            alpha = role === 'floor' ? 0.24 : 0.3;
+        }
+        sprite.setAlpha(alpha);
         sprite.refreshBody();
         return sprite;
     }
 
     createRoomPlatformTile(x, y, roomId, textureKey) {
         const sprite = this.platforms.create(x, y, textureKey);
+        const composition = getRoomEnvironmentRuntimeComposition(roomId);
         if (isResolvedRoomPlatformAsset(roomId, textureKey)) {
             sprite.setDisplaySize(32, 14);
         }
-        sprite.setAlpha(0.16);
+        sprite.setAlpha(composition.emphasizeWalls && isResolvedRoomPlatformAsset(roomId, textureKey) ? 0.24 : 0.16);
         sprite.refreshBody();
         return sprite;
     }
@@ -2366,6 +2424,7 @@ class AshenHollow extends Phaser.Scene {
                 }, 0.08);
             };
             const addBackdropOverlay = () => {
+                if (getRoomEnvironmentRuntimeComposition(roomId).suppressBackdropOverlay) return;
                 const style = deriveRoomEnvironmentRuntimeStyle(roomId);
                 const family = String(style.backdropFamily || 'ruined_arch_hall');
                 if (family === 'industrial_depth') {
@@ -2443,6 +2502,9 @@ class AshenHollow extends Phaser.Scene {
             });
 
             (schema.set_dressing || []).forEach((item) => {
+                const composition = getRoomEnvironmentRuntimeComposition(roomId);
+                if (composition.suppressFocalSetDressing && (item.type === 'brazier' || item.type === 'altar')) return;
+                if (composition.suppressFocalSetDressing && (item.zone === 'center' || item.zone === 'focal') && item.priority === 'high') return;
                 const count = Math.max(1, Number(item.count || 1));
                 for (let i = 0; i < count; i += 1) {
                     const zone = i === 0 ? (item.zone || 'center') : (item.zone === 'left' ? 'center' : item.zone === 'right' ? 'center' : 'left');
@@ -3647,8 +3709,11 @@ class AshenHollow extends Phaser.Scene {
         }
         if (this.roomMidgroundSprites) {
             Object.entries(this.roomMidgroundSprites).forEach(([id, sprite]) => {
-                if (!sprite) return;
-                sprite.setVisible(id === roomId);
+                const sprites = Array.isArray(sprite) ? sprite : [sprite];
+                sprites.forEach((entry) => {
+                    if (!entry) return;
+                    entry.setVisible(id === roomId);
+                });
             });
         }
         this.roomEnteredAtMs = this.time.now;

@@ -1,0 +1,74 @@
+{
+  "_note": "Updated by the game director after each task. Plain language — no jargon.",
+  "updated": "2026-03-30",
+  "schema_version": "v1.0",
+  "priorities": [
+    {
+      "id": 1,
+      "title": "Lock the design pillars for Ashen Hollow so every decision has a clear filter",
+      "status": "in-progress",
+      "risk": "high",
+      "note": "Without defined pillars, creative decisions accumulate inconsistently. Every room, mechanic, and story beat needs to pass the same three to five questions. Getting these locked is the highest-value creative task right now."
+    },
+    {
+      "id": 2,
+      "title": "Define the player's emotional arc from first room to final boss",
+      "status": "in-progress",
+      "risk": "high",
+      "note": "The macro arc determines how abilities, rooms, and story beats are sequenced. Without it, individual design decisions can't be assessed for pacing."
+    },
+    {
+      "id": 3,
+      "title": "Agree on what v1.0 of Ashen Hollow contains — and what it doesn't",
+      "status": "paused",
+      "risk": "high",
+      "note": "Scope ceiling needs a founder decision. An unfinished game breaks the argument that the tools work. This is a joint decision with the founder."
+    },
+    {
+      "id": 4,
+      "title": "Establish genre positioning — what Ashen Hollow inherits from the metroidvania tradition and where it departs",
+      "status": "paused",
+      "risk": "med",
+      "note": "Needed before marketing can communicate differentiation and before level design can establish room design conventions."
+    }
+  ],
+  "risks_p0": [],
+  "risks_p1": [
+    {
+      "title": "No agreed scope ceiling for Ashen Hollow v1.0",
+      "note": "Scope creep is the most likely thing to prevent the game from shipping. Needs a founder decision before any more rooms or systems are added."
+    }
+  ],
+  "founder_decisions": [
+    {
+      "title": "What is in Ashen Hollow v1.0 — and what isn't?",
+      "note": "How many biomes, rooms, and mechanics make a shippable first version? This needs a hard ceiling, not a roadmap."
+    }
+  ],
+  "actions": [
+    {
+      "id": "pillar-review",
+      "name": "Pillar Review",
+      "description": "Assess a proposed feature, room, mechanic, or content element against each design pillar — passes / conflicts / requires revision.",
+      "trigger": "Any proposed element before it enters development",
+      "last_run": null,
+      "output_location": null
+    },
+    {
+      "id": "player-arc-review",
+      "name": "Player Arc Review",
+      "description": "Pacing assessment — does this milestone or decision serve the designed emotional arc from opening to final boss?",
+      "trigger": "Any macro-design milestone or pacing decision",
+      "last_run": null,
+      "output_location": null
+    },
+    {
+      "id": "creative-direction-memo",
+      "name": "Creative Direction Memo",
+      "description": "Issue a memo defining creative intent for a specific element where drift or ambiguity has been observed.",
+      "trigger": "A domain is drifting from the creative vision or a new element needs alignment",
+      "last_run": null,
+      "output_location": null
+    }
+  ]
+}

@@ -1,0 +1,81 @@
+{
+  "_note": "Updated by the cybersecurity agent after each task. Plain language — no jargon.",
+  "updated": "2026-03-30",
+  "schema_version": "v1.0",
+  "priorities": [
+    {
+      "id": 1,
+      "title": "Audit every place the tools write user input to the DOM — XSS risk",
+      "status": "in-progress",
+      "risk": "high",
+      "note": "Entity names, room names, and any user-created string written via innerHTML is a potential XSS vector. All DOM write operations in the room editor and sprite workbench must be audited before any external user exposure. This is a P0 if found after public launch."
+    },
+    {
+      "id": 2,
+      "title": "Add Content Security Policy headers to all HTML pages",
+      "status": "in-progress",
+      "risk": "high",
+      "note": "Without a CSP, any XSS vulnerability is trivially exploitable. Adding a strict CSP (no unsafe-inline) is the most impactful security improvement we can make before launch."
+    },
+    {
+      "id": 3,
+      "title": "Run a prompt injection test on the Copilot before any public release",
+      "status": "paused",
+      "risk": "high",
+      "note": "The Copilot accepts user-authored room descriptions that are forwarded to the Gemini API. Adversarial inputs must be tested against the validation layer before the feature is public-facing."
+    },
+    {
+      "id": 4,
+      "title": "Verify API keys are not present in client-side code or git history",
+      "status": "needs-review",
+      "risk": "high",
+      "note": "An exposed API key can generate a large bill overnight. Full scan of client code and git history required before any public repository access."
+    }
+  ],
+  "risks_p0": [],
+  "risks_p1": [
+    {
+      "title": "DOM XSS audit not yet completed",
+      "note": "If user input is written via innerHTML anywhere in the tools, it is exploitable. This blocks any public user-facing release."
+    },
+    {
+      "title": "No Content Security Policy on any HTML page",
+      "note": "Without CSP, any XSS vulnerability is low-effort to exploit. Must be added before launch."
+    }
+  ],
+  "founder_decisions": [],
+  "actions": [
+    {
+      "id": "threat-model",
+      "name": "Threat Model",
+      "description": "Attack surface map with severity ratings and mitigation recommendations for a new feature.",
+      "trigger": "Any new feature that accepts user input, calls external APIs, or introduces a new attack surface",
+      "last_run": null,
+      "output_location": null
+    },
+    {
+      "id": "security-review",
+      "name": "Security Review",
+      "description": "XSS vectors, credential exposure, CORS/CSP gaps, input validation — explicit pass/flag/block call.",
+      "trigger": "Any PR touching API integration, DOM writes, authentication, or input handling",
+      "last_run": null,
+      "output_location": null
+    },
+    {
+      "id": "credential-audit",
+      "name": "Credential Audit",
+      "description": "Full scan for API keys in client code, git history, and log output — findings with remediation steps.",
+      "trigger": "Quarterly or after any contributor change",
+      "last_run": null,
+      "output_location": null
+    },
+    {
+      "id": "prompt-injection-test",
+      "name": "Prompt Injection Test",
+      "description": "Adversarial input test results — jailbreaks, adversarial descriptions, entity name injection — pass/fail per category.",
+      "trigger": "Before any Copilot prompt change or new user input surface touching external AI APIs",
+      "last_run": null,
+      "output_location": null
+    }
+  ]
+}

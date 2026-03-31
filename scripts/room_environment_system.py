@@ -1312,28 +1312,26 @@ def _default_scene_schema(spec: Dict[str, Any], geometry: Dict[str, Any]) -> Dic
         })
     if any(word in text for word in ("shrine", "altar", "ritual", "sacred")):
         set_dressing.append({
-            "type": "altar",
-            "anchor": "floor",
-            "zone": "center",
-            "count": 1,
-            "priority": "high",
-            "avoid": ["door", "main_path"],
-        })
-        set_dressing.append({
-            "type": "brazier",
-            "anchor": "platform",
-            "zone": "center",
-            "count": 1,
-            "priority": "medium",
-            "avoid": ["door", "main_path"],
-        })
-        set_dressing.append({
             "type": "banner",
             "anchor": "ceiling",
             "zone": "right",
             "count": 1,
             "priority": "low",
             "avoid": ["door"],
+        })
+        set_dressing.append({
+            "type": "chains",
+            "anchor": "ceiling",
+            "zone": "left",
+            "count": 1,
+            "priority": "low",
+            "avoid": ["door"],
+        })
+        background_layers.append({
+            "kind": "architecture",
+            "motif": "recessed shrine apse",
+            "depth": "far",
+            "density": "low",
         })
     if any(word in text for word in ("gothic", "ruin", "stone", "buttress", "arch")):
         set_dressing.append({

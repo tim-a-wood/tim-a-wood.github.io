@@ -1,0 +1,82 @@
+{
+  "_note": "Updated by the finance agent after each task. Plain language — no jargon.",
+  "updated": "2026-03-30",
+  "schema_version": "v1.0",
+  "priorities": [
+    {
+      "id": 1,
+      "title": "Measure the actual AI API cost per Copilot session so we can model unit economics",
+      "status": "in-progress",
+      "risk": "high",
+      "note": "We don't know what the Copilot actually costs per invocation in practice. Without real token consumption numbers, any pricing model is built on assumptions. This is the most important financial unknown right now."
+    },
+    {
+      "id": 2,
+      "title": "Build a three-scenario pricing model for the paid tier once unit economics are known",
+      "status": "paused",
+      "risk": "high",
+      "note": "Blocked on having real cost data. Once we know the cost per user per month, we can model what price makes this business work."
+    },
+    {
+      "id": 3,
+      "title": "Set up monthly cost tracking — actual spend vs. budget by line item",
+      "status": "in-progress",
+      "risk": "med",
+      "note": "Currently no structured view of what we're spending. Need a simple monthly summary: API costs, hosting, tooling subscriptions — actual vs. expected."
+    },
+    {
+      "id": 4,
+      "title": "Establish a cost alert threshold — flag anything over 150% of the four-week average",
+      "status": "paused",
+      "risk": "med",
+      "note": "A sudden API cost spike (bad prompt, unexpected traffic) could generate a large bill before anyone notices. A simple threshold alert prevents surprises."
+    }
+  ],
+  "risks_p0": [],
+  "risks_p1": [
+    {
+      "title": "No real data on Copilot API cost per session",
+      "note": "We cannot model a viable paid tier without knowing the marginal cost of serving a user. This is the financial critical path."
+    }
+  ],
+  "founder_decisions": [
+    {
+      "title": "What is the maximum acceptable API cost per paying user per month?",
+      "note": "This threshold defines what the pricing floor must be. Without it, we can't assess whether any pricing option is financially viable."
+    }
+  ],
+  "actions": [
+    {
+      "id": "unit-economics-update",
+      "name": "Unit Economics Update",
+      "description": "Updated contribution margin model — revenue per user, API cost per user, margin per paying user.",
+      "trigger": "Monthly or after any AI API pricing change",
+      "last_run": null,
+      "output_location": null
+    },
+    {
+      "id": "runway-check",
+      "name": "Runway Check",
+      "description": "Runway calculation under current, optimistic, and bear spend scenarios — months remaining, break-even conditions.",
+      "trigger": "Monthly",
+      "last_run": null,
+      "output_location": null
+    },
+    {
+      "id": "pricing-model",
+      "name": "Pricing Model",
+      "description": "Van Westendorp price sensitivity analysis plus three-scenario unit economics (base / bull / bear).",
+      "trigger": "Before any paid tier decision",
+      "last_run": null,
+      "output_location": null
+    },
+    {
+      "id": "api-cost-alert",
+      "name": "API Cost Alert",
+      "description": "Cost spike analysis — root cause, projection at current growth rate, options to contain.",
+      "trigger": "Any API call volume change exceeding 150% of the 4-week average",
+      "last_run": null,
+      "output_location": null
+    }
+  ]
+}
