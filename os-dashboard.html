@@ -3934,7 +3934,7 @@ h3.os-chart-card-title {
     <div class="issue-chat-scroll" id="issue-chat-scroll"></div>
     <div class="issue-chat-footer">
       <p class="issue-chat-hint" id="issue-chat-api-hint">
-        Chat calls the Agent OS supervisor <code style="font-family:var(--font-mono);font-size:11px">/api/issue-chat</code> (OpenAI API). Use <code style="font-family:var(--font-mono);font-size:11px">http://127.0.0.1:8769/os-dashboard.html</code> or keep <code style="font-family:var(--font-mono);font-size:11px">os_dashboard_supervisor.py</code> running so requests can reach that port. Set <code style="font-family:var(--font-mono);font-size:11px">OPENAI_API_KEY</code> on the supervisor process.
+        Chat calls <code style="font-family:var(--font-mono);font-size:11px">/api/issue-chat</code> on the Agent OS supervisor. Prefer <code style="font-family:var(--font-mono);font-size:11px">CURSOR_API_KEY</code> (Cursor Dashboard → Cloud Agents; runs a short Cloud Agent on your GitHub repo). Optional: <code style="font-family:var(--font-mono);font-size:11px">CURSOR_ISSUE_CHAT_REPOSITORY</code>, <code style="font-family:var(--font-mono);font-size:11px">CURSOR_ISSUE_CHAT_REF</code>. Fallback: <code style="font-family:var(--font-mono);font-size:11px">OPENAI_API_KEY</code>.
       </p>
       <button type="button" class="issue-chat-apply" id="issue-chat-apply" disabled>Apply suggested priority updates</button>
       <div class="issue-chat-row">

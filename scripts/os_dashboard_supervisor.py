@@ -2,27 +2,38 @@
 """
 Local Agent OS dashboard: serves os-dashboard.html, GET /api/dashboard-data,
 POST /api/workbench/{start|stop|restart}, POST /api/status-update, and
-POST /api/issue-chat (OpenAI JSON chat for issue discussion in the UI).
+POST /api/issue-chat (issue discussion in the UI).
 Binds 127.0.0.1 only.
 
-Issue chat: set OPENAI_API_KEY in the environment (optional ISSUE_CHAT_MODEL,
-default gpt-4o-mini). Cursor IDE does not expose a browser-accessible chat API;
-this server endpoint is the supported integration for Auto-style reasoning in
-the dashboard.
+Issue chat backends (first match wins):
+  1) Cursor Cloud Agents API — set CURSOR_API_KEY (Cursor Dashboard → Cloud Agents).
+     Optional: CURSOR_ISSUE_CHAT_REPOSITORY (HTTPS GitHub URL), CURSOR_ISSUE_CHAT_REF
+     (default main). If the repository is unset, the supervisor tries `git remote
+     get-url origin` under the repo root and normalizes github.com URLs.
+  2) OpenAI Chat Completions — set OPENAI_API_KEY (optional ISSUE_CHAT_MODEL).
+
+Cursor does not offer a generic HTTP "chat completions" API; Cloud Agents are the
+supported programmatic path. Each dashboard message launches a short-lived agent,
+polls until it finishes, reads the conversation, then deletes the agent by default
+(set CURSOR_ISSUE_CHAT_KEEP_AGENT=1 to skip deletion).
 
 Usage:
-  python3 scripts/os_dashboard_supervisor.py
-  OPENAI_API_KEY=... python3 scripts/os_dashboard_supervisor.py --port 8769 --workbench-port 8766
+  CURSOR_API_KEY=key_... python3 scripts/os_dashboard_supervisor.py
+  # or: OPENAI_API_KEY=... python3 scripts/os_dashboard_supervisor.py
 
 Open http://127.0.0.1:<port>/os-dashboard.html
 """
 from __future__ import annotations
 
 import argparse
+import base64
 import json
 import os
+import re
 import ssl
+import subprocess
 import sys
+import time
 import urllib.error
 import urllib.request
 from typing import Any
@@ -84,6 +95,189 @@ def _issue_chat_call_openai(
     outer = json.loads(raw)
     content = outer["choices"][0]["message"]["content"]
     return json.loads(content)
+
+
+CURSOR_API_BASE = "https://api.cursor.com"
+
+
+def _cursor_auth_header(api_key: str) -> str:
+    token = base64.b64encode(f"{api_key}:".encode("utf-8")).decode("ascii")
+    return f"Basic {token}"
+
+
+def _http_request_json(
+    method: str,
+    url: str,
+    *,
+    headers: dict[str, str],
+    body: dict[str, Any] | None = None,
+    timeout: int = 120,
+) -> tuple[int, Any]:
+    payload = json.dumps(body).encode("utf-8") if body is not None else None
+    req = urllib.request.Request(url, data=payload, headers=headers, method=method)
+    ctx = ssl.create_default_context()
+    try:
+        with urllib.request.urlopen(req, timeout=timeout, context=ctx) as resp:
+            raw = resp.read().decode("utf-8")
+            code = resp.status
+    except urllib.error.HTTPError as exc:
+        code = exc.code
+        raw = exc.read().decode("utf-8", errors="replace")
+    except OSError as exc:
+        raise RuntimeError(str(exc)) from exc
+    if not raw.strip():
+        return code, {}
+    try:
+        return code, json.loads(raw)
+    except json.JSONDecodeError:
+        return code, {"_raw": raw}
+
+
+def _github_https_from_git_origin(repo_root: Path) -> str | None:
+    try:
+        r = subprocess.run(
+            ["git", "remote", "get-url", "origin"],
+            cwd=repo_root,
+            capture_output=True,
+            text=True,
+            timeout=8,
+            check=False,
+        )
+    except OSError:
+        return None
+    if r.returncode != 0:
+        return None
+    url = (r.stdout or "").strip()
+    if url.startswith("git@github.com:"):
+        path = url.split(":", 1)[1].removesuffix(".git")
+        return f"https://github.com/{path}"
+    if "github.com" in url and url.startswith("http"):
+        return url.removesuffix(".git")
+    return None
+
+
+def _issue_chat_parse_json_from_text(text: str) -> dict[str, Any]:
+    t = text.strip()
+    m = re.search(r"```(?:json)?\s*([\s\S]*?)```", t, re.IGNORECASE)
+    if m:
+        t = m.group(1).strip()
+    return json.loads(t)
+
+
+def _issue_chat_result_from_cursor_conversation(messages: list[dict[str, Any]]) -> dict[str, Any]:
+    texts: list[str] = []
+    for msg in messages:
+        if msg.get("type") == "assistant_message" and isinstance(msg.get("text"), str):
+            texts.append(msg["text"].strip())
+    if not texts:
+        return {
+            "thinking": "",
+            "assistant_message": "No assistant messages in the Cursor agent conversation.",
+            "priority_updates": [],
+        }
+    last = texts[-1]
+    try:
+        parsed = _issue_chat_parse_json_from_text(last)
+        if isinstance(parsed, dict):
+            return parsed
+    except (json.JSONDecodeError, TypeError):
+        pass
+    return {"thinking": "", "assistant_message": last, "priority_updates": []}
+
+
+def _issue_chat_call_cursor_cloud_agent(
+    *,
+    api_key: str,
+    repository: str,
+    ref: str,
+    model: str,
+    instruction_text: str,
+    poll_interval_sec: float = 2.5,
+    max_wait_sec: float = 180.0,
+) -> dict[str, Any]:
+    """
+    Launch a Cursor Cloud Agent with one prompt, wait for a terminal status,
+    read conversation JSON, optionally delete the agent.
+    """
+    auth = _cursor_auth_header(api_key)
+    headers = {
+        "Authorization": auth,
+        "Content-Type": "application/json",
+    }
+    launch_body: dict[str, Any] = {
+        "prompt": {"text": instruction_text},
+        "model": model,
+        "source": {"repository": repository, "ref": ref},
+        "target": {"autoCreatePr": False},
+    }
+    code, data = _http_request_json(
+        "POST",
+        f"{CURSOR_API_BASE}/v0/agents",
+        headers=headers,
+        body=launch_body,
+        timeout=120,
+    )
+    if code >= 400:
+        raise RuntimeError(f"Cursor launch HTTP {code}: {json.dumps(data, ensure_ascii=False)[:1200]}")
+    agent_id = data.get("id")
+    if not isinstance(agent_id, str) or not agent_id:
+        raise RuntimeError(f"Cursor launch missing agent id: {data!r}")
+
+    terminal = frozenset(
+        {"FINISHED", "FAILED", "ERROR", "CANCELLED", "STOPPED", "REJECTED"}
+    )
+    deadline = time.monotonic() + max_wait_sec
+    status_payload: dict[str, Any] = {}
+    while time.monotonic() < deadline:
+        sc, status_payload = _http_request_json(
+            "GET",
+            f"{CURSOR_API_BASE}/v0/agents/{agent_id}",
+            headers=headers,
+            body=None,
+            timeout=60,
+        )
+        if sc >= 400:
+            raise RuntimeError(f"Cursor status HTTP {sc}: {json.dumps(status_payload, ensure_ascii=False)[:800]}")
+        st = status_payload.get("status")
+        st_u = str(st).upper() if st is not None else ""
+        if st_u in terminal:
+            break
+        time.sleep(poll_interval_sec)
+    else:
+        raise RuntimeError("Cursor agent timed out before reaching a terminal status.")
+
+    st_final_u = str(status_payload.get("status") or "").upper()
+    if st_final_u != "FINISHED":
+        summ = status_payload.get("summary") or status_payload.get("message")
+        if summ is None:
+            summ = json.dumps(status_payload, ensure_ascii=False)[:1200]
+        elif not isinstance(summ, str):
+            summ = str(summ)
+        raise RuntimeError(f"Cursor agent ended with status {st_final_u!r}: {summ[:1200]}")
+
+    cc, conv = _http_request_json(
+        "GET",
+        f"{CURSOR_API_BASE}/v0/agents/{agent_id}/conversation",
+        headers=headers,
+        body=None,
+        timeout=60,
+    )
+    if cc >= 400:
+        raise RuntimeError(f"Cursor conversation HTTP {cc}: {json.dumps(conv, ensure_ascii=False)[:800]}")
+    raw_messages = conv.get("messages")
+    messages = raw_messages if isinstance(raw_messages, list) else []
+    result = _issue_chat_result_from_cursor_conversation(messages)
+
+    if os.environ.get("CURSOR_ISSUE_CHAT_KEEP_AGENT", "").strip() not in ("1", "true", "yes"):
+        _http_request_json(
+            "DELETE",
+            f"{CURSOR_API_BASE}/v0/agents/{agent_id}",
+            headers=headers,
+            body=None,
+            timeout=60,
+        )
+
+    return result
 
 
 def _norm_path(handler: BaseHTTPRequestHandler) -> str:
@@ -232,17 +426,8 @@ def make_handler(
                 if not isinstance(issue, dict):
                     return self._send_json(HTTPStatus.BAD_REQUEST, {"error": "issue required"})
 
-                api_key = (os.environ.get("OPENAI_API_KEY") or "").strip()
-                if not api_key:
-                    return self._send_json(
-                        HTTPStatus.SERVICE_UNAVAILABLE,
-                        {
-                            "error": "no_api_key",
-                            "message": "Set OPENAI_API_KEY in the environment and restart the supervisor. "
-                            "Cursor IDE does not expose a browser chat API; this endpoint uses the OpenAI API.",
-                        },
-                    )
-                model = (os.environ.get("ISSUE_CHAT_MODEL") or "gpt-4o-mini").strip()
+                cursor_key = (os.environ.get("CURSOR_API_KEY") or "").strip()
+                openai_key = (os.environ.get("OPENAI_API_KEY") or "").strip()
 
                 allowed_files = ", ".join(sorted(status_write_allow))
                 system_prompt = (
@@ -262,7 +447,9 @@ def make_handler(
                     "Use [] if no file changes are appropriate yet.\n\n"
                     f"Allowed file names for priority_updates: {allowed_files}\n"
                     "Do not invent file names. Status must be one of: "
-                    "in-progress, needs-review, queued, paused, done. Risk: high, med, low."
+                    "in-progress, needs-review, queued, paused, done. Risk: high, med, low.\n\n"
+                    "Do not open a pull request or push commits for this task unless the user explicitly asked you to "
+                    "change the repository; prefer analysis and the JSON reply only."
                 )
 
                 try:
@@ -276,17 +463,76 @@ def make_handler(
                             norm_messages.append({"role": role, "content": content})
                     if not norm_messages:
                         return self._send_json(HTTPStatus.BAD_REQUEST, {"error": "no valid messages"})
-                    result = _issue_chat_call_openai(
-                        api_key=api_key,
-                        model=model,
-                        system_prompt=system_prompt,
-                        messages=norm_messages,
+
+                    transcript = "\n\n".join(
+                        f"{m['role'].upper()}: {m['content']}" for m in norm_messages
                     )
+                    instruction_text = (
+                        system_prompt
+                        + "\n\n## Conversation\n\n"
+                        + transcript
+                        + "\n\nOutput: reply with one JSON object only (valid JSON, no markdown fences), "
+                        "using the keys thinking, assistant_message, priority_updates exactly as specified."
+                    )
+
+                    if cursor_key:
+                        repo = (os.environ.get("CURSOR_ISSUE_CHAT_REPOSITORY") or "").strip()
+                        if not repo:
+                            repo = _github_https_from_git_origin(repo_root) or ""
+                        if not repo:
+                            return self._send_json(
+                                HTTPStatus.SERVICE_UNAVAILABLE,
+                                {
+                                    "error": "no_cursor_repo",
+                                    "message": "Set CURSOR_ISSUE_CHAT_REPOSITORY to your GitHub repo HTTPS URL "
+                                    "(example: https://github.com/org/repo), or add a github.com git remote named "
+                                    "origin. Cursor Cloud Agents require a GitHub source.",
+                                },
+                            )
+                        ref = (os.environ.get("CURSOR_ISSUE_CHAT_REF") or "main").strip() or "main"
+                        cursor_model = (os.environ.get("CURSOR_ISSUE_CHAT_MODEL") or "default").strip() or "default"
+                        result = _issue_chat_call_cursor_cloud_agent(
+                            api_key=cursor_key,
+                            repository=repo,
+                            ref=ref,
+                            model=cursor_model,
+                            instruction_text=instruction_text,
+                        )
+                    elif openai_key:
+                        model = (os.environ.get("ISSUE_CHAT_MODEL") or "gpt-4o-mini").strip()
+                        result = _issue_chat_call_openai(
+                            api_key=openai_key,
+                            model=model,
+                            system_prompt=system_prompt,
+                            messages=norm_messages,
+                        )
+                    else:
+                        return self._send_json(
+                            HTTPStatus.SERVICE_UNAVAILABLE,
+                            {
+                                "error": "no_api_key",
+                                "message": "Set CURSOR_API_KEY (Cursor Dashboard → Cloud Agents; uses Cloud Agents API on "
+                                "your GitHub repo) or OPENAI_API_KEY (direct OpenAI chat). Restart the supervisor "
+                                "after changing environment variables.",
+                            },
+                        )
                 except (RuntimeError, KeyError, json.JSONDecodeError, TypeError) as exc:
                     return self._send_json(
                         HTTPStatus.BAD_GATEWAY,
                         {"error": "chat_failed", "message": str(exc)},
                     )
+                if not isinstance(result, dict):
+                    result = {
+                        "thinking": "",
+                        "assistant_message": str(result),
+                        "priority_updates": [],
+                    }
+                else:
+                    result.setdefault("thinking", "")
+                    result.setdefault("assistant_message", "")
+                    pu = result.get("priority_updates")
+                    if not isinstance(pu, list):
+                        result["priority_updates"] = []
                 return self._send_json(HTTPStatus.OK, {"ok": True, "result": result})
 
             # ── Status-file write-back ──────────────────────────────────────
