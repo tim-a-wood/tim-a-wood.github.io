@@ -20,3 +20,6 @@ jobs:
 
       - name: Email digest theme (Python)
         run: python3 tests/send_weekly_digest_email_theme_test.py
+
+      - name: Home dashboard snapshot (Python)
+        run: python3 tests/home_internal_snapshot.test.py

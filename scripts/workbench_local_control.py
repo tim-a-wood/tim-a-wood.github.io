@@ -112,6 +112,91 @@ def read_repo_json_object(filename: str) -> dict[str, Any] | None:
         return None
 
 
+def build_home_internal_snapshot() -> dict[str, Any]:
+    """Roll up orchestration + QA status for the Agent OS Home hub (pre-customer, internal-only)."""
+    orch = read_repo_json_object("orchestration-status.json") or {}
+    qa = read_repo_json_object("qa-status.json") or {}
+
+    def _len_list(key: str, src: dict[str, Any]) -> int:
+        v = src.get(key)
+        return len(v) if isinstance(v, list) else 0
+
+    orch_p0 = _len_list("risks_p0", orch)
+    bugs = qa.get("bugs") if isinstance(qa.get("bugs"), dict) else {}
+    try:
+        qa_p0 = int(bugs.get("p0") or 0)
+    except (TypeError, ValueError):
+        qa_p0 = 0
+    blocking = orch_p0 + qa_p0
+
+    orch_p1 = _len_list("risks_p1", orch)
+    qa_p1 = _len_list("risks_p1", qa)
+    serious = orch_p1 + qa_p1
+
+    fd_o = orch.get("founder_decisions")
+    fd_q = qa.get("founder_decisions")
+    founder_open = (len(fd_o) if isinstance(fd_o, list) else 0) + (len(fd_q) if isinstance(fd_q, list) else 0)
+
+    priorities = orch.get("priorities")
+    in_progress = 0
+    if isinstance(priorities, list):
+        for p in priorities:
+            if isinstance(p, dict) and p.get("status") == "in-progress":
+                in_progress += 1
+
+    ts = qa.get("test_suite") if isinstance(qa.get("test_suite"), dict) else {}
+    try:
+        js_p = int(ts.get("js_pass") or 0)
+        js_f = int(ts.get("js_fail") or 0)
+        py_p = int(ts.get("py_pass") or 0)
+        py_f = int(ts.get("py_fail") or 0)
+    except (TypeError, ValueError):
+        js_p = js_f = py_p = py_f = 0
+    tests_passing = js_p + py_p
+    tests_failing = js_f + py_f
+    try:
+        broken = int(ts.get("broken_collection") or 0)
+    except (TypeError, ValueError):
+        broken = 0
+    if broken == 0:
+        mets = qa.get("metrics") if isinstance(qa.get("metrics"), dict) else {}
+        try:
+            broken = int(mets.get("broken_test_files") or 0)
+        except (TypeError, ValueError):
+            broken = 0
+
+    rg = qa.get("release_gate") if isinstance(qa.get("release_gate"), dict) else {}
+    release_label = str(rg.get("label") or "").strip() or "—"
+
+    updated_o = str(orch.get("updated") or "").strip()
+    updated_q = str(qa.get("updated") or "").strip()
+    candidates = [x for x in (updated_o, updated_q) if x]
+    status_updated = max(candidates) if candidates else None
+
+    mets = qa.get("metrics") if isinstance(qa.get("metrics"), dict) else {}
+    try:
+        acceptance_documented = int(mets.get("acceptance_tests_documented"))
+    except (TypeError, ValueError):
+        acceptance_documented = None
+
+    last_run = ts.get("last_run")
+    test_last_run = str(last_run).strip() if last_run else None
+
+    return {
+        "status_updated": status_updated,
+        "blocking_issue_count": blocking,
+        "serious_issue_count": serious,
+        "founder_decisions_open": founder_open,
+        "priorities_in_progress": in_progress,
+        "tests_passing": tests_passing,
+        "tests_failing": tests_failing,
+        "broken_test_collections": broken,
+        "test_last_run": test_last_run,
+        "release_gate_label": release_label,
+        "acceptance_tests_documented": acceptance_documented,
+    }
+
+
 def _ledger_entries_from_repo_disk() -> list[dict[str, Any]]:
     path = REPO_ROOT / USAGE_LEDGER_REL
     if not path.is_file():
@@ -155,6 +240,7 @@ def build_workbench_server_dashboard_payload(bind_host: str, bind_port: int) -> 
         usage_charts = _usage_charts_from_repo_disk()
         usage_summary = _usage_summary_from_repo_disk()
     analytics_status = read_repo_json_object("analytics-status.json")
+    home_internal = build_home_internal_snapshot()
     return {
         "supervisor": False,
         "agent_os_control_base": ctrl,
@@ -166,6 +252,7 @@ def build_workbench_server_dashboard_payload(bind_host: str, bind_port: int) -> 
         "usage_charts": usage_charts,
         "usage_summary": usage_summary,
         "analytics_status": analytics_status,
+        "home_internal": home_internal,
         **keys,
     }
 
@@ -178,6 +265,7 @@ def build_supervisor_dashboard_payload(host: str, wb_port: int) -> dict[str, Any
     usage_charts = _usage_charts_from_repo_disk()
     usage_summary = _usage_summary_from_repo_disk()
     analytics_status = read_repo_json_object("analytics-status.json")
+    home_internal = build_home_internal_snapshot()
     return {
         "supervisor": True,
         "workbench_server_running": running,
@@ -188,6 +276,7 @@ def build_supervisor_dashboard_payload(host: str, wb_port: int) -> dict[str, Any
         "usage_charts": usage_charts,
         "usage_summary": usage_summary,
         "analytics_status": analytics_status,
+        "home_internal": home_internal,
         **keys,
     }
 

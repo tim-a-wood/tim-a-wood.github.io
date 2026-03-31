@@ -1385,15 +1385,21 @@ body::before {
   .os-chart-grid:not(.os-chart-grid--home) { grid-template-columns: 1fr; }
 }
 .os-chart-grid.os-chart-grid--home {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: 1fr;
   gap: var(--space-3);
   align-items: stretch;
   flex: 1 1 auto;
   min-height: 200px;
   grid-auto-rows: minmax(200px, 1fr);
 }
-@media (max-width: 1024px) {
-  .os-chart-grid.os-chart-grid--home { grid-template-columns: 1fr; }
+.db-grid.db-grid--home-health {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+@media (max-width: 900px) {
+  .db-grid.db-grid--home-health { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 520px) {
+  .db-grid.db-grid--home-health { grid-template-columns: 1fr; }
 }
 
 .os-chart-card {
@@ -1880,15 +1886,14 @@ h3.os-chart-card-title {
       <div class="main-left-views">
 
       <!-- ── AGENT OS HOME ─────────────────────────────────────
-           Home / Engineering charts — data from GET /api/dashboard-data (usage_charts). Analytics uses KPI cards only.
-           Design polish: agents/design/os_home_dashboard_handoff.md
+           Internal health from home_internal + one usage trend (usage_charts). GET /api/dashboard-data.
       ───────────────────────────────────────────────────── -->
       <div class="dashboard-view active" data-dashboard-view="home">
         <div class="db-view-header">
           <span class="db-view-icon os-home-glyph" aria-hidden="true"><span class="os-home-glyph-inner"></span></span>
           <div>
             <div class="db-view-title" style="color:var(--accent)">HOME</div>
-            <div class="db-view-subtitle">Agent OS hub · internal analytics &amp; AI usage signal</div>
+            <div class="db-view-subtitle">Agent OS hub · internal health &amp; usage (pre-customer)</div>
           </div>
         </div>
 
@@ -1900,65 +1905,78 @@ h3.os-chart-card-title {
             </div>
             <div class="os-home-hero-kpis">
               <div class="os-home-kpi">
-                <div class="os-home-kpi-label">8-wk API calls (ledger)</div>
+                <div class="os-home-kpi-label">8-week paid calls</div>
                 <div class="os-home-kpi-value" id="home-kpi-ai-units">—</div>
                 <canvas data-os-mini-spark="trend" width="320" height="72" aria-hidden="true"></canvas>
-                <p class="os-home-kpi-sub">Rolling window · Sprite Workbench <span style="font-family:var(--font-mono)">_usage_ledger.json</span></p>
+                <p class="os-home-kpi-sub">Rolling window from local usage log</p>
               </div>
               <div class="os-home-kpi">
-                <div class="os-home-kpi-label">Keys (live)</div>
+                <div class="os-home-kpi-label">Service keys</div>
                 <div class="os-home-kpi-value" id="home-kpi-keys">—</div>
-                <p class="os-home-kpi-sub">Gemini · Pixellab · from supervisor</p>
+                <p class="os-home-kpi-sub">Gemini and Pixel Lab</p>
               </div>
               <div class="os-home-kpi">
                 <div class="os-home-kpi-label">Workbench</div>
                 <div class="os-home-kpi-value" id="home-kpi-workbench">—</div>
-                <p class="os-home-kpi-sub">Sprite server · same row as Engineering</p>
+                <p class="os-home-kpi-sub">Sprite workbench server</p>
               </div>
             </div>
           </div>
         </section>
 
         <div class="db-section">
-          <div class="db-section-label">AI usage &amp; quality signal</div>
+          <div class="db-section-label">How we're doing</div>
+          <p class="visually-hidden" id="home-internal-intro">Snapshot from QA and orchestration status files, delivered as home_internal in GET /api/dashboard-data.</p>
+          <div class="db-grid db-grid--home-health" aria-describedby="home-internal-intro">
+            <div class="db-card db-card--manual">
+              <div class="db-card-header"><div class="db-card-label">Tests passing</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-value" id="home-hi-tests-pass">—</div>
+              <div class="db-card-sub" id="home-hi-tests-pass-sub"></div>
+            </div>
+            <div class="db-card db-card--manual">
+              <div class="db-card-header"><div class="db-card-label">Tests failing</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-value" id="home-hi-tests-fail">—</div>
+              <div class="db-card-sub" id="home-hi-tests-fail-sub">JS + Python suites</div>
+            </div>
+            <div class="db-card db-card--manual">
+              <div class="db-card-header"><div class="db-card-label">Blocking issues</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-value" id="home-hi-blocking">—</div>
+              <div class="db-card-sub" id="home-hi-blocking-sub">Orchestrator + QA P0</div>
+            </div>
+            <div class="db-card db-card--manual">
+              <div class="db-card-header"><div class="db-card-label">Decisions for you</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-value" id="home-hi-decisions">—</div>
+              <div class="db-card-sub" id="home-hi-decisions-sub">Open founder decisions</div>
+            </div>
+            <div class="db-card db-card--manual">
+              <div class="db-card-header"><div class="db-card-label">Priorities in motion</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-value" id="home-hi-inprog">—</div>
+              <div class="db-card-sub" id="home-hi-inprog-sub">Orchestrator list · in progress</div>
+            </div>
+            <div class="db-card db-card--manual">
+              <div class="db-card-header"><div class="db-card-label">Release readiness</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-value db-card-value--muted" id="home-hi-release">—</div>
+              <div class="db-card-sub" id="home-hi-release-sub">From QA release gate</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="db-section">
+          <div class="db-section-label">Internal AI usage</div>
           <p id="home-chart-live-status" class="home-chart-live-status visually-hidden" role="status" aria-live="polite"></p>
-          <p class="visually-hidden" id="home-chart-section-intro">Charts reflect the local usage ledger when Agent OS can reach GET /api/dashboard-data. Copilot accept or revise rates require separate product events.</p>
+          <p class="visually-hidden" id="home-chart-section-intro">Weekly paid AI calls from the local usage log when GET /api/dashboard-data is available. Mix and outcome charts remain on Engineering and Analytics.</p>
           <div class="os-chart-grid os-chart-grid--home" id="home-os-chart-grid" aria-describedby="home-chart-section-intro">
-            <div class="os-chart-card">
+            <div class="os-chart-card os-chart-card--wide">
               <div class="os-chart-card-head">
-                <h3 class="os-chart-card-title" id="home-chart-area-title">Paid API calls · by ISO week (UTC)</h3>
-                <span class="os-chart-card-tier">AREA</span>
+                <h3 class="os-chart-card-title" id="home-chart-area-title">Paid AI calls · last 8 ISO weeks (UTC)</h3>
+                <span class="os-chart-card-tier">TREND</span>
               </div>
               <div class="os-chart-canvas-wrap os-chart-canvas-wrap--compact os-chart-canvas-wrap--tall" data-os-canvas-state="idle" role="img" aria-labelledby="home-chart-area-title" aria-describedby="home-chart-area-desc">
                 <div class="os-chart-skeleton" aria-hidden="true"></div>
                 <div class="os-chart-error" role="alert" aria-live="polite"></div>
                 <canvas data-os-chart="area-requests" width="800" height="320" aria-hidden="true"></canvas>
               </div>
-              <p class="os-chart-foot visually-hidden" id="home-chart-area-desc">Denominator: weeks 1–8 of rolling window · Y-axis normalized until currency coupling lands · Finance dashboard owns ground-truth spend.</p>
-            </div>
-            <div class="os-chart-card">
-              <div class="os-chart-card-head">
-                <h3 class="os-chart-card-title" id="home-chart-bars-title">Mix by provider bucket</h3>
-                <span class="os-chart-card-tier">SPLIT</span>
-              </div>
-              <div class="os-chart-canvas-wrap os-chart-canvas-wrap--compact" data-os-canvas-state="idle" role="img" aria-labelledby="home-chart-bars-title" aria-describedby="home-chart-bars-desc">
-                <div class="os-chart-skeleton" aria-hidden="true"></div>
-                <div class="os-chart-error" role="alert" aria-live="polite"></div>
-                <canvas data-os-chart="bars-purpose" width="480" height="280" aria-hidden="true"></canvas>
-              </div>
-              <p class="os-chart-foot visually-hidden" id="home-chart-bars-desc">Copilot vs eval harness vs dev agents — tag exports from your ops ledger.</p>
-            </div>
-            <div class="os-chart-card os-chart-card--donut">
-              <div class="os-chart-card-head">
-                <h3 class="os-chart-card-title" id="home-chart-donut-title">Ledger outcomes (API)</h3>
-                <span class="os-chart-card-tier">DONUT</span>
-              </div>
-              <div class="os-chart-canvas-wrap os-chart-canvas-wrap--compact" data-os-canvas-state="idle" role="img" aria-labelledby="home-chart-donut-title" aria-describedby="home-chart-donut-desc">
-                <div class="os-chart-skeleton" aria-hidden="true"></div>
-                <div class="os-chart-error" role="alert" aria-live="polite"></div>
-                <canvas data-os-chart="donut-outcomes" width="480" height="280" aria-hidden="true"></canvas>
-              </div>
-              <p class="os-chart-foot visually-hidden" id="home-chart-donut-desc">Accept · revise · discard without revision — needs event instrumentation + explicit <em>n</em> on each slice.</p>
+              <p class="os-chart-foot visually-hidden" id="home-chart-area-desc">Eight week window. Counts are calls, not dollars. Finance owns spend truth.</p>
             </div>
           </div>
         </div>
@@ -1968,7 +1986,7 @@ h3.os-chart-card-title {
           <div class="os-home-actions">
             <button type="button" class="os-home-action" data-home-jump="analytics"><span class="os-home-action-dot" style="color:var(--c-analytics)">●</span> Analytics · tracking plan</button>
             <button type="button" class="os-home-action" data-home-jump="engineering"><span class="os-home-action-dot" style="color:#ff9500">●</span> Engineering · pipeline</button>
-            <button type="button" class="os-home-action" data-home-jump="finance"><span class="os-home-action-dot" style="color:var(--c-finance)">●</span> Finance · API spend</button>
+            <button type="button" class="os-home-action" data-home-jump="finance"><span class="os-home-action-dot" style="color:var(--c-finance)">●</span> Finance · usage spend</button>
             <button type="button" class="os-home-action" data-home-jump="orchestration"><span class="os-home-action-dot" style="color:var(--accent)">●</span> Orchestration · digests</button>
           </div>
         </div>
@@ -2115,16 +2133,15 @@ h3.os-chart-card-title {
 
         <!-- ── Strategic Assumption Register ── -->
         <div class="db-section">
-          <div class="db-section-label">Strategic assumption register</div>
-          <p style="color:var(--muted);font-size:var(--font-size-sm);margin:0 0 12px 0;max-width:820px">The assumptions the current strategy rests on. Strategy agent monitors and updates status — <span style="font-family:var(--font-mono)">strategy-status.json</span>.</p>
+          <div class="db-section-label">Strategic assumptions</div>
           <div id="db-strategy-assumption-register">
             <div style="color:var(--muted);font-size:var(--font-size-sm);font-weight:500;padding:12px 0">Loading assumptions…</div>
           </div>
         </div>
 
-        <!-- ── Portfolio ── -->
+        <!-- ── Position & Portfolio ── -->
         <div class="db-section">
-          <div class="db-section-label">Portfolio</div>
+          <div class="db-section-label">Position &amp; portfolio</div>
           <div class="db-grid">
             <div class="db-card db-card--live">
               <div class="db-card-header"><div class="db-card-label">Products</div><span class="db-tier db-tier--live">LIVE</span></div>
@@ -2132,47 +2149,19 @@ h3.os-chart-card-title {
               <div class="db-card-sub">Sprite Workbench · Ashen Hollow</div>
             </div>
             <div class="db-card db-card--live">
-              <div class="db-card-header"><div class="db-card-label">Strategic Flywheel</div><span class="db-tier db-tier--live">LIVE</span></div>
-              <div class="db-card-value db-card-value--muted" style="font-size:var(--font-size-sm);font-family:var(--font-sans)" id="db-strategy-flywheel">Tool → Game</div>
-              <div class="db-card-sub">Workbench enables Ashen Hollow</div>
-            </div>
-            <div class="db-card db-card--live">
               <div class="db-card-header"><div class="db-card-label">Stage</div><span class="db-tier db-tier--live">LIVE</span></div>
               <div class="db-card-value db-card-value--muted" style="font-size:var(--font-size-sm);font-family:var(--font-sans)" id="db-strategy-stage">Pre-launch</div>
-              <div class="db-card-sub">Both products in development</div>
+              <div class="db-card-sub">Tool enables game · game proves tool</div>
             </div>
             <div class="db-card db-card--live">
               <div class="db-card-header"><div class="db-card-label">AI-native window</div><span class="db-tier db-tier--live">LIVE</span></div>
               <div class="db-card-value db-card-value--warning" id="db-strategy-window">18–36 mo</div>
               <div class="db-card-sub">Months before category crowded</div>
             </div>
-          </div>
-        </div>
-
-        <!-- ── Revenue Model ── -->
-        <div class="db-section">
-          <div class="db-section-label">Revenue model</div>
-          <div class="db-grid">
             <div class="db-card db-card--live">
-              <div class="db-card-header"><div class="db-card-label">Recommended Path</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-header"><div class="db-card-label">Revenue model</div><span class="db-tier db-tier--live">LIVE</span></div>
               <div class="db-card-value db-card-value--muted" style="font-size:var(--font-size-sm);font-family:var(--font-sans)" id="db-strategy-revenue-model">Freemium SaaS</div>
               <div class="db-card-sub">Core free · AI features on subscription</div>
-            </div>
-            <div class="db-card db-card--manual">
-              <div class="db-card-header"><div class="db-card-label">Copilot Launch Bar</div><span class="db-tier db-tier--manual">MANUAL</span></div>
-              <div class="db-card-value db-card-value--muted">—</div>
-              <div class="db-card-sub">Trigger: demonstrably superior AI</div>
-              <button type="button" class="db-run-btn">Run strategy · decision →</button>
-            </div>
-            <div class="db-card db-card--manual">
-              <div class="db-card-header"><div class="db-card-label">Last Competitive Review</div><span class="db-tier db-tier--manual">MANUAL</span></div>
-              <div class="db-card-value db-card-value--muted" id="db-strategy-last-competitive">—</div>
-              <button type="button" class="db-run-btn">Run strategy · analyze →</button>
-            </div>
-            <div class="db-card db-card--manual">
-              <div class="db-card-header"><div class="db-card-label">Last Quarterly Review</div><span class="db-tier db-tier--manual">MANUAL</span></div>
-              <div class="db-card-value db-card-value--muted" id="db-strategy-last-quarterly">—</div>
-              <button type="button" class="db-run-btn">Run strategy · report →</button>
             </div>
           </div>
         </div>
@@ -2180,38 +2169,8 @@ h3.os-chart-card-title {
         <!-- ── Competitive Watch ── -->
         <div class="db-section">
           <div class="db-section-label">Competitive watch</div>
-          <p style="color:var(--muted);font-size:var(--font-size-sm);margin:0 0 12px 0;max-width:820px">Threat levels set by Strategy agent in <span style="font-family:var(--font-mono)">strategy-status.json</span>. High = requires quarterly attention. Low = monitor passively.</p>
           <div id="db-strategy-competitor-grid" class="db-grid">
             <div style="color:var(--muted);font-size:var(--font-size-sm);font-weight:500;padding:12px 0;grid-column:1/-1">Loading competitors…</div>
-          </div>
-        </div>
-
-        <!-- ── Strategic Intelligence run buttons ── -->
-        <div class="db-section">
-          <div class="db-section-label">Strategic intelligence</div>
-          <div class="db-grid">
-            <div class="db-card db-card--manual">
-              <div class="db-card-header"><div class="db-card-label">Moat Assessment</div><span class="db-tier db-tier--manual">MANUAL</span></div>
-              <div class="db-card-value db-card-value--muted">—</div>
-              <button type="button" class="db-run-btn">Run strategy · analyze →</button>
-            </div>
-            <div class="db-card db-card--manual">
-              <div class="db-card-header"><div class="db-card-label">Red-team the Flywheel</div><span class="db-tier db-tier--manual">MANUAL</span></div>
-              <div class="db-card-value db-card-value--muted">—</div>
-              <button type="button" class="db-run-btn">Run strategy · red-team →</button>
-            </div>
-            <div class="db-card db-card--manual">
-              <div class="db-card-header"><div class="db-card-label">Platform Decision</div><span class="db-tier db-tier--manual">MANUAL</span></div>
-              <div class="db-card-value db-card-value--muted">—</div>
-              <div class="db-card-sub">Web → Desktop timing</div>
-              <button type="button" class="db-run-btn">Run strategy · advise →</button>
-            </div>
-            <div class="db-card db-card--manual">
-              <div class="db-card-header"><div class="db-card-label">Monday Digest Signal</div><span class="db-tier db-tier--manual">MANUAL</span></div>
-              <div class="db-card-value db-card-value--muted">—</div>
-              <div class="db-card-sub">Escalate when assumption changes</div>
-              <button type="button" class="db-run-btn">Run strategy · report →</button>
-            </div>
           </div>
         </div>
 
@@ -2390,10 +2349,9 @@ h3.os-chart-card-title {
           </div>
         </div>
 
-        <!-- ── Test suite health ── -->
+        <!-- ── Test health ── -->
         <div class="db-section">
-          <div class="db-section-label">Test suite health</div>
-          <p style="color:var(--muted);font-size:var(--font-size-sm);margin:0 0 12px 0;max-width:820px">Updated daily from <span style="font-family:var(--font-mono)">qa-status.json</span>. Numbers reflect the last time tests were run manually or by the daily update.</p>
+          <div class="db-section-label">Test health</div>
           <div class="db-grid">
             <div class="db-card db-card--live">
               <div class="db-card-header"><div class="db-card-label">Tests passing</div><span class="db-tier db-tier--live">LIVE</span></div>
@@ -2413,15 +2371,8 @@ h3.os-chart-card-title {
             <div class="db-card db-card--live">
               <div class="db-card-header"><div class="db-card-label">Last run</div><span class="db-tier db-tier--live">LIVE</span></div>
               <div class="db-card-value db-card-value--muted" style="font-size:var(--font-size-sm);font-family:var(--font-sans)" id="db-qa-last-run">—</div>
-              <div class="db-card-sub">Date tests were last executed</div>
+              <div class="db-card-sub">Date tests were last run</div>
             </div>
-          </div>
-        </div>
-
-        <!-- ── Bug counts ── -->
-        <div class="db-section">
-          <div class="db-section-label">Known bugs</div>
-          <div class="db-grid">
             <div class="db-card db-card--live">
               <div class="db-card-header"><div class="db-card-label">Complete blockers</div><span class="db-tier db-tier--live">LIVE</span></div>
               <div class="db-card-value" id="db-qa-bugs-p0">—</div>
@@ -2430,54 +2381,42 @@ h3.os-chart-card-title {
             <div class="db-card db-card--live">
               <div class="db-card-header"><div class="db-card-label">Serious bugs</div><span class="db-tier db-tier--live">LIVE</span></div>
               <div class="db-card-value" id="db-qa-bugs-p1">—</div>
-              <div class="db-card-sub">Major feature broken; founder decides if acceptable</div>
+              <div class="db-card-sub">Major feature broken</div>
             </div>
             <div class="db-card db-card--live">
               <div class="db-card-header"><div class="db-card-label">Minor issues</div><span class="db-tier db-tier--live">LIVE</span></div>
               <div class="db-card-value" id="db-qa-bugs-p2p3">—</div>
-              <div class="db-card-sub">Workable around; tracked for later</div>
+              <div class="db-card-sub">Worked around; tracked for later</div>
             </div>
             <div class="db-card db-card--live">
               <div class="db-card-header"><div class="db-card-label">Last bug triage</div><span class="db-tier db-tier--live">LIVE</span></div>
               <div class="db-card-value db-card-value--muted" style="font-size:var(--font-size-sm);font-family:var(--font-sans)" id="db-qa-last-triage">—</div>
-              <div class="db-card-sub">Date bugs were last reviewed and categorised</div>
+              <div class="db-card-sub">Date bugs were last reviewed</div>
             </div>
           </div>
         </div>
 
-        <!-- ── Coverage gaps ── -->
+        <!-- ── Coverage & capabilities ── -->
         <div class="db-section">
-          <div class="db-section-label">What isn't tested yet</div>
-          <p style="color:var(--muted);font-size:var(--font-size-sm);margin:0 0 12px 0;max-width:820px">Areas of the tools with no automated safety net. High risk = a bug here could hurt real users without any warning.</p>
+          <div class="db-section-label">Coverage &amp; capabilities</div>
           <div id="db-qa-coverage-gaps">
             <div style="color:var(--muted);font-size:var(--font-size-sm);font-weight:500;padding:12px 0">Loading coverage gaps…</div>
           </div>
-        </div>
-
-        <!-- ── Automated coverage capabilities ── -->
-        <div class="db-section">
-          <div class="db-section-label">Test automation status</div>
-          <div class="db-grid">
+          <div class="db-grid" style="margin-top:var(--space-3)">
             <div class="db-card db-card--live">
               <div class="db-card-header"><div class="db-card-label">Automated browser tests</div><span class="db-tier db-tier--live">LIVE</span></div>
               <div class="db-card-value" id="db-qa-has-e2e">—</div>
-              <div class="db-card-sub">Playwright end-to-end tests</div>
+              <div class="db-card-sub">End-to-end tests that open the tool in a browser</div>
             </div>
             <div class="db-card db-card--live">
               <div class="db-card-header"><div class="db-card-label">Visual regression tests</div><span class="db-tier db-tier--live">LIVE</span></div>
               <div class="db-card-value" id="db-qa-has-visual">—</div>
-              <div class="db-card-sub">Screenshot comparison on canvas</div>
+              <div class="db-card-sub">Screenshot comparison to catch visual changes</div>
             </div>
             <div class="db-card db-card--live">
               <div class="db-card-header"><div class="db-card-label">Acceptance tests written</div><span class="db-tier db-tier--live">LIVE</span></div>
               <div class="db-card-value" id="db-qa-acceptance-count">—</div>
               <div class="db-card-sub">Manual test cases documented</div>
-            </div>
-            <div class="db-card db-card--manual">
-              <div class="db-card-header"><div class="db-card-label">QA report</div><span class="db-tier db-tier--manual">MANUAL</span></div>
-              <div class="db-card-value db-card-value--muted">—</div>
-              <div class="db-card-sub">Run when a release is in flight</div>
-              <button type="button" class="db-run-btn">Run QA · report →</button>
             </div>
           </div>
         </div>
@@ -2702,8 +2641,7 @@ h3.os-chart-card-title {
         </div>
         <!-- ── Usage ledger (live) ── -->
         <div class="db-section">
-          <div class="db-section-label">Usage ledger (live)</div>
-          <p style="color:var(--muted);font-size:var(--font-size-sm);margin:0 0 var(--space-2) 0;max-width:820px">First-party counts from <span style="font-family:var(--font-mono)">projects-data/_usage_ledger.json</span> — see <span style="font-family:var(--font-mono)">docs/analytics-dashboard-kpis.md</span>.</p>
+          <div class="db-section-label">Usage ledger</div>
           <div class="db-grid">
             <div class="db-card db-card--live">
               <div class="db-card-header"><div class="db-card-label">Ledger rows (all-time)</div><span class="db-tier db-tier--live">LIVE</span></div>
@@ -2729,33 +2667,27 @@ h3.os-chart-card-title {
         </div>
         <!-- ── Tracking plan &amp; post-launch ── -->
         <div class="db-section">
-          <div class="db-section-label">Tracking plan &amp; post-launch</div>
+          <div class="db-section-label">What we're tracking</div>
           <div class="db-grid">
             <div class="db-card db-card--live">
-              <div class="db-card-header"><div class="db-card-label">Instrumentation</div><span class="db-tier db-tier--live">LIVE</span></div>
-              <div class="db-card-value db-card-value--good">Ledger + dashboard</div>
-              <div class="db-card-sub">Workbench API calls · v1 KPIs in docs</div>
-            </div>
-            <div class="db-card db-card--manual">
-              <div class="db-card-header"><div class="db-card-label">Tracking plan review</div><span class="db-tier db-tier--manual">MANUAL</span></div>
-              <div class="db-card-value db-card-value--muted">—</div>
-              <button type="button" class="db-run-btn">Run analytics · review →</button>
+              <div class="db-card-header"><div class="db-card-label">Current coverage</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-value db-card-value--good">AI calls + costs</div>
+              <div class="db-card-sub">Workbench AI usage is tracked today</div>
             </div>
             <div class="db-card db-card--instrumented">
               <div class="db-card-header"><div class="db-card-label">Activation / retention</div><span class="db-tier db-tier--post">POST-LAUNCH</span></div>
               <div class="db-card-value db-card-value--muted">—</div>
-              <div class="db-card-sub">First export · D7 — needs product telemetry</div>
+              <div class="db-card-sub">How many users come back after day 1</div>
             </div>
             <div class="db-card db-card--instrumented">
-              <div class="db-card-header"><div class="db-card-label">Copilot accept rate</div><span class="db-tier db-tier--post">POST-LAUNCH</span></div>
+              <div class="db-card-header"><div class="db-card-label">AI acceptance rate</div><span class="db-tier db-tier--post">POST-LAUNCH</span></div>
               <div class="db-card-value db-card-value--muted">—</div>
-              <div class="db-card-sub">Not inferrable from ledger alone</div>
+              <div class="db-card-sub">How often users accept AI suggestions</div>
             </div>
           </div>
         </div>
         <div class="db-section">
-          <div class="db-section-label">AI pipeline signal · same viz language as Home</div>
-          <p style="color:var(--muted);font-size:var(--font-size-sm);margin:0 0 var(--space-2) 0;max-width:820px">Same data as Home and Engineering — from <span style="font-family:var(--font-mono)">projects-data/_usage_ledger.json</span> via GET /api/dashboard-data.</p>
+          <div class="db-section-label">AI pipeline usage</div>
           <div class="os-chart-grid" id="analytics-os-chart-grid">
             <div class="os-chart-card os-chart-card--wide">
               <div class="os-chart-card-head">
@@ -2898,61 +2830,52 @@ h3.os-chart-card-title {
           </div>
         </div>
         <div class="db-section">
-          <div class="db-section-label">Reporting &amp; channel signal</div>
-          <p style="color:var(--muted);font-size:var(--font-size-sm);margin:0 0 var(--space-3) 0;max-width:720px">Aligned with <span style="font-family:var(--font-mono)">agents/marketing/charter.md</span> — update narrative fields in <span style="font-family:var(--font-mono)">marketing-status.json</span> after each Tuesday weekly update or material change.</p>
+          <div class="db-section-label">Channel signal</div>
           <div class="db-grid">
             <div class="db-card db-card--manual">
               <div class="db-card-header"><div class="db-card-label">Tuesday weekly update</div><span class="db-tier db-tier--manual">MANUAL</span></div>
               <div class="db-card-value db-card-value--muted" style="font-size:var(--font-size-sm);font-family:var(--font-sans)" id="db-marketing-metric-tuesday">—</div>
-              <div class="db-card-sub">Links · engagement · competitor note · plan (max one page)</div>
-              <button type="button" class="db-run-btn">Run marketing · report →</button>
+              <div class="db-card-sub">Links · engagement · competitor note · plan</div>
             </div>
             <div class="db-card db-card--manual">
               <div class="db-card-header"><div class="db-card-label">Content &amp; devlog</div><span class="db-tier db-tier--manual">MANUAL</span></div>
               <div class="db-card-value db-card-value--muted" style="font-size:var(--font-size-sm);font-family:var(--font-sans)" id="db-marketing-metric-content">—</div>
               <div class="db-card-sub">Published pieces · itch.io archive · #screenshotsaturday</div>
-              <button type="button" class="db-run-btn">Run marketing · review →</button>
             </div>
             <div class="db-card db-card--manual">
               <div class="db-card-header"><div class="db-card-label">Channels &amp; cadence</div><span class="db-tier db-tier--manual">MANUAL</span></div>
               <div class="db-card-value db-card-value--muted" style="font-size:var(--font-size-sm);font-family:var(--font-sans)" id="db-marketing-metric-channels">—</div>
-              <div class="db-card-sub">Charter: 3–5 posts/wk sustainable · video/GIF first</div>
-              <button type="button" class="db-run-btn">Run marketing · advise →</button>
+              <div class="db-card-sub">3–5 posts per week · video and GIF first</div>
             </div>
             <div class="db-card db-card--manual">
               <div class="db-card-header"><div class="db-card-label">Competitor watch</div><span class="db-tier db-tier--manual">MANUAL</span></div>
               <div class="db-card-value db-card-value--muted" style="font-size:var(--font-size-sm);font-family:var(--font-sans)" id="db-marketing-metric-competitors">—</div>
-              <div class="db-card-sub">Tiled · LDtk · Godot editor · emerging AI level tools</div>
-              <button type="button" class="db-run-btn">Run marketing · analyze →</button>
+              <div class="db-card-sub">Tiled · LDtk · Godot editor · emerging AI tools</div>
             </div>
           </div>
         </div>
         <div class="db-section">
-          <div class="db-section-label">Launch &amp; distribution assets</div>
+          <div class="db-section-label">Launch assets</div>
           <div class="db-grid">
             <div class="db-card db-card--manual">
-              <div class="db-card-header"><div class="db-card-label">Launch readiness score</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-header"><div class="db-card-label">Launch readiness</div><span class="db-tier db-tier--manual">MANUAL</span></div>
               <div class="db-card-value db-card-value--muted">—</div>
-              <div class="db-card-sub">Pre-revenue phase — trust &amp; recognition before conversion</div>
-              <button type="button" class="db-run-btn">Run marketing · report →</button>
+              <div class="db-card-sub">Trust and recognition before conversion</div>
             </div>
             <div class="db-card db-card--manual">
               <div class="db-card-header"><div class="db-card-label">itch.io page</div><span class="db-tier db-tier--manual">MANUAL</span></div>
               <div class="db-card-value db-card-value--muted">—</div>
               <div class="db-card-sub">Devlog home · project page when live</div>
-              <button type="button" class="db-run-btn">Run marketing · analyze →</button>
             </div>
             <div class="db-card db-card--manual">
               <div class="db-card-header"><div class="db-card-label">Product Hunt draft</div><span class="db-tier db-tier--manual">MANUAL</span></div>
               <div class="db-card-value db-card-value--muted">—</div>
               <div class="db-card-sub">Hold until early-adopter story is documented</div>
-              <button type="button" class="db-run-btn">Run marketing · draft →</button>
             </div>
             <div class="db-card db-card--manual">
-              <div class="db-card-header"><div class="db-card-label">PLG · shareable first session</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-header"><div class="db-card-label">Shareable first session</div><span class="db-tier db-tier--manual">MANUAL</span></div>
               <div class="db-card-value db-card-value--muted">—</div>
-              <div class="db-card-sub">First room export · screen-recordable Copilot flow</div>
-              <button type="button" class="db-run-btn">Run marketing · review →</button>
+              <div class="db-card-sub">First room export · screen-recordable AI flow</div>
             </div>
           </div>
         </div>
@@ -4321,7 +4244,7 @@ function updateHomeChartLiveStatus(d, dashboardReachable) {
   const el = document.getElementById('home-chart-live-status');
   if (!el) return;
   if (!dashboardReachable || !d) {
-    el.textContent = 'Charts and key readouts need the dashboard API. Open via Agent OS (port 8769) or the workbench server (8766) — see the workbench bar above.';
+    el.textContent = 'Usage trend and workbench readouts need the dashboard connection. Open via Agent OS (port 8769) or the workbench server (8766) — see the workbench bar above.';
     el.classList.remove('visually-hidden');
     el.classList.add('home-chart-live-status--warn');
     return;
@@ -4331,15 +4254,82 @@ function updateHomeChartLiveStatus(d, dashboardReachable) {
   const total = d.usage_summary && d.usage_summary.entry_count != null ? d.usage_summary.entry_count : 0;
   const wk = uc && uc.ledger_entry_count_window != null ? uc.ledger_entry_count_window : 0;
   if (total === 0) {
-    el.textContent = 'API is reachable; the usage ledger is still empty. Run a Pixel Lab or Gemini action in the Sprite Workbench to create projects-data/_usage_ledger.json rows.';
+    el.textContent = 'Connection OK; the usage log is still empty. Run a Pixel Lab or Gemini action in the Sprite Workbench to record paid calls.';
     el.classList.remove('visually-hidden');
   } else if (wk === 0) {
-    el.textContent = 'API is reachable; no ledger rows fall in the last 8 ISO weeks (UTC). Check Analytics for all-time count — older calls are outside this window.';
+    el.textContent = 'Connection OK; no usage log rows in the last 8 ISO weeks (UTC). Open Analytics for all-time count — older calls sit outside this window.';
     el.classList.remove('visually-hidden');
   } else {
     el.textContent = '';
     el.classList.add('visually-hidden');
   }
+}
+
+function syncHomeInternalFromDashboard(d) {
+  const setText = (id, text) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = text == null || text === '' ? '—' : String(text);
+  };
+  const setCls = (id, failing) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.className = failing ? 'db-card-value db-card-value--warning' : 'db-card-value db-card-value--good';
+  };
+  const hi = d && d.home_internal && typeof d.home_internal === 'object' && !Array.isArray(d.home_internal)
+    ? d.home_internal
+    : null;
+  if (!hi) {
+    ['home-hi-tests-pass', 'home-hi-tests-fail', 'home-hi-blocking', 'home-hi-decisions', 'home-hi-inprog', 'home-hi-release'].forEach(function (id) { setText(id, '—'); });
+    const rel = document.getElementById('home-hi-release');
+    if (rel) rel.className = 'db-card-value db-card-value--muted';
+    setText('home-hi-tests-pass-sub', '');
+    setText('home-hi-blocking-sub', 'Orchestrator + QA P0');
+    setText('home-hi-release-sub', 'From QA release gate');
+    return;
+  }
+  const pass = hi.tests_passing != null ? hi.tests_passing : '—';
+  const fail = hi.tests_failing != null ? hi.tests_failing : '—';
+  setText('home-hi-tests-pass', pass);
+  setText('home-hi-tests-fail', fail);
+  const failN = Number(hi.tests_failing);
+  setCls('home-hi-tests-fail', Number.isFinite(failN) && failN > 0);
+  const passEl = document.getElementById('home-hi-tests-pass');
+  if (passEl) {
+    const passN = Number(hi.tests_passing);
+    passEl.className = Number.isFinite(passN) && passN > 0 ? 'db-card-value db-card-value--good' : 'db-card-value';
+  }
+  setText('home-hi-blocking', hi.blocking_issue_count != null ? hi.blocking_issue_count : '—');
+  const blk = document.getElementById('home-hi-blocking');
+  if (blk) {
+    const bn = Number(hi.blocking_issue_count);
+    blk.className = Number.isFinite(bn) && bn > 0 ? 'db-card-value db-card-value--warning' : 'db-card-value db-card-value--good';
+  }
+  const subParts = [];
+  if (hi.test_last_run) subParts.push('Last run ' + hi.test_last_run);
+  if (hi.broken_test_collections != null && Number(hi.broken_test_collections) > 0) {
+    subParts.push(String(hi.broken_test_collections) + ' test set(s) cannot run');
+  }
+  if (hi.acceptance_tests_documented != null) {
+    subParts.push(String(hi.acceptance_tests_documented) + ' acceptance checks documented');
+  }
+  setText('home-hi-tests-pass-sub', subParts.join(' · '));
+  const ser = hi.serious_issue_count != null ? Number(hi.serious_issue_count) : 0;
+  setText('home-hi-blocking-sub', Number.isFinite(ser) && ser > 0
+    ? ('Orchestrator + QA P0 · ' + String(ser) + ' serious items also tracked')
+    : 'Orchestrator + QA P0');
+  setText('home-hi-decisions', hi.founder_decisions_open != null ? hi.founder_decisions_open : '—');
+  const decEl = document.getElementById('home-hi-decisions');
+  if (decEl) {
+    const dn = Number(hi.founder_decisions_open);
+    decEl.className = Number.isFinite(dn) && dn > 0 ? 'db-card-value db-card-value--warning' : 'db-card-value db-card-value--good';
+  }
+  setText('home-hi-inprog', hi.priorities_in_progress != null ? hi.priorities_in_progress : '—');
+  setText('home-hi-release', hi.release_gate_label != null ? hi.release_gate_label : '—');
+  const relEl = document.getElementById('home-hi-release');
+  if (relEl) relEl.className = 'db-card-value';
+  setText('home-hi-release-sub', hi.status_updated
+    ? ('QA release gate · status files ' + hi.status_updated)
+    : 'From QA release gate');
 }
 
 function syncEngineeringWorkbenchCard(d) {
@@ -4803,6 +4793,7 @@ async function loadDashboardData(dashId) {
     applyGlobalWorkbenchBar(d);
     syncEngineeringWorkbenchCard(d);
     syncHomeKpis(d);
+    syncHomeInternalFromDashboard(d);
     applyUsageChartsFromDashboard(d);
     syncAnalyticsKpis(d);
     if (d && d.analytics_status != null && typeof d.analytics_status === 'object' && !Array.isArray(d.analytics_status)) {
@@ -4859,6 +4850,7 @@ async function loadDashboardData(dashId) {
   } catch {
     applyGlobalWorkbenchBar(null);
     syncHomeKpis(null);
+    syncHomeInternalFromDashboard(null);
     syncAnalyticsKpis(null);
     updateHomeChartLiveStatus(null, false);
     if (dashId === 'analytics') {
@@ -4883,6 +4875,7 @@ async function pulseGlobalWorkbenchOnly() {
     applyGlobalWorkbenchBar(d);
     syncEngineeringWorkbenchCard(d);
     syncHomeKpis(d);
+    syncHomeInternalFromDashboard(d);
     applyUsageChartsFromDashboard(d);
     syncAnalyticsKpis(d);
     if (d && d.analytics_status != null && typeof d.analytics_status === 'object' && !Array.isArray(d.analytics_status)) {
@@ -4897,6 +4890,7 @@ async function pulseGlobalWorkbenchOnly() {
   } catch {
     applyGlobalWorkbenchBar(null);
     syncHomeKpis(null);
+    syncHomeInternalFromDashboard(null);
     syncAnalyticsKpis(null);
     updateHomeChartLiveStatus(null, false);
     if (selectedDashboard === 'analytics') {
