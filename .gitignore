@@ -1,6 +1,8 @@
 tools/ComfyUI/
 tools/miniconda3/
 .env.local
+# Local Agent OS secrets (Cursor API, optional OpenAI fallback)
+agent_os.env
 tools/2d-sprite-and-animation/projects-data/
 image_*.png
 map-birdseye-*.png

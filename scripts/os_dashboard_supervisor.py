@@ -56,6 +56,36 @@ from scripts.workbench_local_control import (
 REPO_ROOT = _REPO_ROOT
 
 
+def load_agent_os_env_file(repo_root: Path) -> None:
+    """
+    Load optional repo-root agent_os.env into os.environ (does not override existing vars).
+    Lines: KEY=value, # comments, blank lines. Values may use optional single/double quotes.
+    """
+    path = repo_root / "agent_os.env"
+    if not path.is_file():
+        return
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError:
+        return
+    for raw in text.splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#"):
+            continue
+        if "=" not in line:
+            continue
+        key, _, val = line.partition("=")
+        key = key.strip()
+        if not key:
+            continue
+        val = val.strip()
+        if len(val) >= 2 and val[0] == val[-1] and val[0] in "\"'":
+            val = val[1:-1]
+        if key in os.environ and (os.environ.get(key) or "").strip():
+            continue
+        os.environ[key] = val
+
+
 def _issue_chat_call_openai(
     *,
     api_key: str,
@@ -579,6 +609,7 @@ def make_handler(
 
 
 def main() -> None:
+    load_agent_os_env_file(REPO_ROOT)
     parser = argparse.ArgumentParser(description="Agent OS dashboard + workbench supervisor")
     parser.add_argument("--host", default="127.0.0.1", help="Bind address (default 127.0.0.1)")
     parser.add_argument("--port", type=int, default=8769, help="Supervisor HTTP port")
@@ -594,6 +625,15 @@ def main() -> None:
     server = ThreadingHTTPServer((args.host, args.port), handler)
     print(f"Agent OS at http://{args.host}:{args.port}/os-dashboard.html", file=sys.stderr)
     print(f"Workbench: http://{args.workbench_host}:{args.workbench_port}/ (Start/Stop from dashboard)", file=sys.stderr)
+    if (os.environ.get("CURSOR_API_KEY") or "").strip():
+        print("Issue chat: CURSOR_API_KEY loaded (Cloud Agents).", file=sys.stderr)
+    elif (os.environ.get("OPENAI_API_KEY") or "").strip():
+        print("Issue chat: OPENAI_API_KEY loaded (OpenAI fallback).", file=sys.stderr)
+    elif (REPO_ROOT / "agent_os.env").is_file():
+        print(
+            "Issue chat: agent_os.env present but no CURSOR_API_KEY/OPENAI_API_KEY — add a key to agent_os.env.",
+            file=sys.stderr,
+        )
     try:
         server.serve_forever()
     except KeyboardInterrupt:
