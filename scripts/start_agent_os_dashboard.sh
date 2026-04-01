@@ -2,7 +2,7 @@
 # Start the Agent OS supervisor (if needed) and open the dashboard in your browser.
 # Safe to run repeatedly — skips launch when port is already listening.
 #
-# Issue chat: supervisor loads repo-root agent_os.env (gitignored). See agent_os.env.example.
+# Issue chat: supervisor loads repo-root agent_os.env then .env.local (gitignored). See agent_os.env.example.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

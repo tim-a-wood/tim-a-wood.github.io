@@ -7,6 +7,8 @@ Binds 127.0.0.1 only.
 
 Issue chat backends (first match wins):
   1) Cursor Cloud Agents API — set CURSOR_API_KEY (Cursor Dashboard → Cloud Agents).
+     The supervisor loads repo-root agent_os.env, then .env.local (same format as the
+     workbench, including `export KEY=value`). Existing shell env vars win.
      Optional: CURSOR_ISSUE_CHAT_REPOSITORY (HTTPS GitHub URL), CURSOR_ISSUE_CHAT_REF
      (default main). If the repository is unset, the supervisor tries `git remote
      get-url origin` under the repo root and normalizes github.com URLs.
@@ -48,6 +50,7 @@ if str(_REPO_ROOT) not in sys.path:
 
 from scripts.workbench_local_control import (
     build_supervisor_dashboard_payload,
+    parse_env_local,
     restart_workbench,
     start_workbench,
     stop_workbench,
@@ -81,6 +84,24 @@ def load_agent_os_env_file(repo_root: Path) -> None:
         val = val.strip()
         if len(val) >= 2 and val[0] == val[-1] and val[0] in "\"'":
             val = val[1:-1]
+        if key in os.environ and (os.environ.get(key) or "").strip():
+            continue
+        os.environ[key] = val
+
+
+def load_dotenv_local_for_supervisor(repo_root: Path) -> None:
+    """
+    Load optional repo-root .env.local (Sprite Workbench format; `export KEY=value` allowed).
+    Does not override existing os.environ entries that are already non-empty.
+    """
+    path = repo_root / ".env.local"
+    try:
+        pairs = parse_env_local(path)
+    except OSError:
+        return
+    for key, val in pairs.items():
+        if not key or not (val or "").strip():
+            continue
         if key in os.environ and (os.environ.get(key) or "").strip():
             continue
         os.environ[key] = val
@@ -608,6 +629,7 @@ def make_handler(
 
 def main() -> None:
     load_agent_os_env_file(REPO_ROOT)
+    load_dotenv_local_for_supervisor(REPO_ROOT)
     parser = argparse.ArgumentParser(description="Agent OS dashboard + workbench supervisor")
     parser.add_argument("--host", default="127.0.0.1", help="Bind address (default 127.0.0.1)")
     parser.add_argument("--port", type=int, default=8769, help="Supervisor HTTP port")
@@ -627,9 +649,10 @@ def main() -> None:
         print("Issue chat: CURSOR_API_KEY loaded (Cloud Agents).", file=sys.stderr)
     elif (os.environ.get("OPENAI_API_KEY") or "").strip():
         print("Issue chat: OPENAI_API_KEY loaded (OpenAI fallback).", file=sys.stderr)
-    elif (REPO_ROOT / "agent_os.env").is_file():
+    elif (REPO_ROOT / "agent_os.env").is_file() or (REPO_ROOT / ".env.local").is_file():
         print(
-            "Issue chat: agent_os.env present but no CURSOR_API_KEY/OPENAI_API_KEY — add a key to agent_os.env.",
+            "Issue chat: agent_os.env or .env.local present but no CURSOR_API_KEY/OPENAI_API_KEY "
+            "(or keys are empty). Set a key and restart the supervisor.",
             file=sys.stderr,
         )
     try:
