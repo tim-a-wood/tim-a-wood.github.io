@@ -5,14 +5,13 @@ POST /api/workbench/{start|stop|restart}, POST /api/status-update, and
 POST /api/issue-chat (issue discussion in the UI).
 Binds 127.0.0.1 only.
 
-Issue chat backends (first match wins):
-  1) Cursor Cloud Agents API — set CURSOR_API_KEY (Cursor Dashboard → Cloud Agents).
-     The supervisor loads repo-root agent_os.env, then .env.local (same format as the
-     workbench, including `export KEY=value`). Existing shell env vars win.
-     Optional: CURSOR_ISSUE_CHAT_REPOSITORY (HTTPS GitHub URL), CURSOR_ISSUE_CHAT_REF
-     (default main). If the repository is unset, the supervisor tries `git remote
-     get-url origin` under the repo root and normalizes github.com URLs.
-  2) OpenAI Chat Completions — set OPENAI_API_KEY (optional ISSUE_CHAT_MODEL).
+Issue chat backends (see selection logic in Handler):
+  • OpenAI Chat Completions — fast (seconds). Set OPENAI_API_KEY; optional ISSUE_CHAT_MODEL.
+    Recommended for dashboard "Discuss issue" latency. Set ISSUE_CHAT_PREFER_OPENAI=1 to use
+    this even when CURSOR_API_KEY is also set.
+  • Cursor Cloud Agents API — slow (polls a repo-backed agent on GitHub). Set CURSOR_API_KEY
+     (Cursor Dashboard → Cloud Agents). Optional: CURSOR_ISSUE_CHAT_REPOSITORY,
+     CURSOR_ISSUE_CHAT_REF. If the repository is unset, tries `git remote get-url origin`.
 
 Cursor does not offer a generic HTTP "chat completions" API; Cloud Agents are the
 supported programmatic path. Each dashboard message launches a short-lived agent,
@@ -477,6 +476,11 @@ def make_handler(
 
                 cursor_key = (os.environ.get("CURSOR_API_KEY") or "").strip()
                 openai_key = (os.environ.get("OPENAI_API_KEY") or "").strip()
+                prefer_openai = (os.environ.get("ISSUE_CHAT_PREFER_OPENAI") or "").strip().lower() in (
+                    "1",
+                    "true",
+                    "yes",
+                )
 
                 allowed_files = ", ".join(sorted(status_write_allow))
                 system_prompt = (
@@ -524,29 +528,48 @@ def make_handler(
                         "using the keys thinking, assistant_message, priority_updates exactly as specified."
                     )
 
-                    if cursor_key:
+                    if prefer_openai and openai_key:
+                        model = (os.environ.get("ISSUE_CHAT_MODEL") or "gpt-4o-mini").strip()
+                        result = _issue_chat_call_openai(
+                            api_key=openai_key,
+                            model=model,
+                            system_prompt=system_prompt,
+                            messages=norm_messages,
+                        )
+                    elif cursor_key:
                         repo = (os.environ.get("CURSOR_ISSUE_CHAT_REPOSITORY") or "").strip()
                         if not repo:
                             repo = _github_https_from_git_origin(repo_root) or ""
                         if not repo:
-                            return self._send_json(
-                                HTTPStatus.SERVICE_UNAVAILABLE,
-                                {
-                                    "error": "no_cursor_repo",
-                                    "message": "Set CURSOR_ISSUE_CHAT_REPOSITORY to your GitHub repo HTTPS URL "
-                                    "(example: https://github.com/org/repo), or add a github.com git remote named "
-                                    "origin. Cursor Cloud Agents require a GitHub source.",
-                                },
+                            if openai_key:
+                                model = (os.environ.get("ISSUE_CHAT_MODEL") or "gpt-4o-mini").strip()
+                                result = _issue_chat_call_openai(
+                                    api_key=openai_key,
+                                    model=model,
+                                    system_prompt=system_prompt,
+                                    messages=norm_messages,
+                                )
+                            else:
+                                return self._send_json(
+                                    HTTPStatus.SERVICE_UNAVAILABLE,
+                                    {
+                                        "error": "no_cursor_repo",
+                                        "message": "Set CURSOR_ISSUE_CHAT_REPOSITORY to your GitHub repo HTTPS URL "
+                                        "(example: https://github.com/org/repo), or add a github.com git remote named "
+                                        "origin. Cursor Cloud Agents require a GitHub source. Or set OPENAI_API_KEY "
+                                        "for fast issue chat without GitHub.",
+                                    },
+                                )
+                        else:
+                            ref = (os.environ.get("CURSOR_ISSUE_CHAT_REF") or "main").strip() or "main"
+                            cursor_model = (os.environ.get("CURSOR_ISSUE_CHAT_MODEL") or "default").strip() or "default"
+                            result = _issue_chat_call_cursor_cloud_agent(
+                                api_key=cursor_key,
+                                repository=repo,
+                                ref=ref,
+                                model=cursor_model,
+                                instruction_text=instruction_text,
                             )
-                        ref = (os.environ.get("CURSOR_ISSUE_CHAT_REF") or "main").strip() or "main"
-                        cursor_model = (os.environ.get("CURSOR_ISSUE_CHAT_MODEL") or "default").strip() or "default"
-                        result = _issue_chat_call_cursor_cloud_agent(
-                            api_key=cursor_key,
-                            repository=repo,
-                            ref=ref,
-                            model=cursor_model,
-                            instruction_text=instruction_text,
-                        )
                     elif openai_key:
                         model = (os.environ.get("ISSUE_CHAT_MODEL") or "gpt-4o-mini").strip()
                         result = _issue_chat_call_openai(
@@ -560,9 +583,9 @@ def make_handler(
                             HTTPStatus.SERVICE_UNAVAILABLE,
                             {
                                 "error": "no_api_key",
-                                "message": "Set CURSOR_API_KEY (Cursor Dashboard → Cloud Agents; uses Cloud Agents API on "
-                                "your GitHub repo) or OPENAI_API_KEY (direct OpenAI chat). Restart the supervisor "
-                                "after changing environment variables.",
+                                "message": "Set OPENAI_API_KEY (fast chat) and/or CURSOR_API_KEY (slow Cloud Agents on "
+                                "GitHub). Use ISSUE_CHAT_PREFER_OPENAI=1 with both keys to force OpenAI. Restart the "
+                                "supervisor after changing environment variables.",
                             },
                         )
                 except (RuntimeError, KeyError, json.JSONDecodeError, TypeError) as exc:
@@ -645,10 +668,19 @@ def main() -> None:
     server = ThreadingHTTPServer((args.host, args.port), handler)
     print(f"Agent OS at http://{args.host}:{args.port}/os-dashboard.html", file=sys.stderr)
     print(f"Workbench: http://{args.workbench_host}:{args.workbench_port}/ (Start/Stop from dashboard)", file=sys.stderr)
-    if (os.environ.get("CURSOR_API_KEY") or "").strip():
-        print("Issue chat: CURSOR_API_KEY loaded (Cloud Agents).", file=sys.stderr)
-    elif (os.environ.get("OPENAI_API_KEY") or "").strip():
-        print("Issue chat: OPENAI_API_KEY loaded (OpenAI fallback).", file=sys.stderr)
+    _ck = (os.environ.get("CURSOR_API_KEY") or "").strip()
+    _ok = (os.environ.get("OPENAI_API_KEY") or "").strip()
+    _prefer_oai = (os.environ.get("ISSUE_CHAT_PREFER_OPENAI") or "").strip().lower() in ("1", "true", "yes")
+    if _prefer_oai and _ok:
+        print("Issue chat: OPENAI_API_KEY (ISSUE_CHAT_PREFER_OPENAI=1 — fast Chat Completions).", file=sys.stderr)
+    elif _ok and not _ck:
+        print("Issue chat: OPENAI_API_KEY (fast Chat Completions).", file=sys.stderr)
+    elif _ck:
+        print(
+            "Issue chat: CURSOR_API_KEY (Cloud Agents on GitHub — slow). "
+            "Set OPENAI_API_KEY and ISSUE_CHAT_PREFER_OPENAI=1 to use fast OpenAI for Discuss issue.",
+            file=sys.stderr,
+        )
     elif (REPO_ROOT / "agent_os.env").is_file() or (REPO_ROOT / ".env.local").is_file():
         print(
             "Issue chat: agent_os.env or .env.local present but no CURSOR_API_KEY/OPENAI_API_KEY "

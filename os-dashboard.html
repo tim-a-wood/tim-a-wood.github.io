@@ -4177,7 +4177,7 @@ h3.os-chart-card-title {
     <div class="issue-chat-scroll" id="issue-chat-scroll"></div>
     <div class="issue-chat-footer">
       <p class="issue-chat-hint" id="issue-chat-api-hint">
-        Chat calls <code style="font-family:var(--font-mono);font-size:11px">/api/issue-chat</code> on the Agent OS supervisor. Prefer <code style="font-family:var(--font-mono);font-size:11px">CURSOR_API_KEY</code> (Cursor Dashboard → Cloud Agents; runs a short Cloud Agent on your GitHub repo). Optional: <code style="font-family:var(--font-mono);font-size:11px">CURSOR_ISSUE_CHAT_REPOSITORY</code>, <code style="font-family:var(--font-mono);font-size:11px">CURSOR_ISSUE_CHAT_REF</code>. Fallback: <code style="font-family:var(--font-mono);font-size:11px">OPENAI_API_KEY</code>.
+        Chat calls <code style="font-family:var(--font-mono);font-size:11px">/api/issue-chat</code> on the Agent OS supervisor. <strong style="font-weight:600;color:var(--text)">Fast path:</strong> <code style="font-family:var(--font-mono);font-size:11px">OPENAI_API_KEY</code> (seconds). <strong style="font-weight:600;color:var(--text)">Slow path:</strong> <code style="font-family:var(--font-mono);font-size:11px">CURSOR_API_KEY</code> (Cloud Agent on GitHub). If both keys are set, add <code style="font-family:var(--font-mono);font-size:11px">ISSUE_CHAT_PREFER_OPENAI=1</code> to force OpenAI. Optional: <code style="font-family:var(--font-mono);font-size:11px">CURSOR_ISSUE_CHAT_REPOSITORY</code>, <code style="font-family:var(--font-mono);font-size:11px">CURSOR_ISSUE_CHAT_REF</code>.
       </p>
       <button type="button" class="issue-chat-apply" id="issue-chat-apply" disabled>Apply suggested priority updates</button>
       <div class="issue-chat-row">
