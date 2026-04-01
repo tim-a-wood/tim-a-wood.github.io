@@ -87,6 +87,11 @@ This log records decisions for the room environment and bespoke asset quality pa
 - Why: Wall/floor/platform bespoke readability passes need a neutral ground; tinted theme backgrounds compete with shell evaluation.
 - Consequence: Runtime and editor expose `themeId: contrast-qa` with camera clear color `#000000`. Label and copy state **temporary QA**; shipping rooms should use normal biomes (`cave`, `ruins`, etc.). Starfield tint is subdued (`0x333333`) so parallax does not dominate the pass.
 
+### 13. Black void requires suppressing layers on top of the camera clear color
+- Status: Accepted
+- Why: Playtest showed a non-black frame because starfield, room background textures, midground, feather fades, and procedural `buildEnvironmentSetDressing` arches still drew above `setBackgroundColor`. Embedded layouts can also keep `themeId: ruins` while QA is intended.
+- Consequence: `isContrastQaEnvironment(room)` true when `themeId === 'contrast-qa'` **or** URL has `?contrast-qa=1`. In that mode: starfield alpha 0; hide per-room bg/mid/feathers; skip procedural backdrop/shell overlay dressing; HUD appends `black-void(QA)` when URL forces. Procedural stone uses **ruins** warm palette, forces broken-masonry platform family, and raises floor/platform tile alpha so the shell reads without AI palette washing it cool blue.
+
 ## Open Questions
 
 - Should `ceiling`, `backwall_panel`, or `wall_face` become first-class component schema types?

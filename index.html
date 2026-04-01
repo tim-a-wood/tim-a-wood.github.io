@@ -877,6 +877,7 @@ function getPrimaryFloorPlatform(roomId) {
  *
  * `contrast-qa` — temporary QA only: solid black camera clear color to read bespoke shell
  * (walls/floor/platform strips) against a neutral ground. Not a shipping biome preset.
+ * Playtest/embed may still send another `themeId`; add **?contrast-qa=1** to the game URL to force the same black-void + masonry styling.
  */
 const ROOM_ENV_THEME_BG = {
     cave: '#0a1628',
@@ -917,14 +918,35 @@ function normalizeEnvironmentFromLayout(room) {
     return { version, themeId, tags, spec, preview, runtime };
 }
 
+function isContrastQaUrlForced() {
+    try {
+        if (typeof window === 'undefined' || !window.location || typeof window.location.search !== 'string') return false;
+        return /(?:^|[?&])contrast-qa=1(?:&|$)/.test(window.location.search);
+    } catch (_) {
+        return false;
+    }
+}
+
+/**
+ * True when the void behind gameplay should be solid black and scenic layers suppressed:
+ * room `themeId` is `contrast-qa`, or the playtest URL includes `?contrast-qa=1` (embed may still show another theme in HUD).
+ */
+function isContrastQaEnvironment(roomId) {
+    if (isContrastQaUrlForced()) return true;
+    const env = normalizeEnvironmentFromLayout(getLayoutRoom(roomId));
+    return env.themeId === 'contrast-qa';
+}
+
 function getEnvironmentHudLine(roomId) {
     const room = getLayoutRoom(roomId);
     const env = normalizeEnvironmentFromLayout(room);
     const tagStr = env.tags.length ? env.tags.join(', ') : '—';
-    return `ENV: ${env.themeId} · ${tagStr}`;
+    const qaHint = isContrastQaUrlForced() ? ' · black-void(QA)' : '';
+    return `ENV: ${env.themeId} · ${tagStr}${qaHint}`;
 }
 
 function getEnvironmentBackgroundColor(roomId) {
+    if (isContrastQaEnvironment(roomId)) return '#000000';
     const env = normalizeEnvironmentFromLayout(getLayoutRoom(roomId));
     return ROOM_ENV_THEME_BG[env.themeId] || ROOM_ENV_THEME_BG.cave;
 }
@@ -1198,7 +1220,7 @@ function getRoomEnvironmentRuntimeComposition(roomId) {
         midgroundZone,
         suppressBackdropOverlay: Boolean(backgroundAsset?.url),
         suppressFocalSetDressing: Boolean(backgroundAsset?.url || midgroundAsset?.url),
-        emphasizeWalls: hasBespokeManifest
+        emphasizeWalls: hasBespokeManifest || isContrastQaEnvironment(roomId)
     };
 }
 
@@ -1323,6 +1345,7 @@ function pickPlatformVariantKey(roomId, x, y, tint = 0) {
 
 function deriveRoomEnvironmentRuntimeStyle(roomId) {
     const env = normalizeEnvironmentFromLayout(getLayoutRoom(roomId));
+    const isContrastQa = env.themeId === 'contrast-qa' || isContrastQaUrlForced();
     const kit = env.spec?.scene_schema?.kit || {};
     const components = env.spec?.components || {};
     const shellFamily = String(kit.shell_family || '');
@@ -1345,14 +1368,23 @@ function deriveRoomEnvironmentRuntimeStyle(roomId) {
         custom: { floor: { r: 62, g: 64, b: 74 }, accent: { r: 174, g: 182, b: 194 } },
         'contrast-qa': { floor: { r: 62, g: 64, b: 74 }, accent: { r: 174, g: 182, b: 194 } }
     };
-    const preset = baseThemes[env.themeId] || baseThemes.cave;
+    const preset = isContrastQa ? baseThemes.ruins : (baseThemes[env.themeId] || baseThemes.cave);
     const shadowHex = typeof runtimePalette?.shadow === 'string' ? runtimePalette.shadow : '';
     const glowHex = typeof runtimePalette?.glow === 'string' ? runtimePalette.glow : '';
-    const floorBase = shadowHex ? hexToRgb(shadowHex, preset.floor) : (dominant.length ? hexToRgb(dominant[0], preset.floor) : preset.floor);
-    const floorAlt = dominant.length > 1
-        ? hexToRgb(dominant[1], adjustRgb(floorBase, 16))
-        : (runtimePalette?.average ? hexToRgb(runtimePalette.average, adjustRgb(floorBase, 16)) : adjustRgb(floorBase, 16));
-    const accentBase = glowHex ? hexToRgb(glowHex, preset.accent) : (accent.length ? hexToRgb(accent[0], preset.accent) : preset.accent);
+    let floorBase;
+    let floorAlt;
+    if (isContrastQa && !shadowHex) {
+        floorBase = preset.floor;
+        floorAlt = adjustRgb(floorBase, 14);
+    } else {
+        floorBase = shadowHex ? hexToRgb(shadowHex, preset.floor) : (dominant.length ? hexToRgb(dominant[0], preset.floor) : preset.floor);
+        floorAlt = dominant.length > 1
+            ? hexToRgb(dominant[1], adjustRgb(floorBase, 16))
+            : (runtimePalette?.average ? hexToRgb(runtimePalette.average, adjustRgb(floorBase, 16)) : adjustRgb(floorBase, 16));
+    }
+    const accentBase = isContrastQa && !glowHex && !accent.length
+        ? preset.accent
+        : (glowHex ? hexToRgb(glowHex, preset.accent) : (accent.length ? hexToRgb(accent[0], preset.accent) : preset.accent));
     const componentText = Object.values(components)
         .map((item) => String(item?.prompt || ''))
         .join(' ');
@@ -1362,10 +1394,20 @@ function deriveRoomEnvironmentRuntimeStyle(roomId) {
     const ritual = /(ritual|sacred|shrine|altar)/.test(moodText) || /ritual_shrine|void_structure/.test(shellFamily);
     const industrial = /(industrial|underworks|steel|pipe|boiler|machinery)/.test(moodText)
         || /(industrial_ribbed|iron_walkway|iron_gate|industrial_depth|industrial_underworks)/.test(String(Object.values(kit).join(' ')).toLowerCase());
-    const carved = /(carved|gothic|arch|ritual|shrine)/.test(moodText) || /gothic_ruin|ritual_shrine/.test(shellFamily);
-    const fracturedStone = /(fractured|broken|cracked|masonry|stone|buttress|gothic|arch)/.test(moodText)
+    const carved = isContrastQa || /(carved|gothic|arch|ritual|shrine)/.test(moodText) || /gothic_ruin|ritual_shrine/.test(shellFamily);
+    const fracturedStone = isContrastQa || /(fractured|broken|cracked|masonry|stone|buttress|gothic|arch)/.test(moodText)
         || /gothic_ruin|flooded_stone|weathered_stone/.test(shellFamily);
     const circularFloor = /(ritual circle|circular|circle carving|slab)/.test(moodText);
+    let wallFamily = String(kit.wall_family || '');
+    let platformFamily = String(kit.platform_family || '');
+    let doorFamily = String(kit.door_family || '');
+    let backdropFamily = String(kit.backdrop_family || '');
+    if (isContrastQa) {
+        if (!wallFamily) wallFamily = 'broken_gothic_stone';
+        platformFamily = 'broken_masonry_ledge';
+        if (!doorFamily) doorFamily = 'arch_door';
+        if (!backdropFamily) backdropFamily = 'ruined_arch_hall';
+    }
     return {
         floorBase,
         floorAlt,
@@ -1383,10 +1425,10 @@ function deriveRoomEnvironmentRuntimeStyle(roomId) {
         fracturedStone,
         circularFloor,
         shellFamily,
-        wallFamily: String(kit.wall_family || ''),
-        platformFamily: String(kit.platform_family || ''),
-        doorFamily: String(kit.door_family || ''),
-        backdropFamily: String(kit.backdrop_family || ''),
+        wallFamily,
+        platformFamily,
+        doorFamily,
+        backdropFamily,
         propDensity: String(kit.prop_density || 'medium')
     };
 }
@@ -2259,11 +2301,14 @@ class AshenHollow extends Phaser.Scene {
     createRoomSurfaceTile(x, y, roomId, textureKey, role = 'wall') {
         const sprite = this.platforms.create(x, y, textureKey);
         const composition = getRoomEnvironmentRuntimeComposition(roomId);
+        const contrastQa = isContrastQaEnvironment(roomId);
         if (isResolvedRoomSurfaceAsset(roomId, textureKey)) {
             sprite.setDisplaySize(32, 32);
         }
         let alpha = role === 'floor' ? 0.18 : 0.12;
-        if (composition.emphasizeWalls && isResolvedRoomSurfaceAsset(roomId, textureKey)) {
+        if (contrastQa) {
+            alpha = role === 'floor' ? 0.52 : 0.26;
+        } else if (composition.emphasizeWalls && isResolvedRoomSurfaceAsset(roomId, textureKey)) {
             alpha = role === 'floor' ? 0.24 : 0.3;
         }
         sprite.setAlpha(alpha);
@@ -2274,10 +2319,13 @@ class AshenHollow extends Phaser.Scene {
     createRoomPlatformTile(x, y, roomId, textureKey) {
         const sprite = this.platforms.create(x, y, textureKey);
         const composition = getRoomEnvironmentRuntimeComposition(roomId);
+        const contrastQa = isContrastQaEnvironment(roomId);
         if (isResolvedRoomPlatformAsset(roomId, textureKey)) {
             sprite.setDisplaySize(32, 14);
         }
-        sprite.setAlpha(composition.emphasizeWalls && isResolvedRoomPlatformAsset(roomId, textureKey) ? 0.24 : 0.16);
+        let alpha = composition.emphasizeWalls && isResolvedRoomPlatformAsset(roomId, textureKey) ? 0.24 : 0.16;
+        if (contrastQa) alpha = 0.42;
+        sprite.setAlpha(alpha);
         sprite.refreshBody();
         return sprite;
     }
@@ -2409,6 +2457,7 @@ class AshenHollow extends Phaser.Scene {
             const room = getLayoutRoom(roomId);
             const roomBounds = ROOM_IDS[roomId];
             if (!room || !roomBounds) return;
+            if (isContrastQaEnvironment(roomId)) return;
             const schema = getRoomEnvironmentSceneSchema(roomId);
             const platforms = Array.isArray(room.platforms) ? room.platforms : [];
             const doorXs = (room.doors || []).map((door) => Number(door.x || 0));
@@ -3784,6 +3833,7 @@ class AshenHollow extends Phaser.Scene {
         this.markRoomVisited(roomId);
         const room = ROOM_IDS[roomId];
         const style = deriveRoomEnvironmentRuntimeStyle(roomId);
+        const contrastQa = isContrastQaEnvironment(roomId);
         this.cameras.main.setBounds(room.start, 0, room.width, CONFIG.WORLD_HEIGHT);
         this.cameras.main.setBackgroundColor(getEnvironmentBackgroundColor(roomId));
         if (this.envKitText) {
@@ -3792,20 +3842,24 @@ class AshenHollow extends Phaser.Scene {
             );
         }
         if (this.starField && this.starField.setTint) {
-            this.starField.setTint(getEnvironmentStarfieldTint(roomId));
-            this.starField.setAlpha(this.roomBackgroundSprites?.[roomId] ? 0.3 : 1);
+            if (contrastQa) {
+                this.starField.setAlpha(0);
+            } else {
+                this.starField.setTint(getEnvironmentStarfieldTint(roomId));
+                this.starField.setAlpha(this.roomBackgroundSprites?.[roomId] ? 0.3 : 1);
+            }
         }
         if (this.roomBackgroundSprites) {
             Object.entries(this.roomBackgroundSprites).forEach(([id, sprite]) => {
                 if (!sprite) return;
-                sprite.setVisible(id === roomId);
+                sprite.setVisible(!contrastQa && id === roomId);
             });
         }
         if (this.roomBackgroundFeatherSprites) {
             Object.entries(this.roomBackgroundFeatherSprites).forEach(([id, sprites]) => {
                 (sprites || []).forEach((sprite) => {
                     if (!sprite) return;
-                    sprite.setVisible(id === roomId);
+                    sprite.setVisible(!contrastQa && id === roomId);
                 });
             });
         }
@@ -3814,7 +3868,7 @@ class AshenHollow extends Phaser.Scene {
                 const sprites = Array.isArray(sprite) ? sprite : [sprite];
                 sprites.forEach((entry) => {
                     if (!entry) return;
-                    entry.setVisible(id === roomId);
+                    entry.setVisible(!contrastQa && id === roomId);
                 });
             });
         }
