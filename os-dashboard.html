@@ -929,7 +929,7 @@ body::before {
 }
 .av-table-head-labels {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 6.5rem) minmax(0, 7.5rem) max-content max-content;
+  grid-template-columns: minmax(0, 6.5rem) minmax(0, 7.5rem) minmax(0, 1fr) max-content max-content;
   gap: var(--space-2);
   min-width: 0;
 }
@@ -987,7 +987,7 @@ body::before {
 }
 .av-row-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 6.5rem) minmax(0, 7.5rem) max-content max-content;
+  grid-template-columns: minmax(0, 6.5rem) minmax(0, 7.5rem) minmax(0, 1fr) max-content max-content;
   gap: var(--space-2);
   align-items: center;
   min-width: 0;
@@ -1605,14 +1605,14 @@ textarea.av-field { resize: vertical; min-height: 72px; line-height: 1.45; }
   padding: var(--space-2) 0 var(--space-1);
   border-bottom: 1px solid var(--line-strong);
 }
-/* # | Summary | Owner | Stakeholders | Status | Risk — keep summary as the primary column */
+/* # | Owner | Stakeholders | Summary | Status | Risk — cap narrow columns so Summary + pills stay in view */
 .db-priority-header,
 .db-priority-row {
   grid-template-columns:
     28px
-    minmax(0, 1fr)
     minmax(0, 6.5rem)
     minmax(0, 7.5rem)
+    minmax(0, 1fr)
     max-content
     max-content;
 }
@@ -2770,17 +2770,17 @@ h3.os-chart-card-title {
             <!-- placeholder — JS replaces on load (#, Owner, Stakeholders, Summary, Status, Risk) -->
             <div class="db-priority-header" role="row">
               <span class="db-priority-hcell db-priority-hcell--rank">#</span>
-              <span class="db-priority-hcell">Summary</span>
               <span class="db-priority-hcell">Owner</span>
               <span class="db-priority-hcell">Stakeholders</span>
+              <span class="db-priority-hcell">Summary</span>
               <span class="db-priority-hcell">Status</span>
               <span class="db-priority-hcell">Risk</span>
             </div>
             <div class="db-priority-row" role="row">
               <span class="db-priority-rank">01</span>
-              <span class="db-priority-summary"><span class="db-priority-summary-main">Loading…</span></span>
               <span class="db-priority-owner">—</span>
               <span class="db-priority-stakeholders">—</span>
+              <span class="db-priority-summary"><span class="db-priority-summary-main">Loading…</span></span>
               <span class="db-status-pill db-status-pill--paused">PAUSED</span>
               <span class="db-priority-risk db-priority-risk--low">—</span>
             </div>
@@ -2881,17 +2881,17 @@ h3.os-chart-card-title {
           <div class="db-priority-list" id="db-strategy-priorities">
             <div class="db-priority-header" role="row">
               <span class="db-priority-hcell db-priority-hcell--rank">#</span>
-              <span class="db-priority-hcell">Summary</span>
               <span class="db-priority-hcell">Owner</span>
               <span class="db-priority-hcell">Stakeholders</span>
+              <span class="db-priority-hcell">Summary</span>
               <span class="db-priority-hcell">Status</span>
               <span class="db-priority-hcell">Risk</span>
             </div>
             <div class="db-priority-row" role="row">
               <span class="db-priority-rank">01</span>
-              <span class="db-priority-summary"><span class="db-priority-summary-main">Loading…</span></span>
               <span class="db-priority-owner">—</span>
               <span class="db-priority-stakeholders">—</span>
+              <span class="db-priority-summary"><span class="db-priority-summary-main">Loading…</span></span>
               <span class="db-status-pill db-status-pill--paused">PAUSED</span>
               <span class="db-priority-risk db-priority-risk--low">—</span>
             </div>
@@ -2987,17 +2987,17 @@ h3.os-chart-card-title {
           <div class="db-priority-list" id="db-dev-priorities">
             <div class="db-priority-header" role="row">
               <span class="db-priority-hcell db-priority-hcell--rank">#</span>
-              <span class="db-priority-hcell">Summary</span>
               <span class="db-priority-hcell">Owner</span>
               <span class="db-priority-hcell">Stakeholders</span>
+              <span class="db-priority-hcell">Summary</span>
               <span class="db-priority-hcell">Status</span>
               <span class="db-priority-hcell">Risk</span>
             </div>
             <div class="db-priority-row" role="row">
               <span class="db-priority-rank">01</span>
-              <span class="db-priority-summary"><span class="db-priority-summary-main">Loading…</span></span>
               <span class="db-priority-owner">—</span>
               <span class="db-priority-stakeholders">—</span>
+              <span class="db-priority-summary"><span class="db-priority-summary-main">Loading…</span></span>
               <span class="db-status-pill db-status-pill--paused">PAUSED</span>
               <span class="db-priority-risk db-priority-risk--low">—</span>
             </div>
@@ -3113,17 +3113,17 @@ h3.os-chart-card-title {
           <div class="db-priority-list" id="db-anim-priorities">
             <div class="db-priority-header" role="row">
               <span class="db-priority-hcell db-priority-hcell--rank">#</span>
-              <span class="db-priority-hcell">Summary</span>
               <span class="db-priority-hcell">Owner</span>
               <span class="db-priority-hcell">Stakeholders</span>
+              <span class="db-priority-hcell">Summary</span>
               <span class="db-priority-hcell">Status</span>
               <span class="db-priority-hcell">Risk</span>
             </div>
             <div class="db-priority-row" role="row">
               <span class="db-priority-rank">01</span>
-              <span class="db-priority-summary"><span class="db-priority-summary-main">Loading…</span></span>
               <span class="db-priority-owner">—</span>
               <span class="db-priority-stakeholders">—</span>
+              <span class="db-priority-summary"><span class="db-priority-summary-main">Loading…</span></span>
               <span class="db-status-pill db-status-pill--paused">PAUSED</span>
               <span class="db-priority-risk db-priority-risk--low">—</span>
             </div>
@@ -3239,17 +3239,17 @@ h3.os-chart-card-title {
           <div class="db-priority-list" id="db-ld-priorities">
             <div class="db-priority-header" role="row">
               <span class="db-priority-hcell db-priority-hcell--rank">#</span>
-              <span class="db-priority-hcell">Summary</span>
               <span class="db-priority-hcell">Owner</span>
               <span class="db-priority-hcell">Stakeholders</span>
+              <span class="db-priority-hcell">Summary</span>
               <span class="db-priority-hcell">Status</span>
               <span class="db-priority-hcell">Risk</span>
             </div>
             <div class="db-priority-row" role="row">
               <span class="db-priority-rank">01</span>
-              <span class="db-priority-summary"><span class="db-priority-summary-main">Loading…</span></span>
               <span class="db-priority-owner">—</span>
               <span class="db-priority-stakeholders">—</span>
+              <span class="db-priority-summary"><span class="db-priority-summary-main">Loading…</span></span>
               <span class="db-status-pill db-status-pill--paused">PAUSED</span>
               <span class="db-priority-risk db-priority-risk--low">—</span>
             </div>
@@ -3379,17 +3379,17 @@ h3.os-chart-card-title {
           <div class="db-priority-list" id="db-qa-priorities">
             <div class="db-priority-header" role="row">
               <span class="db-priority-hcell db-priority-hcell--rank">#</span>
-              <span class="db-priority-hcell">Summary</span>
               <span class="db-priority-hcell">Owner</span>
               <span class="db-priority-hcell">Stakeholders</span>
+              <span class="db-priority-hcell">Summary</span>
               <span class="db-priority-hcell">Status</span>
               <span class="db-priority-hcell">Risk</span>
             </div>
             <div class="db-priority-row" role="row">
               <span class="db-priority-rank">01</span>
-              <span class="db-priority-summary"><span class="db-priority-summary-main">Loading…</span></span>
               <span class="db-priority-owner">—</span>
               <span class="db-priority-stakeholders">—</span>
+              <span class="db-priority-summary"><span class="db-priority-summary-main">Loading…</span></span>
               <span class="db-status-pill db-status-pill--paused">PAUSED</span>
               <span class="db-priority-risk db-priority-risk--low">—</span>
             </div>
@@ -3686,17 +3686,17 @@ h3.os-chart-card-title {
           <div class="db-priority-list" id="db-analytics-priorities">
             <div class="db-priority-header" role="row">
               <span class="db-priority-hcell db-priority-hcell--rank">#</span>
-              <span class="db-priority-hcell">Summary</span>
               <span class="db-priority-hcell">Owner</span>
               <span class="db-priority-hcell">Stakeholders</span>
+              <span class="db-priority-hcell">Summary</span>
               <span class="db-priority-hcell">Status</span>
               <span class="db-priority-hcell">Risk</span>
             </div>
             <div class="db-priority-row" role="row">
               <span class="db-priority-rank">01</span>
-              <span class="db-priority-summary"><span class="db-priority-summary-main">Loading…</span></span>
               <span class="db-priority-owner">—</span>
               <span class="db-priority-stakeholders">—</span>
+              <span class="db-priority-summary"><span class="db-priority-summary-main">Loading…</span></span>
               <span class="db-status-pill db-status-pill--paused">PAUSED</span>
               <span class="db-priority-risk db-priority-risk--low">—</span>
             </div>
@@ -3894,17 +3894,17 @@ h3.os-chart-card-title {
           <div class="db-priority-list" id="db-marketing-priorities">
             <div class="db-priority-header" role="row">
               <span class="db-priority-hcell db-priority-hcell--rank">#</span>
-              <span class="db-priority-hcell">Summary</span>
               <span class="db-priority-hcell">Owner</span>
               <span class="db-priority-hcell">Stakeholders</span>
+              <span class="db-priority-hcell">Summary</span>
               <span class="db-priority-hcell">Status</span>
               <span class="db-priority-hcell">Risk</span>
             </div>
             <div class="db-priority-row" role="row">
               <span class="db-priority-rank">01</span>
-              <span class="db-priority-summary"><span class="db-priority-summary-main">Loading…</span></span>
               <span class="db-priority-owner">—</span>
               <span class="db-priority-stakeholders">—</span>
+              <span class="db-priority-summary"><span class="db-priority-summary-main">Loading…</span></span>
               <span class="db-status-pill db-status-pill--paused">PAUSED</span>
               <span class="db-priority-risk db-priority-risk--low">—</span>
             </div>
@@ -4005,17 +4005,17 @@ h3.os-chart-card-title {
           <div class="db-priority-list" id="db-design-priorities">
             <div class="db-priority-header" role="row">
               <span class="db-priority-hcell db-priority-hcell--rank">#</span>
-              <span class="db-priority-hcell">Summary</span>
               <span class="db-priority-hcell">Owner</span>
               <span class="db-priority-hcell">Stakeholders</span>
+              <span class="db-priority-hcell">Summary</span>
               <span class="db-priority-hcell">Status</span>
               <span class="db-priority-hcell">Risk</span>
             </div>
             <div class="db-priority-row" role="row">
               <span class="db-priority-rank">01</span>
-              <span class="db-priority-summary"><span class="db-priority-summary-main">Loading…</span></span>
               <span class="db-priority-owner">—</span>
               <span class="db-priority-stakeholders">—</span>
+              <span class="db-priority-summary"><span class="db-priority-summary-main">Loading…</span></span>
               <span class="db-status-pill db-status-pill--paused">PAUSED</span>
               <span class="db-priority-risk db-priority-risk--low">—</span>
             </div>
@@ -4278,9 +4278,9 @@ h3.os-chart-card-title {
           <span class="av-th av-th--mute">·</span>
           <span class="av-th">#</span>
           <div class="av-table-head-labels">
-            <span class="av-th">Summary</span>
             <span class="av-th">Owner</span>
             <span class="av-th">Stakeholders</span>
+            <span class="av-th">Summary</span>
             <span class="av-th">Status</span>
             <span class="av-th">Risk</span>
           </div>
@@ -5092,9 +5092,9 @@ function dashboardDefaultOwner(agentId) {
 function renderPriorityTableHeaderHtml() {
   return '<div class="db-priority-header" role="row">'
     + '<span class="db-priority-hcell db-priority-hcell--rank">#</span>'
-    + '<span class="db-priority-hcell">Summary</span>'
     + '<span class="db-priority-hcell">Owner</span>'
     + '<span class="db-priority-hcell">Stakeholders</span>'
+    + '<span class="db-priority-hcell">Summary</span>'
     + '<span class="db-priority-hcell">Status</span>'
     + '<span class="db-priority-hcell">Risk</span>'
     + '</div>';
@@ -5124,9 +5124,9 @@ function renderPriorityRows(priorities, container, opts) {
       : '';
     return '<div class="db-priority-row" role="row">'
       + '<span class="db-priority-rank">' + escapeHtml(rank) + '</span>'
-      + '<span class="db-priority-summary"><span class="db-priority-summary-main">' + escapeHtml(summary) + '</span>' + noteSub + '</span>'
       + '<span class="db-priority-owner">' + escapeHtml(owner) + '</span>'
       + '<span class="db-priority-stakeholders">' + escapeHtml(stakeholders) + '</span>'
+      + '<span class="db-priority-summary"><span class="db-priority-summary-main">' + escapeHtml(summary) + '</span>' + noteSub + '</span>'
       + '<span class="db-status-pill ' + pill.cls + '">' + pill.label + '</span>'
       + '<span class="db-priority-risk ' + riskCls + '">' + escapeHtml(riskUpper) + '</span>'
       + '</div>';
@@ -6953,9 +6953,9 @@ function avRowHtml(action, idx, total) {
     + '<div class="av-sort-num">' + num + '</div>'
     + '<div class="av-row-main" role="button" tabindex="0" aria-expanded="false">'
     +   '<div class="av-row-grid">'
-    +     '<span class="av-cell av-cell-summary">' + escapeHtml(summaryText) + '</span>'
     +     '<span class="av-cell av-cell-owner">' + escapeHtml(ownerCell) + '</span>'
     +     '<span class="av-cell av-cell-stakeholders">' + escapeHtml(stakeholdersCell) + '</span>'
+    +     '<span class="av-cell av-cell-summary">' + escapeHtml(summaryText) + '</span>'
     +     '<span class="av-status-col ' + stMk.cls + '">' + escapeHtml(stMk.label) + '</span>'
     +     '<span class="av-risk-col ' + riskCls + '">' + escapeHtml(riskLabel) + '</span>'
     +   '</div>'
