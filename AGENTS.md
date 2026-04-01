@@ -47,6 +47,20 @@ All agents read from `/knowledge/` before operating in their domain.
 Playbooks live in `/playbooks/`. Templates in `/templates/`.
 Decisions are logged in `/decisions/`. Research in `/research/`.
 
+## Feature Decision Tracking
+
+For active multi-pass features, agents must keep a running decision log so the team does not repeatedly revisit rejected approaches.
+
+Current required log:
+- Room environment / bespoke asset quality pass: `/decisions/2026-03-31-room-environment-quality-pass.md`
+
+Directive for all agents:
+- Before proposing or implementing another major change for an active multi-pass feature, read its current decision log.
+- After any substantive decision, failed approach, accepted constraint, validator change, or quality-gate change, update the same log in-place.
+- Log both what was chosen and what was explicitly rejected, with enough context to prevent future agents from retrying the same path blindly.
+- Treat the decision log as part of the feature contract, not optional notes.
+- If no log exists for an active multi-pass feature, create one in `/decisions/` using the repository naming convention before continuing substantial work.
+
 ---
 
 # MV / Sprite Workbench — Agent Rules (Codex / OpenAI)

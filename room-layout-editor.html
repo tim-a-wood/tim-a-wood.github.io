@@ -2091,6 +2091,19 @@
                             spellcheck="true"
                           ></textarea>
                         </label>
+                        <label>
+                          <span class="field-label">Helpfulness note</span>
+                          <select id="roomWizardHelpfulnessReason">
+                            <option value="">No note</option>
+                            <option value="style_mismatch">Style mismatch</option>
+                            <option value="confusing_layout">Confusing layout</option>
+                            <option value="difficulty_mismatch">Too hard or too easy</option>
+                            <option value="collision_issue">Collision issue</option>
+                            <option value="artifacting">Artifacting</option>
+                            <option value="wrong_mood">Wrong mood</option>
+                            <option value="other">Other</option>
+                          </select>
+                        </label>
                         <div class="rw-copilot-actions">
                           <button type="button" class="btn-secondary" id="roomWizardPreviewRevise">Revise &amp; Generate Again</button>
                           <button type="button" class="btn-secondary" id="roomWizardBuildEnvironmentAssets">Build Production Assets</button>
@@ -2845,6 +2858,9 @@
         if (!PROJECT_ID || !roomId) return '';
         return `/api/projects/${encodeURIComponent(PROJECT_ID)}/rooms/${encodeURIComponent(roomId)}/environment/${action}`;
       }
+      function projectRoomEnvironmentFeedbackApiUrl(roomId) {
+        return projectRoomEnvironmentApiUrl(roomId, 'feedback');
+      }
       const PROJECT_LAYOUT_DOWNLOAD_NAME = PROJECT_ID
         ? `${PROJECT_ID}-room-layout.json`
         : LOCAL_SLOT
@@ -2856,6 +2872,7 @@
           ? `${LOCAL_STORAGE_PREFIX}${LOCAL_SLOT}`
           : 'ashen-hollow-room-layout-v1';
       const SEED_DATA = JSON.parse(document.getElementById('seedData').textContent);
+      const ROOM_AI_SESSION_ID = `rwai-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
       const ROOM_W = 1600;
       const ROOM_H = 1200;
       const TILE = 32;
@@ -3167,7 +3184,9 @@
           copilotPreview: null,
           selectedArchetypeId: '',
           approvedPreviewId: null,
-          progressTimers: {}
+          progressTimers: {},
+          lastEnvTab: 'setup',
+          aiRequestPending: false
         },
         copilot: {
           serverReachable: false,
@@ -6684,6 +6703,10 @@
         gallery.querySelectorAll('.rw-preview-approve').forEach((btn) => {
           btn.addEventListener('click', () => approveRoomWizardPreview(btn.dataset.previewId || ''));
         });
+        const room = getRoomWizardRoom();
+        if (PROJECT_ID && room) {
+          postRoomWizardFeedback(room, 'preview_viewed');
+        }
       }
 
       function stopRoomWizardWaitbar(slot, finalPercent = 100) {
@@ -6703,6 +6726,67 @@
           }, 180);
         }
         clearActivity();
+      }
+
+      function roomWizardTaskId(room) {
+        if (!room?.id) return '';
+        if (!state.roomWizard.taskIds) state.roomWizard.taskIds = {};
+        if (!state.roomWizard.taskIds[room.id]) {
+          state.roomWizard.taskIds[room.id] = `task-${room.id}-${Date.now().toString(36)}`;
+        }
+        return state.roomWizard.taskIds[room.id];
+      }
+
+      function roomWizardReasonCodes() {
+        const value = String(document.getElementById('roomWizardHelpfulnessReason')?.value || '').trim();
+        return value ? [value] : [];
+      }
+
+      function roomWizardSuggestionId(room) {
+        return String(room?.environment?.preview?.suggestion_id || room?.environment?.ai_helpfulness?.active_suggestion_id || '').trim();
+      }
+
+      function roomWizardAnalyticsContext(room, extra = {}) {
+        return {
+          session_id: ROOM_AI_SESSION_ID,
+          task_id: roomWizardTaskId(room),
+          tool_surface: 'room-layout-editor:environment-builder',
+          workflow_step: `scope:${state.workflowScope}|phase:${state.roomWizard.phase}|tab:${state.roomWizard.lastEnvTab}`,
+          reason_codes: roomWizardReasonCodes(),
+          ...extra,
+        };
+      }
+
+      async function postRoomWizardFeedback(room, eventType, extra = {}, options = {}) {
+        if (!PROJECT_ID || !room?.id) return null;
+        const payload = {
+          event_type: eventType,
+          suggestion_id: roomWizardSuggestionId(room),
+          ...roomWizardAnalyticsContext(room, extra),
+        };
+        const url = projectRoomEnvironmentFeedbackApiUrl(room.id);
+        if (!url) return null;
+        if (options.keepalive && navigator.sendBeacon) {
+          const body = JSON.stringify(payload);
+          const blob = new Blob([body], { type: 'application/json' });
+          navigator.sendBeacon(url, blob);
+          return null;
+        }
+        try {
+          const res = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+            keepalive: !!options.keepalive,
+          });
+          const json = await res.json().catch(() => ({}));
+          if (json?.environment && room?.environment) {
+            room.environment = json.environment;
+          }
+          return json;
+        } catch (_) {
+          return null;
+        }
       }
 
       function setRoomWizardEnvTab(which) {
@@ -6725,6 +6809,12 @@
           }
           if (p) p.hidden = !on;
         });
+        const prior = state.roomWizard.lastEnvTab;
+        state.roomWizard.lastEnvTab = which;
+        const room = getRoomWizardRoom();
+        if (PROJECT_ID && room && prior === 'results' && which !== 'results') {
+          postRoomWizardFeedback(room, 'workflow_backtrack');
+        }
       }
 
       function initRoomWizardEnvTabs() {
@@ -7134,7 +7224,10 @@
           const res = await fetch(projectRoomEnvironmentApiUrl(room.id, 'approve-preview'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ preview_id: previewId })
+            body: JSON.stringify({
+              preview_id: previewId,
+              ...roomWizardAnalyticsContext(room),
+            })
           });
           const json = await res.json().catch(() => ({}));
           if (!res.ok || !json.ok) throw new Error(json.error || 'Approve failed');
@@ -8079,6 +8172,7 @@
             clearRoomWizardCopilotPreview();
             if (st) st.textContent = 'Building room spec…';
             if (btn) btn.disabled = true;
+            state.roomWizard.aiRequestPending = true;
             startRoomWizardWaitbar('copilot', 'Building the room environment spec.');
             try {
               const specRes = await fetch(projectRoomEnvironmentApiUrl(room.id, 'spec'), {
@@ -8097,7 +8191,10 @@
               const previewRes = await fetch(projectRoomEnvironmentApiUrl(room.id, 'previews'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ spec: room.environment?.spec || {} })
+                body: JSON.stringify({
+                  spec: room.environment?.spec || {},
+                  ...roomWizardAnalyticsContext(room, { request_kind: 'generate' }),
+                })
               });
               const previewJson = await previewRes.json().catch(() => ({}));
               if (!previewRes.ok || !previewJson.ok) {
@@ -8119,7 +8216,9 @@
             } catch (e) {
               stopRoomWizardWaitbar('copilot', 100);
               if (st) st.textContent = (e && e.message) || 'Environment generation failed';
+              postRoomWizardFeedback(room, 'generation_error', { message: (e && e.message) || 'Environment generation failed' });
             } finally {
+              state.roomWizard.aiRequestPending = false;
               if (btn) btn.disabled = false;
             }
             return;
@@ -8203,12 +8302,16 @@
             return;
           }
           startRoomWizardWaitbar('copilot', 'Revising the room environment and regenerating previews.');
+          state.roomWizard.aiRequestPending = true;
           if (st) st.textContent = 'Revising environment…';
           try {
             const reviseRes = await fetch(projectRoomEnvironmentApiUrl(room.id, 'revise'), {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ instruction })
+              body: JSON.stringify({
+                instruction,
+                ...roomWizardAnalyticsContext(room, { request_kind: 'revise' }),
+              })
             });
             const reviseJson = await reviseRes.json().catch(() => ({}));
             if (!reviseRes.ok || !reviseJson.ok) throw new Error(reviseJson.error || 'Could not revise room environment');
@@ -8226,7 +8329,10 @@
             const previewRes = await fetch(projectRoomEnvironmentApiUrl(room.id, 'previews'), {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ spec: room.environment?.spec || {} })
+              body: JSON.stringify({
+                spec: room.environment?.spec || {},
+                ...roomWizardAnalyticsContext(room, { request_kind: 'revise' }),
+              })
             });
             const previewJson = await previewRes.json().catch(() => ({}));
             if (!previewRes.ok || !previewJson.ok) throw new Error(previewJson.error || 'Could not render revised previews');
@@ -8247,11 +8353,15 @@
           } catch (e) {
             stopRoomWizardWaitbar('copilot', 100);
             if (st) st.textContent = (e && e.message) || 'Revision failed';
+            postRoomWizardFeedback(room, 'generation_error', { message: (e && e.message) || 'Revision failed' });
+          } finally {
+            state.roomWizard.aiRequestPending = false;
           }
         });
         document.getElementById('roomWizardPreviewOpenGame')?.addEventListener('click', () => {
           const room = getRoomWizardRoom();
           if (!room?.id) return;
+          postRoomWizardFeedback(room, 'open_game_preview');
           openGameWithLayout(room.id);
         });
         document.getElementById('roomWizardBuildEnvironmentAssets')?.addEventListener('click', async () => {
@@ -8305,6 +8415,8 @@
           }
         });
         document.getElementById('roomWizardCopilotDiscard')?.addEventListener('click', () => {
+          const room = getRoomWizardRoom();
+          if (room) postRoomWizardFeedback(room, 'discarded');
           clearRoomWizardCopilotPreview();
         });
         document.querySelectorAll('#roomWizardTerrainPresets [data-terrain-preset]').forEach((btn) => {
@@ -9415,6 +9527,18 @@
         window.addEventListener('pointercancel', endDrag);
         window.addEventListener('touchend', endDrag, { passive: false });
         window.addEventListener('touchcancel', endDrag, { passive: false });
+        window.addEventListener('error', () => {
+          const room = getRoomWizardRoom();
+          if (state.roomWizard.aiRequestPending && room) {
+            postRoomWizardFeedback(room, 'crash_near_ai_use', {}, { keepalive: true });
+          }
+        });
+        window.addEventListener('unhandledrejection', () => {
+          const room = getRoomWizardRoom();
+          if (state.roomWizard.aiRequestPending && room) {
+            postRoomWizardFeedback(room, 'crash_near_ai_use', {}, { keepalive: true });
+          }
+        });
         window.addEventListener('keydown', (event) => {
           if (event.defaultPrevented) return;
           const target = event.target;

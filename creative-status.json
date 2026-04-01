@@ -1,31 +1,31 @@
 {
-  "_note": "Updated by Creative after each task. Plain language \u2014 no jargon.",
-  "updated": "2026-03-31",
+  "_note": "Updated by Creative after each task. Plain language — no jargon.",
+  "updated": "2026-04-01",
   "schema_version": "v1.0",
   "priorities": [
     {
       "id": 1,
-      "title": "Write the Ashen Hollow art bible foundation \u2014 palette, silhouette rules, visual identity",
-      "status": "in-progress",
-      "risk": "high",
-      "note": "Without an art bible, every asset risks visual inconsistency. The foundation document needs to cover: the master color palette, silhouette differentiation rules for the player, enemies, and environment, the lighting direction, and the visual grammar for each biome. This document is the quality gate for all art production.",
-      "proposed_solution": "Complete the art bible covering palette, silhouette and lighting rules, and biome visual grammar as the approval standard for all assets."
+      "title": "Write the Ashen Hollow art bible foundation — palette, silhouette rules, visual identity",
+      "status": "done",
+      "risk": "med",
+      "note": "Completed v0.1 foundation at artifacts/ashen-hollow-art-bible-v0.1.md. Includes master palette + usage matrix, silhouette rules, global lighting/material response rules, and biome-by-biome visual grammar. Markdown is ready for direct PDF export.",
+      "proposed_solution": "Adopt this v0.1 as the immediate visual quality gate and run all new asset submissions through the pass/fail checklist before production intake."
     },
     {
       "id": 2,
-      "title": "Design the player character's visual identity \u2014 silhouette, palette assignment, animation readiness",
+      "title": "Design the player character's visual identity — silhouette, palette assignment, animation readiness",
       "status": "paused",
       "risk": "high",
       "note": "The player character appears in every session. Their visual design sets the standard for all other character work. Blocked on game director finalizing the player fantasy and game systems locking the movement spec.",
-      "proposed_solution": "After the player fantasy and movement spec lock, define the hero\u2019s silhouette, palette assignment, and animation-ready proportions."
+      "proposed_solution": "After the player fantasy and movement spec lock, define the hero’s silhouette, palette assignment, and animation-ready proportions."
     },
     {
       "id": 3,
-      "title": "Define the visual language for the first biome \u2014 environment tiles, atmospheric palette, hazard readability",
+      "title": "Define the visual language for the first biome — environment tiles, atmospheric palette, hazard readability",
       "status": "paused",
       "risk": "high",
       "note": "Blocked on game director confirming the first biome. Once confirmed, this is the first substantial art production task and gates all level design work for that biome.",
-      "proposed_solution": "As soon as the first biome is confirmed, specify tiles, atmosphere, and hazard readability for that biome\u2019s environments."
+      "proposed_solution": "As soon as the first biome is confirmed, specify tiles, atmosphere, and hazard readability for that biome’s environments."
     },
     {
       "id": 4,
@@ -33,14 +33,14 @@
       "status": "paused",
       "risk": "med",
       "note": "AI-assisted background generation can significantly accelerate production. The pipeline spec (LoRA training, prompt architecture, validation criteria) should be ready before production volume increases.",
-      "proposed_solution": "Document the AI background pipeline\u2014LoRA, prompts, negatives, and validation checks\u2014before scaling AI-generated environments."
+      "proposed_solution": "Document the AI background pipeline—LoRA, prompts, negatives, and validation checks—before scaling AI-generated environments."
     }
   ],
   "risks_p0": [],
   "risks_p1": [
     {
-      "title": "Art bible does not yet exist",
-      "note": "Without written standards, asset quality consistency cannot be maintained across a long production. All other art priorities depend on the art bible existing first."
+      "title": "Art bible adoption drift risk",
+      "note": "The v0.1 bible now exists, but consistency risk remains unless all specialists and contributors actively apply the quality gate during asset reviews."
     }
   ],
   "founder_decisions": [],
@@ -48,15 +48,15 @@
     {
       "id": "art-bible-update",
       "name": "Art Bible Update",
-      "description": "Updated art bible section \u2014 palette assignment, silhouette rules, consistency constraints, atmospheric notes for a new biome or character.",
+      "description": "Updated art bible section — palette assignment, silhouette rules, consistency constraints, atmospheric notes for a new biome or character.",
       "trigger": "A new biome, character, or visual system is approved for production",
-      "last_run": null,
-      "output_location": null
+      "last_run": "2026-04-01",
+      "output_location": "artifacts/ashen-hollow-art-bible-v0.1.md"
     },
     {
       "id": "asset-review",
       "name": "Asset Review",
-      "description": "Three-question review \u2014 palette correct? Silhouette reads at game scale? Fits the established visual context? Pass / conditional / reject.",
+      "description": "Three-question review — palette correct? Silhouette reads at game scale? Fits the established visual context? Pass / conditional / reject.",
       "trigger": "Any submitted game visual asset",
       "last_run": null,
       "output_location": null

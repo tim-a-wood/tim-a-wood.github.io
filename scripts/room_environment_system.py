@@ -10,10 +10,12 @@ import os
 import shutil
 import subprocess
 import tempfile
+import time
 import textwrap
 import urllib.error
 import urllib.parse
 import urllib.request
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
@@ -783,6 +785,7 @@ def _ensure_room_environment(room: Dict[str, Any]) -> Dict[str, Any]:
     bespoke_manifest.setdefault("used_ai", False)
     bespoke_manifest.setdefault("generated_at", None)
     bespoke_manifest.setdefault("validation_errors", [])
+    _ensure_room_ai_helpfulness(env)
     return env
 
 
@@ -859,6 +862,342 @@ def _room_geometry(room: Dict[str, Any]) -> Dict[str, Any]:
             "avoid visual clutter over platform edges",
         ],
     }
+
+
+def _parse_iso8601(value: Any) -> Optional[datetime]:
+    text = str(value or "").strip()
+    if not text:
+        return None
+    try:
+        if text.endswith("Z"):
+            return datetime.fromisoformat(text[:-1] + "+00:00")
+        parsed = datetime.fromisoformat(text)
+        if parsed.tzinfo is None:
+            return parsed.replace(tzinfo=timezone.utc)
+        return parsed
+    except ValueError:
+        return None
+
+
+def _elapsed_ms(started_at: Any, ended_at: Any) -> Optional[int]:
+    start_dt = _parse_iso8601(started_at)
+    end_dt = _parse_iso8601(ended_at)
+    if start_dt is None or end_dt is None:
+        return None
+    return max(0, int((end_dt - start_dt).total_seconds() * 1000))
+
+
+def _room_complexity_bucket(geometry: Dict[str, Any]) -> str:
+    area = float(geometry.get("width") or 0) * float(geometry.get("height") or 0)
+    platform_count = int(geometry.get("platform_count") or 0)
+    door_count = int(geometry.get("door_count") or 0)
+    score = 0
+    if area >= 2400000:
+        score += 2
+    elif area >= 1600000:
+        score += 1
+    if platform_count >= 7:
+        score += 2
+    elif platform_count >= 4:
+        score += 1
+    if door_count >= 3:
+        score += 1
+    if score >= 4:
+        return "dense"
+    if score >= 2:
+        return "medium"
+    return "light"
+
+
+def _room_change_snapshot(room: Dict[str, Any]) -> Dict[str, int]:
+    return {
+        "platforms": len(room.get("platforms") or []),
+        "moving_platforms": len(room.get("movingPlatforms") or []),
+        "doors": len(room.get("doors") or []),
+        "keys": len(room.get("keys") or []),
+        "abilities": len(room.get("abilities") or []),
+        "edge_links": len(room.get("edgeLinks") or []),
+        "removed_edges": len(room.get("removedEdges") or []),
+        "polygon_points": len(room.get("polygon") or []),
+    }
+
+
+def _diff_change_snapshot(before: Dict[str, int], after: Dict[str, int]) -> Dict[str, int]:
+    keys = sorted(set(before.keys()) | set(after.keys()))
+    diff: Dict[str, int] = {}
+    for key in keys:
+        diff[key] = int(after.get(key, 0)) - int(before.get(key, 0))
+    diff["total_abs_delta"] = sum(abs(value) for value in diff.values())
+    return diff
+
+
+def _bucket_change_magnitude(total_abs_delta: int) -> str:
+    if total_abs_delta <= 0:
+        return "none"
+    if total_abs_delta <= 2:
+        return "small"
+    if total_abs_delta <= 6:
+        return "medium"
+    return "large"
+
+
+def _bucket_time_to_decision(value_ms: Optional[int]) -> str:
+    if value_ms is None:
+        return "unknown"
+    if value_ms < 30000:
+        return "under_30s"
+    if value_ms < 120000:
+        return "under_2m"
+    if value_ms < 600000:
+        return "under_10m"
+    return "10m_plus"
+
+
+def _heuristic_model_self_rating(render_level: str, used_ai: bool, fallback_reason: Optional[str]) -> Dict[str, Any]:
+    base = 0.78 if used_ai and render_level == "level3" else 0.58 if render_level == "level2" else 0.42
+    if fallback_reason:
+        base -= 0.18
+    base = max(0.05, min(0.95, base))
+    rubric = {
+        "style_match": round(base, 2),
+        "readability": round(max(0.05, min(0.95, base + 0.04)), 2),
+        "artifacting": round(max(0.05, min(0.95, base - 0.06)), 2),
+        "composition_tileability": round(max(0.05, min(0.95, base + (0.06 if render_level == "level3" else -0.04))), 2),
+    }
+    return {
+        "label": "Model heuristic only",
+        "score": round(sum(rubric.values()) / max(len(rubric), 1), 2),
+        "rubric": rubric,
+    }
+
+
+def _default_ai_helpfulness() -> Dict[str, Any]:
+    return {
+        "schema_version": 1,
+        "sequence": 0,
+        "active_suggestion_id": None,
+        "suggestions": [],
+        "summary": {
+            "total_suggestions": 0,
+            "funnel": {"requested": 0, "viewed": 0, "decided": 0, "accepted": 0, "tweaked": 0, "rejected": 0, "persisted": 0},
+            "denominators": {"per_suggestion": 0, "per_session": 0, "per_task": 0},
+            "low_sample_note": "No room suggestions recorded yet.",
+            "sample_confidence": "low",
+        },
+    }
+
+
+def _ensure_room_ai_helpfulness(env: Dict[str, Any]) -> Dict[str, Any]:
+    helpfulness = env.get("ai_helpfulness")
+    if not isinstance(helpfulness, dict):
+        helpfulness = _default_ai_helpfulness()
+        env["ai_helpfulness"] = helpfulness
+    helpfulness.setdefault("schema_version", 1)
+    helpfulness.setdefault("sequence", 0)
+    helpfulness.setdefault("active_suggestion_id", None)
+    if not isinstance(helpfulness.get("suggestions"), list):
+        helpfulness["suggestions"] = []
+    helpfulness.setdefault("summary", _default_ai_helpfulness()["summary"])
+    return helpfulness
+
+
+def _find_suggestion_record(helpfulness: Dict[str, Any], suggestion_id: str) -> Optional[Dict[str, Any]]:
+    return next((item for item in helpfulness.get("suggestions") or [] if str(item.get("suggestion_id") or "") == suggestion_id), None)
+
+
+def _update_helpfulness_summary(helpfulness: Dict[str, Any]) -> None:
+    suggestions = helpfulness.get("suggestions") or []
+    unique_sessions = {str(item.get("context", {}).get("session_id") or "") for item in suggestions if str(item.get("context", {}).get("session_id") or "")}
+    unique_tasks = {str(item.get("context", {}).get("task_id") or "") for item in suggestions if str(item.get("context", {}).get("task_id") or "")}
+    requested = len(suggestions)
+    viewed = sum(1 for item in suggestions if int((item.get("effort") or {}).get("preview_views") or 0) > 0)
+    decided = sum(1 for item in suggestions if str((item.get("decision") or {}).get("outcome") or "").strip())
+    accepted = sum(1 for item in suggestions if (item.get("decision") or {}).get("outcome") == "accept")
+    tweaked = sum(1 for item in suggestions if (item.get("decision") or {}).get("outcome") == "tweak")
+    rejected = sum(1 for item in suggestions if (item.get("decision") or {}).get("outcome") == "reject")
+    persisted = sum(1 for item in suggestions if (item.get("persistence") or {}).get("status") == "persisted")
+    if requested >= 12:
+        sample_confidence = "high"
+        low_sample_note = f"{requested} suggestions recorded. Rates are directionally useful."
+    elif requested >= 5:
+        sample_confidence = "medium"
+        low_sample_note = f"{requested} suggestions recorded. Read rates with caution."
+    elif requested > 0:
+        sample_confidence = "low"
+        low_sample_note = f"Only {requested} suggestion{'s' if requested != 1 else ''} recorded so far. Avoid over-interpreting percentages."
+    else:
+        sample_confidence = "low"
+        low_sample_note = "No room suggestions recorded yet."
+    helpfulness["summary"] = {
+        "total_suggestions": requested,
+        "funnel": {
+            "requested": requested,
+            "viewed": viewed,
+            "decided": decided,
+            "accepted": accepted,
+            "tweaked": tweaked,
+            "rejected": rejected,
+            "persisted": persisted,
+        },
+        "denominators": {
+            "per_suggestion": requested,
+            "per_session": len(unique_sessions),
+            "per_task": len(unique_tasks),
+        },
+        "low_sample_note": low_sample_note,
+        "sample_confidence": sample_confidence,
+    }
+
+
+def _coerce_reason_codes(raw: Any) -> List[str]:
+    if not isinstance(raw, list):
+        return []
+    out: List[str] = []
+    for item in raw:
+        code = str(item or "").strip().lower().replace(" ", "_")
+        if code and code not in out:
+            out.append(code[:48])
+    return out[:6]
+
+
+def _close_prior_active_suggestion(
+    room: Dict[str, Any],
+    env: Dict[str, Any],
+    request_kind: str,
+    replacement_suggestion_id: Optional[str] = None,
+) -> None:
+    helpfulness = _ensure_room_ai_helpfulness(env)
+    active_id = str(helpfulness.get("active_suggestion_id") or "").strip()
+    if not active_id:
+        return
+    previous = _find_suggestion_record(helpfulness, active_id)
+    if not previous:
+        return
+    decision = previous.setdefault("decision", {})
+    if str(decision.get("outcome") or "").strip():
+        return
+    now_value = now_iso()
+    decision["outcome"] = "tweak" if request_kind == "revise" else "reject"
+    decision["decision_at"] = now_value
+    decision["time_to_decision_ms"] = _elapsed_ms(previous.get("generated_at"), now_value)
+    decision["time_to_decision_bucket"] = _bucket_time_to_decision(decision.get("time_to_decision_ms"))
+    previous["replaced_by_suggestion_id"] = replacement_suggestion_id
+    previous.setdefault("persistence", {})["status"] = "superseded"
+    previous.setdefault("tweak_magnitude", {
+        "bucket": "none",
+        "counts": _diff_change_snapshot(previous.get("snapshots", {}).get("room_counts") or {}, _room_change_snapshot(room)),
+    })
+
+
+def _create_suggestion_record(
+    room: Dict[str, Any],
+    env: Dict[str, Any],
+    geometry: Dict[str, Any],
+    render_level: str,
+    used_ai: bool,
+    fallback_reason: Optional[str],
+    latency_ms: Optional[int],
+    payload: Dict[str, Any],
+) -> str:
+    helpfulness = _ensure_room_ai_helpfulness(env)
+    helpfulness["sequence"] = int(helpfulness.get("sequence") or 0) + 1
+    generated_at = now_iso()
+    suggestion_id = "sug-%s" % stable_hash(
+        str(room.get("id") or "room"),
+        str(helpfulness["sequence"]),
+        str(generated_at),
+        str(env.get("spec", {}).get("description") or ""),
+    )[:16]
+    model_self_rating = _heuristic_model_self_rating(render_level, used_ai, fallback_reason)
+    suggestion = {
+        "suggestion_id": suggestion_id,
+        "generated_at": generated_at,
+        "request_kind": str(payload.get("request_kind") or "generate").strip() or "generate",
+        "context": {
+            "tool_surface": str(payload.get("tool_surface") or "room-layout-editor").strip() or "room-layout-editor",
+            "workflow_step": str(payload.get("workflow_step") or "").strip() or "room-environment-results",
+            "session_id": str(payload.get("session_id") or "").strip() or None,
+            "task_id": str(payload.get("task_id") or "").strip() or None,
+            "room_complexity_bucket": _room_complexity_bucket(geometry),
+        },
+        "decision": {
+            "outcome": None,
+            "decision_at": None,
+            "time_to_decision_ms": None,
+            "time_to_decision_bucket": "unknown",
+            "reason_codes": _coerce_reason_codes(payload.get("reason_codes")),
+        },
+        "effort": {
+            "preview_views": 0,
+            "preview_inspections": 0,
+            "open_game_inspections": 0,
+            "back_and_forth_steps": 0,
+            "regeneration_count": 0,
+        },
+        "reliability": {
+            "latency_ms": latency_ms,
+            "latency_bucket": _bucket_time_to_decision(latency_ms),
+            "errors": [],
+            "cancellations": 0,
+            "crashes_near_ai_use": 0,
+        },
+        "previews": {
+            "render_level": render_level,
+            "fallback_reason": fallback_reason,
+            "used_ai": used_ai,
+        },
+        "snapshots": {
+            "room_counts": _room_change_snapshot(room),
+        },
+        "tweak_magnitude": {
+            "bucket": "none",
+            "counts": {},
+        },
+        "persistence": {
+            "status": "pending",
+            "evaluated_at": None,
+            "save_count": 0,
+            "minutes_since_accept": 0,
+            "replaced_later": False,
+        },
+        "model_self_rating": model_self_rating,
+    }
+    helpfulness["suggestions"].append(suggestion)
+    helpfulness["active_suggestion_id"] = suggestion_id
+    if len(helpfulness["suggestions"]) > 60:
+        helpfulness["suggestions"] = helpfulness["suggestions"][-60:]
+    _update_helpfulness_summary(helpfulness)
+    return suggestion_id
+
+
+def _evaluate_persistence_for_room(room: Dict[str, Any]) -> None:
+    env = _ensure_room_environment(room)
+    helpfulness = _ensure_room_ai_helpfulness(env)
+    accepted_preview_id = str(env.get("preview", {}).get("approved_image_id") or "").strip()
+    current_counts = _room_change_snapshot(room)
+    now_value = now_iso()
+    for suggestion in helpfulness.get("suggestions") or []:
+        decision = suggestion.get("decision") or {}
+        if decision.get("outcome") != "accept":
+            continue
+        persistence = suggestion.setdefault("persistence", {})
+        persistence["save_count"] = int(persistence.get("save_count") or 0) + 1
+        persistence["evaluated_at"] = now_value
+        accepted_at = decision.get("decision_at")
+        elapsed = _elapsed_ms(accepted_at, now_value)
+        persistence["minutes_since_accept"] = int((elapsed or 0) / 60000)
+        preview_id = str(suggestion.get("accepted_preview_id") or suggestion.get("preview_id") or "").strip()
+        if preview_id and accepted_preview_id and preview_id != accepted_preview_id:
+            persistence["status"] = "replaced"
+            persistence["replaced_later"] = True
+        elif persistence["save_count"] >= 1 or persistence["minutes_since_accept"] >= 10:
+            persistence["status"] = "persisted"
+        change_counts = _diff_change_snapshot(suggestion.get("snapshots", {}).get("room_counts") or {}, current_counts)
+        suggestion["tweak_magnitude"] = {
+            "bucket": _bucket_change_magnitude(int(change_counts.get("total_abs_delta") or 0)),
+            "counts": change_counts,
+        }
+    _update_helpfulness_summary(helpfulness)
 
 
 def _fingerprint_payload(value: Any) -> str:
@@ -2899,6 +3238,7 @@ def _attach_default_biome_pack(project: Dict[str, Any], direction: Dict[str, Any
 
 
 def generate_room_environment_previews(project_id: str, room_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+    started = time.perf_counter()
     project = load_project(project_id)
     room = _find_room(project, room_id)
     env = _ensure_room_environment(room)
@@ -2985,6 +3325,20 @@ def generate_room_environment_previews(project_id: str, room_id: str, payload: D
         "fog": spec.get("fog"),
         "landmarks": spec.get("landmarks"),
     }
+    latency_ms = max(0, int((time.perf_counter() - started) * 1000))
+    request_kind = str(payload.get("request_kind") or "generate").strip() or "generate"
+    _close_prior_active_suggestion(room, env, request_kind)
+    suggestion_id = _create_suggestion_record(
+        room,
+        env,
+        geometry,
+        render_level,
+        used_ai,
+        fallback_reason,
+        latency_ms,
+        payload,
+    )
+    env["preview"]["suggestion_id"] = suggestion_id
     env["runtime"]["status"] = "needs_approval"
     env["runtime"]["source"] = None
     env["runtime"]["applied_preview_id"] = None
@@ -3029,6 +3383,15 @@ def revise_room_environment(project_id: str, room_id: str, payload: Dict[str, An
     project = load_project(project_id)
     room = _find_room(project, room_id)
     env = _ensure_room_environment(room)
+    helpfulness = _ensure_room_ai_helpfulness(env)
+    active_id = str(helpfulness.get("active_suggestion_id") or "").strip()
+    if active_id:
+        active = _find_suggestion_record(helpfulness, active_id)
+        if active:
+            active.setdefault("effort", {})["regeneration_count"] = int((active.get("effort") or {}).get("regeneration_count") or 0) + 1
+            active.setdefault("decision", {})["reason_codes"] = _coerce_reason_codes(payload.get("reason_codes")) or active.setdefault("decision", {}).get("reason_codes") or []
+            _update_helpfulness_summary(helpfulness)
+            save_project(project)
     current = str(env["spec"].get("description") or "").strip()
     instruction = str(payload.get("instruction") or "").strip()
     if not instruction:
@@ -4469,6 +4832,7 @@ def approve_room_environment_preview(project_id: str, room_id: str, payload: Dic
     project = load_project(project_id)
     room = _find_room(project, room_id)
     env = _ensure_room_environment(room)
+    helpfulness = _ensure_room_ai_helpfulness(env)
     preview_id = str(payload.get("preview_id") or "").strip()
     if not preview_id:
         raise ValueError("preview_id is required.")
@@ -4501,6 +4865,21 @@ def approve_room_environment_preview(project_id: str, room_id: str, payload: Dic
         asset_pack["used_ai"] = False
         asset_pack["generated_at"] = None
         asset_pack["assets"] = {}
+    suggestion_id = str(env.get("preview", {}).get("suggestion_id") or helpfulness.get("active_suggestion_id") or "").strip()
+    suggestion = _find_suggestion_record(helpfulness, suggestion_id) if suggestion_id else None
+    if suggestion:
+        decision = suggestion.setdefault("decision", {})
+        decision["outcome"] = "accept"
+        decision["decision_at"] = now_iso()
+        decision["time_to_decision_ms"] = _elapsed_ms(suggestion.get("generated_at"), decision["decision_at"])
+        decision["time_to_decision_bucket"] = _bucket_time_to_decision(decision.get("time_to_decision_ms"))
+        reason_codes = _coerce_reason_codes(payload.get("reason_codes"))
+        if reason_codes:
+            decision["reason_codes"] = reason_codes
+        suggestion["preview_id"] = preview_id
+        suggestion["accepted_preview_id"] = preview_id
+        suggestion.setdefault("persistence", {})["status"] = "pending"
+    _update_helpfulness_summary(helpfulness)
     project["updated_at"] = now_iso()
     save_project(project)
     append_history_event(project_id, {
@@ -4514,3 +4893,62 @@ def approve_room_environment_preview(project_id: str, room_id: str, payload: Dic
         "environment": copy.deepcopy(env),
         "approved_preview": copy.deepcopy(found),
     }
+
+
+def record_room_environment_feedback_event(project_id: str, room_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+    project = load_project(project_id)
+    room = _find_room(project, room_id)
+    env = _ensure_room_environment(room)
+    helpfulness = _ensure_room_ai_helpfulness(env)
+    event_type = str(payload.get("event_type") or "").strip().lower()
+    if not event_type:
+        raise ValueError("event_type is required.")
+    suggestion_id = str(payload.get("suggestion_id") or env.get("preview", {}).get("suggestion_id") or helpfulness.get("active_suggestion_id") or "").strip()
+    suggestion = _find_suggestion_record(helpfulness, suggestion_id) if suggestion_id else None
+    if suggestion is None:
+        raise ValueError("suggestion_id is required for room feedback events.")
+    effort = suggestion.setdefault("effort", {})
+    reliability = suggestion.setdefault("reliability", {})
+    decision = suggestion.setdefault("decision", {})
+    if event_type == "preview_viewed":
+        effort["preview_views"] = int(effort.get("preview_views") or 0) + 1
+    elif event_type == "preview_inspected":
+        effort["preview_inspections"] = int(effort.get("preview_inspections") or 0) + 1
+    elif event_type == "open_game_preview":
+        effort["open_game_inspections"] = int(effort.get("open_game_inspections") or 0) + 1
+    elif event_type == "workflow_backtrack":
+        effort["back_and_forth_steps"] = int(effort.get("back_and_forth_steps") or 0) + 1
+    elif event_type == "discarded":
+        decision["outcome"] = "reject"
+        decision["decision_at"] = now_iso()
+        decision["time_to_decision_ms"] = _elapsed_ms(suggestion.get("generated_at"), decision["decision_at"])
+        decision["time_to_decision_bucket"] = _bucket_time_to_decision(decision.get("time_to_decision_ms"))
+        reliability["cancellations"] = int(reliability.get("cancellations") or 0) + 1
+    elif event_type == "generation_error":
+        errors = reliability.get("errors") if isinstance(reliability.get("errors"), list) else []
+        errors.append({
+            "message": str(payload.get("message") or "generation_error")[:240],
+            "created_at": now_iso(),
+        })
+        reliability["errors"] = errors[-8:]
+        if payload.get("latency_ms") is not None:
+            reliability["latency_ms"] = int(payload.get("latency_ms") or 0)
+    elif event_type == "crash_near_ai_use":
+        reliability["crashes_near_ai_use"] = int(reliability.get("crashes_near_ai_use") or 0) + 1
+    reason_codes = _coerce_reason_codes(payload.get("reason_codes"))
+    if reason_codes:
+        decision["reason_codes"] = reason_codes
+    project["updated_at"] = now_iso()
+    _update_helpfulness_summary(helpfulness)
+    save_project(project)
+    return {
+        "ok": True,
+        "environment": copy.deepcopy(env),
+        "suggestion_id": suggestion_id,
+    }
+
+
+def refresh_room_environment_helpfulness_on_layout_save(room: Dict[str, Any]) -> Dict[str, Any]:
+    env = _ensure_room_environment(room)
+    _evaluate_persistence_for_room(room)
+    return copy.deepcopy(env)

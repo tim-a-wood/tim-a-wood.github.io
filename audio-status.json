@@ -1,16 +1,8 @@
 {
-  "_note": "Updated by the audio director after each task. Plain language \u2014 no jargon.",
-  "updated": "2026-03-31",
+  "_note": "Updated by the audio director after each task. Plain language — no jargon.",
+  "updated": "2026-04-01",
   "schema_version": "v1.0",
   "priorities": [
-    {
-      "id": 1,
-      "title": "Define the sonic identity of Ashen Hollow \u2014 instrumentation direction, emotional register, reference palette",
-      "status": "in-progress",
-      "risk": "high",
-      "note": "Without a defined sonic identity, music and SFX will be produced without a coherent direction. This is the audio equivalent of the art bible \u2014 it needs to exist before any audio production starts.",
-      "proposed_solution": "Deliver a sonic identity memo (instrumentation, emotional register, references) as the audio bible before commissioning music or SFX."
-    },
     {
       "id": 2,
       "title": "Specify the UI audio feedback layer for the Workbench tools",
@@ -24,7 +16,7 @@
       "title": "Research and select the adaptive audio middleware approach for Ashen Hollow",
       "status": "paused",
       "risk": "med",
-      "note": "Metroidvania music needs to adapt to game state \u2014 exploration, combat, boss fights, quiet moments. The middleware choice affects how music is authored and integrated. This decision should be made before any music production begins.",
+      "note": "Metroidvania music needs to adapt to game state — exploration, combat, boss fights, quiet moments. The middleware choice affects how music is authored and integrated. This decision should be made before any music production begins.",
       "proposed_solution": "Compare adaptive music approaches and middleware options, then recommend one that fits solo-founder engineering capacity."
     },
     {
@@ -34,6 +26,14 @@
       "risk": "low",
       "note": "Blocked on the game director and Creative confirming the first biome. Audio direction should follow the visual and narrative direction, not lead it.",
       "proposed_solution": "When the first biome and creative direction lock, draft the opening biome music and ambience brief for level and narrative."
+    },
+    {
+      "id": 1,
+      "title": "Define the sonic identity of Ashen Hollow — instrumentation direction, emotional register, reference palette",
+      "status": "in-progress",
+      "risk": "high",
+      "note": "Without a defined sonic identity, music and SFX will be produced without a coherent direction. This is the audio equivalent of the art bible — it needs to exist before any audio production starts.",
+      "proposed_solution": "Deliver a sonic identity memo (instrumentation, emotional register, references) as the audio bible before commissioning music or SFX."
     }
   ],
   "risks_p0": [],
@@ -48,7 +48,7 @@
     {
       "id": "audio-brief",
       "name": "Audio Brief",
-      "description": "Sound design brief for a new game element or feature \u2014 sonic identity, emotional register, reference points, trigger events, implementation notes.",
+      "description": "Sound design brief for a new game element or feature — sonic identity, emotional register, reference points, trigger events, implementation notes.",
       "trigger": "A new game element, UI pattern, or feature needs sound design",
       "last_run": null,
       "output_location": null
@@ -56,7 +56,7 @@
     {
       "id": "sfx-spec",
       "name": "SFX Spec",
-      "description": "Full SFX spec \u2014 trigger conditions, duration, frequency range, spatial properties, variation requirements.",
+      "description": "Full SFX spec — trigger conditions, duration, frequency range, spatial properties, variation requirements.",
       "trigger": "A specific sound effect is approved for production",
       "last_run": null,
       "output_location": null
@@ -64,7 +64,7 @@
     {
       "id": "music-direction-memo",
       "name": "Music Direction Memo",
-      "description": "Music direction memo for a biome or scene \u2014 instrumentation, adaptive system design, emotional arc, reference tracks.",
+      "description": "Music direction memo for a biome or scene — instrumentation, adaptive system design, emotional arc, reference tracks.",
       "trigger": "A new biome, major narrative moment, or boss fight is entering production",
       "last_run": null,
       "output_location": null

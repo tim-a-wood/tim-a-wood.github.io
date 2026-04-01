@@ -105,6 +105,21 @@ This log records decisions for the room environment and bespoke asset quality pa
 - Why: Default biome PNGs are curated copies or Pillow seeds; authors need a guided step to align the **shared** `art_direction_biomes/<id>/` library with locked direction without hand-painting.
 - Consequence: `generate_biome_pack_visuals` POST targets the active `biome_packs[0].template_library` (same five layers as `V1_BESPOKE_COMPONENTS`). Requires `confirm_overwrite: true`. Successful layers set `biome_visual_generated_at` and `source_template_kind: gemini_biome`. `_refresh_biome_pack_templates` **skips** `_install_component_template_asset` when `biome_visual_generated_at` is set so `get_project_art_direction` no longer overwrites Gemini outputs with curated/fallback seeds. API: `POST /api/projects/{id}/art-direction/biome/generate-visuals`. UI: Room wizard Environment → Setup → “Biome template kit”; long jobs switch to Results tab for the shared waitbar.
 
+### 15. Room environment suggestions now carry a durable helpfulness ledger
+- Status: Accepted
+- Why: Volume-only AI usage counts were not telling us whether room suggestions or preview images were actually useful, especially with a single inconsistent internal user.
+- Consequence: Each preview generation now gets a stable `suggestion_id` and a compact `ai_helpfulness` record stored on the room environment. The ledger tracks request/view/decision/persistence funnel state, session/task/workflow context, time-to-decision and backtracking effort, lightweight reason codes, heuristic model self-rating, and reliability signals (latency/errors/cancellations/crashes). Room-layout saves now evaluate whether accepted suggestions persisted or were later replaced, instead of treating approval as final success.
+
+### 16. Full room payload capture for helpfulness tracking remains explicitly rejected
+- Status: Rejected
+- Why: Storing full room snapshots to judge tweak magnitude would bloat project data and mix analytics with authoring payloads too tightly.
+- Consequence: Tweak magnitude is tracked with lightweight count deltas and buckets derived from room structure (platforms, doors, movers, keys, edges, polygon points), not raw room content dumps.
+
+### 17. Helpfulness reporting must be verified through the real server payload, not only unit helpers
+- Status: Accepted
+- Why: The first QA pass caught two integration-only failures that unit coverage alone did not surface: `suggestion_id` hashing used a non-string input in the live server, and dashboard aggregation initially scanned the wrong persisted room-layout filename.
+- Consequence: When this ledger changes, QA should include one real `/api/projects/.../environment/*` → `/api/dashboard-data` smoke run in addition to unit tests.
+
 ## Open Questions
 
 - Should `ceiling`, `backwall_panel`, or `wall_face` become first-class component schema types?

@@ -223,6 +223,107 @@ def _usage_summary_from_repo_disk() -> dict[str, Any]:
     return summarize_usage_ledger_entries(_ledger_entries_from_repo_disk())
 
 
+def _project_room_layout_paths() -> list[Path]:
+    root = REPO_ROOT / "tools" / "2d-sprite-and-animation" / "projects-data"
+    if not root.is_dir():
+        return []
+    out: list[Path] = []
+    for child in root.iterdir():
+        if not child.is_dir():
+            continue
+        path = child / "room_layout.json"
+        if path.is_file():
+            out.append(path)
+    return out
+
+
+def _build_room_ai_helpfulness_summary() -> dict[str, Any]:
+    suggestions: list[dict[str, Any]] = []
+    for path in _project_room_layout_paths():
+        try:
+            raw = json.loads(path.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            continue
+        rooms = raw.get("rooms")
+        if not isinstance(rooms, list):
+            continue
+        for room in rooms:
+            if not isinstance(room, dict):
+                continue
+            env = room.get("environment")
+            if not isinstance(env, dict):
+                continue
+            helpful = env.get("ai_helpfulness")
+            if not isinstance(helpful, dict):
+                continue
+            rows = helpful.get("suggestions")
+            if not isinstance(rows, list):
+                continue
+            for item in rows:
+                if isinstance(item, dict):
+                    suggestions.append(item)
+
+    requested = len(suggestions)
+    viewed = sum(1 for item in suggestions if int(((item.get("effort") or {}).get("preview_views") or 0)) > 0)
+    decided = sum(1 for item in suggestions if str(((item.get("decision") or {}).get("outcome") or "")).strip())
+    accepted = sum(1 for item in suggestions if ((item.get("decision") or {}).get("outcome") == "accept"))
+    tweaked = sum(1 for item in suggestions if ((item.get("decision") or {}).get("outcome") == "tweak"))
+    rejected = sum(1 for item in suggestions if ((item.get("decision") or {}).get("outcome") == "reject"))
+    persisted = sum(1 for item in suggestions if ((item.get("persistence") or {}).get("status") == "persisted"))
+    error_count = sum(len(((item.get("reliability") or {}).get("errors") or [])) for item in suggestions)
+    cancellation_count = sum(int(((item.get("reliability") or {}).get("cancellations") or 0)) for item in suggestions)
+    crash_count = sum(int(((item.get("reliability") or {}).get("crashes_near_ai_use") or 0)) for item in suggestions)
+    latencies = [
+        int((item.get("reliability") or {}).get("latency_ms") or 0)
+        for item in suggestions
+        if (item.get("reliability") or {}).get("latency_ms") is not None
+    ]
+    latencies = [v for v in latencies if v >= 0]
+    mean_latency_ms = round(sum(latencies) / len(latencies)) if latencies else None
+    accepted_or_tweaked = accepted + tweaked
+    acceptance_rate = round((accepted / decided) * 100) if decided else None
+    helpful_rate = round((accepted_or_tweaked / decided) * 100) if decided else None
+    persisted_accept_rate = round((persisted / accepted) * 100) if accepted else None
+    if requested >= 12:
+        low_sample_note = f"{requested} room suggestions recorded. Rates are reasonably directional."
+    elif requested >= 1:
+        low_sample_note = f"Only {requested} room suggestion{'s' if requested != 1 else ''} recorded so far. Treat percentages as provisional."
+    else:
+        low_sample_note = "No room suggestion records found yet."
+    donut = []
+    if decided:
+        donut = [
+            {"label": "Accept", "value": round((accepted / decided) * 100), "key": "good"},
+            {"label": "Tweak", "value": round((tweaked / decided) * 100), "key": "warning"},
+            {"label": "Reject", "value": max(0, 100 - round((accepted / decided) * 100) - round((tweaked / decided) * 100)), "key": "muted"},
+        ]
+    elif requested:
+        donut = [
+            {"label": "Undecided", "value": 100, "key": "warning"},
+        ]
+    else:
+        donut = [{"label": "No data", "value": 100, "key": "muted"}]
+    return {
+        "requested": requested,
+        "viewed": viewed,
+        "decided": decided,
+        "accepted": accepted,
+        "tweaked": tweaked,
+        "rejected": rejected,
+        "persisted": persisted,
+        "error_count": error_count,
+        "cancellation_count": cancellation_count,
+        "crash_count": crash_count,
+        "mean_latency_ms": mean_latency_ms,
+        "acceptance_rate_pct": acceptance_rate,
+        "helpful_rate_pct": helpful_rate,
+        "persisted_accept_rate_pct": persisted_accept_rate,
+        "low_sample_note": low_sample_note,
+        "donut": donut,
+        "donut_n": decided if decided else requested,
+    }
+
+
 def build_workbench_server_dashboard_payload(bind_host: str, bind_port: int) -> dict[str, Any]:
     """When the JSON is served from sprite_workbench_server (this process is the workbench)."""
     env = merge_env_for_workbench()
@@ -241,6 +342,7 @@ def build_workbench_server_dashboard_payload(bind_host: str, bind_port: int) -> 
         usage_summary = _usage_summary_from_repo_disk()
     analytics_status = read_repo_json_object("analytics-status.json")
     home_internal = build_home_internal_snapshot()
+    room_ai_helpfulness = _build_room_ai_helpfulness_summary()
     return {
         "supervisor": False,
         "agent_os_control_base": ctrl,
@@ -251,6 +353,7 @@ def build_workbench_server_dashboard_payload(bind_host: str, bind_port: int) -> 
         "last_daily_report": latest_daily_report_name(),
         "usage_charts": usage_charts,
         "usage_summary": usage_summary,
+        "room_ai_helpfulness": room_ai_helpfulness,
         "analytics_status": analytics_status,
         "home_internal": home_internal,
         **keys,
@@ -266,6 +369,7 @@ def build_supervisor_dashboard_payload(host: str, wb_port: int) -> dict[str, Any
     usage_summary = _usage_summary_from_repo_disk()
     analytics_status = read_repo_json_object("analytics-status.json")
     home_internal = build_home_internal_snapshot()
+    room_ai_helpfulness = _build_room_ai_helpfulness_summary()
     return {
         "supervisor": True,
         "workbench_server_running": running,
@@ -275,6 +379,7 @@ def build_supervisor_dashboard_payload(host: str, wb_port: int) -> dict[str, Any
         "last_daily_report": latest_daily_report_name(),
         "usage_charts": usage_charts,
         "usage_summary": usage_summary,
+        "room_ai_helpfulness": room_ai_helpfulness,
         "analytics_status": analytics_status,
         "home_internal": home_internal,
         **keys,

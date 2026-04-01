@@ -252,6 +252,64 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         self.assertTrue(bespoke["runtime_review"]["screenshot_url"])
         self.assertEqual(asset_pack["environment"]["runtime"]["status"], "ready")
         self.assertTrue(bespoke["used_ai"])
+        helpfulness = asset_pack["environment"]["ai_helpfulness"]
+        self.assertEqual(helpfulness["summary"]["funnel"]["requested"], 1)
+        self.assertEqual(helpfulness["summary"]["funnel"]["accepted"], 1)
+        suggestion = helpfulness["suggestions"][0]
+        self.assertTrue(suggestion["suggestion_id"])
+        self.assertEqual(suggestion["decision"]["outcome"], "accept")
+        self.assertEqual(suggestion["context"]["room_complexity_bucket"], "light")
+        self.assertEqual(suggestion["previews"]["render_level"], "level3")
+
+    def test_room_helpfulness_feedback_tracks_view_revise_and_persistence(self):
+        envsys.update_project_art_direction(self.project_id, {"template_id": "ruined-gothic", "locked": True})
+        envsys.build_room_environment_spec(
+            self.project_id,
+            "R1",
+            {"description": "A readable ruined hall with a calm center and strong traversal edges."},
+        )
+        first = envsys.generate_room_environment_previews(
+            self.project_id,
+            "R1",
+            {"session_id": "sess-1", "task_id": "task-1", "workflow_step": "results"},
+        )
+        suggestion_id = first["environment"]["preview"]["suggestion_id"]
+        envsys.record_room_environment_feedback_event(
+            self.project_id,
+            "R1",
+            {"event_type": "preview_viewed", "suggestion_id": suggestion_id},
+        )
+        envsys.revise_room_environment(
+            self.project_id,
+            "R1",
+            {"instruction": "Make the center route easier to read.", "reason_codes": ["confusing_layout"]},
+        )
+        second = envsys.generate_room_environment_previews(
+            self.project_id,
+            "R1",
+            {"session_id": "sess-1", "task_id": "task-1", "workflow_step": "results", "request_kind": "revise"},
+        )
+        second_id = second["environment"]["preview"]["suggestion_id"]
+        first_record = second["environment"]["ai_helpfulness"]["suggestions"][0]
+        self.assertEqual(first_record["decision"]["outcome"], "tweak")
+        self.assertEqual(first_record["effort"]["preview_views"], 1)
+        approved = envsys.approve_room_environment_preview(
+            self.project_id,
+            "R1",
+            {"preview_id": second["environment"]["preview"]["images"][0]["preview_id"], "reason_codes": ["style_mismatch"]},
+        )
+        room = self.saved["room_layout"]["rooms"][0]
+        room["platforms"].append({"id": "R1-P2", "x": 640, "y": 768, "len": 6})
+        envsys.refresh_room_environment_helpfulness_on_layout_save(room)
+        second_record = next(item for item in approved["environment"]["ai_helpfulness"]["suggestions"] if item["suggestion_id"] == second_id)
+        refreshed = room["environment"]["ai_helpfulness"]
+        refreshed_second = next(item for item in refreshed["suggestions"] if item["suggestion_id"] == second_id)
+        self.assertEqual(second_record["decision"]["outcome"], "accept")
+        self.assertEqual(refreshed["summary"]["funnel"]["requested"], 2)
+        self.assertEqual(refreshed["summary"]["funnel"]["tweaked"], 1)
+        self.assertEqual(refreshed["summary"]["funnel"]["accepted"], 1)
+        self.assertEqual(refreshed_second["persistence"]["status"], "persisted")
+        self.assertEqual(refreshed_second["tweak_magnitude"]["bucket"], "small")
 
     def test_layout_change_marks_only_layout_aware_assets_stale(self):
         envsys.update_project_art_direction(self.project_id, {"template_id": "industrial-underworks", "locked": True})

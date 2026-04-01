@@ -1728,6 +1728,11 @@ def approve_project_room_environment_preview(project_id: str, room_id: str, payl
     return room_environment_system.approve_room_environment_preview(project_id, room_id, payload)
 
 
+def record_project_room_environment_feedback(project_id: str, room_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+    _sync_room_environment_system_config()
+    return room_environment_system.record_room_environment_feedback_event(project_id, room_id, payload)
+
+
 def generate_project_biome_pack_visuals(project_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:
     _sync_room_environment_system_config()
     return room_environment_system.generate_biome_pack_visuals(project_id, payload)
@@ -2139,6 +2144,9 @@ def save_room_layout(project_id: str, payload: Dict[str, Any]) -> Dict[str, Any]
     validation_payload["project_id"] = project_id
 
     project["room_layout"] = room_layout
+    for room in project["room_layout"].get("rooms") or []:
+        if isinstance(room, dict):
+            room_environment_system.refresh_room_environment_helpfulness_on_layout_save(room)
     project["room_layout_history"] = history_payload
     project["level_validation_report"] = validation_payload
     project["updated_at"] = now_iso()
@@ -7979,6 +7987,11 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
             if room_approve_match:
                 project_id, room_id = room_approve_match.groups()
                 return self._send_json(approve_project_room_environment_preview(project_id, room_id, read_body(self)))
+
+            room_feedback_match = re.fullmatch(r"/api/projects/([^/]+)/rooms/([^/]+)/environment/feedback", path)
+            if room_feedback_match:
+                project_id, room_id = room_feedback_match.groups()
+                return self._send_json(record_project_room_environment_feedback(project_id, room_id, read_body(self)))
 
             duplicate_match = re.fullmatch(r"/api/projects/([^/]+)/duplicate", path)
             if duplicate_match:

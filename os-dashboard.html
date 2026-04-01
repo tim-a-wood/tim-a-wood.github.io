@@ -3754,18 +3754,18 @@ h3.os-chart-card-title {
           <div class="db-grid">
             <div class="db-card db-card--live">
               <div class="db-card-header"><div class="db-card-label">Current coverage</div><span class="db-tier db-tier--live">LIVE</span></div>
-              <div class="db-card-value db-card-value--good">AI calls + costs</div>
-              <div class="db-card-sub">Workbench AI usage is tracked today</div>
+              <div class="db-card-value db-card-value--good" id="db-analytics-current-coverage">AI calls + room outcomes</div>
+              <div class="db-card-sub" id="db-analytics-current-coverage-sub">Usage ledger plus per-suggestion room helpfulness</div>
             </div>
-            <div class="db-card db-card--instrumented">
-              <div class="db-card-header"><div class="db-card-label">Activation / retention</div><span class="db-tier db-tier--post">POST-LAUNCH</span></div>
-              <div class="db-card-value db-card-value--muted">—</div>
-              <div class="db-card-sub">How many users come back after day 1</div>
+            <div class="db-card db-card--live">
+              <div class="db-card-header"><div class="db-card-label">Helpful rate</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-value" id="db-analytics-helpful-rate">—</div>
+              <div class="db-card-sub" id="db-analytics-helpful-rate-sub">Accept + tweak / decided suggestions</div>
             </div>
-            <div class="db-card db-card--instrumented">
-              <div class="db-card-header"><div class="db-card-label">AI acceptance rate</div><span class="db-tier db-tier--post">POST-LAUNCH</span></div>
-              <div class="db-card-value db-card-value--muted">—</div>
-              <div class="db-card-sub">How often users accept AI suggestions</div>
+            <div class="db-card db-card--live">
+              <div class="db-card-header"><div class="db-card-label">Accepted and stuck</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-value" id="db-analytics-persist-rate">—</div>
+              <div class="db-card-sub" id="db-analytics-persist-rate-sub">Accepted suggestions still present after later saves</div>
             </div>
           </div>
         </div>
@@ -5538,10 +5538,17 @@ function syncAnalyticsKpis(d) {
     setText('db-analytics-window-calls', '—');
     setText('db-analytics-today-calls', '—');
     setText('db-analytics-ledger-cost', '—');
+    setText('db-analytics-helpful-rate', '—');
+    setText('db-analytics-persist-rate', '—');
+    setText('db-analytics-helpful-rate-sub', 'Accept + tweak / decided suggestions');
+    setText('db-analytics-persist-rate-sub', 'Accepted suggestions still present after later saves');
     return;
   }
   const s = d.usage_summary;
   const c = d.usage_charts;
+  const room = d.room_ai_helpfulness && typeof d.room_ai_helpfulness === 'object' && !Array.isArray(d.room_ai_helpfulness)
+    ? d.room_ai_helpfulness
+    : null;
   const hasSummary = s != null && typeof s === 'object' && !Array.isArray(s);
   if (hasSummary) {
     setText('db-analytics-ledger-total', s.entry_count != null ? String(s.entry_count) : '—');
@@ -5554,6 +5561,22 @@ function syncAnalyticsKpis(d) {
   }
   if (c != null && typeof c === 'object' && !Array.isArray(c) && c.ledger_entry_count_window != null) {
     setText('db-analytics-window-calls', String(c.ledger_entry_count_window));
+  }
+  if (room) {
+    setText('db-analytics-helpful-rate', room.helpful_rate_pct != null ? String(room.helpful_rate_pct) + '%' : '—');
+    setText('db-analytics-persist-rate', room.persisted_accept_rate_pct != null ? String(room.persisted_accept_rate_pct) + '%' : '—');
+    setText(
+      'db-analytics-helpful-rate-sub',
+      room.decided
+        ? `${room.accepted + room.tweaked} helpful of ${room.decided} decided · ${room.low_sample_note || ''}`.trim()
+        : (room.low_sample_note || 'Accept + tweak / decided suggestions')
+    );
+    setText(
+      'db-analytics-persist-rate-sub',
+      room.accepted
+        ? `${room.persisted} persisted of ${room.accepted} accepted · mean latency ${room.mean_latency_ms != null ? room.mean_latency_ms + ' ms' : '—'}`
+        : (room.low_sample_note || 'Accepted suggestions still present after later saves')
+    );
   }
 }
 
@@ -5874,6 +5897,23 @@ function applyUsageChartsFromDashboard(d) {
     });
   }
   osChartData.donut_n = uc.donut_n != null ? Number(uc.donut_n) : 0;
+  const room = d.room_ai_helpfulness;
+  if (room && typeof room === 'object' && !Array.isArray(room) && Array.isArray(room.donut) && room.donut.length) {
+    osChartData.donut = room.donut.map(function (r) {
+      return {
+        label: String(r.label || ''),
+        value: Math.max(0, Number(r.value) || 0),
+        key: r.key || 'accent',
+      };
+    });
+    osChartData.donut_n = room.donut_n != null ? Number(room.donut_n) : (room.decided != null ? Number(room.decided) : 0);
+    ['dev-chart-donut-desc', 'anim-chart-donut-desc', 'ld-chart-donut-desc', 'analytics-chart-donut-desc'].forEach(function (id) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const meanLatency = room.mean_latency_ms != null ? ' · mean latency ' + String(room.mean_latency_ms) + ' ms' : '';
+      el.textContent = 'Room Copilot outcomes from saved room suggestions — accept / tweak / reject with denominators and low-sample caveats.' + meanLatency;
+    });
+  }
   const sumEl = document.getElementById('home-kpi-ai-units');
   if (sumEl && uc.eight_week_call_total != null) {
     sumEl.textContent = String(uc.eight_week_call_total);
