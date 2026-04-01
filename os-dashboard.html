@@ -929,7 +929,7 @@ body::before {
 }
 .av-table-head-labels {
   display: grid;
-  grid-template-columns: minmax(72px, 0.85fr) minmax(72px, 0.85fr) minmax(0, 1.2fr) max-content max-content;
+  grid-template-columns: minmax(0, 6.5rem) minmax(0, 7.5rem) minmax(0, 1fr) max-content max-content;
   gap: var(--space-2);
   min-width: 0;
 }
@@ -987,7 +987,7 @@ body::before {
 }
 .av-row-grid {
   display: grid;
-  grid-template-columns: minmax(72px, 0.85fr) minmax(72px, 0.85fr) minmax(0, 1.2fr) max-content max-content;
+  grid-template-columns: minmax(0, 6.5rem) minmax(0, 7.5rem) minmax(0, 1fr) max-content max-content;
   gap: var(--space-2);
   align-items: start;
   min-width: 0;
@@ -1556,6 +1556,8 @@ textarea.av-field { resize: vertical; min-height: 72px; line-height: 1.45; }
   display: flex;
   flex-direction: column;
   gap: 0;
+  min-width: 0;
+  max-width: 100%;
 }
 .db-priority-header {
   display: grid;
@@ -1564,10 +1566,16 @@ textarea.av-field { resize: vertical; min-height: 72px; line-height: 1.45; }
   padding: var(--space-2) 0 var(--space-1);
   border-bottom: 1px solid var(--line-strong);
 }
-/* # | Owner | Stakeholders | Summary | Status | Risk */
+/* # | Owner | Stakeholders | Summary | Status | Risk — cap narrow columns so Summary + pills stay in view */
 .db-priority-header,
 .db-priority-row {
-  grid-template-columns: 28px minmax(72px, 0.75fr) minmax(80px, 0.85fr) minmax(0, 1.35fr) max-content max-content;
+  grid-template-columns:
+    28px
+    minmax(0, 6.5rem)
+    minmax(0, 7.5rem)
+    minmax(0, 1fr)
+    max-content
+    max-content;
 }
 .db-priority-hcell {
   font-size: var(--font-size-xs);
