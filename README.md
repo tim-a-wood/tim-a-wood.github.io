@@ -160,6 +160,8 @@ If you open `os-dashboard.html` from the **workbench** (`http://127.0.0.1:8766/.
 
 **Founder email (Resend):** The daily dashboard job (`scripts/update_dashboards.sh`) finishes by piping markdown into `scripts/send_weekly_digest.py`, using `RESEND_API_KEY` and `DIGEST_EMAIL_TO` from `.env.local`. To send the company brand charter PDF the same way, run `./scripts/send_brand_charter_email.sh` from the repo root.
 
+**If the noon dashboard email did not arrive:** macOS `cron` does not run while the Mac is asleep, and it uses a minimal environment. The script now prepends Homebrew to `PATH` and logs every run to `artifacts/dashboard-update-cron.log`. Check the last lines after `Sending email notification` for Resend errors. To test manually: `bash scripts/update_dashboards.sh` from the repo root (expect several minutes while Claude runs). For reliability while the machine sleeps, consider a `launchd` `StartCalendarInterval` job instead of `crontab`.
+
 You can drag **`Agent-OS-Dashboard.command`** or a Shortcuts “Run Shell Script” action to the **Dock** or **menu bar** — same one-liner as step 1.
 
 The server writes local-first project data and exports under `tools/2d-sprite-and-animation/projects-data/`.

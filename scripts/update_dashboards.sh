@@ -15,10 +15,28 @@ CLAUDE="/opt/homebrew/bin/claude"
 PYTHON="/usr/bin/python3"
 LOG="$REPO/artifacts/dashboard-update-cron.log"
 
+# Cron and non-interactive shells often have a minimal PATH; claude/node must resolve.
+export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:${PATH:-}"
+
 cd "$REPO"
 source .env.local 2>/dev/null || true
 
 TODAY=$(date +%Y-%m-%d)
+# Set to 1 only after all status JSON passes finish (immediately before email). Used by EXIT trap.
+UPDATES_FINISHED=0
+
+# If the job dies mid-run (set -e, missing CLI, bad JSON, etc.), notify once so silence is not mistaken for success.
+trap 'ec=$?; if [ "${UPDATES_FINISHED:-0}" != "1" ]; then {
+    echo "# Dashboard update stopped before completion"
+    echo ""
+    echo "The scheduled job exited early (exit code ${ec}). Open **artifacts/dashboard-update-cron.log** on this Mac and read the last 30 lines."
+    echo ""
+    echo "Typical causes: Mac asleep at run time, cron PATH missing **claude** or **node**, Claude CLI auth expired, corrupt status JSON during QA fallback, or Resend error after \"Sending email notification\"."
+  } | "${PYTHON}" "${REPO}/scripts/send_weekly_digest.py" \
+      --subject "[MV Agent OS] Dashboard update did not finish — ${TODAY}" \
+      --subtitle "Agent OS — Daily Dashboard Update" \
+      >>"${LOG}" 2>&1 || true; fi' EXIT
+
 echo "" >> "$LOG"
 echo "[$(date)] ── Dashboard update starting ─────────────────" >> "$LOG"
 
@@ -148,17 +166,27 @@ if [ -n "$QA_JSON" ]; then
   echo "$QA_JSON" > "$REPO/qa-status.json"
   echo "[$(date)] QA done." >> "$LOG"
 else
-  # Minimal fallback: just update the date in the existing file
-  "$PYTHON" - "$REPO/qa-status.json" "$TODAY" <<'PYEOF'
+  # Minimal fallback: just update the date in the existing file (must write the file; stdout alone does not persist).
+  QA_TMP="${REPO}/qa-status.json.tmp"
+  if "$PYTHON" - "$REPO/qa-status.json" "$TODAY" <<'PYEOF' >"$QA_TMP" 2>>"$LOG"
 import sys, json
 path, today = sys.argv[1], sys.argv[2]
-with open(path) as f: d = json.load(f)
-d['updated'] = today
-if 'test_suite' in d: d['test_suite']['last_run'] = today
-if 'metrics' in d: d['metrics']['last_full_run'] = today
+with open(path) as f:
+    d = json.load(f)
+d["updated"] = today
+if "test_suite" in d:
+    d["test_suite"]["last_run"] = today
+if "metrics" in d:
+    d["metrics"]["last_full_run"] = today
 print(json.dumps(d, indent=2))
 PYEOF
-  echo "[$(date)] WARNING: Could not extract valid JSON for QA, date-stamped only." >> "$LOG"
+  then
+    mv "$QA_TMP" "$REPO/qa-status.json"
+    echo "[$(date)] WARNING: Could not extract valid JSON for QA, date-stamped only." >> "$LOG"
+  else
+    rm -f "$QA_TMP"
+    echo "[$(date)] WARNING: QA date-stamp fallback failed; leaving qa-status.json unchanged." >> "$LOG"
+  fi
 fi
 
 # ── Design ───────────────────────────────────────────────────────────────────
@@ -349,6 +377,8 @@ else
   echo "[$(date)] WARNING: Could not extract valid JSON for orchestration, keeping existing file." >> "$LOG"
 fi
 
+UPDATES_FINISHED=1
+
 # ── Email notification ────────────────────────────────────────────────────────
 echo "[$(date)] Sending email notification..." >> "$LOG"
 
@@ -375,9 +405,25 @@ Open the [Agent OS dashboard](http://127.0.0.1:8769/os-dashboard.html) to review
 MD
 )
 
+set +e
 echo "$SUMMARY_MD" | "$PYTHON" "$REPO/scripts/send_weekly_digest.py" \
   --subject "[MV Agent OS] Dashboards updated — $TODAY" \
   --subtitle "Agent OS — Daily Dashboard Update" \
-  >> "$LOG" 2>&1
+  >>"$LOG" 2>&1
+EMAIL_RC=$?
+set -e
+if [ "$EMAIL_RC" -ne 0 ]; then
+  echo "[$(date)] ERROR: send_weekly_digest.py exited ${EMAIL_RC} (check RESEND_API_KEY / DIGEST_EMAIL_* in .env.local and Resend dashboard)." >>"$LOG"
+  set +e
+  {
+    echo "# Dashboard JSON files were updated — confirmation email failed"
+    echo ""
+    echo "The success email step returned exit code ${EMAIL_RC}. Open **artifacts/dashboard-update-cron.log** for curl/Resend output."
+  } | "$PYTHON" "$REPO/scripts/send_weekly_digest.py" \
+    --subject "[MV Agent OS] Dashboard email failed (JSONs may be fresh) — $TODAY" \
+    --subtitle "Agent OS — Daily Dashboard Update" \
+    >>"$LOG" 2>&1
+  set -e
+fi
 
 echo "[$(date)] ── Dashboard update complete ──────────────────" >> "$LOG"
