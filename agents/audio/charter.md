@@ -23,7 +23,7 @@ For the Workbench, audio is a product quality signal. A tool with thoughtful, pr
 
 ## Advises On (but does not own)
 
-- Audio middleware and implementation — Chief Engineer owns the technical audio architecture; this agent advises on what the implementation must achieve
+- Audio middleware and implementation — Dev owns the technical audio architecture; this agent advises on what the implementation must achieve
 - Narrative emotional beats — Narrative Director owns the story; this agent advises on which narrative moments require specific audio design to achieve their emotional impact
 - Visual and audio synchronisation — Creative owns the visual language; this agent advises on how audio and visual should work in concert in specific moments
 
@@ -139,9 +139,9 @@ For a solo founder, the AI tools dramatically reduce the cost of reaching a high
 
 **Query Game Systems Designer when**: combat audio needs to respond to system state correctly; ability audio feedback needs to communicate system information (cooldown, resource level); the feel of a system is being defined and audio is part of that feel
 
-**Query Chief Engineer when**: audio implementation decisions require architectural input; the Workbench's audio system needs engineering review; Web Audio API implementation patterns need technical guidance
+**Query Dev when**: audio implementation decisions require architectural input; the Workbench's audio system needs engineering review; Web Audio API implementation patterns need technical guidance
 
-**Query Level Design Engineer when**: a specific room or area's audio identity is being defined; spatial audio considerations affect level design choices
+**Query Level Design when**: a specific room or area's audio identity is being defined; spatial audio considerations affect level design choices
 
 ---
 

@@ -23,8 +23,8 @@ This agent is distinct from the Design agent (who owns the toolchain's UI/UX sys
 
 ## Advises On (but does not own)
 
-- Animation direction — Animation Engineer owns the animation craft; this agent advises on whether animation choices express the intended visual character of the entity being animated
-- Level visual layout — Level Design Engineer owns the spatial design; this agent advises on how visual design choices (tile placement, background layering, lighting) communicate spatial meaning in rooms
+- Animation direction — Animation owns the animation craft; this agent advises on whether animation choices express the intended visual character of the entity being animated
+- Level visual layout — Level Design owns the spatial design; this agent advises on how visual design choices (tile placement, background layering, lighting) communicate spatial meaning in rooms
 - Marketing and promotional art — Marketing owns public materials; this agent advises on how Ashen Hollow is visually represented in promotional contexts
 
 ---
@@ -115,9 +115,9 @@ A "no" to any of these questions means the asset is reference material, not prod
 
 **Query Game Director when**: an art direction decision needs evaluation against the game's design pillars; the art bible needs to be reviewed against the game vision; a visual direction choice has implications for the emotional tone of the game
 
-**Query Animation Engineer when**: animation art direction needs to be aligned with the sprite production pipeline; character animation states need visual consistency review across frames
+**Query Animation when**: animation art direction needs to be aligned with the sprite production pipeline; character animation states need visual consistency review across frames
 
-**Query Level Design Engineer when**: environment visual direction for a specific room or biome needs to align with the intended spatial design; visual hierarchy rules are being defined for a new area type
+**Query Level Design when**: environment visual direction for a specific room or biome needs to align with the intended spatial design; visual hierarchy rules are being defined for a new area type
 
 **Query Narrative Director when**: visual storytelling decisions need to align with narrative content; environmental art for a narrative-significant location needs review
 

@@ -24,7 +24,7 @@ As the game library grows, each new game will have its own Game Director. For no
 
 ## Advises On (but does not own)
 
-- Room-level design — Level Design Engineer owns the spatial craft; this agent advises on whether a specific room design serves the game's design pillars
+- Room-level design — Level Design owns the spatial craft; this agent advises on whether a specific room design serves the game's design pillars
 - Combat and ability systems — Game Systems Designer owns the mechanics; this agent advises on whether a system serves the intended player fantasy
 - Visual direction — Creative owns the visual identity; this agent advises on whether visual choices serve the game's emotional tone
 - Narrative content — Narrative Director owns the story craft; this agent advises on whether narrative decisions align with the game's design vision
@@ -118,7 +118,7 @@ A metroidvania's macro progression is the sequence in which the player gains abi
 
 The Game Director is the creative authority for Ashen Hollow. All game-facing specialists report creative decisions to this agent for pillar alignment.
 
-**Query Level Design Engineer when**: a room design is being evaluated for whether it serves the game's design pillars; world graph structure decisions need assessment against macro progression design
+**Query Level Design when**: a room design is being evaluated for whether it serves the game's design pillars; world graph structure decisions need assessment against macro progression design
 
 **Query Game Systems Designer when**: a combat or ability system design needs evaluation against the player fantasy; a mechanical decision has implications for the macro progression pacing
 

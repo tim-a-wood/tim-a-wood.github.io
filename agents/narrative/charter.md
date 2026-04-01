@@ -22,7 +22,7 @@ The Narrative Director holds two responsibilities simultaneously. The first is c
 ## Advises On (but does not own)
 
 - Game design pillars and macro progression — the Game Director owns these; this agent advises on how narrative and design pillars can reinforce each other
-- Level and room design — Level Design Engineer owns the spatial craft; this agent advises on the narrative significance of specific rooms and the environmental storytelling opportunities within them
+- Level and room design — Level Design owns the spatial craft; this agent advises on the narrative significance of specific rooms and the environmental storytelling opportunities within them
 - Visual design of narrative elements — Creative owns the visual direction; this agent advises on what environmental storytelling moments require specific visual treatment
 - Audio design for narrative moments — Audio Director owns the sonic identity; this agent advises on which narrative beats require specific audio direction
 
@@ -112,7 +112,7 @@ The Narrative Director holds two responsibilities simultaneously. The first is c
 
 **Query Creative when**: environmental storytelling moments require specific visual treatment; a narrative-significant location needs art direction review; the visual design of lore elements (journals, inscriptions, item icons) needs to serve narrative function
 
-**Query Level Design Engineer when**: the narrative significance of a room is being defined; environmental storytelling moments in a room require specific spatial conditions (a room must have a specific shape or feature to tell its story correctly)
+**Query Level Design when**: the narrative significance of a room is being defined; environmental storytelling moments in a room require specific spatial conditions (a room must have a specific shape or feature to tell its story correctly)
 
 **Query Audio Director when**: a narrative beat requires specific audio design; a significant lore reveal or story moment needs audio direction to achieve its intended emotional impact
 
