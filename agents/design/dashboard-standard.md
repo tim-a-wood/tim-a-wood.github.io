@@ -35,10 +35,12 @@ The Engineering dashboard is the gold standard: Priorities → Risk Register →
 
 ### Priorities
 
-- Use the `db-priority-list` component with `db-priority-row` items
-- Each row: rank, one-sentence title, status pill, risk badge, note
+- Use the `db-priority-list` component: a header row (**#**, **Owner**, **Stakeholders**, **Summary**, **Status**, **Risk**) plus `db-priority-row` data rows (rendered from `os-dashboard.html`).
+- Optional fields in each `*-status.json` priority object: `owner`, `stakeholders` (string or comma-separated list as array), `summary` (falls back to `title` if omitted). Context `note` appears as muted subtext under Summary when present.
+- Specialist dashboards default **Owner** from the agent domain when `owner` is omitted. Orchestration rows default **Stakeholders** from `source` tokens (e.g. `eng+design`) when `stakeholders` is omitted; default owner label is Orchestration.
+- **Status** is a pill (e.g. ACTIVE, REVIEW); **Risk** is `HIGH` / `MED` / `LOW` only (no `Status:` / `Risk:` prefixes).
 - Maximum 5 priorities. If you have more, they are not priorities.
-- Titles must be plain English sentences: "Fix the room editor crash on save" not "Resolve serialisation regression"
+- Titles / summaries must be plain English sentences: "Fix the room editor crash on save" not "Resolve serialisation regression"
 
 ### Risk register
 

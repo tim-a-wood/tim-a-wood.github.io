@@ -919,6 +919,31 @@ body::before {
   flex: 1;
   min-height: 0;
 }
+.av-table-head {
+  display: grid;
+  grid-template-columns: 24px 24px 1fr auto;
+  align-items: end;
+  gap: 0 var(--space-3);
+  padding: var(--space-2) 0 var(--space-1);
+  border-bottom: 1px solid var(--line-strong);
+}
+.av-table-head-labels {
+  display: grid;
+  grid-template-columns: minmax(72px, 0.85fr) minmax(72px, 0.85fr) minmax(0, 1.2fr) max-content max-content;
+  gap: var(--space-2);
+  min-width: 0;
+}
+.av-th {
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  min-width: 0;
+}
+.av-th--mute {
+  visibility: hidden;
+}
 .av-row {
   display: grid;
   grid-template-columns: 24px 24px 1fr auto;
@@ -953,48 +978,39 @@ body::before {
   padding-top: 14px;
   text-align: right;
 }
-.av-row-main { display: flex; flex-direction: column; gap: var(--space-1); min-width: 0; cursor: pointer; }
-.av-row-top {
+.av-row-main {
   display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: var(--space-2);
-  flex-wrap: wrap;
+  min-width: 0;
+  cursor: pointer;
+}
+.av-row-grid {
+  display: grid;
+  grid-template-columns: minmax(72px, 0.85fr) minmax(72px, 0.85fr) minmax(0, 1.2fr) max-content max-content;
+  gap: var(--space-2);
+  align-items: start;
   min-width: 0;
 }
-.av-owner-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 11px;
-  font-weight: 700;
-  padding: 2px 8px;
-  border-radius: var(--radius-full);
-  white-space: nowrap;
-  flex-shrink: 0;
-  letter-spacing: 0.04em;
-}
-.av-action-name {
-  font-size: var(--font-size-base);
-  font-weight: 600;
+.av-cell {
+  font-size: var(--font-size-sm);
   color: var(--text);
-  min-width: 0;
-  white-space: normal;
-  overflow-wrap: anywhere;
   line-height: 1.4;
-  flex: 1 1 auto;
+  min-width: 0;
+  word-break: break-word;
+  padding-top: var(--space-1);
+}
+.av-cell-summary {
+  font-weight: 600;
+}
+.av-cell--muted {
+  color: var(--muted);
+  font-size: var(--font-size-xs);
 }
 .av-trigger {
   font-size: var(--font-size-xs);
   color: var(--muted);
   line-height: 1.4;
-}
-.av-state-row {
-  display: grid;
-  grid-template-columns: minmax(112px, auto) minmax(96px, auto);
-  gap: var(--space-2);
-  align-items: center;
-  margin-left: 0;
-  flex-shrink: 0;
 }
 .av-status-col,
 .av-risk-col {
@@ -1009,6 +1025,9 @@ body::before {
   letter-spacing: 0.04em;
   text-transform: uppercase;
   white-space: nowrap;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 112px;
 }
 .av-status-col {
   border: 1px solid var(--line);
@@ -1019,6 +1038,7 @@ body::before {
 .av-status-col--needs-review { color: var(--warning); border-color: rgba(210,153,34,0.28); background: var(--warning-soft); }
 .av-status-col--queued { color: var(--muted); border-color: var(--line); background: rgba(255,255,255,0.02); }
 .av-status-col--paused { color: var(--muted); border-color: var(--line); background: rgba(255,255,255,0.02); }
+.av-status-col--blocked { color: var(--error); border-color: rgba(248,81,73,0.28); background: var(--error-soft); }
 .av-status-col--done { color: var(--good); border-color: rgba(74,222,128,0.28); background: var(--good-soft); }
 .av-risk-col {
   border: 1px solid var(--line);
@@ -1531,15 +1551,39 @@ textarea.av-field { resize: vertical; min-height: 72px; line-height: 1.45; }
 .db-tier--post   { color: var(--muted);   background: rgba(93,120,112,0.12); }
 .db-tier--static { color: var(--muted);   background: rgba(93,120,112,0.10); }
 
-/* ─── PRIORITY LIST ──────────────────────────────── */
+/* ─── PRIORITY LIST (Issues & Priorities tables) ──────────────────────────────── */
 .db-priority-list {
   display: flex;
   flex-direction: column;
   gap: 0;
 }
-.db-priority-row {
+.db-priority-header {
   display: grid;
   align-items: center;
+  column-gap: var(--space-2);
+  padding: var(--space-2) 0 var(--space-1);
+  border-bottom: 1px solid var(--line-strong);
+}
+/* # | Owner | Stakeholders | Summary | Status | Risk */
+.db-priority-header,
+.db-priority-row {
+  grid-template-columns: 28px minmax(72px, 0.75fr) minmax(80px, 0.85fr) minmax(0, 1.35fr) max-content max-content;
+}
+.db-priority-hcell {
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  min-width: 0;
+}
+.db-priority-hcell--rank {
+  text-align: center;
+  font-family: var(--font-mono);
+}
+.db-priority-row {
+  display: grid;
+  align-items: start;
   column-gap: var(--space-2);
   row-gap: var(--space-1);
   padding: var(--space-2) 0;
@@ -1555,44 +1599,51 @@ textarea.av-field { resize: vertical; min-height: 72px; line-height: 1.45; }
   align-items: center;
   min-width: 0;
 }
-.db-priority-row > .db-priority-title,
-.db-priority-row > .db-priority-note {
+.db-priority-row > .db-priority-summary {
   align-items: flex-start;
+  flex-direction: column;
+  gap: var(--space-1);
   white-space: normal;
   word-break: break-word;
   hyphens: auto;
 }
-/* Rank | title (wraps) | pill | risk | note (wraps) */
-.db-priority-list:not(.db-priority-list--orch) .db-priority-row {
-  grid-template-columns: 28px minmax(0, 1fr) max-content max-content minmax(140px, 36%);
-}
-/* Source | rank | title | pill | risk | note — title gets flexible width for laptop screens */
-.db-priority-list--orch .db-priority-row {
-  grid-template-columns: minmax(56px, 76px) 28px minmax(0, 1fr) max-content max-content minmax(132px, 32%);
+.db-priority-row > .db-priority-owner,
+.db-priority-row > .db-priority-stakeholders {
+  align-items: flex-start;
+  white-space: normal;
+  word-break: break-word;
+  font-size: var(--font-size-sm);
+  color: var(--text);
+  line-height: 1.4;
 }
 .db-priority-rank {
   font-family: var(--font-mono);
   font-size: var(--font-size-xs);
   color: var(--muted);
   justify-content: center;
+  padding-top: var(--space-1);
 }
-.db-priority-title {
+.db-priority-summary-main {
   font-size: var(--font-size-sm);
   font-weight: 500;
   color: var(--text);
-  min-width: 0;
   line-height: 1.4;
+  width: 100%;
 }
-.db-priority-note {
+.db-priority-summary-sub {
   font-size: var(--font-size-xs);
   color: var(--muted);
   line-height: 1.35;
-  min-width: 0;
+  width: 100%;
 }
 .db-priority-risk {
   font-family: var(--font-mono);
   font-size: var(--font-size-xs);
   white-space: nowrap;
+  padding-top: var(--space-1);
+}
+.db-priority-row .db-status-pill {
+  margin-top: 2px;
 }
 .db-priority-risk--high { color: var(--error); }
 .db-priority-risk--med  { color: var(--warning); }
@@ -2668,15 +2719,23 @@ h3.os-chart-card-title {
         <div class="db-section">
           <div class="db-section-label">Cross-Agent Priorities</div>
           <p style="color:var(--muted);font-size:var(--font-size-sm);margin:0 0 12px 0;max-width:720px">Synthesized from specialist agent priorities — <span style="font-family:var(--font-mono)">orchestration-status.json</span>. Updated by the orchestrator after reviewing engineering and design agent outputs.</p>
-          <div class="db-priority-list db-priority-list--orch" id="db-orch-priorities">
-            <!-- placeholder row — JS replaces on load (six columns: source, rank, title, pill, risk, note) -->
-            <div class="db-priority-row">
-              <span style="color:var(--muted);font-family:var(--font-mono);font-size:var(--font-size-xs)">—</span>
+          <div class="db-priority-list" id="db-orch-priorities">
+            <!-- placeholder — JS replaces on load (#, Owner, Stakeholders, Summary, Status, Risk) -->
+            <div class="db-priority-header" role="row">
+              <span class="db-priority-hcell db-priority-hcell--rank">#</span>
+              <span class="db-priority-hcell">Owner</span>
+              <span class="db-priority-hcell">Stakeholders</span>
+              <span class="db-priority-hcell">Summary</span>
+              <span class="db-priority-hcell">Status</span>
+              <span class="db-priority-hcell">Risk</span>
+            </div>
+            <div class="db-priority-row" role="row">
               <span class="db-priority-rank">01</span>
-              <span class="db-priority-title">Loading…</span>
+              <span class="db-priority-owner">—</span>
+              <span class="db-priority-stakeholders">—</span>
+              <span class="db-priority-summary"><span class="db-priority-summary-main">Loading…</span></span>
               <span class="db-status-pill db-status-pill--paused">PAUSED</span>
               <span class="db-priority-risk db-priority-risk--low">—</span>
-              <span class="db-priority-note"></span>
             </div>
           </div>
         </div>
@@ -2773,12 +2832,21 @@ h3.os-chart-card-title {
         <div class="db-section">
           <div class="db-section-label">Priorities</div>
           <div class="db-priority-list" id="db-strategy-priorities">
-            <div class="db-priority-row">
+            <div class="db-priority-header" role="row">
+              <span class="db-priority-hcell db-priority-hcell--rank">#</span>
+              <span class="db-priority-hcell">Owner</span>
+              <span class="db-priority-hcell">Stakeholders</span>
+              <span class="db-priority-hcell">Summary</span>
+              <span class="db-priority-hcell">Status</span>
+              <span class="db-priority-hcell">Risk</span>
+            </div>
+            <div class="db-priority-row" role="row">
               <span class="db-priority-rank">01</span>
-              <span class="db-priority-title">Loading…</span>
+              <span class="db-priority-owner">—</span>
+              <span class="db-priority-stakeholders">—</span>
+              <span class="db-priority-summary"><span class="db-priority-summary-main">Loading…</span></span>
               <span class="db-status-pill db-status-pill--paused">PAUSED</span>
               <span class="db-priority-risk db-priority-risk--low">—</span>
-              <span class="db-priority-note"></span>
             </div>
           </div>
         </div>
@@ -2870,12 +2938,21 @@ h3.os-chart-card-title {
         <div class="db-section">
           <div class="db-section-label">Priorities</div>
           <div class="db-priority-list" id="db-dev-priorities">
-            <div class="db-priority-row">
+            <div class="db-priority-header" role="row">
+              <span class="db-priority-hcell db-priority-hcell--rank">#</span>
+              <span class="db-priority-hcell">Owner</span>
+              <span class="db-priority-hcell">Stakeholders</span>
+              <span class="db-priority-hcell">Summary</span>
+              <span class="db-priority-hcell">Status</span>
+              <span class="db-priority-hcell">Risk</span>
+            </div>
+            <div class="db-priority-row" role="row">
               <span class="db-priority-rank">01</span>
-              <span class="db-priority-title">Loading…</span>
+              <span class="db-priority-owner">—</span>
+              <span class="db-priority-stakeholders">—</span>
+              <span class="db-priority-summary"><span class="db-priority-summary-main">Loading…</span></span>
               <span class="db-status-pill db-status-pill--paused">PAUSED</span>
               <span class="db-priority-risk db-priority-risk--low">—</span>
-              <span class="db-priority-note"></span>
             </div>
           </div>
         </div>
@@ -2987,12 +3064,21 @@ h3.os-chart-card-title {
         <div class="db-section">
           <div class="db-section-label">Priorities</div>
           <div class="db-priority-list" id="db-anim-priorities">
-            <div class="db-priority-row">
+            <div class="db-priority-header" role="row">
+              <span class="db-priority-hcell db-priority-hcell--rank">#</span>
+              <span class="db-priority-hcell">Owner</span>
+              <span class="db-priority-hcell">Stakeholders</span>
+              <span class="db-priority-hcell">Summary</span>
+              <span class="db-priority-hcell">Status</span>
+              <span class="db-priority-hcell">Risk</span>
+            </div>
+            <div class="db-priority-row" role="row">
               <span class="db-priority-rank">01</span>
-              <span class="db-priority-title">Loading…</span>
+              <span class="db-priority-owner">—</span>
+              <span class="db-priority-stakeholders">—</span>
+              <span class="db-priority-summary"><span class="db-priority-summary-main">Loading…</span></span>
               <span class="db-status-pill db-status-pill--paused">PAUSED</span>
               <span class="db-priority-risk db-priority-risk--low">—</span>
-              <span class="db-priority-note"></span>
             </div>
           </div>
         </div>
@@ -3104,12 +3190,21 @@ h3.os-chart-card-title {
         <div class="db-section">
           <div class="db-section-label">Priorities</div>
           <div class="db-priority-list" id="db-ld-priorities">
-            <div class="db-priority-row">
+            <div class="db-priority-header" role="row">
+              <span class="db-priority-hcell db-priority-hcell--rank">#</span>
+              <span class="db-priority-hcell">Owner</span>
+              <span class="db-priority-hcell">Stakeholders</span>
+              <span class="db-priority-hcell">Summary</span>
+              <span class="db-priority-hcell">Status</span>
+              <span class="db-priority-hcell">Risk</span>
+            </div>
+            <div class="db-priority-row" role="row">
               <span class="db-priority-rank">01</span>
-              <span class="db-priority-title">Loading…</span>
+              <span class="db-priority-owner">—</span>
+              <span class="db-priority-stakeholders">—</span>
+              <span class="db-priority-summary"><span class="db-priority-summary-main">Loading…</span></span>
               <span class="db-status-pill db-status-pill--paused">PAUSED</span>
               <span class="db-priority-risk db-priority-risk--low">—</span>
-              <span class="db-priority-note"></span>
             </div>
           </div>
         </div>
@@ -3235,12 +3330,21 @@ h3.os-chart-card-title {
         <div class="db-section">
           <div class="db-section-label">Priorities</div>
           <div class="db-priority-list" id="db-qa-priorities">
-            <div class="db-priority-row">
+            <div class="db-priority-header" role="row">
+              <span class="db-priority-hcell db-priority-hcell--rank">#</span>
+              <span class="db-priority-hcell">Owner</span>
+              <span class="db-priority-hcell">Stakeholders</span>
+              <span class="db-priority-hcell">Summary</span>
+              <span class="db-priority-hcell">Status</span>
+              <span class="db-priority-hcell">Risk</span>
+            </div>
+            <div class="db-priority-row" role="row">
               <span class="db-priority-rank">01</span>
-              <span class="db-priority-title">Loading…</span>
+              <span class="db-priority-owner">—</span>
+              <span class="db-priority-stakeholders">—</span>
+              <span class="db-priority-summary"><span class="db-priority-summary-main">Loading…</span></span>
               <span class="db-status-pill db-status-pill--paused">PAUSED</span>
               <span class="db-priority-risk db-priority-risk--low">—</span>
-              <span class="db-priority-note"></span>
             </div>
           </div>
         </div>
@@ -3533,12 +3637,21 @@ h3.os-chart-card-title {
         <div class="db-section">
           <div class="db-section-label">Priorities</div>
           <div class="db-priority-list" id="db-analytics-priorities">
-            <div class="db-priority-row">
+            <div class="db-priority-header" role="row">
+              <span class="db-priority-hcell db-priority-hcell--rank">#</span>
+              <span class="db-priority-hcell">Owner</span>
+              <span class="db-priority-hcell">Stakeholders</span>
+              <span class="db-priority-hcell">Summary</span>
+              <span class="db-priority-hcell">Status</span>
+              <span class="db-priority-hcell">Risk</span>
+            </div>
+            <div class="db-priority-row" role="row">
               <span class="db-priority-rank">01</span>
-              <span class="db-priority-title">Loading…</span>
+              <span class="db-priority-owner">—</span>
+              <span class="db-priority-stakeholders">—</span>
+              <span class="db-priority-summary"><span class="db-priority-summary-main">Loading…</span></span>
               <span class="db-status-pill db-status-pill--paused">PAUSED</span>
               <span class="db-priority-risk db-priority-risk--low">—</span>
-              <span class="db-priority-note"></span>
             </div>
           </div>
         </div>
@@ -3732,12 +3845,21 @@ h3.os-chart-card-title {
         <div class="db-section">
           <div class="db-section-label">Priorities</div>
           <div class="db-priority-list" id="db-marketing-priorities">
-            <div class="db-priority-row">
+            <div class="db-priority-header" role="row">
+              <span class="db-priority-hcell db-priority-hcell--rank">#</span>
+              <span class="db-priority-hcell">Owner</span>
+              <span class="db-priority-hcell">Stakeholders</span>
+              <span class="db-priority-hcell">Summary</span>
+              <span class="db-priority-hcell">Status</span>
+              <span class="db-priority-hcell">Risk</span>
+            </div>
+            <div class="db-priority-row" role="row">
               <span class="db-priority-rank">01</span>
-              <span class="db-priority-title">Loading…</span>
+              <span class="db-priority-owner">—</span>
+              <span class="db-priority-stakeholders">—</span>
+              <span class="db-priority-summary"><span class="db-priority-summary-main">Loading…</span></span>
               <span class="db-status-pill db-status-pill--paused">PAUSED</span>
               <span class="db-priority-risk db-priority-risk--low">—</span>
-              <span class="db-priority-note"></span>
             </div>
           </div>
         </div>
@@ -3834,12 +3956,21 @@ h3.os-chart-card-title {
         <div class="db-section">
           <div class="db-section-label">Priorities</div>
           <div class="db-priority-list" id="db-design-priorities">
-            <div class="db-priority-row">
+            <div class="db-priority-header" role="row">
+              <span class="db-priority-hcell db-priority-hcell--rank">#</span>
+              <span class="db-priority-hcell">Owner</span>
+              <span class="db-priority-hcell">Stakeholders</span>
+              <span class="db-priority-hcell">Summary</span>
+              <span class="db-priority-hcell">Status</span>
+              <span class="db-priority-hcell">Risk</span>
+            </div>
+            <div class="db-priority-row" role="row">
               <span class="db-priority-rank">01</span>
-              <span class="db-priority-title">Loading…</span>
+              <span class="db-priority-owner">—</span>
+              <span class="db-priority-stakeholders">—</span>
+              <span class="db-priority-summary"><span class="db-priority-summary-main">Loading…</span></span>
               <span class="db-status-pill db-status-pill--paused">PAUSED</span>
               <span class="db-priority-risk db-priority-risk--low">—</span>
-              <span class="db-priority-note"></span>
             </div>
           </div>
         </div>
@@ -4085,6 +4216,9 @@ h3.os-chart-card-title {
             <option value="med">med</option>
             <option value="high">high</option>
           </select>
+          <input class="av-field av-field-wide" id="av-add-owner-text" placeholder="Owner (optional; defaults to agent)">
+          <input class="av-field av-field-wide" id="av-add-stakeholders" placeholder="Stakeholders, comma-separated (optional)">
+          <input class="av-field av-field-wide" id="av-add-summary" placeholder="Summary (optional; defaults to title)">
           <input class="av-field av-field-wide" id="av-add-title" placeholder="Issue title">
           <textarea class="av-field av-field-wide" id="av-add-note" rows="2" placeholder="Detail/context"></textarea>
           <textarea class="av-field av-field-wide" id="av-add-solution" rows="2" placeholder="Proposed solution"></textarea>
@@ -4092,6 +4226,18 @@ h3.os-chart-card-title {
             <button type="button" class="av-btn" id="av-add-cancel">Cancel</button>
             <button type="button" class="av-btn av-btn--accent" id="av-add-save">Add to agent priorities</button>
           </div>
+        </div>
+        <div class="av-table-head" id="av-table-head" aria-hidden="false">
+          <span class="av-th av-th--mute">·</span>
+          <span class="av-th">#</span>
+          <div class="av-table-head-labels">
+            <span class="av-th">Owner</span>
+            <span class="av-th">Stakeholders</span>
+            <span class="av-th">Summary</span>
+            <span class="av-th">Status</span>
+            <span class="av-th">Risk</span>
+          </div>
+          <span class="av-th av-th--mute">·</span>
         </div>
         <div class="av-list" id="av-list">
           <div style="color:var(--muted);font-size:var(--font-size-sm);padding:var(--space-5) 0">Select Issues from the nav to load…</div>
@@ -4840,27 +4986,105 @@ const STATUS_PILL_MAP = {
   'needs-review': { cls: 'db-status-pill--needs-review',  label: 'REVIEW' },
   'done':         { cls: 'db-status-pill--done',          label: 'DONE' },
   'paused':       { cls: 'db-status-pill--paused',        label: 'PAUSED' },
+  'queued':       { cls: 'db-status-pill--paused',        label: 'QUEUED' },
 };
 
-function renderPriorityRows(priorities, container) {
-  container.innerHTML = priorities.map(p => {
-    const rank = String(p.id).padStart(2, '0');
-    const pill = STATUS_PILL_MAP[p.status] ?? { cls: 'db-status-pill--paused', label: (p.status || '').toUpperCase() };
-    const riskCls = p.risk === 'high' ? 'db-priority-risk--high' : p.risk === 'med' ? 'db-priority-risk--med' : 'db-priority-risk--low';
-    const riskCell = p.risk
-      ? '<span class="db-priority-risk ' + riskCls + '">' + escapeHtml(p.risk.toUpperCase()) + ' RISK</span>'
-      : '<span class="db-priority-risk db-priority-risk--low"></span>';
-    const noteCell = p.note
-      ? '<span class="db-priority-note">' + escapeHtml(p.note) + '</span>'
-      : '<span class="db-priority-note"></span>';
-    return '<div class="db-priority-row">'
+/** Tokens in orchestration `source` (e.g. eng+design) → plain stakeholder labels. */
+const ORCH_SOURCE_TOKEN_MAP = {
+  eng: 'Engineering',
+  design: 'Design',
+  ld: 'Level design',
+  qa: 'QA',
+  cyber: 'Cybersecurity',
+  narrative: 'Narrative',
+  marketing: 'Marketing',
+  analytics: 'Analytics',
+  finance: 'Finance',
+  legal: 'Legal',
+  creative: 'Creative',
+  audio: 'Audio',
+  orchestration: 'Orchestration',
+  founder: 'Founder',
+  'game-director': 'Game director',
+  'game-systems': 'Game systems',
+  support: 'Support',
+  strategy: 'Strategy',
+  cybersecurity: 'Cybersecurity',
+};
+
+function humanizeOrchSource(source) {
+  if (source == null || source === '') return '';
+  return String(source).split('+').map(function(part) {
+    var k = part.trim().toLowerCase();
+    if (Object.prototype.hasOwnProperty.call(ORCH_SOURCE_TOKEN_MAP, k)) return ORCH_SOURCE_TOKEN_MAP[k];
+    return part.trim().split(/[-_]/).map(function(w) {
+      return w ? w.charAt(0).toUpperCase() + w.slice(1).toLowerCase() : '';
+    }).filter(Boolean).join(' ');
+  }).join(', ');
+}
+
+function formatStakeholdersField(val) {
+  if (val == null || val === '') return '—';
+  if (Array.isArray(val)) {
+    var joined = val.map(function(x) { return String(x).trim(); }).filter(Boolean).join(', ');
+    return joined || '—';
+  }
+  var t = String(val).trim();
+  return t || '—';
+}
+
+/** Plain label for an agent id — matches Issues view `avLabel` (defined later). */
+function dashboardDefaultOwner(agentId) {
+  if (!agentId) return '—';
+  if (agentId === 'engineering') return 'Development';
+  return String(agentId).split('-').map(function(w) {
+    return w ? w.charAt(0).toUpperCase() + w.slice(1) : '';
+  }).join(' ');
+}
+
+function renderPriorityTableHeaderHtml() {
+  return '<div class="db-priority-header" role="row">'
+    + '<span class="db-priority-hcell db-priority-hcell--rank">#</span>'
+    + '<span class="db-priority-hcell">Owner</span>'
+    + '<span class="db-priority-hcell">Stakeholders</span>'
+    + '<span class="db-priority-hcell">Summary</span>'
+    + '<span class="db-priority-hcell">Status</span>'
+    + '<span class="db-priority-hcell">Risk</span>'
+    + '</div>';
+}
+
+function renderPriorityRows(priorities, container, opts) {
+  opts = opts || {};
+  var defaultOwner = (opts.defaultOwner != null && String(opts.defaultOwner).trim() !== '') ? String(opts.defaultOwner).trim() : '—';
+  var orchMode = !!opts.orchMode;
+  var header = renderPriorityTableHeaderHtml();
+  var body = priorities.map(function(p) {
+    var rank = String(p.id != null ? p.id : '').padStart(2, '0');
+    var pill = STATUS_PILL_MAP[p.status] || { cls: 'db-status-pill--paused', label: (p.status || '').toUpperCase() };
+    var riskCls = p.risk === 'high' ? 'db-priority-risk--high' : p.risk === 'med' ? 'db-priority-risk--med' : 'db-priority-risk--low';
+    var riskUpper = p.risk ? String(p.risk).toUpperCase() : '—';
+    var owner = (p.owner != null && String(p.owner).trim() !== '') ? String(p.owner).trim() : defaultOwner;
+    var stakeholders = formatStakeholdersField(p.stakeholders);
+    if (stakeholders === '—' && orchMode && p.source) {
+      var inferred = humanizeOrchSource(p.source);
+      if (inferred) stakeholders = inferred;
+    }
+    var summary = (p.summary != null && String(p.summary).trim() !== '')
+      ? String(p.summary).trim()
+      : (p.title || '—');
+    var noteSub = (p.note && String(p.note).trim() !== '')
+      ? '<span class="db-priority-summary-sub">' + escapeHtml(p.note) + '</span>'
+      : '';
+    return '<div class="db-priority-row" role="row">'
       + '<span class="db-priority-rank">' + escapeHtml(rank) + '</span>'
-      + '<span class="db-priority-title">' + escapeHtml(p.title) + '</span>'
+      + '<span class="db-priority-owner">' + escapeHtml(owner) + '</span>'
+      + '<span class="db-priority-stakeholders">' + escapeHtml(stakeholders) + '</span>'
+      + '<span class="db-priority-summary"><span class="db-priority-summary-main">' + escapeHtml(summary) + '</span>' + noteSub + '</span>'
       + '<span class="db-status-pill ' + pill.cls + '">' + pill.label + '</span>'
-      + riskCell
-      + noteCell
+      + '<span class="db-priority-risk ' + riskCls + '">' + escapeHtml(riskUpper) + '</span>'
       + '</div>';
   }).join('');
+  container.innerHTML = header + body;
 }
 
 function renderRisksP0(risks, container) {
@@ -4923,7 +5147,9 @@ async function loadAgentDashboardStatus(statusFile, idPrefix, agentId) {
     const risksP0El = document.getElementById('db-' + idPrefix + '-risks-p0');
     const founderEl = document.getElementById('db-' + idPrefix + '-founder-decisions');
     const schemaEl = document.getElementById('db-' + idPrefix + '-schema-version');
-    if (prioritiesEl && s.priorities) renderPriorityRows(s.priorities, prioritiesEl);
+    if (prioritiesEl && s.priorities) {
+      renderPriorityRows(s.priorities, prioritiesEl, agentId ? { defaultOwner: dashboardDefaultOwner(agentId) } : {});
+    }
     if (risksP0El) renderRisksP0(s.risks_p0 ?? [], risksP0El);
     if (founderEl) renderFounderDecisions(s.founder_decisions ?? [], founderEl);
     if (schemaEl && s.schema_version) schemaEl.textContent = s.schema_version;
@@ -4956,7 +5182,7 @@ async function loadDesignStatus() {
     const risksP0El = document.getElementById('db-design-risks-p0');
     const founderEl = document.getElementById('db-design-founder-decisions');
 
-    if (prioritiesEl && s.priorities) renderPriorityRows(s.priorities, prioritiesEl);
+    if (prioritiesEl && s.priorities) renderPriorityRows(s.priorities, prioritiesEl, { defaultOwner: 'Design' });
     if (risksP0El) renderRisksP0(s.risks_p0 ?? [], risksP0El);
     if (founderEl) renderFounderDecisions(s.founder_decisions ?? [], founderEl);
     const actionsEl = document.getElementById('db-design-actions');
@@ -4990,7 +5216,7 @@ async function loadMarketingStatus() {
     const founderEl = document.getElementById('db-marketing-founder-decisions');
 
     if (prioritiesEl && Array.isArray(s.priorities) && s.priorities.length > 0) {
-      renderPriorityRows(s.priorities, prioritiesEl);
+      renderPriorityRows(s.priorities, prioritiesEl, { defaultOwner: 'Marketing' });
     }
     if (risksP0El) renderRisksP0(s.risks_p0 ?? [], risksP0El);
     if (founderEl) renderFounderDecisions(s.founder_decisions ?? [], founderEl);
@@ -5039,7 +5265,7 @@ async function loadQaStatus() {
 
     // Priorities
     const prioritiesEl = document.getElementById('db-qa-priorities');
-    if (prioritiesEl && s.priorities) renderPriorityRows(s.priorities, prioritiesEl);
+    if (prioritiesEl && s.priorities) renderPriorityRows(s.priorities, prioritiesEl, { defaultOwner: 'QA' });
     const actionsEl = document.getElementById('db-qa-actions');
     if (actionsEl) renderActions(s.actions ?? [], actionsEl);
 
@@ -5135,7 +5361,7 @@ async function loadStrategyStatus() {
     const risksP0El    = document.getElementById('db-strategy-risks-p0');
     const founderEl    = document.getElementById('db-strategy-founder-decisions');
 
-    if (prioritiesEl && s.priorities) renderPriorityRows(s.priorities, prioritiesEl);
+    if (prioritiesEl && s.priorities) renderPriorityRows(s.priorities, prioritiesEl, { defaultOwner: 'Strategy' });
     if (risksP0El) renderRisksP0(s.risks_p0 ?? [], risksP0El);
     if (founderEl) renderFounderDecisions(s.founder_decisions ?? [], founderEl);
     const actionsEl = document.getElementById('db-strategy-actions');
@@ -5215,7 +5441,7 @@ function applyAnalyticsStatusPayload(s) {
   if (prioritiesEl) {
     const list = Array.isArray(s.priorities) ? s.priorities : [];
     if (list.length > 0) {
-      renderPriorityRows(list, prioritiesEl);
+      renderPriorityRows(list, prioritiesEl, { defaultOwner: 'Analytics' });
     } else {
       renderAnalyticsPrioritiesEmpty(prioritiesEl);
     }
@@ -5284,38 +5510,6 @@ function syncAnalyticsKpis(d) {
   }
 }
 
-const SOURCE_BADGE_MAP = {
-  'eng':        { label: 'ENG',        color: 'var(--warning)' },
-  'design':     { label: 'DESIGN',     color: 'var(--c-finance)' },
-  'eng+design': { label: 'ENG+DESIGN', color: 'var(--c-legal)' },
-};
-
-function renderOrchPriorityRows(priorities, container) {
-  container.innerHTML = priorities.map(p => {
-    const rank = String(p.id).padStart(2, '0');
-    const pill = STATUS_PILL_MAP[p.status] ?? { cls: 'db-status-pill--paused', label: (p.status || '').toUpperCase() };
-    const riskCls = p.risk === 'high' ? 'db-priority-risk--high' : p.risk === 'med' ? 'db-priority-risk--med' : 'db-priority-risk--low';
-    const src = p.source ? SOURCE_BADGE_MAP[p.source] ?? { label: p.source.toUpperCase(), color: 'var(--muted)' } : null;
-    const srcBadge = src
-      ? '<span style="font-family:var(--font-mono);font-size:var(--font-size-xs);font-weight:600;letter-spacing:0.06em;color:' + src.color + ';opacity:0.85;min-width:68px;flex-shrink:0;">' + escapeHtml(src.label) + '</span>'
-      : '<span style="min-width:68px"></span>';
-    const riskCell = p.risk
-      ? '<span class="db-priority-risk ' + riskCls + '">' + escapeHtml(p.risk.toUpperCase()) + ' RISK</span>'
-      : '<span class="db-priority-risk db-priority-risk--low"></span>';
-    const noteCell = p.note
-      ? '<span class="db-priority-note">' + escapeHtml(p.note) + '</span>'
-      : '<span class="db-priority-note"></span>';
-    return '<div class="db-priority-row">'
-      + srcBadge
-      + '<span class="db-priority-rank">' + escapeHtml(rank) + '</span>'
-      + '<span class="db-priority-title">' + escapeHtml(p.title) + '</span>'
-      + '<span class="db-status-pill ' + pill.cls + '">' + pill.label + '</span>'
-      + riskCell
-      + noteCell
-      + '</div>';
-  }).join('');
-}
-
 async function loadOrchestrationStatus() {
   try {
     const resp = await fetch('orchestration-status.json');
@@ -5328,7 +5522,9 @@ async function loadOrchestrationStatus() {
     const risksP0El = document.getElementById('db-orch-risks-p0');
     const founderEl = document.getElementById('db-orch-founder-decisions');
 
-    if (prioritiesEl && s.priorities) renderOrchPriorityRows(s.priorities, prioritiesEl);
+    if (prioritiesEl && s.priorities) {
+      renderPriorityRows(s.priorities, prioritiesEl, { orchMode: true, defaultOwner: 'Orchestration' });
+    }
     if (risksP0El) renderRisksP0(s.risks_p0 ?? [], risksP0El);
     if (founderEl) renderFounderDecisions(s.founder_decisions ?? [], founderEl);
     const actionsEl = document.getElementById('db-orch-actions');
@@ -6172,6 +6368,9 @@ function issueChatJsonSafeIssue(action) {
     return {
       id: action.id,
       title: action.title,
+      owner: action.owner,
+      stakeholders: action.stakeholders,
+      summary: action.summary,
       status: action.status,
       risk: action.risk,
       note: action.note,
@@ -6350,7 +6549,7 @@ async function issueChatApplyUpdates() {
     var p = data.priorities.find(function(x) { return Number(x.id) === pid; });
     if (!p || !fields || typeof fields !== 'object') continue;
     Object.keys(fields).forEach(function(k) {
-      if (['title', 'status', 'risk', 'note', 'proposed_solution'].indexOf(k) !== -1) {
+      if (['title', 'status', 'risk', 'note', 'proposed_solution', 'owner', 'stakeholders', 'summary'].indexOf(k) !== -1) {
         p[k] = fields[k];
       }
     });
@@ -6557,7 +6756,8 @@ function avGetFiltered() {
     if (owner && a._agent !== owner) return false;
     if (status && (a.status || '') !== status) return false;
     if (query) {
-      var hay = [a.title, a.note, a.status, a.risk, avLabel(a._agent)].join(' ').toLowerCase();
+      var stake = Array.isArray(a.stakeholders) ? a.stakeholders.join(' ') : (a.stakeholders || '');
+      var hay = [a.title, a.summary, a.owner, stake, a.note, a.status, a.risk, avLabel(a._agent)].join(' ').toLowerCase();
       if (hay.indexOf(query) === -1) return false;
     }
     return true;
@@ -6660,23 +6860,29 @@ function avRenderList(sorted) {
   avInitDrag(listEl, sorted);
 }
 
+/** Map dashboard status slug to Issues row status pill (matches domain priority STATUS_PILL_MAP). */
+function avIssuesStatusMarkup(status) {
+  var s = status || 'queued';
+  var entry = STATUS_PILL_MAP[s];
+  var suffix = entry ? entry.cls.replace(/^db-status-pill--/, '') : 'queued';
+  var cls = 'av-status-col--' + suffix;
+  var label = entry ? entry.label : String(s).toUpperCase();
+  return { cls: cls, label: label };
+}
+
 function avRowHtml(action, idx, total) {
-  var meta = AGENT_META[action._agent] || { icon: '•', color: '#5d7870' };
-  var label = avLabel(action._agent);
-  var badgeStyle = 'background:' + meta.color + '22;color:' + meta.color + ';border:1px solid ' + meta.color + '33';
-  var status = action.status || 'queued';
+  var agentLabel = avLabel(action._agent);
+  var ownerCell = (action.owner != null && String(action.owner).trim() !== '')
+    ? String(action.owner).trim()
+    : agentLabel;
+  var stakeholdersCell = formatStakeholdersField(action.stakeholders);
+  var summaryText = (action.summary != null && String(action.summary).trim() !== '')
+    ? String(action.summary).trim()
+    : (action.title || '—');
+  var stMk = avIssuesStatusMarkup(action.status || 'queued');
   var risk = action.risk || 'low';
   var riskCls = risk === 'high' ? 'av-risk-col--high' : risk === 'med' ? 'av-risk-col--med' : 'av-risk-col--low';
-  var statusCls = status === 'in-progress'
-    ? 'av-status-col--in-progress'
-    : status === 'needs-review'
-      ? 'av-status-col--needs-review'
-      : status === 'done'
-        ? 'av-status-col--done'
-        : status === 'paused'
-          ? 'av-status-col--paused'
-          : 'av-status-col--queued';
-  var lineItem = action.title || '';
+  var riskLabel = String(risk).toUpperCase();
   var proposedSolution = action.proposed_solution || '';
   var noteHtml = action.note
     ? '<div><div class="av-detail-label">Detail</div><div class="av-detail-text">' + escapeHtml(action.note) + '</div></div>'
@@ -6690,7 +6896,7 @@ function avRowHtml(action, idx, total) {
   var discussHtml = '<div class="av-discuss-row">'
     + '<button type="button" class="av-btn av-btn--accent av-discuss-btn">Start discussion</button>'
     + '</div>';
-  var metaHtml = '<div><div class="av-detail-label">Metadata</div><div class="av-detail-mono">id: ' + escapeHtml(String(action._priorityId ?? '')) + ' · owner: ' + escapeHtml(action._agent) + '</div></div>';
+  var metaHtml = '<div><div class="av-detail-label">Metadata</div><div class="av-detail-mono">id: ' + escapeHtml(String(action._priorityId ?? '')) + ' · agent file: ' + escapeHtml(action._agent) + '</div></div>';
   var upDisabled = idx === 0 ? ' disabled' : '';
   var downDisabled = idx === total - 1 ? ' disabled' : '';
   var num = String(idx + 1).padStart(2, '0');
@@ -6699,14 +6905,12 @@ function avRowHtml(action, idx, total) {
     + '<div class="av-drag-handle" draggable="true" title="Drag to reorder">⠿</div>'
     + '<div class="av-sort-num">' + num + '</div>'
     + '<div class="av-row-main" role="button" tabindex="0" aria-expanded="false">'
-    +   '<div class="av-row-top">'
-    +     '<span class="av-owner-badge" style="' + badgeStyle + '">' + escapeHtml(meta.icon || '') + ' ' + escapeHtml(label) + '</span>'
-    +     '<span class="av-action-name">' + escapeHtml(lineItem || '—') + '</span>'
-    +     '<div class="av-state-row">'
-    +       '<span class="av-status-col ' + statusCls + '">Status: ' + escapeHtml(status) + '</span>'
-    +       '<span class="av-risk-col ' + riskCls + '">Risk: ' + escapeHtml(risk) + '</span>'
-    +     '</div>'
-    +     '<button class="av-btn av-btn--accent av-edit-btn">Edit</button>'
+    +   '<div class="av-row-grid">'
+    +     '<span class="av-cell av-cell-owner">' + escapeHtml(ownerCell) + '</span>'
+    +     '<span class="av-cell av-cell-stakeholders">' + escapeHtml(stakeholdersCell) + '</span>'
+    +     '<span class="av-cell av-cell-summary">' + escapeHtml(summaryText) + '</span>'
+    +     '<span class="av-status-col ' + stMk.cls + '">' + escapeHtml(stMk.label) + '</span>'
+    +     '<span class="av-risk-col ' + riskCls + '">' + escapeHtml(riskLabel) + '</span>'
     +   '</div>'
     +   '<div class="av-detail">'
     +     noteHtml + solutionHtml + metaHtml + runActionHtml + discussHtml
@@ -6715,6 +6919,7 @@ function avRowHtml(action, idx, total) {
     + '</div>'
     + '<div class="av-row-btns">'
     +   '<div class="av-btn-row">'
+    +     '<button type="button" class="av-btn av-btn--accent av-edit-btn">Edit</button>'
     +     '<button class="av-btn av-btn--icon av-up-btn" title="Move up"' + upDisabled + '>↑</button>'
     +     '<button class="av-btn av-btn--icon av-down-btn" title="Move down"' + downDisabled + '>↓</button>'
     +     '<button class="av-btn av-expand-btn" title="Expand">▼</button>'
@@ -6725,7 +6930,7 @@ function avRowHtml(action, idx, total) {
 
 function avToggleEdit(row, action) {
   var editArea = row.querySelector('.av-edit-area');
-  var detailEl = row.querySelector('.av-detail > div:not(.av-edit-area)');
+  var detailBlocks = row.querySelectorAll('.av-detail > div:not(.av-edit-area)');
   var editBtn  = row.querySelector('.av-edit-btn');
   var expandBtn = row.querySelector('.av-expand-btn');
 
@@ -6733,7 +6938,7 @@ function avToggleEdit(row, action) {
   if (isEditing) {
     editArea.style.display = 'none';
     editArea.innerHTML = '';
-    if (detailEl) detailEl.style.display = '';
+    detailBlocks.forEach(function(el) { el.style.display = ''; });
     editBtn.textContent = 'Edit';
     editBtn.classList.add('av-btn--accent');
     return;
@@ -6742,14 +6947,20 @@ function avToggleEdit(row, action) {
   // Expand row first
   row.classList.add('av-row--expanded');
   expandBtn.textContent = '▲';
-  if (detailEl) detailEl.style.display = 'none';
+  detailBlocks.forEach(function(el) { el.style.display = 'none'; });
   editBtn.textContent = 'Cancel';
   editBtn.classList.remove('av-btn--accent');
   editArea.style.display = 'flex';
   editArea.style.flexDirection = 'column';
   editArea.style.gap = 'var(--space-3)';
 
-  editArea.innerHTML = '<div><div class="av-detail-label">Issue</div>'
+  editArea.innerHTML = '<div><div class="av-detail-label">Owner (accountable)</div>'
+    + '<input class="av-field" data-field="owner" value="' + escapeHtml(action.owner || '') + '" placeholder="e.g. Design / Cross-team"></div>'
+    + '<div><div class="av-detail-label">Stakeholders</div>'
+    + '<input class="av-field" data-field="stakeholders" value="' + escapeHtml(Array.isArray(action.stakeholders) ? action.stakeholders.join(', ') : (action.stakeholders || '')) + '" placeholder="Comma-separated"></div>'
+    + '<div><div class="av-detail-label">Summary</div>'
+    + '<input class="av-field" data-field="summary" value="' + escapeHtml(action.summary || '') + '" placeholder="Short summary (falls back to title if empty)"></div>'
+    + '<div><div class="av-detail-label">Title (saved to data file)</div>'
     + '<input class="av-field" data-field="title" value="' + escapeHtml(action.title || '') + '" placeholder="One-line issue title"></div>'
     + '<div><div class="av-detail-label">ID</div>'
     + '<input class="av-field" data-field="id" value="' + escapeHtml(action.id || '') + '" placeholder="Numeric ID"></div>'
@@ -6776,11 +6987,11 @@ function avToggleEdit(row, action) {
     + '<span class="av-save-hint"></span></div>';
 
   editArea.querySelector('.av-btn--save').addEventListener('click', function() {
-    avCommitEdit(row, action, editArea, detailEl, editBtn);
+    avCommitEdit(row, action, editArea, editBtn);
   });
 }
 
-async function avCommitEdit(row, action, editArea, detailEl, editBtn) {
+async function avCommitEdit(row, action, editArea, editBtn) {
   var saveBtn = editArea.querySelector('.av-btn--save');
   var hint = editArea.querySelector('.av-save-hint');
   saveBtn.disabled = true;
@@ -6793,6 +7004,12 @@ async function avCommitEdit(row, action, editArea, detailEl, editBtn) {
   if (fields.id != null) {
     var parsedId = Number(fields.id);
     fields.id = Number.isFinite(parsedId) ? parsedId : action.id;
+  }
+  if (fields.stakeholders != null) {
+    if (fields.stakeholders.indexOf(',') !== -1) {
+      var parts = fields.stakeholders.split(',').map(function(s) { return s.trim(); }).filter(Boolean);
+      fields.stakeholders = parts.length ? parts : null;
+    }
   }
 
   // Update in-memory
@@ -6823,9 +7040,9 @@ async function avCommitEdit(row, action, editArea, detailEl, editBtn) {
     editArea.innerHTML = '';
     editBtn.textContent = 'Edit';
     editBtn.classList.add('av-btn--accent');
-    if (detailEl) {
-      detailEl.style.display = '';
-    }
+    row.querySelectorAll('.av-detail > div:not(.av-edit-area)').forEach(function(el) {
+      el.style.display = '';
+    });
     // Re-render list so status/risk columns reflect updated values
     avApplyFilters();
     avShowToast('Saved · ' + action._file, true);
@@ -6944,6 +7161,9 @@ async function avAddActionItem() {
   var risk = (document.getElementById('av-add-risk') || {}).value || 'low';
   var note = (document.getElementById('av-add-note') || {}).value || '';
   var solution = (document.getElementById('av-add-solution') || {}).value || '';
+  var ownerHuman = ((document.getElementById('av-add-owner-text') || {}).value || '').trim();
+  var stakeholdersRaw = ((document.getElementById('av-add-stakeholders') || {}).value || '').trim();
+  var summaryExtra = ((document.getElementById('av-add-summary') || {}).value || '').trim();
   if (!owner) return avShowToast('Pick an owner agent first', false);
   if (!title.trim()) return avShowToast('Add an issue title', false);
 
@@ -6956,14 +7176,22 @@ async function avAddActionItem() {
     var n = Number(p && p.id);
     return Number.isFinite(n) ? Math.max(m, n) : m;
   }, 0);
-  data.priorities.push({
+  var entry = {
     id: maxId + 1,
     title: title.trim(),
     status: status,
     risk: risk,
     note: note.trim() || '',
     proposed_solution: solution.trim() || ''
-  });
+  };
+  if (ownerHuman) entry.owner = ownerHuman;
+  if (stakeholdersRaw) {
+    var stParts = stakeholdersRaw.split(',').map(function(s) { return s.trim(); }).filter(Boolean);
+    if (stParts.length === 1) entry.stakeholders = stParts[0];
+    else if (stParts.length > 1) entry.stakeholders = stParts;
+  }
+  if (summaryExtra) entry.summary = summaryExtra;
+  data.priorities.push(entry);
   avOrchestratorSortPriorities(data.priorities);
   data.updated = new Date().toISOString().slice(0, 10);
   var ok = await avPersist(file);
@@ -6974,6 +7202,9 @@ async function avAddActionItem() {
   avApplyFilters();
 
   document.getElementById('av-add-title').value = '';
+  document.getElementById('av-add-owner-text').value = '';
+  document.getElementById('av-add-stakeholders').value = '';
+  document.getElementById('av-add-summary').value = '';
   document.getElementById('av-add-note').value = '';
   document.getElementById('av-add-solution').value = '';
   document.getElementById('av-add-panel').classList.remove('visible');
