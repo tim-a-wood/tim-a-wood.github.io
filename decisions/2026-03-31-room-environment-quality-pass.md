@@ -100,6 +100,11 @@ This log records decisions for the room environment and bespoke asset quality pa
 - **Typical causes:** `missing_template` / `missing_template_image`; Gemini `generation_failed` (API/key/network); post-build **validation** (e.g. `midground_center_clutter`, `center_lane_too_hot`, dimension mismatch). Scenic slots (background, midground) fail validation more often than structural strips.
 - **UI:** Room wizard Environment output now surfaces `validation_errors` in the summary when the bespoke manifest status is `failed`.
 
+### 14. Biome template kit may be refined with Gemini from the Environment page
+- Status: Accepted
+- Why: Default biome PNGs are curated copies or Pillow seeds; authors need a guided step to align the **shared** `art_direction_biomes/<id>/` library with locked direction without hand-painting.
+- Consequence: `generate_biome_pack_visuals` POST targets the active `biome_packs[0].template_library` (same five layers as `V1_BESPOKE_COMPONENTS`). Requires `confirm_overwrite: true`. Successful layers set `biome_visual_generated_at` and `source_template_kind: gemini_biome`. `_refresh_biome_pack_templates` **skips** `_install_component_template_asset` when `biome_visual_generated_at` is set so `get_project_art_direction` no longer overwrites Gemini outputs with curated/fallback seeds. API: `POST /api/projects/{id}/art-direction/biome/generate-visuals`. UI: Room wizard Environment → Setup → “Biome template kit”; long jobs switch to Results tab for the shared waitbar.
+
 ## Open Questions
 
 - Should `ceiling`, `backwall_panel`, or `wall_face` become first-class component schema types?

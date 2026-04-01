@@ -1264,3 +1264,107 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+/* ── Environment phase: tabbed layout + tighter vertical rhythm ── */
+#roomWizardPanelEnvironment .phase-header {
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+}
+
+#roomWizardPanelEnvironment .stage-card {
+  margin-bottom: 12px;
+  gap: 12px;
+}
+
+.room-wizard-dock .rw-env-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  min-height: 0;
+}
+
+.room-wizard-dock .rw-env-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding: 8px 0 12px;
+  margin: 0;
+  background: linear-gradient(180deg, rgba(5, 7, 9, 0.98), rgba(5, 7, 9, 0.94));
+  border-bottom: 1px solid var(--line);
+}
+
+.room-wizard-dock .rw-env-tab {
+  min-height: 44px;
+  padding: 8px 12px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.045);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 200ms ease, border-color 200ms ease, color 200ms ease, transform 200ms ease;
+}
+
+.room-wizard-dock .rw-env-tab:hover {
+  border-color: var(--line-strong);
+  background: rgba(255, 255, 255, 0.08);
+  transform: translateY(-1px);
+}
+
+.room-wizard-dock .rw-env-tab:focus-visible {
+  outline: 2px solid rgba(0, 232, 200, 0.35);
+  outline-offset: 2px;
+}
+
+.room-wizard-dock .rw-env-tab--active {
+  border-color: var(--accent);
+  background: rgba(0, 232, 200, 0.12);
+  color: var(--text);
+  box-shadow: inset 0 0 0 1px rgba(0, 232, 200, 0.08);
+}
+
+.room-wizard-dock .rw-env-panels {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding-top: 8px;
+}
+
+.room-wizard-dock .rw-env-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  min-height: 0;
+}
+
+.room-wizard-dock .rw-env-components-stage {
+  padding: 14px;
+}
+
+.room-wizard-dock .rw-env-results-stage .rw-copilot-preview-box {
+  margin-top: 0;
+}
+
+.room-wizard-dock .rw-biome-visual-card {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.room-wizard-dock .rw-biome-visual-head {
+  gap: 4px;
+}
+
+.room-wizard-dock .rw-biome-visual-head h5 {
+  margin: 0;
+  font-size: var(--font-size-base);
+  font-weight: 700;
+  color: var(--text);
+}

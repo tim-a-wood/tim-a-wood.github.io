@@ -1728,6 +1728,11 @@ def approve_project_room_environment_preview(project_id: str, room_id: str, payl
     return room_environment_system.approve_room_environment_preview(project_id, room_id, payload)
 
 
+def generate_project_biome_pack_visuals(project_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+    _sync_room_environment_system_config()
+    return room_environment_system.generate_biome_pack_visuals(project_id, payload)
+
+
 def save_project(project: Dict[str, Any]) -> None:
     _sync_project_io_config()
     project_io.save_project(project)
@@ -7935,6 +7940,10 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
             art_direction_generate_match = re.fullmatch(r"/api/projects/([^/]+)/art-direction/generate-concepts", path)
             if art_direction_generate_match:
                 return self._send_json(generate_project_art_direction_concepts(art_direction_generate_match.group(1), read_body(self)))
+
+            art_direction_biome_visuals_match = re.fullmatch(r"/api/projects/([^/]+)/art-direction/biome/generate-visuals", path)
+            if art_direction_biome_visuals_match:
+                return self._send_json(generate_project_biome_pack_visuals(art_direction_biome_visuals_match.group(1), read_body(self)))
 
             room_adapt_match = re.fullmatch(r"/api/projects/([^/]+)/rooms/([^/]+)/environment/adapt-template", path)
             if room_adapt_match:

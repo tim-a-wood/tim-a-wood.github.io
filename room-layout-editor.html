@@ -1942,96 +1942,129 @@
                 </div>
                 <button type="button" class="phase-back-btn" id="roomWizardBackToLayoutFromEnv">← Layout</button>
               </div>
-              <div class="stage-card" id="roomWizardRoomTemplateCard">
-                <div class="stage-card-head">
-                  <h4>Room starting template</h4>
-                  <p class="small-note">Start from a room archetype, then adapt it to the locked project direction and this room’s layout.</p>
+              <div class="rw-env-shell" id="roomWizardEnvShell">
+                <div class="rw-env-tabs" role="tablist" aria-label="Environment workflow">
+                  <button type="button" class="rw-env-tab" role="tab" id="rwEnvTabSetup" aria-controls="rwEnvPanelSetup" aria-selected="true" tabindex="0">Setup</button>
+                  <button type="button" class="rw-env-tab" role="tab" id="rwEnvTabComponents" aria-controls="rwEnvPanelComponents" aria-selected="false" tabindex="-1">Components</button>
+                  <button type="button" class="rw-env-tab" role="tab" id="rwEnvTabResults" aria-controls="rwEnvPanelResults" aria-selected="false" tabindex="-1">Results</button>
                 </div>
-                <div id="roomWizardArchetypeGrid" class="rw-template-grid"></div>
-              </div>
-              <div class="stage-card" id="roomWizardCopilotCard">
-                <div class="stage-card-head">
-                  <h4>Environment builder</h4>
-                  <p class="small-note">
-                    Start from a template or describe the room in plain language. The builder can spin that into component prompts for the room shell, then build a Phaser-facing environment schema, previews, and production assets.
-                  </p>
-                </div>
-                <p class="hint" id="roomWizardCopilotServerHint">
-                  Checking local server…
-                </p>
-                <label>
-                  <span class="field-label">Room environment draft</span>
-                  <textarea
-                    id="roomWizardCopilotPrompt"
-                    rows="4"
-                    placeholder="e.g. flooded crypt, dripping water, faint green glow from below"
-                    spellcheck="true"
-                  ></textarea>
-                </label>
-                <div class="rw-copilot-actions">
-                  <button type="button" class="btn-secondary" id="roomWizardAdaptTemplate">Rewrite Draft</button>
-                  <button type="button" class="btn-secondary" id="roomWizardGenerateComponentPrompts">Generate Component Prompts</button>
-                  <button type="button" class="btn-secondary" id="roomWizardCopilotGenerate">Build Environment</button>
-                  <span id="roomWizardCopilotStatus" class="small-note" aria-live="polite"></span>
-                </div>
-                <section class="rw-component-card" aria-labelledby="roomWizardComponentPromptsTitle">
-                  <div class="stage-card-head">
-                    <h5 id="roomWizardComponentPromptsTitle">Room components</h5>
-                    <p class="small-note">Edit the visible traits for each major room component. These prompts drive the Phaser environment schema.</p>
+                <div class="rw-env-panels">
+                  <div id="rwEnvPanelSetup" class="rw-env-panel" role="tabpanel" aria-labelledby="rwEnvTabSetup">
+                    <div class="stage-card" id="roomWizardRoomTemplateCard">
+                      <div class="stage-card-head">
+                        <h4>Room starting template</h4>
+                        <p class="small-note">Start from a room archetype, then adapt it to the locked project direction and this room’s layout.</p>
+                      </div>
+                      <div id="roomWizardArchetypeGrid" class="rw-template-grid"></div>
+                    </div>
+                    <div class="stage-card" id="roomWizardCopilotCard">
+                      <div class="stage-card-head">
+                        <h4>Environment builder</h4>
+                        <p class="small-note">
+                          Plain-language draft and actions. Use the Components tab for per-shell prompts; Results for previews, assets, and progress.
+                        </p>
+                      </div>
+                      <p class="hint" id="roomWizardCopilotServerHint">
+                        Checking local server…
+                      </p>
+                      <label>
+                        <span class="field-label">Room environment draft</span>
+                        <textarea
+                          id="roomWizardCopilotPrompt"
+                          rows="3"
+                          placeholder="e.g. flooded crypt, dripping water, faint green glow from below"
+                          spellcheck="true"
+                        ></textarea>
+                      </label>
+                      <div class="rw-copilot-actions">
+                        <button type="button" class="btn-secondary" id="roomWizardAdaptTemplate">Rewrite Draft</button>
+                        <button type="button" class="btn-secondary" id="roomWizardGenerateComponentPrompts">Generate Component Prompts</button>
+                        <button type="button" class="btn-secondary" id="roomWizardCopilotGenerate">Build Environment</button>
+                        <span id="roomWizardCopilotStatus" class="small-note" aria-live="polite"></span>
+                      </div>
+                      <section class="rw-biome-visual-card" aria-labelledby="roomWizardBiomeVisualTitle">
+                        <div class="stage-card-head rw-biome-visual-head">
+                          <h5 id="roomWizardBiomeVisualTitle">Biome template kit</h5>
+                          <p class="small-note" id="roomWizardBiomePackSummary">Open a project with locked art direction to generate Gemini biome PNGs (background, midground, floor, platform, door).</p>
+                        </div>
+                        <div class="rw-copilot-actions">
+                          <button type="button" class="btn-secondary" id="roomWizardBiomeGenerateVisuals">Generate biome visuals (Gemini)</button>
+                          <span id="roomWizardBiomeVisualStatus" class="small-note" aria-live="polite"></span>
+                        </div>
+                      </section>
+                    </div>
                   </div>
-                  <div class="rw-component-grid">
-                    <label class="rw-component-field">
-                      <span class="field-label">Floor</span>
-                      <textarea id="roomWizardComponentFloor" rows="2" placeholder="Describe the floor surface, slabs, cracks, wear, and readability."></textarea>
-                    </label>
-                    <label class="rw-component-field">
-                      <span class="field-label">Platforms</span>
-                      <textarea id="roomWizardComponentPlatforms" rows="2" placeholder="Describe platform tops, faces, supports, and edge damage."></textarea>
-                    </label>
-                    <label class="rw-component-field">
-                      <span class="field-label">Walls</span>
-                      <textarea id="roomWizardComponentWalls" rows="2" placeholder="Describe the walls, architecture rhythm, damage, and depth."></textarea>
-                    </label>
-                    <label class="rw-component-field">
-                      <span class="field-label">Doors</span>
-                      <textarea id="roomWizardComponentDoors" rows="2" placeholder="Describe frames, gates, seals, motifs, and thresholds."></textarea>
-                    </label>
-                    <label class="rw-component-field rw-component-field--wide">
-                      <span class="field-label">Background</span>
-                      <textarea id="roomWizardComponentBackground" rows="2" placeholder="Describe the background, midground silhouettes, landmarks, and atmosphere."></textarea>
-                    </label>
+                  <div id="rwEnvPanelComponents" class="rw-env-panel" role="tabpanel" aria-labelledby="rwEnvTabComponents" hidden>
+                    <div class="stage-card rw-env-components-stage">
+                      <section class="rw-component-card" aria-labelledby="roomWizardComponentPromptsTitle">
+                        <div class="stage-card-head">
+                          <h5 id="roomWizardComponentPromptsTitle">Room components</h5>
+                          <p class="small-note">Prompts for floor, platforms, walls, doors, and background — used for schema and production.</p>
+                        </div>
+                        <div class="rw-component-grid">
+                          <label class="rw-component-field">
+                            <span class="field-label">Floor</span>
+                            <textarea id="roomWizardComponentFloor" rows="2" placeholder="Describe the floor surface, slabs, cracks, wear, and readability."></textarea>
+                          </label>
+                          <label class="rw-component-field">
+                            <span class="field-label">Platforms</span>
+                            <textarea id="roomWizardComponentPlatforms" rows="2" placeholder="Describe platform tops, faces, supports, and edge damage."></textarea>
+                          </label>
+                          <label class="rw-component-field">
+                            <span class="field-label">Walls</span>
+                            <textarea id="roomWizardComponentWalls" rows="2" placeholder="Describe the walls, architecture rhythm, damage, and depth."></textarea>
+                          </label>
+                          <label class="rw-component-field">
+                            <span class="field-label">Doors</span>
+                            <textarea id="roomWizardComponentDoors" rows="2" placeholder="Describe frames, gates, seals, motifs, and thresholds."></textarea>
+                          </label>
+                          <label class="rw-component-field rw-component-field--wide">
+                            <span class="field-label">Background</span>
+                            <textarea id="roomWizardComponentBackground" rows="2" placeholder="Describe the background, midground silhouettes, landmarks, and atmosphere."></textarea>
+                          </label>
+                        </div>
+                      </section>
+                    </div>
                   </div>
-                </section>
-                <div id="roomWizardCopilotProgress" class="workbench-waitbar rw-waitbar" hidden aria-live="polite" aria-busy="true">
-                  <div class="small-note workbench-waitbar-detail rw-waitbar-detail" id="roomWizardCopilotProgressDetail">Working…</div>
-                  <div class="progress-track">
-                    <div class="progress-fill" id="roomWizardCopilotProgressFill" style="width:6%"></div>
-                  </div>
-                  <div class="progress-meta">
-                    <span id="roomWizardCopilotProgressPct">6%</span>
-                    <span class="small-note">Progress is estimated until the server finishes.</span>
-                  </div>
-                </div>
-                <div id="roomWizardCopilotPreview" hidden class="info-box rw-copilot-preview-box">
-                  <p><strong>Environment result</strong> — review the schema summary and generated candidates, approve one, then build production assets for this room.</p>
-                  <div id="roomWizardEnvironmentPreview" class="rw-environment-preview" aria-live="polite"></div>
-                  <div id="roomWizardCopilotPreviewVisual" class="rw-environment-preview"></div>
-                  <div id="roomWizardEnvironmentOutputSummary" class="rw-environment-output"></div>
-                  <div id="roomWizardPreviewGallery" class="rw-preview-gallery"></div>
-                  <label>
-                    <span class="field-label">Revision request</span>
-                    <textarea
-                      id="roomWizardPreviewRevision"
-                      rows="2"
-                      placeholder="e.g. push more wet stone texture, make the central route easier to read, add heavier shrine architecture"
-                      spellcheck="true"
-                    ></textarea>
-                  </label>
-                  <div class="rw-copilot-actions">
-                    <button type="button" class="btn-secondary" id="roomWizardPreviewRevise">Revise &amp; Generate Again</button>
-                    <button type="button" class="btn-secondary" id="roomWizardBuildEnvironmentAssets">Build Production Assets</button>
-                    <button type="button" class="btn-secondary" id="roomWizardPreviewOpenGame">Open Game With This Room</button>
-                    <button type="button" class="btn-secondary" id="roomWizardCopilotDiscard">Discard</button>
+                  <div id="rwEnvPanelResults" class="rw-env-panel" role="tabpanel" aria-labelledby="rwEnvTabResults" hidden>
+                    <div class="stage-card rw-env-results-stage">
+                      <div class="stage-card-head">
+                        <h4>Previews &amp; assets</h4>
+                        <p class="small-note">Progress, preview candidates, revision, and production build run here.</p>
+                      </div>
+                      <div id="roomWizardCopilotProgress" class="workbench-waitbar rw-waitbar" hidden aria-live="polite" aria-busy="true">
+                        <div class="small-note workbench-waitbar-detail rw-waitbar-detail" id="roomWizardCopilotProgressDetail">Working…</div>
+                        <div class="progress-track">
+                          <div class="progress-fill" id="roomWizardCopilotProgressFill" style="width:6%"></div>
+                        </div>
+                        <div class="progress-meta">
+                          <span id="roomWizardCopilotProgressPct">6%</span>
+                          <span class="small-note">Progress is estimated until the server finishes.</span>
+                        </div>
+                      </div>
+                      <div id="roomWizardCopilotPreview" hidden class="info-box rw-copilot-preview-box">
+                        <p><strong>Environment result</strong> — review the schema summary and generated candidates, approve one, then build production assets for this room.</p>
+                        <div id="roomWizardEnvironmentPreview" class="rw-environment-preview" aria-live="polite"></div>
+                        <div id="roomWizardCopilotPreviewVisual" class="rw-environment-preview"></div>
+                        <div id="roomWizardEnvironmentOutputSummary" class="rw-environment-output"></div>
+                        <div id="roomWizardPreviewGallery" class="rw-preview-gallery"></div>
+                        <label>
+                          <span class="field-label">Revision request</span>
+                          <textarea
+                            id="roomWizardPreviewRevision"
+                            rows="2"
+                            placeholder="e.g. push more wet stone texture, make the central route easier to read, add heavier shrine architecture"
+                            spellcheck="true"
+                          ></textarea>
+                        </label>
+                        <div class="rw-copilot-actions">
+                          <button type="button" class="btn-secondary" id="roomWizardPreviewRevise">Revise &amp; Generate Again</button>
+                          <button type="button" class="btn-secondary" id="roomWizardBuildEnvironmentAssets">Build Production Assets</button>
+                          <button type="button" class="btn-secondary" id="roomWizardPreviewOpenGame">Open Game With This Room</button>
+                          <button type="button" class="btn-secondary" id="roomWizardCopilotDiscard">Discard</button>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -2748,6 +2781,9 @@
         : '';
       const PROJECT_ART_DIRECTION_GENERATE_CONCEPTS_URL = PROJECT_ID
         ? `/api/projects/${encodeURIComponent(PROJECT_ID)}/art-direction/generate-concepts`
+        : '';
+      const PROJECT_BIOME_GENERATE_VISUALS_URL = PROJECT_ID
+        ? `/api/projects/${encodeURIComponent(PROJECT_ID)}/art-direction/biome/generate-visuals`
         : '';
       const PROJECT_ART_DIRECTION_TEMPLATES_URL = PROJECT_ID
         ? `/api/projects/${encodeURIComponent(PROJECT_ID)}/art-direction/templates`
@@ -6635,7 +6671,58 @@
         clearActivity();
       }
 
+      function setRoomWizardEnvTab(which) {
+        const map = {
+          setup: { tab: 'rwEnvTabSetup', panel: 'rwEnvPanelSetup' },
+          components: { tab: 'rwEnvTabComponents', panel: 'rwEnvPanelComponents' },
+          results: { tab: 'rwEnvTabResults', panel: 'rwEnvPanelResults' }
+        };
+        const order = ['setup', 'components', 'results'];
+        const pick = map[which] || map.setup;
+        order.forEach((key) => {
+          const ids = map[key];
+          const t = document.getElementById(ids.tab);
+          const p = document.getElementById(ids.panel);
+          const on = ids.tab === pick.tab;
+          if (t) {
+            t.setAttribute('aria-selected', on ? 'true' : 'false');
+            t.tabIndex = on ? 0 : -1;
+            t.classList.toggle('rw-env-tab--active', on);
+          }
+          if (p) p.hidden = !on;
+        });
+      }
+
+      function initRoomWizardEnvTabs() {
+        ['rwEnvTabSetup', 'rwEnvTabComponents', 'rwEnvTabResults'].forEach((id, idx) => {
+          const keys = ['setup', 'components', 'results'];
+          document.getElementById(id)?.addEventListener('click', () => setRoomWizardEnvTab(keys[idx]));
+        });
+        setRoomWizardEnvTab('setup');
+      }
+
+      function updateRoomWizardBiomePackSummary() {
+        const el = document.getElementById('roomWizardBiomePackSummary');
+        if (!el) return;
+        if (!PROJECT_ID) {
+          el.textContent =
+            'Open a project with locked art direction to generate Gemini biome PNGs (background, midground, floor, platform, door).';
+          return;
+        }
+        const packs = state.artDirection?.biome_packs;
+        const pack = Array.isArray(packs) && packs[0] ? packs[0] : null;
+        if (!pack) {
+          el.textContent = 'Save art direction to seed a biome pack, then generate visuals.';
+          return;
+        }
+        const bid = pack.biome_id || 'biome';
+        const label = String(pack.label || bid).trim() || bid;
+        const n = Array.isArray(pack.template_library) ? pack.template_library.length : 0;
+        el.textContent = `Active pack: ${label} (${bid}) · ${n} template layer${n === 1 ? '' : 's'}. Frozen concepts are used as references when available. Confirm to overwrite PNGs on disk.`;
+      }
+
       function startRoomWizardWaitbar(slot, detail) {
+        if (slot === 'copilot') setRoomWizardEnvTab('results');
         const root = document.getElementById(slot === 'art-direction' ? 'roomWizardArtDirectionProgress' : 'roomWizardCopilotProgress');
         const fill = document.getElementById(slot === 'art-direction' ? 'roomWizardArtDirectionProgressFill' : 'roomWizardCopilotProgressFill');
         const pct = document.getElementById(slot === 'art-direction' ? 'roomWizardArtDirectionProgressPct' : 'roomWizardCopilotProgressPct');
@@ -7052,6 +7139,7 @@
           hint.innerHTML = state.artDirection?.locked
             ? `Project direction is locked${frozenCount ? ` with ${frozenCount} frozen concept anchor${frozenCount === 1 ? '' : 's'}` : ''}. Generate room-aware previews from a room template or your own room draft.`
             : 'Lock a project art direction first so room drafts and previews stay consistent.';
+          updateRoomWizardBiomePackSummary();
           return;
         }
         if (!serverReachable) {
@@ -7066,6 +7154,7 @@
         }
         hint.innerHTML =
           'Gemini is configured. Describe the room and click <strong>Generate</strong>.';
+        updateRoomWizardBiomePackSummary();
       }
 
       async function refreshCopilotStatus() {
@@ -7748,6 +7837,7 @@
       }
 
       function wireRoomWizardEvents() {
+        initRoomWizardEnvTabs();
         document.getElementById('roomWizardClose')?.addEventListener('click', requestCloseRoomWizard);
         document.getElementById('workflowScopeWorld')?.addEventListener('click', () => setWorkflowScope('world'));
         document.getElementById('workflowScopeRoom')?.addEventListener('click', () => setWorkflowScope('room'));
@@ -7883,6 +7973,61 @@
         });
         document.getElementById('roomWizardSimplifyDraft')?.addEventListener('click', () => {
           adaptSelectedRoomArchetype('Simplify this room draft so a novice creator can understand and edit it quickly.');
+        });
+        document.getElementById('roomWizardBiomeGenerateVisuals')?.addEventListener('click', async () => {
+          const st = document.getElementById('roomWizardBiomeVisualStatus');
+          const btn = document.getElementById('roomWizardBiomeGenerateVisuals');
+          if (!PROJECT_ID || !PROJECT_BIOME_GENERATE_VISUALS_URL) {
+            if (st) st.textContent = 'Open this room from a workbench project to generate biome visuals.';
+            return;
+          }
+          if (!state.copilot.serverReachable || !state.copilot.geminiConfigured) {
+            if (st) st.textContent = 'Server or Gemini key unavailable — check the hint above.';
+            return;
+          }
+          if (!state.artDirection?.locked) {
+            if (st) st.textContent = 'Lock project art direction first.';
+            return;
+          }
+          const ok = window.confirm(
+            'Replace biome template PNGs under art_direction_biomes with Gemini output? This may take a minute and uses API quota.'
+          );
+          if (!ok) return;
+          const draft = String(document.getElementById('roomWizardCopilotPrompt')?.value || '').trim().slice(0, 500);
+          if (btn) btn.disabled = true;
+          if (st) st.textContent = 'Generating biome visuals…';
+          startRoomWizardWaitbar('copilot', 'Generating biome template visuals (Gemini).');
+          try {
+            const res = await fetch(PROJECT_BIOME_GENERATE_VISUALS_URL, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                confirm_overwrite: true,
+                extra_prompt: draft || undefined
+              })
+            });
+            const json = await res.json().catch(() => ({}));
+            if (!res.ok || !json.ok) {
+              throw new Error(json.error || 'Biome visual generation failed');
+            }
+            state.artDirection = json.art_direction || state.artDirection;
+            updateRoomWizardBiomePackSummary();
+            const failed = Array.isArray(json.results) ? json.results.filter((r) => r && !r.ok) : [];
+            if (!json.used_ai) {
+              if (st) st.textContent = 'Gemini did not return images — check server logs and GEMINI_IMAGE_MODEL.';
+            } else if (failed.length) {
+              if (st) st.textContent = `Partial: ${failed.length} layer(s) failed (${failed.map((f) => f.component_type).join(', ')}).`;
+            } else {
+              if (st) st.textContent = 'Biome template PNGs updated.';
+              showToast('Biome template visuals updated.', 'success');
+            }
+            stopRoomWizardWaitbar('copilot', 100);
+          } catch (e) {
+            stopRoomWizardWaitbar('copilot', 100);
+            if (st) st.textContent = (e && e.message) || 'Biome generation failed';
+          } finally {
+            if (btn) btn.disabled = false;
+          }
         });
         document.getElementById('roomWizardCopilotGenerate')?.addEventListener('click', async () => {
           const copilotMod = globalThis.RoomWizardEnvironmentCopilot;

@@ -89,7 +89,10 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
             "screenshot_path": "/mock/runtime-review.png",
             "metrics": {
                 "center_clutter": 0.0,
+                "center_upper_contrast": 0.02,
+                "center_lower_contrast": 0.03,
                 "left_right_balance": 0.0,
+                "side_shell_definition": 0.04,
                 "floor_background_separation": 0.1,
                 "platform_top_readability": 0.1,
                 "threshold_visibility": 0.1,
@@ -117,6 +120,35 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         self.assertTrue(result["art_direction"]["biome_packs"])
         room = self.saved["room_layout"]["rooms"][0]
         self.assertEqual(room["environment"]["preview"]["status"], "outdated")
+
+    def test_generate_biome_pack_visuals_requires_confirm(self):
+        out = envsys.generate_biome_pack_visuals(self.project_id, {})
+        self.assertFalse(out.get("ok"))
+        self.assertIn("confirm_overwrite", str(out.get("error", "")))
+
+    def test_generate_biome_pack_visuals_marks_templates_and_skips_refresh_overwrite(self):
+        envsys.generate_project_art_direction_concepts(self.project_id, {"template_id": "ruined-gothic"})
+        envsys.update_project_art_direction(
+            self.project_id,
+            {"template_id": "ruined-gothic", "locked": True, "frozen_concept_ids": ["art-direction-01"]},
+        )
+        with mock.patch.object(envsys, "_generate_bespoke_component_from_references", side_effect=self._fake_ai_generate):
+            out = envsys.generate_biome_pack_visuals(self.project_id, {"confirm_overwrite": True})
+        self.assertTrue(out["ok"])
+        self.assertTrue(out["used_ai"])
+        for row in out["results"]:
+            self.assertTrue(row.get("ok"), row)
+        pack = out["art_direction"]["biome_packs"][0]
+        for t in pack["template_library"]:
+            self.assertTrue(str(t.get("biome_visual_generated_at") or "").strip())
+            self.assertEqual(t.get("source_template_kind"), "gemini_biome")
+        first_rel = pack["template_library"][0]["image_path"]
+        path = self.projects_root / self.project_id / first_rel
+        self.assertTrue(path.exists())
+        marker = b"KEEP-BIOME-VISUAL"
+        path.write_bytes(marker)
+        envsys.get_project_art_direction(self.project_id)
+        self.assertEqual(path.read_bytes(), marker)
 
     def test_get_project_frozen_concept_candidates_and_defaults(self):
         envsys.generate_project_art_direction_concepts(self.project_id, {"template_id": "ruined-gothic"})
@@ -467,6 +499,48 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         valid, errors = envsys._validate_bespoke_component(candidate, "midground_side_frame", (160, 120), "alpha", template)
         self.assertTrue(valid)
         self.assertNotIn("template_family_drift", errors)
+
+    def test_midground_validation_flags_hot_inner_edges(self):
+        template = self.root / "midground-template-hot.png"
+        candidate = self.root / "midground-candidate-hot.png"
+        envsys.Image.new("RGBA", (160, 120), (0, 0, 0, 0)).save(template)
+        image = envsys.Image.new("RGBA", (160, 120), (0, 0, 0, 0))
+        draw = envsys.ImageDraw.Draw(image)
+        draw.rectangle((14, 10, 28, 110), fill=(255, 255, 255, 255))
+        draw.rectangle((132, 10, 146, 110), fill=(255, 255, 255, 255))
+        image.save(candidate)
+
+        valid, errors = envsys._validate_bespoke_component(candidate, "midground_side_frame", (160, 120), "alpha", template)
+        self.assertFalse(valid)
+        self.assertIn("midground_inner_edge_hot", errors)
+
+    def test_background_validation_flags_low_shell_definition(self):
+        template = self.root / "background-template-low.png"
+        candidate = self.root / "background-candidate-low.png"
+        envsys.Image.new("RGBA", (160, 120), (70, 80, 90, 255)).save(template)
+        envsys.Image.new("RGBA", (160, 120), (74, 84, 94, 255)).save(candidate)
+
+        valid, errors = envsys._validate_bespoke_component(candidate, "background_far_plate", (160, 120), "opaque", template)
+        self.assertFalse(valid)
+        self.assertIn("background_shell_definition_low", errors)
+
+    def test_runtime_review_blocks_over_suppressed_shell_reads(self):
+        review_root = self.projects_root / self.project_id / "room_environment_assets" / "R1" / "review"
+        review_root.mkdir(parents=True, exist_ok=True)
+        screenshot = review_root / "runtime-review.png"
+        image = envsys.Image.new("RGBA", (1600, 1200), (64, 72, 80, 255))
+        draw = envsys.ImageDraw.Draw(image)
+        draw.rectangle((0, 0, 240, 1200), fill=(34, 40, 48, 255))
+        draw.rectangle((1360, 0, 1600, 1200), fill=(34, 40, 48, 255))
+        draw.rectangle((280, 160, 1320, 1020), fill=(68, 76, 84, 255))
+        draw.rectangle((240, 890, 1360, 1020), fill=(82, 90, 98, 255))
+        image.save(screenshot)
+
+        with mock.patch.object(envsys, "_capture_runtime_review_screenshot", return_value=("mocked", None)):
+            review = envsys._run_runtime_review(self.saved, self.project_id, "R1", {})
+
+        self.assertEqual(review["status"], "fail")
+        self.assertIn("room_shell_readability_low", review["fail_reasons"])
 
 
 if __name__ == "__main__":

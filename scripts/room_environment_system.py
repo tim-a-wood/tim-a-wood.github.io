@@ -442,6 +442,11 @@ def _refresh_biome_pack_templates(project: Dict[str, Any], direction: Dict[str, 
                     template["height"] = target_size[1]
             transparency_mode = str(template.get("transparency_mode") or "opaque")
             transparent = transparency_mode == "alpha"
+            # Gemini-refined biome PNGs are authoritative; do not re-copy curated/fallback seeds over them.
+            if str(template.get("biome_visual_generated_at") or "").strip():
+                template["adaptation_mode"] = _component_adaptation_mode(component_type)
+                template["updated_at"] = now_iso()
+                continue
             source_kind, source_rel = _install_component_template_asset(
                 project_id,
                 abs_path,
@@ -2660,6 +2665,147 @@ def _fallback_midground_asset(output_path: Path, palette: Dict[str, Any], shell_
     draw.polygon([(0, 0), (220, 0), (180, 1200), (0, 1200)], fill=base + (42,))
     draw.polygon([(1600, 0), (1380, 0), (1420, 1200), (1600, 1200)], fill=base + (42,))
     img.save(output_path)
+
+
+def _build_biome_template_prompt(component_type: str, direction: Dict[str, Any], extra_notes: str) -> str:
+    """Prompt for upgrading default biome library PNGs via Gemini (game-side-view environment kit)."""
+    locked = direction.get("high_level_direction") or direction.get("style_family") or ""
+    neg = direction.get("negative_direction") or ""
+    lighting = ", ".join(direction.get("lighting_rules") or []) if isinstance(direction.get("lighting_rules"), list) else ""
+    notes = str(extra_notes or "").strip()
+    base_rules = (
+        "2D game environment art, strict side-view silhouette readable for platforming. "
+        "No characters, no HUD, no text, no single-focal scenic illustration. "
+        "Match the project's stone/mood; keep traverse lane visually calm. "
+        "Avoid altar centers, ritual circles, brazier focal energy, or doorway-shaped glow in the middle."
+    )
+    role: str
+    if component_type == "background_plate":
+        role = (
+            "Full-room background plate: distant enclosing architecture, far depth, muted values. "
+            "Center lane stays quieter than sides; readable shell vs play space."
+        )
+    elif component_type == "midground_frame":
+        role = (
+            "Midground PNG with transparency: architectural mass hugging LEFT and RIGHT edges only. "
+            "Center third must stay empty (alpha) for gameplay clarity. No arches or props in the center."
+        )
+    elif component_type == "primary_floor_piece":
+        role = (
+            "Horizontal tileable floor strip: top walk surface plus short front face. "
+            "Modular repeat; clear top lip; stone family consistent with the project."
+        )
+    elif component_type == "hero_platform_piece":
+        role = (
+            "Horizontal tileable platform ledge: top surface + shallow front face, game-ready proportions."
+        )
+    elif component_type == "door_piece":
+        role = (
+            "Vertical doorway tile: heavy frame, dark opening read, threshold stone; alpha-friendly edges."
+        )
+    else:
+        role = f"Environment component `{component_type}` for the biome kit."
+    parts = [
+        base_rules,
+        role,
+        f"Art direction: {locked}".strip(),
+    ]
+    if neg:
+        parts.append(f"Avoid: {neg}")
+    if lighting:
+        parts.append(f"Lighting notes: {lighting}")
+    if notes:
+        parts.append(f"Extra: {notes}")
+    return "\n".join(p for p in parts if p)
+
+
+def generate_biome_pack_visuals(project_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+    """Replace biome template PNGs under art_direction_biomes using Gemini (optional frozen concept refs)."""
+    if payload.get("confirm_overwrite") is not True:
+        return {"ok": False, "error": "confirm_overwrite must be true to replace biome template images."}
+    project = load_project(project_id)
+    direction = normalize_art_direction(project.get("art_direction"), project.get("art_direction"))
+    direction = _attach_default_biome_pack(project, direction)
+    packs = direction.get("biome_packs") or []
+    if not packs or not isinstance(packs[0], dict):
+        return {"ok": False, "error": "No biome pack available; lock art direction first."}
+    pack = packs[0]
+    biome_id = str(pack.get("biome_id") or "").strip()
+    project_dir = PROJECTS_ROOT / project_id
+    frozen_paths: List[Path] = []
+    for fc in direction.get("frozen_concepts") or []:
+        if not isinstance(fc, dict):
+            continue
+        rel = str(fc.get("image_path") or "").strip()
+        if not rel:
+            continue
+        path = project_dir / rel
+        if path.exists():
+            frozen_paths.append(path)
+    frozen_paths = frozen_paths[:3]
+    extra = str(payload.get("extra_prompt") or "").strip()
+    results: List[Dict[str, Any]] = []
+    used_ai = False
+    for template in pack.get("template_library") or []:
+        if not isinstance(template, dict):
+            continue
+        component_type = str(template.get("component_type") or "").strip()
+        rel_path = Path(str(template.get("image_path") or "").strip())
+        if not component_type or not rel_path.parts:
+            results.append({"component_type": component_type or "?", "ok": False, "error": "missing template path"})
+            continue
+        abs_path = project_dir / rel_path
+        w = int(template.get("width") or 0)
+        h = int(template.get("height") or 0)
+        if not w or not h:
+            spec_entry = next((item for item in V1_BESPOKE_COMPONENTS if item["component_type"] == component_type), None)
+            if spec_entry:
+                w, h = spec_entry["size"]
+                template["width"] = w
+                template["height"] = h
+            else:
+                results.append({"component_type": component_type, "ok": False, "error": "unknown dimensions"})
+                continue
+        transparent = str(template.get("transparency_mode") or "opaque") == "alpha"
+        refs: List[Path] = []
+        if abs_path.exists():
+            refs.append(abs_path)
+        for path in frozen_paths:
+            if path not in refs:
+                refs.append(path)
+        prompt = _build_biome_template_prompt(component_type, direction, extra)
+        ok = _generate_bespoke_component_from_references(abs_path, prompt, refs, (w, h), transparent)
+        if ok:
+            used_ai = True
+            template["biome_visual_generated_at"] = now_iso()
+            template["source_template_kind"] = "gemini_biome"
+            template["source_template_path"] = None
+        else:
+            results.append({
+                "component_type": component_type,
+                "ok": False,
+                "path": rel_path.as_posix(),
+                "error": "gemini_image_generation_failed",
+            })
+            continue
+        results.append({"component_type": component_type, "ok": True, "path": rel_path.as_posix()})
+    project["art_direction"] = direction
+    project["updated_at"] = now_iso()
+    save_project(project)
+    append_history_event(project_id, {
+        "type": "biome_pack_visuals_generated",
+        "created_at": now_iso(),
+        "biome_id": biome_id,
+        "used_ai": used_ai,
+        "results": copy.deepcopy(results),
+    })
+    return {
+        "ok": True,
+        "used_ai": used_ai,
+        "biome_id": biome_id,
+        "results": results,
+        "art_direction": copy.deepcopy(direction),
+    }
 
 
 def _seed_biome_template_asset(output_path: Path, component_type: str, palette: Dict[str, Any], flags: Dict[str, bool], shell_family: str) -> None:
