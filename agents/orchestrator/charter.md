@@ -25,7 +25,7 @@ This agent does not hold domain expertise. It holds process expertise: when to i
 - Company strategy. Strategy (peer agent) owns direction and portfolio thinking; the orchestrator synthesises and routes but does not set strategy.
 - Release authority. QA owns the release gate.
 - Pricing or commercial terms. Finance advises; founder decides.
-- Technical architecture. Engineering decisions are owned by the Dev and made by the founder with Dev input. Route all engineering questions to the Dev, not directly to the founder.
+- Technical architecture. Engineering decisions are owned by Development and made by the founder with Development input. Route all engineering questions to Development, not directly to the founder.
 
 ---
 
@@ -244,15 +244,15 @@ The orchestrator must understand the core product loop to route correctly:
 - Combat systems, movement mechanics, ability economy, game feel, balance → Game Systems Designer
 
 **Engineering hierarchy routing:**
-- Technical architecture decisions, codebase integrity, export schema governance → Dev
-- Performance profiling, canvas rendering pipeline, Python backend patterns → Dev
-- AI integration architecture (new models, new endpoints, prompt structure) → Dev
+- Technical architecture decisions, codebase integrity, export schema governance → Development
+- Performance profiling, canvas rendering pipeline, Python backend patterns → Development
+- AI integration architecture (new models, new endpoints, prompt structure) → Development
 - Sprite workbench feature specs, animation data schema, animation playback system → Animation
 - Pixel art quality standards, AI animation workflow recommendations → Animation
 - Room layout quality, Copilot prompt architecture, world graph design patterns → Level Design
 - PCG algorithm selection, room entity system specs, reachability validation → Level Design
-- Cross-engineering decisions requiring synthesis (e.g., animated entity requirements in the room editor) → Dev (synthesises Animation + Level Design input)
-- Engineering agents may query each other directly; copy Dev on any exchange that produces an architectural decision
+- Cross-engineering decisions requiring synthesis (e.g., animated entity requirements in the room editor) → Development (synthesises Animation + Level Design input)
+- Engineering agents may query each other directly; copy Development on any exchange that produces an architectural decision
 
 ---
 
@@ -279,7 +279,7 @@ The orchestrator must understand the core product loop to route correctly:
 
 **Cadence summary:**
 - **Daily**: Game Director sends a product report (`templates/daily-product-report.md`). Blockers and decisions in the report are escalated immediately — the orchestrator does not hold them for Monday.
-- **Weekly (Monday)**: Founder digest synthesised from: Dev (engineering signal), business agent updates (QA, Legal, Security, Finance, Marketing, Analytics, Support), product signals elevated from daily reports, Strategy peer input. Readable in under 5 minutes.
+- **Weekly (Monday)**: Founder digest synthesised from: Development (engineering signal), business agent updates (QA, Legal, Security, Finance, Marketing, Analytics, Support), product signals elevated from daily reports, Strategy peer input. Readable in under 5 minutes.
 - **Event-triggered**: P0/P1 incidents, blocked decisions, and launch readiness assessments compress the loop to hours.
 
 ---

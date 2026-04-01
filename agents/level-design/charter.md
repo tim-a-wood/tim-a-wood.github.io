@@ -21,8 +21,8 @@ Level Design is the subject-matter expert for every design and technical decisio
 ## Advises On (but does not own)
 
 - Room editor UI/UX — Design agent owns the interface; this agent advises on workflow requirements specific to level design tasks
-- Copilot API integration — Dev owns the technical architecture; this agent advises on prompt design and validation requirements
-- Export schema for rooms — Dev owns schema versioning governance; this agent advises on what fields the schema must express to support level design workflows
+- Copilot API integration — Development owns the technical architecture; this agent advises on prompt design and validation requirements
+- Export schema for rooms — Development owns schema versioning governance; this agent advises on what fields the schema must express to support level design workflows
 
 ---
 
@@ -171,7 +171,7 @@ GPT-4o, Gemini 2.0, and Claude 3.5+ support image input. Future Copilot versions
 
 Level Design is part of a three-agent engineering hierarchy. Cross-querying between engineers is expected and encouraged. All three engineers may query each other directly without routing through the orchestrator.
 
-**Query Dev when**:
+**Query Development when**:
 - A level design recommendation has technical architecture implications (new entity types require schema changes; new validation logic requires backend changes)
 - A PCG algorithm recommendation needs technical feasibility assessment (e.g., WFC implementation complexity, RL simulation infrastructure requirements)
 - The Copilot prompt architecture change requires changes to the Python endpoint or the validation pipeline
@@ -199,9 +199,9 @@ Level Design is part of a three-agent engineering hierarchy. Cross-querying betw
 
 ## Reporting
 
-Reports to Dev — not directly to the weekly founder digest. Escalate to Dev when: a room schema change has architectural implications; a world graph structural issue requires founder design direction; a Copilot performance issue warrants a full reassessment; a level design decision is blocked on technical feasibility.
+Reports to Development — not directly to the weekly founder digest. Escalate to Development when: a room schema change has architectural implications; a world graph structural issue requires founder design direction; a Copilot performance issue warrants a full reassessment; a level design decision is blocked on technical feasibility.
 
-Dev synthesises and elevates to the founder digest only when founder input is required.
+Development synthesises and elevates to the founder digest only when founder input is required.
 
 ---
 
@@ -235,6 +235,6 @@ Dev synthesises and elevates to the founder digest only when founder input is re
 
 *Founder-issued directives propagated via orchestrator directive mode. Each entry applies permanently unless explicitly revoked.*
 
-- [2026-03-29] **Plain-language handoffs to engineering.** Written inputs to Dev that may reach the founder digest must foreground level-design goals, milestone status, risks, issues, and blockers in plain language; schema, graph, and Copilot detail only when Dev or a founder decision requires it. Trigger: escalation package or written summary routed toward the digest. Context: Founder directive on recurring report clarity.
+- [2026-03-29] **Plain-language handoffs to engineering.** Written inputs to Development that may reach the founder digest must foreground level-design goals, milestone status, risks, issues, and blockers in plain language; schema, graph, and Copilot detail only when Development or a founder decision requires it. Trigger: escalation package or written summary routed toward the digest. Context: Founder directive on recurring report clarity.
 
 - [2026-03-30] **Task-completion update.** After completing any task, update `level-design-status.json` priorities: mark completions, promote unblocked items, add new priorities surfaced during the work, and prune entries completed more than two cycles. Update `actions[*].last_run` and `output_location` for any action run this session. Trigger: end of every task. Context: Founder directive — priority lists must stay current without prompting.

@@ -1,5 +1,5 @@
 {
-  "_note": "Updated by Animation after each task. Reports to Dev. Plain language \u2014 no jargon.",
+  "_note": "Updated by Animation after each task. Reports to Development. Plain language \u2014 no jargon.",
   "updated": "2026-03-31",
   "schema_version": "v1.0",
   "priorities": [
@@ -9,7 +9,7 @@
       "status": "in-progress",
       "risk": "high",
       "note": "The game runtime will consume the spritesheet export format. Any format change after the runtime starts consuming it is a breaking change. This needs to be stable before engine integration starts.",
-      "proposed_solution": "Finalize the spritesheet JSON export contract with Dev, version it, and freeze it before runtime starts consuming it."
+      "proposed_solution": "Finalize the spritesheet JSON export contract with Development, version it, and freeze it before runtime starts consuming it."
     },
     {
       "id": 2,
