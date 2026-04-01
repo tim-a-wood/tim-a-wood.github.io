@@ -636,9 +636,13 @@
 }
 
 .room-wizard-dock .phase-back-btn {
+  /* Override global `button { width: 100% }` in room-layout-editor — otherwise the flex
+     row treats this control as full-width and crushes `.phase-header-left` to a narrow strip. */
   display: inline-flex;
   align-items: center;
   gap: 5px;
+  width: auto;
+  max-width: 100%;
   background: none;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
