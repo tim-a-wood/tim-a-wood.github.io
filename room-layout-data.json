@@ -12,7 +12,7 @@
       "name": "Spawn + Final Gate Chamber",
       "environment": {
         "version": 1,
-        "themeId": "cave",
+        "themeId": "contrast-qa",
         "tags": ["cold-stone", "damp", "spawn-gate", "torch-glow", "boss-visible"]
       },
       "global": {
@@ -275,7 +275,7 @@
       "name": "Central Hub",
       "environment": {
         "version": 1,
-        "themeId": "void",
+        "themeId": "contrast-qa",
         "tags": ["astral", "hub", "rotunda", "crossroads", "four-doors"]
       },
       "global": {
@@ -481,7 +481,7 @@
       "name": "Branch A Entry Trial",
       "environment": {
         "version": 1,
-        "themeId": "sewer",
+        "themeId": "contrast-qa",
         "tags": ["toxic", "flooded", "branch-a", "trial-entry", "slippery"]
       },
       "global": {

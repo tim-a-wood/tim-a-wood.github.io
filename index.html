@@ -902,7 +902,7 @@ const ROOM_ENV_STARFIELD_TINT = {
 };
 
 function normalizeEnvironmentFromLayout(room) {
-    const defaults = { version: 1, themeId: 'cave', tags: [], spec: {}, preview: {}, runtime: {} };
+    const defaults = { version: 1, themeId: 'contrast-qa', tags: [], spec: {}, preview: {}, runtime: {} };
     if (!room || !room.environment || typeof room.environment !== 'object') {
         return { ...defaults };
     }
