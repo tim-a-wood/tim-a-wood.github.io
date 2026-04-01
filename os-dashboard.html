@@ -4465,6 +4465,41 @@ let selectedAgent = 'orchestrator';
 let selectedMode = 'brainstorm';
 let generatedPrompt = '';
 
+/** agentId -> normalized custom runbooks from *-status.json `actions` (for mode pills + prompts) */
+const agentCustomActionsById = Object.create(null);
+let agentCustomActionsHydratePromise = null;
+
+function mergeAgentCustomActions(agentId, actions) {
+  if (!agentId || !Array.isArray(actions)) return;
+  const cleaned = actions.map(function(a) {
+    if (!a || typeof a !== 'object') return null;
+    var id = (a.id != null && String(a.id).trim()) ? String(a.id).trim() : '';
+    var name = (a.name != null && String(a.name).trim()) ? String(a.name).trim() : '';
+    if (!id && name) {
+      id = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+    }
+    if (!id) return null;
+    return {
+      id: id,
+      name: name || id,
+      description: typeof a.description === 'string' ? a.description : '',
+      trigger: typeof a.trigger === 'string' ? a.trigger : '',
+    };
+  }).filter(Boolean);
+  agentCustomActionsById[agentId] = cleaned;
+}
+
+function findCustomAction(agentId, modeKey) {
+  var list = agentCustomActionsById[agentId];
+  if (!list || !modeKey) return null;
+  for (var i = 0; i < list.length; i++) {
+    var a = list[i];
+    if (a.id === modeKey || 'runbook:' + a.id === modeKey) return a;
+  }
+  return null;
+}
+
+
 // ── DOM refs ────────────────────────────────────
 const scopedAgents = document.getElementById('scopedAgents');
 const modeRow     = document.getElementById('modeRow');
@@ -4575,18 +4610,37 @@ function renderModes() {
     modeRow.innerHTML = '';
     return;
   }
+  const baseModes = agent.modes.slice();
+  const customs = agentCustomActionsById[selectedAgent] || [];
+  const keysSeen = new Set(baseModes);
+  const allEntries = [];
+  baseModes.forEach(function(m) {
+    allEntries.push({ kind: 'base', key: m, label: m });
+  });
+  customs.forEach(function(a) {
+    var key = a.id;
+    if (keysSeen.has(key)) key = 'runbook:' + a.id;
+    keysSeen.add(key);
+    allEntries.push({ kind: 'runbook', key: key, label: a.name, action: a });
+  });
+  var keepSel = allEntries.some(function(e) { return e.key === selectedMode; });
+  if (!keepSel) selectedMode = allEntries[0].key;
+
   modeRow.innerHTML = '';
-  selectedMode = agent.modes[0];
-  agent.modes.forEach((mode, i) => {
+  allEntries.forEach(function(entry) {
     const btn = document.createElement('button');
     btn.type = 'button';
-    btn.className = 'mode-pill' + (i === 0 ? ' selected' : '');
-    btn.textContent = mode;
-    btn.dataset.mode = mode;
+    btn.className = 'mode-pill' + (entry.key === selectedMode ? ' selected' : '');
+    btn.textContent = entry.label;
+    btn.dataset.mode = entry.key;
+    if (entry.kind === 'runbook' && entry.action) {
+      var tip = entry.action.trigger || entry.action.description || '';
+      if (tip) btn.title = tip;
+    }
     btn.addEventListener('click', () => {
       document.querySelectorAll('.mode-pill').forEach(p => p.classList.remove('selected'));
       btn.classList.add('selected');
-      selectedMode = mode;
+      selectedMode = entry.key;
       updatePlaceholder();
       clearOutput();
     });
@@ -4597,6 +4651,14 @@ function renderModes() {
 
 function updatePlaceholder() {
   const agent = selectedAgent ? AGENTS[selectedAgent] : null;
+  const custom = agent ? findCustomAction(selectedAgent, selectedMode) : null;
+  if (custom) {
+    var hint = custom.description
+      ? ('e.g. "' + custom.description.slice(0, 140) + (custom.description.length > 140 ? '…' : '') + '"')
+      : 'Describe concrete inputs (files, PR, scope) for this runbook.';
+    taskInput.placeholder = hint;
+    return;
+  }
   const ph = agent && agent.placeholders ? ((agent.placeholders || {})[selectedMode] || 'Describe what you need...') : 'Describe what you need...';
   taskInput.placeholder = ph;
 }
@@ -4621,15 +4683,24 @@ function buildPrompt(task) {
   if (!agent) return;
   const isOrch  = selectedAgent === 'orchestrator';
   const charter = agent.charter;
-  const playbook = (agent.modePlaybooks || {})[selectedMode] || null;
-  const template = (agent.modeTemplates || {})[selectedMode] || null;
+  const customRunbook = findCustomAction(selectedAgent, selectedMode);
+  const modeForPlaybook = customRunbook ? null : selectedMode;
+  const playbook = modeForPlaybook ? ((agent.modePlaybooks || {})[modeForPlaybook] || null) : null;
+  const template = modeForPlaybook ? ((agent.modeTemplates || {})[modeForPlaybook] || null) : null;
 
   let lines = [];
 
   lines.push(`You are the ${agent.label} agent for the MV metroidvania toolchain business.`);
   lines.push('');
   lines.push(`Read: ${charter}`);
-  if (isOrch) lines.push(`Mode: ${selectedMode}`);
+  if (customRunbook) {
+    lines.push(`Custom runbook: ${customRunbook.name} (${customRunbook.id})`);
+    lines.push(`Runbook intent: ${customRunbook.description}`);
+    if (customRunbook.trigger) lines.push(`When to use: ${customRunbook.trigger}`);
+    lines.push('');
+  } else if (isOrch) {
+    lines.push(`Mode: ${selectedMode}`);
+  }
   if (playbook) lines.push(`Playbook: ${playbook}`);
   if (template) lines.push(`Output using: ${template}`);
   lines.push('');
@@ -4810,11 +4881,15 @@ function renderActions(actions, container) {
   }).join('');
 }
 
-async function loadAgentDashboardStatus(statusFile, idPrefix) {
+async function loadAgentDashboardStatus(statusFile, idPrefix, agentId) {
   try {
     const resp = await fetch(statusFile);
     if (!resp.ok) return;
     const s = await resp.json();
+    if (agentId) {
+      mergeAgentCustomActions(agentId, s.actions);
+      renderModes();
+    }
     const prioritiesEl = document.getElementById('db-' + idPrefix + '-priorities');
     const risksP0El = document.getElementById('db-' + idPrefix + '-risks-p0');
     const founderEl = document.getElementById('db-' + idPrefix + '-founder-decisions');
@@ -4831,13 +4906,13 @@ async function loadAgentDashboardStatus(statusFile, idPrefix) {
 }
 
 function loadDevelopmentStatus() {
-  return loadAgentDashboardStatus('engineering-status.json', 'dev');
+  return loadAgentDashboardStatus('engineering-status.json', 'dev', 'engineering');
 }
 function loadAnimationDashboardStatus() {
-  return loadAgentDashboardStatus('animation-status.json', 'anim');
+  return loadAgentDashboardStatus('animation-status.json', 'anim', 'animation');
 }
 function loadLevelDesignDashboardStatus() {
-  return loadAgentDashboardStatus('level-design-status.json', 'ld');
+  return loadAgentDashboardStatus('level-design-status.json', 'ld', 'level-design');
 }
 
 async function loadDesignStatus() {
@@ -4845,6 +4920,8 @@ async function loadDesignStatus() {
     const resp = await fetch('design-status.json');
     if (!resp.ok) return;
     const s = await resp.json();
+    mergeAgentCustomActions('design', s.actions);
+    renderModes();
 
     const prioritiesEl = document.getElementById('db-design-priorities');
     const risksP0El = document.getElementById('db-design-risks-p0');
@@ -4876,6 +4953,8 @@ async function loadMarketingStatus() {
     const resp = await fetch('marketing-status.json');
     if (!resp.ok) return;
     const s = await resp.json();
+    mergeAgentCustomActions('marketing', s.actions);
+    renderModes();
 
     const prioritiesEl = document.getElementById('db-marketing-priorities');
     const risksP0El = document.getElementById('db-marketing-risks-p0');
@@ -4909,6 +4988,8 @@ async function loadQaStatus() {
     const resp = await fetch('qa-status.json');
     if (!resp.ok) return;
     const s = await resp.json();
+    mergeAgentCustomActions('qa', s.actions);
+    renderModes();
 
     // Release gate
     const GATE_MAP = {
@@ -5018,6 +5099,8 @@ async function loadStrategyStatus() {
     const resp = await fetch('strategy-status.json');
     if (!resp.ok) return;
     const s = await resp.json();
+    mergeAgentCustomActions('strategy', s.actions);
+    renderModes();
 
     const prioritiesEl = document.getElementById('db-strategy-priorities');
     const risksP0El    = document.getElementById('db-strategy-risks-p0');
@@ -5096,6 +5179,7 @@ function renderAnalyticsPrioritiesEmpty(container) {
 
 function applyAnalyticsStatusPayload(s) {
   if (!s || typeof s !== 'object' || Array.isArray(s)) return;
+  mergeAgentCustomActions('analytics', s.actions);
   const prioritiesEl = document.getElementById('db-analytics-priorities');
   const risksP0El = document.getElementById('db-analytics-risks-p0');
   const founderEl = document.getElementById('db-analytics-founder-decisions');
@@ -5136,6 +5220,7 @@ async function loadAnalyticsStatus() {
       return;
     }
     applyAnalyticsStatusPayload(s);
+    renderModes();
   } catch {
     showFetchHint();
   }
@@ -5207,6 +5292,8 @@ async function loadOrchestrationStatus() {
     const resp = await fetch('orchestration-status.json');
     if (!resp.ok) return;
     const s = await resp.json();
+    mergeAgentCustomActions('orchestrator', s.actions);
+    renderModes();
 
     const prioritiesEl = document.getElementById('db-orch-priorities');
     const risksP0El = document.getElementById('db-orch-risks-p0');
@@ -5930,6 +6017,25 @@ const AV_STATUS_FILES = [
   { file: 'creative-status.json',         agent: 'creative' },
 ];
 
+function hydrateAllAgentCustomActions() {
+  if (agentCustomActionsHydratePromise) return agentCustomActionsHydratePromise;
+  agentCustomActionsHydratePromise = Promise.all(
+    AV_STATUS_FILES.map(function(entry) {
+      return fetch(entry.file, { cache: 'no-store' })
+        .then(function(r) { return r.ok ? r.json() : null; })
+        .then(function(data) {
+          if (data && typeof data === 'object' && !Array.isArray(data)) {
+            mergeAgentCustomActions(entry.agent, data.actions);
+          }
+        })
+        .catch(function() { /* offline / file:// */ });
+    })
+  ).then(function() {
+    renderModes();
+  });
+  return agentCustomActionsHydratePromise;
+}
+
 // file -> full parsed JSON object
 const avCache = {};
 // flat list of enriched action-item objects sourced from `priorities`
@@ -6293,6 +6399,7 @@ async function loadActionsView() {
             if (!resp.ok) return null;
             const data = await resp.json();
             avCache[entry.file] = data;
+            mergeAgentCustomActions(entry.agent, data.actions);
             return { file: entry.file, agent: entry.agent, data: data };
           } catch (e) { return null; }
         })
@@ -6305,6 +6412,7 @@ async function loadActionsView() {
         if (!Array.isArray(entry.data.priorities)) return;
         agentsPresent.push(entry.agent);
       });
+      renderModes();
       avRebuildAllActionsFromCache();
 
       // Populate owner filter
@@ -7027,6 +7135,7 @@ document.getElementById('toggleSidePanel').addEventListener('click', function() 
 })();
 
 selectDashboard(getInitialDashboardId());
+void hydrateAllAgentCustomActions();
 avInitConflictPopupActions();
 void avCheckManualConflicts();
 setInterval(function() { void avCheckManualConflicts(); }, 15000);
