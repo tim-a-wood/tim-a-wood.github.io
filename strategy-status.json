@@ -16,7 +16,7 @@
       "status": "paused",
       "risk": "high",
       "note": "We want to launch as a paid tool when the AI features are clearly better than anything else. No one has defined the bar yet. That needs to happen.",
-      "proposed_solution": "Partner with Workbench PO and Analytics to define measurable \u201cgood enough to charge for\u201d Copilot criteria the founder can approve."
+      "proposed_solution": "Partner with Analytics and Engineering to define measurable \u201cgood enough to charge for\u201d Copilot criteria the founder can approve."
     },
     {
       "id": 3,

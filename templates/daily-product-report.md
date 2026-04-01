@@ -1,6 +1,6 @@
 # Daily Product Report — [Product Name] — [YYYY-MM-DD]
 
-**Owner:** [Workbench PO | Game Director]
+**Owner:** Game Director
 **Report time:** End of day / start of next session
 
 ---
