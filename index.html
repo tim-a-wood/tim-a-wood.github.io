@@ -874,6 +874,9 @@ function getPrimaryFloorPlatform(roomId) {
 /**
  * RW-4 — strongly differentiated for QA (background + starfield read as different biomes).
  * Editor `themeId` values must match room-wizard-environment.js THEME_PRESETS ids.
+ *
+ * `contrast-qa` — temporary QA only: solid black camera clear color to read bespoke shell
+ * (walls/floor/platform strips) against a neutral ground. Not a shipping biome preset.
  */
 const ROOM_ENV_THEME_BG = {
     cave: '#0a1628',
@@ -882,7 +885,8 @@ const ROOM_ENV_THEME_BG = {
     shrine: '#1f0a2a',
     sewer: '#0a2a22',
     void: '#240818',
-    custom: '#101018'
+    custom: '#101018',
+    'contrast-qa': '#000000'
 };
 
 /** Multiply tint on the parallax star tile (Phaser hex). */
@@ -893,7 +897,8 @@ const ROOM_ENV_STARFIELD_TINT = {
     shrine: 0xbb88ff,
     sewer: 0x55eedd,
     void: 0xee77cc,
-    custom: 0xcccccc
+    custom: 0xcccccc,
+    'contrast-qa': 0x333333
 };
 
 function normalizeEnvironmentFromLayout(room) {
@@ -1088,11 +1093,26 @@ function getRoomEnvironmentBespokeAsset(roomId, componentType) {
         background_far_plate: ['background_far_plate'],
         midground_side_frame: ['midground_side_frame'],
         main_floor_top: ['main_floor_top'],
+        main_floor_face: ['main_floor_face'],
         hero_platform_top: ['hero_platform_top'],
+        hero_platform_face: ['hero_platform_face'],
+        wall_module_left: ['wall_module_left'],
+        wall_module_right: ['wall_module_right'],
+        wall_base_trim_left: ['wall_base_trim_left'],
+        wall_base_trim_right: ['wall_base_trim_right'],
         door_frame: ['door_frame']
     };
     const accepted = aliases[componentType] || [componentType];
     return assets.find((item) => item && accepted.includes(item.component_type) && item.url) || null;
+}
+
+function getRoomEnvironmentBespokeAssetsByType(roomId, componentTypes) {
+    if (!ENABLE_BESPOKE_ROOM_RUNTIME) return [];
+    const manifest = getRoomEnvironmentBespokeManifest(roomId);
+    if (!isPlayableRoomEnvironmentBespokeManifest(manifest)) return [];
+    const accepted = new Set(Array.isArray(componentTypes) ? componentTypes : [componentTypes]);
+    const assets = manifest.assets && typeof manifest.assets === 'object' ? Object.values(manifest.assets) : [];
+    return assets.filter((item) => item && accepted.has(item.component_type) && item.url);
 }
 
 function getRoomEnvironmentBespokePlatformAsset(roomId, slotId) {
@@ -1126,6 +1146,21 @@ function getRoomEnvironmentBespokeHeroPlatformAsset(roomId, platform) {
         if (!asset || !['hero_platform_top', 'hero_platform_piece'].includes(asset.component_type) || !asset.url) return false;
         const placement = asset.placement || {};
         return Number(placement.x || 0) === localX && Number(placement.y || 0) === localY && Number(placement.display_width || 0) === width;
+    }) || null;
+}
+
+function getRoomEnvironmentBespokeHeroPlatformFaceAsset(roomId, platform) {
+    if (!ENABLE_BESPOKE_ROOM_RUNTIME) return null;
+    const manifest = getRoomEnvironmentBespokeManifest(roomId);
+    if (!isPlayableRoomEnvironmentBespokeManifest(manifest)) return null;
+    const localX = Number(platform?.x || 0);
+    const localY = Number(platform?.y || 0);
+    const width = Math.max(1, Number(platform?.len || 1)) * 32;
+    const assets = manifest.assets && typeof manifest.assets === 'object' ? Object.values(manifest.assets) : [];
+    return assets.find((asset) => {
+        if (!asset || asset.component_type !== 'hero_platform_face' || !asset.url) return false;
+        const placement = asset.placement || {};
+        return Number(placement.x || 0) === localX && Number(placement.y || 0) === localY + 8 && Number(placement.display_width || 0) === width;
     }) || null;
 }
 
@@ -1307,7 +1342,8 @@ function deriveRoomEnvironmentRuntimeStyle(roomId) {
         shrine: { floor: { r: 70, g: 52, b: 82 }, accent: { r: 164, g: 220, b: 210 } },
         sewer: { floor: { r: 30, g: 74, b: 72 }, accent: { r: 134, g: 198, b: 166 } },
         void: { floor: { r: 70, g: 40, b: 82 }, accent: { r: 194, g: 122, b: 214 } },
-        custom: { floor: { r: 62, g: 64, b: 74 }, accent: { r: 174, g: 182, b: 194 } }
+        custom: { floor: { r: 62, g: 64, b: 74 }, accent: { r: 174, g: 182, b: 194 } },
+        'contrast-qa': { floor: { r: 62, g: 64, b: 74 }, accent: { r: 174, g: 182, b: 194 } }
     };
     const preset = baseThemes[env.themeId] || baseThemes.cave;
     const shadowHex = typeof runtimePalette?.shadow === 'string' ? runtimePalette.shadow : '';
@@ -1648,12 +1684,10 @@ class AshenHollow extends Phaser.Scene {
                 if (bespokeAssets && isPlayableRoomEnvironmentBespokeManifest(bespoke)) {
                     Object.values(bespokeAssets).forEach((asset) => {
                         if (!asset?.url) return;
+                        this.load.image(`env-bespoke-${asset.slot_id}`, asset.url);
                         if (['background_far_plate', 'background_plate'].includes(asset.component_type)) this.load.image(roomBackgroundAssetKey(roomId), asset.url);
                         if (['midground_side_frame', 'midground_frame'].includes(asset.component_type)) this.load.image(roomMidgroundAssetKey(roomId), asset.url);
                         if (['door_frame', 'door_piece'].includes(asset.component_type)) this.load.image(roomDoorAssetKey(roomId), asset.url);
-                        if (['main_floor_top', 'primary_floor_piece', 'hero_platform_top', 'hero_platform_piece'].includes(asset.component_type)) {
-                            this.load.image(`env-bespoke-${asset.slot_id}`, asset.url);
-                        }
                     });
                 }
             }
@@ -2270,6 +2304,48 @@ class AshenHollow extends Phaser.Scene {
         return sprite;
     }
 
+    addPlacedBespokeAsset(roomId, asset, depth, alpha = 0.98) {
+        if (!asset?.slot_id || !asset?.url || !this.textures.exists(`env-bespoke-${asset.slot_id}`)) return null;
+        const placement = asset.placement || {};
+        const roomStart = ROOM_IDS[roomId]?.start || 0;
+        const displayWidth = Math.max(1, Number(placement.display_width || asset.final_dimensions?.width || 1));
+        const displayHeight = Math.max(1, Number(placement.display_height || asset.final_dimensions?.height || 1));
+        const originX = Phaser.Math.Clamp(Number(placement.origin_x ?? 0.5), 0, 1);
+        const originY = Phaser.Math.Clamp(Number(placement.origin_y ?? 0.5), 0, 1);
+        const localX = Number(placement.x || 0);
+        const localY = Number(placement.y || 0);
+        const sprite = this.add.image(roomStart + localX, localY, `env-bespoke-${asset.slot_id}`)
+            .setOrigin(originX, originY)
+            .setDisplaySize(displayWidth, displayHeight)
+            .setDepth(depth)
+            .setAlpha(alpha);
+        this.environmentDecor.push(sprite);
+        return sprite;
+    }
+
+    addRoomBespokeWallShellDecor(roomId) {
+        const wallAssets = getRoomEnvironmentBespokeAssetsByType(roomId, ['wall_module_left', 'wall_module_right']);
+        const trimAssets = getRoomEnvironmentBespokeAssetsByType(roomId, ['wall_base_trim_left', 'wall_base_trim_right']);
+        if (!wallAssets.length && !trimAssets.length) return false;
+        wallAssets.forEach((asset) => this.addPlacedBespokeAsset(roomId, asset, -0.08, 0.98));
+        trimAssets.forEach((asset) => this.addPlacedBespokeAsset(roomId, asset, -0.03, 0.98));
+        return true;
+    }
+
+    addRoomBespokePrimaryFloorFaceDecor(roomId) {
+        const asset = getRoomEnvironmentBespokeAsset(roomId, 'main_floor_face');
+        if (!asset?.url) return false;
+        this.addPlacedBespokeAsset(roomId, asset, -0.03, 0.98);
+        return true;
+    }
+
+    addRoomBespokeHeroPlatformFaceDecor(roomId, platform) {
+        const asset = platform ? getRoomEnvironmentBespokeHeroPlatformFaceAsset(roomId, platform) : null;
+        if (!asset?.url) return false;
+        this.addPlacedBespokeAsset(roomId, asset, 0.05, 0.98);
+        return true;
+    }
+
     addRoomFloorCapDecor(roomId, x, y, width, height = 24) {
         const bespoke = getRoomEnvironmentBespokePrimaryFloorAsset(roomId);
         if (bespoke?.url && this.textures.exists(`env-bespoke-${bespoke.slot_id}`)) {
@@ -2709,7 +2785,9 @@ class AshenHollow extends Phaser.Scene {
                 const primaryFloorY = Number(primaryFloorPlatform.y || visualBottom - 48);
                 const lowerFloorTop = Math.min(visualBottom - 72, primaryFloorY + 20);
                 const lowerFloorHeight = Math.max(48, visualBottom - lowerFloorTop - 12);
-                this.addRoomFloorBandDecor(roomId, primaryFloorX, lowerFloorTop, primaryFloorWidth, lowerFloorHeight);
+                if (!this.addRoomBespokePrimaryFloorFaceDecor(roomId)) {
+                    this.addRoomFloorBandDecor(roomId, primaryFloorX, lowerFloorTop, primaryFloorWidth, lowerFloorHeight);
+                }
                 this.addRoomFloorCapDecor(roomId, primaryFloorX, primaryFloorY, primaryFloorWidth, 24);
             }
             // Do not add a second "underfloor" band + cap when !primaryFloorPlatform: the world floor row + cap
@@ -2719,8 +2797,10 @@ class AshenHollow extends Phaser.Scene {
                 const upperMassY = roomTop + 64;
                 const floorPlaneTop = floorWorldY - 16;
                 const upperMassHeight = Math.max(128, floorPlaneTop - upperMassY);
-                this.addRoomWallMassDecor(roomId, roomBounds.start, upperMassY, sideMassWidth, upperMassHeight, 0.98);
-                this.addRoomWallMassDecor(roomId, roomBounds.end - sideMassWidth, upperMassY, sideMassWidth, upperMassHeight, 0.98);
+                if (!this.addRoomBespokeWallShellDecor(roomId)) {
+                    this.addRoomWallMassDecor(roomId, roomBounds.start, upperMassY, sideMassWidth, upperMassHeight, 0.98);
+                    this.addRoomWallMassDecor(roomId, roomBounds.end - sideMassWidth, upperMassY, sideMassWidth, upperMassHeight, 0.98);
+                }
             }
         });
 
@@ -2770,6 +2850,8 @@ class AshenHollow extends Phaser.Scene {
                     }
                 }
                 if (!isPrimaryFloor) {
+                    const localPlatform = { x: x - ROOM_IDS[roomId].start, y, len };
+                    this.addRoomBespokeHeroPlatformFaceDecor(roomId, localPlatform);
                     this.addRoomPlatformLedgeDecor(roomId, x, y, len * tile, 22);
                 }
             });

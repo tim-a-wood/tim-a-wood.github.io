@@ -260,6 +260,7 @@ const THEME_PRESETS = [
   { id: 'shrine', label: 'Shrine / temple' },
   { id: 'sewer', label: 'Sewer / underworks' },
   { id: 'void', label: 'Void / ethereal' },
+  { id: 'contrast-qa', label: 'Contrast QA (black BG — temporary)' },
   { id: 'custom', label: 'Custom (tags only)' }
 ];
 
@@ -293,6 +294,12 @@ const THEME_PREVIEW_COPY = {
     eyebrow: 'Unreal space',
     summary: 'Thin geometry, distant drift, and unstable light with more atmosphere than mass.',
     defaults: ['ethereal', 'cold', 'weightless']
+  },
+  'contrast-qa': {
+    eyebrow: 'QA contrast pass',
+    summary:
+      'Temporary preset: solid black playfield background so wall/floor/platform shell reads clearly. Remove before shipping a biome build.',
+    defaults: ['qa', 'contrast', 'temporary']
   },
   custom: {
     eyebrow: 'Mixed signals',

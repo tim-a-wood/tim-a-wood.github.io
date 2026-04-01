@@ -73,6 +73,7 @@ const { buildRuntimeRoom, normalizeRuntimeEnvironment } = require('../room-layou
 
 (function testThemePresets() {
   assert.ok(THEME_PRESETS.some((p) => p.id === 'cave'));
+  assert.ok(THEME_PRESETS.some((p) => p.id === 'contrast-qa'));
 })();
 
 (function testThemeLabelLookup() {
@@ -86,6 +87,13 @@ const { buildRuntimeRoom, normalizeRuntimeEnvironment } = require('../room-layou
   assert.strictEqual(preview.themeLabel, 'Void / ethereal');
   assert.deepStrictEqual(preview.tags, ['cold', 'echoing']);
   assert.strictEqual(preview.sceneClass, 'rw-environment-scene--void');
+})();
+
+(function testContrastQaPreviewModel() {
+  const preview = buildEnvironmentPreviewModel('contrast-qa', [], '');
+  assert.strictEqual(preview.themeId, 'contrast-qa');
+  assert.strictEqual(getThemeLabel('contrast-qa'), 'Contrast QA (black BG — temporary)');
+  assert.strictEqual(preview.sceneClass, 'rw-environment-scene--contrast-qa');
 })();
 
 console.log('room-wizard-environment.test.js: all assertions passed');
