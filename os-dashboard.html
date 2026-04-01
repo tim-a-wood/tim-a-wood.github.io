@@ -947,7 +947,7 @@ body::before {
 .av-row {
   display: grid;
   grid-template-columns: 24px 24px 1fr auto;
-  align-items: start;
+  align-items: center;
   gap: 0 var(--space-3);
   padding: var(--space-3) 0;
   border-bottom: 1px solid var(--line);
@@ -989,7 +989,7 @@ body::before {
   display: grid;
   grid-template-columns: minmax(0, 6.5rem) minmax(0, 7.5rem) minmax(0, 1fr) max-content max-content;
   gap: var(--space-2);
-  align-items: start;
+  align-items: center;
   min-width: 0;
 }
 .av-cell {
@@ -998,7 +998,7 @@ body::before {
   line-height: 1.4;
   min-width: 0;
   word-break: break-word;
-  padding-top: var(--space-1);
+  padding-top: 0;
 }
 .av-cell-summary {
   font-weight: 600;
@@ -1098,10 +1098,11 @@ textarea.av-field { resize: vertical; min-height: 72px; line-height: 1.45; }
   flex-direction: column;
   align-items: flex-end;
   gap: var(--space-2);
-  padding-top: 4px;
+  justify-content: center;
+  padding-top: 0;
   flex-shrink: 0;
 }
-.av-btn-row { display: flex; align-items: center; gap: 4px; }
+.av-btn-row { display: flex; align-items: center; gap: var(--space-2); }
 .av-btn {
   font-size: var(--font-size-xs);
   font-weight: 600;
@@ -1127,7 +1128,8 @@ textarea.av-field { resize: vertical; min-height: 72px; line-height: 1.45; }
   background: rgba(255,255,255,0.04);
   font-family: var(--font-sans);
   font-weight: 600;
-  border-radius: var(--radius-tight);
+  border-radius: var(--radius-sm);
+  min-width: 56px;
   transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
 }
 .av-edit-btn:hover {
@@ -6963,8 +6965,8 @@ function avRowHtml(action, idx, total) {
     +   '</div>'
     + '</div>'
     + '<div class="av-row-btns">'
+    +   '<button type="button" class="av-btn av-edit-btn">Edit</button>'
     +   '<div class="av-btn-row">'
-    +     '<button type="button" class="av-btn av-edit-btn">Edit</button>'
     +     '<button class="av-btn av-btn--icon av-up-btn" title="Move up"' + upDisabled + '>↑</button>'
     +     '<button class="av-btn av-btn--icon av-down-btn" title="Move down"' + downDisabled + '>↓</button>'
     +     '<button class="av-btn av-expand-btn" title="Expand">▼</button>'
