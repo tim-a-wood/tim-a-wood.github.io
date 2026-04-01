@@ -3025,6 +3025,7 @@ def _room_component_plan(room: Dict[str, Any], preview_id: str, biome_pack: Dict
             })
     floor_template = _template_by_component(biome_pack, "primary_floor_piece")
     if floor_template and primary_floor:
+        primary_floor_face_height = 64
         top_spec = _slot_spec("main_floor_top")
         plan.append({
             "slot_id": f"{room_id}-main-floor-top",
@@ -3046,8 +3047,8 @@ def _room_component_plan(room: Dict[str, Any], preview_id: str, biome_pack: Dict
             "component_type": "main_floor_face",
             "schema_key": face_spec["schema_key"],
             "source_template_id": floor_template["template_id"],
-            "target_dimensions": {"width": primary_floor["width"], "height": 128},
-            "placement": {"x": primary_floor["x"], "y": primary_floor["y"] + 12, "display_width": primary_floor["width"], "display_height": 128, "origin_x": 0, "origin_y": 0},
+            "target_dimensions": {"width": primary_floor["width"], "height": primary_floor_face_height},
+            "placement": {"x": primary_floor["x"], "y": primary_floor["y"] + 12, "display_width": primary_floor["width"], "display_height": primary_floor_face_height, "origin_x": 0, "origin_y": 0},
             "orientation": "horizontal",
             "tile_mode": face_spec["tile_mode"],
             "border_treatment": "face_plane_separation",
@@ -3059,6 +3060,7 @@ def _room_component_plan(room: Dict[str, Any], preview_id: str, biome_pack: Dict
     for index, platform in enumerate(hero_platforms[:3]):
         if not platform_template:
             break
+        hero_platform_face_height = 48
         top_spec = _slot_spec("hero_platform_top")
         plan.append({
             "slot_id": f"{room_id}-hero-platform-top-{index + 1}",
@@ -3080,8 +3082,8 @@ def _room_component_plan(room: Dict[str, Any], preview_id: str, biome_pack: Dict
             "component_type": "hero_platform_face",
             "schema_key": face_spec["schema_key"],
             "source_template_id": platform_template["template_id"],
-            "target_dimensions": {"width": platform["width"], "height": 84},
-            "placement": {"x": platform["x"], "y": platform["y"] + 8, "display_width": platform["width"], "display_height": 84, "origin_x": 0, "origin_y": 0},
+            "target_dimensions": {"width": platform["width"], "height": hero_platform_face_height},
+            "placement": {"x": platform["x"], "y": platform["y"] + 8, "display_width": platform["width"], "display_height": hero_platform_face_height, "origin_x": 0, "origin_y": 0},
             "orientation": "horizontal",
             "tile_mode": face_spec["tile_mode"],
             "border_treatment": "face_plane_separation",
@@ -3152,6 +3154,7 @@ def _build_bespoke_prompt(direction: Dict[str, Any], spec: Dict[str, Any], plan_
         for zone in (plan_entry.get("protected_zones") or [])
         if isinstance(zone, dict)
     ) or "none"
+    placement = plan_entry.get("placement") if isinstance(plan_entry.get("placement"), dict) else {}
     component_rules = {
         "background_far_plate": (
             "Build only the far-depth hall shell. The image must read as enclosing architecture, not a scenic key art moment. "
@@ -3212,9 +3215,11 @@ def _build_bespoke_prompt(direction: Dict[str, Any], spec: Dict[str, Any], plan_
 
         Component type: {component_type}
         Variant family: {template.get('variant_family')}
-        Requested width: {int(dims.get('width') or 0)} px
-        Requested height: {int(dims.get('height') or 0)} px
+        Exact output width: {int(dims.get('width') or 0)} px
+        Exact output height: {int(dims.get('height') or 0)} px
         Orientation: {plan_entry.get('orientation') or template.get('orientation') or 'unspecified'}
+        Runtime placement: x={int(placement.get('x') or 0)} y={int(placement.get('y') or 0)} origin=({float(placement.get('origin_x') or 0):.2f},{float(placement.get('origin_y') or 0):.2f})
+        Runtime display size: width={int(placement.get('display_width') or dims.get('width') or 0)} px height={int(placement.get('display_height') or dims.get('height') or 0)} px
         Room mood: {spec.get('mood') or ''}
         Room lighting: {spec.get('lighting') or ''}
         Room description: {spec.get('description') or ''}
@@ -3228,7 +3233,7 @@ def _build_bespoke_prompt(direction: Dict[str, Any], spec: Dict[str, Any], plan_
         Gameplay constraints: keep protected readability zones clear, preserve silhouette readability, stay close to the source template family, and protect top-lip / threshold / hazard readability.
         Composition contract: this must read as a playable room built in depth, not scenic concept art with gameplay layered on top. If the approved preview contains shrine, altar, brazier, dais, ritual floor, or other focal-scene imagery, treat those elements as rejected source noise unless they are explicitly required by this component role.
         Component-specific rules: {component_rules.get(component_type, 'Preserve the source template closely and keep gameplay-facing surfaces readable.')}
-        Output a single production-ready component image only. No text, no characters, no UI.
+        Output a single production-ready component image only at the exact output dimensions above. No text, no characters, no UI.
         """
     ).strip()
 
@@ -3242,6 +3247,57 @@ def _save_reference_image(image: Image.Image, output_path: Path, transparent: bo
         image = flattened
     image.save(output_path)
     return output_path
+
+
+def _stylize_structural_component(source: Image.Image, component_type: Optional[str]) -> Image.Image:
+    if not component_type:
+        return source
+    image = source.convert("RGBA")
+    width, height = image.size
+    if component_type in {"wall_module_left", "wall_module_right", "wall_base_trim_left", "wall_base_trim_right"}:
+        overlay = Image.new("RGBA", image.size, (0, 0, 0, 0))
+        draw = ImageDraw.Draw(overlay)
+        is_left = "left" in component_type
+        outer_band = max(10, int(width * 0.2))
+        inner_band = max(8, int(width * 0.12))
+        if is_left:
+            draw.rectangle((0, 0, outer_band, height), fill=(8, 10, 14, 132))
+            draw.rectangle((outer_band, 0, min(width, outer_band + inner_band), height), fill=(120, 132, 146, 28))
+        else:
+            draw.rectangle((max(0, width - outer_band), 0, width, height), fill=(8, 10, 14, 132))
+            draw.rectangle((max(0, width - outer_band - inner_band), 0, max(0, width - outer_band), height), fill=(120, 132, 146, 28))
+        draw.rectangle((0, 0, width, max(20, int(height * 0.08))), fill=(6, 8, 12, 72))
+        draw.rectangle((0, max(0, height - max(18, int(height * 0.06))), width, height), fill=(6, 8, 12, 96))
+        image.alpha_composite(overlay)
+        return image
+    if component_type in {"main_floor_face", "hero_platform_face", "pit_interior"}:
+        softened = image.filter(ImageFilter.GaussianBlur(radius=max(1, int(width * 0.01))))
+        toned = Image.blend(image, softened, 0.42)
+        overlay = Image.new("RGBA", image.size, (0, 0, 0, 0))
+        draw = ImageDraw.Draw(overlay)
+        draw.rectangle((0, 0, width, max(12, int(height * 0.16))), fill=(18, 24, 30, 40))
+        draw.rectangle((0, max(0, int(height * 0.18)), width, height), fill=(8, 10, 14, 82))
+        seam_step = max(32, int(width * 0.14))
+        seam_top = max(8, int(height * 0.12))
+        for x in range(seam_step, width, seam_step):
+            draw.line((x, seam_top, x, height), fill=(132, 144, 156, 26), width=max(1, width // 256))
+        for y in range(max(18, int(height * 0.22)), height, max(18, int(height * 0.24))):
+            draw.line((0, y, width, y), fill=(10, 12, 16, 34), width=max(1, height // 72))
+        toned.alpha_composite(overlay)
+        return toned
+    if component_type in {"main_floor_top", "hero_platform_top", "pit_rim"}:
+        overlay = Image.new("RGBA", image.size, (0, 0, 0, 0))
+        draw = ImageDraw.Draw(overlay)
+        lip = max(5, int(height * 0.18))
+        seam = min(height, lip + max(5, int(height * 0.08)))
+        draw.rectangle((0, 0, width, lip), fill=(214, 226, 236, 72))
+        draw.rectangle((0, max(0, lip - 1), width, seam), fill=(18, 24, 30, 142))
+        draw.rectangle((0, seam, width, height), fill=(8, 10, 14, 54))
+        line_y = min(height - 1, max(1, lip - 1))
+        draw.line((0, line_y, width, line_y), fill=(232, 240, 246, 168), width=max(1, height // 28))
+        image.alpha_composite(overlay)
+        return image
+    return image
 
 
 def _apply_background_suppression(source: Image.Image, aggressive: bool = False) -> Image.Image:
@@ -3295,6 +3351,51 @@ def _background_reference_guide(template_path: Path, output_path: Path, size: Tu
     return _save_reference_image(source, output_path, transparent)
 
 
+def _restore_background_shell_definition(source: Image.Image, template_source: Optional[Image.Image] = None) -> Image.Image:
+    source = source.convert("RGBA")
+    width, height = source.size
+    restored = source.copy()
+    if template_source is not None:
+        template = template_source.convert("RGBA").resize(source.size, Image.Resampling.LANCZOS)
+        template = template.filter(ImageFilter.GaussianBlur(radius=max(2, int(width * 0.004))))
+        mask = Image.new("L", source.size, 0)
+        draw = ImageDraw.Draw(mask)
+        left = int(width * 0.26)
+        right = int(width * 0.74)
+        top = int(height * 0.08)
+        bottom = int(height * 0.9)
+        draw.rounded_rectangle((left, top, right, bottom), radius=max(28, int(width * 0.08)), fill=255)
+        mask = mask.filter(ImageFilter.GaussianBlur(radius=max(24, int(width * 0.035))))
+        blended = Image.blend(source, template, 0.24)
+        restored = Image.composite(blended, restored, mask)
+    overlay = Image.new("RGBA", source.size, (0, 0, 0, 0))
+    draw = ImageDraw.Draw(overlay)
+    band_width = max(28, int(width * 0.05))
+    band_height = int(height * 0.62)
+    band_top = int(height * 0.2)
+    for center_x in (int(width * 0.42), int(width * 0.58)):
+        draw.rounded_rectangle(
+            (center_x - band_width // 2, band_top, center_x + band_width // 2, band_top + band_height),
+            radius=max(16, int(width * 0.025)),
+            fill=(112, 126, 138, 36),
+        )
+        draw.rectangle(
+            (center_x - max(3, band_width // 12), band_top, center_x + max(3, band_width // 12), band_top + band_height),
+            fill=(54, 64, 74, 64),
+        )
+    arch_y = int(height * 0.14)
+    arch_h = int(height * 0.22)
+    draw.arc(
+        (int(width * 0.28), arch_y, int(width * 0.72), arch_y + arch_h),
+        180,
+        360,
+        fill=(120, 134, 146, 58),
+        width=max(2, width // 480),
+    )
+    restored.alpha_composite(overlay)
+    return restored
+
+
 def _apply_midground_clearance(source: Image.Image, aggressive: bool = False) -> Image.Image:
     source = source.convert("RGBA")
     width, height = source.size
@@ -3320,7 +3421,25 @@ def _apply_midground_clearance(source: Image.Image, aggressive: bool = False) ->
     draw.rounded_rectangle((int(width * 0.1), route_top, int(width * 0.9), height), radius=max(18, int(width * 0.06)), fill=255)
     clear_mask = clear_mask.filter(ImageFilter.GaussianBlur(radius=max(10, int(width * 0.02))))
     source = Image.composite(Image.new("RGBA", source.size, (0, 0, 0, 0)), source, clear_mask)
-    return source
+    return _apply_midground_inner_edge_suppression(source, aggressive=aggressive)
+
+
+def _apply_midground_inner_edge_suppression(source: Image.Image, aggressive: bool = False) -> Image.Image:
+    source = source.convert("RGBA")
+    width, height = source.size
+    mask = Image.new("L", source.size, 0)
+    draw = ImageDraw.Draw(mask)
+    inner_left = int(width * 0.08)
+    inner_right = int(width * 0.92)
+    band_width = int(width * (0.07 if aggressive else 0.05))
+    top = int(height * 0.08)
+    bottom = int(height * 0.92)
+    radius = max(18, int(width * 0.03))
+    draw.rounded_rectangle((inner_left, top, inner_left + band_width, bottom), radius=radius, fill=255)
+    draw.rounded_rectangle((inner_right - band_width, top, inner_right, bottom), radius=radius, fill=255)
+    mask = mask.filter(ImageFilter.GaussianBlur(radius=max(14, int(width * 0.025))))
+    darken = Image.new("RGBA", source.size, (0, 0, 0, 188 if aggressive else 144))
+    return Image.composite(darken, source, mask)
 
 
 def _midground_reference_guide(template_path: Path, output_path: Path, size: Tuple[int, int], transparent: bool, aggressive: bool = False) -> Path:
@@ -3329,7 +3448,13 @@ def _midground_reference_guide(template_path: Path, output_path: Path, size: Tup
     return _save_reference_image(source, output_path, transparent)
 
 
-def _postprocess_component_for_validation(path: Path, component_type: str, errors: List[str], attempt_index: int) -> bool:
+def _postprocess_component_for_validation(
+    path: Path,
+    component_type: str,
+    errors: List[str],
+    attempt_index: int,
+    template_path: Optional[Path] = None,
+) -> bool:
     if not path.exists() or not errors:
         return False
     source = Image.open(path).convert("RGBA")
@@ -3337,8 +3462,19 @@ def _postprocess_component_for_validation(path: Path, component_type: str, error
         corrected = _apply_background_suppression(source, aggressive=True)
         _save_reference_image(corrected, path, transparent=False)
         return True
+    if component_type == "background_far_plate" and "background_shell_definition_low" in errors:
+        template_source = None
+        if template_path and template_path.exists():
+            template_source = Image.open(template_path).convert("RGBA")
+        corrected = _restore_background_shell_definition(source, template_source)
+        _save_reference_image(corrected, path, transparent=False)
+        return True
     if component_type == "midground_side_frame" and "midground_center_clutter" in errors:
         corrected = _apply_midground_clearance(source, aggressive=True)
+        _save_reference_image(corrected, path, transparent=True)
+        return True
+    if component_type == "midground_side_frame" and "midground_inner_edge_hot" in errors:
+        corrected = _apply_midground_inner_edge_suppression(source, aggressive=True)
         _save_reference_image(corrected, path, transparent=True)
         return True
     return False
@@ -3415,6 +3551,7 @@ def _render_bespoke_component_from_template(
         if crop_box:
             source = source.crop(crop_box)
         source = source.resize(size, Image.Resampling.LANCZOS)
+        source = _stylize_structural_component(source, component_type)
         if not transparent:
             flattened = Image.new("RGBA", size, (0, 0, 0, 255))
             flattened.alpha_composite(source)
@@ -3439,6 +3576,8 @@ def _retry_prompt_for_validation_errors(component_type: str, prompt: str, errors
         return f"{prompt}\nRetry instruction: suppress all center-lane contrast and focal heat. The center third must stay dim, calm, fog-soft, and architecturally open with no hotspot, altar read, or bright apse."
     if component_type == "midground_side_frame" and "midground_center_clutter" in errors and attempt_index < 2:
         return f"{prompt}\nRetry instruction: the center third must be transparent and empty. Remove any center arch, center prop, center silhouette, or floor-crossing occlusion. Keep mass only on the extreme left and right."
+    if component_type == "midground_side_frame" and "midground_inner_edge_hot" in errors and attempt_index < 2:
+        return f"{prompt}\nRetry instruction: remove bright inner-edge columns or glowing doorway reads near the center lane. Keep any side framing dark, matte, and subordinate to traversal readability."
     if "template_family_drift" in errors and attempt_index < 2:
         return f"{prompt}\nRetry instruction: stay materially closer to the provided guide image. Match the same stone family, value grouping, crack rhythm, edge damage, and overall silhouette discipline. Do not redesign or introduce a new motif."
     return None
@@ -3585,12 +3724,25 @@ def _validate_bespoke_component(
         edges = (_region_luminance(path, (0.0, 0.18, 0.18, 0.82)) + _region_luminance(path, (0.82, 0.18, 1.0, 0.82))) / 2.0
         if center - edges > 18:
             errors.append("center_lane_too_hot")
+        center_contrast = _image_region_contrast(img, (0.34, 0.22, 0.66, 0.78))
+        if center_contrast < 0.0025:
+            errors.append("background_shell_definition_low")
     if component_type == "midground_side_frame" and not trusted_template_copy:
         center = _region_alpha_ratio(path, (0.32, 0.18, 0.68, 0.82))
         side_a = _region_alpha_ratio(path, (0.0, 0.18, 0.2, 0.82))
         side_b = _region_alpha_ratio(path, (0.8, 0.18, 1.0, 0.82))
         if center > max(side_a, side_b) + 0.15:
             errors.append("midground_center_clutter")
+        inner_edge_lum = max(
+            _region_luminance(path, (0.08, 0.12, 0.18, 0.9)),
+            _region_luminance(path, (0.82, 0.12, 0.92, 0.9)),
+        )
+        edge_lum = max(
+            _region_luminance(path, (0.0, 0.12, 0.08, 0.9)),
+            _region_luminance(path, (0.92, 0.12, 1.0, 0.9)),
+        )
+        if inner_edge_lum > max(150.0, edge_lum + 42.0):
+            errors.append("midground_inner_edge_hot")
     return len(errors) == 0, errors
 
 
@@ -3709,8 +3861,14 @@ def _runtime_review_metrics(screenshot_path: Path, assets: Dict[str, Any]) -> Di
     left = _image_region_luminance(img, (0.0, 0.18, 0.28, 0.82))
     right = _image_region_luminance(img, (0.72, 0.18, 1.0, 0.82))
     center_contrast = _image_region_contrast(img, (0.34, 0.18, 0.66, 0.82))
+    center_upper_contrast = _image_region_contrast(img, (0.34, 0.16, 0.66, 0.46))
+    center_lower_contrast = _image_region_contrast(img, (0.34, 0.56, 0.66, 0.84))
     floor_band = _image_region_luminance(img, (0.18, 0.74, 0.82, 0.9))
     upper_band = _image_region_luminance(img, (0.18, 0.54, 0.82, 0.7))
+    side_shell_definition = (
+        _image_region_contrast(img, (0.04, 0.18, 0.2, 0.82)) +
+        _image_region_contrast(img, (0.8, 0.18, 0.96, 0.82))
+    ) / 2.0
     platform_scores: List[float] = []
     threshold_scores: List[float] = []
     for asset in assets.values():
@@ -3744,7 +3902,10 @@ def _runtime_review_metrics(screenshot_path: Path, assets: Dict[str, Any]) -> Di
             threshold_scores.append(abs(frame - opening) / 255.0)
     return {
         "center_clutter": center_contrast,
+        "center_upper_contrast": center_upper_contrast,
+        "center_lower_contrast": center_lower_contrast,
         "left_right_balance": abs(left - right) / 255.0,
+        "side_shell_definition": side_shell_definition,
         "floor_background_separation": abs(floor_band - upper_band) / 255.0,
         "platform_top_readability": sum(platform_scores) / len(platform_scores) if platform_scores else 0.0,
         "threshold_visibility": sum(threshold_scores) / len(threshold_scores) if threshold_scores else 0.0,
@@ -3826,10 +3987,18 @@ def _run_runtime_review(
     warning_reasons: List[str] = []
     if metrics["center_clutter"] > 0.08:
         fail_reasons.append("center_clutter_too_high")
+    if (
+        metrics["center_clutter"] < 0.01
+        and metrics["center_upper_contrast"] < 0.0025
+        and metrics["center_lower_contrast"] < 0.01
+        and metrics["floor_background_separation"] < 0.06
+    ):
+        fail_reasons.append("room_shell_readability_low")
     if metrics["left_right_balance"] > 0.18:
         fail_reasons.append("left_right_balance_off")
-    # Low floor/background separation should be surfaced, but it should not block
-    # showing the generated kit in playtest when all slots are present.
+    # Low floor/background separation alone should be surfaced, but it should not
+    # block showing the generated kit unless it combines with an over-suppressed,
+    # unreadable center lane.
     if metrics["floor_background_separation"] < 0.035:
         warning_reasons.append("floor_background_separation_low")
     if metrics["platform_sample_count"] > 0 and metrics["platform_top_readability"] < 0.003:
@@ -3985,7 +4154,7 @@ def generate_room_environment_asset_pack(project_id: str, room_id: str, payload:
                     template_path,
                 )
                 postprocessed = False
-                if errors and _postprocess_component_for_validation(output_path, component_type, errors, attempt_index):
+                if errors and _postprocess_component_for_validation(output_path, component_type, errors, attempt_index, template_path):
                     postprocessed = True
                     valid, errors = _validate_bespoke_component(
                         output_path,
@@ -4101,6 +4270,8 @@ def generate_room_environment_asset_pack(project_id: str, room_id: str, payload:
         "screenshot_url": None,
         "metrics": {},
         "fail_reasons": ["slot_generation_failed"] if failed_assets else ["no_assets_built"],
+        "failed_slot_ids": list(failed_assets),
+        "validation_errors": list(validation_errors),
         "generated_at": now_iso(),
     }
     review_ok = runtime_review.get("status") == "pass"

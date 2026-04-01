@@ -92,6 +92,14 @@ This log records decisions for the room environment and bespoke asset quality pa
 - Why: Playtest showed a non-black frame because starfield, room background textures, midground, feather fades, and procedural `buildEnvironmentSetDressing` arches still drew above `setBackgroundColor`. Embedded layouts can also keep `themeId: ruins` while QA is intended.
 - Consequence: `isContrastQaEnvironment(room)` true when `themeId === 'contrast-qa'` **or** URL has `?contrast-qa=1`. In that mode: starfield alpha 0; hide per-room bg/mid/feathers; skip procedural backdrop/shell overlay dressing; HUD appends `black-void(QA)` when URL forces. Procedural stone uses **ruins** warm palette, forces broken-masonry platform family, and raises floor/platform tile alpha so the shell reads without AI palette washing it cool blue.
 
+## Troubleshooting
+
+### Bespoke build 7/8 (or any partial) + `Runtime review: blocked · slot_generation_failed`
+- **Meaning:** `_run_runtime_review` only runs when `built_slots` is non-empty **and** `failed_assets` is empty (`room_environment_system.generate_room_environment_asset_pack`). One slot did not produce a valid PNG URL.
+- **Where to look:** Project room `environment.runtime.bespoke_asset_manifest.failed_assets` (slot ids), `validation_errors` (`slot_id:error_code`), and per-slot `assets[slot_id].validation.errors` / `assets[slot_id].attempts[-1].status`.
+- **Typical causes:** `missing_template` / `missing_template_image`; Gemini `generation_failed` (API/key/network); post-build **validation** (e.g. `midground_center_clutter`, `center_lane_too_hot`, dimension mismatch). Scenic slots (background, midground) fail validation more often than structural strips.
+- **UI:** Room wizard Environment output now surfaces `validation_errors` in the summary when the bespoke manifest status is `failed`.
+
 ## Open Questions
 
 - Should `ceiling`, `backwall_panel`, or `wall_face` become first-class component schema types?

@@ -6466,6 +6466,7 @@
         const schemaStatuses = schemaValidation.component_statuses || {};
         const slotGroups = bespokeManifest.slot_groups || {};
         const runtimeReview = bespokeManifest.runtime_review || bespokeManifest.review || {};
+        const validationErrs = Array.isArray(bespokeManifest.validation_errors) ? bespokeManifest.validation_errors : [];
         const buildButton = document.getElementById('roomWizardBuildEnvironmentAssets');
         const approved = Array.isArray(preview.images)
           ? preview.images.find((item) => item.preview_id === preview.approved_image_id)
@@ -6487,6 +6488,10 @@
           bits.push(`Bespoke biome assets complete: ${builtAssetCount}/${requiredAssetCount || builtAssetCount} required slots built and runtime review passed${warningReasons.length ? ` with warnings: ${warningReasons.join(', ')}` : ''}. Open Game now uses the bespoke structural and scenic room pieces for this room.`);
         } else if (bespokeManifest.status === 'failed') {
           bits.push(`Bespoke asset generation incomplete: ${builtAssetCount}/${requiredAssetCount || builtAssetCount} slots built. Failed slots: ${((bespokeManifest.failed_assets || []).join(', ') || 'unknown').replace(/_/g, ' ')}.`);
+          if (validationErrs.length) {
+            bits.push(`Slot errors: ${validationErrs.slice(0, 8).join(' · ')}${validationErrs.length > 8 ? ' · …' : ''}`);
+          }
+          bits.push('Runtime screenshot QA is skipped until every required slot builds. Fix or retry the failed slot (API key, template image, or validation — e.g. midground center clutter).');
         } else if (preview.approved_image_id) {
           bits.push('Build the bespoke biome asset set for this room to generate structural room slots, then run runtime screenshot QA.');
         }
@@ -6529,19 +6534,28 @@
               <small>${escapeHtml(`${runtimeReview.review_mode || 'review'}${runtimeReview.capture_issue ? ` · ${runtimeReview.capture_issue}` : ''}`)}</small>
             </div>`
           : '';
+        const reviewBlockedSlots = Array.isArray(runtimeReview?.fail_reasons) && runtimeReview.fail_reasons.includes('slot_generation_failed');
         const reviewText = runtimeReview?.status
-          ? `Runtime review: ${runtimeReview.status}${Array.isArray(runtimeReview.fail_reasons) && runtimeReview.fail_reasons.length ? ` · ${runtimeReview.fail_reasons.join(', ')}` : ''}`
+          ? `Runtime review: ${runtimeReview.status}${Array.isArray(runtimeReview.fail_reasons) && runtimeReview.fail_reasons.length ? ` · ${runtimeReview.fail_reasons.join(', ')}` : ''}${reviewBlockedSlots && validationErrs.length ? ` · ${validationErrs.slice(0, 5).join('; ')}` : ''}`
           : 'Runtime review: not run yet';
         const assetThumbs = ['ready', 'failed'].includes(bespokeManifest.status)
-          ? Object.values(bespokeManifest.assets || {}).map((item) => `
+          ? Object.values(bespokeManifest.assets || {}).map((item) => {
+              const vErrs = item && item.validation && Array.isArray(item.validation.errors) ? item.validation.errors : [];
+              const lastAtt = Array.isArray(item.attempts) && item.attempts.length ? item.attempts[item.attempts.length - 1] : null;
+              const failHint = !item.url && (vErrs.length ? vErrs.join(', ') : (lastAtt && lastAtt.status ? lastAtt.status : ''));
+              const sub = item.url
+                ? String(item.generation_source || 'ok')
+                : [String(item.generation_source || 'failed'), failHint].filter(Boolean).join(' · ');
+              return `
               <div class="rw-environment-asset-thumb">
                 ${item.url
                   ? `<img src="${escapeHtml(assetUrlWithVersion(item.url || '', bespokeManifest.generated_at || ''))}" alt="${escapeHtml(item.component_type || 'asset')}" />`
                   : `<div class="rw-environment-asset-thumb-empty">${escapeHtml(String(item.generation_source || 'missing'))}</div>`}
-                <span>${escapeHtml(item.component_type || 'asset')}</span>
-                <small>${escapeHtml(String(item.generation_source || 'unknown'))}</small>
+                <span>${escapeHtml(item.slot_id || item.component_type || 'asset')}</span>
+                <small>${escapeHtml(sub.slice(0, 120))}</small>
               </div>
-            `).join('')
+            `;
+            }).join('')
           : '';
         if (buildButton) {
           buildButton.disabled = false;
