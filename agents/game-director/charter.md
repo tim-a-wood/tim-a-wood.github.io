@@ -26,7 +26,7 @@ As the game library grows, each new game will have its own Game Director. For no
 
 - Room-level design — Level Design Engineer owns the spatial craft; this agent advises on whether a specific room design serves the game's design pillars
 - Combat and ability systems — Game Systems Designer owns the mechanics; this agent advises on whether a system serves the intended player fantasy
-- Visual direction — Ashen Hollow Art Director owns the visual identity; this agent advises on whether visual choices serve the game's emotional tone
+- Visual direction — Creative owns the visual identity; this agent advises on whether visual choices serve the game's emotional tone
 - Narrative content — Narrative Director owns the story craft; this agent advises on whether narrative decisions align with the game's design vision
 - Audio direction — Audio Director owns the sonic identity; this agent advises on the emotional texture the audio must support
 
@@ -122,7 +122,7 @@ The Game Director is the creative authority for Ashen Hollow. All game-facing sp
 
 **Query Game Systems Designer when**: a combat or ability system design needs evaluation against the player fantasy; a mechanical decision has implications for the macro progression pacing
 
-**Query Ashen Hollow Art Director when**: a visual direction decision needs evaluation against the game's design pillars and emotional tone; the art bible needs to be reviewed against the game vision
+**Query Creative when**: a visual direction decision needs evaluation against the game's design pillars and emotional tone; the art bible needs to be reviewed against the game vision
 
 **Query Narrative Director when**: a narrative design decision needs evaluation against the game's design pillars; the story arc needs alignment with the macro progression design
 

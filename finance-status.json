@@ -1,6 +1,6 @@
 {
-  "_note": "Updated by the finance agent after each task. Plain language — no jargon.",
-  "updated": "2026-03-30",
+  "_note": "Updated by the finance agent after each task. Plain language \u2014 no jargon.",
+  "updated": "2026-03-31",
   "schema_version": "v1.0",
   "priorities": [
     {
@@ -8,28 +8,32 @@
       "title": "Measure the actual AI API cost per Copilot session so we can model unit economics",
       "status": "in-progress",
       "risk": "high",
-      "note": "We don't know what the Copilot actually costs per invocation in practice. Without real token consumption numbers, any pricing model is built on assumptions. This is the most important financial unknown right now."
+      "note": "We don't know what the Copilot actually costs per invocation in practice. Without real token consumption numbers, any pricing model is built on assumptions. This is the most important financial unknown right now.",
+      "proposed_solution": "Instrument real Copilot token usage per session and roll it up to marginal API cost per user for honest unit economics."
     },
     {
       "id": 2,
       "title": "Build a three-scenario pricing model for the paid tier once unit economics are known",
       "status": "paused",
       "risk": "high",
-      "note": "Blocked on having real cost data. Once we know the cost per user per month, we can model what price makes this business work."
+      "note": "Blocked on having real cost data. Once we know the cost per user per month, we can model what price makes this business work.",
+      "proposed_solution": "Once cost per user is known, build base, bull, and bear pricing scenarios tied to contribution margin targets."
     },
     {
       "id": 3,
-      "title": "Set up monthly cost tracking — actual spend vs. budget by line item",
+      "title": "Set up monthly cost tracking \u2014 actual spend vs. budget by line item",
       "status": "in-progress",
       "risk": "med",
-      "note": "Currently no structured view of what we're spending. Need a simple monthly summary: API costs, hosting, tooling subscriptions — actual vs. expected."
+      "note": "Currently no structured view of what we're spending. Need a simple monthly summary: API costs, hosting, tooling subscriptions \u2014 actual vs. expected.",
+      "proposed_solution": "Maintain a monthly actual-versus-budget view across API, hosting, and subscriptions with simple variance notes."
     },
     {
       "id": 4,
-      "title": "Establish a cost alert threshold — flag anything over 150% of the four-week average",
+      "title": "Establish a cost alert threshold \u2014 flag anything over 150% of the four-week average",
       "status": "paused",
       "risk": "med",
-      "note": "A sudden API cost spike (bad prompt, unexpected traffic) could generate a large bill before anyone notices. A simple threshold alert prevents surprises."
+      "note": "A sudden API cost spike (bad prompt, unexpected traffic) could generate a large bill before anyone notices. A simple threshold alert prevents surprises.",
+      "proposed_solution": "After baselines exist, alert when any API spend exceeds 150% of the trailing four-week average and investigate spikes."
     }
   ],
   "risks_p0": [],
@@ -49,7 +53,7 @@
     {
       "id": "unit-economics-update",
       "name": "Unit Economics Update",
-      "description": "Updated contribution margin model — revenue per user, API cost per user, margin per paying user.",
+      "description": "Updated contribution margin model \u2014 revenue per user, API cost per user, margin per paying user.",
       "trigger": "Monthly or after any AI API pricing change",
       "last_run": null,
       "output_location": null
@@ -57,7 +61,7 @@
     {
       "id": "runway-check",
       "name": "Runway Check",
-      "description": "Runway calculation under current, optimistic, and bear spend scenarios — months remaining, break-even conditions.",
+      "description": "Runway calculation under current, optimistic, and bear spend scenarios \u2014 months remaining, break-even conditions.",
       "trigger": "Monthly",
       "last_run": null,
       "output_location": null
@@ -73,7 +77,7 @@
     {
       "id": "api-cost-alert",
       "name": "API Cost Alert",
-      "description": "Cost spike analysis — root cause, projection at current growth rate, options to contain.",
+      "description": "Cost spike analysis \u2014 root cause, projection at current growth rate, options to contain.",
       "trigger": "Any API call volume change exceeding 150% of the 4-week average",
       "last_run": null,
       "output_location": null

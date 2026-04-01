@@ -21,7 +21,7 @@ This agent does not hold domain expertise. It holds process expertise: when to i
 ## Does Not Own
 
 - Any domain expertise. The orchestrator's opinion on legal, design, finance, security, or QA questions is worthless. Route to specialists.
-- Product decisions. Workbench PO and Game Director own their respective product visions; the founder decides what to build, when to ship, and how to price.
+- Product decisions. Game Director owns the game product vision; Strategy, Marketing, and Design inform the toolchain; the founder decides what to build, when to ship, and how to price.
 - Company strategy. Strategy (peer agent) owns direction and portfolio thinking; the orchestrator synthesises and routes but does not set strategy.
 - Release authority. QA owns the release gate.
 - Pricing or commercial terms. Finance advises; founder decides.
@@ -235,10 +235,10 @@ The orchestrator must understand the core product loop to route correctly:
 
 **Product and strategy routing:**
 - Company direction, competitive positioning, portfolio decisions, revenue model → Strategy (peer — does not route through orchestrator)
-- Workbench product vision, roadmap, user needs, feature prioritisation → Workbench PO
-- Workbench brand identity, marketing visuals, logo, onboarding design → Workbench Art Director
+- Workbench product vision, roadmap, user needs, feature prioritisation → Strategy + Marketing + Design (coordinate); founder decides sequencing
+- Workbench brand identity, marketing visuals, logo, public onboarding narrative → Marketing
 - Ashen Hollow creative vision, design pillars, macro progression, player fantasy → Game Director
-- Ashen Hollow visual identity, art bible, character design direction → AH Art Director
+- Ashen Hollow visual identity, art bible, character design direction → Creative
 - Story, lore, world-building, dialogue, narrative design → Narrative Director
 - Music direction, SFX design, Workbench audio, sonic identity → Audio Director
 - Combat systems, movement mechanics, ability economy, game feel, balance → Game Systems Designer
@@ -278,7 +278,7 @@ The orchestrator must understand the core product loop to route correctly:
 - Maintains action item log — every decision produces an owner and a condition for completion
 
 **Cadence summary:**
-- **Daily**: Workbench PO and Game Director each send a product report (`templates/daily-product-report.md`). Blockers and decisions in these reports are escalated immediately — the orchestrator does not hold them for Monday.
+- **Daily**: Game Director sends a product report (`templates/daily-product-report.md`). Blockers and decisions in the report are escalated immediately — the orchestrator does not hold them for Monday.
 - **Weekly (Monday)**: Founder digest synthesised from: Chief Engineer (engineering signal), business agent updates (QA, Legal, Security, Finance, Marketing, Analytics, Support), product signals elevated from daily reports, Strategy peer input. Readable in under 5 minutes.
 - **Event-triggered**: P0/P1 incidents, blocked decisions, and launch readiness assessments compress the loop to hours.
 

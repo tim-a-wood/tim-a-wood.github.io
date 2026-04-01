@@ -344,7 +344,6 @@ def make_handler(
             "game-director-status.json",
             "game-systems-status.json",
             "level-design-status.json",
-            "workbench-po-status.json",
             "finance-status.json",
             "legal-status.json",
             "cybersecurity-status.json",
@@ -352,8 +351,7 @@ def make_handler(
             "animation-status.json",
             "narrative-status.json",
             "audio-status.json",
-            "workbench-art-status.json",
-            "ashen-hollow-art-status.json",
+            "creative-status.json",
         }
     )
     # Files that can be written back via POST /api/status-update

@@ -6448,11 +6448,24 @@
         const runtime = envState?.runtime || {};
         const assetPack = runtime?.asset_pack || {};
         const bespokeManifest = runtime?.bespoke_asset_manifest || {};
+        const generationPlan = Array.isArray(bespokeManifest.generation_plan) ? bespokeManifest.generation_plan : [];
+        const requiredSlots = Array.isArray(bespokeManifest.required_slots) ? bespokeManifest.required_slots : generationPlan.map((item) => item?.slot_id).filter(Boolean);
+        const builtSlots = Array.isArray(bespokeManifest.built_slots) ? bespokeManifest.built_slots : [];
+        const generatedAssets = bespokeManifest.assets && typeof bespokeManifest.assets === 'object'
+          ? Object.values(bespokeManifest.assets).filter((item) => item && typeof item === 'object')
+          : [];
+        const builtAssetCount = builtSlots.length || generatedAssets.filter((item) => item.url).length;
+        const requiredAssetCount = requiredSlots.length || generationPlan.length;
         const staleComponents = Array.isArray(assetPack.stale_components) ? assetPack.stale_components : [];
         const spec = envState?.spec || {};
         const sceneSchema = spec?.scene_schema || {};
         const kit = sceneSchema?.kit || {};
         const components = spec?.components || {};
+        const componentSchemas = spec?.component_schemas || {};
+        const schemaValidation = bespokeManifest.schema_validation || {};
+        const schemaStatuses = schemaValidation.component_statuses || {};
+        const slotGroups = bespokeManifest.slot_groups || {};
+        const runtimeReview = bespokeManifest.runtime_review || bespokeManifest.review || {};
         const buildButton = document.getElementById('roomWizardBuildEnvironmentAssets');
         const approved = Array.isArray(preview.images)
           ? preview.images.find((item) => item.preview_id === preview.approved_image_id)
@@ -6470,11 +6483,12 @@
           bits.push('Generate previews to produce a room image, then approve one to drive runtime surfaces.');
         }
         if (bespokeManifest.status === 'ready') {
-          bits.push('Bespoke biome assets generated from the locked biome templates. Open Game now uses the bespoke background, midground, and traversal pieces for this room.');
+          const warningReasons = Array.isArray(runtimeReview.warning_reasons) ? runtimeReview.warning_reasons : [];
+          bits.push(`Bespoke biome assets complete: ${builtAssetCount}/${requiredAssetCount || builtAssetCount} required slots built and runtime review passed${warningReasons.length ? ` with warnings: ${warningReasons.join(', ')}` : ''}. Open Game now uses the bespoke structural and scenic room pieces for this room.`);
         } else if (bespokeManifest.status === 'failed') {
-          bits.push(`Bespoke asset generation failed. Failed assets: ${((bespokeManifest.failed_assets || []).join(', ') || 'unknown').replace(/_/g, ' ')}.`);
+          bits.push(`Bespoke asset generation incomplete: ${builtAssetCount}/${requiredAssetCount || builtAssetCount} slots built. Failed slots: ${((bespokeManifest.failed_assets || []).join(', ') || 'unknown').replace(/_/g, ' ')}.`);
         } else if (preview.approved_image_id) {
-          bits.push('Build the bespoke biome asset set for this room to generate background, midground, floor, platform, and door pieces.');
+          bits.push('Build the bespoke biome asset set for this room to generate structural room slots, then run runtime screenshot QA.');
         }
         if (staleComponents.length) {
           bits.push(`Impacted by the latest room changes: ${staleComponents.join(', ').replace(/_/g, ' ')}.`);
@@ -6485,9 +6499,9 @@
         const lightingText = spec.lighting || 'Lighting not planned yet';
         const templateText = envState?.template_context?.source_template_label || 'Freeform draft';
         const assetText = bespokeManifest.status === 'ready'
-          ? `Assets: bespoke biome kit live in runtime · Generated ${bespokeManifest.generated_at || 'recently'}`
+          ? `Assets: ${builtAssetCount}/${requiredAssetCount || builtAssetCount} required slots live in runtime · Generated ${bespokeManifest.generated_at || 'recently'}`
           : bespokeManifest.status === 'failed'
-            ? 'Assets: bespoke generation failed'
+            ? `Assets: incomplete (${builtAssetCount}/${requiredAssetCount || builtAssetCount} built)`
             : 'Assets: not built yet';
         const schemaText = `Schema: ${(sceneSchema.background_layers || []).length} background layer${(sceneSchema.background_layers || []).length === 1 ? '' : 's'}, ${(sceneSchema.set_dressing || []).length} dressing rule${(sceneSchema.set_dressing || []).length === 1 ? '' : 's'}, effects ${Object.keys(sceneSchema.effects || {}).length}`;
         const kitText = [kit.shell_family, kit.wall_family, kit.platform_family, kit.door_family, kit.backdrop_family].filter(Boolean).join(', ');
@@ -6495,9 +6509,29 @@
           const label = `${String((item || {}).label || key)} · ${String((item || {}).prompt || '').slice(0, 44)}`;
           return `<span class="rw-environment-chip">${escapeHtml(label)}</span>`;
         }).join('');
+        const componentSchemaChips = Object.entries(componentSchemas).map(([key, item]) => {
+          const status = String((schemaStatuses[key] || {}).status || 'normalized');
+          const label = `${key} · ${status}`;
+          const intent = String((item || {}).design_intent || '').slice(0, 48);
+          return `<span class="rw-environment-chip">${escapeHtml(`${label}${intent ? ` · ${intent}` : ''}`)}</span>`;
+        }).join('');
+        const slotGroupChips = Object.entries(slotGroups).map(([key, group]) => {
+          return `<span class="rw-environment-chip">${escapeHtml(`${key}: ${group.built || 0}/${group.required || 0}`)}</span>`;
+        }).join('');
         const staleChips = staleComponents.map((item) => (
           `<span class="rw-environment-chip">${escapeHtml(`Needs refresh: ${String(item).replace(/_/g, ' ')}`)}</span>`
         )).join('');
+        const runtimeReviewMarkup = runtimeReview?.screenshot_url
+          ? `
+            <div class="rw-environment-asset-thumb">
+              <img src="${escapeHtml(assetUrlWithVersion(runtimeReview.screenshot_url || '', runtimeReview.generated_at || bespokeManifest.generated_at || ''))}" alt="Runtime review screenshot" />
+              <span>${escapeHtml(`Runtime review · ${runtimeReview.status || 'idle'}`)}</span>
+              <small>${escapeHtml(`${runtimeReview.review_mode || 'review'}${runtimeReview.capture_issue ? ` · ${runtimeReview.capture_issue}` : ''}`)}</small>
+            </div>`
+          : '';
+        const reviewText = runtimeReview?.status
+          ? `Runtime review: ${runtimeReview.status}${Array.isArray(runtimeReview.fail_reasons) && runtimeReview.fail_reasons.length ? ` · ${runtimeReview.fail_reasons.join(', ')}` : ''}`
+          : 'Runtime review: not run yet';
         const assetThumbs = ['ready', 'failed'].includes(bespokeManifest.status)
           ? Object.values(bespokeManifest.assets || {}).map((item) => `
               <div class="rw-environment-asset-thumb">
@@ -6510,7 +6544,12 @@
             `).join('')
           : '';
         if (buildButton) {
-          buildButton.textContent = 'Build Production Assets';
+          buildButton.disabled = false;
+          buildButton.textContent = bespokeManifest.status === 'ready'
+            ? 'Rebuild Production Assets'
+            : bespokeManifest.status === 'failed'
+              ? 'Retry Build Production Assets'
+              : 'Build Production Assets';
         }
         target.innerHTML = `
           <section class="rw-environment-output-card">
@@ -6521,12 +6560,14 @@
               </div>
               <div>
                 <p class="rw-environment-preview-label">Schema + build plan</p>
-                <p class="rw-environment-output-copy">${escapeHtml(`${schemaText} · Kit: ${kitText || 'default'} · Template: ${templateText} · Materials: ${materialText} · Lighting: ${lightingText} · ${assetText}`)}</p>
+                <p class="rw-environment-output-copy">${escapeHtml(`${schemaText} · Kit: ${kitText || 'default'} · Template: ${templateText} · Materials: ${materialText} · Lighting: ${lightingText} · ${assetText} · ${reviewText}`)}</p>
               </div>
             </div>
             ${componentChips ? `<div class="rw-environment-chip-row">${componentChips}</div>` : ''}
+            ${componentSchemaChips ? `<div class="rw-environment-chip-row">${componentSchemaChips}</div>` : ''}
+            ${slotGroupChips ? `<div class="rw-environment-chip-row">${slotGroupChips}</div>` : ''}
             ${staleChips ? `<div class="rw-environment-chip-row">${staleChips}</div>` : ''}
-            ${assetThumbs ? `<div class="rw-environment-asset-grid">${assetThumbs}</div>` : ''}
+            ${(runtimeReviewMarkup || assetThumbs) ? `<div class="rw-environment-asset-grid">${runtimeReviewMarkup}${assetThumbs}</div>` : ''}
           </section>`;
       }
 
@@ -6843,6 +6884,12 @@
             room.environment.runtime.bespoke_asset_manifest.biome_id = null;
             room.environment.runtime.bespoke_asset_manifest.source_preview_id = null;
             room.environment.runtime.bespoke_asset_manifest.generation_plan = [];
+            room.environment.runtime.bespoke_asset_manifest.required_slots = [];
+            room.environment.runtime.bespoke_asset_manifest.built_slots = [];
+            room.environment.runtime.bespoke_asset_manifest.slot_groups = {};
+            room.environment.runtime.bespoke_asset_manifest.schema_validation = { status: 'idle', valid: false, errors: [], component_statuses: {} };
+            room.environment.runtime.bespoke_asset_manifest.runtime_review = { status: 'idle', fail_reasons: [], metrics: {}, screenshot_url: null, review_mode: null };
+            room.environment.runtime.bespoke_asset_manifest.review = { status: 'idle', fail_reasons: [], metrics: {}, screenshot_url: null, review_mode: null };
             room.environment.runtime.bespoke_asset_manifest.assets = {};
             room.environment.runtime.bespoke_asset_manifest.failed_assets = [];
             room.environment.runtime.bespoke_asset_manifest.used_ai = false;
@@ -6972,6 +7019,7 @@
           showToast('Preview approved. Open Game will use it now.', 'success');
           updateJsonText();
           setDirty(true);
+          refreshOpenGamePreviewIfVisible(room.id);
           stopRoomWizardWaitbar('copilot', 100);
         } catch (e) {
           stopRoomWizardWaitbar('copilot', 100);
@@ -8016,10 +8064,15 @@
         document.getElementById('roomWizardBuildEnvironmentAssets')?.addEventListener('click', async () => {
           const room = getRoomWizardRoom();
           const st = document.getElementById('roomWizardCopilotStatus');
+          const buildButton = document.getElementById('roomWizardBuildEnvironmentAssets');
           if (!PROJECT_ID || !room?.id) return;
           if (!room.environment?.preview?.approved_image_id) {
             if (st) st.textContent = 'Approve a room preview before building production assets.';
             return;
+          }
+          if (buildButton) {
+            buildButton.disabled = true;
+            buildButton.textContent = 'Building Production Assets…';
           }
           startRoomWizardWaitbar('copilot', 'Generating bespoke biome assets from the approved room preview and locked templates.');
           if (st) st.textContent = 'Building bespoke production assets…';
@@ -8039,13 +8092,23 @@
             renderRoomWizardEnvironmentOutputSummary(room.environment);
             updateJsonText();
             setDirty(true);
+            refreshOpenGamePreviewIfVisible(room.id);
+            const bespoke = room.environment?.runtime?.bespoke_asset_manifest || {};
+            const builtCount = Array.isArray(bespoke.built_slots) ? bespoke.built_slots.length : Object.values(bespoke.assets || {}).filter((item) => item && item.url).length;
+            const requiredCount = Array.isArray(bespoke.required_slots) ? bespoke.required_slots.length : (Array.isArray(bespoke.generation_plan) ? bespoke.generation_plan.length : builtCount);
+            const review = bespoke.runtime_review || bespoke.review || {};
+            const reviewWarnings = Array.isArray(review.warning_reasons) ? review.warning_reasons : [];
             if (st) st.textContent = room.environment?.runtime?.bespoke_asset_manifest?.status === 'ready'
-              ? 'Bespoke biome assets ready. Open Game now uses the generated room-piece kit.'
-              : 'Bespoke asset generation failed. This room is blocked until all required pieces pass.';
+              ? `Bespoke biome assets complete: ${builtCount}/${requiredCount || builtCount} required slots built and runtime review passed${reviewWarnings.length ? ` with warnings: ${reviewWarnings.join(', ')}` : ''}. Open Game now uses the generated room-piece kit.`
+              : `Bespoke asset generation incomplete: ${builtCount}/${requiredCount || builtCount} slots built. Runtime review: ${review.status || 'blocked'}${Array.isArray(review.fail_reasons) && review.fail_reasons.length ? ` · ${review.fail_reasons.join(', ')}` : ''}.`;
             stopRoomWizardWaitbar('copilot', 100);
           } catch (e) {
             stopRoomWizardWaitbar('copilot', 100);
             if (st) st.textContent = (e && e.message) || 'Asset generation failed';
+            if (buildButton) {
+              buildButton.disabled = false;
+              buildButton.textContent = 'Retry Build Production Assets';
+            }
           }
         });
         document.getElementById('roomWizardCopilotDiscard')?.addEventListener('click', () => {
@@ -8473,8 +8536,9 @@
         document.body.classList.remove('game-preview-open');
       }
 
-      function openGameWithLayout(previewRoomId) {
+      function openGameWithLayout(previewRoomId, options = {}) {
         if (!state.data) return;
+        const preserveFocus = Boolean(options && options.preserveFocus);
         const encoded = encodeLayoutForHash();
         const startArg =
           previewRoomId && state.data.rooms.some((r) => r.id === previewRoomId) ? previewRoomId : null;
@@ -8510,7 +8574,13 @@
         overlay.hidden = false;
         overlay.setAttribute('aria-hidden', 'false');
         document.body.classList.add('game-preview-open');
-        document.getElementById('gamePreviewClose')?.focus();
+        if (!preserveFocus) document.getElementById('gamePreviewClose')?.focus();
+      }
+
+      function refreshOpenGamePreviewIfVisible(previewRoomId) {
+        const overlay = document.getElementById('gamePreviewOverlay');
+        if (!overlay || overlay.hidden) return;
+        openGameWithLayout(previewRoomId, { preserveFocus: true });
       }
 
       function wireGamePreview() {

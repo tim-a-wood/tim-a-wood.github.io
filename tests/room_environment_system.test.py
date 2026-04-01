@@ -75,6 +75,32 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
     def tearDown(self) -> None:
         self.tmp.cleanup()
 
+    def _fake_ai_generate(self, output_path, prompt, refs, size, transparent):
+        img = envsys.Image.new("RGBA", size, (40, 50, 60, 0 if transparent else 255))
+        img.save(output_path)
+        return True
+
+    def _passing_runtime_review(self):
+        return {
+            "status": "pass",
+            "review_mode": "mocked",
+            "capture_issue": None,
+            "screenshot_url": "/mock/runtime-review.png",
+            "screenshot_path": "/mock/runtime-review.png",
+            "metrics": {
+                "center_clutter": 0.0,
+                "left_right_balance": 0.0,
+                "floor_background_separation": 0.1,
+                "platform_top_readability": 0.1,
+                "threshold_visibility": 0.1,
+                "platform_sample_count": 1.0,
+                "door_sample_count": 1.0,
+            },
+            "fail_reasons": [],
+            "warning_reasons": [],
+            "generated_at": "2026-03-28T12:00:00Z",
+        }
+
     def test_template_catalogs_exist(self):
         self.assertGreaterEqual(len(envsys.list_art_direction_templates()), 5)
         self.assertGreaterEqual(len(envsys.list_room_environment_archetypes()), 5)
@@ -135,7 +161,10 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         self.assertIn("preview", env)
         self.assertTrue(env["tags"])
         self.assertIn("components", env["spec"])
+        self.assertIn("component_schemas", env["spec"])
         self.assertIn("background", env["spec"]["components"])
+        self.assertIn("background", env["spec"]["component_schemas"])
+        self.assertIn("midground", env["spec"]["component_schemas"])
         self.assertIn("scene_schema", env["spec"])
         self.assertIn("set_dressing", env["spec"]["scene_schema"])
         self.assertIn("kit", env["spec"]["scene_schema"])
@@ -170,17 +199,27 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
             preview["images"][0]["preview_id"],
         )
         self.assertIsNotNone(approved["environment"]["runtime"]["surface_palette"])
-        asset_pack = envsys.generate_room_environment_asset_pack(
-            self.project_id,
-            "R1",
-            {"preview_id": preview["images"][0]["preview_id"]},
-        )
+        with mock.patch.object(envsys, "_generate_bespoke_component_from_references", side_effect=self._fake_ai_generate), \
+             mock.patch.object(envsys, "_validate_bespoke_component", return_value=(True, [])), \
+             mock.patch.object(envsys, "_run_runtime_review", return_value=self._passing_runtime_review()):
+            asset_pack = envsys.generate_room_environment_asset_pack(
+                self.project_id,
+                "R1",
+                {"preview_id": preview["images"][0]["preview_id"]},
+            )
         bespoke = asset_pack["environment"]["runtime"]["bespoke_asset_manifest"]
         self.assertEqual(bespoke["status"], "ready")
         self.assertFalse(bespoke["failed_assets"])
         self.assertTrue(bespoke["assets"])
+        self.assertEqual(bespoke["schema_version"], 2)
+        self.assertTrue(bespoke["required_slots"])
+        self.assertTrue(bespoke["built_slots"])
+        self.assertTrue(bespoke["slot_groups"])
+        self.assertTrue(bespoke["schema_validation"]["valid"])
+        self.assertEqual(bespoke["runtime_review"]["status"], "pass")
+        self.assertTrue(bespoke["runtime_review"]["screenshot_url"])
         self.assertEqual(asset_pack["environment"]["runtime"]["status"], "ready")
-        self.assertFalse(bespoke["used_ai"])
+        self.assertTrue(bespoke["used_ai"])
 
     def test_layout_change_marks_only_layout_aware_assets_stale(self):
         envsys.update_project_art_direction(self.project_id, {"template_id": "industrial-underworks", "locked": True})
@@ -194,7 +233,10 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         generated = envsys.generate_room_environment_previews(self.project_id, "R1", {})
         preview_id = generated["environment"]["preview"]["images"][0]["preview_id"]
         envsys.approve_room_environment_preview(self.project_id, "R1", {"preview_id": preview_id})
-        envsys.generate_room_environment_asset_pack(self.project_id, "R1", {"preview_id": preview_id})
+        with mock.patch.object(envsys, "_generate_bespoke_component_from_references", side_effect=self._fake_ai_generate), \
+             mock.patch.object(envsys, "_validate_bespoke_component", return_value=(True, [])), \
+             mock.patch.object(envsys, "_run_runtime_review", return_value=self._passing_runtime_review()):
+            envsys.generate_room_environment_asset_pack(self.project_id, "R1", {"preview_id": preview_id})
 
         self.saved["room_layout"]["rooms"][0]["platforms"][0]["len"] = 28
         room = envsys._find_room(self.saved, "R1")
@@ -212,17 +254,34 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         preview_id = generated["environment"]["preview"]["images"][0]["preview_id"]
         envsys.approve_room_environment_preview(self.project_id, "R1", {"preview_id": preview_id})
 
-        def fake_generate(output_path, prompt, refs, size, transparent):
-            img = envsys.Image.new("RGBA", size, (40, 50, 60, 0 if transparent else 255))
-            img.save(output_path)
-            return True
-
-        with mock.patch.object(envsys, "_generate_bespoke_component_from_references", side_effect=fake_generate):
+        with mock.patch.object(envsys, "_generate_bespoke_component_from_references", side_effect=self._fake_ai_generate), \
+             mock.patch.object(envsys, "_validate_bespoke_component", return_value=(True, [])), \
+             mock.patch.object(envsys, "_run_runtime_review", return_value=self._passing_runtime_review()):
             result = envsys.generate_room_environment_asset_pack(self.project_id, "R1", {"preview_id": preview_id})
         bespoke = result["environment"]["runtime"]["bespoke_asset_manifest"]
         self.assertEqual(bespoke["status"], "ready")
         self.assertEqual(result["environment"]["runtime"]["status"], "ready")
         self.assertGreaterEqual(len(bespoke["assets"]), 4)
+
+    def test_runtime_review_blocks_flat_assets_even_when_generation_succeeds(self):
+        envsys.update_project_art_direction(self.project_id, {"template_id": "ruined-gothic", "locked": True})
+        envsys.build_room_environment_spec(
+            self.project_id,
+            "R1",
+            {"description": "A readable ruined hall with heavy stone and a strong central route."},
+        )
+        generated = envsys.generate_room_environment_previews(self.project_id, "R1", {})
+        preview_id = generated["environment"]["preview"]["images"][0]["preview_id"]
+        envsys.approve_room_environment_preview(self.project_id, "R1", {"preview_id": preview_id})
+
+        with mock.patch.object(envsys, "_generate_bespoke_component_from_references", side_effect=self._fake_ai_generate), \
+             mock.patch.object(envsys, "_validate_bespoke_component", return_value=(True, [])):
+            result = envsys.generate_room_environment_asset_pack(self.project_id, "R1", {"preview_id": preview_id})
+        bespoke = result["environment"]["runtime"]["bespoke_asset_manifest"]
+        self.assertEqual(bespoke["status"], "failed")
+        self.assertEqual(result["environment"]["runtime"]["status"], "blocked")
+        self.assertEqual(bespoke["runtime_review"]["status"], "fail")
+        self.assertTrue(bespoke["runtime_review"]["fail_reasons"])
 
     def test_generate_bespoke_assets_block_room_when_template_render_fails(self):
         envsys.update_project_art_direction(self.project_id, {"template_id": "ruined-gothic", "locked": True})
@@ -235,12 +294,179 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         preview_id = generated["environment"]["preview"]["images"][0]["preview_id"]
         envsys.approve_room_environment_preview(self.project_id, "R1", {"preview_id": preview_id})
 
-        with mock.patch.object(envsys, "_render_bespoke_component_from_template", return_value=False):
+        with mock.patch.object(envsys, "_generate_bespoke_component_from_references", return_value=False):
             result = envsys.generate_room_environment_asset_pack(self.project_id, "R1", {"preview_id": preview_id})
         bespoke = result["environment"]["runtime"]["bespoke_asset_manifest"]
         self.assertEqual(bespoke["status"], "failed")
         self.assertTrue(bespoke["failed_assets"])
         self.assertEqual(result["environment"]["runtime"]["status"], "blocked")
+
+    def test_bespoke_prompt_rejects_focal_shrine_carryover_for_background(self):
+        prompt = envsys._build_bespoke_prompt(
+            {"high_level_direction": "Quiet ruined hall", "negative_direction": "busy focal shrine scenes"},
+            {
+                "mood": "somber",
+                "lighting": "low-key",
+                "description": "A hall with a clear route.",
+                "component_schemas": {"background": envsys._default_component_schema("background", "A hall with a clear route.")}
+            },
+            {
+                "component_type": "background_far_plate",
+                "schema_key": "background",
+                "target_dimensions": {"width": 1600, "height": 1200},
+                "orientation": "full",
+                "tile_mode": "stretch",
+                "border_treatment": "full_frame",
+                "protected_zones": [{"type": "center_lane", "x": 400, "y": 0, "width": 800, "height": 1200}],
+            },
+            {"variant_family": "background", "orientation": "full"},
+        )
+        self.assertIn("far-depth hall shell", prompt)
+        self.assertIn("reject carryover of any altar", prompt)
+        self.assertIn("open center lane", prompt)
+        self.assertIn("not scenic concept art with gameplay layered on top", prompt)
+
+    def test_bespoke_prompt_requires_side_only_midground_and_structural_floor(self):
+        midground_prompt = envsys._build_bespoke_prompt(
+            {"high_level_direction": "Quiet ruined hall", "negative_direction": "busy focal shrine scenes"},
+            {
+                "mood": "somber",
+                "lighting": "low-key",
+                "description": "A hall with a clear route.",
+                "component_schemas": {
+                    "midground": envsys._default_component_schema("midground", "A hall with a clear route."),
+                    "floor": envsys._default_component_schema("floor", "A hall with a clear route."),
+                },
+            },
+            {
+                "component_type": "midground_side_frame",
+                "schema_key": "midground",
+                "target_dimensions": {"width": 1600, "height": 1200},
+                "orientation": "full",
+                "tile_mode": "stretch",
+                "border_treatment": "side_only",
+                "protected_zones": [{"type": "main_route", "x": 480, "y": 0, "width": 640, "height": 1200}],
+            },
+            {"variant_family": "midground", "orientation": "full"},
+        )
+        floor_prompt = envsys._build_bespoke_prompt(
+            {"high_level_direction": "Quiet ruined hall", "negative_direction": "busy focal shrine scenes"},
+            {
+                "mood": "somber",
+                "lighting": "low-key",
+                "description": "A hall with a clear route.",
+                "component_schemas": {"floor": envsys._default_component_schema("floor", "A hall with a clear route.")},
+            },
+            {
+                "component_type": "main_floor_top",
+                "schema_key": "floor",
+                "target_dimensions": {"width": 704, "height": 96},
+                "orientation": "horizontal",
+                "tile_mode": "tile_x",
+                "border_treatment": "top_lip_priority",
+                "protected_zones": [{"type": "platform_top", "x": 224, "y": 942, "width": 704, "height": 22}],
+            },
+            {"variant_family": "floor", "orientation": "horizontal"},
+        )
+        self.assertIn("center fully open and calm", midground_prompt)
+        self.assertIn("Restrict arches, columns, and side mass to the left and right edges", midground_prompt)
+        self.assertIn("same room shell as the walls and background", floor_prompt)
+        self.assertIn("same stone family", floor_prompt)
+        self.assertIn("Do not introduce a giant circular ritual graphic", floor_prompt)
+
+    def test_component_reference_guides_sanitize_scenic_slots_and_crop_structural_slots(self):
+        refs_root = self.root / "refs"
+        template = self.root / "template.png"
+        preview = self.root / "preview.png"
+        frozen_a = self.root / "frozen-a.png"
+        frozen_b = self.root / "frozen-b.png"
+        envsys.Image.new("RGBA", (160, 120), (120, 140, 155, 255)).save(template)
+        envsys.Image.new("RGBA", (160, 120), (90, 105, 118, 255)).save(preview)
+        envsys.Image.new("RGBA", (160, 120), (60, 70, 80, 255)).save(frozen_a)
+        envsys.Image.new("RGBA", (160, 120), (50, 60, 70, 255)).save(frozen_b)
+
+        background_refs = envsys._bespoke_reference_images_for_component(
+            "background_far_plate",
+            template,
+            preview,
+            [frozen_a, frozen_b],
+            refs_root,
+            (160, 120),
+            False,
+        )
+        midground_refs = envsys._bespoke_reference_images_for_component(
+            "midground_side_frame",
+            template,
+            preview,
+            [frozen_a],
+            refs_root,
+            (160, 120),
+            True,
+        )
+        floor_refs = envsys._bespoke_reference_images_for_component(
+            "main_floor_top",
+            template,
+            preview,
+            [frozen_a],
+            refs_root,
+            (128, 48),
+            False,
+        )
+        door_refs = envsys._bespoke_reference_images_for_component(
+            "door_frame",
+            template,
+            preview,
+            [frozen_a],
+            refs_root,
+            (96, 144),
+            True,
+        )
+
+        self.assertNotIn(preview, background_refs)
+        self.assertTrue(background_refs[0].exists())
+        self.assertEqual(len(background_refs), 1)
+        self.assertLess(envsys._region_alpha_ratio(midground_refs[0], (0.36, 0.18, 0.64, 0.82)), 0.15)
+        self.assertEqual(len(floor_refs), 1)
+        self.assertNotEqual(floor_refs[0], template)
+        self.assertTrue(floor_refs[0].exists())
+        self.assertEqual(len(door_refs), 1)
+        self.assertNotEqual(door_refs[0], template)
+
+    def test_postprocess_component_for_validation_salvages_scenic_readability(self):
+        background = self.root / "background-hot.png"
+        midground = self.root / "midground-clutter.png"
+        envsys.Image.new("RGBA", (160, 120), (200, 205, 210, 255)).save(background)
+        envsys.Image.new("RGBA", (160, 120), (40, 50, 60, 255)).save(midground)
+
+        bg_changed = envsys._postprocess_component_for_validation(background, "background_far_plate", ["center_lane_too_hot"], 0)
+        mg_changed = envsys._postprocess_component_for_validation(midground, "midground_side_frame", ["midground_center_clutter"], 0)
+
+        self.assertTrue(bg_changed)
+        self.assertTrue(mg_changed)
+        self.assertLess(
+            envsys._region_luminance(background, (0.34, 0.22, 0.66, 0.78)),
+            190,
+        )
+        self.assertLess(envsys._region_alpha_ratio(midground, (0.36, 0.18, 0.64, 0.82)), 0.15)
+
+    def test_midground_template_family_check_uses_edge_similarity(self):
+        template = self.root / "midground-template.png"
+        candidate = self.root / "midground-candidate.png"
+        base = envsys.Image.new("RGBA", (160, 120), (0, 0, 0, 0))
+        draw = envsys.ImageDraw.Draw(base)
+        draw.rectangle((0, 0, 28, 119), fill=(70, 80, 90, 255))
+        draw.rectangle((132, 0, 159, 119), fill=(70, 80, 90, 255))
+        draw.rectangle((42, 8, 118, 110), fill=(95, 110, 120, 160))
+        base.save(template)
+        edge_matched = envsys.Image.new("RGBA", (160, 120), (0, 0, 0, 0))
+        draw = envsys.ImageDraw.Draw(edge_matched)
+        draw.rectangle((0, 0, 28, 119), fill=(70, 80, 90, 255))
+        draw.rectangle((132, 0, 159, 119), fill=(70, 80, 90, 255))
+        edge_matched.save(candidate)
+
+        valid, errors = envsys._validate_bespoke_component(candidate, "midground_side_frame", (160, 120), "alpha", template)
+        self.assertTrue(valid)
+        self.assertNotIn("template_family_drift", errors)
 
 
 if __name__ == "__main__":

@@ -28,27 +28,29 @@ Read it before writing any dashboard content.
 
 ---
 
-## The `actions` section
+## Action items in dashboards
 
-Every dashboard may include an `actions` array as a fifth section. Each entry follows this schema:
+The founder-facing Actions dashboard reads from each agent's `priorities` array. Treat `priorities` as the canonical action-item list.
+
+If an agent also keeps an `actions` array for callable operations, that is secondary metadata and must not replace `priorities`.
+
+`priorities` entries should always include:
 
 ```json
 {
-  "id": "action-id",
-  "name": "Human-Readable Name",
-  "description": "One sentence — what this action does and what it produces.",
-  "trigger": "When to run it — the condition or event that makes this action relevant.",
-  "last_run": "YYYY-MM-DD or null",
-  "output_location": "Where the output was written, or null if never run."
+  "id": 1,
+  "title": "Plain-English action item",
+  "status": "queued|in-progress|needs-review|paused|done",
+  "risk": "low|med|high",
+  "note": "Detail, context, or blocker in plain English."
 }
 ```
 
-**Rules for action cards:**
+**Rules for action items:**
 
-- **No empty run buttons.** If an action has never been run (`last_run: null`), the dashboard may show it but must not display a prominent run button — use a muted "never run" state instead.
-- **`output_location` is required after first run.** Once an action has been run, `output_location` must be filled in. `"in-session"` is acceptable if the output was verbal only.
-- **`last_run` updates every time the action is executed** — see `agents/directives/task-completion-update.md`.
-- **4 actions maximum per agent.** More than 4 action cards defeats the 30-second scan goal.
+- **Keep order meaningful.** Order in `priorities` is the priority ranking.
+- **Update after every task.** Apply lifecycle updates from `agents/directives/task-completion-update.md`.
+- **Plain English only.** `title` and `note` must be founder-readable in 30 seconds.
 
 ---
 

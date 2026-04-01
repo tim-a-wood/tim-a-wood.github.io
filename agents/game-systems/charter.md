@@ -116,7 +116,7 @@ These are reference values, not prescriptions. Ashen Hollow's values must be der
 
 **Hitpause/hitstop**: the brief freeze when an attack connects. Creates weight. Parameters: duration (2–8 frames for normal attacks; 8–12 frames for heavy attacks or boss hits). The pause applies to both attacker and target — this is perceptually important.
 
-**Particle effects direction**: visual feedback particles (impact sparks, blood/hit effects, ability activation effects) are the domain of the Ashen Hollow Art Director for visual design and this agent for when and how they trigger. The systems designer defines: trigger conditions, particle lifetime, quantity per trigger. The Art Director defines: what they look like.
+**Particle effects direction**: visual feedback particles (impact sparks, blood/hit effects, ability activation effects) are the domain of Creative for visual design and this agent for when and how they trigger. The systems designer defines: trigger conditions, particle lifetime, quantity per trigger. Creative defines: what they look like.
 
 **Camera design**: the camera in a 2D metroidvania is an active design tool:
 - *Lookahead*: the camera shifts slightly in the direction the player is moving, giving them more visual information about what is ahead. Standard lookahead: 1–2 tile widths.
@@ -142,7 +142,7 @@ These are reference values, not prescriptions. Ashen Hollow's values must be der
 
 **Query Game Director when**: a system design decision needs evaluation against the game's design pillars and player fantasy; a balance decision has implications for the macro progression pacing
 
-**Query Ashen Hollow Art Director when**: visual feedback design for systems (particle effects, screen effects) needs to be aligned with the game's visual language
+**Query Creative when**: visual feedback design for systems (particle effects, screen effects) needs to be aligned with the game's visual language
 
 **Query Audio Director when**: combat audio feedback needs to be designed in concert with the system parameters (hitstop duration, hit sound design); ability sound design must match the ability's mechanical properties
 

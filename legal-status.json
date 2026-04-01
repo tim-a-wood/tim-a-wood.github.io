@@ -1,6 +1,6 @@
 {
-  "_note": "Updated by the legal agent after each task. Plain language — no jargon. This is risk analysis, not legal advice.",
-  "updated": "2026-03-30",
+  "_note": "Updated by the legal agent after each task. Plain language \u2014 no jargon. This is risk analysis, not legal advice.",
+  "updated": "2026-03-31",
   "schema_version": "v1.0",
   "priorities": [
     {
@@ -8,28 +8,32 @@
       "title": "Verify the EU AI Act disclosure requirements are met by the Copilot UI",
       "status": "in-progress",
       "risk": "high",
-      "note": "The EU AI Act (enforcement began August 2024) requires synthetic content to be disclosed. The Copilot suggestions must clearly say they are AI-generated. Current UI appears to do this but hasn't been formally verified against the specific disclosure language requirements."
+      "note": "The EU AI Act (enforcement began August 2024) requires synthetic content to be disclosed. The Copilot suggestions must clearly say they are AI-generated. Current UI appears to do this but hasn't been formally verified against the specific disclosure language requirements.",
+      "proposed_solution": "Check Copilot UI copy against EU AI Act synthetic-content disclosure rules and patch any gaps before EU-facing use."
     },
     {
       "id": 2,
       "title": "Check whether the Gemini API Data Processing Addendum opt-out applies to our usage tier",
       "status": "in-progress",
       "risk": "high",
-      "note": "By default, Google may use API inputs to train future models. User-authored room descriptions are user content. We need to know if we can opt out and what tier that requires."
+      "note": "By default, Google may use API inputs to train future models. User-authored room descriptions are user content. We need to know if we can opt out and what tier that requires.",
+      "proposed_solution": "Confirm whether the current Gemini plan supports the data processing addendum and training opt-out, and document the answer for the founder."
     },
     {
       "id": 3,
       "title": "Draft the user-facing disclosure for AI-generated content before public launch",
       "status": "paused",
       "risk": "med",
-      "note": "Users need to understand their IP position when using the Copilot. A short, plain-English disclosure covering output ownership and data usage is needed before any public launch."
+      "note": "Users need to understand their IP position when using the Copilot. A short, plain-English disclosure covering output ownership and data usage is needed before any public launch.",
+      "proposed_solution": "Draft plain-language user disclosure on AI-generated output and how their data is processed before any public launch."
     },
     {
       "id": 4,
       "title": "Review all open-source dependencies for GPL or AGPL license exposure",
       "status": "paused",
       "risk": "med",
-      "note": "Any GPL/AGPL dependency could impose copyleft obligations on the product. Needs a full dependency audit before commercial launch."
+      "note": "Any GPL/AGPL dependency could impose copyleft obligations on the product. Needs a full dependency audit before commercial launch.",
+      "proposed_solution": "Audit dependencies for GPL or AGPL exposure and plan removals or compliance paths before commercial distribution."
     }
   ],
   "risks_p0": [],
@@ -53,7 +57,7 @@
     {
       "id": "ip-review",
       "name": "IP Review",
-      "description": "IP exposure assessment for an AI feature — user IP status, output ownership, training data risk, recommended disclosures.",
+      "description": "IP exposure assessment for an AI feature \u2014 user IP status, output ownership, training data risk, recommended disclosures.",
       "trigger": "Any new AI feature, content generation workflow, or user-generated content surface",
       "last_run": null,
       "output_location": null
@@ -61,7 +65,7 @@
     {
       "id": "tos-check",
       "name": "ToS Check",
-      "description": "Material obligations and restrictions of an API ToS relevant to this product — plain language summary with citations.",
+      "description": "Material obligations and restrictions of an API ToS relevant to this product \u2014 plain language summary with citations.",
       "trigger": "Before any new API integration, or when a provider updates their ToS",
       "last_run": null,
       "output_location": null
@@ -69,7 +73,7 @@
     {
       "id": "privacy-audit",
       "name": "Privacy Audit",
-      "description": "GDPR/CCPA/EU AI Act obligations for a new data flow — disclosure requirements, consent mechanisms, DPA status.",
+      "description": "GDPR/CCPA/EU AI Act obligations for a new data flow \u2014 disclosure requirements, consent mechanisms, DPA status.",
       "trigger": "Any new data flow to external APIs or new user data collection",
       "last_run": null,
       "output_location": null
@@ -77,7 +81,7 @@
     {
       "id": "launch-legal-review",
       "name": "Launch Legal Review",
-      "description": "AI disclosure compliance, output IP status, and data processing obligations — go/flag/block recommendation.",
+      "description": "AI disclosure compliance, output IP status, and data processing obligations \u2014 go/flag/block recommendation.",
       "trigger": "Before any public-facing launch or feature release",
       "last_run": null,
       "output_location": null

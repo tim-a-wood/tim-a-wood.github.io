@@ -8,8 +8,11 @@ import json
 import math
 import os
 import shutil
+import subprocess
+import tempfile
 import textwrap
 import urllib.error
+import urllib.parse
 import urllib.request
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple
@@ -348,6 +351,24 @@ def _component_adaptation_mode(component_type: str) -> str:
         return "direct"
     if component_type in {"primary_floor_piece", "hero_platform_piece"}:
         return "stretch"
+    if component_type in {
+        "background_far_plate",
+        "midground_side_frame",
+        "primary_floor_piece",
+        "hero_platform_piece",
+        "wall_module_left",
+        "wall_module_right",
+        "wall_base_trim_left",
+        "wall_base_trim_right",
+        "main_floor_top",
+        "main_floor_face",
+        "hero_platform_top",
+        "hero_platform_face",
+        "door_frame",
+        "pit_rim",
+        "pit_interior",
+    }:
+        return "gemini"
     return "gemini"
 
 
@@ -678,6 +699,19 @@ def _ensure_room_environment(room: Dict[str, Any]) -> Dict[str, Any]:
     spec.setdefault("hazards", [])
     spec.setdefault("composition_focus", "")
     spec.setdefault("readability_notes", [])
+    spec["components"] = _normalize_component_prompts_response(
+        spec.get("components"),
+        str(spec.get("description") or ""),
+    )
+    component_schemas = spec.get("component_schemas")
+    if not isinstance(component_schemas, dict):
+        component_schemas = {}
+        spec["component_schemas"] = component_schemas
+    spec["component_schemas"] = _normalize_component_schemas_response(
+        spec.get("component_schemas"),
+        str(spec.get("description") or ""),
+        spec["components"],
+    )
     preview = env.get("preview")
     if not isinstance(preview, dict):
         preview = {}
@@ -728,11 +762,17 @@ def _ensure_room_environment(room: Dict[str, Any]) -> Dict[str, Any]:
     if not isinstance(bespoke_manifest, dict):
         bespoke_manifest = {}
         runtime["bespoke_asset_manifest"] = bespoke_manifest
-    bespoke_manifest.setdefault("schema_version", 1)
+    bespoke_manifest.setdefault("schema_version", 2)
     bespoke_manifest.setdefault("status", "idle")
     bespoke_manifest.setdefault("biome_id", None)
     bespoke_manifest.setdefault("source_preview_id", None)
     bespoke_manifest.setdefault("generation_plan", [])
+    bespoke_manifest.setdefault("required_slots", [])
+    bespoke_manifest.setdefault("built_slots", [])
+    bespoke_manifest.setdefault("slot_groups", {})
+    bespoke_manifest.setdefault("schema_validation", {"status": "idle", "valid": False, "errors": [], "component_statuses": {}})
+    bespoke_manifest.setdefault("runtime_review", {"status": "idle", "fail_reasons": [], "metrics": {}, "screenshot_url": None, "review_mode": None})
+    bespoke_manifest.setdefault("review", copy.deepcopy(bespoke_manifest.get("runtime_review")))
     bespoke_manifest.setdefault("assets", {})
     bespoke_manifest.setdefault("failed_assets", [])
     bespoke_manifest.setdefault("used_ai", False)
@@ -1052,6 +1092,7 @@ def _normalize_spec_response(raw: Dict[str, Any], fallback_description: str) -> 
     cleaned_tags = [str(item).strip().lower() for item in tags if str(item).strip()][:8]
     scene_schema = raw.get("sceneSchema") if isinstance(raw.get("sceneSchema"), dict) else raw.get("scene_schema")
     components = raw.get("components") if isinstance(raw.get("components"), dict) else {}
+    component_schemas = raw.get("componentSchemas") if isinstance(raw.get("componentSchemas"), dict) else raw.get("component_schemas")
     return {
         "theme_id": str(raw.get("themeId") or theme_id).strip().lower() or theme_id,
         "tags": cleaned_tags,
@@ -1065,6 +1106,7 @@ def _normalize_spec_response(raw: Dict[str, Any], fallback_description: str) -> 
         "composition_focus": str(raw.get("compositionFocus") or raw.get("composition_focus") or "center the most important landmark around the main route").strip(),
         "readability_notes": [str(item).strip() for item in (raw.get("readabilityNotes") or raw.get("readability_notes") or []) if str(item).strip()][:6],
         "components": _normalize_component_prompts_response(components, fallback_description),
+        "component_schemas": component_schemas if isinstance(component_schemas, dict) else {},
         "scene_schema": scene_schema if isinstance(scene_schema, dict) else {},
     }
 
@@ -1076,6 +1118,250 @@ COMPONENT_KEYS: Tuple[Tuple[str, str], ...] = (
     ("doors", "Doors"),
     ("background", "Background"),
 )
+
+COMPONENT_SCHEMA_COMMON_FIELDS: Tuple[str, ...] = (
+    "design_intent",
+    "visual_role",
+    "material_family",
+    "silhouette_rules",
+    "detail_density",
+    "value_contrast",
+    "damage_profile",
+    "readability_constraints",
+    "negative_constraints",
+    "variation_rules",
+)
+
+COMPONENT_SCHEMA_DEFS: Dict[str, Dict[str, Any]] = {
+    "walls": {
+        "label": "Walls",
+        "visual_role": "structural",
+        "specific_fields": (
+            "enclosure_read",
+            "bay_rhythm",
+            "column_width_class",
+            "wall_face_depth",
+            "ceiling_junction",
+            "base_trim",
+            "edge_darkening",
+            "repetition_interval",
+        ),
+    },
+    "floor": {
+        "label": "Floor",
+        "visual_role": "traversal",
+        "specific_fields": (
+            "top_lip_thickness",
+            "face_height",
+            "seam_pattern",
+            "top_plane_read",
+            "edge_breakup",
+            "underside_darkening",
+            "modular_repeat_width",
+        ),
+    },
+    "platforms": {
+        "label": "Platforms",
+        "visual_role": "traversal",
+        "specific_fields": (
+            "top_lip_thickness",
+            "face_height",
+            "endcap_style",
+            "support_style",
+            "ledge_read",
+            "underside_variation",
+            "modular_repeat_width",
+        ),
+    },
+    "doors": {
+        "label": "Doors",
+        "visual_role": "threshold",
+        "specific_fields": (
+            "frame_mass",
+            "opening_read",
+            "threshold_depth",
+            "gate_panel_style",
+            "lock_overlay_style",
+            "side_clearance",
+        ),
+    },
+    "pits": {
+        "label": "Pits",
+        "visual_role": "hazard",
+        "specific_fields": (
+            "rim_profile",
+            "wall_drop_profile",
+            "interior_fill_mode",
+            "hazard_read",
+            "fog_fill",
+            "left_right_edge_rules",
+        ),
+    },
+    "background": {
+        "label": "Background",
+        "visual_role": "far_depth",
+        "specific_fields": (
+            "enclosure_architecture",
+            "center_openness",
+            "far_depth_layers",
+            "focal_suppression",
+            "floor_plane_suppression",
+            "atmospheric_falloff",
+        ),
+    },
+    "midground": {
+        "label": "Midground",
+        "visual_role": "side_frame",
+        "specific_fields": (
+            "side_mass_only",
+            "center_clearance_ratio",
+            "occluder_types",
+            "alpha_profile",
+            "floor_crossing_forbidden",
+            "route_overlap_forbidden",
+        ),
+    },
+}
+
+STRUCTURAL_SCHEMA_KEYS = {"walls", "floor", "platforms", "doors", "pits"}
+SCENIC_SCHEMA_KEYS = {"background", "midground"}
+
+COMPONENT_SCHEMA_DEFAULTS: Dict[str, Dict[str, Any]] = {
+    "walls": {
+        "material_family": "weathered structural stone",
+        "silhouette_rules": ["vertical mass reads as enclosing wall shell", "repeat bays instead of scenic one-off shapes"],
+        "detail_density": "medium",
+        "value_contrast": "low_to_medium with darker edges and readable planes",
+        "damage_profile": "broken masonry, chips, and restrained collapse",
+        "readability_constraints": ["must read as room enclosure", "avoid scenic perspective that flattens gameplay depth"],
+        "negative_constraints": ["no altar scene", "no brazier focal energy", "no giant center architecture"],
+        "variation_rules": ["repeat with subtle block shifts", "allow local wear without breaking wall rhythm"],
+        "enclosure_read": "side walls and rear wall planes must read as the room shell",
+        "bay_rhythm": "measured repeating bays with readable spacing",
+        "column_width_class": "heavy",
+        "wall_face_depth": "shallow layered recesses",
+        "ceiling_junction": "soft arch or stone lintel tie-in",
+        "base_trim": "stone base trim anchoring walls to the floor",
+        "edge_darkening": "darker edges and recess seams",
+        "repetition_interval": "medium_repeat",
+    },
+    "floor": {
+        "material_family": "weathered structural stone",
+        "silhouette_rules": ["clear top lip", "side-view slab silhouette", "no dramatic perspective"],
+        "detail_density": "medium",
+        "value_contrast": "top plane slightly lighter than face",
+        "damage_profile": "chips, seams, and worn edges",
+        "readability_constraints": ["platform top must read immediately", "front face must separate from background"],
+        "negative_constraints": ["no giant ritual circle", "no brazier base", "no scenic floor perspective"],
+        "variation_rules": ["modular slab breakup", "quiet pattern changes across repeats"],
+        "top_lip_thickness": "clear 4-8px lip at runtime scale",
+        "face_height": "moderate face height with readable front plane",
+        "seam_pattern": "quiet masonry seams",
+        "top_plane_read": "top plane brighter and calmer than face",
+        "edge_breakup": "small chips and restrained cracks",
+        "underside_darkening": "underside falls off darker than top plane",
+        "modular_repeat_width": "tileable medium repeat span",
+    },
+    "platforms": {
+        "material_family": "weathered structural stone",
+        "silhouette_rules": ["clear top lip", "flat traversal top", "simple readable endcaps"],
+        "detail_density": "medium",
+        "value_contrast": "top plane lighter than face",
+        "damage_profile": "light breakage and ledge wear",
+        "readability_constraints": ["ledge top must pop from background", "underside detail cannot muddy jump reads"],
+        "negative_constraints": ["no scenic attachments", "no dangling braziers", "no ritual symbols"],
+        "variation_rules": ["vary cracks and seam placement", "keep proportions consistent across lengths"],
+        "top_lip_thickness": "clear 4-8px lip at runtime scale",
+        "face_height": "compact readable face",
+        "endcap_style": "simple broken masonry endcap",
+        "support_style": "minimal implied support only",
+        "ledge_read": "strong traversal ledge read",
+        "underside_variation": "light underside breakup only",
+        "modular_repeat_width": "tileable medium repeat span",
+    },
+    "doors": {
+        "material_family": "stone frame with aged gate insert",
+        "silhouette_rules": ["centered opening", "strong outer frame", "clean threshold silhouette"],
+        "detail_density": "medium",
+        "value_contrast": "opening darker than frame",
+        "damage_profile": "aged but intact threshold hardware",
+        "readability_constraints": ["opening must read at a glance", "door frame cannot blend into wall mass"],
+        "negative_constraints": ["no chamber scene around the door", "no floor plane", "no altar dressing"],
+        "variation_rules": ["vary carve lines and gate panel wear", "keep frame proportions stable"],
+        "frame_mass": "heavy readable frame",
+        "opening_read": "dark centered opening or gate cavity",
+        "threshold_depth": "shallow but visible threshold recess",
+        "gate_panel_style": "aged inset panels",
+        "lock_overlay_style": "small readable lock overlay only when needed",
+        "side_clearance": "clear side clearance around opening",
+    },
+    "pits": {
+        "material_family": "broken stone drop with dark void interior",
+        "silhouette_rules": ["clear rim read", "open non-walkable void", "vertical drop silhouette"],
+        "detail_density": "low_to_medium",
+        "value_contrast": "rim lighter than interior void",
+        "damage_profile": "broken lip and damp erosion",
+        "readability_constraints": ["player must read hazard immediately", "rim must contrast from interior"],
+        "negative_constraints": ["no scenic bridge treatment", "no fake floor fill", "no soft ambiguous interior"],
+        "variation_rules": ["vary rim chips and wall streaks", "keep drop interior visually calm"],
+        "rim_profile": "clear chipped rim silhouette",
+        "wall_drop_profile": "vertical stone wall drop",
+        "interior_fill_mode": "deep shadow or void fog",
+        "hazard_read": "non-walkable and dangerous at a glance",
+        "fog_fill": "subtle low fog only if it keeps the void readable",
+        "left_right_edge_rules": "rim edges remain crisp and symmetrical enough to read jumps",
+    },
+    "background": {
+        "material_family": "far-depth architectural stone shell",
+        "silhouette_rules": ["enclosing hall shell", "open center lane", "far-depth columns and arches only"],
+        "detail_density": "medium",
+        "value_contrast": "muted far-depth values with softened center",
+        "damage_profile": "aged architecture without focal props",
+        "readability_constraints": ["must read as enclosing room shell", "center lane stays calm and open"],
+        "negative_constraints": ["no altar", "no brazier", "no center dais", "no near framing"],
+        "variation_rules": ["vary arch spacing and recess depth", "keep the middle quiet across variants"],
+        "enclosure_architecture": "rear wall, side walls, arches, and pillars read as one hall shell",
+        "center_openness": "fully open and calm center lane",
+        "far_depth_layers": "at least two depth bands of architecture",
+        "focal_suppression": "explicitly suppress altar, brazier, shrine, and dais imagery",
+        "floor_plane_suppression": "no near floor strip or scenic floor carryover",
+        "atmospheric_falloff": "soft haze into distance without bright focal hotspots",
+    },
+    "midground": {
+        "material_family": "side-frame stone or column mass",
+        "silhouette_rules": ["side-only framing", "transparent open center", "thin occlusion where needed"],
+        "detail_density": "low_to_medium",
+        "value_contrast": "subdued side mass with center transparency",
+        "damage_profile": "light edge wear and cracks",
+        "readability_constraints": ["center route stays readable", "midground cannot cross the floor lane"],
+        "negative_constraints": ["no center object", "no full-width arch", "no floor-crossing silhouette"],
+        "variation_rules": ["vary side cluster placement", "keep center clear ratio consistent"],
+        "side_mass_only": "true",
+        "center_clearance_ratio": "0.45",
+        "occluder_types": "arches, columns, side buttresses",
+        "alpha_profile": "solid on edges, transparent through center",
+        "floor_crossing_forbidden": "true",
+        "route_overlap_forbidden": "true",
+    },
+}
+
+V2_SLOT_FAMILY_SPECS: Tuple[Dict[str, Any], ...] = (
+    {"component_type": "background_far_plate", "schema_key": "background", "template_component_type": "background_plate", "size": (1600, 1200), "orientation": "full", "transparency_mode": "opaque", "visual_role": "far_depth", "slot_group": "background", "tile_mode": "stretch"},
+    {"component_type": "midground_side_frame", "schema_key": "midground", "template_component_type": "midground_frame", "size": (1600, 1200), "orientation": "full", "transparency_mode": "alpha", "visual_role": "side_frame", "slot_group": "midground", "tile_mode": "stretch"},
+    {"component_type": "wall_module_left", "schema_key": "walls", "template_component_type": "background_plate", "size": (320, 960), "orientation": "vertical", "transparency_mode": "opaque", "visual_role": "structural_wall", "slot_group": "walls", "tile_mode": "stretch"},
+    {"component_type": "wall_module_right", "schema_key": "walls", "template_component_type": "background_plate", "size": (320, 960), "orientation": "vertical", "transparency_mode": "opaque", "visual_role": "structural_wall", "slot_group": "walls", "tile_mode": "stretch"},
+    {"component_type": "wall_base_trim_left", "schema_key": "walls", "template_component_type": "background_plate", "size": (256, 160), "orientation": "horizontal", "transparency_mode": "opaque", "visual_role": "structural_trim", "slot_group": "walls", "tile_mode": "stretch"},
+    {"component_type": "wall_base_trim_right", "schema_key": "walls", "template_component_type": "background_plate", "size": (256, 160), "orientation": "horizontal", "transparency_mode": "opaque", "visual_role": "structural_trim", "slot_group": "walls", "tile_mode": "stretch"},
+    {"component_type": "main_floor_top", "schema_key": "floor", "template_component_type": "primary_floor_piece", "size": (512, 96), "orientation": "horizontal", "transparency_mode": "opaque", "visual_role": "main_route", "slot_group": "floor", "tile_mode": "tile_x"},
+    {"component_type": "main_floor_face", "schema_key": "floor", "template_component_type": "primary_floor_piece", "size": (512, 128), "orientation": "horizontal", "transparency_mode": "opaque", "visual_role": "main_route_face", "slot_group": "floor", "tile_mode": "tile_x"},
+    {"component_type": "hero_platform_top", "schema_key": "platforms", "template_component_type": "hero_platform_piece", "size": (320, 72), "orientation": "horizontal", "transparency_mode": "opaque", "visual_role": "hero_platform", "slot_group": "platforms", "tile_mode": "tile_x"},
+    {"component_type": "hero_platform_face", "schema_key": "platforms", "template_component_type": "hero_platform_piece", "size": (320, 84), "orientation": "horizontal", "transparency_mode": "opaque", "visual_role": "hero_platform_face", "slot_group": "platforms", "tile_mode": "tile_x"},
+    {"component_type": "door_frame", "schema_key": "doors", "template_component_type": "door_piece", "size": (192, 288), "orientation": "vertical", "transparency_mode": "alpha", "visual_role": "transition", "slot_group": "doors", "tile_mode": "stretch"},
+    {"component_type": "pit_rim", "schema_key": "pits", "template_component_type": "primary_floor_piece", "size": (256, 96), "orientation": "horizontal", "transparency_mode": "opaque", "visual_role": "hazard_rim", "slot_group": "pits", "tile_mode": "tile_x"},
+    {"component_type": "pit_interior", "schema_key": "pits", "template_component_type": "background_plate", "size": (256, 192), "orientation": "vertical", "transparency_mode": "opaque", "visual_role": "hazard_void", "slot_group": "pits", "tile_mode": "stretch"},
+)
+
+V2_SLOT_SPEC_BY_TYPE: Dict[str, Dict[str, Any]] = {entry["component_type"]: entry for entry in V2_SLOT_FAMILY_SPECS}
 
 SHELL_FAMILY_PRESETS: Dict[str, Dict[str, str]] = {
     "gothic_ruin": {
@@ -1155,6 +1441,196 @@ def _default_component_prompts(description: str, direction: Optional[Dict[str, A
             "label": "Background",
             "prompt": f"{base} Describe the background and midground architecture, silhouettes, depth, fog, landmarks, and distant atmosphere.{suffix}".strip(),
         },
+    }
+
+
+def _coerce_string_list(value: Any) -> List[str]:
+    if isinstance(value, list):
+        return [str(item).strip() for item in value if str(item).strip()]
+    if value is None:
+        return []
+    text = str(value).strip()
+    if not text:
+        return []
+    return [chunk.strip() for chunk in text.split(";") if chunk.strip()]
+
+
+def _component_schema_seed_text(
+    schema_key: str,
+    description: str,
+    legacy_components: Optional[Dict[str, Any]] = None,
+    direction: Optional[Dict[str, Any]] = None,
+) -> str:
+    legacy_prompt = ""
+    if isinstance(legacy_components, dict):
+        legacy_prompt = str(((legacy_components.get(schema_key) or {}).get("prompt") or "")).strip()
+        if not legacy_prompt and schema_key == "midground":
+            legacy_prompt = str(((legacy_components.get("background") or {}).get("prompt") or "")).strip()
+        if not legacy_prompt and schema_key == "pits":
+            legacy_prompt = str(((legacy_components.get("floor") or {}).get("prompt") or "")).strip()
+    direction_text = str((direction or {}).get("high_level_direction") or "").strip()
+    return " ".join(part for part in [description.strip(), legacy_prompt, direction_text] if part).strip()
+
+
+def _default_component_schema(
+    schema_key: str,
+    description: str,
+    legacy_components: Optional[Dict[str, Any]] = None,
+    direction: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    schema_def = COMPONENT_SCHEMA_DEFS[schema_key]
+    defaults = COMPONENT_SCHEMA_DEFAULTS[schema_key]
+    seed_text = _component_schema_seed_text(schema_key, description, legacy_components, direction)
+    design_intent = seed_text or f"Keep the {schema_key} aligned to the room art direction and gameplay readability."
+    out: Dict[str, Any] = {
+        "label": schema_def["label"],
+        "design_intent": design_intent,
+        "visual_role": schema_def["visual_role"],
+    }
+    for field in COMPONENT_SCHEMA_COMMON_FIELDS:
+        if field in out:
+            continue
+        value = defaults.get(field)
+        out[field] = list(value) if isinstance(value, list) else str(value or "").strip()
+    for field in schema_def["specific_fields"]:
+        value = defaults.get(field)
+        out[field] = list(value) if isinstance(value, list) else str(value or "").strip()
+    return out
+
+
+def _normalize_single_component_schema(
+    schema_key: str,
+    raw_value: Any,
+    description: str,
+    legacy_components: Optional[Dict[str, Any]] = None,
+    direction: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    fallback = _default_component_schema(schema_key, description, legacy_components, direction)
+    raw = raw_value if isinstance(raw_value, dict) else {}
+    out: Dict[str, Any] = {"label": fallback["label"]}
+    list_fields = {"silhouette_rules", "readability_constraints", "negative_constraints", "variation_rules"}
+    for field in COMPONENT_SCHEMA_COMMON_FIELDS:
+        value = raw.get(field)
+        if field in list_fields:
+            cleaned = _coerce_string_list(value)
+            out[field] = cleaned if cleaned else list(fallback[field])
+        else:
+            text = str(value or "").strip()
+            out[field] = text or fallback[field]
+    for field in COMPONENT_SCHEMA_DEFS[schema_key]["specific_fields"]:
+        value = raw.get(field)
+        if isinstance(fallback.get(field), list):
+            cleaned = _coerce_string_list(value)
+            out[field] = cleaned if cleaned else list(fallback[field])
+            continue
+        text = str(value or "").strip()
+        out[field] = text or fallback[field]
+    return out
+
+
+def _normalize_component_schemas_response(
+    raw: Any,
+    description: str,
+    legacy_components: Optional[Dict[str, Any]] = None,
+    direction: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Dict[str, Any]]:
+    source = raw if isinstance(raw, dict) else {}
+    out: Dict[str, Dict[str, Any]] = {}
+    for schema_key in COMPONENT_SCHEMA_DEFS:
+        out[schema_key] = _normalize_single_component_schema(
+            schema_key,
+            source.get(schema_key),
+            description,
+            legacy_components,
+            direction,
+        )
+    return out
+
+
+def _room_has_pits(room: Dict[str, Any], geometry: Optional[Dict[str, Any]] = None) -> bool:
+    if isinstance(room.get("pits"), list) and room.get("pits"):
+        return True
+    if isinstance(room.get("voidSpans"), list) and room.get("voidSpans"):
+        return True
+    if isinstance(geometry, dict):
+        return int(geometry.get("pit_count") or 0) > 0
+    return False
+
+
+def _validate_component_schemas(
+    room: Dict[str, Any],
+    spec: Dict[str, Any],
+    geometry: Dict[str, Any],
+) -> Dict[str, Any]:
+    schemas = spec.get("component_schemas") if isinstance(spec.get("component_schemas"), dict) else {}
+    required_components = ["walls", "floor", "platforms", "background", "midground"]
+    if int(geometry.get("door_count") or 0) > 0:
+        required_components.append("doors")
+    if _room_has_pits(room, geometry):
+        required_components.append("pits")
+    errors: List[str] = []
+    statuses: Dict[str, Dict[str, Any]] = {}
+    list_fields = {"silhouette_rules", "readability_constraints", "negative_constraints", "variation_rules"}
+    for schema_key, schema_def in COMPONENT_SCHEMA_DEFS.items():
+        schema = schemas.get(schema_key)
+        component_errors: List[str] = []
+        if schema_key in required_components and not isinstance(schema, dict):
+            component_errors.append("missing_schema")
+        if isinstance(schema, dict):
+            for field in COMPONENT_SCHEMA_COMMON_FIELDS:
+                value = schema.get(field)
+                if field in list_fields:
+                    if not _coerce_string_list(value):
+                        component_errors.append(f"missing_{field}")
+                elif not str(value or "").strip():
+                    component_errors.append(f"missing_{field}")
+            for field in schema_def["specific_fields"]:
+                value = schema.get(field)
+                if isinstance(value, list):
+                    if not _coerce_string_list(value):
+                        component_errors.append(f"missing_{field}")
+                elif not str(value or "").strip():
+                    component_errors.append(f"missing_{field}")
+            if schema_key == "background":
+                if "open" not in str(schema.get("center_openness") or "").lower():
+                    component_errors.append("background_center_not_open")
+                focal_text = " ".join(_coerce_string_list(schema.get("negative_constraints"))) + " " + str(schema.get("focal_suppression") or "")
+                if not any(token in focal_text.lower() for token in ("altar", "brazier", "dais", "shrine")):
+                    component_errors.append("background_focal_suppression_missing")
+                floor_text = str(schema.get("floor_plane_suppression") or "").lower()
+                if "no" not in floor_text and "suppress" not in floor_text:
+                    component_errors.append("background_floor_plane_carryover_risk")
+            if schema_key == "midground":
+                if "true" not in str(schema.get("side_mass_only") or "").lower():
+                    component_errors.append("midground_not_side_only")
+                try:
+                    ratio = float(schema.get("center_clearance_ratio") or 0)
+                except (TypeError, ValueError):
+                    ratio = 0.0
+                if ratio < 0.35:
+                    component_errors.append("midground_center_clearance_too_low")
+                if "true" not in str(schema.get("floor_crossing_forbidden") or "").lower():
+                    component_errors.append("midground_floor_crossing_allowed")
+                if "true" not in str(schema.get("route_overlap_forbidden") or "").lower():
+                    component_errors.append("midground_route_overlap_allowed")
+        status = "ready"
+        if component_errors:
+            status = "invalid"
+        elif schema_key not in required_components:
+            status = "normalized"
+        statuses[schema_key] = {
+            "status": status,
+            "errors": component_errors,
+        }
+        errors.extend(f"{schema_key}:{error}" for error in component_errors)
+    overall_status = "ready" if not errors else "invalid"
+    return {
+        "valid": not errors,
+        "status": overall_status,
+        "required_components": required_components,
+        "optional_components": [key for key in COMPONENT_SCHEMA_DEFS if key not in required_components],
+        "component_statuses": statuses,
+        "errors": errors,
     }
 
 
@@ -1392,6 +1868,12 @@ def build_room_environment_spec(project_id: str, room_id: str, payload: Dict[str
         description,
         direction,
     )
+    component_schemas = _normalize_component_schemas_response(
+        payload.get("component_schemas") if isinstance(payload.get("component_schemas"), dict) else env["spec"].get("component_schemas"),
+        description,
+        components,
+        direction,
+    )
     geometry = _room_geometry(room)
     system_prompt = textwrap.dedent(
         """\
@@ -1399,7 +1881,7 @@ def build_room_environment_spec(project_id: str, room_id: str, payload: Dict[str
         Respect the locked art direction strictly.
         Keep results readable for a platforming game.
         Return ONLY valid JSON in this shape:
-        {"themeId":"cave|ruins|forest|shrine|sewer|void|custom","tags":["a"],"description":"...","mood":"...","lighting":"...","fog":"...","materials":["..."],"landmarks":["..."],"hazards":["..."],"compositionFocus":"...","readabilityNotes":["..."],"components":{"floor":{"label":"Floor","prompt":"..."},"platforms":{"label":"Platforms","prompt":"..."},"walls":{"label":"Walls","prompt":"..."},"doors":{"label":"Doors","prompt":"..."},"background":{"label":"Background","prompt":"..."}},"sceneSchema":{"backgroundLayers":[{"kind":"architecture|fog_band|roots|void_forms","motif":"...","depth":"far|mid|near","density":"low|medium|high"}],"setDressing":[{"type":"brazier|chains|altar|roots|statue|banner","anchor":"floor|platform|ceiling|wall","zone":"left|center|right|focal","count":1,"priority":"low|medium|high","avoid":["door","main_path"]}],"effects":{"fog_profile":"...","particle_profile":"...","lighting_profile":"..."},"kit":{"shell_family":"gothic_ruin|ritual_shrine|flooded_stone|industrial_underworks|rooted_overgrowth|void_structure|weathered_stone","wall_family":"weathered_stone|broken_gothic_stone|industrial_ribbed","platform_family":"broken_masonry_ledge|carved_ledge|iron_walkway","door_family":"arch_door|ritual_gate|iron_gate","backdrop_family":"ruined_arch_hall|flooded_arch_hall|industrial_depth","prop_density":"low|medium|high"}}}
+        {"themeId":"cave|ruins|forest|shrine|sewer|void|custom","tags":["a"],"description":"...","mood":"...","lighting":"...","fog":"...","materials":["..."],"landmarks":["..."],"hazards":["..."],"compositionFocus":"...","readabilityNotes":["..."],"components":{"floor":{"label":"Floor","prompt":"..."},"platforms":{"label":"Platforms","prompt":"..."},"walls":{"label":"Walls","prompt":"..."},"doors":{"label":"Doors","prompt":"..."},"background":{"label":"Background","prompt":"..."}},"componentSchemas":{"walls":{"design_intent":"...","visual_role":"structural","material_family":"...","silhouette_rules":["..."],"detail_density":"...","value_contrast":"...","damage_profile":"...","readability_constraints":["..."],"negative_constraints":["..."],"variation_rules":["..."],"enclosure_read":"...","bay_rhythm":"...","column_width_class":"...","wall_face_depth":"...","ceiling_junction":"...","base_trim":"...","edge_darkening":"...","repetition_interval":"..."},"floor":{"design_intent":"...","visual_role":"traversal","material_family":"...","silhouette_rules":["..."],"detail_density":"...","value_contrast":"...","damage_profile":"...","readability_constraints":["..."],"negative_constraints":["..."],"variation_rules":["..."],"top_lip_thickness":"...","face_height":"...","seam_pattern":"...","top_plane_read":"...","edge_breakup":"...","underside_darkening":"...","modular_repeat_width":"..."},"platforms":{"design_intent":"...","visual_role":"traversal","material_family":"...","silhouette_rules":["..."],"detail_density":"...","value_contrast":"...","damage_profile":"...","readability_constraints":["..."],"negative_constraints":["..."],"variation_rules":["..."],"top_lip_thickness":"...","face_height":"...","endcap_style":"...","support_style":"...","ledge_read":"...","underside_variation":"...","modular_repeat_width":"..."},"doors":{"design_intent":"...","visual_role":"threshold","material_family":"...","silhouette_rules":["..."],"detail_density":"...","value_contrast":"...","damage_profile":"...","readability_constraints":["..."],"negative_constraints":["..."],"variation_rules":["..."],"frame_mass":"...","opening_read":"...","threshold_depth":"...","gate_panel_style":"...","lock_overlay_style":"...","side_clearance":"..."},"pits":{"design_intent":"...","visual_role":"hazard","material_family":"...","silhouette_rules":["..."],"detail_density":"...","value_contrast":"...","damage_profile":"...","readability_constraints":["..."],"negative_constraints":["..."],"variation_rules":["..."],"rim_profile":"...","wall_drop_profile":"...","interior_fill_mode":"...","hazard_read":"...","fog_fill":"...","left_right_edge_rules":"..."},"background":{"design_intent":"...","visual_role":"far_depth","material_family":"...","silhouette_rules":["..."],"detail_density":"...","value_contrast":"...","damage_profile":"...","readability_constraints":["..."],"negative_constraints":["..."],"variation_rules":["..."],"enclosure_architecture":"...","center_openness":"...","far_depth_layers":"...","focal_suppression":"...","floor_plane_suppression":"...","atmospheric_falloff":"..."},"midground":{"design_intent":"...","visual_role":"side_frame","material_family":"...","silhouette_rules":["..."],"detail_density":"...","value_contrast":"...","damage_profile":"...","readability_constraints":["..."],"negative_constraints":["..."],"variation_rules":["..."],"side_mass_only":"true","center_clearance_ratio":"0.45","occluder_types":"...","alpha_profile":"...","floor_crossing_forbidden":"true","route_overlap_forbidden":"true"}},"sceneSchema":{"backgroundLayers":[{"kind":"architecture|fog_band|roots|void_forms","motif":"...","depth":"far|mid|near","density":"low|medium|high"}],"setDressing":[{"type":"brazier|chains|altar|roots|statue|banner","anchor":"floor|platform|ceiling|wall","zone":"left|center|right|focal","count":1,"priority":"low|medium|high","avoid":["door","main_path"]}],"effects":{"fog_profile":"...","particle_profile":"...","lighting_profile":"..."},"kit":{"shell_family":"gothic_ruin|ritual_shrine|flooded_stone|industrial_underworks|rooted_overgrowth|void_structure|weathered_stone","wall_family":"weathered_stone|broken_gothic_stone|industrial_ribbed","platform_family":"broken_masonry_ledge|carved_ledge|iron_walkway","door_family":"arch_door|ritual_gate|iron_gate","backdrop_family":"ruined_arch_hall|flooded_arch_hall|industrial_depth","prop_density":"low|medium|high"}}}
         """
     )
     user_prompt = json.dumps({
@@ -1409,11 +1891,14 @@ def build_room_environment_spec(project_id: str, room_id: str, payload: Dict[str
         "template_context": env["template_context"],
         "description": description,
         "components": components,
+        "component_schemas": component_schemas,
     }, indent=2)
     ai_payload = _gemini_json(system_prompt, user_prompt)
     spec = _normalize_spec_response(ai_payload or {}, description)
     spec["components"] = _normalize_component_prompts_response(spec.get("components"), description, direction)
+    spec["component_schemas"] = _normalize_component_schemas_response(spec.get("component_schemas"), description, spec["components"], direction)
     spec["scene_schema"] = spec["scene_schema"] if spec["scene_schema"] else _default_scene_schema(spec, geometry)
+    schema_validation = _validate_component_schemas(room, spec, geometry)
     env["themeId"] = spec["theme_id"]
     env["tags"] = list(spec["tags"])
     env["spec"] = copy.deepcopy(spec)
@@ -1430,11 +1915,17 @@ def build_room_environment_spec(project_id: str, room_id: str, payload: Dict[str
     env["runtime"]["lighting_mode"] = str(spec.get("lighting") or "")
     env["runtime"]["last_applied_at"] = None
     env["runtime"]["bespoke_asset_manifest"] = {
-        "schema_version": 1,
+        "schema_version": 2,
         "status": "idle",
         "biome_id": None,
         "source_preview_id": None,
         "generation_plan": [],
+        "required_slots": [],
+        "built_slots": [],
+        "slot_groups": {},
+        "schema_validation": schema_validation,
+        "runtime_review": {"status": "idle", "fail_reasons": [], "metrics": {}, "screenshot_url": None, "review_mode": None},
+        "review": {"status": "idle", "fail_reasons": [], "metrics": {}, "screenshot_url": None, "review_mode": None},
         "assets": {},
         "failed_assets": [],
         "used_ai": False,
@@ -2356,11 +2847,17 @@ def generate_room_environment_previews(project_id: str, room_id: str, payload: D
     env["runtime"]["lighting_mode"] = str(spec.get("lighting") or "")
     env["runtime"]["last_applied_at"] = None
     env["runtime"]["bespoke_asset_manifest"] = {
-        "schema_version": 1,
+        "schema_version": 2,
         "status": "idle",
         "biome_id": None,
         "source_preview_id": None,
         "generation_plan": [],
+        "required_slots": [],
+        "built_slots": [],
+        "slot_groups": {},
+        "schema_validation": _validate_component_schemas(room, spec, geometry),
+        "runtime_review": {"status": "idle", "fail_reasons": [], "metrics": {}, "screenshot_url": None, "review_mode": None},
+        "review": {"status": "idle", "fail_reasons": [], "metrics": {}, "screenshot_url": None, "review_mode": None},
         "assets": {},
         "failed_assets": [],
         "used_ai": False,
@@ -2410,6 +2907,30 @@ def _template_by_component(biome_pack: Dict[str, Any], component_type: str) -> O
     return None
 
 
+def _slot_spec(component_type: str) -> Dict[str, Any]:
+    return copy.deepcopy(V2_SLOT_SPEC_BY_TYPE[component_type])
+
+
+def _pit_regions(room: Dict[str, Any], width: int, height: int) -> List[Dict[str, Any]]:
+    raw = room.get("pits") if isinstance(room.get("pits"), list) else room.get("voidSpans")
+    regions: List[Dict[str, Any]] = []
+    for index, item in enumerate(raw or []):
+        if not isinstance(item, dict):
+            continue
+        pit_width = max(96, int(item.get("width") or item.get("w") or 192))
+        pit_height = max(128, int(item.get("height") or item.get("h") or 224))
+        x = int(item.get("x") or max(0, int(width * 0.35)))
+        y = int(item.get("y") or max(0, int(height * 0.72)))
+        regions.append({
+            "pit_id": str(item.get("id") or f"pit-{index + 1}"),
+            "x": x,
+            "y": y,
+            "width": pit_width,
+            "height": pit_height,
+        })
+    return regions
+
+
 def _room_component_plan(room: Dict[str, Any], preview_id: str, biome_pack: Dict[str, Any]) -> List[Dict[str, Any]]:
     geometry = _room_geometry(room)
     room_id = str(room.get("id") or "room")
@@ -2432,40 +2953,105 @@ def _room_component_plan(room: Dict[str, Any], preview_id: str, biome_pack: Dict
     primary_floor = next((item for item in platforms if item["width"] >= int(width * 0.68)), platforms[0] if platforms else None)
     hero_platforms = [item for item in platforms if primary_floor is None or item["platform_id"] != primary_floor["platform_id"]][:3]
     active_door = next((item for item in (room.get("doors") or []) if isinstance(item, dict)), None)
+    pit_regions = _pit_regions(room, width, height)
     plan: List[Dict[str, Any]] = []
     background_template = _template_by_component(biome_pack, "background_plate")
     if background_template:
+        slot_spec = _slot_spec("background_far_plate")
         plan.append({
             "slot_id": f"{room_id}-background",
-            "component_type": "background_plate",
+            "component_type": "background_far_plate",
+            "schema_key": slot_spec["schema_key"],
             "source_template_id": background_template["template_id"],
             "target_dimensions": {"width": width, "height": height},
             "placement": {"x": int(width / 2), "y": height, "display_width": width, "display_height": height, "origin_x": 0.5, "origin_y": 1},
             "orientation": "full",
+            "tile_mode": slot_spec["tile_mode"],
+            "border_treatment": "full_frame",
+            "slot_group": slot_spec["slot_group"],
             "protected_zones": [{"type": "center_lane", "x": int(width * 0.25), "y": 0, "width": int(width * 0.5), "height": height}],
             "local_geometry": {"room_width": width, "room_height": height},
         })
     midground_template = _template_by_component(biome_pack, "midground_frame")
     if midground_template:
+        slot_spec = _slot_spec("midground_side_frame")
         plan.append({
             "slot_id": f"{room_id}-midground",
-            "component_type": "midground_frame",
+            "component_type": "midground_side_frame",
+            "schema_key": slot_spec["schema_key"],
             "source_template_id": midground_template["template_id"],
             "target_dimensions": {"width": width, "height": height},
             "placement": {"x": int(width / 2), "y": height, "display_width": width, "display_height": height, "origin_x": 0.5, "origin_y": 1},
             "orientation": "full",
+            "tile_mode": slot_spec["tile_mode"],
+            "border_treatment": "side_only",
+            "slot_group": slot_spec["slot_group"],
             "protected_zones": [{"type": "main_route", "x": int(width * 0.3), "y": 0, "width": int(width * 0.4), "height": height}],
             "local_geometry": {"room_width": width, "room_height": height},
         })
+    if background_template:
+        for side, x in (("left", 0), ("right", max(0, width - 320))):
+            slot_type = f"wall_module_{side}"
+            slot_spec = _slot_spec(slot_type)
+            plan.append({
+                "slot_id": f"{room_id}-wall-module-{side}",
+                "component_type": slot_type,
+                "schema_key": slot_spec["schema_key"],
+                "source_template_id": background_template["template_id"],
+                "target_dimensions": {"width": 320, "height": max(320, height - 240)},
+                "placement": {"x": x, "y": 120, "display_width": 320, "display_height": max(320, height - 240), "origin_x": 0, "origin_y": 0},
+                "orientation": "vertical",
+                "tile_mode": slot_spec["tile_mode"],
+                "border_treatment": "dark_outer_edge",
+                "slot_group": slot_spec["slot_group"],
+                "protected_zones": [{"type": "center_lane", "x": int(width * 0.26), "y": 0, "width": int(width * 0.48), "height": height}],
+                "local_geometry": {"side": side, "room_width": width, "room_height": height},
+            })
+            trim_type = f"wall_base_trim_{side}"
+            trim_spec = _slot_spec(trim_type)
+            plan.append({
+                "slot_id": f"{room_id}-wall-base-{side}",
+                "component_type": trim_type,
+                "schema_key": trim_spec["schema_key"],
+                "source_template_id": background_template["template_id"],
+                "target_dimensions": {"width": 256, "height": 160},
+                "placement": {"x": 0 if side == "left" else max(0, width - 256), "y": max(0, height - 220), "display_width": 256, "display_height": 160, "origin_x": 0, "origin_y": 0},
+                "orientation": "horizontal",
+                "tile_mode": trim_spec["tile_mode"],
+                "border_treatment": "base_trim",
+                "slot_group": trim_spec["slot_group"],
+                "protected_zones": [{"type": "floor_lane", "x": int(width * 0.22), "y": int(height * 0.7), "width": int(width * 0.56), "height": int(height * 0.3)}],
+                "local_geometry": {"side": side, "room_width": width, "room_height": height},
+            })
     floor_template = _template_by_component(biome_pack, "primary_floor_piece")
     if floor_template and primary_floor:
+        top_spec = _slot_spec("main_floor_top")
         plan.append({
-            "slot_id": f"{room_id}-primary-floor",
-            "component_type": "primary_floor_piece",
+            "slot_id": f"{room_id}-main-floor-top",
+            "component_type": "main_floor_top",
+            "schema_key": top_spec["schema_key"],
             "source_template_id": floor_template["template_id"],
             "target_dimensions": {"width": primary_floor["width"], "height": 96},
             "placement": {"x": primary_floor["x"], "y": primary_floor["y"], "display_width": primary_floor["width"], "display_height": 96, "origin_x": 0, "origin_y": 0.75},
             "orientation": "horizontal",
+            "tile_mode": top_spec["tile_mode"],
+            "border_treatment": "top_lip_priority",
+            "slot_group": top_spec["slot_group"],
+            "protected_zones": [{"type": "platform_top", "x": primary_floor["x"], "y": primary_floor["y"] - 18, "width": primary_floor["width"], "height": 22}],
+            "local_geometry": primary_floor,
+        })
+        face_spec = _slot_spec("main_floor_face")
+        plan.append({
+            "slot_id": f"{room_id}-main-floor-face",
+            "component_type": "main_floor_face",
+            "schema_key": face_spec["schema_key"],
+            "source_template_id": floor_template["template_id"],
+            "target_dimensions": {"width": primary_floor["width"], "height": 128},
+            "placement": {"x": primary_floor["x"], "y": primary_floor["y"] + 12, "display_width": primary_floor["width"], "display_height": 128, "origin_x": 0, "origin_y": 0},
+            "orientation": "horizontal",
+            "tile_mode": face_spec["tile_mode"],
+            "border_treatment": "face_plane_separation",
+            "slot_group": face_spec["slot_group"],
             "protected_zones": [{"type": "platform_top", "x": primary_floor["x"], "y": primary_floor["y"] - 18, "width": primary_floor["width"], "height": 22}],
             "local_geometry": primary_floor,
         })
@@ -2473,46 +3059,151 @@ def _room_component_plan(room: Dict[str, Any], preview_id: str, biome_pack: Dict
     for index, platform in enumerate(hero_platforms[:3]):
         if not platform_template:
             break
+        top_spec = _slot_spec("hero_platform_top")
         plan.append({
-            "slot_id": f"{room_id}-hero-platform-{index + 1}",
-            "component_type": "hero_platform_piece",
+            "slot_id": f"{room_id}-hero-platform-top-{index + 1}",
+            "component_type": "hero_platform_top",
+            "schema_key": top_spec["schema_key"],
             "source_template_id": platform_template["template_id"],
             "target_dimensions": {"width": platform["width"], "height": 72},
             "placement": {"x": platform["x"], "y": platform["y"], "display_width": platform["width"], "display_height": 72, "origin_x": 0, "origin_y": 0.68},
             "orientation": "horizontal",
+            "tile_mode": top_spec["tile_mode"],
+            "border_treatment": "top_lip_priority",
+            "slot_group": top_spec["slot_group"],
+            "protected_zones": [{"type": "platform_top", "x": platform["x"], "y": platform["y"] - 16, "width": platform["width"], "height": 20}],
+            "local_geometry": platform,
+        })
+        face_spec = _slot_spec("hero_platform_face")
+        plan.append({
+            "slot_id": f"{room_id}-hero-platform-face-{index + 1}",
+            "component_type": "hero_platform_face",
+            "schema_key": face_spec["schema_key"],
+            "source_template_id": platform_template["template_id"],
+            "target_dimensions": {"width": platform["width"], "height": 84},
+            "placement": {"x": platform["x"], "y": platform["y"] + 8, "display_width": platform["width"], "display_height": 84, "origin_x": 0, "origin_y": 0},
+            "orientation": "horizontal",
+            "tile_mode": face_spec["tile_mode"],
+            "border_treatment": "face_plane_separation",
+            "slot_group": face_spec["slot_group"],
             "protected_zones": [{"type": "platform_top", "x": platform["x"], "y": platform["y"] - 16, "width": platform["width"], "height": 20}],
             "local_geometry": platform,
         })
     door_template = _template_by_component(biome_pack, "door_piece")
     if door_template and active_door:
+        slot_spec = _slot_spec("door_frame")
         plan.append({
             "slot_id": f"{room_id}-door-1",
-            "component_type": "door_piece",
+            "component_type": "door_frame",
+            "schema_key": slot_spec["schema_key"],
             "source_template_id": door_template["template_id"],
             "target_dimensions": {"width": 192, "height": 288},
             "placement": {"x": int(active_door.get("x") or 0), "y": int(active_door.get("y") or 0), "display_width": 96, "display_height": 144, "origin_x": 0.5, "origin_y": 1},
             "orientation": "vertical",
+            "tile_mode": slot_spec["tile_mode"],
+            "border_treatment": "threshold_clearance",
+            "slot_group": slot_spec["slot_group"],
             "protected_zones": [{"type": "door_mouth", "x": int(active_door.get("x") or 0) - 48, "y": int(active_door.get("y") or 0) - 144, "width": 96, "height": 160}],
             "local_geometry": {"door_id": str(active_door.get("id") or ""), "x": int(active_door.get("x") or 0), "y": int(active_door.get("y") or 0)},
         })
+    if floor_template:
+        for index, pit in enumerate(pit_regions):
+            rim_spec = _slot_spec("pit_rim")
+            plan.append({
+                "slot_id": f"{room_id}-pit-rim-{index + 1}",
+                "component_type": "pit_rim",
+                "schema_key": rim_spec["schema_key"],
+                "source_template_id": floor_template["template_id"],
+                "target_dimensions": {"width": pit["width"], "height": 96},
+                "placement": {"x": pit["x"], "y": pit["y"], "display_width": pit["width"], "display_height": 96, "origin_x": 0, "origin_y": 0},
+                "orientation": "horizontal",
+                "tile_mode": rim_spec["tile_mode"],
+                "border_treatment": "hazard_rim",
+                "slot_group": rim_spec["slot_group"],
+                "protected_zones": [{"type": "pit_opening", "x": pit["x"], "y": pit["y"], "width": pit["width"], "height": pit["height"]}],
+                "local_geometry": pit,
+            })
+            pit_source = background_template or floor_template
+            interior_spec = _slot_spec("pit_interior")
+            plan.append({
+                "slot_id": f"{room_id}-pit-interior-{index + 1}",
+                "component_type": "pit_interior",
+                "schema_key": interior_spec["schema_key"],
+                "source_template_id": pit_source["template_id"],
+                "target_dimensions": {"width": pit["width"], "height": pit["height"]},
+                "placement": {"x": pit["x"], "y": pit["y"] + 40, "display_width": pit["width"], "display_height": pit["height"], "origin_x": 0, "origin_y": 0},
+                "orientation": "vertical",
+                "tile_mode": interior_spec["tile_mode"],
+                "border_treatment": "void_drop",
+                "slot_group": interior_spec["slot_group"],
+                "protected_zones": [{"type": "pit_opening", "x": pit["x"], "y": pit["y"], "width": pit["width"], "height": pit["height"]}],
+                "local_geometry": pit,
+            })
     return plan
 
 
 def _build_bespoke_prompt(direction: Dict[str, Any], spec: Dict[str, Any], plan_entry: Dict[str, Any], template: Dict[str, Any]) -> str:
     dims = plan_entry.get("target_dimensions") or {}
     component_type = str(plan_entry.get("component_type") or "")
+    schema_key = str(plan_entry.get("schema_key") or V2_SLOT_SPEC_BY_TYPE.get(component_type, {}).get("schema_key") or "")
+    component_schema = ((spec.get("component_schemas") or {}).get(schema_key) or {}) if isinstance(spec.get("component_schemas"), dict) else {}
     protected = ", ".join(
         f"{zone.get('type')}@({int(zone.get('x') or 0)},{int(zone.get('y') or 0)},{int(zone.get('width') or 0)},{int(zone.get('height') or 0)})"
         for zone in (plan_entry.get("protected_zones") or [])
         if isinstance(zone, dict)
     ) or "none"
     component_rules = {
-        "background_plate": "Treat the approved room preview as context only. Do not copy its focal landmark, altar, platform staging, or center floor graphic. Preserve a calm far-depth backdrop, soft depth falloff, and an open readable center lane.",
-        "midground_frame": "Keep the middle third open. Concentrate architecture on the left and right framing edges. No center object, no floor plane, and no props that cross the playable route.",
-        "primary_floor_piece": "Preserve a clean readable top lip, straight side-view silhouette, and shallow underside detail. Do not introduce props, braziers, or deep scenic perspective.",
-        "hero_platform_piece": "Preserve a crisp horizontal traversal surface with restrained underside variation. No attached scenic background, no braziers, and no large dangling ornaments.",
-        "door_piece": "Preserve a centered door silhouette with clear opening read. No extra scene dressing, no floor plane, no surrounding chamber composition.",
+        "background_far_plate": (
+            "Build only the far-depth hall shell. The image must read as enclosing architecture, not a scenic key art moment. "
+            "Treat the approved room preview as context only and explicitly reject carryover of any altar, brazier energy, shrine focal landmark, center dais, near framing, "
+            "or pasted-in floor strip from that preview. Use walls, arches, pillars, and recesses to create a readable room shell with calm depth falloff and an open center lane."
+        ),
+        "midground_side_frame": (
+            "Build only side framing. Keep the center fully open and calm. Restrict arches, columns, and side mass to the left and right edges so the middle third stays clear. "
+            "No center object, no floor plane, no bridge, no hanging focal prop, and nothing that closes the room shell across the playable route."
+        ),
+        "wall_module_left": (
+            "Build a structural left wall module only. This is readable enclosure architecture, not scenic concept art. Preserve room-shell mass, bay rhythm, base trim anchoring, and darker outer edges."
+        ),
+        "wall_module_right": (
+            "Build a structural right wall module only. This is readable enclosure architecture, not scenic concept art. Preserve room-shell mass, bay rhythm, base trim anchoring, and darker outer edges."
+        ),
+        "wall_base_trim_left": (
+            "Build a left wall base trim that structurally ties the walls into the floor language. Keep it calm, modular, and avoid scenic perspective."
+        ),
+        "wall_base_trim_right": (
+            "Build a right wall base trim that structurally ties the walls into the floor language. Keep it calm, modular, and avoid scenic perspective."
+        ),
+        "main_floor_top": (
+            "Make this floor feel structural to the same room shell as the walls and background, using the same stone family, wear language, and value range. "
+            "Preserve a clean readable top lip, straight side-view silhouette, and shallow underside detail. Keep patterning quiet and modular. "
+            "Do not introduce a giant circular ritual graphic, shrine motif, brazier base, or deep scenic perspective unless the entire room is explicitly built around that concept."
+        ),
+        "main_floor_face": (
+            "Build only the floor face plane beneath the traversal top. Preserve face separation, modular seams, and restrained underside darkening. No scenic perspective and no ritual floor graphic."
+        ),
+        "hero_platform_top": (
+            "Preserve a crisp horizontal traversal surface that belongs to the same architectural family as the primary floor and enclosing shell. "
+            "Use restrained underside variation only. No attached scenic background, no braziers, no ritual emblems, and no large dangling ornaments."
+        ),
+        "hero_platform_face": (
+            "Build only the front face of the platform. Keep ledge readability high, underside variation restrained, and avoid scenic attachments or dangling props."
+        ),
+        "door_frame": "Preserve a centered door silhouette with clear opening read. No extra scene dressing, no floor plane, no surrounding chamber composition.",
+        "pit_rim": "Preserve a crisp hazard rim with strong non-walkable read. No scenic bridge treatment and no false floor continuity.",
+        "pit_interior": "Preserve a dark, clearly non-walkable pit interior. The center should read as a drop or void, not a floor surface.",
     }
+    schema_summary = "; ".join([
+        f"design_intent={component_schema.get('design_intent') or ''}",
+        f"material_family={component_schema.get('material_family') or ''}",
+        f"detail_density={component_schema.get('detail_density') or ''}",
+        f"value_contrast={component_schema.get('value_contrast') or ''}",
+        f"damage_profile={component_schema.get('damage_profile') or ''}",
+        f"silhouette_rules={', '.join(_coerce_string_list(component_schema.get('silhouette_rules')))}",
+        f"readability_constraints={', '.join(_coerce_string_list(component_schema.get('readability_constraints')))}",
+        f"negative_constraints={', '.join(_coerce_string_list(component_schema.get('negative_constraints')))}",
+        f"variation_rules={', '.join(_coerce_string_list(component_schema.get('variation_rules')))}",
+    ])
     return textwrap.dedent(
         f"""\
         Create a single 2D metroidvania environment component that is a tightly matched equivalent adaptation of the attached template.
@@ -2530,18 +3221,205 @@ def _build_bespoke_prompt(direction: Dict[str, Any], spec: Dict[str, Any], plan_
         Art direction: {direction.get('high_level_direction') or ''}
         Avoid: {direction.get('negative_direction') or ''}
         Protected zones: {protected}
-        Gameplay constraints: keep protected readability zones clear, preserve silhouette readability, and stay close to the source template family.
+        Tile mode: {plan_entry.get('tile_mode') or 'stretch'}
+        Border treatment: {plan_entry.get('border_treatment') or 'none'}
+        Schema key: {schema_key}
+        Schema contract: {schema_summary}
+        Gameplay constraints: keep protected readability zones clear, preserve silhouette readability, stay close to the source template family, and protect top-lip / threshold / hazard readability.
+        Composition contract: this must read as a playable room built in depth, not scenic concept art with gameplay layered on top. If the approved preview contains shrine, altar, brazier, dais, ritual floor, or other focal-scene imagery, treat those elements as rejected source noise unless they are explicitly required by this component role.
         Component-specific rules: {component_rules.get(component_type, 'Preserve the source template closely and keep gameplay-facing surfaces readable.')}
         Output a single production-ready component image only. No text, no characters, no UI.
         """
     ).strip()
 
 
-def _render_bespoke_component_from_template(template_path: Path, output_path: Path, size: Tuple[int, int], transparent: bool) -> bool:
+def _save_reference_image(image: Image.Image, output_path: Path, transparent: bool) -> Path:
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    image = image.convert("RGBA")
+    if not transparent:
+        flattened = Image.new("RGBA", image.size, (0, 0, 0, 255))
+        flattened.alpha_composite(image)
+        image = flattened
+    image.save(output_path)
+    return output_path
+
+
+def _apply_background_suppression(source: Image.Image, aggressive: bool = False) -> Image.Image:
+    source = source.convert("RGBA")
+    width, height = source.size
+    fogged = source.filter(ImageFilter.GaussianBlur(radius=max(4, int(width * 0.008))))
+    center_mask = Image.new("L", source.size, 0)
+    draw = ImageDraw.Draw(center_mask)
+    inset_x = int(width * (0.22 if aggressive else 0.26))
+    top = int(height * 0.04)
+    bottom = int(height * 0.96)
+    radius = max(28, int(width * 0.08))
+    draw.rounded_rectangle((inset_x, top, width - inset_x, bottom), radius=radius, fill=255)
+    center_mask = center_mask.filter(ImageFilter.GaussianBlur(radius=max(24, int(width * 0.04))))
+    source = Image.composite(fogged, source, center_mask)
+    source = Image.composite(Image.new("RGBA", source.size, (92, 108, 118, 228 if aggressive else 180)), source, center_mask)
+
+    floor_mask = Image.new("L", source.size, 0)
+    draw = ImageDraw.Draw(floor_mask)
+    floor_left = int(width * 0.12)
+    floor_right = int(width * 0.88)
+    floor_top = int(height * (0.68 if aggressive else 0.74))
+    draw.rounded_rectangle((floor_left, floor_top, floor_right, height), radius=max(20, int(width * 0.05)), fill=255)
+    floor_mask = floor_mask.filter(ImageFilter.GaussianBlur(radius=max(18, int(width * 0.03))))
+    source = Image.composite(Image.new("RGBA", source.size, (78, 90, 100, 236 if aggressive else 196)), source, floor_mask)
+
+    hotspot_mask = Image.new("L", source.size, 0)
+    draw = ImageDraw.Draw(hotspot_mask)
+    hotspot_width = int(width * (0.26 if aggressive else 0.18))
+    hotspot_height = int(height * 0.28)
+    hotspot_left = int((width - hotspot_width) / 2)
+    draw.ellipse((hotspot_left, 0, hotspot_left + hotspot_width, hotspot_height), fill=255)
+    hotspot_mask = hotspot_mask.filter(ImageFilter.GaussianBlur(radius=max(24, int(width * 0.04))))
+    source = Image.composite(Image.new("RGBA", source.size, (70, 84, 94, 192 if aggressive else 144)), source, hotspot_mask)
+    if aggressive:
+        shadow_mask = Image.new("L", source.size, 0)
+        draw = ImageDraw.Draw(shadow_mask)
+        draw.rounded_rectangle(
+            (int(width * 0.28), int(height * 0.08), int(width * 0.72), int(height * 0.9)),
+            radius=max(24, int(width * 0.07)),
+            fill=255,
+        )
+        shadow_mask = shadow_mask.filter(ImageFilter.GaussianBlur(radius=max(28, int(width * 0.05))))
+        source = Image.composite(Image.new("RGBA", source.size, (58, 70, 78, 240)), source, shadow_mask)
+    return source
+
+
+def _background_reference_guide(template_path: Path, output_path: Path, size: Tuple[int, int], transparent: bool, aggressive: bool = False) -> Path:
+    source = Image.open(template_path).convert("RGBA").resize(size, Image.Resampling.LANCZOS)
+    source = _apply_background_suppression(source, aggressive=aggressive)
+    return _save_reference_image(source, output_path, transparent)
+
+
+def _apply_midground_clearance(source: Image.Image, aggressive: bool = False) -> Image.Image:
+    source = source.convert("RGBA")
+    width, height = source.size
+    hard_clear = Image.new("L", source.size, 0)
+    draw = ImageDraw.Draw(hard_clear)
+    center_left = int(width * (0.2 if aggressive else 0.26))
+    center_right = int(width * (0.8 if aggressive else 0.74))
+    center_top = int(height * 0.04)
+    center_bottom = int(height * 0.98)
+    radius = max(28, int(width * 0.08))
+    draw.rounded_rectangle((center_left, center_top, center_right, center_bottom), radius=radius, fill=255)
+    route_left = int(width * 0.14)
+    route_right = int(width * 0.86)
+    route_top = int(height * (0.62 if aggressive else 0.7))
+    draw.rounded_rectangle((route_left, route_top, route_right, height), radius=max(18, int(width * 0.05)), fill=255)
+    source = Image.composite(Image.new("RGBA", source.size, (0, 0, 0, 0)), source, hard_clear)
+
+    clear_mask = Image.new("L", source.size, 0)
+    draw = ImageDraw.Draw(clear_mask)
+    feather_left = int(width * (0.16 if aggressive else 0.22))
+    feather_right = int(width * (0.84 if aggressive else 0.78))
+    draw.rounded_rectangle((feather_left, center_top, feather_right, center_bottom), radius=radius, fill=255)
+    draw.rounded_rectangle((int(width * 0.1), route_top, int(width * 0.9), height), radius=max(18, int(width * 0.06)), fill=255)
+    clear_mask = clear_mask.filter(ImageFilter.GaussianBlur(radius=max(10, int(width * 0.02))))
+    source = Image.composite(Image.new("RGBA", source.size, (0, 0, 0, 0)), source, clear_mask)
+    return source
+
+
+def _midground_reference_guide(template_path: Path, output_path: Path, size: Tuple[int, int], transparent: bool, aggressive: bool = False) -> Path:
+    source = Image.open(template_path).convert("RGBA").resize(size, Image.Resampling.LANCZOS)
+    source = _apply_midground_clearance(source, aggressive=aggressive)
+    return _save_reference_image(source, output_path, transparent)
+
+
+def _postprocess_component_for_validation(path: Path, component_type: str, errors: List[str], attempt_index: int) -> bool:
+    if not path.exists() or not errors:
+        return False
+    source = Image.open(path).convert("RGBA")
+    if component_type == "background_far_plate" and "center_lane_too_hot" in errors:
+        corrected = _apply_background_suppression(source, aggressive=True)
+        _save_reference_image(corrected, path, transparent=False)
+        return True
+    if component_type == "midground_side_frame" and "midground_center_clutter" in errors:
+        corrected = _apply_midground_clearance(source, aggressive=True)
+        _save_reference_image(corrected, path, transparent=True)
+        return True
+    return False
+
+
+def _bespoke_reference_images_for_component(
+    component_type: str,
+    template_path: Path,
+    approved_preview_path: Path,
+    frozen_refs: List[Path],
+    reference_root: Path,
+    expected_size: Tuple[int, int],
+    transparent: bool,
+    aggressive: bool = False,
+) -> List[Path]:
+    del approved_preview_path
+    guide_path = reference_root / f"{component_type}{'-retry' if aggressive else ''}-guide.png"
+    if component_type in {
+        "wall_module_left",
+        "wall_module_right",
+        "wall_base_trim_left",
+        "wall_base_trim_right",
+        "main_floor_top",
+        "main_floor_face",
+        "hero_platform_top",
+        "hero_platform_face",
+        "door_frame",
+        "pit_rim",
+        "pit_interior",
+    }:
+        if _render_bespoke_component_from_template(template_path, guide_path, expected_size, transparent, component_type):
+            return [guide_path]
+        return [template_path]
+    if component_type in {"background_far_plate", "midground_side_frame"}:
+        guide_builder = _background_reference_guide if component_type == "background_far_plate" else _midground_reference_guide
+        guide_builder(template_path, guide_path, expected_size, transparent, aggressive=aggressive)
+        return [guide_path]
+    refs: List[Path] = [template_path]
+    refs.extend(path for path in frozen_refs if path != template_path)
+    return refs
+
+
+def _render_bespoke_component_from_template(
+    template_path: Path,
+    output_path: Path,
+    size: Tuple[int, int],
+    transparent: bool,
+    component_type: Optional[str] = None,
+) -> bool:
     try:
         output_path.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(template_path, output_path)
-        _fit_image_to_size(output_path, size, transparent=transparent)
+        source = Image.open(template_path).convert("RGBA")
+        crop_box = None
+        if component_type == "wall_module_left":
+            crop_box = (0, 0, max(1, int(source.width * 0.22)), source.height)
+        elif component_type == "wall_module_right":
+            crop_box = (max(0, int(source.width * 0.78)), 0, source.width, source.height)
+        elif component_type == "wall_base_trim_left":
+            crop_box = (0, max(0, int(source.height * 0.72)), max(1, int(source.width * 0.24)), source.height)
+        elif component_type == "wall_base_trim_right":
+            crop_box = (max(0, int(source.width * 0.76)), max(0, int(source.height * 0.72)), source.width, source.height)
+        elif component_type == "main_floor_top":
+            crop_box = (int(source.width * 0.18), int(source.height * 0.04), int(source.width * 0.82), max(1, int(source.height * 0.38)))
+        elif component_type == "main_floor_face":
+            crop_box = (int(source.width * 0.18), int(source.height * 0.32), int(source.width * 0.82), source.height)
+        elif component_type == "hero_platform_top":
+            crop_box = (int(source.width * 0.08), 0, int(source.width * 0.92), max(1, int(source.height * 0.34)))
+        elif component_type == "hero_platform_face":
+            crop_box = (int(source.width * 0.08), int(source.height * 0.26), int(source.width * 0.92), source.height)
+        elif component_type == "pit_rim":
+            crop_box = (int(source.width * 0.18), 0, int(source.width * 0.82), max(1, int(source.height * 0.32)))
+        elif component_type == "pit_interior":
+            crop_box = (int(source.width * 0.24), int(source.height * 0.32), int(source.width * 0.76), source.height)
+        if crop_box:
+            source = source.crop(crop_box)
+        source = source.resize(size, Image.Resampling.LANCZOS)
+        if not transparent:
+            flattened = Image.new("RGBA", size, (0, 0, 0, 255))
+            flattened.alpha_composite(source)
+            source = flattened
+        source.save(output_path)
         return True
     except Exception:
         return False
@@ -2554,6 +3432,39 @@ def _generate_bespoke_component_from_references(output_path: Path, prompt: str, 
     return False
 
 
+def _retry_prompt_for_validation_errors(component_type: str, prompt: str, errors: List[str], attempt_index: int) -> Optional[str]:
+    if not errors:
+        return None
+    if component_type == "background_far_plate" and "center_lane_too_hot" in errors and attempt_index < 2:
+        return f"{prompt}\nRetry instruction: suppress all center-lane contrast and focal heat. The center third must stay dim, calm, fog-soft, and architecturally open with no hotspot, altar read, or bright apse."
+    if component_type == "midground_side_frame" and "midground_center_clutter" in errors and attempt_index < 2:
+        return f"{prompt}\nRetry instruction: the center third must be transparent and empty. Remove any center arch, center prop, center silhouette, or floor-crossing occlusion. Keep mass only on the extreme left and right."
+    if "template_family_drift" in errors and attempt_index < 2:
+        return f"{prompt}\nRetry instruction: stay materially closer to the provided guide image. Match the same stone family, value grouping, crack rhythm, edge damage, and overall silhouette discipline. Do not redesign or introduce a new motif."
+    return None
+
+
+def _retry_reference_images_for_component(
+    component_type: str,
+    template_path: Path,
+    approved_preview_path: Path,
+    frozen_refs: List[Path],
+    reference_root: Path,
+    expected_size: Tuple[int, int],
+    transparent: bool,
+) -> List[Path]:
+    return _bespoke_reference_images_for_component(
+        component_type,
+        template_path,
+        approved_preview_path,
+        frozen_refs,
+        reference_root,
+        expected_size,
+        transparent,
+        aggressive=True,
+    )
+
+
 def _template_delta(path: Path, template_path: Path) -> float:
     try:
         a = Image.open(path).convert("RGBA").resize((96, 96), Image.Resampling.LANCZOS)
@@ -2563,6 +3474,29 @@ def _template_delta(path: Path, template_path: Path) -> float:
     total = 0.0
     count = 0
     for px_a, px_b in zip(a.getdata(), b.getdata()):
+        total += sum(abs(int(px_a[idx]) - int(px_b[idx])) for idx in range(4))
+        count += 4
+    return total / max(1, count)
+
+
+def _template_delta_region(path: Path, template_path: Path, box: Tuple[float, float, float, float]) -> float:
+    try:
+        a = Image.open(path).convert("RGBA")
+        b = Image.open(template_path).convert("RGBA")
+    except Exception:
+        return 999.0
+    def crop(img: Image.Image) -> Image.Image:
+        width, height = img.size
+        left = max(0, min(width, int(width * box[0])))
+        top = max(0, min(height, int(height * box[1])))
+        right = max(left + 1, min(width, int(width * box[2])))
+        bottom = max(top + 1, min(height, int(height * box[3])))
+        return img.crop((left, top, right, bottom)).resize((64, 64), Image.Resampling.LANCZOS)
+    a_region = crop(a)
+    b_region = crop(b)
+    total = 0.0
+    count = 0
+    for px_a, px_b in zip(a_region.getdata(), b_region.getdata()):
         total += sum(abs(int(px_a[idx]) - int(px_b[idx])) for idx in range(4))
         count += 4
     return total / max(1, count)
@@ -2613,32 +3547,306 @@ def _validate_bespoke_component(
     luminance = _sample_luminance(path)
     if transparency_mode == "alpha" and alpha_ratio < 0.05:
         errors.append("missing_required_transparency")
-    if component_type in {"background_plate", "midground_frame"} and luminance > 185:
+    if component_type in {"background_far_plate", "midground_side_frame"} and luminance > 185:
         errors.append("too_bright")
-    if component_type in {"primary_floor_piece", "hero_platform_piece"} and luminance > 170:
+    if component_type in {"main_floor_top", "main_floor_face", "hero_platform_top", "hero_platform_face", "pit_rim"} and luminance > 176:
         errors.append("platform_readability_risk")
     trusted_template_copy = False
     if template_path and template_path.exists():
         delta = _template_delta(path, template_path)
         trusted_template_copy = delta <= 1.5
-        if component_type in {"background_plate", "midground_frame"} and delta > 42:
+        if component_type == "background_far_plate" and delta > 42:
             errors.append("template_family_drift")
-        if component_type in {"primary_floor_piece", "hero_platform_piece", "door_piece"} and delta > 54:
+        if component_type == "midground_side_frame":
+            edge_delta = (
+                _template_delta_region(path, template_path, (0.0, 0.0, 0.24, 1.0)) +
+                _template_delta_region(path, template_path, (0.76, 0.0, 1.0, 1.0))
+            ) / 2.0
+            if edge_delta > 42:
+                errors.append("template_family_drift")
+        if component_type in {
+            "wall_module_left",
+            "wall_module_right",
+            "wall_base_trim_left",
+            "wall_base_trim_right",
+            "main_floor_top",
+            "main_floor_face",
+            "hero_platform_top",
+            "hero_platform_face",
+            "door_frame",
+            "pit_rim",
+            "pit_interior",
+        } and delta > 54:
             errors.append("template_family_drift")
     if transparency_mode == "opaque" and alpha_ratio > (0.08 if trusted_template_copy else 0.02):
         errors.append("unexpected_transparency")
-    if component_type == "background_plate" and not trusted_template_copy:
+    if component_type == "background_far_plate" and not trusted_template_copy:
         center = _region_luminance(path, (0.34, 0.22, 0.66, 0.78))
         edges = (_region_luminance(path, (0.0, 0.18, 0.18, 0.82)) + _region_luminance(path, (0.82, 0.18, 1.0, 0.82))) / 2.0
         if center - edges > 18:
             errors.append("center_lane_too_hot")
-    if component_type == "midground_frame" and not trusted_template_copy:
+    if component_type == "midground_side_frame" and not trusted_template_copy:
         center = _region_alpha_ratio(path, (0.32, 0.18, 0.68, 0.82))
         side_a = _region_alpha_ratio(path, (0.0, 0.18, 0.2, 0.82))
         side_b = _region_alpha_ratio(path, (0.8, 0.18, 1.0, 0.82))
         if center > max(side_a, side_b) + 0.15:
             errors.append("midground_center_clutter")
     return len(errors) == 0, errors
+
+
+def _slot_groups_from_plan(plan: List[Dict[str, Any]], built_slots: List[str], failed_slots: List[str]) -> Dict[str, Dict[str, Any]]:
+    groups: Dict[str, Dict[str, Any]] = {}
+    built = set(built_slots)
+    failed = set(failed_slots)
+    for entry in plan:
+        group_key = str(entry.get("slot_group") or "misc")
+        bucket = groups.setdefault(group_key, {"required": 0, "built": 0, "failed": 0, "slots": []})
+        bucket["required"] += 1
+        bucket["slots"].append(str(entry.get("slot_id") or ""))
+        if entry.get("slot_id") in built:
+            bucket["built"] += 1
+        if entry.get("slot_id") in failed:
+            bucket["failed"] += 1
+    return groups
+
+
+def _placement_bounds(placement: Dict[str, Any]) -> Tuple[int, int, int, int]:
+    display_width = max(1, int(placement.get("display_width") or 1))
+    display_height = max(1, int(placement.get("display_height") or 1))
+    origin_x = float(placement.get("origin_x") or 0)
+    origin_y = float(placement.get("origin_y") or 0)
+    x = int(round(float(placement.get("x") or 0) - (display_width * origin_x)))
+    y = int(round(float(placement.get("y") or 0) - (display_height * origin_y)))
+    return x, y, display_width, display_height
+
+
+def _composite_runtime_review_image(
+    room: Dict[str, Any],
+    assets: Dict[str, Any],
+    output_path: Path,
+) -> None:
+    geometry = _room_geometry(room)
+    width = int(geometry.get("width") or 1600)
+    height = int(geometry.get("height") or 1200)
+    canvas = Image.new("RGBA", (width, height), (10, 14, 18, 255))
+    floor_y = int(height * 0.78)
+    bg = Image.new("RGBA", (width, height), (18, 24, 30, 255))
+    bg_draw = ImageDraw.Draw(bg)
+    for y in range(height):
+        tone = int(18 + ((y / max(1, height - 1)) * 30))
+        bg_draw.line((0, y, width, y), fill=(tone, tone + 6, tone + 10, 255))
+    canvas.alpha_composite(bg)
+    sorted_assets = sorted(
+        [item for item in assets.values() if isinstance(item, dict) and item.get("url")],
+        key=lambda item: {"background": 0, "walls": 1, "midground": 2, "floor": 3, "platforms": 4, "doors": 5, "pits": 6}.get(str(item.get("slot_group") or "misc"), 7),
+    )
+    for item in sorted_assets:
+        rel_url = str(item.get("url") or "").lstrip("/")
+        asset_path = ROOT / rel_url
+        if not asset_path.exists():
+            continue
+        try:
+            sprite = Image.open(asset_path).convert("RGBA")
+        except Exception:
+            continue
+        placement = item.get("placement") if isinstance(item.get("placement"), dict) else {}
+        x, y, display_width, display_height = _placement_bounds(placement)
+        if display_width > 0 and display_height > 0 and sprite.size != (display_width, display_height):
+            sprite = sprite.resize((display_width, display_height), Image.Resampling.LANCZOS)
+        canvas.alpha_composite(sprite, (x, y))
+    overlay = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+    overlay_draw = ImageDraw.Draw(overlay)
+    overlay_draw.rectangle((0, floor_y, width, height), fill=(12, 16, 20, 60))
+    canvas.alpha_composite(overlay)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    canvas.save(output_path)
+
+
+def _image_region_luminance(img: Image.Image, box: Tuple[float, float, float, float]) -> float:
+    rgb = img.convert("RGB")
+    w, h = rgb.size
+    left = max(0, min(w, int(w * box[0])))
+    top = max(0, min(h, int(h * box[1])))
+    right = max(left + 1, min(w, int(w * box[2])))
+    bottom = max(top + 1, min(h, int(h * box[3])))
+    region = rgb.crop((left, top, right, bottom)).resize((48, 48), Image.Resampling.LANCZOS)
+    pixels = list(region.getdata())
+    if not pixels:
+        return 0.0
+    return sum((0.2126 * r) + (0.7152 * g) + (0.0722 * b) for r, g, b in pixels) / len(pixels)
+
+
+def _image_region_contrast(img: Image.Image, box: Tuple[float, float, float, float]) -> float:
+    rgb = img.convert("RGB")
+    w, h = rgb.size
+    left = max(0, min(w, int(w * box[0])))
+    top = max(0, min(h, int(h * box[1])))
+    right = max(left + 1, min(w, int(w * box[2])))
+    bottom = max(top + 1, min(h, int(h * box[3])))
+    region = rgb.crop((left, top, right, bottom)).resize((48, 48), Image.Resampling.LANCZOS).convert("L")
+    pixels = list(region.getdata())
+    if not pixels:
+        return 0.0
+    width, height = region.size
+    total = 0.0
+    count = 0
+    for y in range(height):
+        for x in range(width):
+            idx = y * width + x
+            value = pixels[idx]
+            if x + 1 < width:
+                total += abs(value - pixels[idx + 1])
+                count += 1
+            if y + 1 < height:
+                total += abs(value - pixels[idx + width])
+                count += 1
+    return (total / max(1, count)) / 255.0
+
+
+def _runtime_review_metrics(screenshot_path: Path, assets: Dict[str, Any]) -> Dict[str, float]:
+    img = Image.open(screenshot_path).convert("RGBA")
+    center = _image_region_luminance(img, (0.34, 0.18, 0.66, 0.82))
+    left = _image_region_luminance(img, (0.0, 0.18, 0.28, 0.82))
+    right = _image_region_luminance(img, (0.72, 0.18, 1.0, 0.82))
+    center_contrast = _image_region_contrast(img, (0.34, 0.18, 0.66, 0.82))
+    floor_band = _image_region_luminance(img, (0.18, 0.74, 0.82, 0.9))
+    upper_band = _image_region_luminance(img, (0.18, 0.54, 0.82, 0.7))
+    platform_scores: List[float] = []
+    threshold_scores: List[float] = []
+    for asset in assets.values():
+        if not isinstance(asset, dict) or not asset.get("url"):
+            continue
+        component_type = str(asset.get("component_type") or "")
+        placement = asset.get("placement") if isinstance(asset.get("placement"), dict) else {}
+        x, y, width, height = _placement_bounds(placement)
+        if width <= 0 or height <= 0:
+            continue
+        img_w, img_h = img.size
+        box = (
+            max(0, x) / img_w,
+            max(0, y) / img_h,
+            min(img_w, x + width) / img_w,
+            min(img_h, y + height) / img_h,
+        )
+        if component_type in {"main_floor_top", "hero_platform_top"}:
+            top_lum = _image_region_luminance(img, (box[0], box[1], box[2], min(box[3], box[1] + ((box[3] - box[1]) * 0.22))))
+            face_lum = _image_region_luminance(img, (box[0], min(box[3], box[1] + ((box[3] - box[1]) * 0.28)), box[2], box[3]))
+            platform_scores.append(abs(top_lum - face_lum) / 255.0)
+        if component_type == "door_frame":
+            center_box = (
+                box[0] + ((box[2] - box[0]) * 0.34),
+                box[1] + ((box[3] - box[1]) * 0.22),
+                box[0] + ((box[2] - box[0]) * 0.66),
+                box[1] + ((box[3] - box[1]) * 0.78),
+            )
+            opening = _image_region_luminance(img, center_box)
+            frame = (_image_region_luminance(img, (box[0], box[1], box[0] + ((box[2] - box[0]) * 0.22), box[3])) + _image_region_luminance(img, (box[2] - ((box[2] - box[0]) * 0.22), box[1], box[2], box[3]))) / 2.0
+            threshold_scores.append(abs(frame - opening) / 255.0)
+    return {
+        "center_clutter": center_contrast,
+        "left_right_balance": abs(left - right) / 255.0,
+        "floor_background_separation": abs(floor_band - upper_band) / 255.0,
+        "platform_top_readability": sum(platform_scores) / len(platform_scores) if platform_scores else 0.0,
+        "threshold_visibility": sum(threshold_scores) / len(threshold_scores) if threshold_scores else 0.0,
+        "platform_sample_count": float(len(platform_scores)),
+        "door_sample_count": float(len(threshold_scores)),
+    }
+
+
+def _find_headless_browser() -> Optional[str]:
+    candidates = [
+        os.environ.get("ROOM_ENVIRONMENT_REVIEW_BROWSER"),
+        "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+        "/Applications/Chromium.app/Contents/MacOS/Chromium",
+        shutil.which("google-chrome"),
+        shutil.which("chromium"),
+        shutil.which("chromium-browser"),
+    ]
+    for candidate in candidates:
+        if candidate and Path(candidate).exists():
+            return candidate
+    return None
+
+
+def _capture_runtime_review_screenshot(
+    project: Dict[str, Any],
+    room_id: str,
+    assets: Dict[str, Any],
+    output_path: Path,
+) -> Tuple[str, Optional[str]]:
+    if str(os.environ.get("ROOM_ENVIRONMENT_REVIEW_USE_BROWSER") or "").strip().lower() not in {"1", "true", "yes"}:
+        room = _find_room(project, room_id)
+        _composite_runtime_review_image(room, assets, output_path)
+        return "composite_fallback", "headless_browser_disabled_by_default"
+    browser = _find_headless_browser()
+    base_url = str(os.environ.get("ROOM_ENVIRONMENT_REVIEW_BASE_URL") or "http://127.0.0.1:8766/index.html").strip()
+    room = _find_room(project, room_id)
+    geometry = _room_geometry(room)
+    width = int(geometry.get("width") or 1600)
+    height = int(geometry.get("height") or 1200)
+    if browser:
+        try:
+            layout_json = json.dumps(project.get("room_layout") or {}, separators=(",", ":")).encode("utf-8")
+            encoded_layout = urllib.parse.quote(base64.b64encode(layout_json).decode("ascii"), safe="")
+            target = f"{base_url}#preview=embed&layout={encoded_layout}&start={urllib.parse.quote(room_id, safe='')}"
+            cmd = [
+                browser,
+                "--headless",
+                "--disable-gpu",
+                f"--window-size={width},{height}",
+                f"--screenshot={str(output_path)}",
+                "--hide-scrollbars",
+                "--virtual-time-budget=5000",
+                target,
+            ]
+            subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=20)
+            if output_path.exists():
+                return "headless_browser", None
+        except Exception as exc:
+            browser_error = f"headless_browser_failed:{type(exc).__name__}"
+        else:
+            browser_error = "headless_browser_failed"
+    else:
+        browser_error = "headless_browser_unavailable"
+    _composite_runtime_review_image(room, assets, output_path)
+    return "composite_fallback", browser_error
+
+
+def _run_runtime_review(
+    project: Dict[str, Any],
+    project_id: str,
+    room_id: str,
+    assets: Dict[str, Any],
+) -> Dict[str, Any]:
+    review_root = PROJECTS_ROOT / project_id / "room_environment_assets" / room_id / "review"
+    screenshot_path = review_root / "runtime-review.png"
+    review_mode, capture_issue = _capture_runtime_review_screenshot(project, room_id, assets, screenshot_path)
+    metrics = _runtime_review_metrics(screenshot_path, assets)
+    fail_reasons: List[str] = []
+    warning_reasons: List[str] = []
+    if metrics["center_clutter"] > 0.08:
+        fail_reasons.append("center_clutter_too_high")
+    if metrics["left_right_balance"] > 0.18:
+        fail_reasons.append("left_right_balance_off")
+    # Low floor/background separation should be surfaced, but it should not block
+    # showing the generated kit in playtest when all slots are present.
+    if metrics["floor_background_separation"] < 0.035:
+        warning_reasons.append("floor_background_separation_low")
+    if metrics["platform_sample_count"] > 0 and metrics["platform_top_readability"] < 0.003:
+        fail_reasons.append("platform_top_readability_low")
+    if metrics["door_sample_count"] > 0 and metrics["threshold_visibility"] < 0.03:
+        fail_reasons.append("threshold_visibility_low")
+    return {
+        "status": "pass" if not fail_reasons else "fail",
+        "review_mode": review_mode,
+        "capture_issue": capture_issue,
+        "screenshot_url": f"/tools/2d-sprite-and-animation/projects-data/{project_id}/room_environment_assets/{room_id}/review/runtime-review.png",
+        "screenshot_path": screenshot_path.as_posix(),
+        "metrics": metrics,
+        "fail_reasons": fail_reasons,
+        "warning_reasons": warning_reasons,
+        "generated_at": now_iso(),
+    }
 
 
 def generate_room_environment_asset_pack(project_id: str, room_id: str, payload: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
@@ -2662,14 +3870,47 @@ def generate_room_environment_asset_pack(project_id: str, room_id: str, payload:
     preview_path = _project_url_to_path(project_dir, str(approved.get("url") or ""))
     if preview_path is None or not preview_path.exists():
         raise ValueError("Approved preview image is missing on disk.")
+    geometry = _room_geometry(room)
+    schema_validation = _validate_component_schemas(room, spec, geometry)
+    if not schema_validation["valid"]:
+        env["runtime"]["bespoke_asset_manifest"] = {
+            "schema_version": 2,
+            "status": "failed",
+            "biome_id": biome_pack.get("biome_id"),
+            "source_preview_id": preview_id,
+            "generation_plan": [],
+            "required_slots": [],
+            "built_slots": [],
+            "slot_groups": {},
+            "schema_validation": schema_validation,
+            "runtime_review": {"status": "blocked", "fail_reasons": ["schema_validation_failed"], "metrics": {}, "screenshot_url": None, "review_mode": None},
+            "review": {"status": "blocked", "fail_reasons": ["schema_validation_failed"], "metrics": {}, "screenshot_url": None, "review_mode": None},
+            "assets": {},
+            "failed_assets": [],
+            "used_ai": False,
+            "generated_at": now_iso(),
+            "validation_errors": list(schema_validation["errors"]),
+        }
+        env["runtime"]["status"] = "blocked"
+        env["runtime"]["source"] = "schema_validation_failed"
+        env["runtime"]["applied_preview_id"] = None
+        project["updated_at"] = now_iso()
+        save_project(project)
+        return {
+            "ok": True,
+            "environment": copy.deepcopy(env),
+            "asset_pack": copy.deepcopy(env["runtime"]["bespoke_asset_manifest"]),
+        }
     asset_root = project_dir / "room_environment_assets" / room_id / "bespoke"
     asset_root.mkdir(parents=True, exist_ok=True)
-    refs = [preview_path]
+    reference_root = asset_root / "_refs"
+    reference_root.mkdir(parents=True, exist_ok=True)
+    frozen_refs: List[Path] = []
     for frozen in (direction.get("frozen_concepts") or [])[:3]:
         rel = str(frozen.get("image_path") or "").strip()
         frozen_path = project_dir / rel if rel else None
         if frozen_path and frozen_path.exists():
-            refs.append(frozen_path)
+            frozen_refs.append(frozen_path)
     plan = _room_component_plan(room, preview_id, biome_pack)
     assets: Dict[str, Any] = {}
     failed_assets: List[str] = []
@@ -2692,27 +3933,101 @@ def generate_room_environment_asset_pack(project_id: str, room_id: str, payload:
         output_path = asset_root / output_name
         prompt = _build_bespoke_prompt(direction, spec, entry, template)
         expected_size = (int(entry["target_dimensions"]["width"]), int(entry["target_dimensions"]["height"]))
-        transparent = str(template.get("transparency_mode") or "opaque") == "alpha"
-        adaptation_mode = str(template.get("adaptation_mode") or _component_adaptation_mode(str(entry.get("component_type") or "")))
+        transparent = str(entry.get("transparency_mode") or template.get("transparency_mode") or "opaque") == "alpha"
+        component_type = str(entry.get("component_type") or "")
+        adaptation_mode = _component_adaptation_mode(component_type) if component_type in V2_SLOT_SPEC_BY_TYPE else str(template.get("adaptation_mode") or _component_adaptation_mode(component_type))
         generation_source = "template"
+        attempt_records: List[Dict[str, Any]] = []
         if adaptation_mode in {"direct", "stretch"}:
-            generated = _render_bespoke_component_from_template(template_path, output_path, expected_size, transparent)
+            generated = _render_bespoke_component_from_template(
+                template_path,
+                output_path,
+                expected_size,
+                transparent,
+                component_type,
+            )
         else:
-            refs_for_job = [template_path] + [path for path in refs if path != template_path]
-            generated = _generate_bespoke_component_from_references(output_path, prompt, refs_for_job, expected_size, transparent)
-            if generated:
-                used_ai = True
-                generation_source = "ai"
+            refs_for_job = _bespoke_reference_images_for_component(
+                component_type,
+                template_path,
+                preview_path,
+                frozen_refs,
+                reference_root,
+                expected_size,
+                transparent,
+            )
+            attempt_prompt = prompt
+            generated = False
+            valid = False
+            errors: List[str] = []
+            for attempt_index in range(3):
+                attempt_info = {
+                    "attempt": attempt_index + 1,
+                    "component_type": component_type,
+                    "reference_images": [str(path) for path in refs_for_job],
+                    "prompt": attempt_prompt,
+                }
+                generated = _generate_bespoke_component_from_references(output_path, attempt_prompt, refs_for_job, expected_size, transparent)
+                if generated:
+                    used_ai = True
+                    generation_source = "ai"
+                if not generated:
+                    errors = ["generation_failed"]
+                    attempt_info["status"] = "generation_failed"
+                    attempt_info["validation_errors"] = list(errors)
+                    attempt_records.append(attempt_info)
+                    break
+                valid, errors = _validate_bespoke_component(
+                    output_path,
+                    component_type,
+                    expected_size,
+                    str(template.get("transparency_mode") or "opaque"),
+                    template_path,
+                )
+                postprocessed = False
+                if errors and _postprocess_component_for_validation(output_path, component_type, errors, attempt_index):
+                    postprocessed = True
+                    valid, errors = _validate_bespoke_component(
+                        output_path,
+                        component_type,
+                        expected_size,
+                        str(template.get("transparency_mode") or "opaque"),
+                        template_path,
+                    )
+                attempt_info["postprocessed"] = postprocessed
+                attempt_info["status"] = "pass" if valid and not errors else "validation_failed"
+                attempt_info["validation_errors"] = list(errors)
+                attempt_records.append(attempt_info)
+                if valid and not errors:
+                    break
+                retry_prompt = _retry_prompt_for_validation_errors(component_type, attempt_prompt, errors, attempt_index)
+                if output_path.exists():
+                    output_path.unlink()
+                if not retry_prompt:
+                    break
+                attempt_prompt = retry_prompt
+                refs_for_job = _retry_reference_images_for_component(
+                    component_type,
+                    template_path,
+                    preview_path,
+                    frozen_refs,
+                    reference_root,
+                    expected_size,
+                    transparent,
+                )
+            if generated and valid and not errors:
+                pass
         if not generated:
             if output_path.exists():
                 output_path.unlink()
-        valid, errors = _validate_bespoke_component(
-            output_path,
-            str(entry.get("component_type") or ""),
-            expected_size,
-            str(template.get("transparency_mode") or "opaque"),
-            template_path,
-        )
+        if adaptation_mode in {"direct", "stretch"}:
+            valid, errors = _validate_bespoke_component(
+                output_path,
+                component_type,
+                expected_size,
+                str(template.get("transparency_mode") or "opaque"),
+                template_path,
+            )
         if not generated:
             errors = ["generation_failed"]
         if not valid or errors:
@@ -2731,6 +4046,7 @@ def generate_room_environment_asset_pack(project_id: str, room_id: str, payload:
                 "transparency_mode": template.get("transparency_mode"),
                 "validation": {"status": "fail", "errors": errors},
                 "generation_source": "failed",
+                "attempts": attempt_records,
             }
             continue
         assets[entry["slot_id"]] = {
@@ -2741,22 +4057,64 @@ def generate_room_environment_asset_pack(project_id: str, room_id: str, payload:
             "final_dimensions": {"width": expected_size[0], "height": expected_size[1]},
             "placement": copy.deepcopy(entry["placement"]),
             "url": f"/tools/2d-sprite-and-animation/projects-data/{project_id}/room_environment_assets/{room_id}/bespoke/{output_name}",
-            "transparency_mode": template.get("transparency_mode"),
+            "transparency_mode": entry.get("transparency_mode") or template.get("transparency_mode"),
+            "schema_key": entry.get("schema_key"),
+            "slot_group": entry.get("slot_group"),
             "validation": {"status": "pass", "errors": []},
             "generation_source": generation_source,
+            "attempts": attempt_records,
         }
-    status = "ready" if assets and not failed_assets and len(assets) == len(plan) else "failed"
-    env["runtime"]["bespoke_asset_manifest"] = {
-        "schema_version": 1,
-        "status": status,
+    built_slots = [slot_id for slot_id, asset in assets.items() if isinstance(asset, dict) and asset.get("url")]
+    required_ai_slots = [
+        slot_id
+        for slot_id, asset in assets.items()
+        if isinstance(asset, dict) and asset.get("url") and str(asset.get("component_type") or "") in V2_SLOT_SPEC_BY_TYPE
+    ]
+    ai_generated_slots = [
+        slot_id
+        for slot_id, asset in assets.items()
+        if isinstance(asset, dict) and asset.get("url") and str(asset.get("generation_source") or "") == "ai"
+    ]
+    ai_generation_missing = bool(required_ai_slots) and len(ai_generated_slots) < len(required_ai_slots)
+    provisional_manifest = {
+        "schema_version": 2,
+        "status": "failed",
         "biome_id": biome_pack.get("biome_id"),
         "source_preview_id": preview_id,
         "generation_plan": copy.deepcopy(plan),
+        "required_slots": [str(entry.get("slot_id") or "") for entry in plan],
+        "built_slots": built_slots,
+        "slot_groups": _slot_groups_from_plan(plan, built_slots, failed_assets),
+        "schema_validation": schema_validation,
+        "runtime_review": {"status": "running", "fail_reasons": [], "metrics": {}, "screenshot_url": None, "review_mode": None},
+        "review": {"status": "running", "fail_reasons": [], "metrics": {}, "screenshot_url": None, "review_mode": None},
         "assets": assets,
         "failed_assets": failed_assets,
         "used_ai": used_ai,
         "generated_at": now_iso(),
-        "validation_errors": validation_errors,
+        "validation_errors": list(validation_errors),
+    }
+    env["runtime"]["bespoke_asset_manifest"] = provisional_manifest
+    runtime_review = _run_runtime_review(project, project_id, room_id, assets) if built_slots and not failed_assets else {
+        "status": "blocked",
+        "review_mode": None,
+        "screenshot_url": None,
+        "metrics": {},
+        "fail_reasons": ["slot_generation_failed"] if failed_assets else ["no_assets_built"],
+        "generated_at": now_iso(),
+    }
+    review_ok = runtime_review.get("status") == "pass"
+    if ai_generation_missing:
+        runtime_review.setdefault("warning_reasons", [])
+        runtime_review["warning_reasons"] = list(runtime_review.get("warning_reasons") or [])
+        runtime_review["warning_reasons"].append("ai_generation_required_for_v2_slots")
+    status = "ready" if assets and not failed_assets and len(assets) == len(plan) and review_ok and not ai_generation_missing else "failed"
+    env["runtime"]["bespoke_asset_manifest"] = {
+        **provisional_manifest,
+        "status": status,
+        "runtime_review": runtime_review,
+        "review": copy.deepcopy(runtime_review),
+        "validation_errors": validation_errors + list(runtime_review.get("fail_reasons") or []) + (["ai_generation_required_for_v2_slots"] if ai_generation_missing else []),
     }
     env["runtime"]["asset_pack"] = {
         "status": "idle",
@@ -2772,7 +4130,7 @@ def generate_room_environment_asset_pack(project_id: str, room_id: str, payload:
         "assets": {},
     }
     env["runtime"]["status"] = "ready" if status == "ready" else "blocked"
-    env["runtime"]["source"] = "approved_preview" if status == "ready" else "bespoke_generation_failed"
+    env["runtime"]["source"] = "approved_preview" if status == "ready" else ("runtime_review_failed" if runtime_review.get("status") == "fail" else "bespoke_generation_failed")
     env["runtime"]["applied_preview_id"] = preview_id if status == "ready" else None
     project["updated_at"] = now_iso()
     save_project(project)
@@ -2813,6 +4171,9 @@ def approve_room_environment_preview(project_id: str, room_id: str, payload: Dic
     bespoke_manifest = env["runtime"]["bespoke_asset_manifest"]
     bespoke_manifest["biome_id"] = ((_select_biome_pack(normalize_art_direction(project.get("art_direction"), project.get("art_direction"))) or {}).get("biome_id"))
     bespoke_manifest["source_preview_id"] = preview_id
+    bespoke_manifest["schema_validation"] = _validate_component_schemas(room, env["spec"], _room_geometry(room))
+    bespoke_manifest["runtime_review"] = {"status": "idle", "fail_reasons": [], "metrics": {}, "screenshot_url": None, "review_mode": None}
+    bespoke_manifest["review"] = copy.deepcopy(bespoke_manifest["runtime_review"])
     asset_pack = env["runtime"]["asset_pack"]
     asset_pack["source_preview_id"] = preview_id
     if asset_pack.get("assets"):

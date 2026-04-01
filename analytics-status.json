@@ -1,42 +1,47 @@
 {
-  "_note": "Updated daily at noon by the analytics agent. Plain language — no jargon.",
-  "updated": "2026-03-30",
+  "_note": "Updated daily at noon by the analytics agent. Plain language \u2014 no jargon.",
+  "updated": "2026-03-31",
   "schema_version": "v1.0",
   "priorities": [
     {
       "id": 1,
-      "title": "Track whether the AI's room suggestions are actually helpful — accept, tweak, or reject",
+      "title": "Track whether the AI's room suggestions are actually helpful \u2014 accept, tweak, or reject",
       "status": "in-progress",
       "risk": "high",
-      "note": "We can count how many times the AI is asked to generate a room, but we have no way to tell if the result was good. Until we can see whether designers accept, adjust, or throw away those suggestions, we're flying blind on quality."
+      "note": "We can count how many times the AI is asked to generate a room, but we have no way to tell if the result was good. Until we can see whether designers accept, adjust, or throw away those suggestions, we're flying blind on quality.",
+      "proposed_solution": "Add Copilot outcome events (accept, tweak, reject) to the tracking plan and report them with explicit denominators and confidence context."
     },
     {
       "id": 2,
       "title": "Measure the one number that matters most: how many finished rooms each user produces per month",
       "status": "paused",
       "risk": "low",
-      "note": "There are no external users yet, so this number would be zero. We'll start tracking it properly at the first public release."
+      "note": "There are no external users yet, so this number would be zero. We'll start tracking it properly at the first public release.",
+      "proposed_solution": "Define and instrument rooms exported per active user per month as the north star starting at the first public release."
     },
     {
       "id": 3,
       "title": "Automate the daily dashboard refresh so it runs without anyone pressing a button",
       "status": "done",
       "risk": "low",
-      "note": "The automated system went live today. Every dashboard — including this one — now updates itself each day at noon. No manual work required."
+      "note": "The automated system went live today. Every dashboard \u2014 including this one \u2014 now updates itself each day at noon. No manual work required.",
+      "proposed_solution": "Keep verifying the daily automated dashboard refresh and extend the runbook when new metrics or pages are added."
     },
     {
       "id": 4,
       "title": "Write clear privacy notices before we start tracking individual user behaviour",
       "status": "paused",
       "risk": "med",
-      "note": "We can't track what specific people do until we tell them we're doing it and get their agreement. Legal needs to sign off first. On hold until that conversation happens."
+      "note": "We can't track what specific people do until we tell them we're doing it and get their agreement. Legal needs to sign off first. On hold until that conversation happens.",
+      "proposed_solution": "Partner with Legal on consent copy and lawful basis, then enable individual-level tracking only after disclosure is approved."
     },
     {
       "id": 5,
       "title": "Choose a privacy-respecting analytics service for when the tool goes public",
       "status": "paused",
       "risk": "low",
-      "note": "Not needed before launch. We'll revisit this when the first external release is close."
+      "note": "Not needed before launch. We'll revisit this when the first external release is close.",
+      "proposed_solution": "Before launch, shortlist a privacy-respecting analytics vendor and fold it into the tracking plan with Legal sign-off."
     }
   ],
   "risks_p0": [],
@@ -45,15 +50,15 @@
     {
       "id": "metric-audit",
       "name": "Metric Audit",
-      "description": "Review what is measured, what is missing, and what has misleading denominators — with sample sizes stated.",
+      "description": "Review what is measured, what is missing, and what has misleading denominators \u2014 with sample sizes stated.",
       "trigger": "Requested or quarterly",
-      "last_run": null,
-      "output_location": null
+      "last_run": "2026-03-28",
+      "output_location": "artifacts/analytics-opportunities-2026-03-28.md"
     },
     {
       "id": "funnel-report",
       "name": "Funnel Report",
-      "description": "Activation funnel snapshot (open → first entity placed → first export) with denominators and confidence context.",
+      "description": "Activation funnel snapshot (open \u2192 first entity placed \u2192 first export) with denominators and confidence context.",
       "trigger": "Weekly or on demand",
       "last_run": null,
       "output_location": null
@@ -69,7 +74,7 @@
     {
       "id": "copilot-eval-report",
       "name": "Copilot Eval Report",
-      "description": "Acceptance, revision, and discard rates with credible intervals — never point estimates without denominators.",
+      "description": "Acceptance, revision, and discard rates with credible intervals \u2014 never point estimates without denominators.",
       "trigger": "After any model version or prompt architecture change",
       "last_run": null,
       "output_location": null

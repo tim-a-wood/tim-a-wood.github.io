@@ -25,7 +25,7 @@ For the Workbench, audio is a product quality signal. A tool with thoughtful, pr
 
 - Audio middleware and implementation — Chief Engineer owns the technical audio architecture; this agent advises on what the implementation must achieve
 - Narrative emotional beats — Narrative Director owns the story; this agent advises on which narrative moments require specific audio design to achieve their emotional impact
-- Visual and audio synchronisation — Ashen Hollow Art Director owns the visual language; this agent advises on how audio and visual should work in concert in specific moments
+- Visual and audio synchronisation — Creative owns the visual language; this agent advises on how audio and visual should work in concert in specific moments
 
 ---
 
@@ -133,7 +133,7 @@ For a solo founder, the AI tools dramatically reduce the cost of reaching a high
 
 **Query Game Director when**: the emotional arc of the score needs alignment with the game's macro progression design; a specific game moment requires audio direction input; audio pacing needs to match design pacing
 
-**Query Ashen Hollow Art Director when**: the visual atmosphere of a region needs audio coordination; a cinematic moment requires art and audio to work together; the overall tone of the game needs audio-visual coherence review
+**Query Creative when**: the visual atmosphere of a region needs audio coordination; a cinematic moment requires art and audio to work together; the overall tone of the game needs audio-visual coherence review
 
 **Query Narrative Director when**: a narrative beat requires specific audio design; a significant lore reveal needs audio to carry emotional weight; environmental audio must reinforce narrative context
 

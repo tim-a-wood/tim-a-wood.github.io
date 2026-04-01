@@ -1,6 +1,6 @@
 {
-  "_note": "Updated daily at noon by the marketing agent. Plain language — no jargon.",
-  "updated": "2026-03-30",
+  "_note": "Updated daily at noon by the marketing agent. Plain language \u2014 no jargon.",
+  "updated": "2026-03-31",
   "schema_version": "v1.0",
   "priorities": [
     {
@@ -8,53 +8,58 @@
       "title": "Regular posts showing how the tools and game are being built",
       "status": "in-progress",
       "risk": "med",
-      "note": "Building in public creates a searchable history and earns trust before we ask anyone to pay for anything. Each post should show real progress, not announcements."
+      "note": "Building in public creates a searchable history and earns trust before we ask anyone to pay for anything. Each post should show real progress, not announcements.",
+      "proposed_solution": "Keep a steady cadence of build-in-public posts that show real progress in the tools and game, not empty announcements."
     },
     {
       "id": 2,
-      "title": "Getting the AI messaging right — the human is always in control",
+      "title": "Getting the AI messaging right \u2014 the human is always in control",
       "status": "needs-review",
       "risk": "high",
-      "note": "There's a backlash against tools that oversell AI automation. Our message needs to be precise: the AI suggests, you decide. Lead with what it does for your workflow, not what it does on its own."
+      "note": "There's a backlash against tools that oversell AI automation. Our message needs to be precise: the AI suggests, you decide. Lead with what it does for your workflow, not what it does on its own.",
+      "proposed_solution": "Finalize human-in-control AI messaging and run external copy through a positioning review to avoid over-claims."
     },
     {
       "id": 3,
-      "title": "Short screen recording demos — these work better than any written description",
+      "title": "Short screen recording demos \u2014 these work better than any written description",
       "status": "paused",
       "risk": "low",
-      "note": "A 15 to 60 second recording of the tool in action beats any amount of copy for convincing another developer to try it."
+      "note": "A 15 to 60 second recording of the tool in action beats any amount of copy for convincing another developer to try it.",
+      "proposed_solution": "Record short, real-tool demos for devlogs and social posts where motion beats long explanations."
     },
     {
       "id": 4,
       "title": "One-page update every Tuesday",
       "status": "in-progress",
       "risk": "low",
-      "note": "Links, engagement numbers, anything interesting spotted from competitors, and what's planned for the coming week."
+      "note": "Links, engagement numbers, anything interesting spotted from competitors, and what's planned for the coming week.",
+      "proposed_solution": "Publish the weekly one-pager with links, engagement signals, competitor notes, and next-week focus."
     },
     {
       "id": 5,
       "title": "Keeping an eye on what similar tools are doing",
       "status": "in-progress",
       "risk": "med",
-      "note": "Watching Tiled, LDtk, and anything new adding AI to level design. The gap between us and them is we have AI and a full pipeline from sprite to room to world. That's the message."
+      "note": "Watching Tiled, LDtk, and anything new adding AI to level design. The gap between us and them is we have AI and a full pipeline from sprite to room to world. That's the message.",
+      "proposed_solution": "Continue monitoring Tiled, LDtk, and AI level tools and stress the unified sprite-to-room-to-world story."
     }
   ],
   "risks_p0": [],
   "founder_decisions": [],
   "metrics": {
-    "tuesday_update": "—",
-    "content_devlog": "—",
-    "channels_cadence": "itch.io devlog and X — aiming for 3 to 5 posts a week",
-    "competitor_watch": "Quarterly — Tiled, LDtk, and any AI level-design tools"
+    "tuesday_update": "\u2014",
+    "content_devlog": "\u2014",
+    "channels_cadence": "itch.io devlog and X \u2014 aiming for 3 to 5 posts a week",
+    "competitor_watch": "Quarterly \u2014 Tiled, LDtk, and any AI level-design tools"
   },
   "actions": [
     {
       "id": "content-brief",
       "name": "Content Brief",
-      "description": "Draft a devlog or social post from bullet-point notes — founder-authentic voice, not corporate.",
+      "description": "Draft a devlog or social post from bullet-point notes \u2014 founder-authentic voice, not corporate.",
       "trigger": "A feature ships or a milestone is reached that warrants public communication",
-      "last_run": null,
-      "output_location": null
+      "last_run": "2026-03-29",
+      "output_location": "artifacts/brand-charter-email.md"
     },
     {
       "id": "competitor-monitor",
@@ -75,7 +80,7 @@
     {
       "id": "positioning-review",
       "name": "Positioning Review",
-      "description": "Accuracy check on AI feature claims or marketing copy — flag over-claims, rewrite where needed.",
+      "description": "Accuracy check on AI feature claims or marketing copy \u2014 flag over-claims, rewrite where needed.",
       "trigger": "Any AI feature claim, marketing copy, or public announcement draft",
       "last_run": null,
       "output_location": null

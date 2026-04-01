@@ -118,7 +118,10 @@
       "Bash(for f:*)",
       "Read(//Users/timwood/Desktop/projects/PWA/MV/agents/$f/**)",
       "Bash(for agent:*)",
-      "Read(//Users/timwood/Desktop/projects/PWA/MV/agents/$agent/**)"
+      "Read(//Users/timwood/Desktop/projects/PWA/MV/agents/$agent/**)",
+      "Bash(grep -n \"db-qa-signpost\\\\|dashboard-view.*data-dashboard\\\\|^      </div>$\" /Users/timwood/Desktop/projects/PWA/MV/os-dashboard.html)",
+      "Bash(grep -l \"Task-completion update\" /Users/timwood/Desktop/projects/PWA/MV/agents/*/charter.md)",
+      "Bash(wc -l echo \"total charter files:\" ls /Users/timwood/Desktop/projects/PWA/MV/agents/*/charter.md)"
     ],
     "additionalDirectories": [
       "/Users/timwood/.claude/skills"

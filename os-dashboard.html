@@ -3638,7 +3638,7 @@ h3.os-chart-card-title {
         </div>
 
         <div class="db-qa-signpost" style="display:flex;flex-direction:column;gap:8px">
-          <button type="button" class="db-qa-link" onclick="selectDashboard('workbench')">→ Workbench dashboard for product health</button>
+          <button type="button" class="db-qa-link" onclick="selectDashboard('workbench')">→ Workbench dashboard for server &amp; daily reports</button>
           <button type="button" class="db-qa-link" onclick="selectDashboard('ashen-hollow')">→ Ashen Hollow for game pillars &amp; production docs</button>
         </div>
       </div>
@@ -3647,7 +3647,7 @@ h3.os-chart-card-title {
       <div class="dashboard-view" data-dashboard-view="workbench">
         <div class="db-view-header">
           <span class="db-view-icon">🖥️</span>
-          <div><div class="db-view-title" style="color:#38bdf8">WORKBENCH</div><div class="db-view-subtitle">Sprite Workbench product health, daily reports &amp; brand</div></div>
+          <div><div class="db-view-title" style="color:#38bdf8">WORKBENCH</div><div class="db-view-subtitle">Sprite Workbench server status &amp; daily report readouts</div></div>
         </div>
         <div class="db-section">
           <div class="db-section-label">Product Overview</div>
@@ -3683,11 +3683,6 @@ h3.os-chart-card-title {
               <div class="db-card-sub">artifacts/daily-report-*.md</div>
             </div>
             <div class="db-card db-card--manual">
-              <div class="db-card-header"><div class="db-card-label">Backlog Items</div><span class="db-tier db-tier--manual">MANUAL</span></div>
-              <div class="db-card-value db-card-value--muted">—</div>
-              <button type="button" class="db-run-btn">Run workbench-po · report →</button>
-            </div>
-            <div class="db-card db-card--manual">
               <div class="db-card-header"><div class="db-card-label">Design Debt</div><span class="db-tier db-tier--manual">MANUAL</span></div>
               <div class="db-card-value db-card-value--muted">—</div>
               <button type="button" class="db-run-btn">Run design · analyze →</button>
@@ -3699,28 +3694,13 @@ h3.os-chart-card-title {
             </div>
           </div>
         </div>
-        <div class="db-section">
-          <div class="db-section-label">Brand</div>
-          <div class="db-grid">
-            <div class="db-card db-card--manual">
-              <div class="db-card-header"><div class="db-card-label">Brand Assets</div><span class="db-tier db-tier--manual">MANUAL</span></div>
-              <div class="db-card-value db-card-value--muted">—</div>
-              <button type="button" class="db-run-btn">Run workbench-art · analyze →</button>
-            </div>
-            <div class="db-card db-card--manual">
-              <div class="db-card-header"><div class="db-card-label">Logo Status</div><span class="db-tier db-tier--manual">MANUAL</span></div>
-              <div class="db-card-value db-card-value--muted">—</div>
-              <button type="button" class="db-run-btn">Run workbench-art · report →</button>
-            </div>
-          </div>
-        </div>
       </div>
 
       <!-- ── ASHEN HOLLOW DASHBOARD ─────────────────────────── -->
       <div class="dashboard-view" data-dashboard-view="ashen-hollow">
         <div class="db-view-header">
           <span class="db-view-icon">🎮</span>
-          <div><div class="db-view-title" style="color:#818cf8">ASHEN HOLLOW</div><div class="db-view-subtitle">Metroidvania game production — design, narrative &amp; art</div></div>
+          <div><div class="db-view-title" style="color:#818cf8">ASHEN HOLLOW</div><div class="db-view-subtitle">Metroidvania game production — design, narrative &amp; creative</div></div>
         </div>
         <div class="db-section">
           <div class="db-section-label">Game Facts</div>
@@ -3773,7 +3753,7 @@ h3.os-chart-card-title {
             <div class="db-card db-card--manual">
               <div class="db-card-header"><div class="db-card-label">Art Bible</div><span class="db-tier db-tier--manual">MANUAL</span></div>
               <div class="db-card-value db-card-value--muted">—</div>
-              <button type="button" class="db-run-btn">Run ashen-hollow-art · analyze →</button>
+              <button type="button" class="db-run-btn">Run creative · analyze →</button>
             </div>
             <div class="db-card db-card--manual">
               <div class="db-card-header"><div class="db-card-label">Systems Designed</div><span class="db-tier db-tier--manual">MANUAL</span></div>
@@ -4127,34 +4107,6 @@ const AGENTS = {
     },
   },
 
-  // ── Workbench ─────────────────────────────────────────────────────────────
-  'workbench-po': {
-    label: 'Workbench PO',
-    charter: 'agents/workbench-po/charter.md',
-    modes: ['analyze', 'review', 'report', 'prioritize', 'advise'],
-    modeTemplates: {
-      'report': 'templates/daily-product-report.md',
-    },
-    placeholders: {
-      'analyze':   'e.g. "Analyze user friction points in the first-export flow."',
-      'review':    'e.g. "Review the proposed Copilot UX changes against user needs."',
-      'report':    'e.g. "Daily product report for Sprite Workbench — 2026-03-28."',
-      'prioritize':'e.g. "Prioritize the Q2 feature backlog given our solo-founder constraints."',
-      'advise':    'e.g. "Should we add team collaboration features before or after public launch?"',
-    },
-  },
-  'workbench-art': {
-    label: 'Workbench Art Director',
-    charter: 'agents/workbench-art/charter.md',
-    modes: ['analyze', 'review', 'brief', 'advise'],
-    placeholders: {
-      'analyze': 'e.g. "Analyze the Workbench brand identity against its target audience."',
-      'review':  'e.g. "Review the new onboarding illustration concepts for brand alignment."',
-      'brief':   'e.g. "Brief the logo refresh for the Sprite Workbench public launch."',
-      'advise':  'e.g. "What visual direction should the Workbench marketing site use?"',
-    },
-  },
-
   // ── Ashen Hollow ──────────────────────────────────────────────────────────
   'game-director': {
     label: 'Game Director',
@@ -4171,9 +4123,9 @@ const AGENTS = {
       'advise':    'e.g. "How should we handle the player\'s first encounter with a boss?"',
     },
   },
-  'ashen-hollow-art': {
-    label: 'AH Art Director',
-    charter: 'agents/ashen-hollow-art/charter.md',
+  creative: {
+    label: 'Creative',
+    charter: 'agents/creative/charter.md',
     modes: ['analyze', 'review', 'brief', 'advise'],
     placeholders: {
       'analyze': 'e.g. "Analyze the current character design concepts for art bible consistency."',
@@ -4247,8 +4199,8 @@ const DASHBOARDS = {
   support:         { label: 'Support',        color: '#fbbf24', agents: ['support'] },
   marketing:       { label: 'Marketing',      color: '#f5986e', agents: ['marketing'] },
   design:          { label: 'Design',          color: '#fb7185', agents: ['design'] },
-  workbench:       { label: 'Workbench',      color: '#38bdf8', agents: ['workbench-po', 'workbench-art'] },
-  'ashen-hollow':  { label: 'Ashen Hollow',   color: '#818cf8', agents: ['game-director', 'ashen-hollow-art', 'narrative', 'audio', 'game-systems'] },
+  workbench:       { label: 'Workbench',      color: '#38bdf8', agents: [] },
+  'ashen-hollow':  { label: 'Ashen Hollow',   color: '#818cf8', agents: ['game-director', 'creative', 'narrative', 'audio', 'game-systems'] },
 };
 
 const AGENT_META = {
@@ -4264,11 +4216,9 @@ const AGENT_META = {
   'analytics':        { icon: '📊', color: '#4ade80' },
   'support':          { icon: '💬', color: '#fbbf24' },
   'marketing':        { icon: '📣', color: '#f5986e' },
-  'workbench-po':     { icon: '📋', color: '#38bdf8' },
-  'workbench-art':    { icon: '🖌️', color: '#fde047' },
   'design':           { icon: '🎨', color: '#fb7185' },
   'game-director':    { icon: '🎮', color: '#818cf8' },
-  'ashen-hollow-art': { icon: '🏔️', color: '#fb923c' },
+  creative:           { icon: '🏔️', color: '#fb923c' },
   'narrative':        { icon: '📖', color: '#6ee7b7' },
   'audio':            { icon: '🎵', color: '#67e8f9' },
   'game-systems':     { icon: '⚔️', color: '#fca5a5' },
@@ -4343,7 +4293,22 @@ function selectDashboard(id) {
 function renderScopedAgents(dashId) {
   const dash = DASHBOARDS[dashId];
   scopedAgents.innerHTML = '';
-  dash.agents.forEach((agentId, i) => {
+  const agentList = (dash && Array.isArray(dash.agents)) ? dash.agents : [];
+  if (agentList.length === 0) {
+    const hint = document.createElement('p');
+    hint.className = 'scoped-agents-empty';
+    hint.style.cssText = 'color:var(--muted);font-size:var(--font-size-sm);margin:0;padding:8px 0;max-width:400px;line-height:1.45';
+    hint.textContent = 'No specialist prompt targets on this view. Use Engineering, Design, or Ashen Hollow to generate agent prompts.';
+    scopedAgents.appendChild(hint);
+    selectedAgent = null;
+    modeRow.innerHTML = '';
+    taskInput.placeholder = 'Switch to a dashboard with agents to generate prompts.';
+    clearOutput();
+    if (generateBtn) generateBtn.disabled = true;
+    return;
+  }
+  if (generateBtn) generateBtn.disabled = false;
+  agentList.forEach((agentId, i) => {
     const meta = AGENT_META[agentId] || {};
     const agent = AGENTS[agentId] || {};
     const btn = document.createElement('button');
@@ -4362,13 +4327,17 @@ function renderScopedAgents(dashId) {
   });
 
   // auto-select first agent
-  selectedAgent = dash.agents[0];
+  selectedAgent = agentList[0];
   renderModes();
   clearOutput();
 }
 
 function renderModes() {
-  const agent = AGENTS[selectedAgent];
+  const agent = selectedAgent ? AGENTS[selectedAgent] : null;
+  if (!agent || !Array.isArray(agent.modes) || agent.modes.length === 0) {
+    modeRow.innerHTML = '';
+    return;
+  }
   modeRow.innerHTML = '';
   selectedMode = agent.modes[0];
   agent.modes.forEach((mode, i) => {
@@ -4390,8 +4359,8 @@ function renderModes() {
 }
 
 function updatePlaceholder() {
-  const agent = AGENTS[selectedAgent];
-  const ph = (agent.placeholders || {})[selectedMode] || 'Describe what you need...';
+  const agent = selectedAgent ? AGENTS[selectedAgent] : null;
+  const ph = agent && agent.placeholders ? ((agent.placeholders || {})[selectedMode] || 'Describe what you need...') : 'Describe what you need...';
   taskInput.placeholder = ph;
 }
 
@@ -4403,11 +4372,16 @@ generateBtn.addEventListener('click', () => {
     taskInput.focus();
     return;
   }
+  if (!selectedAgent || !AGENTS[selectedAgent]) {
+    showToast('Pick a dashboard that has agents');
+    return;
+  }
   buildPrompt(task);
 });
 
 function buildPrompt(task) {
-  const agent   = AGENTS[selectedAgent];
+  const agent   = selectedAgent ? AGENTS[selectedAgent] : null;
+  if (!agent) return;
   const isOrch  = selectedAgent === 'orchestrator';
   const charter = agent.charter;
   const playbook = (agent.modePlaybooks || {})[selectedMode] || null;
@@ -5697,7 +5671,6 @@ const AV_STATUS_FILES = [
   { file: 'game-director-status.json',    agent: 'game-director' },
   { file: 'game-systems-status.json',     agent: 'game-systems' },
   { file: 'level-design-status.json',     agent: 'level-design' },
-  { file: 'workbench-po-status.json',     agent: 'workbench-po' },
   { file: 'finance-status.json',          agent: 'finance' },
   { file: 'legal-status.json',            agent: 'legal' },
   { file: 'cybersecurity-status.json',    agent: 'cybersecurity' },
@@ -5705,8 +5678,7 @@ const AV_STATUS_FILES = [
   { file: 'animation-status.json',        agent: 'animation' },
   { file: 'narrative-status.json',        agent: 'narrative' },
   { file: 'audio-status.json',            agent: 'audio' },
-  { file: 'workbench-art-status.json',    agent: 'workbench-art' },
-  { file: 'ashen-hollow-art-status.json', agent: 'ashen-hollow-art' },
+  { file: 'creative-status.json',         agent: 'creative' },
 ];
 
 // file -> full parsed JSON object

@@ -1,6 +1,6 @@
 #!/bin/bash
-# Daily Product Report — generates Workbench PO + Game Director reports via Claude CLI
-# and emails them as a combined digest via Resend.
+# Daily Product Report — generates the Game Director (Ashen Hollow) report via Claude CLI
+# and emails it via Resend.
 #
 # Runs every weekday at 6:07pm via crontab.
 # Install: crontab -e → add:
@@ -26,47 +26,8 @@ echo "[$(date)] Starting daily product report" >> "$LOG"
 GIT_LOG_TODAY=$(git log --oneline --since="24 hours ago" 2>/dev/null || echo "(no commits today)")
 GIT_STATUS=$(git status --short 2>/dev/null | head -30 || echo "(clean)")
 
-WB_CHARTER=$(cat "$REPO/agents/workbench-po/charter.md" 2>/dev/null)
 GD_CHARTER=$(cat "$REPO/agents/game-director/charter.md" 2>/dev/null)
 TEMPLATE=$(cat "$REPO/templates/daily-product-report.md" 2>/dev/null)
-
-# ── Generate Workbench PO report ──────────────────────────────────────────────
-
-echo "[$(date)] Generating Workbench report..." >> "$LOG"
-
-WB_PROMPT=$(cat <<PROMPT
-You are the Workbench Product Owner for the MV Sprite Workbench toolchain.
-
-## Your Charter
-$WB_CHARTER
-
-## Report Template
-$TEMPLATE
-
-## Today's Git Activity (last 24 hours)
-Commits:
-$GIT_LOG_TODAY
-
-Uncommitted changes:
-$GIT_STATUS
-
-## Task
-Today is $TODAY. Write the daily product report for the **Sprite Workbench**.
-
-Fill in the template using the git activity above as evidence of accomplishments.
-Be specific: name actual files changed and what they represent as product progress.
-If git activity is sparse, report honestly — "no code shipped; planning/design work in progress" is a valid accomplishment.
-Mark any blockers, issues, or decisions needed with specific owners and resolution paths.
-Output clean markdown using the template structure. Do not add commentary outside the template.
-PROMPT
-)
-
-WB_REPORT=$("$CLAUDE" -p "$WB_PROMPT" --output-format text 2>>"$LOG")
-
-if [ -z "$WB_REPORT" ]; then
-  echo "[$(date)] ERROR: Empty Workbench report from Claude" >> "$LOG"
-  exit 1
-fi
 
 # ── Generate Game Director report ─────────────────────────────────────────────
 
@@ -107,14 +68,10 @@ if [ -z "$GD_REPORT" ]; then
   exit 1
 fi
 
-# ── Combine into single artifact ──────────────────────────────────────────────
+# ── Write artifact ───────────────────────────────────────────────────────────
 
 cat > "$ARTIFACT" <<EOF
 # Daily Product Report — $TODAY
-
----
-
-$WB_REPORT
 
 ---
 
