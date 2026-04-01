@@ -489,6 +489,40 @@
       flex: 1;
       min-height: 0;
     }
+    /* Room wizard: global `button { width: 100% }` applies to `.phase-back-btn` and, in the
+       phase header flex row, effectively steals full width — crushing `.phase-header-left` to a
+       narrow strip (one word per line). ID + !important beats the global button rule reliably. */
+    #roomWizardDock .phase-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    #roomWizardDock .phase-header .phase-header-left {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      flex: 1 1 0;
+      min-width: 0;
+      max-width: 100%;
+    }
+    #roomWizardDock .phase-header .phase-back-btn {
+      width: auto !important;
+      max-width: 100%;
+      flex: 0 0 auto;
+    }
+    #roomWizardDock .phase-header .phase-back-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      flex: 0 0 auto;
+    }
+    #roomWizardDock .phase-header .phase-back-row .phase-back-btn {
+      width: auto !important;
+    }
     .canvas-header {
       display: grid;
       gap: 14px;
