@@ -1,6 +1,6 @@
 {
   "_note": "Updated daily at noon by the strategy agent. Plain language \u2014 no jargon.",
-  "updated": "2026-03-31",
+  "updated": "2026-04-01",
   "priorities": [
     {
       "id": 1,
@@ -41,6 +41,14 @@
       "risk": "low",
       "note": "Makes the tools much stickier with a real user base. A phase two move \u2014 only after the saved file format is stable and enough people are using the tools.",
       "proposed_solution": "Treat a Godot plugin as phase two after export schema stability and real user demand justify the integration effort."
+    },
+    {
+      "id": 6,
+      "title": "Business plan: quarterly refresh of assumptions and competitors",
+      "status": "queued",
+      "risk": "med",
+      "note": "Next step from the initial business plan (Apr 2026). Same work as strategic review and risk register review — keep dates honest in metrics.",
+      "proposed_solution": "Run strategic-review plus risk-register-review each quarter; update risk_register, competitors, and metrics.last_quarterly_review."
     }
   ],
   "risks_p0": [],

@@ -50,6 +50,14 @@
       "risk": "low",
       "note": "A 15 to 60 second recording of the tool in action beats any amount of copy for convincing another developer to try it.",
       "proposed_solution": "Record short, real-tool demos for devlogs and social posts where motion beats long explanations."
+    },
+    {
+      "id": 7,
+      "title": "Business plan: one primary channel — itch.io devlog plus a steady secondary (e.g. X)",
+      "status": "in-progress",
+      "risk": "med",
+      "note": "Next step from the initial business plan (Apr 2026). Name one main place for discovery and keep weekly rhythm there instead of scattering effort.",
+      "proposed_solution": "Treat itch devlog as the home for long updates; use one social for short posts; review cadence monthly against the 90-day goals."
     }
   ],
   "risks_p0": [],

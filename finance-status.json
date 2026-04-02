@@ -1,6 +1,6 @@
 {
   "_note": "Updated by the finance agent after each task. Plain language \u2014 no jargon.",
-  "updated": "2026-03-31",
+  "updated": "2026-04-01",
   "schema_version": "v1.0",
   "priorities": [
     {
@@ -34,6 +34,14 @@
       "risk": "med",
       "note": "A sudden API cost spike (bad prompt, unexpected traffic) could generate a large bill before anyone notices. A simple threshold alert prevents surprises.",
       "proposed_solution": "After baselines exist, alert when any API spend exceeds 150% of the trailing four-week average and investigate spikes."
+    },
+    {
+      "id": 5,
+      "title": "Business plan: rough margin on any paid tier (revenue minus API, hosting, and payment fees)",
+      "status": "queued",
+      "risk": "high",
+      "note": "Next step from the initial business plan (Apr 2026). Per-session cost is not enough alone — we need a simple margin view before promising a price.",
+      "proposed_solution": "After Copilot cost-per-session is measured, publish a one-page margin template for the first paid SKU (ARPU minus variable costs)."
     }
   ],
   "risks_p0": [],

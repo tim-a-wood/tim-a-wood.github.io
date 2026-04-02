@@ -1,6 +1,6 @@
 {
   "_note": "Updated by the legal agent after each task. Plain language \u2014 no jargon. This is risk analysis, not legal advice.",
-  "updated": "2026-03-31",
+  "updated": "2026-04-01",
   "schema_version": "v1.0",
   "priorities": [
     {
@@ -34,6 +34,14 @@
       "risk": "med",
       "note": "Any GPL/AGPL dependency could impose copyleft obligations on the product. Needs a full dependency audit before commercial launch.",
       "proposed_solution": "Audit dependencies for GPL or AGPL exposure and plan removals or compliance paths before commercial distribution."
+    },
+    {
+      "id": 5,
+      "title": "Business plan: go-live checklist before payments and mailing lists",
+      "status": "queued",
+      "risk": "high",
+      "note": "Next step from the initial business plan (Apr 2026). Before charging or collecting emails at scale: Terms, Privacy, AI disclosure, DPA status, and payment flow reviewed.",
+      "proposed_solution": "Draft one checklist (ToS, Privacy, payments, email capture, AI labels); have counsel review before material launch."
     }
   ],
   "risks_p0": [],
