@@ -1194,8 +1194,8 @@ body::before {
   display: grid;
   grid-template-columns: 24px 28px 1fr minmax(0, auto);
   align-items: end;
-  gap: 0 var(--space-3);
-  padding: var(--space-2) 0 var(--space-1);
+  gap: 0 var(--space-4);
+  padding: var(--space-3) 0 var(--space-2);
   border-bottom: 1px solid var(--line-strong);
   position: sticky;
   top: 0;
@@ -1203,23 +1203,46 @@ body::before {
   background: var(--bg);
   box-shadow: 0 1px 0 var(--line);
 }
+/* Issues / Opportunities: owner, product, stakeholders, summary, status, risk — wider lead columns, summary flexes */
 .av-table-head-labels {
   display: grid;
-  grid-template-columns: minmax(0, 5.5rem) minmax(0, 5.5rem) minmax(0, 6.5rem) minmax(0, 1fr) max-content max-content;
-  gap: var(--space-2);
+  grid-template-columns:
+    minmax(6.5rem, 0.85fr)
+    minmax(9rem, 1.05fr)
+    minmax(6.5rem, 0.9fr)
+    minmax(14rem, 2.4fr)
+    max-content
+    max-content;
+  gap: var(--space-3) var(--space-4);
   min-width: 0;
 }
 .ongoing-av-table-head .av-table-head-labels {
-  grid-template-columns: minmax(0, 5.5rem) minmax(0, 5rem) minmax(0, 5rem) minmax(0, 6.5rem) minmax(0, 1fr) max-content max-content;
+  grid-template-columns:
+    minmax(6.5rem, 0.8fr)
+    minmax(9rem, 1fr)
+    minmax(4.5rem, 5.5rem)
+    minmax(6.5rem, 0.85fr)
+    minmax(14rem, 2.35fr)
+    max-content
+    max-content;
 }
 .ongoing-av-row .av-row-grid {
-  grid-template-columns: minmax(0, 5.5rem) minmax(0, 5rem) minmax(0, 5rem) minmax(0, 6.5rem) minmax(0, 1fr) max-content max-content;
+  grid-template-columns:
+    minmax(6.5rem, 0.8fr)
+    minmax(9rem, 1fr)
+    minmax(4.5rem, 5.5rem)
+    minmax(6.5rem, 0.85fr)
+    minmax(14rem, 2.35fr)
+    max-content
+    max-content;
 }
 .av-cell-product {
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-sm);
   color: var(--muted);
-  line-height: 1.35;
+  line-height: 1.45;
   min-width: 0;
+  word-break: normal;
+  overflow-wrap: break-word;
 }
 .av-th {
   font-size: var(--font-size-xs);
@@ -1236,11 +1259,15 @@ body::before {
 .av-row {
   display: grid;
   grid-template-columns: 24px 28px 1fr minmax(0, auto);
-  align-items: center;
-  gap: 0 var(--space-3);
-  padding: var(--space-2) 0;
+  align-items: start;
+  gap: 0 var(--space-4);
+  padding: var(--space-3) 0;
   border-bottom: 1px solid var(--line);
   transition: background var(--transition-fast);
+}
+.av-row > .av-drag-handle,
+.av-row > .av-sort-num {
+  margin-top: var(--space-2);
 }
 .av-row:hover { background: rgba(255,255,255,0.015); }
 .av-drag-handle {
@@ -1279,10 +1306,21 @@ body::before {
 }
 .av-row-grid {
   display: grid;
-  grid-template-columns: minmax(0, 5.5rem) minmax(0, 5.5rem) minmax(0, 6.5rem) minmax(0, 1fr) max-content max-content;
-  gap: var(--space-2);
-  align-items: center;
+  grid-template-columns:
+    minmax(6.5rem, 0.85fr)
+    minmax(9rem, 1.05fr)
+    minmax(6.5rem, 0.9fr)
+    minmax(14rem, 2.4fr)
+    max-content
+    max-content;
+  gap: var(--space-3) var(--space-4);
+  align-items: start;
   min-width: 0;
+}
+.av-row-grid > .av-cell,
+.av-row-grid > .av-status-col,
+.av-row-grid > .av-risk-col {
+  margin-top: var(--space-2);
 }
 .av-cell {
   font-size: var(--font-size-sm);
@@ -1399,7 +1437,9 @@ textarea.av-field { resize: vertical; min-height: 72px; line-height: 1.45; }
   gap: var(--space-1);
   padding-top: 0;
   flex-shrink: 0;
-  max-width: 20rem;
+  max-width: 22rem;
+  margin-top: var(--space-2);
+  align-self: start;
 }
 .av-row-actions-sep {
   width: 1px;
@@ -6647,15 +6687,45 @@ function itemMatchesTableProductFilter(agent, item, filterSlug) {
   return rowProductSlugsForTable(agent, item).indexOf(filterSlug) !== -1;
 }
 
-function formatRowProductColumn(agent, item) {
-  var slugs = rowProductSlugsForTable(agent, item);
+function formatRowProductLabelsFromSlugs(slugs) {
   if (!slugs.length) return '—';
-  var labels = slugs.map(function(s) { return OS_PRODUCT_TABLE_LABELS[s] || s; });
-  return labels.join(', ');
+  return slugs.map(function(s) { return OS_PRODUCT_TABLE_LABELS[s] || s; }).join(', ');
+}
+
+/** Full product scope (for search + tooltips). */
+function formatRowProductColumnFull(agent, item) {
+  return formatRowProductLabelsFromSlugs(rowProductSlugsForTable(agent, item));
+}
+
+/**
+ * Product column text: when header product context is not "all", drop that slug from the list —
+ * it is already implied by the scope strip, so repeating it (e.g. "Business, Sprite…") is redundant.
+ */
+function rowProductSlugsForColumnDisplay(agent, item) {
+  var slugs = rowProductSlugsForTable(agent, item);
+  if (osProductContext === 'all') return slugs;
+  return slugs.filter(function(s) { return s !== osProductContext; });
+}
+
+function formatRowProductColumn(agent, item) {
+  return formatRowProductLabelsFromSlugs(rowProductSlugsForColumnDisplay(agent, item));
 }
 
 function rowProductSearchText(agent, item) {
-  return formatRowProductColumn(agent, item).toLowerCase();
+  return formatRowProductColumnFull(agent, item).toLowerCase();
+}
+
+/** Table cell markup; tooltip shows full scope when the visible list is shortened. */
+function avRenderProductCellMarkup(agent, item) {
+  var display = formatRowProductColumn(agent, item);
+  var full = formatRowProductColumnFull(agent, item);
+  var title = '';
+  if (full !== display && full !== '—') {
+    title = ' title="' + escapeHtml('Full scope: ' + full) + '"';
+  } else if (display === '—' && full !== '—') {
+    title = ' title="' + escapeHtml(full) + '"';
+  }
+  return '<span class="av-cell av-cell-product"' + title + '>' + escapeHtml(display) + '</span>';
 }
 
 /** Selected value for edit form: '' = inherit agent default; else single slug. */
@@ -9984,7 +10054,6 @@ function otRowHtml(action, idx, total) {
   var upDisabled = fileIdx <= 0 ? ' disabled' : '';
   var downDisabled = (fileIdx < 0 || fileIdx >= fileTotal - 1) ? ' disabled' : '';
   var num = String(idx + 1).padStart(2, '0');
-  var productCell = formatRowProductColumn(action._agent, action);
 
   return '<div class="av-row ongoing-av-row" role="group" data-file="' + escapeHtml(action._file) + '" data-id="' + escapeHtml(String(action.id || '')) + '" data-source="' + escapeHtml(action._ongoingSource) + '">'
     + '<div class="av-drag-handle" draggable="true" title="Drag to reorder">⠿</div>'
@@ -9992,7 +10061,7 @@ function otRowHtml(action, idx, total) {
     + '<div class="av-row-main" role="button" tabindex="0" aria-expanded="false">'
     +   '<div class="av-row-grid">'
     +     '<span class="av-cell av-cell-owner">' + escapeHtml(ownerCell) + '</span>'
-    +     '<span class="av-cell av-cell-product">' + escapeHtml(productCell) + '</span>'
+    +     avRenderProductCellMarkup(action._agent, action)
     +     '<span class="av-cell av-cell-kind">' + kindBadge + '</span>'
     +     '<span class="av-cell av-cell-stakeholders">' + escapeHtml(stakeholdersCell) + '</span>'
     +     '<span class="av-cell av-cell-summary">' + escapeHtml(summaryText) + '</span>'
@@ -10741,15 +10810,13 @@ function avRowHtml(action, idx, total) {
       || (!avConflictFocus.file && action._file && avConflictIssueIds(action._file).indexOf(Number(action.id)) !== -1)
     )
   );
-  var productCell = formatRowProductColumn(action._agent, action);
-
   return '<div class="av-row' + (isConflict ? ' av-row--conflict' : '') + '" data-file="' + escapeHtml(action._file) + '" data-id="' + escapeHtml(action.id || '') + '">'
     + '<div class="av-drag-handle" draggable="true" title="Drag to reorder">⠿</div>'
     + '<div class="av-sort-num">' + num + '</div>'
     + '<div class="av-row-main" role="button" tabindex="0" aria-expanded="false">'
     +   '<div class="av-row-grid">'
     +     '<span class="av-cell av-cell-owner">' + escapeHtml(ownerCell) + '</span>'
-    +     '<span class="av-cell av-cell-product">' + escapeHtml(productCell) + '</span>'
+    +     avRenderProductCellMarkup(action._agent, action)
     +     '<span class="av-cell av-cell-stakeholders">' + escapeHtml(stakeholdersCell) + '</span>'
     +     '<span class="av-cell av-cell-summary">' + escapeHtml(summaryText) + '</span>'
     +     '<span class="av-status-col ' + stMk.cls + '">' + escapeHtml(stMk.label) + '</span>'
@@ -11650,7 +11717,6 @@ function aoRowHtml(action, idx, total) {
   var upDisabled = filePriorityIdx <= 0 ? ' disabled' : '';
   var downDisabled = (filePriorityIdx < 0 || filePriorityIdx >= filePriorityTotal - 1) ? ' disabled' : '';
   var num = String(idx + 1).padStart(2, '0');
-  var productCell = formatRowProductColumn(action._agent, action);
 
   return '<div class="av-row" data-file="' + escapeHtml(action._file) + '" data-id="' + escapeHtml(String(action.id || '')) + '">'
     + '<div class="av-drag-handle" draggable="true" title="Drag to reorder">⠿</div>'
@@ -11658,7 +11724,7 @@ function aoRowHtml(action, idx, total) {
     + '<div class="av-row-main" role="button" tabindex="0" aria-expanded="false">'
     +   '<div class="av-row-grid">'
     +     '<span class="av-cell av-cell-owner">' + escapeHtml(ownerCell) + '</span>'
-    +     '<span class="av-cell av-cell-product">' + escapeHtml(productCell) + '</span>'
+    +     avRenderProductCellMarkup(action._agent, action)
     +     '<span class="av-cell av-cell-stakeholders">' + escapeHtml(stakeholdersCell) + '</span>'
     +     '<span class="av-cell av-cell-summary">' + escapeHtml(summaryText) + '</span>'
     +     '<span class="av-status-col ' + stMk.cls + '">' + escapeHtml(stMk.label) + '</span>'
