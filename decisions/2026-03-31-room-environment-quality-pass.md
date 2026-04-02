@@ -165,3 +165,13 @@ This log records decisions for the room environment and bespoke asset quality pa
 - Status: Accepted
 - Why: The old planner collapsed rooms down to one main floor, a few hero platforms, and one active door. That was the core architectural quality cap identified in review.
 - Consequence: V3 rooms now generate their bespoke slot plan from a separate geometry-first planner path that includes all door thresholds, all major traversal platforms, ceiling, backwall panel, side walls, and overlay geometry for review. The old planner remains only for v2 rooms during calibration.
+
+### 26. V3 activation in the editor must be explicit, and the results surface must expose planner coverage
+- Status: Accepted
+- Why: We explicitly rejected silent v2-to-v3 upgrades, and Design review required assembly-plan visibility as a first-class review surface.
+- Consequence: The room editor now exposes a deliberate v3 calibration toggle in Environment setup, sends the selected pipeline version when building the room spec, and shows assembly-plan coverage plus validation-plan status in the Results surface for v3 rooms.
+
+### 27. Manual review starts as a lightweight in-editor form attached to the v3 Results surface
+- Status: Accepted
+- Why: QA and Creative review needed to become a real part of the workflow quickly, but full screenshot annotation tooling would have delayed calibration.
+- Consequence: The editor now supports submitting QA and Creative review rounds directly from the v3 Results surface with role, decision, finding codes, blockers, required changes, and runtime screenshot metadata. Richer annotation tooling remains a later enhancement.

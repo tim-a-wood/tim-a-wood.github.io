@@ -6,6 +6,7 @@
 const ENVIRONMENT_SCHEMA_VERSION = 1;
 const ENVIRONMENT_RENDER_SCHEMA_VERSION = 2;
 const DEFAULT_THEME_ID = 'cave';
+const DEFAULT_ENVIRONMENT_PIPELINE_VERSION = 'v2';
 const ENVIRONMENT_COMPONENTS = [
   ['floor', 'Floor'],
   ['platforms', 'Platforms'],
@@ -48,6 +49,16 @@ const ENVIRONMENT_COMPONENT_SCHEMA_DEFS = {
     label: 'Midground',
     visual_role: 'side_frame',
     fields: ['side_mass_only', 'center_clearance_ratio', 'occluder_types', 'alpha_profile', 'floor_crossing_forbidden', 'route_overlap_forbidden']
+  },
+  ceiling: {
+    label: 'Ceiling',
+    visual_role: 'structural',
+    fields: ['ceiling_band_height', 'ceiling_span_profile', 'ceiling_edge_weight', 'ceiling_opening_clearance', 'ceiling_detail_density', 'ceiling_drop_forbidden']
+  },
+  backwall_panel: {
+    label: 'Backwall Panel',
+    visual_role: 'structural_depth',
+    fields: ['panel_depth_profile', 'panel_value_separation', 'panel_center_quietness', 'panel_architecture_language', 'panel_repeat_rhythm', 'panel_focal_suppression']
   }
 };
 const ENVIRONMENT_COMPONENT_SCHEMA_COMMON_FIELDS = [
@@ -223,6 +234,42 @@ function defaultEnvironmentComponentSchemas(description = '', components = {}) {
       alpha_profile: 'solid on edges, transparent through center',
       floor_crossing_forbidden: 'true',
       route_overlap_forbidden: 'true'
+    },
+    ceiling: {
+      design_intent: `${base} Ceiling should help close the shell silhouette without dropping into the main route.`,
+      visual_role: 'structural',
+      material_family: 'weathered structural stone',
+      silhouette_rules: ['clear ceiling cap silhouette', 'top shell closure reads above the route'],
+      detail_density: 'low_to_medium',
+      value_contrast: 'darker than traversal tops but readable against the background',
+      damage_profile: 'restrained cracks and chipped spans',
+      readability_constraints: ['must help close the room shell', 'must not hang into the traversal lane'],
+      negative_constraints: ['no chandelier', 'no dramatic center drop'],
+      variation_rules: ['vary arch breakup subtly while keeping span language consistent'],
+      ceiling_band_height: 'moderate shell cap height',
+      ceiling_span_profile: 'broad arch or lintel span',
+      ceiling_edge_weight: 'heavy outer edge, quieter center',
+      ceiling_opening_clearance: 'preserve headroom over the main route',
+      ceiling_detail_density: 'restrained surface detail',
+      ceiling_drop_forbidden: 'true'
+    },
+    backwall_panel: {
+      design_intent: `${base} Backwall panels should support shell depth behind gameplay surfaces without becoming a focal scene.`,
+      visual_role: 'structural_depth',
+      material_family: 'far structural stone panel',
+      silhouette_rules: ['backwall planes support shell depth', 'panel stays behind gameplay surfaces'],
+      detail_density: 'low_to_medium',
+      value_contrast: 'subordinate to traversal surfaces with visible separation',
+      damage_profile: 'aged stone seams and shallow recesses',
+      readability_constraints: ['must preserve center-lane readability', 'must not replace the foreground shell'],
+      negative_constraints: ['no altar', 'no center mural focal scene', 'no bright focal opening'],
+      variation_rules: ['vary recess spacing while keeping panel rhythm modular'],
+      panel_depth_profile: 'shallow recessed wall depth',
+      panel_value_separation: 'slightly darker than traversal surfaces',
+      panel_center_quietness: 'center remains calm and low-contrast',
+      panel_architecture_language: 'echo biome shell family without becoming the main shell',
+      panel_repeat_rhythm: 'moderate repeating stone panel rhythm',
+      panel_focal_suppression: 'explicitly suppress shrine, altar, and mural focal scenes'
     }
   };
 }
@@ -379,6 +426,7 @@ function ensureRoomEnvironment(room) {
   if (!room.environment || typeof room.environment !== 'object') {
     room.environment = {
       version: ENVIRONMENT_RENDER_SCHEMA_VERSION,
+      environment_pipeline_version: DEFAULT_ENVIRONMENT_PIPELINE_VERSION,
       themeId: DEFAULT_THEME_ID,
       tags: [],
       spec: {},
@@ -389,6 +437,11 @@ function ensureRoomEnvironment(room) {
   }
   const e = room.environment;
   if (e.version == null) e.version = ENVIRONMENT_RENDER_SCHEMA_VERSION;
+  if (typeof e.environment_pipeline_version !== 'string' || !e.environment_pipeline_version.trim()) {
+    e.environment_pipeline_version = DEFAULT_ENVIRONMENT_PIPELINE_VERSION;
+  } else {
+    e.environment_pipeline_version = String(e.environment_pipeline_version).trim().toLowerCase() === 'v3' ? 'v3' : DEFAULT_ENVIRONMENT_PIPELINE_VERSION;
+  }
   if (typeof e.themeId !== 'string' || !e.themeId.trim()) {
     e.themeId = DEFAULT_THEME_ID;
   }
@@ -517,6 +570,45 @@ function ensureRoomEnvironment(room) {
     e.runtime.bespoke_asset_manifest.generated_at = null;
   }
   if (!Array.isArray(e.runtime.bespoke_asset_manifest.validation_errors)) e.runtime.bespoke_asset_manifest.validation_errors = [];
+  if (e.environment_pipeline_version === 'v3') {
+    if (!e.room_intent || typeof e.room_intent !== 'object') e.room_intent = {};
+    if (typeof e.room_intent.selected_biome_id !== 'string' && e.room_intent.selected_biome_id !== null) e.room_intent.selected_biome_id = null;
+    if (typeof e.room_intent.room_role !== 'string') e.room_intent.room_role = '';
+    if (!e.room_intent.progression_context || typeof e.room_intent.progression_context !== 'object') {
+      e.room_intent.progression_context = {};
+    }
+    if (!e.component_contracts || typeof e.component_contracts !== 'object') e.component_contracts = {};
+    if (!e.assembly_plan || typeof e.assembly_plan !== 'object') e.assembly_plan = {};
+    if (!Array.isArray(e.assembly_plan.slots)) e.assembly_plan.slots = [];
+    if (!e.assembly_plan.overlay_geometry || typeof e.assembly_plan.overlay_geometry !== 'object') e.assembly_plan.overlay_geometry = {};
+    if (!e.assembly_plan.planner_coverage_summary || typeof e.assembly_plan.planner_coverage_summary !== 'object') {
+      e.assembly_plan.planner_coverage_summary = { status: 'idle', major_structures: {}, missing_slots: [], blockers: [] };
+    }
+    if (!e.review_state || typeof e.review_state !== 'object') e.review_state = {};
+    if (!e.review_state.automated_validation || typeof e.review_state.automated_validation !== 'object') {
+      e.review_state.automated_validation = { status: 'idle', valid: false, errors: [], component_statuses: {} };
+    }
+    if (!e.review_state.runtime_review || typeof e.review_state.runtime_review !== 'object') {
+      e.review_state.runtime_review = { status: 'idle', fail_reasons: [], warning_reasons: [], metrics: {}, screenshot_url: null, review_mode: null };
+    }
+    if (!Array.isArray(e.review_state.qa_review_rounds)) e.review_state.qa_review_rounds = [];
+    if (!Array.isArray(e.review_state.creative_review_rounds)) e.review_state.creative_review_rounds = [];
+    if (typeof e.review_state.approval_status !== 'string') e.review_state.approval_status = 'draft';
+    if (typeof e.review_state.review_bundle_id !== 'string' && e.review_state.review_bundle_id !== null) e.review_state.review_bundle_id = null;
+    if (!e.review_state.validation_plan || typeof e.review_state.validation_plan !== 'object') e.review_state.validation_plan = {};
+    if (!Array.isArray(e.review_state.validation_plan.review_surface_order)) {
+      e.review_state.validation_plan.review_surface_order = ['room_intent', 'biome_selection', 'component_contracts', 'assembly_plan_overlay', 'slot_gallery', 'combined_kit', 'runtime_view', 'contrast_qa_view'];
+    }
+    if (!Array.isArray(e.review_state.validation_plan.required_screenshot_stages)) {
+      e.review_state.validation_plan.required_screenshot_stages = ['room_intent', 'biome_selection', 'component_contracts', 'assembly_plan_overlay', 'slot_gallery', 'combined_kit', 'runtime_view', 'contrast_qa_view', 'structural_only_runtime', 'scenic_only_runtime'];
+    }
+    if (!e.review_state.validation_plan.required_round_counts || typeof e.review_state.validation_plan.required_round_counts !== 'object') {
+      e.review_state.validation_plan.required_round_counts = { qa: 3, creative: 3 };
+    }
+    if (!e.review_state.validation_status || typeof e.review_state.validation_status !== 'object') {
+      e.review_state.validation_status = { status: 'pending', issues: [] };
+    }
+  }
   return e;
 }
 
@@ -535,6 +627,7 @@ if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
     ENVIRONMENT_SCHEMA_VERSION,
     ENVIRONMENT_RENDER_SCHEMA_VERSION,
+    DEFAULT_ENVIRONMENT_PIPELINE_VERSION,
     DEFAULT_THEME_ID,
     ENVIRONMENT_COMPONENTS,
     THEME_PRESETS,
@@ -554,6 +647,7 @@ if (typeof globalThis !== 'undefined') {
   globalThis.RoomWizardEnvironment = {
     ENVIRONMENT_SCHEMA_VERSION,
     ENVIRONMENT_RENDER_SCHEMA_VERSION,
+    DEFAULT_ENVIRONMENT_PIPELINE_VERSION,
     DEFAULT_THEME_ID,
     THEME_PRESETS,
     defaultEnvironmentComponentSchemas,

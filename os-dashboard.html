@@ -1212,6 +1212,15 @@ textarea.av-field { resize: vertical; min-height: 72px; line-height: 1.45; }
 .av-btn:disabled { opacity: 0.3; cursor: not-allowed; }
 .av-btn--accent { border-color: var(--accent); color: var(--accent); }
 .av-btn--accent:hover { background: var(--accent-soft); }
+.av-btn--danger {
+  border-color: rgba(248,81,73,0.32);
+  color: var(--error);
+}
+.av-btn--danger:hover {
+  background: var(--error-soft);
+  border-color: rgba(248,81,73,0.45);
+  color: var(--error);
+}
 /* Issues row: Edit is a neutral secondary control — not competing with status pills */
 .av-edit-btn {
   border-color: var(--line);
@@ -7774,6 +7783,19 @@ function issueChatClose() {
   if (inp) inp.disabled = false;
 }
 
+/** Close discuss modal if it is showing the same row that was just deleted. */
+function issueChatCloseIfDeleted(action, explicitRowKind) {
+  var cur = issueChatAction;
+  if (!cur || !action) return;
+  if (cur._file !== action._file) return;
+  var delId = action._priorityId != null ? action._priorityId : action.id;
+  var curId = cur._priorityId != null ? cur._priorityId : cur.id;
+  if (!avStatusIdsEqual(curId, delId)) return;
+  var delKind = explicitRowKind || (action._ongoingSource === 'opportunity' ? 'opportunity' : 'priority');
+  if (delKind !== issueChatRowKind) return;
+  issueChatClose();
+}
+
 function issueChatAppendBubble(role, text, thinking, isErr) {
   var scroll = document.getElementById('issue-chat-scroll');
   if (!scroll) return;
@@ -8153,6 +8175,7 @@ function otRowHtml(action, idx, total) {
     + '</div>'
     + '<div class="av-row-btns">'
     +   '<button type="button" class="av-btn av-edit-btn">Edit</button>'
+    +   '<button type="button" class="av-btn av-delete-btn av-btn--danger" title="Remove from status file">Delete</button>'
     +   '<div class="av-btn-row">'
     +     '<button class="av-btn av-btn--icon av-up-btn" title="Move up"' + upDisabled + '>↑</button>'
     +     '<button class="av-btn av-btn--icon av-down-btn" title="Move down"' + downDisabled + '>↓</button>'
@@ -8666,11 +8689,21 @@ function avOrchestratorSortPriorities(priorities) {
   });
 }
 
+/** Match priority/opportunity ids whether stored as number or string (e.g. research-p1). */
+function avStatusIdsEqual(a, b) {
+  if (a == null && b == null) return true;
+  if (a == null || b == null) return false;
+  if (String(a) === String(b)) return true;
+  var na = Number(a);
+  var nb = Number(b);
+  return Number.isFinite(na) && Number.isFinite(nb) && na === nb;
+}
+
 function avFindPriorityIndex(file, priorityId) {
   var data = avCache[file];
   if (!data || !Array.isArray(data.priorities)) return -1;
   return data.priorities.findIndex(function(item) {
-    return Number(item && item.id) === Number(priorityId);
+    return avStatusIdsEqual(item && item.id, priorityId);
   });
 }
 
@@ -9443,7 +9476,7 @@ function aoFindOpportunityIndex(file, oppId) {
   var data = aoCache[file];
   if (!data || !Array.isArray(data.opportunities)) return -1;
   return data.opportunities.findIndex(function(item) {
-    return String(item && item.id) === String(oppId);
+    return avStatusIdsEqual(item && item.id, oppId);
   });
 }
 

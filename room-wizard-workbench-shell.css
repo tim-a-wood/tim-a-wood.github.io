@@ -1154,6 +1154,20 @@
   line-height: 1.6;
 }
 
+.room-wizard-dock .rw-inline-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 0 4px;
+  color: var(--muted);
+  font-size: var(--font-size-sm);
+}
+
+.room-wizard-dock .rw-inline-check input {
+  margin: 2px 0 0;
+  flex: 0 0 auto;
+}
+
 .room-wizard-dock .rw-environment-asset-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
