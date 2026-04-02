@@ -2398,39 +2398,94 @@ textarea.av-field { resize: vertical; min-height: 72px; line-height: 1.45; }
 }
 .db-run-btn:hover { opacity: 1; }
 
-/* ─── Global workbench bar (all dashboards) ─ */
+/* ─── Global workbench bar (all dashboards) — compact status + menu ─ */
 .global-workbench-bar {
   flex-shrink: 0;
   padding: var(--space-2) var(--surface-pad);
   border-bottom: 1px solid var(--line);
   background: rgba(255, 255, 255, 0.02);
 }
-.global-wb-inner {
+.global-wb-compact {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--space-3);
-}
-.global-wb-label {
-  font-size: var(--font-size-xs);
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--muted);
+  gap: var(--space-2);
 }
 .global-wb-status {
   font-family: var(--font-mono);
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-xs);
   color: var(--text);
-  flex: 1;
-  min-width: 140px;
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 12rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .global-wb-status--run { color: var(--good); }
 .global-wb-status--off { color: var(--warning); }
 .global-wb-status--na { color: var(--muted); }
+.global-wb-details {
+  position: relative;
+}
+.global-wb-summary-btn {
+  list-style: none;
+  min-height: 32px;
+  padding: 4px 12px;
+  border-radius: var(--radius-tight);
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.045);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 200ms ease, border-color 200ms ease, color 200ms ease, transform 200ms ease;
+}
+.global-wb-summary-btn::-webkit-details-marker {
+  display: none;
+}
+.global-wb-summary-btn::after {
+  content: '▾';
+  margin-left: var(--space-1);
+  font-size: var(--font-size-xs);
+  color: var(--muted);
+}
+.global-wb-details[open] .global-wb-summary-btn::after {
+  content: '▴';
+}
+.global-wb-summary-btn:hover {
+  border-color: var(--line-strong);
+  background: rgba(255, 255, 255, 0.08);
+  transform: translateY(-1px);
+}
+.global-wb-details[open] .global-wb-summary-btn {
+  border-color: var(--accent);
+  background: rgba(0, 232, 200, 0.1);
+}
+.global-wb-summary-btn:focus-visible {
+  outline: 2px solid rgba(0, 232, 200, 0.35);
+  outline-offset: 2px;
+}
+.global-wb-dropdown {
+  position: absolute;
+  top: calc(100% + var(--space-1));
+  right: 0;
+  z-index: 40;
+  min-width: 220px;
+  max-width: min(360px, 92vw);
+  padding: var(--space-3);
+  border-radius: var(--radius-card);
+  border: 1px solid var(--line);
+  background: rgba(7, 10, 13, 0.96);
+  backdrop-filter: blur(10px);
+  box-shadow: var(--shadow-md);
+}
 .global-wb-actions {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: var(--space-2);
 }
 .global-wb-btn {
@@ -2444,6 +2499,7 @@ textarea.av-field { resize: vertical; min-height: 72px; line-height: 1.45; }
   font-size: var(--font-size-sm);
   font-weight: 600;
   cursor: pointer;
+  text-align: center;
   transition: background 200ms ease, border-color 200ms ease, color 200ms ease, transform 200ms ease;
 }
 .global-wb-btn:hover:not(:disabled) {
@@ -2467,11 +2523,12 @@ textarea.av-field { resize: vertical; min-height: 72px; line-height: 1.45; }
   color: var(--error);
 }
 .global-wb-hint {
-  margin: var(--space-2) 0 0;
+  margin: var(--space-3) 0 0;
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--line);
   font-size: var(--font-size-xs);
   color: var(--muted);
-  line-height: 1.4;
-  max-width: 920px;
+  line-height: 1.45;
 }
 .home-chart-live-status {
   margin: 0 0 var(--space-3) 0;
@@ -3191,16 +3248,20 @@ h3.os-chart-card-title {
     <div class="main-left">
 
       <div id="global-workbench-bar" class="global-workbench-bar" aria-label="Sprite Workbench server">
-        <div class="global-wb-inner">
-          <span class="global-wb-label">Workbench server</span>
-          <span id="global-wb-status" class="global-wb-status">—</span>
-          <div class="global-wb-actions">
-            <button type="button" class="global-wb-btn" id="global-wb-start">Start</button>
-            <button type="button" class="global-wb-btn" id="global-wb-restart">Restart</button>
-            <button type="button" class="global-wb-btn global-wb-btn--danger" id="global-wb-stop">Stop</button>
-          </div>
+        <div class="global-wb-compact">
+          <span id="global-wb-status" class="global-wb-status global-wb-status--na" role="status" title="">—</span>
+          <details class="global-wb-details">
+            <summary class="global-wb-summary-btn">Workbench</summary>
+            <div class="global-wb-dropdown">
+              <div class="global-wb-actions">
+                <button type="button" class="global-wb-btn" id="global-wb-start">Start</button>
+                <button type="button" class="global-wb-btn" id="global-wb-restart">Restart</button>
+                <button type="button" class="global-wb-btn global-wb-btn--danger" id="global-wb-stop">Stop</button>
+              </div>
+              <p id="global-wb-hint" class="global-wb-hint"></p>
+            </div>
+          </details>
         </div>
-        <p id="global-wb-hint" class="global-wb-hint"></p>
       </div>
 
       <div class="main-left-views">
@@ -6817,12 +6878,14 @@ function applyGlobalWorkbenchBar(d) {
       lastWorkbenchControlBase = bridge;
     }
     if (d.workbench_server_running) {
-      let line = '● Running · ' + host + ':' + port;
-      if (d.workbench_pid) line += ' · PID ' + d.workbench_pid;
-      statusEl.textContent = line;
+      let longLine = 'Running · ' + host + ':' + port;
+      if (d.workbench_pid) longLine += ' · PID ' + d.workbench_pid;
+      statusEl.textContent = '● :' + port;
+      statusEl.title = longLine;
       statusEl.className = 'global-wb-status global-wb-status--run';
     } else {
-      statusEl.textContent = '○ Offline · ' + host + ':' + port;
+      statusEl.textContent = '○ :' + port;
+      statusEl.title = 'Offline · ' + host + ':' + port;
       statusEl.className = 'global-wb-status global-wb-status--off';
     }
     if (hintEl) {
@@ -6834,7 +6897,8 @@ function applyGlobalWorkbenchBar(d) {
     }
     setBtns(true);
   } else {
-    statusEl.textContent = 'Not connected';
+    statusEl.textContent = 'No API';
+    statusEl.title = 'Open from Agent OS (port 8769) or Sprite Workbench server (8766) for status and controls.';
     statusEl.className = 'global-wb-status global-wb-status--na';
     if (hintEl) {
       const origin = (typeof window !== 'undefined' && window.location && window.location.origin) ? window.location.origin : '';
@@ -6932,7 +6996,7 @@ function updateHomeChartLiveStatus(d, dashboardReachable) {
   const el = document.getElementById('home-chart-live-status');
   if (!el) return;
   if (!dashboardReachable || !d) {
-    el.textContent = 'Usage trend and workbench readouts need the dashboard connection. Open via Agent OS (port 8769) or the workbench server (8766) — see the workbench bar above.';
+    el.textContent = 'Usage trend and workbench readouts need the dashboard connection. Open via Agent OS (port 8769) or the workbench server (8766) — use the compact Workbench control next to the status strip.';
     el.classList.remove('visually-hidden');
     el.classList.add('home-chart-live-status--warn');
     return;
@@ -7455,6 +7519,11 @@ window.addEventListener('resize', () => {
   }, 120);
 });
 
+function closeGlobalWorkbenchMenu() {
+  var det = document.querySelector('#global-workbench-bar .global-wb-details');
+  if (det) det.removeAttribute('open');
+}
+
 async function postGlobalWorkbenchAction(action) {
   try {
     const base = typeof lastWorkbenchControlBase === 'string' ? lastWorkbenchControlBase : '';
@@ -7481,6 +7550,7 @@ async function postGlobalWorkbenchAction(action) {
       showToast(j.message || 'OK');
     }
     await loadDashboardData(selectedDashboard);
+    closeGlobalWorkbenchMenu();
   } catch (err) {
     showToast('Request failed');
   }
