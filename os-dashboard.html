@@ -1442,8 +1442,13 @@ textarea.av-field { resize: vertical; min-height: 72px; line-height: 1.45; }
 }
 .av-row-btns .av-delete-btn {
   min-height: 28px;
-  padding: 4px 8px;
-  font-size: var(--font-size-xs);
+  min-width: 28px;
+  padding: 4px;
+  font-size: var(--font-size-base);
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border-radius: var(--radius-sm);
 }
 .av-edit-btn:hover {
@@ -8565,7 +8570,7 @@ function otRowHtml(action, idx, total) {
     + '</div>'
     + '<div class="av-row-btns" role="toolbar" aria-label="Row actions">'
     +   '<button type="button" class="av-btn av-edit-btn">Edit</button>'
-    +   '<button type="button" class="av-btn av-delete-btn av-btn--danger" title="Remove from status file">Delete</button>'
+    +   '<button type="button" class="av-btn av-delete-btn av-btn--danger" title="Remove from status file" aria-label="Remove from status file"><span aria-hidden="true">🗑</span></button>'
     +   '<span class="av-row-actions-sep" aria-hidden="true"></span>'
     +   '<button type="button" class="av-btn av-btn--icon av-up-btn" title="Move up"' + upDisabled + '>↑</button>'
     +   '<button type="button" class="av-btn av-btn--icon av-down-btn" title="Move down"' + downDisabled + '>↓</button>'
@@ -9312,7 +9317,7 @@ function avRowHtml(action, idx, total) {
     + '</div>'
     + '<div class="av-row-btns" role="toolbar" aria-label="Row actions">'
     +   '<button type="button" class="av-btn av-edit-btn">Edit</button>'
-    +   '<button type="button" class="av-btn av-delete-btn av-btn--danger" title="Remove from status file">Delete</button>'
+    +   '<button type="button" class="av-btn av-delete-btn av-btn--danger" title="Remove from status file" aria-label="Remove from status file"><span aria-hidden="true">🗑</span></button>'
     +   '<span class="av-row-actions-sep" aria-hidden="true"></span>'
     +   '<button type="button" class="av-btn av-btn--icon av-up-btn" title="Move up"' + upDisabled + '>↑</button>'
     +   '<button type="button" class="av-btn av-btn--icon av-down-btn" title="Move down"' + downDisabled + '>↓</button>'
@@ -10163,7 +10168,7 @@ function aoRowHtml(action, idx, total) {
     + '</div>'
     + '<div class="av-row-btns" role="toolbar" aria-label="Row actions">'
     +   '<button type="button" class="av-btn av-edit-btn">Edit</button>'
-    +   '<button type="button" class="av-btn av-delete-btn av-btn--danger" title="Remove from status file">Delete</button>'
+    +   '<button type="button" class="av-btn av-delete-btn av-btn--danger" title="Remove from status file" aria-label="Remove from status file"><span aria-hidden="true">🗑</span></button>'
     +   '<span class="av-row-actions-sep" aria-hidden="true"></span>'
     +   '<button type="button" class="av-btn av-btn--icon av-up-btn" title="Move up"' + upDisabled + '>↑</button>'
     +   '<button type="button" class="av-btn av-btn--icon av-down-btn" title="Move down"' + downDisabled + '>↓</button>'
