@@ -2683,6 +2683,10 @@ h3.os-chart-card-title {
         <span class="nav-dot" style="background:#a5b4fc"></span>
         <span class="nav-item-text">Issues</span>
       </button>
+      <button type="button" class="nav-item" data-dashboard="opportunities">
+        <span class="nav-dot" style="background:#4ade80"></span>
+        <span class="nav-item-text">Opportunities</span>
+      </button>
 
       <span class="nav-group-label">Leadership</span>
       <button type="button" class="nav-item" data-dashboard="orchestration">
@@ -4574,6 +4578,97 @@ h3.os-chart-card-title {
 
       </div>
 
+      <!-- OPPORTUNITIES VIEW (opportunities[] across agents) -->
+      <div class="dashboard-view" data-dashboard-view="opportunities">
+        <div class="db-view-header">
+          <span class="db-view-icon">🌱</span>
+          <div>
+            <div class="db-view-title" style="color:#4ade80">OPPORTUNITIES</div>
+            <div class="db-view-subtitle">All agent improvement opportunities — filter by owner, explore, assign, discuss with the agent, and track</div>
+            <div
+              class="av-sort-badge"
+              title="List order: status and risk (in-progress / high impact first, done last), then manual order in each owner file, then owner name, then ID."
+            >
+              Sorted by impact
+            </div>
+          </div>
+        </div>
+        <div class="av-toolbar">
+          <div class="av-filter-group">
+            <span class="av-filter-label">Owner</span>
+            <select class="av-select" id="ao-filter-owner">
+              <option value="">All agents</option>
+            </select>
+          </div>
+          <div class="av-filter-group">
+            <span class="av-filter-label">Status</span>
+            <select class="av-select" id="ao-filter-status">
+              <option value="">All</option>
+              <option value="in-progress">In Progress</option>
+              <option value="needs-review">Needs Review</option>
+              <option value="paused">Paused</option>
+              <option value="queued">Queued</option>
+              <option value="done">Done</option>
+            </select>
+          </div>
+          <input type="text" class="av-search" id="ao-search" placeholder="Search opportunities…" autocomplete="off" spellcheck="false">
+          <button type="button" class="av-btn av-btn--accent av-add-btn" id="ao-add-btn">+ Add Opportunity</button>
+          <span class="av-count" id="ao-count"></span>
+        </div>
+        <div class="av-add-panel" id="ao-add-panel">
+          <select class="av-field" id="ao-add-owner">
+            <option value="">Assign owner agent…</option>
+          </select>
+          <select class="av-field" id="ao-add-status">
+            <option value="queued">queued</option>
+            <option value="in-progress">in-progress</option>
+            <option value="needs-review">needs-review</option>
+            <option value="paused">paused</option>
+            <option value="done">done</option>
+          </select>
+          <select class="av-field" id="ao-add-risk">
+            <option value="low">low</option>
+            <option value="med">med</option>
+            <option value="high">high</option>
+          </select>
+          <input class="av-field av-field-wide" id="ao-add-owner-text" placeholder="Owner (optional; defaults to agent)">
+          <input class="av-field av-field-wide" id="ao-add-stakeholders" placeholder="Stakeholders, comma-separated (optional)">
+          <input class="av-field av-field-wide" id="ao-add-summary" placeholder="Summary (optional; defaults to title)">
+          <input class="av-field av-field-wide" id="ao-add-title" placeholder="Opportunity title">
+          <textarea class="av-field av-field-wide" id="ao-add-note" rows="2" placeholder="Detail/context"></textarea>
+          <textarea class="av-field av-field-wide" id="ao-add-solution" rows="2" placeholder="Proposed solution"></textarea>
+          <div class="av-add-actions">
+            <button type="button" class="av-btn" id="ao-add-cancel">Cancel</button>
+            <button type="button" class="av-btn av-btn--accent" id="ao-add-save">Add to agent opportunities</button>
+          </div>
+        </div>
+        <div class="av-table-head" id="ao-table-head" aria-hidden="false">
+          <span class="av-th av-th--mute">·</span>
+          <span class="av-th">#</span>
+          <div class="av-table-head-labels">
+            <span class="av-th">Owner</span>
+            <span class="av-th">Stakeholders</span>
+            <span class="av-th">Summary</span>
+            <span class="av-th">Status</span>
+            <span class="av-th">Risk</span>
+          </div>
+          <span class="av-th av-th--mute">·</span>
+        </div>
+        <div class="av-conflict-banner" id="ao-conflict-banner" role="status" aria-live="polite">
+          <div class="av-conflict-banner-copy">
+            <div class="av-conflict-banner-title" id="ao-conflict-banner-title">Conflict review mode</div>
+            <div class="av-conflict-banner-meta" id="ao-conflict-banner-meta">Showing the opportunities that changed outside your manual edits.</div>
+          </div>
+          <div class="av-conflict-card-actions">
+            <button type="button" class="av-btn av-btn--accent" id="ao-conflict-banner-review">Review another conflict</button>
+            <button type="button" class="av-btn" id="ao-conflict-banner-clear">Clear focus</button>
+          </div>
+        </div>
+        <div class="av-list" id="ao-list">
+          <div style="color:var(--muted);font-size:var(--font-size-sm);padding:var(--space-5) 0">Select Opportunities from the nav to load…</div>
+        </div>
+      </div>
+
       <!-- ISSUES VIEW (priority rows across agents) -->
       <div class="dashboard-view" data-dashboard-view="issues">
         <div class="db-view-header">
@@ -4744,9 +4839,9 @@ h3.os-chart-card-title {
     <div class="issue-chat-scroll" id="issue-chat-scroll"></div>
     <div class="issue-chat-footer">
       <p class="issue-chat-hint" id="issue-chat-api-hint">
-        Chat calls <code style="font-family:var(--font-mono);font-size:11px">/api/issue-chat</code> on the Agent OS supervisor. <strong style="font-weight:600;color:var(--text)">Fast path:</strong> <code style="font-family:var(--font-mono);font-size:11px">OPENAI_API_KEY</code> (seconds). <strong style="font-weight:600;color:var(--text)">Slow path:</strong> <code style="font-family:var(--font-mono);font-size:11px">CURSOR_API_KEY</code> (Cloud Agent on GitHub). If both keys are set, add <code style="font-family:var(--font-mono);font-size:11px">ISSUE_CHAT_PREFER_OPENAI=1</code> to force OpenAI. Optional: <code style="font-family:var(--font-mono);font-size:11px">CURSOR_ISSUE_CHAT_REPOSITORY</code>, <code style="font-family:var(--font-mono);font-size:11px">CURSOR_ISSUE_CHAT_REF</code>.
+        Same <code style="font-family:var(--font-mono);font-size:11px">/api/issue-chat</code> endpoint serves Issues and Opportunities (the supervisor uses <code style="font-family:var(--font-mono);font-size:11px">rowKind: &quot;opportunity&quot;</code> for the latter). <strong style="font-weight:600;color:var(--text)">Fast path:</strong> <code style="font-family:var(--font-mono);font-size:11px">OPENAI_API_KEY</code> (seconds). <strong style="font-weight:600;color:var(--text)">Slow path:</strong> <code style="font-family:var(--font-mono);font-size:11px">CURSOR_API_KEY</code> (Cloud Agent on GitHub). If both keys are set, add <code style="font-family:var(--font-mono);font-size:11px">ISSUE_CHAT_PREFER_OPENAI=1</code> to force OpenAI. Optional: <code style="font-family:var(--font-mono);font-size:11px">CURSOR_ISSUE_CHAT_REPOSITORY</code>, <code style="font-family:var(--font-mono);font-size:11px">CURSOR_ISSUE_CHAT_REF</code>.
       </p>
-      <button type="button" class="issue-chat-apply" id="issue-chat-apply" disabled>Apply suggested priority updates</button>
+      <button type="button" class="issue-chat-apply" id="issue-chat-apply" disabled>Apply suggested updates</button>
       <div class="issue-chat-row">
         <textarea class="issue-chat-input" id="issue-chat-input" rows="2" placeholder="Message the agent…" autocomplete="off"></textarea>
         <button type="button" class="issue-chat-send" id="issue-chat-send">Send</button>
@@ -5048,6 +5143,7 @@ const AGENTS = {
 const DASHBOARDS = {
   home:            { label: 'Home',           color: '#00e8c8', agents: ['orchestrator'] },
   issues:          { label: 'Issues',          color: '#a5b4fc', agents: ['orchestrator'] },
+  opportunities:   { label: 'Opportunities',  color: '#4ade80', agents: ['orchestrator'] },
   research:        { label: 'Research',       color: '#e879f9', agents: ['research'] },
   orchestration:   { label: 'Orchestration', color: '#00e8c8', agents: ['orchestrator'] },
   strategy:        { label: 'Strategy',       color: '#94a3b8', agents: ['strategy'] },
@@ -6733,6 +6829,7 @@ const AV_STATUS_FILES = [
   { file: 'narrative-status.json',        agent: 'narrative' },
   { file: 'audio-status.json',            agent: 'audio' },
   { file: 'creative-status.json',         agent: 'creative' },
+  { file: 'research-status.json',         agent: 'research' },
 ];
 
 function hydrateAllAgentCustomActions() {
@@ -7151,6 +7248,7 @@ function avInitConflictPopupActions() {
 
 // ── Issue discussion overlay (POST /api/issue-chat → OpenAI via supervisor) ──
 let issueChatAction = null;
+let issueChatRowKind = 'priority';
 let issueChatMessages = [];
 let issueChatPendingUpdates = [];
 let issueChatLoading = false;
@@ -7213,8 +7311,9 @@ function issueChatAgentMeta(agentId) {
   };
 }
 
-function issueChatOpen(action) {
+function issueChatOpen(action, rowKind) {
   issueChatAction = action;
+  issueChatRowKind = (rowKind === 'opportunity') ? 'opportunity' : 'priority';
   issueChatMessages = [];
   issueChatPendingUpdates = [];
   issueChatLoading = false;
@@ -7223,7 +7322,7 @@ function issueChatOpen(action) {
   var subEl = document.getElementById('issue-chat-sub');
   var backdrop = document.getElementById('issue-chat-backdrop');
   var applyBtn = document.getElementById('issue-chat-apply');
-  if (titleEl) titleEl.textContent = 'Discuss issue';
+  if (titleEl) titleEl.textContent = issueChatRowKind === 'opportunity' ? 'Discuss opportunity' : 'Discuss issue';
   if (subEl) subEl.textContent = (am.icon ? am.icon + ' ' : '') + am.label + ' · ' + (action._file || '');
   if (applyBtn) applyBtn.disabled = true;
   if (backdrop) {
@@ -7235,7 +7334,8 @@ function issueChatOpen(action) {
     scroll.innerHTML = '';
     var intro = document.createElement('div');
     intro.className = 'issue-chat-bubble issue-chat-bubble--assistant';
-    intro.textContent = 'Context loaded: priority #' + String(action.id || '') + ' — ' + (action.title || 'Untitled') + '. Ask a question or propose a change.';
+    var kindLabel = issueChatRowKind === 'opportunity' ? 'opportunity' : 'priority';
+    intro.textContent = 'Context loaded: ' + kindLabel + ' #' + String(action.id || '') + ' — ' + (action.title || 'Untitled') + '. Ask a question or propose a change.';
     scroll.appendChild(intro);
   }
   var inp = document.getElementById('issue-chat-input');
@@ -7249,6 +7349,7 @@ function issueChatClose() {
     backdrop.setAttribute('aria-hidden', 'true');
   }
   issueChatAction = null;
+  issueChatRowKind = 'priority';
   issueChatMessages = [];
   issueChatPendingUpdates = [];
   issueChatLoading = false;
@@ -7303,7 +7404,8 @@ async function issueChatSend() {
         messages: issueChatMessages,
         issue: issueChatJsonSafeIssue(issueChatAction),
         agentCharter: am.charter,
-        agentLabel: am.label
+        agentLabel: am.label,
+        rowKind: issueChatRowKind === 'opportunity' ? 'opportunity' : 'priority'
       })
     });
     var j = await resp.json().catch(function() { return {}; });
@@ -7353,8 +7455,32 @@ function issueChatValidateUpdateFile(fname) {
   return AV_STATUS_FILES.some(function(x) { return x.file === fname; });
 }
 
+function issueChatRowIdMatch(rowId, updateId) {
+  if (rowId == updateId) return true;
+  return String(rowId) === String(updateId);
+}
+
+function issueChatMergeStakeholders(p, raw) {
+  if (raw == null) {
+    p.stakeholders = null;
+    return;
+  }
+  if (Array.isArray(raw)) {
+    p.stakeholders = raw;
+    return;
+  }
+  var s = String(raw).trim();
+  if (s.indexOf(',') !== -1) {
+    var parts = s.split(',').map(function(x) { return x.trim(); }).filter(Boolean);
+    p.stakeholders = parts.length ? parts : null;
+  } else {
+    p.stakeholders = s || null;
+  }
+}
+
 async function issueChatApplyUpdates() {
   if (!issueChatPendingUpdates.length) return;
+  var isOpp = issueChatRowKind === 'opportunity';
   var touched = {};
   for (var i = 0; i < issueChatPendingUpdates.length; i++) {
     var u = issueChatPendingUpdates[i];
@@ -7362,34 +7488,72 @@ async function issueChatApplyUpdates() {
     var id = u && u.id;
     var fields = u && u.fields;
     if (!file || !issueChatValidateUpdateFile(file)) continue;
-    var data = avCache[file];
-    if (!data || !Array.isArray(data.priorities)) continue;
-    var pid = Number(id);
-    if (!Number.isFinite(pid)) continue;
-    var p = data.priorities.find(function(x) { return Number(x.id) === pid; });
-    if (!p || !fields || typeof fields !== 'object') continue;
-    Object.keys(fields).forEach(function(k) {
-      if (['title', 'status', 'risk', 'note', 'proposed_solution', 'owner', 'stakeholders', 'summary'].indexOf(k) !== -1) {
-        p[k] = fields[k];
-      }
-    });
-    data.updated = new Date().toISOString().slice(0, 10);
-    touched[file] = true;
+    if (!fields || typeof fields !== 'object') continue;
+
+    if (isOpp) {
+      var odata = aoCache[file];
+      if (!odata || !Array.isArray(odata.opportunities)) continue;
+      var op = odata.opportunities.find(function(x) { return issueChatRowIdMatch(x.id, id); });
+      if (!op) continue;
+      Object.keys(fields).forEach(function(k) {
+        if (k === 'proposed_solution') {
+          op.solution = fields[k];
+          return;
+        }
+        if (k === 'stakeholders') {
+          issueChatMergeStakeholders(op, fields[k]);
+          return;
+        }
+        if (['title', 'status', 'risk', 'note', 'solution', 'owner', 'summary'].indexOf(k) !== -1) {
+          op[k] = fields[k];
+        }
+      });
+      odata.updated = new Date().toISOString().slice(0, 10);
+      touched[file] = true;
+    } else {
+      var data = avCache[file];
+      if (!data || !Array.isArray(data.priorities)) continue;
+      var p = data.priorities.find(function(x) { return issueChatRowIdMatch(x.id, id); });
+      if (!p) continue;
+      Object.keys(fields).forEach(function(k) {
+        if (k === 'stakeholders') {
+          issueChatMergeStakeholders(p, fields[k]);
+          return;
+        }
+        if (['title', 'status', 'risk', 'note', 'proposed_solution', 'owner', 'summary', 'solution'].indexOf(k) !== -1) {
+          p[k] = fields[k];
+        }
+      });
+      data.updated = new Date().toISOString().slice(0, 10);
+      touched[file] = true;
+    }
   }
   var files = Object.keys(touched);
   if (files.length === 0) {
     avShowToast('No valid updates to apply', false);
     return;
   }
-  var results = await Promise.all(files.map(function(file) { return avPersist(file); }));
+  var results = await Promise.all(files.map(function(file) {
+    return isOpp ? aoPersist(file) : avPersist(file);
+  }));
   if (results.every(Boolean)) {
-    files.forEach(function(file) {
-      avRecordManualBaseline(file, avCache[file].priorities || []);
-    });
-    avRebuildAllActionsFromCache();
-    avApplyFilters();
-    issueChatClose();
-    avShowToast('Applied priority updates', true);
+    if (isOpp) {
+      files.forEach(function(file) {
+        aoRecordManualBaseline(file, (aoCache[file] && aoCache[file].opportunities) || []);
+      });
+      aoRebuildAllActionsFromCache();
+      aoApplyFilters();
+      issueChatClose();
+      avShowToast('Applied opportunity updates', true);
+    } else {
+      files.forEach(function(file) {
+        avRecordManualBaseline(file, avCache[file].priorities || []);
+      });
+      avRebuildAllActionsFromCache();
+      avApplyFilters();
+      issueChatClose();
+      avShowToast('Applied priority updates', true);
+    }
   } else {
     avShowToast('Save failed — is the supervisor running?', false);
   }
@@ -8187,9 +8351,677 @@ function avInitDrag(listEl, sorted) {
   });
 }
 
+// ── OPPORTUNITIES VIEW (opportunities[] across agents) ────────────────────────
+
+const AO_STATUS_FILES = AV_STATUS_FILES; // same files, different key
+const aoCache = {};
+let aoAllActions = [];
+let aoLoaded = false;
+let aoAddBound = false;
+let aoConflictFocus = null;
+const AO_MANUAL_BASELINES_KEY = 'agentos.manualOpportunityBaselines.v1';
+const AO_CONFLICTS_KEY = 'agentos.opportunityConflicts.v2';
+const AO_CONFLICT_ACK_KEY = 'agentos.opportunityConflicts.ack.v1';
+
+function aoReadStore(key) {
+  try {
+    return JSON.parse(localStorage.getItem(key) || '{}');
+  } catch {
+    return {};
+  }
+}
+
+function aoWriteStore(key, value) {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    // Ignore quota/storage failures.
+  }
+}
+
+function aoLabel(slug) { return avLabel(slug); }
+
+function aoAgentForFile(file) {
+  var found = AO_STATUS_FILES.find(function(x) { return x.file === file; });
+  return found ? found.agent : null;
+}
+
+function aoFileForAgent(agent) {
+  var found = AO_STATUS_FILES.find(function(x) { return x.agent === agent; });
+  return found ? found.file : null;
+}
+
+function aoRebuildAllActionsFromCache() {
+  aoAllActions = [];
+  Object.keys(aoCache).forEach(function(file) {
+    var data = aoCache[file];
+    if (!data || !Array.isArray(data.opportunities)) return;
+    var agent = aoAgentForFile(file) || 'orchestrator';
+    data.opportunities.forEach(function(item, idx) {
+      var enriched = Object.assign({ _file: file, _agent: agent, _idx: idx }, item);
+      enriched._priorityId = item.id;
+      aoAllActions.push(enriched);
+    });
+  });
+}
+
+function aoPriorityScore(item) {
+  var statusRank = { 'in-progress': 0, 'needs-review': 1, 'queued': 2, 'paused': 3, 'done': 4 };
+  var riskRank = { high: 0, med: 1, low: 2 };
+  var s = statusRank[item.status] != null ? statusRank[item.status] : 3;
+  var r = riskRank[item.risk] != null ? riskRank[item.risk] : 2;
+  return s * 10 + r;
+}
+
+function aoGetFiltered() {
+  var ownerSel = document.getElementById('ao-filter-owner');
+  var statusSel = document.getElementById('ao-filter-status');
+  var searchEl = document.getElementById('ao-search');
+  var owner = ownerSel ? ownerSel.value : '';
+  var status = statusSel ? statusSel.value : '';
+  var query = searchEl ? searchEl.value.toLowerCase().trim() : '';
+
+  return aoAllActions.filter(function(a) {
+    if (owner && a._agent !== owner) return false;
+    if (status && (a.status || '') !== status) return false;
+    if (query) {
+      var stake = Array.isArray(a.stakeholders) ? a.stakeholders.join(' ') : (a.stakeholders || '');
+      var hay = [a.title, a.summary, a.owner, stake, a.note, a.status, a.risk, aoLabel(a._agent)].join(' ').toLowerCase();
+      if (hay.indexOf(query) === -1) return false;
+    }
+    return true;
+  });
+}
+
+function aoSortedActions(filtered) {
+  return filtered.slice().sort(function(a, b) {
+    var ap = aoPriorityScore(a);
+    var bp = aoPriorityScore(b);
+    if (ap !== bp) return ap - bp;
+    var ao = (a.sort_order != null) ? a.sort_order : a._idx;
+    var bo = (b.sort_order != null) ? b.sort_order : b._idx;
+    if (ao !== bo) return ao - bo;
+    if (a._agent < b._agent) return -1;
+    if (a._agent > b._agent) return 1;
+    var ai = String(a.id || '');
+    var bi = String(b.id || '');
+    return ai < bi ? -1 : ai > bi ? 1 : 0;
+  });
+}
+
+function aoApplyFilters() {
+  var filtered = aoGetFiltered();
+  var countEl = document.getElementById('ao-count');
+  if (countEl) countEl.textContent = filtered.length + ' opportunit' + (filtered.length !== 1 ? 'ies' : 'y');
+  aoRenderList(aoSortedActions(filtered));
+}
+
+function aoRefreshConflictBanner() {
+  var banner = document.getElementById('ao-conflict-banner');
+  if (!banner) return;
+  if (!aoConflictFocus) {
+    banner.classList.remove('visible');
+    return;
+  }
+  banner.classList.add('visible');
+}
+
+function aoClearConflictFocus() {
+  aoConflictFocus = null;
+  aoRefreshConflictBanner();
+  aoApplyFilters();
+}
+
+function aoFindOpportunityIndex(file, oppId) {
+  var data = aoCache[file];
+  if (!data || !Array.isArray(data.opportunities)) return -1;
+  return data.opportunities.findIndex(function(item) {
+    return String(item && item.id) === String(oppId);
+  });
+}
+
+function aoNormalizeOrder(file) {
+  var data = aoCache[file];
+  if (!data || !Array.isArray(data.opportunities)) return;
+  data.opportunities.forEach(function(item, idx) {
+    item.sort_order = idx;
+  });
+}
+
+function aoSyncActionIndexesForFile(file) {
+  var data = aoCache[file];
+  if (!data || !Array.isArray(data.opportunities)) return;
+  aoNormalizeOrder(file);
+  aoAllActions
+    .filter(function(action) { return action._file === file; })
+    .forEach(function(action) {
+      var idx = aoFindOpportunityIndex(file, action._priorityId);
+      if (idx >= 0) {
+        action._idx = idx;
+        action.sort_order = idx;
+      }
+    });
+}
+
+function aoReorderOpportunity(file, sourceId, targetId, placeAfter) {
+  var data = aoCache[file];
+  if (!data || !Array.isArray(data.opportunities)) return false;
+  var sourceIdx = aoFindOpportunityIndex(file, sourceId);
+  var targetIdx = aoFindOpportunityIndex(file, targetId);
+  if (sourceIdx < 0 || targetIdx < 0 || sourceIdx === targetIdx) return false;
+  var nextIdx = targetIdx + (placeAfter ? 1 : 0);
+  if (sourceIdx < nextIdx) nextIdx -= 1;
+  if (nextIdx === sourceIdx) return false;
+  var moved = data.opportunities.splice(sourceIdx, 1)[0];
+  data.opportunities.splice(nextIdx, 0, moved);
+  data.updated = new Date().toISOString().slice(0, 10);
+  aoSyncActionIndexesForFile(file);
+  return true;
+}
+
+function aoHashOpportunities(opportunities) {
+  var input = JSON.stringify(Array.isArray(opportunities) ? opportunities : []);
+  var hash = 5381;
+  for (var i = 0; i < input.length; i++) {
+    hash = ((hash << 5) + hash) ^ input.charCodeAt(i);
+  }
+  return String(hash >>> 0);
+}
+
+function aoRecordManualBaseline(file, opportunities) {
+  var map = aoReadStore(AO_MANUAL_BASELINES_KEY);
+  map[file] = {
+    hash: aoHashOpportunities(opportunities),
+    opportunities: JSON.parse(JSON.stringify(Array.isArray(opportunities) ? opportunities : [])),
+    at: new Date().toISOString()
+  };
+  aoWriteStore(AO_MANUAL_BASELINES_KEY, map);
+  var conflicts = aoReadStore(AO_CONFLICTS_KEY);
+  if (conflicts && conflicts[file]) {
+    conflicts[file].resolved_at = new Date().toISOString();
+    aoWriteStore(AO_CONFLICTS_KEY, conflicts);
+    if (aoConflictFocus && aoConflictFocus.file === file) {
+      aoClearConflictFocus();
+    }
+  }
+}
+
+async function aoPersist(file) {
+  var data = aoCache[file];
+  if (!data) return false;
+  try {
+    var resp = await fetch(agentOsApiUrl('/api/status-update'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ file: file, data: data }),
+    });
+    return resp.ok;
+  } catch (e) { return false; }
+}
+
+function aoRenderList(sorted) {
+  var listEl = document.getElementById('ao-list');
+  if (!listEl) return;
+  aoRefreshConflictBanner();
+  if (sorted.length === 0) {
+    listEl.innerHTML = '<div style="color:var(--muted);font-size:var(--font-size-sm);padding:var(--space-5) 0;text-align:center">No opportunities match the filter.</div>';
+    return;
+  }
+
+  listEl.innerHTML = sorted.map(function(a, i) {
+    return aoRowHtml(a, i, sorted.length);
+  }).join('');
+
+  listEl.querySelectorAll('.av-row').forEach(function(row, i) {
+    var action = sorted[i];
+    function toggleExpanded() {
+      row.classList.toggle('av-row--expanded');
+      var isExpanded = row.classList.contains('av-row--expanded');
+      var btn = row.querySelector('.av-expand-btn');
+      if (btn) btn.textContent = isExpanded ? '▲' : '▼';
+      if (main) main.setAttribute('aria-expanded', isExpanded ? 'true' : 'false');
+    }
+    var main = row.querySelector('.av-row-main');
+    if (main) {
+      main.addEventListener('click', function() { toggleExpanded(); });
+      main.addEventListener('keydown', function(event) {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          toggleExpanded();
+        }
+      });
+    }
+    row.querySelector('.av-expand-btn').addEventListener('click', function(event) {
+      event.stopPropagation();
+      toggleExpanded();
+    });
+    var editBtn = row.querySelector('.av-edit-btn');
+    if (editBtn) editBtn.addEventListener('click', function(event) { event.stopPropagation(); aoToggleEdit(row, action); });
+    var discussBtn = row.querySelector('.av-discuss-btn');
+    if (discussBtn) discussBtn.addEventListener('click', function(event) {
+      event.stopPropagation();
+      issueChatOpen(action, 'opportunity');
+    });
+    var upBtn = row.querySelector('.av-up-btn');
+    if (upBtn) upBtn.addEventListener('click', function() { aoMove(action, sorted, -1); });
+    var downBtn = row.querySelector('.av-down-btn');
+    if (downBtn) downBtn.addEventListener('click', function() { aoMove(action, sorted, 1); });
+  });
+
+  aoInitDrag(listEl, sorted);
+}
+
+function aoRowHtml(action, idx, total) {
+  var agentLabel = aoLabel(action._agent);
+  var ownerCell = (action.owner != null && String(action.owner).trim() !== '')
+    ? String(action.owner).trim()
+    : agentLabel;
+  var stakeholdersCell = formatStakeholdersField(action.stakeholders);
+  var summaryText = (action.summary != null && String(action.summary).trim() !== '')
+    ? String(action.summary).trim()
+    : (action.title || '—');
+  var stMk = avIssuesStatusMarkup(action.status || 'queued');
+  var risk = action.risk || 'low';
+  var riskCls = risk === 'high' ? 'av-risk-col--high' : risk === 'med' ? 'av-risk-col--med' : 'av-risk-col--low';
+  var riskLabel = String(risk).toUpperCase();
+  var solutionField = action.solution || action.proposed_solution || '';
+  var noteHtml = action.note
+    ? '<div><div class="av-detail-label">Detail</div><div class="av-detail-text">' + escapeHtml(action.note) + '</div></div>'
+    : '';
+  var solutionHtml = solutionField
+    ? '<div><div class="av-detail-label">Proposed Solution</div><div class="av-detail-text">' + escapeHtml(solutionField) + '</div></div>'
+    : '<div><div class="av-detail-label">Proposed Solution</div><div class="av-detail-text">No proposed solution recorded yet.</div></div>';
+  var metaHtml = '<div><div class="av-detail-label">Metadata</div><div class="av-detail-mono">id: ' + escapeHtml(String(action._priorityId ?? '')) + ' · agent file: ' + escapeHtml(action._agent) + '</div></div>';
+  var discussHtml = '<div class="av-discuss-row">'
+    + '<button type="button" class="av-btn av-btn--accent av-discuss-btn">Start discussion</button>'
+    + '</div>';
+  var filePriorityIdx = aoFindOpportunityIndex(action._file, action._priorityId);
+  var filePriorityTotal = (aoCache[action._file] && Array.isArray(aoCache[action._file].opportunities))
+    ? aoCache[action._file].opportunities.length
+    : total;
+  var upDisabled = filePriorityIdx <= 0 ? ' disabled' : '';
+  var downDisabled = (filePriorityIdx < 0 || filePriorityIdx >= filePriorityTotal - 1) ? ' disabled' : '';
+  var num = String(idx + 1).padStart(2, '0');
+
+  return '<div class="av-row" data-file="' + escapeHtml(action._file) + '" data-id="' + escapeHtml(String(action.id || '')) + '">'
+    + '<div class="av-drag-handle" draggable="true" title="Drag to reorder">⠿</div>'
+    + '<div class="av-sort-num">' + num + '</div>'
+    + '<div class="av-row-main" role="button" tabindex="0" aria-expanded="false">'
+    +   '<div class="av-row-grid">'
+    +     '<span class="av-cell av-cell-owner">' + escapeHtml(ownerCell) + '</span>'
+    +     '<span class="av-cell av-cell-stakeholders">' + escapeHtml(stakeholdersCell) + '</span>'
+    +     '<span class="av-cell av-cell-summary">' + escapeHtml(summaryText) + '</span>'
+    +     '<span class="av-status-col ' + stMk.cls + '">' + escapeHtml(stMk.label) + '</span>'
+    +     '<span class="av-risk-col ' + riskCls + '">' + escapeHtml(riskLabel) + '</span>'
+    +   '</div>'
+    +   '<div class="av-detail">'
+    +     noteHtml + solutionHtml + metaHtml + discussHtml
+    +     '<div class="av-edit-area" style="display:none"></div>'
+    +   '</div>'
+    + '</div>'
+    + '<div class="av-row-btns">'
+    +   '<button type="button" class="av-btn av-edit-btn">Edit</button>'
+    +   '<div class="av-btn-row">'
+    +     '<button class="av-btn av-btn--icon av-up-btn" title="Move up"' + upDisabled + '>↑</button>'
+    +     '<button class="av-btn av-btn--icon av-down-btn" title="Move down"' + downDisabled + '>↓</button>'
+    +     '<button class="av-btn av-expand-btn" title="Expand">▼</button>'
+    +   '</div>'
+    + '</div>'
+    + '</div>';
+}
+
+function aoToggleEdit(row, action) {
+  var editArea = row.querySelector('.av-edit-area');
+  var detailBlocks = row.querySelectorAll('.av-detail > div:not(.av-edit-area)');
+  var editBtn = row.querySelector('.av-edit-btn');
+  var expandBtn = row.querySelector('.av-expand-btn');
+
+  var isEditing = editArea.style.display !== 'none';
+  if (isEditing) {
+    editArea.style.display = 'none';
+    editArea.innerHTML = '';
+    detailBlocks.forEach(function(el) { el.style.display = ''; });
+    editBtn.textContent = 'Edit';
+    editBtn.classList.remove('av-edit-btn--cancel');
+    return;
+  }
+
+  row.classList.add('av-row--expanded');
+  expandBtn.textContent = '▲';
+  detailBlocks.forEach(function(el) { el.style.display = 'none'; });
+  editBtn.textContent = 'Cancel';
+  editBtn.classList.add('av-edit-btn--cancel');
+  editArea.style.display = 'flex';
+  editArea.style.flexDirection = 'column';
+  editArea.style.gap = 'var(--space-3)';
+
+  var solutionVal = action.solution || action.proposed_solution || '';
+  editArea.innerHTML = '<div><div class="av-detail-label">Owner (accountable)</div>'
+    + '<input class="av-field" data-field="owner" value="' + escapeHtml(action.owner || '') + '" placeholder="e.g. Design / Cross-team"></div>'
+    + '<div><div class="av-detail-label">Stakeholders</div>'
+    + '<input class="av-field" data-field="stakeholders" value="' + escapeHtml(Array.isArray(action.stakeholders) ? action.stakeholders.join(', ') : (action.stakeholders || '')) + '" placeholder="Comma-separated"></div>'
+    + '<div><div class="av-detail-label">Summary</div>'
+    + '<input class="av-field" data-field="summary" value="' + escapeHtml(action.summary || '') + '" placeholder="Short summary (falls back to title if empty)"></div>'
+    + '<div><div class="av-detail-label">Title (saved to data file)</div>'
+    + '<input class="av-field" data-field="title" value="' + escapeHtml(action.title || '') + '" placeholder="One-line opportunity title"></div>'
+    + '<div><div class="av-detail-label">Status</div>'
+    + '<select class="av-field" data-field="status">'
+    +   '<option value="queued"' + ((action.status || '') === 'queued' ? ' selected' : '') + '>queued</option>'
+    +   '<option value="in-progress"' + ((action.status || '') === 'in-progress' ? ' selected' : '') + '>in-progress</option>'
+    +   '<option value="needs-review"' + ((action.status || '') === 'needs-review' ? ' selected' : '') + '>needs-review</option>'
+    +   '<option value="paused"' + ((action.status || '') === 'paused' ? ' selected' : '') + '>paused</option>'
+    +   '<option value="done"' + ((action.status || '') === 'done' ? ' selected' : '') + '>done</option>'
+    + '</select></div>'
+    + '<div><div class="av-detail-label">Risk</div>'
+    + '<select class="av-field" data-field="risk">'
+    +   '<option value="low"' + ((action.risk || '') === 'low' ? ' selected' : '') + '>low</option>'
+    +   '<option value="med"' + ((action.risk || '') === 'med' ? ' selected' : '') + '>med</option>'
+    +   '<option value="high"' + ((action.risk || '') === 'high' ? ' selected' : '') + '>high</option>'
+    + '</select></div>'
+    + '<div><div class="av-detail-label">Detail (plain English)</div>'
+    + '<textarea class="av-field" data-field="note" rows="3">' + escapeHtml(action.note || '') + '</textarea></div>'
+    + '<div><div class="av-detail-label">Proposed solution (plain English)</div>'
+    + '<textarea class="av-field" data-field="solution" rows="3">' + escapeHtml(solutionVal) + '</textarea></div>'
+    + '<div style="display:flex;align-items:center;gap:var(--space-3)">'
+    + '<button class="av-btn av-btn--save">Save changes</button>'
+    + '<span class="av-save-hint"></span></div>';
+
+  editArea.querySelector('.av-btn--save').addEventListener('click', function() {
+    aoCommitEdit(row, action, editArea, editBtn);
+  });
+}
+
+async function aoCommitEdit(row, action, editArea, editBtn) {
+  var saveBtn = editArea.querySelector('.av-btn--save');
+  var hint = editArea.querySelector('.av-save-hint');
+  saveBtn.disabled = true;
+  if (hint) hint.textContent = 'Saving…';
+
+  var fields = {};
+  editArea.querySelectorAll('[data-field]').forEach(function(el) {
+    fields[el.dataset.field] = el.value.trim() || null;
+  });
+  if (fields.stakeholders != null) {
+    if (fields.stakeholders.indexOf(',') !== -1) {
+      var parts = fields.stakeholders.split(',').map(function(s) { return s.trim(); }).filter(Boolean);
+      fields.stakeholders = parts.length ? parts : null;
+    }
+  }
+
+  var previousId = action._priorityId;
+
+  Object.assign(action, fields);
+  action._priorityId = action.id;
+
+  var data = aoCache[action._file];
+  if (data && Array.isArray(data.opportunities)) {
+    var targetIdx = aoFindOpportunityIndex(action._file, previousId);
+    var target = targetIdx >= 0 ? data.opportunities[targetIdx] : null;
+    if (target) Object.assign(target, fields);
+    data.updated = new Date().toISOString().slice(0, 10);
+    aoSyncActionIndexesForFile(action._file);
+  }
+
+  var ok = await aoPersist(action._file);
+  saveBtn.disabled = false;
+  if (ok) {
+    aoRecordManualBaseline(action._file, data.opportunities || []);
+    editArea.style.display = 'none';
+    editArea.innerHTML = '';
+    editBtn.textContent = 'Edit';
+    editBtn.classList.remove('av-edit-btn--cancel');
+    row.querySelectorAll('.av-detail > div:not(.av-edit-area)').forEach(function(el) {
+      el.style.display = '';
+    });
+    aoApplyFilters();
+    avShowToast('Saved · ' + action._file, true);
+  } else {
+    if (hint) { hint.textContent = 'Server not available — run the dashboard server to persist changes.'; hint.className = 'av-save-hint av-save-hint--err'; }
+    avShowToast('Save failed — server not running', false);
+  }
+}
+
+function aoMove(action, sorted, dir) {
+  var data = aoCache[action._file];
+  if (!data || !Array.isArray(data.opportunities)) return;
+  var sourceIdx = aoFindOpportunityIndex(action._file, action._priorityId);
+  var targetIdx = sourceIdx + dir;
+  if (sourceIdx < 0 || targetIdx < 0 || targetIdx >= data.opportunities.length) return;
+  var target = data.opportunities[targetIdx];
+  if (!target) return;
+  if (!aoReorderOpportunity(action._file, action._priorityId, target.id, dir > 0)) return;
+  aoPersist(action._file).then(function(ok) {
+    if (ok) {
+      aoRecordManualBaseline(action._file, data.opportunities || []);
+      avShowToast('Opportunity order saved · ' + action._file, true);
+    } else {
+      avShowToast('Save failed — server not running', false);
+    }
+  });
+  aoApplyFilters();
+}
+
+function aoInitDrag(listEl, sorted) {
+  var rows = listEl.querySelectorAll('.av-row');
+  var dragState = null;
+
+  function aoDropPlacement(row, event) {
+    var rect = row.getBoundingClientRect();
+    return (event.clientY - rect.top) > (rect.height / 2) ? 'after' : 'before';
+  }
+
+  rows.forEach(function(row, i) {
+    var handle = row.querySelector('.av-drag-handle');
+    if (!handle) return;
+
+    handle.addEventListener('mousedown', function() { row.draggable = true; });
+    row.addEventListener('dragstart', function(e) {
+      dragState = sorted[i] || null;
+      if (!dragState) { e.preventDefault(); return; }
+      row.classList.add('av-row--dragging');
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    row.addEventListener('dragend', function() {
+      row.draggable = false;
+      row.classList.remove('av-row--dragging');
+      listEl.querySelectorAll('.av-row--drag-over').forEach(function(r) { r.classList.remove('av-row--drag-over'); });
+      rows.forEach(function(r) { delete r.dataset.dropPosition; });
+      dragState = null;
+    });
+    row.addEventListener('dragover', function(e) {
+      if (!dragState) return;
+      if (dragState._file !== row.dataset.file) return;
+      if (String(dragState.id) === String(row.dataset.id)) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      listEl.querySelectorAll('.av-row--drag-over').forEach(function(r) { r.classList.remove('av-row--drag-over'); });
+      row.classList.add('av-row--drag-over');
+      row.dataset.dropPosition = aoDropPlacement(row, e);
+    });
+    row.addEventListener('drop', function(e) {
+      if (!dragState) return;
+      if (dragState._file !== row.dataset.file) {
+        avShowToast('Reorder works within one owner list at a time', false);
+        return;
+      }
+      e.preventDefault();
+      row.classList.remove('av-row--drag-over');
+      var dst = sorted[i];
+      if (!dst) return;
+      var placeAfter = (row.dataset.dropPosition || 'before') === 'after';
+      var moved = aoReorderOpportunity(dragState._file, dragState._priorityId, dst._priorityId, placeAfter);
+      delete row.dataset.dropPosition;
+      if (!moved) return;
+      aoPersist(dragState._file).then(function(ok) {
+        if (ok) {
+          aoRecordManualBaseline(dragState._file, aoCache[dragState._file].opportunities || []);
+          avShowToast('Opportunity order saved · ' + dragState._file, true);
+        } else {
+          avShowToast('Save failed — server not running', false);
+        }
+      });
+      aoApplyFilters();
+      dragState = null;
+    });
+    row.addEventListener('dragleave', function(e) {
+      if (!e.relatedTarget || !row.contains(e.relatedTarget)) {
+        row.classList.remove('av-row--drag-over');
+      }
+    });
+  });
+}
+
+function aoInitAddPanel() {
+  var addBtn = document.getElementById('ao-add-btn');
+  var panel = document.getElementById('ao-add-panel');
+  var cancelBtn = document.getElementById('ao-add-cancel');
+  var saveBtn = document.getElementById('ao-add-save');
+  if (!addBtn || !panel || !cancelBtn || !saveBtn) return;
+
+  addBtn.addEventListener('click', function() {
+    panel.classList.toggle('visible');
+  });
+  cancelBtn.addEventListener('click', function() {
+    panel.classList.remove('visible');
+  });
+  saveBtn.addEventListener('click', function() {
+    void aoAddOpportunity();
+  });
+}
+
+async function aoAddOpportunity() {
+  var owner = (document.getElementById('ao-add-owner') || {}).value || '';
+  var title = (document.getElementById('ao-add-title') || {}).value || '';
+  var status = (document.getElementById('ao-add-status') || {}).value || 'queued';
+  var risk = (document.getElementById('ao-add-risk') || {}).value || 'low';
+  var note = (document.getElementById('ao-add-note') || {}).value || '';
+  var solution = (document.getElementById('ao-add-solution') || {}).value || '';
+  var ownerHuman = ((document.getElementById('ao-add-owner-text') || {}).value || '').trim();
+  var stakeholdersRaw = ((document.getElementById('ao-add-stakeholders') || {}).value || '').trim();
+  var summaryExtra = ((document.getElementById('ao-add-summary') || {}).value || '').trim();
+  if (!owner) return avShowToast('Pick an owner agent first', false);
+  if (!title.trim()) return avShowToast('Add an opportunity title', false);
+
+  var file = aoFileForAgent(owner);
+  if (!file) return avShowToast('Could not resolve owner file', false);
+  var data = aoCache[file];
+  if (!data) return avShowToast('Owner data unavailable', false);
+  if (!Array.isArray(data.opportunities)) data.opportunities = [];
+
+  var maxId = 0;
+  data.opportunities.forEach(function(p) {
+    var n = Number(p && p.id);
+    if (Number.isFinite(n) && n > maxId) maxId = n;
+  });
+  var newId = (maxId > 0) ? maxId + 1 : (owner.slice(0, 3) + '-o-' + Date.now());
+
+  var entry = {
+    id: typeof newId === 'number' ? newId : newId,
+    title: title.trim(),
+    status: status,
+    risk: risk,
+    sort_order: data.opportunities.length,
+    note: note.trim() || '',
+    solution: solution.trim() || ''
+  };
+  if (ownerHuman) entry.owner = ownerHuman;
+  if (stakeholdersRaw) {
+    var stParts = stakeholdersRaw.split(',').map(function(s) { return s.trim(); }).filter(Boolean);
+    if (stParts.length === 1) entry.stakeholders = stParts[0];
+    else if (stParts.length > 1) entry.stakeholders = stParts;
+  }
+  if (summaryExtra) entry.summary = summaryExtra;
+  data.opportunities.push(entry);
+  data.updated = new Date().toISOString().slice(0, 10);
+  var ok = await aoPersist(file);
+  if (!ok) return avShowToast('Save failed — server not running', false);
+
+  aoRecordManualBaseline(file, data.opportunities || []);
+  aoRebuildAllActionsFromCache();
+  aoApplyFilters();
+
+  document.getElementById('ao-add-title').value = '';
+  document.getElementById('ao-add-owner-text').value = '';
+  document.getElementById('ao-add-stakeholders').value = '';
+  document.getElementById('ao-add-summary').value = '';
+  document.getElementById('ao-add-note').value = '';
+  document.getElementById('ao-add-solution').value = '';
+  document.getElementById('ao-add-panel').classList.remove('visible');
+  avShowToast('Added opportunity to ' + file, true);
+}
+
+async function loadOpportunitiesView() {
+  const listEl = document.getElementById('ao-list');
+  if (!listEl) return;
+
+  try {
+    if (!aoLoaded) {
+      listEl.innerHTML = '<div style="color:var(--muted);font-size:var(--font-size-sm);padding:var(--space-5) 0">Loading…</div>';
+      const results = await Promise.allSettled(
+        AO_STATUS_FILES.map(async function(entry) {
+          try {
+            const ctrl = new AbortController();
+            const t = setTimeout(function() { ctrl.abort(); }, 4000);
+            const resp = await fetch(entry.file, { signal: ctrl.signal });
+            clearTimeout(t);
+            if (!resp.ok) return null;
+            const data = await resp.json();
+            aoCache[entry.file] = data;
+            return { file: entry.file, agent: entry.agent, data: data };
+          } catch (e) { return null; }
+        })
+      );
+
+      var agentsPresent = [];
+      results.forEach(function(r) {
+        if (r.status !== 'fulfilled' || !r.value) return;
+        var entry = r.value;
+        if (!Array.isArray(entry.data.opportunities)) return;
+        agentsPresent.push(entry.agent);
+      });
+      aoRebuildAllActionsFromCache();
+
+      var ownerSel = document.getElementById('ao-filter-owner');
+      var addOwnerSel = document.getElementById('ao-add-owner');
+      if (ownerSel && ownerSel.options.length === 1) {
+        agentsPresent.sort().forEach(function(ag) {
+          var meta = AGENT_META[ag] || { icon: '•' };
+          var opt = document.createElement('option');
+          opt.value = ag;
+          opt.textContent = (meta.icon || '') + ' ' + aoLabel(ag);
+          ownerSel.appendChild(opt);
+          if (addOwnerSel) {
+            var opt2 = document.createElement('option');
+            opt2.value = ag;
+            opt2.textContent = (meta.icon || '') + ' ' + aoLabel(ag);
+            addOwnerSel.appendChild(opt2);
+          }
+        });
+        ownerSel.addEventListener('change', aoApplyFilters);
+        var statusSel = document.getElementById('ao-filter-status');
+        if (statusSel) statusSel.addEventListener('change', aoApplyFilters);
+        var searchEl = document.getElementById('ao-search');
+        if (searchEl) searchEl.addEventListener('input', aoApplyFilters);
+      }
+      if (!aoAddBound) {
+        aoInitAddPanel();
+        aoAddBound = true;
+      }
+      aoLoaded = true;
+    }
+
+    aoApplyFilters();
+  } catch (e) {
+    listEl.innerHTML = '<div style="color:var(--error);font-size:var(--font-size-sm);padding:var(--space-5) 0">Could not load opportunities. Reload the dashboard or start the dashboard server.</div>';
+  }
+}
+
 async function loadDashboardData(dashId) {
   if (dashId === 'issues') {
     loadActionsView();
+  }
+  if (dashId === 'opportunities') {
+    loadOpportunitiesView();
   }
   if (dashId === 'development') {
     loadDevelopmentStatus();

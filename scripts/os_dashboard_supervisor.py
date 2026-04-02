@@ -2,7 +2,7 @@
 """
 Local Agent OS dashboard: serves os-dashboard.html, GET /api/dashboard-data,
 POST /api/workbench/{start|stop|restart}, POST /api/status-update, and
-POST /api/issue-chat (issue discussion in the UI).
+POST /api/issue-chat (issue and opportunity discussion in the UI; JSON body may set rowKind to "opportunity").
 Binds 127.0.0.1 only.
 
 Issue chat backends (see selection logic in Handler):
@@ -474,6 +474,10 @@ def make_handler(
                 if not isinstance(issue, dict):
                     return self._send_json(HTTPStatus.BAD_REQUEST, {"error": "issue required"})
 
+                row_kind = (payload.get("rowKind") or payload.get("row_kind") or "priority").strip().lower()
+                if row_kind not in ("priority", "opportunity"):
+                    row_kind = "priority"
+
                 cursor_key = (os.environ.get("CURSOR_API_KEY") or "").strip()
                 openai_key = (os.environ.get("OPENAI_API_KEY") or "").strip()
                 prefer_openai = (os.environ.get("ISSUE_CHAT_PREFER_OPENAI") or "").strip().lower() in (
@@ -483,27 +487,56 @@ def make_handler(
                 )
 
                 allowed_files = ", ".join(sorted(status_write_allow))
-                system_prompt = (
-                    f"You are the {agent_label} specialist for the MV metroidvania toolchain (solo-founder OS).\n"
-                    f"Charter reference path: {agent_charter or '(not provided)'}\n\n"
-                    "The user is discussing ONE priority row from a dashboard status JSON file.\n"
-                    "Current issue snapshot (JSON):\n"
-                    f"{json.dumps(issue, ensure_ascii=False, indent=2)}\n\n"
-                    "You may propose edits to this priority and, if the user explicitly agrees, to other priorities "
-                    "in the same file or another allowed status file when logically necessary.\n\n"
-                    "Respond with a single JSON object ONLY, keys:\n"
-                    '- "thinking": string, your step-by-step reasoning (show your work).\n'
-                    '- "assistant_message": string, concise reply to the user.\n'
-                    '- "priority_updates": array of objects, each: '
-                    '{"file": "<filename>", "id": <numeric priority id>, "fields": { ... partial fields ... }} '
-                    "where fields may include title, status, risk, note, proposed_solution. "
-                    "Use [] if no file changes are appropriate yet.\n\n"
-                    f"Allowed file names for priority_updates: {allowed_files}\n"
-                    "Do not invent file names. Status must be one of: "
-                    "in-progress, needs-review, queued, paused, done. Risk: high, med, low.\n\n"
-                    "Do not open a pull request or push commits for this task unless the user explicitly asked you to "
-                    "change the repository; prefer analysis and the JSON reply only."
-                )
+                if row_kind == "opportunity":
+                    system_prompt = (
+                        f"You are the {agent_label} specialist for the MV metroidvania toolchain (solo-founder OS).\n"
+                        f"Charter reference path: {agent_charter or '(not provided)'}\n\n"
+                        "The user is discussing ONE opportunity row from a dashboard status JSON file "
+                        "(the `opportunities` array, not `priorities`).\n"
+                        "Current opportunity snapshot (JSON):\n"
+                        f"{json.dumps(issue, ensure_ascii=False, indent=2)}\n\n"
+                        "You may propose edits to this opportunity and, if the user explicitly agrees, to other "
+                        "opportunities in the same file or another allowed status file when logically necessary.\n\n"
+                        "Respond with a single JSON object ONLY, keys:\n"
+                        '- "thinking": string, your step-by-step reasoning (show your work).\n'
+                        '- "assistant_message": string, concise reply to the user.\n'
+                        '- "priority_updates": array of objects, each: '
+                        '{"file": "<filename>", "id": <opportunity id — use the exact id from the file, string or number>, '
+                        '"fields": { ... partial fields ... }} '
+                        "where fields may include title, status, risk, note, solution, owner, stakeholders, summary. "
+                        'Use the field name "solution" for proposed mitigation text (not "proposed_solution"). '
+                        "stakeholders may be a string, comma-separated string, or array of strings. "
+                        "Use [] if no file changes are appropriate yet.\n\n"
+                        f"Allowed file names for priority_updates: {allowed_files}\n"
+                        "Each update targets an object inside the `opportunities` array with a matching `id`.\n"
+                        "Do not invent file names. Status must be one of: "
+                        "in-progress, needs-review, queued, paused, done. Risk: high, med, low.\n\n"
+                        "Do not open a pull request or push commits for this task unless the user explicitly asked you to "
+                        "change the repository; prefer analysis and the JSON reply only."
+                    )
+                else:
+                    system_prompt = (
+                        f"You are the {agent_label} specialist for the MV metroidvania toolchain (solo-founder OS).\n"
+                        f"Charter reference path: {agent_charter or '(not provided)'}\n\n"
+                        "The user is discussing ONE priority row from a dashboard status JSON file.\n"
+                        "Current issue snapshot (JSON):\n"
+                        f"{json.dumps(issue, ensure_ascii=False, indent=2)}\n\n"
+                        "You may propose edits to this priority and, if the user explicitly agrees, to other priorities "
+                        "in the same file or another allowed status file when logically necessary.\n\n"
+                        "Respond with a single JSON object ONLY, keys:\n"
+                        '- "thinking": string, your step-by-step reasoning (show your work).\n'
+                        '- "assistant_message": string, concise reply to the user.\n'
+                        '- "priority_updates": array of objects, each: '
+                        '{"file": "<filename>", "id": <numeric or string priority id matching the row>, "fields": { ... partial fields ... }} '
+                        "where fields may include title, status, risk, note, proposed_solution, owner, stakeholders, summary. "
+                        "Use [] if no file changes are appropriate yet.\n\n"
+                        f"Allowed file names for priority_updates: {allowed_files}\n"
+                        "Each update targets an object inside the `priorities` array with a matching `id`.\n"
+                        "Do not invent file names. Status must be one of: "
+                        "in-progress, needs-review, queued, paused, done. Risk: high, med, low.\n\n"
+                        "Do not open a pull request or push commits for this task unless the user explicitly asked you to "
+                        "change the repository; prefer analysis and the JSON reply only."
+                    )
 
                 try:
                     norm_messages: list[dict[str, Any]] = []
