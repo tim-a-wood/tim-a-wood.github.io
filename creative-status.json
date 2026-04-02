@@ -1,11 +1,11 @@
 {
-  "_note": "Updated by Creative after each task. Plain language — no jargon.",
-  "updated": "2026-04-01",
+  "_note": "Updated by Creative after each task. Plain language \u2014 no jargon.",
+  "updated": "2026-04-02",
   "schema_version": "v1.0",
   "priorities": [
     {
       "id": 1,
-      "title": "Write the Ashen Hollow art bible foundation — palette, silhouette rules, visual identity",
+      "title": "Write the Ashen Hollow art bible foundation \u2014 palette, silhouette rules, visual identity",
       "status": "done",
       "risk": "med",
       "note": "Completed v0.1 foundation at artifacts/ashen-hollow-art-bible-v0.1.md. Includes master palette + usage matrix, silhouette rules, global lighting/material response rules, and biome-by-biome visual grammar. Markdown is ready for direct PDF export.",
@@ -13,11 +13,19 @@
     },
     {
       "id": 2,
-      "title": "Design the player character's visual identity — silhouette, palette assignment, animation readiness",
+      "title": "Design the player character's visual identity \u2014 silhouette, palette assignment, animation readiness",
       "status": "in-progress",
       "risk": "high",
       "note": "The player character appears in every session. Their visual design sets the standard for all other character work. Blocked on game director finalizing the player fantasy and game systems locking the movement spec.",
-      "proposed_solution": "After the player fantasy and movement spec lock, define the hero’s silhouette, palette assignment, and animation-ready proportions."
+      "proposed_solution": "After the player fantasy and movement spec lock, define the hero\u2019s silhouette, palette assignment, and animation-ready proportions."
+    },
+    {
+      "id": 3,
+      "title": "Art bible v0.1 review + mood concept pack (reference only)",
+      "status": "done",
+      "risk": "low",
+      "note": "Creative review complete; v0.2 proposals captured for founder. Mood concepts: artifacts/concepts/ashen-hollow-concept-cinder-approach.png, weeping-vaults.png, player-silhouette.png. AI-generated\u2014human gate before production use per charter.",
+      "proposed_solution": "Fold approved v0.2 doc changes into artifacts/ashen-hollow-art-bible-v0.2.md after founder sign-off; train LoRA or paint-over from chosen concepts if adopted."
     }
   ],
   "risks_p0": [],
@@ -32,15 +40,15 @@
     {
       "id": "art-bible-update",
       "name": "Art Bible Update",
-      "description": "Updated art bible section — palette assignment, silhouette rules, consistency constraints, atmospheric notes for a new biome or character.",
+      "description": "Updated art bible section \u2014 palette assignment, silhouette rules, consistency constraints, atmospheric notes for a new biome or character.",
       "trigger": "A new biome, character, or visual system is approved for production",
-      "last_run": "2026-04-01",
-      "output_location": "artifacts/ashen-hollow-art-bible-v0.1.md"
+      "last_run": "2026-04-02",
+      "output_location": "artifacts/ashen-hollow-art-bible-v0.1.md; artifacts/concepts/ (mood references, not bible text)"
     },
     {
       "id": "asset-review",
       "name": "Asset Review",
-      "description": "Three-question review — palette correct? Silhouette reads at game scale? Fits the established visual context? Pass / conditional / reject.",
+      "description": "Three-question review \u2014 palette correct? Silhouette reads at game scale? Fits the established visual context? Pass / conditional / reject.",
       "trigger": "Any submitted game visual asset",
       "last_run": null,
       "output_location": null
@@ -57,11 +65,11 @@
   "opportunities": [
     {
       "id": "creative-o3",
-      "title": "Define the visual language for the first biome — environment tiles, atmospheric palette, hazard readability",
+      "title": "Define the visual language for the first biome \u2014 environment tiles, atmospheric palette, hazard readability",
       "status": "paused",
       "risk": "high",
       "note": "Blocked on game director confirming the first biome. Once confirmed, this is the first substantial art production task and gates all level design work for that biome.",
-      "proposed_solution": "As soon as the first biome is confirmed, specify tiles, atmosphere, and hazard readability for that biome’s environments."
+      "proposed_solution": "As soon as the first biome is confirmed, specify tiles, atmosphere, and hazard readability for that biome\u2019s environments."
     },
     {
       "id": "creative-o4",
@@ -69,7 +77,68 @@
       "status": "paused",
       "risk": "med",
       "note": "AI-assisted background generation can significantly accelerate production. The pipeline spec (LoRA training, prompt architecture, validation criteria) should be ready before production volume increases.",
-      "proposed_solution": "Document the AI background pipeline—LoRA, prompts, negatives, and validation checks—before scaling AI-generated environments."
+      "proposed_solution": "Document the AI background pipeline\u2014LoRA, prompts, negatives, and validation checks\u2014before scaling AI-generated environments."
     }
-  ]
+  ],
+  "creative_chart": {
+    "types": [
+      {
+        "label": "Characters",
+        "value": 0
+      },
+      {
+        "label": "Environments",
+        "value": 0
+      },
+      {
+        "label": "UI/UX",
+        "value": 0
+      },
+      {
+        "label": "VFX",
+        "value": 0
+      }
+    ],
+    "status": [
+      {
+        "label": "Concept",
+        "value": 0,
+        "key": "muted"
+      },
+      {
+        "label": "In progress",
+        "value": 0,
+        "key": "warning"
+      },
+      {
+        "label": "Done",
+        "value": 0,
+        "key": "good"
+      },
+      {
+        "label": "Approved",
+        "value": 0,
+        "key": "accent"
+      }
+    ],
+    "status_n": 0,
+    "consistency": [
+      {
+        "label": "Character sprites",
+        "value": 0
+      },
+      {
+        "label": "Environment tiles",
+        "value": 0
+      },
+      {
+        "label": "UI components",
+        "value": 0
+      },
+      {
+        "label": "Cutscene art",
+        "value": 0
+      }
+    ]
+  }
 }
