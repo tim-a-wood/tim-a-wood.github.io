@@ -8660,11 +8660,9 @@ function otRowHtml(action, idx, total) {
   var solutionHtml = proposedSolution
     ? '<div><div class="av-detail-label">Proposed Solution</div><div class="av-detail-text">' + escapeHtml(proposedSolution) + '</div></div>'
     : '<div><div class="av-detail-label">Proposed Solution</div><div class="av-detail-text">No proposed solution recorded yet.</div></div>';
-  var runActionHtml = action._ongoingSource === 'issue'
-    ? ('<div style="display:flex;justify-content:flex-start;padding-top:var(--space-1)">'
-      + '<button class="av-btn av-btn--accent av-run-action-btn" type="button">Run in workflow panel</button>'
-      + '</div>')
-    : '';
+  var runActionHtml = '<div style="display:flex;justify-content:flex-start;padding-top:var(--space-1)">'
+    + '<button class="av-btn av-btn--accent av-run-action-btn" type="button">Run in workflow panel</button>'
+    + '</div>';
   var discussHtml = '<div class="av-discuss-row">'
     + '<button type="button" class="av-btn av-btn--accent av-discuss-btn">Start discussion</button>'
     + '</div>';
@@ -8759,7 +8757,7 @@ function otRenderList(sorted) {
     var runBtn = row.querySelector('.av-run-action-btn');
     if (runBtn) runBtn.addEventListener('click', function(event) {
       event.stopPropagation();
-      avDispatchActionToAgent(action);
+      avDispatchActionToAgent(action, action._ongoingSource === 'opportunity' ? 'opportunity' : 'priority');
     });
     var discussBtn = row.querySelector('.av-discuss-btn');
     if (discussBtn) discussBtn.addEventListener('click', function(event) {
@@ -9694,38 +9692,60 @@ function avFindDashboardForAgent(agentId) {
   return 'home';
 }
 
-function avDispatchActionToAgent(action) {
+function avDispatchActionToAgent(action, rowKind) {
+  var kind = rowKind === 'opportunity' ? 'opportunity' : 'priority';
+  if (action && action._ongoingSource === 'opportunity' && rowKind == null) kind = 'opportunity';
+  if (action && action._ongoingSource === 'issue' && rowKind == null) kind = 'priority';
+
   var agentId = action._agent;
   var dashId = avFindDashboardForAgent(agentId);
+
+  expandAgentPanelIfNeeded();
   if (selectedDashboard !== dashId) {
     selectDashboard(dashId);
   }
+  focusAgentInSidePanel(agentId);
 
-  // Select the requested agent in scoped picker if present.
-  var scoped = document.querySelector('.scoped-agent-btn[data-agent="' + agentId + '"]');
-  if (scoped) scoped.click();
-
-  // Prefer analyze mode when available, otherwise keep default first mode.
   var agent = AGENTS[agentId];
   if (agent && Array.isArray(agent.modes) && agent.modes.indexOf('analyze') !== -1) {
     var analyzeBtn = Array.from(document.querySelectorAll('.mode-pill')).find(function(btn) { return btn.dataset.mode === 'analyze'; });
     if (analyzeBtn) analyzeBtn.click();
   }
 
-  var task = [
-    'Execute this priority issue now and complete it end-to-end if feasible.',
-    '',
-    'Issue: ' + (action.title || 'Untitled'),
-    'Current status: ' + (action.status || 'queued'),
-    'Risk: ' + (action.risk || 'low'),
-    'Context: ' + (action.note || 'No additional context provided.'),
-    'Proposed solution: ' + (action.proposed_solution || 'No proposed solution provided.'),
-    '',
-    'Required outcome:',
-    '- Perform the work, not just analysis.',
-    '- Update the owner status file priorities entry after completion.',
-    '- Reflect any status/risk/note/proposed_solution changes needed.'
-  ].join('\n');
+  var solOpp = (action.solution != null && String(action.solution).trim() !== '')
+    ? String(action.solution).trim()
+    : (action.proposed_solution || 'No proposed solution provided.');
+  var solPri = action.proposed_solution || 'No proposed solution provided.';
+
+  var task = kind === 'opportunity'
+    ? [
+      'Execute this improvement opportunity now and complete it end-to-end if feasible.',
+      '',
+      'Opportunity: ' + (action.title || 'Untitled'),
+      'Current status: ' + (action.status || 'queued'),
+      'Risk: ' + (action.risk || 'low'),
+      'Context: ' + (action.note || 'No additional context provided.'),
+      'Proposed solution: ' + solOpp,
+      '',
+      'Required outcome:',
+      '- Perform the work, not just analysis.',
+      '- Update the owner status file opportunities entry after completion.',
+      '- Reflect any status/risk/note/solution changes needed.'
+    ].join('\n')
+    : [
+      'Execute this priority issue now and complete it end-to-end if feasible.',
+      '',
+      'Issue: ' + (action.title || 'Untitled'),
+      'Current status: ' + (action.status || 'queued'),
+      'Risk: ' + (action.risk || 'low'),
+      'Context: ' + (action.note || 'No additional context provided.'),
+      'Proposed solution: ' + solPri,
+      '',
+      'Required outcome:',
+      '- Perform the work, not just analysis.',
+      '- Update the owner status file priorities entry after completion.',
+      '- Reflect any status/risk/note/proposed_solution changes needed.'
+    ].join('\n');
 
   taskInput.value = task;
   buildPrompt(task);
@@ -10235,6 +10255,11 @@ function aoRenderList(sorted) {
     });
     var editBtn = row.querySelector('.av-edit-btn');
     if (editBtn) editBtn.addEventListener('click', function(event) { event.stopPropagation(); aoToggleEdit(row, action); });
+    var runBtn = row.querySelector('.av-run-action-btn');
+    if (runBtn) runBtn.addEventListener('click', function(event) {
+      event.stopPropagation();
+      avDispatchActionToAgent(action, 'opportunity');
+    });
     var discussBtn = row.querySelector('.av-discuss-btn');
     if (discussBtn) discussBtn.addEventListener('click', function(event) {
       event.stopPropagation();
@@ -10275,6 +10300,9 @@ function aoRowHtml(action, idx, total) {
     ? '<div><div class="av-detail-label">Proposed Solution</div><div class="av-detail-text">' + escapeHtml(solutionField) + '</div></div>'
     : '<div><div class="av-detail-label">Proposed Solution</div><div class="av-detail-text">No proposed solution recorded yet.</div></div>';
   var metaHtml = '<div><div class="av-detail-label">Metadata</div><div class="av-detail-mono">id: ' + escapeHtml(String(action._priorityId ?? '')) + ' · agent file: ' + escapeHtml(action._agent) + '</div></div>';
+  var runActionHtml = '<div style="display:flex;justify-content:flex-start;padding-top:var(--space-1)">'
+    + '<button class="av-btn av-btn--accent av-run-action-btn" type="button">Run in workflow panel</button>'
+    + '</div>';
   var discussHtml = '<div class="av-discuss-row">'
     + '<button type="button" class="av-btn av-btn--accent av-discuss-btn">Start discussion</button>'
     + '</div>';
@@ -10298,7 +10326,7 @@ function aoRowHtml(action, idx, total) {
     +     '<span class="av-risk-col ' + riskCls + '">' + escapeHtml(riskLabel) + '</span>'
     +   '</div>'
     +   '<div class="av-detail">'
-    +     noteHtml + solutionHtml + metaHtml + discussHtml
+    +     noteHtml + solutionHtml + metaHtml + runActionHtml + discussHtml
     +     '<div class="av-edit-area" style="display:none"></div>'
     +   '</div>'
     + '</div>'
