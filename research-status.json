@@ -4,19 +4,24 @@
   "priorities": [
     {
       "id": "research-p1",
-      "os_contexts": ["business", "sprite"],
+      "os_contexts": [
+        "business",
+        "sprite"
+      ],
       "owner": "Research",
       "stakeholders": "Cybersecurity, Development",
-      "title": "Unescaped user data in innerHTML — XSS risk",
+      "title": "Unescaped user data in innerHTML \u2014 XSS risk",
       "summary": "room.id, entry.id, entry.name interpolated raw into innerHTML",
-      "note": "room-layout-editor.html:4513–4543. escapeHtml() defined at line 3032 but not used in these locations. XSS via malformed project file.",
+      "note": "room-layout-editor.html:4513\u20134543. escapeHtml() defined at line 3032 but not used in these locations. XSS via malformed project file.",
       "solution": "Wrap all interpolated values in escapeHtml() at affected lines",
       "status": "in-progress",
       "risk": "high"
     },
     {
       "id": "research-p2",
-      "os_contexts": ["sprite"],
+      "os_contexts": [
+        "sprite"
+      ],
       "owner": "Research",
       "stakeholders": "Development",
       "title": "Undefined CSS variable --text-dim causes silent render failure",
@@ -28,7 +33,9 @@
     },
     {
       "id": "research-p3",
-      "os_contexts": ["sprite"],
+      "os_contexts": [
+        "sprite"
+      ],
       "owner": "Research",
       "stakeholders": "Development",
       "title": "No global :focus-visible rule in room-layout-editor.html",
@@ -42,10 +49,12 @@
   "opportunities": [
     {
       "id": "research-o1",
-      "os_contexts": ["sprite"],
+      "os_contexts": [
+        "sprite"
+      ],
       "owner": "Research",
       "stakeholders": "Development, Design",
-      "title": "Extract shared CSS token block → tokens.css",
+      "title": "Extract shared CSS token block \u2192 tokens.css",
       "summary": "Eliminate manual token sync across 3+ HTML files",
       "note": "Currently every HTML page duplicates the full :root { } token block. A single tokens.css would be the source of truth.",
       "solution": "Create tokens.css, import via <link> in all HTML pages, remove inline :root blocks",
@@ -54,7 +63,9 @@
     },
     {
       "id": "research-o2",
-      "os_contexts": ["sprite"],
+      "os_contexts": [
+        "sprite"
+      ],
       "owner": "Research",
       "stakeholders": "Development, Cybersecurity",
       "title": "Extract JS from room-layout-editor.html",
@@ -66,7 +77,9 @@
     },
     {
       "id": "research-o3",
-      "os_contexts": ["sprite"],
+      "os_contexts": [
+        "sprite"
+      ],
       "owner": "Research",
       "stakeholders": "Development",
       "title": "Create shared nav.css",
@@ -78,7 +91,9 @@
     },
     {
       "id": "research-o4",
-      "os_contexts": ["sprite"],
+      "os_contexts": [
+        "sprite"
+      ],
       "owner": "Research",
       "stakeholders": "Design",
       "title": "Align product-shell.css marketing section to design tokens",
@@ -90,7 +105,9 @@
     },
     {
       "id": "research-o5",
-      "os_contexts": ["sprite"],
+      "os_contexts": [
+        "sprite"
+      ],
       "owner": "Research",
       "stakeholders": "Development",
       "title": "Standardise sprite workbench radius tokens",
@@ -102,15 +119,78 @@
     },
     {
       "id": "research-o6",
-      "os_contexts": ["business", "other-income"],
+      "os_contexts": [
+        "business",
+        "other-income"
+      ],
       "owner": "Research",
       "stakeholders": "Orchestration, Finance, Marketing",
-      "title": "Passive income market scan delivered — pick first revenue experiment",
+      "title": "Passive income market scan delivered \u2014 pick first revenue experiment",
       "summary": "Library report covers itch.io asset economics, AI and education products, and platform fees",
       "note": "Executive summary emailed to founder. Full findings in research library. Finance should model net revenue at a few price points; founder chooses one first SKU (small pack vs. short guide).",
       "solution": "Orchestrator runs decision mode; founder approves first experiment and time budget",
       "status": "needs-review",
       "risk": "low"
     }
-  ]
+  ],
+  "research_chart": {
+    "categories": [
+      {
+        "label": "Competitor",
+        "value": 0
+      },
+      {
+        "label": "Market",
+        "value": 0
+      },
+      {
+        "label": "Technical",
+        "value": 0
+      },
+      {
+        "label": "User research",
+        "value": 0
+      }
+    ],
+    "status": [
+      {
+        "label": "New",
+        "value": 0,
+        "key": "accent"
+      },
+      {
+        "label": "Reviewed",
+        "value": 0,
+        "key": "warning"
+      },
+      {
+        "label": "Actioned",
+        "value": 0,
+        "key": "good"
+      },
+      {
+        "label": "Archived",
+        "value": 0,
+        "key": "muted"
+      }
+    ],
+    "status_n": 0,
+    "confidence": [
+      {
+        "label": "High",
+        "value": 0,
+        "key": "good"
+      },
+      {
+        "label": "Medium",
+        "value": 0,
+        "key": "warning"
+      },
+      {
+        "label": "Low",
+        "value": 0,
+        "key": "accent"
+      }
+    ]
+  }
 }

@@ -1,5 +1,5 @@
 {
-  "_note": "Updated daily at noon by the orchestrator. Synthesised from all agent statuses. Plain language — no jargon.",
+  "_note": "Updated daily at noon by the orchestrator. Synthesised from all agent statuses. Plain language \u2014 no jargon.",
   "updated": "2026-04-02",
   "schema_version": "v1.0",
   "synthesis_sources": [
@@ -12,9 +12,12 @@
   "priorities": [
     {
       "id": 1,
-      "os_contexts": ["business", "sprite"],
+      "os_contexts": [
+        "business",
+        "sprite"
+      ],
       "source": "eng+design",
-      "title": "Ship the room editor milestone — rebuilt inspector, obvious place vs select, keyboard and focus on new panels",
+      "title": "Ship the room editor milestone \u2014 rebuilt inspector, obvious place vs select, keyboard and focus on new panels",
       "status": "in-progress",
       "risk": "high",
       "note": "One release slice: engineering rebuilds the inspector and entity model; design makes place vs select unmistakable and finishes keyboard order and visible focus on new panels.",
@@ -22,9 +25,12 @@
     },
     {
       "id": 2,
-      "os_contexts": ["business", "sprite"],
+      "os_contexts": [
+        "business",
+        "sprite"
+      ],
       "source": "eng+qa",
-      "title": "Room save contract — version field and migration, then automated save/load round-trip",
+      "title": "Room save contract \u2014 version field and migration, then automated save/load round-trip",
       "status": "needs-review",
       "risk": "high",
       "note": "Founder sign-off on versioning before more format churn. QA lands the round-trip test once the on-disk contract is stable.",
@@ -32,9 +38,12 @@
     },
     {
       "id": 3,
-      "os_contexts": ["business", "sprite"],
+      "os_contexts": [
+        "business",
+        "sprite"
+      ],
       "source": "eng+ld+qa+cyber",
-      "title": "Copilot readiness program — bar, prompt and model evaluation, tests, and security gate",
+      "title": "Copilot readiness program \u2014 bar, prompt and model evaluation, tests, and security gate",
       "status": "in-progress",
       "risk": "high",
       "note": "Founder and engineering define measurable commercial criteria. Level design owns room quality standards and prompt iteration. Engineering runs a time-boxed newer-model benchmark after the founder sets schedule and switch criteria. QA automates generate, accept, verify. Cybersecurity runs prompt injection before public exposure.",
@@ -42,7 +51,10 @@
     },
     {
       "id": 4,
-      "os_contexts": ["business", "sprite"],
+      "os_contexts": [
+        "business",
+        "sprite"
+      ],
       "source": "eng+design",
       "title": "Finish wiring the AI image generator into the sprite editor",
       "status": "in-progress",
@@ -52,7 +64,10 @@
     },
     {
       "id": 5,
-      "os_contexts": ["business", "sprite"],
+      "os_contexts": [
+        "business",
+        "sprite"
+      ],
       "source": "design",
       "title": "Document animation and AI panel rules so all tools stay consistent",
       "status": "needs-review",
@@ -81,7 +96,7 @@
       "note": "Unblocks the room save contract and the automated save/load test."
     },
     {
-      "title": "Copilot program — commercial bar, when to benchmark the newer model, and model switch criteria",
+      "title": "Copilot program \u2014 commercial bar, when to benchmark the newer model, and model switch criteria",
       "source": "founder+eng",
       "note": "Answer once so paid tier planning, engineering benchmark, and switch threshold stay aligned."
     }
@@ -98,7 +113,7 @@
     {
       "id": "specialist-consult",
       "name": "Specialist Consult",
-      "description": "Progressive specialist invocation (ReAct pattern) — invoke the most likely resolver first, expand only if unresolved.",
+      "description": "Progressive specialist invocation (ReAct pattern) \u2014 invoke the most likely resolver first, expand only if unresolved.",
       "trigger": "Any multi-domain question that can be resolved by one or two specialists",
       "last_run": "2026-03-29",
       "output_location": "artifacts/brainstorm-engine-choice-2026-03-29.md"
@@ -107,7 +122,10 @@
   "opportunities": [
     {
       "id": "orch-o1",
-      "os_contexts": ["business", "other-income"],
+      "os_contexts": [
+        "business",
+        "other-income"
+      ],
       "source": "strategy+founder",
       "title": "Business plan: founder sets ninety-day goals and stop rules for side experiments",
       "status": "in-progress",
@@ -115,5 +133,74 @@
       "note": "From the initial business plan (Apr 2026). Keep portfolio experiments small (about two to four at a time) until written goals and kill criteria exist.",
       "proposed_solution": "Founder writes 90-day outcomes and stop rules for experiments; orchestrator tracks them in the weekly digest."
     }
-  ]
+  ],
+  "orch_chart": {
+    "work": [
+      {
+        "label": "In progress",
+        "value": 0,
+        "key": "accent"
+      },
+      {
+        "label": "Under review",
+        "value": 0,
+        "key": "warning"
+      },
+      {
+        "label": "Paused",
+        "value": 0,
+        "key": "muted"
+      },
+      {
+        "label": "Blocked",
+        "value": 0,
+        "key": "accent"
+      }
+    ],
+    "work_n": 0,
+    "agents": [
+      {
+        "label": "Engineering",
+        "value": 0
+      },
+      {
+        "label": "Design",
+        "value": 0
+      },
+      {
+        "label": "QA",
+        "value": 0
+      },
+      {
+        "label": "Analytics",
+        "value": 0
+      },
+      {
+        "label": "Strategy",
+        "value": 0
+      }
+    ],
+    "directives": [
+      {
+        "label": "Engineering",
+        "value": 0
+      },
+      {
+        "label": "Design",
+        "value": 0
+      },
+      {
+        "label": "QA",
+        "value": 0
+      },
+      {
+        "label": "Analytics",
+        "value": 0
+      },
+      {
+        "label": "Strategy",
+        "value": 0
+      }
+    ]
+  }
 }

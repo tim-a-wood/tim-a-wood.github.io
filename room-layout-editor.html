@@ -2085,7 +2085,6 @@
                         <div id="roomWizardEnvironmentPreview" class="rw-environment-preview" aria-live="polite"></div>
                         <div id="roomWizardCopilotPreviewVisual" class="rw-environment-preview"></div>
                         <div id="roomWizardEnvironmentOutputSummary" class="rw-environment-output"></div>
-                        <div id="roomWizardManualReviewPanel" class="rw-environment-output"></div>
                         <div id="roomWizardPreviewGallery" class="rw-preview-gallery"></div>
                         <label>
                           <span class="field-label">Revision request</span>
@@ -2112,41 +2111,9 @@
                         <div class="rw-copilot-actions">
                           <button type="button" class="btn-secondary" id="roomWizardPreviewRevise">Revise &amp; Generate Again</button>
                           <button type="button" class="btn-secondary" id="roomWizardBuildEnvironmentAssets">Build Production Assets</button>
-                          <button type="button" class="btn-secondary" id="roomWizardSubmitManualReview">Submit Review</button>
                           <button type="button" class="btn-secondary" id="roomWizardPreviewOpenGame">Open Game With This Room</button>
                           <button type="button" class="btn-secondary" id="roomWizardCopilotDiscard">Discard</button>
                         </div>
-                        <label>
-                          <span class="field-label">Reviewer role</span>
-                          <select id="roomWizardReviewRole">
-                            <option value="qa">QA</option>
-                            <option value="creative">Creative</option>
-                          </select>
-                        </label>
-                        <label>
-                          <span class="field-label">Reviewer name</span>
-                          <input id="roomWizardReviewerName" type="text" placeholder="e.g. QA Round 1" />
-                        </label>
-                        <label>
-                          <span class="field-label">Review decision</span>
-                          <select id="roomWizardReviewDecision">
-                            <option value="needs_changes">Needs changes</option>
-                            <option value="pass">Pass</option>
-                            <option value="approved">Approved</option>
-                          </select>
-                        </label>
-                        <label>
-                          <span class="field-label">Finding codes</span>
-                          <input id="roomWizardReviewFindingCodes" type="text" placeholder="comma-separated, e.g. component_fit, biome_identity" />
-                        </label>
-                        <label>
-                          <span class="field-label">Blockers</span>
-                          <input id="roomWizardReviewBlockers" type="text" placeholder="comma-separated, leave blank if none" />
-                        </label>
-                        <label>
-                          <span class="field-label">Required changes</span>
-                          <textarea id="roomWizardReviewRequiredChanges" rows="2" placeholder="One change per line or short sentence."></textarea>
-                        </label>
                       </div>
                     </div>
                   </div>
@@ -6395,7 +6362,6 @@
         renderRoomWizardEnvironmentPreview(e);
         renderRoomWizardPreviewGallery(e.preview || {});
         renderRoomWizardEnvironmentOutputSummary(e);
-        renderRoomWizardManualReviewPanel(e);
         if (previewBox) previewBox.hidden = !(Array.isArray(e.preview?.images) && e.preview.images.length);
         const applyBtn = document.getElementById('roomWizardCopilotApply');
         if (applyBtn) applyBtn.hidden = !!PROJECT_ID;
@@ -6449,14 +6415,12 @@
         const prevVisual = document.getElementById('roomWizardCopilotPreviewVisual');
         const gallery = document.getElementById('roomWizardPreviewGallery');
         const output = document.getElementById('roomWizardEnvironmentOutputSummary');
-        const manualReview = document.getElementById('roomWizardManualReviewPanel');
         const revision = document.getElementById('roomWizardPreviewRevision');
         const st = document.getElementById('roomWizardCopilotStatus');
         if (prev) prev.hidden = true;
         if (prevVisual) prevVisual.innerHTML = '';
         if (gallery) gallery.innerHTML = '';
         if (output) output.innerHTML = '';
-        if (manualReview) manualReview.innerHTML = '';
         if (revision) revision.value = '';
         if (st) st.textContent = '';
       }
@@ -6670,7 +6634,7 @@
           ? `Assembly plan: ${assemblySlots.length} slot${assemblySlots.length === 1 ? '' : 's'} · Coverage ${plannerCoverage.status || 'idle'} · Doors ${(plannerCoverage.major_structures || {}).planned_door_slots || 0}/${(plannerCoverage.major_structures || {}).door_count || 0} · Traversal ${(plannerCoverage.major_structures || {}).planned_platform_slots || 0}/${(plannerCoverage.major_structures || {}).platform_count || 0}`
           : '';
         const reviewStateText = pipelineVersion === 'v3'
-          ? `Validation: ${reviewValidation.status || 'pending'} · Approval: ${reviewState.approval_status || 'draft'} · QA rounds ${Array.isArray(reviewState.qa_review_rounds) ? reviewState.qa_review_rounds.length : 0}/${((validationPlan.required_round_counts || {}).qa || 0)} · Creative rounds ${Array.isArray(reviewState.creative_review_rounds) ? reviewState.creative_review_rounds.length : 0}/${((validationPlan.required_round_counts || {}).creative || 0)}`
+          ? `Validation: ${reviewValidation.status || 'pending'} · Approval: ${reviewState.approval_status || 'draft'}`
           : '';
         const assemblyPlanChips = pipelineVersion === 'v3'
           ? assemblySlots.slice(0, 14).map((item) => {
@@ -6686,11 +6650,6 @@
               ...(Array.isArray(plannerCoverage.missing_slots) ? plannerCoverage.missing_slots : []).map((item) => `Coverage gap: ${item}`),
               ...(Array.isArray(reviewValidation.issues) ? reviewValidation.issues : []).map((item) => `Validation: ${item}`),
             ].map((item) => `<span class="rw-environment-chip">${escapeHtml(String(item).replace(/_/g, ' '))}</span>`).join('')
-          : '';
-        const reviewSurfaceChips = pipelineVersion === 'v3'
-          ? (Array.isArray(validationPlan.review_surface_order) ? validationPlan.review_surface_order : []).map((item) => (
-              `<span class="rw-environment-chip">${escapeHtml(`Review surface: ${String(item).replace(/_/g, ' ')}`)}</span>`
-            )).join('')
           : '';
         const assemblyOverlayText = pipelineVersion === 'v3'
           ? `Overlay geometry: ${(Array.isArray(overlayGeometry.slot_overlays) ? overlayGeometry.slot_overlays.length : 0)} overlay region${(Array.isArray(overlayGeometry.slot_overlays) ? overlayGeometry.slot_overlays.length : 0) === 1 ? '' : 's'} · Doors ${(Array.isArray(overlayGeometry.doors) ? overlayGeometry.doors.length : 0)} · Platforms ${(Array.isArray(overlayGeometry.platforms) ? overlayGeometry.platforms.length : 0)}`
@@ -6763,46 +6722,8 @@
             ${slotGroupChips ? `<div class="rw-environment-chip-row">${slotGroupChips}</div>` : ''}
             ${assemblyPlanChips ? `<div class="rw-environment-chip-row">${assemblyPlanChips}</div>` : ''}
             ${coverageChips ? `<div class="rw-environment-chip-row">${coverageChips}</div>` : ''}
-            ${reviewSurfaceChips ? `<div class="rw-environment-chip-row">${reviewSurfaceChips}</div>` : ''}
             ${staleChips ? `<div class="rw-environment-chip-row">${staleChips}</div>` : ''}
             ${(runtimeReviewMarkup || assetThumbs) ? `<div class="rw-environment-asset-grid">${runtimeReviewMarkup}${assetThumbs}</div>` : ''}
-          </section>`;
-      }
-
-      function renderRoomWizardManualReviewPanel(envState) {
-        const target = document.getElementById('roomWizardManualReviewPanel');
-        if (!target) return;
-        const pipelineVersion = String(envState?.environment_pipeline_version || 'v2').trim().toLowerCase() === 'v3' ? 'v3' : 'v2';
-        if (pipelineVersion !== 'v3') {
-          target.innerHTML = '';
-          return;
-        }
-        const reviewState = envState?.review_state || {};
-        const validationStatus = reviewState?.validation_status || {};
-        const qaRounds = Array.isArray(reviewState?.qa_review_rounds) ? reviewState.qa_review_rounds : [];
-        const creativeRounds = Array.isArray(reviewState?.creative_review_rounds) ? reviewState.creative_review_rounds : [];
-        const latestQa = qaRounds.length ? qaRounds[qaRounds.length - 1] : null;
-        const latestCreative = creativeRounds.length ? creativeRounds[creativeRounds.length - 1] : null;
-        const issueChips = (Array.isArray(validationStatus?.issues) ? validationStatus.issues : []).map((item) => (
-          `<span class="rw-environment-chip">${escapeHtml(`Validation: ${String(item).replace(/_/g, ' ')}`)}</span>`
-        )).join('');
-        const latestReviewText = [
-          latestQa ? `Latest QA: round ${latestQa.round_number || qaRounds.length} · ${latestQa.decision || 'n/a'}` : 'Latest QA: none yet',
-          latestCreative ? `Latest Creative: round ${latestCreative.round_number || creativeRounds.length} · ${latestCreative.decision || 'n/a'}` : 'Latest Creative: none yet'
-        ].join(' · ');
-        target.innerHTML = `
-          <section class="rw-environment-output-card">
-            <div class="rw-environment-output-grid">
-              <div>
-                <p class="rw-environment-preview-label">Manual review</p>
-                <p class="rw-environment-output-copy">${escapeHtml(`Approval: ${reviewState.approval_status || 'draft'} · Validation: ${validationStatus.status || 'pending'} · QA ${qaRounds.length} · Creative ${creativeRounds.length}`)}</p>
-              </div>
-              <div>
-                <p class="rw-environment-preview-label">Latest review state</p>
-                <p class="rw-environment-output-copy">${escapeHtml(latestReviewText)}</p>
-              </div>
-            </div>
-            ${issueChips ? `<div class="rw-environment-chip-row">${issueChips}</div>` : ''}
           </section>`;
       }
 
@@ -6894,15 +6815,6 @@
           reason_codes: roomWizardReasonCodes(),
           ...extra,
         };
-      }
-
-      function currentRuntimeReviewScreenshot(room) {
-        const review = room?.environment?.review_state?.runtime_review || room?.environment?.runtime?.bespoke_asset_manifest?.runtime_review || {};
-        if (!review?.screenshot_url) return [];
-        return [{
-          stage: 'runtime_view',
-          url: review.screenshot_url,
-        }];
       }
 
       async function postRoomWizardFeedback(room, eventType, extra = {}, options = {}) {
@@ -7385,7 +7297,6 @@
           renderRoomWizardEnvironmentPreview(room.environment);
           renderRoomWizardPreviewGallery(room.environment.preview || {});
           renderRoomWizardEnvironmentOutputSummary(room.environment);
-          renderRoomWizardManualReviewPanel(room.environment);
           renderRoomWizardCopilotPreview({
             themeId: room.environment?.themeId || 'custom',
             tags: room.environment?.tags || [],
@@ -8216,7 +8127,6 @@
           setDirty(true);
           updateJsonText();
           renderRoomWizardEnvironmentOutputSummary(room.environment);
-          renderRoomWizardManualReviewPanel(room.environment);
         });
         document.getElementById('roomWizardArtDirectionSave')?.addEventListener('click', saveProjectArtDirectionFromWizard);
         document.getElementById('roomWizardGenerateArtDirectionConcepts')?.addEventListener('click', generateArtDirectionConceptBoard);
@@ -8376,7 +8286,6 @@
               renderRoomWizardEnvironmentPreview(room.environment);
               renderRoomWizardPreviewGallery(room.environment?.preview || {});
               renderRoomWizardEnvironmentOutputSummary(room.environment);
-              renderRoomWizardManualReviewPanel(room.environment);
               updateJsonText();
               if (st) st.textContent = 'Preview candidates ready — approve one below.';
               stopRoomWizardWaitbar('copilot', 100);
@@ -8513,7 +8422,6 @@
             });
             renderRoomWizardPreviewGallery(room.environment?.preview || {});
             renderRoomWizardEnvironmentOutputSummary(room.environment);
-            renderRoomWizardManualReviewPanel(room.environment);
             updateJsonText();
             setDirty(true);
             if (st) st.textContent = 'Revised previews ready — approve one to push it into Open Game.';
@@ -8562,7 +8470,6 @@
             renderRoomWizardEnvironmentPreview(room.environment);
             renderRoomWizardPreviewGallery(room.environment.preview || {});
             renderRoomWizardEnvironmentOutputSummary(room.environment);
-            renderRoomWizardManualReviewPanel(room.environment);
             updateJsonText();
             setDirty(true);
             refreshOpenGamePreviewIfVisible(room.id);
@@ -8581,64 +8488,6 @@
             if (buildButton) {
               buildButton.disabled = false;
               buildButton.textContent = 'Retry Build Production Assets';
-            }
-          }
-        });
-        document.getElementById('roomWizardSubmitManualReview')?.addEventListener('click', async () => {
-          const room = getRoomWizardRoom();
-          const st = document.getElementById('roomWizardCopilotStatus');
-          const btn = document.getElementById('roomWizardSubmitManualReview');
-          if (!PROJECT_ID || !room?.id) return;
-          if (String(room.environment?.environment_pipeline_version || '').trim().toLowerCase() !== 'v3') {
-            if (st) st.textContent = 'Manual review submission is available only for v3 calibration rooms.';
-            return;
-          }
-          const reviewerRole = String(document.getElementById('roomWizardReviewRole')?.value || 'qa').trim();
-          const reviewerName = String(document.getElementById('roomWizardReviewerName')?.value || reviewerRole).trim();
-          const decision = String(document.getElementById('roomWizardReviewDecision')?.value || 'needs_changes').trim();
-          const findingCodes = roomWizardCommaList(document.getElementById('roomWizardReviewFindingCodes')?.value || '');
-          const blockers = roomWizardCommaList(document.getElementById('roomWizardReviewBlockers')?.value || '');
-          const requiredChanges = String(document.getElementById('roomWizardReviewRequiredChanges')?.value || '')
-            .split('\n')
-            .map((item) => String(item || '').trim())
-            .filter(Boolean);
-          if (btn) {
-            btn.disabled = true;
-            btn.textContent = 'Submitting Review…';
-          }
-          if (st) st.textContent = 'Recording manual review…';
-          try {
-            const res = await fetch(projectRoomEnvironmentApiUrl(room.id, 'manual-review'), {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                reviewer_role: reviewerRole,
-                reviewer_name: reviewerName,
-                decision,
-                finding_codes: findingCodes,
-                blockers,
-                required_changes: requiredChanges,
-                screenshots: currentRuntimeReviewScreenshot(room),
-                findings: requiredChanges.map((item, index) => ({
-                  finding_id: `${reviewerRole}-${Date.now()}-${index + 1}`,
-                  note: item,
-                })),
-              })
-            });
-            const json = await res.json().catch(() => ({}));
-            if (!res.ok || !json.ok) throw new Error(json.error || 'Could not record manual review');
-            room.environment = json.environment || room.environment;
-            renderRoomWizardEnvironmentOutputSummary(room.environment);
-            renderRoomWizardManualReviewPanel(room.environment);
-            updateJsonText();
-            setDirty(true);
-            if (st) st.textContent = `${reviewerRole === 'qa' ? 'QA' : 'Creative'} review recorded.`;
-          } catch (e) {
-            if (st) st.textContent = (e && e.message) || 'Manual review submission failed';
-          } finally {
-            if (btn) {
-              btn.disabled = false;
-              btn.textContent = 'Submit Review';
             }
           }
         });

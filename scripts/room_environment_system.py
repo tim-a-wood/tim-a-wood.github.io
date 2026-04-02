@@ -15,20 +15,13 @@ import textwrap
 import urllib.error
 import urllib.parse
 import urllib.request
+from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from PIL import Image, ImageDraw, ImageFilter
 from scripts import room_environment_v3 as envv3
-
-try:
-    from google import genai as _google_genai
-    from google.genai import types as _google_genai_types
-    _GOOGLE_GENAI_AVAILABLE = True
-except ImportError:
-    _GOOGLE_GENAI_AVAILABLE = False
-
 
 PROJECTS_ROOT: Path
 ROOT: Path
@@ -350,7 +343,7 @@ def _default_biome_label(direction: Dict[str, Any]) -> str:
 
 
 def _component_adaptation_mode(component_type: str) -> str:
-    if component_type in {"background_plate", "midground_frame", "door_piece"}:
+    if component_type in {"background_plate", "midground_frame", "door_piece", "door_frame"}:
         return "direct"
     if component_type in {"primary_floor_piece", "hero_platform_piece"}:
         return "stretch"
@@ -367,7 +360,6 @@ def _component_adaptation_mode(component_type: str) -> str:
         "main_floor_face",
         "hero_platform_top",
         "hero_platform_face",
-        "door_frame",
         "pit_rim",
         "pit_interior",
     }:
@@ -794,6 +786,7 @@ def _ensure_room_environment(room: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def _sync_v3_environment_state(
+    project_id: str,
     env: Dict[str, Any],
     room: Dict[str, Any],
     biome_id: Optional[str] = None,
@@ -2355,6 +2348,7 @@ def build_room_environment_spec(project_id: str, room_id: str, payload: Dict[str
     }
     biome_pack = _select_biome_pack(direction)
     _sync_v3_environment_state(
+        project_id,
         env,
         room,
         biome_id=str((biome_pack or {}).get("biome_id") or "") or None,
@@ -2505,14 +2499,44 @@ def _render_room_layout_conditioning_image(geometry: Dict[str, Any], spec: Dict[
     return out.getvalue()
 
 
-def _gemini_client() -> Any:
-    if not _GOOGLE_GENAI_AVAILABLE:
-        return None
-    api_key = os.environ.get("GEMINI_API_KEY", "").strip()
+def _gemini_timeout_seconds() -> int:
+    try:
+        value = int(str(os.environ.get("GEMINI_HTTP_TIMEOUT_SECONDS") or "90").strip() or "90")
+    except Exception:
+        value = 90
+    return max(10, value)
+
+
+def _gemini_api_key() -> str:
+    return os.environ.get("GEMINI_API_KEY", "").strip()
+
+
+def _gemini_generate_content_rest(
+    model: str,
+    parts: List[Dict[str, Any]],
+    response_modalities: Optional[List[str]] = None,
+) -> Optional[Dict[str, Any]]:
+    api_key = _gemini_api_key()
     if not api_key:
         return None
     try:
-        return _google_genai.Client(api_key=api_key)
+        payload: Dict[str, Any] = {"contents": [{"parts": parts}]}
+        if response_modalities:
+            payload["generationConfig"] = {"responseModalities": list(response_modalities)}
+        url = (
+            "https://generativelanguage.googleapis.com/v1beta/models/"
+            f"{urllib.parse.quote(model, safe='')}:generateContent?key={urllib.parse.quote(api_key, safe='')}"
+        )
+        body = json.dumps(payload).encode("utf-8")
+        req = urllib.request.Request(
+            url,
+            data=body,
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=_gemini_timeout_seconds()) as resp:
+            raw = resp.read().decode("utf-8")
+        return json.loads(raw)
     except Exception:
         return None
 
@@ -2584,16 +2608,17 @@ def _generate_level3_image_with_gemini(
     spec: Dict[str, Any],
     variant_index: int,
 ) -> bool:
-    client = _gemini_client()
-    if client is None or not _GOOGLE_GENAI_AVAILABLE:
+    if not _gemini_api_key():
         return False
     frozen_concepts = direction.get("frozen_concepts") or []
-    contents: List[Any] = []
+    parts: List[Dict[str, Any]] = []
     try:
-        contents.append(_google_genai_types.Part.from_bytes(
-            data=_render_room_layout_conditioning_image(geometry, spec, variant_index),
-            mime_type="image/png",
-        ))
+        parts.append({
+            "inlineData": {
+                "mimeType": "image/png",
+                "data": base64.b64encode(_render_room_layout_conditioning_image(geometry, spec, variant_index)).decode("ascii"),
+            }
+        })
         for item in frozen_concepts[:3]:
             rel_path = str(item.get("image_path") or "").strip()
             if not rel_path:
@@ -2601,27 +2626,62 @@ def _generate_level3_image_with_gemini(
             concept_path = project_dir / rel_path
             if not concept_path.exists():
                 continue
-            contents.append(_google_genai_types.Part.from_bytes(
-                data=concept_path.read_bytes(),
-                mime_type="image/png",
-            ))
-        contents.append(_build_level3_variant_prompt(direction, geometry, spec, frozen_concepts, variant_index))
+            parts.append({
+                "inlineData": {
+                    "mimeType": "image/png",
+                    "data": base64.b64encode(concept_path.read_bytes()).decode("ascii"),
+                }
+            })
+        parts.append({"text": _build_level3_variant_prompt(direction, geometry, spec, frozen_concepts, variant_index)})
         model = os.environ.get("GEMINI_IMAGE_MODEL", "gemini-2.5-flash-image").strip() or "gemini-2.5-flash-image"
-        response = client.models.generate_content(
-            model=model,
-            contents=contents,
-            config=_google_genai_types.GenerateContentConfig(response_modalities=["IMAGE", "TEXT"]),
-        )
+        response = _gemini_generate_content_rest(model, parts, response_modalities=["IMAGE", "TEXT"])
     except Exception:
         return False
+    if not response:
+        return False
     try:
-        for part in response.candidates[0].content.parts:
-            inline = getattr(part, "inline_data", None)
-            if inline and getattr(inline, "data", None):
-                image = Image.open(io.BytesIO(inline.data)).convert("RGBA")
-                path.parent.mkdir(parents=True, exist_ok=True)
-                image.save(path)
-                return True
+        for candidate in response.get("candidates") or []:
+            for part in ((candidate.get("content") or {}).get("parts") or []):
+                inline = part.get("inlineData") or {}
+                data = inline.get("data")
+                if data:
+                    image = Image.open(io.BytesIO(base64.b64decode(data))).convert("RGBA")
+                    path.parent.mkdir(parents=True, exist_ok=True)
+                    image.save(path)
+                    return True
+    except Exception:
+        return False
+    return False
+
+
+def _generate_image_from_references(path: Path, prompt: str, reference_paths: List[Path], size_hint: str = "") -> bool:
+    if not _gemini_api_key():
+        return False
+    parts: List[Dict[str, Any]] = []
+    try:
+        for ref_path in reference_paths:
+            if not ref_path.exists():
+                continue
+            parts.append({
+                "inlineData": {
+                    "mimeType": "image/png",
+                    "data": base64.b64encode(ref_path.read_bytes()).decode("ascii"),
+                }
+            })
+        parts.append({"text": f"{prompt}\nSize intent: {size_hint}".strip()})
+        model = os.environ.get("GEMINI_IMAGE_MODEL", "gemini-2.5-flash-image").strip() or "gemini-2.5-flash-image"
+        response = _gemini_generate_content_rest(model, parts, response_modalities=["IMAGE", "TEXT"])
+        if not response:
+            return False
+        for candidate in response.get("candidates") or []:
+            for part in ((candidate.get("content") or {}).get("parts") or []):
+                inline = part.get("inlineData") or {}
+                data = inline.get("data")
+                if data:
+                    image = Image.open(io.BytesIO(base64.b64decode(data))).convert("RGBA")
+                    path.parent.mkdir(parents=True, exist_ok=True)
+                    image.save(path)
+                    return True
     except Exception:
         return False
     return False
@@ -2718,36 +2778,6 @@ def _project_url_to_path(project_dir: Path, url: str) -> Optional[Path]:
     return path if path.exists() else None
 
 
-def _generate_image_from_references(path: Path, prompt: str, reference_paths: List[Path], size_hint: str = "") -> bool:
-    client = _gemini_client()
-    if client is None or not _GOOGLE_GENAI_AVAILABLE:
-        return False
-    contents: List[Any] = []
-    try:
-        for ref_path in reference_paths:
-            if not ref_path.exists():
-                continue
-            contents.append(_google_genai_types.Part.from_bytes(
-                data=ref_path.read_bytes(),
-                mime_type="image/png",
-            ))
-        contents.append(f"{prompt}\nSize intent: {size_hint}".strip())
-        model = os.environ.get("GEMINI_IMAGE_MODEL", "gemini-2.5-flash-image").strip() or "gemini-2.5-flash-image"
-        response = client.models.generate_content(
-            model=model,
-            contents=contents,
-            config=_google_genai_types.GenerateContentConfig(response_modalities=["IMAGE", "TEXT"]),
-        )
-        for part in response.candidates[0].content.parts:
-            inline = getattr(part, "inline_data", None)
-            if inline and getattr(inline, "data", None):
-                image = Image.open(io.BytesIO(inline.data)).convert("RGBA")
-                path.parent.mkdir(parents=True, exist_ok=True)
-                image.save(path)
-                return True
-    except Exception:
-        return False
-    return False
 
 
 def _fit_image_to_size(path: Path, size: Tuple[int, int], transparent: bool = False) -> None:
@@ -3105,8 +3135,9 @@ def _build_biome_template_prompt(component_type: str, direction: Dict[str, Any],
     role: str
     if component_type == "background_plate":
         role = (
-            "Full-room background plate: distant enclosing architecture, far depth, muted values. "
-            "Center lane stays quieter than sides; readable shell vs play space."
+            "Full-room background plate: distant enclosing architecture, far depth, muted values, and obvious room-shell rhythm. "
+            "Build a side-view medieval castle / dungeon hall with dark side masses, repeating bays or buttresses, and a dim central recess. "
+            "No bright floor pool, no glowing apse, no ritual circle, and no scenic key-art focal composition."
         )
     elif component_type == "midground_frame":
         role = (
@@ -3124,7 +3155,8 @@ def _build_biome_template_prompt(component_type: str, direction: Dict[str, Any],
         )
     elif component_type == "door_piece":
         role = (
-            "Vertical doorway tile: heavy frame, dark opening read, threshold stone; alpha-friendly edges."
+            "Vertical doorway tile on transparent background: isolated heavy stone frame, dark opening read, threshold stone, and a punched-out doorway mouth. "
+            "Do not generate a surrounding chamber, floor slab, or scenic wall extension. Preserve transparent pixels outside the frame and through the opening."
         )
     else:
         role = f"Environment component `{component_type}` for the biome kit."
@@ -3199,6 +3231,8 @@ def generate_biome_pack_visuals(project_id: str, payload: Dict[str, Any]) -> Dic
         prompt = _build_biome_template_prompt(component_type, direction, extra)
         ok = _generate_bespoke_component_from_references(abs_path, prompt, refs, (w, h), transparent)
         if ok:
+            if component_type == "door_piece" and transparent:
+                _apply_door_cutout_alpha(Image.open(abs_path).convert("RGBA")).save(abs_path)
             used_ai = True
             template["biome_visual_generated_at"] = now_iso()
             template["source_template_kind"] = "gemini_biome"
@@ -3752,7 +3786,8 @@ def _build_bespoke_prompt(direction: Dict[str, Any], spec: Dict[str, Any], plan_
         "background_far_plate": (
             "Build only the far-depth hall shell. The image must read as enclosing architecture, not a scenic key art moment. "
             "Treat the approved room preview as context only and explicitly reject carryover of any altar, brazier energy, shrine focal landmark, center dais, near framing, "
-            "or pasted-in floor strip from that preview. Use walls, arches, pillars, and recesses to create a readable room shell with calm depth falloff and an open center lane."
+            "or pasted-in floor strip from that preview. Use walls, arches, pillars, recesses, and bay rhythm to create a readable room shell with calm depth falloff and an open center lane. "
+            "Keep the center dimmer than the sides, but not empty fog; it should still show a dark recess, arch, or wall structure."
         ),
         "midground_side_frame": (
             "Build only side framing. Keep the center fully open and calm. Restrict arches, columns, and side mass to the left and right edges so the middle third stays clear. "
@@ -3785,7 +3820,11 @@ def _build_bespoke_prompt(direction: Dict[str, Any], spec: Dict[str, Any], plan_
         "hero_platform_face": (
             "Build only the front face of the platform. Keep ledge readability high, underside variation restrained, and avoid scenic attachments or dangling props."
         ),
-        "door_frame": "Preserve a centered door silhouette with clear opening read. No extra scene dressing, no floor plane, no surrounding chamber composition.",
+        "door_frame": (
+            "Build only an isolated doorway component. Preserve a centered door silhouette with clear opening read. "
+            "The PNG must keep transparent pixels outside the frame and through the doorway opening. "
+            "No extra scene dressing, no floor plane, and no surrounding chamber composition."
+        ),
         "pit_rim": "Preserve a crisp hazard rim with strong non-walkable read. No scenic bridge treatment and no false floor continuity.",
         "pit_interior": "Preserve a dark, clearly non-walkable pit interior. The center should read as a drop or void, not a floor surface.",
     }
@@ -3840,6 +3879,86 @@ def _save_reference_image(image: Image.Image, output_path: Path, transparent: bo
         image = flattened
     image.save(output_path)
     return output_path
+
+
+def _pixel_luminance(pixel: Tuple[int, int, int, int]) -> float:
+    r, g, b = pixel[:3]
+    return (0.2126 * r) + (0.7152 * g) + (0.0722 * b)
+
+
+def _neutral_distance(pixel: Tuple[int, int, int, int]) -> int:
+    r, g, b = pixel[:3]
+    return max(abs(r - g), abs(g - b), abs(r - b))
+
+
+def _apply_door_cutout_alpha(source: Image.Image) -> Image.Image:
+    image = source.convert("RGBA")
+    width, height = image.size
+    pixels = image.load()
+    border_samples: List[Tuple[int, int, int, int]] = []
+    step = max(4, min(width, height) // 24)
+    for x in range(0, width, step):
+        border_samples.append(pixels[x, 0])
+        border_samples.append(pixels[x, height - 1])
+    for y in range(0, height, step):
+        border_samples.append(pixels[0, y])
+        border_samples.append(pixels[width - 1, y])
+    rounded = Counter(
+        (int(r / 16) * 16, int(g / 16) * 16, int(b / 16) * 16)
+        for r, g, b, _a in border_samples
+        if _pixel_luminance((r, g, b, 255)) > 92 and _neutral_distance((r, g, b, 255)) < 28
+    )
+    bg_colors = [color for color, _count in rounded.most_common(4)]
+    if not bg_colors:
+        return image
+
+    alpha = Image.new("L", (width, height), 255)
+    alpha_pixels = alpha.load()
+    visited = set()
+    stack: List[Tuple[int, int]] = []
+
+    def matches_background(pixel: Tuple[int, int, int, int]) -> bool:
+        if _pixel_luminance(pixel) < 72 or _neutral_distance(pixel) > 34:
+            return False
+        for color in bg_colors:
+            if max(abs(pixel[idx] - color[idx]) for idx in range(3)) <= 42:
+                return True
+        return False
+
+    for x in range(width):
+        stack.append((x, 0))
+        stack.append((x, height - 1))
+    for y in range(height):
+        stack.append((0, y))
+        stack.append((width - 1, y))
+
+    while stack:
+        x, y = stack.pop()
+        if (x, y) in visited or x < 0 or y < 0 or x >= width or y >= height:
+            continue
+        visited.add((x, y))
+        pixel = pixels[x, y]
+        if not matches_background(pixel):
+            continue
+        alpha_pixels[x, y] = 0
+        stack.extend(((x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1)))
+
+    center_seed = (width // 2, min(height - 1, int(height * 0.5)))
+    stack = [center_seed]
+    while stack:
+        x, y = stack.pop()
+        if x < 0 or y < 0 or x >= width or y >= height:
+            continue
+        if alpha_pixels[x, y] == 0:
+            continue
+        pixel = pixels[x, y]
+        if _pixel_luminance(pixel) > 42 or _neutral_distance(pixel) > 26:
+            continue
+        alpha_pixels[x, y] = 0
+        stack.extend(((x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1)))
+
+    image.putalpha(alpha.filter(ImageFilter.GaussianBlur(radius=max(1, width // 96))))
+    return image
 
 
 def _stylize_structural_component(source: Image.Image, component_type: Optional[str]) -> Image.Image:
@@ -3940,7 +4059,9 @@ def _apply_background_suppression(source: Image.Image, aggressive: bool = False)
 
 def _background_reference_guide(template_path: Path, output_path: Path, size: Tuple[int, int], transparent: bool, aggressive: bool = False) -> Path:
     source = Image.open(template_path).convert("RGBA").resize(size, Image.Resampling.LANCZOS)
+    template_source = source.copy()
     source = _apply_background_suppression(source, aggressive=aggressive)
+    source = _restore_background_shell_definition(source, template_source)
     return _save_reference_image(source, output_path, transparent)
 
 
@@ -4051,16 +4172,18 @@ def _postprocess_component_for_validation(
     if not path.exists() or not errors:
         return False
     source = Image.open(path).convert("RGBA")
+    changed = False
     if component_type == "background_far_plate" and "center_lane_too_hot" in errors:
-        corrected = _apply_background_suppression(source, aggressive=True)
-        _save_reference_image(corrected, path, transparent=False)
-        return True
+        source = _apply_background_suppression(source, aggressive=True)
+        changed = True
     if component_type == "background_far_plate" and "background_shell_definition_low" in errors:
         template_source = None
         if template_path and template_path.exists():
             template_source = Image.open(template_path).convert("RGBA")
-        corrected = _restore_background_shell_definition(source, template_source)
-        _save_reference_image(corrected, path, transparent=False)
+        source = _restore_background_shell_definition(source, template_source)
+        changed = True
+    if component_type == "background_far_plate" and changed:
+        _save_reference_image(source, path, transparent=False)
         return True
     if component_type == "midground_side_frame" and "midground_center_clutter" in errors:
         corrected = _apply_midground_clearance(source, aggressive=True)
@@ -4144,6 +4267,8 @@ def _render_bespoke_component_from_template(
         if crop_box:
             source = source.crop(crop_box)
         source = source.resize(size, Image.Resampling.LANCZOS)
+        if component_type == "door_frame" and transparent:
+            source = _apply_door_cutout_alpha(source)
         source = _stylize_structural_component(source, component_type)
         if not transparent:
             flattened = Image.new("RGBA", size, (0, 0, 0, 255))
@@ -4166,11 +4291,17 @@ def _retry_prompt_for_validation_errors(component_type: str, prompt: str, errors
     if not errors:
         return None
     if component_type == "background_far_plate" and "center_lane_too_hot" in errors and attempt_index < 2:
-        return f"{prompt}\nRetry instruction: suppress all center-lane contrast and focal heat. The center third must stay dim, calm, fog-soft, and architecturally open with no hotspot, altar read, or bright apse."
+        return f"{prompt}\nRetry instruction: remove the bright floor pool, center glow, ritual-circle read, and any hot apse lighting. The center third must stay dim and architecturally recessed, with visible dark stone structure rather than light bloom."
+    if component_type == "background_far_plate" and "background_shell_definition_low" in errors and attempt_index < 2:
+        return f"{prompt}\nRetry instruction: strengthen shell definition with visible arches, recesses, vertical bay rhythm, and wall-mass layering. Keep the center dim, but not blank or fog-only; it still needs readable stone structure."
     if component_type == "midground_side_frame" and "midground_center_clutter" in errors and attempt_index < 2:
         return f"{prompt}\nRetry instruction: the center third must be transparent and empty. Remove any center arch, center prop, center silhouette, or floor-crossing occlusion. Keep mass only on the extreme left and right."
     if component_type == "midground_side_frame" and "midground_inner_edge_hot" in errors and attempt_index < 2:
         return f"{prompt}\nRetry instruction: remove bright inner-edge columns or glowing doorway reads near the center lane. Keep any side framing dark, matte, and subordinate to traversal readability."
+    if component_type == "door_frame" and "missing_required_transparency" in errors and attempt_index < 2:
+        return f"{prompt}\nRetry instruction: output a true cutout doorway PNG. Preserve transparent pixels outside the stone frame and through the doorway mouth. Do not paint a full rectangular background or surrounding room."
+    if "generation_failed" in errors and attempt_index < 2:
+        return f"{prompt}\nRetry instruction: the previous attempt failed to return a usable image. Return a single finished PNG image only for this component at the requested size."
     if "template_family_drift" in errors and attempt_index < 2:
         return f"{prompt}\nRetry instruction: stay materially closer to the provided guide image. Match the same stone family, value grouping, crack rhythm, edge damage, and overall silhouette discipline. Do not redesign or introduce a new motif."
     return None
@@ -4337,6 +4468,20 @@ def _validate_bespoke_component(
         if inner_edge_lum > max(150.0, edge_lum + 42.0):
             errors.append("midground_inner_edge_hot")
     return len(errors) == 0, errors
+
+
+def _validation_reference_for_component(
+    component_type: str,
+    template_path: Optional[Path],
+    refs_for_job: Optional[List[Path]] = None,
+) -> Optional[Path]:
+    if (
+        component_type in {"background_far_plate", "midground_side_frame"}
+        and refs_for_job
+        and refs_for_job[0].exists()
+    ):
+        return refs_for_job[0]
+    return template_path
 
 
 def _slot_groups_from_plan(plan: List[Dict[str, Any]], built_slots: List[str], failed_slots: List[str]) -> Dict[str, Dict[str, Any]]:
@@ -4540,9 +4685,7 @@ def _capture_runtime_review_screenshot(
     height = int(geometry.get("height") or 1200)
     if browser:
         try:
-            layout_json = json.dumps(project.get("room_layout") or {}, separators=(",", ":")).encode("utf-8")
-            encoded_layout = urllib.parse.quote(base64.b64encode(layout_json).decode("ascii"), safe="")
-            target = f"{base_url}#preview=embed&layout={encoded_layout}&start={urllib.parse.quote(room_id, safe='')}"
+            target = _write_runtime_review_capture_page(project, room_id, base_url, output_path)
             cmd = [
                 browser,
                 "--headless",
@@ -4550,7 +4693,7 @@ def _capture_runtime_review_screenshot(
                 f"--window-size={width},{height}",
                 f"--screenshot={str(output_path)}",
                 "--hide-scrollbars",
-                "--virtual-time-budget=5000",
+                "--virtual-time-budget=8000",
                 target,
             ]
             subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=20)
@@ -4564,6 +4707,63 @@ def _capture_runtime_review_screenshot(
         browser_error = "headless_browser_unavailable"
     _composite_runtime_review_image(room, assets, output_path)
     return "composite_fallback", browser_error
+
+
+def _write_runtime_review_capture_page(
+    project: Dict[str, Any],
+    room_id: str,
+    base_url: str,
+    output_path: Path,
+) -> str:
+    parsed = urllib.parse.urlparse(base_url)
+    scheme = parsed.scheme or "http"
+    netloc = parsed.netloc or "127.0.0.1:8766"
+    # Runtime preview messaging is implemented by the repo-root game page.
+    # Force the wrapper iframe to target that preview surface so we do not
+    # accidentally capture the Sprite Workbench or editor shell UI.
+    game_path = "/index.html"
+    game_url = urllib.parse.urlunparse((scheme, netloc, game_path, "", "", ""))
+    review_root = output_path.parent
+    review_root.mkdir(parents=True, exist_ok=True)
+    layout_path = review_root / "runtime-layout.json"
+    layout_data = project.get("room_layout") or project
+    layout_path.write_text(json.dumps(layout_data, separators=(",", ":")), encoding="utf-8")
+    layout_url = f"{scheme}://{netloc}/tools/2d-sprite-and-animation/projects-data/{project.get('project_id')}/room_environment_assets/{room_id}/review/runtime-layout.json"
+    iframe_src = (
+        f"{game_url}#preview=embed&layout_url={urllib.parse.quote(layout_url, safe='')}"
+        f"&start={urllib.parse.quote(room_id, safe='')}"
+    )
+    capture_html = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Runtime Capture</title>
+  <style>
+    html, body {{
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #000;
+    }}
+    iframe {{
+      border: 0;
+      width: 100vw;
+      height: 100vh;
+      display: block;
+      background: #000;
+    }}
+  </style>
+</head>
+<body>
+  <iframe id="preview" src="{iframe_src}"></iframe>
+</body>
+</html>
+"""
+    capture_page = review_root / "runtime-capture.html"
+    capture_page.write_text(capture_html, encoding="utf-8")
+    return f"{scheme}://{netloc}/tools/2d-sprite-and-animation/projects-data/{project.get('project_id')}/room_environment_assets/{room_id}/review/runtime-capture.html"
 
 
 def _run_runtime_review(
@@ -4724,6 +4924,7 @@ def generate_room_environment_asset_pack(project_id: str, room_id: str, payload:
                 expected_size,
                 transparent,
             )
+            validation_reference_path = _validation_reference_for_component(component_type, template_path, refs_for_job)
             attempt_prompt = prompt
             generated = False
             valid = False
@@ -4744,13 +4945,29 @@ def generate_room_environment_asset_pack(project_id: str, room_id: str, payload:
                     attempt_info["status"] = "generation_failed"
                     attempt_info["validation_errors"] = list(errors)
                     attempt_records.append(attempt_info)
-                    break
+                    retry_prompt = _retry_prompt_for_validation_errors(component_type, attempt_prompt, errors, attempt_index)
+                    if output_path.exists():
+                        output_path.unlink()
+                    if not retry_prompt:
+                        break
+                    attempt_prompt = retry_prompt
+                    refs_for_job = _retry_reference_images_for_component(
+                        component_type,
+                        template_path,
+                        preview_path,
+                        frozen_refs,
+                        reference_root,
+                        expected_size,
+                        transparent,
+                    )
+                    validation_reference_path = _validation_reference_for_component(component_type, template_path, refs_for_job)
+                    continue
                 valid, errors = _validate_bespoke_component(
                     output_path,
                     component_type,
                     expected_size,
                     str(template.get("transparency_mode") or "opaque"),
-                    template_path,
+                    validation_reference_path,
                 )
                 postprocessed = False
                 if errors and _postprocess_component_for_validation(output_path, component_type, errors, attempt_index, template_path):
@@ -4760,7 +4977,7 @@ def generate_room_environment_asset_pack(project_id: str, room_id: str, payload:
                         component_type,
                         expected_size,
                         str(template.get("transparency_mode") or "opaque"),
-                        template_path,
+                        validation_reference_path,
                     )
                 attempt_info["postprocessed"] = postprocessed
                 attempt_info["status"] = "pass" if valid and not errors else "validation_failed"
@@ -4783,6 +5000,7 @@ def generate_room_environment_asset_pack(project_id: str, room_id: str, payload:
                     expected_size,
                     transparent,
                 )
+                validation_reference_path = _validation_reference_for_component(component_type, template_path, refs_for_job)
             if generated and valid and not errors:
                 pass
         if not generated:
@@ -4836,7 +5054,12 @@ def generate_room_environment_asset_pack(project_id: str, room_id: str, payload:
     required_ai_slots = [
         slot_id
         for slot_id, asset in assets.items()
-        if isinstance(asset, dict) and asset.get("url") and str(asset.get("component_type") or "") in V2_SLOT_SPEC_BY_TYPE
+        if (
+            isinstance(asset, dict)
+            and asset.get("url")
+            and str(asset.get("component_type") or "") in V2_SLOT_SPEC_BY_TYPE
+            and _component_adaptation_mode(str(asset.get("component_type") or "")) not in {"direct", "stretch"}
+        )
     ]
     ai_generated_slots = [
         slot_id
@@ -4902,7 +5125,7 @@ def generate_room_environment_asset_pack(project_id: str, room_id: str, payload:
     env["runtime"]["status"] = "ready" if status == "ready" else "blocked"
     env["runtime"]["source"] = "approved_preview" if status == "ready" else ("runtime_review_failed" if runtime_review.get("status") == "fail" else "bespoke_generation_failed")
     env["runtime"]["applied_preview_id"] = preview_id if status == "ready" else None
-    _sync_v3_environment_state(env, room, biome_id=biome_pack.get("biome_id"), generated_at=now_iso())
+    _sync_v3_environment_state(project_id, env, room, biome_id=biome_pack.get("biome_id"), generated_at=now_iso())
     project["updated_at"] = now_iso()
     save_project(project)
     append_history_event(project_id, {
@@ -4946,7 +5169,7 @@ def approve_room_environment_preview(project_id: str, room_id: str, payload: Dic
     bespoke_manifest["schema_validation"] = _validate_component_schemas(room, env["spec"], _room_geometry(room))
     bespoke_manifest["runtime_review"] = {"status": "idle", "fail_reasons": [], "metrics": {}, "screenshot_url": None, "review_mode": None}
     bespoke_manifest["review"] = copy.deepcopy(bespoke_manifest["runtime_review"])
-    _sync_v3_environment_state(env, room, biome_id=bespoke_manifest.get("biome_id"), generated_at=now_iso())
+    _sync_v3_environment_state(project_id, env, room, biome_id=bespoke_manifest.get("biome_id"), generated_at=now_iso())
     asset_pack = env["runtime"]["asset_pack"]
     asset_pack["source_preview_id"] = preview_id
     if asset_pack.get("assets"):
@@ -5037,35 +5260,6 @@ def record_room_environment_feedback_event(project_id: str, room_id: str, payloa
         "ok": True,
         "environment": copy.deepcopy(env),
         "suggestion_id": suggestion_id,
-    }
-
-
-def record_room_environment_manual_review(project_id: str, room_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:
-    project = load_project(project_id)
-    room = _find_room(project, room_id)
-    env = _ensure_room_environment(room)
-    env["environment_pipeline_version"] = envv3.V3_PIPELINE_VERSION
-    envv3.ensure_v3_metadata(env, room)
-    record = envv3.append_manual_review_round(env, payload if isinstance(payload, dict) else {}, now_iso())
-    _sync_v3_environment_state(
-        env,
-        room,
-        biome_id=((env.get("room_intent") or {}).get("selected_biome_id")),
-        generated_at=now_iso(),
-    )
-    project["updated_at"] = now_iso()
-    save_project(project)
-    append_history_event(project_id, {
-        "type": "room_environment_manual_review_recorded",
-        "room_id": room_id,
-        "reviewer_role": record.get("reviewer_role"),
-        "round_number": record.get("round_number"),
-        "created_at": now_iso(),
-    })
-    return {
-        "ok": True,
-        "environment": copy.deepcopy(env),
-        "review_round": copy.deepcopy(record),
     }
 
 

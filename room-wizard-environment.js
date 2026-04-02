@@ -591,20 +591,7 @@ function ensureRoomEnvironment(room) {
     if (!e.review_state.runtime_review || typeof e.review_state.runtime_review !== 'object') {
       e.review_state.runtime_review = { status: 'idle', fail_reasons: [], warning_reasons: [], metrics: {}, screenshot_url: null, review_mode: null };
     }
-    if (!Array.isArray(e.review_state.qa_review_rounds)) e.review_state.qa_review_rounds = [];
-    if (!Array.isArray(e.review_state.creative_review_rounds)) e.review_state.creative_review_rounds = [];
     if (typeof e.review_state.approval_status !== 'string') e.review_state.approval_status = 'draft';
-    if (typeof e.review_state.review_bundle_id !== 'string' && e.review_state.review_bundle_id !== null) e.review_state.review_bundle_id = null;
-    if (!e.review_state.validation_plan || typeof e.review_state.validation_plan !== 'object') e.review_state.validation_plan = {};
-    if (!Array.isArray(e.review_state.validation_plan.review_surface_order)) {
-      e.review_state.validation_plan.review_surface_order = ['room_intent', 'biome_selection', 'component_contracts', 'assembly_plan_overlay', 'slot_gallery', 'combined_kit', 'runtime_view', 'contrast_qa_view'];
-    }
-    if (!Array.isArray(e.review_state.validation_plan.required_screenshot_stages)) {
-      e.review_state.validation_plan.required_screenshot_stages = ['room_intent', 'biome_selection', 'component_contracts', 'assembly_plan_overlay', 'slot_gallery', 'combined_kit', 'runtime_view', 'contrast_qa_view', 'structural_only_runtime', 'scenic_only_runtime'];
-    }
-    if (!e.review_state.validation_plan.required_round_counts || typeof e.review_state.validation_plan.required_round_counts !== 'object') {
-      e.review_state.validation_plan.required_round_counts = { qa: 3, creative: 3 };
-    }
     if (!e.review_state.validation_status || typeof e.review_state.validation_status !== 'object') {
       e.review_state.validation_status = { status: 'pending', issues: [] };
     }

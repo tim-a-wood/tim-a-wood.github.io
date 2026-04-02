@@ -210,7 +210,6 @@ Responsible for:
 
 - environment pipeline version storage
 - v2/v3 coexistence handling
-- review bundle persistence
 - migration helpers
 
 ---
@@ -477,22 +476,9 @@ Required fields:
 
 - `automated_validation`
 - `runtime_review`
-- `qa_review_rounds`
-- `creative_review_rounds`
 - `approval_status`
-- `review_bundle_id`
 
-Each review round must include:
-
-- `round_number`
-- `reviewer_role`
-- `reviewer_name`
-- `date`
-- `screenshots`
-- `findings`
-- `finding_codes`
-- `blockers`
-- `decision`
+Implementation-phase QA and Creative review are external validation activities and must not be represented as in-tool review-round persistence or product workflow state.
 - `required_changes`
 
 ---
@@ -686,11 +672,33 @@ The system shall support the following Creative rejection codes:
 
 ## 11.3 Biome Identity Review
 
-The review workflow shall display the biome identity checklist during manual review and require the reviewer to confirm whether each dimension is:
+QA and Creative shall use this checklist during external phase reviews and confirm whether each dimension is:
 
 - pass
 - weak
 - fail
+
+## 11.4 Early External Review Checkpoints
+
+The implementation plan shall include three external stakeholder checkpoints:
+
+1. Planner checkpoint
+Development presents room intent, biome selection, and assembly-plan coverage for the first slice. QA and Creative review whether the plan matches traversal reality and intended visual language.
+
+2. Slot checkpoint
+Development presents the first calibrated slot outputs for core structural component types. QA and Creative review component fit, shell coherence, and biome distinctiveness before broader slot rollout.
+
+3. Runtime checkpoint
+Development presents the composed runtime outputs for the calibration rooms. QA and Creative review traversal readability, shell hierarchy, and scenic restraint before slice completion.
+
+Each checkpoint must produce a short written findings memo outside the tool and those findings must be incorporated before the next implementation phase proceeds.
+
+The current locked first slice is:
+
+- biome: `ruined-gothic`
+- direction: medieval dungeon / castle
+- rooms: `RG-R1`, `RG-R2`, `RG-R3`
+- fixture: [ruined_gothic_calibration_rooms.json](/Users/timwood/Desktop/projects/PWA/MV/tests/fixtures/room_environment_v3/ruined_gothic_calibration_rooms.json)
 
 ---
 
@@ -740,10 +748,9 @@ stateDiagram-v2
     ProposalReady --> Planned: assembly plan passes coverage validation
     Planned --> Generated: slot generation passes component-fit validation
     Generated --> RuntimeReviewed: runtime screenshots captured and validated
-    RuntimeReviewed --> ManualReview: review bundle created
-    ManualReview --> NeedsRevision: QA or Creative blocker recorded
+    RuntimeReviewed --> NeedsRevision: external QA or Creative blocker recorded
     NeedsRevision --> Planned: planner/prompt/biome revised
-    ManualReview --> Approved: QA pass + Creative pass + user acceptance
+    RuntimeReviewed --> Approved: runtime validation passes + user acceptance
     Approved --> Applied: proposal explicitly accepted
 ```
 
@@ -773,16 +780,17 @@ flowchart TD
 - The UI must not silently switch a room from one biome kit to another.
 - The UI must require explicit confirmation before applying v3-generated environment outputs to the room.
 
-## 13.2 Review Bundle Behavior
+## 13.2 External Review Artifacts
 
-Every formal review round must create or update a named review bundle with:
+Each external QA or Creative checkpoint should produce a lightweight review memo outside the tool with:
 
 - room id
 - biome id
-- round number
-- stage
+- checkpoint name
 - reviewer role
 - timestamp
+- findings
+- requested changes
 
 ## 13.3 Screenshot Surface Set
 

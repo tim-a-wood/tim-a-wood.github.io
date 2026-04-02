@@ -1732,12 +1732,6 @@ def record_project_room_environment_feedback(project_id: str, room_id: str, payl
     _sync_room_environment_system_config()
     return room_environment_system.record_room_environment_feedback_event(project_id, room_id, payload)
 
-
-def record_project_room_environment_manual_review(project_id: str, room_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:
-    _sync_room_environment_system_config()
-    return room_environment_system.record_room_environment_manual_review(project_id, room_id, payload)
-
-
 def generate_project_biome_pack_visuals(project_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:
     _sync_room_environment_system_config()
     return room_environment_system.generate_biome_pack_visuals(project_id, payload)
@@ -7997,11 +7991,6 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
             if room_feedback_match:
                 project_id, room_id = room_feedback_match.groups()
                 return self._send_json(record_project_room_environment_feedback(project_id, room_id, read_body(self)))
-
-            room_manual_review_match = re.fullmatch(r"/api/projects/([^/]+)/rooms/([^/]+)/environment/manual-review", path)
-            if room_manual_review_match:
-                project_id, room_id = room_manual_review_match.groups()
-                return self._send_json(record_project_room_environment_manual_review(project_id, room_id, read_body(self)))
 
             duplicate_match = re.fullmatch(r"/api/projects/([^/]+)/duplicate", path)
             if duplicate_match:

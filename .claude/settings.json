@@ -134,7 +134,8 @@
       "Bash(ls /Users/timwood/Desktop/projects/PWA/MV/server* /Users/timwood/Desktop/projects/PWA/MV/app.py /Users/timwood/Desktop/projects/PWA/MV/main.py)",
       "Bash(ls /Users/timwood/Desktop/projects/PWA/MV/tools/2d-sprite-and-animation/*.py)",
       "Bash(kill 31240)",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "Bash(do f=/Users/timwood/Desktop/projects/PWA/MV/agents/$agent/charter.md echo '=== $agent ===' grep -n \"Standing Directives\\\\|Must Never\\\\|founder approval\\\\|Founder\" $f)"
     ],
     "additionalDirectories": [
       "/Users/timwood/.claude/skills"

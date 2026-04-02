@@ -35,6 +35,14 @@
 12. [Marketing & Splash Surfaces](#12-marketing--splash-surfaces)
 13. [CSS Variables Reference](#13-css-variables-reference)
 14. [Anti-Patterns](#14-anti-patterns)
+15. [Agent Dashboard Charts](#15-agent-dashboard-charts)
+    - [Chart type taxonomy](#151-chart-type-taxonomy)
+    - [Color palette](#152-color-palette)
+    - [Chart card shell](#153-chart-card-shell)
+    - [Empty and pre-launch states](#154-empty-and-pre-launch-states)
+    - [Legend and typography](#155-legend-and-typography)
+    - [Motion policy](#156-motion-policy)
+    - [Anti-patterns](#157-anti-patterns)
 
 ---
 
@@ -1297,3 +1305,319 @@ Do not do any of the following. These violate the design language:
 ### Brand Identity
 - **Never use light/white backgrounds** anywhere in the tool UI — this is a dark-theme-only product.
 - **Never use rounded icon-only buttons without a visible border** — always keep the 1px border at `var(--line)`.
+
+---
+
+## 15. Agent Dashboard Charts
+
+Each agent's main dashboard view may contain **up to 3 charts**. Charts replace the priorities table in the main view. Priorities are covered by the Issues / Opportunities / Tasks lanes; the chart section answers a different question: *how is this domain performing over time?*
+
+Every chart must map to a specific decision the founder can make. Decorative charts are not permitted.
+
+---
+
+### 15.1 Chart Type Taxonomy
+
+Select the chart type from the data shape. Never select a chart type for aesthetic reasons.
+
+| Data shape | Chart type | Class modifier |
+|---|---|---|
+| Trend over time (continuous) | Area | `os-chart-card--area` |
+| Comparison across discrete categories | Bar (vertical) | `os-chart-card--bar` |
+| Part-to-whole (≤5 slices) | Donut | `os-chart-card--donut` |
+| Single current value with context | Metric card (§ 8.15) | — (not a chart) |
+| Ranked list with values | Horizontal bar | `os-chart-card--hbar` |
+
+**Rules:**
+- Pie charts are not used. Use donut — the center hole provides a slot for a summary value.
+- Donut charts must have ≤ 5 slices. If you have more categories, group the tail as "Other."
+- Area charts use a single data series per chart. Do not stack two series in the same area chart — use a bar chart for multi-series comparison.
+- Metric cards (§ 8.15) are the correct choice for single KPI values. Do not render a chart for one number.
+
+---
+
+### 15.2 Color Palette
+
+#### Agent identity colors
+
+Each agent has a designated identity color used for nav dots, chart primary series, and card accents. These are defined in `os-dashboard.html :root` and must be referenced by token, never by hex value.
+
+| Agent | Token | Value |
+|---|---|---|
+| Orchestrator | `--c-orchestrator` | `#00e8c8` |
+| Engineering | `--c-engineering` | `#38bdf8` |
+| Design | `--c-design` | `#818cf8` |
+| QA | `--c-qa` | `#77b8ff` |
+| Analytics | `--c-analytics` | `#4ade80` |
+| Marketing | `--c-marketing` | `#f5986e` |
+| Legal | `--c-legal` | `#a78bfa` |
+| Finance | `--c-finance` | `#f0abfc` |
+| Strategy | `--c-strategy` | `#fbbf24` |
+| Research | `--c-research` | `#e879f9` |
+| Cybersecurity | `--c-cybersecurity` | `#f85149` |
+| Support | `--c-support` | `#fbbf24` |
+| Audio | `--c-audio` | `#fb923c` |
+| Animation | `--c-animation` | `#34d399` |
+| Narrative | `--c-narrative` | `#c084fc` |
+| Creative | `--c-creative` | `#f472b6` |
+| Game Director | `--c-game-director` | `#e2e8f0` |
+| Game Systems | `--c-game-systems` | `#67e8f9` |
+| Level Design | `--c-level-design` | `#86efac` |
+
+#### Chart series colors
+
+When a chart requires multiple data series, use this fixed sequence. Never invent new series colors.
+
+```
+Series 1 (primary):  var(--agent-color)           /* agent identity color */
+Series 2:            rgba(255, 255, 255, 0.35)     /* neutral secondary */
+Series 3:            var(--warning)                /* #d29922 — only if the third series represents a caution/risk dimension */
+Series 3 (neutral):  rgba(255, 255, 255, 0.18)    /* if the third series is not a risk dimension */
+```
+
+Do not use `--good`, `--error`, or `--accent` as generic series colors — these carry semantic meaning (success, failure, primary action) and will be misread.
+
+#### Chart grid and axis colors
+
+```css
+/* Grid lines */
+border-color: rgba(255, 255, 255, 0.06);
+
+/* Axis labels */
+color: var(--muted);   /* #5d7870 */
+font-family: var(--font-mono);
+font-size: var(--font-size-xs);  /* 11px */
+```
+
+#### Tooltip
+
+```css
+background: var(--panel-2);            /* #07090c */
+border: 1px solid var(--stroke-strong);
+border-radius: var(--radius-sm);       /* 8px */
+color: var(--text);
+font-size: var(--font-size-sm);        /* 13px */
+padding: var(--space-2) var(--space-3); /* 8px 12px */
+box-shadow: var(--shadow-md);
+```
+
+---
+
+### 15.3 Chart Card Shell
+
+All charts live inside `.os-chart-card`. Do not build custom chart wrappers. The existing shell components in `os-dashboard.html` are the spec.
+
+```html
+<div class="os-chart-card [os-chart-card--donut|--bar|--area|--hbar]">
+  <div class="os-chart-card-head">
+    <h3 class="os-chart-card-title" id="[agent]-chart-[type]-title">[Chart title]</h3>
+    <span class="os-chart-card-tier">[LIVE | MANUAL | POST-LAUNCH]</span>
+  </div>
+  <div class="os-chart-canvas-wrap [os-chart-canvas-wrap--tall]"
+       data-os-canvas-state="idle"
+       role="img"
+       aria-labelledby="[agent]-chart-[type]-title"
+       aria-describedby="[agent]-chart-[type]-desc">
+    <div class="os-chart-skeleton" aria-hidden="true"></div>
+    <div class="os-chart-error" role="alert" aria-live="polite"></div>
+    <canvas data-os-chart="[chart-id]" aria-hidden="true"></canvas>
+  </div>
+  <p class="os-chart-foot" id="[agent]-chart-[type]-desc">[One-sentence data provenance note.]</p>
+</div>
+```
+
+**Tier badges:**
+- `LIVE` — data updates automatically from a server or file read
+- `MANUAL` — data is updated by hand when the agent runs
+- `POST-LAUNCH` — data does not yet exist; displayed as an honest placeholder
+
+**`os-chart-canvas-wrap` states** (set via `data-os-canvas-state`):
+- `idle` — canvas renders normally
+- `loading` — skeleton shimmer shows, canvas hidden
+- `error` — error message shows, canvas hidden
+- `empty` — custom empty state shows (see § 15.4), canvas hidden
+
+**Title rules:**
+- Use sentence case, not title case: "Priority breakdown by risk" not "Priority Breakdown by Risk"
+- Include the time window if relevant: "Open issues · last 30 days"
+- Max 50 characters — truncate with `text-overflow: ellipsis` if longer
+
+---
+
+### 15.4 Empty and Pre-Launch States
+
+Charts without data must communicate why they are empty. Do not show an empty axis, a chart of all zeros, or a spinner with no resolution.
+
+#### Three distinct states
+
+**Loading** (`data-os-canvas-state="loading"`) — data is being fetched. The skeleton shimmer shows. Use only during actual async loads; do not leave a chart in loading state permanently.
+
+**Error** (`data-os-canvas-state="error"`) — data fetch failed. The `.os-chart-error` div renders with a plain-English message. Format: "Couldn't load [metric name]. Check the server connection." No stack traces visible to the user.
+
+**Empty / Pre-launch** (`data-os-canvas-state="empty"`) — data does not exist yet. This is the honest pre-launch state. Render an inline message inside `.os-chart-canvas-wrap`:
+
+```html
+<div class="os-chart-empty" aria-live="polite">
+  <span class="os-chart-empty-label">No data yet</span>
+  <span class="os-chart-empty-sub">Tracking begins after first [event that produces data].</span>
+</div>
+```
+
+```css
+.os-chart-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  height: 100%;
+  min-height: 120px;
+  color: var(--muted);
+}
+
+.os-chart-empty-label {
+  font-size: var(--font-size-base);
+  font-family: var(--font-sans);
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.os-chart-empty-sub {
+  font-size: var(--font-size-sm);
+  font-family: var(--font-sans);
+  color: var(--muted);
+  text-align: center;
+  max-width: 240px;
+  line-height: 1.5;
+}
+```
+
+**The `POST-LAUNCH` tier badge on the card head is the companion signal** — it tells the founder at a glance that this chart is a placeholder, not a system error. Always pair `POST-LAUNCH` badge + `empty` canvas state.
+
+---
+
+### 15.5 Legend and Typography
+
+Chart.js renders legends via its own DOM. Always disable Chart.js's default legend and render custom legends in HTML for token consistency.
+
+#### Legend placement
+
+Legends appear **below the chart canvas**, inside `.os-chart-foot` or a `.os-chart-legend` sibling.
+
+```html
+<div class="os-chart-legend">
+  <span class="os-chart-legend-item">
+    <span class="os-chart-legend-dot" style="background: var(--c-[agent])"></span>
+    [Series label]
+  </span>
+</div>
+```
+
+```css
+.os-chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  padding-top: var(--space-2);
+}
+
+.os-chart-legend-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--font-size-xs);   /* 11px */
+  font-family: var(--font-sans);
+  color: var(--muted);
+}
+
+.os-chart-legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
+}
+```
+
+#### Axis labels (Chart.js config)
+
+```js
+scales: {
+  x: {
+    ticks: {
+      font: { family: "'DM Mono', monospace", size: 11 },
+      color: '#5d7870',   /* var(--muted) resolved value */
+    },
+    grid: { color: 'rgba(255,255,255,0.06)' }
+  },
+  y: {
+    ticks: {
+      font: { family: "'DM Mono', monospace", size: 11 },
+      color: '#5d7870',
+    },
+    grid: { color: 'rgba(255,255,255,0.06)' }
+  }
+}
+```
+
+#### Donut center label
+
+For donut charts, render the summary value in the chart center using the Chart.js `afterDraw` plugin hook, not a positioned HTML element.
+
+```js
+{
+  id: 'centerLabel',
+  afterDraw(chart) {
+    const { ctx, chartArea: { width, height, left, top } } = chart;
+    const cx = left + width / 2;
+    const cy = top + height / 2;
+    ctx.save();
+    ctx.font = `600 22px "Plus Jakarta Sans", sans-serif`;
+    ctx.fillStyle = '#cce8e0';  /* var(--text) */
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(centerValue, cx, cy - 8);
+    ctx.font = `400 11px "DM Mono", monospace`;
+    ctx.fillStyle = '#5d7870';  /* var(--muted) */
+    ctx.fillText(centerLabel, cx, cy + 12);
+    ctx.restore();
+  }
+}
+```
+
+---
+
+### 15.6 Motion Policy
+
+Chart entry animation is permitted but constrained.
+
+**On initial render:** data points animate in over `400ms` using Chart.js's built-in `animation.duration`. Easing: `easeOutQuart`. This is the one permitted exception to the 200ms base duration — chart data entry reads as natural at 400ms because data points are numerous.
+
+**On data update (re-render):** no animation. Update data silently via `chart.data.datasets[0].data = newData; chart.update('none')`. Animated re-renders on polling updates cause visual noise.
+
+**Card entry animation:** `.os-chart-card` fades in with the `.os-dash-enter` class sequence already defined in `os-dashboard.html`. No per-agent additions needed.
+
+**No hover animations on chart elements beyond tooltip.** Chart.js hover mode should be set to `mode: 'index'` for bars and areas, `mode: 'nearest'` for donuts. No segment scale-up on hover — it causes layout reflow in SVG fallbacks.
+
+```js
+// Standard Chart.js animation config for all agent charts
+animation: { duration: 400, easing: 'easeOutQuart' },
+hover: { animationDuration: 0 },
+responsiveAnimationDuration: 0
+```
+
+---
+
+### 15.7 Anti-Patterns
+
+| Anti-Pattern | Why Rejected | Correct Approach |
+|---|---|---|
+| More than 3 charts per agent dashboard | Exceeds founder attention budget; visual richness ≠ signal | Maximum 3. If a fourth seems necessary, one of the first three is wrong. |
+| Pie chart | No center slot for summary value; harder to read than donut | Use donut (`os-chart-card--donut`) |
+| Donut with 6+ slices | Slices below ~5° are unreadable | Group tail as "Other" — max 5 slices |
+| Empty axis with zero data | Reads as broken, not honest | Use `data-os-canvas-state="empty"` + `POST-LAUNCH` badge |
+| Chart.js default legend | Uses system fonts; breaks token system | Disable and render custom `.os-chart-legend` |
+| Stacked area chart with 2+ series | Too visually complex for small card | Use bar chart for multi-series comparison |
+| Animated re-renders on polling updates | Causes visual flicker every poll cycle | `chart.update('none')` on data refreshes |
+| `rgba` series colors with `< 0.15` opacity | Effectively invisible on dark background | Minimum fill alpha `0.15`; stroke alpha `0.85` |
+| Novel hex colors for series | Breaks token audit trail | Use agent identity token + neutral sequence only |
+| `transition: all` on `.os-chart-card` | Catches layout properties; causes reflow | Card entry is handled by `.os-dash-enter` — do not add per-chart transitions |

@@ -1,20 +1,15 @@
 {
-  "_note": "Updated by the legal agent after each task. Plain language — no jargon. This is risk analysis, not legal advice.",
-  "updated": "2026-04-01",
+  "_note": "Updated by the legal agent after each task. Plain language \u2014 no jargon. This is risk analysis, not legal advice.",
+  "updated": "2026-04-02",
   "schema_version": "v1.0",
   "priorities": [
     {
-      "id": 1,
-      "os_contexts": ["business", "sprite", "other-income"],
-      "title": "Verify the EU AI Act disclosure requirements are met by the Copilot UI",
-      "status": "in-progress",
-      "risk": "high",
-      "note": "The EU AI Act (enforcement began August 2024) requires synthetic content to be disclosed. The Copilot suggestions must clearly say they are AI-generated. Current UI appears to do this but hasn't been formally verified against the specific disclosure language requirements.",
-      "proposed_solution": "Check Copilot UI copy against EU AI Act synthetic-content disclosure rules and patch any gaps before EU-facing use."
-    },
-    {
       "id": 2,
-      "os_contexts": ["business", "sprite", "other-income"],
+      "os_contexts": [
+        "business",
+        "sprite",
+        "other-income"
+      ],
       "title": "Check whether the Gemini API Data Processing Addendum opt-out applies to our usage tier",
       "status": "in-progress",
       "risk": "high",
@@ -23,7 +18,11 @@
     },
     {
       "id": 3,
-      "os_contexts": ["business", "sprite", "other-income"],
+      "os_contexts": [
+        "business",
+        "sprite",
+        "other-income"
+      ],
       "title": "Draft the user-facing disclosure for AI-generated content before public launch",
       "status": "paused",
       "risk": "med",
@@ -52,7 +51,7 @@
     {
       "id": "ip-review",
       "name": "IP Review",
-      "description": "IP exposure assessment for an AI feature — user IP status, output ownership, training data risk, recommended disclosures.",
+      "description": "IP exposure assessment for an AI feature \u2014 user IP status, output ownership, training data risk, recommended disclosures.",
       "trigger": "Any new AI feature, content generation workflow, or user-generated content surface",
       "last_run": null,
       "output_location": null
@@ -60,7 +59,7 @@
     {
       "id": "tos-check",
       "name": "ToS Check",
-      "description": "Material obligations and restrictions of an API ToS relevant to this product — plain language summary with citations.",
+      "description": "Material obligations and restrictions of an API ToS relevant to this product \u2014 plain language summary with citations.",
       "trigger": "Before any new API integration, or when a provider updates their ToS",
       "last_run": null,
       "output_location": null
@@ -68,7 +67,7 @@
     {
       "id": "privacy-audit",
       "name": "Privacy Audit",
-      "description": "GDPR/CCPA/EU AI Act obligations for a new data flow — disclosure requirements, consent mechanisms, DPA status.",
+      "description": "GDPR/CCPA/EU AI Act obligations for a new data flow \u2014 disclosure requirements, consent mechanisms, DPA status.",
       "trigger": "Any new data flow to external APIs or new user data collection",
       "last_run": null,
       "output_location": null
@@ -76,7 +75,7 @@
     {
       "id": "launch-legal-review",
       "name": "Launch Legal Review",
-      "description": "AI disclosure compliance, output IP status, and data processing obligations — go/flag/block recommendation.",
+      "description": "AI disclosure compliance, output IP status, and data processing obligations \u2014 go/flag/block recommendation.",
       "trigger": "Before any public-facing launch or feature release",
       "last_run": null,
       "output_location": null
@@ -85,7 +84,11 @@
   "opportunities": [
     {
       "id": "legal-o4",
-      "os_contexts": ["business", "sprite", "other-income"],
+      "os_contexts": [
+        "business",
+        "sprite",
+        "other-income"
+      ],
       "title": "Review all open-source dependencies for GPL or AGPL license exposure",
       "status": "paused",
       "risk": "med",
@@ -94,12 +97,80 @@
     },
     {
       "id": "legal-o5",
-      "os_contexts": ["business", "other-income"],
+      "os_contexts": [
+        "business",
+        "other-income"
+      ],
       "title": "Business plan: go-live checklist before payments and mailing lists",
       "status": "in-progress",
       "risk": "high",
       "note": "Next step from the initial business plan (Apr 2026). Before charging or collecting emails at scale: Terms, Privacy, AI disclosure, DPA status, and payment flow reviewed.",
       "proposed_solution": "Draft one checklist (ToS, Privacy, payments, email capture, AI labels); have counsel review before material launch."
     }
-  ]
+  ],
+  "legal_chart": {
+    "items": [
+      {
+        "label": "GDPR/Privacy",
+        "value": 0
+      },
+      {
+        "label": "IP/Copyright",
+        "value": 0
+      },
+      {
+        "label": "AI liability",
+        "value": 0
+      },
+      {
+        "label": "Contracts",
+        "value": 0
+      }
+    ],
+    "status": [
+      {
+        "label": "Open",
+        "value": 0,
+        "key": "accent"
+      },
+      {
+        "label": "In progress",
+        "value": 0,
+        "key": "warning"
+      },
+      {
+        "label": "Resolved",
+        "value": 0,
+        "key": "good"
+      },
+      {
+        "label": "Deferred",
+        "value": 0,
+        "key": "muted"
+      }
+    ],
+    "status_n": 0,
+    "compliance": [
+      {
+        "label": "GDPR consent",
+        "value": 0,
+        "key": "muted"
+      },
+      {
+        "label": "Privacy policy",
+        "value": 0,
+        "key": "muted"
+      },
+      {
+        "label": "ToS",
+        "value": 0,
+        "key": "muted"
+      },
+      {
+        "label": "AI disclosure",
+        "value": 0,
+        "key": "muted"
+      }
+    ]
+  }
 }

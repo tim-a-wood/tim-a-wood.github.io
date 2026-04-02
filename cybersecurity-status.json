@@ -1,12 +1,15 @@
 {
-  "_note": "Updated by the cybersecurity agent after each task. Plain language — no jargon.",
+  "_note": "Updated by the cybersecurity agent after each task. Plain language \u2014 no jargon.",
   "updated": "2026-03-31",
   "schema_version": "v1.0",
   "priorities": [
     {
       "id": 1,
-      "os_contexts": ["business", "sprite"],
-      "title": "Audit every place the tools write user input to the DOM — XSS risk",
+      "os_contexts": [
+        "business",
+        "sprite"
+      ],
+      "title": "Audit every place the tools write user input to the DOM \u2014 XSS risk",
       "status": "in-progress",
       "risk": "high",
       "note": "Entity names, room names, and any user-created string written via innerHTML is a potential XSS vector. All DOM write operations in the room editor and sprite workbench must be audited before any external user exposure. This is a P0 if found after public launch.",
@@ -14,7 +17,10 @@
     },
     {
       "id": 2,
-      "os_contexts": ["business", "sprite"],
+      "os_contexts": [
+        "business",
+        "sprite"
+      ],
       "title": "Add Content Security Policy headers to all HTML pages",
       "status": "in-progress",
       "risk": "high",
@@ -23,7 +29,10 @@
     },
     {
       "id": 3,
-      "os_contexts": ["business", "sprite"],
+      "os_contexts": [
+        "business",
+        "sprite"
+      ],
       "title": "Run a prompt injection test on the Copilot before any public release",
       "status": "paused",
       "risk": "high",
@@ -32,7 +41,11 @@
     },
     {
       "id": 4,
-      "os_contexts": ["business", "sprite", "other-income"],
+      "os_contexts": [
+        "business",
+        "sprite",
+        "other-income"
+      ],
       "title": "Verify API keys are not present in client-side code or git history",
       "status": "needs-review",
       "risk": "high",
@@ -64,7 +77,7 @@
     {
       "id": "security-review",
       "name": "Security Review",
-      "description": "XSS vectors, credential exposure, CORS/CSP gaps, input validation — explicit pass/flag/block call.",
+      "description": "XSS vectors, credential exposure, CORS/CSP gaps, input validation \u2014 explicit pass/flag/block call.",
       "trigger": "Any PR touching API integration, DOM writes, authentication, or input handling",
       "last_run": "2026-03-28",
       "output_location": "artifacts/security-audit-2026-03-28.md"
@@ -72,7 +85,7 @@
     {
       "id": "credential-audit",
       "name": "Credential Audit",
-      "description": "Full scan for API keys in client code, git history, and log output — findings with remediation steps.",
+      "description": "Full scan for API keys in client code, git history, and log output \u2014 findings with remediation steps.",
       "trigger": "Quarterly or after any contributor change",
       "last_run": "2026-03-28",
       "output_location": "artifacts/security-audit-2026-03-28.md"
@@ -80,11 +93,67 @@
     {
       "id": "prompt-injection-test",
       "name": "Prompt Injection Test",
-      "description": "Adversarial input test results — jailbreaks, adversarial descriptions, entity name injection — pass/fail per category.",
+      "description": "Adversarial input test results \u2014 jailbreaks, adversarial descriptions, entity name injection \u2014 pass/fail per category.",
       "trigger": "Before any Copilot prompt change or new user input surface touching external AI APIs",
       "last_run": null,
       "output_location": null
     }
   ],
-  "opportunities": []
+  "opportunities": [],
+  "cybersecurity_chart": {
+    "posture": [
+      {
+        "label": "Passed",
+        "value": 0,
+        "key": "good"
+      },
+      {
+        "label": "Needs review",
+        "value": 0,
+        "key": "warning"
+      },
+      {
+        "label": "Open finding",
+        "value": 0,
+        "key": "accent"
+      }
+    ],
+    "posture_n": 0,
+    "surface": [
+      {
+        "label": "API keys",
+        "value": 0
+      },
+      {
+        "label": "Prompt injection",
+        "value": 0
+      },
+      {
+        "label": "Data privacy",
+        "value": 0
+      },
+      {
+        "label": "Auth/sessions",
+        "value": 0
+      }
+    ],
+    "findings": [
+      {
+        "label": "Critical",
+        "value": 0,
+        "key": "accent"
+      },
+      {
+        "label": "High",
+        "value": 0,
+        "key": "warning"
+      },
+      {
+        "label": "Medium",
+        "value": 0,
+        "key": "muted"
+      }
+    ],
+    "findings_n": 0
+  }
 }

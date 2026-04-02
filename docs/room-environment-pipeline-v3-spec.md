@@ -105,9 +105,27 @@ V3 is split into five stages:
 2. Biome kit definition
 3. Room assembly planning
 4. Slot generation
-5. Runtime and manual review
+5. Runtime and external phase review
 
 Each stage has an explicit contract and explicit fail conditions.
+
+QA and Creative must be included as external reviewers at three early checkpoints:
+
+1. Planner checkpoint
+Review the room intent, biome choice, and assembly-plan coverage before broad slot generation work continues.
+
+2. Slot checkpoint
+Review the first calibrated slot outputs for component fit, shell language, and biome identity before scaling the slot set.
+
+3. Runtime checkpoint
+Review the composed runtime result before the slice is considered ready for wider rollout.
+
+The locked first slice for this pass is:
+
+- biome: `ruined-gothic`
+- direction: medieval dungeon / castle
+- calibration rooms: `RG-R1` Gatehouse Threshold, `RG-R2` Broken Hall Passage, `RG-R3` Keep Descent Shaft
+- fixture file: [ruined_gothic_calibration_rooms.json](/Users/timwood/Desktop/projects/PWA/MV/tests/fixtures/room_environment_v3/ruined_gothic_calibration_rooms.json)
 
 ---
 
@@ -293,27 +311,13 @@ Each slot must contain:
 
 ## 6.4 Review State
 
-Add explicit review records:
+Keep review state product-facing and minimal:
 
 - `automated_validation`
 - `runtime_review`
-- `qa_review_rounds`
-- `creative_review_rounds`
 - `approval_status`
-- `review_bundle_id`
 
-Each manual review round must store:
-
-- `round_number`
-- `reviewer_role`
-- `reviewer_name`
-- `date`
-- `screenshots`
-- `findings`
-- `decision`
-- `required_changes`
-- `finding_codes`
-- `blockers`
+QA and Creative validation for implementation phases should happen outside the toolchain as an external delivery process, not as stored in-product review rounds.
 
 ## 6.5 Versioning and migration
 

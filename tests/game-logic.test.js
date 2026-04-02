@@ -849,6 +849,7 @@ function computeDoorStandPosition(roomWidth, door) {
     assert.ok(html.includes('let TEMP_TEST_START'), 'mutable TEMP_TEST_START for preview spawn');
     assert.ok(html.includes('PREVIEW_START_APPLIED'), 'preview spawn flag for create()');
     assert.ok(html.includes('mergeRoomSequence'), 'mergeRoomSequence for layout rooms beyond R11');
+    assert.ok(html.includes('loadLayoutDataFromHashUrl'), 'preview should support file-backed layout URLs for large embeds');
     assert.ok(html.includes('ASHEN_HOLLOW_PREVIEW'), 'postMessage layout embed for room editor iframe');
     assert.ok(html.includes('ASHEN_HOLLOW_PREVIEW_READY'), 'child signals when listener can receive layout');
     assert.ok(html.includes('preview=embed'), 'hash flag for embed wait in bootGame');

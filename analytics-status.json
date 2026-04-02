@@ -1,12 +1,15 @@
 {
-  "_note": "Updated daily at noon by the analytics agent. Plain language — no jargon.",
+  "_note": "Updated daily at noon by the analytics agent. Plain language \u2014 no jargon.",
   "updated": "2026-04-01",
   "schema_version": "v1.0",
   "priorities": [
     {
       "id": 1,
-      "os_contexts": ["business", "sprite"],
-      "title": "Track whether the AI's room suggestions are actually helpful — accept, tweak, or reject",
+      "os_contexts": [
+        "business",
+        "sprite"
+      ],
+      "title": "Track whether the AI's room suggestions are actually helpful \u2014 accept, tweak, or reject",
       "status": "done",
       "risk": "med",
       "note": "Room environment suggestions now log a durable helpfulness record per generation. Each preview build gets a stable suggestion id, tracks outcome (accept / tweak / reject), context, time-to-decision, preview/open-game inspections, lightweight reason codes, latency/errors/cancellations/crash-near-AI-use signals, and a persistence check on later room saves. Rollups now include explicit request/view/decision/persist funnels, denominators, and low-sample warnings.",
@@ -14,11 +17,13 @@
     },
     {
       "id": 3,
-      "os_contexts": ["business"],
+      "os_contexts": [
+        "business"
+      ],
       "title": "Automate the daily dashboard refresh so it runs without anyone pressing a button",
       "status": "done",
       "risk": "low",
-      "note": "The automated system went live today. Every dashboard — including this one — now updates itself each day at noon. No manual work required.",
+      "note": "The automated system went live today. Every dashboard \u2014 including this one \u2014 now updates itself each day at noon. No manual work required.",
       "proposed_solution": "Keep verifying the daily automated dashboard refresh and extend the runbook when new metrics or pages are added."
     }
   ],
@@ -28,7 +33,7 @@
     {
       "id": "metric-audit",
       "name": "Metric Audit",
-      "description": "Review what is measured, what is missing, and what has misleading denominators — with sample sizes stated.",
+      "description": "Review what is measured, what is missing, and what has misleading denominators \u2014 with sample sizes stated.",
       "trigger": "Requested or quarterly",
       "last_run": "2026-03-28",
       "output_location": "artifacts/analytics-opportunities-2026-03-28.md"
@@ -36,7 +41,7 @@
     {
       "id": "funnel-report",
       "name": "Funnel Report",
-      "description": "Activation funnel snapshot (open → first entity placed → first export) with denominators and confidence context.",
+      "description": "Activation funnel snapshot (open \u2192 first entity placed \u2192 first export) with denominators and confidence context.",
       "trigger": "Weekly or on demand",
       "last_run": null,
       "output_location": null
@@ -52,7 +57,7 @@
     {
       "id": "copilot-eval-report",
       "name": "Copilot Eval Report",
-      "description": "Acceptance, revision, and discard rates with credible intervals — never point estimates without denominators.",
+      "description": "Acceptance, revision, and discard rates with credible intervals \u2014 never point estimates without denominators.",
       "trigger": "After any model version or prompt architecture change",
       "last_run": null,
       "output_location": null
@@ -61,7 +66,11 @@
   "opportunities": [
     {
       "id": "analytics-o2",
-      "os_contexts": ["business", "sprite", "other-income"],
+      "os_contexts": [
+        "business",
+        "sprite",
+        "other-income"
+      ],
       "title": "Measure the one number that matters most: how many finished rooms each user produces per month",
       "status": "in-progress",
       "risk": "low",
@@ -70,7 +79,10 @@
     },
     {
       "id": "analytics-o4",
-      "os_contexts": ["business", "other-income"],
+      "os_contexts": [
+        "business",
+        "other-income"
+      ],
       "title": "Write clear privacy notices before we start tracking individual user behaviour",
       "status": "paused",
       "risk": "med",
@@ -79,12 +91,70 @@
     },
     {
       "id": "analytics-o5",
-      "os_contexts": ["business", "other-income"],
+      "os_contexts": [
+        "business",
+        "other-income"
+      ],
       "title": "Choose a privacy-respecting analytics service for when the tool goes public",
       "status": "paused",
       "risk": "low",
       "note": "Not needed before launch. We'll revisit this when the first external release is close.",
       "proposed_solution": "Before launch, shortlist a privacy-respecting analytics vendor and fold it into the tracking plan with Legal sign-off."
     }
-  ]
+  ],
+  "analytics_chart": {
+    "funnel": [
+      {
+        "label": "Acquisition",
+        "value": 0
+      },
+      {
+        "label": "Activation",
+        "value": 0
+      },
+      {
+        "label": "Engagement",
+        "value": 0
+      },
+      {
+        "label": "Retention",
+        "value": 0
+      }
+    ],
+    "copilot": [
+      {
+        "label": "Accept",
+        "value": 0,
+        "key": "good"
+      },
+      {
+        "label": "Revise",
+        "value": 0,
+        "key": "warning"
+      },
+      {
+        "label": "Discard",
+        "value": 0,
+        "key": "accent"
+      }
+    ],
+    "copilot_n": 0,
+    "metrics_status": [
+      {
+        "label": "Live data",
+        "value": 0,
+        "key": "good"
+      },
+      {
+        "label": "Proxy only",
+        "value": 0,
+        "key": "warning"
+      },
+      {
+        "label": "No data yet",
+        "value": 0,
+        "key": "muted"
+      }
+    ]
+  }
 }

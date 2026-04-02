@@ -35,15 +35,25 @@
   --transition-fast: 120ms ease; --transition-base: 200ms ease;
 
   /* agent colors */
-  --c-orchestrator: #00e8c8;
-  --c-qa: #77b8ff;
-  --c-marketing: #f5986e;
-  --c-legal: #a78bfa;
-  --c-analytics: #4ade80;
-  --c-support: #fbbf24;
-  --c-finance: #f0abfc;
+  --c-orchestrator:  #00e8c8;
+  --c-engineering:   #38bdf8;
+  --c-design:        #818cf8;
+  --c-qa:            #77b8ff;
+  --c-analytics:     #4ade80;
+  --c-marketing:     #f5986e;
+  --c-legal:         #a78bfa;
+  --c-finance:       #f0abfc;
+  --c-strategy:      #fbbf24;
+  --c-research:      #e879f9;
   --c-cybersecurity: #f85149;
-  --c-research: #e879f9;
+  --c-support:       #fbbf24;
+  --c-audio:         #fb923c;
+  --c-animation:     #34d399;
+  --c-narrative:     #c084fc;
+  --c-creative:      #f472b6;
+  --c-game-director: #e2e8f0;
+  --c-game-systems:  #67e8f9;
+  --c-level-design:  #86efac;
 }
 
 :focus-visible { outline: 2px solid rgba(0,232,200,0.35); outline-offset: 2px; }
@@ -2981,10 +2991,37 @@ textarea.av-field { resize: vertical; min-height: 72px; line-height: 1.45; }
 }
 .os-chart-skeleton { display: none; }
 .os-chart-error { display: none; }
+.os-chart-empty { display: none; }
 .os-chart-canvas-wrap[data-os-canvas-state="loading"] .os-chart-skeleton { display: block; }
 .os-chart-canvas-wrap[data-os-canvas-state="loading"] canvas { visibility: hidden; }
 .os-chart-canvas-wrap[data-os-canvas-state="error"] .os-chart-error { display: flex; }
 .os-chart-canvas-wrap[data-os-canvas-state="error"] canvas { visibility: hidden; }
+.os-chart-canvas-wrap[data-os-canvas-state="empty"] .os-chart-empty { display: flex; }
+.os-chart-canvas-wrap[data-os-canvas-state="empty"] canvas { visibility: hidden; }
+.os-chart-empty {
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  height: 100%;
+  min-height: 120px;
+  position: absolute;
+  inset: 0;
+}
+.os-chart-empty-label {
+  font-size: var(--font-size-base);
+  font-family: var(--font-sans);
+  font-weight: 600;
+  color: var(--muted);
+}
+.os-chart-empty-sub {
+  font-size: var(--font-size-sm);
+  font-family: var(--font-sans);
+  color: var(--muted);
+  text-align: center;
+  max-width: 240px;
+  line-height: 1.5;
+}
 
 @media (prefers-reduced-motion: reduce) {
   .os-chart-skeleton::after { animation: none; }
@@ -3143,6 +3180,31 @@ h3.os-chart-card-title {
       <button type="button" class="nav-item" data-dashboard="marketing">
         <span class="nav-dot" style="background:#f5986e"></span>
         <span class="nav-item-text">Marketing</span>
+      </button>
+      </div>
+
+      <div class="nav-dash-group">
+      <div class="nav-divider" style="margin:4px 16px"></div>
+      <span class="nav-group-label">Game</span>
+      <button type="button" class="nav-item" data-dashboard="audio">
+        <span class="nav-dot" style="background:var(--c-audio)"></span>
+        <span class="nav-item-text">Audio</span>
+      </button>
+      <button type="button" class="nav-item" data-dashboard="narrative">
+        <span class="nav-dot" style="background:var(--c-narrative)"></span>
+        <span class="nav-item-text">Narrative</span>
+      </button>
+      <button type="button" class="nav-item" data-dashboard="creative">
+        <span class="nav-dot" style="background:var(--c-creative)"></span>
+        <span class="nav-item-text">Creative</span>
+      </button>
+      <button type="button" class="nav-item" data-dashboard="game-director">
+        <span class="nav-dot" style="background:var(--c-game-director)"></span>
+        <span class="nav-item-text">Game Director</span>
+      </button>
+      <button type="button" class="nav-item" data-dashboard="game-systems">
+        <span class="nav-dot" style="background:var(--c-game-systems)"></span>
+        <span class="nav-item-text">Game Systems</span>
       </button>
       </div>
 
@@ -3429,31 +3491,6 @@ h3.os-chart-card-title {
       <!-- ── ORCHESTRATION DASHBOARD ─────────────────────────── -->
       <div class="dashboard-view" data-dashboard-view="orchestration">
         
-        <!-- ── Cross-Agent Priorities ── -->
-        <div class="db-section">
-          <div class="db-section-label">Cross-Agent Priorities</div>
-          <p style="color:var(--muted);font-size:var(--font-size-sm);margin:0 0 12px 0;max-width:720px">Synthesized from specialist agent priorities — <span style="font-family:var(--font-mono)">orchestration-status.json</span>. Updated by the orchestrator after reviewing engineering and design agent outputs.</p>
-          <div class="db-priority-list" id="db-orch-priorities">
-            <!-- placeholder — JS replaces on load (#, Owner, Stakeholders, Summary, Status, Risk) -->
-            <div class="db-priority-header" role="row">
-              <span class="db-priority-hcell db-priority-hcell--rank">#</span>
-              <span class="db-priority-hcell">Owner</span>
-              <span class="db-priority-hcell">Stakeholders</span>
-              <span class="db-priority-hcell">Summary</span>
-              <span class="db-priority-hcell">Status</span>
-              <span class="db-priority-hcell">Risk</span>
-            </div>
-            <div class="db-priority-row" role="row">
-              <span class="db-priority-rank">01</span>
-              <span class="db-priority-owner">—</span>
-              <span class="db-priority-stakeholders">—</span>
-              <span class="db-priority-summary"><span class="db-priority-summary-main">Loading…</span></span>
-              <span class="db-status-pill db-status-pill--paused">PAUSED</span>
-              <span class="db-priority-risk db-priority-risk--low">—</span>
-            </div>
-          </div>
-        </div>
-
         <!-- ── Risk Register ── -->
         <div class="db-section">
           <div class="db-section-label">Risk Register</div>
@@ -3471,6 +3508,60 @@ h3.os-chart-card-title {
               <div id="db-orch-founder-decisions">
                 <div style="background:rgba(93,120,112,0.08);color:var(--muted);border-radius:var(--radius-md);padding:12px;font-size:var(--font-size-sm);font-weight:500;">✓ No pending decisions</div>
               </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="db-section">
+          <div class="db-section-label">Analytics</div>
+          <div class="os-chart-grid" id="orch-os-chart-grid">
+            <div class="os-chart-card os-chart-card--donut">
+              <div class="os-chart-card-head">
+                <h3 class="os-chart-card-title" id="orch-chart-work-title">Work by status</h3>
+                <span class="os-chart-card-tier">MANUAL</span>
+              </div>
+              <div class="os-chart-canvas-wrap" data-os-canvas-state="empty" data-chart-scope="agent" role="img" aria-labelledby="orch-chart-work-title" aria-describedby="orch-chart-work-desc">
+                <div class="os-chart-skeleton" aria-hidden="true"></div>
+                <div class="os-chart-error" role="alert" aria-live="polite"></div>
+                <div class="os-chart-empty" aria-live="polite">
+                  <span class="os-chart-empty-label">No data yet</span>
+                  <span class="os-chart-empty-sub">Updated by the orchestrator after reviewing agent outputs.</span>
+                </div>
+                <canvas data-os-chart="orch-work-donut" aria-hidden="true"></canvas>
+              </div>
+              <p class="os-chart-foot" id="orch-chart-work-desc">Cross-agent work items by status — set in orchestration-status.json.</p>
+            </div>
+            <div class="os-chart-card os-chart-card--bar">
+              <div class="os-chart-card-head">
+                <h3 class="os-chart-card-title" id="orch-chart-agents-title">Active items by domain</h3>
+                <span class="os-chart-card-tier">MANUAL</span>
+              </div>
+              <div class="os-chart-canvas-wrap" data-os-canvas-state="empty" data-chart-scope="agent" role="img" aria-labelledby="orch-chart-agents-title" aria-describedby="orch-chart-agents-desc">
+                <div class="os-chart-skeleton" aria-hidden="true"></div>
+                <div class="os-chart-error" role="alert" aria-live="polite"></div>
+                <div class="os-chart-empty" aria-live="polite">
+                  <span class="os-chart-empty-label">No data yet</span>
+                  <span class="os-chart-empty-sub">Updated by the orchestrator when domains have active work.</span>
+                </div>
+                <canvas data-os-chart="orch-agents-bar" aria-hidden="true"></canvas>
+              </div>
+              <p class="os-chart-foot" id="orch-chart-agents-desc">In-progress and blocked items per domain — set in orchestration-status.json.</p>
+            </div>
+            <div class="os-chart-card os-chart-card--bar">
+              <div class="os-chart-card-head">
+                <h3 class="os-chart-card-title" id="orch-chart-directives-title">Directives by domain</h3>
+                <span class="os-chart-card-tier">MANUAL</span>
+              </div>
+              <div class="os-chart-canvas-wrap" data-os-canvas-state="empty" data-chart-scope="agent" role="img" aria-labelledby="orch-chart-directives-title" aria-describedby="orch-chart-directives-desc">
+                <div class="os-chart-skeleton" aria-hidden="true"></div>
+                <div class="os-chart-error" role="alert" aria-live="polite"></div>
+                <div class="os-chart-empty" aria-live="polite">
+                  <span class="os-chart-empty-label">No data yet</span>
+                  <span class="os-chart-empty-sub">Populated when the orchestrator issues cross-domain directives.</span>
+                </div>
+                <canvas data-os-chart="orch-directives-bar" aria-hidden="true"></canvas>
+              </div>
+              <p class="os-chart-foot" id="orch-chart-directives-desc">Active orchestrator directives per domain — set in orchestration-status.json.</p>
             </div>
           </div>
         </div>
@@ -3538,29 +3629,6 @@ h3.os-chart-card-title {
       <!-- ── STRATEGY DASHBOARD ──────────────────────────────── -->
       <div class="dashboard-view" data-dashboard-view="strategy">
         
-        <!-- ── Priorities ── -->
-        <div class="db-section">
-          <div class="db-section-label">Priorities</div>
-          <div class="db-priority-list" id="db-strategy-priorities">
-            <div class="db-priority-header" role="row">
-              <span class="db-priority-hcell db-priority-hcell--rank">#</span>
-              <span class="db-priority-hcell">Owner</span>
-              <span class="db-priority-hcell">Stakeholders</span>
-              <span class="db-priority-hcell">Summary</span>
-              <span class="db-priority-hcell">Status</span>
-              <span class="db-priority-hcell">Risk</span>
-            </div>
-            <div class="db-priority-row" role="row">
-              <span class="db-priority-rank">01</span>
-              <span class="db-priority-owner">—</span>
-              <span class="db-priority-stakeholders">—</span>
-              <span class="db-priority-summary"><span class="db-priority-summary-main">Loading…</span></span>
-              <span class="db-status-pill db-status-pill--paused">PAUSED</span>
-              <span class="db-priority-risk db-priority-risk--low">—</span>
-            </div>
-          </div>
-        </div>
-
         <!-- ── Risk Register ── -->
         <div class="db-section">
           <div class="db-section-label">Risk Register</div>
@@ -3578,6 +3646,60 @@ h3.os-chart-card-title {
               <div id="db-strategy-founder-decisions">
                 <div style="background:rgba(93,120,112,0.08);color:var(--muted);border-radius:var(--radius-md);padding:12px;font-size:var(--font-size-sm);font-weight:500;">✓ No pending decisions</div>
               </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="db-section">
+          <div class="db-section-label">Analytics</div>
+          <div class="os-chart-grid" id="strategy-os-chart-grid">
+            <div class="os-chart-card os-chart-card--donut">
+              <div class="os-chart-card-head">
+                <h3 class="os-chart-card-title" id="strategy-chart-opportunities-title">Opportunities by status</h3>
+                <span class="os-chart-card-tier">MANUAL</span>
+              </div>
+              <div class="os-chart-canvas-wrap" data-os-canvas-state="empty" data-chart-scope="agent" role="img" aria-labelledby="strategy-chart-opportunities-title" aria-describedby="strategy-chart-opportunities-desc">
+                <div class="os-chart-skeleton" aria-hidden="true"></div>
+                <div class="os-chart-error" role="alert" aria-live="polite"></div>
+                <div class="os-chart-empty" aria-live="polite">
+                  <span class="os-chart-empty-label">No data yet</span>
+                  <span class="os-chart-empty-sub">Populated when the strategy agent tracks opportunities.</span>
+                </div>
+                <canvas data-os-chart="strategy-opportunities-donut" aria-hidden="true"></canvas>
+              </div>
+              <p class="os-chart-foot" id="strategy-chart-opportunities-desc">Strategic opportunities by pipeline status — set in strategy-status.json.</p>
+            </div>
+            <div class="os-chart-card os-chart-card--bar">
+              <div class="os-chart-card-head">
+                <h3 class="os-chart-card-title" id="strategy-chart-assumptions-title">Assumptions by confidence</h3>
+                <span class="os-chart-card-tier">MANUAL</span>
+              </div>
+              <div class="os-chart-canvas-wrap" data-os-canvas-state="empty" data-chart-scope="agent" role="img" aria-labelledby="strategy-chart-assumptions-title" aria-describedby="strategy-chart-assumptions-desc">
+                <div class="os-chart-skeleton" aria-hidden="true"></div>
+                <div class="os-chart-error" role="alert" aria-live="polite"></div>
+                <div class="os-chart-empty" aria-live="polite">
+                  <span class="os-chart-empty-label">No data yet</span>
+                  <span class="os-chart-empty-sub">Populated when the strategy agent scores assumptions.</span>
+                </div>
+                <canvas data-os-chart="strategy-assumptions-bar" aria-hidden="true"></canvas>
+              </div>
+              <p class="os-chart-foot" id="strategy-chart-assumptions-desc">Strategic assumptions bucketed by confidence level — set in strategy-status.json.</p>
+            </div>
+            <div class="os-chart-card os-chart-card--bar">
+              <div class="os-chart-card-head">
+                <h3 class="os-chart-card-title" id="strategy-chart-threats-title">Competitive threats by level</h3>
+                <span class="os-chart-card-tier">MANUAL</span>
+              </div>
+              <div class="os-chart-canvas-wrap" data-os-canvas-state="empty" data-chart-scope="agent" role="img" aria-labelledby="strategy-chart-threats-title" aria-describedby="strategy-chart-threats-desc">
+                <div class="os-chart-skeleton" aria-hidden="true"></div>
+                <div class="os-chart-error" role="alert" aria-live="polite"></div>
+                <div class="os-chart-empty" aria-live="polite">
+                  <span class="os-chart-empty-label">No data yet</span>
+                  <span class="os-chart-empty-sub">Populated when competitors are logged and rated.</span>
+                </div>
+                <canvas data-os-chart="strategy-threats-bar" aria-hidden="true"></canvas>
+              </div>
+              <p class="os-chart-foot" id="strategy-chart-threats-desc">Competitive threats counted by threat level — set in strategy-status.json.</p>
             </div>
           </div>
         </div>
@@ -3641,27 +3763,6 @@ h3.os-chart-card-title {
 
       <!-- ── DEVELOPMENT DASHBOARD ─────────────────────────── -->
       <div class="dashboard-view" data-dashboard-view="development">
-                <div class="db-section">
-          <div class="db-section-label">Priorities</div>
-          <div class="db-priority-list" id="db-dev-priorities">
-            <div class="db-priority-header" role="row">
-              <span class="db-priority-hcell db-priority-hcell--rank">#</span>
-              <span class="db-priority-hcell">Owner</span>
-              <span class="db-priority-hcell">Stakeholders</span>
-              <span class="db-priority-hcell">Summary</span>
-              <span class="db-priority-hcell">Status</span>
-              <span class="db-priority-hcell">Risk</span>
-            </div>
-            <div class="db-priority-row" role="row">
-              <span class="db-priority-rank">01</span>
-              <span class="db-priority-owner">—</span>
-              <span class="db-priority-stakeholders">—</span>
-              <span class="db-priority-summary"><span class="db-priority-summary-main">Loading…</span></span>
-              <span class="db-status-pill db-status-pill--paused">PAUSED</span>
-              <span class="db-priority-risk db-priority-risk--low">—</span>
-            </div>
-          </div>
-        </div>
         <div class="db-section">
           <div class="db-section-label">Risk Register</div>
           <div class="db-risk-grid">
@@ -3763,27 +3864,6 @@ h3.os-chart-card-title {
 
       <!-- ── ANIMATION DASHBOARD ─────────────────────────────── -->
       <div class="dashboard-view" data-dashboard-view="animation">
-                <div class="db-section">
-          <div class="db-section-label">Priorities</div>
-          <div class="db-priority-list" id="db-anim-priorities">
-            <div class="db-priority-header" role="row">
-              <span class="db-priority-hcell db-priority-hcell--rank">#</span>
-              <span class="db-priority-hcell">Owner</span>
-              <span class="db-priority-hcell">Stakeholders</span>
-              <span class="db-priority-hcell">Summary</span>
-              <span class="db-priority-hcell">Status</span>
-              <span class="db-priority-hcell">Risk</span>
-            </div>
-            <div class="db-priority-row" role="row">
-              <span class="db-priority-rank">01</span>
-              <span class="db-priority-owner">—</span>
-              <span class="db-priority-stakeholders">—</span>
-              <span class="db-priority-summary"><span class="db-priority-summary-main">Loading…</span></span>
-              <span class="db-status-pill db-status-pill--paused">PAUSED</span>
-              <span class="db-priority-risk db-priority-risk--low">—</span>
-            </div>
-          </div>
-        </div>
         <div class="db-section">
           <div class="db-section-label">Risk Register</div>
           <div class="db-risk-grid">
@@ -3885,27 +3965,6 @@ h3.os-chart-card-title {
 
       <!-- ── LEVEL DESIGN DASHBOARD ─────────────────────────── -->
       <div class="dashboard-view" data-dashboard-view="level-design">
-                <div class="db-section">
-          <div class="db-section-label">Priorities</div>
-          <div class="db-priority-list" id="db-ld-priorities">
-            <div class="db-priority-header" role="row">
-              <span class="db-priority-hcell db-priority-hcell--rank">#</span>
-              <span class="db-priority-hcell">Owner</span>
-              <span class="db-priority-hcell">Stakeholders</span>
-              <span class="db-priority-hcell">Summary</span>
-              <span class="db-priority-hcell">Status</span>
-              <span class="db-priority-hcell">Risk</span>
-            </div>
-            <div class="db-priority-row" role="row">
-              <span class="db-priority-rank">01</span>
-              <span class="db-priority-owner">—</span>
-              <span class="db-priority-stakeholders">—</span>
-              <span class="db-priority-summary"><span class="db-priority-summary-main">Loading…</span></span>
-              <span class="db-status-pill db-status-pill--paused">PAUSED</span>
-              <span class="db-priority-risk db-priority-risk--low">—</span>
-            </div>
-          </div>
-        </div>
         <div class="db-section">
           <div class="db-section-label">Risk Register</div>
           <div class="db-risk-grid">
@@ -4020,29 +4079,6 @@ h3.os-chart-card-title {
           </div>
         </div>
 
-        <!-- ── Priorities ── -->
-        <div class="db-section">
-          <div class="db-section-label">Priorities</div>
-          <div class="db-priority-list" id="db-qa-priorities">
-            <div class="db-priority-header" role="row">
-              <span class="db-priority-hcell db-priority-hcell--rank">#</span>
-              <span class="db-priority-hcell">Owner</span>
-              <span class="db-priority-hcell">Stakeholders</span>
-              <span class="db-priority-hcell">Summary</span>
-              <span class="db-priority-hcell">Status</span>
-              <span class="db-priority-hcell">Risk</span>
-            </div>
-            <div class="db-priority-row" role="row">
-              <span class="db-priority-rank">01</span>
-              <span class="db-priority-owner">—</span>
-              <span class="db-priority-stakeholders">—</span>
-              <span class="db-priority-summary"><span class="db-priority-summary-main">Loading…</span></span>
-              <span class="db-status-pill db-status-pill--paused">PAUSED</span>
-              <span class="db-priority-risk db-priority-risk--low">—</span>
-            </div>
-          </div>
-        </div>
-
         <!-- ── Risk Register ── -->
         <div class="db-section">
           <div class="db-section-label">Risk register</div>
@@ -4058,6 +4094,60 @@ h3.os-chart-card-title {
               <div id="db-qa-risks-p1">
                 <div style="background:rgba(93,120,112,0.08);color:var(--muted);border-radius:var(--radius-md);padding:12px;font-size:var(--font-size-sm);font-weight:500;">Loading…</div>
               </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="db-section">
+          <div class="db-section-label">Analytics</div>
+          <div class="os-chart-grid" id="qa-os-chart-grid">
+            <div class="os-chart-card os-chart-card--donut">
+              <div class="os-chart-card-head">
+                <h3 class="os-chart-card-title" id="qa-chart-bugs-title">Open bugs by severity</h3>
+                <span class="os-chart-card-tier">LIVE</span>
+              </div>
+              <div class="os-chart-canvas-wrap" data-os-canvas-state="empty" data-chart-scope="agent" role="img" aria-labelledby="qa-chart-bugs-title" aria-describedby="qa-chart-bugs-desc">
+                <div class="os-chart-skeleton" aria-hidden="true"></div>
+                <div class="os-chart-error" role="alert" aria-live="polite"></div>
+                <div class="os-chart-empty" aria-live="polite">
+                  <span class="os-chart-empty-label">No data yet</span>
+                  <span class="os-chart-empty-sub">Populated from qa-status.json when bugs are logged.</span>
+                </div>
+                <canvas data-os-chart="qa-bugs-donut" aria-hidden="true"></canvas>
+              </div>
+              <p class="os-chart-foot" id="qa-chart-bugs-desc">Open bugs bucketed by severity — blocker, serious, minor. Updated in qa-status.json.</p>
+            </div>
+            <div class="os-chart-card os-chart-card--bar">
+              <div class="os-chart-card-head">
+                <h3 class="os-chart-card-title" id="qa-chart-coverage-title">Test coverage by area</h3>
+                <span class="os-chart-card-tier">MANUAL</span>
+              </div>
+              <div class="os-chart-canvas-wrap" data-os-canvas-state="empty" data-chart-scope="agent" role="img" aria-labelledby="qa-chart-coverage-title" aria-describedby="qa-chart-coverage-desc">
+                <div class="os-chart-skeleton" aria-hidden="true"></div>
+                <div class="os-chart-error" role="alert" aria-live="polite"></div>
+                <div class="os-chart-empty" aria-live="polite">
+                  <span class="os-chart-empty-label">No data yet</span>
+                  <span class="os-chart-empty-sub">QA agent updates this manually after each coverage review.</span>
+                </div>
+                <canvas data-os-chart="qa-coverage-bar" aria-hidden="true"></canvas>
+              </div>
+              <p class="os-chart-foot" id="qa-chart-coverage-desc">Test count per product area — set in qa-status.json by the QA agent.</p>
+            </div>
+            <div class="os-chart-card os-chart-card--area os-chart-card--wide">
+              <div class="os-chart-card-head">
+                <h3 class="os-chart-card-title" id="qa-chart-pass-title">Tests passing · weekly</h3>
+                <span class="os-chart-card-tier">POST-LAUNCH</span>
+              </div>
+              <div class="os-chart-canvas-wrap" data-os-canvas-state="empty" data-chart-scope="agent" role="img" aria-labelledby="qa-chart-pass-title" aria-describedby="qa-chart-pass-desc">
+                <div class="os-chart-skeleton" aria-hidden="true"></div>
+                <div class="os-chart-error" role="alert" aria-live="polite"></div>
+                <div class="os-chart-empty" aria-live="polite">
+                  <span class="os-chart-empty-label">No data yet</span>
+                  <span class="os-chart-empty-sub">Requires CI integration to record weekly pass counts.</span>
+                </div>
+                <canvas data-os-chart="qa-pass-area" aria-hidden="true"></canvas>
+              </div>
+              <p class="os-chart-foot" id="qa-chart-pass-desc">Weekly passing test count trend — requires automated CI data pipeline.</p>
             </div>
           </div>
         </div>
@@ -4194,6 +4284,59 @@ h3.os-chart-card-title {
             </div>
           </div>
         </div>
+        <div class="db-section">
+          <div class="db-section-label">Analytics</div>
+          <div class="os-chart-grid" id="cybersecurity-os-chart-grid">
+            <div class="os-chart-card os-chart-card--donut">
+              <div class="os-chart-card-head">
+                <h3 class="os-chart-card-title" id="sec-chart-posture-title">Security checks by status</h3>
+                <span class="os-chart-card-tier">MANUAL</span>
+              </div>
+              <div class="os-chart-canvas-wrap" data-os-canvas-state="empty" data-chart-scope="agent" role="img" aria-labelledby="sec-chart-posture-title" aria-describedby="sec-chart-posture-desc">
+                <div class="os-chart-skeleton" aria-hidden="true"></div>
+                <div class="os-chart-error" role="alert" aria-live="polite"></div>
+                <div class="os-chart-empty" aria-live="polite">
+                  <span class="os-chart-empty-label">No data yet</span>
+                  <span class="os-chart-empty-sub">Updated by the cybersecurity agent after each security review.</span>
+                </div>
+                <canvas data-os-chart="sec-posture-donut" aria-hidden="true"></canvas>
+              </div>
+              <p class="os-chart-foot" id="sec-chart-posture-desc">Security checks by outcome — passed, needs review, open finding. Set in cybersecurity-status.json.</p>
+            </div>
+            <div class="os-chart-card os-chart-card--bar">
+              <div class="os-chart-card-head">
+                <h3 class="os-chart-card-title" id="sec-chart-surface-title">Attack surface by area</h3>
+                <span class="os-chart-card-tier">MANUAL</span>
+              </div>
+              <div class="os-chart-canvas-wrap" data-os-canvas-state="empty" data-chart-scope="agent" role="img" aria-labelledby="sec-chart-surface-title" aria-describedby="sec-chart-surface-desc">
+                <div class="os-chart-skeleton" aria-hidden="true"></div>
+                <div class="os-chart-error" role="alert" aria-live="polite"></div>
+                <div class="os-chart-empty" aria-live="polite">
+                  <span class="os-chart-empty-label">No data yet</span>
+                  <span class="os-chart-empty-sub">Cybersecurity agent populates this during threat modelling.</span>
+                </div>
+                <canvas data-os-chart="sec-surface-bar" aria-hidden="true"></canvas>
+              </div>
+              <p class="os-chart-foot" id="sec-chart-surface-desc">Open issues per attack surface area — API keys, prompt injection, data privacy, auth.</p>
+            </div>
+            <div class="os-chart-card os-chart-card--donut">
+              <div class="os-chart-card-head">
+                <h3 class="os-chart-card-title" id="sec-chart-findings-title">Open findings by severity</h3>
+                <span class="os-chart-card-tier">MANUAL</span>
+              </div>
+              <div class="os-chart-canvas-wrap" data-os-canvas-state="empty" data-chart-scope="agent" role="img" aria-labelledby="sec-chart-findings-title" aria-describedby="sec-chart-findings-desc">
+                <div class="os-chart-skeleton" aria-hidden="true"></div>
+                <div class="os-chart-error" role="alert" aria-live="polite"></div>
+                <div class="os-chart-empty" aria-live="polite">
+                  <span class="os-chart-empty-label">No data yet</span>
+                  <span class="os-chart-empty-sub">Populated when security findings are logged and triaged.</span>
+                </div>
+                <canvas data-os-chart="sec-findings-donut" aria-hidden="true"></canvas>
+              </div>
+              <p class="os-chart-foot" id="sec-chart-findings-desc">Open security findings by severity — critical, high, medium. Set in cybersecurity-status.json.</p>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- ── LEGAL DASHBOARD ────────────────────────────────── -->
@@ -4240,6 +4383,59 @@ h3.os-chart-card-title {
               <div class="db-card-header"><div class="db-card-label">Last Legal Review</div><span class="db-tier db-tier--manual">MANUAL</span></div>
               <div class="db-card-value db-card-value--muted">—</div>
               <button type="button" class="db-run-btn">Run legal · report →</button>
+            </div>
+          </div>
+        </div>
+        <div class="db-section">
+          <div class="db-section-label">Analytics</div>
+          <div class="os-chart-grid" id="legal-os-chart-grid">
+            <div class="os-chart-card os-chart-card--bar">
+              <div class="os-chart-card-head">
+                <h3 class="os-chart-card-title" id="legal-chart-items-title">Open items by category</h3>
+                <span class="os-chart-card-tier">MANUAL</span>
+              </div>
+              <div class="os-chart-canvas-wrap" data-os-canvas-state="empty" data-chart-scope="agent" role="img" aria-labelledby="legal-chart-items-title" aria-describedby="legal-chart-items-desc">
+                <div class="os-chart-skeleton" aria-hidden="true"></div>
+                <div class="os-chart-error" role="alert" aria-live="polite"></div>
+                <div class="os-chart-empty" aria-live="polite">
+                  <span class="os-chart-empty-label">No data yet</span>
+                  <span class="os-chart-empty-sub">Legal agent populates this during compliance reviews.</span>
+                </div>
+                <canvas data-os-chart="legal-items-bar" aria-hidden="true"></canvas>
+              </div>
+              <p class="os-chart-foot" id="legal-chart-items-desc">Open legal items per category — GDPR, IP, AI liability, contracts. Set in legal-status.json.</p>
+            </div>
+            <div class="os-chart-card os-chart-card--donut">
+              <div class="os-chart-card-head">
+                <h3 class="os-chart-card-title" id="legal-chart-status-title">Items by status</h3>
+                <span class="os-chart-card-tier">MANUAL</span>
+              </div>
+              <div class="os-chart-canvas-wrap" data-os-canvas-state="empty" data-chart-scope="agent" role="img" aria-labelledby="legal-chart-status-title" aria-describedby="legal-chart-status-desc">
+                <div class="os-chart-skeleton" aria-hidden="true"></div>
+                <div class="os-chart-error" role="alert" aria-live="polite"></div>
+                <div class="os-chart-empty" aria-live="polite">
+                  <span class="os-chart-empty-label">No data yet</span>
+                  <span class="os-chart-empty-sub">Tracking begins when legal items are formally logged.</span>
+                </div>
+                <canvas data-os-chart="legal-status-donut" aria-hidden="true"></canvas>
+              </div>
+              <p class="os-chart-foot" id="legal-chart-status-desc">Legal items by status — open, in progress, resolved, deferred. Set in legal-status.json.</p>
+            </div>
+            <div class="os-chart-card os-chart-card--bar">
+              <div class="os-chart-card-head">
+                <h3 class="os-chart-card-title" id="legal-chart-compliance-title">Compliance checklist progress</h3>
+                <span class="os-chart-card-tier">POST-LAUNCH</span>
+              </div>
+              <div class="os-chart-canvas-wrap" data-os-canvas-state="empty" data-chart-scope="agent" role="img" aria-labelledby="legal-chart-compliance-title" aria-describedby="legal-chart-compliance-desc">
+                <div class="os-chart-skeleton" aria-hidden="true"></div>
+                <div class="os-chart-error" role="alert" aria-live="polite"></div>
+                <div class="os-chart-empty" aria-live="polite">
+                  <span class="os-chart-empty-label">No data yet</span>
+                  <span class="os-chart-empty-sub">Updated when compliance checklist items are actioned pre-launch.</span>
+                </div>
+                <canvas data-os-chart="legal-compliance-bar" aria-hidden="true"></canvas>
+              </div>
+              <p class="os-chart-foot" id="legal-chart-compliance-desc">Compliance checklist items by completion — GDPR consent, privacy policy, ToS, AI disclosure.</p>
             </div>
           </div>
         </div>
@@ -4307,32 +4503,63 @@ h3.os-chart-card-title {
             </div>
           </div>
         </div>
+        <div class="db-section">
+          <div class="db-section-label">Analytics</div>
+          <div class="os-chart-grid" id="finance-os-chart-grid">
+            <div class="os-chart-card os-chart-card--bar">
+              <div class="os-chart-card-head">
+                <h3 class="os-chart-card-title" id="finance-chart-spend-title">AI service spend · MTD</h3>
+                <span class="os-chart-card-tier">MANUAL</span>
+              </div>
+              <div class="os-chart-canvas-wrap" data-os-canvas-state="empty" data-chart-scope="agent" role="img" aria-labelledby="finance-chart-spend-title" aria-describedby="finance-chart-spend-desc">
+                <div class="os-chart-skeleton" aria-hidden="true"></div>
+                <div class="os-chart-error" role="alert" aria-live="polite"></div>
+                <div class="os-chart-empty" aria-live="polite">
+                  <span class="os-chart-empty-label">No data yet</span>
+                  <span class="os-chart-empty-sub">Finance agent updates monthly from API billing dashboards.</span>
+                </div>
+                <canvas data-os-chart="finance-spend-bar" aria-hidden="true"></canvas>
+              </div>
+              <p class="os-chart-foot" id="finance-chart-spend-desc">Month-to-date spend per API service — Gemini, Pixellab, Resend. Set in finance-status.json.</p>
+            </div>
+            <div class="os-chart-card os-chart-card--donut">
+              <div class="os-chart-card-head">
+                <h3 class="os-chart-card-title" id="finance-chart-categories-title">Cost breakdown by category</h3>
+                <span class="os-chart-card-tier">MANUAL</span>
+              </div>
+              <div class="os-chart-canvas-wrap" data-os-canvas-state="empty" data-chart-scope="agent" role="img" aria-labelledby="finance-chart-categories-title" aria-describedby="finance-chart-categories-desc">
+                <div class="os-chart-skeleton" aria-hidden="true"></div>
+                <div class="os-chart-error" role="alert" aria-live="polite"></div>
+                <div class="os-chart-empty" aria-live="polite">
+                  <span class="os-chart-empty-label">No data yet</span>
+                  <span class="os-chart-empty-sub">Finance agent populates this once spend data is available.</span>
+                </div>
+                <canvas data-os-chart="finance-categories-donut" aria-hidden="true"></canvas>
+              </div>
+              <p class="os-chart-foot" id="finance-chart-categories-desc">Cost by category — AI APIs, hosting, tools, other. Set in finance-status.json.</p>
+            </div>
+            <div class="os-chart-card os-chart-card--area os-chart-card--wide">
+              <div class="os-chart-card-head">
+                <h3 class="os-chart-card-title" id="finance-chart-trend-title">Monthly spend trend</h3>
+                <span class="os-chart-card-tier">POST-LAUNCH</span>
+              </div>
+              <div class="os-chart-canvas-wrap" data-os-canvas-state="empty" data-chart-scope="agent" role="img" aria-labelledby="finance-chart-trend-title" aria-describedby="finance-chart-trend-desc">
+                <div class="os-chart-skeleton" aria-hidden="true"></div>
+                <div class="os-chart-error" role="alert" aria-live="polite"></div>
+                <div class="os-chart-empty" aria-live="polite">
+                  <span class="os-chart-empty-label">No data yet</span>
+                  <span class="os-chart-empty-sub">Requires multiple months of spend data to show a trend.</span>
+                </div>
+                <canvas data-os-chart="finance-trend-area" aria-hidden="true"></canvas>
+              </div>
+              <p class="os-chart-foot" id="finance-chart-trend-desc">Total monthly spend trend across all services — requires historical billing data.</p>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- ── ANALYTICS DASHBOARD ────────────────────────────── -->
       <div class="dashboard-view" data-dashboard-view="analytics">
-                <!-- ── Priorities ── -->
-        <div class="db-section">
-          <div class="db-section-label">Priorities</div>
-          <div class="db-priority-list" id="db-analytics-priorities">
-            <div class="db-priority-header" role="row">
-              <span class="db-priority-hcell db-priority-hcell--rank">#</span>
-              <span class="db-priority-hcell">Owner</span>
-              <span class="db-priority-hcell">Stakeholders</span>
-              <span class="db-priority-hcell">Summary</span>
-              <span class="db-priority-hcell">Status</span>
-              <span class="db-priority-hcell">Risk</span>
-            </div>
-            <div class="db-priority-row" role="row">
-              <span class="db-priority-rank">01</span>
-              <span class="db-priority-owner">—</span>
-              <span class="db-priority-stakeholders">—</span>
-              <span class="db-priority-summary"><span class="db-priority-summary-main">Loading…</span></span>
-              <span class="db-status-pill db-status-pill--paused">PAUSED</span>
-              <span class="db-priority-risk db-priority-risk--low">—</span>
-            </div>
-          </div>
-        </div>
         <!-- ── Risk Register ── -->
         <div class="db-section">
           <div class="db-section-label">Risk Register</div>
@@ -4401,43 +4628,55 @@ h3.os-chart-card-title {
           </div>
         </div>
         <div class="db-section">
-          <div class="db-section-label">AI pipeline usage</div>
+          <div class="db-section-label">Analytics</div>
           <div class="os-chart-grid" id="analytics-os-chart-grid">
-            <div class="os-chart-card os-chart-card--wide">
+            <div class="os-chart-card os-chart-card--bar">
               <div class="os-chart-card-head">
-                <h3 class="os-chart-card-title" id="analytics-chart-area-title">Paid API calls · weekly (analytics)</h3>
-                <span class="os-chart-card-tier">AREA</span>
+                <h3 class="os-chart-card-title" id="analytics-chart-funnel-title">Funnel stage coverage</h3>
+                <span class="os-chart-card-tier">POST-LAUNCH</span>
               </div>
-              <div class="os-chart-canvas-wrap os-chart-canvas-wrap--tall" data-os-canvas-state="idle" role="img" aria-labelledby="analytics-chart-area-title" aria-describedby="analytics-chart-area-desc">
+              <div class="os-chart-canvas-wrap" data-os-canvas-state="empty" data-chart-scope="agent" role="img" aria-labelledby="analytics-chart-funnel-title" aria-describedby="analytics-chart-funnel-desc">
                 <div class="os-chart-skeleton" aria-hidden="true"></div>
                 <div class="os-chart-error" role="alert" aria-live="polite"></div>
-                <canvas data-os-chart="area-requests" width="800" height="300" aria-hidden="true"></canvas>
+                <div class="os-chart-empty" aria-live="polite">
+                  <span class="os-chart-empty-label">No data yet</span>
+                  <span class="os-chart-empty-sub">Requires user analytics instrumentation after launch.</span>
+                </div>
+                <canvas data-os-chart="analytics-funnel-bar" aria-hidden="true"></canvas>
               </div>
-              <p class="os-chart-foot" id="analytics-chart-area-desc">Weekly volume from the usage ledger (UTC ISO weeks).</p>
-            </div>
-            <div class="os-chart-card">
-              <div class="os-chart-card-head">
-                <h3 class="os-chart-card-title" id="analytics-chart-bars-title">Provider mix</h3>
-                <span class="os-chart-card-tier">SPLIT</span>
-              </div>
-              <div class="os-chart-canvas-wrap" data-os-canvas-state="idle" role="img" aria-labelledby="analytics-chart-bars-title" aria-describedby="analytics-chart-bars-desc">
-                <div class="os-chart-skeleton" aria-hidden="true"></div>
-                <div class="os-chart-error" role="alert" aria-live="polite"></div>
-                <canvas data-os-chart="bars-purpose" width="480" height="260" aria-hidden="true"></canvas>
-              </div>
-              <p class="os-chart-foot" id="analytics-chart-bars-desc">Split Copilot / eval / dev from ledger purpose tags.</p>
+              <p class="os-chart-foot" id="analytics-chart-funnel-desc">Events instrumented per funnel stage — requires post-launch user data.</p>
             </div>
             <div class="os-chart-card os-chart-card--donut">
               <div class="os-chart-card-head">
-                <h3 class="os-chart-card-title" id="analytics-chart-donut-title">Ledger outcomes (API)</h3>
-                <span class="os-chart-card-tier">DONUT</span>
+                <h3 class="os-chart-card-title" id="analytics-chart-copilot-title">Copilot signal breakdown</h3>
+                <span class="os-chart-card-tier">POST-LAUNCH</span>
               </div>
-              <div class="os-chart-canvas-wrap" data-os-canvas-state="idle" role="img" aria-labelledby="analytics-chart-donut-title" aria-describedby="analytics-chart-donut-desc">
+              <div class="os-chart-canvas-wrap" data-os-canvas-state="empty" data-chart-scope="agent" role="img" aria-labelledby="analytics-chart-copilot-title" aria-describedby="analytics-chart-copilot-desc">
                 <div class="os-chart-skeleton" aria-hidden="true"></div>
                 <div class="os-chart-error" role="alert" aria-live="polite"></div>
-                <canvas data-os-chart="donut-outcomes" width="480" height="260" aria-hidden="true"></canvas>
+                <div class="os-chart-empty" aria-live="polite">
+                  <span class="os-chart-empty-label">No data yet</span>
+                  <span class="os-chart-empty-sub">Requires Copilot accept/revise/discard event tracking.</span>
+                </div>
+                <canvas data-os-chart="analytics-copilot-donut" aria-hidden="true"></canvas>
               </div>
-              <p class="os-chart-foot" id="analytics-chart-donut-desc">API outcome mix from ledger rows — product UX outcomes need separate events.</p>
+              <p class="os-chart-foot" id="analytics-chart-copilot-desc">Copilot suggestion outcomes — accept, revise, discard. Needs event instrumentation.</p>
+            </div>
+            <div class="os-chart-card os-chart-card--bar">
+              <div class="os-chart-card-head">
+                <h3 class="os-chart-card-title" id="analytics-chart-metrics-title">Metrics by data status</h3>
+                <span class="os-chart-card-tier">MANUAL</span>
+              </div>
+              <div class="os-chart-canvas-wrap" data-os-canvas-state="empty" data-chart-scope="agent" role="img" aria-labelledby="analytics-chart-metrics-title" aria-describedby="analytics-chart-metrics-desc">
+                <div class="os-chart-skeleton" aria-hidden="true"></div>
+                <div class="os-chart-error" role="alert" aria-live="polite"></div>
+                <div class="os-chart-empty" aria-live="polite">
+                  <span class="os-chart-empty-label">No data yet</span>
+                  <span class="os-chart-empty-sub">Analytics agent updates this to show tracking plan maturity.</span>
+                </div>
+                <canvas data-os-chart="analytics-metrics-bar" aria-hidden="true"></canvas>
+              </div>
+              <p class="os-chart-foot" id="analytics-chart-metrics-desc">Planned metrics by data availability — set in analytics-status.json.</p>
             </div>
           </div>
         </div>
@@ -4508,31 +4747,63 @@ h3.os-chart-card-title {
             </div>
           </div>
         </div>
+        <div class="db-section">
+          <div class="db-section-label">Analytics</div>
+          <div class="os-chart-grid" id="support-os-chart-grid">
+            <div class="os-chart-card os-chart-card--bar">
+              <div class="os-chart-card-head">
+                <h3 class="os-chart-card-title" id="support-chart-types-title">Tickets by type</h3>
+                <span class="os-chart-card-tier">POST-LAUNCH</span>
+              </div>
+              <div class="os-chart-canvas-wrap" data-os-canvas-state="empty" data-chart-scope="agent" role="img" aria-labelledby="support-chart-types-title" aria-describedby="support-chart-types-desc">
+                <div class="os-chart-skeleton" aria-hidden="true"></div>
+                <div class="os-chart-error" role="alert" aria-live="polite"></div>
+                <div class="os-chart-empty" aria-live="polite">
+                  <span class="os-chart-empty-label">No data yet</span>
+                  <span class="os-chart-empty-sub">Requires a user base generating support tickets after launch.</span>
+                </div>
+                <canvas data-os-chart="support-types-bar" aria-hidden="true"></canvas>
+              </div>
+              <p class="os-chart-foot" id="support-chart-types-desc">Support tickets by type — bug, feature request, question, feedback. Set in support-status.json.</p>
+            </div>
+            <div class="os-chart-card os-chart-card--donut">
+              <div class="os-chart-card-head">
+                <h3 class="os-chart-card-title" id="support-chart-status-title">Tickets by status</h3>
+                <span class="os-chart-card-tier">POST-LAUNCH</span>
+              </div>
+              <div class="os-chart-canvas-wrap" data-os-canvas-state="empty" data-chart-scope="agent" role="img" aria-labelledby="support-chart-status-title" aria-describedby="support-chart-status-desc">
+                <div class="os-chart-skeleton" aria-hidden="true"></div>
+                <div class="os-chart-error" role="alert" aria-live="polite"></div>
+                <div class="os-chart-empty" aria-live="polite">
+                  <span class="os-chart-empty-label">No data yet</span>
+                  <span class="os-chart-empty-sub">Tracking begins once support tickets are being handled.</span>
+                </div>
+                <canvas data-os-chart="support-status-donut" aria-hidden="true"></canvas>
+              </div>
+              <p class="os-chart-foot" id="support-chart-status-desc">Support tickets by resolution status — open, in progress, resolved. Set in support-status.json.</p>
+            </div>
+            <div class="os-chart-card os-chart-card--area os-chart-card--wide">
+              <div class="os-chart-card-head">
+                <h3 class="os-chart-card-title" id="support-chart-volume-title">Ticket volume · weekly</h3>
+                <span class="os-chart-card-tier">POST-LAUNCH</span>
+              </div>
+              <div class="os-chart-canvas-wrap" data-os-canvas-state="empty" data-chart-scope="agent" role="img" aria-labelledby="support-chart-volume-title" aria-describedby="support-chart-volume-desc">
+                <div class="os-chart-skeleton" aria-hidden="true"></div>
+                <div class="os-chart-error" role="alert" aria-live="polite"></div>
+                <div class="os-chart-empty" aria-live="polite">
+                  <span class="os-chart-empty-label">No data yet</span>
+                  <span class="os-chart-empty-sub">Requires post-launch user base generating tickets week over week.</span>
+                </div>
+                <canvas data-os-chart="support-volume-area" aria-hidden="true"></canvas>
+              </div>
+              <p class="os-chart-foot" id="support-chart-volume-desc">Weekly incoming ticket volume trend — requires post-launch support data pipeline.</p>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- ── MARKETING DASHBOARD ────────────────────────────── -->
       <div class="dashboard-view" data-dashboard-view="marketing">
-                <div class="db-section">
-          <div class="db-section-label">Priorities</div>
-          <div class="db-priority-list" id="db-marketing-priorities">
-            <div class="db-priority-header" role="row">
-              <span class="db-priority-hcell db-priority-hcell--rank">#</span>
-              <span class="db-priority-hcell">Owner</span>
-              <span class="db-priority-hcell">Stakeholders</span>
-              <span class="db-priority-hcell">Summary</span>
-              <span class="db-priority-hcell">Status</span>
-              <span class="db-priority-hcell">Risk</span>
-            </div>
-            <div class="db-priority-row" role="row">
-              <span class="db-priority-rank">01</span>
-              <span class="db-priority-owner">—</span>
-              <span class="db-priority-stakeholders">—</span>
-              <span class="db-priority-summary"><span class="db-priority-summary-main">Loading…</span></span>
-              <span class="db-status-pill db-status-pill--paused">PAUSED</span>
-              <span class="db-priority-risk db-priority-risk--low">—</span>
-            </div>
-          </div>
-        </div>
         <div class="db-section">
           <div class="db-section-label">Risk Register</div>
           <div class="db-risk-grid">
@@ -4552,6 +4823,60 @@ h3.os-chart-card-title {
             </div>
           </div>
         </div>
+        <div class="db-section">
+          <div class="db-section-label">Analytics</div>
+          <div class="os-chart-grid" id="marketing-os-chart-grid">
+            <div class="os-chart-card os-chart-card--bar">
+              <div class="os-chart-card-head">
+                <h3 class="os-chart-card-title" id="marketing-chart-pipeline-title">Content pipeline by stage</h3>
+                <span class="os-chart-card-tier">MANUAL</span>
+              </div>
+              <div class="os-chart-canvas-wrap" data-os-canvas-state="empty" data-chart-scope="agent" role="img" aria-labelledby="marketing-chart-pipeline-title" aria-describedby="marketing-chart-pipeline-desc">
+                <div class="os-chart-skeleton" aria-hidden="true"></div>
+                <div class="os-chart-error" role="alert" aria-live="polite"></div>
+                <div class="os-chart-empty" aria-live="polite">
+                  <span class="os-chart-empty-label">No data yet</span>
+                  <span class="os-chart-empty-sub">Marketing agent updates this when content is planned or published.</span>
+                </div>
+                <canvas data-os-chart="marketing-pipeline-bar" aria-hidden="true"></canvas>
+              </div>
+              <p class="os-chart-foot" id="marketing-chart-pipeline-desc">Content items by pipeline stage — planned, in progress, published. Set in marketing-status.json.</p>
+            </div>
+            <div class="os-chart-card os-chart-card--donut">
+              <div class="os-chart-card-head">
+                <h3 class="os-chart-card-title" id="marketing-chart-channels-title">Published posts by channel</h3>
+                <span class="os-chart-card-tier">MANUAL</span>
+              </div>
+              <div class="os-chart-canvas-wrap" data-os-canvas-state="empty" data-chart-scope="agent" role="img" aria-labelledby="marketing-chart-channels-title" aria-describedby="marketing-chart-channels-desc">
+                <div class="os-chart-skeleton" aria-hidden="true"></div>
+                <div class="os-chart-error" role="alert" aria-live="polite"></div>
+                <div class="os-chart-empty" aria-live="polite">
+                  <span class="os-chart-empty-label">No data yet</span>
+                  <span class="os-chart-empty-sub">Tracking begins when the first posts are published.</span>
+                </div>
+                <canvas data-os-chart="marketing-channels-donut" aria-hidden="true"></canvas>
+              </div>
+              <p class="os-chart-foot" id="marketing-chart-channels-desc">Published posts per channel — Devlog, Twitter/X, Reddit, YouTube. Set in marketing-status.json.</p>
+            </div>
+            <div class="os-chart-card os-chart-card--area os-chart-card--wide">
+              <div class="os-chart-card-head">
+                <h3 class="os-chart-card-title" id="marketing-chart-cadence-title">Posts published · last 8 weeks</h3>
+                <span class="os-chart-card-tier">POST-LAUNCH</span>
+              </div>
+              <div class="os-chart-canvas-wrap" data-os-canvas-state="empty" data-chart-scope="agent" role="img" aria-labelledby="marketing-chart-cadence-title" aria-describedby="marketing-chart-cadence-desc">
+                <div class="os-chart-skeleton" aria-hidden="true"></div>
+                <div class="os-chart-error" role="alert" aria-live="polite"></div>
+                <div class="os-chart-empty" aria-live="polite">
+                  <span class="os-chart-empty-label">No data yet</span>
+                  <span class="os-chart-empty-sub">Requires publishing cadence tracking after launch.</span>
+                </div>
+                <canvas data-os-chart="marketing-cadence-area" aria-hidden="true"></canvas>
+              </div>
+              <p class="os-chart-foot" id="marketing-chart-cadence-desc">Weekly post volume trend — requires post-launch publishing cadence data.</p>
+            </div>
+          </div>
+        </div>
+
         <div class="db-section">
           <div class="db-section-label">Channel signal</div>
           <div class="db-grid">
@@ -4619,27 +4944,6 @@ h3.os-chart-card-title {
 
       <!-- ── DESIGN DASHBOARD ───────────────────────────────── -->
       <div class="dashboard-view" data-dashboard-view="design">
-                <div class="db-section">
-          <div class="db-section-label">Priorities</div>
-          <div class="db-priority-list" id="db-design-priorities">
-            <div class="db-priority-header" role="row">
-              <span class="db-priority-hcell db-priority-hcell--rank">#</span>
-              <span class="db-priority-hcell">Owner</span>
-              <span class="db-priority-hcell">Stakeholders</span>
-              <span class="db-priority-hcell">Summary</span>
-              <span class="db-priority-hcell">Status</span>
-              <span class="db-priority-hcell">Risk</span>
-            </div>
-            <div class="db-priority-row" role="row">
-              <span class="db-priority-rank">01</span>
-              <span class="db-priority-owner">—</span>
-              <span class="db-priority-stakeholders">—</span>
-              <span class="db-priority-summary"><span class="db-priority-summary-main">Loading…</span></span>
-              <span class="db-status-pill db-status-pill--paused">PAUSED</span>
-              <span class="db-priority-risk db-priority-risk--low">—</span>
-            </div>
-          </div>
-        </div>
         <div class="db-section">
           <div class="db-section-label">Risk Register</div>
           <div class="db-risk-grid">
@@ -4660,36 +4964,83 @@ h3.os-chart-card-title {
           </div>
         </div>
         <div class="db-section">
-          <div class="db-section-label">Design quality metrics</div>
-          <p style="color:var(--muted);font-size:var(--font-size-sm);margin:0 0 12px 0;max-width:720px">Signals aligned with <span style="font-family:var(--font-mono)">agents/design/charter.md</span> — update counts and dates in <span style="font-family:var(--font-mono)">design-status.json</span> after each audit or review.</p>
+          <div class="db-section-label">Design quality</div>
           <div class="db-grid">
             <div class="db-card db-card--manual">
               <div class="db-card-header"><div class="db-card-label">Token violations (open)</div><span class="db-tier db-tier--manual">MANUAL</span></div>
               <div class="db-card-value db-card-value--muted" id="db-design-metric-tokens">—</div>
-              <div class="db-card-sub">Hardcoded color · off 4px grid · forbidden radius · <code style="font-family:var(--font-mono);font-size:var(--font-size-xs)">transition: all</code></div>
-              <button type="button" class="db-run-btn">Run design · analyze →</button>
+              <div class="db-card-sub">Color · spacing · radius · transitions</div>
             </div>
             <div class="db-card db-card--manual">
               <div class="db-card-header"><div class="db-card-label">A11y — critical / serious</div><span class="db-tier db-tier--manual">MANUAL</span></div>
               <div class="db-card-value db-card-value--muted" id="db-design-metric-a11y">—</div>
-              <div class="db-card-sub">WCAG 2.2 AA target · keyboard · contrast · focus order</div>
-              <button type="button" class="db-run-btn">Run design · review →</button>
+              <div class="db-card-sub">WCAG 2.2 AA · keyboard · contrast · focus</div>
             </div>
             <div class="db-card db-card--manual">
-              <div class="db-card-header"><div class="db-card-label">AI UI (Copilot) charter gate</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-header"><div class="db-card-label">AI panel charter</div><span class="db-tier db-tier--manual">MANUAL</span></div>
               <div class="db-card-value db-card-value--muted" id="db-design-metric-copilot">—</div>
               <div class="db-card-sub">Confirm before mutate · specific errors · no optimistic apply</div>
-              <button type="button" class="db-run-btn">Run design · advise →</button>
             </div>
             <div class="db-card db-card--manual">
-              <div class="db-card-header"><div class="db-card-label">STYLE_GUIDE &amp; audit cadence</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-header"><div class="db-card-label">Style guide last updated</div><span class="db-tier db-tier--manual">MANUAL</span></div>
               <div class="db-card-value db-card-value--muted" style="font-size:var(--font-size-sm);font-family:var(--font-sans)" id="db-design-metric-guide">—</div>
-              <div class="db-card-sub">Last doc touch · next quarterly / on-demand audit</div>
-              <button type="button" class="db-run-btn">Run design · report →</button>
+              <div class="db-card-sub">Next audit: quarterly or on change</div>
             </div>
           </div>
         </div>
-        <!-- ── Runbooks ── -->
+        <div class="db-section">
+          <div class="db-section-label">Analytics</div>
+          <div class="os-chart-grid" id="design-os-chart-grid">
+            <div class="os-chart-card os-chart-card--bar">
+              <div class="os-chart-card-head">
+                <h3 class="os-chart-card-title" id="design-chart-violations-title">Token violations by category</h3>
+                <span class="os-chart-card-tier">MANUAL</span>
+              </div>
+              <div class="os-chart-canvas-wrap" data-os-canvas-state="empty" data-chart-scope="agent" role="img" aria-labelledby="design-chart-violations-title" aria-describedby="design-chart-violations-desc">
+                <div class="os-chart-skeleton" aria-hidden="true"></div>
+                <div class="os-chart-error" role="alert" aria-live="polite"></div>
+                <div class="os-chart-empty" aria-live="polite">
+                  <span class="os-chart-empty-label">No data yet</span>
+                  <span class="os-chart-empty-sub">Run the token audit to populate counts.</span>
+                </div>
+                <canvas data-os-chart="design-violations-bar" aria-hidden="true"></canvas>
+              </div>
+              <p class="os-chart-foot" id="design-chart-violations-desc">Updated after each token audit. Categories: color, spacing, radius, typography, transitions.</p>
+            </div>
+            <div class="os-chart-card os-chart-card--donut">
+              <div class="os-chart-card-head">
+                <h3 class="os-chart-card-title" id="design-chart-reviews-title">Design review outcomes</h3>
+                <span class="os-chart-card-tier">POST-LAUNCH</span>
+              </div>
+              <div class="os-chart-canvas-wrap" data-os-canvas-state="empty" data-chart-scope="agent" role="img" aria-labelledby="design-chart-reviews-title" aria-describedby="design-chart-reviews-desc">
+                <div class="os-chart-skeleton" aria-hidden="true"></div>
+                <div class="os-chart-error" role="alert" aria-live="polite"></div>
+                <div class="os-chart-empty" aria-live="polite">
+                  <span class="os-chart-empty-label">No data yet</span>
+                  <span class="os-chart-empty-sub">Tracking begins after the first design review is logged.</span>
+                </div>
+                <canvas data-os-chart="design-reviews-donut" aria-hidden="true"></canvas>
+              </div>
+              <p class="os-chart-foot" id="design-chart-reviews-desc">Approve / approve-with-conditions / reject — logged per PR review.</p>
+            </div>
+            <div class="os-chart-card os-chart-card--donut">
+              <div class="os-chart-card-head">
+                <h3 class="os-chart-card-title" id="design-chart-a11y-title">Accessibility issues open</h3>
+                <span class="os-chart-card-tier">POST-LAUNCH</span>
+              </div>
+              <div class="os-chart-canvas-wrap" data-os-canvas-state="empty" data-chart-scope="agent" role="img" aria-labelledby="design-chart-a11y-title" aria-describedby="design-chart-a11y-desc">
+                <div class="os-chart-skeleton" aria-hidden="true"></div>
+                <div class="os-chart-error" role="alert" aria-live="polite"></div>
+                <div class="os-chart-empty" aria-live="polite">
+                  <span class="os-chart-empty-label">No data yet</span>
+                  <span class="os-chart-empty-sub">Tracking begins after the first WCAG audit is logged.</span>
+                </div>
+                <canvas data-os-chart="design-a11y-donut" aria-hidden="true"></canvas>
+              </div>
+              <p class="os-chart-foot" id="design-chart-a11y-desc">Critical / serious / moderate — WCAG 2.2 AA target.</p>
+            </div>
+          </div>
+        </div>
         <div class="db-section">
           <div class="db-section-label">Runbooks</div>
           <div class="db-actions-grid" id="db-design-actions">
@@ -4981,6 +5332,345 @@ h3.os-chart-card-title {
           </div>
         </div>
 
+        <div class="db-section">
+          <div class="db-section-label">Analytics</div>
+          <div class="os-chart-grid" id="research-os-chart-grid">
+            <div class="os-chart-card os-chart-card--bar">
+              <div class="os-chart-card-head">
+                <h3 class="os-chart-card-title" id="research-chart-categories-title">Library items by category</h3>
+                <span class="os-chart-card-tier">MANUAL</span>
+              </div>
+              <div class="os-chart-canvas-wrap" data-os-canvas-state="empty" data-chart-scope="agent" role="img" aria-labelledby="research-chart-categories-title" aria-describedby="research-chart-categories-desc">
+                <div class="os-chart-skeleton" aria-hidden="true"></div>
+                <div class="os-chart-error" role="alert" aria-live="polite"></div>
+                <div class="os-chart-empty" aria-live="polite">
+                  <span class="os-chart-empty-label">No data yet</span>
+                  <span class="os-chart-empty-sub">Research agent populates this as items are added to the library.</span>
+                </div>
+                <canvas data-os-chart="research-categories-bar" aria-hidden="true"></canvas>
+              </div>
+              <p class="os-chart-foot" id="research-chart-categories-desc">Library items by category — competitor, market, technical, user research. Set in research-status.json.</p>
+            </div>
+            <div class="os-chart-card os-chart-card--donut">
+              <div class="os-chart-card-head">
+                <h3 class="os-chart-card-title" id="research-chart-status-title">Items by status</h3>
+                <span class="os-chart-card-tier">MANUAL</span>
+              </div>
+              <div class="os-chart-canvas-wrap" data-os-canvas-state="empty" data-chart-scope="agent" role="img" aria-labelledby="research-chart-status-title" aria-describedby="research-chart-status-desc">
+                <div class="os-chart-skeleton" aria-hidden="true"></div>
+                <div class="os-chart-error" role="alert" aria-live="polite"></div>
+                <div class="os-chart-empty" aria-live="polite">
+                  <span class="os-chart-empty-label">No data yet</span>
+                  <span class="os-chart-empty-sub">Tracking begins when research items are tracked through a review pipeline.</span>
+                </div>
+                <canvas data-os-chart="research-status-donut" aria-hidden="true"></canvas>
+              </div>
+              <p class="os-chart-foot" id="research-chart-status-desc">Research items by review status — new, reviewed, actioned, archived. Set in research-status.json.</p>
+            </div>
+            <div class="os-chart-card os-chart-card--bar">
+              <div class="os-chart-card-head">
+                <h3 class="os-chart-card-title" id="research-chart-confidence-title">Findings by confidence</h3>
+                <span class="os-chart-card-tier">MANUAL</span>
+              </div>
+              <div class="os-chart-canvas-wrap" data-os-canvas-state="empty" data-chart-scope="agent" role="img" aria-labelledby="research-chart-confidence-title" aria-describedby="research-chart-confidence-desc">
+                <div class="os-chart-skeleton" aria-hidden="true"></div>
+                <div class="os-chart-error" role="alert" aria-live="polite"></div>
+                <div class="os-chart-empty" aria-live="polite">
+                  <span class="os-chart-empty-label">No data yet</span>
+                  <span class="os-chart-empty-sub">Research agent scores findings as they are reviewed and actioned.</span>
+                </div>
+                <canvas data-os-chart="research-confidence-bar" aria-hidden="true"></canvas>
+              </div>
+              <p class="os-chart-foot" id="research-chart-confidence-desc">Research findings by confidence level — high, medium, low. Set in research-status.json.</p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ── AUDIO DASHBOARD ───────────────────────────────── -->
+      <div class="dashboard-view" data-dashboard-view="audio">
+        <div class="db-section">
+          <div class="db-section-label">Analytics</div>
+          <div class="os-chart-grid" id="audio-os-chart-grid">
+            <div class="os-chart-card os-chart-card--bar">
+              <div class="os-chart-card-head">
+                <h3 class="os-chart-card-title" id="audio-chart-types-title">Tracks by category</h3>
+                <span class="os-chart-card-tier">MANUAL</span>
+              </div>
+              <div class="os-chart-canvas-wrap" data-os-canvas-state="empty" data-chart-scope="agent" role="img" aria-labelledby="audio-chart-types-title" aria-describedby="audio-chart-types-desc">
+                <div class="os-chart-skeleton" aria-hidden="true"></div>
+                <div class="os-chart-error" role="alert" aria-live="polite"></div>
+                <div class="os-chart-empty" aria-live="polite">
+                  <span class="os-chart-empty-label">No data yet</span>
+                  <span class="os-chart-empty-sub">Audio agent populates this as tracks are created or planned.</span>
+                </div>
+                <canvas data-os-chart="audio-types-bar" aria-hidden="true"></canvas>
+              </div>
+              <p class="os-chart-foot" id="audio-chart-types-desc">Audio tracks by category — music, SFX, UI sounds, ambience. Set in audio-status.json.</p>
+            </div>
+            <div class="os-chart-card os-chart-card--donut">
+              <div class="os-chart-card-head">
+                <h3 class="os-chart-card-title" id="audio-chart-status-title">Tracks by status</h3>
+                <span class="os-chart-card-tier">MANUAL</span>
+              </div>
+              <div class="os-chart-canvas-wrap" data-os-canvas-state="empty" data-chart-scope="agent" role="img" aria-labelledby="audio-chart-status-title" aria-describedby="audio-chart-status-desc">
+                <div class="os-chart-skeleton" aria-hidden="true"></div>
+                <div class="os-chart-error" role="alert" aria-live="polite"></div>
+                <div class="os-chart-empty" aria-live="polite">
+                  <span class="os-chart-empty-label">No data yet</span>
+                  <span class="os-chart-empty-sub">Tracking begins when audio production is underway.</span>
+                </div>
+                <canvas data-os-chart="audio-status-donut" aria-hidden="true"></canvas>
+              </div>
+              <p class="os-chart-foot" id="audio-chart-status-desc">Audio tracks by production status — concept, in progress, done, approved. Set in audio-status.json.</p>
+            </div>
+            <div class="os-chart-card os-chart-card--bar">
+              <div class="os-chart-card-head">
+                <h3 class="os-chart-card-title" id="audio-chart-coverage-title">Coverage by game area</h3>
+                <span class="os-chart-card-tier">MANUAL</span>
+              </div>
+              <div class="os-chart-canvas-wrap" data-os-canvas-state="empty" data-chart-scope="agent" role="img" aria-labelledby="audio-chart-coverage-title" aria-describedby="audio-chart-coverage-desc">
+                <div class="os-chart-skeleton" aria-hidden="true"></div>
+                <div class="os-chart-error" role="alert" aria-live="polite"></div>
+                <div class="os-chart-empty" aria-live="polite">
+                  <span class="os-chart-empty-label">No data yet</span>
+                  <span class="os-chart-empty-sub">Audio agent updates this as game areas gain audio coverage.</span>
+                </div>
+                <canvas data-os-chart="audio-coverage-bar" aria-hidden="true"></canvas>
+              </div>
+              <p class="os-chart-foot" id="audio-chart-coverage-desc">Audio coverage by game area — main menu, room gameplay, combat, cutscenes. Set in audio-status.json.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── NARRATIVE DASHBOARD ────────────────────────────── -->
+      <div class="dashboard-view" data-dashboard-view="narrative">
+        <div class="db-section">
+          <div class="db-section-label">Analytics</div>
+          <div class="os-chart-grid" id="narrative-os-chart-grid">
+            <div class="os-chart-card os-chart-card--bar">
+              <div class="os-chart-card-head">
+                <h3 class="os-chart-card-title" id="narrative-chart-types-title">Content by type</h3>
+                <span class="os-chart-card-tier">MANUAL</span>
+              </div>
+              <div class="os-chart-canvas-wrap" data-os-canvas-state="empty" data-chart-scope="agent" role="img" aria-labelledby="narrative-chart-types-title" aria-describedby="narrative-chart-types-desc">
+                <div class="os-chart-skeleton" aria-hidden="true"></div>
+                <div class="os-chart-error" role="alert" aria-live="polite"></div>
+                <div class="os-chart-empty" aria-live="polite">
+                  <span class="os-chart-empty-label">No data yet</span>
+                  <span class="os-chart-empty-sub">Narrative agent populates this as content is written or planned.</span>
+                </div>
+                <canvas data-os-chart="narrative-types-bar" aria-hidden="true"></canvas>
+              </div>
+              <p class="os-chart-foot" id="narrative-chart-types-desc">Narrative content by type — dialogue, lore, item descriptions, codex entries. Set in narrative-status.json.</p>
+            </div>
+            <div class="os-chart-card os-chart-card--donut">
+              <div class="os-chart-card-head">
+                <h3 class="os-chart-card-title" id="narrative-chart-status-title">Content by status</h3>
+                <span class="os-chart-card-tier">MANUAL</span>
+              </div>
+              <div class="os-chart-canvas-wrap" data-os-canvas-state="empty" data-chart-scope="agent" role="img" aria-labelledby="narrative-chart-status-title" aria-describedby="narrative-chart-status-desc">
+                <div class="os-chart-skeleton" aria-hidden="true"></div>
+                <div class="os-chart-error" role="alert" aria-live="polite"></div>
+                <div class="os-chart-empty" aria-live="polite">
+                  <span class="os-chart-empty-label">No data yet</span>
+                  <span class="os-chart-empty-sub">Tracking begins when narrative content enters a review pipeline.</span>
+                </div>
+                <canvas data-os-chart="narrative-status-donut" aria-hidden="true"></canvas>
+              </div>
+              <p class="os-chart-foot" id="narrative-chart-status-desc">Narrative content by status — drafted, reviewed, final, cut. Set in narrative-status.json.</p>
+            </div>
+            <div class="os-chart-card os-chart-card--bar">
+              <div class="os-chart-card-head">
+                <h3 class="os-chart-card-title" id="narrative-chart-coverage-title">Coverage by story area</h3>
+                <span class="os-chart-card-tier">MANUAL</span>
+              </div>
+              <div class="os-chart-canvas-wrap" data-os-canvas-state="empty" data-chart-scope="agent" role="img" aria-labelledby="narrative-chart-coverage-title" aria-describedby="narrative-chart-coverage-desc">
+                <div class="os-chart-skeleton" aria-hidden="true"></div>
+                <div class="os-chart-error" role="alert" aria-live="polite"></div>
+                <div class="os-chart-empty" aria-live="polite">
+                  <span class="os-chart-empty-label">No data yet</span>
+                  <span class="os-chart-empty-sub">Narrative agent updates this as story areas are developed.</span>
+                </div>
+                <canvas data-os-chart="narrative-coverage-bar" aria-hidden="true"></canvas>
+              </div>
+              <p class="os-chart-foot" id="narrative-chart-coverage-desc">Narrative coverage by story area — Act 1, Act 2, side quests, world building. Set in narrative-status.json.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── CREATIVE DASHBOARD ─────────────────────────────── -->
+      <div class="dashboard-view" data-dashboard-view="creative">
+        <div class="db-section">
+          <div class="db-section-label">Analytics</div>
+          <div class="os-chart-grid" id="creative-os-chart-grid">
+            <div class="os-chart-card os-chart-card--bar">
+              <div class="os-chart-card-head">
+                <h3 class="os-chart-card-title" id="creative-chart-types-title">Assets by type</h3>
+                <span class="os-chart-card-tier">MANUAL</span>
+              </div>
+              <div class="os-chart-canvas-wrap" data-os-canvas-state="empty" data-chart-scope="agent" role="img" aria-labelledby="creative-chart-types-title" aria-describedby="creative-chart-types-desc">
+                <div class="os-chart-skeleton" aria-hidden="true"></div>
+                <div class="os-chart-error" role="alert" aria-live="polite"></div>
+                <div class="os-chart-empty" aria-live="polite">
+                  <span class="os-chart-empty-label">No data yet</span>
+                  <span class="os-chart-empty-sub">Creative agent populates this as assets are created or planned.</span>
+                </div>
+                <canvas data-os-chart="creative-types-bar" aria-hidden="true"></canvas>
+              </div>
+              <p class="os-chart-foot" id="creative-chart-types-desc">Creative assets by type — characters, environments, UI/UX, VFX. Set in creative-status.json.</p>
+            </div>
+            <div class="os-chart-card os-chart-card--donut">
+              <div class="os-chart-card-head">
+                <h3 class="os-chart-card-title" id="creative-chart-status-title">Assets by status</h3>
+                <span class="os-chart-card-tier">MANUAL</span>
+              </div>
+              <div class="os-chart-canvas-wrap" data-os-canvas-state="empty" data-chart-scope="agent" role="img" aria-labelledby="creative-chart-status-title" aria-describedby="creative-chart-status-desc">
+                <div class="os-chart-skeleton" aria-hidden="true"></div>
+                <div class="os-chart-error" role="alert" aria-live="polite"></div>
+                <div class="os-chart-empty" aria-live="polite">
+                  <span class="os-chart-empty-label">No data yet</span>
+                  <span class="os-chart-empty-sub">Tracking begins when creative assets are in active production.</span>
+                </div>
+                <canvas data-os-chart="creative-status-donut" aria-hidden="true"></canvas>
+              </div>
+              <p class="os-chart-foot" id="creative-chart-status-desc">Creative assets by production status — concept, in progress, done, approved. Set in creative-status.json.</p>
+            </div>
+            <div class="os-chart-card os-chart-card--bar">
+              <div class="os-chart-card-head">
+                <h3 class="os-chart-card-title" id="creative-chart-consistency-title">Style consistency by area</h3>
+                <span class="os-chart-card-tier">POST-LAUNCH</span>
+              </div>
+              <div class="os-chart-canvas-wrap" data-os-canvas-state="empty" data-chart-scope="agent" role="img" aria-labelledby="creative-chart-consistency-title" aria-describedby="creative-chart-consistency-desc">
+                <div class="os-chart-skeleton" aria-hidden="true"></div>
+                <div class="os-chart-error" role="alert" aria-live="polite"></div>
+                <div class="os-chart-empty" aria-live="polite">
+                  <span class="os-chart-empty-label">No data yet</span>
+                  <span class="os-chart-empty-sub">Requires a style audit with enough assets to compare against.</span>
+                </div>
+                <canvas data-os-chart="creative-consistency-bar" aria-hidden="true"></canvas>
+              </div>
+              <p class="os-chart-foot" id="creative-chart-consistency-desc">Style consistency score per area — character sprites, environment tiles, UI components, cutscene art.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── GAME DIRECTOR DASHBOARD ────────────────────────── -->
+      <div class="dashboard-view" data-dashboard-view="game-director">
+        <div class="db-section">
+          <div class="db-section-label">Analytics</div>
+          <div class="os-chart-grid" id="game-director-os-chart-grid">
+            <div class="os-chart-card os-chart-card--donut">
+              <div class="os-chart-card-head">
+                <h3 class="os-chart-card-title" id="gd-chart-decisions-title">Design decisions by status</h3>
+                <span class="os-chart-card-tier">MANUAL</span>
+              </div>
+              <div class="os-chart-canvas-wrap" data-os-canvas-state="empty" data-chart-scope="agent" role="img" aria-labelledby="gd-chart-decisions-title" aria-describedby="gd-chart-decisions-desc">
+                <div class="os-chart-skeleton" aria-hidden="true"></div>
+                <div class="os-chart-error" role="alert" aria-live="polite"></div>
+                <div class="os-chart-empty" aria-live="polite">
+                  <span class="os-chart-empty-label">No data yet</span>
+                  <span class="os-chart-empty-sub">Game Director agent populates this as design decisions are logged.</span>
+                </div>
+                <canvas data-os-chart="gd-decisions-donut" aria-hidden="true"></canvas>
+              </div>
+              <p class="os-chart-foot" id="gd-chart-decisions-desc">Design decisions by status — open, decided, revisiting, deferred. Set in game-director-status.json.</p>
+            </div>
+            <div class="os-chart-card os-chart-card--bar">
+              <div class="os-chart-card-head">
+                <h3 class="os-chart-card-title" id="gd-chart-pillars-title">Feature coverage by pillar</h3>
+                <span class="os-chart-card-tier">MANUAL</span>
+              </div>
+              <div class="os-chart-canvas-wrap" data-os-canvas-state="empty" data-chart-scope="agent" role="img" aria-labelledby="gd-chart-pillars-title" aria-describedby="gd-chart-pillars-desc">
+                <div class="os-chart-skeleton" aria-hidden="true"></div>
+                <div class="os-chart-error" role="alert" aria-live="polite"></div>
+                <div class="os-chart-empty" aria-live="polite">
+                  <span class="os-chart-empty-label">No data yet</span>
+                  <span class="os-chart-empty-sub">Game Director agent updates this when features are mapped to pillars.</span>
+                </div>
+                <canvas data-os-chart="gd-pillars-bar" aria-hidden="true"></canvas>
+              </div>
+              <p class="os-chart-foot" id="gd-chart-pillars-desc">Feature count per design pillar — exploration, combat, progression, narrative. Set in game-director-status.json.</p>
+            </div>
+            <div class="os-chart-card os-chart-card--bar">
+              <div class="os-chart-card-head">
+                <h3 class="os-chart-card-title" id="gd-chart-debt-title">Design debt by type</h3>
+                <span class="os-chart-card-tier">MANUAL</span>
+              </div>
+              <div class="os-chart-canvas-wrap" data-os-canvas-state="empty" data-chart-scope="agent" role="img" aria-labelledby="gd-chart-debt-title" aria-describedby="gd-chart-debt-desc">
+                <div class="os-chart-skeleton" aria-hidden="true"></div>
+                <div class="os-chart-error" role="alert" aria-live="polite"></div>
+                <div class="os-chart-empty" aria-live="polite">
+                  <span class="os-chart-empty-label">No data yet</span>
+                  <span class="os-chart-empty-sub">Game Director agent logs design debt during design reviews.</span>
+                </div>
+                <canvas data-os-chart="gd-debt-bar" aria-hidden="true"></canvas>
+              </div>
+              <p class="os-chart-foot" id="gd-chart-debt-desc">Design debt items by type — undefined systems, unresolved conflicts, placeholder content.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── GAME SYSTEMS DASHBOARD ─────────────────────────── -->
+      <div class="dashboard-view" data-dashboard-view="game-systems">
+        <div class="db-section">
+          <div class="db-section-label">Analytics</div>
+          <div class="os-chart-grid" id="game-systems-os-chart-grid">
+            <div class="os-chart-card os-chart-card--donut">
+              <div class="os-chart-card-head">
+                <h3 class="os-chart-card-title" id="gs-chart-systems-title">Systems by status</h3>
+                <span class="os-chart-card-tier">MANUAL</span>
+              </div>
+              <div class="os-chart-canvas-wrap" data-os-canvas-state="empty" data-chart-scope="agent" role="img" aria-labelledby="gs-chart-systems-title" aria-describedby="gs-chart-systems-desc">
+                <div class="os-chart-skeleton" aria-hidden="true"></div>
+                <div class="os-chart-error" role="alert" aria-live="polite"></div>
+                <div class="os-chart-empty" aria-live="polite">
+                  <span class="os-chart-empty-label">No data yet</span>
+                  <span class="os-chart-empty-sub">Game Systems agent populates this as systems are designed.</span>
+                </div>
+                <canvas data-os-chart="gs-systems-donut" aria-hidden="true"></canvas>
+              </div>
+              <p class="os-chart-foot" id="gs-chart-systems-desc">Game systems by implementation status — not started, in progress, done, blocked. Set in game-systems-status.json.</p>
+            </div>
+            <div class="os-chart-card os-chart-card--bar">
+              <div class="os-chart-card-head">
+                <h3 class="os-chart-card-title" id="gs-chart-categories-title">Systems by category</h3>
+                <span class="os-chart-card-tier">MANUAL</span>
+              </div>
+              <div class="os-chart-canvas-wrap" data-os-canvas-state="empty" data-chart-scope="agent" role="img" aria-labelledby="gs-chart-categories-title" aria-describedby="gs-chart-categories-desc">
+                <div class="os-chart-skeleton" aria-hidden="true"></div>
+                <div class="os-chart-error" role="alert" aria-live="polite"></div>
+                <div class="os-chart-empty" aria-live="polite">
+                  <span class="os-chart-empty-label">No data yet</span>
+                  <span class="os-chart-empty-sub">Game Systems agent categorises systems as they are designed.</span>
+                </div>
+                <canvas data-os-chart="gs-categories-bar" aria-hidden="true"></canvas>
+              </div>
+              <p class="os-chart-foot" id="gs-chart-categories-desc">Systems count per category — combat, movement, progression, AI/enemies, world. Set in game-systems-status.json.</p>
+            </div>
+            <div class="os-chart-card os-chart-card--bar">
+              <div class="os-chart-card-head">
+                <h3 class="os-chart-card-title" id="gs-chart-integration-title">Integration coverage</h3>
+                <span class="os-chart-card-tier">MANUAL</span>
+              </div>
+              <div class="os-chart-canvas-wrap" data-os-canvas-state="empty" data-chart-scope="agent" role="img" aria-labelledby="gs-chart-integration-title" aria-describedby="gs-chart-integration-desc">
+                <div class="os-chart-skeleton" aria-hidden="true"></div>
+                <div class="os-chart-error" role="alert" aria-live="polite"></div>
+                <div class="os-chart-empty" aria-live="polite">
+                  <span class="os-chart-empty-label">No data yet</span>
+                  <span class="os-chart-empty-sub">Updated as systems are validated against the engine and toolchain.</span>
+                </div>
+                <canvas data-os-chart="gs-integration-bar" aria-hidden="true"></canvas>
+              </div>
+              <p class="os-chart-foot" id="gs-chart-integration-desc">Systems tested by integration scope — engine, room editor, end-to-end. Set in game-systems-status.json.</p>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- OPPORTUNITIES VIEW (opportunities[] across agents) -->
@@ -5669,6 +6359,11 @@ const DASHBOARDS = {
   support:         { label: 'Support',        color: '#fbbf24', agents: ['support'] },
   marketing:       { label: 'Marketing',      color: '#f5986e', agents: ['marketing'] },
   design:          { label: 'Design',          color: '#fb7185', agents: ['design'] },
+  audio:           { label: 'Audio',           color: '#fb923c', agents: ['audio'] },
+  narrative:       { label: 'Narrative',       color: '#c084fc', agents: ['narrative'] },
+  creative:        { label: 'Creative',        color: '#f472b6', agents: ['creative'] },
+  'game-director': { label: 'Game Director',   color: '#e2e8f0', agents: ['game-director'] },
+  'game-systems':  { label: 'Game Systems',    color: '#67e8f9', agents: ['game-systems'] },
   workbench:       { label: 'Workbench',      color: '#38bdf8', agents: [] },
   'ashen-hollow':  { label: 'Ashen Hollow',   color: '#818cf8', agents: ['game-director', 'creative', 'narrative', 'audio', 'game-systems'] },
 };
@@ -5711,7 +6406,7 @@ const OS_PRODUCT_CONTEXT_KEY = 'mv-agent-os-product-context';
 const OS_PRODUCT_CONTEXT_SETS = {
   business: new Set(['home', 'issues', 'opportunities', 'ongoing-tasks', 'orchestration', 'strategy', 'legal', 'finance', 'support', 'marketing', 'analytics', 'cybersecurity', 'research']),
   sprite: new Set(['home', 'issues', 'opportunities', 'ongoing-tasks', 'workbench', 'design', 'development', 'animation', 'level-design', 'qa', 'cybersecurity', 'research']),
-  'ashen-hollow': new Set(['home', 'issues', 'opportunities', 'ongoing-tasks', 'ashen-hollow', 'development', 'animation', 'level-design', 'design', 'qa', 'research']),
+  'ashen-hollow': new Set(['home', 'issues', 'opportunities', 'ongoing-tasks', 'ashen-hollow', 'development', 'animation', 'level-design', 'design', 'qa', 'research', 'audio', 'narrative', 'creative', 'game-director', 'game-systems']),
   'other-income': new Set(['home', 'issues', 'opportunities', 'ongoing-tasks', 'marketing', 'finance', 'legal', 'support', 'analytics', 'strategy']),
 };
 
@@ -6533,11 +7228,9 @@ async function loadDesignStatus() {
     mergeAgentCustomActions('design', s.actions);
     renderModes();
 
-    const prioritiesEl = document.getElementById('db-design-priorities');
     const risksP0El = document.getElementById('db-design-risks-p0');
     const founderEl = document.getElementById('db-design-founder-decisions');
 
-    if (prioritiesEl && s.priorities) renderPriorityRows(s.priorities, prioritiesEl, { defaultOwner: 'Design' });
     if (risksP0El) renderRisksP0(s.risks_p0 ?? [], risksP0El);
     if (founderEl) renderFounderDecisions(s.founder_decisions ?? [], founderEl);
     const actionsEl = document.getElementById('db-design-actions');
@@ -6553,6 +7246,11 @@ async function loadDesignStatus() {
     setMetric('db-design-metric-copilot', m.copilot_ux_charter);
     const guideParts = [m.style_guide_last_touch, m.next_audit].filter(function (x) { return x != null && x !== ''; });
     setMetric('db-design-metric-guide', guideParts.length ? guideParts.join(' · ') : '—');
+
+    if (s.design_chart) {
+      window.__designChartData = s.design_chart;
+      paintDesignCharts();
+    }
   } catch {
     // Leave placeholder content in place
   }
@@ -6566,13 +7264,9 @@ async function loadMarketingStatus() {
     mergeAgentCustomActions('marketing', s.actions);
     renderModes();
 
-    const prioritiesEl = document.getElementById('db-marketing-priorities');
     const risksP0El = document.getElementById('db-marketing-risks-p0');
     const founderEl = document.getElementById('db-marketing-founder-decisions');
 
-    if (prioritiesEl && Array.isArray(s.priorities) && s.priorities.length > 0) {
-      renderPriorityRows(s.priorities, prioritiesEl, { defaultOwner: 'Marketing' });
-    }
     if (risksP0El) renderRisksP0(s.risks_p0 ?? [], risksP0El);
     if (founderEl) renderFounderDecisions(s.founder_decisions ?? [], founderEl);
     const actionsEl = document.getElementById('db-marketing-actions');
@@ -6587,6 +7281,7 @@ async function loadMarketingStatus() {
     setMetric('db-marketing-metric-content', m.content_devlog);
     setMetric('db-marketing-metric-channels', m.channels_cadence);
     setMetric('db-marketing-metric-competitors', m.competitor_watch);
+    if (s.marketing_chart) { window.__marketingChartData = s.marketing_chart; paintMarketingCharts(); }
   } catch {
     // Leave placeholder content in place
   }
@@ -6618,9 +7313,6 @@ async function loadQaStatus() {
     if (gateLabel)  gateLabel.textContent  = gate.label || gateConf.labelDefault;
     if (gateDesc)   gateDesc.textContent   = gate.description || '';
 
-    // Priorities
-    const prioritiesEl = document.getElementById('db-qa-priorities');
-    if (prioritiesEl && s.priorities) renderPriorityRows(s.priorities, prioritiesEl, { defaultOwner: 'QA' });
     const actionsEl = document.getElementById('db-qa-actions');
     if (actionsEl) renderActions(s.actions ?? [], actionsEl);
 
@@ -6698,6 +7390,7 @@ async function loadQaStatus() {
     setVal('db-qa-has-e2e', m.has_e2e_tests ? 'Yes' : 'None yet', v => v === 'Yes' ? 'db-card-value--good' : 'db-card-value--warning');
     setVal('db-qa-has-visual', m.has_visual_regression ? 'Yes' : 'None yet', v => v === 'Yes' ? 'db-card-value--good' : 'db-card-value--warning');
     setVal('db-qa-acceptance-count', m.acceptance_tests_documented);
+    if (s.qa_chart) { window.__qaChartData = s.qa_chart; paintQaCharts(); }
   } catch(e) {
     // Leave placeholder content in place
   }
@@ -6712,15 +7405,14 @@ async function loadStrategyStatus() {
     mergeAgentCustomActions('strategy', s.actions);
     renderModes();
 
-    const prioritiesEl = document.getElementById('db-strategy-priorities');
     const risksP0El    = document.getElementById('db-strategy-risks-p0');
     const founderEl    = document.getElementById('db-strategy-founder-decisions');
 
-    if (prioritiesEl && s.priorities) renderPriorityRows(s.priorities, prioritiesEl, { defaultOwner: 'Strategy' });
     if (risksP0El) renderRisksP0(s.risks_p0 ?? [], risksP0El);
     if (founderEl) renderFounderDecisions(s.founder_decisions ?? [], founderEl);
     const actionsEl = document.getElementById('db-strategy-actions');
     if (actionsEl) renderActions(s.actions ?? [], actionsEl);
+    if (s.strategy_chart) { window.__strategyChartData = s.strategy_chart; paintStrategyCharts(); }
 
     // Assumption register
     const assumptionEl = document.getElementById('db-strategy-assumption-register');
@@ -6780,59 +7472,28 @@ async function loadStrategyStatus() {
   }
 }
 
-function renderAnalyticsPrioritiesEmpty(container) {
-  container.innerHTML =
-    '<div style="color:var(--muted);font-size:var(--font-size-sm);font-weight:500;padding:12px 0;line-height:1.45">'
-    + 'No priorities listed in <span style="font-family:var(--font-mono)">analytics-status.json</span>.'
-    + '</div>';
-}
-
 function applyAnalyticsStatusPayload(s) {
   if (!s || typeof s !== 'object' || Array.isArray(s)) return;
   mergeAgentCustomActions('analytics', s.actions);
-  const prioritiesEl = document.getElementById('db-analytics-priorities');
   const risksP0El = document.getElementById('db-analytics-risks-p0');
   const founderEl = document.getElementById('db-analytics-founder-decisions');
-  if (prioritiesEl) {
-    const list = Array.isArray(s.priorities) ? s.priorities : [];
-    if (list.length > 0) {
-      renderPriorityRows(list, prioritiesEl, { defaultOwner: 'Analytics' });
-    } else {
-      renderAnalyticsPrioritiesEmpty(prioritiesEl);
-    }
-  }
   if (risksP0El) renderRisksP0(s.risks_p0 ?? [], risksP0El);
   if (founderEl) renderFounderDecisions(s.founder_decisions ?? [], founderEl);
   const actionsEl = document.getElementById('db-analytics-actions');
   if (actionsEl) renderActions(s.actions ?? [], actionsEl);
+  if (s.analytics_chart) { window.__analyticsChartData = s.analytics_chart; paintAnalyticsCharts(); }
 }
 
 async function loadAnalyticsStatus() {
-  const prioritiesEl = document.getElementById('db-analytics-priorities');
-  const showFetchHint = () => {
-    if (!prioritiesEl) return;
-    prioritiesEl.innerHTML =
-      '<div style="color:var(--muted);font-size:var(--font-size-sm);font-weight:500;padding:12px 0;line-height:1.45">'
-      + 'Could not load <span style="font-family:var(--font-mono)">analytics-status.json</span> on this origin. '
-      + 'Open the dashboard via Agent OS (8769) or the Sprite Workbench server (8766), or rely on '
-      + '<span style="font-family:var(--font-mono)">GET /api/dashboard-data</span> (embedded <span style="font-family:var(--font-mono)">analytics_status</span>).'
-      + '</div>';
-  };
   try {
     const resp = await fetch('analytics-status.json');
-    if (!resp.ok) {
-      showFetchHint();
-      return;
-    }
+    if (!resp.ok) return;
     const s = await resp.json();
-    if (!s || typeof s !== 'object' || Array.isArray(s)) {
-      showFetchHint();
-      return;
-    }
+    if (!s || typeof s !== 'object' || Array.isArray(s)) return;
     applyAnalyticsStatusPayload(s);
     renderModes();
   } catch {
-    showFetchHint();
+    // Leave placeholder content in place
   }
 }
 
@@ -6896,17 +7557,14 @@ async function loadOrchestrationStatus() {
     mergeAgentCustomActions('orchestrator', s.actions);
     renderModes();
 
-    const prioritiesEl = document.getElementById('db-orch-priorities');
     const risksP0El = document.getElementById('db-orch-risks-p0');
     const founderEl = document.getElementById('db-orch-founder-decisions');
 
-    if (prioritiesEl && s.priorities) {
-      renderPriorityRows(s.priorities, prioritiesEl, { orchMode: true, defaultOwner: 'Orchestration' });
-    }
     if (risksP0El) renderRisksP0(s.risks_p0 ?? [], risksP0El);
     if (founderEl) renderFounderDecisions(s.founder_decisions ?? [], founderEl);
     const actionsEl = document.getElementById('db-orch-actions');
     if (actionsEl) renderActions(s.actions ?? [], actionsEl);
+    if (s.orch_chart) { window.__orchChartData = s.orch_chart; paintOrchCharts(); }
   } catch {
     // Leave placeholder content in place
   }
@@ -7512,6 +8170,473 @@ function paintMiniSpark(canvas) {
   ctx.stroke();
 }
 
+// ── Generic agent chart painters (shared by all agent dashboards) ─────────
+// paintAgentHbar(canvas, color, rows)
+//   rows: [{ label: string, value: number, key?: 'good'|'warning'|'accent'|'muted' }]
+function paintAgentHbar(canvas, color, rows) {
+  const prep = prepCanvasInWrap(canvas);
+  if (!prep) return;
+  const { ctx, cssW: W, cssH: H } = prep;
+  const t = osChartTheme();
+  const pad = { t: 12, r: 20, b: 12, l: 100 };
+  const barH = 14;
+  const innerW = W - pad.l - pad.r;
+  const innerH = H - pad.t - pad.b;
+  const rowH = innerH / Math.max(1, rows.length);
+  const maxV = Math.max.apply(null, rows.map(function(r) { return r.value; }).concat([1]));
+  const monoFamily = getComputedStyle(document.documentElement).getPropertyValue('--font-mono') || '"DM Mono",monospace';
+  const sansFamily = getComputedStyle(document.documentElement).getPropertyValue('--font-sans') || 'sans-serif';
+  ctx.clearRect(0, 0, W, H);
+  rows.forEach(function(row, i) {
+    const y0 = pad.t + i * rowH + 4;
+    const barW = maxV > 0 ? (row.value / maxV) * innerW * 0.96 : 0;
+    ctx.fillStyle = t.muted;
+    ctx.font = '500 11px ' + sansFamily;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(row.label, 8, y0 + 10);
+    ctx.fillStyle = 'rgba(93,120,112,0.12)';
+    ctx.fillRect(pad.l, y0 + 2, innerW, barH);
+    ctx.fillStyle = row.key ? osThemeColor(t, row.key) : color;
+    if (barW > 0) ctx.fillRect(pad.l, y0 + 2, barW, barH);
+    ctx.fillStyle = row.value > 0 ? t.text : t.muted;
+    ctx.font = '600 10px ' + monoFamily;
+    ctx.textAlign = 'right';
+    ctx.fillText(String(row.value), pad.l + innerW, y0 + 9);
+  });
+}
+
+// paintAgentArea(canvas, color, data, labels)
+//   data: number[], labels: string[]
+function paintAgentArea(canvas, color, data, labels) {
+  const prep = prepCanvasInWrap(canvas);
+  if (!prep) return;
+  const { ctx, cssW: W, cssH: H } = prep;
+  const t = osChartTheme();
+  const n = data.length;
+  if (n === 0) return;
+  const short = H < 140;
+  const rotateLabels = n >= 7;
+  const padBottom = rotateLabels ? 48 : (short ? 20 : 32);
+  const pad = short
+    ? { t: 8, r: 8, b: padBottom, l: 28 }
+    : { t: 20, r: 12, b: padBottom, l: 40 };
+  const innerW = W - pad.l - pad.r;
+  const innerH = H - pad.t - pad.b;
+  const max = Math.max.apply(null, data.concat([1]));
+  const span = max || 1;
+  const stepX = innerW / Math.max(1, n - 1);
+  const monoFamily = getComputedStyle(document.documentElement).getPropertyValue('--font-mono') || '"DM Mono",monospace';
+  ctx.clearRect(0, 0, W, H);
+  ctx.strokeStyle = t.line;
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) {
+    const y = pad.t + (innerH * i) / 4;
+    ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(W - pad.r, y); ctx.stroke();
+  }
+  const pts = data.map(function(v, i) {
+    return { x: pad.l + i * stepX, y: pad.t + innerH - (v / span) * innerH * 0.92 };
+  });
+  // Parse color to rgb for gradient
+  const grad = ctx.createLinearGradient(0, pad.t, 0, pad.t + innerH);
+  grad.addColorStop(0, color.replace(')', ', 0.28)').replace('rgb(', 'rgba(').replace('#', 'rgba(').replace(/rgba\(([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2}), 0.28\)/, function(_, r, g, b) { return 'rgba(' + parseInt(r,16) + ',' + parseInt(g,16) + ',' + parseInt(b,16) + ',0.28)'; }));
+  grad.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.beginPath();
+  ctx.moveTo(pts[0].x, pad.t + innerH);
+  pts.forEach(function(p) { ctx.lineTo(p.x, p.y); });
+  ctx.lineTo(pts[n-1].x, pad.t + innerH);
+  ctx.closePath();
+  ctx.fillStyle = grad;
+  ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(pts[0].x, pts[0].y);
+  for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  pts.forEach(function(p) {
+    ctx.beginPath(); ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+    ctx.fillStyle = color; ctx.fill();
+  });
+  ctx.font = (rotateLabels ? '500 9px ' : '500 10px ') + monoFamily;
+  ctx.fillStyle = t.muted;
+  labels.forEach(function(lb, i) {
+    const x = pad.l + i * stepX;
+    if (rotateLabels) {
+      ctx.save(); ctx.translate(x, H - 8); ctx.rotate(-Math.PI / 3);
+      ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+      ctx.fillText(lb, 0, 0); ctx.restore();
+    } else {
+      ctx.textAlign = i === 0 ? 'left' : (i === n - 1 ? 'right' : 'center');
+      ctx.textBaseline = 'top';
+      ctx.fillText(lb, x, H - padBottom + 4);
+    }
+  });
+}
+
+// Resolve agent CSS color token to a concrete color string
+function agentColor(agentToken) {
+  return getComputedStyle(document.documentElement).getPropertyValue(agentToken).trim() || '#00e8c8';
+}
+
+// Generic chart driver: given a dashboard view id, chart data map, and paint config array, paint all agent charts.
+// paintConfig: [{ chartId: string, type: 'hbar'|'donut'|'area', dataKey: string, colorToken: string, nKey?: string }]
+function paintAgentChartsForAgent(dashViewId, chartDataMap, paintConfig) {
+  const view = document.querySelector('[data-dashboard-view="' + dashViewId + '"]');
+  if (!view) return;
+  paintConfig.forEach(function(cfg) {
+    const canvas = view.querySelector('[data-os-chart="' + cfg.chartId + '"]');
+    if (!canvas) return;
+    const wrap = canvas.parentElement;
+    const rows = chartDataMap[cfg.dataKey] || [];
+    const hasData = cfg.type === 'area'
+      ? (rows.length > 0 && rows.some(function(v) { return v > 0; }))
+      : (rows.some ? rows.some(function(r) { return r.value > 0; }) : false);
+    if (!hasData) return; // leave empty state
+    if (wrap && wrap.dataset.chartScope === 'agent') wrap.dataset.osCanvasState = 'idle';
+    const color = agentColor(cfg.colorToken);
+    if (cfg.type === 'hbar') {
+      paintAgentHbar(canvas, color, rows);
+    } else if (cfg.type === 'donut') {
+      paintAgentDonut(canvas, rows, chartDataMap[cfg.nKey || (cfg.dataKey + '_n')] || 0);
+    } else if (cfg.type === 'area') {
+      paintAgentArea(canvas, color, rows, chartDataMap[cfg.labelsKey || 'labels'] || []);
+    }
+  });
+}
+
+// ── Design agent charts ────────────────────────────────────────────────────
+window.__designChartData = window.__designChartData || { violations: [], reviews: [], a11y: [], violations_n: 0, reviews_n: 0, a11y_n: 0 };
+
+function paintDesignViolationsBar(canvas) {
+  const data = window.__designChartData;
+  const rows = data.violations || [];
+  const prep = prepCanvasInWrap(canvas);
+  if (!prep) return;
+  const { ctx, cssW: W, cssH: H } = prep;
+  const t = osChartTheme();
+  const designColor = getComputedStyle(document.documentElement).getPropertyValue('--c-design').trim() || '#818cf8';
+  const pad = { t: 12, r: 20, b: 12, l: 100 };
+  const barH = 14;
+  const innerW = W - pad.l - pad.r;
+  const innerH = H - pad.t - pad.b;
+  const rowH = innerH / Math.max(1, rows.length);
+  const maxV = Math.max.apply(null, rows.map(function(r) { return r.value; }).concat([1]));
+  const monoFamily = getComputedStyle(document.documentElement).getPropertyValue('--font-mono') || '"DM Mono",monospace';
+  const sansFamily = getComputedStyle(document.documentElement).getPropertyValue('--font-sans') || 'sans-serif';
+  ctx.clearRect(0, 0, W, H);
+  rows.forEach(function(row, i) {
+    const y0 = pad.t + i * rowH + 4;
+    const barW = (row.value / maxV) * innerW * 0.96;
+    ctx.fillStyle = t.muted;
+    ctx.font = '500 11px ' + sansFamily;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(row.label, 8, y0 + 10);
+    ctx.fillStyle = 'rgba(93,120,112,0.12)';
+    ctx.fillRect(pad.l, y0 + 2, innerW, barH);
+    ctx.fillStyle = row.value >= 5 ? t.warning : (row.value > 0 ? designColor : 'rgba(93,120,112,0.25)');
+    if (barW > 0) ctx.fillRect(pad.l, y0 + 2, barW, barH);
+    ctx.fillStyle = row.value > 0 ? t.text : t.muted;
+    ctx.font = '600 10px ' + monoFamily;
+    ctx.textAlign = 'right';
+    ctx.fillText(String(row.value), pad.l + innerW, y0 + 9);
+  });
+}
+
+function paintAgentDonut(canvas, segs, n) {
+  const prep = prepCanvasInWrap(canvas);
+  if (!prep) return;
+  const { ctx, cssW: W, cssH: H } = prep;
+  const t = osChartTheme();
+  const total = segs.reduce(function(s, x) { return s + x.value; }, 0) || 1;
+  const monoFamily = getComputedStyle(document.documentElement).getPropertyValue('--font-mono') || '"DM Mono",monospace';
+  ctx.clearRect(0, 0, W, H);
+  const stackedBelow = W < 480;
+  let cx, cy, r0, r1;
+  if (stackedBelow) {
+    const legendH = 58;
+    r1 = Math.min(W * 0.44, Math.max(28, (H - legendH - 28) * 0.52));
+    r0 = r1 * 0.52;
+    cx = W / 2;
+    cy = 16 + r1;
+  } else {
+    cx = Math.min(W, H) * 0.36;
+    cy = H * 0.5;
+    r0 = Math.min(W, H) * 0.2;
+    r1 = r0 * 1.62;
+  }
+  let ang = -Math.PI / 2;
+  segs.forEach(function(seg) {
+    const slice = (seg.value / total) * Math.PI * 2;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r1, ang, ang + slice);
+    ctx.arc(cx, cy, r0, ang + slice, ang, true);
+    ctx.closePath();
+    ctx.fillStyle = osThemeColor(t, seg.key);
+    ctx.fill();
+    ang += slice;
+  });
+  ctx.fillStyle = t.muted;
+  ctx.font = '500 10px ' + monoFamily;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('n=' + String(n), cx, cy);
+  ctx.textBaseline = 'top';
+  ctx.font = '500 10px ' + monoFamily;
+  if (stackedBelow) {
+    const legendStep = 18;
+    let y = cy + r1 + 12;
+    const blockW = 156;
+    const lx0 = Math.max(8, (W - blockW) / 2);
+    segs.forEach(function(seg) {
+      ctx.fillStyle = osThemeColor(t, seg.key);
+      ctx.fillRect(lx0, y, 8, 8);
+      ctx.fillStyle = t.muted;
+      ctx.textAlign = 'left';
+      ctx.fillText(seg.label + ' · ' + String(seg.value), lx0 + 14, y - 1);
+      y += legendStep;
+    });
+  } else {
+    const lx = cx + r1 + 20;
+    let y = cy - (segs.length * 20) / 2;
+    segs.forEach(function(seg) {
+      ctx.fillStyle = osThemeColor(t, seg.key);
+      ctx.fillRect(lx, y, 8, 8);
+      ctx.fillStyle = t.muted;
+      ctx.textAlign = 'left';
+      ctx.fillText(seg.label + ' · ' + String(seg.value), lx + 14, y - 1);
+      y += 20;
+    });
+  }
+}
+
+function paintDesignCharts() {
+  const view = document.querySelector('[data-dashboard-view="design"]');
+  if (!view) return;
+  const data = window.__designChartData;
+
+  function setAgentCanvasState(canvas, state) {
+    const wrap = canvas.parentElement;
+    if (wrap && wrap.dataset.chartScope === 'agent') wrap.dataset.osCanvasState = state;
+  }
+
+  view.querySelectorAll('[data-os-chart]').forEach(function(canvas) {
+    const kind = canvas.getAttribute('data-os-chart');
+    if (kind === 'design-violations-bar') {
+      const total = (data.violations || []).reduce(function(s, r) { return s + r.value; }, 0);
+      if (total > 0) {
+        setAgentCanvasState(canvas, 'idle');
+        paintDesignViolationsBar(canvas);
+      }
+    } else if (kind === 'design-reviews-donut') {
+      const segs = (data.reviews || []).filter(function(s) { return s.value > 0; });
+      if (segs.length) {
+        setAgentCanvasState(canvas, 'idle');
+        paintAgentDonut(canvas, segs, data.reviews_n || 0);
+      }
+    } else if (kind === 'design-a11y-donut') {
+      const segs = (data.a11y || []).filter(function(s) { return s.value > 0; });
+      if (segs.length) {
+        setAgentCanvasState(canvas, 'idle');
+        paintAgentDonut(canvas, segs, data.a11y_n || 0);
+      }
+    }
+  });
+}
+
+// ── Orchestration agent charts ──────────────────────────────────────────────
+window.__orchChartData = window.__orchChartData || {};
+
+function paintOrchCharts() {
+  paintAgentChartsForAgent('orchestration', window.__orchChartData, [
+    { chartId: 'orch-work-donut', type: 'donut', dataKey: 'work', nKey: 'work_n', colorToken: '--c-orchestrator' },
+    { chartId: 'orch-agents-bar', type: 'hbar', dataKey: 'agents', colorToken: '--c-orchestrator' },
+    { chartId: 'orch-directives-bar', type: 'hbar', dataKey: 'directives', colorToken: '--c-orchestrator' },
+  ]);
+}
+
+// ── Strategy agent charts ────────────────────────────────────────────────────
+window.__strategyChartData = window.__strategyChartData || {};
+
+function paintStrategyCharts() {
+  paintAgentChartsForAgent('strategy', window.__strategyChartData, [
+    { chartId: 'strategy-opportunities-donut', type: 'donut', dataKey: 'opportunities', nKey: 'opportunities_n', colorToken: '--c-strategy' },
+    { chartId: 'strategy-assumptions-bar', type: 'hbar', dataKey: 'assumptions', colorToken: '--c-strategy' },
+    { chartId: 'strategy-threats-bar', type: 'hbar', dataKey: 'threats', colorToken: '--c-strategy' },
+  ]);
+}
+
+// ── QA agent charts ──────────────────────────────────────────────────────────
+window.__qaChartData = window.__qaChartData || {};
+
+function paintQaCharts() {
+  paintAgentChartsForAgent('qa', window.__qaChartData, [
+    { chartId: 'qa-bugs-donut', type: 'donut', dataKey: 'bugs', nKey: 'bugs_n', colorToken: '--c-qa' },
+    { chartId: 'qa-coverage-bar', type: 'hbar', dataKey: 'coverage', colorToken: '--c-qa' },
+    { chartId: 'qa-pass-area', type: 'area', dataKey: 'pass_weekly', labelsKey: 'pass_labels', colorToken: '--c-qa' },
+  ]);
+}
+
+// ── Marketing agent charts ───────────────────────────────────────────────────
+window.__marketingChartData = window.__marketingChartData || {};
+
+function paintMarketingCharts() {
+  paintAgentChartsForAgent('marketing', window.__marketingChartData, [
+    { chartId: 'marketing-pipeline-bar', type: 'hbar', dataKey: 'pipeline', colorToken: '--c-marketing' },
+    { chartId: 'marketing-channels-donut', type: 'donut', dataKey: 'channels', nKey: 'channels_n', colorToken: '--c-marketing' },
+    { chartId: 'marketing-cadence-area', type: 'area', dataKey: 'cadence', labelsKey: 'cadence_labels', colorToken: '--c-marketing' },
+  ]);
+}
+
+// ── Analytics agent charts ───────────────────────────────────────────────────
+window.__analyticsChartData = window.__analyticsChartData || {};
+
+function paintAnalyticsCharts() {
+  paintAgentChartsForAgent('analytics', window.__analyticsChartData, [
+    { chartId: 'analytics-funnel-bar', type: 'hbar', dataKey: 'funnel', colorToken: '--c-analytics' },
+    { chartId: 'analytics-copilot-donut', type: 'donut', dataKey: 'copilot', nKey: 'copilot_n', colorToken: '--c-analytics' },
+    { chartId: 'analytics-metrics-bar', type: 'hbar', dataKey: 'metrics_status', colorToken: '--c-analytics' },
+  ]);
+}
+
+// ── Cybersecurity agent charts ───────────────────────────────────────────────
+window.__cybersecurityChartData = window.__cybersecurityChartData || {};
+
+function paintCybersecurityCharts() {
+  paintAgentChartsForAgent('cybersecurity', window.__cybersecurityChartData, [
+    { chartId: 'sec-posture-donut', type: 'donut', dataKey: 'posture', nKey: 'posture_n', colorToken: '--c-cybersecurity' },
+    { chartId: 'sec-surface-bar', type: 'hbar', dataKey: 'surface', colorToken: '--c-cybersecurity' },
+    { chartId: 'sec-findings-donut', type: 'donut', dataKey: 'findings', nKey: 'findings_n', colorToken: '--c-cybersecurity' },
+  ]);
+}
+
+// ── Legal agent charts ───────────────────────────────────────────────────────
+window.__legalChartData = window.__legalChartData || {};
+
+function paintLegalCharts() {
+  paintAgentChartsForAgent('legal', window.__legalChartData, [
+    { chartId: 'legal-items-bar', type: 'hbar', dataKey: 'items', colorToken: '--c-legal' },
+    { chartId: 'legal-status-donut', type: 'donut', dataKey: 'status', nKey: 'status_n', colorToken: '--c-legal' },
+    { chartId: 'legal-compliance-bar', type: 'hbar', dataKey: 'compliance', colorToken: '--c-legal' },
+  ]);
+}
+
+// ── Finance agent charts ─────────────────────────────────────────────────────
+window.__financeChartData = window.__financeChartData || {};
+
+function paintFinanceCharts() {
+  paintAgentChartsForAgent('finance', window.__financeChartData, [
+    { chartId: 'finance-spend-bar', type: 'hbar', dataKey: 'spend', colorToken: '--c-finance' },
+    { chartId: 'finance-categories-donut', type: 'donut', dataKey: 'categories', nKey: 'categories_n', colorToken: '--c-finance' },
+    { chartId: 'finance-trend-area', type: 'area', dataKey: 'trend', labelsKey: 'trend_labels', colorToken: '--c-finance' },
+  ]);
+}
+
+// ── Support agent charts ─────────────────────────────────────────────────────
+window.__supportChartData = window.__supportChartData || {};
+
+function paintSupportCharts() {
+  paintAgentChartsForAgent('support', window.__supportChartData, [
+    { chartId: 'support-types-bar', type: 'hbar', dataKey: 'types', colorToken: '--c-support' },
+    { chartId: 'support-status-donut', type: 'donut', dataKey: 'status', nKey: 'status_n', colorToken: '--c-support' },
+    { chartId: 'support-volume-area', type: 'area', dataKey: 'volume', labelsKey: 'volume_labels', colorToken: '--c-support' },
+  ]);
+}
+
+// ── Audio agent charts ───────────────────────────────────────────────────────
+window.__audioChartData = window.__audioChartData || {};
+
+function paintAudioCharts() {
+  paintAgentChartsForAgent('audio', window.__audioChartData, [
+    { chartId: 'audio-types-bar', type: 'hbar', dataKey: 'types', colorToken: '--c-audio' },
+    { chartId: 'audio-status-donut', type: 'donut', dataKey: 'status', nKey: 'status_n', colorToken: '--c-audio' },
+    { chartId: 'audio-coverage-bar', type: 'hbar', dataKey: 'coverage', colorToken: '--c-audio' },
+  ]);
+}
+
+// ── Narrative agent charts ───────────────────────────────────────────────────
+window.__narrativeChartData = window.__narrativeChartData || {};
+
+function paintNarrativeCharts() {
+  paintAgentChartsForAgent('narrative', window.__narrativeChartData, [
+    { chartId: 'narrative-types-bar', type: 'hbar', dataKey: 'types', colorToken: '--c-narrative' },
+    { chartId: 'narrative-status-donut', type: 'donut', dataKey: 'status', nKey: 'status_n', colorToken: '--c-narrative' },
+    { chartId: 'narrative-coverage-bar', type: 'hbar', dataKey: 'coverage', colorToken: '--c-narrative' },
+  ]);
+}
+
+// ── Creative agent charts ────────────────────────────────────────────────────
+window.__creativeChartData = window.__creativeChartData || {};
+
+function paintCreativeCharts() {
+  paintAgentChartsForAgent('creative', window.__creativeChartData, [
+    { chartId: 'creative-types-bar', type: 'hbar', dataKey: 'types', colorToken: '--c-creative' },
+    { chartId: 'creative-status-donut', type: 'donut', dataKey: 'status', nKey: 'status_n', colorToken: '--c-creative' },
+    { chartId: 'creative-consistency-bar', type: 'hbar', dataKey: 'consistency', colorToken: '--c-creative' },
+  ]);
+}
+
+// ── Game Director agent charts ───────────────────────────────────────────────
+window.__gameDirectorChartData = window.__gameDirectorChartData || {};
+
+function paintGameDirectorCharts() {
+  paintAgentChartsForAgent('game-director', window.__gameDirectorChartData, [
+    { chartId: 'gd-decisions-donut', type: 'donut', dataKey: 'decisions', nKey: 'decisions_n', colorToken: '--c-game-director' },
+    { chartId: 'gd-pillars-bar', type: 'hbar', dataKey: 'pillars', colorToken: '--c-game-director' },
+    { chartId: 'gd-debt-bar', type: 'hbar', dataKey: 'debt', colorToken: '--c-game-director' },
+  ]);
+}
+
+// ── Game Systems agent charts ────────────────────────────────────────────────
+window.__gameSystemsChartData = window.__gameSystemsChartData || {};
+
+function paintGameSystemsCharts() {
+  paintAgentChartsForAgent('game-systems', window.__gameSystemsChartData, [
+    { chartId: 'gs-systems-donut', type: 'donut', dataKey: 'systems', nKey: 'systems_n', colorToken: '--c-game-systems' },
+    { chartId: 'gs-categories-bar', type: 'hbar', dataKey: 'categories', colorToken: '--c-game-systems' },
+    { chartId: 'gs-integration-bar', type: 'hbar', dataKey: 'integration', colorToken: '--c-game-systems' },
+  ]);
+}
+
+// ── Research agent charts ────────────────────────────────────────────────────
+window.__researchChartData = window.__researchChartData || {};
+
+function paintResearchCharts() {
+  paintAgentChartsForAgent('research', window.__researchChartData, [
+    { chartId: 'research-categories-bar', type: 'hbar', dataKey: 'categories', colorToken: '--c-research' },
+    { chartId: 'research-status-donut', type: 'donut', dataKey: 'status', nKey: 'status_n', colorToken: '--c-research' },
+    { chartId: 'research-confidence-bar', type: 'hbar', dataKey: 'confidence', colorToken: '--c-research' },
+  ]);
+}
+
+// ── Small-agent chart initialiser ────────────────────────────────────────────
+// Fetches each smaller agent's status file and calls their paint function.
+function initSmallAgentCharts() {
+  var smallAgents = [
+    { file: 'cybersecurity-status.json', key: 'cybersecurity_chart', setter: function(d) { window.__cybersecurityChartData = d; paintCybersecurityCharts(); } },
+    { file: 'legal-status.json', key: 'legal_chart', setter: function(d) { window.__legalChartData = d; paintLegalCharts(); } },
+    { file: 'finance-status.json', key: 'finance_chart', setter: function(d) { window.__financeChartData = d; paintFinanceCharts(); } },
+    { file: 'support-status.json', key: 'support_chart', setter: function(d) { window.__supportChartData = d; paintSupportCharts(); } },
+    { file: 'audio-status.json', key: 'audio_chart', setter: function(d) { window.__audioChartData = d; paintAudioCharts(); } },
+    { file: 'narrative-status.json', key: 'narrative_chart', setter: function(d) { window.__narrativeChartData = d; paintNarrativeCharts(); } },
+    { file: 'creative-status.json', key: 'creative_chart', setter: function(d) { window.__creativeChartData = d; paintCreativeCharts(); } },
+    { file: 'game-director-status.json', key: 'game_director_chart', setter: function(d) { window.__gameDirectorChartData = d; paintGameDirectorCharts(); } },
+    { file: 'game-systems-status.json', key: 'game_systems_chart', setter: function(d) { window.__gameSystemsChartData = d; paintGameSystemsCharts(); } },
+    { file: 'research-status.json', key: 'research_chart', setter: function(d) { window.__researchChartData = d; paintResearchCharts(); } },
+  ];
+  smallAgents.forEach(function(agent) {
+    fetch(agent.file, { cache: 'no-store' })
+      .then(function(r) { return r.ok ? r.json() : null; })
+      .then(function(data) {
+        if (data && data[agent.key] && typeof data[agent.key] === 'object') {
+          agent.setter(data[agent.key]);
+        }
+      })
+      .catch(function() { /* offline / file:// */ });
+  });
+}
+
 /** 'idle' | 'loading' | 'error' — loading/error hide canvas via CSS; Engineering can drive from ledger fetch */
 window.__osChartCanvasState = window.__osChartCanvasState || 'idle';
 window.__osChartErrorMessage = window.__osChartErrorMessage || '';
@@ -7519,7 +8644,7 @@ window.__osChartErrorMessage = window.__osChartErrorMessage || '';
 function applyOsChartCanvasStates() {
   const st = window.__osChartCanvasState || 'idle';
   const msg = window.__osChartErrorMessage || 'Could not load chart data.';
-  document.querySelectorAll('.os-chart-canvas-wrap[data-os-canvas-state]').forEach((wrap) => {
+  document.querySelectorAll('.os-chart-canvas-wrap[data-os-canvas-state]:not([data-chart-scope="agent"])').forEach((wrap) => {
     wrap.dataset.osCanvasState = st;
     const errEl = wrap.querySelector('.os-chart-error');
     if (errEl) errEl.textContent = st === 'error' ? msg : '';
@@ -10887,6 +12012,7 @@ selectDashboard(coerceDashboardForContext(getInitialDashboardId(), osProductCont
 void hydrateAllAgentCustomActions();
 avInitConflictPopupActions();
 void avCheckManualConflicts();
+initSmallAgentCharts();
 setInterval(function() { void avCheckManualConflicts(); }, 15000);
 setInterval(function() { void pulseGlobalWorkbenchOnly(); }, 12000);
 </script>

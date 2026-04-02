@@ -18,50 +18,6 @@ FIRST_SLICE_COMPONENT_TYPES: List[str] = [
     "backwall_panel",
 ]
 
-REVIEW_SURFACE_ORDER: List[str] = [
-    "room_intent",
-    "biome_selection",
-    "component_contracts",
-    "assembly_plan_overlay",
-    "slot_gallery",
-    "combined_kit",
-    "runtime_view",
-    "contrast_qa_view",
-]
-
-REQUIRED_SCREENSHOT_STAGES: List[str] = [
-    "room_intent",
-    "biome_selection",
-    "component_contracts",
-    "assembly_plan_overlay",
-    "slot_gallery",
-    "combined_kit",
-    "runtime_view",
-    "contrast_qa_view",
-    "structural_only_runtime",
-    "scenic_only_runtime",
-]
-
-QA_BLOCKER_CATEGORIES: List[str] = [
-    "component_fit",
-    "planner_coverage",
-    "shell_readability",
-    "traversal_readability",
-    "biome_identity",
-    "motif_violation",
-    "runtime_composition",
-    "workflow_usability",
-]
-
-CREATIVE_REJECTION_CODES: List[str] = [
-    "shell_not_coherent",
-    "component_role_unclear",
-    "biome_identity_weak",
-    "motif_violation",
-    "focal_scene_drift",
-    "value_hierarchy_broken",
-]
-
 TEMPLATE_COMPONENT_BY_SLOT: Dict[str, str] = {
     "background_far_plate": "background_plate",
     "backwall_panel": "background_plate",
@@ -216,22 +172,10 @@ def default_review_state() -> Dict[str, Any]:
             "screenshot_url": None,
             "review_mode": None,
         },
-        "qa_review_rounds": [],
-        "creative_review_rounds": [],
         "approval_status": "draft",
-        "review_bundle_id": None,
-        "validation_plan": {
-            "review_surface_order": list(REVIEW_SURFACE_ORDER),
-            "required_screenshot_stages": list(REQUIRED_SCREENSHOT_STAGES),
-            "required_round_counts": {"qa": 3, "creative": 3},
-            "qa_blocker_categories": list(QA_BLOCKER_CATEGORIES),
-            "creative_rejection_codes": list(CREATIVE_REJECTION_CODES),
-            "runtime_is_approval_artifact": True,
-            "proposal_first_required": True,
-        },
         "validation_status": {
             "status": "pending",
-            "issues": ["runtime_review_pending", "qa_review_pending", "creative_review_pending"],
+            "issues": ["runtime_review_pending"],
         },
     }
 
@@ -254,7 +198,6 @@ def ensure_v3_metadata(env: Dict[str, Any], room: Optional[Dict[str, Any]] = Non
     if not isinstance(review_state, dict):
         review_state = default_review_state()
         env["review_state"] = review_state
-    review_state.setdefault("validation_plan", copy.deepcopy(default_review_state()["validation_plan"]))
     review_state.setdefault("validation_status", {"status": "pending", "issues": []})
     return env
 
@@ -298,38 +241,6 @@ def sync_v3_metadata(
     return env
 
 
-def append_manual_review_round(env: Dict[str, Any], payload: Dict[str, Any], created_at: str) -> Dict[str, Any]:
-    ensure_v3_metadata(env)
-    review_state = env["review_state"]
-    reviewer_role = str(payload.get("reviewer_role") or "").strip().lower()
-    if reviewer_role not in {"qa", "creative", "design"}:
-        raise ValueError("reviewer_role must be qa, creative, or design.")
-    key = "qa_review_rounds" if reviewer_role == "qa" else "creative_review_rounds" if reviewer_role == "creative" else "design_review_rounds"
-    rounds = review_state.get(key)
-    if not isinstance(rounds, list):
-        rounds = []
-        review_state[key] = rounds
-    round_number = len(rounds) + 1
-    screenshots = [copy.deepcopy(item) for item in (payload.get("screenshots") or []) if isinstance(item, dict)]
-    findings = [copy.deepcopy(item) for item in (payload.get("findings") or []) if isinstance(item, dict)]
-    record = {
-        "round_number": round_number,
-        "reviewer_role": reviewer_role,
-        "reviewer_name": str(payload.get("reviewer_name") or "").strip() or reviewer_role,
-        "date": created_at,
-        "screenshots": screenshots,
-        "findings": findings,
-        "finding_codes": [str(item).strip() for item in (payload.get("finding_codes") or []) if str(item).strip()],
-        "blockers": [str(item).strip() for item in (payload.get("blockers") or []) if str(item).strip()],
-        "decision": str(payload.get("decision") or "needs_changes").strip(),
-        "required_changes": [str(item).strip() for item in (payload.get("required_changes") or []) if str(item).strip()],
-    }
-    rounds.append(record)
-    review_state["validation_status"] = _validation_status(review_state)
-    review_state["approval_status"] = _approval_status(review_state)
-    return record
-
-
 def build_generation_plan(room: Dict[str, Any], preview_id: str, biome_pack: Dict[str, Any], generated_at: str) -> Dict[str, Any]:
     template_library = {
         str(item.get("component_type") or "").strip(): copy.deepcopy(item)
@@ -343,7 +254,8 @@ def build_generation_plan(room: Dict[str, Any], preview_id: str, biome_pack: Dic
     platforms = _platform_records(room)
     primary_floor = _select_primary_floor(platforms, width)
     hero_platforms = [item for item in platforms if primary_floor is None or item["platform_id"] != primary_floor["platform_id"]]
-    doors = _door_records(room)
+    room_role = infer_room_role(room)
+    doors = _door_records(room, width, height)
     pits = _pit_records(room, width, height)
     center_lane = {"type": "center_lane", "x": int(width * 0.26), "y": 0, "width": int(width * 0.48), "height": height}
     plan: List[Dict[str, Any]] = []
@@ -395,19 +307,20 @@ def build_generation_plan(room: Dict[str, Any], preview_id: str, biome_pack: Dic
         {"room_width": width, "room_height": height},
         border_treatment="full_frame",
     )
-    append_slot(
-        f"{room_id}-backwall-panel",
-        "backwall_panel",
-        "backwall_panel",
-        {"width": int(width * 0.64), "height": max(240, int(height * 0.52))},
-        {"x": int(width / 2), "y": int(height * 0.2), "display_width": int(width * 0.64), "display_height": max(240, int(height * 0.52)), "origin_x": 0.5, "origin_y": 0},
-        "full",
-        "stretch",
-        "background",
-        [center_lane],
-        {"room_width": width, "room_height": height},
-        border_treatment="inner_shell",
-    )
+    for index, panel in enumerate(_backwall_panel_records(width, height, room_role)):
+        append_slot(
+            f"{room_id}-backwall-panel-{index + 1}",
+            "backwall_panel",
+            "backwall_panel",
+            {"width": panel["width"], "height": panel["height"]},
+            {"x": panel["x"], "y": panel["y"], "display_width": panel["width"], "display_height": panel["height"], "origin_x": 0.5, "origin_y": 0},
+            "full",
+            "stretch",
+            "background",
+            [center_lane],
+            {"room_width": width, "room_height": height, "panel_index": index},
+            border_treatment="inner_shell",
+        )
     append_slot(
         f"{room_id}-midground",
         "midground_side_frame",
@@ -434,12 +347,13 @@ def build_generation_plan(room: Dict[str, Any], preview_id: str, biome_pack: Dic
         {"room_width": width, "room_height": height},
         border_treatment="ceiling_cap",
     )
+    wall_module_width = max(224, min(384, int(width * 0.18)))
     append_slot(
         f"{room_id}-wall-module-left",
         "wall_module_left",
         "walls",
-        {"width": 320, "height": max(320, height - 180)},
-        {"x": 0, "y": 0, "display_width": 320, "display_height": max(320, height - 180), "origin_x": 0, "origin_y": 0},
+        {"width": wall_module_width, "height": max(320, height - 180)},
+        {"x": 0, "y": 0, "display_width": wall_module_width, "display_height": max(320, height - 180), "origin_x": 0, "origin_y": 0},
         "vertical",
         "stretch",
         "walls",
@@ -451,8 +365,8 @@ def build_generation_plan(room: Dict[str, Any], preview_id: str, biome_pack: Dic
         f"{room_id}-wall-module-right",
         "wall_module_right",
         "walls",
-        {"width": 320, "height": max(320, height - 180)},
-        {"x": max(0, width - 320), "y": 0, "display_width": 320, "display_height": max(320, height - 180), "origin_x": 0, "origin_y": 0},
+        {"width": wall_module_width, "height": max(320, height - 180)},
+        {"x": max(0, width - wall_module_width), "y": 0, "display_width": wall_module_width, "display_height": max(320, height - 180), "origin_x": 0, "origin_y": 0},
         "vertical",
         "stretch",
         "walls",
@@ -544,18 +458,19 @@ def build_generation_plan(room: Dict[str, Any], preview_id: str, biome_pack: Dic
         )
 
     for index, door in enumerate(doors):
+        door_slot = _door_slot_record(door, width, height)
         append_slot(
             f"{room_id}-door-{index + 1}",
             "door_frame",
             "doors",
-            {"width": 192, "height": 288},
-            {"x": door["x"], "y": door["y"], "display_width": 96, "display_height": 144, "origin_x": 0.5, "origin_y": 1},
-            "vertical",
+            {"width": door_slot["target_width"], "height": door_slot["target_height"]},
+            {"x": door_slot["x"], "y": door_slot["y"], "display_width": door_slot["display_width"], "display_height": door_slot["display_height"], "origin_x": door_slot["origin_x"], "origin_y": door_slot["origin_y"]},
+            door_slot["orientation"],
             "stretch",
             "doors",
-            [{"type": "door_mouth", "x": door["x"] - 48, "y": door["y"] - 144, "width": 96, "height": 160}],
-            door,
-            border_treatment="threshold_clearance",
+            [door_slot["protected_zone"]],
+            {**door, "anchor": door.get("anchor")},
+            border_treatment=door_slot["border_treatment"],
         )
 
     for index, pit in enumerate(pits):
@@ -643,16 +558,109 @@ def _select_primary_floor(platforms: List[Dict[str, Any]], room_width: int) -> O
     return wide or floor_candidates[0]
 
 
-def _door_records(room: Dict[str, Any]) -> List[Dict[str, Any]]:
+def _door_records(room: Dict[str, Any], width: int, height: int) -> List[Dict[str, Any]]:
     records: List[Dict[str, Any]] = []
     for item in (room.get("doors") or []):
         if not isinstance(item, dict):
             continue
+        x = int(item.get("x") or 0)
+        y = int(item.get("y") or 0)
+        anchor = "bottom_threshold"
+        if y <= max(160, int(height * 0.18)):
+            anchor = "top_threshold"
+        elif x <= max(160, int(width * 0.18)):
+            anchor = "left_threshold"
+        elif x >= min(width - 160, int(width * 0.82)):
+            anchor = "right_threshold"
         records.append({
             "door_id": str(item.get("id") or f"door-{len(records) + 1}"),
-            "x": int(item.get("x") or 0),
-            "y": int(item.get("y") or 0),
+            "x": x,
+            "y": y,
             "kind": str(item.get("kind") or "transition"),
+            "anchor": anchor,
+        })
+    return records
+
+
+def _door_slot_record(door: Dict[str, Any], room_width: int, room_height: int) -> Dict[str, Any]:
+    anchor = str(door.get("anchor") or "bottom_threshold")
+    x = int(door.get("x") or 0)
+    y = int(door.get("y") or 0)
+    if anchor == "top_threshold":
+        return {
+            "target_width": 288,
+            "target_height": 192,
+            "display_width": 144,
+            "display_height": 96,
+            "x": x,
+            "y": max(0, y),
+            "origin_x": 0.5,
+            "origin_y": 0,
+            "orientation": "horizontal",
+            "border_treatment": "threshold_clearance_top",
+            "protected_zone": {"type": "door_mouth", "x": x - 72, "y": y, "width": 144, "height": 112},
+        }
+    if anchor == "left_threshold":
+        return {
+            "target_width": 192,
+            "target_height": 288,
+            "display_width": 96,
+            "display_height": 144,
+            "x": max(0, x),
+            "y": y,
+            "origin_x": 0,
+            "origin_y": 1,
+            "orientation": "vertical",
+            "border_treatment": "threshold_clearance_side",
+            "protected_zone": {"type": "door_mouth", "x": x, "y": y - 144, "width": 112, "height": 160},
+        }
+    if anchor == "right_threshold":
+        return {
+            "target_width": 192,
+            "target_height": 288,
+            "display_width": 96,
+            "display_height": 144,
+            "x": min(room_width, x),
+            "y": y,
+            "origin_x": 1,
+            "origin_y": 1,
+            "orientation": "vertical",
+            "border_treatment": "threshold_clearance_side",
+            "protected_zone": {"type": "door_mouth", "x": x - 112, "y": y - 144, "width": 112, "height": 160},
+        }
+    return {
+        "target_width": 192,
+        "target_height": 288,
+        "display_width": 96,
+        "display_height": 144,
+        "x": x,
+        "y": y,
+        "origin_x": 0.5,
+        "origin_y": 1,
+        "orientation": "vertical",
+        "border_treatment": "threshold_clearance",
+        "protected_zone": {"type": "door_mouth", "x": x - 48, "y": y - 144, "width": 96, "height": 160},
+    }
+
+
+def _backwall_panel_records(width: int, height: int, room_role: str) -> List[Dict[str, int]]:
+    panel_count = 1
+    if width >= 2400:
+        panel_count = 3
+    elif width >= 1800 or room_role == "corridor_transition":
+        panel_count = 2
+    panel_width = max(320, int((width * 0.72) / panel_count))
+    panel_height = max(240, int(height * 0.52))
+    gap = max(24, int(width * 0.03))
+    total_width = panel_count * panel_width + (panel_count - 1) * gap
+    start_x = int(width / 2 - total_width / 2 + panel_width / 2)
+    records: List[Dict[str, int]] = []
+    for index in range(panel_count):
+        records.append({
+            "x": start_x + index * (panel_width + gap),
+            "y": int(height * 0.2),
+            "width": panel_width,
+            "height": panel_height,
         })
     return records
 
@@ -676,7 +684,8 @@ def _pit_records(room: Dict[str, Any], width: int, height: int) -> List[Dict[str
 
 
 def _planner_coverage_summary(room: Dict[str, Any], plan: List[Dict[str, Any]]) -> Dict[str, Any]:
-    doors = _door_records(room)
+    dims = _room_dimensions(room)
+    doors = _door_records(room, int(dims.get("width") or 0), int(dims.get("height") or 0))
     platforms = _platform_records(room)
     door_slot_count = sum(1 for item in plan if str(item.get("schema_key") or "") == "doors")
     platform_top_count = sum(1 for item in plan if str(item.get("component_type") or "").endswith("_top") and str(item.get("schema_key") or "") in {"floor", "platforms"})
@@ -705,8 +714,6 @@ def _planner_coverage_summary(room: Dict[str, Any], plan: List[Dict[str, Any]]) 
 
 def _validation_status(review_state: Dict[str, Any]) -> Dict[str, Any]:
     issues: List[str] = []
-    validation_plan = review_state.get("validation_plan") or {}
-    required_round_counts = validation_plan.get("required_round_counts") or {}
     runtime_review = review_state.get("runtime_review") or {}
     runtime_status = str(runtime_review.get("status") or "idle")
     screenshot_url = runtime_review.get("screenshot_url")
@@ -714,25 +721,7 @@ def _validation_status(review_state: Dict[str, Any]) -> Dict[str, Any]:
         issues.append("runtime_review_pending" if runtime_status in {"idle", "running"} else "runtime_review_failed")
     if not screenshot_url:
         issues.append("runtime_screenshot_missing")
-    qa_rounds = review_state.get("qa_review_rounds") or []
-    creative_rounds = review_state.get("creative_review_rounds") or []
-    required_qa_rounds = int(required_round_counts.get("qa") or 0)
-    required_creative_rounds = int(required_round_counts.get("creative") or 0)
-    if not qa_rounds:
-        issues.append("qa_review_pending")
-    elif required_qa_rounds and len(qa_rounds) < required_qa_rounds:
-        issues.append("qa_round_count_incomplete")
-    if not creative_rounds:
-        issues.append("creative_review_pending")
-    elif required_creative_rounds and len(creative_rounds) < required_creative_rounds:
-        issues.append("creative_round_count_incomplete")
-    manual_only_issues = {
-        "qa_review_pending",
-        "creative_review_pending",
-        "qa_round_count_incomplete",
-        "creative_round_count_incomplete",
-    }
-    status = "ready_for_manual_review" if issues and set(issues).issubset(manual_only_issues) else "blocked" if issues else "complete"
+    status = "blocked" if issues else "complete"
     return {"status": status, "issues": issues}
 
 
@@ -743,17 +732,4 @@ def _approval_status(review_state: Dict[str, Any]) -> str:
         return "blocked"
     if "runtime_review_pending" in issues or "runtime_screenshot_missing" in issues:
         return "runtime_review_pending"
-    if (
-        "qa_review_pending" in issues
-        or "creative_review_pending" in issues
-        or "qa_round_count_incomplete" in issues
-        or "creative_round_count_incomplete" in issues
-    ):
-        return "manual_review_pending"
-    for key in ("qa_review_rounds", "creative_review_rounds"):
-        rounds = review_state.get(key) or []
-        if rounds and any((item.get("blockers") or []) for item in rounds if isinstance(item, dict)):
-            return "needs_revision"
-        if rounds and any(str(item.get("decision") or "").strip().lower() not in {"pass", "approved"} for item in rounds if isinstance(item, dict)):
-            return "needs_revision"
     return "approved"

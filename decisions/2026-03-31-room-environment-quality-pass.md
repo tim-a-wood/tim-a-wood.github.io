@@ -175,3 +175,113 @@ This log records decisions for the room environment and bespoke asset quality pa
 - Status: Accepted
 - Why: QA and Creative review needed to become a real part of the workflow quickly, but full screenshot annotation tooling would have delayed calibration.
 - Consequence: The editor now supports submitting QA and Creative review rounds directly from the v3 Results surface with role, decision, finding codes, blockers, required changes, and runtime screenshot metadata. Richer annotation tooling remains a later enhancement.
+
+### 28. Manual review evidence must track screenshot-stage coverage, not just round counts
+- Status: Accepted
+- Why: The validation plan requires review of multiple workflow surfaces. Counting rounds without stage evidence would allow false signoff even if reviewers only looked at runtime.
+- Consequence: Review rounds now persist screenshot-stage coverage, review evidence summaries are exposed in the editor, and validation remains incomplete if QA or Creative rounds are missing required screenshot stages.
+
+### 29. The editor should auto-assemble review evidence from room state for calibration rounds
+- Status: Accepted
+- Why: Requiring reviewers to manually type every stage increases process friction and creates avoidable evidence-quality mistakes during calibration.
+- Consequence: The editor now auto-builds the baseline review evidence set from the current v3 room state, including runtime screenshots and referenced workflow stages, while still allowing manual stage additions. Missing required stages still block approval.
+
+### 30. The v3 Results surface must show the review packet that QA and Creative are actually submitting
+- Status: Accepted
+- Why: Evidence enforcement is much less useful if reviewers cannot see which stages and artifacts the editor has assembled on their behalf before submitting a round.
+- Consequence: The Results surface now exposes latest per-role stage coverage and the current review packet artifact list so QA and Creative can inspect the packet directly during calibration.
+
+### 31. V3 should generate a review bundle with concrete stage artifacts for non-runtime review surfaces
+- Status: Accepted
+- Why: Relying on manually typed stage names or purely inferred evidence for room intent, biome selection, component contracts, and assembly-plan review still leaves too much ambiguity in the calibration workflow.
+- Consequence: V3 now refreshes a persisted review bundle whenever environment state changes, producing concrete stage artifacts for planning and contract surfaces and exposing them in the editor as first-class review evidence.
+
+### 32. QA and Creative implementation validation must remain an external delivery process, not a productized room-editor workflow
+- Status: Accepted correction
+- Why: Founder clarification established that QA and Creative were meant to validate implementation in phased review sessions, not through in-tool review forms, review bundles, or approval gating embedded in the product workflow.
+- Consequence: The in-editor manual review UI, manual-review API route, review-bundle generation, and QA/Creative approval gating were removed. V3 product scope remains focused on environment planning, generation, and runtime validation; stakeholder validation happens outside the tool.
+
+### 33. QA and Creative must be involved at early external checkpoints, not only near signoff
+- Status: Accepted
+- Why: Founder direction is to use QA and Creative as early course-correction partners so the team can catch planner, component-fit, and biome-identity mistakes before the pipeline is too far along.
+- Consequence: External review checkpoints are now expected after the first planner-visible slice, after first slot-output calibration, and after runtime composition, with findings folded into the next implementation phase before continuing.
+
+### 34. The first-slice biome is locked to ruined-gothic for the medieval dungeon / castle pass
+- Status: Accepted
+- Why: Founder selected a medieval dungeon / castle direction for the first external calibration pass, and `ruined-gothic` is the cleanest match in the current biome set.
+- Consequence: The first slice uses `ruined-gothic` only, with the calibration room set `RG-R1` Gatehouse Threshold, `RG-R2` Broken Hall Passage, and `RG-R3` Keep Descent Shaft captured in `tests/fixtures/room_environment_v3/ruined_gothic_calibration_rooms.json`.
+
+### 35. QA and Creative planner-checkpoint findings require door-anchor awareness and stronger wide-hall shell articulation before slot calibration
+- Status: Accepted
+- Why: Both agents independently flagged that the planner was still too generic for top-entry shaft doors and too backdrop-heavy for wide ruined halls.
+- Consequence: The planner now infers door anchor classes, emits differentiated top/side/bottom threshold planning, and splits backwall coverage for wider ruined-gothic halls before the slot checkpoint proceeds.
+
+### 36. Door slots must use deterministic template adaptation, and door biome templates must be normalized into real cutout alpha
+- Status: Accepted
+- Why: Live ruined-gothic slot calibration showed that Gemini can return doorway kit art with a fake checkerboard baked into the PNG, which breaks transition-slot transparency and makes door validation noisy.
+- Consequence: `door_frame` now uses the direct template-adaptation path, and Gemini-generated `door_piece` biome templates are postprocessed into true alpha cutouts before slot generation reuses them.
+
+### 37. First-slice biome kit refinement is a prerequisite for meaningful slot calibration when fallback seeds are too weak
+- Status: Accepted
+- Why: The initial ruined-gothic background template seed was too primitive to anchor slot generation, so slot review was diagnosing the fallback kit as much as the prompt contract.
+- Consequence: The ruined-gothic biome template pack is now refreshed through Gemini with a stronger medieval-castle contract before slot calibration continues, and background guides preserve shell-definition cues instead of only suppressing the center lane.
+
+### 38. Fresh sequential reruns must be interpreted room-by-room, and the current blocker has shifted from door alpha to midground drift
+- Status: Accepted
+- Why: A clean 2026-04-02 sequential rerun against the refreshed ruined-gothic kit showed that `RG-R1` and `RG-R2` no longer fail on door transparency or the old background contract. Both rooms now build every structural slot and door successfully, then stop on `midground` with `template_family_drift`. `RG-R3` did not complete a fresh persistence cycle before the live Gemini call stalled, so its saved manifest remains stale and must not be treated as current evidence.
+- Consequence: Immediate next work should focus on stabilizing `midground_side_frame` generation for the ruined-gothic slice, then rerun `RG-R1` and `RG-R2` to clear slot generation and capture real browser-backed runtime screenshots. `RG-R3` needs a dedicated fresh rerun after that, with its result judged only once `generated_at` advances beyond the stale `2026-04-02T14:00:00Z` manifest state.
+
+### 39. Scenic family-drift validation must use the sanitized guide that generation actually consumed
+- Status: Accepted
+- Why: The `midground_side_frame` and scenic-slot AI path generates from a sanitized guide image, but validation was still comparing the result to the raw biome template. In live ruined-gothic reruns, the saved `midground_side_frame` guide itself already exceeded the raw-template edge-drift threshold, which made repeated `template_family_drift` failures structurally likely even when the generated slot matched the retry guide closely.
+- Consequence: Scenic family-drift validation now uses the active guide reference image supplied to generation, while postprocess and restoration logic still keep access to the raw template. This preserves the family check without asking Gemini to match an impossible contract.
+
+### 40. The midground blocker is cleared for the ruined-gothic slice; current remaining issues are runtime-capture fallback and isolated Gemini generation misses
+- Status: Accepted
+- Why: After the scenic validation fix, a fresh 2026-04-02 rerun of `RG-R1` completed with `status: ready`, built all slots including `RG-R1-midground`, and passed runtime review. A fresh rerun of `RG-R2` also cleared `midground`, but failed later on `RG-R2-hero-platform-face-2:generation_failed`, indicating an isolated AI generation miss rather than a persistent contract error.
+- Consequence: The next slice should stop treating `midground_side_frame` as the active blocker. Priority should move to: 1. deciding whether to add a retry/recovery strategy for isolated Gemini `generation_failed` slots like `RG-R2-hero-platform-face-2`; 2. diagnosing why runtime capture still reports `review_mode: composite_fallback` with `capture_issue: headless_browser_failed` instead of saving a true browser screenshot; and 3. rerunning `RG-R2` and then `RG-R3` only after those narrower issues are understood.
+
+### 41. Browser-backed runtime capture must use a local wrapper page, not a giant hash-packed layout URL
+- Status: Accepted
+- Why: The original headless screenshot path encoded the full `room_layout` into the `index.html#preview=embed&layout=...` hash, producing URLs around 490k characters long. That caused browser capture to fail and forced `composite_fallback` screenshots even when the local workbench server and Chrome were both available.
+- Consequence: Runtime review now writes a small local `runtime-capture.html` wrapper page that embeds `index.html`, posts the room layout into the preview iframe the same way the room editor does, and allows headless Chrome to capture a real browser screenshot. A direct local probe on `RG-R1` confirmed `review_mode: headless_browser`.
+
+### 42. Current remaining live blocker is external Gemini connectivity, not the room-environment contract
+- Status: Accepted
+- Why: After the runtime-capture fix and transient generation-retry work, direct Gemini image probes began failing with `httpx.ConnectTimeout` during the TLS handshake (`_ssl.c:1112: The handshake operation timed out`). A fresh `RG-R2` rerun under timeout-aware Gemini settings therefore failed broadly across AI-generated slots while direct/template-adapted door and panel slots still built.
+- Consequence: Do not interpret the latest all-slot `generation_failed` result as a regression in prompt/schema quality. The next live rerun of `RG-R2` or `RG-R3` should wait until Gemini connectivity is healthy again, then resume from the now-fixed contract state. If connectivity remains unstable, engineering work should focus on surfacing network/handshake failures explicitly rather than folding them into generic slot failures.
+
+### 43. SDK-side Gemini transport failures must be falsified against alternate clients before they are treated as provider outages
+- Status: Accepted correction
+- Why: Follow-up checks on 2026-04-02 showed that the earlier Gemini diagnosis was too broad. `curl`, `openssl s_client`, direct Node `fetch()`, and direct Python `urllib.request` calls to `generativelanguage.googleapis.com` all succeeded from this machine while the Python Gemini SDK path still failed. That means the prior “Gemini is down” conclusion was not sufficiently falsified before it was repeated.
+- Consequence: This pass now treats Python-SDK transport failures as a separate failure bucket from provider outages. Before calling future Gemini failures “service health” issues, the workflow must verify at least one alternate transport/runtime. An RCA task was added at `issues/2026-04-02-gemini-health-misdiagnosis-rca.md` so future agents do not repeat the same overconfident triage mistake.
+
+### 44. The ruined-gothic live pass should use direct Gemini REST calls for image generation on this machine instead of the Python SDK path
+- Status: Accepted
+- Why: Direct REST calls from this environment are healthy, while the Python Gemini SDK / `httpx` transport path intermittently fails or hangs under the local Python 3.9 + LibreSSL stack. The room pass needs a reliable live generation path now, not a prolonged SDK-debug detour.
+- Consequence: The image-generation helpers in `room_environment_system.py` now call the Gemini REST endpoint directly via `urllib.request`, preserving multimodal prompt structure but bypassing the failing SDK transport. Future SDK work can resume separately, but the room pass should keep the REST path as the current live baseline until the environment stack is upgraded or the SDK issue is conclusively resolved.
+
+### 45. Fresh REST-backed reruns have moved the ruined-gothic blocker from transport failure to a real runtime-visibility gate
+- Status: Accepted
+- Why: A fresh 2026-04-02 rerun of `RG-R2` under the REST transport completed all slot generation, saved a true `headless_browser` runtime screenshot, and failed only on `threshold_visibility_low` with a `floor_background_separation_low` warning. This replaces the earlier noisy all-slot `generation_failed` state and confirms that the transport fix restored meaningful calibration evidence.
+- Consequence: `RG-R2` should now be treated as a runtime-composition tuning problem rather than a Gemini transport problem. The next implementation slice should focus on improving threshold/door readability in the assembled room while keeping the new browser-backed runtime capture path. `RG-R3` still needs a clean rerun to completion before its current state can be trusted, because the interrupted 2026-04-02 REST attempt only partially regenerated assets and did not save a fresh manifest.
+
+### 46. Browser-backed runtime review must load a file-backed preview layout and preserve custom room ids, or the screenshot evidence is invalid
+- Status: Accepted correction
+- Why: Follow-up validation on 2026-04-02 showed that the first wrapper-page capture fix was still incomplete. Pointing the wrapper at the wrong shell page produced UI screenshots instead of gameplay, and even after the wrapper targeted the correct game page, the preview runtime still dropped `RG-R1` / `RG-R2` / `RG-R3` because it only sequenced default `R1`-style ids. That led to black or default-room screenshots that looked “browser-backed” but were not valid room evidence.
+- Consequence: Runtime review now writes a `runtime-layout.json` file beside `runtime-capture.html` and boots the game with `#preview=embed&layout_url=...&start=...` instead of giant hash-packed layout payloads or timing-sensitive postMessage delivery. The game preview now preserves arbitrary room ids from the supplied layout order instead of forcing the default `R1`-`R11` sequence.
+
+### 47. `RG-R2` is now legitimately ready on current code and should re-enter the refreshed calibration set
+- Status: Accepted
+- Why: After the file-backed runtime capture fix and custom-room-id preview fix, a fresh 2026-04-02 runtime review of `RG-R2` passed with `review_mode: headless_browser`, `status: pass`, `threshold_visibility: 0.05027`, and no fail reasons. The saved screenshot now shows the actual `ROOM: RG-R2` scene rather than UI chrome or an empty frame.
+- Consequence: `RG-R2` is no longer part of the active blocker set. The refreshed three-room calibration now has at least two trustworthy rooms (`RG-R1` still needs its runtime evidence regenerated under the corrected browser path, and `RG-R2` is now ready). The remaining live blocker has narrowed to `RG-R3` completion.
+
+### 48. `RG-R3` is no longer blocked by stale manifest ambiguity, but it still needs timeout-aware completion handling on the REST path
+- Status: Accepted
+- Why: Fresh 2026-04-02 reruns under the REST transport regenerated current `RG-R3` bespoke assets, including `background` and `midground`, which confirms the old saved background/door failures are not the current behavior. However, the live run still stalled inside `urllib.request.urlopen(...).getresponse()` during a later Gemini image request before the manifest could be persisted.
+- Consequence: Do not trust the old `RG-R3` manifest, but also do not mark the room complete yet. The next slice should make REST image requests fail fast enough to let retries/persistence complete cleanly, then rerun only `RG-R3` to closure instead of revisiting planner or door/background contract work.
+
+### 49. `RG-R1` still needs a separate browser-capture fix even after the shared runtime wrapper corrections
+- Status: Accepted
+- Why: After the file-backed preview and custom-room-id fixes, `RG-R2` captured correctly in the browser path, but `RG-R1` still produced an all-black `headless_browser` frame. Re-running `RG-R1` under the composite fallback restored a passing runtime review immediately, which means the room content itself is still valid and the remaining defect is specific to browser-backed capture for that room.
+- Consequence: Keep `RG-R1` in the refreshed set as `ready`, but treat its current runtime evidence as composite fallback rather than final browser-backed proof. External runtime checkpointing should wait for either a corrected `RG-R1` browser capture or explicit approval to accept fallback evidence for this one room.
