@@ -904,31 +904,44 @@ body::before {
 .db-view-header {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-2);
   flex-shrink: 0;
-  padding: var(--space-3) var(--space-4);
-  border-radius: var(--radius-card);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
   border: 1px solid var(--line);
-  background: rgba(255, 255, 255, 0.03);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  background: rgba(255, 255, 255, 0.02);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
 }
 .db-view-header > div {
   flex: 1;
   min-width: 0;
 }
 .db-view-icon {
-  font-size: var(--font-size-lg);
+  font-size: var(--font-size-sm);
   line-height: 1;
   flex-shrink: 0;
 }
 .db-view-title {
   font-family: var(--font-display);
-  font-size: var(--font-size-lg);
-  letter-spacing: 0.06em;
+  font-size: var(--font-size-sm);
+  letter-spacing: 0.05em;
   color: var(--text);
-  line-height: 1;
+  line-height: 1.15;
 }
-.db-view-subtitle { font-size: var(--font-size-xs); color: var(--muted); margin-top: 2px; }
+.db-view-subtitle {
+  font-size: var(--font-size-xs);
+  color: var(--muted);
+  margin-top: var(--space-1);
+  line-height: 1.35;
+}
+.db-view-header .os-home-glyph {
+  width: 24px;
+  height: 24px;
+}
+.db-view-header .os-home-glyph-inner {
+  width: 8px;
+  height: 8px;
+}
 
 /* ─── DB SECTIONS ────────────────────────────────── */
 .db-section { display: flex; flex-direction: column; gap: var(--space-2); flex-shrink: 0; }
