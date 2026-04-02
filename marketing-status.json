@@ -1,6 +1,6 @@
 {
   "_note": "Updated daily at noon by the marketing agent. Plain language \u2014 no jargon.",
-  "updated": "2026-04-01",
+  "updated": "2026-04-02",
   "schema_version": "v1.0",
   "priorities": [
     {
@@ -107,10 +107,10 @@
         "other-income"
       ],
       "title": "Define the Business Brand Guide",
-      "status": "in-progress",
-      "risk": "high",
-      "note": "Work with Design to come up with a first draft Brand Guide graphical pdf pamphlet",
-      "proposed_solution": "you figure it out and let me know what input you need from me"
+      "status": "needs-review",
+      "risk": "med",
+      "note": "First draft delivered: pamphlet HTML docs/mv-business-brand-guide-pamphlet.html and PDF artifacts/MV-Business-Brand-Guide-v0.1-2026-04-02.pdf (Chrome print via scripts/html_to_pdf.py). Aligns with docs/brand-charter.html and STYLE_GUIDE.md. Founder/Design: confirm legal or trade name vs “MV,” approve abstract mark or supply logo, and any channel-specific lockups (itch, GitHub, X).",
+      "proposed_solution": "Iterate v0.2 after founder feedback; keep PDF export repeatable with scripts/html_to_pdf.py; fold approved lockups into sprite workbench and room editor shells when Design signs off."
     },
     {
       "id": "marketing-o3",
