@@ -1105,23 +1105,6 @@ body::before {
   border-bottom: 1px solid var(--line);
   flex-shrink: 0;
 }
-.av-sort-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-  margin: 0 0 var(--space-2) 0;
-  flex-shrink: 0;
-  padding: 2px 8px;
-  border-radius: var(--radius-full);
-  border: 1px solid var(--line-strong);
-  background: var(--accent-soft);
-  color: var(--accent);
-  font-size: var(--font-size-xs);
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  cursor: help;
-}
 .av-filter-group {
   display: flex;
   align-items: center;
@@ -5002,15 +4985,9 @@ h3.os-chart-card-title {
 
       <!-- OPPORTUNITIES VIEW (opportunities[] across agents) -->
       <div class="dashboard-view" data-dashboard-view="opportunities">
-        <div
-          class="av-sort-badge"
-          title="List order: status and risk (in-progress / high impact first, done last), then manual order in each owner file, then owner name, then ID."
-        >
-          Sorted by impact
-        </div>
         <div class="av-scope-strip" id="ao-av-scope-strip" hidden role="status" aria-live="polite"></div>
         <div class="av-toolbar">
-          <span class="av-lane-chip" title="Current list: agent opportunities">Opportunities</span>
+          <span class="av-lane-chip" title="Agent opportunities. Order: status and risk (in-progress / high impact first, done last), then manual order in each owner file, then owner, then ID.">Opportunities</span>
           <div class="av-filter-group">
             <span class="av-filter-label">Owner</span>
             <select class="av-select" id="ao-filter-owner">
@@ -5093,15 +5070,9 @@ h3.os-chart-card-title {
 
       <!-- ONGOING TASKS (in-progress priorities + opportunities) -->
       <div class="dashboard-view" data-dashboard-view="ongoing-tasks">
-        <div
-          class="av-sort-badge"
-          title="List order: risk (high first), then owner agent, then kind (issues before opportunities), then file order / ID."
-        >
-          Sorted for execution focus
-        </div>
         <div class="av-scope-strip" id="ot-av-scope-strip" hidden role="status" aria-live="polite"></div>
         <div class="av-toolbar">
-          <span class="av-lane-chip" title="Current list: in-progress issues and opportunities">Ongoing tasks</span>
+          <span class="av-lane-chip" title="In-progress issues and opportunities. Order: risk (high first), then owner, then kind (issues before opportunities), then file order / ID.">Ongoing tasks</span>
           <div class="av-filter-group">
             <span class="av-filter-label">Owner</span>
             <select class="av-select" id="ot-filter-owner">
@@ -5213,15 +5184,9 @@ h3.os-chart-card-title {
 
       <!-- ISSUES VIEW (priority rows across agents) -->
       <div class="dashboard-view" data-dashboard-view="issues">
-        <div
-          class="av-sort-badge"
-          title="List order: status and risk (in-progress / high risk first, done last), then manual order in each owner file, then owner name, then ID."
-        >
-          Sorted by priority
-        </div>
         <div class="av-scope-strip" id="iss-av-scope-strip" hidden role="status" aria-live="polite"></div>
         <div class="av-toolbar">
-          <span class="av-lane-chip" title="Current list: agent priority issues">Issues</span>
+          <span class="av-lane-chip" title="Agent priority issues. Order: status and risk (in-progress / high risk first, done last), then manual order in each owner file, then owner, then ID.">Issues</span>
           <div class="av-filter-group">
             <span class="av-filter-label">Owner</span>
             <select class="av-select" id="av-filter-owner">
