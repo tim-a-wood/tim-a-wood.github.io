@@ -1187,7 +1187,7 @@ body::before {
 }
 .av-table-head {
   display: grid;
-  grid-template-columns: 24px 24px 1fr auto;
+  grid-template-columns: 24px 28px 1fr minmax(0, auto);
   align-items: end;
   gap: 0 var(--space-3);
   padding: var(--space-2) 0 var(--space-1);
@@ -1200,7 +1200,7 @@ body::before {
 }
 .av-table-head-labels {
   display: grid;
-  grid-template-columns: minmax(0, 6.5rem) minmax(0, 7.5rem) minmax(0, 1fr) max-content max-content;
+  grid-template-columns: minmax(0, 5.5rem) minmax(0, 6.5rem) minmax(0, 1fr) max-content max-content;
   gap: var(--space-2);
   min-width: 0;
 }
@@ -1215,7 +1215,8 @@ body::before {
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--muted);
+  color: var(--text);
+  opacity: 0.62;
   min-width: 0;
 }
 .av-th--mute {
@@ -1223,22 +1224,23 @@ body::before {
 }
 .av-row {
   display: grid;
-  grid-template-columns: 24px 24px 1fr auto;
+  grid-template-columns: 24px 28px 1fr minmax(0, auto);
   align-items: center;
   gap: 0 var(--space-3);
-  padding: var(--space-3) 0;
+  padding: var(--space-2) 0;
   border-bottom: 1px solid var(--line);
   transition: background var(--transition-fast);
 }
 .av-row:hover { background: rgba(255,255,255,0.015); }
 .av-drag-handle {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: center;
-  padding-top: 13px;
+  padding-top: 0;
+  min-height: 28px;
   color: var(--muted);
-  opacity: 0.3;
-  font-size: 15px;
+  opacity: 0.35;
+  font-size: 14px;
   cursor: grab;
   user-select: none;
   transition: opacity var(--transition-fast);
@@ -1251,9 +1253,11 @@ body::before {
   font-size: var(--font-size-xs);
   font-family: var(--font-mono);
   color: var(--muted);
-  opacity: 0.4;
-  padding-top: 14px;
+  opacity: 0.5;
+  padding-top: 0;
   text-align: right;
+  align-self: center;
+  line-height: 1;
 }
 .av-row-main {
   display: flex;
@@ -1264,7 +1268,7 @@ body::before {
 }
 .av-row-grid {
   display: grid;
-  grid-template-columns: minmax(0, 6.5rem) minmax(0, 7.5rem) minmax(0, 1fr) max-content max-content;
+  grid-template-columns: minmax(0, 5.5rem) minmax(0, 6.5rem) minmax(0, 1fr) max-content max-content;
   gap: var(--space-2);
   align-items: center;
   min-width: 0;
@@ -1377,12 +1381,22 @@ body::before {
 textarea.av-field { resize: vertical; min-height: 72px; line-height: 1.45; }
 .av-row-btns {
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: var(--space-2);
-  justify-content: center;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-1);
   padding-top: 0;
   flex-shrink: 0;
+  max-width: 20rem;
+}
+.av-row-actions-sep {
+  width: 1px;
+  height: 16px;
+  flex-shrink: 0;
+  margin: 0 var(--space-1);
+  background: var(--line);
+  align-self: center;
 }
 .av-btn-row { display: flex; align-items: center; gap: var(--space-2); }
 .av-btn {
@@ -1420,8 +1434,17 @@ textarea.av-field { resize: vertical; min-height: 72px; line-height: 1.45; }
   font-family: var(--font-sans);
   font-weight: 600;
   border-radius: var(--radius-sm);
-  min-width: 56px;
+  min-width: 48px;
+  min-height: 28px;
+  padding: 4px 8px;
+  font-size: var(--font-size-xs);
   transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
+}
+.av-row-btns .av-delete-btn {
+  min-height: 28px;
+  padding: 4px 8px;
+  font-size: var(--font-size-xs);
+  border-radius: var(--radius-sm);
 }
 .av-edit-btn:hover {
   border-color: var(--line-strong);
@@ -1439,14 +1462,22 @@ textarea.av-field { resize: vertical; min-height: 72px; line-height: 1.45; }
   color: var(--warning);
 }
 .av-btn--icon {
-  padding: 4px 7px;
-  border: none;
+  padding: 4px 8px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
   background: transparent;
   color: var(--muted);
-  font-size: 13px;
+  font-size: var(--font-size-sm);
   min-height: 28px;
+  min-width: 28px;
+  box-sizing: border-box;
+  transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
 }
-.av-btn--icon:hover { color: var(--text); background: rgba(255,255,255,0.05); }
+.av-btn--icon:hover {
+  color: var(--text);
+  background: rgba(255,255,255,0.06);
+  border-color: var(--line);
+}
 .av-btn--save {
   font-size: var(--font-size-sm);
   padding: 6px 16px;
@@ -8532,14 +8563,13 @@ function otRowHtml(action, idx, total) {
     +     '<div class="av-edit-area" style="display:none"></div>'
     +   '</div>'
     + '</div>'
-    + '<div class="av-row-btns">'
+    + '<div class="av-row-btns" role="toolbar" aria-label="Row actions">'
     +   '<button type="button" class="av-btn av-edit-btn">Edit</button>'
     +   '<button type="button" class="av-btn av-delete-btn av-btn--danger" title="Remove from status file">Delete</button>'
-    +   '<div class="av-btn-row">'
-    +     '<button class="av-btn av-btn--icon av-up-btn" title="Move up"' + upDisabled + '>↑</button>'
-    +     '<button class="av-btn av-btn--icon av-down-btn" title="Move down"' + downDisabled + '>↓</button>'
-    +     '<button class="av-btn av-expand-btn" title="Expand">▼</button>'
-    +   '</div>'
+    +   '<span class="av-row-actions-sep" aria-hidden="true"></span>'
+    +   '<button type="button" class="av-btn av-btn--icon av-up-btn" title="Move up"' + upDisabled + '>↑</button>'
+    +   '<button type="button" class="av-btn av-btn--icon av-down-btn" title="Move down"' + downDisabled + '>↓</button>'
+    +   '<button type="button" class="av-btn av-btn--icon av-expand-btn" title="Expand row">▼</button>'
     + '</div>'
     + '</div>';
 }
@@ -9280,14 +9310,13 @@ function avRowHtml(action, idx, total) {
     +     '<div class="av-edit-area" style="display:none"></div>'
     +   '</div>'
     + '</div>'
-    + '<div class="av-row-btns">'
+    + '<div class="av-row-btns" role="toolbar" aria-label="Row actions">'
     +   '<button type="button" class="av-btn av-edit-btn">Edit</button>'
     +   '<button type="button" class="av-btn av-delete-btn av-btn--danger" title="Remove from status file">Delete</button>'
-    +   '<div class="av-btn-row">'
-    +     '<button class="av-btn av-btn--icon av-up-btn" title="Move up"' + upDisabled + '>↑</button>'
-    +     '<button class="av-btn av-btn--icon av-down-btn" title="Move down"' + downDisabled + '>↓</button>'
-    +     '<button class="av-btn av-expand-btn" title="Expand">▼</button>'
-    +   '</div>'
+    +   '<span class="av-row-actions-sep" aria-hidden="true"></span>'
+    +   '<button type="button" class="av-btn av-btn--icon av-up-btn" title="Move up"' + upDisabled + '>↑</button>'
+    +   '<button type="button" class="av-btn av-btn--icon av-down-btn" title="Move down"' + downDisabled + '>↓</button>'
+    +   '<button type="button" class="av-btn av-btn--icon av-expand-btn" title="Expand row">▼</button>'
     + '</div>'
     + '</div>';
 }
@@ -10132,14 +10161,13 @@ function aoRowHtml(action, idx, total) {
     +     '<div class="av-edit-area" style="display:none"></div>'
     +   '</div>'
     + '</div>'
-    + '<div class="av-row-btns">'
+    + '<div class="av-row-btns" role="toolbar" aria-label="Row actions">'
     +   '<button type="button" class="av-btn av-edit-btn">Edit</button>'
     +   '<button type="button" class="av-btn av-delete-btn av-btn--danger" title="Remove from status file">Delete</button>'
-    +   '<div class="av-btn-row">'
-    +     '<button class="av-btn av-btn--icon av-up-btn" title="Move up"' + upDisabled + '>↑</button>'
-    +     '<button class="av-btn av-btn--icon av-down-btn" title="Move down"' + downDisabled + '>↓</button>'
-    +     '<button class="av-btn av-expand-btn" title="Expand">▼</button>'
-    +   '</div>'
+    +   '<span class="av-row-actions-sep" aria-hidden="true"></span>'
+    +   '<button type="button" class="av-btn av-btn--icon av-up-btn" title="Move up"' + upDisabled + '>↑</button>'
+    +   '<button type="button" class="av-btn av-btn--icon av-down-btn" title="Move down"' + downDisabled + '>↓</button>'
+    +   '<button type="button" class="av-btn av-btn--icon av-expand-btn" title="Expand row">▼</button>'
     + '</div>'
     + '</div>';
 }
