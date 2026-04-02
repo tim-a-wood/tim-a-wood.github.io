@@ -1,10 +1,14 @@
 {
   "_note": "Updated daily at noon by the strategy agent. Plain language — no jargon.",
-  "updated": "2026-04-01",
+  "updated": "2026-04-02",
   "priorities": [
     {
       "id": 1,
-      "os_contexts": ["business", "sprite", "other-income"],
+      "os_contexts": [
+        "business",
+        "sprite",
+        "other-income"
+      ],
       "title": "Establish our position as the go-to AI-native game dev tool before the window closes",
       "status": "in-progress",
       "risk": "high",
@@ -13,7 +17,11 @@
     },
     {
       "id": 2,
-      "os_contexts": ["business", "sprite", "other-income"],
+      "os_contexts": [
+        "business",
+        "sprite",
+        "other-income"
+      ],
       "title": "Define what 'good enough to charge for' looks like for the AI room assistant",
       "status": "paused",
       "risk": "high",
@@ -22,7 +30,12 @@
     },
     {
       "id": 3,
-      "os_contexts": ["business", "sprite", "ashen-hollow", "other-income"],
+      "os_contexts": [
+        "business",
+        "sprite",
+        "ashen-hollow",
+        "other-income"
+      ],
       "title": "Lock the scope of Ashen Hollow so it can actually be finished",
       "status": "paused",
       "risk": "high",
@@ -154,30 +167,58 @@
   "opportunities": [
     {
       "id": "strategy-o4",
-      "os_contexts": ["business", "sprite"],
+      "os_contexts": [
+        "business",
+        "sprite"
+      ],
       "title": "Plan the right time to release a desktop app version",
       "status": "paused",
       "risk": "low",
       "note": "The browser-first approach is working. A desktop version comes after we've proven the web product, not before.",
-      "proposed_solution": "Defer desktop packaging until the web product shows retention and economics worth the extra distribution cost."
+      "proposed_solution": "Defer desktop packaging until the web product shows retention and economics worth the extra distribution cost.",
+      "sort_order": 0
     },
     {
       "id": "strategy-o5",
-      "os_contexts": ["business", "sprite"],
+      "os_contexts": [
+        "business",
+        "sprite"
+      ],
       "title": "Plan when to build an engine plugin for Godot",
       "status": "paused",
       "risk": "low",
       "note": "Makes the tools much stickier with a real user base. A phase two move — only after the saved file format is stable and enough people are using the tools.",
-      "proposed_solution": "Treat a Godot plugin as phase two after export schema stability and real user demand justify the integration effort."
+      "proposed_solution": "Treat a Godot plugin as phase two after export schema stability and real user demand justify the integration effort.",
+      "sort_order": 1
     },
     {
       "id": "strategy-o6",
-      "os_contexts": ["business", "other-income"],
+      "os_contexts": [
+        "business",
+        "other-income"
+      ],
       "title": "Business plan: quarterly refresh of assumptions and competitors",
       "status": "in-progress",
       "risk": "med",
       "note": "Next step from the initial business plan (Apr 2026). Same work as strategic review and risk register review — keep dates honest in metrics.",
-      "proposed_solution": "Run strategic-review plus risk-register-review each quarter; update risk_register, competitors, and metrics.last_quarterly_review."
+      "proposed_solution": "Run strategic-review plus risk-register-review each quarter; update risk_register, competitors, and metrics.last_quarterly_review.",
+      "sort_order": 2
+    },
+    {
+      "id": "str-o-1775106803755",
+      "os_contexts": [
+        "business",
+        "other-income"
+      ],
+      "title": "Business Idea: Coding Agent that adopts safety or mission critical software development practices",
+      "status": "paused",
+      "risk": "high",
+      "sort_order": 3,
+      "summary": "Deep research complete: real audit/traceability pain, but crowded with funded compliance-AI and incumbents; different motion than Workbench—park until founder go/no-go.",
+      "note": "Strategy + Research filing 2026-04-02. Demand for traceability and CI evidence is real (DO-178C, DO-330 tool-qualification context, IEC 62304-class buyers). Competitors include AI lifecycle platforms (e.g. Ketryx-scale funding), Rapita, VectorCAST, and ALM leaders—credibility helps but is not a moat. Default: defer standalone product; optional time-boxed spike only with explicit founder priority and Legal/Finance gates. Full write-up: research/library/technical/assurance-copilot-do178c-market-2026-04-02.md.",
+      "proposed_solution": "If revived: ship as Git/PR-native “evidence copilot”—merge/release bundles (trace deltas, test hashes, review slots), policy-as-code CI gates, and explicit non-certification positioning; integrate with Jama/Polarion-class systems of record; consider services-led entry. Do not market as DO-178C “compliant” or certification-shortening without legal sign-off; clarify unqualified-tool stance vs customer DO-330 needs.",
+      "owner": null,
+      "stakeholders": "Legal, Finance, Research"
     }
   ]
 }

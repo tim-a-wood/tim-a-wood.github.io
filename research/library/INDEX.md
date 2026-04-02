@@ -27,7 +27,7 @@
 
 | Date | Title | File | Summary | Status |
 |------|-------|------|---------|--------|
-| — | *No assessments yet* | — | — | — |
+| 2026-04-02 | Assurance Copilot — DO-178C / regulated SW market | [assurance-copilot-do178c-market-2026-04-02.md](technical/assurance-copilot-do178c-market-2026-04-02.md) | Market scan: traceability/evidence automation demand, DO-330 tool-qualification context, competitors (e.g. Ketryx, Rapita, VectorCAST), wedges and risks vs MV core strategy | final |
 
 ### Competitive Analysis
 
@@ -56,4 +56,4 @@ Common tags used across library documents:
 
 ---
 
-*Last updated: 2026-04-01 by Research Agent (passive income market scan added)*
+*Last updated: 2026-04-02 — Assurance Copilot / DO-178C market technical assessment added (Strategy + Research filing)*

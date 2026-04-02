@@ -10,11 +10,11 @@
 | Field | Value |
 |-------|-------|
 | Last scan | 2026-04-01 |
-| Library documents | 2 |
+| Library documents | 3 |
 | Open P1 issues | 3 |
 | Open P2 issues | 10 |
 | Open opportunities | 6 |
-| Last updated | 2026-04-01 |
+| Last updated | 2026-04-02 |
 
 ---
 
@@ -80,6 +80,7 @@
 
 | Date | Title | File | Type |
 |------|-------|------|------|
+| 2026-04-02 | Assurance Copilot — DO-178C / regulated market | [technical/assurance-copilot-do178c-market-2026-04-02.md](library/technical/assurance-copilot-do178c-market-2026-04-02.md) | technical |
 | 2026-04-01 | Initial Codebase Scan — MV Toolchain | [findings/codebase-scan-2026-04-01.md](library/findings/codebase-scan-2026-04-01.md) | finding |
 | 2026-04-01 | Passive income market scan | [findings/passive-income-market-scan-2026-04-01.md](library/findings/passive-income-market-scan-2026-04-01.md) | market |
 | 2026-04-01 | Executive summary (email) | [../artifacts/passive-income-executive-summary-email-2026-04-01.md](../artifacts/passive-income-executive-summary-email-2026-04-01.md) | founder digest |
@@ -96,4 +97,6 @@
 
 ---
 
-*Last updated: 2026-04-01 by Research Agent (passive income scan, dashboard + status JSON refresh, founder email via Resend)*
+*Last updated: 2026-04-02 — Assurance Copilot / DO-178C market assessment filed to library (Strategy + Research); prior 2026-04-01 Research Agent pass noted below.*
+
+*2026-04-01: passive income scan, dashboard + status JSON refresh, founder email via Resend.*
