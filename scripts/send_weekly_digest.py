@@ -14,6 +14,7 @@ import json
 import base64
 import argparse
 import subprocess
+import tempfile
 from datetime import date
 from typing import List, Optional
 
@@ -275,25 +276,52 @@ def send(
             })
         body["attachments"] = atts
 
-    payload = json.dumps(body)
-
-    result = subprocess.run(
-        ["curl", "-s", "-X", "POST", RESEND_API_URL,
-         "-H", f"Authorization: Bearer {api_key}",
-         "-H", "Content-Type: application/json",
-         "-d", payload],
-        capture_output=True, text=True
-    )
+    # Write JSON to a temp file so curl reads the body from disk (avoids ARG_MAX when
+    # attachments base64-expand the payload; also matches prior curl-based delivery).
+    with tempfile.NamedTemporaryFile(
+        mode="w",
+        encoding="utf-8",
+        suffix=".json",
+        delete=False,
+    ) as tf:
+        json.dump(body, tf)
+        tmp_path = tf.name
+    try:
+        result = subprocess.run(
+            [
+                "curl",
+                "-s",
+                "-S",
+                "-X",
+                "POST",
+                RESEND_API_URL,
+                "-H",
+                f"Authorization: Bearer {api_key}",
+                "-H",
+                "Content-Type: application/json",
+                "-d",
+                f"@{tmp_path}",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=180,
+        )
+    finally:
+        try:
+            os.unlink(tmp_path)
+        except OSError:
+            pass
 
     if result.returncode != 0:
-        print(f"ERROR: {result.stderr}", file=sys.stderr)
+        print(f"ERROR: curl exit {result.returncode}: {result.stderr}", file=sys.stderr)
         sys.exit(1)
 
-    resp = json.loads(result.stdout)
+    out = result.stdout
+    resp = json.loads(out)
     if "id" in resp:
         print(f"Sent. Email ID: {resp['id']}")
     else:
-        print(f"ERROR: {result.stdout}", file=sys.stderr)
+        print(f"ERROR: {out}", file=sys.stderr)
         sys.exit(1)
 
 

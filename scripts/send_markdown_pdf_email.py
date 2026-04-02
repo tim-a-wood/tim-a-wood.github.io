@@ -18,6 +18,7 @@ from __future__ import annotations
 import argparse
 import importlib.util
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -37,6 +38,26 @@ def _load_digest_module():
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
     return mod
+
+
+def resolve_markdown_images(md: str, md_dir: Path) -> str:
+    """Replace ![alt](path) with <img src="file://..."> so headless Chrome can load local assets."""
+
+    def repl(m: re.Match[str]) -> str:
+        alt = m.group(1).replace('"', "&quot;")
+        rel = m.group(2).strip()
+        if rel.startswith(("http://", "https://", "data:")):
+            return m.group(0)
+        target = (md_dir / rel).resolve()
+        if not target.is_file():
+            return m.group(0)
+        src = target.as_uri()
+        return (
+            f'<img src="{src}" alt="{alt}" '
+            'style="max-width:100%;height:auto;vertical-align:middle" />'
+        )
+
+    return re.sub(r"!\[([^\]]*)\]\(([^)]+)\)", repl, md)
 
 
 def strip_yaml_frontmatter(md: str) -> str:
@@ -119,6 +140,7 @@ def main() -> None:
     digest = _load_digest_module()
     raw_md = md_path.read_text(encoding="utf-8")
     body_md = strip_yaml_frontmatter(raw_md)
+    body_md = resolve_markdown_images(body_md, md_path.parent)
     body_html = digest.md_to_html(body_md)
 
     today = date.today().strftime("%Y-%m-%d")
