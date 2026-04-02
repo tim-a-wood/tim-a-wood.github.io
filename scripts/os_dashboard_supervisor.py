@@ -372,6 +372,7 @@ def make_handler(
             "narrative-status.json",
             "audio-status.json",
             "creative-status.json",
+            "research-status.json",
         }
     )
     # Files that can be written back via POST /api/status-update
