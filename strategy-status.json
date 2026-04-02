@@ -62,6 +62,10 @@
     {
       "title": "What's in Ashen Hollow v1.0 — and what isn't?",
       "note": "How many biomes, rooms, and mechanics make a shippable first version? This needs a decision, not a roadmap."
+    },
+    {
+      "title": "Authorize a time-boxed assurance-copilot spike—or keep it parked?",
+      "note": "Other-income idea: AI codegen assurance-by-process. Spike needs a week budget, one vertical, a reachable customer signal, and Legal/Finance gates. Default per 2026-04-02 decision: stay parked unless you say otherwise."
     }
   ],
   "risk_register": [
@@ -136,8 +140,8 @@
       "name": "Strategic Review",
       "description": "Review all strategic assumptions — what held, what was falsified, what changed — and update the risk register.",
       "trigger": "Quarterly",
-      "last_run": null,
-      "output_location": null
+      "last_run": "2026-04-02",
+      "output_location": "Assurance-copilot opportunity closure: decisions/2026-04-02-assurance-copilot-other-income-gate.md and strategy-status.json opportunity str-o-1775106803755 (full quarterly review not run)"
     },
     {
       "id": "risk-register-review",
@@ -205,31 +209,31 @@
       "sort_order": 2
     },
     {
-      “id”: “str-o-1775106803755”,
-      “os_contexts”: [
-        “business”,
-        “other-income”
+      "id": "str-o-1775106803755",
+      "os_contexts": [
+        "business",
+        "other-income"
       ],
-      “title”: “Business Idea: Coding Agent that adopts safety or mission critical software development practices”,
-      “status”: “paused”,
-      “risk”: “high”,
-      “sort_order”: 3,
-      “summary”: “Strategy session 2026-04-02. Framing sharpened: niche is 'AI codegen provenance for regulated teams,' not DO-178C compliance tooling. Services-led entry is the lowest-risk first move. Decisive gate: can the founder name a first customer? If yes, spike is warranted. If no, park.”,
-      “note”: “Research complete (2026-04-02). Real pain: regulated teams adopting AI codegen without auditability tooling—incumbents target compliance programs, not the mid-tier eng org using Copilot. Competitors (Ketryx, Rapita, VectorCAST) are selling to mature programs; the gap is smaller teams who need AI-generated code to be auditable without enterprise ALM infrastructure. Services-first entry (one consulting engagement, document the repeatable playbook, productize later) sidesteps procurement/sales-cycle risk entirely. The assurance-by-process thinking also has transfer value to Workbench's own agentic process layer. Full write-up: research/library/technical/assurance-copilot-do178c-market-2026-04-02.md.”,
-      “proposed_solution”: “Sharpest path: services-led entry for one regulated team (avionics OR medtech OR auto—pick one), implement the assurance-by-process framework as a consulting engagement, document what's repeatable, then decide if productization is warranted. Do not market as DO-178C compliant. Position as 'AI codegen auditable'—provenance, review evidence, CI gates—not certification. First customer access is the decisive gate: founder must be able to name a specific org before any spike begins.”,
-      “owner”: null,
-      “stakeholders”: [
-        “Legal”,
-        “Finance”,
-        “Research”
+      "title": "Business Idea: Coding Agent that adopts safety or mission critical software development practices",
+      "status": "paused",
+      "risk": "high",
+      "sort_order": 3,
+      "summary": "Strategy execution completed 2026-04-02. Positioning: assurance-by-process for AI codegen (traceability, evidence, CI gates)—not DO-178C compliance claims. Product track stays deferred; only a time-boxed spike after explicit founder priority plus Legal and Finance gates.",
+      "note": "Research filing documents real demand and serious competition (lifecycle AI, verification tools, ALM). Credibility is not a moat. Default remains no standalone product. Decision log: decisions/2026-04-02-assurance-copilot-other-income-gate.md. Technical write-up: research/library/technical/assurance-copilot-do178c-market-2026-04-02.md.",
+      "proposed_solution": "If the founder authorizes a spike: time-box (e.g. 2–4 weeks), pick one vertical (avionics OR medtech OR auto), and define pass/fail—reachable first customer or LOI, Legal/Finance templates or budget, and a CAC or cycle-length sanity check. Otherwise stay paused.",
+      "owner": null,
+      "stakeholders": [
+        "Legal",
+        "Finance",
+        "Research"
       ],
-      “solution”: “Assurance-by-process system for AI codegen: provenance, traceability, review evidence, and verification gates. Useful beyond safety-critical domains. Services-led entry is lower risk than building SaaS before proving first customer. Do not market as DO-178C compliant without legal sign-off.”,
-      “open_questions”: [
-        “Can the founder name a specific first customer (org + contact) today? This is the go/no-go gate.”,
-        “Does the founder have domain credibility in any of: aerospace, medtech, automotive, defense? If yes, which one?”,
-        “Is there a version of this that compounds into Workbench (agentic provenance layer) vs. remaining a separate product track?”
+      "solution": "Assurance-by-process: process discipline, traceability, provenance, and verification gates for AI-generated code—useful beyond safety-critical domains. Never market as DO-178C compliant or as a qualified tool without customer program context and legal sign-off.",
+      "open_questions": [
+        "Founder: authorize a bounded spike now (yes/no) and week budget?",
+        "Can the founder name one reachable first customer or LOI path in a single vertical?",
+        "Prefer internal dogfooding on MV agent workflows before any external offer?"
       ],
-      “internal_use_assessment”: “Assessed 2026-04-02. MV already has most lightweight assurance (CLAUDE.md, charters, Truthfulness directive, decisions/ folder, output_location fields). Real gap: no automated enforcement—all rules are prompt-level. Convention fixes (non-null output_location before complete, QA log output required, commit→decision links) close most of the gap for free. Tooling adds value at team scale, not solo. Recommended path: dogfood the assurance-by-process discipline on the MV agentic workflow—practice it deliberately, document what works, let that experience inform whether a product is worth building externally.”
+      "internal_use_assessment": "2026-04-02. MV already uses lightweight assurance (charters, Truthfulness directive, decisions folder, dashboard output fields). Gaps are mostly enforcement (prompt-level vs automated CI). Next internal step: tighten agent completion hygiene; let that inform whether external product work is justified."
     }
   ],
   "strategy_chart": {
