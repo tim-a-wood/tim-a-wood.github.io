@@ -904,6 +904,187 @@ body::before {
 }
 
 /* ─── ISSUES VIEW (priority list) ───────────────── */
+.av-scope-strip {
+  flex-shrink: 0;
+  font-size: var(--font-size-xs);
+  color: var(--muted);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.03);
+  line-height: 1.45;
+}
+.av-scope-strip[hidden] {
+  display: none !important;
+}
+.av-lane-chip {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  padding: 4px var(--space-3);
+  border-radius: var(--radius-full);
+  border: 1px solid var(--line-strong);
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.av-empty-state {
+  color: var(--muted);
+  font-size: var(--font-size-sm);
+  padding: var(--space-5) var(--space-3);
+  text-align: center;
+  line-height: 1.5;
+  max-width: 36rem;
+  margin: 0 auto;
+}
+.av-empty-state-filters {
+  display: block;
+  margin-top: var(--space-2);
+  font-size: var(--font-size-xs);
+  color: var(--muted);
+}
+.av-kind-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-full);
+  border: 1px solid var(--line);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  font-family: var(--font-sans);
+  line-height: 1.3;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+.av-kind-badge-icon {
+  font-size: var(--font-size-sm);
+  line-height: 1;
+  flex-shrink: 0;
+}
+.av-kind-badge--issue {
+  border-color: rgba(165, 180, 252, 0.35);
+  background: rgba(165, 180, 252, 0.1);
+  color: var(--text);
+}
+.av-kind-badge--opp {
+  border-color: rgba(74, 222, 128, 0.35);
+  background: var(--good-soft);
+  color: var(--good);
+}
+.av-add-details {
+  grid-column: 1 / -1;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.02);
+  padding: 0;
+}
+.av-add-details summary {
+  padding: var(--space-2) var(--space-3);
+  cursor: pointer;
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  list-style: none;
+  transition: color var(--transition-fast), background var(--transition-fast);
+}
+.av-add-details summary::-webkit-details-marker {
+  display: none;
+}
+.av-add-details summary::before {
+  content: '▸';
+  display: inline-block;
+  margin-right: var(--space-2);
+  transition: transform var(--transition-fast);
+  color: var(--accent);
+}
+.av-add-details[open] summary::before {
+  transform: rotate(90deg);
+}
+.av-add-details summary:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.04);
+}
+.av-add-details-inner {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-2);
+  padding: 0 var(--space-3) var(--space-3);
+  border-top: 1px solid var(--line);
+}
+.av-add-details-inner .av-field-wide {
+  grid-column: 1 / -1;
+}
+.ot-add-choice-panel {
+  display: none;
+  flex-direction: column;
+  gap: var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: rgba(255, 255, 255, 0.02);
+  padding: var(--space-3);
+  margin-top: var(--space-2);
+}
+.ot-add-choice-panel.visible {
+  display: flex;
+}
+.ot-add-choice-title {
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.ot-add-choice-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+}
+.ot-add-pick-btn {
+  min-height: 44px;
+  padding: 10px var(--space-4);
+  border-radius: var(--radius-tight);
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--transition-base), border-color var(--transition-base), color var(--transition-base), transform var(--transition-fast);
+}
+.ot-add-pick-btn:hover {
+  border-color: var(--line-strong);
+  background: rgba(255, 255, 255, 0.08);
+  transform: translateY(-1px);
+}
+.ot-add-pick-btn--issue {
+  border-color: rgba(165, 180, 252, 0.35);
+}
+.ot-add-pick-btn--issue:hover {
+  border-color: rgba(165, 180, 252, 0.55);
+  background: rgba(165, 180, 252, 0.08);
+}
+.ot-add-pick-btn--opp {
+  border-color: rgba(74, 222, 128, 0.35);
+}
+.ot-add-pick-btn--opp:hover {
+  border-color: rgba(74, 222, 128, 0.5);
+  background: rgba(74, 222, 128, 0.1);
+}
+.ot-add-pick-hint {
+  font-size: var(--font-size-xs);
+  color: var(--muted);
+  line-height: 1.45;
+  max-width: 28rem;
+}
 .av-toolbar {
   display: flex;
   align-items: center;
@@ -948,7 +1129,7 @@ body::before {
   color: var(--text);
   font-size: var(--font-size-sm);
   font-family: var(--font-sans);
-  padding: 5px 10px;
+  padding: 4px 12px;
   min-height: 32px;
   cursor: pointer;
   transition: border-color var(--transition-fast);
@@ -964,7 +1145,7 @@ body::before {
   color: var(--text);
   font-size: var(--font-size-sm);
   font-family: var(--font-sans);
-  padding: 5px 12px;
+  padding: 4px 12px;
   min-height: 32px;
   transition: border-color var(--transition-fast);
 }
@@ -1011,6 +1192,11 @@ body::before {
   gap: 0 var(--space-3);
   padding: var(--space-2) 0 var(--space-1);
   border-bottom: 1px solid var(--line-strong);
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: var(--bg);
+  box-shadow: 0 1px 0 var(--line);
 }
 .av-table-head-labels {
   display: grid;
@@ -1093,6 +1279,11 @@ body::before {
 }
 .av-cell-summary {
   font-weight: 600;
+}
+.av-cell-kind {
+  display: flex;
+  align-items: flex-start;
+  min-width: 0;
 }
 .av-cell--muted {
   color: var(--muted);
@@ -4725,7 +4916,9 @@ h3.os-chart-card-title {
             </div>
           </div>
         </div>
+        <div class="av-scope-strip" id="ao-av-scope-strip" hidden role="status" aria-live="polite"></div>
         <div class="av-toolbar">
+          <span class="av-lane-chip" title="Current list: agent opportunities">Opportunities</span>
           <div class="av-filter-group">
             <span class="av-filter-label">Owner</span>
             <select class="av-select" id="ao-filter-owner">
@@ -4743,7 +4936,7 @@ h3.os-chart-card-title {
               <option value="done">Done</option>
             </select>
           </div>
-          <input type="text" class="av-search" id="ao-search" placeholder="Search opportunities…" autocomplete="off" spellcheck="false">
+          <input type="text" class="av-search" id="ao-search" placeholder="Search within filtered opportunities…" autocomplete="off" spellcheck="false" aria-label="Search opportunities in the filtered list">
           <button type="button" class="av-btn av-btn--accent av-add-btn" id="ao-add-btn">+ Add Opportunity</button>
           <span class="av-count" id="ao-count"></span>
         </div>
@@ -4763,20 +4956,25 @@ h3.os-chart-card-title {
             <option value="med">med</option>
             <option value="high">high</option>
           </select>
-          <input class="av-field av-field-wide" id="ao-add-owner-text" placeholder="Owner (optional; defaults to agent)">
-          <input class="av-field av-field-wide" id="ao-add-stakeholders" placeholder="Stakeholders, comma-separated (optional)">
-          <input class="av-field av-field-wide" id="ao-add-summary" placeholder="Summary (optional; defaults to title)">
           <input class="av-field av-field-wide" id="ao-add-title" placeholder="Opportunity title">
-          <textarea class="av-field av-field-wide" id="ao-add-note" rows="2" placeholder="Detail/context"></textarea>
-          <textarea class="av-field av-field-wide" id="ao-add-solution" rows="2" placeholder="Proposed solution"></textarea>
+          <details class="av-add-details">
+            <summary>Optional fields</summary>
+            <div class="av-add-details-inner">
+              <input class="av-field av-field-wide" id="ao-add-owner-text" placeholder="Owner (optional; defaults to agent)">
+              <input class="av-field av-field-wide" id="ao-add-stakeholders" placeholder="Stakeholders, comma-separated (optional)">
+              <input class="av-field av-field-wide" id="ao-add-summary" placeholder="Summary (optional; defaults to title)">
+              <textarea class="av-field av-field-wide" id="ao-add-note" rows="2" placeholder="Detail/context"></textarea>
+              <textarea class="av-field av-field-wide" id="ao-add-solution" rows="2" placeholder="Proposed solution"></textarea>
+            </div>
+          </details>
           <div class="av-add-actions">
             <button type="button" class="av-btn" id="ao-add-cancel">Cancel</button>
             <button type="button" class="av-btn av-btn--accent" id="ao-add-save">Add to agent opportunities</button>
           </div>
         </div>
         <div class="av-table-head" id="ao-table-head" aria-hidden="false">
-          <span class="av-th av-th--mute">·</span>
-          <span class="av-th">#</span>
+          <span class="av-th"><span class="visually-hidden">Reorder</span><span aria-hidden="true">⠿</span></span>
+          <span class="av-th"><span class="visually-hidden">Row </span>#</span>
           <div class="av-table-head-labels">
             <span class="av-th">Owner</span>
             <span class="av-th">Stakeholders</span>
@@ -4784,7 +4982,7 @@ h3.os-chart-card-title {
             <span class="av-th">Status</span>
             <span class="av-th">Risk</span>
           </div>
-          <span class="av-th av-th--mute">·</span>
+          <span class="av-th"><span class="visually-hidden">Row actions</span><span aria-hidden="true">·</span></span>
         </div>
         <div class="av-conflict-banner" id="ao-conflict-banner" role="status" aria-live="polite">
           <div class="av-conflict-banner-copy">
@@ -4816,7 +5014,9 @@ h3.os-chart-card-title {
             </div>
           </div>
         </div>
+        <div class="av-scope-strip" id="ot-av-scope-strip" hidden role="status" aria-live="polite"></div>
         <div class="av-toolbar">
+          <span class="av-lane-chip" title="Current list: in-progress issues and opportunities">Ongoing tasks</span>
           <div class="av-filter-group">
             <span class="av-filter-label">Owner</span>
             <select class="av-select" id="ot-filter-owner">
@@ -4831,10 +5031,18 @@ h3.os-chart-card-title {
               <option value="opportunity">Opportunities only</option>
             </select>
           </div>
-          <input type="text" class="av-search" id="ot-search" placeholder="Search in-progress items…" autocomplete="off" spellcheck="false">
-          <button type="button" class="av-btn av-btn--accent av-add-btn" id="ot-add-issue-btn">+ Add in-progress issue</button>
-          <button type="button" class="av-btn av-btn--accent av-add-btn" id="ot-add-opp-btn">+ Add in-progress opportunity</button>
+          <input type="text" class="av-search" id="ot-search" placeholder="Search within filtered in-progress items…" autocomplete="off" spellcheck="false" aria-label="Search in-progress items in the filtered list">
+          <button type="button" class="av-btn av-btn--accent av-add-btn" id="ot-add-work-btn">+ Add in-progress work</button>
           <span class="av-count" id="ot-count"></span>
+        </div>
+        <div class="ot-add-choice-panel" id="ot-add-choice-panel">
+          <div class="ot-add-choice-title">What are you adding?</div>
+          <p class="ot-add-pick-hint">Issues save to agent <strong style="font-weight:600;color:var(--text)">priorities</strong>; opportunities save to agent <strong style="font-weight:600;color:var(--text)">opportunities</strong>. Pick one to continue.</p>
+          <div class="ot-add-choice-row">
+            <button type="button" class="ot-add-pick-btn ot-add-pick-btn--issue" id="ot-add-pick-issue">Add issue</button>
+            <button type="button" class="ot-add-pick-btn ot-add-pick-btn--opp" id="ot-add-pick-opp">Add opportunity</button>
+            <button type="button" class="av-btn" id="ot-add-choice-dismiss">Cancel</button>
+          </div>
         </div>
         <div class="av-add-panel" id="ot-add-issue-panel">
           <select class="av-field" id="ot-iss-owner">
@@ -4852,12 +5060,17 @@ h3.os-chart-card-title {
             <option value="med">med</option>
             <option value="high">high</option>
           </select>
-          <input class="av-field av-field-wide" id="ot-iss-owner-text" placeholder="Owner (optional; defaults to agent)">
-          <input class="av-field av-field-wide" id="ot-iss-stakeholders" placeholder="Stakeholders, comma-separated (optional)">
-          <input class="av-field av-field-wide" id="ot-iss-summary" placeholder="Summary (optional; defaults to title)">
           <input class="av-field av-field-wide" id="ot-iss-title" placeholder="Issue title">
-          <textarea class="av-field av-field-wide" id="ot-iss-note" rows="2" placeholder="Detail/context"></textarea>
-          <textarea class="av-field av-field-wide" id="ot-iss-solution" rows="2" placeholder="Proposed solution"></textarea>
+          <details class="av-add-details">
+            <summary>Optional fields</summary>
+            <div class="av-add-details-inner">
+              <input class="av-field av-field-wide" id="ot-iss-owner-text" placeholder="Owner (optional; defaults to agent)">
+              <input class="av-field av-field-wide" id="ot-iss-stakeholders" placeholder="Stakeholders, comma-separated (optional)">
+              <input class="av-field av-field-wide" id="ot-iss-summary" placeholder="Summary (optional; defaults to title)">
+              <textarea class="av-field av-field-wide" id="ot-iss-note" rows="2" placeholder="Detail/context"></textarea>
+              <textarea class="av-field av-field-wide" id="ot-iss-solution" rows="2" placeholder="Proposed solution"></textarea>
+            </div>
+          </details>
           <div class="av-add-actions">
             <button type="button" class="av-btn" id="ot-iss-cancel">Cancel</button>
             <button type="button" class="av-btn av-btn--accent" id="ot-iss-save">Add to agent priorities</button>
@@ -4879,20 +5092,25 @@ h3.os-chart-card-title {
             <option value="med">med</option>
             <option value="high">high</option>
           </select>
-          <input class="av-field av-field-wide" id="ot-opp-owner-text" placeholder="Owner (optional; defaults to agent)">
-          <input class="av-field av-field-wide" id="ot-opp-stakeholders" placeholder="Stakeholders, comma-separated (optional)">
-          <input class="av-field av-field-wide" id="ot-opp-summary" placeholder="Summary (optional; defaults to title)">
           <input class="av-field av-field-wide" id="ot-opp-title" placeholder="Opportunity title">
-          <textarea class="av-field av-field-wide" id="ot-opp-note" rows="2" placeholder="Detail/context"></textarea>
-          <textarea class="av-field av-field-wide" id="ot-opp-solution" rows="2" placeholder="Proposed solution"></textarea>
+          <details class="av-add-details">
+            <summary>Optional fields</summary>
+            <div class="av-add-details-inner">
+              <input class="av-field av-field-wide" id="ot-opp-owner-text" placeholder="Owner (optional; defaults to agent)">
+              <input class="av-field av-field-wide" id="ot-opp-stakeholders" placeholder="Stakeholders, comma-separated (optional)">
+              <input class="av-field av-field-wide" id="ot-opp-summary" placeholder="Summary (optional; defaults to title)">
+              <textarea class="av-field av-field-wide" id="ot-opp-note" rows="2" placeholder="Detail/context"></textarea>
+              <textarea class="av-field av-field-wide" id="ot-opp-solution" rows="2" placeholder="Proposed solution"></textarea>
+            </div>
+          </details>
           <div class="av-add-actions">
             <button type="button" class="av-btn" id="ot-opp-cancel">Cancel</button>
             <button type="button" class="av-btn av-btn--accent" id="ot-opp-save">Add to agent opportunities</button>
           </div>
         </div>
         <div class="av-table-head ongoing-av-table-head" id="ot-table-head" aria-hidden="false">
-          <span class="av-th av-th--mute">·</span>
-          <span class="av-th">#</span>
+          <span class="av-th"><span class="visually-hidden">Reorder</span><span aria-hidden="true">⠿</span></span>
+          <span class="av-th"><span class="visually-hidden">Row </span>#</span>
           <div class="av-table-head-labels">
             <span class="av-th">Owner</span>
             <span class="av-th">Kind</span>
@@ -4901,7 +5119,7 @@ h3.os-chart-card-title {
             <span class="av-th">Status</span>
             <span class="av-th">Risk</span>
           </div>
-          <span class="av-th av-th--mute">·</span>
+          <span class="av-th"><span class="visually-hidden">Row actions</span><span aria-hidden="true">·</span></span>
         </div>
         <div class="av-list" id="ot-list">
           <div style="color:var(--muted);font-size:var(--font-size-sm);padding:var(--space-5) 0">Select Ongoing Tasks from the nav to load…</div>
@@ -4923,7 +5141,9 @@ h3.os-chart-card-title {
             </div>
           </div>
         </div>
+        <div class="av-scope-strip" id="iss-av-scope-strip" hidden role="status" aria-live="polite"></div>
         <div class="av-toolbar">
+          <span class="av-lane-chip" title="Current list: agent priority issues">Issues</span>
           <div class="av-filter-group">
             <span class="av-filter-label">Owner</span>
             <select class="av-select" id="av-filter-owner">
@@ -4941,7 +5161,7 @@ h3.os-chart-card-title {
               <option value="done">Done</option>
             </select>
           </div>
-          <input type="text" class="av-search" id="av-search" placeholder="Search issues…" autocomplete="off" spellcheck="false">
+          <input type="text" class="av-search" id="av-search" placeholder="Search within filtered issues…" autocomplete="off" spellcheck="false" aria-label="Search issues in the filtered list">
           <button type="button" class="av-btn av-btn--accent av-add-btn" id="av-add-btn">+ Add Issue</button>
           <span class="av-count" id="av-count"></span>
         </div>
@@ -4961,20 +5181,25 @@ h3.os-chart-card-title {
             <option value="med">med</option>
             <option value="high">high</option>
           </select>
-          <input class="av-field av-field-wide" id="av-add-owner-text" placeholder="Owner (optional; defaults to agent)">
-          <input class="av-field av-field-wide" id="av-add-stakeholders" placeholder="Stakeholders, comma-separated (optional)">
-          <input class="av-field av-field-wide" id="av-add-summary" placeholder="Summary (optional; defaults to title)">
           <input class="av-field av-field-wide" id="av-add-title" placeholder="Issue title">
-          <textarea class="av-field av-field-wide" id="av-add-note" rows="2" placeholder="Detail/context"></textarea>
-          <textarea class="av-field av-field-wide" id="av-add-solution" rows="2" placeholder="Proposed solution"></textarea>
+          <details class="av-add-details">
+            <summary>Optional fields</summary>
+            <div class="av-add-details-inner">
+              <input class="av-field av-field-wide" id="av-add-owner-text" placeholder="Owner (optional; defaults to agent)">
+              <input class="av-field av-field-wide" id="av-add-stakeholders" placeholder="Stakeholders, comma-separated (optional)">
+              <input class="av-field av-field-wide" id="av-add-summary" placeholder="Summary (optional; defaults to title)">
+              <textarea class="av-field av-field-wide" id="av-add-note" rows="2" placeholder="Detail/context"></textarea>
+              <textarea class="av-field av-field-wide" id="av-add-solution" rows="2" placeholder="Proposed solution"></textarea>
+            </div>
+          </details>
           <div class="av-add-actions">
             <button type="button" class="av-btn" id="av-add-cancel">Cancel</button>
             <button type="button" class="av-btn av-btn--accent" id="av-add-save">Add to agent priorities</button>
           </div>
         </div>
         <div class="av-table-head" id="av-table-head" aria-hidden="false">
-          <span class="av-th av-th--mute">·</span>
-          <span class="av-th">#</span>
+          <span class="av-th"><span class="visually-hidden">Reorder</span><span aria-hidden="true">⠿</span></span>
+          <span class="av-th"><span class="visually-hidden">Row </span>#</span>
           <div class="av-table-head-labels">
             <span class="av-th">Owner</span>
             <span class="av-th">Stakeholders</span>
@@ -4982,7 +5207,7 @@ h3.os-chart-card-title {
             <span class="av-th">Status</span>
             <span class="av-th">Risk</span>
           </div>
-          <span class="av-th av-th--mute">·</span>
+          <span class="av-th"><span class="visually-hidden">Row actions</span><span aria-hidden="true">·</span></span>
         </div>
         <div class="av-conflict-banner" id="av-conflict-banner" role="status" aria-live="polite">
           <div class="av-conflict-banner-copy">
@@ -8021,6 +8246,136 @@ async function issueChatApplyUpdates() {
   }
 })();
 
+// ── Priority views: product context strip + empty-state copy (Issues / Opps / Ongoing) ──
+function osPriorityProductContextLabel() {
+  var labels = {
+    all: 'All products',
+    business: 'Business',
+    sprite: 'Sprite dashboard',
+    'ashen-hollow': 'Ashen Hollow',
+    'other-income': 'Other income streams'
+  };
+  return labels[osProductContext] || osProductContext;
+}
+
+function avUpdatePriorityScopeStrip(stripId, visibleCount) {
+  var el = document.getElementById(stripId);
+  if (!el) return;
+  if (osProductContext === 'all') {
+    el.setAttribute('hidden', '');
+    el.textContent = '';
+    return;
+  }
+  el.removeAttribute('hidden');
+  el.textContent = 'Product context: ' + osPriorityProductContextLabel() + ' · ' + visibleCount + ' row' + (visibleCount !== 1 ? 's' : '') + ' visible in this list (after filters).';
+}
+
+function avSelectOptionText(sel) {
+  if (!sel || !sel.value) return '';
+  var opt = sel.options[sel.selectedIndex];
+  return opt ? String(opt.textContent || '').replace(/\s+/g, ' ').trim() : '';
+}
+
+function avStatusFilterLabel(val) {
+  if (!val) return '';
+  var map = {
+    'in-progress': 'In progress',
+    'needs-review': 'Needs review',
+    paused: 'Paused',
+    queued: 'Queued',
+    done: 'Done'
+  };
+  return map[val] || val;
+}
+
+function avIssuesEmptyMessageHtml() {
+  var ownerSel = document.getElementById('av-filter-owner');
+  var statusSel = document.getElementById('av-filter-status');
+  var searchEl = document.getElementById('av-search');
+  var owner = ownerSel ? ownerSel.value : '';
+  var status = statusSel ? statusSel.value : '';
+  var query = searchEl ? searchEl.value.trim() : '';
+  var contextOnly = avAllActions.filter(function(a) {
+    return itemVisibleInOsProductContext(a._agent, a, osProductContext);
+  }).length;
+  var parts = [];
+  if (osProductContext !== 'all') parts.push('product context: ' + osPriorityProductContextLabel());
+  if (owner) parts.push('owner: ' + avSelectOptionText(ownerSel));
+  if (status) parts.push('status: ' + avStatusFilterLabel(status));
+  if (query) parts.push('search: “' + escapeHtml(query) + '”');
+  var filterLine = parts.length
+    ? '<span class="av-empty-state-filters">Active filters — ' + parts.join(' · ') + '. Try clearing a filter or changing the search.</span>'
+    : '';
+  var main;
+  if (contextOnly === 0 && osProductContext !== 'all') {
+    main = 'No issues are tagged for this product context. Switch the header context to <strong style="font-weight:600;color:var(--text)">All</strong> or add issues scoped to this product.';
+  } else if (contextOnly === 0) {
+    main = 'No issues are loaded. Start the dashboard server and ensure agent status files are available.';
+  } else {
+    main = 'No issues match the current filters.';
+  }
+  return '<div class="av-empty-state">' + main + filterLine + '</div>';
+}
+
+function aoOpportunitiesEmptyMessageHtml() {
+  var ownerSel = document.getElementById('ao-filter-owner');
+  var statusSel = document.getElementById('ao-filter-status');
+  var searchEl = document.getElementById('ao-search');
+  var owner = ownerSel ? ownerSel.value : '';
+  var status = statusSel ? statusSel.value : '';
+  var query = searchEl ? searchEl.value.trim() : '';
+  var contextOnly = aoAllActions.filter(function(a) {
+    return itemVisibleInOsProductContext(a._agent, a, osProductContext);
+  }).length;
+  var parts = [];
+  if (osProductContext !== 'all') parts.push('product context: ' + osPriorityProductContextLabel());
+  if (owner) parts.push('owner: ' + avSelectOptionText(ownerSel));
+  if (status) parts.push('status: ' + avStatusFilterLabel(status));
+  if (query) parts.push('search: “' + escapeHtml(query) + '”');
+  var filterLine = parts.length
+    ? '<span class="av-empty-state-filters">Active filters — ' + parts.join(' · ') + '. Try clearing a filter or changing the search.</span>'
+    : '';
+  var main;
+  if (contextOnly === 0 && osProductContext !== 'all') {
+    main = 'No opportunities are tagged for this product context. Switch the header context to <strong style="font-weight:600;color:var(--text)">All</strong> or add opportunities scoped to this product.';
+  } else if (contextOnly === 0) {
+    main = 'No opportunities are loaded. Start the dashboard server and ensure agent status files are available.';
+  } else {
+    main = 'No opportunities match the current filters.';
+  }
+  return '<div class="av-empty-state">' + main + filterLine + '</div>';
+}
+
+function otOngoingEmptyMessageHtml() {
+  var ownerSel = document.getElementById('ot-filter-owner');
+  var kindSel = document.getElementById('ot-filter-kind');
+  var searchEl = document.getElementById('ot-search');
+  var owner = ownerSel ? ownerSel.value : '';
+  var kind = kindSel ? kindSel.value : '';
+  var query = searchEl ? searchEl.value.trim() : '';
+  var contextOnly = otAllActions.filter(function(a) {
+    return itemVisibleInOsProductContext(a._agent, a, osProductContext);
+  }).length;
+  var parts = [];
+  if (osProductContext !== 'all') parts.push('product context: ' + osPriorityProductContextLabel());
+  if (owner) parts.push('owner: ' + avSelectOptionText(ownerSel));
+  if (kind === 'issue') parts.push('kind: Issues only');
+  if (kind === 'opportunity') parts.push('kind: Opportunities only');
+  if (query) parts.push('search: “' + escapeHtml(query) + '”');
+  var filterLine = parts.length
+    ? '<span class="av-empty-state-filters">Active filters — ' + parts.join(' · ') + '. Try clearing a filter or changing the search.</span>'
+    : '';
+  var main;
+  if (contextOnly === 0 && osProductContext !== 'all') {
+    main = 'No in-progress items are tagged for this product context. Switch the header context to <strong style="font-weight:600;color:var(--text)">All</strong> or mark work as in-progress on Issues or Opportunities.';
+  } else if (contextOnly === 0) {
+    main = 'No in-progress tasks match. Mark work as <strong style="font-weight:600;color:var(--text)">in-progress</strong> on Issues or Opportunities, or add a task with <strong style="font-weight:600;color:var(--text)">Add in-progress work</strong>.';
+  } else {
+    main = 'No in-progress tasks match the current filters.';
+  }
+  return '<div class="av-empty-state">' + main + filterLine + '</div>';
+}
+
 // ── ONGOING TASKS (in-progress issues + opportunities) ───────────────────────
 let otAllActions = [];
 let otAddBound = false;
@@ -8103,6 +8458,7 @@ function otApplyFilters() {
   var filtered = otGetFiltered();
   var countEl = document.getElementById('ot-count');
   if (countEl) countEl.textContent = filtered.length + ' in-progress task' + (filtered.length !== 1 ? 's' : '');
+  avUpdatePriorityScopeStrip('ot-av-scope-strip', filtered.length);
   otRenderList(otSortedActions(filtered));
 }
 
@@ -8112,6 +8468,9 @@ function otRowHtml(action, idx, total) {
     ? String(action.owner).trim()
     : agentLabel;
   var kindLabel = action._ongoingSource === 'issue' ? 'Issue' : 'Opportunity';
+  var kindBadge = action._ongoingSource === 'issue'
+    ? '<span class="av-kind-badge av-kind-badge--issue" title="Priority issue"><span class="av-kind-badge-icon" aria-hidden="true">⚡</span><span>Issue</span></span>'
+    : '<span class="av-kind-badge av-kind-badge--opp" title="Improvement opportunity"><span class="av-kind-badge-icon" aria-hidden="true">🌱</span><span>Opp</span></span>';
   var stakeholdersCell = formatStakeholdersField(action.stakeholders);
   var summaryText = (action.summary != null && String(action.summary).trim() !== '')
     ? String(action.summary).trim()
@@ -8162,7 +8521,7 @@ function otRowHtml(action, idx, total) {
     + '<div class="av-row-main" role="button" tabindex="0" aria-expanded="false">'
     +   '<div class="av-row-grid">'
     +     '<span class="av-cell av-cell-owner">' + escapeHtml(ownerCell) + '</span>'
-    +     '<span class="av-cell av-cell--muted">' + escapeHtml(kindLabel) + '</span>'
+    +     '<span class="av-cell av-cell-kind">' + kindBadge + '</span>'
     +     '<span class="av-cell av-cell-stakeholders">' + escapeHtml(stakeholdersCell) + '</span>'
     +     '<span class="av-cell av-cell-summary">' + escapeHtml(summaryText) + '</span>'
     +     '<span class="av-status-col ' + stMk.cls + '">' + escapeHtml(stMk.label) + '</span>'
@@ -8189,7 +8548,7 @@ function otRenderList(sorted) {
   var listEl = document.getElementById('ot-list');
   if (!listEl) return;
   if (sorted.length === 0) {
-    listEl.innerHTML = '<div style="color:var(--muted);font-size:var(--font-size-sm);padding:var(--space-5) 0;text-align:center">No in-progress tasks match the filter. Mark work as <strong style="font-weight:600;color:var(--text)">in-progress</strong> on Issues or Opportunities, or add a task here.</div>';
+    listEl.innerHTML = otOngoingEmptyMessageHtml();
     return;
   }
 
@@ -8351,27 +8710,56 @@ function otInitDrag(listEl, sorted) {
   });
 }
 
+function otCloseOngoingAddUi() {
+  var choice = document.getElementById('ot-add-choice-panel');
+  var p1 = document.getElementById('ot-add-issue-panel');
+  var p2 = document.getElementById('ot-add-opp-panel');
+  if (choice) choice.classList.remove('visible');
+  if (p1) p1.classList.remove('visible');
+  if (p2) p2.classList.remove('visible');
+}
+
 function otInitAddPanel() {
-  var b1 = document.getElementById('ot-add-issue-btn');
-  var b2 = document.getElementById('ot-add-opp-btn');
+  var addWork = document.getElementById('ot-add-work-btn');
+  var choice = document.getElementById('ot-add-choice-panel');
+  var pickIss = document.getElementById('ot-add-pick-issue');
+  var pickOpp = document.getElementById('ot-add-pick-opp');
+  var dismiss = document.getElementById('ot-add-choice-dismiss');
   var p1 = document.getElementById('ot-add-issue-panel');
   var p2 = document.getElementById('ot-add-opp-panel');
   var c1 = document.getElementById('ot-iss-cancel');
   var c2 = document.getElementById('ot-opp-cancel');
   var s1 = document.getElementById('ot-iss-save');
   var s2 = document.getElementById('ot-opp-save');
-  if (b1 && p1) {
-    b1.addEventListener('click', function() {
-      p1.classList.toggle('visible');
+  if (addWork && choice) {
+    addWork.addEventListener('click', function() {
+      var anyOpen = choice.classList.contains('visible')
+        || (p1 && p1.classList.contains('visible'))
+        || (p2 && p2.classList.contains('visible'));
+      if (anyOpen) {
+        otCloseOngoingAddUi();
+      } else {
+        choice.classList.add('visible');
+        if (p1) p1.classList.remove('visible');
+        if (p2) p2.classList.remove('visible');
+      }
+    });
+  }
+  if (pickIss && p1 && choice) {
+    pickIss.addEventListener('click', function() {
+      choice.classList.remove('visible');
+      p1.classList.add('visible');
       if (p2) p2.classList.remove('visible');
     });
   }
-  if (b2 && p2) {
-    b2.addEventListener('click', function() {
-      p2.classList.toggle('visible');
+  if (pickOpp && p2 && choice) {
+    pickOpp.addEventListener('click', function() {
+      choice.classList.remove('visible');
+      p2.classList.add('visible');
       if (p1) p1.classList.remove('visible');
     });
   }
+  if (dismiss) dismiss.addEventListener('click', otCloseOngoingAddUi);
   if (c1 && p1) c1.addEventListener('click', function() { p1.classList.remove('visible'); });
   if (c2 && p2) c2.addEventListener('click', function() { p2.classList.remove('visible'); });
   if (s1) s1.addEventListener('click', function() { void otAddIssueFromPanel(); });
@@ -8433,7 +8821,7 @@ async function otAddIssueFromPanel() {
   document.getElementById('ot-iss-summary').value = '';
   document.getElementById('ot-iss-note').value = '';
   document.getElementById('ot-iss-solution').value = '';
-  document.getElementById('ot-add-issue-panel').classList.remove('visible');
+  otCloseOngoingAddUi();
   avShowToast('Added issue to ' + file, true);
 }
 
@@ -8496,7 +8884,7 @@ async function otAddOppFromPanel() {
   document.getElementById('ot-opp-summary').value = '';
   document.getElementById('ot-opp-note').value = '';
   document.getElementById('ot-opp-solution').value = '';
-  document.getElementById('ot-add-opp-panel').classList.remove('visible');
+  otCloseOngoingAddUi();
   avShowToast('Added opportunity to ' + file, true);
 }
 
@@ -8757,6 +9145,7 @@ function avApplyFilters() {
   var filtered = avGetFiltered();
   var countEl = document.getElementById('av-count');
   if (countEl) countEl.textContent = filtered.length + ' issue' + (filtered.length !== 1 ? 's' : '');
+  avUpdatePriorityScopeStrip('iss-av-scope-strip', filtered.length);
   avRenderList(avSortedActions(filtered));
 }
 
@@ -8765,7 +9154,7 @@ function avRenderList(sorted) {
   if (!listEl) return;
   avRefreshConflictBanner();
   if (sorted.length === 0) {
-    listEl.innerHTML = '<div style="color:var(--muted);font-size:var(--font-size-sm);padding:var(--space-5) 0;text-align:center">No issues match the filter.</div>';
+    listEl.innerHTML = avIssuesEmptyMessageHtml();
     return;
   }
 
@@ -9531,6 +9920,7 @@ function aoApplyFilters() {
   var filtered = aoGetFiltered();
   var countEl = document.getElementById('ao-count');
   if (countEl) countEl.textContent = filtered.length + ' opportunit' + (filtered.length !== 1 ? 'ies' : 'y');
+  avUpdatePriorityScopeStrip('ao-av-scope-strip', filtered.length);
   aoRenderList(aoSortedActions(filtered));
 }
 
@@ -9642,7 +10032,7 @@ function aoRenderList(sorted) {
   if (!listEl) return;
   aoRefreshConflictBanner();
   if (sorted.length === 0) {
-    listEl.innerHTML = '<div style="color:var(--muted);font-size:var(--font-size-sm);padding:var(--space-5) 0;text-align:center">No opportunities match the filter.</div>';
+    listEl.innerHTML = aoOpportunitiesEmptyMessageHtml();
     return;
   }
 
