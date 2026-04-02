@@ -901,48 +901,6 @@ body::before {
 .dashboard-view::-webkit-scrollbar-track { background: transparent; }
 .dashboard-view::-webkit-scrollbar-thumb { background: var(--stroke-strong); border-radius: 2px; }
 
-.db-view-header {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  flex-shrink: 0;
-  padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--line);
-  background: rgba(255, 255, 255, 0.02);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
-}
-.db-view-header > div {
-  flex: 1;
-  min-width: 0;
-}
-.db-view-icon {
-  font-size: var(--font-size-sm);
-  line-height: 1;
-  flex-shrink: 0;
-}
-.db-view-title {
-  font-family: var(--font-display);
-  font-size: var(--font-size-sm);
-  letter-spacing: 0.05em;
-  color: var(--text);
-  line-height: 1.15;
-}
-.db-view-subtitle {
-  font-size: var(--font-size-xs);
-  color: var(--muted);
-  margin-top: var(--space-1);
-  line-height: 1.35;
-}
-.db-view-header .os-home-glyph {
-  width: 24px;
-  height: 24px;
-}
-.db-view-header .os-home-glyph-inner {
-  width: 8px;
-  height: 8px;
-}
-
 /* ─── DB SECTIONS ────────────────────────────────── */
 .db-section { display: flex; flex-direction: column; gap: var(--space-2); flex-shrink: 0; }
 
@@ -1151,7 +1109,8 @@ body::before {
   display: inline-flex;
   align-items: center;
   gap: var(--space-1);
-  margin-top: var(--space-2);
+  margin: 0 0 var(--space-2) 0;
+  flex-shrink: 0;
   padding: 2px 8px;
   border-radius: var(--radius-full);
   border: 1px solid var(--line-strong);
@@ -2850,7 +2809,6 @@ textarea.av-field { resize: vertical; min-height: 72px; line-height: 1.45; }
 .dashboard-view[data-dashboard-view="home"] {
   gap: var(--space-2);
 }
-.dashboard-view[data-dashboard-view="home"] .db-view-header,
 .dashboard-view[data-dashboard-view="home"] .os-home-hero {
   flex-shrink: 0;
 }
@@ -2996,27 +2954,6 @@ textarea.av-field { resize: vertical; min-height: 72px; line-height: 1.45; }
     opacity: 1;
     transform: none;
   }
-}
-
-/* Command glyph (token-only; replaces decorative emoji) */
-.os-home-glyph {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius-xs);
-  background: var(--accent-soft);
-  box-shadow: inset 0 0 0 1px rgba(0,232,200,0.08);
-  flex-shrink: 0;
-}
-.os-home-glyph-inner {
-  width: 10px;
-  height: 10px;
-  background: var(--accent);
-  transform: rotate(45deg);
-  border-radius: var(--radius-xs);
 }
 
 /* Chart canvas: loading / error layers */
@@ -3410,14 +3347,6 @@ h3.os-chart-card-title {
            Internal health from home_internal + one usage trend (usage_charts). GET /api/dashboard-data.
       ───────────────────────────────────────────────────── -->
       <div class="dashboard-view active" data-dashboard-view="home">
-        <div class="db-view-header">
-          <span class="db-view-icon os-home-glyph" aria-hidden="true"><span class="os-home-glyph-inner"></span></span>
-          <div>
-            <div class="db-view-title" style="color:var(--accent)">HOME</div>
-            <div class="db-view-subtitle">Agent OS hub · internal health &amp; usage (pre-customer)</div>
-          </div>
-        </div>
-
         <section class="os-home-hero" aria-label="Hub overview">
           <div class="os-home-hero-inner">
             <div>
@@ -3516,11 +3445,7 @@ h3.os-chart-card-title {
 
       <!-- ── ORCHESTRATION DASHBOARD ─────────────────────────── -->
       <div class="dashboard-view" data-dashboard-view="orchestration">
-        <div class="db-view-header">
-          <span class="db-view-icon">🎯</span>
-          <div><div class="db-view-title" style="color:#00e8c8">ORCHESTRATION</div><div class="db-view-subtitle">Agent coordination, digest pipeline &amp; standing directives</div></div>
-        </div>
-
+        
         <!-- ── Cross-Agent Priorities ── -->
         <div class="db-section">
           <div class="db-section-label">Cross-Agent Priorities</div>
@@ -3629,11 +3554,7 @@ h3.os-chart-card-title {
 
       <!-- ── STRATEGY DASHBOARD ──────────────────────────────── -->
       <div class="dashboard-view" data-dashboard-view="strategy">
-        <div class="db-view-header">
-          <span class="db-view-icon">🧭</span>
-          <div><div class="db-view-title" style="color:#94a3b8">STRATEGY</div><div class="db-view-subtitle">Company direction, portfolio health &amp; competitive positioning</div></div>
-        </div>
-
+        
         <!-- ── Priorities ── -->
         <div class="db-section">
           <div class="db-section-label">Priorities</div>
@@ -3737,11 +3658,7 @@ h3.os-chart-card-title {
 
       <!-- ── DEVELOPMENT DASHBOARD ─────────────────────────── -->
       <div class="dashboard-view" data-dashboard-view="development">
-        <div class="db-view-header">
-          <span class="db-view-icon">⚙️</span>
-          <div><div class="db-view-title" style="color:#ff9500">DEVELOPMENT</div><div class="db-view-subtitle">Priorities, risks &amp; AI pipeline health</div></div>
-        </div>
-        <div class="db-section">
+                <div class="db-section">
           <div class="db-section-label">Priorities</div>
           <div class="db-priority-list" id="db-dev-priorities">
             <div class="db-priority-header" role="row">
@@ -3863,11 +3780,7 @@ h3.os-chart-card-title {
 
       <!-- ── ANIMATION DASHBOARD ─────────────────────────────── -->
       <div class="dashboard-view" data-dashboard-view="animation">
-        <div class="db-view-header">
-          <span class="db-view-icon">🎬</span>
-          <div><div class="db-view-title" style="color:#e879f9">ANIMATION</div><div class="db-view-subtitle">Priorities, risks &amp; AI pipeline health</div></div>
-        </div>
-        <div class="db-section">
+                <div class="db-section">
           <div class="db-section-label">Priorities</div>
           <div class="db-priority-list" id="db-anim-priorities">
             <div class="db-priority-header" role="row">
@@ -3989,11 +3902,7 @@ h3.os-chart-card-title {
 
       <!-- ── LEVEL DESIGN DASHBOARD ─────────────────────────── -->
       <div class="dashboard-view" data-dashboard-view="level-design">
-        <div class="db-view-header">
-          <span class="db-view-icon">🗺️</span>
-          <div><div class="db-view-title" style="color:#a3e635">LEVEL DESIGN</div><div class="db-view-subtitle">Priorities, risks &amp; AI pipeline health</div></div>
-        </div>
-        <div class="db-section">
+                <div class="db-section">
           <div class="db-section-label">Priorities</div>
           <div class="db-priority-list" id="db-ld-priorities">
             <div class="db-priority-header" role="row">
@@ -4115,11 +4024,7 @@ h3.os-chart-card-title {
 
       <!-- ── QA DASHBOARD ────────────────────────────────────── -->
       <div class="dashboard-view" data-dashboard-view="qa">
-        <div class="db-view-header">
-          <span class="db-view-icon">🔍</span>
-          <div><div class="db-view-title" style="color:#77b8ff">QA</div><div class="db-view-subtitle">Release readiness, test health &amp; known issues</div></div>
-        </div>
-
+        
         <!-- ── Release Gate ── -->
         <div class="db-section">
           <div class="db-section-label">Release gate</div>
@@ -4261,11 +4166,7 @@ h3.os-chart-card-title {
 
       <!-- ── CYBERSECURITY DASHBOARD ────────────────────────── -->
       <div class="dashboard-view" data-dashboard-view="cybersecurity">
-        <div class="db-view-header">
-          <span class="db-view-icon">🛡️</span>
-          <div><div class="db-view-title" style="color:#f85149">CYBERSECURITY</div><div class="db-view-subtitle">Environment security, API key hygiene &amp; threat surface</div></div>
-        </div>
-        <div class="db-section">
+                <div class="db-section">
           <div class="db-section-label">API Key Presence</div>
           <div class="db-grid">
             <div class="db-card db-card--live">
@@ -4314,11 +4215,7 @@ h3.os-chart-card-title {
 
       <!-- ── LEGAL DASHBOARD ────────────────────────────────── -->
       <div class="dashboard-view" data-dashboard-view="legal">
-        <div class="db-view-header">
-          <span class="db-view-icon">⚖️</span>
-          <div><div class="db-view-title" style="color:#a78bfa">LEGAL</div><div class="db-view-subtitle">IP exposure, AI asset compliance &amp; ToS status</div></div>
-        </div>
-        <div class="db-section">
+                <div class="db-section">
           <div class="db-section-label">Standing Facts</div>
           <div class="db-grid">
             <div class="db-card db-card--live">
@@ -4367,11 +4264,7 @@ h3.os-chart-card-title {
 
       <!-- ── FINANCE DASHBOARD ──────────────────────────────── -->
       <div class="dashboard-view" data-dashboard-view="finance">
-        <div class="db-view-header">
-          <span class="db-view-icon">💰</span>
-          <div><div class="db-view-title" style="color:#f0abfc">FINANCE</div><div class="db-view-subtitle">API costs, budget tracking &amp; unit economics</div></div>
-        </div>
-        <div class="db-section">
+                <div class="db-section">
           <div class="db-section-label">Business Context</div>
           <div class="db-grid">
             <div class="db-card db-card--live">
@@ -4435,11 +4328,7 @@ h3.os-chart-card-title {
 
       <!-- ── ANALYTICS DASHBOARD ────────────────────────────── -->
       <div class="dashboard-view" data-dashboard-view="analytics">
-        <div class="db-view-header">
-          <span class="db-view-icon">📊</span>
-          <div><div class="db-view-title" style="color:#4ade80">ANALYTICS</div><div class="db-view-subtitle">Priorities, risks &amp; internal ledger signal</div></div>
-        </div>
-        <!-- ── Priorities ── -->
+                <!-- ── Priorities ── -->
         <div class="db-section">
           <div class="db-section-label">Priorities</div>
           <div class="db-priority-list" id="db-analytics-priorities">
@@ -4586,11 +4475,7 @@ h3.os-chart-card-title {
 
       <!-- ── SUPPORT DASHBOARD ───────────────────────────────── -->
       <div class="dashboard-view" data-dashboard-view="support">
-        <div class="db-view-header">
-          <span class="db-view-icon">💬</span>
-          <div><div class="db-view-title" style="color:#fbbf24">SUPPORT</div><div class="db-view-subtitle">User issues, feedback synthesis &amp; onboarding health</div></div>
-        </div>
-        <div class="db-section">
+                <div class="db-section">
           <div class="db-section-label">Support Context</div>
           <div class="db-grid">
             <div class="db-card db-card--live">
@@ -4644,11 +4529,7 @@ h3.os-chart-card-title {
 
       <!-- ── MARKETING DASHBOARD ────────────────────────────── -->
       <div class="dashboard-view" data-dashboard-view="marketing">
-        <div class="db-view-header">
-          <span class="db-view-icon">📣</span>
-          <div><div class="db-view-title" style="color:#f5986e">MARKETING</div><div class="db-view-subtitle">Priorities, risks &amp; pre-launch audience building</div></div>
-        </div>
-        <div class="db-section">
+                <div class="db-section">
           <div class="db-section-label">Priorities</div>
           <div class="db-priority-list" id="db-marketing-priorities">
             <div class="db-priority-header" role="row">
@@ -4755,11 +4636,7 @@ h3.os-chart-card-title {
 
       <!-- ── DESIGN DASHBOARD ───────────────────────────────── -->
       <div class="dashboard-view" data-dashboard-view="design">
-        <div class="db-view-header">
-          <span class="db-view-icon">🎨</span>
-          <div><div class="db-view-title" style="color:#fb7185">DESIGN</div><div class="db-view-subtitle">STYLE_GUIDE governance, toolchain UX, accessibility &amp; AI UI patterns</div></div>
-        </div>
-        <div class="db-section">
+                <div class="db-section">
           <div class="db-section-label">Priorities</div>
           <div class="db-priority-list" id="db-design-priorities">
             <div class="db-priority-header" role="row">
@@ -4845,11 +4722,7 @@ h3.os-chart-card-title {
 
       <!-- ── WORKBENCH DASHBOARD ─────────────────────────────── -->
       <div class="dashboard-view" data-dashboard-view="workbench">
-        <div class="db-view-header">
-          <span class="db-view-icon">🖥️</span>
-          <div><div class="db-view-title" style="color:#38bdf8">WORKBENCH</div><div class="db-view-subtitle">Sprite Workbench server status &amp; daily report readouts</div></div>
-        </div>
-        <div class="db-section">
+                <div class="db-section">
           <div class="db-section-label">Product Overview</div>
           <div class="db-grid">
             <div class="db-card db-card--live">
@@ -4898,11 +4771,7 @@ h3.os-chart-card-title {
 
       <!-- ── ASHEN HOLLOW DASHBOARD ─────────────────────────── -->
       <div class="dashboard-view" data-dashboard-view="ashen-hollow">
-        <div class="db-view-header">
-          <span class="db-view-icon">🎮</span>
-          <div><div class="db-view-title" style="color:#818cf8">ASHEN HOLLOW</div><div class="db-view-subtitle">Metroidvania game production — design, narrative &amp; creative</div></div>
-        </div>
-        <div class="db-section">
+                <div class="db-section">
           <div class="db-section-label">Game Facts</div>
           <div class="db-grid">
             <div class="db-card db-card--live">
@@ -4972,14 +4841,7 @@ h3.os-chart-card-title {
 
       <!-- ── RESEARCH DASHBOARD ─────────────────────────────── -->
       <div class="dashboard-view" data-dashboard-view="research">
-        <div class="db-view-header">
-          <span class="db-view-icon">🔬</span>
-          <div>
-            <div class="db-view-title" style="color:var(--c-research)">RESEARCH</div>
-            <div class="db-view-subtitle">What we learned from scanning the tools, what is stored in the research library, and ideas worth doing next — written in plain language</div>
-          </div>
-        </div>
-
+        
         <!-- ── Scan Status ── -->
         <div class="db-section">
           <div class="db-section-label">Last scan — April 2026 · four main tool files · large pages reviewed</div>
@@ -5140,18 +5002,11 @@ h3.os-chart-card-title {
 
       <!-- OPPORTUNITIES VIEW (opportunities[] across agents) -->
       <div class="dashboard-view" data-dashboard-view="opportunities">
-        <div class="db-view-header">
-          <span class="db-view-icon">🌱</span>
-          <div>
-            <div class="db-view-title" style="color:#4ade80">OPPORTUNITIES</div>
-            <div class="db-view-subtitle">All agent improvement opportunities — filter by owner, explore, assign, discuss with the agent, and track</div>
-            <div
-              class="av-sort-badge"
-              title="List order: status and risk (in-progress / high impact first, done last), then manual order in each owner file, then owner name, then ID."
-            >
-              Sorted by impact
-            </div>
-          </div>
+        <div
+          class="av-sort-badge"
+          title="List order: status and risk (in-progress / high impact first, done last), then manual order in each owner file, then owner name, then ID."
+        >
+          Sorted by impact
         </div>
         <div class="av-scope-strip" id="ao-av-scope-strip" hidden role="status" aria-live="polite"></div>
         <div class="av-toolbar">
@@ -5238,18 +5093,11 @@ h3.os-chart-card-title {
 
       <!-- ONGOING TASKS (in-progress priorities + opportunities) -->
       <div class="dashboard-view" data-dashboard-view="ongoing-tasks">
-        <div class="db-view-header">
-          <span class="db-view-icon">🔧</span>
-          <div>
-            <div class="db-view-title" style="color:#fbbf24">ONGOING TASKS</div>
-            <div class="db-view-subtitle">Issues and opportunities with status <strong style="font-weight:600;color:var(--text)">in-progress</strong> — filter, reorder within each owner file, edit, discuss, and log new work</div>
-            <div
-              class="av-sort-badge"
-              title="List order: risk (high first), then owner agent, then kind (issues before opportunities), then file order / ID."
-            >
-              Sorted for execution focus
-            </div>
-          </div>
+        <div
+          class="av-sort-badge"
+          title="List order: risk (high first), then owner agent, then kind (issues before opportunities), then file order / ID."
+        >
+          Sorted for execution focus
         </div>
         <div class="av-scope-strip" id="ot-av-scope-strip" hidden role="status" aria-live="polite"></div>
         <div class="av-toolbar">
@@ -5365,18 +5213,11 @@ h3.os-chart-card-title {
 
       <!-- ISSUES VIEW (priority rows across agents) -->
       <div class="dashboard-view" data-dashboard-view="issues">
-        <div class="db-view-header">
-          <span class="db-view-icon">⚡</span>
-          <div>
-            <div class="db-view-title" style="color:#a5b4fc">ISSUES</div>
-            <div class="db-view-subtitle">All agent priority issues — filter by owner/status, reorder within a file, edit inline, discuss with the agent</div>
-            <div
-              class="av-sort-badge"
-              title="List order: status and risk (in-progress / high risk first, done last), then manual order in each owner file, then owner name, then ID."
-            >
-              Sorted by priority
-            </div>
-          </div>
+        <div
+          class="av-sort-badge"
+          title="List order: status and risk (in-progress / high risk first, done last), then manual order in each owner file, then owner name, then ID."
+        >
+          Sorted by priority
         </div>
         <div class="av-scope-strip" id="iss-av-scope-strip" hidden role="status" aria-live="polite"></div>
         <div class="av-toolbar">
