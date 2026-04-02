@@ -43,6 +43,7 @@
   --c-support: #fbbf24;
   --c-finance: #f0abfc;
   --c-cybersecurity: #f85149;
+  --c-research: #e879f9;
 }
 
 :focus-visible { outline: 2px solid rgba(0,232,200,0.35); outline-offset: 2px; }
@@ -2682,6 +2683,10 @@ h3.os-chart-card-title {
         <span class="nav-dot" style="background:#a5b4fc"></span>
         <span class="nav-item-text">Issues</span>
   </button>
+      <button type="button" class="nav-item" data-dashboard="research">
+        <span class="nav-dot" style="background:var(--c-research)"></span>
+        <span class="nav-item-text">Research</span>
+      </button>
 
       <span class="nav-group-label">Leadership</span>
       <button type="button" class="nav-item" data-dashboard="orchestration">
@@ -4399,18 +4404,187 @@ h3.os-chart-card-title {
         </div>
       </div>
 
+
+      <!-- ── RESEARCH DASHBOARD ─────────────────────────────── -->
+      <div class="dashboard-view" data-dashboard-view="research">
+        <div class="db-view-header">
+          <span class="db-view-icon">🔬</span>
+          <div>
+            <div class="db-view-title" style="color:var(--c-research)">RESEARCH</div>
+            <div class="db-view-subtitle">Codebase intelligence, knowledge library &amp; opportunity tracking</div>
+          </div>
+        </div>
+
+        <!-- ── Scan Status ── -->
+        <div class="db-section">
+          <div class="db-section-label">Last Scan — 2026-04-01 · 4 files · 16,419 lines</div>
+          <div class="db-grid">
+            <div class="db-card db-card--manual">
+              <div class="db-card-header"><div class="db-card-label">P1 Issues</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-value" style="color:var(--error)">3</div>
+              <div class="db-card-sub">Critical / blocking</div>
+            </div>
+            <div class="db-card db-card--manual">
+              <div class="db-card-header"><div class="db-card-label">P2 Issues</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-value" style="color:var(--warning)">10</div>
+              <div class="db-card-sub">Should fix</div>
+            </div>
+            <div class="db-card db-card--manual">
+              <div class="db-card-header"><div class="db-card-label">Opportunities</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-value" style="color:var(--good)">6</div>
+              <div class="db-card-sub">Improvements identified</div>
+            </div>
+            <div class="db-card db-card--manual">
+              <div class="db-card-header"><div class="db-card-label">Library Docs</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-value" style="color:var(--c-research)">1</div>
+              <div class="db-card-sub">research/library/</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── P1 Issues ── -->
+        <div class="db-section">
+          <div class="db-section-label">P1 — Critical (own: Cybersecurity / Development)</div>
+          <div class="db-risk-grid">
+            <div class="db-risk-panel">
+              <div class="db-risk-panel-label">SECURITY RISK</div>
+              <div class="db-risk-row db-risk-row--p0">
+                <div class="db-risk-row-title">Unescaped user data in innerHTML</div>
+                <div class="db-risk-row-note">room-layout-editor.html:4513–4543 — room.id, entry.id, entry.name interpolated raw. XSS via malformed project file. escapeHtml() defined at line 3032 but not used here.</div>
+              </div>
+            </div>
+            <div class="db-risk-panel">
+              <div class="db-risk-panel-label">BUGS &amp; ACCESSIBILITY</div>
+              <div class="db-risk-row db-risk-row--p0">
+                <div class="db-risk-row-title">Undefined CSS variable --text-dim</div>
+                <div class="db-risk-row-note">product-shell.css:585 — .marketing-docs-linkout references var(--text-dim) which is not defined anywhere. Silent render failure.</div>
+              </div>
+              <div class="db-risk-row db-risk-row--p1">
+                <div class="db-risk-row-title">No global :focus-visible rule in room editor</div>
+                <div class="db-risk-row-note">room-layout-editor.html — all native interactive elements lack keyboard focus indicators. Mandatory per CLAUDE.md. Trivial to fix.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── P2 Issues ── -->
+        <div class="db-section">
+          <div class="db-section-label">P2 — Style &amp; Token Violations (own: Development / Design)</div>
+          <div class="db-risk-grid">
+            <div class="db-risk-panel">
+              <div class="db-risk-panel-label">TOKEN DRIFT</div>
+              <div class="db-risk-row">
+                <div class="db-risk-row-title">Sprite workbench radius tokens conflict canonical scale</div>
+                <div class="db-risk-row-note">index.html:44–47 — --radius-sm: 14px (should be 8px), --radius-md: 18px (should be 10px)</div>
+              </div>
+              <div class="db-risk-row">
+                <div class="db-risk-row-title">~19 rem-based font sizes outside px token scale</div>
+                <div class="db-risk-row-note">room-wizard-workbench-shell.css ×5 · product-shell.css ×14 — use var(--font-size-*)</div>
+              </div>
+              <div class="db-risk-row">
+                <div class="db-risk-row-title">9 hardcoded hex tints outside token system</div>
+                <div class="db-risk-row-note">product-shell.css ×7, room-layout-editor.html ×2 — use CSS variables or rgba() of tokens</div>
+              </div>
+              <div class="db-risk-row">
+                <div class="db-risk-row-title">var(--shadow) undocumented alias</div>
+                <div class="db-risk-row-note">product-shell.css:527 — not in canonical token set; replace with var(--shadow-lg)</div>
+              </div>
+            </div>
+            <div class="db-risk-panel">
+              <div class="db-risk-panel-label">SPACING &amp; TRANSITIONS</div>
+              <div class="db-risk-row">
+                <div class="db-risk-row-title">Non-conforming transition durations</div>
+                <div class="db-risk-row-note">room-wizard-workbench-shell.css:360,406 · product-shell.css:238 — use var(--transition-fast/base) with explicit properties</div>
+              </div>
+              <div class="db-risk-row">
+                <div class="db-risk-row-title">border-radius: 50% and 16px not in scale</div>
+                <div class="db-risk-row-note">50% → var(--radius-full) · 16px → var(--radius-tight) or var(--radius-card)</div>
+              </div>
+              <div class="db-risk-row">
+                <div class="db-risk-row-title">Off-grid spacing values</div>
+                <div class="db-risk-row-note">gap: 10px, 14px, 5px, 22px, 26px across room-wizard and product-shell — must be 4px multiples</div>
+              </div>
+              <div class="db-risk-row">
+                <div class="db-risk-row-title">Font sizes outside scale</div>
+                <div class="db-risk-row-note">room-layout-editor.html:781,788,912 — 10px below minimum (11px), 24px not in scale</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Opportunities ── -->
+        <div class="db-section">
+          <div class="db-section-label">Opportunities</div>
+          <div class="db-risk-grid">
+            <div class="db-risk-panel">
+              <div class="db-risk-panel-label">HIGH IMPACT</div>
+              <div class="db-risk-row">
+                <div class="db-risk-row-title">Extract shared CSS token block → tokens.css</div>
+                <div class="db-risk-row-note">Eliminates manual token sync across 3+ HTML files</div>
+              </div>
+              <div class="db-risk-row">
+                <div class="db-risk-row-title">Extract JS from room-layout-editor.html</div>
+                <div class="db-risk-row-note">9,607-line monolith with ~7,500 lines inline JS — breaks security auditability</div>
+              </div>
+              <div class="db-risk-row">
+                <div class="db-risk-row-title">Add :focus-visible to room-layout-editor.html</div>
+                <div class="db-risk-row-note">Single rule — high a11y gain, trivial effort</div>
+              </div>
+            </div>
+            <div class="db-risk-panel">
+              <div class="db-risk-panel-label">MEDIUM IMPACT</div>
+              <div class="db-risk-row">
+                <div class="db-risk-row-title">Create shared nav.css</div>
+                <div class="db-risk-row-note">.site-nav duplicated between room editor and sprite workbench</div>
+              </div>
+              <div class="db-risk-row">
+                <div class="db-risk-row-title">Align product-shell.css marketing section to design tokens</div>
+                <div class="db-risk-row-note">~15 hardcoded colors, ~12 rem sizes to migrate</div>
+              </div>
+              <div class="db-risk-row">
+                <div class="db-risk-row-title">Standardise sprite workbench radius tokens</div>
+                <div class="db-risk-row-note">Align --radius-sm/md to canonical scale (8px/10px)</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Library ── -->
+        <div class="db-section">
+          <div class="db-section-label">Knowledge Library</div>
+          <div class="db-grid">
+            <div class="db-card db-card--manual db-card--wide">
+              <div class="db-card-header"><div class="db-card-label">Latest Report</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-value db-card-value--muted" style="font-size:var(--font-size-sm);font-family:var(--font-sans)">Initial Codebase Scan — MV Toolchain</div>
+              <div class="db-card-sub">research/library/findings/codebase-scan-2026-04-01.md</div>
+            </div>
+            <div class="db-card db-card--manual">
+              <div class="db-card-header"><div class="db-card-label">Next scan</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-value db-card-value--muted">—</div>
+              <button type="button" class="db-run-btn">Run research · scan-codebase →</button>
+            </div>
+            <div class="db-card db-card--manual">
+              <div class="db-card-header"><div class="db-card-label">Competitive analysis</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-value db-card-value--muted">—</div>
+              <button type="button" class="db-run-btn">Run research · competitive-analysis →</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
       <!-- ISSUES VIEW (priority rows across agents) -->
       <div class="dashboard-view" data-dashboard-view="issues">
         <div class="db-view-header">
           <span class="db-view-icon">⚡</span>
           <div>
             <div class="db-view-title" style="color:#a5b4fc">ISSUES</div>
-            <div class="db-view-subtitle">All agent priority issues — filter by owner/status, reorder, edit inline, discuss with the agent</div>
+            <div class="db-view-subtitle">All agent priority issues — filter by owner/status, reorder within a file, edit inline, discuss with the agent</div>
             <div
               class="av-sort-badge"
-              title="Sorted by Orchestrator: status (in-progress → needs-review → queued → paused → done), then risk (high → med → low), then ID."
+              title="List order: status and risk (in-progress / high risk first, done last), then manual order in each owner file, then owner name, then ID."
             >
-              Sorted by Orchestrator
+              Sorted by priority
             </div>
           </div>
         </div>
@@ -7421,14 +7595,14 @@ function avGetFiltered() {
 
 function avSortedActions(filtered) {
   return filtered.slice().sort(function(a, b) {
-    if (a._agent < b._agent) return -1;
-    if (a._agent > b._agent) return 1;
-    var ao = (a.sort_order != null) ? a.sort_order : a._idx;
-    var bo = (b.sort_order != null) ? b.sort_order : b._idx;
-    if (ao !== bo) return ao - bo;
     var ap = avPriorityScore(a);
     var bp = avPriorityScore(b);
     if (ap !== bp) return ap - bp;
+    var ao = (a.sort_order != null) ? a.sort_order : a._idx;
+    var bo = (b.sort_order != null) ? b.sort_order : b._idx;
+    if (ao !== bo) return ao - bo;
+    if (a._agent < b._agent) return -1;
+    if (a._agent > b._agent) return 1;
     var ai = Number(a.id) || 0;
     var bi = Number(b.id) || 0;
     return ai - bi;
