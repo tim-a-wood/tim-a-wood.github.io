@@ -121,7 +121,20 @@
       "Read(//Users/timwood/Desktop/projects/PWA/MV/agents/$agent/**)",
       "Bash(grep -n \"db-qa-signpost\\\\|dashboard-view.*data-dashboard\\\\|^      </div>$\" /Users/timwood/Desktop/projects/PWA/MV/os-dashboard.html)",
       "Bash(grep -l \"Task-completion update\" /Users/timwood/Desktop/projects/PWA/MV/agents/*/charter.md)",
-      "Bash(wc -l echo \"total charter files:\" ls /Users/timwood/Desktop/projects/PWA/MV/agents/*/charter.md)"
+      "Bash(wc -l echo \"total charter files:\" ls /Users/timwood/Desktop/projects/PWA/MV/agents/*/charter.md)",
+      "Bash(mkdir -p /Users/timwood/Desktop/projects/PWA/MV/.claude/agents)",
+      "Bash(mkdir -p /Users/timwood/Desktop/projects/PWA/MV/research/library/reports)",
+      "Bash(mkdir -p /Users/timwood/Desktop/projects/PWA/MV/research/library/findings)",
+      "Bash(mkdir -p /Users/timwood/Desktop/projects/PWA/MV/research/library/technical)",
+      "Bash(mkdir -p /Users/timwood/Desktop/projects/PWA/MV/research/library/competitive)",
+      "Bash(head -20 grep -n \"#081018\\\\|#16120a\\\\|#151108\\\\|#c7ddd6\\\\|#cae8df\\\\|#caf8f1\\\\|#cce3db\\\\|#c5dbd4\\\\|#d7e8e2\" /Users/timwood/Desktop/projects/PWA/MV/tools/2d-sprite-and-animation/app/product-shell.css)",
+      "Bash(head -20 grep -n \"#081018\\\\|#16120a\\\\|#151108\\\\|#c7ddd6\\\\|#cae8df\\\\|#caf8f1\\\\|#cce3db\\\\|#c5dbd4\\\\|#d7e8e2\" /Users/timwood/Desktop/projects/PWA/MV/tools/2d-sprite-and-animation/index.html)",
+      "Bash(head -10 grep -n \"radius-sm\\\\|radius-xs\\\\|radius-md\" /Users/timwood/Desktop/projects/PWA/MV/room-layout-editor.html)",
+      "Bash(ls /Users/timwood/Desktop/projects/PWA/MV/*.py /Users/timwood/Desktop/projects/PWA/MV/package.json /Users/timwood/Desktop/projects/PWA/MV/Makefile)",
+      "Bash(ls /Users/timwood/Desktop/projects/PWA/MV/server* /Users/timwood/Desktop/projects/PWA/MV/app.py /Users/timwood/Desktop/projects/PWA/MV/main.py)",
+      "Bash(ls /Users/timwood/Desktop/projects/PWA/MV/tools/2d-sprite-and-animation/*.py)",
+      "Bash(kill 31240)",
+      "Bash(python3:*)"
     ],
     "additionalDirectories": [
       "/Users/timwood/.claude/skills"

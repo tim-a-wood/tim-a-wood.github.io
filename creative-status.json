@@ -18,22 +18,6 @@
       "risk": "high",
       "note": "The player character appears in every session. Their visual design sets the standard for all other character work. Blocked on game director finalizing the player fantasy and game systems locking the movement spec.",
       "proposed_solution": "After the player fantasy and movement spec lock, define the hero’s silhouette, palette assignment, and animation-ready proportions."
-    },
-    {
-      "id": 3,
-      "title": "Define the visual language for the first biome — environment tiles, atmospheric palette, hazard readability",
-      "status": "paused",
-      "risk": "high",
-      "note": "Blocked on game director confirming the first biome. Once confirmed, this is the first substantial art production task and gates all level design work for that biome.",
-      "proposed_solution": "As soon as the first biome is confirmed, specify tiles, atmosphere, and hazard readability for that biome’s environments."
-    },
-    {
-      "id": 4,
-      "title": "Establish the AI art generation pipeline spec for background assets",
-      "status": "paused",
-      "risk": "med",
-      "note": "AI-assisted background generation can significantly accelerate production. The pipeline spec (LoRA training, prompt architecture, validation criteria) should be ready before production volume increases.",
-      "proposed_solution": "Document the AI background pipeline—LoRA, prompts, negatives, and validation checks—before scaling AI-generated environments."
     }
   ],
   "risks_p0": [],
@@ -68,6 +52,24 @@
       "trigger": "AI-assisted asset generation is being set up for a new asset type or character",
       "last_run": null,
       "output_location": null
+    }
+  ],
+  "opportunities": [
+    {
+      "id": "creative-o3",
+      "title": "Define the visual language for the first biome — environment tiles, atmospheric palette, hazard readability",
+      "status": "paused",
+      "risk": "high",
+      "note": "Blocked on game director confirming the first biome. Once confirmed, this is the first substantial art production task and gates all level design work for that biome.",
+      "proposed_solution": "As soon as the first biome is confirmed, specify tiles, atmosphere, and hazard readability for that biome’s environments."
+    },
+    {
+      "id": "creative-o4",
+      "title": "Establish the AI art generation pipeline spec for background assets",
+      "status": "paused",
+      "risk": "med",
+      "note": "AI-assisted background generation can significantly accelerate production. The pipeline spec (LoRA training, prompt architecture, validation criteria) should be ready before production volume increases.",
+      "proposed_solution": "Document the AI background pipeline—LoRA, prompts, negatives, and validation checks—before scaling AI-generated environments."
     }
   ]
 }

@@ -125,3 +125,28 @@ This log records decisions for the room environment and bespoke asset quality pa
 - Should `ceiling`, `backwall_panel`, or `wall_face` become first-class component schema types?
 - Should runtime review add explicit collage/composite heuristics and stronger floor/wall/platform edge separation checks?
 - Should scenic slots remain AI-generated, or should some shell/background families move to more deterministic construction?
+
+### 18. The current prompt/spec/biome block should be replaced with a staged v3 pipeline
+- Status: Accepted direction
+- Why: Review of the end-to-end code showed the current architecture is underfitting the room, overloading a monolithic prompt/spec step, and treating biomes mostly as a single shared style pack rather than explicit production data.
+- Consequence: Future work should shift to a staged pipeline with separate contracts for biome definition, room assembly planning, slot generation, runtime review, and manual QA/Creative review. The implementation spec lives in `docs/room-environment-pipeline-v3-spec.md`.
+
+### 19. Component-fit is now a top-level quality gate, not an implicit aesthetic preference
+- Status: Accepted
+- Why: A major failure mode in the current pipeline is that outputs can look visually interesting while still failing their actual job as walls, floors, platforms, doors, pits, or side framing.
+- Consequence: Future prompts, validators, screenshot reviews, and acceptance criteria must all explicitly test whether art fits its assigned component type.
+
+### 20. QA and Creative screenshot review loops are mandatory before pipeline signoff
+- Status: Accepted
+- Why: Automated validators and runtime heuristics are not sufficient to judge shell readability, coherence, or motif drift; the workflow itself must be inspected manually.
+- Consequence: The replacement pipeline must include repeated manual validation rounds with QA and Creative, with screenshots captured from the workflow and runtime views at defined checkpoints before approval.
+
+### 21. V3 implementation must use explicit module boundaries and a versioned payload
+- Status: Accepted
+- Why: Engineering review concluded that the current planner and environment architecture have reached an architectural ceiling, and that continuing to grow the monolith would preserve incorrect assumptions and create migration risk.
+- Consequence: V3 must ship behind `environment_pipeline_version`, coexist with v2 during calibration, and split core logic into dedicated biome-definition, planner, prompt-scaffold, validator, review, runtime-adapter, and persistence modules.
+
+### 22. Review surfaces and design diagrams are part of the implementation contract
+- Status: Accepted
+- Why: Design review concluded that assembly-plan visibility, fixed review order, and proposal-first workflow behavior are necessary for reviewers to correctly diagnose failures and trust the system.
+- Consequence: V3 requirements and implementation planning must preserve the fixed review-surface order (`room intent` -> `biome selection` -> `component contracts` -> `assembly-plan overlay` -> `slot gallery` -> `combined kit` -> `runtime view` -> `contrast-QA view`) and use semi-formal architecture/behavior diagrams as part of the build contract.

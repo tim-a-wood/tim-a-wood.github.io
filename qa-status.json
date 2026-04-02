@@ -1,5 +1,5 @@
 {
-  "_note": "Updated daily at noon by the QA agent. Plain language \u2014 no jargon.",
+  "_note": "Updated daily at noon by the QA agent. Plain language — no jargon.",
   "updated": "2026-03-31",
   "schema_version": "v1.0",
   "release_gate": {
@@ -22,11 +22,11 @@
     "py_fail": 0,
     "broken_collection": 1,
     "last_run": "2026-03-30",
-    "notes": "All runnable tests passing. One test file can't be run due to a missing module path \u2014 it exists but the test runner can't find the code it's testing."
+    "notes": "All runnable tests passing. One test file can't be run due to a missing module path — it exists but the test runner can't find the code it's testing."
   },
   "coverage_gaps": [
     {
-      "area": "Room editor \u2014 placing and moving things on the canvas",
+      "area": "Room editor — placing and moving things on the canvas",
       "gap": "No automated tests for the actual canvas interaction. If drag-and-drop placement breaks, nothing will catch it automatically.",
       "risk": "high"
     },
@@ -54,10 +54,10 @@
   "priorities": [
     {
       "id": 1,
-      "title": "Fix the one test file that can't run \u2014 the room environment tests",
+      "title": "Fix the one test file that can't run — the room environment tests",
       "status": "needs-review",
       "risk": "med",
-      "note": "One test file exists but fails to load because the code it's testing isn't being found. The tests may be perfectly good \u2014 they just need a path fix to run.",
+      "note": "One test file exists but fails to load because the code it's testing isn't being found. The tests may be perfectly good — they just need a path fix to run.",
       "proposed_solution": "Fix module or path configuration so room environment tests load the code under test and run in the standard suite."
     },
     {
@@ -67,22 +67,6 @@
       "risk": "high",
       "note": "Pairs with engineering's room save contract. Highest-value production path once the on-disk schema is stable.",
       "proposed_solution": "Add an automated test that saves a room, reloads it, and asserts entity and geometry state match exactly."
-    },
-    {
-      "id": 3,
-      "title": "Copilot apply-path automation \u2014 generate, accept, verify the room",
-      "status": "paused",
-      "risk": "high",
-      "note": "Part of the orchestration Copilot readiness program. Guard the accept path before any public Copilot exposure.",
-      "proposed_solution": "Automate generate, accept, and verify; align fixtures with level design prompt changes and engineering model benchmarks."
-    },
-    {
-      "id": 4,
-      "title": "Pre-launch browser coverage \u2014 Safari, Firefox, and basic automated smoke tests",
-      "status": "paused",
-      "risk": "med",
-      "note": "Merged cross-browser checks with a minimal automated smoke pack before release.",
-      "proposed_solution": "Focused canvas and interaction smoke in Safari and Firefox, plus a small automated load-and-smoke suite before launch."
     }
   ],
   "risks_p0": [],
@@ -109,7 +93,7 @@
     {
       "id": "regression-plan",
       "name": "Regression Plan",
-      "description": "Test plan mapping a set of changes to risk areas \u2014 with Playwright and unit test coverage specified.",
+      "description": "Test plan mapping a set of changes to risk areas — with Playwright and unit test coverage specified.",
       "trigger": "Given a set of changes to assess",
       "last_run": null,
       "output_location": null
@@ -117,7 +101,7 @@
     {
       "id": "bug-triage",
       "name": "Bug Triage",
-      "description": "P0\u2013P3 classifications with reproduction steps and assigned owner per issue.",
+      "description": "P0–P3 classifications with reproduction steps and assigned owner per issue.",
       "trigger": "Given a batch of reported issues",
       "last_run": null,
       "output_location": null
@@ -140,5 +124,23 @@
     "has_visual_regression": false,
     "last_full_run": "2026-03-30",
     "acceptance_tests_documented": 9
-  }
+  },
+  "opportunities": [
+    {
+      "id": "qa-o3",
+      "title": "Copilot apply-path automation — generate, accept, verify the room",
+      "status": "paused",
+      "risk": "high",
+      "note": "Part of the orchestration Copilot readiness program. Guard the accept path before any public Copilot exposure.",
+      "proposed_solution": "Automate generate, accept, and verify; align fixtures with level design prompt changes and engineering model benchmarks."
+    },
+    {
+      "id": "qa-o4",
+      "title": "Pre-launch browser coverage — Safari, Firefox, and basic automated smoke tests",
+      "status": "paused",
+      "risk": "med",
+      "note": "Merged cross-browser checks with a minimal automated smoke pack before release.",
+      "proposed_solution": "Focused canvas and interaction smoke in Safari and Firefox, plus a small automated load-and-smoke suite before launch."
+    }
+  ]
 }

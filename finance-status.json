@@ -1,15 +1,15 @@
 {
-  "_note": "Updated by the finance agent after each task. Plain language \u2014 no jargon.",
-  "updated": "2026-04-01",
+  "_note": "Updated by the finance agent after each task. Plain language — no jargon.",
+  "updated": "2026-04-02",
   "schema_version": "v1.0",
   "priorities": [
     {
       "id": 1,
-      "title": "Measure the actual AI API cost per Copilot session so we can model unit economics",
-      "status": "in-progress",
+      "title": "Measure the actual AI API cost per assistant session so we can model unit economics",
+      "status": "needs-review",
       "risk": "high",
-      "note": "We don't know what the Copilot actually costs per invocation in practice. Without real token consumption numbers, any pricing model is built on assumptions. This is the most important financial unknown right now.",
-      "proposed_solution": "Instrument real Copilot token usage per session and roll it up to marginal API cost per user for honest unit economics."
+      "note": "Copilot is sunsetted, so the current measurement plan is obsolete. The core unknown remains: what an actual assistant session costs in tokens/$ in practice (including system prompts, tool calls, retries, and long-context overhead). Without real per-session cost distribution (p50/p90/p99), pricing and margin targets are guesswork.",
+      "proposed_solution": "Instrument the current AI assistant stack (replacement for Copilot) to log per-session token usage and provider billing signals (prompt+completion tokens, model, cached tokens if applicable), plus overhead from tool calls/retries. Roll up to per-session cost distributions and an expected marginal cost per active user to ground pricing and margin targets."
     },
     {
       "id": 2,
@@ -21,27 +21,11 @@
     },
     {
       "id": 3,
-      "title": "Set up monthly cost tracking \u2014 actual spend vs. budget by line item",
+      "title": "Set up monthly cost tracking — actual spend vs. budget by line item",
       "status": "in-progress",
       "risk": "med",
-      "note": "Currently no structured view of what we're spending. Need a simple monthly summary: API costs, hosting, tooling subscriptions \u2014 actual vs. expected.",
+      "note": "Currently no structured view of what we're spending. Need a simple monthly summary: API costs, hosting, tooling subscriptions — actual vs. expected.",
       "proposed_solution": "Maintain a monthly actual-versus-budget view across API, hosting, and subscriptions with simple variance notes."
-    },
-    {
-      "id": 4,
-      "title": "Establish a cost alert threshold \u2014 flag anything over 150% of the four-week average",
-      "status": "paused",
-      "risk": "med",
-      "note": "A sudden API cost spike (bad prompt, unexpected traffic) could generate a large bill before anyone notices. A simple threshold alert prevents surprises.",
-      "proposed_solution": "After baselines exist, alert when any API spend exceeds 150% of the trailing four-week average and investigate spikes."
-    },
-    {
-      "id": 5,
-      "title": "Business plan: rough margin on any paid tier (revenue minus API, hosting, and payment fees)",
-      "status": "queued",
-      "risk": "high",
-      "note": "Next step from the initial business plan (Apr 2026). Per-session cost is not enough alone — we need a simple margin view before promising a price.",
-      "proposed_solution": "After Copilot cost-per-session is measured, publish a one-page margin template for the first paid SKU (ARPU minus variable costs)."
     }
   ],
   "risks_p0": [],
@@ -61,7 +45,7 @@
     {
       "id": "unit-economics-update",
       "name": "Unit Economics Update",
-      "description": "Updated contribution margin model \u2014 revenue per user, API cost per user, margin per paying user.",
+      "description": "Updated contribution margin model — revenue per user, API cost per user, margin per paying user.",
       "trigger": "Monthly or after any AI API pricing change",
       "last_run": null,
       "output_location": null
@@ -69,7 +53,7 @@
     {
       "id": "runway-check",
       "name": "Runway Check",
-      "description": "Runway calculation under current, optimistic, and bear spend scenarios \u2014 months remaining, break-even conditions.",
+      "description": "Runway calculation under current, optimistic, and bear spend scenarios — months remaining, break-even conditions.",
       "trigger": "Monthly",
       "last_run": null,
       "output_location": null
@@ -85,10 +69,28 @@
     {
       "id": "api-cost-alert",
       "name": "API Cost Alert",
-      "description": "Cost spike analysis \u2014 root cause, projection at current growth rate, options to contain.",
+      "description": "Cost spike analysis — root cause, projection at current growth rate, options to contain.",
       "trigger": "Any API call volume change exceeding 150% of the 4-week average",
       "last_run": null,
       "output_location": null
+    }
+  ],
+  "opportunities": [
+    {
+      "id": "finance-o4",
+      "title": "Establish a cost alert threshold — flag anything over 150% of the four-week average",
+      "status": "paused",
+      "risk": "med",
+      "note": "A sudden API cost spike (bad prompt, unexpected traffic) could generate a large bill before anyone notices. A simple threshold alert prevents surprises.",
+      "proposed_solution": "After baselines exist, alert when any API spend exceeds 150% of the trailing four-week average and investigate spikes."
+    },
+    {
+      "id": "finance-o5",
+      "title": "Business plan: rough margin on any paid tier (revenue minus API, hosting, and payment fees)",
+      "status": "queued",
+      "risk": "high",
+      "note": "Next step from the initial business plan (Apr 2026). Per-session cost is not enough alone — we need a simple margin view before promising a price.",
+      "proposed_solution": "After Copilot cost-per-session is measured, publish a one-page margin template for the first paid SKU (ARPU minus variable costs)."
     }
   ]
 }

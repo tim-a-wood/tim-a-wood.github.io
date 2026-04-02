@@ -1,0 +1,12 @@
+flowchart LR
+    User["Author / Reviewer"] --> Editor["Room Editor Workflow"]
+    Editor --> EnvAPI["Environment V3 Application Layer"]
+    EnvAPI --> Biomes["Biome Definition Store"]
+    EnvAPI --> Planner["Assembly Planner"]
+    EnvAPI --> Prompting["Prompt Scaffold Service"]
+    Prompting --> Gemini["Gemini Image Generation"]
+    EnvAPI --> Assets["Environment Asset Store"]
+    EnvAPI --> Review["Review Capture + Findings Store"]
+    EnvAPI --> Runtime["Runtime Composition + Review Renderer"]
+    Runtime --> Review
+    Review --> User

@@ -1,0 +1,13 @@
+flowchart TD
+    A["Author requests environment proposal"] --> B["Load room context"]
+    B --> C["Load biome definition"]
+    C --> D["Build assembly plan"]
+    D --> E["Validate planner coverage"]
+    E --> F["Build slot prompts"]
+    F --> G["Generate slot assets with Gemini"]
+    G --> H["Validate component-fit"]
+    H --> I["Compose runtime scene"]
+    I --> J["Capture runtime screenshots"]
+    J --> K["Validate runtime composition"]
+    K --> L["Create review bundle"]
+    L --> M["QA and Creative review"]

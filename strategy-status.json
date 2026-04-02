@@ -1,5 +1,5 @@
 {
-  "_note": "Updated daily at noon by the strategy agent. Plain language \u2014 no jargon.",
+  "_note": "Updated daily at noon by the strategy agent. Plain language — no jargon.",
   "updated": "2026-04-01",
   "priorities": [
     {
@@ -7,7 +7,7 @@
       "title": "Establish our position as the go-to AI-native game dev tool before the window closes",
       "status": "in-progress",
       "risk": "high",
-      "note": "We have roughly 18 to 36 months before well-funded competitors crowd this space. The plan is to be the established name before that happens \u2014 not try to fight our way in after.",
+      "note": "We have roughly 18 to 36 months before well-funded competitors crowd this space. The plan is to be the established name before that happens — not try to fight our way in after.",
       "proposed_solution": "Ship visible proof of an AI-native, full-pipeline toolchain narrative early while the competitive window is still open."
     },
     {
@@ -16,39 +16,15 @@
       "status": "paused",
       "risk": "high",
       "note": "We want to launch as a paid tool when the AI features are clearly better than anything else. No one has defined the bar yet. That needs to happen.",
-      "proposed_solution": "Partner with Analytics and Engineering to define measurable \u201cgood enough to charge for\u201d Copilot criteria the founder can approve."
+      "proposed_solution": "Partner with Analytics and Engineering to define measurable “good enough to charge for” Copilot criteria the founder can approve."
     },
     {
       "id": 3,
       "title": "Lock the scope of Ashen Hollow so it can actually be finished",
       "status": "paused",
       "risk": "high",
-      "note": "An unfinished game breaks the whole argument for the tools. We need a hard ceiling on what v1.0 of the game contains \u2014 biomes, rooms, mechanics \u2014 and a founder decision to commit to it.",
+      "note": "An unfinished game breaks the whole argument for the tools. We need a hard ceiling on what v1.0 of the game contains — biomes, rooms, mechanics — and a founder decision to commit to it.",
       "proposed_solution": "Facilitate a founder decision that caps Ashen Hollow v1.0 content and records scope explicitly in the risk register."
-    },
-    {
-      "id": 4,
-      "title": "Plan the right time to release a desktop app version",
-      "status": "paused",
-      "risk": "low",
-      "note": "The browser-first approach is working. A desktop version comes after we've proven the web product, not before.",
-      "proposed_solution": "Defer desktop packaging until the web product shows retention and economics worth the extra distribution cost."
-    },
-    {
-      "id": 5,
-      "title": "Plan when to build an engine plugin for Godot",
-      "status": "paused",
-      "risk": "low",
-      "note": "Makes the tools much stickier with a real user base. A phase two move \u2014 only after the saved file format is stable and enough people are using the tools.",
-      "proposed_solution": "Treat a Godot plugin as phase two after export schema stability and real user demand justify the integration effort."
-    },
-    {
-      "id": 6,
-      "title": "Business plan: quarterly refresh of assumptions and competitors",
-      "status": "queued",
-      "risk": "med",
-      "note": "Next step from the initial business plan (Apr 2026). Same work as strategic review and risk register review — keep dates honest in metrics.",
-      "proposed_solution": "Run strategic-review plus risk-register-review each quarter; update risk_register, competitors, and metrics.last_quarterly_review."
     }
   ],
   "risks_p0": [],
@@ -68,7 +44,7 @@
       "note": "What does 'clearly better than anything else' look like in practice? We need a measurable answer, not a feeling."
     },
     {
-      "title": "What's in Ashen Hollow v1.0 \u2014 and what isn't?",
+      "title": "What's in Ashen Hollow v1.0 — and what isn't?",
       "note": "How many biomes, rooms, and mechanics make a shippable first version? This needs a decision, not a roadmap."
     }
   ],
@@ -76,7 +52,7 @@
     {
       "assumption": "There's a real market for AI-native game development tools",
       "risk_if_wrong": "Not enough people want this to build a business around it",
-      "monitor": "Watch for funded competitors entering the space \u2014 if they're coming, the market is real",
+      "monitor": "Watch for funded competitors entering the space — if they're coming, the market is real",
       "status": "monitoring"
     },
     {
@@ -88,7 +64,7 @@
     {
       "assumption": "One person can finish Ashen Hollow",
       "risk_if_wrong": "The game never ships, which breaks the proof that the tools work",
-      "monitor": "Quarterly scope reviews \u2014 ruthless about cutting",
+      "monitor": "Quarterly scope reviews — ruthless about cutting",
       "status": "watch"
     },
     {
@@ -109,7 +85,7 @@
     "last_risk_register_review": "2026-03-30",
     "last_quarterly_review": null,
     "revenue_model": "Free to use, pay for AI features",
-    "ai_window_months_remaining": "18\u201336",
+    "ai_window_months_remaining": "18–36",
     "flywheel_status": "Pre-launch"
   },
   "competitors": [
@@ -142,7 +118,7 @@
     {
       "id": "strategic-review",
       "name": "Strategic Review",
-      "description": "Review all strategic assumptions \u2014 what held, what was falsified, what changed \u2014 and update the risk register.",
+      "description": "Review all strategic assumptions — what held, what was falsified, what changed — and update the risk register.",
       "trigger": "Quarterly",
       "last_run": null,
       "output_location": null
@@ -166,10 +142,36 @@
     {
       "id": "competitor-deep-dive",
       "name": "Competitor Deep Dive",
-      "description": "Assess a specific competitor or new entrant \u2014 positioning overlap, feature comparison, founder decision implications.",
+      "description": "Assess a specific competitor or new entrant — positioning overlap, feature comparison, founder decision implications.",
       "trigger": "When a new entrant is spotted or an existing competitor ships a significant feature",
       "last_run": null,
       "output_location": null
+    }
+  ],
+  "opportunities": [
+    {
+      "id": "strategy-o4",
+      "title": "Plan the right time to release a desktop app version",
+      "status": "paused",
+      "risk": "low",
+      "note": "The browser-first approach is working. A desktop version comes after we've proven the web product, not before.",
+      "proposed_solution": "Defer desktop packaging until the web product shows retention and economics worth the extra distribution cost."
+    },
+    {
+      "id": "strategy-o5",
+      "title": "Plan when to build an engine plugin for Godot",
+      "status": "paused",
+      "risk": "low",
+      "note": "Makes the tools much stickier with a real user base. A phase two move — only after the saved file format is stable and enough people are using the tools.",
+      "proposed_solution": "Treat a Godot plugin as phase two after export schema stability and real user demand justify the integration effort."
+    },
+    {
+      "id": "strategy-o6",
+      "title": "Business plan: quarterly refresh of assumptions and competitors",
+      "status": "queued",
+      "risk": "med",
+      "note": "Next step from the initial business plan (Apr 2026). Same work as strategic review and risk register review — keep dates honest in metrics.",
+      "proposed_solution": "Run strategic-review plus risk-register-review each quarter; update risk_register, competitors, and metrics.last_quarterly_review."
     }
   ]
 }

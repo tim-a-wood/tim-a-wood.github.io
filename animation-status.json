@@ -1,5 +1,5 @@
 {
-  "_note": "Updated by Animation after each task. Reports to Development. Plain language \u2014 no jargon.",
+  "_note": "Updated by Animation after each task. Reports to Development. Plain language — no jargon.",
   "updated": "2026-03-31",
   "schema_version": "v1.0",
   "priorities": [
@@ -13,27 +13,19 @@
     },
     {
       "id": 2,
-      "title": "Define the animation state machine for the player character \u2014 all movement and combat states",
+      "title": "Define the animation state machine for the player character — all movement and combat states",
       "status": "paused",
       "risk": "high",
-      "note": "Blocked on game systems locking the movement and combat parameters. The animation state machine must match the game's mechanical state \u2014 states that don't exist in the game are wasted animation work.",
+      "note": "Blocked on game systems locking the movement and combat parameters. The animation state machine must match the game's mechanical state — states that don't exist in the game are wasted animation work.",
       "proposed_solution": "After movement and combat numbers lock, specify the full player animation state machine so frames match real game states."
     },
     {
       "id": 3,
-      "title": "Establish pixel art quality standards \u2014 palette rules, silhouette requirements, anti-aliasing policy",
+      "title": "Establish pixel art quality standards — palette rules, silhouette requirements, anti-aliasing policy",
       "status": "in-progress",
       "risk": "med",
       "note": "Without written standards, asset quality will be inconsistent across the game. Getting these documented is a prerequisite for any AI-assisted art production pipeline.",
       "proposed_solution": "Publish written pixel-art quality rules (palette, silhouette, anti-aliasing) as the gate for hand-made and AI-assisted sprites."
-    },
-    {
-      "id": 4,
-      "title": "Evaluate AI animation tools (EbSynth, AnimateDiff) for the Ashen Hollow production pipeline",
-      "status": "paused",
-      "risk": "low",
-      "note": "AI animation tools could significantly accelerate production. Evaluation should happen once quality standards are written so output can be assessed against them.",
-      "proposed_solution": "Once standards exist, evaluate EbSynth, AnimateDiff, or alternatives against those bars and recommend a production workflow."
     }
   ],
   "risks_p0": [],
@@ -48,7 +40,7 @@
     {
       "id": "animation-spec",
       "name": "Animation Spec",
-      "description": "Complete animation spec \u2014 frame count, pixel dimensions, state machine, timing parameters, export format.",
+      "description": "Complete animation spec — frame count, pixel dimensions, state machine, timing parameters, export format.",
       "trigger": "A new character, ability, or effect is approved for production",
       "last_run": null,
       "output_location": null
@@ -56,7 +48,7 @@
     {
       "id": "spritesheet-audit",
       "name": "Spritesheet Audit",
-      "description": "Quality assessment \u2014 palette compliance, silhouette clarity, anti-aliasing compliance, frame consistency.",
+      "description": "Quality assessment — palette compliance, silhouette clarity, anti-aliasing compliance, frame consistency.",
       "trigger": "Any submitted sprite or animation asset",
       "last_run": null,
       "output_location": null
@@ -68,6 +60,16 @@
       "trigger": "AI-assisted animation workflow is requested for a new asset type",
       "last_run": null,
       "output_location": null
+    }
+  ],
+  "opportunities": [
+    {
+      "id": "anim-o1",
+      "title": "Evaluate AI animation tools (EbSynth, AnimateDiff) for the Ashen Hollow production pipeline",
+      "status": "paused",
+      "risk": "low",
+      "note": "AI animation tools could significantly accelerate production. Evaluation should happen once quality standards are written so output can be assessed against them.",
+      "proposed_solution": "Once standards exist, evaluate EbSynth, AnimateDiff, or alternatives against those bars and recommend a production workflow."
     }
   ]
 }

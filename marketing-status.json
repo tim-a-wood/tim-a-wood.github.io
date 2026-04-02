@@ -20,44 +20,12 @@
       "proposed_solution": "Continue monitoring Tiled, LDtk, and AI level tools and stress the unified sprite-to-room-to-world story."
     },
     {
-      "id": 4,
-      "title": "One-page update every Tuesday",
-      "status": "in-progress",
-      "risk": "low",
-      "note": "Links, engagement numbers, anything interesting spotted from competitors, and what's planned for the coming week.",
-      "proposed_solution": "Publish the weekly one-pager with links, engagement signals, competitor notes, and next-week focus."
-    },
-    {
-      "id": 6,
-      "title": "Define the Business Brand Guide",
-      "status": "queued",
-      "risk": "high",
-      "note": "Work with Design to come up with a first draft Brand Guide graphical pdf pamphlet",
-      "proposed_solution": "you figure it out and let me know what input you need from me"
-    },
-    {
       "id": 2,
       "title": "Getting the AI messaging right — the human is always in control",
       "status": "needs-review",
       "risk": "high",
       "note": "There's a backlash against tools that oversell AI automation. Our message needs to be precise: the AI suggests, you decide. Lead with what it does for your workflow, not what it does on its own.",
       "proposed_solution": "Finalize human-in-control AI messaging and run external copy through a positioning review to avoid over-claims."
-    },
-    {
-      "id": 3,
-      "title": "Short screen recording demos — these work better than any written description",
-      "status": "paused",
-      "risk": "low",
-      "note": "A 15 to 60 second recording of the tool in action beats any amount of copy for convincing another developer to try it.",
-      "proposed_solution": "Record short, real-tool demos for devlogs and social posts where motion beats long explanations."
-    },
-    {
-      "id": 7,
-      "title": "Business plan: one primary channel — itch.io devlog plus a steady secondary (e.g. X)",
-      "status": "in-progress",
-      "risk": "med",
-      "note": "Next step from the initial business plan (Apr 2026). Name one main place for discovery and keep weekly rhythm there instead of scattering effort.",
-      "proposed_solution": "Treat itch devlog as the home for long updates; use one social for short posts; review cadence monthly against the 90-day goals."
     }
   ],
   "risks_p0": [],
@@ -100,6 +68,40 @@
       "trigger": "Any AI feature claim, marketing copy, or public announcement draft",
       "last_run": null,
       "output_location": null
+    }
+  ],
+  "opportunities": [
+    {
+      "id": "marketing-o4",
+      "title": "One-page update every Tuesday",
+      "status": "in-progress",
+      "risk": "low",
+      "note": "Links, engagement numbers, anything interesting spotted from competitors, and what's planned for the coming week.",
+      "proposed_solution": "Publish the weekly one-pager with links, engagement signals, competitor notes, and next-week focus."
+    },
+    {
+      "id": "marketing-o6",
+      "title": "Define the Business Brand Guide",
+      "status": "queued",
+      "risk": "high",
+      "note": "Work with Design to come up with a first draft Brand Guide graphical pdf pamphlet",
+      "proposed_solution": "you figure it out and let me know what input you need from me"
+    },
+    {
+      "id": "marketing-o3",
+      "title": "Short screen recording demos — these work better than any written description",
+      "status": "paused",
+      "risk": "low",
+      "note": "A 15 to 60 second recording of the tool in action beats any amount of copy for convincing another developer to try it.",
+      "proposed_solution": "Record short, real-tool demos for devlogs and social posts where motion beats long explanations."
+    },
+    {
+      "id": "marketing-o7",
+      "title": "Business plan: one primary channel — itch.io devlog plus a steady secondary (e.g. X)",
+      "status": "in-progress",
+      "risk": "med",
+      "note": "Next step from the initial business plan (Apr 2026). Name one main place for discovery and keep weekly rhythm there instead of scattering effort.",
+      "proposed_solution": "Treat itch devlog as the home for long updates; use one social for short posts; review cadence monthly against the 90-day goals."
     }
   ]
 }

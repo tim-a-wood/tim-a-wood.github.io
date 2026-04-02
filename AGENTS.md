@@ -47,6 +47,24 @@ All agents read from `/knowledge/` before operating in their domain.
 Playbooks live in `/playbooks/`. Templates in `/templates/`.
 Decisions are logged in `/decisions/`. Research in `/research/`.
 
+## Research Library — Mandatory Check Protocol
+
+The **Research Agent** maintains a knowledge library at `/research/library/`. This library contains codebase scan findings, technical assessments, competitive analysis, and synthesized reports.
+
+**Directive for all agents:** Before starting any complex task (architecture changes, refactoring, new features, debugging non-trivial issues), you MUST:
+
+1. **Check the library index** — `grep` or read `/research/library/INDEX.md` for relevant entries
+2. **Read matching documents** — if a finding or report covers your topic, read it before proceeding
+3. **Check the dashboard** — `/research/dashboard.md` shows current open issues and opportunities; don't duplicate known work
+4. **Check decisions** — `/decisions/` logs resolved choices; do not re-litigate
+
+Why this matters: The Research Agent discovers patterns, violations, and opportunities across the full codebase that individual task agents may miss. Reading prior findings prevents duplicate work, avoids re-introducing known issues, and ensures you have the complete picture before proposing changes.
+
+If you discover something significant that is NOT in the library, note it in your output so the Research Agent can log it.
+
+**Research Dashboard:** Open `research-dashboard.html` in a browser for a visual overview.
+**Agent definition:** `.claude/agents/research.md` — invoke the Research Agent for scans and reports.
+
 ## Feature Decision Tracking
 
 For active multi-pass features, agents must keep a running decision log so the team does not repeatedly revisit rejected approaches.

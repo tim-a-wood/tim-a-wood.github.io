@@ -4,30 +4,6 @@
   "schema_version": "v1.0",
   "priorities": [
     {
-      "id": 2,
-      "title": "Specify the UI audio feedback layer for the Workbench tools",
-      "status": "paused",
-      "risk": "med",
-      "note": "The Workbench tools currently have no audio feedback. Before any public-facing release, the key interactions (entity placement, mode switch, export complete) should have short, non-intrusive audio cues.",
-      "proposed_solution": "Write a concise Workbench UI SFX spec for placement, mode changes, and export complete, sized for web audio implementation."
-    },
-    {
-      "id": 3,
-      "title": "Research and select the adaptive audio middleware approach for Ashen Hollow",
-      "status": "paused",
-      "risk": "med",
-      "note": "Metroidvania music needs to adapt to game state — exploration, combat, boss fights, quiet moments. The middleware choice affects how music is authored and integrated. This decision should be made before any music production begins.",
-      "proposed_solution": "Compare adaptive music approaches and middleware options, then recommend one that fits solo-founder engineering capacity."
-    },
-    {
-      "id": 4,
-      "title": "Draft the audio brief for the opening biome",
-      "status": "paused",
-      "risk": "low",
-      "note": "Blocked on the game director and Creative confirming the first biome. Audio direction should follow the visual and narrative direction, not lead it.",
-      "proposed_solution": "When the first biome and creative direction lock, draft the opening biome music and ambience brief for level and narrative."
-    },
-    {
       "id": 1,
       "title": "Define the sonic identity of Ashen Hollow — instrumentation direction, emotional register, reference palette",
       "status": "in-progress",
@@ -68,6 +44,32 @@
       "trigger": "A new biome, major narrative moment, or boss fight is entering production",
       "last_run": null,
       "output_location": null
+    }
+  ],
+  "opportunities": [
+    {
+      "id": "audio-o2",
+      "title": "Specify the UI audio feedback layer for the Workbench tools",
+      "status": "paused",
+      "risk": "med",
+      "note": "The Workbench tools currently have no audio feedback. Before any public-facing release, the key interactions (entity placement, mode switch, export complete) should have short, non-intrusive audio cues.",
+      "proposed_solution": "Write a concise Workbench UI SFX spec for placement, mode changes, and export complete, sized for web audio implementation."
+    },
+    {
+      "id": "audio-o3",
+      "title": "Research and select the adaptive audio middleware approach for Ashen Hollow",
+      "status": "paused",
+      "risk": "med",
+      "note": "Metroidvania music needs to adapt to game state — exploration, combat, boss fights, quiet moments. The middleware choice affects how music is authored and integrated. This decision should be made before any music production begins.",
+      "proposed_solution": "Compare adaptive music approaches and middleware options, then recommend one that fits solo-founder engineering capacity."
+    },
+    {
+      "id": "audio-o4",
+      "title": "Draft the audio brief for the opening biome",
+      "status": "paused",
+      "risk": "low",
+      "note": "Blocked on the game director and Creative confirming the first biome. Audio direction should follow the visual and narrative direction, not lead it.",
+      "proposed_solution": "When the first biome and creative direction lock, draft the opening biome music and ambience brief for level and narrative."
     }
   ]
 }

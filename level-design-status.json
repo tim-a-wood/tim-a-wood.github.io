@@ -1,11 +1,11 @@
 {
-  "_note": "Updated by Level Design after each task. Reports to Development. Plain language \u2014 no jargon.",
+  "_note": "Updated by Level Design after each task. Reports to Development. Plain language — no jargon.",
   "updated": "2026-03-31",
   "schema_version": "v1.0",
   "priorities": [
     {
       "id": 1,
-      "title": "Room quality standards and Copilot prompt quality \u2014 document criteria and iterate the system prompt",
+      "title": "Room quality standards and Copilot prompt quality — document criteria and iterate the system prompt",
       "status": "in-progress",
       "risk": "high",
       "note": "Part of the orchestration Copilot readiness program. Standards doc is the baseline; prompt iteration makes suggestions match metroidvania logic, then validate with schema and round-trips.",
@@ -13,7 +13,7 @@
     },
     {
       "id": 2,
-      "title": "Build the world graph validation logic \u2014 catch unreachable rooms before export",
+      "title": "Build the world graph validation logic — catch unreachable rooms before export",
       "status": "paused",
       "risk": "high",
       "note": "A room that can't be reached from the start point breaks the game silently. Automated reachability checking must be in place before any world graph is exported to the game runtime.",
@@ -40,15 +40,15 @@
     {
       "id": "room-audit",
       "name": "Room Audit",
-      "description": "Design quality assessment of a room layout \u2014 progression logic, reachability, entity placement validity, metroidvania design compliance.",
-      "trigger": "Any room layout submitted for review \u2014 manual or AI-generated",
+      "description": "Design quality assessment of a room layout — progression logic, reachability, entity placement validity, metroidvania design compliance.",
+      "trigger": "Any room layout submitted for review — manual or AI-generated",
       "last_run": null,
       "output_location": null
     },
     {
       "id": "copilot-prompt-review",
       "name": "Copilot Prompt Review",
-      "description": "Validation round-trip test + design quality assessment of sample outputs for a proposed prompt change \u2014 pass/flag/reject.",
+      "description": "Validation round-trip test + design quality assessment of sample outputs for a proposed prompt change — pass/flag/reject.",
       "trigger": "Before any Copilot prompt architecture change",
       "last_run": null,
       "output_location": null
@@ -69,5 +69,6 @@
       "last_run": null,
       "output_location": null
     }
-  ]
+  ],
+  "opportunities": []
 }

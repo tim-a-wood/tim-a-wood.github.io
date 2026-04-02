@@ -1,0 +1,96 @@
+{
+  "agent": "research",
+  "updated": "2026-04-01",
+  "priorities": [
+    {
+      "id": "research-p1",
+      "owner": "Research",
+      "stakeholders": "Cybersecurity, Development",
+      "title": "Unescaped user data in innerHTML — XSS risk",
+      "summary": "room.id, entry.id, entry.name interpolated raw into innerHTML",
+      "note": "room-layout-editor.html:4513–4543. escapeHtml() defined at line 3032 but not used in these locations. XSS via malformed project file.",
+      "solution": "Wrap all interpolated values in escapeHtml() at affected lines",
+      "status": "queued",
+      "risk": "high"
+    },
+    {
+      "id": "research-p2",
+      "owner": "Research",
+      "stakeholders": "Development",
+      "title": "Undefined CSS variable --text-dim causes silent render failure",
+      "summary": "product-shell.css:585 references var(--text-dim) which is not defined",
+      "note": ".marketing-docs-linkout inherits wrong color. No visible error in devtools unless inspecting.",
+      "solution": "Define --text-dim in :root token block or replace with var(--muted)",
+      "status": "queued",
+      "risk": "med"
+    },
+    {
+      "id": "research-p3",
+      "owner": "Research",
+      "stakeholders": "Development",
+      "title": "No global :focus-visible rule in room-layout-editor.html",
+      "summary": "All native interactive elements lack keyboard focus indicators",
+      "note": "Mandatory per CLAUDE.md new-page checklist. One CSS rule at :root level fixes all elements.",
+      "solution": "Add :focus-visible { outline: 2px solid rgba(0,232,200,0.35); outline-offset: 2px; } to room-layout-editor.html",
+      "status": "queued",
+      "risk": "med"
+    }
+  ],
+  "opportunities": [
+    {
+      "id": "research-o1",
+      "owner": "Research",
+      "stakeholders": "Development, Design",
+      "title": "Extract shared CSS token block → tokens.css",
+      "summary": "Eliminate manual token sync across 3+ HTML files",
+      "note": "Currently every HTML page duplicates the full :root { } token block. A single tokens.css would be the source of truth.",
+      "solution": "Create tokens.css, import via <link> in all HTML pages, remove inline :root blocks",
+      "status": "queued",
+      "risk": "low"
+    },
+    {
+      "id": "research-o2",
+      "owner": "Research",
+      "stakeholders": "Development, Cybersecurity",
+      "title": "Extract JS from room-layout-editor.html",
+      "summary": "9,607-line monolith with ~7,500 lines of inline JS",
+      "note": "Inline JS prevents security auditing, makes version control diffs unreadable, and blocks any future bundling/testing.",
+      "solution": "Extract JS to room-layout-editor.js, load via <script src>",
+      "status": "queued",
+      "risk": "low"
+    },
+    {
+      "id": "research-o3",
+      "owner": "Research",
+      "stakeholders": "Development",
+      "title": "Create shared nav.css",
+      "summary": ".site-nav styles duplicated between room editor and sprite workbench",
+      "note": "Both tools have near-identical .site-nav CSS. A shared file would keep them in sync.",
+      "solution": "Extract to nav.css, import in both tools",
+      "status": "queued",
+      "risk": "low"
+    },
+    {
+      "id": "research-o4",
+      "owner": "Research",
+      "stakeholders": "Design",
+      "title": "Align product-shell.css marketing section to design tokens",
+      "summary": "~15 hardcoded colors and ~12 rem font sizes outside the token system",
+      "note": "The marketing/splash section of product-shell.css predates the token system. It uses arbitrary hex values and rem units.",
+      "solution": "Audit and migrate each color to the nearest CSS variable; replace rem sizes with var(--font-size-*)",
+      "status": "queued",
+      "risk": "low"
+    },
+    {
+      "id": "research-o5",
+      "owner": "Research",
+      "stakeholders": "Development",
+      "title": "Standardise sprite workbench radius tokens",
+      "summary": "--radius-sm: 14px and --radius-md: 18px conflict with canonical scale",
+      "note": "Canonical: --radius-sm: 8px, --radius-md: 10px. The sprite workbench redefines them at a local :root, causing downstream confusion.",
+      "solution": "Remove local overrides; use canonical values or introduce named aliases specific to this tool",
+      "status": "queued",
+      "risk": "low"
+    }
+  ]
+}

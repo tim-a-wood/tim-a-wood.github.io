@@ -1,11 +1,11 @@
 {
-  "_note": "Updated daily at noon by Development. Plain language \u2014 no jargon.",
+  "_note": "Updated daily at noon by Development. Plain language — no jargon.",
   "updated": "2026-03-31",
   "schema_version": "v1.0",
   "priorities": [
     {
       "id": 1,
-      "title": "Rebuilding the room editor \u2014 cleaner panels and easier entity selection",
+      "title": "Rebuilding the room editor — cleaner panels and easier entity selection",
       "status": "in-progress",
       "risk": "med",
       "note": "The inspector side panel is being rebuilt from scratch. Entity types (platforms, doors, keys) are getting a proper system so they behave consistently.",
@@ -29,14 +29,16 @@
     },
     {
       "id": 4,
-      "title": "Room Copilot \u2014 time-boxed benchmark of a newer model after the founder sets schedule and switch criteria",
+      "title": "Room Copilot — time-boxed benchmark of a newer model after the founder sets schedule and switch criteria",
       "status": "paused",
       "risk": "low",
       "note": "Part of the Copilot readiness program with workbench PO and orchestration. Paused until commercial bar and timing are decided.",
       "proposed_solution": "Run the benchmark once criteria and a window are set; compare against the pinned model using the same fixtures QA and level design use."
-    },
+    }
+  ],
+  "opportunities": [
     {
-      "id": 5,
+      "id": "eng-o1",
       "title": "Performance pass on the room editor canvas after the rebuild is stable",
       "status": "paused",
       "risk": "low",
@@ -53,7 +55,7 @@
   ],
   "founder_decisions": [
     {
-      "title": "Copilot program \u2014 commercial bar, benchmark timing, and model switch criteria",
+      "title": "Copilot program — commercial bar, benchmark timing, and model switch criteria",
       "note": "Same decision as orchestration-status.json founder decisions; engineering executes the benchmark after sign-off."
     }
   ],

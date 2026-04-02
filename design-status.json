@@ -1,10 +1,10 @@
 {
-  "_note": "Updated daily at noon by the design agent. Plain language \u2014 no jargon.",
+  "_note": "Updated daily at noon by the design agent. Plain language — no jargon.",
   "updated": "2026-03-31",
   "priorities": [
     {
       "id": 1,
-      "title": "Room editor UX \u2014 obvious place vs select, keyboard and focus on new panels",
+      "title": "Room editor UX — obvious place vs select, keyboard and focus on new panels",
       "status": "in-progress",
       "risk": "high",
       "note": "Merged mode clarity and accessibility for the same milestone as engineering's inspector rebuild. Corrupted layouts from mode confusion; keyboard order and visible focus on new inspector and side panels.",
@@ -17,29 +17,13 @@
       "risk": "med",
       "note": "Without documented rules, things end up looking slightly different every time. Getting these written down prevents inconsistency creeping in.",
       "proposed_solution": "Land animation and AI panel behavior rules in STYLE_GUIDE.md or a linked spec so new UI stays token- and motion-consistent."
-    },
-    {
-      "id": 3,
-      "title": "Full token and design-system consistency pass across the tools",
-      "status": "paused",
-      "risk": "low",
-      "note": "Replaces the separate inconsistency sweep \u2014 same outcome as a scheduled token audit when we run it.",
-      "proposed_solution": "Run the token audit across CSS, file tickets for fixes, and align with STYLE_GUIDE.md."
-    },
-    {
-      "id": 4,
-      "title": "Visual regression coverage \u2014 QA-owned automation with design input on tolerance",
-      "status": "paused",
-      "risk": "low",
-      "note": "Single priority spanning screenshot or visual checks; QA leads tooling once the editor is stable; design defines what counts as a regression.",
-      "proposed_solution": "After the room editor stabilizes, pair with QA on a minimal visual regression or screenshot gate."
     }
   ],
   "risks_p0": [],
   "founder_decisions": [],
   "metrics": {
-    "token_violations_open": "\u2014",
-    "a11y_critical_open": "\u2014",
+    "token_violations_open": "—",
+    "a11y_critical_open": "—",
     "copilot_ux_charter": "Review on change",
     "style_guide_last_touch": "2026-03-27",
     "next_audit": "Next quarter"
@@ -48,7 +32,7 @@
     {
       "id": "design-review",
       "name": "Design Review",
-      "description": "Token compliance, accessibility, and interaction compliance assessment on a PR \u2014 approve / approve with conditions / reject.",
+      "description": "Token compliance, accessibility, and interaction compliance assessment on a PR — approve / approve with conditions / reject.",
       "trigger": "Any PR touching HTML, CSS, or frontend JS",
       "last_run": null,
       "output_location": null
@@ -56,7 +40,7 @@
     {
       "id": "token-audit",
       "name": "Token Audit",
-      "description": "Full audit of all CSS files for off-token values: colors, spacing, radius, fonts \u2014 with file and line references.",
+      "description": "Full audit of all CSS files for off-token values: colors, spacing, radius, fonts — with file and line references.",
       "trigger": "Quarterly or after any major CSS refactor",
       "last_run": null,
       "output_location": null
@@ -76,6 +60,24 @@
       "trigger": "New tool feature or significant workflow change",
       "last_run": null,
       "output_location": null
+    }
+  ],
+  "opportunities": [
+    {
+      "id": "design-o1",
+      "title": "Full token and design-system consistency pass across the tools",
+      "status": "paused",
+      "risk": "low",
+      "note": "Replaces the separate inconsistency sweep — same outcome as a scheduled token audit when we run it.",
+      "proposed_solution": "Run the token audit across CSS, file tickets for fixes, and align with STYLE_GUIDE.md."
+    },
+    {
+      "id": "design-o2",
+      "title": "Visual regression coverage — QA-owned automation with design input on tolerance",
+      "status": "paused",
+      "risk": "low",
+      "note": "Single priority spanning screenshot or visual checks; QA leads tooling once the editor is stable; design defines what counts as a regression.",
+      "proposed_solution": "After the room editor stabilizes, pair with QA on a minimal visual regression or screenshot gate."
     }
   ]
 }

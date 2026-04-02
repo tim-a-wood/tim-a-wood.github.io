@@ -12,36 +12,12 @@
       "proposed_solution": "Keep using the new `room.environment.ai_helpfulness` ledger and `/environment/feedback` hook as the base contract. Next reporting work should read those persisted suggestion records directly instead of falling back to raw invocation counts."
     },
     {
-      "id": 2,
-      "title": "Measure the one number that matters most: how many finished rooms each user produces per month",
-      "status": "paused",
-      "risk": "low",
-      "note": "There are no external users yet, so this number would be zero. We'll start tracking it properly at the first public release.",
-      "proposed_solution": "Define and instrument rooms exported per active user per month as the north star starting at the first public release."
-    },
-    {
       "id": 3,
       "title": "Automate the daily dashboard refresh so it runs without anyone pressing a button",
       "status": "done",
       "risk": "low",
       "note": "The automated system went live today. Every dashboard — including this one — now updates itself each day at noon. No manual work required.",
       "proposed_solution": "Keep verifying the daily automated dashboard refresh and extend the runbook when new metrics or pages are added."
-    },
-    {
-      "id": 4,
-      "title": "Write clear privacy notices before we start tracking individual user behaviour",
-      "status": "paused",
-      "risk": "med",
-      "note": "We can't track what specific people do until we tell them we're doing it and get their agreement. Legal needs to sign off first. On hold until that conversation happens.",
-      "proposed_solution": "Partner with Legal on consent copy and lawful basis, then enable individual-level tracking only after disclosure is approved."
-    },
-    {
-      "id": 5,
-      "title": "Choose a privacy-respecting analytics service for when the tool goes public",
-      "status": "paused",
-      "risk": "low",
-      "note": "Not needed before launch. We'll revisit this when the first external release is close.",
-      "proposed_solution": "Before launch, shortlist a privacy-respecting analytics vendor and fold it into the tracking plan with Legal sign-off."
     }
   ],
   "risks_p0": [],
@@ -78,6 +54,32 @@
       "trigger": "After any model version or prompt architecture change",
       "last_run": null,
       "output_location": null
+    }
+  ],
+  "opportunities": [
+    {
+      "id": "analytics-o2",
+      "title": "Measure the one number that matters most: how many finished rooms each user produces per month",
+      "status": "paused",
+      "risk": "low",
+      "note": "There are no external users yet, so this number would be zero. We'll start tracking it properly at the first public release.",
+      "proposed_solution": "Define and instrument rooms exported per active user per month as the north star starting at the first public release."
+    },
+    {
+      "id": "analytics-o4",
+      "title": "Write clear privacy notices before we start tracking individual user behaviour",
+      "status": "paused",
+      "risk": "med",
+      "note": "We can't track what specific people do until we tell them we're doing it and get their agreement. Legal needs to sign off first. On hold until that conversation happens.",
+      "proposed_solution": "Partner with Legal on consent copy and lawful basis, then enable individual-level tracking only after disclosure is approved."
+    },
+    {
+      "id": "analytics-o5",
+      "title": "Choose a privacy-respecting analytics service for when the tool goes public",
+      "status": "paused",
+      "risk": "low",
+      "note": "Not needed before launch. We'll revisit this when the first external release is close.",
+      "proposed_solution": "Before launch, shortlist a privacy-respecting analytics vendor and fold it into the tracking plan with Legal sign-off."
     }
   ]
 }
