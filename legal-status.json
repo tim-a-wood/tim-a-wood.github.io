@@ -91,7 +91,7 @@
     {
       "id": "legal-o5",
       "title": "Business plan: go-live checklist before payments and mailing lists",
-      "status": "queued",
+      "status": "in-progress",
       "risk": "high",
       "note": "Next step from the initial business plan (Apr 2026). Before charging or collecting emails at scale: Terms, Privacy, AI disclosure, DPA status, and payment flow reviewed.",
       "proposed_solution": "Draft one checklist (ToS, Privacy, payments, email capture, AI labels); have counsel review before material launch."

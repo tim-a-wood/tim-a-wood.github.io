@@ -14,7 +14,7 @@
     {
       "id": 2,
       "title": "Design the player character's visual identity — silhouette, palette assignment, animation readiness",
-      "status": "paused",
+      "status": "in-progress",
       "risk": "high",
       "note": "The player character appears in every session. Their visual design sets the standard for all other character work. Blocked on game director finalizing the player fantasy and game systems locking the movement spec.",
       "proposed_solution": "After the player fantasy and movement spec lock, define the hero’s silhouette, palette assignment, and animation-ready proportions."

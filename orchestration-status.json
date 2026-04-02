@@ -104,7 +104,7 @@
       "id": "orch-o1",
       "source": "strategy+founder",
       "title": "Business plan: founder sets ninety-day goals and stop rules for side experiments",
-      "status": "queued",
+      "status": "in-progress",
       "risk": "med",
       "note": "From the initial business plan (Apr 2026). Keep portfolio experiments small (about two to four at a time) until written goals and kill criteria exist.",
       "proposed_solution": "Founder writes 90-day outcomes and stop rules for experiments; orchestrator tracks them in the weekly digest."

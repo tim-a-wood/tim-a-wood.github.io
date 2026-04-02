@@ -934,6 +934,12 @@ body::before {
   gap: var(--space-2);
   min-width: 0;
 }
+.ongoing-av-table-head .av-table-head-labels {
+  grid-template-columns: minmax(0, 6rem) minmax(0, 5rem) minmax(0, 6.5rem) minmax(0, 1fr) max-content max-content;
+}
+.ongoing-av-row .av-row-grid {
+  grid-template-columns: minmax(0, 6rem) minmax(0, 5rem) minmax(0, 6.5rem) minmax(0, 1fr) max-content max-content;
+}
 .av-th {
   font-size: var(--font-size-xs);
   font-weight: 700;
@@ -2686,6 +2692,10 @@ h3.os-chart-card-title {
       <button type="button" class="nav-item" data-dashboard="opportunities">
         <span class="nav-dot" style="background:#4ade80"></span>
         <span class="nav-item-text">Opportunities</span>
+      </button>
+      <button type="button" class="nav-item" data-dashboard="ongoing-tasks">
+        <span class="nav-dot" style="background:#fbbf24"></span>
+        <span class="nav-item-text">Ongoing Tasks</span>
       </button>
 
       <span class="nav-group-label">Leadership</span>
@@ -4669,6 +4679,113 @@ h3.os-chart-card-title {
         </div>
       </div>
 
+      <!-- ONGOING TASKS (in-progress priorities + opportunities) -->
+      <div class="dashboard-view" data-dashboard-view="ongoing-tasks">
+        <div class="db-view-header">
+          <span class="db-view-icon">🔧</span>
+          <div>
+            <div class="db-view-title" style="color:#fbbf24">ONGOING TASKS</div>
+            <div class="db-view-subtitle">Issues and opportunities with status <strong style="font-weight:600;color:var(--text)">in-progress</strong> — filter, reorder within each owner file, edit, discuss, and log new work</div>
+            <div
+              class="av-sort-badge"
+              title="List order: risk (high first), then owner agent, then kind (issues before opportunities), then file order / ID."
+            >
+              Sorted for execution focus
+            </div>
+          </div>
+        </div>
+        <div class="av-toolbar">
+          <div class="av-filter-group">
+            <span class="av-filter-label">Owner</span>
+            <select class="av-select" id="ot-filter-owner">
+              <option value="">All agents</option>
+            </select>
+          </div>
+          <div class="av-filter-group">
+            <span class="av-filter-label">Kind</span>
+            <select class="av-select" id="ot-filter-kind">
+              <option value="">Issues &amp; opportunities</option>
+              <option value="issue">Issues only</option>
+              <option value="opportunity">Opportunities only</option>
+            </select>
+          </div>
+          <input type="text" class="av-search" id="ot-search" placeholder="Search in-progress items…" autocomplete="off" spellcheck="false">
+          <button type="button" class="av-btn av-btn--accent av-add-btn" id="ot-add-issue-btn">+ Add in-progress issue</button>
+          <button type="button" class="av-btn av-btn--accent av-add-btn" id="ot-add-opp-btn">+ Add in-progress opportunity</button>
+          <span class="av-count" id="ot-count"></span>
+        </div>
+        <div class="av-add-panel" id="ot-add-issue-panel">
+          <select class="av-field" id="ot-iss-owner">
+            <option value="">Assign owner agent…</option>
+          </select>
+          <select class="av-field" id="ot-iss-status">
+            <option value="in-progress" selected>in-progress</option>
+            <option value="queued">queued</option>
+            <option value="needs-review">needs-review</option>
+            <option value="paused">paused</option>
+            <option value="done">done</option>
+          </select>
+          <select class="av-field" id="ot-iss-risk">
+            <option value="low">low</option>
+            <option value="med">med</option>
+            <option value="high">high</option>
+          </select>
+          <input class="av-field av-field-wide" id="ot-iss-owner-text" placeholder="Owner (optional; defaults to agent)">
+          <input class="av-field av-field-wide" id="ot-iss-stakeholders" placeholder="Stakeholders, comma-separated (optional)">
+          <input class="av-field av-field-wide" id="ot-iss-summary" placeholder="Summary (optional; defaults to title)">
+          <input class="av-field av-field-wide" id="ot-iss-title" placeholder="Issue title">
+          <textarea class="av-field av-field-wide" id="ot-iss-note" rows="2" placeholder="Detail/context"></textarea>
+          <textarea class="av-field av-field-wide" id="ot-iss-solution" rows="2" placeholder="Proposed solution"></textarea>
+          <div class="av-add-actions">
+            <button type="button" class="av-btn" id="ot-iss-cancel">Cancel</button>
+            <button type="button" class="av-btn av-btn--accent" id="ot-iss-save">Add to agent priorities</button>
+          </div>
+        </div>
+        <div class="av-add-panel" id="ot-add-opp-panel">
+          <select class="av-field" id="ot-opp-owner">
+            <option value="">Assign owner agent…</option>
+          </select>
+          <select class="av-field" id="ot-opp-status">
+            <option value="in-progress" selected>in-progress</option>
+            <option value="queued">queued</option>
+            <option value="needs-review">needs-review</option>
+            <option value="paused">paused</option>
+            <option value="done">done</option>
+          </select>
+          <select class="av-field" id="ot-opp-risk">
+            <option value="low">low</option>
+            <option value="med">med</option>
+            <option value="high">high</option>
+          </select>
+          <input class="av-field av-field-wide" id="ot-opp-owner-text" placeholder="Owner (optional; defaults to agent)">
+          <input class="av-field av-field-wide" id="ot-opp-stakeholders" placeholder="Stakeholders, comma-separated (optional)">
+          <input class="av-field av-field-wide" id="ot-opp-summary" placeholder="Summary (optional; defaults to title)">
+          <input class="av-field av-field-wide" id="ot-opp-title" placeholder="Opportunity title">
+          <textarea class="av-field av-field-wide" id="ot-opp-note" rows="2" placeholder="Detail/context"></textarea>
+          <textarea class="av-field av-field-wide" id="ot-opp-solution" rows="2" placeholder="Proposed solution"></textarea>
+          <div class="av-add-actions">
+            <button type="button" class="av-btn" id="ot-opp-cancel">Cancel</button>
+            <button type="button" class="av-btn av-btn--accent" id="ot-opp-save">Add to agent opportunities</button>
+          </div>
+        </div>
+        <div class="av-table-head ongoing-av-table-head" id="ot-table-head" aria-hidden="false">
+          <span class="av-th av-th--mute">·</span>
+          <span class="av-th">#</span>
+          <div class="av-table-head-labels">
+            <span class="av-th">Owner</span>
+            <span class="av-th">Kind</span>
+            <span class="av-th">Stakeholders</span>
+            <span class="av-th">Summary</span>
+            <span class="av-th">Status</span>
+            <span class="av-th">Risk</span>
+          </div>
+          <span class="av-th av-th--mute">·</span>
+        </div>
+        <div class="av-list" id="ot-list">
+          <div style="color:var(--muted);font-size:var(--font-size-sm);padding:var(--space-5) 0">Select Ongoing Tasks from the nav to load…</div>
+        </div>
+      </div>
+
       <!-- ISSUES VIEW (priority rows across agents) -->
       <div class="dashboard-view" data-dashboard-view="issues">
         <div class="db-view-header">
@@ -4839,7 +4956,7 @@ h3.os-chart-card-title {
     <div class="issue-chat-scroll" id="issue-chat-scroll"></div>
     <div class="issue-chat-footer">
       <p class="issue-chat-hint" id="issue-chat-api-hint">
-        Same <code style="font-family:var(--font-mono);font-size:11px">/api/issue-chat</code> endpoint serves Issues and Opportunities (the supervisor uses <code style="font-family:var(--font-mono);font-size:11px">rowKind: &quot;opportunity&quot;</code> for the latter). <strong style="font-weight:600;color:var(--text)">Fast path:</strong> <code style="font-family:var(--font-mono);font-size:11px">OPENAI_API_KEY</code> (seconds). <strong style="font-weight:600;color:var(--text)">Slow path:</strong> <code style="font-family:var(--font-mono);font-size:11px">CURSOR_API_KEY</code> (Cloud Agent on GitHub). If both keys are set, add <code style="font-family:var(--font-mono);font-size:11px">ISSUE_CHAT_PREFER_OPENAI=1</code> to force OpenAI. Optional: <code style="font-family:var(--font-mono);font-size:11px">CURSOR_ISSUE_CHAT_REPOSITORY</code>, <code style="font-family:var(--font-mono);font-size:11px">CURSOR_ISSUE_CHAT_REF</code>.
+        Same <code style="font-family:var(--font-mono);font-size:11px">/api/issue-chat</code> endpoint serves Issues, Opportunities, and Ongoing Tasks (the supervisor uses <code style="font-family:var(--font-mono);font-size:11px">rowKind: &quot;opportunity&quot;</code> for opportunity rows). <strong style="font-weight:600;color:var(--text)">Fast path:</strong> <code style="font-family:var(--font-mono);font-size:11px">OPENAI_API_KEY</code> (seconds). <strong style="font-weight:600;color:var(--text)">Slow path:</strong> <code style="font-family:var(--font-mono);font-size:11px">CURSOR_API_KEY</code> (Cloud Agent on GitHub). If both keys are set, add <code style="font-family:var(--font-mono);font-size:11px">ISSUE_CHAT_PREFER_OPENAI=1</code> to force OpenAI. Optional: <code style="font-family:var(--font-mono);font-size:11px">CURSOR_ISSUE_CHAT_REPOSITORY</code>, <code style="font-family:var(--font-mono);font-size:11px">CURSOR_ISSUE_CHAT_REF</code>.
       </p>
       <button type="button" class="issue-chat-apply" id="issue-chat-apply" disabled>Apply suggested updates</button>
       <div class="issue-chat-row">
@@ -5144,6 +5261,7 @@ const DASHBOARDS = {
   home:            { label: 'Home',           color: '#00e8c8', agents: ['orchestrator'] },
   issues:          { label: 'Issues',          color: '#a5b4fc', agents: ['orchestrator'] },
   opportunities:   { label: 'Opportunities',  color: '#4ade80', agents: ['orchestrator'] },
+  'ongoing-tasks': { label: 'Ongoing Tasks',  color: '#fbbf24', agents: ['orchestrator'] },
   research:        { label: 'Research',       color: '#e879f9', agents: ['research'] },
   orchestration:   { label: 'Orchestration', color: '#00e8c8', agents: ['orchestrator'] },
   strategy:        { label: 'Strategy',       color: '#94a3b8', agents: ['strategy'] },
@@ -7323,7 +7441,12 @@ function issueChatOpen(action, rowKind) {
   var backdrop = document.getElementById('issue-chat-backdrop');
   var applyBtn = document.getElementById('issue-chat-apply');
   if (titleEl) titleEl.textContent = issueChatRowKind === 'opportunity' ? 'Discuss opportunity' : 'Discuss issue';
-  if (subEl) subEl.textContent = (am.icon ? am.icon + ' ' : '') + am.label + ' · ' + (action._file || '');
+  if (subEl) {
+    var sub = (am.icon ? am.icon + ' ' : '') + am.label + ' · ' + (action._file || '');
+    if (action._ongoingSource === 'issue') sub += ' · Issue';
+    else if (action._ongoingSource === 'opportunity') sub += ' · Opportunity';
+    subEl.textContent = sub;
+  }
   if (applyBtn) applyBtn.disabled = true;
   if (backdrop) {
     backdrop.classList.add('visible');
@@ -7543,6 +7666,7 @@ async function issueChatApplyUpdates() {
       });
       aoRebuildAllActionsFromCache();
       aoApplyFilters();
+      refreshOngoingIfActive();
       issueChatClose();
       avShowToast('Applied opportunity updates', true);
     } else {
@@ -7551,6 +7675,7 @@ async function issueChatApplyUpdates() {
       });
       avRebuildAllActionsFromCache();
       avApplyFilters();
+      refreshOngoingIfActive();
       issueChatClose();
       avShowToast('Applied priority updates', true);
     }
@@ -7583,6 +7708,497 @@ async function issueChatApplyUpdates() {
   }
 })();
 
+// ── ONGOING TASKS (in-progress issues + opportunities) ───────────────────────
+let otAllActions = [];
+let otAddBound = false;
+
+function refreshOngoingIfActive() {
+  if (selectedDashboard !== 'ongoing-tasks') return;
+  otRebuildFromCaches();
+  otApplyFilters();
+}
+
+function otRebuildFromCaches() {
+  otAllActions = [];
+  AV_STATUS_FILES.forEach(function(entry) {
+    var file = entry.file;
+    var agent = entry.agent;
+    var data = avCache[file] || aoCache[file];
+    if (!data) return;
+    if (Array.isArray(data.priorities)) {
+      data.priorities.forEach(function(item, idx) {
+        if (((item && item.status) || '').trim() !== 'in-progress') return;
+        var enriched = Object.assign({ _file: file, _agent: agent, _idx: idx, _ongoingSource: 'issue' }, item);
+        enriched._priorityId = item.id;
+        otAllActions.push(enriched);
+      });
+    }
+    if (Array.isArray(data.opportunities)) {
+      data.opportunities.forEach(function(item, idx) {
+        if (((item && item.status) || '').trim() !== 'in-progress') return;
+        var enriched = Object.assign({ _file: file, _agent: agent, _idx: idx, _ongoingSource: 'opportunity' }, item);
+        enriched._priorityId = item.id;
+        otAllActions.push(enriched);
+      });
+    }
+  });
+}
+
+function otGetFiltered() {
+  var ownerSel = document.getElementById('ot-filter-owner');
+  var kindSel = document.getElementById('ot-filter-kind');
+  var searchEl = document.getElementById('ot-search');
+  var owner = ownerSel ? ownerSel.value : '';
+  var kind = kindSel ? kindSel.value : '';
+  var query = searchEl ? searchEl.value.toLowerCase().trim() : '';
+
+  return otAllActions.filter(function(a) {
+    if (owner && a._agent !== owner) return false;
+    if (kind === 'issue' && a._ongoingSource !== 'issue') return false;
+    if (kind === 'opportunity' && a._ongoingSource !== 'opportunity') return false;
+    if (query) {
+      var kindLabel = a._ongoingSource === 'issue' ? 'issue' : 'opportunity';
+      var stake = Array.isArray(a.stakeholders) ? a.stakeholders.join(' ') : (a.stakeholders || '');
+      var sol = a.proposed_solution || a.solution || '';
+      var hay = [a.title, a.summary, a.owner, stake, a.note, sol, kindLabel, avLabel(a._agent)].join(' ').toLowerCase();
+      if (hay.indexOf(query) === -1) return false;
+    }
+    return true;
+  });
+}
+
+function otSortedActions(filtered) {
+  return filtered.slice().sort(function(a, b) {
+    var riskRank = { high: 0, med: 1, low: 2 };
+    var ar = riskRank[a.risk] != null ? riskRank[a.risk] : 2;
+    var br = riskRank[b.risk] != null ? riskRank[b.risk] : 2;
+    if (ar !== br) return ar - br;
+    if (a._agent < b._agent) return -1;
+    if (a._agent > b._agent) return 1;
+    if (a._ongoingSource !== b._ongoingSource) return a._ongoingSource === 'issue' ? -1 : 1;
+    var ao = (a.sort_order != null) ? a.sort_order : a._idx;
+    var bo = (b.sort_order != null) ? b.sort_order : b._idx;
+    if (ao !== bo) return ao - bo;
+    var as = String(a.id || '');
+    var bs = String(b.id || '');
+    return as < bs ? -1 : as > bs ? 1 : 0;
+  });
+}
+
+function otApplyFilters() {
+  var filtered = otGetFiltered();
+  var countEl = document.getElementById('ot-count');
+  if (countEl) countEl.textContent = filtered.length + ' in-progress task' + (filtered.length !== 1 ? 's' : '');
+  otRenderList(otSortedActions(filtered));
+}
+
+function otRowHtml(action, idx, total) {
+  var agentLabel = avLabel(action._agent);
+  var ownerCell = (action.owner != null && String(action.owner).trim() !== '')
+    ? String(action.owner).trim()
+    : agentLabel;
+  var kindLabel = action._ongoingSource === 'issue' ? 'Issue' : 'Opportunity';
+  var stakeholdersCell = formatStakeholdersField(action.stakeholders);
+  var summaryText = (action.summary != null && String(action.summary).trim() !== '')
+    ? String(action.summary).trim()
+    : (action.title || '—');
+  var stMk = avIssuesStatusMarkup(action.status || 'queued');
+  var risk = action.risk || 'low';
+  var riskCls = risk === 'high' ? 'av-risk-col--high' : risk === 'med' ? 'av-risk-col--med' : 'av-risk-col--low';
+  var riskLabel = String(risk).toUpperCase();
+  var proposedSolution = action._ongoingSource === 'issue'
+    ? (action.proposed_solution || action.solution || '')
+    : (action.solution || action.proposed_solution || '');
+  var noteHtml = action.note
+    ? '<div><div class="av-detail-label">Detail</div><div class="av-detail-text">' + escapeHtml(action.note) + '</div></div>'
+    : '';
+  var solutionHtml = proposedSolution
+    ? '<div><div class="av-detail-label">Proposed Solution</div><div class="av-detail-text">' + escapeHtml(proposedSolution) + '</div></div>'
+    : '<div><div class="av-detail-label">Proposed Solution</div><div class="av-detail-text">No proposed solution recorded yet.</div></div>';
+  var runActionHtml = action._ongoingSource === 'issue'
+    ? ('<div style="display:flex;justify-content:flex-start;padding-top:var(--space-1)">'
+      + '<button class="av-btn av-btn--accent av-run-action-btn" type="button">Run in workflow panel</button>'
+      + '</div>')
+    : '';
+  var discussHtml = '<div class="av-discuss-row">'
+    + '<button type="button" class="av-btn av-btn--accent av-discuss-btn">Start discussion</button>'
+    + '</div>';
+  var metaHtml = '<div><div class="av-detail-label">Metadata</div><div class="av-detail-mono">id: ' + escapeHtml(String(action._priorityId ?? '')) + ' · ' + kindLabel + ' · ' + escapeHtml(action._agent) + ' · ' + escapeHtml(action._file) + '</div></div>';
+
+  var fileIdx = -1;
+  var fileTotal = total;
+  if (action._ongoingSource === 'issue') {
+    fileIdx = avFindPriorityIndex(action._file, action._priorityId);
+    fileTotal = (avCache[action._file] && Array.isArray(avCache[action._file].priorities))
+      ? avCache[action._file].priorities.length
+      : total;
+  } else {
+    fileIdx = aoFindOpportunityIndex(action._file, action._priorityId);
+    fileTotal = (aoCache[action._file] && Array.isArray(aoCache[action._file].opportunities))
+      ? aoCache[action._file].opportunities.length
+      : total;
+  }
+  var upDisabled = fileIdx <= 0 ? ' disabled' : '';
+  var downDisabled = (fileIdx < 0 || fileIdx >= fileTotal - 1) ? ' disabled' : '';
+  var num = String(idx + 1).padStart(2, '0');
+
+  return '<div class="av-row ongoing-av-row" role="group" data-file="' + escapeHtml(action._file) + '" data-id="' + escapeHtml(String(action.id || '')) + '" data-source="' + escapeHtml(action._ongoingSource) + '">'
+    + '<div class="av-drag-handle" draggable="true" title="Drag to reorder">⠿</div>'
+    + '<div class="av-sort-num">' + num + '</div>'
+    + '<div class="av-row-main" role="button" tabindex="0" aria-expanded="false">'
+    +   '<div class="av-row-grid">'
+    +     '<span class="av-cell av-cell-owner">' + escapeHtml(ownerCell) + '</span>'
+    +     '<span class="av-cell av-cell--muted">' + escapeHtml(kindLabel) + '</span>'
+    +     '<span class="av-cell av-cell-stakeholders">' + escapeHtml(stakeholdersCell) + '</span>'
+    +     '<span class="av-cell av-cell-summary">' + escapeHtml(summaryText) + '</span>'
+    +     '<span class="av-status-col ' + stMk.cls + '">' + escapeHtml(stMk.label) + '</span>'
+    +     '<span class="av-risk-col ' + riskCls + '">' + escapeHtml(riskLabel) + '</span>'
+    +   '</div>'
+    +   '<div class="av-detail">'
+    +     noteHtml + solutionHtml + metaHtml + runActionHtml + discussHtml
+    +     '<div class="av-edit-area" style="display:none"></div>'
+    +   '</div>'
+    + '</div>'
+    + '<div class="av-row-btns">'
+    +   '<button type="button" class="av-btn av-edit-btn">Edit</button>'
+    +   '<div class="av-btn-row">'
+    +     '<button class="av-btn av-btn--icon av-up-btn" title="Move up"' + upDisabled + '>↑</button>'
+    +     '<button class="av-btn av-btn--icon av-down-btn" title="Move down"' + downDisabled + '>↓</button>'
+    +     '<button class="av-btn av-expand-btn" title="Expand">▼</button>'
+    +   '</div>'
+    + '</div>'
+    + '</div>';
+}
+
+function otRenderList(sorted) {
+  var listEl = document.getElementById('ot-list');
+  if (!listEl) return;
+  if (sorted.length === 0) {
+    listEl.innerHTML = '<div style="color:var(--muted);font-size:var(--font-size-sm);padding:var(--space-5) 0;text-align:center">No in-progress tasks match the filter. Mark work as <strong style="font-weight:600;color:var(--text)">in-progress</strong> on Issues or Opportunities, or add a task here.</div>';
+    return;
+  }
+
+  listEl.innerHTML = sorted.map(function(a, i) {
+    return otRowHtml(a, i, sorted.length);
+  }).join('');
+
+  listEl.querySelectorAll('.av-row').forEach(function(row, i) {
+    var action = sorted[i];
+    function toggleExpanded() {
+      row.classList.toggle('av-row--expanded');
+      var isExpanded = row.classList.contains('av-row--expanded');
+      var btn = row.querySelector('.av-expand-btn');
+      if (btn) btn.textContent = isExpanded ? '▲' : '▼';
+      if (main) main.setAttribute('aria-expanded', isExpanded ? 'true' : 'false');
+    }
+    var main = row.querySelector('.av-row-main');
+    if (main) {
+      main.addEventListener('click', function() { toggleExpanded(); });
+      main.addEventListener('keydown', function(event) {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          toggleExpanded();
+        }
+      });
+    }
+    row.querySelector('.av-expand-btn').addEventListener('click', function(event) {
+      event.stopPropagation();
+      toggleExpanded();
+    });
+    var editBtn = row.querySelector('.av-edit-btn');
+    if (editBtn) editBtn.addEventListener('click', function(event) {
+      event.stopPropagation();
+      if (action._ongoingSource === 'opportunity') aoToggleEdit(row, action);
+      else avToggleEdit(row, action);
+    });
+    var runBtn = row.querySelector('.av-run-action-btn');
+    if (runBtn) runBtn.addEventListener('click', function(event) {
+      event.stopPropagation();
+      avDispatchActionToAgent(action);
+    });
+    var discussBtn = row.querySelector('.av-discuss-btn');
+    if (discussBtn) discussBtn.addEventListener('click', function(event) {
+      event.stopPropagation();
+      issueChatOpen(action, action._ongoingSource === 'opportunity' ? 'opportunity' : 'priority');
+    });
+    var upBtn = row.querySelector('.av-up-btn');
+    if (upBtn) upBtn.addEventListener('click', function() { otMove(action, sorted, -1); });
+    var downBtn = row.querySelector('.av-down-btn');
+    if (downBtn) downBtn.addEventListener('click', function() { otMove(action, sorted, 1); });
+  });
+
+  otInitDrag(listEl, sorted);
+}
+
+function otMove(action, sorted, dir) {
+  if (action._ongoingSource === 'opportunity') {
+    aoMove(action, sorted, dir);
+    return;
+  }
+  avMove(action, sorted, dir);
+}
+
+function otInitDrag(listEl, sorted) {
+  var rows = listEl.querySelectorAll('.av-row');
+  var dragState = null;
+
+  function otDropPlacement(row, event) {
+    var rect = row.getBoundingClientRect();
+    return (event.clientY - rect.top) > (rect.height / 2) ? 'after' : 'before';
+  }
+
+  rows.forEach(function(row, i) {
+    var handle = row.querySelector('.av-drag-handle');
+    if (!handle) return;
+
+    handle.addEventListener('mousedown', function() { row.draggable = true; });
+    row.addEventListener('dragstart', function(e) {
+      dragState = sorted[i] || null;
+      if (!dragState) { e.preventDefault(); return; }
+      row.classList.add('av-row--dragging');
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    row.addEventListener('dragend', function() {
+      row.draggable = false;
+      row.classList.remove('av-row--dragging');
+      listEl.querySelectorAll('.av-row--drag-over').forEach(function(r) { r.classList.remove('av-row--drag-over'); });
+      rows.forEach(function(r) { delete r.dataset.dropPosition; });
+      dragState = null;
+    });
+    row.addEventListener('dragover', function(e) {
+      if (!dragState) return;
+      if (dragState._file !== row.dataset.file) return;
+      if (dragState._ongoingSource !== row.dataset.source) return;
+      if (String(dragState.id) === String(row.dataset.id)) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      listEl.querySelectorAll('.av-row--drag-over').forEach(function(r) { r.classList.remove('av-row--drag-over'); });
+      row.classList.add('av-row--drag-over');
+      row.dataset.dropPosition = otDropPlacement(row, e);
+    });
+    row.addEventListener('drop', function(e) {
+      if (!dragState) return;
+      if (dragState._file !== row.dataset.file || dragState._ongoingSource !== row.dataset.source) {
+        avShowToast('Reorder works within one owner file and kind at a time', false);
+        return;
+      }
+      e.preventDefault();
+      row.classList.remove('av-row--drag-over');
+      var dst = sorted[i];
+      if (!dst) return;
+      var placeAfter = (row.dataset.dropPosition || 'before') === 'after';
+      var moved = false;
+      if (dragState._ongoingSource === 'opportunity') {
+        moved = aoReorderOpportunity(dragState._file, dragState._priorityId, dst._priorityId, placeAfter);
+      } else {
+        moved = avReorderPriority(dragState._file, dragState._priorityId, dst._priorityId, placeAfter);
+      }
+      delete row.dataset.dropPosition;
+      if (!moved) return;
+      if (dragState._ongoingSource === 'opportunity') {
+        var odata = aoCache[dragState._file];
+        aoPersist(dragState._file).then(function(ok) {
+          if (ok) {
+            aoRecordManualBaseline(dragState._file, (odata && odata.opportunities) || []);
+            avShowToast('Opportunity order saved · ' + dragState._file, true);
+          } else {
+            avShowToast('Save failed — server not running', false);
+          }
+        });
+      } else {
+        var pdata = avCache[dragState._file];
+        avPersist(dragState._file).then(function(ok) {
+          if (ok) {
+            avRecordManualBaseline(dragState._file, (pdata && pdata.priorities) || []);
+            avShowToast('Priority order saved · ' + dragState._file, true);
+          } else {
+            avShowToast('Save failed — server not running', false);
+          }
+        });
+      }
+      avRebuildAllActionsFromCache();
+      aoRebuildAllActionsFromCache();
+      avApplyFilters();
+      aoApplyFilters();
+      refreshOngoingIfActive();
+      dragState = null;
+    });
+    row.addEventListener('dragleave', function(e) {
+      if (!e.relatedTarget || !row.contains(e.relatedTarget)) {
+        row.classList.remove('av-row--drag-over');
+      }
+    });
+  });
+}
+
+function otInitAddPanel() {
+  var b1 = document.getElementById('ot-add-issue-btn');
+  var b2 = document.getElementById('ot-add-opp-btn');
+  var p1 = document.getElementById('ot-add-issue-panel');
+  var p2 = document.getElementById('ot-add-opp-panel');
+  var c1 = document.getElementById('ot-iss-cancel');
+  var c2 = document.getElementById('ot-opp-cancel');
+  var s1 = document.getElementById('ot-iss-save');
+  var s2 = document.getElementById('ot-opp-save');
+  if (b1 && p1) {
+    b1.addEventListener('click', function() {
+      p1.classList.toggle('visible');
+      if (p2) p2.classList.remove('visible');
+    });
+  }
+  if (b2 && p2) {
+    b2.addEventListener('click', function() {
+      p2.classList.toggle('visible');
+      if (p1) p1.classList.remove('visible');
+    });
+  }
+  if (c1 && p1) c1.addEventListener('click', function() { p1.classList.remove('visible'); });
+  if (c2 && p2) c2.addEventListener('click', function() { p2.classList.remove('visible'); });
+  if (s1) s1.addEventListener('click', function() { void otAddIssueFromPanel(); });
+  if (s2) s2.addEventListener('click', function() { void otAddOppFromPanel(); });
+}
+
+async function otAddIssueFromPanel() {
+  var owner = (document.getElementById('ot-iss-owner') || {}).value || '';
+  var title = (document.getElementById('ot-iss-title') || {}).value || '';
+  var status = (document.getElementById('ot-iss-status') || {}).value || 'in-progress';
+  var risk = (document.getElementById('ot-iss-risk') || {}).value || 'low';
+  var note = (document.getElementById('ot-iss-note') || {}).value || '';
+  var solution = (document.getElementById('ot-iss-solution') || {}).value || '';
+  var ownerHuman = ((document.getElementById('ot-iss-owner-text') || {}).value || '').trim();
+  var stakeholdersRaw = ((document.getElementById('ot-iss-stakeholders') || {}).value || '').trim();
+  var summaryExtra = ((document.getElementById('ot-iss-summary') || {}).value || '').trim();
+  if (!owner) return avShowToast('Pick an owner agent first', false);
+  if (!title.trim()) return avShowToast('Add an issue title', false);
+
+  var file = avFileForAgent(owner);
+  if (!file) return avShowToast('Could not resolve owner file', false);
+  var data = avCache[file];
+  if (!data || !Array.isArray(data.priorities)) return avShowToast('Owner priorities unavailable', false);
+
+  var maxId = data.priorities.reduce(function(m, p) {
+    var n = Number(p && p.id);
+    return Number.isFinite(n) ? Math.max(m, n) : m;
+  }, 0);
+  var entry = {
+    id: maxId + 1,
+    title: title.trim(),
+    status: status,
+    risk: risk,
+    sort_order: data.priorities.length,
+    note: note.trim() || '',
+    proposed_solution: solution.trim() || ''
+  };
+  if (ownerHuman) entry.owner = ownerHuman;
+  if (stakeholdersRaw) {
+    var stParts = stakeholdersRaw.split(',').map(function(s) { return s.trim(); }).filter(Boolean);
+    if (stParts.length === 1) entry.stakeholders = stParts[0];
+    else if (stParts.length > 1) entry.stakeholders = stParts;
+  }
+  if (summaryExtra) entry.summary = summaryExtra;
+  data.priorities.push(entry);
+  data.updated = new Date().toISOString().slice(0, 10);
+  var ok = await avPersist(file);
+  if (!ok) return avShowToast('Save failed — server not running', false);
+
+  avRecordManualBaseline(file, data.priorities || []);
+  avRebuildAllActionsFromCache();
+  aoRebuildAllActionsFromCache();
+  avApplyFilters();
+  refreshOngoingIfActive();
+
+  document.getElementById('ot-iss-title').value = '';
+  document.getElementById('ot-iss-owner-text').value = '';
+  document.getElementById('ot-iss-stakeholders').value = '';
+  document.getElementById('ot-iss-summary').value = '';
+  document.getElementById('ot-iss-note').value = '';
+  document.getElementById('ot-iss-solution').value = '';
+  document.getElementById('ot-add-issue-panel').classList.remove('visible');
+  avShowToast('Added issue to ' + file, true);
+}
+
+async function otAddOppFromPanel() {
+  var owner = (document.getElementById('ot-opp-owner') || {}).value || '';
+  var title = (document.getElementById('ot-opp-title') || {}).value || '';
+  var status = (document.getElementById('ot-opp-status') || {}).value || 'in-progress';
+  var risk = (document.getElementById('ot-opp-risk') || {}).value || 'low';
+  var note = (document.getElementById('ot-opp-note') || {}).value || '';
+  var solution = (document.getElementById('ot-opp-solution') || {}).value || '';
+  var ownerHuman = ((document.getElementById('ot-opp-owner-text') || {}).value || '').trim();
+  var stakeholdersRaw = ((document.getElementById('ot-opp-stakeholders') || {}).value || '').trim();
+  var summaryExtra = ((document.getElementById('ot-opp-summary') || {}).value || '').trim();
+  if (!owner) return avShowToast('Pick an owner agent first', false);
+  if (!title.trim()) return avShowToast('Add an opportunity title', false);
+
+  var file = aoFileForAgent(owner);
+  if (!file) return avShowToast('Could not resolve owner file', false);
+  var data = aoCache[file];
+  if (!data) return avShowToast('Owner data unavailable', false);
+  if (!Array.isArray(data.opportunities)) data.opportunities = [];
+
+  var maxId = 0;
+  data.opportunities.forEach(function(p) {
+    var n = Number(p && p.id);
+    if (Number.isFinite(n) && n > maxId) maxId = n;
+  });
+  var newId = (maxId > 0) ? maxId + 1 : (owner.slice(0, 3) + '-o-' + Date.now());
+
+  var entry = {
+    id: typeof newId === 'number' ? newId : newId,
+    title: title.trim(),
+    status: status,
+    risk: risk,
+    sort_order: data.opportunities.length,
+    note: note.trim() || '',
+    solution: solution.trim() || ''
+  };
+  if (ownerHuman) entry.owner = ownerHuman;
+  if (stakeholdersRaw) {
+    var stParts = stakeholdersRaw.split(',').map(function(s) { return s.trim(); }).filter(Boolean);
+    if (stParts.length === 1) entry.stakeholders = stParts[0];
+    else if (stParts.length > 1) entry.stakeholders = stParts;
+  }
+  if (summaryExtra) entry.summary = summaryExtra;
+  data.opportunities.push(entry);
+  data.updated = new Date().toISOString().slice(0, 10);
+  var ok = await aoPersist(file);
+  if (!ok) return avShowToast('Save failed — server not running', false);
+
+  aoRecordManualBaseline(file, data.opportunities || []);
+  avRebuildAllActionsFromCache();
+  aoRebuildAllActionsFromCache();
+  aoApplyFilters();
+  refreshOngoingIfActive();
+
+  document.getElementById('ot-opp-title').value = '';
+  document.getElementById('ot-opp-owner-text').value = '';
+  document.getElementById('ot-opp-stakeholders').value = '';
+  document.getElementById('ot-opp-summary').value = '';
+  document.getElementById('ot-opp-note').value = '';
+  document.getElementById('ot-opp-solution').value = '';
+  document.getElementById('ot-add-opp-panel').classList.remove('visible');
+  avShowToast('Added opportunity to ' + file, true);
+}
+
+async function loadOngoingTasksView() {
+  var listEl = document.getElementById('ot-list');
+  if (!listEl) return;
+  try {
+    if (!avLoaded || !aoLoaded) {
+      listEl.innerHTML = '<div style="color:var(--muted);font-size:var(--font-size-sm);padding:var(--space-5) 0">Loading…</div>';
+    }
+    await ensureStatusCachesLoaded();
+    otRebuildFromCaches();
+    if (!otAddBound) {
+      otInitAddPanel();
+      otAddBound = true;
+    }
+    otApplyFilters();
+  } catch (e) {
+    listEl.innerHTML = '<div style="color:var(--error);font-size:var(--font-size-sm);padding:var(--space-5) 0">Could not load ongoing tasks. Reload the dashboard or start the dashboard server.</div>';
+  }
+}
+
 async function avCheckManualConflicts() {
   var baselines = avReadStore(AV_MANUAL_BASELINES_KEY);
   var files = Object.keys(baselines);
@@ -7612,6 +8228,7 @@ async function avCheckManualConflicts() {
         mergeAgentCustomActions(agent, data.actions);
       }
       avCache[file] = data;
+      aoCache[file] = data;
       avRecordManualBaseline(file, currentRows);
       if (conflicts[file]) {
         delete conflicts[file];
@@ -7632,7 +8249,10 @@ async function avCheckManualConflicts() {
     avClearConflictFocus();
     if (avLoaded) {
       avRebuildAllActionsFromCache();
+      aoRebuildAllActionsFromCache();
       avApplyFilters();
+      aoApplyFilters();
+      refreshOngoingIfActive();
       renderModes();
     }
     var combined = syncMessages.length === 1
@@ -7690,62 +8310,8 @@ async function loadActionsView() {
   try {
     if (!avLoaded) {
       listEl.innerHTML = '<div style="color:var(--muted);font-size:var(--font-size-sm);padding:var(--space-5) 0">Loading…</div>';
-      const results = await Promise.allSettled(
-        AV_STATUS_FILES.map(async function(entry) {
-          try {
-            const ctrl = new AbortController();
-            const t = setTimeout(function() { ctrl.abort(); }, 4000);
-            const resp = await fetch(entry.file, { signal: ctrl.signal });
-            clearTimeout(t);
-            if (!resp.ok) return null;
-            const data = await resp.json();
-            avCache[entry.file] = data;
-            mergeAgentCustomActions(entry.agent, data.actions);
-            return { file: entry.file, agent: entry.agent, data: data };
-          } catch (e) { return null; }
-        })
-      );
-
-      var agentsPresent = [];
-      results.forEach(function(r) {
-        if (r.status !== 'fulfilled' || !r.value) return;
-        var entry = r.value;
-        if (!Array.isArray(entry.data.priorities)) return;
-        agentsPresent.push(entry.agent);
-      });
-      renderModes();
-      avRebuildAllActionsFromCache();
-
-      // Populate owner filter
-      var ownerSel = document.getElementById('av-filter-owner');
-      var addOwnerSel = document.getElementById('av-add-owner');
-      if (ownerSel && ownerSel.options.length === 1) {
-        agentsPresent.sort().forEach(function(ag) {
-          var meta = AGENT_META[ag] || { icon: '•' };
-          var opt = document.createElement('option');
-          opt.value = ag;
-          opt.textContent = (meta.icon || '') + ' ' + avLabel(ag);
-          ownerSel.appendChild(opt);
-          if (addOwnerSel) {
-            var opt2 = document.createElement('option');
-            opt2.value = ag;
-            opt2.textContent = (meta.icon || '') + ' ' + avLabel(ag);
-            addOwnerSel.appendChild(opt2);
-          }
-        });
-        ownerSel.addEventListener('change', avApplyFilters);
-        var statusSel = document.getElementById('av-filter-status');
-        if (statusSel) statusSel.addEventListener('change', avApplyFilters);
-        var searchEl = document.getElementById('av-search');
-        if (searchEl) searchEl.addEventListener('input', avApplyFilters);
-      }
-      if (!avAddBound) {
-        avInitAddPanel();
-        avAddBound = true;
-      }
-      avLoaded = true;
     }
-
+    await ensureStatusCachesLoaded();
     avApplyFilters();
   } catch (e) {
     listEl.innerHTML = '<div style="color:var(--error);font-size:var(--font-size-sm);padding:var(--space-5) 0">Could not load issues. Reload the dashboard or start the dashboard server.</div>';
@@ -8114,6 +8680,7 @@ async function avCommitEdit(row, action, editArea, editBtn) {
     });
     // Re-render list so status/risk columns reflect updated values
     avApplyFilters();
+    refreshOngoingIfActive();
     avShowToast('Saved · ' + action._file, true);
   } else {
     if (hint) { hint.textContent = 'Server not available — run the dashboard server to persist changes.'; hint.className = 'av-save-hint av-save-hint--err'; }
@@ -8152,6 +8719,7 @@ function avMove(action, sorted, dir) {
     }
   });
   avApplyFilters();
+  refreshOngoingIfActive();
 }
 
 function avFindDashboardForAgent(agentId) {
@@ -8275,6 +8843,7 @@ async function avAddActionItem() {
   document.getElementById('av-add-solution').value = '';
   document.getElementById('av-add-panel').classList.remove('visible');
   avShowToast('Added issue to ' + file, true);
+  refreshOngoingIfActive();
 }
 
 // Drag-and-drop reordering
@@ -8403,6 +8972,110 @@ function aoRebuildAllActionsFromCache() {
       aoAllActions.push(enriched);
     });
   });
+}
+
+/** Load every *-status.json into avCache and aoCache (shared object per file). */
+let statusCachesHydratePromise = null;
+async function ensureStatusCachesLoaded() {
+  if (avLoaded && aoLoaded) return;
+  if (statusCachesHydratePromise) {
+    await statusCachesHydratePromise;
+    return;
+  }
+  statusCachesHydratePromise = (async function() {
+    const results = await Promise.allSettled(
+      AV_STATUS_FILES.map(async function(entry) {
+        try {
+          const ctrl = new AbortController();
+          const t = setTimeout(function() { ctrl.abort(); }, 4000);
+          const resp = await fetch(entry.file, { signal: ctrl.signal });
+          clearTimeout(t);
+          if (!resp.ok) return null;
+          const data = await resp.json();
+          avCache[entry.file] = data;
+          aoCache[entry.file] = data;
+          mergeAgentCustomActions(entry.agent, data.actions);
+          return { file: entry.file, agent: entry.agent, data: data };
+        } catch (e) { return null; }
+      })
+    );
+
+    var agentsPresent = [];
+    results.forEach(function(r) {
+      if (r.status !== 'fulfilled' || !r.value) return;
+      var d = r.value.data;
+      if (!Array.isArray(d.priorities) && !Array.isArray(d.opportunities)) return;
+      agentsPresent.push(r.value.agent);
+    });
+    agentsPresent.sort();
+    renderModes();
+
+    function appendAgentsToSelect(sel) {
+      if (!sel || sel.options.length !== 1) return;
+      agentsPresent.forEach(function(ag) {
+        var meta = AGENT_META[ag] || { icon: '•' };
+        var opt = document.createElement('option');
+        opt.value = ag;
+        opt.textContent = (meta.icon || '') + ' ' + avLabel(ag);
+        sel.appendChild(opt);
+      });
+    }
+    appendAgentsToSelect(document.getElementById('av-filter-owner'));
+    appendAgentsToSelect(document.getElementById('av-add-owner'));
+    appendAgentsToSelect(document.getElementById('ao-filter-owner'));
+    appendAgentsToSelect(document.getElementById('ao-add-owner'));
+    appendAgentsToSelect(document.getElementById('ot-filter-owner'));
+    appendAgentsToSelect(document.getElementById('ot-iss-owner'));
+    appendAgentsToSelect(document.getElementById('ot-opp-owner'));
+
+    var avOwnerSel = document.getElementById('av-filter-owner');
+    if (avOwnerSel && !avOwnerSel._mvBound) {
+      avOwnerSel._mvBound = true;
+      avOwnerSel.addEventListener('change', avApplyFilters);
+      var avStatusSel = document.getElementById('av-filter-status');
+      if (avStatusSel) avStatusSel.addEventListener('change', avApplyFilters);
+      var avSearchEl = document.getElementById('av-search');
+      if (avSearchEl) avSearchEl.addEventListener('input', avApplyFilters);
+    }
+    var aoOwnerSel = document.getElementById('ao-filter-owner');
+    if (aoOwnerSel && !aoOwnerSel._mvBound) {
+      aoOwnerSel._mvBound = true;
+      aoOwnerSel.addEventListener('change', aoApplyFilters);
+      var aoStatusSel = document.getElementById('ao-filter-status');
+      if (aoStatusSel) aoStatusSel.addEventListener('change', aoApplyFilters);
+      var aoSearchEl = document.getElementById('ao-search');
+      if (aoSearchEl) aoSearchEl.addEventListener('input', aoApplyFilters);
+    }
+    var otOwnerSel = document.getElementById('ot-filter-owner');
+    if (otOwnerSel && !otOwnerSel._mvBound) {
+      otOwnerSel._mvBound = true;
+      otOwnerSel.addEventListener('change', otApplyFilters);
+      var otKindSel = document.getElementById('ot-filter-kind');
+      if (otKindSel) otKindSel.addEventListener('change', otApplyFilters);
+      var otSearchEl = document.getElementById('ot-search');
+      if (otSearchEl) otSearchEl.addEventListener('input', otApplyFilters);
+    }
+
+    avRebuildAllActionsFromCache();
+    aoRebuildAllActionsFromCache();
+    if (!avAddBound) {
+      avInitAddPanel();
+      avAddBound = true;
+    }
+    if (!aoAddBound) {
+      aoInitAddPanel();
+      aoAddBound = true;
+    }
+    avLoaded = true;
+    aoLoaded = true;
+  })();
+
+  try {
+    await statusCachesHydratePromise;
+  } catch (e) {
+    statusCachesHydratePromise = null;
+    throw e;
+  }
 }
 
 function aoPriorityScore(item) {
@@ -8774,6 +9447,7 @@ async function aoCommitEdit(row, action, editArea, editBtn) {
       el.style.display = '';
     });
     aoApplyFilters();
+    refreshOngoingIfActive();
     avShowToast('Saved · ' + action._file, true);
   } else {
     if (hint) { hint.textContent = 'Server not available — run the dashboard server to persist changes.'; hint.className = 'av-save-hint av-save-hint--err'; }
@@ -8799,6 +9473,7 @@ function aoMove(action, sorted, dir) {
     }
   });
   aoApplyFilters();
+  refreshOngoingIfActive();
 }
 
 function aoInitDrag(listEl, sorted) {
@@ -8948,6 +9623,7 @@ async function aoAddOpportunity() {
   document.getElementById('ao-add-solution').value = '';
   document.getElementById('ao-add-panel').classList.remove('visible');
   avShowToast('Added opportunity to ' + file, true);
+  refreshOngoingIfActive();
 }
 
 async function loadOpportunitiesView() {
@@ -8957,59 +9633,8 @@ async function loadOpportunitiesView() {
   try {
     if (!aoLoaded) {
       listEl.innerHTML = '<div style="color:var(--muted);font-size:var(--font-size-sm);padding:var(--space-5) 0">Loading…</div>';
-      const results = await Promise.allSettled(
-        AO_STATUS_FILES.map(async function(entry) {
-          try {
-            const ctrl = new AbortController();
-            const t = setTimeout(function() { ctrl.abort(); }, 4000);
-            const resp = await fetch(entry.file, { signal: ctrl.signal });
-            clearTimeout(t);
-            if (!resp.ok) return null;
-            const data = await resp.json();
-            aoCache[entry.file] = data;
-            return { file: entry.file, agent: entry.agent, data: data };
-          } catch (e) { return null; }
-        })
-      );
-
-      var agentsPresent = [];
-      results.forEach(function(r) {
-        if (r.status !== 'fulfilled' || !r.value) return;
-        var entry = r.value;
-        if (!Array.isArray(entry.data.opportunities)) return;
-        agentsPresent.push(entry.agent);
-      });
-      aoRebuildAllActionsFromCache();
-
-      var ownerSel = document.getElementById('ao-filter-owner');
-      var addOwnerSel = document.getElementById('ao-add-owner');
-      if (ownerSel && ownerSel.options.length === 1) {
-        agentsPresent.sort().forEach(function(ag) {
-          var meta = AGENT_META[ag] || { icon: '•' };
-          var opt = document.createElement('option');
-          opt.value = ag;
-          opt.textContent = (meta.icon || '') + ' ' + aoLabel(ag);
-          ownerSel.appendChild(opt);
-          if (addOwnerSel) {
-            var opt2 = document.createElement('option');
-            opt2.value = ag;
-            opt2.textContent = (meta.icon || '') + ' ' + aoLabel(ag);
-            addOwnerSel.appendChild(opt2);
-          }
-        });
-        ownerSel.addEventListener('change', aoApplyFilters);
-        var statusSel = document.getElementById('ao-filter-status');
-        if (statusSel) statusSel.addEventListener('change', aoApplyFilters);
-        var searchEl = document.getElementById('ao-search');
-        if (searchEl) searchEl.addEventListener('input', aoApplyFilters);
-      }
-      if (!aoAddBound) {
-        aoInitAddPanel();
-        aoAddBound = true;
-      }
-      aoLoaded = true;
     }
-
+    await ensureStatusCachesLoaded();
     aoApplyFilters();
   } catch (e) {
     listEl.innerHTML = '<div style="color:var(--error);font-size:var(--font-size-sm);padding:var(--space-5) 0">Could not load opportunities. Reload the dashboard or start the dashboard server.</div>';
@@ -9022,6 +9647,9 @@ async function loadDashboardData(dashId) {
   }
   if (dashId === 'opportunities') {
     loadOpportunitiesView();
+  }
+  if (dashId === 'ongoing-tasks') {
+    loadOngoingTasksView();
   }
   if (dashId === 'development') {
     loadDevelopmentStatus();

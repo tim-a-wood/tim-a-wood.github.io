@@ -10,7 +10,7 @@
       "summary": "room.id, entry.id, entry.name interpolated raw into innerHTML",
       "note": "room-layout-editor.html:4513–4543. escapeHtml() defined at line 3032 but not used in these locations. XSS via malformed project file.",
       "solution": "Wrap all interpolated values in escapeHtml() at affected lines",
-      "status": "queued",
+      "status": "in-progress",
       "risk": "high"
     },
     {

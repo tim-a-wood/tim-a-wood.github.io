@@ -168,7 +168,7 @@
     {
       "id": "strategy-o6",
       "title": "Business plan: quarterly refresh of assumptions and competitors",
-      "status": "queued",
+      "status": "in-progress",
       "risk": "med",
       "note": "Next step from the initial business plan (Apr 2026). Same work as strategic review and risk register review — keep dates honest in metrics.",
       "proposed_solution": "Run strategic-review plus risk-register-review each quarter; update risk_register, competitors, and metrics.last_quarterly_review."

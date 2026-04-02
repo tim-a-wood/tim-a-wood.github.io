@@ -60,7 +60,7 @@
     {
       "id": "analytics-o2",
       "title": "Measure the one number that matters most: how many finished rooms each user produces per month",
-      "status": "paused",
+      "status": "in-progress",
       "risk": "low",
       "note": "There are no external users yet, so this number would be zero. We'll start tracking it properly at the first public release.",
       "proposed_solution": "Define and instrument rooms exported per active user per month as the north star starting at the first public release."
