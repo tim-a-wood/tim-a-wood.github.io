@@ -4412,57 +4412,57 @@ h3.os-chart-card-title {
           <span class="db-view-icon">🔬</span>
           <div>
             <div class="db-view-title" style="color:var(--c-research)">RESEARCH</div>
-            <div class="db-view-subtitle">Codebase intelligence, knowledge library &amp; opportunity tracking</div>
+            <div class="db-view-subtitle">What we learned from scanning the tools, what is stored in the research library, and ideas worth doing next — written in plain language</div>
           </div>
         </div>
 
         <!-- ── Scan Status ── -->
         <div class="db-section">
-          <div class="db-section-label">Last Scan — 2026-04-01 · 4 files · 16,419 lines</div>
+          <div class="db-section-label">Last scan — April 2026 · four main tool files · large pages reviewed</div>
           <div class="db-grid">
             <div class="db-card db-card--manual">
-              <div class="db-card-header"><div class="db-card-label">P1 Issues</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-header"><div class="db-card-label">Top priority issues</div><span class="db-tier db-tier--manual">MANUAL</span></div>
               <div class="db-card-value" style="color:var(--error)">3</div>
-              <div class="db-card-sub">Critical / blocking</div>
+              <div class="db-card-sub">Fix before treat as safe for real users</div>
             </div>
             <div class="db-card db-card--manual">
-              <div class="db-card-header"><div class="db-card-label">P2 Issues</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-header"><div class="db-card-label">Next priority issues</div><span class="db-tier db-tier--manual">MANUAL</span></div>
               <div class="db-card-value" style="color:var(--warning)">10</div>
-              <div class="db-card-sub">Should fix</div>
+              <div class="db-card-sub">Should fix; may have a workaround today</div>
             </div>
             <div class="db-card db-card--manual">
               <div class="db-card-header"><div class="db-card-label">Opportunities</div><span class="db-tier db-tier--manual">MANUAL</span></div>
               <div class="db-card-value" style="color:var(--good)">6</div>
-              <div class="db-card-sub">Improvements identified</div>
+              <div class="db-card-sub">Improvements, not broken behavior</div>
             </div>
             <div class="db-card db-card--manual">
-              <div class="db-card-header"><div class="db-card-label">Library Docs</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-header"><div class="db-card-label">Library entries</div><span class="db-tier db-tier--manual">MANUAL</span></div>
               <div class="db-card-value" style="color:var(--c-research)">1</div>
-              <div class="db-card-sub">research/library/</div>
+              <div class="db-card-sub">Saved write-ups in the research library</div>
             </div>
           </div>
         </div>
 
         <!-- ── P1 Issues ── -->
         <div class="db-section">
-          <div class="db-section-label">P1 — Critical (own: Cybersecurity / Development)</div>
+          <div class="db-section-label">Top priority — Cybersecurity or Development should own fixes</div>
           <div class="db-risk-grid">
             <div class="db-risk-panel">
-              <div class="db-risk-panel-label">SECURITY RISK</div>
+              <div class="db-risk-panel-label">Security</div>
               <div class="db-risk-row db-risk-row--p0">
-                <div class="db-risk-row-title">Unescaped user data in innerHTML</div>
-                <div class="db-risk-row-note">room-layout-editor.html:4513–4543 — room.id, entry.id, entry.name interpolated raw. XSS via malformed project file. escapeHtml() defined at line 3032 but not used here.</div>
+                <div class="db-risk-row-title">A tampered project file could run unwanted scripts inside the room editor</div>
+                <div class="db-risk-row-note">Some room and door names are dropped straight into the page. If someone opens a crafted file, the browser might run code. Cybersecurity should review; Development should use the same safe text handling the editor already uses elsewhere.</div>
               </div>
             </div>
             <div class="db-risk-panel">
-              <div class="db-risk-panel-label">BUGS &amp; ACCESSIBILITY</div>
+              <div class="db-risk-panel-label">Reliability and keyboard use</div>
               <div class="db-risk-row db-risk-row--p0">
-                <div class="db-risk-row-title">Undefined CSS variable --text-dim</div>
-                <div class="db-risk-row-note">product-shell.css:585 — .marketing-docs-linkout references var(--text-dim) which is not defined anywhere. Silent render failure.</div>
+                <div class="db-risk-row-title">A text color setting points at a theme name that does not exist</div>
+                <div class="db-risk-row-note">In the sprite workbench marketing area, a style asks for a color variable that was never defined. The browser may skip the style, so text can look wrong or invisible. Design and Development should align it with the official color list.</div>
               </div>
               <div class="db-risk-row db-risk-row--p1">
-                <div class="db-risk-row-title">No global :focus-visible rule in room editor</div>
-                <div class="db-risk-row-note">room-layout-editor.html — all native interactive elements lack keyboard focus indicators. Mandatory per CLAUDE.md. Trivial to fix.</div>
+                <div class="db-risk-row-title">Keyboard users cannot see which control is selected in the room editor</div>
+                <div class="db-risk-row-note">Native buttons and fields need a clear focus ring for people who tab through the UI. This is a basic accessibility expectation. Development can fix with one shared focus style.</div>
               </div>
             </div>
           </div>
@@ -4470,44 +4470,44 @@ h3.os-chart-card-title {
 
         <!-- ── P2 Issues ── -->
         <div class="db-section">
-          <div class="db-section-label">P2 — Style &amp; Token Violations (own: Development / Design)</div>
+          <div class="db-section-label">Next priority — Development and Design should tighten consistency</div>
           <div class="db-risk-grid">
             <div class="db-risk-panel">
-              <div class="db-risk-panel-label">TOKEN DRIFT</div>
+              <div class="db-risk-panel-label">Design system drift</div>
               <div class="db-risk-row">
-                <div class="db-risk-row-title">Sprite workbench radius tokens conflict canonical scale</div>
-                <div class="db-risk-row-note">index.html:44–47 — --radius-sm: 14px (should be 8px), --radius-md: 18px (should be 10px)</div>
+                <div class="db-risk-row-title">Corner rounding on the sprite workbench does not match the house style</div>
+                <div class="db-risk-row-note">Small and medium rounded corners use different numbers than the rest of the product, so the workbench can look subtly “off” next to the room editor.</div>
               </div>
               <div class="db-risk-row">
-                <div class="db-risk-row-title">~19 rem-based font sizes outside px token scale</div>
-                <div class="db-risk-row-note">room-wizard-workbench-shell.css ×5 · product-shell.css ×14 — use var(--font-size-*)</div>
+                <div class="db-risk-row-title">Many font sizes are set in a flexible unit instead of the shared size scale</div>
+                <div class="db-risk-row-note">Several screens mix rem-based sizes with the fixed scale the style guide defines. That makes future redesigns harder and can hurt readability.</div>
               </div>
               <div class="db-risk-row">
-                <div class="db-risk-row-title">9 hardcoded hex tints outside token system</div>
-                <div class="db-risk-row-note">product-shell.css ×7, room-layout-editor.html ×2 — use CSS variables or rgba() of tokens</div>
+                <div class="db-risk-row-title">Several screens still use one-off hex colors</div>
+                <div class="db-risk-row-note">A handful of tints are hard-coded instead of pulled from the shared palette, so dark mode and future theme work stay inconsistent.</div>
               </div>
               <div class="db-risk-row">
-                <div class="db-risk-row-title">var(--shadow) undocumented alias</div>
-                <div class="db-risk-row-note">product-shell.css:527 — not in canonical token set; replace with var(--shadow-lg)</div>
+                <div class="db-risk-row-title">One shadow style name is not on the official list</div>
+                <div class="db-risk-row-note">A shortcut shadow name appears in the sprite shell but is not documented with the other shadows. Replace with the standard large shadow so tooling and docs stay in sync.</div>
               </div>
             </div>
             <div class="db-risk-panel">
-              <div class="db-risk-panel-label">SPACING &amp; TRANSITIONS</div>
+              <div class="db-risk-panel-label">Motion and spacing</div>
               <div class="db-risk-row">
-                <div class="db-risk-row-title">Non-conforming transition durations</div>
-                <div class="db-risk-row-note">room-wizard-workbench-shell.css:360,406 · product-shell.css:238 — use var(--transition-fast/base) with explicit properties</div>
+                <div class="db-risk-row-title">Some hover and open animations use timing outside the agreed range</div>
+                <div class="db-risk-row-note">A few panels animate slower or faster than the rest of the product. Standardize on the short and medium durations from the style guide.</div>
               </div>
               <div class="db-risk-row">
-                <div class="db-risk-row-title">border-radius: 50% and 16px not in scale</div>
-                <div class="db-risk-row-note">50% → var(--radius-full) · 16px → var(--radius-tight) or var(--radius-card)</div>
+                <div class="db-risk-row-title">Some rounded corners use values that are not on the approved list</div>
+                <div class="db-risk-row-note">Mix of circles, pills, and ad-hoc pixel radii. Map each to the nearest approved radius so everything feels like one product.</div>
               </div>
               <div class="db-risk-row">
-                <div class="db-risk-row-title">Off-grid spacing values</div>
-                <div class="db-risk-row-note">gap: 10px, 14px, 5px, 22px, 26px across room-wizard and product-shell — must be 4px multiples</div>
+                <div class="db-risk-row-title">Gaps and padding sometimes land between the 4-pixel grid</div>
+                <div class="db-risk-row-note">Room wizard and sprite shell both have a few odd pixel values. Nudging to the grid keeps layouts crisp and matches the rest of the tools.</div>
               </div>
               <div class="db-risk-row">
-                <div class="db-risk-row-title">Font sizes outside scale</div>
-                <div class="db-risk-row-note">room-layout-editor.html:781,788,912 — 10px below minimum (11px), 24px not in scale</div>
+                <div class="db-risk-row-title">A few type sizes are smaller than the minimum or not on the scale</div>
+                <div class="db-risk-row-note">The room editor shows some labels at sizes below the readable minimum or outside the allowed set. Bump to the nearest approved size.</div>
               </div>
             </div>
           </div>
@@ -4518,33 +4518,33 @@ h3.os-chart-card-title {
           <div class="db-section-label">Opportunities</div>
           <div class="db-risk-grid">
             <div class="db-risk-panel">
-              <div class="db-risk-panel-label">HIGH IMPACT</div>
+              <div class="db-risk-panel-label">High payoff</div>
               <div class="db-risk-row">
-                <div class="db-risk-row-title">Extract shared CSS token block → tokens.css</div>
-                <div class="db-risk-row-note">Eliminates manual token sync across 3+ HTML files</div>
+                <div class="db-risk-row-title">Put shared colors and type rules in one file every tool imports</div>
+                <div class="db-risk-row-note">Stops the same token block being edited in three places and drifting apart.</div>
               </div>
               <div class="db-risk-row">
-                <div class="db-risk-row-title">Extract JS from room-layout-editor.html</div>
-                <div class="db-risk-row-note">9,607-line monolith with ~7,500 lines inline JS — breaks security auditability</div>
+                <div class="db-risk-row-title">Split the giant room editor page into smaller script files</div>
+                <div class="db-risk-row-note">The file is enormous; breaking it up makes security review and onboarding easier.</div>
               </div>
               <div class="db-risk-row">
-                <div class="db-risk-row-title">Add :focus-visible to room-layout-editor.html</div>
-                <div class="db-risk-row-note">Single rule — high a11y gain, trivial effort</div>
+                <div class="db-risk-row-title">Add the shared keyboard focus style to the room editor</div>
+                <div class="db-risk-row-note">Small change, big win for people who do not use a mouse.</div>
               </div>
             </div>
             <div class="db-risk-panel">
-              <div class="db-risk-panel-label">MEDIUM IMPACT</div>
+              <div class="db-risk-panel-label">Medium payoff</div>
               <div class="db-risk-row">
-                <div class="db-risk-row-title">Create shared nav.css</div>
-                <div class="db-risk-row-note">.site-nav duplicated between room editor and sprite workbench</div>
+                <div class="db-risk-row-title">One shared stylesheet for the top navigation</div>
+                <div class="db-risk-row-note">Room editor and sprite workbench repeat the same nav styling; one source of truth reduces drift.</div>
               </div>
               <div class="db-risk-row">
-                <div class="db-risk-row-title">Align product-shell.css marketing section to design tokens</div>
-                <div class="db-risk-row-note">~15 hardcoded colors, ~12 rem sizes to migrate</div>
+                <div class="db-risk-row-title">Bring the marketing section of the sprite shell onto the official palette</div>
+                <div class="db-risk-row-note">Replace leftover custom colors and sizes with tokens from the style guide.</div>
               </div>
               <div class="db-risk-row">
-                <div class="db-risk-row-title">Standardise sprite workbench radius tokens</div>
-                <div class="db-risk-row-note">Align --radius-sm/md to canonical scale (8px/10px)</div>
+                <div class="db-risk-row-title">Match sprite workbench corner radii to the canonical scale</div>
+                <div class="db-risk-row-note">Aligns the workbench with room editor and dashboard chrome.</div>
               </div>
             </div>
           </div>
@@ -4552,22 +4552,22 @@ h3.os-chart-card-title {
 
         <!-- ── Library ── -->
         <div class="db-section">
-          <div class="db-section-label">Knowledge Library</div>
+          <div class="db-section-label">Knowledge library</div>
           <div class="db-grid">
             <div class="db-card db-card--manual db-card--wide">
-              <div class="db-card-header"><div class="db-card-label">Latest Report</div><span class="db-tier db-tier--manual">MANUAL</span></div>
-              <div class="db-card-value db-card-value--muted" style="font-size:var(--font-size-sm);font-family:var(--font-sans)">Initial Codebase Scan — MV Toolchain</div>
-              <div class="db-card-sub">research/library/findings/codebase-scan-2026-04-01.md</div>
+              <div class="db-card-header"><div class="db-card-label">Latest report</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-value db-card-value--muted" style="font-size:var(--font-size-sm);font-family:var(--font-sans)">First full pass over the MV toolchain — findings and owners</div>
+              <div class="db-card-sub">Stored under research library → findings (April 2026 scan)</div>
             </div>
             <div class="db-card db-card--manual">
               <div class="db-card-header"><div class="db-card-label">Next scan</div><span class="db-tier db-tier--manual">MANUAL</span></div>
               <div class="db-card-value db-card-value--muted">—</div>
-              <button type="button" class="db-run-btn">Run research · scan-codebase →</button>
+              <button type="button" class="db-run-btn">Run full codebase scan →</button>
             </div>
             <div class="db-card db-card--manual">
               <div class="db-card-header"><div class="db-card-label">Competitive analysis</div><span class="db-tier db-tier--manual">MANUAL</span></div>
               <div class="db-card-value db-card-value--muted">—</div>
-              <button type="button" class="db-run-btn">Run research · competitive-analysis →</button>
+              <button type="button" class="db-run-btn">Run competitor and market pass →</button>
             </div>
           </div>
         </div>
@@ -4918,6 +4918,18 @@ const AGENTS = {
       'advise':           'e.g. "How should we handle API key rotation for the Gemini integration?"',
     },
   },
+  research: {
+    label: 'Research',
+    charter: 'agents/research/charter.md',
+    modes: ['analyze', 'review', 'report', 'escalation-check', 'advise'],
+    placeholders: {
+      'analyze':          'e.g. "Scan the sprite workbench and room editor for style drift and risky patterns; log findings in the research library."',
+      'review':           'e.g. "Review last week\'s codebase scan — are any top-priority items still accurate, and who should own each fix?"',
+      'report':           'e.g. "Write a short founder summary of open research findings and suggested next owners."',
+      'escalation-check': 'e.g. "Is anything in the research library severe enough that it should block the next release until Cybersecurity or QA weighs in?"',
+      'advise':           'e.g. "How should we prioritize competitive research vs. internal code scans this month?"',
+    },
+  },
 
   // ── Engineering ──────────────────────────────────────────────────────────
   engineering: {
@@ -5036,7 +5048,7 @@ const AGENTS = {
 const DASHBOARDS = {
   home:            { label: 'Home',           color: '#00e8c8', agents: ['orchestrator'] },
   issues:          { label: 'Issues',          color: '#a5b4fc', agents: ['orchestrator'] },
-  research:        { label: 'Research',       color: '#e879f9', agents: [] },
+  research:        { label: 'Research',       color: '#e879f9', agents: ['research'] },
   orchestration:   { label: 'Orchestration', color: '#00e8c8', agents: ['orchestrator'] },
   strategy:        { label: 'Strategy',       color: '#94a3b8', agents: ['strategy'] },
   development:     { label: 'Development',    color: '#ff9500', agents: ['engineering'] },
@@ -5073,6 +5085,7 @@ const AGENT_META = {
   'narrative':        { icon: '📖', color: '#6ee7b7' },
   'audio':            { icon: '🎵', color: '#67e8f9' },
   'game-systems':     { icon: '⚔️', color: '#fca5a5' },
+  'research':         { icon: '🔬', color: '#e879f9' },
 };
 
 let selectedDashboard = 'home';
