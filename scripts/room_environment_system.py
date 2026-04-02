@@ -20,6 +20,7 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from PIL import Image, ImageDraw, ImageFilter
+from scripts import room_environment_v3 as envv3
 
 try:
     from google import genai as _google_genai
@@ -785,8 +786,22 @@ def _ensure_room_environment(room: Dict[str, Any]) -> Dict[str, Any]:
     bespoke_manifest.setdefault("used_ai", False)
     bespoke_manifest.setdefault("generated_at", None)
     bespoke_manifest.setdefault("validation_errors", [])
+    env["environment_pipeline_version"] = envv3.normalize_pipeline_version(env.get("environment_pipeline_version"))
+    if env["environment_pipeline_version"] == envv3.V3_PIPELINE_VERSION:
+        envv3.ensure_v3_metadata(env, room)
     _ensure_room_ai_helpfulness(env)
     return env
+
+
+def _sync_v3_environment_state(
+    env: Dict[str, Any],
+    room: Dict[str, Any],
+    biome_id: Optional[str] = None,
+    generated_at: Optional[str] = None,
+) -> None:
+    if envv3.normalize_pipeline_version(env.get("environment_pipeline_version")) != envv3.V3_PIPELINE_VERSION:
+        return
+    envv3.sync_v3_metadata(env, room, biome_id=biome_id, generated_at=generated_at)
 
 
 def _find_room(project: Dict[str, Any], room_id: str) -> Dict[str, Any]:
@@ -1565,9 +1580,33 @@ COMPONENT_SCHEMA_DEFS: Dict[str, Dict[str, Any]] = {
             "route_overlap_forbidden",
         ),
     },
+    "ceiling": {
+        "label": "Ceiling",
+        "visual_role": "structural",
+        "specific_fields": (
+            "ceiling_band_height",
+            "ceiling_span_profile",
+            "ceiling_edge_weight",
+            "ceiling_opening_clearance",
+            "ceiling_detail_density",
+            "ceiling_drop_forbidden",
+        ),
+    },
+    "backwall_panel": {
+        "label": "Backwall Panel",
+        "visual_role": "structural_depth",
+        "specific_fields": (
+            "panel_depth_profile",
+            "panel_value_separation",
+            "panel_center_quietness",
+            "panel_architecture_language",
+            "panel_repeat_rhythm",
+            "panel_focal_suppression",
+        ),
+    },
 }
 
-STRUCTURAL_SCHEMA_KEYS = {"walls", "floor", "platforms", "doors", "pits"}
+STRUCTURAL_SCHEMA_KEYS = {"walls", "floor", "platforms", "doors", "pits", "ceiling", "backwall_panel"}
 SCENIC_SCHEMA_KEYS = {"background", "midground"}
 
 COMPONENT_SCHEMA_DEFAULTS: Dict[str, Dict[str, Any]] = {
@@ -1686,6 +1725,38 @@ COMPONENT_SCHEMA_DEFAULTS: Dict[str, Dict[str, Any]] = {
         "alpha_profile": "solid on edges, transparent through center",
         "floor_crossing_forbidden": "true",
         "route_overlap_forbidden": "true",
+    },
+    "ceiling": {
+        "material_family": "weathered structural stone",
+        "silhouette_rules": ["clear ceiling cap silhouette", "top shell closure reads above the route", "avoid decorative hanging clutter"],
+        "detail_density": "low_to_medium",
+        "value_contrast": "darker than traversal tops but lighter than empty void",
+        "damage_profile": "restrained cracks and chipped spans",
+        "readability_constraints": ["must help close the room shell", "must not hang into the main traversal lane"],
+        "negative_constraints": ["no hanging focal prop", "no chandelier", "no dramatic center drop"],
+        "variation_rules": ["vary arch breakup subtly", "keep span language consistent across the biome"],
+        "ceiling_band_height": "moderate shell cap height",
+        "ceiling_span_profile": "broad arch or lintel span",
+        "ceiling_edge_weight": "heavy outer edge, quieter center",
+        "ceiling_opening_clearance": "preserve headroom over the main route",
+        "ceiling_detail_density": "restrained surface detail",
+        "ceiling_drop_forbidden": "true",
+    },
+    "backwall_panel": {
+        "material_family": "far structural stone panel",
+        "silhouette_rules": ["backwall planes support shell depth", "panel stays behind gameplay surfaces", "center remains quiet"],
+        "detail_density": "low_to_medium",
+        "value_contrast": "subordinate to traversal surfaces with visible separation",
+        "damage_profile": "aged stone seams and shallow recesses",
+        "readability_constraints": ["must not replace the foreground shell", "must preserve center-lane readability"],
+        "negative_constraints": ["no altar", "no center mural focal scene", "no bright focal opening"],
+        "variation_rules": ["vary recess spacing", "keep panel rhythm modular and biome-consistent"],
+        "panel_depth_profile": "shallow recessed wall depth",
+        "panel_value_separation": "slightly darker than traversal surfaces",
+        "panel_center_quietness": "center remains calm and low-contrast",
+        "panel_architecture_language": "echo biome shell family without becoming the main shell",
+        "panel_repeat_rhythm": "moderate repeating stone panel rhythm",
+        "panel_focal_suppression": "explicitly suppress shrine, altar, and mural focal scenes",
     },
 }
 
@@ -2203,6 +2274,12 @@ def build_room_environment_spec(project_id: str, room_id: str, payload: Dict[str
     project = load_project(project_id)
     room = _find_room(project, room_id)
     env = _ensure_room_environment(room)
+    requested_pipeline_version = envv3.normalize_pipeline_version(
+        payload.get("environment_pipeline_version") or env.get("environment_pipeline_version")
+    )
+    env["environment_pipeline_version"] = requested_pipeline_version
+    if requested_pipeline_version == envv3.V3_PIPELINE_VERSION:
+        envv3.ensure_v3_metadata(env, room)
     direction = normalize_art_direction(project.get("art_direction"), project.get("art_direction"))
     description = str(payload.get("description") or env["spec"].get("description") or "").strip()
     if not description:
@@ -2276,6 +2353,13 @@ def build_room_environment_spec(project_id: str, room_id: str, payload: Dict[str
         "generated_at": None,
         "validation_errors": [],
     }
+    biome_pack = _select_biome_pack(direction)
+    _sync_v3_environment_state(
+        env,
+        room,
+        biome_id=str((biome_pack or {}).get("biome_id") or "") or None,
+        generated_at=now_iso(),
+    )
     asset_pack = env["runtime"]["asset_pack"]
     if asset_pack.get("assets"):
         _refresh_asset_pack_staleness(room, env, direction)
@@ -4589,7 +4673,13 @@ def generate_room_environment_asset_pack(project_id: str, room_id: str, payload:
         frozen_path = project_dir / rel if rel else None
         if frozen_path and frozen_path.exists():
             frozen_refs.append(frozen_path)
-    plan = _room_component_plan(room, preview_id, biome_pack)
+    pipeline_version = envv3.normalize_pipeline_version(env.get("environment_pipeline_version"))
+    if pipeline_version == envv3.V3_PIPELINE_VERSION:
+        planner_output = envv3.build_generation_plan(room, preview_id, biome_pack, now_iso())
+        plan = planner_output["plan"]
+        env["assembly_plan"] = copy.deepcopy(planner_output["assembly_plan"])
+    else:
+        plan = _room_component_plan(room, preview_id, biome_pack)
     assets: Dict[str, Any] = {}
     failed_assets: List[str] = []
     validation_errors: List[str] = []
@@ -4812,6 +4902,7 @@ def generate_room_environment_asset_pack(project_id: str, room_id: str, payload:
     env["runtime"]["status"] = "ready" if status == "ready" else "blocked"
     env["runtime"]["source"] = "approved_preview" if status == "ready" else ("runtime_review_failed" if runtime_review.get("status") == "fail" else "bespoke_generation_failed")
     env["runtime"]["applied_preview_id"] = preview_id if status == "ready" else None
+    _sync_v3_environment_state(env, room, biome_id=biome_pack.get("biome_id"), generated_at=now_iso())
     project["updated_at"] = now_iso()
     save_project(project)
     append_history_event(project_id, {
@@ -4855,6 +4946,7 @@ def approve_room_environment_preview(project_id: str, room_id: str, payload: Dic
     bespoke_manifest["schema_validation"] = _validate_component_schemas(room, env["spec"], _room_geometry(room))
     bespoke_manifest["runtime_review"] = {"status": "idle", "fail_reasons": [], "metrics": {}, "screenshot_url": None, "review_mode": None}
     bespoke_manifest["review"] = copy.deepcopy(bespoke_manifest["runtime_review"])
+    _sync_v3_environment_state(env, room, biome_id=bespoke_manifest.get("biome_id"), generated_at=now_iso())
     asset_pack = env["runtime"]["asset_pack"]
     asset_pack["source_preview_id"] = preview_id
     if asset_pack.get("assets"):
@@ -4945,6 +5037,35 @@ def record_room_environment_feedback_event(project_id: str, room_id: str, payloa
         "ok": True,
         "environment": copy.deepcopy(env),
         "suggestion_id": suggestion_id,
+    }
+
+
+def record_room_environment_manual_review(project_id: str, room_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+    project = load_project(project_id)
+    room = _find_room(project, room_id)
+    env = _ensure_room_environment(room)
+    env["environment_pipeline_version"] = envv3.V3_PIPELINE_VERSION
+    envv3.ensure_v3_metadata(env, room)
+    record = envv3.append_manual_review_round(env, payload if isinstance(payload, dict) else {}, now_iso())
+    _sync_v3_environment_state(
+        env,
+        room,
+        biome_id=((env.get("room_intent") or {}).get("selected_biome_id")),
+        generated_at=now_iso(),
+    )
+    project["updated_at"] = now_iso()
+    save_project(project)
+    append_history_event(project_id, {
+        "type": "room_environment_manual_review_recorded",
+        "room_id": room_id,
+        "reviewer_role": record.get("reviewer_role"),
+        "round_number": record.get("round_number"),
+        "created_at": now_iso(),
+    })
+    return {
+        "ok": True,
+        "environment": copy.deepcopy(env),
+        "review_round": copy.deepcopy(record),
     }
 
 

@@ -767,6 +767,90 @@ body::before {
 }
 .nav-group-label:first-child { padding-top: 4px; }
 
+.nav-dash-group { display: flex; flex-direction: column; }
+.nav-dash-group.nav-dash-group--empty { display: none; }
+
+.os-nav-hidden { display: none !important; }
+
+.nav-section.nav-section--empty { display: none; }
+
+/* ─── PRODUCT CONTEXT (header) ─────────────────── */
+.os-context-wrap {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 1;
+  min-width: 0;
+  margin-right: var(--space-3);
+}
+.os-context-label {
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+.os-context-seg {
+  display: inline-flex;
+  flex-wrap: nowrap;
+  gap: var(--space-1);
+  padding: 2px;
+  border-radius: var(--radius-default);
+  border: 1px solid var(--line);
+  background: rgba(255,255,255,0.03);
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.os-context-pill {
+  flex-shrink: 0;
+  min-height: 32px;
+  padding: 6px var(--space-3);
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: background var(--transition-base), border-color var(--transition-base),
+    color var(--transition-base), transform var(--transition-fast);
+  white-space: nowrap;
+}
+.os-context-pill:hover {
+  color: var(--text);
+  border-color: var(--line-strong);
+  transform: translateY(-1px);
+}
+.os-context-pill[aria-pressed="true"] {
+  border-color: var(--accent);
+  background: rgba(0,232,200,0.12);
+  box-shadow: inset 0 0 0 1px rgba(0,232,200,0.08);
+  color: var(--accent);
+}
+.os-context-select {
+  display: none;
+  min-height: 44px;
+  padding: 10px var(--space-3);
+  border-radius: var(--radius-tight);
+  border: 1px solid var(--line);
+  background: rgba(255,255,255,0.04);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-sm);
+  max-width: 100%;
+}
+@media (max-width: 1100px) {
+  .os-context-seg { display: none; }
+  .os-context-select { display: block; width: 100%; max-width: 280px; }
+  .os-context-label { display: none; }
+  .os-context-wrap { flex-direction: column; align-items: stretch; }
+}
+
 /* ─── DASHBOARD NAV ACTIVE ───────────────────────── */
 .nav-item.db-active {
   color: var(--text);
@@ -2671,6 +2755,24 @@ h3.os-chart-card-title {
     <span class="header-title">AGENT OS</span>
     <span class="header-sub">Metroidvania Toolchain</span>
     <span class="header-spacer"></span>
+    <div class="os-context-wrap" role="group" aria-label="Product context">
+      <span class="os-context-label" id="os-context-label-text">Context</span>
+      <div class="os-context-seg" role="toolbar" aria-labelledby="os-context-label-text">
+        <button type="button" class="os-context-pill" data-os-context="all" aria-pressed="true">All</button>
+        <button type="button" class="os-context-pill" data-os-context="business" aria-pressed="false">Business</button>
+        <button type="button" class="os-context-pill" data-os-context="sprite" aria-pressed="false">Sprite dashboard</button>
+        <button type="button" class="os-context-pill" data-os-context="ashen-hollow" aria-pressed="false">Ashen Hollow</button>
+        <button type="button" class="os-context-pill" data-os-context="other-income" aria-pressed="false">Other income</button>
+      </div>
+      <label class="visually-hidden" for="osProductContextSync">Product context</label>
+      <select id="osProductContextSync" class="os-context-select" aria-label="Product context">
+        <option value="all">All products</option>
+        <option value="business">Business</option>
+        <option value="sprite">Sprite dashboard</option>
+        <option value="ashen-hollow">Ashen Hollow</option>
+        <option value="other-income">Other income streams</option>
+      </select>
+    </div>
     <span class="status-badge">System Ready</span>
   </header>
 
@@ -2680,6 +2782,7 @@ h3.os-chart-card-title {
     <div class="nav-section">
       <span class="nav-label">Dashboards</span>
 
+      <div class="nav-dash-group">
       <span class="nav-group-label">Core</span>
       <button type="button" class="nav-item db-active" data-dashboard="home">
         <span class="nav-dot" style="background:var(--accent)"></span>
@@ -2697,7 +2800,9 @@ h3.os-chart-card-title {
         <span class="nav-dot" style="background:#fbbf24"></span>
         <span class="nav-item-text">Ongoing Tasks</span>
       </button>
+      </div>
 
+      <div class="nav-dash-group">
       <span class="nav-group-label">Leadership</span>
       <button type="button" class="nav-item" data-dashboard="orchestration">
         <span class="nav-dot" style="background:#00e8c8"></span>
@@ -2707,7 +2812,9 @@ h3.os-chart-card-title {
         <span class="nav-dot" style="background:#94a3b8"></span>
         <span class="nav-item-text">Strategy</span>
       </button>
+      </div>
 
+      <div class="nav-dash-group">
       <div class="nav-divider" style="margin:4px 16px"></div>
       <span class="nav-group-label">Tech</span>
       <button type="button" class="nav-item" data-dashboard="development">
@@ -2742,7 +2849,9 @@ h3.os-chart-card-title {
         <span class="nav-dot" style="background:#4ade80"></span>
         <span class="nav-item-text">Analytics</span>
       </button>
+      </div>
 
+      <div class="nav-dash-group">
       <div class="nav-divider" style="margin:4px 16px"></div>
       <span class="nav-group-label">Business</span>
       <button type="button" class="nav-item" data-dashboard="legal">
@@ -2761,7 +2870,9 @@ h3.os-chart-card-title {
         <span class="nav-dot" style="background:#f5986e"></span>
         <span class="nav-item-text">Marketing</span>
       </button>
+      </div>
 
+      <div class="nav-dash-group">
       <div class="nav-divider" style="margin:4px 16px"></div>
       <span class="nav-group-label">Product</span>
       <button type="button" class="nav-item" data-dashboard="workbench">
@@ -2772,11 +2883,12 @@ h3.os-chart-card-title {
         <span class="nav-dot" style="background:#818cf8"></span>
         <span class="nav-item-text">Ashen Hollow</span>
       </button>
+      </div>
     </div>
 
     <div class="nav-divider"></div>
 
-    <div class="nav-section">
+    <div class="nav-section nav-resources-section">
       <span class="nav-label">Playbooks</span>
       <button type="button" class="nav-item" data-path="playbooks/release-readiness.md">
         <span class="nav-item-text">Release Readiness</span>
@@ -2800,7 +2912,7 @@ h3.os-chart-card-title {
 
     <div class="nav-divider"></div>
 
-    <div class="nav-section">
+    <div class="nav-section nav-resources-section">
       <span class="nav-label">Templates</span>
       <button type="button" class="nav-item" data-path="templates/decision-brief.md">
         <span class="nav-item-text">Decision Brief</span>
@@ -2824,7 +2936,7 @@ h3.os-chart-card-title {
 
     <div class="nav-divider"></div>
 
-    <div class="nav-section">
+    <div class="nav-section nav-resources-section">
       <span class="nav-label">Knowledge</span>
       <button type="button" class="nav-item" data-path="knowledge/ai-capabilities-q1-2026.md">
         <span class="nav-item-text">AI Q1 2026</span>
@@ -5280,6 +5392,15 @@ const DASHBOARDS = {
   'ashen-hollow':  { label: 'Ashen Hollow',   color: '#818cf8', agents: ['game-director', 'creative', 'narrative', 'audio', 'game-systems'] },
 };
 
+/** Sidebar + home shortcuts: which dashboard IDs appear in each product context (not "all"). */
+const OS_PRODUCT_CONTEXT_KEY = 'mv-agent-os-product-context';
+const OS_PRODUCT_CONTEXT_SETS = {
+  business: new Set(['home', 'issues', 'opportunities', 'ongoing-tasks', 'orchestration', 'strategy', 'legal', 'finance', 'support', 'marketing', 'analytics', 'cybersecurity', 'research']),
+  sprite: new Set(['home', 'issues', 'opportunities', 'ongoing-tasks', 'workbench', 'design', 'development', 'animation', 'level-design', 'qa', 'cybersecurity', 'research']),
+  'ashen-hollow': new Set(['home', 'issues', 'opportunities', 'ongoing-tasks', 'ashen-hollow', 'development', 'animation', 'level-design', 'design', 'qa', 'research']),
+  'other-income': new Set(['home', 'issues', 'opportunities', 'ongoing-tasks', 'marketing', 'finance', 'legal', 'support', 'analytics', 'strategy']),
+};
+
 const AGENT_META = {
   'orchestrator':     { icon: '🎯', color: '#00e8c8' },
   'strategy':         { icon: '🧭', color: '#94a3b8' },
@@ -5303,6 +5424,7 @@ const AGENT_META = {
 };
 
 let selectedDashboard = 'home';
+let osProductContext = 'all';
 let selectedAgent = 'orchestrator';
 let selectedMode = 'brainstorm';
 let generatedPrompt = '';
@@ -5355,6 +5477,127 @@ const toast       = document.getElementById('toast');
 
 const DASHBOARD_STORAGE_KEY = 'mv-agent-os-dashboard';
 
+function dashboardVisibleInProductContext(dashId, ctx) {
+  if (ctx === 'all') return true;
+  const s = OS_PRODUCT_CONTEXT_SETS[ctx];
+  return !!(s && s.has(dashId));
+}
+
+function resourcePathVisibleInContext(path, ctx) {
+  if (ctx === 'all') return true;
+  const p = path || '';
+  if (p.indexOf('metroidvania-design') !== -1) return ctx === 'sprite' || ctx === 'ashen-hollow';
+  if (p.indexOf('pricing-review') !== -1) return ctx === 'business' || ctx === 'other-income';
+  if (p.indexOf('legal-review-ai-assets') !== -1) return ctx === 'business' || ctx === 'other-income';
+  if (p.indexOf('knowledge/ai-capabilities') !== -1) return ctx !== 'ashen-hollow';
+  if (p.indexOf('playbooks/') === 0 || p.indexOf('templates/') === 0) {
+    if (ctx === 'other-income') {
+      return p.indexOf('pricing') !== -1 || p.indexOf('legal-review') !== -1 || p.indexOf('weekly-founder') !== -1 || p.indexOf('templates/') === 0;
+    }
+    return ctx === 'business' || ctx === 'sprite' || ctx === 'ashen-hollow';
+  }
+  return ctx === 'business';
+}
+
+function homeJumpVisibleInContext(jumpId, ctx) {
+  if (ctx === 'all') return true;
+  const map = {
+    research: ['business', 'sprite', 'ashen-hollow'],
+    analytics: ['business', 'other-income'],
+    development: ['sprite', 'ashen-hollow'],
+    finance: ['business', 'other-income'],
+    orchestration: ['business'],
+  };
+  const allowed = map[jumpId];
+  if (!allowed) return true;
+  return allowed.indexOf(ctx) !== -1;
+}
+
+function pickDefaultDashboardForContext(ctx) {
+  if (ctx === 'all') return 'home';
+  const order = ['home', 'issues', 'workbench', 'ashen-hollow', 'orchestration', 'development', 'marketing'];
+  for (let i = 0; i < order.length; i++) {
+    if (dashboardVisibleInProductContext(order[i], ctx)) return order[i];
+  }
+  for (const k of Object.keys(DASHBOARDS)) {
+    if (dashboardVisibleInProductContext(k, ctx)) return k;
+  }
+  return 'home';
+}
+
+function coerceDashboardForContext(dashId, ctx) {
+  if (dashboardVisibleInProductContext(dashId, ctx)) return dashId;
+  return pickDefaultDashboardForContext(ctx);
+}
+
+function getSavedProductContext() {
+  try {
+    const s = localStorage.getItem(OS_PRODUCT_CONTEXT_KEY);
+    if (s === 'all' || Object.prototype.hasOwnProperty.call(OS_PRODUCT_CONTEXT_SETS, s)) return s;
+  } catch (e) { /* private mode */ }
+  return 'all';
+}
+
+function setOsProductContextUi(ctx) {
+  document.documentElement.setAttribute('data-os-product-context', ctx);
+  document.querySelectorAll('.os-context-pill').forEach((btn) => {
+    const on = btn.getAttribute('data-os-context') === ctx;
+    btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+  });
+  const sync = document.getElementById('osProductContextSync');
+  if (sync && sync.value !== ctx) sync.value = ctx;
+  const live = document.getElementById('osProductContextLive');
+  if (live) {
+    const labels = { all: 'All products', business: 'Business', sprite: 'Sprite dashboard', 'ashen-hollow': 'Ashen Hollow', 'other-income': 'Other income streams' };
+    live.textContent = 'Context: ' + (labels[ctx] || ctx);
+  }
+}
+
+function applyOsProductContextNavFilter(ctx) {
+  document.querySelectorAll('.nav-item[data-dashboard]').forEach((btn) => {
+    const id = btn.getAttribute('data-dashboard');
+    const show = dashboardVisibleInProductContext(id, ctx);
+    btn.classList.toggle('os-nav-hidden', !show);
+  });
+  document.querySelectorAll('.nav-item[data-path]').forEach((btn) => {
+    const path = btn.getAttribute('data-path');
+    const show = resourcePathVisibleInContext(path, ctx);
+    btn.classList.toggle('os-nav-hidden', !show);
+  });
+  document.querySelectorAll('.nav-dash-group').forEach((g) => {
+    let any = false;
+    g.querySelectorAll('.nav-item').forEach((el) => {
+      if (!el.classList.contains('os-nav-hidden')) any = true;
+    });
+    g.classList.toggle('nav-dash-group--empty', !any);
+  });
+  document.querySelectorAll('.nav-section.nav-resources-section').forEach((sec) => {
+    let any = false;
+    sec.querySelectorAll('.nav-item').forEach((el) => {
+      if (!el.classList.contains('os-nav-hidden')) any = true;
+    });
+    sec.classList.toggle('nav-section--empty', !any);
+  });
+  const wb = document.getElementById('global-workbench-bar');
+  if (wb) {
+    const showWb = ctx === 'all' || ctx === 'sprite';
+    wb.classList.toggle('os-nav-hidden', !showWb);
+  }
+  document.querySelectorAll('[data-home-jump]').forEach((btn) => {
+    const jump = btn.getAttribute('data-home-jump');
+    const show = homeJumpVisibleInContext(jump, ctx);
+    btn.classList.toggle('os-nav-hidden', !show);
+  });
+  const grid = document.getElementById('home-os-chart-grid');
+  if (grid) {
+    const sec = grid.closest('.db-section');
+    if (sec) {
+      const showCharts = ctx === 'all' || ctx === 'business' || ctx === 'sprite' || ctx === 'other-income';
+      sec.classList.toggle('os-nav-hidden', !showCharts);
+    }
+  }
+}
+
 function getInitialDashboardId() {
   let id = 'home';
   try {
@@ -5402,6 +5645,21 @@ function selectDashboard(id) {
   requestAnimationFrame(() => {
     requestAnimationFrame(() => paintOsChartsForView(id));
   });
+}
+
+function setOsProductContext(ctx, options) {
+  const opts = options || {};
+  let next = ctx;
+  if (next !== 'all' && !Object.prototype.hasOwnProperty.call(OS_PRODUCT_CONTEXT_SETS, next)) next = 'all';
+  osProductContext = next;
+  try {
+    localStorage.setItem(OS_PRODUCT_CONTEXT_KEY, next);
+  } catch (e) { /* ignore */ }
+  setOsProductContextUi(next);
+  applyOsProductContextNavFilter(next);
+  if (!opts.skipDashboardNudge && !dashboardVisibleInProductContext(selectedDashboard, next)) {
+    selectDashboard(pickDefaultDashboardForContext(next));
+  }
 }
 
 function renderScopedAgents(dashId) {

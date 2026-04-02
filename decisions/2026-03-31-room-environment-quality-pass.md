@@ -150,3 +150,18 @@ This log records decisions for the room environment and bespoke asset quality pa
 - Status: Accepted
 - Why: Design review concluded that assembly-plan visibility, fixed review order, and proposal-first workflow behavior are necessary for reviewers to correctly diagnose failures and trust the system.
 - Consequence: V3 requirements and implementation planning must preserve the fixed review-surface order (`room intent` -> `biome selection` -> `component contracts` -> `assembly-plan overlay` -> `slot gallery` -> `combined kit` -> `runtime view` -> `contrast-QA view`) and use semi-formal architecture/behavior diagrams as part of the build contract.
+
+### 23. V3 starts as a versioned contract layered onto the current environment flow before planner replacement
+- Status: Accepted
+- Why: The safest implementation path is to introduce the v3 payload contract, review-state persistence, and validation-plan enforcement first, without breaking the working v2 generation path during calibration.
+- Consequence: The first implementation slice adds `environment_pipeline_version`, v3 contract scaffolding (`room_intent`, `component_contracts`, `assembly_plan`, `review_state`), and manual-review persistence now; the planner rewrite remains a follow-up phase rather than being coupled to the schema rollout.
+
+### 24. Manual review gate enforcement must include required round counts, not only presence/absence
+- Status: Accepted
+- Why: The validation plan requires repeated QA and Creative rounds before signoff. Treating a single review round as sufficient would weaken the gate and create false approvals.
+- Consequence: V3 review-state validation now tracks required round counts for QA and Creative and keeps approval in `manual_review_pending` until the configured minimum review rounds are recorded without blockers.
+
+### 25. V3 asset generation now uses a replacement planner path that covers all doors and major traversal platforms
+- Status: Accepted
+- Why: The old planner collapsed rooms down to one main floor, a few hero platforms, and one active door. That was the core architectural quality cap identified in review.
+- Consequence: V3 rooms now generate their bespoke slot plan from a separate geometry-first planner path that includes all door thresholds, all major traversal platforms, ceiling, backwall panel, side walls, and overlay geometry for review. The old planner remains only for v2 rooms during calibration.

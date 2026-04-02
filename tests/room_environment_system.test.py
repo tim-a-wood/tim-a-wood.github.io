@@ -261,6 +261,160 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         self.assertEqual(suggestion["context"]["room_complexity_bucket"], "light")
         self.assertEqual(suggestion["previews"]["render_level"], "level3")
 
+    def test_build_spec_supports_v3_environment_contract(self):
+        envsys.update_project_art_direction(self.project_id, {"template_id": "ruined-gothic", "locked": True})
+        spec = envsys.build_room_environment_spec(
+            self.project_id,
+            "R1",
+            {
+                "environment_pipeline_version": "v3",
+                "description": "A quiet stone threshold with a readable route, dark shell, and restrained atmosphere.",
+            },
+        )
+        env = spec["environment"]
+        self.assertEqual(env["environment_pipeline_version"], "v3")
+        self.assertIn("room_intent", env)
+        self.assertIn("component_contracts", env)
+        self.assertIn("assembly_plan", env)
+        self.assertIn("review_state", env)
+        self.assertIn("ceiling", env["spec"]["component_schemas"])
+        self.assertIn("backwall_panel", env["spec"]["component_schemas"])
+        self.assertEqual(env["room_intent"]["room_role"], "threshold")
+        self.assertIn("ceiling", env["component_contracts"])
+        self.assertIn("backwall_panel", env["component_contracts"])
+        self.assertEqual(
+            env["review_state"]["validation_plan"]["review_surface_order"],
+            [
+                "room_intent",
+                "biome_selection",
+                "component_contracts",
+                "assembly_plan_overlay",
+                "slot_gallery",
+                "combined_kit",
+                "runtime_view",
+                "contrast_qa_view",
+            ],
+        )
+        self.assertIn("runtime_review_pending", env["review_state"]["validation_status"]["issues"])
+        self.assertIn("qa_review_pending", env["review_state"]["validation_status"]["issues"])
+        self.assertIn("creative_review_pending", env["review_state"]["validation_status"]["issues"])
+
+    def test_v3_validation_plan_requires_manual_review_rounds(self):
+        envsys.update_project_art_direction(self.project_id, {"template_id": "overgrown-shrine", "locked": True})
+        envsys.build_room_environment_spec(
+            self.project_id,
+            "R1",
+            {
+                "environment_pipeline_version": "v3",
+                "description": "A shrine threshold with a readable floor, clear door framing, and quiet background depth.",
+            },
+        )
+        generated = envsys.generate_room_environment_previews(self.project_id, "R1", {})
+        preview_id = generated["environment"]["preview"]["images"][0]["preview_id"]
+        envsys.approve_room_environment_preview(self.project_id, "R1", {"preview_id": preview_id})
+        with mock.patch.object(envsys, "_generate_bespoke_component_from_references", side_effect=self._fake_ai_generate), \
+             mock.patch.object(envsys, "_validate_bespoke_component", return_value=(True, [])), \
+             mock.patch.object(envsys, "_run_runtime_review", return_value=self._passing_runtime_review()):
+            asset_pack = envsys.generate_room_environment_asset_pack(
+                self.project_id,
+                "R1",
+                {"preview_id": preview_id},
+            )
+        review_state = asset_pack["environment"]["review_state"]
+        self.assertEqual(review_state["runtime_review"]["status"], "pass")
+        self.assertEqual(review_state["validation_status"]["status"], "ready_for_manual_review")
+        self.assertIn("qa_review_pending", review_state["validation_status"]["issues"])
+        self.assertIn("creative_review_pending", review_state["validation_status"]["issues"])
+        self.assertEqual(review_state["approval_status"], "manual_review_pending")
+
+        screenshot = {"stage": "runtime_view", "url": "/mock/runtime-review.png"}
+        for _ in range(3):
+            envsys.record_room_environment_manual_review(
+                self.project_id,
+                "R1",
+                {
+                    "reviewer_role": "qa",
+                    "reviewer_name": "QA",
+                    "decision": "pass",
+                    "screenshots": [screenshot],
+                    "findings": [],
+                    "finding_codes": [],
+                    "blockers": [],
+                },
+            )
+            updated = envsys.record_room_environment_manual_review(
+                self.project_id,
+                "R1",
+                {
+                    "reviewer_role": "creative",
+                    "reviewer_name": "Creative",
+                    "decision": "approved",
+                    "screenshots": [screenshot],
+                    "findings": [],
+                    "finding_codes": [],
+                    "blockers": [],
+                },
+            )
+        final_review_state = updated["environment"]["review_state"]
+        self.assertEqual(len(final_review_state["qa_review_rounds"]), 3)
+        self.assertEqual(len(final_review_state["creative_review_rounds"]), 3)
+        self.assertEqual(final_review_state["validation_status"]["status"], "complete")
+        self.assertEqual(final_review_state["approval_status"], "approved")
+
+    def test_v3_planner_covers_all_doors_and_major_platforms(self):
+        room = self.saved["room_layout"]["rooms"][0]
+        room["doors"] = [
+            {"id": "R1-D1", "x": 160, "y": 960, "kind": "transition"},
+            {"id": "R1-D2", "x": 1440, "y": 960, "kind": "transition"},
+            {"id": "R1-D3", "x": 800, "y": 192, "kind": "transition"},
+        ]
+        room["platforms"] = [
+            {"id": "R1-P1", "x": 160, "y": 960, "len": 36},
+            {"id": "R1-P2", "x": 288, "y": 736, "len": 10},
+            {"id": "R1-P3", "x": 832, "y": 608, "len": 9},
+            {"id": "R1-P4", "x": 448, "y": 416, "len": 8},
+        ]
+        envsys.update_project_art_direction(self.project_id, {"template_id": "ruined-gothic", "locked": True})
+        envsys.build_room_environment_spec(
+            self.project_id,
+            "R1",
+            {
+                "environment_pipeline_version": "v3",
+                "description": "A vertical traversal room with multiple thresholds, readable shell framing, and strong route clarity.",
+            },
+        )
+        generated = envsys.generate_room_environment_previews(self.project_id, "R1", {})
+        preview_id = generated["environment"]["preview"]["images"][0]["preview_id"]
+        envsys.approve_room_environment_preview(self.project_id, "R1", {"preview_id": preview_id})
+        with mock.patch.object(envsys, "_generate_bespoke_component_from_references", side_effect=self._fake_ai_generate), \
+             mock.patch.object(envsys, "_validate_bespoke_component", return_value=(True, [])), \
+             mock.patch.object(envsys, "_run_runtime_review", return_value=self._passing_runtime_review()):
+            result = envsys.generate_room_environment_asset_pack(
+                self.project_id,
+                "R1",
+                {"preview_id": preview_id},
+            )
+        assembly_plan = result["environment"]["assembly_plan"]
+        slots = assembly_plan["slots"]
+        door_slots = [slot for slot in slots if slot["schema_key"] == "doors"]
+        traversal_top_slots = [
+            slot for slot in slots
+            if slot["component_type"] in {"main_floor_top", "hero_platform_top"}
+        ]
+        self.assertEqual(len(door_slots), 3)
+        self.assertEqual(len(traversal_top_slots), 4)
+        self.assertTrue(any(slot["schema_key"] == "ceiling" for slot in slots))
+        self.assertTrue(any(slot["schema_key"] == "backwall_panel" for slot in slots))
+        self.assertEqual(assembly_plan["planner_coverage_summary"]["status"], "pass")
+        self.assertEqual(
+            assembly_plan["planner_coverage_summary"]["major_structures"]["planned_door_slots"],
+            3,
+        )
+        self.assertEqual(
+            assembly_plan["planner_coverage_summary"]["major_structures"]["planned_platform_slots"],
+            4,
+        )
+
     def test_room_helpfulness_feedback_tracks_view_revise_and_persistence(self):
         envsys.update_project_art_direction(self.project_id, {"template_id": "ruined-gothic", "locked": True})
         envsys.build_room_environment_spec(
