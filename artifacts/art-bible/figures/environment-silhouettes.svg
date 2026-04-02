@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="160" viewBox="0 0 480 160" role="img" aria-labelledby="t d">
+  <title id="t">Environment silhouette grammar</title>
+  <desc id="d">Stable horizontals for floors; sharp repeats for hazards; door frame with top marker.</desc>
+  <rect width="100%" height="100%" fill="#2B343B"/>
+  <text x="16" y="24" fill="#7E8E95" font-family="system-ui,sans-serif" font-size="11">Traversable (stable horizontals)</text>
+  <rect x="16" y="112" width="120" height="12" fill="#07090B"/>
+  <rect x="136" y="104" width="80" height="20" fill="#07090B"/>
+  <text x="168" y="24" fill="#7E8E95" font-family="system-ui,sans-serif" font-size="11">Hazard (sharp repeats)</text>
+  <g fill="#07090B">
+    <polygon points="220,120 228,88 236,120"/>
+    <polygon points="236,120 244,88 252,120"/>
+    <polygon points="252,120 260,88 268,120"/>
+  </g>
+  <text x="312" y="24" fill="#7E8E95" font-family="system-ui,sans-serif" font-size="11">Door / transition</text>
+  <path d="M320 120 L320 48 L380 48 L380 120" fill="none" stroke="#07090B" stroke-width="6"/>
+  <path d="M320 48 Q350 20 380 48" fill="none" stroke="#07090B" stroke-width="6"/>
+  <rect x="348" y="36" width="8" height="10" fill="#A85B32"/>
+</svg>

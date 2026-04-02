@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="200" viewBox="0 0 480 200">
+  <rect width="100%" height="100%" fill="#1A2127"/>
+  <rect x="0" y="120" width="480" height="80" fill="#0D1115" opacity="0.85"/>
+  <path d="M0 100 Q120 60 240 80 T480 70" fill="none" stroke="#2B343B" stroke-width="16" opacity="0.5"/>
+  <rect x="40" y="132" width="200" height="16" fill="#2B343B" stroke="#4B5A63" stroke-width="2"/>
+  <text x="40" y="124" fill="#7E8E95" font-family="system-ui,sans-serif" font-size="10">Walkable</text>
+  <polygon points="280,148 288,112 296,148" fill="#A85B32"/>
+  <polygon points="296,148 304,112 312,148" fill="#A85B32"/>
+  <text x="272" y="104" fill="#7E8E95" font-family="system-ui,sans-serif" font-size="10">Hazard</text>
+  <ellipse cx="140" cy="100" rx="14" ry="22" fill="#9FD6C7" opacity="0.35" stroke="#9FD6C7" stroke-width="2"/>
+  <text x="118" y="76" fill="#7E8E95" font-family="system-ui,sans-serif" font-size="10">Player read</text>
+</svg>

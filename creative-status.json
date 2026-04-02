@@ -8,8 +8,8 @@
       "title": "Write the Ashen Hollow art bible foundation \u2014 palette, silhouette rules, visual identity",
       "status": "done",
       "risk": "med",
-      "note": "Completed v0.1 foundation at artifacts/ashen-hollow-art-bible-v0.1.md. Includes master palette + usage matrix, silhouette rules, global lighting/material response rules, and biome-by-biome visual grammar. Markdown is ready for direct PDF export.",
-      "proposed_solution": "Adopt this v0.1 as the immediate visual quality gate and run all new asset submissions through the pass/fail checklist before production intake."
+      "note": "Canonical art bible is v0.2 at artifacts/ashen-hollow-art-bible-v0.2.md with embedded swatches, SVG figures, and concept plates under artifacts/art-bible/. v0.1 is a superseded stub.",
+      "proposed_solution": "Use v0.2 as the quality gate; regenerate swatches with scripts/generate_art_bible_swatches.py when palette tokens change."
     },
     {
       "id": 2,
@@ -21,11 +21,11 @@
     },
     {
       "id": 3,
-      "title": "Art bible v0.1 review + mood concept pack (reference only)",
+      "title": "Art bible v0.2 \u2014 visual-integrated foundation",
       "status": "done",
       "risk": "low",
-      "note": "Creative review complete; v0.2 proposals captured for founder. Mood concepts: artifacts/concepts/ashen-hollow-concept-cinder-approach.png, weeping-vaults.png, player-silhouette.png. AI-generated\u2014human gate before production use per charter.",
-      "proposed_solution": "Fold approved v0.2 doc changes into artifacts/ashen-hollow-art-bible-v0.2.md after founder sign-off; train LoRA or paint-over from chosen concepts if adopted."
+      "note": "Shipped v0.2: per-token PNG swatches, biome mood grid, materials board, silhouette plates, lighting/value/separation SVGs. Concepts in artifacts/art-bible/concepts/; AI-generated\u2014human gate before production.",
+      "proposed_solution": "Lock v0.3 items (room crosswalk, pixel export spec) after Game Director / Narrative sign-off."
     }
   ],
   "risks_p0": [],
@@ -43,7 +43,7 @@
       "description": "Updated art bible section \u2014 palette assignment, silhouette rules, consistency constraints, atmospheric notes for a new biome or character.",
       "trigger": "A new biome, character, or visual system is approved for production",
       "last_run": "2026-04-02",
-      "output_location": "artifacts/ashen-hollow-art-bible-v0.1.md; artifacts/concepts/ (mood references, not bible text)"
+      "output_location": "artifacts/ashen-hollow-art-bible-v0.2.md; artifacts/art-bible/"
     },
     {
       "id": "asset-review",
