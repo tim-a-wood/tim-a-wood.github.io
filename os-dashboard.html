@@ -1205,15 +1205,21 @@ body::before {
 }
 .av-table-head-labels {
   display: grid;
-  grid-template-columns: minmax(0, 5.5rem) minmax(0, 6.5rem) minmax(0, 1fr) max-content max-content;
+  grid-template-columns: minmax(0, 5.5rem) minmax(0, 5.5rem) minmax(0, 6.5rem) minmax(0, 1fr) max-content max-content;
   gap: var(--space-2);
   min-width: 0;
 }
 .ongoing-av-table-head .av-table-head-labels {
-  grid-template-columns: minmax(0, 6rem) minmax(0, 5rem) minmax(0, 6.5rem) minmax(0, 1fr) max-content max-content;
+  grid-template-columns: minmax(0, 5.5rem) minmax(0, 5rem) minmax(0, 5rem) minmax(0, 6.5rem) minmax(0, 1fr) max-content max-content;
 }
 .ongoing-av-row .av-row-grid {
-  grid-template-columns: minmax(0, 6rem) minmax(0, 5rem) minmax(0, 6.5rem) minmax(0, 1fr) max-content max-content;
+  grid-template-columns: minmax(0, 5.5rem) minmax(0, 5rem) minmax(0, 5rem) minmax(0, 6.5rem) minmax(0, 1fr) max-content max-content;
+}
+.av-cell-product {
+  font-size: var(--font-size-xs);
+  color: var(--muted);
+  line-height: 1.35;
+  min-width: 0;
 }
 .av-th {
   font-size: var(--font-size-xs);
@@ -1273,7 +1279,7 @@ body::before {
 }
 .av-row-grid {
   display: grid;
-  grid-template-columns: minmax(0, 5.5rem) minmax(0, 6.5rem) minmax(0, 1fr) max-content max-content;
+  grid-template-columns: minmax(0, 5.5rem) minmax(0, 5.5rem) minmax(0, 6.5rem) minmax(0, 1fr) max-content max-content;
   gap: var(--space-2);
   align-items: center;
   min-width: 0;
@@ -5695,6 +5701,16 @@ h3.os-chart-card-title {
               <option value="done">Done</option>
             </select>
           </div>
+          <div class="av-filter-group">
+            <span class="av-filter-label">Product</span>
+            <select class="av-select" id="ao-filter-product" aria-label="Filter opportunities by product">
+              <option value="">All products</option>
+              <option value="business">Business</option>
+              <option value="sprite">Sprite dashboard</option>
+              <option value="ashen-hollow">Ashen Hollow</option>
+              <option value="other-income">Other income streams</option>
+            </select>
+          </div>
           <input type="text" class="av-search" id="ao-search" placeholder="Search within filtered opportunities…" autocomplete="off" spellcheck="false" aria-label="Search opportunities in the filtered list">
           <button type="button" class="av-btn av-btn--accent av-add-btn" id="ao-add-btn">+ Add Opportunity</button>
           <span class="av-count" id="ao-count"></span>
@@ -5714,6 +5730,13 @@ h3.os-chart-card-title {
             <option value="low">low</option>
             <option value="med">med</option>
             <option value="high">high</option>
+          </select>
+          <select class="av-field" id="ao-add-product" aria-label="Product scope for this opportunity">
+            <option value="">All applicable (agent default)</option>
+            <option value="business">Business</option>
+            <option value="sprite">Sprite dashboard</option>
+            <option value="ashen-hollow">Ashen Hollow</option>
+            <option value="other-income">Other income streams</option>
           </select>
           <input class="av-field av-field-wide" id="ao-add-title" placeholder="Opportunity title">
           <details class="av-add-details">
@@ -5736,6 +5759,7 @@ h3.os-chart-card-title {
           <span class="av-th"><span class="visually-hidden">Row </span>#</span>
           <div class="av-table-head-labels">
             <span class="av-th">Owner</span>
+            <span class="av-th">Product</span>
             <span class="av-th">Stakeholders</span>
             <span class="av-th">Summary</span>
             <span class="av-th">Status</span>
@@ -5777,6 +5801,16 @@ h3.os-chart-card-title {
               <option value="opportunity">Opportunities only</option>
             </select>
           </div>
+          <div class="av-filter-group">
+            <span class="av-filter-label">Product</span>
+            <select class="av-select" id="ot-filter-product" aria-label="Filter in-progress tasks by product">
+              <option value="">All products</option>
+              <option value="business">Business</option>
+              <option value="sprite">Sprite dashboard</option>
+              <option value="ashen-hollow">Ashen Hollow</option>
+              <option value="other-income">Other income streams</option>
+            </select>
+          </div>
           <input type="text" class="av-search" id="ot-search" placeholder="Search within filtered in-progress items…" autocomplete="off" spellcheck="false" aria-label="Search in-progress items in the filtered list">
           <button type="button" class="av-btn av-btn--accent av-add-btn" id="ot-add-work-btn">+ Add in-progress work</button>
           <span class="av-count" id="ot-count"></span>
@@ -5805,6 +5839,13 @@ h3.os-chart-card-title {
             <option value="low">low</option>
             <option value="med">med</option>
             <option value="high">high</option>
+          </select>
+          <select class="av-field" id="ot-iss-product" aria-label="Product scope for this issue">
+            <option value="">All applicable (agent default)</option>
+            <option value="business">Business</option>
+            <option value="sprite">Sprite dashboard</option>
+            <option value="ashen-hollow">Ashen Hollow</option>
+            <option value="other-income">Other income streams</option>
           </select>
           <input class="av-field av-field-wide" id="ot-iss-title" placeholder="Issue title">
           <details class="av-add-details">
@@ -5838,6 +5879,13 @@ h3.os-chart-card-title {
             <option value="med">med</option>
             <option value="high">high</option>
           </select>
+          <select class="av-field" id="ot-opp-product" aria-label="Product scope for this opportunity">
+            <option value="">All applicable (agent default)</option>
+            <option value="business">Business</option>
+            <option value="sprite">Sprite dashboard</option>
+            <option value="ashen-hollow">Ashen Hollow</option>
+            <option value="other-income">Other income streams</option>
+          </select>
           <input class="av-field av-field-wide" id="ot-opp-title" placeholder="Opportunity title">
           <details class="av-add-details">
             <summary>Optional fields</summary>
@@ -5859,6 +5907,7 @@ h3.os-chart-card-title {
           <span class="av-th"><span class="visually-hidden">Row </span>#</span>
           <div class="av-table-head-labels">
             <span class="av-th">Owner</span>
+            <span class="av-th">Product</span>
             <span class="av-th">Kind</span>
             <span class="av-th">Stakeholders</span>
             <span class="av-th">Summary</span>
@@ -5894,6 +5943,16 @@ h3.os-chart-card-title {
               <option value="done">Done</option>
             </select>
           </div>
+          <div class="av-filter-group">
+            <span class="av-filter-label">Product</span>
+            <select class="av-select" id="av-filter-product" aria-label="Filter issues by product">
+              <option value="">All products</option>
+              <option value="business">Business</option>
+              <option value="sprite">Sprite dashboard</option>
+              <option value="ashen-hollow">Ashen Hollow</option>
+              <option value="other-income">Other income streams</option>
+            </select>
+          </div>
           <input type="text" class="av-search" id="av-search" placeholder="Search within filtered issues…" autocomplete="off" spellcheck="false" aria-label="Search issues in the filtered list">
           <button type="button" class="av-btn av-btn--accent av-add-btn" id="av-add-btn">+ Add Issue</button>
           <span class="av-count" id="av-count"></span>
@@ -5913,6 +5972,13 @@ h3.os-chart-card-title {
             <option value="low">low</option>
             <option value="med">med</option>
             <option value="high">high</option>
+          </select>
+          <select class="av-field" id="av-add-product" aria-label="Product scope for this issue">
+            <option value="">All applicable (agent default)</option>
+            <option value="business">Business</option>
+            <option value="sprite">Sprite dashboard</option>
+            <option value="ashen-hollow">Ashen Hollow</option>
+            <option value="other-income">Other income streams</option>
           </select>
           <input class="av-field av-field-wide" id="av-add-title" placeholder="Issue title">
           <details class="av-add-details">
@@ -5935,6 +6001,7 @@ h3.os-chart-card-title {
           <span class="av-th"><span class="visually-hidden">Row </span>#</span>
           <div class="av-table-head-labels">
             <span class="av-th">Owner</span>
+            <span class="av-th">Product</span>
             <span class="av-th">Stakeholders</span>
             <span class="av-th">Summary</span>
             <span class="av-th">Status</span>
@@ -6526,6 +6593,103 @@ function itemVisibleInOsProductContext(agent, item, ctx) {
   const cleaned = arr.map((x) => String(x).trim()).filter(Boolean);
   if (cleaned.length === 0) return agentAllowedInOsProductContext(agent, ctx);
   return cleaned.indexOf(ctx) !== -1;
+}
+
+/** Ordered slugs for Issues / Opportunities / Ongoing product column and filters (matches header context, excluding "all"). */
+const OS_PRODUCT_TABLE_SLUGS = ['business', 'sprite', 'ashen-hollow', 'other-income'];
+const OS_PRODUCT_TABLE_LABELS = {
+  business: 'Business',
+  sprite: 'Sprite dashboard',
+  'ashen-hollow': 'Ashen Hollow',
+  'other-income': 'Other income streams'
+};
+
+function osIsKnownProductSlug(slug) {
+  return !!(slug && Object.prototype.hasOwnProperty.call(OS_PRODUCT_CONTEXT_SETS, String(slug).trim()));
+}
+
+/** Explicit product tags on a row (same keys as header product context). */
+function rowExplicitProductSlugs(item) {
+  if (!item || typeof item !== 'object') return [];
+  var raw = item.os_contexts != null ? item.os_contexts : item.os_context;
+  if (raw == null) return [];
+  var arr = Array.isArray(raw) ? raw : [raw];
+  var out = [];
+  var seen = Object.create(null);
+  for (var i = 0; i < arr.length; i++) {
+    var t = String(arr[i]).trim();
+    if (!osIsKnownProductSlug(t) || seen[t]) continue;
+    seen[t] = true;
+    out.push(t);
+  }
+  return out;
+}
+
+function agentDefaultProductSlugs(agent) {
+  if (!agent) return [];
+  var out = [];
+  for (var i = 0; i < OS_PRODUCT_TABLE_SLUGS.length; i++) {
+    var slug = OS_PRODUCT_TABLE_SLUGS[i];
+    if (agentAllowedInOsProductContext(agent, slug)) out.push(slug);
+  }
+  return out;
+}
+
+/** Slugs for display and table product filter: explicit os_context(s), else all products the owner agent can appear under. */
+function rowProductSlugsForTable(agent, item) {
+  var explicit = rowExplicitProductSlugs(item);
+  if (explicit.length) return explicit;
+  return agentDefaultProductSlugs(agent);
+}
+
+function itemMatchesTableProductFilter(agent, item, filterSlug) {
+  if (!filterSlug) return true;
+  return rowProductSlugsForTable(agent, item).indexOf(filterSlug) !== -1;
+}
+
+function formatRowProductColumn(agent, item) {
+  var slugs = rowProductSlugsForTable(agent, item);
+  if (!slugs.length) return '—';
+  var labels = slugs.map(function(s) { return OS_PRODUCT_TABLE_LABELS[s] || s; });
+  return labels.join(', ');
+}
+
+function rowProductSearchText(agent, item) {
+  return formatRowProductColumn(agent, item).toLowerCase();
+}
+
+/** Selected value for edit form: '' = inherit agent default; else single slug. */
+function rowProductEditSelectValue(agent, item) {
+  var explicit = rowExplicitProductSlugs(item);
+  if (explicit.length === 1) return explicit[0];
+  return '';
+}
+
+/** `<option>` markup for product scope selects (values match header product context). */
+function osProductScopeSelectMarkup(selectedSlug) {
+  var sel = selectedSlug || '';
+  var html = '<option value=""' + (!sel ? ' selected' : '') + '>All applicable (agent default)</option>';
+  for (var i = 0; i < OS_PRODUCT_TABLE_SLUGS.length; i++) {
+    var slug = OS_PRODUCT_TABLE_SLUGS[i];
+    var lab = OS_PRODUCT_TABLE_LABELS[slug] || slug;
+    html += '<option value="' + slug + '"' + (sel === slug ? ' selected' : '') + '>' + escapeHtml(lab) + '</option>';
+  }
+  return html;
+}
+
+/** Apply product scope to a priority/opportunity object (mutates). */
+function osApplyProductScopeToItem(target, scopeVal) {
+  if (!target || typeof target !== 'object') return;
+  var v = scopeVal != null ? String(scopeVal).trim() : '';
+  if (!v) {
+    delete target.os_context;
+    delete target.os_contexts;
+    return;
+  }
+  if (osIsKnownProductSlug(v)) {
+    target.os_contexts = [v];
+    delete target.os_context;
+  }
 }
 
 function resourcePathVisibleInContext(path, ctx) {
@@ -9086,6 +9250,8 @@ function avFocusConflicts(file) {
   }
   var statusFilter = document.getElementById('av-filter-status');
   if (statusFilter) statusFilter.value = '';
+  var productFilter = document.getElementById('av-filter-product');
+  if (productFilter) productFilter.value = '';
   var search = document.getElementById('av-search');
   if (search) search.value = '';
   avRefreshConflictBanner();
@@ -9599,6 +9765,8 @@ function avIssuesEmptyMessageHtml() {
   if (osProductContext !== 'all') parts.push('product context: ' + osPriorityProductContextLabel());
   if (owner) parts.push('owner: ' + avSelectOptionText(ownerSel));
   if (status) parts.push('status: ' + avStatusFilterLabel(status));
+  var avProdSel = document.getElementById('av-filter-product');
+  if (avProdSel && avProdSel.value) parts.push('product: ' + avSelectOptionText(avProdSel));
   if (query) parts.push('search: “' + escapeHtml(query) + '”');
   var filterLine = parts.length
     ? '<span class="av-empty-state-filters">Active filters — ' + parts.join(' · ') + '. Try clearing a filter or changing the search.</span>'
@@ -9628,6 +9796,8 @@ function aoOpportunitiesEmptyMessageHtml() {
   if (osProductContext !== 'all') parts.push('product context: ' + osPriorityProductContextLabel());
   if (owner) parts.push('owner: ' + avSelectOptionText(ownerSel));
   if (status) parts.push('status: ' + avStatusFilterLabel(status));
+  var aoProdSel = document.getElementById('ao-filter-product');
+  if (aoProdSel && aoProdSel.value) parts.push('product: ' + avSelectOptionText(aoProdSel));
   if (query) parts.push('search: “' + escapeHtml(query) + '”');
   var filterLine = parts.length
     ? '<span class="av-empty-state-filters">Active filters — ' + parts.join(' · ') + '. Try clearing a filter or changing the search.</span>'
@@ -9658,6 +9828,8 @@ function otOngoingEmptyMessageHtml() {
   if (owner) parts.push('owner: ' + avSelectOptionText(ownerSel));
   if (kind === 'issue') parts.push('kind: Issues only');
   if (kind === 'opportunity') parts.push('kind: Opportunities only');
+  var otProdSel = document.getElementById('ot-filter-product');
+  if (otProdSel && otProdSel.value) parts.push('product: ' + avSelectOptionText(otProdSel));
   if (query) parts.push('search: “' + escapeHtml(query) + '”');
   var filterLine = parts.length
     ? '<span class="av-empty-state-filters">Active filters — ' + parts.join(' · ') + '. Try clearing a filter or changing the search.</span>'
@@ -9712,9 +9884,11 @@ function otRebuildFromCaches() {
 function otGetFiltered() {
   var ownerSel = document.getElementById('ot-filter-owner');
   var kindSel = document.getElementById('ot-filter-kind');
+  var productSel = document.getElementById('ot-filter-product');
   var searchEl = document.getElementById('ot-search');
   var owner = ownerSel ? ownerSel.value : '';
   var kind = kindSel ? kindSel.value : '';
+  var productF = productSel ? productSel.value : '';
   var query = searchEl ? searchEl.value.toLowerCase().trim() : '';
 
   return otAllActions.filter(function(a) {
@@ -9722,11 +9896,12 @@ function otGetFiltered() {
     if (owner && a._agent !== owner) return false;
     if (kind === 'issue' && a._ongoingSource !== 'issue') return false;
     if (kind === 'opportunity' && a._ongoingSource !== 'opportunity') return false;
+    if (!itemMatchesTableProductFilter(a._agent, a, productF)) return false;
     if (query) {
       var kindLabel = a._ongoingSource === 'issue' ? 'issue' : 'opportunity';
       var stake = Array.isArray(a.stakeholders) ? a.stakeholders.join(' ') : (a.stakeholders || '');
       var sol = a.proposed_solution || a.solution || '';
-      var hay = [a.title, a.summary, a.owner, stake, a.note, sol, kindLabel, avLabel(a._agent)].join(' ').toLowerCase();
+      var hay = [a.title, a.summary, a.owner, stake, a.note, sol, kindLabel, avLabel(a._agent), rowProductSearchText(a._agent, a)].join(' ').toLowerCase();
       if (hay.indexOf(query) === -1) return false;
     }
     return true;
@@ -9809,6 +9984,7 @@ function otRowHtml(action, idx, total) {
   var upDisabled = fileIdx <= 0 ? ' disabled' : '';
   var downDisabled = (fileIdx < 0 || fileIdx >= fileTotal - 1) ? ' disabled' : '';
   var num = String(idx + 1).padStart(2, '0');
+  var productCell = formatRowProductColumn(action._agent, action);
 
   return '<div class="av-row ongoing-av-row" role="group" data-file="' + escapeHtml(action._file) + '" data-id="' + escapeHtml(String(action.id || '')) + '" data-source="' + escapeHtml(action._ongoingSource) + '">'
     + '<div class="av-drag-handle" draggable="true" title="Drag to reorder">⠿</div>'
@@ -9816,6 +9992,7 @@ function otRowHtml(action, idx, total) {
     + '<div class="av-row-main" role="button" tabindex="0" aria-expanded="false">'
     +   '<div class="av-row-grid">'
     +     '<span class="av-cell av-cell-owner">' + escapeHtml(ownerCell) + '</span>'
+    +     '<span class="av-cell av-cell-product">' + escapeHtml(productCell) + '</span>'
     +     '<span class="av-cell av-cell-kind">' + kindBadge + '</span>'
     +     '<span class="av-cell av-cell-stakeholders">' + escapeHtml(stakeholdersCell) + '</span>'
     +     '<span class="av-cell av-cell-summary">' + escapeHtml(summaryText) + '</span>'
@@ -10098,6 +10275,8 @@ async function otAddIssueFromPanel() {
     else if (stParts.length > 1) entry.stakeholders = stParts;
   }
   if (summaryExtra) entry.summary = summaryExtra;
+  var otIssProd = ((document.getElementById('ot-iss-product') || {}).value || '').trim();
+  osApplyProductScopeToItem(entry, otIssProd);
   data.priorities.push(entry);
   data.updated = new Date().toISOString().slice(0, 10);
   var ok = await avPersist(file);
@@ -10161,6 +10340,8 @@ async function otAddOppFromPanel() {
     else if (stParts.length > 1) entry.stakeholders = stParts;
   }
   if (summaryExtra) entry.summary = summaryExtra;
+  var otOppProd = ((document.getElementById('ot-opp-product') || {}).value || '').trim();
+  osApplyProductScopeToItem(entry, otOppProd);
   data.opportunities.push(entry);
   data.updated = new Date().toISOString().slice(0, 10);
   var ok = await aoPersist(file);
@@ -10323,18 +10504,21 @@ async function loadActionsView() {
 function avGetFiltered() {
   var ownerSel = document.getElementById('av-filter-owner');
   var statusSel = document.getElementById('av-filter-status');
+  var productSel = document.getElementById('av-filter-product');
   var searchEl = document.getElementById('av-search');
   var owner = ownerSel ? ownerSel.value : '';
   var status = statusSel ? statusSel.value : '';
+  var productF = productSel ? productSel.value : '';
   var query = searchEl ? searchEl.value.toLowerCase().trim() : '';
 
   return avAllActions.filter(function(a) {
     if (!itemVisibleInOsProductContext(a._agent, a, osProductContext)) return false;
     if (owner && a._agent !== owner) return false;
     if (status && (a.status || '') !== status) return false;
+    if (!itemMatchesTableProductFilter(a._agent, a, productF)) return false;
     if (query) {
       var stake = Array.isArray(a.stakeholders) ? a.stakeholders.join(' ') : (a.stakeholders || '');
-      var hay = [a.title, a.summary, a.owner, stake, a.note, a.status, a.risk, avLabel(a._agent)].join(' ').toLowerCase();
+      var hay = [a.title, a.summary, a.owner, stake, a.note, a.status, a.risk, avLabel(a._agent), rowProductSearchText(a._agent, a)].join(' ').toLowerCase();
       if (hay.indexOf(query) === -1) return false;
     }
     return true;
@@ -10557,6 +10741,7 @@ function avRowHtml(action, idx, total) {
       || (!avConflictFocus.file && action._file && avConflictIssueIds(action._file).indexOf(Number(action.id)) !== -1)
     )
   );
+  var productCell = formatRowProductColumn(action._agent, action);
 
   return '<div class="av-row' + (isConflict ? ' av-row--conflict' : '') + '" data-file="' + escapeHtml(action._file) + '" data-id="' + escapeHtml(action.id || '') + '">'
     + '<div class="av-drag-handle" draggable="true" title="Drag to reorder">⠿</div>'
@@ -10564,6 +10749,7 @@ function avRowHtml(action, idx, total) {
     + '<div class="av-row-main" role="button" tabindex="0" aria-expanded="false">'
     +   '<div class="av-row-grid">'
     +     '<span class="av-cell av-cell-owner">' + escapeHtml(ownerCell) + '</span>'
+    +     '<span class="av-cell av-cell-product">' + escapeHtml(productCell) + '</span>'
     +     '<span class="av-cell av-cell-stakeholders">' + escapeHtml(stakeholdersCell) + '</span>'
     +     '<span class="av-cell av-cell-summary">' + escapeHtml(summaryText) + '</span>'
     +     '<span class="av-status-col ' + stMk.cls + '">' + escapeHtml(stMk.label) + '</span>'
@@ -10613,6 +10799,9 @@ function avToggleEdit(row, action) {
 
   editArea.innerHTML = '<div><div class="av-detail-label">Owner (accountable)</div>'
     + '<input class="av-field" data-field="owner" value="' + escapeHtml(action.owner || '') + '" placeholder="e.g. Design / Cross-team"></div>'
+    + '<div><div class="av-detail-label">Product</div>'
+    + '<select class="av-field" data-field="os_product_scope">' + osProductScopeSelectMarkup(rowProductEditSelectValue(action._agent, action)) + '</select>'
+    + '<p style="font-size:var(--font-size-xs);color:var(--muted);margin-top:var(--space-1);line-height:1.45">Optional. Pin to one product (saved as tags in the status file), or leave default so the row follows every product this owner agent appears under.</p></div>'
     + '<div><div class="av-detail-label">Stakeholders</div>'
     + '<input class="av-field" data-field="stakeholders" value="' + escapeHtml(Array.isArray(action.stakeholders) ? action.stakeholders.join(', ') : (action.stakeholders || '')) + '" placeholder="Comma-separated"></div>'
     + '<div><div class="av-detail-label">Summary</div>'
@@ -10656,7 +10845,12 @@ async function avCommitEdit(row, action, editArea, editBtn) {
 
   var fields = {};
   editArea.querySelectorAll('[data-field]').forEach(function(el) {
-    fields[el.dataset.field] = el.value.trim() || null;
+    var key = el.dataset.field;
+    if (key === 'os_product_scope') {
+      fields[key] = el.value || '';
+      return;
+    }
+    fields[key] = el.value.trim() || null;
   });
   if (fields.id != null) {
     var parsedId = Number(fields.id);
@@ -10669,18 +10863,25 @@ async function avCommitEdit(row, action, editArea, editBtn) {
     }
   }
 
+  var productScope = fields.os_product_scope;
+  delete fields.os_product_scope;
+
   var previousPriorityId = action._priorityId;
 
   // Update in-memory
   Object.assign(action, fields);
   action._priorityId = action.id;
+  osApplyProductScopeToItem(action, productScope);
 
   // Update cache
   var data = avCache[action._file];
   if (data && Array.isArray(data.priorities)) {
     var targetIdx = avFindPriorityIndex(action._file, previousPriorityId);
     var target = targetIdx >= 0 ? data.priorities[targetIdx] : null;
-    if (target) Object.assign(target, fields);
+    if (target) {
+      Object.assign(target, fields);
+      osApplyProductScopeToItem(target, productScope);
+    }
     data.updated = new Date().toISOString().slice(0,10);
     avSyncActionIndexesForFile(action._file);
   }
@@ -10934,6 +11135,8 @@ async function avAddActionItem() {
     else if (stParts.length > 1) entry.stakeholders = stParts;
   }
   if (summaryExtra) entry.summary = summaryExtra;
+  var avAddProd = ((document.getElementById('av-add-product') || {}).value || '').trim();
+  osApplyProductScopeToItem(entry, avAddProd);
   data.priorities.push(entry);
   data.updated = new Date().toISOString().slice(0, 10);
   var ok = await avPersist(file);
@@ -11142,6 +11345,8 @@ async function ensureStatusCachesLoaded() {
       avOwnerSel.addEventListener('change', avApplyFilters);
       var avStatusSel = document.getElementById('av-filter-status');
       if (avStatusSel) avStatusSel.addEventListener('change', avApplyFilters);
+      var avProductSel = document.getElementById('av-filter-product');
+      if (avProductSel) avProductSel.addEventListener('change', avApplyFilters);
       var avSearchEl = document.getElementById('av-search');
       if (avSearchEl) avSearchEl.addEventListener('input', avApplyFilters);
     }
@@ -11151,6 +11356,8 @@ async function ensureStatusCachesLoaded() {
       aoOwnerSel.addEventListener('change', aoApplyFilters);
       var aoStatusSel = document.getElementById('ao-filter-status');
       if (aoStatusSel) aoStatusSel.addEventListener('change', aoApplyFilters);
+      var aoProductSel = document.getElementById('ao-filter-product');
+      if (aoProductSel) aoProductSel.addEventListener('change', aoApplyFilters);
       var aoSearchEl = document.getElementById('ao-search');
       if (aoSearchEl) aoSearchEl.addEventListener('input', aoApplyFilters);
     }
@@ -11160,6 +11367,8 @@ async function ensureStatusCachesLoaded() {
       otOwnerSel.addEventListener('change', otApplyFilters);
       var otKindSel = document.getElementById('ot-filter-kind');
       if (otKindSel) otKindSel.addEventListener('change', otApplyFilters);
+      var otProductSel = document.getElementById('ot-filter-product');
+      if (otProductSel) otProductSel.addEventListener('change', otApplyFilters);
       var otSearchEl = document.getElementById('ot-search');
       if (otSearchEl) otSearchEl.addEventListener('input', otApplyFilters);
     }
@@ -11197,18 +11406,21 @@ function aoPriorityScore(item) {
 function aoGetFiltered() {
   var ownerSel = document.getElementById('ao-filter-owner');
   var statusSel = document.getElementById('ao-filter-status');
+  var productSel = document.getElementById('ao-filter-product');
   var searchEl = document.getElementById('ao-search');
   var owner = ownerSel ? ownerSel.value : '';
   var status = statusSel ? statusSel.value : '';
+  var productF = productSel ? productSel.value : '';
   var query = searchEl ? searchEl.value.toLowerCase().trim() : '';
 
   return aoAllActions.filter(function(a) {
     if (!itemVisibleInOsProductContext(a._agent, a, osProductContext)) return false;
     if (owner && a._agent !== owner) return false;
     if (status && (a.status || '') !== status) return false;
+    if (!itemMatchesTableProductFilter(a._agent, a, productF)) return false;
     if (query) {
       var stake = Array.isArray(a.stakeholders) ? a.stakeholders.join(' ') : (a.stakeholders || '');
-      var hay = [a.title, a.summary, a.owner, stake, a.note, a.status, a.risk, aoLabel(a._agent)].join(' ').toLowerCase();
+      var hay = [a.title, a.summary, a.owner, stake, a.note, a.status, a.risk, aoLabel(a._agent), rowProductSearchText(a._agent, a)].join(' ').toLowerCase();
       if (hay.indexOf(query) === -1) return false;
     }
     return true;
@@ -11438,6 +11650,7 @@ function aoRowHtml(action, idx, total) {
   var upDisabled = filePriorityIdx <= 0 ? ' disabled' : '';
   var downDisabled = (filePriorityIdx < 0 || filePriorityIdx >= filePriorityTotal - 1) ? ' disabled' : '';
   var num = String(idx + 1).padStart(2, '0');
+  var productCell = formatRowProductColumn(action._agent, action);
 
   return '<div class="av-row" data-file="' + escapeHtml(action._file) + '" data-id="' + escapeHtml(String(action.id || '')) + '">'
     + '<div class="av-drag-handle" draggable="true" title="Drag to reorder">⠿</div>'
@@ -11445,6 +11658,7 @@ function aoRowHtml(action, idx, total) {
     + '<div class="av-row-main" role="button" tabindex="0" aria-expanded="false">'
     +   '<div class="av-row-grid">'
     +     '<span class="av-cell av-cell-owner">' + escapeHtml(ownerCell) + '</span>'
+    +     '<span class="av-cell av-cell-product">' + escapeHtml(productCell) + '</span>'
     +     '<span class="av-cell av-cell-stakeholders">' + escapeHtml(stakeholdersCell) + '</span>'
     +     '<span class="av-cell av-cell-summary">' + escapeHtml(summaryText) + '</span>'
     +     '<span class="av-status-col ' + stMk.cls + '">' + escapeHtml(stMk.label) + '</span>'
@@ -11494,6 +11708,9 @@ function aoToggleEdit(row, action) {
   var solutionVal = action.solution || action.proposed_solution || '';
   editArea.innerHTML = '<div><div class="av-detail-label">Owner (accountable)</div>'
     + '<input class="av-field" data-field="owner" value="' + escapeHtml(action.owner || '') + '" placeholder="e.g. Design / Cross-team"></div>'
+    + '<div><div class="av-detail-label">Product</div>'
+    + '<select class="av-field" data-field="os_product_scope">' + osProductScopeSelectMarkup(rowProductEditSelectValue(action._agent, action)) + '</select>'
+    + '<p style="font-size:var(--font-size-xs);color:var(--muted);margin-top:var(--space-1);line-height:1.45">Optional. Pin to one product (saved as tags in the status file), or leave default so the row follows every product this owner agent appears under.</p></div>'
     + '<div><div class="av-detail-label">Stakeholders</div>'
     + '<input class="av-field" data-field="stakeholders" value="' + escapeHtml(Array.isArray(action.stakeholders) ? action.stakeholders.join(', ') : (action.stakeholders || '')) + '" placeholder="Comma-separated"></div>'
     + '<div><div class="av-detail-label">Summary</div>'
@@ -11535,7 +11752,12 @@ async function aoCommitEdit(row, action, editArea, editBtn) {
 
   var fields = {};
   editArea.querySelectorAll('[data-field]').forEach(function(el) {
-    fields[el.dataset.field] = el.value.trim() || null;
+    var key = el.dataset.field;
+    if (key === 'os_product_scope') {
+      fields[key] = el.value || '';
+      return;
+    }
+    fields[key] = el.value.trim() || null;
   });
   if (fields.stakeholders != null) {
     if (fields.stakeholders.indexOf(',') !== -1) {
@@ -11544,16 +11766,23 @@ async function aoCommitEdit(row, action, editArea, editBtn) {
     }
   }
 
+  var productScope = fields.os_product_scope;
+  delete fields.os_product_scope;
+
   var previousId = action._priorityId;
 
   Object.assign(action, fields);
   action._priorityId = action.id;
+  osApplyProductScopeToItem(action, productScope);
 
   var data = aoCache[action._file];
   if (data && Array.isArray(data.opportunities)) {
     var targetIdx = aoFindOpportunityIndex(action._file, previousId);
     var target = targetIdx >= 0 ? data.opportunities[targetIdx] : null;
-    if (target) Object.assign(target, fields);
+    if (target) {
+      Object.assign(target, fields);
+      osApplyProductScopeToItem(target, productScope);
+    }
     data.updated = new Date().toISOString().slice(0, 10);
     aoSyncActionIndexesForFile(action._file);
   }
@@ -11729,6 +11958,8 @@ async function aoAddOpportunity() {
     else if (stParts.length > 1) entry.stakeholders = stParts;
   }
   if (summaryExtra) entry.summary = summaryExtra;
+  var aoAddProd = ((document.getElementById('ao-add-product') || {}).value || '').trim();
+  osApplyProductScopeToItem(entry, aoAddProd);
   data.opportunities.push(entry);
   data.updated = new Date().toISOString().slice(0, 10);
   var ok = await aoPersist(file);
