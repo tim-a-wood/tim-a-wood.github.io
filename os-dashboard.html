@@ -2682,10 +2682,6 @@ h3.os-chart-card-title {
       <button type="button" class="nav-item" data-dashboard="issues">
         <span class="nav-dot" style="background:#a5b4fc"></span>
         <span class="nav-item-text">Issues</span>
-  </button>
-      <button type="button" class="nav-item" data-dashboard="research">
-        <span class="nav-dot" style="background:var(--c-research)"></span>
-        <span class="nav-item-text">Research</span>
       </button>
 
       <span class="nav-group-label">Leadership</span>
@@ -2699,7 +2695,7 @@ h3.os-chart-card-title {
       </button>
 
       <div class="nav-divider" style="margin:4px 16px"></div>
-      <span class="nav-group-label">Build</span>
+      <span class="nav-group-label">Tech</span>
       <button type="button" class="nav-item" data-dashboard="development">
         <span class="nav-dot" style="background:#ff9500"></span>
         <span class="nav-item-text">Development</span>
@@ -2724,6 +2720,14 @@ h3.os-chart-card-title {
         <span class="nav-dot" style="background:#f85149"></span>
         <span class="nav-item-text">Cybersecurity</span>
       </button>
+      <button type="button" class="nav-item" data-dashboard="research">
+        <span class="nav-dot" style="background:var(--c-research)"></span>
+        <span class="nav-item-text">Research</span>
+      </button>
+      <button type="button" class="nav-item" data-dashboard="analytics">
+        <span class="nav-dot" style="background:#4ade80"></span>
+        <span class="nav-item-text">Analytics</span>
+      </button>
 
       <div class="nav-divider" style="margin:4px 16px"></div>
       <span class="nav-group-label">Business</span>
@@ -2734,10 +2738,6 @@ h3.os-chart-card-title {
       <button type="button" class="nav-item" data-dashboard="finance">
         <span class="nav-dot" style="background:#f0abfc"></span>
         <span class="nav-item-text">Finance</span>
-      </button>
-      <button type="button" class="nav-item" data-dashboard="analytics">
-        <span class="nav-dot" style="background:#4ade80"></span>
-        <span class="nav-item-text">Analytics</span>
       </button>
       <button type="button" class="nav-item" data-dashboard="support">
         <span class="nav-dot" style="background:#fbbf24"></span>
@@ -2941,6 +2941,7 @@ h3.os-chart-card-title {
         <div class="db-section">
           <div class="db-section-label">Jump to domain</div>
           <div class="os-home-actions">
+            <button type="button" class="os-home-action" data-home-jump="research"><span class="os-home-action-dot" style="color:var(--c-research)">●</span> Research · library &amp; scans</button>
             <button type="button" class="os-home-action" data-home-jump="analytics"><span class="os-home-action-dot" style="color:var(--c-analytics)">●</span> Analytics · tracking plan</button>
             <button type="button" class="os-home-action" data-home-jump="development"><span class="os-home-action-dot" style="color:#ff9500">●</span> Development · pipeline</button>
             <button type="button" class="os-home-action" data-home-jump="finance"><span class="os-home-action-dot" style="color:var(--c-finance)">●</span> Finance · usage spend</button>
@@ -5035,6 +5036,7 @@ const AGENTS = {
 const DASHBOARDS = {
   home:            { label: 'Home',           color: '#00e8c8', agents: ['orchestrator'] },
   issues:          { label: 'Issues',          color: '#a5b4fc', agents: ['orchestrator'] },
+  research:        { label: 'Research',       color: '#e879f9', agents: [] },
   orchestration:   { label: 'Orchestration', color: '#00e8c8', agents: ['orchestrator'] },
   strategy:        { label: 'Strategy',       color: '#94a3b8', agents: ['strategy'] },
   development:     { label: 'Development',    color: '#ff9500', agents: ['engineering'] },
@@ -5417,7 +5419,7 @@ function escapeHtml(str) {
   return safe.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
-// ── Build dashboards (engineering / animation / level-design status JSON) ──
+// ── Tech dashboards (engineering / animation / level-design status JSON) ──
 const STATUS_PILL_MAP = {
   'in-progress':  { cls: 'db-status-pill--in-progress',  label: 'ACTIVE' },
   'blocked':      { cls: 'db-status-pill--blocked',       label: 'BLOCKED' },
