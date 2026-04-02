@@ -72,7 +72,7 @@ body::before {
 .shell {
   display: grid;
   grid-template-columns: 216px 1fr;
-  grid-template-rows: 56px 1fr;
+  grid-template-rows: minmax(56px, auto) 1fr;
   grid-template-areas:
     "header header"
     "left   main";
@@ -84,6 +84,8 @@ body::before {
 /* ─── HEADER ─────────────────────────────────── */
 .header {
   grid-area: header;
+  position: relative;
+  z-index: 12;
   display: flex;
   align-items: center;
   padding: 0 var(--space-5);
@@ -190,6 +192,7 @@ body::before {
   display: flex;
   align-items: center;
   gap: var(--space-2);
+  flex-shrink: 0;
   font-size: var(--font-size-xs);
   color: var(--good);
   font-family: var(--font-mono);
@@ -849,6 +852,12 @@ body::before {
   .os-context-select { display: block; width: 100%; max-width: 280px; }
   .os-context-label { display: none; }
   .os-context-wrap { flex-direction: column; align-items: stretch; }
+  .header {
+    flex-wrap: wrap;
+    row-gap: var(--space-2);
+    padding-top: var(--space-2);
+    padding-bottom: var(--space-2);
+  }
 }
 
 /* ─── DASHBOARD NAV ACTIVE ───────────────────────── */
@@ -877,10 +886,21 @@ body::before {
   align-items: center;
   gap: var(--space-3);
   flex-shrink: 0;
-  padding-bottom: var(--space-2);
-  border-bottom: 1px solid var(--line);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-card);
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.03);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
-.db-view-icon { font-size: var(--font-size-lg); line-height: 1; }
+.db-view-header > div {
+  flex: 1;
+  min-width: 0;
+}
+.db-view-icon {
+  font-size: var(--font-size-lg);
+  line-height: 1;
+  flex-shrink: 0;
+}
 .db-view-title {
   font-family: var(--font-display);
   font-size: var(--font-size-lg);
@@ -2398,12 +2418,18 @@ textarea.av-field { resize: vertical; min-height: 72px; line-height: 1.45; }
 }
 .db-run-btn:hover { opacity: 1; }
 
-/* ─── Global workbench bar (all dashboards) — compact status + menu ─ */
+/* ─── Global workbench bar — compact status + menu (lives in .header) ─ */
 .global-workbench-bar {
   flex-shrink: 0;
   padding: var(--space-2) var(--surface-pad);
   border-bottom: 1px solid var(--line);
   background: rgba(255, 255, 255, 0.02);
+}
+.header .global-workbench-bar {
+  padding: 0;
+  margin: 0;
+  border: none;
+  background: transparent;
 }
 .global-wb-compact {
   display: flex;
@@ -2473,7 +2499,7 @@ textarea.av-field { resize: vertical; min-height: 72px; line-height: 1.45; }
   position: absolute;
   top: calc(100% + var(--space-1));
   right: 0;
-  z-index: 40;
+  z-index: 50;
   min-width: 220px;
   max-width: min(360px, 92vw);
   padding: var(--space-3);
@@ -2800,9 +2826,6 @@ textarea.av-field { resize: vertical; min-height: 72px; line-height: 1.45; }
 .dashboard-view[data-dashboard-view="home"] .os-home-hero {
   flex-shrink: 0;
 }
-.dashboard-view[data-dashboard-view="home"] .db-view-header {
-  padding-bottom: var(--space-2);
-}
 .dashboard-view[data-dashboard-view="home"] .os-home-hero {
   padding: var(--space-3);
 }
@@ -3067,6 +3090,22 @@ h3.os-chart-card-title {
       </select>
       <span id="osProductContextLive" class="visually-hidden" role="status" aria-live="polite"></span>
     </div>
+    <div id="global-workbench-bar" class="global-workbench-bar" aria-label="Sprite Workbench server">
+      <div class="global-wb-compact">
+        <span id="global-wb-status" class="global-wb-status global-wb-status--na" role="status" title="">—</span>
+        <details class="global-wb-details">
+          <summary class="global-wb-summary-btn">Workbench</summary>
+          <div class="global-wb-dropdown">
+            <div class="global-wb-actions">
+              <button type="button" class="global-wb-btn" id="global-wb-start">Start</button>
+              <button type="button" class="global-wb-btn" id="global-wb-restart">Restart</button>
+              <button type="button" class="global-wb-btn global-wb-btn--danger" id="global-wb-stop">Stop</button>
+            </div>
+            <p id="global-wb-hint" class="global-wb-hint"></p>
+          </div>
+        </details>
+      </div>
+    </div>
     <span class="status-badge">System Ready</span>
   </header>
 
@@ -3246,23 +3285,6 @@ h3.os-chart-card-title {
   <main class="main">
 
     <div class="main-left">
-
-      <div id="global-workbench-bar" class="global-workbench-bar" aria-label="Sprite Workbench server">
-        <div class="global-wb-compact">
-          <span id="global-wb-status" class="global-wb-status global-wb-status--na" role="status" title="">—</span>
-          <details class="global-wb-details">
-            <summary class="global-wb-summary-btn">Workbench</summary>
-            <div class="global-wb-dropdown">
-              <div class="global-wb-actions">
-                <button type="button" class="global-wb-btn" id="global-wb-start">Start</button>
-                <button type="button" class="global-wb-btn" id="global-wb-restart">Restart</button>
-                <button type="button" class="global-wb-btn global-wb-btn--danger" id="global-wb-stop">Stop</button>
-              </div>
-              <p id="global-wb-hint" class="global-wb-hint"></p>
-            </div>
-          </details>
-        </div>
-      </div>
 
       <div class="main-left-views">
 
@@ -6996,7 +7018,7 @@ function updateHomeChartLiveStatus(d, dashboardReachable) {
   const el = document.getElementById('home-chart-live-status');
   if (!el) return;
   if (!dashboardReachable || !d) {
-    el.textContent = 'Usage trend and workbench readouts need the dashboard connection. Open via Agent OS (port 8769) or the workbench server (8766) — use the compact Workbench control next to the status strip.';
+    el.textContent = 'Usage trend and workbench readouts need the dashboard connection. Open via Agent OS (port 8769) or the workbench server (8766) — use the Workbench control in the top header.';
     el.classList.remove('visually-hidden');
     el.classList.add('home-chart-live-status--warn');
     return;
