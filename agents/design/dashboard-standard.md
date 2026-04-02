@@ -157,4 +157,6 @@ When a context other than All is active:
 
 To add a new product line, extend `OS_PRODUCT_CONTEXT_SETS`, `OS_PRODUCT_CONTEXT_AGENTS`, and the header pills + select in lockstep.
 
+**Deleting rows:** On Issues, Opportunities, and Ongoing Tasks, **Delete** removes that priority or opportunity from the agent `*-status.json` and persists via `POST /api/status-update` (supervisor must be running). A browser confirm runs first; if the server write fails, the row is restored in memory.
+
 ## Updated: 2026-04-01

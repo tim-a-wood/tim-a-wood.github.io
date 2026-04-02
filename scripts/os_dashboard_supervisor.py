@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
 Local Agent OS dashboard: serves os-dashboard.html, GET /api/dashboard-data,
-POST /api/workbench/{start|stop|restart}, POST /api/status-update, and
-POST /api/issue-chat (issue and opportunity discussion in the UI; JSON body may set rowKind to "opportunity").
+POST /api/workbench/{start|stop|restart}, POST /api/status-update (full JSON replace per file, including row deletes from the dashboard),
+and POST /api/issue-chat (issue and opportunity discussion in the UI; JSON body may set rowKind to "opportunity").
 Binds 127.0.0.1 only.
 
 Issue chat backends (see selection logic in Handler):

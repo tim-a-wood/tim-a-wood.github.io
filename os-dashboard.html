@@ -8236,6 +8236,11 @@ function otRenderList(sorted) {
       event.stopPropagation();
       issueChatOpen(action, action._ongoingSource === 'opportunity' ? 'opportunity' : 'priority');
     });
+    var delBtn = row.querySelector('.av-delete-btn');
+    if (delBtn) delBtn.addEventListener('click', function(event) {
+      event.stopPropagation();
+      void otDeleteLineItem(action);
+    });
     var upBtn = row.querySelector('.av-up-btn');
     if (upBtn) upBtn.addEventListener('click', function() { otMove(action, sorted, -1); });
     var downBtn = row.querySelector('.av-down-btn');
@@ -8804,6 +8809,11 @@ function avRenderList(sorted) {
       event.stopPropagation();
       issueChatOpen(action);
     });
+    var delBtn = row.querySelector('.av-delete-btn');
+    if (delBtn) delBtn.addEventListener('click', function(event) {
+      event.stopPropagation();
+      void avDeletePriority(action);
+    });
     var upBtn = row.querySelector('.av-up-btn');
     if (upBtn) upBtn.addEventListener('click', function() { avMove(action, sorted, -1); });
     var downBtn = row.querySelector('.av-down-btn');
@@ -8883,6 +8893,7 @@ function avRowHtml(action, idx, total) {
     + '</div>'
     + '<div class="av-row-btns">'
     +   '<button type="button" class="av-btn av-edit-btn">Edit</button>'
+    +   '<button type="button" class="av-btn av-delete-btn av-btn--danger" title="Remove from status file">Delete</button>'
     +   '<div class="av-btn-row">'
     +     '<button class="av-btn av-btn--icon av-up-btn" title="Move up"' + upDisabled + '>↑</button>'
     +     '<button class="av-btn av-btn--icon av-down-btn" title="Move down"' + downDisabled + '>↓</button>'
@@ -9025,6 +9036,73 @@ async function avPersist(file) {
     });
     return resp.ok;
   } catch (e) { return false; }
+}
+
+async function avDeletePriority(action) {
+  var label = ((action.summary && String(action.summary).trim()) || action.title || 'Untitled').slice(0, 200);
+  if (!window.confirm('Permanently delete this issue from ' + action._file + '?\n\n' + label)) return;
+  var file = action._file;
+  var data = avCache[file];
+  if (!data || !Array.isArray(data.priorities)) return;
+  var idx = avFindPriorityIndex(file, action._priorityId);
+  if (idx < 0) {
+    avShowToast('Could not find issue in cache', false);
+    return;
+  }
+  var removed = data.priorities.splice(idx, 1)[0];
+  data.updated = new Date().toISOString().slice(0, 10);
+  var ok = await avPersist(file);
+  if (!ok) {
+    data.priorities.splice(idx, 0, removed);
+    avShowToast('Delete failed — run the dashboard server to persist changes', false);
+    return;
+  }
+  avRecordManualBaseline(file, data.priorities);
+  issueChatCloseIfDeleted(action, 'priority');
+  if (avConflictFocus && avConflictFocus.file === file) avConflictFocus = null;
+  avRebuildAllActionsFromCache();
+  avApplyFilters();
+  aoRebuildAllActionsFromCache();
+  aoApplyFilters();
+  refreshOngoingIfActive();
+  void avCheckManualConflicts();
+  avShowToast('Issue deleted · ' + file, true);
+}
+
+async function aoDeleteOpportunity(action) {
+  var label = ((action.summary && String(action.summary).trim()) || action.title || 'Untitled').slice(0, 200);
+  if (!window.confirm('Permanently delete this opportunity from ' + action._file + '?\n\n' + label)) return;
+  var file = action._file;
+  var data = aoCache[file];
+  if (!data || !Array.isArray(data.opportunities)) return;
+  var idx = aoFindOpportunityIndex(file, action._priorityId);
+  if (idx < 0) {
+    avShowToast('Could not find opportunity in cache', false);
+    return;
+  }
+  var removed = data.opportunities.splice(idx, 1)[0];
+  data.updated = new Date().toISOString().slice(0, 10);
+  var ok = await aoPersist(file);
+  if (!ok) {
+    data.opportunities.splice(idx, 0, removed);
+    avShowToast('Delete failed — run the dashboard server to persist changes', false);
+    return;
+  }
+  aoRecordManualBaseline(file, data.opportunities);
+  issueChatCloseIfDeleted(action, 'opportunity');
+  if (aoConflictFocus && aoConflictFocus.file === file) aoConflictFocus = null;
+  aoRebuildAllActionsFromCache();
+  aoApplyFilters();
+  avRebuildAllActionsFromCache();
+  avApplyFilters();
+  refreshOngoingIfActive();
+  void avCheckManualConflicts();
+  avShowToast('Opportunity deleted · ' + file, true);
+}
+
+async function otDeleteLineItem(action) {
+  if (action._ongoingSource === 'opportunity') await aoDeleteOpportunity(action);
+  else await avDeletePriority(action);
 }
 
 function avMove(action, sorted, dir) {
@@ -9602,6 +9680,11 @@ function aoRenderList(sorted) {
       event.stopPropagation();
       issueChatOpen(action, 'opportunity');
     });
+    var delBtn = row.querySelector('.av-delete-btn');
+    if (delBtn) delBtn.addEventListener('click', function(event) {
+      event.stopPropagation();
+      void aoDeleteOpportunity(action);
+    });
     var upBtn = row.querySelector('.av-up-btn');
     if (upBtn) upBtn.addEventListener('click', function() { aoMove(action, sorted, -1); });
     var downBtn = row.querySelector('.av-down-btn');
@@ -9661,6 +9744,7 @@ function aoRowHtml(action, idx, total) {
     + '</div>'
     + '<div class="av-row-btns">'
     +   '<button type="button" class="av-btn av-edit-btn">Edit</button>'
+    +   '<button type="button" class="av-btn av-delete-btn av-btn--danger" title="Remove from status file">Delete</button>'
     +   '<div class="av-btn-row">'
     +     '<button class="av-btn av-btn--icon av-up-btn" title="Move up"' + upDisabled + '>↑</button>'
     +     '<button class="av-btn av-btn--icon av-down-btn" title="Move down"' + downDisabled + '>↓</button>'
