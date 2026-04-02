@@ -4,6 +4,7 @@
   "priorities": [
     {
       "id": 1,
+      "os_contexts": ["sprite"],
       "title": "Room editor UX — obvious place vs select, keyboard and focus on new panels",
       "status": "in-progress",
       "risk": "high",
@@ -12,6 +13,7 @@
     },
     {
       "id": 2,
+      "os_contexts": ["sprite"],
       "title": "Writing down the rules for animations and AI panel behaviour",
       "status": "needs-review",
       "risk": "med",
@@ -65,6 +67,7 @@
   "opportunities": [
     {
       "id": "design-o1",
+      "os_contexts": ["sprite"],
       "title": "Full token and design-system consistency pass across the tools",
       "status": "paused",
       "risk": "low",
@@ -73,6 +76,7 @@
     },
     {
       "id": "design-o2",
+      "os_contexts": ["sprite"],
       "title": "Visual regression coverage — QA-owned automation with design input on tolerance",
       "status": "paused",
       "risk": "low",

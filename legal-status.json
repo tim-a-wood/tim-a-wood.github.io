@@ -5,6 +5,7 @@
   "priorities": [
     {
       "id": 1,
+      "os_contexts": ["business", "sprite", "other-income"],
       "title": "Verify the EU AI Act disclosure requirements are met by the Copilot UI",
       "status": "in-progress",
       "risk": "high",
@@ -13,6 +14,7 @@
     },
     {
       "id": 2,
+      "os_contexts": ["business", "sprite", "other-income"],
       "title": "Check whether the Gemini API Data Processing Addendum opt-out applies to our usage tier",
       "status": "in-progress",
       "risk": "high",
@@ -21,6 +23,7 @@
     },
     {
       "id": 3,
+      "os_contexts": ["business", "sprite", "other-income"],
       "title": "Draft the user-facing disclosure for AI-generated content before public launch",
       "status": "paused",
       "risk": "med",
@@ -82,6 +85,7 @@
   "opportunities": [
     {
       "id": "legal-o4",
+      "os_contexts": ["business", "sprite", "other-income"],
       "title": "Review all open-source dependencies for GPL or AGPL license exposure",
       "status": "paused",
       "risk": "med",
@@ -90,6 +94,7 @@
     },
     {
       "id": "legal-o5",
+      "os_contexts": ["business", "other-income"],
       "title": "Business plan: go-live checklist before payments and mailing lists",
       "status": "in-progress",
       "risk": "high",

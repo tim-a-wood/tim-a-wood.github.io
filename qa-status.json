@@ -54,6 +54,7 @@
   "priorities": [
     {
       "id": 1,
+      "os_contexts": ["sprite"],
       "title": "Fix the one test file that can't run — the room environment tests",
       "status": "in-progress",
       "risk": "med",
@@ -62,6 +63,7 @@
     },
     {
       "id": 2,
+      "os_contexts": ["sprite", "ashen-hollow"],
       "title": "Save/load round-trip test once room file versioning and migration are in place",
       "status": "paused",
       "risk": "high",
@@ -128,6 +130,7 @@
   "opportunities": [
     {
       "id": "qa-o3",
+      "os_contexts": ["business", "sprite"],
       "title": "Copilot apply-path automation — generate, accept, verify the room",
       "status": "paused",
       "risk": "high",
@@ -136,6 +139,7 @@
     },
     {
       "id": "qa-o4",
+      "os_contexts": ["business", "sprite", "other-income"],
       "title": "Pre-launch browser coverage — Safari, Firefox, and basic automated smoke tests",
       "status": "paused",
       "risk": "med",

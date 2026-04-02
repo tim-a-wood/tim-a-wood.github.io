@@ -5,6 +5,7 @@
   "priorities": [
     {
       "id": 1,
+      "os_contexts": ["sprite"],
       "title": "Rebuilding the room editor — cleaner panels and easier entity selection",
       "status": "in-progress",
       "risk": "med",
@@ -13,6 +14,7 @@
     },
     {
       "id": 2,
+      "os_contexts": ["sprite", "ashen-hollow"],
       "title": "Adding version numbers to saved room files",
       "status": "needs-review",
       "risk": "high",
@@ -21,6 +23,7 @@
     },
     {
       "id": 3,
+      "os_contexts": ["sprite"],
       "title": "Connecting the AI image generator to the sprite editor",
       "status": "in-progress",
       "risk": "med",
@@ -29,6 +32,7 @@
     },
     {
       "id": 4,
+      "os_contexts": ["business", "sprite"],
       "title": "Room Copilot — time-boxed benchmark of a newer model after the founder sets schedule and switch criteria",
       "status": "paused",
       "risk": "low",
@@ -39,6 +43,7 @@
   "opportunities": [
     {
       "id": "eng-o1",
+      "os_contexts": ["sprite"],
       "title": "Performance pass on the room editor canvas after the rebuild is stable",
       "status": "paused",
       "risk": "low",

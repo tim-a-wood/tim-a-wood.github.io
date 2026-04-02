@@ -70,6 +70,7 @@
   "opportunities": [
     {
       "id": "gd-o1",
+      "os_contexts": ["ashen-hollow", "business", "sprite", "other-income"],
       "title": "Establish genre positioning — what Ashen Hollow inherits from the metroidvania tradition and where it departs",
       "status": "paused",
       "risk": "med",

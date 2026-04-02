@@ -5,6 +5,7 @@
   "priorities": [
     {
       "id": 1,
+      "os_contexts": ["business", "sprite", "ashen-hollow", "other-income"],
       "title": "Regular posts showing how the tools and game are being built",
       "status": "in-progress",
       "risk": "med",
@@ -13,6 +14,7 @@
     },
     {
       "id": 5,
+      "os_contexts": ["business", "sprite", "other-income"],
       "title": "Keeping an eye on what similar tools are doing",
       "status": "in-progress",
       "risk": "med",
@@ -21,6 +23,7 @@
     },
     {
       "id": 2,
+      "os_contexts": ["business", "sprite", "other-income"],
       "title": "Getting the AI messaging right — the human is always in control",
       "status": "needs-review",
       "risk": "high",
@@ -73,6 +76,7 @@
   "opportunities": [
     {
       "id": "marketing-o4",
+      "os_contexts": ["business", "other-income"],
       "title": "One-page update every Tuesday",
       "status": "in-progress",
       "risk": "low",
@@ -81,6 +85,7 @@
     },
     {
       "id": "marketing-o6",
+      "os_contexts": ["business", "sprite", "other-income"],
       "title": "Define the Business Brand Guide",
       "status": "in-progress",
       "risk": "high",
@@ -89,6 +94,7 @@
     },
     {
       "id": "marketing-o3",
+      "os_contexts": ["business", "sprite", "ashen-hollow", "other-income"],
       "title": "Short screen recording demos — these work better than any written description",
       "status": "paused",
       "risk": "low",
@@ -97,6 +103,7 @@
     },
     {
       "id": "marketing-o7",
+      "os_contexts": ["business", "other-income"],
       "title": "Business plan: one primary channel — itch.io devlog plus a steady secondary (e.g. X)",
       "status": "in-progress",
       "risk": "med",

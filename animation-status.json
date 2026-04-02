@@ -5,6 +5,7 @@
   "priorities": [
     {
       "id": 1,
+      "os_contexts": ["sprite", "ashen-hollow"],
       "title": "Finalize the spritesheet JSON export format and lock it before any game runtime work begins",
       "status": "in-progress",
       "risk": "high",
@@ -13,6 +14,7 @@
     },
     {
       "id": 2,
+      "os_contexts": ["ashen-hollow"],
       "title": "Define the animation state machine for the player character — all movement and combat states",
       "status": "paused",
       "risk": "high",
@@ -21,6 +23,7 @@
     },
     {
       "id": 3,
+      "os_contexts": ["sprite", "ashen-hollow"],
       "title": "Establish pixel art quality standards — palette rules, silhouette requirements, anti-aliasing policy",
       "status": "in-progress",
       "risk": "med",
@@ -65,6 +68,7 @@
   "opportunities": [
     {
       "id": "anim-o1",
+      "os_contexts": ["ashen-hollow"],
       "title": "Evaluate AI animation tools (EbSynth, AnimateDiff) for the Ashen Hollow production pipeline",
       "status": "paused",
       "risk": "low",

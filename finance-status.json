@@ -5,6 +5,7 @@
   "priorities": [
     {
       "id": 1,
+      "os_contexts": ["business", "sprite", "other-income"],
       "title": "Measure the actual AI API cost per assistant session so we can model unit economics",
       "status": "needs-review",
       "risk": "high",
@@ -13,6 +14,7 @@
     },
     {
       "id": 2,
+      "os_contexts": ["business", "other-income"],
       "title": "Build a three-scenario pricing model for the paid tier once unit economics are known",
       "status": "paused",
       "risk": "high",
@@ -21,6 +23,7 @@
     },
     {
       "id": 3,
+      "os_contexts": ["business", "other-income"],
       "title": "Set up monthly cost tracking — actual spend vs. budget by line item",
       "status": "in-progress",
       "risk": "med",
@@ -78,6 +81,7 @@
   "opportunities": [
     {
       "id": "finance-o4",
+      "os_contexts": ["business", "other-income"],
       "title": "Establish a cost alert threshold — flag anything over 150% of the four-week average",
       "status": "paused",
       "risk": "med",
@@ -86,6 +90,7 @@
     },
     {
       "id": "finance-o5",
+      "os_contexts": ["business", "other-income"],
       "title": "Business plan: rough margin on any paid tier (revenue minus API, hosting, and payment fees)",
       "status": "in-progress",
       "risk": "high",

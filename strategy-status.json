@@ -4,6 +4,7 @@
   "priorities": [
     {
       "id": 1,
+      "os_contexts": ["business", "sprite", "other-income"],
       "title": "Establish our position as the go-to AI-native game dev tool before the window closes",
       "status": "in-progress",
       "risk": "high",
@@ -12,6 +13,7 @@
     },
     {
       "id": 2,
+      "os_contexts": ["business", "sprite", "other-income"],
       "title": "Define what 'good enough to charge for' looks like for the AI room assistant",
       "status": "paused",
       "risk": "high",
@@ -20,6 +22,7 @@
     },
     {
       "id": 3,
+      "os_contexts": ["business", "sprite", "ashen-hollow", "other-income"],
       "title": "Lock the scope of Ashen Hollow so it can actually be finished",
       "status": "paused",
       "risk": "high",
@@ -151,6 +154,7 @@
   "opportunities": [
     {
       "id": "strategy-o4",
+      "os_contexts": ["business", "sprite"],
       "title": "Plan the right time to release a desktop app version",
       "status": "paused",
       "risk": "low",
@@ -159,6 +163,7 @@
     },
     {
       "id": "strategy-o5",
+      "os_contexts": ["business", "sprite"],
       "title": "Plan when to build an engine plugin for Godot",
       "status": "paused",
       "risk": "low",
@@ -167,6 +172,7 @@
     },
     {
       "id": "strategy-o6",
+      "os_contexts": ["business", "other-income"],
       "title": "Business plan: quarterly refresh of assumptions and competitors",
       "status": "in-progress",
       "risk": "med",

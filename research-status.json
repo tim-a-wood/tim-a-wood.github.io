@@ -4,6 +4,7 @@
   "priorities": [
     {
       "id": "research-p1",
+      "os_contexts": ["business", "sprite"],
       "owner": "Research",
       "stakeholders": "Cybersecurity, Development",
       "title": "Unescaped user data in innerHTML — XSS risk",
@@ -15,6 +16,7 @@
     },
     {
       "id": "research-p2",
+      "os_contexts": ["sprite"],
       "owner": "Research",
       "stakeholders": "Development",
       "title": "Undefined CSS variable --text-dim causes silent render failure",
@@ -26,6 +28,7 @@
     },
     {
       "id": "research-p3",
+      "os_contexts": ["sprite"],
       "owner": "Research",
       "stakeholders": "Development",
       "title": "No global :focus-visible rule in room-layout-editor.html",
@@ -39,6 +42,7 @@
   "opportunities": [
     {
       "id": "research-o1",
+      "os_contexts": ["sprite"],
       "owner": "Research",
       "stakeholders": "Development, Design",
       "title": "Extract shared CSS token block → tokens.css",
@@ -50,6 +54,7 @@
     },
     {
       "id": "research-o2",
+      "os_contexts": ["sprite"],
       "owner": "Research",
       "stakeholders": "Development, Cybersecurity",
       "title": "Extract JS from room-layout-editor.html",
@@ -61,6 +66,7 @@
     },
     {
       "id": "research-o3",
+      "os_contexts": ["sprite"],
       "owner": "Research",
       "stakeholders": "Development",
       "title": "Create shared nav.css",
@@ -72,6 +78,7 @@
     },
     {
       "id": "research-o4",
+      "os_contexts": ["sprite"],
       "owner": "Research",
       "stakeholders": "Design",
       "title": "Align product-shell.css marketing section to design tokens",
@@ -83,6 +90,7 @@
     },
     {
       "id": "research-o5",
+      "os_contexts": ["sprite"],
       "owner": "Research",
       "stakeholders": "Development",
       "title": "Standardise sprite workbench radius tokens",
@@ -94,6 +102,7 @@
     },
     {
       "id": "research-o6",
+      "os_contexts": ["business", "other-income"],
       "owner": "Research",
       "stakeholders": "Orchestration, Finance, Marketing",
       "title": "Passive income market scan delivered — pick first revenue experiment",

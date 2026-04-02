@@ -1,6 +1,6 @@
 {
   "_note": "Updated daily at noon by the orchestrator. Synthesised from all agent statuses. Plain language — no jargon.",
-  "updated": "2026-04-01",
+  "updated": "2026-04-02",
   "schema_version": "v1.0",
   "synthesis_sources": [
     "engineering-status.json",
@@ -12,6 +12,7 @@
   "priorities": [
     {
       "id": 1,
+      "os_contexts": ["business", "sprite"],
       "source": "eng+design",
       "title": "Ship the room editor milestone — rebuilt inspector, obvious place vs select, keyboard and focus on new panels",
       "status": "in-progress",
@@ -21,6 +22,7 @@
     },
     {
       "id": 2,
+      "os_contexts": ["business", "sprite"],
       "source": "eng+qa",
       "title": "Room save contract — version field and migration, then automated save/load round-trip",
       "status": "needs-review",
@@ -30,6 +32,7 @@
     },
     {
       "id": 3,
+      "os_contexts": ["business", "sprite"],
       "source": "eng+ld+qa+cyber",
       "title": "Copilot readiness program — bar, prompt and model evaluation, tests, and security gate",
       "status": "in-progress",
@@ -39,6 +42,7 @@
     },
     {
       "id": 4,
+      "os_contexts": ["business", "sprite"],
       "source": "eng+design",
       "title": "Finish wiring the AI image generator into the sprite editor",
       "status": "in-progress",
@@ -48,6 +52,7 @@
     },
     {
       "id": 5,
+      "os_contexts": ["business", "sprite"],
       "source": "design",
       "title": "Document animation and AI panel rules so all tools stay consistent",
       "status": "needs-review",
@@ -102,6 +107,7 @@
   "opportunities": [
     {
       "id": "orch-o1",
+      "os_contexts": ["business", "other-income"],
       "source": "strategy+founder",
       "title": "Business plan: founder sets ninety-day goals and stop rules for side experiments",
       "status": "in-progress",

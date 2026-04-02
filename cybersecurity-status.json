@@ -5,6 +5,7 @@
   "priorities": [
     {
       "id": 1,
+      "os_contexts": ["business", "sprite"],
       "title": "Audit every place the tools write user input to the DOM — XSS risk",
       "status": "in-progress",
       "risk": "high",
@@ -13,6 +14,7 @@
     },
     {
       "id": 2,
+      "os_contexts": ["business", "sprite"],
       "title": "Add Content Security Policy headers to all HTML pages",
       "status": "in-progress",
       "risk": "high",
@@ -21,6 +23,7 @@
     },
     {
       "id": 3,
+      "os_contexts": ["business", "sprite"],
       "title": "Run a prompt injection test on the Copilot before any public release",
       "status": "paused",
       "risk": "high",
@@ -29,6 +32,7 @@
     },
     {
       "id": 4,
+      "os_contexts": ["business", "sprite", "other-income"],
       "title": "Verify API keys are not present in client-side code or git history",
       "status": "needs-review",
       "risk": "high",

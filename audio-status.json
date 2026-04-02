@@ -49,6 +49,7 @@
   "opportunities": [
     {
       "id": "audio-o2",
+      "os_contexts": ["sprite"],
       "title": "Specify the UI audio feedback layer for the Workbench tools",
       "status": "paused",
       "risk": "med",

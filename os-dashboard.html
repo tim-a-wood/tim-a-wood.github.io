@@ -5498,6 +5498,21 @@ function agentAllowedInOsProductContext(agent, ctx) {
   return !!(s && s.has(agent));
 }
 
+/**
+ * Optional per-row override: `os_contexts` (array) or `os_context` (string) on a priority/opportunity.
+ * When present and non-empty, visibility follows the list instead of the owning agent's default set.
+ */
+function itemVisibleInOsProductContext(agent, item, ctx) {
+  if (ctx === 'all') return true;
+  if (!item || typeof item !== 'object') return agentAllowedInOsProductContext(agent, ctx);
+  const raw = item.os_contexts != null ? item.os_contexts : item.os_context;
+  if (raw == null) return agentAllowedInOsProductContext(agent, ctx);
+  const arr = Array.isArray(raw) ? raw : [raw];
+  const cleaned = arr.map((x) => String(x).trim()).filter(Boolean);
+  if (cleaned.length === 0) return agentAllowedInOsProductContext(agent, ctx);
+  return cleaned.indexOf(ctx) !== -1;
+}
+
 function resourcePathVisibleInContext(path, ctx) {
   if (ctx === 'all') return true;
   const p = path || '';
@@ -8029,7 +8044,7 @@ function otGetFiltered() {
   var query = searchEl ? searchEl.value.toLowerCase().trim() : '';
 
   return otAllActions.filter(function(a) {
-    if (!agentAllowedInOsProductContext(a._agent, osProductContext)) return false;
+    if (!itemVisibleInOsProductContext(a._agent, a, osProductContext)) return false;
     if (owner && a._agent !== owner) return false;
     if (kind === 'issue' && a._ongoingSource !== 'issue') return false;
     if (kind === 'opportunity' && a._ongoingSource !== 'opportunity') return false;
@@ -8604,7 +8619,7 @@ function avGetFiltered() {
   var query = searchEl ? searchEl.value.toLowerCase().trim() : '';
 
   return avAllActions.filter(function(a) {
-    if (!agentAllowedInOsProductContext(a._agent, osProductContext)) return false;
+    if (!itemVisibleInOsProductContext(a._agent, a, osProductContext)) return false;
     if (owner && a._agent !== owner) return false;
     if (status && (a.status || '') !== status) return false;
     if (query) {
@@ -9373,7 +9388,7 @@ function aoGetFiltered() {
   var query = searchEl ? searchEl.value.toLowerCase().trim() : '';
 
   return aoAllActions.filter(function(a) {
-    if (!agentAllowedInOsProductContext(a._agent, osProductContext)) return false;
+    if (!itemVisibleInOsProductContext(a._agent, a, osProductContext)) return false;
     if (owner && a._agent !== owner) return false;
     if (status && (a.status || '') !== status) return false;
     if (query) {

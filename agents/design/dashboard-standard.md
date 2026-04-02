@@ -153,7 +153,7 @@ When a context other than All is active:
 - Sidebar dashboard links and playbook/template/knowledge shortcuts are filtered to that product surface.
 - The global Sprite Workbench server bar is shown only for **All** and **Sprite dashboard**.
 - Home “Jump to domain” and the internal AI usage chart block respect the same context.
-- Issues, Opportunities, and Ongoing Tasks lists filter rows by status-file agent slug to match the context map (`OS_PRODUCT_CONTEXT_AGENTS` in page script).
+- Issues, Opportunities, and Ongoing Tasks lists filter rows by status-file agent slug using `OS_PRODUCT_CONTEXT_AGENTS`, **unless** a row defines **`os_contexts`** (array of context ids: `business`, `sprite`, `ashen-hollow`, `other-income`) or a single **`os_context`** string — then that list wins. Use overrides when one agent file mixes toolchain, game, and revenue work.
 
 To add a new product line, extend `OS_PRODUCT_CONTEXT_SETS`, `OS_PRODUCT_CONTEXT_AGENTS`, and the header pills + select in lockstep.
 

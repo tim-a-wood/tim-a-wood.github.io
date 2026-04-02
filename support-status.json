@@ -5,6 +5,7 @@
   "priorities": [
     {
       "id": 1,
+      "os_contexts": ["business", "sprite", "other-income"],
       "title": "Document the intended first-session experience so we know what success looks like for new users",
       "status": "in-progress",
       "risk": "high",
@@ -13,6 +14,7 @@
     },
     {
       "id": 2,
+      "os_contexts": ["business", "sprite", "other-income"],
       "title": "Write a FAQ covering the most common questions early testers have asked",
       "status": "in-progress",
       "risk": "med",
@@ -52,6 +54,7 @@
   "opportunities": [
     {
       "id": "support-o3",
+      "os_contexts": ["business", "sprite", "other-income"],
       "title": "Set up a feedback intake channel before public launch",
       "status": "paused",
       "risk": "med",
@@ -60,6 +63,7 @@
     },
     {
       "id": "support-o4",
+      "os_contexts": ["business", "sprite"],
       "title": "Create a bug report escalation workflow from support to QA",
       "status": "paused",
       "risk": "low",

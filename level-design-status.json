@@ -5,6 +5,7 @@
   "priorities": [
     {
       "id": 1,
+      "os_contexts": ["business", "sprite"],
       "title": "Room quality standards and Copilot prompt quality — document criteria and iterate the system prompt",
       "status": "in-progress",
       "risk": "high",
@@ -13,6 +14,7 @@
     },
     {
       "id": 2,
+      "os_contexts": ["sprite", "ashen-hollow"],
       "title": "Build the world graph validation logic — catch unreachable rooms before export",
       "status": "paused",
       "risk": "high",
@@ -21,6 +23,7 @@
     },
     {
       "id": 3,
+      "os_contexts": ["sprite", "ashen-hollow"],
       "title": "Validate level design gap/platform geometry against the locked movement parameters",
       "status": "paused",
       "risk": "high",

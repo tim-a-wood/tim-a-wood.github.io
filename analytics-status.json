@@ -5,6 +5,7 @@
   "priorities": [
     {
       "id": 1,
+      "os_contexts": ["business", "sprite"],
       "title": "Track whether the AI's room suggestions are actually helpful — accept, tweak, or reject",
       "status": "done",
       "risk": "med",
@@ -13,6 +14,7 @@
     },
     {
       "id": 3,
+      "os_contexts": ["business"],
       "title": "Automate the daily dashboard refresh so it runs without anyone pressing a button",
       "status": "done",
       "risk": "low",
@@ -59,6 +61,7 @@
   "opportunities": [
     {
       "id": "analytics-o2",
+      "os_contexts": ["business", "sprite", "other-income"],
       "title": "Measure the one number that matters most: how many finished rooms each user produces per month",
       "status": "in-progress",
       "risk": "low",
@@ -67,6 +70,7 @@
     },
     {
       "id": "analytics-o4",
+      "os_contexts": ["business", "other-income"],
       "title": "Write clear privacy notices before we start tracking individual user behaviour",
       "status": "paused",
       "risk": "med",
@@ -75,6 +79,7 @@
     },
     {
       "id": "analytics-o5",
+      "os_contexts": ["business", "other-income"],
       "title": "Choose a privacy-respecting analytics service for when the tool goes public",
       "status": "paused",
       "risk": "low",
