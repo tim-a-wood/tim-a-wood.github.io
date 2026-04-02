@@ -91,6 +91,17 @@
       "solution": "Remove local overrides; use canonical values or introduce named aliases specific to this tool",
       "status": "queued",
       "risk": "low"
+    },
+    {
+      "id": "research-o6",
+      "owner": "Research",
+      "stakeholders": "Orchestration, Finance, Marketing",
+      "title": "Passive income market scan delivered — pick first revenue experiment",
+      "summary": "Library report covers itch.io asset economics, AI and education products, and platform fees",
+      "note": "Executive summary emailed to founder. Full findings in research library. Finance should model net revenue at a few price points; founder chooses one first SKU (small pack vs. short guide).",
+      "solution": "Orchestrator runs decision mode; founder approves first experiment and time budget",
+      "status": "needs-review",
+      "risk": "low"
     }
   ]
 }

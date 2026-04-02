@@ -82,6 +82,7 @@
 |------|-------|------|------|
 | 2026-04-01 | Initial Codebase Scan — MV Toolchain | [findings/codebase-scan-2026-04-01.md](library/findings/codebase-scan-2026-04-01.md) | finding |
 | 2026-04-01 | Passive income market scan | [findings/passive-income-market-scan-2026-04-01.md](library/findings/passive-income-market-scan-2026-04-01.md) | market |
+| 2026-04-01 | Executive summary (email) | [../artifacts/passive-income-executive-summary-email-2026-04-01.md](../artifacts/passive-income-executive-summary-email-2026-04-01.md) | founder digest |
 
 ---
 
@@ -95,4 +96,4 @@
 
 ---
 
-*Last updated: 2026-04-01 by Research Agent (passive income market scan + library index update)*
+*Last updated: 2026-04-01 by Research Agent (passive income scan, dashboard + status JSON refresh, founder email via Resend)*
