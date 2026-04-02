@@ -13,12 +13,29 @@
     },
     {
       "id": 2,
+      "title": "Support agent analytics dashboards — review each agent's chart spec before they build",
+      "status": "in-progress",
+      "risk": "med",
+      "note": "STYLE_GUIDE.md § 15 shipped with chart type taxonomy, color palette, shell spec, empty states, legend typography, and motion policy. Analytics leads requirements; Design reviews each agent spec for token and taxonomy compliance before implementation.",
+      "proposed_solution": "Review each agent's requirements doc from Analytics. Flag chart type misuse, off-token colors, or charts with no decision mapped."
+    },
+    {
+      "id": 3,
       "os_contexts": ["sprite"],
       "title": "Writing down the rules for animations and AI panel behaviour",
       "status": "needs-review",
       "risk": "med",
       "note": "Without documented rules, things end up looking slightly different every time. Getting these written down prevents inconsistency creeping in.",
       "proposed_solution": "Land animation and AI panel behavior rules in STYLE_GUIDE.md or a linked spec so new UI stays token- and motion-consistent."
+    },
+    {
+      "id": 4,
+      "os_contexts": ["ashen-hollow"],
+      "title": "Design review — Ashen Hollow art bible v0.2",
+      "status": "done",
+      "risk": "low",
+      "note": "Approve with conditions: enforce §6.1 (toolchain vs in-game UI); HUD must pair color with non-color cues; optional STYLE_GUIDE cross-link. Memo saved.",
+      "proposed_solution": "Engineering treats AH-* as game-only; chrome stays STYLE_GUIDE. See docs/reports/design-review-ashen-hollow-art-bible-v0.2.md."
     }
   ],
   "risks_p0": [],
@@ -36,8 +53,8 @@
       "name": "Design Review",
       "description": "Token compliance, accessibility, and interaction compliance assessment on a PR — approve / approve with conditions / reject.",
       "trigger": "Any PR touching HTML, CSS, or frontend JS",
-      "last_run": null,
-      "output_location": null
+      "last_run": "2026-04-02",
+      "output_location": "docs/reports/design-review-ashen-hollow-art-bible-v0.2.md"
     },
     {
       "id": "token-audit",
@@ -52,8 +69,8 @@
       "name": "Style Guide Proposal",
       "description": "Propose a new token or component definition with rationale, migration notes, and before/after comparison.",
       "trigger": "A new UI pattern is needed that isn't in the current spec",
-      "last_run": "2026-03-27",
-      "output_location": "STYLE_GUIDE.md"
+      "last_run": "2026-04-02",
+      "output_location": "STYLE_GUIDE.md § 15 — Agent Dashboard Charts (chart taxonomy, color palette, shell spec, empty states, legend, motion policy)"
     },
     {
       "id": "ia-review",
@@ -61,9 +78,31 @@
       "description": "Information architecture assessment of a new feature against cognitive load and mode-error principles.",
       "trigger": "New tool feature or significant workflow change",
       "last_run": "2026-04-02",
-      "output_location": "os-dashboard.html — Issues / Opportunities / Ongoing Tasks UX pass (lane chips, context strip, add flow, empty states, sticky headers)"
+      "output_location": "Agent analytics dashboard initiative — IA review complete, 3-chart cap and empty-state requirements confirmed"
     }
   ],
+  "design_chart": {
+    "violations": [
+      { "label": "Color",       "value": 0, "key": "muted" },
+      { "label": "Spacing",     "value": 0, "key": "muted" },
+      { "label": "Radius",      "value": 0, "key": "muted" },
+      { "label": "Typography",  "value": 0, "key": "muted" },
+      { "label": "Transitions", "value": 0, "key": "muted" }
+    ],
+    "violations_n": 0,
+    "reviews": [
+      { "label": "Approved",     "value": 0, "key": "good" },
+      { "label": "Conditional",  "value": 1, "key": "warning" },
+      { "label": "Rejected",     "value": 0, "key": "accent" }
+    ],
+    "reviews_n": 1,
+    "a11y": [
+      { "label": "Critical", "value": 0, "key": "accent" },
+      { "label": "Serious",  "value": 0, "key": "warning" },
+      { "label": "Moderate", "value": 0, "key": "muted" }
+    ],
+    "a11y_n": 0
+  },
   "opportunities": [
     {
       "id": "design-o1",
