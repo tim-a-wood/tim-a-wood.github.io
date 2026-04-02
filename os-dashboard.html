@@ -1443,9 +1443,9 @@ textarea.av-field { resize: vertical; min-height: 72px; line-height: 1.45; }
   position: fixed;
   right: var(--space-4);
   bottom: var(--space-4);
-  width: min(420px, calc(100vw - 24px));
+  width: min(440px, calc(100vw - 24px));
   background: var(--panel);
-  border: 1px solid rgba(248,81,73,0.28);
+  border: 1px solid rgba(74,222,128,0.28);
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-lg);
   backdrop-filter: blur(10px);
@@ -1457,18 +1457,207 @@ textarea.av-field { resize: vertical; min-height: 72px; line-height: 1.45; }
 .av-conflict-title {
   font-size: var(--font-size-sm);
   font-weight: 700;
-  color: var(--error);
+  color: var(--good);
   margin-bottom: var(--space-2);
 }
 .av-conflict-body {
   font-size: var(--font-size-sm);
   color: var(--text);
   line-height: 1.45;
+  white-space: pre-wrap;
+  max-height: min(280px, 40vh);
+  overflow-y: auto;
 }
 .av-conflict-actions {
   margin-top: var(--space-3);
   display: flex;
   gap: var(--space-2);
+  justify-content: flex-end;
+}
+.av-conflict-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(5, 7, 9, 0.72);
+  backdrop-filter: blur(8px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4);
+  z-index: 320;
+}
+.av-conflict-backdrop.visible { display: flex; }
+.av-conflict-panel {
+  width: min(880px, calc(100vw - 32px));
+  max-height: min(720px, calc(100vh - 32px));
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  background: var(--panel);
+  border: 1px solid rgba(248,81,73,0.24);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-lg);
+  padding: var(--space-4);
+}
+.av-conflict-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+.av-conflict-kicker {
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--error);
+  margin: 0 0 var(--space-1) 0;
+}
+.av-conflict-heading {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--font-size-xl);
+  letter-spacing: 0.05em;
+  color: var(--text);
+}
+.av-conflict-summary {
+  margin: var(--space-2) 0 0 0;
+  font-size: var(--font-size-sm);
+  color: var(--muted);
+  line-height: 1.45;
+}
+.av-conflict-close {
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: var(--radius-tight);
+  border: 1px solid var(--line);
+  background: rgba(255,255,255,0.03);
+  color: var(--text);
+  cursor: pointer;
+  transition: background 200ms ease, border-color 200ms ease, transform 120ms ease;
+}
+.av-conflict-close:hover {
+  background: rgba(255,255,255,0.05);
+  border-color: var(--line-strong);
+  transform: translateY(-1px);
+}
+.av-conflict-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  overflow: auto;
+  padding-right: var(--space-1);
+}
+.av-conflict-card {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: rgba(255,255,255,0.03);
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.av-conflict-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+.av-conflict-card-title {
+  margin: 0;
+  font-size: var(--font-size-base);
+  font-weight: 700;
+  color: var(--text);
+}
+.av-conflict-card-meta {
+  margin: var(--space-1) 0 0 0;
+  font-size: var(--font-size-sm);
+  color: var(--muted);
+}
+.av-conflict-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-full);
+  border: 1px solid rgba(248,81,73,0.24);
+  background: rgba(248,81,73,0.12);
+  color: var(--error);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.av-conflict-item-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.av-conflict-item {
+  border-radius: var(--radius-tight);
+  border: 1px solid rgba(255,255,255,0.06);
+  background: rgba(255,255,255,0.02);
+  padding: var(--space-3);
+}
+.av-conflict-item-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--text);
+}
+.av-conflict-item-meta {
+  margin-top: var(--space-1);
+  font-size: var(--font-size-sm);
+  color: var(--muted);
+  line-height: 1.45;
+}
+.av-conflict-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.av-conflict-empty {
+  border: 1px dashed var(--line);
+  border-radius: var(--radius-card);
+  padding: var(--space-5);
+  text-align: center;
+  color: var(--muted);
+  font-size: var(--font-size-sm);
+}
+.av-conflict-banner {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid rgba(248,81,73,0.2);
+  border-radius: var(--radius-card);
+  background: rgba(248,81,73,0.08);
+}
+.av-conflict-banner.visible { display: flex; }
+.av-conflict-banner-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.av-conflict-banner-title {
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  color: var(--text);
+}
+.av-conflict-banner-meta {
+  font-size: var(--font-size-sm);
+  color: var(--muted);
+}
+.av-row--conflict {
+  border-color: rgba(248,81,73,0.28);
+  box-shadow: inset 0 0 0 1px rgba(248,81,73,0.12);
+}
+.av-row--conflict .av-row-main {
+  background: rgba(248,81,73,0.06);
 }
 
 /* ─── ACTION CARDS ──────────────────────────────── */
@@ -4286,6 +4475,16 @@ h3.os-chart-card-title {
           </div>
           <span class="av-th av-th--mute">·</span>
         </div>
+        <div class="av-conflict-banner" id="av-conflict-banner" role="status" aria-live="polite">
+          <div class="av-conflict-banner-copy">
+            <div class="av-conflict-banner-title" id="av-conflict-banner-title">Conflict review mode</div>
+            <div class="av-conflict-banner-meta" id="av-conflict-banner-meta">Showing the issues that changed outside your manual edits.</div>
+          </div>
+          <div class="av-conflict-card-actions">
+            <button type="button" class="av-btn av-btn--accent" id="av-conflict-banner-review">Review another conflict</button>
+            <button type="button" class="av-btn" id="av-conflict-banner-clear">Clear focus</button>
+          </div>
+        </div>
         <div class="av-list" id="av-list">
           <div style="color:var(--muted);font-size:var(--font-size-sm);padding:var(--space-5) 0">Select Issues from the nav to load…</div>
         </div>
@@ -4384,12 +4583,30 @@ h3.os-chart-card-title {
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
 <div class="av-toast" id="av-toast"></div>
-<div class="av-conflict-pop" id="av-conflict-pop" role="alert" aria-live="assertive">
-  <div class="av-conflict-title">Manual Priority Override Conflict</div>
-  <div class="av-conflict-body" id="av-conflict-body">An agent update changed a priority list you previously edited manually.</div>
+<div class="av-conflict-pop" id="av-conflict-pop" role="status" aria-live="polite">
+  <div class="av-conflict-title" id="av-conflict-pop-title">Agent updates applied</div>
+  <div class="av-conflict-body" id="av-conflict-body">Your issue baseline was updated to match the JSON on disk.</div>
   <div class="av-conflict-actions">
-    <button type="button" class="av-btn av-btn--accent" id="av-conflict-open">Open Issues</button>
-    <button type="button" class="av-btn" id="av-conflict-dismiss">Dismiss</button>
+    <button type="button" class="av-btn av-btn--accent" id="av-conflict-dismiss">OK</button>
+  </div>
+</div>
+<div class="av-conflict-backdrop" id="av-conflict-backdrop" aria-hidden="true">
+  <div class="av-conflict-panel" role="dialog" aria-modal="true" aria-labelledby="av-conflict-dialog-title">
+    <div class="av-conflict-head">
+      <div>
+        <p class="av-conflict-kicker">Design Review</p>
+        <h2 class="av-conflict-heading" id="av-conflict-dialog-title">Priority conflicts need review</h2>
+        <p class="av-conflict-summary" id="av-conflict-dialog-summary">The dashboard found issues that changed after your manual edits. Review the exact rows here, then jump into Issues with the right rows highlighted.</p>
+      </div>
+      <button type="button" class="av-conflict-close" id="av-conflict-close" aria-label="Close conflict review">✕</button>
+    </div>
+    <div class="av-conflict-list" id="av-conflict-dialog-list">
+      <div class="av-conflict-empty">No conflicts queued.</div>
+    </div>
+    <div class="av-conflict-card-actions">
+      <button type="button" class="av-btn av-btn--accent" id="av-conflict-review-all">Open all conflicting issues</button>
+      <button type="button" class="av-btn" id="av-conflict-dialog-dismiss">Close</button>
+    </div>
   </div>
 </div>
 
@@ -6354,8 +6571,10 @@ const avCache = {};
 let avAllActions = [];
 let avLoaded = false;
 let avAddBound = false;
+let avConflictFocus = null;
 const AV_MANUAL_BASELINES_KEY = 'agentos.manualPriorityBaselines.v1';
-const AV_CONFLICTS_KEY = 'agentos.priorityConflicts.v1';
+const AV_CONFLICTS_KEY = 'agentos.priorityConflicts.v2';
+const AV_CONFLICT_ACK_KEY = 'agentos.priorityConflicts.ack.v1';
 
 function avReadStore(key) {
   try {
@@ -6373,6 +6592,22 @@ function avWriteStore(key, value) {
   }
 }
 
+function avReadSessionStore(key) {
+  try {
+    return JSON.parse(sessionStorage.getItem(key) || '{}');
+  } catch {
+    return {};
+  }
+}
+
+function avWriteSessionStore(key, value) {
+  try {
+    sessionStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    // Ignore storage failures.
+  }
+}
+
 function avPriorityHash(priorities) {
   var input = JSON.stringify(Array.isArray(priorities) ? priorities : []);
   var hash = 5381;
@@ -6386,32 +6621,341 @@ function avRecordManualBaseline(file, priorities) {
   var map = avReadStore(AV_MANUAL_BASELINES_KEY);
   map[file] = {
     hash: avPriorityHash(priorities),
+    priorities: JSON.parse(JSON.stringify(Array.isArray(priorities) ? priorities : [])),
     at: new Date().toISOString()
   };
   avWriteStore(AV_MANUAL_BASELINES_KEY, map);
+  var conflicts = avReadStore(AV_CONFLICTS_KEY);
+  if (conflicts && conflicts[file]) {
+    conflicts[file].resolved_at = new Date().toISOString();
+    avWriteStore(AV_CONFLICTS_KEY, conflicts);
+    if (avConflictFocus && avConflictFocus.file === file) {
+      avClearConflictFocus();
+    }
+  }
 }
 
-function avShowConflictPopup(message) {
+var avConflictPopTimer = null;
+
+function avShowConflictPopup(message, title) {
   var pop = document.getElementById('av-conflict-pop');
   var body = document.getElementById('av-conflict-body');
+  var titleEl = document.getElementById('av-conflict-pop-title');
   if (!pop || !body) return;
+  if (titleEl && typeof title === 'string' && title.length) {
+    titleEl.textContent = title;
+  } else if (titleEl) {
+    titleEl.textContent = 'Agent updates applied';
+  }
   body.textContent = message;
   pop.classList.add('visible');
+  if (avConflictPopTimer) clearTimeout(avConflictPopTimer);
+  avConflictPopTimer = setTimeout(function() {
+    avDismissConflictPopup();
+  }, 14000);
+}
+
+function avDismissConflictPopup() {
+  if (avConflictPopTimer) {
+    clearTimeout(avConflictPopTimer);
+    avConflictPopTimer = null;
+  }
+  var pop = document.getElementById('av-conflict-pop');
+  if (pop) pop.classList.remove('visible');
+}
+
+/** Human-readable summary after rebaselining priorities to on-disk JSON (agent / external edit). */
+function avFormatAgentSyncSummary(file, details, label) {
+  var head = (label || file) + ': baseline updated to match ' + file + ' on disk.';
+  if (!Array.isArray(details) || details.length === 0) {
+    return head;
+  }
+  var lines = details.slice(0, 8).map(function(d) {
+    return '\u2022 ' + d.type + ': ' + (d.title || ('Issue #' + String(d.issueId || ''))) + ' \u2014 ' + (d.summary || '');
+  });
+  var rem = details.length - 8;
+  var more = details.length > 8
+    ? '\n\u2022 \u2026and ' + String(rem) + ' more change' + (rem === 1 ? '' : 's') + '.'
+    : '';
+  return head + '\n\n' + lines.join('\n') + more;
+}
+
+function avAcknowledgeConflicts(files) {
+  var conflicts = avReadStore(AV_CONFLICTS_KEY);
+  var ack = avReadSessionStore(AV_CONFLICT_ACK_KEY);
+  var keys = Array.isArray(files) && files.length ? files : Object.keys(conflicts || {});
+  var touched = false;
+  keys.forEach(function(file) {
+    if (!conflicts[file] || conflicts[file].resolved_at) return;
+    conflicts[file].acknowledged_hash = conflicts[file].current_hash || null;
+    conflicts[file].acknowledged_at = new Date().toISOString();
+    ack[file] = conflicts[file].current_hash || null;
+    touched = true;
+  });
+  if (touched) {
+    avWriteStore(AV_CONFLICTS_KEY, conflicts);
+    avWriteSessionStore(AV_CONFLICT_ACK_KEY, ack);
+  }
+}
+
+function avPriorityComparableIssue(issue) {
+  if (!issue || typeof issue !== 'object') return null;
+  return {
+    id: Number(issue.id) || 0,
+    title: String(issue.title || '').trim(),
+    status: String(issue.status || 'queued').trim(),
+    risk: String(issue.risk || 'low').trim(),
+    summary: String(issue.summary || '').trim(),
+    owner: String(issue.owner || '').trim(),
+    stakeholders: Array.isArray(issue.stakeholders) ? issue.stakeholders.join(', ') : String(issue.stakeholders || '').trim(),
+    note: String(issue.note || '').trim(),
+    proposed_solution: String(issue.proposed_solution || '').trim()
+  };
+}
+
+function avDescribeConflictChanges(previous, current) {
+  var prev = avPriorityComparableIssue(previous);
+  var next = avPriorityComparableIssue(current);
+  if (!prev && next) {
+    return {
+      type: 'new',
+      title: next.title || ('Issue #' + String(next.id || 'new')),
+      summary: 'New issue appeared after your manual edit.',
+      issueId: next.id || null
+    };
+  }
+  if (prev && !next) {
+    return {
+      type: 'removed',
+      title: prev.title || ('Issue #' + String(prev.id || 'removed')),
+      summary: 'Previously edited issue was removed externally.',
+      issueId: prev.id || null
+    };
+  }
+  if (!prev || !next) return null;
+  var changedFields = [];
+  ['title', 'status', 'risk', 'summary', 'owner', 'stakeholders', 'note', 'proposed_solution'].forEach(function(field) {
+    if ((prev[field] || '') !== (next[field] || '')) changedFields.push(field.replace(/_/g, ' '));
+  });
+  if (!changedFields.length) return null;
+  return {
+    type: 'changed',
+    title: next.title || prev.title || ('Issue #' + String(next.id || prev.id || '')),
+    summary: 'Changed fields: ' + changedFields.join(', ') + '.',
+    issueId: next.id || prev.id || null
+  };
+}
+
+function avConflictDetailsFromSnapshots(previousRows, currentRows) {
+  if (!Array.isArray(previousRows) || previousRows.length === 0) {
+    return [];
+  }
+  var prevById = {};
+  var currById = {};
+  (Array.isArray(previousRows) ? previousRows : []).forEach(function(item) {
+    prevById[String(Number(item && item.id) || 0)] = item;
+  });
+  (Array.isArray(currentRows) ? currentRows : []).forEach(function(item) {
+    currById[String(Number(item && item.id) || 0)] = item;
+  });
+  var ids = Object.keys(prevById).concat(Object.keys(currById).filter(function(id) {
+    return !Object.prototype.hasOwnProperty.call(prevById, id);
+  }));
+  var seen = {};
+  var details = [];
+  ids.forEach(function(id) {
+    if (seen[id]) return;
+    seen[id] = true;
+    var diff = avDescribeConflictChanges(prevById[id], currById[id]);
+    if (diff) details.push(diff);
+  });
+  return details.slice(0, 12);
+}
+
+function avConflictIssueIds(file) {
+  var conflicts = avReadStore(AV_CONFLICTS_KEY);
+  var conflict = conflicts && conflicts[file];
+  if (!conflict || !Array.isArray(conflict.details)) return [];
+  return conflict.details
+    .map(function(item) { return Number(item && item.issueId); })
+    .filter(function(id) { return Number.isFinite(id) && id > 0; });
+}
+
+function avSetConflictFocus(file) {
+  if (!file) {
+    avConflictFocus = null;
+    return;
+  }
+  avConflictFocus = {
+    file: file,
+    ids: avConflictIssueIds(file)
+  };
+}
+
+function avRefreshConflictBanner() {
+  var banner = document.getElementById('av-conflict-banner');
+  var title = document.getElementById('av-conflict-banner-title');
+  var meta = document.getElementById('av-conflict-banner-meta');
+  if (!banner || !title || !meta) return;
+  if (!avConflictFocus) {
+    banner.classList.remove('visible');
+    return;
+  }
+  var conflicts = avReadStore(AV_CONFLICTS_KEY);
+  title.textContent = 'Conflict review mode';
+  if (!avConflictFocus.file) {
+    var totalFiles = Object.keys(conflicts || {}).filter(function(fileKey) {
+      return conflicts[fileKey] && !conflicts[fileKey].resolved_at;
+    }).length;
+    meta.textContent = 'Showing every conflicting issue across ' + String(totalFiles) + ' owner file' + (totalFiles === 1 ? '' : 's') + '.';
+  } else {
+    var file = avConflictFocus.file;
+    var conflict = conflicts && conflicts[file];
+    var count = Array.isArray(conflict && conflict.details) ? conflict.details.length : avConflictFocus.ids.length;
+    meta.textContent = (avAgentForFile(file) ? avLabel(avAgentForFile(file)) + ' · ' : '') + file + (count ? ' · ' + String(count) + ' changed issue' + (count === 1 ? '' : 's') : '');
+  }
+  banner.classList.add('visible');
+}
+
+function avClearConflictFocus() {
+  avConflictFocus = null;
+  avRefreshConflictBanner();
+  avApplyFilters();
+}
+
+function avOpenConflictDialog() {
+  var backdrop = document.getElementById('av-conflict-backdrop');
+  if (!backdrop) return;
+  avRenderConflictDialog();
+  backdrop.classList.add('visible');
+  backdrop.setAttribute('aria-hidden', 'false');
+  avDismissConflictPopup();
+  var closeBtn = document.getElementById('av-conflict-close');
+  if (closeBtn) closeBtn.focus();
+}
+
+function avCloseConflictDialog() {
+  var backdrop = document.getElementById('av-conflict-backdrop');
+  if (!backdrop) return;
+  var conflicts = avReadStore(AV_CONFLICTS_KEY);
+  var files = Object.keys(conflicts || {}).filter(function(file) {
+    return conflicts[file] && !conflicts[file].resolved_at;
+  });
+  avAcknowledgeConflicts(files);
+  backdrop.classList.remove('visible');
+  backdrop.setAttribute('aria-hidden', 'true');
+}
+
+function avFocusConflicts(file) {
+  if (file) {
+    avSetConflictFocus(file);
+  } else if (!avConflictFocus) {
+    avConflictFocus = { file: null, ids: [] };
+  }
+  selectDashboard('issues');
+  if (file) {
+    var agent = avAgentForFile(file);
+    var ownerFilter = document.getElementById('av-filter-owner');
+    if (ownerFilter && agent) ownerFilter.value = agent;
+  }
+  var statusFilter = document.getElementById('av-filter-status');
+  if (statusFilter) statusFilter.value = '';
+  var search = document.getElementById('av-search');
+  if (search) search.value = '';
+  avRefreshConflictBanner();
+  avApplyFilters();
+  window.setTimeout(function() {
+    var first = document.querySelector('.av-row--conflict');
+    if (!first) return;
+    first.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    if (!first.classList.contains('av-row--expanded')) {
+      first.classList.add('av-row--expanded');
+      var btn = first.querySelector('.av-expand-btn');
+      if (btn) btn.textContent = '▲';
+      var main = first.querySelector('.av-row-main');
+      if (main) main.setAttribute('aria-expanded', 'true');
+    }
+  }, 80);
+}
+
+function avRenderConflictDialog() {
+  var list = document.getElementById('av-conflict-dialog-list');
+  var summary = document.getElementById('av-conflict-dialog-summary');
+  if (!list || !summary) return;
+  var conflicts = avReadStore(AV_CONFLICTS_KEY);
+  var files = Object.keys(conflicts || {}).filter(function(file) {
+    return conflicts[file] && !conflicts[file].resolved_at;
+  });
+  if (!files.length) {
+    summary.textContent = 'No unresolved conflicts are waiting for review.';
+    list.innerHTML = '<div class="av-conflict-empty">No conflicts queued.</div>';
+    return;
+  }
+  summary.textContent = files.length === 1
+    ? 'One priority list changed after your manual edits. Review the exact rows below, then jump into Issues with those rows highlighted.'
+    : String(files.length) + ' priority lists changed after your manual edits. Review the exact rows below, then jump into Issues with those rows highlighted.';
+  list.innerHTML = files.map(function(file) {
+    var conflict = conflicts[file] || {};
+    var details = Array.isArray(conflict.details) ? conflict.details : [];
+    var agent = avAgentForFile(file);
+    var heading = agent ? avLabel(agent) : file;
+    var meta = file + (details.length ? ' · ' + String(details.length) + ' changed row' + (details.length === 1 ? '' : 's') : '');
+    if (conflict.legacy_baseline && !details.length) {
+      meta += ' · row detail unavailable from older baseline';
+    }
+    var items = details.length
+      ? '<div class="av-conflict-item-list">' + details.map(function(item) {
+          return '<div class="av-conflict-item">'
+            + '<div class="av-conflict-item-title"><span class="av-conflict-chip">' + escapeHtml(item.type) + '</span>' + escapeHtml(item.title || 'Untitled issue') + '</div>'
+            + '<div class="av-conflict-item-meta">' + escapeHtml(item.summary || 'Changed externally.') + '</div>'
+            + '</div>';
+        }).join('') + '</div>'
+      : '<div class="av-conflict-empty">' + escapeHtml(conflict.legacy_baseline
+          ? 'This conflict comes from an older manual baseline, so exact row-level details were not stored yet. Open Issues to review the owner file and save once to refresh the baseline.'
+          : 'The dashboard detected a conflict but could not reconstruct row-level details from the saved baseline.') + '</div>';
+    return '<section class="av-conflict-card">'
+      + '<div class="av-conflict-card-head">'
+      + '<div><h3 class="av-conflict-card-title">' + escapeHtml(heading) + '</h3><p class="av-conflict-card-meta">' + escapeHtml(meta) + '</p></div>'
+      + '<span class="av-conflict-chip">Conflict</span>'
+      + '</div>'
+      + items
+      + '<div class="av-conflict-card-actions"><button type="button" class="av-btn av-btn--accent" data-conflict-open="' + escapeHtml(file) + '">Open filtered issues</button></div>'
+      + '</section>';
+  }).join('');
+  list.querySelectorAll('[data-conflict-open]').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      avFocusConflicts(btn.getAttribute('data-conflict-open'));
+      avCloseConflictDialog();
+    });
+  });
 }
 
 function avInitConflictPopupActions() {
-  var openBtn = document.getElementById('av-conflict-open');
   var dismissBtn = document.getElementById('av-conflict-dismiss');
-  var pop = document.getElementById('av-conflict-pop');
-  if (openBtn) {
-    openBtn.addEventListener('click', function() {
-      selectDashboard('issues');
-      if (pop) pop.classList.remove('visible');
-    });
-  }
+  var closeBtn = document.getElementById('av-conflict-close');
+  var closeDialogBtn = document.getElementById('av-conflict-dialog-dismiss');
+  var reviewAllBtn = document.getElementById('av-conflict-review-all');
+  var bannerReviewBtn = document.getElementById('av-conflict-banner-review');
+  var bannerClearBtn = document.getElementById('av-conflict-banner-clear');
+  var backdrop = document.getElementById('av-conflict-backdrop');
   if (dismissBtn) {
     dismissBtn.addEventListener('click', function() {
-      if (pop) pop.classList.remove('visible');
+      avDismissConflictPopup();
+    });
+  }
+  if (closeBtn) closeBtn.addEventListener('click', avCloseConflictDialog);
+  if (closeDialogBtn) closeDialogBtn.addEventListener('click', avCloseConflictDialog);
+  if (reviewAllBtn) {
+    reviewAllBtn.addEventListener('click', function() {
+      avFocusConflicts(null);
+      avCloseConflictDialog();
+    });
+  }
+  if (bannerReviewBtn) bannerReviewBtn.addEventListener('click', avOpenConflictDialog);
+  if (bannerClearBtn) bannerClearBtn.addEventListener('click', avClearConflictFocus);
+  if (backdrop) {
+    backdrop.addEventListener('click', function(event) {
+      if (event.target === backdrop) avCloseConflictDialog();
     });
   }
 }
@@ -6692,7 +7236,9 @@ async function avCheckManualConflicts() {
   if (files.length === 0) return;
 
   var conflicts = avReadStore(AV_CONFLICTS_KEY);
-  var foundMessage = null;
+  var ack = avReadSessionStore(AV_CONFLICT_ACK_KEY);
+  var syncMessages = [];
+  var didSync = false;
 
   for (var i = 0; i < files.length; i++) {
     var file = files[i];
@@ -6704,22 +7250,44 @@ async function avCheckManualConflicts() {
       var baselineHash = baselines[file] && baselines[file].hash;
       if (!baselineHash || currentHash === baselineHash) continue;
 
-      var prev = conflicts[file];
-      if (!prev || prev.currentHash !== currentHash) {
-        conflicts[file] = {
-          detected_at: new Date().toISOString(),
-          baseline_hash: baselineHash,
-          current_hash: currentHash
-        };
-        foundMessage = 'Detected a conflict in ' + file + ': manual priority order/details changed externally.';
+      var baselineRows = Array.isArray(baselines[file] && baselines[file].priorities) ? baselines[file].priorities : null;
+      var currentRows = Array.isArray(data.priorities) ? data.priorities : [];
+      var details = avConflictDetailsFromSnapshots(baselineRows, currentRows);
+      var agent = avAgentForFile(file);
+      var label = agent ? avLabel(agent) : file;
+      if (agent && data && data.actions) {
+        mergeAgentCustomActions(agent, data.actions);
       }
+      avCache[file] = data;
+      avRecordManualBaseline(file, currentRows);
+      if (conflicts[file]) {
+        delete conflicts[file];
+      }
+      if (ack[file]) {
+        delete ack[file];
+      }
+      syncMessages.push(avFormatAgentSyncSummary(file, details, label));
+      didSync = true;
     } catch {
       // Continue other files.
     }
   }
 
-  avWriteStore(AV_CONFLICTS_KEY, conflicts);
-  if (foundMessage) avShowConflictPopup(foundMessage);
+  if (didSync) {
+    avWriteStore(AV_CONFLICTS_KEY, conflicts);
+    avWriteSessionStore(AV_CONFLICT_ACK_KEY, ack);
+    avClearConflictFocus();
+    if (avLoaded) {
+      avRebuildAllActionsFromCache();
+      avApplyFilters();
+      renderModes();
+    }
+    var combined = syncMessages.length === 1
+      ? syncMessages[0]
+      : 'Baselines synced for ' + String(syncMessages.length) + ' owner files (agent or external edits).\n\n'
+        + syncMessages.join('\n\n---\n\n');
+    avShowConflictPopup(combined);
+  }
 }
 
 function avLabel(slug) {
@@ -6853,14 +7421,17 @@ function avGetFiltered() {
 
 function avSortedActions(filtered) {
   return filtered.slice().sort(function(a, b) {
-    var ap = avPriorityScore(a);
-    var bp = avPriorityScore(b);
-    if (ap !== bp) return ap - bp;
     if (a._agent < b._agent) return -1;
     if (a._agent > b._agent) return 1;
     var ao = (a.sort_order != null) ? a.sort_order : a._idx;
     var bo = (b.sort_order != null) ? b.sort_order : b._idx;
-    return ao - bo;
+    if (ao !== bo) return ao - bo;
+    var ap = avPriorityScore(a);
+    var bp = avPriorityScore(b);
+    if (ap !== bp) return ap - bp;
+    var ai = Number(a.id) || 0;
+    var bi = Number(b.id) || 0;
+    return ai - bi;
   });
 }
 
@@ -6883,6 +7454,55 @@ function avOrchestratorSortPriorities(priorities) {
   });
 }
 
+function avFindPriorityIndex(file, priorityId) {
+  var data = avCache[file];
+  if (!data || !Array.isArray(data.priorities)) return -1;
+  return data.priorities.findIndex(function(item) {
+    return Number(item && item.id) === Number(priorityId);
+  });
+}
+
+function avNormalizePriorityOrder(file) {
+  var data = avCache[file];
+  if (!data || !Array.isArray(data.priorities)) return;
+  data.priorities.forEach(function(item, idx) {
+    item.sort_order = idx;
+  });
+}
+
+function avSyncActionIndexesForFile(file) {
+  var data = avCache[file];
+  if (!data || !Array.isArray(data.priorities)) return;
+  avNormalizePriorityOrder(file);
+  avAllActions
+    .filter(function(action) { return action._file === file; })
+    .forEach(function(action) {
+      var idx = avFindPriorityIndex(file, action._priorityId);
+      if (idx >= 0) {
+        action._idx = idx;
+        action.sort_order = idx;
+      }
+    });
+}
+
+function avReorderPriority(file, sourcePriorityId, targetPriorityId, placeAfter) {
+  var data = avCache[file];
+  if (!data || !Array.isArray(data.priorities)) return false;
+  var sourceIdx = avFindPriorityIndex(file, sourcePriorityId);
+  var targetIdx = avFindPriorityIndex(file, targetPriorityId);
+  if (sourceIdx < 0 || targetIdx < 0 || sourceIdx === targetIdx) return false;
+
+  var nextIdx = targetIdx + (placeAfter ? 1 : 0);
+  if (sourceIdx < nextIdx) nextIdx -= 1;
+  if (nextIdx === sourceIdx) return false;
+
+  var moved = data.priorities.splice(sourceIdx, 1)[0];
+  data.priorities.splice(nextIdx, 0, moved);
+  data.updated = new Date().toISOString().slice(0,10);
+  avSyncActionIndexesForFile(file);
+  return true;
+}
+
 function avApplyFilters() {
   var filtered = avGetFiltered();
   var countEl = document.getElementById('av-count');
@@ -6893,6 +7513,7 @@ function avApplyFilters() {
 function avRenderList(sorted) {
   var listEl = document.getElementById('av-list');
   if (!listEl) return;
+  avRefreshConflictBanner();
   if (sorted.length === 0) {
     listEl.innerHTML = '<div style="color:var(--muted);font-size:var(--font-size-sm);padding:var(--space-5) 0;text-align:center">No issues match the filter.</div>';
     return;
@@ -6984,11 +7605,22 @@ function avRowHtml(action, idx, total) {
     + '<button type="button" class="av-btn av-btn--accent av-discuss-btn">Start discussion</button>'
     + '</div>';
   var metaHtml = '<div><div class="av-detail-label">Metadata</div><div class="av-detail-mono">id: ' + escapeHtml(String(action._priorityId ?? '')) + ' · agent file: ' + escapeHtml(action._agent) + '</div></div>';
-  var upDisabled = idx === 0 ? ' disabled' : '';
-  var downDisabled = idx === total - 1 ? ' disabled' : '';
+  var filePriorityIdx = avFindPriorityIndex(action._file, action._priorityId);
+  var filePriorityTotal = (avCache[action._file] && Array.isArray(avCache[action._file].priorities))
+    ? avCache[action._file].priorities.length
+    : total;
+  var upDisabled = filePriorityIdx <= 0 ? ' disabled' : '';
+  var downDisabled = (filePriorityIdx < 0 || filePriorityIdx >= filePriorityTotal - 1) ? ' disabled' : '';
   var num = String(idx + 1).padStart(2, '0');
+  var isConflict = !!(
+    avConflictFocus &&
+    (
+      (avConflictFocus.file && action._file === avConflictFocus.file && (!avConflictFocus.ids.length || avConflictFocus.ids.indexOf(Number(action.id)) !== -1))
+      || (!avConflictFocus.file && action._file && avConflictIssueIds(action._file).indexOf(Number(action.id)) !== -1)
+    )
+  );
 
-  return '<div class="av-row" data-file="' + escapeHtml(action._file) + '" data-id="' + escapeHtml(action.id || '') + '">'
+  return '<div class="av-row' + (isConflict ? ' av-row--conflict' : '') + '" data-file="' + escapeHtml(action._file) + '" data-id="' + escapeHtml(action.id || '') + '">'
     + '<div class="av-drag-handle" draggable="true" title="Drag to reorder">⠿</div>'
     + '<div class="av-sort-num">' + num + '</div>'
     + '<div class="av-row-main" role="button" tabindex="0" aria-expanded="false">'
@@ -7099,6 +7731,8 @@ async function avCommitEdit(row, action, editArea, editBtn) {
     }
   }
 
+  var previousPriorityId = action._priorityId;
+
   // Update in-memory
   Object.assign(action, fields);
   action._priorityId = action.id;
@@ -7106,16 +7740,11 @@ async function avCommitEdit(row, action, editArea, editBtn) {
   // Update cache
   var data = avCache[action._file];
   if (data && Array.isArray(data.priorities)) {
-    var target = data.priorities[action._idx];
+    var targetIdx = avFindPriorityIndex(action._file, previousPriorityId);
+    var target = targetIdx >= 0 ? data.priorities[targetIdx] : null;
     if (target) Object.assign(target, fields);
-    avOrchestratorSortPriorities(data.priorities);
     data.updated = new Date().toISOString().slice(0,10);
-    avAllActions
-      .filter(function(a) { return a._file === action._file; })
-      .forEach(function(a) {
-        var idx = data.priorities.findIndex(function(p) { return p.id === a._priorityId; });
-        if (idx >= 0) a._idx = idx;
-      });
+    avSyncActionIndexesForFile(action._file);
   }
 
   var ok = await avPersist(action._file);
@@ -7153,24 +7782,21 @@ async function avPersist(file) {
 }
 
 function avMove(action, sorted, dir) {
-  // Reorder priority items within the same agent file
   var data = avCache[action._file];
   if (!data || !Array.isArray(data.priorities)) return;
-  var arrIdx = action._idx;
-  var newArrIdx = arrIdx + dir;
-  if (newArrIdx < 0 || newArrIdx >= data.priorities.length) return;
-  var tmp = data.priorities[arrIdx];
-  data.priorities[arrIdx] = data.priorities[newArrIdx];
-  data.priorities[newArrIdx] = tmp;
-  data.updated = new Date().toISOString().slice(0,10);
-  avAllActions
-    .filter(function(a) { return a._file === action._file; })
-    .forEach(function(a) {
-      var idx = data.priorities.findIndex(function(p) { return p.id === a._priorityId; });
-      if (idx >= 0) a._idx = idx;
-    });
+  var sourceIdx = avFindPriorityIndex(action._file, action._priorityId);
+  var targetIdx = sourceIdx + dir;
+  if (sourceIdx < 0 || targetIdx < 0 || targetIdx >= data.priorities.length) return;
+  var target = data.priorities[targetIdx];
+  if (!target) return;
+  if (!avReorderPriority(action._file, action._priorityId, target.id, dir > 0)) return;
   avPersist(action._file).then(function(ok) {
-    if (ok) avRecordManualBaseline(action._file, data.priorities || []);
+    if (ok) {
+      avRecordManualBaseline(action._file, data.priorities || []);
+      avShowToast('Priority order saved · ' + action._file, true);
+    } else {
+      avShowToast('Save failed — server not running', false);
+    }
   });
   avApplyFilters();
 }
@@ -7268,6 +7894,7 @@ async function avAddActionItem() {
     title: title.trim(),
     status: status,
     risk: risk,
+    sort_order: data.priorities.length,
     note: note.trim() || '',
     proposed_solution: solution.trim() || ''
   };
@@ -7279,7 +7906,6 @@ async function avAddActionItem() {
   }
   if (summaryExtra) entry.summary = summaryExtra;
   data.priorities.push(entry);
-  avOrchestratorSortPriorities(data.priorities);
   data.updated = new Date().toISOString().slice(0, 10);
   var ok = await avPersist(file);
   if (!ok) return avShowToast('Save failed — server not running', false);
@@ -7301,7 +7927,12 @@ async function avAddActionItem() {
 // Drag-and-drop reordering
 function avInitDrag(listEl, sorted) {
   var rows = listEl.querySelectorAll('.av-row');
-  var dragSrc = null;
+  var dragState = null;
+
+  function avDropPlacement(row, event) {
+    var rect = row.getBoundingClientRect();
+    return (event.clientY - rect.top) > (rect.height / 2) ? 'after' : 'before';
+  }
 
   rows.forEach(function(row, i) {
     var handle = row.querySelector('.av-drag-handle');
@@ -7309,7 +7940,11 @@ function avInitDrag(listEl, sorted) {
 
     handle.addEventListener('mousedown', function() { row.draggable = true; });
     row.addEventListener('dragstart', function(e) {
-      dragSrc = i;
+      dragState = sorted[i] || null;
+      if (!dragState) {
+        e.preventDefault();
+        return;
+      }
       row.classList.add('av-row--dragging');
       e.dataTransfer.effectAllowed = 'move';
     });
@@ -7317,31 +7952,47 @@ function avInitDrag(listEl, sorted) {
       row.draggable = false;
       row.classList.remove('av-row--dragging');
       listEl.querySelectorAll('.av-row--drag-over').forEach(function(r) { r.classList.remove('av-row--drag-over'); });
-      dragSrc = null;
+      rows.forEach(function(r) { delete r.dataset.dropPosition; });
+      dragState = null;
     });
     row.addEventListener('dragover', function(e) {
+      if (!dragState) return;
+      if (dragState._file !== row.dataset.file) return;
+      if (Number(dragState.id) === Number(row.dataset.id)) return;
       e.preventDefault();
       e.dataTransfer.dropEffect = 'move';
-      if (dragSrc !== null && dragSrc !== i) {
-        listEl.querySelectorAll('.av-row--drag-over').forEach(function(r) { r.classList.remove('av-row--drag-over'); });
-        row.classList.add('av-row--drag-over');
-      }
+      listEl.querySelectorAll('.av-row--drag-over').forEach(function(r) { r.classList.remove('av-row--drag-over'); });
+      row.classList.add('av-row--drag-over');
+      row.dataset.dropPosition = avDropPlacement(row, e);
     });
     row.addEventListener('drop', function(e) {
-      e.preventDefault();
-      if (dragSrc === null || dragSrc === i) return;
-      row.classList.remove('av-row--drag-over');
-      var src = sorted[dragSrc];
-      var dst = sorted[i];
-      if (!src || !dst) return;
-      // Move src so it appears at dst's position
-      var diff = i - dragSrc;
-      var step = diff > 0 ? 1 : -1;
-      var cur = dragSrc;
-      while (cur !== i) {
-        avMove(sorted[cur], sorted, step);
-        // avMove triggers avApplyFilters which re-renders, so break
+      if (!dragState) return;
+      if (dragState._file !== row.dataset.file) {
+        avShowToast('Reorder works within one owner list at a time', false);
         return;
+      }
+      e.preventDefault();
+      row.classList.remove('av-row--drag-over');
+      var dst = sorted[i];
+      if (!dst) return;
+      var placeAfter = (row.dataset.dropPosition || 'before') === 'after';
+      var moved = avReorderPriority(dragState._file, dragState._priorityId, dst._priorityId, placeAfter);
+      delete row.dataset.dropPosition;
+      if (!moved) return;
+      avPersist(dragState._file).then(function(ok) {
+        if (ok) {
+          avRecordManualBaseline(dragState._file, avCache[dragState._file].priorities || []);
+          avShowToast('Priority order saved · ' + dragState._file, true);
+        } else {
+          avShowToast('Save failed — server not running', false);
+        }
+      });
+      avApplyFilters();
+      dragState = null;
+    });
+    row.addEventListener('dragleave', function(e) {
+      if (!e.relatedTarget || !row.contains(e.relatedTarget)) {
+        row.classList.remove('av-row--drag-over');
       }
     });
   });
