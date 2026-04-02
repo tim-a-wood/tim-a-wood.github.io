@@ -866,6 +866,12 @@ body::before {
   background: var(--accent-soft);
 }
 
+.nav-item.nav-agent-active {
+  color: var(--text);
+  background: rgba(0,232,200,0.06);
+  box-shadow: inset 0 0 0 1px rgba(0,232,200,0.12);
+}
+
 /* ─── DASHBOARD VIEWS ────────────────────────────── */
 .dashboard-view {
   display: none;
@@ -2635,6 +2641,9 @@ textarea.av-field { resize: vertical; min-height: 72px; line-height: 1.45; }
   border-color: var(--accent);
   color: var(--accent);
 }
+.scoped-agent-btn.scoped-agent-btn--suggested {
+  border-color: var(--line-strong);
+}
 .scoped-agent-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
 
 /* ─── AGENT OS HOME (flagship hub) ─────────────────
@@ -3216,6 +3225,96 @@ h3.os-chart-card-title {
         <span class="nav-dot" style="background:#818cf8"></span>
         <span class="nav-item-text">Ashen Hollow</span>
       </button>
+      </div>
+    </div>
+
+    <div class="nav-divider"></div>
+
+    <div class="nav-section">
+      <span class="nav-label">Agent prompts</span>
+      <div class="nav-dash-group">
+        <button type="button" class="nav-item" id="toggleAgentPanelFromNav" aria-expanded="true" aria-controls="workflowSidePanel" title="Show or hide the agent &amp; prompt column">
+          <span class="nav-dot" style="background:var(--accent)"></span>
+          <span class="nav-item-text">Agent panel</span>
+          <span class="nav-item-path nav-agent-panel-state" aria-hidden="true">Visible</span>
+        </button>
+        <span class="nav-group-label">All agents</span>
+        <button type="button" class="nav-item nav-agent-item" data-agent="orchestrator">
+          <span class="nav-dot" style="background:#00e8c8"></span>
+          <span class="nav-item-text">Orchestrator</span>
+        </button>
+        <button type="button" class="nav-item nav-agent-item" data-agent="strategy">
+          <span class="nav-dot" style="background:#94a3b8"></span>
+          <span class="nav-item-text">Strategy</span>
+        </button>
+        <button type="button" class="nav-item nav-agent-item" data-agent="engineering">
+          <span class="nav-dot" style="background:#ff9500"></span>
+          <span class="nav-item-text">Development</span>
+        </button>
+        <button type="button" class="nav-item nav-agent-item" data-agent="animation">
+          <span class="nav-dot" style="background:#e879f9"></span>
+          <span class="nav-item-text">Animation</span>
+        </button>
+        <button type="button" class="nav-item nav-agent-item" data-agent="level-design">
+          <span class="nav-dot" style="background:#a3e635"></span>
+          <span class="nav-item-text">Level Design</span>
+        </button>
+        <button type="button" class="nav-item nav-agent-item" data-agent="design">
+          <span class="nav-dot" style="background:#fb7185"></span>
+          <span class="nav-item-text">Design</span>
+        </button>
+        <button type="button" class="nav-item nav-agent-item" data-agent="qa">
+          <span class="nav-dot" style="background:#77b8ff"></span>
+          <span class="nav-item-text">QA</span>
+        </button>
+        <button type="button" class="nav-item nav-agent-item" data-agent="cybersecurity">
+          <span class="nav-dot" style="background:#f85149"></span>
+          <span class="nav-item-text">Cybersecurity</span>
+        </button>
+        <button type="button" class="nav-item nav-agent-item" data-agent="research">
+          <span class="nav-dot" style="background:var(--c-research)"></span>
+          <span class="nav-item-text">Research</span>
+        </button>
+        <button type="button" class="nav-item nav-agent-item" data-agent="analytics">
+          <span class="nav-dot" style="background:#4ade80"></span>
+          <span class="nav-item-text">Analytics</span>
+        </button>
+        <button type="button" class="nav-item nav-agent-item" data-agent="support">
+          <span class="nav-dot" style="background:#fbbf24"></span>
+          <span class="nav-item-text">Support</span>
+        </button>
+        <button type="button" class="nav-item nav-agent-item" data-agent="marketing">
+          <span class="nav-dot" style="background:#f5986e"></span>
+          <span class="nav-item-text">Marketing</span>
+        </button>
+        <button type="button" class="nav-item nav-agent-item" data-agent="legal">
+          <span class="nav-dot" style="background:#a78bfa"></span>
+          <span class="nav-item-text">Legal</span>
+        </button>
+        <button type="button" class="nav-item nav-agent-item" data-agent="finance">
+          <span class="nav-dot" style="background:#f0abfc"></span>
+          <span class="nav-item-text">Finance</span>
+        </button>
+        <button type="button" class="nav-item nav-agent-item" data-agent="game-director">
+          <span class="nav-dot" style="background:#818cf8"></span>
+          <span class="nav-item-text">Game Director</span>
+        </button>
+        <button type="button" class="nav-item nav-agent-item" data-agent="creative">
+          <span class="nav-dot" style="background:#fb923c"></span>
+          <span class="nav-item-text">Creative</span>
+        </button>
+        <button type="button" class="nav-item nav-agent-item" data-agent="narrative">
+          <span class="nav-dot" style="background:#6ee7b7"></span>
+          <span class="nav-item-text">Narrative</span>
+        </button>
+        <button type="button" class="nav-item nav-agent-item" data-agent="audio">
+          <span class="nav-dot" style="background:#67e8f9"></span>
+          <span class="nav-item-text">Audio</span>
+        </button>
+        <button type="button" class="nav-item nav-agent-item" data-agent="game-systems">
+          <span class="nav-dot" style="background:#fca5a5"></span>
+          <span class="nav-item-text">Game Systems</span>
+        </button>
       </div>
     </div>
 
@@ -5348,15 +5447,15 @@ h3.os-chart-card-title {
     </div><!-- /.main-left -->
 
     <div class="main-side-dock">
-      <button type="button" class="panel-edge-handle" id="toggleSidePanel" aria-expanded="true" aria-controls="workflowSidePanel" title="Hide workflow panel">
+      <button type="button" class="panel-edge-handle" id="toggleSidePanel" aria-expanded="true" aria-controls="workflowSidePanel" title="Hide agent &amp; prompt panel">
         <span class="panel-edge-handle-inner">
           <span class="panel-edge-handle-glyph" aria-hidden="true">◀</span>
-          <span class="panel-edge-handle-label">Workflow</span>
+          <span class="panel-edge-handle-label">Agents</span>
         </span>
       </button>
       <div class="side-panel" id="workflowSidePanel">
         <div class="side-panel-flow">
-    <!-- Step 1: Pick agent (scoped to current dashboard) -->
+    <!-- Step 1: Pick agent (full roster; suggested for this view marked) -->
     <section>
       <div class="step-label"><span class="step-num">1</span> Pick an Agent</div>
       <div class="scoped-agents" id="scopedAgents"></div>
@@ -5746,6 +5845,39 @@ const DASHBOARDS = {
   'ashen-hollow':  { label: 'Ashen Hollow',   color: '#818cf8', agents: ['game-director', 'creative', 'narrative', 'audio', 'game-systems'] },
 };
 
+/** Stable order for the prompt picker; dashboard “primary” agents are prepended first. */
+const AGENT_PICKER_ORDER = [
+  'orchestrator', 'strategy',
+  'engineering', 'animation', 'level-design', 'design', 'qa', 'cybersecurity', 'research',
+  'analytics', 'support', 'marketing', 'legal', 'finance',
+  'game-director', 'creative', 'narrative', 'audio', 'game-systems',
+];
+
+function orderedAgentIdsForPicker(dashId) {
+  const dash = DASHBOARDS[dashId];
+  const primary = (dash && Array.isArray(dash.agents)) ? dash.agents : [];
+  const ordered = [];
+  const seen = new Set();
+  primary.forEach(function(id) {
+    if (AGENTS[id] && !seen.has(id)) {
+      ordered.push(id);
+      seen.add(id);
+    }
+  });
+  AGENT_PICKER_ORDER.forEach(function(id) {
+    if (AGENTS[id] && !seen.has(id)) {
+      ordered.push(id);
+      seen.add(id);
+    }
+  });
+  Object.keys(AGENTS).forEach(function(id) {
+    if (!seen.has(id)) {
+      ordered.push(id);
+    }
+  });
+  return ordered;
+}
+
 /** Sidebar + home shortcuts: which dashboard IDs appear in each product context (not "all"). */
 const OS_PRODUCT_CONTEXT_KEY = 'mv-agent-os-product-context';
 const OS_PRODUCT_CONTEXT_SETS = {
@@ -5836,8 +5968,10 @@ const outputBody  = document.getElementById('outputBody');
 const copyBtn     = document.getElementById('copyBtn');
 const claudeBtn   = document.getElementById('claudeBtn');
 const toast       = document.getElementById('toast');
+const mainEl      = document.querySelector('.main');
 
 const DASHBOARD_STORAGE_KEY = 'mv-agent-os-dashboard';
+const AGENT_PANEL_COLLAPSE_KEY = 'mv-agent-os-agent-panel-collapsed';
 
 function dashboardVisibleInProductContext(dashId, ctx) {
   if (ctx === 'all') return true;
@@ -6048,31 +6182,39 @@ function setOsProductContext(ctx, options) {
   }
 }
 
+function updateNavAgentActiveState() {
+  document.querySelectorAll('.nav-agent-item').forEach(function(btn) {
+    const id = btn.getAttribute('data-agent');
+    btn.classList.toggle('nav-agent-active', id === selectedAgent);
+  });
+}
+
 function renderScopedAgents(dashId) {
   const dash = DASHBOARDS[dashId];
   scopedAgents.innerHTML = '';
-  const agentList = (dash && Array.isArray(dash.agents)) ? dash.agents : [];
+  const primarySet = new Set((dash && Array.isArray(dash.agents)) ? dash.agents : []);
+  const agentList = orderedAgentIdsForPicker(dashId);
   if (agentList.length === 0) {
-    const hint = document.createElement('p');
-    hint.className = 'scoped-agents-empty';
-    hint.style.cssText = 'color:var(--muted);font-size:var(--font-size-sm);margin:0;padding:8px 0;max-width:400px;line-height:1.45';
-    hint.textContent = 'No specialist prompt targets on this view. Use Development, Animation, Level Design, Design, or Ashen Hollow to generate agent prompts.';
-    scopedAgents.appendChild(hint);
     selectedAgent = null;
     modeRow.innerHTML = '';
-    taskInput.placeholder = 'Switch to a dashboard with agents to generate prompts.';
+    taskInput.placeholder = 'No agents configured.';
     clearOutput();
     if (generateBtn) generateBtn.disabled = true;
+    updateNavAgentActiveState();
     return;
   }
   if (generateBtn) generateBtn.disabled = false;
-  agentList.forEach((agentId, i) => {
+  const keepSel = selectedAgent && agentList.indexOf(selectedAgent) !== -1;
+  const initialPick = keepSel ? selectedAgent : agentList[0];
+  agentList.forEach((agentId) => {
     const meta = AGENT_META[agentId] || {};
     const agent = AGENTS[agentId] || {};
     const btn = document.createElement('button');
     btn.type = 'button';
-    btn.className = 'scoped-agent-btn' + (i === 0 ? ' selected' : '');
+    const isSel = agentId === initialPick;
+    btn.className = 'scoped-agent-btn' + (isSel ? ' selected' : '') + (primarySet.has(agentId) ? ' scoped-agent-btn--suggested' : '');
     btn.dataset.agent = agentId;
+    btn.title = primarySet.has(agentId) ? 'Suggested for this dashboard' : '';
     btn.innerHTML = `<span class="scoped-agent-dot" style="background:${meta.color || '#888'}"></span>${meta.icon || ''} ${agent.label || agentId}`;
     btn.addEventListener('click', () => {
       document.querySelectorAll('.scoped-agent-btn').forEach(b => b.classList.remove('selected'));
@@ -6080,14 +6222,59 @@ function renderScopedAgents(dashId) {
       selectedAgent = agentId;
       renderModes();
       clearOutput();
+      updateNavAgentActiveState();
     });
     scopedAgents.appendChild(btn);
   });
 
-  // auto-select first agent
-  selectedAgent = agentList[0];
+  selectedAgent = initialPick;
   renderModes();
   clearOutput();
+  taskInput.placeholder = 'What do you need?';
+  updateNavAgentActiveState();
+}
+
+function expandAgentPanelIfNeeded() {
+  if (mainEl && mainEl.classList.contains('side-collapsed')) setAgentPanelCollapsed(false);
+}
+
+function focusAgentInSidePanel(agentId) {
+  if (!AGENTS[agentId] || !scopedAgents) return;
+  expandAgentPanelIfNeeded();
+  const btn = scopedAgents.querySelector('.scoped-agent-btn[data-agent="' + agentId + '"]');
+  if (btn) {
+    document.querySelectorAll('.scoped-agent-btn').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    selectedAgent = agentId;
+    renderModes();
+    clearOutput();
+    if (generateBtn) generateBtn.disabled = false;
+    updateNavAgentActiveState();
+    try {
+      btn.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    } catch (e) { /* ignore */ }
+  }
+}
+
+function setAgentPanelCollapsed(collapsed) {
+  if (!mainEl) return;
+  mainEl.classList.toggle('side-collapsed', collapsed);
+  const edgeBtn = document.getElementById('toggleSidePanel');
+  const navToggle = document.getElementById('toggleAgentPanelFromNav');
+  const g = edgeBtn && edgeBtn.querySelector('.panel-edge-handle-glyph');
+  if (g) g.textContent = collapsed ? '▶' : '◀';
+  if (edgeBtn) {
+    edgeBtn.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+    edgeBtn.title = collapsed ? 'Show agent & prompt panel' : 'Hide agent & prompt panel';
+  }
+  if (navToggle) {
+    navToggle.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+    const stateEl = navToggle.querySelector('.nav-agent-panel-state');
+    if (stateEl) stateEl.textContent = collapsed ? 'Hidden' : 'Visible';
+  }
+  try {
+    localStorage.setItem(AGENT_PANEL_COLLAPSE_KEY, collapsed ? '1' : '0');
+  } catch (e) { /* private mode */ }
 }
 
 function renderModes() {
@@ -6242,6 +6429,13 @@ claudeBtn.addEventListener('click', () => {
 document.querySelectorAll('.nav-item[data-dashboard]').forEach(btn => {
   btn.addEventListener('click', () => {
     selectDashboard(btn.dataset.dashboard);
+  });
+});
+
+document.querySelectorAll('.nav-agent-item').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    const id = btn.getAttribute('data-agent');
+    if (id) focusAgentInSidePanel(id);
   });
 });
 
@@ -10731,17 +10925,22 @@ async function pulseGlobalWorkbenchOnly() {
   }
 }
 
-// ── Side panel (workflow + prompt) collapse ──────
-const mainEl = document.querySelector('.main');
-
-document.getElementById('toggleSidePanel').addEventListener('click', function() {
-  mainEl.classList.toggle('side-collapsed');
-  const nowCollapsed = mainEl.classList.contains('side-collapsed');
-  const g = this.querySelector('.panel-edge-handle-glyph');
-  if (g) g.textContent = nowCollapsed ? '▶' : '◀';
-  this.setAttribute('aria-expanded', nowCollapsed ? 'false' : 'true');
-  this.title = nowCollapsed ? 'Show workflow panel' : 'Hide workflow panel';
-});
+// ── Side panel (agents + prompt) collapse ────────
+(function wireAgentPanelCollapse() {
+  const edgeBtn = document.getElementById('toggleSidePanel');
+  const navToggle = document.getElementById('toggleAgentPanelFromNav');
+  function onToggle() {
+    if (!mainEl) return;
+    setAgentPanelCollapsed(!mainEl.classList.contains('side-collapsed'));
+  }
+  if (edgeBtn) edgeBtn.addEventListener('click', onToggle);
+  if (navToggle) navToggle.addEventListener('click', onToggle);
+  try {
+    if (localStorage.getItem(AGENT_PANEL_COLLAPSE_KEY) === '1') {
+      setAgentPanelCollapsed(true);
+    }
+  } catch (e) { /* ignore */ }
+})();
 
 (function setupGlobalWorkbenchButtons() {
   const startBtn = document.getElementById('global-wb-start');
