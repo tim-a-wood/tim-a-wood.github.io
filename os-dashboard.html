@@ -80,6 +80,32 @@ body::before {
   padding-top: 3px; /* account for top bar */
   gap: 0;
 }
+.shell.nav-collapsed {
+  grid-template-columns: 0px 1fr;
+}
+.shell-left-dock {
+  grid-area: left;
+  position: relative;
+  display: flex;
+  flex-direction: row;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+.shell.nav-collapsed .shell-left-dock {
+  overflow: visible;
+  z-index: 25;
+}
+.panel-edge-handle--nav {
+  position: absolute;
+  right: 0;
+  top: 42%;
+  z-index: 30;
+  transform: translate(100%, -50%);
+  border-left: none;
+  border-right: 1px solid var(--line);
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+}
 
 /* ─── HEADER ─────────────────────────────────── */
 .header {
@@ -210,11 +236,24 @@ body::before {
 
 /* ─── LEFT SIDEBAR ─────────────────────────────── */
 .sidebar-left {
-  grid-area: left;
+  flex: 0 0 216px;
+  width: 216px;
+  min-width: 0;
   border-right: 1px solid var(--line);
   background: var(--panel-2);
   overflow-y: auto;
+  overflow-x: hidden;
   padding: var(--space-4) 0;
+  transition: flex-basis var(--transition-base), width var(--transition-base),
+    padding var(--transition-base), border-color var(--transition-base);
+}
+.shell.nav-collapsed .sidebar-left {
+  flex: 0 0 0;
+  width: 0;
+  padding-left: 0;
+  padding-right: 0;
+  overflow: hidden;
+  border-right: none;
 }
 
 .sidebar-left::-webkit-scrollbar { width: 4px; }
@@ -289,16 +328,24 @@ body::before {
   display: grid;
   grid-template-columns: 1fr minmax(220px, 280px);
   gap: var(--space-3);
-  transition: grid-template-columns 200ms ease;
+  transition: grid-template-columns 200ms ease, gap 200ms ease;
 }
 .main.side-collapsed {
   grid-template-columns: 1fr 0px;
+  gap: 0;
+}
+.main.side-collapsed .main-side-dock {
+  min-width: 0;
+  max-width: 0;
+  overflow: visible;
 }
 .main.side-collapsed .side-panel {
   overflow: hidden;
   padding: 0;
   border: none;
   min-width: 0;
+  opacity: 0;
+  pointer-events: none;
 }
 
 .main-left {
@@ -325,6 +372,7 @@ body::before {
   border-left: 1px solid var(--line);
   background: var(--panel-2);
   border-radius: var(--radius-sm);
+  transition: opacity 200ms ease;
 }
 .side-panel-flow {
   display: flex;
@@ -709,7 +757,25 @@ body::before {
     min-height: 100vh;
   }
 
-  .sidebar-left { border-right: none; border-bottom: 1px solid var(--line); padding: var(--space-3) 0; }
+  .shell-left-dock { display: block; width: 100%; }
+  .sidebar-left {
+    flex: none;
+    width: 100%;
+    max-width: none;
+    border-right: none;
+    border-bottom: 1px solid var(--line);
+    padding: var(--space-3) 0;
+  }
+  .shell.nav-collapsed .sidebar-left {
+    flex: none;
+    width: 100%;
+    max-height: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    overflow: hidden;
+    border-bottom: none;
+  }
+  .panel-edge-handle--nav { display: none; }
   .side-panel { border-left: none; border-top: 1px solid var(--line); border-radius: 0; min-height: 320px; }
   .main { grid-template-columns: 1fr; grid-template-rows: 1fr auto; overflow-y: auto; }
   .main-left { min-height: 400px; }
@@ -2616,35 +2682,27 @@ textarea.av-field { resize: vertical; min-height: 72px; line-height: 1.45; }
 .db-gate-label { font-size: var(--font-size-xs); font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
 .db-gate-desc  { font-size: var(--font-size-sm); color: var(--text); margin-top: 2px; }
 
-/* ─── SCOPED AGENT PICKER ────────────────────────── */
-.scoped-agents { display: flex; flex-wrap: wrap; gap: var(--space-2); }
-
-.scoped-agent-btn {
+/* ─── AGENT PICKER (dropdown) ───────────────────── */
+.scoped-agents-wrap {
   display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 5px 12px;
-  border-radius: var(--radius-full);
-  border: 1px solid var(--border-strong);
-  background: none;
-  font-size: var(--font-size-sm);
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.agent-picker-select {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px var(--space-3);
+  border-radius: var(--radius-tight);
+  border: 1px solid var(--line);
+  background: rgba(255,255,255,0.04);
+  color: var(--text);
   font-family: var(--font-sans);
-  font-weight: 600;
-  color: var(--muted);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
   cursor: pointer;
-  transition: color var(--transition-fast), border-color var(--transition-fast), background var(--transition-fast);
-  min-height: 30px;
+  transition: border-color var(--transition-base), background var(--transition-base);
 }
-.scoped-agent-btn:hover { color: var(--text); border-color: var(--line-strong); }
-.scoped-agent-btn.selected {
-  background: var(--accent-soft);
-  border-color: var(--accent);
-  color: var(--accent);
-}
-.scoped-agent-btn.scoped-agent-btn--suggested {
-  border-color: var(--line-strong);
-}
-.scoped-agent-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.agent-picker-select:hover { border-color: var(--line-strong); }
 
 /* ─── AGENT OS HOME (flagship hub) ─────────────────
    Visual direction: mission-control depth, design tokens only.
@@ -3118,8 +3176,9 @@ h3.os-chart-card-title {
     <span class="status-badge">System Ready</span>
   </header>
 
-  <!-- LEFT SIDEBAR -->
-  <nav class="sidebar-left" aria-label="Resources">
+  <!-- LEFT SIDEBAR (collapsible toward shell edge) -->
+  <div class="shell-left-dock">
+  <nav class="sidebar-left" id="dashboardNavPanel" aria-label="Resources">
 
     <div class="nav-section">
       <span class="nav-label">Dashboards</span>
@@ -3233,10 +3292,10 @@ h3.os-chart-card-title {
     <div class="nav-section">
       <span class="nav-label">Agent prompts</span>
       <div class="nav-dash-group">
-        <button type="button" class="nav-item" id="toggleAgentPanelFromNav" aria-expanded="true" aria-controls="workflowSidePanel" title="Show or hide the agent &amp; prompt column">
+        <button type="button" class="nav-item" id="toggleAgentPanelFromNav" aria-expanded="false" aria-controls="workflowSidePanel" title="Show or hide the agent &amp; prompt column">
           <span class="nav-dot" style="background:var(--accent)"></span>
           <span class="nav-item-text">Agent panel</span>
-          <span class="nav-item-path nav-agent-panel-state" aria-hidden="true">Visible</span>
+          <span class="nav-item-path nav-agent-panel-state" aria-hidden="true">Hidden</span>
         </button>
         <span class="nav-group-label">All agents</span>
         <button type="button" class="nav-item nav-agent-item" data-agent="orchestrator">
@@ -3379,9 +3438,16 @@ h3.os-chart-card-title {
     </div>
 
   </nav>
+  <button type="button" class="panel-edge-handle panel-edge-handle--nav" id="toggleNavPanel" aria-expanded="true" aria-controls="dashboardNavPanel" title="Hide dashboards panel">
+    <span class="panel-edge-handle-inner">
+      <span class="panel-edge-handle-glyph" aria-hidden="true">◀</span>
+      <span class="panel-edge-handle-label">Nav</span>
+    </span>
+  </button>
+  </div><!-- /.shell-left-dock -->
 
   <!-- MAIN -->
-  <main class="main">
+  <main class="main side-collapsed">
 
     <div class="main-left">
 
@@ -5447,9 +5513,9 @@ h3.os-chart-card-title {
     </div><!-- /.main-left -->
 
     <div class="main-side-dock">
-      <button type="button" class="panel-edge-handle" id="toggleSidePanel" aria-expanded="true" aria-controls="workflowSidePanel" title="Hide agent &amp; prompt panel">
+      <button type="button" class="panel-edge-handle" id="toggleSidePanel" aria-expanded="false" aria-controls="workflowSidePanel" title="Show agent &amp; prompt panel">
         <span class="panel-edge-handle-inner">
-          <span class="panel-edge-handle-glyph" aria-hidden="true">◀</span>
+          <span class="panel-edge-handle-glyph" aria-hidden="true">▶</span>
           <span class="panel-edge-handle-label">Agents</span>
         </span>
       </button>
@@ -5458,7 +5524,10 @@ h3.os-chart-card-title {
     <!-- Step 1: Pick agent (full roster; suggested for this view marked) -->
     <section>
       <div class="step-label"><span class="step-num">1</span> Pick an Agent</div>
-      <div class="scoped-agents" id="scopedAgents"></div>
+      <div class="scoped-agents-wrap">
+        <label class="visually-hidden" for="agentPickerSelect">Pick an agent</label>
+        <select id="agentPickerSelect" class="agent-picker-select" aria-label="Pick an agent"></select>
+      </div>
     </section>
 
     <!-- Step 2: Pick mode -->
@@ -5959,7 +6028,7 @@ function findCustomAction(agentId, modeKey) {
 
 
 // ── DOM refs ────────────────────────────────────
-const scopedAgents = document.getElementById('scopedAgents');
+const agentPickerSelect = document.getElementById('agentPickerSelect');
 const modeRow     = document.getElementById('modeRow');
 const taskInput   = document.getElementById('taskInput');
 const generateBtn = document.getElementById('generateBtn');
@@ -5969,9 +6038,14 @@ const copyBtn     = document.getElementById('copyBtn');
 const claudeBtn   = document.getElementById('claudeBtn');
 const toast       = document.getElementById('toast');
 const mainEl      = document.querySelector('.main');
+const shellEl     = document.querySelector('.shell');
 
 const DASHBOARD_STORAGE_KEY = 'mv-agent-os-dashboard';
-const AGENT_PANEL_COLLAPSE_KEY = 'mv-agent-os-agent-panel-collapsed';
+/** '1' = right agent column expanded; absent or '0' = collapsed (default). */
+const AGENT_PANEL_EXPANDED_KEY = 'mv-agent-os-agent-panel-expanded';
+const AGENT_PANEL_LEGACY_COLLAPSE_KEY = 'mv-agent-os-agent-panel-collapsed';
+/** '1' = dashboards nav expanded (default); '0' = collapsed. */
+const NAV_PANEL_EXPANDED_KEY = 'mv-agent-os-nav-expanded';
 
 function dashboardVisibleInProductContext(dashId, ctx) {
   if (ctx === 'all') return true;
@@ -6190,12 +6264,18 @@ function updateNavAgentActiveState() {
 }
 
 function renderScopedAgents(dashId) {
+  if (!agentPickerSelect) return;
   const dash = DASHBOARDS[dashId];
-  scopedAgents.innerHTML = '';
   const primarySet = new Set((dash && Array.isArray(dash.agents)) ? dash.agents : []);
   const agentList = orderedAgentIdsForPicker(dashId);
   if (agentList.length === 0) {
     selectedAgent = null;
+    agentPickerSelect.innerHTML = '';
+    const ph = document.createElement('option');
+    ph.value = '';
+    ph.textContent = 'No agents configured';
+    agentPickerSelect.appendChild(ph);
+    agentPickerSelect.disabled = true;
     modeRow.innerHTML = '';
     taskInput.placeholder = 'No agents configured.';
     clearOutput();
@@ -6203,35 +6283,37 @@ function renderScopedAgents(dashId) {
     updateNavAgentActiveState();
     return;
   }
-  if (generateBtn) generateBtn.disabled = false;
+  agentPickerSelect.disabled = false;
   const keepSel = selectedAgent && agentList.indexOf(selectedAgent) !== -1;
   const initialPick = keepSel ? selectedAgent : agentList[0];
+  agentPickerSelect.innerHTML = '';
   agentList.forEach((agentId) => {
-    const meta = AGENT_META[agentId] || {};
     const agent = AGENTS[agentId] || {};
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    const isSel = agentId === initialPick;
-    btn.className = 'scoped-agent-btn' + (isSel ? ' selected' : '') + (primarySet.has(agentId) ? ' scoped-agent-btn--suggested' : '');
-    btn.dataset.agent = agentId;
-    btn.title = primarySet.has(agentId) ? 'Suggested for this dashboard' : '';
-    btn.innerHTML = `<span class="scoped-agent-dot" style="background:${meta.color || '#888'}"></span>${meta.icon || ''} ${agent.label || agentId}`;
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.scoped-agent-btn').forEach(b => b.classList.remove('selected'));
-      btn.classList.add('selected');
-      selectedAgent = agentId;
-      renderModes();
-      clearOutput();
-      updateNavAgentActiveState();
-    });
-    scopedAgents.appendChild(btn);
+    const opt = document.createElement('option');
+    opt.value = agentId;
+    let label = agent.label || agentId;
+    if (primarySet.has(agentId)) label += ' — suggested';
+    opt.textContent = label;
+    agentPickerSelect.appendChild(opt);
   });
-
+  agentPickerSelect.value = initialPick;
   selectedAgent = initialPick;
   renderModes();
   clearOutput();
   taskInput.placeholder = 'What do you need?';
+  if (generateBtn) generateBtn.disabled = false;
   updateNavAgentActiveState();
+}
+
+if (agentPickerSelect) {
+  agentPickerSelect.addEventListener('change', function() {
+    const v = agentPickerSelect.value;
+    if (!v || !AGENTS[v]) return;
+    selectedAgent = v;
+    renderModes();
+    clearOutput();
+    updateNavAgentActiveState();
+  });
 }
 
 function expandAgentPanelIfNeeded() {
@@ -6239,21 +6321,19 @@ function expandAgentPanelIfNeeded() {
 }
 
 function focusAgentInSidePanel(agentId) {
-  if (!AGENTS[agentId] || !scopedAgents) return;
+  if (!AGENTS[agentId] || !agentPickerSelect || agentPickerSelect.disabled) return;
   expandAgentPanelIfNeeded();
-  const btn = scopedAgents.querySelector('.scoped-agent-btn[data-agent="' + agentId + '"]');
-  if (btn) {
-    document.querySelectorAll('.scoped-agent-btn').forEach(b => b.classList.remove('selected'));
-    btn.classList.add('selected');
-    selectedAgent = agentId;
-    renderModes();
-    clearOutput();
-    if (generateBtn) generateBtn.disabled = false;
-    updateNavAgentActiveState();
-    try {
-      btn.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-    } catch (e) { /* ignore */ }
+  let found = false;
+  for (let i = 0; i < agentPickerSelect.options.length; i++) {
+    if (agentPickerSelect.options[i].value === agentId) { found = true; break; }
   }
+  if (!found) return;
+  agentPickerSelect.value = agentId;
+  selectedAgent = agentId;
+  renderModes();
+  clearOutput();
+  if (generateBtn) generateBtn.disabled = false;
+  updateNavAgentActiveState();
 }
 
 function setAgentPanelCollapsed(collapsed) {
@@ -6273,7 +6353,22 @@ function setAgentPanelCollapsed(collapsed) {
     if (stateEl) stateEl.textContent = collapsed ? 'Hidden' : 'Visible';
   }
   try {
-    localStorage.setItem(AGENT_PANEL_COLLAPSE_KEY, collapsed ? '1' : '0');
+    localStorage.setItem(AGENT_PANEL_EXPANDED_KEY, collapsed ? '0' : '1');
+  } catch (e) { /* private mode */ }
+}
+
+function setNavCollapsed(collapsed) {
+  if (!shellEl) return;
+  shellEl.classList.toggle('nav-collapsed', collapsed);
+  const btn = document.getElementById('toggleNavPanel');
+  const g = btn && btn.querySelector('.panel-edge-handle-glyph');
+  if (g) g.textContent = collapsed ? '▶' : '◀';
+  if (btn) {
+    btn.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+    btn.title = collapsed ? 'Show dashboards panel' : 'Hide dashboards panel';
+  }
+  try {
+    localStorage.setItem(NAV_PANEL_EXPANDED_KEY, collapsed ? '0' : '1');
   } catch (e) { /* private mode */ }
 }
 
@@ -10925,23 +11020,6 @@ async function pulseGlobalWorkbenchOnly() {
   }
 }
 
-// ── Side panel (agents + prompt) collapse ────────
-(function wireAgentPanelCollapse() {
-  const edgeBtn = document.getElementById('toggleSidePanel');
-  const navToggle = document.getElementById('toggleAgentPanelFromNav');
-  function onToggle() {
-    if (!mainEl) return;
-    setAgentPanelCollapsed(!mainEl.classList.contains('side-collapsed'));
-  }
-  if (edgeBtn) edgeBtn.addEventListener('click', onToggle);
-  if (navToggle) navToggle.addEventListener('click', onToggle);
-  try {
-    if (localStorage.getItem(AGENT_PANEL_COLLAPSE_KEY) === '1') {
-      setAgentPanelCollapsed(true);
-    }
-  } catch (e) { /* ignore */ }
-})();
-
 (function setupGlobalWorkbenchButtons() {
   const startBtn = document.getElementById('global-wb-start');
   const restartBtn = document.getElementById('global-wb-restart');
@@ -10986,6 +11064,48 @@ document.querySelectorAll('.os-context-pill').forEach(function(btn) {
 
 setOsProductContext(getSavedProductContext(), { skipDashboardNudge: true });
 selectDashboard(coerceDashboardForContext(getInitialDashboardId(), osProductContext));
+
+// ── Shell: dashboards nav + agent column (after first dashboard render) ─
+(function wireShellPanelCollapse() {
+  function migrateAgentPanelStorage() {
+    try {
+      if (localStorage.getItem(AGENT_PANEL_EXPANDED_KEY)) return;
+      const leg = localStorage.getItem(AGENT_PANEL_LEGACY_COLLAPSE_KEY);
+      if (leg === '1') localStorage.setItem(AGENT_PANEL_EXPANDED_KEY, '0');
+      else if (leg === '0') localStorage.setItem(AGENT_PANEL_EXPANDED_KEY, '1');
+    } catch (e) { /* ignore */ }
+  }
+  migrateAgentPanelStorage();
+
+  const edgeBtn = document.getElementById('toggleSidePanel');
+  const agentNavToggle = document.getElementById('toggleAgentPanelFromNav');
+  function onAgentPanelToggle() {
+    if (!mainEl) return;
+    setAgentPanelCollapsed(!mainEl.classList.contains('side-collapsed'));
+  }
+  if (edgeBtn) edgeBtn.addEventListener('click', onAgentPanelToggle);
+  if (agentNavToggle) agentNavToggle.addEventListener('click', onAgentPanelToggle);
+
+  try {
+    if (localStorage.getItem(AGENT_PANEL_EXPANDED_KEY) === '1') {
+      setAgentPanelCollapsed(false);
+    }
+  } catch (e) { /* ignore */ }
+
+  const navEdge = document.getElementById('toggleNavPanel');
+  if (navEdge) {
+    navEdge.addEventListener('click', function() {
+      if (!shellEl) return;
+      setNavCollapsed(!shellEl.classList.contains('nav-collapsed'));
+    });
+  }
+  try {
+    if (localStorage.getItem(NAV_PANEL_EXPANDED_KEY) === '0') {
+      setNavCollapsed(true);
+    }
+  } catch (e) { /* ignore */ }
+})();
+
 void hydrateAllAgentCustomActions();
 avInitConflictPopupActions();
 void avCheckManualConflicts();
