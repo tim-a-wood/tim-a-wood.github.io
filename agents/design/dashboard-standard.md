@@ -144,4 +144,17 @@ Reference counts (current):
 
 ---
 
-## Updated: 2026-03-30
+## Agent OS shell (`os-dashboard.html`): product context
+
+The Agent OS dashboard header exposes a **product context** control (segmented pills on wide viewports; same options in a select under ~1100px). Contexts: **All**, **Business**, **Sprite dashboard**, **Ashen Hollow**, **Other income streams**. The choice is stored in `localStorage` (`mv-agent-os-product-context`).
+
+When a context other than All is active:
+
+- Sidebar dashboard links and playbook/template/knowledge shortcuts are filtered to that product surface.
+- The global Sprite Workbench server bar is shown only for **All** and **Sprite dashboard**.
+- Home “Jump to domain” and the internal AI usage chart block respect the same context.
+- Issues, Opportunities, and Ongoing Tasks lists filter rows by status-file agent slug to match the context map (`OS_PRODUCT_CONTEXT_AGENTS` in page script).
+
+To add a new product line, extend `OS_PRODUCT_CONTEXT_SETS`, `OS_PRODUCT_CONTEXT_AGENTS`, and the header pills + select in lockstep.
+
+## Updated: 2026-04-01

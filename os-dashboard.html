@@ -2772,6 +2772,7 @@ h3.os-chart-card-title {
         <option value="ashen-hollow">Ashen Hollow</option>
         <option value="other-income">Other income streams</option>
       </select>
+      <span id="osProductContextLive" class="visually-hidden" role="status" aria-live="polite"></span>
     </div>
     <span class="status-badge">System Ready</span>
   </header>
@@ -5401,6 +5402,14 @@ const OS_PRODUCT_CONTEXT_SETS = {
   'other-income': new Set(['home', 'issues', 'opportunities', 'ongoing-tasks', 'marketing', 'finance', 'legal', 'support', 'analytics', 'strategy']),
 };
 
+/** Status-file agent slugs shown in Issues / Opportunities / Ongoing for each context. */
+const OS_PRODUCT_CONTEXT_AGENTS = {
+  business: new Set(['orchestrator', 'strategy', 'legal', 'finance', 'support', 'marketing', 'analytics', 'cybersecurity', 'research']),
+  sprite: new Set(['orchestrator', 'engineering', 'design', 'animation', 'level-design', 'qa', 'cybersecurity', 'research']),
+  'ashen-hollow': new Set(['orchestrator', 'game-director', 'game-systems', 'narrative', 'audio', 'creative', 'engineering', 'design', 'animation', 'level-design', 'qa', 'research']),
+  'other-income': new Set(['orchestrator', 'marketing', 'finance', 'legal', 'support', 'analytics', 'strategy']),
+};
+
 const AGENT_META = {
   'orchestrator':     { icon: '🎯', color: '#00e8c8' },
   'strategy':         { icon: '🧭', color: '#94a3b8' },
@@ -5481,6 +5490,12 @@ function dashboardVisibleInProductContext(dashId, ctx) {
   if (ctx === 'all') return true;
   const s = OS_PRODUCT_CONTEXT_SETS[ctx];
   return !!(s && s.has(dashId));
+}
+
+function agentAllowedInOsProductContext(agent, ctx) {
+  if (ctx === 'all' || !agent) return true;
+  const s = OS_PRODUCT_CONTEXT_AGENTS[ctx];
+  return !!(s && s.has(agent));
 }
 
 function resourcePathVisibleInContext(path, ctx) {
@@ -5657,6 +5672,9 @@ function setOsProductContext(ctx, options) {
   } catch (e) { /* ignore */ }
   setOsProductContextUi(next);
   applyOsProductContextNavFilter(next);
+  if (typeof avApplyFilters === 'function') avApplyFilters();
+  if (typeof aoApplyFilters === 'function') aoApplyFilters();
+  if (typeof otApplyFilters === 'function') otApplyFilters();
   if (!opts.skipDashboardNudge && !dashboardVisibleInProductContext(selectedDashboard, next)) {
     selectDashboard(pickDefaultDashboardForContext(next));
   }
@@ -8011,6 +8029,7 @@ function otGetFiltered() {
   var query = searchEl ? searchEl.value.toLowerCase().trim() : '';
 
   return otAllActions.filter(function(a) {
+    if (!agentAllowedInOsProductContext(a._agent, osProductContext)) return false;
     if (owner && a._agent !== owner) return false;
     if (kind === 'issue' && a._ongoingSource !== 'issue') return false;
     if (kind === 'opportunity' && a._ongoingSource !== 'opportunity') return false;
@@ -8585,6 +8604,7 @@ function avGetFiltered() {
   var query = searchEl ? searchEl.value.toLowerCase().trim() : '';
 
   return avAllActions.filter(function(a) {
+    if (!agentAllowedInOsProductContext(a._agent, osProductContext)) return false;
     if (owner && a._agent !== owner) return false;
     if (status && (a.status || '') !== status) return false;
     if (query) {
@@ -9353,6 +9373,7 @@ function aoGetFiltered() {
   var query = searchEl ? searchEl.value.toLowerCase().trim() : '';
 
   return aoAllActions.filter(function(a) {
+    if (!agentAllowedInOsProductContext(a._agent, osProductContext)) return false;
     if (owner && a._agent !== owner) return false;
     if (status && (a.status || '') !== status) return false;
     if (query) {
@@ -10104,7 +10125,21 @@ document.getElementById('toggleSidePanel').addEventListener('click', function() 
   });
 })();
 
-selectDashboard(getInitialDashboardId());
+document.querySelectorAll('.os-context-pill').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    setOsProductContext(btn.getAttribute('data-os-context') || 'all', {});
+  });
+});
+(function wireOsProductContextSelect() {
+  const osCtxSel = document.getElementById('osProductContextSync');
+  if (!osCtxSel) return;
+  osCtxSel.addEventListener('change', function() {
+    setOsProductContext(osCtxSel.value || 'all', {});
+  });
+})();
+
+setOsProductContext(getSavedProductContext(), { skipDashboardNudge: true });
+selectDashboard(coerceDashboardForContext(getInitialDashboardId(), osProductContext));
 void hydrateAllAgentCustomActions();
 avInitConflictPopupActions();
 void avCheckManualConflicts();
