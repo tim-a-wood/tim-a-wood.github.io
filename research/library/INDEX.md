@@ -39,7 +39,7 @@
 
 | Date | Title | File | Summary | Status |
 |------|-------|------|---------|--------|
-| — | *No reports yet* | — | — | — |
+| 2026-04-01 | Passive income market scan (itch.io assets, education, platforms) | [passive-income-market-scan-2026-04-01.md](findings/passive-income-market-scan-2026-04-01.md) | Market + platform economics for first passive-income experiments; option A/B signal strength; cites official fee docs and creator-disclosed itch revenue examples | final |
 
 ---
 
@@ -56,4 +56,4 @@ Common tags used across library documents:
 
 ---
 
-*Last updated: 2026-04-01 by Research Agent (initial codebase scan)*
+*Last updated: 2026-04-01 by Research Agent (passive income market scan added)*

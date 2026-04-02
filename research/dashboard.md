@@ -10,7 +10,7 @@
 | Field | Value |
 |-------|-------|
 | Last scan | 2026-04-01 |
-| Library documents | 1 |
+| Library documents | 2 |
 | Open P1 issues | 3 |
 | Open P2 issues | 10 |
 | Open opportunities | 6 |
@@ -81,6 +81,7 @@
 | Date | Title | File | Type |
 |------|-------|------|------|
 | 2026-04-01 | Initial Codebase Scan — MV Toolchain | [findings/codebase-scan-2026-04-01.md](library/findings/codebase-scan-2026-04-01.md) | finding |
+| 2026-04-01 | Passive income market scan | [findings/passive-income-market-scan-2026-04-01.md](library/findings/passive-income-market-scan-2026-04-01.md) | market |
 
 ---
 
@@ -94,4 +95,4 @@
 
 ---
 
-*Last updated: 2026-04-01 by Research Agent (initial codebase scan — 4 files, 16,419 lines)*
+*Last updated: 2026-04-01 by Research Agent (passive income market scan + library index update)*
