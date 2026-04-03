@@ -375,6 +375,18 @@ def _readonly_doc_path_allowed(rel: str) -> bool:
     return False
 
 
+READONLY_IMAGE_SUFFIXES = frozenset({
+    ".png",
+    ".jpg",
+    ".jpeg",
+    ".gif",
+    ".webp",
+    ".svg",
+    ".ico",
+    ".avif",
+})
+
+
 def _content_type_for_path(fpath: Path) -> str:
     suf = fpath.suffix.lower()
     if suf == ".html":
@@ -383,6 +395,20 @@ def _content_type_for_path(fpath: Path) -> str:
         return "text/markdown; charset=utf-8"
     if suf == ".mdc":
         return "text/markdown; charset=utf-8"
+    if suf == ".svg":
+        return "image/svg+xml; charset=utf-8"
+    if suf in {".png"}:
+        return "image/png"
+    if suf in {".jpg", ".jpeg"}:
+        return "image/jpeg"
+    if suf == ".gif":
+        return "image/gif"
+    if suf == ".webp":
+        return "image/webp"
+    if suf == ".ico":
+        return "image/x-icon"
+    if suf == ".avif":
+        return "image/avif"
     return "application/octet-stream"
 
 
@@ -399,9 +425,11 @@ def _resolve_readonly_repo_file(repo_root: Path, rel: str) -> tuple[bytes, str] 
     if not fpath.is_file():
         return None
     suf = fpath.suffix.lower()
-    if suf not in {".md", ".html", ".mdc"}:
-        return None
-    return (fpath.read_bytes(), _content_type_for_path(fpath))
+    if suf in {".md", ".html", ".mdc"}:
+        return (fpath.read_bytes(), _content_type_for_path(fpath))
+    if suf in READONLY_IMAGE_SUFFIXES:
+        return (fpath.read_bytes(), _content_type_for_path(fpath))
+    return None
 
 
 def _markdown_path_from_query(parsed) -> str | None:

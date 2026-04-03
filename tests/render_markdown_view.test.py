@@ -78,6 +78,41 @@ class RenderMarkdownViewTests(unittest.TestCase):
         self.assertIn("<h1", out)
         self.assertNotIn("md-fallback", out)
 
+    def test_rewrites_relative_image_src_under_artifacts(self) -> None:
+        from scripts.render_markdown_view import _rewrite_markdown_img_srcs
+
+        svg = REPO / "artifacts/art-bible/figures/value-hierarchy.svg"
+        self.assertTrue(svg.is_file(), "fixture SVG missing")
+        inp = f'<p><img alt="v" src="{svg}" /></p>'
+        out = _rewrite_markdown_img_srcs(inp, "artifacts/ashen-hollow-art-bible.md", REPO)
+        self.assertIn('src="/artifacts/art-bible/figures/value-hierarchy.svg"', out)
+        self.assertNotIn(str(REPO), out)
+
+    def test_rewrites_root_absolute_image_path(self) -> None:
+        from scripts.render_markdown_view import _rewrite_markdown_img_srcs
+
+        inp = '<p><img src="/artifacts/art-bible/figures/value-hierarchy.svg" alt="v" /></p>'
+        out = _rewrite_markdown_img_srcs(inp, "docs/foo.md", REPO)
+        self.assertIn('src="/artifacts/art-bible/figures/value-hierarchy.svg"', out)
+
+    def test_leaves_remote_image_src_unchanged(self) -> None:
+        from scripts.render_markdown_view import _rewrite_markdown_img_srcs
+
+        inp = '<p><img src="https://example.com/x.png" alt="x" /></p>'
+        out = _rewrite_markdown_img_srcs(inp, "docs/foo.md", REPO)
+        self.assertEqual(out, inp)
+
+    def test_supervisor_readonly_resolves_allowlisted_image(self) -> None:
+        from scripts.os_dashboard_supervisor import _resolve_readonly_repo_file
+
+        rel = "artifacts/art-bible/figures/value-hierarchy.svg"
+        got = _resolve_readonly_repo_file(REPO, rel)
+        self.assertIsNotNone(got)
+        assert got is not None
+        body, ctype = got
+        self.assertGreater(len(body), 10)
+        self.assertIn("image/svg", ctype)
+
 
 if __name__ == "__main__":
     unittest.main()

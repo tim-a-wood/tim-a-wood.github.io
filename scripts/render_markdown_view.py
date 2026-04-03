@@ -11,6 +11,14 @@ from urllib.parse import quote, unquote, urlparse
 
 _A_HREF_DQ = re.compile(r'(<a\b[^>]*?\bhref\s*=\s*")([^"]*)(")', re.IGNORECASE)
 _A_HREF_SQ = re.compile(r"(<a\b[^>]*?\bhref\s*=\s*')([^']*)(')", re.IGNORECASE)
+_IMG_SRC_DQ = re.compile(
+    r'(<img\b[^>]*?\bsrc\s*=\s*")([^"]*)(")',
+    re.IGNORECASE,
+)
+_IMG_SRC_SQ = re.compile(
+    r"(<img\b[^>]*?\bsrc\s*=\s*')([^']*)(')",
+    re.IGNORECASE,
+)
 
 
 def _md_to_fragment(source: str) -> str:
@@ -67,18 +75,33 @@ def _href_for_repo_rel(rel_posix: str) -> str | None:
     return "/" + rel_posix
 
 
-def _resolve_href_for_viewer(href: str, source_repo_posix: str, repo_root: Path) -> str | None:
+def _url_for_preview_image(rel_posix: str) -> str | None:
+    """Same-origin URL for an image the supervisor readonly handler serves."""
+    from scripts.os_dashboard_supervisor import READONLY_IMAGE_SUFFIXES, _readonly_doc_path_allowed
+
+    rel_posix = rel_posix.replace("\\", "/").lstrip("/")
+    if not rel_posix or not _readonly_doc_path_allowed(rel_posix):
+        return None
+    if Path(rel_posix).suffix.lower() not in READONLY_IMAGE_SUFFIXES:
+        return None
+    return "/" + rel_posix
+
+
+def _resolve_to_repo_rel(
+    ref: str,
+    source_repo_posix: str,
+    repo_root: Path,
+) -> tuple[str | None, str]:
     """
-    Turn an anchor target from Markdown into a same-origin URL that the supervisor can serve.
-    Handles absolute disk paths, file:// URLs, root-absolute repo paths (/docs/...), and
-    paths relative to the current document (fixes broken links under /view/markdown?path=...).
+    Resolve a URI reference (href or img src) to a repo-relative path and optional fragment.
+    Returns (None, '') for external or unresolvable refs.
     """
-    raw = html.unescape(href.strip())
+    raw = html.unescape(ref.strip())
     if not raw or raw.startswith("#"):
-        return None
+        return None, ""
     low = raw.lower()
-    if low.startswith("http://") or low.startswith("https://") or low.startswith("mailto:"):
-        return None
+    if low.startswith(("http://", "https://", "mailto:", "data:")):
+        return None, ""
 
     rr = repo_root.resolve()
     frag = ""
@@ -97,7 +120,7 @@ def _resolve_href_for_viewer(href: str, source_repo_posix: str, repo_root: Path)
             rel = Path(base).resolve().relative_to(rr)
             rel_out = rel.as_posix()
         except ValueError:
-            return None
+            return None, ""
     elif base.startswith("/") and not base.startswith("//"):
         try:
             resolved = Path(base).resolve()
@@ -109,7 +132,7 @@ def _resolve_href_for_viewer(href: str, source_repo_posix: str, repo_root: Path)
                 rel = candidate.relative_to(rr)
                 rel_out = rel.as_posix()
             except ValueError:
-                return None
+                return None, ""
     else:
         doc = Path(source_repo_posix.replace("\\", "/"))
         try:
@@ -117,12 +140,32 @@ def _resolve_href_for_viewer(href: str, source_repo_posix: str, repo_root: Path)
             rel = joined.relative_to(rr)
             rel_out = rel.as_posix()
         except ValueError:
-            return None
+            return None, ""
 
-    mapped = _href_for_repo_rel(rel_out) if rel_out else None
+    return rel_out, frag
+
+
+def _resolve_href_for_viewer(href: str, source_repo_posix: str, repo_root: Path) -> str | None:
+    """
+    Turn an anchor target from Markdown into a same-origin URL that the supervisor can serve.
+    Handles absolute disk paths, file:// URLs, root-absolute repo paths (/docs/...), and
+    paths relative to the current document (fixes broken links under /view/markdown?path=...).
+    """
+    rel_out, frag = _resolve_to_repo_rel(href, source_repo_posix, repo_root)
+    if not rel_out:
+        return None
+    mapped = _href_for_repo_rel(rel_out)
     if mapped is None:
         return None
     return mapped + frag
+
+
+def _resolve_img_src_for_viewer(src: str, source_repo_posix: str, repo_root: Path) -> str | None:
+    """Rewrite img src for /view/markdown preview pages."""
+    rel_out, _frag = _resolve_to_repo_rel(src, source_repo_posix, repo_root)
+    if not rel_out:
+        return None
+    return _url_for_preview_image(rel_out)
 
 
 def _rewrite_markdown_anchor_hrefs(html_frag: str, source_repo_posix: str, repo_root: Path) -> str:
@@ -146,6 +189,27 @@ def _rewrite_markdown_anchor_hrefs(html_frag: str, source_repo_posix: str, repo_
     return _A_HREF_SQ.sub(repl_sq, out)
 
 
+def _rewrite_markdown_img_srcs(html_frag: str, source_repo_posix: str, repo_root: Path) -> str:
+    rr = repo_root.resolve()
+
+    def repl_dq(m: re.Match[str]) -> str:
+        prefix, src, suffix = m.group(1), m.group(2), m.group(3)
+        new = _resolve_img_src_for_viewer(src, source_repo_posix, rr)
+        if new is None:
+            return m.group(0)
+        return prefix + html.escape(new, quote=True) + suffix
+
+    def repl_sq(m: re.Match[str]) -> str:
+        prefix, src, suffix = m.group(1), m.group(2), m.group(3)
+        new = _resolve_img_src_for_viewer(src, source_repo_posix, rr)
+        if new is None:
+            return m.group(0)
+        return prefix + html.escape(new, quote=True) + suffix
+
+    out = _IMG_SRC_DQ.sub(repl_dq, html_frag)
+    return _IMG_SRC_SQ.sub(repl_sq, out)
+
+
 def build_markdown_view_page(
     *,
     title: str,
@@ -156,6 +220,7 @@ def build_markdown_view_page(
     body = _md_to_fragment(source)
     if repo_root is not None:
         body = _rewrite_markdown_anchor_hrefs(body, repo_path, repo_root)
+        body = _rewrite_markdown_img_srcs(body, repo_path, repo_root)
     safe_title = html.escape(title)
     safe_path = html.escape(repo_path)
     return f"""<!DOCTYPE html>
@@ -261,6 +326,7 @@ def build_markdown_view_page(
     .md-body li {{ margin-bottom: var(--space-2); }}
     .md-body a {{ color: var(--accent); }}
     .md-body a:hover {{ text-decoration: underline; }}
+    .md-body img {{ max-width: 100%; height: auto; display: block; margin: 0 0 var(--space-3); }}
     .md-body code {{
       font-family: var(--font-mono);
       font-size: var(--font-size-xs);
