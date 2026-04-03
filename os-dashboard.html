@@ -1081,19 +1081,21 @@ body::before {
   margin: 0;
   line-height: 1.4;
 }
-.agent-hub-footer-actions-wrap {
+.agent-hub-charter-section {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
+  padding: 0 var(--space-3) var(--space-3);
+  border-bottom: 1px solid var(--line);
 }
-.agent-hub-footer-actions-label {
+.agent-hub-charter-section-label {
   font-size: var(--font-size-xs);
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--muted);
 }
-.agent-hub-footer-actions {
+.agent-hub-charter-actions-row {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2);
@@ -1113,7 +1115,7 @@ body::before {
   font-weight: 600;
   border-style: dashed;
 }
-.agent-hub-footer-actions-wrap.agent-hub-charter-actions-wrap--empty {
+.agent-hub-charter-section.agent-hub-charter-section--empty {
   display: none;
 }
 .agent-hub-row {
@@ -6107,16 +6109,16 @@ h3.os-chart-card-title {
       <label class="agent-hub-context-label" for="agent-hub-task">Task context (sent every turn)</label>
       <textarea class="agent-hub-task-input" id="agent-hub-task" rows="3" placeholder="Describe what you want this specialist to help with — pasted into the model each message with the charter." autocomplete="off"></textarea>
     </div>
+    <div class="agent-hub-charter-section" id="agent-hub-charter-section">
+      <span class="agent-hub-charter-section-label" id="agent-hub-charter-actions-label">Charter actions</span>
+      <p class="agent-hub-charter-actions-hint" id="agent-hub-charter-actions-hint">Named operations from this agent's charter (via <code class="agent-hub-charter-actions-hint-code">*-status.json</code>). Click to insert a brief into task context; Shift+click opens typical output when listed.</p>
+      <div class="agent-hub-charter-actions-row" id="agent-hub-charter-actions" role="toolbar" aria-labelledby="agent-hub-charter-actions-label"></div>
+    </div>
     <div class="agent-hub-scroll" id="agent-hub-scroll"></div>
     <div class="agent-hub-footer">
       <p class="agent-hub-hint" id="agent-hub-api-hint">
         <code style="font-family:var(--font-mono);font-size:11px">POST /api/agent-chat</code> — OpenAI Chat Completions on the supervisor. Set <code style="font-family:var(--font-mono);font-size:11px">OPENAI_API_KEY</code>. Optional <code style="font-family:var(--font-mono);font-size:11px">AGENT_CHAT_MODEL</code> (falls back to <code style="font-family:var(--font-mono);font-size:11px">ISSUE_CHAT_MODEL</code>).
       </p>
-      <div class="agent-hub-footer-actions-wrap" id="agent-hub-charter-actions-wrap">
-        <span class="agent-hub-footer-actions-label" id="agent-hub-footer-actions-label">Charter actions</span>
-        <p class="agent-hub-charter-actions-hint" id="agent-hub-charter-actions-hint">Named operations from this agent's charter (via <code class="agent-hub-charter-actions-hint-code">*-status.json</code>). Click to insert a brief into task context; Shift+click opens typical output when listed.</p>
-        <div class="agent-hub-footer-actions" id="agent-hub-footer-actions" role="toolbar" aria-labelledby="agent-hub-footer-actions-label"></div>
-      </div>
       <div class="agent-hub-row">
         <textarea class="agent-hub-chat-input" id="agent-hub-chat-input" rows="2" placeholder="Message…" autocomplete="off"></textarea>
         <button type="button" class="agent-hub-send" id="agent-hub-send">Send</button>
@@ -9210,7 +9212,7 @@ function hydrateAllAgentCustomActions() {
   ).then(function() {
     renderModes();
     if (agentHubAgentId) {
-      agentHubPopulateCharterActions(document.getElementById('agent-hub-footer-actions'), agentHubAgentId);
+      agentHubPopulateCharterActions(document.getElementById('agent-hub-charter-actions'), agentHubAgentId);
     }
   });
   return agentCustomActionsHydratePromise;
@@ -9816,12 +9818,12 @@ function agentHubApplyCharterActionToTask(agentId, action) {
 }
 
 function agentHubPopulateCharterActions(wrap, agentId) {
-  var outer = document.getElementById('agent-hub-charter-actions-wrap');
+  var outer = document.getElementById('agent-hub-charter-section');
   if (!wrap) return;
   wrap.innerHTML = '';
   var list = agentCustomActionsById[agentId] || [];
   if (outer) {
-    outer.classList.toggle('agent-hub-charter-actions-wrap--empty', list.length === 0);
+    outer.classList.toggle('agent-hub-charter-section--empty', list.length === 0);
   }
   if (list.length === 0) return;
 
@@ -9849,7 +9851,7 @@ function agentHubPopulateCharterActions(wrap, agentId) {
 
 function agentHubBuildActions(agentId) {
   agentHubPopulateGenericActions(document.getElementById('agent-hub-actions'), agentId);
-  agentHubPopulateCharterActions(document.getElementById('agent-hub-footer-actions'), agentId);
+  agentHubPopulateCharterActions(document.getElementById('agent-hub-charter-actions'), agentId);
 }
 
 function agentHubOpen(agentId) {
@@ -9879,7 +9881,7 @@ function agentHubOpen(agentId) {
     scroll.innerHTML = '';
     var intro = document.createElement('div');
     intro.className = 'issue-chat-bubble issue-chat-bubble--assistant';
-    intro.textContent = 'Charter and project overview load on the server. Add task context above (or use Charter actions under the API hint), then message this specialist.';
+    intro.textContent = 'Charter and project overview load on the server. Add task context above, use Charter actions to pre-fill it, then message below.';
     scroll.appendChild(intro);
   }
   if (taskEl) {
