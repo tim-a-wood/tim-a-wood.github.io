@@ -6,6 +6,9 @@ Usage:
   python3 scripts/send_weekly_digest.py --file artifacts/weekly-digest-2026-03-28.md
   python3 scripts/send_weekly_digest.py < digest.md
   python3 scripts/send_weekly_digest.py --file body.md --attach docs/report.pdf
+
+Tuesday marketing: update_dashboards.sh (noon cron) emails
+artifacts/marketing-weekly-update-YYYY-MM-DD.md when present (same Resend env).
 """
 import os
 import sys

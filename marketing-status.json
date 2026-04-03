@@ -104,7 +104,7 @@
       "title": "One-page update every Tuesday",
       "status": "done",
       "risk": "low",
-      "note": "Cadence live: file each Tuesday as artifacts/marketing-weekly-update-YYYY-MM-DD.md. First issue 2026-04-02. metrics.tuesday_update points to latest; runbook action tuesday-update records last_run and output_location.",
+      "note": "Cadence live: file each Tuesday as artifacts/marketing-weekly-update-YYYY-MM-DD.md. First issue 2026-04-02. metrics.tuesday_update points to latest; runbook action tuesday-update records last_run and output_location. Noon dashboard cron emails that file on Tuesdays when present (same Resend as daily digest).",
       "proposed_solution": "Keep publishing the weekly one-pager (links, engagement when supplied, competitor notes, next-week focus). Suppress weeks with no material change per charter."
     },
     {

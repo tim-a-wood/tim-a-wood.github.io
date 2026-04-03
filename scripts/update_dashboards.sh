@@ -426,4 +426,27 @@ if [ "$EMAIL_RC" -ne 0 ]; then
   set -e
 fi
 
+# ── Tuesday: Marketing weekly one-pager (same Resend pipeline as daily digest) ──
+# File must exist: artifacts/marketing-weekly-update-YYYY-MM-DD.md (created by Marketing agent / founder).
+DOW=$(date +%u)
+if [ "$DOW" -eq 2 ]; then
+  MARKETING_WEEKLY="$REPO/artifacts/marketing-weekly-update-$TODAY.md"
+  if [ -f "$MARKETING_WEEKLY" ]; then
+    echo "[$(date)] Sending Tuesday marketing weekly email..." >> "$LOG"
+    set +e
+    "$PYTHON" "$REPO/scripts/send_weekly_digest.py" \
+      --file "$MARKETING_WEEKLY" \
+      --subject "[MV Marketing] Tuesday weekly update — $TODAY" \
+      --subtitle "Marketing — Tuesday weekly update" \
+      >>"$LOG" 2>&1
+    MKT_RC=$?
+    set -e
+    if [ "$MKT_RC" -ne 0 ]; then
+      echo "[$(date)] ERROR: Tuesday marketing email failed (exit ${MKT_RC}). Check RESEND / DIGEST_EMAIL_* and log above." >>"$LOG"
+    fi
+  else
+    echo "[$(date)] Tuesday: no file $MARKETING_WEEKLY — marketing weekly email skipped (create file before noon or send manually)." >>"$LOG"
+  fi
+fi
+
 echo "[$(date)] ── Dashboard update complete ──────────────────" >> "$LOG"
