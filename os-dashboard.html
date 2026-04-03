@@ -948,12 +948,20 @@ body::before {
   padding: var(--space-4);
   box-sizing: border-box;
 }
-.agent-hub-backdrop.visible { display: flex; }
+.agent-hub-backdrop.visible {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
 .agent-hub-panel {
-  width: min(480px, 92vw);
-  max-height: min(620px, 88vh);
+  width: min(640px, 94vw);
+  max-height: min(92vh, 900px);
+  margin: auto;
   display: flex;
   flex-direction: column;
+  min-height: 0;
   background: rgba(7, 10, 13, 0.96);
   border: 1px solid var(--line);
   border-radius: var(--radius-card);
@@ -967,6 +975,7 @@ body::before {
   gap: var(--space-3);
   padding: var(--surface-pad);
   border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
 }
 .agent-hub-header-title {
   font-family: var(--font-display);
@@ -1003,6 +1012,7 @@ body::before {
   gap: var(--space-2);
   padding: var(--space-3);
   border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
 }
 .agent-hub-action-btn {
   min-height: 32px;
@@ -1029,6 +1039,7 @@ body::before {
 }
 .agent-hub-context {
   padding: 0 var(--space-3) var(--space-3);
+  flex-shrink: 0;
 }
 .agent-hub-context-label {
   display: block;
@@ -1042,6 +1053,7 @@ body::before {
 .agent-hub-task-input {
   width: 100%;
   min-height: 72px;
+  max-height: min(288px, 40vh);
   padding: 10px 12px;
   border-radius: var(--radius-tight);
   border: 1px solid var(--os-control-border);
@@ -1060,9 +1072,10 @@ body::before {
   border-color: transparent;
 }
 .agent-hub-scroll {
-  flex: 1;
-  min-height: 100px;
+  flex: 1 1 0;
+  min-height: 0;
   overflow-y: auto;
+  overscroll-behavior: contain;
   padding: var(--space-3);
   display: flex;
   flex-direction: column;
@@ -1074,6 +1087,7 @@ body::before {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
+  flex-shrink: 0;
 }
 .agent-hub-hint {
   font-size: var(--font-size-xs);
@@ -1087,6 +1101,7 @@ body::before {
   gap: var(--space-2);
   padding: 0 var(--space-3) var(--space-3);
   border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
 }
 .agent-hub-charter-section-label {
   font-size: var(--font-size-xs);
@@ -1884,12 +1899,18 @@ textarea.av-field { resize: vertical; min-height: 72px; line-height: 1.45; }
 }
 .issue-chat-backdrop.visible {
   display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 .issue-chat-panel {
-  width: min(420px, 92vw);
-  max-height: min(560px, 85vh);
+  width: min(560px, 94vw);
+  max-height: min(92vh, 900px);
+  margin: auto;
   display: flex;
   flex-direction: column;
+  min-height: 0;
   background: rgba(7, 10, 13, 0.96);
   border: 1px solid var(--line);
   border-radius: var(--radius-card);
@@ -1903,6 +1924,7 @@ textarea.av-field { resize: vertical; min-height: 72px; line-height: 1.45; }
   gap: var(--space-3);
   padding: var(--surface-pad);
   border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
 }
 .issue-chat-header-title {
   font-family: var(--font-display);
@@ -1934,9 +1956,10 @@ textarea.av-field { resize: vertical; min-height: 72px; line-height: 1.45; }
   background: var(--os-control-hover);
 }
 .issue-chat-scroll {
-  flex: 1;
-  min-height: 120px;
+  flex: 1 1 0;
+  min-height: 0;
   overflow-y: auto;
+  overscroll-behavior: contain;
   padding: var(--space-3);
   display: flex;
   flex-direction: column;
@@ -2024,6 +2047,7 @@ textarea.av-field { resize: vertical; min-height: 72px; line-height: 1.45; }
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
+  flex-shrink: 0;
 }
 .issue-chat-row {
   display: flex;
