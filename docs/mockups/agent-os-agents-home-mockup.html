@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mockup — Agent OS Agents home + modal (HI-FI reference)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #050709;
+      --panel-2: #07090c;
+      --accent: #00e8c8;
+      --accent-soft: rgba(0,232,200,0.08);
+      --text: #cce8e0;
+      --muted: #5d7870;
+      --stroke: rgba(0,232,200,0.07);
+      --line: rgba(0,232,200,0.10);
+      --line-strong: rgba(0,232,200,0.18);
+      --font-sans: "Plus Jakarta Sans", -apple-system, sans-serif;
+      --font-display: "Bebas Neue", sans-serif;
+      --font-mono: "DM Mono", ui-monospace, monospace;
+      --font-size-xs: 11px;
+      --font-size-sm: 13px;
+      --font-size-base: 14px;
+      --font-size-lg: 18px;
+      --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px;
+      --surface-pad: 14px;
+      --radius-sm: 8px;
+      --radius-md: 10px;
+      --radius-tight: 14px;
+      --radius-card: 18px;
+      --shadow-lg: 0 12px 40px rgba(0,0,0,0.38);
+      --transition-base: 200ms ease;
+    }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-sans);
+      font-size: var(--font-size-base);
+      min-height: 100vh;
+      display: flex;
+    }
+    .mock-banner {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 300;
+      background: rgba(210,153,34,0.2);
+      border-bottom: 1px solid rgba(210,153,34,0.35);
+      color: var(--text);
+      font-size: var(--font-size-xs);
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      text-align: center;
+      padding: var(--space-2);
+    }
+    .mock-shell {
+      display: flex;
+      width: 100%;
+      margin-top: 36px;
+      min-height: calc(100vh - 36px);
+    }
+    .mock-sidebar {
+      width: 268px;
+      flex-shrink: 0;
+      background: var(--panel-2);
+      border-right: 1px solid var(--line);
+      padding: var(--space-3) 0;
+      overflow-y: auto;
+    }
+    .mock-nav-label {
+      font-size: var(--font-size-xs);
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      padding: 0 var(--space-4) var(--space-2);
+    }
+    .mock-tile-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--space-2);
+      padding: 0 var(--space-3) var(--space-3);
+    }
+    .mock-tile {
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      padding: var(--space-2);
+      background: rgba(255,255,255,0.03);
+      min-height: 52px;
+      cursor: default;
+      text-align: left;
+      position: relative;
+      overflow: hidden;
+    }
+    .mock-tile::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: var(--tile-accent, var(--accent));
+      opacity: 0.85;
+    }
+    .mock-tile-icon { font-size: 13px; line-height: 1; }
+    .mock-tile-name {
+      font-size: var(--font-size-xs);
+      font-weight: 700;
+      color: var(--text);
+      margin-top: 2px;
+      line-height: 1.2;
+    }
+    .mock-divider {
+      height: 1px;
+      background: var(--line);
+      margin: var(--space-2) var(--space-4);
+    }
+    .mock-fake-dash {
+      padding: 0 var(--space-3);
+      font-size: var(--font-size-sm);
+      color: var(--muted);
+    }
+    .mock-main {
+      flex: 1;
+      background: var(--bg);
+      position: relative;
+      display: flex;
+      align-items: flex-end;
+      justify-content: flex-end;
+      padding: var(--space-4);
+    }
+    .mock-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(5, 7, 9, 0.72);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: flex-end;
+      justify-content: flex-end;
+      padding: var(--space-4);
+      box-sizing: border-box;
+    }
+    .mock-panel {
+      width: min(480px, 94vw);
+      max-height: min(620px, 88vh);
+      display: flex;
+      flex-direction: column;
+      background: rgba(7, 10, 13, 0.96);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-card);
+      box-shadow: var(--shadow-lg);
+      overflow: hidden;
+    }
+    .mock-header {
+      display: flex;
+      justify-content: space-between;
+      gap: var(--space-3);
+      padding: var(--surface-pad);
+      border-bottom: 1px solid var(--line);
+    }
+    .mock-header-title {
+      font-family: var(--font-display);
+      font-size: var(--font-size-lg);
+      letter-spacing: 0.04em;
+      color: var(--text);
+    }
+    .mock-header-sub {
+      font-size: var(--font-size-xs);
+      color: var(--muted);
+      margin-top: 4px;
+      font-family: var(--font-mono);
+    }
+    .mock-close {
+      min-height: 32px;
+      min-width: 32px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--line);
+      background: transparent;
+      color: var(--muted);
+    }
+    .mock-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-2);
+      padding: var(--space-3);
+      border-bottom: 1px solid var(--line);
+    }
+    .mock-action-btn {
+      min-height: 32px;
+      padding: 8px 12px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--line-strong);
+      background: rgba(255,255,255,0.04);
+      color: var(--text);
+      font-family: var(--font-sans);
+      font-size: var(--font-size-sm);
+      font-weight: 600;
+      cursor: default;
+    }
+    .mock-action-btn--primary {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+      color: var(--accent);
+    }
+    .mock-context {
+      padding: 0 var(--space-3) var(--space-3);
+    }
+    .mock-context label {
+      display: block;
+      font-size: var(--font-size-xs);
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: var(--space-2);
+    }
+    .mock-context textarea {
+      width: 100%;
+      min-height: 72px;
+      padding: 10px 12px;
+      border-radius: var(--radius-tight);
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.04);
+      color: var(--text);
+      font-family: var(--font-sans);
+      font-size: var(--font-size-sm);
+      resize: vertical;
+    }
+    .mock-scroll {
+      flex: 1;
+      min-height: 100px;
+      overflow-y: auto;
+      padding: var(--space-3);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-3);
+    }
+    .mock-bubble-asst {
+      align-self: flex-start;
+      border-radius: var(--radius-sm);
+      padding: var(--space-2) var(--space-3);
+      font-size: var(--font-size-sm);
+      line-height: 1.45;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--stroke);
+      max-width: 100%;
+    }
+    .mock-footer {
+      padding: var(--space-3);
+      border-top: 1px solid var(--line);
+      display: flex;
+      gap: var(--space-2);
+      align-items: flex-end;
+    }
+    .mock-footer textarea {
+      flex: 1;
+      min-height: 44px;
+      padding: 10px 12px;
+      border-radius: var(--radius-tight);
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.04);
+      color: var(--text);
+      font-family: var(--font-sans);
+      font-size: var(--font-size-sm);
+    }
+    .mock-send {
+      min-height: 44px;
+      padding: 10px 12px;
+      border-radius: var(--radius-tight);
+      border: 1px solid var(--accent);
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-weight: 600;
+      font-family: var(--font-sans);
+      font-size: var(--font-size-sm);
+    }
+    .mock-hint {
+      font-size: var(--font-size-xs);
+      color: var(--muted);
+      padding: 0 var(--space-3) var(--space-2);
+      line-height: 1.4;
+    }
+  </style>
+</head>
+<body>
+  <div class="mock-banner">Non-functional HI-FI mockup — reference for live Agent OS UI only</div>
+  <div class="mock-shell">
+    <aside class="mock-sidebar" aria-label="Mock left nav">
+      <div class="mock-nav-label">Agents</div>
+      <div class="mock-tile-grid">
+        <div class="mock-tile" style="--tile-accent:#00e8c8"><div class="mock-tile-icon">🎯</div><div class="mock-tile-name">Orchestrator</div></div>
+        <div class="mock-tile" style="--tile-accent:#94a3b8"><div class="mock-tile-icon">🧭</div><div class="mock-tile-name">Strategy</div></div>
+        <div class="mock-tile" style="--tile-accent:#fb7185"><div class="mock-tile-icon">🎨</div><div class="mock-tile-name">Design</div></div>
+        <div class="mock-tile" style="--tile-accent:#ff9500"><div class="mock-tile-icon">⚙️</div><div class="mock-tile-name">Engineering</div></div>
+        <div class="mock-tile" style="--tile-accent:#77b8ff"><div class="mock-tile-icon">🔍</div><div class="mock-tile-name">QA</div></div>
+        <div class="mock-tile" style="--tile-accent:#e879f9"><div class="mock-tile-icon">🔬</div><div class="mock-tile-name">Research</div></div>
+      </div>
+      <div class="mock-divider"></div>
+      <div class="mock-nav-label">Dashboards</div>
+      <p class="mock-fake-dash">API usage, Issues, … (unchanged)</p>
+    </aside>
+    <div class="mock-main">
+      <div class="mock-backdrop">
+        <div class="mock-panel" role="dialog" aria-label="Agent modal example">
+          <div class="mock-header">
+            <div>
+              <div class="mock-header-title">🎨 Design</div>
+              <div class="mock-header-sub">agents/design/charter.md · Task-aware chat</div>
+            </div>
+            <button type="button" class="mock-close" aria-label="Close">✕</button>
+          </div>
+          <div class="mock-actions">
+            <button type="button" class="mock-action-btn mock-action-btn--primary">Focus in workflow panel</button>
+            <button type="button" class="mock-action-btn">Open charter</button>
+            <button type="button" class="mock-action-btn">STYLE_GUIDE.md</button>
+          </div>
+          <div class="mock-context">
+            <label for="m-task">Task context (sent every turn)</label>
+            <textarea id="m-task" readonly>Example: Redesign the Room Copilot review panel for clearer “approve before save” messaging.</textarea>
+          </div>
+          <div class="mock-scroll">
+            <div class="mock-bubble-asst">Charter + project overview are loaded on the server. Ask a question or paste constraints — the model replies in character for this agent.</div>
+          </div>
+          <p class="mock-hint">Live app uses <span style="font-family:var(--font-mono);font-size:11px">POST /api/agent-chat</span> with OpenAI when <span style="font-family:var(--font-mono);font-size:11px">OPENAI_API_KEY</span> is set.</p>
+          <div class="mock-footer">
+            <textarea readonly rows="2" placeholder="Message…"></textarea>
+            <button type="button" class="mock-send">Send</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

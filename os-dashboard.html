@@ -865,6 +865,251 @@ body::before {
 
 .os-nav-hidden { display: none !important; }
 
+/* ─── Agents home (left rail, above Dashboards) — matches docs/mockups/agent-os-agents-home-mockup.html */
+.nav-agent-home-section.nav-section--empty { display: none; }
+.nav-agent-tile-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-2);
+  padding: 0 var(--space-3) var(--space-2);
+  list-style: none;
+}
+button.nav-agent-tile {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: var(--space-2);
+  background: rgba(255, 255, 255, 0.03);
+  cursor: pointer;
+  text-align: left;
+  min-height: 52px;
+  position: relative;
+  overflow: hidden;
+  font: inherit;
+  color: inherit;
+  transition: border-color var(--transition-base), background var(--transition-base), transform var(--transition-fast);
+}
+button.nav-agent-tile::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--agent-tile-accent, var(--accent));
+  opacity: 0;
+  transition: opacity var(--transition-base);
+}
+button.nav-agent-tile:hover {
+  border-color: var(--line-strong);
+  transform: translateY(-1px);
+}
+button.nav-agent-tile:hover::before { opacity: 1; }
+.nav-agent-tile-icon { font-size: 13px; line-height: 1; }
+.nav-agent-tile-name {
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  color: var(--text);
+  margin-top: 2px;
+  line-height: 1.2;
+}
+
+/* Agent hub modal — width per mockup (480px vs issue chat 420px) */
+.agent-hub-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 205;
+  background: rgba(5, 7, 9, 0.72);
+  backdrop-filter: blur(4px);
+  align-items: flex-end;
+  justify-content: flex-end;
+  padding: var(--space-4);
+  box-sizing: border-box;
+}
+.agent-hub-backdrop.visible { display: flex; }
+.agent-hub-panel {
+  width: min(480px, 92vw);
+  max-height: min(620px, 88vh);
+  display: flex;
+  flex-direction: column;
+  background: rgba(7, 10, 13, 0.96);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+}
+.agent-hub-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--surface-pad);
+  border-bottom: 1px solid var(--line);
+}
+.agent-hub-header-title {
+  font-family: var(--font-display);
+  font-size: var(--font-size-lg);
+  letter-spacing: 0.04em;
+  color: var(--text);
+  line-height: 1.2;
+}
+.agent-hub-header-sub {
+  font-size: var(--font-size-xs);
+  color: var(--muted);
+  margin-top: 4px;
+  font-family: var(--font-mono);
+}
+.agent-hub-close {
+  flex-shrink: 0;
+  min-height: 32px;
+  min-width: 32px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
+}
+.agent-hub-close:hover {
+  color: var(--text);
+  border-color: var(--line-strong);
+  background: rgba(255, 255, 255, 0.05);
+}
+.agent-hub-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-bottom: 1px solid var(--line);
+}
+.agent-hub-action-btn {
+  min-height: 32px;
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line-strong);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--transition-fast), border-color var(--transition-fast), transform var(--transition-fast);
+}
+.agent-hub-action-btn:hover {
+  border-color: var(--line-strong);
+  transform: translateY(-1px);
+}
+.agent-hub-action-btn--primary {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.agent-hub-context {
+  padding: 0 var(--space-3) var(--space-3);
+}
+.agent-hub-context-label {
+  display: block;
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: var(--space-2);
+}
+.agent-hub-task-input {
+  width: 100%;
+  min-height: 72px;
+  padding: 10px 12px;
+  border-radius: var(--radius-tight);
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-sm);
+  resize: vertical;
+  box-sizing: border-box;
+  transition: border-color var(--transition-fast);
+}
+.agent-hub-task-input:hover { border-color: var(--border-strong); }
+.agent-hub-task-input:focus {
+  outline: 2px solid rgba(0, 232, 200, 0.35);
+  outline-offset: 2px;
+  border-color: transparent;
+}
+.agent-hub-scroll {
+  flex: 1;
+  min-height: 100px;
+  overflow-y: auto;
+  padding: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.agent-hub-footer {
+  padding: var(--space-3);
+  border-top: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.agent-hub-hint {
+  font-size: var(--font-size-xs);
+  color: var(--muted);
+  margin: 0;
+  line-height: 1.4;
+}
+.agent-hub-row {
+  display: flex;
+  gap: var(--space-2);
+  align-items: flex-end;
+}
+.agent-hub-chat-input {
+  flex: 1;
+  min-height: 44px;
+  max-height: 120px;
+  padding: 10px 12px;
+  border-radius: var(--radius-tight);
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-sm);
+  resize: vertical;
+  box-sizing: border-box;
+  transition: border-color var(--transition-fast);
+}
+.agent-hub-chat-input:hover { border-color: var(--border-strong); }
+.agent-hub-chat-input:focus {
+  outline: 2px solid rgba(0, 232, 200, 0.35);
+  outline-offset: 2px;
+  border-color: transparent;
+}
+.agent-hub-send {
+  min-height: 44px;
+  padding: 10px 12px;
+  border-radius: var(--radius-tight);
+  border: 1px solid var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+.agent-hub-send:hover { background: rgba(0, 232, 200, 0.16); }
+.agent-hub-send:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.agent-hub-close:focus-visible,
+.agent-hub-action-btn:focus-visible,
+.agent-hub-send:focus-visible {
+  outline: 2px solid rgba(0, 232, 200, 0.35);
+  outline-offset: 2px;
+}
+
 .nav-section.nav-section--empty { display: none; }
 
 /* ─── PRODUCT CONTEXT (header — single select, one row) ─ */
@@ -2945,6 +3190,13 @@ h3.os-chart-card-title {
   <!-- LEFT SIDEBAR (collapsible toward shell edge) -->
   <div class="shell-left-dock">
   <nav class="sidebar-left" id="dashboardNavPanel" aria-label="Resources">
+
+    <div class="nav-section nav-agent-home-section" id="navAgentHomeSection">
+      <span class="nav-label">Agents</span>
+      <div class="nav-agent-tile-grid" id="navAgentTileGrid" role="list"></div>
+    </div>
+
+    <div class="nav-divider"></div>
 
     <div class="nav-section">
       <span class="nav-label">Dashboards</span>
@@ -5765,6 +6017,34 @@ h3.os-chart-card-title {
 
 </div>
 
+<!-- Agents home specialist chat (POST /api/agent-chat; OpenAI; charter + overview + task context on server) -->
+<div class="agent-hub-backdrop" id="agent-hub-backdrop" aria-hidden="true">
+  <div class="agent-hub-panel" role="dialog" aria-labelledby="agent-hub-title" aria-modal="true">
+    <div class="agent-hub-header">
+      <div>
+        <div class="agent-hub-header-title" id="agent-hub-title">Agent</div>
+        <div class="agent-hub-header-sub" id="agent-hub-sub"></div>
+      </div>
+      <button type="button" class="agent-hub-close" id="agent-hub-close" title="Close">✕</button>
+    </div>
+    <div class="agent-hub-actions" id="agent-hub-actions"></div>
+    <div class="agent-hub-context">
+      <label class="agent-hub-context-label" for="agent-hub-task">Task context (sent every turn)</label>
+      <textarea class="agent-hub-task-input" id="agent-hub-task" rows="3" placeholder="Describe what you want this specialist to help with — pasted into the model each message with the charter." autocomplete="off"></textarea>
+    </div>
+    <div class="agent-hub-scroll" id="agent-hub-scroll"></div>
+    <div class="agent-hub-footer">
+      <p class="agent-hub-hint" id="agent-hub-api-hint">
+        <code style="font-family:var(--font-mono);font-size:11px">POST /api/agent-chat</code> — OpenAI Chat Completions on the supervisor. Set <code style="font-family:var(--font-mono);font-size:11px">OPENAI_API_KEY</code>. Optional <code style="font-family:var(--font-mono);font-size:11px">AGENT_CHAT_MODEL</code> (falls back to <code style="font-family:var(--font-mono);font-size:11px">ISSUE_CHAT_MODEL</code>).
+      </p>
+      <div class="agent-hub-row">
+        <textarea class="agent-hub-chat-input" id="agent-hub-chat-input" rows="2" placeholder="Message…" autocomplete="off"></textarea>
+        <button type="button" class="agent-hub-send" id="agent-hub-send">Send</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Issue discussion (OpenAI via supervisor; requires OPENAI_API_KEY) -->
 <div class="issue-chat-backdrop" id="issue-chat-backdrop" aria-hidden="true">
   <div class="issue-chat-panel" role="dialog" aria-labelledby="issue-chat-title" aria-modal="true">
@@ -6180,6 +6460,56 @@ const AGENT_META = {
   'research':         { icon: '🔬', color: '#e879f9' },
 };
 
+/** Optional extra quick-open docs per agent (Design handoff + mockup). Path is repo-relative for /view/markdown. */
+const AGENT_HUB_QUICK_LINKS = {
+  design: [{ label: 'STYLE_GUIDE.md', path: 'STYLE_GUIDE.md' }],
+  orchestrator: [{ label: 'Brainstorm playbook', path: 'playbooks/brainstorming-session.md' }],
+  legal: [{ label: 'AI assets review', path: 'playbooks/legal-review-ai-assets.md' }],
+  engineering: [{ label: 'AGENTS.md', path: 'AGENTS.md' }],
+  qa: [{ label: 'Acceptance tests', path: 'tests/acceptance_tests.md' }],
+  strategy: [{ label: 'Decision brief', path: 'templates/decision-brief.md' }],
+};
+
+function allAgentIdsForNavHub() {
+  var seen = new Set();
+  var out = [];
+  AGENT_PICKER_ORDER.forEach(function(id) {
+    if (AGENTS[id] && !seen.has(id)) {
+      out.push(id);
+      seen.add(id);
+    }
+  });
+  Object.keys(AGENTS).forEach(function(id) {
+    if (!seen.has(id)) {
+      out.push(id);
+      seen.add(id);
+    }
+  });
+  return out;
+}
+
+function primaryDashboardForAgent(agentId) {
+  var keys = Object.keys(DASHBOARDS);
+  for (var i = 0; i < keys.length; i++) {
+    var cfg = DASHBOARDS[keys[i]];
+    if (cfg && Array.isArray(cfg.agents) && cfg.agents.indexOf(agentId) !== -1) {
+      return keys[i];
+    }
+  }
+  return 'orchestration';
+}
+
+function openMarkdownPreviewPath(relPath) {
+  var path = (relPath || '').trim();
+  if (!path) return;
+  var url = agentOsApiUrl('/view/markdown?path=' + encodeURIComponent(path));
+  try {
+    window.open(url, '_blank', 'noopener,noreferrer');
+  } catch (e) {
+    showToast('Open charter in supervisor: ' + path);
+  }
+}
+
 let selectedDashboard = 'api-usage';
 let osProductContext = 'all';
 let selectedAgent = 'orchestrator';
@@ -6458,6 +6788,19 @@ function applyOsProductContextNavFilter(ctx) {
     const show = resourcePathVisibleInContext(path, ctx);
     btn.classList.toggle('os-nav-hidden', !show);
   });
+  document.querySelectorAll('.nav-agent-tile[data-agent]').forEach((btn) => {
+    const ag = btn.getAttribute('data-agent');
+    const show = agentAllowedInOsProductContext(ag, ctx);
+    btn.classList.toggle('os-nav-hidden', !show);
+  });
+  const hubSec = document.getElementById('navAgentHomeSection');
+  if (hubSec) {
+    let hubAny = false;
+    hubSec.querySelectorAll('.nav-agent-tile[data-agent]').forEach((el) => {
+      if (!el.classList.contains('os-nav-hidden')) hubAny = true;
+    });
+    hubSec.classList.toggle('nav-section--empty', !hubAny);
+  }
   document.querySelectorAll('.nav-dash-group').forEach((g) => {
     let any = false;
     g.querySelectorAll('.nav-item').forEach((el) => {
@@ -9181,6 +9524,262 @@ function avInitConflictPopupActions() {
     });
   }
 }
+
+// ── Agents home (left rail tiles + modal, POST /api/agent-chat) ─────────────
+var AGENT_HUB_PENDING_ID = 'agent-hub-pending-indicator';
+var AGENT_HUB_FETCH_TIMEOUT_MS = 120000;
+var agentHubAgentId = null;
+var agentHubMessages = [];
+var agentHubLoading = false;
+
+function renderNavAgentTiles() {
+  var grid = document.getElementById('navAgentTileGrid');
+  if (!grid) return;
+  grid.innerHTML = '';
+  allAgentIdsForNavHub().forEach(function(id) {
+    var agent = AGENTS[id] || {};
+    var meta = AGENT_META[id] || {};
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'nav-agent-tile';
+    btn.setAttribute('role', 'listitem');
+    btn.dataset.agent = id;
+    var col = meta.color || 'var(--accent)';
+    btn.style.setProperty('--agent-tile-accent', col);
+    var icon = document.createElement('div');
+    icon.className = 'nav-agent-tile-icon';
+    icon.textContent = meta.icon || '•';
+    var name = document.createElement('div');
+    name.className = 'nav-agent-tile-name';
+    name.textContent = agent.label || id;
+    btn.appendChild(icon);
+    btn.appendChild(name);
+    btn.addEventListener('click', function() {
+      agentHubOpen(id);
+    });
+    grid.appendChild(btn);
+  });
+}
+
+function agentHubSetPending(show) {
+  var scroll = document.getElementById('agent-hub-scroll');
+  if (!scroll) return;
+  var existing = document.getElementById(AGENT_HUB_PENDING_ID);
+  if (!show) {
+    if (existing) existing.remove();
+    scroll.removeAttribute('aria-busy');
+    return;
+  }
+  if (existing) return;
+  scroll.setAttribute('aria-busy', 'true');
+  var row = document.createElement('div');
+  row.id = AGENT_HUB_PENDING_ID;
+  row.className = 'issue-chat-pending';
+  row.setAttribute('role', 'status');
+  row.setAttribute('aria-live', 'polite');
+  row.innerHTML = '<span class="issue-chat-pending-title">Waiting for model<span class="issue-chat-pending-ellipsis">…</span></span>'
+    + '<span class="issue-chat-pending-detail">OpenAI Chat Completions via the supervisor (usually seconds).</span>';
+  scroll.appendChild(row);
+  scroll.scrollTop = scroll.scrollHeight;
+}
+
+function agentHubAppendBubble(role, text, thinking, isErr) {
+  var scroll = document.getElementById('agent-hub-scroll');
+  if (!scroll) return;
+  if (thinking) {
+    var wrap = document.createElement('div');
+    wrap.className = 'issue-chat-thinking-block';
+    wrap.innerHTML = '<div class="issue-chat-thinking-label">Agent reasoning</div><pre class="issue-chat-thinking-body"></pre>';
+    wrap.querySelector('pre').textContent = thinking;
+    scroll.appendChild(wrap);
+  }
+  var bubble = document.createElement('div');
+  bubble.className = 'issue-chat-bubble issue-chat-bubble--' + role + (isErr ? ' issue-chat-bubble--err' : '');
+  bubble.textContent = text || '';
+  scroll.appendChild(bubble);
+  scroll.scrollTop = scroll.scrollHeight;
+}
+
+function agentHubBuildActions(agentId) {
+  var wrap = document.getElementById('agent-hub-actions');
+  if (!wrap) return;
+  wrap.innerHTML = '';
+  var agent = AGENTS[agentId] || {};
+  var charterPath = agent.charter || '';
+
+  function addBtn(label, primary, onClick) {
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'agent-hub-action-btn' + (primary ? ' agent-hub-action-btn--primary' : '');
+    b.textContent = label;
+    b.addEventListener('click', onClick);
+    wrap.appendChild(b);
+  }
+
+  addBtn('Focus in workflow panel', true, function() {
+    focusAgentInSidePanel(agentId);
+    showToast('Agent selected in workflow panel');
+  });
+
+  if (charterPath) {
+    addBtn('Open charter', false, function() {
+      openMarkdownPreviewPath(charterPath);
+    });
+  }
+
+  var extras = AGENT_HUB_QUICK_LINKS[agentId] || [];
+  extras.forEach(function(x) {
+    if (!x || !x.path) return;
+    addBtn(x.label || x.path, false, function() {
+      openMarkdownPreviewPath(x.path);
+    });
+  });
+
+  addBtn('Open dashboard', false, function() {
+    selectDashboard(primaryDashboardForAgent(agentId));
+  });
+}
+
+function agentHubOpen(agentId) {
+  if (!AGENTS[agentId]) return;
+  agentHubAgentId = agentId;
+  agentHubMessages = [];
+  agentHubLoading = false;
+  var agent = AGENTS[agentId];
+  var meta = AGENT_META[agentId] || {};
+  var titleEl = document.getElementById('agent-hub-title');
+  var subEl = document.getElementById('agent-hub-sub');
+  var backdrop = document.getElementById('agent-hub-backdrop');
+  var taskEl = document.getElementById('agent-hub-task');
+  var chatInp = document.getElementById('agent-hub-chat-input');
+  if (titleEl) titleEl.textContent = (meta.icon ? meta.icon + ' ' : '') + (agent.label || agentId);
+  if (subEl) {
+    subEl.textContent = (agent.charter || '') + ' · Task-aware chat';
+  }
+  agentHubBuildActions(agentId);
+  if (backdrop) {
+    backdrop.classList.add('visible');
+    backdrop.setAttribute('aria-hidden', 'false');
+  }
+  var scroll = document.getElementById('agent-hub-scroll');
+  if (scroll) {
+    scroll.innerHTML = '';
+    var intro = document.createElement('div');
+    intro.className = 'issue-chat-bubble issue-chat-bubble--assistant';
+    intro.textContent = 'Charter and project overview load on the server. Add task context above, then message this specialist.';
+    scroll.appendChild(intro);
+  }
+  if (taskEl) {
+    try {
+      taskEl.value = sessionStorage.getItem('mv-agent-hub-task-' + agentId) || '';
+    } catch (e) {
+      taskEl.value = '';
+    }
+  }
+  if (chatInp) {
+    chatInp.value = '';
+    chatInp.focus();
+  }
+}
+
+function agentHubClose() {
+  var backdrop = document.getElementById('agent-hub-backdrop');
+  if (backdrop) {
+    backdrop.classList.remove('visible');
+    backdrop.setAttribute('aria-hidden', 'true');
+  }
+  agentHubAgentId = null;
+  agentHubMessages = [];
+  agentHubLoading = false;
+  agentHubSetPending(false);
+  var inp = document.getElementById('agent-hub-chat-input');
+  if (inp) inp.disabled = false;
+}
+
+async function agentHubSend() {
+  var input = document.getElementById('agent-hub-chat-input');
+  var sendBtn = document.getElementById('agent-hub-send');
+  var taskEl = document.getElementById('agent-hub-task');
+  if (!agentHubAgentId || !input || agentHubLoading) return;
+  var text = (input.value || '').trim();
+  if (!text) return;
+  var taskContext = taskEl ? String(taskEl.value || '') : '';
+  try {
+    sessionStorage.setItem('mv-agent-hub-task-' + agentHubAgentId, taskContext);
+  } catch (e) { /* ignore */ }
+
+  agentHubMessages.push({ role: 'user', content: text });
+  input.value = '';
+  agentHubAppendBubble('user', text, null, false);
+  agentHubLoading = true;
+  agentHubSetPending(true);
+  if (sendBtn) sendBtn.disabled = true;
+  input.disabled = true;
+  var agent = AGENTS[agentHubAgentId] || {};
+  var ac = new AbortController();
+  var timeoutId = setTimeout(function() { ac.abort(); }, AGENT_HUB_FETCH_TIMEOUT_MS);
+  try {
+    var chatUrl = agentOsApiUrl('/api/agent-chat');
+    var resp = await fetch(chatUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      signal: ac.signal,
+      body: JSON.stringify({
+        agentId: agentHubAgentId,
+        agentLabel: agent.label || agentHubAgentId,
+        messages: agentHubMessages,
+        taskContext: taskContext,
+        productContext: osProductContext || 'all'
+      })
+    });
+    var j = await resp.json().catch(function() { return {}; });
+    if (!resp.ok) {
+      var errMsg = j.message || j.error || ('HTTP ' + resp.status);
+      agentHubAppendBubble('assistant', errMsg, null, true);
+      return;
+    }
+    if (j && j.ok === false) {
+      agentHubAppendBubble('assistant', j.message || j.error || 'Request failed.', null, true);
+      return;
+    }
+    var r = j.result || {};
+    var thinking = typeof r.thinking === 'string' ? r.thinking : '';
+    var msg = typeof r.assistant_message === 'string' ? r.assistant_message : JSON.stringify(r);
+    agentHubMessages.push({ role: 'assistant', content: msg });
+    agentHubAppendBubble('assistant', msg, thinking, false);
+  } catch (e) {
+    var errText = (e && e.name === 'AbortError') ? 'Request timed out. Try a shorter message or check the supervisor.' : String(e);
+    agentHubAppendBubble('assistant', errText, null, true);
+  } finally {
+    clearTimeout(timeoutId);
+    agentHubSetPending(false);
+    agentHubLoading = false;
+    if (sendBtn) sendBtn.disabled = false;
+    if (input) input.disabled = false;
+  }
+}
+
+(function agentHubSetup() {
+  var closeBtn = document.getElementById('agent-hub-close');
+  var backdrop = document.getElementById('agent-hub-backdrop');
+  var sendBtn = document.getElementById('agent-hub-send');
+  var inp = document.getElementById('agent-hub-chat-input');
+  if (closeBtn) closeBtn.addEventListener('click', agentHubClose);
+  if (backdrop) {
+    backdrop.addEventListener('click', function(e) {
+      if (e.target === backdrop) agentHubClose();
+    });
+  }
+  if (sendBtn) sendBtn.addEventListener('click', function() { void agentHubSend(); });
+  if (inp) {
+    inp.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        void agentHubSend();
+      }
+    });
+  }
+})();
 
 // ── Issue discussion overlay (POST /api/issue-chat → OpenAI via supervisor) ──
 let issueChatAction = null;
@@ -12028,6 +12627,7 @@ async function pulseGlobalWorkbenchOnly() {
   });
 })();
 
+renderNavAgentTiles();
 setOsProductContext(getSavedProductContext(), { skipDashboardNudge: true });
 selectDashboard(coerceDashboardForContext(getInitialDashboardId(), osProductContext));
 

@@ -4,7 +4,8 @@ Local Agent OS dashboard: serves os-dashboard.html, read-only policy docs under
 allowed path prefixes (for the Guides & policies iframe and in-page links), GET /api/dashboard-data,
 POST /api/workbench/{start|stop|restart}, POST /api/status-update (full JSON replace per file, including row deletes from the dashboard),
 POST /api/archive-document (move a policy/guide to docs/archived-policies/ and write a reference report),
-and POST /api/issue-chat (issue and opportunity discussion in the UI; JSON body may set rowKind to "opportunity").
+and POST /api/issue-chat (issue and opportunity discussion in the UI; JSON body may set rowKind to "opportunity"),
+and POST /api/agent-chat (specialist chat in the Agents home modal; OpenAI Chat Completions with charter + overview + task context).
 Binds 127.0.0.1 only.
 
 Issue chat backends (see selection logic in Handler):
@@ -373,6 +374,33 @@ def _readonly_doc_path_allowed(rel: str) -> bool:
         if r.startswith(prefix):
             return True
     return False
+
+
+def _read_allowed_repo_text(repo_root: Path, rel: str, max_chars: int) -> str:
+    """Read a repo-relative text file under READONLY_DOC_PREFIXES / root allowlist; cap length."""
+    r = rel.replace("\\", "/").lstrip("/")
+    if not _readonly_doc_path_allowed(r):
+        return ""
+    fpath = (repo_root / r).resolve()
+    try:
+        fpath.relative_to(repo_root.resolve())
+    except ValueError:
+        return ""
+    if not fpath.is_file():
+        return ""
+    try:
+        raw = fpath.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return ""
+    if len(raw) <= max_chars:
+        return raw
+    return raw[:max_chars] + "\n\n[… truncated for context window …]\n"
+
+
+def _agent_chat_charter_rel(agent_id: str) -> str | None:
+    if not re.fullmatch(r"[a-z0-9-]+", agent_id or ""):
+        return None
+    return f"agents/{agent_id}/charter.md"
 
 
 READONLY_IMAGE_SUFFIXES = frozenset({
@@ -925,6 +953,100 @@ def make_handler(
                     pu = result.get("priority_updates")
                     if not isinstance(pu, list):
                         result["priority_updates"] = []
+                return self._send_json(HTTPStatus.OK, {"ok": True, "result": result})
+
+            # ── Agents home specialist chat (OpenAI JSON: thinking + assistant_message) ──
+            if raw_path == "/api/agent-chat":
+                length = int(self.headers.get("Content-Length", 0))
+                body = self.rfile.read(length) if length > 0 else b""
+                try:
+                    payload = json.loads(body)
+                except json.JSONDecodeError:
+                    return self._send_json(HTTPStatus.BAD_REQUEST, {"error": "Invalid JSON"})
+                agent_id = (payload.get("agentId") or payload.get("agent_id") or "").strip()
+                agent_label = (payload.get("agentLabel") or payload.get("agent_label") or "").strip()
+                messages = payload.get("messages")
+                task_context = payload.get("taskContext") or payload.get("task_context") or ""
+                product_context = payload.get("productContext") or payload.get("product_context") or ""
+                if not isinstance(messages, list) or not messages:
+                    return self._send_json(HTTPStatus.BAD_REQUEST, {"error": "messages required"})
+                if not isinstance(task_context, str):
+                    task_context = ""
+                if not isinstance(product_context, str):
+                    product_context = ""
+                charter_rel = _agent_chat_charter_rel(agent_id)
+                if not charter_rel:
+                    return self._send_json(
+                        HTTPStatus.BAD_REQUEST,
+                        {"error": "invalid_agent", "message": "agentId must match agents/<slug>/charter.md"},
+                    )
+                charter_text = _read_allowed_repo_text(repo_root, charter_rel, 28000)
+                if not charter_text.strip():
+                    return self._send_json(
+                        HTTPStatus.BAD_REQUEST,
+                        {"error": "no_charter", "message": f"Missing or empty charter at {charter_rel}"},
+                    )
+                overview = _read_allowed_repo_text(repo_root, "prompts/project_overview.md", 8000)
+                openai_key = (os.environ.get("OPENAI_API_KEY") or "").strip()
+                if not openai_key:
+                    return self._send_json(
+                        HTTPStatus.SERVICE_UNAVAILABLE,
+                        {
+                            "error": "no_api_key",
+                            "message": "Agent chat uses OpenAI Chat Completions. Set OPENAI_API_KEY and restart the supervisor.",
+                        },
+                    )
+                display = agent_label or agent_id.replace("-", " ").title()
+                tc_block = (
+                    task_context.strip()
+                    or "(none — ask what the user needs and offer a concise next step.)"
+                )
+                pc_block = product_context.strip() or "all"
+                system_prompt = (
+                    f"You are the {display} specialist for the MV metroidvania toolchain (solo-founder Agent OS).\n"
+                    f"Product context (header scope): {pc_block}\n\n"
+                    "## Project overview (excerpt)\n"
+                    f"{overview or '(overview file not available)'}\n\n"
+                    "## Your charter (full text for this session)\n"
+                    f"{charter_text}\n\n"
+                    "## User task briefing\n"
+                    "The founder may describe what they want done in the task context below. "
+                    "Treat it as authoritative grounding for this conversation unless they contradict it in chat.\n"
+                    f"{tc_block}\n\n"
+                    "Respond with a single JSON object ONLY, keys:\n"
+                    '- "thinking": string, step-by-step reasoning.\n'
+                    '- "assistant_message": string, concise reply to the user (markdown allowed in the string).\n'
+                    "Do not claim to have edited files, sent email, or run tools unless the user explicitly did so. "
+                    "Prefer actionable guidance grounded in the charter."
+                )
+                try:
+                    norm_messages: list[dict[str, Any]] = []
+                    for m in messages:
+                        if not isinstance(m, dict):
+                            continue
+                        role = m.get("role")
+                        content = m.get("content")
+                        if role in ("user", "assistant") and isinstance(content, str):
+                            norm_messages.append({"role": role, "content": content})
+                    if not norm_messages:
+                        return self._send_json(HTTPStatus.BAD_REQUEST, {"error": "no valid messages"})
+                    model = (os.environ.get("AGENT_CHAT_MODEL") or os.environ.get("ISSUE_CHAT_MODEL") or "gpt-4o-mini").strip()
+                    result = _issue_chat_call_openai(
+                        api_key=openai_key,
+                        model=model,
+                        system_prompt=system_prompt,
+                        messages=norm_messages,
+                    )
+                except (RuntimeError, KeyError, json.JSONDecodeError, TypeError) as exc:
+                    return self._send_json(
+                        HTTPStatus.BAD_GATEWAY,
+                        {"error": "chat_failed", "message": str(exc)},
+                    )
+                if not isinstance(result, dict):
+                    result = {"thinking": "", "assistant_message": str(result)}
+                else:
+                    result.setdefault("thinking", "")
+                    result.setdefault("assistant_message", "")
                 return self._send_json(HTTPStatus.OK, {"ok": True, "result": result})
 
             # ── Status-file write-back ──────────────────────────────────────
