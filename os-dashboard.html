@@ -9792,7 +9792,7 @@ function agentHubPopulateGenericActions(wrap, agentId) {
   });
 }
 
-/** Charter ## Actions — loaded from *-status.json `actions` (kept in sync with each agents/*/charter.md). */
+/** Charter ## Actions — loaded from *-status.json `actions` (kept in sync with each agent charter under agents/). */
 function agentHubApplyCharterActionToTask(agentId, action) {
   var taskEl = document.getElementById('agent-hub-task');
   if (!taskEl || !action) return;
