@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MOCKUP — Agent OS dashboard (simplified nav)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #050709;
+      --panel: rgba(4,6,10,0.96);
+      --panel-2: #07090c;
+      --panel-soft: #07090c;
+      --accent: #00e8c8;
+      --accent-soft: rgba(0,232,200,0.08);
+      --text: #cce8e0;
+      --muted: #5d7870;
+      --stroke: rgba(0,232,200,0.07);
+      --line: rgba(0,232,200,0.10);
+      --line-strong: rgba(0,232,200,0.18);
+      --good: #4ade80;
+      --good-soft: rgba(74,222,128,0.12);
+      --warning: #d29922;
+      --warning-soft: rgba(210,153,34,0.16);
+      --font-sans: "Plus Jakarta Sans", -apple-system, sans-serif;
+      --font-display: "Bebas Neue", sans-serif;
+      --font-mono: "DM Mono", ui-monospace, monospace;
+      --font-size-xs: 11px;
+      --font-size-sm: 13px;
+      --font-size-base: 14px;
+      --font-size-lg: 18px;
+      --font-size-xl: 22px;
+      --space-1: 4px;
+      --space-2: 8px;
+      --space-3: 12px;
+      --space-4: 16px;
+      --space-5: 24px;
+      --radius-tight: 14px;
+      --radius-card: 18px;
+      --radius-full: 999px;
+      --shadow-md: 0 6px 20px rgba(0,0,0,0.26);
+      --transition-base: 200ms ease;
+    }
+
+    :focus-visible {
+      outline: 2px solid rgba(0,232,200,0.35);
+      outline-offset: 2px;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-sans);
+      font-size: var(--font-size-base);
+      line-height: 1.45;
+      min-height: 100vh;
+    }
+
+    body::before {
+      content: '';
+      display: block;
+      height: 3px;
+      background: var(--accent);
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+    }
+
+    .mock-banner {
+      position: fixed;
+      top: 3px;
+      left: 0;
+      right: 0;
+      z-index: 99;
+      background: var(--warning-soft);
+      border-bottom: 1px solid rgba(210,153,34,0.28);
+      color: var(--warning);
+      font-size: var(--font-size-xs);
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      text-align: center;
+      padding: var(--space-2) var(--space-4);
+      font-family: var(--font-sans);
+    }
+
+    .shell {
+      display: grid;
+      grid-template-columns: 200px 1fr 280px;
+      grid-template-rows: minmax(56px, auto) 1fr;
+      grid-template-areas:
+        "header header header"
+        "left   main   right";
+      min-height: 100vh;
+      padding-top: calc(3px + 36px);
+    }
+
+    .header {
+      grid-area: header;
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      padding: var(--space-2) var(--space-4);
+      border-bottom: 1px solid var(--line);
+      background: var(--panel);
+      backdrop-filter: blur(12px);
+    }
+
+    .header-title {
+      font-family: var(--font-display);
+      font-size: 28px;
+      letter-spacing: 0.06em;
+      color: var(--accent);
+      line-height: 1;
+    }
+
+    .header-sub {
+      font-size: var(--font-size-sm);
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    .header-spacer { flex: 1; }
+
+    .header-select-wrap label {
+      font-size: var(--font-size-xs);
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      display: block;
+      margin-bottom: var(--space-1);
+    }
+
+    .header-select-wrap select {
+      min-height: 44px;
+      padding: 10px 12px;
+      border-radius: var(--radius-tight);
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.04);
+      color: var(--text);
+      font-family: var(--font-sans);
+      font-size: var(--font-size-sm);
+      min-width: 160px;
+    }
+
+    .status-badge {
+      font-size: var(--font-size-sm);
+      color: var(--good);
+      font-family: var(--font-mono);
+      font-weight: 500;
+      background: var(--good-soft);
+      border: 1px solid rgba(74,222,128,0.2);
+      padding: 8px 12px;
+      border-radius: var(--radius-full);
+      flex-shrink: 0;
+    }
+
+    /* Left */
+    .sidebar-left {
+      grid-area: left;
+      border-right: 1px solid var(--line);
+      background: var(--panel-2);
+      padding: var(--space-4) 0;
+      overflow-y: auto;
+    }
+
+    .nav-label {
+      font-size: var(--font-size-xs);
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      padding: var(--space-2) var(--space-4);
+      display: block;
+    }
+
+    .nav-group-label {
+      font-size: var(--font-size-xs);
+      font-weight: 600;
+      color: var(--muted);
+      padding: var(--space-2) var(--space-4) var(--space-1);
+      opacity: 0.85;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      padding: 6px var(--space-4);
+      font-size: var(--font-size-sm);
+      color: var(--muted);
+      border: none;
+      background: none;
+      width: 100%;
+      text-align: left;
+      cursor: default;
+      min-height: 32px;
+      font-family: var(--font-sans);
+      transition: color var(--transition-base), background var(--transition-base);
+    }
+
+    .nav-item:hover {
+      color: var(--text);
+      background: rgba(255,255,255,0.04);
+    }
+
+    .nav-item--active {
+      color: var(--text);
+      background: var(--accent-soft);
+      box-shadow: inset 3px 0 0 var(--accent);
+    }
+
+    .nav-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .nav-divider {
+      height: 1px;
+      background: var(--line);
+      margin: var(--space-3) var(--space-4);
+    }
+
+    .agent-prompts-block {
+      padding: 0 var(--space-4) var(--space-4);
+    }
+
+    .agent-panel-toggle {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      min-height: 44px;
+      padding: 10px 12px;
+      margin-bottom: var(--space-3);
+      border-radius: var(--radius-tight);
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.04);
+      color: var(--text);
+      font-family: var(--font-sans);
+      font-size: var(--font-size-sm);
+      font-weight: 600;
+      cursor: default;
+    }
+
+    .agent-panel-toggle small {
+      font-size: var(--font-size-xs);
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--accent);
+    }
+
+    .field-label {
+      font-size: var(--font-size-xs);
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: var(--space-2);
+      display: block;
+    }
+
+    .specialist-select {
+      width: 100%;
+      min-height: 44px;
+      padding: 10px 12px;
+      border-radius: var(--radius-tight);
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.04);
+      color: var(--text);
+      font-family: var(--font-sans);
+      font-size: var(--font-size-sm);
+      margin-bottom: var(--space-3);
+    }
+
+    .recent-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-2);
+    }
+
+    .recent-chip {
+      padding: 6px 12px;
+      border-radius: var(--radius-full);
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.03);
+      font-size: var(--font-size-xs);
+      font-weight: 600;
+      color: var(--muted);
+      font-family: var(--font-sans);
+    }
+
+    .recent-note {
+      font-size: var(--font-size-xs);
+      color: var(--muted);
+      margin-top: var(--space-2);
+      line-height: 1.4;
+    }
+
+    /* Main */
+    .main {
+      grid-area: main;
+      padding: var(--space-4);
+      overflow-y: auto;
+      background: var(--bg);
+    }
+
+    .hero {
+      border-radius: var(--radius-card);
+      border: 1px solid var(--line);
+      background: linear-gradient(165deg, rgba(0,232,200,0.06) 0%, rgba(4,6,10,0.92) 48%, var(--panel-soft) 100%);
+      padding: var(--space-5);
+      margin-bottom: var(--space-4);
+    }
+
+    .hero-title {
+      font-family: var(--font-display);
+      font-size: 36px;
+      letter-spacing: 0.08em;
+      color: var(--accent);
+    }
+
+    .hero-tag {
+      color: var(--muted);
+      font-size: var(--font-size-sm);
+      margin-top: var(--space-2);
+    }
+
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: var(--space-3);
+      margin-top: var(--space-5);
+    }
+
+    @media (max-width: 900px) {
+      .shell {
+        grid-template-columns: 1fr;
+        grid-template-areas:
+          "header"
+          "left"
+          "main"
+          "right";
+      }
+      .kpi-grid { grid-template-columns: 1fr; }
+    }
+
+    .kpi-card {
+      border-radius: var(--radius-card);
+      border: 1px solid var(--stroke);
+      background: rgba(255,255,255,0.03);
+      padding: var(--space-4);
+    }
+
+    .kpi-label {
+      font-size: var(--font-size-xs);
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .kpi-value {
+      font-family: var(--font-mono);
+      font-size: var(--font-size-xl);
+      margin-top: var(--space-2);
+      color: var(--text);
+    }
+
+    .section-label {
+      font-size: var(--font-size-xs);
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: var(--space-3);
+    }
+
+    .placeholder-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: var(--space-3);
+    }
+
+    @media (max-width: 900px) {
+      .placeholder-grid { grid-template-columns: 1fr; }
+    }
+
+    .ph-card {
+      min-height: 96px;
+      border-radius: var(--radius-card);
+      border: 1px dashed var(--line);
+      background: rgba(255,255,255,0.02);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--muted);
+      font-size: var(--font-size-sm);
+    }
+
+    /* Right agent column */
+    .right-col {
+      grid-area: right;
+      border-left: 1px solid var(--line);
+      background: var(--panel-2);
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+
+    .right-col-header {
+      padding: var(--space-4);
+      border-bottom: 1px solid var(--line);
+      font-family: var(--font-display);
+      font-size: var(--font-size-lg);
+      letter-spacing: 0.06em;
+      color: var(--text);
+    }
+
+    .right-col-body {
+      padding: var(--space-4);
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-3);
+    }
+
+    .mode-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-2);
+    }
+
+    .mode-pill {
+      padding: 6px 12px;
+      border-radius: var(--radius-full);
+      border: 1px solid var(--line);
+      font-size: var(--font-size-xs);
+      font-weight: 600;
+      color: var(--muted);
+    }
+
+    .mode-pill--on {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+      color: var(--accent);
+    }
+
+    .prompt-area {
+      flex: 1;
+      min-height: 120px;
+      border-radius: var(--radius-tight);
+      border: 1px solid var(--line);
+      background: var(--panel-soft);
+      padding: var(--space-3);
+      font-family: var(--font-mono);
+      font-size: var(--font-size-xs);
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .callout {
+      margin-top: var(--space-5);
+      padding: var(--space-4);
+      border-radius: var(--radius-card);
+      border: 1px solid var(--line-strong);
+      background: rgba(0,232,200,0.04);
+    }
+
+    .callout h2 {
+      font-size: var(--font-size-sm);
+      font-weight: 700;
+      color: var(--accent);
+      margin-bottom: var(--space-2);
+      font-family: var(--font-sans);
+      letter-spacing: 0.04em;
+    }
+
+    .callout ul {
+      margin-left: var(--space-4);
+      color: var(--muted);
+      font-size: var(--font-size-sm);
+    }
+
+    .callout li { margin-bottom: var(--space-2); }
+  </style>
+</head>
+<body>
+  <div class="mock-banner" role="status">Static mockup — simplified left nav + specialist selector (not connected to live dashboard)</div>
+
+  <div class="shell">
+    <header class="header">
+      <div>
+        <div class="header-title">AGENT OS</div>
+        <div class="header-sub">MV toolchain</div>
+      </div>
+      <span class="header-spacer"></span>
+      <div class="header-select-wrap">
+        <label for="ctx-mock">Product context</label>
+        <select id="ctx-mock" aria-label="Product context (decorative)">
+          <option>All products</option>
+          <option>Sprite dashboard</option>
+          <option>Ashen Hollow</option>
+        </select>
+      </div>
+      <span class="status-badge">System ready</span>
+    </header>
+
+    <nav class="sidebar-left" aria-label="Mock simplified navigation">
+      <span class="nav-label">Dashboards</span>
+      <span class="nav-group-label">Work</span>
+      <button type="button" class="nav-item nav-item--active" tabindex="-1">
+        <span class="nav-dot" style="background:var(--accent)"></span>
+        <span>Home</span>
+      </button>
+      <button type="button" class="nav-item" tabindex="-1">
+        <span class="nav-dot" style="background:#a5b4fc"></span>
+        <span>Issues</span>
+      </button>
+      <button type="button" class="nav-item" tabindex="-1">
+        <span class="nav-dot" style="background:#4ade80"></span>
+        <span>Opportunities</span>
+      </button>
+      <button type="button" class="nav-item" tabindex="-1">
+        <span class="nav-dot" style="background:#fbbf24"></span>
+        <span>Ongoing tasks</span>
+      </button>
+      <button type="button" class="nav-item" tabindex="-1">
+        <span class="nav-dot" style="background:#22d3ee"></span>
+        <span>Guides &amp; policies</span>
+      </button>
+
+      <span class="nav-group-label" style="margin-top:var(--space-2)">Leadership &amp; product</span>
+      <button type="button" class="nav-item" tabindex="-1">
+        <span class="nav-dot" style="background:#00e8c8"></span>
+        <span>Orchestration</span>
+      </button>
+      <button type="button" class="nav-item" tabindex="-1">
+        <span class="nav-dot" style="background:#94a3b8"></span>
+        <span>Strategy</span>
+      </button>
+      <button type="button" class="nav-item" tabindex="-1">
+        <span class="nav-dot" style="background:#38bdf8"></span>
+        <span>Workbench</span>
+      </button>
+      <button type="button" class="nav-item" tabindex="-1">
+        <span class="nav-dot" style="background:#818cf8"></span>
+        <span>Ashen Hollow</span>
+      </button>
+
+      <div class="nav-divider"></div>
+
+      <span class="nav-label">Agent prompts</span>
+      <div class="agent-prompts-block">
+        <button type="button" class="agent-panel-toggle" tabindex="-1">
+          <span>Agent panel</span>
+          <small>Visible</small>
+        </button>
+        <label class="field-label" for="spec-mock">Specialist</label>
+        <select id="spec-mock" class="specialist-select" aria-label="Choose specialist (mock)">
+          <option>Orchestrator</option>
+          <option>Design</option>
+          <option>Development</option>
+          <option>QA</option>
+          <option>Research</option>
+          <option>…</option>
+        </select>
+        <span class="field-label">Recent</span>
+        <div class="recent-row">
+          <span class="recent-chip">Design</span>
+          <span class="recent-chip">Orchestrator</span>
+        </div>
+        <p class="recent-note">Optional: last-used specialists as one-tap chips (localStorage in real build).</p>
+      </div>
+
+      <div class="nav-divider"></div>
+      <span class="nav-label">Resources</span>
+      <button type="button" class="nav-item" tabindex="-1"><span>Playbooks · templates · knowledge</span></button>
+      <p class="recent-note" style="padding:0 var(--space-4)">Unchanged list style as today; omitted here for vertical space.</p>
+    </nav>
+
+    <main class="main">
+      <section class="hero" aria-label="Home preview">
+        <div class="hero-title">COMMAND SURFACE</div>
+        <p class="hero-tag">Metroidvania toolchain · pre-launch</p>
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <div class="kpi-label">8-week paid calls</div>
+            <div class="kpi-value">—</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Service keys</div>
+            <div class="kpi-value">—</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Workbench</div>
+            <div class="kpi-value">—</div>
+          </div>
+        </div>
+      </section>
+
+      <div class="section-label">Removed in this IA</div>
+      <div class="placeholder-grid">
+        <div class="ph-card">No per-specialist dashboard views (Development, QA, Legal, …)</div>
+        <div class="ph-card">Same data stays in Issues / Opportunities / Ongoing</div>
+        <div class="ph-card">Discuss-issue chat unchanged (server-side)</div>
+      </div>
+
+      <div class="callout">
+        <h2>What this mockup shows</h2>
+        <ul>
+          <li>Nine hub destinations in the left column instead of dozens of dashboard + duplicate agent rows.</li>
+          <li>One <strong style="color:var(--text)">Specialist</strong> control replaces the long “All agents” button list; choosing a name would open/focus the right agent column (real app).</li>
+          <li>Right column sketch: modes + generated prompt — same as current workflow panel.</li>
+        </ul>
+      </div>
+    </main>
+
+    <aside class="right-col" aria-label="Agent workflow column preview">
+      <div class="right-col-header">Workflow</div>
+      <div class="right-col-body">
+        <span class="field-label">Agent</span>
+        <select class="specialist-select" aria-label="Agent in panel" style="margin-bottom:0">
+          <option>Design</option>
+        </select>
+        <span class="field-label">Mode</span>
+        <div class="mode-pills">
+          <span class="mode-pill mode-pill--on">Brainstorm</span>
+          <span class="mode-pill">Review</span>
+          <span class="mode-pill">Analyze</span>
+          <span class="mode-pill">Advise</span>
+        </div>
+        <span class="field-label">Generated prompt</span>
+        <div class="prompt-area">
+          [Prompt output appears here — copy / open in Claude / etc.]
+        </div>
+      </div>
+    </aside>
+  </div>
+</body>
+</html>
