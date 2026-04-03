@@ -907,6 +907,14 @@ body::before {
   padding-bottom: var(--space-2);
 }
 .dashboard-view.active { display: flex; }
+.os-guides-frame {
+  width: 100%;
+  min-height: 480px;
+  height: min(85vh, 1400px);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--bg);
+}
 .dashboard-view::-webkit-scrollbar { width: 4px; }
 .dashboard-view::-webkit-scrollbar-track { background: transparent; }
 .dashboard-view::-webkit-scrollbar-thumb { background: var(--stroke-strong); border-radius: 2px; }
@@ -3157,6 +3165,10 @@ h3.os-chart-card-title {
         <span class="nav-dot" style="background:#fbbf24"></span>
         <span class="nav-item-text">Ongoing Tasks</span>
       </button>
+      <button type="button" class="nav-item" data-dashboard="guides">
+        <span class="nav-dot" style="background:#22d3ee"></span>
+        <span class="nav-item-text">Guides &amp; policies</span>
+      </button>
       </div>
 
       <div class="nav-dash-group">
@@ -5218,6 +5230,18 @@ h3.os-chart-card-title {
         </div>
       </div>
 
+      <!-- ── GUIDES & POLICIES (document library) ───────────── -->
+      <div class="dashboard-view" data-dashboard-view="guides">
+        <div class="db-section">
+          <div class="db-section-label">Guides &amp; policies library</div>
+          <p style="font-size:var(--font-size-sm);color:var(--muted);max-width:48rem;margin-bottom:var(--space-4);line-height:1.5;">
+            Indexed charters, governance docs, specs, and memos (<code>docs/os-document-library.html</code>).
+            Regenerate the catalog after adding documents: <code>python3 scripts/build_os_document_library.py</code>.
+            Dedupe notes: <code>docs/reports/os-document-library-dedupe-notes.md</code>.
+          </p>
+          <iframe class="os-guides-frame" title="Guides and policies document library" src="docs/os-document-library.html"></iframe>
+        </div>
+      </div>
 
       <!-- ── RESEARCH DASHBOARD ─────────────────────────────── -->
       <div class="dashboard-view" data-dashboard-view="research">
@@ -6449,6 +6473,7 @@ const AGENTS = {
 // ── Dashboard config ─────────────────────────────
 const DASHBOARDS = {
   home:            { label: 'Home',           color: '#00e8c8', agents: ['orchestrator'] },
+  guides:          { label: 'Guides & policies', color: '#22d3ee', agents: ['orchestrator'] },
   issues:          { label: 'Issues',          color: '#a5b4fc', agents: ['orchestrator'] },
   opportunities:   { label: 'Opportunities',  color: '#4ade80', agents: ['orchestrator'] },
   'ongoing-tasks': { label: 'Ongoing Tasks',  color: '#fbbf24', agents: ['orchestrator'] },
@@ -6511,10 +6536,10 @@ function orderedAgentIdsForPicker(dashId) {
 /** Sidebar + home shortcuts: which dashboard IDs appear in each product context (not "all"). */
 const OS_PRODUCT_CONTEXT_KEY = 'mv-agent-os-product-context';
 const OS_PRODUCT_CONTEXT_SETS = {
-  business: new Set(['home', 'issues', 'opportunities', 'ongoing-tasks', 'orchestration', 'strategy', 'legal', 'finance', 'support', 'marketing', 'analytics', 'cybersecurity', 'research']),
-  sprite: new Set(['home', 'issues', 'opportunities', 'ongoing-tasks', 'workbench', 'design', 'development', 'animation', 'level-design', 'qa', 'cybersecurity', 'research']),
-  'ashen-hollow': new Set(['home', 'issues', 'opportunities', 'ongoing-tasks', 'ashen-hollow', 'development', 'animation', 'level-design', 'design', 'qa', 'research', 'audio', 'narrative', 'creative', 'game-director', 'game-systems']),
-  'other-income': new Set(['home', 'issues', 'opportunities', 'ongoing-tasks', 'marketing', 'finance', 'legal', 'support', 'analytics', 'strategy']),
+  business: new Set(['home', 'guides', 'issues', 'opportunities', 'ongoing-tasks', 'orchestration', 'strategy', 'legal', 'finance', 'support', 'marketing', 'analytics', 'cybersecurity', 'research']),
+  sprite: new Set(['home', 'guides', 'issues', 'opportunities', 'ongoing-tasks', 'workbench', 'design', 'development', 'animation', 'level-design', 'qa', 'cybersecurity', 'research']),
+  'ashen-hollow': new Set(['home', 'guides', 'issues', 'opportunities', 'ongoing-tasks', 'ashen-hollow', 'development', 'animation', 'level-design', 'design', 'qa', 'research', 'audio', 'narrative', 'creative', 'game-director', 'game-systems']),
+  'other-income': new Set(['home', 'guides', 'issues', 'opportunities', 'ongoing-tasks', 'marketing', 'finance', 'legal', 'support', 'analytics', 'strategy']),
 };
 
 /** Status-file agent slugs shown in Issues / Opportunities / Ongoing for each context. */
