@@ -890,12 +890,6 @@ body::before {
   background: var(--accent-soft);
 }
 
-.nav-item.nav-agent-active {
-  color: var(--text);
-  background: rgba(0,232,200,0.06);
-  box-shadow: inset 0 0 0 1px rgba(0,232,200,0.12);
-}
-
 /* ─── DASHBOARD VIEWS ────────────────────────────── */
 .dashboard-view {
   display: none;
@@ -3212,96 +3206,6 @@ h3.os-chart-card-title {
         <span class="nav-dot" style="background:#818cf8"></span>
         <span class="nav-item-text">Ashen Hollow</span>
       </button>
-      </div>
-    </div>
-
-    <div class="nav-divider"></div>
-
-    <div class="nav-section">
-      <span class="nav-label">Agent prompts</span>
-      <div class="nav-dash-group">
-        <button type="button" class="nav-item" id="toggleAgentPanelFromNav" aria-expanded="false" aria-controls="workflowSidePanel" title="Show or hide the agent &amp; prompt column">
-          <span class="nav-dot" style="background:var(--accent)"></span>
-          <span class="nav-item-text">Agent panel</span>
-          <span class="nav-item-path nav-agent-panel-state" aria-hidden="true">Hidden</span>
-        </button>
-        <span class="nav-group-label">All agents</span>
-        <button type="button" class="nav-item nav-agent-item" data-agent="orchestrator">
-          <span class="nav-dot" style="background:#00e8c8"></span>
-          <span class="nav-item-text">Orchestrator</span>
-        </button>
-        <button type="button" class="nav-item nav-agent-item" data-agent="strategy">
-          <span class="nav-dot" style="background:#94a3b8"></span>
-          <span class="nav-item-text">Strategy</span>
-        </button>
-        <button type="button" class="nav-item nav-agent-item" data-agent="engineering">
-          <span class="nav-dot" style="background:#ff9500"></span>
-          <span class="nav-item-text">Development</span>
-        </button>
-        <button type="button" class="nav-item nav-agent-item" data-agent="animation">
-          <span class="nav-dot" style="background:#e879f9"></span>
-          <span class="nav-item-text">Animation</span>
-        </button>
-        <button type="button" class="nav-item nav-agent-item" data-agent="level-design">
-          <span class="nav-dot" style="background:#a3e635"></span>
-          <span class="nav-item-text">Level Design</span>
-        </button>
-        <button type="button" class="nav-item nav-agent-item" data-agent="design">
-          <span class="nav-dot" style="background:#fb7185"></span>
-          <span class="nav-item-text">Design</span>
-        </button>
-        <button type="button" class="nav-item nav-agent-item" data-agent="qa">
-          <span class="nav-dot" style="background:#77b8ff"></span>
-          <span class="nav-item-text">QA</span>
-        </button>
-        <button type="button" class="nav-item nav-agent-item" data-agent="cybersecurity">
-          <span class="nav-dot" style="background:#f85149"></span>
-          <span class="nav-item-text">Cybersecurity</span>
-        </button>
-        <button type="button" class="nav-item nav-agent-item" data-agent="research">
-          <span class="nav-dot" style="background:var(--c-research)"></span>
-          <span class="nav-item-text">Research</span>
-        </button>
-        <button type="button" class="nav-item nav-agent-item" data-agent="analytics">
-          <span class="nav-dot" style="background:#4ade80"></span>
-          <span class="nav-item-text">Analytics</span>
-        </button>
-        <button type="button" class="nav-item nav-agent-item" data-agent="support">
-          <span class="nav-dot" style="background:#fbbf24"></span>
-          <span class="nav-item-text">Support</span>
-        </button>
-        <button type="button" class="nav-item nav-agent-item" data-agent="marketing">
-          <span class="nav-dot" style="background:#f5986e"></span>
-          <span class="nav-item-text">Marketing</span>
-        </button>
-        <button type="button" class="nav-item nav-agent-item" data-agent="legal">
-          <span class="nav-dot" style="background:#a78bfa"></span>
-          <span class="nav-item-text">Legal</span>
-        </button>
-        <button type="button" class="nav-item nav-agent-item" data-agent="finance">
-          <span class="nav-dot" style="background:#f0abfc"></span>
-          <span class="nav-item-text">Finance</span>
-        </button>
-        <button type="button" class="nav-item nav-agent-item" data-agent="game-director">
-          <span class="nav-dot" style="background:#818cf8"></span>
-          <span class="nav-item-text">Game Director</span>
-        </button>
-        <button type="button" class="nav-item nav-agent-item" data-agent="creative">
-          <span class="nav-dot" style="background:#fb923c"></span>
-          <span class="nav-item-text">Creative</span>
-        </button>
-        <button type="button" class="nav-item nav-agent-item" data-agent="narrative">
-          <span class="nav-dot" style="background:#6ee7b7"></span>
-          <span class="nav-item-text">Narrative</span>
-        </button>
-        <button type="button" class="nav-item nav-agent-item" data-agent="audio">
-          <span class="nav-dot" style="background:#67e8f9"></span>
-          <span class="nav-item-text">Audio</span>
-        </button>
-        <button type="button" class="nav-item nav-agent-item" data-agent="game-systems">
-          <span class="nav-dot" style="background:#fca5a5"></span>
-          <span class="nav-item-text">Game Systems</span>
-        </button>
       </div>
     </div>
 
@@ -6995,13 +6899,6 @@ function setOsProductContext(ctx, options) {
   }
 }
 
-function updateNavAgentActiveState() {
-  document.querySelectorAll('.nav-agent-item').forEach(function(btn) {
-    const id = btn.getAttribute('data-agent');
-    btn.classList.toggle('nav-agent-active', id === selectedAgent);
-  });
-}
-
 function renderScopedAgents(dashId) {
   if (!agentPickerSelect) return;
   const dash = DASHBOARDS[dashId];
@@ -7019,7 +6916,6 @@ function renderScopedAgents(dashId) {
     taskInput.placeholder = 'No agents configured.';
     clearOutput();
     if (generateBtn) generateBtn.disabled = true;
-    updateNavAgentActiveState();
     return;
   }
   agentPickerSelect.disabled = false;
@@ -7041,7 +6937,6 @@ function renderScopedAgents(dashId) {
   clearOutput();
   taskInput.placeholder = 'What do you need?';
   if (generateBtn) generateBtn.disabled = false;
-  updateNavAgentActiveState();
 }
 
 if (agentPickerSelect) {
@@ -7051,7 +6946,6 @@ if (agentPickerSelect) {
     selectedAgent = v;
     renderModes();
     clearOutput();
-    updateNavAgentActiveState();
   });
 }
 
@@ -7072,24 +6966,17 @@ function focusAgentInSidePanel(agentId) {
   renderModes();
   clearOutput();
   if (generateBtn) generateBtn.disabled = false;
-  updateNavAgentActiveState();
 }
 
 function setAgentPanelCollapsed(collapsed) {
   if (!mainEl) return;
   mainEl.classList.toggle('side-collapsed', collapsed);
   const edgeBtn = document.getElementById('toggleSidePanel');
-  const navToggle = document.getElementById('toggleAgentPanelFromNav');
   const g = edgeBtn && edgeBtn.querySelector('.panel-edge-handle-glyph');
   if (g) g.textContent = collapsed ? '▶' : '◀';
   if (edgeBtn) {
     edgeBtn.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
     edgeBtn.title = collapsed ? 'Show agent & prompt panel' : 'Hide agent & prompt panel';
-  }
-  if (navToggle) {
-    navToggle.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
-    const stateEl = navToggle.querySelector('.nav-agent-panel-state');
-    if (stateEl) stateEl.textContent = collapsed ? 'Hidden' : 'Visible';
   }
   try {
     localStorage.setItem(AGENT_PANEL_EXPANDED_KEY, collapsed ? '0' : '1');
@@ -7263,39 +7150,6 @@ claudeBtn.addEventListener('click', () => {
 document.querySelectorAll('.nav-item[data-dashboard]').forEach(btn => {
   btn.addEventListener('click', () => {
     selectDashboard(btn.dataset.dashboard);
-  });
-});
-
-/** Nav agent id → dashboard view (sidebar no longer lists specialist dashboards). */
-const AGENT_ID_TO_DASHBOARD = {
-  orchestrator: 'orchestration',
-  strategy: 'strategy',
-  engineering: 'development',
-  animation: 'animation',
-  'level-design': 'level-design',
-  design: 'design',
-  qa: 'qa',
-  cybersecurity: 'cybersecurity',
-  research: 'research',
-  analytics: 'analytics',
-  support: 'support',
-  marketing: 'marketing',
-  legal: 'legal',
-  finance: 'finance',
-  'game-director': 'game-director',
-  creative: 'creative',
-  narrative: 'narrative',
-  audio: 'audio',
-  'game-systems': 'game-systems',
-};
-
-document.querySelectorAll('.nav-agent-item').forEach(function(btn) {
-  btn.addEventListener('click', function() {
-    const id = btn.getAttribute('data-agent');
-    if (!id) return;
-    const dashId = AGENT_ID_TO_DASHBOARD[id];
-    if (dashId && DASHBOARDS[dashId]) selectDashboard(dashId);
-    focusAgentInSidePanel(id);
   });
 });
 
@@ -12595,13 +12449,11 @@ selectDashboard(coerceDashboardForContext(getInitialDashboardId(), osProductCont
   migrateAgentPanelStorage();
 
   const edgeBtn = document.getElementById('toggleSidePanel');
-  const agentNavToggle = document.getElementById('toggleAgentPanelFromNav');
   function onAgentPanelToggle() {
     if (!mainEl) return;
     setAgentPanelCollapsed(!mainEl.classList.contains('side-collapsed'));
   }
   if (edgeBtn) edgeBtn.addEventListener('click', onAgentPanelToggle);
-  if (agentNavToggle) agentNavToggle.addEventListener('click', onAgentPanelToggle);
 
   try {
     if (localStorage.getItem(AGENT_PANEL_EXPANDED_KEY) === '1') {
