@@ -1,6 +1,6 @@
 # OS document library — dedupe notes
 
-Generated: `2026-04-03T12:30:16Z`
+Generated: `2026-04-03T12:41:05Z`
 
 ## Relationship tiers (not duplicates)
 
@@ -8,6 +8,7 @@ Generated: `2026-04-03T12:30:16Z`
 - docs/room-layout-validation.md and tools/2d-sprite-and-animation/docs/Room-Layout-Validation.md share a topic but are not byte-identical; keep both until converged.
 - Agent charters (agents/*/charter.md) overlap thematically with AGENTS.md / CLAUDE.md at different altitudes: charters = role scope; AGENTS/CLAUDE = tool enforcement.
 - Documents under .claude/worktrees/ are excluded from this catalog to avoid stale duplicates; treat repo-root paths as canonical.
+- To retire a policy: use Archive on a card (supervisor) or scripts/archive_policy_document.py — files move to docs/archived-policies/ with a reference report; other files are not auto-edited.
 
 ## Filename clusters
 

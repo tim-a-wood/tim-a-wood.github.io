@@ -3,6 +3,7 @@
 Local Agent OS dashboard: serves os-dashboard.html, read-only policy docs under
 allowed path prefixes (for the Guides & policies iframe and in-page links), GET /api/dashboard-data,
 POST /api/workbench/{start|stop|restart}, POST /api/status-update (full JSON replace per file, including row deletes from the dashboard),
+POST /api/archive-document (move a policy/guide to docs/archived-policies/ and write a reference report),
 and POST /api/issue-chat (issue and opportunity discussion in the UI; JSON body may set rowKind to "opportunity").
 Binds 127.0.0.1 only.
 
@@ -526,6 +527,37 @@ def make_handler(
 
         def do_POST(self) -> None:
             raw_path = _norm_path(self)
+
+            if raw_path == "/api/archive-document":
+                length = int(self.headers.get("Content-Length", 0))
+                raw_body = self.rfile.read(length) if length > 0 else b""
+                try:
+                    payload = json.loads(raw_body or b"{}")
+                except json.JSONDecodeError:
+                    return self._send_json(
+                        HTTPStatus.BAD_REQUEST, {"ok": False, "error": "Invalid JSON"}
+                    )
+                path = (payload.get("path") or "").strip()
+                if not path:
+                    return self._send_json(
+                        HTTPStatus.BAD_REQUEST, {"ok": False, "error": "path required"}
+                    )
+                reason = payload.get("reason") or ""
+                if not isinstance(reason, str):
+                    reason = ""
+                reason = reason.strip()
+                confirm_gov = bool(payload.get("confirmGovernanceRoot"))
+                from scripts.archive_policy_document import archive_policy_document
+
+                result = archive_policy_document(
+                    repo_root,
+                    path,
+                    reason=reason,
+                    confirm_governance_root=confirm_gov,
+                )
+                if result.get("ok"):
+                    return self._send_json(HTTPStatus.OK, result)
+                return self._send_json(HTTPStatus.BAD_REQUEST, result)
 
             # ── Issue discussion chat (OpenAI-compatible JSON response) ─────
             if raw_path == "/api/issue-chat":

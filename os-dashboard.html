@@ -5236,6 +5236,7 @@ h3.os-chart-card-title {
           <div class="db-section-label">Guides &amp; policies library</div>
           <p style="font-size:var(--font-size-sm);color:var(--muted);max-width:48rem;margin-bottom:var(--space-4);line-height:1.5;">
             Indexed charters, governance docs, specs, and memos (<code>docs/os-document-library.html</code>).
+            <strong>Archive</strong> (per card) calls <code>POST /api/archive-document</code> on this supervisor — files move to <code>docs/archived-policies/</code> with a reference report; rerun the builder after archiving.
             Regenerate the catalog after adding documents: <code>python3 scripts/build_os_document_library.py</code>.
             Dedupe notes: <code>docs/reports/os-document-library-dedupe-notes.md</code>.
           </p>
