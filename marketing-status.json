@@ -47,12 +47,20 @@
   "risks_p0": [],
   "founder_decisions": [],
   "metrics": {
-    "tuesday_update": "\u2014",
+    "tuesday_update": "2026-04-02 \u00b7 artifacts/marketing-weekly-update-2026-04-02.md",
     "content_devlog": "\u2014",
     "channels_cadence": "itch.io devlog and X \u2014 aiming for 3 to 5 posts a week",
     "competitor_watch": "Quarterly \u2014 Tiled, LDtk, and any AI level-design tools"
   },
   "actions": [
+    {
+      "id": "tuesday-update",
+      "name": "Tuesday weekly marketing update",
+      "description": "One-page update: links, engagement (when available), competitor notes, next-week plan. Max one page; suppress if no material change.",
+      "trigger": "Every Tuesday (charter Reporting)",
+      "last_run": "2026-04-02",
+      "output_location": "artifacts/marketing-weekly-update-2026-04-02.md"
+    },
     {
       "id": "content-brief",
       "name": "Content Brief",
@@ -94,10 +102,10 @@
         "other-income"
       ],
       "title": "One-page update every Tuesday",
-      "status": "in-progress",
+      "status": "done",
       "risk": "low",
-      "note": "Links, engagement numbers, anything interesting spotted from competitors, and what's planned for the coming week.",
-      "proposed_solution": "Publish the weekly one-pager with links, engagement signals, competitor notes, and next-week focus."
+      "note": "Cadence live: file each Tuesday as artifacts/marketing-weekly-update-YYYY-MM-DD.md. First issue 2026-04-02. metrics.tuesday_update points to latest; runbook action tuesday-update records last_run and output_location.",
+      "proposed_solution": "Keep publishing the weekly one-pager (links, engagement when supplied, competitor notes, next-week focus). Suppress weeks with no material change per charter."
     },
     {
       "id": "marketing-o6",
