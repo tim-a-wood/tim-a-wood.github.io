@@ -17,6 +17,8 @@ LOG="$REPO/artifacts/dashboard-update-cron.log"
 
 # Cron and non-interactive shells often have a minimal PATH; claude/node must resolve.
 export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:${PATH:-}"
+# So send_weekly_digest.py log lines appear in dashboard-update-cron.log immediately (not block-buffered).
+export PYTHONUNBUFFERED=1
 
 cd "$REPO"
 source .env.local 2>/dev/null || true
@@ -411,6 +413,7 @@ echo "$SUMMARY_MD" | "$PYTHON" "$REPO/scripts/send_weekly_digest.py" \
   --subtitle "Agent OS — Daily Dashboard Update" \
   >>"$LOG" 2>&1
 EMAIL_RC=$?
+echo "[$(date)] Dashboard notification email finished (exit ${EMAIL_RC})." >>"$LOG"
 set -e
 if [ "$EMAIL_RC" -ne 0 ]; then
   echo "[$(date)] ERROR: send_weekly_digest.py exited ${EMAIL_RC} (check RESEND_API_KEY / DIGEST_EMAIL_* in .env.local and Resend dashboard)." >>"$LOG"
@@ -440,6 +443,7 @@ if [ "$DOW" -eq 2 ]; then
       --subtitle "Marketing — Tuesday weekly update" \
       >>"$LOG" 2>&1
     MKT_RC=$?
+    echo "[$(date)] Tuesday marketing email finished (exit ${MKT_RC})." >>"$LOG"
     set -e
     if [ "$MKT_RC" -ne 0 ]; then
       echo "[$(date)] ERROR: Tuesday marketing email failed (exit ${MKT_RC}). Check RESEND / DIGEST_EMAIL_* and log above." >>"$LOG"

@@ -160,7 +160,17 @@ If you open `os-dashboard.html` from the **workbench** (`http://127.0.0.1:8766/.
 
 **Founder email (Resend):** The daily dashboard job (`scripts/update_dashboards.sh`) finishes by piping markdown into `scripts/send_weekly_digest.py`, using `RESEND_API_KEY` and `DIGEST_EMAIL_TO` from `.env.local`. On **Tuesdays**, if `artifacts/marketing-weekly-update-YYYY-MM-DD.md` exists for that calendar date, the same script emails it as a second message (subject `[MV Marketing] Tuesday weekly update — …`). If the file is missing, the job logs a skip line in `artifacts/dashboard-update-cron.log` — create the file before the noon run, or run `python3 scripts/send_weekly_digest.py --file artifacts/marketing-weekly-update-YYYY-MM-DD.md --subject "…" --subtitle "Marketing — Tuesday weekly update"` manually. To send the company brand charter PDF the same way, run `./scripts/send_brand_charter_email.sh` from the repo root.
 
-**If the noon dashboard email did not arrive:** macOS `cron` does not run while the Mac is asleep, and it uses a minimal environment. The script now prepends Homebrew to `PATH` and logs every run to `artifacts/dashboard-update-cron.log`. Check the last lines after `Sending email notification` for Resend errors. To test manually: `bash scripts/update_dashboards.sh` from the repo root (expect several minutes while Claude runs). For reliability while the machine sleeps, consider a `launchd` `StartCalendarInterval` job instead of `crontab`.
+**If the noon dashboard email did not arrive:**
+
+1. **Confirm the job actually runs:** `crontab -l` should show `0 12 * * * …/scripts/update_dashboards.sh`. macOS `cron` does not run while the Mac is asleep at noon.
+2. **Read the log:** `tail -80 artifacts/dashboard-update-cron.log`. After `Sending email notification…` you should see `Sending to …`, then either `Sent. Email ID: …` or an `ERROR:` line (Resend key missing, validation error, non-JSON response, etc.). If the log stops right after `Sending email notification…` with nothing below, the process may have been killed or stalled before; re-run manually and watch the log.
+3. **Resend / recipient:** `RESEND_API_KEY`, `DIGEST_EMAIL_TO`, and optional `DIGEST_EMAIL_FROM` must be set in `.env.local` (loaded by the script). With the default `onboarding@resend.dev` sender, Resend only delivers to **verified** addresses — add your inbox in the Resend dashboard or use a domain you have verified.
+4. **Smoke-test email only** (fast): from repo root, `source .env.local` then  
+   `printf '%s\n' '# Test' 'Hello from MV digest.' | python3 scripts/send_weekly_digest.py --subject '[MV] Digest smoke test' --subtitle 'Test'`  
+   You should see `Sent. Email ID: …` or a clear `ERROR:` on stderr.
+5. **Full job (slow):** `bash scripts/update_dashboards.sh` — expect many minutes while Claude runs. For reliability while the machine sleeps, consider a `launchd` `StartCalendarInterval` job instead of `crontab`.
+
+The script sets `PYTHONUNBUFFERED=1` so digest output is not stuck in a buffer when stdout is redirected to the log file.
 
 You can drag **`Agent-OS-Dashboard.command`** or a Shortcuts “Run Shell Script” action to the **Dock** or **menu bar** — same one-liner as step 1.
 

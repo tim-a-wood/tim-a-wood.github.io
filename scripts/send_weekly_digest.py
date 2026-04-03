@@ -316,15 +316,34 @@ def send(
             pass
 
     if result.returncode != 0:
-        print(f"ERROR: curl exit {result.returncode}: {result.stderr}", file=sys.stderr)
+        print(
+            f"ERROR: curl exit {result.returncode}: {result.stderr!r} stdout={result.stdout[:800]!r}",
+            file=sys.stderr,
+            flush=True,
+        )
         sys.exit(1)
 
-    out = result.stdout
-    resp = json.loads(out)
+    out = (result.stdout or "").strip()
+    if not out:
+        print(
+            f"ERROR: empty response from Resend (curl ok). stderr={result.stderr!r}",
+            file=sys.stderr,
+            flush=True,
+        )
+        sys.exit(1)
+    try:
+        resp = json.loads(out)
+    except json.JSONDecodeError as e:
+        print(
+            f"ERROR: Resend response was not JSON: {e}\nFirst 800 chars: {out[:800]!r}",
+            file=sys.stderr,
+            flush=True,
+        )
+        sys.exit(1)
     if "id" in resp:
-        print(f"Sent. Email ID: {resp['id']}")
+        print(f"Sent. Email ID: {resp['id']}", flush=True)
     else:
-        print(f"ERROR: {out}", file=sys.stderr)
+        print(f"ERROR: {out}", file=sys.stderr, flush=True)
         sys.exit(1)
 
 
@@ -343,17 +362,17 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    api_key = os.environ.get("RESEND_API_KEY", "")
-    to      = os.environ.get("DIGEST_EMAIL_TO", "tim.a.wood@outlook.com")
-    sender  = os.environ.get("DIGEST_EMAIL_FROM", "MV Agent OS <onboarding@resend.dev>")
+    api_key = (os.environ.get("RESEND_API_KEY", "") or "").strip()
+    to      = (os.environ.get("DIGEST_EMAIL_TO", "tim.a.wood@outlook.com") or "").strip()
+    sender  = (os.environ.get("DIGEST_EMAIL_FROM", "MV Agent OS <onboarding@resend.dev>") or "").strip()
 
     if not api_key:
-        print("ERROR: RESEND_API_KEY not set.", file=sys.stderr)
+        print("ERROR: RESEND_API_KEY not set.", file=sys.stderr, flush=True)
         sys.exit(1)
 
     text = open(args.file).read() if args.file else sys.stdin.read()
     if not text.strip():
-        print("ERROR: Empty digest body.", file=sys.stderr)
+        print("ERROR: Empty digest body.", file=sys.stderr, flush=True)
         sys.exit(1)
 
     today    = date.today().strftime("%Y-%m-%d")
@@ -363,7 +382,7 @@ def main() -> None:
     body_html = md_to_html(text)
     full_html = wrap_html(body_html, today, subtitle)
 
-    print(f"Sending to {to}...")
+    print(f"Sending to {to}...", flush=True)
     send(text, full_html, subject, to, sender, api_key, attachment_paths=args.attachments)
 
 
