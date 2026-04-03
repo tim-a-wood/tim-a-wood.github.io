@@ -1,6 +1,6 @@
 {
   "_note": "Updated daily at noon by Development. Plain language — no jargon.",
-  "updated": "2026-03-31",
+  "updated": "2026-04-02",
   "schema_version": "v1.0",
   "priorities": [
     {
@@ -49,6 +49,15 @@
       "risk": "low",
       "note": "Deferred until the inspector rebuild and interaction paths are stable.",
       "proposed_solution": "Profile the draw loop after stabilization, then apply dirty rectangles or OffscreenCanvas only where profiling shows need."
+    },
+    {
+      "id": "eng-o2",
+      "os_contexts": ["business", "sprite"],
+      "title": "Review Business Brand Guide v0.2 — Engineering cells in \u00a71.3 matrix",
+      "status": "queued",
+      "risk": "med",
+      "note": "Marketing completed its pass. Source: docs/mv-business-brand-guide-pamphlet.html. Confirm messaging and positioning claims and claims/AI/legal guardrails are truthful vs shipped product and server behavior—no over-claim.",
+      "proposed_solution": "Sign off \u00a71.3 Engineering column; escalate any copy that implies automation or guarantees the codebase cannot support."
     }
   ],
   "risks_p0": [],

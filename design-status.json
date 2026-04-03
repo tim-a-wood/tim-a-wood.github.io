@@ -1,4 +1,5 @@
 {
+  "schema_version": "v1.0",
   "_note": "Updated daily at noon by the design agent. Plain language — no jargon.",
   "updated": "2026-04-02",
   "priorities": [
@@ -69,16 +70,16 @@
       "name": "Style Guide Proposal",
       "description": "Propose a new token or component definition with rationale, migration notes, and before/after comparison.",
       "trigger": "A new UI pattern is needed that isn't in the current spec",
-      "last_run": "2026-04-02",
-      "output_location": "STYLE_GUIDE.md § 15 — Agent Dashboard Charts (chart taxonomy, color palette, shell spec, empty states, legend, motion policy)"
+      "last_run": null,
+      "output_location": null
     },
     {
       "id": "ia-review",
       "name": "IA Review",
       "description": "Information architecture assessment of a new feature against cognitive load and mode-error principles.",
       "trigger": "New tool feature or significant workflow change",
-      "last_run": "2026-04-02",
-      "output_location": "Agent analytics dashboard initiative — IA review complete, 3-chart cap and empty-state requirements confirmed"
+      "last_run": null,
+      "output_location": null
     }
   ],
   "design_chart": {
@@ -121,6 +122,15 @@
       "risk": "low",
       "note": "Single priority spanning screenshot or visual checks; QA leads tooling once the editor is stable; design defines what counts as a regression.",
       "proposed_solution": "After the room editor stabilizes, pair with QA on a minimal visual regression or screenshot gate."
+    },
+    {
+      "id": "design-o3",
+      "os_contexts": ["business", "sprite", "ashen-hollow"],
+      "title": "Review Business Brand Guide v0.2 — Design cells in \u00a71.3 matrix",
+      "status": "queued",
+      "risk": "med",
+      "note": "Marketing completed its pass. Source: docs/mv-business-brand-guide-pamphlet.html and PDF in artifacts/. Confirm STYLE_GUIDE and token summary, portfolio naming, voice and channel, visual surfaces, and game IP vs toolchain boundary match Design authority (\u00a71.2).",
+      "proposed_solution": "Complete \u00a71.3 Design checkboxes; flag conflicts with STYLE_GUIDE.md so Marketing can issue v0.3."
     }
   ]
 }
