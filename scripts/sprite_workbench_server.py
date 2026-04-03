@@ -7884,6 +7884,47 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                 return self._send_error_json(HTTPStatus.NOT_FOUND, "Job not found")
             return self._send_json(job)
 
+        if path == "/view/markdown":
+            from scripts.os_dashboard_supervisor import _readonly_doc_path_allowed
+
+            paths = query.get("path", [])
+            if not paths or not str(paths[0]).strip():
+                return self._send_error_json(
+                    HTTPStatus.BAD_REQUEST, "path query parameter required"
+                )
+            rel = unquote(str(paths[0]).strip()).replace("\\", "/").lstrip("/")
+            if not _readonly_doc_path_allowed(rel):
+                return self._send_error_json(HTTPStatus.NOT_FOUND, "Not found")
+            suf = Path(rel).suffix.lower()
+            if suf not in {".md", ".mdc"}:
+                return self._send_error_json(
+                    HTTPStatus.BAD_REQUEST, "Only .md and .mdc can be previewed"
+                )
+            fpath = (ROOT / rel).resolve()
+            try:
+                fpath.relative_to(ROOT.resolve())
+            except ValueError:
+                return self._send_error_json(HTTPStatus.NOT_FOUND, "Not found")
+            if not fpath.is_file():
+                return self._send_error_json(HTTPStatus.NOT_FOUND, "Not found")
+            try:
+                text = fpath.read_text(encoding="utf-8")
+            except OSError:
+                return self._send_error_json(
+                    HTTPStatus.INTERNAL_SERVER_ERROR, "Failed to read file"
+                )
+            from scripts.render_markdown_view import build_markdown_view_page
+
+            page = build_markdown_view_page(
+                title=fpath.stem.replace("-", " ").replace("_", " "),
+                repo_path=rel,
+                source=text,
+            )
+            return self._send_bytes(
+                page.encode("utf-8"),
+                content_type="text/html; charset=utf-8",
+            )
+
         if path.startswith("/api/"):
             return self._send_error_json(HTTPStatus.NOT_FOUND, "Unknown API route (GET): %s" % path)
         return super().do_GET()

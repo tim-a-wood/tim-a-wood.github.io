@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "generated": "2026-04-03T12:41:05Z",
+  "generated": "2026-04-03T12:44:18Z",
   "repo_root_note": "Paths are relative to repository root.",
   "categories": [
     {
@@ -191,11 +191,60 @@
           "date_modified": "2026-04-02"
         },
         {
+          "id": "cursor-rules-check-test-coverage-mdc",
+          "title": "Check test coverage",
+          "path": ".cursor/rules/check-test-coverage.mdc",
+          "format": "markdown",
+          "date_modified": "2026-03-06"
+        },
+        {
           "id": "claude-md",
           "title": "CLAUDE",
           "path": "CLAUDE.md",
           "format": "markdown",
           "date_modified": "2026-03-28"
+        },
+        {
+          "id": "cursor-rules-commit-and-push-on-change-mdc",
+          "title": "Commit and push on change",
+          "path": ".cursor/rules/commit-and-push-on-change.mdc",
+          "format": "markdown",
+          "date_modified": "2026-03-06"
+        },
+        {
+          "id": "cursor-rules-create-test-report-on-change-mdc",
+          "title": "Create test report on change",
+          "path": ".cursor/rules/create-test-report-on-change.mdc",
+          "format": "markdown",
+          "date_modified": "2026-03-06"
+        },
+        {
+          "id": "cursor-rules-frontend-design-mdc",
+          "title": "Frontend design",
+          "path": ".cursor/rules/frontend-design.mdc",
+          "format": "markdown",
+          "date_modified": "2026-03-28"
+        },
+        {
+          "id": "cursor-rules-read-project-overview-mdc",
+          "title": "Read project overview",
+          "path": ".cursor/rules/read-project-overview.mdc",
+          "format": "markdown",
+          "date_modified": "2026-03-06"
+        },
+        {
+          "id": "cursor-rules-read-project-plan-mdc",
+          "title": "Read project plan",
+          "path": ".cursor/rules/read-project-plan.mdc",
+          "format": "markdown",
+          "date_modified": "2026-03-06"
+        },
+        {
+          "id": "cursor-rules-review-acceptance-tests-on-change-mdc",
+          "title": "Review acceptance tests on change",
+          "path": ".cursor/rules/review-acceptance-tests-on-change.mdc",
+          "format": "markdown",
+          "date_modified": "2026-03-06"
         }
       ]
     },
@@ -1420,7 +1469,7 @@
           "title": "Room layout editor",
           "path": "room-layout-editor.html",
           "format": "html",
-          "date_modified": "2026-04-02"
+          "date_modified": "2026-04-03"
         },
         {
           "id": "room-rules-md",
@@ -1472,7 +1521,7 @@
     "To retire a policy: use Archive on a card (supervisor) or scripts/archive_policy_document.py — files move to docs/archived-policies/ with a reference report; other files are not auto-edited."
   ],
   "stats": {
-    "files_indexed": 192,
+    "files_indexed": 199,
     "categories_non_empty": 15
   }
 }

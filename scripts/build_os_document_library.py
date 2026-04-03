@@ -18,6 +18,7 @@ import sys
 from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
+from urllib.parse import quote
 
 REPO = Path(__file__).resolve().parent.parent
 MANIFEST_OUT = REPO / "docs" / "os-documentLibrary.manifest.json"
@@ -46,7 +47,7 @@ IGNORE_DUP_BASE = frozenset({
     "meta.json",
 })
 MAX_BYTES = 4_000_000
-TEXT_SUFFIXES = frozenset({".md", ".html"})
+TEXT_SUFFIXES = frozenset({".md", ".mdc", ".html"})
 
 CATEGORY_META: dict[str, dict[str, str]] = {
     "business_brand": {
@@ -213,9 +214,9 @@ def categorize(rel_posix: str) -> str:
         return "decisions"
     if r.startswith("tests/acceptance") or r.startswith("tests/test_report"):
         return "quality_testing"
-    if r.startswith("artifacts/") and low.endswith(".md"):
+    if r.startswith("artifacts/") and low.endswith((".md", ".mdc")):
         return "artifacts_memos"
-    if r.startswith("docs/") and low.endswith((".md", ".html")):
+    if r.startswith("docs/") and low.endswith((".md", ".mdc", ".html")):
         return "other"
     return "other"
 
@@ -229,9 +230,11 @@ def _title_from_path(rel: Path) -> str:
     return stem[:1].upper() + stem[1:] if stem else str(rel)
 
 
-def _rel_href(from_docs_html: str, target_rel_posix: str) -> str:
-    """Link from docs/os-document-library.html to repo file."""
-    return "../" + target_rel_posix
+def _doc_open_href(target_rel_posix: str, *, fmt: str) -> str:
+    """Href for opening a catalog entry in the browser (supervisor origin)."""
+    if fmt == "html":
+        return "../" + target_rel_posix
+    return "/view/markdown?path=" + quote(target_rel_posix, safe="")
 
 
 def build() -> dict:
@@ -677,7 +680,7 @@ def render_html(manifest: dict) -> str:
         parts.append(f'    <p class="cat-desc">{desc}</p>\n')
         parts.append('    <div class="card-grid">\n')
         for item in cat.get("items", []):
-            href = _escape(_rel_href("docs/os-document-library.html", item["path"]))
+            href = _escape(_doc_open_href(item["path"], fmt=item.get("format", "markdown")))
             title = _escape(item["title"])
             path_e = _escape(item["path"])
             fmt = item.get("format", "markdown")

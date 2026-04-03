@@ -43,7 +43,7 @@ from typing import Any
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import unquote, urlparse
+from urllib.parse import parse_qs, unquote, urlparse
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(_REPO_ROOT) not in sys.path:
@@ -480,6 +480,49 @@ def make_handler(
             self.end_headers()
 
         def do_GET(self) -> None:
+            full = urlparse(self.path)
+            path_only = (full.path or "/").rstrip("/") or "/"
+            if path_only == "/view/markdown":
+                qs = parse_qs(full.query, keep_blank_values=False)
+                paths = qs.get("path", [])
+                if not paths or not str(paths[0]).strip():
+                    return self._send_json(
+                        HTTPStatus.BAD_REQUEST, {"error": "path query parameter required"}
+                    )
+                rel = unquote(str(paths[0]).strip()).replace("\\", "/").lstrip("/")
+                if not _readonly_doc_path_allowed(rel):
+                    return self._send_json(HTTPStatus.NOT_FOUND, {"error": "Not found"})
+                suf = Path(rel).suffix.lower()
+                if suf not in {".md", ".mdc"}:
+                    return self._send_json(
+                        HTTPStatus.BAD_REQUEST, {"error": "Only .md and .mdc can be previewed"}
+                    )
+                fpath = (repo_root / rel).resolve()
+                try:
+                    fpath.relative_to(repo_root.resolve())
+                except ValueError:
+                    return self._send_json(HTTPStatus.NOT_FOUND, {"error": "Not found"})
+                if not fpath.is_file():
+                    return self._send_json(HTTPStatus.NOT_FOUND, {"error": "Not found"})
+                try:
+                    text = fpath.read_text(encoding="utf-8")
+                except OSError:
+                    return self._send_json(
+                        HTTPStatus.INTERNAL_SERVER_ERROR, {"error": "Failed to read file"}
+                    )
+                from scripts.render_markdown_view import build_markdown_view_page
+
+                page = build_markdown_view_page(
+                    title=fpath.stem.replace("-", " ").replace("_", " "),
+                    repo_path=rel,
+                    source=text,
+                )
+                return self._send_bytes(
+                    HTTPStatus.OK,
+                    page.encode("utf-8"),
+                    "text/html; charset=utf-8",
+                )
+
             path = _norm_path(self)
             if path == "/api/workbench/status":
                 pl = build_supervisor_dashboard_payload(workbench_host, workbench_port)

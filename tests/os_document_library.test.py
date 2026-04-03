@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 import json
+import sys
 import unittest
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
+if str(REPO) not in sys.path:
+    sys.path.insert(0, str(REPO))
 MANIFEST = REPO / "docs" / "os-documentLibrary.manifest.json"
 
 
@@ -38,6 +41,17 @@ class OsDocumentLibraryTests(unittest.TestCase):
         text = html.read_text(encoding="utf-8")
         self.assertIn("Guides &amp; policies library", text)
         self.assertNotIn("transition: all", text.lower())
+        self.assertIn("/view/markdown?path=", text)
+        self.assertIn("../docs/brand-charter.html", text)
+
+    def test_doc_open_href_markdown_vs_html(self) -> None:
+        from scripts.build_os_document_library import _doc_open_href
+
+        self.assertEqual(
+            _doc_open_href("agents/foo/charter.md", fmt="markdown"),
+            "/view/markdown?path=agents%2Ffoo%2Fcharter.md",
+        )
+        self.assertTrue(_doc_open_href("docs/x.html", fmt="html").startswith("../"))
 
 
 if __name__ == "__main__":
