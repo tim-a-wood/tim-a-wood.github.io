@@ -27,6 +27,7 @@
   --font-size-md: 15px; --font-size-lg: 18px; --font-size-xl: 22px;
   --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px;
   --space-5: 24px; --space-6: 32px; --space-7: 48px; --space-8: 64px;
+  --surface-pad: 14px;
   --radius-xs: 4px; --radius-sm: 8px; --radius-md: 10px; --radius-default: 12px;
   --radius-tight: 14px; --radius-card: 18px; --radius-lg: 20px; --radius-full: 999px;
   --shadow-sm: 0 2px 8px rgba(0,0,0,0.18);
@@ -54,6 +55,12 @@
   --c-game-director: #e2e8f0;
   --c-game-systems:  #67e8f9;
   --c-level-design:  #86efac;
+
+  /* Surfaces for controls (avoid white-tinted rgba fills on dark UI) */
+  --os-control: #0d1118;
+  --os-control-hover: #161d28;
+  --os-sunken: #06080c;
+  --os-row-hover: rgba(0, 232, 200, 0.05);
 }
 
 :focus-visible { outline: 2px solid rgba(0,232,200,0.35); outline-offset: 2px; }
@@ -203,7 +210,7 @@ body::before {
   font-family: var(--font-sans);
 }
 .panel-edge-handle:hover {
-  background: rgba(255,255,255,0.05);
+  background: var(--os-control-hover);
   color: var(--text);
   border-color: var(--line-strong);
   box-shadow: var(--shadow-md);
@@ -553,6 +560,7 @@ body::before {
 .mode-pill:hover {
   color: var(--text);
   border-color: var(--line-strong);
+  background: var(--os-sunken);
   transform: translateY(-1px);
 }
 
@@ -865,7 +873,7 @@ body::before {
 
 .os-nav-hidden { display: none !important; }
 
-/* Home dashboard — agent tile board in main column (nav uses a single Home link only) */
+/* Home dashboard — categorized agent tiles in main column */
 .home-dashboard-lede {
   color: var(--muted);
   font-size: var(--font-size-sm);
@@ -873,18 +881,50 @@ body::before {
   max-width: 52rem;
   margin: 0 0 var(--space-4) 0;
 }
-.home-agent-board { margin-bottom: var(--space-4); }
-.home-agent-board .agent-grid {
-  flex: none;
-  min-height: 120px;
-  max-height: none;
-  overflow: visible;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+.home-agent-board {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  margin-bottom: var(--space-4);
 }
-.home-agent-board button.agent-card {
+.home-agent-category {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.home-agent-category-label {
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding-bottom: var(--space-1);
+  border-bottom: 1px solid var(--line);
+  margin: 0;
+}
+.home-category-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: var(--space-3);
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.home-agent-board button.agent-card--home {
   font: inherit;
   text-align: left;
   color: inherit;
+  min-height: 96px;
+  padding: var(--space-4);
+  border-radius: var(--radius-tight);
+  gap: var(--space-2);
+}
+.home-agent-board .agent-card--home .agent-card-icon {
+  font-size: var(--font-size-xl);
+  line-height: 1;
+}
+.home-agent-board .agent-card--home .agent-card-name {
+  font-size: var(--font-size-sm);
 }
 
 /* Agent hub modal — width per mockup (480px vs issue chat 420px) */
@@ -947,7 +987,7 @@ body::before {
 .agent-hub-close:hover {
   color: var(--text);
   border-color: var(--line-strong);
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--os-control-hover);
 }
 .agent-hub-actions {
   display: flex;
@@ -961,7 +1001,7 @@ body::before {
   padding: 8px 12px;
   border-radius: var(--radius-md);
   border: 1px solid var(--line-strong);
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--os-control);
   color: var(--text);
   font-family: var(--font-sans);
   font-size: var(--font-size-sm);
@@ -996,7 +1036,7 @@ body::before {
   padding: 10px 12px;
   border-radius: var(--radius-tight);
   border: 1px solid var(--line);
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--os-control);
   color: var(--text);
   font-family: var(--font-sans);
   font-size: var(--font-size-sm);
@@ -1044,7 +1084,7 @@ body::before {
   padding: 10px 12px;
   border-radius: var(--radius-tight);
   border: 1px solid var(--line);
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--os-control);
   color: var(--text);
   font-family: var(--font-sans);
   font-size: var(--font-size-sm);
@@ -1096,7 +1136,7 @@ body::before {
   padding: 10px var(--space-3);
   border-radius: var(--radius-tight);
   border: 1px solid var(--line);
-  background: rgba(255,255,255,0.04);
+  background: var(--os-control);
   color: var(--text);
   font-family: var(--font-sans);
   font-size: var(--font-size-lg);
@@ -1153,7 +1193,7 @@ body::before {
   padding: var(--space-2) var(--space-3);
   border-radius: var(--radius-sm);
   border: 1px solid var(--line);
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--os-sunken);
   line-height: 1.45;
 }
 .av-scope-strip[hidden] {
@@ -1222,7 +1262,7 @@ body::before {
   grid-column: 1 / -1;
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--os-sunken);
   padding: 0;
 }
 .av-add-details summary {
@@ -1251,7 +1291,7 @@ body::before {
 }
 .av-add-details summary:hover {
   color: var(--text);
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--os-control);
 }
 .av-add-details-inner {
   display: grid;
@@ -1269,7 +1309,7 @@ body::before {
   gap: var(--space-3);
   border: 1px solid var(--line);
   border-radius: var(--radius-card);
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--os-sunken);
   padding: var(--space-3);
   margin-top: var(--space-2);
 }
@@ -1294,7 +1334,7 @@ body::before {
   padding: 10px var(--space-4);
   border-radius: var(--radius-tight);
   border: 1px solid var(--line);
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--os-control);
   color: var(--text);
   font-family: var(--font-sans);
   font-size: var(--font-size-sm);
@@ -1304,7 +1344,7 @@ body::before {
 }
 .ot-add-pick-btn:hover {
   border-color: var(--line-strong);
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--os-control-hover);
   transform: translateY(-1px);
 }
 .ot-add-pick-btn--issue {
@@ -1396,7 +1436,7 @@ body::before {
   gap: var(--space-2);
   border: 1px solid var(--line);
   border-radius: var(--radius-card);
-  background: rgba(255,255,255,0.02);
+  background: var(--os-sunken);
   padding: var(--space-3);
   margin-top: var(--space-2);
 }
@@ -1490,7 +1530,7 @@ body::before {
 .av-row > .av-sort-num {
   margin-top: var(--space-2);
 }
-.av-row:hover { background: rgba(255,255,255,0.015); }
+.av-row:hover { background: var(--os-row-hover); }
 .av-drag-handle {
   display: flex;
   align-items: center;
@@ -1590,7 +1630,7 @@ body::before {
   font-weight: 600;
   border: 1px solid var(--line);
   color: var(--text);
-  background: rgba(255,255,255,0.03);
+  background: var(--os-sunken);
 }
 .av-risk-col {
   font-family: var(--font-mono);
@@ -1604,14 +1644,14 @@ body::before {
   background: rgba(0,232,200,0.08);
 }
 .av-status-col--needs-review { color: var(--warning); border-color: rgba(210,153,34,0.28); background: var(--warning-soft); }
-.av-status-col--queued { color: var(--muted); border-color: var(--line); background: rgba(255,255,255,0.02); }
-.av-status-col--paused { color: var(--muted); border-color: var(--line); background: rgba(255,255,255,0.02); }
+.av-status-col--queued { color: var(--muted); border-color: var(--line); background: var(--os-sunken); }
+.av-status-col--paused { color: var(--muted); border-color: var(--line); background: var(--os-sunken); }
 .av-status-col--blocked { color: var(--error); border-color: rgba(248,81,73,0.28); background: var(--error-soft); }
 .av-status-col--done { color: var(--good); border-color: rgba(74,222,128,0.28); background: var(--good-soft); }
 .av-risk-col {
   border: 1px solid var(--line);
   color: var(--muted);
-  background: rgba(255,255,255,0.02);
+  background: var(--os-sunken);
 }
 .av-risk-col--high { color: var(--error); border-color: rgba(248,81,73,0.28); background: var(--error-soft); }
 .av-risk-col--med { color: var(--warning); border-color: rgba(210,153,34,0.28); background: var(--warning-soft); }
@@ -1636,7 +1676,7 @@ body::before {
 .av-detail-text { font-size: var(--font-size-sm); color: var(--text); line-height: 1.5; }
 .av-detail-mono { font-size: var(--font-size-xs); font-family: var(--font-mono); color: var(--muted); }
 .av-field {
-  background: rgba(255,255,255,0.04);
+  background: var(--os-control);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   color: var(--text);
@@ -1685,7 +1725,7 @@ textarea.av-field { resize: vertical; min-height: 72px; line-height: 1.45; }
   min-height: 28px;
   transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
 }
-.av-btn:hover { background: rgba(255,255,255,0.05); color: var(--text); border-color: var(--border-strong); }
+.av-btn:hover { background: var(--os-control-hover); color: var(--text); border-color: var(--border-strong); }
 .av-btn:disabled { opacity: 0.3; cursor: not-allowed; }
 .av-btn--accent { border-color: var(--accent); color: var(--accent); }
 .av-btn--accent:hover { background: var(--accent-soft); }
@@ -1702,7 +1742,7 @@ textarea.av-field { resize: vertical; min-height: 72px; line-height: 1.45; }
 .av-edit-btn {
   border-color: var(--line);
   color: var(--text);
-  background: rgba(255,255,255,0.04);
+  background: var(--os-control);
   font-family: var(--font-sans);
   font-weight: 600;
   border-radius: var(--radius-sm);
@@ -1725,7 +1765,7 @@ textarea.av-field { resize: vertical; min-height: 72px; line-height: 1.45; }
 }
 .av-edit-btn:hover {
   border-color: var(--line-strong);
-  background: rgba(255,255,255,0.08);
+  background: var(--os-control-hover);
   color: var(--text);
 }
 .av-edit-btn--cancel {
@@ -1752,7 +1792,7 @@ textarea.av-field { resize: vertical; min-height: 72px; line-height: 1.45; }
 }
 .av-btn--icon:hover {
   color: var(--text);
-  background: rgba(255,255,255,0.06);
+  background: rgba(0,232,200,0.1);
   border-color: var(--line);
 }
 .av-btn--save {
@@ -1841,7 +1881,7 @@ textarea.av-field { resize: vertical; min-height: 72px; line-height: 1.45; }
 .issue-chat-close:hover {
   color: var(--text);
   border-color: var(--line-strong);
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--os-control-hover);
 }
 .issue-chat-scroll {
   flex: 1;
@@ -1891,7 +1931,7 @@ textarea.av-field { resize: vertical; min-height: 72px; line-height: 1.45; }
 }
 .issue-chat-bubble--assistant {
   align-self: flex-start;
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--os-control);
   border: 1px solid var(--stroke);
   color: var(--text);
 }
@@ -1947,7 +1987,7 @@ textarea.av-field { resize: vertical; min-height: 72px; line-height: 1.45; }
   padding: 10px 12px;
   border-radius: var(--radius-tight);
   border: 1px solid var(--line);
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--os-control);
   color: var(--text);
   font-family: var(--font-sans);
   font-size: var(--font-size-sm);
@@ -2130,13 +2170,13 @@ textarea.av-field { resize: vertical; min-height: 72px; line-height: 1.45; }
   min-height: 44px;
   border-radius: var(--radius-tight);
   border: 1px solid var(--line);
-  background: rgba(255,255,255,0.03);
+  background: var(--os-sunken);
   color: var(--text);
   cursor: pointer;
   transition: background 200ms ease, border-color 200ms ease, transform 120ms ease;
 }
 .av-conflict-close:hover {
-  background: rgba(255,255,255,0.05);
+  background: var(--os-control-hover);
   border-color: var(--line-strong);
   transform: translateY(-1px);
 }
@@ -2150,7 +2190,7 @@ textarea.av-field { resize: vertical; min-height: 72px; line-height: 1.45; }
 .av-conflict-card {
   border: 1px solid var(--line);
   border-radius: var(--radius-card);
-  background: rgba(255,255,255,0.03);
+  background: var(--os-sunken);
   padding: var(--space-4);
   display: flex;
   flex-direction: column;
@@ -2194,8 +2234,8 @@ textarea.av-field { resize: vertical; min-height: 72px; line-height: 1.45; }
 }
 .av-conflict-item {
   border-radius: var(--radius-tight);
-  border: 1px solid rgba(255,255,255,0.06);
-  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(0,232,200,0.1);
+  background: var(--os-sunken);
   padding: var(--space-3);
 }
 .av-conflict-item-title {
@@ -2632,7 +2672,7 @@ textarea.av-field { resize: vertical; min-height: 72px; line-height: 1.45; }
   padding: 10px 12px;
   border-radius: var(--radius-tight);
   border: 1px solid var(--line);
-  background: rgba(255,255,255,0.04);
+  background: var(--os-control);
   color: var(--text);
   font-family: var(--font-sans);
   font-size: var(--font-size-base);
@@ -2640,7 +2680,7 @@ textarea.av-field { resize: vertical; min-height: 72px; line-height: 1.45; }
 }
 .api-usage-range-select:hover {
   border-color: var(--line-strong);
-  background: rgba(255,255,255,0.08);
+  background: var(--os-control-hover);
 }
 .db-assumption-col-status { width: 100px; white-space: nowrap; }
 .db-assumption-col-assumption { min-width: 200px; color: var(--text); font-weight: 500; }
@@ -2701,7 +2741,7 @@ textarea.av-field { resize: vertical; min-height: 72px; line-height: 1.45; }
   flex-shrink: 0;
   padding: var(--space-2) var(--surface-pad);
   border-bottom: 1px solid var(--line);
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--os-sunken);
 }
 .header .global-workbench-bar {
   padding: 0;
@@ -2738,7 +2778,7 @@ textarea.av-field { resize: vertical; min-height: 72px; line-height: 1.45; }
   padding: 6px 12px;
   border-radius: var(--radius-tight);
   border: 1px solid var(--line);
-  background: rgba(255, 255, 255, 0.045);
+  background: var(--os-control);
   color: var(--text);
   font-family: var(--font-sans);
   font-size: var(--font-size-sm);
@@ -2762,7 +2802,7 @@ textarea.av-field { resize: vertical; min-height: 72px; line-height: 1.45; }
 }
 .global-wb-summary-btn:hover {
   border-color: var(--line-strong);
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--os-control-hover);
   transform: translateY(-1px);
 }
 .global-wb-details[open] .global-wb-summary-btn {
@@ -2797,7 +2837,7 @@ textarea.av-field { resize: vertical; min-height: 72px; line-height: 1.45; }
   padding: 10px 12px;
   border-radius: var(--radius-tight);
   border: 1px solid var(--line);
-  background: rgba(255, 255, 255, 0.045);
+  background: var(--os-control);
   color: var(--text);
   font-family: var(--font-sans);
   font-size: var(--font-size-sm);
@@ -2808,7 +2848,7 @@ textarea.av-field { resize: vertical; min-height: 72px; line-height: 1.45; }
 }
 .global-wb-btn:hover:not(:disabled) {
   border-color: var(--line-strong);
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--os-control-hover);
   transform: translateY(-1px);
 }
 .global-wb-btn:active:not(:disabled) {
@@ -2889,7 +2929,7 @@ textarea.av-field { resize: vertical; min-height: 72px; line-height: 1.45; }
   padding: 10px var(--space-3);
   border-radius: var(--radius-tight);
   border: 1px solid var(--line);
-  background: rgba(255,255,255,0.04);
+  background: var(--os-control);
   color: var(--text);
   font-family: var(--font-sans);
   font-size: var(--font-size-sm);
@@ -2922,7 +2962,7 @@ textarea.av-field { resize: vertical; min-height: 72px; line-height: 1.45; }
   border: 1px solid var(--border);
   border-radius: var(--radius-card);
   padding: var(--surface-pad);
-  box-shadow: var(--shadow-sm), inset 0 1px 0 rgba(255,255,255,0.045);
+  box-shadow: var(--shadow-sm), inset 0 1px 0 rgba(0,232,200,0.08);
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
@@ -3031,7 +3071,7 @@ textarea.av-field { resize: vertical; min-height: 72px; line-height: 1.45; }
   inset: 0;
   z-index: 1;
   border-radius: var(--radius-sm);
-  background: linear-gradient(180deg, rgba(255,255,255,0.04) 0%, transparent 48%, rgba(255,255,255,0.02) 100%);
+  background: linear-gradient(180deg, var(--os-control) 0%, transparent 48%, var(--os-sunken) 100%);
   pointer-events: none;
 }
 .os-chart-skeleton::after {
@@ -3039,7 +3079,7 @@ textarea.av-field { resize: vertical; min-height: 72px; line-height: 1.45; }
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent);
+  background: linear-gradient(90deg, transparent, rgba(0,232,200,0.12), transparent);
   background-size: 200% 100%;
   animation: os-sk-shimmer 1.2s ease infinite;
 }
@@ -3295,12 +3335,7 @@ h3.os-chart-card-title {
       <!-- ── HOME (agent tiles in main column) ── -->
       <div class="dashboard-view" data-dashboard-view="home">
         <p class="home-dashboard-lede">Choose a specialist for quick actions and task-aware chat. The server sends your charter, project overview, task context, and product scope on every message.</p>
-        <div class="db-section">
-          <div class="db-section-label">Agents</div>
-          <div class="home-agent-board">
-            <div class="agent-grid" id="homeAgentTileGrid" role="list"></div>
-          </div>
-        </div>
+        <div class="home-agent-board" id="homeAgentBoard" role="region" aria-label="Specialists by category"></div>
         <div class="db-qa-signpost db-qa-signpost--stack">
           <button type="button" class="db-qa-link" onclick="selectDashboard('api-usage')">→ API usage</button>
           <button type="button" class="db-qa-link" onclick="selectDashboard('issues')">→ Issues</button>
@@ -6463,6 +6498,14 @@ const AGENT_HUB_QUICK_LINKS = {
   strategy: [{ label: 'Decision brief', path: 'templates/decision-brief.md' }],
 };
 
+/** Home dashboard: section titles and agent order within each (IDs must exist in AGENTS). */
+const AGENT_HOME_CATEGORIES = [
+  { id: 'leadership', label: 'Leadership & orchestration', agents: ['orchestrator', 'strategy'] },
+  { id: 'game', label: 'Game & narrative', agents: ['game-director', 'creative', 'narrative', 'audio', 'game-systems'] },
+  { id: 'craft', label: 'Engineering & craft', agents: ['engineering', 'design', 'animation', 'level-design', 'qa'] },
+  { id: 'ops', label: 'Business, risk & insight', agents: ['marketing', 'legal', 'finance', 'support', 'analytics', 'cybersecurity', 'research'] },
+];
+
 function allAgentIdsForNavHub() {
   var seen = new Set();
   var out = [];
@@ -9520,33 +9563,97 @@ var agentHubMessages = [];
 var agentHubLoading = false;
 
 function renderHomeAgentTiles() {
-  var grid = document.getElementById('homeAgentTileGrid');
-  if (!grid) return;
-  grid.innerHTML = '';
-  allAgentIdsForNavHub().forEach(function(id) {
-    if (!agentAllowedInOsProductContext(id, osProductContext)) return;
-    var agent = AGENTS[id] || {};
-    var meta = AGENT_META[id] || {};
-    var btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'agent-card';
-    btn.setAttribute('role', 'listitem');
-    btn.dataset.agent = id;
-    var col = meta.color || 'var(--accent)';
-    btn.style.setProperty('--agent-color', col);
-    var icon = document.createElement('div');
-    icon.className = 'agent-card-icon';
-    icon.textContent = meta.icon || '•';
-    var name = document.createElement('div');
-    name.className = 'agent-card-name';
-    name.textContent = agent.label || id;
-    btn.appendChild(icon);
-    btn.appendChild(name);
-    btn.addEventListener('click', function() {
-      agentHubOpen(id);
+  var board = document.getElementById('homeAgentBoard');
+  if (!board) return;
+  board.innerHTML = '';
+  var listed = new Set();
+  AGENT_HOME_CATEGORIES.forEach(function(cat) {
+    var fragTiles = [];
+    cat.agents.forEach(function(id) {
+      if (!AGENTS[id] || listed.has(id)) return;
+      if (!agentAllowedInOsProductContext(id, osProductContext)) return;
+      listed.add(id);
+      fragTiles.push(id);
     });
-    grid.appendChild(btn);
+    if (fragTiles.length === 0) return;
+    var section = document.createElement('section');
+    section.className = 'home-agent-category';
+    section.setAttribute('data-home-category', cat.id);
+    var h = document.createElement('h2');
+    h.className = 'home-agent-category-label';
+    h.textContent = cat.label;
+    section.appendChild(h);
+    var grid = document.createElement('div');
+    grid.className = 'home-category-grid';
+    grid.setAttribute('role', 'list');
+    fragTiles.forEach(function(id) {
+      var agent = AGENTS[id] || {};
+      var meta = AGENT_META[id] || {};
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'agent-card agent-card--home';
+      btn.setAttribute('role', 'listitem');
+      btn.dataset.agent = id;
+      var col = meta.color || 'var(--accent)';
+      btn.style.setProperty('--agent-color', col);
+      var icon = document.createElement('div');
+      icon.className = 'agent-card-icon';
+      icon.textContent = meta.icon || '•';
+      var name = document.createElement('div');
+      name.className = 'agent-card-name';
+      name.textContent = agent.label || id;
+      btn.appendChild(icon);
+      btn.appendChild(name);
+      btn.addEventListener('click', function() {
+        agentHubOpen(id);
+      });
+      grid.appendChild(btn);
+    });
+    section.appendChild(grid);
+    board.appendChild(section);
   });
+  var otherIds = [];
+  allAgentIdsForNavHub().forEach(function(id) {
+    if (listed.has(id) || !AGENTS[id]) return;
+    if (!agentAllowedInOsProductContext(id, osProductContext)) return;
+    otherIds.push(id);
+  });
+  if (otherIds.length) {
+    var osec = document.createElement('section');
+    osec.className = 'home-agent-category';
+    osec.setAttribute('data-home-category', 'other');
+    var oh = document.createElement('h2');
+    oh.className = 'home-agent-category-label';
+    oh.textContent = 'Other';
+    osec.appendChild(oh);
+    var ogrid = document.createElement('div');
+    ogrid.className = 'home-category-grid';
+    ogrid.setAttribute('role', 'list');
+    otherIds.forEach(function(id) {
+      var agent = AGENTS[id] || {};
+      var meta = AGENT_META[id] || {};
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'agent-card agent-card--home';
+      btn.setAttribute('role', 'listitem');
+      btn.dataset.agent = id;
+      btn.style.setProperty('--agent-color', meta.color || 'var(--accent)');
+      var icon = document.createElement('div');
+      icon.className = 'agent-card-icon';
+      icon.textContent = meta.icon || '•';
+      var name = document.createElement('div');
+      name.className = 'agent-card-name';
+      name.textContent = agent.label || id;
+      btn.appendChild(icon);
+      btn.appendChild(name);
+      btn.addEventListener('click', function() {
+        agentHubOpen(id);
+      });
+      ogrid.appendChild(btn);
+    });
+    osec.appendChild(ogrid);
+    board.appendChild(osec);
+  }
 }
 
 function agentHubSetPending(show) {
