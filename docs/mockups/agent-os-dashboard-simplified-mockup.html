@@ -521,6 +521,10 @@
 
     .mock-card-grid--3 { grid-template-columns: repeat(3, 1fr); }
     .mock-card-grid--4 { grid-template-columns: repeat(4, 1fr); }
+    .mock-card-grid--conn2 {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      max-width: 640px;
+    }
 
     @media (max-width: 1100px) {
       .mock-card-grid--4 { grid-template-columns: repeat(2, 1fr); }
@@ -528,7 +532,8 @@
 
     @media (max-width: 900px) {
       .mock-card-grid--3,
-      .mock-card-grid--4 { grid-template-columns: 1fr; }
+      .mock-card-grid--4,
+      .mock-card-grid--conn2 { grid-template-columns: 1fr; }
     }
 
     .mock-db-card {
@@ -666,6 +671,76 @@
     .nav-item {
       cursor: pointer;
     }
+
+    /* API usage mock — aligned with live spend-by-provider + daily trend */
+    .mock-api-range-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: var(--space-3);
+      margin: 0 0 var(--space-4) 0;
+    }
+    .mock-api-range-row label {
+      font-size: var(--font-size-sm);
+      color: var(--muted);
+    }
+    .mock-api-range-select {
+      min-height: 44px;
+      padding: 10px 12px;
+      border-radius: var(--radius-tight);
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.04);
+      color: var(--text);
+      font-family: var(--font-sans);
+      font-size: var(--font-size-base);
+      transition: background 200ms ease, border-color 200ms ease;
+    }
+    .mock-api-range-select:hover {
+      border-color: var(--line-strong);
+      background: rgba(255,255,255,0.08);
+    }
+    .mock-api-foot {
+      color: var(--muted);
+      font-size: var(--font-size-xs);
+      margin: 0 0 var(--space-3) 0;
+      font-family: var(--font-mono);
+    }
+    .mock-api-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: var(--font-size-sm);
+      margin-bottom: var(--space-5);
+    }
+    .mock-api-table th {
+      text-align: left;
+      font-family: var(--font-mono);
+      font-size: var(--font-size-xs);
+      font-weight: 500;
+      color: var(--muted);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 0 var(--space-3) var(--space-2) 0;
+      border-bottom: 1px solid var(--line);
+    }
+    .mock-api-table td {
+      padding: var(--space-3) var(--space-3) var(--space-3) 0;
+      border-bottom: 1px solid var(--line);
+      vertical-align: top;
+      line-height: 1.45;
+    }
+    .mock-api-table td.mock-api-mono {
+      font-family: var(--font-mono);
+    }
+    .mock-api-table tr:last-child td {
+      border-bottom: none;
+    }
+    .mock-api-table .mock-api-provider {
+      font-weight: 500;
+      color: var(--text);
+    }
+    .mock-chart-card--daily {
+      min-height: 260px;
+    }
   </style>
 </head>
 <body>
@@ -793,7 +868,7 @@
           <ul>
             <li>Eight main places in the sidebar (including <strong style="color:var(--text)">API usage</strong> next to Home). Tweak layout here, then match it in the real dashboard file.</li>
             <li>Leadership work uses the same lists plus <strong style="color:var(--text)">Orchestrator</strong> or <strong style="color:var(--text)">Strategy</strong> in the “Who to prompt” menu — no extra nav clutter.</li>
-            <li>One short menu replaces a long list of every agent; the real app opens the right column and can pick <strong style="color:var(--text)">Analytics</strong> when you open API usage.</li>
+            <li>One short menu replaces a long list of every agent; the real app opens the right column. API usage is spend-only on the live page; pick <strong style="color:var(--text)">Analytics</strong> for Copilot stats and the tracking plan.</li>
             <li>Right side: pick a mode and get a prompt you can copy — same idea as today’s workflow column.</li>
           </ul>
         </div>
@@ -801,18 +876,10 @@
 
       <div id="mock-view-api-usage" class="mock-view" data-mock-view="api-usage" hidden>
         <h1 class="mock-page-title">API usage</h1>
-        <p class="mock-page-lede">Matches the real “API usage” screen: call counts, keys, workbench status, room Copilot stats, and charts when the dashboard server is running. Edit this file to try different layout or wording before you change the live page.</p>
+        <p class="mock-page-lede">Matches the live screen: spend by provider, a UTC date range selector, and one daily stacked spend chart from the local usage log. Room Copilot quality and the full Analytics shortcuts live on the Analytics dashboard.</p>
 
-        <div class="section-label">At a glance</div>
-        <div class="mock-card-grid mock-card-grid--3">
-          <div class="mock-db-card mock-db-card--live">
-            <div class="mock-db-card-head">
-              <span class="mock-db-label">Paid calls · last 8 weeks</span>
-              <span class="mock-tier">Live</span>
-            </div>
-            <div class="mock-db-value">—</div>
-            <div class="mock-db-sub">Counted from your local usage log (by calendar week, GMT)</div>
-          </div>
+        <div class="section-label">Connection</div>
+        <div class="mock-card-grid mock-card-grid--conn2">
           <div class="mock-db-card mock-db-card--live">
             <div class="mock-db-card-head">
               <span class="mock-db-label">API keys</span>
@@ -831,105 +898,57 @@
           </div>
         </div>
 
-        <div class="section-label">Call log</div>
-        <div class="mock-card-grid mock-card-grid--4">
-          <div class="mock-db-card mock-db-card--live">
-            <div class="mock-db-card-head">
-              <span class="mock-db-label">All logged calls</span>
-              <span class="mock-tier">Live</span>
-            </div>
-            <div class="mock-db-value">—</div>
-            <div class="mock-db-sub">Every call recorded on this machine</div>
-          </div>
-          <div class="mock-db-card mock-db-card--live">
-            <div class="mock-db-card-head">
-              <span class="mock-db-label">Calls in the last 8 weeks</span>
-              <span class="mock-tier">Live</span>
-            </div>
-            <div class="mock-db-value">—</div>
-            <div class="mock-db-sub">Same window as the chart below</div>
-          </div>
-          <div class="mock-db-card mock-db-card--live">
-            <div class="mock-db-card-head">
-              <span class="mock-db-label">Calls today</span>
-              <span class="mock-tier">Live</span>
-            </div>
-            <div class="mock-db-value">—</div>
-            <div class="mock-db-sub">By today’s date in GMT</div>
-          </div>
-          <div class="mock-db-card mock-db-card--live">
-            <div class="mock-db-card-head">
-              <span class="mock-db-label">Rough cost from the log</span>
-              <span class="mock-tier">Live</span>
-            </div>
-            <div class="mock-db-value">—</div>
-            <div class="mock-db-sub">Added from each logged call; use finance records for real spend</div>
-          </div>
+        <div class="section-label">Spend by provider</div>
+        <p class="mock-page-lede" style="margin-top:calc(-1 * var(--space-2)); margin-bottom:var(--space-3)">Only calls that logged a non-zero USD estimate appear. Treat numbers as directional; vendor billing is the source of truth.</p>
+        <div class="mock-api-range-row">
+          <label for="mock-api-date-range">Date range (UTC days)</label>
+          <select id="mock-api-date-range" class="mock-api-range-select" aria-label="Preview only — not wired to data">
+            <option>Last 7 days</option>
+            <option selected>Last 30 days</option>
+            <option>Last 90 days</option>
+            <option>Last 365 days</option>
+            <option>All time</option>
+          </select>
         </div>
+        <p class="mock-api-foot">30 day window · 2 paid APIs · about $5.55 estimated (range) — <em style="font-style:normal;color:var(--muted)">fake summary for layout</em></p>
+        <table class="mock-api-table" aria-label="Fake provider cost breakdown for mockup">
+          <thead>
+            <tr>
+              <th scope="col">Provider</th>
+              <th scope="col">Paid calls</th>
+              <th scope="col">Est. cost</th>
+              <th scope="col">Share</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="mock-api-provider">Google Gemini</td>
+              <td class="mock-api-mono">42</td>
+              <td class="mock-api-mono">$3.24</td>
+              <td class="mock-api-mono">58.4%</td>
+            </tr>
+            <tr>
+              <td class="mock-api-provider">Pixel Lab</td>
+              <td class="mock-api-mono">18</td>
+              <td class="mock-api-mono">$2.31</td>
+              <td class="mock-api-mono">41.6%</td>
+            </tr>
+          </tbody>
+        </table>
 
-        <div class="section-label">Room Copilot</div>
-        <div class="mock-card-grid mock-card-grid--3">
-          <div class="mock-db-card mock-db-card--live">
-            <div class="mock-db-card-head">
-              <span class="mock-db-label">What we measure</span>
-              <span class="mock-tier">Live</span>
-            </div>
-            <div class="mock-db-value" style="font-size:var(--font-size-sm);font-family:var(--font-sans)">Calls plus room suggestions</div>
-            <div class="mock-db-sub">Whether suggestions felt helpful after you saved the room</div>
+        <div class="section-label">Daily cost trend</div>
+        <p class="mock-page-lede" style="margin-top:calc(-1 * var(--space-2)); margin-bottom:var(--space-3)">Stacked bars: one column per UTC day in the range. Colors follow provider order in the table above.</p>
+        <div class="mock-chart-card mock-chart-wide mock-chart-card--daily">
+          <div class="mock-chart-head">
+            <span class="mock-chart-title">Estimated spend per day</span>
+            <span class="mock-tier">Trend</span>
           </div>
-          <div class="mock-db-card mock-db-card--live">
-            <div class="mock-db-card-head">
-              <span class="mock-db-label">Marked helpful</span>
-              <span class="mock-tier">Live</span>
-            </div>
-            <div class="mock-db-value">—</div>
-            <div class="mock-db-sub">Share you accepted or tweaked, out of those you decided on</div>
-          </div>
-          <div class="mock-db-card mock-db-card--live">
-            <div class="mock-db-card-head">
-              <span class="mock-db-label">Still there after you saved again</span>
-              <span class="mock-tier">Live</span>
-            </div>
-            <div class="mock-db-value">—</div>
-            <div class="mock-db-sub">Accepted suggestions that stayed in the room after a later save</div>
-          </div>
-        </div>
-
-        <div class="section-label">Charts</div>
-        <p class="mock-page-lede" style="margin-top:calc(-1 * var(--space-2)); margin-bottom:var(--space-3)">Trend for eight weeks, bars for where calls went, ring chart for how suggestions ended. Resize the boxes below to try different heights.</p>
-        <div class="mock-chart-grid">
-          <div class="mock-chart-card mock-chart-wide mock-chart-card--tall">
-            <div class="mock-chart-head">
-              <span class="mock-chart-title">Paid API calls by week (last 8 weeks)</span>
-              <span class="mock-tier">Trend</span>
-            </div>
-            <div class="mock-chart-body">Weekly trend chart<br>(full width)</div>
-          </div>
-          <div class="mock-chart-card">
-            <div class="mock-chart-head">
-              <span class="mock-chart-title">Where calls went</span>
-              <span class="mock-tier">Mix</span>
-            </div>
-            <div class="mock-chart-body">Bar chart · Pixel Lab, Gemini, room AI</div>
-          </div>
-          <div class="mock-chart-card">
-            <div class="mock-chart-head">
-              <span class="mock-chart-title">How suggestions ended</span>
-              <span class="mock-tier">Breakdown</span>
-            </div>
-            <div class="mock-chart-body">Ring chart · accept, tweak, reject</div>
-          </div>
-        </div>
-
-        <div class="section-label">Quick actions (Analytics)</div>
-        <div class="mock-db-card">
-          <div class="mock-db-label" style="margin-bottom:var(--space-2)">Same shortcuts as on the Analytics screen</div>
-          <div class="mock-chart-body" style="min-height:80px;border-style:solid">Action buttons the Analytics specialist maintains</div>
+          <div class="mock-chart-body">Live dashboard draws this from <span style="font-family:var(--font-mono)">usage_charts.cost_rollups</span> · placeholder blocks only here</div>
         </div>
 
         <div class="mock-signpost">
           <button type="button" class="mock-link mock-goto-screen" data-mock-screen="home">→ Home</button>
-          <span class="mock-link" style="cursor:default;text-decoration:none;color:var(--muted)">→ Analytics · not wired in this preview</span>
+          <span class="mock-link" style="cursor:default;text-decoration:none;color:var(--muted)">→ Analytics · tracking plan and room Copilot quality (not wired here)</span>
         </div>
       </div>
     </main>
