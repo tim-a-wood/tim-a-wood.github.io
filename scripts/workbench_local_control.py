@@ -18,7 +18,11 @@ from typing import Any
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 ENV_FILE = REPO_ROOT / ".env.local"
-USAGE_LEDGER_REL = Path("projects-data") / "_usage_ledger.json"
+# Sprite Workbench persistence root (matches scripts/sprite_workbench_server.PROJECTS_ROOT).
+SPRITE_PROJECTS_DATA_REL = Path("tools") / "2d-sprite-and-animation" / "projects-data"
+SPRITE_USAGE_LEDGER_REL = SPRITE_PROJECTS_DATA_REL / "_usage_ledger.json"
+# Earlier builds pointed the supervisor at repo-root projects-data; keep as fallback if present.
+LEGACY_USAGE_LEDGER_REL = Path("projects-data") / "_usage_ledger.json"
 PID_FILE = Path("/tmp/sprite_workbench_server.pid")
 LOG_FILE = Path("/tmp/sprite_workbench_server.log")
 SERVER_SCRIPT = REPO_ROOT / "scripts" / "sprite_workbench_server.py"
@@ -198,8 +202,25 @@ def build_home_internal_snapshot() -> dict[str, Any]:
     }
 
 
+def _usage_ledger_json_path(repo_root: Path | None = None) -> Path:
+    """Return the ledger file the dashboard should read from disk (supervisor / offline).
+
+    Canonical location is the Sprite Workbench ``projects-data`` folder. A legacy
+    repo-root ``projects-data/_usage_ledger.json`` is used only when the canonical
+    file does not exist, so existing checkouts keep working.
+    """
+    root = repo_root or REPO_ROOT
+    canonical = root / SPRITE_USAGE_LEDGER_REL
+    legacy = root / LEGACY_USAGE_LEDGER_REL
+    if canonical.is_file():
+        return canonical
+    if legacy.is_file():
+        return legacy
+    return canonical
+
+
 def _ledger_entries_from_repo_disk() -> list[dict[str, Any]]:
-    path = REPO_ROOT / USAGE_LEDGER_REL
+    path = _usage_ledger_json_path()
     if not path.is_file():
         return []
     try:
@@ -212,7 +233,7 @@ def _ledger_entries_from_repo_disk() -> list[dict[str, Any]]:
 
 
 def _usage_charts_from_repo_disk() -> dict[str, Any]:
-    """Read projects-data/_usage_ledger.json when workbench persistence is not configured (supervisor)."""
+    """Read Sprite Workbench ``_usage_ledger.json`` when this process is not the workbench server."""
     from scripts.workbench_persistence import build_usage_ledger_charts_from_entries
 
     return build_usage_ledger_charts_from_entries(_ledger_entries_from_repo_disk())

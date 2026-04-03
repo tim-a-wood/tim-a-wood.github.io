@@ -1,6 +1,6 @@
 # Analytics dashboard KPIs (Agent OS)
 
-**Source of truth:** `projects-data/_usage_ledger.json` (Sprite Workbench server appends on paid API usage). The Agent OS dashboard reads rollups via `GET /api/dashboard-data` → `usage_charts` and `usage_summary`.
+**Source of truth:** `tools/2d-sprite-and-animation/projects-data/_usage_ledger.json` (Sprite Workbench server appends on paid API usage). The Agent OS supervisor reads the same path from disk when serving `GET /api/dashboard-data` → `usage_charts` and `usage_summary` (legacy `projects-data/_usage_ledger.json` at repo root is still read if the canonical file is absent).
 
 ## v1 internal KPIs (pre-launch)
 
