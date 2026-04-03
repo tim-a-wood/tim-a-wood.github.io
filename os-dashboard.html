@@ -1081,6 +1081,23 @@ body::before {
   margin: 0;
   line-height: 1.4;
 }
+.agent-hub-footer-actions-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.agent-hub-footer-actions-label {
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.agent-hub-footer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
 .agent-hub-row {
   display: flex;
   gap: var(--space-2);
@@ -6077,6 +6094,10 @@ h3.os-chart-card-title {
       <p class="agent-hub-hint" id="agent-hub-api-hint">
         <code style="font-family:var(--font-mono);font-size:11px">POST /api/agent-chat</code> — OpenAI Chat Completions on the supervisor. Set <code style="font-family:var(--font-mono);font-size:11px">OPENAI_API_KEY</code>. Optional <code style="font-family:var(--font-mono);font-size:11px">AGENT_CHAT_MODEL</code> (falls back to <code style="font-family:var(--font-mono);font-size:11px">ISSUE_CHAT_MODEL</code>).
       </p>
+      <div class="agent-hub-footer-actions-wrap">
+        <span class="agent-hub-footer-actions-label" id="agent-hub-footer-actions-label">Quick actions</span>
+        <div class="agent-hub-footer-actions" id="agent-hub-footer-actions" role="toolbar" aria-labelledby="agent-hub-footer-actions-label"></div>
+      </div>
       <div class="agent-hub-row">
         <textarea class="agent-hub-chat-input" id="agent-hub-chat-input" rows="2" placeholder="Message…" autocomplete="off"></textarea>
         <button type="button" class="agent-hub-send" id="agent-hub-send">Send</button>
@@ -9708,8 +9729,7 @@ function agentHubAppendBubble(role, text, thinking, isErr) {
   scroll.scrollTop = scroll.scrollHeight;
 }
 
-function agentHubBuildActions(agentId) {
-  var wrap = document.getElementById('agent-hub-actions');
+function agentHubPopulateActionButtons(wrap, agentId) {
   if (!wrap) return;
   wrap.innerHTML = '';
   var agent = AGENTS[agentId] || {};
@@ -9746,6 +9766,11 @@ function agentHubBuildActions(agentId) {
   addBtn('Open dashboard', false, function() {
     selectDashboard(primaryDashboardForAgent(agentId));
   });
+}
+
+function agentHubBuildActions(agentId) {
+  agentHubPopulateActionButtons(document.getElementById('agent-hub-actions'), agentId);
+  agentHubPopulateActionButtons(document.getElementById('agent-hub-footer-actions'), agentId);
 }
 
 function agentHubOpen(agentId) {
