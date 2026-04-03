@@ -863,6 +863,42 @@ body::before {
 .nav-dash-group { display: flex; flex-direction: column; }
 .nav-dash-group.nav-dash-group--empty { display: none; }
 
+/* Collapsible “All role dashboards” (mock IA — Leadership + Tech + Business + Game) */
+details.nav-dash-more {
+  margin: 0;
+}
+details.nav-dash-more > summary.nav-dash-more-summary {
+  list-style: none;
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  opacity: 0.85;
+  padding: var(--space-2) var(--space-4) var(--space-1);
+  cursor: pointer;
+  user-select: none;
+  transition: color 200ms ease;
+}
+details.nav-dash-more > summary.nav-dash-more-summary::-webkit-details-marker {
+  display: none;
+}
+details.nav-dash-more > summary.nav-dash-more-summary::before {
+  content: '▸ ';
+  display: inline-block;
+  transition: transform 200ms ease;
+  color: var(--muted);
+}
+details.nav-dash-more[open] > summary.nav-dash-more-summary::before {
+  transform: rotate(90deg);
+}
+details.nav-dash-more > summary.nav-dash-more-summary:hover {
+  color: var(--text);
+}
+details.nav-dash-more.nav-dash-more--empty {
+  display: none;
+}
+
 .os-nav-hidden { display: none !important; }
 
 .nav-section.nav-section--empty { display: none; }
@@ -3135,7 +3171,7 @@ h3.os-chart-card-title {
   <header class="header">
     <div class="header-brand">
       <span class="header-title">AGENT OS</span>
-      <span class="header-sub">MV Toolchain</span>
+      <span class="header-sub">MV toolchain</span>
     </div>
     <label class="visually-hidden" for="osProductContextSync">Product context</label>
     <select id="osProductContextSync" class="os-context-select" aria-label="Product context">
@@ -3174,7 +3210,7 @@ h3.os-chart-card-title {
       <span class="nav-label">Dashboards</span>
 
       <div class="nav-dash-group">
-      <span class="nav-group-label">Core</span>
+      <span class="nav-group-label">Work</span>
       <button type="button" class="nav-item db-active" data-dashboard="home">
         <span class="nav-dot" style="background:var(--accent)"></span>
         <span class="nav-item-text">Home</span>
@@ -3193,7 +3229,7 @@ h3.os-chart-card-title {
       </button>
       <button type="button" class="nav-item" data-dashboard="ongoing-tasks">
         <span class="nav-dot" style="background:#fbbf24"></span>
-        <span class="nav-item-text">Ongoing Tasks</span>
+        <span class="nav-item-text">Ongoing tasks</span>
       </button>
       <button type="button" class="nav-item" data-dashboard="guides">
         <span class="nav-dot" style="background:#22d3ee"></span>
@@ -3201,6 +3237,8 @@ h3.os-chart-card-title {
       </button>
       </div>
 
+      <details class="nav-dash-more">
+      <summary class="nav-dash-more-summary">All role dashboards</summary>
       <div class="nav-dash-group">
       <span class="nav-group-label">Leadership</span>
       <button type="button" class="nav-item" data-dashboard="orchestration">
@@ -3295,6 +3333,7 @@ h3.os-chart-card-title {
         <span class="nav-item-text">Game Systems</span>
       </button>
       </div>
+      </details>
 
       <div class="nav-dash-group">
       <div class="nav-divider" style="margin:4px 16px"></div>
@@ -3579,6 +3618,7 @@ h3.os-chart-card-title {
 
       <!-- ── API USAGE DASHBOARD ── -->
       <div class="dashboard-view" data-dashboard-view="api-usage">
+        <p class="api-usage-page-lede" style="color:var(--muted);font-size:var(--font-size-sm);line-height:1.5;max-width:52rem;margin:0 0 var(--space-4) 0">Spend by provider, a UTC date range, and daily stacked totals from the local usage log. Room Copilot quality and Analytics shortcuts are on the Analytics dashboard.</p>
         <div class="db-section">
           <div class="db-section-label">Connection</div>
           <p class="visually-hidden" id="api-usage-intro">Rough USD estimates from the local usage log for paid APIs (Pixel Lab, Gemini, OpenAI if logged, and anything else the workbench records with a price).</p>
@@ -6995,6 +7035,14 @@ function applyOsProductContextNavFilter(ctx) {
     });
     g.classList.toggle('nav-dash-group--empty', !any);
   });
+  document.querySelectorAll('details.nav-dash-more').forEach((det) => {
+    const groups = det.querySelectorAll(':scope > .nav-dash-group');
+    let anyGroup = false;
+    groups.forEach((g) => {
+      if (!g.classList.contains('nav-dash-group--empty')) anyGroup = true;
+    });
+    det.classList.toggle('nav-dash-more--empty', !anyGroup);
+  });
   document.querySelectorAll('.nav-section.nav-resources-section').forEach((sec) => {
     let any = false;
     sec.querySelectorAll('.nav-item').forEach((el) => {
@@ -7360,10 +7408,36 @@ document.querySelectorAll('.nav-item[data-dashboard]').forEach(btn => {
   });
 });
 
+/** Primary dashboard for each agent in the left “All agents” list (mock IA: open role screen from agent name). */
+const AGENT_ID_TO_DASHBOARD = {
+  orchestrator: 'orchestration',
+  strategy: 'strategy',
+  engineering: 'development',
+  animation: 'animation',
+  'level-design': 'level-design',
+  design: 'design',
+  qa: 'qa',
+  cybersecurity: 'cybersecurity',
+  research: 'research',
+  analytics: 'analytics',
+  support: 'support',
+  marketing: 'marketing',
+  legal: 'legal',
+  finance: 'finance',
+  'game-director': 'game-director',
+  creative: 'creative',
+  narrative: 'narrative',
+  audio: 'audio',
+  'game-systems': 'game-systems',
+};
+
 document.querySelectorAll('.nav-agent-item').forEach(function(btn) {
   btn.addEventListener('click', function() {
     const id = btn.getAttribute('data-agent');
-    if (id) focusAgentInSidePanel(id);
+    if (!id) return;
+    const dash = AGENT_ID_TO_DASHBOARD[id];
+    if (dash && DASHBOARDS[dash]) selectDashboard(dash);
+    focusAgentInSidePanel(id);
   });
 });
 
