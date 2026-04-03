@@ -539,15 +539,7 @@
         <span>Guides &amp; policies</span>
       </button>
 
-      <span class="nav-group-label" style="margin-top:var(--space-2)">Leadership &amp; product</span>
-      <button type="button" class="nav-item" tabindex="-1">
-        <span class="nav-dot" style="background:#00e8c8"></span>
-        <span>Orchestration</span>
-      </button>
-      <button type="button" class="nav-item" tabindex="-1">
-        <span class="nav-dot" style="background:#94a3b8"></span>
-        <span>Strategy</span>
-      </button>
+      <span class="nav-group-label" style="margin-top:var(--space-2)">Product</span>
       <button type="button" class="nav-item" tabindex="-1">
         <span class="nav-dot" style="background:#38bdf8"></span>
         <span>Workbench</span>
@@ -568,6 +560,7 @@
         <label class="field-label" for="spec-mock">Specialist</label>
         <select id="spec-mock" class="specialist-select" aria-label="Choose specialist (mock)">
           <option>Orchestrator</option>
+          <option>Strategy</option>
           <option>Design</option>
           <option>Development</option>
           <option>QA</option>
@@ -610,15 +603,16 @@
 
       <div class="section-label">Removed in this IA</div>
       <div class="placeholder-grid">
-        <div class="ph-card">No per-specialist dashboard views (Development, QA, Legal, …)</div>
-        <div class="ph-card">Same data stays in Issues / Opportunities / Ongoing</div>
+        <div class="ph-card">No per-role full-page dashboards (tech, business, leadership, …)</div>
+        <div class="ph-card">Orchestrator &amp; strategy rows stay in Issues / Opportunities / Ongoing — no separate Orchestration / Strategy boards</div>
         <div class="ph-card">Discuss-issue chat unchanged (server-side)</div>
       </div>
 
       <div class="callout">
         <h2>What this mockup shows</h2>
         <ul>
-          <li>Nine hub destinations in the left column instead of dozens of dashboard + duplicate agent rows.</li>
+          <li>Seven hub destinations in the left column (work queues + guides + two product tools) instead of dozens of dashboard + duplicate agent rows.</li>
+          <li>Leadership work uses the same tables plus <strong style="color:var(--text)">Orchestrator</strong> / <strong style="color:var(--text)">Strategy</strong> in the specialist control — no extra nav entries.</li>
           <li>One <strong style="color:var(--text)">Specialist</strong> control replaces the long “All agents” button list; choosing a name would open/focus the right agent column (real app).</li>
           <li>Right column sketch: modes + generated prompt — same as current workflow panel.</li>
         </ul>
