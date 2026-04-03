@@ -8017,6 +8017,12 @@ const OS_CHART_DEFAULTS = {
 let osChartData = JSON.parse(JSON.stringify(OS_CHART_DEFAULTS));
 
 function applyUsageChartsFromDashboard(d) {
+  if (d && d.usage_summary && typeof d.usage_summary === 'object' && !Array.isArray(d.usage_summary)) {
+    const ec = d.usage_summary.entry_count;
+    window.__usageLedgerEntryCount = ec != null ? Number(ec) : null;
+  } else {
+    window.__usageLedgerEntryCount = null;
+  }
   if (!d || !d.usage_charts || typeof d.usage_charts !== 'object') {
     window.__usageCostRollups = { version: 1, daily: [], providers: [] };
     applyApiUsageCostUi();
@@ -8282,20 +8288,38 @@ function computeApiUsageCostSlice() {
   const provCalls = {};
   dayList.forEach(function (d) {
     const cell = byDay[d];
-    if (!cell || !cell.c) return;
-    Object.keys(cell.c).forEach(function (pk) {
-      const v = Number(cell.c[pk]) || 0;
-      if (v <= 0) return;
-      provTotals[pk] = (provTotals[pk] || 0) + v;
-      const nc = Number((cell.n && cell.n[pk]) || 0) || 0;
-      provCalls[pk] = (provCalls[pk] || 0) + nc;
+    if (!cell) return;
+    const c = cell.c && typeof cell.c === 'object' ? cell.c : {};
+    const n = cell.n && typeof cell.n === 'object' ? cell.n : {};
+    const pks = new Set([].concat(Object.keys(c), Object.keys(n)));
+    pks.forEach(function (pk) {
+      const nc = Number(n[pk]) || 0;
+      if (nc > 0) {
+        provCalls[pk] = (provCalls[pk] || 0) + nc;
+      }
+      const v = Number(c[pk]) || 0;
+      if (v > 0) {
+        provTotals[pk] = (provTotals[pk] || 0) + v;
+      }
     });
   });
-  const providerOrder = Object.keys(provTotals).sort(function (a, b) {
-    return (provTotals[b] - provTotals[a]) || a.localeCompare(b);
+  const hasCost = Object.keys(provTotals).some(function (k) { return (provTotals[k] || 0) > 0; });
+  const providerOrder = Array.from(
+    new Set([].concat(Object.keys(provTotals), Object.keys(provCalls)))
+  ).filter(function (pk) {
+    return (provCalls[pk] || 0) > 0 || (provTotals[pk] || 0) > 0;
+  }).sort(function (a, b) {
+    const ca = provTotals[a] || 0;
+    const cb = provTotals[b] || 0;
+    if (hasCost && ca !== cb) {
+      return cb - ca;
+    }
+    return ((provCalls[b] || 0) - (provCalls[a] || 0)) || a.localeCompare(b);
   });
   let grand = 0;
-  providerOrder.forEach(function (pk) { grand += provTotals[pk]; });
+  providerOrder.forEach(function (pk) { grand += provTotals[pk] || 0; });
+  let totalCalls = 0;
+  providerOrder.forEach(function (pk) { totalCalls += provCalls[pk] || 0; });
   return {
     dayList: dayList,
     byDay: byDay,
@@ -8303,6 +8327,8 @@ function computeApiUsageCostSlice() {
     provTotals: provTotals,
     provCalls: provCalls,
     grandTotal: grand,
+    totalCallsInRange: totalCalls,
+    chartByCalls: grand <= 0 && totalCalls > 0,
     startTs: startTs,
     endTs: endTs,
   };
@@ -8333,7 +8359,10 @@ function applyApiUsageCostUi() {
     td.colSpan = 4;
     td.style.color = 'var(--muted)';
     td.style.fontSize = 'var(--font-size-sm)';
-    td.textContent = 'No API calls with a stored price in this range. The workbench logs a rough USD estimate when it records Pixel Lab, Gemini, OpenAI, or other paid calls.';
+    const emptyLedger = window.__usageLedgerEntryCount === 0;
+    td.textContent = emptyLedger
+      ? 'No calls in your usage log yet. The log is created when you use Pixel Lab, Gemini (e.g. room Copilot), or other workbench routes through the Sprite Workbench server on this machine (usually port 8766). Using APIs only in Cursor or elsewhere does not write here.'
+      : 'No ledger rows in this UTC date range. Try “All time” in the range control, or widen the window.';
     tr.appendChild(td);
     tbody.appendChild(tr);
     if (foot) foot.textContent = '';
@@ -8342,7 +8371,14 @@ function applyApiUsageCostUi() {
   slice.providerOrder.forEach(function (pk) {
     const cost = slice.provTotals[pk] || 0;
     const calls = slice.provCalls[pk] || 0;
-    const pct = slice.grandTotal > 0 ? Math.round(1000 * cost / slice.grandTotal) / 10 : 0;
+    let pct;
+    if (slice.grandTotal > 0) {
+      pct = Math.round(1000 * cost / slice.grandTotal) / 10;
+    } else if (slice.totalCallsInRange > 0) {
+      pct = Math.round(1000 * calls / slice.totalCallsInRange) / 10;
+    } else {
+      pct = 0;
+    }
     const tr = document.createElement('tr');
     ['td', 'td', 'td', 'td'].forEach(function () {
       tr.appendChild(document.createElement('td'));
@@ -8352,18 +8388,27 @@ function applyApiUsageCostUi() {
     tr.cells[0].style.color = 'var(--text)';
     tr.cells[1].textContent = String(calls);
     tr.cells[1].style.fontFamily = 'var(--font-mono)';
-    tr.cells[2].textContent = '$' + String(cost);
+    tr.cells[2].textContent = cost > 0 ? ('$' + String(Math.round(cost * 10000) / 10000)) : (calls > 0 ? '—' : '$0');
     tr.cells[2].style.fontFamily = 'var(--font-mono)';
+    tr.cells[2].title = cost > 0 ? '' : 'No USD estimate on these responses; call count still counts.';
     tr.cells[3].textContent = String(pct) + '%';
+    tr.cells[3].title = slice.grandTotal > 0 ? 'Share of estimated spend in range' : 'Share of calls in range';
     tr.cells[3].style.fontFamily = 'var(--font-mono)';
     tbody.appendChild(tr);
   });
   if (foot) {
-    const rounded = Math.round(slice.grandTotal * 10000) / 10000;
-    foot.textContent = String(slice.dayList.length) + ' day window · '
-      + String(slice.providerOrder.length) + ' paid API'
-      + (slice.providerOrder.length === 1 ? '' : 's')
-      + ' · about $' + String(rounded) + ' estimated (range)';
+    const nProv = slice.providerOrder.length;
+    const nDays = slice.dayList.length;
+    if (slice.grandTotal > 0) {
+      const rounded = Math.round(slice.grandTotal * 10000) / 10000;
+      foot.textContent = String(nDays) + ' day window · ' + String(nProv) + ' provider'
+        + (nProv === 1 ? '' : 's')
+        + ' · about $' + String(rounded) + ' estimated (range)';
+    } else {
+      foot.textContent = String(nDays) + ' day window · ' + String(slice.totalCallsInRange) + ' call'
+        + (slice.totalCallsInRange === 1 ? '' : 's')
+        + ' logged · no USD estimates in vendor responses (counts only)';
+    }
   }
 }
 
@@ -8387,17 +8432,30 @@ function paintCostDailyStacked(canvas) {
     ctx.font = '500 12px ' + sans;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('No priced calls in this range', W / 2, H / 2);
+    const emptyLedger = window.__usageLedgerEntryCount === 0;
+    ctx.fillText(
+      emptyLedger ? 'Usage log is empty — run a workbench API flow first' : 'No calls in this date range',
+      W / 2,
+      H / 2
+    );
     return;
   }
+  const useCalls = slice.chartByCalls === true;
   const dayTotals = slice.dayList.map(function (d) {
     const cell = slice.byDay[d];
-    if (!cell || !cell.c) return 0;
+    if (!cell) return 0;
+    if (!useCalls) {
+      const c = cell.c && typeof cell.c === 'object' ? cell.c : {};
+      let s = 0;
+      Object.keys(c).forEach(function (pk) { s += Number(c[pk]) || 0; });
+      return s;
+    }
+    const n = cell.n && typeof cell.n === 'object' ? cell.n : {};
     let s = 0;
-    Object.keys(cell.c).forEach(function (pk) { s += Number(cell.c[pk]) || 0; });
+    Object.keys(n).forEach(function (pk) { s += Number(n[pk]) || 0; });
     return s;
   });
-  const maxDayTotal = Math.max.apply(null, dayTotals.concat([0.0001]));
+  const maxDayTotal = Math.max.apply(null, dayTotals.concat([useCalls ? 1 : 0.0001]));
   for (let g = 0; g <= 4; g += 1) {
     const y = pad.t + (innerH * g) / 4;
     ctx.beginPath();
@@ -8412,7 +8470,12 @@ function paintCostDailyStacked(canvas) {
     const cell = slice.byDay[d];
     let y = pad.t + innerH;
     const stack = slice.providerOrder.map(function (pk) {
-      const v = cell && cell.c && cell.c[pk] ? Number(cell.c[pk]) : 0;
+      let v = 0;
+      if (useCalls) {
+        v = cell && cell.n && cell.n[pk] ? Number(cell.n[pk]) : 0;
+      } else {
+        v = cell && cell.c && cell.c[pk] ? Number(cell.c[pk]) : 0;
+      }
       return { pk: pk, v: v };
     }).filter(function (seg) { return seg.v > 0; });
     stack.forEach(function (seg) {
@@ -8428,9 +8491,10 @@ function paintCostDailyStacked(canvas) {
   ctx.textAlign = 'right';
   ctx.textBaseline = 'middle';
   for (let i = 0; i <= 4; i += 1) {
-    const val = (maxDayTotal * (4 - i) / 4).toFixed(4);
+    const raw = (maxDayTotal * (4 - i)) / 4;
     const y = pad.t + (innerH * i) / 4;
-    ctx.fillText('$' + val, pad.l - 6, y);
+    const label = useCalls ? String(Math.max(0, Math.round(raw))) : ('$' + raw.toFixed(4));
+    ctx.fillText(label, pad.l - 6, y);
   }
   ctx.textAlign = 'center';
   ctx.textBaseline = 'top';

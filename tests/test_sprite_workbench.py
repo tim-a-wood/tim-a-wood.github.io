@@ -410,7 +410,13 @@ class SpriteWorkbenchTests(unittest.TestCase):
         cr = out.get("cost_rollups")
         self.assertIsInstance(cr, dict)
         self.assertEqual(cr.get("version"), 1)
-        self.assertEqual(cr.get("daily"), [])
+        self.assertEqual(len(cr.get("daily")), 1)
+        day0 = cr["daily"][0]
+        self.assertEqual(day0["c"], {})
+        self.assertEqual(day0["n"].get("pixellab"), 1)
+        self.assertEqual(day0["n"].get("gemini"), 1)
+        prov_keys = [p["key"] for p in cr.get("providers", [])]
+        self.assertEqual(set(prov_keys), {"pixellab", "gemini"})
 
     def test_usage_cost_rollups_groups_by_day_and_provider(self):
         from datetime import datetime, timedelta, timezone
@@ -451,9 +457,12 @@ class SpriteWorkbenchTests(unittest.TestCase):
         self.assertAlmostEqual(cr["daily"][0]["c"]["gemini"], 0.03)
         self.assertEqual(cr["daily"][0]["n"]["gemini"], 2)
         self.assertAlmostEqual(cr["daily"][1]["c"]["pixellab"], 0.5)
+        self.assertEqual(cr["daily"][1]["n"]["pixellab"], 1)
+        self.assertEqual(cr["daily"][1]["n"]["gemini"], 1)
         keys = [p["key"] for p in cr["providers"]]
         self.assertEqual(keys, ["pixellab", "gemini"])
         self.assertAlmostEqual(cr["providers"][1]["all_time_cost_usd"], 0.03)
+        self.assertEqual(cr["providers"][1]["all_time_paid_calls"], 3)
 
     def test_provider_call_allowed_blocks_when_safe_mode_enabled(self):
         with tempfile.TemporaryDirectory() as tmpdir:

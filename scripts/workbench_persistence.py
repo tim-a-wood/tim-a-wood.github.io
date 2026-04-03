@@ -454,8 +454,11 @@ def _usage_provider_display_label(key: str) -> str:
 
 def build_usage_cost_rollups_from_entries(entries: List[Dict[str, Any]]) -> Dict[str, Any]:
     """
-    Per-day USD totals and paid-call counts by provider, for ledger rows with usage_cost_usd > 0.
-    Used by Agent OS API usage dashboard (date-range filter + stacked daily chart).
+    Per-day counts by provider for every ledger row with a valid ``created_at``.
+    USD totals are added only when ``usage_cost_usd`` (or nested ``usage`` cost hints) is > 0.
+
+    Many vendors omit USD in API responses; the Agent OS table still shows call counts so the
+    dashboard is not blank when prices are unknown.
     """
     daily_cost: Dict[str, Dict[str, float]] = {}
     daily_n: Dict[str, Dict[str, int]] = {}
@@ -465,40 +468,48 @@ def build_usage_cost_rollups_from_entries(entries: List[Dict[str, Any]]) -> Dict
     for item in entries:
         if not isinstance(item, dict):
             continue
-        cost = _coerce_usage_cost_usd(item.get("usage_cost_usd"))
-        if cost is None or cost <= 0:
-            continue
         created = _parse_iso_datetime_utc(item.get("created_at"))
         if created is None:
             continue
+        raw_prov = item.get("provider")
+        pk = _normalize_usage_provider_key(raw_prov) if raw_prov is not None and str(raw_prov).strip() != "" else "unlabeled"
+
+        usage_obj = item.get("usage") if isinstance(item.get("usage"), dict) else None
+        cost = _coerce_usage_cost_usd(item.get("usage_cost_usd"))
+        if cost is None and usage_obj:
+            cost = (
+                _coerce_usage_cost_usd(usage_obj.get("usage_cost_usd"))
+                or _coerce_usage_cost_usd(usage_obj.get("cost_usd"))
+                or _coerce_usage_cost_usd(usage_obj.get("usd"))
+            )
+
         d_str = created.astimezone(timezone.utc).date().isoformat()
-        pk = _normalize_usage_provider_key(item.get("provider"))
-        daily_cost.setdefault(d_str, {})
         daily_n.setdefault(d_str, {})
-        daily_cost[d_str][pk] = daily_cost[d_str].get(pk, 0.0) + float(cost)
         daily_n[d_str][pk] = daily_n[d_str].get(pk, 0) + 1
-        all_time_cost[pk] = all_time_cost.get(pk, 0.0) + float(cost)
         all_time_calls[pk] = all_time_calls.get(pk, 0) + 1
 
+        if cost is not None and cost > 0:
+            daily_cost.setdefault(d_str, {})
+            daily_cost[d_str][pk] = daily_cost[d_str].get(pk, 0.0) + float(cost)
+            all_time_cost[pk] = all_time_cost.get(pk, 0.0) + float(cost)
+
+    all_dates = sorted(set(daily_n.keys()) | set(daily_cost.keys()))
     daily_list: List[Dict[str, Any]] = []
-    for d_str in sorted(daily_cost.keys()):
-        c_map = daily_cost[d_str]
-        n_map = daily_n.get(d_str, {})
-        daily_list.append(
-            {
-                "d": d_str,
-                "c": {k: round(c_map[k], 4) for k in sorted(c_map.keys())},
-                "n": {k: int(n_map.get(k, 0)) for k in sorted(c_map.keys())},
-            }
-        )
+    for d_str in all_dates:
+        c_src = daily_cost.get(d_str, {})
+        n_src = daily_n.get(d_str, {})
+        pks = sorted(set(c_src.keys()) | set(n_src.keys()))
+        c_map = {k: round(c_src[k], 4) for k in pks if c_src.get(k, 0.0) > 0}
+        n_map = {k: int(n_src.get(k, 0)) for k in pks}
+        daily_list.append({"d": d_str, "c": c_map, "n": n_map})
 
     prov_rows: List[Dict[str, Any]] = []
-    for pk in sorted(all_time_cost.keys(), key=lambda k: (-all_time_cost[k], k)):
+    for pk in sorted(all_time_calls.keys(), key=lambda k: (-all_time_cost.get(k, 0.0), -all_time_calls[k], k)):
         prov_rows.append(
             {
                 "key": pk,
                 "label": _usage_provider_display_label(pk),
-                "all_time_cost_usd": round(all_time_cost[pk], 4),
+                "all_time_cost_usd": round(all_time_cost.get(pk, 0.0), 4),
                 "all_time_paid_calls": all_time_calls[pk],
             }
         )

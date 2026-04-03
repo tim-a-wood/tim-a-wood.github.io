@@ -10,7 +10,8 @@
 | **Provider mix** | % of window calls by bucket: Pixel Lab (`provider=pixellab`), Gemini (`provider=gemini`), Room AI (endpoint matches room/layout/copilot/environment), Other | Rows in the same 8-week window |
 | **Ledger outcomes** | % of window calls with `status=success`, `error`, or other | Rows in the same 8-week window; center label shows **n** |
 | **Ledger rows (all-time)** | `entry_count` | All rows in file (subject to server retention limit) |
-| **Est. cost (ledger)** | Sum of `usage_cost_usd` on entries | All-time in file; Finance owns vendor ground truth |
+| **Est. cost (ledger)** | Sum of `usage_cost_usd` and nested `usage` cost hints when &gt; 0 | All-time in file; Finance owns vendor ground truth |
+| **Call counts (API usage UI)** | Ledger rows per provider per UTC day (even when USD missing) | Same date range as the spend table |
 
 ## Not inferrable from the ledger alone
 
@@ -19,4 +20,5 @@
 
 ## Changelog
 
+- **2026-04-03:** Cost rollups include call counts for rows without USD; Agent OS charts can stack by calls when spend is unknown.
 - **2026-03-29:** Initial v1 rollup in `scripts/workbench_persistence.py` (`build_usage_ledger_charts_from_entries`).
