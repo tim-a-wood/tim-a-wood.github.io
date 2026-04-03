@@ -3174,7 +3174,7 @@ h3.os-chart-card-title {
       <span class="nav-label">Dashboards</span>
 
       <div class="nav-dash-group">
-      <span class="nav-group-label">Core</span>
+      <span class="nav-group-label">Work</span>
       <button type="button" class="nav-item db-active" data-dashboard="home">
         <span class="nav-dot" style="background:var(--accent)"></span>
         <span class="nav-item-text">Home</span>
@@ -3198,101 +3198,6 @@ h3.os-chart-card-title {
       <button type="button" class="nav-item" data-dashboard="guides">
         <span class="nav-dot" style="background:#22d3ee"></span>
         <span class="nav-item-text">Guides &amp; policies</span>
-      </button>
-      </div>
-
-      <div class="nav-dash-group">
-      <span class="nav-group-label">Leadership</span>
-      <button type="button" class="nav-item" data-dashboard="orchestration">
-        <span class="nav-dot" style="background:#00e8c8"></span>
-        <span class="nav-item-text">Orchestration</span>
-      </button>
-      <button type="button" class="nav-item" data-dashboard="strategy">
-        <span class="nav-dot" style="background:#94a3b8"></span>
-        <span class="nav-item-text">Strategy</span>
-      </button>
-      </div>
-
-      <div class="nav-dash-group">
-      <div class="nav-divider" style="margin:4px 16px"></div>
-      <span class="nav-group-label">Tech</span>
-      <button type="button" class="nav-item" data-dashboard="development">
-        <span class="nav-dot" style="background:#ff9500"></span>
-        <span class="nav-item-text">Development</span>
-      </button>
-      <button type="button" class="nav-item" data-dashboard="animation">
-        <span class="nav-dot" style="background:#e879f9"></span>
-        <span class="nav-item-text">Animation</span>
-      </button>
-      <button type="button" class="nav-item" data-dashboard="level-design">
-        <span class="nav-dot" style="background:#a3e635"></span>
-        <span class="nav-item-text">Level Design</span>
-      </button>
-      <button type="button" class="nav-item" data-dashboard="design">
-        <span class="nav-dot" style="background:#fb7185"></span>
-        <span class="nav-item-text">Design</span>
-      </button>
-      <button type="button" class="nav-item" data-dashboard="qa">
-        <span class="nav-dot" style="background:#77b8ff"></span>
-        <span class="nav-item-text">QA</span>
-      </button>
-      <button type="button" class="nav-item" data-dashboard="cybersecurity">
-        <span class="nav-dot" style="background:#f85149"></span>
-        <span class="nav-item-text">Cybersecurity</span>
-      </button>
-      <button type="button" class="nav-item" data-dashboard="research">
-        <span class="nav-dot" style="background:var(--c-research)"></span>
-        <span class="nav-item-text">Research</span>
-      </button>
-      <button type="button" class="nav-item" data-dashboard="analytics">
-        <span class="nav-dot" style="background:#4ade80"></span>
-        <span class="nav-item-text">Analytics</span>
-      </button>
-      </div>
-
-      <div class="nav-dash-group">
-      <div class="nav-divider" style="margin:4px 16px"></div>
-      <span class="nav-group-label">Business</span>
-      <button type="button" class="nav-item" data-dashboard="legal">
-        <span class="nav-dot" style="background:#a78bfa"></span>
-        <span class="nav-item-text">Legal</span>
-      </button>
-      <button type="button" class="nav-item" data-dashboard="finance">
-        <span class="nav-dot" style="background:#f0abfc"></span>
-        <span class="nav-item-text">Finance</span>
-      </button>
-      <button type="button" class="nav-item" data-dashboard="support">
-        <span class="nav-dot" style="background:#fbbf24"></span>
-        <span class="nav-item-text">Support</span>
-      </button>
-      <button type="button" class="nav-item" data-dashboard="marketing">
-        <span class="nav-dot" style="background:#f5986e"></span>
-        <span class="nav-item-text">Marketing</span>
-      </button>
-      </div>
-
-      <div class="nav-dash-group">
-      <div class="nav-divider" style="margin:4px 16px"></div>
-      <span class="nav-group-label">Game</span>
-      <button type="button" class="nav-item" data-dashboard="audio">
-        <span class="nav-dot" style="background:var(--c-audio)"></span>
-        <span class="nav-item-text">Audio</span>
-      </button>
-      <button type="button" class="nav-item" data-dashboard="narrative">
-        <span class="nav-dot" style="background:var(--c-narrative)"></span>
-        <span class="nav-item-text">Narrative</span>
-      </button>
-      <button type="button" class="nav-item" data-dashboard="creative">
-        <span class="nav-dot" style="background:var(--c-creative)"></span>
-        <span class="nav-item-text">Creative</span>
-      </button>
-      <button type="button" class="nav-item" data-dashboard="game-director">
-        <span class="nav-dot" style="background:var(--c-game-director)"></span>
-        <span class="nav-item-text">Game Director</span>
-      </button>
-      <button type="button" class="nav-item" data-dashboard="game-systems">
-        <span class="nav-dot" style="background:var(--c-game-systems)"></span>
-        <span class="nav-item-text">Game Systems</span>
       </button>
       </div>
 
@@ -7361,10 +7266,36 @@ document.querySelectorAll('.nav-item[data-dashboard]').forEach(btn => {
   });
 });
 
+/** Nav agent id → dashboard view (sidebar no longer lists specialist dashboards). */
+const AGENT_ID_TO_DASHBOARD = {
+  orchestrator: 'orchestration',
+  strategy: 'strategy',
+  engineering: 'development',
+  animation: 'animation',
+  'level-design': 'level-design',
+  design: 'design',
+  qa: 'qa',
+  cybersecurity: 'cybersecurity',
+  research: 'research',
+  analytics: 'analytics',
+  support: 'support',
+  marketing: 'marketing',
+  legal: 'legal',
+  finance: 'finance',
+  'game-director': 'game-director',
+  creative: 'creative',
+  narrative: 'narrative',
+  audio: 'audio',
+  'game-systems': 'game-systems',
+};
+
 document.querySelectorAll('.nav-agent-item').forEach(function(btn) {
   btn.addEventListener('click', function() {
     const id = btn.getAttribute('data-agent');
-    if (id) focusAgentInSidePanel(id);
+    if (!id) return;
+    const dashId = AGENT_ID_TO_DASHBOARD[id];
+    if (dashId && DASHBOARDS[dashId]) selectDashboard(dashId);
+    focusAgentInSidePanel(id);
   });
 });
 
