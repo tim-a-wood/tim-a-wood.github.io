@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
-Local Agent OS dashboard: serves os-dashboard.html, GET /api/dashboard-data,
+Local Agent OS dashboard: serves os-dashboard.html, read-only policy docs under
+allowed path prefixes (for the Guides & policies iframe and in-page links), GET /api/dashboard-data,
 POST /api/workbench/{start|stop|restart}, POST /api/status-update (full JSON replace per file, including row deletes from the dashboard),
 and POST /api/issue-chat (issue and opportunity discussion in the UI; JSON body may set rowKind to "opportunity").
 Binds 127.0.0.1 only.
@@ -337,6 +338,70 @@ def _norm_path(handler: BaseHTTPRequestHandler) -> str:
     return p if p else "/"
 
 
+READONLY_DOC_PREFIXES = (
+    "docs/",
+    "agents/",
+    "prompts/",
+    "decisions/",
+    "research/",
+    "knowledge/",
+    "playbooks/",
+    "templates/",
+    "tests/",
+    "artifacts/",
+    "tools/2d-sprite-and-animation/docs/",
+    ".cursor/rules/",
+)
+READONLY_ROOT_FILES = frozenset({
+    "AGENTS.md",
+    "CLAUDE.md",
+    "STYLE_GUIDE.md",
+    "README.md",
+})
+
+
+def _readonly_doc_path_allowed(rel: str) -> bool:
+    r = rel.replace("\\", "/").lstrip("/")
+    if not r or r.startswith("..") or "/../" in r:
+        return False
+    low = r.lower()
+    if low in {x.lower() for x in READONLY_ROOT_FILES}:
+        return True
+    for prefix in READONLY_DOC_PREFIXES:
+        if r.startswith(prefix):
+            return True
+    return False
+
+
+def _content_type_for_path(fpath: Path) -> str:
+    suf = fpath.suffix.lower()
+    if suf == ".html":
+        return "text/html; charset=utf-8"
+    if suf == ".md":
+        return "text/markdown; charset=utf-8"
+    if suf == ".mdc":
+        return "text/markdown; charset=utf-8"
+    return "application/octet-stream"
+
+
+def _resolve_readonly_repo_file(repo_root: Path, rel: str) -> tuple[bytes, str] | None:
+    """Return (body, content_type) for an allowed read-only file, or None."""
+    rel = rel.replace("\\", "/").lstrip("/")
+    if not _readonly_doc_path_allowed(rel):
+        return None
+    fpath = (repo_root / rel).resolve()
+    try:
+        fpath.relative_to(repo_root.resolve())
+    except ValueError:
+        return None
+    if not fpath.is_file():
+        return None
+    suf = fpath.suffix.lower()
+    if suf not in {".md", ".html", ".mdc"}:
+        return None
+    return (fpath.read_bytes(), _content_type_for_path(fpath))
+
+
 def _normalize_workbench_post_path(path: str) -> str | None:
     if path.startswith("/api/os/workbench/"):
         path = "/api/workbench/" + path[len("/api/os/workbench/") :]
@@ -453,6 +518,10 @@ def make_handler(
                     fpath.read_bytes(),
                     "text/html; charset=utf-8",
                 )
+            doc_payload = _resolve_readonly_repo_file(repo_root, path.lstrip("/"))
+            if doc_payload is not None:
+                body, ctype = doc_payload
+                return self._send_bytes(HTTPStatus.OK, body, ctype)
             return self._send_json(HTTPStatus.NOT_FOUND, {"error": "Not found"})
 
         def do_POST(self) -> None:
@@ -488,21 +557,32 @@ def make_handler(
                 )
 
                 allowed_files = ", ".join(sorted(status_write_allow))
+
+                # Strip internal dashboard meta-fields (_file, _agent, _idx, etc.)
+                # before presenting the issue snapshot to the LLM. These fields are
+                # injected by the dashboard JS and cause ID confusion (the LLM may
+                # use _idx as the id instead of the actual id field).
+                clean_issue = {k: v for k, v in issue.items() if not k.startswith("_")}
+                item_file = issue.get("_file", "")
+                item_id = issue.get("_priorityId", clean_issue.get("id", ""))
+
                 if row_kind == "opportunity":
                     system_prompt = (
                         f"You are the {agent_label} specialist for the MV metroidvania toolchain (solo-founder OS).\n"
                         f"Charter reference path: {agent_charter or '(not provided)'}\n\n"
                         "The user is discussing ONE opportunity row from a dashboard status JSON file "
                         "(the `opportunities` array, not `priorities`).\n"
-                        "Current opportunity snapshot (JSON):\n"
-                        f"{json.dumps(issue, ensure_ascii=False, indent=2)}\n\n"
+                        f"Source file: {item_file}\n"
+                        f"Item id (use this exact value in priority_updates): {json.dumps(item_id)}\n"
+                        "Current opportunity data (JSON):\n"
+                        f"{json.dumps(clean_issue, ensure_ascii=False, indent=2)}\n\n"
                         "You may propose edits to this opportunity and, if the user explicitly agrees, to other "
                         "opportunities in the same file or another allowed status file when logically necessary.\n\n"
                         "Respond with a single JSON object ONLY, keys:\n"
                         '- "thinking": string, your step-by-step reasoning (show your work).\n'
                         '- "assistant_message": string, concise reply to the user.\n'
                         '- "priority_updates": array of objects, each: '
-                        '{"file": "<filename>", "id": <opportunity id — use the exact id from the file, string or number>, '
+                        '{"file": "<filename>", "id": <use the exact item id shown above, string or number>, '
                         '"fields": { ... partial fields ... }} '
                         "where fields may include title, status, risk, note, solution, owner, stakeholders, summary. "
                         'Use the field name "solution" for proposed mitigation text (not "proposed_solution"). '
@@ -520,15 +600,17 @@ def make_handler(
                         f"You are the {agent_label} specialist for the MV metroidvania toolchain (solo-founder OS).\n"
                         f"Charter reference path: {agent_charter or '(not provided)'}\n\n"
                         "The user is discussing ONE priority row from a dashboard status JSON file.\n"
-                        "Current issue snapshot (JSON):\n"
-                        f"{json.dumps(issue, ensure_ascii=False, indent=2)}\n\n"
+                        f"Source file: {item_file}\n"
+                        f"Item id (use this exact value in priority_updates): {json.dumps(item_id)}\n"
+                        "Current priority data (JSON):\n"
+                        f"{json.dumps(clean_issue, ensure_ascii=False, indent=2)}\n\n"
                         "You may propose edits to this priority and, if the user explicitly agrees, to other priorities "
                         "in the same file or another allowed status file when logically necessary.\n\n"
                         "Respond with a single JSON object ONLY, keys:\n"
                         '- "thinking": string, your step-by-step reasoning (show your work).\n'
                         '- "assistant_message": string, concise reply to the user.\n'
                         '- "priority_updates": array of objects, each: '
-                        '{"file": "<filename>", "id": <numeric or string priority id matching the row>, "fields": { ... partial fields ... }} '
+                        '{"file": "<filename>", "id": <use the exact item id shown above, string or number>, "fields": { ... partial fields ... }} '
                         "where fields may include title, status, risk, note, proposed_solution, owner, stakeholders, summary. "
                         "Use [] if no file changes are appropriate yet.\n\n"
                         f"Allowed file names for priority_updates: {allowed_files}\n"
