@@ -2615,17 +2615,6 @@ textarea.av-field { resize: vertical; min-height: 72px; line-height: 1.45; }
   color: var(--muted);
   line-height: 1.45;
 }
-.home-chart-live-status {
-  margin: 0 0 var(--space-3) 0;
-  font-size: var(--font-size-sm);
-  color: var(--muted);
-  max-width: 920px;
-  line-height: 1.45;
-}
-.home-chart-live-status--warn {
-  color: var(--warning);
-}
-
 .db-status-row {
   display: flex;
   align-items: center;
@@ -2691,110 +2680,13 @@ textarea.av-field { resize: vertical; min-height: 72px; line-height: 1.45; }
 }
 .agent-picker-select:hover { border-color: var(--line-strong); }
 
-/* ─── AGENT OS HOME (flagship hub) ─────────────────
-   Visual direction: mission-control depth, design tokens only.
-   Design agent: extend per agents/design/os_home_dashboard_handoff.md
-─────────────────────────────────────────────────── */
-.os-home-hero {
-  position: relative;
-  border-radius: var(--radius-lg);
-  padding: var(--space-5);
-  background: linear-gradient(165deg, rgba(0,232,200,0.06) 0%, rgba(4,6,10,0.92) 48%, var(--panel-soft) 100%);
-  border: 1px solid var(--line);
-  box-shadow: var(--shadow-md), inset 0 1px 0 rgba(255,255,255,0.045);
-  overflow: hidden;
-  flex-shrink: 0;
-}
-.os-home-hero::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(ellipse 80% 60% at 100% -20%, rgba(0,232,200,0.12), transparent 55%);
-  pointer-events: none;
-}
-.os-home-hero-inner {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: var(--space-4);
-}
-.os-home-hero-title {
-  font-family: var(--font-display);
-  font-size: var(--font-size-xl);
-  letter-spacing: 0.08em;
-  color: var(--accent);
-  line-height: 1.05;
-}
-.os-home-hero-tag {
-  display: inline-block;
-  margin-top: var(--space-2);
-  font-size: var(--font-size-xs);
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-.os-home-hero-kpis {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-}
-.os-home-kpi {
-  min-width: 140px;
-  padding: var(--space-3);
-  border-radius: var(--radius-card);
-  background: rgba(0,0,0,0.2);
-  border: 1px solid var(--stroke);
-  backdrop-filter: blur(8px);
-}
-.os-home-kpi-label {
-  font-size: var(--font-size-xs);
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--muted);
-  margin-bottom: var(--space-1);
-}
-.os-home-kpi-value {
-  font-family: var(--font-mono);
-  font-size: var(--font-size-lg);
-  font-weight: 600;
-  color: var(--text);
-  line-height: 1.15;
-}
-.os-home-kpi-sub {
-  font-size: 10px;
-  color: var(--muted);
-  margin-top: var(--space-1);
-  line-height: 1.35;
-}
-.os-home-kpi canvas {
-  display: block;
-  margin-top: var(--space-2);
-  width: 100%;
-  max-width: 160px;
-  height: 36px;
-}
-
 .os-chart-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-3);
 }
 @media (max-width: 900px) {
-  .os-chart-grid:not(.os-chart-grid--home) { grid-template-columns: 1fr; }
-}
-.os-chart-grid.os-chart-grid--home {
-  grid-template-columns: 1fr;
-  gap: var(--space-3);
-  align-items: stretch;
-  flex: 1 1 auto;
-  min-height: 200px;
-  grid-auto-rows: minmax(200px, 1fr);
-  margin-bottom: var(--space-4);
+  .os-chart-grid { grid-template-columns: 1fr; }
 }
 .db-grid.db-grid--home-health {
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -2857,7 +2749,7 @@ textarea.av-field { resize: vertical; min-height: 72px; line-height: 1.45; }
   min-height: 180px;
 }
 .os-chart-canvas-wrap--tall { min-height: 220px; }
-/* Home hub: charts grow to fill space below header/hero; no longer ultra-short fixed heights */
+/* Compact chart cells: flex to fill card body */
 .os-chart-canvas-wrap--compact {
   flex: 1 1 auto;
   min-height: 0;
@@ -2868,61 +2760,6 @@ textarea.av-field { resize: vertical; min-height: 72px; line-height: 1.45; }
 }
 .os-chart-card--donut .os-chart-canvas-wrap--compact {
   min-height: 188px;
-}
-.dashboard-view[data-dashboard-view="home"].active {
-  flex: 1;
-  min-height: 0;
-}
-.dashboard-view[data-dashboard-view="home"] {
-  gap: var(--space-2);
-}
-.dashboard-view[data-dashboard-view="home"] .os-home-hero {
-  flex-shrink: 0;
-}
-.dashboard-view[data-dashboard-view="home"] .os-home-hero {
-  padding: var(--space-3);
-}
-.dashboard-view[data-dashboard-view="home"] > .db-section:last-child {
-  flex-shrink: 0;
-}
-.dashboard-view[data-dashboard-view="home"] .os-home-hero-inner {
-  gap: var(--space-3);
-  align-items: center;
-}
-.dashboard-view[data-dashboard-view="home"] .os-home-hero-title {
-  font-size: var(--font-size-lg);
-  letter-spacing: 0.06em;
-}
-.dashboard-view[data-dashboard-view="home"] .os-home-kpi {
-  padding: var(--space-2);
-  min-width: 120px;
-}
-.dashboard-view[data-dashboard-view="home"] .os-home-kpi-sub {
-  display: none;
-}
-.dashboard-view[data-dashboard-view="home"] .os-home-kpi canvas {
-  max-width: 120px;
-  height: 28px;
-  margin-top: var(--space-1);
-}
-.dashboard-view[data-dashboard-view="home"] .os-chart-card {
-  padding: var(--space-2);
-  gap: var(--space-1);
-  min-height: 0;
-}
-.dashboard-view[data-dashboard-view="home"] .os-chart-card-tier {
-  padding: 2px 8px;
-}
-.dashboard-view[data-dashboard-view="home"] .os-home-actions {
-  padding-top: var(--space-3);
-  gap: var(--space-2);
-}
-.dashboard-view[data-dashboard-view="home"] .db-section:has(#home-os-chart-grid) {
-  flex: 1 1 auto;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
 }
 .visually-hidden {
   position: absolute;
@@ -2948,58 +2785,11 @@ textarea.av-field { resize: vertical; min-height: 72px; line-height: 1.45; }
   font-family: var(--font-sans);
 }
 
-.os-home-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-  padding-top: var(--space-1);
-}
-.os-home-action {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  min-height: 44px;
-  padding: 10px var(--space-4);
-  border-radius: var(--radius-tight);
-  border: 1px solid var(--line);
-  background: rgba(255,255,255,0.04);
-  color: var(--text);
-  font-family: var(--font-sans);
-  font-size: var(--font-size-sm);
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 200ms ease, border-color 200ms ease, color 200ms ease, transform 200ms ease;
-}
-.os-home-action:hover {
-  border-color: var(--line-strong);
-  background: rgba(255,255,255,0.08);
-  transform: translateY(-1px);
-}
-.os-home-action:focus-visible {
-  outline: 2px solid rgba(0,232,200,0.35);
-  outline-offset: 2px;
-}
-.os-home-action-dot {
-  font-size: var(--font-size-xs);
-  white-space: nowrap;
-}
-
-/* Home / Engineering entrance (explicit props, max 200ms) */
+/* Dashboard chart entrance (explicit props, max 200ms) */
 @keyframes os-mission-in {
   from { opacity: 0; transform: translateY(-4px); }
   to { opacity: 1; transform: translateY(0); }
 }
-.os-dash-enter .os-home-hero {
-  opacity: 0;
-  animation: os-mission-in 180ms ease forwards;
-}
-.os-dash-enter .os-home-kpi {
-  opacity: 0;
-  animation: os-mission-in 160ms ease forwards;
-}
-.os-dash-enter .os-home-kpi:nth-child(1) { animation-delay: 0ms; }
-.os-dash-enter .os-home-kpi:nth-child(2) { animation-delay: 40ms; }
-.os-dash-enter .os-home-kpi:nth-child(3) { animation-delay: 80ms; }
 .os-dash-enter .os-chart-card {
   opacity: 0;
   animation: os-mission-in 160ms ease forwards;
@@ -3007,16 +2797,8 @@ textarea.av-field { resize: vertical; min-height: 72px; line-height: 1.45; }
 .os-dash-enter .os-chart-card:nth-child(1) { animation-delay: 60ms; }
 .os-dash-enter .os-chart-card:nth-child(2) { animation-delay: 100ms; }
 .os-dash-enter .os-chart-card:nth-child(3) { animation-delay: 140ms; }
-.os-dash-enter .os-home-actions {
-  opacity: 0;
-  animation: os-mission-in 160ms ease forwards;
-  animation-delay: 180ms;
-}
 @media (prefers-reduced-motion: reduce) {
-  .os-dash-enter .os-home-hero,
-  .os-dash-enter .os-home-kpi,
-  .os-dash-enter .os-chart-card,
-  .os-dash-enter .os-home-actions {
+  .os-dash-enter .os-chart-card {
     animation: none;
     opacity: 1;
     transform: none;
@@ -3169,11 +2951,7 @@ h3.os-chart-card-title {
 
       <div class="nav-dash-group">
       <span class="nav-group-label">Work</span>
-      <button type="button" class="nav-item db-active" data-dashboard="home">
-        <span class="nav-dot" style="background:var(--accent)"></span>
-        <span class="nav-item-text">Home</span>
-      </button>
-      <button type="button" class="nav-item" data-dashboard="api-usage">
+      <button type="button" class="nav-item db-active" data-dashboard="api-usage">
         <span class="nav-dot" style="background:#4ade80"></span>
         <span class="nav-item-text">API usage</span>
       </button>
@@ -3285,109 +3063,8 @@ h3.os-chart-card-title {
 
       <div class="main-left-views">
 
-      <!-- ── AGENT OS HOME ─────────────────────────────────────
-           Internal health from home_internal + one usage trend (usage_charts). GET /api/dashboard-data.
-      ───────────────────────────────────────────────────── -->
-      <div class="dashboard-view active" data-dashboard-view="home">
-        <section class="os-home-hero" aria-label="Hub overview">
-          <div class="os-home-hero-inner">
-            <div>
-              <div class="os-home-hero-title">OVERVIEW</div>
-              <p class="os-home-hero-tag">Metroidvania tools and game · not launched yet</p>
-            </div>
-            <div class="os-home-hero-kpis">
-              <div class="os-home-kpi">
-                <div class="os-home-kpi-label">Paid calls · last 8 weeks</div>
-                <div class="os-home-kpi-value" id="home-kpi-ai-units">—</div>
-                <canvas data-os-mini-spark="trend" width="320" height="72" aria-hidden="true"></canvas>
-                <p class="os-home-kpi-sub">From your local usage log</p>
-              </div>
-              <div class="os-home-kpi">
-                <div class="os-home-kpi-label">Service keys</div>
-                <div class="os-home-kpi-value" id="home-kpi-keys">—</div>
-                <p class="os-home-kpi-sub">Gemini, Pixel Lab, OpenAI (issue chat)</p>
-              </div>
-              <div class="os-home-kpi">
-                <div class="os-home-kpi-label">Workbench</div>
-                <div class="os-home-kpi-value" id="home-kpi-workbench">—</div>
-                <p class="os-home-kpi-sub">Sprite workbench server</p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <div class="db-section">
-          <div class="db-section-label">How we're doing</div>
-          <p class="visually-hidden" id="home-internal-intro">Snapshot from QA and orchestrator status when the dashboard is connected.</p>
-          <div class="db-grid db-grid--home-health" aria-describedby="home-internal-intro">
-            <div class="db-card db-card--manual">
-              <div class="db-card-header"><div class="db-card-label">Tests passing</div><span class="db-tier db-tier--manual">Manual</span></div>
-              <div class="db-card-value" id="home-hi-tests-pass">—</div>
-              <div class="db-card-sub" id="home-hi-tests-pass-sub"></div>
-            </div>
-            <div class="db-card db-card--manual">
-              <div class="db-card-header"><div class="db-card-label">Tests failing</div><span class="db-tier db-tier--manual">Manual</span></div>
-              <div class="db-card-value" id="home-hi-tests-fail">—</div>
-              <div class="db-card-sub" id="home-hi-tests-fail-sub">JavaScript and Python test runs</div>
-            </div>
-            <div class="db-card db-card--manual">
-              <div class="db-card-header"><div class="db-card-label">Blocking issues</div><span class="db-tier db-tier--manual">Manual</span></div>
-              <div class="db-card-value" id="home-hi-blocking">—</div>
-              <div class="db-card-sub" id="home-hi-blocking-sub">Top-priority orchestrator and QA items</div>
-            </div>
-            <div class="db-card db-card--manual">
-              <div class="db-card-header"><div class="db-card-label">Decisions for you</div><span class="db-tier db-tier--manual">Manual</span></div>
-              <div class="db-card-value" id="home-hi-decisions">—</div>
-              <div class="db-card-sub" id="home-hi-decisions-sub">Open founder decisions</div>
-            </div>
-            <div class="db-card db-card--manual">
-              <div class="db-card-header"><div class="db-card-label">Priorities in motion</div><span class="db-tier db-tier--manual">Manual</span></div>
-              <div class="db-card-value" id="home-hi-inprog">—</div>
-              <div class="db-card-sub" id="home-hi-inprog-sub">Orchestrator list marked in progress</div>
-            </div>
-            <div class="db-card db-card--manual">
-              <div class="db-card-header"><div class="db-card-label">Release readiness</div><span class="db-tier db-tier--manual">Manual</span></div>
-              <div class="db-card-value db-card-value--muted" id="home-hi-release">—</div>
-              <div class="db-card-sub" id="home-hi-release-sub">From QA release gate</div>
-            </div>
-          </div>
-        </div>
-
-        <div class="db-section">
-          <div class="db-section-label">Your API usage</div>
-          <p id="home-chart-live-status" class="home-chart-live-status visually-hidden" role="status" aria-live="polite"></p>
-          <p class="visually-hidden" id="home-chart-section-intro">Weekly paid API calls from your local log when the dashboard server is running. Open API usage for the full call log and matching charts.</p>
-          <div class="os-chart-grid os-chart-grid--home" id="home-os-chart-grid" aria-describedby="home-chart-section-intro">
-            <div class="os-chart-card os-chart-card--wide">
-              <div class="os-chart-card-head">
-                <h3 class="os-chart-card-title" id="home-chart-area-title">Paid API calls by week (last 8 weeks)</h3>
-                <span class="os-chart-card-tier">Trend</span>
-              </div>
-              <div class="os-chart-canvas-wrap os-chart-canvas-wrap--compact os-chart-canvas-wrap--tall" data-os-canvas-state="idle" role="img" aria-labelledby="home-chart-area-title" aria-describedby="home-chart-area-desc">
-                <div class="os-chart-skeleton" aria-hidden="true"></div>
-                <div class="os-chart-error" role="alert" aria-live="polite"></div>
-                <canvas id="home-area-chart" data-os-chart="area-requests" width="800" height="320" aria-hidden="true"></canvas>
-              </div>
-              <p class="os-chart-foot visually-hidden" id="home-chart-area-desc">Eight-week window. Counts are calls, not dollars. Use finance for real spend.</p>
-            </div>
-          </div>
-        </div>
-
-        <div class="db-section">
-          <div class="db-section-label">Jump to domain</div>
-          <div class="os-home-actions">
-            <button type="button" class="os-home-action" data-home-jump="research"><span class="os-home-action-dot" style="color:var(--c-research)">●</span> Research · library &amp; scans</button>
-            <button type="button" class="os-home-action" data-home-jump="api-usage"><span class="os-home-action-dot" style="color:var(--good)">●</span> API usage · spend by provider</button>
-            <button type="button" class="os-home-action" data-home-jump="analytics"><span class="os-home-action-dot" style="color:var(--c-analytics)">●</span> Analytics · tracking plan</button>
-            <button type="button" class="os-home-action" data-home-jump="development"><span class="os-home-action-dot" style="color:#ff9500">●</span> Development · pipeline</button>
-            <button type="button" class="os-home-action" data-home-jump="finance"><span class="os-home-action-dot" style="color:var(--c-finance)">●</span> Finance · usage spend</button>
-            <button type="button" class="os-home-action" data-home-jump="orchestration"><span class="os-home-action-dot" style="color:var(--accent)">●</span> Orchestration · digests</button>
-          </div>
-        </div>
-      </div>
-
       <!-- ── API USAGE DASHBOARD ── -->
-      <div class="dashboard-view" data-dashboard-view="api-usage">
+      <div class="dashboard-view active" data-dashboard-view="api-usage">
         <p class="api-usage-page-lede" style="color:var(--muted);font-size:var(--font-size-sm);line-height:1.5;max-width:52rem;margin:0 0 var(--space-4) 0">Spend by provider, a UTC date range, and daily stacked totals from the local usage log. Room Copilot quality and Analytics shortcuts are on the Analytics dashboard.</p>
         <div class="db-section">
           <div class="db-section-label">Connection</div>
@@ -3451,7 +3128,7 @@ h3.os-chart-card-title {
           </div>
         </div>
         <div class="db-qa-signpost db-qa-signpost--stack">
-          <button type="button" class="db-qa-link" onclick="selectDashboard('home')">→ Home</button>
+          <button type="button" class="db-qa-link" onclick="selectDashboard('issues')">→ Issues</button>
           <button type="button" class="db-qa-link" onclick="selectDashboard('analytics')">→ Analytics · tracking plan and room Copilot quality</button>
         </div>
       </div>
@@ -4678,7 +4355,6 @@ h3.os-chart-card-title {
 
         <div class="db-qa-signpost db-qa-signpost--stack">
           <button type="button" class="db-qa-link" onclick="selectDashboard('api-usage')">→ API usage · spend by provider</button>
-          <button type="button" class="db-qa-link" onclick="selectDashboard('home')">→ Home</button>
           <button type="button" class="db-qa-link" onclick="selectDashboard('development')">→ Development · pipeline &amp; keys</button>
           <button type="button" class="db-qa-link" onclick="selectDashboard('design')">→ Design · governance &amp; Copilot UX gate</button>
         </div>
@@ -6404,7 +6080,6 @@ const AGENTS = {
 
 // ── Dashboard config ─────────────────────────────
 const DASHBOARDS = {
-  home:            { label: 'Home',           color: '#00e8c8', agents: ['orchestrator'] },
   'api-usage':     { label: 'API usage',      color: '#4ade80', agents: ['analytics'] },
   guides:          { label: 'Guides & policies', color: '#22d3ee', agents: ['orchestrator'] },
   issues:          { label: 'Issues',          color: '#a5b4fc', agents: ['orchestrator'] },
@@ -6466,13 +6141,13 @@ function orderedAgentIdsForPicker(dashId) {
   return ordered;
 }
 
-/** Sidebar + home shortcuts: which dashboard IDs appear in each product context (not "all"). */
+/** Sidebar: which dashboard IDs appear in each product context (not "all"). */
 const OS_PRODUCT_CONTEXT_KEY = 'mv-agent-os-product-context';
 const OS_PRODUCT_CONTEXT_SETS = {
-  business: new Set(['home', 'api-usage', 'guides', 'issues', 'opportunities', 'ongoing-tasks', 'orchestration', 'strategy', 'legal', 'finance', 'support', 'marketing', 'analytics', 'cybersecurity', 'research']),
-  sprite: new Set(['home', 'api-usage', 'guides', 'issues', 'opportunities', 'ongoing-tasks', 'workbench', 'design', 'development', 'animation', 'level-design', 'qa', 'cybersecurity', 'research']),
-  'ashen-hollow': new Set(['home', 'api-usage', 'guides', 'issues', 'opportunities', 'ongoing-tasks', 'ashen-hollow', 'development', 'animation', 'level-design', 'design', 'qa', 'research', 'audio', 'narrative', 'creative', 'game-director', 'game-systems']),
-  'other-income': new Set(['home', 'api-usage', 'guides', 'issues', 'opportunities', 'ongoing-tasks', 'marketing', 'finance', 'legal', 'support', 'analytics', 'strategy']),
+  business: new Set(['api-usage', 'guides', 'issues', 'opportunities', 'ongoing-tasks', 'orchestration', 'strategy', 'legal', 'finance', 'support', 'marketing', 'analytics', 'cybersecurity', 'research']),
+  sprite: new Set(['api-usage', 'guides', 'issues', 'opportunities', 'ongoing-tasks', 'workbench', 'design', 'development', 'animation', 'level-design', 'qa', 'cybersecurity', 'research']),
+  'ashen-hollow': new Set(['api-usage', 'guides', 'issues', 'opportunities', 'ongoing-tasks', 'ashen-hollow', 'development', 'animation', 'level-design', 'design', 'qa', 'research', 'audio', 'narrative', 'creative', 'game-director', 'game-systems']),
+  'other-income': new Set(['api-usage', 'guides', 'issues', 'opportunities', 'ongoing-tasks', 'marketing', 'finance', 'legal', 'support', 'analytics', 'strategy']),
 };
 
 /** Status-file agent slugs shown in Issues / Opportunities / Ongoing for each context. */
@@ -6505,7 +6180,7 @@ const AGENT_META = {
   'research':         { icon: '🔬', color: '#e879f9' },
 };
 
-let selectedDashboard = 'home';
+let selectedDashboard = 'api-usage';
 let osProductContext = 'all';
 let selectedAgent = 'orchestrator';
 let selectedMode = 'brainstorm';
@@ -6736,31 +6411,16 @@ function resourcePathVisibleInContext(path, ctx) {
   return ctx === 'business';
 }
 
-function homeJumpVisibleInContext(jumpId, ctx) {
-  if (ctx === 'all') return true;
-  const map = {
-    research: ['business', 'sprite', 'ashen-hollow'],
-    analytics: ['business', 'other-income'],
-    'api-usage': ['business', 'sprite', 'ashen-hollow', 'other-income'],
-    development: ['sprite', 'ashen-hollow'],
-    finance: ['business', 'other-income'],
-    orchestration: ['business'],
-  };
-  const allowed = map[jumpId];
-  if (!allowed) return true;
-  return allowed.indexOf(ctx) !== -1;
-}
-
 function pickDefaultDashboardForContext(ctx) {
-  if (ctx === 'all') return 'home';
-  const order = ['home', 'issues', 'workbench', 'ashen-hollow', 'orchestration', 'development', 'marketing'];
+  if (ctx === 'all') return 'api-usage';
+  const order = ['api-usage', 'issues', 'workbench', 'ashen-hollow', 'orchestration', 'development', 'marketing'];
   for (let i = 0; i < order.length; i++) {
     if (dashboardVisibleInProductContext(order[i], ctx)) return order[i];
   }
   for (const k of Object.keys(DASHBOARDS)) {
     if (dashboardVisibleInProductContext(k, ctx)) return k;
   }
-  return 'home';
+  return 'api-usage';
 }
 
 function coerceDashboardForContext(dashId, ctx) {
@@ -6817,27 +6477,15 @@ function applyOsProductContextNavFilter(ctx) {
     const showWb = ctx === 'all' || ctx === 'sprite';
     wb.classList.toggle('os-nav-hidden', !showWb);
   }
-  document.querySelectorAll('[data-home-jump]').forEach((btn) => {
-    const jump = btn.getAttribute('data-home-jump');
-    const show = homeJumpVisibleInContext(jump, ctx);
-    btn.classList.toggle('os-nav-hidden', !show);
-  });
-  const grid = document.getElementById('home-os-chart-grid');
-  if (grid) {
-    const sec = grid.closest('.db-section');
-    if (sec) {
-      const showCharts = ctx === 'all' || ctx === 'business' || ctx === 'sprite' || ctx === 'other-income';
-      sec.classList.toggle('os-nav-hidden', !showCharts);
-    }
-  }
 }
 
 function getInitialDashboardId() {
-  let id = 'home';
+  let id = 'api-usage';
   try {
     const saved = sessionStorage.getItem(DASHBOARD_STORAGE_KEY);
     if (saved === 'actions') id = 'issues';
     else if (saved === 'engineering') id = 'development';
+    else if (saved === 'home') id = 'api-usage';
     else if (saved && DASHBOARDS[saved]) id = saved;
   } catch (e) { /* private mode / blocked */ }
   return id;
@@ -6861,7 +6509,7 @@ function selectDashboard(id) {
     view.classList.remove('os-dash-enter');
     view.classList.toggle('active', view.dataset.dashboardView === id);
   });
-  if (id === 'home' || id === 'development' || id === 'animation' || id === 'level-design' || id === 'analytics' || id === 'api-usage') {
+  if (id === 'development' || id === 'animation' || id === 'level-design' || id === 'analytics' || id === 'api-usage') {
     const v = document.querySelector('[data-dashboard-view="' + id + '"]');
     if (v) {
       requestAnimationFrame(() => {
@@ -7150,13 +6798,6 @@ claudeBtn.addEventListener('click', () => {
 document.querySelectorAll('.nav-item[data-dashboard]').forEach(btn => {
   btn.addEventListener('click', () => {
     selectDashboard(btn.dataset.dashboard);
-  });
-});
-
-document.querySelectorAll('[data-home-jump]').forEach(btn => {
-  btn.addEventListener('click', () => {
-    const target = btn.getAttribute('data-home-jump');
-    if (target && DASHBOARDS[target]) selectDashboard(target);
   });
 });
 
@@ -7890,98 +7531,6 @@ async function ensureHomeInternal(d) {
   return d;
 }
 
-function updateHomeChartLiveStatus(d, dashboardReachable) {
-  const el = document.getElementById('home-chart-live-status');
-  if (!el) return;
-  if (!dashboardReachable || !d) {
-    el.textContent = 'Connect to the dashboard server to see this chart and live workbench status. Use the Workbench menu in the header (Agent OS or sprite workbench, usually ports 8769 or 8766).';
-    el.classList.remove('visually-hidden');
-    el.classList.add('home-chart-live-status--warn');
-    return;
-  }
-  el.classList.remove('home-chart-live-status--warn');
-  const uc = d.usage_charts;
-  const total = d.usage_summary && d.usage_summary.entry_count != null ? d.usage_summary.entry_count : 0;
-  const wk = uc && uc.ledger_entry_count_window != null ? uc.ledger_entry_count_window : 0;
-  if (total === 0) {
-    el.textContent = 'Connected, but the usage log is empty. Use Pixel Lab or Gemini in the Sprite Workbench to record paid calls.';
-    el.classList.remove('visually-hidden');
-  } else if (wk === 0) {
-    el.textContent = 'Connected, but no calls in the last 8 weeks (by calendar week, GMT). Open Analytics or API usage for the full history — older calls fall outside this window.';
-    el.classList.remove('visually-hidden');
-  } else {
-    el.textContent = '';
-    el.classList.add('visually-hidden');
-  }
-}
-
-function syncHomeInternalFromDashboard(d) {
-  const setText = (id, text) => {
-    const el = document.getElementById(id);
-    if (el) el.textContent = text == null || text === '' ? '—' : String(text);
-  };
-  const setCls = (id, failing) => {
-    const el = document.getElementById(id);
-    if (!el) return;
-    el.className = failing ? 'db-card-value db-card-value--warning' : 'db-card-value db-card-value--good';
-  };
-  const hi = d && d.home_internal && typeof d.home_internal === 'object' && !Array.isArray(d.home_internal)
-    ? d.home_internal
-    : null;
-  if (!hi) {
-    ['home-hi-tests-pass', 'home-hi-tests-fail', 'home-hi-blocking', 'home-hi-decisions', 'home-hi-inprog', 'home-hi-release'].forEach(function (id) { setText(id, '—'); });
-    const rel = document.getElementById('home-hi-release');
-    if (rel) rel.className = 'db-card-value db-card-value--muted';
-    setText('home-hi-tests-pass-sub', '');
-    setText('home-hi-blocking-sub', 'Top-priority orchestrator and QA items');
-    setText('home-hi-release-sub', 'From QA release gate');
-    return;
-  }
-  const pass = hi.tests_passing != null ? hi.tests_passing : '—';
-  const fail = hi.tests_failing != null ? hi.tests_failing : '—';
-  setText('home-hi-tests-pass', pass);
-  setText('home-hi-tests-fail', fail);
-  const failN = Number(hi.tests_failing);
-  setCls('home-hi-tests-fail', Number.isFinite(failN) && failN > 0);
-  const passEl = document.getElementById('home-hi-tests-pass');
-  if (passEl) {
-    const passN = Number(hi.tests_passing);
-    passEl.className = Number.isFinite(passN) && passN > 0 ? 'db-card-value db-card-value--good' : 'db-card-value';
-  }
-  setText('home-hi-blocking', hi.blocking_issue_count != null ? hi.blocking_issue_count : '—');
-  const blk = document.getElementById('home-hi-blocking');
-  if (blk) {
-    const bn = Number(hi.blocking_issue_count);
-    blk.className = Number.isFinite(bn) && bn > 0 ? 'db-card-value db-card-value--warning' : 'db-card-value db-card-value--good';
-  }
-  const subParts = [];
-  if (hi.test_last_run) subParts.push('Last run ' + hi.test_last_run);
-  if (hi.broken_test_collections != null && Number(hi.broken_test_collections) > 0) {
-    subParts.push(String(hi.broken_test_collections) + ' test set(s) cannot run');
-  }
-  if (hi.acceptance_tests_documented != null) {
-    subParts.push(String(hi.acceptance_tests_documented) + ' acceptance checks documented');
-  }
-  setText('home-hi-tests-pass-sub', subParts.join(' · '));
-  const ser = hi.serious_issue_count != null ? Number(hi.serious_issue_count) : 0;
-  setText('home-hi-blocking-sub', Number.isFinite(ser) && ser > 0
-    ? ('Top-priority orchestrator and QA · ' + String(ser) + ' serious items also tracked')
-    : 'Top-priority orchestrator and QA items');
-  setText('home-hi-decisions', hi.founder_decisions_open != null ? hi.founder_decisions_open : '—');
-  const decEl = document.getElementById('home-hi-decisions');
-  if (decEl) {
-    const dn = Number(hi.founder_decisions_open);
-    decEl.className = Number.isFinite(dn) && dn > 0 ? 'db-card-value db-card-value--warning' : 'db-card-value db-card-value--good';
-  }
-  setText('home-hi-inprog', hi.priorities_in_progress != null ? hi.priorities_in_progress : '—');
-  setText('home-hi-release', hi.release_gate_label != null ? hi.release_gate_label : '—');
-  const relEl = document.getElementById('home-hi-release');
-  if (relEl) relEl.className = 'db-card-value';
-  setText('home-hi-release-sub', hi.status_updated
-    ? ('QA release gate · status files ' + hi.status_updated)
-    : 'From QA release gate');
-}
-
 function syncBuildPipelineServiceCards(d) {
   if (!d) return;
   const setVal = (id, val, cls) => {
@@ -8074,10 +7623,6 @@ function applyUsageChartsFromDashboard(d) {
       el.textContent = 'How room Copilot suggestions were resolved (accept, tweak, reject), from saved room data.' + meanLatency;
     });
   }
-  const sumEl = document.getElementById('home-kpi-ai-units');
-  if (sumEl && uc.eight_week_call_total != null) {
-    sumEl.textContent = String(uc.eight_week_call_total);
-  }
 }
 
 function osChartTheme() {
@@ -8142,11 +7687,9 @@ function paintAreaRequests(canvas) {
   const data = osChartData.areaRequests;
   const labels = osChartData.areaLabels;
   const n = data.length;
-  const isHomeChart = canvas.id === 'home-area-chart' || (canvas.closest && canvas.closest('.os-chart-grid--home'));
   const stepGuess = n > 1 ? (W - 52) / (n - 1) : W;
   const rotateLabels = stepGuess < 56 || n >= 7;
   let padBottom = rotateLabels ? 48 : (short ? 20 : 32);
-  if (isHomeChart) padBottom = Math.max(padBottom, 44);
   const pad = short
     ? { t: 8, r: 8, b: padBottom, l: 28 }
     : { t: 20, r: 12, b: padBottom, l: 40 };
@@ -9108,7 +8651,6 @@ window.setAgentOsChartCanvasState = function (state, message) {
   window.__osChartErrorMessage = (message && String(message)) || '';
   applyOsChartCanvasStates();
   if (s === 'idle') {
-    paintOsChartsForView('home');
     paintOsChartsForView('development');
     paintOsChartsForView('animation');
     paintOsChartsForView('level-design');
@@ -9117,7 +8659,7 @@ window.setAgentOsChartCanvasState = function (state, message) {
   }
 };
 
-const OS_CHART_DASHBOARD_IDS = ['home', 'development', 'animation', 'level-design', 'analytics', 'api-usage'];
+const OS_CHART_DASHBOARD_IDS = ['development', 'animation', 'level-design', 'analytics', 'api-usage'];
 
 function paintOsChartsForView(dashId) {
   if (OS_CHART_DASHBOARD_IDS.indexOf(dashId) === -1) return;
@@ -9135,14 +8677,10 @@ function paintOsChartsForView(dashId) {
 }
 
 function syncHomeKpis(d) {
-  const keysEl = document.getElementById('home-kpi-keys');
-  const wbEl = document.getElementById('home-kpi-workbench');
   const apiKeysEl = document.getElementById('api-usage-kpi-keys');
   const apiWbEl = document.getElementById('api-usage-kpi-workbench');
-  if (!keysEl || !wbEl) return;
+  if (!apiKeysEl && !apiWbEl) return;
   if (!d) {
-    keysEl.textContent = '—';
-    wbEl.textContent = '—';
     if (apiKeysEl) apiKeysEl.textContent = '—';
     if (apiWbEl) apiWbEl.textContent = '—';
     return;
@@ -9150,10 +8688,10 @@ function syncHomeKpis(d) {
   const g = d.gemini_key_set ? 'G✓' : 'G—';
   const p = d.pixellab_key_set ? 'P✓' : 'P—';
   const o = d.openai_key_set ? 'O✓' : 'O—';
-  keysEl.textContent = g + ' · ' + p + ' · ' + o;
-  wbEl.textContent = d.workbench_server_running ? '● Up' : '○ Down';
-  if (apiKeysEl) apiKeysEl.textContent = keysEl.textContent;
-  if (apiWbEl) apiWbEl.textContent = wbEl.textContent;
+  const line = g + ' · ' + p + ' · ' + o;
+  const wb = d.workbench_server_running ? '● Up' : '○ Down';
+  if (apiKeysEl) apiKeysEl.textContent = line;
+  if (apiWbEl) apiWbEl.textContent = wb;
 }
 
 let osChartResizeTimer;
@@ -11299,12 +10837,13 @@ function avMove(action, sorted, dir) {
 }
 
 function avFindDashboardForAgent(agentId) {
+  if (agentId === 'orchestrator') return 'orchestration';
   for (var dashId in DASHBOARDS) {
     if (!Object.prototype.hasOwnProperty.call(DASHBOARDS, dashId)) continue;
     var agents = (DASHBOARDS[dashId] && DASHBOARDS[dashId].agents) || [];
     if (agents.indexOf(agentId) !== -1) return dashId;
   }
-  return 'home';
+  return 'issues';
 }
 
 function avDispatchActionToAgent(action, rowKind) {
@@ -12333,7 +11872,6 @@ async function loadDashboardData(dashId) {
     applyGlobalWorkbenchBar(d);
     syncBuildPipelineServiceCards(d);
     syncHomeKpis(d);
-    syncHomeInternalFromDashboard(d);
     applyUsageChartsFromDashboard(d);
     syncAnalyticsKpis(d);
     if (d && d.analytics_status != null && typeof d.analytics_status === 'object' && !Array.isArray(d.analytics_status)) {
@@ -12341,7 +11879,6 @@ async function loadDashboardData(dashId) {
     } else if (dashId === 'analytics' || dashId === 'api-usage') {
       void loadAnalyticsStatus();
     }
-    updateHomeChartLiveStatus(d, dashboardReachable);
     if (OS_CHART_DASHBOARD_IDS.indexOf(dashId) !== -1) {
       paintOsChartsForView(dashId);
     }
@@ -12401,9 +11938,7 @@ async function loadDashboardData(dashId) {
   } catch {
     applyGlobalWorkbenchBar(null);
     syncHomeKpis(null);
-    syncHomeInternalFromDashboard(null);
     syncAnalyticsKpis(null);
-    updateHomeChartLiveStatus(null, false);
     if (dashId === 'analytics' || dashId === 'api-usage') {
       void loadAnalyticsStatus();
     }
@@ -12427,7 +11962,6 @@ async function pulseGlobalWorkbenchOnly() {
     applyGlobalWorkbenchBar(d);
     syncBuildPipelineServiceCards(d);
     syncHomeKpis(d);
-    syncHomeInternalFromDashboard(d);
     applyUsageChartsFromDashboard(d);
     syncAnalyticsKpis(d);
     if (d && d.analytics_status != null && typeof d.analytics_status === 'object' && !Array.isArray(d.analytics_status)) {
@@ -12435,16 +11969,13 @@ async function pulseGlobalWorkbenchOnly() {
     } else if (selectedDashboard === 'analytics' || selectedDashboard === 'api-usage') {
       void loadAnalyticsStatus();
     }
-    updateHomeChartLiveStatus(d, dashboardReachable);
     if (OS_CHART_DASHBOARD_IDS.indexOf(selectedDashboard) !== -1) {
       paintOsChartsForView(selectedDashboard);
     }
   } catch {
     applyGlobalWorkbenchBar(null);
     syncHomeKpis(null);
-    syncHomeInternalFromDashboard(null);
     syncAnalyticsKpis(null);
-    updateHomeChartLiveStatus(null, false);
     if (selectedDashboard === 'analytics' || selectedDashboard === 'api-usage') {
       void loadAnalyticsStatus();
     }
@@ -12472,7 +12003,7 @@ async function pulseGlobalWorkbenchOnly() {
       }
     }, 48);
   }
-  ['home-os-chart-grid', 'dev-os-chart-grid', 'anim-os-chart-grid', 'ld-os-chart-grid', 'analytics-os-chart-grid', 'api-usage-os-chart-grid'].forEach(function (gridId) {
+  ['dev-os-chart-grid', 'anim-os-chart-grid', 'ld-os-chart-grid', 'analytics-os-chart-grid', 'api-usage-os-chart-grid'].forEach(function (gridId) {
     const grid = document.getElementById(gridId);
     if (!grid) return;
     const ro = new ResizeObserver(onResize);
