@@ -84,6 +84,7 @@ def keys_from_env(env: dict[str, str]) -> dict[str, bool]:
     return {
         "pixellab_key_set": set_("PIXELLAB_API_KEY"),
         "gemini_key_set": set_("GEMINI_API_KEY"),
+        "openai_key_set": set_("OPENAI_API_KEY"),
         "resend_key_set": set_("RESEND_API_KEY"),
     }
 

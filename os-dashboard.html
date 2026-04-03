@@ -3496,7 +3496,7 @@ h3.os-chart-card-title {
               <div class="os-home-kpi">
                 <div class="os-home-kpi-label">Service keys</div>
                 <div class="os-home-kpi-value" id="home-kpi-keys">—</div>
-                <p class="os-home-kpi-sub">Gemini and Pixel Lab</p>
+                <p class="os-home-kpi-sub">Gemini, Pixel Lab, OpenAI (issue chat)</p>
               </div>
               <div class="os-home-kpi">
                 <div class="os-home-kpi-label">Workbench</div>
@@ -3581,12 +3581,12 @@ h3.os-chart-card-title {
       <div class="dashboard-view" data-dashboard-view="api-usage">
         <div class="db-section">
           <div class="db-section-label">Connection</div>
-          <p class="visually-hidden" id="api-usage-intro">Rough USD estimates from the local usage log for paid APIs (Pixel Lab, Gemini, and anything else the workbench records with a price).</p>
+          <p class="visually-hidden" id="api-usage-intro">Rough USD estimates from the local usage log for paid APIs (Pixel Lab, Gemini, OpenAI if logged, and anything else the workbench records with a price).</p>
           <div class="db-grid db-grid--home-health" aria-describedby="api-usage-intro">
             <div class="db-card db-card--live">
               <div class="db-card-header"><div class="db-card-label">API keys</div><span class="db-tier db-tier--live">Live</span></div>
               <div class="db-card-value" id="api-usage-kpi-keys">—</div>
-              <div class="db-card-sub">Gemini and Pixel Lab</div>
+              <div class="db-card-sub">Gemini, Pixel Lab, OpenAI (issue chat)</div>
             </div>
             <div class="db-card db-card--live">
               <div class="db-card-header"><div class="db-card-label">Workbench</div><span class="db-tier db-tier--live">Live</span></div>
@@ -3958,6 +3958,11 @@ h3.os-chart-card-title {
               <div class="db-card-value" id="db-dev-gemini">—</div>
               <div class="db-card-sub">GEMINI_API_KEY env var</div>
             </div>
+            <div class="db-card db-card--live">
+              <div class="db-card-header"><div class="db-card-label">OpenAI API Key</div><span class="db-tier db-tier--live">Live</span></div>
+              <div class="db-card-value" id="db-dev-openai">—</div>
+              <div class="db-card-sub">OPENAI_API_KEY · Agent OS issue chat (supervisor)</div>
+            </div>
             <div class="db-card">
               <div class="db-card-header"><div class="db-card-label">Schema Version</div><span class="db-tier db-tier--static">Fixed</span></div>
               <div class="db-card-value db-card-value--muted" id="db-dev-schema-version">v1.0</div>
@@ -4059,6 +4064,11 @@ h3.os-chart-card-title {
               <div class="db-card-value" id="db-anim-gemini">—</div>
               <div class="db-card-sub">GEMINI_API_KEY env var</div>
             </div>
+            <div class="db-card db-card--live">
+              <div class="db-card-header"><div class="db-card-label">OpenAI API Key</div><span class="db-tier db-tier--live">Live</span></div>
+              <div class="db-card-value" id="db-anim-openai">—</div>
+              <div class="db-card-sub">OPENAI_API_KEY · Agent OS issue chat (supervisor)</div>
+            </div>
             <div class="db-card">
               <div class="db-card-header"><div class="db-card-label">Schema Version</div><span class="db-tier db-tier--static">Fixed</span></div>
               <div class="db-card-value db-card-value--muted" id="db-anim-schema-version">v1.0</div>
@@ -4159,6 +4169,11 @@ h3.os-chart-card-title {
               <div class="db-card-header"><div class="db-card-label">Gemini API Key</div><span class="db-tier db-tier--live">Live</span></div>
               <div class="db-card-value" id="db-ld-gemini">—</div>
               <div class="db-card-sub">GEMINI_API_KEY env var</div>
+            </div>
+            <div class="db-card db-card--live">
+              <div class="db-card-header"><div class="db-card-label">OpenAI API Key</div><span class="db-tier db-tier--live">Live</span></div>
+              <div class="db-card-value" id="db-ld-openai">—</div>
+              <div class="db-card-sub">OPENAI_API_KEY · Agent OS issue chat (supervisor)</div>
             </div>
             <div class="db-card">
               <div class="db-card-header"><div class="db-card-label">Schema Version</div><span class="db-tier db-tier--static">Fixed</span></div>
@@ -4409,6 +4424,11 @@ h3.os-chart-card-title {
               <div class="db-card-header"><div class="db-card-label">Gemini Key</div><span class="db-tier db-tier--live">Live</span></div>
               <div class="db-card-value" id="db-sec-gemini">—</div>
               <div class="db-card-sub">Presence check only</div>
+            </div>
+            <div class="db-card db-card--live">
+              <div class="db-card-header"><div class="db-card-label">OpenAI Key</div><span class="db-tier db-tier--live">Live</span></div>
+              <div class="db-card-value" id="db-sec-openai">—</div>
+              <div class="db-card-sub">OPENAI_API_KEY · issue chat</div>
             </div>
             <div class="db-card db-card--live">
               <div class="db-card-header"><div class="db-card-label">Resend Key</div><span class="db-tier db-tier--live">Live</span></div>
@@ -8199,6 +8219,7 @@ const OS_CHART_DEFAULTS = {
   purposeBars: [
     { label: 'Pixel Lab', value: 0, key: 'good' },
     { label: 'Gemini', value: 0, key: 'accent' },
+    { label: 'OpenAI', value: 0, key: 'good' },
     { label: 'Room AI', value: 0, key: 'warning' },
     { label: 'Other', value: 0, key: 'muted' },
   ],
@@ -8526,7 +8547,7 @@ function applyApiUsageCostUi() {
     td.colSpan = 4;
     td.style.color = 'var(--muted)';
     td.style.fontSize = 'var(--font-size-sm)';
-    td.textContent = 'No API calls with a stored price in this range. The workbench logs a rough USD estimate when it records Pixel Lab, Gemini, or other paid calls.';
+    td.textContent = 'No API calls with a stored price in this range. The workbench logs a rough USD estimate when it records Pixel Lab, Gemini, OpenAI, or other paid calls.';
     tr.appendChild(td);
     tbody.appendChild(tr);
     if (foot) foot.textContent = '';
@@ -9278,7 +9299,8 @@ function syncHomeKpis(d) {
   }
   const g = d.gemini_key_set ? 'G✓' : 'G—';
   const p = d.pixellab_key_set ? 'P✓' : 'P—';
-  keysEl.textContent = g + ' · ' + p;
+  const o = d.openai_key_set ? 'O✓' : 'O—';
+  keysEl.textContent = g + ' · ' + p + ' · ' + o;
   wbEl.textContent = d.workbench_server_running ? '● Up' : '○ Down';
   if (apiKeysEl) apiKeysEl.textContent = keysEl.textContent;
   if (apiWbEl) apiWbEl.textContent = wbEl.textContent;
@@ -12488,6 +12510,8 @@ async function loadDashboardData(dashId) {
           d.pixellab_key_set ? 'db-card-value--good' : 'db-card-value--error');
         setVal('db-' + kPrefix + '-gemini', d.gemini_key_set ? '✓ Set' : '✗ Missing',
           d.gemini_key_set ? 'db-card-value--good' : 'db-card-value--error');
+        setVal('db-' + kPrefix + '-openai', d.openai_key_set ? '✓ Set' : '✗ Missing',
+          d.openai_key_set ? 'db-card-value--good' : 'db-card-value--error');
         setVal('db-' + kPrefix + '-server', d.workbench_server_running ? '● Running' : '○ Offline',
           d.workbench_server_running ? 'db-card-value--good' : 'db-card-value--warning');
       }
@@ -12504,6 +12528,8 @@ async function loadDashboardData(dashId) {
         d.pixellab_key_set ? 'db-card-value--good' : 'db-card-value--error');
       setVal('db-sec-gemini', d.gemini_key_set ? '✓ Set' : '✗ Missing',
         d.gemini_key_set ? 'db-card-value--good' : 'db-card-value--error');
+      setVal('db-sec-openai', d.openai_key_set ? '✓ Set' : '✗ Missing',
+        d.openai_key_set ? 'db-card-value--good' : 'db-card-value--error');
       setVal('db-sec-resend', d.resend_key_set ? '✓ Set' : '✗ Missing',
         d.resend_key_set ? 'db-card-value--good' : 'db-card-value--error');
     }

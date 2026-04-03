@@ -405,7 +405,7 @@ class SpriteWorkbenchTests(unittest.TestCase):
         self.assertEqual(sum(out["area_requests"]), 2)
         self.assertEqual(out["ledger_entry_count_window"], 2)
         self.assertEqual(out["eight_week_call_total"], 2)
-        self.assertEqual(len(out["purpose_bars"]), 4)
+        self.assertEqual(len(out["purpose_bars"]), 5)
         self.assertEqual(out["donut_n"], 2)
         cr = out.get("cost_rollups")
         self.assertIsInstance(cr, dict)

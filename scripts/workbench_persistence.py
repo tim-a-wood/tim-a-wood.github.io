@@ -534,7 +534,7 @@ def build_usage_ledger_charts_from_entries(entries: List[Dict[str, Any]]) -> Dic
         filtered.append(item)
 
     area_counts = [0] * 8
-    purpose_counts = {"pixel_lab": 0, "gemini": 0, "room_ai": 0, "other": 0}
+    purpose_counts = {"pixel_lab": 0, "gemini": 0, "openai": 0, "room_ai": 0, "other": 0}
     outcome_counts = {"success": 0, "error": 0, "other": 0}
 
     for item in filtered:
@@ -551,6 +551,8 @@ def build_usage_ledger_charts_from_entries(entries: List[Dict[str, Any]]) -> Dic
             purpose_counts["pixel_lab"] += 1
         elif prov == "gemini":
             purpose_counts["gemini"] += 1
+        elif prov == "openai":
+            purpose_counts["openai"] += 1
         elif "room" in ep or "layout" in ep or "copilot" in ep or "environment" in ep:
             purpose_counts["room_ai"] += 1
         else:
@@ -574,6 +576,7 @@ def build_usage_ledger_charts_from_entries(entries: List[Dict[str, Any]]) -> Dic
     purpose_bars = [
         {"label": "Pixel Lab", "value": _pct(purpose_counts["pixel_lab"]), "key": "good", "count": purpose_counts["pixel_lab"]},
         {"label": "Gemini", "value": _pct(purpose_counts["gemini"]), "key": "accent", "count": purpose_counts["gemini"]},
+        {"label": "OpenAI", "value": _pct(purpose_counts["openai"]), "key": "good", "count": purpose_counts["openai"]},
         {"label": "Room AI", "value": _pct(purpose_counts["room_ai"]), "key": "warning", "count": purpose_counts["room_ai"]},
         {"label": "Other", "value": _pct(purpose_counts["other"]), "key": "muted", "count": purpose_counts["other"]},
     ]
