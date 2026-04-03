@@ -67,6 +67,17 @@ class RenderMarkdownViewTests(unittest.TestCase):
             "STYLE_GUIDE.md",
         )
 
+    def test_md_to_fragment_renders_html_when_markdown_installed(self) -> None:
+        try:
+            import markdown  # noqa: F401
+        except ImportError:
+            self.skipTest("PyPI markdown not installed")
+        from scripts.render_markdown_view import _md_to_fragment
+
+        out = _md_to_fragment("# Title\n\n**bold**")
+        self.assertIn("<h1", out)
+        self.assertNotIn("md-fallback", out)
+
 
 if __name__ == "__main__":
     unittest.main()

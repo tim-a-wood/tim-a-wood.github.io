@@ -16,7 +16,10 @@ _A_HREF_SQ = re.compile(r"(<a\b[^>]*?\bhref\s*=\s*')([^']*)(')", re.IGNORECASE)
 def _md_to_fragment(source: str) -> str:
     try:
         import markdown as md_lib
+    except ImportError:
+        return _md_fallback_pre(source, missing_package=True)
 
+    try:
         return md_lib.markdown(
             source,
             extensions=[
@@ -26,12 +29,22 @@ def _md_to_fragment(source: str) -> str:
             ],
         )
     except Exception:
-        return (
-            '<pre class="md-fallback"><code>'
-            + html.escape(source)
-            + "</code></pre>"
-            + '<p class="md-fallback-note">Install <code>pip install -r requirements-agent-os.txt</code> for full Markdown rendering.</p>'
-        )
+        return _md_fallback_pre(source, missing_package=False)
+
+
+def _md_fallback_pre(source: str, *, missing_package: bool) -> str:
+    note = (
+        '<p class="md-fallback-note">Install <code>python3 -m pip install -r requirements-agent-os.txt</code> '
+        "for rendered Markdown preview (PyPI package <code>markdown</code>).</p>"
+        if missing_package
+        else '<p class="md-fallback-note">Markdown rendering failed; showing source. Check document for unusual syntax.</p>'
+    )
+    return (
+        '<pre class="md-fallback"><code>'
+        + html.escape(source)
+        + "</code></pre>"
+        + note
+    )
 
 
 def _split_href_fragment(href: str) -> tuple[str, str]:

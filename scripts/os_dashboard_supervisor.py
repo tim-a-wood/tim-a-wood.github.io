@@ -963,6 +963,16 @@ def main() -> None:
         f"Markdown preview: http://{args.host}:{args.port}/view/markdown?path=STYLE_GUIDE.md",
         file=sys.stderr,
     )
+    try:
+        import markdown  # noqa: F401
+    except ImportError:
+        print(
+            "Markdown preview: PyPI package missing — run: python3 -m pip install -r requirements-agent-os.txt "
+            "(raw source fallback until then).",
+            file=sys.stderr,
+        )
+    else:
+        print("Markdown preview: HTML rendering enabled.", file=sys.stderr)
     print(f"Workbench: http://{args.workbench_host}:{args.workbench_port}/ (Start/Stop from dashboard)", file=sys.stderr)
     _ck = (os.environ.get("CURSOR_API_KEY") or "").strip()
     _ok = (os.environ.get("OPENAI_API_KEY") or "").strip()

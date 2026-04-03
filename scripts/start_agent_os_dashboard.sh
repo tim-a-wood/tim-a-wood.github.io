@@ -25,6 +25,14 @@ if lsof -nP -iTCP:"${SUP_PORT}" -sTCP:LISTEN >/dev/null 2>&1; then
   exit 0
 fi
 
+if ! "${PYTHON}" -c "import markdown" >/dev/null 2>&1; then
+  echo "Installing Markdown preview dependency (requirements-agent-os.txt)..." >&2
+  "${PYTHON}" -m pip install -q -r "${REPO_ROOT}/requirements-agent-os.txt" 2>/dev/null || {
+    echo "Warning: could not install PyPI markdown; /view/markdown may show raw source until you run:" >&2
+    echo "  ${PYTHON} -m pip install -r requirements-agent-os.txt" >&2
+  }
+fi
+
 nohup "${PYTHON}" scripts/os_dashboard_supervisor.py --port "${SUP_PORT}" --workbench-port "${WB_PORT}" >>"${LOG}" 2>&1 &
 
 for _ in $(seq 1 40); do
