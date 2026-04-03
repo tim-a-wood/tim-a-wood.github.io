@@ -407,6 +407,53 @@ class SpriteWorkbenchTests(unittest.TestCase):
         self.assertEqual(out["eight_week_call_total"], 2)
         self.assertEqual(len(out["purpose_bars"]), 4)
         self.assertEqual(out["donut_n"], 2)
+        cr = out.get("cost_rollups")
+        self.assertIsInstance(cr, dict)
+        self.assertEqual(cr.get("version"), 1)
+        self.assertEqual(cr.get("daily"), [])
+
+    def test_usage_cost_rollups_groups_by_day_and_provider(self):
+        from datetime import datetime, timedelta, timezone
+
+        from scripts.workbench_persistence import build_usage_cost_rollups_from_entries
+
+        d0 = datetime(2026, 4, 1, 12, 0, 0, tzinfo=timezone.utc)
+        d1 = datetime(2026, 4, 2, 8, 0, 0, tzinfo=timezone.utc)
+        entries = [
+            {
+                "created_at": d0.isoformat(),
+                "provider": "gemini",
+                "endpoint": "test",
+                "usage_cost_usd": 0.01,
+            },
+            {
+                "created_at": d0.isoformat(),
+                "provider": "gemini",
+                "endpoint": "test2",
+                "usage_cost_usd": 0.02,
+            },
+            {
+                "created_at": d1.isoformat(),
+                "provider": "pixellab",
+                "endpoint": "gen",
+                "usage_cost_usd": 0.5,
+            },
+            {
+                "created_at": d1.isoformat(),
+                "provider": "gemini",
+                "endpoint": "free",
+                "usage_cost_usd": 0,
+            },
+        ]
+        cr = build_usage_cost_rollups_from_entries(entries)
+        self.assertEqual(len(cr["daily"]), 2)
+        self.assertEqual(cr["daily"][0]["d"], "2026-04-01")
+        self.assertAlmostEqual(cr["daily"][0]["c"]["gemini"], 0.03)
+        self.assertEqual(cr["daily"][0]["n"]["gemini"], 2)
+        self.assertAlmostEqual(cr["daily"][1]["c"]["pixellab"], 0.5)
+        keys = [p["key"] for p in cr["providers"]]
+        self.assertEqual(keys, ["pixellab", "gemini"])
+        self.assertAlmostEqual(cr["providers"][1]["all_time_cost_usd"], 0.03)
 
     def test_provider_call_allowed_blocks_when_safe_mode_enabled(self):
         with tempfile.TemporaryDirectory() as tmpdir:

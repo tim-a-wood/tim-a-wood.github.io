@@ -432,6 +432,80 @@ def _iso_week_label(monday_utc: datetime) -> str:
     return f"{iw[0]}-W{iw[1]:02d}"
 
 
+def _normalize_usage_provider_key(provider: Any) -> str:
+    raw = str(provider or "").strip().lower().replace(" ", "_").replace("-", "_")
+    return raw if raw else "unlabeled"
+
+
+def _usage_provider_display_label(key: str) -> str:
+    labels = {
+        "pixellab": "Pixel Lab",
+        "gemini": "Google Gemini",
+        "openai": "OpenAI",
+        "anthropic": "Anthropic",
+        "unlabeled": "Unlabeled provider",
+    }
+    if key in labels:
+        return labels[key]
+    if not key:
+        return "Unlabeled provider"
+    return key.replace("_", " ").title()
+
+
+def build_usage_cost_rollups_from_entries(entries: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """
+    Per-day USD totals and paid-call counts by provider, for ledger rows with usage_cost_usd > 0.
+    Used by Agent OS API usage dashboard (date-range filter + stacked daily chart).
+    """
+    daily_cost: Dict[str, Dict[str, float]] = {}
+    daily_n: Dict[str, Dict[str, int]] = {}
+    all_time_cost: Dict[str, float] = {}
+    all_time_calls: Dict[str, int] = {}
+
+    for item in entries:
+        if not isinstance(item, dict):
+            continue
+        cost = _coerce_usage_cost_usd(item.get("usage_cost_usd"))
+        if cost is None or cost <= 0:
+            continue
+        created = _parse_iso_datetime_utc(item.get("created_at"))
+        if created is None:
+            continue
+        d_str = created.astimezone(timezone.utc).date().isoformat()
+        pk = _normalize_usage_provider_key(item.get("provider"))
+        daily_cost.setdefault(d_str, {})
+        daily_n.setdefault(d_str, {})
+        daily_cost[d_str][pk] = daily_cost[d_str].get(pk, 0.0) + float(cost)
+        daily_n[d_str][pk] = daily_n[d_str].get(pk, 0) + 1
+        all_time_cost[pk] = all_time_cost.get(pk, 0.0) + float(cost)
+        all_time_calls[pk] = all_time_calls.get(pk, 0) + 1
+
+    daily_list: List[Dict[str, Any]] = []
+    for d_str in sorted(daily_cost.keys()):
+        c_map = daily_cost[d_str]
+        n_map = daily_n.get(d_str, {})
+        daily_list.append(
+            {
+                "d": d_str,
+                "c": {k: round(c_map[k], 4) for k in sorted(c_map.keys())},
+                "n": {k: int(n_map.get(k, 0)) for k in sorted(c_map.keys())},
+            }
+        )
+
+    prov_rows: List[Dict[str, Any]] = []
+    for pk in sorted(all_time_cost.keys(), key=lambda k: (-all_time_cost[k], k)):
+        prov_rows.append(
+            {
+                "key": pk,
+                "label": _usage_provider_display_label(pk),
+                "all_time_cost_usd": round(all_time_cost[pk], 4),
+                "all_time_paid_calls": all_time_calls[pk],
+            }
+        )
+
+    return {"version": 1, "daily": daily_list, "providers": prov_rows}
+
+
 def build_usage_ledger_charts_from_entries(entries: List[Dict[str, Any]]) -> Dict[str, Any]:
     """
     Roll up usage ledger rows into shapes consumed by Agent OS (os-dashboard.html).
@@ -521,6 +595,8 @@ def build_usage_ledger_charts_from_entries(entries: List[Dict[str, Any]]) -> Dic
 
     eight_week_total = sum(area_counts)
 
+    raw_entries = [item for item in entries if isinstance(item, dict)]
+
     return {
         "version": 1,
         "window_weeks": 8,
@@ -532,6 +608,7 @@ def build_usage_ledger_charts_from_entries(entries: List[Dict[str, Any]]) -> Dic
         "donut_n": donut_n,
         "ledger_entry_count_window": window_n,
         "eight_week_call_total": eight_week_total,
+        "cost_rollups": build_usage_cost_rollups_from_entries(raw_entries),
     }
 
 
