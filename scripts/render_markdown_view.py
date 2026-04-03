@@ -5,7 +5,11 @@ Uses PyPI `markdown` when installed; otherwise escapes and wraps in <pre> (insta
 from __future__ import annotations
 
 import html
+import re
 from pathlib import Path
+from urllib.parse import quote, unquote, urlparse
+
+_A_HREF_RE = re.compile(r'(<a\b[^>]*?\bhref\s*=\s*")([^"]*)(")', re.IGNORECASE)
 
 
 def _md_to_fragment(source: str) -> str:
@@ -29,8 +33,107 @@ def _md_to_fragment(source: str) -> str:
         )
 
 
-def build_markdown_view_page(*, title: str, repo_path: str, source: str) -> str:
+def _split_href_fragment(href: str) -> tuple[str, str]:
+    if "#" in href:
+        i = href.index("#")
+        return href[:i], href[i:]
+    return href, ""
+
+
+def _href_for_repo_rel(rel_posix: str) -> str | None:
+    """Map a repo-relative path to a supervisor/workbench URL, or None if not allowed."""
+    from scripts.os_dashboard_supervisor import _readonly_doc_path_allowed
+
+    rel_posix = rel_posix.replace("\\", "/").lstrip("/")
+    if not rel_posix or not _readonly_doc_path_allowed(rel_posix):
+        return None
+    suf = Path(rel_posix).suffix.lower()
+    if suf in (".md", ".mdc"):
+        return f"/view/markdown?path={quote(rel_posix, safe='')}"
+    return "/" + rel_posix
+
+
+def _resolve_href_for_viewer(href: str, source_repo_posix: str, repo_root: Path) -> str | None:
+    """
+    Turn an anchor target from Markdown into a same-origin URL that the supervisor can serve.
+    Handles absolute disk paths, file:// URLs, root-absolute repo paths (/docs/...), and
+    paths relative to the current document (fixes broken links under /view/markdown?path=...).
+    """
+    raw = html.unescape(href.strip())
+    if not raw or raw.startswith("#"):
+        return None
+    low = raw.lower()
+    if low.startswith("http://") or low.startswith("https://") or low.startswith("mailto:"):
+        return None
+
+    rr = repo_root.resolve()
+    frag = ""
+
+    if low.startswith("file://"):
+        pu = urlparse(raw)
+        base = unquote(pu.path)
+        frag = f"#{pu.fragment}" if pu.fragment else ""
+    else:
+        base, frag = _split_href_fragment(raw)
+
+    rel_out: str | None = None
+
+    if low.startswith("file://"):
+        try:
+            rel = Path(base).resolve().relative_to(rr)
+            rel_out = rel.as_posix()
+        except ValueError:
+            return None
+    elif base.startswith("/") and not base.startswith("//"):
+        try:
+            resolved = Path(base).resolve()
+            rel = resolved.relative_to(rr)
+            rel_out = rel.as_posix()
+        except ValueError:
+            try:
+                candidate = (rr / base.lstrip("/")).resolve()
+                rel = candidate.relative_to(rr)
+                rel_out = rel.as_posix()
+            except ValueError:
+                return None
+    else:
+        doc = Path(source_repo_posix.replace("\\", "/"))
+        try:
+            joined = (rr / doc.parent / base).resolve()
+            rel = joined.relative_to(rr)
+            rel_out = rel.as_posix()
+        except ValueError:
+            return None
+
+    mapped = _href_for_repo_rel(rel_out) if rel_out else None
+    if mapped is None:
+        return None
+    return mapped + frag
+
+
+def _rewrite_markdown_anchor_hrefs(html_frag: str, source_repo_posix: str, repo_root: Path) -> str:
+    rr = repo_root.resolve()
+
+    def repl(m: re.Match[str]) -> str:
+        prefix, href, suffix = m.group(1), m.group(2), m.group(3)
+        new = _resolve_href_for_viewer(href, source_repo_posix, rr)
+        if new is None:
+            return m.group(0)
+        return prefix + html.escape(new, quote=True) + suffix
+
+    return _A_HREF_RE.sub(repl, html_frag)
+
+
+def build_markdown_view_page(
+    *,
+    title: str,
+    repo_path: str,
+    source: str,
+    repo_root: Path | None = None,
+) -> str:
     body = _md_to_fragment(source)
+    if repo_root is not None:
+        body = _rewrite_markdown_anchor_hrefs(body, repo_path, repo_root)
     safe_title = html.escape(title)
     safe_path = html.escape(repo_path)
     return f"""<!DOCTYPE html>
@@ -74,7 +177,8 @@ def build_markdown_view_page(*, title: str, repo_path: str, source: str) -> str:
       font-size: var(--font-size-base);
       line-height: 1.55;
       padding: var(--space-5);
-      max-width: 52rem;
+      width: 100%;
+      max-width: min(1240px, calc(100vw - 32px));
       margin: 0 auto;
     }}
     :focus-visible {{ outline: 2px solid rgba(0,232,200,0.35); outline-offset: 2px; }}

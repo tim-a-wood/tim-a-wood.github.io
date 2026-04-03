@@ -7919,6 +7919,7 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                 title=fpath.stem.replace("-", " ").replace("_", " "),
                 repo_path=rel,
                 source=text,
+                repo_root=ROOT,
             )
             return self._send_bytes(
                 page.encode("utf-8"),

@@ -516,6 +516,7 @@ def make_handler(
                     title=fpath.stem.replace("-", " ").replace("_", " "),
                     repo_path=rel,
                     source=text,
+                    repo_root=repo_root,
                 )
                 return self._send_bytes(
                     HTTPStatus.OK,
