@@ -521,9 +521,87 @@ def render_html(manifest: dict) -> str:
     .badge-html { color: var(--good); border-color: rgba(74,222,128,0.35); background: var(--good-soft); }
     .dup-note { font-size: var(--font-size-xs); color: var(--warning); margin-top: var(--space-2); }
     footer { margin-top: var(--space-6); font-size: var(--font-size-xs); color: var(--muted); font-family: var(--font-mono); }
+    .view-toggle {
+      display: inline-flex;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-tight);
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    .view-toggle-btn {
+      min-height: 44px;
+      min-width: 72px;
+      padding: 10px 12px;
+      border: none;
+      border-radius: 0;
+      background: rgba(255,255,255,0.04);
+      color: var(--text);
+      font-family: var(--font-sans);
+      font-size: var(--font-size-sm);
+      font-weight: 600;
+      cursor: pointer;
+      transition: background var(--transition-base), color var(--transition-base),
+        box-shadow var(--transition-base);
+    }
+    .view-toggle-btn + .view-toggle-btn { border-left: 1px solid var(--line); }
+    .view-toggle-btn:hover { background: rgba(255,255,255,0.08); }
+    .view-toggle-btn[aria-pressed="true"] {
+      background: rgba(0,232,200,0.12);
+      color: var(--accent);
+      box-shadow: inset 0 0 0 1px rgba(0,232,200,0.08);
+    }
+    .doc-card-date {
+      display: none;
+      font-family: var(--font-mono);
+      font-size: var(--font-size-xs);
+      color: var(--muted);
+      margin-top: var(--space-2);
+    }
+    body.view-list .card-grid {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-2);
+    }
+    body.view-list .doc-card {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      grid-template-rows: auto auto auto;
+      align-items: start;
+      column-gap: var(--space-4);
+      row-gap: 0;
+    }
+    body.view-list .doc-card:hover { transform: none; }
+    body.view-list .doc-card-title {
+      grid-column: 1;
+      grid-row: 1;
+      margin-bottom: var(--space-2);
+    }
+    body.view-list .doc-card-path {
+      grid-column: 1;
+      grid-row: 2;
+      margin-bottom: 0;
+    }
+    body.view-list .doc-card-date {
+      display: block;
+      grid-column: 1;
+      grid-row: 3;
+      margin-top: var(--space-2);
+    }
+    body.view-list .badges {
+      grid-column: 2;
+      grid-row: 1;
+      align-self: start;
+      justify-self: end;
+    }
+    body.view-list .dup-note {
+      grid-column: 1 / -1;
+      grid-row: 4;
+      margin-top: var(--space-2);
+    }
+    body.view-list .doc-card .dup-note:first-of-type { margin-top: var(--space-2); }
   </style>
 </head>
-<body>
+<body class="view-grid">
   <header class="page-head">
     <p class="eyebrow">Agent OS</p>
     <h1>Guides &amp; policies library</h1>
@@ -531,6 +609,10 @@ def render_html(manifest: dict) -> str:
     <div class="toolbar">
       <label class="visually-hidden" for="lib-filter">Filter documents</label>
       <input type="search" id="lib-filter" class="search" placeholder="Filter by title or path…" autocomplete="off" />
+      <div class="view-toggle" role="group" aria-label="Document layout">
+        <button type="button" class="view-toggle-btn" id="lib-view-grid" aria-pressed="true">Grid</button>
+        <button type="button" class="view-toggle-btn" id="lib-view-list" aria-pressed="false">List</button>
+      </div>
       <span class="meta-chip" id="lib-stats"></span>
     </div>
   </header>
@@ -567,6 +649,7 @@ def render_html(manifest: dict) -> str:
             fmt = item.get("format", "markdown")
             badge_class = "badge badge-html" if fmt == "html" else "badge"
             badge_txt = "HTML" if fmt == "html" else "MD"
+            mod = _escape(item.get("date_modified", "—"))
             search_blob = _escape((item["path"] + " " + item["title"]).lower())
             dups = dup_by_path.get(item["path"])
             dup_html = ""
@@ -585,6 +668,7 @@ def render_html(manifest: dict) -> str:
                 f'      <article class="doc-card" data-search="{search_blob}">\n'
                 f'        <div class="doc-card-title"><a href="{href}" target="_blank" rel="noopener">{title}</a></div>\n'
                 f'        <div class="doc-card-path">{path_e}</div>\n'
+                f'        <span class="doc-card-date">Modified {mod}</span>\n'
                 f'        <div class="badges"><span class="{badge_class}">{badge_txt}</span></div>\n'
                 f"{dup_html}"
                 "      </article>\n"
@@ -607,6 +691,9 @@ def render_html(manifest: dict) -> str:
   var input = document.getElementById('lib-filter');
   var cards = document.querySelectorAll('.doc-card');
   var stats = document.getElementById('lib-stats');
+  var btnGrid = document.getElementById('lib-view-grid');
+  var btnList = document.getElementById('lib-view-list');
+  var LS_KEY = 'mv-doc-library-view';
   function countVisible() {
     var n = 0;
     cards.forEach(function(c) { if (!c.classList.contains('hidden')) n++; });
@@ -624,6 +711,22 @@ def render_html(manifest: dict) -> str:
       d.style.display = vis ? '' : 'none';
     });
     if (stats) stats.textContent = 'Showing ' + countVisible() + ' / ' + cards.length;
+  }
+  function setView(list) {
+    document.body.classList.toggle('view-list', list);
+    document.body.classList.toggle('view-grid', !list);
+    if (btnGrid) btnGrid.setAttribute('aria-pressed', list ? 'false' : 'true');
+    if (btnList) btnList.setAttribute('aria-pressed', list ? 'true' : 'false');
+    try { localStorage.setItem(LS_KEY, list ? 'list' : 'grid'); } catch (e) {}
+  }
+  if (btnGrid) btnGrid.addEventListener('click', function() { setView(false); });
+  if (btnList) btnList.addEventListener('click', function() { setView(true); });
+  try {
+    var saved = localStorage.getItem(LS_KEY);
+    if (saved === 'list') setView(true);
+    else setView(false);
+  } catch (e) {
+    setView(false);
   }
   input.addEventListener('input', sync);
   sync();

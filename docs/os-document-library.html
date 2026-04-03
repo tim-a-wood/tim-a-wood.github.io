@@ -192,9 +192,87 @@
     .badge-html { color: var(--good); border-color: rgba(74,222,128,0.35); background: var(--good-soft); }
     .dup-note { font-size: var(--font-size-xs); color: var(--warning); margin-top: var(--space-2); }
     footer { margin-top: var(--space-6); font-size: var(--font-size-xs); color: var(--muted); font-family: var(--font-mono); }
+    .view-toggle {
+      display: inline-flex;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-tight);
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    .view-toggle-btn {
+      min-height: 44px;
+      min-width: 72px;
+      padding: 10px 12px;
+      border: none;
+      border-radius: 0;
+      background: rgba(255,255,255,0.04);
+      color: var(--text);
+      font-family: var(--font-sans);
+      font-size: var(--font-size-sm);
+      font-weight: 600;
+      cursor: pointer;
+      transition: background var(--transition-base), color var(--transition-base),
+        box-shadow var(--transition-base);
+    }
+    .view-toggle-btn + .view-toggle-btn { border-left: 1px solid var(--line); }
+    .view-toggle-btn:hover { background: rgba(255,255,255,0.08); }
+    .view-toggle-btn[aria-pressed="true"] {
+      background: rgba(0,232,200,0.12);
+      color: var(--accent);
+      box-shadow: inset 0 0 0 1px rgba(0,232,200,0.08);
+    }
+    .doc-card-date {
+      display: none;
+      font-family: var(--font-mono);
+      font-size: var(--font-size-xs);
+      color: var(--muted);
+      margin-top: var(--space-2);
+    }
+    body.view-list .card-grid {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-2);
+    }
+    body.view-list .doc-card {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      grid-template-rows: auto auto auto;
+      align-items: start;
+      column-gap: var(--space-4);
+      row-gap: 0;
+    }
+    body.view-list .doc-card:hover { transform: none; }
+    body.view-list .doc-card-title {
+      grid-column: 1;
+      grid-row: 1;
+      margin-bottom: var(--space-2);
+    }
+    body.view-list .doc-card-path {
+      grid-column: 1;
+      grid-row: 2;
+      margin-bottom: 0;
+    }
+    body.view-list .doc-card-date {
+      display: block;
+      grid-column: 1;
+      grid-row: 3;
+      margin-top: var(--space-2);
+    }
+    body.view-list .badges {
+      grid-column: 2;
+      grid-row: 1;
+      align-self: start;
+      justify-self: end;
+    }
+    body.view-list .dup-note {
+      grid-column: 1 / -1;
+      grid-row: 4;
+      margin-top: var(--space-2);
+    }
+    body.view-list .doc-card .dup-note:first-of-type { margin-top: var(--space-2); }
   </style>
 </head>
-<body>
+<body class="view-grid">
   <header class="page-head">
     <p class="eyebrow">Agent OS</p>
     <h1>Guides &amp; policies library</h1>
@@ -202,10 +280,14 @@
     <div class="toolbar">
       <label class="visually-hidden" for="lib-filter">Filter documents</label>
       <input type="search" id="lib-filter" class="search" placeholder="Filter by title or path…" autocomplete="off" />
+      <div class="view-toggle" role="group" aria-label="Document layout">
+        <button type="button" class="view-toggle-btn" id="lib-view-grid" aria-pressed="true">Grid</button>
+        <button type="button" class="view-toggle-btn" id="lib-view-list" aria-pressed="false">List</button>
+      </div>
       <span class="meta-chip" id="lib-stats"></span>
     </div>
   </header>
-  <p class="meta-chip" style="margin-bottom:16px">Generated 2026-04-03T11:56:48Z · 192 files · 15 categories</p>
+  <p class="meta-chip" style="margin-bottom:16px">Generated 2026-04-03T12:30:16Z · 192 files · 15 categories</p>
   <div class="callout callout-warn" role="note">
     <strong>Deduping:</strong> identical files that share a filename are flagged per card. Same name with different contents stays in the list — treat both as active until merged. See also <code>docs/reports/os-document-library-dedupe-notes.md</code>.
   </div>
@@ -216,21 +298,25 @@
       <article class="doc-card" data-search="docs/brand-charter.html brand charter">
         <div class="doc-card-title"><a href="../docs/brand-charter.html" target="_blank" rel="noopener">Brand charter</a></div>
         <div class="doc-card-path">docs/brand-charter.html</div>
+        <span class="doc-card-date">Modified 2026-04-01</span>
         <div class="badges"><span class="badge badge-html">HTML</span></div>
       </article>
       <article class="doc-card" data-search="docs/reports/business-brand-guide-v0.2-stakeholder-reviews-2026-04-02.md business brand guide v0.2 stakeholder reviews 2026 04 02">
         <div class="doc-card-title"><a href="../docs/reports/business-brand-guide-v0.2-stakeholder-reviews-2026-04-02.md" target="_blank" rel="noopener">Business brand guide v0.2 stakeholder reviews 2026 04 02</a></div>
         <div class="doc-card-path">docs/reports/business-brand-guide-v0.2-stakeholder-reviews-2026-04-02.md</div>
+        <span class="doc-card-date">Modified 2026-04-03</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="docs/reports/initial-business-plan-2026-04-01.md initial business plan 2026 04 01">
         <div class="doc-card-title"><a href="../docs/reports/initial-business-plan-2026-04-01.md" target="_blank" rel="noopener">Initial business plan 2026 04 01</a></div>
         <div class="doc-card-path">docs/reports/initial-business-plan-2026-04-01.md</div>
+        <span class="doc-card-date">Modified 2026-04-02</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="docs/mv-business-brand-guide-pamphlet.html mv business brand guide pamphlet">
         <div class="doc-card-title"><a href="../docs/mv-business-brand-guide-pamphlet.html" target="_blank" rel="noopener">Mv business brand guide pamphlet</a></div>
         <div class="doc-card-path">docs/mv-business-brand-guide-pamphlet.html</div>
+        <span class="doc-card-date">Modified 2026-04-03</span>
         <div class="badges"><span class="badge badge-html">HTML</span></div>
       </article>
     </div>
@@ -242,96 +328,115 @@
       <article class="doc-card" data-search="agents/analytics/charter.md analytics charter">
         <div class="doc-card-title"><a href="../agents/analytics/charter.md" target="_blank" rel="noopener">Analytics charter</a></div>
         <div class="doc-card-path">agents/analytics/charter.md</div>
+        <span class="doc-card-date">Modified 2026-04-02</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="agents/animation/charter.md animation charter">
         <div class="doc-card-title"><a href="../agents/animation/charter.md" target="_blank" rel="noopener">Animation charter</a></div>
         <div class="doc-card-path">agents/animation/charter.md</div>
+        <span class="doc-card-date">Modified 2026-04-02</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="agents/audio/charter.md audio charter">
         <div class="doc-card-title"><a href="../agents/audio/charter.md" target="_blank" rel="noopener">Audio charter</a></div>
         <div class="doc-card-path">agents/audio/charter.md</div>
+        <span class="doc-card-date">Modified 2026-04-02</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="agents/creative/charter.md creative charter">
         <div class="doc-card-title"><a href="../agents/creative/charter.md" target="_blank" rel="noopener">Creative charter</a></div>
         <div class="doc-card-path">agents/creative/charter.md</div>
+        <span class="doc-card-date">Modified 2026-04-02</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="agents/cybersecurity/charter.md cybersecurity charter">
         <div class="doc-card-title"><a href="../agents/cybersecurity/charter.md" target="_blank" rel="noopener">Cybersecurity charter</a></div>
         <div class="doc-card-path">agents/cybersecurity/charter.md</div>
+        <span class="doc-card-date">Modified 2026-04-02</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="agents/design/charter.md design charter">
         <div class="doc-card-title"><a href="../agents/design/charter.md" target="_blank" rel="noopener">Design charter</a></div>
         <div class="doc-card-path">agents/design/charter.md</div>
+        <span class="doc-card-date">Modified 2026-04-02</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="agents/engineering/charter.md engineering charter">
         <div class="doc-card-title"><a href="../agents/engineering/charter.md" target="_blank" rel="noopener">Engineering charter</a></div>
         <div class="doc-card-path">agents/engineering/charter.md</div>
+        <span class="doc-card-date">Modified 2026-04-02</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="agents/finance/charter.md finance charter">
         <div class="doc-card-title"><a href="../agents/finance/charter.md" target="_blank" rel="noopener">Finance charter</a></div>
         <div class="doc-card-path">agents/finance/charter.md</div>
+        <span class="doc-card-date">Modified 2026-04-02</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="agents/game-director/charter.md game director charter">
         <div class="doc-card-title"><a href="../agents/game-director/charter.md" target="_blank" rel="noopener">Game Director charter</a></div>
         <div class="doc-card-path">agents/game-director/charter.md</div>
+        <span class="doc-card-date">Modified 2026-04-02</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="agents/game-systems/charter.md game systems charter">
         <div class="doc-card-title"><a href="../agents/game-systems/charter.md" target="_blank" rel="noopener">Game Systems charter</a></div>
         <div class="doc-card-path">agents/game-systems/charter.md</div>
+        <span class="doc-card-date">Modified 2026-04-02</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="agents/legal/charter.md legal charter">
         <div class="doc-card-title"><a href="../agents/legal/charter.md" target="_blank" rel="noopener">Legal charter</a></div>
         <div class="doc-card-path">agents/legal/charter.md</div>
+        <span class="doc-card-date">Modified 2026-04-02</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="agents/level-design/charter.md level design charter">
         <div class="doc-card-title"><a href="../agents/level-design/charter.md" target="_blank" rel="noopener">Level Design charter</a></div>
         <div class="doc-card-path">agents/level-design/charter.md</div>
+        <span class="doc-card-date">Modified 2026-04-02</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="agents/marketing/charter.md marketing charter">
         <div class="doc-card-title"><a href="../agents/marketing/charter.md" target="_blank" rel="noopener">Marketing charter</a></div>
         <div class="doc-card-path">agents/marketing/charter.md</div>
+        <span class="doc-card-date">Modified 2026-04-02</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="agents/narrative/charter.md narrative charter">
         <div class="doc-card-title"><a href="../agents/narrative/charter.md" target="_blank" rel="noopener">Narrative charter</a></div>
         <div class="doc-card-path">agents/narrative/charter.md</div>
+        <span class="doc-card-date">Modified 2026-04-02</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="agents/orchestrator/charter.md orchestrator charter">
         <div class="doc-card-title"><a href="../agents/orchestrator/charter.md" target="_blank" rel="noopener">Orchestrator charter</a></div>
         <div class="doc-card-path">agents/orchestrator/charter.md</div>
+        <span class="doc-card-date">Modified 2026-04-02</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="agents/qa/charter.md qa charter">
         <div class="doc-card-title"><a href="../agents/qa/charter.md" target="_blank" rel="noopener">Qa charter</a></div>
         <div class="doc-card-path">agents/qa/charter.md</div>
+        <span class="doc-card-date">Modified 2026-04-02</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="agents/research/charter.md research charter">
         <div class="doc-card-title"><a href="../agents/research/charter.md" target="_blank" rel="noopener">Research charter</a></div>
         <div class="doc-card-path">agents/research/charter.md</div>
+        <span class="doc-card-date">Modified 2026-04-02</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="agents/strategy/charter.md strategy charter">
         <div class="doc-card-title"><a href="../agents/strategy/charter.md" target="_blank" rel="noopener">Strategy charter</a></div>
         <div class="doc-card-path">agents/strategy/charter.md</div>
+        <span class="doc-card-date">Modified 2026-04-02</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="agents/support/charter.md support charter">
         <div class="doc-card-title"><a href="../agents/support/charter.md" target="_blank" rel="noopener">Support charter</a></div>
         <div class="doc-card-path">agents/support/charter.md</div>
+        <span class="doc-card-date">Modified 2026-04-02</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
     </div>
@@ -343,11 +448,13 @@
       <article class="doc-card" data-search="agents.md agents">
         <div class="doc-card-title"><a href="../AGENTS.md" target="_blank" rel="noopener">AGENTS</a></div>
         <div class="doc-card-path">AGENTS.md</div>
+        <span class="doc-card-date">Modified 2026-04-02</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="claude.md claude">
         <div class="doc-card-title"><a href="../CLAUDE.md" target="_blank" rel="noopener">CLAUDE</a></div>
         <div class="doc-card-path">CLAUDE.md</div>
+        <span class="doc-card-date">Modified 2026-03-28</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
     </div>
@@ -359,36 +466,43 @@
       <article class="doc-card" data-search="prompts/labyrinth_layout_plan.md labyrinth layout plan">
         <div class="doc-card-title"><a href="../prompts/labyrinth_layout_plan.md" target="_blank" rel="noopener">Labyrinth layout plan</a></div>
         <div class="doc-card-path">prompts/labyrinth_layout_plan.md</div>
+        <span class="doc-card-date">Modified 2026-03-06</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="prompts/level_design_spec.md level design spec">
         <div class="doc-card-title"><a href="../prompts/level_design_spec.md" target="_blank" rel="noopener">Level design spec</a></div>
         <div class="doc-card-path">prompts/level_design_spec.md</div>
+        <span class="doc-card-date">Modified 2026-03-06</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="prompts/metroidvania_single_room_guide.md metroidvania single room guide">
         <div class="doc-card-title"><a href="../prompts/metroidvania_single_room_guide.md" target="_blank" rel="noopener">Metroidvania single room guide</a></div>
         <div class="doc-card-path">prompts/metroidvania_single_room_guide.md</div>
+        <span class="doc-card-date">Modified 2026-03-06</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="prompts/project_overview.md project overview">
         <div class="doc-card-title"><a href="../prompts/project_overview.md" target="_blank" rel="noopener">Project overview</a></div>
         <div class="doc-card-path">prompts/project_overview.md</div>
+        <span class="doc-card-date">Modified 2026-03-06</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="prompts/project_plan.md project plan">
         <div class="doc-card-title"><a href="../prompts/project_plan.md" target="_blank" rel="noopener">Project plan</a></div>
         <div class="doc-card-path">prompts/project_plan.md</div>
+        <span class="doc-card-date">Modified 2026-03-28</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="readme.md readme">
         <div class="doc-card-title"><a href="../README.md" target="_blank" rel="noopener">README</a></div>
         <div class="doc-card-path">README.md</div>
+        <span class="doc-card-date">Modified 2026-04-03</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="tests/readme.md readme">
         <div class="doc-card-title"><a href="../tests/README.md" target="_blank" rel="noopener">README</a></div>
         <div class="doc-card-path">tests/README.md</div>
+        <span class="doc-card-date">Modified 2026-03-27</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
     </div>
@@ -400,101 +514,121 @@
       <article class="doc-card" data-search="knowledge/ai-capabilities-q1-2026.md ai capabilities q1 2026">
         <div class="doc-card-title"><a href="../knowledge/ai-capabilities-q1-2026.md" target="_blank" rel="noopener">Ai capabilities q1 2026</a></div>
         <div class="doc-card-path">knowledge/ai-capabilities-q1-2026.md</div>
+        <span class="doc-card-date">Modified 2026-03-28</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="templates/approval-matrix.md approval matrix">
         <div class="doc-card-title"><a href="../templates/approval-matrix.md" target="_blank" rel="noopener">Approval matrix</a></div>
         <div class="doc-card-path">templates/approval-matrix.md</div>
+        <span class="doc-card-date">Modified 2026-03-28</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="playbooks/brainstorming-session.md brainstorming session">
         <div class="doc-card-title"><a href="../playbooks/brainstorming-session.md" target="_blank" rel="noopener">Brainstorming session</a></div>
         <div class="doc-card-path">playbooks/brainstorming-session.md</div>
+        <span class="doc-card-date">Modified 2026-03-28</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="templates/brainstorming-summary.md brainstorming summary">
         <div class="doc-card-title"><a href="../templates/brainstorming-summary.md" target="_blank" rel="noopener">Brainstorming summary</a></div>
         <div class="doc-card-path">templates/brainstorming-summary.md</div>
+        <span class="doc-card-date">Modified 2026-03-28</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="templates/daily-product-report.md daily product report">
         <div class="doc-card-title"><a href="../templates/daily-product-report.md" target="_blank" rel="noopener">Daily product report</a></div>
         <div class="doc-card-path">templates/daily-product-report.md</div>
+        <span class="doc-card-date">Modified 2026-04-01</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="templates/decision-brief.md decision brief">
         <div class="doc-card-title"><a href="../templates/decision-brief.md" target="_blank" rel="noopener">Decision brief</a></div>
         <div class="doc-card-path">templates/decision-brief.md</div>
+        <span class="doc-card-date">Modified 2026-03-28</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="templates/directive-summary.md directive summary">
         <div class="doc-card-title"><a href="../templates/directive-summary.md" target="_blank" rel="noopener">Directive summary</a></div>
         <div class="doc-card-path">templates/directive-summary.md</div>
+        <span class="doc-card-date">Modified 2026-03-29</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="templates/escalation-alert.md escalation alert">
         <div class="doc-card-title"><a href="../templates/escalation-alert.md" target="_blank" rel="noopener">Escalation alert</a></div>
         <div class="doc-card-path">templates/escalation-alert.md</div>
+        <span class="doc-card-date">Modified 2026-03-28</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="templates/external-checkpoint-review.md external checkpoint review">
         <div class="doc-card-title"><a href="../templates/external-checkpoint-review.md" target="_blank" rel="noopener">External checkpoint review</a></div>
         <div class="doc-card-path">templates/external-checkpoint-review.md</div>
+        <span class="doc-card-date">Modified 2026-04-02</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="playbooks/external-checkpoint-validation.md external checkpoint validation">
         <div class="doc-card-title"><a href="../playbooks/external-checkpoint-validation.md" target="_blank" rel="noopener">External checkpoint validation</a></div>
         <div class="doc-card-path">playbooks/external-checkpoint-validation.md</div>
+        <span class="doc-card-date">Modified 2026-04-02</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="templates/incident-report.md incident report">
         <div class="doc-card-title"><a href="../templates/incident-report.md" target="_blank" rel="noopener">Incident report</a></div>
         <div class="doc-card-path">templates/incident-report.md</div>
+        <span class="doc-card-date">Modified 2026-03-28</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="playbooks/incident-response.md incident response">
         <div class="doc-card-title"><a href="../playbooks/incident-response.md" target="_blank" rel="noopener">Incident response</a></div>
         <div class="doc-card-path">playbooks/incident-response.md</div>
+        <span class="doc-card-date">Modified 2026-03-28</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="templates/launch-readiness.md launch readiness">
         <div class="doc-card-title"><a href="../templates/launch-readiness.md" target="_blank" rel="noopener">Launch readiness</a></div>
         <div class="doc-card-path">templates/launch-readiness.md</div>
+        <span class="doc-card-date">Modified 2026-03-28</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="playbooks/legal-review-ai-assets.md legal review ai assets">
         <div class="doc-card-title"><a href="../playbooks/legal-review-ai-assets.md" target="_blank" rel="noopener">Legal review ai assets</a></div>
         <div class="doc-card-path">playbooks/legal-review-ai-assets.md</div>
+        <span class="doc-card-date">Modified 2026-03-28</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="knowledge/metroidvania-design.md metroidvania design">
         <div class="doc-card-title"><a href="../knowledge/metroidvania-design.md" target="_blank" rel="noopener">Metroidvania design</a></div>
         <div class="doc-card-path">knowledge/metroidvania-design.md</div>
+        <span class="doc-card-date">Modified 2026-03-28</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="playbooks/pricing-review.md pricing review">
         <div class="doc-card-title"><a href="../playbooks/pricing-review.md" target="_blank" rel="noopener">Pricing review</a></div>
         <div class="doc-card-path">playbooks/pricing-review.md</div>
+        <span class="doc-card-date">Modified 2026-03-28</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="knowledge/readme.md readme">
         <div class="doc-card-title"><a href="../knowledge/README.md" target="_blank" rel="noopener">README</a></div>
         <div class="doc-card-path">knowledge/README.md</div>
+        <span class="doc-card-date">Modified 2026-03-28</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="playbooks/release-readiness.md release readiness">
         <div class="doc-card-title"><a href="../playbooks/release-readiness.md" target="_blank" rel="noopener">Release readiness</a></div>
         <div class="doc-card-path">playbooks/release-readiness.md</div>
+        <span class="doc-card-date">Modified 2026-03-28</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="templates/weekly-founder-digest.md weekly founder digest">
         <div class="doc-card-title"><a href="../templates/weekly-founder-digest.md" target="_blank" rel="noopener">Weekly founder digest</a></div>
         <div class="doc-card-path">templates/weekly-founder-digest.md</div>
+        <span class="doc-card-date">Modified 2026-03-28</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="playbooks/weekly-founder-review.md weekly founder review">
         <div class="doc-card-title"><a href="../playbooks/weekly-founder-review.md" target="_blank" rel="noopener">Weekly founder review</a></div>
         <div class="doc-card-path">playbooks/weekly-founder-review.md</div>
+        <span class="doc-card-date">Modified 2026-03-28</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
     </div>
@@ -506,6 +640,7 @@
       <article class="doc-card" data-search="style_guide.md style guide">
         <div class="doc-card-title"><a href="../STYLE_GUIDE.md" target="_blank" rel="noopener">STYLE GUIDE</a></div>
         <div class="doc-card-path">STYLE_GUIDE.md</div>
+        <span class="doc-card-date">Modified 2026-04-02</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
     </div>
@@ -517,41 +652,49 @@
       <article class="doc-card" data-search="docs/branch-behavior-v1.md branch behavior v1">
         <div class="doc-card-title"><a href="../docs/branch-behavior-v1.md" target="_blank" rel="noopener">Branch behavior v1</a></div>
         <div class="doc-card-path">docs/branch-behavior-v1.md</div>
+        <span class="doc-card-date">Modified 2026-03-09</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="docs/gate-state-spec-v1.md gate state spec v1">
         <div class="doc-card-title"><a href="../docs/gate-state-spec-v1.md" target="_blank" rel="noopener">Gate state spec v1</a></div>
         <div class="doc-card-path">docs/gate-state-spec-v1.md</div>
+        <span class="doc-card-date">Modified 2026-03-08</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="docs/map-graph-v1.md map graph v1">
         <div class="doc-card-title"><a href="../docs/map-graph-v1.md" target="_blank" rel="noopener">Map graph v1</a></div>
         <div class="doc-card-path">docs/map-graph-v1.md</div>
+        <span class="doc-card-date">Modified 2026-03-08</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="docs/map-mvp-constraints.md map mvp constraints">
         <div class="doc-card-title"><a href="../docs/map-mvp-constraints.md" target="_blank" rel="noopener">Map mvp constraints</a></div>
         <div class="doc-card-path">docs/map-mvp-constraints.md</div>
+        <span class="doc-card-date">Modified 2026-03-08</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="docs/navigation-no-guidance-test-log-v1.md navigation no guidance test log v1">
         <div class="doc-card-title"><a href="../docs/navigation-no-guidance-test-log-v1.md" target="_blank" rel="noopener">Navigation no guidance test log v1</a></div>
         <div class="doc-card-path">docs/navigation-no-guidance-test-log-v1.md</div>
+        <span class="doc-card-date">Modified 2026-03-09</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="docs/progression-unlocks-v1.md progression unlocks v1">
         <div class="doc-card-title"><a href="../docs/progression-unlocks-v1.md" target="_blank" rel="noopener">Progression unlocks v1</a></div>
         <div class="doc-card-path">docs/progression-unlocks-v1.md</div>
+        <span class="doc-card-date">Modified 2026-03-08</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="docs/readability-pass-v1.md readability pass v1">
         <div class="doc-card-title"><a href="../docs/readability-pass-v1.md" target="_blank" rel="noopener">Readability pass v1</a></div>
         <div class="doc-card-path">docs/readability-pass-v1.md</div>
+        <span class="doc-card-date">Modified 2026-03-09</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="docs/room-layout-iteration-plan.md room layout iteration plan">
         <div class="doc-card-title"><a href="../docs/room-layout-iteration-plan.md" target="_blank" rel="noopener">Room layout iteration plan</a></div>
         <div class="doc-card-path">docs/room-layout-iteration-plan.md</div>
+        <span class="doc-card-date">Modified 2026-03-09</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
     </div>
@@ -563,96 +706,115 @@
       <article class="doc-card" data-search="docs/analytics-dashboard-kpis.md analytics dashboard kpis">
         <div class="doc-card-title"><a href="../docs/analytics-dashboard-kpis.md" target="_blank" rel="noopener">Analytics dashboard kpis</a></div>
         <div class="doc-card-path">docs/analytics-dashboard-kpis.md</div>
+        <span class="doc-card-date">Modified 2026-03-30</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="docs/cross-tool-usage.md cross tool usage">
         <div class="doc-card-title"><a href="../docs/cross-tool-usage.md" target="_blank" rel="noopener">Cross tool usage</a></div>
         <div class="doc-card-path">docs/cross-tool-usage.md</div>
+        <span class="doc-card-date">Modified 2026-03-28</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="docs/diagrams/room-environment-v3/index.md index">
         <div class="doc-card-title"><a href="../docs/diagrams/room-environment-v3/index.md" target="_blank" rel="noopener">Index</a></div>
         <div class="doc-card-path">docs/diagrams/room-environment-v3/index.md</div>
+        <span class="doc-card-date">Modified 2026-04-02</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="docs/room-creation-wizard-plan.md room creation wizard plan">
         <div class="doc-card-title"><a href="../docs/room-creation-wizard-plan.md" target="_blank" rel="noopener">Room creation wizard plan</a></div>
         <div class="doc-card-path">docs/room-creation-wizard-plan.md</div>
+        <span class="doc-card-date">Modified 2026-03-27</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="docs/room-editor-agent-task-spec.md room editor agent task spec">
         <div class="doc-card-title"><a href="../docs/room-editor-agent-task-spec.md" target="_blank" rel="noopener">Room editor agent task spec</a></div>
         <div class="doc-card-path">docs/room-editor-agent-task-spec.md</div>
+        <span class="doc-card-date">Modified 2026-03-27</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="docs/room-editor-creative-decisions.md room editor creative decisions">
         <div class="doc-card-title"><a href="../docs/room-editor-creative-decisions.md" target="_blank" rel="noopener">Room editor creative decisions</a></div>
         <div class="doc-card-path">docs/room-editor-creative-decisions.md</div>
+        <span class="doc-card-date">Modified 2026-03-27</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="docs/room-editor-overhaul-plan.md room editor overhaul plan">
         <div class="doc-card-title"><a href="../docs/room-editor-overhaul-plan.md" target="_blank" rel="noopener">Room editor overhaul plan</a></div>
         <div class="doc-card-path">docs/room-editor-overhaul-plan.md</div>
+        <span class="doc-card-date">Modified 2026-03-28</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="docs/room-editor-workbench-execution-plan.md room editor workbench execution plan">
         <div class="doc-card-title"><a href="../docs/room-editor-workbench-execution-plan.md" target="_blank" rel="noopener">Room editor workbench execution plan</a></div>
         <div class="doc-card-path">docs/room-editor-workbench-execution-plan.md</div>
+        <span class="doc-card-date">Modified 2026-03-28</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="docs/room-editor-workbench-integration-plan.md room editor workbench integration plan">
         <div class="doc-card-title"><a href="../docs/room-editor-workbench-integration-plan.md" target="_blank" rel="noopener">Room editor workbench integration plan</a></div>
         <div class="doc-card-path">docs/room-editor-workbench-integration-plan.md</div>
+        <span class="doc-card-date">Modified 2026-03-28</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="docs/room-environment-pipeline-v3-software-requirements.md room environment pipeline v3 software requirements">
         <div class="doc-card-title"><a href="../docs/room-environment-pipeline-v3-software-requirements.md" target="_blank" rel="noopener">Room environment pipeline v3 software requirements</a></div>
         <div class="doc-card-path">docs/room-environment-pipeline-v3-software-requirements.md</div>
+        <span class="doc-card-date">Modified 2026-04-02</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="docs/room-environment-pipeline-v3-spec.md room environment pipeline v3 spec">
         <div class="doc-card-title"><a href="../docs/room-environment-pipeline-v3-spec.md" target="_blank" rel="noopener">Room environment pipeline v3 spec</a></div>
         <div class="doc-card-path">docs/room-environment-pipeline-v3-spec.md</div>
+        <span class="doc-card-date">Modified 2026-04-02</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="docs/room-layout-validation.md room layout validation">
         <div class="doc-card-title"><a href="../docs/room-layout-validation.md" target="_blank" rel="noopener">Room layout validation</a></div>
         <div class="doc-card-path">docs/room-layout-validation.md</div>
+        <span class="doc-card-date">Modified 2026-03-27</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="docs/room-wizard-implementation-sprints.md room wizard implementation sprints">
         <div class="doc-card-title"><a href="../docs/room-wizard-implementation-sprints.md" target="_blank" rel="noopener">Room wizard implementation sprints</a></div>
         <div class="doc-card-path">docs/room-wizard-implementation-sprints.md</div>
+        <span class="doc-card-date">Modified 2026-03-28</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="docs/sprite-workbench-overhaul-plan.md sprite workbench overhaul plan">
         <div class="doc-card-title"><a href="../docs/sprite-workbench-overhaul-plan.md" target="_blank" rel="noopener">Sprite workbench overhaul plan</a></div>
         <div class="doc-card-path">docs/sprite-workbench-overhaul-plan.md</div>
+        <span class="doc-card-date">Modified 2026-03-20</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="docs/sprite-workbench-phaser-handoff.md sprite workbench phaser handoff">
         <div class="doc-card-title"><a href="../docs/sprite-workbench-phaser-handoff.md" target="_blank" rel="noopener">Sprite workbench phaser handoff</a></div>
         <div class="doc-card-path">docs/sprite-workbench-phaser-handoff.md</div>
+        <span class="doc-card-date">Modified 2026-03-26</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="docs/sprite-workbench-runtime-export-contract.md sprite workbench runtime export contract">
         <div class="doc-card-title"><a href="../docs/sprite-workbench-runtime-export-contract.md" target="_blank" rel="noopener">Sprite workbench runtime export contract</a></div>
         <div class="doc-card-path">docs/sprite-workbench-runtime-export-contract.md</div>
+        <span class="doc-card-date">Modified 2026-03-26</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="docs/sprite-workbench-stabilization-plan.md sprite workbench stabilization plan">
         <div class="doc-card-title"><a href="../docs/sprite-workbench-stabilization-plan.md" target="_blank" rel="noopener">Sprite workbench stabilization plan</a></div>
         <div class="doc-card-path">docs/sprite-workbench-stabilization-plan.md</div>
+        <span class="doc-card-date">Modified 2026-03-24</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="docs/sprite-workbench-stage-audit-and-action-plan.md sprite workbench stage audit and action plan">
         <div class="doc-card-title"><a href="../docs/sprite-workbench-stage-audit-and-action-plan.md" target="_blank" rel="noopener">Sprite workbench stage audit and action plan</a></div>
         <div class="doc-card-path">docs/sprite-workbench-stage-audit-and-action-plan.md</div>
+        <span class="doc-card-date">Modified 2026-03-24</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="docs/design/workbench-feedback-root-cause.md workbench feedback root cause">
         <div class="doc-card-title"><a href="../docs/design/workbench-feedback-root-cause.md" target="_blank" rel="noopener">Workbench feedback root cause</a></div>
         <div class="doc-card-path">docs/design/workbench-feedback-root-cause.md</div>
+        <span class="doc-card-date">Modified 2026-03-29</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
     </div>
@@ -664,111 +826,133 @@
       <article class="doc-card" data-search="tools/2d-sprite-and-animation/docs/canonical-downstream-contract.md canonical downstream contract">
         <div class="doc-card-title"><a href="../tools/2d-sprite-and-animation/docs/CANONICAL-DOWNSTREAM-CONTRACT.md" target="_blank" rel="noopener">CANONICAL DOWNSTREAM CONTRACT</a></div>
         <div class="doc-card-path">tools/2d-sprite-and-animation/docs/CANONICAL-DOWNSTREAM-CONTRACT.md</div>
+        <span class="doc-card-date">Modified 2026-03-17</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="tools/2d-sprite-and-animation/docs/archive/comfy-integration-setup.md comfy integration setup">
         <div class="doc-card-title"><a href="../tools/2d-sprite-and-animation/docs/archive/Comfy-Integration-Setup.md" target="_blank" rel="noopener">Comfy Integration Setup</a></div>
         <div class="doc-card-path">tools/2d-sprite-and-animation/docs/archive/Comfy-Integration-Setup.md</div>
+        <span class="doc-card-date">Modified 2026-03-17</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="tools/2d-sprite-and-animation/docs/archive/handover-spec-review.md handover spec review">
         <div class="doc-card-title"><a href="../tools/2d-sprite-and-animation/docs/archive/Handover-Spec-Review.md" target="_blank" rel="noopener">Handover Spec Review</a></div>
         <div class="doc-card-path">tools/2d-sprite-and-animation/docs/archive/Handover-Spec-Review.md</div>
+        <span class="doc-card-date">Modified 2026-03-13</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="tools/2d-sprite-and-animation/docs/how-to-use-ai-workflow.md how to use ai workflow">
         <div class="doc-card-title"><a href="../tools/2d-sprite-and-animation/docs/How-To-Use-AI-Workflow.md" target="_blank" rel="noopener">How To Use AI Workflow</a></div>
         <div class="doc-card-path">tools/2d-sprite-and-animation/docs/How-To-Use-AI-Workflow.md</div>
+        <span class="doc-card-date">Modified 2026-03-17</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="tools/2d-sprite-and-animation/docs/archive/design-options/round-2/hybrid-1-beacon.html hybrid 1 beacon">
         <div class="doc-card-title"><a href="../tools/2d-sprite-and-animation/docs/archive/design-options/round-2/hybrid-1-beacon.html" target="_blank" rel="noopener">Hybrid 1 beacon</a></div>
         <div class="doc-card-path">tools/2d-sprite-and-animation/docs/archive/design-options/round-2/hybrid-1-beacon.html</div>
+        <span class="doc-card-date">Modified 2026-03-20</span>
         <div class="badges"><span class="badge badge-html">HTML</span></div>
       </article>
       <article class="doc-card" data-search="tools/2d-sprite-and-animation/docs/archive/design-options/round-2/hybrid-2-stage.html hybrid 2 stage">
         <div class="doc-card-title"><a href="../tools/2d-sprite-and-animation/docs/archive/design-options/round-2/hybrid-2-stage.html" target="_blank" rel="noopener">Hybrid 2 stage</a></div>
         <div class="doc-card-path">tools/2d-sprite-and-animation/docs/archive/design-options/round-2/hybrid-2-stage.html</div>
+        <span class="doc-card-date">Modified 2026-03-20</span>
         <div class="badges"><span class="badge badge-html">HTML</span></div>
       </article>
       <article class="doc-card" data-search="tools/2d-sprite-and-animation/docs/archive/design-options/round-2/hybrid-3-flightdeck.html hybrid 3 flightdeck">
         <div class="doc-card-title"><a href="../tools/2d-sprite-and-animation/docs/archive/design-options/round-2/hybrid-3-flightdeck.html" target="_blank" rel="noopener">Hybrid 3 flightdeck</a></div>
         <div class="doc-card-path">tools/2d-sprite-and-animation/docs/archive/design-options/round-2/hybrid-3-flightdeck.html</div>
+        <span class="doc-card-date">Modified 2026-03-20</span>
         <div class="badges"><span class="badge badge-html">HTML</span></div>
       </article>
       <article class="doc-card" data-search="tools/2d-sprite-and-animation/docs/archive/iteration-ui-ux-plan.md iteration ui ux plan">
         <div class="doc-card-title"><a href="../tools/2d-sprite-and-animation/docs/archive/ITERATION-UI-UX-PLAN.md" target="_blank" rel="noopener">ITERATION UI UX PLAN</a></div>
         <div class="doc-card-path">tools/2d-sprite-and-animation/docs/archive/ITERATION-UI-UX-PLAN.md</div>
+        <span class="doc-card-date">Modified 2026-03-21</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="tools/2d-sprite-and-animation/docs/archive/next-iteration-agent-handover.md next iteration agent handover">
         <div class="doc-card-title"><a href="../tools/2d-sprite-and-animation/docs/archive/Next-Iteration-Agent-Handover.md" target="_blank" rel="noopener">Next Iteration Agent Handover</a></div>
         <div class="doc-card-path">tools/2d-sprite-and-animation/docs/archive/Next-Iteration-Agent-Handover.md</div>
+        <span class="doc-card-date">Modified 2026-03-13</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="tools/2d-sprite-and-animation/docs/archive/design-options/project-panel-options/option-1-compact-list.html option 1 compact list">
         <div class="doc-card-title"><a href="../tools/2d-sprite-and-animation/docs/archive/design-options/project-panel-options/option-1-compact-list.html" target="_blank" rel="noopener">Option 1 compact list</a></div>
         <div class="doc-card-path">tools/2d-sprite-and-animation/docs/archive/design-options/project-panel-options/option-1-compact-list.html</div>
+        <span class="doc-card-date">Modified 2026-03-20</span>
         <div class="badges"><span class="badge badge-html">HTML</span></div>
       </article>
       <article class="doc-card" data-search="tools/2d-sprite-and-animation/docs/archive/design-options/project-panel-options/option-2-sections.html option 2 sections">
         <div class="doc-card-title"><a href="../tools/2d-sprite-and-animation/docs/archive/design-options/project-panel-options/option-2-sections.html" target="_blank" rel="noopener">Option 2 sections</a></div>
         <div class="doc-card-path">tools/2d-sprite-and-animation/docs/archive/design-options/project-panel-options/option-2-sections.html</div>
+        <span class="doc-card-date">Modified 2026-03-20</span>
         <div class="badges"><span class="badge badge-html">HTML</span></div>
       </article>
       <article class="doc-card" data-search="tools/2d-sprite-and-animation/docs/archive/design-options/project-panel-options/option-3-table.html option 3 table">
         <div class="doc-card-title"><a href="../tools/2d-sprite-and-animation/docs/archive/design-options/project-panel-options/option-3-table.html" target="_blank" rel="noopener">Option 3 table</a></div>
         <div class="doc-card-path">tools/2d-sprite-and-animation/docs/archive/design-options/project-panel-options/option-3-table.html</div>
+        <span class="doc-card-date">Modified 2026-03-20</span>
         <div class="badges"><span class="badge badge-html">HTML</span></div>
       </article>
       <article class="doc-card" data-search="tools/2d-sprite-and-animation/docs/archive/design-options/option-a-signal.html option a signal">
         <div class="doc-card-title"><a href="../tools/2d-sprite-and-animation/docs/archive/design-options/option-a-signal.html" target="_blank" rel="noopener">Option a signal</a></div>
         <div class="doc-card-path">tools/2d-sprite-and-animation/docs/archive/design-options/option-a-signal.html</div>
+        <span class="doc-card-date">Modified 2026-03-20</span>
         <div class="badges"><span class="badge badge-html">HTML</span></div>
       </article>
       <article class="doc-card" data-search="tools/2d-sprite-and-animation/docs/archive/design-options/option-b-studio.html option b studio">
         <div class="doc-card-title"><a href="../tools/2d-sprite-and-animation/docs/archive/design-options/option-b-studio.html" target="_blank" rel="noopener">Option b studio</a></div>
         <div class="doc-card-path">tools/2d-sprite-and-animation/docs/archive/design-options/option-b-studio.html</div>
+        <span class="doc-card-date">Modified 2026-03-20</span>
         <div class="badges"><span class="badge badge-html">HTML</span></div>
       </article>
       <article class="doc-card" data-search="tools/2d-sprite-and-animation/docs/archive/design-options/option-c-atlas.html option c atlas">
         <div class="doc-card-title"><a href="../tools/2d-sprite-and-animation/docs/archive/design-options/option-c-atlas.html" target="_blank" rel="noopener">Option c atlas</a></div>
         <div class="doc-card-path">tools/2d-sprite-and-animation/docs/archive/design-options/option-c-atlas.html</div>
+        <span class="doc-card-date">Modified 2026-03-20</span>
         <div class="badges"><span class="badge badge-html">HTML</span></div>
       </article>
       <article class="doc-card" data-search="tools/2d-sprite-and-animation/docs/archive/production-ready-concept-to-sprite-spec.md production ready concept to sprite spec">
         <div class="doc-card-title"><a href="../tools/2d-sprite-and-animation/docs/archive/Production-Ready-Concept-To-Sprite-Spec.md" target="_blank" rel="noopener">Production Ready Concept To Sprite Spec</a></div>
         <div class="doc-card-path">tools/2d-sprite-and-animation/docs/archive/Production-Ready-Concept-To-Sprite-Spec.md</div>
+        <span class="doc-card-date">Modified 2026-03-13</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="tools/2d-sprite-and-animation/docs/room-layout-validation.md room layout validation">
         <div class="doc-card-title"><a href="../tools/2d-sprite-and-animation/docs/Room-Layout-Validation.md" target="_blank" rel="noopener">Room Layout Validation</a></div>
         <div class="doc-card-path">tools/2d-sprite-and-animation/docs/Room-Layout-Validation.md</div>
+        <span class="doc-card-date">Modified 2026-03-27</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="tools/2d-sprite-and-animation/docs/archive/design-options/round-3-compare.html round 3 compare">
         <div class="doc-card-title"><a href="../tools/2d-sprite-and-animation/docs/archive/design-options/round-3-compare.html" target="_blank" rel="noopener">Round 3 compare</a></div>
         <div class="doc-card-path">tools/2d-sprite-and-animation/docs/archive/design-options/round-3-compare.html</div>
+        <span class="doc-card-date">Modified 2026-03-21</span>
         <div class="badges"><span class="badge badge-html">HTML</span></div>
       </article>
       <article class="doc-card" data-search="tools/2d-sprite-and-animation/docs/archive/design-options/round-4-compare.html round 4 compare">
         <div class="doc-card-title"><a href="../tools/2d-sprite-and-animation/docs/archive/design-options/round-4-compare.html" target="_blank" rel="noopener">Round 4 compare</a></div>
         <div class="doc-card-path">tools/2d-sprite-and-animation/docs/archive/design-options/round-4-compare.html</div>
+        <span class="doc-card-date">Modified 2026-03-21</span>
         <div class="badges"><span class="badge badge-html">HTML</span></div>
       </article>
       <article class="doc-card" data-search="tools/2d-sprite-and-animation/docs/archive/skelform-integration-notes.md skelform integration notes">
         <div class="doc-card-title"><a href="../tools/2d-sprite-and-animation/docs/archive/SkelForm-Integration-Notes.md" target="_blank" rel="noopener">SkelForm Integration Notes</a></div>
         <div class="doc-card-path">tools/2d-sprite-and-animation/docs/archive/SkelForm-Integration-Notes.md</div>
+        <span class="doc-card-date">Modified 2026-03-17</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="tools/2d-sprite-and-animation/docs/archive/solo-ai-sprite-workbench-spec.md solo ai sprite workbench spec">
         <div class="doc-card-title"><a href="../tools/2d-sprite-and-animation/docs/archive/Solo-AI-Sprite-Workbench-Spec.md" target="_blank" rel="noopener">Solo AI Sprite Workbench Spec</a></div>
         <div class="doc-card-path">tools/2d-sprite-and-animation/docs/archive/Solo-AI-Sprite-Workbench-Spec.md</div>
+        <span class="doc-card-date">Modified 2026-03-13</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="tools/2d-sprite-and-animation/docs/archive/wizard-ux-agent-handover.md wizard ux agent handover">
         <div class="doc-card-title"><a href="../tools/2d-sprite-and-animation/docs/archive/Wizard-UX-Agent-Handover.md" target="_blank" rel="noopener">Wizard UX Agent Handover</a></div>
         <div class="doc-card-path">tools/2d-sprite-and-animation/docs/archive/Wizard-UX-Agent-Handover.md</div>
+        <span class="doc-card-date">Modified 2026-03-13</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
     </div>
@@ -780,131 +964,157 @@
       <article class="doc-card" data-search="docs/reports/agent-guardrail-enforcement-audit-2026-04-02.md agent guardrail enforcement audit 2026 04 02">
         <div class="doc-card-title"><a href="../docs/reports/agent-guardrail-enforcement-audit-2026-04-02.md" target="_blank" rel="noopener">Agent guardrail enforcement audit 2026 04 02</a></div>
         <div class="doc-card-path">docs/reports/agent-guardrail-enforcement-audit-2026-04-02.md</div>
+        <span class="doc-card-date">Modified 2026-04-03</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="docs/reports/agent-review-index-room-environment-v3-2026-04-01.md agent review index room environment v3 2026 04 01">
         <div class="doc-card-title"><a href="../docs/reports/agent-review-index-room-environment-v3-2026-04-01.md" target="_blank" rel="noopener">Agent review index room environment v3 2026 04 01</a></div>
         <div class="doc-card-path">docs/reports/agent-review-index-room-environment-v3-2026-04-01.md</div>
+        <span class="doc-card-date">Modified 2026-04-02</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="docs/reports/agent-review-request-creative-room-environment-v3-2026-04-01.md agent review request creative room environment v3 2026 04 01">
         <div class="doc-card-title"><a href="../docs/reports/agent-review-request-creative-room-environment-v3-2026-04-01.md" target="_blank" rel="noopener">Agent review request creative room environment v3 2026 04 01</a></div>
         <div class="doc-card-path">docs/reports/agent-review-request-creative-room-environment-v3-2026-04-01.md</div>
+        <span class="doc-card-date">Modified 2026-04-02</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="docs/reports/agent-review-request-design-room-environment-v3-2026-04-01.md agent review request design room environment v3 2026 04 01">
         <div class="doc-card-title"><a href="../docs/reports/agent-review-request-design-room-environment-v3-2026-04-01.md" target="_blank" rel="noopener">Agent review request design room environment v3 2026 04 01</a></div>
         <div class="doc-card-path">docs/reports/agent-review-request-design-room-environment-v3-2026-04-01.md</div>
+        <span class="doc-card-date">Modified 2026-04-02</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="docs/reports/agent-review-request-engineering-room-environment-v3-2026-04-01.md agent review request engineering room environment v3 2026 04 01">
         <div class="doc-card-title"><a href="../docs/reports/agent-review-request-engineering-room-environment-v3-2026-04-01.md" target="_blank" rel="noopener">Agent review request engineering room environment v3 2026 04 01</a></div>
         <div class="doc-card-path">docs/reports/agent-review-request-engineering-room-environment-v3-2026-04-01.md</div>
+        <span class="doc-card-date">Modified 2026-04-02</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="docs/reports/agent-review-request-game-director-room-environment-v3-2026-04-01.md agent review request game director room environment v3 2026 04 01">
         <div class="doc-card-title"><a href="../docs/reports/agent-review-request-game-director-room-environment-v3-2026-04-01.md" target="_blank" rel="noopener">Agent review request game director room environment v3 2026 04 01</a></div>
         <div class="doc-card-path">docs/reports/agent-review-request-game-director-room-environment-v3-2026-04-01.md</div>
+        <span class="doc-card-date">Modified 2026-04-02</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="docs/reports/agent-review-request-orchestrator-room-environment-v3-2026-04-01.md agent review request orchestrator room environment v3 2026 04 01">
         <div class="doc-card-title"><a href="../docs/reports/agent-review-request-orchestrator-room-environment-v3-2026-04-01.md" target="_blank" rel="noopener">Agent review request orchestrator room environment v3 2026 04 01</a></div>
         <div class="doc-card-path">docs/reports/agent-review-request-orchestrator-room-environment-v3-2026-04-01.md</div>
+        <span class="doc-card-date">Modified 2026-04-02</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="docs/reports/agent-review-request-qa-room-environment-v3-2026-04-01.md agent review request qa room environment v3 2026 04 01">
         <div class="doc-card-title"><a href="../docs/reports/agent-review-request-qa-room-environment-v3-2026-04-01.md" target="_blank" rel="noopener">Agent review request qa room environment v3 2026 04 01</a></div>
         <div class="doc-card-path">docs/reports/agent-review-request-qa-room-environment-v3-2026-04-01.md</div>
+        <span class="doc-card-date">Modified 2026-04-02</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="docs/reports/design-review-ashen-hollow-art-bible-v0.2.md design review ashen hollow art bible v0.2">
         <div class="doc-card-title"><a href="../docs/reports/design-review-ashen-hollow-art-bible-v0.2.md" target="_blank" rel="noopener">Design review ashen hollow art bible v0.2</a></div>
         <div class="doc-card-path">docs/reports/design-review-ashen-hollow-art-bible-v0.2.md</div>
+        <span class="doc-card-date">Modified 2026-04-02</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="docs/reports/os-document-library-dedupe-notes.md os document library dedupe notes">
         <div class="doc-card-title"><a href="../docs/reports/os-document-library-dedupe-notes.md" target="_blank" rel="noopener">Os document library dedupe notes</a></div>
         <div class="doc-card-path">docs/reports/os-document-library-dedupe-notes.md</div>
+        <span class="doc-card-date">Modified 2026-04-03</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="docs/reports/room-environment-v3-creative-review-2026-04-01.md room environment v3 creative review 2026 04 01">
         <div class="doc-card-title"><a href="../docs/reports/room-environment-v3-creative-review-2026-04-01.md" target="_blank" rel="noopener">Room environment v3 creative review 2026 04 01</a></div>
         <div class="doc-card-path">docs/reports/room-environment-v3-creative-review-2026-04-01.md</div>
+        <span class="doc-card-date">Modified 2026-04-02</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="docs/reports/room-environment-v3-design-review-2026-04-01.md room environment v3 design review 2026 04 01">
         <div class="doc-card-title"><a href="../docs/reports/room-environment-v3-design-review-2026-04-01.md" target="_blank" rel="noopener">Room environment v3 design review 2026 04 01</a></div>
         <div class="doc-card-path">docs/reports/room-environment-v3-design-review-2026-04-01.md</div>
+        <span class="doc-card-date">Modified 2026-04-02</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="docs/reports/room-environment-v3-engineering-review-2026-04-01.md room environment v3 engineering review 2026 04 01">
         <div class="doc-card-title"><a href="../docs/reports/room-environment-v3-engineering-review-2026-04-01.md" target="_blank" rel="noopener">Room environment v3 engineering review 2026 04 01</a></div>
         <div class="doc-card-path">docs/reports/room-environment-v3-engineering-review-2026-04-01.md</div>
+        <span class="doc-card-date">Modified 2026-04-02</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="docs/reports/room-environment-v3-executive-summary-2026-04-01.md room environment v3 executive summary 2026 04 01">
         <div class="doc-card-title"><a href="../docs/reports/room-environment-v3-executive-summary-2026-04-01.md" target="_blank" rel="noopener">Room environment v3 executive summary 2026 04 01</a></div>
         <div class="doc-card-path">docs/reports/room-environment-v3-executive-summary-2026-04-01.md</div>
+        <span class="doc-card-date">Modified 2026-04-02</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="docs/reports/room-environment-v3-game-director-review-2026-04-01.md room environment v3 game director review 2026 04 01">
         <div class="doc-card-title"><a href="../docs/reports/room-environment-v3-game-director-review-2026-04-01.md" target="_blank" rel="noopener">Room environment v3 game director review 2026 04 01</a></div>
         <div class="doc-card-path">docs/reports/room-environment-v3-game-director-review-2026-04-01.md</div>
+        <span class="doc-card-date">Modified 2026-04-02</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="docs/reports/room-environment-v3-orchestrator-synthesis-2026-04-01.md room environment v3 orchestrator synthesis 2026 04 01">
         <div class="doc-card-title"><a href="../docs/reports/room-environment-v3-orchestrator-synthesis-2026-04-01.md" target="_blank" rel="noopener">Room environment v3 orchestrator synthesis 2026 04 01</a></div>
         <div class="doc-card-path">docs/reports/room-environment-v3-orchestrator-synthesis-2026-04-01.md</div>
+        <span class="doc-card-date">Modified 2026-04-02</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="docs/reports/room-environment-v3-planner-checkpoint-creative-2026-04-02.md room environment v3 planner checkpoint creative 2026 04 02">
         <div class="doc-card-title"><a href="../docs/reports/room-environment-v3-planner-checkpoint-creative-2026-04-02.md" target="_blank" rel="noopener">Room environment v3 planner checkpoint creative 2026 04 02</a></div>
         <div class="doc-card-path">docs/reports/room-environment-v3-planner-checkpoint-creative-2026-04-02.md</div>
+        <span class="doc-card-date">Modified 2026-04-02</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="docs/reports/room-environment-v3-planner-checkpoint-packet-2026-04-02.md room environment v3 planner checkpoint packet 2026 04 02">
         <div class="doc-card-title"><a href="../docs/reports/room-environment-v3-planner-checkpoint-packet-2026-04-02.md" target="_blank" rel="noopener">Room environment v3 planner checkpoint packet 2026 04 02</a></div>
         <div class="doc-card-path">docs/reports/room-environment-v3-planner-checkpoint-packet-2026-04-02.md</div>
+        <span class="doc-card-date">Modified 2026-04-02</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="docs/reports/room-environment-v3-planner-checkpoint-qa-2026-04-02.md room environment v3 planner checkpoint qa 2026 04 02">
         <div class="doc-card-title"><a href="../docs/reports/room-environment-v3-planner-checkpoint-qa-2026-04-02.md" target="_blank" rel="noopener">Room environment v3 planner checkpoint qa 2026 04 02</a></div>
         <div class="doc-card-path">docs/reports/room-environment-v3-planner-checkpoint-qa-2026-04-02.md</div>
+        <span class="doc-card-date">Modified 2026-04-02</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="docs/reports/room-environment-v3-planner-checkpoint-synthesis-2026-04-02.md room environment v3 planner checkpoint synthesis 2026 04 02">
         <div class="doc-card-title"><a href="../docs/reports/room-environment-v3-planner-checkpoint-synthesis-2026-04-02.md" target="_blank" rel="noopener">Room environment v3 planner checkpoint synthesis 2026 04 02</a></div>
         <div class="doc-card-path">docs/reports/room-environment-v3-planner-checkpoint-synthesis-2026-04-02.md</div>
+        <span class="doc-card-date">Modified 2026-04-02</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="docs/reports/room-environment-v3-qa-review-2026-04-01.md room environment v3 qa review 2026 04 01">
         <div class="doc-card-title"><a href="../docs/reports/room-environment-v3-qa-review-2026-04-01.md" target="_blank" rel="noopener">Room environment v3 qa review 2026 04 01</a></div>
         <div class="doc-card-path">docs/reports/room-environment-v3-qa-review-2026-04-01.md</div>
+        <span class="doc-card-date">Modified 2026-04-02</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="docs/reports/room-environment-v3-slot-checkpoint-creative-2026-04-02.md room environment v3 slot checkpoint creative 2026 04 02">
         <div class="doc-card-title"><a href="../docs/reports/room-environment-v3-slot-checkpoint-creative-2026-04-02.md" target="_blank" rel="noopener">Room environment v3 slot checkpoint creative 2026 04 02</a></div>
         <div class="doc-card-path">docs/reports/room-environment-v3-slot-checkpoint-creative-2026-04-02.md</div>
+        <span class="doc-card-date">Modified 2026-04-02</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="docs/reports/room-environment-v3-slot-checkpoint-packet-2026-04-02.md room environment v3 slot checkpoint packet 2026 04 02">
         <div class="doc-card-title"><a href="../docs/reports/room-environment-v3-slot-checkpoint-packet-2026-04-02.md" target="_blank" rel="noopener">Room environment v3 slot checkpoint packet 2026 04 02</a></div>
         <div class="doc-card-path">docs/reports/room-environment-v3-slot-checkpoint-packet-2026-04-02.md</div>
+        <span class="doc-card-date">Modified 2026-04-02</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="docs/reports/room-environment-v3-slot-checkpoint-qa-2026-04-02.md room environment v3 slot checkpoint qa 2026 04 02">
         <div class="doc-card-title"><a href="../docs/reports/room-environment-v3-slot-checkpoint-qa-2026-04-02.md" target="_blank" rel="noopener">Room environment v3 slot checkpoint qa 2026 04 02</a></div>
         <div class="doc-card-path">docs/reports/room-environment-v3-slot-checkpoint-qa-2026-04-02.md</div>
+        <span class="doc-card-date">Modified 2026-04-02</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="docs/reports/room-environment-v3-slot-checkpoint-synthesis-2026-04-02.md room environment v3 slot checkpoint synthesis 2026 04 02">
         <div class="doc-card-title"><a href="../docs/reports/room-environment-v3-slot-checkpoint-synthesis-2026-04-02.md" target="_blank" rel="noopener">Room environment v3 slot checkpoint synthesis 2026 04 02</a></div>
         <div class="doc-card-path">docs/reports/room-environment-v3-slot-checkpoint-synthesis-2026-04-02.md</div>
+        <span class="doc-card-date">Modified 2026-04-02</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="docs/reports/room-environment-v3-stakeholder-review-kickoff-2026-04-01.md room environment v3 stakeholder review kickoff 2026 04 01">
         <div class="doc-card-title"><a href="../docs/reports/room-environment-v3-stakeholder-review-kickoff-2026-04-01.md" target="_blank" rel="noopener">Room environment v3 stakeholder review kickoff 2026 04 01</a></div>
         <div class="doc-card-path">docs/reports/room-environment-v3-stakeholder-review-kickoff-2026-04-01.md</div>
+        <span class="doc-card-date">Modified 2026-04-02</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
     </div>
@@ -916,36 +1126,43 @@
       <article class="doc-card" data-search="research/library/technical/assurance-copilot-do178c-market-2026-04-02.md assurance copilot do178c market 2026 04 02">
         <div class="doc-card-title"><a href="../research/library/technical/assurance-copilot-do178c-market-2026-04-02.md" target="_blank" rel="noopener">Assurance copilot do178c market 2026 04 02</a></div>
         <div class="doc-card-path">research/library/technical/assurance-copilot-do178c-market-2026-04-02.md</div>
+        <span class="doc-card-date">Modified 2026-04-02</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="research/library/findings/codebase-scan-2026-04-01.md codebase scan 2026 04 01">
         <div class="doc-card-title"><a href="../research/library/findings/codebase-scan-2026-04-01.md" target="_blank" rel="noopener">Codebase scan 2026 04 01</a></div>
         <div class="doc-card-path">research/library/findings/codebase-scan-2026-04-01.md</div>
+        <span class="doc-card-date">Modified 2026-04-02</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="research/dashboard.md dashboard">
         <div class="doc-card-title"><a href="../research/dashboard.md" target="_blank" rel="noopener">Dashboard</a></div>
         <div class="doc-card-path">research/dashboard.md</div>
+        <span class="doc-card-date">Modified 2026-04-02</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="research/library/reports/guardrail-enforcement-audit-2026-04-02.md guardrail enforcement audit 2026 04 02">
         <div class="doc-card-title"><a href="../research/library/reports/guardrail-enforcement-audit-2026-04-02.md" target="_blank" rel="noopener">Guardrail enforcement audit 2026 04 02</a></div>
         <div class="doc-card-path">research/library/reports/guardrail-enforcement-audit-2026-04-02.md</div>
+        <span class="doc-card-date">Modified 2026-04-02</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="research/library/index.md index">
         <div class="doc-card-title"><a href="../research/library/INDEX.md" target="_blank" rel="noopener">INDEX</a></div>
         <div class="doc-card-path">research/library/INDEX.md</div>
+        <span class="doc-card-date">Modified 2026-04-02</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="research/library/findings/passive-income-market-scan-2026-04-01.md passive income market scan 2026 04 01">
         <div class="doc-card-title"><a href="../research/library/findings/passive-income-market-scan-2026-04-01.md" target="_blank" rel="noopener">Passive income market scan 2026 04 01</a></div>
         <div class="doc-card-path">research/library/findings/passive-income-market-scan-2026-04-01.md</div>
+        <span class="doc-card-date">Modified 2026-04-02</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="research/readme.md readme">
         <div class="doc-card-title"><a href="../research/README.md" target="_blank" rel="noopener">README</a></div>
         <div class="doc-card-path">research/README.md</div>
+        <span class="doc-card-date">Modified 2026-04-02</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
     </div>
@@ -957,21 +1174,25 @@
       <article class="doc-card" data-search="decisions/2026-03-31-room-environment-quality-pass.md 2026 03 31 room environment quality pass">
         <div class="doc-card-title"><a href="../decisions/2026-03-31-room-environment-quality-pass.md" target="_blank" rel="noopener">2026 03 31 room environment quality pass</a></div>
         <div class="doc-card-path">decisions/2026-03-31-room-environment-quality-pass.md</div>
+        <span class="doc-card-date">Modified 2026-04-03</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="decisions/2026-04-01-room-environment-v3-review-decision-brief.md 2026 04 01 room environment v3 review decision brief">
         <div class="doc-card-title"><a href="../decisions/2026-04-01-room-environment-v3-review-decision-brief.md" target="_blank" rel="noopener">2026 04 01 room environment v3 review decision brief</a></div>
         <div class="doc-card-path">decisions/2026-04-01-room-environment-v3-review-decision-brief.md</div>
+        <span class="doc-card-date">Modified 2026-04-02</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="decisions/2026-04-02-assurance-copilot-other-income-gate.md 2026 04 02 assurance copilot other income gate">
         <div class="doc-card-title"><a href="../decisions/2026-04-02-assurance-copilot-other-income-gate.md" target="_blank" rel="noopener">2026 04 02 assurance copilot other income gate</a></div>
         <div class="doc-card-path">decisions/2026-04-02-assurance-copilot-other-income-gate.md</div>
+        <span class="doc-card-date">Modified 2026-04-02</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="decisions/readme.md readme">
         <div class="doc-card-title"><a href="../decisions/README.md" target="_blank" rel="noopener">README</a></div>
         <div class="doc-card-path">decisions/README.md</div>
+        <span class="doc-card-date">Modified 2026-03-28</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
     </div>
@@ -983,11 +1204,13 @@
       <article class="doc-card" data-search="tests/acceptance_tests.md acceptance tests">
         <div class="doc-card-title"><a href="../tests/acceptance_tests.md" target="_blank" rel="noopener">Acceptance tests</a></div>
         <div class="doc-card-path">tests/acceptance_tests.md</div>
+        <span class="doc-card-date">Modified 2026-03-06</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="tests/test_report.md test report">
         <div class="doc-card-title"><a href="../tests/test_report.md" target="_blank" rel="noopener">Test report</a></div>
         <div class="doc-card-path">tests/test_report.md</div>
+        <span class="doc-card-date">Modified 2026-04-03</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
     </div>
@@ -999,76 +1222,91 @@
       <article class="doc-card" data-search="artifacts/analytics-opportunities-2026-03-28.md analytics opportunities 2026 03 28">
         <div class="doc-card-title"><a href="../artifacts/analytics-opportunities-2026-03-28.md" target="_blank" rel="noopener">Analytics opportunities 2026 03 28</a></div>
         <div class="doc-card-path">artifacts/analytics-opportunities-2026-03-28.md</div>
+        <span class="doc-card-date">Modified 2026-03-29</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="artifacts/ashen-hollow-art-bible-v0.1.md ashen hollow art bible v0.1">
         <div class="doc-card-title"><a href="../artifacts/ashen-hollow-art-bible-v0.1.md" target="_blank" rel="noopener">Ashen hollow art bible v0.1</a></div>
         <div class="doc-card-path">artifacts/ashen-hollow-art-bible-v0.1.md</div>
+        <span class="doc-card-date">Modified 2026-04-02</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="artifacts/ashen-hollow-art-bible-v0.2.md ashen hollow art bible v0.2">
         <div class="doc-card-title"><a href="../artifacts/ashen-hollow-art-bible-v0.2.md" target="_blank" rel="noopener">Ashen hollow art bible v0.2</a></div>
         <div class="doc-card-path">artifacts/ashen-hollow-art-bible-v0.2.md</div>
+        <span class="doc-card-date">Modified 2026-04-02</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="artifacts/brainstorm-engine-choice-2026-03-29.md brainstorm engine choice 2026 03 29">
         <div class="doc-card-title"><a href="../artifacts/brainstorm-engine-choice-2026-03-29.md" target="_blank" rel="noopener">Brainstorm engine choice 2026 03 29</a></div>
         <div class="doc-card-path">artifacts/brainstorm-engine-choice-2026-03-29.md</div>
+        <span class="doc-card-date">Modified 2026-03-29</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="artifacts/brand-charter-email.md brand charter email">
         <div class="doc-card-title"><a href="../artifacts/brand-charter-email.md" target="_blank" rel="noopener">Brand charter email</a></div>
         <div class="doc-card-path">artifacts/brand-charter-email.md</div>
+        <span class="doc-card-date">Modified 2026-03-30</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="artifacts/business-plan-email-body.md business plan email body">
         <div class="doc-card-title"><a href="../artifacts/business-plan-email-body.md" target="_blank" rel="noopener">Business plan email body</a></div>
         <div class="doc-card-path">artifacts/business-plan-email-body.md</div>
+        <span class="doc-card-date">Modified 2026-04-02</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="artifacts/daily-report-2026-03-29.md daily report 2026 03 29">
         <div class="doc-card-title"><a href="../artifacts/daily-report-2026-03-29.md" target="_blank" rel="noopener">Daily report 2026 03 29</a></div>
         <div class="doc-card-path">artifacts/daily-report-2026-03-29.md</div>
+        <span class="doc-card-date">Modified 2026-03-29</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="artifacts/directive-summary-2026-03-29-plain-language-reports.md directive summary 2026 03 29 plain language reports">
         <div class="doc-card-title"><a href="../artifacts/directive-summary-2026-03-29-plain-language-reports.md" target="_blank" rel="noopener">Directive summary 2026 03 29 plain language reports</a></div>
         <div class="doc-card-path">artifacts/directive-summary-2026-03-29-plain-language-reports.md</div>
+        <span class="doc-card-date">Modified 2026-03-29</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="artifacts/marketing-weekly-update-2026-04-02.md marketing weekly update 2026 04 02">
         <div class="doc-card-title"><a href="../artifacts/marketing-weekly-update-2026-04-02.md" target="_blank" rel="noopener">Marketing weekly update 2026 04 02</a></div>
         <div class="doc-card-path">artifacts/marketing-weekly-update-2026-04-02.md</div>
+        <span class="doc-card-date">Modified 2026-04-03</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="artifacts/passive-income-executive-summary-email-2026-04-01.md passive income executive summary email 2026 04 01">
         <div class="doc-card-title"><a href="../artifacts/passive-income-executive-summary-email-2026-04-01.md" target="_blank" rel="noopener">Passive income executive summary email 2026 04 01</a></div>
         <div class="doc-card-path">artifacts/passive-income-executive-summary-email-2026-04-01.md</div>
+        <span class="doc-card-date">Modified 2026-04-02</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="artifacts/qa-report-sprite-workbench-2026-03-28.md qa report sprite workbench 2026 03 28">
         <div class="doc-card-title"><a href="../artifacts/qa-report-sprite-workbench-2026-03-28.md" target="_blank" rel="noopener">Qa report sprite workbench 2026 03 28</a></div>
         <div class="doc-card-path">artifacts/qa-report-sprite-workbench-2026-03-28.md</div>
+        <span class="doc-card-date">Modified 2026-03-29</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="artifacts/readme.md readme">
         <div class="doc-card-title"><a href="../artifacts/README.md" target="_blank" rel="noopener">README</a></div>
         <div class="doc-card-path">artifacts/README.md</div>
+        <span class="doc-card-date">Modified 2026-03-28</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="artifacts/concepts/readme.md readme">
         <div class="doc-card-title"><a href="../artifacts/concepts/README.md" target="_blank" rel="noopener">README</a></div>
         <div class="doc-card-path">artifacts/concepts/README.md</div>
+        <span class="doc-card-date">Modified 2026-04-02</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="artifacts/security-audit-2026-03-28.md security audit 2026 03 28">
         <div class="doc-card-title"><a href="../artifacts/security-audit-2026-03-28.md" target="_blank" rel="noopener">Security audit 2026 03 28</a></div>
         <div class="doc-card-path">artifacts/security-audit-2026-03-28.md</div>
+        <span class="doc-card-date">Modified 2026-03-29</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="artifacts/weekly-digest-2026-03-28.md weekly digest 2026 03 28">
         <div class="doc-card-title"><a href="../artifacts/weekly-digest-2026-03-28.md" target="_blank" rel="noopener">Weekly digest 2026 03 28</a></div>
         <div class="doc-card-path">artifacts/weekly-digest-2026-03-28.md</div>
+        <span class="doc-card-date">Modified 2026-03-29</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
     </div>
@@ -1080,181 +1318,217 @@
       <article class="doc-card" data-search=".cursor/connector-conversations/04fc2ec9-9692-4eca-91de-e7cafecd1f52.md 04fc2ec9 9692 4eca 91de e7cafecd1f52">
         <div class="doc-card-title"><a href="../.cursor/connector-conversations/04FC2EC9-9692-4ECA-91DE-E7CAFECD1F52.md" target="_blank" rel="noopener">04FC2EC9 9692 4ECA 91DE E7CAFECD1F52</a></div>
         <div class="doc-card-path">.cursor/connector-conversations/04FC2EC9-9692-4ECA-91DE-E7CAFECD1F52.md</div>
+        <span class="doc-card-date">Modified 2026-03-06</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search=".cursor/connector-conversations/1fba8455-38d7-44e6-bf70-63b68d8552fc.md 1fba8455 38d7 44e6 bf70 63b68d8552fc">
         <div class="doc-card-title"><a href="../.cursor/connector-conversations/1FBA8455-38D7-44E6-BF70-63B68D8552FC.md" target="_blank" rel="noopener">1FBA8455 38D7 44E6 BF70 63B68D8552FC</a></div>
         <div class="doc-card-path">.cursor/connector-conversations/1FBA8455-38D7-44E6-BF70-63B68D8552FC.md</div>
+        <span class="doc-card-date">Modified 2026-03-06</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="issues/2026-04-02-gemini-health-misdiagnosis-rca.md 2026 04 02 gemini health misdiagnosis rca">
         <div class="doc-card-title"><a href="../issues/2026-04-02-gemini-health-misdiagnosis-rca.md" target="_blank" rel="noopener">2026 04 02 gemini health misdiagnosis rca</a></div>
         <div class="doc-card-path">issues/2026-04-02-gemini-health-misdiagnosis-rca.md</div>
+        <span class="doc-card-date">Modified 2026-04-02</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search=".cursor/connector-conversations/4059b1c8-9dab-4c6c-a5fe-59620cc02489.md 4059b1c8 9dab 4c6c a5fe 59620cc02489">
         <div class="doc-card-title"><a href="../.cursor/connector-conversations/4059B1C8-9DAB-4C6C-A5FE-59620CC02489.md" target="_blank" rel="noopener">4059B1C8 9DAB 4C6C A5FE 59620CC02489</a></div>
         <div class="doc-card-path">.cursor/connector-conversations/4059B1C8-9DAB-4C6C-A5FE-59620CC02489.md</div>
+        <span class="doc-card-date">Modified 2026-03-06</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search=".cursor/connector-conversations/45855ce8-877f-431c-9699-40ce372bcc53.md 45855ce8 877f 431c 9699 40ce372bcc53">
         <div class="doc-card-title"><a href="../.cursor/connector-conversations/45855CE8-877F-431C-9699-40CE372BCC53.md" target="_blank" rel="noopener">45855CE8 877F 431C 9699 40CE372BCC53</a></div>
         <div class="doc-card-path">.cursor/connector-conversations/45855CE8-877F-431C-9699-40CE372BCC53.md</div>
+        <span class="doc-card-date">Modified 2026-03-09</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search=".cursor/connector-conversations/609d134b-bcad-42db-a6e2-2f17ab7e16e6.md 609d134b bcad 42db a6e2 2f17ab7e16e6">
         <div class="doc-card-title"><a href="../.cursor/connector-conversations/609D134B-BCAD-42DB-A6E2-2F17AB7E16E6.md" target="_blank" rel="noopener">609D134B BCAD 42DB A6E2 2F17AB7E16E6</a></div>
         <div class="doc-card-path">.cursor/connector-conversations/609D134B-BCAD-42DB-A6E2-2F17AB7E16E6.md</div>
+        <span class="doc-card-date">Modified 2026-03-09</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search=".cursor/connector-conversations/734de339-fbc6-4488-8911-c3b6e90f842e.md 734de339 fbc6 4488 8911 c3b6e90f842e">
         <div class="doc-card-title"><a href="../.cursor/connector-conversations/734DE339-FBC6-4488-8911-C3B6E90F842E.md" target="_blank" rel="noopener">734DE339 FBC6 4488 8911 C3B6E90F842E</a></div>
         <div class="doc-card-path">.cursor/connector-conversations/734DE339-FBC6-4488-8911-C3B6E90F842E.md</div>
+        <span class="doc-card-date">Modified 2026-03-10</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search=".cursor/connector-conversations/8ab07bd4-be4d-4ceb-bb7a-fe25c0126aaa.md 8ab07bd4 be4d 4ceb bb7a fe25c0126aaa">
         <div class="doc-card-title"><a href="../.cursor/connector-conversations/8AB07BD4-BE4D-4CEB-BB7A-FE25C0126AAA.md" target="_blank" rel="noopener">8AB07BD4 BE4D 4CEB BB7A FE25C0126AAA</a></div>
         <div class="doc-card-path">.cursor/connector-conversations/8AB07BD4-BE4D-4CEB-BB7A-FE25C0126AAA.md</div>
+        <span class="doc-card-date">Modified 2026-03-06</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search=".cursor/connector-conversations/938804fd-be02-4dce-bcf3-cf494bf7cc93.md 938804fd be02 4dce bcf3 cf494bf7cc93">
         <div class="doc-card-title"><a href="../.cursor/connector-conversations/938804FD-BE02-4DCE-BCF3-CF494BF7CC93.md" target="_blank" rel="noopener">938804FD BE02 4DCE BCF3 CF494BF7CC93</a></div>
         <div class="doc-card-path">.cursor/connector-conversations/938804FD-BE02-4DCE-BCF3-CF494BF7CC93.md</div>
+        <span class="doc-card-date">Modified 2026-03-09</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search=".cursor/connector-conversations/c23c923b-a080-4432-b2d8-fd1861310fc3.md c23c923b a080 4432 b2d8 fd1861310fc3">
         <div class="doc-card-title"><a href="../.cursor/connector-conversations/C23C923B-A080-4432-B2D8-FD1861310FC3.md" target="_blank" rel="noopener">C23C923B A080 4432 B2D8 FD1861310FC3</a></div>
         <div class="doc-card-path">.cursor/connector-conversations/C23C923B-A080-4432-B2D8-FD1861310FC3.md</div>
+        <span class="doc-card-date">Modified 2026-03-06</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="tools/comfyui/contributing.md contributing">
         <div class="doc-card-title"><a href="../tools/ComfyUI/CONTRIBUTING.md" target="_blank" rel="noopener">CONTRIBUTING</a></div>
         <div class="doc-card-path">tools/ComfyUI/CONTRIBUTING.md</div>
+        <span class="doc-card-date">Modified 2026-03-13</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="agents/design/dashboard-standard.md dashboard standard">
         <div class="doc-card-title"><a href="../agents/design/dashboard-standard.md" target="_blank" rel="noopener">Dashboard standard</a></div>
         <div class="doc-card-path">agents/design/dashboard-standard.md</div>
+        <span class="doc-card-date">Modified 2026-04-02</span>
         <div class="badges"><span class="badge">MD</span></div>
 <p class="dup-note">Same filename, different content as: agents/directives/dashboard-standard.md</p>      </article>
       <article class="doc-card" data-search="agents/directives/dashboard-standard.md dashboard standard">
         <div class="doc-card-title"><a href="../agents/directives/dashboard-standard.md" target="_blank" rel="noopener">Dashboard standard</a></div>
         <div class="doc-card-path">agents/directives/dashboard-standard.md</div>
+        <span class="doc-card-date">Modified 2026-03-31</span>
         <div class="badges"><span class="badge">MD</span></div>
 <p class="dup-note">Same filename, different content as: agents/design/dashboard-standard.md</p>      </article>
       <article class="doc-card" data-search=".cursor/connector-conversations/f6689cbf-4c24-4ff3-ab70-ed146f4e303f.md f6689cbf 4c24 4ff3 ab70 ed146f4e303f">
         <div class="doc-card-title"><a href="../.cursor/connector-conversations/F6689CBF-4C24-4FF3-AB70-ED146F4E303F.md" target="_blank" rel="noopener">F6689CBF 4C24 4FF3 AB70 ED146F4E303F</a></div>
         <div class="doc-card-path">.cursor/connector-conversations/F6689CBF-4C24-4FF3-AB70-ED146F4E303F.md</div>
+        <span class="doc-card-date">Modified 2026-03-06</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="index.html index">
         <div class="doc-card-title"><a href="../index.html" target="_blank" rel="noopener">Index</a></div>
         <div class="doc-card-path">index.html</div>
+        <span class="doc-card-date">Modified 2026-04-03</span>
         <div class="badges"><span class="badge badge-html">HTML</span></div>
       </article>
       <article class="doc-card" data-search="tools/2d-sprite-and-animation/index.html index">
         <div class="doc-card-title"><a href="../tools/2d-sprite-and-animation/index.html" target="_blank" rel="noopener">Index</a></div>
         <div class="doc-card-path">tools/2d-sprite-and-animation/index.html</div>
+        <span class="doc-card-date">Modified 2026-03-29</span>
         <div class="badges"><span class="badge badge-html">HTML</span></div>
       </article>
       <article class="doc-card" data-search="level-viewer.html level viewer">
         <div class="doc-card-title"><a href="../level-viewer.html" target="_blank" rel="noopener">Level viewer</a></div>
         <div class="doc-card-path">level-viewer.html</div>
+        <span class="doc-card-date">Modified 2026-03-06</span>
         <div class="badges"><span class="badge badge-html">HTML</span></div>
       </article>
       <article class="doc-card" data-search="map-graph-viewer.html map graph viewer">
         <div class="doc-card-title"><a href="../map-graph-viewer.html" target="_blank" rel="noopener">Map graph viewer</a></div>
         <div class="doc-card-path">map-graph-viewer.html</div>
+        <span class="doc-card-date">Modified 2026-03-10</span>
         <div class="badges"><span class="badge badge-html">HTML</span></div>
       </article>
       <article class="doc-card" data-search="os-dashboard.html os dashboard">
         <div class="doc-card-title"><a href="../os-dashboard.html" target="_blank" rel="noopener">Os dashboard</a></div>
         <div class="doc-card-path">os-dashboard.html</div>
+        <span class="doc-card-date">Modified 2026-04-03</span>
         <div class="badges"><span class="badge badge-html">HTML</span></div>
       </article>
       <article class="doc-card" data-search="docs/os-document-library.html os document library">
         <div class="doc-card-title"><a href="../docs/os-document-library.html" target="_blank" rel="noopener">Os document library</a></div>
         <div class="doc-card-path">docs/os-document-library.html</div>
+        <span class="doc-card-date">Modified 2026-04-03</span>
         <div class="badges"><span class="badge badge-html">HTML</span></div>
       </article>
       <article class="doc-card" data-search="agents/design/os_home_dashboard_handoff.md os home dashboard handoff">
         <div class="doc-card-title"><a href="../agents/design/os_home_dashboard_handoff.md" target="_blank" rel="noopener">Os home dashboard handoff</a></div>
         <div class="doc-card-path">agents/design/os_home_dashboard_handoff.md</div>
+        <span class="doc-card-date">Modified 2026-03-30</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="agents/directives/plain-language-dashboards.md plain language dashboards">
         <div class="doc-card-title"><a href="../agents/directives/plain-language-dashboards.md" target="_blank" rel="noopener">Plain language dashboards</a></div>
         <div class="doc-card-path">agents/directives/plain-language-dashboards.md</div>
+        <span class="doc-card-date">Modified 2026-03-30</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="plan-dashboard.html plan dashboard">
         <div class="doc-card-title"><a href="../plan-dashboard.html" target="_blank" rel="noopener">Plan dashboard</a></div>
         <div class="doc-card-path">plan-dashboard.html</div>
+        <span class="doc-card-date">Modified 2026-03-08</span>
         <div class="badges"><span class="badge badge-html">HTML</span></div>
       </article>
       <article class="doc-card" data-search="tools/comfyui/quantization.md quantization">
         <div class="doc-card-title"><a href="../tools/ComfyUI/QUANTIZATION.md" target="_blank" rel="noopener">QUANTIZATION</a></div>
         <div class="doc-card-path">tools/ComfyUI/QUANTIZATION.md</div>
+        <span class="doc-card-date">Modified 2026-03-13</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search=".cursor/connector-conversations/readme.md readme">
         <div class="doc-card-title"><a href="../.cursor/connector-conversations/README.md" target="_blank" rel="noopener">README</a></div>
         <div class="doc-card-path">.cursor/connector-conversations/README.md</div>
+        <span class="doc-card-date">Modified 2026-03-06</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search=".pytest_cache/readme.md readme">
         <div class="doc-card-title"><a href="../.pytest_cache/README.md" target="_blank" rel="noopener">README</a></div>
         <div class="doc-card-path">.pytest_cache/README.md</div>
+        <span class="doc-card-date">Modified 2026-03-19</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="samples/readme.md readme">
         <div class="doc-card-title"><a href="../samples/README.md" target="_blank" rel="noopener">README</a></div>
         <div class="doc-card-path">samples/README.md</div>
+        <span class="doc-card-date">Modified 2026-03-28</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="tests/fixtures/sprite_workbench/readme.md readme">
         <div class="doc-card-title"><a href="../tests/fixtures/sprite_workbench/README.md" target="_blank" rel="noopener">README</a></div>
         <div class="doc-card-path">tests/fixtures/sprite_workbench/README.md</div>
+        <span class="doc-card-date">Modified 2026-03-13</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="tools/2d-sprite-and-animation/readme.md readme">
         <div class="doc-card-title"><a href="../tools/2d-sprite-and-animation/README.md" target="_blank" rel="noopener">README</a></div>
         <div class="doc-card-path">tools/2d-sprite-and-animation/README.md</div>
+        <span class="doc-card-date">Modified 2026-03-27</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="tools/comfyui/readme.md readme">
         <div class="doc-card-title"><a href="../tools/ComfyUI/README.md" target="_blank" rel="noopener">README</a></div>
         <div class="doc-card-path">tools/ComfyUI/README.md</div>
+        <span class="doc-card-date">Modified 2026-03-13</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search=".claude/agents/research.md research">
         <div class="doc-card-title"><a href="../.claude/agents/research.md" target="_blank" rel="noopener">Research</a></div>
         <div class="doc-card-path">.claude/agents/research.md</div>
+        <span class="doc-card-date">Modified 2026-04-02</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="room-layout-editor.html room layout editor">
         <div class="doc-card-title"><a href="../room-layout-editor.html" target="_blank" rel="noopener">Room layout editor</a></div>
         <div class="doc-card-path">room-layout-editor.html</div>
+        <span class="doc-card-date">Modified 2026-04-02</span>
         <div class="badges"><span class="badge badge-html">HTML</span></div>
       </article>
       <article class="doc-card" data-search="room-rules.md room rules">
         <div class="doc-card-title"><a href="../room-rules.md" target="_blank" rel="noopener">Room rules</a></div>
         <div class="doc-card-path">room-rules.md</div>
+        <span class="doc-card-date">Modified 2026-03-06</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="reporting/templates/specialist-monthly.md specialist monthly">
         <div class="doc-card-title"><a href="../reporting/templates/specialist-monthly.md" target="_blank" rel="noopener">Specialist monthly</a></div>
         <div class="doc-card-path">reporting/templates/specialist-monthly.md</div>
+        <span class="doc-card-date">Modified 2026-03-28</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="reporting/templates/specialist-weekly.md specialist weekly">
         <div class="doc-card-title"><a href="../reporting/templates/specialist-weekly.md" target="_blank" rel="noopener">Specialist weekly</a></div>
         <div class="doc-card-path">reporting/templates/specialist-weekly.md</div>
+        <span class="doc-card-date">Modified 2026-03-28</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
       <article class="doc-card" data-search="agents/directives/task-completion-update.md task completion update">
         <div class="doc-card-title"><a href="../agents/directives/task-completion-update.md" target="_blank" rel="noopener">Task completion update</a></div>
         <div class="doc-card-path">agents/directives/task-completion-update.md</div>
+        <span class="doc-card-date">Modified 2026-03-31</span>
         <div class="badges"><span class="badge">MD</span></div>
       </article>
     </div>
@@ -1275,6 +1549,9 @@
   var input = document.getElementById('lib-filter');
   var cards = document.querySelectorAll('.doc-card');
   var stats = document.getElementById('lib-stats');
+  var btnGrid = document.getElementById('lib-view-grid');
+  var btnList = document.getElementById('lib-view-list');
+  var LS_KEY = 'mv-doc-library-view';
   function countVisible() {
     var n = 0;
     cards.forEach(function(c) { if (!c.classList.contains('hidden')) n++; });
@@ -1292,6 +1569,22 @@
       d.style.display = vis ? '' : 'none';
     });
     if (stats) stats.textContent = 'Showing ' + countVisible() + ' / ' + cards.length;
+  }
+  function setView(list) {
+    document.body.classList.toggle('view-list', list);
+    document.body.classList.toggle('view-grid', !list);
+    if (btnGrid) btnGrid.setAttribute('aria-pressed', list ? 'false' : 'true');
+    if (btnList) btnList.setAttribute('aria-pressed', list ? 'true' : 'false');
+    try { localStorage.setItem(LS_KEY, list ? 'list' : 'grid'); } catch (e) {}
+  }
+  if (btnGrid) btnGrid.addEventListener('click', function() { setView(false); });
+  if (btnList) btnList.addEventListener('click', function() { setView(true); });
+  try {
+    var saved = localStorage.getItem(LS_KEY);
+    if (saved === 'list') setView(true);
+    else setView(false);
+  } catch (e) {
+    setView(false);
   }
   input.addEventListener('input', sync);
   sync();
