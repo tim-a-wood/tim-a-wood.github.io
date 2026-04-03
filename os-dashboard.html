@@ -3457,15 +3457,15 @@ h3.os-chart-card-title {
         <section class="os-home-hero" aria-label="Hub overview">
           <div class="os-home-hero-inner">
             <div>
-              <div class="os-home-hero-title">COMMAND SURFACE</div>
-              <p class="os-home-hero-tag">Metroidvania toolchain · pre-launch</p>
+              <div class="os-home-hero-title">OVERVIEW</div>
+              <p class="os-home-hero-tag">Metroidvania tools and game · not launched yet</p>
             </div>
             <div class="os-home-hero-kpis">
               <div class="os-home-kpi">
-                <div class="os-home-kpi-label">8-week paid calls</div>
+                <div class="os-home-kpi-label">Paid calls · last 8 weeks</div>
                 <div class="os-home-kpi-value" id="home-kpi-ai-units">—</div>
                 <canvas data-os-mini-spark="trend" width="320" height="72" aria-hidden="true"></canvas>
-                <p class="os-home-kpi-sub">Rolling window from local usage log</p>
+                <p class="os-home-kpi-sub">From your local usage log</p>
               </div>
               <div class="os-home-kpi">
                 <div class="os-home-kpi-label">Service keys</div>
@@ -3483,35 +3483,35 @@ h3.os-chart-card-title {
 
         <div class="db-section">
           <div class="db-section-label">How we're doing</div>
-          <p class="visually-hidden" id="home-internal-intro">Snapshot from QA and orchestration status files, delivered as home_internal in GET /api/dashboard-data.</p>
+          <p class="visually-hidden" id="home-internal-intro">Snapshot from QA and orchestrator status when the dashboard is connected.</p>
           <div class="db-grid db-grid--home-health" aria-describedby="home-internal-intro">
             <div class="db-card db-card--manual">
-              <div class="db-card-header"><div class="db-card-label">Tests passing</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-header"><div class="db-card-label">Tests passing</div><span class="db-tier db-tier--manual">Manual</span></div>
               <div class="db-card-value" id="home-hi-tests-pass">—</div>
               <div class="db-card-sub" id="home-hi-tests-pass-sub"></div>
             </div>
             <div class="db-card db-card--manual">
-              <div class="db-card-header"><div class="db-card-label">Tests failing</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-header"><div class="db-card-label">Tests failing</div><span class="db-tier db-tier--manual">Manual</span></div>
               <div class="db-card-value" id="home-hi-tests-fail">—</div>
-              <div class="db-card-sub" id="home-hi-tests-fail-sub">JS + Python suites</div>
+              <div class="db-card-sub" id="home-hi-tests-fail-sub">JavaScript and Python test runs</div>
             </div>
             <div class="db-card db-card--manual">
-              <div class="db-card-header"><div class="db-card-label">Blocking issues</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-header"><div class="db-card-label">Blocking issues</div><span class="db-tier db-tier--manual">Manual</span></div>
               <div class="db-card-value" id="home-hi-blocking">—</div>
-              <div class="db-card-sub" id="home-hi-blocking-sub">Orchestrator + QA P0</div>
+              <div class="db-card-sub" id="home-hi-blocking-sub">Top-priority orchestrator and QA items</div>
             </div>
             <div class="db-card db-card--manual">
-              <div class="db-card-header"><div class="db-card-label">Decisions for you</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-header"><div class="db-card-label">Decisions for you</div><span class="db-tier db-tier--manual">Manual</span></div>
               <div class="db-card-value" id="home-hi-decisions">—</div>
               <div class="db-card-sub" id="home-hi-decisions-sub">Open founder decisions</div>
             </div>
             <div class="db-card db-card--manual">
-              <div class="db-card-header"><div class="db-card-label">Priorities in motion</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-header"><div class="db-card-label">Priorities in motion</div><span class="db-tier db-tier--manual">Manual</span></div>
               <div class="db-card-value" id="home-hi-inprog">—</div>
-              <div class="db-card-sub" id="home-hi-inprog-sub">Orchestrator list · in progress</div>
+              <div class="db-card-sub" id="home-hi-inprog-sub">Orchestrator list marked in progress</div>
             </div>
             <div class="db-card db-card--manual">
-              <div class="db-card-header"><div class="db-card-label">Release readiness</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-header"><div class="db-card-label">Release readiness</div><span class="db-tier db-tier--manual">Manual</span></div>
               <div class="db-card-value db-card-value--muted" id="home-hi-release">—</div>
               <div class="db-card-sub" id="home-hi-release-sub">From QA release gate</div>
             </div>
@@ -3519,21 +3519,21 @@ h3.os-chart-card-title {
         </div>
 
         <div class="db-section">
-          <div class="db-section-label">Internal AI usage</div>
+          <div class="db-section-label">Your API usage</div>
           <p id="home-chart-live-status" class="home-chart-live-status visually-hidden" role="status" aria-live="polite"></p>
-          <p class="visually-hidden" id="home-chart-section-intro">Weekly paid AI calls from the local usage log when GET /api/dashboard-data is available. Full ledger KPIs and the same charts live on the API usage dashboard; Development, Animation, Level Design, and Analytics repeat pipeline views.</p>
+          <p class="visually-hidden" id="home-chart-section-intro">Weekly paid API calls from your local log when the dashboard server is running. Open API usage for the full call log and matching charts.</p>
           <div class="os-chart-grid os-chart-grid--home" id="home-os-chart-grid" aria-describedby="home-chart-section-intro">
             <div class="os-chart-card os-chart-card--wide">
               <div class="os-chart-card-head">
-                <h3 class="os-chart-card-title" id="home-chart-area-title">Paid AI calls · last 8 ISO weeks (UTC)</h3>
-                <span class="os-chart-card-tier">TREND</span>
+                <h3 class="os-chart-card-title" id="home-chart-area-title">Paid API calls by week (last 8 weeks)</h3>
+                <span class="os-chart-card-tier">Trend</span>
               </div>
               <div class="os-chart-canvas-wrap os-chart-canvas-wrap--compact os-chart-canvas-wrap--tall" data-os-canvas-state="idle" role="img" aria-labelledby="home-chart-area-title" aria-describedby="home-chart-area-desc">
                 <div class="os-chart-skeleton" aria-hidden="true"></div>
                 <div class="os-chart-error" role="alert" aria-live="polite"></div>
                 <canvas id="home-area-chart" data-os-chart="area-requests" width="800" height="320" aria-hidden="true"></canvas>
               </div>
-              <p class="os-chart-foot visually-hidden" id="home-chart-area-desc">Eight week window. Counts are calls, not dollars. Finance owns spend truth.</p>
+              <p class="os-chart-foot visually-hidden" id="home-chart-area-desc">Eight-week window. Counts are calls, not dollars. Use finance for real spend.</p>
             </div>
           </div>
         </div>
@@ -3542,7 +3542,7 @@ h3.os-chart-card-title {
           <div class="db-section-label">Jump to domain</div>
           <div class="os-home-actions">
             <button type="button" class="os-home-action" data-home-jump="research"><span class="os-home-action-dot" style="color:var(--c-research)">●</span> Research · library &amp; scans</button>
-            <button type="button" class="os-home-action" data-home-jump="api-usage"><span class="os-home-action-dot" style="color:var(--good)">●</span> API usage · ledger &amp; charts</button>
+            <button type="button" class="os-home-action" data-home-jump="api-usage"><span class="os-home-action-dot" style="color:var(--good)">●</span> API usage · costs and charts</button>
             <button type="button" class="os-home-action" data-home-jump="analytics"><span class="os-home-action-dot" style="color:var(--c-analytics)">●</span> Analytics · tracking plan</button>
             <button type="button" class="os-home-action" data-home-jump="development"><span class="os-home-action-dot" style="color:#ff9500">●</span> Development · pipeline</button>
             <button type="button" class="os-home-action" data-home-jump="finance"><span class="os-home-action-dot" style="color:var(--c-finance)">●</span> Finance · usage spend</button>
@@ -3551,126 +3551,126 @@ h3.os-chart-card-title {
         </div>
       </div>
 
-      <!-- ── API USAGE DASHBOARD (live ledger + charts via GET /api/dashboard-data) ── -->
+      <!-- ── API USAGE DASHBOARD ── -->
       <div class="dashboard-view" data-dashboard-view="api-usage">
         <div class="db-section">
-          <div class="db-section-label">Snapshot</div>
-          <p class="visually-hidden" id="api-usage-intro">Paid calls, keys, and workbench from the same payload as Home. Detailed ledger counts and charts below.</p>
+          <div class="db-section-label">At a glance</div>
+          <p class="visually-hidden" id="api-usage-intro">Paid API calls, whether keys are set, and whether the workbench server is running. More detail in the sections below.</p>
           <div class="db-grid db-grid--home-health" aria-describedby="api-usage-intro">
             <div class="db-card db-card--live">
-              <div class="db-card-header"><div class="db-card-label">8-week paid calls</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-header"><div class="db-card-label">Paid calls · last 8 weeks</div><span class="db-tier db-tier--live">Live</span></div>
               <div class="db-card-value" id="api-usage-kpi-ai-units">—</div>
-              <div class="db-card-sub">Rolling ISO weeks (UTC) · usage ledger</div>
+              <div class="db-card-sub">Counted from your local usage log (by calendar week, GMT)</div>
             </div>
             <div class="db-card db-card--live">
-              <div class="db-card-header"><div class="db-card-label">Service keys</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-header"><div class="db-card-label">API keys</div><span class="db-tier db-tier--live">Live</span></div>
               <div class="db-card-value" id="api-usage-kpi-keys">—</div>
-              <div class="db-card-sub">Gemini and Pixel Lab env</div>
+              <div class="db-card-sub">Gemini and Pixel Lab</div>
             </div>
             <div class="db-card db-card--live">
-              <div class="db-card-header"><div class="db-card-label">Workbench</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-header"><div class="db-card-label">Workbench</div><span class="db-tier db-tier--live">Live</span></div>
               <div class="db-card-value" id="api-usage-kpi-workbench">—</div>
-              <div class="db-card-sub">Sprite workbench server</div>
+              <div class="db-card-sub">Sprite workbench server on or off</div>
             </div>
           </div>
         </div>
         <div class="db-section">
-          <div class="db-section-label">Usage ledger</div>
+          <div class="db-section-label">Call log</div>
           <div class="db-grid">
             <div class="db-card db-card--live">
-              <div class="db-card-header"><div class="db-card-label">Ledger rows (all-time)</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-header"><div class="db-card-label">All logged calls</div><span class="db-tier db-tier--live">Live</span></div>
               <div class="db-card-value" id="db-api-usage-ledger-total">—</div>
-              <div class="db-card-sub">Rows in local ledger file</div>
+              <div class="db-card-sub">Every call recorded on this machine</div>
             </div>
             <div class="db-card db-card--live">
-              <div class="db-card-header"><div class="db-card-label">Calls · 8-wk window</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-header"><div class="db-card-label">Calls in the last 8 weeks</div><span class="db-tier db-tier--live">Live</span></div>
               <div class="db-card-value" id="db-api-usage-window-calls">—</div>
-              <div class="db-card-sub">Rolling ISO weeks (UTC)</div>
+              <div class="db-card-sub">Same window as the chart below</div>
             </div>
             <div class="db-card db-card--live">
-              <div class="db-card-header"><div class="db-card-label">Today (UTC)</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-header"><div class="db-card-label">Calls today</div><span class="db-tier db-tier--live">Live</span></div>
               <div class="db-card-value" id="db-api-usage-today-calls">—</div>
-              <div class="db-card-sub">Ledger rows dated today</div>
+              <div class="db-card-sub">By today’s date in GMT</div>
             </div>
             <div class="db-card db-card--live">
-              <div class="db-card-header"><div class="db-card-label">Est. cost (ledger)</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-header"><div class="db-card-label">Rough cost from the log</div><span class="db-tier db-tier--live">Live</span></div>
               <div class="db-card-value" id="db-api-usage-ledger-cost">—</div>
-              <div class="db-card-sub">Sum of usage_cost_usd · Finance owns truth</div>
+              <div class="db-card-sub">Added from each logged call; use finance records for real spend</div>
             </div>
           </div>
         </div>
         <div class="db-section">
-          <div class="db-section-label">Room AI outcomes</div>
+          <div class="db-section-label">Room Copilot</div>
           <div class="db-grid">
             <div class="db-card db-card--live">
-              <div class="db-card-header"><div class="db-card-label">Signal</div><span class="db-tier db-tier--live">LIVE</span></div>
-              <div class="db-card-value db-card-value--good" id="db-api-usage-current-coverage">Ledger + room suggestions</div>
-              <div class="db-card-sub" id="db-api-usage-current-coverage-sub">Copilot helpfulness from saved layouts</div>
+              <div class="db-card-header"><div class="db-card-label">What we measure</div><span class="db-tier db-tier--live">Live</span></div>
+              <div class="db-card-value db-card-value--good" id="db-api-usage-current-coverage">Calls plus room suggestions</div>
+              <div class="db-card-sub" id="db-api-usage-current-coverage-sub">Whether suggestions felt helpful after you saved the room</div>
             </div>
             <div class="db-card db-card--live">
-              <div class="db-card-header"><div class="db-card-label">Helpful rate</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-header"><div class="db-card-label">Marked helpful</div><span class="db-tier db-tier--live">Live</span></div>
               <div class="db-card-value" id="db-api-usage-helpful-rate">—</div>
-              <div class="db-card-sub" id="db-api-usage-helpful-rate-sub">Accept + tweak / decided</div>
+              <div class="db-card-sub" id="db-api-usage-helpful-rate-sub">Share you accepted or tweaked, out of those you decided on</div>
             </div>
             <div class="db-card db-card--live">
-              <div class="db-card-header"><div class="db-card-label">Accepted and stuck</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-header"><div class="db-card-label">Still there after you saved again</div><span class="db-tier db-tier--live">Live</span></div>
               <div class="db-card-value" id="db-api-usage-persist-rate">—</div>
-              <div class="db-card-sub" id="db-api-usage-persist-rate-sub">Accepted suggestions still present after later saves</div>
+              <div class="db-card-sub" id="db-api-usage-persist-rate-sub">Accepted suggestions that stayed in the room after a later save</div>
             </div>
           </div>
         </div>
         <div class="db-section">
           <div class="db-section-label">Charts</div>
-          <p style="color:var(--muted);font-size:var(--font-size-sm);margin:0 0 var(--space-2) 0;max-width:820px">From <span style="font-family:var(--font-mono)">projects-data/_usage_ledger.json</span> (and room helpfulness for outcomes) via GET <span style="font-family:var(--font-mono)">/api/dashboard-data</span>.</p>
+          <p style="color:var(--muted);font-size:var(--font-size-sm);margin:0 0 var(--space-2) 0;max-width:820px">Built from your local usage file and saved room data when the dashboard can reach the server.</p>
           <div class="os-chart-grid" id="api-usage-os-chart-grid">
             <div class="os-chart-card os-chart-card--wide">
               <div class="os-chart-card-head">
-                <h3 class="os-chart-card-title" id="api-usage-chart-area-title">Paid API calls · last 8 ISO weeks (UTC)</h3>
-                <span class="os-chart-card-tier">TREND</span>
+                <h3 class="os-chart-card-title" id="api-usage-chart-area-title">Paid API calls by week (last 8 weeks)</h3>
+                <span class="os-chart-card-tier">Trend</span>
               </div>
               <div class="os-chart-canvas-wrap os-chart-canvas-wrap--tall" data-os-canvas-state="idle" role="img" aria-labelledby="api-usage-chart-area-title" aria-describedby="api-usage-chart-area-desc">
                 <div class="os-chart-skeleton" aria-hidden="true"></div>
                 <div class="os-chart-error" role="alert" aria-live="polite"></div>
                 <canvas data-os-chart="area-requests" width="800" height="300" aria-hidden="true"></canvas>
               </div>
-              <p class="os-chart-foot" id="api-usage-chart-area-desc">Weekly call volume from the usage ledger.</p>
+              <p class="os-chart-foot" id="api-usage-chart-area-desc">One point per week from your call log.</p>
             </div>
             <div class="os-chart-card">
               <div class="os-chart-card-head">
-                <h3 class="os-chart-card-title" id="api-usage-chart-bars-title">Provider mix</h3>
-                <span class="os-chart-card-tier">SPLIT</span>
+                <h3 class="os-chart-card-title" id="api-usage-chart-bars-title">Where calls went</h3>
+                <span class="os-chart-card-tier">Mix</span>
               </div>
               <div class="os-chart-canvas-wrap" data-os-canvas-state="idle" role="img" aria-labelledby="api-usage-chart-bars-title" aria-describedby="api-usage-chart-bars-desc">
                 <div class="os-chart-skeleton" aria-hidden="true"></div>
                 <div class="os-chart-error" role="alert" aria-live="polite"></div>
                 <canvas data-os-chart="bars-purpose" width="480" height="260" aria-hidden="true"></canvas>
               </div>
-              <p class="os-chart-foot" id="api-usage-chart-bars-desc">Pixel Lab, Gemini, Room AI, and other tagged calls.</p>
+              <p class="os-chart-foot" id="api-usage-chart-bars-desc">Pixel Lab, Gemini, room AI, and other labeled use.</p>
             </div>
             <div class="os-chart-card os-chart-card--donut">
               <div class="os-chart-card-head">
-                <h3 class="os-chart-card-title" id="api-usage-chart-donut-title">Suggestion outcomes</h3>
-                <span class="os-chart-card-tier">DONUT</span>
+                <h3 class="os-chart-card-title" id="api-usage-chart-donut-title">How suggestions ended</h3>
+                <span class="os-chart-card-tier">Breakdown</span>
               </div>
               <div class="os-chart-canvas-wrap" data-os-canvas-state="idle" role="img" aria-labelledby="api-usage-chart-donut-title" aria-describedby="api-usage-chart-donut-desc">
                 <div class="os-chart-skeleton" aria-hidden="true"></div>
                 <div class="os-chart-error" role="alert" aria-live="polite"></div>
                 <canvas data-os-chart="donut-outcomes" width="480" height="260" aria-hidden="true"></canvas>
               </div>
-              <p class="os-chart-foot" id="api-usage-chart-donut-desc">Room Copilot outcomes when room helpfulness data is present.</p>
+              <p class="os-chart-foot" id="api-usage-chart-donut-desc">Accept, tweak, or reject — when room data is available.</p>
             </div>
           </div>
         </div>
         <div class="db-section">
-          <div class="db-section-label">Analytics runbooks</div>
-          <p style="color:var(--muted);font-size:var(--font-size-sm);margin:0 0 var(--space-2) 0">Same actions as the Analytics dashboard; owner: Analytics agent.</p>
+          <div class="db-section-label">Quick actions (Analytics)</div>
+          <p style="color:var(--muted);font-size:var(--font-size-sm);margin:0 0 var(--space-2) 0">Same shortcuts as on the Analytics screen. The Analytics specialist keeps these up to date.</p>
           <div class="db-actions-grid" id="db-api-usage-actions">
             <div style="color:var(--muted);font-size:var(--font-size-sm);padding:8px 0">Loading…</div>
           </div>
         </div>
         <div class="db-qa-signpost db-qa-signpost--stack">
-          <button type="button" class="db-qa-link" onclick="selectDashboard('home')">→ Home · command surface</button>
-          <button type="button" class="db-qa-link" onclick="selectDashboard('analytics')">→ Analytics · tracking plan &amp; post-launch metrics</button>
+          <button type="button" class="db-qa-link" onclick="selectDashboard('home')">→ Home</button>
+          <button type="button" class="db-qa-link" onclick="selectDashboard('analytics')">→ Analytics · what we track after launch</button>
         </div>
       </div>
 
@@ -3704,7 +3704,7 @@ h3.os-chart-card-title {
             <div class="os-chart-card os-chart-card--donut">
               <div class="os-chart-card-head">
                 <h3 class="os-chart-card-title" id="orch-chart-work-title">Work by status</h3>
-                <span class="os-chart-card-tier">MANUAL</span>
+                <span class="os-chart-card-tier">Manual</span>
               </div>
               <div class="os-chart-canvas-wrap" data-os-canvas-state="empty" data-chart-scope="agent" role="img" aria-labelledby="orch-chart-work-title" aria-describedby="orch-chart-work-desc">
                 <div class="os-chart-skeleton" aria-hidden="true"></div>
@@ -3720,7 +3720,7 @@ h3.os-chart-card-title {
             <div class="os-chart-card os-chart-card--bar">
               <div class="os-chart-card-head">
                 <h3 class="os-chart-card-title" id="orch-chart-agents-title">Active items by domain</h3>
-                <span class="os-chart-card-tier">MANUAL</span>
+                <span class="os-chart-card-tier">Manual</span>
               </div>
               <div class="os-chart-canvas-wrap" data-os-canvas-state="empty" data-chart-scope="agent" role="img" aria-labelledby="orch-chart-agents-title" aria-describedby="orch-chart-agents-desc">
                 <div class="os-chart-skeleton" aria-hidden="true"></div>
@@ -3736,7 +3736,7 @@ h3.os-chart-card-title {
             <div class="os-chart-card os-chart-card--bar">
               <div class="os-chart-card-head">
                 <h3 class="os-chart-card-title" id="orch-chart-directives-title">Directives by domain</h3>
-                <span class="os-chart-card-tier">MANUAL</span>
+                <span class="os-chart-card-tier">Manual</span>
               </div>
               <div class="os-chart-canvas-wrap" data-os-canvas-state="empty" data-chart-scope="agent" role="img" aria-labelledby="orch-chart-directives-title" aria-describedby="orch-chart-directives-desc">
                 <div class="os-chart-skeleton" aria-hidden="true"></div>
@@ -3756,22 +3756,22 @@ h3.os-chart-card-title {
           <div class="db-section-label">System Status</div>
           <div class="db-grid">
             <div class="db-card db-card--live">
-              <div class="db-card-header"><div class="db-card-label">Agents Chartered</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-header"><div class="db-card-label">Agents Chartered</div><span class="db-tier db-tier--live">Live</span></div>
               <div class="db-card-value">16</div>
               <div class="db-card-sub">All domains active</div>
             </div>
             <div class="db-card db-card--live">
-              <div class="db-card-header"><div class="db-card-label">Weekly Digest</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-header"><div class="db-card-label">Weekly Digest</div><span class="db-tier db-tier--live">Live</span></div>
               <div class="db-card-value db-card-value--good">Mon 9:07am</div>
               <div class="db-card-sub">scripts/weekly_digest.sh</div>
             </div>
             <div class="db-card db-card--live">
-              <div class="db-card-header"><div class="db-card-label">Daily Report</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-header"><div class="db-card-label">Daily Report</div><span class="db-tier db-tier--live">Live</span></div>
               <div class="db-card-value db-card-value--good">6:07pm daily</div>
               <div class="db-card-sub">scripts/daily_product_report.sh</div>
             </div>
             <div class="db-card db-card--live">
-              <div class="db-card-header"><div class="db-card-label">Email Delivery</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-header"><div class="db-card-label">Email Delivery</div><span class="db-tier db-tier--live">Live</span></div>
               <div class="db-card-value db-card-value--good">Resend</div>
               <div class="db-card-sub">7 days/week</div>
             </div>
@@ -3781,22 +3781,22 @@ h3.os-chart-card-title {
           <div class="db-section-label">Digest Pipeline</div>
           <div class="db-grid">
             <div class="db-card db-card--manual">
-              <div class="db-card-header"><div class="db-card-label">Last Weekly Digest</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-header"><div class="db-card-label">Last Weekly Digest</div><span class="db-tier db-tier--manual">Manual</span></div>
               <div class="db-card-value db-card-value--muted">—</div>
               <button type="button" class="db-run-btn">Run weekly_digest.sh →</button>
             </div>
             <div class="db-card db-card--manual">
-              <div class="db-card-header"><div class="db-card-label">Pending Escalations</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-header"><div class="db-card-label">Pending Escalations</div><span class="db-tier db-tier--manual">Manual</span></div>
               <div class="db-card-value db-card-value--good">0</div>
               <div class="db-card-sub">Default — update via orchestrator</div>
             </div>
             <div class="db-card db-card--manual">
-              <div class="db-card-header"><div class="db-card-label">Active Directives</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-header"><div class="db-card-label">Active Directives</div><span class="db-tier db-tier--manual">Manual</span></div>
               <div class="db-card-value db-card-value--muted">—</div>
               <button type="button" class="db-run-btn">Run orchestrator · directive →</button>
             </div>
             <div class="db-card db-card--manual">
-              <div class="db-card-header"><div class="db-card-label">Agent Coverage</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-header"><div class="db-card-label">Agent Coverage</div><span class="db-tier db-tier--manual">Manual</span></div>
               <div class="db-card-value">20</div>
               <div class="db-card-sub">Domains with dashboards</div>
             </div>
@@ -3842,7 +3842,7 @@ h3.os-chart-card-title {
             <div class="os-chart-card os-chart-card--donut">
               <div class="os-chart-card-head">
                 <h3 class="os-chart-card-title" id="strategy-chart-opportunities-title">Opportunities by status</h3>
-                <span class="os-chart-card-tier">MANUAL</span>
+                <span class="os-chart-card-tier">Manual</span>
               </div>
               <div class="os-chart-canvas-wrap" data-os-canvas-state="empty" data-chart-scope="agent" role="img" aria-labelledby="strategy-chart-opportunities-title" aria-describedby="strategy-chart-opportunities-desc">
                 <div class="os-chart-skeleton" aria-hidden="true"></div>
@@ -3858,7 +3858,7 @@ h3.os-chart-card-title {
             <div class="os-chart-card os-chart-card--bar">
               <div class="os-chart-card-head">
                 <h3 class="os-chart-card-title" id="strategy-chart-assumptions-title">Assumptions by confidence</h3>
-                <span class="os-chart-card-tier">MANUAL</span>
+                <span class="os-chart-card-tier">Manual</span>
               </div>
               <div class="os-chart-canvas-wrap" data-os-canvas-state="empty" data-chart-scope="agent" role="img" aria-labelledby="strategy-chart-assumptions-title" aria-describedby="strategy-chart-assumptions-desc">
                 <div class="os-chart-skeleton" aria-hidden="true"></div>
@@ -3874,7 +3874,7 @@ h3.os-chart-card-title {
             <div class="os-chart-card os-chart-card--bar">
               <div class="os-chart-card-head">
                 <h3 class="os-chart-card-title" id="strategy-chart-threats-title">Competitive threats by level</h3>
-                <span class="os-chart-card-tier">MANUAL</span>
+                <span class="os-chart-card-tier">Manual</span>
               </div>
               <div class="os-chart-canvas-wrap" data-os-canvas-state="empty" data-chart-scope="agent" role="img" aria-labelledby="strategy-chart-threats-title" aria-describedby="strategy-chart-threats-desc">
                 <div class="os-chart-skeleton" aria-hidden="true"></div>
@@ -3903,22 +3903,22 @@ h3.os-chart-card-title {
           <div class="db-section-label">Position &amp; portfolio</div>
           <div class="db-grid">
             <div class="db-card db-card--live">
-              <div class="db-card-header"><div class="db-card-label">Products</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-header"><div class="db-card-label">Products</div><span class="db-tier db-tier--live">Live</span></div>
               <div class="db-card-value">2</div>
               <div class="db-card-sub">Sprite Workbench · Ashen Hollow</div>
             </div>
             <div class="db-card db-card--live">
-              <div class="db-card-header"><div class="db-card-label">Stage</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-header"><div class="db-card-label">Stage</div><span class="db-tier db-tier--live">Live</span></div>
               <div class="db-card-value db-card-value--muted" style="font-size:var(--font-size-sm);font-family:var(--font-sans)" id="db-strategy-stage">Pre-launch</div>
               <div class="db-card-sub">Tool enables game · game proves tool</div>
             </div>
             <div class="db-card db-card--live">
-              <div class="db-card-header"><div class="db-card-label">AI-native window</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-header"><div class="db-card-label">AI-native window</div><span class="db-tier db-tier--live">Live</span></div>
               <div class="db-card-value db-card-value--warning" id="db-strategy-window">18–36 mo</div>
               <div class="db-card-sub">Months before category crowded</div>
             </div>
             <div class="db-card db-card--live">
-              <div class="db-card-header"><div class="db-card-label">Revenue model</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-header"><div class="db-card-label">Revenue model</div><span class="db-tier db-tier--live">Live</span></div>
               <div class="db-card-value db-card-value--muted" style="font-size:var(--font-size-sm);font-family:var(--font-sans)" id="db-strategy-revenue-model">Freemium SaaS</div>
               <div class="db-card-sub">Core free · AI features on subscription</div>
             </div>
@@ -3972,22 +3972,22 @@ h3.os-chart-card-title {
           <div class="db-section-label">Services &amp; Keys</div>
           <div class="db-grid">
             <div class="db-card db-card--live">
-              <div class="db-card-header"><div class="db-card-label">Workbench Server</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-header"><div class="db-card-label">Workbench Server</div><span class="db-tier db-tier--live">Live</span></div>
               <div class="db-card-value" id="db-dev-server">—</div>
               <div class="db-card-sub">127.0.0.1:8766 · sprite_workbench_server.py</div>
             </div>
             <div class="db-card db-card--live">
-              <div class="db-card-header"><div class="db-card-label">Pixellab API Key</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-header"><div class="db-card-label">Pixellab API Key</div><span class="db-tier db-tier--live">Live</span></div>
               <div class="db-card-value" id="db-dev-pixellab">—</div>
               <div class="db-card-sub">PIXELLAB_API_KEY env var</div>
             </div>
             <div class="db-card db-card--live">
-              <div class="db-card-header"><div class="db-card-label">Gemini API Key</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-header"><div class="db-card-label">Gemini API Key</div><span class="db-tier db-tier--live">Live</span></div>
               <div class="db-card-value" id="db-dev-gemini">—</div>
               <div class="db-card-sub">GEMINI_API_KEY env var</div>
             </div>
             <div class="db-card">
-              <div class="db-card-header"><div class="db-card-label">Schema Version</div><span class="db-tier db-tier--static">STATIC</span></div>
+              <div class="db-card-header"><div class="db-card-label">Schema Version</div><span class="db-tier db-tier--static">Fixed</span></div>
               <div class="db-card-value db-card-value--muted" id="db-dev-schema-version">v1.0</div>
               <div class="db-card-sub">Export schema · bump on breaking change</div>
             </div>
@@ -3995,12 +3995,12 @@ h3.os-chart-card-title {
         </div>
         <div class="db-section">
           <div class="db-section-label">AI pipeline signal · same viz language as Home</div>
-          <p style="color:var(--muted);font-size:var(--font-size-sm);margin:0 0 var(--space-2) 0;max-width:820px">Same data as Home and Analytics — from <span style="font-family:var(--font-mono)">projects-data/_usage_ledger.json</span> via GET /api/dashboard-data.</p>
+          <p style="color:var(--muted);font-size:var(--font-size-sm);margin:0 0 var(--space-2) 0;max-width:820px">Same numbers as Home and Analytics: your local usage file when the dashboard server is running.</p>
           <div class="os-chart-grid" id="dev-os-chart-grid">
             <div class="os-chart-card os-chart-card--wide">
               <div class="os-chart-card-head">
-                <h3 class="os-chart-card-title" id="dev-chart-area-title">Paid API calls · weekly (development)</h3>
-                <span class="os-chart-card-tier">AREA</span>
+                <h3 class="os-chart-card-title" id="dev-chart-area-title">Paid API calls by week — Development</h3>
+                <span class="os-chart-card-tier">Over time</span>
               </div>
               <div class="os-chart-canvas-wrap os-chart-canvas-wrap--tall" data-os-canvas-state="idle" role="img" aria-labelledby="dev-chart-area-title" aria-describedby="dev-chart-area-desc">
                 <div class="os-chart-skeleton" aria-hidden="true"></div>
@@ -4012,7 +4012,7 @@ h3.os-chart-card-title {
             <div class="os-chart-card">
               <div class="os-chart-card-head">
                 <h3 class="os-chart-card-title" id="dev-chart-bars-title">Provider mix</h3>
-                <span class="os-chart-card-tier">SPLIT</span>
+                <span class="os-chart-card-tier">Mix</span>
               </div>
               <div class="os-chart-canvas-wrap" data-os-canvas-state="idle" role="img" aria-labelledby="dev-chart-bars-title" aria-describedby="dev-chart-bars-desc">
                 <div class="os-chart-skeleton" aria-hidden="true"></div>
@@ -4024,7 +4024,7 @@ h3.os-chart-card-title {
             <div class="os-chart-card os-chart-card--donut">
               <div class="os-chart-card-head">
                 <h3 class="os-chart-card-title" id="dev-chart-donut-title">Ledger outcomes (API)</h3>
-                <span class="os-chart-card-tier">DONUT</span>
+                <span class="os-chart-card-tier">Breakdown</span>
               </div>
               <div class="os-chart-canvas-wrap" data-os-canvas-state="idle" role="img" aria-labelledby="dev-chart-donut-title" aria-describedby="dev-chart-donut-desc">
                 <div class="os-chart-skeleton" aria-hidden="true"></div>
@@ -4073,22 +4073,22 @@ h3.os-chart-card-title {
           <div class="db-section-label">Services &amp; Keys</div>
           <div class="db-grid">
             <div class="db-card db-card--live">
-              <div class="db-card-header"><div class="db-card-label">Workbench Server</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-header"><div class="db-card-label">Workbench Server</div><span class="db-tier db-tier--live">Live</span></div>
               <div class="db-card-value" id="db-anim-server">—</div>
               <div class="db-card-sub">127.0.0.1:8766 · sprite_workbench_server.py</div>
             </div>
             <div class="db-card db-card--live">
-              <div class="db-card-header"><div class="db-card-label">Pixellab API Key</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-header"><div class="db-card-label">Pixellab API Key</div><span class="db-tier db-tier--live">Live</span></div>
               <div class="db-card-value" id="db-anim-pixellab">—</div>
               <div class="db-card-sub">PIXELLAB_API_KEY env var</div>
             </div>
             <div class="db-card db-card--live">
-              <div class="db-card-header"><div class="db-card-label">Gemini API Key</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-header"><div class="db-card-label">Gemini API Key</div><span class="db-tier db-tier--live">Live</span></div>
               <div class="db-card-value" id="db-anim-gemini">—</div>
               <div class="db-card-sub">GEMINI_API_KEY env var</div>
             </div>
             <div class="db-card">
-              <div class="db-card-header"><div class="db-card-label">Schema Version</div><span class="db-tier db-tier--static">STATIC</span></div>
+              <div class="db-card-header"><div class="db-card-label">Schema Version</div><span class="db-tier db-tier--static">Fixed</span></div>
               <div class="db-card-value db-card-value--muted" id="db-anim-schema-version">v1.0</div>
               <div class="db-card-sub">Sprite / animation export schema</div>
             </div>
@@ -4096,12 +4096,12 @@ h3.os-chart-card-title {
         </div>
         <div class="db-section">
           <div class="db-section-label">AI pipeline signal · same viz language as Home</div>
-          <p style="color:var(--muted);font-size:var(--font-size-sm);margin:0 0 var(--space-2) 0;max-width:820px">Same data as Home and Analytics — from <span style="font-family:var(--font-mono)">projects-data/_usage_ledger.json</span> via GET /api/dashboard-data.</p>
+          <p style="color:var(--muted);font-size:var(--font-size-sm);margin:0 0 var(--space-2) 0;max-width:820px">Same numbers as Home and Analytics: your local usage file when the dashboard server is running.</p>
           <div class="os-chart-grid" id="anim-os-chart-grid">
             <div class="os-chart-card os-chart-card--wide">
               <div class="os-chart-card-head">
-                <h3 class="os-chart-card-title" id="anim-chart-area-title">Paid API calls · weekly (animation)</h3>
-                <span class="os-chart-card-tier">AREA</span>
+                <h3 class="os-chart-card-title" id="anim-chart-area-title">Paid API calls by week — Animation</h3>
+                <span class="os-chart-card-tier">Over time</span>
               </div>
               <div class="os-chart-canvas-wrap os-chart-canvas-wrap--tall" data-os-canvas-state="idle" role="img" aria-labelledby="anim-chart-area-title" aria-describedby="anim-chart-area-desc">
                 <div class="os-chart-skeleton" aria-hidden="true"></div>
@@ -4113,7 +4113,7 @@ h3.os-chart-card-title {
             <div class="os-chart-card">
               <div class="os-chart-card-head">
                 <h3 class="os-chart-card-title" id="anim-chart-bars-title">Provider mix</h3>
-                <span class="os-chart-card-tier">SPLIT</span>
+                <span class="os-chart-card-tier">Mix</span>
               </div>
               <div class="os-chart-canvas-wrap" data-os-canvas-state="idle" role="img" aria-labelledby="anim-chart-bars-title" aria-describedby="anim-chart-bars-desc">
                 <div class="os-chart-skeleton" aria-hidden="true"></div>
@@ -4125,7 +4125,7 @@ h3.os-chart-card-title {
             <div class="os-chart-card os-chart-card--donut">
               <div class="os-chart-card-head">
                 <h3 class="os-chart-card-title" id="anim-chart-donut-title">Ledger outcomes (API)</h3>
-                <span class="os-chart-card-tier">DONUT</span>
+                <span class="os-chart-card-tier">Breakdown</span>
               </div>
               <div class="os-chart-canvas-wrap" data-os-canvas-state="idle" role="img" aria-labelledby="anim-chart-donut-title" aria-describedby="anim-chart-donut-desc">
                 <div class="os-chart-skeleton" aria-hidden="true"></div>
@@ -4174,22 +4174,22 @@ h3.os-chart-card-title {
           <div class="db-section-label">Services &amp; Keys</div>
           <div class="db-grid">
             <div class="db-card db-card--live">
-              <div class="db-card-header"><div class="db-card-label">Workbench Server</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-header"><div class="db-card-label">Workbench Server</div><span class="db-tier db-tier--live">Live</span></div>
               <div class="db-card-value" id="db-ld-server">—</div>
               <div class="db-card-sub">127.0.0.1:8766 · sprite_workbench_server.py</div>
             </div>
             <div class="db-card db-card--live">
-              <div class="db-card-header"><div class="db-card-label">Pixellab API Key</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-header"><div class="db-card-label">Pixellab API Key</div><span class="db-tier db-tier--live">Live</span></div>
               <div class="db-card-value" id="db-ld-pixellab">—</div>
               <div class="db-card-sub">PIXELLAB_API_KEY env var</div>
             </div>
             <div class="db-card db-card--live">
-              <div class="db-card-header"><div class="db-card-label">Gemini API Key</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-header"><div class="db-card-label">Gemini API Key</div><span class="db-tier db-tier--live">Live</span></div>
               <div class="db-card-value" id="db-ld-gemini">—</div>
               <div class="db-card-sub">GEMINI_API_KEY env var</div>
             </div>
             <div class="db-card">
-              <div class="db-card-header"><div class="db-card-label">Schema Version</div><span class="db-tier db-tier--static">STATIC</span></div>
+              <div class="db-card-header"><div class="db-card-label">Schema Version</div><span class="db-tier db-tier--static">Fixed</span></div>
               <div class="db-card-value db-card-value--muted" id="db-ld-schema-version">v1.0</div>
               <div class="db-card-sub">Room / world graph export schema</div>
             </div>
@@ -4197,12 +4197,12 @@ h3.os-chart-card-title {
         </div>
         <div class="db-section">
           <div class="db-section-label">AI pipeline signal · same viz language as Home</div>
-          <p style="color:var(--muted);font-size:var(--font-size-sm);margin:0 0 var(--space-2) 0;max-width:820px">Same data as Home and Analytics — from <span style="font-family:var(--font-mono)">projects-data/_usage_ledger.json</span> via GET /api/dashboard-data.</p>
+          <p style="color:var(--muted);font-size:var(--font-size-sm);margin:0 0 var(--space-2) 0;max-width:820px">Same numbers as Home and Analytics: your local usage file when the dashboard server is running.</p>
           <div class="os-chart-grid" id="ld-os-chart-grid">
             <div class="os-chart-card os-chart-card--wide">
               <div class="os-chart-card-head">
-                <h3 class="os-chart-card-title" id="ld-chart-area-title">Paid API calls · weekly (level design)</h3>
-                <span class="os-chart-card-tier">AREA</span>
+                <h3 class="os-chart-card-title" id="ld-chart-area-title">Paid API calls by week — Level design</h3>
+                <span class="os-chart-card-tier">Over time</span>
               </div>
               <div class="os-chart-canvas-wrap os-chart-canvas-wrap--tall" data-os-canvas-state="idle" role="img" aria-labelledby="ld-chart-area-title" aria-describedby="ld-chart-area-desc">
                 <div class="os-chart-skeleton" aria-hidden="true"></div>
@@ -4214,7 +4214,7 @@ h3.os-chart-card-title {
             <div class="os-chart-card">
               <div class="os-chart-card-head">
                 <h3 class="os-chart-card-title" id="ld-chart-bars-title">Provider mix</h3>
-                <span class="os-chart-card-tier">SPLIT</span>
+                <span class="os-chart-card-tier">Mix</span>
               </div>
               <div class="os-chart-canvas-wrap" data-os-canvas-state="idle" role="img" aria-labelledby="ld-chart-bars-title" aria-describedby="ld-chart-bars-desc">
                 <div class="os-chart-skeleton" aria-hidden="true"></div>
@@ -4226,7 +4226,7 @@ h3.os-chart-card-title {
             <div class="os-chart-card os-chart-card--donut">
               <div class="os-chart-card-head">
                 <h3 class="os-chart-card-title" id="ld-chart-donut-title">Ledger outcomes (API)</h3>
-                <span class="os-chart-card-tier">DONUT</span>
+                <span class="os-chart-card-tier">Breakdown</span>
               </div>
               <div class="os-chart-canvas-wrap" data-os-canvas-state="idle" role="img" aria-labelledby="ld-chart-donut-title" aria-describedby="ld-chart-donut-desc">
                 <div class="os-chart-skeleton" aria-hidden="true"></div>
@@ -4290,7 +4290,7 @@ h3.os-chart-card-title {
             <div class="os-chart-card os-chart-card--donut">
               <div class="os-chart-card-head">
                 <h3 class="os-chart-card-title" id="qa-chart-bugs-title">Open bugs by severity</h3>
-                <span class="os-chart-card-tier">LIVE</span>
+                <span class="os-chart-card-tier">Live</span>
               </div>
               <div class="os-chart-canvas-wrap" data-os-canvas-state="empty" data-chart-scope="agent" role="img" aria-labelledby="qa-chart-bugs-title" aria-describedby="qa-chart-bugs-desc">
                 <div class="os-chart-skeleton" aria-hidden="true"></div>
@@ -4306,7 +4306,7 @@ h3.os-chart-card-title {
             <div class="os-chart-card os-chart-card--bar">
               <div class="os-chart-card-head">
                 <h3 class="os-chart-card-title" id="qa-chart-coverage-title">Test coverage by area</h3>
-                <span class="os-chart-card-tier">MANUAL</span>
+                <span class="os-chart-card-tier">Manual</span>
               </div>
               <div class="os-chart-canvas-wrap" data-os-canvas-state="empty" data-chart-scope="agent" role="img" aria-labelledby="qa-chart-coverage-title" aria-describedby="qa-chart-coverage-desc">
                 <div class="os-chart-skeleton" aria-hidden="true"></div>
@@ -4322,7 +4322,7 @@ h3.os-chart-card-title {
             <div class="os-chart-card os-chart-card--area os-chart-card--wide">
               <div class="os-chart-card-head">
                 <h3 class="os-chart-card-title" id="qa-chart-pass-title">Tests passing · weekly</h3>
-                <span class="os-chart-card-tier">POST-LAUNCH</span>
+                <span class="os-chart-card-tier">After launch</span>
               </div>
               <div class="os-chart-canvas-wrap" data-os-canvas-state="empty" data-chart-scope="agent" role="img" aria-labelledby="qa-chart-pass-title" aria-describedby="qa-chart-pass-desc">
                 <div class="os-chart-skeleton" aria-hidden="true"></div>
@@ -4343,42 +4343,42 @@ h3.os-chart-card-title {
           <div class="db-section-label">Test health</div>
           <div class="db-grid">
             <div class="db-card db-card--live">
-              <div class="db-card-header"><div class="db-card-label">Tests passing</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-header"><div class="db-card-label">Tests passing</div><span class="db-tier db-tier--live">Live</span></div>
               <div class="db-card-value db-card-value--good" id="db-qa-tests-passing">—</div>
               <div class="db-card-sub" id="db-qa-tests-sub">of — total</div>
             </div>
             <div class="db-card db-card--live">
-              <div class="db-card-header"><div class="db-card-label">Tests failing</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-header"><div class="db-card-label">Tests failing</div><span class="db-tier db-tier--live">Live</span></div>
               <div class="db-card-value" id="db-qa-tests-failing">—</div>
               <div class="db-card-sub">Should always be 0</div>
             </div>
             <div class="db-card db-card--live">
-              <div class="db-card-header"><div class="db-card-label">Broken test files</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-header"><div class="db-card-label">Broken test files</div><span class="db-tier db-tier--live">Live</span></div>
               <div class="db-card-value" id="db-qa-broken-files">—</div>
               <div class="db-card-sub">Files that can't even be loaded</div>
             </div>
             <div class="db-card db-card--live">
-              <div class="db-card-header"><div class="db-card-label">Last run</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-header"><div class="db-card-label">Last run</div><span class="db-tier db-tier--live">Live</span></div>
               <div class="db-card-value db-card-value--muted" style="font-size:var(--font-size-sm);font-family:var(--font-sans)" id="db-qa-last-run">—</div>
               <div class="db-card-sub">Date tests were last run</div>
             </div>
             <div class="db-card db-card--live">
-              <div class="db-card-header"><div class="db-card-label">Complete blockers</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-header"><div class="db-card-label">Complete blockers</div><span class="db-tier db-tier--live">Live</span></div>
               <div class="db-card-value" id="db-qa-bugs-p0">—</div>
               <div class="db-card-sub">Would prevent any release</div>
             </div>
             <div class="db-card db-card--live">
-              <div class="db-card-header"><div class="db-card-label">Serious bugs</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-header"><div class="db-card-label">Serious bugs</div><span class="db-tier db-tier--live">Live</span></div>
               <div class="db-card-value" id="db-qa-bugs-p1">—</div>
               <div class="db-card-sub">Major feature broken</div>
             </div>
             <div class="db-card db-card--live">
-              <div class="db-card-header"><div class="db-card-label">Minor issues</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-header"><div class="db-card-label">Minor issues</div><span class="db-tier db-tier--live">Live</span></div>
               <div class="db-card-value" id="db-qa-bugs-p2p3">—</div>
               <div class="db-card-sub">Worked around; tracked for later</div>
             </div>
             <div class="db-card db-card--live">
-              <div class="db-card-header"><div class="db-card-label">Last bug triage</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-header"><div class="db-card-label">Last bug triage</div><span class="db-tier db-tier--live">Live</span></div>
               <div class="db-card-value db-card-value--muted" style="font-size:var(--font-size-sm);font-family:var(--font-sans)" id="db-qa-last-triage">—</div>
               <div class="db-card-sub">Date bugs were last reviewed</div>
             </div>
@@ -4393,17 +4393,17 @@ h3.os-chart-card-title {
           </div>
           <div class="db-grid" style="margin-top:var(--space-3)">
             <div class="db-card db-card--live">
-              <div class="db-card-header"><div class="db-card-label">Automated browser tests</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-header"><div class="db-card-label">Automated browser tests</div><span class="db-tier db-tier--live">Live</span></div>
               <div class="db-card-value" id="db-qa-has-e2e">—</div>
               <div class="db-card-sub">End-to-end tests that open the tool in a browser</div>
             </div>
             <div class="db-card db-card--live">
-              <div class="db-card-header"><div class="db-card-label">Visual regression tests</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-header"><div class="db-card-label">Visual regression tests</div><span class="db-tier db-tier--live">Live</span></div>
               <div class="db-card-value" id="db-qa-has-visual">—</div>
               <div class="db-card-sub">Screenshot comparison to catch visual changes</div>
             </div>
             <div class="db-card db-card--live">
-              <div class="db-card-header"><div class="db-card-label">Acceptance tests written</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-header"><div class="db-card-label">Acceptance tests written</div><span class="db-tier db-tier--live">Live</span></div>
               <div class="db-card-value" id="db-qa-acceptance-count">—</div>
               <div class="db-card-sub">Manual test cases documented</div>
             </div>
@@ -4429,17 +4429,17 @@ h3.os-chart-card-title {
           <div class="db-section-label">API Key Presence</div>
           <div class="db-grid">
             <div class="db-card db-card--live">
-              <div class="db-card-header"><div class="db-card-label">Pixellab Key</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-header"><div class="db-card-label">Pixellab Key</div><span class="db-tier db-tier--live">Live</span></div>
               <div class="db-card-value" id="db-sec-pixellab">—</div>
               <div class="db-card-sub">Presence check only</div>
             </div>
             <div class="db-card db-card--live">
-              <div class="db-card-header"><div class="db-card-label">Gemini Key</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-header"><div class="db-card-label">Gemini Key</div><span class="db-tier db-tier--live">Live</span></div>
               <div class="db-card-value" id="db-sec-gemini">—</div>
               <div class="db-card-sub">Presence check only</div>
             </div>
             <div class="db-card db-card--live">
-              <div class="db-card-header"><div class="db-card-label">Resend Key</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-header"><div class="db-card-label">Resend Key</div><span class="db-tier db-tier--live">Live</span></div>
               <div class="db-card-value" id="db-sec-resend">—</div>
               <div class="db-card-sub">Presence check only</div>
             </div>
@@ -4449,22 +4449,22 @@ h3.os-chart-card-title {
           <div class="db-section-label">Security Posture</div>
           <div class="db-grid">
             <div class="db-card db-card--live">
-              <div class="db-card-header"><div class="db-card-label">Keys in HTML</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-header"><div class="db-card-label">Keys in HTML</div><span class="db-tier db-tier--live">Live</span></div>
               <div class="db-card-value db-card-value--good">None</div>
               <div class="db-card-sub">Server-side only</div>
             </div>
             <div class="db-card db-card--live">
-              <div class="db-card-header"><div class="db-card-label">Threat Surface</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-header"><div class="db-card-label">Threat Surface</div><span class="db-tier db-tier--live">Live</span></div>
               <div class="db-card-value db-card-value--muted" style="font-size:var(--font-size-sm);font-family:var(--font-sans)">Local dev</div>
               <div class="db-card-sub">No public endpoints yet</div>
             </div>
             <div class="db-card db-card--manual">
-              <div class="db-card-header"><div class="db-card-label">Last Security Audit</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-header"><div class="db-card-label">Last Security Audit</div><span class="db-tier db-tier--manual">Manual</span></div>
               <div class="db-card-value db-card-value--muted">—</div>
               <button type="button" class="db-run-btn">Run cybersecurity · report →</button>
             </div>
             <div class="db-card db-card--manual">
-              <div class="db-card-header"><div class="db-card-label">Prompt Injection Risk</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-header"><div class="db-card-label">Prompt Injection Risk</div><span class="db-tier db-tier--manual">Manual</span></div>
               <div class="db-card-value db-card-value--muted">—</div>
               <button type="button" class="db-run-btn">Run cybersecurity · analyze →</button>
             </div>
@@ -4476,7 +4476,7 @@ h3.os-chart-card-title {
             <div class="os-chart-card os-chart-card--donut">
               <div class="os-chart-card-head">
                 <h3 class="os-chart-card-title" id="sec-chart-posture-title">Security checks by status</h3>
-                <span class="os-chart-card-tier">MANUAL</span>
+                <span class="os-chart-card-tier">Manual</span>
               </div>
               <div class="os-chart-canvas-wrap" data-os-canvas-state="empty" data-chart-scope="agent" role="img" aria-labelledby="sec-chart-posture-title" aria-describedby="sec-chart-posture-desc">
                 <div class="os-chart-skeleton" aria-hidden="true"></div>
@@ -4492,7 +4492,7 @@ h3.os-chart-card-title {
             <div class="os-chart-card os-chart-card--bar">
               <div class="os-chart-card-head">
                 <h3 class="os-chart-card-title" id="sec-chart-surface-title">Attack surface by area</h3>
-                <span class="os-chart-card-tier">MANUAL</span>
+                <span class="os-chart-card-tier">Manual</span>
               </div>
               <div class="os-chart-canvas-wrap" data-os-canvas-state="empty" data-chart-scope="agent" role="img" aria-labelledby="sec-chart-surface-title" aria-describedby="sec-chart-surface-desc">
                 <div class="os-chart-skeleton" aria-hidden="true"></div>
@@ -4508,7 +4508,7 @@ h3.os-chart-card-title {
             <div class="os-chart-card os-chart-card--donut">
               <div class="os-chart-card-head">
                 <h3 class="os-chart-card-title" id="sec-chart-findings-title">Open findings by severity</h3>
-                <span class="os-chart-card-tier">MANUAL</span>
+                <span class="os-chart-card-tier">Manual</span>
               </div>
               <div class="os-chart-canvas-wrap" data-os-canvas-state="empty" data-chart-scope="agent" role="img" aria-labelledby="sec-chart-findings-title" aria-describedby="sec-chart-findings-desc">
                 <div class="os-chart-skeleton" aria-hidden="true"></div>
@@ -4531,17 +4531,17 @@ h3.os-chart-card-title {
           <div class="db-section-label">Standing Facts</div>
           <div class="db-grid">
             <div class="db-card db-card--live">
-              <div class="db-card-header"><div class="db-card-label">Jurisdiction</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-header"><div class="db-card-label">Jurisdiction</div><span class="db-tier db-tier--live">Live</span></div>
               <div class="db-card-value db-card-value--muted" style="font-size:var(--font-size-sm);font-family:var(--font-sans)">Ireland / EU</div>
               <div class="db-card-sub">GDPR applicable</div>
             </div>
             <div class="db-card db-card--live">
-              <div class="db-card-header"><div class="db-card-label">Asset Type</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-header"><div class="db-card-label">Asset Type</div><span class="db-tier db-tier--live">Live</span></div>
               <div class="db-card-value db-card-value--muted" style="font-size:var(--font-size-sm);font-family:var(--font-sans)">AI-generated</div>
               <div class="db-card-sub">Sprites, animations, audio</div>
             </div>
             <div class="db-card db-card--live">
-              <div class="db-card-header"><div class="db-card-label">Monetisation Stage</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-header"><div class="db-card-label">Monetisation Stage</div><span class="db-tier db-tier--live">Live</span></div>
               <div class="db-card-value db-card-value--muted" style="font-size:var(--font-size-sm);font-family:var(--font-sans)">Pre-launch</div>
               <div class="db-card-sub">No ToS published yet</div>
             </div>
@@ -4551,22 +4551,22 @@ h3.os-chart-card-title {
           <div class="db-section-label">Compliance Reviews</div>
           <div class="db-grid">
             <div class="db-card db-card--manual">
-              <div class="db-card-header"><div class="db-card-label">AI Assets Reviewed</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-header"><div class="db-card-label">AI Assets Reviewed</div><span class="db-tier db-tier--manual">Manual</span></div>
               <div class="db-card-value db-card-value--muted">—</div>
               <button type="button" class="db-run-btn">Run legal · review →</button>
             </div>
             <div class="db-card db-card--manual">
-              <div class="db-card-header"><div class="db-card-label">Pending Legal Flags</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-header"><div class="db-card-label">Pending Legal Flags</div><span class="db-tier db-tier--manual">Manual</span></div>
               <div class="db-card-value db-card-value--muted">—</div>
               <button type="button" class="db-run-btn">Run legal · escalation-check →</button>
             </div>
             <div class="db-card db-card--manual">
-              <div class="db-card-header"><div class="db-card-label">IP Exposure Level</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-header"><div class="db-card-label">IP Exposure Level</div><span class="db-tier db-tier--manual">Manual</span></div>
               <div class="db-card-value db-card-value--muted">—</div>
               <button type="button" class="db-run-btn">Run legal · analyze →</button>
             </div>
             <div class="db-card db-card--manual">
-              <div class="db-card-header"><div class="db-card-label">Last Legal Review</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-header"><div class="db-card-label">Last Legal Review</div><span class="db-tier db-tier--manual">Manual</span></div>
               <div class="db-card-value db-card-value--muted">—</div>
               <button type="button" class="db-run-btn">Run legal · report →</button>
             </div>
@@ -4578,7 +4578,7 @@ h3.os-chart-card-title {
             <div class="os-chart-card os-chart-card--bar">
               <div class="os-chart-card-head">
                 <h3 class="os-chart-card-title" id="legal-chart-items-title">Open items by category</h3>
-                <span class="os-chart-card-tier">MANUAL</span>
+                <span class="os-chart-card-tier">Manual</span>
               </div>
               <div class="os-chart-canvas-wrap" data-os-canvas-state="empty" data-chart-scope="agent" role="img" aria-labelledby="legal-chart-items-title" aria-describedby="legal-chart-items-desc">
                 <div class="os-chart-skeleton" aria-hidden="true"></div>
@@ -4594,7 +4594,7 @@ h3.os-chart-card-title {
             <div class="os-chart-card os-chart-card--donut">
               <div class="os-chart-card-head">
                 <h3 class="os-chart-card-title" id="legal-chart-status-title">Items by status</h3>
-                <span class="os-chart-card-tier">MANUAL</span>
+                <span class="os-chart-card-tier">Manual</span>
               </div>
               <div class="os-chart-canvas-wrap" data-os-canvas-state="empty" data-chart-scope="agent" role="img" aria-labelledby="legal-chart-status-title" aria-describedby="legal-chart-status-desc">
                 <div class="os-chart-skeleton" aria-hidden="true"></div>
@@ -4610,7 +4610,7 @@ h3.os-chart-card-title {
             <div class="os-chart-card os-chart-card--bar">
               <div class="os-chart-card-head">
                 <h3 class="os-chart-card-title" id="legal-chart-compliance-title">Compliance checklist progress</h3>
-                <span class="os-chart-card-tier">POST-LAUNCH</span>
+                <span class="os-chart-card-tier">After launch</span>
               </div>
               <div class="os-chart-canvas-wrap" data-os-canvas-state="empty" data-chart-scope="agent" role="img" aria-labelledby="legal-chart-compliance-title" aria-describedby="legal-chart-compliance-desc">
                 <div class="os-chart-skeleton" aria-hidden="true"></div>
@@ -4633,17 +4633,17 @@ h3.os-chart-card-title {
           <div class="db-section-label">Business Context</div>
           <div class="db-grid">
             <div class="db-card db-card--live">
-              <div class="db-card-header"><div class="db-card-label">Revenue Stage</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-header"><div class="db-card-label">Revenue Stage</div><span class="db-tier db-tier--live">Live</span></div>
               <div class="db-card-value db-card-value--muted" style="font-size:var(--font-size-sm);font-family:var(--font-sans)">Pre-revenue</div>
               <div class="db-card-sub">Both products in development</div>
             </div>
             <div class="db-card db-card--live">
-              <div class="db-card-header"><div class="db-card-label">Currency</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-header"><div class="db-card-label">Currency</div><span class="db-tier db-tier--live">Live</span></div>
               <div class="db-card-value">EUR</div>
               <div class="db-card-sub">Ireland-based entity</div>
             </div>
             <div class="db-card db-card--live">
-              <div class="db-card-header"><div class="db-card-label">Cost Drivers</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-header"><div class="db-card-label">Cost Drivers</div><span class="db-tier db-tier--live">Live</span></div>
               <div class="db-card-value db-card-value--muted" style="font-size:var(--font-size-sm);font-family:var(--font-sans)">3 APIs</div>
               <div class="db-card-sub">Pixellab · Gemini · Resend</div>
             </div>
@@ -4653,22 +4653,22 @@ h3.os-chart-card-title {
           <div class="db-section-label">Monthly API Spend</div>
           <div class="db-grid">
             <div class="db-card db-card--manual">
-              <div class="db-card-header"><div class="db-card-label">Pixellab API</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-header"><div class="db-card-label">Pixellab API</div><span class="db-tier db-tier--manual">Manual</span></div>
               <div class="db-card-value db-card-value--muted">—</div>
               <div class="db-card-sub">Per-image + animation calls</div>
             </div>
             <div class="db-card db-card--manual">
-              <div class="db-card-header"><div class="db-card-label">Gemini API</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-header"><div class="db-card-label">Gemini API</div><span class="db-tier db-tier--manual">Manual</span></div>
               <div class="db-card-value db-card-value--muted">—</div>
               <div class="db-card-sub">Copilot &amp; generation calls</div>
             </div>
             <div class="db-card db-card--manual">
-              <div class="db-card-header"><div class="db-card-label">Resend (Email)</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-header"><div class="db-card-label">Resend (Email)</div><span class="db-tier db-tier--manual">Manual</span></div>
               <div class="db-card-value db-card-value--muted">—</div>
               <div class="db-card-sub">Digest + daily reports</div>
             </div>
             <div class="db-card db-card--manual">
-              <div class="db-card-header"><div class="db-card-label">Budget Remaining</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-header"><div class="db-card-label">Budget Remaining</div><span class="db-tier db-tier--manual">Manual</span></div>
               <div class="db-card-value db-card-value--muted">—</div>
               <button type="button" class="db-run-btn">Run finance · report →</button>
             </div>
@@ -4678,12 +4678,12 @@ h3.os-chart-card-title {
           <div class="db-section-label">Unit Economics</div>
           <div class="db-grid">
             <div class="db-card db-card--instrumented">
-              <div class="db-card-header"><div class="db-card-label">Cost per Session</div><span class="db-tier db-tier--post">POST-LAUNCH</span></div>
+              <div class="db-card-header"><div class="db-card-label">Cost per Session</div><span class="db-tier db-tier--post">After launch</span></div>
               <div class="db-card-value db-card-value--muted">—</div>
               <div class="db-card-sub">Requires usage tracking</div>
             </div>
             <div class="db-card db-card--instrumented">
-              <div class="db-card-header"><div class="db-card-label">Revenue per User</div><span class="db-tier db-tier--post">POST-LAUNCH</span></div>
+              <div class="db-card-header"><div class="db-card-label">Revenue per User</div><span class="db-tier db-tier--post">After launch</span></div>
               <div class="db-card-value db-card-value--muted">—</div>
               <div class="db-card-sub">After monetisation launch</div>
             </div>
@@ -4695,7 +4695,7 @@ h3.os-chart-card-title {
             <div class="os-chart-card os-chart-card--bar">
               <div class="os-chart-card-head">
                 <h3 class="os-chart-card-title" id="finance-chart-spend-title">AI service spend · MTD</h3>
-                <span class="os-chart-card-tier">MANUAL</span>
+                <span class="os-chart-card-tier">Manual</span>
               </div>
               <div class="os-chart-canvas-wrap" data-os-canvas-state="empty" data-chart-scope="agent" role="img" aria-labelledby="finance-chart-spend-title" aria-describedby="finance-chart-spend-desc">
                 <div class="os-chart-skeleton" aria-hidden="true"></div>
@@ -4711,7 +4711,7 @@ h3.os-chart-card-title {
             <div class="os-chart-card os-chart-card--donut">
               <div class="os-chart-card-head">
                 <h3 class="os-chart-card-title" id="finance-chart-categories-title">Cost breakdown by category</h3>
-                <span class="os-chart-card-tier">MANUAL</span>
+                <span class="os-chart-card-tier">Manual</span>
               </div>
               <div class="os-chart-canvas-wrap" data-os-canvas-state="empty" data-chart-scope="agent" role="img" aria-labelledby="finance-chart-categories-title" aria-describedby="finance-chart-categories-desc">
                 <div class="os-chart-skeleton" aria-hidden="true"></div>
@@ -4727,7 +4727,7 @@ h3.os-chart-card-title {
             <div class="os-chart-card os-chart-card--area os-chart-card--wide">
               <div class="os-chart-card-head">
                 <h3 class="os-chart-card-title" id="finance-chart-trend-title">Monthly spend trend</h3>
-                <span class="os-chart-card-tier">POST-LAUNCH</span>
+                <span class="os-chart-card-tier">After launch</span>
               </div>
               <div class="os-chart-canvas-wrap" data-os-canvas-state="empty" data-chart-scope="agent" role="img" aria-labelledby="finance-chart-trend-title" aria-describedby="finance-chart-trend-desc">
                 <div class="os-chart-skeleton" aria-hidden="true"></div>
@@ -4766,29 +4766,29 @@ h3.os-chart-card-title {
             </div>
           </div>
         </div>
-        <!-- ── Usage ledger (live) ── -->
+        <!-- ── Call log (live) ── -->
         <div class="db-section">
-          <div class="db-section-label">Usage ledger</div>
+          <div class="db-section-label">Call log</div>
           <div class="db-grid">
             <div class="db-card db-card--live">
-              <div class="db-card-header"><div class="db-card-label">Ledger rows (all-time)</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-header"><div class="db-card-label">All logged calls</div><span class="db-tier db-tier--live">Live</span></div>
               <div class="db-card-value" id="db-analytics-ledger-total">—</div>
-              <div class="db-card-sub">n = rows in file</div>
+              <div class="db-card-sub">Every call recorded on this machine</div>
             </div>
             <div class="db-card db-card--live">
-              <div class="db-card-header"><div class="db-card-label">Calls · 8-wk window</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-header"><div class="db-card-label">Calls in the last 8 weeks</div><span class="db-tier db-tier--live">Live</span></div>
               <div class="db-card-value" id="db-analytics-window-calls">—</div>
-              <div class="db-card-sub">Rolling ISO weeks (UTC)</div>
+              <div class="db-card-sub">Same window as the usage charts</div>
             </div>
             <div class="db-card db-card--live">
-              <div class="db-card-header"><div class="db-card-label">Today (UTC)</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-header"><div class="db-card-label">Calls today</div><span class="db-tier db-tier--live">Live</span></div>
               <div class="db-card-value" id="db-analytics-today-calls">—</div>
-              <div class="db-card-sub">Ledger rows with today’s date prefix</div>
+              <div class="db-card-sub">By today’s date in GMT</div>
             </div>
             <div class="db-card db-card--live">
-              <div class="db-card-header"><div class="db-card-label">Est. cost (ledger)</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-header"><div class="db-card-label">Rough cost from the log</div><span class="db-tier db-tier--live">Live</span></div>
               <div class="db-card-value" id="db-analytics-ledger-cost">—</div>
-              <div class="db-card-sub">Sum of usage_cost_usd · Finance owns ground truth</div>
+              <div class="db-card-sub">Added from each logged call; use finance records for real spend</div>
             </div>
           </div>
         </div>
@@ -4797,19 +4797,19 @@ h3.os-chart-card-title {
           <div class="db-section-label">What we're tracking</div>
           <div class="db-grid">
             <div class="db-card db-card--live">
-              <div class="db-card-header"><div class="db-card-label">Current coverage</div><span class="db-tier db-tier--live">LIVE</span></div>
-              <div class="db-card-value db-card-value--good" id="db-analytics-current-coverage">AI calls + room outcomes</div>
-              <div class="db-card-sub" id="db-analytics-current-coverage-sub">Usage ledger plus per-suggestion room helpfulness</div>
+              <div class="db-card-header"><div class="db-card-label">Current coverage</div><span class="db-tier db-tier--live">Live</span></div>
+              <div class="db-card-value db-card-value--good" id="db-analytics-current-coverage">Calls plus room suggestions</div>
+              <div class="db-card-sub" id="db-analytics-current-coverage-sub">Call log and whether room suggestions felt helpful</div>
             </div>
             <div class="db-card db-card--live">
-              <div class="db-card-header"><div class="db-card-label">Helpful rate</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-header"><div class="db-card-label">Marked helpful</div><span class="db-tier db-tier--live">Live</span></div>
               <div class="db-card-value" id="db-analytics-helpful-rate">—</div>
-              <div class="db-card-sub" id="db-analytics-helpful-rate-sub">Accept + tweak / decided suggestions</div>
+              <div class="db-card-sub" id="db-analytics-helpful-rate-sub">Share you accepted or tweaked, out of those you decided on</div>
             </div>
             <div class="db-card db-card--live">
-              <div class="db-card-header"><div class="db-card-label">Accepted and stuck</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-header"><div class="db-card-label">Still there after you saved again</div><span class="db-tier db-tier--live">Live</span></div>
               <div class="db-card-value" id="db-analytics-persist-rate">—</div>
-              <div class="db-card-sub" id="db-analytics-persist-rate-sub">Accepted suggestions still present after later saves</div>
+              <div class="db-card-sub" id="db-analytics-persist-rate-sub">Accepted suggestions that stayed in the room after a later save</div>
             </div>
           </div>
         </div>
@@ -4819,7 +4819,7 @@ h3.os-chart-card-title {
             <div class="os-chart-card os-chart-card--bar">
               <div class="os-chart-card-head">
                 <h3 class="os-chart-card-title" id="analytics-chart-funnel-title">Funnel stage coverage</h3>
-                <span class="os-chart-card-tier">POST-LAUNCH</span>
+                <span class="os-chart-card-tier">After launch</span>
               </div>
               <div class="os-chart-canvas-wrap" data-os-canvas-state="empty" data-chart-scope="agent" role="img" aria-labelledby="analytics-chart-funnel-title" aria-describedby="analytics-chart-funnel-desc">
                 <div class="os-chart-skeleton" aria-hidden="true"></div>
@@ -4835,7 +4835,7 @@ h3.os-chart-card-title {
             <div class="os-chart-card os-chart-card--donut">
               <div class="os-chart-card-head">
                 <h3 class="os-chart-card-title" id="analytics-chart-copilot-title">Copilot signal breakdown</h3>
-                <span class="os-chart-card-tier">POST-LAUNCH</span>
+                <span class="os-chart-card-tier">After launch</span>
               </div>
               <div class="os-chart-canvas-wrap" data-os-canvas-state="empty" data-chart-scope="agent" role="img" aria-labelledby="analytics-chart-copilot-title" aria-describedby="analytics-chart-copilot-desc">
                 <div class="os-chart-skeleton" aria-hidden="true"></div>
@@ -4851,7 +4851,7 @@ h3.os-chart-card-title {
             <div class="os-chart-card os-chart-card--bar">
               <div class="os-chart-card-head">
                 <h3 class="os-chart-card-title" id="analytics-chart-metrics-title">Metrics by data status</h3>
-                <span class="os-chart-card-tier">MANUAL</span>
+                <span class="os-chart-card-tier">Manual</span>
               </div>
               <div class="os-chart-canvas-wrap" data-os-canvas-state="empty" data-chart-scope="agent" role="img" aria-labelledby="analytics-chart-metrics-title" aria-describedby="analytics-chart-metrics-desc">
                 <div class="os-chart-skeleton" aria-hidden="true"></div>
@@ -4875,8 +4875,8 @@ h3.os-chart-card-title {
         </div>
 
         <div class="db-qa-signpost db-qa-signpost--stack">
-          <button type="button" class="db-qa-link" onclick="selectDashboard('api-usage')">→ API usage · ledger, costs &amp; charts</button>
-          <button type="button" class="db-qa-link" onclick="selectDashboard('home')">→ Home · command surface</button>
+          <button type="button" class="db-qa-link" onclick="selectDashboard('api-usage')">→ API usage · costs and charts</button>
+          <button type="button" class="db-qa-link" onclick="selectDashboard('home')">→ Home</button>
           <button type="button" class="db-qa-link" onclick="selectDashboard('development')">→ Development · pipeline &amp; keys</button>
           <button type="button" class="db-qa-link" onclick="selectDashboard('design')">→ Design · governance &amp; Copilot UX gate</button>
         </div>
@@ -4888,12 +4888,12 @@ h3.os-chart-card-title {
           <div class="db-section-label">Support Context</div>
           <div class="db-grid">
             <div class="db-card db-card--live">
-              <div class="db-card-header"><div class="db-card-label">User Base Stage</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-header"><div class="db-card-label">User Base Stage</div><span class="db-tier db-tier--live">Live</span></div>
               <div class="db-card-value db-card-value--warning">Pre-launch</div>
               <div class="db-card-sub">No live users yet</div>
             </div>
             <div class="db-card db-card--live">
-              <div class="db-card-header"><div class="db-card-label">Channels</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-header"><div class="db-card-label">Channels</div><span class="db-tier db-tier--live">Live</span></div>
               <div class="db-card-value db-card-value--muted" style="font-size:var(--font-size-sm);font-family:var(--font-sans)">itch.io · Discord</div>
               <div class="db-card-sub">Planned post-launch</div>
             </div>
@@ -4903,17 +4903,17 @@ h3.os-chart-card-title {
           <div class="db-section-label">Issue Queue — Post-launch</div>
           <div class="db-grid">
             <div class="db-card db-card--instrumented">
-              <div class="db-card-header"><div class="db-card-label">Open Tickets</div><span class="db-tier db-tier--post">POST-LAUNCH</span></div>
+              <div class="db-card-header"><div class="db-card-label">Open Tickets</div><span class="db-tier db-tier--post">After launch</span></div>
               <div class="db-card-value db-card-value--muted">—</div>
               <div class="db-card-sub">Requires user base</div>
             </div>
             <div class="db-card db-card--instrumented">
-              <div class="db-card-header"><div class="db-card-label">Avg Resolution Time</div><span class="db-tier db-tier--post">POST-LAUNCH</span></div>
+              <div class="db-card-header"><div class="db-card-label">Avg Resolution Time</div><span class="db-tier db-tier--post">After launch</span></div>
               <div class="db-card-value db-card-value--muted">—</div>
               <div class="db-card-sub">Hours to close</div>
             </div>
             <div class="db-card db-card--instrumented">
-              <div class="db-card-header"><div class="db-card-label">CSAT</div><span class="db-tier db-tier--post">POST-LAUNCH</span></div>
+              <div class="db-card-header"><div class="db-card-label">CSAT</div><span class="db-tier db-tier--post">After launch</span></div>
               <div class="db-card-value db-card-value--muted">—</div>
               <div class="db-card-sub">Customer satisfaction score</div>
             </div>
@@ -4923,12 +4923,12 @@ h3.os-chart-card-title {
           <div class="db-section-label">Research</div>
           <div class="db-grid">
             <div class="db-card db-card--manual">
-              <div class="db-card-header"><div class="db-card-label">Top Pain Points</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-header"><div class="db-card-label">Top Pain Points</div><span class="db-tier db-tier--manual">Manual</span></div>
               <div class="db-card-value db-card-value--muted">—</div>
               <button type="button" class="db-run-btn">Run support · analyze →</button>
             </div>
             <div class="db-card db-card--manual">
-              <div class="db-card-header"><div class="db-card-label">Onboarding Drop-off</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-header"><div class="db-card-label">Onboarding Drop-off</div><span class="db-tier db-tier--manual">Manual</span></div>
               <div class="db-card-value db-card-value--muted">—</div>
               <button type="button" class="db-run-btn">Run support · review →</button>
             </div>
@@ -4940,7 +4940,7 @@ h3.os-chart-card-title {
             <div class="os-chart-card os-chart-card--bar">
               <div class="os-chart-card-head">
                 <h3 class="os-chart-card-title" id="support-chart-types-title">Tickets by type</h3>
-                <span class="os-chart-card-tier">POST-LAUNCH</span>
+                <span class="os-chart-card-tier">After launch</span>
               </div>
               <div class="os-chart-canvas-wrap" data-os-canvas-state="empty" data-chart-scope="agent" role="img" aria-labelledby="support-chart-types-title" aria-describedby="support-chart-types-desc">
                 <div class="os-chart-skeleton" aria-hidden="true"></div>
@@ -4956,7 +4956,7 @@ h3.os-chart-card-title {
             <div class="os-chart-card os-chart-card--donut">
               <div class="os-chart-card-head">
                 <h3 class="os-chart-card-title" id="support-chart-status-title">Tickets by status</h3>
-                <span class="os-chart-card-tier">POST-LAUNCH</span>
+                <span class="os-chart-card-tier">After launch</span>
               </div>
               <div class="os-chart-canvas-wrap" data-os-canvas-state="empty" data-chart-scope="agent" role="img" aria-labelledby="support-chart-status-title" aria-describedby="support-chart-status-desc">
                 <div class="os-chart-skeleton" aria-hidden="true"></div>
@@ -4972,7 +4972,7 @@ h3.os-chart-card-title {
             <div class="os-chart-card os-chart-card--area os-chart-card--wide">
               <div class="os-chart-card-head">
                 <h3 class="os-chart-card-title" id="support-chart-volume-title">Ticket volume · weekly</h3>
-                <span class="os-chart-card-tier">POST-LAUNCH</span>
+                <span class="os-chart-card-tier">After launch</span>
               </div>
               <div class="os-chart-canvas-wrap" data-os-canvas-state="empty" data-chart-scope="agent" role="img" aria-labelledby="support-chart-volume-title" aria-describedby="support-chart-volume-desc">
                 <div class="os-chart-skeleton" aria-hidden="true"></div>
@@ -5016,7 +5016,7 @@ h3.os-chart-card-title {
             <div class="os-chart-card os-chart-card--bar">
               <div class="os-chart-card-head">
                 <h3 class="os-chart-card-title" id="marketing-chart-pipeline-title">Content pipeline by stage</h3>
-                <span class="os-chart-card-tier">MANUAL</span>
+                <span class="os-chart-card-tier">Manual</span>
               </div>
               <div class="os-chart-canvas-wrap" data-os-canvas-state="empty" data-chart-scope="agent" role="img" aria-labelledby="marketing-chart-pipeline-title" aria-describedby="marketing-chart-pipeline-desc">
                 <div class="os-chart-skeleton" aria-hidden="true"></div>
@@ -5032,7 +5032,7 @@ h3.os-chart-card-title {
             <div class="os-chart-card os-chart-card--donut">
               <div class="os-chart-card-head">
                 <h3 class="os-chart-card-title" id="marketing-chart-channels-title">Published posts by channel</h3>
-                <span class="os-chart-card-tier">MANUAL</span>
+                <span class="os-chart-card-tier">Manual</span>
               </div>
               <div class="os-chart-canvas-wrap" data-os-canvas-state="empty" data-chart-scope="agent" role="img" aria-labelledby="marketing-chart-channels-title" aria-describedby="marketing-chart-channels-desc">
                 <div class="os-chart-skeleton" aria-hidden="true"></div>
@@ -5048,7 +5048,7 @@ h3.os-chart-card-title {
             <div class="os-chart-card os-chart-card--area os-chart-card--wide">
               <div class="os-chart-card-head">
                 <h3 class="os-chart-card-title" id="marketing-chart-cadence-title">Posts published · last 8 weeks</h3>
-                <span class="os-chart-card-tier">POST-LAUNCH</span>
+                <span class="os-chart-card-tier">After launch</span>
               </div>
               <div class="os-chart-canvas-wrap" data-os-canvas-state="empty" data-chart-scope="agent" role="img" aria-labelledby="marketing-chart-cadence-title" aria-describedby="marketing-chart-cadence-desc">
                 <div class="os-chart-skeleton" aria-hidden="true"></div>
@@ -5068,22 +5068,22 @@ h3.os-chart-card-title {
           <div class="db-section-label">Channel signal</div>
           <div class="db-grid">
             <div class="db-card db-card--manual">
-              <div class="db-card-header"><div class="db-card-label">Tuesday weekly update</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-header"><div class="db-card-label">Tuesday weekly update</div><span class="db-tier db-tier--manual">Manual</span></div>
               <div class="db-card-value db-card-value--muted" style="font-size:var(--font-size-sm);font-family:var(--font-sans)" id="db-marketing-metric-tuesday">—</div>
               <div class="db-card-sub">Links · engagement · competitor note · plan</div>
             </div>
             <div class="db-card db-card--manual">
-              <div class="db-card-header"><div class="db-card-label">Content &amp; devlog</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-header"><div class="db-card-label">Content &amp; devlog</div><span class="db-tier db-tier--manual">Manual</span></div>
               <div class="db-card-value db-card-value--muted" style="font-size:var(--font-size-sm);font-family:var(--font-sans)" id="db-marketing-metric-content">—</div>
               <div class="db-card-sub">Published pieces · itch.io archive · #screenshotsaturday</div>
             </div>
             <div class="db-card db-card--manual">
-              <div class="db-card-header"><div class="db-card-label">Channels &amp; cadence</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-header"><div class="db-card-label">Channels &amp; cadence</div><span class="db-tier db-tier--manual">Manual</span></div>
               <div class="db-card-value db-card-value--muted" style="font-size:var(--font-size-sm);font-family:var(--font-sans)" id="db-marketing-metric-channels">—</div>
               <div class="db-card-sub">3–5 posts per week · video and GIF first</div>
             </div>
             <div class="db-card db-card--manual">
-              <div class="db-card-header"><div class="db-card-label">Competitor watch</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-header"><div class="db-card-label">Competitor watch</div><span class="db-tier db-tier--manual">Manual</span></div>
               <div class="db-card-value db-card-value--muted" style="font-size:var(--font-size-sm);font-family:var(--font-sans)" id="db-marketing-metric-competitors">—</div>
               <div class="db-card-sub">Tiled · LDtk · Godot editor · emerging AI tools</div>
             </div>
@@ -5093,22 +5093,22 @@ h3.os-chart-card-title {
           <div class="db-section-label">Launch assets</div>
           <div class="db-grid">
             <div class="db-card db-card--manual">
-              <div class="db-card-header"><div class="db-card-label">Launch readiness</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-header"><div class="db-card-label">Launch readiness</div><span class="db-tier db-tier--manual">Manual</span></div>
               <div class="db-card-value db-card-value--muted">—</div>
               <div class="db-card-sub">Trust and recognition before conversion</div>
             </div>
             <div class="db-card db-card--manual">
-              <div class="db-card-header"><div class="db-card-label">itch.io page</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-header"><div class="db-card-label">itch.io page</div><span class="db-tier db-tier--manual">Manual</span></div>
               <div class="db-card-value db-card-value--muted">—</div>
               <div class="db-card-sub">Devlog home · project page when live</div>
             </div>
             <div class="db-card db-card--manual">
-              <div class="db-card-header"><div class="db-card-label">Product Hunt draft</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-header"><div class="db-card-label">Product Hunt draft</div><span class="db-tier db-tier--manual">Manual</span></div>
               <div class="db-card-value db-card-value--muted">—</div>
               <div class="db-card-sub">Hold until early-adopter story is documented</div>
             </div>
             <div class="db-card db-card--manual">
-              <div class="db-card-header"><div class="db-card-label">Shareable first session</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-header"><div class="db-card-label">Shareable first session</div><span class="db-tier db-tier--manual">Manual</span></div>
               <div class="db-card-value db-card-value--muted">—</div>
               <div class="db-card-sub">First room export · screen-recordable AI flow</div>
             </div>
@@ -5154,22 +5154,22 @@ h3.os-chart-card-title {
           <div class="db-section-label">Design quality</div>
           <div class="db-grid">
             <div class="db-card db-card--manual">
-              <div class="db-card-header"><div class="db-card-label">Token violations (open)</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-header"><div class="db-card-label">Token violations (open)</div><span class="db-tier db-tier--manual">Manual</span></div>
               <div class="db-card-value db-card-value--muted" id="db-design-metric-tokens">—</div>
               <div class="db-card-sub">Color · spacing · radius · transitions</div>
             </div>
             <div class="db-card db-card--manual">
-              <div class="db-card-header"><div class="db-card-label">A11y — critical / serious</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-header"><div class="db-card-label">A11y — critical / serious</div><span class="db-tier db-tier--manual">Manual</span></div>
               <div class="db-card-value db-card-value--muted" id="db-design-metric-a11y">—</div>
               <div class="db-card-sub">WCAG 2.2 AA · keyboard · contrast · focus</div>
             </div>
             <div class="db-card db-card--manual">
-              <div class="db-card-header"><div class="db-card-label">AI panel charter</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-header"><div class="db-card-label">AI panel charter</div><span class="db-tier db-tier--manual">Manual</span></div>
               <div class="db-card-value db-card-value--muted" id="db-design-metric-copilot">—</div>
               <div class="db-card-sub">Confirm before mutate · specific errors · no optimistic apply</div>
             </div>
             <div class="db-card db-card--manual">
-              <div class="db-card-header"><div class="db-card-label">Style guide last updated</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-header"><div class="db-card-label">Style guide last updated</div><span class="db-tier db-tier--manual">Manual</span></div>
               <div class="db-card-value db-card-value--muted" style="font-size:var(--font-size-sm);font-family:var(--font-sans)" id="db-design-metric-guide">—</div>
               <div class="db-card-sub">Next audit: quarterly or on change</div>
             </div>
@@ -5181,7 +5181,7 @@ h3.os-chart-card-title {
             <div class="os-chart-card os-chart-card--bar">
               <div class="os-chart-card-head">
                 <h3 class="os-chart-card-title" id="design-chart-violations-title">Token violations by category</h3>
-                <span class="os-chart-card-tier">MANUAL</span>
+                <span class="os-chart-card-tier">Manual</span>
               </div>
               <div class="os-chart-canvas-wrap" data-os-canvas-state="empty" data-chart-scope="agent" role="img" aria-labelledby="design-chart-violations-title" aria-describedby="design-chart-violations-desc">
                 <div class="os-chart-skeleton" aria-hidden="true"></div>
@@ -5197,7 +5197,7 @@ h3.os-chart-card-title {
             <div class="os-chart-card os-chart-card--donut">
               <div class="os-chart-card-head">
                 <h3 class="os-chart-card-title" id="design-chart-reviews-title">Design review outcomes</h3>
-                <span class="os-chart-card-tier">POST-LAUNCH</span>
+                <span class="os-chart-card-tier">After launch</span>
               </div>
               <div class="os-chart-canvas-wrap" data-os-canvas-state="empty" data-chart-scope="agent" role="img" aria-labelledby="design-chart-reviews-title" aria-describedby="design-chart-reviews-desc">
                 <div class="os-chart-skeleton" aria-hidden="true"></div>
@@ -5213,7 +5213,7 @@ h3.os-chart-card-title {
             <div class="os-chart-card os-chart-card--donut">
               <div class="os-chart-card-head">
                 <h3 class="os-chart-card-title" id="design-chart-a11y-title">Accessibility issues open</h3>
-                <span class="os-chart-card-tier">POST-LAUNCH</span>
+                <span class="os-chart-card-tier">After launch</span>
               </div>
               <div class="os-chart-canvas-wrap" data-os-canvas-state="empty" data-chart-scope="agent" role="img" aria-labelledby="design-chart-a11y-title" aria-describedby="design-chart-a11y-desc">
                 <div class="os-chart-skeleton" aria-hidden="true"></div>
@@ -5247,22 +5247,22 @@ h3.os-chart-card-title {
           <div class="db-section-label">Product Overview</div>
           <div class="db-grid">
             <div class="db-card db-card--live">
-              <div class="db-card-header"><div class="db-card-label">Tools Shipped</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-header"><div class="db-card-label">Tools Shipped</div><span class="db-tier db-tier--live">Live</span></div>
               <div class="db-card-value">2</div>
               <div class="db-card-sub">Sprite Editor · Room Editor</div>
             </div>
             <div class="db-card db-card--live">
-              <div class="db-card-header"><div class="db-card-label">Stack</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-header"><div class="db-card-label">Stack</div><span class="db-tier db-tier--live">Live</span></div>
               <div class="db-card-value db-card-value--muted" style="font-size:var(--font-size-sm);font-family:var(--font-sans)">Browser-native</div>
               <div class="db-card-sub">HTML/CSS/JS · no build step</div>
             </div>
             <div class="db-card db-card--live">
-              <div class="db-card-header"><div class="db-card-label">AI Feature</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-header"><div class="db-card-label">AI Feature</div><span class="db-tier db-tier--live">Live</span></div>
               <div class="db-card-value db-card-value--muted" style="font-size:var(--font-size-sm);font-family:var(--font-sans)">Gemini Copilot</div>
               <div class="db-card-sub">Sprite generation + suggestions</div>
             </div>
             <div class="db-card db-card--live">
-              <div class="db-card-header"><div class="db-card-label">Daily Report Cron</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-header"><div class="db-card-label">Daily Report Cron</div><span class="db-tier db-tier--live">Live</span></div>
               <div class="db-card-value db-card-value--good">6:07pm</div>
               <div class="db-card-sub">7 days/week via cron</div>
             </div>
@@ -5272,17 +5272,17 @@ h3.os-chart-card-title {
           <div class="db-section-label">Product Health</div>
           <div class="db-grid">
             <div class="db-card db-card--live">
-              <div class="db-card-header"><div class="db-card-label">Last Daily Report</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-header"><div class="db-card-label">Last Daily Report</div><span class="db-tier db-tier--live">Live</span></div>
               <div class="db-card-value" id="db-wb-last-report">—</div>
               <div class="db-card-sub">artifacts/daily-report-*.md</div>
             </div>
             <div class="db-card db-card--manual">
-              <div class="db-card-header"><div class="db-card-label">Design Debt</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-header"><div class="db-card-label">Design Debt</div><span class="db-tier db-tier--manual">Manual</span></div>
               <div class="db-card-value db-card-value--muted">—</div>
               <button type="button" class="db-run-btn">Run design · analyze →</button>
             </div>
             <div class="db-card db-card--instrumented">
-              <div class="db-card-header"><div class="db-card-label">Copilot Accept Rate</div><span class="db-tier db-tier--post">POST-LAUNCH</span></div>
+              <div class="db-card-header"><div class="db-card-label">Copilot Accept Rate</div><span class="db-tier db-tier--post">After launch</span></div>
               <div class="db-card-value db-card-value--muted">—</div>
               <div class="db-card-sub">Requires instrumentation</div>
             </div>
@@ -5296,22 +5296,22 @@ h3.os-chart-card-title {
           <div class="db-section-label">Game Facts</div>
           <div class="db-grid">
             <div class="db-card db-card--live">
-              <div class="db-card-header"><div class="db-card-label">Genre</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-header"><div class="db-card-label">Genre</div><span class="db-tier db-tier--live">Live</span></div>
               <div class="db-card-value db-card-value--muted" style="font-size:var(--font-size-sm);font-family:var(--font-sans)">Metroidvania</div>
               <div class="db-card-sub">2D action-exploration</div>
             </div>
             <div class="db-card db-card--live">
-              <div class="db-card-header"><div class="db-card-label">Stage</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-header"><div class="db-card-label">Stage</div><span class="db-tier db-tier--live">Live</span></div>
               <div class="db-card-value db-card-value--warning">Pre-production</div>
               <div class="db-card-sub">Design &amp; toolchain phase</div>
             </div>
             <div class="db-card db-card--live">
-              <div class="db-card-header"><div class="db-card-label">Setting</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-header"><div class="db-card-label">Setting</div><span class="db-tier db-tier--live">Live</span></div>
               <div class="db-card-value db-card-value--muted" style="font-size:var(--font-size-sm);font-family:var(--font-sans)">Dark Fantasy</div>
               <div class="db-card-sub">Ashen world · hollow lore</div>
             </div>
             <div class="db-card db-card--live">
-              <div class="db-card-header"><div class="db-card-label">Daily Report Cron</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-header"><div class="db-card-label">Daily Report Cron</div><span class="db-tier db-tier--live">Live</span></div>
               <div class="db-card-value db-card-value--good">6:07pm</div>
               <div class="db-card-sub">7 days/week via cron</div>
             </div>
@@ -5321,37 +5321,37 @@ h3.os-chart-card-title {
           <div class="db-section-label">Design &amp; Production Docs</div>
           <div class="db-grid">
             <div class="db-card db-card--live">
-              <div class="db-card-header"><div class="db-card-label">Last Daily Report</div><span class="db-tier db-tier--live">LIVE</span></div>
+              <div class="db-card-header"><div class="db-card-label">Last Daily Report</div><span class="db-tier db-tier--live">Live</span></div>
               <div class="db-card-value" id="db-ah-last-report">—</div>
               <div class="db-card-sub">artifacts/daily-report-*.md</div>
             </div>
             <div class="db-card db-card--manual">
-              <div class="db-card-header"><div class="db-card-label">Game Pillars</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-header"><div class="db-card-label">Game Pillars</div><span class="db-tier db-tier--manual">Manual</span></div>
               <div class="db-card-value db-card-value--muted">—</div>
               <button type="button" class="db-run-btn">Run game-director · analyze →</button>
             </div>
             <div class="db-card db-card--manual">
-              <div class="db-card-header"><div class="db-card-label">Biomes Designed</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-header"><div class="db-card-label">Biomes Designed</div><span class="db-tier db-tier--manual">Manual</span></div>
               <div class="db-card-value db-card-value--muted">—</div>
               <button type="button" class="db-run-btn">Run game-director · report →</button>
             </div>
             <div class="db-card db-card--manual">
-              <div class="db-card-header"><div class="db-card-label">Narrative Docs</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-header"><div class="db-card-label">Narrative Docs</div><span class="db-tier db-tier--manual">Manual</span></div>
               <div class="db-card-value db-card-value--muted">—</div>
               <button type="button" class="db-run-btn">Run narrative · analyze →</button>
             </div>
             <div class="db-card db-card--manual">
-              <div class="db-card-header"><div class="db-card-label">Art Bible</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-header"><div class="db-card-label">Art Bible</div><span class="db-tier db-tier--manual">Manual</span></div>
               <div class="db-card-value db-card-value--muted">—</div>
               <button type="button" class="db-run-btn">Run creative · analyze →</button>
             </div>
             <div class="db-card db-card--manual">
-              <div class="db-card-header"><div class="db-card-label">Systems Designed</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-header"><div class="db-card-label">Systems Designed</div><span class="db-tier db-tier--manual">Manual</span></div>
               <div class="db-card-value db-card-value--muted">—</div>
               <button type="button" class="db-run-btn">Run game-systems · report →</button>
             </div>
             <div class="db-card db-card--manual">
-              <div class="db-card-header"><div class="db-card-label">Audio Direction</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-header"><div class="db-card-label">Audio Direction</div><span class="db-tier db-tier--manual">Manual</span></div>
               <div class="db-card-value db-card-value--muted">—</div>
               <button type="button" class="db-run-btn">Run audio · analyze →</button>
             </div>
@@ -5381,22 +5381,22 @@ h3.os-chart-card-title {
           <div class="db-section-label">Last scan — April 2026 · four main tool files · large pages reviewed</div>
           <div class="db-grid">
             <div class="db-card db-card--manual">
-              <div class="db-card-header"><div class="db-card-label">Top priority issues</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-header"><div class="db-card-label">Top priority issues</div><span class="db-tier db-tier--manual">Manual</span></div>
               <div class="db-card-value" style="color:var(--error)">3</div>
               <div class="db-card-sub">Fix before treat as safe for real users</div>
             </div>
             <div class="db-card db-card--manual">
-              <div class="db-card-header"><div class="db-card-label">Next priority issues</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-header"><div class="db-card-label">Next priority issues</div><span class="db-tier db-tier--manual">Manual</span></div>
               <div class="db-card-value" style="color:var(--warning)">8</div>
               <div class="db-card-sub">Should fix; may have a workaround today</div>
             </div>
             <div class="db-card db-card--manual">
-              <div class="db-card-header"><div class="db-card-label">Opportunities</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-header"><div class="db-card-label">Opportunities</div><span class="db-tier db-tier--manual">Manual</span></div>
               <div class="db-card-value" style="color:var(--good)">7</div>
               <div class="db-card-sub">Improvements, not broken behavior</div>
             </div>
             <div class="db-card db-card--manual">
-              <div class="db-card-header"><div class="db-card-label">Library entries</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-header"><div class="db-card-label">Library entries</div><span class="db-tier db-tier--manual">Manual</span></div>
               <div class="db-card-value" style="color:var(--c-research)">2</div>
               <div class="db-card-sub">Saved write-ups in the research library</div>
             </div>
@@ -5515,17 +5515,17 @@ h3.os-chart-card-title {
           <div class="db-section-label">Knowledge library</div>
           <div class="db-grid">
             <div class="db-card db-card--manual db-card--wide">
-              <div class="db-card-header"><div class="db-card-label">Latest report</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-header"><div class="db-card-label">Latest report</div><span class="db-tier db-tier--manual">Manual</span></div>
               <div class="db-card-value db-card-value--muted" style="font-size:var(--font-size-sm);font-family:var(--font-sans)">Passive income market scan — itch.io assets, education products, platform fees; plus earlier toolchain codebase scan</div>
               <div class="db-card-sub">Research library holds both write-ups (April 2026)</div>
             </div>
             <div class="db-card db-card--manual">
-              <div class="db-card-header"><div class="db-card-label">Next scan</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-header"><div class="db-card-label">Next scan</div><span class="db-tier db-tier--manual">Manual</span></div>
               <div class="db-card-value db-card-value--muted">Full codebase pass when Development requests refresh</div>
               <button type="button" class="db-run-btn">Run full codebase scan →</button>
             </div>
             <div class="db-card db-card--manual">
-              <div class="db-card-header"><div class="db-card-label">Market intelligence</div><span class="db-tier db-tier--manual">MANUAL</span></div>
+              <div class="db-card-header"><div class="db-card-label">Market intelligence</div><span class="db-tier db-tier--manual">Manual</span></div>
               <div class="db-card-value db-card-value--muted">Passive income options documented — Orchestrator can run decision mode with Finance</div>
               <button type="button" class="db-run-btn">Run competitor and market pass →</button>
             </div>
@@ -5538,7 +5538,7 @@ h3.os-chart-card-title {
             <div class="os-chart-card os-chart-card--bar">
               <div class="os-chart-card-head">
                 <h3 class="os-chart-card-title" id="research-chart-categories-title">Library items by category</h3>
-                <span class="os-chart-card-tier">MANUAL</span>
+                <span class="os-chart-card-tier">Manual</span>
               </div>
               <div class="os-chart-canvas-wrap" data-os-canvas-state="empty" data-chart-scope="agent" role="img" aria-labelledby="research-chart-categories-title" aria-describedby="research-chart-categories-desc">
                 <div class="os-chart-skeleton" aria-hidden="true"></div>
@@ -5554,7 +5554,7 @@ h3.os-chart-card-title {
             <div class="os-chart-card os-chart-card--donut">
               <div class="os-chart-card-head">
                 <h3 class="os-chart-card-title" id="research-chart-status-title">Items by status</h3>
-                <span class="os-chart-card-tier">MANUAL</span>
+                <span class="os-chart-card-tier">Manual</span>
               </div>
               <div class="os-chart-canvas-wrap" data-os-canvas-state="empty" data-chart-scope="agent" role="img" aria-labelledby="research-chart-status-title" aria-describedby="research-chart-status-desc">
                 <div class="os-chart-skeleton" aria-hidden="true"></div>
@@ -5570,7 +5570,7 @@ h3.os-chart-card-title {
             <div class="os-chart-card os-chart-card--bar">
               <div class="os-chart-card-head">
                 <h3 class="os-chart-card-title" id="research-chart-confidence-title">Findings by confidence</h3>
-                <span class="os-chart-card-tier">MANUAL</span>
+                <span class="os-chart-card-tier">Manual</span>
               </div>
               <div class="os-chart-canvas-wrap" data-os-canvas-state="empty" data-chart-scope="agent" role="img" aria-labelledby="research-chart-confidence-title" aria-describedby="research-chart-confidence-desc">
                 <div class="os-chart-skeleton" aria-hidden="true"></div>
@@ -5596,7 +5596,7 @@ h3.os-chart-card-title {
             <div class="os-chart-card os-chart-card--bar">
               <div class="os-chart-card-head">
                 <h3 class="os-chart-card-title" id="audio-chart-types-title">Tracks by category</h3>
-                <span class="os-chart-card-tier">MANUAL</span>
+                <span class="os-chart-card-tier">Manual</span>
               </div>
               <div class="os-chart-canvas-wrap" data-os-canvas-state="empty" data-chart-scope="agent" role="img" aria-labelledby="audio-chart-types-title" aria-describedby="audio-chart-types-desc">
                 <div class="os-chart-skeleton" aria-hidden="true"></div>
@@ -5612,7 +5612,7 @@ h3.os-chart-card-title {
             <div class="os-chart-card os-chart-card--donut">
               <div class="os-chart-card-head">
                 <h3 class="os-chart-card-title" id="audio-chart-status-title">Tracks by status</h3>
-                <span class="os-chart-card-tier">MANUAL</span>
+                <span class="os-chart-card-tier">Manual</span>
               </div>
               <div class="os-chart-canvas-wrap" data-os-canvas-state="empty" data-chart-scope="agent" role="img" aria-labelledby="audio-chart-status-title" aria-describedby="audio-chart-status-desc">
                 <div class="os-chart-skeleton" aria-hidden="true"></div>
@@ -5628,7 +5628,7 @@ h3.os-chart-card-title {
             <div class="os-chart-card os-chart-card--bar">
               <div class="os-chart-card-head">
                 <h3 class="os-chart-card-title" id="audio-chart-coverage-title">Coverage by game area</h3>
-                <span class="os-chart-card-tier">MANUAL</span>
+                <span class="os-chart-card-tier">Manual</span>
               </div>
               <div class="os-chart-canvas-wrap" data-os-canvas-state="empty" data-chart-scope="agent" role="img" aria-labelledby="audio-chart-coverage-title" aria-describedby="audio-chart-coverage-desc">
                 <div class="os-chart-skeleton" aria-hidden="true"></div>
@@ -5653,7 +5653,7 @@ h3.os-chart-card-title {
             <div class="os-chart-card os-chart-card--bar">
               <div class="os-chart-card-head">
                 <h3 class="os-chart-card-title" id="narrative-chart-types-title">Content by type</h3>
-                <span class="os-chart-card-tier">MANUAL</span>
+                <span class="os-chart-card-tier">Manual</span>
               </div>
               <div class="os-chart-canvas-wrap" data-os-canvas-state="empty" data-chart-scope="agent" role="img" aria-labelledby="narrative-chart-types-title" aria-describedby="narrative-chart-types-desc">
                 <div class="os-chart-skeleton" aria-hidden="true"></div>
@@ -5669,7 +5669,7 @@ h3.os-chart-card-title {
             <div class="os-chart-card os-chart-card--donut">
               <div class="os-chart-card-head">
                 <h3 class="os-chart-card-title" id="narrative-chart-status-title">Content by status</h3>
-                <span class="os-chart-card-tier">MANUAL</span>
+                <span class="os-chart-card-tier">Manual</span>
               </div>
               <div class="os-chart-canvas-wrap" data-os-canvas-state="empty" data-chart-scope="agent" role="img" aria-labelledby="narrative-chart-status-title" aria-describedby="narrative-chart-status-desc">
                 <div class="os-chart-skeleton" aria-hidden="true"></div>
@@ -5685,7 +5685,7 @@ h3.os-chart-card-title {
             <div class="os-chart-card os-chart-card--bar">
               <div class="os-chart-card-head">
                 <h3 class="os-chart-card-title" id="narrative-chart-coverage-title">Coverage by story area</h3>
-                <span class="os-chart-card-tier">MANUAL</span>
+                <span class="os-chart-card-tier">Manual</span>
               </div>
               <div class="os-chart-canvas-wrap" data-os-canvas-state="empty" data-chart-scope="agent" role="img" aria-labelledby="narrative-chart-coverage-title" aria-describedby="narrative-chart-coverage-desc">
                 <div class="os-chart-skeleton" aria-hidden="true"></div>
@@ -5710,7 +5710,7 @@ h3.os-chart-card-title {
             <div class="os-chart-card os-chart-card--bar">
               <div class="os-chart-card-head">
                 <h3 class="os-chart-card-title" id="creative-chart-types-title">Assets by type</h3>
-                <span class="os-chart-card-tier">MANUAL</span>
+                <span class="os-chart-card-tier">Manual</span>
               </div>
               <div class="os-chart-canvas-wrap" data-os-canvas-state="empty" data-chart-scope="agent" role="img" aria-labelledby="creative-chart-types-title" aria-describedby="creative-chart-types-desc">
                 <div class="os-chart-skeleton" aria-hidden="true"></div>
@@ -5726,7 +5726,7 @@ h3.os-chart-card-title {
             <div class="os-chart-card os-chart-card--donut">
               <div class="os-chart-card-head">
                 <h3 class="os-chart-card-title" id="creative-chart-status-title">Assets by status</h3>
-                <span class="os-chart-card-tier">MANUAL</span>
+                <span class="os-chart-card-tier">Manual</span>
               </div>
               <div class="os-chart-canvas-wrap" data-os-canvas-state="empty" data-chart-scope="agent" role="img" aria-labelledby="creative-chart-status-title" aria-describedby="creative-chart-status-desc">
                 <div class="os-chart-skeleton" aria-hidden="true"></div>
@@ -5742,7 +5742,7 @@ h3.os-chart-card-title {
             <div class="os-chart-card os-chart-card--bar">
               <div class="os-chart-card-head">
                 <h3 class="os-chart-card-title" id="creative-chart-consistency-title">Style consistency by area</h3>
-                <span class="os-chart-card-tier">POST-LAUNCH</span>
+                <span class="os-chart-card-tier">After launch</span>
               </div>
               <div class="os-chart-canvas-wrap" data-os-canvas-state="empty" data-chart-scope="agent" role="img" aria-labelledby="creative-chart-consistency-title" aria-describedby="creative-chart-consistency-desc">
                 <div class="os-chart-skeleton" aria-hidden="true"></div>
@@ -5767,7 +5767,7 @@ h3.os-chart-card-title {
             <div class="os-chart-card os-chart-card--donut">
               <div class="os-chart-card-head">
                 <h3 class="os-chart-card-title" id="gd-chart-decisions-title">Design decisions by status</h3>
-                <span class="os-chart-card-tier">MANUAL</span>
+                <span class="os-chart-card-tier">Manual</span>
               </div>
               <div class="os-chart-canvas-wrap" data-os-canvas-state="empty" data-chart-scope="agent" role="img" aria-labelledby="gd-chart-decisions-title" aria-describedby="gd-chart-decisions-desc">
                 <div class="os-chart-skeleton" aria-hidden="true"></div>
@@ -5783,7 +5783,7 @@ h3.os-chart-card-title {
             <div class="os-chart-card os-chart-card--bar">
               <div class="os-chart-card-head">
                 <h3 class="os-chart-card-title" id="gd-chart-pillars-title">Feature coverage by pillar</h3>
-                <span class="os-chart-card-tier">MANUAL</span>
+                <span class="os-chart-card-tier">Manual</span>
               </div>
               <div class="os-chart-canvas-wrap" data-os-canvas-state="empty" data-chart-scope="agent" role="img" aria-labelledby="gd-chart-pillars-title" aria-describedby="gd-chart-pillars-desc">
                 <div class="os-chart-skeleton" aria-hidden="true"></div>
@@ -5799,7 +5799,7 @@ h3.os-chart-card-title {
             <div class="os-chart-card os-chart-card--bar">
               <div class="os-chart-card-head">
                 <h3 class="os-chart-card-title" id="gd-chart-debt-title">Design debt by type</h3>
-                <span class="os-chart-card-tier">MANUAL</span>
+                <span class="os-chart-card-tier">Manual</span>
               </div>
               <div class="os-chart-canvas-wrap" data-os-canvas-state="empty" data-chart-scope="agent" role="img" aria-labelledby="gd-chart-debt-title" aria-describedby="gd-chart-debt-desc">
                 <div class="os-chart-skeleton" aria-hidden="true"></div>
@@ -5824,7 +5824,7 @@ h3.os-chart-card-title {
             <div class="os-chart-card os-chart-card--donut">
               <div class="os-chart-card-head">
                 <h3 class="os-chart-card-title" id="gs-chart-systems-title">Systems by status</h3>
-                <span class="os-chart-card-tier">MANUAL</span>
+                <span class="os-chart-card-tier">Manual</span>
               </div>
               <div class="os-chart-canvas-wrap" data-os-canvas-state="empty" data-chart-scope="agent" role="img" aria-labelledby="gs-chart-systems-title" aria-describedby="gs-chart-systems-desc">
                 <div class="os-chart-skeleton" aria-hidden="true"></div>
@@ -5840,7 +5840,7 @@ h3.os-chart-card-title {
             <div class="os-chart-card os-chart-card--bar">
               <div class="os-chart-card-head">
                 <h3 class="os-chart-card-title" id="gs-chart-categories-title">Systems by category</h3>
-                <span class="os-chart-card-tier">MANUAL</span>
+                <span class="os-chart-card-tier">Manual</span>
               </div>
               <div class="os-chart-canvas-wrap" data-os-canvas-state="empty" data-chart-scope="agent" role="img" aria-labelledby="gs-chart-categories-title" aria-describedby="gs-chart-categories-desc">
                 <div class="os-chart-skeleton" aria-hidden="true"></div>
@@ -5856,7 +5856,7 @@ h3.os-chart-card-title {
             <div class="os-chart-card os-chart-card--bar">
               <div class="os-chart-card-head">
                 <h3 class="os-chart-card-title" id="gs-chart-integration-title">Integration coverage</h3>
-                <span class="os-chart-card-tier">MANUAL</span>
+                <span class="os-chart-card-tier">Manual</span>
               </div>
               <div class="os-chart-canvas-wrap" data-os-canvas-state="empty" data-chart-scope="agent" role="img" aria-labelledby="gs-chart-integration-title" aria-describedby="gs-chart-integration-desc">
                 <div class="os-chart-skeleton" aria-hidden="true"></div>
@@ -7920,8 +7920,8 @@ function syncAnalyticsKpis(d) {
     setText('db-analytics-ledger-cost', '—');
     setText('db-analytics-helpful-rate', '—');
     setText('db-analytics-persist-rate', '—');
-    setText('db-analytics-helpful-rate-sub', 'Accept + tweak / decided suggestions');
-    setText('db-analytics-persist-rate-sub', 'Accepted suggestions still present after later saves');
+    setText('db-analytics-helpful-rate-sub', 'Share you accepted or tweaked, out of those you decided on');
+    setText('db-analytics-persist-rate-sub', 'Accepted suggestions that stayed in the room after a later save');
     mirrorAnalyticsKpisToApiUsageDashboard();
     return;
   }
@@ -7949,14 +7949,14 @@ function syncAnalyticsKpis(d) {
     setText(
       'db-analytics-helpful-rate-sub',
       room.decided
-        ? `${room.accepted + room.tweaked} helpful of ${room.decided} decided · ${room.low_sample_note || ''}`.trim()
-        : (room.low_sample_note || 'Accept + tweak / decided suggestions')
+        ? `${room.accepted + room.tweaked} of ${room.decided} marked helpful (accept or tweak)${room.low_sample_note ? ' · ' + room.low_sample_note : ''}`.trim()
+        : (room.low_sample_note || 'Share you accepted or tweaked, out of those you decided on')
     );
     setText(
       'db-analytics-persist-rate-sub',
       room.accepted
-        ? `${room.persisted} persisted of ${room.accepted} accepted · mean latency ${room.mean_latency_ms != null ? room.mean_latency_ms + ' ms' : '—'}`
-        : (room.low_sample_note || 'Accepted suggestions still present after later saves')
+        ? `${room.persisted} of ${room.accepted} acceptances still in the room after a later save · typical delay ${room.mean_latency_ms != null ? room.mean_latency_ms + ' ms' : '—'}`
+        : (room.low_sample_note || 'Accepted suggestions that stayed in the room after a later save')
     );
   }
   mirrorAnalyticsKpisToApiUsageDashboard();
@@ -8027,25 +8027,24 @@ function applyGlobalWorkbenchBar(d) {
     }
     if (hintEl) {
       if (d.supervisor === true) {
-        hintEl.textContent = 'Buttons run sprite_workbench_server.py via this page\'s server (same origin).';
+        hintEl.textContent = 'These buttons start and stop the sprite workbench using this page’s server.';
       } else {
-        hintEl.textContent = 'Buttons call Agent OS at ' + bridge + ' — run python3 scripts/os_dashboard_supervisor.py there (default port 8769).';
+        hintEl.textContent = 'These buttons talk to Agent OS at ' + bridge + '. Start the supervisor there (see README; usually port 8769).';
       }
     }
     setBtns(true);
   } else {
     statusEl.textContent = 'No API';
-    statusEl.title = 'Open from Agent OS (port 8769) or Sprite Workbench server (8766) for status and controls.';
+    statusEl.title = 'Open this page from Agent OS or the sprite workbench so status and controls work.';
     statusEl.className = 'global-wb-status global-wb-status--na';
     if (hintEl) {
       const origin = (typeof window !== 'undefined' && window.location && window.location.origin) ? window.location.origin : '';
       hintEl.innerHTML =
-        'This page did not receive <span style="font-family:var(--font-mono)">GET /api/dashboard-data</span> from the same origin '
-        + '(you may be on <span style="font-family:var(--font-mono)">file://</span>, a static preview, or the wrong port). '
-        + 'Current origin: <span style="font-family:var(--font-mono)">' + escapeHtml(origin || '(unknown)') + '</span>. '
-        + 'Run <span style="font-family:var(--font-mono)">bash scripts/start_agent_os_dashboard.sh</span> — it starts the supervisor and opens '
+        'Live data did not load (you may have opened a saved file, a preview, or the wrong address). '
+        + 'You are on: <span style="font-family:var(--font-mono)">' + escapeHtml(origin || '(unknown)') + '</span>. '
+        + 'Run <span style="font-family:var(--font-mono)">bash scripts/start_agent_os_dashboard.sh</span> to start the dashboard server and open '
         + '<span style="font-family:var(--font-mono)">http://127.0.0.1:8769/os-dashboard.html</span>. '
-        + 'Alternatively open the dashboard from <span style="font-family:var(--font-mono)">sprite_workbench_server</span> (port 8766) so the API exists on that origin.';
+        + 'Or open the dashboard from the sprite workbench (often port 8766) so it can load your usage log.';
     }
     setBtns(false);
   }
@@ -8133,7 +8132,7 @@ function updateHomeChartLiveStatus(d, dashboardReachable) {
   const el = document.getElementById('home-chart-live-status');
   if (!el) return;
   if (!dashboardReachable || !d) {
-    el.textContent = 'Usage trend and workbench readouts need the dashboard connection. Open via Agent OS (port 8769) or the workbench server (8766) — use the Workbench control in the top header.';
+    el.textContent = 'Connect to the dashboard server to see this chart and live workbench status. Use the Workbench menu in the header (Agent OS or sprite workbench, usually ports 8769 or 8766).';
     el.classList.remove('visually-hidden');
     el.classList.add('home-chart-live-status--warn');
     return;
@@ -8143,10 +8142,10 @@ function updateHomeChartLiveStatus(d, dashboardReachable) {
   const total = d.usage_summary && d.usage_summary.entry_count != null ? d.usage_summary.entry_count : 0;
   const wk = uc && uc.ledger_entry_count_window != null ? uc.ledger_entry_count_window : 0;
   if (total === 0) {
-    el.textContent = 'Connection OK; the usage log is still empty. Run a Pixel Lab or Gemini action in the Sprite Workbench to record paid calls.';
+    el.textContent = 'Connected, but the usage log is empty. Use Pixel Lab or Gemini in the Sprite Workbench to record paid calls.';
     el.classList.remove('visually-hidden');
   } else if (wk === 0) {
-    el.textContent = 'Connection OK; no usage log rows in the last 8 ISO weeks (UTC). Open Analytics for all-time count — older calls sit outside this window.';
+    el.textContent = 'Connected, but no calls in the last 8 weeks (by calendar week, GMT). Open Analytics or API usage for the full history — older calls fall outside this window.';
     el.classList.remove('visually-hidden');
   } else {
     el.textContent = '';
@@ -8172,7 +8171,7 @@ function syncHomeInternalFromDashboard(d) {
     const rel = document.getElementById('home-hi-release');
     if (rel) rel.className = 'db-card-value db-card-value--muted';
     setText('home-hi-tests-pass-sub', '');
-    setText('home-hi-blocking-sub', 'Orchestrator + QA P0');
+    setText('home-hi-blocking-sub', 'Top-priority orchestrator and QA items');
     setText('home-hi-release-sub', 'From QA release gate');
     return;
   }
@@ -8204,8 +8203,8 @@ function syncHomeInternalFromDashboard(d) {
   setText('home-hi-tests-pass-sub', subParts.join(' · '));
   const ser = hi.serious_issue_count != null ? Number(hi.serious_issue_count) : 0;
   setText('home-hi-blocking-sub', Number.isFinite(ser) && ser > 0
-    ? ('Orchestrator + QA P0 · ' + String(ser) + ' serious items also tracked')
-    : 'Orchestrator + QA P0');
+    ? ('Top-priority orchestrator and QA · ' + String(ser) + ' serious items also tracked')
+    : 'Top-priority orchestrator and QA items');
   setText('home-hi-decisions', hi.founder_decisions_open != null ? hi.founder_decisions_open : '—');
   const decEl = document.getElementById('home-hi-decisions');
   if (decEl) {
@@ -8292,8 +8291,8 @@ function applyUsageChartsFromDashboard(d) {
     ['dev-chart-donut-desc', 'anim-chart-donut-desc', 'ld-chart-donut-desc', 'analytics-chart-donut-desc', 'api-usage-chart-donut-desc'].forEach(function (id) {
       const el = document.getElementById(id);
       if (!el) return;
-      const meanLatency = room.mean_latency_ms != null ? ' · mean latency ' + String(room.mean_latency_ms) + ' ms' : '';
-      el.textContent = 'Room Copilot outcomes from saved room suggestions — accept / tweak / reject with denominators and low-sample caveats.' + meanLatency;
+      const meanLatency = room.mean_latency_ms != null ? ' Typical delay after save: ' + String(room.mean_latency_ms) + ' ms.' : '';
+      el.textContent = 'How room Copilot suggestions were resolved (accept, tweak, reject), from saved room data.' + meanLatency;
     });
   }
   const sumEl = document.getElementById('home-kpi-ai-units');
