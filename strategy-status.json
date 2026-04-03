@@ -244,9 +244,9 @@
         "other-income"
       ],
       "title": "Review Business Brand Guide v0.2 — Strategy cells in \u00a71.3 matrix",
-      "status": "queued",
+      "status": "done",
       "risk": "med",
-      "note": "Marketing completed its pass (no comments). Source: docs/mv-business-brand-guide-pamphlet.html and artifacts/MV-Business-Brand-Guide-v0.2-2026-04-02.pdf. Confirm or revise rows where the Strategy column has a checkbox: strategic foundation and assumptions; portfolio and naming; messaging and positioning claims.",
+      "note": "Complete 2026-04-02. Approved: north star, flywheel, web-first, competitive table vs current plan. Matrix ticked in HTML v0.2.1. Memo: docs/reports/business-brand-guide-v0.2-stakeholder-reviews-2026-04-02.md. Refresh competitive row when a comparable integrated AI toolchain entrant appears.",
       "proposed_solution": "Work through \u00a71.3, comment in writing or tick confirmation, and hand updates to Marketing for a v0.3 draft if anything must change."
     }
   ],

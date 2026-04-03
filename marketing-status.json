@@ -117,8 +117,8 @@
       "title": "Define the Business Brand Guide",
       "status": "in-progress",
       "risk": "med",
-      "note": "v0.2 comprehensive draft: same HTML path plus PDF artifacts/MV-Business-Brand-Guide-v0.2-2026-04-02.pdf. Adds stakeholder review matrix, Strategy/JTBD/messaging ladder, voice examples, claims discipline, full Design token summary, editor entity colors, game-vs-tool boundary, channel playbook. v0.1 PDF kept for history. Sign-off: use matrix in section 1.3. Marketing agent brand guide review complete 2026-04-02 — no comments. Other stakeholders queued 2026-04-02: strategy-o7, design-o3, eng-o2, gd-o2; orchestration founder decision for Founder \u00a71.3 column.",
-      "proposed_solution": "Founder + Strategy + Design complete review matrix; then v0.3 locks names/logo and trims length for external PDF if needed; ship lockups into tools per Design."
+      "note": "HTML v0.2.1: specialist matrix signed 2026-04-02 (Strategy, Marketing, Design, Engineering, Game/LD). PDF: artifacts/MV-Business-Brand-Guide-v0.2.1-2026-04-02.pdf (regenerate from HTML). Memo: docs/reports/business-brand-guide-v0.2-stakeholder-reviews-2026-04-02.md. Founder column + \u00a710.1 still gate v0.3. Prior PDFs v0.1/v0.2 kept for history.",
+      "proposed_solution": "Founder completes \u00a71.3 Founder cells and \u00a710.1; Marketing ships v0.3 PDF and updates charter links when Legal/Design lock names/logo."
     },
     {
       "id": "marketing-o3",

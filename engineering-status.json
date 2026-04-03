@@ -54,9 +54,9 @@
       "id": "eng-o2",
       "os_contexts": ["business", "sprite"],
       "title": "Review Business Brand Guide v0.2 — Engineering cells in \u00a71.3 matrix",
-      "status": "queued",
+      "status": "done",
       "risk": "med",
-      "note": "Marketing completed its pass. Source: docs/mv-business-brand-guide-pamphlet.html. Confirm messaging and positioning claims and claims/AI/legal guardrails are truthful vs shipped product and server behavior—no over-claim.",
+      "note": "Complete 2026-04-02. Approved: Copilot human-in-loop framing matches product; web/share accurate; do not claim offline-first while SW disabled for iteration. No guide text asserts unshipped export/versioning. Memo: docs/reports/business-brand-guide-v0.2-stakeholder-reviews-2026-04-02.md.",
       "proposed_solution": "Sign off \u00a71.3 Engineering column; escalate any copy that implies automation or guarantees the codebase cannot support."
     }
   ],

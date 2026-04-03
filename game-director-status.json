@@ -86,9 +86,9 @@
       "id": "gd-o2",
       "os_contexts": ["business", "sprite", "ashen-hollow"],
       "title": "Review Business Brand Guide v0.2 — Game / LD cells in \u00a71.3 matrix",
-      "status": "queued",
+      "status": "done",
       "risk": "med",
-      "note": "Marketing completed its pass. Source: docs/mv-business-brand-guide-pamphlet.html. Level Design may contribute facts; Game Director confirms strategic foundation assumptions, portfolio naming for Ashen Hollow, and game IP vs toolchain boundary.",
+      "note": "Complete 2026-04-02. Approved: game/tool boundary and Ashen Hollow naming. Proof-by-production wording is directional—public posts stay honest (\u201cin development\u201d) per voice rules. Memo: docs/reports/business-brand-guide-v0.2-stakeholder-reviews-2026-04-02.md.",
       "proposed_solution": "Complete \u00a71.3 Game/LD checkboxes; align with Game Director narrative and scope so public story matches what v1.0 can prove."
     }
   ],
