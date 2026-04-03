@@ -28,7 +28,7 @@
 | Date | Title | File | Summary | Status |
 |------|-------|------|---------|--------|
 | 2026-04-02 | Assurance Copilot — DO-178C / regulated SW market | [assurance-copilot-do178c-market-2026-04-02.md](technical/assurance-copilot-do178c-market-2026-04-02.md) | Market scan: traceability/evidence automation demand, DO-330 tool-qualification context, competitors (e.g. Ketryx, Rapita, VectorCAST), wedges and risks vs MV core strategy | final |
-| 2026-04-03 | Sprite Workbench architecture visualization — cross-team plan | [../../docs/sprite-workbench-architecture-visualization-plan.md](../../docs/sprite-workbench-architecture-visualization-plan.md) | Scoped repo slice, three views (structure / relationship / change), deterministic extractors (HTML script order, Python ast, optional Acorn), OSS tool matrix (depcruise, Madge, Graphviz), CI + AI explanation guardrails, phased delivery | draft |
+| 2026-04-03 | Sprite Workbench architecture visualization — cross-team plan | [../../docs/sprite-workbench-architecture-visualization-plan.md](../../docs/sprite-workbench-architecture-visualization-plan.md) | Scoped repo slice; **Agent OS `sprite-arch` dashboard** for three views; `STYLE_GUIDE.md` UI rules; deterministic extractors (HTML script order, Python ast, optional Acorn); OSS tool matrix; CI + AI inspector guardrails; phased delivery | draft |
 
 ### Competitive Analysis
 
