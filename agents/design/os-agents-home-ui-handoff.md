@@ -1,4 +1,4 @@
-# Design handoff — Agent OS left-rail Agents home
+# Design handoff — Agent OS Home dashboard (agent tiles)
 
 **Owner:** Design agent  
 **Status:** Approved visual reference — `docs/mockups/agent-os-agents-home-mockup.html`  
@@ -6,20 +6,21 @@
 
 ## Product intent
 
-- A dedicated **Agents** block **above** the **Dashboards** section in the left navigation.
-- **Two-column tile grid** of every selectable specialist agent (same roster as `AGENTS` / orchestration picker order).
-- **Tile click** opens a **modal** (not a new dashboard view) with:
+- **Left navigation:** Under **Start**, a single **Home** link (no agent tiles in the sidebar).
+- **Home dashboard:** A normal `dashboard-view` in the **main column** with a responsive **tile grid** of every selectable specialist (same roster as `AGENTS` / orchestration picker order), filtered by **product context** like other OS scoping.
+- **Tile click** opens the **modal** (not navigation) with:
   - Agent title and charter path reference in the subtitle.
-  - **Quick actions** row: at minimum *Focus in workflow panel*, *Open charter* (markdown preview), plus **one extra link per agent** where defined in implementation config (e.g. Design → STYLE_GUIDE.md).
-  - **Task context** — a sticky textarea; contents are sent to the server on every chat turn as grounding for “the given task.”
-  - **Chat** — same bubble / reasoning affordances as issue discussion; backend uses **OpenAI Chat Completions** with injected charter + project overview excerpt + task context.
+  - **Quick actions** row: *Focus in workflow panel*, *Open charter* (markdown preview), optional **extra doc links** from config (e.g. Design → STYLE_GUIDE.md), *Open dashboard*.
+  - **Task context** — sticky textarea; sent on every chat turn.
+  - **Chat** — same bubble / reasoning affordances as issue discussion; backend **OpenAI Chat Completions** with charter + project overview excerpt + task context.
 
 ## Mockup-first rule
 
-This feature was specified under the Design standing directive **High-fidelity mockup before UI implementation** (see `agents/design/charter.md`). The live UI must match the mockup unless the founder explicitly approves a revision to the mockup first.
+Specified under the Design standing directive **High-fidelity mockup before UI implementation** (see `agents/design/charter.md`). Revise the mockup first if the founder wants visual changes.
 
 ## Engineering notes (non-visual)
 
+- `DASHBOARDS.home` uses `agents: []` so the right-rail picker still lists all agents via `orderedAgentIdsForPicker`.
 - Agent identity is validated server-side; charter text is read from `agents/<slug>/charter.md` (capped length).
 - `prompts/project_overview.md` is included as capped context when present.
 - Product context from the header select is passed through for grounding only.

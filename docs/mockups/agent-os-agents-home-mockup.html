@@ -80,6 +80,42 @@
       color: var(--muted);
       padding: 0 var(--space-4) var(--space-2);
     }
+    .mock-nav-item-fake {
+      margin: 0 var(--space-3) var(--space-2);
+      padding: var(--space-2) var(--space-3);
+      border-radius: var(--radius-md);
+      border: 1px solid var(--line-strong);
+      background: rgba(0,232,200,0.08);
+      font-size: var(--font-size-sm);
+      font-weight: 600;
+      color: var(--accent);
+    }
+    .mock-home-page {
+      flex: 1;
+      padding: var(--space-4);
+      overflow: auto;
+    }
+    .mock-home-lede {
+      color: var(--muted);
+      font-size: var(--font-size-sm);
+      max-width: 42rem;
+      margin-bottom: var(--space-4);
+      line-height: 1.5;
+    }
+    .mock-home-section-label {
+      font-size: var(--font-size-xs);
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: var(--space-3);
+    }
+    .mock-home-tile-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: var(--space-2);
+      max-width: 56rem;
+    }
     .mock-tile-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -128,9 +164,9 @@
       background: var(--bg);
       position: relative;
       display: flex;
-      align-items: flex-end;
-      justify-content: flex-end;
-      padding: var(--space-4);
+      flex-direction: column;
+      min-width: 0;
+      min-height: 320px;
     }
     .mock-backdrop {
       position: absolute;
@@ -289,20 +325,25 @@
   <div class="mock-banner">Non-functional HI-FI mockup — reference for live Agent OS UI only</div>
   <div class="mock-shell">
     <aside class="mock-sidebar" aria-label="Mock left nav">
-      <div class="mock-nav-label">Agents</div>
-      <div class="mock-tile-grid">
-        <div class="mock-tile" style="--tile-accent:#00e8c8"><div class="mock-tile-icon">🎯</div><div class="mock-tile-name">Orchestrator</div></div>
-        <div class="mock-tile" style="--tile-accent:#94a3b8"><div class="mock-tile-icon">🧭</div><div class="mock-tile-name">Strategy</div></div>
-        <div class="mock-tile" style="--tile-accent:#fb7185"><div class="mock-tile-icon">🎨</div><div class="mock-tile-name">Design</div></div>
-        <div class="mock-tile" style="--tile-accent:#ff9500"><div class="mock-tile-icon">⚙️</div><div class="mock-tile-name">Engineering</div></div>
-        <div class="mock-tile" style="--tile-accent:#77b8ff"><div class="mock-tile-icon">🔍</div><div class="mock-tile-name">QA</div></div>
-        <div class="mock-tile" style="--tile-accent:#e879f9"><div class="mock-tile-icon">🔬</div><div class="mock-tile-name">Research</div></div>
-      </div>
+      <div class="mock-nav-label">Start</div>
+      <div class="mock-nav-item-fake" aria-hidden="true">● Home</div>
       <div class="mock-divider"></div>
       <div class="mock-nav-label">Dashboards</div>
-      <p class="mock-fake-dash">API usage, Issues, … (unchanged)</p>
+      <p class="mock-fake-dash">API usage, Issues, Workbench, …</p>
     </aside>
     <div class="mock-main">
+      <div class="mock-home-page">
+        <p class="mock-home-lede">Home dashboard: all specialist tiles live in the main column (not in the left rail).</p>
+        <div class="mock-home-section-label">Agents</div>
+        <div class="mock-home-tile-grid">
+          <div class="mock-tile" style="--tile-accent:#00e8c8"><div class="mock-tile-icon">🎯</div><div class="mock-tile-name">Orchestrator</div></div>
+          <div class="mock-tile" style="--tile-accent:#94a3b8"><div class="mock-tile-icon">🧭</div><div class="mock-tile-name">Strategy</div></div>
+          <div class="mock-tile" style="--tile-accent:#fb7185"><div class="mock-tile-icon">🎨</div><div class="mock-tile-name">Design</div></div>
+          <div class="mock-tile" style="--tile-accent:#ff9500"><div class="mock-tile-icon">⚙️</div><div class="mock-tile-name">Engineering</div></div>
+          <div class="mock-tile" style="--tile-accent:#77b8ff"><div class="mock-tile-icon">🔍</div><div class="mock-tile-name">QA</div></div>
+          <div class="mock-tile" style="--tile-accent:#e879f9"><div class="mock-tile-icon">🔬</div><div class="mock-tile-name">Research</div></div>
+        </div>
+      </div>
       <div class="mock-backdrop">
         <div class="mock-panel" role="dialog" aria-label="Agent modal example">
           <div class="mock-header">

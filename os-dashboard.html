@@ -865,52 +865,26 @@ body::before {
 
 .os-nav-hidden { display: none !important; }
 
-/* ─── Agents home (left rail, above Dashboards) — matches docs/mockups/agent-os-agents-home-mockup.html */
-.nav-agent-home-section.nav-section--empty { display: none; }
-.nav-agent-tile-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--space-2);
-  padding: 0 var(--space-3) var(--space-2);
-  list-style: none;
+/* Home dashboard — agent tile board in main column (nav uses a single Home link only) */
+.home-dashboard-lede {
+  color: var(--muted);
+  font-size: var(--font-size-sm);
+  line-height: 1.5;
+  max-width: 52rem;
+  margin: 0 0 var(--space-4) 0;
 }
-button.nav-agent-tile {
-  border: 1px solid var(--line);
-  border-radius: var(--radius-md);
-  padding: var(--space-2);
-  background: rgba(255, 255, 255, 0.03);
-  cursor: pointer;
-  text-align: left;
-  min-height: 52px;
-  position: relative;
-  overflow: hidden;
+.home-agent-board { margin-bottom: var(--space-4); }
+.home-agent-board .agent-grid {
+  flex: none;
+  min-height: 120px;
+  max-height: none;
+  overflow: visible;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+}
+.home-agent-board button.agent-card {
   font: inherit;
+  text-align: left;
   color: inherit;
-  transition: border-color var(--transition-base), background var(--transition-base), transform var(--transition-fast);
-}
-button.nav-agent-tile::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: var(--agent-tile-accent, var(--accent));
-  opacity: 0;
-  transition: opacity var(--transition-base);
-}
-button.nav-agent-tile:hover {
-  border-color: var(--line-strong);
-  transform: translateY(-1px);
-}
-button.nav-agent-tile:hover::before { opacity: 1; }
-.nav-agent-tile-icon { font-size: 13px; line-height: 1; }
-.nav-agent-tile-name {
-  font-size: var(--font-size-xs);
-  font-weight: 700;
-  color: var(--text);
-  margin-top: 2px;
-  line-height: 1.2;
 }
 
 /* Agent hub modal — width per mockup (480px vs issue chat 420px) */
@@ -3191,9 +3165,12 @@ h3.os-chart-card-title {
   <div class="shell-left-dock">
   <nav class="sidebar-left" id="dashboardNavPanel" aria-label="Resources">
 
-    <div class="nav-section nav-agent-home-section" id="navAgentHomeSection">
-      <span class="nav-label">Agents</span>
-      <div class="nav-agent-tile-grid" id="navAgentTileGrid" role="list"></div>
+    <div class="nav-section">
+      <span class="nav-label">Start</span>
+      <button type="button" class="nav-item" data-dashboard="home">
+        <span class="nav-dot" style="background:var(--accent)"></span>
+        <span class="nav-item-text">Home</span>
+      </button>
     </div>
 
     <div class="nav-divider"></div>
@@ -3314,6 +3291,21 @@ h3.os-chart-card-title {
     <div class="main-left">
 
       <div class="main-left-views">
+
+      <!-- ── HOME (agent tiles in main column) ── -->
+      <div class="dashboard-view" data-dashboard-view="home">
+        <p class="home-dashboard-lede">Choose a specialist for quick actions and task-aware chat. The server sends your charter, project overview, task context, and product scope on every message.</p>
+        <div class="db-section">
+          <div class="db-section-label">Agents</div>
+          <div class="home-agent-board">
+            <div class="agent-grid" id="homeAgentTileGrid" role="list"></div>
+          </div>
+        </div>
+        <div class="db-qa-signpost db-qa-signpost--stack">
+          <button type="button" class="db-qa-link" onclick="selectDashboard('api-usage')">→ API usage</button>
+          <button type="button" class="db-qa-link" onclick="selectDashboard('issues')">→ Issues</button>
+        </div>
+      </div>
 
       <!-- ── API USAGE DASHBOARD ── -->
       <div class="dashboard-view active" data-dashboard-view="api-usage">
@@ -6360,6 +6352,7 @@ const AGENTS = {
 
 // ── Dashboard config ─────────────────────────────
 const DASHBOARDS = {
+  home:            { label: 'Home',           color: '#00e8c8', agents: [] },
   'api-usage':     { label: 'API usage',      color: '#4ade80', agents: ['analytics'] },
   guides:          { label: 'Guides & policies', color: '#22d3ee', agents: ['orchestrator'] },
   issues:          { label: 'Issues',          color: '#a5b4fc', agents: ['orchestrator'] },
@@ -6424,10 +6417,10 @@ function orderedAgentIdsForPicker(dashId) {
 /** Sidebar: which dashboard IDs appear in each product context (not "all"). */
 const OS_PRODUCT_CONTEXT_KEY = 'mv-agent-os-product-context';
 const OS_PRODUCT_CONTEXT_SETS = {
-  business: new Set(['api-usage', 'guides', 'issues', 'opportunities', 'ongoing-tasks', 'orchestration', 'strategy', 'legal', 'finance', 'support', 'marketing', 'analytics', 'cybersecurity', 'research']),
-  sprite: new Set(['api-usage', 'guides', 'issues', 'opportunities', 'ongoing-tasks', 'workbench', 'design', 'development', 'animation', 'level-design', 'qa', 'cybersecurity', 'research']),
-  'ashen-hollow': new Set(['api-usage', 'guides', 'issues', 'opportunities', 'ongoing-tasks', 'ashen-hollow', 'development', 'animation', 'level-design', 'design', 'qa', 'research', 'audio', 'narrative', 'creative', 'game-director', 'game-systems']),
-  'other-income': new Set(['api-usage', 'guides', 'issues', 'opportunities', 'ongoing-tasks', 'marketing', 'finance', 'legal', 'support', 'analytics', 'strategy']),
+  business: new Set(['home', 'api-usage', 'guides', 'issues', 'opportunities', 'ongoing-tasks', 'orchestration', 'strategy', 'legal', 'finance', 'support', 'marketing', 'analytics', 'cybersecurity', 'research']),
+  sprite: new Set(['home', 'api-usage', 'guides', 'issues', 'opportunities', 'ongoing-tasks', 'workbench', 'design', 'development', 'animation', 'level-design', 'qa', 'cybersecurity', 'research']),
+  'ashen-hollow': new Set(['home', 'api-usage', 'guides', 'issues', 'opportunities', 'ongoing-tasks', 'ashen-hollow', 'development', 'animation', 'level-design', 'design', 'qa', 'research', 'audio', 'narrative', 'creative', 'game-director', 'game-systems']),
+  'other-income': new Set(['home', 'api-usage', 'guides', 'issues', 'opportunities', 'ongoing-tasks', 'marketing', 'finance', 'legal', 'support', 'analytics', 'strategy']),
 };
 
 /** Status-file agent slugs shown in Issues / Opportunities / Ongoing for each context. */
@@ -6743,7 +6736,7 @@ function resourcePathVisibleInContext(path, ctx) {
 
 function pickDefaultDashboardForContext(ctx) {
   if (ctx === 'all') return 'api-usage';
-  const order = ['api-usage', 'issues', 'workbench', 'ashen-hollow', 'orchestration', 'development', 'marketing'];
+  const order = ['api-usage', 'home', 'issues', 'workbench', 'ashen-hollow', 'orchestration', 'development', 'marketing'];
   for (let i = 0; i < order.length; i++) {
     if (dashboardVisibleInProductContext(order[i], ctx)) return order[i];
   }
@@ -6788,19 +6781,6 @@ function applyOsProductContextNavFilter(ctx) {
     const show = resourcePathVisibleInContext(path, ctx);
     btn.classList.toggle('os-nav-hidden', !show);
   });
-  document.querySelectorAll('.nav-agent-tile[data-agent]').forEach((btn) => {
-    const ag = btn.getAttribute('data-agent');
-    const show = agentAllowedInOsProductContext(ag, ctx);
-    btn.classList.toggle('os-nav-hidden', !show);
-  });
-  const hubSec = document.getElementById('navAgentHomeSection');
-  if (hubSec) {
-    let hubAny = false;
-    hubSec.querySelectorAll('.nav-agent-tile[data-agent]').forEach((el) => {
-      if (!el.classList.contains('os-nav-hidden')) hubAny = true;
-    });
-    hubSec.classList.toggle('nav-section--empty', !hubAny);
-  }
   document.querySelectorAll('.nav-dash-group').forEach((g) => {
     let any = false;
     g.querySelectorAll('.nav-item').forEach((el) => {
@@ -6865,6 +6845,10 @@ function selectDashboard(id) {
   // render scoped agent picker
   renderScopedAgents(id);
 
+  if (id === 'home') {
+    renderHomeAgentTiles();
+  }
+
   // load live data for this dashboard
   loadDashboardData(id);
   requestAnimationFrame(() => {
@@ -6882,6 +6866,9 @@ function setOsProductContext(ctx, options) {
   } catch (e) { /* ignore */ }
   setOsProductContextUi(next);
   applyOsProductContextNavFilter(next);
+  if (selectedDashboard === 'home' && typeof renderHomeAgentTiles === 'function') {
+    renderHomeAgentTiles();
+  }
   if (typeof avApplyFilters === 'function') avApplyFilters();
   if (typeof aoApplyFilters === 'function') aoApplyFilters();
   if (typeof otApplyFilters === 'function') otApplyFilters();
@@ -9532,25 +9519,26 @@ var agentHubAgentId = null;
 var agentHubMessages = [];
 var agentHubLoading = false;
 
-function renderNavAgentTiles() {
-  var grid = document.getElementById('navAgentTileGrid');
+function renderHomeAgentTiles() {
+  var grid = document.getElementById('homeAgentTileGrid');
   if (!grid) return;
   grid.innerHTML = '';
   allAgentIdsForNavHub().forEach(function(id) {
+    if (!agentAllowedInOsProductContext(id, osProductContext)) return;
     var agent = AGENTS[id] || {};
     var meta = AGENT_META[id] || {};
     var btn = document.createElement('button');
     btn.type = 'button';
-    btn.className = 'nav-agent-tile';
+    btn.className = 'agent-card';
     btn.setAttribute('role', 'listitem');
     btn.dataset.agent = id;
     var col = meta.color || 'var(--accent)';
-    btn.style.setProperty('--agent-tile-accent', col);
+    btn.style.setProperty('--agent-color', col);
     var icon = document.createElement('div');
-    icon.className = 'nav-agent-tile-icon';
+    icon.className = 'agent-card-icon';
     icon.textContent = meta.icon || '•';
     var name = document.createElement('div');
-    name.className = 'nav-agent-tile-name';
+    name.className = 'agent-card-name';
     name.textContent = agent.label || id;
     btn.appendChild(icon);
     btn.appendChild(name);
@@ -12627,7 +12615,6 @@ async function pulseGlobalWorkbenchOnly() {
   });
 })();
 
-renderNavAgentTiles();
 setOsProductContext(getSavedProductContext(), { skipDashboardNudge: true });
 selectDashboard(coerceDashboardForContext(getInitialDashboardId(), osProductContext));
 
