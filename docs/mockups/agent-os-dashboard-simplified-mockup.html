@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MOCKUP — Agent OS dashboard (simplified nav)</title>
+  <title>MOCKUP — Agent OS dashboard (Home + API usage)</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
   <style>
@@ -492,10 +492,184 @@
     }
 
     .callout li { margin-bottom: var(--space-2); }
+
+    /* Iteration: switch main views from nav */
+    .mock-view { display: block; }
+    .mock-view[hidden] { display: none !important; }
+
+    .mock-page-title {
+      font-family: var(--font-display);
+      font-size: var(--font-size-xl);
+      letter-spacing: 0.06em;
+      color: var(--text);
+      margin-bottom: var(--space-2);
+    }
+
+    .mock-page-lede {
+      color: var(--muted);
+      font-size: var(--font-size-sm);
+      max-width: 52rem;
+      margin-bottom: var(--space-4);
+      line-height: 1.5;
+    }
+
+    .mock-card-grid {
+      display: grid;
+      gap: var(--space-3);
+      margin-bottom: var(--space-5);
+    }
+
+    .mock-card-grid--3 { grid-template-columns: repeat(3, 1fr); }
+    .mock-card-grid--4 { grid-template-columns: repeat(4, 1fr); }
+
+    @media (max-width: 1100px) {
+      .mock-card-grid--4 { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    @media (max-width: 900px) {
+      .mock-card-grid--3,
+      .mock-card-grid--4 { grid-template-columns: 1fr; }
+    }
+
+    .mock-db-card {
+      border-radius: var(--radius-card);
+      border: 1px solid var(--stroke);
+      background: rgba(255,255,255,0.03);
+      padding: var(--space-4);
+    }
+
+    .mock-db-card--live {
+      border-color: rgba(0,232,200,0.14);
+      background: rgba(0,232,200,0.04);
+    }
+
+    .mock-db-card-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: var(--space-2);
+      margin-bottom: var(--space-2);
+    }
+
+    .mock-db-label {
+      font-size: var(--font-size-xs);
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .mock-tier {
+      font-size: var(--font-size-xs);
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--accent);
+      flex-shrink: 0;
+    }
+
+    .mock-db-value {
+      font-family: var(--font-mono);
+      font-size: var(--font-size-xl);
+      color: var(--text);
+    }
+
+    .mock-db-sub {
+      font-size: var(--font-size-xs);
+      color: var(--muted);
+      margin-top: var(--space-2);
+      line-height: 1.4;
+    }
+
+    .mock-chart-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--space-3);
+      margin-bottom: var(--space-5);
+    }
+
+    .mock-chart-wide {
+      grid-column: 1 / -1;
+    }
+
+    @media (max-width: 900px) {
+      .mock-chart-grid { grid-template-columns: 1fr; }
+      .mock-chart-wide { grid-column: auto; }
+    }
+
+    .mock-chart-card {
+      border-radius: var(--radius-card);
+      border: 1px solid var(--line);
+      background: var(--panel-2);
+      padding: var(--space-4);
+      min-height: 200px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .mock-chart-card--tall { min-height: 240px; }
+
+    .mock-chart-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: var(--space-3);
+    }
+
+    .mock-chart-title {
+      font-size: var(--font-size-sm);
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .mock-chart-body {
+      flex: 1;
+      border-radius: var(--radius-tight);
+      border: 1px dashed var(--line);
+      background: rgba(0,0,0,0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--muted);
+      font-size: var(--font-size-xs);
+      text-align: center;
+      padding: var(--space-4);
+    }
+
+    .mock-signpost {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-2);
+      margin-top: var(--space-4);
+    }
+
+    .mock-link {
+      display: inline-block;
+      width: fit-content;
+      padding: 0;
+      border: none;
+      background: none;
+      color: var(--accent);
+      font-family: var(--font-sans);
+      font-size: var(--font-size-sm);
+      font-weight: 600;
+      cursor: pointer;
+      text-align: left;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+
+    .mock-link:hover {
+      color: var(--text);
+    }
+
+    .nav-item {
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
-  <div class="mock-banner" role="status">Static mockup — simplified left nav + specialist selector (not connected to live dashboard)</div>
+  <div class="mock-banner" role="status">Design mockup — click <strong style="font-weight:800;color:var(--text)">Home</strong> / <strong style="font-weight:800;color:var(--text)">API usage</strong> in the nav to swap main content (no live data)</div>
 
   <div class="shell">
     <header class="header">
@@ -518,9 +692,13 @@
     <nav class="sidebar-left" aria-label="Mock simplified navigation">
       <span class="nav-label">Dashboards</span>
       <span class="nav-group-label">Work</span>
-      <button type="button" class="nav-item nav-item--active" tabindex="-1">
+      <button type="button" class="nav-item nav-item--active nav-mock-screen" data-mock-screen="home" aria-pressed="true">
         <span class="nav-dot" style="background:var(--accent)"></span>
         <span>Home</span>
+      </button>
+      <button type="button" class="nav-item nav-mock-screen" data-mock-screen="api-usage" aria-pressed="false">
+        <span class="nav-dot" style="background:#4ade80"></span>
+        <span>API usage</span>
       </button>
       <button type="button" class="nav-item" tabindex="-1">
         <span class="nav-dot" style="background:#a5b4fc"></span>
@@ -561,6 +739,7 @@
         <select id="spec-mock" class="specialist-select" aria-label="Choose specialist (mock)">
           <option>Orchestrator</option>
           <option>Strategy</option>
+          <option>Analytics</option>
           <option>Design</option>
           <option>Development</option>
           <option>QA</option>
@@ -582,40 +761,176 @@
     </nav>
 
     <main class="main">
-      <section class="hero" aria-label="Home preview">
-        <div class="hero-title">COMMAND SURFACE</div>
-        <p class="hero-tag">Metroidvania toolchain · pre-launch</p>
-        <div class="kpi-grid">
-          <div class="kpi-card">
-            <div class="kpi-label">8-week paid calls</div>
-            <div class="kpi-value">—</div>
+      <div id="mock-view-home" class="mock-view" data-mock-view="home">
+        <section class="hero" aria-label="Home preview">
+          <div class="hero-title">COMMAND SURFACE</div>
+          <p class="hero-tag">Metroidvania toolchain · pre-launch</p>
+          <div class="kpi-grid">
+            <div class="kpi-card">
+              <div class="kpi-label">8-week paid calls</div>
+              <div class="kpi-value">—</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-label">Service keys</div>
+              <div class="kpi-value">—</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-label">Workbench</div>
+              <div class="kpi-value">—</div>
+            </div>
           </div>
-          <div class="kpi-card">
-            <div class="kpi-label">Service keys</div>
-            <div class="kpi-value">—</div>
-          </div>
-          <div class="kpi-card">
-            <div class="kpi-label">Workbench</div>
-            <div class="kpi-value">—</div>
-          </div>
-        </div>
-      </section>
+        </section>
 
-      <div class="section-label">Removed in this IA</div>
-      <div class="placeholder-grid">
-        <div class="ph-card">No per-role full-page dashboards (tech, business, leadership, …)</div>
-        <div class="ph-card">Orchestrator &amp; strategy rows stay in Issues / Opportunities / Ongoing — no separate Orchestration / Strategy boards</div>
-        <div class="ph-card">Discuss-issue chat unchanged (server-side)</div>
+        <div class="section-label">Removed in this IA</div>
+        <div class="placeholder-grid">
+          <div class="ph-card">No per-role full-page dashboards (tech, business, leadership, …)</div>
+          <div class="ph-card">Orchestrator &amp; strategy rows stay in Issues / Opportunities / Ongoing — no separate Orchestration / Strategy boards</div>
+          <div class="ph-card">Discuss-issue chat unchanged (server-side)</div>
+        </div>
+
+        <div class="callout">
+          <h2>What this mockup shows</h2>
+          <ul>
+            <li>Eight work-hub destinations (adds <strong style="color:var(--text)">API usage</strong> next to Home) — refine section order and density here before shipping in <code style="font-family:var(--font-mono);font-size:12px">os-dashboard.html</code>.</li>
+            <li>Leadership work uses the same tables plus <strong style="color:var(--text)">Orchestrator</strong> / <strong style="color:var(--text)">Strategy</strong> in the specialist control — no extra nav entries.</li>
+            <li>One <strong style="color:var(--text)">Specialist</strong> control replaces the long “All agents” list; real app opens the right column + can default to Analytics on the API usage screen.</li>
+            <li>Right column sketch: modes + generated prompt — same as current workflow panel.</li>
+          </ul>
+        </div>
       </div>
 
-      <div class="callout">
-        <h2>What this mockup shows</h2>
-        <ul>
-          <li>Seven hub destinations in the left column (work queues + guides + two product tools) instead of dozens of dashboard + duplicate agent rows.</li>
-          <li>Leadership work uses the same tables plus <strong style="color:var(--text)">Orchestrator</strong> / <strong style="color:var(--text)">Strategy</strong> in the specialist control — no extra nav entries.</li>
-          <li>One <strong style="color:var(--text)">Specialist</strong> control replaces the long “All agents” button list; choosing a name would open/focus the right agent column (real app).</li>
-          <li>Right column sketch: modes + generated prompt — same as current workflow panel.</li>
-        </ul>
+      <div id="mock-view-api-usage" class="mock-view" data-mock-view="api-usage" hidden>
+        <h1 class="mock-page-title">API usage</h1>
+        <p class="mock-page-lede">Parity target: live dashboard <code style="font-family:var(--font-mono);font-size:12px">data-dashboard-view="api-usage"</code>. Data from <code style="font-family:var(--font-mono);font-size:12px">GET /api/dashboard-data</code> (ledger rollups + room helpfulness). Edit this file to tweak hierarchy, copy, and chart footprint.</p>
+
+        <div class="section-label">Snapshot</div>
+        <div class="mock-card-grid mock-card-grid--3">
+          <div class="mock-db-card mock-db-card--live">
+            <div class="mock-db-card-head">
+              <span class="mock-db-label">8-week paid calls</span>
+              <span class="mock-tier">Live</span>
+            </div>
+            <div class="mock-db-value">—</div>
+            <div class="mock-db-sub">Rolling ISO weeks (UTC) · usage ledger</div>
+          </div>
+          <div class="mock-db-card mock-db-card--live">
+            <div class="mock-db-card-head">
+              <span class="mock-db-label">Service keys</span>
+              <span class="mock-tier">Live</span>
+            </div>
+            <div class="mock-db-value">G✓ · P✓</div>
+            <div class="mock-db-sub">Gemini and Pixel Lab env</div>
+          </div>
+          <div class="mock-db-card mock-db-card--live">
+            <div class="mock-db-card-head">
+              <span class="mock-db-label">Workbench</span>
+              <span class="mock-tier">Live</span>
+            </div>
+            <div class="mock-db-value">● Up</div>
+            <div class="mock-db-sub">Sprite workbench server</div>
+          </div>
+        </div>
+
+        <div class="section-label">Usage ledger</div>
+        <div class="mock-card-grid mock-card-grid--4">
+          <div class="mock-db-card mock-db-card--live">
+            <div class="mock-db-card-head">
+              <span class="mock-db-label">Ledger rows (all-time)</span>
+              <span class="mock-tier">Live</span>
+            </div>
+            <div class="mock-db-value">—</div>
+            <div class="mock-db-sub">Rows in local ledger file</div>
+          </div>
+          <div class="mock-db-card mock-db-card--live">
+            <div class="mock-db-card-head">
+              <span class="mock-db-label">Calls · 8-wk window</span>
+              <span class="mock-tier">Live</span>
+            </div>
+            <div class="mock-db-value">—</div>
+            <div class="mock-db-sub">Rolling ISO weeks (UTC)</div>
+          </div>
+          <div class="mock-db-card mock-db-card--live">
+            <div class="mock-db-card-head">
+              <span class="mock-db-label">Today (UTC)</span>
+              <span class="mock-tier">Live</span>
+            </div>
+            <div class="mock-db-value">—</div>
+            <div class="mock-db-sub">Ledger rows dated today</div>
+          </div>
+          <div class="mock-db-card mock-db-card--live">
+            <div class="mock-db-card-head">
+              <span class="mock-db-label">Est. cost (ledger)</span>
+              <span class="mock-tier">Live</span>
+            </div>
+            <div class="mock-db-value">—</div>
+            <div class="mock-db-sub">Sum of usage_cost_usd · Finance owns truth</div>
+          </div>
+        </div>
+
+        <div class="section-label">Room AI outcomes</div>
+        <div class="mock-card-grid mock-card-grid--3">
+          <div class="mock-db-card mock-db-card--live">
+            <div class="mock-db-card-head">
+              <span class="mock-db-label">Signal</span>
+              <span class="mock-tier">Live</span>
+            </div>
+            <div class="mock-db-value" style="font-size:var(--font-size-sm);font-family:var(--font-sans)">Ledger + room suggestions</div>
+            <div class="mock-db-sub">Copilot helpfulness from saved layouts</div>
+          </div>
+          <div class="mock-db-card mock-db-card--live">
+            <div class="mock-db-card-head">
+              <span class="mock-db-label">Helpful rate</span>
+              <span class="mock-tier">Live</span>
+            </div>
+            <div class="mock-db-value">—</div>
+            <div class="mock-db-sub">Accept + tweak / decided</div>
+          </div>
+          <div class="mock-db-card mock-db-card--live">
+            <div class="mock-db-card-head">
+              <span class="mock-db-label">Accepted &amp; stuck</span>
+              <span class="mock-tier">Live</span>
+            </div>
+            <div class="mock-db-value">—</div>
+            <div class="mock-db-sub">Persisted after later saves</div>
+          </div>
+        </div>
+
+        <div class="section-label">Charts</div>
+        <p class="mock-page-lede" style="margin-top:calc(-1 * var(--space-2)); margin-bottom:var(--space-3)">Area (8 weeks) · provider mix bars · donut (outcomes). Resize blocks below to match desired chart height.</p>
+        <div class="mock-chart-grid">
+          <div class="mock-chart-card mock-chart-wide mock-chart-card--tall">
+            <div class="mock-chart-head">
+              <span class="mock-chart-title">Paid API calls · last 8 ISO weeks</span>
+              <span class="mock-tier">Trend</span>
+            </div>
+            <div class="mock-chart-body">Canvas: area-requests<br>(wide row)</div>
+          </div>
+          <div class="mock-chart-card">
+            <div class="mock-chart-head">
+              <span class="mock-chart-title">Provider mix</span>
+              <span class="mock-tier">Split</span>
+            </div>
+            <div class="mock-chart-body">Canvas: bars-purpose</div>
+          </div>
+          <div class="mock-chart-card">
+            <div class="mock-chart-head">
+              <span class="mock-chart-title">Suggestion outcomes</span>
+              <span class="mock-tier">Donut</span>
+            </div>
+            <div class="mock-chart-body">Canvas: donut-outcomes<br>(room helpfulness)</div>
+          </div>
+        </div>
+
+        <div class="section-label">Analytics runbooks</div>
+        <div class="mock-db-card">
+          <div class="mock-db-label" style="margin-bottom:var(--space-2)">Same action grid as Analytics dashboard</div>
+          <div class="mock-chart-body" style="min-height:80px;border-style:solid">Action chips from analytics-status.json · owner: Analytics agent</div>
+        </div>
+
+        <div class="mock-signpost">
+          <button type="button" class="mock-link mock-goto-screen" data-mock-screen="home">→ Home · command surface</button>
+          <span class="mock-link" style="cursor:default;text-decoration:none;color:var(--muted)">→ Analytics · tracking plan (nav not wired in mockup)</span>
+        </div>
       </div>
     </main>
 
@@ -623,7 +938,8 @@
       <div class="right-col-header">Workflow</div>
       <div class="right-col-body">
         <span class="field-label">Agent</span>
-        <select class="specialist-select" aria-label="Agent in panel" style="margin-bottom:0">
+        <select id="panel-agent-mock" class="specialist-select" aria-label="Agent in panel" style="margin-bottom:0">
+          <option>Analytics</option>
           <option>Design</option>
         </select>
         <span class="field-label">Mode</span>
@@ -640,5 +956,50 @@
       </div>
     </aside>
   </div>
+
+  <script>
+    (function () {
+      var views = {
+        home: document.getElementById('mock-view-home'),
+        'api-usage': document.getElementById('mock-view-api-usage')
+      };
+      var navBtns = document.querySelectorAll('.nav-mock-screen');
+      var spec = document.getElementById('spec-mock');
+      var panelAgent = document.getElementById('panel-agent-mock');
+
+      function showScreen(id) {
+        if (!views[id]) return;
+        Object.keys(views).forEach(function (key) {
+          var el = views[key];
+          if (!el) return;
+          if (key === id) {
+            el.removeAttribute('hidden');
+          } else {
+            el.setAttribute('hidden', '');
+          }
+        });
+        navBtns.forEach(function (btn) {
+          var on = btn.getAttribute('data-mock-screen') === id;
+          btn.classList.toggle('nav-item--active', on);
+          btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+        });
+        if (id === 'api-usage') {
+          if (spec) spec.value = 'Analytics';
+          if (panelAgent) panelAgent.value = 'Analytics';
+        }
+      }
+
+      navBtns.forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          showScreen(btn.getAttribute('data-mock-screen') || 'home');
+        });
+      });
+      document.querySelectorAll('.mock-goto-screen').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          showScreen(btn.getAttribute('data-mock-screen') || 'home');
+        });
+      });
+    })();
+  </script>
 </body>
 </html>
