@@ -32,8 +32,12 @@ class OsDocumentLibraryTests(unittest.TestCase):
                 self.assertIsInstance(rel, str)
                 self.assertTrue(rel, "item.path must be non-empty")
                 self.assertNotIn("miniconda", rel.lower())
+                self.assertNotIn("/connector-conversations/", rel)
                 p = REPO / rel
                 self.assertTrue(p.is_file(), f"Missing file for catalog entry: {rel}")
+        eb = next((c for c in data["categories"] if c.get("id") == "executive_brand"), None)
+        self.assertIsNotNone(eb)
+        self.assertTrue(eb.get("default_open"))
 
     def test_html_library_exists(self) -> None:
         html = REPO / "docs" / "os-document-library.html"
@@ -43,6 +47,8 @@ class OsDocumentLibraryTests(unittest.TestCase):
         self.assertNotIn("transition: all", text.lower())
         self.assertIn("/view/markdown?path=", text)
         self.assertIn("../docs/brand-charter.html", text)
+        self.assertIn("library-shell", text)
+        self.assertIn("Sections", text)
 
     def test_doc_open_href_markdown_vs_html(self) -> None:
         from scripts.build_os_document_library import _doc_open_href
