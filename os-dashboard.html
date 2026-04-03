@@ -1098,6 +1098,24 @@ body::before {
   flex-wrap: wrap;
   gap: var(--space-2);
 }
+.agent-hub-charter-actions-hint {
+  font-size: var(--font-size-xs);
+  color: var(--muted);
+  margin: 0;
+  line-height: 1.45;
+  max-width: 42rem;
+}
+.agent-hub-charter-actions-hint-code {
+  font-family: var(--font-mono);
+  font-size: 10px;
+}
+.agent-hub-action-btn--charter {
+  font-weight: 600;
+  border-style: dashed;
+}
+.agent-hub-footer-actions-wrap.agent-hub-charter-actions-wrap--empty {
+  display: none;
+}
 .agent-hub-row {
   display: flex;
   gap: var(--space-2);
@@ -6094,8 +6112,9 @@ h3.os-chart-card-title {
       <p class="agent-hub-hint" id="agent-hub-api-hint">
         <code style="font-family:var(--font-mono);font-size:11px">POST /api/agent-chat</code> — OpenAI Chat Completions on the supervisor. Set <code style="font-family:var(--font-mono);font-size:11px">OPENAI_API_KEY</code>. Optional <code style="font-family:var(--font-mono);font-size:11px">AGENT_CHAT_MODEL</code> (falls back to <code style="font-family:var(--font-mono);font-size:11px">ISSUE_CHAT_MODEL</code>).
       </p>
-      <div class="agent-hub-footer-actions-wrap">
-        <span class="agent-hub-footer-actions-label" id="agent-hub-footer-actions-label">Quick actions</span>
+      <div class="agent-hub-footer-actions-wrap" id="agent-hub-charter-actions-wrap">
+        <span class="agent-hub-footer-actions-label" id="agent-hub-footer-actions-label">Charter actions</span>
+        <p class="agent-hub-charter-actions-hint" id="agent-hub-charter-actions-hint">Named operations from this agent's charter (via <code class="agent-hub-charter-actions-hint-code">*-status.json</code>). Click to insert a brief into task context; Shift+click opens typical output when listed.</p>
         <div class="agent-hub-footer-actions" id="agent-hub-footer-actions" role="toolbar" aria-labelledby="agent-hub-footer-actions-label"></div>
       </div>
       <div class="agent-hub-row">
@@ -6600,11 +6619,13 @@ function mergeAgentCustomActions(agentId, actions) {
       id = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
     }
     if (!id) return null;
+    var outLoc = typeof a.output_location === 'string' ? a.output_location.trim() : '';
     return {
       id: id,
       name: name || id,
       description: typeof a.description === 'string' ? a.description : '',
       trigger: typeof a.trigger === 'string' ? a.trigger : '',
+      output_location: outLoc,
     };
   }).filter(Boolean);
   agentCustomActionsById[agentId] = cleaned;
@@ -9188,6 +9209,9 @@ function hydrateAllAgentCustomActions() {
     })
   ).then(function() {
     renderModes();
+    if (agentHubAgentId) {
+      agentHubPopulateCharterActions(document.getElementById('agent-hub-footer-actions'), agentHubAgentId);
+    }
   });
   return agentCustomActionsHydratePromise;
 }
@@ -9729,7 +9753,7 @@ function agentHubAppendBubble(role, text, thinking, isErr) {
   scroll.scrollTop = scroll.scrollHeight;
 }
 
-function agentHubPopulateActionButtons(wrap, agentId) {
+function agentHubPopulateGenericActions(wrap, agentId) {
   if (!wrap) return;
   wrap.innerHTML = '';
   var agent = AGENTS[agentId] || {};
@@ -9768,9 +9792,64 @@ function agentHubPopulateActionButtons(wrap, agentId) {
   });
 }
 
+/** Charter ## Actions — loaded from *-status.json `actions` (kept in sync with each agents/*/charter.md). */
+function agentHubApplyCharterActionToTask(agentId, action) {
+  var taskEl = document.getElementById('agent-hub-task');
+  if (!taskEl || !action) return;
+  var label = (AGENTS[agentId] && AGENTS[agentId].label) ? AGENTS[agentId].label : agentId;
+  var lines = ['[' + label + ' · ' + action.name + ']'];
+  if (action.id) lines.push('Action id: `' + action.id + '`');
+  if (action.trigger) lines.push('Trigger: ' + action.trigger);
+  if (action.description) lines.push('Expected output: ' + action.description);
+  if (action.output_location) lines.push('Typical output: ' + action.output_location);
+  lines.push('');
+  lines.push('Request (add specifics below):');
+  lines.push('');
+  var block = lines.join('\n');
+  var cur = String(taskEl.value || '').trim();
+  taskEl.value = cur ? (block + '\n\n' + cur) : block;
+  try {
+    sessionStorage.setItem('mv-agent-hub-task-' + agentId, taskEl.value);
+  } catch (e) { /* ignore */ }
+  taskEl.focus();
+  showToast('Task context updated — add details, then send a message.');
+}
+
+function agentHubPopulateCharterActions(wrap, agentId) {
+  var outer = document.getElementById('agent-hub-charter-actions-wrap');
+  if (!wrap) return;
+  wrap.innerHTML = '';
+  var list = agentCustomActionsById[agentId] || [];
+  if (outer) {
+    outer.classList.toggle('agent-hub-charter-actions-wrap--empty', list.length === 0);
+  }
+  if (list.length === 0) return;
+
+  list.forEach(function(action) {
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'agent-hub-action-btn agent-hub-action-btn--charter';
+    b.textContent = action.name;
+    var tipParts = [];
+    if (action.trigger) tipParts.push('Trigger: ' + action.trigger);
+    if (action.description) tipParts.push(action.description);
+    if (action.output_location) tipParts.push('Typical output: ' + action.output_location + ' (Shift+click to open)');
+    else tipParts.push('Click to insert into task context.');
+    b.title = tipParts.join('\n\n');
+    b.addEventListener('click', function(ev) {
+      if (ev.shiftKey && action.output_location) {
+        openMarkdownPreviewPath(action.output_location);
+        return;
+      }
+      agentHubApplyCharterActionToTask(agentId, action);
+    });
+    wrap.appendChild(b);
+  });
+}
+
 function agentHubBuildActions(agentId) {
-  agentHubPopulateActionButtons(document.getElementById('agent-hub-actions'), agentId);
-  agentHubPopulateActionButtons(document.getElementById('agent-hub-footer-actions'), agentId);
+  agentHubPopulateGenericActions(document.getElementById('agent-hub-actions'), agentId);
+  agentHubPopulateCharterActions(document.getElementById('agent-hub-footer-actions'), agentId);
 }
 
 function agentHubOpen(agentId) {
@@ -9790,6 +9869,7 @@ function agentHubOpen(agentId) {
     subEl.textContent = (agent.charter || '') + ' · Task-aware chat';
   }
   agentHubBuildActions(agentId);
+  void hydrateAllAgentCustomActions();
   if (backdrop) {
     backdrop.classList.add('visible');
     backdrop.setAttribute('aria-hidden', 'false');
@@ -9799,7 +9879,7 @@ function agentHubOpen(agentId) {
     scroll.innerHTML = '';
     var intro = document.createElement('div');
     intro.className = 'issue-chat-bubble issue-chat-bubble--assistant';
-    intro.textContent = 'Charter and project overview load on the server. Add task context above, then message this specialist.';
+    intro.textContent = 'Charter and project overview load on the server. Add task context above (or use Charter actions under the API hint), then message this specialist.';
     scroll.appendChild(intro);
   }
   if (taskEl) {
