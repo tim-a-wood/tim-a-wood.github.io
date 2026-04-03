@@ -109,8 +109,8 @@
       "title": "Define the Business Brand Guide",
       "status": "needs-review",
       "risk": "med",
-      "note": "First draft delivered: pamphlet HTML docs/mv-business-brand-guide-pamphlet.html and PDF artifacts/MV-Business-Brand-Guide-v0.1-2026-04-02.pdf (Chrome print via scripts/html_to_pdf.py). Aligns with docs/brand-charter.html and STYLE_GUIDE.md. Founder/Design: confirm legal or trade name vs “MV,” approve abstract mark or supply logo, and any channel-specific lockups (itch, GitHub, X).",
-      "proposed_solution": "Iterate v0.2 after founder feedback; keep PDF export repeatable with scripts/html_to_pdf.py; fold approved lockups into sprite workbench and room editor shells when Design signs off."
+      "note": "v0.2 comprehensive draft: same HTML path plus PDF artifacts/MV-Business-Brand-Guide-v0.2-2026-04-02.pdf. Adds stakeholder review matrix, Strategy/JTBD/messaging ladder, voice examples, claims discipline, full Design token summary, editor entity colors, game-vs-tool boundary, channel playbook. v0.1 PDF kept for history. Sign-off: use matrix in section 1.3.",
+      "proposed_solution": "Founder + Strategy + Design complete review matrix; then v0.3 locks names/logo and trims length for external PDF if needed; ship lockups into tools per Design."
     },
     {
       "id": "marketing-o3",

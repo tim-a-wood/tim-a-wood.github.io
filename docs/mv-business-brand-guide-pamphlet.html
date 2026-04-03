@@ -3,16 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MV — Business Brand Guide (Pamphlet)</title>
+  <title>MV — Business Brand Guide v0.2</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
       --bg: #050709;
-      --panel: rgba(4, 6, 10, 0.96);
       --accent: #00e8c8;
-      --accent-soft: rgba(0, 232, 200, 0.14);
+      --accent-soft: rgba(0, 232, 200, 0.12);
       --text: #cce8e0;
       --muted: #5d7870;
       --line: rgba(0, 232, 200, 0.12);
@@ -37,22 +36,18 @@
       --radius-card: 18px;
       --radius-sm: 8px;
     }
-    @page {
-      size: letter portrait;
-      margin: 0.45in;
-    }
+    @page { size: letter portrait; margin: 0.4in; }
     body {
       background: var(--bg);
       color: var(--text);
       font-family: var(--font-sans);
       font-size: var(--font-size-base);
-      line-height: 1.45;
+      line-height: 1.42;
     }
     .sheet {
       page-break-after: always;
-      min-height: 10.2in;
+      min-height: 10.1in;
       padding: 0;
-      position: relative;
     }
     .sheet:last-child { page-break-after: auto; }
     .eyebrow {
@@ -65,7 +60,7 @@
     }
     h1 {
       font-family: var(--font-display);
-      font-size: 42px;
+      font-size: 38px;
       font-weight: 400;
       letter-spacing: 0.06em;
       line-height: 1.05;
@@ -73,354 +68,432 @@
     }
     h2 {
       font-family: var(--font-display);
-      font-size: 26px;
+      font-size: 22px;
       font-weight: 400;
       letter-spacing: 0.08em;
-      margin-bottom: var(--space-4);
+      margin: 0 0 var(--space-3);
       color: var(--text);
+      border-bottom: 1px solid var(--line);
+      padding-bottom: var(--space-2);
     }
+    h2.first { margin-top: 0; border-bottom: none; padding-bottom: 0; }
     h3 {
       font-size: var(--font-size-sm);
       font-weight: 700;
       letter-spacing: 0.1em;
       text-transform: uppercase;
       color: var(--muted);
-      margin: var(--space-5) 0 var(--space-2);
+      margin: var(--space-4) 0 var(--space-2);
+    }
+    h4 {
+      font-size: var(--font-size-sm);
+      font-weight: 600;
+      color: var(--accent);
+      margin: var(--space-3) 0 var(--space-2);
     }
     p { margin-bottom: var(--space-3); }
-    ul { margin: 0 0 var(--space-3) var(--space-5); }
+    ul, ol { margin: 0 0 var(--space-3) var(--space-5); }
     li { margin-bottom: var(--space-2); }
     .tagline {
-      margin-top: var(--space-4);
+      margin-top: var(--space-3);
       font-size: var(--font-size-lg);
       font-weight: 600;
       color: var(--accent);
-      max-width: 14cm;
+      line-height: 1.35;
+      max-width: 92%;
     }
     .meta {
-      margin-top: var(--space-5);
+      margin-top: var(--space-4);
       font-family: var(--font-mono);
       font-size: var(--font-size-xs);
       color: var(--muted);
+      line-height: 1.5;
     }
-    .cover-grid {
-      position: absolute;
-      right: 0;
-      top: 0;
-      width: 45%;
-      height: 100%;
-      opacity: 0.35;
-      pointer-events: none;
-    }
-    .lockup {
-      display: flex;
-      align-items: center;
-      gap: var(--space-4);
-      margin-top: var(--space-6);
-    }
-    .mark {
-      width: 72px;
-      height: 72px;
-      flex-shrink: 0;
-    }
-    .lockup-text strong {
-      font-family: var(--font-display);
-      font-size: 28px;
-      letter-spacing: 0.08em;
-      display: block;
-      color: var(--text);
-    }
-    .lockup-text span {
-      font-size: var(--font-size-sm);
-      color: var(--muted);
-    }
-    .swatch-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: var(--space-3);
-      margin: var(--space-4) 0;
-    }
-    .swatch {
-      border-radius: var(--radius-sm);
-      border: 1px solid var(--line);
-      overflow: hidden;
-      background: rgba(255, 255, 255, 0.02);
-    }
-    .swatch-color {
-      height: 48px;
-    }
-    .swatch-cap {
-      padding: var(--space-2) var(--space-3);
-      font-size: var(--font-size-xs);
-      font-family: var(--font-mono);
-      color: var(--muted);
-      line-height: 1.35;
-    }
-    .swatch-cap strong {
-      color: var(--text);
-      display: block;
-      font-family: var(--font-sans);
-      font-size: var(--font-size-xs);
-      font-weight: 600;
-    }
-    .type-row {
+    .panel {
       border: 1px solid var(--line);
       border-radius: var(--radius-card);
-      padding: var(--space-4);
-      margin-bottom: var(--space-3);
+      padding: var(--space-3) var(--space-4);
+      margin: var(--space-3) 0;
       background: rgba(255, 255, 255, 0.03);
     }
-    .type-label {
-      font-size: var(--font-size-xs);
-      font-weight: 700;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      color: var(--muted);
-      margin-bottom: var(--space-2);
-    }
-    .display-sample {
-      font-family: var(--font-display);
-      font-size: 32px;
-      letter-spacing: 0.06em;
-    }
-    .body-sample { font-size: var(--font-size-base); }
-    .mono-sample {
-      font-family: var(--font-mono);
-      font-size: var(--font-size-sm);
-    }
-    .pill-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: var(--space-2);
+    .panel strong { color: var(--text); }
+    .callout {
+      border-left: 3px solid var(--accent);
+      padding: var(--space-2) var(--space-4);
       margin: var(--space-3) 0;
-    }
-    .pill {
-      padding: 8px 12px;
-      border-radius: 999px;
-      font-size: var(--font-size-xs);
-      font-weight: 700;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      border: 1px solid var(--line);
-      background: rgba(255, 255, 255, 0.04);
-    }
-    .pill-cta {
-      background: linear-gradient(180deg, var(--gold-a), var(--gold-b));
-      color: #16120a;
-      border: none;
-    }
-    .pill-accent {
-      border-color: var(--accent);
       background: var(--accent-soft);
-      color: var(--accent);
+      font-size: var(--font-size-sm);
     }
     table {
       width: 100%;
       border-collapse: collapse;
       font-size: var(--font-size-sm);
-      margin: var(--space-3) 0;
+      margin: var(--space-2) 0 var(--space-3);
     }
     th, td {
       border: 1px solid var(--line);
-      padding: var(--space-2) var(--space-3);
+      padding: 6px var(--space-3);
       text-align: left;
       vertical-align: top;
     }
     th {
       background: var(--accent-soft);
       font-weight: 600;
-    }
-    .cards {
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap: var(--space-3);
-      margin-top: var(--space-4);
-    }
-    .card {
-      border: 1px solid var(--line);
-      border-radius: var(--radius-card);
-      padding: var(--space-4);
-      background: rgba(255, 255, 255, 0.03);
-    }
-    .card h4 {
-      font-size: var(--font-size-sm);
-      font-weight: 700;
-      color: var(--accent);
-      margin-bottom: var(--space-2);
-    }
-    .back-box {
-      border: 1px solid var(--line-strong);
-      border-radius: var(--radius-card);
-      padding: var(--space-4);
-      margin-top: var(--space-4);
-      background: rgba(0, 232, 200, 0.06);
-    }
-    .back-box code {
-      font-family: var(--font-mono);
       font-size: var(--font-size-xs);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
       color: var(--text);
+    }
+    td.mono { font-family: var(--font-mono); font-size: var(--font-size-xs); }
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--space-3);
     }
     @media print {
       body {
-        background: var(--bg);
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
       }
       .sheet { page-break-after: always; }
       .sheet:last-child { page-break-after: auto; }
-      h2, h3 { page-break-after: avoid; }
-      .swatch-grid, .cards, table { page-break-inside: avoid; }
+      h2, h3, h4 { page-break-after: avoid; }
+      table, .panel, .callout, .two-col { page-break-inside: avoid; }
     }
+    code {
+      font-family: var(--font-mono);
+      font-size: var(--font-size-xs);
+      color: var(--text);
+    }
+    .small { font-size: var(--font-size-sm); color: var(--muted); }
+    .swatch-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-2);
+      margin: var(--space-2) 0;
+    }
+    .sw {
+      width: 56px;
+      height: 40px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--line);
+    }
+    .sw-label { font-size: 10px; font-family: var(--font-mono); color: var(--muted); max-width: 72px; }
   </style>
 </head>
 <body>
 
-  <!-- Panel 1: Cover -->
+  <!-- 1 Cover -->
   <section class="sheet">
-    <svg class="cover-grid" viewBox="0 0 200 400" preserveAspectRatio="none" aria-hidden="true">
-      <defs>
-        <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
-          <path d="M 20 0 L 0 0 0 20" fill="none" stroke="rgba(0,232,200,0.12)" stroke-width="0.5"/>
-        </pattern>
-      </defs>
-      <rect width="100%" height="100%" fill="url(#grid)" />
-    </svg>
-    <p class="eyebrow">Internal draft · Marketing × Design</p>
-    <h1>MV<br>Business Brand Guide</h1>
-    <p class="tagline">AI-assisted, human-directed tooling—from pixels to rooms—proven by the games we ship.</p>
-    <div class="lockup">
-      <svg class="mark" viewBox="0 0 64 64" aria-label="Abstract mark: grid and accent corner" role="img">
-        <rect width="64" height="64" rx="12" fill="rgba(255,255,255,0.04)" stroke="rgba(0,232,200,0.2)"/>
-        <path d="M12 44 L28 20 L44 36 L52 28" fill="none" stroke="#00e8c8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-        <circle cx="28" cy="20" r="3" fill="#00e8c8"/>
-        <circle cx="44" cy="36" r="3" fill="#5d7870"/>
-      </svg>
-      <div class="lockup-text">
-        <strong>METROIDVANIA WORKBENCH</strong>
-        <span>Sprite · Room · World · Export</span>
-      </div>
-    </div>
-    <p class="meta">Version 0.1 · April 2026 · Companion to Company Brand Charter (docs/brand-charter.html) and STYLE_GUIDE.md</p>
+    <p class="eyebrow">Internal · Comprehensive draft v0.2</p>
+    <h1 class="first">MV Business Brand Guide</h1>
+    <p class="tagline">Stakeholder-aligned system for how the metroidvania toolchain company speaks, looks, and proves credibility—in product, marketing, and public narrative.</p>
+    <p class="meta">Version 0.2 · April 2026<br>
+    Sources: Strategy, Marketing, Design, Engineering, Game, Legal/Finance charters and <code>docs/brand-charter.html</code>, <code>STYLE_GUIDE.md</code><br>
+    PDF: regenerate with <code>python3 scripts/html_to_pdf.py docs/mv-business-brand-guide-pamphlet.html artifacts/MV-Business-Brand-Guide-v0.2-2026-04-02.pdf</code></p>
   </section>
 
-  <!-- Panel 2: Strategy snapshot -->
+  <!-- 2 Document control & stakeholder review -->
   <section class="sheet">
-    <h2>North star</h2>
-    <p>Help solo developers and small teams ship <strong>high-quality 2D metroidvanias and platformers</strong> without losing months to disconnected tools. Differentiation is the <strong>integrated pipeline</strong> plus AI that <strong>proposes</strong>—you review and apply.</p>
-    <div class="cards">
-      <div class="card">
-        <h4>Proof</h4>
-        <p style="margin:0;font-size:var(--font-size-sm);">Ashen Hollow exercises the same pipeline we ask customers to trust.</p>
-      </div>
-      <div class="card">
-        <h4>Audience now</h4>
-        <p style="margin:0;font-size:var(--font-size-sm);">Early adopters: technically curious indies who reward visible craft over polish theater.</p>
-      </div>
-      <div class="card">
-        <h4>Audience next</h4>
-        <p style="margin:0;font-size:var(--font-size-sm);">Early majority needs reliability, docs, and evidence before they adopt for commercial work.</p>
-      </div>
-    </div>
-    <h3>Competitive contrast (one line each)</h3>
-    <table>
-      <thead>
-        <tr><th>Alternative</th><th>MV contrast</th></tr>
-      </thead>
-      <tbody>
-        <tr><td>Tiled / general editors</td><td>Purpose-built metroidvania workflow + integrated sprite-to-room story.</td></tr>
-        <tr><td>LDtk</td><td>Strong manual 2D UX; we add unified AI assist + cross-tool narrative.</td></tr>
-        <tr><td>Engine-locked editors</td><td>Engine-agnostic authoring; export-first.</td></tr>
-        <tr><td>“Full AI level gen”</td><td>Different job—we sell <em>suggestion + human approval</em>, not replacement authorship.</td></tr>
-      </tbody>
-    </table>
-  </section>
-
-  <!-- Panel 3: Visual system -->
-  <section class="sheet">
-    <h2>Visual system</h2>
-    <p>Shipped tools already encode the canonical palette. <strong>Do not invent new hex colors</strong> in product UI; use CSS tokens from STYLE_GUIDE.md.</p>
-    <h3>Core palette</h3>
-    <div class="swatch-grid">
-      <div class="swatch">
-        <div class="swatch-color" style="background:#050709"></div>
-        <div class="swatch-cap"><strong>Background</strong>--bg · #050709</div>
-      </div>
-      <div class="swatch">
-        <div class="swatch-color" style="background:#00e8c8"></div>
-        <div class="swatch-cap"><strong>Accent</strong>--accent · #00e8c8</div>
-      </div>
-      <div class="swatch">
-        <div class="swatch-color" style="background:#cce8e0"></div>
-        <div class="swatch-cap"><strong>Text</strong>--text · #cce8e0</div>
-      </div>
-      <div class="swatch">
-        <div class="swatch-color" style="background:#5d7870"></div>
-        <div class="swatch-cap"><strong>Muted</strong>--muted · #5d7870</div>
-      </div>
-      <div class="swatch">
-        <div class="swatch-color" style="background:#4ade80"></div>
-        <div class="swatch-cap"><strong>Good</strong>--good · #4ade80</div>
-      </div>
-      <div class="swatch">
-        <div class="swatch-color" style="background:#d29922"></div>
-        <div class="swatch-cap"><strong>Warning</strong>--warning · #d29922</div>
-      </div>
-      <div class="swatch">
-        <div class="swatch-color" style="background:#f85149"></div>
-        <div class="swatch-cap"><strong>Error</strong>--error · #f85149</div>
-      </div>
-      <div class="swatch">
-        <div class="swatch-color" style="background:linear-gradient(180deg, var(--gold-a), var(--gold-b))"></div>
-        <div class="swatch-cap"><strong>Primary CTA</strong>Gold gradient · dark text #16120a</div>
-      </div>
-    </div>
-    <h3>Typography</h3>
-    <div class="type-row">
-      <div class="type-label">Display — Bebas Neue</div>
-      <div class="display-sample">ASHEN HOLLOW · ROOM WIZARD</div>
-    </div>
-    <div class="type-row">
-      <div class="type-label">UI / body — Plus Jakarta Sans</div>
-      <div class="body-sample">Build the metroidvania you’ve been designing in your head. The Copilot handles tedious drafts; you approve every change.</div>
-    </div>
-    <div class="type-row">
-      <div class="type-label">Data — DM Mono</div>
-      <div class="mono-sample">room_id: R4 · env.theme: ashen_cathedral · x: 1280</div>
-    </div>
-    <h3>Component cues</h3>
-    <div class="pill-row">
-      <span class="pill pill-accent">Active / focus</span>
-      <span class="pill">Secondary</span>
-      <span class="pill pill-cta">Primary action</span>
-    </div>
-    <p style="font-size:var(--font-size-sm);color:var(--muted);margin-bottom:0;">Panels: 18px radius · transitions 120ms / 200ms · hover lift max 1px · no colored shadows.</p>
-  </section>
-
-  <!-- Panel 4: Voice & claims -->
-  <section class="sheet">
-    <h2>Voice & messaging</h2>
-    <p><strong>Tone:</strong> Founder-practitioner — specific, humble about limits, excited about craft. The indie community filters out anonymous corporate voice.</p>
-    <table>
-      <thead>
-        <tr><th>Prefer</th><th>Avoid</th></tr>
-      </thead>
-      <tbody>
-        <tr><td>AI-assisted, suggests, proposes, review and apply</td><td>AI-powered magic, autopilot, guaranteed playable output</td></tr>
-        <tr><td>What shipped + what broke + how you fixed it</td><td>Vaporware timelines and feature theatre</td></tr>
-        <tr><td>Short screen captures and real UI</td><td>Stock imagery and generic “gamedev” clichés</td></tr>
-      </tbody>
-    </table>
-    <h3>Public claims discipline</h3>
+    <h2 class="first">1. Document control</h2>
+    <h3>1.1 Purpose</h3>
+    <p>This guide is the <strong>operational brand system</strong> for the MV business: naming hierarchy, messaging architecture, voice rules, visual tokens, channel behavior, and claim discipline. The <strong>Company Brand Charter</strong> (<code>docs/brand-charter.html</code>) remains the concise executive anchor; this document expands it for day-to-day use by Marketing, Design, and founder-led DevRel.</p>
+    <h3>1.2 Authority</h3>
     <ul>
-      <li>No pricing or tiers without founder approval.</li>
-      <li>No promises for features that are not reliable in production.</li>
-      <li>Copilot assists authoring; it does not silently mutate shipped player experiences.</li>
+      <li><strong>Visual execution in product UI:</strong> Design owns <code>STYLE_GUIDE.md</code> exclusively. No off-token colors, spacing, or radii in tools.</li>
+      <li><strong>Positioning and public copy:</strong> Marketing owns voice, channels, and message testing; Strategy advises competitive framing; Founder approves major commitments.</li>
+      <li><strong>Truth of product:</strong> Engineering and Game Director / Level Design constrain what may be claimed externally.</li>
     </ul>
-    <div class="back-box">
-      <p style="margin:0 0 var(--space-2);font-weight:600;">Sources of truth in-repo</p>
-      <p style="margin:0;font-size:var(--font-size-sm);"><code>STYLE_GUIDE.md</code> · <code>docs/brand-charter.html</code> · <code>agents/marketing/charter.md</code></p>
+    <h3>1.3 Stakeholder review matrix (v0.2)</h3>
+    <p class="small">Each owner confirms their column before we treat v0.3 as “locked” for external use.</p>
+    <table>
+      <thead>
+        <tr>
+          <th>Section</th>
+          <th>Founder</th>
+          <th>Strategy</th>
+          <th>Marketing</th>
+          <th>Design</th>
+          <th>Engineering</th>
+          <th>Game / LD</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>Strategic foundation &amp; assumptions</td><td>☐</td><td>☐</td><td>—</td><td>—</td><td>—</td><td>☐</td></tr>
+        <tr><td>Portfolio &amp; naming</td><td>☐</td><td>☐</td><td>☐</td><td>☐</td><td>—</td><td>☐</td></tr>
+        <tr><td>Messaging &amp; positioning claims</td><td>☐</td><td>☐</td><td>☐</td><td>—</td><td>☐</td><td>—</td></tr>
+        <tr><td>Voice &amp; channel playbook</td><td>☐</td><td>—</td><td>☐</td><td>☐</td><td>—</td><td>—</td></tr>
+        <tr><td>Visual &amp; marketing surfaces</td><td>—</td><td>—</td><td>☐</td><td>☐</td><td>—</td><td>—</td></tr>
+        <tr><td>Claims / AI / legal guardrails</td><td>☐</td><td>—</td><td>☐</td><td>—</td><td>☐</td><td>—</td></tr>
+        <tr><td>Game IP vs toolchain brand</td><td>☐</td><td>—</td><td>☐</td><td>☐</td><td>—</td><td>☐</td></tr>
+      </tbody>
+    </table>
+    <h3>1.4 Revision log</h3>
+    <table>
+      <thead><tr><th>Ver</th><th>Date</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr><td>0.1</td><td>2026-04-02</td><td>Initial pamphlet (too thin for stakeholder use).</td></tr>
+        <tr><td>0.2</td><td>2026-04-02</td><td>Expanded: JTBD, messaging ladder, voice examples, full token summary, channel/DevRel, governance.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- 3 Strategy -->
+  <section class="sheet">
+    <h2 class="first">2. Strategic foundation (Strategy)</h2>
+    <h3>2.1 North star</h3>
+    <p>Help solo developers and small teams ship <strong>high-quality 2D metroidvanias and platformers</strong> without losing months to disconnected tooling. Defensibility is the <strong>integrated pipeline</strong> (sprites → rooms → world graph → export) plus <strong>AI that proposes structured output for human approval</strong>—not silent mutation of authored content.</p>
+    <h3>2.2 Tool + game flywheel</h3>
+    <ul>
+      <li><strong>Proof by production:</strong> <em>Ashen Hollow</em> demonstrates that the Workbench produces shippable game content, not toy demos.</li>
+      <li><strong>Compounding infrastructure:</strong> Workbench investment accelerates every future title in the game library.</li>
+      <li><strong>Credible narrative:</strong> “Built by game developers, for game developers” requires evidence; the game library is the evidence.</li>
+    </ul>
+    <h3>2.3 Platform choice (web-first)</h3>
+    <p><strong>Strategic intent:</strong> Browser delivery reduces install friction, enables shareable URLs and embeddable demos, and reaches users on locked-down machines. Tradeoffs (offline, filesystem, performance ceilings) are engineering problems to mitigate—not reasons to abandon the acquisition advantage without a deliberate Strategy decision.</p>
+    <h3>2.4 Assumptions to monitor</h3>
+    <ul>
+      <li>Demand for AI-native creative workflows in indie gamedev continues to grow.</li>
+      <li>Model capability for spatial / layout assistance improves faster than commodity “full auto level gen” commoditizes trust.</li>
+      <li>Differentiation remains <strong>integrated workflow + human-directed AI</strong>, not a single-feature demo.</li>
+    </ul>
+    <p class="small"><strong>Revisit quarterly</strong> with Strategy if a major platform ships a directly comparable integrated toolchain or if AI level-gen positioning floods the narrative.</p>
+  </section>
+
+  <!-- 4 Portfolio naming -->
+  <section class="sheet">
+    <h2 class="first">3. Portfolio &amp; naming</h2>
+    <h3>3.1 Product streams</h3>
+    <table>
+      <thead><tr><th>Stream</th><th>What it is</th><th>Brand role</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Workbench</strong></td><td>Browser toolchain: sprite workbench, room layout editor / wizard, world utilities, exports.</td><td>Primary B2D (developer) brand surface. Emphasize craft, control, and pipeline.</td></tr>
+        <tr><td><strong>Game library</strong></td><td>Titles led by <em>Ashen Hollow</em> (dark-fantasy metroidvania).</td><td>Proof, emotion, and community hook. Marketing for the game may use richer narrative tone than tool UI.</td></tr>
+        <tr><td><strong>Agent OS / internal</strong></td><td>Founder operating system, dashboards, agent charters.</td><td>Not a customer-facing product brand; keep separate in public copy unless deliberately “building in public” about process.</td></tr>
+      </tbody>
+    </table>
+    <h3>3.2 Canonical names (provisional until Founder locks)</h3>
+    <table>
+      <thead><tr><th>Object</th><th>Preferred public name</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr><td>Company / umbrella</td><td>“MV” or expanded name TBD</td><td>Legal entity and consumer-facing company name require Founder + Legal.</td></tr>
+        <tr><td>Toolchain</td><td>Metroidvania Workbench / MV Workbench</td><td>Aligns with repo language; avoid implying a shipped “suite” beyond what exists.</td></tr>
+        <tr><td>AI feature family</td><td>Copilot, Environment Copilot</td><td>Use the same terms as in-product; tie to “propose → review → apply.”</td></tr>
+        <tr><td>Flagship game</td><td>Ashen Hollow</td><td>Creative IP: follow <code>artifacts/ashen-hollow-art-bible-v0.2.md</code> for world art direction—not tool UI tokens.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- 5 JTBD Audience -->
+  <section class="sheet">
+    <h2 class="first">4. Audience &amp; jobs-to-be-done (Marketing)</h2>
+    <h3>4.1 Core job (JTBD)</h3>
+    <p>Users are not hiring the product to “place tiles.” They are hiring it to <strong>ship a game they are proud of without getting stuck in tooling for months</strong>. Three dimensions must appear in serious messaging:</p>
+    <table>
+      <thead><tr><th>Dimension</th><th>Job</th><th>Message hook</th></tr></thead>
+      <tbody>
+        <tr><td>Functional</td><td>Correct structure, reliable exports, sane data for engine import.</td><td>“Structured rooms and worlds you can trust in your pipeline.”</td></tr>
+        <tr><td>Emotional</td><td>Feel competent and in control—not dependent on opaque AI.</td><td>“AI-assisted, human-directed. Nothing applies until you say so.”</td></tr>
+        <tr><td>Social</td><td>Show work-in-progress with pride; pass the “not slop” sniff test.</td><td>“Devlog-friendly: real UI, real iteration, real craft.”</td></tr>
+      </tbody>
+    </table>
+    <h3>4.2 Adoption lifecycle</h3>
+    <p><strong>Now — early adopters:</strong> Technically sophisticated; tolerate rough edges; value authenticity and visible iteration over glossy promises.</p>
+    <p><strong>Next — early majority:</strong> Need reliability, documentation, proof, and polish. <strong>Marketing must not optimize conversion</strong> before this group has reasons to trust.</p>
+    <h3>4.3 Anti-personas (do not optimize for)</h3>
+    <ul>
+      <li>Builders who want <strong>fully automated world generation</strong> with no authorship—that is a different product category.</li>
+      <li>Audiences who expect <strong>guaranteed playable AI output</strong>; we explicitly do not promise that.</li>
+    </ul>
+  </section>
+
+  <!-- 6 Messaging -->
+  <section class="sheet">
+    <h2 class="first">5. Positioning &amp; messaging architecture</h2>
+    <h3>5.1 Pillars (use in decks, site, long posts)</h3>
+    <ol>
+      <li><strong>Integrated pipeline</strong> — Sprite, room, and world authoring connected for metroidvania-scale projects.</li>
+      <li><strong>Human-directed AI</strong> — Suggestions and drafts; explicit review before data hits your files.</li>
+      <li><strong>Proof by shipping</strong> — We eat our own cooking: <em>Ashen Hollow</em> and future library titles.</li>
+      <li><strong>Web-native workflow</strong> — Low friction to try; shareable; no install cliff for many users.</li>
+    </ol>
+    <div class="callout"><strong>Line we own (tagline-class):</strong> “AI-assisted, human-directed metroidvania tooling—from pixels to rooms—proven by the games we ship.”</div>
+    <h3>5.2 Elevator lengths</h3>
+    <table>
+      <thead><tr><th>Length</th><th>Copy</th></tr></thead>
+      <tbody>
+        <tr><td>~25 words</td><td>We build browser tools for 2D metroidvanias: sprites, rooms, world layout, export. AI proposes changes; you approve. We prove it by shipping our own game, Ashen Hollow.</td></tr>
+        <tr><td>~50 words</td><td>MV is a metroidvania-focused workbench in the browser—sprite animation, room editing, world graph, exports. Copilot-style AI helps draft environment and layout ideas, but nothing applies without your review. Unlike generic map editors, we optimize for the full 2D exploration game loop. Ashen Hollow is our living proof.</td></tr>
+      </tbody>
+    </table>
+    <h3>5.3 Competitive frame (talk tracks)</h3>
+    <table>
+      <thead><tr><th>Alternative</th><th>Their strength</th><th>Our contrast</th></tr></thead>
+      <tbody>
+        <tr><td>Tiled</td><td>Mature OSS, huge ecosystem</td><td>General 2D maps; not a unified sprite→room→AI-assist story for metroidvania workflows.</td></tr>
+        <tr><td>LDtk</td><td>Excellent 2D editor UX, indie trust</td><td>Manual-first; no single integrated Copilot + cross-tool pipeline narrative.</td></tr>
+        <tr><td>Godot / Unity editors</td><td>Deep engine tie-in</td><td>We sit upstream: engine-agnostic authoring and export-first mental model.</td></tr>
+        <tr><td>Aseprite</td><td>Pixel art standard</td><td>Art authoring, not room/world + AI layout assistance as one product story.</td></tr>
+        <tr><td>Emerging AI “level gen”</td><td>Novelty, automation hype</td><td>We compete on <em>authorship + leverage</em>, not replacing the designer.</td></tr>
+        <tr><td>GDevelop / no-code</td><td>Beginner reach</td><td>Different segment: we target developers pursuing a higher craft ceiling in a specific genre.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- 7 Voice -->
+  <section class="sheet">
+    <h2 class="first">6. Voice, tone &amp; DevRel (Marketing)</h2>
+    <h3>6.1 Voice principles</h3>
+    <ul>
+      <li><strong>Practitioner-first:</strong> First-person or small-team perspective; concrete technical detail beats slogans.</li>
+      <li><strong>Honest limits:</strong> Show wrong Copilot suggestions and fixes—credibility beats polish theater.</li>
+      <li><strong>Give before take:</strong> Standalone insights on metroidvania design, room graphs, or AI workflow earn attention; pure pitches do not.</li>
+      <li><strong>No fake corporate “we’re thrilled to announce”:</strong> Indie devs filter that out instantly.</li>
+    </ul>
+    <h3>6.2 Language guardrails (2026)</h3>
+    <table>
+      <thead><tr><th>Prefer</th><th>Avoid</th></tr></thead>
+      <tbody>
+        <tr><td>AI-assisted; suggests; proposes; review and apply</td><td>AI-powered magic; autopilot; “instant levels”</td></tr>
+        <tr><td>Shipped; in preview; experimental</td><td>Vapor features; roadmap as if released</td></tr>
+        <tr><td>Screen recording / GIF of real UI</td><td>Stock game imagery; generic cyberpunk grids</td></tr>
+      </tbody>
+    </table>
+    <h3>6.3 Before / after (examples)</h3>
+    <table>
+      <thead><tr><th>Weak</th><th>Stronger</th></tr></thead>
+      <tbody>
+        <tr><td>“Our revolutionary AI builds your entire metroidvania.”</td><td>“Copilot drafts room environment JSON from your prompt—you preview, edit, then apply. If it’s wrong, that’s normal; iteration is the workflow.”</td></tr>
+        <tr><td>“All-in-one game engine replacement.”</td><td>“Authoring toolchain for layout and data—export and take it to the engine you already use.”</td></tr>
+        <tr><td>“Never get stuck again.”</td><td>“Fewer dead ends in room spec and environment setup; you still own design decisions.”</td></tr>
+      </tbody>
+    </table>
+    <h3>6.4 Channels &amp; formats (priority order)</h3>
+    <table>
+      <thead><tr><th>Channel</th><th>Role</th><th>Best format</th></tr></thead>
+      <tbody>
+        <tr><td>itch.io devlog</td><td>Archive of trust; long-form depth</td><td>Build logs with failures + fixes; Q&amp;A headings for AEO</td></tr>
+        <tr><td>X / Twitter</td><td>Reach, Screenshotsaturday</td><td>15–60s video or GIF &gt; stills without context</td></tr>
+        <tr><td>GitHub README</td><td>Technical credibility</td><td>Accurate scope, setup, honest limitations</td></tr>
+        <tr><td>Discord / forums</td><td>Community presence</td><td>Help others first; soft mention of tool when relevant</td></tr>
+      </tbody>
+    </table>
+    <p class="small"><strong>Cadence (Marketing charter):</strong> ~3–5 touchpoints/week sustainable for solo founder; consistency beats bursts.</p>
+  </section>
+
+  <!-- 8 Claims -->
+  <section class="sheet">
+    <h2 class="first">7. Claims, AI &amp; legal discipline</h2>
+    <h3>7.1 Non-negotiable “never claim”</h3>
+    <ul>
+      <li>Features not shipped or not reliable in production.</li>
+      <li>Deterministic “always playable” AI output.</li>
+      <li>Pricing, tiers, or refunds without Founder + Finance/Legal.</li>
+      <li>That AI replaces authorship or silently changes game runtime without user action.</li>
+      <li>Probabilistic AI behavior described as guaranteed.</li>
+    </ul>
+    <h3>7.2 Engineering sign-off rule</h3>
+    <p>Any public claim touching exports, Copilot behavior, performance, or browser support should be <strong>traceable to shipped behavior</strong> or labeled as experimental. When in doubt, Marketing runs the <code>positioning-review</code> action from the Marketing charter before publish.</p>
+    <h3>7.3 Product-led growth hooks</h3>
+    <ul>
+      <li><strong>First-session win:</strong> First meaningful export or saved room as the activation story—not just “signed up.”</li>
+      <li><strong>Shareability:</strong> Layout screenshots and Copilot clips should look recognizably “real tool,” not mockups.</li>
+    </ul>
+  </section>
+
+  <!-- 9 Visual -->
+  <section class="sheet">
+    <h2 class="first">8. Visual identity (Design)</h2>
+    <h3>8.1 Design philosophy (summary)</h3>
+    <ul>
+      <li><strong>Dark precision-tool aesthetic</strong> — professional creative software, not marketing landing page noise.</li>
+      <li><strong>Single cyan accent</strong> (<code>#00e8c8</code>) for active, selected, focused interactive states.</li>
+      <li><strong>Gold gradient</strong> reserved for primary CTA and select marketing emphasis—not general buttons.</li>
+      <li><strong>Opacity layers</strong> preferred over heavy shadows; <strong>neutral shadows only</strong> (black rgba).</li>
+      <li><strong>No light mode</strong> in product UI; do not introduce light-mode building blocks.</li>
+    </ul>
+    <h3>8.2 Core tokens (product &amp; marketing)</h3>
+    <table>
+      <thead><tr><th>Token</th><th>Value / role</th></tr></thead>
+      <tbody>
+        <tr><td class="mono">--bg</td><td><code>#050709</code> page background (also <code>#040608</code> / <code>#060b0e</code> gradient variants in guide)</td></tr>
+        <tr><td class="mono">--panel</td><td><code>rgba(4,6,10,0.96)</code> primary panels</td></tr>
+        <tr><td class="mono">--accent</td><td><code>#00e8c8</code> interactive emphasis</td></tr>
+        <tr><td class="mono">--text / --muted</td><td><code>#cce8e0</code> / <code>#5d7870</code></td></tr>
+        <tr><td class="mono">--line</td><td>rgba cyan hairlines for dividers and borders</td></tr>
+        <tr><td class="mono">--good / --warning / --error</td><td>Semantic UI states only</td></tr>
+      </tbody>
+    </table>
+    <div class="swatch-row" aria-hidden="true">
+      <div><div class="sw" style="background:#040608"></div><div class="sw-label">#040608</div></div>
+      <div><div class="sw" style="background:#050709"></div><div class="sw-label">bg</div></div>
+      <div><div class="sw" style="background:#060b0e"></div><div class="sw-label">#060b0e</div></div>
+      <div><div class="sw" style="background:#00e8c8"></div><div class="sw-label">accent</div></div>
+      <div><div class="sw" style="background:#cce8e0"></div><div class="sw-label">text</div></div>
+      <div><div class="sw" style="background:#5d7870"></div><div class="sw-label">muted</div></div>
+      <div><div class="sw" style="background:linear-gradient(180deg,var(--gold-a),var(--gold-b))"></div><div class="sw-label">CTA</div></div>
     </div>
-    <p class="meta" style="margin-top:var(--space-5);">PDF generated from this HTML via <code>scripts/html_to_pdf.py</code>. Founder input needed: final legal/trade name if different from “MV,” logo mark vs. text lockup, and any channel-specific variants (itch, GitHub, X).</p>
+    <h3>8.3 Typography</h3>
+    <table>
+      <thead><tr><th>Role</th><th>Font</th><th>Scale notes</th></tr></thead>
+      <tbody>
+        <tr><td>Display</td><td>Bebas Neue</td><td>Panel titles, hero headlines; weight 400; letter-spacing 0.04em+</td></tr>
+        <tr><td>UI / body</td><td>Plus Jakarta Sans</td><td>11–22px token scale only; body 14px default</td></tr>
+        <tr><td>Data / code</td><td>DM Mono</td><td>Coordinates, JSON, hex readouts</td></tr>
+        <tr><td>Branding only (optional)</td><td>Iowan Old Style / Georgia stack</td><td>Per STYLE_GUIDE; not for tool UI chrome</td></tr>
+      </tbody>
+    </table>
+    <h3>8.4 Spacing, radius, motion (non-optional rules)</h3>
+    <ul>
+      <li><strong>Spacing:</strong> Multiples of 4px only; established exceptions (e.g. 10px button padding) per STYLE_GUIDE.</li>
+      <li><strong>Radii:</strong> Use token scale (<code>--radius-tight</code> 14px for buttons/inputs; <code>--radius-card</code> 18px for panels; <code>--radius-full</code> for pills).</li>
+      <li><strong>Motion:</strong> 120ms / 200ms; <code>ease</code> or <code>ease-out</code>; hover lift <code>translateY(-1px)</code> max; never <code>transition: all</code>.</li>
+      <li><strong>Canvas:</strong> <code>image-rendering: pixelated</code> on pixel art surfaces.</li>
+      <li><strong>Accessibility:</strong> WCAG 2.2 AA target; visible <code>:focus-visible</code>; min hit targets 44px standard / 28px compact toolbar; do not use color as sole state differentiator.</li>
+    </ul>
+  </section>
+
+  <!-- 10 Domain colors + game IP -->
+  <section class="sheet">
+    <h2 class="first">9. Editor domain colors &amp; game IP boundary</h2>
+    <h3>9.1 Entity colors (room / world editor only)</h3>
+    <p class="small">From STYLE_GUIDE §11 — use for tool indicators and entity chips, not arbitrary marketing decoration.</p>
+    <table>
+      <thead><tr><th>Entity</th><th>Hex</th><th>Note</th></tr></thead>
+      <tbody>
+        <tr><td>Platform</td><td class="mono">#77b8ff</td><td>Square indicator</td></tr>
+        <tr><td>Door</td><td class="mono">#f5986e</td><td>Round</td></tr>
+        <tr><td>Vertex</td><td class="mono">#ff6b8a</td><td>Round</td></tr>
+        <tr><td>Key</td><td class="mono">#4ade80</td><td>Round</td></tr>
+        <tr><td>Ability</td><td class="mono">#a78bfa</td><td>Round</td></tr>
+        <tr><td>Mover</td><td class="mono">#fbbf24</td><td>Round</td></tr>
+        <tr><td>Start Point</td><td class="mono">#f0abfc</td><td>Round</td></tr>
+      </tbody>
+    </table>
+    <h3>9.2 Ashen Hollow vs Workbench</h3>
+    <p><strong>Do not conflate</strong> in-game mood, lore, and environmental palette with toolchain UI tokens. Game marketing may be atmospheric and narrative-forward; tool marketing must stay precise and restrained. Cross-reference the art bible for in-world direction; cross-reference STYLE_GUIDE for UI.</p>
+    <div class="panel"><strong>Practical rule:</strong> Screenshots of <em>Ashen Hollow</em> gameplay sell the dream; screenshots of the Workbench sell the workflow. Label which is which in posts.</div>
+  </section>
+
+  <!-- 11 Marketing surfaces + close -->
+  <section class="sheet">
+    <h2 class="first">10. Marketing &amp; splash surfaces</h2>
+    <p>Hero pages may use layered gradients and ambient cyan/gold <strong>radial highlights</strong> per STYLE_GUIDE §12, still composed from approved tokens. Marketing CTAs may use slightly taller min-height (e.g. 46px) but same motion and radius discipline.</p>
+    <h3>10.1 Open questions for Founder (v0.3 lock)</h3>
+    <ol>
+      <li>Final <strong>company / product legal and display names</strong>.</li>
+      <li>Official <strong>logo</strong> vs text lockup vs abstract mark.</li>
+      <li>Whether <strong>“freemium SaaS”</strong> direction (Strategy recommendation) is affirmed before any pricing copy exists.</li>
+      <li>Primary <strong>single home</strong> for long-form updates (itch devlog vs blog) for the next 90 days.</li>
+    </ol>
+    <h3>10.2 Design + Marketing joint checklist before external launch</h3>
+    <ul>
+      <li>☐ All colors map to tokens (no one-off hex in components).</li>
+      <li>☐ Typography loads Bebas + Jakarta + DM Mono on every new surface.</li>
+      <li>☐ Copy passes AI claim and vaporware checks.</li>
+      <li>☐ At least one <strong>real screen recording</strong> asset prepared for the same message as landing copy.</li>
+    </ul>
+    <p class="meta">End of v0.2 · For questions, route through Founder → Marketing / Design per charter.</p>
   </section>
 
 </body>
