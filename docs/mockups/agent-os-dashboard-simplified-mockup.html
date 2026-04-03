@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MOCKUP — Agent OS dashboard (Home + API usage)</title>
+  <title>Preview — Agent OS dashboard (Home + API usage)</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
   <style>
@@ -669,7 +669,7 @@
   </style>
 </head>
 <body>
-  <div class="mock-banner" role="status">Design mockup — click <strong style="font-weight:800;color:var(--text)">Home</strong> / <strong style="font-weight:800;color:var(--text)">API usage</strong> in the nav to swap main content (no live data)</div>
+  <div class="mock-banner" role="status">This is a design preview only — click <strong style="font-weight:800;color:var(--text)">Home</strong> or <strong style="font-weight:800;color:var(--text)">API usage</strong> in the sidebar to switch screens. Numbers are fake.</div>
 
   <div class="shell">
     <header class="header">
@@ -679,8 +679,8 @@
       </div>
       <span class="header-spacer"></span>
       <div class="header-select-wrap">
-        <label for="ctx-mock">Product context</label>
-        <select id="ctx-mock" aria-label="Product context (decorative)">
+        <label for="ctx-mock">Focus</label>
+        <select id="ctx-mock" aria-label="Which product you care about (not wired)">
           <option>All products</option>
           <option>Sprite dashboard</option>
           <option>Ashen Hollow</option>
@@ -689,7 +689,7 @@
       <span class="status-badge">System ready</span>
     </header>
 
-    <nav class="sidebar-left" aria-label="Mock simplified navigation">
+    <nav class="sidebar-left" aria-label="Sidebar preview">
       <span class="nav-label">Dashboards</span>
       <span class="nav-group-label">Work</span>
       <button type="button" class="nav-item nav-item--active nav-mock-screen" data-mock-screen="home" aria-pressed="true">
@@ -732,11 +732,11 @@
       <span class="nav-label">Agent prompts</span>
       <div class="agent-prompts-block">
         <button type="button" class="agent-panel-toggle" tabindex="-1">
-          <span>Agent panel</span>
-          <small>Visible</small>
+          <span>Workflow column</span>
+          <small>On</small>
         </button>
-        <label class="field-label" for="spec-mock">Specialist</label>
-        <select id="spec-mock" class="specialist-select" aria-label="Choose specialist (mock)">
+        <label class="field-label" for="spec-mock">Who to prompt</label>
+        <select id="spec-mock" class="specialist-select" aria-label="Pick a specialist (not wired)">
           <option>Orchestrator</option>
           <option>Strategy</option>
           <option>Analytics</option>
@@ -751,27 +751,27 @@
           <span class="recent-chip">Design</span>
           <span class="recent-chip">Orchestrator</span>
         </div>
-        <p class="recent-note">Optional: last-used specialists as one-tap chips (localStorage in real build).</p>
+        <p class="recent-note">Optional in the real app: shortcuts for people you used recently.</p>
       </div>
 
       <div class="nav-divider"></div>
       <span class="nav-label">Resources</span>
       <button type="button" class="nav-item" tabindex="-1"><span>Playbooks · templates · knowledge</span></button>
-      <p class="recent-note" style="padding:0 var(--space-4)">Unchanged list style as today; omitted here for vertical space.</p>
+      <p class="recent-note" style="padding:0 var(--space-4)">Playbooks and templates stay the same as today; not shown here to save space.</p>
     </nav>
 
     <main class="main">
       <div id="mock-view-home" class="mock-view" data-mock-view="home">
         <section class="hero" aria-label="Home preview">
-          <div class="hero-title">COMMAND SURFACE</div>
-          <p class="hero-tag">Metroidvania toolchain · pre-launch</p>
+          <div class="hero-title">OVERVIEW</div>
+          <p class="hero-tag">Metroidvania tools and game · not launched yet</p>
           <div class="kpi-grid">
             <div class="kpi-card">
-              <div class="kpi-label">8-week paid calls</div>
+              <div class="kpi-label">Paid calls · last 8 weeks</div>
               <div class="kpi-value">—</div>
             </div>
             <div class="kpi-card">
-              <div class="kpi-label">Service keys</div>
+              <div class="kpi-label">API keys</div>
               <div class="kpi-value">—</div>
             </div>
             <div class="kpi-card">
@@ -781,45 +781,45 @@
           </div>
         </section>
 
-        <div class="section-label">Removed in this IA</div>
+        <div class="section-label">What we left out of the sidebar</div>
         <div class="placeholder-grid">
-          <div class="ph-card">No per-role full-page dashboards (tech, business, leadership, …)</div>
-          <div class="ph-card">Orchestrator &amp; strategy rows stay in Issues / Opportunities / Ongoing — no separate Orchestration / Strategy boards</div>
-          <div class="ph-card">Discuss-issue chat unchanged (server-side)</div>
+          <div class="ph-card">No separate full-page screen per role (engineering, legal, and so on)</div>
+          <div class="ph-card">Orchestrator and strategy work still shows up in Issues, Opportunities, and Ongoing — not as extra top-level items</div>
+          <div class="ph-card">Chat from a row still works the same in the real app</div>
         </div>
 
         <div class="callout">
-          <h2>What this mockup shows</h2>
+          <h2>What you are looking at</h2>
           <ul>
-            <li>Eight work-hub destinations (adds <strong style="color:var(--text)">API usage</strong> next to Home) — refine section order and density here before shipping in <code style="font-family:var(--font-mono);font-size:12px">os-dashboard.html</code>.</li>
-            <li>Leadership work uses the same tables plus <strong style="color:var(--text)">Orchestrator</strong> / <strong style="color:var(--text)">Strategy</strong> in the specialist control — no extra nav entries.</li>
-            <li>One <strong style="color:var(--text)">Specialist</strong> control replaces the long “All agents” list; real app opens the right column + can default to Analytics on the API usage screen.</li>
-            <li>Right column sketch: modes + generated prompt — same as current workflow panel.</li>
+            <li>Eight main places in the sidebar (including <strong style="color:var(--text)">API usage</strong> next to Home). Tweak layout here, then match it in the real dashboard file.</li>
+            <li>Leadership work uses the same lists plus <strong style="color:var(--text)">Orchestrator</strong> or <strong style="color:var(--text)">Strategy</strong> in the “Who to prompt” menu — no extra nav clutter.</li>
+            <li>One short menu replaces a long list of every agent; the real app opens the right column and can pick <strong style="color:var(--text)">Analytics</strong> when you open API usage.</li>
+            <li>Right side: pick a mode and get a prompt you can copy — same idea as today’s workflow column.</li>
           </ul>
         </div>
       </div>
 
       <div id="mock-view-api-usage" class="mock-view" data-mock-view="api-usage" hidden>
         <h1 class="mock-page-title">API usage</h1>
-        <p class="mock-page-lede">Parity target: live dashboard <code style="font-family:var(--font-mono);font-size:12px">data-dashboard-view="api-usage"</code>. Data from <code style="font-family:var(--font-mono);font-size:12px">GET /api/dashboard-data</code> (ledger rollups + room helpfulness). Edit this file to tweak hierarchy, copy, and chart footprint.</p>
+        <p class="mock-page-lede">Matches the real “API usage” screen: call counts, keys, workbench status, room Copilot stats, and charts when the dashboard server is running. Edit this file to try different layout or wording before you change the live page.</p>
 
-        <div class="section-label">Snapshot</div>
+        <div class="section-label">At a glance</div>
         <div class="mock-card-grid mock-card-grid--3">
           <div class="mock-db-card mock-db-card--live">
             <div class="mock-db-card-head">
-              <span class="mock-db-label">8-week paid calls</span>
+              <span class="mock-db-label">Paid calls · last 8 weeks</span>
               <span class="mock-tier">Live</span>
             </div>
             <div class="mock-db-value">—</div>
-            <div class="mock-db-sub">Rolling ISO weeks (UTC) · usage ledger</div>
+            <div class="mock-db-sub">Counted from your local usage log (by calendar week, GMT)</div>
           </div>
           <div class="mock-db-card mock-db-card--live">
             <div class="mock-db-card-head">
-              <span class="mock-db-label">Service keys</span>
+              <span class="mock-db-label">API keys</span>
               <span class="mock-tier">Live</span>
             </div>
             <div class="mock-db-value">G✓ · P✓</div>
-            <div class="mock-db-sub">Gemini and Pixel Lab env</div>
+            <div class="mock-db-sub">Gemini and Pixel Lab</div>
           </div>
           <div class="mock-db-card mock-db-card--live">
             <div class="mock-db-card-head">
@@ -827,109 +827,109 @@
               <span class="mock-tier">Live</span>
             </div>
             <div class="mock-db-value">● Up</div>
-            <div class="mock-db-sub">Sprite workbench server</div>
+            <div class="mock-db-sub">Sprite workbench server on or off</div>
           </div>
         </div>
 
-        <div class="section-label">Usage ledger</div>
+        <div class="section-label">Call log</div>
         <div class="mock-card-grid mock-card-grid--4">
           <div class="mock-db-card mock-db-card--live">
             <div class="mock-db-card-head">
-              <span class="mock-db-label">Ledger rows (all-time)</span>
+              <span class="mock-db-label">All logged calls</span>
               <span class="mock-tier">Live</span>
             </div>
             <div class="mock-db-value">—</div>
-            <div class="mock-db-sub">Rows in local ledger file</div>
+            <div class="mock-db-sub">Every call recorded on this machine</div>
           </div>
           <div class="mock-db-card mock-db-card--live">
             <div class="mock-db-card-head">
-              <span class="mock-db-label">Calls · 8-wk window</span>
+              <span class="mock-db-label">Calls in the last 8 weeks</span>
               <span class="mock-tier">Live</span>
             </div>
             <div class="mock-db-value">—</div>
-            <div class="mock-db-sub">Rolling ISO weeks (UTC)</div>
+            <div class="mock-db-sub">Same window as the chart below</div>
           </div>
           <div class="mock-db-card mock-db-card--live">
             <div class="mock-db-card-head">
-              <span class="mock-db-label">Today (UTC)</span>
+              <span class="mock-db-label">Calls today</span>
               <span class="mock-tier">Live</span>
             </div>
             <div class="mock-db-value">—</div>
-            <div class="mock-db-sub">Ledger rows dated today</div>
+            <div class="mock-db-sub">By today’s date in GMT</div>
           </div>
           <div class="mock-db-card mock-db-card--live">
             <div class="mock-db-card-head">
-              <span class="mock-db-label">Est. cost (ledger)</span>
+              <span class="mock-db-label">Rough cost from the log</span>
               <span class="mock-tier">Live</span>
             </div>
             <div class="mock-db-value">—</div>
-            <div class="mock-db-sub">Sum of usage_cost_usd · Finance owns truth</div>
+            <div class="mock-db-sub">Added from each logged call; use finance records for real spend</div>
           </div>
         </div>
 
-        <div class="section-label">Room AI outcomes</div>
+        <div class="section-label">Room Copilot</div>
         <div class="mock-card-grid mock-card-grid--3">
           <div class="mock-db-card mock-db-card--live">
             <div class="mock-db-card-head">
-              <span class="mock-db-label">Signal</span>
+              <span class="mock-db-label">What we measure</span>
               <span class="mock-tier">Live</span>
             </div>
-            <div class="mock-db-value" style="font-size:var(--font-size-sm);font-family:var(--font-sans)">Ledger + room suggestions</div>
-            <div class="mock-db-sub">Copilot helpfulness from saved layouts</div>
+            <div class="mock-db-value" style="font-size:var(--font-size-sm);font-family:var(--font-sans)">Calls plus room suggestions</div>
+            <div class="mock-db-sub">Whether suggestions felt helpful after you saved the room</div>
           </div>
           <div class="mock-db-card mock-db-card--live">
             <div class="mock-db-card-head">
-              <span class="mock-db-label">Helpful rate</span>
+              <span class="mock-db-label">Marked helpful</span>
               <span class="mock-tier">Live</span>
             </div>
             <div class="mock-db-value">—</div>
-            <div class="mock-db-sub">Accept + tweak / decided</div>
+            <div class="mock-db-sub">Share you accepted or tweaked, out of those you decided on</div>
           </div>
           <div class="mock-db-card mock-db-card--live">
             <div class="mock-db-card-head">
-              <span class="mock-db-label">Accepted &amp; stuck</span>
+              <span class="mock-db-label">Still there after you saved again</span>
               <span class="mock-tier">Live</span>
             </div>
             <div class="mock-db-value">—</div>
-            <div class="mock-db-sub">Persisted after later saves</div>
+            <div class="mock-db-sub">Accepted suggestions that stayed in the room after a later save</div>
           </div>
         </div>
 
         <div class="section-label">Charts</div>
-        <p class="mock-page-lede" style="margin-top:calc(-1 * var(--space-2)); margin-bottom:var(--space-3)">Area (8 weeks) · provider mix bars · donut (outcomes). Resize blocks below to match desired chart height.</p>
+        <p class="mock-page-lede" style="margin-top:calc(-1 * var(--space-2)); margin-bottom:var(--space-3)">Trend for eight weeks, bars for where calls went, ring chart for how suggestions ended. Resize the boxes below to try different heights.</p>
         <div class="mock-chart-grid">
           <div class="mock-chart-card mock-chart-wide mock-chart-card--tall">
             <div class="mock-chart-head">
-              <span class="mock-chart-title">Paid API calls · last 8 ISO weeks</span>
+              <span class="mock-chart-title">Paid API calls by week (last 8 weeks)</span>
               <span class="mock-tier">Trend</span>
             </div>
-            <div class="mock-chart-body">Canvas: area-requests<br>(wide row)</div>
+            <div class="mock-chart-body">Weekly trend chart<br>(full width)</div>
           </div>
           <div class="mock-chart-card">
             <div class="mock-chart-head">
-              <span class="mock-chart-title">Provider mix</span>
-              <span class="mock-tier">Split</span>
+              <span class="mock-chart-title">Where calls went</span>
+              <span class="mock-tier">Mix</span>
             </div>
-            <div class="mock-chart-body">Canvas: bars-purpose</div>
+            <div class="mock-chart-body">Bar chart · Pixel Lab, Gemini, room AI</div>
           </div>
           <div class="mock-chart-card">
             <div class="mock-chart-head">
-              <span class="mock-chart-title">Suggestion outcomes</span>
-              <span class="mock-tier">Donut</span>
+              <span class="mock-chart-title">How suggestions ended</span>
+              <span class="mock-tier">Breakdown</span>
             </div>
-            <div class="mock-chart-body">Canvas: donut-outcomes<br>(room helpfulness)</div>
+            <div class="mock-chart-body">Ring chart · accept, tweak, reject</div>
           </div>
         </div>
 
-        <div class="section-label">Analytics runbooks</div>
+        <div class="section-label">Quick actions (Analytics)</div>
         <div class="mock-db-card">
-          <div class="mock-db-label" style="margin-bottom:var(--space-2)">Same action grid as Analytics dashboard</div>
-          <div class="mock-chart-body" style="min-height:80px;border-style:solid">Action chips from analytics-status.json · owner: Analytics agent</div>
+          <div class="mock-db-label" style="margin-bottom:var(--space-2)">Same shortcuts as on the Analytics screen</div>
+          <div class="mock-chart-body" style="min-height:80px;border-style:solid">Action buttons the Analytics specialist maintains</div>
         </div>
 
         <div class="mock-signpost">
-          <button type="button" class="mock-link mock-goto-screen" data-mock-screen="home">→ Home · command surface</button>
-          <span class="mock-link" style="cursor:default;text-decoration:none;color:var(--muted)">→ Analytics · tracking plan (nav not wired in mockup)</span>
+          <button type="button" class="mock-link mock-goto-screen" data-mock-screen="home">→ Home</button>
+          <span class="mock-link" style="cursor:default;text-decoration:none;color:var(--muted)">→ Analytics · not wired in this preview</span>
         </div>
       </div>
     </main>
@@ -951,7 +951,7 @@
         </div>
         <span class="field-label">Generated prompt</span>
         <div class="prompt-area">
-          [Prompt output appears here — copy / open in Claude / etc.]
+          Prompt text shows up here so you can copy it into your AI tool.
         </div>
       </div>
     </aside>
