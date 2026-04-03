@@ -57,6 +57,16 @@ class RenderMarkdownViewTests(unittest.TestCase):
         self.assertIn("max-width: min(1240px", html)
         self.assertNotIn("52rem", html)
 
+    def test_supervisor_markdown_query_param_case_insensitive(self) -> None:
+        from urllib.parse import urlparse
+
+        from scripts.os_dashboard_supervisor import _markdown_path_from_query
+
+        self.assertEqual(
+            _markdown_path_from_query(urlparse("/view/markdown?Path=STYLE_GUIDE.md")),
+            "STYLE_GUIDE.md",
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

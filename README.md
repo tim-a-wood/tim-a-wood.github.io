@@ -154,6 +154,8 @@ Or double-click **`Agent-OS-Dashboard.command`** in the repo root.
 
 2. Open `http://127.0.0.1:8769/os-dashboard.html` (default). The helper binds **127.0.0.1** only.
 
+**After `git pull`:** Restart the supervisor process (same command as step 1) if **Markdown preview** links (`/view/markdown?path=…`) return “not found” — the handler only loads when Python starts.
+
 Optional env: `OS_AGENT_OS_PORT` (or legacy `OS_DASHBOARD_SUPERVISOR_PORT`), `OS_DASHBOARD_WORKBENCH_PORT` for the workbench port.
 
 If you open `os-dashboard.html` from the **workbench** (`http://127.0.0.1:8766/...`), Start/Restart/Stop POST to **Agent OS** (default `http://127.0.0.1:8769`). Override with `AGENT_OS_CONTROL_BASE` in the environment if you use another port.

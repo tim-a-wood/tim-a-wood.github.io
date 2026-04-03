@@ -30,6 +30,7 @@ from __future__ import annotations
 
 import argparse
 import base64
+import html
 import json
 import os
 import re
@@ -403,6 +404,53 @@ def _resolve_readonly_repo_file(repo_root: Path, rel: str) -> tuple[bytes, str] 
     return (fpath.read_bytes(), _content_type_for_path(fpath))
 
 
+def _markdown_path_from_query(parsed) -> str | None:
+    """Extract repo-relative path from ?path= for /view/markdown (case-insensitive param name)."""
+    qs = parse_qs(parsed.query, keep_blank_values=False)
+    for key, vals in qs.items():
+        if key.lower() != "path":
+            continue
+        if vals and str(vals[0]).strip():
+            return (
+                unquote(str(vals[0]).strip())
+                .replace("\\", "/")
+                .lstrip("/")
+            )
+    return None
+
+
+def _markdown_preview_error_html(*, reason: str, rel: str, hint: str) -> bytes:
+    r = html.escape(reason)
+    p = html.escape(rel or "—")
+    h = html.escape(hint)
+    page = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Markdown preview — error</title>
+  <style>
+    :root {{ --bg:#050709; --text:#cce8e0; --muted:#5d7870; --accent:#00e8c8; --error:#f85149; }}
+    body {{ font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text);
+      padding: 24px; max-width: 720px; margin: 0 auto; line-height: 1.5; }}
+    h1 {{ font-size: 18px; margin: 0 0 16px; }}
+    .reason {{ color: var(--error); margin: 16px 0; }}
+    code {{ color: var(--accent); font-size: 13px; word-break: break-all; }}
+    .hint {{ color: var(--muted); font-size: 14px; margin-top: 24px; }}
+    a {{ color: var(--accent); }}
+  </style>
+</head>
+<body>
+  <h1>Markdown preview</h1>
+  <p class="reason"><strong>{r}</strong></p>
+  <p>Path requested: <code>{p}</code></p>
+  <p class="hint">{h}</p>
+  <p class="hint"><a href="/docs/os-document-library.html">← Guides &amp; policies library</a></p>
+</body>
+</html>"""
+    return page.encode("utf-8")
+
+
 def _normalize_workbench_post_path(path: str) -> str | None:
     if path.startswith("/api/os/workbench/"):
         path = "/api/workbench/" + path[len("/api/os/workbench/") :]
@@ -471,6 +519,32 @@ def make_handler(
             self.end_headers()
             self.wfile.write(body)
 
+        def _send_markdown_preview_error(
+            self,
+            status: int,
+            *,
+            reason: str,
+            rel: str,
+            hint: str,
+        ) -> None:
+            accept = (self.headers.get("Accept") or "").lower()
+            json_only = (
+                "application/json" in accept and "text/html" not in accept
+            )
+            if not json_only:
+                body = _markdown_preview_error_html(reason=reason, rel=rel, hint=hint)
+                return self._send_bytes(status, body, "text/html; charset=utf-8")
+            err_key = "bad_request" if status == HTTPStatus.BAD_REQUEST else "not_found"
+            return self._send_json(
+                status,
+                {
+                    "error": err_key,
+                    "reason": reason,
+                    "path": rel,
+                    "hint": hint,
+                },
+            )
+
         def do_OPTIONS(self) -> None:
             self.send_response(HTTPStatus.NO_CONTENT)
             self.send_header("Access-Control-Allow-Origin", "*")
@@ -482,28 +556,54 @@ def make_handler(
         def do_GET(self) -> None:
             full = urlparse(self.path)
             path_only = (full.path or "/").rstrip("/") or "/"
-            if path_only == "/view/markdown":
-                qs = parse_qs(full.query, keep_blank_values=False)
-                paths = qs.get("path", [])
-                if not paths or not str(paths[0]).strip():
-                    return self._send_json(
-                        HTTPStatus.BAD_REQUEST, {"error": "path query parameter required"}
+            if path_only.lower() == "/view/markdown":
+                rel = _markdown_path_from_query(full)
+                if not rel:
+                    return self._send_markdown_preview_error(
+                        HTTPStatus.BAD_REQUEST,
+                        reason="missing_path_query",
+                        rel="",
+                        hint="Add a query parameter, e.g. /view/markdown?path=STYLE_GUIDE.md "
+                        "(path is the file relative to the repository root).",
                     )
-                rel = unquote(str(paths[0]).strip()).replace("\\", "/").lstrip("/")
                 if not _readonly_doc_path_allowed(rel):
-                    return self._send_json(HTTPStatus.NOT_FOUND, {"error": "Not found"})
+                    self.log_message("markdown preview: path not allowed: %s", rel)
+                    return self._send_markdown_preview_error(
+                        HTTPStatus.NOT_FOUND,
+                        reason="path_not_allowlisted",
+                        rel=rel,
+                        hint="This path is not on the supervisor read-only list. "
+                        "If markdown preview used to 404 for every file, restart the supervisor "
+                        "(python3 scripts/os_dashboard_supervisor.py) so it loads the /view/markdown handler.",
+                    )
                 suf = Path(rel).suffix.lower()
                 if suf not in {".md", ".mdc"}:
-                    return self._send_json(
-                        HTTPStatus.BAD_REQUEST, {"error": "Only .md and .mdc can be previewed"}
+                    return self._send_markdown_preview_error(
+                        HTTPStatus.BAD_REQUEST,
+                        reason="not_markdown",
+                        rel=rel,
+                        hint="Only .md and .mdc files can be previewed here.",
                     )
                 fpath = (repo_root / rel).resolve()
                 try:
                     fpath.relative_to(repo_root.resolve())
                 except ValueError:
-                    return self._send_json(HTTPStatus.NOT_FOUND, {"error": "Not found"})
+                    self.log_message("markdown preview: path outside repo: %s", rel)
+                    return self._send_markdown_preview_error(
+                        HTTPStatus.NOT_FOUND,
+                        reason="path_outside_repo",
+                        rel=rel,
+                        hint="Resolved path escaped the repository root.",
+                    )
                 if not fpath.is_file():
-                    return self._send_json(HTTPStatus.NOT_FOUND, {"error": "Not found"})
+                    self.log_message("markdown preview: file missing: %s", rel)
+                    return self._send_markdown_preview_error(
+                        HTTPStatus.NOT_FOUND,
+                        reason="file_not_found",
+                        rel=rel,
+                        hint="No file at that path. Confirm the file exists in the repo folder that contains "
+                        "scripts/os_dashboard_supervisor.py (not a sparse worktree missing that file).",
+                    )
                 try:
                     text = fpath.read_text(encoding="utf-8")
                 except OSError:
@@ -859,6 +959,10 @@ def main() -> None:
     )
     server = ThreadingHTTPServer((args.host, args.port), handler)
     print(f"Agent OS at http://{args.host}:{args.port}/os-dashboard.html", file=sys.stderr)
+    print(
+        f"Markdown preview: http://{args.host}:{args.port}/view/markdown?path=STYLE_GUIDE.md",
+        file=sys.stderr,
+    )
     print(f"Workbench: http://{args.workbench_host}:{args.workbench_port}/ (Start/Stop from dashboard)", file=sys.stderr)
     _ck = (os.environ.get("CURSOR_API_KEY") or "").strip()
     _ok = (os.environ.get("OPENAI_API_KEY") or "").strip()
