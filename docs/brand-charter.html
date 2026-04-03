@@ -38,9 +38,20 @@
       font-family: var(--font-sans);
       font-size: var(--font-size-base);
       line-height: 1.5;
-      padding: 48px 40px 64px;
-      max-width: 720px;
+      padding: 48px 32px 64px;
+      width: 100%;
+      max-width: min(1240px, calc(100vw - 32px));
       margin: 0 auto;
+    }
+    a {
+      color: var(--accent);
+      text-decoration: none;
+      transition: color 200ms ease, text-decoration 200ms ease;
+    }
+    a:hover { text-decoration: underline; }
+    :focus-visible {
+      outline: 2px solid rgba(0, 232, 200, 0.35);
+      outline-offset: 2px;
     }
     .doc-header {
       border-bottom: 1px solid var(--line);
@@ -147,7 +158,7 @@
     <p class="eyebrow">Internal — Strategy × Marketing × Design</p>
     <h1>MV Metroidvania Toolchain</h1>
     <p class="subhead">Company Brand Charter</p>
-    <p class="meta">Version 1.0 · Prepared March 2026 · Aligns with STYLE_GUIDE.md and agent charters (Strategy, Marketing, Design)</p>
+    <p class="meta">Version 1.0 · Prepared March 2026 · Aligns with <a href="/view/markdown?path=STYLE_GUIDE.md">STYLE_GUIDE.md</a> and agent charters (Strategy, Marketing, Design) · <a href="/docs/os-document-library.html">Guides &amp; policies library</a></p>
   </header>
 
   <section>
@@ -264,7 +275,7 @@
 
   <section>
     <h2>7. Visual & verbal identity (Design alignment)</h2>
-    <p>Public-facing materials for MV tools should align with the canonical <strong>STYLE_GUIDE.md</strong> tokens:</p>
+    <p>Public-facing materials for MV tools should align with the canonical <strong><a href="/view/markdown?path=STYLE_GUIDE.md">STYLE_GUIDE.md</a></strong> tokens:</p>
     <ul>
       <li><strong>Colors:</strong> Near-black backgrounds (<code>#050709</code> family); single cyan accent (<code>#00e8c8</code>) for active/focus; warm gold reserved for primary CTA gradients where used.</li>
       <li><strong>Type:</strong> Bebas Neue for display/titles; Plus Jakarta Sans for UI and body; DM Mono for code, coordinates, and data.</li>
@@ -297,7 +308,7 @@
         </tr>
         <tr>
           <td>Design</td>
-          <td>Visual system authority (STYLE_GUIDE.md); accessibility and interaction quality for all tools.</td>
+          <td>Visual system authority (<a href="/view/markdown?path=STYLE_GUIDE.md">STYLE_GUIDE.md</a>); accessibility and interaction quality for all tools.</td>
         </tr>
         <tr>
           <td>Game Director / Marketing</td>

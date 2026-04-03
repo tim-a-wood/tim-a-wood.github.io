@@ -36,6 +36,15 @@ class RenderMarkdownViewTests(unittest.TestCase):
         out = _rewrite_markdown_anchor_hrefs(inp, "agents/design/charter.md", REPO)
         self.assertIn("agents%2Fengineering%2Fcharter.md", out)
 
+    def test_rewrites_single_quoted_href(self) -> None:
+        from scripts.render_markdown_view import _rewrite_markdown_anchor_hrefs
+
+        guide = REPO / "STYLE_GUIDE.md"
+        self.assertTrue(guide.is_file())
+        inp = f"<p><a href='{guide}'>style</a></p>"
+        out = _rewrite_markdown_anchor_hrefs(inp, "docs/foo.md", REPO)
+        self.assertIn("/view/markdown?path=", out)
+
     def test_viewer_body_uses_wider_max_width(self) -> None:
         from scripts.render_markdown_view import build_markdown_view_page
 

@@ -9,7 +9,8 @@ import re
 from pathlib import Path
 from urllib.parse import quote, unquote, urlparse
 
-_A_HREF_RE = re.compile(r'(<a\b[^>]*?\bhref\s*=\s*")([^"]*)(")', re.IGNORECASE)
+_A_HREF_DQ = re.compile(r'(<a\b[^>]*?\bhref\s*=\s*")([^"]*)(")', re.IGNORECASE)
+_A_HREF_SQ = re.compile(r"(<a\b[^>]*?\bhref\s*=\s*')([^']*)(')", re.IGNORECASE)
 
 
 def _md_to_fragment(source: str) -> str:
@@ -114,14 +115,22 @@ def _resolve_href_for_viewer(href: str, source_repo_posix: str, repo_root: Path)
 def _rewrite_markdown_anchor_hrefs(html_frag: str, source_repo_posix: str, repo_root: Path) -> str:
     rr = repo_root.resolve()
 
-    def repl(m: re.Match[str]) -> str:
+    def repl_dq(m: re.Match[str]) -> str:
         prefix, href, suffix = m.group(1), m.group(2), m.group(3)
         new = _resolve_href_for_viewer(href, source_repo_posix, rr)
         if new is None:
             return m.group(0)
         return prefix + html.escape(new, quote=True) + suffix
 
-    return _A_HREF_RE.sub(repl, html_frag)
+    def repl_sq(m: re.Match[str]) -> str:
+        prefix, href, suffix = m.group(1), m.group(2), m.group(3)
+        new = _resolve_href_for_viewer(href, source_repo_posix, rr)
+        if new is None:
+            return m.group(0)
+        return prefix + html.escape(new, quote=True) + suffix
+
+    out = _A_HREF_DQ.sub(repl_dq, html_frag)
+    return _A_HREF_SQ.sub(repl_sq, out)
 
 
 def build_markdown_view_page(
