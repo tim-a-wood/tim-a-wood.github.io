@@ -1489,6 +1489,99 @@ body::before {
   height: 100%;
   max-height: none;
 }
+.sa-change-heatmap {
+  width: 100%;
+  min-height: 420px;
+  border-radius: var(--radius-card);
+  border: 1px solid var(--line);
+  background: var(--os-sunken);
+  padding: var(--space-3);
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+.dashboard-view[data-dashboard-view="sprite-arch"] .sa-change-heatmap {
+  flex: 1 1 auto;
+  min-height: 420px;
+  height: 100%;
+  max-height: none;
+}
+.sa-change-heatmap-legend {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-3);
+  font-size: var(--font-size-xs);
+  color: var(--muted);
+  font-family: var(--font-sans);
+}
+.sa-change-heatmap-scale {
+  flex: 1 1 160px;
+  min-width: 120px;
+  max-width: 280px;
+  height: 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  background: linear-gradient(
+    90deg,
+    rgba(93, 120, 112, 0.35) 0%,
+    rgba(248, 81, 73, 0.35) 45%,
+    rgba(248, 81, 73, 0.95) 100%
+  );
+}
+.sa-change-heatmap-inner {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(152px, 1fr));
+  gap: var(--space-2);
+  align-content: start;
+}
+.sa-heat-cell {
+  min-height: 88px;
+  padding: var(--space-2);
+  border-radius: var(--radius-tight);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--space-1);
+  cursor: pointer;
+  font-family: var(--font-sans);
+  transition: transform 120ms ease, box-shadow 120ms ease;
+  border-style: solid;
+  border-width: 1px;
+  background: rgba(93, 120, 112, 0.15);
+  border-color: rgba(93, 120, 112, 0.35);
+}
+.sa-heat-cell:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+.sa-heat-cell:focus-visible {
+  outline: 2px solid rgba(0, 232, 200, 0.35);
+  outline-offset: 2px;
+}
+.sa-heat-cell--selected {
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+.sa-heat-cell__name {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  color: var(--text);
+  word-break: break-word;
+  line-height: 1.35;
+}
+.sa-heat-cell__churn {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  color: var(--muted);
+}
+.sa-heat-cell__kind {
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
 .dashboard-view[data-dashboard-view="sprite-arch"] .sa-arch-body {
   flex: 0 0 auto;
   max-height: 200px;
@@ -5487,7 +5580,7 @@ h3.os-chart-card-title {
               <p style="font-size:var(--font-size-sm);color:var(--muted);line-height:1.45;max-width:52rem">
                 <strong style="color:var(--text)">Structure</strong> maps folders and browser load order only.
                 <strong style="color:var(--text)">Relationship</strong> shows the full dependency graph (edge labels off for clarity; colours encode kind).
-                <strong style="color:var(--text)">Change</strong> is a commit-heat overlay (no edges). Manifest JSON remains authoritative; AI text is assistive only.
+                <strong style="color:var(--text)">Change</strong> is a file heat map (grid of tiles by churn). Manifest JSON remains authoritative; AI text is assistive only.
               </p>
               <p id="sa-manifest-banner" class="sa-manifest-banner" role="status">Manifest: not loaded yet</p>
             </div>
@@ -5532,11 +5625,12 @@ h3.os-chart-card-title {
           <p class="sa-rel-note">Boxes = browser JS · ellipses = Python. Edge <strong style="color:var(--text)">colour</strong>: muted = load order, green = Python import, amber = JS literal ref (dashed = heuristic). Labels hidden to reduce clutter—use the inspector when you select a node.</p>
         </div>
         <div id="sa-change-wrap" class="sa-change-wrap sa-panel-hidden">
-          <p class="sa-rel-note"><strong style="color:var(--text)">Commit heat only</strong> — edges hidden. Red intensity = commits in the last <span id="sa-churn-days-label">30</span> days; grey = none. Labels show counts.</p>
+          <p class="sa-rel-note"><strong style="color:var(--text)">Heat map</strong> — one tile per file. Stronger red = more commits in the last <span id="sa-churn-days-label">30</span> days; muted = none. Click a tile for the inspector.</p>
         </div>
         <div class="sa-arch-viewport">
           <div class="sa-arch-graph-wrap">
             <div id="sa-arch-graph" class="sa-arch-graph" aria-label="Architecture graph"></div>
+            <div id="sa-change-heatmap" class="sa-change-heatmap sa-panel-hidden" role="region" aria-label="Commit heat by file"></div>
           </div>
           <aside class="sa-inspector sa-inspector--overlay" aria-label="Selection details">
             <div class="sa-inspector-kicker">Inspector</div>
@@ -5566,7 +5660,7 @@ h3.os-chart-card-title {
             </div>
             <div class="sa-graph-placeholder sa-panel-hidden" id="sa-panel-change" role="tabpanel" aria-labelledby="sa-tab-change">
               <strong style="color:var(--text)">Change</strong>
-              <span class="sa-rel-note">Fixed grid sorted by commit count (then path). No edges — churn only.</span>
+              <span class="sa-rel-note">Heat-map grid: tiles sorted by commit count (then path). No graph — click a tile to inspect.</span>
             </div>
           </div>
         </div>
@@ -13308,6 +13402,81 @@ function spriteArchAttachGraphResizeObserver() {
   el._saResizeObs.observe(el);
 }
 
+function spriteArchHeatTileStyle(node, maxChurn) {
+  const ch = Number(node.churn_30d) || 0;
+  if (ch <= 0) {
+    return {
+      background: 'rgba(93,120,112,0.22)',
+      border: '1px solid rgba(93,120,112,0.4)',
+    };
+  }
+  const t = maxChurn ? Math.min(1, ch / maxChurn) : 0;
+  const a = (0.22 + t * 0.72).toFixed(2);
+  return {
+    background: 'rgba(248,81,73,' + a + ')',
+    border: t > 0.5 ? '1px solid rgba(248,81,73,0.9)' : '1px solid rgba(248,81,73,0.45)',
+  };
+}
+
+function spriteArchRenderChangeHeatmap() {
+  const wrap = document.getElementById('sa-change-heatmap');
+  if (!wrap) return;
+  wrap.innerHTML = '';
+  if (!spriteArchManifest || !Array.isArray(spriteArchManifest.nodes)) return;
+  const maxC = spriteArchChurnMax(spriteArchManifest);
+  const legend = document.createElement('div');
+  legend.className = 'sa-change-heatmap-legend';
+  const low = document.createElement('span');
+  low.textContent = 'Low activity';
+  legend.appendChild(low);
+  const scale = document.createElement('span');
+  scale.className = 'sa-change-heatmap-scale';
+  scale.setAttribute('role', 'img');
+  scale.setAttribute('aria-label', 'Heat from muted grey to red');
+  legend.appendChild(scale);
+  const hi = document.createElement('span');
+  hi.textContent = 'High activity';
+  legend.appendChild(hi);
+  wrap.appendChild(legend);
+  const inner = document.createElement('div');
+  inner.className = 'sa-change-heatmap-inner';
+  const sorted = spriteArchManifest.nodes.slice().sort(function(a, b) {
+    const c = (Number(b.churn_30d) || 0) - (Number(a.churn_30d) || 0);
+    if (c !== 0) return c;
+    return (a.path || '').localeCompare(b.path || '');
+  });
+  sorted.forEach(function(node) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'sa-heat-cell';
+    btn.dataset.nodeId = node.id;
+    const st = spriteArchHeatTileStyle(node, maxC);
+    btn.style.background = st.background;
+    btn.style.border = st.border;
+    const kind = document.createElement('span');
+    kind.className = 'sa-heat-cell__kind';
+    kind.textContent = node.kind === 'python' ? 'PY' : 'JS';
+    const name = document.createElement('span');
+    name.className = 'sa-heat-cell__name';
+    name.textContent = spriteArchShortPath(node.path);
+    const churn = document.createElement('span');
+    churn.className = 'sa-heat-cell__churn';
+    const nch = Number(node.churn_30d) || 0;
+    churn.textContent = nch > 0 ? String(nch) + ' commits' : 'no touches';
+    btn.appendChild(kind);
+    btn.appendChild(name);
+    btn.appendChild(churn);
+    btn.addEventListener('click', function() {
+      spriteArchSelectNode(node.id);
+    });
+    inner.appendChild(btn);
+  });
+  wrap.appendChild(inner);
+  document.querySelectorAll('.sa-heat-cell').forEach(function(c) {
+    c.classList.toggle('sa-heat-cell--selected', c.dataset.nodeId === spriteArchSelectedId);
+  });
+}
+
 /** Deterministic x,y grids — no physics, no zoom compensation. Structure uses hierarchical instead. */
 function spriteArchFixedGridPositions(view, nodeList) {
   if (view === 'relationship') {
@@ -13342,34 +13511,11 @@ function spriteArchFixedGridPositions(view, nodeList) {
     place(py, 640);
     return map;
   }
-  if (view === 'change') {
-    const sorted = nodeList.slice().sort(function(a, b) {
-      const c = (Number(b.churn_30d) || 0) - (Number(a.churn_30d) || 0);
-      if (c !== 0) return c;
-      return (a.path || '').localeCompare(b.path || '');
-    });
-    const n = sorted.length;
-    const cellW = 380;
-    const cellH = 140;
-    const cols = Math.max(2, Math.min(4, Math.ceil(Math.sqrt(n * 1.25))));
-    const rows = Math.ceil(n / cols);
-    const totalW = (cols - 1) * cellW;
-    const totalH = (rows - 1) * cellH;
-    const map = {};
-    sorted.forEach(function(node, i) {
-      const col = i % cols;
-      const row = Math.floor(i / cols);
-      map[node.id] = {
-        x: -totalW / 2 + col * cellW,
-        y: -totalH / 2 + row * cellH,
-      };
-    });
-    return map;
-  }
   return null;
 }
 
 function spriteArchRebuildNetwork() {
+  if (spriteArchActiveView() === 'change') return;
   const el = document.getElementById('sa-arch-graph');
   if (!el || !spriteArchManifest || typeof vis === 'undefined' || !vis.Network) return;
   spriteArchDestroyNetwork();
@@ -13384,7 +13530,7 @@ function spriteArchRebuildNetwork() {
     const fin = deg.inDeg[n.id] || 0;
     const sel = spriteArchSelectedId === n.id;
     const visu = spriteArchNodeVisual(n, view, deg, maxChurn, sel);
-    const twoLine = view === 'structure' || view === 'change';
+    const twoLine = view === 'structure';
     const base = {
       id: n.id,
       title: n.path + '\n' + (n.layer || '') + '\nin ' + fin + ' · out ' + (deg.outDeg[n.id] || 0),
@@ -13407,8 +13553,6 @@ function spriteArchRebuildNetwork() {
       if (k === 'html_script_order' && !filters.html_script_order) return;
       if (k === 'python_import' && !filters.python_import) return;
       if (k === 'js_static_ref' && !filters.js_static_ref) return;
-    } else if (view === 'change') {
-      return;
     }
     let col = '#5d7870';
     if (k === 'python_import') col = '#4ade80';
@@ -13510,9 +13654,22 @@ function spriteArchRefreshView() {
   const view = spriteArchActiveView();
   const relW = document.getElementById('sa-rel-wrap');
   const chgW = document.getElementById('sa-change-wrap');
+  const graphEl = document.getElementById('sa-arch-graph');
+  const heatEl = document.getElementById('sa-change-heatmap');
   if (relW) relW.classList.toggle('sa-panel-hidden', view !== 'relationship');
   if (chgW) chgW.classList.toggle('sa-panel-hidden', view !== 'change');
   if (view === 'structure') spriteArchRenderStructure();
+  if (view === 'change') {
+    spriteArchDestroyNetwork();
+    if (graphEl) graphEl.classList.add('sa-panel-hidden');
+    if (heatEl) {
+      heatEl.classList.remove('sa-panel-hidden');
+      spriteArchRenderChangeHeatmap();
+    }
+    return;
+  }
+  if (heatEl) heatEl.classList.add('sa-panel-hidden');
+  if (graphEl) graphEl.classList.remove('sa-panel-hidden');
   spriteArchEnsureVis(function() { spriteArchRebuildNetwork(); });
 }
 
@@ -13583,6 +13740,9 @@ function spriteArchSelectNode(nodeId) {
   document.querySelectorAll('.sa-node-row').forEach(function(row) {
     row.classList.toggle('sa-node-row--selected', row.dataset.nodeId === nodeId);
   });
+  document.querySelectorAll('.sa-heat-cell').forEach(function(cell) {
+    cell.classList.toggle('sa-heat-cell--selected', cell.dataset.nodeId === nodeId);
+  });
   const pathEl = document.getElementById('sa-inspector-path');
   const statsEl = document.getElementById('sa-inspector-stats');
   const exBtn = document.getElementById('sa-arch-explain-btn');
@@ -13652,6 +13812,13 @@ async function loadSpriteArchManifest() {
     spriteArchManifest = null;
     spriteArchSelectedId = null;
     spriteArchDestroyNetwork();
+    const heatWrap = document.getElementById('sa-change-heatmap');
+    const graphEl = document.getElementById('sa-arch-graph');
+    if (heatWrap) {
+      heatWrap.innerHTML = '';
+      heatWrap.classList.add('sa-panel-hidden');
+    }
+    if (graphEl) graphEl.classList.remove('sa-panel-hidden');
     if (structRoot) structRoot.innerHTML = '';
     const statsEl = document.getElementById('sa-inspector-stats');
     if (statsEl) statsEl.innerHTML = '';
@@ -13763,7 +13930,7 @@ function wireSpriteArchViewTabs() {
   if (filtBox) {
     filtBox.querySelectorAll('input[type="checkbox"]').forEach(function(cb) {
       cb.addEventListener('change', function() {
-        if (spriteArchActiveView() === 'relationship' || spriteArchActiveView() === 'change') {
+        if (spriteArchActiveView() === 'relationship') {
           spriteArchEnsureVis(function() { spriteArchRebuildNetwork(); });
         }
       });
