@@ -1640,6 +1640,35 @@ body::before {
   font-size: var(--font-size-sm);
   line-height: 1.5;
 }
+.ma-detail-lead {
+  font-size: var(--font-size-md);
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.5;
+  margin: 0 0 var(--space-3) 0;
+}
+.ma-detail-links {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.ma-detail-links a {
+  color: var(--accent);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  word-break: break-all;
+  transition: color var(--transition-fast), opacity var(--transition-fast);
+}
+.ma-detail-links a:hover {
+  color: var(--text);
+  opacity: 0.95;
+}
 .ma-detail-footer {
   flex-shrink: 0;
   padding: var(--space-3) var(--surface-pad);
@@ -7292,7 +7321,7 @@ h3.os-chart-card-title {
     </div>
     <div class="ma-detail-scroll" id="ma-detail-scroll"></div>
     <div class="ma-detail-footer">
-      <p class="ma-detail-footnote">This wording is copied from the agent status file. It is guidance for you as founder, not a system command.</p>
+      <p class="ma-detail-footnote">This wording is copied from the agent status file. It is guidance for you as founder, not a system command. File links open in a new tab when the Agent OS supervisor is serving the repo (markdown preview or raw JSON).</p>
       <button type="button" class="av-btn av-btn--accent" id="ma-detail-dismiss">Close</button>
     </div>
   </div>
@@ -13328,6 +13357,143 @@ function maSourceLineReview(p) {
   return '';
 }
 
+function maStr(v) {
+  if (v == null) return '';
+  return String(v).trim();
+}
+
+function maCharterRel(agent) {
+  var a = AGENTS[agent];
+  if (a && a.charter) return String(a.charter).replace(/^\//, '');
+  return 'agents/' + agent + '/charter.md';
+}
+
+function maDocPathPrefixOk(rel) {
+  var low = rel.toLowerCase();
+  var prefs = ['docs/', 'agents/', 'prompts/', 'decisions/', 'research/', 'knowledge/', 'playbooks/', 'templates/', 'tests/', 'artifacts/'];
+  for (var i = 0; i < prefs.length; i++) {
+    if (low.indexOf(prefs[i]) === 0) return true;
+  }
+  if (low.indexOf('tools/2d-sprite-and-animation/docs/') === 0) return true;
+  if (low.indexOf('.cursor/rules/') === 0) return true;
+  return false;
+}
+
+/** Repo-relative paths the supervisor can usually open (aligns with readonly GET + static allowlist). */
+function maIsLinkableRepoPath(rel) {
+  if (!rel || typeof rel !== 'string') return false;
+  var r = rel.replace(/\\/g, '/').replace(/^\//, '');
+  if (!r || r.indexOf('..') !== -1) return false;
+  if (!/^[a-zA-Z0-9_./-]+$/.test(r)) return false;
+  if (/^(STYLE_GUIDE|AGENTS|README|CLAUDE)\.md$/i.test(r)) return true;
+  if (/-status\.json$/i.test(r)) return true;
+  if (r === 'artifacts/sprite-workbench-arch/manifest.json') return true;
+  var low = r.toLowerCase();
+  if (low.endsWith('.md') || low.endsWith('.mdc')) return maDocPathPrefixOk(r) || /^[a-zA-Z0-9_-]+\.mdc$/i.test(r);
+  if (low.endsWith('.html')) return maDocPathPrefixOk(r);
+  return false;
+}
+
+function maUrlForRepoPath(rel) {
+  var r = rel.replace(/\\/g, '/').replace(/^\//, '');
+  if (!maIsLinkableRepoPath(r)) return '';
+  var low = r.toLowerCase();
+  if (low.endsWith('.md') || low.endsWith('.mdc')) {
+    return agentOsApiUrl('/view/markdown?path=' + encodeURIComponent(r));
+  }
+  return agentOsApiUrl('/' + r);
+}
+
+function maExtractPathsFromTexts(arr) {
+  var found = [];
+  var seen = Object.create(null);
+  var blob = arr.filter(Boolean).join('\n');
+  if (!blob) return found;
+
+  var reTick = /`([a-zA-Z0-9_./-]+\.(?:md|mdc|html))`/g;
+  var m;
+  while ((m = reTick.exec(blob)) !== null) {
+    var t = m[1].replace(/^\//, '');
+    if (maIsLinkableRepoPath(t) && !seen[t]) {
+      seen[t] = true;
+      found.push(t);
+    }
+  }
+
+  var reWord =
+    /\b((?:docs|agents|prompts|decisions|research|knowledge|playbooks|templates|tests)\/[a-zA-Z0-9_./-]+\.(?:md|mdc|html))\b/gi;
+  while ((m = reWord.exec(blob)) !== null) {
+    var t2 = m[1].replace(/^\//, '');
+    if (maIsLinkableRepoPath(t2) && !seen[t2]) {
+      seen[t2] = true;
+      found.push(t2);
+    }
+  }
+
+  var reTools = /\b(tools\/2d-sprite-and-animation\/docs\/[a-zA-Z0-9_./-]+\.(?:md|mdc|html))\b/gi;
+  while ((m = reTools.exec(blob)) !== null) {
+    var t3 = m[1];
+    if (maIsLinkableRepoPath(t3) && !seen[t3]) {
+      seen[t3] = true;
+      found.push(t3);
+    }
+  }
+
+  var reRoot = /\b(STYLE_GUIDE\.md|AGENTS\.md|README\.md|CLAUDE\.md)\b/gi;
+  while ((m = reRoot.exec(blob)) !== null) {
+    var t4 = m[0];
+    if (maIsLinkableRepoPath(t4) && !seen[t4]) {
+      seen[t4] = true;
+      found.push(t4);
+    }
+  }
+
+  var reStatus = /\b([a-z][a-z0-9-]*-status\.json)\b/gi;
+  while ((m = reStatus.exec(blob)) !== null) {
+    var t5 = m[1];
+    if (maIsLinkableRepoPath(t5) && !seen[t5]) {
+      seen[t5] = true;
+      found.push(t5);
+    }
+  }
+
+  return found;
+}
+
+function maFormatStakeholders(st) {
+  if (st == null) return '';
+  if (Array.isArray(st)) return st.map(maStr).filter(Boolean).join(', ');
+  return maStr(st);
+}
+
+function maAddDetailLinkSection(container, heading, items) {
+  if (!items || !items.length) return;
+  var sec = document.createElement('section');
+  sec.className = 'ma-detail-block';
+  var lh = document.createElement('p');
+  lh.className = 'ma-detail-section-label';
+  lh.textContent = heading;
+  sec.appendChild(lh);
+  var ul = document.createElement('ul');
+  ul.className = 'ma-detail-links';
+  for (var i = 0; i < items.length; i++) {
+    var L = items[i];
+    var href = L.href || maUrlForRepoPath(L.path);
+    if (!href) continue;
+    var li = document.createElement('li');
+    var a = document.createElement('a');
+    a.href = href;
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
+    a.textContent = L.label || L.path;
+    li.appendChild(a);
+    ul.appendChild(li);
+  }
+  if (!ul.children.length) return;
+  sec.appendChild(ul);
+  container.appendChild(sec);
+}
+
 function maAggregateMyActions() {
   var blocking = [];
   var decision = [];
@@ -13354,6 +13520,7 @@ function maAggregateMyActions() {
         seenFounder[dedupe] = true;
         var id = maFounderId(agent, fd);
         var noteF = fd.note != null ? String(fd.note).trim() : '';
+        var psF = formatRowProductLabelsFromSlugs(rowProductSlugsForTable(agent, fd));
         var item = {
           id: id,
           type: isBlock ? 'blocking' : 'decision',
@@ -13361,7 +13528,15 @@ function maAggregateMyActions() {
           title: title,
           sourceLine: maSourceLineFounder(fd, agent),
           note: noteF,
+          statusFile: entry.file,
         };
+        if (psF && psF !== '—') item.productScopeText = psF;
+        if (agent === 'orchestrator' && Array.isArray(data.synthesis_sources)) {
+          var syn = data.synthesis_sources.map(maStr).filter(function(f) {
+            return f && maIsLinkableRepoPath(f);
+          });
+          if (syn.length) item.synthesisSources = syn;
+        }
         if (isBlock) blocking.push(item);
         else decision.push(item);
       });
@@ -13376,7 +13551,11 @@ function maAggregateMyActions() {
         if (!title) return;
         var noteP = p.note != null ? String(p.note).trim() : '';
         var propP = p.proposed_solution != null ? String(p.proposed_solution).trim() : '';
-        review.push({
+        var sumP = maStr(p.summary);
+        var ownP = maStr(p.owner);
+        var stP = maFormatStakeholders(p.stakeholders);
+        var psP = formatRowProductLabelsFromSlugs(rowProductSlugsForTable(agent, p));
+        var rev = {
           id: maReviewId(agent, p),
           type: 'review',
           agent: agent,
@@ -13385,7 +13564,14 @@ function maAggregateMyActions() {
           sourceLine: maSourceLineReview(p),
           note: noteP,
           proposed_solution: propP,
-        });
+          statusFile: entry.file,
+          priorityKey: String(p.id),
+        };
+        if (sumP) rev.summary = sumP;
+        if (ownP) rev.owner = ownP;
+        if (stP) rev.stakeholders = stP;
+        if (psP && psP !== '—') rev.productScopeText = psP;
+        review.push(rev);
       });
     }
   });
@@ -13677,6 +13863,8 @@ function maOpenDetailOverlay(id) {
   kicker.textContent = kindLabel;
   titleEl.textContent = p.title || '';
   var subParts = [maAgentDisplayLabel(p.agent)];
+  if (p.statusFile) subParts.push('Record: ' + p.statusFile);
+  if (p.type === 'review' && p.priorityKey) subParts.push('Priority #' + p.priorityKey);
   if (p.sourceLine) subParts.push(p.sourceLine);
   sub.textContent = subParts.join(' · ');
 
@@ -13696,23 +13884,90 @@ function maOpenDetailOverlay(id) {
     scroll.appendChild(sec);
   }
 
+  var lead = p.type === 'blocking'
+    ? 'This is marked as blocking: the team is treating it as work that should not be skipped, because other tasks depend on a clear call from you (or an explicit hand-off you agree to).'
+    : p.type === 'decision'
+      ? 'This is logged as a founder decision: execution and planning stay fuzzy until you pick a direction or delegate the decision to someone with authority.'
+      : 'This row is in “needs review” in the agent’s priority list. They are asking you to read it and respond — approve, change the plan, or send it back with questions — so they do not burn time on the wrong thing.';
+  var leadP = document.createElement('p');
+  leadP.className = 'ma-detail-text ma-detail-lead';
+  leadP.textContent = lead;
+  scroll.appendChild(leadP);
+
+  if (p.productScopeText) {
+    addSection(
+      'Product scope in Agent OS',
+      'This item is tagged for: ' + p.productScopeText + '. That controls which product context (header menu) shows it in Issues and here. It does not change your git branch — it is only how the dashboard filters rows.'
+    );
+  }
+
+  if (p.summary) {
+    addSection('One-line summary (from the status file)', p.summary);
+  }
+  if (p.owner) {
+    addSection('Owner field (if set)', p.owner);
+  }
+  if (p.stakeholders) {
+    addSection('Stakeholders called out in the file', p.stakeholders);
+  }
+
   if (p.type === 'review') {
     addSection('What is happening', p.note);
-    addSection('What to do next', p.proposed_solution);
+    addSection('What to do next (proposed)', p.proposed_solution);
     if (p.risk) {
       addSection('How urgent', maRiskLabel(p.risk) + ' — use that as a rough priority when you decide.');
     }
   } else {
-    addSection('Why this matters', p.note);
+    addSection('Why this matters (note from the status file)', p.note);
   }
 
-  var hasBody = scroll.querySelector('.ma-detail-block');
-  if (!hasBody) {
+  var hasWrittenDetail = !!(p.note || (p.type === 'review' && p.proposed_solution) || p.summary || p.owner || p.stakeholders);
+  if (!hasWrittenDetail) {
     var fb = document.createElement('p');
     fb.className = 'ma-detail-muted';
-    fb.textContent = 'There is no extra plain-English note in the status file yet. Use the title and owner above as your guide, or ask that agent to add a short "note" (and for review items, a "proposed_solution") in their JSON so this panel can spell out the ask.';
+    fb.textContent = 'There is not much extra plain-English text in the JSON yet. Ask the owning agent to fill in "note" and (for review items) "proposed_solution" so this panel can spell out the ask. Paths mentioned in those fields become links below when they look like repo files.';
     scroll.appendChild(fb);
   }
+
+  var linkItems = [];
+  if (p.statusFile) {
+    linkItems.push({
+      label: 'Raw status JSON — ' + p.statusFile,
+      path: p.statusFile,
+    });
+  }
+  var ch = maCharterRel(p.agent);
+  linkItems.push({
+    label: 'Agent charter — ' + ch,
+    path: ch,
+  });
+  if (Array.isArray(p.synthesisSources)) {
+    for (var si = 0; si < p.synthesisSources.length; si++) {
+      var sf = p.synthesisSources[si];
+      if (!sf) continue;
+      linkItems.push({ label: 'Orchestration pulls from — ' + sf, path: sf });
+    }
+  }
+  var extracted = maExtractPathsFromTexts([p.title, p.note, p.proposed_solution]);
+  for (var ei = 0; ei < extracted.length; ei++) {
+    var ep = extracted[ei];
+    if (p.statusFile && ep === p.statusFile) continue;
+    if (ep === ch) continue;
+    if (Array.isArray(p.synthesisSources) && p.synthesisSources.indexOf(ep) !== -1) continue;
+    linkItems.push({ label: 'Mentioned in text — ' + ep, path: ep });
+  }
+
+  var seenL = Object.create(null);
+  var deduped = [];
+  for (var li = 0; li < linkItems.length; li++) {
+    var L = linkItems[li];
+    var key = L.path || L.href || '';
+    if (!key || seenL[key]) continue;
+    if (!maUrlForRepoPath(L.path || '')) continue;
+    seenL[key] = true;
+    deduped.push(L);
+  }
+  maAddDetailLinkSection(scroll, 'Relevant files (supervisor / repo)', deduped);
 
   backdrop.classList.add('visible');
   backdrop.setAttribute('aria-hidden', 'false');
