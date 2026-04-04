@@ -2352,8 +2352,9 @@ textarea.av-field { resize: vertical; min-height: 72px; line-height: 1.45; }
   -webkit-overflow-scrolling: touch;
 }
 .issue-chat-panel {
-  width: min(560px, 94vw);
-  max-height: min(92vh, 900px);
+  width: min(800px, 92vw);
+  height: min(92vh, 960px);
+  max-height: min(92vh, 960px);
   margin: auto;
   display: flex;
   flex-direction: column;
@@ -2404,7 +2405,7 @@ textarea.av-field { resize: vertical; min-height: 72px; line-height: 1.45; }
 }
 .issue-chat-scroll {
   flex: 1 1 0;
-  min-height: 0;
+  min-height: min(200px, 28vh);
   overflow-y: auto;
   overscroll-behavior: contain;
   padding: var(--space-3);
@@ -2433,8 +2434,9 @@ textarea.av-field { resize: vertical; min-height: 72px; line-height: 1.45; }
   margin: 0;
   white-space: pre-wrap;
   line-height: 1.45;
-  max-height: 140px;
+  max-height: min(240px, 32vh);
   overflow-y: auto;
+  overscroll-behavior: contain;
 }
 .issue-chat-bubble {
   border-radius: var(--radius-sm);
@@ -2495,6 +2497,19 @@ textarea.av-field { resize: vertical; min-height: 72px; line-height: 1.45; }
   flex-direction: column;
   gap: var(--space-2);
   flex-shrink: 0;
+  min-height: 0;
+}
+.issue-chat-hint-scroll {
+  max-height: min(260px, 34vh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--space-2);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--stroke);
+  background: var(--os-sunken);
+}
+.issue-chat-hint-scroll .issue-chat-hint {
+  margin: 0;
 }
 .issue-chat-row {
   display: flex;
@@ -6711,9 +6726,11 @@ h3.os-chart-card-title {
     </div>
     <div class="issue-chat-scroll" id="issue-chat-scroll"></div>
     <div class="issue-chat-footer">
+      <div class="issue-chat-hint-scroll" role="region" aria-label="API setup notes">
       <p class="issue-chat-hint" id="issue-chat-api-hint">
         Same <code style="font-family:var(--font-mono);font-size:11px">/api/issue-chat</code> endpoint serves Issues, Opportunities, and Ongoing Tasks (the supervisor uses <code style="font-family:var(--font-mono);font-size:11px">rowKind: &quot;opportunity&quot;</code> for opportunity rows). <strong style="font-weight:600;color:var(--text)">Fast path:</strong> <code style="font-family:var(--font-mono);font-size:11px">OPENAI_API_KEY</code> (seconds). <strong style="font-weight:600;color:var(--text)">Slow path:</strong> <code style="font-family:var(--font-mono);font-size:11px">CURSOR_API_KEY</code> (Cloud Agent on GitHub). If both keys are set, add <code style="font-family:var(--font-mono);font-size:11px">ISSUE_CHAT_PREFER_OPENAI=1</code> to force OpenAI. Optional: <code style="font-family:var(--font-mono);font-size:11px">CURSOR_ISSUE_CHAT_REPOSITORY</code>, <code style="font-family:var(--font-mono);font-size:11px">CURSOR_ISSUE_CHAT_REF</code>.
       </p>
+      </div>
       <button type="button" class="issue-chat-apply" id="issue-chat-apply" disabled>Apply suggested updates</button>
       <div class="issue-chat-row">
         <textarea class="issue-chat-input" id="issue-chat-input" rows="2" placeholder="Message the agent…" autocomplete="off"></textarea>
