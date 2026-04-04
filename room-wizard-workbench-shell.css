@@ -1147,6 +1147,35 @@
   gap: 12px;
 }
 
+.room-wizard-dock .rw-environment-output-grid--full {
+  grid-column: 1 / -1;
+}
+
+.room-wizard-dock .rw-v3-reference-pack {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.room-wizard-dock .rw-v3-reference-pack-grid {
+  display: grid;
+  gap: 12px;
+}
+
+@media (min-width: 720px) {
+  .room-wizard-dock .rw-v3-reference-pack-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .room-wizard-dock .rw-v3-reference-pack-grid .rw-component-field--wide {
+    grid-column: 1 / -1;
+  }
+}
+
 .room-wizard-dock .rw-environment-output-copy {
   margin: 0;
   color: var(--muted);

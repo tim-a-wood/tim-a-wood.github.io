@@ -36,7 +36,7 @@ Global:
 
 ## Editor (frontend)
 
-- **Primary:** `room-layout-editor.html` — `projectRoomEnvironmentApiUrl(roomId, action)` builds the `/environment/{action}` URL; sends `environment_pipeline_version` in spec / generate-assets payloads; v3 toggle sets `room.environment.environment_pipeline_version`.
+- **Primary:** `room-layout-editor.html` — `projectRoomEnvironmentApiUrl(roomId, action)` builds the `/environment/{action}` URL; sends `environment_pipeline_version` in spec / generate-assets payloads; v3 toggle sets `room.environment.environment_pipeline_version`. **Results** tab includes a v3-only **Reference pack** block (notes, status, seed, canonical ids) and **Save reference pack** → `POST .../environment/reference-pack`.
 - **Module:** `room-wizard-environment.js` — normalizes pipeline version and v3-specific scene/preview behavior.
 
 ## Target staged flow (replacement mental model for v3)

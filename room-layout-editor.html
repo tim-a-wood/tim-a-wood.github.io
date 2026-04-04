@@ -2070,6 +2070,36 @@
                         <h4>Previews &amp; assets</h4>
                         <p class="small-note">Progress, preview candidates, revision, and production build run here.</p>
                       </div>
+                      <section id="rwV3ReferencePackSection" class="rw-v3-reference-pack" hidden aria-labelledby="rwV3ReferencePackTitle">
+                        <h5 id="rwV3ReferencePackTitle" class="rw-environment-preview-label">Reference pack (v3)</h5>
+                        <p class="small-note">Proposal-first: save notes, optional seed, and canonical reference ids. File uploads still use project-relative paths in the uploads list until upload wiring lands.</p>
+                        <div class="rw-v3-reference-pack-grid">
+                          <label class="rw-component-field rw-component-field--wide">
+                            <span class="field-label">Pack notes</span>
+                            <textarea id="roomWizardV3RefPackNotes" rows="2" placeholder="What should generators treat as trustworthy about these references?" spellcheck="true"></textarea>
+                          </label>
+                          <label class="rw-component-field">
+                            <span class="field-label">Pack status</span>
+                            <select id="roomWizardV3RefPackStatus">
+                              <option value="idle">Idle</option>
+                              <option value="draft">Draft</option>
+                              <option value="ready">Ready</option>
+                            </select>
+                          </label>
+                          <label class="rw-component-field">
+                            <span class="field-label">Composition seed</span>
+                            <input type="text" id="roomWizardV3EnvironmentSeed" placeholder="e.g. room-preview-id or numeric seed" autocomplete="off" />
+                          </label>
+                          <label class="rw-component-field rw-component-field--wide">
+                            <span class="field-label">Canonical reference ids</span>
+                            <input type="text" id="roomWizardV3RefPackCanonical" placeholder="Comma-separated upload_ids" autocomplete="off" />
+                          </label>
+                        </div>
+                        <div class="rw-copilot-actions">
+                          <button type="button" class="btn-secondary" id="roomWizardV3SaveReferencePack">Save reference pack</button>
+                          <span id="roomWizardV3RefPackStatusLine" class="small-note" aria-live="polite"></span>
+                        </div>
+                      </section>
                       <div id="roomWizardCopilotProgress" class="workbench-waitbar rw-waitbar" hidden aria-live="polite" aria-busy="true">
                         <div class="small-note workbench-waitbar-detail rw-waitbar-detail" id="roomWizardCopilotProgressDetail">Working…</div>
                         <div class="progress-track">
@@ -2817,7 +2847,7 @@
   <script src="room-layout-wizard-footprint.js?v=20260403b"></script>
   <script src="room-wizard-neighbor-align.js?v=20260403b"></script>
   <script src="room-wizard-terrain.js?v=20260403b"></script>
-  <script src="room-wizard-environment.js?v=20260403b"></script>
+  <script src="room-wizard-environment.js?v=20260404c"></script>
   <script src="room-wizard-environment-copilot.js?v=20260403b"></script>
   <script>
     (() => {
@@ -6337,6 +6367,25 @@
         });
       }
 
+      function syncRoomWizardV3ReferencePackFromRoom(envState) {
+        const sec = document.getElementById('rwV3ReferencePackSection');
+        const v3 = String(envState?.environment_pipeline_version || '').trim().toLowerCase() === 'v3';
+        if (sec) sec.hidden = !PROJECT_ID || !v3;
+        if (!sec || sec.hidden) return;
+        const rp = envState?.reference_pack || {};
+        const notesEl = document.getElementById('roomWizardV3RefPackNotes');
+        const statusEl = document.getElementById('roomWizardV3RefPackStatus');
+        const canEl = document.getElementById('roomWizardV3RefPackCanonical');
+        const seedEl = document.getElementById('roomWizardV3EnvironmentSeed');
+        if (notesEl) notesEl.value = String(rp.notes || '');
+        if (statusEl) {
+          const st = String(rp.status || 'idle');
+          statusEl.value = ['idle', 'draft', 'ready'].includes(st) ? st : 'idle';
+        }
+        if (canEl) canEl.value = Array.isArray(rp.canonical_selection) ? rp.canonical_selection.join(', ') : '';
+        if (seedEl) seedEl.value = String(envState?.seed || '');
+      }
+
       function syncRoomWizardEnvironmentFromRoom() {
         const room = getRoomWizardRoom();
         const envMod = globalThis.RoomWizardEnvironment;
@@ -6362,6 +6411,7 @@
         renderRoomWizardEnvironmentPreview(e);
         renderRoomWizardPreviewGallery(e.preview || {});
         renderRoomWizardEnvironmentOutputSummary(e);
+        syncRoomWizardV3ReferencePackFromRoom(e);
         if (previewBox) previewBox.hidden = !(Array.isArray(e.preview?.images) && e.preview.images.length);
         const applyBtn = document.getElementById('roomWizardCopilotApply');
         if (applyBtn) applyBtn.hidden = !!PROJECT_ID;
@@ -6654,6 +6704,20 @@
         const assemblyOverlayText = pipelineVersion === 'v3'
           ? `Overlay geometry: ${(Array.isArray(overlayGeometry.slot_overlays) ? overlayGeometry.slot_overlays.length : 0)} overlay region${(Array.isArray(overlayGeometry.slot_overlays) ? overlayGeometry.slot_overlays.length : 0) === 1 ? '' : 's'} · Doors ${(Array.isArray(overlayGeometry.doors) ? overlayGeometry.doors.length : 0)} · Platforms ${(Array.isArray(overlayGeometry.platforms) ? overlayGeometry.platforms.length : 0)}`
           : '';
+        const erp = envState?.editor_results_payload || {};
+        const erpRef = erp.reference_pack || {};
+        const erpSp = erp.stylepack || {};
+        let v3StagedSummary = '';
+        if (pipelineVersion === 'v3') {
+          const refLine = (erpRef.status !== undefined || erpRef.upload_count !== undefined)
+            ? `Reference pack ${erpRef.status || '—'} · uploads ${erpRef.upload_count ?? 0} · canonical ${erpRef.canonical_count ?? 0}`
+            : '';
+          const spLine = (erpSp.status !== undefined)
+            ? `Stylepack ${erpSp.status || '—'}${erpSp.locked ? ' (locked)' : ''} · material/shape/motif ${erpSp.material_count ?? 0}/${erpSp.shape_count ?? 0}/${erpSp.motif_count ?? 0}`
+            : '';
+          v3StagedSummary = [refLine, spLine].filter(Boolean).join(' · ')
+            || 'Staged summaries refresh after the next v3 environment sync (e.g. build spec).';
+        }
         const runtimeReviewMarkup = runtimeReview?.screenshot_url
           ? `
             <div class="rw-environment-asset-thumb">
@@ -6714,6 +6778,10 @@
                 <div>
                   <p class="rw-environment-preview-label">Validation plan</p>
                   <p class="rw-environment-output-copy">${escapeHtml(reviewStateText)}</p>
+                </div>
+                <div class="rw-environment-output-grid--full">
+                  <p class="rw-environment-preview-label">Staged pipeline summary</p>
+                  <p class="rw-environment-output-copy">${escapeHtml(v3StagedSummary)}</p>
                 </div>
               </div>
             ` : ''}
@@ -7297,6 +7365,7 @@
           renderRoomWizardEnvironmentPreview(room.environment);
           renderRoomWizardPreviewGallery(room.environment.preview || {});
           renderRoomWizardEnvironmentOutputSummary(room.environment);
+          syncRoomWizardV3ReferencePackFromRoom(room.environment);
           renderRoomWizardCopilotPreview({
             themeId: room.environment?.themeId || 'custom',
             tags: room.environment?.tags || [],
@@ -8127,6 +8196,7 @@
           setDirty(true);
           updateJsonText();
           renderRoomWizardEnvironmentOutputSummary(room.environment);
+          syncRoomWizardV3ReferencePackFromRoom(room.environment);
         });
         document.getElementById('roomWizardArtDirectionSave')?.addEventListener('click', saveProjectArtDirectionFromWizard);
         document.getElementById('roomWizardGenerateArtDirectionConcepts')?.addEventListener('click', generateArtDirectionConceptBoard);
@@ -8286,6 +8356,7 @@
               renderRoomWizardEnvironmentPreview(room.environment);
               renderRoomWizardPreviewGallery(room.environment?.preview || {});
               renderRoomWizardEnvironmentOutputSummary(room.environment);
+              syncRoomWizardV3ReferencePackFromRoom(room.environment);
               updateJsonText();
               if (st) st.textContent = 'Preview candidates ready — approve one below.';
               stopRoomWizardWaitbar('copilot', 100);
@@ -8422,6 +8493,7 @@
             });
             renderRoomWizardPreviewGallery(room.environment?.preview || {});
             renderRoomWizardEnvironmentOutputSummary(room.environment);
+            syncRoomWizardV3ReferencePackFromRoom(room.environment);
             updateJsonText();
             setDirty(true);
             if (st) st.textContent = 'Revised previews ready — approve one to push it into Open Game.';
@@ -8439,6 +8511,55 @@
           if (!room?.id) return;
           postRoomWizardFeedback(room, 'open_game_preview');
           openGameWithLayout(room.id);
+        });
+        document.getElementById('roomWizardV3SaveReferencePack')?.addEventListener('click', async () => {
+          const room = getRoomWizardRoom();
+          const st = document.getElementById('roomWizardV3RefPackStatusLine');
+          const btn = document.getElementById('roomWizardV3SaveReferencePack');
+          if (!PROJECT_ID || !room?.id) {
+            if (st) st.textContent = 'Open a project-backed room to save the reference pack.';
+            return;
+          }
+          const v3On = String(room.environment?.environment_pipeline_version || '').trim().toLowerCase() === 'v3';
+          if (!v3On) {
+            if (st) st.textContent = 'Turn on the v3 environment pipeline in Setup first.';
+            return;
+          }
+          const notes = String(document.getElementById('roomWizardV3RefPackNotes')?.value || '').trim();
+          const status = String(document.getElementById('roomWizardV3RefPackStatus')?.value || 'draft');
+          const seedRaw = String(document.getElementById('roomWizardV3EnvironmentSeed')?.value || '').trim();
+          const canRaw = String(document.getElementById('roomWizardV3RefPackCanonical')?.value || '');
+          const canonical_selection = canRaw.split(',').map((s) => s.trim()).filter(Boolean);
+          const payload = { notes, status, canonical_selection };
+          if (seedRaw) payload.seed = seedRaw;
+          if (btn) {
+            btn.disabled = true;
+            btn.textContent = 'Saving…';
+          }
+          if (st) st.textContent = '';
+          try {
+            const res = await fetch(projectRoomEnvironmentApiUrl(room.id, 'reference-pack'), {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload),
+            });
+            const json = await res.json().catch(() => ({}));
+            if (!res.ok || !json.ok) throw new Error(json.error || 'Could not save reference pack');
+            room.environment = json.environment || room.environment;
+            syncRoomWizardV3ReferencePackFromRoom(room.environment);
+            renderRoomWizardEnvironmentOutputSummary(room.environment);
+            renderRoomWizardEnvironmentPreview(room.environment);
+            updateJsonText();
+            setDirty(true);
+            if (st) st.textContent = 'Reference pack saved.';
+          } catch (err) {
+            if (st) st.textContent = (err && err.message) ? err.message : 'Save failed';
+          } finally {
+            if (btn) {
+              btn.disabled = false;
+              btn.textContent = 'Save reference pack';
+            }
+          }
         });
         document.getElementById('roomWizardBuildEnvironmentAssets')?.addEventListener('click', async () => {
           const room = getRoomWizardRoom();
@@ -8470,6 +8591,7 @@
             renderRoomWizardEnvironmentPreview(room.environment);
             renderRoomWizardPreviewGallery(room.environment.preview || {});
             renderRoomWizardEnvironmentOutputSummary(room.environment);
+            syncRoomWizardV3ReferencePackFromRoom(room.environment);
             updateJsonText();
             setDirty(true);
             refreshOpenGamePreviewIfVisible(room.id);

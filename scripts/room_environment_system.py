@@ -7774,6 +7774,10 @@ def update_room_environment_reference_pack(project_id: str, room_id: str, payloa
         raise ValueError("environment_pipeline_version v3 is required to update the reference pack.")
     merged = ref_pack_mod.merge_reference_pack(env.get("reference_pack"), payload)
     env["reference_pack"] = merged
+    if "seed" in payload:
+        seed_text = str(payload.get("seed") or "").strip()
+        if seed_text:
+            env["seed"] = seed_text
     env_persistence.save_artifact(PROJECTS_ROOT, project_id, room_id, "reference_pack", merged)
     envv3.ensure_v3_metadata(env, room)
     env_persistence.persist_v3_staged_documents(PROJECTS_ROOT, project_id, room_id, env)
