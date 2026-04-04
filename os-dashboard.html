@@ -1285,20 +1285,14 @@ body::before {
   box-shadow: inset 0 0 0 1px rgba(0, 232, 200, 0.08);
 }
 .sa-arch-body {
-  display: grid;
-  grid-template-columns: 1fr minmax(200px, 280px);
-  gap: var(--space-3);
-  align-items: start;
-  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  flex: 0 1 auto;
   min-height: 0;
-}
-@media (max-width: 900px) {
-  .sa-arch-body {
-    grid-template-columns: 1fr;
-  }
+  gap: var(--space-3);
 }
 .sa-graph-placeholder {
-  min-height: 320px;
+  min-height: 200px;
   border-radius: var(--radius-card);
   border: 1px solid var(--line);
   background: var(--os-sunken);
@@ -1318,6 +1312,42 @@ body::before {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
+}
+.sa-inspector.sa-inspector--overlay {
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-3);
+  z-index: 3;
+  width: min(100% - var(--space-6), 320px);
+  max-width: 320px;
+  max-height: calc(100% - var(--space-6));
+  overflow-x: hidden;
+  overflow-y: auto;
+  background: rgba(7, 10, 13, 0.92);
+  backdrop-filter: blur(10px);
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--line);
+}
+@media (max-width: 900px) {
+  .sa-inspector.sa-inspector--overlay {
+    top: auto;
+    bottom: var(--space-3);
+    left: var(--space-3);
+    right: var(--space-3);
+    width: auto;
+    max-width: none;
+    max-height: min(360px, 40vh);
+  }
+}
+.sa-inspector--overlay .sa-inspector-exports,
+.sa-inspector--overlay .sa-arch-explain-out {
+  max-height: none;
+  overflow-y: visible;
+}
+.sa-arch-viewport {
+  position: relative;
+  width: 100%;
+  flex-shrink: 0;
 }
 .sa-inspector-kicker {
   font-size: var(--font-size-xs);
@@ -1350,7 +1380,7 @@ body::before {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
-  min-height: 320px;
+  min-height: 0;
 }
 .sa-structure-head {
   display: flex;
@@ -1431,8 +1461,8 @@ body::before {
 }
 .sa-arch-graph {
   width: 100%;
-  height: 400px;
-  min-height: 320px;
+  height: min(72vh, 800px);
+  min-height: 520px;
   border-radius: var(--radius-card);
   border: 1px solid var(--line);
   background: var(--os-sunken);
@@ -5427,8 +5457,20 @@ h3.os-chart-card-title {
         <div id="sa-change-wrap" class="sa-change-wrap sa-panel-hidden">
           <p class="sa-rel-note">Fill intensity = git commits touching the file in the last <span id="sa-churn-days-label">30</span> days (scoped paths).</p>
         </div>
-        <div class="sa-arch-graph-wrap">
-          <div id="sa-arch-graph" class="sa-arch-graph" aria-label="Architecture graph"></div>
+        <div class="sa-arch-viewport">
+          <div class="sa-arch-graph-wrap">
+            <div id="sa-arch-graph" class="sa-arch-graph" aria-label="Architecture graph"></div>
+          </div>
+          <aside class="sa-inspector sa-inspector--overlay" aria-label="Selection details">
+            <div class="sa-inspector-kicker">Inspector</div>
+            <div class="sa-inspector-path" id="sa-inspector-path">Select a node in the graph or list.</div>
+            <dl class="sa-inspector-dl" id="sa-inspector-stats"></dl>
+            <div class="sa-inspector-kicker" style="margin-top:var(--space-2)">Exported symbols (I1)</div>
+            <div id="sa-inspector-exports" class="sa-inspector-exports"></div>
+            <p style="font-size:var(--font-size-xs);color:var(--muted);line-height:1.45;margin:0">JS names are regex-heuristic; Python uses <code style="font-family:var(--font-mono);font-size:var(--font-size-xs)">ast</code>. AI text is non-authoritative.</p>
+            <button type="button" class="av-btn av-btn--accent" id="sa-arch-explain-btn" disabled title="Requires OPENAI_API_KEY on Agent OS supervisor">Explain this module (AI)</button>
+            <pre id="sa-arch-explain-out" class="sa-arch-explain-out" aria-live="polite"></pre>
+          </aside>
         </div>
         <div class="sa-arch-body">
           <div class="sa-graph-column">
@@ -5450,16 +5492,6 @@ h3.os-chart-card-title {
               <span class="sa-rel-note">Heat from manifest <code style="font-family:var(--font-mono);font-size:var(--font-size-xs)">churn_30d</code>.</span>
             </div>
           </div>
-          <aside class="sa-inspector" aria-label="Selection details">
-            <div class="sa-inspector-kicker">Inspector</div>
-            <div class="sa-inspector-path" id="sa-inspector-path">Select a node in the graph or list.</div>
-            <dl class="sa-inspector-dl" id="sa-inspector-stats"></dl>
-            <div class="sa-inspector-kicker" style="margin-top:var(--space-2)">Exported symbols (I1)</div>
-            <div id="sa-inspector-exports" class="sa-inspector-exports"></div>
-            <p style="font-size:var(--font-size-xs);color:var(--muted);line-height:1.45;margin:0">JS names are regex-heuristic; Python uses <code style="font-family:var(--font-mono);font-size:var(--font-size-xs)">ast</code>. AI text is non-authoritative.</p>
-            <button type="button" class="av-btn av-btn--accent" id="sa-arch-explain-btn" disabled title="Requires OPENAI_API_KEY on Agent OS supervisor">Explain this module (AI)</button>
-            <pre id="sa-arch-explain-out" class="sa-arch-explain-out" aria-live="polite"></pre>
-          </aside>
         </div>
       </div>
 
