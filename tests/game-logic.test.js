@@ -850,6 +850,12 @@ function computeDoorStandPosition(roomWidth, door) {
     assert.ok(html.includes('PREVIEW_START_APPLIED'), 'preview spawn flag for create()');
     assert.ok(html.includes('mergeRoomSequence'), 'mergeRoomSequence for layout rooms beyond R11');
     assert.ok(html.includes('loadLayoutDataFromHashUrl'), 'preview should support file-backed layout URLs for large embeds');
+    assert.ok(html.includes('capture=runtime-review'), 'preview should support checkpoint capture mode');
+    assert.ok(html.includes('applyRuntimeReviewCapturePresentation'), 'capture mode should hide HUD/debug overlays');
+    assert.ok(html.includes('applyRuntimeReviewCaptureCamera'), 'capture mode should frame the room instead of following live gameplay');
+    assert.ok(html.includes('RUNTIME_REVIEW_CAPTURE_MODE ? 64 : 48'), 'capture mode should strengthen door readability');
+    assert.ok(html.includes('RUNTIME_REVIEW_CAPTURE_MODE ? 0.24 : (composition.hasBespokeBackground ? 0.4 : 0.5)'), 'capture mode should reduce backdrop weight');
+    assert.ok(html.includes('addRoomBespokeDoorDecor'), 'runtime should place bespoke door-frame assets into the scene');
     assert.ok(html.includes('ASHEN_HOLLOW_PREVIEW'), 'postMessage layout embed for room editor iframe');
     assert.ok(html.includes('ASHEN_HOLLOW_PREVIEW_READY'), 'child signals when listener can receive layout');
     assert.ok(html.includes('preview=embed'), 'hash flag for embed wait in bootGame');

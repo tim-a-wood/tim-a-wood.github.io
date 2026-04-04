@@ -6,6 +6,7 @@
 
 const DEFAULT_TILE = 32;
 const DEFAULT_PLATFORM_H = 14;
+const ROOM_ID_PATTERN = /^(?:[A-Z][A-Z0-9]*-)?R\d+$/i;
 
 /**
  * @param {object} room
@@ -16,7 +17,7 @@ function isLayoutCompleteForTerrain(room) {
   const name = String(room.name || '').trim();
   if (!name) return false;
   const id = String(room.id || '').trim();
-  if (!/^R\d+$/i.test(id)) return false;
+  if (!ROOM_ID_PATTERN.test(id)) return false;
   const w = Number(room.size?.width);
   const h = Number(room.size?.height);
   if (!Number.isFinite(w) || !Number.isFinite(h) || w < 320 || h < 320) return false;
@@ -245,9 +246,10 @@ function buildTerrainPresetPlatforms(room, presetId, ctx) {
 
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
-    DEFAULT_TILE,
-    DEFAULT_PLATFORM_H,
-    isLayoutCompleteForTerrain,
+  DEFAULT_TILE,
+  DEFAULT_PLATFORM_H,
+  ROOM_ID_PATTERN,
+  isLayoutCompleteForTerrain,
     pointInPolygon,
     boundingBox,
     platformAabb,

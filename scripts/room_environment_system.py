@@ -20,7 +20,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
-from PIL import Image, ImageDraw, ImageFilter
+from PIL import Image, ImageChops, ImageDraw, ImageFilter, ImageOps
 from scripts import room_environment_v3 as envv3
 
 PROJECTS_ROOT: Path
@@ -300,6 +300,7 @@ def normalize_art_direction(payload: Optional[Dict[str, Any]], current: Optional
             "locked_direction": copy.deepcopy(item.get("locked_direction") or {}),
             "locked_concept_ids": [str(entry).strip() for entry in (item.get("locked_concept_ids") or []) if str(entry).strip()],
             "template_library": copy.deepcopy(item.get("template_library") or []),
+            "border_first_contract": _normalize_border_first_contract(item.get("border_first_contract"), item.get("template_library") or []),
             "version": int(item.get("version") or 1),
             "locked": bool(item.get("locked", True)),
             "updated_at": item.get("updated_at") or now_iso(),
@@ -315,21 +316,121 @@ def _slugify(text: str, fallback: str = "value") -> str:
     return cleaned or fallback
 
 
+BORDER_FIRST_CONTRACT_VERSION = "border-first-v1"
+
+BORDER_FIRST_BIOME_COMPONENT_TYPES: Tuple[str, ...] = (
+    "border_piece",
+    "background_far_piece",
+    "platform_piece",
+    "door_piece",
+)
+
+BORDER_FIRST_PENDING_COMPONENT_TYPES: Tuple[str, ...] = (
+    "border_piece",
+    "background_far_piece",
+    "platform_piece",
+)
+
+BORDER_FIRST_ROOM_ASSET_TYPES: Tuple[str, ...] = (
+    "room_border_shell",
+    "room_background",
+    "room_platforms",
+    "room_doors",
+)
+
+BORDER_FIRST_BIOME_COMPONENTS: Tuple[Dict[str, Any], ...] = (
+    {"component_type": "border_piece", "variant_family": "border", "size": (1600, 1200), "orientation": "full", "transparency_mode": "opaque", "visual_role": "room_shell_border"},
+    {"component_type": "background_far_piece", "variant_family": "background", "size": (1600, 1200), "orientation": "full", "transparency_mode": "opaque", "visual_role": "far_depth"},
+    {"component_type": "platform_piece", "variant_family": "platform", "size": (320, 72), "orientation": "horizontal", "transparency_mode": "opaque", "visual_role": "gameplay_platform"},
+    {"component_type": "door_piece", "variant_family": "door", "size": (192, 288), "orientation": "vertical", "transparency_mode": "alpha", "visual_role": "transition"},
+)
+
+
+def _normalize_border_first_contract(value: Any, template_library: Optional[List[Dict[str, Any]]] = None) -> Dict[str, Any]:
+    raw = value if isinstance(value, dict) else {}
+    template_library = template_library or []
+    template_by_component = {
+        str(item.get("component_type") or "").strip(): item
+        for item in template_library
+        if isinstance(item, dict) and str(item.get("component_type") or "").strip()
+    }
+    biome_templates = {}
+    existing_templates = raw.get("biome_templates") if isinstance(raw.get("biome_templates"), dict) else {}
+    for component_type in BORDER_FIRST_BIOME_COMPONENT_TYPES:
+        mapped = str(existing_templates.get(component_type) or "").strip()
+        if not mapped:
+            mapped = str((template_by_component.get(component_type) or {}).get("template_id") or "").strip()
+        biome_templates[component_type] = mapped or None
+    room_assets = {}
+    existing_room_assets = raw.get("room_assets") if isinstance(raw.get("room_assets"), dict) else {}
+    for asset_type in BORDER_FIRST_ROOM_ASSET_TYPES:
+        room_assets[asset_type] = str(existing_room_assets.get(asset_type) or "planned").strip() or "planned"
+    generated_components = {
+        component_type
+        for component_type, item in template_by_component.items()
+        if str((item or {}).get("source_template_kind") or "").strip() == "gemini_biome"
+    }
+    if all(component in generated_components for component in BORDER_FIRST_BIOME_COMPONENT_TYPES):
+        status = "biome_templates_generated"
+    elif any(component in generated_components for component in BORDER_FIRST_BIOME_COMPONENT_TYPES):
+        status = "partial_biome_templates_generated"
+    else:
+        status = str(raw.get("status") or "schema_only")
+    return {
+        "contract_version": str(raw.get("contract_version") or BORDER_FIRST_CONTRACT_VERSION),
+        "status": status,
+        "authoritative": False,
+        "canonical_shell_template": "border_piece",
+        "biome_component_types": list(BORDER_FIRST_BIOME_COMPONENT_TYPES),
+        "room_asset_types": list(BORDER_FIRST_ROOM_ASSET_TYPES),
+        "biome_component_specs": [copy.deepcopy(item) for item in BORDER_FIRST_BIOME_COMPONENTS],
+        "biome_templates": biome_templates,
+        "room_assets": room_assets,
+        "compositing": {
+            "mode": "deterministic_mask_composite",
+            "center_handling": "mask_based_extraction",
+            "procedural_generation_allowed": False,
+        },
+        "legacy_split_shell_reference_only": True,
+    }
+
+
 V1_BESPOKE_COMPONENTS: Tuple[Dict[str, Any], ...] = (
     {"component_type": "background_plate", "variant_family": "background", "size": (1600, 1200), "orientation": "full", "transparency_mode": "opaque", "visual_role": "far_depth"},
     {"component_type": "midground_frame", "variant_family": "midground", "size": (1600, 1200), "orientation": "full", "transparency_mode": "alpha", "visual_role": "side_frame"},
+    {"component_type": "foreground_frame", "variant_family": "foreground", "size": (1600, 1200), "orientation": "full", "transparency_mode": "opaque", "visual_role": "structural_foreground"},
+    {"component_type": "wall_piece", "variant_family": "walls", "size": (512, 1200), "orientation": "vertical", "transparency_mode": "opaque", "visual_role": "structural_wall"},
+    {"component_type": "ceiling_piece", "variant_family": "ceiling", "size": (1600, 224), "orientation": "horizontal", "transparency_mode": "opaque", "visual_role": "structural_ceiling"},
     {"component_type": "primary_floor_piece", "variant_family": "floor", "size": (512, 96), "orientation": "horizontal", "transparency_mode": "opaque", "visual_role": "main_route"},
     {"component_type": "hero_platform_piece", "variant_family": "platform", "size": (320, 72), "orientation": "horizontal", "transparency_mode": "opaque", "visual_role": "hero_platform"},
     {"component_type": "door_piece", "variant_family": "door", "size": (192, 288), "orientation": "vertical", "transparency_mode": "alpha", "visual_role": "transition"},
 )
 
-
 V1_TEMPLATE_SOURCE_CANDIDATES: Dict[str, Tuple[str, ...]] = {
     "background_plate": ("background.png",),
     "midground_frame": ("midground_arches.png",),
+    "foreground_frame": ("foreground_frame.png",),
+    "wall_piece": ("wall.png",),
+    "ceiling_piece": ("ceiling.png",),
     "primary_floor_piece": ("floor_cap_strip.png",),
-    "hero_platform_piece": ("platform_ledge_strip.png", "floor_cap_strip.png"),
+    "hero_platform_piece": ("platform_ledge_strip.png",),
     "door_piece": ("door.png",),
+}
+
+STRUCTURAL_BIOME_COMPONENT_TYPES: Tuple[str, ...] = (
+    "foreground_frame",
+    "primary_floor_piece",
+    "wall_piece",
+    "ceiling_piece",
+    "hero_platform_piece",
+)
+
+STRUCTURAL_BIOME_REFERENCE_PRIORITY: Dict[str, Tuple[str, ...]] = {
+    "foreground_frame": ("primary_floor_piece", "wall_piece", "ceiling_piece", "hero_platform_piece"),
+    "primary_floor_piece": ("wall_piece", "hero_platform_piece"),
+    "wall_piece": ("primary_floor_piece", "ceiling_piece"),
+    "ceiling_piece": ("primary_floor_piece", "wall_piece"),
+    "hero_platform_piece": ("primary_floor_piece", "wall_piece"),
 }
 
 
@@ -338,36 +439,468 @@ def _default_biome_id(direction: Dict[str, Any]) -> str:
     return f"{_slugify(template_id, 'biome')}-v1"
 
 
+def _border_first_generation_contract() -> Dict[str, Any]:
+    return {
+        "schema_version": 1,
+        "status": "planned",
+        "biome_template_types": [entry["component_type"] for entry in BORDER_FIRST_BIOME_COMPONENTS],
+        "room_asset_types": list(BORDER_FIRST_ROOM_ASSET_TYPES),
+        "canonical_shell_template_type": "border_piece",
+        "mask_compositing_required": True,
+        "procedural_generation_allowed": False,
+        "procedural_postprocess_allowed": True,
+    }
+
+
+def _append_pending_border_first_templates(
+    template_library: List[Dict[str, Any]],
+    biome_id: str,
+    direction: Dict[str, Any],
+) -> None:
+    existing_components = {
+        str(item.get("component_type") or "").strip()
+        for item in template_library
+        if isinstance(item, dict)
+    }
+    for entry in BORDER_FIRST_BIOME_COMPONENTS:
+        component_type = entry["component_type"]
+        if component_type in existing_components:
+            continue
+        rel_path = Path("art_direction_biomes") / biome_id / f"{component_type}.png"
+        template_library.append({
+            "template_id": f"{biome_id}-{component_type}",
+            "component_type": component_type,
+            "variant_family": entry["variant_family"],
+            "image_path": rel_path.as_posix(),
+            "width": entry["size"][0],
+            "height": entry["size"][1],
+            "orientation": entry["orientation"],
+            "transparency_mode": entry["transparency_mode"],
+            "visual_role": entry["visual_role"],
+            "source_art_direction_version": int(direction.get("version") or 1),
+            "approved": False,
+            "locked": True,
+            "adaptation_mode": "gemini",
+            "source_template_kind": "pending_generation",
+            "source_template_path": None,
+            "updated_at": now_iso(),
+        })
+
+
+def _border_first_legacy_reference_paths(project_dir: Path, direction: Optional[Dict[str, Any]], component_type: str) -> List[Path]:
+    biome_id = _default_biome_id(direction or {})
+    biome_root = project_dir / "art_direction_biomes" / biome_id
+    candidates_by_component = {
+        "border_piece": [],
+        "background_far_piece": [],
+        "background_mid_piece": [],
+        "platform_piece": [],
+        "door_piece": ["door_piece.png"],
+    }
+    refs: List[Path] = []
+    for name in candidates_by_component.get(component_type, []):
+        candidate = biome_root / name
+        if candidate.exists() and candidate not in refs:
+            refs.append(candidate)
+    return refs
+
+
 def _default_biome_label(direction: Dict[str, Any]) -> str:
     return str(direction.get("style_family") or direction.get("template_id") or "Biome").strip().title()
 
 
 def _component_adaptation_mode(component_type: str) -> str:
-    if component_type in {"background_plate", "midground_frame", "door_piece", "door_frame"}:
-        return "direct"
-    if component_type in {"primary_floor_piece", "hero_platform_piece"}:
-        return "stretch"
     if component_type in {
-        "background_far_plate",
+        "background_plate",
+        "midground_frame",
         "midground_side_frame",
-        "primary_floor_piece",
-        "hero_platform_piece",
-        "wall_module_left",
-        "wall_module_right",
-        "wall_base_trim_left",
-        "wall_base_trim_right",
-        "main_floor_top",
-        "main_floor_face",
-        "hero_platform_top",
-        "hero_platform_face",
-        "pit_rim",
-        "pit_interior",
+        "door_piece",
+        "door_frame",
     }:
-        return "gemini"
+        return "direct"
+    if component_type in {"foreground_frame", "primary_floor_piece", "hero_platform_piece"}:
+        return "stretch"
+    if component_type in {"hero_platform_top", "hero_platform_face", "pit_interior"}:
+        return "stretch"
     return "gemini"
 
 
+def _biome_component_generation_order(component_type: str) -> int:
+    order = {
+        "border_piece": 0,
+        "background_far_piece": 1,
+        "background_mid_piece": 2,
+        "platform_piece": 3,
+        "primary_floor_piece": 0,
+        "foreground_frame": 1,
+        "wall_piece": 2,
+        "ceiling_piece": 3,
+        "hero_platform_piece": 4,
+        "background_plate": 10,
+        "midground_frame": 11,
+        "door_piece": 12,
+    }
+    return order.get(component_type, 99)
+
+
+def _biome_structural_reference_paths(
+    component_type: str,
+    biome_pack: Dict[str, Any],
+    project_dir: Path,
+    generated_paths: Dict[str, Path],
+) -> List[Path]:
+    if component_type not in STRUCTURAL_BIOME_COMPONENT_TYPES:
+        return []
+    if component_type in {"wall_piece", "ceiling_piece", "primary_floor_piece"}:
+        # Core structural biome templates should be generated from locked art
+        # direction plus their own component-specific seed only. Feeding sibling
+        # structural pieces back in makes the generic templates imitate one
+        # another's mistakes, which is how wall/ceiling/floor semantics collapse
+        # into arches, headers, and floor-plane perspective.
+        return []
+    template_by_component: Dict[str, Dict[str, Any]] = {
+        str(item.get("component_type") or "").strip(): item
+        for item in (biome_pack.get("template_library") or [])
+        if isinstance(item, dict)
+    }
+    refs: List[Path] = []
+    for sibling_type in STRUCTURAL_BIOME_REFERENCE_PRIORITY.get(component_type, ()):
+        candidate = generated_paths.get(sibling_type)
+        if not candidate:
+            template = template_by_component.get(sibling_type)
+            rel = str((template or {}).get("image_path") or "").strip()
+            if rel:
+                path = project_dir / rel
+                if path.exists():
+                    candidate = path
+        if candidate and candidate.exists() and candidate not in refs:
+            refs.append(candidate)
+        if len(refs) >= 2:
+            break
+    return refs
+
+
+def _write_foreground_frame_generation_guide(project_dir: Path) -> Path:
+    """Create a temporary reference image for foreground_frame generation only.
+
+    This guide is intentionally ephemeral and must never be installed into the
+    biome template library, used by runtime composition, or treated as fallback
+    production content. It exists solely to give Gemini a cleaner structural
+    perimeter target during the generation request.
+    """
+    guide_root = project_dir / ".tmp_biome_generation_refs"
+    guide_root.mkdir(parents=True, exist_ok=True)
+    guide_path = guide_root / "foreground_frame-guide.png"
+    size = (1600, 1200)
+    img = Image.new("RGBA", size, (108, 108, 108, 255))
+    draw = ImageDraw.Draw(img)
+    ceiling_h = 240
+    floor_y = 1080
+    left_w = 224
+    right_w = 224
+    wall_top = ceiling_h
+    wall_bottom = floor_y
+    center_left = left_w
+    center_right = size[0] - right_w
+    band_fill = (236, 236, 236, 255)
+    wall_fill = (48, 48, 48, 255)
+    center_fill = FOREGROUND_FRAME_CENTER_KEY_RGB + (255,)
+    guide_line = (188, 188, 188, 255)
+
+    # Exact occupied envelopes only: top cap, bottom band, left wall, right wall,
+    # and an explicit chroma-key center reserve. Keep this sparse so Gemini learns
+    # shape, not a deterministic fallback texture treatment.
+    draw.rectangle((0, 0, size[0], ceiling_h), fill=band_fill)
+    draw.rectangle((0, floor_y, size[0], size[1]), fill=band_fill)
+    draw.rectangle((0, wall_top, left_w, wall_bottom), fill=wall_fill)
+    draw.rectangle((center_right, wall_top, size[0], wall_bottom), fill=wall_fill)
+    draw.rectangle((center_left, wall_top, center_right, wall_bottom), fill=center_fill)
+
+    # Keep the guide purely geometric. A single-pixel legal boundary rail is
+    # enough to anchor the mask without introducing literal art details.
+    draw.line((0, ceiling_h - 1, size[0], ceiling_h - 1), fill=guide_line, width=1)
+    draw.line((center_left, wall_top, center_left, wall_bottom), fill=guide_line, width=1)
+    draw.line((center_right, wall_top, center_right, wall_bottom), fill=guide_line, width=1)
+
+    img.putpixel((size[0] - 1, size[1] - 1), (77, 89, 97, 254))
+    img.save(guide_path)
+    return guide_path
+
+
+def _write_border_piece_generation_guide(project_dir: Path) -> Path:
+    guide_root = project_dir / ".tmp_biome_generation_refs"
+    guide_root.mkdir(parents=True, exist_ok=True)
+    guide_path = guide_root / "border_piece-guide.png"
+    size = (1600, 1200)
+    img = Image.new("RGBA", size, (20, 20, 20, 255))
+    draw = ImageDraw.Draw(img)
+    top_h = 224
+    bottom_h = 120
+    side_w = 224
+    frame_fill = (224, 224, 224, 255)
+    center_fill = (64, 64, 64, 255)
+    draw.rectangle((0, 0, size[0], top_h), fill=frame_fill)
+    draw.rectangle((0, size[1] - bottom_h, size[0], size[1]), fill=frame_fill)
+    draw.rectangle((0, top_h, side_w, size[1] - bottom_h), fill=frame_fill)
+    draw.rectangle((size[0] - side_w, top_h, size[0], size[1] - bottom_h), fill=frame_fill)
+    draw.rectangle((side_w, top_h, size[0] - side_w, size[1] - bottom_h), fill=center_fill)
+    draw.line((0, top_h - 1, size[0], top_h - 1), fill=(250, 250, 250, 255), width=3)
+    img.save(guide_path)
+    return guide_path
+
+
+def _write_platform_piece_generation_guide(project_dir: Path) -> Path:
+    guide_root = project_dir / ".tmp_biome_generation_refs"
+    guide_root.mkdir(parents=True, exist_ok=True)
+    guide_path = guide_root / "platform_piece-guide.png"
+    size = (320, 72)
+    img = Image.new("RGBA", size, (38, 44, 50, 255))
+    draw = ImageDraw.Draw(img)
+    top_h = 14
+    face_h = 46
+    draw.rectangle((0, 0, size[0], top_h), fill=(96, 104, 112, 255))
+    draw.rectangle((0, top_h, size[0], top_h + face_h), fill=(22, 28, 34, 255))
+    draw.rectangle((0, top_h + face_h, size[0], size[1]), fill=(46, 54, 62, 255))
+    draw.line((0, top_h, size[0], top_h), fill=(118, 126, 134, 255), width=1)
+    img.save(guide_path)
+    return guide_path
+
+
+def _write_background_far_piece_generation_guide(project_dir: Path) -> Path:
+    guide_root = project_dir / ".tmp_biome_generation_refs"
+    guide_root.mkdir(parents=True, exist_ok=True)
+    guide_path = guide_root / "background_far_piece-guide.png"
+    size = (1600, 1200)
+    img = Image.new("RGBA", size, (48, 56, 64, 255))
+    draw = ImageDraw.Draw(img)
+    draw.rectangle((0, 0, size[0], 240), fill=(58, 66, 74, 255))
+    draw.rectangle((0, 240, size[0], 900), fill=(72, 82, 90, 255))
+    draw.rectangle((0, 900, size[0], size[1]), fill=(42, 48, 54, 255))
+    draw.rectangle((180, 300, 1420, 920), fill=(82, 92, 100, 255))
+    img.save(guide_path)
+    return guide_path
+
+
+def _write_foreground_frame_style_swatch(project_dir: Path, direction: Optional[Dict[str, Any]] = None) -> Optional[Path]:
+    """Create a temporary material-family swatch for foreground_frame generation only.
+
+    This is a style-only anchor sourced from existing biome structural pieces.
+    It must never be installed into the biome template library or used at runtime.
+    """
+    biome_root = project_dir / "art_direction_biomes" / "ruined-gothic-v1"
+    wall_path = biome_root / "wall_piece.png"
+    ceiling_path = biome_root / "ceiling_piece.png"
+    swatch_root = project_dir / ".tmp_biome_generation_refs"
+    swatch_root.mkdir(parents=True, exist_ok=True)
+    swatch_path = swatch_root / "foreground_frame-style.png"
+    palette = copy.deepcopy((direction or {}).get("palette") or {})
+    spec = {
+        "theme_id": str((direction or {}).get("template_id") or ""),
+        "description": str((direction or {}).get("high_level_direction") or ""),
+        "mood": str((direction or {}).get("style_family") or ""),
+        "lighting": ", ".join((direction or {}).get("lighting_rules") or []),
+        "tags": [_slugify((direction or {}).get("template_id") or "biome")],
+        "components": {},
+    }
+    flags = _environment_style_flags(spec)
+    shell_family = _infer_shell_family(spec)
+    try:
+        if wall_path.exists():
+            wall = Image.open(wall_path).convert("RGBA")
+        else:
+            fallback_wall = swatch_root / "_style-wall.png"
+            _fallback_tile_asset(fallback_wall, palette, (512, 1200), "wall", flags, shell_family)
+            wall = Image.open(fallback_wall).convert("RGBA")
+        # Always derive the swatch ceiling row from the deterministic fallback ceiling
+        # rather than the current ceiling_piece.png, since the live ceiling asset can
+        # contain detached block language that leaks directly into foreground_frame.
+        fallback_ceiling = swatch_root / "_style-ceiling.png"
+        _fallback_ceiling_asset(fallback_ceiling, palette, shell_family)
+        ceiling = Image.open(fallback_ceiling).convert("RGBA")
+    except Exception:
+        return None
+    # Keep the style swatch material-driven but avoid hard separator bars,
+    # since those get literalized into fake lintel/shadow bands in the atlas.
+    canvas = Image.new("RGBA", (768, 224), (26, 32, 38, 255))
+    ceiling_crop = ceiling.crop((320, 0, 1280, 176)).resize((768, 88), Image.Resampling.LANCZOS)
+    wall_crop = wall.crop((120, 320, 392, 920)).resize((768, 120), Image.Resampling.LANCZOS)
+    wall_crop = wall_crop.filter(ImageFilter.GaussianBlur(radius=1.2))
+    canvas.alpha_composite(ceiling_crop, (0, 0))
+    canvas.alpha_composite(wall_crop, (0, 88))
+    canvas.save(swatch_path)
+    return swatch_path
+
+
+def _dump_rejected_foreground_frame_candidate(project_dir: Path, source_path: Path) -> Optional[Path]:
+    """Persist the rejected foreground_frame candidate for visual debugging only.
+
+    This dump is non-production evidence. It must never be referenced by the
+    biome template library, runtime composition, or fallback install logic.
+    """
+    if not source_path.exists():
+        return None
+    dump_root = project_dir / ".tmp_biome_generation_rejections"
+    dump_root.mkdir(parents=True, exist_ok=True)
+    dump_path = dump_root / "foreground_frame-rejected-latest.png"
+    shutil.copyfile(source_path, dump_path)
+    return dump_path
+
+
+def _dump_rejected_structural_candidate(project_dir: Path, component_type: str, source_path: Path) -> Optional[Path]:
+    if component_type not in {"border_piece", "wall_piece", "ceiling_piece", "primary_floor_piece"}:
+        return None
+    if not source_path.exists():
+        return None
+    dump_root = project_dir / ".tmp_biome_generation_rejections"
+    dump_root.mkdir(parents=True, exist_ok=True)
+    dump_path = dump_root / f"{component_type}-rejected-latest.png"
+    shutil.copyfile(source_path, dump_path)
+    return dump_path
+
+
+def _foreground_frame_staging_path(project_dir: Path) -> Path:
+    staging_root = project_dir / ".tmp_biome_generation_staging"
+    staging_root.mkdir(parents=True, exist_ok=True)
+    return staging_root / "foreground_frame-candidate.png"
+
+
+def _structural_biome_staging_path(project_dir: Path, component_type: str) -> Path:
+    staging_root = project_dir / ".tmp_biome_generation_staging"
+    staging_root.mkdir(parents=True, exist_ok=True)
+    return staging_root / f"{component_type}-candidate.png"
+
+
+def _foreground_frame_raw_candidate_path(staging_path: Path) -> Path:
+    return staging_path.with_name(f"{staging_path.stem}-raw{staging_path.suffix}")
+
+
+def _foreground_frame_attempt_trace_path(project_dir: Path) -> Path:
+    trace_root = project_dir / ".tmp_biome_generation_rejections"
+    trace_root.mkdir(parents=True, exist_ok=True)
+    return trace_root / "foreground_frame-attempt-latest.json"
+
+
+def _file_sha256(path: Path) -> Optional[str]:
+    if not path.exists():
+        return None
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _write_foreground_frame_attempt_trace(
+    project_dir: Path,
+    *,
+    attempt_index: int,
+    prompt: str,
+    refs: List[Path],
+    output_path: Path,
+    existed_before: bool,
+    hash_before: Optional[str],
+    generation_ok: bool,
+    direction: Dict[str, Any],
+    validation_errors: Optional[List[str]] = None,
+) -> None:
+    trace_path = _foreground_frame_attempt_trace_path(project_dir)
+    trace: Dict[str, Any]
+    if trace_path.exists():
+        try:
+            trace = json.loads(trace_path.read_text(encoding="utf-8"))
+        except Exception:
+            trace = {}
+    else:
+        trace = {}
+    attempts = trace.setdefault("attempts", [])
+    output_exists = output_path.exists()
+    output_hash = _file_sha256(output_path)
+    raw_path = _foreground_frame_raw_candidate_path(output_path)
+    fallback_probe_path = raw_path if raw_path.exists() else output_path
+    attempts.append({
+        "attempt_index": attempt_index,
+        "created_at": now_iso(),
+        "gemini_api_key_present": bool(_gemini_api_key()),
+        "gemini_image_model": os.environ.get("GEMINI_IMAGE_MODEL", "gemini-2.5-flash-image").strip() or "gemini-2.5-flash-image",
+        "prompt_hash": hashlib.sha256(prompt.encode("utf-8")).hexdigest(),
+        "refs": [
+            {
+                "path": str(path.relative_to(project_dir).as_posix()) if path.exists() and path.is_relative_to(project_dir) else str(path),
+                "exists": path.exists(),
+                "sha256": _file_sha256(path),
+            }
+            for path in refs
+        ],
+        "output_path": str(output_path.relative_to(project_dir).as_posix()) if output_path.is_relative_to(project_dir) else str(output_path),
+        "output_existed_before": existed_before,
+        "output_sha256_before": hash_before,
+        "generation_ok": generation_ok,
+        "output_exists_after_generation": output_exists,
+        "output_sha256_after_generation": output_hash,
+        "matches_fallback_seed": bool(output_exists and _foreground_frame_matches_fallback_seed(fallback_probe_path, direction)),
+        "validation_errors": list(validation_errors or []),
+    })
+    trace_path.write_text(json.dumps(trace, indent=2), encoding="utf-8")
+
+
+def _biome_generation_reference_paths(
+    component_type: str,
+    abs_path: Path,
+    project_dir: Path,
+    direction: Optional[Dict[str, Any]] = None,
+) -> List[Path]:
+    refs: List[Path] = []
+    # Do not feed the current saved structural biome source back into its own
+    # iteration loop. Reusing a broken source image teaches Gemini to preserve
+    # the exact opening/header/floor-perspective mistakes we are trying to remove.
+    if component_type not in STRUCTURAL_BIOME_COMPONENT_TYPES and component_type not in {"border_piece", "platform_piece"} and abs_path.exists():
+        refs.append(abs_path)
+    if component_type in {"wall_piece", "ceiling_piece", "primary_floor_piece"} and direction:
+        spec = {
+            "theme_id": str(direction.get("template_id") or ""),
+            "description": str(direction.get("high_level_direction") or ""),
+            "mood": str(direction.get("style_family") or ""),
+            "lighting": ", ".join(direction.get("lighting_rules") or []),
+            "tags": [_slugify(direction.get("template_id") or "biome")],
+            "components": {},
+        }
+        flags = _environment_style_flags(spec)
+        shell_family = _infer_shell_family(spec)
+        palette = copy.deepcopy(direction.get("palette") or {})
+        ref_root = project_dir / ".tmp_biome_generation_refs"
+        ref_root.mkdir(parents=True, exist_ok=True)
+        seed_ref = ref_root / f"{component_type}-seed.png"
+        _seed_biome_template_asset(seed_ref, component_type, palette, flags, shell_family)
+        refs.append(seed_ref)
+    if component_type == "border_piece":
+        refs.extend(_border_first_legacy_reference_paths(project_dir, direction, component_type))
+        guide_path = _write_border_piece_generation_guide(project_dir)
+        refs.append(guide_path)
+    elif component_type in {"background_far_piece", "background_mid_piece", "platform_piece", "door_piece"}:
+        refs.extend(_border_first_legacy_reference_paths(project_dir, direction, component_type))
+    if component_type == "background_far_piece":
+        refs.append(_write_background_far_piece_generation_guide(project_dir))
+    if component_type == "foreground_frame":
+        style_swatch = _write_foreground_frame_style_swatch(project_dir, direction)
+        if style_swatch is not None:
+            refs.append(style_swatch)
+        guide_path = _write_foreground_frame_generation_guide(project_dir)
+        refs.append(guide_path)
+    if component_type == "platform_piece":
+        refs.append(_write_platform_piece_generation_guide(project_dir))
+    return refs
+
+
+def _foreground_frame_should_use_structural_sibling_refs() -> bool:
+    # The shared foreground atlas is the source-of-truth structural contract.
+    # Feeding back existing sibling structural PNGs like ceiling/floor/platform
+    # can teach Gemini fragment language and floating blocks instead of a single
+    # perimeter shell diagram.
+    return False
+
+
 def _find_curated_template_source(project_id: str, component_type: str) -> Optional[Path]:
+    if component_type in STRUCTURAL_BIOME_COMPONENT_TYPES:
+        # Structural biome templates should not be bootstrapped from prior
+        # room outputs. That cross-room reuse bakes stale downstream artifacts
+        # back into the canonical biome kit and destabilizes structural priors.
+        return None
     root = PROJECTS_ROOT / project_id / "room_environment_assets"
     if not root.exists():
         return None
@@ -418,11 +951,58 @@ def _refresh_biome_pack_templates(project: Dict[str, Any], direction: Dict[str, 
     for pack in direction.get("biome_packs") or []:
         if not isinstance(pack, dict):
             continue
+        existing_components = {
+            str(item.get("component_type") or "").strip()
+            for item in (pack.get("template_library") or [])
+            if isinstance(item, dict)
+        }
+        for entry in V1_BESPOKE_COMPONENTS:
+            if entry["component_type"] in existing_components:
+                continue
+            rel_path = Path("art_direction_biomes") / str(pack.get("biome_id") or _default_biome_id(direction)) / f"{entry['component_type']}.png"
+            abs_path = PROJECTS_ROOT / project_id / rel_path
+            source_kind, source_rel = _install_component_template_asset(
+                project_id,
+                abs_path,
+                entry["component_type"],
+                palette,
+                flags,
+                shell_family,
+                entry["size"],
+                entry["transparency_mode"] == "alpha",
+            )
+            pack.setdefault("template_library", []).append({
+                "template_id": f"{pack.get('biome_id') or _default_biome_id(direction)}-{entry['component_type']}",
+                "component_type": entry["component_type"],
+                "variant_family": entry["variant_family"],
+                "image_path": rel_path.as_posix(),
+                "width": entry["size"][0],
+                "height": entry["size"][1],
+                "orientation": entry["orientation"],
+                "transparency_mode": entry["transparency_mode"],
+                "visual_role": entry["visual_role"],
+                "source_art_direction_version": int(direction.get("version") or 1),
+                "approved": True,
+                "locked": True,
+                "adaptation_mode": _component_adaptation_mode(entry["component_type"]),
+                "source_template_kind": source_kind,
+                "source_template_path": source_rel,
+                "updated_at": now_iso(),
+            })
+        _append_pending_border_first_templates(
+            pack.setdefault("template_library", []),
+            str(pack.get("biome_id") or _default_biome_id(direction)),
+            direction,
+        )
         for template in pack.get("template_library") or []:
             if not isinstance(template, dict):
                 continue
             component_type = str(template.get("component_type") or "").strip()
             if not component_type:
+                continue
+            if component_type in BORDER_FIRST_BIOME_COMPONENT_TYPES and str(template.get("source_template_kind") or "") == "pending_generation":
+                template["adaptation_mode"] = "gemini"
+                template["updated_at"] = now_iso()
                 continue
             rel_path = Path(str(template.get("image_path") or "").strip())
             if not rel_path:
@@ -442,6 +1022,20 @@ def _refresh_biome_pack_templates(project: Dict[str, Any], direction: Dict[str, 
                 template["adaptation_mode"] = _component_adaptation_mode(component_type)
                 template["updated_at"] = now_iso()
                 continue
+            if component_type in BORDER_FIRST_BIOME_COMPONENT_TYPES and component_type != "door_piece":
+                # Phase 1 only introduces the border-first schema contract.
+                # These next-generation templates should exist as planned
+                # metadata without creating placeholder image files or affecting
+                # the current runtime path.
+                template["adaptation_mode"] = "gemini"
+                template["source_template_kind"] = "pending_generation"
+                template["source_template_path"] = None
+                template["updated_at"] = now_iso()
+                continue
+            if str(template.get("source_template_kind") or "") == "pending_generation":
+                template["adaptation_mode"] = _component_adaptation_mode(component_type)
+                template["updated_at"] = now_iso()
+                continue
             source_kind, source_rel = _install_component_template_asset(
                 project_id,
                 abs_path,
@@ -456,6 +1050,10 @@ def _refresh_biome_pack_templates(project: Dict[str, Any], direction: Dict[str, 
             template["source_template_kind"] = source_kind
             template["source_template_path"] = source_rel
             template["updated_at"] = now_iso()
+        pack["border_first_contract"] = _normalize_border_first_contract(
+            pack.get("border_first_contract"),
+            pack.get("template_library") or [],
+        )
     return direction
 
 
@@ -492,6 +1090,32 @@ def _resolve_frozen_concepts(project: Dict[str, Any], requested_ids: Optional[Li
         if chosen:
             return chosen
     return available[:1]
+
+
+def _biome_generation_frozen_reference_paths(
+    project: Dict[str, Any],
+    project_dir: Path,
+    pack: Dict[str, Any],
+    direction: Dict[str, Any],
+    component_type: str,
+) -> List[Path]:
+    if component_type in STRUCTURAL_BIOME_COMPONENT_TYPES:
+        return []
+    requested_ids = [
+        str(item).strip()
+        for item in (pack.get("locked_concept_ids") or direction.get("frozen_concept_ids") or [])
+        if str(item).strip()
+    ]
+    frozen_items = _resolve_frozen_concepts(project, requested_ids)
+    frozen_paths: List[Path] = []
+    for frozen in frozen_items[:3]:
+        rel = str(frozen.get("image_path") or "").strip()
+        if not rel:
+            continue
+        path = project_dir / rel
+        if path.exists():
+            frozen_paths.append(path)
+    return frozen_paths
 
 
 def _extract_gemini_image_bytes(raw: Dict[str, Any]) -> Optional[bytes]:
@@ -743,6 +1367,7 @@ def _ensure_room_environment(room: Dict[str, Any]) -> Dict[str, Any]:
     runtime.setdefault("material_keywords", [])
     runtime.setdefault("lighting_mode", "")
     runtime.setdefault("last_applied_at", None)
+    runtime.setdefault("next_generation_contract", _border_first_generation_contract())
     asset_pack = runtime.get("asset_pack")
     if not isinstance(asset_pack, dict):
         asset_pack = {}
@@ -778,6 +1403,7 @@ def _ensure_room_environment(room: Dict[str, Any]) -> Dict[str, Any]:
     bespoke_manifest.setdefault("used_ai", False)
     bespoke_manifest.setdefault("generated_at", None)
     bespoke_manifest.setdefault("validation_errors", [])
+    bespoke_manifest.setdefault("next_generation_contract", _border_first_generation_contract())
     env["environment_pipeline_version"] = envv3.normalize_pipeline_version(env.get("environment_pipeline_version"))
     if env["environment_pipeline_version"] == envv3.V3_PIPELINE_VERSION:
         envv3.ensure_v3_metadata(env, room)
@@ -848,11 +1474,21 @@ def _room_geometry(room: Dict[str, Any]) -> Dict[str, Any]:
     ys = [float(pt[1]) for pt in polygon if isinstance(pt, (list, tuple)) and len(pt) == 2]
     doors = room.get("doors") or []
     platforms = room.get("platforms") or []
+    left = float(min(xs) if xs else 0.0)
+    right = float(max(xs) if xs else (((room.get("size") or {}).get("width")) or 1600))
+    top = float(min(ys) if ys else 0.0)
+    bottom = float(max(ys) if ys else (((room.get("size") or {}).get("height")) or 1200))
     return {
         "room_id": room.get("id"),
         "room_name": room.get("name") or room.get("id") or "Unnamed room",
         "width": float(((room.get("size") or {}).get("width")) or (max(xs) - min(xs) if xs else 1600)),
         "height": float(((room.get("size") or {}).get("height")) or (max(ys) - min(ys) if ys else 1200)),
+        "left": left,
+        "right": right,
+        "top": top,
+        "bottom": bottom,
+        "chamber_width": max(1.0, right - left),
+        "chamber_height": max(1.0, bottom - top),
         "polygon": [[float(pt[0]), float(pt[1])] for pt in polygon if isinstance(pt, (list, tuple)) and len(pt) == 2],
         "door_count": len(doors),
         "platform_count": len(platforms),
@@ -1756,10 +2392,11 @@ COMPONENT_SCHEMA_DEFAULTS: Dict[str, Dict[str, Any]] = {
 V2_SLOT_FAMILY_SPECS: Tuple[Dict[str, Any], ...] = (
     {"component_type": "background_far_plate", "schema_key": "background", "template_component_type": "background_plate", "size": (1600, 1200), "orientation": "full", "transparency_mode": "opaque", "visual_role": "far_depth", "slot_group": "background", "tile_mode": "stretch"},
     {"component_type": "midground_side_frame", "schema_key": "midground", "template_component_type": "midground_frame", "size": (1600, 1200), "orientation": "full", "transparency_mode": "alpha", "visual_role": "side_frame", "slot_group": "midground", "tile_mode": "stretch"},
-    {"component_type": "wall_module_left", "schema_key": "walls", "template_component_type": "background_plate", "size": (320, 960), "orientation": "vertical", "transparency_mode": "opaque", "visual_role": "structural_wall", "slot_group": "walls", "tile_mode": "stretch"},
-    {"component_type": "wall_module_right", "schema_key": "walls", "template_component_type": "background_plate", "size": (320, 960), "orientation": "vertical", "transparency_mode": "opaque", "visual_role": "structural_wall", "slot_group": "walls", "tile_mode": "stretch"},
-    {"component_type": "wall_base_trim_left", "schema_key": "walls", "template_component_type": "background_plate", "size": (256, 160), "orientation": "horizontal", "transparency_mode": "opaque", "visual_role": "structural_trim", "slot_group": "walls", "tile_mode": "stretch"},
-    {"component_type": "wall_base_trim_right", "schema_key": "walls", "template_component_type": "background_plate", "size": (256, 160), "orientation": "horizontal", "transparency_mode": "opaque", "visual_role": "structural_trim", "slot_group": "walls", "tile_mode": "stretch"},
+    {"component_type": "ceiling_band", "schema_key": "ceiling", "template_component_type": "ceiling_piece", "size": (1600, 224), "orientation": "horizontal", "transparency_mode": "opaque", "visual_role": "structural_ceiling", "slot_group": "ceiling", "tile_mode": "stretch"},
+    {"component_type": "wall_module_left", "schema_key": "walls", "template_component_type": "wall_piece", "size": (320, 960), "orientation": "vertical", "transparency_mode": "opaque", "visual_role": "structural_wall", "slot_group": "walls", "tile_mode": "stretch"},
+    {"component_type": "wall_module_right", "schema_key": "walls", "template_component_type": "wall_piece", "size": (320, 960), "orientation": "vertical", "transparency_mode": "opaque", "visual_role": "structural_wall", "slot_group": "walls", "tile_mode": "stretch"},
+    {"component_type": "wall_base_trim_left", "schema_key": "walls", "template_component_type": "wall_piece", "size": (256, 160), "orientation": "horizontal", "transparency_mode": "opaque", "visual_role": "structural_trim", "slot_group": "walls", "tile_mode": "stretch"},
+    {"component_type": "wall_base_trim_right", "schema_key": "walls", "template_component_type": "wall_piece", "size": (256, 160), "orientation": "horizontal", "transparency_mode": "opaque", "visual_role": "structural_trim", "slot_group": "walls", "tile_mode": "stretch"},
     {"component_type": "main_floor_top", "schema_key": "floor", "template_component_type": "primary_floor_piece", "size": (512, 96), "orientation": "horizontal", "transparency_mode": "opaque", "visual_role": "main_route", "slot_group": "floor", "tile_mode": "tile_x"},
     {"component_type": "main_floor_face", "schema_key": "floor", "template_component_type": "primary_floor_piece", "size": (512, 128), "orientation": "horizontal", "transparency_mode": "opaque", "visual_role": "main_route_face", "slot_group": "floor", "tile_mode": "tile_x"},
     {"component_type": "hero_platform_top", "schema_key": "platforms", "template_component_type": "hero_platform_piece", "size": (320, 72), "orientation": "horizontal", "transparency_mode": "opaque", "visual_role": "hero_platform", "slot_group": "platforms", "tile_mode": "tile_x"},
@@ -1770,6 +2407,8 @@ V2_SLOT_FAMILY_SPECS: Tuple[Dict[str, Any], ...] = (
 )
 
 V2_SLOT_SPEC_BY_TYPE: Dict[str, Dict[str, Any]] = {entry["component_type"]: entry for entry in V2_SLOT_FAMILY_SPECS}
+
+FOREGROUND_FRAME_CENTER_KEY_RGB: Tuple[int, int, int] = (0, 255, 0)
 
 SHELL_FAMILY_PRESETS: Dict[str, Dict[str, str]] = {
     "gothic_ruin": {
@@ -2332,6 +2971,8 @@ def build_room_environment_spec(project_id: str, room_id: str, payload: Dict[str
         "schema_version": 2,
         "status": "idle",
         "biome_id": None,
+        "border_first_contract": copy.deepcopy(direction.get("biome_packs", [{}])[0].get("border_first_contract") if (direction.get("biome_packs") or [{}])[0] else _normalize_border_first_contract(None)),
+        "next_generation_contract": _border_first_generation_contract(),
         "source_preview_id": None,
         "generation_plan": [],
         "required_slots": [],
@@ -2808,6 +3449,76 @@ def _fit_image_to_size(path: Path, size: Tuple[int, int], transparent: bool = Fa
     image.resize(size, Image.Resampling.LANCZOS).save(path)
 
 
+def _trim_edge_connected_background(image: Image.Image, tolerance: int = 22) -> Image.Image:
+    source = image.convert("RGBA")
+    width, height = source.size
+    if width < 4 or height < 4:
+        return source
+    pixels = source.load()
+    visited = set()
+    stack: List[Tuple[int, int]] = []
+    seeds = [
+        (0, 0),
+        (width - 1, 0),
+        (0, height - 1),
+        (width - 1, height - 1),
+    ]
+    seed_colors = [pixels[x, y][:3] for x, y in seeds]
+    mask = Image.new("L", source.size, 255)
+    mask_pixels = mask.load()
+
+    def matches_background(pixel: Tuple[int, int, int, int]) -> bool:
+        for color in seed_colors:
+            if max(abs(int(pixel[idx]) - int(color[idx])) for idx in range(3)) <= tolerance:
+                return True
+        return False
+
+    for x in range(width):
+        stack.append((x, 0))
+        stack.append((x, height - 1))
+    for y in range(height):
+        stack.append((0, y))
+        stack.append((width - 1, y))
+
+    while stack:
+        x, y = stack.pop()
+        if x < 0 or y < 0 or x >= width or y >= height or (x, y) in visited:
+            continue
+        visited.add((x, y))
+        pixel = pixels[x, y]
+        if not matches_background(pixel):
+            continue
+        mask_pixels[x, y] = 0
+        stack.extend(((x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1)))
+
+    bbox = mask.getbbox()
+    if not bbox:
+        return source
+    return source.crop(bbox)
+
+
+def _fit_foreground_frame_image_to_size(path: Path, size: Tuple[int, int]) -> None:
+    image = Image.open(path).convert("RGBA")
+    if image.getbbox() and _alpha_ratio(path) > 0.0:
+        opaque = Image.new("RGBA", image.size, (0, 0, 0, 255))
+        opaque.alpha_composite(image)
+        image = opaque
+    trimmed = _trim_edge_connected_background(image)
+    trimmed.resize(size, Image.Resampling.LANCZOS).save(path)
+
+
+def _fit_border_first_template_image_to_size(path: Path, size: Tuple[int, int], component_type: Optional[str] = None) -> None:
+    image = Image.open(path).convert("RGBA")
+    image = _strip_light_matte_background(image)
+    if image.getbbox() and _alpha_ratio(path) > 0.0:
+        opaque = Image.new("RGBA", image.size, (18, 22, 28, 255))
+        opaque.alpha_composite(image)
+        image = opaque
+    trimmed = _trim_edge_connected_background(image, tolerance=28)
+    fitted = trimmed.resize(size, Image.Resampling.LANCZOS)
+    fitted.save(path)
+
+
 def _component_keyword_blob(spec: Dict[str, Any]) -> str:
     components = spec.get("components") if isinstance(spec.get("components"), dict) else {}
     phrases: List[str] = []
@@ -2909,6 +3620,381 @@ def _validate_environment_asset(path: Path, kind: str, expected_size: Tuple[int,
     return True
 
 
+def _validate_foreground_frame_source(path: Path) -> Tuple[bool, List[str]]:
+    """Check that a generated foreground_frame biome template satisfies structural perimeter requirements.
+
+    Returns (passed, list_of_error_codes). Error codes are added to biome generation results
+    so callers know specifically why the source was rejected before spending room rebuild credits.
+    """
+    errors: List[str] = []
+    if not path.exists():
+        errors.append("missing_source")
+        return False, errors
+    image = Image.open(path).convert("RGB")
+    width, height = image.size
+    if width < 16 or height < 16:
+        errors.append("source_too_small")
+        return False, errors
+
+    def occupied_fraction(box: Tuple[float, float, float, float], luminance_floor: float) -> float:
+        left = max(0, min(width, int(width * box[0])))
+        top = max(0, min(height, int(height * box[1])))
+        right = max(left + 1, min(width, int(width * box[2])))
+        bottom = max(top + 1, min(height, int(height * box[3])))
+        region = image.crop((left, top, right, bottom)).resize((48, 48), Image.Resampling.BILINEAR)
+        pixels = list(region.getdata())
+        if not pixels:
+            return 0.0
+        lit = sum(
+            1
+            for r, g, b in pixels
+            if ((0.2126 * r) + (0.7152 * g) + (0.0722 * b)) >= luminance_floor
+        )
+        return lit / len(pixels)
+
+    center_mid_lum = _region_luminance(path, (0.25, 0.25, 0.75, 0.72))
+    center_key_fraction = _region_chroma_key_fraction(path, (0.24, 0.28, 0.76, 0.72), FOREGROUND_FRAME_CENTER_KEY_RGB, tolerance=64.0)
+    top_center_delta = 0.0
+    bottom_center_delta = 0.0
+    # Top band continuity: the top 20% strip must carry enough luminance to read as a ceiling cap.
+    top_band_lum = _region_luminance(path, (0.08, 0.0, 0.92, 0.20))
+    top_band_lower_lum = _region_luminance(path, (0.08, 0.14, 0.92, 0.20))
+    top_center_delta = top_band_lum - center_mid_lum
+    top_key_fraction = _region_chroma_key_fraction(path, (0.08, 0.0, 0.92, 0.20), FOREGROUND_FRAME_CENTER_KEY_RGB, tolerance=64.0)
+    if top_band_lum < 15:
+        errors.append("top_band_missing_or_too_dark")
+    if center_key_fraction >= 0.72:
+        if top_key_fraction > 0.10:
+            errors.append("top_band_not_distinct_from_center")
+    elif top_center_delta < 6:
+        errors.append("top_band_not_distinct_from_center")
+    if center_key_fraction >= 0.72:
+        if top_band_lower_lum < top_band_lum - 8:
+            errors.append("top_band_lower_edge_break")
+    elif top_band_lower_lum < center_mid_lum + 3:
+        errors.append("top_band_lower_edge_break")
+    top_band_fill = occupied_fraction((0.04, 0.0, 0.96, 0.22), 18)
+    if top_band_fill < 0.72:
+        errors.append("top_band_not_continuous")
+    # Left wall mass: the outer-left 20% column must not collapse to near-black.
+    left_lum = _region_luminance(path, (0.0, 0.15, 0.20, 0.85))
+    if left_lum < 12:
+        errors.append("left_wall_collapsed")
+    left_fill = occupied_fraction((0.0, 0.14, 0.22, 0.88), 18)
+    if left_fill < 0.52:
+        errors.append("left_wall_not_continuous")
+    # Right wall mass: the outer-right 20% column must not collapse to near-black.
+    right_lum = _region_luminance(path, (0.80, 0.15, 1.0, 0.85))
+    if right_lum < 12:
+        errors.append("right_wall_collapsed")
+    right_fill = occupied_fraction((0.78, 0.14, 1.0, 0.88), 18)
+    if right_fill < 0.52:
+        errors.append("right_wall_not_continuous")
+    # Wall symmetry: neither side should be more than ~4x brighter than the other.
+    if left_lum > 4 and right_lum > 4:
+        asymmetry_ratio = max(left_lum, right_lum) / max(min(left_lum, right_lum), 1.0)
+        if asymmetry_ratio > 4.0:
+            errors.append("wall_asymmetry_excessive")
+    left_inner_lum = _region_luminance(path, (0.18, 0.18, 0.34, 0.84))
+    right_inner_lum = _region_luminance(path, (0.66, 0.18, 0.82, 0.84))
+    if abs(left_lum - left_inner_lum) < 6:
+        errors.append("left_wall_center_transition_weak")
+    if abs(right_lum - right_inner_lum) < 6:
+        errors.append("right_wall_center_transition_weak")
+    bottom_band_lum = _region_luminance(path, (0.08, 0.90, 0.92, 1.0))
+    bottom_center_delta = bottom_band_lum - center_mid_lum
+    bottom_key_fraction = _region_chroma_key_fraction(path, (0.08, 0.90, 0.92, 1.0), FOREGROUND_FRAME_CENTER_KEY_RGB, tolerance=64.0)
+    if bottom_band_lum < 15:
+        errors.append("bottom_band_missing_or_too_dark")
+    if center_key_fraction >= 0.72:
+        if bottom_key_fraction > 0.10:
+            errors.append("bottom_band_not_distinct_from_center")
+    elif bottom_center_delta < 8:
+        errors.append("bottom_band_not_distinct_from_center")
+    bottom_band_fill = occupied_fraction((0.04, 0.90, 0.96, 1.0), 20)
+    if bottom_band_fill < 0.68:
+        errors.append("bottom_band_not_continuous")
+    # Floating interior ledges: center mid-height should not be noticeably brighter than the wall strips.
+    # A significantly hotter center indicates a floating platform or shelf fragment, not a calm void.
+    wall_avg_lum = (left_lum + right_lum) / 2.0
+    if center_key_fraction < 0.72 and center_mid_lum > wall_avg_lum + 28 and center_mid_lum > 50:
+        errors.append("floating_interior_ledges")
+    center_intrusion = occupied_fraction((0.22, 0.28, 0.78, 0.72), 52)
+    if center_key_fraction < 0.72:
+        errors.append("center_key_missing_or_contaminated")
+    if center_key_fraction >= 0.72:
+        if (1.0 - center_key_fraction) > 0.12:
+            errors.append("center_intrusion_excessive")
+    elif center_intrusion > 0.10:
+        errors.append("center_intrusion_excessive")
+    return len(errors) == 0, errors
+
+
+def _validate_wall_piece_source(path: Path) -> Tuple[bool, List[str]]:
+    errors: List[str] = []
+    img = Image.open(path).convert("RGBA")
+    rgb = img.convert("RGB")
+    left_lum = _region_luminance(path, (0.0, 0.18, 0.18, 0.82))
+    right_lum = _region_luminance(path, (0.82, 0.18, 1.0, 0.82))
+    center_lum = _region_luminance(path, (0.34, 0.22, 0.66, 0.82))
+    center_contrast = _image_region_contrast(rgb, (0.34, 0.22, 0.66, 0.82))
+    inner_left = _region_luminance(path, (0.18, 0.18, 0.34, 0.82))
+    inner_right = _region_luminance(path, (0.66, 0.18, 0.82, 0.82))
+    alpha_ratio = _alpha_ratio(path)
+    if alpha_ratio > 0.02:
+        errors.append("wall_piece_unexpected_transparency")
+    side_avg = (left_lum + right_lum) / 2.0
+    if (
+        center_lum + 10 < side_avg
+        and (
+            center_contrast > 0.006
+            or min(abs(inner_left - center_lum), abs(inner_right - center_lum)) > 8
+        )
+    ):
+        errors.append("wall_piece_opening_or_recess_read")
+    if abs(left_lum - right_lum) > 22:
+        errors.append("wall_piece_side_family_drift")
+    return len(errors) == 0, errors
+
+
+def _validate_ceiling_piece_source(path: Path) -> Tuple[bool, List[str]]:
+    errors: List[str] = []
+    top_lum = _region_luminance(path, (0.08, 0.0, 0.92, 0.28))
+    lower_lum = _region_luminance(path, (0.08, 0.28, 0.92, 0.60))
+    lower_contrast = _image_region_contrast(Image.open(path).convert("RGB"), (0.08, 0.28, 0.92, 0.60))
+    mid_band_fill = _region_alpha_ratio(path, (0.08, 0.32, 0.92, 0.58))
+    if lower_lum + 10 < top_lum:
+        errors.append("ceiling_piece_lower_edge_break")
+    if lower_contrast > 0.03 and mid_band_fill > 0.98 and top_lum - lower_lum > 8:
+        errors.append("ceiling_piece_detached_block_language")
+    if abs(top_lum - lower_lum) < 4:
+        errors.append("ceiling_piece_placeholder_header_read")
+    return len(errors) == 0, errors
+
+
+def _validate_primary_floor_piece_source(path: Path) -> Tuple[bool, List[str]]:
+    errors: List[str] = []
+    top_lum = _region_luminance(path, (0.08, 0.0, 0.92, 0.34))
+    lower_lum = _region_luminance(path, (0.08, 0.34, 0.92, 1.0))
+    top_contrast = _image_region_contrast(Image.open(path).convert("RGB"), (0.08, 0.0, 0.92, 0.42))
+    if top_lum - lower_lum > 24 and top_contrast > 0.010:
+        errors.append("primary_floor_piece_top_plane_perspective")
+    if top_contrast > 0.016:
+        errors.append("primary_floor_piece_receding_surface_read")
+    if lower_lum + 8 >= top_lum:
+        errors.append("primary_floor_piece_face_separation_weak")
+    return len(errors) == 0, errors
+
+
+def _edge_light_padding_ratio(image: Image.Image, threshold: int = 214) -> float:
+    image = image.convert("RGB")
+    width, height = image.size
+    if width < 4 or height < 4:
+        return 0.0
+    edge_w = max(1, int(width * 0.04))
+    edge_h = max(1, int(height * 0.04))
+    regions = [
+        (0, 0, width, edge_h),
+        (0, height - edge_h, width, height),
+        (0, 0, edge_w, height),
+        (width - edge_w, 0, width, height),
+    ]
+    bright_count = 0
+    sample_count = 0
+    for x0, y0, x1, y1 in regions:
+        for r, g, b in image.crop((x0, y0, x1, y1)).getdata():
+            sample_count += 1
+            if max(r, g, b) >= threshold and (max(r, g, b) - min(r, g, b)) <= 18:
+                bright_count += 1
+    if sample_count <= 0:
+        return 0.0
+    return bright_count / float(sample_count)
+
+
+def _warm_highlight_ratio(image: Image.Image, region: Tuple[float, float, float, float]) -> float:
+    crop = image.convert("RGB").crop((
+        int(image.width * region[0]),
+        int(image.height * region[1]),
+        int(image.width * region[2]),
+        int(image.height * region[3]),
+    ))
+    warm_count = 0
+    sample_count = 0
+    for r, g, b in crop.getdata():
+        sample_count += 1
+        if r > g + 18 and g > b + 8 and r > 90:
+            warm_count += 1
+    if sample_count <= 0:
+        return 0.0
+    return warm_count / float(sample_count)
+
+
+def _validate_border_piece_source(path: Path) -> Tuple[bool, List[str]]:
+    errors: List[str] = []
+    image = Image.open(path).convert("RGB")
+    top_lum = _region_luminance(path, (0.06, 0.0, 0.94, 0.2))
+    bottom_lum = _region_luminance(path, (0.06, 0.88, 0.94, 1.0))
+    left_lum = _region_luminance(path, (0.0, 0.2, 0.18, 0.86))
+    right_lum = _region_luminance(path, (0.82, 0.2, 1.0, 0.86))
+    center_lum = _region_luminance(path, (0.24, 0.24, 0.76, 0.76))
+    if top_lum - center_lum < 4:
+        errors.append("border_piece_top_band_weak")
+    if bottom_lum - center_lum < 4:
+        errors.append("border_piece_bottom_band_weak")
+    if max(abs(left_lum - center_lum), abs(right_lum - center_lum)) < 4:
+        errors.append("border_piece_side_separation_weak")
+    if abs(left_lum - right_lum) > 24:
+        errors.append("border_piece_side_family_drift")
+    if _image_region_contrast(image, (0.28, 0.28, 0.72, 0.72)) > 0.014:
+        errors.append("border_piece_center_scene_clutter")
+    if _edge_light_padding_ratio(image) > 0.18:
+        errors.append("border_piece_edge_padding_present")
+    if _image_region_contrast(image, (0.18, 0.02, 0.82, 0.24)) > 0.022:
+        errors.append("border_piece_top_band_too_ornate")
+    if _image_region_contrast(image, (0.22, 0.04, 0.78, 0.34)) > 0.016:
+        errors.append("border_piece_upper_center_arch_read")
+    if _image_region_contrast(image, (0.18, 0.84, 0.82, 0.98)) > 0.022:
+        errors.append("border_piece_bottom_plane_like")
+    if _image_region_contrast(image, (0.22, 0.80, 0.78, 0.98)) > 0.020:
+        errors.append("border_piece_lower_center_floor_read")
+    center_ring_contrast = _image_region_contrast(image, (0.18, 0.18, 0.82, 0.82))
+    center_ring_lum = _region_luminance(path, (0.18, 0.18, 0.82, 0.82))
+    if center_ring_contrast > 0.0055 and center_ring_lum > 58:
+        errors.append("border_piece_center_breach_read")
+    left_top = _region_luminance(path, (0.0, 0.18, 0.18, 0.34))
+    left_mid = _region_luminance(path, (0.0, 0.42, 0.18, 0.58))
+    left_bottom = _region_luminance(path, (0.0, 0.66, 0.18, 0.82))
+    right_top = _region_luminance(path, (0.82, 0.18, 1.0, 0.34))
+    right_mid = _region_luminance(path, (0.82, 0.42, 1.0, 0.58))
+    right_bottom = _region_luminance(path, (0.82, 0.66, 1.0, 0.82))
+    left_upper_boundary = _side_wall_inner_boundary_position(image, (0.21, 0.34))
+    left_mid_boundary = _side_wall_inner_boundary_position(image, (0.42, 0.58))
+    left_lower_boundary = _side_wall_inner_boundary_position(image, (0.68, 0.80))
+    right_upper_boundary = _side_wall_inner_boundary_position(image, (0.21, 0.34), mirrored=True)
+    right_mid_boundary = _side_wall_inner_boundary_position(image, (0.42, 0.58), mirrored=True)
+    right_lower_boundary = _side_wall_inner_boundary_position(image, (0.68, 0.80), mirrored=True)
+    flare_luminance = max(
+        left_top - left_mid,
+        left_bottom - left_mid,
+        right_top - right_mid,
+        right_bottom - right_mid,
+    ) > 8
+    flare_boundary = max(
+        left_upper_boundary - left_mid_boundary,
+        left_lower_boundary - left_mid_boundary,
+        right_upper_boundary - right_mid_boundary,
+        right_lower_boundary - right_mid_boundary,
+    ) > 0.03
+    if flare_luminance or flare_boundary:
+        errors.append("border_piece_side_wall_flare")
+    return len(errors) == 0, errors
+
+
+def _validate_background_far_piece_source(path: Path) -> Tuple[bool, List[str]]:
+    image = Image.open(path).convert("RGB")
+    errors: List[str] = []
+    if _edge_light_padding_ratio(image) > 0.12:
+        errors.append("background_far_piece_edge_padding_present")
+    if _image_region_contrast(image, (0.24, 0.24, 0.76, 0.76)) > 0.016:
+        errors.append("background_far_piece_center_too_composed")
+    if _image_region_contrast(image, (0.0, 0.0, 1.0, 1.0)) > 0.024:
+        errors.append("background_far_piece_over_detailed")
+    return len(errors) == 0, errors
+
+
+def _validate_platform_piece_source(path: Path) -> Tuple[bool, List[str]]:
+    image = Image.open(path).convert("RGB")
+    errors: List[str] = []
+    if _image_region_contrast(image, (0.0, 0.0, 1.0, 1.0)) > 0.05:
+        errors.append("platform_piece_over_detailed")
+    if _warm_highlight_ratio(image, (0.0, 0.0, 1.0, 0.28)) > 0.08:
+        errors.append("platform_piece_top_highlight_too_warm")
+    if _image_region_contrast(image, (0.0, 0.0, 1.0, 0.22)) > 0.028:
+        errors.append("platform_piece_background_context_present")
+    if _image_region_contrast(image, (0.0, 0.72, 1.0, 1.0)) > 0.024:
+        errors.append("platform_piece_lower_scene_context_present")
+    if _image_region_contrast(image, (0.0, 0.22, 0.14, 1.0)) > 0.030 or _image_region_contrast(image, (0.86, 0.22, 1.0, 1.0)) > 0.030:
+        errors.append("platform_piece_support_structure_read")
+    return len(errors) == 0, errors
+
+
+def _validate_structural_family(paths: Dict[str, Path]) -> List[str]:
+    required = ("wall_piece", "ceiling_piece", "primary_floor_piece")
+    if not all(paths.get(key) and paths[key].exists() for key in required):
+        return []
+    palettes = {
+        key: _structural_palette(Image.open(paths[key]).convert("RGBA"))
+        for key in required
+    }
+    errors: List[str] = []
+    mids = [palettes[key]["mid"] for key in required]
+    darks = [palettes[key]["dark"] for key in required]
+
+    def max_channel_delta(values: List[Tuple[int, int, int]]) -> int:
+        return max(
+            max(abs(values[i][channel] - values[j][channel]) for i in range(len(values)) for j in range(i + 1, len(values)))
+            for channel in range(3)
+        )
+
+    if max_channel_delta(mids) > 42 or max_channel_delta(darks) > 42:
+        errors.append("structural_family_palette_drift")
+    if abs(_sample_luminance(paths["wall_piece"]) - _sample_luminance(paths["ceiling_piece"])) > 28:
+        errors.append("structural_family_value_drift")
+    return errors
+
+
+def _validate_structural_biome_source(component_type: str, path: Path, project_dir: Path) -> Tuple[bool, List[str]]:
+    if component_type == "foreground_frame":
+        return _validate_foreground_frame_source(path)
+    validators = {
+        "border_piece": _validate_border_piece_source,
+        "background_far_piece": _validate_background_far_piece_source,
+        "platform_piece": _validate_platform_piece_source,
+        "wall_piece": _validate_wall_piece_source,
+        "ceiling_piece": _validate_ceiling_piece_source,
+        "primary_floor_piece": _validate_primary_floor_piece_source,
+    }
+    validator = validators.get(component_type)
+    if validator is None:
+        return True, []
+    valid, errors = validator(path)
+    biome_root = path.parent
+    family_paths = {
+        "wall_piece": biome_root / "wall_piece.png",
+        "ceiling_piece": biome_root / "ceiling_piece.png",
+        "primary_floor_piece": biome_root / "primary_floor_piece.png",
+    }
+    family_paths[component_type] = path
+    family_errors = _validate_structural_family(family_paths)
+    errors.extend(family_errors)
+    return len(errors) == 0, errors
+
+
+def _foreground_frame_matches_fallback_seed(path: Path, direction: Dict[str, Any]) -> bool:
+    palette = copy.deepcopy(direction.get("palette") or {})
+    spec = {
+        "theme_id": str(direction.get("template_id") or ""),
+        "description": str(direction.get("high_level_direction") or ""),
+        "mood": str(direction.get("style_family") or ""),
+        "lighting": ", ".join(direction.get("lighting_rules") or []),
+        "tags": [_slugify(direction.get("template_id") or "biome")],
+        "components": {},
+    }
+    flags = _environment_style_flags(spec)
+    shell_family = _infer_shell_family(spec)
+    try:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            fallback_path = Path(tmpdir) / "foreground_frame-fallback.png"
+            _fallback_foreground_frame_asset(fallback_path, palette, flags, shell_family)
+            candidate = Image.open(path).convert("RGBA")
+            fallback = Image.open(fallback_path).convert("RGBA")
+            if candidate.size != fallback.size:
+                return False
+            return ImageChops.difference(candidate, fallback).getbbox() is None
+    except Exception:
+        return False
+
+
 def _fallback_background_asset(
     output_path: Path,
     palette: Dict[str, Any],
@@ -2997,52 +4083,81 @@ def _fallback_tile_asset(
         return tuple(max(0, min(255, c + amount)) for c in rgb)
 
     if mode == "wall":
-        block_w = max(56, size[0] // 3)
-        block_h = max(72, size[1] // 3)
-        draw.rectangle((0, 0, size[0], size[1]), fill=softened(base, -8) + (255,))
-        if flags.get("gothic"):
-            bay_w = max(88, size[0] // 2)
-            for x in range(-24, size[0] + 24, bay_w):
-                draw.rectangle((x + 18, 0, x + 36, size[1]), fill=shadow + (255,))
-                draw.rectangle((x + 36, 0, x + bay_w - 24, size[1]), fill=softened(base, 6) + (255,))
-                draw.arc((x + 8, 18, x + bay_w - 8, 126), 180, 360, fill=accent + (145,), width=3)
-                draw.line((x + 24, size[1] * 0.18, x + bay_w - 24, size[1] * 0.18), fill=accent + (96,), width=2)
-        else:
-            for y in range(0, size[1], block_h):
-                offset = 0 if (y // block_h) % 2 == 0 else block_w // 2
-                for x in range(-offset, size[0], block_w):
-                    fill = softened(alt, ((x + y) // 37) % 6 - 3)
-                    draw.rectangle((x, y, x + block_w - 6, y + block_h - 6), outline=accent + (90,), fill=fill + (255,))
+        field = softened(base, -10)
+        block_base = softened(alt, -14)
+        block_alt = softened(alt, -8)
+        seam = tuple(max(0, channel - 22) for channel in base) + (156,)
+        img.paste(field + (255,), (0, 0, size[0], size[1]))
+        cap_h = max(18, size[1] // 22)
+        plinth_h = max(26, size[1] // 16)
+        draw.rectangle((0, 0, size[0], cap_h), fill=tuple(min(255, c + 10) for c in field) + (255,))
+        draw.rectangle((0, size[1] - plinth_h, size[0], size[1]), fill=tuple(max(0, c - 8) for c in field) + (255,))
+        course_h = max(46, size[1] // 14)
+        block_w = max(62, size[0] // 2)
+        row = 0
+        for y in range(cap_h + 8, size[1] - plinth_h - 8, course_h):
+            current_h = min(course_h, size[1] - plinth_h - 8 - y)
+            offset = 0 if row % 2 == 0 else block_w // 2
+            for x in range(-offset, size[0], block_w):
+                left = max(0, x)
+                right = min(size[0], x + block_w)
+                if right - left < 18:
+                    continue
+                fill = (block_base if ((x // max(1, block_w)) + row) % 2 == 0 else block_alt) + (255,)
+                draw.rectangle((left, y, right - 4, y + current_h - 4), fill=fill, outline=seam, width=1)
+            row += 1
+        draw.line((0, cap_h, size[0], cap_h), fill=seam, width=2)
+        draw.line((0, size[1] - plinth_h, size[0], size[1] - plinth_h), fill=seam, width=2)
         if flags.get("fractured"):
+            crack = tuple(max(0, c - 36) for c in base) + (168,)
             cracks = [
-                (22, 30, 54, 86),
-                (size[0] - 74, 18, size[0] - 40, 78),
-                (size[0] // 2 - 12, size[1] - 90, size[0] // 2 + 18, size[1] - 32),
+                (22, 54, 52, 108),
+                (size[0] - 72, 40, size[0] - 42, 92),
+                (size[0] // 2 - 10, size[1] - 118, size[0] // 2 + 20, size[1] - 54),
             ]
             for x1, y1, x2, y2 in cracks:
-                draw.line((x1, y1, x2, y2), fill=accent + (110,), width=2)
-                draw.line((x2, y2, x2 + 12, y2 + 20), fill=accent + (76,), width=1)
+                draw.line((x1, y1, x2, y2), fill=crack, width=2)
+                draw.line((x2, y2, x2 + 10, y2 + 18), fill=crack, width=1)
         if flags.get("mossy"):
             draw.rectangle((0, size[1] - 18, size[0], size[1]), fill=moss + (52,))
     elif mode == "floor":
-        draw.rectangle((0, 0, size[0], size[1]), fill=softened(alt, -8) + (255,))
-        slab_h = max(88, size[1] // 2)
-        slab_w = max(92, size[0] // 2)
-        for y in range(0, size[1], slab_h):
-            offset = 0 if (y // slab_h) % 2 == 0 else slab_w // 2
-            for x in range(-offset, size[0], slab_w):
-                fill = softened(base, ((x + y) // 53) % 8 - 4)
-                draw.rectangle((x, y, x + slab_w - 8, y + slab_h - 8), outline=accent + (120,), fill=fill + (255,))
-        if flags.get("ritual"):
-            center = (size[0] // 2, size[1] // 2)
-            for radius in (size[0] // 5, size[0] // 3):
-                draw.ellipse((center[0] - radius, center[1] - radius, center[0] + radius, center[1] + radius), outline=glow + (104,), width=2)
-            draw.line((center[0] - size[0] // 4, center[1], center[0] + size[0] // 4, center[1]), fill=accent + (70,), width=1)
+        # Front-facing floor-face seed only: no receding top plane, no diagonal
+        # seams, and no scene-like architectural framing. This is generic source
+        # art for later room-specific floor pieces.
+        face = softened(alt, -10)
+        lip = softened(face, 12)
+        band = softened(base, -18)
+        seam = tuple(max(0, c - 20) for c in face) + (156,)
+        draw.rectangle((0, 0, size[0], size[1]), fill=face + (255,))
+        top_h = max(10, int(size[1] * 0.22))
+        mid_h = max(8, int(size[1] * 0.16))
+        draw.rectangle((0, 0, size[0], top_h), fill=lip + (255,))
+        draw.rectangle((0, top_h, size[0], min(size[1], top_h + mid_h)), fill=band + (255,))
+        block_w = max(72, size[0] // 4)
+        row_h = max(20, (size[1] - top_h - mid_h) // 2)
+        row = 0
+        start_y = top_h + mid_h + 4
+        for y in range(start_y, size[1], row_h):
+            current_h = min(row_h, size[1] - y)
+            if current_h < 10:
+                break
+            offset = 0 if row % 2 == 0 else block_w // 2
+            for x in range(-offset, size[0], block_w):
+                left = max(0, x)
+                right = min(size[0], x + block_w)
+                if right - left < 18:
+                    continue
+                fill = softened(face, 4 if ((x // max(1, block_w)) + row) % 2 == 0 else -4)
+                draw.rectangle((left, y, right - 4, min(size[1] - 2, y + current_h - 4)), fill=fill + (255,), outline=seam, width=1)
+            row += 1
+        draw.line((0, top_h, size[0], top_h), fill=seam, width=2)
+        draw.line((0, top_h + mid_h, size[0], top_h + mid_h), fill=seam, width=2)
         if flags.get("wet"):
-            draw.rectangle((0, size[1] - 22, size[0], size[1]), fill=(80, 96, 102, 42))
+            draw.rectangle((0, size[1] - 16, size[0], size[1]), fill=(80, 96, 102, 34))
         if flags.get("fractured"):
-            draw.line((26, size[1] // 2 + 16, size[0] // 2 - 20, size[1] // 2 - 10), fill=accent + (82,), width=2)
-            draw.line((size[0] // 2 + 18, size[1] // 2 - 12, size[0] - 22, size[1] // 2 + 8), fill=accent + (82,), width=2)
+            crack = tuple(max(0, c - 28) for c in face) + (90,)
+            draw.line((size[0] // 4, start_y + 6, size[0] // 4 + 18, size[1] - 8), fill=crack, width=2)
+            draw.line((size[0] // 2 + 14, start_y + 2, size[0] // 2 + 6, size[1] - 10), fill=crack, width=2)
     elif mode == "platform":
         draw.rectangle((0, 0, size[0], size[1]), fill=softened(alt, -10) + (255,))
         top_h = max(10, size[1] // 7)
@@ -3120,6 +4235,92 @@ def _fallback_midground_asset(output_path: Path, palette: Dict[str, Any], shell_
     img.save(output_path)
 
 
+def _fallback_ceiling_asset(output_path: Path, palette: Dict[str, Any], shell_family: str = "weathered_stone") -> None:
+    size = (1600, 224)
+    base = _hex_to_rgb(str((palette.get("dominant") or ["#181614"])[0]), (24, 22, 20))
+    alt = _hex_to_rgb(str((palette.get("dominant") or ["#181614", "#2e3438"])[1] if len(palette.get("dominant") or []) > 1 else "#2e3438"), (46, 52, 56))
+    field = tuple(max(0, c - 6) for c in base)
+    seam = tuple(max(0, c - 22) for c in base) + (160,)
+    img = Image.new("RGBA", size, field + (255,))
+    draw = ImageDraw.Draw(img)
+    cap_h = 22
+    lintel_h = 68
+    draw.rectangle((0, 0, size[0], cap_h), fill=tuple(max(0, c - 12) for c in field) + (255,))
+    draw.rectangle((0, cap_h, size[0], cap_h + lintel_h), fill=tuple(min(255, c + 4) for c in alt) + (255,))
+    draw.line((0, cap_h, size[0], cap_h), fill=seam, width=2)
+    draw.line((0, cap_h + lintel_h, size[0], cap_h + lintel_h), fill=seam, width=2)
+    block_w = 118
+    for x in range(0, size[0], block_w):
+        right = min(size[0], x + block_w - 6)
+        draw.rectangle((x, cap_h + 8, right, cap_h + lintel_h - 8), fill=tuple(min(255, c + 10) for c in alt) + (255,), outline=seam, width=1)
+    body_top = cap_h + lintel_h
+    draw.rectangle((0, body_top, size[0], size[1]), fill=tuple(max(0, c - 2) for c in alt) + (255,))
+    course_h = 34
+    for y in range(body_top + 12, size[1], course_h):
+        draw.line((0, y, size[0], y), fill=(14, 18, 22, 110), width=1)
+    img.save(output_path)
+
+
+def _fallback_foreground_frame_asset(
+    output_path: Path,
+    palette: Dict[str, Any],
+    flags: Dict[str, bool],
+    shell_family: str = "weathered_stone",
+) -> None:
+    size = (1600, 1200)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    frame = Image.new("RGBA", size, (0, 0, 0, 255))
+    temp_root = output_path.parent / "_foreground_frame_seed"
+    temp_root.mkdir(parents=True, exist_ok=True)
+    wall_path = temp_root / "wall.png"
+    ceiling_path = temp_root / "ceiling.png"
+    _fallback_tile_asset(wall_path, palette, (512, 1200), "wall", flags, shell_family)
+    _fallback_ceiling_asset(ceiling_path, palette, shell_family)
+
+    wall = Image.open(wall_path).convert("RGBA")
+    ceiling = Image.open(ceiling_path).convert("RGBA")
+
+    ceiling_strip = ceiling.resize((1600, 224), Image.Resampling.LANCZOS)
+    wall_strip = wall.crop((96, 96, 416, 1104)).resize((224, 856), Image.Resampling.LANCZOS)
+    wall_strip = wall_strip.point(lambda value: int(value * 0.68) if value < 250 else value)
+
+    floor_strip = Image.new("RGBA", (1600, 120), (0, 0, 0, 255))
+    draw = ImageDraw.Draw(floor_strip)
+    base = _hex_to_rgb(str((palette.get("dominant") or ["#11161d"])[0]), (17, 22, 29))
+    alt = _hex_to_rgb(str((palette.get("dominant") or ["#11161d", "#24343a"])[1] if len(palette.get("dominant") or []) > 1 else "#24343a"), (36, 52, 58))
+    field = tuple(max(0, min(255, (base[i] + alt[i]) // 2 + 14)) for i in range(3))
+    band = tuple(max(0, min(255, (base[i] + alt[i]) // 2 + 26)) for i in range(3))
+    seam = tuple(max(0, c - 28) for c in field) + (180,)
+    draw.rectangle((0, 0, 1600, 120), fill=field + (255,))
+    draw.rectangle((0, 0, 1600, 24), fill=band + (255,))
+    draw.line((0, 24, 1600, 24), fill=seam, width=2)
+    block_w = 112
+    row_h = 40
+    row = 0
+    for y in range(28, 120, row_h):
+        current_h = min(row_h, 120 - y)
+        offset = 0 if row % 2 == 0 else block_w // 2
+        for x in range(-offset, 1600, block_w):
+            left = max(0, x)
+            right = min(1600, x + block_w)
+            if right - left < 24:
+                continue
+            fill = tuple(max(0, min(255, field[i] + (8 if ((x // max(1, block_w)) + row) % 2 == 0 else 2))) for i in range(3))
+            draw.rectangle((left, y, right - 4, min(119, y + current_h - 4)), fill=fill + (255,), outline=seam, width=1)
+        row += 1
+
+    frame.alpha_composite(ceiling_strip, (0, 0))
+    frame.alpha_composite(wall_strip, (0, 224))
+    frame.alpha_composite(wall_strip.transpose(Image.Transpose.FLIP_LEFT_RIGHT), (1376, 224))
+    frame.alpha_composite(floor_strip, (0, 1080))
+
+    # Reserve the center as a deterministic chroma-key field so the generator
+    # solves only the perimeter shell and leaves background replacement space clean.
+    center_draw = ImageDraw.Draw(frame)
+    center_draw.rectangle((224, 240, 1375, 1079), fill=FOREGROUND_FRAME_CENTER_KEY_RGB + (255,))
+    frame.save(output_path)
+
+
 def _build_biome_template_prompt(component_type: str, direction: Dict[str, Any], extra_notes: str) -> str:
     """Prompt for upgrading default biome library PNGs via Gemini (game-side-view environment kit)."""
     locked = direction.get("high_level_direction") or direction.get("style_family") or ""
@@ -3139,24 +4340,174 @@ def _build_biome_template_prompt(component_type: str, direction: Dict[str, Any],
             "Build a side-view medieval castle / dungeon hall with dark side masses, repeating bays or buttresses, and a dim central recess. "
             "No bright floor pool, no glowing apse, no ritual circle, and no scenic key-art focal composition."
         )
+    elif component_type == "background_far_piece":
+        role = (
+            "Generic biome background-far template for later room-specific generation. "
+            "This is not a final room scene. Generate a calm distant background plate in strict side view with depth cues, restrained contrast, and no enclosing foreground shell. "
+            "Keep it broad, reusable, and non-focal so later room generation can fit it to many room shapes. "
+            "Do not compose a hero shot, bridge vista, staircase set piece, statue lineup, or centered landmark scene. "
+            "Do not include white matte bars, letterbox padding, or bright framing at the image edges. "
+            "The result should feel faded and atmospheric, with soft distant architecture only."
+        )
+    elif component_type == "background_mid_piece":
+        role = (
+            "Generic biome background-mid template for later room-specific generation. "
+            "This is not a final room scene. Generate a reusable mid-depth architectural layer in strict side view with readable depth rhythm but no hard shell border, no center focal prop, and no gameplay-obscuring clutter."
+        )
     elif component_type == "midground_frame":
         role = (
             "Midground PNG with transparency: architectural mass hugging LEFT and RIGHT edges only. "
             "Center third must stay empty (alpha) for gameplay clarity. No arches or props in the center."
         )
+    elif component_type == "border_piece":
+        role = (
+            "Generic border-shell template for later room-specific generation. "
+            "Generate one reusable front-view chamber border piece that fills the full 1600x1200 canvas and uses the provided blueprint guide exactly. "
+            "This is not a room scene, not a doorway, not a background opening, and not a perspective chamber view. "
+            "Treat the whole border as a strict orthographic front elevation on one flat plane with no side-face shading, no projecting sill, no recessed shelf line, no bevels, and no visible depth cues anywhere. "
+            "All four sides must read like flat front-facing stone bands, not like a box, shelf, or corridor opening. "
+            "Use the full occupied area shown in the guide: top band y=0..223, left band x=0..223, right band x=1376..1599, bottom band y=1080..1199. "
+            "Do not shrink, inset, arch, taper, crop, round, vignette, or tear that frame shape. "
+            "The top band, left wall band, right wall band, and bottom band must all be visibly present and use the full rectangular guide shape, no more and no less. "
+            "The top band and bottom band must read as flat front-facing masonry strips, not as ledges, caps, plinths, sills, or overhangs. "
+            "Do not show the top surface of either band; they are faces only. Keep them thick, continuous, plain, slightly lighter than the center, and clearly visible while keeping the side walls straight. "
+            "Keep the top band a touch brighter and more legible than the bottom band, and keep the bottom band free of mist glow or threshold haze so it does not become the visual heaviest edge. "
+            "The top band in particular should be a simple heavy stone strip with no raised lip, no lintel seam ornament, and no decorative block-coursing that makes it feel carved into a shelf. "
+            "Keep the left and right wall bands perfectly straight from the top band to the bottom band: no shoulder flare, no taper, no pedestal base, no widened capital, no inward curve, and no arch-like bulge at either end. "
+            "The inner edge of each wall strip must stay at a constant horizontal position for the full wall height; do not let the wall grow thicker near the top or bottom. "
+            "Where the top band meets the side walls and where the bottom band meets the side walls, keep square ninety-degree corners, not corbels, chamfers, pedestal feet, or softened arch transitions. "
+            "Keep the center calm, generic, and low-detail so later room generation can adapt it cleanly to exact room geometry. "
+            "The center must not become a torn plaster breach, shattered wall opening, broken-hole silhouette, or jagged punched-out cavity. "
+            "Keep the inner center boundary broad, quiet, and simple; no spiky debris edges, no cracked plaster halo, and no irregular hole shape dominating the frame. "
+            "Do not turn the four sides into architectural doorway framing. The left and right sides are not columns or posts, the top is not a lintel, and the bottom is not a sill or threshold. "
+            "Avoid inset-shadow opening semantics: no post-and-lintel composition, no inner reveal depth, no warm threshold light, and no fog pooled like an entryway mouth. "
+            "Treat the guide as occupancy only. Do not copy the guide colors, outlines, blueprint look, or flat fills into the final art. "
+            "Do not draw a bright or dark inner outline around the center opening. The border should meet the center directly with simple stone edges, not a traced frame line. "
+            "The light guide regions only mean 'border exists here' and the dark center only means 'center stays calm here'. "
+            "Anti-designs: no arches, no pillars, no columns, no lintel, no sill, no threshold, no scene opening, no portal frame, no perspective floor, no stairs, no rubble staging, no glowing hotspot, no white matte bars, no corbel shoulders, no pedestal feet, no jagged breach center, and no empty margins at the edges. "
+            "Use ruined-gothic stone material, cool dark palette, front-facing orientation, and simple readable border masses."
+        )
     elif component_type == "primary_floor_piece":
         role = (
-            "Horizontal tileable floor strip: top walk surface plus short front face. "
-            "Modular repeat; clear top lip; stone family consistent with the project."
+            "Horizontal tileable floor source for a side-view metroidvania room. "
+            "The provided reference image is a generic component template: preserve its overall silhouette, layout, and front-facing proportion, and repaint it in this biome's material family. "
+            "Do not reinterpret the template as a full room slice, scenic wall, doorway, or background scene. "
+            "This is a flat modular strip with a narrow walkable top edge and a front-facing stone face beneath it. "
+            "It must read strictly in side view. Keep the top lip thin, the front face dominant, and the whole piece readable as one modular floor family. "
+            "Do not depict a perspective slab, receding top plane, stage step, paving-stone runway, columns, alcoves, arches, doorway framing, or any above-view floor read. "
+            "Do not add glow, a bright gold strip, emissive highlights, or a focal hotspot along the top edge; the top lip should stay in the same dark stone family as the face."
+        )
+    elif component_type == "wall_piece":
+        role = (
+            "Single flat enclosing wall source for later room-shell derivation. "
+            "The provided reference image is a generic component template: preserve its overall silhouette, layout, and flat front-facing proportion, and repaint it in this biome's material family. "
+            "This is not an opening, not a framed doorway, and not a room view. "
+            "Generate one opaque stone wall mass in strict side view with restrained block rhythm, dark cool ruined-gothic stone, and no center void. "
+            "The image should behave like material source art for wall strips, so keep it continuous and structural from top to bottom. "
+            "Do not invent arches, hanging ornaments, capitals, columns, buttress cut-ins, portal framing, or scenic architectural set pieces."
+        )
+    elif component_type == "ceiling_piece":
+        role = (
+            "Single continuous ceiling-band source for later room-shell derivation. "
+            "The provided reference image is a generic component template: preserve its overall silhouette, layout, and horizontal band proportion, and repaint it in this biome's material family. "
+            "Generate one heavy ruined-gothic ceiling strip in strict side view, with a readable masonry band and cohesive lower edge. "
+            "Do not turn it into a placeholder header bar, do not hang detached floating blocks beneath it, and do not depict an opening or portal frame. "
+            "Do not invent arches, ribs, chandeliers, dangling ornaments, corbels, or a cropped room scene under the band. "
+            "Fill the width edge-to-edge with one continuous ceiling component: no curved side cut-ins, no dark side end caps, and no fog or atmospheric haze below the band."
         )
     elif component_type == "hero_platform_piece":
         role = (
             "Horizontal tileable platform ledge: top surface + shallow front face, game-ready proportions."
         )
+    elif component_type == "platform_piece":
+        role = (
+            "Generic gameplay platform template for later room-specific generation. "
+            "Generate one reusable side-view platform source with a readable top surface and front face, restrained silhouette, and no scene framing around it. "
+            "Keep it simple and game-functional: no glowing trim, no gold highlight line, no decorative shrine read, and no attached scenery. "
+            "This must be one isolated front-view platform template only: no background, no ruins behind it, no walls, no supports, no arches, and no scenery visible above, below, or behind the platform. "
+            "The whole image should read as platform material only, not as a slice of a room."
+        )
     elif component_type == "door_piece":
         role = (
             "Vertical doorway tile on transparent background: isolated heavy stone frame, dark opening read, threshold stone, and a punched-out doorway mouth. "
             "Do not generate a surrounding chamber, floor slab, or scenic wall extension. Preserve transparent pixels outside the frame and through the opening."
+        )
+    elif component_type == "foreground_frame":
+        role = (
+            "Single shared foreground structural frame atlas for a 2D sidescroller chamber (1600x1200). "
+            "This image is a layout atlas used exclusively for later region crops. It is not a scene, not concept art, and not a composition exercise. "
+            "The provided reference image is a geometry-only occupancy guide. Use its occupied coordinates only. Do not copy its flat fills, gray values, outlines, or mask-like treatment literally into the final art. "
+            "If the geometry guide and the style swatch disagree, preserve the occupied coordinates and border silhouette from the geometry guide exactly, and use the style swatch only for stone family, crack rhythm, and palette. "
+            "Treat the image like a flat orthographic front elevation, not a 3D room view. "
+            "Camera/projection contract: the entire atlas must read as a straight-on front elevation with zero perspective convergence and zero reveal depth. "
+            "Do not depict an inset chamber opening, window reveal, portal mouth, inner jamb, receding corridor, or boxed recess. "
+            "The left wall strip, right wall strip, and bottom band are all front-facing surfaces only, not side faces or top faces. "
+            "No diagonal receding edges, no visible wall thickness returns, no interior corner perspective, and no near-versus-far plane cues. "
+            "Priority order: (1) readable perimeter shell, (2) wall-to-center separation, (3) calm non-scenic center. "
+            "Spatial contract: "
+            "(1) a fully continuous, clearly visible masonry ceiling band spanning left edge to right edge across exact pixel rows y=0..239 — no gaps, no holes, no partial cap, no broken run; "
+            "the top band must read as an obvious horizontal masonry strip by eye, with repeated block courses or lintel seams that make it visibly different from the center field; "
+            "the top band must stay fully filled into both top-left and top-right outer corners with no black wedges, no corner voids, and no cropped-off triangular gaps; "
+            "the green center opening must not begin inside the top 240 pixels; keep a full uninterrupted ceiling depth before the green field starts. "
+            "if the image starts to read like a dark void, strengthen the top strip first rather than darkening the whole frame; "
+            "(2) continuous left wall strip at exact pixel region x=0..223, y=240..1079 and continuous right wall strip at exact pixel region x=1376..1599, y=240..1079 — "
+            "both sides must be materially present as narrow heavy enclosure masses; neither side may collapse into near-black, disappear, or blend into the center field; "
+            "the side walls must be visibly darker, denser, and more structural than the calmer center and must show a clear inner-edge transition into the center field; "
+            "the side walls should carry the strongest masonry joint rhythm and silhouette weight in the image, but they must still read as front-facing wall strips, not recess mouths, alcoves, openings, deep side pockets, inset jambs, interior return faces, pillars, posts, columns, or freestanding vertical supports; "
+            "keep the side strips as straight rectangular border masses from top to bottom: no tapering feet, no pedestal bases, no buttress plinths, no angled chamfers, no capitals, and no top or bottom shoulders projecting inward; "
+            "do not add bright inner edge highlights, bevel rims, side-face reveals, or light vertical trims along the green opening; the inner wall edge should be a flat cut stone boundary, not a glowing jamb or recessed frame return; "
+            "the stone immediately touching the green field must never be lighter than the main wall mass; do not create a pale border, illuminated rim, or highlighted cut line around the keyed opening; "
+            "the side strips are fused to the outer image border and must not read like separate supports framing a doorway or opening; "
+            "(3) a thin continuous retaining floor band at exact pixel rows y=1080..1199 across the full width — clearly visible across the full width; "
+            "the bottom band must also read as an obvious horizontal masonry strip by eye, not just a slightly darker lower edge; "
+            "if the image starts to read like a dark void, strengthen the bottom strip second rather than turning the lower frame into a shadow mass; "
+            "it must read front-on and flat, with no visible top surface, not like a receding walk surface, perspective floor plane, stage floor, ledge lip, front step, or slab viewed from above; "
+            "treat the bottom band like a retaining wall face or plinth course seen straight on, using front-facing block rectangles only; "
+            "do not draw paving stones, receding tile seams, trapezoid slab tops, depth bevels, or any horizontal surface that suggests the player could stand on the band itself; "
+            "do not add a bright upper lip, rim light, or recessed shadow shelf where the green field meets the bottom band; that boundary must stay flat and front-facing; "
+            "do not draw a separate top-edge line, highlight seam, or light coping strip at y=1080 where the green field meets the bottom band; the keyed field should terminate directly into the same dark flat stone face; "
+            "keep the upper edge of the bottom band straight and horizontal with no center rise, no wedge perspective, and no thickened front lip; "
+            "the bottom band must also stay filled into both bottom-left and bottom-right corners with no black corner cutouts, no vignette wedges, and no empty outside triangles; "
+            "the green center opening must end above y=1079 and may not drop into the bottom 120 pixels; keep a full uninterrupted bottom retaining strip below the keyed field. "
+            "(4) do not place platform ledge language, shelf language, or inward-protruding stone lips anywhere inside the wall-strip zones; wall strips must stay flush, vertical, and perimeter-only; "
+            "(5) center region at exact pixel region x=224..1375, y=240..1079 must be a reserved chroma-key field for later background replacement — "
+            "fill that exact center rectangle with solid bright green screen color and keep it clean, flat, and uniform. "
+            "The very first green row must begin at y=240 and the very first green columns must begin at x=224 on the left and x=1375 on the right; do not let stone overlap past those coordinates. "
+            "Pixels on the center boundary such as (224,240), (800,240), (1375,240), (224,1079), and (1375,1079) should all still belong to the same green holdout rectangle, not to the masonry shell. "
+            "Do not enlarge the green field upward or downward beyond those exact vertical limits. "
+            "Do not paint stone, texture, cracks, props, shading, gradients, fog, glow, vignettes, floating fragments, platform silhouettes, or focal art inside that center field. "
+            "The center is not a backwall painting exercise; it is a keyed holdout zone. "
+            "No circular hotspot, no halo, no ring, no radial vignette, no centered glow, no inset panel border, and no light rim or outline around the center field. "
+            "The green field must not be framed by a second lighter rectangle inside the border shell. "
+            "Keep the inner edge between the border shell and the green field crisp and front-on, with no pillars, lips, or fragments crossing into the keyed center. "
+            "If forced to choose, preserve heavier side walls and a simpler keyed center rather than decorative side ledges or scenic center detail. "
+            "Value structure contract: "
+            "ceiling band and floor band = readable horizontal strip zones with stronger band identity than the center field; "
+            "outer wall strips = darkest and most detailed zone; "
+            "inner edge of each wall strip = medium-dark transition zone; "
+            "center field = solid chroma-key green reserve, with no stone patterning at all. "
+            "Do not make the wall strips and center field the same value family or the same material family. "
+            "The whole border must stay in one coherent cool dark stone family: top band, side walls, and bottom band should look like the same material under the same flat lighting, not different gray-versus-black zones. "
+            "Texture contract: side walls should show most of the block joints, stone seams, edge cracks, and masonry rhythm. "
+            "Center field should show no masonry cues at all because it is a keyed replacement zone. "
+            "Left and right wall strips must have equal visual authority. "
+            "Do not make the right wall softer, flatter, dimmer, or less distinct than the left wall. "
+            "If one side is stronger, strengthen the weaker side instead of weakening both. "
+            "Hard prohibitions: "
+            "no floating ledges, shelves, or isolated stone fragments inside the center region; "
+            "no side-wall protrusions, no inward shelves, no cantilevered lips, and no ledge-like shapes extending from either wall into the chamber; "
+            "no torn edges, giant cracks spanning an entire band, or dramatic missing chunks; "
+            "no asymmetric wall treatment — left and right strips must read as the same material family; "
+            "no fog, atmospheric depth effects, arches, windows, openings, symbols, scenic depth, or scenic composition; "
+            "no perspective floor plane, no tunnel opening read, no inward-lit bevels, no cast shadows projecting into the center, no dark inner shadow columns, no side-pocket recess shading, no radial center vignette, no global vignette, no inset opening frame, and no 3D portal framing; "
+            "no directional lighting sweep, no side-to-center shadow falloff, and no shaded depth cues that make the atlas feel volumetric; "
+            "no bright focal elements or glowing areas. "
+            "Do not solve the frame by making the whole image uniformly dark blue-gray; the image must still show a perimeter-versus-center read. "
+            "Preserve the provided border silhouette and occupied-zone layout exactly: structure belongs only in the top band, bottom band, and narrow outer side strips, while the center envelope stays open and non-structural. "
+            "Small chips, cracks, and edge wear are allowed inside those occupied border envelopes, but do not move structure outside them. "
+            "Keep the material family close to the darker ruined-gothic biome kit: cool dark stone, restrained contrast, and no pale gray-beige stone drift. "
+            "Think of the desired result as a perimeter-only chamber shell diagram painted in one consistent stone family. "
+            "The four perimeter bands must share one consistent stone family so ceiling, wall, and floor crops all match."
         )
     else:
         role = f"Environment component `{component_type}` for the biome kit."
@@ -3167,7 +4518,7 @@ def _build_biome_template_prompt(component_type: str, direction: Dict[str, Any],
     ]
     if neg:
         parts.append(f"Avoid: {neg}")
-    if lighting:
+    if lighting and component_type != "foreground_frame":
         parts.append(f"Lighting notes: {lighting}")
     if notes:
         parts.append(f"Extra: {notes}")
@@ -3187,24 +4538,49 @@ def generate_biome_pack_visuals(project_id: str, payload: Dict[str, Any]) -> Dic
     pack = packs[0]
     biome_id = str(pack.get("biome_id") or "").strip()
     project_dir = PROJECTS_ROOT / project_id
-    frozen_paths: List[Path] = []
-    for fc in direction.get("frozen_concepts") or []:
-        if not isinstance(fc, dict):
-            continue
-        rel = str(fc.get("image_path") or "").strip()
-        if not rel:
-            continue
-        path = project_dir / rel
-        if path.exists():
-            frozen_paths.append(path)
-    frozen_paths = frozen_paths[:3]
     extra = str(payload.get("extra_prompt") or "").strip()
+    requested_component_types = {
+        str(item).strip()
+        for item in (payload.get("component_types") or [])
+        if str(item).strip()
+    }
+    if requested_component_types:
+        known_component_types = {
+            str(template.get("component_type") or "").strip()
+            for template in (pack.get("template_library") or [])
+            if isinstance(template, dict)
+        }
+        unknown_component_types = sorted(requested_component_types - known_component_types)
+        if unknown_component_types:
+            return {
+                "ok": False,
+                "error": "Unknown biome template component_types requested.",
+                "unknown_component_types": unknown_component_types,
+            }
+    if not _gemini_api_key():
+        return {
+            "ok": False,
+            "error": "GEMINI_API_KEY is not set. Add it to .env.local in the project root and restart the Sprite Workbench server.",
+            "used_ai": False,
+            "biome_id": biome_id,
+            "component_types": sorted(requested_component_types) if requested_component_types else [],
+            "results": [],
+        }
     results: List[Dict[str, Any]] = []
     used_ai = False
-    for template in pack.get("template_library") or []:
-        if not isinstance(template, dict):
-            continue
+    generated_component_paths: Dict[str, Path] = {}
+    ephemeral_refs: List[Path] = []
+    templates = [
+        template
+        for template in (pack.get("template_library") or [])
+        if isinstance(template, dict)
+    ]
+    templates.sort(key=lambda item: (_biome_component_generation_order(str(item.get("component_type") or "").strip()), str(item.get("component_type") or "").strip()))
+    for template in templates:
         component_type = str(template.get("component_type") or "").strip()
+        if requested_component_types and component_type not in requested_component_types:
+            continue
+        frozen_paths = _biome_generation_frozen_reference_paths(project, project_dir, pack, direction, component_type)
         rel_path = Path(str(template.get("image_path") or "").strip())
         if not component_type or not rel_path.parts:
             results.append({"component_type": component_type or "?", "ok": False, "error": "missing template path"})
@@ -3222,18 +4598,160 @@ def generate_biome_pack_visuals(project_id: str, payload: Dict[str, Any]) -> Dic
                 results.append({"component_type": component_type, "ok": False, "error": "unknown dimensions"})
                 continue
         transparent = str(template.get("transparency_mode") or "opaque") == "alpha"
-        refs: List[Path] = []
-        if abs_path.exists():
-            refs.append(abs_path)
+        refs: List[Path] = _biome_generation_reference_paths(component_type, abs_path, project_dir, direction)
+        if component_type == "foreground_frame":
+            ephemeral_refs.extend(path for path in refs if ".tmp_biome_generation_refs" in str(path))
+        structural_anchor_refs = _biome_structural_reference_paths(component_type, pack, project_dir, generated_component_paths)
+        if component_type == "foreground_frame" and not _foreground_frame_should_use_structural_sibling_refs():
+            structural_anchor_refs = []
+        for path in structural_anchor_refs:
+            if path not in refs:
+                refs.append(path)
         for path in frozen_paths:
             if path not in refs:
                 refs.append(path)
-        prompt = _build_biome_template_prompt(component_type, direction, extra)
-        ok = _generate_bespoke_component_from_references(abs_path, prompt, refs, (w, h), transparent)
+        prompt_extra = extra
+        if structural_anchor_refs:
+            anchor_note = (
+                "Use the referenced structural images as direct material and proportion anchors. "
+                "Match their stone family, thickness language, and edge treatment so this component reads like the same foreground kit."
+            )
+            prompt_extra = f"{prompt_extra}\n{anchor_note}".strip() if prompt_extra else anchor_note
+        prompt = _build_biome_template_prompt(component_type, direction, prompt_extra)
+        generation_output_path = abs_path
+        foreground_frame_raw_path: Optional[Path] = None
+        if component_type == "foreground_frame":
+            generation_output_path = _foreground_frame_staging_path(project_dir)
+            foreground_frame_raw_path = _foreground_frame_raw_candidate_path(generation_output_path)
+            existed_before = generation_output_path.exists()
+            hash_before = _file_sha256(generation_output_path)
+            if existed_before:
+                generation_output_path.unlink()
+            if foreground_frame_raw_path.exists():
+                foreground_frame_raw_path.unlink()
+        elif component_type in {"border_piece", "wall_piece", "ceiling_piece", "primary_floor_piece"}:
+            generation_output_path = _structural_biome_staging_path(project_dir, component_type)
+            existed_before = generation_output_path.exists()
+            hash_before = _file_sha256(generation_output_path)
+            if existed_before:
+                generation_output_path.unlink()
+        else:
+            existed_before = False
+            hash_before = None
+        attempt_prompt = prompt
+        ok = _generate_bespoke_component_from_references(
+            generation_output_path,
+            attempt_prompt,
+            refs,
+            (w, h),
+            transparent,
+            component_type=component_type,
+        )
         if ok:
+            used_ai = True
+        if component_type == "foreground_frame":
+            _write_foreground_frame_attempt_trace(
+                project_dir,
+                attempt_index=0,
+                prompt=attempt_prompt,
+                refs=refs,
+                output_path=generation_output_path,
+                existed_before=existed_before,
+                hash_before=hash_before,
+                generation_ok=ok,
+                direction=direction,
+            )
+        if ok:
+            if component_type in {"foreground_frame", "border_piece", "wall_piece", "ceiling_piece", "primary_floor_piece"}:
+                fallback_probe_path = foreground_frame_raw_path if foreground_frame_raw_path and foreground_frame_raw_path.exists() else generation_output_path
+                if component_type == "foreground_frame" and _foreground_frame_matches_fallback_seed(fallback_probe_path, direction):
+                    source_valid, source_errors = False, ["foreground_frame_matches_fallback_seed"]
+                else:
+                    source_valid, source_errors = _validate_structural_biome_source(component_type, generation_output_path, project_dir)
+                if not source_valid:
+                    retry_prompt = _retry_prompt_for_validation_errors(component_type, attempt_prompt, source_errors, 0)
+                    if retry_prompt:
+                        if generation_output_path.exists():
+                            generation_output_path.unlink()
+                        ok = _generate_bespoke_component_from_references(
+                            generation_output_path,
+                            retry_prompt,
+                            refs,
+                            (w, h),
+                            transparent,
+                            component_type=component_type,
+                        )
+                        if ok:
+                            used_ai = True
+                        if component_type == "foreground_frame":
+                            _write_foreground_frame_attempt_trace(
+                                project_dir,
+                                attempt_index=1,
+                                prompt=retry_prompt,
+                                refs=refs,
+                                output_path=generation_output_path,
+                                existed_before=False,
+                                hash_before=None,
+                                generation_ok=ok,
+                                direction=direction,
+                            )
+                        if ok:
+                            fallback_probe_path = foreground_frame_raw_path if foreground_frame_raw_path and foreground_frame_raw_path.exists() else generation_output_path
+                            if component_type == "foreground_frame" and _foreground_frame_matches_fallback_seed(fallback_probe_path, direction):
+                                source_valid, source_errors = False, ["foreground_frame_matches_fallback_seed"]
+                            else:
+                                source_valid, source_errors = _validate_structural_biome_source(component_type, generation_output_path, project_dir)
+                        if component_type == "foreground_frame":
+                            _write_foreground_frame_attempt_trace(
+                                project_dir,
+                                attempt_index=1,
+                                prompt=retry_prompt,
+                                refs=refs,
+                                output_path=generation_output_path,
+                                existed_before=False,
+                                hash_before=None,
+                                generation_ok=ok,
+                                direction=direction,
+                                validation_errors=source_errors if ok else ["gemini_image_generation_failed"],
+                            )
+                if not source_valid:
+                    if component_type == "foreground_frame":
+                        _write_foreground_frame_attempt_trace(
+                            project_dir,
+                            attempt_index=0,
+                            prompt=attempt_prompt,
+                            refs=refs,
+                            output_path=generation_output_path,
+                            existed_before=existed_before,
+                            hash_before=hash_before,
+                            generation_ok=ok,
+                            direction=direction,
+                            validation_errors=source_errors,
+                        )
+                    rejected_dump = _dump_rejected_foreground_frame_candidate(project_dir, generation_output_path) if component_type == "foreground_frame" else _dump_rejected_structural_candidate(project_dir, component_type, generation_output_path)
+                    if generation_output_path.exists():
+                        generation_output_path.unlink()
+                    if foreground_frame_raw_path and foreground_frame_raw_path.exists():
+                        foreground_frame_raw_path.unlink()
+                    results.append({
+                        "component_type": component_type,
+                        "ok": False,
+                        "path": rel_path.as_posix(),
+                        "error": f"{component_type}_source_invalid",
+                        "validation_errors": source_errors,
+                        "debug_rejected_candidate_path": (
+                            str(rejected_dump.relative_to(project_dir).as_posix())
+                            if rejected_dump and rejected_dump.exists()
+                            else None
+                        ),
+                    })
+                    continue
+                shutil.move(str(generation_output_path), str(abs_path))
+                if foreground_frame_raw_path and foreground_frame_raw_path.exists():
+                    foreground_frame_raw_path.unlink()
             if component_type == "door_piece" and transparent:
                 _apply_door_cutout_alpha(Image.open(abs_path).convert("RGBA")).save(abs_path)
-            used_ai = True
+            generated_component_paths[component_type] = abs_path
             template["biome_visual_generated_at"] = now_iso()
             template["source_template_kind"] = "gemini_biome"
             template["source_template_path"] = None
@@ -3253,13 +4771,27 @@ def generate_biome_pack_visuals(project_id: str, payload: Dict[str, Any]) -> Dic
         "type": "biome_pack_visuals_generated",
         "created_at": now_iso(),
         "biome_id": biome_id,
+        "component_types": sorted(requested_component_types) if requested_component_types else None,
         "used_ai": used_ai,
         "results": copy.deepcopy(results),
     })
+    for path in ephemeral_refs:
+        try:
+            if path.exists():
+                path.unlink()
+        except Exception:
+            pass
+    tmp_root = project_dir / ".tmp_biome_generation_refs"
+    try:
+        if tmp_root.exists() and not any(tmp_root.iterdir()):
+            tmp_root.rmdir()
+    except Exception:
+        pass
     return {
         "ok": True,
         "used_ai": used_ai,
         "biome_id": biome_id,
+        "component_types": sorted(requested_component_types) if requested_component_types else [],
         "results": results,
         "art_direction": copy.deepcopy(direction),
     }
@@ -3272,6 +4804,15 @@ def _seed_biome_template_asset(output_path: Path, component_type: str, palette: 
         return
     if component_type == "midground_frame":
         _fallback_midground_asset(output_path, palette, shell_family)
+        return
+    if component_type == "foreground_frame":
+        _fallback_foreground_frame_asset(output_path, palette, flags, shell_family)
+        return
+    if component_type == "wall_piece":
+        _fallback_tile_asset(output_path, palette, (512, 1200), "wall", flags, shell_family)
+        return
+    if component_type == "ceiling_piece":
+        _fallback_ceiling_asset(output_path, palette, shell_family)
         return
     if component_type == "primary_floor_piece":
         _fallback_tile_asset(output_path, palette, (512, 96), "floor", flags, shell_family)
@@ -3337,6 +4878,7 @@ def _attach_default_biome_pack(project: Dict[str, Any], direction: Dict[str, Any
             "source_template_kind": source_kind,
             "source_template_path": source_rel,
         })
+    _append_pending_border_first_templates(template_library, biome_id, direction)
     direction["biome_packs"] = [{
         "biome_id": biome_id,
         "label": _default_biome_label(direction),
@@ -3348,6 +4890,7 @@ def _attach_default_biome_pack(project: Dict[str, Any], direction: Dict[str, Any
         },
         "locked_concept_ids": [str(item.get("concept_id") or "").strip() for item in (direction.get("frozen_concepts") or []) if str(item.get("concept_id") or "").strip()],
         "template_library": template_library,
+        "border_first_contract": _normalize_border_first_contract(None, template_library),
         "version": 1,
         "locked": True,
         "updated_at": now_iso(),
@@ -3468,6 +5011,8 @@ def generate_room_environment_previews(project_id: str, room_id: str, payload: D
         "schema_version": 2,
         "status": "idle",
         "biome_id": None,
+        "border_first_contract": copy.deepcopy(direction.get("biome_packs", [{}])[0].get("border_first_contract") if (direction.get("biome_packs") or [{}])[0] else _normalize_border_first_contract(None)),
+        "next_generation_contract": _border_first_generation_contract(),
         "source_preview_id": None,
         "generation_plan": [],
         "required_slots": [],
@@ -3583,6 +5128,8 @@ def _room_component_plan(room: Dict[str, Any], preview_id: str, biome_pack: Dict
     pit_regions = _pit_regions(room, width, height)
     plan: List[Dict[str, Any]] = []
     background_template = _template_by_component(biome_pack, "background_plate")
+    wall_template = _template_by_component(biome_pack, "wall_piece") or background_template
+    ceiling_template = _template_by_component(biome_pack, "ceiling_piece") or wall_template or background_template
     if background_template:
         slot_spec = _slot_spec("background_far_plate")
         plan.append({
@@ -3616,17 +5163,37 @@ def _room_component_plan(room: Dict[str, Any], preview_id: str, biome_pack: Dict
             "protected_zones": [{"type": "main_route", "x": int(width * 0.3), "y": 0, "width": int(width * 0.4), "height": height}],
             "local_geometry": {"room_width": width, "room_height": height},
         })
-    if background_template:
-        for side, x in (("left", 0), ("right", max(0, width - 320))):
+    if ceiling_template:
+        ceiling_height = max(128, int(round(height * 0.18)))
+        ceiling_spec = _slot_spec("ceiling_band")
+        plan.append({
+            "slot_id": f"{room_id}-ceiling",
+            "component_type": "ceiling_band",
+            "schema_key": ceiling_spec["schema_key"],
+            "source_template_id": ceiling_template["template_id"],
+            "target_dimensions": {"width": width, "height": ceiling_height},
+            "placement": {"x": int(width / 2), "y": 0, "display_width": width, "display_height": ceiling_height, "origin_x": 0.5, "origin_y": 0},
+            "orientation": "horizontal",
+            "tile_mode": ceiling_spec["tile_mode"],
+            "border_treatment": "ceiling_cap",
+            "slot_group": ceiling_spec["slot_group"],
+            "protected_zones": [{"type": "center_lane", "x": int(width * 0.25), "y": 0, "width": int(width * 0.5), "height": height}],
+            "local_geometry": {"room_width": width, "room_height": height},
+        })
+    if wall_template:
+        wall_module_width = max(320, int(round(width * 0.19)))
+        wall_module_height = max(320, height - 180)
+        wall_base_width = max(256, int(round(width * 0.15)))
+        for side, x in (("left", 0), ("right", max(0, width - wall_module_width))):
             slot_type = f"wall_module_{side}"
             slot_spec = _slot_spec(slot_type)
             plan.append({
                 "slot_id": f"{room_id}-wall-module-{side}",
                 "component_type": slot_type,
                 "schema_key": slot_spec["schema_key"],
-                "source_template_id": background_template["template_id"],
-                "target_dimensions": {"width": 320, "height": max(320, height - 240)},
-                "placement": {"x": x, "y": 120, "display_width": 320, "display_height": max(320, height - 240), "origin_x": 0, "origin_y": 0},
+                "source_template_id": wall_template["template_id"],
+                "target_dimensions": {"width": wall_module_width, "height": wall_module_height},
+                "placement": {"x": x, "y": 0, "display_width": wall_module_width, "display_height": wall_module_height, "origin_x": 0, "origin_y": 0},
                 "orientation": "vertical",
                 "tile_mode": slot_spec["tile_mode"],
                 "border_treatment": "dark_outer_edge",
@@ -3640,9 +5207,9 @@ def _room_component_plan(room: Dict[str, Any], preview_id: str, biome_pack: Dict
                 "slot_id": f"{room_id}-wall-base-{side}",
                 "component_type": trim_type,
                 "schema_key": trim_spec["schema_key"],
-                "source_template_id": background_template["template_id"],
-                "target_dimensions": {"width": 256, "height": 160},
-                "placement": {"x": 0 if side == "left" else max(0, width - 256), "y": max(0, height - 220), "display_width": 256, "display_height": 160, "origin_x": 0, "origin_y": 0},
+                "source_template_id": wall_template["template_id"],
+                "target_dimensions": {"width": wall_base_width, "height": 160},
+                "placement": {"x": 0 if side == "left" else max(0, width - wall_base_width), "y": max(0, height - 220), "display_width": wall_base_width, "display_height": 160, "origin_x": 0, "origin_y": 0},
                 "orientation": "horizontal",
                 "tile_mode": trim_spec["tile_mode"],
                 "border_treatment": "base_trim",
@@ -3650,7 +5217,7 @@ def _room_component_plan(room: Dict[str, Any], preview_id: str, biome_pack: Dict
                 "protected_zones": [{"type": "floor_lane", "x": int(width * 0.22), "y": int(height * 0.7), "width": int(width * 0.56), "height": int(height * 0.3)}],
                 "local_geometry": {"side": side, "room_width": width, "room_height": height},
             })
-    floor_template = _template_by_component(biome_pack, "primary_floor_piece")
+    floor_template = _template_by_component(biome_pack, "primary_floor_piece") or wall_template
     if floor_template and primary_floor:
         primary_floor_face_height = 64
         top_spec = _slot_spec("main_floor_top")
@@ -3683,7 +5250,7 @@ def _room_component_plan(room: Dict[str, Any], preview_id: str, biome_pack: Dict
             "protected_zones": [{"type": "platform_top", "x": primary_floor["x"], "y": primary_floor["y"] - 18, "width": primary_floor["width"], "height": 22}],
             "local_geometry": primary_floor,
         })
-    platform_template = _template_by_component(biome_pack, "hero_platform_piece")
+    platform_template = _template_by_component(biome_pack, "hero_platform_piece") or floor_template
     for index, platform in enumerate(hero_platforms[:3]):
         if not platform_template:
             break
@@ -3735,14 +5302,15 @@ def _room_component_plan(room: Dict[str, Any], preview_id: str, biome_pack: Dict
             "protected_zones": [{"type": "door_mouth", "x": int(active_door.get("x") or 0) - 48, "y": int(active_door.get("y") or 0) - 144, "width": 96, "height": 160}],
             "local_geometry": {"door_id": str(active_door.get("id") or ""), "x": int(active_door.get("x") or 0), "y": int(active_door.get("y") or 0)},
         })
-    if floor_template:
+    pit_template = _template_by_component(biome_pack, "primary_floor_piece") or floor_template
+    if pit_template:
         for index, pit in enumerate(pit_regions):
             rim_spec = _slot_spec("pit_rim")
             plan.append({
                 "slot_id": f"{room_id}-pit-rim-{index + 1}",
                 "component_type": "pit_rim",
                 "schema_key": rim_spec["schema_key"],
-                "source_template_id": floor_template["template_id"],
+                "source_template_id": pit_template["template_id"],
                 "target_dimensions": {"width": pit["width"], "height": 96},
                 "placement": {"x": pit["x"], "y": pit["y"], "display_width": pit["width"], "display_height": 96, "origin_x": 0, "origin_y": 0},
                 "orientation": "horizontal",
@@ -3787,31 +5355,51 @@ def _build_bespoke_prompt(direction: Dict[str, Any], spec: Dict[str, Any], plan_
             "Build only the far-depth hall shell. The image must read as enclosing architecture, not a scenic key art moment. "
             "Treat the approved room preview as context only and explicitly reject carryover of any altar, brazier energy, shrine focal landmark, center dais, near framing, "
             "or pasted-in floor strip from that preview. Use walls, arches, pillars, recesses, and bay rhythm to create a readable room shell with calm depth falloff and an open center lane. "
-            "Keep the center dimmer than the sides, but not empty fog; it should still show a dark recess, arch, or wall structure."
+            "Keep the center dimmer than the sides, but not empty fog; it should still show a dark recess, arch, or wall structure. "
+            "Prioritize visible enclosing wall faces in the outer thirds and reduce the feeling of a huge open cathedral void. The room should read as a tighter dungeon passage shell, not a vast ceremonial nave. "
+            "Do not let one giant central gothic arch dominate the image. The center should feel like a narrower distant recess or corridor mouth framed by heavier side masses, not a grand nave opening. "
+            "Do not open the roof into a bright skylight or exterior breach. The upper shell should stay enclosed, dark, and interior-facing."
+            "Avoid a broad bright fog bank across the lower half; mist can exist, but lower wall structure and rear floor depth still need to read behind it. "
+            "Favor continuous side-wall enclosure and a darker rear chamber body over decorative floating arches."
         ),
         "midground_side_frame": (
             "Build only side framing. Keep the center fully open and calm. Restrict arches, columns, and side mass to the left and right edges so the middle third stays clear. "
             "No center object, no floor plane, no bridge, no hanging focal prop, and nothing that closes the room shell across the playable route."
         ),
         "wall_module_left": (
-            "Build a structural left wall module only. This is readable enclosure architecture, not scenic concept art. Preserve room-shell mass, bay rhythm, base trim anchoring, and darker outer edges."
+            "Build a structural left wall module only. This must read as solid opaque enclosure stone, not scenic concept art and not a doorway, recess, or window. "
+            "Use one broad wall face with shallow masonry relief only. Keep the silhouette simple and block-like. "
+            "No arch cutout, no pointed recess, no buttress icon, no internal frame, and no visible opening. "
+            "Prioritize a heavy continuous stone mass with restrained block seams and a darker outer edge."
         ),
         "wall_module_right": (
-            "Build a structural right wall module only. This is readable enclosure architecture, not scenic concept art. Preserve room-shell mass, bay rhythm, base trim anchoring, and darker outer edges."
+            "Build a structural right wall module only. This must read as solid opaque enclosure stone, not scenic concept art and not a doorway, recess, or window. "
+            "Use one broad wall face with shallow masonry relief only. Keep the silhouette simple and block-like. "
+            "No arch cutout, no pointed recess, no buttress icon, no internal frame, and no visible opening. "
+            "Prioritize a heavy continuous stone mass with restrained block seams and a darker outer edge."
         ),
         "wall_base_trim_left": (
-            "Build a left wall base trim that structurally ties the walls into the floor language. Keep it calm, modular, and avoid scenic perspective."
+            "Build a left wall base trim that structurally ties the walls into the floor language. Keep it calm, modular, and avoid scenic perspective. "
+            "It should feel like the lower left corner of a chamber border, not a loose decorative foot. "
+            "Make the trim read as a continuous footing that locks the wall into the floor mass."
         ),
         "wall_base_trim_right": (
-            "Build a right wall base trim that structurally ties the walls into the floor language. Keep it calm, modular, and avoid scenic perspective."
+            "Build a right wall base trim that structurally ties the walls into the floor language. Keep it calm, modular, and avoid scenic perspective. "
+            "It should feel like the lower right corner of a chamber border, not a loose decorative foot. "
+            "Make the trim read as a continuous footing that locks the wall into the floor mass."
         ),
         "main_floor_top": (
             "Make this floor feel structural to the same room shell as the walls and background, using the same stone family, wear language, and value range. "
             "Preserve a clean readable top lip, straight side-view silhouette, and shallow underside detail. Keep patterning quiet and modular. "
-            "Do not introduce a giant circular ritual graphic, shrine motif, brazier base, or deep scenic perspective unless the entire room is explicitly built around that concept."
+            "Do not introduce a giant circular ritual graphic, shrine motif, brazier base, or deep scenic perspective unless the entire room is explicitly built around that concept. "
+            "This should read as the upper edge of a chamber border that contains the play space, not a floating decorative slab. "
+            "Keep the traversal lip relatively thin, bright enough to read, and continuous across the span. "
+            "The lip should be visibly lighter than the face beneath it so the chamber border reads immediately."
         ),
         "main_floor_face": (
-            "Build only the floor face plane beneath the traversal top. Preserve face separation, modular seams, and restrained underside darkening. No scenic perspective and no ritual floor graphic."
+            "Build only the floor face plane beneath the traversal top. Preserve face separation, modular seams, and restrained underside darkening. No scenic perspective and no ritual floor graphic. "
+            "The face should feel like a heavy retaining border wall supporting the room, with enough mass to anchor the whole chamber. "
+            "Favor broad darker masonry blocks and vertical weight so the room feels held inside a solid border."
         ),
         "hero_platform_top": (
             "Preserve a crisp horizontal traversal surface that belongs to the same architectural family as the primary floor and enclosing shell. "
@@ -3966,38 +5554,95 @@ def _stylize_structural_component(source: Image.Image, component_type: Optional[
         return source
     image = source.convert("RGBA")
     width, height = image.size
-    if component_type in {"wall_module_left", "wall_module_right", "wall_base_trim_left", "wall_base_trim_right"}:
-        overlay = Image.new("RGBA", image.size, (0, 0, 0, 0))
-        draw = ImageDraw.Draw(overlay)
-        is_left = "left" in component_type
-        outer_band = max(10, int(width * 0.2))
-        inner_band = max(8, int(width * 0.12))
-        if is_left:
-            draw.rectangle((0, 0, outer_band, height), fill=(8, 10, 14, 132))
-            draw.rectangle((outer_band, 0, min(width, outer_band + inner_band), height), fill=(120, 132, 146, 28))
-        else:
-            draw.rectangle((max(0, width - outer_band), 0, width, height), fill=(8, 10, 14, 132))
-            draw.rectangle((max(0, width - outer_band - inner_band), 0, max(0, width - outer_band), height), fill=(120, 132, 146, 28))
-        draw.rectangle((0, 0, width, max(20, int(height * 0.08))), fill=(6, 8, 12, 72))
-        draw.rectangle((0, max(0, height - max(18, int(height * 0.06))), width, height), fill=(6, 8, 12, 96))
-        image.alpha_composite(overlay)
+    def sample_average(box: Tuple[int, int, int, int]) -> Tuple[int, int, int]:
+        region = image.crop(box).convert("RGB")
+        pixels = list(region.getdata())
+        if not pixels:
+            return (40, 46, 52)
+        count = len(pixels)
+        return (
+            sum(px[0] for px in pixels) // count,
+            sum(px[1] for px in pixels) // count,
+            sum(px[2] for px in pixels) // count,
+        )
+
+    def stylize_block_masonry(
+        block_width: int,
+        row_height: int,
+        *,
+        darker: int = 0,
+        seam_alpha: int = 92,
+        vertical_jitter: int = 0,
+        lip_height: int = 0,
+        lip_alpha: int = 0,
+    ) -> Image.Image:
+        masonry = Image.new("RGBA", image.size, (0, 0, 0, 255))
+        draw = ImageDraw.Draw(masonry)
+        y = 0
+        row_index = 0
+        while y < height:
+            current_height = min(row_height, height - y)
+            offset = 0 if row_index % 2 == 0 else block_width // 2
+            x = -offset
+            while x < width:
+                left = max(0, x)
+                right = min(width, x + block_width)
+                if right > left:
+                    color = sample_average((left, y, right, y + current_height))
+                    color = tuple(max(12, min(255, channel - darker)) for channel in color)
+                    draw.rectangle((left, y, right, y + current_height), fill=(*color, 255))
+                    draw.rectangle((left, y, right, y + current_height), outline=(18, 22, 26, seam_alpha), width=max(1, width // 320))
+                x += block_width
+            y += current_height
+            row_index += 1
+        if lip_height > 0 and lip_alpha > 0:
+            draw.rectangle((0, 0, width, min(height, lip_height)), fill=(208, 220, 230, lip_alpha))
+        if vertical_jitter > 0:
+            overlay = Image.new("RGBA", image.size, (0, 0, 0, 0))
+            overlay_draw = ImageDraw.Draw(overlay)
+            step = max(28, block_width // 2)
+            for seam_x in range(step, width, step):
+                wobble = ((seam_x // step) % 3 - 1) * vertical_jitter
+                overlay_draw.line((seam_x, max(0, 8 + wobble), seam_x, height), fill=(14, 18, 22, 48), width=max(1, width // 360))
+            masonry.alpha_composite(overlay)
+        return masonry
+
+    if component_type in {"wall_module_left", "wall_module_right", "wall_base_trim_left", "wall_base_trim_right", "ceiling_band"}:
         return image
     if component_type in {"main_floor_face", "hero_platform_face", "pit_interior"}:
-        softened = image.filter(ImageFilter.GaussianBlur(radius=max(1, int(width * 0.01))))
-        toned = Image.blend(image, softened, 0.42)
+        toned = stylize_block_masonry(
+            block_width=max(54, int(width * 0.1)),
+            row_height=max(22, int(height * 0.22)),
+            darker=24 if component_type == "main_floor_face" else 18,
+            seam_alpha=104,
+            vertical_jitter=2,
+        )
         overlay = Image.new("RGBA", image.size, (0, 0, 0, 0))
         draw = ImageDraw.Draw(overlay)
-        draw.rectangle((0, 0, width, max(12, int(height * 0.16))), fill=(18, 24, 30, 40))
-        draw.rectangle((0, max(0, int(height * 0.18)), width, height), fill=(8, 10, 14, 82))
-        seam_step = max(32, int(width * 0.14))
-        seam_top = max(8, int(height * 0.12))
+        draw.rectangle((0, 0, width, max(12, int(height * 0.14))), fill=(18, 24, 30, 36))
+        draw.rectangle((0, max(0, int(height * 0.12)), width, height), fill=(8, 10, 14, 108))
+        draw.rectangle((0, max(0, int(height * 0.56)), width, height), fill=(4, 6, 10, 74))
+        seam_step = max(28, int(width * 0.12))
+        seam_top = max(8, int(height * 0.08))
         for x in range(seam_step, width, seam_step):
-            draw.line((x, seam_top, x, height), fill=(132, 144, 156, 26), width=max(1, width // 256))
-        for y in range(max(18, int(height * 0.22)), height, max(18, int(height * 0.24))):
-            draw.line((0, y, width, y), fill=(10, 12, 16, 34), width=max(1, height // 72))
+            draw.line((x, seam_top, x, height), fill=(116, 128, 140, 32), width=max(1, width // 240))
+        for y in range(max(18, int(height * 0.18)), height, max(18, int(height * 0.2))):
+            draw.line((0, y, width, y), fill=(10, 12, 16, 36), width=max(1, height // 72))
+        if component_type == "main_floor_face":
+            corner_pad = max(28, int(width * 0.1))
+            draw.rectangle((0, 0, corner_pad, height), fill=(10, 12, 16, 56))
+            draw.rectangle((max(0, width - corner_pad), 0, width, height), fill=(10, 12, 16, 56))
         toned.alpha_composite(overlay)
         return toned
     if component_type in {"main_floor_top", "hero_platform_top", "pit_rim"}:
+        image = stylize_block_masonry(
+            block_width=max(40, int(width * 0.08)),
+            row_height=max(10, int(height * 0.42)),
+            darker=10,
+            seam_alpha=88,
+            lip_height=max(5, int(height * 0.18)),
+            lip_alpha=48,
+        )
         overlay = Image.new("RGBA", image.size, (0, 0, 0, 0))
         draw = ImageDraw.Draw(overlay)
         lip = max(5, int(height * 0.18))
@@ -4010,6 +5655,179 @@ def _stylize_structural_component(source: Image.Image, component_type: Optional[
         image.alpha_composite(overlay)
         return image
     return image
+
+
+def _structural_palette(source: Image.Image) -> Dict[str, Tuple[int, int, int]]:
+    rgb = source.convert("RGB").resize((48, 48), Image.Resampling.LANCZOS)
+    pixels = list(rgb.getdata())
+    if not pixels:
+        return {
+            "dark": (18, 22, 26),
+            "mid": (52, 60, 68),
+            "light": (108, 118, 126),
+        }
+    luminance_sorted = sorted(
+        pixels,
+        key=lambda px: (0.2126 * px[0]) + (0.7152 * px[1]) + (0.0722 * px[2]),
+    )
+    def avg(bucket: List[Tuple[int, int, int]]) -> Tuple[int, int, int]:
+        if not bucket:
+            return (40, 46, 52)
+        count = len(bucket)
+        return (
+            sum(px[0] for px in bucket) // count,
+            sum(px[1] for px in bucket) // count,
+            sum(px[2] for px in bucket) // count,
+        )
+    dark_bucket = luminance_sorted[: max(1, len(luminance_sorted) // 4)]
+    light_bucket = luminance_sorted[-max(1, len(luminance_sorted) // 5):]
+    mid_start = len(luminance_sorted) // 3
+    mid_end = max(mid_start + 1, len(luminance_sorted) * 2 // 3)
+    mid_bucket = luminance_sorted[mid_start:mid_end]
+    return {
+        "dark": avg(dark_bucket),
+        "mid": avg(mid_bucket),
+        "light": avg(light_bucket),
+    }
+
+
+def _structural_source_component_type_for_slot(component_type: str) -> str:
+    if component_type in {"wall_module_left", "wall_module_right", "wall_base_trim_left", "wall_base_trim_right"}:
+        return "wall_piece"
+    if component_type == "ceiling_band":
+        return "ceiling_piece"
+    if component_type in {"main_floor_top", "main_floor_face", "pit_rim"}:
+        return "primary_floor_piece"
+    return component_type
+
+
+def _normalized_structural_template_source(component_type: str, template_source: Image.Image) -> Image.Image:
+    source_component = _structural_source_component_type_for_slot(component_type)
+    palette = _structural_palette(template_source)
+    fallback_palette = {
+        "dominant": [_rgb_to_hex(palette["dark"]), _rgb_to_hex(palette["mid"])],
+        "accent": [_rgb_to_hex(palette["light"])],
+    }
+    flags: Dict[str, bool] = {}
+    with tempfile.TemporaryDirectory() as tmpdir:
+        path = Path(tmpdir) / f"{source_component}.png"
+        if source_component == "wall_piece":
+            _fallback_tile_asset(path, fallback_palette, (512, 1200), "wall", flags, "weathered_stone")
+        elif source_component == "ceiling_piece":
+            _fallback_ceiling_asset(path, fallback_palette, "weathered_stone")
+        elif source_component == "primary_floor_piece":
+            _fallback_tile_asset(path, fallback_palette, (512, 96), "floor", flags, "weathered_stone")
+        else:
+            return template_source.convert("RGBA")
+        return Image.open(path).convert("RGBA")
+
+
+def _structural_texture_wash(template_source: Image.Image, size: Tuple[int, int], component_type: str) -> Image.Image:
+    texture = template_source.convert("RGBA").resize(size, Image.Resampling.LANCZOS)
+    blur_radius = max(2, int(min(size) * 0.018))
+    if component_type in {"wall_module_left", "wall_module_right", "wall_base_trim_left", "wall_base_trim_right"}:
+        blur_radius = max(4, int(min(size) * 0.028))
+    texture = texture.filter(ImageFilter.GaussianBlur(radius=blur_radius))
+    alpha = 48
+    if component_type == "ceiling_band":
+        alpha = 60
+    elif component_type in {"main_floor_top", "main_floor_face", "pit_rim"}:
+        alpha = 54
+    texture.putalpha(alpha)
+    return texture
+
+
+def _render_synthetic_structural_component(size: Tuple[int, int], component_type: str, template_source: Image.Image) -> Image.Image:
+    width, height = size
+    material_source = _normalized_structural_template_source(component_type, template_source)
+    palette = _structural_palette(material_source)
+    image = Image.new("RGBA", size, (*palette["mid"], 255))
+    draw = ImageDraw.Draw(image)
+
+    def finish(rendered: Image.Image) -> Image.Image:
+        rendered.alpha_composite(_structural_texture_wash(material_source, size, component_type))
+        return rendered
+
+    def draw_block_courses(block_w: int, row_h: int, *, base_color: Tuple[int, int, int], seam_color: Tuple[int, int, int, int], offset_alt: bool = True) -> None:
+        row = 0
+        y = 0
+        while y < height:
+            current_h = min(row_h, height - y)
+            offset = 0 if (not offset_alt or row % 2 == 0) else block_w // 2
+            x = -offset
+            while x < width:
+                left = max(0, x)
+                right = min(width, x + block_w)
+                if right > left:
+                    inset = max(0, block_w // 10)
+                    tone_shift = ((row + max(0, x // max(1, block_w))) % 3) - 1
+                    fill = tuple(max(12, min(255, channel + (tone_shift * 8))) for channel in base_color)
+                    draw.rectangle((left, y, right, y + current_h), fill=(*fill, 255), outline=seam_color, width=2)
+                    if inset > 0 and current_h > 12:
+                        draw.line((left + inset, y + 2, right - inset, y + 2), fill=(255, 255, 255, 10), width=1)
+                x += block_w
+            y += current_h
+            row += 1
+
+    if component_type in {"wall_module_left", "wall_module_right"}:
+        draw.rectangle((0, 0, width, height), fill=(*palette["mid"], 255))
+        draw_block_courses(max(34, width // 3), max(52, height // 10), base_color=palette["mid"], seam_color=(18, 22, 26, 180))
+        is_left = component_type.endswith("left")
+        outer_edge = int(width * 0.24)
+        if is_left:
+            draw.rectangle((0, 0, outer_edge, height), fill=(*palette["dark"], 255))
+            draw.rectangle((width - max(12, width // 18), 0, width, height), fill=(12, 16, 20, 64))
+        else:
+            draw.rectangle((width - outer_edge, 0, width, height), fill=(*palette["dark"], 255))
+            draw.rectangle((0, 0, min(width, max(12, width // 18)), height), fill=(12, 16, 20, 64))
+        inner_shadow_w = max(8, int(width * 0.08))
+        if is_left:
+            draw.rectangle((max(0, width - inner_shadow_w), 0, width, height), fill=(10, 12, 16, 42))
+        else:
+            draw.rectangle((0, 0, min(width, inner_shadow_w), height), fill=(10, 12, 16, 42))
+        draw.rectangle((0, height - max(28, height // 10), width, height), fill=(10, 12, 16, 220))
+        return finish(image)
+
+    if component_type in {"wall_base_trim_left", "wall_base_trim_right"}:
+        draw.rectangle((0, 0, width, height), fill=(*palette["mid"], 255))
+        draw_block_courses(max(42, width // 4), max(26, height // 4), base_color=palette["mid"], seam_color=(16, 20, 24, 180))
+        draw.rectangle((0, 0, width, max(12, height // 6)), fill=(14, 18, 22, 180))
+        draw.rectangle((0, height - max(16, height // 5), width, height), fill=(10, 12, 16, 220))
+        is_left = component_type.endswith("left")
+        buttress_w = int(width * 0.24)
+        if is_left:
+            draw.rectangle((0, int(height * 0.08), buttress_w, height), fill=(12, 14, 18, 180))
+        else:
+            draw.rectangle((width - buttress_w, int(height * 0.08), width, height), fill=(12, 14, 18, 180))
+        return finish(image)
+
+    if component_type == "main_floor_face":
+        draw.rectangle((0, 0, width, height), fill=(*palette["mid"], 255))
+        draw_block_courses(max(72, width // 14), max(22, height // 3), base_color=palette["mid"], seam_color=(18, 22, 26, 190))
+        draw.rectangle((0, 0, width, max(10, height // 6)), fill=(24, 28, 32, 120))
+        draw.rectangle((0, height - max(12, height // 5), width, height), fill=(8, 10, 14, 210))
+        return finish(image)
+
+    if component_type == "main_floor_top":
+        draw.rectangle((0, 0, width, height), fill=(*palette["mid"], 255))
+        lip = max(4, height // 7)
+        draw.rectangle((0, 0, width, lip), fill=(*palette["light"], 255))
+        draw.rectangle((0, lip, width, min(height, lip + max(3, height // 10))), fill=(20, 24, 28, 180))
+        draw_block_courses(max(48, width // 18), max(10, height // 2), base_color=palette["mid"], seam_color=(20, 24, 28, 168), offset_alt=False)
+        return finish(image)
+    if component_type == "ceiling_band":
+        draw.rectangle((0, 0, width, height), fill=(*palette["dark"], 255))
+        cap_h = max(18, height // 6)
+        soffit_h = max(28, height // 4)
+        draw.rectangle((0, 0, width, cap_h), fill=(10, 12, 16, 255))
+        draw.rectangle((0, cap_h, width, min(height, cap_h + soffit_h)), fill=(*palette["mid"], 255))
+        draw_block_courses(max(72, width // 16), max(18, height // 3), base_color=palette["mid"], seam_color=(18, 22, 26, 180), offset_alt=False)
+        draw.rectangle((0, max(0, height - max(18, height // 5)), width, height), fill=(16, 20, 24, 120))
+        for x in range(max(40, width // 18), width, max(40, width // 9)):
+            draw.rectangle((x, cap_h, min(width, x + max(12, width // 64)), height), fill=(16, 20, 24, 140))
+        return finish(image)
+
+    return _stylize_structural_component(material_source.resize(size, Image.Resampling.LANCZOS), component_type)
 
 
 def _apply_background_suppression(source: Image.Image, aggressive: bool = False) -> Image.Image:
@@ -4034,7 +5852,18 @@ def _apply_background_suppression(source: Image.Image, aggressive: bool = False)
     floor_top = int(height * (0.68 if aggressive else 0.74))
     draw.rounded_rectangle((floor_left, floor_top, floor_right, height), radius=max(20, int(width * 0.05)), fill=255)
     floor_mask = floor_mask.filter(ImageFilter.GaussianBlur(radius=max(18, int(width * 0.03))))
-    source = Image.composite(Image.new("RGBA", source.size, (78, 90, 100, 236 if aggressive else 196)), source, floor_mask)
+    source = Image.composite(Image.new("RGBA", source.size, (34, 42, 50, 212 if aggressive else 172)), source, floor_mask)
+
+    lower_reveal_mask = Image.new("L", source.size, 0)
+    draw = ImageDraw.Draw(lower_reveal_mask)
+    reveal_top = int(height * (0.60 if aggressive else 0.66))
+    draw.rounded_rectangle(
+        (int(width * 0.16), reveal_top, int(width * 0.84), int(height * 0.9)),
+        radius=max(18, int(width * 0.04)),
+        fill=255,
+    )
+    lower_reveal_mask = lower_reveal_mask.filter(ImageFilter.GaussianBlur(radius=max(16, int(width * 0.025))))
+    source = Image.composite(Image.new("RGBA", source.size, (62, 72, 82, 88 if aggressive else 64)), source, lower_reveal_mask)
 
     hotspot_mask = Image.new("L", source.size, 0)
     draw = ImageDraw.Draw(hotspot_mask)
@@ -4065,6 +5894,23 @@ def _background_reference_guide(template_path: Path, output_path: Path, size: Tu
     return _save_reference_image(source, output_path, transparent)
 
 
+def _strip_light_matte_background(source: Image.Image, threshold: int = 220) -> Image.Image:
+    source = source.convert("RGBA")
+    pixels = source.load()
+    width, height = source.size
+    for y in range(height):
+        for x in range(width):
+            r, g, b, a = pixels[x, y]
+            if a == 0:
+                continue
+            if max(r, g, b) < threshold:
+                continue
+            if (max(r, g, b) - min(r, g, b)) > 18:
+                continue
+            pixels[x, y] = (r, g, b, 0)
+    return source
+
+
 def _restore_background_shell_definition(source: Image.Image, template_source: Optional[Image.Image] = None) -> Image.Image:
     source = source.convert("RGBA")
     width, height = source.size
@@ -4074,37 +5920,50 @@ def _restore_background_shell_definition(source: Image.Image, template_source: O
         template = template.filter(ImageFilter.GaussianBlur(radius=max(2, int(width * 0.004))))
         mask = Image.new("L", source.size, 0)
         draw = ImageDraw.Draw(mask)
-        left = int(width * 0.26)
-        right = int(width * 0.74)
         top = int(height * 0.08)
-        bottom = int(height * 0.9)
-        draw.rounded_rectangle((left, top, right, bottom), radius=max(28, int(width * 0.08)), fill=255)
+        bottom = int(height * 0.92)
+        side_band = int(width * 0.2)
+        shoulder_left = int(width * 0.08)
+        shoulder_right = int(width * 0.92)
+        center_clear_left = int(width * 0.34)
+        center_clear_right = int(width * 0.66)
+        draw.rounded_rectangle((shoulder_left, top, shoulder_left + side_band, bottom), radius=max(28, int(width * 0.06)), fill=255)
+        draw.rounded_rectangle((shoulder_right - side_band, top, shoulder_right, bottom), radius=max(28, int(width * 0.06)), fill=255)
+        draw.rounded_rectangle((int(width * 0.18), top, int(width * 0.82), int(height * 0.28)), radius=max(24, int(width * 0.08)), fill=255)
+        draw.rounded_rectangle((center_clear_left, int(height * 0.18), center_clear_right, bottom), radius=max(24, int(width * 0.06)), fill=0)
         mask = mask.filter(ImageFilter.GaussianBlur(radius=max(24, int(width * 0.035))))
-        blended = Image.blend(source, template, 0.24)
+        blended = Image.blend(source, template, 0.2)
         restored = Image.composite(blended, restored, mask)
     overlay = Image.new("RGBA", source.size, (0, 0, 0, 0))
     draw = ImageDraw.Draw(overlay)
-    band_width = max(28, int(width * 0.05))
-    band_height = int(height * 0.62)
-    band_top = int(height * 0.2)
-    for center_x in (int(width * 0.42), int(width * 0.58)):
+    band_width = max(24, int(width * 0.035))
+    band_height = int(height * 0.68)
+    band_top = int(height * 0.16)
+    for center_x in (int(width * 0.18), int(width * 0.82)):
         draw.rounded_rectangle(
             (center_x - band_width // 2, band_top, center_x + band_width // 2, band_top + band_height),
             radius=max(16, int(width * 0.025)),
-            fill=(112, 126, 138, 36),
+            fill=(92, 104, 116, 26),
         )
         draw.rectangle(
             (center_x - max(3, band_width // 12), band_top, center_x + max(3, band_width // 12), band_top + band_height),
-            fill=(54, 64, 74, 64),
+            fill=(42, 50, 58, 52),
         )
-    arch_y = int(height * 0.14)
-    arch_h = int(height * 0.22)
+    arch_y = int(height * 0.1)
+    arch_h = int(height * 0.14)
     draw.arc(
-        (int(width * 0.28), arch_y, int(width * 0.72), arch_y + arch_h),
+        (int(width * 0.06), arch_y, int(width * 0.36), arch_y + arch_h),
         180,
         360,
-        fill=(120, 134, 146, 58),
-        width=max(2, width // 480),
+        fill=(88, 100, 112, 28),
+        width=max(2, width // 520),
+    )
+    draw.arc(
+        (int(width * 0.64), arch_y, int(width * 0.94), arch_y + arch_h),
+        180,
+        360,
+        fill=(88, 100, 112, 28),
+        width=max(2, width // 520),
     )
     restored.alpha_composite(overlay)
     return restored
@@ -4158,8 +6017,65 @@ def _apply_midground_inner_edge_suppression(source: Image.Image, aggressive: boo
 
 def _midground_reference_guide(template_path: Path, output_path: Path, size: Tuple[int, int], transparent: bool, aggressive: bool = False) -> Path:
     source = Image.open(template_path).convert("RGBA").resize(size, Image.Resampling.LANCZOS)
+    source = _strip_light_matte_background(source)
     source = _apply_midground_clearance(source, aggressive=aggressive)
     return _save_reference_image(source, output_path, transparent)
+
+
+def _structural_slot_reference_guide(
+    component_type: str,
+    output_path: Path,
+    size: Tuple[int, int],
+    transparent: bool,
+    aggressive: bool = False,
+) -> Path:
+    width, height = size
+    image = Image.new("RGBA", size, (0, 0, 0, 0 if transparent else 255))
+    draw = ImageDraw.Draw(image)
+    base_fill = (54, 62, 70, 255)
+    accent_fill = (86, 96, 104, 255)
+    dark_fill = (28, 34, 40, 255)
+    if component_type in {"wall_module_left", "wall_module_right"}:
+        draw.rectangle((0, 0, width, height), fill=base_fill)
+        outer_band = max(18, int(width * 0.22))
+        bottom_band = max(24, int(height * 0.1))
+        if component_type.endswith("left"):
+            draw.rectangle((0, 0, outer_band, height), fill=dark_fill)
+            draw.rectangle((width - max(8, int(width * 0.05)), 0, width, height), fill=accent_fill)
+        else:
+            draw.rectangle((width - outer_band, 0, width, height), fill=dark_fill)
+            draw.rectangle((0, 0, max(8, int(width * 0.05)), height), fill=accent_fill)
+        draw.rectangle((0, height - bottom_band, width, height), fill=dark_fill)
+    elif component_type in {"wall_base_trim_left", "wall_base_trim_right"}:
+        draw.rectangle((0, 0, width, height), fill=base_fill)
+        draw.rectangle((0, 0, width, max(10, int(height * 0.2))), fill=accent_fill)
+        draw.rectangle((0, height - max(14, int(height * 0.24)), width, height), fill=dark_fill)
+    elif component_type == "ceiling_band":
+        draw.rectangle((0, 0, width, height), fill=dark_fill)
+        cap_h = max(16, int(height * 0.18))
+        band_h = max(30, int(height * 0.34))
+        draw.rectangle((0, cap_h, width, min(height, cap_h + band_h)), fill=base_fill)
+        draw.rectangle((0, min(height, cap_h + band_h), width, height), fill=accent_fill)
+    elif component_type == "main_floor_top":
+        draw.rectangle((0, 0, width, height), fill=base_fill)
+        lip = max(4, int(height * 0.18))
+        draw.rectangle((0, 0, width, lip), fill=accent_fill)
+        draw.rectangle((0, lip, width, min(height, lip + max(4, int(height * 0.16)))), fill=dark_fill)
+    elif component_type in {"main_floor_face", "pit_rim"}:
+        draw.rectangle((0, 0, width, height), fill=base_fill)
+        draw.rectangle((0, 0, width, max(10, int(height * 0.18))), fill=accent_fill)
+        draw.rectangle((0, height - max(10, int(height * 0.2)), width, height), fill=dark_fill)
+    elif component_type == "background_far_plate":
+        draw.rectangle((0, 0, width, height), fill=(34, 42, 50, 255))
+        side = max(64, int(width * 0.2))
+        draw.rectangle((0, 0, side, height), fill=(24, 30, 36, 255))
+        draw.rectangle((width - side, 0, width, height), fill=(24, 30, 36, 255))
+        center_left = int(width * (0.28 if aggressive else 0.3))
+        center_right = int(width * (0.72 if aggressive else 0.7))
+        center_top = int(height * 0.1)
+        center_bottom = int(height * 0.92)
+        draw.rounded_rectangle((center_left, center_top, center_right, center_bottom), radius=max(24, int(width * 0.06)), fill=(56, 66, 74, 255))
+    return _save_reference_image(image, output_path, transparent)
 
 
 def _postprocess_component_for_validation(
@@ -4213,21 +6129,27 @@ def _bespoke_reference_images_for_component(
         "wall_module_right",
         "wall_base_trim_left",
         "wall_base_trim_right",
+        "ceiling_band",
         "main_floor_top",
         "main_floor_face",
+        "pit_rim",
+        "background_far_plate",
+    }:
+        _structural_slot_reference_guide(component_type, guide_path, expected_size, transparent, aggressive=aggressive)
+        return [template_path, guide_path]
+    if component_type in {
         "hero_platform_top",
         "hero_platform_face",
         "door_frame",
-        "pit_rim",
         "pit_interior",
     }:
         if _render_bespoke_component_from_template(template_path, guide_path, expected_size, transparent, component_type):
             return [guide_path]
         return [template_path]
-    if component_type in {"background_far_plate", "midground_side_frame"}:
-        guide_builder = _background_reference_guide if component_type == "background_far_plate" else _midground_reference_guide
+    if component_type in {"midground_side_frame"}:
+        guide_builder = _midground_reference_guide
         guide_builder(template_path, guide_path, expected_size, transparent, aggressive=aggressive)
-        return [guide_path]
+        return [template_path, guide_path]
     refs: List[Path] = [template_path]
     refs.extend(path for path in frozen_refs if path != template_path)
     return refs
@@ -4243,25 +6165,65 @@ def _render_bespoke_component_from_template(
     try:
         output_path.parent.mkdir(parents=True, exist_ok=True)
         source = Image.open(template_path).convert("RGBA")
+        if component_type in {
+            "wall_module_left",
+            "wall_module_right",
+            "wall_base_trim_left",
+            "wall_base_trim_right",
+            "ceiling_band",
+            "main_floor_top",
+            "main_floor_face",
+            "pit_rim",
+        }:
+            synthetic = _render_synthetic_structural_component(size, component_type, source)
+            if not transparent:
+                flattened = Image.new("RGBA", size, (0, 0, 0, 255))
+                flattened.alpha_composite(synthetic)
+                synthetic = flattened
+            synthetic.save(output_path)
+            return True
+        if component_type == "background_far_plate":
+            source = source.resize(size, Image.Resampling.LANCZOS)
+            template_source = source.copy()
+            source = _apply_background_suppression(source, aggressive=False)
+            source = _restore_background_shell_definition(source, template_source)
+            if not transparent:
+                flattened = Image.new("RGBA", size, (0, 0, 0, 255))
+                flattened.alpha_composite(source)
+                source = flattened
+            source.save(output_path)
+            return True
+        if component_type == "midground_side_frame":
+            source = source.resize(size, Image.Resampling.LANCZOS)
+            source = _strip_light_matte_background(source)
+            source = _apply_midground_clearance(source, aggressive=False)
+            if not transparent:
+                flattened = Image.new("RGBA", size, (0, 0, 0, 255))
+                flattened.alpha_composite(source)
+                source = flattened
+            source.save(output_path)
+            return True
         crop_box = None
         if component_type == "wall_module_left":
-            crop_box = (0, 0, max(1, int(source.width * 0.22)), source.height)
+            crop_box = (0, 0, max(1, int(source.width * 0.16)), source.height)
         elif component_type == "wall_module_right":
-            crop_box = (max(0, int(source.width * 0.78)), 0, source.width, source.height)
+            crop_box = (max(0, int(source.width * 0.84)), 0, source.width, source.height)
         elif component_type == "wall_base_trim_left":
-            crop_box = (0, max(0, int(source.height * 0.72)), max(1, int(source.width * 0.24)), source.height)
+            crop_box = (0, max(0, int(source.height * 0.84)), max(1, int(source.width * 0.16)), source.height)
         elif component_type == "wall_base_trim_right":
-            crop_box = (max(0, int(source.width * 0.76)), max(0, int(source.height * 0.72)), source.width, source.height)
+            crop_box = (max(0, int(source.width * 0.84)), max(0, int(source.height * 0.84)), source.width, source.height)
+        elif component_type == "ceiling_band":
+            crop_box = (0, 0, source.width, max(1, int(source.height * 0.20)))
         elif component_type == "main_floor_top":
-            crop_box = (int(source.width * 0.18), int(source.height * 0.04), int(source.width * 0.82), max(1, int(source.height * 0.38)))
+            crop_box = (0, int(source.height * 0.90), source.width, max(1, int(source.height * 0.96)))
         elif component_type == "main_floor_face":
-            crop_box = (int(source.width * 0.18), int(source.height * 0.32), int(source.width * 0.82), source.height)
+            crop_box = (0, int(source.height * 0.94), source.width, source.height)
         elif component_type == "hero_platform_top":
-            crop_box = (int(source.width * 0.08), 0, int(source.width * 0.92), max(1, int(source.height * 0.34)))
+            crop_box = (int(source.width * 0.08), int(source.height * 0.50), int(source.width * 0.32), max(1, int(source.height * 0.56)))
         elif component_type == "hero_platform_face":
-            crop_box = (int(source.width * 0.08), int(source.height * 0.26), int(source.width * 0.92), source.height)
+            crop_box = (int(source.width * 0.08), int(source.height * 0.54), int(source.width * 0.32), max(1, int(source.height * 0.61)))
         elif component_type == "pit_rim":
-            crop_box = (int(source.width * 0.18), 0, int(source.width * 0.82), max(1, int(source.height * 0.32)))
+            crop_box = (0, int(source.height * 0.82), source.width, max(1, int(source.height * 0.90)))
         elif component_type == "pit_interior":
             crop_box = (int(source.width * 0.24), int(source.height * 0.32), int(source.width * 0.76), source.height)
         if crop_box:
@@ -4280,9 +6242,28 @@ def _render_bespoke_component_from_template(
         return False
 
 
-def _generate_bespoke_component_from_references(output_path: Path, prompt: str, refs: List[Path], size: Tuple[int, int], transparent: bool) -> bool:
+def _generate_bespoke_component_from_references(
+    output_path: Path,
+    prompt: str,
+    refs: List[Path],
+    size: Tuple[int, int],
+    transparent: bool,
+    component_type: Optional[str] = None,
+) -> bool:
+    if component_type == "foreground_frame":
+        raw_path = _foreground_frame_raw_candidate_path(output_path)
+        if raw_path.exists():
+            raw_path.unlink()
+        if _generate_image_from_references(raw_path, prompt, refs, size_hint=f"{size[0]}x{size[1]}"):
+            shutil.copyfile(raw_path, output_path)
+            _fit_foreground_frame_image_to_size(output_path, size)
+            return True
+        return False
     if _generate_image_from_references(output_path, prompt, refs, size_hint=f"{size[0]}x{size[1]}"):
-        _fit_image_to_size(output_path, size, transparent=transparent)
+        if component_type in {"border_piece", "background_far_piece", "platform_piece"}:
+            _fit_border_first_template_image_to_size(output_path, size, component_type=component_type)
+        else:
+            _fit_image_to_size(output_path, size, transparent=transparent)
         return True
     return False
 
@@ -4293,13 +6274,76 @@ def _retry_prompt_for_validation_errors(component_type: str, prompt: str, errors
     if component_type == "background_far_plate" and "center_lane_too_hot" in errors and attempt_index < 2:
         return f"{prompt}\nRetry instruction: remove the bright floor pool, center glow, ritual-circle read, and any hot apse lighting. The center third must stay dim and architecturally recessed, with visible dark stone structure rather than light bloom."
     if component_type == "background_far_plate" and "background_shell_definition_low" in errors and attempt_index < 2:
-        return f"{prompt}\nRetry instruction: strengthen shell definition with visible arches, recesses, vertical bay rhythm, and wall-mass layering. Keep the center dim, but not blank or fog-only; it still needs readable stone structure."
+        return f"{prompt}\nRetry instruction: strengthen shell definition with visible enclosing wall faces, arches, recesses, vertical bay rhythm, and wall-mass layering in the outer thirds. Reduce the feeling of a giant open nave, one dominant center arch, or a blown-open roof. Keep the center dim, but not blank or fog-only; it should read like a narrower distant recess framed by heavier side structure."
+    if component_type == "background_far_plate" and "generation_failed" not in errors and attempt_index < 2:
+        return f"{prompt}\nRetry instruction: avoid a broad bright lower fog bank. Keep the lower half moody, but preserve readable rear-floor depth and lower wall structure behind the mist."
     if component_type == "midground_side_frame" and "midground_center_clutter" in errors and attempt_index < 2:
         return f"{prompt}\nRetry instruction: the center third must be transparent and empty. Remove any center arch, center prop, center silhouette, or floor-crossing occlusion. Keep mass only on the extreme left and right."
     if component_type == "midground_side_frame" and "midground_inner_edge_hot" in errors and attempt_index < 2:
         return f"{prompt}\nRetry instruction: remove bright inner-edge columns or glowing doorway reads near the center lane. Keep any side framing dark, matte, and subordinate to traversal readability."
+    if component_type in {"wall_module_left", "wall_module_right"} and attempt_index < 2:
+        return f"{prompt}\nRetry instruction: return a flat opaque structural wall face only. Remove any recess, window, niche, arch cutout, pointed silhouette, internal black border, or doorway-like opening. Keep one broad stone slab with shallow block seams and no scenic scene read."
+    if component_type == "wall_piece" and attempt_index < 2:
+        return f"{prompt}\nRetry instruction: output one flat enclosing wall source only. Remove any doorway, window, arch cutout, niche, post, pillar, inner recess, or framed opening read. Keep the wall as one continuous opaque stone mass with restrained block rhythm."
+    if component_type == "ceiling_piece" and attempt_index < 2:
+        return f"{prompt}\nRetry instruction: output one continuous ceiling band only. Remove detached or floating blocks below the band, avoid placeholder header-bar treatment, and keep the lower edge of the ceiling cohesive and masonry-read by eye."
+    if component_type == "primary_floor_piece" and attempt_index < 2:
+        return f"{prompt}\nRetry instruction: output a flat front-facing floor source. Remove perspective top-plane cues, paving-stone recession, slab-top reads, and thick stage-lip perspective. Keep the face/front separation simple and side-view only."
+    if component_type == "border_piece" and attempt_index < 2:
+        if "border_piece_top_band_weak" in errors or "border_piece_bottom_band_weak" in errors:
+            return (
+                f"{prompt}\nRetry instruction: keep the flatter non-ornate border direction, but restore strong full-width top and bottom bands. "
+                "Do not turn the image into a vertical opening or torn wall slice. "
+                "The top and bottom bands must read front-on as visible masonry strips, not like dark shadow belts or visible stone top surfaces. Raise the top band slightly more than the bottom so the upper border reads first, and keep the bottom free of mist glow or threshold haze. "
+                "The border must read as one rectangular frame with clear horizontal top and bottom bands, no arch, no floor plane, and no scene opening."
+            )
+        if "border_piece_side_wall_flare" in errors:
+            return (
+                f"{prompt}\nRetry instruction: keep the left and right wall bands perfectly straight from top to bottom. "
+                "Remove any shoulder flare, pedestal base, widened capital, tapering, chamfer, or arch-like bulge at the top or bottom of the side walls. "
+                "Keep the inner wall edge locked to one constant vertical line on each side, with square top and bottom corners where the walls meet the horizontal bands. "
+                "The side bands must read as flat vertical masonry strips, not as curved architectural supports."
+            )
+        if "border_piece_center_breach_read" in errors:
+            return (
+                f"{prompt}\nRetry instruction: keep the current straight wall direction, but remove the torn-hole center. "
+                "Do not paint broken plaster, jagged breach edges, punched-out cavities, shattered wall openings, or spiky debris silhouettes in the center. "
+                "Keep the center broad, calm, dim, and simple so the border reads louder than the interior field."
+            )
+        return (
+            f"{prompt}\nRetry instruction: output a generic border template only. "
+            "Remove ornate arches, pointed tracery, portal framing, stairs, rubble staging, built-in floor perspective, and any finished chamber-scene composition. "
+            "Do not depict columns, posts, lintels, sills, thresholds, or a doorway-like opening framed by four separate architectural members. "
+            "Keep the top band, side bands, and bottom band as simple enclosing masses, with a calm low-detail center and no light matte padding at the edges. "
+            "If uncertain, choose flatter, heavier, simpler border masses over ornament. A plain flat border is preferred to a beautiful chamber illustration."
+        )
+    if component_type == "background_far_piece" and attempt_index < 2:
+        return (
+            f"{prompt}\nRetry instruction: output a faded generic far background only. "
+            "Remove bridges, statues, stairs, centered landmarks, and hero-shot composition. "
+            "Keep the image broad, soft, low-contrast, and reusable, with no white letterbox bars or bright edge padding."
+        )
+    if component_type == "platform_piece" and attempt_index < 2:
+        return (
+            f"{prompt}\nRetry instruction: output one simple gameplay platform template only. "
+            "Remove glow lines, gold trim, decorative shrine language, and attached scenery. "
+            "Keep a readable top surface and front face in the same cool stone family as the biome. "
+            "Do not show any background, ruins, supports, arches, or scene context around the platform. The image should read as platform material only."
+        )
     if component_type == "door_frame" and "missing_required_transparency" in errors and attempt_index < 2:
         return f"{prompt}\nRetry instruction: output a true cutout doorway PNG. Preserve transparent pixels outside the stone frame and through the doorway mouth. Do not paint a full rectangular background or surrounding room."
+    if component_type == "foreground_frame" and attempt_index < 2:
+        if "top_band_not_distinct_from_center" in errors or "bottom_band_not_distinct_from_center" in errors:
+            return (
+                f"{prompt}\nRetry instruction: make the top band and bottom band read as unmistakable horizontal masonry strips. "
+                "Do not let them dissolve into the same foggy blue-gray field as the center. "
+                "The top 20% and bottom 10% must be visibly separate band shapes by eye, with stronger horizontal block-course identity than the center field."
+            )
+        if "left_wall_center_transition_weak" in errors or "right_wall_center_transition_weak" in errors:
+            return (
+                f"{prompt}\nRetry instruction: strengthen wall-to-center separation. "
+                "Keep the side strips materially darker and more masonry-marked than the center, and do not darken the whole frame uniformly."
+            )
     if "generation_failed" in errors and attempt_index < 2:
         return f"{prompt}\nRetry instruction: the previous attempt failed to return a usable image. Return a single finished PNG image only for this component at the requested size."
     if "template_family_drift" in errors and attempt_index < 2:
@@ -4377,6 +6421,38 @@ def _region_luminance(path: Path, box: Tuple[float, float, float, float]) -> flo
     if not pixels:
         return 0.0
     return sum((0.2126 * r) + (0.7152 * g) + (0.0722 * b) for r, g, b in pixels) / len(pixels)
+
+
+def _region_chroma_key_fraction(
+    path: Path,
+    box: Tuple[float, float, float, float],
+    key_rgb: Tuple[int, int, int],
+    tolerance: float = 64.0,
+) -> float:
+    img = Image.open(path).convert("RGB")
+    w, h = img.size
+    left = max(0, min(w, int(w * box[0])))
+    top = max(0, min(h, int(h * box[1])))
+    right = max(left + 1, min(w, int(w * box[2])))
+    bottom = max(top + 1, min(h, int(h * box[3])))
+    region = img.crop((left, top, right, bottom)).resize((48, 48), Image.Resampling.LANCZOS)
+    pixels = list(region.getdata())
+    if not pixels:
+        return 0.0
+    matches = 0
+    for r, g, b in pixels:
+        if key_rgb == FOREGROUND_FRAME_CENTER_KEY_RGB:
+            if g >= 120 and (g - r) >= 24 and (g - b) >= 18:
+                matches += 1
+                continue
+        distance = math.sqrt(
+            ((r - key_rgb[0]) ** 2) +
+            ((g - key_rgb[1]) ** 2) +
+            ((b - key_rgb[2]) ** 2)
+        )
+        if distance <= tolerance:
+            matches += 1
+    return matches / len(pixels)
 
 
 def _region_alpha_ratio(path: Path, box: Tuple[float, float, float, float]) -> float:
@@ -4500,6 +6576,114 @@ def _slot_groups_from_plan(plan: List[Dict[str, Any]], built_slots: List[str], f
     return groups
 
 
+def _room_environment_asset_url(project_id: str, relative_path: Path) -> str:
+    return f"/tools/2d-sprite-and-animation/projects-data/{project_id}/{relative_path.as_posix()}"
+
+
+def _build_structural_review_bundle(
+    project_id: str,
+    room_id: str,
+    project_dir: Path,
+    biome_pack: Dict[str, Any],
+    assets: Dict[str, Any],
+) -> Dict[str, Any]:
+    review_root = project_dir / "room_environment_assets" / room_id / "review"
+    review_root.mkdir(parents=True, exist_ok=True)
+    biome_root = project_dir / "art_direction_biomes" / str(biome_pack.get("biome_id") or "")
+    source_components = ["wall_piece", "ceiling_piece", "primary_floor_piece", "hero_platform_piece", "foreground_frame"]
+    sources: List[Dict[str, Any]] = []
+    source_images: List[Tuple[str, Image.Image]] = []
+    for component_type in source_components:
+        path = biome_root / f"{component_type}.png"
+        if not path.exists():
+            continue
+        rel = path.relative_to(project_dir)
+        sources.append({
+            "component_type": component_type,
+            "path": rel.as_posix(),
+            "url": _room_environment_asset_url(project_id, rel),
+        })
+        try:
+            source_images.append((component_type, Image.open(path).convert("RGBA")))
+        except Exception:
+            continue
+
+    derived_types = [
+        "ceiling_band",
+        "wall_module_left",
+        "wall_module_right",
+        "main_floor_top",
+        "main_floor_face",
+        "hero_platform_top",
+        "hero_platform_face",
+        "pit_rim",
+    ]
+    derived_assets: List[Dict[str, Any]] = []
+    derived_images: List[Tuple[str, Image.Image]] = []
+    for component_type in derived_types:
+        asset = next(
+            (
+                item
+                for item in assets.values()
+                if isinstance(item, dict)
+                and str(item.get("component_type") or "") == component_type
+                and str(item.get("url") or "").strip()
+            ),
+            None,
+        )
+        if not asset:
+            continue
+        rel = Path(str(asset["url"]).split(f"/tools/2d-sprite-and-animation/projects-data/{project_id}/", 1)[-1])
+        path = project_dir / rel
+        if not path.exists():
+            continue
+        derived_assets.append({
+            "component_type": component_type,
+            "path": rel.as_posix(),
+            "url": _room_environment_asset_url(project_id, rel),
+        })
+        try:
+            derived_images.append((component_type, Image.open(path).convert("RGBA")))
+        except Exception:
+            continue
+
+    card_w = 224
+    card_h = 160
+    pad = 16
+    cols = 4
+    rows = 1 + (1 if derived_images else 0)
+    sheet = Image.new("RGBA", (pad + cols * (card_w + pad), pad + rows * (card_h + 36 + pad)), (8, 10, 14, 255))
+    draw = ImageDraw.Draw(sheet)
+
+    def paste_cards(items: List[Tuple[str, Image.Image]], row_index: int) -> None:
+        for index, (label, image) in enumerate(items[:cols]):
+            x = pad + index * (card_w + pad)
+            y = pad + row_index * (card_h + 36 + pad)
+            draw.rounded_rectangle((x, y, x + card_w, y + card_h + 28), radius=12, fill=(16, 20, 24, 255), outline=(42, 52, 62, 255), width=2)
+            fit = image.copy()
+            fit.thumbnail((card_w - 12, card_h - 12), Image.Resampling.LANCZOS)
+            canvas = Image.new("RGBA", (card_w - 12, card_h - 12), (0, 0, 0, 255))
+            offset = ((canvas.width - fit.width) // 2, (canvas.height - fit.height) // 2)
+            canvas.alpha_composite(fit, offset)
+            sheet.alpha_composite(canvas, (x + 6, y + 6))
+            draw.text((x + 8, y + card_h + 6), label, fill=(200, 214, 222, 255))
+
+    paste_cards(source_images, 0)
+    if derived_images:
+        paste_cards(derived_images, 1)
+    contact_path = review_root / "structural-review-bundle.png"
+    sheet.save(contact_path)
+    contact_rel = contact_path.relative_to(project_dir)
+    return {
+        "sources": sources,
+        "derived_assets": derived_assets,
+        "contact_sheet": {
+            "path": contact_rel.as_posix(),
+            "url": _room_environment_asset_url(project_id, contact_rel),
+        },
+    }
+
+
 def _placement_bounds(placement: Dict[str, Any]) -> Tuple[int, int, int, int]:
     display_width = max(1, int(placement.get("display_width") or 1))
     display_height = max(1, int(placement.get("display_height") or 1))
@@ -4508,6 +6692,198 @@ def _placement_bounds(placement: Dict[str, Any]) -> Tuple[int, int, int, int]:
     x = int(round(float(placement.get("x") or 0) - (display_width * origin_x)))
     y = int(round(float(placement.get("y") or 0) - (display_height * origin_y)))
     return x, y, display_width, display_height
+
+
+def _primary_floor_band_bounds(room: Dict[str, Any]) -> Optional[Tuple[int, int, int, int]]:
+    geometry = _room_geometry(room)
+    chamber_left = int(round(float(geometry.get("left") or 0.0)))
+    chamber_right = int(round(float(geometry.get("right") or geometry.get("width") or 1.0)))
+    chamber_width = max(1.0, float(geometry.get("chamber_width") or geometry.get("width") or 1.0))
+    room_height = max(1.0, float(geometry.get("height") or 1.0))
+    room_bottom = float(geometry.get("bottom") or room_height)
+    platforms = list(geometry.get("platforms") or [])
+    if not platforms:
+        return None
+    candidates = [
+        item for item in platforms
+        if (float(item.get("len") or 0) * 32.0) >= chamber_width * 0.68
+        and float(item.get("y") or 0.0) >= room_bottom - 96.0
+    ]
+    if not candidates:
+        return None
+    primary = sorted(
+        candidates,
+        key=lambda item: (-(float(item.get("len") or 0) * 32.0), -float(item.get("y") or 0.0)),
+    )[0]
+    primary_x = int(round(float(primary.get("x") or 0.0)))
+    primary_y = int(round(float(primary.get("y") or 0.0)))
+    primary_width = max(1, int(round(float(primary.get("len") or 1) * 32.0)))
+    support_left = min(primary_x, chamber_left)
+    support_right = max(primary_x + primary_width, chamber_right)
+    lower_floor_top = min(int(round(room_bottom - 72.0)), primary_y + 20)
+    lower_floor_height = max(48, int(round(room_height - lower_floor_top - 12.0)))
+    return support_left, lower_floor_top, max(1, support_right - support_left), lower_floor_height
+
+
+def _wall_shell_bounds(component_type: str, placement: Dict[str, Any], room: Dict[str, Any]) -> Optional[Tuple[int, int, int, int]]:
+    geometry = _room_geometry(room)
+    room_width = max(1, int(round(float(geometry.get("width") or 1.0))))
+    room_height = max(1, int(round(float(geometry.get("height") or 1.0))))
+    chamber_left = int(round(float(geometry.get("left") or 0.0)))
+    chamber_right = int(round(float(geometry.get("right") or room_width)))
+    chamber_width = max(1, int(round(float(geometry.get("chamber_width") or room_width))))
+    chamber_top = int(round(float(geometry.get("top") or 0.0)))
+    chamber_bottom = int(round(float(geometry.get("bottom") or room_height)))
+    x, y, display_width, display_height = _placement_bounds(placement)
+    if component_type in {"wall_module_left", "wall_module_right"}:
+        accent_width = min(max(96, int(round(chamber_width * 0.16))), max(1, chamber_width // 2))
+        widened_height = max(display_height, chamber_bottom - chamber_top)
+        if component_type.endswith("left"):
+            return chamber_left, chamber_top, accent_width, widened_height
+        return max(chamber_left, chamber_right - accent_width), chamber_top, accent_width, widened_height
+    if component_type in {"wall_base_trim_left", "wall_base_trim_right"}:
+        widened_width = min(max(96, int(round(chamber_width * 0.16))), max(1, chamber_width // 2))
+        if component_type.endswith("left"):
+            return chamber_left, y, widened_width, display_height
+        return max(chamber_left, chamber_right - widened_width), y, widened_width, display_height
+    return None
+
+
+def _chamber_sprite_bounds(room: Dict[str, Any]) -> Tuple[int, int, int, int]:
+    geometry = _room_geometry(room)
+    room_width = max(1, int(round(float(geometry.get("width") or 1.0))))
+    room_height = max(1, int(round(float(geometry.get("height") or 1.0))))
+    chamber_left = int(round(float(geometry.get("left") or 0.0)))
+    chamber_right = int(round(float(geometry.get("right") or room_width)))
+    chamber_top = int(round(float(geometry.get("top") or 0.0)))
+    chamber_bottom = int(round(float(geometry.get("bottom") or room_height)))
+    return (
+        chamber_left,
+        chamber_top,
+        max(1, chamber_right - chamber_left),
+        max(1, chamber_bottom - chamber_top),
+    )
+
+
+def _build_standard_wall_accent_sprite(width: int, height: int, side: str) -> Image.Image:
+    sprite = Image.new("RGBA", (max(1, width), max(1, height)), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(sprite)
+    body = (16, 20, 25, 255)
+    seam = (34, 42, 50, 255)
+    face = (18, 22, 27, 255)
+    relief = (68, 78, 90, 108)
+    base_bond = (12, 16, 20, 255)
+    highlight = (92, 104, 116, 90)
+    draw.rectangle((0, 0, width, height), fill=body)
+    outer_pier_width = max(12, round(width * 0.18))
+    inner_pilaster_width = max(10, round(width * 0.1))
+    course_height = max(40, round(height * 0.1))
+    cornice_height = max(18, round(height * 0.035))
+    plinth_height = max(24, round(height * 0.055))
+    field_x = outer_pier_width if side == "left" else 0
+    field_width = max(20, width - outer_pier_width)
+    field_right = field_x + field_width
+    inner_pilaster_x = field_right - inner_pilaster_width if side == "left" else field_x
+    face_left = field_x + 8 if side == "left" else field_x + inner_pilaster_width + 8
+    face_width = max(16, field_width - inner_pilaster_width - 16)
+    face_top = cornice_height + 12
+    face_bottom = height - plinth_height - 12
+    block_rows = max(3, (max(48, face_bottom - face_top)) // 84)
+    block_cols = max(2, face_width // 46)
+    if side == "left":
+        draw.rectangle((0, 0, outer_pier_width, height), fill=seam)
+    else:
+        draw.rectangle((width - outer_pier_width, 0, width, height), fill=seam)
+    draw.rectangle((inner_pilaster_x, cornice_height, inner_pilaster_x + inner_pilaster_width, max(32, height - plinth_height)), fill=seam)
+    for line_y in range(cornice_height + 12, max(cornice_height + 13, height - plinth_height - 16), course_height):
+        draw.rectangle((4, line_y, max(12, width - 4), line_y + 3), fill=(92, 104, 116, 36))
+    draw.rectangle((0, 0, width, cornice_height), fill=seam)
+    draw.rectangle((4, 6, max(12, width - 4), 10), fill=(100, 112, 126, 72))
+    draw.rectangle((0, height - plinth_height, width, height), fill=seam)
+    draw.rectangle((0, height - plinth_height, width, min(height, height + plinth_height)), fill=base_bond)
+    draw.rectangle((face_left, face_top, face_left + face_width, max(face_top + 48, face_bottom)), fill=face)
+    draw.rectangle((face_left, face_top, face_left + face_width, max(face_top + 48, face_bottom)), outline=(104, 116, 130, 88), width=3)
+    for row in range(block_rows):
+        row_y = face_top + round((row * (face_bottom - face_top)) / block_rows)
+        row_bottom = face_top + round(((row + 1) * (face_bottom - face_top)) / block_rows)
+        row_height = max(14, row_bottom - row_y)
+        offset = 0 if row % 2 == 0 else round((face_width / max(2, block_cols)) * 0.5)
+        block_width = max(24, round(face_width / max(2, block_cols)))
+        cursor = face_left - offset
+        while cursor < face_left + face_width:
+            block_left = max(face_left, cursor)
+            block_right = min(face_left + face_width, cursor + block_width)
+            if block_right - block_left >= 12:
+                draw.rectangle((block_left + 1, row_y + 1, max(block_left + 10, block_right - 2), max(row_y + 10, row_y + row_height - 2)), fill=relief)
+                draw.rectangle((block_left + 1, row_y + 1, max(block_left + 10, block_right - 2), max(row_y + 10, row_y + row_height - 2)), outline=(104, 116, 130, 48), width=1)
+            cursor += block_width
+    wedge_bottom = height - 1
+    if side == "left":
+        draw.polygon([(0, height - plinth_height), (max(18, outer_pier_width + 10), height - plinth_height), (0, wedge_bottom)], fill=(12, 16, 20, 120))
+    else:
+        draw.polygon([(width - 1, height - plinth_height), (width - max(18, outer_pier_width + 10), height - plinth_height), (width - 1, wedge_bottom)], fill=(12, 16, 20, 120))
+    return sprite
+
+
+def _composite_runtime_asset_sprite(item: Dict[str, Any], asset_path: Path, room: Optional[Dict[str, Any]] = None) -> Optional[Tuple[Image.Image, Tuple[int, int]]]:
+    try:
+        sprite = Image.open(asset_path).convert("RGBA")
+    except Exception:
+        return None
+    placement = item.get("placement") if isinstance(item.get("placement"), dict) else {}
+    x, y, display_width, display_height = _placement_bounds(placement)
+    component_type = str(item.get("component_type") or "")
+    if room and component_type in {"background_far_plate", "background_plate", "midground_side_frame", "midground_frame"}:
+        chamber_x, chamber_y, chamber_width, chamber_height = _chamber_sprite_bounds(room)
+        sprite = sprite.resize((chamber_width, chamber_height), Image.Resampling.LANCZOS)
+        return sprite, (chamber_x, chamber_y)
+    if room and component_type == "ceiling_band":
+        chamber_x, chamber_y, chamber_width, _chamber_height = _chamber_sprite_bounds(room)
+        final_width = chamber_width
+        final_height = max(64, min(display_height, sprite.size[1]))
+        sprite = sprite.resize((final_width, final_height), Image.Resampling.LANCZOS)
+        alpha = sprite.getchannel("A")
+        fade = Image.new("L", sprite.size, 0)
+        fade_draw = ImageDraw.Draw(fade)
+        fade_draw.rectangle((0, 0, final_width, final_height), fill=255)
+        fade_height = max(18, int(final_height * 0.26))
+        for row in range(fade_height):
+            value = int(round(255 * (row / max(1, fade_height))))
+            fade_draw.line((0, row, final_width, row), fill=value)
+        alpha = ImageChops.multiply(alpha, fade)
+        sprite.putalpha(alpha)
+        y = chamber_y - int(final_height * 0.74)
+        return sprite, (chamber_x, y)
+    if component_type == "main_floor_top":
+        final_height = max(24, int(round(max(display_height, sprite.size[1]) * 0.45)))
+        final_width = display_width
+        sprite = sprite.resize((final_width, final_height), Image.Resampling.LANCZOS)
+        x = int(round((x + (display_width / 2)) - (final_width / 2)))
+        y = int(round((float(placement.get("y") or 0)) - (final_height * 0.68)))
+        return sprite, (x, y)
+    if component_type == "hero_platform_top":
+        final_height = max(20, int(round(max(display_height, sprite.size[1]) * 0.4)))
+        final_width = display_width
+        sprite = sprite.resize((final_width, final_height), Image.Resampling.LANCZOS)
+        x = int(round((x + (display_width / 2)) - (final_width / 2)))
+        y = int(round((float(placement.get("y") or 0)) - (final_height * 0.68)))
+        return sprite, (x, y)
+    if component_type == "main_floor_face" and room:
+        bounds = _primary_floor_band_bounds(room)
+        if bounds:
+            floor_x, floor_y, floor_width, floor_height = bounds
+            face_height = min(floor_height, max(sprite.size[1], int(round(floor_height * 0.42))))
+            sprite = sprite.resize((floor_width, face_height), Image.Resampling.LANCZOS)
+            return sprite, (floor_x, floor_y)
+    if room and component_type in {"wall_module_left", "wall_module_right"}:
+        bounds = _wall_shell_bounds(component_type, placement, room)
+        if bounds:
+            shell_x, shell_y, shell_width, shell_height = bounds
+            sprite = sprite.resize((shell_width, shell_height), Image.Resampling.LANCZOS)
+            return sprite, (shell_x, shell_y)
+    if display_width > 0 and display_height > 0 and sprite.size != (display_width, display_height):
+        sprite = sprite.resize((display_width, display_height), Image.Resampling.LANCZOS)
+    return sprite, (x, y)
 
 
 def _composite_runtime_review_image(
@@ -4522,31 +6898,100 @@ def _composite_runtime_review_image(
     floor_y = int(height * 0.78)
     bg = Image.new("RGBA", (width, height), (18, 24, 30, 255))
     bg_draw = ImageDraw.Draw(bg)
+    def draw_masonry_panel(box: Tuple[int, int, int, int], *, base_fill: Tuple[int, int, int, int], block_w: int, block_h: int, seam: Tuple[int, int, int, int]) -> None:
+        left, top, right, bottom = box
+        bg_draw.rectangle(box, fill=base_fill)
+        row = 0
+        y = top
+        while y < bottom:
+            current_h = min(block_h, bottom - y)
+            offset = 0 if row % 2 == 0 else block_w // 2
+            x = left - offset
+            while x < right:
+                seg_left = max(left, x)
+                seg_right = min(right, x + block_w)
+                if seg_right > seg_left:
+                    bg_draw.rectangle((seg_left, y, seg_right, y + current_h), outline=seam, width=2)
+                x += block_w
+            y += current_h
+            row += 1
     for y in range(height):
         tone = int(18 + ((y / max(1, height - 1)) * 30))
         bg_draw.line((0, y, width, y), fill=(tone, tone + 6, tone + 10, 255))
     canvas.alpha_composite(bg)
+    chamber_left = int(round(float(geometry.get("left") or 0.0)))
+    chamber_right = int(round(float(geometry.get("right") or width)))
+    chamber_top = int(round(float(geometry.get("top") or 64.0)))
+    chamber_bottom = int(round(float(geometry.get("bottom") or floor_y)))
+    side_mass_top = min(max(32, chamber_top), max(32, floor_y - 160))
+    side_mass_bottom = max(side_mass_top + 128, chamber_bottom)
+    left_mass_width = max(0, chamber_left)
+    right_mass_width = max(0, width - chamber_right)
+    if left_mass_width >= 24:
+        draw_masonry_panel((0, side_mass_top, chamber_left, side_mass_bottom), base_fill=(10, 12, 16, 214), block_w=max(36, left_mass_width // 2), block_h=72, seam=(22, 26, 30, 180))
+    if right_mass_width >= 24:
+        draw_masonry_panel((chamber_right, side_mass_top, width, side_mass_bottom), base_fill=(10, 12, 16, 214), block_w=max(36, right_mass_width // 2), block_h=72, seam=(22, 26, 30, 180))
+    floor_support = _primary_floor_band_bounds(room)
+    if floor_support:
+        support_x, support_y, support_width, support_height = floor_support
+        draw_masonry_panel(
+            (support_x, support_y, support_x + support_width, min(height, support_y + support_height)),
+            base_fill=(18, 22, 26, 226),
+            block_w=max(84, int(round(support_width * 0.09))),
+            block_h=max(32, int(round(support_height * 0.24))),
+            seam=(26, 30, 36, 190),
+        )
+    runtime_visible_component_types = {
+        "background_far_plate",
+        "background_plate",
+        "ceiling_band",
+        "midground_side_frame",
+        "midground_frame",
+        "wall_module_left",
+        "wall_module_right",
+        "wall_base_trim_left",
+        "wall_base_trim_right",
+        "main_floor_top",
+        "main_floor_face",
+        "hero_platform_top",
+        "hero_platform_face",
+        "door_frame",
+        "door_piece",
+        "pit_rim",
+        "pit_interior",
+    }
     sorted_assets = sorted(
-        [item for item in assets.values() if isinstance(item, dict) and item.get("url")],
-        key=lambda item: {"background": 0, "walls": 1, "midground": 2, "floor": 3, "platforms": 4, "doors": 5, "pits": 6}.get(str(item.get("slot_group") or "misc"), 7),
+        [
+            item
+            for item in assets.values()
+            if isinstance(item, dict)
+            and item.get("url")
+            and str(item.get("component_type") or "") in runtime_visible_component_types
+        ],
+        key=lambda item: {"background": 0, "ceiling": 1, "walls": 2, "midground": 3, "floor": 4, "platforms": 5, "doors": 6, "pits": 7}.get(str(item.get("slot_group") or "misc"), 8),
     )
     for item in sorted_assets:
         rel_url = str(item.get("url") or "").lstrip("/")
         asset_path = ROOT / rel_url
         if not asset_path.exists():
             continue
-        try:
-            sprite = Image.open(asset_path).convert("RGBA")
-        except Exception:
+        composed = _composite_runtime_asset_sprite(item, asset_path, room)
+        if not composed:
             continue
-        placement = item.get("placement") if isinstance(item.get("placement"), dict) else {}
-        x, y, display_width, display_height = _placement_bounds(placement)
-        if display_width > 0 and display_height > 0 and sprite.size != (display_width, display_height):
-            sprite = sprite.resize((display_width, display_height), Image.Resampling.LANCZOS)
+        sprite, (x, y) = composed
         canvas.alpha_composite(sprite, (x, y))
+    occlusion = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+    occlusion_draw = ImageDraw.Draw(occlusion)
+    if left_mass_width >= 24:
+        occlusion_draw.rectangle((0, 0, chamber_left, height), fill=(10, 12, 16, 236))
+    if right_mass_width >= 24:
+        occlusion_draw.rectangle((chamber_right, 0, width, height), fill=(10, 12, 16, 236))
+    if chamber_bottom < height:
+        occlusion_draw.rectangle((chamber_left, chamber_bottom, chamber_right, height), fill=(14, 18, 22, 236))
+    canvas.alpha_composite(occlusion)
     overlay = Image.new("RGBA", (width, height), (0, 0, 0, 0))
     overlay_draw = ImageDraw.Draw(overlay)
-    overlay_draw.rectangle((0, floor_y, width, height), fill=(12, 16, 20, 60))
+    overlay_draw.rectangle((0, floor_y, width, height), fill=(10, 12, 16, 24))
     canvas.alpha_composite(overlay)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     canvas.save(output_path)
@@ -4593,14 +7038,52 @@ def _image_region_contrast(img: Image.Image, box: Tuple[float, float, float, flo
     return (total / max(1, count)) / 255.0
 
 
+def _side_wall_inner_boundary_position(
+    img: Image.Image,
+    vertical_span: Tuple[float, float],
+    *,
+    mirrored: bool = False,
+) -> float:
+    gray = img.convert("L")
+    if mirrored:
+        gray = gray.transpose(Image.Transpose.FLIP_LEFT_RIGHT)
+    width, height = gray.size
+    top = max(0, min(height - 1, int(height * vertical_span[0])))
+    bottom = max(top + 1, min(height, int(height * vertical_span[1])))
+    crop = gray.crop((0, top, width, bottom))
+    pixels = crop.load()
+    search_left = max(1, int(width * 0.08))
+    search_right = max(search_left + 2, int(width * 0.24))
+    strongest_index = search_left
+    strongest_delta = -1.0
+    for x in range(search_left, min(search_right, crop.size[0] - 2)):
+        left_total = 0
+        right_total = 0
+        count = 0
+        for y in range(crop.size[1]):
+            left_total += pixels[x, y]
+            right_total += pixels[x + 1, y]
+            count += 1
+        if count <= 0:
+            continue
+        delta = abs((right_total / count) - (left_total / count))
+        if delta > strongest_delta:
+            strongest_delta = delta
+            strongest_index = x
+    return strongest_index / float(width)
+
+
 def _runtime_review_metrics(screenshot_path: Path, assets: Dict[str, Any]) -> Dict[str, float]:
     img = Image.open(screenshot_path).convert("RGBA")
     center = _image_region_luminance(img, (0.34, 0.18, 0.66, 0.82))
     left = _image_region_luminance(img, (0.0, 0.18, 0.28, 0.82))
     right = _image_region_luminance(img, (0.72, 0.18, 1.0, 0.82))
+    top_band = _image_region_luminance(img, (0.18, 0.0, 0.82, 0.14))
+    upper_chamber = _image_region_luminance(img, (0.22, 0.16, 0.78, 0.3))
     center_contrast = _image_region_contrast(img, (0.34, 0.18, 0.66, 0.82))
     center_upper_contrast = _image_region_contrast(img, (0.34, 0.16, 0.66, 0.46))
     center_lower_contrast = _image_region_contrast(img, (0.34, 0.56, 0.66, 0.84))
+    top_band_contrast = _image_region_contrast(img, (0.18, 0.0, 0.82, 0.14))
     floor_band = _image_region_luminance(img, (0.18, 0.74, 0.82, 0.9))
     upper_band = _image_region_luminance(img, (0.18, 0.54, 0.82, 0.7))
     side_shell_definition = (
@@ -4645,6 +7128,8 @@ def _runtime_review_metrics(screenshot_path: Path, assets: Dict[str, Any]) -> Di
         "left_right_balance": abs(left - right) / 255.0,
         "side_shell_definition": side_shell_definition,
         "floor_background_separation": abs(floor_band - upper_band) / 255.0,
+        "top_band_darkness": max(0.0, (upper_chamber - top_band) / 255.0),
+        "top_band_contrast": top_band_contrast,
         "platform_top_readability": sum(platform_scores) / len(platform_scores) if platform_scores else 0.0,
         "threshold_visibility": sum(threshold_scores) / len(threshold_scores) if threshold_scores else 0.0,
         "platform_sample_count": float(len(platform_scores)),
@@ -4693,12 +7178,15 @@ def _capture_runtime_review_screenshot(
                 f"--window-size={width},{height}",
                 f"--screenshot={str(output_path)}",
                 "--hide-scrollbars",
-                "--virtual-time-budget=8000",
+                "--virtual-time-budget=20000",
                 target,
             ]
-            subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=20)
-            if output_path.exists():
+            subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=60)
+            if output_path.exists() and _runtime_review_capture_is_usable(output_path):
                 return "headless_browser", None
+            if output_path.exists():
+                output_path.unlink()
+            browser_error = "headless_browser_invalid_frame"
         except Exception as exc:
             browser_error = f"headless_browser_failed:{type(exc).__name__}"
         else:
@@ -4707,6 +7195,27 @@ def _capture_runtime_review_screenshot(
         browser_error = "headless_browser_unavailable"
     _composite_runtime_review_image(room, assets, output_path)
     return "composite_fallback", browser_error
+
+
+def _runtime_review_capture_is_usable(image_path: Path) -> bool:
+    try:
+        with Image.open(image_path) as image:
+            grayscale = image.convert("L")
+            stat = grayscale.getextrema()
+            if not stat:
+                return False
+            minimum, maximum = stat
+            if maximum <= 8:
+                return False
+            if (maximum - minimum) < 6:
+                return False
+            histogram = grayscale.histogram()
+            total_pixels = max(1, grayscale.size[0] * grayscale.size[1])
+            dark_pixels = sum(histogram[:12])
+            non_dark_fraction = 1.0 - (dark_pixels / total_pixels)
+            return non_dark_fraction >= 0.03
+    except Exception:
+        return False
 
 
 def _write_runtime_review_capture_page(
@@ -4730,7 +7239,7 @@ def _write_runtime_review_capture_page(
     layout_path.write_text(json.dumps(layout_data, separators=(",", ":")), encoding="utf-8")
     layout_url = f"{scheme}://{netloc}/tools/2d-sprite-and-animation/projects-data/{project.get('project_id')}/room_environment_assets/{room_id}/review/runtime-layout.json"
     iframe_src = (
-        f"{game_url}#preview=embed&layout_url={urllib.parse.quote(layout_url, safe='')}"
+        f"{game_url}#preview=embed&capture=runtime-review&layout_url={urllib.parse.quote(layout_url, safe='')}"
         f"&start={urllib.parse.quote(room_id, safe='')}"
     )
     capture_html = f"""<!DOCTYPE html>
@@ -4778,6 +7287,8 @@ def _run_runtime_review(
     metrics = _runtime_review_metrics(screenshot_path, assets)
     fail_reasons: List[str] = []
     warning_reasons: List[str] = []
+    if review_mode != "headless_browser":
+        fail_reasons.append("browser_capture_required")
     if metrics["center_clutter"] > 0.08:
         fail_reasons.append("center_clutter_too_high")
     if (
@@ -4789,6 +7300,8 @@ def _run_runtime_review(
         fail_reasons.append("room_shell_readability_low")
     if metrics["left_right_balance"] > 0.18:
         fail_reasons.append("left_right_balance_off")
+    if metrics["top_band_darkness"] > 0.08 and metrics["top_band_contrast"] < 0.015:
+        fail_reasons.append("top_occlusion_slab_present")
     # Low floor/background separation alone should be surfaced, but it should not
     # block showing the generated kit unless it combines with an over-suppressed,
     # unreadable center lane.
@@ -4798,6 +7311,16 @@ def _run_runtime_review(
         fail_reasons.append("platform_top_readability_low")
     if metrics["door_sample_count"] > 0 and metrics["threshold_visibility"] < 0.03:
         fail_reasons.append("threshold_visibility_low")
+    for asset in assets.values():
+        if not isinstance(asset, dict) or not asset.get("url"):
+            continue
+        component_type = str(asset.get("component_type") or "")
+        generation_source = str(asset.get("generation_source") or "")
+        if component_type not in {"background_far_plate", "midground_side_frame"}:
+            continue
+        if generation_source.startswith("restored_from_") or generation_source in {"fallback_template", "failed"}:
+            fail_reasons.append("scenic_layers_noncanonical")
+            break
     return {
         "status": "pass" if not fail_reasons else "fail",
         "review_mode": review_mode,
@@ -4839,6 +7362,8 @@ def generate_room_environment_asset_pack(project_id: str, room_id: str, payload:
             "schema_version": 2,
             "status": "failed",
             "biome_id": biome_pack.get("biome_id"),
+            "border_first_contract": copy.deepcopy(biome_pack.get("border_first_contract") or _normalize_border_first_contract(None)),
+            "next_generation_contract": _border_first_generation_contract(),
             "source_preview_id": preview_id,
             "generation_plan": [],
             "required_slots": [],
@@ -4847,6 +7372,7 @@ def generate_room_environment_asset_pack(project_id: str, room_id: str, payload:
             "schema_validation": schema_validation,
             "runtime_review": {"status": "blocked", "fail_reasons": ["schema_validation_failed"], "metrics": {}, "screenshot_url": None, "review_mode": None},
             "review": {"status": "blocked", "fail_reasons": ["schema_validation_failed"], "metrics": {}, "screenshot_url": None, "review_mode": None},
+            "structural_review_bundle": {},
             "assets": {},
             "failed_assets": [],
             "used_ai": False,
@@ -4906,6 +7432,19 @@ def generate_room_environment_asset_pack(project_id: str, room_id: str, payload:
         adaptation_mode = _component_adaptation_mode(component_type) if component_type in V2_SLOT_SPEC_BY_TYPE else str(template.get("adaptation_mode") or _component_adaptation_mode(component_type))
         generation_source = "template"
         attempt_records: List[Dict[str, Any]] = []
+        direct_validation_reference = template_path
+        if adaptation_mode in {"direct", "stretch"} and component_type in {"background_far_plate", "midground_side_frame"}:
+            direct_refs = _bespoke_reference_images_for_component(
+                component_type,
+                template_path,
+                preview_path,
+                frozen_refs,
+                reference_root,
+                expected_size,
+                transparent,
+            )
+            if direct_refs and direct_refs[0].exists():
+                direct_validation_reference = direct_refs[0]
         if adaptation_mode in {"direct", "stretch"}:
             generated = _render_bespoke_component_from_template(
                 template_path,
@@ -5012,7 +7551,7 @@ def generate_room_environment_asset_pack(project_id: str, room_id: str, payload:
                 component_type,
                 expected_size,
                 str(template.get("transparency_mode") or "opaque"),
-                template_path,
+                direct_validation_reference,
             )
         if not generated:
             errors = ["generation_failed"]
@@ -5067,10 +7606,13 @@ def generate_room_environment_asset_pack(project_id: str, room_id: str, payload:
         if isinstance(asset, dict) and asset.get("url") and str(asset.get("generation_source") or "") == "ai"
     ]
     ai_generation_missing = bool(required_ai_slots) and len(ai_generated_slots) < len(required_ai_slots)
+    structural_review_bundle = _build_structural_review_bundle(project_id, room_id, project_dir, biome_pack, assets)
     provisional_manifest = {
         "schema_version": 2,
         "status": "failed",
         "biome_id": biome_pack.get("biome_id"),
+        "border_first_contract": copy.deepcopy(biome_pack.get("border_first_contract") or _normalize_border_first_contract(None)),
+        "next_generation_contract": _border_first_generation_contract(),
         "source_preview_id": preview_id,
         "generation_plan": copy.deepcopy(plan),
         "required_slots": [str(entry.get("slot_id") or "") for entry in plan],
@@ -5079,6 +7621,7 @@ def generate_room_environment_asset_pack(project_id: str, room_id: str, payload:
         "schema_validation": schema_validation,
         "runtime_review": {"status": "running", "fail_reasons": [], "metrics": {}, "screenshot_url": None, "review_mode": None},
         "review": {"status": "running", "fail_reasons": [], "metrics": {}, "screenshot_url": None, "review_mode": None},
+        "structural_review_bundle": structural_review_bundle,
         "assets": assets,
         "failed_assets": failed_assets,
         "used_ai": used_ai,

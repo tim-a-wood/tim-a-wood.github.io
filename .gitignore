@@ -1,6 +1,14 @@
 tools/ComfyUI/
 tools/miniconda3/
+
+# Credential and secret files — never commit these (enforced by scripts/check_escalation_conditions.py SC-3)
+.env
+.env.*
 .env.local
+*.key
+*.pem
+*.p12
+*.pfx
 # Local Agent OS secrets (Cursor API, optional OpenAI fallback)
 agent_os.env
 tools/2d-sprite-and-animation/projects-data/

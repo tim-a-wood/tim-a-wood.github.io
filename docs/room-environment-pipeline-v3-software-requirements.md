@@ -780,6 +780,12 @@ flowchart TD
 - The UI must not silently switch a room from one biome kit to another.
 - The UI must require explicit confirmation before applying v3-generated environment outputs to the room.
 
+## 13.1A Chamber Boundary Interpretation
+
+- The room polygon / drawn boundary is the authoritative chamber envelope for planning, composition, and review.
+- Empty editor canvas area outside the polygon must not be treated as extra room interior to be filled with scenic environment art.
+- Runtime and review composition must treat outside-polygon space as enclosure territory: wall thickness, retaining floor, void, or other structural mass consistent with a 2D sidescroller room shell.
+
 ## 13.2 External Review Artifacts
 
 Each external QA or Creative checkpoint should produce a lightweight review memo outside the tool with:

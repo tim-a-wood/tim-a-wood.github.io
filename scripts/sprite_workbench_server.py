@@ -69,6 +69,7 @@ except ImportError:
 
 
 ROOT = _REPO_ROOT
+ENV_LOCAL_PATH = ROOT / ".env.local"
 TOOL_DIR = ROOT / "tools" / "2d-sprite-and-animation"
 PROJECTS_ROOT = TOOL_DIR / "projects-data"
 STAGE_MATURITY_PATH = TOOL_DIR / "stage-maturity.json"
@@ -155,6 +156,31 @@ WORKBENCH_SETTINGS_DEFAULTS = {
 USAGE_LEDGER_LIMIT = 2000
 
 logger = logging.getLogger("sprite_workbench")
+
+
+def load_repo_env_local() -> None:
+    """Populate os.environ from repo-root .env.local if present.
+
+    Direct `python3 scripts/sprite_workbench_server.py` launches should behave the
+    same as the shell wrapper and pick up local Gemini credentials without
+    requiring an external wrapper process.
+    """
+    if not ENV_LOCAL_PATH.is_file():
+        return
+    try:
+        for line in ENV_LOCAL_PATH.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            if line.startswith("export "):
+                line = line[7:].strip()
+            key, _, val = line.partition("=")
+            key = key.strip()
+            val = val.strip().strip('"').strip("'")
+            if key and key not in os.environ:
+                os.environ[key] = val
+    except OSError:
+        pass
 
 
 def _pixellab_api_result_summary(result: Any) -> str:
@@ -10264,6 +10290,7 @@ def main() -> None:
         help="Python logging level (DEBUG, INFO, WARNING, …). Env: SPRITE_WORKBENCH_LOG_LEVEL.",
     )
     args = parser.parse_args()
+    load_repo_env_local()
     log_level = getattr(logging, str(args.log_level).upper(), logging.INFO)
     if not isinstance(log_level, int):
         log_level = logging.INFO

@@ -43,7 +43,7 @@
       "description": "Updated art bible section \u2014 palette assignment, silhouette rules, consistency constraints, atmospheric notes for a new biome or character.",
       "trigger": "A new biome, character, or visual system is approved for production",
       "last_run": "2026-04-02",
-      "output_location": "artifacts/ashen-hollow-art-bible-v0.2.md; artifacts/art-bible/"
+      "output_location": "artifacts/ashen-hollow-art-bible-v0.2.md"
     },
     {
       "id": "asset-review",

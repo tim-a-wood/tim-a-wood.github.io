@@ -4,6 +4,35 @@ const SAMPLE_PROJECT_CANDIDATES = [
     "test-40b4b333",
 ];
 
+function requestedProjectIdFromUrl() {
+    try {
+        const params = new URLSearchParams(window.location.search || "");
+        const direct = params.get("project");
+        if (direct) return direct.trim();
+        const hash = String(window.location.hash || "").replace(/^#/, "");
+        if (!hash) return "";
+        if (hash.startsWith("project=")) return hash.slice("project=".length).trim();
+        return "";
+    } catch (_) {
+        return "";
+    }
+}
+
+function syncProjectUrl(projectId) {
+    try {
+        const url = new URL(window.location.href);
+        if (projectId) {
+            url.searchParams.set("project", projectId);
+        } else {
+            url.searchParams.delete("project");
+        }
+        url.hash = "";
+        window.history.replaceState({}, "", url.toString());
+    } catch (_) {
+        // Ignore URL sync failures so local project loading keeps working.
+    }
+}
+
 async function openWorkbenchMode() {
     if (!state.activeProject) {
         state.uiMode = "wizard";
@@ -214,6 +243,7 @@ async function loadProject(projectId, mode = "wizard") {
     state.activeProject = project;
     state.uiMode = mode;
     storage.setItem(STORAGE_KEYS.activeProjectId, projectId);
+    syncProjectUrl(projectId);
     if (!state.lastIteratedConceptId) {
         const iterateConcepts = (project.concepts || [])
             .filter((concept) => concept.run_kind === "pixellab_iterate")
@@ -256,11 +286,18 @@ async function loadProject(projectId, mode = "wizard") {
 async function restoreProjectSelection() {
     if (!state.projects.length) {
         state.activeProject = null;
+        syncProjectUrl("");
         renderAll();
         return;
     }
+    const requestedId = requestedProjectIdFromUrl();
+    const requestedMatch = requestedId
+        ? state.projects.find((project) => project.project_id === requestedId)
+        : null;
     const storedId = storage.getItem(STORAGE_KEYS.activeProjectId);
-    const match = state.projects.find((project) => project.project_id === storedId) || state.projects[0];
+    const match = requestedMatch
+        || state.projects.find((project) => project.project_id === storedId)
+        || state.projects[0];
     await loadProject(match.project_id, "workbench");
 }
 

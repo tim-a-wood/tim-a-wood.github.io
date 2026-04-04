@@ -135,7 +135,15 @@
       "Bash(ls /Users/timwood/Desktop/projects/PWA/MV/tools/2d-sprite-and-animation/*.py)",
       "Bash(kill 31240)",
       "Bash(python3:*)",
-      "Bash(do f=/Users/timwood/Desktop/projects/PWA/MV/agents/$agent/charter.md echo '=== $agent ===' grep -n \"Standing Directives\\\\|Must Never\\\\|founder approval\\\\|Founder\" $f)"
+      "Bash(do f=/Users/timwood/Desktop/projects/PWA/MV/agents/$agent/charter.md echo '=== $agent ===' grep -n \"Standing Directives\\\\|Must Never\\\\|founder approval\\\\|Founder\" $f)",
+      "Bash(find /Users/timwood/Desktop/projects/PWA/MV -maxdepth 2 -name *.yml -o -name *.yaml)",
+      "Bash(bash /Users/timwood/Desktop/projects/PWA/MV/scripts/install_hooks.sh)",
+      "Bash(bash scripts/pre-commit)",
+      "WebFetch(domain:platform.openai.com)",
+      "WebFetch(domain:openai.com)",
+      "WebFetch(domain:developers.openai.com)",
+      "Bash(open \"/Users/timwood/Desktop/projects/PWA/MV/tools/2d-sprite-and-animation/projects-data/ruined-gothic-calibration-gemini-20260402/art_direction_biomes/ruined-gothic-v1/foreground_frame.png\")",
+      "Bash(grep -l \"founder_decisions\" /Users/timwood/Desktop/projects/PWA/MV/*-status.json)"
     ],
     "additionalDirectories": [
       "/Users/timwood/.claude/skills"

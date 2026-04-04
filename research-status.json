@@ -1,6 +1,7 @@
 {
   "agent": "research",
-  "updated": "2026-04-01",
+  "schema_version": "v1.0",
+  "updated": "2026-04-04",
   "priorities": [
     {
       "id": "research-p1",
@@ -10,10 +11,11 @@
       ],
       "owner": "Research",
       "stakeholders": "Cybersecurity, Development",
-      "title": "Unescaped user data in innerHTML \u2014 XSS risk",
+      "title": "Unescaped user data in innerHTML — XSS risk",
       "summary": "room.id, entry.id, entry.name interpolated raw into innerHTML",
-      "note": "room-layout-editor.html:4513\u20134543. escapeHtml() defined at line 3032 but not used in these locations. XSS via malformed project file.",
+      "note": "room-layout-editor.html:4513–4543. escapeHtml() defined at line 3032 but not used in these locations. XSS via malformed project file.",
       "solution": "Wrap all interpolated values in escapeHtml() at affected lines",
+      "proposed_solution": "Audit all innerHTML assignments in room-layout-editor.html and produce a flagged report listing every unsafe interpolation site. Hand the report to Cybersecurity and Development with exact line references so they can wrap each value in the existing escapeHtml() helper.",
       "status": "in-progress",
       "risk": "high"
     },
@@ -28,6 +30,7 @@
       "summary": "product-shell.css:585 references var(--text-dim) which is not defined",
       "note": ".marketing-docs-linkout inherits wrong color. No visible error in devtools unless inspecting.",
       "solution": "Define --text-dim in :root token block or replace with var(--muted)",
+      "proposed_solution": "Scan the full CSS token block in product-shell.css for undefined variables and document each instance. Deliver a short findings note to Development recommending either adding --text-dim to the :root block or replacing its uses with var(--muted), whichever aligns with Design intent.",
       "status": "queued",
       "risk": "med"
     },
@@ -42,81 +45,12 @@
       "summary": "All native interactive elements lack keyboard focus indicators",
       "note": "Mandatory per CLAUDE.md new-page checklist. One CSS rule at :root level fixes all elements.",
       "solution": "Add :focus-visible { outline: 2px solid rgba(0,232,200,0.35); outline-offset: 2px; } to room-layout-editor.html",
+      "proposed_solution": "Verify the absence of a :focus-visible rule across the room editor CSS and confirm no per-element workaround fills the gap. Write a one-line findings note for Development with the exact CSS rule to add, per the CLAUDE.md checklist requirement.",
       "status": "queued",
       "risk": "med"
     }
   ],
   "opportunities": [
-    {
-      "id": "research-o1",
-      "os_contexts": [
-        "sprite"
-      ],
-      "owner": "Research",
-      "stakeholders": "Development, Design",
-      "title": "Extract shared CSS token block \u2192 tokens.css",
-      "summary": "Eliminate manual token sync across 3+ HTML files",
-      "note": "Currently every HTML page duplicates the full :root { } token block. A single tokens.css would be the source of truth.",
-      "solution": "Create tokens.css, import via <link> in all HTML pages, remove inline :root blocks",
-      "status": "queued",
-      "risk": "low"
-    },
-    {
-      "id": "research-o2",
-      "os_contexts": [
-        "sprite"
-      ],
-      "owner": "Research",
-      "stakeholders": "Development, Cybersecurity",
-      "title": "Extract JS from room-layout-editor.html",
-      "summary": "9,607-line monolith with ~7,500 lines of inline JS",
-      "note": "Inline JS prevents security auditing, makes version control diffs unreadable, and blocks any future bundling/testing.",
-      "solution": "Extract JS to room-layout-editor.js, load via <script src>",
-      "status": "queued",
-      "risk": "low"
-    },
-    {
-      "id": "research-o3",
-      "os_contexts": [
-        "sprite"
-      ],
-      "owner": "Research",
-      "stakeholders": "Development",
-      "title": "Create shared nav.css",
-      "summary": ".site-nav styles duplicated between room editor and sprite workbench",
-      "note": "Both tools have near-identical .site-nav CSS. A shared file would keep them in sync.",
-      "solution": "Extract to nav.css, import in both tools",
-      "status": "queued",
-      "risk": "low"
-    },
-    {
-      "id": "research-o4",
-      "os_contexts": [
-        "sprite"
-      ],
-      "owner": "Research",
-      "stakeholders": "Design",
-      "title": "Align product-shell.css marketing section to design tokens",
-      "summary": "~15 hardcoded colors and ~12 rem font sizes outside the token system",
-      "note": "The marketing/splash section of product-shell.css predates the token system. It uses arbitrary hex values and rem units.",
-      "solution": "Audit and migrate each color to the nearest CSS variable; replace rem sizes with var(--font-size-*)",
-      "status": "queued",
-      "risk": "low"
-    },
-    {
-      "id": "research-o5",
-      "os_contexts": [
-        "sprite"
-      ],
-      "owner": "Research",
-      "stakeholders": "Development",
-      "title": "Standardise sprite workbench radius tokens",
-      "summary": "--radius-sm: 14px and --radius-md: 18px conflict with canonical scale",
-      "note": "Canonical: --radius-sm: 8px, --radius-md: 10px. The sprite workbench redefines them at a local :root, causing downstream confusion.",
-      "solution": "Remove local overrides; use canonical values or introduce named aliases specific to this tool",
-      "status": "queued",
-      "risk": "low"
-    },
     {
       "id": "research-o6",
       "os_contexts": [
@@ -125,12 +59,64 @@
       ],
       "owner": "Research",
       "stakeholders": "Orchestration, Finance, Marketing",
-      "title": "Passive income market scan delivered \u2014 pick first revenue experiment",
+      "title": "Passive income market scan delivered — pick first revenue experiment",
       "summary": "Library report covers itch.io asset economics, AI and education products, and platform fees",
       "note": "Executive summary emailed to founder. Full findings in research library. Finance should model net revenue at a few price points; founder chooses one first SKU (small pack vs. short guide).",
       "solution": "Orchestrator runs decision mode; founder approves first experiment and time budget",
       "status": "needs-review",
-      "risk": "low"
+      "risk": "low",
+      "sort_order": 5
+    },
+    {
+      "id": "res-o-1775275227162",
+      "title": "MCPP & Tool Research",
+      "status": "queued",
+      "risk": "low",
+      "sort_order": 6,
+      "note": "Research applicable MCP tools for our projects, and research use of deterministic tooling. brainstorm initiatives to make use of deterministic tooling in our AI workflows i.e., to reduce token use and to increase overall determinism and effectiveness of agents by reducing their workload.",
+      "solution": ""
+    }
+  ],
+  "actions": [
+    {
+      "id": "codebase-scan",
+      "name": "Codebase Scan",
+      "description": "Codebase-wide scan for consistency gaps, accessibility issues, risky patterns, and dead code across all tool files.",
+      "trigger": "When a new feature lands or any tool file is significantly changed",
+      "last_run": null,
+      "output_location": null
+    },
+    {
+      "id": "audit",
+      "name": "Audit",
+      "description": "Focused audit of a specific file, component, or subsystem — produces a findings report with severity ratings and handoff notes for the owning agent.",
+      "trigger": "When a specific area is flagged as a concern by any agent or the founder",
+      "last_run": null,
+      "output_location": null
+    },
+    {
+      "id": "library-scan",
+      "name": "Library Scan",
+      "description": "Review and update the research library under research/library/ — check for stale entries, duplicate findings, and gaps against the current codebase state.",
+      "trigger": "Before any major release or after a cluster of new findings are logged",
+      "last_run": null,
+      "output_location": null
+    },
+    {
+      "id": "market-scan",
+      "name": "Market Scan",
+      "description": "Competitive and market intelligence scan — surveys comparable tools, platforms, or revenue opportunities and writes findings into the research library.",
+      "trigger": "When founder or Orchestration requests market context for a product or revenue decision",
+      "last_run": null,
+      "output_location": null
+    },
+    {
+      "id": "deep-research",
+      "name": "Deep Research",
+      "description": "In-depth investigation of a specific technical or strategic question — broader scope than a single-file audit, may span multiple sources and produce a long-form report.",
+      "trigger": "When a question requires more than a codebase scan to answer (e.g. architecture decisions, technology choices, external platform analysis)",
+      "last_run": null,
+      "output_location": null
     }
   ],
   "research_chart": {

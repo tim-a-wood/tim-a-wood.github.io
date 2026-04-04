@@ -1846,7 +1846,7 @@
             <div>
               <div class="eyebrow">Room setup</div>
               <h2 id="roomWizardTitle" class="room-wizard-sheet-title">Room wizard</h2>
-              <p class="room-wizard-sub">Layout (footprint + axis-aligned platforms) → Review. Environment and Objects unlock in later releases.</p>
+              <p class="room-wizard-sub">Layout sets the room shell and traversal footprint. Environment unlocks once name, id, and footprint are valid; Objects is still reserved for a later pass.</p>
             </div>
             <button type="button" class="btn-icon" id="roomWizardClose" aria-label="Dismiss room setup">×</button>
           </div>
@@ -1873,7 +1873,7 @@
                   </label>
                   <label>
                     <span class="field-label">Room id</span>
-                    <span class="field-help">Must match R1, R2, …</span>
+                    <span class="field-help">Use ids like R1 or biome-scoped ids like RG-R1</span>
                     <input type="text" id="roomWizardRoomId" autocomplete="off" spellcheck="false" />
                   </label>
                 </div>
@@ -2813,12 +2813,12 @@
 }
   </script>
 
-  <script src="room-layout-export-package.js"></script>
-  <script src="room-layout-wizard-footprint.js"></script>
-  <script src="room-wizard-neighbor-align.js"></script>
-  <script src="room-wizard-terrain.js"></script>
-  <script src="room-wizard-environment.js"></script>
-  <script src="room-wizard-environment-copilot.js"></script>
+  <script src="room-layout-export-package.js?v=20260403b"></script>
+  <script src="room-layout-wizard-footprint.js?v=20260403b"></script>
+  <script src="room-wizard-neighbor-align.js?v=20260403b"></script>
+  <script src="room-wizard-terrain.js?v=20260403b"></script>
+  <script src="room-wizard-environment.js?v=20260403b"></script>
+  <script src="room-wizard-environment-copilot.js?v=20260403b"></script>
   <script>
     (() => {
       const DATA_URL = './room-layout-data.json';
@@ -8516,12 +8516,12 @@
           state.roomWizard.touched = true;
           const raw = document.getElementById('roomWizardRoomId').value.trim();
           const next = raw || room.id;
-          if (!/^R\d+$/i.test(next)) {
-            setStatus('Room id must look like R1, R2, …', 'error');
+          if (!/^(?:[A-Z][A-Z0-9]*-)?R\d+$/i.test(next)) {
+            setStatus('Room id must look like R1 or a scoped id like RG-R1.', 'error');
             document.getElementById('roomWizardRoomId').value = room.id;
             return;
           }
-          const canonical = next.replace(/^r/i, 'R');
+          const canonical = next.replace(/(^|-)r(?=\d+$)/i, '$1R');
           const clash = state.data.rooms.some((r) => r.id === canonical && r !== room);
           if (clash) {
             setStatus(`Room id ${canonical} is already in use.`, 'error');

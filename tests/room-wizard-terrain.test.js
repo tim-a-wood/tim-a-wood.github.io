@@ -30,6 +30,7 @@ const {
     ]
   };
   assert.strictEqual(isLayoutCompleteForTerrain(ok), true);
+  assert.strictEqual(isLayoutCompleteForTerrain({ ...ok, id: 'RG-R1' }), true);
 })();
 
 (function testPointInPolygon() {

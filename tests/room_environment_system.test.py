@@ -13,6 +13,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from scripts import room_environment_system as envsys
+from scripts import room_environment_v3 as envv3
 
 
 class RoomEnvironmentSystemTests(unittest.TestCase):
@@ -20,6 +21,8 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.root = Path(self.tmp.name)
         self.projects_root = self.root / "tools" / "2d-sprite-and-animation" / "projects-data"
+        self._old_gemini_api_key = envsys.os.environ.get("GEMINI_API_KEY")
+        envsys.os.environ["GEMINI_API_KEY"] = "test-key"
         self.project_id = "project-alpha"
         self.project = {
             "project_id": self.project_id,
@@ -73,10 +76,26 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         )
 
     def tearDown(self) -> None:
+        if self._old_gemini_api_key is None:
+            envsys.os.environ.pop("GEMINI_API_KEY", None)
+        else:
+            envsys.os.environ["GEMINI_API_KEY"] = self._old_gemini_api_key
         self.tmp.cleanup()
 
-    def _fake_ai_generate(self, output_path, prompt, refs, size, transparent):
-        img = envsys.Image.new("RGBA", size, (40, 50, 60, 0 if transparent else 255))
+    def _fake_ai_generate(self, output_path, prompt, refs, size, transparent, component_type=None):
+        if output_path.name in {"foreground_frame.png", "foreground_frame-candidate.png"}:
+            img = envsys.Image.new("RGBA", size, envsys.FOREGROUND_FRAME_CENTER_KEY_RGB + (255,))
+            draw = envsys.ImageDraw.Draw(img)
+            draw.rectangle((0, 0, size[0], int(size[1] * 0.20)), fill=(84, 74, 64, 255))
+            draw.rectangle((0, 0, int(size[0] * 0.20), size[1]), fill=(26, 20, 18, 255))
+            draw.rectangle((int(size[0] * 0.80), 0, size[0], size[1]), fill=(26, 20, 18, 255))
+            draw.rectangle((0, int(size[1] * 0.90), size[0], size[1]), fill=(90, 80, 70, 255))
+            for x in range(24, int(size[0] * 0.18), 72):
+                draw.line((x, int(size[1] * 0.18), x, int(size[1] * 0.88)), fill=(16, 18, 22, 255), width=4)
+            for x in range(int(size[0] * 0.82), size[0] - 24, 72):
+                draw.line((x, int(size[1] * 0.18), x, int(size[1] * 0.88)), fill=(16, 18, 22, 255), width=4)
+        else:
+            img = envsys.Image.new("RGBA", size, (40, 50, 60, 0 if transparent else 255))
         img.save(output_path)
         return True
 
@@ -94,6 +113,8 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
                 "left_right_balance": 0.0,
                 "side_shell_definition": 0.04,
                 "floor_background_separation": 0.1,
+                "top_band_darkness": 0.01,
+                "top_band_contrast": 0.03,
                 "platform_top_readability": 0.1,
                 "threshold_visibility": 0.1,
                 "platform_sample_count": 1.0,
@@ -118,6 +139,21 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         self.assertTrue(result["art_direction"]["locked"])
         self.assertEqual(result["art_direction"]["frozen_concept_ids"], ["art-direction-02"])
         self.assertTrue(result["art_direction"]["biome_packs"])
+        border_first = result["art_direction"]["biome_packs"][0]["border_first_contract"]
+        self.assertEqual(border_first["contract_version"], envsys.BORDER_FIRST_CONTRACT_VERSION)
+        self.assertEqual(border_first["status"], "schema_only")
+        self.assertFalse(border_first["authoritative"])
+        self.assertEqual(border_first["canonical_shell_template"], "border_piece")
+        self.assertEqual(border_first["biome_component_types"], list(envsys.BORDER_FIRST_BIOME_COMPONENT_TYPES))
+        self.assertEqual(border_first["room_asset_types"], list(envsys.BORDER_FIRST_ROOM_ASSET_TYPES))
+        self.assertEqual(border_first["compositing"]["mode"], "deterministic_mask_composite")
+        self.assertFalse(border_first["compositing"]["procedural_generation_allowed"])
+        self.assertTrue(border_first["legacy_split_shell_reference_only"])
+        self.assertEqual(
+            [item["component_type"] for item in border_first["biome_component_specs"]],
+            list(envsys.BORDER_FIRST_BIOME_COMPONENT_TYPES),
+        )
+        self.assertEqual(border_first["biome_templates"]["door_piece"], f"{result['art_direction']['biome_packs'][0]['biome_id']}-door_piece")
         room = self.saved["room_layout"]["rooms"][0]
         self.assertEqual(room["environment"]["preview"]["status"], "outdated")
 
@@ -126,22 +162,33 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         self.assertFalse(out.get("ok"))
         self.assertIn("confirm_overwrite", str(out.get("error", "")))
 
+    def test_find_curated_template_source_ignores_structural_room_outputs(self):
+        room_root = self.projects_root / self.project_id / "room_environment_assets" / "R1"
+        room_root.mkdir(parents=True, exist_ok=True)
+        (room_root / "foreground_frame.png").write_bytes(b"fake")
+        self.assertIsNone(envsys._find_curated_template_source(self.project_id, "foreground_frame"))
+
     def test_generate_biome_pack_visuals_marks_templates_and_skips_refresh_overwrite(self):
         envsys.generate_project_art_direction_concepts(self.project_id, {"template_id": "ruined-gothic"})
         envsys.update_project_art_direction(
             self.project_id,
             {"template_id": "ruined-gothic", "locked": True, "frozen_concept_ids": ["art-direction-01"]},
         )
-        with mock.patch.object(envsys, "_generate_bespoke_component_from_references", side_effect=self._fake_ai_generate):
+        with mock.patch.object(envsys, "_generate_bespoke_component_from_references", side_effect=self._fake_ai_generate), \
+             mock.patch.object(envsys, "_validate_structural_biome_source", return_value=(True, [])), \
+             mock.patch.object(envsys, "_validate_foreground_frame_source", return_value=(True, [])), \
+             mock.patch.object(envsys, "_foreground_frame_matches_fallback_seed", return_value=False):
             out = envsys.generate_biome_pack_visuals(self.project_id, {"confirm_overwrite": True})
         self.assertTrue(out["ok"])
         self.assertTrue(out["used_ai"])
+        generated_components = {row["component_type"] for row in out["results"]}
         for row in out["results"]:
             self.assertTrue(row.get("ok"), row)
         pack = out["art_direction"]["biome_packs"][0]
         for t in pack["template_library"]:
-            self.assertTrue(str(t.get("biome_visual_generated_at") or "").strip())
-            self.assertEqual(t.get("source_template_kind"), "gemini_biome")
+            if t["component_type"] in generated_components:
+                self.assertTrue(str(t.get("biome_visual_generated_at") or "").strip())
+                self.assertEqual(t.get("source_template_kind"), "gemini_biome")
         first_rel = pack["template_library"][0]["image_path"]
         path = self.projects_root / self.project_id / first_rel
         self.assertTrue(path.exists())
@@ -149,6 +196,485 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         path.write_bytes(marker)
         envsys.get_project_art_direction(self.project_id)
         self.assertEqual(path.read_bytes(), marker)
+
+    def test_default_biome_pack_includes_pending_border_first_templates(self):
+        envsys.generate_project_art_direction_concepts(self.project_id, {"template_id": "ruined-gothic"})
+        direction = envsys.update_project_art_direction(
+            self.project_id,
+            {"template_id": "ruined-gothic", "locked": True, "frozen_concept_ids": ["art-direction-01"]},
+        )["art_direction"]
+        pack = direction["biome_packs"][0]
+        template_by_component = {
+            item["component_type"]: item
+            for item in pack["template_library"]
+        }
+
+        for component_type in ("border_piece", "background_far_piece", "platform_piece"):
+            self.assertIn(component_type, template_by_component)
+            self.assertEqual(template_by_component[component_type]["source_template_kind"], "pending_generation")
+            self.assertFalse(template_by_component[component_type]["approved"])
+
+        contract = pack["border_first_contract"]
+        self.assertEqual(contract["status"], "schema_only")
+        self.assertEqual(contract["biome_templates"]["border_piece"], template_by_component["border_piece"]["template_id"])
+        self.assertEqual(contract["biome_templates"]["door_piece"], template_by_component["door_piece"]["template_id"])
+
+    def test_room_environment_manifest_exposes_border_first_contract(self):
+        envsys.generate_project_art_direction_concepts(self.project_id, {"template_id": "ruined-gothic"})
+        envsys.update_project_art_direction(
+            self.project_id,
+            {"template_id": "ruined-gothic", "locked": True, "frozen_concept_ids": ["art-direction-01"]},
+        )
+        spec = envsys.build_room_environment_spec(
+            self.project_id,
+            "R1",
+            {"description": "A readable ruined hall with a strong central route."},
+        )
+        runtime = spec["environment"]["runtime"]
+        bespoke = runtime["bespoke_asset_manifest"]
+
+        self.assertEqual(runtime["next_generation_contract"]["canonical_shell_template_type"], "border_piece")
+        self.assertIn("room_border_shell", runtime["next_generation_contract"]["room_asset_types"])
+        self.assertEqual(bespoke["next_generation_contract"]["canonical_shell_template_type"], "border_piece")
+
+    def test_generate_biome_pack_visuals_can_target_specific_components_only(self):
+        envsys.generate_project_art_direction_concepts(self.project_id, {"template_id": "ruined-gothic"})
+        envsys.update_project_art_direction(
+            self.project_id,
+            {"template_id": "ruined-gothic", "locked": True, "frozen_concept_ids": ["art-direction-01"]},
+        )
+        targeted = {"wall_piece", "ceiling_piece"}
+        with mock.patch.object(envsys, "_generate_bespoke_component_from_references", side_effect=self._fake_ai_generate), \
+             mock.patch.object(envsys, "_validate_structural_biome_source", return_value=(True, [])):
+            out = envsys.generate_biome_pack_visuals(
+                self.project_id,
+                {"confirm_overwrite": True, "component_types": sorted(targeted)},
+            )
+        self.assertTrue(out["ok"])
+        self.assertEqual(set(out["component_types"]), targeted)
+        self.assertEqual({row["component_type"] for row in out["results"]}, targeted)
+        pack = out["art_direction"]["biome_packs"][0]
+        marked = {
+            t["component_type"]
+            for t in pack["template_library"]
+            if str(t.get("biome_visual_generated_at") or "").strip()
+        }
+        self.assertEqual(marked, targeted)
+
+    def test_generate_biome_pack_visuals_can_target_foreground_frame_only(self):
+        envsys.generate_project_art_direction_concepts(self.project_id, {"template_id": "ruined-gothic"})
+        envsys.update_project_art_direction(
+            self.project_id,
+            {"template_id": "ruined-gothic", "locked": True, "frozen_concept_ids": ["art-direction-01"]},
+        )
+        with mock.patch.object(envsys, "_generate_bespoke_component_from_references", side_effect=self._fake_ai_generate):
+            out = envsys.generate_biome_pack_visuals(
+                self.project_id,
+                {"confirm_overwrite": True, "component_types": ["foreground_frame"]},
+            )
+        self.assertTrue(out["ok"])
+        self.assertEqual(out["component_types"], ["foreground_frame"])
+        self.assertEqual([row["component_type"] for row in out["results"]], ["foreground_frame"])
+
+    def test_generate_biome_pack_visuals_can_target_border_first_components_from_pending_templates(self):
+        envsys.generate_project_art_direction_concepts(self.project_id, {"template_id": "ruined-gothic"})
+        envsys.update_project_art_direction(
+            self.project_id,
+            {"template_id": "ruined-gothic", "locked": True, "frozen_concept_ids": ["art-direction-01"]},
+        )
+        targeted = {"border_piece", "background_far_piece", "platform_piece"}
+        with mock.patch.object(envsys, "_generate_bespoke_component_from_references", side_effect=self._fake_ai_generate), \
+             mock.patch.object(envsys, "_validate_structural_biome_source", return_value=(True, [])):
+            out = envsys.generate_biome_pack_visuals(
+                self.project_id,
+                {"confirm_overwrite": True, "component_types": sorted(targeted)},
+            )
+        self.assertTrue(out["ok"])
+        self.assertEqual(set(out["component_types"]), targeted)
+        self.assertEqual({row["component_type"] for row in out["results"]}, targeted)
+        pack = out["art_direction"]["biome_packs"][0]
+        template_by_component = {
+            item["component_type"]: item
+            for item in pack["template_library"]
+        }
+        for component_type in targeted:
+            template = template_by_component[component_type]
+            self.assertTrue(str(template.get("biome_visual_generated_at") or "").strip())
+            self.assertEqual(template.get("source_template_kind"), "gemini_biome")
+            self.assertTrue((self.projects_root / self.project_id / str(template.get("image_path") or "")).exists())
+
+    def test_generate_biome_pack_visuals_fails_cleanly_without_gemini_key(self):
+        envsys.generate_project_art_direction_concepts(self.project_id, {"template_id": "ruined-gothic"})
+        envsys.update_project_art_direction(
+            self.project_id,
+            {"template_id": "ruined-gothic", "locked": True, "frozen_concept_ids": ["art-direction-01"]},
+        )
+        with mock.patch.dict(envsys.os.environ, {"GEMINI_API_KEY": ""}, clear=False):
+            out = envsys.generate_biome_pack_visuals(
+                self.project_id,
+                {"confirm_overwrite": True, "component_types": ["foreground_frame"]},
+            )
+        self.assertFalse(out["ok"])
+        self.assertFalse(out["used_ai"])
+        self.assertIn("GEMINI_API_KEY", out["error"])
+        self.assertEqual(out["results"], [])
+
+    def test_generate_biome_pack_visuals_uses_ephemeral_foreground_frame_guide_only_for_generation(self):
+        envsys.generate_project_art_direction_concepts(self.project_id, {"template_id": "ruined-gothic"})
+        envsys.update_project_art_direction(
+            self.project_id,
+            {"template_id": "ruined-gothic", "locked": True, "frozen_concept_ids": ["art-direction-01"]},
+        )
+        calls = {}
+
+        def fake_generate(output_path, prompt, refs, size, transparent, component_type=None):
+            key = str(component_type or output_path.stem)
+            calls[key] = [path.name for path in refs]
+            return self._fake_ai_generate(output_path, prompt, refs, size, transparent)
+
+        with mock.patch.object(envsys, "_generate_bespoke_component_from_references", side_effect=fake_generate):
+            out = envsys.generate_biome_pack_visuals(
+                self.project_id,
+                {"confirm_overwrite": True, "component_types": ["foreground_frame"]},
+            )
+
+        self.assertTrue(out["ok"])
+        self.assertIn("foreground_frame-guide.png", calls["foreground_frame"])
+        self.assertIn("foreground_frame-style.png", calls["foreground_frame"])
+        self.assertFalse((self.projects_root / self.project_id / ".tmp_biome_generation_refs" / "foreground_frame-guide.png").exists())
+        self.assertFalse((self.projects_root / self.project_id / ".tmp_biome_generation_refs" / "foreground_frame-style.png").exists())
+        pack = out["art_direction"]["biome_packs"][0]
+        self.assertFalse(any(".tmp_biome_generation_refs" in str(t.get("image_path") or "") for t in pack["template_library"]))
+
+    def test_generate_biome_pack_visuals_labels_foreground_frame_fallback_seed_matches(self):
+        envsys.generate_project_art_direction_concepts(self.project_id, {"template_id": "ruined-gothic"})
+        envsys.update_project_art_direction(
+            self.project_id,
+            {"template_id": "ruined-gothic", "locked": True, "frozen_concept_ids": ["art-direction-01"]},
+        )
+
+        def fake_generate(output_path, prompt, refs, size, transparent, component_type=None):
+            direction = envsys.normalize_art_direction(self.saved.get("art_direction"), self.saved.get("art_direction"))
+            palette = copy.deepcopy(direction.get("palette") or {})
+            spec = {
+                "theme_id": str(direction.get("template_id") or ""),
+                "description": str(direction.get("high_level_direction") or ""),
+                "mood": str(direction.get("style_family") or ""),
+                "lighting": ", ".join(direction.get("lighting_rules") or []),
+                "tags": ["ruined-gothic"],
+                "components": {},
+            }
+            flags = envsys._environment_style_flags(spec)
+            shell_family = envsys._infer_shell_family(spec)
+            envsys._fallback_foreground_frame_asset(output_path, palette, flags, shell_family)
+            return True
+
+        with mock.patch.object(envsys, "_generate_bespoke_component_from_references", side_effect=fake_generate):
+            out = envsys.generate_biome_pack_visuals(
+                self.project_id,
+                {"confirm_overwrite": True, "component_types": ["foreground_frame"]},
+            )
+
+        self.assertTrue(out["ok"])
+        self.assertTrue(out["used_ai"])
+        self.assertEqual(out["results"][0]["error"], "foreground_frame_source_invalid")
+        self.assertIn("foreground_frame_matches_fallback_seed", out["results"][0]["validation_errors"])
+
+    def test_generate_biome_pack_visuals_does_not_self_reference_saved_foreground_frame(self):
+        envsys.generate_project_art_direction_concepts(self.project_id, {"template_id": "ruined-gothic"})
+        envsys.update_project_art_direction(
+            self.project_id,
+            {"template_id": "ruined-gothic", "locked": True, "frozen_concept_ids": ["art-direction-01"]},
+        )
+        calls = {}
+
+        def fake_generate(output_path, prompt, refs, size, transparent, component_type=None):
+            key = str(component_type or output_path.name.replace("-candidate", ""))
+            calls[key] = [path.name for path in refs]
+            return self._fake_ai_generate(output_path, prompt, refs, size, transparent)
+
+        with mock.patch.object(envsys, "_generate_bespoke_component_from_references", side_effect=fake_generate):
+            out = envsys.generate_biome_pack_visuals(
+                self.project_id,
+                {"confirm_overwrite": True, "component_types": ["foreground_frame"]},
+            )
+
+        self.assertTrue(out["ok"])
+        self.assertNotIn("foreground_frame.png", calls["foreground_frame"])
+        self.assertIn("foreground_frame-guide.png", calls["foreground_frame"])
+
+    def test_generate_biome_pack_visuals_does_not_feed_structural_sibling_refs_to_foreground_frame(self):
+        envsys.generate_project_art_direction_concepts(self.project_id, {"template_id": "ruined-gothic"})
+        envsys.update_project_art_direction(
+            self.project_id,
+            {"template_id": "ruined-gothic", "locked": True, "frozen_concept_ids": ["art-direction-01"]},
+        )
+        calls = {}
+
+        def fake_generate(output_path, prompt, refs, size, transparent, component_type=None):
+            key = str(component_type or output_path.name.replace("-candidate", ""))
+            calls[key] = [path.name for path in refs]
+            return self._fake_ai_generate(output_path, prompt, refs, size, transparent)
+
+        with mock.patch.object(envsys, "_generate_bespoke_component_from_references", side_effect=fake_generate):
+            out = envsys.generate_biome_pack_visuals(
+                self.project_id,
+                {"confirm_overwrite": True, "component_types": ["foreground_frame"]},
+            )
+
+        self.assertTrue(out["ok"])
+        names = next(iter(calls.values()))
+        self.assertNotIn("primary_floor_piece.png", names)
+        self.assertNotIn("wall_piece.png", names)
+        self.assertNotIn("ceiling_piece.png", names)
+        self.assertNotIn("hero_platform_piece.png", names)
+        self.assertIn("foreground_frame-guide.png", names)
+
+    def test_generate_biome_pack_visuals_does_not_feed_frozen_concepts_to_structural_components(self):
+        envsys.generate_project_art_direction_concepts(self.project_id, {"template_id": "ruined-gothic"})
+        envsys.update_project_art_direction(
+            self.project_id,
+            {"template_id": "ruined-gothic", "locked": True, "frozen_concept_ids": ["art-direction-01"]},
+        )
+        calls = {}
+
+        def fake_generate(output_path, prompt, refs, size, transparent, component_type=None):
+            calls[output_path.name] = [path.name for path in refs]
+            return self._fake_ai_generate(output_path, prompt, refs, size, transparent)
+
+        with mock.patch.object(envsys, "_generate_bespoke_component_from_references", side_effect=fake_generate):
+            out = envsys.generate_biome_pack_visuals(
+                self.project_id,
+                {"confirm_overwrite": True, "component_types": ["wall_piece"]},
+            )
+
+        self.assertTrue(out["ok"])
+        names = next(iter(calls.values()))
+        self.assertNotIn("art-direction-01.png", names)
+
+    def test_generate_biome_pack_visuals_uses_pack_locked_concepts_for_scenic_components(self):
+        envsys.generate_project_art_direction_concepts(self.project_id, {"template_id": "ruined-gothic"})
+        envsys.update_project_art_direction(
+            self.project_id,
+            {"template_id": "ruined-gothic", "locked": True, "frozen_concept_ids": ["art-direction-01"]},
+        )
+        self.saved["art_direction"]["biome_packs"][0]["locked_concept_ids"] = ["art-direction-02"]
+        calls = {}
+
+        def fake_generate(output_path, prompt, refs, size, transparent, component_type=None):
+            calls[output_path.name] = [path.name for path in refs]
+            return self._fake_ai_generate(output_path, prompt, refs, size, transparent)
+
+        with mock.patch.object(envsys, "_generate_bespoke_component_from_references", side_effect=fake_generate):
+            out = envsys.generate_biome_pack_visuals(
+                self.project_id,
+                {"confirm_overwrite": True, "component_types": ["background_plate"]},
+            )
+
+        self.assertTrue(out["ok"])
+        names = calls["background_plate.png"]
+        self.assertIn("art-direction-02.png", names)
+        self.assertNotIn("art-direction-01.png", names)
+
+    def test_foreground_frame_generation_guide_emphasizes_cap_and_floor_bands(self):
+        project_dir = self.projects_root / self.project_id
+        guide_path = envsys._write_foreground_frame_generation_guide(project_dir)
+        guide = envsys.Image.open(guide_path).convert("RGB")
+
+        top = guide.getpixel((guide.width // 2, 80))
+        bottom = guide.getpixel((guide.width // 2, 1090))
+        left = guide.getpixel((120, guide.height // 2))
+        right = guide.getpixel((guide.width - 120, guide.height // 2))
+        center = guide.getpixel((guide.width // 2, guide.height // 2))
+
+        self.assertGreater(top[0], left[0] + 120)
+        self.assertGreater(bottom[0], left[0] + 120)
+        self.assertGreater(center[1], 220)
+        self.assertLess(center[0], 40)
+        self.assertLess(center[2], 40)
+        self.assertGreater(center[1], left[1] + 140)
+        self.assertGreater(center[1], right[1] + 140)
+
+    def test_foreground_frame_generation_guide_is_not_fallback_seed_render(self):
+        project_dir = self.projects_root / self.project_id
+        guide_path = envsys._write_foreground_frame_generation_guide(project_dir)
+        direction = {
+            "template_id": "ruined-gothic",
+            "high_level_direction": "Broken gothic halls, damp stone, restrained color, readable traversal silhouettes, and sacred decay.",
+            "style_family": "dark fantasy ruins",
+            "lighting_rules": ["low-key lighting", "single focal glow", "fog depth near floor"],
+            "palette": {
+                "dominant": ["#11161d", "#24343a", "#6f7f79"],
+                "accent": ["#b58f52"],
+                "avoid": ["#ffffff", "#ff3bf1"],
+            },
+        }
+        self.assertFalse(envsys._foreground_frame_matches_fallback_seed(guide_path, direction))
+
+    def test_foreground_frame_style_swatch_avoids_hard_top_separator_bar(self):
+        project_dir = self.projects_root / self.project_id
+        direction = {
+            "template_id": "ruined-gothic",
+            "high_level_direction": "Broken gothic halls, damp stone, restrained color, readable traversal silhouettes, and sacred decay.",
+            "style_family": "dark fantasy ruins",
+            "lighting_rules": ["low-key lighting", "single focal glow", "fog depth near floor"],
+            "palette": {
+                "dominant": ["#11161d", "#24343a", "#6f7f79"],
+                "accent": ["#b58f52"],
+                "avoid": ["#ffffff", "#ff3bf1"],
+            },
+        }
+        swatch_path = envsys._write_foreground_frame_style_swatch(project_dir, direction)
+        self.assertIsNotNone(swatch_path)
+        swatch = envsys.Image.open(swatch_path).convert("RGB")
+        ceiling_sample = swatch.getpixel((swatch.width // 2, 79))
+        seam_sample = swatch.getpixel((swatch.width // 2, 88))
+        wall_sample = swatch.getpixel((swatch.width // 2, 108))
+        self.assertGreater(sum(seam_sample), 90)
+        self.assertGreater(sum(seam_sample), sum(wall_sample) - 40)
+        self.assertLess(abs(sum(ceiling_sample) - sum(seam_sample)), 80)
+
+    def test_foreground_frame_style_swatch_uses_clean_fallback_ceiling_row(self):
+        project_dir = self.projects_root / self.project_id
+        biome_root = project_dir / "art_direction_biomes" / "ruined-gothic-v1"
+        biome_root.mkdir(parents=True, exist_ok=True)
+        ceiling_path = biome_root / "ceiling_piece.png"
+        wall_path = biome_root / "wall_piece.png"
+        bad_ceiling = envsys.Image.new("RGBA", (1600, 224), (28, 34, 40, 255))
+        draw = envsys.ImageDraw.Draw(bad_ceiling)
+        draw.rectangle((0, 0, 1600, 224), fill=(28, 34, 40, 255))
+        draw.rectangle((520, 96, 760, 180), fill=(210, 210, 210, 255))
+        bad_ceiling.save(ceiling_path)
+        good_wall = envsys.Image.new("RGBA", (512, 1200), (34, 42, 50, 255))
+        good_wall.save(wall_path)
+        direction = {
+            "template_id": "ruined-gothic",
+            "high_level_direction": "Broken gothic halls, damp stone, restrained color, readable traversal silhouettes, and sacred decay.",
+            "style_family": "dark fantasy ruins",
+            "lighting_rules": ["low-key lighting"],
+            "palette": {
+                "dominant": ["#11161d", "#24343a", "#6f7f79"],
+                "accent": ["#b58f52"],
+                "avoid": ["#ffffff", "#ff3bf1"],
+            },
+        }
+        swatch_path = envsys._write_foreground_frame_style_swatch(project_dir, direction)
+        self.assertIsNotNone(swatch_path)
+        swatch = envsys.Image.open(swatch_path).convert("RGB")
+        top_mid = swatch.getpixel((swatch.width // 2, 56))
+        self.assertLess(sum(top_mid), 180)
+
+    def test_foreground_frame_match_detector_requires_equal_dimensions(self):
+        direction = {
+            "template_id": "ruined-gothic",
+            "high_level_direction": "Broken gothic halls, damp stone, restrained color, readable traversal silhouettes, and sacred decay.",
+            "style_family": "dark fantasy ruins",
+            "lighting_rules": ["low-key lighting", "single focal glow", "fog depth near floor"],
+            "palette": {
+                "dominant": ["#11161d", "#24343a", "#6f7f79"],
+                "accent": ["#b58f52"],
+                "avoid": ["#ffffff", "#ff3bf1"],
+            },
+        }
+        fallback = self.root / "foreground-frame-fallback.png"
+        envsys._fallback_foreground_frame_asset(fallback, direction["palette"], {})
+        resized = self.root / "foreground-frame-fallback-resized.png"
+        envsys.Image.open(fallback).resize((1024, 1024), envsys.Image.Resampling.LANCZOS).save(resized)
+        self.assertFalse(envsys._foreground_frame_matches_fallback_seed(resized, direction))
+
+    def test_fit_foreground_frame_image_to_size_trims_edge_padding_before_resize(self):
+        raw = self.root / "foreground-frame-raw.png"
+        img = envsys.Image.new("RGBA", (1184, 864), (248, 248, 248, 255))
+        draw = envsys.ImageDraw.Draw(img)
+        draw.rectangle((0, 120, 1184, 720), fill=(26, 30, 36, 255))
+        draw.rectangle((0, 120, 152, 720), fill=(14, 16, 20, 255))
+        draw.rectangle((1032, 120, 1184, 720), fill=(14, 16, 20, 255))
+        draw.rectangle((152, 120, 1032, 720), fill=(84, 84, 84, 255))
+        img.save(raw)
+
+        envsys._fit_foreground_frame_image_to_size(raw, (1600, 1200))
+        fitted = envsys.Image.open(raw).convert("RGB")
+
+        top = fitted.getpixel((fitted.width // 2, 24))
+        left = fitted.getpixel((60, fitted.height // 2))
+        center = fitted.getpixel((fitted.width // 2, fitted.height // 2))
+        self.assertLess(sum(top), 720)
+        self.assertLess(sum(left), sum(center))
+
+    def test_fallback_foreground_frame_seed_stays_border_only(self):
+        path = self.root / "foreground-frame-seed.png"
+        envsys._fallback_foreground_frame_asset(
+            path,
+            {"dominant": ["#11161d", "#24343a"]},
+            {},
+        )
+        img = envsys.Image.open(path).convert("RGB")
+        center = img.getpixel((img.width // 2, img.height // 2))
+        top = img.getpixel((img.width // 2, 80))
+        bottom = img.getpixel((img.width // 2, 1120))
+        left = img.getpixel((120, img.height // 2))
+        center_edge = img.getpixel((224, img.height // 2))
+        self.assertGreater(center[1], 220)
+        self.assertLess(center[0], 40)
+        self.assertLess(center[2], 40)
+        self.assertLess(sum(left), sum(center))
+        self.assertNotEqual(top, center)
+        self.assertNotEqual(bottom, center)
+        self.assertNotEqual(left, center_edge)
+
+    def test_generate_biome_pack_visuals_generates_floor_before_other_structural_parts(self):
+        envsys.generate_project_art_direction_concepts(self.project_id, {"template_id": "ruined-gothic"})
+        envsys.update_project_art_direction(
+            self.project_id,
+            {"template_id": "ruined-gothic", "locked": True, "frozen_concept_ids": ["art-direction-01"]},
+        )
+        call_order = []
+
+        def fake_generate(output_path, prompt, refs, size, transparent, component_type=None):
+            call_order.append(output_path.name)
+            return self._fake_ai_generate(output_path, prompt, refs, size, transparent)
+
+        with mock.patch.object(envsys, "_generate_bespoke_component_from_references", side_effect=fake_generate):
+            out = envsys.generate_biome_pack_visuals(
+                self.project_id,
+                {"confirm_overwrite": True, "component_types": ["ceiling_piece", "primary_floor_piece", "wall_piece"]},
+            )
+
+        self.assertTrue(out["ok"])
+        self.assertTrue(call_order[0].startswith("primary_floor_piece"))
+
+    def test_generate_biome_pack_visuals_keeps_core_structural_templates_seed_only(self):
+        envsys.generate_project_art_direction_concepts(self.project_id, {"template_id": "ruined-gothic"})
+        envsys.update_project_art_direction(
+            self.project_id,
+            {"template_id": "ruined-gothic", "locked": True, "frozen_concept_ids": ["art-direction-01"]},
+        )
+        calls = {}
+
+        def fake_generate(output_path, prompt, refs, size, transparent, component_type=None):
+            key = str(component_type or output_path.name.replace("-candidate", ""))
+            calls[key] = {
+                "prompt": prompt,
+                "refs": [path.name for path in refs],
+            }
+            return self._fake_ai_generate(output_path, prompt, refs, size, transparent)
+
+        with mock.patch.object(envsys, "_generate_bespoke_component_from_references", side_effect=fake_generate), \
+             mock.patch.object(envsys, "_validate_structural_biome_source", return_value=(True, [])):
+            out = envsys.generate_biome_pack_visuals(
+                self.project_id,
+                {"confirm_overwrite": True, "component_types": ["primary_floor_piece", "wall_piece", "ceiling_piece"]},
+            )
+
+        self.assertTrue(out["ok"])
+        self.assertIn("wall_piece-seed.png", calls["wall_piece"]["refs"])
+        self.assertIn("ceiling_piece-seed.png", calls["ceiling_piece"]["refs"])
+        self.assertIn("primary_floor_piece-seed.png", calls["primary_floor_piece"]["refs"])
+        self.assertNotIn("primary_floor_piece.png", calls["wall_piece"]["refs"])
+        self.assertNotIn("primary_floor_piece.png", calls["ceiling_piece"]["refs"])
+        self.assertNotIn("foreground_frame.png", calls["wall_piece"]["refs"])
+        self.assertNotIn("foreground_frame.png", calls["ceiling_piece"]["refs"])
+        self.assertNotIn("direct material and proportion anchors", calls["wall_piece"]["prompt"])
 
     def test_get_project_frozen_concept_candidates_and_defaults(self):
         envsys.generate_project_art_direction_concepts(self.project_id, {"template_id": "ruined-gothic"})
@@ -248,6 +774,21 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         self.assertTrue(bespoke["built_slots"])
         self.assertTrue(bespoke["slot_groups"])
         self.assertTrue(bespoke["schema_validation"]["valid"])
+        self.assertTrue(bespoke["structural_review_bundle"]["sources"])
+        self.assertTrue(bespoke["structural_review_bundle"]["contact_sheet"]["url"])
+        self.assertEqual(bespoke["border_first_contract"]["contract_version"], envsys.BORDER_FIRST_CONTRACT_VERSION)
+        self.assertEqual(bespoke["border_first_contract"]["status"], "schema_only")
+        self.assertEqual(bespoke["border_first_contract"]["canonical_shell_template"], "border_piece")
+        self.assertEqual(bespoke["border_first_contract"]["compositing"]["center_handling"], "mask_based_extraction")
+        self.assertEqual(
+            bespoke["border_first_contract"]["room_assets"],
+            {
+                "room_border_shell": "planned",
+                "room_background": "planned",
+                "room_platforms": "planned",
+                "room_doors": "planned",
+            },
+        )
         self.assertEqual(bespoke["runtime_review"]["status"], "pass")
         self.assertTrue(bespoke["runtime_review"]["screenshot_url"])
         self.assertEqual(asset_pack["environment"]["runtime"]["status"], "ready")
@@ -400,6 +941,27 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         panels = [item for item in planner["plan"] if item["component_type"] == "backwall_panel"]
         self.assertGreaterEqual(len(panels), 2)
 
+    def test_v3_planner_uses_component_specific_structural_slots(self):
+        room = copy.deepcopy(self.saved["room_layout"]["rooms"][0])
+        room["size"] = {"width": 1184, "height": 1888}
+        room["platforms"].append({"id": "R1-P2", "x": 352, "y": 1088, "len": 7})
+        planner = envsys.envv3.build_generation_plan(
+            room,
+            "preview-3",
+            self._mock_biome_pack(),
+            "2026-03-28T12:00:00Z",
+        )
+        ceiling = next(item for item in planner["plan"] if item["component_type"] == "ceiling_band")
+        left_wall = next(item for item in planner["plan"] if item["component_type"] == "wall_module_left")
+        left_trim = next(item for item in planner["plan"] if item["component_type"] == "wall_base_trim_left")
+        floor_top = next(item for item in planner["plan"] if item["component_type"] == "main_floor_top")
+        platform_top = next(item for item in planner["plan"] if item["component_type"] == "hero_platform_top")
+        self.assertEqual(ceiling["source_template_component_type"], "ceiling_piece")
+        self.assertEqual(left_wall["source_template_component_type"], "wall_piece")
+        self.assertEqual(left_trim["source_template_component_type"], "wall_piece")
+        self.assertEqual(floor_top["source_template_component_type"], "primary_floor_piece")
+        self.assertEqual(platform_top["source_template_component_type"], "hero_platform_piece")
+
     def test_room_helpfulness_feedback_tracks_view_revise_and_persistence(self):
         envsys.update_project_art_direction(self.project_id, {"template_id": "ruined-gothic", "locked": True})
         envsys.build_room_environment_spec(
@@ -455,6 +1017,9 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         for component_type, template_id in [
             ("background_plate", "tmpl-bg"),
             ("midground_frame", "tmpl-mid"),
+            ("foreground_frame", "tmpl-foreground"),
+            ("wall_piece", "tmpl-wall"),
+            ("ceiling_piece", "tmpl-ceiling"),
             ("primary_floor_piece", "tmpl-floor"),
             ("hero_platform_piece", "tmpl-platform"),
             ("door_piece", "tmpl-door"),
@@ -518,7 +1083,13 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         preview_id = generated["environment"]["preview"]["images"][0]["preview_id"]
         envsys.approve_room_environment_preview(self.project_id, "R1", {"preview_id": preview_id})
 
+        def fake_template_render(template_path, output_path, size, transparent, component_type):
+            img = envsys.Image.new("RGBA", size, (40, 50, 60, 0 if transparent else 255))
+            img.save(output_path)
+            return True
+
         with mock.patch.object(envsys, "_generate_bespoke_component_from_references", side_effect=self._fake_ai_generate), \
+             mock.patch.object(envsys, "_render_bespoke_component_from_template", side_effect=fake_template_render), \
              mock.patch.object(envsys, "_validate_bespoke_component", return_value=(True, [])):
             result = envsys.generate_room_environment_asset_pack(self.project_id, "R1", {"preview_id": preview_id})
         bespoke = result["environment"]["runtime"]["bespoke_asset_manifest"]
@@ -538,7 +1109,14 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         preview_id = generated["environment"]["preview"]["images"][0]["preview_id"]
         envsys.approve_room_environment_preview(self.project_id, "R1", {"preview_id": preview_id})
 
-        with mock.patch.object(envsys, "_generate_bespoke_component_from_references", return_value=False):
+        original_render = envsys._render_bespoke_component_from_template
+
+        def fail_background(template_path, output_path, size, transparent, component_type=None):
+            if component_type == "background_far_plate":
+                return False
+            return original_render(template_path, output_path, size, transparent, component_type)
+
+        with mock.patch.object(envsys, "_render_bespoke_component_from_template", side_effect=fail_background):
             result = envsys.generate_room_environment_asset_pack(self.project_id, "R1", {"preview_id": preview_id})
         bespoke = result["environment"]["runtime"]["bespoke_asset_manifest"]
         self.assertEqual(bespoke["status"], "failed")
@@ -569,6 +1147,10 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         self.assertIn("reject carryover of any altar", prompt)
         self.assertIn("open center lane", prompt)
         self.assertIn("not scenic concept art with gameplay layered on top", prompt)
+        self.assertIn("visible enclosing wall faces in the outer thirds", prompt)
+        self.assertIn("tighter dungeon passage shell", prompt)
+        self.assertIn("Avoid a broad bright fog bank across the lower half", prompt)
+        self.assertIn("continuous side-wall enclosure", prompt)
 
     def test_bespoke_prompt_requires_side_only_midground_and_structural_floor(self):
         midground_prompt = envsys._build_bespoke_prompt(
@@ -617,6 +1199,54 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         self.assertIn("same room shell as the walls and background", floor_prompt)
         self.assertIn("same stone family", floor_prompt)
         self.assertIn("Do not introduce a giant circular ritual graphic", floor_prompt)
+        self.assertIn("upper edge of a chamber border", floor_prompt)
+
+        wall_prompt = envsys._build_bespoke_prompt(
+            {"high_level_direction": "Quiet ruined hall", "negative_direction": "busy focal shrine scenes"},
+            {
+                "mood": "somber",
+                "lighting": "low-key",
+                "description": "A hall with a clear route.",
+                "component_schemas": {"walls": envsys._default_component_schema("walls", "A hall with a clear route.")},
+            },
+            {
+                "component_type": "wall_module_left",
+                "schema_key": "walls",
+                "target_dimensions": {"width": 320, "height": 960},
+                "orientation": "vertical",
+                "tile_mode": "stretch",
+                "border_treatment": "side_only",
+                "protected_zones": [{"type": "center_lane", "x": 480, "y": 0, "width": 640, "height": 1200}],
+            },
+            {"variant_family": "walls", "orientation": "vertical"},
+        )
+        self.assertIn("solid opaque enclosure stone", wall_prompt)
+        self.assertIn("one broad wall face", wall_prompt)
+        self.assertIn("No arch cutout", wall_prompt)
+        self.assertIn("no visible opening", wall_prompt)
+
+        floor_face_prompt = envsys._build_bespoke_prompt(
+            {"high_level_direction": "Quiet ruined hall", "negative_direction": "busy focal shrine scenes"},
+            {
+                "mood": "somber",
+                "lighting": "low-key",
+                "description": "A hall with a clear route.",
+                "component_schemas": {"floor": envsys._default_component_schema("floor", "A hall with a clear route.")},
+            },
+            {
+                "component_type": "main_floor_face",
+                "schema_key": "floor",
+                "target_dimensions": {"width": 704, "height": 128},
+                "orientation": "horizontal",
+                "tile_mode": "tile_x",
+                "border_treatment": "face_plane_separation",
+                "protected_zones": [{"type": "platform_face", "x": 224, "y": 960, "width": 704, "height": 96}],
+            },
+            {"variant_family": "floor", "orientation": "horizontal"},
+        )
+        self.assertIn("heavy retaining border wall", floor_face_prompt)
+        self.assertIn("broad darker masonry blocks", floor_face_prompt)
+        self.assertIn("visibly lighter than the face beneath it", floor_prompt)
 
     def test_bespoke_prompt_requires_transparent_cutout_for_door_frame(self):
         prompt = envsys._build_bespoke_prompt(
@@ -655,8 +1285,61 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         self.assertIn("transparent background", door)
         self.assertIn("Preserve transparent pixels outside the frame", door)
 
+    def test_biome_template_prompt_keeps_structural_templates_generic_and_reference_led(self):
+        direction = {
+            "high_level_direction": "Broken gothic halls, damp stone, restrained color, readable traversal silhouettes, and sacred decay.",
+            "negative_direction": "clean sci-fi surfaces, cartoon props, glossy plastics, bright cheerful saturation",
+            "lighting_rules": ["low-key lighting", "single focal glow", "fog depth near floor"],
+        }
+        wall = envsys._build_biome_template_prompt("wall_piece", direction, "")
+        ceiling = envsys._build_biome_template_prompt("ceiling_piece", direction, "")
+        floor = envsys._build_biome_template_prompt("primary_floor_piece", direction, "")
+
+        self.assertIn("The provided reference image is a generic component template", wall)
+        self.assertIn("Do not invent arches", wall)
+        self.assertIn("preserve its overall silhouette", ceiling)
+        self.assertIn("Do not invent arches, ribs", ceiling)
+        self.assertIn("Do not reinterpret the template as a full room slice", floor)
+        self.assertIn("Do not depict a perspective slab", floor)
+
     def test_door_frame_uses_direct_adaptation_mode(self):
         self.assertEqual(envsys._component_adaptation_mode("door_frame"), "direct")
+
+    def test_room_aware_v2_slots_use_expected_adaptation_modes(self):
+        self.assertEqual(envsys._component_adaptation_mode("background_far_plate"), "gemini")
+        self.assertEqual(envsys._component_adaptation_mode("midground_side_frame"), "direct")
+
+    def test_ceiling_band_uses_gemini_adaptation_mode(self):
+        self.assertEqual(envsys._component_adaptation_mode("ceiling_band"), "gemini")
+
+    def test_core_structural_biome_templates_do_not_use_sibling_anchor_refs(self):
+        biome_pack = {
+            "template_library": [
+                {"component_type": "wall_piece", "image_path": "art_direction_biomes/test/wall_piece.png"},
+                {"component_type": "ceiling_piece", "image_path": "art_direction_biomes/test/ceiling_piece.png"},
+                {"component_type": "primary_floor_piece", "image_path": "art_direction_biomes/test/primary_floor_piece.png"},
+            ]
+        }
+        generated_paths = {
+            "wall_piece": self.root / "wall_piece.png",
+            "ceiling_piece": self.root / "ceiling_piece.png",
+            "primary_floor_piece": self.root / "primary_floor_piece.png",
+        }
+        for path in generated_paths.values():
+            envsys.Image.new("RGBA", (16, 16), (80, 90, 100, 255)).save(path)
+
+        self.assertEqual(
+            envsys._biome_structural_reference_paths("wall_piece", biome_pack, self.root, generated_paths),
+            [],
+        )
+        self.assertEqual(
+            envsys._biome_structural_reference_paths("ceiling_piece", biome_pack, self.root, generated_paths),
+            [],
+        )
+        self.assertEqual(
+            envsys._biome_structural_reference_paths("primary_floor_piece", biome_pack, self.root, generated_paths),
+            [],
+        )
 
     def test_apply_door_cutout_alpha_removes_checkerboard_and_opening(self):
         candidate = self.root / "door-source.png"
@@ -675,7 +1358,7 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
 
         self.assertGreater(envsys._alpha_ratio(candidate), 0.2)
 
-    def test_component_reference_guides_sanitize_scenic_slots_and_crop_structural_slots(self):
+    def test_component_reference_guides_use_geometry_guides_for_room_aware_slots(self):
         refs_root = self.root / "refs"
         template = self.root / "template.png"
         preview = self.root / "preview.png"
@@ -725,13 +1408,58 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
 
         self.assertNotIn(preview, background_refs)
         self.assertTrue(background_refs[0].exists())
-        self.assertEqual(len(background_refs), 1)
-        self.assertLess(envsys._region_alpha_ratio(midground_refs[0], (0.36, 0.18, 0.64, 0.82)), 0.15)
-        self.assertEqual(len(floor_refs), 1)
-        self.assertNotEqual(floor_refs[0], template)
-        self.assertTrue(floor_refs[0].exists())
+        self.assertEqual(len(background_refs), 2)
+        self.assertEqual(background_refs[0], template)
+        self.assertNotEqual(background_refs[1], template)
+        self.assertLess(envsys._region_alpha_ratio(midground_refs[1], (0.36, 0.18, 0.64, 0.82)), 0.15)
+        self.assertEqual(len(floor_refs), 2)
+        self.assertEqual(floor_refs[0], template)
+        self.assertTrue(floor_refs[1].exists())
         self.assertEqual(len(door_refs), 1)
         self.assertNotEqual(door_refs[0], template)
+
+    def test_wall_reference_guides_use_full_size_geometry_guides(self):
+        refs_root = self.root / "refs"
+        template = self.root / "template-wide.png"
+        preview = self.root / "preview-wide.png"
+        envsys.Image.new("RGBA", (200, 100), (120, 140, 155, 255)).save(template)
+        envsys.Image.new("RGBA", (200, 100), (90, 105, 118, 255)).save(preview)
+
+        left_refs = envsys._bespoke_reference_images_for_component(
+            "wall_module_left",
+            template,
+            preview,
+            [],
+            refs_root,
+            (60, 100),
+            False,
+        )
+        right_refs = envsys._bespoke_reference_images_for_component(
+            "wall_module_right",
+            template,
+            preview,
+            [],
+            refs_root,
+            (60, 100),
+            False,
+        )
+
+        self.assertEqual(left_refs[0], template)
+        self.assertEqual(right_refs[0], template)
+        with envsys.Image.open(left_refs[1]) as left_image:
+            self.assertEqual(left_image.size, (60, 100))
+        with envsys.Image.open(right_refs[1]) as right_image:
+            self.assertEqual(right_image.size, (60, 100))
+
+    def test_background_retry_prompt_strengthens_outer_shell_definition(self):
+        retry = envsys._retry_prompt_for_validation_errors("background_far_plate", "base prompt", ["background_shell_definition_low"], 0)
+        self.assertIn("visible enclosing wall faces", retry)
+        self.assertIn("Reduce the feeling of a giant open nave", retry)
+
+    def test_background_retry_prompt_can_warn_against_lower_fog_bank(self):
+        retry = envsys._retry_prompt_for_validation_errors("background_far_plate", "base prompt", ["some_other_background_issue"], 0)
+        self.assertIn("avoid a broad bright lower fog bank", retry)
+        self.assertIn("rear-floor depth", retry)
 
     def test_postprocess_component_for_validation_salvages_scenic_readability(self):
         background = self.root / "background-hot.png"
@@ -856,11 +1584,37 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
             f"http://127.0.0.1:8766/tools/2d-sprite-and-animation/projects-data/{self.project_id}/room_environment_assets/R1/review/runtime-capture.html",
         )
         self.assertTrue(layout_json.exists())
-        self.assertIn("/index.html#preview=embed&layout_url=", html)
+        self.assertIn("/index.html#preview=embed&capture=runtime-review&layout_url=", html)
         self.assertIn("&start=R1", html)
         self.assertNotIn("layout=", html)
 
-    def test_generate_bespoke_assets_retry_transient_generation_failure(self):
+    def test_primary_floor_band_bounds_expand_to_chamber_bounds_not_canvas(self):
+        room = {
+            "id": "RG-R2",
+            "name": "Broken Hall Passage",
+            "size": {"width": 1600, "height": 1200},
+            "polygon": [[160, 160], [1440, 160], [1440, 1040], [160, 1040]],
+            "platforms": [{"id": "RG-R2-P1", "x": 256, "y": 992, "len": 30}],
+            "doors": [],
+        }
+        bounds = envsys._primary_floor_band_bounds(room)
+        self.assertEqual(bounds, (160, 968, 1280, 220))
+
+    def test_wall_shell_bounds_anchor_to_polygon_edges_not_canvas_edges(self):
+        room = {
+            "id": "RG-R2",
+            "name": "Broken Hall Passage",
+            "size": {"width": 1600, "height": 1200},
+            "polygon": [[160, 160], [1440, 160], [1440, 1040], [160, 1040]],
+            "platforms": [],
+            "doors": [],
+        }
+        left = envsys._wall_shell_bounds("wall_module_left", {"x": 0, "y": 0, "display_width": 96, "display_height": 600}, room)
+        right = envsys._wall_shell_bounds("wall_module_right", {"x": 0, "y": 0, "display_width": 96, "display_height": 600}, room)
+        self.assertEqual(left, (160, 160, 205, 880))
+        self.assertEqual(right, (1235, 160, 205, 880))
+
+    def test_generate_bespoke_assets_uses_room_aware_generation_for_shell_slots(self):
         envsys.update_project_art_direction(self.project_id, {"template_id": "ruined-gothic", "locked": True})
         envsys.build_room_environment_spec(
             self.project_id,
@@ -871,22 +1625,14 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         preview_id = generated["environment"]["preview"]["images"][0]["preview_id"]
         envsys.approve_room_environment_preview(self.project_id, "R1", {"preview_id": preview_id})
 
-        state = {"calls": 0}
-
-        def flaky_generate(output_path, prompt, refs, size, transparent):
-            state["calls"] += 1
-            if state["calls"] == 1:
-                return False
-            return self._fake_ai_generate(output_path, prompt, refs, size, transparent)
-
-        with mock.patch.object(envsys, "_generate_bespoke_component_from_references", side_effect=flaky_generate), \
+        with mock.patch.object(envsys, "_generate_bespoke_component_from_references") as mocked_ai, \
              mock.patch.object(envsys, "_validate_bespoke_component", return_value=(True, [])), \
              mock.patch.object(envsys, "_run_runtime_review", return_value=self._passing_runtime_review()):
             result = envsys.generate_room_environment_asset_pack(self.project_id, "R1", {"preview_id": preview_id})
 
         bespoke = result["environment"]["runtime"]["bespoke_asset_manifest"]
         self.assertEqual(bespoke["status"], "ready")
-        self.assertGreaterEqual(state["calls"], 2)
+        self.assertGreaterEqual(mocked_ai.call_count, 8)
 
     def test_gemini_generate_content_rest_uses_timeout(self):
         class _FakeResponse:
@@ -905,6 +1651,283 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
 
         self.assertEqual(payload, {"candidates": []})
         self.assertEqual(urlopen.call_args.kwargs["timeout"], 42)
+
+    def test_runtime_review_capture_usability_rejects_black_frame(self):
+        black = self.root / "runtime-black.png"
+        almost_black = self.root / "runtime-almost-black.png"
+        ok = self.root / "runtime-ok.png"
+        envsys.Image.new("RGB", (40, 20), (0, 0, 0)).save(black)
+        image = envsys.Image.new("RGB", (40, 20), (0, 0, 0))
+        draw = envsys.ImageDraw.Draw(image)
+        draw.rectangle((0, 0, 3, 3), fill=(150, 180, 220))
+        image.save(almost_black)
+        image = envsys.Image.new("RGB", (40, 20), (0, 0, 0))
+        draw = envsys.ImageDraw.Draw(image)
+        draw.rectangle((8, 4, 32, 16), fill=(96, 112, 128))
+        image.save(ok)
+
+        self.assertFalse(envsys._runtime_review_capture_is_usable(black))
+        self.assertFalse(envsys._runtime_review_capture_is_usable(almost_black))
+        self.assertTrue(envsys._runtime_review_capture_is_usable(ok))
+
+    def test_runtime_review_headless_capture_uses_longer_budget(self):
+        source = Path(envsys.__file__).read_text(encoding="utf-8")
+        self.assertIn("--virtual-time-budget=20000", source)
+        self.assertIn("timeout=60", source)
+
+    def test_composite_runtime_review_skips_non_runtime_structural_overlays(self):
+        room = {
+            "id": "R1",
+            "polygon": [[0, 0], [1600, 0], [1600, 1200], [0, 1200]],
+            "global": {"x": 0, "y": 0},
+        }
+        review = self.root / "runtime-composite.png"
+        background = self.root / "background.png"
+        ceiling = self.root / "ceiling.png"
+        panel = self.root / "panel.png"
+        envsys.Image.new("RGBA", (1600, 1200), (20, 30, 40, 255)).save(background)
+        envsys.Image.new("RGBA", (1600, 224), (220, 40, 40, 255)).save(ceiling)
+        envsys.Image.new("RGBA", (760, 648), (40, 220, 40, 255)).save(panel)
+        assets = {
+            "R1-background": {
+                "slot_id": "R1-background",
+                "component_type": "background_far_plate",
+                "slot_group": "background",
+                "url": f"/{background.relative_to(envsys.ROOT).as_posix()}",
+                "placement": {"x": 800, "y": 1200, "display_width": 1600, "display_height": 1200, "origin_x": 0.5, "origin_y": 1},
+            },
+            "R1-ceiling": {
+                "slot_id": "R1-ceiling",
+                "component_type": "ceiling_band",
+                "slot_group": "misc",
+                "url": f"/{ceiling.relative_to(envsys.ROOT).as_posix()}",
+                "placement": {"x": 800, "y": 0, "display_width": 1600, "display_height": 224, "origin_x": 0.5, "origin_y": 0},
+            },
+            "R1-panel": {
+                "slot_id": "R1-panel",
+                "component_type": "backwall_panel",
+                "slot_group": "misc",
+                "url": f"/{panel.relative_to(envsys.ROOT).as_posix()}",
+                "placement": {"x": 400, "y": 240, "display_width": 760, "display_height": 648, "origin_x": 0.5, "origin_y": 0},
+            },
+        }
+
+        envsys._composite_runtime_review_image(room, assets, review)
+
+        image = envsys.Image.open(review).convert("RGBA")
+        self.assertEqual(image.getpixel((800, 20))[:3], (220, 40, 40))
+        self.assertEqual(image.getpixel((400, 400))[:3], (20, 30, 40))
+
+    def test_composite_runtime_review_matches_runtime_floor_top_scaling(self):
+        asset = self.root / "floor-top.png"
+        review = self.root / "runtime-floor-top.png"
+        envsys.Image.new("RGBA", (1600, 96), (180, 190, 200, 255)).save(asset)
+        item = {
+            "slot_id": "R1-main-floor-top",
+            "component_type": "main_floor_top",
+            "slot_group": "floor",
+            "url": f"/{asset.relative_to(envsys.ROOT).as_posix()}",
+            "placement": {"x": 800, "y": 960, "display_width": 1600, "display_height": 96, "origin_x": 0.5, "origin_y": 0.5},
+        }
+        composed = envsys._composite_runtime_asset_sprite(item, asset)
+        self.assertIsNotNone(composed)
+        sprite, (x, y) = composed
+        self.assertEqual(sprite.size[0], 1600)
+        self.assertLess(sprite.size[1], 96)
+        self.assertEqual(x, 0)
+        self.assertLess(y, 960)
+
+    def test_render_bespoke_wall_module_uses_synthetic_structural_adaptation(self):
+        template = self.root / "wall-template-source.png"
+        output = self.root / "wall-template-output.png"
+        envsys.Image.new("RGBA", (1600, 1200), (52, 64, 72, 255)).save(template)
+
+        original = envsys._render_synthetic_structural_component
+
+        def guard(size, component_type, template_source):
+            if component_type == "wall_module_left":
+                raise AssertionError("wall modules should use synthetic structural rendering")
+            return original(size, component_type, template_source)
+
+        envsys._render_synthetic_structural_component = guard
+        try:
+            ok = envsys._render_bespoke_component_from_template(
+                template,
+                output,
+                (380, 1068),
+                False,
+                "wall_module_left",
+            )
+        finally:
+            envsys._render_synthetic_structural_component = original
+        self.assertFalse(ok)
+
+    def test_room_component_plan_uses_component_specific_structural_slots(self):
+        room = {
+            "id": "R1",
+            "size": {"width": 1600, "height": 1200},
+            "polygon": [[128, 128], [1472, 128], [1472, 1088], [128, 1088]],
+            "platforms": [{"id": "P1", "x": 256, "y": 960, "len": 24}, {"id": "P2", "x": 512, "y": 672, "len": 8}],
+            "doors": [{"id": "D1", "x": 256, "y": 960}],
+        }
+        plan = envsys._room_component_plan(room, "preview-1", self._mock_biome_pack())
+        ceiling = next(item for item in plan if item["component_type"] == "ceiling_band")
+        left_wall = next(item for item in plan if item["component_type"] == "wall_module_left")
+        left_trim = next(item for item in plan if item["component_type"] == "wall_base_trim_left")
+        floor_top = next(item for item in plan if item["component_type"] == "main_floor_top")
+        platform_top = next(item for item in plan if item["component_type"] == "hero_platform_top")
+        self.assertEqual(ceiling["source_template_id"], "tmpl-ceiling")
+        self.assertEqual(left_wall["source_template_id"], "tmpl-wall")
+        self.assertEqual(left_trim["source_template_id"], "tmpl-wall")
+        self.assertEqual(floor_top["source_template_id"], "tmpl-floor")
+        self.assertEqual(platform_top["source_template_id"], "tmpl-platform")
+
+    def test_render_bespoke_midground_side_frame_clears_center_lane(self):
+        template = self.root / "midground-template-source.png"
+        output = self.root / "midground-template-output.png"
+        image = envsys.Image.new("RGBA", (1600, 1200), (255, 255, 255, 255))
+        draw = envsys.ImageDraw.Draw(image)
+        draw.rectangle((0, 0, 220, 1200), fill=(20, 28, 36, 255))
+        draw.rectangle((1380, 0, 1600, 1200), fill=(20, 28, 36, 255))
+        image.save(template)
+
+        ok = envsys._render_bespoke_component_from_template(
+            template,
+            output,
+            (1600, 1200),
+            True,
+            "midground_side_frame",
+        )
+
+        self.assertTrue(ok)
+        rendered = envsys.Image.open(output).convert("RGBA")
+        self.assertEqual(rendered.getpixel((800, 600))[3], 0)
+        self.assertGreater(rendered.getpixel((100, 600))[3], 0)
+
+    def test_render_bespoke_wall_module_generates_flat_wall_mass_from_wall_piece(self):
+        template = self.root / "foreground-frame-wall-source.png"
+        output = self.root / "foreground-frame-wall-output.png"
+        image = envsys.Image.new("RGBA", (1600, 1200), (0, 0, 0, 255))
+        draw = envsys.ImageDraw.Draw(image)
+        draw.rectangle((0, 0, 260, 1200), fill=(180, 30, 30, 255))
+        draw.rectangle((1340, 0, 1600, 1200), fill=(30, 180, 30, 255))
+        image.save(template)
+
+        ok = envsys._render_bespoke_component_from_template(
+            template,
+            output,
+            (320, 960),
+            False,
+            "wall_module_left",
+        )
+
+        self.assertTrue(ok)
+        rendered = envsys.Image.open(output).convert("RGBA")
+        center = rendered.getpixel((rendered.width // 2, rendered.height // 2))[:3]
+        outer = rendered.getpixel((24, rendered.height // 2))[:3]
+        inner = rendered.getpixel((rendered.width - 12, rendered.height // 2))[:3]
+        self.assertLess(sum(outer), sum(center))
+        self.assertLess(sum(inner), sum(center))
+        self.assertNotEqual(center, (0, 0, 0))
+
+    def test_composite_runtime_review_scopes_scenic_layers_to_chamber_bounds(self):
+        room = {
+            "id": "R1",
+            "size": {"width": 1600, "height": 1200},
+            "polygon": [[160, 160], [1440, 160], [1440, 1040], [160, 1040]],
+            "platforms": [{"id": "R1-P1", "x": 192, "y": 1024, "len": 38}],
+        }
+        asset = self.root / "background-chamber.png"
+        review = self.root / "runtime-chamber-scope.png"
+        envsys.Image.new("RGBA", (1600, 1200), (180, 40, 40, 255)).save(asset)
+        assets = {
+            "R1-background": {
+                "slot_id": "R1-background",
+                "component_type": "background_far_plate",
+                "slot_group": "background",
+                "url": f"/{asset.relative_to(envsys.ROOT).as_posix()}",
+                "placement": {"x": 800, "y": 1200, "display_width": 1600, "display_height": 1200, "origin_x": 0.5, "origin_y": 1},
+            },
+        }
+
+        envsys._composite_runtime_review_image(room, assets, review)
+
+        image = envsys.Image.open(review).convert("RGBA")
+        self.assertEqual(image.getpixel((800, 500))[:3], (180, 40, 40))
+        self.assertNotEqual(image.getpixel((80, 500))[:3], (180, 40, 40))
+        self.assertNotEqual(image.getpixel((800, 1120))[:3], (180, 40, 40))
+
+    def test_composite_runtime_review_matches_runtime_floor_face_band_height(self):
+        asset = self.root / "floor-face.png"
+        envsys.Image.new("RGBA", (1600, 97), (90, 100, 110, 255)).save(asset)
+        room = {
+            "id": "R1",
+            "size": {"width": 1600, "height": 1200},
+            "polygon": [[160, 160], [1440, 160], [1440, 1040], [160, 1040]],
+            "platforms": [{"id": "R1-P1", "x": 192, "y": 1024, "len": 38}],
+        }
+        item = {
+            "slot_id": "R1-main-floor-face",
+            "component_type": "main_floor_face",
+            "slot_group": "floor",
+            "url": f"/{asset.relative_to(envsys.ROOT).as_posix()}",
+            "placement": {"x": 192, "y": 1036, "display_width": 1216, "display_height": 97, "origin_x": 0, "origin_y": 0},
+        }
+        composed = envsys._composite_runtime_asset_sprite(item, asset, room)
+        self.assertIsNotNone(composed)
+        sprite, (x, y) = composed
+        self.assertEqual(sprite.size[0], 1280)
+        self.assertGreaterEqual(sprite.size[1], 97)
+        self.assertEqual(x, 160)
+        self.assertLess(y, 1024)
+
+    def test_composite_runtime_review_uses_wall_module_asset_for_large_rooms(self):
+        asset = self.root / "wall-shell.png"
+        envsys.Image.new("RGBA", (380, 1068), (255, 0, 0, 255)).save(asset)
+        room = {
+            "id": "R2",
+            "size": {"width": 2112, "height": 1248},
+            "polygon": [[0, 0], [2112, 0], [2112, 1248], [0, 1248]],
+        }
+        item = {
+            "slot_id": "R2-wall-module-left",
+            "component_type": "wall_module_left",
+            "slot_group": "walls",
+            "url": f"/{asset.relative_to(envsys.ROOT).as_posix()}",
+            "placement": {"x": 0, "y": 0, "display_width": 380, "display_height": 1068, "origin_x": 0, "origin_y": 0},
+        }
+        composed = envsys._composite_runtime_asset_sprite(item, asset, room)
+        self.assertIsNotNone(composed)
+        sprite, (x, y) = composed
+        self.assertGreaterEqual(sprite.size[0], 160)
+        self.assertLess(sprite.size[0], 380)
+        self.assertEqual(x, 0)
+        self.assertEqual(y, 0)
+        self.assertEqual(sprite.getpixel((sprite.size[0] // 2, sprite.size[1] // 2))[:3], (255, 0, 0))
+
+    def test_composite_runtime_review_scopes_and_fades_ceiling_band(self):
+        asset = self.root / "ceiling-band.png"
+        envsys.Image.new("RGBA", (1600, 224), (20, 24, 28, 255)).save(asset)
+        room = {
+            "id": "R2",
+            "size": {"width": 2112, "height": 1248},
+            "polygon": [[128, 160], [1984, 160], [1984, 1088], [128, 1088]],
+        }
+        item = {
+            "slot_id": "R2-ceiling",
+            "component_type": "ceiling_band",
+            "slot_group": "ceiling",
+            "url": f"/{asset.relative_to(envsys.ROOT).as_posix()}",
+            "placement": {"x": 1056, "y": 0, "display_width": 2112, "display_height": 224, "origin_x": 0.5, "origin_y": 0},
+        }
+        composed = envsys._composite_runtime_asset_sprite(item, asset, room)
+        self.assertIsNotNone(composed)
+        sprite, (x, y) = composed
+        self.assertEqual(sprite.size[0], 1856)
+        self.assertEqual(x, 128)
+        self.assertLess(y, 0)
+        self.assertLess(sprite.getpixel((sprite.size[0] // 2, 0))[3], 40)
+        self.assertEqual(sprite.getpixel((sprite.size[0] // 2, sprite.size[1] - 4))[:3], (20, 24, 28))
 
     def test_background_validation_flags_low_shell_definition(self):
         template = self.root / "background-template-low.png"
@@ -933,6 +1956,511 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
 
         self.assertEqual(review["status"], "fail")
         self.assertIn("room_shell_readability_low", review["fail_reasons"])
+
+    def test_runtime_review_blocks_top_occlusion_slab_artifact(self):
+        review_root = self.projects_root / self.project_id / "room_environment_assets" / "R1" / "review"
+        review_root.mkdir(parents=True, exist_ok=True)
+        screenshot = review_root / "runtime-review.png"
+        image = envsys.Image.new("RGBA", (1600, 1200), (70, 84, 96, 255))
+        draw = envsys.ImageDraw.Draw(image)
+        draw.rectangle((0, 0, 1600, 160), fill=(18, 24, 28, 255))
+        draw.rectangle((220, 200, 1380, 980), fill=(82, 98, 112, 255))
+        image.save(screenshot)
+
+        with mock.patch.object(envsys, "_capture_runtime_review_screenshot", return_value=("mocked", None)):
+            review = envsys._run_runtime_review(self.saved, self.project_id, "R1", {})
+
+        self.assertEqual(review["status"], "fail")
+        self.assertIn("top_occlusion_slab_present", review["fail_reasons"])
+
+    def test_runtime_review_blocks_noncanonical_scenic_layer_recovery(self):
+        review_root = self.projects_root / self.project_id / "room_environment_assets" / "R1" / "review"
+        review_root.mkdir(parents=True, exist_ok=True)
+        screenshot = review_root / "runtime-review.png"
+        image = envsys.Image.new("RGBA", (1600, 1200), (70, 84, 96, 255))
+        image.save(screenshot)
+        assets = {
+            "R1-background": {
+                "slot_id": "R1-background",
+                "component_type": "background_far_plate",
+                "url": "/mock/background.png",
+                "generation_source": "restored_from_calibration_20260402",
+                "placement": {"x": 800, "y": 1200, "display_width": 1600, "display_height": 1200, "origin_x": 0.5, "origin_y": 1},
+            }
+        }
+
+        with mock.patch.object(envsys, "_capture_runtime_review_screenshot", return_value=("mocked", None)):
+            review = envsys._run_runtime_review(self.saved, self.project_id, "R1", assets)
+
+        self.assertEqual(review["status"], "fail")
+        self.assertIn("scenic_layers_noncanonical", review["fail_reasons"])
+
+    def test_validate_foreground_frame_source_passes_correct_perimeter_frame(self):
+        path = self.root / "fg-frame-pass.png"
+        img = envsys.Image.new("RGBA", (1600, 1200), envsys.FOREGROUND_FRAME_CENTER_KEY_RGB + (255,))
+        draw = envsys.ImageDraw.Draw(img)
+        # Top band: full-width ceiling cap
+        draw.rectangle((0, 0, 1600, 240), fill=(70, 60, 50, 255))
+        # Left wall strip
+        draw.rectangle((0, 0, 280, 1200), fill=(65, 55, 45, 255))
+        # Right wall strip
+        draw.rectangle((1320, 0, 1600, 1200), fill=(65, 55, 45, 255))
+        # Bottom floor band
+        draw.rectangle((0, 1080, 1600, 1200), fill=(70, 60, 50, 255))
+        img.save(path)
+        valid, errors = envsys._validate_foreground_frame_source(path)
+        self.assertTrue(valid, f"Expected valid, got errors: {errors}")
+        self.assertEqual(errors, [])
+
+    def test_validate_foreground_frame_source_fails_missing_top_band(self):
+        path = self.root / "fg-frame-no-top.png"
+        img = envsys.Image.new("RGBA", (1600, 1200), (0, 0, 0, 255))
+        draw = envsys.ImageDraw.Draw(img)
+        # Left and right walls present but top band left pitch black
+        draw.rectangle((0, 0, 280, 1200), fill=(65, 55, 45, 255))
+        draw.rectangle((1320, 0, 1600, 1200), fill=(65, 55, 45, 255))
+        img.save(path)
+        valid, errors = envsys._validate_foreground_frame_source(path)
+        self.assertFalse(valid)
+        self.assertIn("top_band_missing_or_too_dark", errors)
+
+    def test_validate_foreground_frame_source_fails_fragmented_top_band(self):
+        path = self.root / "fg-frame-fragmented-top.png"
+        img = envsys.Image.new("RGBA", (1600, 1200), (0, 0, 0, 255))
+        draw = envsys.ImageDraw.Draw(img)
+        draw.rectangle((0, 0, 220, 1200), fill=(65, 55, 45, 255))
+        draw.rectangle((1380, 0, 1600, 1200), fill=(65, 55, 45, 255))
+        draw.rectangle((0, 0, 420, 220), fill=(72, 62, 52, 255))
+        draw.rectangle((1180, 0, 1600, 220), fill=(72, 62, 52, 255))
+        draw.rectangle((0, 1080, 1600, 1200), fill=(72, 62, 52, 255))
+        img.save(path)
+        valid, errors = envsys._validate_foreground_frame_source(path)
+        self.assertFalse(valid)
+        self.assertIn("top_band_not_continuous", errors)
+
+    def test_validate_foreground_frame_source_fails_top_band_lower_edge_break(self):
+        path = self.root / "fg-frame-top-lower-break.png"
+        img = envsys.Image.new("RGBA", (1600, 1200), (26, 34, 42, 255))
+        draw = envsys.ImageDraw.Draw(img)
+        draw.rectangle((0, 0, 1600, 240), fill=(52, 64, 70, 255))
+        draw.rectangle((0, 170, 1600, 240), fill=(22, 24, 28, 255))
+        draw.rectangle((0, 0, 280, 1200), fill=(65, 55, 45, 255))
+        draw.rectangle((1320, 0, 1600, 1200), fill=(65, 55, 45, 255))
+        draw.rectangle((0, 1080, 1600, 1200), fill=(70, 60, 50, 255))
+        img.save(path)
+        valid, errors = envsys._validate_foreground_frame_source(path)
+        self.assertFalse(valid)
+        self.assertIn("top_band_lower_edge_break", errors)
+
+    def test_validate_foreground_frame_source_fails_collapsed_right_wall(self):
+        path = self.root / "fg-frame-no-right.png"
+        img = envsys.Image.new("RGBA", (1600, 1200), (0, 0, 0, 255))
+        draw = envsys.ImageDraw.Draw(img)
+        # Top band and left wall present; right side left pitch black
+        draw.rectangle((0, 0, 1600, 240), fill=(70, 60, 50, 255))
+        draw.rectangle((0, 0, 280, 1200), fill=(65, 55, 45, 255))
+        img.save(path)
+        valid, errors = envsys._validate_foreground_frame_source(path)
+        self.assertFalse(valid)
+        self.assertIn("right_wall_collapsed", errors)
+
+    def test_validate_foreground_frame_source_fails_floating_interior_ledges(self):
+        path = self.root / "fg-frame-floating.png"
+        img = envsys.Image.new("RGBA", (1600, 1200), (0, 0, 0, 255))
+        draw = envsys.ImageDraw.Draw(img)
+        # Minimal perimeter so walls and top just pass their thresholds
+        draw.rectangle((0, 0, 1600, 240), fill=(40, 35, 30, 255))
+        draw.rectangle((0, 0, 280, 1200), fill=(38, 33, 28, 255))
+        draw.rectangle((1320, 0, 1600, 1200), fill=(38, 33, 28, 255))
+        # Broad bright floating shelf covering most of the center mid-height zone —
+        # represents the "partial scene/atlas with floating ledge bands" failure mode
+        draw.rectangle((350, 320, 1250, 840), fill=(150, 135, 118, 255))
+        img.save(path)
+        valid, errors = envsys._validate_foreground_frame_source(path)
+        self.assertFalse(valid)
+        self.assertIn("floating_interior_ledges", errors)
+
+    def test_validate_foreground_frame_source_fails_weak_wall_to_center_transition(self):
+        path = self.root / "fg-frame-flat-side-fields.png"
+        img = envsys.Image.new("RGBA", (1600, 1200), (36, 42, 48, 255))
+        draw = envsys.ImageDraw.Draw(img)
+        draw.rectangle((0, 0, 1600, 240), fill=(50, 58, 66, 255))
+        draw.rectangle((0, 0, 280, 1200), fill=(40, 46, 54, 255))
+        draw.rectangle((1320, 0, 1600, 1200), fill=(40, 46, 54, 255))
+        draw.rectangle((0, 1080, 1600, 1200), fill=(54, 62, 70, 255))
+        img.save(path)
+        valid, errors = envsys._validate_foreground_frame_source(path)
+        self.assertFalse(valid)
+        self.assertIn("left_wall_center_transition_weak", errors)
+        self.assertIn("right_wall_center_transition_weak", errors)
+
+    def test_validate_foreground_frame_source_fails_bands_not_distinct_from_center(self):
+        path = self.root / "fg-frame-undistinct-bands.png"
+        img = envsys.Image.new("RGBA", (1600, 1200), envsys.FOREGROUND_FRAME_CENTER_KEY_RGB + (255,))
+        draw = envsys.ImageDraw.Draw(img)
+        draw.rectangle((0, 0, 1600, 240), fill=envsys.FOREGROUND_FRAME_CENTER_KEY_RGB + (255,))
+        draw.rectangle((0, 0, 280, 1200), fill=(22, 30, 38, 255))
+        draw.rectangle((1320, 0, 1600, 1200), fill=(22, 30, 38, 255))
+        draw.rectangle((0, 1080, 1600, 1200), fill=envsys.FOREGROUND_FRAME_CENTER_KEY_RGB + (255,))
+        img.save(path)
+        valid, errors = envsys._validate_foreground_frame_source(path)
+        self.assertFalse(valid)
+        self.assertIn("top_band_not_distinct_from_center", errors)
+        self.assertIn("bottom_band_not_distinct_from_center", errors)
+
+    def test_validate_foreground_frame_source_fails_missing_center_key(self):
+        path = self.root / "fg-frame-no-center-key.png"
+        img = envsys.Image.new("RGBA", (1600, 1200), (34, 44, 52, 255))
+        draw = envsys.ImageDraw.Draw(img)
+        draw.rectangle((0, 0, 1600, 240), fill=(70, 60, 50, 255))
+        draw.rectangle((0, 0, 280, 1200), fill=(65, 55, 45, 255))
+        draw.rectangle((1320, 0, 1600, 1200), fill=(65, 55, 45, 255))
+        draw.rectangle((0, 1080, 1600, 1200), fill=(70, 60, 50, 255))
+        img.save(path)
+        valid, errors = envsys._validate_foreground_frame_source(path)
+        self.assertFalse(valid)
+        self.assertIn("center_key_missing_or_contaminated", errors)
+
+    def test_validate_foreground_frame_source_fails_center_intrusion(self):
+        path = self.root / "fg-frame-center-intrusion.png"
+        img = envsys.Image.new("RGBA", (1600, 1200), (0, 0, 0, 255))
+        draw = envsys.ImageDraw.Draw(img)
+        draw.rectangle((0, 0, 1600, 240), fill=(70, 60, 50, 255))
+        draw.rectangle((0, 0, 280, 1200), fill=(65, 55, 45, 255))
+        draw.rectangle((1320, 0, 1600, 1200), fill=(65, 55, 45, 255))
+        draw.rectangle((0, 1080, 1600, 1200), fill=(70, 60, 50, 255))
+        draw.rectangle((520, 420, 1080, 620), fill=(185, 170, 150, 255))
+        img.save(path)
+        valid, errors = envsys._validate_foreground_frame_source(path)
+        self.assertFalse(valid)
+        self.assertIn("center_intrusion_excessive", errors)
+
+    def test_render_bespoke_ceiling_band_uses_synthetic_ceiling_render(self):
+        template = self.root / "foreground-frame-ceiling-source.png"
+        output = self.root / "foreground-frame-ceiling-output.png"
+        image = envsys.Image.new("RGBA", (1600, 1200), (0, 0, 0, 255))
+        draw = envsys.ImageDraw.Draw(image)
+        draw.rectangle((0, 0, 1600, 140), fill=(24, 32, 40, 255))
+        draw.rectangle((0, 140, 1600, 240), fill=(210, 180, 120, 255))
+        image.save(template)
+
+        ok = envsys._render_bespoke_component_from_template(
+            template,
+            output,
+            (1600, 224),
+            False,
+            "ceiling_band",
+        )
+
+        self.assertTrue(ok)
+        rendered = envsys.Image.open(output).convert("RGBA")
+        top = rendered.getpixel((rendered.width // 2, 12))[:3]
+        mid = rendered.getpixel((rendered.width // 2, rendered.height // 2))[:3]
+        seam = rendered.getpixel((max(8, rendered.width // 9), rendered.height // 2))[:3]
+        self.assertNotEqual(top, mid)
+        self.assertNotEqual(mid, seam)
+
+    def test_generate_biome_pack_visuals_rejects_invalid_foreground_frame_source(self):
+        envsys.generate_project_art_direction_concepts(self.project_id, {"template_id": "ruined-gothic"})
+        envsys.update_project_art_direction(
+            self.project_id,
+            {"template_id": "ruined-gothic", "locked": True, "frozen_concept_ids": ["art-direction-01"]},
+        )
+        pack = envsys.load_project(self.project_id)["art_direction"]["biome_packs"][0]
+        foreground_template = next(
+            item for item in pack["template_library"] if item["component_type"] == "foreground_frame"
+        )
+        foreground_template["biome_visual_generated_at"] = "2026-03-28T12:00:00Z"
+        self.saved["art_direction"]["biome_packs"][0]["template_library"] = pack["template_library"]
+        existing_rel = foreground_template["image_path"]
+        existing_path = self.projects_root / self.project_id / existing_rel
+        original = envsys.Image.new("RGBA", (1600, 1200), (90, 80, 70, 255))
+        original.save(existing_path)
+        original_bytes = existing_path.read_bytes()
+        # AI generates successfully but the image fails structural validation
+        bad_frame = envsys.Image.new("RGBA", (1600, 1200), (0, 0, 0, 255))
+
+        def fake_generate_bad_frame(output_path, prompt, refs, size, transparent, component_type=None):
+            bad_frame.save(output_path)
+            return True
+
+        with mock.patch.object(envsys, "_generate_bespoke_component_from_references", side_effect=fake_generate_bad_frame):
+            out = envsys.generate_biome_pack_visuals(
+                self.project_id,
+                {"confirm_overwrite": True, "component_types": ["foreground_frame"]},
+            )
+        self.assertTrue(out["ok"])
+        self.assertTrue(out["used_ai"])
+        result = next(r for r in out["results"] if r["component_type"] == "foreground_frame")
+        self.assertFalse(result["ok"])
+        self.assertEqual(result["error"], "foreground_frame_source_invalid")
+        self.assertIn("validation_errors", result)
+        debug_rel = result.get("debug_rejected_candidate_path")
+        self.assertTrue(debug_rel)
+        debug_path = self.projects_root / self.project_id / debug_rel
+        self.assertTrue(debug_path.exists())
+        self.assertIn(".tmp_biome_generation_rejections", debug_rel)
+        self.assertEqual(existing_path.read_bytes(), original_bytes)
+        pack = out["art_direction"]["biome_packs"][0]
+        self.assertFalse(any(".tmp_biome_generation_rejections" in str(t.get("image_path") or "") for t in pack["template_library"]))
+
+    def test_generate_biome_pack_visuals_preserves_existing_wall_piece_when_candidate_fails_validation(self):
+        envsys.generate_project_art_direction_concepts(self.project_id, {"template_id": "ruined-gothic"})
+        envsys.update_project_art_direction(
+            self.project_id,
+            {"template_id": "ruined-gothic", "locked": True, "frozen_concept_ids": ["art-direction-01"]},
+        )
+        pack = envsys.load_project(self.project_id)["art_direction"]["biome_packs"][0]
+        wall_template = next(item for item in pack["template_library"] if item["component_type"] == "wall_piece")
+        wall_template["biome_visual_generated_at"] = "2026-03-28T12:00:00Z"
+        self.saved["art_direction"]["biome_packs"][0]["template_library"] = pack["template_library"]
+        wall_path = self.projects_root / self.project_id / str(wall_template["image_path"])
+        original = envsys.Image.new("RGBA", (512, 1200), (80, 90, 100, 255))
+        original.save(wall_path)
+        original_bytes = wall_path.read_bytes()
+
+        def fake_generate_bad_wall(output_path, prompt, refs, size, transparent, component_type=None):
+            bad = envsys.Image.new("RGBA", size, (68, 76, 84, 255))
+            draw = envsys.ImageDraw.Draw(bad)
+            draw.rectangle((int(size[0] * 0.3), int(size[1] * 0.2), int(size[0] * 0.7), int(size[1] * 0.8)), fill=(0, 0, 0, 0))
+            bad.save(output_path)
+            return True
+
+        with mock.patch.object(envsys, "_generate_bespoke_component_from_references", side_effect=fake_generate_bad_wall):
+            out = envsys.generate_biome_pack_visuals(
+                self.project_id,
+                {"confirm_overwrite": True, "component_types": ["wall_piece"]},
+            )
+
+        self.assertTrue(out["ok"])
+        result = next(r for r in out["results"] if r["component_type"] == "wall_piece")
+        self.assertFalse(result["ok"])
+        self.assertEqual(result["error"], "wall_piece_source_invalid")
+        self.assertEqual(wall_path.read_bytes(), original_bytes)
+
+    def test_foreground_frame_prompt_explicitly_bans_side_ledge_drift(self):
+        prompt = envsys._build_biome_template_prompt(
+            "foreground_frame",
+            {"high_level_direction": "Broken gothic halls", "negative_direction": "", "lighting_rules": ["single focal glow", "fog depth near floor"]},
+            "",
+        )
+        self.assertIn("no inward shelves", prompt)
+        self.assertIn("flush, vertical, and perimeter-only", prompt)
+        self.assertIn("clearly visible masonry ceiling band", prompt)
+        self.assertIn("solid bright green screen color", prompt)
+        self.assertIn("Do not solve the frame by making the whole image uniformly dark blue-gray", prompt)
+        self.assertIn("top band must read as an obvious horizontal masonry strip by eye", prompt)
+        self.assertIn("green center opening must not begin inside the top 240 pixels", prompt)
+        self.assertIn("strengthen the top strip first rather than darkening the whole frame", prompt)
+        self.assertIn("no black wedges", prompt)
+        self.assertIn("bottom band must also read as an obvious horizontal masonry strip by eye", prompt)
+        self.assertIn("strengthen the bottom strip second rather than turning the lower frame into a shadow mass", prompt)
+        self.assertIn("green center opening must end above y=1079", prompt)
+        self.assertIn("no black corner cutouts", prompt)
+        self.assertIn("retaining wall face or plinth course seen straight on", prompt)
+        self.assertIn("do not draw paving stones, receding tile seams, trapezoid slab tops", prompt)
+        self.assertIn("do not add a bright upper lip, rim light, or recessed shadow shelf", prompt)
+        self.assertIn("ceiling band and floor band = readable horizontal strip zones", prompt)
+        self.assertIn("outer wall strips = darkest and most detailed zone", prompt)
+        self.assertIn("Do not make the wall strips and center field the same value family", prompt)
+        self.assertIn("Center field should show no masonry cues at all", prompt)
+        self.assertIn("Do not make the right wall softer, flatter, dimmer, or less distinct than the left wall", prompt)
+        self.assertIn("Preserve the provided border silhouette and occupied-zone layout exactly", prompt)
+        self.assertIn("no perspective floor plane", prompt)
+        self.assertIn("no inward-lit bevels", prompt)
+        self.assertIn("no cast shadows projecting into the center", prompt)
+        self.assertIn("no dark inner shadow columns", prompt)
+        self.assertIn("keyed holdout zone", prompt)
+        self.assertIn("No circular hotspot", prompt)
+        self.assertIn("no radial vignette", prompt)
+        self.assertIn("flat orthographic front elevation", prompt)
+        self.assertIn("straight-on front elevation with zero perspective convergence and zero reveal depth", prompt)
+        self.assertIn("Do not depict an inset chamber opening, window reveal, portal mouth, inner jamb, receding corridor, or boxed recess", prompt)
+        self.assertIn("front-facing surfaces only, not side faces or top faces", prompt)
+        self.assertIn("No diagonal receding edges, no visible wall thickness returns, no interior corner perspective", prompt)
+        self.assertIn("geometry-only occupancy guide", prompt)
+        self.assertIn("solid bright green screen color", prompt)
+        self.assertIn("The very first green row must begin at y=240", prompt)
+        self.assertIn("Pixels on the center boundary such as (224,240), (800,240), (1375,240)", prompt)
+        self.assertIn("Do not enlarge the green field upward or downward beyond those exact vertical limits", prompt)
+        self.assertIn("keyed holdout zone", prompt)
+        self.assertIn("pillars, posts, columns, or freestanding vertical supports", prompt)
+        self.assertIn("fused to the outer image border", prompt)
+        self.assertIn("do not add bright inner edge highlights, bevel rims, side-face reveals", prompt)
+        self.assertIn("must never be lighter than the main wall mass", prompt)
+        self.assertIn("no inset panel border, and no light rim or outline around the center field", prompt)
+        self.assertIn("must not be framed by a second lighter rectangle inside the border shell", prompt)
+        self.assertIn("Do not copy its flat fills, gray values, outlines, or mask-like treatment literally", prompt)
+        self.assertIn("If the geometry guide and the style swatch disagree", prompt)
+        self.assertIn("preserve the occupied coordinates and border silhouette from the geometry guide exactly", prompt)
+        self.assertIn("with no visible top surface", prompt)
+        self.assertIn("do not draw a separate top-edge line, highlight seam, or light coping strip", prompt)
+        self.assertIn("no global vignette", prompt)
+        self.assertIn("no directional lighting sweep", prompt)
+        self.assertIn("cool dark stone", prompt)
+        self.assertIn("no pale gray-beige stone drift", prompt)
+
+    def test_slot_family_specs_no_longer_use_foreground_frame_for_shell_slots(self):
+        self.assertEqual(envsys.V2_SLOT_SPEC_BY_TYPE["ceiling_band"]["template_component_type"], "ceiling_piece")
+        self.assertEqual(envsys.V2_SLOT_SPEC_BY_TYPE["wall_module_left"]["template_component_type"], "wall_piece")
+        self.assertEqual(envsys.V2_SLOT_SPEC_BY_TYPE["main_floor_top"]["template_component_type"], "primary_floor_piece")
+        self.assertEqual(envv3.TEMPLATE_COMPONENT_BY_SLOT["ceiling_band"], "ceiling_piece")
+        self.assertEqual(envv3.TEMPLATE_COMPONENT_BY_SLOT["wall_module_left"], "wall_piece")
+        self.assertEqual(envv3.TEMPLATE_COMPONENT_BY_SLOT["main_floor_face"], "primary_floor_piece")
+
+    def test_validate_wall_piece_source_rejects_recess_read(self):
+        path = self.root / "wall-piece-bad.png"
+        img = envsys.Image.new("RGBA", (512, 1200), (68, 76, 84, 255))
+        draw = envsys.ImageDraw.Draw(img)
+        draw.rectangle((170, 260, 342, 1080), fill=(10, 12, 16, 255))
+        img.save(path)
+        valid, errors = envsys._validate_wall_piece_source(path)
+        self.assertFalse(valid)
+        self.assertIn("wall_piece_opening_or_recess_read", errors)
+
+    def test_validate_primary_floor_piece_source_rejects_top_plane_perspective(self):
+        path = self.root / "floor-piece-bad.png"
+        img = envsys.Image.new("RGBA", (512, 96), (40, 46, 54, 255))
+        draw = envsys.ImageDraw.Draw(img)
+        draw.polygon([(0, 0), (512, 0), (420, 34), (92, 34)], fill=(200, 210, 220, 255))
+        draw.rectangle((0, 34, 512, 96), fill=(28, 32, 38, 255))
+        img.save(path)
+        valid, errors = envsys._validate_primary_floor_piece_source(path)
+        self.assertFalse(valid)
+        self.assertIn("primary_floor_piece_top_plane_perspective", errors)
+
+    def test_validate_ceiling_piece_source_rejects_placeholder_header_read(self):
+        path = self.root / "ceiling-piece-bad.png"
+        img = envsys.Image.new("RGBA", (1600, 224), (34, 40, 46, 255))
+        draw = envsys.ImageDraw.Draw(img)
+        draw.rectangle((0, 0, 1600, 48), fill=(26, 32, 38, 255))
+        draw.rectangle((0, 48, 1600, 224), fill=(30, 36, 42, 255))
+        img.save(path)
+        valid, errors = envsys._validate_ceiling_piece_source(path)
+        self.assertFalse(valid)
+        self.assertIn("ceiling_piece_placeholder_header_read", errors)
+
+    def test_validate_structural_family_rejects_palette_drift(self):
+        biome_root = self.root / "art_direction_biomes" / "ruined-gothic-v1"
+        biome_root.mkdir(parents=True, exist_ok=True)
+        envsys.Image.new("RGBA", (512, 1200), (20, 26, 32, 255)).save(biome_root / "wall_piece.png")
+        envsys.Image.new("RGBA", (1600, 224), (160, 150, 120, 255)).save(biome_root / "ceiling_piece.png")
+        envsys.Image.new("RGBA", (512, 96), (18, 24, 30, 255)).save(biome_root / "primary_floor_piece.png")
+        errors = envsys._validate_structural_family({
+            "wall_piece": biome_root / "wall_piece.png",
+            "ceiling_piece": biome_root / "ceiling_piece.png",
+            "primary_floor_piece": biome_root / "primary_floor_piece.png",
+        })
+        self.assertIn("structural_family_palette_drift", errors)
+
+    def test_runtime_review_requires_browser_capture(self):
+        review_path = self.projects_root / self.project_id / "room_environment_assets" / "R1" / "review" / "runtime-review.png"
+        review_path.parent.mkdir(parents=True, exist_ok=True)
+        envsys.Image.new("RGBA", (1600, 1200), (32, 40, 48, 255)).save(review_path)
+        with mock.patch.object(envsys, "_capture_runtime_review_screenshot", return_value=("composite_fallback", "headless_browser_disabled_by_default")):
+            review = envsys._run_runtime_review(self.saved, self.project_id, "R1", {})
+        self.assertEqual(review["status"], "fail")
+        self.assertIn("browser_capture_required", review["fail_reasons"])
+
+    def test_foreground_frame_retry_prompt_targets_band_distinction(self):
+        retry = envsys._retry_prompt_for_validation_errors(
+            "foreground_frame",
+            "base prompt",
+            ["top_band_not_distinct_from_center", "bottom_band_not_distinct_from_center"],
+            0,
+        )
+        self.assertIsNotNone(retry)
+        self.assertIn("unmistakable horizontal masonry strips", retry)
+        self.assertIn("Do not let them dissolve into the same foggy blue-gray field as the center", retry)
+
+    def test_border_first_biome_prompts_are_generic_templates_not_final_rooms(self):
+        direction = {
+            "high_level_direction": "Ruined gothic castle shell",
+            "negative_direction": "",
+            "lighting_rules": ["single focal glow", "fog depth near floor"],
+        }
+        border_prompt = envsys._build_biome_template_prompt("border_piece", direction, "")
+        far_prompt = envsys._build_biome_template_prompt("background_far_piece", direction, "")
+        platform_prompt = envsys._build_biome_template_prompt("platform_piece", direction, "")
+
+        self.assertIn("not a room scene", border_prompt)
+        self.assertIn("fills the full 1600x1200 canvas", border_prompt)
+        self.assertIn("Use the full occupied area shown in the guide", border_prompt)
+        self.assertIn("Anti-designs", border_prompt)
+        self.assertIn("constant horizontal position", border_prompt)
+        self.assertIn("square ninety-degree corners", border_prompt)
+        self.assertIn("torn plaster breach", border_prompt)
+        self.assertIn("not columns or posts", border_prompt)
+        self.assertIn("not a lintel", border_prompt)
+        self.assertIn("not a sill or threshold", border_prompt)
+        self.assertIn("not a final room scene", far_prompt)
+        self.assertIn("Do not compose a hero shot", far_prompt)
+        self.assertIn("white matte bars", far_prompt)
+        self.assertIn("reusable side-view platform source", platform_prompt)
+        self.assertIn("no glowing trim", platform_prompt)
+        self.assertIn("no background, no ruins behind it", platform_prompt)
+        self.assertIn("Keep the left and right wall bands perfectly straight", border_prompt)
+        self.assertIn("simple heavy stone strip", border_prompt)
+
+    def test_border_first_retry_prompts_tighten_geometry_and_genericity(self):
+        border_retry = envsys._retry_prompt_for_validation_errors(
+            "border_piece",
+            "base prompt",
+            ["border_piece_top_band_too_ornate"],
+            0,
+        )
+        far_retry = envsys._retry_prompt_for_validation_errors(
+            "background_far_piece",
+            "base prompt",
+            ["background_far_piece_center_too_composed"],
+            0,
+        )
+        platform_retry = envsys._retry_prompt_for_validation_errors(
+            "platform_piece",
+            "base prompt",
+            ["platform_piece_top_highlight_too_warm"],
+            0,
+        )
+
+        self.assertIn("generic border template only", border_retry)
+        self.assertIn("plain flat border is preferred", border_retry)
+        self.assertIn("Do not depict columns, posts, lintels, sills, thresholds", border_retry)
+        flare_retry = envsys._retry_prompt_for_validation_errors(
+            "border_piece",
+            "base prompt",
+            ["border_piece_side_wall_flare"],
+            0,
+        )
+        breach_retry = envsys._retry_prompt_for_validation_errors(
+            "border_piece",
+            "base prompt",
+            ["border_piece_center_breach_read"],
+            0,
+        )
+        self.assertIn("constant vertical line", flare_retry)
+        self.assertIn("square top and bottom corners", flare_retry)
+        self.assertIn("remove the torn-hole center", breach_retry)
+        self.assertIn("jagged breach edges", breach_retry)
+        self.assertIn("Remove bridges, statues, stairs", far_retry)
+        self.assertIn("Remove glow lines, gold trim", platform_retry)
+        self.assertIn("Do not show any background", platform_retry)
+
+    def test_validate_border_piece_source_fails_side_wall_flare(self):
+        path = self.root / "border-piece-side-flare.png"
+        img = envsys.Image.new("RGBA", (1600, 1200), (32, 36, 44, 255))
+        draw = envsys.ImageDraw.Draw(img)
+        draw.rectangle((0, 0, 1600, 224), fill=(48, 56, 64, 255))
+        draw.rectangle((0, 1080, 1600, 1200), fill=(48, 56, 64, 255))
+        draw.rectangle((0, 224, 224, 1200), fill=(52, 60, 70, 255))
+        draw.rectangle((1376, 224, 1600, 1200), fill=(52, 60, 70, 255))
+        draw.rectangle((0, 240, 260, 380), fill=(112, 124, 136, 255))
+        draw.rectangle((0, 840, 260, 1010), fill=(112, 124, 136, 255))
+        draw.rectangle((1340, 240, 1600, 380), fill=(112, 124, 136, 255))
+        draw.rectangle((1340, 840, 1600, 1010), fill=(112, 124, 136, 255))
+        img.save(path)
+        valid, errors = envsys._validate_border_piece_source(path)
+        self.assertFalse(valid)
+        self.assertIn("border_piece_side_wall_flare", errors)
 
 
 if __name__ == "__main__":

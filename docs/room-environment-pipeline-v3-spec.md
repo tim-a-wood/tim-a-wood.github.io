@@ -50,6 +50,8 @@ This spec replaces the current quality strategy of:
 
 The room layout is the authority. The environment plan must fit the actual room geometry, door locations, platform spans, pits, ceiling shape, and traversal routes.
 
+The drawn room boundary / polygon defines the playable chamber. The full room canvas is not automatically interior space. Any area outside the room polygon must be treated as enclosing mass, void, wall thickness, or retaining floor structure appropriate to a 2D sidescroller shell, not as additional scenic room interior to be filled.
+
 ### 3.2 Component-fit is a first-class contract
 
 Every generated image must fit a known component type. “Looks cool” is insufficient if the image does not read as the specific component it is meant to be.
@@ -489,6 +491,8 @@ Must not collapse into flat fog or scene illustration.
 ## 9.1 Goal
 
 Convert the actual room geometry into a production assembly plan that covers the real room, not a simplified vignette.
+
+The planner must interpret the room polygon as the chamber envelope. It must not inflate the chamber to the full editor canvas or use empty spill area outside the polygon as interior background space.
 
 ## 9.2 Replace Current Simplifications
 

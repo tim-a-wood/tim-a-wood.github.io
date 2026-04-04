@@ -44,6 +44,7 @@
 <div id="game-container"></div>
 <script>
 const bootDebugEl = document.getElementById('boot-debug');
+const RUNTIME_REVIEW_CAPTURE_MODE = /(?:[?#&])capture=runtime-review(?:[&#]|$)/.test(window.location.href);
 function setPageBootState(message, state = 'info') {
     if (bootDebugEl) {
         bootDebugEl.textContent = message;
@@ -856,6 +857,24 @@ function getRoomVerticalBounds(roomId) {
     return { top: 0, bottom: CONFIG.WORLD_HEIGHT };
 }
 
+function getRoomPolygonBounds(roomId) {
+    const room = getLayoutRoom(roomId);
+    const fallbackWidth = getRoomWidth(roomId);
+    if (room && Array.isArray(room.polygon) && room.polygon.length >= 3) {
+        const xs = room.polygon.map((point) => Number(point?.[0])).filter((value) => Number.isFinite(value));
+        const ys = room.polygon.map((point) => Number(point?.[1])).filter((value) => Number.isFinite(value));
+        if (xs.length && ys.length) {
+            return {
+                left: Math.max(0, Math.min(...xs)),
+                right: Math.min(fallbackWidth, Math.max(...xs)),
+                top: Math.max(0, Math.min(...ys)),
+                bottom: Math.min(CONFIG.WORLD_HEIGHT, Math.max(...ys))
+            };
+        }
+    }
+    return { left: 0, right: fallbackWidth, top: 0, bottom: CONFIG.WORLD_HEIGHT };
+}
+
 /** Bottom Y for backgrounds, midground, and default floor row — always world bottom (polygon max Y can sit above the floor plane). */
 function getRoomVisualWorldBottom() {
     return CONFIG.WORLD_HEIGHT;
@@ -875,7 +894,8 @@ function getPrimaryFloorPlatform(roomId) {
     const room = getLayoutRoom(roomId);
     const platforms = Array.isArray(room?.platforms) ? room.platforms : [];
     if (!platforms.length || !ROOM_IDS[roomId]) return null;
-    const roomWidth = ROOM_IDS[roomId].width || getRoomWidth(roomId);
+    const polygonBounds = getRoomPolygonBounds(roomId);
+    const chamberWidth = Math.max(1, polygonBounds.right - polygonBounds.left);
     const { bottom } = getRoomVerticalBounds(roomId);
     const candidates = platforms
         .map((platform) => ({
@@ -883,7 +903,7 @@ function getPrimaryFloorPlatform(roomId) {
             width: Math.max(1, Number(platform.len || 1)) * 32,
             y: Number(platform.y || 0)
         }))
-        .filter((entry) => entry.width >= roomWidth * 0.68 && entry.y >= bottom - 96)
+        .filter((entry) => entry.width >= chamberWidth * 0.68 && entry.y >= bottom - 96)
         .sort((a, b) => b.width - a.width || b.y - a.y);
     return candidates[0]?.platform || null;
 }
@@ -1657,6 +1677,44 @@ function applyPreviewStartFromHash(embedMeta) {
     }
 }
 
+function applyRuntimeReviewCapturePresentation(scene) {
+    if (!RUNTIME_REVIEW_CAPTURE_MODE || !scene?.children?.list) return;
+    if (bootDebugEl) bootDebugEl.style.display = 'none';
+    scene.children.list.forEach((child) => {
+        if (!child || typeof child.setVisible !== 'function') return;
+        const fixedOverlay = child.scrollFactorX === 0 && child.scrollFactorY === 0;
+        const textLike = child.type === 'Text' || child.type === 'BitmapText';
+        if (fixedOverlay || textLike) {
+            child.setVisible(false);
+        }
+    });
+}
+
+function applyRuntimeReviewCaptureCamera(scene, roomId) {
+    if (!RUNTIME_REVIEW_CAPTURE_MODE || !scene?.cameras?.main || !roomId || !ROOM_IDS[roomId]) return;
+    const roomBounds = ROOM_IDS[roomId];
+    const { top } = getRoomVerticalBounds(roomId);
+    const visualBottom = getRoomVisualWorldBottom();
+    const roomHeight = Math.max(64, visualBottom - top);
+    const camera = scene.cameras.main;
+    const padX = 96;
+    const padY = 72;
+    const zoom = Math.min(
+        1,
+        CONFIG.W / Math.max(1, roomBounds.width + (padX * 2)),
+        CONFIG.H / Math.max(1, roomHeight + (padY * 2))
+    );
+    camera.stopFollow();
+    camera.setFollowOffset(0, 0);
+    camera.setZoom(zoom);
+    camera.centerOn(roomBounds.start + (roomBounds.width / 2), top + (roomHeight / 2));
+    if (scene.player) scene.player.setVisible(false);
+    if (scene.trail) {
+        scene.trail.clear();
+        scene.trail.setVisible(false);
+    }
+}
+
 class AshenHollow extends Phaser.Scene {
     constructor() {
         super('AshenHollow');
@@ -2223,8 +2281,10 @@ class AshenHollow extends Phaser.Scene {
             this.createMapOverlay();
             this.setupControls();
             this.createTransitionOverlay();
+            applyRuntimeReviewCapturePresentation(this);
 
             this.setCurrentRoom(TEMP_TEST_START.room);
+            applyRuntimeReviewCaptureCamera(this, TEMP_TEST_START.room);
             this.updateBootDebug(`BOOT: room=${TEMP_TEST_START.room} bg=${this.roomBackgroundSprites?.[TEMP_TEST_START.room] ? 'yes' : 'no'} mid=${this.roomMidgroundSprites?.[TEMP_TEST_START.room] ? 'yes' : 'no'}`);
             this.recomputeProgressionCounts();
             this.runSequenceChecks();
@@ -2243,72 +2303,76 @@ class AshenHollow extends Phaser.Scene {
     createRoomEnvironmentBackgrounds() {
         ROOM_SEQUENCE.forEach((roomId) => {
             const room = ROOM_IDS[roomId];
-            const { top: roomTop } = getRoomVerticalBounds(roomId);
-            const roomBottom = getRoomVisualWorldBottom();
-            const roomHeight = Math.max(64, roomBottom - roomTop);
+            const polygonBounds = getRoomPolygonBounds(roomId);
+            const chamberLeft = Number(polygonBounds.left || 0);
+            const chamberRight = Number(polygonBounds.right || room?.width || 0);
+            const chamberTop = Number(polygonBounds.top || 0);
+            const chamberBottom = Number(polygonBounds.bottom || getRoomVisualWorldBottom());
+            const chamberWidth = Math.max(64, chamberRight - chamberLeft);
+            const chamberHeight = Math.max(64, chamberBottom - chamberTop);
             const composition = getRoomEnvironmentRuntimeComposition(roomId);
             const textureKey = roomBackgroundAssetKey(roomId);
             if (room && this.textures.exists(textureKey)) {
-                const sprite = this.add.image(room.start + (room.width / 2), roomBottom, textureKey)
-                    .setDisplaySize(room.width, roomHeight)
+                const sprite = this.add.image(room.start + chamberLeft + (chamberWidth / 2), chamberBottom, textureKey)
+                    .setDisplaySize(chamberWidth, chamberHeight)
                     .setOrigin(0.5, 1)
                     .setDepth(-2)
                     .setVisible(false)
-                    .setAlpha(composition.hasBespokeBackground ? 0.4 : 0.5);
+                    .setAlpha(RUNTIME_REVIEW_CAPTURE_MODE ? 0.24 : (composition.hasBespokeBackground ? 0.4 : 0.5));
                 this.roomBackgroundSprites[roomId] = sprite;
                 const feathers = [];
-                const leftFade = this.add.image(room.start + 96, roomTop + (roomHeight / 2), 'fade-edge-left')
-                    .setDisplaySize(192, roomHeight)
+                const leftFade = this.add.image(room.start + chamberLeft + 96, chamberTop + (chamberHeight / 2), 'fade-edge-left')
+                    .setDisplaySize(Math.min(192, chamberWidth * 0.28), chamberHeight)
                     .setDepth(-1.92)
                     .setVisible(false)
-                    .setAlpha(0.92);
+                    .setAlpha(RUNTIME_REVIEW_CAPTURE_MODE ? 0.08 : 0.92);
                 feathers.push(leftFade);
-                const rightFade = this.add.image(room.end - 95, roomTop + (roomHeight / 2), 'fade-edge-right')
-                    .setDisplaySize(192, roomHeight)
+                const rightFade = this.add.image(room.start + chamberRight - 95, chamberTop + (chamberHeight / 2), 'fade-edge-right')
+                    .setDisplaySize(Math.min(192, chamberWidth * 0.28), chamberHeight)
                     .setDepth(-1.92)
                     .setVisible(false)
-                    .setAlpha(0.92);
+                    .setAlpha(RUNTIME_REVIEW_CAPTURE_MODE ? 0.08 : 0.92);
                 feathers.push(rightFade);
-                const topFade = this.add.image(room.start + (room.width / 2), roomTop + 80, 'fade-edge-top')
-                    .setDisplaySize(room.width, 160)
+                const topFade = this.add.image(room.start + chamberLeft + (chamberWidth / 2), chamberTop + 80, 'fade-edge-top')
+                    .setDisplaySize(chamberWidth, Math.min(160, chamberHeight * 0.3))
                     .setDepth(-1.91)
                     .setVisible(false)
-                    .setAlpha(0.88);
+                    .setAlpha(RUNTIME_REVIEW_CAPTURE_MODE ? 0.10 : 0.88);
                 feathers.push(topFade);
-                const bottomFade = this.add.image(room.start + (room.width / 2), roomBottom - 96, 'fade-edge-bottom')
-                    .setDisplaySize(room.width, 192)
+                const bottomFade = this.add.image(room.start + chamberLeft + (chamberWidth / 2), chamberBottom - 96, 'fade-edge-bottom')
+                    .setDisplaySize(chamberWidth, Math.min(192, chamberHeight * 0.32))
                     .setDepth(-1.91)
                     .setVisible(false)
-                    .setAlpha(0.94);
+                    .setAlpha(RUNTIME_REVIEW_CAPTURE_MODE ? 0.12 : 0.94);
                 feathers.push(bottomFade);
                 this.roomBackgroundFeatherSprites[roomId] = feathers;
             }
             const midgroundKey = resolveRoomMidgroundTexture(this, roomId);
             if (room && midgroundKey) {
                 if (composition.hasBespokeMidground && composition.midgroundZone) {
-                    const sourceWidth = Number(composition.midgroundAsset?.final_dimensions?.width || composition.midgroundPlan?.target_dimensions?.width || room.width || 1600);
-                    const sourceHeight = Number(composition.midgroundAsset?.final_dimensions?.height || composition.midgroundPlan?.target_dimensions?.height || roomHeight || 1200);
+                    const sourceWidth = Number(composition.midgroundAsset?.final_dimensions?.width || composition.midgroundPlan?.target_dimensions?.width || chamberWidth || 1600);
+                    const sourceHeight = Number(composition.midgroundAsset?.final_dimensions?.height || composition.midgroundPlan?.target_dimensions?.height || chamberHeight || 1200);
                     const safeLeft = Phaser.Math.Clamp(Number(composition.midgroundZone.x || 0), 0, sourceWidth);
                     const safeRight = Phaser.Math.Clamp(safeLeft + Number(composition.midgroundZone.width || 0), safeLeft, sourceWidth);
                     const slices = [
-                        { cropX: 0, cropWidth: safeLeft, worldX: room.start },
-                        { cropX: safeRight, cropWidth: sourceWidth - safeRight, worldX: room.start + (safeRight / sourceWidth) * room.width }
+                        { cropX: 0, cropWidth: safeLeft },
+                        { cropX: safeRight, cropWidth: sourceWidth - safeRight }
                     ].filter((slice) => slice.cropWidth >= 64);
-                    const sprites = slices.map((slice) => this.add.image(slice.worldX, roomBottom, midgroundKey)
-                        .setDisplaySize((slice.cropWidth / sourceWidth) * room.width, roomHeight)
+                    const sprites = slices.map((slice) => this.add.image(room.start + chamberLeft + (slice.cropX / sourceWidth) * chamberWidth, chamberBottom, midgroundKey)
+                        .setDisplaySize((slice.cropWidth / sourceWidth) * chamberWidth, chamberHeight)
                         .setCrop(slice.cropX, 0, slice.cropWidth, sourceHeight)
                         .setOrigin(0, 1)
                         .setDepth(-0.18)
                         .setVisible(false)
-                        .setAlpha(0.52));
+                        .setAlpha(RUNTIME_REVIEW_CAPTURE_MODE ? 0.34 : 0.52));
                     this.roomMidgroundSprites[roomId] = sprites;
                 } else {
-                    const sprite = this.add.image(room.start + (room.width / 2), roomBottom, midgroundKey)
-                        .setDisplaySize(room.width, roomHeight)
+                    const sprite = this.add.image(room.start + chamberLeft + (chamberWidth / 2), chamberBottom, midgroundKey)
+                        .setDisplaySize(chamberWidth, chamberHeight)
                         .setOrigin(0.5, 1)
                         .setDepth(composition.hasBespokeMidground ? -0.22 : -0.35)
                         .setVisible(false)
-                        .setAlpha(composition.hasBespokeMidground ? 0.24 : 0.34);
+                        .setAlpha(RUNTIME_REVIEW_CAPTURE_MODE ? 0.16 : (composition.hasBespokeMidground ? 0.24 : 0.34));
                     this.roomMidgroundSprites[roomId] = sprite;
                 }
             }
@@ -2369,6 +2433,84 @@ class AshenHollow extends Phaser.Scene {
         return sprite;
     }
 
+    addRoomStandardWallAccentDecor(roomId, x, y, width, height, side = 'left') {
+        if (width < 24 || height < 96) return null;
+        const style = deriveRoomEnvironmentRuntimeStyle(roomId);
+        const g = this.add.graphics();
+        const body = rgbToHexInt(mixRgb(style.crack, style.floorBase, 0.18));
+        const seam = rgbToHexInt(mixRgb(style.crack, style.edge, 0.2));
+        const face = rgbToHexInt(mixRgb(style.crack, style.floorBase, 0.14));
+        const relief = rgbToHexInt(mixRgb(style.edge, style.floorBase, 0.28));
+        const baseBond = rgbToHexInt(mixRgb(style.crack, style.floorBase, 0.12));
+        const highlight = rgbToHexInt(style.edge);
+        const outerPierWidth = Math.max(12, Math.round(width * 0.18));
+        const innerPilasterWidth = Math.max(10, Math.round(width * 0.1));
+        const courseHeight = Math.max(40, Math.round(height * 0.1));
+        const corniceHeight = Math.max(18, Math.round(height * 0.035));
+        const plinthHeight = Math.max(24, Math.round(height * 0.055));
+        const fieldX = side === 'left' ? x + outerPierWidth : x;
+        const fieldWidth = Math.max(20, width - outerPierWidth);
+        const fieldRight = fieldX + fieldWidth;
+        const innerPilasterX = side === 'left' ? fieldRight - innerPilasterWidth : fieldX;
+        const faceLeft = side === 'left' ? fieldX + 8 : fieldX + innerPilasterWidth + 8;
+        const faceWidth = Math.max(16, fieldWidth - innerPilasterWidth - 16);
+        const faceTop = y + corniceHeight + 12;
+        const faceBottom = y + height - plinthHeight - 12;
+        const blockRows = Math.max(3, Math.floor((faceBottom - faceTop) / 84));
+        const blockCols = Math.max(2, Math.floor(faceWidth / 46));
+
+        g.setDepth(RUNTIME_REVIEW_CAPTURE_MODE ? -0.04 : -0.08);
+        g.fillStyle(body, 1);
+        g.fillRect(x, y, width, height);
+        g.fillStyle(seam, 1);
+        g.fillRect(side === 'left' ? x : x + width - outerPierWidth, y, outerPierWidth, height);
+        g.fillStyle(seam, 1);
+        g.fillRect(innerPilasterX, y + corniceHeight, innerPilasterWidth, Math.max(32, height - corniceHeight - plinthHeight));
+        for (let lineY = y + corniceHeight + 12; lineY < y + height - plinthHeight - 16; lineY += courseHeight) {
+            g.fillStyle(highlight, 0.16);
+            g.fillRect(x + 4, lineY, Math.max(12, width - 8), 3);
+        }
+        g.fillStyle(seam, 1);
+        g.fillRect(x, y, width, corniceHeight);
+        g.fillStyle(highlight, 0.22);
+        g.fillRect(x + 4, y + 6, Math.max(12, width - 8), 4);
+        g.fillStyle(seam, 1);
+        g.fillRect(x, y + height - plinthHeight, width, plinthHeight);
+        g.fillStyle(baseBond, 1);
+        g.fillRect(x, y + height - plinthHeight, width, Math.max(plinthHeight + 20, Math.round(plinthHeight * 1.45)));
+        g.fillStyle(face, 1);
+        g.fillRect(faceLeft, faceTop, faceWidth, Math.max(48, faceBottom - faceTop));
+        g.lineStyle(3, highlight, 0.18);
+        g.strokeRect(faceLeft, faceTop, faceWidth, Math.max(48, faceBottom - faceTop));
+        for (let row = 0; row < blockRows; row += 1) {
+            const rowY = faceTop + Math.round((row * (faceBottom - faceTop)) / blockRows);
+            const rowBottom = faceTop + Math.round(((row + 1) * (faceBottom - faceTop)) / blockRows);
+            const rowHeight = Math.max(14, rowBottom - rowY);
+            const offset = row % 2 === 0 ? 0 : Math.round((faceWidth / blockCols) * 0.5);
+            const blockWidth = Math.max(24, Math.round(faceWidth / blockCols));
+            for (let cursor = faceLeft - offset; cursor < faceLeft + faceWidth; cursor += blockWidth) {
+                const blockLeft = Math.max(faceLeft, cursor);
+                const blockRight = Math.min(faceLeft + faceWidth, cursor + blockWidth);
+                if (blockRight - blockLeft < 12) continue;
+                g.fillStyle(relief, 0.34 + ((row % 2) * 0.05));
+                g.fillRect(blockLeft + 1, rowY + 1, Math.max(10, blockRight - blockLeft - 2), Math.max(10, rowHeight - 2));
+                g.lineStyle(1, highlight, 0.12);
+                g.strokeRect(blockLeft + 1, rowY + 1, Math.max(10, blockRight - blockLeft - 2), Math.max(10, rowHeight - 2));
+            }
+        }
+        g.fillStyle(baseBond, 1);
+        g.fillTriangle(
+            side === 'left' ? x : x + width,
+            y + height - plinthHeight,
+            side === 'left' ? x + Math.max(18, outerPierWidth + 10) : x + width - Math.max(18, outerPierWidth + 10),
+            y + height - plinthHeight,
+            side === 'left' ? x : x + width,
+            y + height + Math.max(26, Math.round(plinthHeight * 0.9))
+        );
+        this.environmentDecor.push(g);
+        return g;
+    }
+
     addPlacedBespokeAsset(roomId, asset, depth, alpha = 0.98) {
         if (!asset?.slot_id || !asset?.url || !this.textures.exists(`env-bespoke-${asset.slot_id}`)) return null;
         const placement = asset.placement || {};
@@ -2388,19 +2530,71 @@ class AshenHollow extends Phaser.Scene {
         return sprite;
     }
 
-    addRoomBespokeWallShellDecor(roomId) {
+    addRoomBespokeWallShellDecor(roomId, support = null) {
         const wallAssets = getRoomEnvironmentBespokeAssetsByType(roomId, ['wall_module_left', 'wall_module_right']);
         const trimAssets = getRoomEnvironmentBespokeAssetsByType(roomId, ['wall_base_trim_left', 'wall_base_trim_right']);
         if (!wallAssets.length && !trimAssets.length) return false;
-        wallAssets.forEach((asset) => this.addPlacedBespokeAsset(roomId, asset, -0.08, 0.98));
-        trimAssets.forEach((asset) => this.addPlacedBespokeAsset(roomId, asset, -0.03, 0.98));
+        const roomWidth = support?.roomBounds ? Math.max(1, Number(support.roomBounds.end || 0) - Number(support.roomBounds.start || 0)) : 0;
+        const chamberBounds = support?.chamberBounds || null;
+        const chamberWidth = chamberBounds ? Math.max(1, Number(chamberBounds.right || 0) - Number(chamberBounds.left || 0)) : roomWidth;
+        if (support?.roomBounds && chamberBounds) {
+            const upperMassY = Number(chamberBounds.top || support.roomTop || 0);
+            const floorPlaneTop = Number(chamberBounds.bottom || support.floorWorldY || 0);
+            const upperMassHeight = Math.max(128, floorPlaneTop - upperMassY);
+            const leftWidth = Math.max(0, Number(chamberBounds.left || 0));
+            const rightWidth = Math.max(0, roomWidth - Number(chamberBounds.right || roomWidth));
+            if (leftWidth >= 24) {
+                this.addRoomWallMassDecor(roomId, support.roomBounds.start, upperMassY, leftWidth, upperMassHeight, RUNTIME_REVIEW_CAPTURE_MODE ? 0.92 : 0.72);
+            }
+            if (rightWidth >= 24) {
+                this.addRoomWallMassDecor(roomId, support.roomBounds.start + Number(chamberBounds.right || roomWidth), upperMassY, rightWidth, upperMassHeight, RUNTIME_REVIEW_CAPTURE_MODE ? 0.92 : 0.72);
+            }
+        }
+        wallAssets.forEach((asset) => {
+            if (!support?.roomBounds || !roomWidth) {
+                this.addPlacedBespokeAsset(roomId, asset, RUNTIME_REVIEW_CAPTURE_MODE ? -0.04 : -0.08, RUNTIME_REVIEW_CAPTURE_MODE ? 1 : 0.98);
+                return;
+            }
+            const placement = asset.placement || {};
+            const accentWidth = Math.min(Math.max(Number(placement.display_width || 0), Math.round(chamberWidth * 0.16)), Math.max(1, Math.round(chamberWidth * 0.5)));
+            const isLeft = String(asset.component_type || '').includes('left');
+            this.addPlacedBespokeAsset(roomId, {
+                ...asset,
+                placement: {
+                    ...placement,
+                    x: support.roomBounds.start + (isLeft ? Number(chamberBounds?.left || 0) : Math.max(Number(chamberBounds?.left || 0), Number(chamberBounds?.right || roomWidth) - accentWidth)),
+                    y: Number(chamberBounds?.top || support.roomTop || 0),
+                    display_width: accentWidth,
+                    display_height: Math.max(Number(placement.display_height || 0), Number(chamberBounds?.bottom || support.floorWorldY || 0) - Number(chamberBounds?.top || support.roomTop || 0)),
+                    origin_x: 0,
+                    origin_y: 0
+                }
+            }, RUNTIME_REVIEW_CAPTURE_MODE ? -0.04 : -0.08, RUNTIME_REVIEW_CAPTURE_MODE ? 1 : 0.98);
+        });
+        // Keep wall assembly simple: one main wall asset should carry the read.
+        // Wall-base trims may still exist in generated output, but we intentionally
+        // do not place them in runtime review composition because they complicate
+        // the wall silhouette without adding useful structure.
         return true;
     }
 
-    addRoomBespokePrimaryFloorFaceDecor(roomId) {
+    addRoomBespokePrimaryFloorFaceDecor(roomId, band = null) {
         const asset = getRoomEnvironmentBespokeAsset(roomId, 'main_floor_face');
         if (!asset?.url) return false;
-        this.addPlacedBespokeAsset(roomId, asset, -0.03, 0.98);
+        const placement = asset.placement || {};
+        const assetWithPlacement = band ? {
+            ...asset,
+            placement: {
+                ...placement,
+                x: band.x,
+                y: band.y,
+                display_width: band.width,
+                display_height: Math.min(band.height, Math.max(Number(placement.display_height || 0), Math.round(band.height * 0.42))),
+                origin_x: 0,
+                origin_y: 0
+            }
+        } : asset;
+        this.addPlacedBespokeAsset(roomId, assetWithPlacement, RUNTIME_REVIEW_CAPTURE_MODE ? 0.03 : -0.03, RUNTIME_REVIEW_CAPTURE_MODE ? 1 : 0.98);
         return true;
     }
 
@@ -2408,6 +2602,13 @@ class AshenHollow extends Phaser.Scene {
         const asset = platform ? getRoomEnvironmentBespokeHeroPlatformFaceAsset(roomId, platform) : null;
         if (!asset?.url) return false;
         this.addPlacedBespokeAsset(roomId, asset, 0.05, 0.98);
+        return true;
+    }
+
+    addRoomBespokeDoorDecor(roomId) {
+        const doorAssets = getRoomEnvironmentBespokeAssetsByType(roomId, ['door_frame']);
+        if (!doorAssets.length) return false;
+        doorAssets.forEach((asset) => this.addPlacedBespokeAsset(roomId, asset, 0.18, RUNTIME_REVIEW_CAPTURE_MODE ? 1 : 0.98));
         return true;
     }
 
@@ -2433,12 +2634,12 @@ class AshenHollow extends Phaser.Scene {
         return sprite;
     }
 
-    addRoomFloorBandDecor(roomId, x, y, width, height) {
+    addRoomFloorBandDecor(roomId, x, y, width, height, alpha = 0.9) {
         const textureKey = resolveRoomFloorTexture(this, roomId);
         if (!textureKey || width < 24 || height < 24) return null;
         const sprite = this.add.tileSprite(x + (width / 2), y + (height / 2), width, height, textureKey)
             .setDepth(-0.04)
-            .setAlpha(0.9);
+            .setAlpha(alpha);
         applyEnvironmentStripTileScale(sprite, width, height, 32, 32);
         this.environmentDecor.push(sprite);
         return sprite;
@@ -2474,7 +2675,16 @@ class AshenHollow extends Phaser.Scene {
             const room = getLayoutRoom(roomId);
             const roomBounds = ROOM_IDS[roomId];
             if (!room || !roomBounds) return;
+            const polygonBounds = getRoomPolygonBounds(roomId);
+            const chamberLeft = Number(polygonBounds.left || 0);
+            const chamberRight = Number(polygonBounds.right || roomBounds.width);
+            const chamberTop = Number(polygonBounds.top || 0);
+            const chamberBottom = Number(polygonBounds.bottom || CONFIG.WORLD_HEIGHT);
+            const chamberWidth = Math.max(64, chamberRight - chamberLeft);
+            const chamberHeight = Math.max(64, chamberBottom - chamberTop);
+            const chamberStartX = roomBounds.start + chamberLeft;
             if (isContrastQaEnvironment(roomId)) return;
+            this.addRoomBespokeDoorDecor(roomId);
             const schema = getRoomEnvironmentSceneSchema(roomId);
             const platforms = Array.isArray(room.platforms) ? room.platforms : [];
             const doorXs = (room.doors || []).map((door) => Number(door.x || 0));
@@ -2608,14 +2818,14 @@ class AshenHollow extends Phaser.Scene {
                     g.fillStyle(archColor, 0.12);
                     const count = family === 'flooded_arch_hall' ? 4 : 3;
                     for (let i = 0; i < count; i += 1) {
-                        const width = roomBounds.width / (count + 1);
-                        const x = roomBounds.start + (i + 0.7) * width;
+                        const width = chamberWidth / (count + 1);
+                        const x = chamberStartX + (i + 0.7) * width;
                         g.fillRect(x - 20, 220, 40, 720);
                         g.fillRoundedRect(x - 84, 160, 168, 120, 56);
                     }
                     if (family === 'flooded_arch_hall') {
                         g.fillStyle(rgbToHexInt(style.water), 0.14);
-                        g.fillRect(roomBounds.start, 880, roomBounds.width, 160);
+                        g.fillRect(chamberStartX, Math.max(chamberTop, chamberBottom - 208), chamberWidth, 160);
                     }
                 }, -1.38);
             };
@@ -2626,9 +2836,9 @@ class AshenHollow extends Phaser.Scene {
             (schema.background_layers || []).forEach((layer, index) => {
                 if (layer.kind === 'fog_band') {
                     const fog = this.add.rectangle(
-                        roomBounds.start + (roomBounds.width / 2),
-                        CONFIG.WORLD_HEIGHT - 116 - (index * 48),
-                        roomBounds.width,
+                        chamberStartX + (chamberWidth / 2),
+                        Math.max(chamberTop + 96, chamberBottom - 116 - (index * 48)),
+                        chamberWidth,
                         160,
                         rgbToHexInt(deriveRoomEnvironmentRuntimeStyle(roomId).glow),
                         0.08
@@ -2642,8 +2852,8 @@ class AshenHollow extends Phaser.Scene {
                         g.fillStyle(color, 0.16);
                         const count = layer.density === 'high' ? 5 : 3;
                         for (let i = 0; i < count; i += 1) {
-                            const width = roomBounds.width / (count + 1);
-                            const x = roomBounds.start + (i + 0.5) * width;
+                            const width = chamberWidth / (count + 1);
+                            const x = chamberStartX + (i + 0.5) * width;
                             g.fillRect(x - 18, 280, 36, 560);
                             g.fillRoundedRect(x - 64, 220, 128, 96, 48);
                         }
@@ -2656,7 +2866,7 @@ class AshenHollow extends Phaser.Scene {
                         g.fillStyle(rgbToHexInt(style.floorAlt), 0.12);
                         const count = layer.density === 'high' ? 8 : 5;
                         for (let i = 0; i < count; i += 1) {
-                            const x = roomBounds.start + ((i + 1) * roomBounds.width / (count + 1));
+                            const x = chamberStartX + ((i + 1) * chamberWidth / (count + 1));
                             g.fillRect(x - 12, 180, 24, 720);
                         }
                     }, -0.72);
@@ -2846,26 +3056,41 @@ class AshenHollow extends Phaser.Scene {
             }
             const platforms = Array.isArray(room?.platforms) ? room.platforms : [];
             if (primaryFloorPlatform) {
-                const primaryFloorX = roomBounds.start + Number(primaryFloorPlatform.x || 0);
+                const chamberLeft = Number(polygonBounds.left || 0);
+                const chamberRight = Number(polygonBounds.right || roomBounds.width);
+                const primaryFloorX = roomBounds.start + Math.min(Number(primaryFloorPlatform.x || 0), chamberLeft);
                 const primaryFloorWidth = Math.max(1, Number(primaryFloorPlatform.len || 1)) * tile;
                 const primaryFloorY = Number(primaryFloorPlatform.y || visualBottom - 48);
-                const lowerFloorTop = Math.min(visualBottom - 72, primaryFloorY + 20);
+                const lowerFloorTop = Math.min(Number(polygonBounds.bottom || visualBottom) - 72, primaryFloorY + 20);
                 const lowerFloorHeight = Math.max(48, visualBottom - lowerFloorTop - 12);
-                if (!this.addRoomBespokePrimaryFloorFaceDecor(roomId)) {
-                    this.addRoomFloorBandDecor(roomId, primaryFloorX, lowerFloorTop, primaryFloorWidth, lowerFloorHeight);
+                const supportWidth = Math.max(primaryFloorWidth, chamberRight - chamberLeft);
+                if (!this.addRoomBespokePrimaryFloorFaceDecor(roomId, {
+                    x: primaryFloorX,
+                    y: lowerFloorTop,
+                    width: supportWidth,
+                    height: lowerFloorHeight
+                })) {
+                    this.addRoomFloorBandDecor(roomId, primaryFloorX, lowerFloorTop, supportWidth, lowerFloorHeight);
+                } else {
+                    this.addRoomFloorBandDecor(roomId, primaryFloorX, lowerFloorTop, supportWidth, lowerFloorHeight, RUNTIME_REVIEW_CAPTURE_MODE ? 0.72 : 0.6);
                 }
-                this.addRoomFloorCapDecor(roomId, primaryFloorX, primaryFloorY, primaryFloorWidth, 24);
+                this.addRoomFloorCapDecor(roomId, roomBounds.start + Number(primaryFloorPlatform.x || 0), primaryFloorY, primaryFloorWidth, 24);
             }
             // Do not add a second "underfloor" band + cap when !primaryFloorPlatform: the world floor row + cap
             // already fills the bottom; the old else branch stacked a second cap ~50px higher and caused a dark seam.
             if (!roomsWithExplicitWallRects.has(roomId)) {
-                const sideMassWidth = 112;
-                const upperMassY = roomTop + 64;
-                const floorPlaneTop = floorWorldY - 16;
+                const upperMassY = Number(polygonBounds.top || roomTop);
+                const floorPlaneTop = Number(polygonBounds.bottom || floorWorldY);
                 const upperMassHeight = Math.max(128, floorPlaneTop - upperMassY);
-                if (!this.addRoomBespokeWallShellDecor(roomId)) {
-                    this.addRoomWallMassDecor(roomId, roomBounds.start, upperMassY, sideMassWidth, upperMassHeight, 0.98);
-                    this.addRoomWallMassDecor(roomId, roomBounds.end - sideMassWidth, upperMassY, sideMassWidth, upperMassHeight, 0.98);
+                const leftMassWidth = Math.max(0, Number(polygonBounds.left || 0));
+                const rightMassWidth = Math.max(0, roomBounds.width - Number(polygonBounds.right || roomBounds.width));
+                if (!this.addRoomBespokeWallShellDecor(roomId, { roomBounds, roomTop, floorWorldY, chamberBounds: polygonBounds })) {
+                    if (leftMassWidth >= 24) {
+                        this.addRoomWallMassDecor(roomId, roomBounds.start, upperMassY, leftMassWidth, upperMassHeight, 0.98);
+                    }
+                    if (rightMassWidth >= 24) {
+                        this.addRoomWallMassDecor(roomId, roomBounds.start + Number(polygonBounds.right || roomBounds.width), upperMassY, rightMassWidth, upperMassHeight, 0.98);
+                    }
                 }
             }
         });
@@ -2965,9 +3190,10 @@ class AshenHollow extends Phaser.Scene {
             const textureKey = resolveRoomDoorTexture(this, roomId);
             const sprite = this.physics.add.staticImage(x, y, textureKey);
             if (isResolvedRoomDoorAsset(roomId, textureKey)) {
-                sprite.setDisplaySize(48, 72);
+                sprite.setDisplaySize(RUNTIME_REVIEW_CAPTURE_MODE ? 64 : 48, RUNTIME_REVIEW_CAPTURE_MODE ? 96 : 72);
             }
-            if (tint != null) sprite.setTint(tint);
+            if (tint != null && !RUNTIME_REVIEW_CAPTURE_MODE) sprite.setTint(tint);
+            if (RUNTIME_REVIEW_CAPTURE_MODE) sprite.setAlpha(1);
             sprite.setDepth(0.22);
             sprite.refreshBody();
             return sprite;

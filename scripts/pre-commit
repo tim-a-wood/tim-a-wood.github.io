@@ -1,0 +1,136 @@
+#!/usr/bin/env bash
+# MV / Sprite Workbench — pre-commit hook
+# Installed by: scripts/install_hooks.sh
+# Source: scripts/pre-commit (version-controlled; symlinked or copied to .git/hooks/pre-commit)
+#
+# Checks run on every commit (only against staged files where possible):
+#   PC-1  Block .env* files staged for commit
+#   PC-2  Scan changed JS/HTML files for API key literals
+#   PC-3  Detect 'transition: all' in staged CSS/HTML
+#   PC-4  Warn on new innerHTML assignments in staged files (not a block)
+#
+# Full-repo validators (run on all status and HTML files, not just staged):
+#   SF    validate_status_files.py  — status file schema
+#   SC    check_escalation_conditions.py  — credential safety
+
+set -euo pipefail
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+FAIL=0
+
+# ── Helpers ──────────────────────────────────────────────────────────────────
+
+staged_files() {
+  git diff --cached --name-only --diff-filter=ACMR
+}
+
+staged_of_type() {
+  # Usage: staged_of_type "\.css$" "\.html$"
+  local patterns=("$@")
+  staged_files | grep -E "$(IFS='|'; echo "${patterns[*]}")" || true
+}
+
+warn() { echo "  WARN  $*" >&2; }
+fail() { echo "  FAIL  $*" >&2; FAIL=1; }
+info() { echo "  ....  $*"; }
+
+# ── PC-1: Block .env* files ───────────────────────────────────────────────────
+
+echo ""
+echo "PC-1  Checking for staged credential files..."
+STAGED_ENV=$(staged_files | grep -E '(^|\/)\.env' | grep -v '\.example$' | grep -v '\.sample$' || true)
+if [ -n "$STAGED_ENV" ]; then
+  fail "Credential file staged for commit — remove before committing:"
+  echo "$STAGED_ENV" | while read -r f; do fail "  $f"; done
+else
+  info "No credential files staged."
+fi
+
+# ── PC-2: API key literals in staged JS/HTML/PY files ────────────────────────
+
+echo ""
+echo "PC-2  Scanning staged files for API key literals..."
+STAGED_SOURCE=$(staged_of_type '\.js$' '\.html$' '\.py$' '\.ts$' '\.sh$')
+if [ -n "$STAGED_SOURCE" ]; then
+  while IFS= read -r f; do
+    [ -f "$REPO_ROOT/$f" ] || continue
+    # Match: KEY = "value" where value is 10+ chars — exclude variable name references
+    if grep -qE '(GEMINI|PIXELLAB|OPENAI|CURSOR)_API_KEY\s*=\s*["\x27][A-Za-z0-9_\-]{10,}["\x27]' "$REPO_ROOT/$f" 2>/dev/null; then
+      fail "API key literal found in $f — use environment variable, not a hardcoded value"
+    fi
+    # Generic patterns: sk- prefix, AIza prefix
+    if grep -qE '["\x27](sk-[A-Za-z0-9]{20,}|AIza[A-Za-z0-9_\-]{35,})["\x27]' "$REPO_ROOT/$f" 2>/dev/null; then
+      fail "API key literal (generic pattern) found in $f"
+    fi
+  done <<< "$STAGED_SOURCE"
+  info "API key scan complete."
+else
+  info "No JS/HTML/PY files staged."
+fi
+
+# ── PC-3: transition: all in staged CSS/HTML ─────────────────────────────────
+
+echo ""
+echo "PC-3  Checking for 'transition: all' in staged CSS/HTML..."
+STAGED_STYLE=$(staged_of_type '\.css$' '\.html$')
+if [ -n "$STAGED_STYLE" ]; then
+  while IFS= read -r f; do
+    [ -f "$REPO_ROOT/$f" ] || continue
+    MATCHES=$(grep -nE 'transition\s*:\s*all\b' "$REPO_ROOT/$f" 2>/dev/null || true)
+    if [ -n "$MATCHES" ]; then
+      fail "'transition: all' found in $f — name properties explicitly (A-4)"
+      echo "$MATCHES" | while read -r line; do fail "  $line"; done
+    fi
+  done <<< "$STAGED_STYLE"
+  info "Transition check complete."
+else
+  info "No CSS/HTML files staged."
+fi
+
+# ── PC-4: innerHTML assignments in staged files (warn only) ──────────────────
+
+echo ""
+echo "PC-4  Checking for new innerHTML assignments (warn only)..."
+STAGED_JS=$(staged_of_type '\.js$' '\.html$')
+if [ -n "$STAGED_JS" ]; then
+  FOUND_INNER=0
+  while IFS= read -r f; do
+    [ -f "$REPO_ROOT/$f" ] || continue
+    MATCHES=$(grep -nE '\.innerHTML\s*(=|\+=)' "$REPO_ROOT/$f" 2>/dev/null || true)
+    if [ -n "$MATCHES" ]; then
+      warn "innerHTML assignment in $f — verify user strings use escapeHtml() (E-6)"
+      FOUND_INNER=1
+    fi
+  done <<< "$STAGED_JS"
+  [ "$FOUND_INNER" -eq 0 ] && info "No innerHTML assignments in staged files."
+fi
+
+# ── Status file validation (all *-status.json) ───────────────────────────────
+
+STAGED_STATUS=$(staged_of_type '\-status\.json$')
+if [ -n "$STAGED_STATUS" ]; then
+  echo ""
+  echo "SF    Validating staged status files..."
+  while IFS= read -r f; do
+    [ -f "$REPO_ROOT/$f" ] || continue
+    python3 "$REPO_ROOT/scripts/validate_status_files.py" "$REPO_ROOT/$f" || FAIL=1
+  done <<< "$STAGED_STATUS"
+fi
+
+# ── Security scan (credential files, .gitignore coverage) ────────────────────
+
+echo ""
+echo "SC    Running security scan..."
+python3 "$REPO_ROOT/scripts/check_escalation_conditions.py" || FAIL=1
+
+# ── Result ───────────────────────────────────────────────────────────────────
+
+echo ""
+if [ "$FAIL" -ne 0 ]; then
+  echo "Pre-commit: FAILED — fix the violations above before committing."
+  echo "To bypass in an emergency: git commit --no-verify (document why in commit message)"
+  exit 1
+else
+  echo "Pre-commit: all checks passed."
+  exit 0
+fi

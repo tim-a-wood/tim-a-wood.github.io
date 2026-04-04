@@ -1,20 +1,14 @@
 {
   "_note": "Updated by Level Design after each task. Reports to Development. Plain language — no jargon.",
-  "updated": "2026-03-31",
+  "updated": "2026-04-02",
   "schema_version": "v1.0",
   "priorities": [
     {
-      "id": 1,
-      "os_contexts": ["business", "sprite"],
-      "title": "Room quality standards and Copilot prompt quality — document criteria and iterate the system prompt",
-      "status": "in-progress",
-      "risk": "high",
-      "note": "Part of the orchestration Copilot readiness program. Standards doc is the baseline; prompt iteration makes suggestions match metroidvania logic, then validate with schema and round-trips.",
-      "proposed_solution": "Publish metroidvania room quality criteria, then iterate the Copilot system prompt and examples; validate with the same fixtures QA uses for apply-path tests."
-    },
-    {
       "id": 2,
-      "os_contexts": ["sprite", "ashen-hollow"],
+      "os_contexts": [
+        "sprite",
+        "ashen-hollow"
+      ],
       "title": "Build the world graph validation logic — catch unreachable rooms before export",
       "status": "paused",
       "risk": "high",
@@ -23,7 +17,10 @@
     },
     {
       "id": 3,
-      "os_contexts": ["sprite", "ashen-hollow"],
+      "os_contexts": [
+        "sprite",
+        "ashen-hollow"
+      ],
       "title": "Validate level design gap/platform geometry against the locked movement parameters",
       "status": "paused",
       "risk": "high",
