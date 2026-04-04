@@ -684,3 +684,33 @@ This log records decisions for the room environment and bespoke asset quality pa
 - Status: Rejected approach
 - Why: On 2026-04-04, the `border_piece` prompt was tightened again to require constant wall-strip thickness, square top/bottom wall corners, and no corbel or pedestal flare. The border validator was also strengthened with a geometry-based side-wall boundary check in addition to the earlier luminance-based flare guard. Deterministic tests passed (`105` Python tests plus both JS suites), and a fresh real `border_piece` reroll was generated. Direct visual inspection of the exact rejected `.tmp_biome_generation_rejections/border_piece-rejected-latest.png` showed that the top/bottom wall flare did improve, but Gemini overcorrected by turning the center into one large jagged torn-plaster / broken-hole shape. QA independently reviewed that same exact rejected PNG and agreed: the side walls are straighter, but the image now reads like a breached wall opening instead of a reusable border template.
 - Consequence: Keep the stronger straight-wall contract and the new flare validator, but do not continue tightening straightness alone. The next `border_piece` pass must explicitly suppress torn-hole / shattered-opening semantics in the center while preserving the improved vertical wall silhouette.
+
+### 127. Room semantics extraction should be a derived sidecar contract, not a second room-authority model
+- Status: Accepted
+- Why: The room JSON remains the source of truth for geometry, traversal, and room identity, while the new semantics layer is only meant to classify and expose what the room already contains. Treating semantics as another authority would create drift between `room-layout-data.json`, v3 overlays, and QA review surfaces.
+- Consequence: `room_semantics.json` should be generated from the room payload and used as a derived review artifact. It must preserve the source room polygon, doors, platforms, moving-platform paths, edge links, and removed edges verbatim, while adding tops, undersides, vertical faces, shell surfaces, openings, corners, cavities, decor-safe zones, gameplay exclusion zones, anchors, and overlay geometry for QA and planner truth checks. Future agents should not invent alternate room geometry from this sidecar.
+
+### 125. MVP adaptation QA gate uses blocker/warning/info severity and requires browser-backed evidence for saved-artifact approval
+- Status: Accepted gate posture
+- Why: The MVP adaptation plan needs a release-ready QA contract that lines up with the v3 requirements without letting composite fallback, DOM-only checks, or unlabeled screenshots pass as approval evidence. The existing room-validation pattern already rolls up to `pass / warning / fail`, so the MVP gate should keep the same spirit while naming the triage levels more explicitly for the new regression plan.
+- Consequence: For the MVP adaptation, `validation_report.json` should roll up `blocker -> fail`, `warning -> warning`, and `info -> pass metadata only`. Browser-backed E2E is required for approval evidence, and any positive visual claim must cite the exact saved artifact with at least three concrete visible observations. Composite fallback remains debug-only and cannot satisfy rollout signoff.
+
+### 126. Staged v3 environment MVP — docs + `scripts/environment_v3/` package scaffold
+- Status: Accepted (2026-04-04)
+- Why: The founder plan locks a **references → stylepack → semantics → kit → compose → validate** pipeline while keeping the room editor and `environment_pipeline_version = "v3"` gate. Milestone 1 maps the current `/environment/*` HTTP flow to that model, defines on-disk derived artifacts under `room_environment_derived/{room_id}/`, and specifies the results-panel payload extensions without a new workspace.
+- Consequence: Implementation proceeds incrementally; `scripts/room_environment_v3.py` stays the compatibility bridge until modules move into `scripts/environment_v3/`. Legacy v3 fields and `generate-assets` remain until ENV-028/ENV-029 deprecations are explicit. Authoring docs: `docs/room-environment-pipeline-mvp/`.
+
+### 127. The MVP results surface should keep authoring controls visible beside the staged output, not bury them inside the summaries
+- Status: Accepted
+- Why: The room editor needs the user-facing inputs that affect the environment review loop - reference upload, theme name, notes, seed, and stylepack lock - visible while the generated summaries update. A single collapsed "environment summary" card would force authors to hunt for inputs and would blur the line between author intent and generated evidence.
+- Consequence: The results surface now uses a persistent authoring column for those controls, while the staged summaries remain read-only review cards.
+
+### 128. Results-stage ordering is fixed, and debug/layer toggles stay secondary and UI-only
+- Status: Accepted
+- Why: The review loop should stay aligned with the pipeline order and with QA expectations. The stable sequence is stylepack, semantics, kit, manifest, validation. Overlay toggles are useful diagnostics, but they are not part of the authored room payload and should never outrank the review cards.
+- Consequence: The Results surface must keep that order and treat debug/layer switches as local view state rather than exported room data.
+
+### 129. `room.environment.spec` is the canonical home for the MVP authoring fields
+- Status: Accepted
+- Why: Theme name, notes, seed, lock stylepack, and reference uploads are authoring metadata that should survive export with the rest of the room environment spec. Putting them into preview/runtime slices would leak them into generated state and make the contract harder to reason about.
+- Consequence: The MVP contract stores those fields in `room.environment.spec`, while `preview`, `runtime`, `assembly_plan`, and `review_state` stay reserved for generated or review-derived data.

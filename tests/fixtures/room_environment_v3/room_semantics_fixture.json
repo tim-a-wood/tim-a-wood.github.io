@@ -1,0 +1,182 @@
+{
+  "fixture_id": "room-semantics-coverage-v1",
+  "schema_version": "room-semantics-v1",
+  "source_layout_path": "/Users/timwood/Desktop/projects/PWA/MV/room-layout-data.json",
+  "coverage_targets": [
+    "geometry-first extraction from the room polygon",
+    "top, underside, and vertical-face semantics from room-local surfaces",
+    "opening handling without inventing geometry",
+    "decor-safe zones versus gameplay exclusion zones",
+    "overlay truth checks against the raw room payload"
+  ],
+  "rooms": [
+    {
+      "room_id": "R11",
+      "room_name": "Branch A Tunnel Shaft",
+      "room_ref": "room-layout-data.json#rooms[10]",
+      "role_hint": "traversal_shaft",
+      "source_edge_cases": [
+        "no_platforms",
+        "no_doors",
+        "no_player_start",
+        "narrow_polygon",
+        "removed_edges",
+        "edge_links_only"
+      ],
+      "expected_semantics": {
+        "tops": [
+          "polygon top rim",
+          "derived shell cap"
+        ],
+        "undersides": [
+          "polygon underside edge",
+          "void-facing lower boundary"
+        ],
+        "vertical_faces": [
+          "left wall face",
+          "right wall face",
+          "shaft side faces"
+        ],
+        "shell_surfaces": [
+          "continuous enclosure strips around the shaft"
+        ],
+        "openings": [
+          "edge-link openings at removed edges 0 and 2"
+        ],
+        "corners": [
+          "upper-left",
+          "upper-right",
+          "lower-left",
+          "lower-right"
+        ],
+        "cavities": [
+          "central shaft void"
+        ],
+        "decor_safe_zones": [
+          "outer shell margins only"
+        ],
+        "gameplay_exclusion_zones": [
+          "entire chamber interior except routing surface"
+        ],
+        "anchors": [
+          "top rim anchors",
+          "shaft wall anchors",
+          "opening anchors"
+        ],
+        "overlay_geometry": [
+          "room polygon",
+          "edge-link cut lines",
+          "removed-edge markers"
+        ]
+      },
+      "overlay_truth_checks": [
+        "The overlay must match the four source polygon vertices exactly.",
+        "No door mouth should be fabricated because the source room has no doors.",
+        "No walkable top surface should be inferred because the room has no platforms.",
+        "The semantics extractor must keep the edge-linked openings visible on the polygon boundary."
+      ]
+    },
+    {
+      "room_id": "R2",
+      "room_name": "Central Hub",
+      "room_ref": "room-layout-data.json#rooms[1]",
+      "role_hint": "hub",
+      "source_edge_cases": [
+        "four_doors",
+        "moving_platform",
+        "multi_vertex_polygon",
+        "no_player_start"
+      ],
+      "expected_semantics": {
+        "tops": [
+          "all platform tops",
+          "major roof/top shell planes"
+        ],
+        "undersides": [
+          "moving-platform underside",
+          "major shell underside faces"
+        ],
+        "vertical_faces": [
+          "polygon wall faces",
+          "door jamb faces",
+          "hub enclosure faces"
+        ],
+        "shell_surfaces": [
+          "rotunda perimeter",
+          "hub side walls"
+        ],
+        "openings": [
+          "four door thresholds",
+          "branch mouths"
+        ],
+        "corners": [
+          "polygon turns",
+          "threshold shoulders"
+        ],
+        "cavities": [
+          "rotunda center",
+          "branch pockets"
+        ],
+        "decor_safe_zones": [
+          "outer alcoves away from door mouths"
+        ],
+        "gameplay_exclusion_zones": [
+          "center route lane",
+          "moving-platform path",
+          "door mouths"
+        ],
+        "anchors": [
+          "door anchors",
+          "hub center anchor",
+          "moving-platform anchor"
+        ],
+        "overlay_geometry": [
+          "room polygon",
+          "door openings",
+          "moving-platform path",
+          "route lanes"
+        ]
+      },
+      "overlay_truth_checks": [
+        "All four doors must appear as distinct threshold anchors.",
+        "The moving platform path must be visible in the overlay and must not be treated as a shell surface.",
+        "The central rotunda must remain a cavity, not decor-safe fill.",
+        "The overlay should show why this room is a hub, not a corridor."
+      ]
+    }
+  ],
+  "micro_fixture_requirements": [
+    {
+      "id": "micro-zero-platform-shaft",
+      "derived_from": "room-layout-data.json#rooms[10]",
+      "must_cover": [
+        "no platforms",
+        "no doors",
+        "no player start",
+        "edge-link-only openings",
+        "removed-edge handling"
+      ]
+    },
+    {
+      "id": "micro-multi-door-hub",
+      "derived_from": "room-layout-data.json#rooms[1]",
+      "must_cover": [
+        "four doors",
+        "moving platform",
+        "multi-cavity hub interior",
+        "threshold anchors",
+        "route-lane exclusion zones"
+      ]
+    },
+    {
+      "id": "micro-upper-threshold-shaft",
+      "derived_from": "room-layout-data.json#rooms[6]",
+      "must_cover": [
+        "stacked platforms",
+        "upper and side thresholds",
+        "top-plane and underside extraction",
+        "vertical-face readability"
+      ]
+    }
+  ]
+}

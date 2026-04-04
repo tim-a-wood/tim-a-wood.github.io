@@ -3,6 +3,8 @@ from __future__ import annotations
 import copy
 from typing import Any, Dict, List, Optional
 
+from scripts.environment_v3 import composition, editor_contract, kit, persistence, reference_pack, semantics, stylepack, validation
+
 
 V2_PIPELINE_VERSION = "v2"
 V3_PIPELINE_VERSION = "v3"
@@ -199,6 +201,7 @@ def ensure_v3_metadata(env: Dict[str, Any], room: Optional[Dict[str, Any]] = Non
         review_state = default_review_state()
         env["review_state"] = review_state
     review_state.setdefault("validation_status", {"status": "pending", "issues": []})
+    _sync_staged_artifacts(env, room)
     return env
 
 
@@ -238,6 +241,7 @@ def sync_v3_metadata(
     review_state["validation_status"] = _validation_status(review_state)
     review_state["approval_status"] = _approval_status(review_state)
     env["review_state"] = review_state
+    _sync_staged_artifacts(env, room)
     return env
 
 
@@ -733,3 +737,57 @@ def _approval_status(review_state: Dict[str, Any]) -> str:
     if "runtime_review_pending" in issues or "runtime_screenshot_missing" in issues:
         return "runtime_review_pending"
     return "approved"
+
+
+def _sync_staged_artifacts(env: Dict[str, Any], room: Optional[Dict[str, Any]]) -> None:
+    room = room or {}
+    reference_doc = env.get("reference_pack")
+    if not isinstance(reference_doc, dict):
+        reference_doc = reference_pack.build_reference_pack()
+        env["reference_pack"] = reference_doc
+    stylepack_doc = env.get("stylepack")
+    if not isinstance(stylepack_doc, dict):
+        stylepack_doc = stylepack.build_stylepack(
+            stylepack_id=str(reference_doc.get("reference_pack_id") or "stylepack-draft").replace("reference-pack", "stylepack"),
+            summary=str((env.get("spec") or {}).get("description") or ""),
+        )
+        env["stylepack"] = stylepack_doc
+    semantics_doc = semantics.derive_room_semantics(room)
+    env["room_semantics"] = semantics_doc
+    assembly_plan = env.get("assembly_plan") or default_assembly_plan(room)
+    manifest_doc = composition.build_environment_manifest(
+        room,
+        stylepack_doc.get("stylepack_id"),
+        seed=str(env.get("seed") or (env.get("runtime") or {}).get("applied_preview_id") or "default"),
+        plan=assembly_plan.get("slots") or [],
+        validation_flags=list((env.get("review_state") or {}).get("validation_status", {}).get("issues") or []),
+    )
+    env["environment_manifest"] = manifest_doc
+    kit_doc = kit.build_environment_kit(stylepack_doc.get("stylepack_id"), semantics_doc, plan=assembly_plan.get("slots") or [])
+    env["environment_kit"] = kit_doc
+    validation_doc = validation.build_validation_report(env.get("review_state"), assembly_plan, manifest_doc, semantics_doc)
+    env["validation_report"] = validation_doc
+    registry = env.get("staged_artifacts")
+    if not isinstance(registry, dict):
+        registry = persistence.default_registry(str(room.get("id") or "room"))
+        env["staged_artifacts"] = registry
+    for artifact_kind, doc in {
+        "reference_pack": reference_doc,
+        "stylepack": stylepack_doc,
+        "room_semantics": semantics_doc,
+        "environment_kit": kit_doc,
+        "environment_manifest": manifest_doc,
+        "validation_report": validation_doc,
+    }.items():
+        registry.setdefault(artifact_kind, {})
+        registry[artifact_kind]["status"] = "ready"
+        registry[artifact_kind]["artifact_id"] = doc.get(f"{artifact_kind}_id") or doc.get("stylepack_id") or doc.get("room_id") or registry[artifact_kind].get("artifact_id")
+    env["editor_results_payload"] = editor_contract.build_results_payload(
+        env,
+        reference_pack_doc=reference_doc,
+        stylepack_doc=stylepack_doc,
+        semantics_doc=semantics_doc,
+        kit_doc=kit_doc,
+        manifest_doc=manifest_doc,
+        validation_doc=validation_doc,
+    )
