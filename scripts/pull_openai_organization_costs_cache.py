@@ -1,18 +1,26 @@
 #!/usr/bin/env python3
 """
-Pull OpenAI **organization** costs into the Agent OS personal usage cache.
+Pull OpenAI organization **costs** and/or **completions usage** into the Agent OS personal cache.
 
 Writes ``tools/2d-sprite-and-animation/projects-data/_personal_api_usage_cache.json``
-(ledger-compatible ``entries``) so the API Usage dashboard can show USD even when
+(ledger-compatible ``entries``) so the API Usage dashboard can show numbers even when
 Cursor / CLI usage never hits the Sprite Workbench ``_usage_ledger.json``.
 
+Strategy:
+  1. ``GET /v1/organization/costs`` — daily USD (needs billing/cost scope on the key).
+  2. If that yields no rows or fails, ``GET /v1/organization/usage/completions`` —
+     daily ``num_model_requests`` + tokens (OpenAI cookbook; often the same admin key).
+
 Auth (try in order):
-  OPENAI_ADMIN_API_KEY — recommended (Organization admin key from platform settings)
-  OPENAI_API_KEY — may work for some orgs; often returns 403 for organization/costs
+  OPENAI_ADMIN_API_KEY — create at https://platform.openai.com/settings/organization/admin-keys
+  OPENAI_API_KEY — project keys often lack organization usage scopes
 
-Run manually after you add a key, or from cron:
+Env files (optional, non-destructive: does not override existing shell vars):
+  Repo root ``agent_os.env`` then ``.env.local`` (same pattern as the supervisor).
 
-  OPENAI_ADMIN_API_KEY=sk-... python3 scripts/pull_openai_organization_costs_cache.py --days 31
+Run:
+
+  python3 scripts/pull_openai_organization_costs_cache.py --days 31
 
 Billing portal remains source of truth; this is a local cache for the dashboard.
 """
@@ -38,6 +46,33 @@ if str(REPO_ROOT) not in sys.path:
 from scripts.workbench_local_control import PERSONAL_USAGE_CACHE_REL, REPO_ROOT as WBC_ROOT  # noqa: E402
 
 OPENAI_COSTS_URL = "https://api.openai.com/v1/organization/costs"
+OPENAI_USAGE_COMPLETIONS_URL = "https://api.openai.com/v1/organization/usage/completions"
+
+
+def _load_repo_env_files() -> None:
+    """Populate os.environ from agent_os.env and .env.local when keys are unset."""
+    for name in ("agent_os.env", ".env.local"):
+        path = REPO_ROOT / name
+        if not path.is_file():
+            continue
+        try:
+            text = path.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+        for line in text.splitlines():
+            s = line.strip()
+            if not s or s.startswith("#"):
+                continue
+            if s.startswith("export "):
+                s = s[7:].strip()
+            if "=" not in s:
+                continue
+            key, _, val = s.partition("=")
+            key = key.strip()
+            val = val.strip().strip('"').strip("'")
+            if not key or not val or key in os.environ:
+                continue
+            os.environ[key] = val
 
 
 def _pick_api_key() -> str:
@@ -48,7 +83,7 @@ def _pick_api_key() -> str:
     return ""
 
 
-def _http_get_json(url: str, api_key: str) -> dict:
+def _http_get_json(url: str, api_key: str) -> dict[str, Any]:
     req = urllib.request.Request(
         url,
         headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
@@ -57,7 +92,8 @@ def _http_get_json(url: str, api_key: str) -> dict:
     ctx = ssl.create_default_context()
     with urllib.request.urlopen(req, timeout=120, context=ctx) as resp:
         raw = resp.read().decode("utf-8")
-    return json.loads(raw)
+    data = json.loads(raw)
+    return data if isinstance(data, dict) else {}
 
 
 def fetch_cost_buckets(api_key: str, start_time: int, end_time: int | None) -> list[dict[str, Any]]:
@@ -76,8 +112,6 @@ def fetch_cost_buckets(api_key: str, start_time: int, end_time: int | None) -> l
             q.append(("page", page))
         url = OPENAI_COSTS_URL + "?" + urllib.parse.urlencode(q)
         body = _http_get_json(url, api_key)
-        if not isinstance(body, dict):
-            break
         data = body.get("data")
         if not isinstance(data, list):
             break
@@ -88,6 +122,34 @@ def fetch_cost_buckets(api_key: str, start_time: int, end_time: int | None) -> l
             continue
         if body.get("has_more") is True and isinstance(nxt, str) and nxt:
             page = nxt
+            continue
+        break
+    return out
+
+
+def fetch_usage_completions_buckets(api_key: str, start_time: int, end_time: int | None) -> list[dict[str, Any]]:
+    """Paginate through /v1/organization/usage/completions (daily buckets)."""
+    out: list[dict[str, Any]] = []
+    page: str | None = None
+    for _ in range(100):
+        q: list[tuple[str, str]] = [
+            ("start_time", str(start_time)),
+            ("bucket_width", "1d"),
+            ("limit", "31"),
+        ]
+        if end_time is not None:
+            q.append(("end_time", str(end_time)))
+        if page:
+            q.append(("page", page))
+        url = OPENAI_USAGE_COMPLETIONS_URL + "?" + urllib.parse.urlencode(q)
+        body = _http_get_json(url, api_key)
+        data = body.get("data")
+        if not isinstance(data, list):
+            break
+        out.extend(b for b in data if isinstance(b, dict))
+        nxt = body.get("next_page")
+        if isinstance(nxt, str) and nxt.strip():
+            page = nxt.strip()
             continue
         break
     return out
@@ -140,19 +202,70 @@ def buckets_to_ledger_entries(buckets: list[dict[str, Any]]) -> list[dict[str, A
     return entries
 
 
-def write_cache(entries: list[dict[str, Any]], dest: Path) -> None:
+def usage_buckets_to_ledger_entries(buckets: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """One synthetic row per UTC day with rollup_call_count = sum(num_model_requests)."""
+    by_day: dict[str, dict[str, int]] = {}
+    for bucket in buckets:
+        st = bucket.get("start_time")
+        if not isinstance(st, (int, float)):
+            continue
+        day = datetime.fromtimestamp(int(st), tz=timezone.utc).date().isoformat()
+        ag = by_day.setdefault(day, {"n": 0, "it": 0, "ot": 0})
+        for row in _bucket_results(bucket):
+            if str(row.get("object") or "") != "organization.usage.completions.result":
+                continue
+            try:
+                ag["n"] += int(row.get("num_model_requests") or 0)
+            except (TypeError, ValueError):
+                pass
+            try:
+                ag["it"] += int(row.get("input_tokens") or 0)
+            except (TypeError, ValueError):
+                pass
+            try:
+                ag["ot"] += int(row.get("output_tokens") or 0)
+            except (TypeError, ValueError):
+                pass
+
+    entries: list[dict[str, Any]] = []
+    for day in sorted(by_day.keys()):
+        ag = by_day[day]
+        nreq = ag["n"]
+        if nreq <= 0 and (ag["it"] + ag["ot"]) > 0:
+            nreq = 1
+        if nreq <= 0:
+            continue
+        entries.append(
+            {
+                "created_at": f"{day}T12:00:00.000Z",
+                "provider": "openai",
+                "endpoint": "organization/usage/completions",
+                "status": "success",
+                "usage": {
+                    "rollup_call_count": nreq,
+                    "input_tokens": ag["it"],
+                    "output_tokens": ag["ot"],
+                },
+                "source": "openai_organization_usage_completions_cache",
+            }
+        )
+    return entries
+
+
+def write_cache(entries: list[dict[str, Any]], dest: Path, *, source: str) -> None:
     dest.parent.mkdir(parents=True, exist_ok=True)
     payload = {
         "version": 1,
         "updated_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
-        "source": "openai_organization_costs",
+        "source": source,
         "entries": entries,
     }
     dest.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description="Pull OpenAI org costs into Agent OS personal usage cache.")
+    _load_repo_env_files()
+    ap = argparse.ArgumentParser(description="Pull OpenAI org costs/usage into Agent OS personal usage cache.")
     ap.add_argument("--days", type=int, default=31, help="Days of history to request (default 31)")
     ap.add_argument(
         "--output",
@@ -163,29 +276,76 @@ def main() -> int:
     args = ap.parse_args()
     key = _pick_api_key()
     if not key:
-        print("Set OPENAI_ADMIN_API_KEY or OPENAI_API_KEY.", file=sys.stderr)
+        print("Set OPENAI_ADMIN_API_KEY or OPENAI_API_KEY (or add to agent_os.env / .env.local).", file=sys.stderr)
         return 2
     days = max(1, min(int(args.days), 366))
     end_ts = int(time.time())
     start_ts = end_ts - days * 86400
+
+    entries_cost: list[dict[str, Any]] = []
     try:
         buckets = fetch_cost_buckets(key, start_ts, end_ts)
+        entries_cost = buckets_to_ledger_entries(buckets)
     except urllib.error.HTTPError as exc:
         err = exc.read().decode("utf-8", errors="replace")[:800]
-        print(f"OpenAI HTTP {exc.code}: {err}", file=sys.stderr)
+        print(f"OpenAI costs HTTP {exc.code}: {err}", file=sys.stderr)
         if exc.code == 403:
             print(
-                "Hint: organization costs usually need an admin API key (OPENAI_ADMIN_API_KEY).",
+                "Your key cannot read organization costs. Fix one of:",
+                file=sys.stderr,
+            )
+            print(
+                "  • Organization Admin API key: https://platform.openai.com/settings/organization/admin-keys",
+                file=sys.stderr,
+            )
+            print(
+                "  • Or edit your restricted key and enable Usage (scope api.usage.read).",
+                file=sys.stderr,
+            )
+    except (urllib.error.URLError, OSError, json.JSONDecodeError, TimeoutError) as exc:
+        print(str(exc), file=sys.stderr)
+        return 1
+
+    if entries_cost:
+        write_cache(entries_cost, args.output, source="openai_organization_costs")
+        print(f"Wrote {len(entries_cost)} priced day row(s) from organization/costs to {args.output}")
+        return 0
+
+    print("No priced days from costs API — fetching organization/usage/completions …", file=sys.stderr)
+    try:
+        ub = fetch_usage_completions_buckets(key, start_ts, end_ts)
+        entries_u = usage_buckets_to_ledger_entries(ub)
+    except urllib.error.HTTPError as exc:
+        err = exc.read().decode("utf-8", errors="replace")[:800]
+        print(f"OpenAI usage HTTP {exc.code}: {err}", file=sys.stderr)
+        if exc.code == 403:
+            print(
+                "Same scope issue: completions usage also requires api.usage.read on the key.",
+                file=sys.stderr,
+            )
+            print(
+                "Create an Organization Admin key or add the Usage permission to your API key.",
                 file=sys.stderr,
             )
         return 1
     except (urllib.error.URLError, OSError, json.JSONDecodeError, TimeoutError) as exc:
         print(str(exc), file=sys.stderr)
         return 1
-    entries = buckets_to_ledger_entries(buckets)
-    write_cache(entries, args.output)
-    print(f"Wrote {len(entries)} day row(s) to {args.output}")
-    return 0
+
+    if entries_u:
+        write_cache(entries_u, args.output, source="openai_organization_usage_completions")
+        print(
+            f"Wrote {len(entries_u)} day row(s) from organization/usage/completions "
+            f"(call counts + tokens; USD not available via this endpoint) to {args.output}"
+        )
+        return 0
+
+    print(
+        "No rows from organization/costs or organization/usage/completions in this window. "
+        "Cache file not updated (existing cache left in place).",
+        file=sys.stderr,
+    )
+    return 1
 
 
 if __name__ == "__main__":

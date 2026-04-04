@@ -481,6 +481,24 @@ class SpriteWorkbenchTests(unittest.TestCase):
         self.assertAlmostEqual(cr["providers"][1]["all_time_cost_usd"], 0.03)
         self.assertEqual(cr["providers"][1]["all_time_paid_calls"], 3)
 
+    def test_usage_cost_rollups_respects_rollup_call_count(self):
+        from datetime import datetime, timezone
+
+        from scripts.workbench_persistence import build_usage_cost_rollups_from_entries
+
+        d0 = datetime(2026, 4, 1, 12, 0, 0, tzinfo=timezone.utc)
+        entries = [
+            {
+                "created_at": d0.isoformat(),
+                "provider": "openai",
+                "endpoint": "organization/usage/completions",
+                "usage": {"rollup_call_count": 42, "input_tokens": 100, "output_tokens": 50},
+            },
+        ]
+        cr = build_usage_cost_rollups_from_entries(entries)
+        self.assertEqual(cr["daily"][0]["n"].get("openai"), 42)
+        self.assertEqual(cr["providers"][0]["all_time_paid_calls"], 42)
+
     def test_provider_call_allowed_blocks_when_safe_mode_enabled(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             original_root = sw.PROJECTS_ROOT

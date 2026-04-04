@@ -452,6 +452,20 @@ def _usage_provider_display_label(key: str) -> str:
     return key.replace("_", " ").title()
 
 
+def _rollup_call_units_from_usage(usage_obj: Optional[Dict[str, Any]]) -> Optional[int]:
+    """If set, ``usage.rollup_call_count`` expands one ledger row into N call-count units (OpenAI Usage API)."""
+    if not usage_obj:
+        return None
+    raw = usage_obj.get("rollup_call_count")
+    if raw is None:
+        return None
+    try:
+        n = int(raw)
+    except (TypeError, ValueError):
+        return None
+    return n if n > 0 else None
+
+
 def build_usage_cost_rollups_from_entries(entries: List[Dict[str, Any]]) -> Dict[str, Any]:
     """
     Per-day counts by provider for every ledger row with a valid ``created_at``.
@@ -459,6 +473,9 @@ def build_usage_cost_rollups_from_entries(entries: List[Dict[str, Any]]) -> Dict
 
     Many vendors omit USD in API responses; the Agent OS table still shows call counts so the
     dashboard is not blank when prices are unknown.
+
+    Rows may set ``usage.rollup_call_count`` (positive int) so a single daily aggregate row
+    from OpenAI's Usage API contributes the correct number of "calls" in tables and charts.
     """
     daily_cost: Dict[str, Dict[str, float]] = {}
     daily_n: Dict[str, Dict[str, int]] = {}
@@ -484,9 +501,11 @@ def build_usage_cost_rollups_from_entries(entries: List[Dict[str, Any]]) -> Dict
             )
 
         d_str = created.astimezone(timezone.utc).date().isoformat()
+        roll_n = _rollup_call_units_from_usage(usage_obj)
+        call_units = roll_n if roll_n is not None else 1
         daily_n.setdefault(d_str, {})
-        daily_n[d_str][pk] = daily_n[d_str].get(pk, 0) + 1
-        all_time_calls[pk] = all_time_calls.get(pk, 0) + 1
+        daily_n[d_str][pk] = daily_n[d_str].get(pk, 0) + call_units
+        all_time_calls[pk] = all_time_calls.get(pk, 0) + call_units
 
         if cost is not None and cost > 0:
             daily_cost.setdefault(d_str, {})
