@@ -93,7 +93,8 @@
     {
       "title": "Sign off on room file versioning and migration approach",
       "source": "eng+qa",
-      "note": "Unblocks the room save contract and the automated save/load test."
+      "note": "Unblocks the room save contract and the automated save/load test.",
+      "blocking": true
     },
     {
       "title": "Copilot program \u2014 commercial bar, when to benchmark the newer model, and model switch criteria",
@@ -103,7 +104,8 @@
     {
       "title": "Business Brand Guide v0.2.1 \u2014 complete Founder column in \u00a71.3 and \u00a710.1 for v0.3 lock",
       "source": "marketing+orchestration",
-      "note": "Specialist columns signed 2026-04-02 (report: docs/reports/business-brand-guide-v0.2-stakeholder-reviews-2026-04-02.md; HTML matrix updated). Remaining: Founder checkboxes in section 1.3 plus \u00a710.1 (names, logo, pricing narrative, long-form home) before external PDF is treated as locked v0.3."
+      "note": "Specialist columns signed 2026-04-02 (report: docs/reports/business-brand-guide-v0.2-stakeholder-reviews-2026-04-02.md; HTML matrix updated). Remaining: Founder checkboxes in section 1.3 plus \u00a710.1 (names, logo, pricing narrative, long-form home) before external PDF is treated as locked v0.3.",
+      "blocking": true
     }
   ],
   "actions": [

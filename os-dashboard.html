@@ -1210,6 +1210,318 @@ body::before {
   background: var(--accent-soft);
 }
 
+.nav-badge {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  padding: 2px 6px;
+  margin-left: var(--space-1);
+  background: var(--error-soft);
+  color: var(--error);
+  border-radius: var(--radius-full);
+  line-height: 1.4;
+  flex-shrink: 0;
+}
+
+/* ─── My Actions board (founder kanban) ─────────── */
+.dashboard-view.dashboard-view--my-actions {
+  overflow: hidden;
+  gap: 0;
+}
+.ma-page-lede {
+  color: var(--muted);
+  font-size: var(--font-size-sm);
+  line-height: 1.5;
+  max-width: 52rem;
+  margin: 0 0 var(--space-3) 0;
+  flex-shrink: 0;
+}
+.ma-view-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+.ma-view-title {
+  font-family: var(--font-display);
+  font-size: var(--font-size-xl);
+  letter-spacing: 0.06em;
+  color: var(--accent);
+  line-height: 1;
+}
+.ma-view-count {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  background: var(--accent-soft);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-full);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  color: var(--accent);
+}
+.ma-view-meta {
+  flex: 1;
+  text-align: right;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  color: var(--muted);
+  opacity: 0.65;
+  min-width: 8rem;
+}
+.ma-filter-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+}
+.ma-filter-label {
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.ma-agent-select {
+  min-height: 44px;
+  padding: 10px 12px;
+  border-radius: var(--radius-tight);
+  border: 1px solid var(--line);
+  background: var(--os-control);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  min-width: 200px;
+  cursor: pointer;
+  transition: background var(--transition-base), border-color var(--transition-base);
+}
+.ma-agent-select:hover {
+  border-color: var(--line-strong);
+  background: var(--os-control-hover);
+}
+.ma-board-wrap {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.ma-board-wrap::-webkit-scrollbar { width: 4px; }
+.ma-board-wrap::-webkit-scrollbar-track { background: transparent; }
+.ma-board-wrap::-webkit-scrollbar-thumb { background: var(--stroke-strong); border-radius: 2px; }
+.ma-board-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-3);
+}
+.ma-col-headers {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: var(--bg);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--line);
+  margin-bottom: var(--space-5);
+}
+.ma-col-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) 0;
+}
+.ma-col-header-accent {
+  width: 3px;
+  height: 20px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+.ma-col-header-title {
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  flex: 1;
+}
+.ma-col-header-count {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  padding: 2px 7px;
+  border-radius: var(--radius-full);
+  line-height: 1.5;
+}
+.ma-col-todo .ma-col-header-count { background: rgba(255,255,255,0.06); color: var(--muted); border: 1px solid rgba(255,255,255,0.08); }
+.ma-col-doing .ma-col-header-count { background: var(--warning-soft); color: var(--warning); border: 1px solid rgba(210,153,34,0.2); }
+.ma-col-done .ma-col-header-count { background: var(--good-soft); color: var(--good); border: 1px solid rgba(74,222,128,0.2); }
+.ma-cat-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-bottom: var(--space-6);
+}
+.ma-cat-row.ma-cat-row--hidden { display: none; }
+.ma-cat-row.ma-cat-row--filtered-out { display: none; }
+.ma-cat-heading {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  padding-bottom: var(--space-2);
+  border-bottom-width: 1px;
+  border-bottom-style: solid;
+}
+.ma-cat-row-blocking .ma-cat-heading { border-bottom-color: rgba(248,81,73,0.3); }
+.ma-cat-row-decision .ma-cat-heading { border-bottom-color: rgba(210,153,34,0.3); }
+.ma-cat-row-review .ma-cat-heading { border-bottom-color: rgba(0,232,200,0.2); }
+.ma-cat-title {
+  font-family: var(--font-display);
+  font-size: var(--font-size-xl);
+  letter-spacing: 0.05em;
+  line-height: 1;
+}
+.ma-cat-row-blocking .ma-cat-title { color: var(--error); }
+.ma-cat-row-decision .ma-cat-title { color: var(--warning); }
+.ma-cat-row-review .ma-cat-title { color: var(--accent); }
+.ma-cat-count {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  line-height: 1.5;
+}
+.ma-cat-row-blocking .ma-cat-count { background: var(--error-soft); color: var(--error); border: 1px solid rgba(248,81,73,0.2); }
+.ma-cat-row-decision .ma-cat-count { background: var(--warning-soft); color: var(--warning); border: 1px solid rgba(210,153,34,0.2); }
+.ma-cat-row-review .ma-cat-count { background: var(--accent-soft); color: var(--accent); border: 1px solid var(--border-strong); }
+.ma-drop-zone {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-height: 52px;
+  border-radius: var(--radius-sm);
+  padding: 2px;
+  transition: background var(--transition-fast), outline var(--transition-fast);
+  outline: 1px solid transparent;
+  outline-offset: -1px;
+}
+.ma-drop-zone.ma-drop-zone--over {
+  background: var(--accent-soft);
+  outline-color: rgba(0,232,200,0.25);
+}
+.ma-drop-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 44px;
+  border: 1px dashed rgba(255,255,255,0.06);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--muted);
+  opacity: 0.35;
+  pointer-events: none;
+  user-select: none;
+}
+.ma-drop-zone .ma-drop-empty:not(:only-child) { display: none; }
+.ma-kcard {
+  background: var(--os-control);
+  border: 1px solid var(--os-control-border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  transition: background var(--transition-base), border-color var(--transition-base),
+    transform var(--transition-fast), box-shadow var(--transition-base), opacity var(--transition-fast);
+  cursor: grab;
+  display: flex;
+  flex-direction: column;
+  user-select: none;
+  position: relative;
+}
+.ma-kcard:hover {
+  background: var(--os-control-hover);
+  border-color: var(--line-strong);
+  box-shadow: var(--shadow-sm);
+  transform: translateY(-1px);
+}
+.ma-kcard:active { cursor: grabbing; }
+.ma-kcard.ma-kcard--dragging { opacity: 0.3; transform: none; box-shadow: none; }
+.ma-kcard.ma-kcard--hidden { display: none !important; }
+.ma-kcard-bar { height: 2px; width: 100%; flex-shrink: 0; }
+.ma-kcard-body { padding: var(--space-2) var(--space-3); display: flex; flex-direction: column; gap: var(--space-1); }
+.ma-kcard-meta { display: flex; align-items: center; gap: var(--space-1); flex-wrap: wrap; }
+.ma-agent-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 7px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: var(--radius-full);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--text);
+  line-height: 1.4;
+}
+.ma-agent-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
+.ma-risk-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 6px;
+  border-radius: var(--radius-full);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+.ma-risk-badge.high { background: var(--error-soft); color: var(--error); border: 1px solid rgba(248,81,73,0.2); }
+.ma-risk-badge.med { background: var(--warning-soft); color: var(--warning); border: 1px solid rgba(210,153,34,0.2); }
+.ma-risk-badge.low { background: var(--good-soft); color: var(--good); border: 1px solid rgba(74,222,128,0.2); }
+.ma-kcard-title {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  line-clamp: 4;
+  overflow: hidden;
+}
+.ma-kcard-source {
+  font-size: var(--font-size-xs);
+  font-family: var(--font-mono);
+  color: var(--muted);
+  opacity: 0.65;
+}
+.ma-col-done .ma-kcard { border-color: rgba(74,222,128,0.1); }
+.ma-col-done .ma-kcard-title { opacity: 0.45; }
+.ma-col-done .ma-kcard::after {
+  content: '✓';
+  position: absolute;
+  top: var(--space-2);
+  right: var(--space-2);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--good);
+  opacity: 0.5;
+}
+.ma-loading, .ma-err {
+  padding: var(--space-4) 0;
+  font-size: var(--font-size-sm);
+  color: var(--muted);
+}
+.ma-err { color: var(--error); }
+
 /* ─── DASHBOARD VIEWS ────────────────────────────── */
 .dashboard-view {
   display: none;
@@ -3772,6 +4084,11 @@ h3.os-chart-card-title {
         <span class="nav-dot" style="background:#fbbf24"></span>
         <span class="nav-item-text">Ongoing Tasks</span>
       </button>
+      <button type="button" class="nav-item" data-dashboard="my-actions">
+        <span class="nav-dot" style="background:var(--accent)"></span>
+        <span class="nav-item-text">My Actions</span>
+        <span class="nav-badge" id="nav-my-actions-count" hidden aria-hidden="true">0</span>
+      </button>
       <button type="button" class="nav-item" data-dashboard="guides">
         <span class="nav-dot" style="background:#22d3ee"></span>
         <span class="nav-item-text">Guides &amp; policies</span>
@@ -3895,7 +4212,76 @@ h3.os-chart-card-title {
         </div>
         <div class="db-qa-signpost db-qa-signpost--stack">
           <button type="button" class="db-qa-link" onclick="selectDashboard('api-usage')">→ API usage</button>
+          <button type="button" class="db-qa-link" onclick="selectDashboard('my-actions')">→ My Actions</button>
           <button type="button" class="db-qa-link" onclick="selectDashboard('issues')">→ Issues</button>
+        </div>
+      </div>
+
+      <!-- ── MY ACTIONS (founder kanban) ── -->
+      <div class="dashboard-view dashboard-view--my-actions" data-dashboard-view="my-actions">
+        <p class="ma-page-lede">Founder-facing work from agent status files: blocking decisions, other decisions, and priorities awaiting review. Drag cards between columns within each row; placement is saved in this browser only. Rows respect the header product scope.</p>
+        <div class="ma-view-head">
+          <h1 class="ma-view-title">MY ACTIONS</h1>
+          <span class="ma-view-count" id="ma-total-count" aria-live="polite">—</span>
+          <div class="ma-view-meta" id="ma-updated-meta"></div>
+        </div>
+        <div class="ma-filter-bar">
+          <label class="ma-filter-label" for="ma-agent-filter">Agent</label>
+          <select id="ma-agent-filter" class="ma-agent-select" aria-label="Filter My Actions by agent">
+            <option value="">All agents</option>
+          </select>
+        </div>
+        <div class="ma-board-wrap" id="ma-board-root">
+          <div class="ma-board-grid ma-col-headers">
+            <div class="ma-col-header ma-col-todo">
+              <div class="ma-col-header-accent" style="background:var(--muted);opacity:0.5"></div>
+              <span class="ma-col-header-title">Not Started</span>
+              <span class="ma-col-header-count" id="ma-count-todo">0</span>
+            </div>
+            <div class="ma-col-header ma-col-doing">
+              <div class="ma-col-header-accent" style="background:var(--warning)"></div>
+              <span class="ma-col-header-title">In Work</span>
+              <span class="ma-col-header-count" id="ma-count-doing">0</span>
+            </div>
+            <div class="ma-col-header ma-col-done">
+              <div class="ma-col-header-accent" style="background:var(--good)"></div>
+              <span class="ma-col-header-title">Complete</span>
+              <span class="ma-col-header-count" id="ma-count-done">0</span>
+            </div>
+          </div>
+          <div class="ma-cat-row ma-cat-row-blocking" data-ma-category="blocking">
+            <div class="ma-cat-heading">
+              <span class="ma-cat-title">Blocking</span>
+              <span class="ma-cat-count" id="ma-cat-count-blocking">0</span>
+            </div>
+            <div class="ma-board-grid">
+              <div class="ma-drop-zone ma-col-todo" data-col="todo" data-type="blocking" id="ma-dz-todo-blocking"><div class="ma-drop-empty">—</div></div>
+              <div class="ma-drop-zone ma-col-doing" data-col="doing" data-type="blocking" id="ma-dz-doing-blocking"><div class="ma-drop-empty">—</div></div>
+              <div class="ma-drop-zone ma-col-done" data-col="done" data-type="blocking" id="ma-dz-done-blocking"><div class="ma-drop-empty">—</div></div>
+            </div>
+          </div>
+          <div class="ma-cat-row ma-cat-row-decision" data-ma-category="decision">
+            <div class="ma-cat-heading">
+              <span class="ma-cat-title">Decisions</span>
+              <span class="ma-cat-count" id="ma-cat-count-decision">0</span>
+            </div>
+            <div class="ma-board-grid">
+              <div class="ma-drop-zone ma-col-todo" data-col="todo" data-type="decision" id="ma-dz-todo-decision"><div class="ma-drop-empty">—</div></div>
+              <div class="ma-drop-zone ma-col-doing" data-col="doing" data-type="decision" id="ma-dz-doing-decision"><div class="ma-drop-empty">—</div></div>
+              <div class="ma-drop-zone ma-col-done" data-col="done" data-type="decision" id="ma-dz-done-decision"><div class="ma-drop-empty">—</div></div>
+            </div>
+          </div>
+          <div class="ma-cat-row ma-cat-row-review" data-ma-category="review">
+            <div class="ma-cat-heading">
+              <span class="ma-cat-title">Awaiting Review</span>
+              <span class="ma-cat-count" id="ma-cat-count-review">0</span>
+            </div>
+            <div class="ma-board-grid">
+              <div class="ma-drop-zone ma-col-todo" data-col="todo" data-type="review" id="ma-dz-todo-review"><div class="ma-drop-empty">—</div></div>
+              <div class="ma-drop-zone ma-col-doing" data-col="doing" data-type="review" id="ma-dz-doing-review"><div class="ma-drop-empty">—</div></div>
+              <div class="ma-drop-zone ma-col-done" data-col="done" data-type="review" id="ma-dz-done-review"><div class="ma-drop-empty">—</div></div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -7073,6 +7459,7 @@ const DASHBOARDS = {
   creative:        { label: 'Creative',        color: '#f472b6', agents: ['creative'] },
   'game-director': { label: 'Game Director',   color: '#e2e8f0', agents: ['game-director'] },
   'game-systems':  { label: 'Game Systems',    color: '#67e8f9', agents: ['game-systems'] },
+  'my-actions':    { label: 'My Actions',   color: '#00e8c8', agents: [] },
   workbench:       { label: 'Workbench',      color: '#38bdf8', agents: [] },
   'sprite-arch':   { label: 'Workbench architecture', color: '#38bdf8', agents: ['engineering', 'design'] },
   'ashen-hollow':  { label: 'Ashen Hollow',   color: '#818cf8', agents: ['game-director', 'creative', 'narrative', 'audio', 'game-systems'] },
@@ -7114,10 +7501,10 @@ function orderedAgentIdsForPicker(dashId) {
 /** Sidebar: which dashboard IDs appear in each product context (not "all"). */
 const OS_PRODUCT_CONTEXT_KEY = 'mv-agent-os-product-context';
 const OS_PRODUCT_CONTEXT_SETS = {
-  business: new Set(['home', 'api-usage', 'guides', 'issues', 'opportunities', 'ongoing-tasks', 'orchestration', 'strategy', 'legal', 'finance', 'support', 'marketing', 'analytics', 'cybersecurity', 'research']),
-  sprite: new Set(['home', 'api-usage', 'guides', 'issues', 'opportunities', 'ongoing-tasks', 'workbench', 'sprite-arch', 'design', 'development', 'animation', 'level-design', 'qa', 'cybersecurity', 'research']),
-  'ashen-hollow': new Set(['home', 'api-usage', 'guides', 'issues', 'opportunities', 'ongoing-tasks', 'ashen-hollow', 'development', 'animation', 'level-design', 'design', 'qa', 'research', 'audio', 'narrative', 'creative', 'game-director', 'game-systems']),
-  'other-income': new Set(['home', 'api-usage', 'guides', 'issues', 'opportunities', 'ongoing-tasks', 'marketing', 'finance', 'legal', 'support', 'analytics', 'strategy']),
+  business: new Set(['home', 'api-usage', 'guides', 'issues', 'opportunities', 'ongoing-tasks', 'my-actions', 'orchestration', 'strategy', 'legal', 'finance', 'support', 'marketing', 'analytics', 'cybersecurity', 'research']),
+  sprite: new Set(['home', 'api-usage', 'guides', 'issues', 'opportunities', 'ongoing-tasks', 'my-actions', 'workbench', 'sprite-arch', 'design', 'development', 'animation', 'level-design', 'qa', 'cybersecurity', 'research']),
+  'ashen-hollow': new Set(['home', 'api-usage', 'guides', 'issues', 'opportunities', 'ongoing-tasks', 'my-actions', 'ashen-hollow', 'development', 'animation', 'level-design', 'design', 'qa', 'research', 'audio', 'narrative', 'creative', 'game-director', 'game-systems']),
+  'other-income': new Set(['home', 'api-usage', 'guides', 'issues', 'opportunities', 'ongoing-tasks', 'my-actions', 'marketing', 'finance', 'legal', 'support', 'analytics', 'strategy']),
 };
 
 /** Status-file agent slugs shown in Issues / Opportunities / Ongoing for each context. */
@@ -7443,7 +7830,7 @@ function resourcePathVisibleInContext(path, ctx) {
 
 function pickDefaultDashboardForContext(ctx) {
   if (ctx === 'all') return 'api-usage';
-  const order = ['api-usage', 'home', 'issues', 'workbench', 'sprite-arch', 'ashen-hollow', 'orchestration', 'development', 'marketing'];
+  const order = ['api-usage', 'home', 'my-actions', 'issues', 'workbench', 'sprite-arch', 'ashen-hollow', 'orchestration', 'development', 'marketing'];
   for (let i = 0; i < order.length; i++) {
     if (dashboardVisibleInProductContext(order[i], ctx)) return order[i];
   }
@@ -7579,6 +7966,10 @@ function setOsProductContext(ctx, options) {
   if (typeof avApplyFilters === 'function') avApplyFilters();
   if (typeof aoApplyFilters === 'function') aoApplyFilters();
   if (typeof otApplyFilters === 'function') otApplyFilters();
+  void ensureStatusCachesLoaded().then(function() {
+    if (selectedDashboard === 'my-actions') maRenderBoard();
+    maUpdateNavBadge();
+  });
   if (!opts.skipDashboardNudge && !dashboardVisibleInProductContext(selectedDashboard, next)) {
     selectDashboard(pickDefaultDashboardForContext(next));
   }
@@ -12723,6 +13114,451 @@ async function ensureStatusCachesLoaded() {
   }
 }
 
+// ── MY ACTIONS (founder kanban from status cache + localStorage) ─────────────
+var MA_STORAGE_KEY = 'mv-agent-os-my-actions-v1';
+var maLastValidIds = null;
+var maDragCard = null;
+var maDnWired = false;
+
+function maHash32(s) {
+  var str = String(s || '');
+  var h = 2166136261 >>> 0;
+  for (var i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 16777619) >>> 0;
+  }
+  return h >>> 0;
+}
+
+function maNormTitle(t) {
+  return String(t || '').toLowerCase().replace(/\s+/g, ' ').trim();
+}
+
+function maFounderId(agent, fd) {
+  var explicit = fd && fd.my_actions_id != null ? String(fd.my_actions_id).trim() : '';
+  if (explicit) return agent + ':founder:' + explicit;
+  var t = (fd.title || '') + '\0' + (fd.source || '') + '\0' + (fd.note || '');
+  return agent + ':founder:' + maHash32(t).toString(16);
+}
+
+function maReviewId(agent, p) {
+  return agent + ':priority:' + String(p.id);
+}
+
+function maAgentDisplayLabel(agent) {
+  var a = AGENTS[agent];
+  if (a && a.label) return a.label;
+  return avLabel(agent);
+}
+
+function maAgentBarColor(agent) {
+  var meta = AGENT_META[agent] || {};
+  return meta.color || '#00e8c8';
+}
+
+function maSourceLineFounder(fd, agent) {
+  var src = fd && fd.source != null ? String(fd.source).trim() : '';
+  if (src) return 'Raised by ' + src;
+  return 'Raised by ' + maAgentDisplayLabel(agent);
+}
+
+function maSourceLineReview(p) {
+  var src = p && p.source != null ? String(p.source).trim() : '';
+  if (src) return 'Source: ' + src;
+  return '';
+}
+
+function maAggregateMyActions() {
+  var blocking = [];
+  var decision = [];
+  var review = [];
+  var seenFounder = Object.create(null);
+  var latest = '';
+
+  AV_STATUS_FILES.forEach(function(entry) {
+    var data = avCache[entry.file];
+    if (!data || typeof data !== 'object') return;
+    var u = data.updated != null ? String(data.updated) : '';
+    if (u && (!latest || u > latest)) latest = u;
+    var agent = entry.agent;
+
+    if (Array.isArray(data.founder_decisions)) {
+      data.founder_decisions.forEach(function(fd) {
+        if (!fd || typeof fd !== 'object') return;
+        if (!itemVisibleInOsProductContext(agent, fd, osProductContext)) return;
+        var title = fd.title != null ? String(fd.title).trim() : '';
+        if (!title) return;
+        var isBlock = fd.blocking === true;
+        var dedupe = (isBlock ? 'b' : 'd') + ':' + maNormTitle(title);
+        if (seenFounder[dedupe]) return;
+        seenFounder[dedupe] = true;
+        var id = maFounderId(agent, fd);
+        var item = {
+          id: id,
+          type: isBlock ? 'blocking' : 'decision',
+          agent: agent,
+          title: title,
+          sourceLine: maSourceLineFounder(fd, agent),
+        };
+        if (isBlock) blocking.push(item);
+        else decision.push(item);
+      });
+    }
+
+    if (Array.isArray(data.priorities)) {
+      data.priorities.forEach(function(p) {
+        if (!p || typeof p !== 'object') return;
+        if ((p.status || '') !== 'needs-review') return;
+        if (!itemVisibleInOsProductContext(agent, p, osProductContext)) return;
+        var title = p.title != null ? String(p.title).trim() : '';
+        if (!title) return;
+        review.push({
+          id: maReviewId(agent, p),
+          type: 'review',
+          agent: agent,
+          title: title,
+          risk: (p.risk || '').toLowerCase(),
+          sourceLine: maSourceLineReview(p),
+        });
+      });
+    }
+  });
+
+  return { blocking: blocking, decision: decision, review: review, latestUpdated: latest };
+}
+
+function maLoadStateRaw() {
+  try {
+    var raw = JSON.parse(localStorage.getItem(MA_STORAGE_KEY) || '{}');
+    if (!raw || typeof raw !== 'object') return { version: 1, byId: {} };
+    var byId = raw.byId && typeof raw.byId === 'object' ? raw.byId : {};
+    return { version: 1, byId: byId };
+  } catch (e) {
+    return { version: 1, byId: {} };
+  }
+}
+
+function maSaveStateFull(byId) {
+  try {
+    localStorage.setItem(MA_STORAGE_KEY, JSON.stringify({ version: 1, byId: byId }));
+  } catch (e) { /* ignore */ }
+}
+
+function maPersistStateFromDom() {
+  var root = document.getElementById('ma-board-root');
+  if (!root) return;
+  var raw = maLoadStateRaw();
+  var byId = raw.byId || {};
+  var partial = Object.create(null);
+  root.querySelectorAll('.ma-drop-zone').forEach(function(dz) {
+    var col = dz.getAttribute('data-col');
+    dz.querySelectorAll('.ma-kcard').forEach(function(card, idx) {
+      var id = card.getAttribute('data-id');
+      if (!id) return;
+      partial[id] = { column: col, order: idx };
+    });
+  });
+  Object.keys(partial).forEach(function(k) {
+    byId[k] = partial[k];
+  });
+  if (maLastValidIds) {
+    Object.keys(byId).forEach(function(k) {
+      if (!maLastValidIds.has(k)) delete byId[k];
+    });
+  }
+  maSaveStateFull(byId);
+}
+
+function maGetZone(col, typ) {
+  return document.getElementById('ma-dz-' + col + '-' + typ);
+}
+
+function maRiskClass(r) {
+  if (r === 'high') return 'high';
+  if (r === 'med' || r === 'medium') return 'med';
+  return 'low';
+}
+
+function maRiskLabel(r) {
+  if (r === 'high') return 'HIGH';
+  if (r === 'med' || r === 'medium') return 'MED';
+  return 'LOW';
+}
+
+function maGetAfterCard(container, y) {
+  var cards = container.querySelectorAll('.ma-kcard:not(.ma-kcard--dragging):not(.ma-kcard--hidden)');
+  var closest = { offset: -Infinity, element: null };
+  for (var i = 0; i < cards.length; i++) {
+    var card = cards[i];
+    var box = card.getBoundingClientRect();
+    var offset = y - box.top - box.height / 2;
+    if (offset < 0 && offset > closest.offset) {
+      closest = { offset: offset, element: card };
+    }
+  }
+  return closest.element;
+}
+
+function maCreateCard(item) {
+  var boardRoot = document.getElementById('ma-board-root');
+  var card = document.createElement('div');
+  card.className = 'ma-kcard';
+  card.setAttribute('draggable', 'true');
+  card.setAttribute('data-id', item.id);
+  card.setAttribute('data-type', item.type);
+  card.setAttribute('data-agent', item.agent);
+
+  var bar = document.createElement('div');
+  bar.className = 'ma-kcard-bar';
+  var col = maAgentBarColor(item.agent);
+  bar.style.background = col;
+
+  var body = document.createElement('div');
+  body.className = 'ma-kcard-body';
+  var meta = document.createElement('div');
+  meta.className = 'ma-kcard-meta';
+  var pill = document.createElement('span');
+  pill.className = 'ma-agent-pill';
+  var dot = document.createElement('span');
+  dot.className = 'ma-agent-dot';
+  dot.style.background = col;
+  pill.appendChild(dot);
+  pill.appendChild(document.createTextNode(maAgentDisplayLabel(item.agent)));
+  meta.appendChild(pill);
+  if (item.type === 'review' && item.risk) {
+    var rb = document.createElement('span');
+    rb.className = 'ma-risk-badge ' + maRiskClass(item.risk);
+    rb.textContent = maRiskLabel(item.risk);
+    meta.appendChild(rb);
+  }
+  body.appendChild(meta);
+  var ttl = document.createElement('div');
+  ttl.className = 'ma-kcard-title';
+  ttl.textContent = item.title;
+  body.appendChild(ttl);
+  if (item.sourceLine) {
+    var src = document.createElement('div');
+    src.className = 'ma-kcard-source';
+    src.textContent = item.sourceLine;
+    body.appendChild(src);
+  }
+  card.appendChild(bar);
+  card.appendChild(body);
+
+  card.addEventListener('dragstart', function(e) {
+    maDragCard = card;
+    card.classList.add('ma-kcard--dragging');
+    try { e.dataTransfer.effectAllowed = 'move'; } catch (ex) {}
+  });
+  card.addEventListener('dragend', function() {
+    maDragCard = null;
+    card.classList.remove('ma-kcard--dragging');
+    if (boardRoot) {
+      boardRoot.querySelectorAll('.ma-drop-zone--over').forEach(function(z) {
+        z.classList.remove('ma-drop-zone--over');
+      });
+    }
+    maPersistStateFromDom();
+    maUpdateCounts();
+    maUpdateNavBadge();
+  });
+  return card;
+}
+
+function maSortIntoColumn(items, col, byId) {
+  return items.filter(function(it) {
+    var st = byId[it.id];
+    var c = (st && st.column) ? st.column : 'todo';
+    return c === col;
+  }).sort(function(a, b) {
+    var oa = (byId[a.id] && byId[a.id].order != null) ? byId[a.id].order : 999;
+    var ob = (byId[b.id] && byId[b.id].order != null) ? byId[b.id].order : 999;
+    if (oa !== ob) return oa - ob;
+    return (a.title || '').localeCompare(b.title || '');
+  });
+}
+
+function maPopulateAgentSelect(agg) {
+  var sel = document.getElementById('ma-agent-filter');
+  if (!sel) return;
+  var cur = sel.value;
+  var agents = new Set();
+  ['blocking', 'decision', 'review'].forEach(function(k) {
+    (agg[k] || []).forEach(function(it) { agents.add(it.agent); });
+  });
+  sel.innerHTML = '<option value="">All agents</option>';
+  Array.from(agents).sort().forEach(function(ag) {
+    var opt = document.createElement('option');
+    opt.value = ag;
+    opt.textContent = maAgentDisplayLabel(ag);
+    sel.appendChild(opt);
+  });
+  if (cur && Array.prototype.some.call(sel.options, function(o) { return o.value === cur; })) {
+    sel.value = cur;
+  }
+}
+
+function maApplyAgentFilter() {
+  var sel = document.getElementById('ma-agent-filter');
+  var v = sel && sel.value ? sel.value : '';
+  document.querySelectorAll('[data-dashboard-view="my-actions"] .ma-kcard').forEach(function(card) {
+    var match = !v || card.getAttribute('data-agent') === v;
+    card.classList.toggle('ma-kcard--hidden', !match);
+  });
+  document.querySelectorAll('[data-dashboard-view="my-actions"] .ma-cat-row[data-ma-category]').forEach(function(row) {
+    var n = row.querySelectorAll('.ma-kcard:not(.ma-kcard--hidden)').length;
+    row.classList.toggle('ma-cat-row--filtered-out', n === 0);
+  });
+  maUpdateCounts();
+}
+
+function maUpdateCounts() {
+  var cols = ['todo', 'doing', 'done'];
+  var types = ['blocking', 'decision', 'review'];
+  cols.forEach(function(col) {
+    var total = 0;
+    types.forEach(function(typ) {
+      var dz = maGetZone(col, typ);
+      if (!dz) return;
+      total += dz.querySelectorAll('.ma-kcard:not(.ma-kcard--hidden)').length;
+    });
+    var el = document.getElementById('ma-count-' + col);
+    if (el) el.textContent = String(total);
+  });
+  types.forEach(function(typ) {
+    var total = 0;
+    cols.forEach(function(col) {
+      var dz = maGetZone(col, typ);
+      if (!dz) return;
+      total += dz.querySelectorAll('.ma-kcard:not(.ma-kcard--hidden)').length;
+    });
+    var el = document.getElementById('ma-cat-count-' + typ);
+    if (el) el.textContent = String(total);
+  });
+  var all = document.querySelectorAll('[data-dashboard-view="my-actions"] .ma-kcard:not(.ma-kcard--hidden)').length;
+  var tc = document.getElementById('ma-total-count');
+  if (tc) tc.textContent = all + ' item' + (all !== 1 ? 's' : '');
+}
+
+function maCountOpenFromAggregateAndStorage() {
+  var agg = maAggregateMyActions();
+  var st = maLoadStateRaw();
+  var byId = st.byId || {};
+  var n = 0;
+  function walk(arr) {
+    if (!arr) return;
+    arr.forEach(function(it) {
+      var col = (byId[it.id] && byId[it.id].column) || 'todo';
+      if (col !== 'done') n++;
+    });
+  }
+  walk(agg.blocking);
+  walk(agg.decision);
+  walk(agg.review);
+  return n;
+}
+
+function maUpdateNavBadge() {
+  var badge = document.getElementById('nav-my-actions-count');
+  if (!badge) return;
+  if (!avLoaded) {
+    badge.hidden = true;
+    return;
+  }
+  var n = maCountOpenFromAggregateAndStorage();
+  badge.textContent = String(n);
+  badge.hidden = n === 0;
+}
+
+function maWireMyActionsOnce() {
+  if (maDnWired) return;
+  var root = document.getElementById('ma-board-root');
+  if (!root) return;
+  maDnWired = true;
+  root.addEventListener('dragenter', function(e) {
+    var dz = e.target.closest('.ma-drop-zone');
+    if (!dz || !maDragCard) return;
+    if (dz.getAttribute('data-type') !== maDragCard.getAttribute('data-type')) return;
+    e.preventDefault();
+    dz.classList.add('ma-drop-zone--over');
+  });
+  root.addEventListener('dragover', function(e) {
+    var dz = e.target.closest('.ma-drop-zone');
+    if (!dz || !maDragCard) return;
+    if (dz.getAttribute('data-type') !== maDragCard.getAttribute('data-type')) return;
+    e.preventDefault();
+    try { e.dataTransfer.dropEffect = 'move'; } catch (ex) {}
+    dz.classList.add('ma-drop-zone--over');
+    var after = maGetAfterCard(dz, e.clientY);
+    if (after == null) dz.appendChild(maDragCard);
+    else dz.insertBefore(maDragCard, after);
+  });
+  root.addEventListener('dragleave', function(e) {
+    var dz = e.target.closest('.ma-drop-zone');
+    if (!dz) return;
+    var rel = e.relatedTarget;
+    if (!rel || !dz.contains(rel)) dz.classList.remove('ma-drop-zone--over');
+  });
+  root.addEventListener('drop', function(e) {
+    e.preventDefault();
+    var dz = e.target.closest('.ma-drop-zone');
+    if (dz) dz.classList.remove('ma-drop-zone--over');
+    maPersistStateFromDom();
+    maUpdateNavBadge();
+  });
+  var af = document.getElementById('ma-agent-filter');
+  if (af && !af._mvMaBound) {
+    af._mvMaBound = true;
+    af.addEventListener('change', maApplyAgentFilter);
+  }
+}
+
+function maRenderBoard() {
+  var root = document.getElementById('ma-board-root');
+  if (!root) return;
+  var agg = maAggregateMyActions();
+  var st = maLoadStateRaw();
+  var byId = st.byId || {};
+  maLastValidIds = new Set();
+  ['blocking', 'decision', 'review'].forEach(function(catKey) {
+    (agg[catKey] || []).forEach(function(it) { maLastValidIds.add(it.id); });
+  });
+
+  ['todo', 'doing', 'done'].forEach(function(col) {
+    ['blocking', 'decision', 'review'].forEach(function(typ) {
+      var dz = maGetZone(col, typ);
+      if (!dz) return;
+      while (dz.firstChild) dz.removeChild(dz.firstChild);
+      var empty = document.createElement('div');
+      empty.className = 'ma-drop-empty';
+      empty.textContent = '—';
+      dz.appendChild(empty);
+    });
+  });
+
+  ['blocking', 'decision', 'review'].forEach(function(typ) {
+    var arr = agg[typ] || [];
+    ['todo', 'doing', 'done'].forEach(function(col) {
+      var slice = maSortIntoColumn(arr, col, byId);
+      var dz = maGetZone(col, typ);
+      if (!dz) return;
+      slice.forEach(function(item) {
+        dz.appendChild(maCreateCard(item));
+      });
+    });
+  });
+
+  maPopulateAgentSelect(agg);
+  var metaEl = document.getElementById('ma-updated-meta');
+  if (metaEl) {
+    metaEl.textContent = agg.latestUpdated ? ('Status files · updated up to ' + agg.latestUpdated) : '';
+  }
+  maWireMyActionsOnce();
+  maApplyAgentFilter();
+  maUpdateCounts();
+  maUpdateNavBadge();
+}
+
 function aoPriorityScore(item) {
   var statusRank = { 'in-progress': 0, 'needs-review': 1, 'queued': 2, 'paused': 3, 'done': 4 };
   var riskRank = { high: 0, med: 1, low: 2 };
@@ -14105,6 +14941,9 @@ async function loadDashboardData(dashId) {
   if (dashId === 'ongoing-tasks') {
     loadOngoingTasksView();
   }
+  if (dashId === 'my-actions') {
+    void ensureStatusCachesLoaded().then(function() { maRenderBoard(); });
+  }
   if (dashId === 'development') {
     loadDevelopmentStatus();
   }
@@ -14354,6 +15193,7 @@ selectDashboard(coerceDashboardForContext(getInitialDashboardId(), osProductCont
 })();
 
 void hydrateAllAgentCustomActions();
+void ensureStatusCachesLoaded().then(function() { maUpdateNavBadge(); });
 avInitConflictPopupActions();
 void avCheckManualConflicts();
 initSmallAgentCharts();
