@@ -13317,14 +13317,15 @@ function spriteArchFixedGridPositions(view, nodeList) {
     const py = nodeList.filter(function(n) { return n.kind === 'python'; }).sort(function(a, b) {
       return (a.path || '').localeCompare(b.path || '');
     });
-    const cellW = 268;
-    const cellH = 92;
-    const maxCols = 4;
+    /* Centers must be >= max node width + gap (vis widthConstraint.max 280 + margin). */
+    const cellW = 380;
+    const cellH = 140;
+    const maxCols = 3;
     const map = {};
     function place(list, centerX) {
       const n = list.length;
       if (!n) return;
-      const cols = Math.min(maxCols, Math.max(1, Math.ceil(Math.sqrt(n * 1.2))));
+      const cols = Math.min(maxCols, Math.max(1, Math.ceil(Math.sqrt(n * 1.15))));
       const rows = Math.ceil(n / cols);
       const totalW = (cols - 1) * cellW;
       const totalH = (rows - 1) * cellH;
@@ -13337,8 +13338,8 @@ function spriteArchFixedGridPositions(view, nodeList) {
         };
       });
     }
-    place(js, -500);
-    place(py, 500);
+    place(js, -640);
+    place(py, 640);
     return map;
   }
   if (view === 'change') {
@@ -13348,9 +13349,9 @@ function spriteArchFixedGridPositions(view, nodeList) {
       return (a.path || '').localeCompare(b.path || '');
     });
     const n = sorted.length;
-    const cellW = 288;
-    const cellH = 96;
-    const cols = Math.max(3, Math.min(5, Math.ceil(Math.sqrt(n * 1.35))));
+    const cellW = 380;
+    const cellH = 140;
+    const cols = Math.max(2, Math.min(4, Math.ceil(Math.sqrt(n * 1.25))));
     const rows = Math.ceil(n / cols);
     const totalW = (cols - 1) * cellW;
     const totalH = (rows - 1) * cellH;
@@ -13387,9 +13388,9 @@ function spriteArchRebuildNetwork() {
     const base = {
       id: n.id,
       title: n.path + '\n' + (n.layer || '') + '\nin ' + fin + ' · out ' + (deg.outDeg[n.id] || 0),
-      margin: 16,
-      widthConstraint: { minimum: twoLine ? 128 : 112, maximum: 280 },
-      heightConstraint: { minimum: twoLine ? 56 : 44 },
+      margin: 20,
+      widthConstraint: { minimum: twoLine ? 128 : 120, maximum: 260 },
+      heightConstraint: { minimum: twoLine ? 56 : 52 },
     };
     if (fixedPos && fixedPos[n.id]) {
       base.x = fixedPos[n.id].x;
