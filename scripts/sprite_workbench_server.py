@@ -7733,6 +7733,19 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
             bind_host, bind_port = self.server.server_address
             return self._send_json(build_workbench_server_dashboard_payload(bind_host, bind_port))
 
+        if path == "/api/sprite-workbench-arch-manifest":
+            mf = ROOT / "artifacts" / "sprite-workbench-arch" / "manifest.json"
+            if not mf.is_file():
+                return self._send_error_json(
+                    HTTPStatus.NOT_FOUND,
+                    "manifest not found — run: python3 scripts/extract_sprite_workbench_arch.py",
+                )
+            try:
+                raw = mf.read_bytes()
+            except OSError as exc:
+                return self._send_error_json(HTTPStatus.INTERNAL_SERVER_ERROR, str(exc))
+            return self._send_bytes(raw, content_type="application/json; charset=utf-8")
+
         if path == "/api/demo-projects":
             return self._send_json({"projects": list_demo_projects()})
 

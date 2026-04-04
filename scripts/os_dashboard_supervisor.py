@@ -699,6 +699,29 @@ def make_handler(
                     build_supervisor_dashboard_payload(workbench_host, workbench_port),
                 )
 
+            if path == "/api/sprite-workbench-arch-manifest":
+                mf = repo_root / "artifacts" / "sprite-workbench-arch" / "manifest.json"
+                if not mf.is_file():
+                    return self._send_json(
+                        HTTPStatus.NOT_FOUND,
+                        {
+                            "error": "manifest_not_found",
+                            "hint": "Run: python3 scripts/extract_sprite_workbench_arch.py",
+                        },
+                    )
+                try:
+                    raw = mf.read_bytes()
+                except OSError:
+                    return self._send_json(
+                        HTTPStatus.INTERNAL_SERVER_ERROR,
+                        {"error": "manifest_read_failed"},
+                    )
+                return self._send_bytes(
+                    HTTPStatus.OK,
+                    raw,
+                    "application/json; charset=utf-8",
+                )
+
             rel = path.lstrip("/")
             if rel in static_allow:
                 fpath = repo_root / rel

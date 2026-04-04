@@ -13048,31 +13048,41 @@ async function loadSpriteArchManifest() {
     const pathEl = document.getElementById('sa-inspector-path');
     if (pathEl) pathEl.textContent = 'Select a node in Structure.';
   };
+  const manifestPaths = ['/api/sprite-workbench-arch-manifest', '/' + SPRITE_ARCH_MANIFEST_PATH];
+  let lastStatus = '';
   try {
-    const url = agentOsApiUrl('/' + SPRITE_ARCH_MANIFEST_PATH);
-    const resp = await fetch(url, { cache: 'no-store' });
-    if (!resp.ok) {
-      clearStructure();
-      setBanner('Manifest: could not load (HTTP ' + resp.status + '). Open this page via scripts/os_dashboard_supervisor.py (port 8769) or ensure artifacts/sprite-workbench-arch/manifest.json exists.', false, true);
-      if (nodesEl) nodesEl.textContent = '—';
-      if (edgesEl) edgesEl.textContent = '—';
+    for (let pi = 0; pi < manifestPaths.length; pi++) {
+      const url = agentOsApiUrl(manifestPaths[pi]);
+      const resp = await fetch(url, { cache: 'no-store' });
+      if (!resp.ok) {
+        lastStatus = String(resp.status);
+        continue;
+      }
+      const m = await resp.json();
+      if (!m || typeof m !== 'object' || m.error) {
+        lastStatus = 'invalid';
+        continue;
+      }
+      const sha = (m.git_sha != null && String(m.git_sha)) ? String(m.git_sha).slice(0, 12) : '—';
+      const gen = m.generated_at != null ? String(m.generated_at) : '—';
+      setBanner('manifest v' + (m.schema_version != null ? String(m.schema_version) : '?') + ' · git ' + sha + ' · generated ' + gen, true, false);
+      const nodes = Array.isArray(m.nodes) ? m.nodes.length : 0;
+      const edges = Array.isArray(m.edges) ? m.edges.length : 0;
+      if (nodesEl) nodesEl.textContent = String(nodes);
+      if (edgesEl) edgesEl.textContent = String(edges);
       if (hotEl) hotEl.textContent = '—';
+      spriteArchManifest = m;
+      spriteArchRefreshView();
       return;
     }
-    const m = await resp.json();
-    const sha = (m.git_sha != null && String(m.git_sha)) ? String(m.git_sha).slice(0, 12) : '—';
-    const gen = m.generated_at != null ? String(m.generated_at) : '—';
-    setBanner('manifest v' + (m.schema_version != null ? String(m.schema_version) : '?') + ' · git ' + sha + ' · generated ' + gen, true, false);
-    const nodes = Array.isArray(m.nodes) ? m.nodes.length : 0;
-    const edges = Array.isArray(m.edges) ? m.edges.length : 0;
-    if (nodesEl) nodesEl.textContent = String(nodes);
-    if (edgesEl) edgesEl.textContent = String(edges);
+    clearStructure();
+    setBanner('Manifest: could not load (HTTP ' + (lastStatus || '?') + '). Run: python3 scripts/extract_sprite_workbench_arch.py — then restart the workbench or Agent OS server.', false, true);
+    if (nodesEl) nodesEl.textContent = '—';
+    if (edgesEl) edgesEl.textContent = '—';
     if (hotEl) hotEl.textContent = '—';
-    spriteArchManifest = m;
-    spriteArchRefreshView();
   } catch (e) {
     clearStructure();
-    setBanner('Manifest: fetch failed (serve os-dashboard from supervisor so /artifacts/… resolves).', false, true);
+    setBanner('Manifest: network error. If using the workbench (8766), start Agent OS supervisor (8769) or ensure the manifest file exists and servers are restarted.', false, true);
     if (nodesEl) nodesEl.textContent = '—';
     if (edgesEl) edgesEl.textContent = '—';
     if (hotEl) hotEl.textContent = '—';

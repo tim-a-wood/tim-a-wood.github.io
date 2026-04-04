@@ -238,8 +238,8 @@
   "extractor_versions": {
     "extract_sprite_workbench_arch": "0.1"
   },
-  "generated_at": "2026-04-04T00:12:14Z",
-  "git_sha": "6d4b927fe56d14666ba468b29e21e591322375dc",
+  "generated_at": "2026-04-04T00:23:19Z",
+  "git_sha": "4a6f35d7faf22d55e57493b782ada96e749b5a63",
   "nodes": [
     {
       "id": "tools/2d-sprite-and-animation/app/pixellab-animation-helpers.js",
