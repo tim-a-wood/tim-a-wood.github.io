@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 
 ARTIFACT_FILENAMES: Dict[str, str] = {
@@ -75,3 +75,43 @@ def default_registry(room_id: Optional[str] = None) -> Dict[str, Dict[str, Any]]
             "relative_path": f"derived/v3/{filename}",
         }
     return registry
+
+
+ENV_KEYS: Dict[str, str] = {k: k for k in ARTIFACT_FILENAMES}
+
+
+def persist_v3_staged_documents(
+    projects_root: Path,
+    project_id: str,
+    room_id: str,
+    env: Dict[str, Any],
+) -> List[Tuple[str, Path]]:
+    """Write derived v3 JSON artifacts next to room environment assets."""
+    written: List[Tuple[str, Path]] = []
+    for artifact_kind, env_key in ENV_KEYS.items():
+        doc = env.get(env_key)
+        if not isinstance(doc, dict) or not doc:
+            continue
+        path = save_artifact(projects_root, project_id, room_id, artifact_kind, doc)
+        written.append((artifact_kind, path))
+    return written
+
+
+def hydrate_v3_staged_documents(
+    projects_root: Path,
+    project_id: str,
+    room_id: str,
+    env: Dict[str, Any],
+) -> List[str]:
+    """Load saved artifacts from disk into env (does not replace room JSON authority)."""
+    loaded_kinds: List[str] = []
+    for artifact_kind, env_key in ENV_KEYS.items():
+        disk = load_artifact(projects_root, project_id, room_id, artifact_kind)
+        if disk is None:
+            continue
+        cur = env.get(env_key)
+        if isinstance(cur, dict) and cur:
+            continue
+        env[env_key] = disk
+        loaded_kinds.append(artifact_kind)
+    return loaded_kinds

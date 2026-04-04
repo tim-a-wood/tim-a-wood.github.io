@@ -22,6 +22,7 @@ Base pattern for room-scoped actions:
 | `approve-preview` | POST | `approve_room_environment_preview` | Locks chosen preview for downstream | Remains gate before **compose** / asset pack in compatibility mode |
 | `generate-assets` | POST | `generate_room_environment_asset_pack` | Bespoke PNGs + manifest + runtime review | Target: **compatibility wrapper** that orchestrates kit + composition + validation |
 | `feedback` | POST | `record_room_environment_feedback_event` | Helpfulness / telemetry | Unchanged |
+| `reference-pack` | POST | `update_room_environment_reference_pack` | Merge notes, uploads, canonical selection, status (v3 only) | **Stage 2** — reference pack proposal/lock inputs |
 
 Global:
 

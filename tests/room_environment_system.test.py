@@ -835,6 +835,61 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         self.assertEqual(env["editor_results_payload"]["semantics"]["counts"]["top_count"], 1)
         self.assertEqual(env["staged_artifacts"]["stylepack"]["status"], "ready")
 
+    def test_v3_spec_persists_derived_artifacts_under_room_assets(self):
+        envsys.update_project_art_direction(self.project_id, {"template_id": "ruined-gothic", "locked": True})
+        envsys.build_room_environment_spec(
+            self.project_id,
+            "R1",
+            {
+                "environment_pipeline_version": "v3",
+                "description": "A quiet stone threshold with a readable route, dark shell, and restrained atmosphere.",
+            },
+        )
+        derived = (
+            self.projects_root
+            / self.project_id
+            / "room_environment_assets"
+            / "R1"
+            / "derived"
+            / "v3"
+        )
+        self.assertTrue((derived / "reference_pack.json").is_file())
+        self.assertTrue((derived / "stylepack.json").is_file())
+
+    def test_v3_reference_pack_api_updates_disk_and_environment(self):
+        envsys.update_project_art_direction(self.project_id, {"template_id": "ruined-gothic", "locked": True})
+        envsys.build_room_environment_spec(
+            self.project_id,
+            "R1",
+            {
+                "environment_pipeline_version": "v3",
+                "description": "Threshold room for reference pack API test.",
+            },
+        )
+        out = envsys.update_room_environment_reference_pack(
+            self.project_id,
+            "R1",
+            {
+                "notes": "uploads-first calibration",
+                "status": "ready",
+                "canonical_selection": ["ref-a"],
+                "uploads": [{"upload_id": "ref-a", "relative_path": "room_environment_derived/R1/refs/ref-a.png"}],
+            },
+        )
+        self.assertEqual(out["reference_pack"]["notes"], "uploads-first calibration")
+        self.assertEqual(out["environment"]["reference_pack"]["status"], "ready")
+        derived = (
+            self.projects_root
+            / self.project_id
+            / "room_environment_assets"
+            / "R1"
+            / "derived"
+            / "v3"
+            / "reference_pack.json"
+        )
+        self.assertTrue(derived.is_file())
+        self.assertIn("uploads-first calibration", derived.read_text(encoding="utf-8"))
+
     def test_v3_runtime_review_controls_approval_state(self):
         envsys.update_project_art_direction(self.project_id, {"template_id": "overgrown-shrine", "locked": True})
         envsys.build_room_environment_spec(

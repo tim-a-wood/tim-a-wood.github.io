@@ -714,3 +714,8 @@ This log records decisions for the room environment and bespoke asset quality pa
 - Status: Accepted
 - Why: Theme name, notes, seed, lock stylepack, and reference uploads are authoring metadata that should survive export with the rest of the room environment spec. Putting them into preview/runtime slices would leak them into generated state and make the contract harder to reason about.
 - Consequence: The MVP contract stores those fields in `room.environment.spec`, while `preview`, `runtime`, `assembly_plan`, and `review_state` stay reserved for generated or review-derived data.
+
+### 130. v3 derived artifacts persist under `room_environment_assets/<room_id>/derived/v3/` with hydrate + reference-pack API
+- Status: Accepted (2026-04-04)
+- Why: ENV-027/ENV-005 require recoverable sidecars without changing room JSON authority. Colocating JSON next to existing `bespoke/` and `review/` keeps one room folder as the environment root.
+- Consequence: `_sync_v3_environment_state` writes six artifact kinds after `sync_v3_metadata`. `_find_room` hydrates from disk when in-memory keys are empty before `_ensure_room_environment` runs v3 ensure. `POST .../environment/reference-pack` merges payload via `reference_pack.merge_reference_pack` (v3 only). Tests cover persist paths and API roundtrip.

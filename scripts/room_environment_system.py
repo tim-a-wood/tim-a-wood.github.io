@@ -22,6 +22,8 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from PIL import Image, ImageChops, ImageDraw, ImageFilter, ImageOps
 from scripts import room_environment_v3 as envv3
+from scripts.environment_v3 import persistence as env_persistence
+from scripts.environment_v3 import reference_pack as ref_pack_mod
 
 PROJECTS_ROOT: Path
 ROOT: Path
@@ -1421,6 +1423,9 @@ def _sync_v3_environment_state(
     if envv3.normalize_pipeline_version(env.get("environment_pipeline_version")) != envv3.V3_PIPELINE_VERSION:
         return
     envv3.sync_v3_metadata(env, room, biome_id=biome_id, generated_at=generated_at)
+    rid = str(room.get("id") or "").strip()
+    if rid:
+        env_persistence.persist_v3_staged_documents(PROJECTS_ROOT, project_id, rid, env)
 
 
 def _find_room(project: Dict[str, Any], room_id: str) -> Dict[str, Any]:
@@ -1429,6 +1434,14 @@ def _find_room(project: Dict[str, Any], room_id: str) -> Dict[str, Any]:
     room = next((item for item in rooms if str(item.get("id") or "") == room_id), None)
     if not isinstance(room, dict):
         raise ValueError("Room not found.")
+    env = room.get("environment")
+    if not isinstance(env, dict):
+        env = {}
+        room["environment"] = env
+    project_id = str(project.get("project_id") or "").strip()
+    env["environment_pipeline_version"] = envv3.normalize_pipeline_version(env.get("environment_pipeline_version"))
+    if project_id and env["environment_pipeline_version"] == envv3.V3_PIPELINE_VERSION:
+        env_persistence.hydrate_v3_staged_documents(PROJECTS_ROOT, project_id, room_id, env)
     env = _ensure_room_environment(room)
     direction = normalize_art_direction(project.get("art_direction"), project.get("art_direction"))
     _refresh_asset_pack_staleness(room, env, direction)
@@ -7751,6 +7764,22 @@ def approve_room_environment_preview(project_id: str, room_id: str, payload: Dic
         "environment": copy.deepcopy(env),
         "approved_preview": copy.deepcopy(found),
     }
+
+
+def update_room_environment_reference_pack(project_id: str, room_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+    project = load_project(project_id)
+    room = _find_room(project, room_id)
+    env = _ensure_room_environment(room)
+    if envv3.normalize_pipeline_version(env.get("environment_pipeline_version")) != envv3.V3_PIPELINE_VERSION:
+        raise ValueError("environment_pipeline_version v3 is required to update the reference pack.")
+    merged = ref_pack_mod.merge_reference_pack(env.get("reference_pack"), payload)
+    env["reference_pack"] = merged
+    env_persistence.save_artifact(PROJECTS_ROOT, project_id, room_id, "reference_pack", merged)
+    envv3.ensure_v3_metadata(env, room)
+    env_persistence.persist_v3_staged_documents(PROJECTS_ROOT, project_id, room_id, env)
+    project["updated_at"] = now_iso()
+    save_project(project)
+    return {"ok": True, "environment": copy.deepcopy(env), "reference_pack": copy.deepcopy(merged)}
 
 
 def record_room_environment_feedback_event(project_id: str, room_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:

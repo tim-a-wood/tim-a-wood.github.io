@@ -1758,6 +1758,11 @@ def record_project_room_environment_feedback(project_id: str, room_id: str, payl
     _sync_room_environment_system_config()
     return room_environment_system.record_room_environment_feedback_event(project_id, room_id, payload)
 
+
+def update_project_room_environment_reference_pack(project_id: str, room_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+    _sync_room_environment_system_config()
+    return room_environment_system.update_room_environment_reference_pack(project_id, room_id, payload)
+
 def generate_project_biome_pack_visuals(project_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:
     _sync_room_environment_system_config()
     return room_environment_system.generate_biome_pack_visuals(project_id, payload)
@@ -8085,6 +8090,11 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
             if room_feedback_match:
                 project_id, room_id = room_feedback_match.groups()
                 return self._send_json(record_project_room_environment_feedback(project_id, room_id, read_body(self)))
+
+            room_reference_pack_match = re.fullmatch(r"/api/projects/([^/]+)/rooms/([^/]+)/environment/reference-pack", path)
+            if room_reference_pack_match:
+                project_id, room_id = room_reference_pack_match.groups()
+                return self._send_json(update_project_room_environment_reference_pack(project_id, room_id, read_body(self)))
 
             duplicate_match = re.fullmatch(r"/api/projects/([^/]+)/duplicate", path)
             if duplicate_match:

@@ -18,9 +18,11 @@ Sprite Workbench project data lives under:
 | `room_environment_assets/{room_id}/bespoke/` | Generated bespoke slot PNGs |
 | `room_environment_assets/{room_id}/review/` | Runtime capture, layout JSON, screenshot QA |
 
-## Proposed derived artifact files (per room)
+## Derived artifact files (per room)
 
-Store under **`room_environment_derived/{room_id}/`** (new directory, parallel to previews/assets):
+**Implemented (2026-04-04, v3):** `room_environment_assets/{room_id}/derived/v3/*.json` — colocated with bespoke/review so one room folder owns environment outputs.
+
+**Earlier doc draft (optional alternate):** `room_environment_derived/{room_id}/` — still valid for upload blobs if you prefer a parallel tree; `reference_pack.json` entries use project-relative paths either way.
 
 | File | Content | Notes |
 |------|---------|-------|
