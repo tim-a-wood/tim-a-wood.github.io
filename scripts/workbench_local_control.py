@@ -21,6 +21,7 @@ ENV_FILE = REPO_ROOT / ".env.local"
 # Sprite Workbench persistence root (matches scripts/sprite_workbench_server.PROJECTS_ROOT).
 SPRITE_PROJECTS_DATA_REL = Path("tools") / "2d-sprite-and-animation" / "projects-data"
 SPRITE_USAGE_LEDGER_REL = SPRITE_PROJECTS_DATA_REL / "_usage_ledger.json"
+PERSONAL_USAGE_CACHE_REL = SPRITE_PROJECTS_DATA_REL / "_personal_api_usage_cache.json"
 # Earlier builds pointed the supervisor at repo-root projects-data; keep as fallback if present.
 LEGACY_USAGE_LEDGER_REL = Path("projects-data") / "_usage_ledger.json"
 PID_FILE = Path("/tmp/sprite_workbench_server.pid")
@@ -219,8 +220,9 @@ def _usage_ledger_json_path(repo_root: Path | None = None) -> Path:
     return canonical
 
 
-def _ledger_entries_from_repo_disk() -> list[dict[str, Any]]:
-    path = _usage_ledger_json_path()
+def _ledger_entries_from_repo_disk(repo_root: Path | None = None) -> list[dict[str, Any]]:
+    root = repo_root or REPO_ROOT
+    path = _usage_ledger_json_path(root)
     if not path.is_file():
         return []
     try:
@@ -232,17 +234,62 @@ def _ledger_entries_from_repo_disk() -> list[dict[str, Any]]:
     return []
 
 
+def _personal_cache_entries(repo_root: Path | None = None) -> list[dict[str, Any]]:
+    """Optional ledger-shaped rows from ``_personal_api_usage_cache.json`` (e.g. OpenAI org costs)."""
+    root = repo_root or REPO_ROOT
+    path = root / PERSONAL_USAGE_CACHE_REL
+    if not path.is_file():
+        return []
+    try:
+        raw = json.loads(path.read_text(encoding="utf-8"))
+        if not isinstance(raw, dict):
+            return []
+        rows = raw.get("entries")
+        if not isinstance(rows, list):
+            return []
+        return [e for e in rows if isinstance(e, dict)]
+    except (json.JSONDecodeError, OSError):
+        return []
+
+
+def merged_usage_ledger_entries(repo_root: Path | None = None) -> list[dict[str, Any]]:
+    """Workbench ledger + personal cache, for Agent OS cost tables and charts."""
+    root = repo_root or REPO_ROOT
+    return _ledger_entries_from_repo_disk(root) + _personal_cache_entries(root)
+
+
+def read_personal_usage_cache_meta(repo_root: Path | None = None) -> dict[str, Any]:
+    root = repo_root or REPO_ROOT
+    path = root / PERSONAL_USAGE_CACHE_REL
+    if not path.is_file():
+        return {"present": False}
+    try:
+        raw = json.loads(path.read_text(encoding="utf-8"))
+        if not isinstance(raw, dict):
+            return {"present": False}
+        ent = raw.get("entries")
+        n = len(ent) if isinstance(ent, list) else 0
+        return {
+            "present": True,
+            "updated_at": str(raw.get("updated_at") or "").strip(),
+            "source": str(raw.get("source") or "").strip(),
+            "entry_count": n,
+        }
+    except (json.JSONDecodeError, OSError):
+        return {"present": False, "error": "unreadable"}
+
+
 def _usage_charts_from_repo_disk() -> dict[str, Any]:
     """Read Sprite Workbench ``_usage_ledger.json`` when this process is not the workbench server."""
     from scripts.workbench_persistence import build_usage_ledger_charts_from_entries
 
-    return build_usage_ledger_charts_from_entries(_ledger_entries_from_repo_disk())
+    return build_usage_ledger_charts_from_entries(merged_usage_ledger_entries())
 
 
 def _usage_summary_from_repo_disk() -> dict[str, Any]:
     from scripts.workbench_persistence import summarize_usage_ledger_entries
 
-    return summarize_usage_ledger_entries(_ledger_entries_from_repo_disk())
+    return summarize_usage_ledger_entries(merged_usage_ledger_entries())
 
 
 def _project_room_layout_paths() -> list[Path]:
@@ -354,14 +401,21 @@ def build_workbench_server_dashboard_payload(bind_host: str, bind_port: int) -> 
     if display_host.startswith("::ffff:"):
         display_host = display_host.split("::ffff:", 1)[-1]
     ctrl = default_agent_os_control_base()
-    from scripts.workbench_persistence import summarize_usage_ledger, summarize_usage_ledger_charts
+    from scripts.workbench_persistence import (
+        build_usage_ledger_charts_from_entries,
+        load_usage_ledger,
+        summarize_usage_ledger_entries,
+    )
 
     try:
-        usage_charts = summarize_usage_ledger_charts()
-        usage_summary = summarize_usage_ledger()
+        ledger = load_usage_ledger()
+        raw_wb = [item for item in ledger.get("entries", []) if isinstance(item, dict)]
     except Exception:
-        usage_charts = _usage_charts_from_repo_disk()
-        usage_summary = _usage_summary_from_repo_disk()
+        raw_wb = _ledger_entries_from_repo_disk()
+    merged_wb = raw_wb + _personal_cache_entries()
+    usage_charts = build_usage_ledger_charts_from_entries(merged_wb)
+    usage_summary = summarize_usage_ledger_entries(merged_wb)
+    personal_usage_cache = read_personal_usage_cache_meta()
     analytics_status = read_repo_json_object("analytics-status.json")
     home_internal = build_home_internal_snapshot()
     room_ai_helpfulness = _build_room_ai_helpfulness_summary()
@@ -375,6 +429,7 @@ def build_workbench_server_dashboard_payload(bind_host: str, bind_port: int) -> 
         "last_daily_report": latest_daily_report_name(),
         "usage_charts": usage_charts,
         "usage_summary": usage_summary,
+        "personal_usage_cache": personal_usage_cache,
         "room_ai_helpfulness": room_ai_helpfulness,
         "analytics_status": analytics_status,
         "home_internal": home_internal,
@@ -392,6 +447,7 @@ def build_supervisor_dashboard_payload(host: str, wb_port: int) -> dict[str, Any
     analytics_status = read_repo_json_object("analytics-status.json")
     home_internal = build_home_internal_snapshot()
     room_ai_helpfulness = _build_room_ai_helpfulness_summary()
+    personal_usage_cache = read_personal_usage_cache_meta()
     return {
         "supervisor": True,
         "workbench_server_running": running,
@@ -401,6 +457,7 @@ def build_supervisor_dashboard_payload(host: str, wb_port: int) -> dict[str, Any
         "last_daily_report": latest_daily_report_name(),
         "usage_charts": usage_charts,
         "usage_summary": usage_summary,
+        "personal_usage_cache": personal_usage_cache,
         "room_ai_helpfulness": room_ai_helpfulness,
         "analytics_status": analytics_status,
         "home_internal": home_internal,

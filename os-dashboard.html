@@ -4565,9 +4565,9 @@ h3.os-chart-card-title {
             </div>
           </div>
         </div>
-        <div class="db-section">
+          <div class="db-section">
           <div class="db-section-label">Spend by provider</div>
-          <p style="color:var(--muted);font-size:var(--font-size-sm);margin:0 0 var(--space-3) 0;max-width:820px">Only calls that logged a non-zero <span style="font-family:var(--font-mono)">usage_cost_usd</span> appear here. Treat numbers as directional; billing portals are the source of truth.</p>
+          <p style="color:var(--muted);font-size:var(--font-size-sm);margin:0 0 var(--space-3) 0;max-width:820px">Combines the Sprite Workbench <span style="font-family:var(--font-mono)">_usage_ledger.json</span> (Gemini, Pixel Lab, workbench OpenAI calls) with optional <span style="font-family:var(--font-mono)">_personal_api_usage_cache.json</span> for your OpenAI org costs — run <span style="font-family:var(--font-mono)">python3 scripts/pull_openai_organization_costs_cache.py</span> (needs <span style="font-family:var(--font-mono)">OPENAI_ADMIN_API_KEY</span> for most accounts). USD columns need <span style="font-family:var(--font-mono)">usage_cost_usd</span> on each row; call counts still show when price is missing. Treat as directional; OpenAI billing is source of truth.</p>
           <div class="api-usage-range-row">
             <label for="api-usage-date-range">Date range (UTC days)</label>
             <select id="api-usage-date-range" class="api-usage-range-select" aria-describedby="api-usage-range-hint">
@@ -9122,6 +9122,27 @@ function agentOsApiUrl(path) {
   return b ? b + p : p;
 }
 
+/** GET /api/dashboard-data — same-origin when possible; fallback for file:// or broken origin. */
+function getDashboardDataFetchUrl() {
+  var path = '/api/dashboard-data';
+  var b = (typeof lastWorkbenchControlBase === 'string' && lastWorkbenchControlBase.trim())
+    ? lastWorkbenchControlBase.replace(/\/$/, '')
+    : '';
+  if (b) return b + path;
+  try {
+    var loc = window.location;
+    if (loc && (loc.protocol === 'http:' || loc.protocol === 'https:')) {
+      return loc.origin + path;
+    }
+  } catch (e) { /* ignore */ }
+  var stored = '';
+  try {
+    stored = (localStorage.getItem('mv_agent_os_control_base') || '').trim().replace(/\/$/, '');
+  } catch (e2) { /* ignore */ }
+  if (stored) return stored + path;
+  return 'http://127.0.0.1:8769/api/dashboard-data';
+}
+
 function applyGlobalWorkbenchBar(d) {
   lastWorkbenchControlBase = '';
   const statusEl = document.getElementById('global-wb-status');
@@ -9292,6 +9313,10 @@ const OS_CHART_DEFAULTS = {
 let osChartData = JSON.parse(JSON.stringify(OS_CHART_DEFAULTS));
 
 function applyUsageChartsFromDashboard(d) {
+  var puc = d && d.personal_usage_cache && typeof d.personal_usage_cache === 'object' && !Array.isArray(d.personal_usage_cache)
+    ? d.personal_usage_cache
+    : null;
+  window.__personalUsageCacheMeta = puc;
   if (d && d.usage_summary && typeof d.usage_summary === 'object' && !Array.isArray(d.usage_summary)) {
     const ec = d.usage_summary.entry_count;
     window.__usageLedgerEntryCount = ec != null ? Number(ec) : null;
@@ -9657,9 +9682,9 @@ function apiUsageEmptyCopy(slice) {
   if (ec === 0) {
     return {
       home:
-        'No calls logged yet. The workbench appends tools/2d-sprite-and-animation/projects-data/_usage_ledger.json when you use Pixel Lab, Gemini (room Copilot), or other paid routes on the sprite workbench server (port 8766).',
+        'No calls logged yet. The workbench writes tools/2d-sprite-and-animation/projects-data/_usage_ledger.json when you use Pixel Lab, Gemini (room Copilot), or other paid routes on the sprite workbench (port 8766). For Cursor-only OpenAI spend, run scripts/pull_openai_organization_costs_cache.py to fill _personal_api_usage_cache.json.',
       table:
-        'No calls in your usage log yet. The log is created when you use Pixel Lab, Gemini (e.g. room Copilot), or other workbench routes through the Sprite Workbench server on this machine (usually port 8766). Using APIs only in Cursor or elsewhere does not write here.',
+        'No rows in this range. Use the workbench to populate _usage_ledger.json, or run python3 scripts/pull_openai_organization_costs_cache.py (OPENAI_ADMIN_API_KEY) to cache OpenAI org costs into _personal_api_usage_cache.json, then reload.',
     };
   }
   return {
@@ -9741,16 +9766,24 @@ function applyApiUsageCostUi() {
   if (foot) {
     const nProv = slice.providerOrder.length;
     const nDays = slice.dayList.length;
+    let line;
     if (slice.grandTotal > 0) {
       const rounded = Math.round(slice.grandTotal * 10000) / 10000;
-      foot.textContent = String(nDays) + ' day window · ' + String(nProv) + ' provider'
+      line = String(nDays) + ' day window · ' + String(nProv) + ' provider'
         + (nProv === 1 ? '' : 's')
         + ' · about $' + String(rounded) + ' estimated (range)';
     } else {
-      foot.textContent = String(nDays) + ' day window · ' + String(slice.totalCallsInRange) + ' call'
+      line = String(nDays) + ' day window · ' + String(slice.totalCallsInRange) + ' call'
         + (slice.totalCallsInRange === 1 ? '' : 's')
-        + ' logged · no USD estimates in vendor responses (counts only)';
+        + ' logged · no USD in range (counts only unless cache has cost rows)';
     }
+    const meta = window.__personalUsageCacheMeta;
+    if (meta && meta.present && meta.updated_at) {
+      line += ' · Personal cache: ' + String(meta.entry_count || 0) + ' row(s), updated '
+        + String(meta.updated_at)
+        + (meta.source ? (' (' + String(meta.source) + ')') : '');
+    }
+    foot.textContent = line;
   }
 }
 
@@ -16046,7 +16079,7 @@ async function loadDashboardData(dashId) {
     loadOrchestrationStatus();
   }
   try {
-    const resp = await fetch('/api/dashboard-data');
+    const resp = await fetch(getDashboardDataFetchUrl());
     let dashboardReachable = resp.ok;
     let d = null;
     if (resp.ok) {
@@ -16058,6 +16091,11 @@ async function loadDashboardData(dashId) {
       }
     }
     window.__dashboardHasPayload = !!(d && typeof d === 'object');
+    if (d && typeof d === 'object' && d.agent_os_control_base && String(d.agent_os_control_base).trim()) {
+      try {
+        localStorage.setItem('mv_agent_os_control_base', String(d.agent_os_control_base).trim().replace(/\/$/, ''));
+      } catch (eStore) { /* ignore */ }
+    }
     d = await ensureHomeInternal(d);
     applyGlobalWorkbenchBar(d);
     syncBuildPipelineServiceCards(d);
@@ -16139,7 +16177,7 @@ async function loadDashboardData(dashId) {
 
 async function pulseGlobalWorkbenchOnly() {
   try {
-    const resp = await fetch('/api/dashboard-data');
+    const resp = await fetch(getDashboardDataFetchUrl());
     let dashboardReachable = resp.ok;
     let d = null;
     if (resp.ok) {
@@ -16151,6 +16189,11 @@ async function pulseGlobalWorkbenchOnly() {
       }
     }
     window.__dashboardHasPayload = !!(d && typeof d === 'object');
+    if (d && typeof d === 'object' && d.agent_os_control_base && String(d.agent_os_control_base).trim()) {
+      try {
+        localStorage.setItem('mv_agent_os_control_base', String(d.agent_os_control_base).trim().replace(/\/$/, ''));
+      } catch (eStore) { /* ignore */ }
+    }
     d = await ensureHomeInternal(d);
     applyGlobalWorkbenchBar(d);
     syncBuildPipelineServiceCards(d);
