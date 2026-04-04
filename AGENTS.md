@@ -65,6 +65,19 @@ If you discover something significant that is NOT in the library, note it in you
 **Research Dashboard:** Open `research-dashboard.html` in a browser for a visual overview.
 **Agent definition:** `.claude/agents/research.md` — invoke the Research Agent for scans and reports.
 
+## My Actions dashboard — check after completing every request
+
+The Agent OS **My Actions** view (`os-dashboard.html`, nav **My Actions** — the founder-facing task board, sometimes called *My Tasks*) aggregates, across all agent `*-status.json` files:
+
+- `founder_decisions` (blocking and non-blocking items for the founder)
+- `priorities` rows with `"status": "needs-review"`
+
+**Directive for all agents (orchestrator and every specialist):** When you **finish** a request, session, or owned handoff, **review** whether **your** `*-status.json` needs edits so **My Actions** stays accurate. **Update when needed** (resolve or add founder decisions, move priority status into or out of `needs-review`, refresh titles/notes, add or remove founder-visible rows). If the work did not affect founder-visible rows, **no file change is required** — the obligation is to **check**, not to churn the JSON.
+
+Follow `agents/design/dashboard-standard.md` when editing dashboards. Prefer running `python3 scripts/validate_status_files.py` on files you touch when the repo provides it.
+
+This is additive to any per-agent **task-completion** or priority-hygiene rules in individual charters (e.g. orchestration `orchestration-status.json`, Design `design-status.json`).
+
 ## Feature Decision Tracking
 
 For active multi-pass features, agents must keep a running decision log so the team does not repeatedly revisit rejected approaches.
@@ -121,6 +134,10 @@ The **Design** charter requires a **high-fidelity mockup before implementation**
 - Implement **from an approved HI-FI mockup** (e.g. `docs/mockups/…` or a founder-specified reference) with **no visual drift** — no redesign mid-implementation.
 - If the request is **non-trivial UI** and **no approved mockup** is provided, **pause** and ask for Design to supply one (or an explicit founder waiver). Do not invent a full layout and treat it as final without that step.
 - **Trivial** edits (text, bugfixes, token compliance, non-layout JS) do not need a new mockup unless layout or composition changes.
+
+### My Actions (founder task board) after coding tasks
+
+If you edit any `*-status.json`, when you finish the request **review** whether **My Actions** (`os-dashboard.html`) will still be correct — see the **My Actions dashboard — check after completing every request** section **above the divider** in this same file.
 
 ---
 
