@@ -6,6 +6,7 @@ POST /api/workbench/{start|stop|restart}, POST /api/status-update (full JSON rep
 POST /api/archive-document (move a policy/guide to docs/archived-policies/ and write a reference report),
 and POST /api/issue-chat (issue and opportunity discussion in the UI; JSON body may set rowKind to "opportunity"),
 and POST /api/agent-chat (specialist chat in the Agents home modal; OpenAI Chat Completions with charter + overview + task context),
+POST /api/my-actions-chat (My Actions detail panel: OpenAI only; multi-agent charter context for one ticket; review rows may return priority_updates),
 POST /api/sprite-arch-explain (sprite-arch inspector: OpenAI JSON with repo snippet + manifest edges; OPENAI_API_KEY required).
 Binds 127.0.0.1 only.
 
@@ -402,6 +403,123 @@ def _agent_chat_charter_rel(agent_id: str) -> str | None:
     if not re.fullmatch(r"[a-z0-9-]+", agent_id or ""):
         return None
     return f"agents/{agent_id}/charter.md"
+
+
+_MY_ACTIONS_SOURCE_TOKEN_TO_AGENT: dict[str, str] = {
+    "eng": "engineering",
+    "engineering": "engineering",
+    "qa": "qa",
+    "ld": "level-design",
+    "level-design": "level-design",
+    "leveldesign": "level-design",
+    "cyber": "cybersecurity",
+    "cybersecurity": "cybersecurity",
+    "gd": "game-director",
+    "gamedirector": "game-director",
+    "design": "design",
+    "marketing": "marketing",
+    "finance": "finance",
+    "legal": "legal",
+    "strategy": "strategy",
+    "narrative": "narrative",
+    "audio": "audio",
+    "creative": "creative",
+    "research": "research",
+    "orchestration": "orchestrator",
+    "orch": "orchestrator",
+    "founder": "orchestrator",
+    "analytics": "analytics",
+    "support": "support",
+    "animation": "animation",
+    "game-systems": "game-systems",
+    "gamesystems": "game-systems",
+}
+
+
+def my_actions_agent_slug_from_status_filename(fname: str) -> str | None:
+    """Map `engineering-status.json` → `engineering`, orchestration → orchestrator."""
+    if not isinstance(fname, str) or not fname.strip():
+        return None
+    base = fname.strip().replace("\\", "/").split("/")[-1]
+    if not base.endswith("-status.json"):
+        return None
+    stem = base[: -len("-status.json")].strip().lower()
+    if stem == "orchestration":
+        return "orchestrator"
+    if re.fullmatch(r"[a-z0-9-]+", stem):
+        return stem
+    return None
+
+
+def _my_actions_tokens_from_source_raw(raw: str) -> list[str]:
+    if not isinstance(raw, str) or not raw.strip():
+        return []
+    out: list[str] = []
+    seen: set[str] = set()
+    for part in re.split(r"[\s,+;|/]+", raw.lower()):
+        p = part.strip().strip(".")
+        if not p:
+            continue
+        slug = _MY_ACTIONS_SOURCE_TOKEN_TO_AGENT.get(p)
+        if slug is None and re.fullmatch(r"[a-z0-9-]+", p):
+            slug = p if _agent_chat_charter_rel(p) else None
+        if slug and slug not in seen:
+            seen.add(slug)
+            out.append(slug)
+    return out
+
+
+def my_actions_collect_relevant_agent_slugs(ticket: dict[str, Any]) -> list[str]:
+    """Orchestrator + owning agent + source tokens + synthesis status files."""
+    seen: set[str] = set()
+    ordered: list[str] = []
+
+    def add(slug: str) -> None:
+        slug = (slug or "").strip()
+        if not slug or slug in seen:
+            return
+        if not _agent_chat_charter_rel(slug):
+            return
+        seen.add(slug)
+        ordered.append(slug)
+
+    add("orchestrator")
+    owner = ticket.get("ownerAgent") or ticket.get("owner_agent")
+    if isinstance(owner, str) and owner.strip():
+        add(owner.strip())
+    extras = ticket.get("extraAgents") or ticket.get("extra_agents")
+    if isinstance(extras, list):
+        for x in extras:
+            if isinstance(x, str) and x.strip():
+                add(x.strip())
+    src = ticket.get("sourceRaw") or ticket.get("source_raw") or ""
+    for slug in _my_actions_tokens_from_source_raw(str(src)):
+        add(slug)
+    synth = ticket.get("synthesisSources") or ticket.get("synthesis_sources") or []
+    if isinstance(synth, list):
+        for f in synth:
+            if not isinstance(f, str):
+                continue
+            slug = my_actions_agent_slug_from_status_filename(f)
+            if slug:
+                add(slug)
+    return ordered
+
+
+def _my_actions_charter_excerpts(repo_root: Path, slugs: list[str], max_per: int) -> str:
+    parts: list[str] = []
+    for slug in slugs[:8]:
+        rel = _agent_chat_charter_rel(slug)
+        if not rel:
+            continue
+        body = _read_allowed_repo_text(repo_root, rel, max_per)
+        label = slug.replace("-", " ").title()
+        parts.append(
+            f"### {label} (`{slug}`)\n"
+            f"Charter file: `{rel}`\n\n"
+            f"{body or '(charter missing or empty)'}\n"
+        )
+    return "\n---\n\n".join(parts)
 
 
 READONLY_IMAGE_SUFFIXES = frozenset({
@@ -1176,6 +1294,166 @@ def make_handler(
                     result.setdefault("thinking", "")
                     result.setdefault("assistant_message", "")
                 return self._send_json(HTTPStatus.OK, {"ok": True, "result": result})
+
+            # ── My Actions ticket discussion (OpenAI only, multi-charter) ───
+            if raw_path == "/api/my-actions-chat":
+                length = int(self.headers.get("Content-Length", 0))
+                body = self.rfile.read(length) if length > 0 else b""
+                try:
+                    payload = json.loads(body)
+                except json.JSONDecodeError:
+                    return self._send_json(HTTPStatus.BAD_REQUEST, {"error": "Invalid JSON"})
+                messages = payload.get("messages")
+                ticket = payload.get("ticket")
+                if not isinstance(messages, list) or not messages:
+                    return self._send_json(HTTPStatus.BAD_REQUEST, {"error": "messages required"})
+                if not isinstance(ticket, dict):
+                    return self._send_json(HTTPStatus.BAD_REQUEST, {"error": "ticket required"})
+
+                openai_key = (os.environ.get("OPENAI_API_KEY") or "").strip()
+                if not openai_key:
+                    return self._send_json(
+                        HTTPStatus.SERVICE_UNAVAILABLE,
+                        {
+                            "error": "no_api_key",
+                            "message": "My Actions chat uses OpenAI Chat Completions only. Set OPENAI_API_KEY "
+                            "(optional MY_ACTIONS_CHAT_MODEL or ISSUE_CHAT_MODEL). Restart the supervisor.",
+                        },
+                    )
+
+                kind = (ticket.get("kind") or "").strip().lower()
+                if kind not in ("blocking", "decision", "review"):
+                    return self._send_json(
+                        HTTPStatus.BAD_REQUEST,
+                        {"error": "bad_ticket", "message": "ticket.kind must be blocking, decision, or review"},
+                    )
+
+                allowed_files = ", ".join(sorted(status_write_allow))
+                overview = _read_allowed_repo_text(repo_root, "prompts/project_overview.md", 6000)
+                slugs = my_actions_collect_relevant_agent_slugs(ticket)
+                slug_line = ", ".join(slugs) if slugs else "(none)"
+                charter_block = _my_actions_charter_excerpts(repo_root, slugs, 11000)
+                pc = ticket.get("productContext") or ticket.get("product_context") or "all"
+                if not isinstance(pc, str):
+                    pc = "all"
+
+                ticket_snapshot = {
+                    k: v
+                    for k, v in ticket.items()
+                    if k
+                    not in (
+                        "priorityRow",
+                        "priority_row",
+                        "founderRow",
+                        "founder_row",
+                    )
+                }
+                pr = ticket.get("priorityRow") or ticket.get("priority_row")
+                fr = ticket.get("founderRow") or ticket.get("founder_row")
+                if isinstance(pr, dict):
+                    ticket_snapshot["priorityRow"] = {k: v for k, v in pr.items() if not k.startswith("_")}
+                if isinstance(fr, dict):
+                    ticket_snapshot["founderRow"] = dict(fr)
+
+                json_snap = json.dumps(ticket_snapshot, ensure_ascii=False, indent=2)
+
+                if kind == "review":
+                    system_prompt = (
+                        "You are advising the solo founder in the MV / Sprite Workbench Agent OS. "
+                        "They opened a My Actions card for a priority that is in **needs-review** status.\n\n"
+                        f"Active dashboard product context: {pc}\n"
+                        f"Specialists whose charters you must weigh together (in order): {slug_line}\n\n"
+                        "## Project overview (excerpt)\n"
+                        f"{overview or '(unavailable)'}\n\n"
+                        "## Specialist charter excerpts\n"
+                        "Synthesize these lenses into one coherent answer. Do not role-play a round-table unless "
+                        "the user asks; default to a single unified reply that flags trade-offs when charters "
+                        "tension.\n\n"
+                        f"{charter_block}\n\n"
+                        "## Ticket snapshot (JSON)\n"
+                        f"{json_snap}\n\n"
+                        "You may propose edits to the underlying `priorities` row when it helps the founder. "
+                        "Respond with a single JSON object ONLY, keys:\n"
+                        '- "thinking": string, step-by-step reasoning.\n'
+                        '- "assistant_message": string, reply to the founder (markdown allowed).\n'
+                        '- "priority_updates": array of objects, each: '
+                        '{"file": "<filename>", "id": <priority id from snapshot>, "fields": { ... }} '
+                        "with the same rules as /api/issue-chat for priorities (title, status, risk, note, "
+                        "proposed_solution, owner, stakeholders, summary). "
+                        f"Allowed files: {allowed_files}\n"
+                        "Use [] if no file edits are appropriate yet.\n"
+                    )
+                else:
+                    system_prompt = (
+                        "You are advising the solo founder in the MV / Sprite Workbench Agent OS. "
+                        f"They opened a My Actions card for a **founder_decisions** entry "
+                        f"({'blocking' if kind == 'blocking' else 'non-blocking'}).\n\n"
+                        f"Active dashboard product context: {pc}\n"
+                        f"Specialists whose charters you must weigh together (in order): {slug_line}\n\n"
+                        "## Project overview (excerpt)\n"
+                        f"{overview or '(unavailable)'}\n\n"
+                        "## Specialist charter excerpts\n"
+                        "Synthesize these lenses into one coherent answer.\n\n"
+                        f"{charter_block}\n\n"
+                        "## Ticket snapshot (JSON)\n"
+                        f"{json_snap}\n\n"
+                        "These rows live in `founder_decisions` in status JSON; the dashboard does not auto-apply "
+                        "edits from this chat. Give clear recommendations and trade-offs. "
+                        "Respond with a single JSON object ONLY, keys:\n"
+                        '- "thinking": string, step-by-step reasoning.\n'
+                        '- "assistant_message": string, reply to the founder (markdown allowed).\n'
+                        '- "priority_updates": always use [] (empty array) for this ticket kind.\n'
+                    )
+
+                model = (
+                    os.environ.get("MY_ACTIONS_CHAT_MODEL")
+                    or os.environ.get("ISSUE_CHAT_MODEL")
+                    or "gpt-4o-mini"
+                ).strip()
+                try:
+                    norm_messages = []
+                    for m in messages:
+                        if not isinstance(m, dict):
+                            continue
+                        role = m.get("role")
+                        content = m.get("content")
+                        if role in ("user", "assistant") and isinstance(content, str):
+                            norm_messages.append({"role": role, "content": content})
+                    if not norm_messages:
+                        return self._send_json(HTTPStatus.BAD_REQUEST, {"error": "no valid messages"})
+                    result = _issue_chat_call_openai(
+                        api_key=openai_key,
+                        model=model,
+                        system_prompt=system_prompt,
+                        messages=norm_messages,
+                    )
+                except (RuntimeError, KeyError, json.JSONDecodeError, TypeError) as exc:
+                    return self._send_json(
+                        HTTPStatus.BAD_GATEWAY,
+                        {"error": "chat_failed", "message": str(exc)},
+                    )
+                if not isinstance(result, dict):
+                    result = {
+                        "thinking": "",
+                        "assistant_message": str(result),
+                        "priority_updates": [],
+                    }
+                else:
+                    result.setdefault("thinking", "")
+                    result.setdefault("assistant_message", "")
+                    pu = result.get("priority_updates")
+                    if not isinstance(pu, list):
+                        result["priority_updates"] = []
+                    if kind != "review":
+                        result["priority_updates"] = []
+                meta: dict[str, Any] = {
+                    "relevantAgents": slugs,
+                    "model": model,
+                }
+                return self._send_json(
+                    HTTPStatus.OK,
+                    {"ok": True, "result": result, "meta": meta},
+                )
 
             # ── Status-file write-back ──────────────────────────────────────
             if raw_path == "/api/status-update":

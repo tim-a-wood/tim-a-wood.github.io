@@ -1549,7 +1549,7 @@ body::before {
 }
 .ma-detail-panel {
   width: min(800px, 96vw);
-  max-height: min(88vh, 920px);
+  max-height: min(92vh, 980px);
   margin: auto;
   display: flex;
   flex-direction: column;
@@ -1558,6 +1558,13 @@ body::before {
   border: 1px solid var(--line);
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-lg);
+  overflow: hidden;
+}
+.ma-detail-main {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
 }
 .ma-detail-header {
@@ -1610,14 +1617,69 @@ body::before {
   background: var(--os-control-hover);
 }
 .ma-detail-scroll {
-  flex: 1 1 auto;
-  min-height: min(160px, 24vh);
+  flex: 0 1 auto;
+  max-height: min(34vh, 300px);
+  min-height: min(120px, 18vh);
   overflow-y: auto;
   overscroll-behavior: contain;
   padding: var(--space-4);
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
+}
+.ma-detail-chat {
+  flex: 1 1 240px;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--line);
+  padding: var(--space-3) 0 var(--space-2);
+}
+.ma-detail-chat-head {
+  padding: 0 var(--space-4);
+  flex-shrink: 0;
+}
+.ma-detail-chat-agents {
+  font-size: var(--font-size-sm);
+  color: var(--muted);
+  margin: 0 0 var(--space-2) 0;
+  line-height: 1.45;
+}
+#ma-detail-chat-scroll {
+  flex: 1 1 120px;
+  min-height: 100px;
+  max-height: min(32vh, 280px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--space-2) var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.ma-detail-chat-row {
+  display: flex;
+  gap: var(--space-2);
+  align-items: flex-end;
+  padding: 0 var(--space-4);
+  flex-shrink: 0;
+}
+.ma-detail-chat-row .issue-chat-input {
+  flex: 1;
+  min-height: 64px;
+}
+.ma-detail-chat-apply-wrap {
+  padding: var(--space-2) var(--space-4) 0;
+  flex-shrink: 0;
+}
+.ma-detail-chat-hint {
+  font-size: var(--font-size-xs);
+  color: var(--muted);
+  margin: var(--space-2) var(--space-4) 0;
+  line-height: 1.45;
+  padding-bottom: var(--space-1);
+}
+.ma-detail-chat .issue-chat-pending {
+  margin: 0 var(--space-4) var(--space-2);
 }
 .ma-detail-block { margin: 0; }
 .ma-detail-section-label {
@@ -7319,7 +7381,25 @@ h3.os-chart-card-title {
       </div>
       <button type="button" class="ma-detail-close" id="ma-detail-close" title="Close" aria-label="Close">✕</button>
     </div>
-    <div class="ma-detail-scroll" id="ma-detail-scroll"></div>
+    <div class="ma-detail-main">
+      <div class="ma-detail-scroll" id="ma-detail-scroll"></div>
+      <section class="ma-detail-chat" aria-label="OpenAI discussion">
+        <div class="ma-detail-chat-head">
+          <p class="ma-detail-section-label" id="ma-detail-chat-section-label">Discuss with OpenAI</p>
+          <p class="ma-detail-chat-agents" id="ma-detail-chat-agents"></p>
+        </div>
+        <div id="ma-detail-chat-scroll"></div>
+        <div class="issue-chat-pending" id="ma-detail-chat-pending" hidden></div>
+        <div class="ma-detail-chat-row">
+          <textarea class="issue-chat-input" id="ma-detail-chat-input" rows="2" placeholder="Ask about this item…" autocomplete="off" aria-label="Message for OpenAI"></textarea>
+          <button type="button" class="issue-chat-send" id="ma-detail-chat-send">Send</button>
+        </div>
+        <div class="ma-detail-chat-apply-wrap" id="ma-detail-chat-apply-wrap" hidden>
+          <button type="button" class="issue-chat-apply" id="ma-detail-chat-apply" disabled>Apply suggested priority updates</button>
+        </div>
+        <p class="ma-detail-chat-hint" id="ma-detail-chat-hint"></p>
+      </section>
+    </div>
     <div class="ma-detail-footer">
       <p class="ma-detail-footnote">This wording is copied from the agent status file. It is guidance for you as founder, not a system command. File links open in a new tab when the Agent OS supervisor is serving the repo (markdown preview or raw JSON).</p>
       <button type="button" class="av-btn av-btn--accent" id="ma-detail-dismiss">Close</button>
@@ -13308,6 +13388,382 @@ var maDetailPayloads = Object.create(null);
 var maDetailOverlayWired = false;
 /** After a drag ends, ignore card clicks briefly (avoids accidental open). */
 var maSuppressDetailUntil = 0;
+/** id -> { messages: [{role, content}], pendingUpdates: [] } for My Actions OpenAI panel */
+var maDetailChatSessions = Object.create(null);
+var maDetailChatTicketId = null;
+var maDetailChatSessionRef = null;
+var maDetailChatLoading = false;
+var maDetailChatControlsWired = false;
+
+/** Aligns with supervisor `_MY_ACTIONS_SOURCE_TOKEN_TO_AGENT` for UI agent list. */
+var MA_SOURCE_TOKEN_TO_AGENT = {
+  eng: 'engineering',
+  engineering: 'engineering',
+  qa: 'qa',
+  ld: 'level-design',
+  'level-design': 'level-design',
+  leveldesign: 'level-design',
+  cyber: 'cybersecurity',
+  cybersecurity: 'cybersecurity',
+  gd: 'game-director',
+  gamedirector: 'game-director',
+  design: 'design',
+  marketing: 'marketing',
+  finance: 'finance',
+  legal: 'legal',
+  strategy: 'strategy',
+  narrative: 'narrative',
+  audio: 'audio',
+  creative: 'creative',
+  research: 'research',
+  orchestration: 'orchestrator',
+  orch: 'orchestrator',
+  founder: 'orchestrator',
+  analytics: 'analytics',
+  support: 'support',
+  animation: 'animation',
+  'game-systems': 'game-systems',
+  gamesystems: 'game-systems'
+};
+
+function maStatusFileToAgentSlug(fname) {
+  if (!fname || typeof fname !== 'string') return null;
+  var base = fname.replace(/\\/g, '/').split('/').pop() || '';
+  if (!/-status\.json$/i.test(base)) return null;
+  var stem = base.slice(0, -('-status.json'.length)).toLowerCase();
+  if (stem === 'orchestration') return 'orchestrator';
+  if (/^[a-z0-9-]+$/.test(stem)) return stem;
+  return null;
+}
+
+function maTokenToAgentSlugFromSource(tok) {
+  var p = String(tok || '').toLowerCase().trim().replace(/^\.+|\.+$/g, '');
+  if (!p) return null;
+  if (MA_SOURCE_TOKEN_TO_AGENT[p]) return MA_SOURCE_TOKEN_TO_AGENT[p];
+  if (/^[a-z0-9-]+$/.test(p) && AGENTS[p]) return p;
+  return null;
+}
+
+function maTokensFromSourceRaw(raw) {
+  var out = [];
+  var seen = Object.create(null);
+  if (!raw || typeof raw !== 'string') return out;
+  String(raw).toLowerCase().split(/[\s,+;|/]+/).forEach(function(part) {
+    var slug = maTokenToAgentSlugFromSource(part);
+    if (slug && !seen[slug]) {
+      seen[slug] = true;
+      out.push(slug);
+    }
+  });
+  return out;
+}
+
+function maCollectRelevantAgentSlugsForTicketPayload(ticket) {
+  var seen = Object.create(null);
+  var ordered = [];
+  function add(slug) {
+    if (!slug || seen[slug]) return;
+    if (!AGENTS[slug]) return;
+    seen[slug] = true;
+    ordered.push(slug);
+  }
+  add('orchestrator');
+  var owner = ticket.ownerAgent || ticket.owner_agent || ticket.agent;
+  if (owner) add(String(owner).trim());
+  var extras = ticket.extraAgents || ticket.extra_agents;
+  if (Array.isArray(extras)) {
+    extras.forEach(function(x) {
+      if (typeof x === 'string' && x.trim()) add(x.trim());
+    });
+  }
+  maTokensFromSourceRaw(ticket.sourceRaw || ticket.source_raw || '').forEach(add);
+  var synth = ticket.synthesisSources || ticket.synthesis_sources;
+  if (Array.isArray(synth)) {
+    for (var i = 0; i < synth.length; i++) {
+      var s = maStatusFileToAgentSlug(synth[i]);
+      if (s) add(s);
+    }
+  }
+  return ordered;
+}
+
+function maDetailChatLoadSession(id) {
+  if (!maDetailChatSessions[id]) {
+    maDetailChatSessions[id] = { messages: [], pendingUpdates: [] };
+  }
+  return maDetailChatSessions[id];
+}
+
+function maFindPriorityRowInCache(p) {
+  if (!p || p.type !== 'review' || !p.statusFile || p.priorityKey == null) return null;
+  var data = avCache[p.statusFile];
+  if (!data || !Array.isArray(data.priorities)) return null;
+  var key = p.priorityKey;
+  for (var i = 0; i < data.priorities.length; i++) {
+    var row = data.priorities[i];
+    if (row && issueChatRowIdMatch(row.id, key)) return row;
+  }
+  return null;
+}
+
+function maFindFounderRowInCache(p) {
+  if (!p || (p.type !== 'blocking' && p.type !== 'decision') || !p.statusFile) return null;
+  var data = avCache[p.statusFile];
+  if (!data || !Array.isArray(data.founder_decisions)) return null;
+  for (var i = 0; i < data.founder_decisions.length; i++) {
+    var fd = data.founder_decisions[i];
+    if (fd && maFounderId(p.agent, fd) === p.id) return fd;
+  }
+  return null;
+}
+
+function maBuildMyActionsChatTicketPayload(p) {
+  var ticket = {
+    kind: p.type,
+    id: p.id,
+    agent: p.agent,
+    ownerAgent: p.agent,
+    title: p.title || '',
+    sourceLine: p.sourceLine || '',
+    note: p.note || '',
+    statusFile: p.statusFile || ''
+  };
+  if (p.sourceRaw) ticket.sourceRaw = p.sourceRaw;
+  if (p.productScopeText) ticket.productScopeText = p.productScopeText;
+  if (Array.isArray(p.synthesisSources) && p.synthesisSources.length) {
+    ticket.synthesisSources = p.synthesisSources.slice();
+  }
+  if (typeof osProductContext === 'string' && osProductContext) {
+    ticket.productContext = osProductContext;
+  }
+  if (p.type === 'review') {
+    if (p.summary) ticket.summary = p.summary;
+    if (p.owner) ticket.owner = p.owner;
+    if (p.stakeholders) ticket.stakeholders = p.stakeholders;
+    if (p.proposed_solution) ticket.proposed_solution = p.proposed_solution;
+    if (p.risk) ticket.risk = p.risk;
+    var prow = maFindPriorityRowInCache(p);
+    if (prow && typeof prow === 'object') {
+      var clean = {};
+      Object.keys(prow).forEach(function(k) {
+        if (k.indexOf('_') !== 0) clean[k] = prow[k];
+      });
+      ticket.priorityRow = clean;
+    }
+  } else {
+    var frow = maFindFounderRowInCache(p);
+    if (frow && typeof frow === 'object') {
+      var cleanF = {};
+      Object.keys(frow).forEach(function(k) {
+        if (k.indexOf('_') !== 0) cleanF[k] = frow[k];
+      });
+      ticket.founderRow = cleanF;
+    }
+  }
+  return ticket;
+}
+
+function maDetailChatSetPending(show) {
+  var row = document.getElementById('ma-detail-chat-pending');
+  if (!row) return;
+  if (!show) {
+    row.hidden = true;
+    row.innerHTML = '';
+    return;
+  }
+  row.hidden = false;
+  row.className = 'issue-chat-pending';
+  row.innerHTML = '<span class="issue-chat-pending-title">Waiting for model<span class="issue-chat-pending-ellipsis">…</span></span>'
+    + '<span class="issue-chat-pending-detail">OpenAI via POST /api/my-actions-chat (usually seconds).</span>';
+}
+
+function maDetailChatAppendBubble(role, text, thinking, isErr) {
+  var scroll = document.getElementById('ma-detail-chat-scroll');
+  if (!scroll) return;
+  if (thinking) {
+    var wrap = document.createElement('div');
+    wrap.className = 'issue-chat-thinking-block';
+    wrap.innerHTML = '<div class="issue-chat-thinking-label">Agent reasoning</div><pre class="issue-chat-thinking-body"></pre>';
+    wrap.querySelector('pre').textContent = thinking;
+    scroll.appendChild(wrap);
+  }
+  var bubble = document.createElement('div');
+  bubble.className = 'issue-chat-bubble issue-chat-bubble--' + role + (isErr ? ' issue-chat-bubble--err' : '');
+  bubble.textContent = text || '';
+  scroll.appendChild(bubble);
+  scroll.scrollTop = scroll.scrollHeight;
+}
+
+function maDetailChatClearScroll() {
+  var scroll = document.getElementById('ma-detail-chat-scroll');
+  if (scroll) scroll.innerHTML = '';
+}
+
+function maDetailChatRenderSessionMessages(msgs) {
+  maDetailChatClearScroll();
+  if (!msgs || !msgs.length) return;
+  for (var i = 0; i < msgs.length; i++) {
+    var m = msgs[i];
+    if (!m || (m.role !== 'user' && m.role !== 'assistant')) continue;
+    maDetailChatAppendBubble(m.role, m.content, null, false);
+  }
+}
+
+async function maDetailChatSend() {
+  var input = document.getElementById('ma-detail-chat-input');
+  var sendBtn = document.getElementById('ma-detail-chat-send');
+  var applyBtn = document.getElementById('ma-detail-chat-apply');
+  var p = maDetailChatTicketId ? maDetailPayloads[maDetailChatTicketId] : null;
+  if (!p || !maDetailChatSessionRef || !input || maDetailChatLoading) return;
+  var text = (input.value || '').trim();
+  if (!text) return;
+  var messages = maDetailChatSessionRef.messages;
+  messages.push({ role: 'user', content: text });
+  input.value = '';
+  maDetailChatAppendBubble('user', text, null, false);
+  maDetailChatLoading = true;
+  maDetailChatSetPending(true);
+  if (sendBtn) sendBtn.disabled = true;
+  input.disabled = true;
+  var ticketPayload = maBuildMyActionsChatTicketPayload(p);
+  var ac = new AbortController();
+  var timeoutId = setTimeout(function() { ac.abort(); }, ISSUE_CHAT_FETCH_TIMEOUT_MS);
+  try {
+    var resp = await fetch(agentOsApiUrl('/api/my-actions-chat'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      signal: ac.signal,
+      body: JSON.stringify({ messages: messages, ticket: ticketPayload })
+    });
+    var j = await resp.json().catch(function() { return {}; });
+    if (!resp.ok) {
+      var errMsg = j.message || j.error || ('HTTP ' + resp.status);
+      if (resp.status === 404) {
+        errMsg = 'My Actions chat API not found. Open the dashboard via python3 scripts/os_dashboard_supervisor.py.';
+      }
+      maDetailChatAppendBubble('assistant', errMsg, null, true);
+      maDetailChatSessionRef.pendingUpdates = [];
+      if (applyBtn) applyBtn.disabled = true;
+      return;
+    }
+    if (j && j.ok === false) {
+      maDetailChatAppendBubble('assistant', j.message || j.error || 'Chat request failed.', null, true);
+      maDetailChatSessionRef.pendingUpdates = [];
+      if (applyBtn) applyBtn.disabled = true;
+      return;
+    }
+    var r = j.result || {};
+    var thinking = typeof r.thinking === 'string' ? r.thinking : '';
+    var msg = typeof r.assistant_message === 'string' ? r.assistant_message : JSON.stringify(r);
+    messages.push({ role: 'assistant', content: msg });
+    maDetailChatAppendBubble('assistant', msg, thinking, false);
+    var pu = Array.isArray(r.priority_updates) ? r.priority_updates : [];
+    maDetailChatSessionRef.pendingUpdates = pu;
+    if (applyBtn) {
+      applyBtn.disabled = p.type !== 'review' || pu.length === 0;
+    }
+    var agentsEl = document.getElementById('ma-detail-chat-agents');
+    if (agentsEl && j.meta && Array.isArray(j.meta.relevantAgents) && j.meta.relevantAgents.length) {
+      var labels = j.meta.relevantAgents.map(maAgentDisplayLabel);
+      agentsEl.textContent = 'Charters in context: ' + labels.join(', ');
+    }
+  } catch (e) {
+    var errText = (e && e.name === 'AbortError')
+      ? 'Request timed out. Try a shorter question or check OPENAI_API_KEY on the supervisor.'
+      : String(e);
+    maDetailChatAppendBubble('assistant', errText, null, true);
+    maDetailChatSessionRef.pendingUpdates = [];
+    if (applyBtn) applyBtn.disabled = true;
+  } finally {
+    clearTimeout(timeoutId);
+    maDetailChatSetPending(false);
+    maDetailChatLoading = false;
+    if (sendBtn) sendBtn.disabled = false;
+    if (input) input.disabled = false;
+  }
+}
+
+async function maDetailChatApplyPriorityUpdates() {
+  var p = maDetailChatTicketId ? maDetailPayloads[maDetailChatTicketId] : null;
+  if (!p || p.type !== 'review' || !maDetailChatSessionRef) return;
+  var pending = maDetailChatSessionRef.pendingUpdates || [];
+  var filtered = [];
+  for (var i = 0; i < pending.length; i++) {
+    var u = pending[i];
+    if (!u || u.file !== p.statusFile) continue;
+    if (!issueChatRowIdMatch(p.priorityKey, u.id)) continue;
+    filtered.push(u);
+  }
+  if (!filtered.length) {
+    avShowToast('No suggested updates apply to this card', false);
+    return;
+  }
+  var touched = {};
+  for (var j = 0; j < filtered.length; j++) {
+    var u2 = filtered[j];
+    var file = u2.file;
+    var id = u2.id;
+    var fields = u2.fields;
+    if (!file || !issueChatValidateUpdateFile(file)) continue;
+    if (!fields || typeof fields !== 'object') continue;
+    var data = avCache[file];
+    if (!data || !Array.isArray(data.priorities)) continue;
+    var pr = data.priorities.find(function(x) { return issueChatRowIdMatch(x.id, id); });
+    if (!pr) continue;
+    Object.keys(fields).forEach(function(k) {
+      if (k === 'stakeholders') {
+        issueChatMergeStakeholders(pr, fields[k]);
+        return;
+      }
+      if (['title', 'status', 'risk', 'note', 'proposed_solution', 'owner', 'summary', 'solution'].indexOf(k) !== -1) {
+        pr[k] = fields[k];
+      }
+    });
+    data.updated = new Date().toISOString().slice(0, 10);
+    touched[file] = true;
+  }
+  var files = Object.keys(touched);
+  if (!files.length) {
+    avShowToast('No valid updates to apply', false);
+    return;
+  }
+  var results = await Promise.all(files.map(function(file) { return avPersist(file); }));
+  if (results.every(Boolean)) {
+    files.forEach(function(file) {
+      avRecordManualBaseline(file, avCache[file].priorities || []);
+    });
+    avRebuildAllActionsFromCache();
+    avApplyFilters();
+    refreshOngoingIfActive();
+    maRenderBoard();
+    maUpdateNavBadge();
+    var applyBtn = document.getElementById('ma-detail-chat-apply');
+    maDetailChatSessionRef.pendingUpdates = [];
+    if (applyBtn) applyBtn.disabled = true;
+    avShowToast('Applied priority updates', true);
+    maCloseDetailOverlay();
+  } else {
+    avShowToast('Save failed — is the supervisor running?', false);
+  }
+}
+
+function maWireMaDetailChatControlsOnce() {
+  if (maDetailChatControlsWired) return;
+  var sendBtn = document.getElementById('ma-detail-chat-send');
+  var applyBtn = document.getElementById('ma-detail-chat-apply');
+  var inp = document.getElementById('ma-detail-chat-input');
+  if (!sendBtn && !inp) return;
+  maDetailChatControlsWired = true;
+  if (sendBtn) sendBtn.addEventListener('click', function() { void maDetailChatSend(); });
+  if (applyBtn) applyBtn.addEventListener('click', function() { void maDetailChatApplyPriorityUpdates(); });
+  if (inp) {
+    inp.addEventListener('keydown', function(e) {
+      if (e.key !== 'Enter' || e.shiftKey) return;
+      e.preventDefault();
+      void maDetailChatSend();
+    });
+  }
+}
 
 function maHash32(s) {
   var str = String(s || '');
@@ -13520,6 +13976,7 @@ function maAggregateMyActions() {
         seenFounder[dedupe] = true;
         var id = maFounderId(agent, fd);
         var noteF = fd.note != null ? String(fd.note).trim() : '';
+        var srcRawF = fd.source != null ? String(fd.source).trim() : '';
         var psF = formatRowProductLabelsFromSlugs(rowProductSlugsForTable(agent, fd));
         var item = {
           id: id,
@@ -13530,6 +13987,7 @@ function maAggregateMyActions() {
           note: noteF,
           statusFile: entry.file,
         };
+        if (srcRawF) item.sourceRaw = srcRawF;
         if (psF && psF !== '—') item.productScopeText = psF;
         if (agent === 'orchestrator' && Array.isArray(data.synthesis_sources)) {
           var syn = data.synthesis_sources.map(maStr).filter(function(f) {
@@ -13554,6 +14012,7 @@ function maAggregateMyActions() {
         var sumP = maStr(p.summary);
         var ownP = maStr(p.owner);
         var stP = maFormatStakeholders(p.stakeholders);
+        var srcRawP = p.source != null ? String(p.source).trim() : '';
         var psP = formatRowProductLabelsFromSlugs(rowProductSlugsForTable(agent, p));
         var rev = {
           id: maReviewId(agent, p),
@@ -13567,6 +14026,7 @@ function maAggregateMyActions() {
           statusFile: entry.file,
           priorityKey: String(p.id),
         };
+        if (srcRawP) rev.sourceRaw = srcRawP;
         if (sumP) rev.summary = sumP;
         if (ownP) rev.owner = ownP;
         if (stP) rev.stakeholders = stP;
@@ -13969,6 +14429,46 @@ function maOpenDetailOverlay(id) {
   }
   maAddDetailLinkSection(scroll, 'Relevant files (supervisor / repo)', deduped);
 
+  maWireMaDetailChatControlsOnce();
+  maDetailChatTicketId = p.id;
+  maDetailChatSessionRef = maDetailChatLoadSession(p.id);
+  maDetailChatSetPending(false);
+  maDetailChatLoading = false;
+  maDetailChatRenderSessionMessages(maDetailChatSessionRef.messages);
+  var ticketForSlugs = maBuildMyActionsChatTicketPayload(p);
+  var slugs = maCollectRelevantAgentSlugsForTicketPayload(ticketForSlugs);
+  var agentsEl = document.getElementById('ma-detail-chat-agents');
+  if (agentsEl) {
+    agentsEl.textContent = slugs.length
+      ? ('Charters in context: ' + slugs.map(maAgentDisplayLabel).join(', '))
+      : 'Charters in context: orchestrator (add source tokens in status JSON to pull more specialists).';
+  }
+  var applyWrap = document.getElementById('ma-detail-chat-apply-wrap');
+  var applyBtn = document.getElementById('ma-detail-chat-apply');
+  var chatInput = document.getElementById('ma-detail-chat-input');
+  var chatSend = document.getElementById('ma-detail-chat-send');
+  var hint = document.getElementById('ma-detail-chat-hint');
+  if (p.type === 'review') {
+    if (applyWrap) applyWrap.hidden = false;
+    var pu = maDetailChatSessionRef.pendingUpdates || [];
+    if (applyBtn) applyBtn.disabled = pu.length === 0;
+  } else {
+    if (applyWrap) applyWrap.hidden = true;
+    if (applyBtn) applyBtn.disabled = true;
+    maDetailChatSessionRef.pendingUpdates = [];
+  }
+  if (hint) {
+    hint.textContent = 'Uses OPENAI_API_KEY on the supervisor (optional MY_ACTIONS_CHAT_MODEL). '
+      + (p.type === 'review'
+        ? 'Review cards: the model may suggest priority_updates — Apply writes this row only.'
+        : 'Blocking/decision cards: chat is advisory; founder_decisions are not auto-edited.');
+  }
+  if (chatInput) {
+    chatInput.disabled = false;
+    chatInput.value = '';
+  }
+  if (chatSend) chatSend.disabled = false;
+
   backdrop.classList.add('visible');
   backdrop.setAttribute('aria-hidden', 'false');
   var closeBtn = document.getElementById('ma-detail-close');
@@ -13978,6 +14478,12 @@ function maOpenDetailOverlay(id) {
 function maCloseDetailOverlay() {
   var backdrop = document.getElementById('ma-detail-backdrop');
   if (!backdrop) return;
+  maDetailChatSetPending(false);
+  maDetailChatLoading = false;
+  var sendBtn = document.getElementById('ma-detail-chat-send');
+  var inp = document.getElementById('ma-detail-chat-input');
+  if (sendBtn) sendBtn.disabled = false;
+  if (inp) inp.disabled = false;
   backdrop.classList.remove('visible');
   backdrop.setAttribute('aria-hidden', 'true');
 }
