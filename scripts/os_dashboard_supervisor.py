@@ -5,7 +5,8 @@ allowed path prefixes (for the Guides & policies iframe and in-page links), GET 
 POST /api/workbench/{start|stop|restart}, POST /api/status-update (full JSON replace per file, including row deletes from the dashboard),
 POST /api/archive-document (move a policy/guide to docs/archived-policies/ and write a reference report),
 and POST /api/issue-chat (issue and opportunity discussion in the UI; JSON body may set rowKind to "opportunity"),
-and POST /api/agent-chat (specialist chat in the Agents home modal; OpenAI Chat Completions with charter + overview + task context).
+and POST /api/agent-chat (specialist chat in the Agents home modal; OpenAI Chat Completions with charter + overview + task context),
+POST /api/sprite-arch-explain (sprite-arch inspector: OpenAI JSON with repo snippet + manifest edges; OPENAI_API_KEY required).
 Binds 127.0.0.1 only.
 
 Issue chat backends (see selection logic in Handler):
@@ -515,6 +516,96 @@ def _normalize_workbench_post_path(path: str) -> str | None:
     return path
 
 
+_SPRITE_ARCH_READ_PREFIXES = (
+    "tools/2d-sprite-and-animation/",
+    "scripts/",
+)
+
+
+def _sprite_arch_path_allowlisted(rel: str) -> bool:
+    rel = rel.strip().replace("\\", "/")
+    if not rel or ".." in rel.split("/"):
+        return False
+    return any(rel == p.rstrip("/") or rel.startswith(p) for p in _SPRITE_ARCH_READ_PREFIXES)
+
+
+def _sprite_arch_explain(repo_root: Path, *, node_id: str) -> tuple[int, dict[str, Any]]:
+    mf = repo_root / "artifacts" / "sprite-workbench-arch" / "manifest.json"
+    if not mf.is_file():
+        return HTTPStatus.NOT_FOUND, {"error": "manifest_not_found"}
+    try:
+        manifest = json.loads(mf.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return HTTPStatus.INTERNAL_SERVER_ERROR, {"error": "manifest_invalid"}
+    nodes = manifest.get("nodes")
+    if not isinstance(nodes, list):
+        return HTTPStatus.INTERNAL_SERVER_ERROR, {"error": "manifest_invalid"}
+    node = next((n for n in nodes if isinstance(n, dict) and n.get("id") == node_id), None)
+    if not node:
+        return HTTPStatus.NOT_FOUND, {"error": "node_not_found"}
+    rel_path = (node.get("path") or "").strip().replace("\\", "/")
+    if not _sprite_arch_path_allowlisted(rel_path):
+        return HTTPStatus.FORBIDDEN, {"error": "path_not_allowlisted"}
+    fpath = (repo_root / rel_path).resolve()
+    try:
+        fpath.relative_to(repo_root.resolve())
+    except ValueError:
+        return HTTPStatus.FORBIDDEN, {"error": "path_outside_repo"}
+    if not fpath.is_file():
+        return HTTPStatus.NOT_FOUND, {"error": "file_not_found"}
+    try:
+        text = fpath.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return HTTPStatus.INTERNAL_SERVER_ERROR, {"error": "read_failed"}
+    text = text[:12000]
+    edges = manifest.get("edges")
+    edge_list = edges if isinstance(edges, list) else []
+    inbound = [e for e in edge_list if isinstance(e, dict) and e.get("target") == node_id][:24]
+    outbound = [e for e in edge_list if isinstance(e, dict) and e.get("source") == node_id][:24]
+    api_key = (os.environ.get("OPENAI_API_KEY") or "").strip()
+    if not api_key:
+        return HTTPStatus.SERVICE_UNAVAILABLE, {
+            "error": "no_openai_key",
+            "message": "Set OPENAI_API_KEY when running the supervisor to use Explain.",
+        }
+    model = (
+        (os.environ.get("SPRITE_ARCH_EXPLAIN_MODEL") or "").strip()
+        or (os.environ.get("ISSUE_CHAT_MODEL") or "").strip()
+        or "gpt-4o-mini"
+    )
+    system_prompt = (
+        "You explain one file from a browser-based game toolchain (sprite workbench + scripts). "
+        "The manifest edges are partially heuristic (especially js_static_ref and JS exports). "
+        "Do not contradict explicit edge kinds; note uncertainty. "
+        'Respond with JSON only: {"explanation": string} — plain text, concise (under 1200 characters).'
+    )
+    user_blob: dict[str, Any] = {
+        "path": rel_path,
+        "layer": node.get("layer"),
+        "kind": node.get("kind"),
+        "exports": node.get("exports"),
+        "exports_kind": node.get("exports_kind"),
+        "churn_30d": node.get("churn_30d"),
+        "inbound_edges": inbound,
+        "outbound_edges": outbound,
+        "snippet": text,
+    }
+    messages = [{"role": "user", "content": json.dumps(user_blob, ensure_ascii=False, indent=2)}]
+    try:
+        result = _issue_chat_call_openai(
+            api_key=api_key,
+            model=model,
+            system_prompt=system_prompt,
+            messages=messages,
+        )
+    except RuntimeError as exc:
+        return HTTPStatus.BAD_GATEWAY, {"error": "openai_failed", "message": str(exc)}
+    exp = result.get("explanation")
+    if not isinstance(exp, str):
+        return HTTPStatus.BAD_GATEWAY, {"error": "bad_model_response"}
+    return HTTPStatus.OK, {"explanation": exp}
+
+
 def make_handler(
     *,
     repo_root: Path,
@@ -782,6 +873,19 @@ def make_handler(
                 if result.get("ok"):
                     return self._send_json(HTTPStatus.OK, result)
                 return self._send_json(HTTPStatus.BAD_REQUEST, result)
+
+            if raw_path == "/api/sprite-arch-explain":
+                length = int(self.headers.get("Content-Length", 0))
+                raw_body = self.rfile.read(length) if length > 0 else b""
+                try:
+                    payload = json.loads(raw_body or b"{}")
+                except json.JSONDecodeError:
+                    return self._send_json(HTTPStatus.BAD_REQUEST, {"error": "Invalid JSON"})
+                node_id = (payload.get("node_id") or payload.get("nodeId") or "").strip()
+                if not node_id:
+                    return self._send_json(HTTPStatus.BAD_REQUEST, {"error": "node_id required"})
+                status, obj = _sprite_arch_explain(repo_root, node_id=node_id)
+                return self._send_json(status, obj)
 
             # ── Issue discussion chat (OpenAI-compatible JSON response) ─────
             if raw_path == "/api/issue-chat":

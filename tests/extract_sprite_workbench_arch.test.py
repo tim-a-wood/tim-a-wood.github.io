@@ -25,7 +25,7 @@ class ExtractSpriteWorkbenchArchTests(unittest.TestCase):
         )
         self.assertEqual(r.returncode, 0, r.stderr)
         data = json.loads(r.stdout)
-        self.assertEqual(data.get("schema_version"), "0.1")
+        self.assertEqual(data.get("schema_version"), "0.2")
         self.assertIn("extract_sprite_workbench_arch", data.get("extractor_versions", {}))
         nodes = data["nodes"]
         edges = data["edges"]
@@ -34,6 +34,10 @@ class ExtractSpriteWorkbenchArchTests(unittest.TestCase):
         py = [n for n in nodes if n["kind"] == "python"]
         self.assertGreaterEqual(len(js), 18)
         self.assertGreaterEqual(len(py), 18)
+        for n in nodes[:3]:
+            self.assertIn("exports", n)
+            self.assertIn("exports_kind", n)
+            self.assertIn("churn_30d", n)
         kinds = {e["kind"] for e in edges}
         self.assertIn("html_script_order", kinds)
         self.assertIn("python_import", kinds)

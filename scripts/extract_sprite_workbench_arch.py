@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""P0 manifest: sprite workbench browser script order + scoped Python import edges.
+"""Sprite workbench architecture manifest: script order, imports, optional exports, churn, JS refs.
 
 Writes deterministic JSON to artifacts/sprite-workbench-arch/manifest.json.
-See docs/sprite-workbench-architecture-visualization-plan.md §6.
+See docs/sprite-workbench-architecture-visualization-plan.md §4.1 (I1) and §6.
 """
 
 from __future__ import annotations
@@ -25,8 +25,20 @@ SCRIPT_SRC_RE = re.compile(
     re.IGNORECASE,
 )
 
+# Heuristic top-level JS names (I1 — not ES modules; false positives/negatives possible).
+JS_TOP_FUNCTION = re.compile(r"^(?:export\s+)?function\s+(\w+)\s*\(", re.MULTILINE)
+JS_TOP_CLASS = re.compile(r"^\s*class\s+(\w+)\b", re.MULTILINE)
+JS_TOP_CONST_FN = re.compile(
+    r"^\s*(?:const|let|var)\s+(\w+)\s*=\s*(?:async\s+)?(?:function\b|\([^)]*\)\s*=>)",
+    re.MULTILINE,
+)
+# String literals like './foo.js' referencing another workbench script (heuristic edge).
+JS_LITERAL_REF = re.compile(r"['\"]\./([\w-]+\.js)['\"]")
+
 EXTRACTOR_NAME = "extract_sprite_workbench_arch"
-EXTRACTOR_VERSION = "0.1"
+EXTRACTOR_VERSION = "0.2"
+EXPORTS_CAP = 40
+CHURN_DAYS_DEFAULT = 30
 
 
 def _git_head() -> str:
@@ -88,6 +100,43 @@ def _path_for_scripts_submodule(name: str, py_ids: Set[str]) -> Optional[str]:
     return cand if cand in py_ids else None
 
 
+def _python_exports(py_path: Path) -> List[str]:
+    try:
+        tree = ast.parse(py_path.read_text(encoding="utf-8"), filename=str(py_path))
+    except (OSError, SyntaxError):
+        return []
+    names: List[str] = []
+    for node in tree.body:
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            if not node.name.startswith("_"):
+                names.append(node.name)
+        elif isinstance(node, ast.ClassDef):
+            if not node.name.startswith("_"):
+                names.append(node.name)
+        elif isinstance(node, ast.Assign):
+            for t in node.targets:
+                if isinstance(t, ast.Name) and not t.id.startswith("_"):
+                    names.append(t.id)
+    out = sorted(set(names))[:EXPORTS_CAP]
+    return out
+
+
+def _js_exports_heuristic(repo_root: Path, rel: str) -> List[str]:
+    fpath = repo_root / rel
+    if not fpath.is_file():
+        return []
+    try:
+        text = fpath.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return []
+    found: Set[str] = set()
+    for rx in (JS_TOP_FUNCTION, JS_TOP_CLASS, JS_TOP_CONST_FN):
+        for m in rx.finditer(text):
+            found.add(m.group(1))
+    out = sorted(found)[:EXPORTS_CAP]
+    return out
+
+
 def _python_import_edges(py_file: Path, py_ids: Set[str]) -> List[Tuple[str, str]]:
     src = _py_repo_rel(py_file)
     if src not in py_ids:
@@ -131,30 +180,96 @@ def _python_import_edges(py_file: Path, py_ids: Set[str]) -> List[Tuple[str, str
     return edges
 
 
-def build_manifest(*, html_path: Path, repo_root: Path) -> Dict[str, Any]:
+def _js_literal_ref_edges(js_paths: List[str], repo_root: Path) -> List[Tuple[str, str]]:
+    base_to_id: Dict[str, str] = {}
+    for jp in js_paths:
+        fn = jp.split("/")[-1]
+        base_to_id[fn] = jp
+    found: Set[Tuple[str, str]] = set()
+    for src in js_paths:
+        fpath = repo_root / src
+        if not fpath.is_file():
+            continue
+        try:
+            text = fpath.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+        for m in JS_LITERAL_REF.finditer(text):
+            fn = m.group(1)
+            tgt = base_to_id.get(fn)
+            if tgt and tgt != src:
+                found.add((src, tgt))
+    return sorted(found)
+
+
+def _git_touch_counts(
+    repo_root: Path, days: int, paths: Set[str]
+) -> Dict[str, int]:
+    try:
+        r = subprocess.run(
+            [
+                "git",
+                "log",
+                "--since",
+                f"{days} days ago",
+                "--name-only",
+                "--pretty=format:",
+            ],
+            cwd=str(repo_root),
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+    except (OSError, subprocess.CalledProcessError):
+        return {}
+    counts: Dict[str, int] = {}
+    for line in r.stdout.splitlines():
+        line = line.strip().replace("\\", "/")
+        if line in paths:
+            counts[line] = counts.get(line, 0) + 1
+    return counts
+
+
+def build_manifest(
+    *,
+    html_path: Path,
+    repo_root: Path,
+    churn_days: int = CHURN_DAYS_DEFAULT,
+) -> Dict[str, Any]:
     js_paths = _parse_browser_scripts(html_path)
     py_files = _scoped_python_files()
     py_ids: Set[str] = {_py_repo_rel(p) for p in py_files}
 
+    churn_scope: Set[str] = set(js_paths) | py_ids
+    churn = _git_touch_counts(repo_root, churn_days, churn_scope)
+
     nodes: List[Dict[str, Any]] = []
     for p in js_paths:
-        nodes.append(
-            {
-                "id": p,
-                "path": p,
-                "kind": "browser_js",
-                "layer": _infer_js_layer(p),
-            }
-        )
+        exp = _js_exports_heuristic(repo_root, p)
+        node: Dict[str, Any] = {
+            "id": p,
+            "path": p,
+            "kind": "browser_js",
+            "layer": _infer_js_layer(p),
+            "exports": exp,
+            "exports_kind": "js_heuristic",
+            "churn_30d": churn.get(p, 0),
+        }
+        nodes.append(node)
+
     for p in sorted(py_files, key=lambda x: _py_repo_rel(x)):
         rel = _py_repo_rel(p)
         layer = "python_server" if p.name == "sprite_workbench_server.py" else "python_lib"
+        exp = _python_exports(p)
         nodes.append(
             {
                 "id": rel,
                 "path": rel,
                 "kind": "python",
                 "layer": layer,
+                "exports": exp,
+                "exports_kind": "python_ast",
+                "churn_30d": churn.get(rel, 0),
             }
         )
 
@@ -188,14 +303,31 @@ def build_manifest(*, html_path: Path, repo_root: Path) -> Dict[str, Any]:
             }
         )
 
+    for s, t in _js_literal_ref_edges(js_paths, repo_root):
+        edges.append(
+            {
+                "id": f"js_static_ref:{s}->{t}",
+                "source": s,
+                "target": t,
+                "kind": "js_static_ref",
+            }
+        )
+
     edges.sort(key=lambda e: (e["kind"], e["source"], e["target"]))
 
+    max_churn = max((n.get("churn_30d") or 0) for n in nodes) if nodes else 0
+    hot_ids = [n["id"] for n in nodes if (n.get("churn_30d") or 0) >= max(3, max_churn // 2) and max_churn > 0]
+
     return {
-        "schema_version": "0.1",
+        "schema_version": "0.2",
         "extractor_versions": {EXTRACTOR_NAME: EXTRACTOR_VERSION},
         "git_sha": _git_head(),
         "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-        "scope_note": "Browser: tools/2d-sprite-and-animation/index.html script tags. Python: scripts/sprite_workbench_server.py + scripts/workbench_*.py; imports to in-scope modules only.",
+        "churn_days": churn_days,
+        "churn_max_30d": max_churn,
+        "hotspot_ids_30d": sorted(hot_ids)[:12],
+        "scope_note": "Browser: index.html script tags. Python: sprite_workbench_server.py + workbench_*.py. "
+        "exports: python_ast (stdlib) vs js_heuristic (regex). js_static_ref: string literal ./file.js refs only.",
         "nodes": nodes,
         "edges": edges,
     }
@@ -216,6 +348,12 @@ def main() -> int:
         help="Output manifest path",
     )
     ap.add_argument(
+        "--churn-days",
+        type=int,
+        default=CHURN_DAYS_DEFAULT,
+        help="Git touch window for churn_30d fields",
+    )
+    ap.add_argument(
         "--check-stdout",
         action="store_true",
         help="Print JSON to stdout only (do not write file)",
@@ -227,7 +365,9 @@ def main() -> int:
         print(f"Missing HTML: {html_path}", file=sys.stderr)
         return 1
 
-    manifest = build_manifest(html_path=html_path, repo_root=REPO_ROOT)
+    manifest = build_manifest(
+        html_path=html_path, repo_root=REPO_ROOT, churn_days=args.churn_days
+    )
     text = json.dumps(manifest, indent=2, sort_keys=True) + "\n"
 
     if args.check_stdout:
@@ -237,7 +377,9 @@ def main() -> int:
     out_path: Path = args.out
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(text, encoding="utf-8")
-    print(f"Wrote {out_path} ({len(manifest['nodes'])} nodes, {len(manifest['edges'])} edges)")
+    print(
+        f"Wrote {out_path} ({len(manifest['nodes'])} nodes, {len(manifest['edges'])} edges)"
+    )
     return 0
 
 

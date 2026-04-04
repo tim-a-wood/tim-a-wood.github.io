@@ -7978,6 +7978,19 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
                     "usage_summary": summarize_usage_ledger(),
                 })
 
+            if path == "/api/sprite-arch-explain":
+                from scripts.os_dashboard_supervisor import _sprite_arch_explain
+
+                try:
+                    payload = read_body(self)
+                except ValueError as exc:
+                    return self._send_error_json(HTTPStatus.BAD_REQUEST, str(exc))
+                node_id = (payload.get("node_id") or payload.get("nodeId") or "").strip()
+                if not node_id:
+                    return self._send_error_json(HTTPStatus.BAD_REQUEST, "node_id required")
+                code, obj = _sprite_arch_explain(ROOT, node_id=node_id)
+                return self._send_json(obj, status=HTTPStatus(code))
+
             room_layout_match = re.fullmatch(r"/api/projects/([^/]+)/room-layout", path)
             if room_layout_match:
                 return self._send_json(save_room_layout(room_layout_match.group(1), read_body(self)))
