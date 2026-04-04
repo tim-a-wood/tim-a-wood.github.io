@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Actions — Agent OS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #050709; --panel: rgba(4,6,10,0.96); --panel-2: #07090c;
+  --accent: #00e8c8; --accent-soft: rgba(0,232,200,0.08);
+  --text: #cce8e0; --muted: #5d7870;
+  --stroke: rgba(0,232,200,0.07); --stroke-strong: rgba(0,232,200,0.14);
+  --line: rgba(0,232,200,0.10); --line-strong: rgba(0,232,200,0.18);
+  --border-strong: rgba(0,232,200,0.14);
+  --good: #4ade80; --good-soft: rgba(74,222,128,0.12);
+  --warning: #d29922; --warning-soft: rgba(210,153,34,0.16);
+  --error: #f85149; --error-soft: rgba(248,81,73,0.16);
+  --font-sans: "Plus Jakarta Sans", -apple-system, sans-serif;
+  --font-display: "Bebas Neue", sans-serif;
+  --font-mono: "DM Mono", ui-monospace, monospace;
+  --font-size-xs: 11px; --font-size-sm: 13px; --font-size-base: 14px;
+  --font-size-lg: 18px;
+  --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px;
+  --space-5: 24px; --space-6: 32px;
+  --radius-xs: 4px; --radius-sm: 8px; --radius-md: 10px; --radius-default: 12px;
+  --radius-tight: 14px; --radius-card: 18px; --radius-full: 999px;
+  --shadow-sm: 0 2px 8px rgba(0,0,0,0.18);
+  --transition-fast: 120ms ease; --transition-base: 200ms ease;
+
+  --c-orchestrator: #00e8c8; --c-engineering: #38bdf8; --c-design: #818cf8;
+  --c-marketing: #f5986e; --c-legal: #a78bfa; --c-finance: #f0abfc;
+  --c-strategy: #fbbf24; --c-cybersecurity: #f85149; --c-audio: #fb923c;
+  --c-game-director: #e2e8f0;
+  --os-control: #151c28; --os-control-hover: #1e2838;
+  --os-control-border: rgba(0,232,200,0.22);
+}
+
+:focus-visible { outline: 2px solid rgba(0,232,200,0.35); outline-offset: 2px; }
+html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--font-sans); font-size: var(--font-size-base); line-height: 1.5; }
+body::before { content: ''; display: block; height: 3px; background: var(--accent); position: fixed; top: 0; left: 0; right: 0; z-index: 100; }
+
+/* ── Shell ── */
+.shell { display: grid; grid-template-columns: 216px 1fr; grid-template-rows: minmax(56px, auto) 1fr; grid-template-areas: "header header" "sidebar main"; height: 100vh; padding-top: 3px; gap: 0; }
+
+/* ── Header ── */
+.header { grid-area: header; position: relative; z-index: 12; display: flex; flex-wrap: nowrap; align-items: center; padding: var(--space-2) var(--space-4); border-bottom: 1px solid var(--line); background: var(--panel); backdrop-filter: blur(12px); gap: var(--space-3); min-height: 56px; }
+.header-brand { display: flex; align-items: baseline; gap: var(--space-3); flex-shrink: 0; }
+.header-title { font-family: var(--font-display); font-size: 32px; letter-spacing: 0.06em; color: var(--accent); line-height: 1; }
+.header-sub { font-size: var(--font-size-lg); color: var(--muted); font-weight: 600; letter-spacing: 0.02em; white-space: nowrap; }
+.header-spacer { flex: 1; min-width: var(--space-4); }
+.header-meta { font-family: var(--font-mono); font-size: var(--font-size-xs); color: var(--muted); opacity: 0.7; flex-shrink: 0; }
+.status-badge { display: flex; align-items: center; gap: var(--space-2); flex-shrink: 0; font-size: var(--font-size-sm); color: var(--good); font-family: var(--font-mono); font-weight: 500; background: var(--good-soft); border: 1px solid rgba(74,222,128,0.2); padding: 8px 12px; border-radius: var(--radius-full); }
+.status-badge::before { content: '●'; font-size: 8px; animation: pulse 2s ease-in-out infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+/* ── Sidebar ── */
+.sidebar { grid-area: sidebar; background: var(--panel-2); border-right: 1px solid var(--line); overflow-y: auto; overflow-x: hidden; padding: var(--space-4) 0; }
+.sidebar::-webkit-scrollbar { width: 4px; }
+.sidebar::-webkit-scrollbar-track { background: transparent; }
+.sidebar::-webkit-scrollbar-thumb { background: var(--stroke-strong); border-radius: 2px; }
+.nav-section { margin-bottom: var(--space-4); }
+.nav-divider { height: 1px; background: var(--line); margin: var(--space-2) var(--space-4); }
+.nav-label { font-size: var(--font-size-xs); font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); padding: var(--space-2) var(--space-4); display: block; }
+.nav-item { display: flex; align-items: center; gap: var(--space-2); padding: 6px var(--space-4); font-size: var(--font-size-sm); color: var(--muted); cursor: pointer; border: none; background: none; width: 100%; text-align: left; transition: color var(--transition-fast), background var(--transition-fast); border-radius: 0; min-height: 28px; font-family: var(--font-sans); }
+.nav-item:hover { color: var(--text); background: var(--accent-soft); }
+.nav-item.db-active { color: var(--text); background: var(--accent-soft); }
+.nav-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.nav-item-text { flex: 1; }
+.nav-badge { font-family: var(--font-mono); font-size: 10px; font-weight: 500; padding: 2px 6px; background: var(--error-soft); color: var(--error); border-radius: var(--radius-full); line-height: 1.4; }
+
+/* ── Main ── */
+.main { grid-area: main; display: flex; flex-direction: column; overflow: hidden; padding: var(--space-3) var(--space-4); gap: var(--space-3); }
+
+/* ── View Header ── */
+.view-header { display: flex; align-items: center; gap: var(--space-3); padding-bottom: var(--space-3); border-bottom: 1px solid var(--line); flex-shrink: 0; }
+.view-title { font-family: var(--font-display); font-size: 32px; letter-spacing: 0.06em; color: var(--accent); line-height: 1; }
+.view-count-badge { display: inline-flex; align-items: center; padding: 3px 8px; background: var(--accent-soft); border: 1px solid var(--border-strong); border-radius: var(--radius-full); font-family: var(--font-mono); font-size: var(--font-size-xs); font-weight: 500; color: var(--accent); }
+.view-header-meta { flex: 1; text-align: right; font-family: var(--font-mono); font-size: var(--font-size-xs); color: var(--muted); opacity: 0.6; }
+
+/* ── Board wrapper ── */
+.board-wrap {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.board-wrap::-webkit-scrollbar { width: 4px; }
+.board-wrap::-webkit-scrollbar-track { background: transparent; }
+.board-wrap::-webkit-scrollbar-thumb { background: var(--stroke-strong); border-radius: 2px; }
+
+/* 3-col grid used by both the col-header row and each category row's card lanes */
+.board-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-3);
+}
+
+/* ── Column header row ── */
+.col-headers {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  background: var(--bg);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--line);
+  margin-bottom: var(--space-5);
+}
+
+.col-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) 0;
+}
+
+.col-header-accent {
+  width: 3px;
+  height: 20px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.col-header-title {
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  flex: 1;
+}
+
+.col-header-count {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  padding: 2px 7px;
+  border-radius: var(--radius-full);
+  line-height: 1.5;
+}
+.col-todo  .col-header-count { background: rgba(255,255,255,0.06); color: var(--muted); border: 1px solid rgba(255,255,255,0.08); }
+.col-doing .col-header-count { background: var(--warning-soft); color: var(--warning); border: 1px solid rgba(210,153,34,0.2); }
+.col-done  .col-header-count { background: var(--good-soft); color: var(--good); border: 1px solid rgba(74,222,128,0.2); }
+
+/* ── Category row ── */
+.cat-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-bottom: var(--space-6);
+}
+
+.cat-heading {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  padding-bottom: var(--space-2);
+  border-bottom-width: 1px;
+  border-bottom-style: solid;
+}
+.cat-row-blocking .cat-heading { border-bottom-color: rgba(248,81,73,0.3); }
+.cat-row-decision .cat-heading { border-bottom-color: rgba(210,153,34,0.3); }
+.cat-row-review   .cat-heading { border-bottom-color: rgba(0,232,200,0.2); }
+
+.cat-title {
+  font-family: var(--font-display);
+  font-size: 22px;
+  letter-spacing: 0.05em;
+  line-height: 1;
+}
+.cat-row-blocking .cat-title { color: var(--error); }
+.cat-row-decision .cat-title { color: var(--warning); }
+.cat-row-review   .cat-title { color: var(--accent); }
+
+.cat-count {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  line-height: 1.5;
+}
+.cat-row-blocking .cat-count { background: var(--error-soft);   color: var(--error);   border: 1px solid rgba(248,81,73,0.2); }
+.cat-row-decision .cat-count { background: var(--warning-soft); color: var(--warning); border: 1px solid rgba(210,153,34,0.2); }
+.cat-row-review   .cat-count { background: var(--accent-soft);  color: var(--accent);  border: 1px solid var(--border-strong); }
+
+/* ── Drop zone (one per col per category) ── */
+.drop-zone {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-height: 52px;
+  border-radius: var(--radius-sm);
+  padding: 2px;
+  transition: background var(--transition-fast), outline var(--transition-fast);
+  outline: 1px solid transparent;
+  outline-offset: -1px;
+}
+
+.drop-zone.drag-over {
+  background: var(--accent-soft);
+  outline-color: rgba(0,232,200,0.25);
+}
+
+/* Empty zone hint */
+.drop-zone-empty {
+  display: flex; align-items: center; justify-content: center;
+  height: 44px;
+  border: 1px dashed rgba(255,255,255,0.06);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono); font-size: 10px;
+  color: var(--muted); opacity: 0.35;
+  pointer-events: none; user-select: none;
+}
+.drop-zone-empty:not(:only-child) { display: none; }
+
+/* ── Card ── */
+.kcard {
+  background: var(--os-control);
+  border: 1px solid var(--os-control-border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  transition: background var(--transition-base), border-color var(--transition-base),
+              transform var(--transition-fast), box-shadow var(--transition-base), opacity var(--transition-fast);
+  cursor: grab;
+  display: flex; flex-direction: column;
+  user-select: none; position: relative;
+}
+.kcard:hover { background: var(--os-control-hover); border-color: var(--line-strong); box-shadow: var(--shadow-sm); transform: translateY(-1px); }
+.kcard:active { cursor: grabbing; }
+.kcard.dragging { opacity: 0.3; transform: none; box-shadow: none; }
+
+.kcard-bar { height: 2px; width: 100%; flex-shrink: 0; }
+.kcard-body { padding: var(--space-2) var(--space-3); display: flex; flex-direction: column; gap: var(--space-1); }
+.kcard-meta { display: flex; align-items: center; gap: var(--space-1); flex-wrap: wrap; }
+
+.agent-pill { display: inline-flex; align-items: center; gap: 5px; padding: 2px 7px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07); border-radius: var(--radius-full); font-family: var(--font-mono); font-size: 10px; font-weight: 500; color: var(--text); line-height: 1.4; }
+.agent-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
+
+.risk-badge { display: inline-flex; align-items: center; padding: 2px 6px; border-radius: var(--radius-full); font-family: var(--font-mono); font-size: 10px; font-weight: 500; line-height: 1.4; }
+.risk-badge.high { background: var(--error-soft); color: var(--error); border: 1px solid rgba(248,81,73,0.2); }
+.risk-badge.med  { background: var(--warning-soft); color: var(--warning); border: 1px solid rgba(210,153,34,0.2); }
+
+.kcard-title { font-size: var(--font-size-sm); font-weight: 600; color: var(--text); line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; line-clamp: 3; overflow: hidden; }
+.kcard-source { font-size: var(--font-size-xs); font-family: var(--font-mono); color: var(--muted); opacity: 0.65; }
+
+/* Done column treatment */
+.col-done .kcard { border-color: rgba(74,222,128,0.1); }
+.col-done .kcard-title { opacity: 0.45; }
+.col-done .kcard::after { content: '✓'; position: absolute; top: var(--space-2); right: var(--space-2); font-family: var(--font-mono); font-size: 11px; font-weight: 700; color: var(--good); opacity: 0.5; }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <header class="header">
+    <div class="header-brand">
+      <span class="header-title">AGENT OS</span>
+      <span class="header-sub">MV / Sprite Workbench</span>
+    </div>
+    <div class="header-spacer"></div>
+    <span class="header-meta">Last updated: Apr 4, 2026</span>
+    <div class="status-badge">SYSTEM NOMINAL</div>
+  </header>
+
+  <nav class="sidebar">
+    <div class="nav-section">
+      <span class="nav-label">Start</span>
+      <button type="button" class="nav-item"><span class="nav-dot" style="background:var(--accent)"></span><span class="nav-item-text">Home</span></button>
+    </div>
+    <div class="nav-divider"></div>
+    <div class="nav-section">
+      <span class="nav-label">Dashboards</span>
+      <button type="button" class="nav-item db-active"><span class="nav-dot" style="background:var(--accent)"></span><span class="nav-item-text">My Actions</span><span class="nav-badge" id="navMyActionsCount">16</span></button>
+      <button type="button" class="nav-item"><span class="nav-dot" style="background:#4ade80"></span><span class="nav-item-text">API usage</span></button>
+      <button type="button" class="nav-item"><span class="nav-dot" style="background:#a5b4fc"></span><span class="nav-item-text">Issues</span></button>
+      <button type="button" class="nav-item"><span class="nav-dot" style="background:#4ade80"></span><span class="nav-item-text">Opportunities</span></button>
+      <button type="button" class="nav-item"><span class="nav-dot" style="background:#fbbf24"></span><span class="nav-item-text">Ongoing Tasks</span></button>
+      <button type="button" class="nav-item"><span class="nav-dot" style="background:#22d3ee"></span><span class="nav-item-text">Guides &amp; policies</span></button>
+      <div class="nav-divider" style="margin:4px 16px"></div>
+      <button type="button" class="nav-item"><span class="nav-dot" style="background:var(--c-engineering)"></span><span class="nav-item-text">Workbench</span></button>
+      <button type="button" class="nav-item"><span class="nav-dot" style="background:var(--c-engineering)"></span><span class="nav-item-text">Workbench architecture</span></button>
+      <button type="button" class="nav-item"><span class="nav-dot" style="background:var(--c-design)"></span><span class="nav-item-text">Ashen Hollow</span></button>
+    </div>
+    <div class="nav-divider"></div>
+    <div class="nav-section">
+      <span class="nav-label">Playbooks</span>
+      <button type="button" class="nav-item"><span class="nav-item-text">Release Readiness</span></button>
+      <button type="button" class="nav-item"><span class="nav-item-text">Brainstorming</span></button>
+    </div>
+  </nav>
+
+  <main class="main">
+    <div class="view-header">
+      <h1 class="view-title">MY ACTIONS</h1>
+      <span class="view-count-badge" id="totalCount">16 items</span>
+      <div class="view-header-meta">Last updated: Apr 4, 2026</div>
+    </div>
+
+    <div class="board-wrap">
+
+      <!-- Sticky column headers -->
+      <div class="col-headers board-grid">
+        <div class="col-header col-todo">
+          <div class="col-header-accent" style="background:var(--muted);opacity:0.5"></div>
+          <span class="col-header-title">Not Started</span>
+          <span class="col-header-count" id="count-todo">16</span>
+        </div>
+        <div class="col-header col-doing">
+          <div class="col-header-accent" style="background:var(--warning)"></div>
+          <span class="col-header-title">In Work</span>
+          <span class="col-header-count" id="count-doing">0</span>
+        </div>
+        <div class="col-header col-done">
+          <div class="col-header-accent" style="background:var(--good)"></div>
+          <span class="col-header-title">Complete</span>
+          <span class="col-header-count" id="count-done">0</span>
+        </div>
+      </div>
+
+      <!-- BLOCKING row -->
+      <div class="cat-row cat-row-blocking">
+        <div class="cat-heading">
+          <span class="cat-title">Blocking</span>
+          <span class="cat-count" id="cat-count-blocking">2</span>
+        </div>
+        <div class="board-grid">
+          <div class="drop-zone col-todo" data-col="todo" data-type="blocking" id="dz-todo-blocking">
+            <div class="drop-zone-empty">—</div>
+            <div class="kcard" draggable="true" data-id="b1" data-type="blocking">
+              <div class="kcard-bar" style="background:var(--c-orchestrator)"></div>
+              <div class="kcard-body">
+                <div class="kcard-meta"><span class="agent-pill"><span class="agent-dot" style="background:var(--c-orchestrator)"></span>Orchestration</span></div>
+                <div class="kcard-title">Sign off on room file versioning and migration approach</div>
+                <div class="kcard-source">Raised by Engineering + QA</div>
+              </div>
+            </div>
+            <div class="kcard" draggable="true" data-id="b2" data-type="blocking">
+              <div class="kcard-bar" style="background:var(--c-orchestrator)"></div>
+              <div class="kcard-body">
+                <div class="kcard-meta"><span class="agent-pill"><span class="agent-dot" style="background:var(--c-orchestrator)"></span>Orchestration</span></div>
+                <div class="kcard-title">Business Brand Guide v0.2.1 — complete Founder column in §1.3 and §10.1 for v0.3 lock</div>
+                <div class="kcard-source">Raised by Marketing + Orchestration</div>
+              </div>
+            </div>
+          </div>
+          <div class="drop-zone col-doing" data-col="doing" data-type="blocking" id="dz-doing-blocking">
+            <div class="drop-zone-empty">—</div>
+          </div>
+          <div class="drop-zone col-done" data-col="done" data-type="blocking" id="dz-done-blocking">
+            <div class="drop-zone-empty">—</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- DECISIONS row -->
+      <div class="cat-row cat-row-decision">
+        <div class="cat-heading">
+          <span class="cat-title">Decisions</span>
+          <span class="cat-count" id="cat-count-decision">8</span>
+        </div>
+        <div class="board-grid">
+          <div class="drop-zone col-todo" data-col="todo" data-type="decision" id="dz-todo-decision">
+            <div class="drop-zone-empty">—</div>
+            <div class="kcard" draggable="true" data-id="d1" data-type="decision">
+              <div class="kcard-bar" style="background:var(--c-engineering)"></div>
+              <div class="kcard-body">
+                <div class="kcard-meta"><span class="agent-pill"><span class="agent-dot" style="background:var(--c-engineering)"></span>Engineering</span></div>
+                <div class="kcard-title">Copilot program — commercial bar, benchmark timing, and model switch criteria</div>
+                <div class="kcard-source">Raised by Engineering</div>
+              </div>
+            </div>
+            <div class="kcard" draggable="true" data-id="d2" data-type="decision">
+              <div class="kcard-bar" style="background:var(--c-finance)"></div>
+              <div class="kcard-body">
+                <div class="kcard-meta"><span class="agent-pill"><span class="agent-dot" style="background:var(--c-finance)"></span>Finance</span></div>
+                <div class="kcard-title">What is the maximum acceptable API cost per paying user per month?</div>
+                <div class="kcard-source">Raised by Finance</div>
+              </div>
+            </div>
+            <div class="kcard" draggable="true" data-id="d3" data-type="decision">
+              <div class="kcard-bar" style="background:var(--c-game-director)"></div>
+              <div class="kcard-body">
+                <div class="kcard-meta"><span class="agent-pill"><span class="agent-dot" style="background:var(--c-game-director)"></span>Game Director</span></div>
+                <div class="kcard-title">What is in Ashen Hollow v1.0 — and what isn't?</div>
+                <div class="kcard-source">Raised by Game Director</div>
+              </div>
+            </div>
+            <div class="kcard" draggable="true" data-id="d4" data-type="decision">
+              <div class="kcard-bar" style="background:var(--c-legal)"></div>
+              <div class="kcard-body">
+                <div class="kcard-meta"><span class="agent-pill"><span class="agent-dot" style="background:var(--c-legal)"></span>Legal</span></div>
+                <div class="kcard-title">Does the current Gemini API plan include the Data Processing Addendum opt-out?</div>
+                <div class="kcard-source">Raised by Legal</div>
+              </div>
+            </div>
+            <div class="kcard" draggable="true" data-id="d5" data-type="decision">
+              <div class="kcard-bar" style="background:var(--c-audio)"></div>
+              <div class="kcard-body">
+                <div class="kcard-meta"><span class="agent-pill"><span class="agent-dot" style="background:var(--c-audio)"></span>Audio</span></div>
+                <div class="kcard-title">Which adaptive audio approach is right for Ashen Hollow?</div>
+                <div class="kcard-source">Raised by Audio</div>
+              </div>
+            </div>
+            <div class="kcard" draggable="true" data-id="d6" data-type="decision">
+              <div class="kcard-bar" style="background:var(--c-strategy)"></div>
+              <div class="kcard-body">
+                <div class="kcard-meta"><span class="agent-pill"><span class="agent-dot" style="background:var(--c-strategy)"></span>Strategy</span></div>
+                <div class="kcard-title">What does the AI assistant need to do before we charge for it?</div>
+                <div class="kcard-source">Raised by Strategy</div>
+              </div>
+            </div>
+            <div class="kcard" draggable="true" data-id="d7" data-type="decision">
+              <div class="kcard-bar" style="background:var(--c-strategy)"></div>
+              <div class="kcard-body">
+                <div class="kcard-meta"><span class="agent-pill"><span class="agent-dot" style="background:var(--c-strategy)"></span>Strategy</span></div>
+                <div class="kcard-title">What's in Ashen Hollow v1.0 — and what isn't?</div>
+                <div class="kcard-source">Raised by Strategy</div>
+              </div>
+            </div>
+            <div class="kcard" draggable="true" data-id="d8" data-type="decision">
+              <div class="kcard-bar" style="background:var(--c-strategy)"></div>
+              <div class="kcard-body">
+                <div class="kcard-meta"><span class="agent-pill"><span class="agent-dot" style="background:var(--c-strategy)"></span>Strategy</span></div>
+                <div class="kcard-title">Authorize a time-boxed assurance-copilot spike — or keep it parked?</div>
+                <div class="kcard-source">Raised by Strategy</div>
+              </div>
+            </div>
+          </div>
+          <div class="drop-zone col-doing" data-col="doing" data-type="decision" id="dz-doing-decision">
+            <div class="drop-zone-empty">—</div>
+          </div>
+          <div class="drop-zone col-done" data-col="done" data-type="decision" id="dz-done-decision">
+            <div class="drop-zone-empty">—</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- AWAITING REVIEW row -->
+      <div class="cat-row cat-row-review">
+        <div class="cat-heading">
+          <span class="cat-title">Awaiting Review</span>
+          <span class="cat-count" id="cat-count-review">6</span>
+        </div>
+        <div class="board-grid">
+          <div class="drop-zone col-todo" data-col="todo" data-type="review" id="dz-todo-review">
+            <div class="drop-zone-empty">—</div>
+            <div class="kcard" draggable="true" data-id="r1" data-type="review">
+              <div class="kcard-bar" style="background:var(--c-cybersecurity)"></div>
+              <div class="kcard-body">
+                <div class="kcard-meta"><span class="agent-pill"><span class="agent-dot" style="background:var(--c-cybersecurity)"></span>Cybersecurity</span><span class="risk-badge high">HIGH</span></div>
+                <div class="kcard-title">Verify API keys are not present in client-side code or git history</div>
+              </div>
+            </div>
+            <div class="kcard" draggable="true" data-id="r2" data-type="review">
+              <div class="kcard-bar" style="background:var(--c-engineering)"></div>
+              <div class="kcard-body">
+                <div class="kcard-meta"><span class="agent-pill"><span class="agent-dot" style="background:var(--c-engineering)"></span>Engineering</span><span class="risk-badge high">HIGH</span></div>
+                <div class="kcard-title">Adding version numbers to saved room files</div>
+              </div>
+            </div>
+            <div class="kcard" draggable="true" data-id="r3" data-type="review">
+              <div class="kcard-bar" style="background:var(--c-finance)"></div>
+              <div class="kcard-body">
+                <div class="kcard-meta"><span class="agent-pill"><span class="agent-dot" style="background:var(--c-finance)"></span>Finance</span><span class="risk-badge high">HIGH</span></div>
+                <div class="kcard-title">Measure the actual AI API cost per assistant session so we can model unit economics</div>
+              </div>
+            </div>
+            <div class="kcard" draggable="true" data-id="r4" data-type="review">
+              <div class="kcard-bar" style="background:var(--c-marketing)"></div>
+              <div class="kcard-body">
+                <div class="kcard-meta"><span class="agent-pill"><span class="agent-dot" style="background:var(--c-marketing)"></span>Marketing</span><span class="risk-badge high">HIGH</span></div>
+                <div class="kcard-title">Getting the AI messaging right — the human is always in control</div>
+              </div>
+            </div>
+            <div class="kcard" draggable="true" data-id="r5" data-type="review">
+              <div class="kcard-bar" style="background:var(--c-orchestrator)"></div>
+              <div class="kcard-body">
+                <div class="kcard-meta"><span class="agent-pill"><span class="agent-dot" style="background:var(--c-orchestrator)"></span>Orchestration</span><span class="risk-badge high">HIGH</span></div>
+                <div class="kcard-title">Room save contract — version field and migration, then automated save/load round-trip</div>
+              </div>
+            </div>
+            <div class="kcard" draggable="true" data-id="r6" data-type="review">
+              <div class="kcard-bar" style="background:var(--c-orchestrator)"></div>
+              <div class="kcard-body">
+                <div class="kcard-meta"><span class="agent-pill"><span class="agent-dot" style="background:var(--c-orchestrator)"></span>Orchestration</span><span class="risk-badge med">MED</span></div>
+                <div class="kcard-title">Document animation and AI panel rules so all tools stay consistent</div>
+              </div>
+            </div>
+          </div>
+          <div class="drop-zone col-doing" data-col="doing" data-type="review" id="dz-doing-review">
+            <div class="drop-zone-empty">—</div>
+          </div>
+          <div class="drop-zone col-done" data-col="done" data-type="review" id="dz-done-review">
+            <div class="drop-zone-empty">—</div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /board-wrap -->
+  </main>
+</div>
+
+<script>
+(() => {
+  const COLS  = ['todo','doing','done'];
+  const TYPES = ['blocking','decision','review'];
+  let dragCard = null;
+
+  function zone(col, type) { return document.getElementById(`dz-${col}-${type}`); }
+
+  function updateCounts() {
+    COLS.forEach(col => {
+      let total = 0;
+      TYPES.forEach(type => {
+        total += zone(col, type).querySelectorAll('.kcard').length;
+      });
+      document.getElementById(`count-${col}`).textContent = total;
+    });
+    TYPES.forEach(type => {
+      let total = 0;
+      COLS.forEach(col => { total += zone(col, type).querySelectorAll('.kcard').length; });
+      document.getElementById(`cat-count-${type}`).textContent = total;
+    });
+    const all = document.querySelectorAll('.kcard').length;
+    const todo = COLS.filter(c => c !== 'done').reduce((s, col) => {
+      return s + TYPES.reduce((t, type) => t + zone(col, type).querySelectorAll('.kcard').length, 0);
+    }, 0);
+    const totalEl = document.getElementById('totalCount');
+    if (totalEl) totalEl.textContent = `${all} items`;
+    const navEl = document.getElementById('navMyActionsCount');
+    if (navEl) navEl.textContent = String(todo);
+  }
+
+  function initCard(card) {
+    card.setAttribute('draggable','true');
+    card.addEventListener('dragstart', e => {
+      dragCard = card;
+      card.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    card.addEventListener('dragend', () => {
+      dragCard = null;
+      card.classList.remove('dragging');
+      document.querySelectorAll('.drop-zone.drag-over').forEach(z => z.classList.remove('drag-over'));
+      updateCounts();
+    });
+  }
+
+  document.querySelectorAll('.drop-zone').forEach(dz => {
+    dz.addEventListener('dragenter', e => {
+      e.preventDefault();
+      if (!dragCard || dz.dataset.type !== dragCard.dataset.type) return;
+      dz.classList.add('drag-over');
+    });
+    dz.addEventListener('dragover', e => {
+      e.preventDefault();
+      if (!dragCard || dz.dataset.type !== dragCard.dataset.type) return;
+      e.dataTransfer.dropEffect = 'move';
+      dz.classList.add('drag-over');
+      const after = getAfterCard(dz, e.clientY);
+      after == null ? dz.appendChild(dragCard) : dz.insertBefore(dragCard, after);
+    });
+    dz.addEventListener('dragleave', e => {
+      if (!dz.contains(e.relatedTarget)) dz.classList.remove('drag-over');
+    });
+    dz.addEventListener('drop', e => {
+      e.preventDefault();
+      dz.classList.remove('drag-over');
+    });
+  });
+
+  function getAfterCard(container, y) {
+    return [...container.querySelectorAll('.kcard:not(.dragging)')].reduce((closest, card) => {
+      const offset = y - card.getBoundingClientRect().top - card.getBoundingClientRect().height / 2;
+      return offset < 0 && offset > closest.offset ? { offset, element: card } : closest;
+    }, { offset: -Infinity }).element;
+  }
+
+  document.querySelectorAll('.kcard').forEach(initCard);
+  updateCounts();
+})();
+</script>
+</body>
+</html>
