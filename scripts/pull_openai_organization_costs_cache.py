@@ -22,6 +22,9 @@ Run:
 
   python3 scripts/pull_openai_organization_costs_cache.py --days 31
 
+When only completions usage is available, USD is a **token estimate** (tune with
+``OPENAI_USAGE_ESTIMATE_USD_PER_M_INPUT`` and ``OPENAI_USAGE_ESTIMATE_USD_PER_M_OUTPUT``).
+
 Billing portal remains source of truth; this is a local cache for the dashboard.
 """
 from __future__ import annotations
@@ -47,6 +50,21 @@ from scripts.workbench_local_control import PERSONAL_USAGE_CACHE_REL, REPO_ROOT 
 
 OPENAI_COSTS_URL = "https://api.openai.com/v1/organization/costs"
 OPENAI_USAGE_COMPLETIONS_URL = "https://api.openai.com/v1/organization/usage/completions"
+
+
+def _token_estimate_usd(input_tokens: int, output_tokens: int) -> float:
+    """
+    Rough USD when the Costs API is unavailable: blend using env-tunable $/1M token rates.
+    Defaults approximate a small-model tier; override for your actual mix.
+    """
+    try:
+        pin = float((os.environ.get("OPENAI_USAGE_ESTIMATE_USD_PER_M_INPUT") or "0.15").strip() or "0.15")
+        pout = float((os.environ.get("OPENAI_USAGE_ESTIMATE_USD_PER_M_OUTPUT") or "0.60").strip() or "0.60")
+    except ValueError:
+        pin, pout = 0.15, 0.60
+    it = max(0, int(input_tokens))
+    ot = max(0, int(output_tokens))
+    return (it / 1_000_000.0) * pin + (ot / 1_000_000.0) * pout
 
 
 def _load_repo_env_files() -> None:
@@ -235,20 +253,23 @@ def usage_buckets_to_ledger_entries(buckets: list[dict[str, Any]]) -> list[dict[
             nreq = 1
         if nreq <= 0:
             continue
-        entries.append(
-            {
-                "created_at": f"{day}T12:00:00.000Z",
-                "provider": "openai",
-                "endpoint": "organization/usage/completions",
-                "status": "success",
-                "usage": {
-                    "rollup_call_count": nreq,
-                    "input_tokens": ag["it"],
-                    "output_tokens": ag["ot"],
-                },
-                "source": "openai_organization_usage_completions_cache",
-            }
-        )
+        est = _token_estimate_usd(ag["it"], ag["ot"])
+        row: dict[str, Any] = {
+            "created_at": f"{day}T12:00:00.000Z",
+            "provider": "openai",
+            "endpoint": "organization/usage/completions",
+            "status": "success",
+            "usage": {
+                "rollup_call_count": nreq,
+                "input_tokens": ag["it"],
+                "output_tokens": ag["ot"],
+                "cost_estimate_source": "token_rates_env",
+            },
+            "source": "openai_organization_usage_completions_cache",
+        }
+        if est > 0:
+            row["usage_cost_usd"] = round(est, 6)
+        entries.append(row)
     return entries
 
 
@@ -336,7 +357,8 @@ def main() -> int:
         write_cache(entries_u, args.output, source="openai_organization_usage_completions")
         print(
             f"Wrote {len(entries_u)} day row(s) from organization/usage/completions "
-            f"(call counts + tokens; USD not available via this endpoint) to {args.output}"
+            f"(call counts + tokens + token-based USD estimate; set "
+            f"OPENAI_USAGE_ESTIMATE_USD_PER_M_INPUT/OUTPUT to tune) to {args.output}"
         )
         return 0
 

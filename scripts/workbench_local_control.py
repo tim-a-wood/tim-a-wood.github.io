@@ -465,6 +465,37 @@ def build_supervisor_dashboard_payload(host: str, wb_port: int) -> dict[str, Any
     }
 
 
+def run_pull_openai_personal_usage_cache(*, repo_root: Path | None = None, days: int = 31) -> dict[str, Any]:
+    """
+    Run ``pull_openai_organization_costs_cache.py`` (same env as the supervisor process).
+    Returns ``ok``, ``exit_code``, and truncated ``stdout`` / ``stderr`` for UI display.
+    """
+    root = repo_root or REPO_ROOT
+    script = root / "scripts" / "pull_openai_organization_costs_cache.py"
+    if not script.is_file():
+        return {"ok": False, "exit_code": -1, "stdout": "", "stderr": "pull script missing"}
+    days = max(1, min(int(days), 366))
+    try:
+        cp = subprocess.run(
+            [sys.executable, str(script), "--days", str(days)],
+            cwd=str(root),
+            capture_output=True,
+            text=True,
+            timeout=180,
+            env=os.environ.copy(),
+        )
+    except subprocess.TimeoutExpired:
+        return {"ok": False, "exit_code": -2, "stdout": "", "stderr": "OpenAI pull timed out after 180s"}
+    out = (cp.stdout or "")[-4000:]
+    err = (cp.stderr or "")[-4000:]
+    return {
+        "ok": cp.returncode == 0,
+        "exit_code": cp.returncode,
+        "stdout": out,
+        "stderr": err,
+    }
+
+
 def start_workbench(host: str, wb_port: int) -> tuple[bool, str]:
     if workbench_health_ok(host, wb_port):
         return True, "Already running"

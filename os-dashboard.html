@@ -4577,10 +4577,14 @@ h3.os-chart-card-title {
             <div class="db-card db-card--live">
               <div class="db-card-header"><div class="db-card-label">Est. spend (USD)</div><span class="db-tier db-tier--live">Log</span></div>
               <div class="db-card-value" id="api-usage-kpi-log-usd">—</div>
-              <div class="db-card-sub">Sum of priced rows only</div>
+              <div class="db-card-sub">Priced rows + OpenAI token estimate (when pull uses completions API)</div>
             </div>
           </div>
           <p id="api-usage-kpi-log-sub" style="color:var(--muted);font-size:var(--font-size-xs);margin:var(--space-2) 0 0 0;font-family:var(--font-mono);line-height:1.45"></p>
+          <div style="margin-top:var(--space-3);display:flex;flex-wrap:wrap;gap:var(--space-3);align-items:center">
+            <button type="button" class="av-btn av-btn--accent" id="api-usage-pull-openai-btn" title="Runs scripts/pull_openai_organization_costs_cache.py with the supervisor process environment">Pull OpenAI usage now</button>
+            <span style="color:var(--muted);font-size:var(--font-size-xs);max-width:36rem">Needs organization Usage on your key (scope <span style="font-family:var(--font-mono)">api.usage.read</span>) or an admin key. Restart the supervisor after changing <span style="font-family:var(--font-mono)">agent_os.env</span>.</span>
+          </div>
         </div>
           <div class="db-section">
           <div class="db-section-label">Spend by provider</div>
@@ -10593,7 +10597,11 @@ function syncApiUsageSpendSummaryKpis(d) {
     if (window.__dashboardHasPayload === false) {
       elSub.textContent = 'Dashboard API did not load — open from http://127.0.0.1:8769/os-dashboard.html or the sprite workbench, not as a saved file.';
     } else if ((ledger === 0 || ledger == null) && (dated === 0 || dated == null)) {
-      elSub.textContent = 'Empty log: use Pixel Lab / Gemini on the workbench, or run python3 scripts/pull_openai_organization_costs_cache.py (key needs api.usage.read) then reload.';
+      if (d && d.openai_key_set) {
+        elSub.textContent = 'Still $0: no merged usage rows on disk. OPENAI_API_KEY is set for chat, but organization costs/usage need scope api.usage.read (or OPENAI_ADMIN_API_KEY). Click “Pull OpenAI usage now” or run the pull script; restart supervisor after editing agent_os.env.';
+      } else {
+        elSub.textContent = 'Empty log: use Pixel Lab / Gemini on the workbench, or pull OpenAI org usage (key needs api.usage.read) via the button above or python3 scripts/pull_openai_organization_costs_cache.py.';
+      }
     } else if (ledger != null && dated != null && ledger > dated) {
       elSub.textContent = String(ledger) + ' row(s) in files; only ' + String(dated) + ' have parseable created_at — others are ignored for charts.';
     } else {
@@ -16361,6 +16369,41 @@ async function pulseGlobalWorkbenchOnly() {
   sel.addEventListener('change', function () {
     applyApiUsageCostUi();
     if (selectedDashboard === 'api-usage') paintOsChartsForView('api-usage');
+  });
+})();
+
+(function wireApiUsagePullOpenaiBtn() {
+  const btn = document.getElementById('api-usage-pull-openai-btn');
+  if (!btn) return;
+  btn.addEventListener('click', function () {
+    void (async function () {
+      btn.disabled = true;
+      try {
+        const url = agentOsApiUrl('/api/pull-openai-personal-usage');
+        const r = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: '{}',
+        });
+        var j = {};
+        try {
+          j = await r.json();
+        } catch (e2) {
+          j = {};
+        }
+        if (j && j.ok) {
+          showToast('OpenAI usage cache updated. Refreshing dashboard…');
+          await loadDashboardData(selectedDashboard);
+        } else {
+          var hint = (j && (j.stderr || j.stdout)) ? String(j.stderr || j.stdout) : (j && j.error ? String(j.error) : ('HTTP ' + r.status));
+          if (hint.length > 480) hint = hint.slice(0, 480) + '…';
+          showToast('OpenAI pull failed: ' + hint);
+        }
+      } catch (e) {
+        showToast('OpenAI pull request failed (is the supervisor running on :8769?)');
+      }
+      btn.disabled = false;
+    })();
   });
 })();
 

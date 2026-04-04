@@ -5,12 +5,18 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 _ROOT = Path(__file__).resolve().parents[1]
 if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
-from scripts.workbench_local_control import _usage_ledger_json_path, keys_from_env, merged_usage_ledger_entries
+from scripts.workbench_local_control import (
+    _usage_ledger_json_path,
+    keys_from_env,
+    merged_usage_ledger_entries,
+    run_pull_openai_personal_usage_cache,
+)
 
 
 class KeysFromEnvTests(unittest.TestCase):
@@ -59,6 +65,29 @@ class UsageLedgerPathTests(unittest.TestCase):
             root = Path(td)
             expected = root / "tools" / "2d-sprite-and-animation" / "projects-data" / "_usage_ledger.json"
             self.assertEqual(_usage_ledger_json_path(root), expected)
+
+
+class RunPullOpenaiPersonalUsageTests(unittest.TestCase):
+    def test_returns_ok_from_subprocess_exit_code(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            script = root / "scripts" / "pull_openai_organization_costs_cache.py"
+            script.parent.mkdir(parents=True)
+            script.write_text("# placeholder\n", encoding="utf-8")
+            fake = mock.Mock()
+            fake.returncode = 0
+            fake.stdout = "ok\n"
+            fake.stderr = ""
+            with mock.patch("scripts.workbench_local_control.subprocess.run", return_value=fake) as pr:
+                r = run_pull_openai_personal_usage_cache(repo_root=root, days=7)
+            self.assertTrue(r["ok"])
+            self.assertEqual(r["exit_code"], 0)
+            pr.assert_called_once()
+            args, kwargs = pr.call_args
+            self.assertEqual(kwargs["cwd"], str(root))
+            cmd = args[0]
+            self.assertIn("--days", cmd)
+            self.assertIn("7", cmd)
 
 
 class MergedUsageLedgerTests(unittest.TestCase):

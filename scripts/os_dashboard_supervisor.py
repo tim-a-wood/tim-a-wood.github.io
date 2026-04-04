@@ -7,7 +7,8 @@ POST /api/archive-document (move a policy/guide to docs/archived-policies/ and w
 and POST /api/issue-chat (issue and opportunity discussion in the UI; JSON body may set rowKind to "opportunity"),
 and POST /api/agent-chat (specialist chat in the Agents home modal; OpenAI Chat Completions with charter + overview + task context),
 POST /api/my-actions-chat (My Actions detail panel: OpenAI only; multi-agent charter context for one ticket; review rows may return priority_updates),
-POST /api/sprite-arch-explain (sprite-arch inspector: OpenAI JSON with repo snippet + manifest edges; OPENAI_API_KEY required).
+POST /api/sprite-arch-explain (sprite-arch inspector: OpenAI JSON with repo snippet + manifest edges; OPENAI_API_KEY required),
+POST /api/pull-openai-personal-usage (runs pull_openai_organization_costs_cache.py with supervisor env; localhost use).
 Binds 127.0.0.1 only.
 
 Issue chat backends (see selection logic in Handler):
@@ -57,6 +58,7 @@ from scripts.workbench_local_control import (
     build_supervisor_dashboard_payload,
     parse_env_local,
     restart_workbench,
+    run_pull_openai_personal_usage_cache,
     start_workbench,
     stop_workbench,
 )
@@ -1454,6 +1456,14 @@ def make_handler(
                     HTTPStatus.OK,
                     {"ok": True, "result": result, "meta": meta},
                 )
+
+            if raw_path == "/api/pull-openai-personal-usage":
+                length = int(self.headers.get("Content-Length", 0))
+                if length > 0:
+                    self.rfile.read(length)
+                result = run_pull_openai_personal_usage_cache(repo_root=repo_root, days=31)
+                status = HTTPStatus.OK if result.get("ok") else HTTPStatus.BAD_REQUEST
+                return self._send_json(status, result)
 
             # ── Status-file write-back ──────────────────────────────────────
             if raw_path == "/api/status-update":
