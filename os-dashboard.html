@@ -4565,6 +4565,23 @@ h3.os-chart-card-title {
             </div>
           </div>
         </div>
+        <div class="db-section">
+          <div class="db-section-label">Log totals (all time)</div>
+          <p style="color:var(--muted);font-size:var(--font-size-sm);line-height:1.5;max-width:52rem;margin:0 0 var(--space-3) 0">Merged <span style="font-family:var(--font-mono)">_usage_ledger.json</span> + <span style="font-family:var(--font-mono)">_personal_api_usage_cache.json</span>. These numbers are not filtered by the date range below.</p>
+          <div class="db-grid db-grid--home-health">
+            <div class="db-card db-card--live">
+              <div class="db-card-header"><div class="db-card-label">Dated calls</div><span class="db-tier db-tier--live">Log</span></div>
+              <div class="db-card-value" id="api-usage-kpi-log-calls">—</div>
+              <div class="db-card-sub">Rows with a valid UTC <span style="font-family:var(--font-mono)">created_at</span></div>
+            </div>
+            <div class="db-card db-card--live">
+              <div class="db-card-header"><div class="db-card-label">Est. spend (USD)</div><span class="db-tier db-tier--live">Log</span></div>
+              <div class="db-card-value" id="api-usage-kpi-log-usd">—</div>
+              <div class="db-card-sub">Sum of priced rows only</div>
+            </div>
+          </div>
+          <p id="api-usage-kpi-log-sub" style="color:var(--muted);font-size:var(--font-size-xs);margin:var(--space-2) 0 0 0;font-family:var(--font-mono);line-height:1.45"></p>
+        </div>
           <div class="db-section">
           <div class="db-section-label">Spend by provider</div>
           <p style="color:var(--muted);font-size:var(--font-size-sm);margin:0 0 var(--space-3) 0;max-width:820px">Combines the Sprite Workbench <span style="font-family:var(--font-mono)">_usage_ledger.json</span> (Gemini, Pixel Lab, workbench OpenAI calls) with optional <span style="font-family:var(--font-mono)">_personal_api_usage_cache.json</span> for your OpenAI org costs — run <span style="font-family:var(--font-mono)">python3 scripts/pull_openai_organization_costs_cache.py</span> (needs <span style="font-family:var(--font-mono)">OPENAI_ADMIN_API_KEY</span> for most accounts). USD columns need <span style="font-family:var(--font-mono)">usage_cost_usd</span> on each row; call counts still show when price is missing. Treat as directional; OpenAI billing is source of truth.</p>
@@ -9553,32 +9570,39 @@ function utcApiUsageDayEndTs() {
   return Date.UTC(n.getUTCFullYear(), n.getUTCMonth(), n.getUTCDate());
 }
 
+/** End of “today” UTC for range filters: include the full calendar day (rows keyed as YYYY-MM-DD). */
+function utcApiUsageDayEndInclusiveTs() {
+  const n = new Date();
+  return Date.UTC(n.getUTCFullYear(), n.getUTCMonth(), n.getUTCDate()) + 86400000 - 1;
+}
+
 function computeApiUsageCostSlice() {
   const cr = window.__usageCostRollups;
   const daily = cr && Array.isArray(cr.daily) ? cr.daily : [];
   const sel = document.getElementById('api-usage-date-range');
   const raw = sel && sel.value !== '' ? Number(sel.value) : 30;
   const all = !raw || raw === 0;
-  const endTs = utcApiUsageDayEndTs();
+  const endDayStartTs = utcApiUsageDayEndTs();
+  const endInclusiveTs = utcApiUsageDayEndInclusiveTs();
   let startTs;
   if (all) {
     if (!daily.length) {
-      startTs = endTs;
+      startTs = endDayStartTs;
     } else {
       startTs = Date.parse(daily[0].d + 'T00:00:00.000Z');
     }
   } else {
-    startTs = endTs - (raw - 1) * 86400000;
+    startTs = endDayStartTs - (raw - 1) * 86400000;
   }
   const byDay = {};
   daily.forEach(function (row) {
     if (!row || !row.d) return;
     const t = Date.parse(row.d + 'T00:00:00.000Z');
-    if (t < startTs || t > endTs) return;
+    if (t < startTs || t > endInclusiveTs) return;
     byDay[row.d] = { c: row.c && typeof row.c === 'object' ? row.c : {}, n: row.n && typeof row.n === 'object' ? row.n : {} };
   });
   const dayList = [];
-  for (let t = startTs; t <= endTs; t += 86400000) {
+  for (let t = startTs; t <= endInclusiveTs; t += 86400000) {
     dayList.push(new Date(t).toISOString().slice(0, 10));
   }
   const provTotals = {};
@@ -9627,7 +9651,7 @@ function computeApiUsageCostSlice() {
     totalCallsInRange: totalCalls,
     chartByCalls: grand <= 0 && totalCalls > 0,
     startTs: startTs,
-    endTs: endTs,
+    endTs: endInclusiveTs,
   };
 }
 
@@ -9714,6 +9738,17 @@ function applyApiUsageCostUi() {
   const foot = document.getElementById('api-usage-range-foot');
   const tbody = document.querySelector('#api-usage-provider-table tbody');
   window.__usageCostRollups = window.__usageCostRollups || { version: 1, daily: [], providers: [] };
+  const cr0 = window.__usageCostRollups;
+  const daily0 = Array.isArray(cr0.daily) ? cr0.daily : [];
+  const sel0 = document.getElementById('api-usage-date-range');
+  const raw0 = sel0 && sel0.value !== '' ? Number(sel0.value) : 30;
+  if (sel0 && raw0 !== 0 && daily0.length > 0 && !window.__apiUsageDidAutoAllTime) {
+    const probe = computeApiUsageCostSlice();
+    if (probe.providerOrder.length === 0) {
+      window.__apiUsageDidAutoAllTime = true;
+      sel0.value = '0';
+    }
+  }
   const slice = computeApiUsageCostSlice();
   const labels = apiUsageProviderLabelMap();
   syncHomeApiUsageSummary(slice);
@@ -10506,6 +10541,65 @@ function paintOsChartsForView(dashId) {
     else if (kind === 'cost-daily-stacked') paintCostDailyStacked(c);
   });
   view.querySelectorAll('[data-os-mini-spark]').forEach((c) => paintMiniSpark(c));
+}
+
+function syncApiUsageSpendSummaryKpis(d) {
+  const elCalls = document.getElementById('api-usage-kpi-log-calls');
+  const elUsd = document.getElementById('api-usage-kpi-log-usd');
+  const elSub = document.getElementById('api-usage-kpi-log-sub');
+  if (!elCalls && !elUsd && !elSub) return;
+  if (!d || typeof d !== 'object' || !d.usage_charts || typeof d.usage_charts !== 'object' || Array.isArray(d.usage_charts)) {
+    if (elCalls) elCalls.textContent = '—';
+    if (elUsd) elUsd.textContent = '—';
+    if (elSub) {
+      elSub.textContent = window.__dashboardHasPayload === false
+        ? 'Dashboard API did not load — open from http://127.0.0.1:8769/os-dashboard.html or the sprite workbench, not as a saved file.'
+        : '';
+    }
+    return;
+  }
+  const cr = d.usage_charts.cost_rollups;
+  if (!cr || typeof cr !== 'object' || Array.isArray(cr)) {
+    if (elCalls) elCalls.textContent = '—';
+    if (elUsd) elUsd.textContent = '—';
+    if (elSub) {
+      elSub.textContent = window.__dashboardHasPayload === false
+        ? 'Dashboard API did not load — open from http://127.0.0.1:8769/os-dashboard.html or the sprite workbench, not as a saved file.'
+        : '';
+    }
+    return;
+  }
+  const dated = cr.dated_row_count != null ? Number(cr.dated_row_count) : null;
+  const ledger = cr.ledger_row_count != null ? Number(cr.ledger_row_count) : null;
+  let totalUsd = 0;
+  let sumCalls = 0;
+  (Array.isArray(cr.providers) ? cr.providers : []).forEach(function (p) {
+    totalUsd += Number(p.all_time_cost_usd) || 0;
+    sumCalls += Number(p.all_time_paid_calls) || 0;
+  });
+  if (elCalls) {
+    elCalls.textContent = dated != null && !Number.isNaN(dated) ? String(dated) : (sumCalls > 0 ? String(sumCalls) : '0');
+  }
+  if (elUsd) {
+    if (totalUsd > 0) {
+      elUsd.textContent = '$' + String(Math.round(totalUsd * 10000) / 10000);
+    } else if ((dated != null && dated > 0) || sumCalls > 0) {
+      elUsd.textContent = '—';
+    } else {
+      elUsd.textContent = '$0';
+    }
+  }
+  if (elSub) {
+    if (window.__dashboardHasPayload === false) {
+      elSub.textContent = 'Dashboard API did not load — open from http://127.0.0.1:8769/os-dashboard.html or the sprite workbench, not as a saved file.';
+    } else if ((ledger === 0 || ledger == null) && (dated === 0 || dated == null)) {
+      elSub.textContent = 'Empty log: use Pixel Lab / Gemini on the workbench, or run python3 scripts/pull_openai_organization_costs_cache.py (key needs api.usage.read) then reload.';
+    } else if (ledger != null && dated != null && ledger > dated) {
+      elSub.textContent = String(ledger) + ' row(s) in files; only ' + String(dated) + ' have parseable created_at — others are ignored for charts.';
+    } else {
+      elSub.textContent = 'Totals include every dated row in the merged ledger and personal cache.';
+    }
+  }
 }
 
 function syncHomeKpis(d) {
@@ -16101,6 +16195,7 @@ async function loadDashboardData(dashId) {
     syncBuildPipelineServiceCards(d);
     syncHomeKpis(d);
     applyUsageChartsFromDashboard(d);
+    syncApiUsageSpendSummaryKpis(d);
     syncAnalyticsKpis(d);
     if (d && d.analytics_status != null && typeof d.analytics_status === 'object' && !Array.isArray(d.analytics_status)) {
       applyAnalyticsStatusPayload(d.analytics_status);
@@ -16168,6 +16263,7 @@ async function loadDashboardData(dashId) {
     applyGlobalWorkbenchBar(null);
     syncHomeKpis(null);
     applyUsageChartsFromDashboard(null);
+    syncApiUsageSpendSummaryKpis(null);
     syncAnalyticsKpis(null);
     if (dashId === 'analytics' || dashId === 'api-usage') {
       void loadAnalyticsStatus();
@@ -16199,6 +16295,7 @@ async function pulseGlobalWorkbenchOnly() {
     syncBuildPipelineServiceCards(d);
     syncHomeKpis(d);
     applyUsageChartsFromDashboard(d);
+    syncApiUsageSpendSummaryKpis(d);
     syncAnalyticsKpis(d);
     if (d && d.analytics_status != null && typeof d.analytics_status === 'object' && !Array.isArray(d.analytics_status)) {
       applyAnalyticsStatusPayload(d.analytics_status);
@@ -16213,6 +16310,7 @@ async function pulseGlobalWorkbenchOnly() {
     applyGlobalWorkbenchBar(null);
     syncHomeKpis(null);
     applyUsageChartsFromDashboard(null);
+    syncApiUsageSpendSummaryKpis(null);
     syncAnalyticsKpis(null);
     if (selectedDashboard === 'analytics' || selectedDashboard === 'api-usage') {
       void loadAnalyticsStatus();
