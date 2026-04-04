@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "generated": "2026-04-03T13:21:44Z",
+  "generated": "2026-04-04T02:59:16Z",
   "repo_root_note": "Paths are relative to repository root.",
   "categories": [
     {
@@ -106,7 +106,7 @@
           "title": "Repository governance — agent operating system rules",
           "path": "AGENTS.md",
           "format": "markdown",
-          "date_modified": "2026-04-02"
+          "date_modified": "2026-04-03"
         },
         {
           "id": "claude-md",
@@ -170,7 +170,7 @@
           "title": "Operating charter — Design",
           "path": "agents/design/charter.md",
           "format": "markdown",
-          "date_modified": "2026-04-02"
+          "date_modified": "2026-04-03"
         },
         {
           "id": "agents-engineering-charter-md",
@@ -389,7 +389,7 @@
           "title": "Analytics dashboard kpis",
           "path": "docs/analytics-dashboard-kpis.md",
           "format": "markdown",
-          "date_modified": "2026-03-30"
+          "date_modified": "2026-04-03"
         },
         {
           "id": "docs-cross-tool-usage-md",
@@ -483,6 +483,20 @@
           "date_modified": "2026-03-28"
         },
         {
+          "id": "docs-sprite-workbench-architecture-visualization-master-plan-md",
+          "title": "Sprite workbench architecture visualization master plan",
+          "path": "docs/sprite-workbench-architecture-visualization-master-plan.md",
+          "format": "markdown",
+          "date_modified": "2026-04-04"
+        },
+        {
+          "id": "docs-sprite-workbench-architecture-visualization-plan-md",
+          "title": "Sprite workbench architecture visualization plan",
+          "path": "docs/sprite-workbench-architecture-visualization-plan.md",
+          "format": "markdown",
+          "date_modified": "2026-04-04"
+        },
+        {
           "id": "docs-sprite-workbench-overhaul-plan-md",
           "title": "Sprite workbench overhaul plan",
           "path": "docs/sprite-workbench-overhaul-plan.md",
@@ -547,6 +561,13 @@
           "date_modified": "2026-03-17"
         },
         {
+          "id": "docs-pixel-art-quality-standards-md",
+          "title": "Pixel art quality standards — production gate (Animation)",
+          "path": "docs/pixel-art-quality-standards.md",
+          "format": "markdown",
+          "date_modified": "2026-04-04"
+        },
+        {
           "id": "tools-2d-sprite-and-animation-readme-md",
           "title": "README",
           "path": "tools/2d-sprite-and-animation/README.md",
@@ -601,7 +622,7 @@
           "title": "INDEX",
           "path": "research/library/INDEX.md",
           "format": "markdown",
-          "date_modified": "2026-04-02"
+          "date_modified": "2026-04-04"
         },
         {
           "id": "research-library-findings-passive-income-market-scan-2026-04-01-md",
@@ -630,7 +651,7 @@
           "title": "2026 03 31 room environment quality pass",
           "path": "decisions/2026-03-31-room-environment-quality-pass.md",
           "format": "markdown",
-          "date_modified": "2026-04-03"
+          "date_modified": "2026-04-04"
         },
         {
           "id": "decisions-2026-04-01-room-environment-v3-review-decision-brief-md",
@@ -645,6 +666,34 @@
           "path": "decisions/2026-04-02-assurance-copilot-other-income-gate.md",
           "format": "markdown",
           "date_modified": "2026-04-02"
+        },
+        {
+          "id": "decisions-2026-04-03-foreground-frame-validation-handoff-md",
+          "title": "2026 04 03 foreground frame validation handoff",
+          "path": "decisions/2026-04-03-foreground-frame-validation-handoff.md",
+          "format": "markdown",
+          "date_modified": "2026-04-03"
+        },
+        {
+          "id": "decisions-2026-04-03-room-environment-handoff-md",
+          "title": "2026 04 03 room environment handoff",
+          "path": "decisions/2026-04-03-room-environment-handoff.md",
+          "format": "markdown",
+          "date_modified": "2026-04-03"
+        },
+        {
+          "id": "decisions-2026-04-03-sprite-arch-dashboard-graph-library-md",
+          "title": "2026 04 03 sprite arch dashboard graph library",
+          "path": "decisions/2026-04-03-sprite-arch-dashboard-graph-library.md",
+          "format": "markdown",
+          "date_modified": "2026-04-04"
+        },
+        {
+          "id": "decisions-2026-04-03-sprite-workbench-arch-m2-md",
+          "title": "2026 04 03 sprite workbench arch m2",
+          "path": "decisions/2026-04-03-sprite-workbench-arch-m2.md",
+          "format": "markdown",
+          "date_modified": "2026-04-04"
         },
         {
           "id": "decisions-readme-md",
@@ -779,6 +828,13 @@
           "path": "knowledge/metroidvania-design.md",
           "format": "markdown",
           "date_modified": "2026-03-28"
+        },
+        {
+          "id": "agents-design-os-agents-home-ui-handoff-md",
+          "title": "Os agents home ui handoff",
+          "path": "agents/design/os-agents-home-ui-handoff.md",
+          "format": "markdown",
+          "date_modified": "2026-04-03"
         },
         {
           "id": "agents-design-os-home-dashboard-handoff-md",
@@ -942,6 +998,13 @@
           "path": "docs/reports/room-environment-v3-stakeholder-review-kickoff-2026-04-01.md",
           "format": "markdown",
           "date_modified": "2026-04-02"
+        },
+        {
+          "id": "docs-reports-sprite-arch-dashboard-phased-reviews-2026-04-03-md",
+          "title": "Sprite arch dashboard phased reviews 2026 04 03",
+          "path": "docs/reports/sprite-arch-dashboard-phased-reviews-2026-04-03.md",
+          "format": "markdown",
+          "date_modified": "2026-04-04"
         }
       ]
     }
@@ -965,7 +1028,7 @@
     "To retire a policy: Archive on a card or scripts/archive_policy_document.py — files move to docs/archived-policies/; rebuild the library to refresh this page."
   ],
   "stats": {
-    "files_indexed": 122,
+    "files_indexed": 131,
     "categories_non_empty": 11
   }
 }

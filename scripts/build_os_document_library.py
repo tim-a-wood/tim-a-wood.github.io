@@ -180,6 +180,9 @@ FORMAL_DISPLAY_TITLES: dict[str, str] = {
         "Room environment v3 — stakeholder review kickoff record"
     ),
     "artifacts/ashen-hollow-art-bible-v0.2.md": "Art bible — Ashen Hollow v0.2 (authoritative text)",
+    "docs/pixel-art-quality-standards.md": (
+        "Pixel art quality standards — production gate (Animation)"
+    ),
     "AGENTS.md": "Repository governance — agent operating system rules",
     "CLAUDE.md": "Repository governance — Claude Code rules",
     "STYLE_GUIDE.md": "Design system — canonical UI style guide",
@@ -285,6 +288,8 @@ def categorize(rel_posix: str) -> str:
         "readability-", "room-layout-iteration",
     )):
         return "strategy_product"
+    if r == "docs/pixel-art-quality-standards.md":
+        return "sprite_tooling"
     if r.startswith("docs/room-") or r.startswith("docs/sprite-workbench") or r.startswith("docs/cross-tool"):
         return "engineering_specs"
     if r.startswith("docs/analytics-") or r.startswith("docs/design/"):
