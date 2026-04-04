@@ -23,3 +23,6 @@ jobs:
 
       - name: Home dashboard snapshot (Python)
         run: python3 tests/home_internal_snapshot.test.py
+
+      - name: Sprite workbench arch manifest extractor (Python)
+        run: python3 tests/extract_sprite_workbench_arch.test.py

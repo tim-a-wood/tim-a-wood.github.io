@@ -1,6 +1,6 @@
 # Sprite Workbench Architecture Visualization — Master Feature Plan
 
-**Status:** M2 — Agent OS shell **shipped**; **M3** (Structure live) next  
+**Status:** M3 — Structure view **partially shipped** (manifest-backed list + inspector); graph canvas / I1 exports next  
 **Date:** 2026-04-03  
 **Companion docs:** [Technical / extraction plan](./sprite-workbench-architecture-visualization-plan.md) · **HI-FI mockup:** [agent-os-sprite-arch-dashboard-mockup.html](../mockups/agent-os-sprite-arch-dashboard-mockup.html)
 
@@ -90,7 +90,7 @@ Design **does not** implement production `os-dashboard.html` in this phase; Desi
 | **M0 — Design lock** | Founder approves hi-fi mockup + view switcher + inspector layout | Mockup complete |
 | **M1 — Manifest P0** | Schema + extractors + one committed sample manifest | M0 for UI copy alignment |
 | **M2 — OS shell** | Nav + `sprite-arch` dashboard shell + **stub** manifest fetch + error state + view tabs (Structure / Relationship / Change) placeholders | M0 (mockup); M1 nice-to-have for real manifest bytes — **done** (stub manifest + supervisor allowlist + `loadSpriteArchManifest`) |
-| **M3 — Structure live** | Graph from manifest (load-order + python layers); inspector **I1 exports** when manifest includes `exports` | M2 |
+| **M3 — Structure live** | **Done (v1):** P0 extractor `scripts/extract_sprite_workbench_arch.py` + committed manifest; Agent OS Structure tab lists nodes + degrees. **Next:** graph canvas (Cytoscape/D3), **I1** `exports` in manifest | M2 |
 | **M4 — Relationship** | Heuristic JS edges + legend + filters | M3 + Research spike |
 | **M5 — Change** | Git overlay + churn heat | M3 |
 | **M6 — CI + rules** | Regen job + tests + optional fail | M1 |

@@ -1,11 +1,487 @@
 {
-  "schema_version": "0.1",
+  "edges": [
+    {
+      "id": "html_script_order:12",
+      "kind": "html_script_order",
+      "source": "tools/2d-sprite-and-animation/app/animations-stage.js",
+      "target": "tools/2d-sprite-and-animation/app/review-export-stage.js"
+    },
+    {
+      "id": "html_script_order:3",
+      "kind": "html_script_order",
+      "source": "tools/2d-sprite-and-animation/app/concept-view-stage.js",
+      "target": "tools/2d-sprite-and-animation/app/sprite-model-helpers.js"
+    },
+    {
+      "id": "html_script_order:11",
+      "kind": "html_script_order",
+      "source": "tools/2d-sprite-and-animation/app/concepts-stage.js",
+      "target": "tools/2d-sprite-and-animation/app/animations-stage.js"
+    },
+    {
+      "id": "html_script_order:1",
+      "kind": "html_script_order",
+      "source": "tools/2d-sprite-and-animation/app/core-helpers.js",
+      "target": "tools/2d-sprite-and-animation/app/intake-stage.js"
+    },
+    {
+      "id": "html_script_order:10",
+      "kind": "html_script_order",
+      "source": "tools/2d-sprite-and-animation/app/describe-stage.js",
+      "target": "tools/2d-sprite-and-animation/app/concepts-stage.js"
+    },
+    {
+      "id": "html_script_order:9",
+      "kind": "html_script_order",
+      "source": "tools/2d-sprite-and-animation/app/editor-helpers.js",
+      "target": "tools/2d-sprite-and-animation/app/describe-stage.js"
+    },
+    {
+      "id": "html_script_order:2",
+      "kind": "html_script_order",
+      "source": "tools/2d-sprite-and-animation/app/intake-stage.js",
+      "target": "tools/2d-sprite-and-animation/app/concept-view-stage.js"
+    },
+    {
+      "id": "html_script_order:18",
+      "kind": "html_script_order",
+      "source": "tools/2d-sprite-and-animation/app/legacy-clips-stage.js",
+      "target": "tools/2d-sprite-and-animation/app/product-shell.js"
+    },
+    {
+      "id": "html_script_order:6",
+      "kind": "html_script_order",
+      "source": "tools/2d-sprite-and-animation/app/legacy-layout-helpers.js",
+      "target": "tools/2d-sprite-and-animation/app/project-shell.js"
+    },
+    {
+      "id": "html_script_order:17",
+      "kind": "html_script_order",
+      "source": "tools/2d-sprite-and-animation/app/legacy-production-stage.js",
+      "target": "tools/2d-sprite-and-animation/app/legacy-clips-stage.js"
+    },
+    {
+      "id": "html_script_order:14",
+      "kind": "html_script_order",
+      "source": "tools/2d-sprite-and-animation/app/legacy-render-stage.js",
+      "target": "tools/2d-sprite-and-animation/app/manual-clip-stage.js"
+    },
+    {
+      "id": "html_script_order:15",
+      "kind": "html_script_order",
+      "source": "tools/2d-sprite-and-animation/app/manual-clip-stage.js",
+      "target": "tools/2d-sprite-and-animation/app/workbench-runtime.js"
+    },
+    {
+      "id": "html_script_order:5",
+      "kind": "html_script_order",
+      "source": "tools/2d-sprite-and-animation/app/manual-pose-helpers.js",
+      "target": "tools/2d-sprite-and-animation/app/legacy-layout-helpers.js"
+    },
+    {
+      "id": "html_script_order:0",
+      "kind": "html_script_order",
+      "source": "tools/2d-sprite-and-animation/app/pixellab-animation-helpers.js",
+      "target": "tools/2d-sprite-and-animation/app/core-helpers.js"
+    },
+    {
+      "id": "html_script_order:7",
+      "kind": "html_script_order",
+      "source": "tools/2d-sprite-and-animation/app/project-shell.js",
+      "target": "tools/2d-sprite-and-animation/app/workflow-shell.js"
+    },
+    {
+      "id": "html_script_order:13",
+      "kind": "html_script_order",
+      "source": "tools/2d-sprite-and-animation/app/review-export-stage.js",
+      "target": "tools/2d-sprite-and-animation/app/legacy-render-stage.js"
+    },
+    {
+      "id": "html_script_order:4",
+      "kind": "html_script_order",
+      "source": "tools/2d-sprite-and-animation/app/sprite-model-helpers.js",
+      "target": "tools/2d-sprite-and-animation/app/manual-pose-helpers.js"
+    },
+    {
+      "id": "html_script_order:16",
+      "kind": "html_script_order",
+      "source": "tools/2d-sprite-and-animation/app/workbench-runtime.js",
+      "target": "tools/2d-sprite-and-animation/app/legacy-production-stage.js"
+    },
+    {
+      "id": "html_script_order:8",
+      "kind": "html_script_order",
+      "source": "tools/2d-sprite-and-animation/app/workflow-shell.js",
+      "target": "tools/2d-sprite-and-animation/app/editor-helpers.js"
+    },
+    {
+      "id": "python_import:scripts/sprite_workbench_server.py->scripts/workbench_ai_workflow_runtime.py",
+      "kind": "python_import",
+      "source": "scripts/sprite_workbench_server.py",
+      "target": "scripts/workbench_ai_workflow_runtime.py"
+    },
+    {
+      "id": "python_import:scripts/sprite_workbench_server.py->scripts/workbench_brief.py",
+      "kind": "python_import",
+      "source": "scripts/sprite_workbench_server.py",
+      "target": "scripts/workbench_brief.py"
+    },
+    {
+      "id": "python_import:scripts/sprite_workbench_server.py->scripts/workbench_concepts.py",
+      "kind": "python_import",
+      "source": "scripts/sprite_workbench_server.py",
+      "target": "scripts/workbench_concepts.py"
+    },
+    {
+      "id": "python_import:scripts/sprite_workbench_server.py->scripts/workbench_export.py",
+      "kind": "python_import",
+      "source": "scripts/sprite_workbench_server.py",
+      "target": "scripts/workbench_export.py"
+    },
+    {
+      "id": "python_import:scripts/sprite_workbench_server.py->scripts/workbench_external_authoring.py",
+      "kind": "python_import",
+      "source": "scripts/sprite_workbench_server.py",
+      "target": "scripts/workbench_external_authoring.py"
+    },
+    {
+      "id": "python_import:scripts/sprite_workbench_server.py->scripts/workbench_iteration.py",
+      "kind": "python_import",
+      "source": "scripts/sprite_workbench_server.py",
+      "target": "scripts/workbench_iteration.py"
+    },
+    {
+      "id": "python_import:scripts/sprite_workbench_server.py->scripts/workbench_legacy_animation_production.py",
+      "kind": "python_import",
+      "source": "scripts/sprite_workbench_server.py",
+      "target": "scripts/workbench_legacy_animation_production.py"
+    },
+    {
+      "id": "python_import:scripts/sprite_workbench_server.py->scripts/workbench_legacy_concept_runs.py",
+      "kind": "python_import",
+      "source": "scripts/sprite_workbench_server.py",
+      "target": "scripts/workbench_legacy_concept_runs.py"
+    },
+    {
+      "id": "python_import:scripts/sprite_workbench_server.py->scripts/workbench_local_control.py",
+      "kind": "python_import",
+      "source": "scripts/sprite_workbench_server.py",
+      "target": "scripts/workbench_local_control.py"
+    },
+    {
+      "id": "python_import:scripts/sprite_workbench_server.py->scripts/workbench_manual_clips.py",
+      "kind": "python_import",
+      "source": "scripts/sprite_workbench_server.py",
+      "target": "scripts/workbench_manual_clips.py"
+    },
+    {
+      "id": "python_import:scripts/sprite_workbench_server.py->scripts/workbench_part_split.py",
+      "kind": "python_import",
+      "source": "scripts/sprite_workbench_server.py",
+      "target": "scripts/workbench_part_split.py"
+    },
+    {
+      "id": "python_import:scripts/sprite_workbench_server.py->scripts/workbench_persistence.py",
+      "kind": "python_import",
+      "source": "scripts/sprite_workbench_server.py",
+      "target": "scripts/workbench_persistence.py"
+    },
+    {
+      "id": "python_import:scripts/sprite_workbench_server.py->scripts/workbench_pixellab_store.py",
+      "kind": "python_import",
+      "source": "scripts/sprite_workbench_server.py",
+      "target": "scripts/workbench_pixellab_store.py"
+    },
+    {
+      "id": "python_import:scripts/sprite_workbench_server.py->scripts/workbench_project_catalog.py",
+      "kind": "python_import",
+      "source": "scripts/sprite_workbench_server.py",
+      "target": "scripts/workbench_project_catalog.py"
+    },
+    {
+      "id": "python_import:scripts/sprite_workbench_server.py->scripts/workbench_project_io.py",
+      "kind": "python_import",
+      "source": "scripts/sprite_workbench_server.py",
+      "target": "scripts/workbench_project_io.py"
+    },
+    {
+      "id": "python_import:scripts/sprite_workbench_server.py->scripts/workbench_project_lifecycle.py",
+      "kind": "python_import",
+      "source": "scripts/sprite_workbench_server.py",
+      "target": "scripts/workbench_project_lifecycle.py"
+    },
+    {
+      "id": "python_import:scripts/sprite_workbench_server.py->scripts/workbench_rig_parts.py",
+      "kind": "python_import",
+      "source": "scripts/sprite_workbench_server.py",
+      "target": "scripts/workbench_rig_parts.py"
+    },
+    {
+      "id": "python_import:scripts/sprite_workbench_server.py->scripts/workbench_sprite_model_rig.py",
+      "kind": "python_import",
+      "source": "scripts/sprite_workbench_server.py",
+      "target": "scripts/workbench_sprite_model_rig.py"
+    },
+    {
+      "id": "python_import:scripts/sprite_workbench_server.py->scripts/workbench_workflow_state.py",
+      "kind": "python_import",
+      "source": "scripts/sprite_workbench_server.py",
+      "target": "scripts/workbench_workflow_state.py"
+    },
+    {
+      "id": "python_import:scripts/workbench_local_control.py->scripts/workbench_persistence.py",
+      "kind": "python_import",
+      "source": "scripts/workbench_local_control.py",
+      "target": "scripts/workbench_persistence.py"
+    }
+  ],
   "extractor_versions": {
-    "stub": "0.1"
+    "extract_sprite_workbench_arch": "0.1"
   },
-  "git_sha": "0000000",
-  "generated_at": "2026-04-03T00:00:00Z",
-  "scope_note": "Stub manifest for Agent OS M2 shell; replace with extractor output (see docs/sprite-workbench-architecture-visualization-plan.md).",
-  "nodes": [],
-  "edges": []
+  "generated_at": "2026-04-04T00:12:14Z",
+  "git_sha": "6d4b927fe56d14666ba468b29e21e591322375dc",
+  "nodes": [
+    {
+      "id": "tools/2d-sprite-and-animation/app/pixellab-animation-helpers.js",
+      "kind": "browser_js",
+      "layer": "helper",
+      "path": "tools/2d-sprite-and-animation/app/pixellab-animation-helpers.js"
+    },
+    {
+      "id": "tools/2d-sprite-and-animation/app/core-helpers.js",
+      "kind": "browser_js",
+      "layer": "helper",
+      "path": "tools/2d-sprite-and-animation/app/core-helpers.js"
+    },
+    {
+      "id": "tools/2d-sprite-and-animation/app/intake-stage.js",
+      "kind": "browser_js",
+      "layer": "stage",
+      "path": "tools/2d-sprite-and-animation/app/intake-stage.js"
+    },
+    {
+      "id": "tools/2d-sprite-and-animation/app/concept-view-stage.js",
+      "kind": "browser_js",
+      "layer": "stage",
+      "path": "tools/2d-sprite-and-animation/app/concept-view-stage.js"
+    },
+    {
+      "id": "tools/2d-sprite-and-animation/app/sprite-model-helpers.js",
+      "kind": "browser_js",
+      "layer": "helper",
+      "path": "tools/2d-sprite-and-animation/app/sprite-model-helpers.js"
+    },
+    {
+      "id": "tools/2d-sprite-and-animation/app/manual-pose-helpers.js",
+      "kind": "browser_js",
+      "layer": "helper",
+      "path": "tools/2d-sprite-and-animation/app/manual-pose-helpers.js"
+    },
+    {
+      "id": "tools/2d-sprite-and-animation/app/legacy-layout-helpers.js",
+      "kind": "browser_js",
+      "layer": "helper",
+      "path": "tools/2d-sprite-and-animation/app/legacy-layout-helpers.js"
+    },
+    {
+      "id": "tools/2d-sprite-and-animation/app/project-shell.js",
+      "kind": "browser_js",
+      "layer": "shell",
+      "path": "tools/2d-sprite-and-animation/app/project-shell.js"
+    },
+    {
+      "id": "tools/2d-sprite-and-animation/app/workflow-shell.js",
+      "kind": "browser_js",
+      "layer": "shell",
+      "path": "tools/2d-sprite-and-animation/app/workflow-shell.js"
+    },
+    {
+      "id": "tools/2d-sprite-and-animation/app/editor-helpers.js",
+      "kind": "browser_js",
+      "layer": "helper",
+      "path": "tools/2d-sprite-and-animation/app/editor-helpers.js"
+    },
+    {
+      "id": "tools/2d-sprite-and-animation/app/describe-stage.js",
+      "kind": "browser_js",
+      "layer": "stage",
+      "path": "tools/2d-sprite-and-animation/app/describe-stage.js"
+    },
+    {
+      "id": "tools/2d-sprite-and-animation/app/concepts-stage.js",
+      "kind": "browser_js",
+      "layer": "stage",
+      "path": "tools/2d-sprite-and-animation/app/concepts-stage.js"
+    },
+    {
+      "id": "tools/2d-sprite-and-animation/app/animations-stage.js",
+      "kind": "browser_js",
+      "layer": "stage",
+      "path": "tools/2d-sprite-and-animation/app/animations-stage.js"
+    },
+    {
+      "id": "tools/2d-sprite-and-animation/app/review-export-stage.js",
+      "kind": "browser_js",
+      "layer": "stage",
+      "path": "tools/2d-sprite-and-animation/app/review-export-stage.js"
+    },
+    {
+      "id": "tools/2d-sprite-and-animation/app/legacy-render-stage.js",
+      "kind": "browser_js",
+      "layer": "stage",
+      "path": "tools/2d-sprite-and-animation/app/legacy-render-stage.js"
+    },
+    {
+      "id": "tools/2d-sprite-and-animation/app/manual-clip-stage.js",
+      "kind": "browser_js",
+      "layer": "stage",
+      "path": "tools/2d-sprite-and-animation/app/manual-clip-stage.js"
+    },
+    {
+      "id": "tools/2d-sprite-and-animation/app/workbench-runtime.js",
+      "kind": "browser_js",
+      "layer": "runtime",
+      "path": "tools/2d-sprite-and-animation/app/workbench-runtime.js"
+    },
+    {
+      "id": "tools/2d-sprite-and-animation/app/legacy-production-stage.js",
+      "kind": "browser_js",
+      "layer": "stage",
+      "path": "tools/2d-sprite-and-animation/app/legacy-production-stage.js"
+    },
+    {
+      "id": "tools/2d-sprite-and-animation/app/legacy-clips-stage.js",
+      "kind": "browser_js",
+      "layer": "stage",
+      "path": "tools/2d-sprite-and-animation/app/legacy-clips-stage.js"
+    },
+    {
+      "id": "tools/2d-sprite-and-animation/app/product-shell.js",
+      "kind": "browser_js",
+      "layer": "shell",
+      "path": "tools/2d-sprite-and-animation/app/product-shell.js"
+    },
+    {
+      "id": "scripts/sprite_workbench_server.py",
+      "kind": "python",
+      "layer": "python_server",
+      "path": "scripts/sprite_workbench_server.py"
+    },
+    {
+      "id": "scripts/workbench_ai_workflow_runtime.py",
+      "kind": "python",
+      "layer": "python_lib",
+      "path": "scripts/workbench_ai_workflow_runtime.py"
+    },
+    {
+      "id": "scripts/workbench_brief.py",
+      "kind": "python",
+      "layer": "python_lib",
+      "path": "scripts/workbench_brief.py"
+    },
+    {
+      "id": "scripts/workbench_concepts.py",
+      "kind": "python",
+      "layer": "python_lib",
+      "path": "scripts/workbench_concepts.py"
+    },
+    {
+      "id": "scripts/workbench_export.py",
+      "kind": "python",
+      "layer": "python_lib",
+      "path": "scripts/workbench_export.py"
+    },
+    {
+      "id": "scripts/workbench_external_authoring.py",
+      "kind": "python",
+      "layer": "python_lib",
+      "path": "scripts/workbench_external_authoring.py"
+    },
+    {
+      "id": "scripts/workbench_iteration.py",
+      "kind": "python",
+      "layer": "python_lib",
+      "path": "scripts/workbench_iteration.py"
+    },
+    {
+      "id": "scripts/workbench_legacy_animation_production.py",
+      "kind": "python",
+      "layer": "python_lib",
+      "path": "scripts/workbench_legacy_animation_production.py"
+    },
+    {
+      "id": "scripts/workbench_legacy_concept_runs.py",
+      "kind": "python",
+      "layer": "python_lib",
+      "path": "scripts/workbench_legacy_concept_runs.py"
+    },
+    {
+      "id": "scripts/workbench_local_control.py",
+      "kind": "python",
+      "layer": "python_lib",
+      "path": "scripts/workbench_local_control.py"
+    },
+    {
+      "id": "scripts/workbench_manual_clips.py",
+      "kind": "python",
+      "layer": "python_lib",
+      "path": "scripts/workbench_manual_clips.py"
+    },
+    {
+      "id": "scripts/workbench_part_split.py",
+      "kind": "python",
+      "layer": "python_lib",
+      "path": "scripts/workbench_part_split.py"
+    },
+    {
+      "id": "scripts/workbench_persistence.py",
+      "kind": "python",
+      "layer": "python_lib",
+      "path": "scripts/workbench_persistence.py"
+    },
+    {
+      "id": "scripts/workbench_pixellab_store.py",
+      "kind": "python",
+      "layer": "python_lib",
+      "path": "scripts/workbench_pixellab_store.py"
+    },
+    {
+      "id": "scripts/workbench_project_catalog.py",
+      "kind": "python",
+      "layer": "python_lib",
+      "path": "scripts/workbench_project_catalog.py"
+    },
+    {
+      "id": "scripts/workbench_project_io.py",
+      "kind": "python",
+      "layer": "python_lib",
+      "path": "scripts/workbench_project_io.py"
+    },
+    {
+      "id": "scripts/workbench_project_lifecycle.py",
+      "kind": "python",
+      "layer": "python_lib",
+      "path": "scripts/workbench_project_lifecycle.py"
+    },
+    {
+      "id": "scripts/workbench_rig_parts.py",
+      "kind": "python",
+      "layer": "python_lib",
+      "path": "scripts/workbench_rig_parts.py"
+    },
+    {
+      "id": "scripts/workbench_sprite_model_rig.py",
+      "kind": "python",
+      "layer": "python_lib",
+      "path": "scripts/workbench_sprite_model_rig.py"
+    },
+    {
+      "id": "scripts/workbench_workflow_state.py",
+      "kind": "python",
+      "layer": "python_lib",
+      "path": "scripts/workbench_workflow_state.py"
+    }
+  ],
+  "schema_version": "0.1",
+  "scope_note": "Browser: tools/2d-sprite-and-animation/index.html script tags. Python: scripts/sprite_workbench_server.py + scripts/workbench_*.py; imports to in-scope modules only."
 }

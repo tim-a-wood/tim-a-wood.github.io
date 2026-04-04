@@ -20,4 +20,10 @@ Ship **M2** as a live Agent OS dashboard id **`sprite-arch`** with:
 
 ## Follow-up
 
-- M1/M3: real manifest from extractors; graph renderer; KPIs from real edge counts and analytics definitions.
+- ~~M1/M3: real manifest from extractors~~ **Done 2026-04-03:** `scripts/extract_sprite_workbench_arch.py` emits manifest; CI test `tests/extract_sprite_workbench_arch.test.py`.
+- **Remaining M3:** graph canvas (optional SVG/DOT), **I1** `exports` in manifest + inspector block.
+
+## Addendum (2026-04-03) — P0 extractor + Structure list
+
+- **Extractor:** `scripts/extract_sprite_workbench_arch.py` — `html_script_order` chain from `tools/2d-sprite-and-animation/index.html`; `python_import` from AST on `sprite_workbench_server.py` + `workbench_*.py` to in-scope targets only (`from scripts import …`, `import workbench_*`).
+- **UI:** `sprite-arch` Structure tab renders scrollable lists (browser load order, then Python sorted); inspector shows path, layer, kind, in/out degree from manifest edges.

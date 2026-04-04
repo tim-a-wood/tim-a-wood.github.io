@@ -1352,6 +1352,79 @@ body::before {
   gap: var(--space-3);
   min-height: 320px;
 }
+.sa-structure-head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  color: var(--muted);
+  font-size: var(--font-size-sm);
+  line-height: 1.45;
+}
+.sa-structure-root {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-height: 200px;
+  max-height: min(520px, 52vh);
+  overflow-y: auto;
+}
+.sa-structure-section-label {
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.sa-node-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+.sa-node-row {
+  text-align: left;
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border-radius: var(--radius-tight);
+  border: 1px solid var(--line);
+  background: var(--os-control);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  cursor: pointer;
+  transition: background 200ms ease, border-color 200ms ease;
+}
+.sa-node-row:hover {
+  border-color: var(--line-strong);
+  background: var(--os-control-hover);
+}
+.sa-node-row--selected {
+  border-color: var(--accent);
+  background: rgba(0, 232, 200, 0.12);
+}
+.sa-node-row-meta {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-xs);
+  color: var(--muted);
+  margin-top: var(--space-1);
+}
+.sa-inspector-dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--space-1) var(--space-3);
+  font-size: var(--font-size-sm);
+  margin: 0;
+}
+.sa-inspector-dl dt {
+  color: var(--muted);
+  font-weight: 600;
+}
+.sa-inspector-dl dd {
+  margin: 0;
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+}
 
 /* ─── ISSUES VIEW (priority list) ───────────────── */
 .av-scope-strip {
@@ -5275,8 +5348,11 @@ h3.os-chart-card-title {
         <div class="sa-arch-body">
           <div class="sa-graph-column">
             <div class="sa-graph-placeholder" id="sa-panel-structure" role="tabpanel" aria-labelledby="sa-tab-structure">
-              <strong style="color:var(--text)">Structure</strong>
-              <span>Graph placeholder (M3). Load order and Python import layers will render here from the manifest.</span>
+              <div class="sa-structure-head">
+                <strong style="color:var(--text)">Structure</strong>
+                <span>Browser scripts follow <code style="font-family:var(--font-mono);font-size:var(--font-size-xs)">index.html</code> order; Python nodes are <code style="font-family:var(--font-mono);font-size:var(--font-size-xs)">sprite_workbench_server.py</code> + <code style="font-family:var(--font-mono);font-size:var(--font-size-xs)">workbench_*.py</code>. Select a row for the inspector.</span>
+              </div>
+              <div id="sa-structure-root" class="sa-structure-root" aria-live="polite"></div>
             </div>
             <div class="sa-graph-placeholder sa-panel-hidden" id="sa-panel-relationship" role="tabpanel" aria-labelledby="sa-tab-relationship">
               <strong style="color:var(--text)">Relationship</strong>
@@ -5289,7 +5365,8 @@ h3.os-chart-card-title {
           </div>
           <aside class="sa-inspector" aria-label="Selection details">
             <div class="sa-inspector-kicker">Inspector</div>
-            <div class="sa-inspector-path" id="sa-inspector-path">Select a node after the graph ships (M3).</div>
+            <div class="sa-inspector-path" id="sa-inspector-path">Select a node in Structure.</div>
+            <dl class="sa-inspector-dl" id="sa-inspector-stats"></dl>
             <p style="font-size:var(--font-size-xs);color:var(--muted);line-height:1.45;margin:0">Facts from manifest JSON. Optional <strong style="color:var(--text)">exported symbols (I1)</strong> per technical plan §4.1.</p>
             <button type="button" class="av-btn av-btn--accent" disabled title="M7 — scoped explain endpoint">Explain this module (AI)</button>
           </aside>
@@ -12838,6 +12915,118 @@ async function loadOpportunitiesView() {
 
 const SPRITE_ARCH_MANIFEST_PATH = 'artifacts/sprite-workbench-arch/manifest.json';
 
+let spriteArchManifest = null;
+let spriteArchSelectedId = null;
+
+function spriteArchDegreeMaps(manifest) {
+  const outDeg = Object.create(null);
+  const inDeg = Object.create(null);
+  (manifest.nodes || []).forEach(function(n) {
+    outDeg[n.id] = 0;
+    inDeg[n.id] = 0;
+  });
+  (manifest.edges || []).forEach(function(e) {
+    if (outDeg[e.source] != null) outDeg[e.source] += 1;
+    if (inDeg[e.target] != null) inDeg[e.target] += 1;
+  });
+  return { outDeg: outDeg, inDeg: inDeg };
+}
+
+function spriteArchShortPath(path) {
+  if (!path) return '';
+  const parts = path.split('/');
+  return parts.length ? parts[parts.length - 1] : path;
+}
+
+function spriteArchRefreshView() {
+  const active = document.querySelector('.sa-view-tab[aria-selected="true"]');
+  const view = active && active.getAttribute('data-sa-view');
+  if (view === 'structure') spriteArchRenderStructure();
+}
+
+function spriteArchRenderStructure() {
+  const root = document.getElementById('sa-structure-root');
+  if (!root) return;
+  if (!spriteArchManifest || !Array.isArray(spriteArchManifest.nodes)) {
+    root.innerHTML = '';
+    return;
+  }
+  root.innerHTML = '';
+  const deg = spriteArchDegreeMaps(spriteArchManifest);
+  const jsNodes = spriteArchManifest.nodes.filter(function(n) { return n.kind === 'browser_js'; });
+  const pyNodes = spriteArchManifest.nodes.filter(function(n) { return n.kind === 'python'; }).sort(function(a, b) {
+    return a.id.localeCompare(b.id);
+  });
+
+  function addSection(title) {
+    const lbl = document.createElement('div');
+    lbl.className = 'sa-structure-section-label';
+    lbl.textContent = title;
+    root.appendChild(lbl);
+    const list = document.createElement('div');
+    list.className = 'sa-node-list';
+    root.appendChild(list);
+    return list;
+  }
+
+  function addRow(list, node) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'sa-node-row';
+    btn.dataset.nodeId = node.id;
+    const sp = document.createElement('span');
+    sp.textContent = spriteArchShortPath(node.path);
+    const meta = document.createElement('div');
+    meta.className = 'sa-node-row-meta';
+    meta.textContent = (node.layer || '') + ' · in ' + (deg.inDeg[node.id] || 0) + ' · out ' + (deg.outDeg[node.id] || 0);
+    btn.appendChild(sp);
+    btn.appendChild(meta);
+    btn.addEventListener('click', function() { spriteArchSelectNode(node.id); });
+    list.appendChild(btn);
+  }
+
+  const listJs = addSection('Browser (HTML script order)');
+  jsNodes.forEach(function(n) { addRow(listJs, n); });
+  const listPy = addSection('Python (scoped)');
+  pyNodes.forEach(function(n) { addRow(listPy, n); });
+
+  if (spriteArchSelectedId) spriteArchSelectNode(spriteArchSelectedId);
+}
+
+function spriteArchSelectNode(nodeId) {
+  spriteArchSelectedId = nodeId;
+  document.querySelectorAll('.sa-node-row').forEach(function(row) {
+    row.classList.toggle('sa-node-row--selected', row.dataset.nodeId === nodeId);
+  });
+  const pathEl = document.getElementById('sa-inspector-path');
+  const statsEl = document.getElementById('sa-inspector-stats');
+  if (!spriteArchManifest || !nodeId) return;
+  let node = null;
+  for (let i = 0; i < spriteArchManifest.nodes.length; i++) {
+    if (spriteArchManifest.nodes[i].id === nodeId) {
+      node = spriteArchManifest.nodes[i];
+      break;
+    }
+  }
+  if (!node) return;
+  if (pathEl) pathEl.textContent = node.path;
+  if (!statsEl) return;
+  statsEl.innerHTML = '';
+  const deg = spriteArchDegreeMaps(spriteArchManifest);
+  function addStat(label, val) {
+    const dt = document.createElement('dt');
+    dt.textContent = label;
+    const dd = document.createElement('dd');
+    dd.textContent = String(val);
+    statsEl.appendChild(dt);
+    statsEl.appendChild(dd);
+  }
+  addStat('Layer', node.layer || '—');
+  addStat('Kind', node.kind || '—');
+  addStat('In-degree', deg.inDeg[nodeId] || 0);
+  addStat('Out-degree', deg.outDeg[nodeId] || 0);
+}
+
 async function loadSpriteArchManifest() {
   const banner = document.getElementById('sa-manifest-banner');
   const setBanner = function(text, ok, err) {
@@ -12850,10 +13039,20 @@ async function loadSpriteArchManifest() {
   const nodesEl = document.getElementById('sa-kpi-nodes');
   const edgesEl = document.getElementById('sa-kpi-edges');
   const hotEl = document.getElementById('sa-kpi-hotspots');
+  const structRoot = document.getElementById('sa-structure-root');
+  const clearStructure = function() {
+    spriteArchManifest = null;
+    if (structRoot) structRoot.innerHTML = '';
+    const statsEl = document.getElementById('sa-inspector-stats');
+    if (statsEl) statsEl.innerHTML = '';
+    const pathEl = document.getElementById('sa-inspector-path');
+    if (pathEl) pathEl.textContent = 'Select a node in Structure.';
+  };
   try {
     const url = agentOsApiUrl('/' + SPRITE_ARCH_MANIFEST_PATH);
     const resp = await fetch(url, { cache: 'no-store' });
     if (!resp.ok) {
+      clearStructure();
       setBanner('Manifest: could not load (HTTP ' + resp.status + '). Open this page via scripts/os_dashboard_supervisor.py (port 8769) or ensure artifacts/sprite-workbench-arch/manifest.json exists.', false, true);
       if (nodesEl) nodesEl.textContent = '—';
       if (edgesEl) edgesEl.textContent = '—';
@@ -12869,7 +13068,10 @@ async function loadSpriteArchManifest() {
     if (nodesEl) nodesEl.textContent = String(nodes);
     if (edgesEl) edgesEl.textContent = String(edges);
     if (hotEl) hotEl.textContent = '—';
+    spriteArchManifest = m;
+    spriteArchRefreshView();
   } catch (e) {
+    clearStructure();
     setBanner('Manifest: fetch failed (serve os-dashboard from supervisor so /artifacts/… resolves).', false, true);
     if (nodesEl) nodesEl.textContent = '—';
     if (edgesEl) edgesEl.textContent = '—';
@@ -12897,6 +13099,7 @@ function wireSpriteArchViewTabs() {
         const on = k === view;
         p.classList.toggle('sa-panel-hidden', !on);
       });
+      spriteArchRefreshView();
     });
   });
 }

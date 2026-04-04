@@ -249,7 +249,7 @@ Optional: feed summary into existing dashboards JSON later—out of scope for v1
 
 | Phase | Deliverable | Owner emphasis |
 |-------|-------------|----------------|
-| **P0** | Scope doc + `manifest.json` schema v1 + HTML script-order + Python imports only | Engineering |
+| **P0** | Scope doc + `manifest.json` schema v1 + HTML script-order + Python imports only | Engineering — **extractor shipped:** `scripts/extract_sprite_workbench_arch.py`; regen with `python3 scripts/extract_sprite_workbench_arch.py` after changing workbench `index.html` scripts or scoped Python imports |
 | **P1** | **Agent OS:** register `sprite-arch` dashboard (nav, `DASHBOARDS`, product context), empty shell + **Structure** placeholder + manifest fetch; tokens-compliant layout skeleton | Engineering + Design |
 | **P2** | **Structure** view wired to real manifest (graph or tree from JSON); optional Graphviz SVG embed; inspector shows **path + degrees**; **I1 `exports`** in manifest + inspector when extractors ready | Engineering + Design |
 | **P3** | Acorn-based `js_static_ref` (labeled heuristic) + **Relationship** view | Engineering + Research validation |
