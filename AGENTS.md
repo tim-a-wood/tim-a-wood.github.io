@@ -79,6 +79,27 @@ Directive for all agents:
 - Treat the decision log as part of the feature contract, not optional notes.
 - If no log exists for an active multi-pass feature, create one in `/decisions/` using the repository naming convention before continuing substantial work.
 
+## In-game pixel art (production gate)
+
+For **game-facing sprites and raster art** during development, **[`docs/pixel-art-quality-standards.md`](docs/pixel-art-quality-standards.md)** is mandatory **alongside** the Ashen Hollow art bible ([`artifacts/ashen-hollow-art-bible-v0.2.md`](artifacts/ashen-hollow-art-bible-v0.2.md)). Standing directives in the **Animation**, **Creative**, **Level Design**, **Game Director**, **Engineering**, and **Orchestrator** charters require agents to read, apply, route, or implement against that gate as their role demands.
+
+## Visual Validation Honesty Gate
+
+For any task where the result is primarily judged by an image, screenshot, mockup, rendered artifact, or other visual output, agents must not claim improvement, success, readability, quality, or “better” results unless they have personally inspected the exact saved artifact being referenced.
+
+Required proof before making a positive visual claim:
+- Open the exact saved image artifact that will be cited.
+- State that it was visually inspected.
+- Include at least 3 concrete visible observations from that image, not abstract summaries.
+- If the image is bad, say so plainly even if tests passed or one narrow sub-fix succeeded.
+
+Forbidden behavior:
+- Do not substitute code/tests/metrics for visual validation when the user is asking about how the image looks.
+- Do not describe a visual result positively based only on a local subcomponent fix.
+- Do not use placeholder, mock, fallback, or recovered artifacts as evidence without labeling them clearly.
+
+If visual validation was not performed, the agent must explicitly say that it has not yet visually validated the artifact.
+
 ---
 
 # MV / Sprite Workbench — Agent Rules (Codex / OpenAI)
