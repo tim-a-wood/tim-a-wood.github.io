@@ -3891,7 +3891,7 @@ h3.os-chart-card-title {
               <div class="db-card-sub">Sprite workbench server on or off</div>
             </div>
           </div>
-          <p id="home-api-usage-summary" style="color:var(--muted);font-size:var(--font-size-sm);line-height:1.5;max-width:52rem;margin:var(--space-3) 0 0 0;font-family:var(--font-mono)" aria-live="polite"></p>
+          <p id="home-api-usage-summary" style="color:var(--muted);font-size:var(--font-size-sm);line-height:1.5;max-width:52rem;margin:var(--space-3) 0 0 0;font-family:var(--font-mono)" aria-live="polite">Loading usage summary…</p>
         </div>
         <div class="db-qa-signpost db-qa-signpost--stack">
           <button type="button" class="db-qa-link" onclick="selectDashboard('api-usage')">→ API usage</button>
@@ -8617,6 +8617,9 @@ function applyUsageChartsFromDashboard(d) {
   const uc = d.usage_charts;
   if (uc.cost_rollups && typeof uc.cost_rollups === 'object' && !Array.isArray(uc.cost_rollups)) {
     window.__usageCostRollups = uc.cost_rollups;
+    if (window.__usageLedgerEntryCount == null && uc.cost_rollups.ledger_row_count != null) {
+      window.__usageLedgerEntryCount = Number(uc.cost_rollups.ledger_row_count);
+    }
   } else {
     window.__usageCostRollups = { version: 1, daily: [], providers: [] };
   }
@@ -8925,14 +8928,64 @@ function apiUsageProviderLabelMap() {
   return m;
 }
 
+/** When slice has no providers in range: short line for Home, long line for API usage table. */
+function apiUsageEmptyCopy(slice) {
+  if (!slice || slice.providerOrder.length) return null;
+  if (window.__dashboardHasPayload === false) {
+    return {
+      home:
+        'Dashboard data did not load. Open from the Agent OS supervisor (http://127.0.0.1:8769/os-dashboard.html) or the sprite workbench — not as a saved file or static host.',
+      table:
+        'Dashboard API did not load. Open this page from the Agent OS supervisor or sprite workbench so GET /api/dashboard-data can run. Using APIs only in Cursor or elsewhere does not write the local ledger.',
+    };
+  }
+  const ec = window.__usageLedgerEntryCount;
+  const cr = window.__usageCostRollups;
+  const dated = cr && cr.dated_row_count != null ? Number(cr.dated_row_count) : null;
+  const skippedDates = ec != null && dated != null && ec > dated;
+  if (ec != null && ec > 0) {
+    return {
+      home: skippedDates
+        ? 'Log has ' +
+          String(ec) +
+          ' rows but only ' +
+          String(dated) +
+          ' have parseable dates. Fix created_at or open API usage → All time.'
+        : 'Log has ' +
+          String(ec) +
+          ' calls outside this UTC window. Open API usage → All time or widen the range.',
+      table: skippedDates
+        ? 'Your usage log lists ' +
+          String(ec) +
+          ' row(s) but only ' +
+          String(dated) +
+          ' have a valid ISO created_at. Rows without dates are ignored for charts. Try “All time”, or fix ledger timestamps.'
+        : 'Your log has ' +
+          String(ec) +
+          ' recorded call(s) but none fall in this UTC date range. Try “All time” in the range control above, or widen the window.',
+    };
+  }
+  if (ec === 0) {
+    return {
+      home:
+        'No calls logged yet. The workbench appends tools/2d-sprite-and-animation/projects-data/_usage_ledger.json when you use Pixel Lab, Gemini (room Copilot), or other paid routes on the sprite workbench server (port 8766).',
+      table:
+        'No calls in your usage log yet. The log is created when you use Pixel Lab, Gemini (e.g. room Copilot), or other workbench routes through the Sprite Workbench server on this machine (usually port 8766). Using APIs only in Cursor or elsewhere does not write here.',
+    };
+  }
+  return {
+    home: 'No usage in this UTC range. Open API usage to change the range.',
+    table:
+      'No ledger rows in this UTC date range. Try “All time” in the range control, or widen the window.',
+  };
+}
+
 function syncHomeApiUsageSummary(slice) {
   const el = document.getElementById('home-api-usage-summary');
   if (!el || !slice) return;
   if (!slice.providerOrder.length) {
-    const emptyLedger = window.__usageLedgerEntryCount === 0;
-    el.textContent = emptyLedger
-      ? 'No API calls logged yet. Usage appears when you run Pixel Lab, Gemini (e.g. room Copilot), or other workbench routes through the Sprite Workbench server.'
-      : 'No usage in the current UTC range. Open API usage to change the range or see the full table.';
+    const copy = apiUsageEmptyCopy(slice);
+    el.textContent = copy ? copy.home : '—';
     return;
   }
   if (slice.grandTotal > 0) {
@@ -8961,10 +9014,8 @@ function applyApiUsageCostUi() {
     td.colSpan = 4;
     td.style.color = 'var(--muted)';
     td.style.fontSize = 'var(--font-size-sm)';
-    const emptyLedger = window.__usageLedgerEntryCount === 0;
-    td.textContent = emptyLedger
-      ? 'No calls in your usage log yet. The log is created when you use Pixel Lab, Gemini (e.g. room Copilot), or other workbench routes through the Sprite Workbench server on this machine (usually port 8766). Using APIs only in Cursor or elsewhere does not write here.'
-      : 'No ledger rows in this UTC date range. Try “All time” in the range control, or widen the window.';
+    const copy = apiUsageEmptyCopy(slice);
+    td.textContent = copy ? copy.table : 'No data for this range.';
     tr.appendChild(td);
     tbody.appendChild(tr);
     if (foot) foot.textContent = '';
@@ -14090,6 +14141,7 @@ async function loadDashboardData(dashId) {
         dashboardReachable = false;
       }
     }
+    window.__dashboardHasPayload = !!(d && typeof d === 'object');
     d = await ensureHomeInternal(d);
     applyGlobalWorkbenchBar(d);
     syncBuildPipelineServiceCards(d);
@@ -14158,8 +14210,10 @@ async function loadDashboardData(dashId) {
       }
     }
   } catch {
+    window.__dashboardHasPayload = false;
     applyGlobalWorkbenchBar(null);
     syncHomeKpis(null);
+    applyUsageChartsFromDashboard(null);
     syncAnalyticsKpis(null);
     if (dashId === 'analytics' || dashId === 'api-usage') {
       void loadAnalyticsStatus();
@@ -14180,6 +14234,7 @@ async function pulseGlobalWorkbenchOnly() {
         dashboardReachable = false;
       }
     }
+    window.__dashboardHasPayload = !!(d && typeof d === 'object');
     d = await ensureHomeInternal(d);
     applyGlobalWorkbenchBar(d);
     syncBuildPipelineServiceCards(d);
@@ -14195,8 +14250,10 @@ async function pulseGlobalWorkbenchOnly() {
       paintOsChartsForView(selectedDashboard);
     }
   } catch {
+    window.__dashboardHasPayload = false;
     applyGlobalWorkbenchBar(null);
     syncHomeKpis(null);
+    applyUsageChartsFromDashboard(null);
     syncAnalyticsKpis(null);
     if (selectedDashboard === 'analytics' || selectedDashboard === 'api-usage') {
       void loadAnalyticsStatus();

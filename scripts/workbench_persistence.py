@@ -514,7 +514,20 @@ def build_usage_cost_rollups_from_entries(entries: List[Dict[str, Any]]) -> Dict
             }
         )
 
-    return {"version": 1, "daily": daily_list, "providers": prov_rows}
+    ledger_row_count = sum(1 for item in entries if isinstance(item, dict))
+    dated_row_count = sum(
+        1
+        for item in entries
+        if isinstance(item, dict) and _parse_iso_datetime_utc(item.get("created_at")) is not None
+    )
+
+    return {
+        "version": 1,
+        "daily": daily_list,
+        "providers": prov_rows,
+        "ledger_row_count": ledger_row_count,
+        "dated_row_count": dated_row_count,
+    }
 
 
 def build_usage_ledger_charts_from_entries(entries: List[Dict[str, Any]]) -> Dict[str, Any]:

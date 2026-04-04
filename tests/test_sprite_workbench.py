@@ -24,6 +24,16 @@ from scripts import pixellab_client as pl
 class SpriteWorkbenchTests(unittest.TestCase):
     FIXTURE_ROOT = Path(__file__).resolve().parent / "fixtures" / "sprite_workbench"
 
+    def test_load_repo_env_local_populates_missing_gemini_key(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            env_file = Path(tmpdir) / ".env.local"
+            env_file.write_text("GEMINI_API_KEY=test-key\nGEMINI_IMAGE_MODEL=gemini-test\n", encoding="utf-8")
+            with patch.object(sw, "ENV_LOCAL_PATH", env_file), \
+                 patch.dict(os.environ, {}, clear=True):
+                sw.load_repo_env_local()
+                self.assertEqual(os.environ.get("GEMINI_API_KEY"), "test-key")
+                self.assertEqual(os.environ.get("GEMINI_IMAGE_MODEL"), "gemini-test")
+
     def create_manual_concept_asset(self, path: Path):
         image = Image.new("RGBA", sw.CONCEPT_CANVAS, (0, 0, 0, 0))
         draw = ImageDraw.Draw(image)
@@ -450,8 +460,15 @@ class SpriteWorkbenchTests(unittest.TestCase):
                 "endpoint": "free",
                 "usage_cost_usd": 0,
             },
+            {
+                "created_at": "not-an-iso-timestamp",
+                "provider": "gemini",
+                "endpoint": "orphan",
+            },
         ]
         cr = build_usage_cost_rollups_from_entries(entries)
+        self.assertEqual(cr.get("ledger_row_count"), 5)
+        self.assertEqual(cr.get("dated_row_count"), 4)
         self.assertEqual(len(cr["daily"]), 2)
         self.assertEqual(cr["daily"][0]["d"], "2026-04-01")
         self.assertAlmostEqual(cr["daily"][0]["c"]["gemini"], 0.03)
