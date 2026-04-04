@@ -1522,10 +1522,13 @@ body::before {
   height: 12px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--line);
+  /* Stops = blends of --muted / --warning / --error (#5d7870 → #d29922 → #f85149) */
   background: linear-gradient(
     90deg,
-    rgba(93, 120, 112, 0.35) 0%,
-    rgba(248, 81, 73, 0.35) 45%,
+    rgba(93, 120, 112, 0.3) 0%,
+    rgba(152, 137, 73, 0.52) 38%,
+    rgba(210, 153, 34, 0.68) 55%,
+    rgba(229, 117, 54, 0.8) 78%,
     rgba(248, 81, 73, 0.95) 100%
   );
 }
@@ -13403,18 +13406,46 @@ function spriteArchAttachGraphResizeObserver() {
 }
 
 function spriteArchHeatTileStyle(node, maxChurn) {
-  const ch = Number(node.churn_30d) || 0;
+  function smooth01(x) {
+    const u = Math.max(0, Math.min(1, x));
+    return u * u * (3 - 2 * u);
+  }
+  function mixChannel(a, b, u) {
+    return Math.round(a + (b - a) * u);
+  }
+  /* Design-token RGB: --muted #5d7870, --warning #d29922, --error #f85149 */
+  var M = [93, 120, 112];
+  var W = [210, 153, 34];
+  var E = [248, 81, 73];
+  var ch = Number(node.churn_30d) || 0;
   if (ch <= 0) {
     return {
-      background: 'rgba(93,120,112,0.22)',
-      border: '1px solid rgba(93,120,112,0.4)',
+      background: 'rgba(93,120,112,0.16)',
+      border: '1px solid rgba(93,120,112,0.36)',
     };
   }
-  const t = maxChurn ? Math.min(1, ch / maxChurn) : 0;
-  const a = (0.22 + t * 0.72).toFixed(2);
+  var tLin = maxChurn ? Math.min(1, ch / maxChurn) : 0;
+  var t = Math.pow(tLin, 0.82);
+  var r;
+  var g;
+  var b;
+  if (t < 0.5) {
+    var s = smooth01(t * 2);
+    r = mixChannel(M[0], W[0], s);
+    g = mixChannel(M[1], W[1], s);
+    b = mixChannel(M[2], W[2], s);
+  } else {
+    var s2 = smooth01((t - 0.5) * 2);
+    r = mixChannel(W[0], E[0], s2);
+    g = mixChannel(W[1], E[1], s2);
+    b = mixChannel(W[2], E[2], s2);
+  }
+  var alpha = (0.2 + tLin * 0.62).toFixed(3);
+  var borderRgb = tLin < 0.42 ? M : (tLin < 0.78 ? W : E);
+  var borderA = (0.32 + tLin * 0.48).toFixed(3);
   return {
-    background: 'rgba(248,81,73,' + a + ')',
-    border: t > 0.5 ? '1px solid rgba(248,81,73,0.9)' : '1px solid rgba(248,81,73,0.45)',
+    background: 'rgba(' + r + ',' + g + ',' + b + ',' + alpha + ')',
+    border: '1px solid rgba(' + borderRgb[0] + ',' + borderRgb[1] + ',' + borderRgb[2] + ',' + borderA + ')',
   };
 }
 
@@ -13432,7 +13463,7 @@ function spriteArchRenderChangeHeatmap() {
   const scale = document.createElement('span');
   scale.className = 'sa-change-heatmap-scale';
   scale.setAttribute('role', 'img');
-  scale.setAttribute('aria-label', 'Heat from muted grey to red');
+  scale.setAttribute('aria-label', 'Heat from muted teal through amber to red');
   legend.appendChild(scale);
   const hi = document.createElement('span');
   hi.textContent = 'High activity';
