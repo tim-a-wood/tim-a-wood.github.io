@@ -1467,6 +1467,76 @@ body::before {
   border: 1px solid var(--line);
   background: var(--os-sunken);
 }
+.dashboard-view[data-dashboard-view="sprite-arch"] {
+  gap: var(--space-2);
+  overflow: hidden;
+}
+.dashboard-view[data-dashboard-view="sprite-arch"] .sa-arch-viewport {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.dashboard-view[data-dashboard-view="sprite-arch"] .sa-arch-graph-wrap {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.dashboard-view[data-dashboard-view="sprite-arch"] .sa-arch-graph {
+  flex: 1 1 auto;
+  min-height: 420px;
+  height: 100%;
+  max-height: none;
+}
+.dashboard-view[data-dashboard-view="sprite-arch"] .sa-arch-body {
+  flex: 0 0 auto;
+  max-height: 200px;
+  overflow-y: auto;
+}
+.dashboard-view[data-dashboard-view="sprite-arch"] .sa-structure-root {
+  max-height: 140px;
+}
+.sa-arch-drawer {
+  flex-shrink: 0;
+  border-radius: var(--radius-card);
+  border: 1px solid var(--line);
+  background: var(--os-sunken);
+  padding: 0 var(--space-3);
+}
+.sa-arch-drawer > summary {
+  list-style: none;
+  cursor: pointer;
+  padding: var(--space-3) 0;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--text);
+  font-family: var(--font-sans);
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+}
+.sa-arch-drawer > summary::-webkit-details-marker {
+  display: none;
+}
+.sa-arch-drawer > summary::after {
+  content: ' ▾';
+  margin-left: var(--space-2);
+  color: var(--muted);
+  font-weight: 400;
+}
+.sa-arch-drawer[open] > summary::after {
+  content: ' ▴';
+}
+.sa-arch-drawer-body {
+  padding-bottom: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.sa-arch-drawer-body .db-section {
+  margin: 0;
+}
 .sa-rel-wrap,
 .sa-change-wrap {
   display: flex;
@@ -5409,34 +5479,39 @@ h3.os-chart-card-title {
 
       <!-- ── SPRITE WORKBENCH ARCHITECTURE (sprite-arch) ────── -->
       <div class="dashboard-view" data-dashboard-view="sprite-arch">
-        <div class="db-section">
-          <div class="db-section-label">Workbench architecture</div>
-          <p style="font-size:var(--font-size-sm);color:var(--muted);line-height:1.45;max-width:52rem">
-            <strong style="color:var(--text)">Structure</strong> maps folders and browser load order only.
-            <strong style="color:var(--text)">Relationship</strong> shows the full dependency graph with labeled edges.
-            <strong style="color:var(--text)">Change</strong> is a commit-heat overlay (no edges). Manifest JSON remains authoritative; AI text is assistive only.
-          </p>
-          <p id="sa-manifest-banner" class="sa-manifest-banner" role="status">Manifest: not loaded yet</p>
-        </div>
-        <div class="db-section">
-          <div class="db-grid">
-            <div class="db-card db-card--live">
-              <div class="db-card-header"><span class="db-card-label">Nodes (scoped)</span><span class="db-tier db-tier--live">Live</span></div>
-              <div class="db-card-value" id="sa-kpi-nodes">—</div>
-              <div class="db-card-sub">From manifest when extractors run</div>
+        <details class="sa-arch-drawer">
+          <summary>Overview, view modes &amp; live metrics</summary>
+          <div class="sa-arch-drawer-body">
+            <div class="db-section">
+              <div class="db-section-label">Workbench architecture</div>
+              <p style="font-size:var(--font-size-sm);color:var(--muted);line-height:1.45;max-width:52rem">
+                <strong style="color:var(--text)">Structure</strong> maps folders and browser load order only.
+                <strong style="color:var(--text)">Relationship</strong> shows the full dependency graph (edge labels off for clarity; colours encode kind).
+                <strong style="color:var(--text)">Change</strong> is a commit-heat overlay (no edges). Manifest JSON remains authoritative; AI text is assistive only.
+              </p>
+              <p id="sa-manifest-banner" class="sa-manifest-banner" role="status">Manifest: not loaded yet</p>
             </div>
-            <div class="db-card db-card--live">
-              <div class="db-card-header"><span class="db-card-label">Edges</span><span class="db-tier db-tier--live">Live</span></div>
-              <div class="db-card-value" id="sa-kpi-edges">—</div>
-              <div class="db-card-sub">Deterministic + heuristic kinds in manifest</div>
-            </div>
-            <div class="db-card db-card--live">
-              <div class="db-card-header"><span class="db-card-label">Hotspots</span><span class="db-tier db-tier--live">Live</span></div>
-              <div class="db-card-value" id="sa-kpi-hotspots">—</div>
-              <div class="db-card-sub">Count of manifest hotspot_ids_30d (git-derived)</div>
+            <div class="db-section">
+              <div class="db-grid">
+                <div class="db-card db-card--live">
+                  <div class="db-card-header"><span class="db-card-label">Nodes (scoped)</span><span class="db-tier db-tier--live">Live</span></div>
+                  <div class="db-card-value" id="sa-kpi-nodes">—</div>
+                  <div class="db-card-sub">From manifest when extractors run</div>
+                </div>
+                <div class="db-card db-card--live">
+                  <div class="db-card-header"><span class="db-card-label">Edges</span><span class="db-tier db-tier--live">Live</span></div>
+                  <div class="db-card-value" id="sa-kpi-edges">—</div>
+                  <div class="db-card-sub">Deterministic + heuristic kinds in manifest</div>
+                </div>
+                <div class="db-card db-card--live">
+                  <div class="db-card-header"><span class="db-card-label">Hotspots</span><span class="db-tier db-tier--live">Live</span></div>
+                  <div class="db-card-value" id="sa-kpi-hotspots">—</div>
+                  <div class="db-card-sub">Count of manifest hotspot_ids_30d (git-derived)</div>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
+        </details>
         <div class="sa-arch-toolbar">
           <div class="sa-view-tabs" role="tablist" aria-label="Architecture view">
             <button type="button" class="sa-view-tab" role="tab" aria-selected="true" data-sa-view="structure" id="sa-tab-structure">Structure</button>
@@ -5454,7 +5529,7 @@ h3.os-chart-card-title {
             <label class="sa-rel-filter"><input type="checkbox" checked data-sa-edge-kind="python_import"> Python import</label>
             <label class="sa-rel-filter"><input type="checkbox" checked data-sa-edge-kind="js_static_ref"> JS literal ref</label>
           </div>
-          <p class="sa-rel-note">Boxes = browser JS · ellipses = Python. Edge labels: <code style="font-family:var(--font-mono);font-size:var(--font-size-xs)">load</code> / <code style="font-family:var(--font-mono);font-size:var(--font-size-xs)">import</code> / <code style="font-family:var(--font-mono);font-size:var(--font-size-xs)">js ref</code>. Dashed = heuristic.</p>
+          <p class="sa-rel-note">Boxes = browser JS · ellipses = Python. Edge <strong style="color:var(--text)">colour</strong>: muted = load order, green = Python import, amber = JS literal ref (dashed = heuristic). Labels hidden to reduce clutter—use the inspector when you select a node.</p>
         </div>
         <div id="sa-change-wrap" class="sa-change-wrap sa-panel-hidden">
           <p class="sa-rel-note"><strong style="color:var(--text)">Commit heat only</strong> — edges hidden. Red intensity = commits in the last <span id="sa-churn-days-label">30</span> days; grey = none. Labels show counts.</p>
@@ -13111,13 +13186,6 @@ function spriteArchFolderBucket(path) {
   return 'misc';
 }
 
-function spriteArchEdgeKindShort(kind) {
-  if (kind === 'html_script_order') return 'load';
-  if (kind === 'python_import') return 'import';
-  if (kind === 'js_static_ref') return 'js ref';
-  return kind || '';
-}
-
 function spriteArchNodeLabel(node, view) {
   const name = spriteArchShortPath(node.path);
   if (view === 'structure') {
@@ -13224,6 +13292,21 @@ function spriteArchDestroyNetwork() {
   }
 }
 
+function spriteArchAttachGraphResizeObserver() {
+  const el = document.getElementById('sa-arch-graph');
+  if (!el || el._saResizeObs || typeof ResizeObserver === 'undefined') return;
+  el._saResizeObs = new ResizeObserver(function() {
+    if (!spriteArchNetwork) return;
+    try {
+      var w = el.clientWidth;
+      var h = el.clientHeight;
+      if (w < 48 || h < 48) return;
+      spriteArchNetwork.setSize(w + 'px', h + 'px');
+    } catch (eR) { /* ignore */ }
+  });
+  el._saResizeObs.observe(el);
+}
+
 function spriteArchRebuildNetwork() {
   const el = document.getElementById('sa-arch-graph');
   if (!el || !spriteArchManifest || typeof vis === 'undefined' || !vis.Network) return;
@@ -13233,18 +13316,42 @@ function spriteArchRebuildNetwork() {
   const filters = spriteArchEdgeFilterState();
   const maxChurn = spriteArchChurnMax(spriteArchManifest);
   const visNodes = [];
-  (spriteArchManifest.nodes || []).forEach(function(n) {
+  const nodeList = spriteArchManifest.nodes || [];
+  const seedLayout = view === 'relationship' || view === 'change';
+  let nJs = 0;
+  let nPy = 0;
+  nodeList.forEach(function(n) {
+    if (n.kind === 'python') nPy += 1;
+    else nJs += 1;
+  });
+  let ij = 0;
+  let ip = 0;
+  const rowY = 88;
+  const colX = 460;
+  nodeList.forEach(function(n) {
     const fin = deg.inDeg[n.id] || 0;
     const sel = spriteArchSelectedId === n.id;
     const visu = spriteArchNodeVisual(n, view, deg, maxChurn, sel);
     const twoLine = view === 'structure' || view === 'change';
-    visNodes.push(Object.assign({
+    const base = {
       id: n.id,
       title: n.path + '\n' + (n.layer || '') + '\nin ' + fin + ' · out ' + (deg.outDeg[n.id] || 0),
       margin: 16,
       widthConstraint: { minimum: twoLine ? 128 : 112, maximum: 280 },
       heightConstraint: { minimum: twoLine ? 56 : 44 },
-    }, visu));
+    };
+    if (seedLayout) {
+      if (n.kind === 'python') {
+        base.x = colX;
+        base.y = (ip - (nPy - 1) / 2) * rowY;
+        ip += 1;
+      } else {
+        base.x = -colX;
+        base.y = (ij - (nJs - 1) / 2) * rowY;
+        ij += 1;
+      }
+    }
+    visNodes.push(Object.assign(base, visu));
   });
   const visEdges = [];
   (spriteArchManifest.edges || []).forEach(function(e) {
@@ -13261,7 +13368,7 @@ function spriteArchRebuildNetwork() {
     let col = '#5d7870';
     if (k === 'python_import') col = '#4ade80';
     if (k === 'js_static_ref') col = '#d29922';
-    const edge = {
+    visEdges.push({
       id: e.id,
       from: e.source,
       to: e.target,
@@ -13269,22 +13376,17 @@ function spriteArchRebuildNetwork() {
       color: { color: col },
       dashes: k === 'js_static_ref',
       arrows: 'to',
-    };
-    if (view === 'relationship') {
-      edge.label = spriteArchEdgeKindShort(k);
-      edge.font = { size: 12, color: '#cce8e0', strokeWidth: 0, align: 'middle', background: 'rgba(5,7,9,0.88)' };
-    }
-    visEdges.push(edge);
+    });
   });
   const data = { nodes: new vis.DataSet(visNodes), edges: new vis.DataSet(visEdges) };
   const physicsRel = {
     barnesHut: {
-      gravitationalConstant: -24000,
-      centralGravity: 0.025,
-      springLength: 280,
-      springConstant: 0.028,
-      damping: 0.55,
-      avoidOverlap: 0.82,
+      gravitationalConstant: -18000,
+      centralGravity: 0.04,
+      springLength: 220,
+      springConstant: 0.034,
+      damping: 0.52,
+      avoidOverlap: 0.78,
     },
     maxVelocity: 42,
     minVelocity: 0.75,
@@ -13351,12 +13453,20 @@ function spriteArchRebuildNetwork() {
   });
   spriteArchNetwork.once('stabilizationIterationsDone', function() {
     try {
-      spriteArchNetwork.fit({ padding: 72, animation: false });
+      spriteArchNetwork.fit({ padding: 56, animation: false });
       var sc = spriteArchNetwork.getScale();
-      if (sc < 0.42) {
-        spriteArchNetwork.moveTo({ scale: 0.44, animation: { duration: 200, easingFunction: 'easeInOutQuad' } });
+      if (sc < 0.58) {
+        spriteArchNetwork.moveTo({ scale: 0.58, animation: { duration: 200, easingFunction: 'easeInOutQuad' } });
       }
     } catch (eSt) { /* ignore */ }
+  });
+  spriteArchAttachGraphResizeObserver();
+  requestAnimationFrame(function() {
+    try {
+      if (spriteArchNetwork && el && el.clientWidth > 48 && el.clientHeight > 48) {
+        spriteArchNetwork.setSize(el.clientWidth + 'px', el.clientHeight + 'px');
+      }
+    } catch (eSz) { /* ignore */ }
   });
   if (spriteArchSelectedId) {
     try {
