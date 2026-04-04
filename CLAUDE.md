@@ -10,6 +10,16 @@ This project is a browser-based game development toolchain (sprite editor, room 
 
 Before writing any HTML, CSS, or frontend JS, read the relevant section of the style guide. The style guide is the canonical design system and was reverse-engineered from production code — it represents actual design decisions, not aspirational guidelines.
 
+### UI work: approved mockup first (Design charter)
+
+The **Design** agent owns **HI-FI mockup before implementation** — see `agents/design/charter.md` (**Owns** and **Standing Directives**). Coding agents must align with that workflow:
+
+- **If an approved high-fidelity mockup exists** (e.g. under `docs/mockups/`, or another path the founder named as the visual source of truth): implement the real UI as a **faithful translation** — same layout, spacing hierarchy, and chrome. **Do not redesign** during implementation; treat token/style-guide fixes as compliance, not a visual refresh.
+- **If the task is a non-trivial UI or new front-end component and there is no approved HI-FI mockup:** **stop** and ask the founder to have Design produce one (or to explicitly waive mockup-first for this task). **Do not** skip straight to a self-authored layout and present it as the final design.
+- **Trivial changes** (copy, bugfix, single-token swap, wiring only) do not require a new mockup unless they change layout or composition.
+
+---
+
 ### Non-negotiables
 
 **Colors:** Use only the CSS variables defined in `STYLE_GUIDE.md § 2`. Never introduce arbitrary hex values. Never use `#fff`, `#000`, or color names like `red`, `blue`. Always use `var(--accent)`, `var(--text)`, `var(--muted)`, etc.

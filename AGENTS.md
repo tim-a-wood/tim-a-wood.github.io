@@ -114,6 +114,14 @@ Browser-based game development toolchain for a metroidvania-style game. Hand-cra
 
 **The canonical design system is [`STYLE_GUIDE.md`](STYLE_GUIDE.md).** Read it before any frontend work.
 
+### UI work: approved mockup first (align with Design)
+
+The **Design** charter requires a **high-fidelity mockup before implementation** for UI and front-end component work (`agents/design/charter.md`, **Owns** and **Standing Directives**). As a coding agent:
+
+- Implement **from an approved HI-FI mockup** (e.g. `docs/mockups/…` or a founder-specified reference) with **no visual drift** — no redesign mid-implementation.
+- If the request is **non-trivial UI** and **no approved mockup** is provided, **pause** and ask for Design to supply one (or an explicit founder waiver). Do not invent a full layout and treat it as final without that step.
+- **Trivial** edits (text, bugfixes, token compliance, non-layout JS) do not need a new mockup unless layout or composition changes.
+
 ---
 
 ## Mandatory Design System Rules

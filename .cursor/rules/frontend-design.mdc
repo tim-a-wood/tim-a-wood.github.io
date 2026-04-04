@@ -10,6 +10,14 @@ This project is a browser-based game development toolchain with a hand-crafted d
 
 The canonical style guide is at `STYLE_GUIDE.md` in the project root. Read it before any frontend work.
 
+### Approved mockup before non-trivial UI (Design charter)
+
+Match the **Design** agent workflow in `agents/design/charter.md` (**Owns** + **Standing Directives** — HI-FI mockup before implementation):
+
+- **Given an approved high-fidelity mockup** (often `docs/mockups/*.html` or a path the founder names): implement production HTML/CSS/JS as a **faithful translation** — no redesign or visual drift during build; use `STYLE_GUIDE.md` for tokens only.
+- **No approved mockup** and the task is **non-trivial UI or a new component**: **stop** and ask for Design to produce one (or an explicit founder waiver). Do not skip straight to implementation.
+- **Trivial** changes (copy, bugfixes, single-property token fixes, non-layout logic) do not require a new mockup unless layout or composition changes.
+
 ---
 
 ## Color Rules
