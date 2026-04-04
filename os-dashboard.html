@@ -1522,6 +1522,142 @@ body::before {
 }
 .ma-err { color: var(--error); }
 
+.ma-kcard:focus-visible {
+  outline: 2px solid rgba(0,232,200,0.35);
+  outline-offset: 2px;
+}
+
+/* My Actions — detail overlay (plain-English context) */
+.ma-detail-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 206;
+  background: rgba(5, 7, 9, 0.72);
+  backdrop-filter: blur(4px);
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4);
+  box-sizing: border-box;
+}
+.ma-detail-backdrop.visible {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.ma-detail-panel {
+  width: min(560px, 94vw);
+  max-height: min(88vh, 840px);
+  margin: auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: rgba(7, 10, 13, 0.96);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+}
+.ma-detail-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--surface-pad);
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+}
+.ma-detail-kicker {
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0 0 var(--space-1) 0;
+}
+.ma-detail-title {
+  font-family: var(--font-display);
+  font-size: var(--font-size-lg);
+  letter-spacing: 0.04em;
+  color: var(--text);
+  line-height: 1.25;
+  margin: 0;
+  font-weight: 400;
+}
+.ma-detail-sub {
+  font-size: var(--font-size-xs);
+  color: var(--muted);
+  margin: var(--space-2) 0 0 0;
+  font-family: var(--font-mono);
+  line-height: 1.45;
+}
+.ma-detail-close {
+  flex-shrink: 0;
+  min-height: 32px;
+  min-width: 32px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--os-control-border);
+  background: var(--os-control);
+  color: var(--text);
+  cursor: pointer;
+  transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
+}
+.ma-detail-close:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--os-control-hover);
+}
+.ma-detail-scroll {
+  flex: 1 1 auto;
+  min-height: min(160px, 24vh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.ma-detail-block { margin: 0; }
+.ma-detail-section-label {
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0 0 var(--space-2) 0;
+}
+.ma-detail-text {
+  font-size: var(--font-size-base);
+  color: var(--text);
+  line-height: 1.55;
+  margin: 0;
+  white-space: pre-wrap;
+}
+.ma-detail-muted {
+  color: var(--muted);
+  font-size: var(--font-size-sm);
+  line-height: 1.5;
+}
+.ma-detail-footer {
+  flex-shrink: 0;
+  padding: var(--space-3) var(--surface-pad);
+  border-top: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.ma-detail-footnote {
+  font-size: var(--font-size-xs);
+  color: var(--muted);
+  margin: 0;
+  line-height: 1.45;
+}
+.ma-detail-footer .av-btn {
+  align-self: flex-start;
+}
+
 /* ─── DASHBOARD VIEWS ────────────────────────────── */
 .dashboard-view {
   display: none;
@@ -4219,7 +4355,7 @@ h3.os-chart-card-title {
 
       <!-- ── MY ACTIONS (founder kanban) ── -->
       <div class="dashboard-view dashboard-view--my-actions" data-dashboard-view="my-actions">
-        <p class="ma-page-lede">Founder-facing work from agent status files: blocking decisions, other decisions, and priorities awaiting review. Drag cards between columns within each row; placement is saved in this browser only. Rows respect the header product scope.</p>
+        <p class="ma-page-lede">Founder-facing work from agent status files: blocking decisions, other decisions, and priorities awaiting review. Click a card for plain-English context from the status file. Drag cards between columns within each row; placement is saved in this browser only. Rows respect the header product scope.</p>
         <div class="ma-view-head">
           <h1 class="ma-view-title">MY ACTIONS</h1>
           <span class="ma-view-count" id="ma-total-count" aria-live="polite">—</span>
@@ -7139,6 +7275,25 @@ h3.os-chart-card-title {
         <textarea class="issue-chat-input" id="issue-chat-input" rows="2" placeholder="Message the agent…" autocomplete="off"></textarea>
         <button type="button" class="issue-chat-send" id="issue-chat-send">Send</button>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- My Actions — plain-English detail (from status JSON) -->
+<div class="ma-detail-backdrop" id="ma-detail-backdrop" aria-hidden="true">
+  <div class="ma-detail-panel" role="dialog" aria-modal="true" aria-labelledby="ma-detail-title">
+    <div class="ma-detail-header">
+      <div>
+        <p class="ma-detail-kicker" id="ma-detail-kicker"></p>
+        <h2 class="ma-detail-title" id="ma-detail-title"></h2>
+        <p class="ma-detail-sub" id="ma-detail-sub"></p>
+      </div>
+      <button type="button" class="ma-detail-close" id="ma-detail-close" title="Close" aria-label="Close">✕</button>
+    </div>
+    <div class="ma-detail-scroll" id="ma-detail-scroll"></div>
+    <div class="ma-detail-footer">
+      <p class="ma-detail-footnote">This wording is copied from the agent status file. It is guidance for you as founder, not a system command.</p>
+      <button type="button" class="av-btn av-btn--accent" id="ma-detail-dismiss">Close</button>
     </div>
   </div>
 </div>
@@ -13119,6 +13274,11 @@ var MA_STORAGE_KEY = 'mv-agent-os-my-actions-v1';
 var maLastValidIds = null;
 var maDragCard = null;
 var maDnWired = false;
+/** id -> full item payload for detail overlay (reset each maRenderBoard). */
+var maDetailPayloads = Object.create(null);
+var maDetailOverlayWired = false;
+/** After a drag ends, ignore card clicks briefly (avoids accidental open). */
+var maSuppressDetailUntil = 0;
 
 function maHash32(s) {
   var str = String(s || '');
@@ -13193,12 +13353,14 @@ function maAggregateMyActions() {
         if (seenFounder[dedupe]) return;
         seenFounder[dedupe] = true;
         var id = maFounderId(agent, fd);
+        var noteF = fd.note != null ? String(fd.note).trim() : '';
         var item = {
           id: id,
           type: isBlock ? 'blocking' : 'decision',
           agent: agent,
           title: title,
           sourceLine: maSourceLineFounder(fd, agent),
+          note: noteF,
         };
         if (isBlock) blocking.push(item);
         else decision.push(item);
@@ -13212,6 +13374,8 @@ function maAggregateMyActions() {
         if (!itemVisibleInOsProductContext(agent, p, osProductContext)) return;
         var title = p.title != null ? String(p.title).trim() : '';
         if (!title) return;
+        var noteP = p.note != null ? String(p.note).trim() : '';
+        var propP = p.proposed_solution != null ? String(p.proposed_solution).trim() : '';
         review.push({
           id: maReviewId(agent, p),
           type: 'review',
@@ -13219,6 +13383,8 @@ function maAggregateMyActions() {
           title: title,
           risk: (p.risk || '').toLowerCase(),
           sourceLine: maSourceLineReview(p),
+          note: noteP,
+          proposed_solution: propP,
         });
       });
     }
@@ -13345,12 +13511,35 @@ function maCreateCard(item) {
   card.appendChild(bar);
   card.appendChild(body);
 
+  card.setAttribute('tabindex', '0');
+  card.setAttribute('role', 'button');
+  card.setAttribute('aria-haspopup', 'dialog');
+  card.setAttribute('aria-label', 'Details: ' + (item.title || '').slice(0, 120));
+
+  card.addEventListener('click', function(e) {
+    if (maDragCard) return;
+    if (Date.now() < maSuppressDetailUntil) return;
+    e.preventDefault();
+    maOpenDetailOverlay(item.id);
+  });
+  card.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      maOpenDetailOverlay(item.id);
+    }
+  });
+
   card.addEventListener('dragstart', function(e) {
     maDragCard = card;
     card.classList.add('ma-kcard--dragging');
+    card._maDidDrag = true;
     try { e.dataTransfer.effectAllowed = 'move'; } catch (ex) {}
   });
   card.addEventListener('dragend', function() {
+    if (card._maDidDrag) {
+      maSuppressDetailUntil = Date.now() + 200;
+      card._maDidDrag = false;
+    }
     maDragCard = null;
     card.classList.remove('ma-kcard--dragging');
     if (boardRoot) {
@@ -13470,6 +13659,93 @@ function maUpdateNavBadge() {
   badge.hidden = n === 0;
 }
 
+function maOpenDetailOverlay(id) {
+  var p = maDetailPayloads[id];
+  if (!p) return;
+  var backdrop = document.getElementById('ma-detail-backdrop');
+  var kicker = document.getElementById('ma-detail-kicker');
+  var titleEl = document.getElementById('ma-detail-title');
+  var sub = document.getElementById('ma-detail-sub');
+  var scroll = document.getElementById('ma-detail-scroll');
+  if (!backdrop || !kicker || !titleEl || !sub || !scroll) return;
+
+  var kindLabel = p.type === 'blocking'
+    ? 'Blocking — needs your answer first'
+    : p.type === 'decision'
+      ? 'Founder decision'
+      : 'Awaiting your review';
+  kicker.textContent = kindLabel;
+  titleEl.textContent = p.title || '';
+  var subParts = [maAgentDisplayLabel(p.agent)];
+  if (p.sourceLine) subParts.push(p.sourceLine);
+  sub.textContent = subParts.join(' · ');
+
+  scroll.innerHTML = '';
+  function addSection(label, text) {
+    if (!text) return;
+    var sec = document.createElement('section');
+    sec.className = 'ma-detail-block';
+    var lh = document.createElement('p');
+    lh.className = 'ma-detail-section-label';
+    lh.textContent = label;
+    var para = document.createElement('p');
+    para.className = 'ma-detail-text';
+    para.textContent = text;
+    sec.appendChild(lh);
+    sec.appendChild(para);
+    scroll.appendChild(sec);
+  }
+
+  if (p.type === 'review') {
+    addSection('What is happening', p.note);
+    addSection('What to do next', p.proposed_solution);
+    if (p.risk) {
+      addSection('How urgent', maRiskLabel(p.risk) + ' — use that as a rough priority when you decide.');
+    }
+  } else {
+    addSection('Why this matters', p.note);
+  }
+
+  var hasBody = scroll.querySelector('.ma-detail-block');
+  if (!hasBody) {
+    var fb = document.createElement('p');
+    fb.className = 'ma-detail-muted';
+    fb.textContent = 'There is no extra plain-English note in the status file yet. Use the title and owner above as your guide, or ask that agent to add a short "note" (and for review items, a "proposed_solution") in their JSON so this panel can spell out the ask.';
+    scroll.appendChild(fb);
+  }
+
+  backdrop.classList.add('visible');
+  backdrop.setAttribute('aria-hidden', 'false');
+  var closeBtn = document.getElementById('ma-detail-close');
+  if (closeBtn) closeBtn.focus();
+}
+
+function maCloseDetailOverlay() {
+  var backdrop = document.getElementById('ma-detail-backdrop');
+  if (!backdrop) return;
+  backdrop.classList.remove('visible');
+  backdrop.setAttribute('aria-hidden', 'true');
+}
+
+function maWireMaDetailOverlayOnce() {
+  if (maDetailOverlayWired) return;
+  var backdrop = document.getElementById('ma-detail-backdrop');
+  if (!backdrop) return;
+  maDetailOverlayWired = true;
+  backdrop.addEventListener('click', function(e) {
+    if (e.target === backdrop) maCloseDetailOverlay();
+  });
+  var c1 = document.getElementById('ma-detail-close');
+  var c2 = document.getElementById('ma-detail-dismiss');
+  if (c1) c1.addEventListener('click', maCloseDetailOverlay);
+  if (c2) c2.addEventListener('click', maCloseDetailOverlay);
+  document.addEventListener('keydown', function(e) {
+    if (e.key !== 'Escape') return;
+    if (!backdrop.classList.contains('visible')) return;
+    maCloseDetailOverlay();
+  });
+}
+
 function maWireMyActionsOnce() {
   if (maDnWired) return;
   var root = document.getElementById('ma-board-root');
@@ -13517,6 +13793,12 @@ function maRenderBoard() {
   var root = document.getElementById('ma-board-root');
   if (!root) return;
   var agg = maAggregateMyActions();
+  maDetailPayloads = Object.create(null);
+  ['blocking', 'decision', 'review'].forEach(function(catKey) {
+    (agg[catKey] || []).forEach(function(it) {
+      maDetailPayloads[it.id] = it;
+    });
+  });
   var st = maLoadStateRaw();
   var byId = st.byId || {};
   maLastValidIds = new Set();
@@ -15193,6 +15475,7 @@ selectDashboard(coerceDashboardForContext(getInitialDashboardId(), osProductCont
 })();
 
 void hydrateAllAgentCustomActions();
+maWireMaDetailOverlayOnce();
 void ensureStatusCachesLoaded().then(function() { maUpdateNavBadge(); });
 avInitConflictPopupActions();
 void avCheckManualConflicts();
