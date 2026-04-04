@@ -3876,6 +3876,23 @@ h3.os-chart-card-title {
       <div class="dashboard-view" data-dashboard-view="home">
         <p class="home-dashboard-lede">Choose a specialist for quick actions and task-aware chat. The server sends your charter, project overview, task context, and product scope on every message.</p>
         <div class="home-agent-board" id="homeAgentBoard" role="region" aria-label="Specialists by category"></div>
+        <div class="db-section" style="margin-top:var(--space-5)">
+          <div class="db-section-label">API usage</div>
+          <p style="color:var(--muted);font-size:var(--font-size-sm);line-height:1.5;max-width:52rem;margin:0 0 var(--space-3) 0">Live key and server status from the dashboard API. Spend line uses the same UTC range as the API usage view (date control lives there).</p>
+          <div class="db-grid db-grid--home-health" aria-label="API connection status">
+            <div class="db-card db-card--live">
+              <div class="db-card-header"><div class="db-card-label">API keys</div><span class="db-tier db-tier--live">Live</span></div>
+              <div class="db-card-value" id="home-kpi-api-keys">—</div>
+              <div class="db-card-sub">Gemini, Pixel Lab, OpenAI (issue chat)</div>
+            </div>
+            <div class="db-card db-card--live">
+              <div class="db-card-header"><div class="db-card-label">Workbench</div><span class="db-tier db-tier--live">Live</span></div>
+              <div class="db-card-value" id="home-kpi-workbench">—</div>
+              <div class="db-card-sub">Sprite workbench server on or off</div>
+            </div>
+          </div>
+          <p id="home-api-usage-summary" style="color:var(--muted);font-size:var(--font-size-sm);line-height:1.5;max-width:52rem;margin:var(--space-3) 0 0 0;font-family:var(--font-mono)" aria-live="polite"></p>
+        </div>
         <div class="db-qa-signpost db-qa-signpost--stack">
           <button type="button" class="db-qa-link" onclick="selectDashboard('api-usage')">→ API usage</button>
           <button type="button" class="db-qa-link" onclick="selectDashboard('issues')">→ Issues</button>
@@ -7498,7 +7515,7 @@ function getInitialDashboardId() {
     const saved = sessionStorage.getItem(DASHBOARD_STORAGE_KEY);
     if (saved === 'actions') id = 'issues';
     else if (saved === 'engineering') id = 'development';
-    else if (saved === 'home') id = 'api-usage';
+    else if (saved === 'home') id = 'home';
     else if (saved && DASHBOARDS[saved]) id = saved;
   } catch (e) { /* private mode / blocked */ }
   return id;
@@ -8908,13 +8925,35 @@ function apiUsageProviderLabelMap() {
   return m;
 }
 
+function syncHomeApiUsageSummary(slice) {
+  const el = document.getElementById('home-api-usage-summary');
+  if (!el || !slice) return;
+  if (!slice.providerOrder.length) {
+    const emptyLedger = window.__usageLedgerEntryCount === 0;
+    el.textContent = emptyLedger
+      ? 'No API calls logged yet. Usage appears when you run Pixel Lab, Gemini (e.g. room Copilot), or other workbench routes through the Sprite Workbench server.'
+      : 'No usage in the current UTC range. Open API usage to change the range or see the full table.';
+    return;
+  }
+  if (slice.grandTotal > 0) {
+    const rounded = Math.round(slice.grandTotal * 10000) / 10000;
+    el.textContent = 'About $' + String(rounded) + ' estimated in this range · ' + String(slice.totalCallsInRange) + ' calls · open API usage for breakdown.';
+  } else {
+    el.textContent = String(slice.totalCallsInRange) + ' calls in this range (no USD estimates on responses) · open API usage for detail.';
+  }
+}
+
 function applyApiUsageCostUi() {
   const foot = document.getElementById('api-usage-range-foot');
   const tbody = document.querySelector('#api-usage-provider-table tbody');
-  if (!tbody) return;
   window.__usageCostRollups = window.__usageCostRollups || { version: 1, daily: [], providers: [] };
   const slice = computeApiUsageCostSlice();
   const labels = apiUsageProviderLabelMap();
+  syncHomeApiUsageSummary(slice);
+  if (!tbody) {
+    if (foot) foot.textContent = '';
+    return;
+  }
   tbody.textContent = '';
   if (!slice.providerOrder.length) {
     const tr = document.createElement('tr');
@@ -9699,10 +9738,14 @@ function paintOsChartsForView(dashId) {
 function syncHomeKpis(d) {
   const apiKeysEl = document.getElementById('api-usage-kpi-keys');
   const apiWbEl = document.getElementById('api-usage-kpi-workbench');
-  if (!apiKeysEl && !apiWbEl) return;
+  const homeKeysEl = document.getElementById('home-kpi-api-keys');
+  const homeWbEl = document.getElementById('home-kpi-workbench');
+  if (!apiKeysEl && !apiWbEl && !homeKeysEl && !homeWbEl) return;
   if (!d) {
     if (apiKeysEl) apiKeysEl.textContent = '—';
     if (apiWbEl) apiWbEl.textContent = '—';
+    if (homeKeysEl) homeKeysEl.textContent = '—';
+    if (homeWbEl) homeWbEl.textContent = '—';
     return;
   }
   const g = d.gemini_key_set ? 'G✓' : 'G—';
@@ -9712,6 +9755,8 @@ function syncHomeKpis(d) {
   const wb = d.workbench_server_running ? '● Up' : '○ Down';
   if (apiKeysEl) apiKeysEl.textContent = line;
   if (apiWbEl) apiWbEl.textContent = wb;
+  if (homeKeysEl) homeKeysEl.textContent = line;
+  if (homeWbEl) homeWbEl.textContent = wb;
 }
 
 let osChartResizeTimer;
