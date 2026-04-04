@@ -1,6 +1,6 @@
 {
   "_note": "Updated by Animation after each task. Reports to Development. Plain language — no jargon.",
-  "updated": "2026-04-02",
+  "updated": "2026-04-03",
   "schema_version": "v1.0",
   "priorities": [
     {
@@ -35,10 +35,10 @@
         "ashen-hollow"
       ],
       "title": "Establish pixel art quality standards — palette rules, silhouette requirements, anti-aliasing policy",
-      "status": "in-progress",
-      "risk": "med",
-      "note": "Without written standards, asset quality will be inconsistent across the game. Getting these documented is a prerequisite for any AI-assisted art production pipeline.",
-      "proposed_solution": "Publish written pixel-art quality rules (palette, silhouette, anti-aliasing) as the gate for hand-made and AI-assisted sprites.",
+      "status": "done",
+      "risk": "low",
+      "note": "Production gate published at `docs/pixel-art-quality-standards.md`: palette (AH-* + craft rules), silhouette (bible §3–6 + animation bar), anti-aliasing (opaque-or-transparent, lossless, pixelated preview). §5 checklist aligns with charter `spritesheet-audit`. Future work: optional linter/export warnings in the workbench — not blocking this milestone.",
+      "proposed_solution": "Treat the doc as canonical for reviews; run `spritesheet-audit` against §5 for each submission. Revise the doc when art bible v0.3 locks new tokens or biome rules.",
       "sort_order": 2
     }
   ],
@@ -83,10 +83,10 @@
         "ashen-hollow"
       ],
       "title": "Evaluate AI animation tools (EbSynth, AnimateDiff) for the Ashen Hollow production pipeline",
-      "status": "paused",
+      "status": "in-progress",
       "risk": "low",
-      "note": "AI animation tools could significantly accelerate production. Evaluation should happen once quality standards are written so output can be assessed against them.",
-      "proposed_solution": "Once standards exist, evaluate EbSynth, AnimateDiff, or alternatives against those bars and recommend a production workflow."
+      "note": "Pixel art quality standards are published (`docs/pixel-art-quality-standards.md`). Evaluation can proceed against §5 checklist and art bible gates.",
+      "proposed_solution": "Evaluate EbSynth, AnimateDiff, or alternatives against the published bars; recommend a production workflow and validation steps for Human-in-the-loop cleanup."
     }
   ]
 }
