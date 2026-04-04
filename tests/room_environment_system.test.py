@@ -824,6 +824,16 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         self.assertIn("ceiling", env["component_contracts"])
         self.assertIn("backwall_panel", env["component_contracts"])
         self.assertIn("runtime_review_pending", env["review_state"]["validation_status"]["issues"])
+        self.assertIn("reference_pack", env)
+        self.assertIn("stylepack", env)
+        self.assertIn("room_semantics", env)
+        self.assertIn("environment_kit", env)
+        self.assertIn("environment_manifest", env)
+        self.assertIn("validation_report", env)
+        self.assertIn("editor_results_payload", env)
+        self.assertIn("staged_artifacts", env)
+        self.assertEqual(env["editor_results_payload"]["semantics"]["counts"]["top_count"], 1)
+        self.assertEqual(env["staged_artifacts"]["stylepack"]["status"], "ready")
 
     def test_v3_runtime_review_controls_approval_state(self):
         envsys.update_project_art_direction(self.project_id, {"template_id": "overgrown-shrine", "locked": True})
@@ -924,6 +934,38 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         self.assertEqual(top_door["placement"]["origin_y"], 0)
         self.assertEqual(bottom_door["orientation"], "vertical")
         self.assertEqual(bottom_door["placement"]["origin_y"], 1)
+
+    def test_v3_semantics_derives_overlay_counts_from_room_geometry(self):
+        room = copy.deepcopy(self.saved["room_layout"]["rooms"][0])
+        room["platforms"].append({"id": "R1-P2", "x": 640, "y": 704, "len": 8})
+        room["doors"].append({"id": "R1-D2", "x": 1440, "y": 960, "kind": "transition"})
+        semantics_doc = envv3.semantics.derive_room_semantics(room)
+        self.assertEqual(semantics_doc["summary"]["top_count"], 2)
+        self.assertEqual(semantics_doc["summary"]["opening_count"], 2)
+        self.assertEqual(len(semantics_doc["overlay_geometry"]["platform_tops"]), 2)
+        self.assertEqual(len(semantics_doc["anchor_positions"]), 4)
+
+    def test_v3_persistence_helpers_round_trip_staged_artifacts(self):
+        payload = {"stylepack_id": "stylepack-r1", "status": "locked"}
+        path = envv3.persistence.save_artifact(
+            self.projects_root,
+            self.project_id,
+            "R1",
+            "stylepack",
+            payload,
+        )
+        self.assertTrue(path.exists())
+        self.assertEqual(
+            path,
+            self.projects_root / self.project_id / "room_environment_assets" / "R1" / "derived" / "v3" / "stylepack.json",
+        )
+        loaded = envv3.persistence.load_artifact(
+            self.projects_root,
+            self.project_id,
+            "R1",
+            "stylepack",
+        )
+        self.assertEqual(loaded, payload)
 
     def test_v3_planner_splits_backwall_panels_for_wide_ruined_halls(self):
         room = copy.deepcopy(self.saved["room_layout"]["rooms"][0])
