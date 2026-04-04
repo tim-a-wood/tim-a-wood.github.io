@@ -1461,8 +1461,8 @@ body::before {
 }
 .sa-arch-graph {
   width: 100%;
-  height: min(72vh, 800px);
-  min-height: 520px;
+  height: min(82vh, 1040px);
+  min-height: 640px;
   border-radius: var(--radius-card);
   border: 1px solid var(--line);
   background: var(--os-sunken);
@@ -13141,16 +13141,16 @@ function spriteArchNodeFont(node, view, deg, maxChurn) {
   const fin = deg.inDeg[node.id] || 0;
   if (view === 'change') {
     const ch = Number(node.churn_30d) || 0;
-    if (ch <= 0) return { size: 9, color: '#5d7870', face: 'DM Mono,ui-monospace,monospace' };
+    if (ch <= 0) return { size: 12, color: '#cce8e0', face: 'DM Mono,ui-monospace,monospace' };
     const t = maxChurn ? Math.min(1, ch / maxChurn) : 0;
-    const sz = 11 + Math.min(10, Math.round(9 * t));
+    const sz = 14 + Math.min(10, Math.round(8 * t));
     return { size: sz, color: '#cce8e0', face: 'DM Mono,ui-monospace,monospace' };
   }
   if (view === 'structure') {
-    return { size: 10, color: '#cce8e0', face: 'DM Mono,ui-monospace,monospace' };
+    return { size: 13, color: '#cce8e0', face: 'DM Mono,ui-monospace,monospace' };
   }
-  const sz = 11 + Math.min(8, fin * 2);
-  return { size: sz, color: '#cce8e0', face: 'DM Mono,ui-monospace,monospace' };
+  const sz = 14 + Math.min(6, fin * 2);
+  return { size: Math.min(sz, 20), color: '#cce8e0', face: 'DM Mono,ui-monospace,monospace' };
 }
 
 function spriteArchNodeColor(node, view, deg, maxChurn, selected) {
@@ -13237,10 +13237,13 @@ function spriteArchRebuildNetwork() {
     const fin = deg.inDeg[n.id] || 0;
     const sel = spriteArchSelectedId === n.id;
     const visu = spriteArchNodeVisual(n, view, deg, maxChurn, sel);
+    const twoLine = view === 'structure' || view === 'change';
     visNodes.push(Object.assign({
       id: n.id,
       title: n.path + '\n' + (n.layer || '') + '\nin ' + fin + ' · out ' + (deg.outDeg[n.id] || 0),
-      margin: 10,
+      margin: 16,
+      widthConstraint: { minimum: twoLine ? 128 : 112, maximum: 280 },
+      heightConstraint: { minimum: twoLine ? 56 : 44 },
     }, visu));
   });
   const visEdges = [];
@@ -13262,37 +13265,82 @@ function spriteArchRebuildNetwork() {
       id: e.id,
       from: e.source,
       to: e.target,
+      width: 2,
       color: { color: col },
       dashes: k === 'js_static_ref',
       arrows: 'to',
     };
     if (view === 'relationship') {
       edge.label = spriteArchEdgeKindShort(k);
-      edge.font = { size: 9, color: '#5d7870', strokeWidth: 0, align: 'middle' };
+      edge.font = { size: 12, color: '#cce8e0', strokeWidth: 0, align: 'middle', background: 'rgba(5,7,9,0.88)' };
     }
     visEdges.push(edge);
   });
   const data = { nodes: new vis.DataSet(visNodes), edges: new vis.DataSet(visEdges) };
+  const physicsRel = {
+    barnesHut: {
+      gravitationalConstant: -24000,
+      centralGravity: 0.025,
+      springLength: 280,
+      springConstant: 0.028,
+      damping: 0.55,
+      avoidOverlap: 0.82,
+    },
+    maxVelocity: 42,
+    minVelocity: 0.75,
+    solver: 'barnesHut',
+    timestep: 0.5,
+  };
+  const physicsChg = {
+    barnesHut: {
+      gravitationalConstant: -20000,
+      centralGravity: 0.02,
+      springLength: 200,
+      springConstant: 0.022,
+      damping: 0.52,
+      avoidOverlap: 0.88,
+    },
+    maxVelocity: 38,
+    minVelocity: 0.75,
+    solver: 'barnesHut',
+    timestep: 0.5,
+  };
   const opts = {
     physics: {
       enabled: view !== 'structure',
-      stabilization: { iterations: view === 'structure' ? 40 : view === 'change' ? 120 : 100 },
-      barnesHut: { gravitationalConstant: -9800, springConstant: 0.05, springLength: view === 'change' ? 100 : 140 },
+      stabilization: {
+        enabled: true,
+        iterations: view === 'structure' ? 40 : view === 'change' ? 220 : 200,
+        fit: true,
+      },
     },
-    interaction: { hover: true, multiselect: false, navigationButtons: false },
+    interaction: {
+      hover: true,
+      multiselect: false,
+      navigationButtons: true,
+      keyboard: { enabled: false },
+      zoomView: true,
+      dragView: true,
+    },
     edges: {
-      smooth: { type: 'cubicBezier', forceDirection: 'none', roundness: 0.22 },
-      font: { size: 9, color: '#5d7870' },
+      smooth: { type: 'continuous', roundness: 0.32 },
+      font: { size: 11, color: '#cce8e0' },
     },
   };
+  if (view === 'relationship') {
+    opts.physics = Object.assign({}, opts.physics, physicsRel);
+  } else if (view === 'change') {
+    opts.physics = Object.assign({}, opts.physics, physicsChg);
+  }
   if (view === 'structure') {
     opts.layout = {
       hierarchical: {
         enabled: true,
         direction: 'LR',
         sortMethod: 'directed',
-        nodeSpacing: 140,
-        levelSeparation: 180,
+        nodeSpacing: 168,
+        levelSeparation: 220,
+        shakeTowards: 'leaves',
       },
     };
     opts.physics = false;
@@ -13300,6 +13348,15 @@ function spriteArchRebuildNetwork() {
   spriteArchNetwork = new vis.Network(el, data, opts);
   spriteArchNetwork.on('click', function(p) {
     if (p.nodes && p.nodes.length) spriteArchSelectNode(p.nodes[0]);
+  });
+  spriteArchNetwork.once('stabilizationIterationsDone', function() {
+    try {
+      spriteArchNetwork.fit({ padding: 72, animation: false });
+      var sc = spriteArchNetwork.getScale();
+      if (sc < 0.42) {
+        spriteArchNetwork.moveTo({ scale: 0.44, animation: { duration: 200, easingFunction: 'easeInOutQuad' } });
+      }
+    } catch (eSt) { /* ignore */ }
   });
   if (spriteArchSelectedId) {
     try {
