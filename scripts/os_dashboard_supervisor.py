@@ -543,6 +543,7 @@ def make_handler(
             "audio-status.json",
             "creative-status.json",
             "research-status.json",
+            "artifacts/sprite-workbench-arch/manifest.json",
         }
     )
     # Files that can be written back via POST /api/status-update

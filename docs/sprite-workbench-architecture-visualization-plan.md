@@ -4,6 +4,9 @@
 **Date:** 2026-04-03 (updated: Agent OS dashboard + design-system section)  
 **Sponsors (conceptual):** Engineering (Developer agent), QA, Research, Design, Analytics  
 
+**Program plan (pre-implementation):** [sprite-workbench-architecture-visualization-master-plan.md](./sprite-workbench-architecture-visualization-master-plan.md) — milestones, workstreams, success criteria, risk register.  
+**Design HI-FI mockup:** [../mockups/agent-os-sprite-arch-dashboard-mockup.html](../mockups/agent-os-sprite-arch-dashboard-mockup.html) — Agent OS chrome, three views, inspector, tokens per `STYLE_GUIDE.md` / `os-dashboard.html`.
+
 This document is an **implementable plan** to visualize the Sprite Workbench slice of the MV repo: fast onboarding, real dependency structure, diagrams that stay current, change-impact review, and architecture tracking—with **three primary views** and an **AI explanation layer** that is explicitly non-authoritative (explanations) while **graphs remain deterministic** (truth).
 
 ---
@@ -100,6 +103,22 @@ This document is an **implementable plan** to visualize the Sprite Workbench sli
 
 **Guardrails:** Reuse MV “truthfulness / evidence” standing directives; label speculative coupling when AI discusses heuristic edges.
 
+### 4.1 Inspector depth — exports vs full symbols (planning lock)
+
+**Recommendation:** Keep the **graph** at **file / module** granularity. Enrich the **inspector** in **two optional tiers** ( **I1** / **I2** — not the same as phased delivery **P0–P6** in §10) so onboarding and refactors get API surface without turning the canvas into an IDE.
+
+| Tier | Contents | Determinism | Inspector UX |
+|------|----------|-------------|----------------|
+| **Default** | Repo path, logical layer, in/out degree, last touched, linked tests (from manifest) | Fully deterministic from extractors + git | Always visible |
+| **I1 — Public / API surface** | Named **exports**; top-level `function` / `class` / `const` declarations intended as public; `window.*` assignments when safely extractable | **JS:** Acorn (or Babel) parse — document known gaps (dynamic `eval`, IIFE boundaries). **Python:** `ast` module-level public names | Collapsible block **“Exported symbols”**; hard cap (e.g. **40** names) with **“+N more”**; sorted for stable diffs |
+| **I2 — Deep** | Properties, instance methods, internal helpers | Often **heuristic** or intentionally omitted | **Collapsed by default** or a **“All symbols”** sub-panel; copy must say **incomplete**; **not** used as edge endpoints in v1 |
+
+**Manifest:** Per-node optional `exports: string[]` (I1). Optional `symbols: [{ name, kind, confidence }]` for I2 with `confidence` ∈ `ast` | `heuristic`. **Do not** mix I2 into deterministic edge keys.
+
+**AI explain:** Model may treat **I1** as structural context when present in manifest; any **I2** or inferred members must be phrased as **non-authoritative** (“may include…”).
+
+**Phasing:** I1 ships after **Structure** view reads real nodes (companion master plan **M3+**). I2 only after Research parser spike + explicit scope approval (manifest bloat and false-confidence risk).
+
 ---
 
 ## 5. Research: free / OSS tooling matrix
@@ -128,7 +147,7 @@ Check into `artifacts/sprite-workbench-arch/` (or `docs/generated/`—pick one; 
 
 Suggested files:
 
-- `manifest.json` — schema version, git SHA, extractor versions, node/edge lists  
+- `manifest.json` — schema version, git SHA, extractor versions, node/edge lists; optional per-node **`exports`** (I1) and optional **`symbols`** (I2, confidence-labeled) per §4.1  
 - `structure.dot` / `structure.svg`  
 - `relationship-heuristic.dot` — clearly named  
 - `churn.json` — numeric series keyed by path  
@@ -232,11 +251,12 @@ Optional: feed summary into existing dashboards JSON later—out of scope for v1
 |-------|-------------|----------------|
 | **P0** | Scope doc + `manifest.json` schema v1 + HTML script-order + Python imports only | Engineering |
 | **P1** | **Agent OS:** register `sprite-arch` dashboard (nav, `DASHBOARDS`, product context), empty shell + **Structure** placeholder + manifest fetch; tokens-compliant layout skeleton | Engineering + Design |
-| **P2** | **Structure** view wired to real manifest (graph or tree from JSON); optional Graphviz SVG embed | Engineering + Design |
+| **P2** | **Structure** view wired to real manifest (graph or tree from JSON); optional Graphviz SVG embed; inspector shows **path + degrees**; **I1 `exports`** in manifest + inspector when extractors ready | Engineering + Design |
 | **P3** | Acorn-based `js_static_ref` (labeled heuristic) + **Relationship** view | Engineering + Research validation |
 | **P4** | Git churn overlay + **Change** view | Engineering + Analytics |
 | **P5** | Rule file + CI fail/warn + PR comment with manifest diff | QA + Engineering |
-| **P6** | Inspector + **AI explain** (supervisor endpoint, scoped context); legend for edge types | Engineering + Design |
+| **P6** | Inspector + **AI explain** (supervisor endpoint, scoped context); legend for edge types; AI prompts prefer **I1 exports** as fact, **I2** labeled speculative | Engineering + Design |
+| **P7** (optional) | **I2 deep symbols** in inspector (collapsed); only if founder approves manifest size + parser investment | Engineering + Research |
 
 **Deprecated order note:** Previous P1 “static HTML only” is **demoted** to optional dev fallback (§7.2); **P1** is now the Agent OS shell so design review happens in the real chrome early.
 
@@ -250,7 +270,8 @@ Each phase should be **shippable** without the next.
 2. **Strictness** of `js_static_ref`: show only high-confidence vs all with filters.  
 3. **Where AI runs** (supervisor OpenAI vs local-only)—same security model as other MV tools.  
 4. Whether to **incrementally migrate** one or two `app/*.js` files to ES modules to unlock dependency-cruiser for those subtrees only.  
-5. **Exact nav label** (“Sprite arch” vs “Workbench architecture”) and whether `sprite-arch` appears under **all** product contexts or **sprite + all** only.
+5. **Exact nav label** (“Sprite arch” vs “Workbench architecture”) and whether `sprite-arch` appears under **all** product contexts or **sprite + all** only.  
+6. Whether to ship **I2** deep symbols at all (default: **no** until **I1** is stable).
 
 ---
 
@@ -260,7 +281,7 @@ Each phase should be **shippable** without the next.
 |---|--------|-------|
 | 1 | Approve scope + phase order + nav label | Founder |
 | 2 | Add P0 extractor + schema + one CI job | Engineering |
-| 3 | Add `sprite-arch` `dashboard-view` + nav item + `DASHBOARDS` + `OS_PRODUCT_CONTEXT_SETS` | Engineering |
+| 3 | Add `sprite-arch` `dashboard-view` + nav item + `DASHBOARDS` + `OS_PRODUCT_CONTEXT_SETS` | Engineering — **shipped** (M2); stub manifest + supervisor allowlist |
 | 4 | Design review: segmented control + graph canvas + inspector layout (tokens only) | Design |
 | 5 | Add Research spike note: evaluate Acorn vs Babel parser for globals in IIFEs | Research |
 | 6 | Wire acceptance criteria for “manifest regen on PR” + dashboard loads without JS errors | QA |

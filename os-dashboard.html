@@ -1246,6 +1246,113 @@ body::before {
   border-bottom: 1px solid var(--line);
 }
 
+/* ─── Sprite workbench architecture (sprite-arch) ─ */
+.sa-arch-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-shrink: 0;
+}
+.sa-view-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.sa-view-tab {
+  min-height: 44px;
+  padding: 10px 12px;
+  border-radius: var(--radius-tight);
+  border: 1px solid var(--os-control-border);
+  background: var(--os-control);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 200ms ease, border-color 200ms ease, color 200ms ease, transform 200ms ease;
+}
+.sa-view-tab:hover {
+  border-color: var(--line-strong);
+  background: var(--os-control-hover);
+  transform: translateY(-1px);
+}
+.sa-view-tab[aria-selected="true"] {
+  border-color: var(--accent);
+  background: rgba(0, 232, 200, 0.12);
+  color: var(--accent);
+  box-shadow: inset 0 0 0 1px rgba(0, 232, 200, 0.08);
+}
+.sa-arch-body {
+  display: grid;
+  grid-template-columns: 1fr minmax(200px, 280px);
+  gap: var(--space-3);
+  align-items: start;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+@media (max-width: 900px) {
+  .sa-arch-body {
+    grid-template-columns: 1fr;
+  }
+}
+.sa-graph-placeholder {
+  min-height: 320px;
+  border-radius: var(--radius-card);
+  border: 1px solid var(--line);
+  background: var(--os-sunken);
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  color: var(--muted);
+  font-size: var(--font-size-sm);
+  line-height: 1.45;
+}
+.sa-inspector {
+  border-radius: var(--radius-card);
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.03);
+  padding: var(--surface-pad);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.sa-inspector-kicker {
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.sa-inspector-path {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  color: var(--text);
+  word-break: break-all;
+}
+.sa-manifest-banner {
+  font-size: var(--font-size-sm);
+  color: var(--muted);
+  font-family: var(--font-mono);
+}
+.sa-manifest-banner.sa-manifest-banner--ok {
+  color: var(--good);
+}
+.sa-manifest-banner.sa-manifest-banner--err {
+  color: var(--error);
+}
+.sa-panel-hidden {
+  display: none !important;
+}
+.sa-graph-column {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-height: 320px;
+}
+
 /* ─── ISSUES VIEW (priority list) ───────────────── */
 .av-scope-strip {
   flex-shrink: 0;
@@ -3323,6 +3430,10 @@ h3.os-chart-card-title {
         <span class="nav-dot" style="background:#38bdf8"></span>
         <span class="nav-item-text">Workbench</span>
       </button>
+      <button type="button" class="nav-item" data-dashboard="sprite-arch">
+        <span class="nav-dot" style="background:#38bdf8"></span>
+        <span class="nav-item-text">Workbench architecture</span>
+      </button>
       <button type="button" class="nav-item" data-dashboard="ashen-hollow">
         <span class="nav-dot" style="background:#818cf8"></span>
         <span class="nav-item-text">Ashen Hollow</span>
@@ -5068,6 +5179,7 @@ h3.os-chart-card-title {
 
         <div class="db-qa-signpost" style="display:flex;flex-direction:column;gap:8px">
           <button type="button" class="db-qa-link" onclick="selectDashboard('workbench')">→ Workbench dashboard for server &amp; daily reports</button>
+          <button type="button" class="db-qa-link" onclick="selectDashboard('sprite-arch')">→ Workbench architecture · structure &amp; dependency map</button>
           <button type="button" class="db-qa-link" onclick="selectDashboard('ashen-hollow')">→ Ashen Hollow for game pillars &amp; production docs</button>
         </div>
       </div>
@@ -5118,6 +5230,69 @@ h3.os-chart-card-title {
               <div class="db-card-sub">Requires instrumentation</div>
             </div>
           </div>
+        </div>
+      </div>
+
+      <!-- ── SPRITE WORKBENCH ARCHITECTURE (sprite-arch) ────── -->
+      <div class="dashboard-view" data-dashboard-view="sprite-arch">
+        <div class="db-section">
+          <div class="db-section-label">Workbench architecture</div>
+          <p style="font-size:var(--font-size-sm);color:var(--muted);line-height:1.45;max-width:52rem">
+            Deterministic graphs from repo extractors (script load order, Python imports, optional static JS refs). Three views share one manifest. AI explanations are assistive only—edges and JSON are authoritative.
+          </p>
+          <p id="sa-manifest-banner" class="sa-manifest-banner" role="status">Manifest: not loaded yet</p>
+        </div>
+        <div class="db-section">
+          <div class="db-grid">
+            <div class="db-card db-card--live">
+              <div class="db-card-header"><span class="db-card-label">Nodes (scoped)</span><span class="db-tier db-tier--live">Live</span></div>
+              <div class="db-card-value" id="sa-kpi-nodes">—</div>
+              <div class="db-card-sub">From manifest when extractors run</div>
+            </div>
+            <div class="db-card db-card--live">
+              <div class="db-card-header"><span class="db-card-label">Edges</span><span class="db-tier db-tier--live">Live</span></div>
+              <div class="db-card-value" id="sa-kpi-edges">—</div>
+              <div class="db-card-sub">Deterministic + heuristic kinds in manifest</div>
+            </div>
+            <div class="db-card db-card--manual">
+              <div class="db-card-header"><span class="db-card-label">Hotspots</span><span class="db-tier">Manual</span></div>
+              <div class="db-card-value db-card-value--muted" id="sa-kpi-hotspots">—</div>
+              <div class="db-card-sub">After Relationship + Change views ship</div>
+            </div>
+          </div>
+        </div>
+        <div class="sa-arch-toolbar">
+          <div class="sa-view-tabs" role="tablist" aria-label="Architecture view">
+            <button type="button" class="sa-view-tab" role="tab" aria-selected="true" data-sa-view="structure" id="sa-tab-structure">Structure</button>
+            <button type="button" class="sa-view-tab" role="tab" aria-selected="false" data-sa-view="relationship" id="sa-tab-relationship">Relationship</button>
+            <button type="button" class="sa-view-tab" role="tab" aria-selected="false" data-sa-view="change" id="sa-tab-change">Change</button>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:var(--space-2);align-items:center">
+            <button type="button" class="av-btn" disabled title="Regenerate runs extractors (CI / local); not wired in UI yet">Regenerate</button>
+            <button type="button" class="av-btn" disabled title="Export after graph renderer ships">Export SVG</button>
+          </div>
+        </div>
+        <div class="sa-arch-body">
+          <div class="sa-graph-column">
+            <div class="sa-graph-placeholder" id="sa-panel-structure" role="tabpanel" aria-labelledby="sa-tab-structure">
+              <strong style="color:var(--text)">Structure</strong>
+              <span>Graph placeholder (M3). Load order and Python import layers will render here from the manifest.</span>
+            </div>
+            <div class="sa-graph-placeholder sa-panel-hidden" id="sa-panel-relationship" role="tabpanel" aria-labelledby="sa-tab-relationship">
+              <strong style="color:var(--text)">Relationship</strong>
+              <span>Coupling and heuristic edges (M4).</span>
+            </div>
+            <div class="sa-graph-placeholder sa-panel-hidden" id="sa-panel-change" role="tabpanel" aria-labelledby="sa-tab-change">
+              <strong style="color:var(--text)">Change</strong>
+              <span>Churn overlay (M5).</span>
+            </div>
+          </div>
+          <aside class="sa-inspector" aria-label="Selection details">
+            <div class="sa-inspector-kicker">Inspector</div>
+            <div class="sa-inspector-path" id="sa-inspector-path">Select a node after the graph ships (M3).</div>
+            <p style="font-size:var(--font-size-xs);color:var(--muted);line-height:1.45;margin:0">Facts from manifest JSON. Optional <strong style="color:var(--text)">exported symbols (I1)</strong> per technical plan §4.1.</p>
+            <button type="button" class="av-btn av-btn--accent" disabled title="M7 — scoped explain endpoint">Explain this module (AI)</button>
+          </aside>
         </div>
       </div>
 
@@ -6492,6 +6667,7 @@ const DASHBOARDS = {
   'game-director': { label: 'Game Director',   color: '#e2e8f0', agents: ['game-director'] },
   'game-systems':  { label: 'Game Systems',    color: '#67e8f9', agents: ['game-systems'] },
   workbench:       { label: 'Workbench',      color: '#38bdf8', agents: [] },
+  'sprite-arch':   { label: 'Workbench architecture', color: '#38bdf8', agents: ['engineering', 'design'] },
   'ashen-hollow':  { label: 'Ashen Hollow',   color: '#818cf8', agents: ['game-director', 'creative', 'narrative', 'audio', 'game-systems'] },
 };
 
@@ -6532,7 +6708,7 @@ function orderedAgentIdsForPicker(dashId) {
 const OS_PRODUCT_CONTEXT_KEY = 'mv-agent-os-product-context';
 const OS_PRODUCT_CONTEXT_SETS = {
   business: new Set(['home', 'api-usage', 'guides', 'issues', 'opportunities', 'ongoing-tasks', 'orchestration', 'strategy', 'legal', 'finance', 'support', 'marketing', 'analytics', 'cybersecurity', 'research']),
-  sprite: new Set(['home', 'api-usage', 'guides', 'issues', 'opportunities', 'ongoing-tasks', 'workbench', 'design', 'development', 'animation', 'level-design', 'qa', 'cybersecurity', 'research']),
+  sprite: new Set(['home', 'api-usage', 'guides', 'issues', 'opportunities', 'ongoing-tasks', 'workbench', 'sprite-arch', 'design', 'development', 'animation', 'level-design', 'qa', 'cybersecurity', 'research']),
   'ashen-hollow': new Set(['home', 'api-usage', 'guides', 'issues', 'opportunities', 'ongoing-tasks', 'ashen-hollow', 'development', 'animation', 'level-design', 'design', 'qa', 'research', 'audio', 'narrative', 'creative', 'game-director', 'game-systems']),
   'other-income': new Set(['home', 'api-usage', 'guides', 'issues', 'opportunities', 'ongoing-tasks', 'marketing', 'finance', 'legal', 'support', 'analytics', 'strategy']),
 };
@@ -6860,7 +7036,7 @@ function resourcePathVisibleInContext(path, ctx) {
 
 function pickDefaultDashboardForContext(ctx) {
   if (ctx === 'all') return 'api-usage';
-  const order = ['api-usage', 'home', 'issues', 'workbench', 'ashen-hollow', 'orchestration', 'development', 'marketing'];
+  const order = ['api-usage', 'home', 'issues', 'workbench', 'sprite-arch', 'ashen-hollow', 'orchestration', 'development', 'marketing'];
   for (let i = 0; i < order.length; i++) {
     if (dashboardVisibleInProductContext(order[i], ctx)) return order[i];
   }
@@ -12660,7 +12836,75 @@ async function loadOpportunitiesView() {
   }
 }
 
+const SPRITE_ARCH_MANIFEST_PATH = 'artifacts/sprite-workbench-arch/manifest.json';
+
+async function loadSpriteArchManifest() {
+  const banner = document.getElementById('sa-manifest-banner');
+  const setBanner = function(text, ok, err) {
+    if (!banner) return;
+    banner.textContent = text;
+    banner.classList.remove('sa-manifest-banner--ok', 'sa-manifest-banner--err');
+    if (ok) banner.classList.add('sa-manifest-banner--ok');
+    if (err) banner.classList.add('sa-manifest-banner--err');
+  };
+  const nodesEl = document.getElementById('sa-kpi-nodes');
+  const edgesEl = document.getElementById('sa-kpi-edges');
+  const hotEl = document.getElementById('sa-kpi-hotspots');
+  try {
+    const url = agentOsApiUrl('/' + SPRITE_ARCH_MANIFEST_PATH);
+    const resp = await fetch(url, { cache: 'no-store' });
+    if (!resp.ok) {
+      setBanner('Manifest: could not load (HTTP ' + resp.status + '). Open this page via scripts/os_dashboard_supervisor.py (port 8769) or ensure artifacts/sprite-workbench-arch/manifest.json exists.', false, true);
+      if (nodesEl) nodesEl.textContent = '—';
+      if (edgesEl) edgesEl.textContent = '—';
+      if (hotEl) hotEl.textContent = '—';
+      return;
+    }
+    const m = await resp.json();
+    const sha = (m.git_sha != null && String(m.git_sha)) ? String(m.git_sha).slice(0, 12) : '—';
+    const gen = m.generated_at != null ? String(m.generated_at) : '—';
+    setBanner('manifest v' + (m.schema_version != null ? String(m.schema_version) : '?') + ' · git ' + sha + ' · generated ' + gen, true, false);
+    const nodes = Array.isArray(m.nodes) ? m.nodes.length : 0;
+    const edges = Array.isArray(m.edges) ? m.edges.length : 0;
+    if (nodesEl) nodesEl.textContent = String(nodes);
+    if (edgesEl) edgesEl.textContent = String(edges);
+    if (hotEl) hotEl.textContent = '—';
+  } catch (e) {
+    setBanner('Manifest: fetch failed (serve os-dashboard from supervisor so /artifacts/… resolves).', false, true);
+    if (nodesEl) nodesEl.textContent = '—';
+    if (edgesEl) edgesEl.textContent = '—';
+    if (hotEl) hotEl.textContent = '—';
+  }
+}
+
+function wireSpriteArchViewTabs() {
+  const tabs = document.querySelectorAll('.sa-view-tab');
+  const panels = {
+    structure: document.getElementById('sa-panel-structure'),
+    relationship: document.getElementById('sa-panel-relationship'),
+    change: document.getElementById('sa-panel-change'),
+  };
+  if (!tabs.length) return;
+  tabs.forEach(function(tab) {
+    tab.addEventListener('click', function() {
+      const view = tab.getAttribute('data-sa-view');
+      tabs.forEach(function(t) {
+        t.setAttribute('aria-selected', t === tab ? 'true' : 'false');
+      });
+      Object.keys(panels).forEach(function(k) {
+        const p = panels[k];
+        if (!p) return;
+        const on = k === view;
+        p.classList.toggle('sa-panel-hidden', !on);
+      });
+    });
+  });
+}
+
 async function loadDashboardData(dashId) {
+  if (dashId === 'sprite-arch') {
+    void loadSpriteArchManifest();
+  }
   if (dashId === 'issues') {
     loadActionsView();
   }
@@ -12864,6 +13108,10 @@ async function pulseGlobalWorkbenchOnly() {
     applyApiUsageCostUi();
     if (selectedDashboard === 'api-usage') paintOsChartsForView('api-usage');
   });
+})();
+
+(function wireSpriteArchViewTabsInit() {
+  wireSpriteArchViewTabs();
 })();
 
 setOsProductContext(getSavedProductContext(), { skipDashboardNudge: true });
