@@ -82,6 +82,42 @@ body::before { content: ''; display: block; height: 3px; background: var(--accen
 .view-count-badge { display: inline-flex; align-items: center; padding: 3px 8px; background: var(--accent-soft); border: 1px solid var(--border-strong); border-radius: var(--radius-full); font-family: var(--font-mono); font-size: var(--font-size-xs); font-weight: 500; color: var(--accent); }
 .view-header-meta { flex: 1; text-align: right; font-family: var(--font-mono); font-size: var(--font-size-xs); color: var(--muted); opacity: 0.6; }
 
+/* ── Agent filter ── */
+.ma-filter-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+}
+.ma-filter-label {
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.ma-agent-select {
+  min-height: 44px;
+  padding: 10px 12px;
+  border-radius: var(--radius-tight);
+  border: 1px solid var(--line);
+  background: rgba(255,255,255,0.04);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  min-width: 200px;
+  cursor: pointer;
+  transition: background var(--transition-base), border-color var(--transition-base);
+}
+.ma-agent-select:hover { border-color: var(--line-strong); background: rgba(255,255,255,0.06); }
+
+.kcard.kcard--hidden { display: none !important; }
+.cat-row.cat-row--filtered-out { display: none; }
+
 /* ── Board wrapper ── */
 .board-wrap {
   flex: 1;
@@ -305,6 +341,22 @@ body::before { content: ''; display: block; height: 3px; background: var(--accen
 
     <div class="board-wrap">
 
+      <div class="ma-filter-bar">
+        <label class="ma-filter-label" for="maAgentFilter">Agent</label>
+        <select id="maAgentFilter" class="ma-agent-select" aria-label="Filter actions by agent">
+          <option value="">All agents</option>
+          <option value="orchestration">Orchestration</option>
+          <option value="engineering">Engineering</option>
+          <option value="finance">Finance</option>
+          <option value="game-director">Game Director</option>
+          <option value="legal">Legal</option>
+          <option value="audio">Audio</option>
+          <option value="strategy">Strategy</option>
+          <option value="cybersecurity">Cybersecurity</option>
+          <option value="marketing">Marketing</option>
+        </select>
+      </div>
+
       <!-- Sticky column headers -->
       <div class="col-headers board-grid">
         <div class="col-header col-todo">
@@ -325,7 +377,7 @@ body::before { content: ''; display: block; height: 3px; background: var(--accen
       </div>
 
       <!-- BLOCKING row -->
-      <div class="cat-row cat-row-blocking">
+      <div class="cat-row cat-row-blocking" data-category="blocking">
         <div class="cat-heading">
           <span class="cat-title">Blocking</span>
           <span class="cat-count" id="cat-count-blocking">2</span>
@@ -333,7 +385,7 @@ body::before { content: ''; display: block; height: 3px; background: var(--accen
         <div class="board-grid">
           <div class="drop-zone col-todo" data-col="todo" data-type="blocking" id="dz-todo-blocking">
             <div class="drop-zone-empty">—</div>
-            <div class="kcard" draggable="true" data-id="b1" data-type="blocking">
+            <div class="kcard" draggable="true" data-id="b1" data-type="blocking" data-agent="orchestration">
               <div class="kcard-bar" style="background:var(--c-orchestrator)"></div>
               <div class="kcard-body">
                 <div class="kcard-meta"><span class="agent-pill"><span class="agent-dot" style="background:var(--c-orchestrator)"></span>Orchestration</span></div>
@@ -341,7 +393,7 @@ body::before { content: ''; display: block; height: 3px; background: var(--accen
                 <div class="kcard-source">Raised by Engineering + QA</div>
               </div>
             </div>
-            <div class="kcard" draggable="true" data-id="b2" data-type="blocking">
+            <div class="kcard" draggable="true" data-id="b2" data-type="blocking" data-agent="orchestration">
               <div class="kcard-bar" style="background:var(--c-orchestrator)"></div>
               <div class="kcard-body">
                 <div class="kcard-meta"><span class="agent-pill"><span class="agent-dot" style="background:var(--c-orchestrator)"></span>Orchestration</span></div>
@@ -360,7 +412,7 @@ body::before { content: ''; display: block; height: 3px; background: var(--accen
       </div>
 
       <!-- DECISIONS row -->
-      <div class="cat-row cat-row-decision">
+      <div class="cat-row cat-row-decision" data-category="decision">
         <div class="cat-heading">
           <span class="cat-title">Decisions</span>
           <span class="cat-count" id="cat-count-decision">8</span>
@@ -368,7 +420,7 @@ body::before { content: ''; display: block; height: 3px; background: var(--accen
         <div class="board-grid">
           <div class="drop-zone col-todo" data-col="todo" data-type="decision" id="dz-todo-decision">
             <div class="drop-zone-empty">—</div>
-            <div class="kcard" draggable="true" data-id="d1" data-type="decision">
+            <div class="kcard" draggable="true" data-id="d1" data-type="decision" data-agent="engineering">
               <div class="kcard-bar" style="background:var(--c-engineering)"></div>
               <div class="kcard-body">
                 <div class="kcard-meta"><span class="agent-pill"><span class="agent-dot" style="background:var(--c-engineering)"></span>Engineering</span></div>
@@ -376,7 +428,7 @@ body::before { content: ''; display: block; height: 3px; background: var(--accen
                 <div class="kcard-source">Raised by Engineering</div>
               </div>
             </div>
-            <div class="kcard" draggable="true" data-id="d2" data-type="decision">
+            <div class="kcard" draggable="true" data-id="d2" data-type="decision" data-agent="finance">
               <div class="kcard-bar" style="background:var(--c-finance)"></div>
               <div class="kcard-body">
                 <div class="kcard-meta"><span class="agent-pill"><span class="agent-dot" style="background:var(--c-finance)"></span>Finance</span></div>
@@ -384,7 +436,7 @@ body::before { content: ''; display: block; height: 3px; background: var(--accen
                 <div class="kcard-source">Raised by Finance</div>
               </div>
             </div>
-            <div class="kcard" draggable="true" data-id="d3" data-type="decision">
+            <div class="kcard" draggable="true" data-id="d3" data-type="decision" data-agent="game-director">
               <div class="kcard-bar" style="background:var(--c-game-director)"></div>
               <div class="kcard-body">
                 <div class="kcard-meta"><span class="agent-pill"><span class="agent-dot" style="background:var(--c-game-director)"></span>Game Director</span></div>
@@ -392,7 +444,7 @@ body::before { content: ''; display: block; height: 3px; background: var(--accen
                 <div class="kcard-source">Raised by Game Director</div>
               </div>
             </div>
-            <div class="kcard" draggable="true" data-id="d4" data-type="decision">
+            <div class="kcard" draggable="true" data-id="d4" data-type="decision" data-agent="legal">
               <div class="kcard-bar" style="background:var(--c-legal)"></div>
               <div class="kcard-body">
                 <div class="kcard-meta"><span class="agent-pill"><span class="agent-dot" style="background:var(--c-legal)"></span>Legal</span></div>
@@ -400,7 +452,7 @@ body::before { content: ''; display: block; height: 3px; background: var(--accen
                 <div class="kcard-source">Raised by Legal</div>
               </div>
             </div>
-            <div class="kcard" draggable="true" data-id="d5" data-type="decision">
+            <div class="kcard" draggable="true" data-id="d5" data-type="decision" data-agent="audio">
               <div class="kcard-bar" style="background:var(--c-audio)"></div>
               <div class="kcard-body">
                 <div class="kcard-meta"><span class="agent-pill"><span class="agent-dot" style="background:var(--c-audio)"></span>Audio</span></div>
@@ -408,7 +460,7 @@ body::before { content: ''; display: block; height: 3px; background: var(--accen
                 <div class="kcard-source">Raised by Audio</div>
               </div>
             </div>
-            <div class="kcard" draggable="true" data-id="d6" data-type="decision">
+            <div class="kcard" draggable="true" data-id="d6" data-type="decision" data-agent="strategy">
               <div class="kcard-bar" style="background:var(--c-strategy)"></div>
               <div class="kcard-body">
                 <div class="kcard-meta"><span class="agent-pill"><span class="agent-dot" style="background:var(--c-strategy)"></span>Strategy</span></div>
@@ -416,7 +468,7 @@ body::before { content: ''; display: block; height: 3px; background: var(--accen
                 <div class="kcard-source">Raised by Strategy</div>
               </div>
             </div>
-            <div class="kcard" draggable="true" data-id="d7" data-type="decision">
+            <div class="kcard" draggable="true" data-id="d7" data-type="decision" data-agent="strategy">
               <div class="kcard-bar" style="background:var(--c-strategy)"></div>
               <div class="kcard-body">
                 <div class="kcard-meta"><span class="agent-pill"><span class="agent-dot" style="background:var(--c-strategy)"></span>Strategy</span></div>
@@ -424,7 +476,7 @@ body::before { content: ''; display: block; height: 3px; background: var(--accen
                 <div class="kcard-source">Raised by Strategy</div>
               </div>
             </div>
-            <div class="kcard" draggable="true" data-id="d8" data-type="decision">
+            <div class="kcard" draggable="true" data-id="d8" data-type="decision" data-agent="strategy">
               <div class="kcard-bar" style="background:var(--c-strategy)"></div>
               <div class="kcard-body">
                 <div class="kcard-meta"><span class="agent-pill"><span class="agent-dot" style="background:var(--c-strategy)"></span>Strategy</span></div>
@@ -443,7 +495,7 @@ body::before { content: ''; display: block; height: 3px; background: var(--accen
       </div>
 
       <!-- AWAITING REVIEW row -->
-      <div class="cat-row cat-row-review">
+      <div class="cat-row cat-row-review" data-category="review">
         <div class="cat-heading">
           <span class="cat-title">Awaiting Review</span>
           <span class="cat-count" id="cat-count-review">6</span>
@@ -451,42 +503,42 @@ body::before { content: ''; display: block; height: 3px; background: var(--accen
         <div class="board-grid">
           <div class="drop-zone col-todo" data-col="todo" data-type="review" id="dz-todo-review">
             <div class="drop-zone-empty">—</div>
-            <div class="kcard" draggable="true" data-id="r1" data-type="review">
+            <div class="kcard" draggable="true" data-id="r1" data-type="review" data-agent="cybersecurity">
               <div class="kcard-bar" style="background:var(--c-cybersecurity)"></div>
               <div class="kcard-body">
                 <div class="kcard-meta"><span class="agent-pill"><span class="agent-dot" style="background:var(--c-cybersecurity)"></span>Cybersecurity</span><span class="risk-badge high">HIGH</span></div>
                 <div class="kcard-title">Verify API keys are not present in client-side code or git history</div>
               </div>
             </div>
-            <div class="kcard" draggable="true" data-id="r2" data-type="review">
+            <div class="kcard" draggable="true" data-id="r2" data-type="review" data-agent="engineering">
               <div class="kcard-bar" style="background:var(--c-engineering)"></div>
               <div class="kcard-body">
                 <div class="kcard-meta"><span class="agent-pill"><span class="agent-dot" style="background:var(--c-engineering)"></span>Engineering</span><span class="risk-badge high">HIGH</span></div>
                 <div class="kcard-title">Adding version numbers to saved room files</div>
               </div>
             </div>
-            <div class="kcard" draggable="true" data-id="r3" data-type="review">
+            <div class="kcard" draggable="true" data-id="r3" data-type="review" data-agent="finance">
               <div class="kcard-bar" style="background:var(--c-finance)"></div>
               <div class="kcard-body">
                 <div class="kcard-meta"><span class="agent-pill"><span class="agent-dot" style="background:var(--c-finance)"></span>Finance</span><span class="risk-badge high">HIGH</span></div>
                 <div class="kcard-title">Measure the actual AI API cost per assistant session so we can model unit economics</div>
               </div>
             </div>
-            <div class="kcard" draggable="true" data-id="r4" data-type="review">
+            <div class="kcard" draggable="true" data-id="r4" data-type="review" data-agent="marketing">
               <div class="kcard-bar" style="background:var(--c-marketing)"></div>
               <div class="kcard-body">
                 <div class="kcard-meta"><span class="agent-pill"><span class="agent-dot" style="background:var(--c-marketing)"></span>Marketing</span><span class="risk-badge high">HIGH</span></div>
                 <div class="kcard-title">Getting the AI messaging right — the human is always in control</div>
               </div>
             </div>
-            <div class="kcard" draggable="true" data-id="r5" data-type="review">
+            <div class="kcard" draggable="true" data-id="r5" data-type="review" data-agent="orchestration">
               <div class="kcard-bar" style="background:var(--c-orchestrator)"></div>
               <div class="kcard-body">
                 <div class="kcard-meta"><span class="agent-pill"><span class="agent-dot" style="background:var(--c-orchestrator)"></span>Orchestration</span><span class="risk-badge high">HIGH</span></div>
                 <div class="kcard-title">Room save contract — version field and migration, then automated save/load round-trip</div>
               </div>
             </div>
-            <div class="kcard" draggable="true" data-id="r6" data-type="review">
+            <div class="kcard" draggable="true" data-id="r6" data-type="review" data-agent="orchestration">
               <div class="kcard-bar" style="background:var(--c-orchestrator)"></div>
               <div class="kcard-body">
                 <div class="kcard-meta"><span class="agent-pill"><span class="agent-dot" style="background:var(--c-orchestrator)"></span>Orchestration</span><span class="risk-badge med">MED</span></div>
@@ -515,27 +567,45 @@ body::before { content: ''; display: block; height: 3px; background: var(--accen
 
   function zone(col, type) { return document.getElementById(`dz-${col}-${type}`); }
 
+  function visibleKcards(root) {
+    return root.querySelectorAll('.kcard:not(.kcard--hidden)');
+  }
+
   function updateCounts() {
     COLS.forEach(col => {
       let total = 0;
       TYPES.forEach(type => {
-        total += zone(col, type).querySelectorAll('.kcard').length;
+        total += visibleKcards(zone(col, type)).length;
       });
       document.getElementById(`count-${col}`).textContent = total;
     });
     TYPES.forEach(type => {
       let total = 0;
-      COLS.forEach(col => { total += zone(col, type).querySelectorAll('.kcard').length; });
+      COLS.forEach(col => { total += visibleKcards(zone(col, type)).length; });
       document.getElementById(`cat-count-${type}`).textContent = total;
     });
-    const all = document.querySelectorAll('.kcard').length;
+    const all = document.querySelectorAll('.kcard:not(.kcard--hidden)').length;
     const todo = COLS.filter(c => c !== 'done').reduce((s, col) => {
-      return s + TYPES.reduce((t, type) => t + zone(col, type).querySelectorAll('.kcard').length, 0);
+      return s + TYPES.reduce((t, type) => t + visibleKcards(zone(col, type)).length, 0);
     }, 0);
     const totalEl = document.getElementById('totalCount');
     if (totalEl) totalEl.textContent = `${all} items`;
     const navEl = document.getElementById('navMyActionsCount');
     if (navEl) navEl.textContent = String(todo);
+  }
+
+  function applyAgentFilter() {
+    const sel = document.getElementById('maAgentFilter');
+    const v = sel && sel.value ? sel.value : '';
+    document.querySelectorAll('.kcard').forEach(card => {
+      const match = !v || card.dataset.agent === v;
+      card.classList.toggle('kcard--hidden', !match);
+    });
+    document.querySelectorAll('.cat-row[data-category]').forEach(row => {
+      const n = row.querySelectorAll('.kcard:not(.kcard--hidden)').length;
+      row.classList.toggle('cat-row--filtered-out', n === 0);
+    });
+    updateCounts();
   }
 
   function initCard(card) {
@@ -577,14 +647,18 @@ body::before { content: ''; display: block; height: 3px; background: var(--accen
   });
 
   function getAfterCard(container, y) {
-    return [...container.querySelectorAll('.kcard:not(.dragging)')].reduce((closest, card) => {
+    return [...container.querySelectorAll('.kcard:not(.dragging):not(.kcard--hidden)')].reduce((closest, card) => {
       const offset = y - card.getBoundingClientRect().top - card.getBoundingClientRect().height / 2;
       return offset < 0 && offset > closest.offset ? { offset, element: card } : closest;
     }, { offset: -Infinity }).element;
   }
 
   document.querySelectorAll('.kcard').forEach(initCard);
-  updateCounts();
+  const agentFilterEl = document.getElementById('maAgentFilter');
+  if (agentFilterEl) {
+    agentFilterEl.addEventListener('change', applyAgentFilter);
+  }
+  applyAgentFilter();
 })();
 </script>
 </body>
