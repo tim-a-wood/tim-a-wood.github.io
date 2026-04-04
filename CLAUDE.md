@@ -111,7 +111,7 @@ Never restructure the shell layout without reading the full CSS file first.
 
 ## Agent OS — My Actions after every task
 
-After completing a task, check whether **your** agent `*-status.json` needs updates so the **My Actions** founder board in `os-dashboard.html` stays accurate (`founder_decisions`, `priorities` with `needs-review`). See `AGENTS.md` (**My Actions dashboard — check after completing every request**). Update when needed; no edit if nothing founder-facing changed.
+After completing a task, check **your** agent `*-status.json` so the **My Actions** board in `os-dashboard.html` stays accurate. You **may add, edit, or remove** founder-facing rows you own there (`founder_decisions`, `needs-review` priorities) when justified; do not edit another agent’s status file for this unless the founder asked. See `AGENTS.md` (**My Actions dashboard — check after completing every request**). No edit if nothing founder-facing changed for your agent.
 
 ## Commit Style
 

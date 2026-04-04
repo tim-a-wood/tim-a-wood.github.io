@@ -72,7 +72,7 @@ The Agent OS **My Actions** view (`os-dashboard.html`, nav **My Actions** — th
 - `founder_decisions` (blocking and non-blocking items for the founder)
 - `priorities` rows with `"status": "needs-review"`
 
-**Directive for all agents (orchestrator and every specialist):** When you **finish** a request, session, or owned handoff, **review** whether **your** `*-status.json` needs edits so **My Actions** stays accurate. **Update when needed** (resolve or add founder decisions, move priority status into or out of `needs-review`, refresh titles/notes, add or remove founder-visible rows). If the work did not affect founder-visible rows, **no file change is required** — the obligation is to **check**, not to churn the JSON.
+**Directive for all agents (orchestrator and every specialist):** When you **finish** a request, session, or owned handoff, **review** **your** agent’s `*-status.json` (only the file for your role — e.g. `design-status.json` for Design). You **may add, edit, or remove** any **My Actions**–sourced rows **you own** in that file (`founder_decisions`, and `priorities` with `needs-review`) whenever the founder board should show new work, resolved work, or corrected copy — including **removing** a card that is obsolete or **adding** one the founder must see. Do **not** add, remove, or rewrite founder-facing rows in **another** agent’s `*-status.json` unless the founder explicitly asked for that cross-file edit. If nothing founder-facing changed for your agent, **no file change is required** — the obligation is to **check**, not to churn the JSON.
 
 Follow `agents/design/dashboard-standard.md` when editing dashboards. Prefer running `python3 scripts/validate_status_files.py` on files you touch when the repo provides it.
 
@@ -137,7 +137,7 @@ The **Design** charter requires a **high-fidelity mockup before implementation**
 
 ### My Actions (founder task board) after coding tasks
 
-If you edit any `*-status.json`, when you finish the request **review** whether **My Actions** (`os-dashboard.html`) will still be correct — see the **My Actions dashboard — check after completing every request** section **above the divider** in this same file.
+If you edit **an** agent `*-status.json`, when you finish **review** **My Actions** (`os-dashboard.html`) for that file: you **may add, remove, or edit** founder-facing rows **owned by that file’s agent** when needed — see **My Actions dashboard — check after completing every request** **above the divider** in this file.
 
 ---
 
