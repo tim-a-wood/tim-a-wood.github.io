@@ -27,6 +27,8 @@ Reference implementation: `my-actions-mockup.html` (structure, CSS, and `updateC
 
 **Orchestrator note:** `orchestration-status.json` may synthesize overlapping themes with other agents; de-dupe in the aggregator by **stable id** (or normalized title) so the board does not show duplicate cards unless product wants duplicates.
 
+**Agent IDs:** Use the same keys as `AGENTS` in `os-dashboard.html` (e.g. `orchestrator`, not `orchestration`; `engineering` with UI label **Development** per `AGENTS.engineering.label`; `audio` → label **Audio Director**).
+
 ## 3. Blocking vs Decisions (founder_decisions)
 
 `founder_decisions` objects today: `{ title, note, source? }` — no type.

@@ -345,15 +345,15 @@ body::before { content: ''; display: block; height: 3px; background: var(--accen
         <label class="ma-filter-label" for="maAgentFilter">Agent</label>
         <select id="maAgentFilter" class="ma-agent-select" aria-label="Filter actions by agent">
           <option value="">All agents</option>
-          <option value="orchestration">Orchestration</option>
-          <option value="engineering">Engineering</option>
+          <option value="audio">Audio Director</option>
+          <option value="cybersecurity">Cybersecurity</option>
+          <option value="engineering">Development</option>
           <option value="finance">Finance</option>
           <option value="game-director">Game Director</option>
           <option value="legal">Legal</option>
-          <option value="audio">Audio</option>
-          <option value="strategy">Strategy</option>
-          <option value="cybersecurity">Cybersecurity</option>
           <option value="marketing">Marketing</option>
+          <option value="orchestrator">Orchestrator</option>
+          <option value="strategy">Strategy</option>
         </select>
       </div>
 
@@ -385,20 +385,20 @@ body::before { content: ''; display: block; height: 3px; background: var(--accen
         <div class="board-grid">
           <div class="drop-zone col-todo" data-col="todo" data-type="blocking" id="dz-todo-blocking">
             <div class="drop-zone-empty">—</div>
-            <div class="kcard" draggable="true" data-id="b1" data-type="blocking" data-agent="orchestration">
+            <div class="kcard" draggable="true" data-id="b1" data-type="blocking" data-agent="orchestrator">
               <div class="kcard-bar" style="background:var(--c-orchestrator)"></div>
               <div class="kcard-body">
-                <div class="kcard-meta"><span class="agent-pill"><span class="agent-dot" style="background:var(--c-orchestrator)"></span>Orchestration</span></div>
+                <div class="kcard-meta"><span class="agent-pill"><span class="agent-dot" style="background:var(--c-orchestrator)"></span>Orchestrator</span></div>
                 <div class="kcard-title">Sign off on room file versioning and migration approach</div>
                 <div class="kcard-source">Raised by Engineering + QA</div>
               </div>
             </div>
-            <div class="kcard" draggable="true" data-id="b2" data-type="blocking" data-agent="orchestration">
+            <div class="kcard" draggable="true" data-id="b2" data-type="blocking" data-agent="orchestrator">
               <div class="kcard-bar" style="background:var(--c-orchestrator)"></div>
               <div class="kcard-body">
-                <div class="kcard-meta"><span class="agent-pill"><span class="agent-dot" style="background:var(--c-orchestrator)"></span>Orchestration</span></div>
+                <div class="kcard-meta"><span class="agent-pill"><span class="agent-dot" style="background:var(--c-orchestrator)"></span>Orchestrator</span></div>
                 <div class="kcard-title">Business Brand Guide v0.2.1 — complete Founder column in §1.3 and §10.1 for v0.3 lock</div>
-                <div class="kcard-source">Raised by Marketing + Orchestration</div>
+                <div class="kcard-source">Raised by Marketing + Orchestrator</div>
               </div>
             </div>
           </div>
@@ -423,7 +423,7 @@ body::before { content: ''; display: block; height: 3px; background: var(--accen
             <div class="kcard" draggable="true" data-id="d1" data-type="decision" data-agent="engineering">
               <div class="kcard-bar" style="background:var(--c-engineering)"></div>
               <div class="kcard-body">
-                <div class="kcard-meta"><span class="agent-pill"><span class="agent-dot" style="background:var(--c-engineering)"></span>Engineering</span></div>
+                <div class="kcard-meta"><span class="agent-pill"><span class="agent-dot" style="background:var(--c-engineering)"></span>Development</span></div>
                 <div class="kcard-title">Copilot program — commercial bar, benchmark timing, and model switch criteria</div>
                 <div class="kcard-source">Raised by Engineering</div>
               </div>
@@ -455,9 +455,9 @@ body::before { content: ''; display: block; height: 3px; background: var(--accen
             <div class="kcard" draggable="true" data-id="d5" data-type="decision" data-agent="audio">
               <div class="kcard-bar" style="background:var(--c-audio)"></div>
               <div class="kcard-body">
-                <div class="kcard-meta"><span class="agent-pill"><span class="agent-dot" style="background:var(--c-audio)"></span>Audio</span></div>
+                <div class="kcard-meta"><span class="agent-pill"><span class="agent-dot" style="background:var(--c-audio)"></span>Audio Director</span></div>
                 <div class="kcard-title">Which adaptive audio approach is right for Ashen Hollow?</div>
-                <div class="kcard-source">Raised by Audio</div>
+                <div class="kcard-source">Raised by Audio Director</div>
               </div>
             </div>
             <div class="kcard" draggable="true" data-id="d6" data-type="decision" data-agent="strategy">
@@ -513,7 +513,7 @@ body::before { content: ''; display: block; height: 3px; background: var(--accen
             <div class="kcard" draggable="true" data-id="r2" data-type="review" data-agent="engineering">
               <div class="kcard-bar" style="background:var(--c-engineering)"></div>
               <div class="kcard-body">
-                <div class="kcard-meta"><span class="agent-pill"><span class="agent-dot" style="background:var(--c-engineering)"></span>Engineering</span><span class="risk-badge high">HIGH</span></div>
+                <div class="kcard-meta"><span class="agent-pill"><span class="agent-dot" style="background:var(--c-engineering)"></span>Development</span><span class="risk-badge high">HIGH</span></div>
                 <div class="kcard-title">Adding version numbers to saved room files</div>
               </div>
             </div>
@@ -531,17 +531,17 @@ body::before { content: ''; display: block; height: 3px; background: var(--accen
                 <div class="kcard-title">Getting the AI messaging right — the human is always in control</div>
               </div>
             </div>
-            <div class="kcard" draggable="true" data-id="r5" data-type="review" data-agent="orchestration">
+            <div class="kcard" draggable="true" data-id="r5" data-type="review" data-agent="orchestrator">
               <div class="kcard-bar" style="background:var(--c-orchestrator)"></div>
               <div class="kcard-body">
-                <div class="kcard-meta"><span class="agent-pill"><span class="agent-dot" style="background:var(--c-orchestrator)"></span>Orchestration</span><span class="risk-badge high">HIGH</span></div>
+                <div class="kcard-meta"><span class="agent-pill"><span class="agent-dot" style="background:var(--c-orchestrator)"></span>Orchestrator</span><span class="risk-badge high">HIGH</span></div>
                 <div class="kcard-title">Room save contract — version field and migration, then automated save/load round-trip</div>
               </div>
             </div>
-            <div class="kcard" draggable="true" data-id="r6" data-type="review" data-agent="orchestration">
+            <div class="kcard" draggable="true" data-id="r6" data-type="review" data-agent="orchestrator">
               <div class="kcard-bar" style="background:var(--c-orchestrator)"></div>
               <div class="kcard-body">
-                <div class="kcard-meta"><span class="agent-pill"><span class="agent-dot" style="background:var(--c-orchestrator)"></span>Orchestration</span><span class="risk-badge med">MED</span></div>
+                <div class="kcard-meta"><span class="agent-pill"><span class="agent-dot" style="background:var(--c-orchestrator)"></span>Orchestrator</span><span class="risk-badge med">MED</span></div>
                 <div class="kcard-title">Document animation and AI panel rules so all tools stay consistent</div>
               </div>
             </div>
