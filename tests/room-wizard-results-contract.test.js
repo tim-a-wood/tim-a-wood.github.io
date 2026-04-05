@@ -26,8 +26,8 @@ function assertIncludes(snippet, message) {
   );
   assertIncludes('data-rw-env-step="describe"', 'Describe step should be wired for the environment workflow');
   assertIncludes('data-rw-env-step="review"', 'Review step should be wired for the environment workflow');
-  assertIncludes('<strong>Describe</strong>', 'Environment workflow should expose a Describe tab');
-  assertIncludes('<strong>Preview &amp; build</strong>', 'Environment workflow should expose Preview & build');
+  assertIncludes('<strong>1 · Describe</strong>', 'Environment workflow should expose step 1 Describe tab');
+  assertIncludes('<strong>2 · Preview &amp; build</strong>', 'Environment workflow should expose step 2 Preview & build');
   assert.ok(!html.includes('id="rwEnvTabComponents"'), 'Legacy Components tab should stay removed');
 })();
 

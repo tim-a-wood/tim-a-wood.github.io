@@ -1223,6 +1223,51 @@
       text-transform: uppercase;
       background: rgba(255,255,255,0.03);
     }
+    .rw-env-flow-steps {
+      display: grid;
+      gap: 8px;
+      margin: 0;
+      padding: 0;
+    }
+    .rw-env-flow-step {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      gap: 12px;
+      align-items: start;
+      margin: 0;
+      color: var(--muted);
+      font-size: var(--font-size-sm);
+      line-height: 1.45;
+    }
+    .rw-env-flow-num {
+      display: inline-grid;
+      place-items: center;
+      width: 24px;
+      min-height: 24px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.04);
+      color: var(--text);
+      font-size: var(--font-size-xs);
+      font-weight: 800;
+    }
+    .rw-env-section-tag {
+      margin: 0 0 8px;
+      font-size: var(--font-size-xs);
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .rw-env-section-tag--tight {
+      margin-bottom: 4px;
+    }
+    .rw-env-step-intro .rw-env-intro-after-flow {
+      margin-top: 12px;
+    }
+    .rw-env-empty-state-actions {
+      margin-top: 12px;
+    }
     .rw-env-describe-layout,
     .rw-env-review-layout {
       display: grid;
@@ -2501,7 +2546,7 @@
                   <span class="phase-header-num">Phase 2 · Environment</span>
                   <h2>Environment</h2>
                   <p class="phase-header-desc">
-                    Describe how this room should look, then generate previews and final assets.
+                    In three steps: describe the room, generate preview pictures, then approve one picture and build final room art. Everything below follows that order.
                   </p>
                 </div>
                 <button type="button" class="phase-back-btn" id="roomWizardBackToLayoutFromEnv">← Layout</button>
@@ -2509,27 +2554,33 @@
               <div class="rw-env-shell" id="roomWizardEnvShell">
                 <div class="rw-env-wizard-rail" role="tablist" aria-label="Environment workflow">
                   <button type="button" class="rw-env-step-btn rw-env-step-btn--active" role="tab" id="rwEnvStepDescribe" data-rw-env-step="describe" aria-selected="true">
-                    <strong>Describe</strong>
-                    <span>Idea, details, references, optional parts</span>
+                    <strong>1 · Describe</strong>
+                    <span>Write the room; optional extras on the same page</span>
                   </button>
                   <button type="button" class="rw-env-step-btn" role="tab" id="rwEnvStepReview" data-rw-env-step="review" aria-selected="false">
-                    <strong>Preview &amp; build</strong>
-                    <span>Check the picture, then export</span>
+                    <strong>2 · Preview &amp; build</strong>
+                    <span>Pick a picture, revise if needed, build assets</span>
                   </button>
                 </div>
                 <div class="rw-env-panels">
                   <div id="rwEnvPanelSetup" class="rw-env-panel" role="tabpanel" aria-labelledby="rwEnvStepDescribe">
                     <div class="rw-env-step-panel" id="rwEnvStepPanelDescribe">
                       <div class="rw-env-step-intro">
-                        <p class="eyebrow">Describe</p>
-                        <h4>Describe this room</h4>
-                        <p class="small-note">Everything you enter here stays on one screen—scroll if you need more fields—then open Preview &amp; build when you want to see the result and run a build.</p>
+                        <p class="eyebrow">Step 1 — Describe</p>
+                        <h4>Tell us about this room</h4>
+                        <div class="rw-env-flow-steps" aria-label="Environment steps">
+                          <p class="rw-env-flow-step"><span class="rw-env-flow-num" aria-hidden="true">1</span><span>Write a short description (or start from a template).</span></p>
+                          <p class="rw-env-flow-step"><span class="rw-env-flow-num" aria-hidden="true">2</span><span>Click <strong>Generate preview pictures</strong> and wait for images.</span></p>
+                          <p class="rw-env-flow-step"><span class="rw-env-flow-num" aria-hidden="true">3</span><span>Open <strong>2 · Preview &amp; build</strong> above to approve one image and finish.</span></p>
+                        </div>
+                        <p class="small-note rw-env-intro-after-flow">Fields below are on one scrollable page. Only the room description is required for a first preview; the rest is optional.</p>
                       </div>
                       <div class="stage-card rw-env-describe-stage" id="roomWizardCopilotCard">
+                        <p class="rw-env-section-tag">Start here</p>
                         <div class="stage-card-head">
-                          <h4>Room idea</h4>
+                          <h4>Room description</h4>
                           <p class="small-note">
-                            Describe the room in plain English, then build a preview. You can keep editing below without leaving this tab.
+                            Plain English is enough. This drives the AI preview. You can edit other sections on this page anytime; you do not need to complete them first.
                           </p>
                         </div>
                         <div class="rw-env-section-stack">
@@ -2543,11 +2594,11 @@
                           Checking local server…
                         </p>
                         <label>
-                          <span class="field-label">Room idea</span>
+                          <span class="field-label">What does this room look and feel like?</span>
                           <textarea
                             id="roomWizardCopilotPrompt"
-                            rows="2"
-                            placeholder="e.g. flooded stone hall with damp walls and a faint green glow"
+                            rows="3"
+                            placeholder="e.g. flooded stone hall, damp walls, faint green glow, broken arches in the background"
                             spellcheck="true"
                           ></textarea>
                         </label>
@@ -2560,7 +2611,7 @@
                             <div class="stage-card-head">
                               <div>
                                 <h5>Debug: reference art for preview</h5>
-                                <p class="small-note">Optional. Attach up to 3 PNG / JPEG / WebP images; they are sent with “Build room look” and preview revisions so Gemini can follow your art direction until the Art direction flow is fully wired.</p>
+                                <p class="small-note">Optional. Attach up to 3 PNG / JPEG / WebP images; they are sent with <strong>Generate preview pictures</strong> and <strong>Update preview</strong> so Gemini can follow your art direction until the Art direction flow is fully wired.</p>
                               </div>
                             </div>
                           </summary>
@@ -2575,23 +2626,24 @@
                         <div class="rw-env-step-actions">
                           <div class="rw-copilot-actions">
                             <button type="button" class="btn-secondary" id="roomWizardAdaptTemplate">Rewrite idea</button>
-                            <button type="button" class="btn-secondary" id="roomWizardCopilotGenerate">Build room look</button>
+                            <button type="button" class="btn-secondary" id="roomWizardCopilotGenerate">Generate preview pictures</button>
                             <span id="roomWizardCopilotStatus" class="small-note" aria-live="polite"></span>
                           </div>
                         </div>
                         <div id="roomWizardLookPreviewStrip" class="rw-results-workbench" hidden>
                           <div class="stage-card-head">
-                            <h5>Preview candidates</h5>
-                            <p class="small-note">Generated previews appear here immediately so you can approve one before moving deeper into the workflow.</p>
+                            <h5>Early preview (same as step 2)</h5>
+                            <p class="small-note">Quick peek after generation. To approve a picture and build final art, switch to <strong>2 · Preview &amp; build</strong> in the bar above.</p>
                           </div>
                           <div id="roomWizardLookPreviewVisual" class="rw-environment-preview"></div>
                           <div id="roomWizardLookPreviewGallery" class="rw-preview-gallery"></div>
                         </div>
                       </div>
                       <section class="rw-results-workbench" aria-labelledby="roomWizardResultsWorkbenchTitle">
+                        <p class="rw-env-section-tag">Optional</p>
                         <div class="stage-card-head">
                           <h5 id="roomWizardResultsWorkbenchTitle">Title, version, and notes</h5>
-                          <p class="small-note">Optional labels that help you tell rooms apart and keep rebuilds consistent.</p>
+                          <p class="small-note">For your own organization. Skip until you care about naming or repeatability.</p>
                         </div>
                         <div class="rw-results-authoring-grid">
                           <label>
@@ -2609,9 +2661,10 @@
                         </div>
                       </section>
                       <section class="rw-results-workbench" aria-labelledby="roomWizardReferenceTitle">
+                        <p class="rw-env-section-tag">Optional</p>
                         <div class="stage-card-head">
-                          <h5 id="roomWizardReferenceTitle">Reference images</h5>
-                          <p class="small-note">Upload images to steer the look. Turn on “lock” if this room should stick close to those pictures.</p>
+                          <h5 id="roomWizardReferenceTitle">Your reference photos</h5>
+                          <p class="small-note">Upload screenshots or mood images so the AI stays closer to a look you already like. Turn on lock if this room must follow those images closely.</p>
                         </div>
                         <div class="rw-env-side-stack">
                           <label>
@@ -2630,7 +2683,7 @@
                           <div class="stage-card-head">
                             <div>
                               <h4>Extra detail by area</h4>
-                              <p class="small-note">Optional. Use when the short room idea is not enough—floor, platforms, walls, doors, background.</p>
+                              <p class="small-note">Open only if one short paragraph is not enough—split notes for floor, platforms, walls, doors, background.</p>
                             </div>
                           </div>
                         </summary>
@@ -2662,19 +2715,27 @@
                           </div>
                         </div>
                       </details>
-                      <section class="rw-biome-visual-card rw-results-workbench" aria-labelledby="roomWizardBiomeVisualTitle">
-                        <div class="stage-card-head rw-biome-visual-head">
-                          <h5 id="roomWizardBiomeVisualTitle">Project look kit</h5>
-                          <p class="small-note" id="roomWizardBiomePackSummary">Use the locked project art direction to generate shared image pieces for rooms.</p>
+                      <details class="rw-env-collapsible">
+                        <summary>
+                          <div class="stage-card-head rw-biome-visual-head">
+                            <div>
+                              <p class="rw-env-section-tag rw-env-section-tag--tight">Advanced · whole project</p>
+                              <h5 id="roomWizardBiomeVisualTitle">Shared “look kit” for all rooms</h5>
+                              <p class="small-note" id="roomWizardBiomePackSummary">Use the locked project art direction to generate shared image pieces for rooms.</p>
+                            </div>
+                          </div>
+                        </summary>
+                        <div class="rw-env-collapsible-body">
+                          <p class="small-note">Not required for a single-room preview. Use when you want reusable tiles (floor, walls, etc.) shared across many rooms.</p>
+                          <div class="rw-copilot-actions">
+                            <button type="button" class="btn-secondary" id="roomWizardBiomeGenerateVisuals">Generate shared project images</button>
+                            <span id="roomWizardBiomeVisualStatus" class="small-note" aria-live="polite"></span>
+                          </div>
                         </div>
-                        <div class="rw-copilot-actions">
-                          <button type="button" class="btn-secondary" id="roomWizardBiomeGenerateVisuals">Generate shared project images</button>
-                          <span id="roomWizardBiomeVisualStatus" class="small-note" aria-live="polite"></span>
-                        </div>
-                      </section>
+                      </details>
                       <div class="rw-env-step-actions">
                         <div class="rw-env-nav-actions">
-                          <button type="button" class="btn-secondary" data-rw-env-step-target="review">Preview &amp; build →</button>
+                          <button type="button" class="btn-secondary" data-rw-env-step-target="review">Next: 2 · Preview &amp; build →</button>
                         </div>
                       </div>
                     </div>
@@ -2682,16 +2743,21 @@
                   <div id="rwEnvPanelResults" class="rw-env-panel" role="tabpanel" aria-labelledby="rwEnvStepReview" hidden>
                     <div class="rw-env-step-panel rw-env-step-panel--review" id="rwEnvStepPanelReview">
                       <div class="rw-env-step-intro">
-                        <p class="eyebrow">Review</p>
-                        <h4>Preview &amp; build</h4>
-                        <p class="small-note">The picture and actions stay on the left; build status, checklist, overlay, and exported images scroll in the column on the right.</p>
+                        <p class="eyebrow">Step 2 — Picture &amp; build</p>
+                        <h4>Pick a picture, then finish the room</h4>
+                        <div class="rw-env-flow-steps" aria-label="Preview and build steps">
+                          <p class="rw-env-flow-step"><span class="rw-env-flow-num" aria-hidden="true">1</span><span>Choose one preview and click <strong>Approve Preview</strong> on a card (below).</span></p>
+                          <p class="rw-env-flow-step"><span class="rw-env-flow-num" aria-hidden="true">2</span><span>Optional: use <strong>Update preview</strong> if you want a new picture first.</span></p>
+                          <p class="rw-env-flow-step"><span class="rw-env-flow-num" aria-hidden="true">3</span><span>Click <strong>Build final room assets</strong> when you are happy with the approved picture.</span></p>
+                        </div>
+                        <p class="small-note rw-env-intro-after-flow">Layout: preview and buttons on the left; build checklist and exports on the right (scroll that column if it is long).</p>
                       </div>
                       <div class="rw-env-review-layout rw-env-review-layout--split">
                       <div class="rw-env-column rw-env-column--review-primary">
                       <div class="stage-card rw-env-results-stage">
                         <div class="stage-card-head">
-                          <h4>Preview</h4>
-                          <p class="small-note">Check the picture, tweak with a short note if needed, then build final room assets.</p>
+                          <h4>Preview pictures</h4>
+                          <p class="small-note">Compare images, approve one, or ask for changes. Nothing is saved to the game until you build assets.</p>
                         </div>
                         <div id="roomWizardCopilotProgress" class="workbench-waitbar rw-waitbar" hidden aria-live="polite" aria-busy="true">
                           <div class="small-note workbench-waitbar-detail rw-waitbar-detail" id="roomWizardCopilotProgressDetail">Working…</div>
@@ -2704,10 +2770,13 @@
                           </div>
                         </div>
                         <div id="roomWizardResultsEmptyState" class="info-box rw-results-empty-state">
-                          <p><strong>No preview yet.</strong> Build the room look to open this review surface.</p>
+                          <p><strong>No preview yet.</strong> Go to <strong>1 · Describe</strong>, write what the room should feel like, then click <strong>Generate preview pictures</strong>.</p>
+                          <div class="rw-copilot-actions rw-env-empty-state-actions">
+                            <button type="button" class="btn-secondary" id="roomWizardReviewGoDescribe">Go to Describe</button>
+                          </div>
                         </div>
                         <div id="roomWizardCopilotPreview" hidden class="rw-copilot-preview-box">
-                          <p><strong>Preview ready.</strong> Review the room, revise if needed, then build final room assets.</p>
+                          <p><strong>Previews are ready.</strong> Approve one image, or revise first, then build final room assets.</p>
                           <div class="rw-env-preview-scroll">
                           <div id="roomWizardEnvironmentPreview" class="rw-environment-preview" aria-live="polite"></div>
                           <div id="roomWizardCopilotPreviewVisual" class="rw-environment-preview"></div>
@@ -9689,7 +9758,7 @@
               renderRoomWizardPreviewGallery(room.environment?.preview || {});
               renderRoomWizardEnvironmentOutputSummary(room.environment);
               updateJsonText();
-              if (st) st.textContent = 'Preview candidates ready — approve one below.';
+              if (st) st.textContent = 'Pictures ready — open 2 · Preview & build to approve one.';
               stopRoomWizardWaitbar('copilot', 100);
             } catch (e) {
               stopRoomWizardWaitbar('copilot', 100);
@@ -9837,6 +9906,9 @@
           } finally {
             state.roomWizard.aiRequestPending = false;
           }
+        });
+        document.getElementById('roomWizardReviewGoDescribe')?.addEventListener('click', () => {
+          setRoomWizardEnvStep('describe');
         });
         document.getElementById('roomWizardPreviewOpenGame')?.addEventListener('click', () => {
           const room = getRoomWizardRoom();
