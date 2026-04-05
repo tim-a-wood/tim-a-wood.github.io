@@ -10,23 +10,34 @@ function assertIncludes(snippet, message) {
   assert.ok(html.includes(snippet), message || `Expected HTML to include: ${snippet}`);
 }
 
-(function testResultsTabAuthoringFieldsExist() {
+(function testDescribeTabAuthoringFieldsExist() {
   [
     'id="roomWizardThemeName"',
     'id="roomWizardEnvironmentSeed"',
     'id="roomWizardEnvironmentNotes"',
     'id="roomWizardReferenceUpload"',
     'id="roomWizardLockStylepack"',
-  ].forEach((snippet) => assertIncludes(snippet, `Missing Results authoring control ${snippet}`));
+  ].forEach((snippet) => assertIncludes(snippet, `Missing Describe authoring control ${snippet}`));
+})();
+
+(function testEnvironmentWorkflowIsDescribeVersusReview() {
+  ['id="rwEnvStepDescribe"', 'id="rwEnvStepReview"', 'id="rwEnvStepPanelDescribe"'].forEach((snippet) =>
+    assertIncludes(snippet, `Missing Environment workflow control ${snippet}`)
+  );
+  assertIncludes('data-rw-env-step="describe"', 'Describe step should be wired for the environment workflow');
+  assertIncludes('data-rw-env-step="review"', 'Review step should be wired for the environment workflow');
+  assertIncludes('<strong>Describe</strong>', 'Environment workflow should expose a Describe tab');
+  assertIncludes('<strong>Preview &amp; build</strong>', 'Environment workflow should expose Preview & build');
+  assert.ok(!html.includes('id="rwEnvTabComponents"'), 'Legacy Components tab should stay removed');
 })();
 
 (function testResultsStageOrderMatchesContract() {
   const orderedLabels = [
-    '1. Stylepack',
-    '2. Semantics',
-    '3. Kit',
-    '4. Manifest',
-    '5. Validation',
+    '1. Visual style',
+    '2. Walkable layout',
+    '3. Room pieces',
+    '4. Scene layout',
+    '5. Quality check',
   ];
   let lastIndex = -1;
   orderedLabels.forEach((label) => {
@@ -49,9 +60,10 @@ function assertIncludes(snippet, message) {
 })();
 
 (function testBuildButtonCopyAndDisabledStateContract() {
-  assertIncludes('id="roomWizardBuildEnvironmentAssets">Build Production Assets</button>', 'Initial build button copy should match the production-assets contract');
+  assertIncludes('id="roomWizardBuildEnvironmentAssets">Build final room assets</button>', 'Initial build button copy should match the approved plain-English contract');
   assertIncludes("buildButton.disabled = !preview.approved_image_id;", 'Build button should stay disabled until a preview is approved');
-  assertIncludes("buildButton.textContent = bespokeManifest.status === 'ready'", 'Build button should reflect ready/retry/rebuild states');
+  assertIncludes("? 'Rebuild final room assets'", 'Build button should reflect rebuild state');
+  assertIncludes("? 'Retry final room assets'", 'Build button should reflect retry state');
 })();
 
 (function testResultsStatusVocabularyIsPresent() {
