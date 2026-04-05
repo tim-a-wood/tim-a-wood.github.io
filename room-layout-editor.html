@@ -485,6 +485,9 @@
       flex: 1 1 38%;
       min-height: 160px;
     }
+    .canvas-wrap:has(#roomWizardDock[data-phase="environment"]:not([hidden])) .canvas-with-inspector {
+      display: none;
+    }
     .canvas-wrap:not(:has(#roomWizardDock:not([hidden]))) .canvas-with-inspector {
       flex: 1;
       min-height: 0;
@@ -1124,6 +1127,243 @@
     .global-link-panel button {
       height: 40px;
       align-self: end;
+    }
+    .rw-results-workbench {
+      display: grid;
+      gap: 12px;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: rgba(255,255,255,0.025);
+    }
+    .rw-results-empty-state {
+      margin-top: 12px;
+    }
+    .rw-results-authoring-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+    .rw-results-authoring-grid label,
+    .rw-results-toggle-group {
+      display: grid;
+      gap: 8px;
+    }
+    .rw-results-authoring-grid label.rw-results-field--wide {
+      grid-column: 1 / -1;
+    }
+    .rw-results-inline-check {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 44px;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: rgba(255,255,255,0.03);
+      color: var(--text);
+      font-size: var(--font-size-sm);
+      font-weight: 600;
+    }
+    .rw-reference-list,
+    .rw-results-toggle-grid,
+    .rw-environment-stage-grid,
+    .rw-environment-stage-meta {
+      display: grid;
+      gap: 12px;
+    }
+    .rw-reference-item,
+    .rw-toggle-card,
+    .rw-environment-stage-card,
+    .rw-environment-stage-summary {
+      display: grid;
+      gap: 8px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: rgba(255,255,255,0.03);
+    }
+    .rw-reference-item-head,
+    .rw-environment-stage-head,
+    .rw-environment-stage-metahead {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .rw-reference-item-actions,
+    .rw-toggle-chip-row,
+    .rw-environment-status-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .rw-reference-item strong,
+    .rw-environment-stage-card strong,
+    .rw-environment-stage-summary strong {
+      font-size: var(--font-size-sm);
+      font-weight: 700;
+      color: var(--text);
+    }
+    .rw-reference-meta,
+    .rw-environment-stage-copy,
+    .rw-environment-stage-empty {
+      margin: 0;
+      color: var(--muted);
+      font-size: var(--font-size-sm);
+      line-height: 1.45;
+    }
+    .rw-results-toggle-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .rw-toggle-card label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 28px;
+      color: var(--text);
+      font-size: var(--font-size-sm);
+    }
+    .rw-stage-pill {
+      display: inline-flex;
+      align-items: center;
+      min-height: 28px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.03);
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .rw-stage-pill--good {
+      border-color: rgba(74,222,128,0.28);
+      background: rgba(74,222,128,0.12);
+      color: var(--good);
+    }
+    .rw-stage-pill--warning {
+      border-color: rgba(210,153,34,0.28);
+      background: rgba(210,153,34,0.16);
+      color: var(--warning);
+    }
+    .rw-stage-pill--error {
+      border-color: rgba(248,81,73,0.28);
+      background: rgba(248,81,73,0.16);
+      color: var(--error);
+    }
+    .rw-stage-pill--accent {
+      border-color: rgba(0,232,200,0.24);
+      background: rgba(0,232,200,0.1);
+      color: var(--accent);
+    }
+    .rw-environment-stage-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .rw-environment-stage-card--wide,
+    .rw-environment-stage-summary {
+      grid-column: 1 / -1;
+    }
+    .rw-environment-stage-summary {
+      background: rgba(255,255,255,0.02);
+    }
+    .rw-environment-stage-list {
+      display: grid;
+      gap: 8px;
+      margin: 0;
+      padding-left: 16px;
+      color: var(--muted);
+      font-size: var(--font-size-sm);
+    }
+    .rw-environment-overlay-card {
+      display: grid;
+      gap: 12px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: rgba(255,255,255,0.03);
+    }
+    .rw-environment-overlay-shell {
+      position: relative;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)),
+        rgba(4, 6, 10, 0.92);
+      min-height: 240px;
+    }
+    .rw-environment-overlay-shell svg {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+    .rw-environment-overlay-empty {
+      display: grid;
+      place-items: center;
+      min-height: 240px;
+      padding: 16px;
+      color: var(--muted);
+      font-size: var(--font-size-sm);
+      text-align: center;
+    }
+    .rw-environment-overlay-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .rw-environment-overlay-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 28px;
+      padding: 4px 10px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(255,255,255,0.03);
+      color: var(--text);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .rw-environment-overlay-pill::before {
+      content: "";
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      background: currentColor;
+      box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35);
+    }
+    .rw-environment-overlay-pill--room { color: #9dddf2; }
+    .rw-environment-overlay-pill--structural { color: #f5d074; }
+    .rw-environment-overlay-pill--background { color: #6ab7ff; }
+    .rw-environment-overlay-pill--decor { color: #c084fc; }
+    .rw-environment-overlay-pill--semantics { color: #4ade80; }
+    .rw-environment-overlay-pill--exclusion { color: #fb7185; }
+    .rw-environment-overlay-pill--validation { color: #f97316; }
+    .rw-environment-overlay-pill--unresolved { color: #f87171; }
+    .rw-environment-overlay-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .rw-environment-overlay-meta span {
+      color: var(--muted);
+      font-size: var(--font-size-sm);
+    }
+    .rw-environment-overlay-tools {
+      display: grid;
+      gap: 12px;
+    }
+    @media (max-width: 840px) {
+      .rw-results-authoring-grid,
+      .rw-results-toggle-grid,
+      .rw-environment-stage-grid {
+        grid-template-columns: 1fr;
+      }
     }
     .sidebar-panel {
       display: grid;
@@ -1971,7 +2211,7 @@
                   <span class="phase-header-num">Phase 2 · Environment</span>
                   <h2>Environment</h2>
                   <p class="phase-header-desc">
-                    Describe the room shell by component so Phaser can assemble floors, platforms, walls, doors, and background with more intent.
+                    Describe how this room should look, then generate previews and final assets.
                   </p>
                 </div>
                 <button type="button" class="phase-back-btn" id="roomWizardBackToLayoutFromEnv">← Layout</button>
@@ -1984,81 +2224,83 @@
                 </div>
                 <div class="rw-env-panels">
                   <div id="rwEnvPanelSetup" class="rw-env-panel" role="tabpanel" aria-labelledby="rwEnvTabSetup">
-                    <div class="stage-card" id="roomWizardRoomTemplateCard">
-                      <div class="stage-card-head">
-                        <h4>Room starting template</h4>
-                        <p class="small-note">Start from a room archetype, then adapt it to the locked project direction and this room’s layout.</p>
+                    <div class="rw-env-setup-grid">
+                      <div class="stage-card" id="roomWizardRoomTemplateCard">
+                        <div class="stage-card-head">
+                          <h4>Starting point</h4>
+                          <p class="small-note">Pick a room template, then tune it for this room.</p>
+                        </div>
+                        <div id="roomWizardArchetypeGrid" class="rw-template-grid"></div>
                       </div>
-                      <div id="roomWizardArchetypeGrid" class="rw-template-grid"></div>
-                    </div>
-                    <div class="stage-card" id="roomWizardCopilotCard">
-                      <div class="stage-card-head">
-                        <h4>Environment builder</h4>
-                        <p class="small-note">
-                          Plain-language draft and actions. Use the Components tab for per-shell prompts; Results for previews, assets, and progress.
+                      <div class="stage-card" id="roomWizardCopilotCard">
+                        <div class="stage-card-head">
+                          <h4>Room builder</h4>
+                          <p class="small-note">
+                            Start with one short room idea. Use Room parts for extra detail and Results for previews and builds.
+                          </p>
+                        </div>
+                        <p class="hint" id="roomWizardCopilotServerHint">
+                          Checking local server…
                         </p>
-                      </div>
-                      <p class="hint" id="roomWizardCopilotServerHint">
-                        Checking local server…
-                      </p>
-                      <label>
-                        <span class="field-label">Room environment draft</span>
-                        <textarea
-                          id="roomWizardCopilotPrompt"
-                          rows="3"
-                          placeholder="e.g. flooded crypt, dripping water, faint green glow from below"
-                          spellcheck="true"
-                        ></textarea>
-                      </label>
-                      <label class="rw-inline-check">
-                        <input type="checkbox" id="roomWizardUseV3Pipeline" />
-                        <span>Use v3 environment calibration pipeline (explicit upgrade for planner and review workflow)</span>
-                      </label>
-                      <div class="rw-copilot-actions">
-                        <button type="button" class="btn-secondary" id="roomWizardAdaptTemplate">Rewrite Draft</button>
-                        <button type="button" class="btn-secondary" id="roomWizardGenerateComponentPrompts">Generate Component Prompts</button>
-                        <button type="button" class="btn-secondary" id="roomWizardCopilotGenerate">Build Environment</button>
-                        <span id="roomWizardCopilotStatus" class="small-note" aria-live="polite"></span>
-                      </div>
-                      <section class="rw-biome-visual-card" aria-labelledby="roomWizardBiomeVisualTitle">
-                        <div class="stage-card-head rw-biome-visual-head">
-                          <h5 id="roomWizardBiomeVisualTitle">Biome template kit</h5>
-                          <p class="small-note" id="roomWizardBiomePackSummary">Open a project with locked art direction to generate Gemini biome PNGs (background, midground, floor, platform, door).</p>
-                        </div>
+                        <label>
+                          <span class="field-label">Room idea</span>
+                          <textarea
+                            id="roomWizardCopilotPrompt"
+                            rows="2"
+                            placeholder="e.g. flooded stone hall with damp walls and a faint green glow"
+                            spellcheck="true"
+                          ></textarea>
+                        </label>
+                        <label class="rw-inline-check">
+                          <input type="checkbox" id="roomWizardUseV3Pipeline" />
+                          <span>Use the new planner and review flow.</span>
+                        </label>
                         <div class="rw-copilot-actions">
-                          <button type="button" class="btn-secondary" id="roomWizardBiomeGenerateVisuals">Generate biome visuals (Gemini)</button>
-                          <span id="roomWizardBiomeVisualStatus" class="small-note" aria-live="polite"></span>
+                          <button type="button" class="btn-secondary" id="roomWizardAdaptTemplate">Rewrite idea</button>
+                          <button type="button" class="btn-secondary" id="roomWizardGenerateComponentPrompts">Write room parts</button>
+                          <button type="button" class="btn-secondary" id="roomWizardCopilotGenerate">Build room look</button>
+                          <span id="roomWizardCopilotStatus" class="small-note" aria-live="polite"></span>
                         </div>
-                      </section>
+                        <section class="rw-biome-visual-card" aria-labelledby="roomWizardBiomeVisualTitle">
+                          <div class="stage-card-head rw-biome-visual-head">
+                            <h5 id="roomWizardBiomeVisualTitle">Project look kit</h5>
+                            <p class="small-note" id="roomWizardBiomePackSummary">Use the locked project art direction to generate shared image pieces for rooms.</p>
+                          </div>
+                          <div class="rw-copilot-actions">
+                            <button type="button" class="btn-secondary" id="roomWizardBiomeGenerateVisuals">Build project look images</button>
+                            <span id="roomWizardBiomeVisualStatus" class="small-note" aria-live="polite"></span>
+                          </div>
+                        </section>
+                      </div>
                     </div>
                   </div>
                   <div id="rwEnvPanelComponents" class="rw-env-panel" role="tabpanel" aria-labelledby="rwEnvTabComponents" hidden>
                     <div class="stage-card rw-env-components-stage">
                       <section class="rw-component-card" aria-labelledby="roomWizardComponentPromptsTitle">
                         <div class="stage-card-head">
-                          <h5 id="roomWizardComponentPromptsTitle">Room components</h5>
-                          <p class="small-note">Prompts for floor, platforms, walls, doors, and background — used for schema and production.</p>
+                          <h5 id="roomWizardComponentPromptsTitle">Room parts</h5>
+                          <p class="small-note">Add short notes for the floor, platforms, walls, doors, and background.</p>
                         </div>
                         <div class="rw-component-grid">
                           <label class="rw-component-field">
                             <span class="field-label">Floor</span>
-                            <textarea id="roomWizardComponentFloor" rows="2" placeholder="Describe the floor surface, slabs, cracks, wear, and readability."></textarea>
+                            <textarea id="roomWizardComponentFloor" rows="2" placeholder="Stone slabs, cracked edge, readable top."></textarea>
                           </label>
                           <label class="rw-component-field">
                             <span class="field-label">Platforms</span>
-                            <textarea id="roomWizardComponentPlatforms" rows="2" placeholder="Describe platform tops, faces, supports, and edge damage."></textarea>
+                            <textarea id="roomWizardComponentPlatforms" rows="2" placeholder="Worn tops, chipped faces, simple supports."></textarea>
                           </label>
                           <label class="rw-component-field">
                             <span class="field-label">Walls</span>
-                            <textarea id="roomWizardComponentWalls" rows="2" placeholder="Describe the walls, architecture rhythm, damage, and depth."></textarea>
+                            <textarea id="roomWizardComponentWalls" rows="2" placeholder="Tall stone blocks, damp seams, deep recesses."></textarea>
                           </label>
                           <label class="rw-component-field">
                             <span class="field-label">Doors</span>
-                            <textarea id="roomWizardComponentDoors" rows="2" placeholder="Describe frames, gates, seals, motifs, and thresholds."></textarea>
+                            <textarea id="roomWizardComponentDoors" rows="2" placeholder="Heavy stone frame, rusted gate, clear doorway."></textarea>
                           </label>
                           <label class="rw-component-field rw-component-field--wide">
                             <span class="field-label">Background</span>
-                            <textarea id="roomWizardComponentBackground" rows="2" placeholder="Describe the background, midground silhouettes, landmarks, and atmosphere."></textarea>
+                            <textarea id="roomWizardComponentBackground" rows="2" placeholder="Foggy depth, broken arches, faint green light."></textarea>
                           </label>
                         </div>
                       </section>
@@ -2067,8 +2309,8 @@
                   <div id="rwEnvPanelResults" class="rw-env-panel" role="tabpanel" aria-labelledby="rwEnvTabResults" hidden>
                     <div class="stage-card rw-env-results-stage">
                       <div class="stage-card-head">
-                        <h4>Previews &amp; assets</h4>
-                        <p class="small-note">Progress, preview candidates, revision, and production build run here.</p>
+                        <h4>Previews and builds</h4>
+                        <p class="small-note">Review previews, make a quick change, then build final room assets.</p>
                       </div>
                       <div id="roomWizardCopilotProgress" class="workbench-waitbar rw-waitbar" hidden aria-live="polite" aria-busy="true">
                         <div class="small-note workbench-waitbar-detail rw-waitbar-detail" id="roomWizardCopilotProgressDetail">Working…</div>
@@ -2080,38 +2322,70 @@
                           <span class="small-note">Progress is estimated until the server finishes.</span>
                         </div>
                       </div>
+                      <section class="rw-results-workbench" aria-labelledby="roomWizardResultsWorkbenchTitle">
+                        <div class="stage-card-head">
+                          <h5 id="roomWizardResultsWorkbenchTitle">This room's setup</h5>
+                          <p class="small-note">Keep this room's references, notes, and review options in one place.</p>
+                        </div>
+                        <div class="rw-results-authoring-grid">
+                          <label>
+                            <span class="field-label">Room style name</span>
+                            <input type="text" id="roomWizardThemeName" placeholder="e.g. Ruined Gothic Keep" />
+                          </label>
+                          <label>
+                            <span class="field-label">Seed</span>
+                            <input type="text" id="roomWizardEnvironmentSeed" placeholder="Unset" />
+                          </label>
+                          <label class="rw-results-field--wide">
+                            <span class="field-label">Notes for this room</span>
+                            <textarea id="roomWizardEnvironmentNotes" rows="2" placeholder="Anything this room should keep during review and rebuilds."></textarea>
+                          </label>
+                          <label class="rw-results-field--wide">
+                            <span class="field-label">Reference images</span>
+                            <input type="file" id="roomWizardReferenceUpload" accept="image/png,image/jpeg,image/webp" multiple />
+                          </label>
+                          <label class="rw-results-inline-check rw-results-field--wide">
+                            <input type="checkbox" id="roomWizardLockStylepack" />
+                            <span>Lock these references for this room.</span>
+                          </label>
+                        </div>
+                        <div id="roomWizardReferenceList" class="rw-reference-list"></div>
+                      </section>
+                      <div id="roomWizardResultsEmptyState" class="info-box rw-results-empty-state">
+                        <p><strong>No preview yet.</strong> Build the room look to see previews and final build options here.</p>
+                      </div>
                       <div id="roomWizardCopilotPreview" hidden class="info-box rw-copilot-preview-box">
-                        <p><strong>Environment result</strong> — review the schema summary and generated candidates, approve one, then build production assets for this room.</p>
+                        <p><strong>Preview ready.</strong> Review the options, make a quick change if needed, then build final assets for this room.</p>
                         <div id="roomWizardEnvironmentPreview" class="rw-environment-preview" aria-live="polite"></div>
                         <div id="roomWizardCopilotPreviewVisual" class="rw-environment-preview"></div>
                         <div id="roomWizardEnvironmentOutputSummary" class="rw-environment-output"></div>
                         <div id="roomWizardPreviewGallery" class="rw-preview-gallery"></div>
                         <label>
-                          <span class="field-label">Revision request</span>
+                          <span class="field-label">What should change?</span>
                           <textarea
                             id="roomWizardPreviewRevision"
                             rows="2"
-                            placeholder="e.g. push more wet stone texture, make the central route easier to read, add heavier shrine architecture"
+                            placeholder="e.g. make the main path easier to read or push the room toward wetter stone"
                             spellcheck="true"
                           ></textarea>
                         </label>
                         <label>
-                          <span class="field-label">Helpfulness note</span>
+                          <span class="field-label">Why change it?</span>
                           <select id="roomWizardHelpfulnessReason">
                             <option value="">No note</option>
-                            <option value="style_mismatch">Style mismatch</option>
-                            <option value="confusing_layout">Confusing layout</option>
-                            <option value="difficulty_mismatch">Too hard or too easy</option>
-                            <option value="collision_issue">Collision issue</option>
+                            <option value="style_mismatch">Doesn't match the style</option>
+                            <option value="confusing_layout">Hard to read</option>
+                            <option value="difficulty_mismatch">Too busy or too plain</option>
+                            <option value="collision_issue">Gameplay/collision issue</option>
                             <option value="artifacting">Artifacting</option>
                             <option value="wrong_mood">Wrong mood</option>
                             <option value="other">Other</option>
                           </select>
                         </label>
                         <div class="rw-copilot-actions">
-                          <button type="button" class="btn-secondary" id="roomWizardPreviewRevise">Revise &amp; Generate Again</button>
+                          <button type="button" class="btn-secondary" id="roomWizardPreviewRevise">Update preview</button>
                           <button type="button" class="btn-secondary" id="roomWizardBuildEnvironmentAssets">Build Production Assets</button>
-                          <button type="button" class="btn-secondary" id="roomWizardPreviewOpenGame">Open Game With This Room</button>
+                          <button type="button" class="btn-secondary" id="roomWizardPreviewOpenGame">Open in game</button>
                           <button type="button" class="btn-secondary" id="roomWizardCopilotDiscard">Discard</button>
                         </div>
                       </div>
@@ -2436,7 +2710,7 @@
       <div class="status" id="statusText">Loading layout data…</div>
     </section>
 
-    <section class="panel sidebar-panel">
+    <section class="panel sidebar-panel" id="activeRoomPanel" hidden>
       <div class="sidebar-header">
         <div class="eyebrow">Active Room</div>
         <h2 id="inventoryRoomName">Room Contents</h2>
@@ -3190,7 +3464,16 @@
           approvedPreviewId: null,
           progressTimers: {},
           lastEnvTab: 'setup',
-          aiRequestPending: false
+          aiRequestPending: false,
+          resultsToggles: {
+            structural: true,
+            background: true,
+            decor: true,
+            semantics: false,
+            exclusion: false,
+            unresolved: false,
+            validation: false
+          }
         },
         copilot: {
           serverReachable: false,
@@ -5113,15 +5396,21 @@
         renderInventory(room);
         syncPropertyInputs();
         updateViewControlReadouts();
+        const showRoomCanvas =
+          state.viewMode === 'room' &&
+          !(state.roomWizard.active && state.roomWizard.phase === 'environment');
         ui.toggleSelectedEdge.disabled = !(state.viewMode === 'room' && state.selectionItems.length === 1 && state.selected?.kind === 'room-edge');
-        ui.roomCanvasBox.classList.toggle('hidden', state.viewMode !== 'room');
+        ui.roomCanvasBox.classList.toggle('hidden', !showRoomCanvas);
         ui.globalCanvasBox.classList.toggle('hidden', state.viewMode !== 'global');
         ui.globalLinkPanel.classList.toggle('hidden', state.viewMode !== 'global');
-        document.getElementById('canvasToolButtons').classList.toggle('hidden', state.viewMode !== 'room');
-        if (state.viewMode !== 'room') ui.selectionInspector.classList.add('hidden');
+        document.getElementById('canvasToolButtons').classList.toggle('hidden', !showRoomCanvas);
+        document.getElementById('roomViewControls')?.classList.toggle('hidden', !showRoomCanvas);
+        if (!showRoomCanvas) ui.selectionInspector.classList.add('hidden');
         updateGlobalLinkControls();
-        drawRoomView();
-        renderEmptyRoomHint();
+        if (showRoomCanvas) {
+          drawRoomView();
+          renderEmptyRoomHint();
+        }
         drawGlobalView();
         updateJsonText();
         syncWorkflowRailVisibility();
@@ -6337,6 +6626,198 @@
         });
       }
 
+      function ensureRoomWizardEnvironmentAuthoringFields(envState) {
+        if (!envState || typeof envState !== 'object') return envState;
+        envState.spec = envState.spec && typeof envState.spec === 'object' ? envState.spec : {};
+        if (typeof envState.spec.theme_name !== 'string') envState.spec.theme_name = '';
+        if (typeof envState.spec.notes !== 'string') envState.spec.notes = '';
+        if (typeof envState.spec.seed !== 'string') envState.spec.seed = '';
+        envState.spec.lock_stylepack = !!envState.spec.lock_stylepack;
+        if (!Array.isArray(envState.spec.reference_uploads)) envState.spec.reference_uploads = [];
+        envState.spec.reference_uploads = envState.spec.reference_uploads
+          .filter((item) => item && typeof item === 'object')
+          .map((item, index) => ({
+            id: String(item.id || item.reference_id || `reference-${index + 1}`),
+            label: String(item.label || item.file_name || item.name || `Reference ${index + 1}`),
+            file_name: String(item.file_name || item.name || item.label || `reference-${index + 1}`),
+            file_type: String(item.file_type || item.type || ''),
+            file_size: Number(item.file_size || item.size || 0) || 0,
+            status: String(item.status || 'uploaded'),
+            pinned_to: String(item.pinned_to || ''),
+            source_value: String(item.source_value || item.file_name || item.label || ''),
+            uploaded_at: String(item.uploaded_at || ''),
+          }));
+        return envState;
+      }
+
+      function cloneRoomWizardEnvironmentAuthoringFields(envState) {
+        ensureRoomWizardEnvironmentAuthoringFields(envState);
+        return {
+          theme_name: String(envState?.spec?.theme_name || ''),
+          notes: String(envState?.spec?.notes || ''),
+          seed: String(envState?.spec?.seed || ''),
+          lock_stylepack: !!envState?.spec?.lock_stylepack,
+          reference_uploads: (envState?.spec?.reference_uploads || []).map((item) => ({ ...item })),
+        };
+      }
+
+      function applyRoomWizardEnvironmentAuthoringFields(envState, snapshot) {
+        ensureRoomWizardEnvironmentAuthoringFields(envState);
+        if (!snapshot || typeof snapshot !== 'object') return envState;
+        envState.spec.theme_name = String(snapshot.theme_name || '');
+        envState.spec.notes = String(snapshot.notes || '');
+        envState.spec.seed = String(snapshot.seed || '');
+        envState.spec.lock_stylepack = !!snapshot.lock_stylepack;
+        envState.spec.reference_uploads = Array.isArray(snapshot.reference_uploads)
+          ? snapshot.reference_uploads.map((item) => ({ ...item }))
+          : [];
+        return envState;
+      }
+
+      function formatRoomWizardFileSize(bytes) {
+        const value = Number(bytes || 0);
+        if (!value) return 'metadata only';
+        if (value >= 1024 * 1024) return `${(value / (1024 * 1024)).toFixed(1)} MB`;
+        if (value >= 1024) return `${Math.round(value / 1024)} KB`;
+        return `${value} B`;
+      }
+
+      function roomWizardResultsToggleMap() {
+        return {
+          structural: document.getElementById('roomWizardToggleStructural'),
+          background: document.getElementById('roomWizardToggleBackground'),
+          decor: document.getElementById('roomWizardToggleDecor'),
+          semantics: document.getElementById('roomWizardToggleSemantics'),
+          exclusion: document.getElementById('roomWizardToggleExclusion'),
+          unresolved: document.getElementById('roomWizardToggleUnresolved'),
+          validation: document.getElementById('roomWizardToggleValidation'),
+        };
+      }
+
+      function syncRoomWizardResultsToggles() {
+        const toggles = state.roomWizard.resultsToggles || {};
+        Object.entries(roomWizardResultsToggleMap()).forEach(([key, el]) => {
+          if (!el) return;
+          el.checked = !!toggles[key];
+        });
+      }
+
+      function bindRoomWizardResultsToggleInputs() {
+        Object.entries(roomWizardResultsToggleMap()).forEach(([key, el]) => {
+          if (!el || el.dataset.bound === '1') return;
+          el.dataset.bound = '1';
+          el.addEventListener('change', () => {
+            state.roomWizard.resultsToggles[key] = !!el.checked;
+            const room = getRoomWizardRoom();
+            if (room?.environment) {
+              renderRoomWizardEnvironmentOutputSummary(room.environment);
+            }
+          });
+        });
+      }
+
+      function renderRoomWizardResultsToggleControls(toggleState) {
+        const checked = (key) => toggleState?.[key] ? 'checked' : '';
+        return `
+          <div class="rw-environment-overlay-tools">
+            <div class="rw-results-toggle-grid" id="roomWizardResultsToggleGrid">
+              <div class="rw-toggle-card">
+                <strong>Layers</strong>
+                <label><input type="checkbox" id="roomWizardToggleStructural" ${checked('structural')} /> Structure</label>
+                <label><input type="checkbox" id="roomWizardToggleBackground" ${checked('background')} /> Background</label>
+                <label><input type="checkbox" id="roomWizardToggleDecor" ${checked('decor')} /> Decor</label>
+              </div>
+              <div class="rw-toggle-card">
+                <strong>Debug view</strong>
+                <label><input type="checkbox" id="roomWizardToggleSemantics" ${checked('semantics')} /> Room overlay</label>
+                <label><input type="checkbox" id="roomWizardToggleExclusion" ${checked('exclusion')} /> Blocked zones</label>
+                <label><input type="checkbox" id="roomWizardToggleUnresolved" ${checked('unresolved')} /> Missing surfaces</label>
+                <label><input type="checkbox" id="roomWizardToggleValidation" ${checked('validation')} /> Warnings</label>
+              </div>
+            </div>
+          </div>`;
+      }
+
+      function renderRoomWizardReferenceList(envState) {
+        const target = document.getElementById('roomWizardReferenceList');
+        if (!target) return;
+        ensureRoomWizardEnvironmentAuthoringFields(envState);
+        const refs = envState?.spec?.reference_uploads || [];
+        if (!refs.length) {
+          target.innerHTML = '<div class="rw-reference-item"><p class="rw-environment-stage-empty">No room-level reference pack items yet. Upload images here to keep this room’s stylepack grounded in the workbench.</p></div>';
+          return;
+        }
+        const locked = !!envState?.spec?.lock_stylepack;
+        target.innerHTML = refs.map((item) => {
+          const pinned = String(item.pinned_to || '').trim() === 'stylepack';
+          return `
+            <article class="rw-reference-item">
+              <div class="rw-reference-item-head">
+                <div>
+                  <strong>${escapeHtml(item.label || item.file_name || 'Reference')}</strong>
+                  <p class="rw-reference-meta">${escapeHtml([item.file_name, item.file_type, formatRoomWizardFileSize(item.file_size)].filter(Boolean).join(' · '))}</p>
+                </div>
+                <div class="rw-reference-item-actions">
+                  <span class="rw-stage-pill ${pinned ? 'rw-stage-pill--accent' : ''}">${escapeHtml(pinned ? 'Pinned to Stylepack' : (item.status || 'uploaded'))}</span>
+                  <button type="button" class="btn-secondary btn-sm rw-reference-pin" data-reference-id="${escapeHtml(item.id)}" ${locked ? 'disabled' : ''}>${pinned ? 'Pinned' : 'Pin'}</button>
+                  <button type="button" class="btn-secondary btn-sm rw-reference-remove" data-reference-id="${escapeHtml(item.id)}" ${locked ? 'disabled' : ''}>Remove</button>
+                </div>
+              </div>
+            </article>`;
+        }).join('');
+        target.querySelectorAll('.rw-reference-pin').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            const room = getRoomWizardRoom();
+            if (!room?.environment) return;
+            ensureRoomWizardEnvironmentAuthoringFields(room.environment);
+            room.environment.spec.reference_uploads = room.environment.spec.reference_uploads.map((item) => ({
+              ...item,
+              pinned_to: item.id === btn.dataset.referenceId ? 'stylepack' : '',
+            }));
+            setDirty(true);
+            renderRoomWizardReferenceList(room.environment);
+            renderRoomWizardEnvironmentOutputSummary(room.environment);
+          });
+        });
+        target.querySelectorAll('.rw-reference-remove').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            const room = getRoomWizardRoom();
+            if (!room?.environment) return;
+            ensureRoomWizardEnvironmentAuthoringFields(room.environment);
+            room.environment.spec.reference_uploads = room.environment.spec.reference_uploads.filter((item) => item.id !== btn.dataset.referenceId);
+            setDirty(true);
+            renderRoomWizardReferenceList(room.environment);
+            renderRoomWizardEnvironmentOutputSummary(room.environment);
+          });
+        });
+      }
+
+      function updateRoomWizardResultsEmptyState(hasResult) {
+        const empty = document.getElementById('roomWizardResultsEmptyState');
+        if (!empty) return;
+        empty.hidden = !!hasResult;
+      }
+
+      function syncRoomWizardEnvironmentAuthoringFromInputs() {
+        const room = getRoomWizardRoom();
+        const envMod = globalThis.RoomWizardEnvironment;
+        if (!room || !envMod) return;
+        envMod.ensureRoomEnvironment(room);
+        ensureRoomWizardEnvironmentAuthoringFields(room.environment);
+        const themeNameEl = document.getElementById('roomWizardThemeName');
+        const notesEl = document.getElementById('roomWizardEnvironmentNotes');
+        const seedEl = document.getElementById('roomWizardEnvironmentSeed');
+        const lockEl = document.getElementById('roomWizardLockStylepack');
+        room.environment.spec.theme_name = String(themeNameEl?.value || '').trim();
+        room.environment.spec.notes = String(notesEl?.value || '').trim();
+        room.environment.spec.seed = String(seedEl?.value || '').trim();
+        room.environment.spec.lock_stylepack = !!lockEl?.checked;
+        setDirty(true);
+        renderRoomWizardReferenceList(room.environment);
+        renderRoomWizardEnvironmentOutputSummary(room.environment);
+        updateJsonText();
+      }
+
       function syncRoomWizardEnvironmentFromRoom() {
         const room = getRoomWizardRoom();
         const envMod = globalThis.RoomWizardEnvironment;
@@ -6344,27 +6825,50 @@
         populateRoomWizardThemeSelect();
         envMod.ensureRoomEnvironment(room);
         const e = room.environment;
+        ensureRoomWizardEnvironmentAuthoringFields(e);
         const sel = document.getElementById('roomWizardThemeSelect');
         const tagsEl = document.getElementById('roomWizardTagsInput');
         const v3Toggle = document.getElementById('roomWizardUseV3Pipeline');
+        const themeNameEl = document.getElementById('roomWizardThemeName');
+        const notesEl = document.getElementById('roomWizardEnvironmentNotes');
+        const seedEl = document.getElementById('roomWizardEnvironmentSeed');
+        const lockEl = document.getElementById('roomWizardLockStylepack');
         if (sel) {
           const ids = envMod.THEME_PRESETS.map((p) => p.id);
           sel.value = ids.includes(e.themeId) ? e.themeId : 'custom';
         }
         if (tagsEl) tagsEl.value = envMod.tagsToInputString(e.tags);
         if (v3Toggle) v3Toggle.checked = String(e.environment_pipeline_version || '').trim().toLowerCase() === 'v3';
+        if (themeNameEl) themeNameEl.value = String(e.spec?.theme_name || '');
+        if (notesEl) notesEl.value = String(e.spec?.notes || '');
+        if (seedEl) seedEl.value = String(e.spec?.seed || '');
+        if (lockEl) lockEl.checked = !!e.spec?.lock_stylepack;
         const promptEl = document.getElementById('roomWizardCopilotPrompt');
         const previewBox = document.getElementById('roomWizardCopilotPreview');
         if (promptEl && !String(promptEl.value || '').trim()) {
           promptEl.value = e.spec?.description || '';
         }
         syncRoomWizardComponentFields(e);
+        syncRoomWizardResultsToggles();
+        renderRoomWizardReferenceList(e);
         renderRoomWizardEnvironmentPreview(e);
         renderRoomWizardPreviewGallery(e.preview || {});
         renderRoomWizardEnvironmentOutputSummary(e);
-        if (previewBox) previewBox.hidden = !(Array.isArray(e.preview?.images) && e.preview.images.length);
+        const hasPreviewImages = !!(Array.isArray(e.preview?.images) && e.preview.images.length);
+        if (previewBox) previewBox.hidden = !hasPreviewImages;
+        updateRoomWizardResultsEmptyState(hasPreviewImages);
         const applyBtn = document.getElementById('roomWizardCopilotApply');
         if (applyBtn) applyBtn.hidden = !!PROJECT_ID;
+      }
+
+      function replaceRoomWizardEnvironmentPreservingAuthoring(room, nextEnvironment) {
+        const envMod = globalThis.RoomWizardEnvironment;
+        if (!room || !envMod) return;
+        envMod.ensureRoomEnvironment(room);
+        const authoring = cloneRoomWizardEnvironmentAuthoringFields(room.environment);
+        room.environment = nextEnvironment || room.environment;
+        envMod.ensureRoomEnvironment(room);
+        applyRoomWizardEnvironmentAuthoringFields(room.environment, authoring);
       }
 
       function roomWizardComponentFieldMap() {
@@ -6423,6 +6927,7 @@
         if (output) output.innerHTML = '';
         if (revision) revision.value = '';
         if (st) st.textContent = '';
+        updateRoomWizardResultsEmptyState(false);
       }
 
       function buildRoomWizardEnvironmentPreviewModel(themeId, tags, rationale) {
@@ -6455,6 +6960,242 @@
         const stamp = String(version || '').trim();
         if (!stamp) return raw;
         return `${raw}${raw.includes('?') ? '&' : '?'}v=${encodeURIComponent(stamp)}`;
+      }
+
+      function humanizeRoomWizardLabel(value) {
+        return String(value || '').replace(/_/g, ' ').trim();
+      }
+
+      function describeRoomWizardApprovalStatus(value) {
+        const normalized = String(value || '').trim().toLowerCase();
+        if (normalized === 'runtime_review_pending') return 'Runtime review pending';
+        if (normalized === 'generating') return 'Generating';
+        if (normalized === 'partial') return 'Partial';
+        if (normalized === 'locked') return 'Locked';
+        if (normalized === 'ready') return 'Ready';
+        if (normalized === 'empty') return 'Empty';
+        if (normalized === 'approved') return 'Approved';
+        if (normalized === 'blocked') return 'Blocked';
+        if (normalized === 'draft') return 'Draft';
+        return humanizeRoomWizardLabel(value || 'draft');
+      }
+
+      function describeRoomWizardValidationStatus(value) {
+        const normalized = String(value || '').trim().toLowerCase();
+        if (normalized === 'complete') return 'Ready';
+        if (normalized === 'ready') return 'Ready';
+        if (normalized === 'generating' || normalized === 'running') return 'Generating';
+        if (normalized === 'partial') return 'Partial';
+        if (normalized === 'locked') return 'Locked';
+        if (normalized === 'empty') return 'Empty';
+        if (normalized === 'blocked') return 'Blocked';
+        if (normalized === 'warning') return 'Warning';
+        if (normalized === 'pass') return 'Pass';
+        if (normalized === 'idle' || normalized === 'pending') return 'Pending';
+        return humanizeRoomWizardLabel(value || 'pending');
+      }
+
+      function describeRoomWizardRuntimeReviewStatus(value) {
+        const normalized = String(value || '').trim().toLowerCase();
+        if (normalized === 'pass') return 'Reviewed';
+        if (normalized === 'fail') return 'Review failed';
+        if (normalized === 'idle' || normalized === 'running') return 'Review pending';
+        return humanizeRoomWizardLabel(value || 'pending');
+      }
+
+      function roomWizardOverlayBounds(envState) {
+        const assemblyOverlay = envState?.assembly_plan?.overlay_geometry || {};
+        const semanticsOverlay = envState?.room_semantics?.overlay_geometry || {};
+        const size = assemblyOverlay.size || {};
+        const polygon = Array.isArray(semanticsOverlay.room_polygon) && semanticsOverlay.room_polygon.length
+          ? semanticsOverlay.room_polygon
+          : Array.isArray(assemblyOverlay.room_polygon) ? assemblyOverlay.room_polygon : [];
+        const xs = polygon.map((point) => Number(Array.isArray(point) ? point[0] : point?.x || 0)).filter(Number.isFinite);
+        const ys = polygon.map((point) => Number(Array.isArray(point) ? point[1] : point?.y || 0)).filter(Number.isFinite);
+        const width = Math.max(1, Number(size.width || (xs.length ? Math.max(...xs) : 1600)) || 1600);
+        const height = Math.max(1, Number(size.height || (ys.length ? Math.max(...ys) : 1200)) || 1200);
+        return { width, height, polygon };
+      }
+
+      function roomWizardRectFromPlacement(placement = {}, targetDimensions = {}) {
+        const width = Number(placement.display_width || placement.width || targetDimensions.width || 0);
+        const height = Number(placement.display_height || placement.height || targetDimensions.height || 0);
+        const originX = Number(placement.origin_x ?? 0);
+        const originY = Number(placement.origin_y ?? 0);
+        const x = Number(placement.x || 0) - (width * originX);
+        const y = Number(placement.y || 0) - (height * originY);
+        return {
+          x,
+          y,
+          width,
+          height,
+        };
+      }
+
+      function roomWizardRectSvg(rect, stroke, fill, label, extraClass = '') {
+        if (!rect || !Number.isFinite(rect.width) || !Number.isFinite(rect.height) || rect.width <= 0 || rect.height <= 0) return '';
+        const title = label ? `<title>${escapeHtml(label)}</title>` : '';
+        return `<rect class="${escapeHtml(extraClass)}" x="${rect.x}" y="${rect.y}" width="${rect.width}" height="${rect.height}" rx="12" ry="12" fill="${fill}" stroke="${stroke}" stroke-width="8">${title}</rect>`;
+      }
+
+      function roomWizardLineSvg(line, stroke, label) {
+        if (!line || !line.start || !line.end) return '';
+        const title = label ? `<title>${escapeHtml(label)}</title>` : '';
+        return `<line x1="${Number(line.start.x || 0)}" y1="${Number(line.start.y || 0)}" x2="${Number(line.end.x || 0)}" y2="${Number(line.end.y || 0)}" stroke="${stroke}" stroke-width="10" stroke-linecap="round">${title}</line>`;
+      }
+
+      function roomWizardPointSvg(point, fill, radius, label) {
+        if (!point) return '';
+        const title = label ? `<title>${escapeHtml(label)}</title>` : '';
+        return `<circle cx="${Number(point.x || 0)}" cy="${Number(point.y || 0)}" r="${radius}" fill="${fill}">${title}</circle>`;
+      }
+
+      function roomWizardDecorMarkerRect(item, index, bounds) {
+        const width = Math.max(64, Math.round(bounds.width * 0.05));
+        const height = Math.max(64, Math.round(bounds.height * 0.08));
+        const zoneMap = {
+          left: 0.22,
+          center: 0.5,
+          right: 0.78,
+          focal: 0.5,
+          side: index % 2 === 0 ? 0.22 : 0.78,
+        };
+        const anchorMap = {
+          ceiling: 0.16,
+          wall: 0.38,
+          platform: 0.56,
+          floor: 0.8,
+        };
+        const zone = String(item?.zone || '').trim().toLowerCase();
+        const anchor = String(item?.anchor || '').trim().toLowerCase();
+        const count = Math.max(1, Number(item?.count || 1));
+        const spreadIndex = count > 1 ? (index % count) - ((count - 1) / 2) : 0;
+        const xCenter = Math.round(bounds.width * (zoneMap[zone] || 0.5) + (spreadIndex * (width + 24)));
+        const yCenter = Math.round(bounds.height * (anchorMap[anchor] || 0.5));
+        return {
+          x: Math.max(12, Math.min(bounds.width - width - 12, xCenter - (width / 2))),
+          y: Math.max(12, Math.min(bounds.height - height - 12, yCenter - (height / 2))),
+          width,
+          height,
+        };
+      }
+
+      function renderRoomWizardResultsOverlay(envState, toggleState) {
+        const semanticsOverlay = envState?.room_semantics?.overlay_geometry || {};
+        const manifestLayers = envState?.environment_manifest?.layers || {};
+        const validationHighlights = envState?.validation_report?.validation_highlights || {};
+        const sceneSchema = envState?.spec?.scene_schema || {};
+        const plannedDecor = Array.isArray(sceneSchema?.set_dressing)
+          ? sceneSchema.set_dressing
+          : Array.isArray(sceneSchema?.setDressing)
+            ? sceneSchema.setDressing
+            : [];
+        const bounds = roomWizardOverlayBounds(envState);
+        const polygon = bounds.polygon || [];
+        const hasRoomShape = polygon.length >= 3;
+        const controlsMarkup = renderRoomWizardResultsToggleControls(toggleState);
+        if (!hasRoomShape) {
+          return `<section class="rw-environment-overlay-card"><div class="rw-environment-stage-head"><div><p class="rw-environment-preview-label">6. Overlay view</p><strong>Room overlay</strong></div></div><p class="rw-environment-stage-copy">Use these controls to inspect placements and debug geometry once the room footprint is available.</p>${controlsMarkup}<div class="rw-environment-overlay-empty">Overlay geometry will appear here once semantics and placements are available.</div></section>`;
+        }
+
+        const polygonPoints = polygon.map((point) => `${Number(point[0] || 0)},${Number(point[1] || 0)}`).join(' ');
+        const svgParts = [
+          `<polygon points="${polygonPoints}" fill="rgba(157,221,242,0.06)" stroke="#9dddf2" stroke-width="10"></polygon>`
+        ];
+        const legend = ['<span class="rw-environment-overlay-pill rw-environment-overlay-pill--room">Room shell</span>'];
+        const meta = [];
+
+        const addLayerRects = (enabled, layerName, stroke, fill, legendClass) => {
+          if (!enabled) return;
+          const items = Array.isArray(manifestLayers[layerName]) ? manifestLayers[layerName] : [];
+          items.forEach((item) => {
+            const rect = roomWizardRectFromPlacement(item?.placement || {}, item?.target_dimensions || {});
+            svgParts.push(roomWizardRectSvg(rect, stroke, fill, `${humanizeRoomWizardLabel(layerName)} · ${humanizeRoomWizardLabel(item?.component_type || item?.slot_id || 'placement')}`));
+          });
+          if (items.length) {
+            legend.push(`<span class="rw-environment-overlay-pill ${legendClass}">${escapeHtml(`${layerName} ${items.length}`)}</span>`);
+            meta.push(`<span>${escapeHtml(`${humanizeRoomWizardLabel(layerName)} placements: ${items.length}`)}</span>`);
+          }
+        };
+
+        addLayerRects(toggleState.structural, 'structural', '#f5d074', 'rgba(245,208,116,0.18)', 'rw-environment-overlay-pill--structural');
+        addLayerRects(toggleState.background, 'background', '#6ab7ff', 'rgba(106,183,255,0.16)', 'rw-environment-overlay-pill--background');
+        addLayerRects(toggleState.decor, 'decor', '#c084fc', 'rgba(192,132,252,0.18)', 'rw-environment-overlay-pill--decor');
+        if (toggleState.decor && !(Array.isArray(manifestLayers.decor) && manifestLayers.decor.length) && plannedDecor.length) {
+          plannedDecor.forEach((item, index) => {
+            const rect = roomWizardDecorMarkerRect(item, index, bounds);
+            const label = `${humanizeRoomWizardLabel(item?.type || 'decor')} · ${humanizeRoomWizardLabel(item?.anchor || 'anchor')} · ${humanizeRoomWizardLabel(item?.zone || 'zone')}`;
+            svgParts.push(`<rect x="${rect.x}" y="${rect.y}" width="${rect.width}" height="${rect.height}" rx="12" ry="12" fill="rgba(192,132,252,0.08)" stroke="#c084fc" stroke-width="8" stroke-dasharray="18 12"><title>${escapeHtml(label)}</title></rect>`);
+          });
+          legend.push('<span class="rw-environment-overlay-pill rw-environment-overlay-pill--decor">Decor plan</span>');
+          meta.push(`<span>${escapeHtml(`Planned decor markers: ${plannedDecor.length}`)}</span>`);
+        }
+
+        if (toggleState.semantics) {
+          (semanticsOverlay.platform_tops || []).forEach((rect) => {
+            svgParts.push(roomWizardRectSvg(rect, '#4ade80', 'rgba(74,222,128,0.2)', 'Traversal top'));
+          });
+          (semanticsOverlay.vertical_faces || []).forEach((rect) => {
+            svgParts.push(roomWizardRectSvg(rect, '#34d399', 'rgba(52,211,153,0.16)', 'Vertical face'));
+          });
+          (semanticsOverlay.shell_surfaces || []).forEach((line) => {
+            svgParts.push(roomWizardLineSvg(line, '#22c55e', humanizeRoomWizardLabel(line.surface_type || 'shell surface')));
+          });
+          (semanticsOverlay.anchors || []).forEach((point) => {
+            svgParts.push(roomWizardPointSvg(point, '#4ade80', 14, humanizeRoomWizardLabel(point.anchor_type || 'anchor')));
+          });
+          legend.push('<span class="rw-environment-overlay-pill rw-environment-overlay-pill--semantics">Semantics</span>');
+          meta.push(`<span>${escapeHtml(`Anchors: ${(semanticsOverlay.anchors || []).length} · tops: ${(semanticsOverlay.platform_tops || []).length}`)}</span>`);
+        }
+
+        if (toggleState.exclusion) {
+          (semanticsOverlay.decor_safe_zones || []).forEach((rect) => {
+            svgParts.push(roomWizardRectSvg(rect, '#f472b6', 'rgba(244,114,182,0.12)', humanizeRoomWizardLabel(rect.zone_id || 'decor safe zone')));
+          });
+          (semanticsOverlay.gameplay_exclusion_zones || []).forEach((rect) => {
+            svgParts.push(roomWizardRectSvg(rect, '#fb7185', 'rgba(251,113,133,0.18)', humanizeRoomWizardLabel(rect.zone_id || 'gameplay exclusion zone')));
+          });
+          legend.push('<span class="rw-environment-overlay-pill rw-environment-overlay-pill--exclusion">Safe and blocked zones</span>');
+          meta.push(`<span>${escapeHtml(`Safe zones: ${(semanticsOverlay.decor_safe_zones || []).length} · blocked zones: ${(semanticsOverlay.gameplay_exclusion_zones || []).length}`)}</span>`);
+        }
+
+        if (toggleState.validation) {
+          Object.values(validationHighlights).forEach((items) => {
+            (Array.isArray(items) ? items : []).forEach((item) => {
+              svgParts.push(roomWizardRectSvg(item, '#f97316', 'rgba(249,115,22,0.14)', 'Validation highlight', 'rw-environment-overlay-highlight'));
+            });
+          });
+          legend.push('<span class="rw-environment-overlay-pill rw-environment-overlay-pill--validation">Validation highlights</span>');
+          meta.push(`<span>${escapeHtml(`Validation highlights: ${Object.values(validationHighlights).reduce((count, items) => count + (Array.isArray(items) ? items.length : 0), 0)}`)}</span>`);
+        }
+
+        if (toggleState.unresolved) {
+          (validationHighlights.unresolved_surfaces || []).forEach((item) => {
+            svgParts.push(roomWizardRectSvg(item, '#f87171', 'rgba(248,113,113,0.12)', 'Unresolved surface'));
+          });
+          legend.push('<span class="rw-environment-overlay-pill rw-environment-overlay-pill--unresolved">Unresolved surfaces</span>');
+          meta.push(`<span>${escapeHtml(`Unresolved surfaces: ${(validationHighlights.unresolved_surfaces || []).length}`)}</span>`);
+        }
+
+        return `
+          <section class="rw-environment-overlay-card">
+            <div class="rw-environment-stage-head">
+              <div>
+                <p class="rw-environment-preview-label">6. Overlay view</p>
+                <strong>Results geometry</strong>
+              </div>
+              <span class="rw-stage-pill">${escapeHtml(`${bounds.width} × ${bounds.height}`)}</span>
+            </div>
+            <p class="rw-environment-stage-copy">Use these controls to compare placements, semantics, safe zones, and validation highlights against the authored room footprint.</p>
+            ${controlsMarkup}
+            <div class="rw-environment-overlay-shell">
+              <svg viewBox="0 0 ${bounds.width} ${bounds.height}" role="img" aria-label="Room environment overlay view">
+                ${svgParts.join('')}
+              </svg>
+            </div>
+            <div class="rw-environment-overlay-legend">${legend.join('')}</div>
+            ${meta.length ? `<div class="rw-environment-overlay-meta">${meta.join('')}</div>` : ''}
+          </section>`;
       }
 
       function renderEnvironmentPreviewMarkup(preview, heading) {
@@ -6539,6 +7280,7 @@
       function renderRoomWizardEnvironmentOutputSummary(envState) {
         const target = document.getElementById('roomWizardEnvironmentOutputSummary');
         if (!target) return;
+        ensureRoomWizardEnvironmentAuthoringFields(envState);
         const preview = envState?.preview || {};
         const runtime = envState?.runtime || {};
         const assetPack = runtime?.asset_pack || {};
@@ -6559,13 +7301,12 @@
         const componentSchemas = spec?.component_schemas || {};
         const schemaValidation = bespokeManifest.schema_validation || {};
         const schemaStatuses = schemaValidation.component_statuses || {};
-        const slotGroups = bespokeManifest.slot_groups || {};
+        const slotGroupMap = bespokeManifest.slot_groups || {};
         const runtimeReview = bespokeManifest.runtime_review || bespokeManifest.review || {};
         const pipelineVersion = String(envState?.environment_pipeline_version || 'v2').trim().toLowerCase() === 'v3' ? 'v3' : 'v2';
         const assemblyPlan = envState?.assembly_plan || {};
         const reviewState = envState?.review_state || {};
         const reviewValidation = reviewState?.validation_status || {};
-        const validationPlan = reviewState?.validation_plan || {};
         const plannerCoverage = assemblyPlan?.planner_coverage_summary || {};
         const overlayGeometry = assemblyPlan?.overlay_geometry || {};
         const assemblySlots = Array.isArray(assemblyPlan?.slots) ? assemblyPlan.slots : [];
@@ -6574,6 +7315,18 @@
         const approved = Array.isArray(preview.images)
           ? preview.images.find((item) => item.preview_id === preview.approved_image_id)
           : null;
+        const editorPayload = envState?.editor_results_payload || {};
+        const stylepackSummary = editorPayload.stylepack || {};
+        const semanticsSummary = editorPayload.semantics || {};
+        const kitSummary = editorPayload.kit || {};
+        const manifestSummary = editorPayload.manifest || {};
+        const validationSummary = editorPayload.validation || {};
+        const manifestDoc = envState?.environment_manifest || {};
+        const validationDoc = envState?.validation_report || {};
+        const refUploads = Array.isArray(spec.reference_uploads) ? spec.reference_uploads : [];
+        const pinnedRefs = refUploads.filter((item) => String(item.pinned_to || '') === 'stylepack');
+        const toggleState = state.roomWizard.resultsToggles || {};
+
         const bits = [];
         bits.push(`Theme: ${envState?.themeId || 'custom'}`);
         bits.push(`Pipeline: ${pipelineVersion.toUpperCase()}`);
@@ -6589,19 +7342,14 @@
         }
         if (bespokeManifest.status === 'ready') {
           const warningReasons = Array.isArray(runtimeReview.warning_reasons) ? runtimeReview.warning_reasons : [];
-          bits.push(`Bespoke biome assets complete: ${builtAssetCount}/${requiredAssetCount || builtAssetCount} required slots built and runtime review passed${warningReasons.length ? ` with warnings: ${warningReasons.join(', ')}` : ''}. Open Game now uses the bespoke structural and scenic room pieces for this room.`);
+          bits.push(`Bespoke biome assets complete: ${builtAssetCount}/${requiredAssetCount || builtAssetCount} required slots built and runtime review passed${warningReasons.length ? ` with warnings: ${warningReasons.join(', ')}` : ''}.`);
         } else if (bespokeManifest.status === 'failed') {
-          bits.push(`Bespoke asset generation incomplete: ${builtAssetCount}/${requiredAssetCount || builtAssetCount} slots built. Failed slots: ${((bespokeManifest.failed_assets || []).join(', ') || 'unknown').replace(/_/g, ' ')}.`);
-          if (validationErrs.length) {
-            bits.push(`Slot errors: ${validationErrs.slice(0, 8).join(' · ')}${validationErrs.length > 8 ? ' · …' : ''}`);
-          }
-          bits.push('Runtime screenshot QA is skipped until every required slot builds. Fix or retry the failed slot (API key, template image, or validation — e.g. midground center clutter).');
+          bits.push(`Bespoke asset generation incomplete: ${builtAssetCount}/${requiredAssetCount || builtAssetCount} slots built.`);
         } else if (preview.approved_image_id) {
           bits.push('Build the bespoke biome asset set for this room to generate structural room slots, then run runtime screenshot QA.');
         }
-        if (staleComponents.length) {
-          bits.push(`Impacted by the latest room changes: ${staleComponents.join(', ').replace(/_/g, ' ')}.`);
-        }
+        if (staleComponents.length) bits.push(`Impacted by the latest room changes: ${staleComponents.join(', ').replace(/_/g, ' ')}.`);
+
         const materialText = Array.isArray(spec.materials) && spec.materials.length
           ? spec.materials.slice(0, 4).join(', ')
           : 'No materials planned yet';
@@ -6624,9 +7372,9 @@
           const intent = String((item || {}).design_intent || '').slice(0, 48);
           return `<span class="rw-environment-chip">${escapeHtml(`${label}${intent ? ` · ${intent}` : ''}`)}</span>`;
         }).join('');
-        const slotGroupChips = Object.entries(slotGroups).map(([key, group]) => {
-          return `<span class="rw-environment-chip">${escapeHtml(`${key}: ${group.built || 0}/${group.required || 0}`)}</span>`;
-        }).join('');
+        const slotGroupChips = Object.entries(slotGroupMap).map(([key, group]) => (
+          `<span class="rw-environment-chip">${escapeHtml(`${key}: ${group.built || 0}/${group.required || 0}`)}</span>`
+        )).join('');
         const staleChips = staleComponents.map((item) => (
           `<span class="rw-environment-chip">${escapeHtml(`Needs refresh: ${String(item).replace(/_/g, ' ')}`)}</span>`
         )).join('');
@@ -6634,7 +7382,7 @@
           ? `Assembly plan: ${assemblySlots.length} slot${assemblySlots.length === 1 ? '' : 's'} · Coverage ${plannerCoverage.status || 'idle'} · Doors ${(plannerCoverage.major_structures || {}).planned_door_slots || 0}/${(plannerCoverage.major_structures || {}).door_count || 0} · Traversal ${(plannerCoverage.major_structures || {}).planned_platform_slots || 0}/${(plannerCoverage.major_structures || {}).platform_count || 0}`
           : '';
         const reviewStateText = pipelineVersion === 'v3'
-          ? `Validation: ${reviewValidation.status || 'pending'} · Approval: ${reviewState.approval_status || 'draft'}`
+          ? `Validation: ${describeRoomWizardValidationStatus(reviewValidation.status || 'pending')} · Approval: ${describeRoomWizardApprovalStatus(reviewState.approval_status || 'draft')}`
           : '';
         const assemblyPlanChips = pipelineVersion === 'v3'
           ? assemblySlots.slice(0, 14).map((item) => {
@@ -6664,7 +7412,7 @@
           : '';
         const reviewBlockedSlots = Array.isArray(runtimeReview?.fail_reasons) && runtimeReview.fail_reasons.includes('slot_generation_failed');
         const reviewText = runtimeReview?.status
-          ? `Runtime review: ${runtimeReview.status}${Array.isArray(runtimeReview.fail_reasons) && runtimeReview.fail_reasons.length ? ` · ${runtimeReview.fail_reasons.join(', ')}` : ''}${reviewBlockedSlots && validationErrs.length ? ` · ${validationErrs.slice(0, 5).join('; ')}` : ''}`
+          ? `Runtime review: ${describeRoomWizardRuntimeReviewStatus(runtimeReview.status || 'pending')}${Array.isArray(runtimeReview.fail_reasons) && runtimeReview.fail_reasons.length ? ` · ${runtimeReview.fail_reasons.map((item) => humanizeRoomWizardLabel(item)).join(', ')}` : ''}${reviewBlockedSlots && validationErrs.length ? ` · ${validationErrs.slice(0, 5).map((item) => humanizeRoomWizardLabel(item)).join('; ')}` : ''}`
           : 'Runtime review: not run yet';
         const assetThumbs = ['ready', 'failed'].includes(bespokeManifest.status)
           ? Object.values(bespokeManifest.assets || {}).map((item) => {
@@ -6675,56 +7423,188 @@
                 ? String(item.generation_source || 'ok')
                 : [String(item.generation_source || 'failed'), failHint].filter(Boolean).join(' · ');
               return `
-              <div class="rw-environment-asset-thumb">
-                ${item.url
-                  ? `<img src="${escapeHtml(assetUrlWithVersion(item.url || '', bespokeManifest.generated_at || ''))}" alt="${escapeHtml(item.component_type || 'asset')}" />`
-                  : `<div class="rw-environment-asset-thumb-empty">${escapeHtml(String(item.generation_source || 'missing'))}</div>`}
-                <span>${escapeHtml(item.slot_id || item.component_type || 'asset')}</span>
-                <small>${escapeHtml(sub.slice(0, 120))}</small>
-              </div>
-            `;
+                <div class="rw-environment-asset-thumb">
+                  ${item.url
+                    ? `<img src="${escapeHtml(assetUrlWithVersion(item.url || '', bespokeManifest.generated_at || ''))}" alt="${escapeHtml(item.component_type || 'asset')}" />`
+                    : `<div class="rw-environment-asset-thumb-empty">${escapeHtml(String(item.generation_source || 'missing'))}</div>`}
+                  <span>${escapeHtml(item.slot_id || item.component_type || 'asset')}</span>
+                  <small>${escapeHtml(sub.slice(0, 120))}</small>
+                </div>`;
             }).join('')
           : '';
+
+        const stagePillClass = (statusText) => {
+          const value = String(statusText || '').toLowerCase();
+          if (['locked', 'ready', 'complete', 'approved', 'pass'].includes(value)) return 'rw-stage-pill rw-stage-pill--good';
+          if (['blocked', 'failed', 'fail', 'error'].includes(value)) return 'rw-stage-pill rw-stage-pill--error';
+          if (['warning', 'partial', 'pending', 'proposal', 'draft', 'running', 'generating', 'idle', 'empty'].includes(value)) return 'rw-stage-pill rw-stage-pill--warning';
+          return 'rw-stage-pill';
+        };
+        const humanizeStageText = (value) => humanizeRoomWizardLabel(value);
+        const compactRefDetail = (ref) => {
+          if (!ref || typeof ref !== 'object') return '';
+          if (ref.layer) return `Layer: ${humanizeStageText(ref.layer)}`;
+          if (ref.zone_type) return `Zone: ${humanizeStageText(ref.zone_type)}`;
+          if (ref.code) return `Area: ${humanizeStageText(ref.code)}`;
+          if (ref.artifact) return `Source: ${humanizeStageText(ref.artifact)}`;
+          return '';
+        };
+        const stageList = (items, emptyText) => {
+          const list = Array.isArray(items) ? items.filter(Boolean) : [];
+          if (!list.length) return `<p class="rw-environment-stage-empty">${escapeHtml(emptyText)}</p>`;
+          const seen = new Set();
+          const formatItem = (item) => {
+            if (item && typeof item === 'object') {
+              const severity = String(item.severity || '').trim();
+              const code = humanizeStageText(item.code || '');
+              const message = String(item.message || '').trim();
+              const ref = compactRefDetail(item.ref);
+              const parts = [
+                severity ? severity.toUpperCase() : '',
+                message || code,
+                ref,
+              ].filter(Boolean);
+              return parts.join(' · ');
+            }
+            return humanizeStageText(item);
+          };
+          const formatted = list
+            .map((item) => formatItem(item))
+            .filter((item) => {
+              if (!item || seen.has(item)) return false;
+              seen.add(item);
+              return true;
+            });
+          return `<ul class="rw-environment-stage-list">${formatted.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul>`;
+        };
         if (buildButton) {
-          buildButton.disabled = false;
+          buildButton.disabled = !preview.approved_image_id;
           buildButton.textContent = bespokeManifest.status === 'ready'
             ? 'Rebuild Production Assets'
             : bespokeManifest.status === 'failed'
               ? 'Retry Build Production Assets'
               : 'Build Production Assets';
         }
+
+        const overlayMarkup = pipelineVersion === 'v3'
+          ? renderRoomWizardResultsOverlay({
+            ...envState,
+            environment_manifest: manifestDoc,
+            validation_report: validationDoc,
+          }, toggleState)
+          : '';
+
         target.innerHTML = `
           <section class="rw-environment-output-card">
-            <div class="rw-environment-output-grid">
-              <div>
-                <p class="rw-environment-preview-label">Environment output</p>
-                <p class="rw-environment-output-copy">${escapeHtml(bits.join(' · '))}</p>
+            <div class="rw-environment-stage-meta">
+              <div class="rw-environment-stage-summary">
+                <div class="rw-environment-stage-metahead">
+                  <div>
+                    <p class="rw-environment-preview-label">Room-scoped authoring</p>
+                    <strong>${escapeHtml(spec.theme_name || envState?.themeId || 'Untitled room environment')}</strong>
+                  </div>
+                  <div class="rw-environment-status-row">
+                    <span class="${stagePillClass(spec.lock_stylepack ? 'locked' : 'draft')}">${escapeHtml(spec.lock_stylepack ? 'Stylepack locked' : 'Stylepack editable')}</span>
+                    <span class="rw-stage-pill">${escapeHtml(`Seed ${spec.seed || 'unset'}`)}</span>
+                  </div>
+                </div>
+                <p class="rw-environment-stage-copy">${escapeHtml(spec.notes || spec.description || 'No room notes yet. Use this strip to keep room-specific environment guidance visible while you review previews and assets.')}</p>
+                <div class="rw-environment-chip-row">
+                  <span class="rw-environment-chip">${escapeHtml(`References ${refUploads.length}`)}</span>
+                  <span class="rw-environment-chip">${escapeHtml(`Pinned ${pinnedRefs.length}`)}</span>
+                  <span class="rw-environment-chip">${escapeHtml(`Theme id ${envState?.themeId || 'custom'}`)}</span>
+                </div>
               </div>
-              <div>
-                <p class="rw-environment-preview-label">Schema + build plan</p>
-                <p class="rw-environment-output-copy">${escapeHtml(`${schemaText} · Kit: ${kitText || 'default'} · Template: ${templateText} · Materials: ${materialText} · Lighting: ${lightingText} · ${assetText} · ${reviewText}`)}</p>
+              <div class="rw-environment-stage-summary">
+                <div class="rw-environment-stage-metahead">
+                  <div>
+                    <p class="rw-environment-preview-label">Build snapshot</p>
+                    <strong>${escapeHtml(bespokeManifest.status || 'idle')}</strong>
+                  </div>
+                  <div class="rw-environment-status-row">
+                    <span class="${stagePillClass(bespokeManifest.status || 'idle')}">${escapeHtml(bespokeManifest.status || 'idle')}</span>
+                    <span class="${stagePillClass(runtimeReview.status || 'pending')}">${escapeHtml(`Runtime ${runtimeReview.status || 'pending'}`)}</span>
+                  </div>
+                </div>
+                <p class="rw-environment-stage-copy">${escapeHtml(`${bits.join(' · ')} · ${schemaText} · Kit: ${kitText || 'default'} · Template: ${templateText} · Materials: ${materialText} · Lighting: ${lightingText} · ${assetText} · ${reviewText}`)}</p>
               </div>
             </div>
-            ${pipelineVersion === 'v3' ? `
-              <div class="rw-environment-output-grid">
-                <div>
-                  <p class="rw-environment-preview-label">V3 assembly plan</p>
-                  <p class="rw-environment-output-copy">${escapeHtml(`${plannerCoverageText} · ${assemblyOverlayText}`)}</p>
+            <div class="rw-environment-stage-grid">
+              <article class="rw-environment-stage-card">
+                <div class="rw-environment-stage-head">
+                  <div>
+                    <p class="rw-environment-preview-label">1. Stylepack</p>
+                    <strong>${escapeHtml(spec.theme_name || stylepackSummary.stylepack_id || 'Room stylepack')}</strong>
+                  </div>
+                  <span class="${stagePillClass(stylepackSummary.status || (spec.lock_stylepack ? 'locked' : 'proposal'))}">${escapeHtml(stylepackSummary.status || (spec.lock_stylepack ? 'locked' : 'proposal'))}</span>
                 </div>
-                <div>
-                  <p class="rw-environment-preview-label">Validation plan</p>
-                  <p class="rw-environment-output-copy">${escapeHtml(reviewStateText)}</p>
+                <p class="rw-environment-stage-copy">${escapeHtml(`Uploads-first reference pack with ${refUploads.length} item(s), ${pinnedRefs.length} pinned to the stylepack, ${stylepackSummary.material_count || 0} material tags, ${stylepackSummary.shape_count || 0} shape rules, and ${stylepackSummary.forbidden_trait_count || 0} forbidden drift traits.`)}</p>
+                ${refUploads.length ? `<div class="rw-environment-chip-row">${refUploads.slice(0, 8).map((item) => `<span class="rw-environment-chip">${escapeHtml(item.label || item.file_name || 'Reference')}</span>`).join('')}</div>` : '<p class="rw-environment-stage-empty">No uploaded references yet.</p>'}
+              </article>
+              <article class="rw-environment-stage-card">
+                <div class="rw-environment-stage-head">
+                  <div>
+                    <p class="rw-environment-preview-label">2. Semantics</p>
+                    <strong>${escapeHtml(`${semanticsSummary.counts?.top_count || 0} tops · ${semanticsSummary.counts?.opening_count || 0} openings`)}</strong>
+                  </div>
+                  <span class="${stagePillClass(semanticsSummary.status || 'idle')}">${escapeHtml(semanticsSummary.status || 'idle')}</span>
                 </div>
-              </div>
-            ` : ''}
-            ${componentChips ? `<div class="rw-environment-chip-row">${componentChips}</div>` : ''}
-            ${componentSchemaChips ? `<div class="rw-environment-chip-row">${componentSchemaChips}</div>` : ''}
-            ${slotGroupChips ? `<div class="rw-environment-chip-row">${slotGroupChips}</div>` : ''}
-            ${assemblyPlanChips ? `<div class="rw-environment-chip-row">${assemblyPlanChips}</div>` : ''}
-            ${coverageChips ? `<div class="rw-environment-chip-row">${coverageChips}</div>` : ''}
-            ${staleChips ? `<div class="rw-environment-chip-row">${staleChips}</div>` : ''}
+                <p class="rw-environment-stage-copy">${escapeHtml(`${plannerCoverageText || 'No planner coverage yet.'}${assemblyOverlayText ? ` · ${assemblyOverlayText}` : ''}`)}</p>
+                ${Array.isArray(semanticsSummary.overlay_keys) && semanticsSummary.overlay_keys.length ? `<div class="rw-environment-chip-row">${semanticsSummary.overlay_keys.map((item) => `<span class="rw-environment-chip">${escapeHtml(item)}</span>`).join('')}</div>` : '<p class="rw-environment-stage-empty">Overlay geometry has not been derived yet.</p>'}
+              </article>
+              <article class="rw-environment-stage-card">
+                <div class="rw-environment-stage-head">
+                  <div>
+                    <p class="rw-environment-preview-label">3. Kit</p>
+                    <strong>${escapeHtml(`${kitSummary.summary?.component_count || 0} components`)}</strong>
+                  </div>
+                  <span class="${stagePillClass(kitSummary.status || 'idle')}">${escapeHtml(kitSummary.status || 'idle')}</span>
+                </div>
+                <p class="rw-environment-stage-copy">${escapeHtml(`Structural ${kitSummary.summary?.structural_count || 0} · Background ${kitSummary.summary?.background_count || 0} · Decor ${kitSummary.summary?.decor_count || 0}`)}</p>
+                ${componentSchemaChips ? `<div class="rw-environment-chip-row">${componentSchemaChips}</div>` : '<p class="rw-environment-stage-empty">Component schema data has not been built yet.</p>'}
+              </article>
+              <article class="rw-environment-stage-card">
+                <div class="rw-environment-stage-head">
+                  <div>
+                    <p class="rw-environment-preview-label">4. Manifest</p>
+                    <strong>${escapeHtml(`${manifestSummary.generation_metadata?.structural_count || 0} structural placements`)}</strong>
+                  </div>
+                  <span class="${stagePillClass(manifestSummary.status || bespokeManifest.status || 'idle')}">${escapeHtml(manifestSummary.status || bespokeManifest.status || 'idle')}</span>
+                </div>
+                <p class="rw-environment-stage-copy">${escapeHtml(`${assetText} · ${plannerCoverageText || 'No planner summary yet.'}`)}</p>
+                ${slotGroupChips || assemblyPlanChips ? `<div class="rw-environment-chip-row">${slotGroupChips}${assemblyPlanChips}</div>` : '<p class="rw-environment-stage-empty">Manifest placements are not ready yet.</p>'}
+              </article>
+              <article class="rw-environment-stage-card rw-environment-stage-card--wide">
+                <div class="rw-environment-stage-head">
+                  <div>
+                    <p class="rw-environment-preview-label">5. Validation</p>
+                    <strong>${escapeHtml(describeRoomWizardApprovalStatus(reviewState.approval_status || 'draft'))}</strong>
+                  </div>
+                  <span class="${stagePillClass(reviewValidation.status || runtimeReview.status || 'pending')}">${escapeHtml(describeRoomWizardValidationStatus(reviewValidation.status || runtimeReview.status || 'pending'))}</span>
+                </div>
+                <p class="rw-environment-stage-copy">${escapeHtml(`${reviewStateText || 'Validation has not run yet.'} · ${reviewText}`)}</p>
+                <div class="rw-environment-stage-grid">
+                  <div class="rw-environment-stage-summary">
+                    <div class="rw-environment-stage-head">
+                      <strong>Warnings and blockers</strong>
+                    </div>
+                    ${stageList([...(validationSummary.blockers || []), ...(validationSummary.warnings || []), ...validationErrs], 'No warnings or blockers recorded yet.')}
+                  </div>
+                  <div class="rw-environment-stage-summary">
+                    <div class="rw-environment-stage-head">
+                      <strong>Unresolved surfaces and overlays</strong>
+                    </div>
+                    ${stageList([...(validationSummary.unresolved_surfaces || []), ...(plannerCoverage.missing_slots || [])], 'No unresolved surfaces recorded yet.')}
+                  </div>
+                </div>
+                ${(coverageChips || staleChips || componentChips) ? `<div class="rw-environment-chip-row">${coverageChips}${staleChips}${componentChips}</div>` : ''}
+              </article>
+            </div>
+            ${overlayMarkup}
             ${(runtimeReviewMarkup || assetThumbs) ? `<div class="rw-environment-asset-grid">${runtimeReviewMarkup}${assetThumbs}</div>` : ''}
           </section>`;
+        syncRoomWizardResultsToggles();
+        bindRoomWizardResultsToggleInputs();
       }
 
       function renderRoomWizardPreviewGallery(previewState) {
@@ -7292,8 +8172,7 @@
           const json = await res.json().catch(() => ({}));
           if (!res.ok || !json.ok) throw new Error(json.error || 'Approve failed');
           const envMod = globalThis.RoomWizardEnvironment;
-          if (envMod) envMod.ensureRoomEnvironment(room);
-          room.environment = json.environment || room.environment;
+          replaceRoomWizardEnvironmentPreservingAuthoring(room, json.environment || room.environment);
           renderRoomWizardEnvironmentPreview(room.environment);
           renderRoomWizardPreviewGallery(room.environment.preview || {});
           renderRoomWizardEnvironmentOutputSummary(room.environment);
@@ -7367,6 +8246,7 @@
           if (room?.environment?.preview?.images?.length) {
             prevVisual.innerHTML = renderGeneratedEnvironmentPreviewMarkup(room.environment);
             prev.hidden = false;
+            updateRoomWizardResultsEmptyState(true);
             return;
           }
         }
@@ -7377,6 +8257,7 @@
         );
         prevVisual.innerHTML = renderEnvironmentPreviewMarkup(preview, 'Copilot suggestion');
         prev.hidden = false;
+        updateRoomWizardResultsEmptyState(true);
       }
 
       function syncRoomWizardFormFromRoom() {
@@ -7843,6 +8724,8 @@
       function setRoomWizardPhase(phase) {
         if (phase !== 'layout' && phase !== 'environment' && phase !== 'review') return;
         state.roomWizard.phase = phase;
+        const dock = document.getElementById('roomWizardDock');
+        if (dock) dock.dataset.phase = phase;
         const panL = document.getElementById('roomWizardPanelLayout');
         const panE = document.getElementById('roomWizardPanelEnvironment');
         const panA = document.getElementById('roomWizardPanelArtDirection');
@@ -8128,6 +9011,46 @@
           updateJsonText();
           renderRoomWizardEnvironmentOutputSummary(room.environment);
         });
+        ['roomWizardThemeName', 'roomWizardEnvironmentNotes', 'roomWizardEnvironmentSeed', 'roomWizardLockStylepack'].forEach((id) => {
+          const eventName = id === 'roomWizardLockStylepack' ? 'change' : 'input';
+          document.getElementById(id)?.addEventListener(eventName, syncRoomWizardEnvironmentAuthoringFromInputs);
+        });
+        Object.entries(roomWizardResultsToggleMap()).forEach(([key, el]) => {
+          el?.addEventListener('change', () => {
+            state.roomWizard.resultsToggles[key] = !!el.checked;
+            const room = getRoomWizardRoom();
+            if (room?.environment) {
+              renderRoomWizardEnvironmentOutputSummary(room.environment);
+            }
+          });
+        });
+        document.getElementById('roomWizardReferenceUpload')?.addEventListener('change', (event) => {
+          const room = getRoomWizardRoom();
+          const envMod = globalThis.RoomWizardEnvironment;
+          if (!room || !envMod) return;
+          envMod.ensureRoomEnvironment(room);
+          ensureRoomWizardEnvironmentAuthoringFields(room.environment);
+          const files = Array.from(event.target?.files || []);
+          if (!files.length) return;
+          const timestamp = new Date().toISOString();
+          const nextEntries = files.map((file, index) => ({
+            id: `reference-${Date.now()}-${index + 1}`,
+            label: file.name.replace(/\.[^.]+$/, '').slice(0, 80),
+            file_name: file.name,
+            file_type: file.type || 'image',
+            file_size: file.size || 0,
+            status: 'uploaded',
+            pinned_to: '',
+            source_value: file.name,
+            uploaded_at: timestamp,
+          }));
+          room.environment.spec.reference_uploads = [...room.environment.spec.reference_uploads, ...nextEntries];
+          setDirty(true);
+          renderRoomWizardReferenceList(room.environment);
+          renderRoomWizardEnvironmentOutputSummary(room.environment);
+          updateJsonText();
+          event.target.value = '';
+        });
         document.getElementById('roomWizardArtDirectionSave')?.addEventListener('click', saveProjectArtDirectionFromWizard);
         document.getElementById('roomWizardGenerateArtDirectionConcepts')?.addEventListener('click', generateArtDirectionConceptBoard);
         document.getElementById('roomWizardAdaptTemplate')?.addEventListener('click', () => {
@@ -8260,7 +9183,7 @@
               if (!specRes.ok || !specJson.ok) {
                 throw new Error(specJson.error || 'Could not build room environment spec');
               }
-              room.environment = specJson.environment || room.environment;
+              replaceRoomWizardEnvironmentPreservingAuthoring(room, specJson.environment || room.environment);
               syncRoomWizardEnvironmentFromRoom();
               if (st) st.textContent = 'Rendering previews…';
               startRoomWizardWaitbar('copilot', 'Rendering room-aware environment previews.');
@@ -8276,7 +9199,7 @@
               if (!previewRes.ok || !previewJson.ok) {
                 throw new Error(previewJson.error || 'Could not generate previews');
               }
-              room.environment = previewJson.environment || room.environment;
+              replaceRoomWizardEnvironmentPreservingAuthoring(room, previewJson.environment || room.environment);
               state.roomWizard.copilotPreview = {
                 themeId: room.environment?.themeId || 'custom',
                 tags: room.environment?.tags || [],
@@ -8400,7 +9323,7 @@
             });
             const specJson = await specRes.json().catch(() => ({}));
             if (!specRes.ok || !specJson.ok) throw new Error(specJson.error || 'Could not build revised room spec');
-            room.environment = specJson.environment || room.environment;
+            replaceRoomWizardEnvironmentPreservingAuthoring(room, specJson.environment || room.environment);
             if (st) st.textContent = 'Rendering revised previews…';
             const previewRes = await fetch(projectRoomEnvironmentApiUrl(room.id, 'previews'), {
               method: 'POST',
@@ -8412,7 +9335,7 @@
             });
             const previewJson = await previewRes.json().catch(() => ({}));
             if (!previewRes.ok || !previewJson.ok) throw new Error(previewJson.error || 'Could not render revised previews');
-            room.environment = previewJson.environment || room.environment;
+            replaceRoomWizardEnvironmentPreservingAuthoring(room, previewJson.environment || room.environment);
             revisionEl.value = '';
             renderRoomWizardEnvironmentPreview(room.environment);
             renderRoomWizardCopilotPreview({
@@ -8466,7 +9389,7 @@
             });
             const json = await res.json().catch(() => ({}));
             if (!res.ok || !json.ok) throw new Error(json.error || 'Could not build production assets');
-            room.environment = json.environment || room.environment;
+            replaceRoomWizardEnvironmentPreservingAuthoring(room, json.environment || room.environment);
             renderRoomWizardEnvironmentPreview(room.environment);
             renderRoomWizardPreviewGallery(room.environment.preview || {});
             renderRoomWizardEnvironmentOutputSummary(room.environment);

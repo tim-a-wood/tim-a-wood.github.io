@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from scripts.environment_v3 import composition, editor_contract, kit, persistence, reference_pack, semantics, stylepack, validation
@@ -8,6 +9,15 @@ from scripts.environment_v3 import composition, editor_contract, kit, persistenc
 
 V2_PIPELINE_VERSION = "v2"
 V3_PIPELINE_VERSION = "v3"
+
+ARTIFACT_ENV_KEYS = {
+    "reference_pack": "reference_pack",
+    "stylepack": "stylepack",
+    "room_semantics": "room_semantics",
+    "environment_kit": "environment_kit",
+    "environment_manifest": "environment_manifest",
+    "validation_report": "validation_report",
+}
 
 FIRST_SLICE_COMPONENT_TYPES: List[str] = [
     "walls",
@@ -182,7 +192,11 @@ def default_review_state() -> Dict[str, Any]:
     }
 
 
-def ensure_v3_metadata(env: Dict[str, Any], room: Optional[Dict[str, Any]] = None, biome_id: Optional[str] = None) -> Dict[str, Any]:
+def ensure_v3_metadata(
+    env: Dict[str, Any],
+    room: Optional[Dict[str, Any]] = None,
+    biome_id: Optional[str] = None,
+) -> Dict[str, Any]:
     env["environment_pipeline_version"] = V3_PIPELINE_VERSION
     room_intent = env.get("room_intent")
     if not isinstance(room_intent, dict):
@@ -201,7 +215,7 @@ def ensure_v3_metadata(env: Dict[str, Any], room: Optional[Dict[str, Any]] = Non
         review_state = default_review_state()
         env["review_state"] = review_state
     review_state.setdefault("validation_status", {"status": "pending", "issues": []})
-    _sync_staged_artifacts(env, room)
+    _sync_staged_artifacts(env, room, preserve_existing=True)
     return env
 
 
@@ -241,7 +255,7 @@ def sync_v3_metadata(
     review_state["validation_status"] = _validation_status(review_state)
     review_state["approval_status"] = _approval_status(review_state)
     env["review_state"] = review_state
-    _sync_staged_artifacts(env, room)
+    _sync_staged_artifacts(env, room, preserve_existing=False)
     return env
 
 
@@ -739,7 +753,7 @@ def _approval_status(review_state: Dict[str, Any]) -> str:
     return "approved"
 
 
-def _sync_staged_artifacts(env: Dict[str, Any], room: Optional[Dict[str, Any]]) -> None:
+def _sync_staged_artifacts(env: Dict[str, Any], room: Optional[Dict[str, Any]], preserve_existing: bool = False) -> None:
     room = room or {}
     reference_doc = env.get("reference_pack")
     if not isinstance(reference_doc, dict):
@@ -752,20 +766,32 @@ def _sync_staged_artifacts(env: Dict[str, Any], room: Optional[Dict[str, Any]]) 
             summary=str((env.get("spec") or {}).get("description") or ""),
         )
         env["stylepack"] = stylepack_doc
-    semantics_doc = semantics.derive_room_semantics(room)
+    semantics_doc = env.get("room_semantics") if preserve_existing and isinstance(env.get("room_semantics"), dict) else None
+    if not isinstance(semantics_doc, dict):
+        semantics_doc = semantics.derive_room_semantics(room)
     env["room_semantics"] = semantics_doc
     assembly_plan = env.get("assembly_plan") or default_assembly_plan(room)
-    manifest_doc = composition.build_environment_manifest(
-        room,
-        stylepack_doc.get("stylepack_id"),
-        seed=str(env.get("seed") or (env.get("runtime") or {}).get("applied_preview_id") or "default"),
-        plan=assembly_plan.get("slots") or [],
-        validation_flags=list((env.get("review_state") or {}).get("validation_status", {}).get("issues") or []),
-    )
+    manifest_doc = env.get("environment_manifest") if preserve_existing and isinstance(env.get("environment_manifest"), dict) else None
+    if not isinstance(manifest_doc, dict):
+        manifest_doc = composition.build_environment_manifest(
+            room,
+            stylepack_doc.get("stylepack_id"),
+            seed=str(env.get("seed") or (env.get("runtime") or {}).get("applied_preview_id") or "default"),
+            plan=assembly_plan.get("slots") or [],
+            validation_flags=list((env.get("review_state") or {}).get("validation_status", {}).get("issues") or []),
+        )
     env["environment_manifest"] = manifest_doc
-    kit_doc = kit.build_environment_kit(stylepack_doc.get("stylepack_id"), semantics_doc, plan=assembly_plan.get("slots") or [])
+    kit_doc = env.get("environment_kit") if preserve_existing and isinstance(env.get("environment_kit"), dict) else None
+    if not isinstance(kit_doc, dict):
+        kit_doc = kit.build_environment_kit(
+            stylepack_doc.get("stylepack_id"),
+            semantics_doc,
+            assembly_plan=assembly_plan,
+        )
     env["environment_kit"] = kit_doc
-    validation_doc = validation.build_validation_report(env.get("review_state"), assembly_plan, manifest_doc, semantics_doc)
+    validation_doc = env.get("validation_report") if preserve_existing and isinstance(env.get("validation_report"), dict) else None
+    if not isinstance(validation_doc, dict):
+        validation_doc = validation.build_validation_report(env.get("review_state"), assembly_plan, manifest_doc, semantics_doc)
     env["validation_report"] = validation_doc
     registry = env.get("staged_artifacts")
     if not isinstance(registry, dict):
@@ -791,3 +817,59 @@ def _sync_staged_artifacts(env: Dict[str, Any], room: Optional[Dict[str, Any]]) 
         manifest_doc=manifest_doc,
         validation_doc=validation_doc,
     )
+
+
+def hydrate_persisted_artifacts(
+    env: Dict[str, Any],
+    projects_root: Path,
+    project_id: str,
+    room_id: str,
+) -> Dict[str, Any]:
+    registry = env.get("staged_artifacts")
+    if not isinstance(registry, dict):
+        registry = persistence.default_registry(room_id)
+        env["staged_artifacts"] = registry
+    loaded_any = False
+    for artifact_kind, env_key in ARTIFACT_ENV_KEYS.items():
+        loaded = persistence.load_artifact(projects_root, project_id, room_id, artifact_kind)
+        if not isinstance(loaded, dict):
+            continue
+        env[env_key] = loaded
+        loaded_any = True
+        registry.setdefault(artifact_kind, {})
+        registry[artifact_kind]["status"] = "ready"
+        registry[artifact_kind]["artifact_id"] = loaded.get(f"{artifact_kind}_id") or loaded.get("stylepack_id") or loaded.get("room_id") or registry[artifact_kind].get("artifact_id")
+        registry[artifact_kind]["relative_path"] = f"derived/v3/{persistence.ARTIFACT_FILENAMES[artifact_kind]}"
+    if loaded_any:
+        env["editor_results_payload"] = editor_contract.build_results_payload(
+            env,
+            reference_pack_doc=env.get("reference_pack") or {},
+            stylepack_doc=env.get("stylepack") or {},
+            semantics_doc=env.get("room_semantics") or {},
+            kit_doc=env.get("environment_kit") or {},
+            manifest_doc=env.get("environment_manifest") or {},
+            validation_doc=env.get("validation_report") or {},
+        )
+    return env
+
+
+def persist_staged_artifacts(
+    env: Dict[str, Any],
+    projects_root: Path,
+    project_id: str,
+    room_id: str,
+) -> Dict[str, Any]:
+    registry = env.get("staged_artifacts")
+    if not isinstance(registry, dict):
+        registry = persistence.default_registry(room_id)
+        env["staged_artifacts"] = registry
+    for artifact_kind, env_key in ARTIFACT_ENV_KEYS.items():
+        payload = env.get(env_key)
+        if not isinstance(payload, dict):
+            continue
+        persistence.save_artifact(projects_root, project_id, room_id, artifact_kind, payload)
+        registry.setdefault(artifact_kind, {})
+        registry[artifact_kind]["status"] = "ready"
+        registry[artifact_kind]["artifact_id"] = payload.get(f"{artifact_kind}_id") or payload.get("stylepack_id") or payload.get("room_id") or registry[artifact_kind].get("artifact_id")
+        registry[artifact_kind]["relative_path"] = f"derived/v3/{persistence.ARTIFACT_FILENAMES[artifact_kind]}"
+    return env

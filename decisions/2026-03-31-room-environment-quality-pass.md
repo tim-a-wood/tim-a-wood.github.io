@@ -258,6 +258,12 @@ This log records decisions for the room environment and bespoke asset quality pa
 
 ### 44. The ruined-gothic live pass should use direct Gemini REST calls for image generation on this machine instead of the Python SDK path
 - Status: Accepted
+
+### 45. Environment manifest composition now owns canonical pass order, replay metadata, and placement summaries
+- Status: Accepted
+- Why: The MVP editor payload needs a stable structural -> background -> decor contract, deterministic replay fingerprints, and layer summaries that the UI can read without reconstructing ordering from raw slot arrays.
+- Consequence: `scripts/environment_v3/composition.py` now normalizes slots into pass order, records `seed` / `seed_source`, emits `layer_order`, `passes`, `placement_summary`, and `deterministic_replay`, and the editor payload mapper forwards those fields.
+- Rejected: leaving pass order implicit in the input plan, treating midground as decor, and surfacing only raw placement arrays without a compact summary for the editor.
 ### 100. Direct server launches must load `.env.local`, and biome-kit generation must fail loudly when Gemini is unavailable
 - Status: Accepted
 - Why: On 2026-04-03, the latest `foreground_frame` reruns were repeatedly judged from deterministic fallback output because `sprite_workbench_server.py` had been started directly with `python3 .../sprite_workbench_server.py`, which did not load repo-root `.env.local`. The server process therefore had no `GEMINI_API_KEY`, `generate_biome_pack_visuals()` returned `used_ai: false`, and the team was accidentally diagnosing fallback artifacts as if they were true Gemini outputs.
@@ -714,3 +720,38 @@ This log records decisions for the room environment and bespoke asset quality pa
 - Status: Accepted
 - Why: Theme name, notes, seed, lock stylepack, and reference uploads are authoring metadata that should survive export with the rest of the room environment spec. Putting them into preview/runtime slices would leak them into generated state and make the contract harder to reason about.
 - Consequence: The MVP contract stores those fields in `room.environment.spec`, while `preview`, `runtime`, `assembly_plan`, and `review_state` stay reserved for generated or review-derived data.
+
+### 130. Room semantics v1 now exposes moving-platform tops, edge-link openings, and overlay truth metadata as a derived sidecar
+- Status: Accepted
+- Why: The MVP semantics slice needed to stay geometry-first while still giving the editor and QA more than a flat count summary. Moving platforms are part of the room-local traversal surface, and edge-link / removed-edge openings must stay visible on the polygon boundary rather than collapsing into generic room shape.
+- Consequence: `derive_room_semantics(...)` now emits richer per-room semantics with structured tops, undersides, openings, corners, cavities, decor-safe zones, gameplay exclusion zones, anchors, overlay geometry, and truth checks. `build_results_payload(...)` now forwards the semantics overlay and truth metadata so the Results surface can inspect the same sidecar truth instead of reconstructing it ad hoc.
+
+### 131. Environment kit v1 now carries explicit MVP taxonomy metadata and deterministic structural counts
+- Status: Accepted
+- Why: The next MVP slice needed the kit artifact to do more than mirror planner slots. QA required stable taxonomy boundaries and deterministic counts across structural, background, and decor classes before this stage could be treated as trustworthy.
+- Consequence: `build_environment_kit(...)` now emits explicit component taxonomy metadata (`component_class`, `allowed_surfaces`, `allowed_zones`, `readability_impact`, provenance, and `component_count_by_type`) plus validation errors for malformed entries. The editor payload now forwards those kit counts/errors, and regression tests assert taxonomy boundaries, deterministic output, and alignment between kit summary counts and manifest layer counts.
+
+### 132. Environment composition v1 uses explicit pass precedence and deterministic manifest replay metadata
+- Status: Accepted
+- Why: The initial MVP composition bridge was too thin: it trusted incoming planner order, treated only literal `background` slots as background, and provided too little manifest evidence for QA to verify pass precedence or deterministic replay. That left `midground` vulnerable to being misclassified as decor and made same-input replay harder to prove.
+- Consequence: `build_environment_manifest(...)` now normalizes placements by explicit pass precedence (`structural -> background -> decor`), classifies `midground` with the background pass, records pass summaries and layer order in the manifest, and emits deterministic replay metadata (`plan_fingerprint`, `replay_key`, ordering rule). The editor payload now surfaces those manifest pass/replay details, and regression coverage includes pass-order, deterministic replay, payload exposure, and persistence round-trip checks.
+
+### 133. Validation v1 must be a structured severity report and keep visual review honest
+- Status: Accepted
+- Why: The MVP validation slice needs to distinguish hard geometry failures from softer readability concerns, and the editor payload contract already expects structured findings rather than flat strings. At the same time, the visual-honesty gate means code-only validation cannot pretend to have judged final visual quality without screenshot-backed review evidence.
+- Consequence: `build_validation_report(...)` now emits structured findings with `severity`, `code`, `message`, and optional refs; summary counts; unresolved-surface reporting; and `validation_highlights` for geometry refs. Geometry blockers now cover unresolved planner coverage, out-of-bounds placements, wrong-surface decor, opening obstruction, and gameplay-zone intrusion; readability/system findings stay separate; and visual validation remains an info-level reminder unless a runtime screenshot is actually present.
+
+### 134. Results toggles must drive an in-panel overlay view, not just rewrite summary chips
+- Status: Accepted
+- Why: The Results panel already exposed structural/background/decor and debug toggles, but they only changed summary text. That made the workbench feel inert and blocked meaningful browser validation even when the staged payload was correct.
+- Consequence: The Results surface now includes a dedicated overlay card that renders the room shell, manifest placements, semantics geometry, safe/exclusion zones, and validation/unresolved highlights from the persisted v3 artifacts. The existing toggles remain UI-local state, but they now control visible overlay layers and should be extended through this panel rather than adding more no-op chips.
+
+### 135. Overlay controls belong inside the Overlay View card, and decor must degrade honestly when no decor placements exist
+- Status: Accepted
+- Why: The first overlay slice left the toggle controls in the Results workbench strip, which made them feel disconnected from the visualization they controlled. Live browser feedback also showed that the `Decor` toggle could appear broken when the current v3 manifest emitted no `layers.decor` placements even though room-level set-dressing intent existed in the spec.
+- Consequence: The Results overlay now owns the layer/debug toggle controls directly, so the UI reads as one diagnostic surface. The overlay renderer also falls back to showing planned decor markers from `room.environment.spec.scene_schema.set_dressing` when the manifest decor layer is empty, while still keeping real decor placements authoritative when they exist. Future work should treat this as a stopgap until the v3 planner emits true decor placements where needed.
+
+### 136. Milestone 1 evidence must run through repo `pytest`, with tests scoped to `tests/` and `*.test.py` imported via `importlib`
+- Status: Accepted
+- Why: On 2026-04-05 the environment MVP evidence existed, but the standard Python runner was not trustworthy. `pytest` could not collect `tests/environment_v3_package.test.py` or `tests/room_environment_system.test.py` under the default import mode because the dotted filenames were interpreted as module names, and a bare repo run also wandered into vendored `tools/ComfyUI` tests that require unavailable third-party dependencies.
+- Consequence: The repo now carries a top-level `pytest.ini` that scopes collection to `tests/`, includes both `test_*.py` and `*.test.py`, and enables `--import-mode=importlib`. Milestone 1 evidence should be cited from `python3 -m pytest tests/environment_v3_package.test.py tests/room_environment_system.test.py -q` and repo health from `python3 -m pytest tests -q`, not from ad hoc direct-file invocations or third-party vendored test trees.

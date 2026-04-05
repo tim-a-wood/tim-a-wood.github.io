@@ -1421,6 +1421,7 @@ def _sync_v3_environment_state(
     if envv3.normalize_pipeline_version(env.get("environment_pipeline_version")) != envv3.V3_PIPELINE_VERSION:
         return
     envv3.sync_v3_metadata(env, room, biome_id=biome_id, generated_at=generated_at)
+    envv3.persist_staged_artifacts(env, PROJECTS_ROOT, project_id, str(room.get("id") or "room"))
 
 
 def _find_room(project: Dict[str, Any], room_id: str) -> Dict[str, Any]:
@@ -1430,6 +1431,8 @@ def _find_room(project: Dict[str, Any], room_id: str) -> Dict[str, Any]:
     if not isinstance(room, dict):
         raise ValueError("Room not found.")
     env = _ensure_room_environment(room)
+    if envv3.normalize_pipeline_version(env.get("environment_pipeline_version")) == envv3.V3_PIPELINE_VERSION:
+        envv3.hydrate_persisted_artifacts(env, PROJECTS_ROOT, str(project.get("project_id") or ""), room_id)
     direction = normalize_art_direction(project.get("art_direction"), project.get("art_direction"))
     _refresh_asset_pack_staleness(room, env, direction)
     return room
@@ -4904,6 +4907,7 @@ def generate_room_environment_previews(project_id: str, room_id: str, payload: D
     room = _find_room(project, room_id)
     env = _ensure_room_environment(room)
     direction = normalize_art_direction(project.get("art_direction"), project.get("art_direction"))
+    direction = _attach_default_biome_pack(project, direction)
     spec = copy.deepcopy(env["spec"])
     if isinstance(payload.get("spec"), dict):
         spec.update(payload["spec"])
@@ -5032,6 +5036,19 @@ def generate_room_environment_previews(project_id: str, room_id: str, payload: D
     env["runtime"]["asset_pack"]["generated_at"] = None
     env["runtime"]["asset_pack"]["source_preview_id"] = None
     env["runtime"]["asset_pack"]["assets"] = {}
+    if envv3.normalize_pipeline_version(env.get("environment_pipeline_version")) == envv3.V3_PIPELINE_VERSION:
+        biome_pack = _select_biome_pack(direction)
+        preview_seed_id = str((preview_images[0] or {}).get("preview_id") or "").strip() if preview_images else ""
+        if biome_pack and preview_seed_id:
+            planner_output = envv3.build_generation_plan(room, preview_seed_id, biome_pack, now_iso())
+            env["assembly_plan"] = copy.deepcopy(planner_output["assembly_plan"])
+            _sync_v3_environment_state(
+                project_id,
+                env,
+                room,
+                biome_id=str(biome_pack.get("biome_id") or "") or None,
+                generated_at=now_iso(),
+            )
     project["updated_at"] = now_iso()
     save_project(project)
     return {
@@ -7707,11 +7724,16 @@ def approve_room_environment_preview(project_id: str, room_id: str, payload: Dic
     env["runtime"]["lighting_mode"] = str(env["spec"].get("lighting") or "")
     env["runtime"]["last_applied_at"] = now_iso()
     bespoke_manifest = env["runtime"]["bespoke_asset_manifest"]
-    bespoke_manifest["biome_id"] = ((_select_biome_pack(normalize_art_direction(project.get("art_direction"), project.get("art_direction"))) or {}).get("biome_id"))
+    direction = _attach_default_biome_pack(project, normalize_art_direction(project.get("art_direction"), project.get("art_direction")))
+    biome_pack = _select_biome_pack(direction)
+    bespoke_manifest["biome_id"] = (biome_pack or {}).get("biome_id")
     bespoke_manifest["source_preview_id"] = preview_id
     bespoke_manifest["schema_validation"] = _validate_component_schemas(room, env["spec"], _room_geometry(room))
     bespoke_manifest["runtime_review"] = {"status": "idle", "fail_reasons": [], "metrics": {}, "screenshot_url": None, "review_mode": None}
     bespoke_manifest["review"] = copy.deepcopy(bespoke_manifest["runtime_review"])
+    if envv3.normalize_pipeline_version(env.get("environment_pipeline_version")) == envv3.V3_PIPELINE_VERSION and biome_pack:
+        planner_output = envv3.build_generation_plan(room, preview_id, biome_pack, now_iso())
+        env["assembly_plan"] = copy.deepcopy(planner_output["assembly_plan"])
     _sync_v3_environment_state(project_id, env, room, biome_id=bespoke_manifest.get("biome_id"), generated_at=now_iso())
     asset_pack = env["runtime"]["asset_pack"]
     asset_pack["source_preview_id"] = preview_id

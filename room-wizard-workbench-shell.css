@@ -976,17 +976,21 @@
 
 .room-wizard-dock .rw-component-grid {
   display: grid;
-  grid-template-columns: 1fr;
-  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 12px;
 }
 
 .room-wizard-dock .rw-component-field {
   display: grid;
-  gap: 8px;
+  gap: 6px;
 }
 
 .room-wizard-dock .rw-component-field textarea {
-  min-height: 88px;
+  min-height: 68px;
+}
+
+.room-wizard-dock .rw-component-field--wide {
+  grid-column: 1 / -1;
 }
 
 .room-wizard-dock .rw-template-chip {
@@ -1155,7 +1159,8 @@
 }
 
 .room-wizard-dock .rw-inline-check {
-  display: flex;
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr);
   align-items: flex-start;
   gap: 8px;
   padding: 8px 0 4px;
@@ -1166,6 +1171,8 @@
 .room-wizard-dock .rw-inline-check input {
   margin: 2px 0 0;
   flex: 0 0 auto;
+  width: 16px;
+  min-width: 16px;
 }
 
 .room-wizard-dock .rw-environment-asset-grid {
@@ -1291,7 +1298,8 @@
 
 #roomWizardPanelEnvironment .stage-card {
   margin-bottom: 12px;
-  gap: 12px;
+  gap: 10px;
+  padding: 12px;
 }
 
 .room-wizard-dock .rw-env-shell {
@@ -1360,19 +1368,86 @@
   min-height: 0;
 }
 
+.room-wizard-dock .rw-env-setup-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.4fr);
+  gap: 12px;
+}
+
 .room-wizard-dock .rw-env-components-stage {
-  padding: 14px;
+  padding: 12px;
 }
 
 .room-wizard-dock .rw-env-results-stage .rw-copilot-preview-box {
   margin-top: 0;
 }
 
+.room-wizard-dock #roomWizardCopilotPrompt,
+.room-wizard-dock #roomWizardEnvironmentNotes,
+.room-wizard-dock #roomWizardPreviewRevision {
+  min-height: 68px;
+}
+
+.room-wizard-dock .rw-results-workbench {
+  gap: 10px;
+  padding: 12px;
+}
+
+.room-wizard-dock .rw-results-authoring-grid {
+  gap: 10px;
+}
+
+.room-wizard-dock .rw-reference-list,
+.room-wizard-dock .rw-results-toggle-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.room-wizard-dock .rw-results-toggle-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.room-wizard-dock .rw-toggle-card,
+.room-wizard-dock .rw-reference-item {
+  padding: 10px 12px;
+}
+
+.room-wizard-dock .rw-toggle-card {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+}
+
+.room-wizard-dock .rw-toggle-card strong {
+  display: block;
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  color: var(--text);
+}
+
+.room-wizard-dock .rw-toggle-card label {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr);
+  align-items: start;
+  gap: 8px;
+  min-height: 28px;
+  color: var(--text);
+  font-size: var(--font-size-sm);
+  line-height: 1.4;
+}
+
+.room-wizard-dock .rw-toggle-card input {
+  width: 16px;
+  min-width: 16px;
+  margin: 2px 0 0;
+  flex: 0 0 auto;
+}
+
 .room-wizard-dock .rw-biome-visual-card {
   display: grid;
   gap: 8px;
   margin: 0;
-  padding-top: 12px;
+  padding-top: 10px;
   border-top: 1px solid var(--line);
 }
 
@@ -1385,4 +1460,19 @@
   font-size: var(--font-size-base);
   font-weight: 700;
   color: var(--text);
+}
+
+@media (max-width: 960px) {
+  .room-wizard-dock .rw-env-setup-grid,
+  .room-wizard-dock .rw-component-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .room-wizard-dock .rw-results-toggle-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .room-wizard-dock .rw-component-field--wide {
+    grid-column: auto;
+  }
 }

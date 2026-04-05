@@ -3,1327 +3,415 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>HI-FI Mockup - Room Environment MVP Results Surface</title>
+  <title>HI-FI Mockup - Room Editor Environment Results Tab</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <style>
-    *, *::before, *::after { box-sizing: border-box; }
-    html, body { margin: 0; min-height: 100%; }
     :root {
-      --bg: #050709;
-      --panel: rgba(4, 6, 10, 0.96);
-      --panel-2: #07090c;
-      --panel-soft: #07090c;
-      --accent: #00e8c8;
-      --accent-soft: rgba(0, 232, 200, 0.08);
-      --text: #cce8e0;
-      --muted: #5d7870;
-      --stroke: rgba(0, 232, 200, 0.07);
-      --stroke-strong: rgba(0, 232, 200, 0.14);
-      --line: rgba(0, 232, 200, 0.10);
-      --line-strong: rgba(0, 232, 200, 0.18);
-      --good: #4ade80;
-      --good-soft: rgba(74, 222, 128, 0.12);
-      --warning: #d29922;
-      --warning-soft: rgba(210, 153, 34, 0.16);
-      --error: #f85149;
-      --error-soft: rgba(248, 81, 73, 0.16);
+      --bg: #050709; --panel: rgba(4,6,10,0.96); --panel-2: #07090c; --panel-soft: #07090c;
+      --accent: #00e8c8; --accent-soft: rgba(0,232,200,0.08);
+      --text: #cce8e0; --muted: #5d7870;
+      --stroke: rgba(0,232,200,0.07); --stroke-strong: rgba(0,232,200,0.14);
+      --line: rgba(0,232,200,0.10); --line-strong: rgba(0,232,200,0.18);
+      --border: rgba(0,232,200,0.07); --border-strong: rgba(0,232,200,0.14);
+      --good: #4ade80; --good-soft: rgba(74,222,128,0.12);
+      --warning: #d29922; --warning-soft: rgba(210,153,34,0.16);
+      --error: #f85149; --error-soft: rgba(248,81,73,0.16);
       --font-sans: "Plus Jakarta Sans", -apple-system, sans-serif;
       --font-display: "Bebas Neue", sans-serif;
       --font-mono: "DM Mono", ui-monospace, monospace;
-      --font-size-xs: 11px;
-      --font-size-sm: 13px;
-      --font-size-base: 14px;
-      --font-size-md: 15px;
-      --font-size-lg: 18px;
-      --font-size-xl: 22px;
-      --space-1: 4px;
-      --space-2: 8px;
-      --space-3: 12px;
-      --space-4: 16px;
-      --space-5: 24px;
-      --space-6: 32px;
-      --space-7: 48px;
-      --space-8: 64px;
-      --surface-gap: 12px;
-      --surface-pad: 14px;
-      --radius-xs: 4px;
-      --radius-sm: 8px;
-      --radius-md: 10px;
-      --radius-default: 12px;
-      --radius-tight: 14px;
-      --radius-card: 18px;
-      --radius-lg: 20px;
-      --radius-full: 999px;
-      --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.18);
-      --shadow-md: 0 6px 20px rgba(0, 0, 0, 0.26);
-      --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.38);
-      --transition-fast: 120ms ease;
-      --transition-base: 200ms ease;
-      --shell: rgba(255, 255, 255, 0.02);
-      --shell-strong: rgba(255, 255, 255, 0.05);
-      --control: #0e131b;
-      --control-hover: #141b25;
-      --control-border: rgba(0, 232, 200, 0.18);
+      --font-size-xs: 11px; --font-size-sm: 13px; --font-size-base: 14px;
+      --font-size-md: 15px; --font-size-lg: 18px; --font-size-xl: 22px;
+      --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px;
+      --space-5: 24px; --space-6: 32px; --space-7: 48px; --space-8: 64px;
+      --radius-xs: 4px; --radius-sm: 8px; --radius-md: 10px; --radius-default: 12px;
+      --radius-tight: 14px; --radius-card: 18px; --radius-lg: 20px; --radius-full: 999px;
+      --shadow-sm: 0 2px 8px rgba(0,0,0,0.18);
+      --shadow-md: 0 6px 20px rgba(0,0,0,0.26);
+      --shadow-lg: 0 12px 40px rgba(0,0,0,0.38);
+      --transition-fast: 120ms ease; --transition-base: 200ms ease;
     }
-
+    * { box-sizing: border-box; }
     body {
+      margin: 0;
+      min-height: 100vh;
       background:
-        radial-gradient(circle at top left, rgba(0, 232, 200, 0.08), transparent 24%),
-        radial-gradient(circle at 86% 16%, rgba(210, 153, 34, 0.08), transparent 18%),
-        linear-gradient(180deg, #040608, #050709 52%, #060b0e);
+        radial-gradient(circle at 14% 14%, rgba(0,232,200,0.08), transparent 24%),
+        linear-gradient(180deg, #050709, #07090c);
       color: var(--text);
       font-family: var(--font-sans);
       font-size: var(--font-size-base);
-      line-height: 1.45;
-      min-height: 100vh;
     }
-
-    :focus-visible {
-      outline: 2px solid rgba(0, 232, 200, 0.4);
-      outline-offset: 2px;
-    }
-
-    a { color: var(--accent); text-decoration: none; }
-
-    .mock-banner {
-      position: sticky;
-      top: 0;
-      z-index: 30;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+    .banner {
       min-height: 44px;
-      padding: 8px 16px;
+      display: grid;
+      place-items: center;
       border-bottom: 1px solid var(--line-strong);
-      background: rgba(4, 6, 10, 0.94);
-      backdrop-filter: blur(16px);
+      background: rgba(4,6,10,0.94);
       color: var(--accent);
       font-size: var(--font-size-xs);
       font-weight: 800;
-      letter-spacing: 0.14em;
+      letter-spacing: 0.1em;
       text-transform: uppercase;
-      text-align: center;
     }
-
-    .shell {
+    .app {
       display: grid;
-      grid-template-columns: 236px minmax(0, 1fr);
-      min-height: calc(100vh - 44px);
-    }
-
-    .sidebar {
-      border-right: 1px solid var(--line);
-      background: rgba(3, 4, 6, 0.96);
+      grid-template-columns: minmax(0, 1.3fr) 420px;
+      gap: 16px;
       padding: 16px;
     }
-
-    .brand {
-      display: grid;
-      gap: 12px;
-      padding: 18px 16px;
+    .canvas-panel,
+    .results-panel,
+    .card {
+      border: 1px solid var(--line);
       border-radius: var(--radius-card);
-      border: 1px solid var(--stroke);
-      background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.015));
+      background: rgba(255,255,255,0.03);
       box-shadow: var(--shadow-sm);
     }
-
-    .eyebrow {
-      color: var(--muted);
-      font-size: var(--font-size-xs);
-      font-weight: 700;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-    }
-
-    .brand h1 {
-      margin: 0;
-      font-family: var(--font-display);
-      font-size: 22px;
-      line-height: 0.94;
-      font-weight: 400;
-      letter-spacing: 0.05em;
-    }
-
-    .brand p,
-    .panel-copy,
-    .field-help,
-    .meta-note,
-    .small-note {
-      color: var(--muted);
-      font-size: var(--font-size-sm);
-      line-height: 1.45;
-    }
-
-    .brand-stats {
+    .canvas-panel {
+      min-height: 760px;
+      padding: 16px;
       display: grid;
-      gap: 8px;
-    }
-
-    .stat-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
       gap: 12px;
-      padding: 8px 10px;
-      border-radius: var(--radius-tight);
-      border: 1px solid var(--line);
-      background: rgba(255,255,255,0.02);
-      font-size: var(--font-size-sm);
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.025), rgba(255,255,255,0.015)),
+        rgba(255,255,255,0.02);
     }
-
-    .stat-row strong { color: var(--text); font-weight: 700; }
-    .stat-row span { color: var(--muted); font-family: var(--font-mono); font-size: var(--font-size-xs); }
-
-    .nav {
-      margin-top: 16px;
-      padding: 14px;
-      border-radius: var(--radius-card);
-      border: 1px solid var(--stroke);
-      background: rgba(255,255,255,0.02);
-      display: grid;
-      gap: 8px;
-    }
-
-    .nav-label {
+    .eyebrow {
       color: var(--muted);
       font-size: var(--font-size-xs);
       font-weight: 800;
       letter-spacing: 0.1em;
       text-transform: uppercase;
     }
-
-    .nav-step {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      min-height: 44px;
-      padding: 10px 12px;
-      border-radius: var(--radius-tight);
-      border: 1px solid transparent;
-      background: rgba(255,255,255,0.02);
-      color: var(--muted);
-      font-size: var(--font-size-sm);
-      font-weight: 600;
+    .canvas-frame {
+      min-height: 620px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-card);
+      background:
+        linear-gradient(transparent 31px, rgba(0,232,200,0.06) 32px),
+        linear-gradient(90deg, transparent 31px, rgba(0,232,200,0.06) 32px),
+        linear-gradient(180deg, rgba(10,16,20,0.95), rgba(8,12,16,0.95));
+      background-size: 32px 32px, 32px 32px, auto;
+      position: relative;
+      overflow: hidden;
     }
-
-    .nav-step--active {
-      border-color: rgba(0, 232, 200, 0.25);
-      background: var(--accent-soft);
-      color: var(--text);
+    .room-shape,
+    .platform,
+    .door {
+      position: absolute;
+      border-radius: 12px;
+      border: 1px solid rgba(0,232,200,0.18);
     }
-
-    .nav-step--active .nav-dot { background: var(--accent); }
-
-    .nav-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: var(--radius-xs);
-      background: var(--line-strong);
-      flex-shrink: 0;
+    .room-shape {
+      left: 92px; top: 92px; right: 88px; bottom: 84px;
+      background: rgba(10,18,22,0.82);
+      box-shadow: inset 0 0 0 1px rgba(0,232,200,0.08);
     }
-
-    .main {
-      min-width: 0;
+    .platform { background: rgba(119,184,255,0.16); height: 16px; }
+    .platform.p1 { left: 160px; right: 180px; bottom: 108px; }
+    .platform.p2 { left: 300px; width: 260px; bottom: 272px; }
+    .platform.p3 { right: 220px; width: 220px; top: 198px; }
+    .door { width: 56px; height: 92px; background: rgba(245,152,110,0.2); }
+    .door.d1 { left: 94px; bottom: 84px; }
+    .door.d2 { right: 88px; bottom: 84px; }
+    .results-panel {
       padding: 16px;
       display: grid;
       gap: 12px;
       align-content: start;
     }
-
-    .topbar,
-    .rail,
-    .surface,
-    .summary-card,
-    .inspector-card {
-      border-radius: var(--radius-card);
-      border: 1px solid var(--stroke);
-      background: var(--panel);
-      backdrop-filter: blur(18px);
-      box-shadow: var(--shadow-md);
-    }
-
-    .topbar {
+    .tabs {
       display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 14px;
-      min-height: 72px;
-    }
-
-    .title-block {
-      display: grid;
-      gap: 6px;
-      min-width: 0;
-    }
-
-    .title-block h2 {
-      margin: 0;
-      font-family: var(--font-display);
-      font-size: 22px;
-      line-height: 0.94;
-      font-weight: 400;
-      letter-spacing: 0.05em;
-    }
-
-    .title-block p {
-      margin: 0;
-      color: var(--muted);
-      font-size: var(--font-size-sm);
-      line-height: 1.45;
-    }
-
-    .status-group {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
       gap: 8px;
-      margin-left: auto;
     }
-
-    .pill,
-    .chip,
-    .badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      min-height: 28px;
-      padding: 5px 10px;
-      border-radius: var(--radius-full);
-      border: 1px solid var(--line);
-      font-size: var(--font-size-xs);
-      font-weight: 700;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      white-space: nowrap;
-    }
-
-    .pill--accent { background: var(--accent-soft); border-color: rgba(0,232,200,0.24); color: var(--accent); }
-    .pill--good { background: var(--good-soft); border-color: rgba(74,222,128,0.24); color: var(--good); }
-    .pill--warn { background: var(--warning-soft); border-color: rgba(210,153,34,0.22); color: var(--warning); }
-    .pill--error { background: var(--error-soft); border-color: rgba(248,81,73,0.22); color: var(--error); }
-
-    .rail {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 10px;
-    }
-
-    .rail button {
+    .tab {
       min-height: 44px;
       padding: 10px 14px;
       border-radius: var(--radius-tight);
-      border: 1px solid var(--control-border);
-      background: var(--control);
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.03);
       color: var(--muted);
-      font-family: var(--font-sans);
       font-size: var(--font-size-sm);
       font-weight: 700;
-      letter-spacing: 0.04em;
-      cursor: default;
-      transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast), transform var(--transition-fast);
     }
-
-    .rail button.active {
-      background: rgba(0, 232, 200, 0.14);
-      border-color: rgba(0, 232, 200, 0.28);
-      color: var(--accent);
+    .tab.active {
+      color: var(--text);
+      background: var(--accent-soft);
+      border-color: rgba(0,232,200,0.24);
     }
-
-    .rail button:hover { transform: translateY(-1px); background: var(--control-hover); border-color: rgba(0,232,200,0.28); }
-
-    .surface {
-      display: grid;
-      grid-template-columns: minmax(0, 1.35fr) minmax(300px, 0.65fr);
-      gap: 12px;
+    .card {
       padding: 14px;
-      align-items: start;
-    }
-
-    .surface-main {
       display: grid;
       gap: 12px;
-      min-width: 0;
     }
-
-    .hero {
-      display: grid;
-      grid-template-columns: minmax(0, 1.05fr) 328px;
-      gap: 12px;
-      min-width: 0;
-    }
-
-    .preview-stage,
-    .preview-meta,
-    .reference-stage,
-    .authoring-stage {
-      border-radius: var(--radius-card);
-      border: 1px solid var(--line);
-      background: rgba(255,255,255,0.02);
-      overflow: hidden;
-    }
-
-    .preview-stage {
-      padding: 14px;
-      min-height: 396px;
-      display: grid;
-      gap: 12px;
-      align-content: start;
-    }
-
-    .section-head {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      gap: 12px;
-    }
-
-    .section-head h3,
-    .summary-card h4 {
-      margin: 0;
+    .card h2,
+    .card h3,
+    .card h4,
+    .card p { margin: 0; }
+    .card h2 {
       font-family: var(--font-display);
-      font-size: 18px;
-      font-weight: 400;
+      font-size: var(--font-size-xl);
       letter-spacing: 0.05em;
-      line-height: 1;
+      font-weight: 400;
     }
-
-    .section-head p,
-    .summary-card p {
-      margin: 4px 0 0;
-      color: var(--muted);
-      font-size: var(--font-size-sm);
-      line-height: 1.45;
-    }
-
-    .preview-frame {
-      position: relative;
-      min-height: 244px;
-      border-radius: var(--radius-card);
-      border: 1px solid var(--line);
-      background:
-        radial-gradient(circle at 50% 36%, rgba(0, 232, 200, 0.12), transparent 20%),
-        linear-gradient(180deg, rgba(5, 7, 9, 0.94), rgba(9, 12, 16, 0.98));
-      overflow: hidden;
-    }
-
-    .preview-frame::before {
-      content: "";
-      position: absolute;
-      inset: 0;
-      background:
-        linear-gradient(180deg, transparent 0 10%, rgba(0, 0, 0, 0.14) 10% 82%, rgba(0, 0, 0, 0.24) 82% 100%),
-        radial-gradient(circle at 50% 42%, rgba(248, 81, 73, 0.08), transparent 19%);
-      pointer-events: none;
-    }
-
-    .frame-shell {
-      position: absolute;
-      inset: 16px 18px 18px;
-      border-radius: 18px;
-      background:
-        linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0)),
-        radial-gradient(circle at 50% 8%, rgba(0,232,200,0.10), transparent 20%);
-      border: 1px solid rgba(0, 232, 200, 0.10);
-      overflow: hidden;
-    }
-
-    .frame-shell::before {
-      content: "";
-      position: absolute;
-      inset: 0;
-      background:
-        linear-gradient(180deg, rgba(3,4,6,0.1), rgba(3,4,6,0.4)),
-        linear-gradient(90deg, rgba(255,255,255,0.05), transparent 18%, transparent 82%, rgba(255,255,255,0.05));
-      pointer-events: none;
-    }
-
-    .shell-backdrop {
-      position: absolute;
-      inset: 22px 20px 26px;
-      border-radius: 16px;
-      background:
-        linear-gradient(180deg, rgba(7, 10, 14, 0.96), rgba(5, 7, 9, 0.92)),
-        radial-gradient(circle at 50% 12%, rgba(210, 153, 34, 0.10), transparent 18%);
-      overflow: hidden;
-    }
-
-    .shell-backdrop::before {
-      content: "";
-      position: absolute;
-      inset: 0;
-      background:
-        linear-gradient(90deg, rgba(255,255,255,0.02), transparent 18%, transparent 82%, rgba(255,255,255,0.02)),
-        linear-gradient(180deg, transparent 0 18%, rgba(0, 232, 200, 0.06) 18% 22%, transparent 22% 74%, rgba(0, 232, 200, 0.05) 74% 78%, transparent 78% 100%);
-      pointer-events: none;
-    }
-
-    .shell-mass {
-      position: absolute;
-      bottom: 0;
-      width: 27%;
-      height: 76%;
-      background:
-        linear-gradient(180deg, rgba(14,19,27,0.94), rgba(9,12,16,0.98)),
-        repeating-linear-gradient(180deg, transparent 0 18px, rgba(255,255,255,0.02) 18px 20px);
-      border: 1px solid rgba(0,232,200,0.08);
-      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.02);
-    }
-
-    .shell-mass--left {
-      left: 0;
-      border-radius: 0 24px 12px 0;
-      clip-path: polygon(0 0, 84% 0, 100% 12%, 100% 100%, 0 100%);
-    }
-
-    .shell-mass--right {
-      right: 0;
-      border-radius: 24px 0 0 12px;
-      clip-path: polygon(0 0, 100% 0, 100% 100%, 16% 100%, 0 82%);
-    }
-
-    .shell-midground {
-      position: absolute;
-      inset: 30px 25%;
-      border-radius: 18px;
-      background:
-        linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0)),
-        linear-gradient(90deg, transparent 0 18%, rgba(0,232,200,0.08) 18% 22%, transparent 22% 78%, rgba(0,232,200,0.08) 78% 82%, transparent 82% 100%);
-      opacity: 0.78;
-    }
-
-    .shell-arch {
-      position: absolute;
-      left: 50%;
-      top: 8%;
-      transform: translateX(-50%);
-      width: 34%;
-      height: 30%;
-      border: 1px solid rgba(0,232,200,0.12);
-      border-bottom: none;
-      border-radius: 160px 160px 0 0;
-      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.03);
-      background: linear-gradient(180deg, rgba(255,255,255,0.02), transparent 72%);
-      opacity: 0.72;
-    }
-
-    .shell-floor {
-      position: absolute;
-      left: 12%;
-      right: 12%;
-      bottom: 0;
-      height: 23%;
-      border-radius: 18px 18px 14px 14px;
-      background:
-        linear-gradient(180deg, rgba(0,232,200,0.08), rgba(0,232,200,0.02) 24%, rgba(4,6,10,0.92) 24%, rgba(4,6,10,0.98)),
-        repeating-linear-gradient(90deg, rgba(255,255,255,0.03) 0 26px, rgba(0,0,0,0.03) 26px 28px);
-      border-top: 1px solid rgba(0,232,200,0.18);
-    }
-
-    .shell-platform {
-      position: absolute;
-      left: 28%;
-      bottom: 16%;
-      width: 26%;
-      height: 12%;
-      border-radius: 12px;
-      background:
-        linear-gradient(180deg, rgba(119,184,255,0.34), rgba(119,184,255,0.12)),
-        linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.04));
-      border: 1px solid rgba(119,184,255,0.36);
-      box-shadow: inset 0 -8px 0 rgba(0, 0, 0, 0.18);
-    }
-
-    .shell-door {
-      position: absolute;
-      right: 10%;
-      top: 20%;
-      width: 11%;
-      height: 32%;
-      border-radius: 14px;
-      background:
-        linear-gradient(180deg, rgba(245, 152, 110, 0.16), rgba(245, 152, 110, 0.06)),
-        linear-gradient(180deg, rgba(255,255,255,0.03), transparent);
-      border: 1px solid rgba(245, 152, 110, 0.30);
-    }
-
-    .preview-overlay {
-      position: absolute;
-      left: 14px;
-      top: 14px;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      max-width: calc(100% - 28px);
-    }
-
-    .chip {
-      background: rgba(255,255,255,0.03);
-      color: var(--text);
-    }
-
-    .chip--good { background: var(--good-soft); color: var(--good); border-color: rgba(74,222,128,0.22); }
-    .chip--warn { background: var(--warning-soft); color: var(--warning); border-color: rgba(210,153,34,0.22); }
-    .chip--accent { background: var(--accent-soft); color: var(--accent); border-color: rgba(0,232,200,0.22); }
-
-    .preview-footer {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      align-items: center;
-      justify-content: space-between;
-    }
-
-    .preview-footer .meta-note {
-      margin: 0;
-    }
-
-    .preview-buttons {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-    }
-
-    .ghost-btn {
-      min-height: 44px;
-      padding: 10px 14px;
-      border-radius: var(--radius-tight);
-      border: 1px solid var(--control-border);
-      background: var(--control);
-      color: var(--text);
-      font-family: var(--font-sans);
-      font-size: var(--font-size-sm);
-      font-weight: 700;
-      cursor: default;
-      transition: background var(--transition-base), border-color var(--transition-base), transform var(--transition-base);
-    }
-
-    .ghost-btn:hover { transform: translateY(-1px); background: var(--control-hover); border-color: rgba(0,232,200,0.28); }
-
-    .ghost-btn--primary {
-      background: rgba(0, 232, 200, 0.14);
-      border-color: rgba(0, 232, 200, 0.28);
-      color: var(--accent);
-    }
-
-    .preview-meta {
-      padding: 14px;
-      display: grid;
-      gap: 12px;
-      align-content: start;
-      min-width: 0;
-    }
-
-    .preview-meta .summary-grid {
-      display: grid;
-      gap: 8px;
-    }
-
-    .kv {
-      display: flex;
-      align-items: baseline;
-      justify-content: space-between;
-      gap: 12px;
-      padding: 10px 12px;
-      border-radius: var(--radius-tight);
-      border: 1px solid var(--line);
-      background: rgba(255,255,255,0.02);
-      font-size: var(--font-size-sm);
-    }
-
-    .kv strong {
-      color: var(--text);
-      font-weight: 700;
-      font-size: var(--font-size-sm);
-    }
-
-    .kv span {
-      color: var(--muted);
-      font-family: var(--font-mono);
-      font-size: var(--font-size-xs);
-      text-align: right;
-    }
-
-    .reference-stage,
-    .authoring-stage {
-      padding: 14px;
-      display: grid;
-      gap: 12px;
-    }
-
-    .upload-zone {
-      min-height: 92px;
-      border-radius: var(--radius-card);
-      border: 1px dashed rgba(0, 232, 200, 0.24);
-      background: rgba(0, 232, 200, 0.04);
-      padding: 14px;
-      display: grid;
-      gap: 8px;
-      align-content: start;
-    }
-
-    .upload-zone strong {
-      color: var(--text);
-      font-size: var(--font-size-sm);
-    }
-
-    .upload-zone p {
-      margin: 0;
-      color: var(--muted);
-      font-size: var(--font-size-sm);
-    }
-
-    .reference-list {
-      display: grid;
-      gap: 8px;
-    }
-
-    .reference-item {
-      display: grid;
-      grid-template-columns: 56px minmax(0, 1fr);
-      gap: 10px;
-      padding: 8px;
-      border-radius: var(--radius-tight);
-      border: 1px solid var(--line);
-      background: rgba(255,255,255,0.02);
-    }
-
-    .reference-thumb {
-      width: 56px;
-      height: 56px;
-      border-radius: 12px;
-      border: 1px solid rgba(0, 232, 200, 0.16);
-      background:
-        radial-gradient(circle at 40% 35%, rgba(0,232,200,0.18), transparent 24%),
-        linear-gradient(180deg, rgba(10,14,20,0.96), rgba(5,7,9,0.98));
-      position: relative;
-      overflow: hidden;
-    }
-
-    .reference-thumb::before {
-      content: "";
-      position: absolute;
-      inset: 10px 8px 14px;
-      border-radius: 10px;
-      border: 1px solid rgba(255,255,255,0.05);
-      background:
-        linear-gradient(180deg, rgba(255,255,255,0.04), transparent),
-        linear-gradient(90deg, rgba(119,184,255,0.16), rgba(245,152,110,0.10));
-    }
-
-    .reference-item h5,
-    .stage-title {
-      margin: 0;
-      color: var(--text);
-      font-size: var(--font-size-sm);
-      font-weight: 700;
-    }
-
-    .reference-item p {
-      margin: 4px 0 0;
-      color: var(--muted);
-      font-size: var(--font-size-xs);
-      line-height: 1.4;
-    }
-
-    .reference-meta {
-      margin-top: 6px;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-    }
-
-    .field {
-      display: grid;
-      gap: 8px;
-    }
-
-    .field label {
-      color: var(--text);
-      font-size: var(--font-size-xs);
-      font-weight: 800;
-      letter-spacing: 0.10em;
-      text-transform: uppercase;
-    }
-
-    .field input,
-    .field textarea {
-      width: 100%;
-      min-height: 44px;
-      padding: 12px 14px;
-      border-radius: var(--radius-tight);
-      border: 1px solid var(--line);
-      background: rgba(255,255,255,0.03);
-      color: var(--text);
-      font-family: var(--font-sans);
-      font-size: var(--font-size-sm);
-      resize: vertical;
-    }
-
-    .field textarea {
-      min-height: 104px;
-      line-height: 1.45;
-    }
-
-    .field input::placeholder,
-    .field textarea::placeholder { color: rgba(93, 120, 112, 0.76); }
-
-    .field input[readonly] {
-      border-color: rgba(0, 232, 200, 0.18);
-      background: rgba(0,232,200,0.04);
-    }
-
-    .inline-toggle {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      min-height: 44px;
-      padding: 10px 12px;
-      border-radius: var(--radius-tight);
-      border: 1px solid var(--line);
-      background: rgba(255,255,255,0.02);
-    }
-
-    .inline-toggle strong {
-      color: var(--text);
-      font-size: var(--font-size-sm);
-    }
-
-    .inline-toggle span {
-      color: var(--muted);
-      font-size: var(--font-size-xs);
-      line-height: 1.4;
-    }
-
-    .switch {
-      width: 48px;
-      height: 28px;
-      border-radius: var(--radius-full);
-      border: 1px solid rgba(0, 232, 200, 0.22);
-      background: rgba(0, 232, 200, 0.16);
-      position: relative;
-      flex-shrink: 0;
-    }
-
-    .switch::before {
-      content: "";
-      position: absolute;
-      top: 3px;
-      right: 3px;
-      width: 20px;
-      height: 20px;
-      border-radius: var(--radius-full);
-      background: var(--accent);
-      box-shadow: 0 2px 8px rgba(0,0,0,0.18);
-    }
-
-    .toggle-grid {
-      display: grid;
-      gap: 8px;
-    }
-
-    .toggle-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      min-height: 44px;
-      padding: 10px 12px;
-      border-radius: var(--radius-tight);
-      border: 1px solid var(--line);
-      background: rgba(255,255,255,0.02);
-    }
-
-    .toggle-row strong {
-      color: var(--text);
-      font-size: var(--font-size-sm);
-      font-weight: 700;
-    }
-
-    .toggle-row .mini {
-      color: var(--muted);
-      font-size: var(--font-size-xs);
-      line-height: 1.4;
-    }
-
-    .toggle-row .switch--off {
-      background: rgba(255,255,255,0.04);
-      border-color: rgba(93,120,112,0.24);
-    }
-
-    .toggle-row .switch--off::before {
-      left: 3px;
-      right: auto;
-      background: rgba(204, 232, 224, 0.82);
-    }
-
-    .summary-stack {
-      display: grid;
-      gap: 12px;
-    }
-
-    .summary-card {
-      padding: 14px;
-      display: grid;
-      gap: 12px;
-    }
-
-    .summary-card__head {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      gap: 12px;
-    }
-
-    .summary-card__body {
-      display: grid;
-      gap: 10px;
-    }
-
-    .summary-card__grid {
+    .field-grid {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+    .field-grid .wide { grid-column: 1 / -1; }
+    label { display: grid; gap: 8px; }
+    .field-label {
+      color: var(--muted);
+      font-size: var(--font-size-xs);
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    input, textarea {
+      width: 100%;
+      min-height: 44px;
+      padding: 10px 12px;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.03);
+      color: var(--text);
+      font: inherit;
+    }
+    textarea { min-height: 80px; resize: vertical; }
+    .inline-check {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 44px;
+      padding: 10px 12px;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.03);
+      color: var(--text);
+      font-size: var(--font-size-sm);
+      font-weight: 600;
+    }
+    .pill-row,
+    .toggle-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .pill {
+      min-height: 28px;
+      padding: 4px 10px;
+      border-radius: var(--radius-full);
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.03);
+      color: var(--muted);
+      font-size: var(--font-size-xs);
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .pill.good { color: var(--good); border-color: rgba(74,222,128,0.26); background: var(--good-soft); }
+    .pill.warn { color: var(--warning); border-color: rgba(210,153,34,0.26); background: var(--warning-soft); }
+    .pill.accent { color: var(--accent); border-color: rgba(0,232,200,0.24); background: var(--accent-soft); }
+    .toggle {
+      min-height: 28px;
+      padding: 6px 10px;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.03);
+      color: var(--muted);
+      font-size: var(--font-size-xs);
+      font-weight: 700;
+    }
+    .toggle.on { color: var(--text); border-color: rgba(0,232,200,0.24); background: var(--accent-soft); }
+    .stage-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .stage {
+      padding: 12px;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.03);
+      display: grid;
       gap: 8px;
     }
-
-    .summary-line {
-      padding: 10px 12px;
-      border-radius: var(--radius-tight);
-      border: 1px solid var(--line);
-      background: rgba(255,255,255,0.02);
+    .stage.wide { grid-column: 1 / -1; }
+    .stage-head {
       display: flex;
       align-items: flex-start;
       justify-content: space-between;
       gap: 12px;
-      font-size: var(--font-size-sm);
     }
-
-    .summary-line strong { color: var(--text); font-weight: 700; }
-    .summary-line span { color: var(--muted); font-family: var(--font-mono); font-size: var(--font-size-xs); text-align: right; }
-
-    .summary-card .chip-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-    }
-
-    .summary-card .chip { min-height: 28px; padding: 5px 10px; }
-
-    .summary-card--stylepack .chip-row .chip--accent {
-      background: rgba(0, 232, 200, 0.12);
-    }
-
-    .summary-card--validation .summary-line {
-      border-color: rgba(74,222,128,0.18);
-      background: rgba(74,222,128,0.05);
-    }
-
-    .summary-card--validation .summary-line.warn {
-      border-color: rgba(210,153,34,0.22);
-      background: rgba(210,153,34,0.08);
-    }
-
-    .summary-card--validation .summary-line.error {
-      border-color: rgba(248,81,73,0.22);
-      background: rgba(248,81,73,0.08);
-    }
-
-    .summary-card--validation .summary-line span {
-      color: var(--good);
-    }
-
-    .summary-card--validation .summary-line.warn span {
-      color: var(--warning);
-    }
-
-    .summary-card--validation .summary-line.error span {
-      color: var(--error);
-    }
-
-    .summary-card--manifest .summary-line span {
-      color: var(--text);
-    }
-
-    .rail-actions {
-      margin-left: auto;
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-
-    .footer-note {
-      margin-top: 2px;
-      padding: 12px 14px;
-      border-radius: var(--radius-card);
-      border: 1px solid var(--line);
-      background: rgba(255,255,255,0.02);
+    .stage-copy {
       color: var(--muted);
       font-size: var(--font-size-sm);
-      line-height: 1.5;
+      line-height: 1.45;
     }
-
-    @media (max-width: 1220px) {
-      .shell { grid-template-columns: 1fr; }
-      .sidebar { border-right: none; border-bottom: 1px solid var(--line); }
-      .hero, .surface { grid-template-columns: 1fr; }
+    .preview-strip {
+      display: grid;
+      gap: 8px;
+    }
+    .preview-image {
+      min-height: 180px;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background:
+        radial-gradient(circle at 50% 26%, rgba(255,255,255,0.12), transparent 18%),
+        linear-gradient(180deg, rgba(18,26,30,0.92), rgba(10,16,20,0.96));
+      position: relative;
+      overflow: hidden;
+    }
+    .preview-image::before,
+    .preview-image::after {
+      content: "";
+      position: absolute;
+      inset: auto 0 0 0;
+      height: 34%;
+      background: linear-gradient(180deg, rgba(58,50,44,0.2), rgba(62,54,48,0.8));
+    }
+    .preview-image::after {
+      inset: 0 auto 0 0;
+      width: 22%;
+      height: auto;
+      background: linear-gradient(180deg, rgba(14,18,22,0.96), rgba(18,24,28,0.94));
+    }
+    @media (max-width: 1120px) {
+      .app { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 720px) {
+      .field-grid, .stage-grid { grid-template-columns: 1fr; }
+      .field-grid .wide, .stage.wide { grid-column: auto; }
     }
   </style>
 </head>
 <body>
-  <div class="mock-banner">HI-FI MOCKUP - ROOM ENVIRONMENT MVP RESULTS SURFACE - NOT IMPLEMENTED IN ROOM EDITOR</div>
-  <div class="shell">
-    <aside class="sidebar" aria-label="Mock project rail">
-      <div class="brand">
-        <div class="eyebrow">Room Editor / Environment</div>
-        <h1>MVP results surface for proposal-first environment authoring</h1>
-        <p>Reference upload, theme naming, notes, seed locking, stylepack control, staged summaries, and debug layers in one reviewable surface.</p>
-        <div class="brand-stats">
-          <div class="stat-row"><strong>Room</strong><span>RG-R2</span></div>
-          <div class="stat-row"><strong>Pipeline</strong><span>v3</span></div>
-          <div class="stat-row"><strong>Review</strong><span>Ready with warnings</span></div>
-        </div>
+  <div class="banner">Corrected Direction: embedded room editor workbench, not a separate dashboard</div>
+  <main class="app">
+    <section class="canvas-panel">
+      <div>
+        <p class="eyebrow">Room Editor</p>
+        <h2>Phase 2 · Environment</h2>
+        <p class="stage-copy">Layout remains authoritative. The Results tab extends the room workbench with room-level environment authoring, staged review, and debug toggles.</p>
       </div>
-      <nav class="nav" aria-label="Workflow stages">
-        <div class="nav-label">Workflow</div>
-        <div class="nav-step"><span class="nav-dot"></span> Setup</div>
-        <div class="nav-step"><span class="nav-dot"></span> Components</div>
-        <div class="nav-step nav-step--active"><span class="nav-dot"></span> Results</div>
-      </nav>
-      <div class="nav" aria-label="QA focus">
-        <div class="nav-label">QA focus</div>
-        <div class="stat-row"><strong>State</strong><span>Draft / Locked / Ready / Blocked</span></div>
-        <div class="stat-row"><strong>Core checks</strong><span>Stage order, artifact sync, overlay toggles</span></div>
-        <div class="stat-row"><strong>Surface scope</strong><span>Editor only, no runtime drift</span></div>
+      <div class="canvas-frame">
+        <div class="room-shape"></div>
+        <div class="platform p1"></div>
+        <div class="platform p2"></div>
+        <div class="platform p3"></div>
+        <div class="door d1"></div>
+        <div class="door d2"></div>
       </div>
-    </aside>
-
-    <main class="main">
-      <header class="topbar">
-        <div class="title-block">
-          <div class="eyebrow">Results surface</div>
-          <h2>Room Environment MVP extension</h2>
-          <p>Expose the user-authored inputs and the generated review outputs in one place, with proposal-first controls above the staged summaries.</p>
-        </div>
-        <div class="status-group" aria-label="Surface status">
-          <span class="pill pill--accent">Proposal first</span>
-          <span class="pill pill--good">Manifest ready</span>
-          <span class="pill pill--warn">Runtime review pending</span>
-        </div>
-      </header>
-
-      <section class="rail" aria-label="Environment tabs">
-        <button type="button">Setup</button>
-        <button type="button">Components</button>
-        <button type="button" class="active">Results</button>
-        <div class="rail-actions">
-          <button type="button" class="ghost-btn ghost-btn--primary">Build Production Assets</button>
-          <button type="button" class="ghost-btn">Open Runtime</button>
-        </div>
-      </section>
-
-      <section class="surface" aria-label="Environment results and controls">
-        <div class="surface-main">
-          <section class="hero" aria-label="Preview and summary">
-            <div class="preview-stage">
-              <div class="section-head">
-                <div>
-                  <h3>Review preview</h3>
-                  <p>Approved preview, stylepack lock state, and reference cluster all read from the same results surface.</p>
-                </div>
-                <span class="pill pill--accent">v3 review</span>
-              </div>
-              <div class="preview-frame" aria-hidden="true">
-                <div class="frame-shell">
-                  <div class="shell-backdrop">
-                    <div class="shell-arch"></div>
-                    <div class="shell-mass shell-mass--left"></div>
-                    <div class="shell-mass shell-mass--right"></div>
-                    <div class="shell-midground"></div>
-                    <div class="shell-platform"></div>
-                    <div class="shell-door"></div>
-                    <div class="shell-floor"></div>
-                  </div>
-                </div>
-                <div class="preview-overlay">
-                  <span class="chip chip--accent">Stylepack locked</span>
-                  <span class="chip chip--good">Reference 2 approved</span>
-                  <span class="chip chip--warn">Validation gap: runtime screenshot pending</span>
-                </div>
-              </div>
-              <div class="preview-footer">
-                <p class="meta-note">The preview is not a freeform final render. It is a contract-backed review artifact that follows the generated stylepack and validation state.</p>
-                <div class="preview-buttons">
-                  <button type="button" class="ghost-btn ghost-btn--primary">Approve preview</button>
-                  <button type="button" class="ghost-btn">Revise</button>
-                </div>
-              </div>
-            </div>
-
-            <aside class="preview-meta" aria-label="Current room metadata">
-              <div class="section-head">
-                <div>
-                  <h3>Metadata</h3>
-                  <p>These inputs stay visible in Results so the author can confirm the chosen room identity before any build.</p>
-                </div>
-              </div>
-              <div class="summary-grid">
-                <div class="kv"><strong>Theme name</strong><span>Ruined Gothic Keep</span></div>
-                <div class="kv"><strong>Seed</strong><span>RG-R2-184233</span></div>
-                <div class="kv"><strong>Stylepack</strong><span>Ruins / locked</span></div>
-                <div class="kv"><strong>References</strong><span>2 uploaded, 1 pinned</span></div>
-                <div class="kv"><strong>Notes</strong><span>Shell must stay heavy, threshold clear</span></div>
-              </div>
-            </aside>
-          </section>
-
-          <section class="summary-stack" aria-label="Stage summaries">
-            <article class="summary-card summary-card--stylepack">
-              <div class="summary-card__head">
-                <div>
-                  <h4>Stylepack</h4>
-                  <p>What the room is borrowing from the locked style direction, and what is frozen until the author unlocks it.</p>
-                </div>
-                <span class="pill pill--accent">Locked</span>
-              </div>
-              <div class="summary-card__body">
-                <div class="summary-card__grid">
-                  <div class="summary-line"><strong>Source</strong><span>Ruins v2</span></div>
-                  <div class="summary-line"><strong>Lock</strong><span>On</span></div>
-                </div>
-                <div class="chip-row">
-                  <span class="chip chip--accent">Approved reference set</span>
-                  <span class="chip">Palette preserved</span>
-                  <span class="chip">Gemini guide pinned</span>
-                </div>
-              </div>
-            </article>
-
-            <article class="summary-card">
-              <div class="summary-card__head">
-                <div>
-                  <h4>Semantics</h4>
-                  <p>Human-facing room meaning, author notes, and seed discipline shown as a compact contract block.</p>
-                </div>
-                <span class="pill pill--good">Stable</span>
-              </div>
-              <div class="summary-card__body">
-                <div class="summary-card__grid">
-                  <div class="summary-line"><strong>Theme name</strong><span>Ruined Gothic Keep</span></div>
-                  <div class="summary-line"><strong>Seed</strong><span>RG-R2-184233</span></div>
-                  <div class="summary-line"><strong>Notes</strong><span>Need clear platform top and door mouth</span></div>
-                  <div class="summary-line"><strong>Room role</strong><span>Corridor transition</span></div>
-                </div>
-                <div class="chip-row">
-                  <span class="chip">dark stone</span>
-                  <span class="chip">threshold clarity</span>
-                  <span class="chip">center lane calm</span>
-                </div>
-              </div>
-            </article>
-
-            <article class="summary-card">
-              <div class="summary-card__head">
-                <div>
-                  <h4>Kit</h4>
-                  <p>Generated shell pieces, component families, and stale-layer warnings assembled from the same runtime payload.</p>
-                </div>
-                <span class="pill pill--warn">1 stale layer</span>
-              </div>
-              <div class="summary-card__body">
-                <div class="summary-card__grid">
-                  <div class="summary-line"><strong>Built</strong><span>8 / 8 slots</span></div>
-                  <div class="summary-line"><strong>Assets</strong><span>9 images</span></div>
-                  <div class="summary-line"><strong>Guide family</strong><span>Sanitized</span></div>
-                  <div class="summary-line"><strong>Fallbacks</strong><span>None</span></div>
-                </div>
-                <div class="chip-row">
-                  <span class="chip">walls</span>
-                  <span class="chip">floor</span>
-                  <span class="chip">platforms</span>
-                  <span class="chip">doors</span>
-                  <span class="chip">background</span>
-                  <span class="chip">midground</span>
-                  <span class="chip">ceiling</span>
-                  <span class="chip">backwall panel</span>
-                </div>
-              </div>
-            </article>
-
-            <article class="summary-card summary-card--manifest">
-              <div class="summary-card__head">
-                <div>
-                  <h4>Manifest</h4>
-                  <p>Production build state, generation provenance, and runtime capture details for the current room.</p>
-                </div>
-                <span class="pill pill--good">Ready</span>
-              </div>
-              <div class="summary-card__body">
-                <div class="summary-card__grid">
-                  <div class="summary-line"><strong>Generated at</strong><span>2026-04-04 09:18</span></div>
-                  <div class="summary-line"><strong>Preview</strong><span>Approved</span></div>
-                  <div class="summary-line"><strong>Review mode</strong><span>Headless browser</span></div>
-                  <div class="summary-line"><strong>Failed assets</strong><span>0</span></div>
-                </div>
-                <div class="chip-row">
-                  <span class="chip">stylepack plan</span>
-                  <span class="chip">slot manifest</span>
-                  <span class="chip">runtime screenshot</span>
-                </div>
-              </div>
-            </article>
-
-            <article class="summary-card summary-card--validation">
-              <div class="summary-card__head">
-                <div>
-                  <h4>Validation</h4>
-                  <p>Automated schema checks, runtime review, and approval state. This is the final gate for the results surface.</p>
-                </div>
-                <span class="pill pill--warn">Pending screenshot</span>
-              </div>
-              <div class="summary-card__body">
-                <div class="summary-card__grid">
-                  <div class="summary-line"><strong>Schema</strong><span>Pass</span></div>
-                  <div class="summary-line warn"><strong>Runtime</strong><span>Warn</span></div>
-                  <div class="summary-line warn"><strong>Blocker</strong><span>Missing runtime capture</span></div>
-                  <div class="summary-line warn"><strong>Approval</strong><span>Draft</span></div>
-                </div>
-                <div class="chip-row">
-                  <span class="chip chip--good">shell readable</span>
-                  <span class="chip chip--warn">contrast review due</span>
-                  <span class="chip chip--accent">approval needed</span>
-                </div>
-              </div>
-            </article>
-          </section>
-        </div>
-
-        <aside class="inspector-card" aria-label="Authoring controls">
-          <div class="section-head">
-            <div>
-              <h3>Authoring controls</h3>
-              <p>These fields are the user-facing entry points that seed the staged review summaries below.</p>
-            </div>
+    </section>
+    <aside class="results-panel">
+      <div class="tabs">
+        <div class="tab">Setup</div>
+        <div class="tab">Components</div>
+        <div class="tab active">Results</div>
+      </div>
+      <section class="card">
+        <p class="eyebrow">Results Tab</p>
+        <h2>Room Environment Workbench</h2>
+        <p class="stage-copy">Reference uploads, room notes, lock state, staged summaries, and debug toggles all stay inside the existing Results surface.</p>
+        <div class="field-grid">
+          <label>
+            <span class="field-label">Theme name</span>
+            <input value="Ruined Gothic Keep" />
+          </label>
+          <label>
+            <span class="field-label">Seed</span>
+            <input value="RG-R2-184233" />
+          </label>
+          <label class="wide">
+            <span class="field-label">Room notes</span>
+            <textarea>Keep the shell heavy, preserve threshold readability, and leave the center lane calm.</textarea>
+          </label>
+          <label class="wide">
+            <span class="field-label">Reference pack uploads</span>
+            <input value="keep-gate.png, side-wall-masonry.png" />
+          </label>
+          <div class="inline-check wide">
+            <input type="checkbox" checked />
+            <span>Lock Stylepack after the room reference pack is pinned</span>
           </div>
-
-          <section class="reference-stage" aria-labelledby="ref-upload">
-            <div class="section-head">
-              <div>
-                <h3 id="ref-upload">Reference upload</h3>
-                <p>Attach image references that guide stylepack and kit selection.</p>
-              </div>
-              <span class="pill pill--accent">2 files</span>
-            </div>
-            <div class="upload-zone">
-              <strong>Drop references here</strong>
-              <p>PNG, JPG, or WebP. The last approved reference stays pinned when stylepack is locked.</p>
-            </div>
-            <div class="reference-list">
-              <article class="reference-item">
-                <div class="reference-thumb" aria-hidden="true"></div>
-                <div>
-                  <h5>Keep gate silhouette</h5>
-                  <p>Pinned to stylepack. Confirms heavy shell mass and threshold framing.</p>
-                  <div class="reference-meta">
-                    <span class="badge pill--good">approved</span>
-                    <span class="badge">stylepack</span>
-                  </div>
-                </div>
-              </article>
-              <article class="reference-item">
-                <div class="reference-thumb" aria-hidden="true"></div>
-                <div>
-                  <h5>Midground side frame study</h5>
-                  <p>Used for the side-only frame read. Not pinned while stylepack remains locked.</p>
-                  <div class="reference-meta">
-                    <span class="badge pill--warn">queued</span>
-                    <span class="badge">kit</span>
-                  </div>
-                </div>
-              </article>
-            </div>
-          </section>
-
-          <section class="authoring-stage" aria-labelledby="authoring-fields">
-            <div class="section-head">
-              <div>
-                <h3 id="authoring-fields">Theme, notes, seed</h3>
-                <p>These are persisted authoring fields, not ephemeral inspector noise.</p>
-              </div>
-            </div>
-
-            <div class="field">
-              <label for="theme-name">Theme name</label>
-              <input id="theme-name" type="text" value="Ruined Gothic Keep" />
-            </div>
-
-            <div class="field">
-              <label for="notes">Notes</label>
-              <textarea id="notes">Keep the shell heavy, keep the center lane calm, and let the door mouth stay readable at a glance.</textarea>
-            </div>
-
-            <div class="field">
-              <label for="seed">Seed</label>
-              <input id="seed" type="text" value="RG-R2-184233" />
-              <div class="field-help">Seed is stable author intent, not a randomizer. It should remain visible in Results.</div>
-            </div>
-
-            <div class="inline-toggle">
-              <div>
-                <strong>Lock Stylepack</strong>
-                <span>Freezes the current stylepack bundle until unlocked.</span>
-              </div>
-              <div class="switch" aria-hidden="true"></div>
-            </div>
-          </section>
-
-          <section class="authoring-stage" aria-labelledby="debug-layers">
-            <div class="section-head">
-              <div>
-                <h3 id="debug-layers">Debug and layer toggles</h3>
-                <p>Secondary diagnostics that reveal overlay mechanics without changing the payload.</p>
-              </div>
-            </div>
-            <div class="toggle-grid">
-              <div class="toggle-row">
-                <div>
-                  <strong>Assembly overlay</strong>
-                  <div class="mini">Shows slot outlines and protected zones.</div>
-                </div>
-                <div class="switch"></div>
-              </div>
-              <div class="toggle-row">
-                <div>
-                  <strong>Layer labels</strong>
-                  <div class="mini">Prints stylepack, kit, and manifest layer names.</div>
-                </div>
-                <div class="switch"></div>
-              </div>
-              <div class="toggle-row">
-                <div>
-                  <strong>Validation masks</strong>
-                  <div class="mini">Highlights blockers, warnings, and runtime review gaps.</div>
-                </div>
-                <div class="switch switch--off"></div>
-              </div>
-              <div class="toggle-row">
-                <div>
-                  <strong>Runtime split view</strong>
-                  <div class="mini">Separates preview, manifest, and screenshot evidence.</div>
-                </div>
-                <div class="switch"></div>
-              </div>
-            </div>
-          </section>
-        </aside>
+        </div>
+        <div class="pill-row">
+          <span class="pill accent">Pinned 1</span>
+          <span class="pill">References 2</span>
+          <span class="pill good">Stylepack locked</span>
+        </div>
+        <div class="toggle-row">
+          <span class="toggle on">Structural</span>
+          <span class="toggle on">Background</span>
+          <span class="toggle on">Decor</span>
+          <span class="toggle on">Semantics overlay</span>
+          <span class="toggle">Exclusion zones</span>
+          <span class="toggle">Validation highlights</span>
+        </div>
       </section>
-
-      <p class="footer-note">
-        QA should validate the following visible states in this mockup before implementation starts: empty references, unlocked stylepack, locked stylepack, draft notes, seeded room, manifest ready, runtime blocked, and debug overlays on or off. The implementation should keep the Results surface proposal-first and must not auto-apply generated style changes without an explicit user action.
-      </p>
-    </main>
-  </div>
+      <section class="card preview-strip">
+        <p class="eyebrow">Preview</p>
+        <div class="preview-image"></div>
+      </section>
+      <section class="card">
+        <p class="eyebrow">Staged Review</p>
+        <div class="stage-grid">
+          <article class="stage">
+            <div class="stage-head">
+              <div>
+                <p class="eyebrow">1. Stylepack</p>
+                <strong>Uploads-first room stylepack</strong>
+              </div>
+              <span class="pill good">Locked</span>
+            </div>
+            <p class="stage-copy">Reference pack pins stay visible here, not in a separate dashboard shell.</p>
+          </article>
+          <article class="stage">
+            <div class="stage-head">
+              <div>
+                <p class="eyebrow">2. Semantics</p>
+                <strong>3 tops · 2 openings</strong>
+              </div>
+              <span class="pill warn">Ready</span>
+            </div>
+            <p class="stage-copy">Overlay geometry summaries remain tied to this room’s authored layout.</p>
+          </article>
+          <article class="stage">
+            <div class="stage-head">
+              <div>
+                <p class="eyebrow">3. Kit</p>
+                <strong>14 components</strong>
+              </div>
+              <span class="pill warn">Ready</span>
+            </div>
+            <p class="stage-copy">Structural, background, and decor classes stay grouped by room application.</p>
+          </article>
+          <article class="stage">
+            <div class="stage-head">
+              <div>
+                <p class="eyebrow">4. Manifest</p>
+                <strong>11 placements</strong>
+              </div>
+              <span class="pill warn">Partial</span>
+            </div>
+            <p class="stage-copy">The manifest summary sits next to the preview candidates and build action.</p>
+          </article>
+          <article class="stage wide">
+            <div class="stage-head">
+              <div>
+                <p class="eyebrow">5. Validation</p>
+                <strong>Runtime screenshot required</strong>
+              </div>
+              <span class="pill warn">Pending</span>
+            </div>
+            <p class="stage-copy">Validation stays in the same Results tab, with blockers and unresolved surfaces visible before the room is treated as ready.</p>
+          </article>
+        </div>
+      </section>
+    </aside>
+  </main>
 </body>
 </html>

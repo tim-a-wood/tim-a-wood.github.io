@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import copy
 import hashlib
+import json
 import sys
 import tempfile
 import unittest
@@ -14,6 +15,7 @@ if str(ROOT) not in sys.path:
 
 from scripts import room_environment_system as envsys
 from scripts import room_environment_v3 as envv3
+from scripts.environment_v3 import persistence as envv3_persistence
 
 
 class RoomEnvironmentSystemTests(unittest.TestCase):
@@ -833,7 +835,191 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         self.assertIn("editor_results_payload", env)
         self.assertIn("staged_artifacts", env)
         self.assertEqual(env["editor_results_payload"]["semantics"]["counts"]["top_count"], 1)
+        self.assertEqual(env["environment_kit"]["source"]["semantic_source"]["room_role"], env["room_semantics"]["room_role"])
+        self.assertEqual(
+            env["environment_kit"]["summary"]["structural_count"],
+            env["environment_manifest"]["generation_metadata"]["structural_count"],
+        )
+        self.assertEqual(
+            env["environment_kit"]["summary"]["background_count"],
+            env["environment_manifest"]["generation_metadata"]["background_count"],
+        )
+        self.assertEqual(env["environment_kit"]["summary"]["component_count_by_type"], env["environment_kit"]["component_count_by_type"])
+        self.assertEqual(env["editor_results_payload"]["kit"]["component_count_by_type"], env["environment_kit"]["component_count_by_type"])
+        self.assertIn("taxonomy", env["editor_results_payload"]["kit"])
+        self.assertEqual(env["environment_manifest"]["layer_order"], ["structural", "background", "decor"])
+        self.assertEqual(env["environment_manifest"]["generation_metadata"]["pass_order"], ["structural", "background", "decor"])
+        self.assertTrue(env["environment_manifest"]["deterministic_replay"]["replay_key"])
+        self.assertEqual(
+            env["environment_manifest"]["placement_summary"]["total_count"],
+            env["environment_manifest"]["generation_metadata"]["placement_count"],
+        )
+        self.assertEqual(env["editor_results_payload"]["manifest"]["layer_order"], ["structural", "background", "decor"])
+        self.assertIn("blocker_count", env["validation_report"])
+        self.assertIn("validation_highlights", env["validation_report"])
+        self.assertIsInstance(env["validation_report"]["findings"]["warnings"], list)
+        self.assertEqual(env["editor_results_payload"]["validation"]["status"], "ready")
+        self.assertIn("findings", env["editor_results_payload"]["validation"])
+        self.assertEqual(env["environment_kit"]["summary"]["component_count"], 0)
+        self.assertEqual(env["environment_kit"]["source"]["semantic_source"]["room_role"], env["room_intent"]["room_role"])
         self.assertEqual(env["staged_artifacts"]["stylepack"]["status"], "ready")
+
+    def test_v3_build_persists_derived_artifacts_to_disk(self):
+        envsys.update_project_art_direction(self.project_id, {"template_id": "ruined-gothic", "locked": True})
+        envsys.build_room_environment_spec(
+            self.project_id,
+            "R1",
+            {
+                "environment_pipeline_version": "v3",
+                "description": "A quiet stone threshold with readable shell definition and restrained background depth.",
+            },
+        )
+        artifact_root = self.projects_root / self.project_id / "room_environment_assets" / "R1" / envv3_persistence.DERIVED_SUBDIR
+        self.assertTrue((artifact_root / envv3_persistence.ARTIFACT_REFERENCE_PACK).exists())
+        self.assertTrue((artifact_root / envv3_persistence.ARTIFACT_STYLEPACK).exists())
+        self.assertTrue((artifact_root / envv3_persistence.ARTIFACT_ROOM_SEMANTICS).exists())
+        self.assertTrue((artifact_root / envv3_persistence.ARTIFACT_ENVIRONMENT_KIT).exists())
+        self.assertTrue((artifact_root / envv3_persistence.ARTIFACT_ENVIRONMENT_MANIFEST).exists())
+        self.assertTrue((artifact_root / envv3_persistence.ARTIFACT_VALIDATION_REPORT).exists())
+
+    def test_v3_reopen_hydrates_persisted_artifacts_when_env_state_is_missing(self):
+        envsys.update_project_art_direction(self.project_id, {"template_id": "ruined-gothic", "locked": True})
+        envsys.build_room_environment_spec(
+            self.project_id,
+            "R1",
+            {
+                "environment_pipeline_version": "v3",
+                "description": "A quiet stone threshold with readable shell definition and restrained background depth.",
+            },
+        )
+        manifest_path = envv3_persistence.artifact_path(
+            self.projects_root,
+            self.project_id,
+            "R1",
+            "environment_manifest",
+        )
+        manifest_doc = json.loads(manifest_path.read_text(encoding="utf-8"))
+        manifest_doc["persistence_probe"] = "disk-backed-manifest"
+        manifest_path.write_text(json.dumps(manifest_doc, indent=2) + "\n", encoding="utf-8")
+
+        room_env = self.saved["room_layout"]["rooms"][0]["environment"]
+        for key in [
+            "reference_pack",
+            "stylepack",
+            "room_semantics",
+            "environment_kit",
+            "environment_manifest",
+            "validation_report",
+            "editor_results_payload",
+            "staged_artifacts",
+        ]:
+            room_env.pop(key, None)
+
+        reopened_room = envsys._find_room(self.saved, "R1")
+        reopened_env = reopened_room["environment"]
+        self.assertEqual(reopened_env["environment_manifest"]["persistence_probe"], "disk-backed-manifest")
+        self.assertEqual(reopened_env["staged_artifacts"]["environment_manifest"]["status"], "ready")
+        self.assertEqual(
+            reopened_env["staged_artifacts"]["environment_manifest"]["relative_path"],
+            f"derived/v3/{envv3_persistence.ARTIFACT_ENVIRONMENT_MANIFEST}",
+        )
+        self.assertEqual(
+            reopened_env["editor_results_payload"]["manifest"]["generation_metadata"],
+            reopened_env["environment_manifest"]["generation_metadata"],
+        )
+
+    def test_v3_reopen_hydrates_multiple_persisted_artifacts_into_results_payload(self):
+        envsys.update_project_art_direction(self.project_id, {"template_id": "ruined-gothic", "locked": True})
+        envsys.build_room_environment_spec(
+            self.project_id,
+            "R1",
+            {
+                "environment_pipeline_version": "v3",
+                "description": "A quiet stone threshold with readable shell definition and restrained background depth.",
+            },
+        )
+        stylepack_path = envv3_persistence.artifact_path(
+            self.projects_root,
+            self.project_id,
+            "R1",
+            "stylepack",
+        )
+        stylepack_doc = json.loads(stylepack_path.read_text(encoding="utf-8"))
+        stylepack_doc["summary"] = "disk-backed-stylepack"
+        stylepack_path.write_text(json.dumps(stylepack_doc, indent=2) + "\n", encoding="utf-8")
+
+        validation_path = envv3_persistence.artifact_path(
+            self.projects_root,
+            self.project_id,
+            "R1",
+            "validation_report",
+        )
+        validation_doc = json.loads(validation_path.read_text(encoding="utf-8"))
+        validation_doc["info_count"] = 42
+        validation_doc["findings"]["info"].append(
+            {
+                "severity": "info",
+                "code": "disk_backed_probe",
+                "message": "Loaded from persisted validation report.",
+            }
+        )
+        validation_path.write_text(json.dumps(validation_doc, indent=2) + "\n", encoding="utf-8")
+
+        room_env = self.saved["room_layout"]["rooms"][0]["environment"]
+        for key in [
+            "reference_pack",
+            "stylepack",
+            "room_semantics",
+            "environment_kit",
+            "environment_manifest",
+            "validation_report",
+            "editor_results_payload",
+            "staged_artifacts",
+        ]:
+            room_env.pop(key, None)
+
+        reopened_room = envsys._find_room(self.saved, "R1")
+        reopened_env = reopened_room["environment"]
+        self.assertEqual(reopened_env["stylepack"]["summary"], "disk-backed-stylepack")
+        self.assertEqual(reopened_env["validation_report"]["info_count"], 42)
+        self.assertTrue(
+            any(
+                item.get("code") == "disk_backed_probe"
+                for item in reopened_env["editor_results_payload"]["validation"]["info"]
+            )
+        )
+        self.assertEqual(
+            reopened_env["editor_results_payload"]["validation"]["info_count"],
+            reopened_env["validation_report"]["info_count"],
+        )
+
+    def test_v2_rooms_do_not_silently_upgrade_or_hydrate_v3_artifacts_on_reopen(self):
+        room = self.saved["room_layout"]["rooms"][0]
+        room["environment"] = {
+            "environment_pipeline_version": "v2",
+            "spec": {
+                "description": "Legacy environment payload",
+                "components": {},
+                "component_schemas": {},
+                "scene_schema": {},
+            },
+            "preview": {"status": "idle", "images": []},
+            "runtime": {"status": "idle", "bespoke_asset_manifest": {"status": "idle"}},
+        }
+        envv3_persistence.save_artifact(
+            self.projects_root,
+            self.project_id,
+            "R1",
+            "stylepack",
+            {"stylepack_id": "stylepack-r1", "summary": "should-not-hydrate"},
+        )
+
+        reopened_room = envsys._find_room(self.saved, "R1")
+        reopened_env = reopened_room["environment"]
+        self.assertEqual(reopened_env["environment_pipeline_version"], "v2")
+        self.assertNotIn("stylepack", reopened_env)
+        self.assertNotIn("staged_artifacts", reopened_env)
+        self.assertNotIn("editor_results_payload", reopened_env)
 
     def test_v3_runtime_review_controls_approval_state(self):
         envsys.update_project_art_direction(self.project_id, {"template_id": "overgrown-shrine", "locked": True})
@@ -860,6 +1046,34 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         self.assertEqual(review_state["runtime_review"]["status"], "pass")
         self.assertEqual(review_state["validation_status"]["status"], "complete")
         self.assertEqual(review_state["approval_status"], "approved")
+
+    def test_v3_preview_generation_populates_planner_backed_results_surface(self):
+        room = self.saved["room_layout"]["rooms"][0]
+        room["doors"] = [
+            {"id": "R1-D1", "x": 160, "y": 960, "kind": "transition"},
+            {"id": "R1-D2", "x": 1440, "y": 960, "kind": "transition"},
+        ]
+        room["platforms"] = [
+            {"id": "R1-P1", "x": 192, "y": 960, "len": 28},
+            {"id": "R1-P2", "x": 544, "y": 704, "len": 8},
+        ]
+        envsys.update_project_art_direction(self.project_id, {"template_id": "ruined-gothic", "locked": True})
+        envsys.build_room_environment_spec(
+            self.project_id,
+            "R1",
+            {
+                "environment_pipeline_version": "v3",
+                "description": "A ruined hall with readable thresholds, layered shell depth, and clear traversal surfaces.",
+            },
+        )
+        generated = envsys.generate_room_environment_previews(self.project_id, "R1", {})
+        env = generated["environment"]
+        self.assertGreater(len(env["assembly_plan"]["slots"]), 0)
+        self.assertEqual(env["assembly_plan"]["planner_coverage_summary"]["status"], "pass")
+        self.assertGreater(env["environment_manifest"]["generation_metadata"]["structural_count"], 0)
+        self.assertGreater(env["environment_kit"]["summary"]["structural_count"], 0)
+        self.assertEqual(env["editor_results_payload"]["manifest"]["generation_metadata"]["structural_count"], env["environment_manifest"]["generation_metadata"]["structural_count"])
+        self.assertGreaterEqual(env["editor_results_payload"]["validation"]["blocker_count"], 1)
 
     def test_v3_planner_covers_all_doors_and_major_platforms(self):
         room = self.saved["room_layout"]["rooms"][0]
@@ -943,7 +1157,10 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         self.assertEqual(semantics_doc["summary"]["top_count"], 2)
         self.assertEqual(semantics_doc["summary"]["opening_count"], 2)
         self.assertEqual(len(semantics_doc["overlay_geometry"]["platform_tops"]), 2)
-        self.assertEqual(len(semantics_doc["anchor_positions"]), 4)
+        self.assertGreaterEqual(len(semantics_doc["anchor_positions"]), 4)
+        anchor_types = {item["anchor_type"] for item in semantics_doc["anchor_positions"]}
+        self.assertIn("platform_center", anchor_types)
+        self.assertTrue(any(anchor_type.endswith("threshold") for anchor_type in anchor_types))
 
     def test_v3_persistence_helpers_round_trip_staged_artifacts(self):
         payload = {"stylepack_id": "stylepack-r1", "status": "locked"}

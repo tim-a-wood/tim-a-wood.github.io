@@ -1,0 +1,97 @@
+{
+  "editor_url": "http://127.0.0.1:8766/room-layout-editor.html",
+  "generated_at": "2026-04-05T14:39:54.969Z",
+  "variants": [
+    {
+      "variant": "empty",
+      "screenshot": "/Users/timwood/Desktop/projects/PWA/MV/artifacts/qa/room-results-states/empty.png",
+      "details": {
+        "panel_hidden": true,
+        "tab_selected": "false",
+        "build_button_text": "Build Production Assets",
+        "build_button_disabled": false,
+        "stage_labels": [],
+        "scroll_width": 1680,
+        "scroll_height": 3319
+      }
+    },
+    {
+      "variant": "draft",
+      "screenshot": "/Users/timwood/Desktop/projects/PWA/MV/artifacts/qa/room-results-states/draft.png",
+      "details": {
+        "panel_hidden": true,
+        "tab_selected": "false",
+        "build_button_text": "Build Production Assets",
+        "build_button_disabled": false,
+        "stage_labels": [],
+        "scroll_width": 1680,
+        "scroll_height": 3319
+      }
+    },
+    {
+      "variant": "locked",
+      "screenshot": "/Users/timwood/Desktop/projects/PWA/MV/artifacts/qa/room-results-states/locked.png",
+      "details": {
+        "panel_hidden": true,
+        "tab_selected": "false",
+        "build_button_text": "Build Production Assets",
+        "build_button_disabled": false,
+        "stage_labels": [],
+        "scroll_width": 1680,
+        "scroll_height": 3319
+      }
+    },
+    {
+      "variant": "generating",
+      "screenshot": "/Users/timwood/Desktop/projects/PWA/MV/artifacts/qa/room-results-states/generating.png",
+      "details": {
+        "panel_hidden": true,
+        "tab_selected": "false",
+        "build_button_text": "Build Production Assets",
+        "build_button_disabled": false,
+        "stage_labels": [],
+        "scroll_width": 1680,
+        "scroll_height": 3319
+      }
+    },
+    {
+      "variant": "partial",
+      "screenshot": "/Users/timwood/Desktop/projects/PWA/MV/artifacts/qa/room-results-states/partial.png",
+      "details": {
+        "panel_hidden": true,
+        "tab_selected": "false",
+        "build_button_text": "Build Production Assets",
+        "build_button_disabled": false,
+        "stage_labels": [],
+        "scroll_width": 1680,
+        "scroll_height": 3319
+      }
+    },
+    {
+      "variant": "ready",
+      "screenshot": "/Users/timwood/Desktop/projects/PWA/MV/artifacts/qa/room-results-states/ready.png",
+      "details": {
+        "panel_hidden": true,
+        "tab_selected": "false",
+        "build_button_text": "Build Production Assets",
+        "build_button_disabled": false,
+        "stage_labels": [],
+        "scroll_width": 1680,
+        "scroll_height": 3319
+      }
+    },
+    {
+      "variant": "blocked",
+      "screenshot": "/Users/timwood/Desktop/projects/PWA/MV/artifacts/qa/room-results-states/blocked.png",
+      "details": {
+        "panel_hidden": true,
+        "tab_selected": "false",
+        "build_button_text": "Build Production Assets",
+        "build_button_disabled": false,
+        "stage_labels": [],
+        "scroll_width": 1680,
+        "scroll_height": 3319
+      }
+    }
+  ]
+}
