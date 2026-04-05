@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import copy
 import hashlib
 import json
@@ -1847,6 +1848,55 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         self.assertIn("&start=R1", html)
         self.assertNotIn("layout=", html)
 
+    def test_runtime_review_capture_uses_browser_by_default_when_available(self):
+        output = self.projects_root / self.project_id / "room_environment_assets" / "R1" / "review" / "runtime-review.png"
+        output.parent.mkdir(parents=True, exist_ok=True)
+        capture_helper = self.root / "scripts" / "capture_runtime_review.js"
+        capture_helper.parent.mkdir(parents=True, exist_ok=True)
+        capture_helper.write_text("// test helper stub\n", encoding="utf-8")
+        old_pref = envsys.os.environ.pop("ROOM_ENVIRONMENT_REVIEW_USE_BROWSER", None)
+        try:
+            with mock.patch.object(envsys, "_find_headless_browser", return_value="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"), \
+                 mock.patch.object(envsys, "_write_runtime_review_capture_page", return_value="http://127.0.0.1:8766/mock-runtime-capture.html"), \
+                 mock.patch.object(envsys.shutil, "which", return_value="/usr/bin/node"), \
+                 mock.patch.object(envsys.subprocess, "run") as run_mock, \
+                 mock.patch.object(envsys, "_runtime_review_capture_is_usable", return_value=True):
+                output.write_bytes(b"browser-shot")
+                mode, issue = envsys._capture_runtime_review_screenshot(self.saved, "R1", {}, output)
+        finally:
+            if old_pref is None:
+                envsys.os.environ.pop("ROOM_ENVIRONMENT_REVIEW_USE_BROWSER", None)
+            else:
+                envsys.os.environ["ROOM_ENVIRONMENT_REVIEW_USE_BROWSER"] = old_pref
+
+        self.assertEqual(mode, "headless_browser")
+        self.assertIsNone(issue)
+        run_mock.assert_called_once()
+        args, kwargs = run_mock.call_args
+        self.assertEqual(args[0][0], "/usr/bin/node")
+        self.assertIn("scripts/capture_runtime_review.js", args[0])
+        self.assertIn("--browser", args[0])
+        self.assertIn("/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", args[0])
+        self.assertIn("--output", args[0])
+        self.assertIn("tools/2d-sprite-and-animation/projects-data/project-alpha/room_environment_assets/R1/review/runtime-review.png", args[0])
+        self.assertEqual(kwargs.get("cwd"), str(self.root))
+
+    def test_runtime_review_capture_can_be_explicitly_disabled(self):
+        output = self.projects_root / self.project_id / "room_environment_assets" / "R1" / "review" / "runtime-review.png"
+        output.parent.mkdir(parents=True, exist_ok=True)
+        old_pref = envsys.os.environ.get("ROOM_ENVIRONMENT_REVIEW_USE_BROWSER")
+        envsys.os.environ["ROOM_ENVIRONMENT_REVIEW_USE_BROWSER"] = "false"
+        try:
+            mode, issue = envsys._capture_runtime_review_screenshot(self.saved, "R1", {}, output)
+        finally:
+            if old_pref is None:
+                envsys.os.environ.pop("ROOM_ENVIRONMENT_REVIEW_USE_BROWSER", None)
+            else:
+                envsys.os.environ["ROOM_ENVIRONMENT_REVIEW_USE_BROWSER"] = old_pref
+
+        self.assertEqual(mode, "composite_fallback")
+        self.assertEqual(issue, "headless_browser_disabled_by_config")
+
     def test_primary_floor_band_bounds_expand_to_chamber_bounds_not_canvas(self):
         room = {
             "id": "RG-R2",
@@ -2720,6 +2770,22 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         valid, errors = envsys._validate_border_piece_source(path)
         self.assertFalse(valid)
         self.assertIn("border_piece_side_wall_flare", errors)
+
+    def test_coerce_debug_preview_reference_images(self):
+        self.assertEqual(envsys._coerce_debug_preview_reference_images({"debug_preview_reference_images": "x"}), [])
+        raw = b"z" * 64
+        b64 = base64.b64encode(raw).decode("ascii")
+        payload = {"debug_preview_reference_images": [{"mime_type": "image/png", "data": b64}]}
+        got = envsys._coerce_debug_preview_reference_images(payload)
+        self.assertEqual(len(got), 1)
+        self.assertEqual(got[0][0], "image/png")
+        self.assertEqual(got[0][1], raw)
+        payload = {"debug_preview_reference_images": [{"mime_type": "image/gif", "data": b64}]}
+        self.assertEqual(envsys._coerce_debug_preview_reference_images(payload), [])
+        payload = {"debug_preview_reference_images": [{"mime_type": "image/jpeg", "data": b64}]}
+        got2 = envsys._coerce_debug_preview_reference_images(payload)
+        self.assertEqual(len(got2), 1)
+        self.assertEqual(got2[0][0], "image/jpeg")
 
 
 if __name__ == "__main__":

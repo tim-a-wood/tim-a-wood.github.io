@@ -2555,6 +2555,23 @@
                           <input type="checkbox" id="roomWizardUseV3Pipeline" />
                           <span>Use richer environment generation (more detail, may take longer)</span>
                         </label>
+                        <details class="rw-env-collapsible">
+                          <summary>
+                            <div class="stage-card-head">
+                              <div>
+                                <h5>Debug: reference art for preview</h5>
+                                <p class="small-note">Optional. Attach up to 3 PNG / JPEG / WebP images; they are sent with “Build room look” and preview revisions so Gemini can follow your art direction until the Art direction flow is fully wired.</p>
+                              </div>
+                            </div>
+                          </summary>
+                          <div class="rw-env-collapsible-body">
+                            <label>
+                              <span class="field-label">Reference images (optional)</span>
+                              <input type="file" id="roomWizardPreviewDebugRefs" accept="image/png,image/jpeg,image/webp" multiple />
+                            </label>
+                            <p class="hint" id="roomWizardPreviewDebugRefsHint">No files selected. Max 3 files, 3 MB each.</p>
+                          </div>
+                        </details>
                         <div class="rw-env-step-actions">
                           <div class="rw-copilot-actions">
                             <button type="button" class="btn-secondary" id="roomWizardAdaptTemplate">Rewrite idea</button>
@@ -7261,6 +7278,56 @@
         };
       }
 
+      function readFileAsBase64Payload(file) {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            const s = String(reader.result || '');
+            const comma = s.indexOf(',');
+            resolve(comma >= 0 ? s.slice(comma + 1) : s);
+          };
+          reader.onerror = () => reject(reader.error || new Error('read failed'));
+          reader.readAsDataURL(file);
+        });
+      }
+
+      async function collectRoomWizardDebugPreviewReferenceImages() {
+        const input = document.getElementById('roomWizardPreviewDebugRefs');
+        const hint = document.getElementById('roomWizardPreviewDebugRefsHint');
+        if (!input || !input.files || input.files.length === 0) {
+          if (hint) hint.textContent = 'No files selected. Max 3 files, 3 MB each.';
+          return [];
+        }
+        const allowed = new Set(['image/png', 'image/jpeg', 'image/webp']);
+        const maxFiles = 3;
+        const maxBytes = 3 * 1024 * 1024;
+        const out = [];
+        const skipped = [];
+        for (let i = 0; i < input.files.length && out.length < maxFiles; i += 1) {
+          const file = input.files[i];
+          if (!allowed.has(file.type)) {
+            skipped.push(file.name);
+            continue;
+          }
+          if (file.size > maxBytes) {
+            skipped.push(`${file.name} (too large)`);
+            continue;
+          }
+          try {
+            const data = await readFileAsBase64Payload(file);
+            out.push({ mime_type: file.type, data });
+          } catch (_) {
+            skipped.push(file.name);
+          }
+        }
+        if (hint) {
+          const parts = [`${out.length} file(s) will be sent with the next preview request.`];
+          if (skipped.length) parts.push(`Skipped: ${skipped.join(', ')}`);
+          hint.textContent = parts.join(' ');
+        }
+        return out;
+      }
+
       function clearRoomWizardCopilotPreview() {
         state.roomWizard.copilotPreview = null;
         const prev = document.getElementById('roomWizardCopilotPreview');
@@ -9503,6 +9570,9 @@
         document.getElementById('roomWizardSimplifyDraft')?.addEventListener('click', () => {
           adaptSelectedRoomArchetype('Simplify this room draft so a novice creator can understand and edit it quickly.');
         });
+        document.getElementById('roomWizardPreviewDebugRefs')?.addEventListener('change', () => {
+          collectRoomWizardDebugPreviewReferenceImages().catch(() => {});
+        });
         document.getElementById('roomWizardBiomeGenerateVisuals')?.addEventListener('click', async () => {
           const st = document.getElementById('roomWizardBiomeVisualStatus');
           const btn = document.getElementById('roomWizardBiomeGenerateVisuals');
@@ -9594,11 +9664,13 @@
               syncRoomWizardEnvironmentFromRoom();
               if (st) st.textContent = 'Rendering previews…';
               startRoomWizardWaitbar('copilot', 'Rendering room-aware environment previews.');
+              const debugPreviewReferenceImages = await collectRoomWizardDebugPreviewReferenceImages();
               const previewRes = await fetch(projectRoomEnvironmentApiUrl(room.id, 'previews'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                   spec: room.environment?.spec || {},
+                  debug_preview_reference_images: debugPreviewReferenceImages,
                   ...roomWizardAnalyticsContext(room, { request_kind: 'generate' }),
                 })
               });
@@ -9732,11 +9804,13 @@
             if (!specRes.ok || !specJson.ok) throw new Error(specJson.error || 'Could not build revised room spec');
             replaceRoomWizardEnvironmentPreservingAuthoring(room, specJson.environment || room.environment);
             if (st) st.textContent = 'Rendering revised previews…';
+            const debugPreviewReferenceImages = await collectRoomWizardDebugPreviewReferenceImages();
             const previewRes = await fetch(projectRoomEnvironmentApiUrl(room.id, 'previews'), {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 spec: room.environment?.spec || {},
+                debug_preview_reference_images: debugPreviewReferenceImages,
                 ...roomWizardAnalyticsContext(room, { request_kind: 'revise' }),
               })
             });

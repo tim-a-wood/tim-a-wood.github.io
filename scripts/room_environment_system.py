@@ -3185,7 +3185,47 @@ def _gemini_generate_content_rest(
         return None
 
 
-def _build_level3_variant_prompt(direction: Dict[str, Any], geometry: Dict[str, Any], spec: Dict[str, Any], frozen_concepts: List[Dict[str, Any]], variant_index: int) -> str:
+_DEBUG_PREVIEW_REF_MAX_COUNT = 3
+_DEBUG_PREVIEW_REF_MAX_BYTES = 3 * 1024 * 1024
+_LEVEL3_MAX_REFERENCE_IMAGES = 5
+
+
+def _coerce_debug_preview_reference_images(payload: Dict[str, Any]) -> List[Tuple[str, bytes]]:
+    """Parse optional client-supplied reference images for room preview (debug / interim art direction)."""
+    raw = payload.get("debug_preview_reference_images")
+    if not isinstance(raw, list):
+        return []
+    allowed_mime = {"image/png", "image/jpeg", "image/webp"}
+    out: List[Tuple[str, bytes]] = []
+    for entry in raw[:_DEBUG_PREVIEW_REF_MAX_COUNT]:
+        if not isinstance(entry, dict):
+            continue
+        mime = str(entry.get("mime_type") or entry.get("mimeType") or "image/png").strip().lower()
+        if mime == "image/jpg":
+            mime = "image/jpeg"
+        if mime not in allowed_mime:
+            continue
+        b64 = entry.get("data")
+        if not isinstance(b64, str) or not b64.strip():
+            continue
+        try:
+            raw_bytes = base64.b64decode(b64, validate=True)
+        except (ValueError, TypeError):
+            continue
+        if len(raw_bytes) > _DEBUG_PREVIEW_REF_MAX_BYTES or len(raw_bytes) < 32:
+            continue
+        out.append((mime, raw_bytes))
+    return out
+
+
+def _build_level3_variant_prompt(
+    direction: Dict[str, Any],
+    geometry: Dict[str, Any],
+    spec: Dict[str, Any],
+    frozen_concepts: List[Dict[str, Any]],
+    variant_index: int,
+    debug_reference_count: int = 0,
+) -> str:
     variant_notes = [
         "Lean into a strong focal landmark with dramatic readable depth.",
         "Emphasize atmosphere, fog layering, and wet material response.",
@@ -3199,12 +3239,26 @@ def _build_level3_variant_prompt(direction: Dict[str, Any], geometry: Dict[str, 
     )
     landmarks = ", ".join(spec.get("landmarks") or []) or "architectural focal points"
     hazards = ", ".join(spec.get("hazards") or []) or "none"
+    if debug_reference_count and frozen_concepts[:3]:
+        attachment_guide = (
+            "Images after the layout guide may include frozen project concept anchors, then debug-uploaded reference art. "
+            "Match the frozen anchors first; treat uploaded references as extra style keyframes while still obeying the layout guide."
+        )
+    elif debug_reference_count:
+        attachment_guide = (
+            "After the layout guide, the next image(s) are debug-uploaded reference art (not layout). "
+            "Use them as visual style keyframes—materials, lighting, and world tone—while strictly respecting the layout guide geometry."
+        )
+    else:
+        attachment_guide = (
+            "Additional attached images are frozen art direction anchors. Match their style language and world identity closely."
+        )
     return textwrap.dedent(
         f"""\
         Create a high-detail 2D side-view game environment concept for a metroidvania room.
         This is a room environment preview, not a mood board and not abstract color treatment.
         The attached first image is a hard layout guide. Respect its overall room silhouette, door locations, main walkable structures, and framing.
-        Additional attached images are frozen art direction anchors. Match their style language and world identity closely.
+        {attachment_guide}
 
         Art direction:
         - style family: {direction.get('style_family') or 'dark fantasy environment'}
@@ -3251,10 +3305,13 @@ def _generate_level3_image_with_gemini(
     geometry: Dict[str, Any],
     spec: Dict[str, Any],
     variant_index: int,
+    debug_reference_images: Optional[List[Tuple[str, bytes]]] = None,
 ) -> bool:
     if not _gemini_api_key():
         return False
     frozen_concepts = direction.get("frozen_concepts") or []
+    debug_reference_images = debug_reference_images or []
+    debug_reference_count = len(debug_reference_images)
     parts: List[Dict[str, Any]] = []
     try:
         parts.append({
@@ -3264,6 +3321,8 @@ def _generate_level3_image_with_gemini(
             }
         })
         for item in frozen_concepts[:3]:
+            if len(parts) >= 1 + _LEVEL3_MAX_REFERENCE_IMAGES:
+                break
             rel_path = str(item.get("image_path") or "").strip()
             if not rel_path:
                 continue
@@ -3276,7 +3335,20 @@ def _generate_level3_image_with_gemini(
                     "data": base64.b64encode(concept_path.read_bytes()).decode("ascii"),
                 }
             })
-        parts.append({"text": _build_level3_variant_prompt(direction, geometry, spec, frozen_concepts, variant_index)})
+        for mime, raw_bytes in debug_reference_images:
+            if len(parts) >= 1 + _LEVEL3_MAX_REFERENCE_IMAGES:
+                break
+            parts.append({
+                "inlineData": {
+                    "mimeType": mime,
+                    "data": base64.b64encode(raw_bytes).decode("ascii"),
+                }
+            })
+        parts.append({
+            "text": _build_level3_variant_prompt(
+                direction, geometry, spec, frozen_concepts, variant_index, debug_reference_count=debug_reference_count
+            )
+        })
         model = os.environ.get("GEMINI_IMAGE_MODEL", "gemini-2.5-flash-image").strip() or "gemini-2.5-flash-image"
         response = _gemini_generate_content_rest(model, parts, response_modalities=["IMAGE", "TEXT"])
     except Exception:
@@ -4919,13 +4991,23 @@ def generate_room_environment_previews(project_id: str, room_id: str, payload: D
     render_level = "level3"
     fallback_reason = None
     used_ai = False
+    debug_preview_refs = _coerce_debug_preview_reference_images(payload)
+    debug_preview_ref_count = len(debug_preview_refs)
     if geometry.get("polygon"):
         labels = ["Focal landmark", "Atmospheric depth", "Broader ambience"]
         for variant_index in range(3):
             preview_id = f"{room_id}-lvl3-{variant_index + 1}"
             rel_path = Path("room_environment_previews") / room_id / f"{preview_id}.png"
             abs_path = project_dir / rel_path
-            generated = _generate_level3_image_with_gemini(abs_path, project_dir, direction, geometry, spec, variant_index)
+            generated = _generate_level3_image_with_gemini(
+                abs_path,
+                project_dir,
+                direction,
+                geometry,
+                spec,
+                variant_index,
+                debug_reference_images=debug_preview_refs,
+            )
             if generated:
                 used_ai = True
             else:
@@ -4983,6 +5065,7 @@ def generate_room_environment_previews(project_id: str, room_id: str, payload: D
     env["preview"]["scene_plan"] = {
         "style_family": direction.get("style_family"),
         "frozen_concept_ids": list(direction.get("frozen_concept_ids") or []),
+        "debug_preview_reference_count": debug_preview_ref_count,
         "used_ai": used_ai,
         "description": spec.get("description"),
         "mood": spec.get("mood"),
@@ -7175,10 +7258,11 @@ def _capture_runtime_review_screenshot(
     assets: Dict[str, Any],
     output_path: Path,
 ) -> Tuple[str, Optional[str]]:
-    if str(os.environ.get("ROOM_ENVIRONMENT_REVIEW_USE_BROWSER") or "").strip().lower() not in {"1", "true", "yes"}:
+    browser_pref = str(os.environ.get("ROOM_ENVIRONMENT_REVIEW_USE_BROWSER") or "").strip().lower()
+    if browser_pref in {"0", "false", "no"}:
         room = _find_room(project, room_id)
         _composite_runtime_review_image(room, assets, output_path)
-        return "composite_fallback", "headless_browser_disabled_by_default"
+        return "composite_fallback", "headless_browser_disabled_by_config"
     browser = _find_headless_browser()
     base_url = str(os.environ.get("ROOM_ENVIRONMENT_REVIEW_BASE_URL") or "http://127.0.0.1:8766/index.html").strip()
     room = _find_room(project, room_id)
@@ -7188,17 +7272,50 @@ def _capture_runtime_review_screenshot(
     if browser:
         try:
             target = _write_runtime_review_capture_page(project, room_id, base_url, output_path)
-            cmd = [
-                browser,
-                "--headless",
-                "--disable-gpu",
-                f"--window-size={width},{height}",
-                f"--screenshot={str(output_path)}",
-                "--hide-scrollbars",
-                "--virtual-time-budget=20000",
-                target,
-            ]
-            subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=60)
+            screenshot_arg = str(output_path)
+            run_cwd: Optional[str] = None
+            try:
+                screenshot_arg = str(output_path.relative_to(ROOT))
+                run_cwd = str(ROOT)
+            except Exception:
+                screenshot_arg = str(output_path)
+            capture_helper = ROOT / "scripts" / "capture_runtime_review.js"
+            node_binary = shutil.which("node")
+            if node_binary and capture_helper.exists():
+                helper_arg = str(capture_helper)
+                if run_cwd:
+                    try:
+                        helper_arg = str(capture_helper.relative_to(ROOT))
+                    except Exception:
+                        helper_arg = str(capture_helper)
+                cmd = [
+                    node_binary,
+                    helper_arg,
+                    "--browser",
+                    browser,
+                    "--url",
+                    target,
+                    "--output",
+                    screenshot_arg,
+                    "--width",
+                    str(width),
+                    "--height",
+                    str(height),
+                    "--timeout",
+                    "30000",
+                ]
+            else:
+                cmd = [
+                    browser,
+                    "--headless=new",
+                    "--disable-gpu",
+                    f"--window-size={width},{height}",
+                    f"--screenshot={screenshot_arg}",
+                    "--hide-scrollbars",
+                    "--virtual-time-budget=20000",
+                    target,
+                ]
+            subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=60, cwd=run_cwd)
             if output_path.exists() and _runtime_review_capture_is_usable(output_path):
                 return "headless_browser", None
             if output_path.exists():
