@@ -1987,6 +1987,9 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         self.assertIn("--output", args[0])
         self.assertIn("tools/2d-sprite-and-animation/projects-data/project-alpha/room_environment_assets/R1/review/runtime-review.png", args[0])
         self.assertEqual(kwargs.get("cwd"), str(self.root))
+        cmd = args[0]
+        self.assertEqual(cmd[cmd.index("--width") + 1], "1280")
+        self.assertEqual(cmd[cmd.index("--height") + 1], "880")
 
     def test_runtime_review_capture_can_be_explicitly_disabled(self):
         output = self.projects_root / self.project_id / "room_environment_assets" / "R1" / "review" / "runtime-review.png"

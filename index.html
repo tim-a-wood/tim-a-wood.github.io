@@ -1693,6 +1693,31 @@ function applyRuntimeReviewCaptureViewport() {
     CONFIG.H = Math.max(400, Math.round(chamberHeight));
 }
 
+/** FIT letterboxes when #game-container aspect ≠ game; lock container to CONFIG so canvas fills (embed + headless). */
+function applyRuntimeReviewCaptureContainerAspect() {
+    if (!RUNTIME_REVIEW_CAPTURE_MODE) return;
+    const el = document.getElementById('game-container');
+    if (!el || !CONFIG.W || !CONFIG.H) return;
+    const w = CONFIG.W;
+    const h = CONFIG.H;
+    el.style.display = 'flex';
+    el.style.alignItems = 'center';
+    el.style.justifyContent = 'center';
+    el.style.boxSizing = 'border-box';
+    el.style.aspectRatio = `${w} / ${h}`;
+    el.style.width = `min(100vw, calc(100vh * ${w} / ${h}))`;
+    el.style.height = `min(100vh, calc(100vw * ${h} / ${w}))`;
+    el.style.maxWidth = '100vw';
+    el.style.maxHeight = '100vh';
+    document.documentElement.style.height = '100%';
+    document.body.style.margin = '0';
+    document.body.style.minHeight = '100vh';
+    document.body.style.display = 'flex';
+    document.body.style.alignItems = 'center';
+    document.body.style.justifyContent = 'center';
+    document.body.style.background = '#000';
+}
+
 function getEntrySideFromNormal(normal) {
     if (Math.abs(normal.x) >= Math.abs(normal.y)) {
         return normal.x >= 0 ? 'right' : 'left';
@@ -1885,7 +1910,21 @@ function applyRuntimeReviewCaptureCamera(scene, roomId) {
     camera.stopFollow();
     camera.setFollowOffset(0, 0);
     camera.setZoom(zoom);
-    camera.centerOn(camRect.x + (camRect.width / 2), camRect.y + (camRect.height / 2));
+    const viewHalfW = CONFIG.W / (2 * zoom);
+    const viewHalfH = CONFIG.H / (2 * zoom);
+    let cx = camRect.x + (camRect.width / 2);
+    let cy = camRect.y + (camRect.height / 2);
+    const minCX = camRect.x + viewHalfW;
+    const maxCX = camRect.x + camRect.width - viewHalfW;
+    const minCY = camRect.y + viewHalfH;
+    const maxCY = camRect.y + camRect.height - viewHalfH;
+    if (minCX <= maxCX) {
+        cx = Phaser.Math.Clamp(cx, minCX, maxCX);
+    }
+    if (minCY <= maxCY) {
+        cy = Phaser.Math.Clamp(cy, minCY, maxCY);
+    }
+    camera.centerOn(cx, cy);
     if (scene.player) scene.player.setVisible(false);
     if (scene.trail) {
         scene.trail.clear();
@@ -2900,7 +2939,7 @@ class AshenHollow extends Phaser.Scene {
         const chamberWidth = Math.max(64, chamberRight - chamberLeft);
         /* Between parallax background (-2) and midground side frames (~-0.18) so masonry reads above the far plate. */
         const depth = -1.15;
-        const alpha = RUNTIME_REVIEW_CAPTURE_MODE ? 0.52 : 0.96;
+        const alpha = RUNTIME_REVIEW_CAPTURE_MODE ? 0.88 : 0.96;
         let placed = 0;
         ceilingAssets.forEach((asset) => {
             const pl = asset.placement || {};
@@ -5643,6 +5682,7 @@ async function bootGame() {
         setPageBootState('BOOT: applying runtime layout');
         applyRuntimeLayoutData(canonicalData, hashUrlData);
         applyRuntimeReviewCaptureViewport();
+        applyRuntimeReviewCaptureContainerAspect();
         setPageBootState('BOOT: creating Phaser game');
         new Phaser.Game({
             type: Phaser.AUTO,

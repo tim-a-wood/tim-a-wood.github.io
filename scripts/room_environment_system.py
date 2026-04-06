@@ -7396,8 +7396,17 @@ def _capture_runtime_review_screenshot(
     base_url = str(os.environ.get("ROOM_ENVIRONMENT_REVIEW_BASE_URL") or "http://127.0.0.1:8766/index.html").strip()
     room = _find_room(project, room_id)
     geometry = _room_geometry(room)
-    width = int(geometry.get("width") or 1600)
-    height = int(geometry.get("height") or 1200)
+    # Match index.html applyRuntimeReviewCaptureViewport: internal game size is the footprint chamber,
+    # not the full room slot. A mismatched window + Phaser Scale.FIT letterboxes (often a black top band).
+    room_w = int(geometry.get("width") or 1600)
+    room_h = int(geometry.get("height") or 1200)
+    try:
+        cw = float(geometry.get("chamber_width") or room_w)
+        ch = float(geometry.get("chamber_height") or room_h)
+    except (TypeError, ValueError):
+        cw, ch = float(room_w), float(room_h)
+    width = max(800, int(round(cw)))
+    height = max(400, int(round(ch)))
     if browser:
         try:
             target = _write_runtime_review_capture_page(project, room_id, base_url, output_path)
