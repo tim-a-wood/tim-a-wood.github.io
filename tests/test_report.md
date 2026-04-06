@@ -38,3 +38,5 @@ Update 2026-04-06 (later): Playtest camera — `getRoomCameraChamberBoundsWorld(
 Update 2026-04-06 (later): `CAMERA_CHAMBER_SIDE_BLEED_PX` raised 48 → 64 (founder playtest still tight on side walls). Ran `node --test tests/game-logic.test.js` (Pass).
 
 Update 2026-04-06 (later): Primary floor cap, face band, and primary-floor **collision** tiles extend horizontally by `CAMERA_CHAMBER_SIDE_BLEED_PX` (fallback: surface bleed) past polygon left/right (clamped to room width) so wall–floor corners match camera horizontal bleed. Ran `node --test tests/game-logic.test.js` (Pass); browser not re-checked.
+
+Update 2026-04-06: Room env v3 — optional omission of `backwall_panel` planner slots via `MV_V3_BACKWALL_PANEL=0` (`scripts/room_environment_v3.py`); documented in `.env.local.example`. Added `test_v3_planner_omits_backwall_panel_when_env_disabled`. Ran `python3 tests/room_environment_system.test.py` (full suite, Pass).

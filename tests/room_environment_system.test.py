@@ -3,6 +3,7 @@ from __future__ import annotations
 import base64
 import copy
 import hashlib
+import os
 import json
 import sys
 import tempfile
@@ -1252,6 +1253,19 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         )
         panels = [item for item in planner["plan"] if item["component_type"] == "backwall_panel"]
         self.assertGreaterEqual(len(panels), 2)
+
+    def test_v3_planner_omits_backwall_panel_when_env_disabled(self):
+        room = copy.deepcopy(self.saved["room_layout"]["rooms"][0])
+        room["size"] = {"width": 1600, "height": 1200}
+        with mock.patch.dict(os.environ, {"MV_V3_BACKWALL_PANEL": "0"}, clear=False):
+            planner = envv3.build_generation_plan(
+                room,
+                "preview-no-backwall",
+                self._mock_biome_pack(),
+                "2026-04-06T12:00:00Z",
+            )
+        panels = [item for item in planner["plan"] if item["component_type"] == "backwall_panel"]
+        self.assertEqual(len(panels), 0)
 
     def test_v3_planner_uses_component_specific_structural_slots(self):
         room = copy.deepcopy(self.saved["room_layout"]["rooms"][0])

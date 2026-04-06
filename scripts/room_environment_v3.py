@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -29,6 +30,16 @@ FIRST_SLICE_COMPONENT_TYPES: List[str] = [
     "ceiling",
     "backwall_panel",
 ]
+
+def _v3_include_backwall_panel_slots() -> bool:
+    """Include backwall_panel slots in the v3 assembly plan (default: yes).
+
+    Set env ``MV_V3_BACKWALL_PANEL`` to ``0``, ``false``, ``off``, or ``no`` to omit
+    those slots temporarily and compare background/midground without a dedicated rear panel.
+    """
+    raw = os.environ.get("MV_V3_BACKWALL_PANEL", "1").strip().lower()
+    return raw not in ("0", "false", "off", "no")
+
 
 TEMPLATE_COMPONENT_BY_SLOT: Dict[str, str] = {
     "background_far_plate": "background_plate",
@@ -325,20 +336,21 @@ def build_generation_plan(room: Dict[str, Any], preview_id: str, biome_pack: Dic
         {"room_width": width, "room_height": height},
         border_treatment="full_frame",
     )
-    for index, panel in enumerate(_backwall_panel_records(width, height, room_role)):
-        append_slot(
-            f"{room_id}-backwall-panel-{index + 1}",
-            "backwall_panel",
-            "backwall_panel",
-            {"width": panel["width"], "height": panel["height"]},
-            {"x": panel["x"], "y": panel["y"], "display_width": panel["width"], "display_height": panel["height"], "origin_x": 0.5, "origin_y": 0},
-            "full",
-            "stretch",
-            "background",
-            [center_lane],
-            {"room_width": width, "room_height": height, "panel_index": index},
-            border_treatment="inner_shell",
-        )
+    if _v3_include_backwall_panel_slots():
+        for index, panel in enumerate(_backwall_panel_records(width, height, room_role)):
+            append_slot(
+                f"{room_id}-backwall-panel-{index + 1}",
+                "backwall_panel",
+                "backwall_panel",
+                {"width": panel["width"], "height": panel["height"]},
+                {"x": panel["x"], "y": panel["y"], "display_width": panel["width"], "display_height": panel["height"], "origin_x": 0.5, "origin_y": 0},
+                "full",
+                "stretch",
+                "background",
+                [center_lane],
+                {"room_width": width, "room_height": height, "panel_index": index},
+                border_treatment="inner_shell",
+            )
     append_slot(
         f"{room_id}-midground",
         "midground_side_frame",
