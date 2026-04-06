@@ -3160,14 +3160,23 @@ def _gemini_timeout_seconds() -> int:
     return max(10, value)
 
 
+def _gemini_safe_error_snippet(message: str, max_len: int = 320) -> str:
+    collapsed = " ".join(str(message).split())
+    if len(collapsed) <= max_len:
+        return collapsed
+    return collapsed[: max_len - 3] + "..."
+
+
 def _gemini_generate_content_rest(
     model: str,
     parts: List[Dict[str, Any]],
     response_modalities: Optional[List[str]] = None,
-) -> Optional[Dict[str, Any]]:
+) -> Tuple[Optional[Dict[str, Any]], Optional[str]]:
+    """Returns (response_json, user_safe_error). On success, error is None."""
     api_key = _gemini_api_key()
     if not api_key:
-        return None
+        return None, "missing_gemini_api_key"
+    data: Optional[Dict[str, Any]] = None
     try:
         payload: Dict[str, Any] = {"contents": [{"parts": parts}]}
         if response_modalities:
@@ -3198,14 +3207,35 @@ def _gemini_generate_content_rest(
             model,
             err_body or exc.reason,
         )
-        return None
+        detail = err_body or str(exc.reason or "")
+        try:
+            parsed = json.loads(err_body)
+            err_obj = parsed.get("error") if isinstance(parsed, dict) else None
+            if isinstance(err_obj, dict) and err_obj.get("message"):
+                detail = str(err_obj.get("message"))
+            elif isinstance(err_obj, str):
+                detail = err_obj
+        except Exception:
+            pass
+        return None, _gemini_safe_error_snippet(f"HTTP {exc.code}: {detail}")
     except Exception as exc:
         logger.warning("Gemini generateContent failed for model=%s: %s", model, exc)
-        return None
-    if isinstance(data, dict) and data.get("error"):
+        return None, _gemini_safe_error_snippet(str(exc))
+    if not isinstance(data, dict):
+        return None, "invalid_gemini_response"
+    if data.get("error"):
         logger.warning("Gemini API error for model=%s: %s", model, data.get("error"))
-        return None
-    return data
+        err_obj = data.get("error")
+        msg = err_obj.get("message") if isinstance(err_obj, dict) else str(err_obj)
+        return None, _gemini_safe_error_snippet(str(msg or "gemini_error"))
+    cands = data.get("candidates") or []
+    if not cands:
+        pf = data.get("promptFeedback") or {}
+        br = pf.get("blockReason")
+        if br:
+            return None, _gemini_safe_error_snippet(f"prompt_blocked:{br}")
+        return None, "empty_candidates"
+    return data, None
 
 
 _LEVEL3_MAX_REFERENCE_IMAGES = 5
@@ -3292,6 +3322,8 @@ def _generate_level3_image_with_gemini(
         return False
     effective_frozen = list(frozen_concepts) if frozen_concepts is not None else (direction.get("frozen_concepts") or [])
     parts: List[Dict[str, Any]] = []
+    response: Optional[Dict[str, Any]] = None
+    gem_err: Optional[str] = None
     try:
         parts.append({
             "inlineData": {
@@ -3320,10 +3352,10 @@ def _generate_level3_image_with_gemini(
             )
         })
         model = os.environ.get("GEMINI_IMAGE_MODEL", "gemini-2.5-flash-image").strip() or "gemini-2.5-flash-image"
-        response = _gemini_generate_content_rest(model, parts, response_modalities=["IMAGE", "TEXT"])
+        response, gem_err = _gemini_generate_content_rest(model, parts, response_modalities=["IMAGE", "TEXT"])
     except Exception:
         return False
-    if not response:
+    if gem_err or not response:
         return False
     try:
         for candidate in response.get("candidates") or []:
@@ -3340,9 +3372,11 @@ def _generate_level3_image_with_gemini(
     return False
 
 
-def _generate_image_from_references(path: Path, prompt: str, reference_paths: List[Path], size_hint: str = "") -> bool:
+def _generate_image_from_references(
+    path: Path, prompt: str, reference_paths: List[Path], size_hint: str = ""
+) -> Tuple[bool, Optional[str]]:
     if not _gemini_api_key():
-        return False
+        return False, "missing_gemini_api_key"
     parts: List[Dict[str, Any]] = []
     try:
         for ref_path in reference_paths:
@@ -3356,10 +3390,13 @@ def _generate_image_from_references(path: Path, prompt: str, reference_paths: Li
             })
         parts.append({"text": f"{prompt}\nSize intent: {size_hint}".strip()})
         model = os.environ.get("GEMINI_IMAGE_MODEL", "gemini-2.5-flash-image").strip() or "gemini-2.5-flash-image"
-        response = _gemini_generate_content_rest(model, parts, response_modalities=["IMAGE", "TEXT"])
+        response, gem_err = _gemini_generate_content_rest(model, parts, response_modalities=["IMAGE", "TEXT"])
+        if gem_err:
+            return False, gem_err
         if not response:
-            return False
+            return False, "no_gemini_response"
         for candidate in response.get("candidates") or []:
+            fr = str(candidate.get("finishReason") or "")
             for part in ((candidate.get("content") or {}).get("parts") or []):
                 inline = part.get("inlineData") or {}
                 data = inline.get("data")
@@ -3367,10 +3404,12 @@ def _generate_image_from_references(path: Path, prompt: str, reference_paths: Li
                     image = Image.open(io.BytesIO(base64.b64decode(data))).convert("RGBA")
                     path.parent.mkdir(parents=True, exist_ok=True)
                     image.save(path)
-                    return True
-    except Exception:
-        return False
-    return False
+                    return True, None
+            if fr and fr not in ("STOP", "FINISH_REASON_UNSPECIFIED", ""):
+                return False, _gemini_safe_error_snippet(f"finish:{fr}")
+        return False, "no_image_in_response"
+    except Exception as exc:
+        return False, _gemini_safe_error_snippet(str(exc))
 
 
 def _render_level2_image(path: Path, direction: Dict[str, Any], spec: Dict[str, Any]) -> None:
@@ -4684,7 +4723,7 @@ def generate_biome_pack_visuals(project_id: str, payload: Dict[str, Any]) -> Dic
             existed_before = False
             hash_before = None
         attempt_prompt = prompt
-        ok = _generate_bespoke_component_from_references(
+        ok, _gen_err = _generate_bespoke_component_from_references(
             generation_output_path,
             attempt_prompt,
             refs,
@@ -4718,7 +4757,7 @@ def generate_biome_pack_visuals(project_id: str, payload: Dict[str, Any]) -> Dic
                     if retry_prompt:
                         if generation_output_path.exists():
                             generation_output_path.unlink()
-                        ok = _generate_bespoke_component_from_references(
+                        ok, _gen_err = _generate_bespoke_component_from_references(
                             generation_output_path,
                             retry_prompt,
                             refs,
@@ -6360,23 +6399,25 @@ def _generate_bespoke_component_from_references(
     size: Tuple[int, int],
     transparent: bool,
     component_type: Optional[str] = None,
-) -> bool:
+) -> Tuple[bool, Optional[str]]:
     if component_type == "foreground_frame":
         raw_path = _foreground_frame_raw_candidate_path(output_path)
         if raw_path.exists():
             raw_path.unlink()
-        if _generate_image_from_references(raw_path, prompt, refs, size_hint=f"{size[0]}x{size[1]}"):
+        ok, err = _generate_image_from_references(raw_path, prompt, refs, size_hint=f"{size[0]}x{size[1]}")
+        if ok:
             shutil.copyfile(raw_path, output_path)
             _fit_foreground_frame_image_to_size(output_path, size)
-            return True
-        return False
-    if _generate_image_from_references(output_path, prompt, refs, size_hint=f"{size[0]}x{size[1]}"):
+            return True, None
+        return False, err
+    ok, err = _generate_image_from_references(output_path, prompt, refs, size_hint=f"{size[0]}x{size[1]}")
+    if ok:
         if component_type in {"border_piece", "background_far_piece", "platform_piece"}:
             _fit_border_first_template_image_to_size(output_path, size, component_type=component_type)
         else:
             _fit_image_to_size(output_path, size, transparent=transparent)
-        return True
-    return False
+        return True, None
+    return False, err
 
 
 def _retry_prompt_for_validation_errors(component_type: str, prompt: str, errors: List[str], attempt_index: int) -> Optional[str]:
@@ -7620,12 +7661,22 @@ def generate_room_environment_asset_pack(project_id: str, room_id: str, payload:
                     "reference_images": [str(path) for path in refs_for_job],
                     "prompt": attempt_prompt,
                 }
-                generated = _generate_bespoke_component_from_references(output_path, attempt_prompt, refs_for_job, expected_size, transparent)
+                generated, gen_detail = _generate_bespoke_component_from_references(
+                    output_path,
+                    attempt_prompt,
+                    refs_for_job,
+                    expected_size,
+                    transparent,
+                    component_type,
+                )
                 if generated:
                     used_ai = True
                     generation_source = "ai"
                 if not generated:
                     errors = ["generation_failed"]
+                    if gen_detail:
+                        attempt_info["gemini_error"] = gen_detail
+                        errors.append(gen_detail)
                     attempt_info["status"] = "generation_failed"
                     attempt_info["validation_errors"] = list(errors)
                     attempt_records.append(attempt_info)

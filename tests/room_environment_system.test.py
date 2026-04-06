@@ -100,7 +100,7 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         else:
             img = envsys.Image.new("RGBA", size, (40, 50, 60, 0 if transparent else 255))
         img.save(output_path)
-        return True
+        return True, None
 
     def _passing_runtime_review(self):
         return {
@@ -370,7 +370,7 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
             flags = envsys._environment_style_flags(spec)
             shell_family = envsys._infer_shell_family(spec)
             envsys._fallback_foreground_frame_asset(output_path, palette, flags, shell_family)
-            return True
+            return True, None
 
         with mock.patch.object(envsys, "_generate_bespoke_component_from_references", side_effect=fake_generate):
             out = envsys.generate_biome_pack_visuals(
@@ -1986,7 +1986,11 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         preview_id = generated["environment"]["preview"]["images"][0]["preview_id"]
         envsys.approve_room_environment_preview(self.project_id, "R1", {"preview_id": preview_id})
 
-        with mock.patch.object(envsys, "_generate_bespoke_component_from_references") as mocked_ai, \
+        with mock.patch.object(
+            envsys,
+            "_generate_bespoke_component_from_references",
+            return_value=(True, None),
+        ) as mocked_ai, \
              mock.patch.object(envsys, "_validate_bespoke_component", return_value=(True, [])), \
              mock.patch.object(envsys, "_run_runtime_review", return_value=self._passing_runtime_review()):
             result = envsys.generate_room_environment_asset_pack(self.project_id, "R1", {"preview_id": preview_id})
@@ -2008,9 +2012,10 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
 
         with mock.patch.dict(envsys.os.environ, {"GEMINI_API_KEY": "test-key", "GEMINI_HTTP_TIMEOUT_SECONDS": "42"}, clear=False), \
              mock.patch.object(envsys.urllib.request, "urlopen", return_value=_FakeResponse()) as urlopen:
-            payload = envsys._gemini_generate_content_rest("gemini-2.5-flash", [{"text": "healthy"}], response_modalities=["TEXT"])
+            response, err = envsys._gemini_generate_content_rest("gemini-2.5-flash", [{"text": "healthy"}], response_modalities=["TEXT"])
 
-        self.assertEqual(payload, {"candidates": []})
+        self.assertIsNone(response)
+        self.assertEqual(err, "empty_candidates")
         self.assertEqual(urlopen.call_args.kwargs["timeout"], 42)
 
     def test_runtime_review_capture_usability_rejects_black_frame(self):
@@ -2543,7 +2548,7 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
 
         def fake_generate_bad_frame(output_path, prompt, refs, size, transparent, component_type=None):
             bad_frame.save(output_path)
-            return True
+            return True, None
 
         with mock.patch.object(envsys, "_generate_bespoke_component_from_references", side_effect=fake_generate_bad_frame):
             out = envsys.generate_biome_pack_visuals(
@@ -2585,7 +2590,7 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
             draw = envsys.ImageDraw.Draw(bad)
             draw.rectangle((int(size[0] * 0.3), int(size[1] * 0.2), int(size[0] * 0.7), int(size[1] * 0.8)), fill=(0, 0, 0, 0))
             bad.save(output_path)
-            return True
+            return True, None
 
         with mock.patch.object(envsys, "_generate_bespoke_component_from_references", side_effect=fake_generate_bad_wall):
             out = envsys.generate_biome_pack_visuals(
