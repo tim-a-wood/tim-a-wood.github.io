@@ -8742,7 +8742,11 @@
               snap && snap.message
                 ? ` Last Gemini image error: ${escapeHtml(String(snap.message).slice(0, 220))}${snap.recorded_at ? ` (${escapeHtml(snap.recorded_at)})` : ''}`
                 : '';
-            meta.innerHTML = `Image model: <code>${escapeHtml(im)}</code>.${errLine}`;
+            const billingHint =
+              snap && snap.message && /spending cap|billing|429|RESOURCE_EXHAUSTED|quota/i.test(String(snap.message))
+                ? ' <strong>Billing:</strong> In Google Cloud (project linked to this API key), open <strong>Billing</strong> and raise or remove the <strong>spending cap</strong>, or fix payment. Image calls use the same project quota as text.'
+                : '';
+            meta.innerHTML = `Image model: <code>${escapeHtml(im)}</code>.${errLine}${billingHint}`;
           }
         }
         if (probeRow) {
