@@ -1289,7 +1289,9 @@ function getRoomEnvironmentBespokeAsset(roomId, componentType) {
         wall_module_right: ['wall_module_right'],
         wall_base_trim_left: ['wall_base_trim_left'],
         wall_base_trim_right: ['wall_base_trim_right'],
-        door_frame: ['door_frame']
+        door_frame: ['door_frame'],
+        ceiling_band: ['ceiling_band'],
+        ceiling_piece: ['ceiling_piece', 'ceiling_band']
     };
     const accepted = aliases[componentType] || [componentType];
     return assets.find((item) => item && accepted.includes(item.component_type) && item.url) || null;
@@ -2881,6 +2883,23 @@ class AshenHollow extends Phaser.Scene {
         return true;
     }
 
+    /**
+     * Full-width ceiling band from bespoke manifest (v2/v3). Without this, the top of the chamber stays empty
+     * (black) in playtest and runtime review even when the asset exists and loads.
+     */
+    addRoomBespokeCeilingDecor(roomId) {
+        const ceilingAssets = getRoomEnvironmentBespokeAssetsByType(roomId, ['ceiling_band', 'ceiling_piece']);
+        if (!ceilingAssets.length) return false;
+        /* Between parallax background (-2) and midground side frames (~-0.18) so masonry reads above the far plate. */
+        const depth = -1.15;
+        const alpha = RUNTIME_REVIEW_CAPTURE_MODE ? 0.52 : 0.96;
+        let placed = 0;
+        ceilingAssets.forEach((asset) => {
+            if (this.addPlacedBespokeAsset(roomId, asset, depth, alpha)) placed += 1;
+        });
+        return placed > 0;
+    }
+
     addRoomFloorCapDecor(roomId, x, y, width, height = 24, mergeFaceSpan = 0) {
         /* `y` is floor physics tile center (same as createRoomSurfaceTile). Top of walk surface = y − 16. */
         const walkTop = y - 16;
@@ -2959,6 +2978,7 @@ class AshenHollow extends Phaser.Scene {
             const chamberStartX = roomBounds.start + chamberLeft;
             if (isContrastQaEnvironment(roomId)) return;
             this.addRoomBespokeDoorDecor(roomId);
+            this.addRoomBespokeCeilingDecor(roomId);
             const schema = getRoomEnvironmentSceneSchema(roomId);
             const platforms = Array.isArray(room.platforms) ? room.platforms : [];
             const doorXs = (room.doors || []).map((door) => Number(door.x || 0));
