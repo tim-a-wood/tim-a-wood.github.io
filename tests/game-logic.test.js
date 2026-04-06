@@ -990,6 +990,11 @@ function simulateSequenceAttempt(order) {
             && html.includes('this.createRoomSurfaceTile(px, chamberBottom, roomId, platformTextureKey, \'floor\')'),
         'primary floor collision row should use chamber bounds and chamberBottom to match visual seam'
     );
+    assert.ok(
+        /isPrimaryFloor\s*=\s*[\s\S]*primaryFloorPlatform[\s\S]*primaryFloorPlatform\.x[\s\S]*Math\.max\(1, Number\(primaryFloorPlatform\.len \|\| 1\)\) === len/m.test(html)
+            && !/isPrimaryFloor[\s\S]*primaryFloorPlatform\.y/.test(html),
+        'primary-floor collision gate should not require legacy y equality once floor seam uses chamberBottom'
+    );
 })();
 
 (function testRoomWizardWorkbenchShellCompactCss() {

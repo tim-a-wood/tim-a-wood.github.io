@@ -851,6 +851,11 @@ This log records decisions for the room environment and bespoke asset quality pa
 - Why: Visual pass after #155 showed the player still standing on a higher/lower invisible strip because physics tiles for the primary floor were still emitted from authored platform `x/y/len` in the `ROOM_PLATFORM_LAYOUTS` loop.
 - Consequence: For `isPrimaryFloor`, collision tiles now use chamber bounds (`collisionLeft = roomBounds.start + chamberLeft`, width `chamberRight - chamberLeft`) and `y = chamberBottom`. This keeps player feet flush with the visible floor seam.
 
+### 157. Primary-floor collision gate must not depend on legacy authored `y`
+- Status: Accepted (2026-04-06)
+- Why: After #156, mismatch persisted because `isPrimaryFloor` still required `primaryFloorPlatform.y === ledge.y`; once seam moved to `chamberBottom`, that strict equality can fail and the chamber-bottom collision branch is skipped.
+- Consequence: `isPrimaryFloor` now keys on room-local start `x` and `len` only (no `y` equality), ensuring the chamber-bottom collision row is applied for the primary floor strip.
+
 ### 148. Bespoke wall shell must run even when polygon wall rects are non-empty
 - Status: Accepted (2026-04-05)
 - Why: After decision 145, `buildWorldGeometry` only called `addRoomBespokeWallShellDecor` when `!roomHasPolygonWallTileRects`. Complex footprints (e.g. canonical R1) produce many outside-polygon cells, so `rects.length > 0` always — **bespoke wall_module composition never ran** while thin procedural tiles stayed at grid boundaries (often off-camera). Founder playtest still showed floor + void + no shell despite generated assets.

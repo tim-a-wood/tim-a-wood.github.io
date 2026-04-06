@@ -3345,7 +3345,6 @@ class AshenHollow extends Phaser.Scene {
                 const isPrimaryFloor =
                     primaryFloorPlatform &&
                     Number(primaryFloorPlatform.x || 0) + roomBounds.start === x &&
-                    Number(primaryFloorPlatform.y || 0) === y &&
                     Math.max(1, Number(primaryFloorPlatform.len || 1)) === len;
                 const platformTextureKey = isPrimaryFloor
                     ? resolveRoomSurfaceTexture(this, roomId, 'floor')
