@@ -886,11 +886,15 @@ function simulateSequenceAttempt(order) {
     const html = fs.readFileSync(htmlPath, 'utf8');
     assert.ok(
         html.includes('roomHasPolygonWallTileRects'),
-        'bespoke wall shell must run when polygon yields zero outside-chamber wall tiles (full-room rectangle)'
+        'polygon wall rect helper still gates procedural mass fallback when bespoke shell fails'
     );
     assert.ok(
-        html.includes('!roomHasPolygonWallTileRects(roomId)'),
-        'buildWorldGeometry should gate bespoke walls on non-empty polygon wall rects only'
+        html.includes('Always run bespoke wall shell when manifest has wall slots'),
+        'bespoke wall shell must not be skipped whenever polygon rects are non-empty (typical R1)'
+    );
+    assert.ok(
+        /addRoomBespokeWallShellDecor\([\s\S]*?\)[\s\S]*?!roomHasPolygonWallTileRects\(roomId\)/m.test(html),
+        'mass fallback should be inside bespoke-failure branch and gated on empty polygon rects'
     );
 })();
 

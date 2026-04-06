@@ -3213,16 +3213,15 @@ class AshenHollow extends Phaser.Scene {
             }
             // Do not add a second "underfloor" band + cap when !primaryFloorPlatform: the world floor row + cap
             // already fills the bottom; the old else branch stacked a second cap ~50px higher and caused a dark seam.
-            // Skip bespoke wall shell only when polygon wall rects actually place tiles. A full-room rectangle polygon
-            // yields zero "outside" cells (empty rects) but the room was still listed in DUNGEON_WALL_RECTS, which
-            // incorrectly hid bespoke walls and left no procedural walls either.
-            if (!roomHasPolygonWallTileRects(roomId)) {
-                const upperMassY = Number(polygonBounds.top || roomTop);
-                const floorPlaneTop = Number(polygonBounds.bottom || floorWorldY);
-                const upperMassHeight = Math.max(128, floorPlaneTop - upperMassY);
-                const leftMassWidth = Math.max(0, Number(polygonBounds.left || 0));
-                const rightMassWidth = Math.max(0, roomBounds.width - Number(polygonBounds.right || roomBounds.width));
-                if (!this.addRoomBespokeWallShellDecor(roomId, { roomBounds, roomTop, floorWorldY, chamberBounds: polygonBounds })) {
+            // Always run bespoke wall shell when manifest has wall slots; polygon rects are a separate thin grid.
+            // (Old gate skipped bespoke whenever rects.length > 0 — hid wall_module art on typical R1 polygons.)
+            const upperMassY = Number(polygonBounds.top || roomTop);
+            const floorPlaneTop = Number(polygonBounds.bottom || floorWorldY);
+            const upperMassHeight = Math.max(128, floorPlaneTop - upperMassY);
+            const leftMassWidth = Math.max(0, Number(polygonBounds.left || 0));
+            const rightMassWidth = Math.max(0, roomBounds.width - Number(polygonBounds.right || roomBounds.width));
+            if (!this.addRoomBespokeWallShellDecor(roomId, { roomBounds, roomTop, floorWorldY, chamberBounds: polygonBounds })) {
+                if (!roomHasPolygonWallTileRects(roomId)) {
                     if (leftMassWidth >= 24) {
                         this.addRoomWallMassDecor(roomId, roomBounds.start, upperMassY, leftMassWidth, upperMassHeight, 0.98);
                     }

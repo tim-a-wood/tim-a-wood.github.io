@@ -810,3 +810,8 @@ This log records decisions for the room environment and bespoke asset quality pa
 - Status: Accepted (2026-04-05)
 - Why: Runtime review placed wall modules using `min(max(placement, 16% chamber), 50% chamber)` but typical `placement.display_width` (~320px) capped the strip to a few hundred pixels. On chambers much wider than the viewport (~800px), those strips stay at the polygon left/right edges while the camera follows the player mid-room — textures load and depth is correct, but **nothing wall-like appears in frame** (confirmed in founder playtest screenshot: floor + mid-distance fog, no side shells).
 - Consequence: When `chamberWidth >= max(520, 0.85 * CONFIG.W)`, set bespoke shell `display_width` to **50% of chamber width** so left and right modules abut at the horizontal center and remain visible across typical camera positions. Narrower chambers keep the old placement-based width.
+
+### 148. Bespoke wall shell must run even when polygon wall rects are non-empty
+- Status: Accepted (2026-04-05)
+- Why: After decision 145, `buildWorldGeometry` only called `addRoomBespokeWallShellDecor` when `!roomHasPolygonWallTileRects`. Complex footprints (e.g. canonical R1) produce many outside-polygon cells, so `rects.length > 0` always — **bespoke wall_module composition never ran** while thin procedural tiles stayed at grid boundaries (often off-camera). Founder playtest still showed floor + void + no shell despite generated assets.
+- Consequence: Always call `addRoomBespokeWallShellDecor` per room. Retain `roomHasPolygonWallTileRects` only to gate **AI wall mass fallback** when bespoke returns false (avoid double stack where rects already paint boundary mass).
