@@ -1175,6 +1175,37 @@ function getRoomEnvironmentBespokeAssetsByType(roomId, componentTypes) {
     return assets.filter((item) => item && accepted.has(item.component_type) && item.url);
 }
 
+/**
+ * Wall modules for runtime decor: prefer wall_module_left/right; some manifests only emit generic wall_piece.
+ * addPlacedBespokeAsset expects placement.x in room-local coords (0..room width), not world X.
+ */
+function getRoomEnvironmentBespokeWallShellAssets(roomId) {
+    const modules = getRoomEnvironmentBespokeAssetsByType(roomId, ['wall_module_left', 'wall_module_right']);
+    if (modules.length) return modules;
+    const manifest = getRoomEnvironmentBespokeManifest(roomId);
+    if (!isPlayableRoomEnvironmentBespokeManifest(manifest)) return [];
+    const pieces = Object.values(manifest.assets || {}).filter(
+        (item) => item && item.url && String(item.component_type || '').trim() === 'wall_piece'
+    );
+    if (!pieces.length) return [];
+    const roomW = Math.max(1, getRoomWidth(roomId));
+    const sorted = [...pieces].sort(
+        (a, b) => Number((a.placement || {}).x || 0) - Number((b.placement || {}).x || 0)
+    );
+    if (sorted.length === 1) {
+        const a = sorted[0];
+        const px = Number((a.placement || {}).x || 0);
+        const dw = Number((a.placement || {}).display_width || 0);
+        const mid = px + (dw > 0 ? dw * 0.5 : 160);
+        const side = mid < roomW * 0.5 ? 'wall_module_left' : 'wall_module_right';
+        return [{ ...a, component_type: side }];
+    }
+    return [
+        { ...sorted[0], component_type: 'wall_module_left' },
+        { ...sorted[sorted.length - 1], component_type: 'wall_module_right' },
+    ];
+}
+
 function getRoomEnvironmentBespokePlatformAsset(roomId, slotId) {
     if (!ENABLE_BESPOKE_ROOM_RUNTIME) return null;
     const manifest = getRoomEnvironmentBespokeManifest(roomId);
@@ -2404,9 +2435,9 @@ class AshenHollow extends Phaser.Scene {
             alpha = role === 'floor' ? 0.52 : 0.26;
         } else if (composition.emphasizeWalls) {
             /* Procedural tiles use env-surface-* keys; isResolvedRoomSurfaceAsset only matched legacy env-*-asset-* (never generated). */
-            alpha = role === 'floor' ? 0.4 : 0.36;
+            alpha = role === 'floor' ? 0.46 : 0.52;
             if (isResolvedRoomSurfaceAsset(roomId, textureKey)) {
-                alpha = role === 'floor' ? 0.48 : 0.42;
+                alpha = role === 'floor' ? 0.52 : 0.58;
             }
         }
         sprite.setAlpha(alpha);
@@ -2552,7 +2583,7 @@ class AshenHollow extends Phaser.Scene {
     }
 
     addRoomBespokeWallShellDecor(roomId, support = null) {
-        const wallAssets = getRoomEnvironmentBespokeAssetsByType(roomId, ['wall_module_left', 'wall_module_right']);
+        const wallAssets = getRoomEnvironmentBespokeWallShellAssets(roomId);
         const trimAssets = getRoomEnvironmentBespokeAssetsByType(roomId, ['wall_base_trim_left', 'wall_base_trim_right']);
         if (!wallAssets.length && !trimAssets.length) return false;
         /* Depth above floor cap (0.08) / ledge (0.11) so masonry is not painted under the walk strip. */
@@ -2581,11 +2612,15 @@ class AshenHollow extends Phaser.Scene {
             const placement = asset.placement || {};
             const accentWidth = Math.min(Math.max(Number(placement.display_width || 0), Math.round(chamberWidth * 0.16)), Math.max(1, Math.round(chamberWidth * 0.5)));
             const isLeft = String(asset.component_type || '').includes('left');
+            /* Room-local X only — addPlacedBespokeAsset adds ROOM_IDS[roomId].start (world offset). */
+            const localWallX = isLeft
+                ? Number(chamberBounds?.left || 0)
+                : Math.max(Number(chamberBounds?.left || 0), Number(chamberBounds?.right || roomWidth) - accentWidth);
             this.addPlacedBespokeAsset(roomId, {
                 ...asset,
                 placement: {
                     ...placement,
-                    x: support.roomBounds.start + (isLeft ? Number(chamberBounds?.left || 0) : Math.max(Number(chamberBounds?.left || 0), Number(chamberBounds?.right || roomWidth) - accentWidth)),
+                    x: localWallX,
                     y: Number(chamberBounds?.top || support.roomTop || 0),
                     display_width: accentWidth,
                     display_height: Math.max(Number(placement.display_height || 0), Number(chamberBounds?.bottom || support.floorWorldY || 0) - Number(chamberBounds?.top || support.roomTop || 0)),
@@ -3086,7 +3121,8 @@ class AshenHollow extends Phaser.Scene {
             if (primaryFloorPlatform) {
                 const chamberLeft = Number(polygonBounds.left || 0);
                 const chamberRight = Number(polygonBounds.right || roomBounds.width);
-                const primaryFloorX = roomBounds.start + Math.min(Number(primaryFloorPlatform.x || 0), chamberLeft);
+                const primaryFloorLocalLeft = Math.min(Number(primaryFloorPlatform.x || 0), chamberLeft);
+                const primaryFloorX = roomBounds.start + primaryFloorLocalLeft;
                 const primaryFloorWidth = Math.max(1, Number(primaryFloorPlatform.len || 1)) * tile;
                 const primaryFloorY = Number(primaryFloorPlatform.y || visualBottom - 48);
                 const lowerFloorTop = Math.min(Number(polygonBounds.bottom || visualBottom) - 72, primaryFloorY + 20);
@@ -3098,7 +3134,7 @@ class AshenHollow extends Phaser.Scene {
                 );
                 if (!mergeBespokeFloor) {
                     if (!this.addRoomBespokePrimaryFloorFaceDecor(roomId, {
-                        x: primaryFloorX,
+                        x: primaryFloorLocalLeft,
                         y: lowerFloorTop,
                         width: supportWidth,
                         height: lowerFloorHeight

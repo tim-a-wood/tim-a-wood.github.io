@@ -862,6 +862,22 @@ function simulateSequenceAttempt(order) {
     );
 })();
 
+(function testIndexBespokeWallShellPlacementContract() {
+    const fs = require('fs');
+    const path = require('path');
+    const htmlPath = path.join(__dirname, '../index.html');
+    if (!fs.existsSync(htmlPath)) return;
+    const html = fs.readFileSync(htmlPath, 'utf8');
+    assert.ok(
+        html.includes('getRoomEnvironmentBespokeWallShellAssets'),
+        'bespoke wall decor should accept wall_module_* or fall back to wall_piece'
+    );
+    assert.ok(
+        html.includes('Room-local X only') && html.includes('localWallX'),
+        'wall shell must pass room-local X into addPlacedBespokeAsset (avoid double world offset)'
+    );
+})();
+
 (function testRoomWizardWorkbenchShellCompactCss() {
     const fs = require('fs');
     const path = require('path');
