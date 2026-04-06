@@ -918,7 +918,8 @@ function getPrimaryFloorPlatform(roomId) {
  */
 const ROOM_ENV_THEME_BG = {
     cave: '#0a1628',
-    ruins: '#2a1a0a',
+    /* Cool near-void: warm brown (#2a1a0a) read as a sepia haze over most of the viewport in playtest/embed */
+    ruins: '#101820',
     forest: '#061a0c',
     shrine: '#1f0a2a',
     sewer: '#0a2a22',
@@ -930,7 +931,7 @@ const ROOM_ENV_THEME_BG = {
 /** Multiply tint on the parallax star tile (Phaser hex). */
 const ROOM_ENV_STARFIELD_TINT = {
     cave: 0x8899dd,
-    ruins: 0xddaa77,
+    ruins: 0x7a8fa3,
     forest: 0x77dd99,
     shrine: 0xbb88ff,
     sewer: 0x55eedd,
@@ -1510,6 +1511,18 @@ function hasLayoutDoorNearEdge(roomId, edgeIndex, distanceThreshold = 72) {
         );
         return projected.distance <= distanceThreshold;
     });
+}
+
+function applyRuntimeReviewCaptureViewport() {
+    if (!RUNTIME_REVIEW_CAPTURE_MODE) return;
+    const roomId = TEMP_TEST_START.room;
+    const roomBounds = ROOM_IDS[roomId];
+    if (!roomBounds) return;
+    const polygonBounds = getRoomPolygonBounds(roomId);
+    const chamberWidth = Math.max(64, Number(polygonBounds.right || roomBounds.width) - Number(polygonBounds.left || 0));
+    const chamberHeight = Math.max(64, Number(polygonBounds.bottom || CONFIG.WORLD_HEIGHT) - Number(polygonBounds.top || 0));
+    CONFIG.W = Math.max(800, Math.round(chamberWidth));
+    CONFIG.H = Math.max(400, Math.round(chamberHeight));
 }
 
 function getEntrySideFromNormal(normal) {
@@ -3039,6 +3052,7 @@ class AshenHollow extends Phaser.Scene {
             const roomBounds = ROOM_IDS[roomId];
             const room = getLayoutRoom(roomId);
             const roomWidth = roomBounds?.width || getRoomWidth(roomId);
+            const polygonBounds = getRoomPolygonBounds(roomId);
             const { top: roomTop } = getRoomVerticalBounds(roomId);
             const visualBottom = getRoomVisualWorldBottom();
             const floorWorldY = visualBottom - 16;
@@ -5275,6 +5289,7 @@ async function bootGame() {
         }
         setPageBootState('BOOT: applying runtime layout');
         applyRuntimeLayoutData(canonicalData, hashUrlData);
+        applyRuntimeReviewCaptureViewport();
         setPageBootState('BOOT: creating Phaser game');
         new Phaser.Game({
             type: Phaser.AUTO,
