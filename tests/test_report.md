@@ -42,3 +42,5 @@ Update 2026-04-06 (later): Primary floor cap, face band, and primary-floor **col
 Update 2026-04-06: Room env v3 — optional omission of `backwall_panel` planner slots via `MV_V3_BACKWALL_PANEL=0` (`scripts/room_environment_v3.py`); documented in `.env.local.example`. Added `test_v3_planner_omits_backwall_panel_when_env_disabled`. Ran `python3 tests/room_environment_system.test.py` (full suite, Pass).
 
 Update 2026-04-06: Room editor Environment **Step 2 — Preview & build** UX: optional `<details>` for revise fields + **Update preview**; primary gold CTA for **Build final room assets**; hint copy for build vs update; **Discard previews** separated. Ran `node tests/room-wizard-results-contract.test.js`, `node tests/room-wizard-environment.test.js`, `node tests/room-wizard-environment-copilot.test.js` (Pass); browser not re-checked in CI.
+
+Update 2026-04-06: Preview gallery cards — **click image opens full size** (`target="_blank"` link); title/level grid + `minmax(0,1fr)` + nowrap approve label for consistent wrapping (`room-wizard-workbench-shell.css`). Ran `node tests/room-wizard-results-contract.test.js`, `node tests/room-wizard-environment.test.js` (Pass).

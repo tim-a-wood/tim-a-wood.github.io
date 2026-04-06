@@ -8189,14 +8189,23 @@
         const version = previewState?.last_generated_at || '';
         gallery.innerHTML = items.map((item) => {
           const active = approved && approved === item.preview_id ? ' active' : '';
+          const imgHref = assetUrlWithVersion(item.url || '', version || item.preview_id || '');
+          const previewLabel = item.label || 'Room preview';
+          const openLabel = `Open full-size preview in a new tab: ${previewLabel}`;
+          const levelText = (item.render_level || '').toUpperCase();
+          const imgAlt = escapeHtml(previewLabel);
+          const imgSrc = escapeHtml(imgHref);
+          const mediaMarkup = imgHref
+            ? `<a class="rw-preview-card-open" href="${imgSrc}" target="_blank" rel="noopener noreferrer" title="View full size" aria-label="${escapeHtml(openLabel)}"><img src="${imgSrc}" alt="${imgAlt}" loading="lazy" /></a>`
+            : `<div class="rw-preview-card-media-missing" role="img" aria-label="${imgAlt}">Preview unavailable</div>`;
           return `
             <article class="rw-preview-card${active}">
               <div class="rw-preview-card-media">
-                <img src="${escapeHtml(assetUrlWithVersion(item.url || '', version || item.preview_id || ''))}" alt="${escapeHtml(item.label || 'Room preview')}" />
+                ${mediaMarkup}
               </div>
               <div class="rw-preview-card-copy">
-                <strong>${escapeHtml(item.label || 'Preview')}</strong>
-                <span>${escapeHtml((item.render_level || '').toUpperCase())}</span>
+                <div class="rw-preview-card-title"><strong>${escapeHtml(item.label || 'Preview')}</strong></div>
+                <span class="rw-preview-card-level">${escapeHtml(levelText)}</span>
               </div>
               <button type="button" class="btn-secondary rw-preview-approve" data-preview-id="${escapeHtml(item.preview_id || '')}">
                 ${active ? 'Approved' : 'Approve Preview'}

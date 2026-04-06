@@ -66,6 +66,12 @@ function assertIncludes(snippet, message) {
   assertIncludes("? 'Retry final room assets'", 'Build button should reflect retry state');
 })();
 
+(function testPreviewGalleryOpensFullSizeInNewTab() {
+  assertIncludes('class="rw-preview-card-open"', 'Preview thumbnails should link open for full-size view');
+  assertIncludes("target=\"_blank\"", 'Preview open link should use a new browsing context');
+  assertIncludes("rel=\"noopener noreferrer\"", 'Preview open link should include noopener noreferrer');
+})();
+
 (function testResultsPreviewAvoidsDoublePanelChrome() {
   assertIncludes(
     'rw-copilot-preview-box--flush',
