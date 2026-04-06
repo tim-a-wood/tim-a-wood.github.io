@@ -76,7 +76,7 @@ const CONFIG = {
     JUMP_FORCE: -690,
     FRICTION: 0.75,
     COLORS: [0x2a3a5a, 0x3a2a5a, 0x2a4a3a, 0x4a3a2a, 0x2a4050],
-    /** One surface tile (32px) — camera may scroll this far past the footprint polygon so wall/floor/ceiling strips are not clipped at the layout line. */
+    /** One surface tile (32px) — camera, primary floor cap, and floor collision extend this far past the footprint polygon so shell corners and margin strips are not void. */
     CAMERA_CHAMBER_SURFACE_BLEED_PX: 32
 };
 
@@ -3332,15 +3332,17 @@ class AshenHollow extends Phaser.Scene {
             if (primaryFloorPlatform) {
                 const chamberLeft = Number(polygonBounds.left || 0);
                 const chamberRight = Number(polygonBounds.right || roomBounds.width);
-                /* Floor seam contract: side walls anchor on chamber bounds, so floor cap/face must span the same bounds. */
-                const primaryFloorLocalLeft = chamberLeft;
+                const surfaceBleed = Number(CONFIG.CAMERA_CHAMBER_SURFACE_BLEED_PX) || 32;
+                /* Extend one tile past polygon left/right so floor meets bespoke wall bases and fills L-corners in the camera bleed. */
+                const primaryFloorLocalLeft = Math.max(0, chamberLeft - surfaceBleed);
+                const primaryFloorLocalRight = Math.min(roomBounds.width, chamberRight + surfaceBleed);
+                const primaryFloorWidth = Math.max(1, primaryFloorLocalRight - primaryFloorLocalLeft);
                 const primaryFloorX = roomBounds.start + primaryFloorLocalLeft;
-                const primaryFloorWidth = Math.max(1, chamberRight - chamberLeft);
                 /* Floor tile row + cap follow layout footprint bottom (getLayoutFloorTileCenterY), not only authored platform.y. */
                 const primaryFloorY = layoutFloorTileCenterY;
                 const lowerFloorTop = Math.min(walkPlaneTopY - 56, primaryFloorY + 20);
                 const lowerFloorHeight = Math.max(48, visualBottom - lowerFloorTop - 12);
-                const supportWidth = Math.max(primaryFloorWidth, chamberRight - chamberLeft);
+                const supportWidth = primaryFloorWidth;
                 const bespokePrimaryCap = getRoomEnvironmentBespokePrimaryFloorAsset(roomId);
                 const mergeBespokeFloor = Boolean(
                     bespokePrimaryCap?.url && this.textures.exists(`env-bespoke-${bespokePrimaryCap.slot_id}`)
@@ -3438,8 +3440,11 @@ class AshenHollow extends Phaser.Scene {
                     ? resolveRoomSurfaceTexture(this, roomId, 'floor')
                     : resolveRoomPlatformTexture(this, roomId, tint || 0);
                 if (isPrimaryFloor) {
-                    const collisionLeft = roomBounds.start + chamberLeft;
-                    const collisionWidth = Math.max(1, chamberRight - chamberLeft);
+                    const surfaceBleed = Number(CONFIG.CAMERA_CHAMBER_SURFACE_BLEED_PX) || 32;
+                    const collisionLocalLeft = Math.max(0, chamberLeft - surfaceBleed);
+                    const collisionLocalRight = Math.min(roomBounds.width, chamberRight + surfaceBleed);
+                    const collisionLeft = roomBounds.start + collisionLocalLeft;
+                    const collisionWidth = Math.max(1, collisionLocalRight - collisionLocalLeft);
                     for (let i = 0; i < Math.ceil(collisionWidth / tile); i++) {
                         const px = collisionLeft + (i * tile) + 16;
                         this.createRoomSurfaceTile(px, floorTileCenterY, roomId, platformTextureKey, 'floor');

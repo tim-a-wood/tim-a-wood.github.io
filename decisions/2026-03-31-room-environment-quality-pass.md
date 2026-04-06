@@ -886,6 +886,11 @@ This log records decisions for the room environment and bespoke asset quality pa
 - Why: Clamping `cameras.main.setBounds` exactly to the polygon AABB (with only an 8px pad) cropped wall/floor/ceiling shell art that legitimately extends one grid tile past the layout line; founder playtest showed harsh black bars at the scroll limits.
 - Consequence: `getRoomCameraChamberBoundsWorld` expands polygon bounds by `CONFIG.CAMERA_CHAMBER_SURFACE_BLEED_PX` (**32px**, matching the uniform floor/wall tile grid) on each edge, still clamped to the room slot and world height. Runtime review capture uses the same rect.
 
+### 164. Primary floor cap and collision extend by the same surface bleed as the camera
+- Status: Accepted (2026-04-06)
+- Why: Camera bleed revealed floor cap and physics ending exactly at polygon left/right while bespoke walls span the margin inset; an L-shaped black void appeared at the wall–floor corner.
+- Consequence: In `buildWorldGeometry`, primary floor `primaryFloorLocalLeft` / `primaryFloorLocalRight` (cap, face band, support width) and primary-floor `collisionLocalLeft` / `collisionLocalRight` use the same `CONFIG.CAMERA_CHAMBER_SURFACE_BLEED_PX` expansion, clamped to the room slot width.
+
 ### 161b. `.env.local` must override non-empty wrong shell keys (follow-up 2026-04-06)
 - Status: Accepted (2026-04-06)
 - Why: Even after #161, **`room_layout_copilot`** loaded `.env.local` at import time with **“only if key not in os.environ”**, so a **wrong but non-empty** `GEMINI_API_KEY` in the shell still **blocked** the valid key in `.env.local`. The workbench server also froze `PIXELLAB_API_KEY` **before** `load_repo_env_local()` ran.

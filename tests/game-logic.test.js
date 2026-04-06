@@ -972,11 +972,12 @@ function simulateSequenceAttempt(order) {
     if (!fs.existsSync(htmlPath)) return;
     const html = fs.readFileSync(htmlPath, 'utf8');
     assert.ok(
-        html.includes('primaryFloorLocalLeft = chamberLeft')
+        html.includes('primaryFloorLocalLeft = Math.max(0, chamberLeft - surfaceBleed)')
+            && html.includes('primaryFloorLocalRight = Math.min(roomBounds.width, chamberRight + surfaceBleed)')
             && html.includes('primaryFloorY = layoutFloorTileCenterY')
             && html.includes('function getLayoutFloorTileCenterY')
             && /addRoomFloorCapDecor\([\s\S]*primaryFloorX[\s\S]*primaryFloorY[\s\S]*primaryFloorWidth/m.test(html),
-        'primary floor cap should span chamber bounds and use layout footprint floor row (polygon bottom)'
+        'primary floor cap should span chamber plus surface bleed and use layout footprint floor row (polygon bottom)'
     );
 })();
 
@@ -987,9 +988,10 @@ function simulateSequenceAttempt(order) {
     if (!fs.existsSync(htmlPath)) return;
     const html = fs.readFileSync(htmlPath, 'utf8');
     assert.ok(
-        html.includes('const collisionLeft = roomBounds.start + chamberLeft')
+        html.includes('collisionLocalLeft = Math.max(0, chamberLeft - surfaceBleed)')
+            && html.includes('const collisionLeft = roomBounds.start + collisionLocalLeft')
             && html.includes('this.createRoomSurfaceTile(px, floorTileCenterY, roomId, platformTextureKey, \'floor\')'),
-        'primary floor collision row should use chamber bounds and primary floor tile center Y to match seam'
+        'primary floor collision row should match extended floor cap (chamber + surface bleed) and primary floor tile center Y'
     );
     assert.ok(
         /isPrimaryFloor\s*=\s*[\s\S]*primaryFloorPlatform[\s\S]*primaryFloorPlatform\.x[\s\S]*Math\.max\(1, Number\(primaryFloorPlatform\.len \|\| 1\)\) === len/m.test(html)
