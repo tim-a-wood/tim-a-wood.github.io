@@ -938,6 +938,22 @@ function simulateSequenceAttempt(order) {
     );
 })();
 
+(function testIndexBespokeWallShellTextureCapAndNoFlankingWithWallAssets() {
+    const fs = require('fs');
+    const path = require('path');
+    const htmlPath = path.join(__dirname, '../index.html');
+    if (!fs.existsSync(htmlPath)) return;
+    const html = fs.readFileSync(htmlPath, 'utf8');
+    assert.ok(
+        html.includes('getEnvBespokeTextureFrameSize') && html.includes('WALL_ART_MAX_SCALE'),
+        'wall shell must cap display size vs loaded texture frame (avoid manifest full-chamber stretch)'
+    );
+    assert.ok(
+        /if \(!wallAssets\.length && support\?\.roomBounds && chamberBounds\)/.test(html),
+        'flanking wall mass inside bespoke shell only when no wall_module assets (avoid giant margin TileSprites)'
+    );
+})();
+
 (function testRoomWizardWorkbenchShellCompactCss() {
     const fs = require('fs');
     const path = require('path');

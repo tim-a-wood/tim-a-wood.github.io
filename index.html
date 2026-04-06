@@ -1147,6 +1147,37 @@ function textureMatchesExpectedSize(scene, textureKey, width, height) {
     return sourceWidth === width && sourceHeight === height;
 }
 
+/** Native pixel size of a loaded bespoke env texture (for capping display stretch). */
+function getEnvBespokeTextureFrameSize(scene, slotId) {
+    const textureKey = slotId ? `env-bespoke-${slotId}` : '';
+    if (!textureKey || !scene?.textures?.exists(textureKey)) {
+        return { w: 320, h: 640 };
+    }
+    const texture = scene.textures.get(textureKey);
+    const source = texture?.getSourceImage?.() || texture?.source?.[0]?.image || texture?.source?.[0];
+    const frame = texture?.frames?.__BASE || texture?.get?.('__BASE') || null;
+    const w = Number(
+        frame?.cutWidth
+        || frame?.realWidth
+        || frame?.width
+        || source?.naturalWidth
+        || source?.videoWidth
+        || source?.width
+        || 0
+    );
+    const h = Number(
+        frame?.cutHeight
+        || frame?.realHeight
+        || frame?.height
+        || source?.naturalHeight
+        || source?.videoHeight
+        || source?.height
+        || 0
+    );
+    if (w > 0 && h > 0) return { w, h };
+    return { w: 320, h: 640 };
+}
+
 function getRoomEnvironmentAssetPack(roomId) {
     const env = normalizeEnvironmentFromLayout(getLayoutRoom(roomId));
     const pack = env.runtime?.asset_pack;
@@ -2632,7 +2663,10 @@ class AshenHollow extends Phaser.Scene {
         const chamberBounds = support?.chamberBounds || null;
         const chamberWidth = chamberBounds ? Math.max(1, Number(chamberBounds.right || 0) - Number(chamberBounds.left || 0)) : roomWidth;
         let flankingMassPlaced = 0;
-        if (support?.roomBounds && chamberBounds) {
+        /* When wall_module_* art exists, flanking TileSprites repeat across huge polygon margins and
+         * visually dominate (full-height “pillar”); bespoke sprites carry the read — skip flanking.
+         * Outer buildWorldGeometry still adds mass fallback if bespoke placement fails. */
+        if (!wallAssets.length && support?.roomBounds && chamberBounds) {
             const upperMassY = Number(chamberBounds.top || support.roomTop || 0);
             const floorPlaneTop = Number(chamberBounds.bottom || support.floorWorldY || 0);
             const upperMassHeight = Math.max(128, floorPlaneTop - upperMassY);
@@ -2684,19 +2718,26 @@ class AshenHollow extends Phaser.Scene {
                 const chamberH = Math.max(1, chamberBottom - chamberTop);
                 /* Never force full-chamber height — that vertically stretches brick scale to a few giant courses. */
                 const baseH = authoredH > 0 ? authoredH : Math.max(320, Math.round(planH || chamberH * 0.72));
-                const accentHeight = Phaser.Math.Clamp(Math.round(baseH), 200, chamberH);
+                let accentHeight = Phaser.Math.Clamp(Math.round(baseH), 200, chamberH);
+                let accentW = accentWidth;
+                const frameNat = getEnvBespokeTextureFrameSize(this, asset.slot_id);
+                const WALL_ART_MAX_SCALE = 1.25;
+                accentW = Math.min(accentW, Math.max(64, Math.ceil(frameNat.w * WALL_ART_MAX_SCALE)));
+                accentHeight = Math.min(accentHeight, Math.max(200, Math.ceil(frameNat.h * WALL_ART_MAX_SCALE)));
+                accentW = Math.min(accentW, capW);
+                accentHeight = Math.min(accentHeight, chamberH);
                 const isLeft = String(asset.component_type || '').includes('left');
                 /* Room-local X only — addPlacedBespokeAsset adds ROOM_IDS[roomId].start (world offset). */
                 const localWallX = isLeft
                     ? Number(chamberBounds?.left || 0)
-                    : Math.max(Number(chamberBounds?.left || 0), Number(chamberBounds?.right || roomWidth) - accentWidth);
+                    : Math.max(Number(chamberBounds?.left || 0), Number(chamberBounds?.right || roomWidth) - accentW);
                 sprite = this.addPlacedBespokeAsset(roomId, {
                     ...asset,
                     placement: {
                         ...placement,
                         x: localWallX,
                         y: chamberBottom,
-                        display_width: accentWidth,
+                        display_width: accentW,
                         display_height: accentHeight,
                         origin_x: 0,
                         origin_y: 1
