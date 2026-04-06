@@ -1078,6 +1078,7 @@ function simulateSequenceAttempt(order) {
     assert.ok(html.includes('applyRuntimeReviewCaptureCamera'), 'capture mode should frame the room instead of following live gameplay');
     assert.ok(html.includes('const polygonBounds = getRoomPolygonBounds(roomId);'), 'runtime geometry should derive polygon bounds before shell/floor placement');
     assert.ok(html.includes('getRoomCameraChamberBoundsWorld'), 'playtest camera should clamp to footprint polygon chamber');
+    assert.ok(html.includes('CAMERA_CHAMBER_SURFACE_BLEED_PX'), 'camera chamber should bleed one surface tile past polygon edges');
     assert.ok(html.includes('RUNTIME_REVIEW_CAPTURE_MODE ? 64 : 48'), 'capture mode should strengthen door readability');
     assert.ok(html.includes('RUNTIME_REVIEW_CAPTURE_MODE ? 0.24 : (composition.hasBespokeBackground ? 0.4 : 0.5)'), 'capture mode should reduce backdrop weight');
     assert.ok(html.includes('addRoomBespokeDoorDecor'), 'runtime should place bespoke door-frame assets into the scene');

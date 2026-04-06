@@ -75,7 +75,9 @@ const CONFIG = {
     PLAYER_SPEED: 280,
     JUMP_FORCE: -690,
     FRICTION: 0.75,
-    COLORS: [0x2a3a5a, 0x3a2a5a, 0x2a4a3a, 0x4a3a2a, 0x2a4050]
+    COLORS: [0x2a3a5a, 0x3a2a5a, 0x2a4a3a, 0x4a3a2a, 0x2a4050],
+    /** One surface tile (32px) — camera may scroll this far past the footprint polygon so wall/floor/ceiling strips are not clipped at the layout line. */
+    CAMERA_CHAMBER_SURFACE_BLEED_PX: 32
 };
 
 window.__previewLayoutFromParent = null;
@@ -882,8 +884,8 @@ function getRoomPolygonBounds(roomId) {
 }
 
 /**
- * World-space rectangle for camera clamping: matches footprint polygon (floor/wall/ceiling chamber) when present,
- * otherwise the full room slot (editor canvas width × world height) so playtest does not show empty margin outside the chamber.
+ * World-space rectangle for camera clamping: footprint polygon plus one surface-tile bleed (32px) per edge when present,
+ * otherwise the full room slot (editor canvas width × world height).
  */
 function getRoomCameraChamberBoundsWorld(roomId) {
     const slot = ROOM_IDS[roomId];
@@ -895,11 +897,11 @@ function getRoomCameraChamberBoundsWorld(roomId) {
     const hasPoly = layoutRoom && Array.isArray(layoutRoom.polygon) && layoutRoom.polygon.length >= 3
         && (poly.right > poly.left) && (poly.bottom > poly.top);
     if (hasPoly) {
-        const pad = 8;
-        const innerLeft = Math.max(0, Number(poly.left) - pad);
-        const innerTop = Math.max(0, Number(poly.top) - pad);
-        const innerRight = Math.min(Number(slot.width), Number(poly.right) + pad);
-        const innerBottom = Math.min(CONFIG.WORLD_HEIGHT, Number(poly.bottom) + pad);
+        const bleed = Number(CONFIG.CAMERA_CHAMBER_SURFACE_BLEED_PX) || 32;
+        const innerLeft = Math.max(0, Number(poly.left) - bleed);
+        const innerTop = Math.max(0, Number(poly.top) - bleed);
+        const innerRight = Math.min(Number(slot.width), Number(poly.right) + bleed);
+        const innerBottom = Math.min(CONFIG.WORLD_HEIGHT, Number(poly.bottom) + bleed);
         return {
             x: slot.start + innerLeft,
             y: innerTop,
