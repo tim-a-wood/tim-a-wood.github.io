@@ -914,6 +914,18 @@ function simulateSequenceAttempt(order) {
     );
 })();
 
+(function testIndexWideChamberWallShellSplit() {
+    const fs = require('fs');
+    const path = require('path');
+    const htmlPath = path.join(__dirname, '../index.html');
+    if (!fs.existsSync(htmlPath)) return;
+    const html = fs.readFileSync(htmlPath, 'utf8');
+    assert.ok(
+        html.includes('wideChamber') && html.includes('Split the chamber 50/50'),
+        'wide chambers should use half-width wall shells so modules stay in camera while mid-room'
+    );
+})();
+
 (function testRoomWizardWorkbenchShellCompactCss() {
     const fs = require('fs');
     const path = require('path');

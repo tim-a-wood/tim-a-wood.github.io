@@ -2656,7 +2656,16 @@ class AshenHollow extends Phaser.Scene {
                 sprite = this.addPlacedBespokeAsset(roomId, asset, wallShellDepth, RUNTIME_REVIEW_CAPTURE_MODE ? 1 : 0.98);
             } else {
                 const placement = asset.placement || {};
-                const accentWidth = Math.min(Math.max(Number(placement.display_width || 0), Math.round(chamberWidth * 0.16)), Math.max(1, Math.round(chamberWidth * 0.5)));
+                /* Narrow strips at polygon edges sit off-camera when the chamber is wider than the view and the
+                   player is mid-room — assets exist but read as "missing". Split the chamber 50/50 for wide
+                   footprints so left/right shells meet at center and stay in frame. */
+                const maxHalf = Math.max(1, Math.round(chamberWidth * 0.5));
+                const fromPlacement = Math.min(
+                    Math.max(Number(placement.display_width || 0), Math.round(chamberWidth * 0.16)),
+                    maxHalf
+                );
+                const wideChamber = chamberWidth >= Math.max(520, Math.round(CONFIG.W * 0.85));
+                const accentWidth = wideChamber ? maxHalf : fromPlacement;
                 const isLeft = String(asset.component_type || '').includes('left');
                 /* Room-local X only — addPlacedBespokeAsset adds ROOM_IDS[roomId].start (world offset). */
                 const localWallX = isLeft
