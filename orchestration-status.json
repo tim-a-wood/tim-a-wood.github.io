@@ -1,6 +1,6 @@
 {
   "_note": "Updated daily at noon by the orchestrator. Synthesised from all agent statuses. Plain language \u2014 no jargon.",
-  "updated": "2026-04-02",
+  "updated": "2026-04-06",
   "schema_version": "v1.0",
   "synthesis_sources": [
     "engineering-status.json",
