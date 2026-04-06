@@ -2662,16 +2662,29 @@ class AshenHollow extends Phaser.Scene {
                     || getRoomEnvironmentBespokePlanEntry(roomId, 'wall_module_left')
                     || getRoomEnvironmentBespokePlanEntry(roomId, 'wall_module_right');
                 const planW = Number(planEntry?.target_dimensions?.width || 0);
+                const planH = Number(planEntry?.target_dimensions?.height || 0);
                 const authoredW = Math.max(
                     0,
                     Number(placement.display_width || asset.final_dimensions?.width || planW || 0)
+                );
+                const authoredH = Math.max(
+                    0,
+                    Number(placement.display_height || asset.final_dimensions?.height || planH || 0)
                 );
                 const maxHalf = Math.max(1, Math.round(chamberWidth * 0.5));
                 const capW = Math.min(maxHalf, Math.round(chamberWidth * 0.26));
                 const floorW = Math.max(96, Math.round(chamberWidth * 0.14));
                 /* Match horizontal scale to generated art (same contract as floor/ceiling strips), not viewport-wide bands. */
                 const baseW = authoredW > 0 ? authoredW : Math.max(200, planW || floorW);
-                const accentWidth = Phaser.Math.Clamp(Math.round(baseW), 96, capW);
+                const accentWidth = authoredW > 0
+                    ? Math.min(Math.max(Math.round(authoredW), 64), capW)
+                    : Phaser.Math.Clamp(Math.round(baseW), 96, capW);
+                const chamberTop = Number(chamberBounds?.top || support.roomTop || 0);
+                const chamberBottom = Number(chamberBounds?.bottom || support.floorWorldY || 0);
+                const chamberH = Math.max(1, chamberBottom - chamberTop);
+                /* Never force full-chamber height — that vertically stretches brick scale to a few giant courses. */
+                const baseH = authoredH > 0 ? authoredH : Math.max(320, Math.round(planH || chamberH * 0.72));
+                const accentHeight = Phaser.Math.Clamp(Math.round(baseH), 200, chamberH);
                 const isLeft = String(asset.component_type || '').includes('left');
                 /* Room-local X only — addPlacedBespokeAsset adds ROOM_IDS[roomId].start (world offset). */
                 const localWallX = isLeft
@@ -2682,11 +2695,11 @@ class AshenHollow extends Phaser.Scene {
                     placement: {
                         ...placement,
                         x: localWallX,
-                        y: Number(chamberBounds?.top || support.roomTop || 0),
+                        y: chamberBottom,
                         display_width: accentWidth,
-                        display_height: Math.max(Number(placement.display_height || 0), Number(chamberBounds?.bottom || support.floorWorldY || 0) - Number(chamberBounds?.top || support.roomTop || 0)),
+                        display_height: accentHeight,
                         origin_x: 0,
-                        origin_y: 0
+                        origin_y: 1
                     }
                 }, wallShellDepth, RUNTIME_REVIEW_CAPTURE_MODE ? 1 : 0.98);
             }

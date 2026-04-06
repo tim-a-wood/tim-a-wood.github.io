@@ -932,6 +932,10 @@ function simulateSequenceAttempt(order) {
         html.includes('Match horizontal scale to generated art'),
         'wall shell comment should state authored-scale intent'
     );
+    assert.ok(
+        html.includes('authoredH') && html.includes('accentHeight') && html.includes('origin_y: 1'),
+        'wall shell height must follow authored/plan and bottom-align; no forced full-chamber vertical stretch'
+    );
 })();
 
 (function testRoomWizardWorkbenchShellCompactCss() {

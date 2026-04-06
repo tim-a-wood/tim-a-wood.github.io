@@ -821,6 +821,11 @@ This log records decisions for the room environment and bespoke asset quality pa
 - Why: Follow-on playtest showed wall modules stretched to hundreds of pixels wide (`wideStripCap` / chamber fractions), so each brick read enormous versus floor/ceiling strips. The pipeline already authors `placement.display_width`, `final_dimensions`, and `generation_plan.target_dimensions` for wall modules — runtime should respect that horizontal scale.
 - Consequence: `addRoomBespokeWallShellDecor` sets `accentWidth` from `placement` → `final_dimensions` → plan `target_dimensions`, with fallback `max(200, planW || 14% chamber)`, clamped to `[96, min(50% chamber, 26% chamber)]`. Removed `wideChamber` / `wideStripCap` widening.
 
+### 151. Bespoke wall shell height must not default to full chamber (vertical brick megascale)
+- Status: Accepted (2026-04-05)
+- Why: Runtime used `max(placement.display_height, chamber height)`, forcing every wall image to stretch to the full polygon vertical span. That made each masonry course enormous in frame (“pillar of giant blocks”) even when horizontal width matched authoring.
+- Consequence: `display_height` follows `placement` / `final_dimensions` / plan `target_dimensions`, fallback `max(320, planH || 72% chamber)`, clamped to `[200, chamberH]`. Shell is **bottom-aligned** (`origin_y: 1`, `y: chamberBottom`) so it sits on the floor plane like floor strips.
+
 ### 148. Bespoke wall shell must run even when polygon wall rects are non-empty
 - Status: Accepted (2026-04-05)
 - Why: After decision 145, `buildWorldGeometry` only called `addRoomBespokeWallShellDecor` when `!roomHasPolygonWallTileRects`. Complex footprints (e.g. canonical R1) produce many outside-polygon cells, so `rects.length > 0` always — **bespoke wall_module composition never ran** while thin procedural tiles stayed at grid boundaries (often off-camera). Founder playtest still showed floor + void + no shell despite generated assets.
