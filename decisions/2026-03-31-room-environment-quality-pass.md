@@ -800,3 +800,8 @@ This log records decisions for the room environment and bespoke asset quality pa
 - Status: Accepted (2026-04-05)
 - Why: `applyRuntimeLayoutData` rebuilds `DUNGEON_WALL_RECTS` for every room with a polygon. A rectangle that covers the full room has no “outside polygon” cells, so `buildWallRectsFromPolygon` returns an empty `rects` array. The old gate treated “listed in `DUNGEON_WALL_RECTS`” as “use procedural rects only,” which skipped `addRoomBespokeWallShellDecor` and placed no procedural tiles either — invisible walls in editor-driven playtest.
 - Consequence: `buildWorldGeometry` gates bespoke wall shell on `roomHasPolygonWallTileRects(roomId)` (non-empty rects) rather than mere membership. `addRoomBespokeWallShellDecor` returns false when wall slots exist but neither bespoke sprites nor flanking AI mass actually placed, so the outer `addRoomWallMassDecor` fallback can run.
+
+### 146. Wall mass/body decor must fall back to procedural surface textures when `wall_body_strip` is absent
+- Status: Accepted (2026-04-05)
+- Why: `resolveRoomWallBodyTexture` returned null unless a 512×512 AI `wall_body_strip` loaded. `addRoomWallMassDecor` / `addRoomWallBodyDecor` then skipped, so rooms without a ready asset pack had no flanking mass and (combined with empty polygon rects) could show no walls at all. Procedural `env-surface-wall-*` tiles are always generated in `preload`.
+- Consequence: After the AI strip check fails, use `roomSurfaceTextureKey(roomId, 'wall', 0)` when the texture exists. TileSprite scaling uses the texture frame size (32 vs 512) via `applyWallStripTileScaleFromTexture`. Layout rooms with a footprint polygon also set `emphasizeWalls` so procedural wall *tiles* are not stuck at ~12% alpha before bespoke completes.

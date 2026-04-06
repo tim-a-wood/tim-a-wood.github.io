@@ -896,6 +896,34 @@ function applyEnvironmentStripTileScale(sprite, width, height, texW, texH) {
     sprite.tileScaleY = height / texH;
 }
 
+/** TileSprite fill scale: use frame size (32×32 procedural vs 512×512 AI strips). */
+function applyWallStripTileScaleFromTexture(scene, sprite, width, height, textureKey) {
+    if (!sprite || width < 8 || height < 8 || !scene?.textures?.exists(textureKey)) return;
+    let texW = 512;
+    let texH = 512;
+    try {
+        const tex = scene.textures.get(textureKey);
+        const frame = tex.get();
+        const fw = Number(frame?.width);
+        const fh = Number(frame?.height);
+        if (fw > 0 && fh > 0) {
+            texW = fw;
+            texH = fh;
+        } else {
+            const src = tex.getSourceImage?.();
+            const w = Number(src?.naturalWidth || src?.width);
+            const h = Number(src?.naturalHeight || src?.height);
+            if (w > 0 && h > 0) {
+                texW = w;
+                texH = h;
+            }
+        }
+    } catch (_) {
+        /* keep defaults */
+    }
+    applyEnvironmentStripTileScale(sprite, width, height, texW, texH);
+}
+
 function getPrimaryFloorPlatform(roomId) {
     const room = getLayoutRoom(roomId);
     const platforms = Array.isArray(room?.platforms) ? room.platforms : [];
@@ -1284,6 +1312,8 @@ function getRoomEnvironmentRuntimeComposition(roomId) {
     const midgroundZone = Array.isArray(midgroundPlan?.protected_zones)
         ? midgroundPlan.protected_zones.find((zone) => zone && Number(zone.width || 0) > 0)
         : null;
+    const room = getLayoutRoom(roomId);
+    const hasFootprintPolygon = Boolean(room && Array.isArray(room.polygon) && room.polygon.length >= 3);
     return {
         hasBespokeManifest,
         hasBespokeBackground: Boolean(backgroundAsset?.url),
@@ -1295,7 +1325,8 @@ function getRoomEnvironmentRuntimeComposition(roomId) {
         midgroundZone,
         suppressBackdropOverlay: Boolean(backgroundAsset?.url),
         suppressFocalSetDressing: Boolean(backgroundAsset?.url || midgroundAsset?.url),
-        emphasizeWalls: hasBespokeManifest || isContrastQaEnvironment(roomId)
+        /* Footprint polygon: show readable procedural wall tiles in playtest even before bespoke / contrast-qa. */
+        emphasizeWalls: hasBespokeManifest || isContrastQaEnvironment(roomId) || hasFootprintPolygon
     };
 }
 
@@ -1308,6 +1339,9 @@ function resolveRoomWallBodyTexture(scene, roomId) {
     if (asset?.source === 'ai' && asset?.url && textureMatchesExpectedSize(scene, roomWallBodyAssetKey(roomId), 512, 512)) {
         return roomWallBodyAssetKey(roomId);
     }
+    /* Without a loaded AI strip, wall mass / body decor would skip entirely — use generated env-surface wall tile. */
+    const proceduralKey = roomSurfaceTextureKey(roomId, 'wall', 0);
+    if (scene?.textures?.exists(proceduralKey)) return proceduralKey;
     return null;
 }
 
@@ -2475,7 +2509,7 @@ class AshenHollow extends Phaser.Scene {
         const sprite = this.add.tileSprite(x + (width / 2), y + (height / 2), width, height, textureKey)
             .setDepth(-0.18)
             .setAlpha(0.92);
-        applyEnvironmentStripTileScale(sprite, width, height, 512, 512);
+        applyWallStripTileScaleFromTexture(this, sprite, width, height, textureKey);
         this.environmentDecor.push(sprite);
         return sprite;
     }
@@ -2486,7 +2520,7 @@ class AshenHollow extends Phaser.Scene {
         const sprite = this.add.tileSprite(x + (width / 2), y + (height / 2), width, height, textureKey)
             .setDepth(depth)
             .setAlpha(alpha);
-        applyEnvironmentStripTileScale(sprite, width, height, 512, 512);
+        applyWallStripTileScaleFromTexture(this, sprite, width, height, textureKey);
         this.environmentDecor.push(sprite);
         return sprite;
     }

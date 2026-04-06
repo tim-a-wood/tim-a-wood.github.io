@@ -894,6 +894,26 @@ function simulateSequenceAttempt(order) {
     );
 })();
 
+(function testIndexWallBodyProceduralFallbackAndTileScale() {
+    const fs = require('fs');
+    const path = require('path');
+    const htmlPath = path.join(__dirname, '../index.html');
+    if (!fs.existsSync(htmlPath)) return;
+    const html = fs.readFileSync(htmlPath, 'utf8');
+    assert.ok(
+        html.includes('Without a loaded AI strip') && html.includes('roomSurfaceTextureKey(roomId, \'wall\', 0)'),
+        'resolveRoomWallBodyTexture should fall back to procedural env-surface wall when no AI strip'
+    );
+    assert.ok(
+        html.includes('applyWallStripTileScaleFromTexture'),
+        'wall mass/body TileSprites must scale from actual texture frame size (32 vs 512)'
+    );
+    assert.ok(
+        html.includes('hasFootprintPolygon') && html.includes('emphasizeWalls'),
+        'footprint polygon should boost procedural wall tile alpha (emphasizeWalls) for playtest readability'
+    );
+})();
+
 (function testRoomWizardWorkbenchShellCompactCss() {
     const fs = require('fs');
     const path = require('path');
