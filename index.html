@@ -950,11 +950,26 @@ function getPrimaryFloorTileCenterY(roomId, floorWorldY) {
 }
 
 /**
- * Top of walk surface (floor tiles are 32×32 with default center origin).
- * Polygon `bottom` can sit below this row; do not use polygon bottom as the walk line when a primary floor exists.
+ * Y center of the floor tile row that matches the layout footprint: polygon `bottom` is the bottom edge
+ * of the floor tile row (room-local), so tile center = bottom − 16 (32px tiles). When no polygon, fall back
+ * to the widest primary platform / world floor row.
+ */
+function getLayoutFloorTileCenterY(roomId, floorWorldY) {
+    const room = getLayoutRoom(roomId);
+    if (room && Array.isArray(room.polygon) && room.polygon.length >= 3) {
+        const b = Number(getRoomPolygonBounds(roomId).bottom);
+        if (Number.isFinite(b) && b > 0) {
+            return b - 16;
+        }
+    }
+    return getPrimaryFloorTileCenterY(roomId, floorWorldY);
+}
+
+/**
+ * Top of walk surface (floor tiles are 32×32 with center at layout floor row).
  */
 function getRoomWalkPlaneTopY(roomId, floorWorldY) {
-    return getPrimaryFloorTileCenterY(roomId, floorWorldY) - 16;
+    return getLayoutFloorTileCenterY(roomId, floorWorldY) - 16;
 }
 
 /**
@@ -2836,14 +2851,15 @@ class AshenHollow extends Phaser.Scene {
     }
 
     addRoomFloorCapDecor(roomId, x, y, width, height = 24, mergeFaceSpan = 0) {
+        /* `y` is floor physics tile center (same as createRoomSurfaceTile). Top of walk surface = y − 16. */
+        const walkTop = y - 16;
         const bespoke = getRoomEnvironmentBespokePrimaryFloorAsset(roomId);
         if (bespoke?.url && this.textures.exists(`env-bespoke-${bespoke.slot_id}`)) {
             const baseH = Math.max(height, Number(bespoke.final_dimensions?.height || 96) * 0.45);
             const extra = Math.max(0, mergeFaceSpan);
             const totalH = baseH + extra;
-            const originY = extra > 0 ? 1 : 0.68;
-            const sprite = this.add.image(x + (width / 2), y, `env-bespoke-${bespoke.slot_id}`)
-                .setOrigin(0.5, originY)
+            const sprite = this.add.image(x + (width / 2), walkTop, `env-bespoke-${bespoke.slot_id}`)
+                .setOrigin(0.5, 0)
                 .setDisplaySize(width, totalH)
                 .setDepth(0.08)
                 .setAlpha(0.98);
@@ -2852,8 +2868,8 @@ class AshenHollow extends Phaser.Scene {
         }
         const textureKey = resolveRoomFloorCapTexture(this, roomId);
         if (!textureKey || width < 24) return null;
-        const sprite = this.add.tileSprite(x + (width / 2), y, width, height, textureKey)
-            .setOrigin(0.5, 0.5)
+        const sprite = this.add.tileSprite(x + (width / 2), walkTop, width, height, textureKey)
+            .setOrigin(0.5, 0)
             .setDepth(0.08)
             .setAlpha(0.96);
         applyEnvironmentStripTileScale(sprite, width, height, 512, 96);
@@ -3270,18 +3286,19 @@ class AshenHollow extends Phaser.Scene {
             const visualBottom = getRoomVisualWorldBottom();
             const floorWorldY = visualBottom - 16;
             const primaryFloorPlatform = getPrimaryFloorPlatform(roomId);
-            const primaryFloorTileCenterY = getPrimaryFloorTileCenterY(roomId, floorWorldY);
+            const layoutFloorTileCenterY = getLayoutFloorTileCenterY(roomId, floorWorldY);
             const walkPlaneTopY = getRoomWalkPlaneTopY(roomId, floorWorldY);
             if (!roomBounds || roomWidth <= 0) return;
             const floorTextureKey = resolveRoomSurfaceTexture(this, roomId, 'floor');
             if (!primaryFloorPlatform) {
+                const floorRowCenterY = layoutFloorTileCenterY;
                 for (let localX = 0; localX < roomWidth; localX += tile) {
                     const centerX = localX + 16;
-                    if (shouldPlaceBoundaryTile(roomId, { x: centerX, y: floorWorldY })) {
-                        this.createRoomSurfaceTile(roomBounds.start + centerX, floorWorldY, roomId, floorTextureKey, 'floor');
+                    if (shouldPlaceBoundaryTile(roomId, { x: centerX, y: floorRowCenterY })) {
+                        this.createRoomSurfaceTile(roomBounds.start + centerX, floorRowCenterY, roomId, floorTextureKey, 'floor');
                     }
                 }
-                this.addRoomFloorCapDecor(roomId, roomBounds.start, floorWorldY, roomWidth, 22);
+                this.addRoomFloorCapDecor(roomId, roomBounds.start, floorRowCenterY, roomWidth, 22);
             }
             const platforms = Array.isArray(room?.platforms) ? room.platforms : [];
             if (primaryFloorPlatform) {
@@ -3291,8 +3308,8 @@ class AshenHollow extends Phaser.Scene {
                 const primaryFloorLocalLeft = chamberLeft;
                 const primaryFloorX = roomBounds.start + primaryFloorLocalLeft;
                 const primaryFloorWidth = Math.max(1, chamberRight - chamberLeft);
-                /* Walk line is the primary floor platform row — polygon bottom can sit below it (see getRoomWalkPlaneTopY). */
-                const primaryFloorY = primaryFloorTileCenterY;
+                /* Floor tile row + cap follow layout footprint bottom (getLayoutFloorTileCenterY), not only authored platform.y. */
+                const primaryFloorY = layoutFloorTileCenterY;
                 const lowerFloorTop = Math.min(walkPlaneTopY - 56, primaryFloorY + 20);
                 const lowerFloorHeight = Math.max(48, visualBottom - lowerFloorTop - 12);
                 const supportWidth = Math.max(primaryFloorWidth, chamberRight - chamberLeft);
@@ -3327,7 +3344,7 @@ class AshenHollow extends Phaser.Scene {
             // Always run bespoke wall shell when manifest has wall slots; polygon rects are a separate thin grid.
             // (Old gate skipped bespoke whenever rects.length > 0 — hid wall_module art on typical R1 polygons.)
             const upperMassY = Number(polygonBounds.top || roomTop);
-            const floorPlaneTop = primaryFloorPlatform ? primaryFloorTileCenterY : Number(polygonBounds.bottom || floorWorldY);
+            const floorPlaneTop = primaryFloorPlatform ? layoutFloorTileCenterY : Number(polygonBounds.bottom || floorWorldY);
             const upperMassHeight = Math.max(128, floorPlaneTop - upperMassY);
             const leftMassWidth = Math.max(0, Number(polygonBounds.left || 0));
             const rightMassWidth = Math.max(0, roomBounds.width - Number(polygonBounds.right || roomBounds.width));
@@ -3336,7 +3353,7 @@ class AshenHollow extends Phaser.Scene {
                 roomTop,
                 floorWorldY,
                 walkPlaneTopY,
-                floorTileCenterY: primaryFloorPlatform ? primaryFloorTileCenterY : null,
+                floorTileCenterY: primaryFloorPlatform ? layoutFloorTileCenterY : null,
                 chamberBounds: polygonBounds
             })) {
                 if (!roomHasPolygonWallTileRects(roomId)) {
@@ -3383,7 +3400,7 @@ class AshenHollow extends Phaser.Scene {
             const chamberLeft = Number(polygonBounds.left || 0);
             const chamberRight = Number(polygonBounds.right || roomBounds.width);
             const floorWorldYLoop = getRoomVisualWorldBottom() - 16;
-            const floorTileCenterY = getPrimaryFloorTileCenterY(roomId, floorWorldYLoop);
+            const floorTileCenterY = getLayoutFloorTileCenterY(roomId, floorWorldYLoop);
             ledges.forEach(({ x, y, len, tint }) => {
                 const isPrimaryFloor =
                     primaryFloorPlatform &&

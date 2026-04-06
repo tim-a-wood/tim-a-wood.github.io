@@ -20,3 +20,5 @@ Update 2026-04-06: wall shell boundary-flush anchor fix landed (`index.html`): l
 Update 2026-04-06 (later): walk plane fix #158 — floor seam, collision, and wall `wallFootY` use `getPrimaryFloorTileCenterY` / `getRoomWalkPlaneTopY` so polygon bottom cannot sit below the primary platform row and desync art vs physics. `node --test tests/game-logic.test.js` (Pass); browser not re-checked in CI.
 
 Update 2026-04-06 (later): bespoke wall shell **#159** — when `wall_module_*` assets are present, flanking mass is skipped; side shell display width is now at least the room→chamber inset (`marginLeft` / `marginRight`) so a narrow cap (e.g. 272px) cannot leave a black strip at the room edge. `node --test tests/game-logic.test.js` (Pass); manual playtest not re-run in CI.
+
+Update 2026-04-06 (later): floor line **#160** — primary floor physics, wall foot, and cap use `getLayoutFloorTileCenterY` (`polygonBounds.bottom - 16` when a footprint exists); floor cap image uses top origin at `walkTop` so the cap top matches the walk surface. `node --test tests/game-logic.test.js` (Pass); browser not re-run in CI.

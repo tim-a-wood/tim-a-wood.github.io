@@ -973,10 +973,10 @@ function simulateSequenceAttempt(order) {
     const html = fs.readFileSync(htmlPath, 'utf8');
     assert.ok(
         html.includes('primaryFloorLocalLeft = chamberLeft')
-            && html.includes('primaryFloorY = primaryFloorTileCenterY')
-            && html.includes('getPrimaryFloorTileCenterY')
+            && html.includes('primaryFloorY = layoutFloorTileCenterY')
+            && html.includes('function getLayoutFloorTileCenterY')
             && /addRoomFloorCapDecor\([\s\S]*primaryFloorX[\s\S]*primaryFloorY[\s\S]*primaryFloorWidth/m.test(html),
-        'primary floor cap should span chamber bounds and align to primary floor platform row, not polygon bottom alone'
+        'primary floor cap should span chamber bounds and use layout footprint floor row (polygon bottom)'
     );
 })();
 
@@ -998,7 +998,7 @@ function simulateSequenceAttempt(order) {
     );
 })();
 
-(function testIndexWalkPlaneUsesPrimaryFloorRow() {
+(function testIndexWalkPlaneUsesLayoutFloorRow() {
     const fs = require('fs');
     const path = require('path');
     const htmlPath = path.join(__dirname, '../index.html');
@@ -1006,10 +1006,27 @@ function simulateSequenceAttempt(order) {
     const html = fs.readFileSync(htmlPath, 'utf8');
     assert.ok(
         html.includes('function getPrimaryFloorTileCenterY')
+            && html.includes('function getLayoutFloorTileCenterY')
             && html.includes('function getRoomWalkPlaneTopY')
             && html.includes('y: wallFootY')
-            && html.includes('walkPlaneTopY'),
-        'walk plane and wall shell foot should follow primary floor platform row when polygon bottom differs'
+            && html.includes('walkPlaneTopY')
+            && html.includes('getRoomPolygonBounds(roomId).bottom')
+            && html.includes('return b - 16'),
+        'walk plane and wall shell foot should follow layout polygon floor row (bottom edge of footprint)'
+    );
+})();
+
+(function testIndexFloorCapAnchorsTopAtWalkSurface() {
+    const fs = require('fs');
+    const path = require('path');
+    const htmlPath = path.join(__dirname, '../index.html');
+    if (!fs.existsSync(htmlPath)) return;
+    const html = fs.readFileSync(htmlPath, 'utf8');
+    assert.ok(
+        html.includes('const walkTop = y - 16')
+            && html.includes('add.image(x + (width / 2), walkTop')
+            && html.includes('.setOrigin(0.5, 0)'),
+        'floor cap decor should anchor top at tile walk surface (center y minus half tile)'
     );
 })();
 

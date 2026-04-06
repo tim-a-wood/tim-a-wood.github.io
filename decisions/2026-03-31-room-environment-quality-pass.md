@@ -866,6 +866,11 @@ This log records decisions for the room environment and bespoke asset quality pa
 - Why: With `wall_module_*` assets, flanking TileSprites are skipped to avoid giant margin pillars. `accentW` was capped at **272px** while polygon **chamber left** inset can be larger — the shell’s right edge stays at the chamber but its left edge stops short of the room edge, leaving a visible **black strip** at the viewport edge.
 - Consequence: After `capW`, left shell width is `max(accentW, marginLeft)` and right shell `max(accentW, marginRight)`, each clamped to `maxHalf` (half chamber width).
 
+### 160. Floor row and floor cap must follow layout polygon bottom (supersedes #158 floor line)
+- Status: Accepted (2026-04-06)
+- Why: The footprint polygon’s **`bottom`** is the layout contract for the **bottom edge of the floor tile row**. Driving the seam from **authored platform `y`** alone (or mixed cap origins) left the **floor component** visually off the room’s floor line; the player should match automatically once **physics** and **cap top** share the same **walk surface** (`polygon bottom − 32` for top of 32px tiles, `bottom − 16` for tile center).
+- Consequence: `getLayoutFloorTileCenterY` uses `polygonBounds.bottom - 16` when a polygon exists; primary-floor physics, wall foot, and cap use that row. `addRoomFloorCapDecor` anchors at **`walkTop = y − 16`** with **`origin (0.5, 0)`** so the cap’s **top** is flush with the **top of the floor tiles**. Replaces #158’s “primary platform row vs polygon bottom” approach for the floor line.
+
 ### 148. Bespoke wall shell must run even when polygon wall rects are non-empty
 - Status: Accepted (2026-04-05)
 - Why: After decision 145, `buildWorldGeometry` only called `addRoomBespokeWallShellDecor` when `!roomHasPolygonWallTileRects`. Complex footprints (e.g. canonical R1) produce many outside-polygon cells, so `rects.length > 0` always — **bespoke wall_module composition never ran** while thin procedural tiles stayed at grid boundaries (often off-camera). Founder playtest still showed floor + void + no shell despite generated assets.
