@@ -2687,7 +2687,16 @@ class AshenHollow extends Phaser.Scene {
         wallAssets.forEach((asset) => {
             let sprite = null;
             if (!support?.roomBounds || !roomWidth) {
-                sprite = this.addPlacedBespokeAsset(roomId, asset, wallShellDepth, RUNTIME_REVIEW_CAPTURE_MODE ? 1 : 0.98);
+                const pl = asset.placement || {};
+                const frameNat0 = getEnvBespokeTextureFrameSize(this, asset.slot_id);
+                const rawW = Number(pl.display_width || asset.final_dimensions?.width || frameNat0.w);
+                const rawH = Number(pl.display_height || asset.final_dimensions?.height || frameNat0.h);
+                const w0 = Math.min(272, Math.max(64, Math.round(rawW)), Math.ceil(frameNat0.w));
+                const h0 = Math.min(800, Math.max(200, Math.round(rawH)), Math.ceil(frameNat0.h * 1.25));
+                sprite = this.addPlacedBespokeAsset(roomId, {
+                    ...asset,
+                    placement: { ...pl, display_width: w0, display_height: h0 }
+                }, wallShellDepth, RUNTIME_REVIEW_CAPTURE_MODE ? 1 : 0.98);
             } else {
                 const placement = asset.placement || {};
                 const componentType = String(asset.component_type || '');
@@ -2706,8 +2715,9 @@ class AshenHollow extends Phaser.Scene {
                     Number(placement.display_height || asset.final_dimensions?.height || planH || 0)
                 );
                 const maxHalf = Math.max(1, Math.round(chamberWidth * 0.5));
-                const capW = Math.min(maxHalf, Math.round(chamberWidth * 0.26));
-                const floorW = Math.max(96, Math.round(chamberWidth * 0.14));
+                /* Side accents should stay narrow vs viewport (~800px); 26% chamber was still hundreds of px wide. */
+                const capW = Math.min(maxHalf, Math.round(chamberWidth * 0.14), 272);
+                const floorW = Math.max(96, Math.round(chamberWidth * 0.12));
                 /* Match horizontal scale to generated art (same contract as floor/ceiling strips), not viewport-wide bands. */
                 const baseW = authoredW > 0 ? authoredW : Math.max(200, planW || floorW);
                 const accentWidth = authoredW > 0
@@ -2721,9 +2731,10 @@ class AshenHollow extends Phaser.Scene {
                 let accentHeight = Phaser.Math.Clamp(Math.round(baseH), 200, chamberH);
                 let accentW = accentWidth;
                 const frameNat = getEnvBespokeTextureFrameSize(this, asset.slot_id);
-                const WALL_ART_MAX_SCALE = 1.25;
-                accentW = Math.min(accentW, Math.max(64, Math.ceil(frameNat.w * WALL_ART_MAX_SCALE)));
-                accentHeight = Math.min(accentHeight, Math.max(200, Math.ceil(frameNat.h * WALL_ART_MAX_SCALE)));
+                const WALL_ART_MAX_SCALE_W = 1;
+                const WALL_ART_MAX_SCALE_H = 1.25;
+                accentW = Math.min(accentW, Math.max(64, Math.ceil(frameNat.w * WALL_ART_MAX_SCALE_W)));
+                accentHeight = Math.min(accentHeight, Math.max(200, Math.ceil(frameNat.h * WALL_ART_MAX_SCALE_H)));
                 accentW = Math.min(accentW, capW);
                 accentHeight = Math.min(accentHeight, chamberH);
                 const isLeft = String(asset.component_type || '').includes('left');

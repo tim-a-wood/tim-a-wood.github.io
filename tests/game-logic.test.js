@@ -945,8 +945,14 @@ function simulateSequenceAttempt(order) {
     if (!fs.existsSync(htmlPath)) return;
     const html = fs.readFileSync(htmlPath, 'utf8');
     assert.ok(
-        html.includes('getEnvBespokeTextureFrameSize') && html.includes('WALL_ART_MAX_SCALE'),
-        'wall shell must cap display size vs loaded texture frame (avoid manifest full-chamber stretch)'
+        html.includes('getEnvBespokeTextureFrameSize')
+            && html.includes('WALL_ART_MAX_SCALE_W')
+            && html.includes('WALL_ART_MAX_SCALE_H'),
+        'wall shell must cap display size vs loaded texture frame; width no upscale past native'
+    );
+    assert.ok(
+        /capW = Math\.min\(maxHalf, Math\.round\(chamberWidth \* 0\.14\), 272\)/.test(html),
+        'wall shell capW must use 14% chamber and 272px absolute max'
     );
     assert.ok(
         /if \(!wallAssets\.length && support\?\.roomBounds && chamberBounds\)/.test(html),
