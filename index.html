@@ -3251,11 +3251,14 @@ class AshenHollow extends Phaser.Scene {
             if (primaryFloorPlatform) {
                 const chamberLeft = Number(polygonBounds.left || 0);
                 const chamberRight = Number(polygonBounds.right || roomBounds.width);
-                const primaryFloorLocalLeft = Math.min(Number(primaryFloorPlatform.x || 0), chamberLeft);
+                const chamberBottom = Number(polygonBounds.bottom || floorWorldY);
+                /* Floor seam contract: side walls anchor on chamber bounds, so floor cap/face must span the same bounds. */
+                const primaryFloorLocalLeft = chamberLeft;
                 const primaryFloorX = roomBounds.start + primaryFloorLocalLeft;
-                const primaryFloorWidth = Math.max(1, Number(primaryFloorPlatform.len || 1)) * tile;
-                const primaryFloorY = Number(primaryFloorPlatform.y || visualBottom - 48);
-                const lowerFloorTop = Math.min(Number(polygonBounds.bottom || visualBottom) - 72, primaryFloorY + 20);
+                const primaryFloorWidth = Math.max(1, chamberRight - chamberLeft);
+                /* Keep floor top flush with room boundary line from polygon bounds. */
+                const primaryFloorY = chamberBottom;
+                const lowerFloorTop = Math.min(chamberBottom - 72, primaryFloorY + 20);
                 const lowerFloorHeight = Math.max(48, visualBottom - lowerFloorTop - 12);
                 const supportWidth = Math.max(primaryFloorWidth, chamberRight - chamberLeft);
                 const bespokePrimaryCap = getRoomEnvironmentBespokePrimaryFloorAsset(roomId);
@@ -3277,7 +3280,7 @@ class AshenHollow extends Phaser.Scene {
                 const faceMergeSpan = mergeBespokeFloor ? Math.max(0, primaryFloorY - lowerFloorTop) : 0;
                 this.addRoomFloorCapDecor(
                     roomId,
-                    roomBounds.start + Number(primaryFloorPlatform.x || 0),
+                    primaryFloorX,
                     primaryFloorY,
                     primaryFloorWidth,
                     24,

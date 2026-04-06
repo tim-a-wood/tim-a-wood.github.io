@@ -841,6 +841,11 @@ This log records decisions for the room environment and bespoke asset quality pa
 - Why: Visual inspection of the exact playtest screenshot showed the left shell intruding into the room because it was anchored with `origin_x: 0` at `chamberBounds.left`. That makes its **left** edge flush, not its **right** edge.
 - Consequence: In `addRoomBespokeWallShellDecor`, left shells now use `origin_x: 1` and `x = chamberBounds.left`; right shells use `origin_x: 0` and `x = chamberBounds.right`. This keeps side shells flush with room boundaries instead of drifting inward.
 
+### 155. Primary floor decor must span chamber bounds and sit on the boundary seam
+- Status: Accepted (2026-04-06)
+- Why: Follow-on playtest showed floor/wall seams misaligned: primary floor cap used authored platform `x/len`, so it could stop short of side walls, and its top seam could drift off the polygon boundary line.
+- Consequence: In `buildWorldGeometry` primary-floor path, floor decor now uses `primaryFloorLocalLeft = chamberLeft`, `primaryFloorWidth = chamberRight - chamberLeft`, `primaryFloorY = chamberBottom`, and `addRoomFloorCapDecor(... primaryFloorX, primaryFloorY, primaryFloorWidth ...)`. This makes floor meet both side walls and keeps floor top flush with room boundary.
+
 ### 148. Bespoke wall shell must run even when polygon wall rects are non-empty
 - Status: Accepted (2026-04-05)
 - Why: After decision 145, `buildWorldGeometry` only called `addRoomBespokeWallShellDecor` when `!roomHasPolygonWallTileRects`. Complex footprints (e.g. canonical R1) produce many outside-polygon cells, so `rects.length > 0` always — **bespoke wall_module composition never ran** while thin procedural tiles stayed at grid boundaries (often off-camera). Founder playtest still showed floor + void + no shell despite generated assets.
