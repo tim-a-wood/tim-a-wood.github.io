@@ -3306,10 +3306,11 @@ def _generate_level3_image_with_gemini(
     spec: Dict[str, Any],
     variant_index: int,
     debug_reference_images: Optional[List[Tuple[str, bytes]]] = None,
+    frozen_concepts: Optional[List[Dict[str, Any]]] = None,
 ) -> bool:
     if not _gemini_api_key():
         return False
-    frozen_concepts = direction.get("frozen_concepts") or []
+    effective_frozen = list(frozen_concepts) if frozen_concepts is not None else (direction.get("frozen_concepts") or [])
     debug_reference_images = debug_reference_images or []
     debug_reference_count = len(debug_reference_images)
     parts: List[Dict[str, Any]] = []
@@ -3320,7 +3321,7 @@ def _generate_level3_image_with_gemini(
                 "data": base64.b64encode(_render_room_layout_conditioning_image(geometry, spec, variant_index)).decode("ascii"),
             }
         })
-        for item in frozen_concepts[:3]:
+        for item in effective_frozen[:3]:
             if len(parts) >= 1 + _LEVEL3_MAX_REFERENCE_IMAGES:
                 break
             rel_path = str(item.get("image_path") or "").strip()
@@ -3346,7 +3347,7 @@ def _generate_level3_image_with_gemini(
             })
         parts.append({
             "text": _build_level3_variant_prompt(
-                direction, geometry, spec, frozen_concepts, variant_index, debug_reference_count=debug_reference_count
+                direction, geometry, spec, effective_frozen, variant_index, debug_reference_count=debug_reference_count
             )
         })
         model = os.environ.get("GEMINI_IMAGE_MODEL", "gemini-2.5-flash-image").strip() or "gemini-2.5-flash-image"
@@ -4993,6 +4994,8 @@ def generate_room_environment_previews(project_id: str, room_id: str, payload: D
     used_ai = False
     debug_preview_refs = _coerce_debug_preview_reference_images(payload)
     debug_preview_ref_count = len(debug_preview_refs)
+    preview_pack = _select_biome_pack_for_preview(direction, spec)
+    preview_frozen_concepts = _preview_frozen_concepts_for_pack(project, direction, preview_pack)
     if geometry.get("polygon"):
         labels = ["Focal landmark", "Atmospheric depth", "Broader ambience"]
         for variant_index in range(3):
@@ -5007,6 +5010,7 @@ def generate_room_environment_previews(project_id: str, room_id: str, payload: D
                 spec,
                 variant_index,
                 debug_reference_images=debug_preview_refs,
+                frozen_concepts=preview_frozen_concepts,
             )
             if generated:
                 used_ai = True
@@ -5065,6 +5069,8 @@ def generate_room_environment_previews(project_id: str, room_id: str, payload: D
     env["preview"]["scene_plan"] = {
         "style_family": direction.get("style_family"),
         "frozen_concept_ids": list(direction.get("frozen_concept_ids") or []),
+        "preview_frozen_concept_ids": [str(item.get("concept_id") or "").strip() for item in preview_frozen_concepts if str(item.get("concept_id") or "").strip()],
+        "preview_biome_id": str((preview_pack or {}).get("biome_id") or "").strip(),
         "debug_preview_reference_count": debug_preview_ref_count,
         "used_ai": used_ai,
         "description": spec.get("description"),
@@ -5170,6 +5176,46 @@ def revise_room_environment(project_id: str, room_id: str, payload: Dict[str, An
 def _select_biome_pack(direction: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     packs = direction.get("biome_packs") or []
     return copy.deepcopy(packs[0]) if packs else None
+
+
+def _biome_pack_matches_theme(pack: Dict[str, Any], theme_id: str) -> bool:
+    tid = str(theme_id or "").strip().lower()
+    if not tid:
+        return False
+    bid = str(pack.get("biome_id") or "").strip().lower()
+    if bid:
+        if bid == tid or bid.startswith(f"{tid}-"):
+            return True
+    locked = pack.get("locked_direction") or {}
+    ltid = str(locked.get("template_id") or "").strip().lower()
+    return bool(ltid and ltid == tid)
+
+
+def _select_biome_pack_for_preview(direction: Dict[str, Any], spec: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """Pick the biome pack that matches the room spec theme, else first pack."""
+    packs = direction.get("biome_packs") or []
+    if not packs:
+        return None
+    theme = str(spec.get("theme_id") or "").strip()
+    if theme:
+        for pack in packs:
+            if isinstance(pack, dict) and _biome_pack_matches_theme(pack, theme):
+                return copy.deepcopy(pack)
+    return copy.deepcopy(packs[0])
+
+
+def _preview_frozen_concepts_for_pack(
+    project: Dict[str, Any],
+    direction: Dict[str, Any],
+    pack: Optional[Dict[str, Any]],
+) -> List[Dict[str, Any]]:
+    """Resolve frozen concept rows for preview: prefer pack locked_concept_ids, else project selection."""
+    requested: List[str] = []
+    if pack:
+        requested = [str(x).strip() for x in (pack.get("locked_concept_ids") or []) if str(x).strip()]
+    if not requested:
+        requested = [str(x).strip() for x in (direction.get("frozen_concept_ids") or []) if str(x).strip()]
+    return _resolve_frozen_concepts(project, requested if requested else None)
 
 
 def _template_by_component(biome_pack: Dict[str, Any], component_type: str) -> Optional[Dict[str, Any]]:

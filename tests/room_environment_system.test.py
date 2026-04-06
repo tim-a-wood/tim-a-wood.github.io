@@ -479,6 +479,58 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         self.assertIn("art-direction-02.png", names)
         self.assertNotIn("art-direction-01.png", names)
 
+    def test_room_environment_preview_uses_pack_locked_concepts_when_present(self):
+        envsys.generate_project_art_direction_concepts(self.project_id, {"template_id": "ruined-gothic"})
+        envsys.update_project_art_direction(
+            self.project_id,
+            {"template_id": "ruined-gothic", "locked": True, "frozen_concept_ids": ["art-direction-01"]},
+        )
+        self.saved["art_direction"]["biome_packs"][0]["locked_concept_ids"] = ["art-direction-02"]
+        envsys.build_room_environment_spec(
+            self.project_id,
+            "R1",
+            {"description": "A readable ruined hall with heavy stone and a strong central route."},
+        )
+        captured = []
+
+        def capture_frozen(*args, **kwargs):
+            frozen = kwargs.get("frozen_concepts")
+            captured.append([item.get("concept_id") for item in (frozen or [])])
+            return False
+
+        with mock.patch.object(envsys, "_generate_level3_image_with_gemini", side_effect=capture_frozen):
+            envsys.generate_room_environment_previews(self.project_id, "R1", {})
+        self.assertEqual(len(captured), 3)
+        self.assertEqual(captured[0], ["art-direction-02"])
+        scene = self.saved["room_layout"]["rooms"][0]["environment"]["preview"]["scene_plan"]
+        self.assertEqual(scene.get("preview_frozen_concept_ids"), ["art-direction-02"])
+        self.assertIn("ruined-gothic", scene.get("preview_biome_id") or "")
+
+    def test_room_environment_preview_falls_back_to_global_frozen_when_pack_has_no_locked_concepts(self):
+        envsys.generate_project_art_direction_concepts(self.project_id, {"template_id": "ruined-gothic"})
+        envsys.update_project_art_direction(
+            self.project_id,
+            {"template_id": "ruined-gothic", "locked": True, "frozen_concept_ids": ["art-direction-01"]},
+        )
+        self.saved["art_direction"]["biome_packs"][0]["locked_concept_ids"] = []
+        envsys.build_room_environment_spec(
+            self.project_id,
+            "R1",
+            {"description": "A readable ruined hall with heavy stone and a strong central route."},
+        )
+        captured = []
+
+        def capture_frozen(*args, **kwargs):
+            frozen = kwargs.get("frozen_concepts")
+            captured.append([item.get("concept_id") for item in (frozen or [])])
+            return False
+
+        with mock.patch.object(envsys, "_generate_level3_image_with_gemini", side_effect=capture_frozen):
+            envsys.generate_room_environment_previews(self.project_id, "R1", {})
+        self.assertEqual(captured[0], ["art-direction-01"])
+        scene = self.saved["room_layout"]["rooms"][0]["environment"]["preview"]["scene_plan"]
+        self.assertEqual(scene.get("preview_frozen_concept_ids"), ["art-direction-01"])
+
     def test_foreground_frame_generation_guide_emphasizes_cap_and_floor_bands(self):
         project_dir = self.projects_root / self.project_id
         guide_path = envsys._write_foreground_frame_generation_guide(project_dir)
