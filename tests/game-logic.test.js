@@ -925,8 +925,12 @@ function simulateSequenceAttempt(order) {
     if (!fs.existsSync(htmlPath)) return;
     const html = fs.readFileSync(htmlPath, 'utf8');
     assert.ok(
-        html.includes('wideChamber') && html.includes('Split the chamber 50/50'),
-        'wide chambers should use half-width wall shells so modules stay in camera while mid-room'
+        html.includes('wideChamber') && html.includes('wideStripCap'),
+        'wide chambers should cap wall shell width (no 50/50 carpet)'
+    );
+    assert.ok(
+        html.includes('everywhere is wall') || html.includes('joining in the middle'),
+        'comment should document why 50/50 chamber split was rejected'
     );
 })();
 

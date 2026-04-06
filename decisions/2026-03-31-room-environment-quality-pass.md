@@ -807,9 +807,14 @@ This log records decisions for the room environment and bespoke asset quality pa
 - Consequence: After the AI strip check fails, use `roomSurfaceTextureKey(roomId, 'wall', 0)` when the texture exists. TileSprite scaling uses the texture frame size (32 vs 512) via `applyWallStripTileScaleFromTexture`. Layout rooms with a footprint polygon also set `emphasizeWalls` so procedural wall *tiles* are not stuck at ~12% alpha before bespoke completes.
 
 ### 147. Bespoke wall shell width must fill half the chamber on wide footprints (camera-centered playtest)
-- Status: Accepted (2026-04-05)
+- Status: Superseded (2026-04-05) — see **#149**
 - Why: Runtime review placed wall modules using `min(max(placement, 16% chamber), 50% chamber)` but typical `placement.display_width` (~320px) capped the strip to a few hundred pixels. On chambers much wider than the viewport (~800px), those strips stay at the polygon left/right edges while the camera follows the player mid-room — textures load and depth is correct, but **nothing wall-like appears in frame** (confirmed in founder playtest screenshot: floor + mid-distance fog, no side shells).
-- Consequence: When `chamberWidth >= max(520, 0.85 * CONFIG.W)`, set bespoke shell `display_width` to **50% of chamber width** so left and right modules abut at the horizontal center and remain visible across typical camera positions. Narrower chambers keep the old placement-based width.
+- Consequence (original): When `chamberWidth >= max(520, 0.85 * CONFIG.W)`, set bespoke shell `display_width` to **50% of chamber width** so left and right modules abut at the horizontal center.
+
+### 149. Do not use 50/50 chamber split for bespoke wall shells (wallpaper artifact)
+- Status: Accepted (2026-04-05)
+- Why: Two half-chamber `Image` strips meeting at center **cover the entire footprint** with stretched wall art; the texture reads as a repeating masonry grid and a hard vertical seam at mid-room (“everywhere is wall”). That was a readability overcorrection to decision **#147**.
+- Consequence: For wide chambers, widen strips only up to `min(50% chamber, 32% chamber, 0.82 * CONFIG.W)` (and still `>= fromPlacement`), leaving a **central band** for floor/midground read. Players may need to pan toward edges to see full shell mass; midground/background still carry distant architecture.
 
 ### 148. Bespoke wall shell must run even when polygon wall rects are non-empty
 - Status: Accepted (2026-04-05)

@@ -2656,16 +2656,21 @@ class AshenHollow extends Phaser.Scene {
                 sprite = this.addPlacedBespokeAsset(roomId, asset, wallShellDepth, RUNTIME_REVIEW_CAPTURE_MODE ? 1 : 0.98);
             } else {
                 const placement = asset.placement || {};
-                /* Narrow strips at polygon edges sit off-camera when the chamber is wider than the view and the
-                   player is mid-room — assets exist but read as "missing". Split the chamber 50/50 for wide
-                   footprints so left/right shells meet at center and stay in frame. */
+                /* Wide chambers: edge strips are often off-camera; stretching each module to 50% chamber met at
+                   center and carpeted the whole footprint (reads as "everywhere is wall"). Cap width instead:
+                   reach into view from edges without joining in the middle. */
                 const maxHalf = Math.max(1, Math.round(chamberWidth * 0.5));
                 const fromPlacement = Math.min(
                     Math.max(Number(placement.display_width || 0), Math.round(chamberWidth * 0.16)),
                     maxHalf
                 );
                 const wideChamber = chamberWidth >= Math.max(520, Math.round(CONFIG.W * 0.85));
-                const accentWidth = wideChamber ? maxHalf : fromPlacement;
+                const wideStripCap = Math.min(
+                    maxHalf,
+                    Math.round(chamberWidth * 0.32),
+                    Math.round(CONFIG.W * 0.82)
+                );
+                const accentWidth = wideChamber ? Math.max(fromPlacement, wideStripCap) : fromPlacement;
                 const isLeft = String(asset.component_type || '').includes('left');
                 /* Room-local X only — addPlacedBespokeAsset adds ROOM_IDS[roomId].start (world offset). */
                 const localWallX = isLeft
