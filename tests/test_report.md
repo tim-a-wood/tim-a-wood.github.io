@@ -48,3 +48,5 @@ Update 2026-04-06: Preview gallery cards — **click image opens full size** (`t
 Update 2026-04-07: Preview open link: `cursor: pointer` + `text-decoration: none` on `.rw-preview-card-open`. Ran `node tests/room-wizard-results-contract.test.js` (Pass).
 
 Update 2026-04-06: Full-size preview opens `room-environment-preview-full.html` (dark full-viewport page, `src` query same-origin only) instead of linking directly to the PNG (avoids browser default white image margins). Ran `node tests/room-wizard-results-contract.test.js` (Pass); browser not re-checked in CI.
+
+Update 2026-04-06: Environment **Preview & build** review layout stacks **Build summary** under **Preview pictures** (removed `rw-env-review-layout--split`; dropped secondary column max-height). Ran `node tests/room-wizard-results-contract.test.js`, `node tests/room-wizard-environment-copilot.test.js` (Pass); browser layout not re-checked in CI.

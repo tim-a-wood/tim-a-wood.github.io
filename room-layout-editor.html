@@ -1278,15 +1278,6 @@
     .rw-env-review-layout {
       grid-template-columns: minmax(0, 1fr);
     }
-    .rw-env-review-layout--split {
-      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-      align-items: stretch;
-    }
-    @media (max-width: 900px) {
-      .rw-env-review-layout--split {
-        grid-template-columns: minmax(0, 1fr);
-      }
-    }
     .rw-env-column--review-primary {
       display: grid;
       gap: 12px;
@@ -1298,9 +1289,6 @@
       gap: 12px;
       min-width: 0;
       align-content: start;
-      max-height: min(82vh, 880px);
-      overflow-y: auto;
-      padding-right: 4px;
     }
     .rw-env-preview-scroll {
       display: grid;
@@ -2823,9 +2811,9 @@
                           <p class="rw-env-flow-step"><span class="rw-env-flow-num" aria-hidden="true">2</span><span>Optional: open <strong>Want different preview pictures?</strong> below and run <strong>Update preview</strong> before you build.</span></p>
                           <p class="rw-env-flow-step"><span class="rw-env-flow-num" aria-hidden="true">3</span><span>Click <strong>Build final room assets</strong> when you are happy with the approved card (this saves the full room kit).</span></p>
                         </div>
-                        <p class="small-note rw-env-intro-after-flow">Layout: preview and buttons on the left; build checklist and exports on the right (scroll that column if it is long).</p>
+                        <p class="small-note rw-env-intro-after-flow">Layout: preview and buttons first; build summary and checklist below (scroll the page if the section is long).</p>
                       </div>
-                      <div class="rw-env-review-layout rw-env-review-layout--split">
+                      <div class="rw-env-review-layout">
                       <div class="rw-env-column rw-env-column--review-primary">
                       <div class="stage-card rw-env-results-stage">
                         <div class="stage-card-head">

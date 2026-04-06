@@ -66,6 +66,17 @@ function assertIncludes(snippet, message) {
   assertIncludes("? 'Retry final room assets'", 'Build button should reflect retry state');
 })();
 
+(function testResultsReviewLayoutStacksBuildSummaryUnderPreview() {
+  assert.ok(
+    !html.includes('rw-env-review-layout--split'),
+    'Environment review should stack build summary under preview pictures (no side-by-side split)'
+  );
+  assertIncludes(
+    'build summary and checklist below',
+    'Step 2 intro should describe the stacked preview-then-summary layout'
+  );
+})();
+
 (function testPreviewGalleryOpensFullSizeInNewTab() {
   assertIncludes('class="rw-preview-card-open"', 'Preview thumbnails should link open for full-size view');
   assertIncludes("target=\"_blank\"", 'Preview open link should use a new browsing context');
