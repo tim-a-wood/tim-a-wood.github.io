@@ -795,3 +795,8 @@ This log records decisions for the room environment and bespoke asset quality pa
 - Status: Accepted (2026-04-06)
 - Why: Interim “upload reference art for preview” was a bridge until project frozen concepts and per-biome `locked_concept_ids` drove previews; keeping it splits the art-direction contract and invites ad-hoc payloads.
 - Consequence: `generate_room_environment_previews` no longer accepts `debug_preview_reference_images`; Gemini level-3 preview uses layout conditioning plus resolved frozen concept files only. `preview.scene_plan` no longer includes `debug_preview_reference_count`. Room wizard Describe UI drops the debug file control.
+
+### 145. Playtest must not skip bespoke wall shell when the room polygon fills the footprint (zero polygon wall rects)
+- Status: Accepted (2026-04-05)
+- Why: `applyRuntimeLayoutData` rebuilds `DUNGEON_WALL_RECTS` for every room with a polygon. A rectangle that covers the full room has no “outside polygon” cells, so `buildWallRectsFromPolygon` returns an empty `rects` array. The old gate treated “listed in `DUNGEON_WALL_RECTS`” as “use procedural rects only,” which skipped `addRoomBespokeWallShellDecor` and placed no procedural tiles either — invisible walls in editor-driven playtest.
+- Consequence: `buildWorldGeometry` gates bespoke wall shell on `roomHasPolygonWallTileRects(roomId)` (non-empty rects) rather than mere membership. `addRoomBespokeWallShellDecor` returns false when wall slots exist but neither bespoke sprites nor flanking AI mass actually placed, so the outer `addRoomWallMassDecor` fallback can run.

@@ -735,6 +735,12 @@ function buildWallRectsFromPolygon(polygon, roomWidth = CONFIG.ROOM_WIDTH, roomH
     return rects;
 }
 
+/** True when polygon-derived wall rects will actually spawn procedural wall tiles. */
+function roomHasPolygonWallTileRects(roomId) {
+    const entry = DUNGEON_WALL_RECTS.find((e) => e.room === roomId);
+    return Boolean(entry && Array.isArray(entry.rects) && entry.rects.length > 0);
+}
+
 function loadLayoutDataFromStorage() {
     try {
         const raw = window.localStorage.getItem(LAYOUT_STORAGE_KEY);
@@ -2591,6 +2597,7 @@ class AshenHollow extends Phaser.Scene {
         const roomWidth = support?.roomBounds ? Math.max(1, Number(support.roomBounds.end || 0) - Number(support.roomBounds.start || 0)) : 0;
         const chamberBounds = support?.chamberBounds || null;
         const chamberWidth = chamberBounds ? Math.max(1, Number(chamberBounds.right || 0) - Number(chamberBounds.left || 0)) : roomWidth;
+        let flankingMassPlaced = 0;
         if (support?.roomBounds && chamberBounds) {
             const upperMassY = Number(chamberBounds.top || support.roomTop || 0);
             const floorPlaneTop = Number(chamberBounds.bottom || support.floorWorldY || 0);
@@ -2598,42 +2605,50 @@ class AshenHollow extends Phaser.Scene {
             const leftWidth = Math.max(0, Number(chamberBounds.left || 0));
             const rightWidth = Math.max(0, roomWidth - Number(chamberBounds.right || roomWidth));
             if (leftWidth >= 24) {
-                this.addRoomWallMassDecor(roomId, support.roomBounds.start, upperMassY, leftWidth, upperMassHeight, RUNTIME_REVIEW_CAPTURE_MODE ? 0.92 : 0.72, wallShellDepth);
+                if (this.addRoomWallMassDecor(roomId, support.roomBounds.start, upperMassY, leftWidth, upperMassHeight, RUNTIME_REVIEW_CAPTURE_MODE ? 0.92 : 0.72, wallShellDepth)) {
+                    flankingMassPlaced += 1;
+                }
             }
             if (rightWidth >= 24) {
-                this.addRoomWallMassDecor(roomId, support.roomBounds.start + Number(chamberBounds.right || roomWidth), upperMassY, rightWidth, upperMassHeight, RUNTIME_REVIEW_CAPTURE_MODE ? 0.92 : 0.72, wallShellDepth);
+                if (this.addRoomWallMassDecor(roomId, support.roomBounds.start + Number(chamberBounds.right || roomWidth), upperMassY, rightWidth, upperMassHeight, RUNTIME_REVIEW_CAPTURE_MODE ? 0.92 : 0.72, wallShellDepth)) {
+                    flankingMassPlaced += 1;
+                }
             }
         }
+        let bespokeWallSpritesPlaced = 0;
         wallAssets.forEach((asset) => {
+            let sprite = null;
             if (!support?.roomBounds || !roomWidth) {
-                this.addPlacedBespokeAsset(roomId, asset, wallShellDepth, RUNTIME_REVIEW_CAPTURE_MODE ? 1 : 0.98);
-                return;
+                sprite = this.addPlacedBespokeAsset(roomId, asset, wallShellDepth, RUNTIME_REVIEW_CAPTURE_MODE ? 1 : 0.98);
+            } else {
+                const placement = asset.placement || {};
+                const accentWidth = Math.min(Math.max(Number(placement.display_width || 0), Math.round(chamberWidth * 0.16)), Math.max(1, Math.round(chamberWidth * 0.5)));
+                const isLeft = String(asset.component_type || '').includes('left');
+                /* Room-local X only — addPlacedBespokeAsset adds ROOM_IDS[roomId].start (world offset). */
+                const localWallX = isLeft
+                    ? Number(chamberBounds?.left || 0)
+                    : Math.max(Number(chamberBounds?.left || 0), Number(chamberBounds?.right || roomWidth) - accentWidth);
+                sprite = this.addPlacedBespokeAsset(roomId, {
+                    ...asset,
+                    placement: {
+                        ...placement,
+                        x: localWallX,
+                        y: Number(chamberBounds?.top || support.roomTop || 0),
+                        display_width: accentWidth,
+                        display_height: Math.max(Number(placement.display_height || 0), Number(chamberBounds?.bottom || support.floorWorldY || 0) - Number(chamberBounds?.top || support.roomTop || 0)),
+                        origin_x: 0,
+                        origin_y: 0
+                    }
+                }, wallShellDepth, RUNTIME_REVIEW_CAPTURE_MODE ? 1 : 0.98);
             }
-            const placement = asset.placement || {};
-            const accentWidth = Math.min(Math.max(Number(placement.display_width || 0), Math.round(chamberWidth * 0.16)), Math.max(1, Math.round(chamberWidth * 0.5)));
-            const isLeft = String(asset.component_type || '').includes('left');
-            /* Room-local X only — addPlacedBespokeAsset adds ROOM_IDS[roomId].start (world offset). */
-            const localWallX = isLeft
-                ? Number(chamberBounds?.left || 0)
-                : Math.max(Number(chamberBounds?.left || 0), Number(chamberBounds?.right || roomWidth) - accentWidth);
-            this.addPlacedBespokeAsset(roomId, {
-                ...asset,
-                placement: {
-                    ...placement,
-                    x: localWallX,
-                    y: Number(chamberBounds?.top || support.roomTop || 0),
-                    display_width: accentWidth,
-                    display_height: Math.max(Number(placement.display_height || 0), Number(chamberBounds?.bottom || support.floorWorldY || 0) - Number(chamberBounds?.top || support.roomTop || 0)),
-                    origin_x: 0,
-                    origin_y: 0
-                }
-            }, wallShellDepth, RUNTIME_REVIEW_CAPTURE_MODE ? 1 : 0.98);
+            if (sprite) bespokeWallSpritesPlaced += 1;
         });
         // Keep wall assembly simple: one main wall asset should carry the read.
         // Wall-base trims may still exist in generated output, but we intentionally
         // do not place them in runtime review composition because they complicate
         // the wall silhouette without adding useful structure.
-        return true;
+        if (!wallAssets.length) return true;
+        return bespokeWallSpritesPlaced > 0 || flankingMassPlaced > 0;
     }
 
     addRoomBespokePrimaryFloorFaceDecor(roomId, band = null) {
@@ -3085,7 +3100,6 @@ class AshenHollow extends Phaser.Scene {
 
     buildWorldGeometry() {
         const tile = 32;
-        const roomsWithExplicitWallRects = new Set(DUNGEON_WALL_RECTS.map((entry) => entry.room));
         const shouldPlaceBoundaryTile = (roomId, point) => {
             const room = getLayoutRoom(roomId);
             if (!room || !Array.isArray(room.removedEdges) || !room.removedEdges.length) return true;
@@ -3156,7 +3170,10 @@ class AshenHollow extends Phaser.Scene {
             }
             // Do not add a second "underfloor" band + cap when !primaryFloorPlatform: the world floor row + cap
             // already fills the bottom; the old else branch stacked a second cap ~50px higher and caused a dark seam.
-            if (!roomsWithExplicitWallRects.has(roomId)) {
+            // Skip bespoke wall shell only when polygon wall rects actually place tiles. A full-room rectangle polygon
+            // yields zero "outside" cells (empty rects) but the room was still listed in DUNGEON_WALL_RECTS, which
+            // incorrectly hid bespoke walls and left no procedural walls either.
+            if (!roomHasPolygonWallTileRects(roomId)) {
                 const upperMassY = Number(polygonBounds.top || roomTop);
                 const floorPlaneTop = Number(polygonBounds.bottom || floorWorldY);
                 const upperMassHeight = Math.max(128, floorPlaneTop - upperMassY);
