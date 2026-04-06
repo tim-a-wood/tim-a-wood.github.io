@@ -1348,6 +1348,12 @@
       border-radius: 18px;
       background: rgba(255,255,255,0.025);
     }
+    .rw-env-results-stage .rw-copilot-preview-box--flush {
+      padding: 0;
+      border: none;
+      border-radius: 0;
+      background: transparent;
+    }
     .rw-env-section-stack {
       display: grid;
       gap: 12px;
@@ -1509,6 +1515,10 @@
       border: 1px solid var(--line);
       border-radius: 14px;
       background: rgba(255,255,255,0.03);
+    }
+    .rw-environment-stage-hero {
+      display: grid;
+      gap: 12px;
     }
     .rw-reference-item-head,
     .rw-environment-stage-head,
@@ -2758,7 +2768,7 @@
                             <button type="button" class="btn-secondary" id="roomWizardReviewGoDescribe">Go to Describe</button>
                           </div>
                         </div>
-                        <div id="roomWizardCopilotPreview" hidden class="rw-copilot-preview-box">
+                        <div id="roomWizardCopilotPreview" hidden class="rw-copilot-preview-box rw-copilot-preview-box--flush">
                           <p><strong>Previews are ready.</strong> Approve one image, or revise first, then build final room assets.</p>
                           <div class="rw-env-preview-scroll">
                           <div id="roomWizardEnvironmentPreview" class="rw-environment-preview" aria-live="polite"></div>
@@ -7689,21 +7699,23 @@
       }
 
       function renderRoomWizardEnvironmentPreview(envState) {
-        const targets = [
-          document.getElementById('roomWizardEnvironmentPreview'),
-          document.getElementById('roomWizardLookPreviewVisual'),
-        ].filter(Boolean);
-        if (!targets.length || !envState) return;
+        const resultsTarget = document.getElementById('roomWizardEnvironmentPreview');
+        const lookTarget = document.getElementById('roomWizardLookPreviewVisual');
+        if ((!resultsTarget && !lookTarget) || !envState) return;
         const generatedMarkup = renderGeneratedEnvironmentPreviewMarkup(envState);
+        const hasGalleryImages = Array.isArray(envState?.preview?.images) && envState.preview.images.length > 0;
         if (generatedMarkup) {
-          targets.forEach((target) => {
-            target.innerHTML = generatedMarkup;
-          });
+          if (resultsTarget) {
+            resultsTarget.innerHTML = hasGalleryImages ? '' : generatedMarkup;
+          }
+          if (lookTarget) {
+            lookTarget.innerHTML = generatedMarkup;
+          }
           return;
         }
         const preview = buildRoomWizardEnvironmentPreviewModel(envState.themeId, envState.tags || []);
         const markup = renderEnvironmentPreviewMarkup(preview, 'Current room mood');
-        targets.forEach((target) => {
+        [resultsTarget, lookTarget].filter(Boolean).forEach((target) => {
           target.innerHTML = markup;
         });
       }
@@ -7934,7 +7946,7 @@
 
         target.innerHTML = `
           <section class="rw-environment-output-card">
-            <div class="rw-environment-stage-summary">
+            <div class="rw-environment-stage-hero">
               <div class="rw-environment-stage-metahead">
                 <div>
                   <p class="rw-environment-preview-label">Build summary</p>
@@ -8043,7 +8055,7 @@
         const items = Array.isArray(previewState?.images) ? previewState.images : [];
         if (!items.length) {
           if (roomWizardHasGeneratedPreview(previewState)) {
-            gallery.innerHTML = '<div class="rw-reference-item"><p class="rw-environment-stage-empty">Preview is ready above. Candidate cards will appear here as soon as the preview image list finishes syncing.</p></div>';
+            gallery.innerHTML = '<div class="rw-reference-item"><p class="rw-environment-stage-empty">Preview is ready. Candidate cards will appear here as soon as the preview image list finishes syncing.</p></div>';
           } else {
             gallery.innerHTML = '';
           }

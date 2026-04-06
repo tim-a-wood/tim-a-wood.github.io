@@ -66,6 +66,21 @@ function assertIncludes(snippet, message) {
   assertIncludes("? 'Retry final room assets'", 'Build button should reflect retry state');
 })();
 
+(function testResultsPreviewAvoidsDoublePanelChrome() {
+  assertIncludes(
+    'rw-copilot-preview-box--flush',
+    'Results preview area should opt out of inner card chrome inside the stage-card shell'
+  );
+  assertIncludes(
+    "resultsTarget.innerHTML = hasGalleryImages ? '' : generatedMarkup",
+    'Results column should not duplicate the large generated preview when gallery cards already show images'
+  );
+  assertIncludes(
+    'rw-environment-stage-hero',
+    'Build summary header should not nest a bordered summary card inside the output section'
+  );
+})();
+
 (function testResultsStatusVocabularyIsPresent() {
   [
     "if (normalized === 'generating') return 'Generating';",
