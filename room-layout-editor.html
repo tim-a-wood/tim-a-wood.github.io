@@ -1438,6 +1438,68 @@
       gap: 12px;
       padding: 0 14px 14px;
     }
+    .room-wizard-dock .rw-env-revision-fold {
+      margin-top: 12px;
+    }
+    .room-wizard-dock .rw-env-preview-actions-wrap {
+      display: grid;
+      gap: 12px;
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid var(--line);
+    }
+    .room-wizard-dock .rw-env-action-ladder-hint {
+      margin: 0;
+      max-width: 52ch;
+    }
+    .room-wizard-dock .rw-env-preview-primary-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+    .room-wizard-dock .rw-env-preview-primary-actions .btn-rw-env-cta {
+      width: auto;
+    }
+    .room-wizard-dock .btn-rw-env-cta {
+      min-height: 44px;
+      padding: 10px 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(220, 176, 73, 0.4);
+      background: linear-gradient(180deg, rgba(245, 208, 116, 0.92), rgba(220, 176, 73, 0.92));
+      color: #16120a;
+      font-family: var(--font-sans);
+      font-size: var(--font-size-sm);
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 200ms ease, border-color 200ms ease, transform 200ms ease;
+    }
+    .room-wizard-dock .btn-rw-env-cta:hover:not(:disabled) {
+      border-color: rgba(245, 208, 116, 0.55);
+      transform: translateY(-1px);
+    }
+    .room-wizard-dock .btn-rw-env-cta:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+    .room-wizard-dock .btn-rw-env-cta:focus-visible {
+      outline: 2px solid rgba(0, 232, 200, 0.35);
+      outline-offset: 2px;
+    }
+    .room-wizard-dock .rw-env-preview-discard-row {
+      display: flex;
+      justify-content: flex-start;
+    }
+    .room-wizard-dock .btn-rw-env-discard {
+      border-color: rgba(248, 81, 73, 0.28);
+      color: var(--error);
+    }
+    .room-wizard-dock .btn-rw-env-discard:hover {
+      border-color: rgba(248, 81, 73, 0.45);
+      background: var(--error-soft);
+      color: var(--error);
+    }
     .rw-env-review-disclosure {
       display: grid;
       gap: 12px;
@@ -2758,8 +2820,8 @@
                         <h4>Pick a picture, then finish the room</h4>
                         <div class="rw-env-flow-steps" aria-label="Preview and build steps">
                           <p class="rw-env-flow-step"><span class="rw-env-flow-num" aria-hidden="true">1</span><span>Choose one preview and click <strong>Approve Preview</strong> on a card (below).</span></p>
-                          <p class="rw-env-flow-step"><span class="rw-env-flow-num" aria-hidden="true">2</span><span>Optional: use <strong>Update preview</strong> if you want a new picture first.</span></p>
-                          <p class="rw-env-flow-step"><span class="rw-env-flow-num" aria-hidden="true">3</span><span>Click <strong>Build final room assets</strong> when you are happy with the approved picture.</span></p>
+                          <p class="rw-env-flow-step"><span class="rw-env-flow-num" aria-hidden="true">2</span><span>Optional: open <strong>Want different preview pictures?</strong> below and run <strong>Update preview</strong> before you build.</span></p>
+                          <p class="rw-env-flow-step"><span class="rw-env-flow-num" aria-hidden="true">3</span><span>Click <strong>Build final room assets</strong> when you are happy with the approved card (this saves the full room kit).</span></p>
                         </div>
                         <p class="small-note rw-env-intro-after-flow">Layout: preview and buttons on the left; build checklist and exports on the right (scroll that column if it is long).</p>
                       </div>
@@ -2787,39 +2849,59 @@
                           </div>
                         </div>
                         <div id="roomWizardCopilotPreview" hidden class="rw-copilot-preview-box rw-copilot-preview-box--flush">
-                          <p><strong>Previews are ready.</strong> Approve one image, or revise first, then build final room assets.</p>
                           <div class="rw-env-preview-scroll">
                           <div id="roomWizardEnvironmentPreview" class="rw-environment-preview" aria-live="polite"></div>
                           <div id="roomWizardCopilotPreviewVisual" class="rw-environment-preview"></div>
                           <div id="roomWizardPreviewGallery" class="rw-preview-gallery"></div>
                           </div>
-                          <label>
-                            <span class="field-label">What should change?</span>
-                            <textarea
-                              id="roomWizardPreviewRevision"
-                              rows="2"
-                              placeholder="e.g. make the main path easier to read or push the room toward wetter stone"
-                              spellcheck="true"
-                            ></textarea>
-                          </label>
-                          <label>
-                            <span class="field-label">Why change it?</span>
-                            <select id="roomWizardHelpfulnessReason">
-                              <option value="">No note</option>
-                              <option value="style_mismatch">Doesn't match the style</option>
-                              <option value="confusing_layout">Hard to read</option>
-                              <option value="difficulty_mismatch">Too busy or too plain</option>
-                              <option value="collision_issue">Gameplay/collision issue</option>
-                              <option value="artifacting">Artifacting</option>
-                              <option value="wrong_mood">Wrong mood</option>
-                              <option value="other">Other</option>
-                            </select>
-                          </label>
-                          <div class="rw-copilot-actions">
-                            <button type="button" class="btn-secondary" id="roomWizardPreviewRevise">Update preview</button>
-                            <button type="button" class="btn-secondary" id="roomWizardBuildEnvironmentAssets">Build final room assets</button>
-                            <button type="button" class="btn-secondary" id="roomWizardPreviewOpenGame">Open room in game</button>
-                            <button type="button" class="btn-secondary" id="roomWizardCopilotDiscard">Discard</button>
+                          <details class="rw-env-collapsible rw-env-revision-fold">
+                            <summary>
+                              <div class="stage-card-head rw-env-revision-fold-head">
+                                <div>
+                                  <p class="field-label">Want different preview pictures?</p>
+                                  <p class="small-note">Optional. Only open this if you want new Level 3 images before you build—not to save the room kit.</p>
+                                </div>
+                              </div>
+                            </summary>
+                            <div class="rw-env-collapsible-body">
+                              <label>
+                                <span class="field-label">What should change?</span>
+                                <textarea
+                                  id="roomWizardPreviewRevision"
+                                  rows="2"
+                                  placeholder="e.g. make the main path easier to read or push the room toward wetter stone"
+                                  spellcheck="true"
+                                ></textarea>
+                              </label>
+                              <label>
+                                <span class="field-label">Why change it?</span>
+                                <select id="roomWizardHelpfulnessReason">
+                                  <option value="">No note</option>
+                                  <option value="style_mismatch">Doesn't match the style</option>
+                                  <option value="confusing_layout">Hard to read</option>
+                                  <option value="difficulty_mismatch">Too busy or too plain</option>
+                                  <option value="collision_issue">Gameplay/collision issue</option>
+                                  <option value="artifacting">Artifacting</option>
+                                  <option value="wrong_mood">Wrong mood</option>
+                                  <option value="other">Other</option>
+                                </select>
+                              </label>
+                              <div class="rw-copilot-actions">
+                                <button type="button" class="btn-secondary" id="roomWizardPreviewRevise">Update preview</button>
+                              </div>
+                            </div>
+                          </details>
+                          <div class="rw-env-preview-actions-wrap">
+                            <p class="small-note rw-env-action-ladder-hint" id="roomWizardPreviewActionHint">
+                              <strong>Build final room assets</strong> saves the full kit to this room. <strong>Update preview</strong> (above) only replaces the three pictures—use it when you are not happy with any card yet.
+                            </p>
+                            <div class="rw-env-preview-primary-actions rw-copilot-actions">
+                              <button type="button" class="btn-rw-env-cta" id="roomWizardBuildEnvironmentAssets">Build final room assets</button>
+                              <button type="button" class="btn-secondary" id="roomWizardPreviewOpenGame">Open room in game</button>
+                            </div>
+                            <div class="rw-env-preview-discard-row">
+                              <button type="button" class="btn-secondary btn-rw-env-discard" id="roomWizardCopilotDiscard">Discard previews</button>
+                            </div>
                           </div>
                         </div>
                       </div>
