@@ -81,6 +81,19 @@ function assertIncludes(snippet, message) {
   );
 })();
 
+(function testBuildSummarySurfacesGeneratedImagesEarly() {
+  assertIncludes(
+    'rw-env-generated-images-surface',
+    'Build summary should surface generated images in a dedicated block for quick visibility'
+  );
+  const genIdx = html.indexOf('rw-env-generated-images-surface');
+  const detailsIdx = html.indexOf('Theme, pipeline, assets, and references');
+  assert.ok(
+    genIdx > 0 && detailsIdx > genIdx,
+    'Template source should define generated-images surface before the collapsed build-details summary copy'
+  );
+})();
+
 (function testResultsStatusVocabularyIsPresent() {
   [
     "if (normalized === 'generating') return 'Generating';",

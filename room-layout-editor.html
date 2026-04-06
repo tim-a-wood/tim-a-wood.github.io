@@ -1298,7 +1298,7 @@
       gap: 12px;
       min-width: 0;
       align-content: start;
-      max-height: min(72vh, 720px);
+      max-height: min(82vh, 880px);
       overflow-y: auto;
       padding-right: 4px;
     }
@@ -1458,6 +1458,19 @@
     }
     .rw-env-review-disclosure[open] summary {
       margin-bottom: 4px;
+    }
+    .rw-env-generated-images-surface {
+      display: grid;
+      gap: 8px;
+      padding-bottom: 4px;
+      border-bottom: 1px solid var(--line);
+    }
+    .rw-env-generated-images-head {
+      display: grid;
+      gap: 8px;
+    }
+    .rw-env-generated-images-lede {
+      margin: 0;
     }
     .rw-environment-output {
       min-width: 0;
@@ -7944,6 +7957,16 @@
           }, toggleState)
           : '';
 
+        const generatedImagesSection = (runtimeReviewMarkup || assetThumbs)
+          ? `<div class="rw-env-generated-images-surface" aria-label="Generated room images">
+              <div class="rw-env-generated-images-head">
+                <p class="rw-environment-preview-label">Generated images</p>
+                <p class="rw-environment-stage-copy rw-env-generated-images-lede">In-game capture and exported room images for a quick visual pass.</p>
+              </div>
+              <div class="rw-environment-asset-grid">${runtimeReviewMarkup}${assetThumbs}</div>
+            </div>`
+          : '';
+
         target.innerHTML = `
           <section class="rw-environment-output-card">
             <div class="rw-environment-stage-hero">
@@ -7957,6 +7980,13 @@
                   <span class="${stagePillClass(runtimeReview.status || 'pending')}">${escapeHtml(`Runtime ${runtimeReview.status || 'pending'}`)}</span>
                 </div>
               </div>
+            </div>
+            ${generatedImagesSection}
+            <details class="rw-env-review-disclosure">
+              <summary>
+                <p class="rw-environment-preview-label">Build details</p>
+                <strong>Theme, pipeline, assets, and references</strong>
+              </summary>
               <p class="rw-environment-stage-copy">${escapeHtml(`${bits.join(' · ')} · ${assetText} · ${reviewText}`)}</p>
               <div class="rw-environment-chip-row">
                 <span class="rw-environment-chip">${escapeHtml(`Variation seed: ${spec.seed || 'not set'}`)}</span>
@@ -7964,7 +7994,7 @@
                 <span class="rw-environment-chip">${escapeHtml(`${pinnedRefs.length} pinned for this room`)}</span>
                 <span class="rw-environment-chip">${escapeHtml(`Room profile: ${envState?.themeId || 'custom'}`)}</span>
               </div>
-            </div>
+            </details>
             <details class="rw-env-review-disclosure">
               <summary>
                 <p class="rw-environment-preview-label">Build checklist</p>
@@ -8044,7 +8074,6 @@
               </div>
             </details>
             ${overlayMarkup ? `<details class="rw-env-review-disclosure"><summary><strong>Room overlay (advanced)</strong></summary>${overlayMarkup}</details>` : ''}
-            ${(runtimeReviewMarkup || assetThumbs) ? `<details class="rw-env-review-disclosure"><summary><p class="rw-environment-preview-label">Generated images</p><strong>Generated images</strong></summary><p class="rw-environment-stage-copy">In-game capture and exported room images for a quick visual pass.</p><div class="rw-environment-asset-grid">${runtimeReviewMarkup}${assetThumbs}</div></details>` : ''}
           </section>`;
         syncRoomWizardResultsToggles();
         bindRoomWizardResultsToggleInputs();
