@@ -8,6 +8,10 @@
 
 No separate milestone document was present in the repo, so this plan maps the seven MVP milestones to the Phase A-F structure in [docs/room-environment-pipeline-v3-software-requirements.md](/Users/timwood/Desktop/projects/PWA/MV/docs/room-environment-pipeline-v3-software-requirements.md) plus the final rollout gate.
 
+## Calibration room IDs (default)
+
+Use the locked default list in [docs/qa/room-environment-calibration-rooms.md](../qa/room-environment-calibration-rooms.md): **`R1`** (primary), **`R2`**, **`R9`** for the three-room calibration pass; **`R1`** alone when only one room is needed. Scripted headless capture may use fixture id **`QA-R1`** (see that doc).
+
 ## Release-Gate Posture
 
 - Blockers always stop the current milestone and block rollout.
