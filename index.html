@@ -1306,6 +1306,16 @@ function getRoomEnvironmentBespokeAssetsByType(roomId, componentTypes) {
     return assets.filter((item) => item && accepted.has(item.component_type) && item.url);
 }
 
+/** Pixels to reserve at chamber top for bespoke ceiling slab so background/midground do not duplicate arch read under it. */
+function getRoomBespokeCeilingCapHeightForRuntime(scene, roomId) {
+    if (!ENABLE_BESPOKE_ROOM_RUNTIME || !scene?.textures?.exists) return 0;
+    const assets = getRoomEnvironmentBespokeAssetsByType(roomId, ['ceiling_band', 'ceiling_piece']);
+    const asset = assets[0];
+    if (!asset?.slot_id || !scene.textures.exists(`env-bespoke-${asset.slot_id}`)) return 0;
+    const pl = asset.placement || {};
+    return Math.max(32, Math.round(Number(pl.display_height || asset.final_dimensions?.height || 224)));
+}
+
 /**
  * Wall modules for runtime decor: prefer wall_module_left/right; some manifests only emit generic wall_piece.
  * addPlacedBespokeAsset expects placement.x in room-local coords (0..room width), not world X.
@@ -2528,10 +2538,12 @@ class AshenHollow extends Phaser.Scene {
             const chamberWidth = Math.max(64, chamberRight - chamberLeft);
             const chamberHeight = Math.max(64, chamberBottom - chamberTop);
             const composition = getRoomEnvironmentRuntimeComposition(roomId);
+            const ceilingCapH = getRoomBespokeCeilingCapHeightForRuntime(this, roomId);
+            const vaultHeight = ceilingCapH > 0 ? Math.max(64, chamberHeight - ceilingCapH) : chamberHeight;
             const textureKey = roomBackgroundAssetKey(roomId);
             if (room && this.textures.exists(textureKey)) {
                 const sprite = this.add.image(room.start + chamberLeft + (chamberWidth / 2), chamberBottom, textureKey)
-                    .setDisplaySize(chamberWidth, chamberHeight)
+                    .setDisplaySize(chamberWidth, vaultHeight)
                     .setOrigin(0.5, 1)
                     .setDepth(-2)
                     .setVisible(false)
@@ -2550,12 +2562,15 @@ class AshenHollow extends Phaser.Scene {
                     .setVisible(false)
                     .setAlpha(RUNTIME_REVIEW_CAPTURE_MODE ? 0.08 : 0.92);
                 feathers.push(rightFade);
-                const topFade = this.add.image(room.start + chamberLeft + (chamberWidth / 2), chamberTop + 80, 'fade-edge-top')
-                    .setDisplaySize(chamberWidth, Math.min(160, chamberHeight * 0.3))
-                    .setDepth(-1.91)
-                    .setVisible(false)
-                    .setAlpha(RUNTIME_REVIEW_CAPTURE_MODE ? 0.10 : 0.88);
-                feathers.push(topFade);
+                /* Top feather fights bespoke ceiling slab (double band + seam); skip when a loaded ceiling owns the cap. */
+                if (!ceilingCapH) {
+                    const topFade = this.add.image(room.start + chamberLeft + (chamberWidth / 2), chamberTop + 80, 'fade-edge-top')
+                        .setDisplaySize(chamberWidth, Math.min(160, chamberHeight * 0.3))
+                        .setDepth(-1.91)
+                        .setVisible(false)
+                        .setAlpha(RUNTIME_REVIEW_CAPTURE_MODE ? 0.10 : 0.88);
+                    feathers.push(topFade);
+                }
                 const bottomFade = this.add.image(room.start + chamberLeft + (chamberWidth / 2), chamberBottom - 96, 'fade-edge-bottom')
                     .setDisplaySize(chamberWidth, Math.min(192, chamberHeight * 0.32))
                     .setDepth(-1.91)
@@ -2575,17 +2590,34 @@ class AshenHollow extends Phaser.Scene {
                         { cropX: 0, cropWidth: safeLeft },
                         { cropX: safeRight, cropWidth: sourceWidth - safeRight }
                     ].filter((slice) => slice.cropWidth >= 64);
+                    const cropTop = ceilingCapH > 0
+                        ? Math.min(sourceHeight - 32, Math.round((ceilingCapH / chamberHeight) * sourceHeight))
+                        : 0;
+                    const cropH = Math.max(32, sourceHeight - cropTop);
                     const sprites = slices.map((slice) => this.add.image(room.start + chamberLeft + (slice.cropX / sourceWidth) * chamberWidth, chamberBottom, midgroundKey)
-                        .setDisplaySize((slice.cropWidth / sourceWidth) * chamberWidth, chamberHeight)
-                        .setCrop(slice.cropX, 0, slice.cropWidth, sourceHeight)
+                        .setDisplaySize((slice.cropWidth / sourceWidth) * chamberWidth, vaultHeight)
+                        .setCrop(slice.cropX, cropTop, slice.cropWidth, cropH)
                         .setOrigin(0, 1)
                         .setDepth(-0.18)
                         .setVisible(false)
                         .setAlpha(RUNTIME_REVIEW_CAPTURE_MODE ? 0.34 : 0.52));
                     this.roomMidgroundSprites[roomId] = sprites;
                 } else {
+                    let mgSrcW = chamberWidth;
+                    let mgSrcH = chamberHeight;
+                    try {
+                        const tex = this.textures.get(midgroundKey);
+                        const fr = tex.get();
+                        if (fr.width > 0) mgSrcW = fr.width;
+                        if (fr.height > 0) mgSrcH = fr.height;
+                    } catch (_) { /* use fallbacks */ }
+                    const cropTop = ceilingCapH > 0
+                        ? Math.min(mgSrcH - 32, Math.round((ceilingCapH / chamberHeight) * mgSrcH))
+                        : 0;
+                    const cropH = Math.max(32, mgSrcH - cropTop);
                     const sprite = this.add.image(room.start + chamberLeft + (chamberWidth / 2), chamberBottom, midgroundKey)
-                        .setDisplaySize(chamberWidth, chamberHeight)
+                        .setDisplaySize(chamberWidth, vaultHeight)
+                        .setCrop(0, cropTop, mgSrcW, cropH)
                         .setOrigin(0.5, 1)
                         .setDepth(composition.hasBespokeMidground ? -0.22 : -0.35)
                         .setVisible(false)
@@ -2954,10 +2986,10 @@ class AshenHollow extends Phaser.Scene {
                 ...asset,
                 placement: {
                     ...pl,
-                    x: chamberLeft + (chamberWidth / 2),
-                    y: chamberTop,
-                    display_width: spanW,
-                    display_height: manifestH,
+                    x: chamberLeft + Math.round(chamberWidth / 2),
+                    y: Math.round(chamberTop),
+                    display_width: Math.round(spanW),
+                    display_height: Math.round(manifestH),
                     origin_x: 0.5,
                     origin_y: originY
                 }

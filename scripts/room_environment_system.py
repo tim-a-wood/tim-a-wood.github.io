@@ -4560,6 +4560,7 @@ def _build_biome_template_prompt(component_type: str, direction: Dict[str, Any],
             "Single continuous ceiling-band source for later room-shell derivation. "
             "The provided reference image is a generic component template: preserve its overall silhouette, layout, and horizontal band proportion, and repaint it in this biome's material family. "
             "Generate one heavy ruined-gothic ceiling strip in strict side view, with a readable masonry band and cohesive lower edge. "
+            "Read as one opaque horizontal slab or lintel course (continuous stone), not a collage of separate panels: avoid a row of distinct arched window holes, grilles, or framed openings that look pasted side-by-side. "
             "Do not turn it into a placeholder header bar, do not hang detached floating blocks beneath it, and do not depict an opening or portal frame. "
             "Do not invent arches, ribs, chandeliers, dangling ornaments, corbels, or a cropped room scene under the band. "
             "Fill the width edge-to-edge with one continuous ceiling component: no curved side cut-ins, no dark side end caps, and no fog or atmospheric haze below the band."
@@ -7071,18 +7072,9 @@ def _composite_runtime_asset_sprite(item: Dict[str, Any], asset_path: Path, room
         final_width = chamber_width
         final_height = max(64, min(display_height, sprite.size[1]))
         sprite = sprite.resize((final_width, final_height), Image.Resampling.LANCZOS)
-        alpha = sprite.getchannel("A")
-        fade = Image.new("L", sprite.size, 0)
-        fade_draw = ImageDraw.Draw(fade)
-        fade_draw.rectangle((0, 0, final_width, final_height), fill=255)
-        fade_height = max(18, int(final_height * 0.26))
-        for row in range(fade_height):
-            value = int(round(255 * (row / max(1, fade_height))))
-            fade_draw.line((0, row, final_width, row), fill=value)
-        alpha = ImageChops.multiply(alpha, fade)
-        sprite.putalpha(alpha)
-        y = chamber_y - int(final_height * 0.74)
-        return sprite, (chamber_x, y)
+        # Opaque slab aligned to chamber top — vertical alpha fade + y offset made the cap read as a
+        # composite wash over the background instead of structural masonry (runtime Phaser never used this).
+        return sprite, (chamber_x, chamber_y)
     if component_type == "main_floor_top":
         final_height = max(24, int(round(max(display_height, sprite.size[1]) * 0.45)))
         final_width = display_width

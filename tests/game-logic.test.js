@@ -1095,6 +1095,10 @@ function simulateSequenceAttempt(order) {
             'ceiling decor should snap Y to footprint chamber top (planner y=0 is not world Y)'
         );
         assert.ok(html.includes('applyRuntimeReviewCaptureContainerAspect'), 'runtime review should lock embed aspect to chamber CONFIG');
+        assert.ok(
+            html.includes('getRoomBespokeCeilingCapHeightForRuntime') && html.includes('vaultHeight'),
+            'background/midground should shorten when a bespoke ceiling slab owns the top band'
+        );
     assert.ok(html.includes('ASHEN_HOLLOW_PREVIEW'), 'postMessage layout embed for room editor iframe');
     assert.ok(html.includes('ASHEN_HOLLOW_PREVIEW_READY'), 'child signals when listener can receive layout');
     assert.ok(html.includes('preview=embed'), 'hash flag for embed wait in bootGame');

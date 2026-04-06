@@ -2346,7 +2346,7 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         self.assertEqual(y, 0)
         self.assertEqual(sprite.getpixel((sprite.size[0] // 2, sprite.size[1] // 2))[:3], (255, 0, 0))
 
-    def test_composite_runtime_review_scopes_and_fades_ceiling_band(self):
+    def test_composite_runtime_review_scopes_ceiling_band_to_chamber_top(self):
         asset = self.root / "ceiling-band.png"
         envsys.Image.new("RGBA", (1600, 224), (20, 24, 28, 255)).save(asset)
         room = {
@@ -2366,8 +2366,8 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         sprite, (x, y) = composed
         self.assertEqual(sprite.size[0], 1856)
         self.assertEqual(x, 128)
-        self.assertLess(y, 0)
-        self.assertLess(sprite.getpixel((sprite.size[0] // 2, 0))[3], 40)
+        self.assertEqual(y, 160)
+        self.assertGreater(sprite.getpixel((sprite.size[0] // 2, 0))[3], 240)
         self.assertEqual(sprite.getpixel((sprite.size[0] // 2, sprite.size[1] - 4))[:3], (20, 24, 28))
 
     def test_background_validation_flags_low_shell_definition(self):

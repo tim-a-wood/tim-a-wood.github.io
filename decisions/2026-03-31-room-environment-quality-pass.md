@@ -910,3 +910,8 @@ This log records decisions for the room environment and bespoke asset quality pa
 - Status: Accepted (2026-04-05)
 - Why: After decision 145, `buildWorldGeometry` only called `addRoomBespokeWallShellDecor` when `!roomHasPolygonWallTileRects`. Complex footprints (e.g. canonical R1) produce many outside-polygon cells, so `rects.length > 0` always — **bespoke wall_module composition never ran** while thin procedural tiles stayed at grid boundaries (often off-camera). Founder playtest still showed floor + void + no shell despite generated assets.
 - Consequence: Always call `addRoomBespokeWallShellDecor` per room. Retain `roomHasPolygonWallTileRects` only to gate **AI wall mass fallback** when bespoke returns false (avoid double stack where rects already paint boundary mass).
+
+### 167. Ceiling slab vs composite read (runtime + fallback compositor)
+- Status: Accepted (2026-04-06)
+- Why: Full-height background/midground still drew scenic arches in the top band while `ceiling_band` sat in front, producing a hard seam and “pasted collage” read; the Python `_composite_runtime_asset_sprite` path applied a vertical alpha wash and odd Y offset that did not match Phaser.
+- Consequence: When a loaded bespoke ceiling exists, shorten background and midground **from the top** by the ceiling display height (source crop + `vaultHeight`), skip the top feather, and integer-snap ceiling placement. Fallback compositor pastes `ceiling_band` opaque at `(chamber_left, chamber_top)` with no fade. `ceiling_piece` prompt line steers away from side-by-side arched window collage.
