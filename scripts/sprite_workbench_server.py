@@ -147,7 +147,6 @@ AI_CLIP_SPECS = {
         ],
     },
 }
-PIXELLAB_API_KEY = os.environ.get("PIXELLAB_API_KEY", "")
 DEMO_PROJECT_FIXTURE_ROOT = ROOT / "tests" / "fixtures" / "sprite_workbench"
 WORKBENCH_SETTINGS_DEFAULTS = {
     "safe_mode": False,
@@ -177,11 +176,17 @@ def load_repo_env_local() -> None:
             key, _, val = line.partition("=")
             key = key.strip()
             val = val.strip().strip('"').strip("'")
-            # Overlay when missing or empty so a shell-exported empty GEMINI_API_KEY does not block .env.local.
-            if key and (key not in os.environ or not str(os.environ.get(key, "")).strip()):
+            # Non-empty assignments from .env.local win over the process environment so a stale or wrong
+            # shell-exported GEMINI_API_KEY cannot block the repo file (common local dev footgun).
+            if key and val:
                 os.environ[key] = val
     except OSError:
         pass
+
+
+load_repo_env_local()
+
+PIXELLAB_API_KEY = os.environ.get("PIXELLAB_API_KEY", "")
 
 
 def _pixellab_api_result_summary(result: Any) -> str:

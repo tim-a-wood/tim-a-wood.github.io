@@ -876,6 +876,11 @@ This log records decisions for the room environment and bespoke asset quality pa
 - Why: `load_repo_env_local()` only applied `.env.local` when a key was **missing** from `os.environ`, so a **shell-exported empty `GEMINI_API_KEY`** blocked loading the real key from the file. Image generation also only read `GEMINI_API_KEY`, not `GOOGLE_API_KEY` (AI Studio default). `_gemini_generate_content_rest` swallowed HTTP/API errors, making `generation_failed` look mysterious in the UI.
 - Consequence: `.env.local` overlays **empty** env values; `_gemini_api_key()` falls back to `GOOGLE_API_KEY`; failed Gemini calls log **HTTP status + JSON error body** (no key material) at WARNING.
 
+### 161b. `.env.local` must override non-empty wrong shell keys (follow-up 2026-04-06)
+- Status: Accepted (2026-04-06)
+- Why: Even after #161, **`room_layout_copilot`** loaded `.env.local` at import time with **“only if key not in os.environ”**, so a **wrong but non-empty** `GEMINI_API_KEY` in the shell still **blocked** the valid key in `.env.local`. The workbench server also froze `PIXELLAB_API_KEY` **before** `load_repo_env_local()` ran.
+- Consequence: Both loaders apply **non-empty** `key=value` lines from `.env.local` **over** `os.environ`. `room_layout_copilot` uses `_copilot_gemini_api_key()` (`GEMINI` or `GOOGLE`). `load_repo_env_local()` runs once at module init (after the function is defined); `PIXELLAB_API_KEY` is read **after** that load.
+
 ### 148. Bespoke wall shell must run even when polygon wall rects are non-empty
 - Status: Accepted (2026-04-05)
 - Why: After decision 145, `buildWorldGeometry` only called `addRoomBespokeWallShellDecor` when `!roomHasPolygonWallTileRects`. Complex footprints (e.g. canonical R1) produce many outside-polygon cells, so `rects.length > 0` always — **bespoke wall_module composition never ran** while thin procedural tiles stayed at grid boundaries (often off-camera). Founder playtest still showed floor + void + no shell despite generated assets.

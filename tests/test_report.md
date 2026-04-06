@@ -24,3 +24,5 @@ Update 2026-04-06 (later): bespoke wall shell **#159** — when `wall_module_*` 
 Update 2026-04-06 (later): floor line **#160** — primary floor physics, wall foot, and cap use `getLayoutFloorTileCenterY` (`polygonBounds.bottom - 16` when a footprint exists); floor cap image uses top origin at `walkTop` so the cap top matches the walk surface. `node --test tests/game-logic.test.js` (Pass); browser not re-run in CI.
 
 Update 2026-04-06 (later): Gemini env + diagnostics — `load_repo_env_local()` now fills vars from `.env.local` when the shell value is empty; `_gemini_api_key()` accepts `GOOGLE_API_KEY`; `_gemini_generate_content_rest` logs HTTP/API errors (no secrets). Ran `python3 tests/room_environment_system.test.py` (116 tests, Pass). Browser generation not re-run in CI.
+
+Update 2026-04-06 (later): **#161b** — `.env.local` non-empty lines always override the shell; `room_layout_copilot` aligned; `PIXELLAB_API_KEY` assigned after `load_repo_env_local()`; copilot accepts `GOOGLE_API_KEY`. Ran `python3 tests/room_environment_system.test.py` (Pass), `pytest tests/test_workbench_local_control.py` (Pass).

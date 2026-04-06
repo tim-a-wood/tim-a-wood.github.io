@@ -32,7 +32,7 @@ Rules:
 
 
 def load_env_local() -> None:
-    """Populate os.environ from .env.local if present (does not override existing vars)."""
+    """Populate os.environ from .env.local if present. Non-empty file values override the shell."""
     if not ENV_LOCAL_PATH.is_file():
         return
     try:
@@ -45,14 +45,18 @@ def load_env_local() -> None:
             key, _, val = line.partition("=")
             key = key.strip()
             val = val.strip().strip('"').strip("'")
-            if key and key not in os.environ:
+            if key and val:
                 os.environ[key] = val
     except OSError:
         pass
 
 
+def _copilot_gemini_api_key() -> str:
+    return (os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY") or "").strip()
+
+
 def gemini_configured() -> bool:
-    return bool(os.environ.get("GEMINI_API_KEY", "").strip())
+    return bool(_copilot_gemini_api_key())
 
 
 def normalize_copilot_payload(obj: dict) -> dict:
@@ -92,9 +96,9 @@ def strip_json_fences(raw: str) -> str:
 
 
 def call_gemini_copilot(user_prompt: str) -> dict:
-    api_key = os.environ.get("GEMINI_API_KEY", "").strip()
+    api_key = _copilot_gemini_api_key()
     if not api_key:
-        raise RuntimeError("GEMINI_API_KEY is not set")
+        raise RuntimeError("GEMINI_API_KEY or GOOGLE_API_KEY is not set")
 
     model = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash").strip() or "gemini-2.5-flash"
     url = (
@@ -149,7 +153,7 @@ def copilot_handle_post(body: dict) -> tuple[dict, int]:
         return (
             {
                 "ok": False,
-                "error": "GEMINI_API_KEY is not set. Add it to .env.local in the project root.",
+                "error": "GEMINI_API_KEY or GOOGLE_API_KEY is not set. Add it to .env.local in the project root.",
             },
             HTTPStatus.SERVICE_UNAVAILABLE,
         )
