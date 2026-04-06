@@ -3336,25 +3336,35 @@ class AshenHollow extends Phaser.Scene {
 
         Object.entries(ROOM_PLATFORM_LAYOUTS).forEach(([roomId, ledges]) => {
             const primaryFloorPlatform = getPrimaryFloorPlatform(roomId);
+            const roomBounds = ROOM_IDS[roomId];
+            const polygonBounds = getRoomPolygonBounds(roomId);
+            const chamberLeft = Number(polygonBounds.left || 0);
+            const chamberRight = Number(polygonBounds.right || roomBounds.width);
+            const chamberBottom = Number(polygonBounds.bottom || (getRoomVisualWorldBottom() - 16));
             ledges.forEach(({ x, y, len, tint }) => {
                 const isPrimaryFloor =
                     primaryFloorPlatform &&
-                    Number(primaryFloorPlatform.x || 0) + ROOM_IDS[roomId].start === x &&
+                    Number(primaryFloorPlatform.x || 0) + roomBounds.start === x &&
                     Number(primaryFloorPlatform.y || 0) === y &&
                     Math.max(1, Number(primaryFloorPlatform.len || 1)) === len;
                 const platformTextureKey = isPrimaryFloor
                     ? resolveRoomSurfaceTexture(this, roomId, 'floor')
                     : resolveRoomPlatformTexture(this, roomId, tint || 0);
-                for (let i = 0; i < len; i++) {
-                    const px = x + (i * tile) + 16;
-                    if (isPrimaryFloor) {
-                        this.createRoomSurfaceTile(px, y, roomId, platformTextureKey, 'floor');
-                    } else {
+                if (isPrimaryFloor) {
+                    const collisionLeft = roomBounds.start + chamberLeft;
+                    const collisionWidth = Math.max(1, chamberRight - chamberLeft);
+                    for (let i = 0; i < Math.ceil(collisionWidth / tile); i++) {
+                        const px = collisionLeft + (i * tile) + 16;
+                        this.createRoomSurfaceTile(px, chamberBottom, roomId, platformTextureKey, 'floor');
+                    }
+                } else {
+                    for (let i = 0; i < len; i++) {
+                        const px = x + (i * tile) + 16;
                         this.createRoomPlatformTile(px, y, roomId, platformTextureKey);
                     }
                 }
                 if (!isPrimaryFloor) {
-                    const localPlatform = { x: x - ROOM_IDS[roomId].start, y, len };
+                    const localPlatform = { x: x - roomBounds.start, y, len };
                     this.addRoomBespokeHeroPlatformFaceDecor(roomId, localPlatform);
                     this.addRoomPlatformLedgeDecor(roomId, x, y, len * tile, 22);
                 }

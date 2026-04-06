@@ -846,6 +846,11 @@ This log records decisions for the room environment and bespoke asset quality pa
 - Why: Follow-on playtest showed floor/wall seams misaligned: primary floor cap used authored platform `x/len`, so it could stop short of side walls, and its top seam could drift off the polygon boundary line.
 - Consequence: In `buildWorldGeometry` primary-floor path, floor decor now uses `primaryFloorLocalLeft = chamberLeft`, `primaryFloorWidth = chamberRight - chamberLeft`, `primaryFloorY = chamberBottom`, and `addRoomFloorCapDecor(... primaryFloorX, primaryFloorY, primaryFloorWidth ...)`. This makes floor meet both side walls and keeps floor top flush with room boundary.
 
+### 156. Primary floor collision must align with the same chamber seam as floor decor
+- Status: Accepted (2026-04-06)
+- Why: Visual pass after #155 showed the player still standing on a higher/lower invisible strip because physics tiles for the primary floor were still emitted from authored platform `x/y/len` in the `ROOM_PLATFORM_LAYOUTS` loop.
+- Consequence: For `isPrimaryFloor`, collision tiles now use chamber bounds (`collisionLeft = roomBounds.start + chamberLeft`, width `chamberRight - chamberLeft`) and `y = chamberBottom`. This keeps player feet flush with the visible floor seam.
+
 ### 148. Bespoke wall shell must run even when polygon wall rects are non-empty
 - Status: Accepted (2026-04-05)
 - Why: After decision 145, `buildWorldGeometry` only called `addRoomBespokeWallShellDecor` when `!roomHasPolygonWallTileRects`. Complex footprints (e.g. canonical R1) produce many outside-polygon cells, so `rects.length > 0` always — **bespoke wall_module composition never ran** while thin procedural tiles stayed at grid boundaries (often off-camera). Founder playtest still showed floor + void + no shell despite generated assets.

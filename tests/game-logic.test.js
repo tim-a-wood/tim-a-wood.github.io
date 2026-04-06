@@ -979,6 +979,19 @@ function simulateSequenceAttempt(order) {
     );
 })();
 
+(function testIndexPrimaryFloorCollisionFlushWithBoundary() {
+    const fs = require('fs');
+    const path = require('path');
+    const htmlPath = path.join(__dirname, '../index.html');
+    if (!fs.existsSync(htmlPath)) return;
+    const html = fs.readFileSync(htmlPath, 'utf8');
+    assert.ok(
+        html.includes('const collisionLeft = roomBounds.start + chamberLeft')
+            && html.includes('this.createRoomSurfaceTile(px, chamberBottom, roomId, platformTextureKey, \'floor\')'),
+        'primary floor collision row should use chamber bounds and chamberBottom to match visual seam'
+    );
+})();
+
 (function testRoomWizardWorkbenchShellCompactCss() {
     const fs = require('fs');
     const path = require('path');
