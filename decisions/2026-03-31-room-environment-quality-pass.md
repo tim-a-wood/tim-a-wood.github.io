@@ -884,7 +884,7 @@ This log records decisions for the room environment and bespoke asset quality pa
 ### 163. Playtest camera bounds: one surface tile bleed past the footprint polygon
 - Status: Accepted (2026-04-06)
 - Why: Clamping `cameras.main.setBounds` exactly to the polygon AABB (with only an 8px pad) cropped wall/floor/ceiling shell art that legitimately extends one grid tile past the layout line; founder playtest showed harsh black bars at the scroll limits.
-- Consequence: `getRoomCameraChamberBoundsWorld` expands polygon bounds past the footprint, still clamped to the room slot and world height. **Vertical** bleed uses `CONFIG.CAMERA_CHAMBER_SURFACE_BLEED_PX` (32px, one tile). **Horizontal** bleed uses `CONFIG.CAMERA_CHAMBER_SIDE_BLEED_PX` (48px) so side wall strips are not cropped at the viewport edge; falls back to vertical bleed if unset. Runtime review capture uses the same rect.
+- Consequence: `getRoomCameraChamberBoundsWorld` expands polygon bounds past the footprint, still clamped to the room slot and world height. **Vertical** bleed uses `CONFIG.CAMERA_CHAMBER_SURFACE_BLEED_PX` (32px, one tile). **Horizontal** bleed uses `CONFIG.CAMERA_CHAMBER_SIDE_BLEED_PX` (64px, two tiles) so side wall strips are not cropped at the viewport edge; falls back to vertical bleed if unset. Runtime review capture uses the same rect.
 
 ### 164. Primary floor cap and collision extend by the same surface bleed as the camera
 - Status: Accepted (2026-04-06)
@@ -894,7 +894,7 @@ This log records decisions for the room environment and bespoke asset quality pa
 ### 165. Horizontal chamber bleed wider than vertical (wall crop)
 - Status: Accepted (2026-04-06)
 - Why: 32px horizontal camera bleed still clipped bespoke side walls at the viewport edge; vertical one-tile margin was enough.
-- Consequence: `CONFIG.CAMERA_CHAMBER_SIDE_BLEED_PX` (48px) drives left/right expansion in `getRoomCameraChamberBoundsWorld` and primary-floor/collision horizontal span; `CAMERA_CHAMBER_SURFACE_BLEED_PX` (32px) remains for top/bottom.
+- Consequence: `CONFIG.CAMERA_CHAMBER_SIDE_BLEED_PX` (64px after follow-up tuning) drives left/right expansion in `getRoomCameraChamberBoundsWorld` and primary-floor/collision horizontal span; `CAMERA_CHAMBER_SURFACE_BLEED_PX` (32px) remains for top/bottom.
 
 ### 161b. `.env.local` must override non-empty wrong shell keys (follow-up 2026-04-06)
 - Status: Accepted (2026-04-06)

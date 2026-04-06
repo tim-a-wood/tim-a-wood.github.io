@@ -78,8 +78,8 @@ const CONFIG = {
     COLORS: [0x2a3a5a, 0x3a2a5a, 0x2a4a3a, 0x4a3a2a, 0x2a4050],
     /** One surface tile (32px) — vertical past polygon for ceiling/floor scroll margin. */
     CAMERA_CHAMBER_SURFACE_BLEED_PX: 32,
-    /** Horizontal past polygon; wider than vertical so left/right wall strips are not cropped at the viewport edge (floor cap + collision use the same value). */
-    CAMERA_CHAMBER_SIDE_BLEED_PX: 48
+    /** Horizontal past polygon; wider than vertical so left/right wall strips are not cropped at the viewport edge (floor cap + collision use the same value). Two surface tiles. */
+    CAMERA_CHAMBER_SIDE_BLEED_PX: 64
 };
 
 window.__previewLayoutFromParent = null;

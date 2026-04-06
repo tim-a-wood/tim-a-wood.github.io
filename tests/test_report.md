@@ -33,6 +33,8 @@ Update 2026-04-06 (later): Room env MVP diagnostics — `lastGeminiImageError` s
 
 Update 2026-04-06 (later): Editor Copilot meta line adds a **Billing** hint when the last Gemini error looks like quota/spending cap (429, etc.). `.env.local.example` notes fixing Google Cloud spending cap for 429. No automated test (copy-only).
 
-Update 2026-04-06 (later): Playtest camera — `getRoomCameraChamberBoundsWorld(roomId)` clamps `cameras.main.setBounds` to the layout **footprint polygon** plus bleed when present: vertical `CAMERA_CHAMBER_SURFACE_BLEED_PX` (32px), horizontal `CAMERA_CHAMBER_SIDE_BLEED_PX` (48px) for wall crop; no polygon → full room slot. Runtime review capture uses the same rect. Ran `node --test tests/game-logic.test.js` (Pass); in-browser framing not re-checked in CI.
+Update 2026-04-06 (later): Playtest camera — `getRoomCameraChamberBoundsWorld(roomId)` clamps `cameras.main.setBounds` to the layout **footprint polygon** plus bleed when present: vertical `CAMERA_CHAMBER_SURFACE_BLEED_PX` (32px), horizontal `CAMERA_CHAMBER_SIDE_BLEED_PX` (64px) for wall crop; no polygon → full room slot. Runtime review capture uses the same rect. Ran `node --test tests/game-logic.test.js` (Pass); in-browser framing not re-checked in CI.
+
+Update 2026-04-06 (later): `CAMERA_CHAMBER_SIDE_BLEED_PX` raised 48 → 64 (founder playtest still tight on side walls). Ran `node --test tests/game-logic.test.js` (Pass).
 
 Update 2026-04-06 (later): Primary floor cap, face band, and primary-floor **collision** tiles extend horizontally by `CAMERA_CHAMBER_SIDE_BLEED_PX` (fallback: surface bleed) past polygon left/right (clamped to room width) so wall–floor corners match camera horizontal bleed. Ran `node --test tests/game-logic.test.js` (Pass); browser not re-checked.
