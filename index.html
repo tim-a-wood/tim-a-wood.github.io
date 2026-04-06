@@ -76,8 +76,10 @@ const CONFIG = {
     JUMP_FORCE: -690,
     FRICTION: 0.75,
     COLORS: [0x2a3a5a, 0x3a2a5a, 0x2a4a3a, 0x4a3a2a, 0x2a4050],
-    /** One surface tile (32px) — camera, primary floor cap, and floor collision extend this far past the footprint polygon so shell corners and margin strips are not void. */
-    CAMERA_CHAMBER_SURFACE_BLEED_PX: 32
+    /** One surface tile (32px) — vertical past polygon for ceiling/floor scroll margin. */
+    CAMERA_CHAMBER_SURFACE_BLEED_PX: 32,
+    /** Horizontal past polygon; wider than vertical so left/right wall strips are not cropped at the viewport edge (floor cap + collision use the same value). */
+    CAMERA_CHAMBER_SIDE_BLEED_PX: 48
 };
 
 window.__previewLayoutFromParent = null;
@@ -884,8 +886,8 @@ function getRoomPolygonBounds(roomId) {
 }
 
 /**
- * World-space rectangle for camera clamping: footprint polygon plus one surface-tile bleed (32px) per edge when present,
- * otherwise the full room slot (editor canvas width × world height).
+ * World-space rectangle for camera clamping: footprint polygon plus bleed when present
+ * (wider horizontally for wall strips, one tile vertically), otherwise the full room slot.
  */
 function getRoomCameraChamberBoundsWorld(roomId) {
     const slot = ROOM_IDS[roomId];
@@ -897,11 +899,12 @@ function getRoomCameraChamberBoundsWorld(roomId) {
     const hasPoly = layoutRoom && Array.isArray(layoutRoom.polygon) && layoutRoom.polygon.length >= 3
         && (poly.right > poly.left) && (poly.bottom > poly.top);
     if (hasPoly) {
-        const bleed = Number(CONFIG.CAMERA_CHAMBER_SURFACE_BLEED_PX) || 32;
-        const innerLeft = Math.max(0, Number(poly.left) - bleed);
-        const innerTop = Math.max(0, Number(poly.top) - bleed);
-        const innerRight = Math.min(Number(slot.width), Number(poly.right) + bleed);
-        const innerBottom = Math.min(CONFIG.WORLD_HEIGHT, Number(poly.bottom) + bleed);
+        const bleedY = Number(CONFIG.CAMERA_CHAMBER_SURFACE_BLEED_PX) || 32;
+        const bleedX = Number(CONFIG.CAMERA_CHAMBER_SIDE_BLEED_PX) || bleedY;
+        const innerLeft = Math.max(0, Number(poly.left) - bleedX);
+        const innerTop = Math.max(0, Number(poly.top) - bleedY);
+        const innerRight = Math.min(Number(slot.width), Number(poly.right) + bleedX);
+        const innerBottom = Math.min(CONFIG.WORLD_HEIGHT, Number(poly.bottom) + bleedY);
         return {
             x: slot.start + innerLeft,
             y: innerTop,
@@ -3332,8 +3335,8 @@ class AshenHollow extends Phaser.Scene {
             if (primaryFloorPlatform) {
                 const chamberLeft = Number(polygonBounds.left || 0);
                 const chamberRight = Number(polygonBounds.right || roomBounds.width);
-                const surfaceBleed = Number(CONFIG.CAMERA_CHAMBER_SURFACE_BLEED_PX) || 32;
-                /* Extend one tile past polygon left/right so floor meets bespoke wall bases and fills L-corners in the camera bleed. */
+                const surfaceBleed = Number(CONFIG.CAMERA_CHAMBER_SIDE_BLEED_PX) || Number(CONFIG.CAMERA_CHAMBER_SURFACE_BLEED_PX) || 32;
+                /* Extend past polygon left/right (same as camera horizontal bleed) so floor meets bespoke wall bases and fills L-corners. */
                 const primaryFloorLocalLeft = Math.max(0, chamberLeft - surfaceBleed);
                 const primaryFloorLocalRight = Math.min(roomBounds.width, chamberRight + surfaceBleed);
                 const primaryFloorWidth = Math.max(1, primaryFloorLocalRight - primaryFloorLocalLeft);
@@ -3440,7 +3443,7 @@ class AshenHollow extends Phaser.Scene {
                     ? resolveRoomSurfaceTexture(this, roomId, 'floor')
                     : resolveRoomPlatformTexture(this, roomId, tint || 0);
                 if (isPrimaryFloor) {
-                    const surfaceBleed = Number(CONFIG.CAMERA_CHAMBER_SURFACE_BLEED_PX) || 32;
+                    const surfaceBleed = Number(CONFIG.CAMERA_CHAMBER_SIDE_BLEED_PX) || Number(CONFIG.CAMERA_CHAMBER_SURFACE_BLEED_PX) || 32;
                     const collisionLocalLeft = Math.max(0, chamberLeft - surfaceBleed);
                     const collisionLocalRight = Math.min(roomBounds.width, chamberRight + surfaceBleed);
                     const collisionLeft = roomBounds.start + collisionLocalLeft;
