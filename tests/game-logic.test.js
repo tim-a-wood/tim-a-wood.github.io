@@ -958,6 +958,11 @@ function simulateSequenceAttempt(order) {
         /if \(!wallAssets\.length && support\?\.roomBounds && chamberBounds\)/.test(html),
         'flanking wall mass inside bespoke shell only when no wall_module assets (avoid giant margin TileSprites)'
     );
+    assert.ok(
+        html.includes('origin_x: isLeft ? 1 : 0')
+            && /const localWallX = isLeft[\s\S]*\? Number\(chamberBounds\?\.left \|\| 0\)[\s\S]*: Number\(chamberBounds\?\.right \|\| roomWidth\)/m.test(html),
+        'left shell right edge and right shell left edge must be boundary-flush'
+    );
 })();
 
 (function testRoomWizardWorkbenchShellCompactCss() {

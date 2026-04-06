@@ -2741,7 +2741,7 @@ class AshenHollow extends Phaser.Scene {
                 /* Room-local X only — addPlacedBespokeAsset adds ROOM_IDS[roomId].start (world offset). */
                 const localWallX = isLeft
                     ? Number(chamberBounds?.left || 0)
-                    : Math.max(Number(chamberBounds?.left || 0), Number(chamberBounds?.right || roomWidth) - accentW);
+                    : Number(chamberBounds?.right || roomWidth);
                 sprite = this.addPlacedBespokeAsset(roomId, {
                     ...asset,
                     placement: {
@@ -2750,7 +2750,9 @@ class AshenHollow extends Phaser.Scene {
                         y: chamberBottom,
                         display_width: accentW,
                         display_height: accentHeight,
-                        origin_x: 0,
+                        /* Keep side shells flush with room boundaries:
+                         * left shell right-edge at left boundary, right shell left-edge at right boundary. */
+                        origin_x: isLeft ? 1 : 0,
                         origin_y: 1
                     }
                 }, wallShellDepth, RUNTIME_REVIEW_CAPTURE_MODE ? 1 : 0.98);
