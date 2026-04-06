@@ -46,3 +46,5 @@ Update 2026-04-06: Room editor Environment **Step 2 — Preview & build** UX: op
 Update 2026-04-06: Preview gallery cards — **click image opens full size** (`target="_blank"` link); title/level grid + `minmax(0,1fr)` + nowrap approve label for consistent wrapping (`room-wizard-workbench-shell.css`). Ran `node tests/room-wizard-results-contract.test.js`, `node tests/room-wizard-environment.test.js` (Pass).
 
 Update 2026-04-07: Preview open link: `cursor: pointer` + `text-decoration: none` on `.rw-preview-card-open`. Ran `node tests/room-wizard-results-contract.test.js` (Pass).
+
+Update 2026-04-06: Full-size preview opens `room-environment-preview-full.html` (dark full-viewport page, `src` query same-origin only) instead of linking directly to the PNG (avoids browser default white image margins). Ran `node tests/room-wizard-results-contract.test.js` (Pass); browser not re-checked in CI.

@@ -70,6 +70,11 @@ function assertIncludes(snippet, message) {
   assertIncludes('class="rw-preview-card-open"', 'Preview thumbnails should link open for full-size view');
   assertIncludes("target=\"_blank\"", 'Preview open link should use a new browsing context');
   assertIncludes("rel=\"noopener noreferrer\"", 'Preview open link should include noopener noreferrer');
+  assertIncludes(
+    '/room-environment-preview-full.html',
+    'Full-size preview should open the dark HTML viewer, not the browser default image page'
+  );
+  assertIncludes('encodeURIComponent(imgHref)', 'Viewer href should pass the image URL as a same-origin query param');
 })();
 
 (function testResultsPreviewAvoidsDoublePanelChrome() {

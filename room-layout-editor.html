@@ -8187,6 +8187,7 @@
         }
         const approved = previewState?.approved_image_id || null;
         const version = previewState?.last_generated_at || '';
+        const viewerBase = new URL('/room-environment-preview-full.html', window.location.origin).href;
         gallery.innerHTML = items.map((item) => {
           const active = approved && approved === item.preview_id ? ' active' : '';
           const imgHref = assetUrlWithVersion(item.url || '', version || item.preview_id || '');
@@ -8195,8 +8196,12 @@
           const levelText = (item.render_level || '').toUpperCase();
           const imgAlt = escapeHtml(previewLabel);
           const imgSrc = escapeHtml(imgHref);
+          const fullViewHref = imgHref
+            ? `${viewerBase}?src=${encodeURIComponent(imgHref)}`
+            : '';
+          const fullViewHrefAttr = escapeHtml(fullViewHref);
           const mediaMarkup = imgHref
-            ? `<a class="rw-preview-card-open" href="${imgSrc}" target="_blank" rel="noopener noreferrer" title="View full size" aria-label="${escapeHtml(openLabel)}"><img src="${imgSrc}" alt="${imgAlt}" loading="lazy" /></a>`
+            ? `<a class="rw-preview-card-open" href="${fullViewHrefAttr}" target="_blank" rel="noopener noreferrer" title="View full size (dark background)" aria-label="${escapeHtml(openLabel)}"><img src="${imgSrc}" alt="${imgAlt}" loading="lazy" /></a>`
             : `<div class="rw-preview-card-media-missing" role="img" aria-label="${imgAlt}">Preview unavailable</div>`;
           return `
             <article class="rw-preview-card${active}">
