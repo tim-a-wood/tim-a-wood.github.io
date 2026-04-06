@@ -871,6 +871,11 @@ This log records decisions for the room environment and bespoke asset quality pa
 - Why: The footprint polygon’s **`bottom`** is the layout contract for the **bottom edge of the floor tile row**. Driving the seam from **authored platform `y`** alone (or mixed cap origins) left the **floor component** visually off the room’s floor line; the player should match automatically once **physics** and **cap top** share the same **walk surface** (`polygon bottom − 32` for top of 32px tiles, `bottom − 16` for tile center).
 - Consequence: `getLayoutFloorTileCenterY` uses `polygonBounds.bottom - 16` when a polygon exists; primary-floor physics, wall foot, and cap use that row. `addRoomFloorCapDecor` anchors at **`walkTop = y − 16`** with **`origin (0.5, 0)`** so the cap’s **top** is flush with the **top of the floor tiles**. Replaces #158’s “primary platform row vs polygon bottom” approach for the floor line.
 
+### 161. Gemini key loading and diagnostics for bespoke generation failures
+- Status: Accepted (2026-04-06)
+- Why: `load_repo_env_local()` only applied `.env.local` when a key was **missing** from `os.environ`, so a **shell-exported empty `GEMINI_API_KEY`** blocked loading the real key from the file. Image generation also only read `GEMINI_API_KEY`, not `GOOGLE_API_KEY` (AI Studio default). `_gemini_generate_content_rest` swallowed HTTP/API errors, making `generation_failed` look mysterious in the UI.
+- Consequence: `.env.local` overlays **empty** env values; `_gemini_api_key()` falls back to `GOOGLE_API_KEY`; failed Gemini calls log **HTTP status + JSON error body** (no key material) at WARNING.
+
 ### 148. Bespoke wall shell must run even when polygon wall rects are non-empty
 - Status: Accepted (2026-04-05)
 - Why: After decision 145, `buildWorldGeometry` only called `addRoomBespokeWallShellDecor` when `!roomHasPolygonWallTileRects`. Complex footprints (e.g. canonical R1) produce many outside-polygon cells, so `rects.length > 0` always — **bespoke wall_module composition never ran** while thin procedural tiles stayed at grid boundaries (often off-camera). Founder playtest still showed floor + void + no shell despite generated assets.

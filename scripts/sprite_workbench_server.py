@@ -177,7 +177,8 @@ def load_repo_env_local() -> None:
             key, _, val = line.partition("=")
             key = key.strip()
             val = val.strip().strip('"').strip("'")
-            if key and key not in os.environ:
+            # Overlay when missing or empty so a shell-exported empty GEMINI_API_KEY does not block .env.local.
+            if key and (key not in os.environ or not str(os.environ.get(key, "")).strip()):
                 os.environ[key] = val
     except OSError:
         pass

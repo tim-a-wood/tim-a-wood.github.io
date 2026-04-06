@@ -22,3 +22,5 @@ Update 2026-04-06 (later): walk plane fix #158 — floor seam, collision, and wa
 Update 2026-04-06 (later): bespoke wall shell **#159** — when `wall_module_*` assets are present, flanking mass is skipped; side shell display width is now at least the room→chamber inset (`marginLeft` / `marginRight`) so a narrow cap (e.g. 272px) cannot leave a black strip at the room edge. `node --test tests/game-logic.test.js` (Pass); manual playtest not re-run in CI.
 
 Update 2026-04-06 (later): floor line **#160** — primary floor physics, wall foot, and cap use `getLayoutFloorTileCenterY` (`polygonBounds.bottom - 16` when a footprint exists); floor cap image uses top origin at `walkTop` so the cap top matches the walk surface. `node --test tests/game-logic.test.js` (Pass); browser not re-run in CI.
+
+Update 2026-04-06 (later): Gemini env + diagnostics — `load_repo_env_local()` now fills vars from `.env.local` when the shell value is empty; `_gemini_api_key()` accepts `GOOGLE_API_KEY`; `_gemini_generate_content_rest` logs HTTP/API errors (no secrets). Ran `python3 tests/room_environment_system.test.py` (116 tests, Pass). Browser generation not re-run in CI.

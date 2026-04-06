@@ -5,6 +5,7 @@ import base64
 import hashlib
 import io
 import json
+import logging
 import math
 import os
 import shutil
@@ -34,6 +35,14 @@ append_history_event: Callable[[str, Dict[str, Any]], Dict[str, Any]]
 
 def configure(**kwargs: Any) -> None:
     globals().update(kwargs)
+
+
+logger = logging.getLogger(__name__)
+
+
+def _gemini_api_key() -> str:
+    """Prefer GEMINI_API_KEY; accept GOOGLE_API_KEY (AI Studio default name)."""
+    return (os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY") or "").strip()
 
 
 ART_DIRECTION_TEMPLATES: List[Dict[str, Any]] = [
@@ -1158,7 +1167,7 @@ def _build_art_direction_concept_prompts(direction: Dict[str, Any], count: int =
 
 
 def _call_gemini_image(prompt: str) -> Optional[bytes]:
-    api_key = os.environ.get("GEMINI_API_KEY", "").strip()
+    api_key = _gemini_api_key()
     if not api_key:
         return None
     model = os.environ.get("GEMINI_IMAGE_MODEL", "gemini-2.5-flash-image").strip() or "gemini-2.5-flash-image"
@@ -1916,7 +1925,7 @@ def _refresh_asset_pack_staleness(room: Dict[str, Any], env: Dict[str, Any], dir
 
 
 def _gemini_json(system_prompt: str, user_prompt: str) -> Optional[Dict[str, Any]]:
-    api_key = os.environ.get("GEMINI_API_KEY", "").strip()
+    api_key = _gemini_api_key()
     if not api_key:
         return None
     model = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash").strip() or "gemini-2.5-flash"
@@ -3151,10 +3160,6 @@ def _gemini_timeout_seconds() -> int:
     return max(10, value)
 
 
-def _gemini_api_key() -> str:
-    return os.environ.get("GEMINI_API_KEY", "").strip()
-
-
 def _gemini_generate_content_rest(
     model: str,
     parts: List[Dict[str, Any]],
@@ -3180,9 +3185,27 @@ def _gemini_generate_content_rest(
         )
         with urllib.request.urlopen(req, timeout=_gemini_timeout_seconds()) as resp:
             raw = resp.read().decode("utf-8")
-        return json.loads(raw)
-    except Exception:
+        data = json.loads(raw)
+    except urllib.error.HTTPError as exc:
+        err_body = ""
+        try:
+            err_body = exc.read().decode("utf-8", errors="replace")[:1200]
+        except Exception:
+            err_body = str(exc.reason or "")
+        logger.warning(
+            "Gemini generateContent HTTP %s for model=%s: %s",
+            exc.code,
+            model,
+            err_body or exc.reason,
+        )
         return None
+    except Exception as exc:
+        logger.warning("Gemini generateContent failed for model=%s: %s", model, exc)
+        return None
+    if isinstance(data, dict) and data.get("error"):
+        logger.warning("Gemini API error for model=%s: %s", model, data.get("error"))
+        return None
+    return data
 
 
 _LEVEL3_MAX_REFERENCE_IMAGES = 5
@@ -4582,7 +4605,7 @@ def generate_biome_pack_visuals(project_id: str, payload: Dict[str, Any]) -> Dic
     if not _gemini_api_key():
         return {
             "ok": False,
-            "error": "GEMINI_API_KEY is not set. Add it to .env.local in the project root and restart the Sprite Workbench server.",
+            "error": "GEMINI_API_KEY or GOOGLE_API_KEY is not set. Add it to .env.local in the project root and restart the Sprite Workbench server.",
             "used_ai": False,
             "biome_id": biome_id,
             "component_types": sorted(requested_component_types) if requested_component_types else [],
