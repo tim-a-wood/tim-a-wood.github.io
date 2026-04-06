@@ -856,6 +856,11 @@ This log records decisions for the room environment and bespoke asset quality pa
 - Why: After #156, mismatch persisted because `isPrimaryFloor` still required `primaryFloorPlatform.y === ledge.y`; once seam moved to `chamberBottom`, that strict equality can fail and the chamber-bottom collision branch is skipped.
 - Consequence: `isPrimaryFloor` now keys on room-local start `x` and `len` only (no `y` equality), ensuring the chamber-bottom collision row is applied for the primary floor strip.
 
+### 158. Walk plane must follow the primary floor platform row (polygon bottom can differ)
+- Status: Accepted (2026-04-06)
+- Why: In footprint polygons, `bottom` can sit **below** the authored primary floor platform row (e.g. polygon bottom 1040 vs platform `y` 992). Using `polygonBounds.bottom` alone for floor cap, collision, and wall foot (#155–#157) desynced visuals from physics and left large gaps between wall, floor art, and walk surface.
+- Consequence: `getPrimaryFloorTileCenterY` / `getRoomWalkPlaneTopY` define the seam; primary floor cap and collision use `primaryFloorTileCenterY`; bespoke wall shell foot uses `walkPlaneTopY` on `support`; outer mass height uses `primaryFloorTileCenterY` when a primary floor exists.
+
 ### 148. Bespoke wall shell must run even when polygon wall rects are non-empty
 - Status: Accepted (2026-04-05)
 - Why: After decision 145, `buildWorldGeometry` only called `addRoomBespokeWallShellDecor` when `!roomHasPolygonWallTileRects`. Complex footprints (e.g. canonical R1) produce many outside-polygon cells, so `rects.length > 0` always — **bespoke wall_module composition never ran** while thin procedural tiles stayed at grid boundaries (often off-camera). Founder playtest still showed floor + void + no shell despite generated assets.

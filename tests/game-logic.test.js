@@ -973,9 +973,10 @@ function simulateSequenceAttempt(order) {
     const html = fs.readFileSync(htmlPath, 'utf8');
     assert.ok(
         html.includes('primaryFloorLocalLeft = chamberLeft')
-            && html.includes('primaryFloorY = chamberBottom')
+            && html.includes('primaryFloorY = primaryFloorTileCenterY')
+            && html.includes('getPrimaryFloorTileCenterY')
             && /addRoomFloorCapDecor\([\s\S]*primaryFloorX[\s\S]*primaryFloorY[\s\S]*primaryFloorWidth/m.test(html),
-        'primary floor cap should span chamber bounds and keep floor top flush to chamber boundary'
+        'primary floor cap should span chamber bounds and align to primary floor platform row, not polygon bottom alone'
     );
 })();
 
@@ -987,13 +988,28 @@ function simulateSequenceAttempt(order) {
     const html = fs.readFileSync(htmlPath, 'utf8');
     assert.ok(
         html.includes('const collisionLeft = roomBounds.start + chamberLeft')
-            && html.includes('this.createRoomSurfaceTile(px, chamberBottom, roomId, platformTextureKey, \'floor\')'),
-        'primary floor collision row should use chamber bounds and chamberBottom to match visual seam'
+            && html.includes('this.createRoomSurfaceTile(px, floorTileCenterY, roomId, platformTextureKey, \'floor\')'),
+        'primary floor collision row should use chamber bounds and primary floor tile center Y to match seam'
     );
     assert.ok(
         /isPrimaryFloor\s*=\s*[\s\S]*primaryFloorPlatform[\s\S]*primaryFloorPlatform\.x[\s\S]*Math\.max\(1, Number\(primaryFloorPlatform\.len \|\| 1\)\) === len/m.test(html)
             && !/isPrimaryFloor[\s\S]*primaryFloorPlatform\.y/.test(html),
-        'primary-floor collision gate should not require legacy y equality once floor seam uses chamberBottom'
+        'primary-floor collision gate should not require legacy y equality once seam follows primary floor row'
+    );
+})();
+
+(function testIndexWalkPlaneUsesPrimaryFloorRow() {
+    const fs = require('fs');
+    const path = require('path');
+    const htmlPath = path.join(__dirname, '../index.html');
+    if (!fs.existsSync(htmlPath)) return;
+    const html = fs.readFileSync(htmlPath, 'utf8');
+    assert.ok(
+        html.includes('function getPrimaryFloorTileCenterY')
+            && html.includes('function getRoomWalkPlaneTopY')
+            && html.includes('y: wallFootY')
+            && html.includes('walkPlaneTopY'),
+        'walk plane and wall shell foot should follow primary floor platform row when polygon bottom differs'
     );
 })();
 
