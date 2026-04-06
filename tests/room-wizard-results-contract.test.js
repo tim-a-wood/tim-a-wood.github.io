@@ -116,6 +116,21 @@ function assertIncludes(snippet, message) {
   );
 })();
 
+(function testRuntimeReviewOpensGameWithoutDuplicateButton() {
+  assert.ok(
+    !html.includes('id="roomWizardPreviewOpenGame"'),
+    'Open room in game should not duplicate a toolbar button when runtime review launches the preview'
+  );
+  assertIncludes(
+    'rw-runtime-review-launch',
+    'Runtime review screenshot should be a dedicated launch control in the build summary markup'
+  );
+  assertIncludes(
+    'rw-runtime-review-row',
+    'Runtime review should sit in its own row above the asset thumbnail grid'
+  );
+})();
+
 (function testResultsStatusVocabularyIsPresent() {
   [
     "if (normalized === 'generating') return 'Generating';",

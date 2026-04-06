@@ -1522,6 +1522,48 @@
     .rw-env-generated-images-lede {
       margin: 0;
     }
+    .rw-runtime-review-row {
+      display: flex;
+      justify-content: flex-start;
+      min-width: 0;
+    }
+    button.rw-runtime-review-launch {
+      appearance: none;
+      border: none;
+      background: transparent;
+      padding: 0;
+      margin: 0;
+      font: inherit;
+      color: inherit;
+      text-align: left;
+      cursor: pointer;
+      display: grid;
+      gap: 8px;
+      max-width: 100%;
+      transition: opacity 200ms ease, transform 200ms ease;
+    }
+    button.rw-runtime-review-launch:hover {
+      opacity: 0.92;
+      transform: translateY(-1px);
+    }
+    button.rw-runtime-review-launch:active {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .rw-runtime-review-launch.rw-environment-asset-thumb img {
+      display: block;
+      width: 336px;
+      max-width: 100%;
+      aspect-ratio: 1 / 1;
+      object-fit: cover;
+      border-radius: var(--radius-default);
+      border: 1px solid var(--line);
+      background: var(--panel-2);
+      transition: border-color 200ms ease;
+    }
+    button.rw-runtime-review-launch.rw-environment-asset-thumb:hover img {
+      border-color: var(--line-strong);
+    }
     .rw-environment-output {
       min-width: 0;
     }
@@ -2885,7 +2927,6 @@
                             </p>
                             <div class="rw-env-preview-primary-actions rw-copilot-actions">
                               <button type="button" class="btn-rw-env-cta" id="roomWizardBuildEnvironmentAssets">Build final room assets</button>
-                              <button type="button" class="btn-secondary" id="roomWizardPreviewOpenGame">Open room in game</button>
                             </div>
                             <div class="rw-env-preview-discard-row">
                               <button type="button" class="btn-secondary btn-rw-env-discard" id="roomWizardCopilotDiscard">Discard previews</button>
@@ -7944,11 +7985,11 @@
           : '';
         const runtimeReviewMarkup = runtimeReview?.screenshot_url
           ? `
-            <div class="rw-environment-asset-thumb">
+            <button type="button" class="rw-runtime-review-launch rw-environment-asset-thumb" aria-label="Open room in game using this runtime review screenshot">
               <img src="${escapeHtml(assetUrlWithVersion(runtimeReview.screenshot_url || '', runtimeReview.generated_at || bespokeManifest.generated_at || ''))}" alt="Runtime review screenshot" />
               <span>${escapeHtml(`Runtime review · ${runtimeReview.status || 'idle'}`)}</span>
               <small>${escapeHtml(`${runtimeReview.review_mode || 'review'}${runtimeReview.capture_issue ? ` · ${runtimeReview.capture_issue}` : ''}`)}</small>
-            </div>`
+            </button>`
           : '';
         const reviewBlockedSlots = Array.isArray(runtimeReview?.fail_reasons) && runtimeReview.fail_reasons.includes('slot_generation_failed');
         const slotGenFailed = reviewBlockedSlots;
@@ -8046,7 +8087,8 @@
                 <p class="rw-environment-preview-label">Generated images</p>
                 <p class="rw-environment-stage-copy rw-env-generated-images-lede">In-game capture and exported room images for a quick visual pass.</p>
               </div>
-              <div class="rw-environment-asset-grid">${runtimeReviewMarkup}${assetThumbs}</div>
+              ${runtimeReviewMarkup ? `<div class="rw-runtime-review-row">${runtimeReviewMarkup}</div>` : ''}
+              ${assetThumbs ? `<div class="rw-environment-asset-grid">${assetThumbs}</div>` : ''}
             </div>`
           : '';
 
@@ -10021,7 +10063,9 @@
         document.getElementById('roomWizardReviewGoDescribe')?.addEventListener('click', () => {
           setRoomWizardEnvStep('describe');
         });
-        document.getElementById('roomWizardPreviewOpenGame')?.addEventListener('click', () => {
+        document.getElementById('roomWizardEnvironmentOutputSummary')?.addEventListener('click', (event) => {
+          const launch = event.target.closest('.rw-runtime-review-launch');
+          if (!launch) return;
           const room = getRoomWizardRoom();
           if (!room?.id) return;
           postRoomWizardFeedback(room, 'open_game_preview');
