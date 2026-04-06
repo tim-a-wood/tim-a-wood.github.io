@@ -6457,6 +6457,18 @@ def _render_bespoke_component_from_template(
         return False
 
 
+def _prefix_iteration_reference_refs(refs: List[Path], iteration_source: Optional[Path]) -> List[Path]:
+    """Prepend the current production asset so Gemini sees it first with the iteration prompt."""
+    if iteration_source is None or not iteration_source.exists():
+        return refs
+    try:
+        resolved = iteration_source.resolve()
+        rest = [p for p in refs if (not p.exists()) or p.resolve() != resolved]
+    except OSError:
+        rest = list(refs)
+    return [iteration_source] + rest
+
+
 def _generate_bespoke_component_from_references(
     output_path: Path,
     prompt: str,
@@ -7593,7 +7605,12 @@ def generate_room_environment_asset_pack(project_id: str, room_id: str, payload:
     spec = env["spec"]
     direction = normalize_art_direction(project.get("art_direction"), project.get("art_direction"))
     direction = _attach_default_biome_pack(project, direction)
-    preview_id = str((payload or {}).get("preview_id") or preview.get("approved_image_id") or "").strip()
+    payload = dict(payload or {})
+    slot_filter = str(payload.get("slot_id") or "").strip()
+    iterate_from_current = bool(payload.get("iterate_from_current"))
+    if iterate_from_current and not slot_filter:
+        raise ValueError("iterate_from_current requires slot_id.")
+    preview_id = str(payload.get("preview_id") or preview.get("approved_image_id") or "").strip()
     if not preview_id:
         raise ValueError("Approve a room preview before generating production assets.")
     approved = next((item for item in (preview.get("images") or []) if item.get("preview_id") == preview_id), None)
@@ -7657,7 +7674,19 @@ def generate_room_environment_asset_pack(project_id: str, room_id: str, payload:
         env["assembly_plan"] = copy.deepcopy(planner_output["assembly_plan"])
     else:
         plan = _room_component_plan(room, preview_id, biome_pack)
-    assets: Dict[str, Any] = {}
+    full_plan = list(plan)
+    if slot_filter:
+        prev_manifest = env["runtime"].get("bespoke_asset_manifest") or {}
+        prev_assets = prev_manifest.get("assets")
+        if not isinstance(prev_assets, dict) or not prev_assets:
+            raise ValueError("Generate the full room asset kit before regenerating individual slots.")
+        filtered_plan = [e for e in full_plan if str(e.get("slot_id") or "") == slot_filter]
+        if not filtered_plan:
+            raise ValueError("Unknown slot_id for this room's generation plan.")
+        plan = filtered_plan
+        assets = copy.deepcopy(prev_assets)
+    else:
+        assets = {}
     failed_assets: List[str] = []
     validation_errors: List[str] = []
     used_ai = False
@@ -7665,22 +7694,24 @@ def generate_room_environment_asset_pack(project_id: str, room_id: str, payload:
     for entry in plan:
         template = template_library.get(str(entry.get("source_template_id") or ""))
         if not template:
-            failed_assets.append(str(entry.get("slot_id") or "unknown"))
             validation_errors.append(f"{entry.get('slot_id')}:missing_template")
             continue
         rel_path = str(template.get("image_path") or "").strip()
         template_path = project_dir / rel_path if rel_path else None
         if not template_path or not template_path.exists():
-            failed_assets.append(str(entry.get("slot_id") or "unknown"))
             validation_errors.append(f"{entry.get('slot_id')}:missing_template_image")
             continue
         output_name = f"{entry['slot_id']}.png"
         output_path = asset_root / output_name
-        prompt = _build_bespoke_prompt(direction, spec, entry, template)
+        base_prompt = _build_bespoke_prompt(direction, spec, entry, template)
         expected_size = (int(entry["target_dimensions"]["width"]), int(entry["target_dimensions"]["height"]))
         transparent = str(entry.get("transparency_mode") or template.get("transparency_mode") or "opaque") == "alpha"
         component_type = str(entry.get("component_type") or "")
         adaptation_mode = _component_adaptation_mode(component_type) if component_type in V2_SLOT_SPEC_BY_TYPE else str(template.get("adaptation_mode") or _component_adaptation_mode(component_type))
+        if iterate_from_current and adaptation_mode in {"direct", "stretch"}:
+            raise ValueError(
+                "iterate_from_current is not supported for template-only slots; use Regenerate instead."
+            )
         generation_source = "template"
         attempt_records: List[Dict[str, Any]] = []
         direct_validation_reference = template_path
@@ -7714,6 +7745,19 @@ def generate_room_environment_asset_pack(project_id: str, room_id: str, payload:
                 expected_size,
                 transparent,
             )
+            iteration_source_path: Optional[Path] = None
+            prompt = base_prompt
+            if iterate_from_current:
+                prior_asset = assets.get(entry["slot_id"])
+                if isinstance(prior_asset, dict) and prior_asset.get("url"):
+                    iteration_source_path = _project_url_to_path(project_dir, str(prior_asset["url"]))
+                if iteration_source_path and iteration_source_path.exists():
+                    refs_for_job = _prefix_iteration_reference_refs(refs_for_job, iteration_source_path)
+                    prompt = (
+                        f"{base_prompt}\n\n"
+                        "Iteration note: the first reference image is this slot's current production asset. "
+                        "Refine it in place—same role, silhouette, and transparency—using the other references for biome alignment."
+                    )
             validation_reference_path = _validation_reference_for_component(component_type, template_path, refs_for_job)
             attempt_prompt = prompt
             generated = False
@@ -7760,6 +7804,8 @@ def generate_room_environment_asset_pack(project_id: str, room_id: str, payload:
                         expected_size,
                         transparent,
                     )
+                    if iteration_source_path and iteration_source_path.exists():
+                        refs_for_job = _prefix_iteration_reference_refs(refs_for_job, iteration_source_path)
                     validation_reference_path = _validation_reference_for_component(component_type, template_path, refs_for_job)
                     continue
                 valid, errors = _validate_bespoke_component(
@@ -7800,6 +7846,8 @@ def generate_room_environment_asset_pack(project_id: str, room_id: str, payload:
                     expected_size,
                     transparent,
                 )
+                if iteration_source_path and iteration_source_path.exists():
+                    refs_for_job = _prefix_iteration_reference_refs(refs_for_job, iteration_source_path)
                 validation_reference_path = _validation_reference_for_component(component_type, template_path, refs_for_job)
             if generated and valid and not errors:
                 pass
@@ -7819,7 +7867,6 @@ def generate_room_environment_asset_pack(project_id: str, room_id: str, payload:
         if not valid or errors:
             if output_path.exists():
                 output_path.unlink()
-            failed_assets.append(entry["slot_id"])
             validation_errors.extend(f"{entry['slot_id']}:{error}" for error in errors)
             assets[entry["slot_id"]] = {
                 "slot_id": entry["slot_id"],
@@ -7850,7 +7897,13 @@ def generate_room_environment_asset_pack(project_id: str, room_id: str, payload:
             "generation_source": generation_source,
             "attempts": attempt_records,
         }
-    built_slots = [slot_id for slot_id, asset in assets.items() if isinstance(asset, dict) and asset.get("url")]
+    required_slot_ids = [str(e.get("slot_id") or "") for e in full_plan if e.get("slot_id")]
+    built_slots = [sid for sid in required_slot_ids if sid and isinstance(assets.get(sid), dict) and assets[sid].get("url")]
+    failed_assets = [sid for sid in required_slot_ids if sid and (not isinstance(assets.get(sid), dict) or not assets[sid].get("url"))]
+    used_ai = any(
+        isinstance(a, dict) and str(a.get("generation_source") or "") == "ai"
+        for a in assets.values()
+    )
     required_ai_slots = [
         slot_id
         for slot_id, asset in assets.items()
@@ -7875,10 +7928,10 @@ def generate_room_environment_asset_pack(project_id: str, room_id: str, payload:
         "border_first_contract": copy.deepcopy(biome_pack.get("border_first_contract") or _normalize_border_first_contract(None)),
         "next_generation_contract": _border_first_generation_contract(),
         "source_preview_id": preview_id,
-        "generation_plan": copy.deepcopy(plan),
-        "required_slots": [str(entry.get("slot_id") or "") for entry in plan],
+        "generation_plan": copy.deepcopy(full_plan),
+        "required_slots": required_slot_ids,
         "built_slots": built_slots,
-        "slot_groups": _slot_groups_from_plan(plan, built_slots, failed_assets),
+        "slot_groups": _slot_groups_from_plan(full_plan, built_slots, failed_assets),
         "schema_validation": schema_validation,
         "runtime_review": {"status": "running", "fail_reasons": [], "metrics": {}, "screenshot_url": None, "review_mode": None},
         "review": {"status": "running", "fail_reasons": [], "metrics": {}, "screenshot_url": None, "review_mode": None},
@@ -7905,7 +7958,11 @@ def generate_room_environment_asset_pack(project_id: str, room_id: str, payload:
         runtime_review.setdefault("warning_reasons", [])
         runtime_review["warning_reasons"] = list(runtime_review.get("warning_reasons") or [])
         runtime_review["warning_reasons"].append("ai_generation_required_for_v2_slots")
-    status = "ready" if assets and not failed_assets and len(assets) == len(plan) and review_ok and not ai_generation_missing else "failed"
+    status = (
+        "ready"
+        if required_slot_ids and not failed_assets and len(built_slots) == len(required_slot_ids) and review_ok and not ai_generation_missing
+        else "failed"
+    )
     env["runtime"]["bespoke_asset_manifest"] = {
         **provisional_manifest,
         "status": status,
@@ -7932,13 +7989,17 @@ def generate_room_environment_asset_pack(project_id: str, room_id: str, payload:
     _sync_v3_environment_state(project_id, env, room, biome_id=biome_pack.get("biome_id"), generated_at=now_iso())
     project["updated_at"] = now_iso()
     save_project(project)
-    append_history_event(project_id, {
+    hist_event: Dict[str, Any] = {
         "type": "room_environment_bespoke_assets_generated",
         "room_id": room_id,
         "preview_id": preview_id,
         "used_ai": used_ai,
         "created_at": now_iso(),
-    })
+    }
+    if slot_filter:
+        hist_event["slot_id"] = slot_filter
+        hist_event["iterate_from_current"] = iterate_from_current
+    append_history_event(project_id, hist_event)
     return {
         "ok": True,
         "environment": copy.deepcopy(env),

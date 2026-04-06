@@ -1265,6 +1265,44 @@
   text-transform: capitalize;
 }
 
+.room-wizard-dock .rw-bespoke-slot-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.room-wizard-dock .rw-bespoke-slot-actions button {
+  min-height: 28px;
+  padding: 4px 8px;
+  border-radius: var(--radius-default);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  font-family: var(--font-sans);
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+  cursor: pointer;
+  transition: background 200ms ease, border-color 200ms ease, transform 200ms ease;
+}
+
+.room-wizard-dock .rw-bespoke-slot-actions button:hover {
+  border-color: var(--line-strong);
+  background: rgba(255, 255, 255, 0.08);
+  transform: translateY(-1px);
+}
+
+.room-wizard-dock .rw-bespoke-slot-actions button:focus-visible {
+  outline: 2px solid rgba(0, 232, 200, 0.35);
+  outline-offset: 2px;
+}
+
+.room-wizard-dock .rw-bespoke-slot-actions button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
 .room-wizard-dock .rw-preview-card {
   display: grid;
   gap: 10px;

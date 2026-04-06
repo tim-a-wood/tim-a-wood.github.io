@@ -1398,6 +1398,47 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         self.assertEqual(result["environment"]["runtime"]["status"], "ready")
         self.assertGreaterEqual(len(bespoke["assets"]), 4)
 
+    def test_generate_assets_iterate_requires_slot_id(self):
+        with self.assertRaisesRegex(ValueError, "iterate_from_current requires slot_id"):
+            envsys.generate_room_environment_asset_pack(
+                self.project_id,
+                "R1",
+                {"preview_id": "any-preview", "iterate_from_current": True},
+            )
+
+    def test_generate_assets_unknown_slot_id_raises(self):
+        envsys.update_project_art_direction(self.project_id, {"template_id": "ruined-gothic", "locked": True})
+        envsys.build_room_environment_spec(
+            self.project_id,
+            "R1",
+            {"description": "A readable ruined hall with heavy stone and a strong central route."},
+        )
+        generated = envsys.generate_room_environment_previews(self.project_id, "R1", {})
+        preview_id = generated["environment"]["preview"]["images"][0]["preview_id"]
+        envsys.approve_room_environment_preview(self.project_id, "R1", {"preview_id": preview_id})
+        with mock.patch.object(envsys, "_generate_bespoke_component_from_references", side_effect=self._fake_ai_generate), \
+             mock.patch.object(envsys, "_validate_bespoke_component", return_value=(True, [])), \
+             mock.patch.object(envsys, "_run_runtime_review", return_value=self._passing_runtime_review()):
+            envsys.generate_room_environment_asset_pack(self.project_id, "R1", {"preview_id": preview_id})
+        with self.assertRaisesRegex(ValueError, "Unknown slot_id"):
+            envsys.generate_room_environment_asset_pack(
+                self.project_id,
+                "R1",
+                {"preview_id": preview_id, "slot_id": "definitely-not-a-real-slot-id"},
+            )
+
+    def test_prefix_iteration_reference_refs_prepends_and_dedupes(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            path_a = root / "a.png"
+            path_b = root / "b.png"
+            path_a.write_bytes(b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15\xc4\x89\x00\x00\x00\nIDATx\x9cc\x00\x01\x00\x00\x05\x00\x01\r\n\x2d\xb4\x00\x00\x00\x00IEND\xaeB`\x82")
+            path_b.write_bytes(path_a.read_bytes())
+            out = envsys._prefix_iteration_reference_refs([path_b, path_a], path_a)
+            self.assertEqual(out[0], path_a)
+            self.assertEqual(len(out), 2)
+            self.assertIn(path_b, out)
+
     def test_runtime_review_blocks_flat_assets_even_when_generation_succeeds(self):
         envsys.update_project_art_direction(self.project_id, {"template_id": "ruined-gothic", "locked": True})
         envsys.build_room_environment_spec(

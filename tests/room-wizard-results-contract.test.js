@@ -116,6 +116,17 @@ function assertIncludes(snippet, message) {
   );
 })();
 
+(function testBespokeSlotRegenerateControlsExist() {
+  assertIncludes(
+    'data-rw-bespoke-slot-action="regen"',
+    'Build summary asset cards should expose per-slot Regenerate'
+  );
+  assertIncludes(
+    'data-rw-bespoke-slot-action="iterate"',
+    'AI-built asset cards should expose Iterate (current image as reference)'
+  );
+})();
+
 (function testRuntimeReviewOpensGameWithoutDuplicateButton() {
   assert.ok(
     !html.includes('id="roomWizardPreviewOpenGame"'),

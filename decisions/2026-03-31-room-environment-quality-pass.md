@@ -901,6 +901,11 @@ This log records decisions for the room environment and bespoke asset quality pa
 - Why: Even after #161, **`room_layout_copilot`** loaded `.env.local` at import time with **“only if key not in os.environ”**, so a **wrong but non-empty** `GEMINI_API_KEY` in the shell still **blocked** the valid key in `.env.local`. The workbench server also froze `PIXELLAB_API_KEY` **before** `load_repo_env_local()` ran.
 - Consequence: Both loaders apply **non-empty** `key=value` lines from `.env.local` **over** `os.environ`. `room_layout_copilot` uses `_copilot_gemini_api_key()` (`GEMINI` or `GOOGLE`). `load_repo_env_local()` runs once at module init (after the function is defined); `PIXELLAB_API_KEY` is read **after** that load.
 
+### 166. Per-slot regenerate and iterate-from-current on `generate-assets`
+- Status: Accepted (2026-04-06)
+- Why: Authors need to fix one bad bespoke image without rebuilding the entire kit, and to steer Gemini using the **current** production PNG as the primary reference instead of starting from scratch.
+- Consequence: `POST .../environment/generate-assets` accepts optional `slot_id` (single-slot pass, merges into existing manifest) and `iterate_from_current` (requires `slot_id`; prepends the on-disk asset to Gemini reference images with an iteration prompt). `iterate_from_current` is rejected for template-only (`direct`/`stretch`) slots. UI: **Regenerate** / **Iterate** on each generated-image card in the build summary.
+
 ### 148. Bespoke wall shell must run even when polygon wall rects are non-empty
 - Status: Accepted (2026-04-05)
 - Why: After decision 145, `buildWorldGeometry` only called `addRoomBespokeWallShellDecor` when `!roomHasPolygonWallTileRects`. Complex footprints (e.g. canonical R1) produce many outside-polygon cells, so `rects.length > 0` always — **bespoke wall_module composition never ran** while thin procedural tiles stayed at grid boundaries (often off-camera). Founder playtest still showed floor + void + no shell despite generated assets.

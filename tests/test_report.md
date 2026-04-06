@@ -54,3 +54,5 @@ Update 2026-04-06: Environment **Preview & build** review layout stacks **Build 
 Update 2026-04-06: Build summary **runtime review** sits in `rw-runtime-review-row` above `rw-environment-asset-grid`, **click opens game** via delegated handler; removed **Open room in game** button from preview actions. Ran `node tests/room-wizard-results-contract.test.js`, `node tests/room-wizard-environment-copilot.test.js` (Pass); browser not re-checked in CI.
 
 Update 2026-04-06: Runtime review screenshot uses **full panel width** (`width: 100%`, `object-fit: contain`, `max-height: min(72vh, 880px)`). Ran `node tests/room-wizard-results-contract.test.js` (Pass); browser not re-checked in CI.
+
+Update 2026-04-06: Per-slot **Regenerate** / **Iterate** on build summary thumbnails; `POST .../environment/generate-assets` accepts `slot_id` and `iterate_from_current` (Gemini prepends current PNG). Ran `python3 tests/room_environment_system.test.py` (Pass), `node tests/room-wizard-results-contract.test.js`, `node tests/room-wizard-environment-copilot.test.js` (Pass); browser flow not re-checked in CI.

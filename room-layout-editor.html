@@ -1577,6 +1577,39 @@
       display: grid;
       gap: 12px;
     }
+    .rw-bespoke-slot-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 4px;
+    }
+    .rw-bespoke-slot-actions button {
+      min-height: 28px;
+      padding: 4px 8px;
+      border-radius: var(--radius-default);
+      font-size: var(--font-size-xs);
+      font-weight: 600;
+      font-family: var(--font-sans);
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.04);
+      color: var(--text);
+      cursor: pointer;
+      transition: background 200ms ease, border-color 200ms ease, transform 200ms ease;
+    }
+    .rw-bespoke-slot-actions button:hover {
+      border-color: var(--line-strong);
+      background: rgba(255,255,255,0.08);
+      transform: translateY(-1px);
+    }
+    .rw-bespoke-slot-actions button:focus-visible {
+      outline: 2px solid rgba(0,232,200,0.35);
+      outline-offset: 2px;
+    }
+    .rw-bespoke-slot-actions button:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
     .rw-results-authoring-grid,
     .rw-component-grid {
       display: grid;
@@ -8014,6 +8047,15 @@
               const sub = item.url
                 ? String(item.generation_source || 'ok')
                 : [String(item.generation_source || 'failed'), failHint].filter(Boolean).join(' · ');
+              const slotIdRaw = String(item.slot_id || '').trim();
+              const slotIdAttr = escapeHtml(slotIdRaw);
+              const canIterate = Boolean(item.url && String(item.generation_source || '').toLowerCase() === 'ai');
+              const slotActions = slotIdRaw
+                ? `<div class="rw-bespoke-slot-actions">
+                    <button type="button" data-rw-bespoke-slot-action="regen" data-rw-bespoke-slot-id="${slotIdAttr}" title="Rebuild only this slot from the approved preview">Regenerate</button>
+                    ${canIterate ? `<button type="button" data-rw-bespoke-slot-action="iterate" data-rw-bespoke-slot-id="${slotIdAttr}" title="Use the current image as the first reference for Gemini">Iterate</button>` : ''}
+                  </div>`
+                : '';
               return `
                 <div class="rw-environment-asset-thumb">
                   ${item.url
@@ -8021,6 +8063,7 @@
                     : `<div class="rw-environment-asset-thumb-empty">${escapeHtml(String(item.generation_source || 'missing'))}</div>`}
                   <span>${escapeHtml(item.slot_id || item.component_type || 'asset')}</span>
                   <small>${escapeHtml(sub.slice(0, 220))}</small>
+                  ${slotActions}
                 </div>`;
             }).join('')
           : '';
@@ -8090,7 +8133,7 @@
           ? `<div class="rw-env-generated-images-surface" aria-label="Generated room images">
               <div class="rw-env-generated-images-head">
                 <p class="rw-environment-preview-label">Generated images</p>
-                <p class="rw-environment-stage-copy rw-env-generated-images-lede">In-game capture and exported room images for a quick visual pass.</p>
+                <p class="rw-environment-stage-copy rw-env-generated-images-lede">In-game capture and exported room images for a quick visual pass. Regenerate one slot, or use <strong>Iterate</strong> on AI-built pieces to send the current image back as the primary reference.</p>
               </div>
               ${runtimeReviewMarkup ? `<div class="rw-runtime-review-row">${runtimeReviewMarkup}</div>` : ''}
               ${assetThumbs ? `<div class="rw-environment-asset-grid">${assetThumbs}</div>` : ''}
@@ -10068,7 +10111,63 @@
         document.getElementById('roomWizardReviewGoDescribe')?.addEventListener('click', () => {
           setRoomWizardEnvStep('describe');
         });
-        document.getElementById('roomWizardEnvironmentOutputSummary')?.addEventListener('click', (event) => {
+        document.getElementById('roomWizardEnvironmentOutputSummary')?.addEventListener('click', async (event) => {
+          const slotBtn = event.target.closest('[data-rw-bespoke-slot-action]');
+          if (slotBtn) {
+            event.preventDefault();
+            const action = slotBtn.getAttribute('data-rw-bespoke-slot-action');
+            const slotId = slotBtn.getAttribute('data-rw-bespoke-slot-id');
+            if (!slotId || (action !== 'regen' && action !== 'iterate')) return;
+            const room = getRoomWizardRoom();
+            const st = document.getElementById('roomWizardCopilotStatus');
+            if (!PROJECT_ID || !room?.id) return;
+            if (!room.environment?.preview?.approved_image_id) {
+              if (st) st.textContent = 'Approve a room preview before regenerating assets.';
+              return;
+            }
+            if (state.roomWizard.aiRequestPending) return;
+            state.roomWizard.aiRequestPending = true;
+            const iterate = action === 'iterate';
+            startRoomWizardWaitbar('copilot', iterate ? 'Iterating one asset from its current image…' : 'Regenerating one room asset…');
+            if (st) st.textContent = iterate ? 'Iterating asset with Gemini…' : 'Regenerating one asset…';
+            try {
+              const res = await fetch(projectRoomEnvironmentApiUrl(room.id, 'generate-assets'), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  preview_id: room.environment.preview.approved_image_id,
+                  environment_pipeline_version: room.environment?.environment_pipeline_version || 'v2',
+                  slot_id: slotId,
+                  iterate_from_current: iterate,
+                }),
+              });
+              const json = await res.json().catch(() => ({}));
+              if (!res.ok || !json.ok) throw new Error(json.error || 'Could not regenerate this asset');
+              replaceRoomWizardEnvironmentPreservingAuthoring(room, json.environment || room.environment);
+              renderRoomWizardEnvironmentPreview(room.environment);
+              renderRoomWizardPreviewGallery(room.environment.preview || {});
+              renderRoomWizardEnvironmentOutputSummary(room.environment);
+              updateJsonText();
+              setDirty(true);
+              refreshOpenGamePreviewIfVisible(room.id);
+              const bespoke = room.environment?.runtime?.bespoke_asset_manifest || {};
+              const builtCount = Array.isArray(bespoke.built_slots) ? bespoke.built_slots.length : Object.values(bespoke.assets || {}).filter((a) => a && a.url).length;
+              const requiredCount = Array.isArray(bespoke.required_slots) ? bespoke.required_slots.length : (Array.isArray(bespoke.generation_plan) ? bespoke.generation_plan.length : builtCount);
+              const review = bespoke.runtime_review || bespoke.review || {};
+              const reviewWarnings = Array.isArray(review.warning_reasons) ? review.warning_reasons : [];
+              if (st) {
+                st.textContent = bespoke.status === 'ready'
+                  ? `Slot updated. ${builtCount}/${requiredCount || builtCount} slots built; runtime review ${review.status || 'idle'}${reviewWarnings.length ? ` · warnings: ${reviewWarnings.join(', ')}` : ''}.`
+                  : `Slot run finished with issues: ${builtCount}/${requiredCount || builtCount} slots · ${review.status || 'blocked'}${Array.isArray(review.fail_reasons) && review.fail_reasons.length ? ` · ${review.fail_reasons.join(', ')}` : ''}.`;
+              }
+            } catch (e) {
+              if (st) st.textContent = (e && e.message) || 'Asset regeneration failed';
+            } finally {
+              state.roomWizard.aiRequestPending = false;
+              stopRoomWizardWaitbar('copilot', 100);
+            }
+            return;
+          }
           const launch = event.target.closest('.rw-runtime-review-launch');
           if (!launch) return;
           const room = getRoomWizardRoom();
