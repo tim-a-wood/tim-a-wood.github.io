@@ -3,6 +3,7 @@ from __future__ import annotations
 import copy
 import base64
 import hashlib
+import threading
 import io
 import json
 import logging
@@ -38,6 +39,57 @@ def configure(**kwargs: Any) -> None:
 
 
 logger = logging.getLogger(__name__)
+
+_GEMINI_ERR_LOCK = threading.Lock()
+_GEMINI_LAST_USER_ERROR: Optional[str] = None
+_GEMINI_LAST_ERROR_AT: Optional[str] = None
+
+
+def _set_gemini_last_error(err: Optional[str]) -> None:
+    """Record last user-safe Gemini REST error for /api/ping diagnostics; clear on None."""
+    global _GEMINI_LAST_USER_ERROR, _GEMINI_LAST_ERROR_AT
+    with _GEMINI_ERR_LOCK:
+        if err:
+            _GEMINI_LAST_USER_ERROR = err
+            _GEMINI_LAST_ERROR_AT = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        else:
+            _GEMINI_LAST_USER_ERROR = None
+            _GEMINI_LAST_ERROR_AT = None
+
+
+def gemini_last_error_snapshot() -> Dict[str, Any]:
+    """Snapshot for health/ping: last image REST failure message (no secrets)."""
+    with _GEMINI_ERR_LOCK:
+        return {
+            "message": _GEMINI_LAST_USER_ERROR,
+            "recorded_at": _GEMINI_LAST_ERROR_AT,
+        }
+
+
+def _response_has_inline_image(data: Dict[str, Any]) -> bool:
+    for cand in data.get("candidates") or []:
+        for part in ((cand.get("content") or {}).get("parts") or []):
+            inline = part.get("inlineData") or {}
+            if inline.get("data"):
+                return True
+    return False
+
+
+def gemini_image_probe() -> Dict[str, Any]:
+    """Optional health check: one generateContent call with image modality (uses API quota)."""
+    model = os.environ.get("GEMINI_IMAGE_MODEL", "gemini-2.5-flash-image").strip() or "gemini-2.5-flash-image"
+    parts = [{
+        "text": (
+            "Generate a small PNG image: a flat solid dark gray (#1a1a1a) rectangle only. "
+            "No text, no UI, no watermark."
+        ),
+    }]
+    resp, err = _gemini_generate_content_rest(model, parts, response_modalities=["IMAGE", "TEXT"])
+    if err:
+        return {"ok": False, "error": err, "model": model}
+    if not resp or not _response_has_inline_image(resp):
+        return {"ok": False, "error": "no_image_in_response", "model": model}
+    return {"ok": True, "model": model}
 
 
 def _gemini_api_key() -> str:
@@ -3175,7 +3227,9 @@ def _gemini_generate_content_rest(
     """Returns (response_json, user_safe_error). On success, error is None."""
     api_key = _gemini_api_key()
     if not api_key:
-        return None, "missing_gemini_api_key"
+        msg = "missing_gemini_api_key"
+        _set_gemini_last_error(msg)
+        return None, msg
     data: Optional[Dict[str, Any]] = None
     try:
         payload: Dict[str, Any] = {"contents": [{"parts": parts}]}
@@ -3217,24 +3271,35 @@ def _gemini_generate_content_rest(
                 detail = err_obj
         except Exception:
             pass
-        return None, _gemini_safe_error_snippet(f"HTTP {exc.code}: {detail}")
+        err_out = _gemini_safe_error_snippet(f"HTTP {exc.code}: {detail}")
+        _set_gemini_last_error(err_out)
+        return None, err_out
     except Exception as exc:
         logger.warning("Gemini generateContent failed for model=%s: %s", model, exc)
-        return None, _gemini_safe_error_snippet(str(exc))
+        err_out = _gemini_safe_error_snippet(str(exc))
+        _set_gemini_last_error(err_out)
+        return None, err_out
     if not isinstance(data, dict):
+        _set_gemini_last_error("invalid_gemini_response")
         return None, "invalid_gemini_response"
     if data.get("error"):
         logger.warning("Gemini API error for model=%s: %s", model, data.get("error"))
         err_obj = data.get("error")
         msg = err_obj.get("message") if isinstance(err_obj, dict) else str(err_obj)
-        return None, _gemini_safe_error_snippet(str(msg or "gemini_error"))
+        err_out = _gemini_safe_error_snippet(str(msg or "gemini_error"))
+        _set_gemini_last_error(err_out)
+        return None, err_out
     cands = data.get("candidates") or []
     if not cands:
         pf = data.get("promptFeedback") or {}
         br = pf.get("blockReason")
         if br:
-            return None, _gemini_safe_error_snippet(f"prompt_blocked:{br}")
+            err_out = _gemini_safe_error_snippet(f"prompt_blocked:{br}")
+            _set_gemini_last_error(err_out)
+            return None, err_out
+        _set_gemini_last_error("empty_candidates")
         return None, "empty_candidates"
+    _set_gemini_last_error(None)
     return data, None
 
 

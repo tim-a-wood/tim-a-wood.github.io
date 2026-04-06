@@ -2616,6 +2616,11 @@
                         <p class="hint" id="roomWizardCopilotServerHint">
                           Checking local server…
                         </p>
+                        <p class="small-note" id="roomWizardGeminiMeta" hidden></p>
+                        <div class="rw-copilot-actions" id="roomWizardGeminiProbeRow" hidden>
+                          <button type="button" class="btn-secondary" id="roomWizardGeminiImageProbeBtn">Test image API (uses quota)</button>
+                          <span id="roomWizardGeminiProbeStatus" class="small-note" aria-live="polite"></span>
+                        </div>
                         <label>
                           <span class="field-label">What does this room look and feel like?</span>
                           <textarea
@@ -3917,7 +3922,9 @@
         },
         copilot: {
           serverReachable: false,
-          geminiConfigured: false
+          geminiConfigured: false,
+          geminiImageModel: '',
+          geminiLastError: null
         },
         artDirection: null,
         artDirectionTemplates: [],
@@ -7874,14 +7881,20 @@
             </div>`
           : '';
         const reviewBlockedSlots = Array.isArray(runtimeReview?.fail_reasons) && runtimeReview.fail_reasons.includes('slot_generation_failed');
+        const slotGenFailed = reviewBlockedSlots;
         const reviewText = runtimeReview?.status
-          ? `Runtime review: ${describeRoomWizardRuntimeReviewStatus(runtimeReview.status || 'pending')}${Array.isArray(runtimeReview.fail_reasons) && runtimeReview.fail_reasons.length ? ` · ${runtimeReview.fail_reasons.map((item) => humanizeRoomWizardLabel(item)).join(', ')}` : ''}${reviewBlockedSlots && validationErrs.length ? ` · ${validationErrs.slice(0, 5).map((item) => humanizeRoomWizardLabel(item)).join('; ')}` : ''}`
+          ? (slotGenFailed
+              ? `Build blocked: one or more bespoke slots failed image generation (runtime screenshot review was not run).${Array.isArray(runtimeReview.fail_reasons) && runtimeReview.fail_reasons.length ? ` Reasons: ${runtimeReview.fail_reasons.map((item) => humanizeRoomWizardLabel(item)).join(', ')}.` : ''}${validationErrs.length ? ` Details: ${validationErrs.slice(0, 8).map((item) => humanizeRoomWizardLabel(item)).join('; ')}.` : ''}`
+              : `Runtime review: ${describeRoomWizardRuntimeReviewStatus(runtimeReview.status || 'pending')}${Array.isArray(runtimeReview.fail_reasons) && runtimeReview.fail_reasons.length ? ` · ${runtimeReview.fail_reasons.map((item) => humanizeRoomWizardLabel(item)).join(', ')}` : ''}${reviewBlockedSlots && validationErrs.length ? ` · ${validationErrs.slice(0, 5).map((item) => humanizeRoomWizardLabel(item)).join('; ')}` : ''}`)
           : 'Runtime review: not run yet';
         const assetThumbs = ['ready', 'failed'].includes(bespokeManifest.status)
           ? Object.values(bespokeManifest.assets || {}).map((item) => {
               const vErrs = item && item.validation && Array.isArray(item.validation.errors) ? item.validation.errors : [];
               const lastAtt = Array.isArray(item.attempts) && item.attempts.length ? item.attempts[item.attempts.length - 1] : null;
-              const failHint = !item.url && (vErrs.length ? vErrs.join(', ') : (lastAtt && lastAtt.status ? lastAtt.status : ''));
+              const geminiErr = lastAtt && typeof lastAtt.gemini_error === 'string' ? lastAtt.gemini_error.trim() : '';
+              const failHint = !item.url && (vErrs.length
+                ? vErrs.join(', ')
+                : (geminiErr || (lastAtt && lastAtt.status ? String(lastAtt.status) : '')));
               const sub = item.url
                 ? String(item.generation_source || 'ok')
                 : [String(item.generation_source || 'failed'), failHint].filter(Boolean).join(' · ');
@@ -7891,7 +7904,7 @@
                     ? `<img src="${escapeHtml(assetUrlWithVersion(item.url || '', bespokeManifest.generated_at || ''))}" alt="${escapeHtml(item.component_type || 'asset')}" />`
                     : `<div class="rw-environment-asset-thumb-empty">${escapeHtml(String(item.generation_source || 'missing'))}</div>`}
                   <span>${escapeHtml(item.slot_id || item.component_type || 'asset')}</span>
-                  <small>${escapeHtml(sub.slice(0, 120))}</small>
+                  <small>${escapeHtml(sub.slice(0, 220))}</small>
                 </div>`;
             }).join('')
           : '';
@@ -8715,6 +8728,26 @@
         const hint = document.getElementById('roomWizardCopilotServerHint');
         if (!hint) return;
         const { serverReachable, geminiConfigured } = state.copilot;
+        const meta = document.getElementById('roomWizardGeminiMeta');
+        const probeRow = document.getElementById('roomWizardGeminiProbeRow');
+        if (meta) {
+          if (!serverReachable || !geminiConfigured) {
+            meta.hidden = true;
+            meta.innerHTML = '';
+          } else {
+            meta.hidden = false;
+            const im = state.copilot.geminiImageModel || 'gemini-2.5-flash-image';
+            const snap = state.copilot.geminiLastError;
+            const errLine =
+              snap && snap.message
+                ? ` Last Gemini image error: ${escapeHtml(String(snap.message).slice(0, 220))}${snap.recorded_at ? ` (${escapeHtml(snap.recorded_at)})` : ''}`
+                : '';
+            meta.innerHTML = `Image model: <code>${escapeHtml(im)}</code>.${errLine}`;
+          }
+        }
+        if (probeRow) {
+          probeRow.hidden = !(serverReachable && geminiConfigured);
+        }
         if (PROJECT_ID) {
           const frozenCount = Array.isArray(state.artDirection?.frozen_concept_ids) ? state.artDirection.frozen_concept_ids.length : 0;
           hint.innerHTML = state.artDirection?.locked
@@ -8745,9 +8778,13 @@
           const j = await r.json();
           state.copilot.serverReachable = true;
           state.copilot.geminiConfigured = !!(j.copilot && j.copilot.geminiConfigured);
+          state.copilot.geminiImageModel = (j.copilot && j.copilot.geminiImageModel) || '';
+          state.copilot.geminiLastError = (j.copilot && j.copilot.lastGeminiImageError) || null;
         } catch (_) {
           state.copilot.serverReachable = false;
           state.copilot.geminiConfigured = false;
+          state.copilot.geminiImageModel = '';
+          state.copilot.geminiLastError = null;
         }
         updateRoomWizardCopilotHintUi();
       }
@@ -9666,6 +9703,25 @@
             if (st) st.textContent = (e && e.message) || 'Biome generation failed';
           } finally {
             if (btn) btn.disabled = false;
+          }
+        });
+        document.getElementById('roomWizardGeminiImageProbeBtn')?.addEventListener('click', async () => {
+          const st = document.getElementById('roomWizardGeminiProbeStatus');
+          if (st) st.textContent = 'Testing…';
+          try {
+            const r = await fetch(`${API_PING_URL}?probe=1`, { cache: 'no-store' });
+            const j = await r.json().catch(() => ({}));
+            const probe = j.copilot && j.copilot.geminiImageProbe;
+            if (j.copilot && j.copilot.lastGeminiImageError !== undefined) {
+              state.copilot.geminiLastError = j.copilot.lastGeminiImageError;
+            }
+            if (st) {
+              if (probe && probe.ok) st.textContent = 'Image API returned an image.';
+              else st.textContent = probe && probe.error ? `Failed: ${probe.error}` : 'Probe did not succeed.';
+            }
+            updateRoomWizardCopilotHintUi();
+          } catch (e) {
+            if (st) st.textContent = (e && e.message) ? String(e.message) : 'Request failed';
           }
         });
         document.getElementById('roomWizardCopilotGenerate')?.addEventListener('click', async () => {

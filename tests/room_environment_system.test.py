@@ -1999,6 +1999,23 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         self.assertEqual(bespoke["status"], "ready")
         self.assertGreaterEqual(mocked_ai.call_count, 8)
 
+    def test_gemini_last_error_recorded_on_http_error(self):
+        import io
+
+        def raise_http(*_a, **_k):
+            fp = io.BytesIO(b'{"error":{"message":"API key not valid"}}')
+            raise envsys.urllib.error.HTTPError("http://example", 400, "Bad", {}, fp)
+
+        with mock.patch.dict(envsys.os.environ, {"GEMINI_API_KEY": "test-key"}, clear=False), \
+             mock.patch.object(envsys.urllib.request, "urlopen", side_effect=raise_http):
+            _, err = envsys._gemini_generate_content_rest(
+                "gemini-2.5-flash-image", [{"text": "probe"}], response_modalities=["IMAGE"]
+            )
+        self.assertIsNotNone(err)
+        snap = envsys.gemini_last_error_snapshot()
+        self.assertTrue(snap.get("message"))
+        self.assertTrue(snap.get("recorded_at"))
+
     def test_gemini_generate_content_rest_uses_timeout(self):
         class _FakeResponse:
             def __enter__(self):

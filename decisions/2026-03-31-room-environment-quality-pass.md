@@ -876,6 +876,11 @@ This log records decisions for the room environment and bespoke asset quality pa
 - Why: `load_repo_env_local()` only applied `.env.local` when a key was **missing** from `os.environ`, so a **shell-exported empty `GEMINI_API_KEY`** blocked loading the real key from the file. Image generation also only read `GEMINI_API_KEY`, not `GOOGLE_API_KEY` (AI Studio default). `_gemini_generate_content_rest` swallowed HTTP/API errors, making `generation_failed` look mysterious in the UI.
 - Consequence: `.env.local` overlays **empty** env values; `_gemini_api_key()` falls back to `GOOGLE_API_KEY`; failed Gemini calls log **HTTP status + JSON error body** (no key material) at WARNING.
 
+### 162. Surface Gemini image failures and clarify “runtime blocked” when slots did not generate
+- Status: Accepted (2026-04-06)
+- Why: `/api/ping` only exposed key presence; bespoke failures stored `gemini_error` on attempts but the editor did not show it; `runtime_review.status: blocked` with `slot_generation_failed` was easy to read as screenshot QA failure.
+- Consequence: `_gemini_generate_content_rest` records a user-safe last error for ping; `GET /api/ping` includes `lastGeminiImageError`, `geminiImageModel`, `geminiTextModel`, and optional `?probe=1` runs `gemini_image_probe()`; build summary shows `gemini_error` and clearer copy for slot-generation blocks.
+
 ### 161b. `.env.local` must override non-empty wrong shell keys (follow-up 2026-04-06)
 - Status: Accepted (2026-04-06)
 - Why: Even after #161, **`room_layout_copilot`** loaded `.env.local` at import time with **“only if key not in os.environ”**, so a **wrong but non-empty** `GEMINI_API_KEY` in the shell still **blocked** the valid key in `.env.local`. The workbench server also froze `PIXELLAB_API_KEY` **before** `load_repo_env_local()` ran.

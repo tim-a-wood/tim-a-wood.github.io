@@ -136,11 +136,22 @@ def call_gemini_copilot(user_prompt: str) -> dict:
     return normalize_copilot_payload(parsed)
 
 
-def copilot_ping_payload() -> dict:
+def copilot_ping_payload(image_probe: bool = False) -> dict:
+    """GET /api/ping — optional image_probe runs one real image API call (uses quota)."""
+    from scripts import room_environment_system as res
+
+    copilot: dict = {
+        "geminiConfigured": gemini_configured(),
+        "geminiTextModel": (os.environ.get("GEMINI_MODEL") or "gemini-2.5-flash").strip() or "gemini-2.5-flash",
+        "geminiImageModel": (os.environ.get("GEMINI_IMAGE_MODEL") or "gemini-2.5-flash-image").strip() or "gemini-2.5-flash-image",
+        "lastGeminiImageError": res.gemini_last_error_snapshot(),
+    }
+    if image_probe:
+        copilot["geminiImageProbe"] = res.gemini_image_probe()
     return {
         "ok": True,
         "root": str(ROOT),
-        "copilot": {"geminiConfigured": gemini_configured()},
+        "copilot": copilot,
     }
 
 

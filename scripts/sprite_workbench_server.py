@@ -7735,7 +7735,9 @@ class SpriteWorkbenchHandler(SimpleHTTPRequestHandler):
         query = parse_qs(parsed.query)
 
         if path == "/api/ping":
-            return self._send_json(room_layout_copilot.copilot_ping_payload())
+            probe_raw = (query.get("probe") or query.get("image_probe") or [""])[0]
+            image_probe = str(probe_raw).strip().lower() in ("1", "true", "yes", "on")
+            return self._send_json(room_layout_copilot.copilot_ping_payload(image_probe=image_probe))
 
         if path == "/api/layout":
             try:
