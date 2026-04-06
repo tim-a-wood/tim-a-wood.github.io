@@ -18,6 +18,10 @@ Use these room ids in the room layout / editor when capturing states, running ma
 
 `scripts/capture_room_results_states.js` embeds a synthetic room id **`QA-R1`**. That is intentional: headless capture uses a self-contained fixture. Do not assume `QA-R1` equals the playable map’s `R1` layout; when documenting capture output, name the fixture explicitly.
 
+## Preview inputs (room environment)
+
+Gemini **room preview** images use the layout guide plus **project frozen concept art** (resolved per biome pack `locked_concept_ids` when set). There is **no** client upload path for extra preview references; steer style via art direction and concept board.
+
 ## Related
 
 - Map graph: `docs/map-graph-v1.md`

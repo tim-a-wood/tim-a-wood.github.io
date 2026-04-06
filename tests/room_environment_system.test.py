@@ -2823,22 +2823,6 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         self.assertFalse(valid)
         self.assertIn("border_piece_side_wall_flare", errors)
 
-    def test_coerce_debug_preview_reference_images(self):
-        self.assertEqual(envsys._coerce_debug_preview_reference_images({"debug_preview_reference_images": "x"}), [])
-        raw = b"z" * 64
-        b64 = base64.b64encode(raw).decode("ascii")
-        payload = {"debug_preview_reference_images": [{"mime_type": "image/png", "data": b64}]}
-        got = envsys._coerce_debug_preview_reference_images(payload)
-        self.assertEqual(len(got), 1)
-        self.assertEqual(got[0][0], "image/png")
-        self.assertEqual(got[0][1], raw)
-        payload = {"debug_preview_reference_images": [{"mime_type": "image/gif", "data": b64}]}
-        self.assertEqual(envsys._coerce_debug_preview_reference_images(payload), [])
-        payload = {"debug_preview_reference_images": [{"mime_type": "image/jpeg", "data": b64}]}
-        got2 = envsys._coerce_debug_preview_reference_images(payload)
-        self.assertEqual(len(got2), 1)
-        self.assertEqual(got2[0][0], "image/jpeg")
-
 
 if __name__ == "__main__":
     unittest.main()

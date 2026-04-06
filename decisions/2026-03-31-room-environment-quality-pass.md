@@ -755,3 +755,43 @@ This log records decisions for the room environment and bespoke asset quality pa
 - Status: Accepted
 - Why: On 2026-04-05 the environment MVP evidence existed, but the standard Python runner was not trustworthy. `pytest` could not collect `tests/environment_v3_package.test.py` or `tests/room_environment_system.test.py` under the default import mode because the dotted filenames were interpreted as module names, and a bare repo run also wandered into vendored `tools/ComfyUI` tests that require unavailable third-party dependencies.
 - Consequence: The repo now carries a top-level `pytest.ini` that scopes collection to `tests/`, includes both `test_*.py` and `*.test.py`, and enables `--import-mode=importlib`. Milestone 1 evidence should be cited from `python3 -m pytest tests/environment_v3_package.test.py tests/room_environment_system.test.py -q` and repo health from `python3 -m pytest tests -q`, not from ad hoc direct-file invocations or third-party vendored test trees.
+
+### 137. Embedded Results-tab browser state coverage now uses a local QA hook plus a Chrome capture harness
+- Status: Accepted
+- Why: By 2026-04-05, the Results surface contract and state vocabulary existed in code, but browser-backed QA of `empty`, `draft`, `locked`, `generating`, `partial`, `ready`, and `blocked` was still manual and easy to drift. External DevTools evaluation could not drive the room editor directly because its `state` and wizard helpers live inside the page script scope rather than on `window`.
+- Consequence: `room-layout-editor.html` now exposes a narrow `window.__ROOM_WIZARD_QA__` hook for test-only state injection of the embedded Results tab, and `scripts/capture_room_results_states.js` drives headless Chrome to save a seven-state screenshot bundle under `artifacts/qa/room-results-states/`. These captures are valid for Milestone 5 UI-state coverage, but they are synthetic Results-state evidence only and must not be confused with real runtime-approval artifacts.
+
+### 138. The saved ruined-gothic calibration runtime screenshots remain blocked evidence, not approval evidence
+- Status: Accepted correction
+- Why: On 2026-04-05, direct visual inspection of the exact saved runtime-review artifacts for `RG-R1`, `RG-R2`, and `RG-R3` in `ruined-gothic-calibration-gemini-20260402` showed that real runtime screenshots do exist on disk, but the center-fog / weak shell-definition problem remains visibly unresolved. The paired saved summary file still marks all three rooms as `failed` with `runtime_review: blocked`.
+- Consequence: Future agents should treat those saved screenshots as Milestone 4 blocked-state evidence, not as approval or founder-packet artifacts. The rooms still need real runtime composition improvement before any positive signoff claim, even though a browser-backed screenshot file is present.
+
+### 139. Runtime browser capture now defaults on when a headless browser is available; composite fallback is explicit opt-out only
+- Status: Accepted correction
+- Why: On 2026-04-05, inspection of the current ruined-gothic calibration project showed that the saved room JSON state had already moved past old door-transparency failures and now primarily carried `browser_capture_required`. The remaining blocker was not a missing wrapper-page implementation; it was that `_capture_runtime_review_screenshot(...)` still defaulted to composite fallback unless `ROOM_ENVIRONMENT_REVIEW_USE_BROWSER` was explicitly enabled, even on a machine with Chrome installed.
+- Consequence: Runtime review now attempts real headless-browser capture by default whenever a compatible browser is available. Composite fallback remains available when browser capture is explicitly disabled (`ROOM_ENVIRONMENT_REVIEW_USE_BROWSER=false`) or when no browser is available. Future calibration reruns on this machine should therefore produce real browser-backed runtime screenshots unless they fail for a narrower capture reason.
+
+### 140. Runtime review capture now uses a CDP helper that waits for the embedded preview to reach `| live` before saving the PNG
+- Status: Accepted correction
+- Why: After the browser-default change, direct inspection showed that the repo-root game preview could still save an almost-black or missing frame when Chrome's raw `--screenshot` path ran from Python. A narrower probe proved the preview iframe itself was healthy and reached `window.__ASHEN_HOLLOW_BOOT_STATE = "... | live"`, so the unstable part was the screenshot mechanism, not the room boot sequence.
+- Consequence: Runtime review now prefers `scripts/capture_runtime_review.js`, which launches headless Chrome over CDP, waits for the wrapper iframe preview to report `| live` with no boot error, and only then captures the screenshot. The old raw Chrome `--screenshot` command remains as fallback when `node` or the helper is unavailable. Future agents should treat this helper as the authoritative browser-capture path for Milestone 4 evidence.
+
+### 141. The current ruined-gothic runtime screenshots are now valid browser-backed evidence, and the remaining failures are visual/readability failures rather than capture failures
+- Status: Accepted correction
+- Why: On 2026-04-05, a fresh rerun of `RG-R1`, `RG-R2`, and `RG-R3` through `_run_runtime_review(...)` produced `review_mode: headless_browser` for all three rooms. Direct inspection of the exact saved `runtime-review.png` files showed that the artifacts are no longer composite placeholders, but they still visibly fail for shell readability, top-occlusion, platform-top, and threshold-read reasons depending on the room.
+- Consequence: Milestone 4 is no longer blocked on `browser_capture_required` for this calibration set. The remaining blocker is improving the actual runtime composition and framing in the exact saved browser screenshots. Founder-facing or approval claims must now discuss the specific visual/readability failures visible in those PNGs, not generic capture plumbing.
+
+### 142. Real calibration-room Results-tab captures prove the surface is contract-bearing and reviewable, but too tall for efficient repeated review
+- Status: Accepted correction
+- Why: On 2026-04-05, direct browser capture of the ruined-gothic calibration project through `room-layout-editor.html?project_id=...` produced real `Results` screenshots for `RG-R1`, `RG-R2`, and `RG-R3`, not just synthetic state fixtures. Visual inspection showed real preview images, validation findings, overlay content, and asset galleries on all three rooms. The same captures also showed the panel remains several screen-heights tall, especially for rooms with tall overlay geometry.
+- Consequence: Future agents should not dismiss the embedded `Results` surface as fake or useless. Milestones 2, 3, and 5 already have meaningful implementation behind this panel. The next leverage point is compressing the Results composition toward the approved bounded-panel mockup, not re-litigating whether the surface should exist.
+
+### 143. Bounding the Results summary beside the preview/gallery is a valid direction for Milestone 5 because it improves review efficiency without discarding staged evidence
+- Status: Accepted
+- Why: After the first real calibration-room `Results` captures proved the surface was functional but overly long, a narrow composition pass on 2026-04-05 kept the same stage data and card order while placing the dense review summary in a bounded pane beside the preview/gallery area on large screens. The next capture pass reduced ruined-gothic calibration page heights from roughly `7.6k–8.8k` pixels down to `5.6k–5.8k` pixels and made the preview plus validation comparison materially easier to scan in the exact saved artifacts.
+- Consequence: Future Milestone 5 work should continue optimizing Results-tab composition through bounded layout and information hierarchy rather than removing stage content. The approved direction is “same contract, tighter presentation,” not “replace the Results tab with a new dashboard” and not “flatten everything into one long debug scroll.”
+
+### 144. Client-uploaded debug reference images for room preview are removed
+- Status: Accepted (2026-04-06)
+- Why: Interim “upload reference art for preview” was a bridge until project frozen concepts and per-biome `locked_concept_ids` drove previews; keeping it splits the art-direction contract and invites ad-hoc payloads.
+- Consequence: `generate_room_environment_previews` no longer accepts `debug_preview_reference_images`; Gemini level-3 preview uses layout conditioning plus resolved frozen concept files only. `preview.scene_plan` no longer includes `debug_preview_reference_count`. Room wizard Describe UI drops the debug file control.

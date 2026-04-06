@@ -3185,37 +3185,7 @@ def _gemini_generate_content_rest(
         return None
 
 
-_DEBUG_PREVIEW_REF_MAX_COUNT = 3
-_DEBUG_PREVIEW_REF_MAX_BYTES = 3 * 1024 * 1024
 _LEVEL3_MAX_REFERENCE_IMAGES = 5
-
-
-def _coerce_debug_preview_reference_images(payload: Dict[str, Any]) -> List[Tuple[str, bytes]]:
-    """Parse optional client-supplied reference images for room preview (debug / interim art direction)."""
-    raw = payload.get("debug_preview_reference_images")
-    if not isinstance(raw, list):
-        return []
-    allowed_mime = {"image/png", "image/jpeg", "image/webp"}
-    out: List[Tuple[str, bytes]] = []
-    for entry in raw[:_DEBUG_PREVIEW_REF_MAX_COUNT]:
-        if not isinstance(entry, dict):
-            continue
-        mime = str(entry.get("mime_type") or entry.get("mimeType") or "image/png").strip().lower()
-        if mime == "image/jpg":
-            mime = "image/jpeg"
-        if mime not in allowed_mime:
-            continue
-        b64 = entry.get("data")
-        if not isinstance(b64, str) or not b64.strip():
-            continue
-        try:
-            raw_bytes = base64.b64decode(b64, validate=True)
-        except (ValueError, TypeError):
-            continue
-        if len(raw_bytes) > _DEBUG_PREVIEW_REF_MAX_BYTES or len(raw_bytes) < 32:
-            continue
-        out.append((mime, raw_bytes))
-    return out
 
 
 def _build_level3_variant_prompt(
@@ -3224,7 +3194,6 @@ def _build_level3_variant_prompt(
     spec: Dict[str, Any],
     frozen_concepts: List[Dict[str, Any]],
     variant_index: int,
-    debug_reference_count: int = 0,
 ) -> str:
     variant_notes = [
         "Lean into a strong focal landmark with dramatic readable depth.",
@@ -3239,20 +3208,9 @@ def _build_level3_variant_prompt(
     )
     landmarks = ", ".join(spec.get("landmarks") or []) or "architectural focal points"
     hazards = ", ".join(spec.get("hazards") or []) or "none"
-    if debug_reference_count and frozen_concepts[:3]:
-        attachment_guide = (
-            "Images after the layout guide may include frozen project concept anchors, then debug-uploaded reference art. "
-            "Match the frozen anchors first; treat uploaded references as extra style keyframes while still obeying the layout guide."
-        )
-    elif debug_reference_count:
-        attachment_guide = (
-            "After the layout guide, the next image(s) are debug-uploaded reference art (not layout). "
-            "Use them as visual style keyframes—materials, lighting, and world tone—while strictly respecting the layout guide geometry."
-        )
-    else:
-        attachment_guide = (
-            "Additional attached images are frozen art direction anchors. Match their style language and world identity closely."
-        )
+    attachment_guide = (
+        "Additional attached images are frozen art direction anchors. Match their style language and world identity closely."
+    )
     return textwrap.dedent(
         f"""\
         Create a high-detail 2D side-view game environment concept for a metroidvania room.
@@ -3305,14 +3263,11 @@ def _generate_level3_image_with_gemini(
     geometry: Dict[str, Any],
     spec: Dict[str, Any],
     variant_index: int,
-    debug_reference_images: Optional[List[Tuple[str, bytes]]] = None,
     frozen_concepts: Optional[List[Dict[str, Any]]] = None,
 ) -> bool:
     if not _gemini_api_key():
         return False
     effective_frozen = list(frozen_concepts) if frozen_concepts is not None else (direction.get("frozen_concepts") or [])
-    debug_reference_images = debug_reference_images or []
-    debug_reference_count = len(debug_reference_images)
     parts: List[Dict[str, Any]] = []
     try:
         parts.append({
@@ -3336,18 +3291,9 @@ def _generate_level3_image_with_gemini(
                     "data": base64.b64encode(concept_path.read_bytes()).decode("ascii"),
                 }
             })
-        for mime, raw_bytes in debug_reference_images:
-            if len(parts) >= 1 + _LEVEL3_MAX_REFERENCE_IMAGES:
-                break
-            parts.append({
-                "inlineData": {
-                    "mimeType": mime,
-                    "data": base64.b64encode(raw_bytes).decode("ascii"),
-                }
-            })
         parts.append({
             "text": _build_level3_variant_prompt(
-                direction, geometry, spec, effective_frozen, variant_index, debug_reference_count=debug_reference_count
+                direction, geometry, spec, effective_frozen, variant_index
             )
         })
         model = os.environ.get("GEMINI_IMAGE_MODEL", "gemini-2.5-flash-image").strip() or "gemini-2.5-flash-image"
@@ -4992,8 +4938,6 @@ def generate_room_environment_previews(project_id: str, room_id: str, payload: D
     render_level = "level3"
     fallback_reason = None
     used_ai = False
-    debug_preview_refs = _coerce_debug_preview_reference_images(payload)
-    debug_preview_ref_count = len(debug_preview_refs)
     preview_pack = _select_biome_pack_for_preview(direction, spec)
     preview_frozen_concepts = _preview_frozen_concepts_for_pack(project, direction, preview_pack)
     if geometry.get("polygon"):
@@ -5009,7 +4953,6 @@ def generate_room_environment_previews(project_id: str, room_id: str, payload: D
                 geometry,
                 spec,
                 variant_index,
-                debug_reference_images=debug_preview_refs,
                 frozen_concepts=preview_frozen_concepts,
             )
             if generated:
@@ -5071,7 +5014,6 @@ def generate_room_environment_previews(project_id: str, room_id: str, payload: D
         "frozen_concept_ids": list(direction.get("frozen_concept_ids") or []),
         "preview_frozen_concept_ids": [str(item.get("concept_id") or "").strip() for item in preview_frozen_concepts if str(item.get("concept_id") or "").strip()],
         "preview_biome_id": str((preview_pack or {}).get("biome_id") or "").strip(),
-        "debug_preview_reference_count": debug_preview_ref_count,
         "used_ai": used_ai,
         "description": spec.get("description"),
         "mood": spec.get("mood"),
