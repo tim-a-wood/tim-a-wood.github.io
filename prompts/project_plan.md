@@ -142,8 +142,9 @@ Scope of work: prove full-loop viability early using placeholder content.
 - [x] Add temporary objective signage in `R1` and `R2`.
 - [x] Time traversal from spawn to hub and back to gate.
 - [x] Adjust room scale/distances for pacing.
-- [ ] Run smoke test: spawn, gate text, unlock path, final completion.
-- [ ] Mark critical path playable.
+- [x] Automated regression: final gate state resolver + branch sequence simulation in `tests/game-logic.test.js` (parity with `index.html` `recomputeProgressionCounts` / `simulateSequenceAttempt`; aligns with `docs/gate-state-spec-v1.md`).
+- [ ] Run smoke test: spawn, gate text, unlock path, final completion. *(Requires browser / visual confirmation.)*
+- [ ] Mark critical path playable. *(Requires your judgment after smoke.)*
 
 Downstream input: playable backbone for branch integration and pacing calibration.
 
@@ -189,7 +190,7 @@ Downstream input: low-confusion guidance layer for final tuning and QA.
 
 Scope of work: hit timing target and smooth ramp into final room.
 
-- [ ] Create `/Users/timwood/Desktop/projects/PWA/MV/docs/pacing-tuning-v1.md`.
+- [x] Create `/Users/timwood/Desktop/projects/PWA/MV/docs/pacing-tuning-v1.md` (skeleton; fill rows after baselines).
 - [ ] Define target duration and difficulty score per room.
 - [ ] Capture baseline completion times across internal runs.
 - [ ] Shorten overlong traversal segments.

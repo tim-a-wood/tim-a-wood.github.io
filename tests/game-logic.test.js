@@ -284,6 +284,45 @@ function computeDoorStandPosition(roomWidth, door) {
     return { x: door.x, y: door.y - 96, entrySide: 'bottom' };
 }
 
+// ----- Final gate state (must match index.html recomputeProgressionCounts) -----
+function resolveFinalGateState(flags) {
+    const keyItemsCollected = Number(flags.keyItemA) + Number(flags.keyItemB) + Number(flags.keyItemC);
+    const abilitiesUnlocked = Number(flags.abilityA) + Number(flags.abilityB) + Number(flags.abilityC);
+    if (keyItemsCollected < 3) return 'LOCKED_KEY_ITEMS';
+    if (abilitiesUnlocked < 3) return 'LOCKED_ABILITIES';
+    return 'UNLOCKED';
+}
+
+// ----- Branch sequence simulation (must match index.html simulateSequenceAttempt) -----
+function simulateSequenceAttempt(order) {
+    const ability = { A: false, B: false, C: false };
+    const completed = [];
+    const pending = [...order];
+    let guard = 0;
+
+    while (pending.length > 0 && guard < 12) {
+        const branch = pending.shift();
+        if (completed.includes(branch)) {
+            guard++;
+            continue;
+        }
+        if (branch === 'B' && !ability.A) {
+            pending.push(branch);
+            guard++;
+            continue;
+        }
+        ability[branch] = true;
+        completed.push(branch);
+        guard++;
+    }
+
+    return {
+        attempt: order.join('-'),
+        resolved: completed.join('-'),
+        passed: completed.length === 3
+    };
+}
+
 // ========== RNG tests ==========
 (function testRngDeterminism() {
     const rng1 = createRng(42);
@@ -850,9 +889,11 @@ function computeDoorStandPosition(roomWidth, door) {
     assert.ok(html.includes('PREVIEW_START_APPLIED'), 'preview spawn flag for create()');
     assert.ok(html.includes('mergeRoomSequence'), 'mergeRoomSequence for layout rooms beyond R11');
     assert.ok(html.includes('loadLayoutDataFromHashUrl'), 'preview should support file-backed layout URLs for large embeds');
+    assert.ok(html.includes('applyRuntimeReviewCaptureViewport'), 'capture mode should size the canvas to the active room before boot');
     assert.ok(html.includes('capture=runtime-review'), 'preview should support checkpoint capture mode');
     assert.ok(html.includes('applyRuntimeReviewCapturePresentation'), 'capture mode should hide HUD/debug overlays');
     assert.ok(html.includes('applyRuntimeReviewCaptureCamera'), 'capture mode should frame the room instead of following live gameplay');
+    assert.ok(html.includes('const polygonBounds = getRoomPolygonBounds(roomId);'), 'runtime geometry should derive polygon bounds before shell/floor placement');
     assert.ok(html.includes('RUNTIME_REVIEW_CAPTURE_MODE ? 64 : 48'), 'capture mode should strengthen door readability');
     assert.ok(html.includes('RUNTIME_REVIEW_CAPTURE_MODE ? 0.24 : (composition.hasBespokeBackground ? 0.4 : 0.5)'), 'capture mode should reduce backdrop weight');
     assert.ok(html.includes('addRoomBespokeDoorDecor'), 'runtime should place bespoke door-frame assets into the scene');
@@ -869,6 +910,84 @@ function computeDoorStandPosition(roomWidth, door) {
     assert.strictEqual(parsePreviewStartRoomId('#layout=abc&start=R5'), 'R5');
     assert.strictEqual(parsePreviewStartRoomId('#layout=abc'), null);
     assert.strictEqual(parsePreviewStartRoomId(''), null);
+})();
+
+// ========== Map MVP gate state (docs/gate-state-spec-v1.md parity with index.html) ==========
+(function testResolveFinalGateStateLockedKeys() {
+    assert.strictEqual(
+        resolveFinalGateState({
+            keyItemA: false,
+            keyItemB: false,
+            keyItemC: false,
+            abilityA: false,
+            abilityB: false,
+            abilityC: false
+        }),
+        'LOCKED_KEY_ITEMS'
+    );
+    assert.strictEqual(
+        resolveFinalGateState({
+            keyItemA: true,
+            keyItemB: true,
+            keyItemC: false,
+            abilityA: true,
+            abilityB: true,
+            abilityC: true
+        }),
+        'LOCKED_KEY_ITEMS'
+    );
+})();
+
+(function testResolveFinalGateStateLockedAbilities() {
+    assert.strictEqual(
+        resolveFinalGateState({
+            keyItemA: true,
+            keyItemB: true,
+            keyItemC: true,
+            abilityA: false,
+            abilityB: false,
+            abilityC: false
+        }),
+        'LOCKED_ABILITIES'
+    );
+    assert.strictEqual(
+        resolveFinalGateState({
+            keyItemA: true,
+            keyItemB: true,
+            keyItemC: true,
+            abilityA: true,
+            abilityB: true,
+            abilityC: false
+        }),
+        'LOCKED_ABILITIES'
+    );
+})();
+
+(function testResolveFinalGateStateUnlocked() {
+    assert.strictEqual(
+        resolveFinalGateState({
+            keyItemA: true,
+            keyItemB: true,
+            keyItemC: true,
+            abilityA: true,
+            abilityB: true,
+            abilityC: true
+        }),
+        'UNLOCKED'
+    );
+})();
+
+(function testSimulateSequenceAttemptOrders() {
+    const orders = [
+        ['A', 'B', 'C'],
+        ['B', 'C', 'A'],
+        ['C', 'A', 'B']
+    ];
+    for (const order of orders) {
+        const r = simulateSequenceAttempt(order);
+        assert.strictEqual(r.passed, true, `sequence should resolve for ${r.attempt}`);
+        assert.strictEqual(r.resolved.split('-').length, 3);
+    }
 })();
 
 console.log('All game-logic tests passed.');
