@@ -881,6 +881,35 @@ function getRoomPolygonBounds(roomId) {
     return { left: 0, right: fallbackWidth, top: 0, bottom: CONFIG.WORLD_HEIGHT };
 }
 
+/**
+ * World-space rectangle for camera clamping: matches footprint polygon (floor/wall/ceiling chamber) when present,
+ * otherwise the full room slot (editor canvas width × world height) so playtest does not show empty margin outside the chamber.
+ */
+function getRoomCameraChamberBoundsWorld(roomId) {
+    const slot = ROOM_IDS[roomId];
+    if (!slot) {
+        return { x: 0, y: 0, width: CONFIG.WORLD_WIDTH, height: CONFIG.WORLD_HEIGHT };
+    }
+    const layoutRoom = getLayoutRoom(roomId);
+    const poly = getRoomPolygonBounds(roomId);
+    const hasPoly = layoutRoom && Array.isArray(layoutRoom.polygon) && layoutRoom.polygon.length >= 3
+        && (poly.right > poly.left) && (poly.bottom > poly.top);
+    if (hasPoly) {
+        const pad = 8;
+        const innerLeft = Math.max(0, Number(poly.left) - pad);
+        const innerTop = Math.max(0, Number(poly.top) - pad);
+        const innerRight = Math.min(Number(slot.width), Number(poly.right) + pad);
+        const innerBottom = Math.min(CONFIG.WORLD_HEIGHT, Number(poly.bottom) + pad);
+        return {
+            x: slot.start + innerLeft,
+            y: innerTop,
+            width: Math.max(64, innerRight - innerLeft),
+            height: Math.max(64, innerBottom - innerTop)
+        };
+    }
+    return { x: slot.start, y: 0, width: slot.width, height: CONFIG.WORLD_HEIGHT };
+}
+
 /** Bottom Y for backgrounds, midground, and default floor row — always world bottom (polygon max Y can sit above the floor plane). */
 function getRoomVisualWorldBottom() {
     return CONFIG.WORLD_HEIGHT;
@@ -1837,22 +1866,19 @@ function applyRuntimeReviewCapturePresentation(scene) {
 
 function applyRuntimeReviewCaptureCamera(scene, roomId) {
     if (!RUNTIME_REVIEW_CAPTURE_MODE || !scene?.cameras?.main || !roomId || !ROOM_IDS[roomId]) return;
-    const roomBounds = ROOM_IDS[roomId];
-    const { top } = getRoomVerticalBounds(roomId);
-    const visualBottom = getRoomVisualWorldBottom();
-    const roomHeight = Math.max(64, visualBottom - top);
+    const camRect = getRoomCameraChamberBoundsWorld(roomId);
     const camera = scene.cameras.main;
     const padX = 96;
     const padY = 72;
     const zoom = Math.min(
         1,
-        CONFIG.W / Math.max(1, roomBounds.width + (padX * 2)),
-        CONFIG.H / Math.max(1, roomHeight + (padY * 2))
+        CONFIG.W / Math.max(1, camRect.width + (padX * 2)),
+        CONFIG.H / Math.max(1, camRect.height + (padY * 2))
     );
     camera.stopFollow();
     camera.setFollowOffset(0, 0);
     camera.setZoom(zoom);
-    camera.centerOn(roomBounds.start + (roomBounds.width / 2), top + (roomHeight / 2));
+    camera.centerOn(camRect.x + (camRect.width / 2), camRect.y + (camRect.height / 2));
     if (scene.player) scene.player.setVisible(false);
     if (scene.trail) {
         scene.trail.clear();
@@ -4359,7 +4385,8 @@ class AshenHollow extends Phaser.Scene {
         const room = ROOM_IDS[roomId];
         const style = deriveRoomEnvironmentRuntimeStyle(roomId);
         const contrastQa = isContrastQaEnvironment(roomId);
-        this.cameras.main.setBounds(room.start, 0, room.width, CONFIG.WORLD_HEIGHT);
+        const camRect = getRoomCameraChamberBoundsWorld(roomId);
+        this.cameras.main.setBounds(camRect.x, camRect.y, camRect.width, camRect.height);
         this.cameras.main.setBackgroundColor(getEnvironmentBackgroundColor(roomId));
         if (this.envKitText) {
             this.envKitText.setText(
