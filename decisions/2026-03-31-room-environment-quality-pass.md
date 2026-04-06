@@ -861,6 +861,11 @@ This log records decisions for the room environment and bespoke asset quality pa
 - Why: In footprint polygons, `bottom` can sit **below** the authored primary floor platform row (e.g. polygon bottom 1040 vs platform `y` 992). Using `polygonBounds.bottom` alone for floor cap, collision, and wall foot (#155–#157) desynced visuals from physics and left large gaps between wall, floor art, and walk surface.
 - Consequence: `getPrimaryFloorTileCenterY` / `getRoomWalkPlaneTopY` define the seam; primary floor cap and collision use `primaryFloorTileCenterY`; bespoke wall shell foot uses `walkPlaneTopY` on `support`; outer mass height uses `primaryFloorTileCenterY` when a primary floor exists.
 
+### 159. Bespoke side shell width must cover polygon inset when flanking is off
+- Status: Accepted (2026-04-06)
+- Why: With `wall_module_*` assets, flanking TileSprites are skipped to avoid giant margin pillars. `accentW` was capped at **272px** while polygon **chamber left** inset can be larger — the shell’s right edge stays at the chamber but its left edge stops short of the room edge, leaving a visible **black strip** at the viewport edge.
+- Consequence: After `capW`, left shell width is `max(accentW, marginLeft)` and right shell `max(accentW, marginRight)`, each clamped to `maxHalf` (half chamber width).
+
 ### 148. Bespoke wall shell must run even when polygon wall rects are non-empty
 - Status: Accepted (2026-04-05)
 - Why: After decision 145, `buildWorldGeometry` only called `addRoomBespokeWallShellDecor` when `!roomHasPolygonWallTileRects`. Complex footprints (e.g. canonical R1) produce many outside-polygon cells, so `rects.length > 0` always — **bespoke wall_module composition never ran** while thin procedural tiles stayed at grid boundaries (often off-camera). Founder playtest still showed floor + void + no shell despite generated assets.

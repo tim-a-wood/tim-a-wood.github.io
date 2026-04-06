@@ -1013,6 +1013,21 @@ function simulateSequenceAttempt(order) {
     );
 })();
 
+(function testIndexBespokeWallShellCoversPolygonInsetMargins() {
+    const fs = require('fs');
+    const path = require('path');
+    const htmlPath = path.join(__dirname, '../index.html');
+    if (!fs.existsSync(htmlPath)) return;
+    const html = fs.readFileSync(htmlPath, 'utf8');
+    assert.ok(
+        html.includes('marginLeft')
+            && html.includes('marginRight')
+            && html.includes('Math.max(accentW, marginLeft)')
+            && html.includes('Math.max(accentW, marginRight)'),
+        'bespoke side shell width must cover room→chamber inset when flanking mass is skipped'
+    );
+})();
+
 (function testRoomWizardWorkbenchShellCompactCss() {
     const fs = require('fs');
     const path = require('path');

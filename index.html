@@ -2762,6 +2762,16 @@ class AshenHollow extends Phaser.Scene {
                 accentW = Math.min(accentW, capW);
                 accentHeight = Math.min(accentHeight, chamberH);
                 const isLeft = String(asset.component_type || '').includes('left');
+                /* Polygon inset (room edge → chamber): flanking mass is skipped when bespoke walls exist (#145).
+                 * If accent width is capped below that inset, a black strip shows at the room edge — widen shell
+                 * to cover margin (still capped by maxHalf). */
+                const marginLeft = Math.max(0, Number(chamberBounds?.left || 0));
+                const marginRight = Math.max(0, roomWidth - Number(chamberBounds?.right || roomWidth));
+                if (isLeft) {
+                    accentW = Math.min(maxHalf, Math.max(accentW, marginLeft));
+                } else {
+                    accentW = Math.min(maxHalf, Math.max(accentW, marginRight));
+                }
                 /* Room-local X only — addPlacedBespokeAsset adds ROOM_IDS[roomId].start (world offset). */
                 const localWallX = isLeft
                     ? Number(chamberBounds?.left || 0)
