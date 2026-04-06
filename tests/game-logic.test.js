@@ -918,19 +918,19 @@ function simulateSequenceAttempt(order) {
     );
 })();
 
-(function testIndexWideChamberWallShellSplit() {
+(function testIndexBespokeWallShellUsesAuthoredWidth() {
     const fs = require('fs');
     const path = require('path');
     const htmlPath = path.join(__dirname, '../index.html');
     if (!fs.existsSync(htmlPath)) return;
     const html = fs.readFileSync(htmlPath, 'utf8');
     assert.ok(
-        html.includes('wideChamber') && html.includes('wideStripCap'),
-        'wide chambers should cap wall shell width (no 50/50 carpet)'
+        html.includes('authoredW') && html.includes('capW') && html.includes('Phaser.Math.Clamp'),
+        'wall shell width should follow placement/final_dimensions/plan, clamped — not wideStripCap viewport bands'
     );
     assert.ok(
-        html.includes('everywhere is wall') || html.includes('joining in the middle'),
-        'comment should document why 50/50 chamber split was rejected'
+        html.includes('Match horizontal scale to generated art'),
+        'wall shell comment should state authored-scale intent'
     );
 })();
 

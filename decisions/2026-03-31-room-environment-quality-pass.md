@@ -814,7 +814,12 @@ This log records decisions for the room environment and bespoke asset quality pa
 ### 149. Do not use 50/50 chamber split for bespoke wall shells (wallpaper artifact)
 - Status: Accepted (2026-04-05)
 - Why: Two half-chamber `Image` strips meeting at center **cover the entire footprint** with stretched wall art; the texture reads as a repeating masonry grid and a hard vertical seam at mid-room (“everywhere is wall”). That was a readability overcorrection to decision **#147**.
-- Consequence: For wide chambers, widen strips only up to `min(50% chamber, 32% chamber, 0.82 * CONFIG.W)` (and still `>= fromPlacement`), leaving a **central band** for floor/midground read. Players may need to pan toward edges to see full shell mass; midground/background still carry distant architecture.
+- Consequence: Rejected the 50/50 meet-at-center approach. Interim `wideStripCap` widening was tried next; **horizontal width policy is now #150** (authored scale + clamp), not viewport fractions.
+
+### 150. Bespoke wall shell width must track authored asset/plan scale (not widened to “fill view”)
+- Status: Accepted (2026-04-05)
+- Why: Follow-on playtest showed wall modules stretched to hundreds of pixels wide (`wideStripCap` / chamber fractions), so each brick read enormous versus floor/ceiling strips. The pipeline already authors `placement.display_width`, `final_dimensions`, and `generation_plan.target_dimensions` for wall modules — runtime should respect that horizontal scale.
+- Consequence: `addRoomBespokeWallShellDecor` sets `accentWidth` from `placement` → `final_dimensions` → plan `target_dimensions`, with fallback `max(200, planW || 14% chamber)`, clamped to `[96, min(50% chamber, 26% chamber)]`. Removed `wideChamber` / `wideStripCap` widening.
 
 ### 148. Bespoke wall shell must run even when polygon wall rects are non-empty
 - Status: Accepted (2026-04-05)

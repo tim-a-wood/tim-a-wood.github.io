@@ -2656,21 +2656,22 @@ class AshenHollow extends Phaser.Scene {
                 sprite = this.addPlacedBespokeAsset(roomId, asset, wallShellDepth, RUNTIME_REVIEW_CAPTURE_MODE ? 1 : 0.98);
             } else {
                 const placement = asset.placement || {};
-                /* Wide chambers: edge strips are often off-camera; stretching each module to 50% chamber met at
-                   center and carpeted the whole footprint (reads as "everywhere is wall"). Cap width instead:
-                   reach into view from edges without joining in the middle. */
+                const componentType = String(asset.component_type || '');
+                const planEntry =
+                    (componentType && getRoomEnvironmentBespokePlanEntry(roomId, componentType))
+                    || getRoomEnvironmentBespokePlanEntry(roomId, 'wall_module_left')
+                    || getRoomEnvironmentBespokePlanEntry(roomId, 'wall_module_right');
+                const planW = Number(planEntry?.target_dimensions?.width || 0);
+                const authoredW = Math.max(
+                    0,
+                    Number(placement.display_width || asset.final_dimensions?.width || planW || 0)
+                );
                 const maxHalf = Math.max(1, Math.round(chamberWidth * 0.5));
-                const fromPlacement = Math.min(
-                    Math.max(Number(placement.display_width || 0), Math.round(chamberWidth * 0.16)),
-                    maxHalf
-                );
-                const wideChamber = chamberWidth >= Math.max(520, Math.round(CONFIG.W * 0.85));
-                const wideStripCap = Math.min(
-                    maxHalf,
-                    Math.round(chamberWidth * 0.32),
-                    Math.round(CONFIG.W * 0.82)
-                );
-                const accentWidth = wideChamber ? Math.max(fromPlacement, wideStripCap) : fromPlacement;
+                const capW = Math.min(maxHalf, Math.round(chamberWidth * 0.26));
+                const floorW = Math.max(96, Math.round(chamberWidth * 0.14));
+                /* Match horizontal scale to generated art (same contract as floor/ceiling strips), not viewport-wide bands. */
+                const baseW = authoredW > 0 ? authoredW : Math.max(200, planW || floorW);
+                const accentWidth = Phaser.Math.Clamp(Math.round(baseW), 96, capW);
                 const isLeft = String(asset.component_type || '').includes('left');
                 /* Room-local X only — addPlacedBespokeAsset adds ROOM_IDS[roomId].start (world offset). */
                 const localWallX = isLeft
