@@ -1090,6 +1090,10 @@ function simulateSequenceAttempt(order) {
             /ceiling_band:\s*\[\s*['"]ceiling_band['"]\s*\]/.test(html),
             'getRoomEnvironmentBespokeAsset should resolve ceiling_band slots'
         );
+        assert.ok(
+            /chamberTop/.test(html) && /addRoomBespokeCeilingDecor[\s\S]*chamberTop/.test(html),
+            'ceiling decor should snap Y to footprint chamber top (planner y=0 is not world Y)'
+        );
     assert.ok(html.includes('ASHEN_HOLLOW_PREVIEW'), 'postMessage layout embed for room editor iframe');
     assert.ok(html.includes('ASHEN_HOLLOW_PREVIEW_READY'), 'child signals when listener can receive layout');
     assert.ok(html.includes('preview=embed'), 'hash flag for embed wait in bootGame');

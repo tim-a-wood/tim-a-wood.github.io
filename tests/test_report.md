@@ -58,3 +58,5 @@ Update 2026-04-06: Runtime review screenshot uses **full panel width** (`width: 
 Update 2026-04-06: Per-slot **Regenerate** / **Iterate** on build summary thumbnails; `POST .../environment/generate-assets` accepts `slot_id` and `iterate_from_current` (Gemini prepends current PNG). Ran `python3 tests/room_environment_system.test.py` (Pass), `node tests/room-wizard-results-contract.test.js`, `node tests/room-wizard-environment-copilot.test.js` (Pass); browser flow not re-checked in CI.
 
 Update 2026-04-06: Bespoke **ceiling_band** / **ceiling_piece** runtime compositing in `index.html` (`addRoomBespokeCeilingDecor` from `buildEnvironmentSetDressing`, alias map in `getRoomEnvironmentBespokeAsset`). Ran `node tests/game-logic.test.js` (Pass); in-browser runtime review and playtest not re-checked in CI.
+
+Update 2026-04-06: Ceiling **Y placement** fix — planner `placement.y` 0 is not world Y; `addRoomBespokeCeilingDecor` now uses `getRoomPolygonBounds` **chamberTop** and centers on chamber width (matches background footprint). Ran `node tests/game-logic.test.js` (Pass); browser not re-checked.

@@ -2886,16 +2886,44 @@ class AshenHollow extends Phaser.Scene {
     /**
      * Full-width ceiling band from bespoke manifest (v2/v3). Without this, the top of the chamber stays empty
      * (black) in playtest and runtime review even when the asset exists and loads.
+     * Planner placement uses y=0 as “top of plan canvas”; Phaser expects the same Y space as polygon/backgrounds
+     * (chamber top from footprint). Raw y=0 draws at world row 0, far above an inset chamber → empty band in camera.
      */
     addRoomBespokeCeilingDecor(roomId) {
         const ceilingAssets = getRoomEnvironmentBespokeAssetsByType(roomId, ['ceiling_band', 'ceiling_piece']);
         if (!ceilingAssets.length) return false;
+        const roomW = getRoomWidth(roomId);
+        const poly = getRoomPolygonBounds(roomId);
+        const chamberLeft = Number(poly.left || 0);
+        const chamberRight = Number(poly.right || roomW);
+        const chamberTop = Number(poly.top || 0);
+        const chamberWidth = Math.max(64, chamberRight - chamberLeft);
         /* Between parallax background (-2) and midground side frames (~-0.18) so masonry reads above the far plate. */
         const depth = -1.15;
         const alpha = RUNTIME_REVIEW_CAPTURE_MODE ? 0.52 : 0.96;
         let placed = 0;
         ceilingAssets.forEach((asset) => {
-            if (this.addPlacedBespokeAsset(roomId, asset, depth, alpha)) placed += 1;
+            const pl = asset.placement || {};
+            const manifestW = Math.max(1, Number(pl.display_width || asset.final_dimensions?.width || chamberWidth));
+            const manifestH = Math.max(1, Number(pl.display_height || asset.final_dimensions?.height || 224));
+            const spanW = Math.max(chamberWidth, manifestW);
+            const rawOriginY = pl.origin_y;
+            const originY = rawOriginY == null || rawOriginY === ''
+                ? 0
+                : Phaser.Math.Clamp(Number(rawOriginY), 0, 1);
+            const assetWithPlacement = {
+                ...asset,
+                placement: {
+                    ...pl,
+                    x: chamberLeft + (chamberWidth / 2),
+                    y: chamberTop,
+                    display_width: spanW,
+                    display_height: manifestH,
+                    origin_x: 0.5,
+                    origin_y: originY
+                }
+            };
+            if (this.addPlacedBespokeAsset(roomId, assetWithPlacement, depth, alpha)) placed += 1;
         });
         return placed > 0;
     }
