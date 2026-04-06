@@ -44,3 +44,5 @@ Update 2026-04-06: Room env v3 — optional omission of `backwall_panel` planner
 Update 2026-04-06: Room editor Environment **Step 2 — Preview & build** UX: optional `<details>` for revise fields + **Update preview**; primary gold CTA for **Build final room assets**; hint copy for build vs update; **Discard previews** separated. Ran `node tests/room-wizard-results-contract.test.js`, `node tests/room-wizard-environment.test.js`, `node tests/room-wizard-environment-copilot.test.js` (Pass); browser not re-checked in CI.
 
 Update 2026-04-06: Preview gallery cards — **click image opens full size** (`target="_blank"` link); title/level grid + `minmax(0,1fr)` + nowrap approve label for consistent wrapping (`room-wizard-workbench-shell.css`). Ran `node tests/room-wizard-results-contract.test.js`, `node tests/room-wizard-environment.test.js` (Pass).
+
+Update 2026-04-07: Preview open link: `cursor: pointer` + `text-decoration: none` on `.rw-preview-card-open`. Ran `node tests/room-wizard-results-contract.test.js` (Pass).

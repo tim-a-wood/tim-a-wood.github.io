@@ -1252,6 +1252,9 @@
   line-height: 0;
   border-radius: inherit;
   outline: none;
+  cursor: pointer;
+  color: inherit;
+  text-decoration: none;
   transition: box-shadow 200ms ease;
 }
 
