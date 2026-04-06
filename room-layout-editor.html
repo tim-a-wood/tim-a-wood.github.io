@@ -1526,6 +1526,7 @@
       display: flex;
       justify-content: flex-start;
       min-width: 0;
+      width: 100%;
     }
     button.rw-runtime-review-launch {
       appearance: none;
@@ -1539,7 +1540,9 @@
       cursor: pointer;
       display: grid;
       gap: 8px;
+      width: 100%;
       max-width: 100%;
+      min-width: 0;
       transition: opacity 200ms ease, transform 200ms ease;
     }
     button.rw-runtime-review-launch:hover {
@@ -1552,10 +1555,12 @@
     }
     .rw-runtime-review-launch.rw-environment-asset-thumb img {
       display: block;
-      width: 336px;
+      width: 100%;
       max-width: 100%;
-      aspect-ratio: 1 / 1;
-      object-fit: cover;
+      height: auto;
+      max-height: min(72vh, 880px);
+      object-fit: contain;
+      object-position: top center;
       border-radius: var(--radius-default);
       border: 1px solid var(--line);
       background: var(--panel-2);

@@ -51,4 +51,6 @@ Update 2026-04-06: Full-size preview opens `room-environment-preview-full.html` 
 
 Update 2026-04-06: Environment **Preview & build** review layout stacks **Build summary** under **Preview pictures** (removed `rw-env-review-layout--split`; dropped secondary column max-height). Ran `node tests/room-wizard-results-contract.test.js`, `node tests/room-wizard-environment-copilot.test.js` (Pass); browser layout not re-checked in CI.
 
-Update 2026-04-06: Build summary **runtime review** sits in `rw-runtime-review-row` above `rw-environment-asset-grid`, image **336px** wide (3× workbench thumb min column), **click opens game** via delegated handler; removed **Open room in game** button from preview actions. Ran `node tests/room-wizard-results-contract.test.js`, `node tests/room-wizard-environment-copilot.test.js` (Pass); browser not re-checked in CI.
+Update 2026-04-06: Build summary **runtime review** sits in `rw-runtime-review-row` above `rw-environment-asset-grid`, **click opens game** via delegated handler; removed **Open room in game** button from preview actions. Ran `node tests/room-wizard-results-contract.test.js`, `node tests/room-wizard-environment-copilot.test.js` (Pass); browser not re-checked in CI.
+
+Update 2026-04-06: Runtime review screenshot uses **full panel width** (`width: 100%`, `object-fit: contain`, `max-height: min(72vh, 880px)`). Ran `node tests/room-wizard-results-contract.test.js` (Pass); browser not re-checked in CI.
