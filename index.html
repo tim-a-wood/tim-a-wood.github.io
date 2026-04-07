@@ -82,6 +82,13 @@ const CONFIG = {
     CAMERA_CHAMBER_SIDE_BLEED_PX: 64
 };
 
+/** Unified shell side colliders: `FOREGROUND_FRAME_BORDER_SIDE_PX` / `ATLAS_WIDTH` in `scripts/room_environment_system.py`. `BAND_USE` approximates how much of that template band reads as opaque masonry past the chamber line (Gemini shells are thinner than the full 672px strip). */
+const SHELL_UNIFIED_SIDE_COLLIDER_ATLAS_W = 1600;
+const SHELL_UNIFIED_SIDE_COLLIDER_SIDE_PX = 672;
+const SHELL_UNIFIED_SIDE_COLLIDER_BAND_USE = 0.082;
+const SHELL_UNIFIED_SIDE_COLLIDER_MIN_PX = 20;
+const SHELL_UNIFIED_SIDE_COLLIDER_MAX_PX = 56;
+
 window.__previewLayoutFromParent = null;
 window.addEventListener('message', (event) => {
     if (event.origin !== window.location.origin) return;
@@ -2826,7 +2833,8 @@ class AshenHollow extends Phaser.Scene {
     /**
      * Unified shell PNGs often paint masonry a few dozen pixels past the chamber opening (mask bleed).
      * Polygon wall tiles only fill *outside* the footprint, so the player can walk into the stone art.
-     * Add thin vertical collider strips just *inside* the chamber left/right bounds to match the visible wall face.
+     * Add vertical collider strips just *inside* the chamber left/right bounds. Strip width scales with
+     * `room_shell_foreground` display width and the v2 atlas side-border ratio (not a fixed 32/64px lip).
      */
     addRoomBespokeShellInteriorSideColliders(roomId, support, tile, layoutFloorTileCenterY) {
         if (!support?.roomBounds || !support?.chamberBounds || !Number.isFinite(layoutFloorTileCenterY)) return;
@@ -2836,24 +2844,31 @@ class AshenHollow extends Phaser.Scene {
         const chamberLeft = Phaser.Math.Clamp(Number(poly.left || 0), 0, roomWidth);
         const chamberRight = Phaser.Math.Clamp(Number(poly.right || roomWidth), chamberLeft, roomWidth);
         const chamberW = Math.max(0, chamberRight - chamberLeft);
-        const lipCols = chamberW >= 288 ? 2 : 1;
-        if (chamberW < lipCols * 32 * 3) return;
+        const asset = getRoomEnvironmentBespokeAsset(roomId, 'room_shell_foreground');
+        const pl = asset?.placement || {};
+        const dw = Math.max(1, Number(pl.display_width || asset?.final_dimensions?.width || chamberW));
+        let lipPx = Math.round(
+            (SHELL_UNIFIED_SIDE_COLLIDER_SIDE_PX / SHELL_UNIFIED_SIDE_COLLIDER_ATLAS_W) * dw * SHELL_UNIFIED_SIDE_COLLIDER_BAND_USE
+        );
+        lipPx = Phaser.Math.Clamp(lipPx, SHELL_UNIFIED_SIDE_COLLIDER_MIN_PX, SHELL_UNIFIED_SIDE_COLLIDER_MAX_PX);
+        const maxLipPerSide = Math.floor((chamberW - tile) / 2);
+        if (maxLipPerSide < SHELL_UNIFIED_SIDE_COLLIDER_MIN_PX) return;
+        lipPx = Math.min(lipPx, maxLipPerSide);
         const topY = Number(poly.top || support.roomTop || 0);
         const lastWallCenterY = layoutFloorTileCenterY - tile;
         if (lastWallCenterY < topY + tile) return;
+        const bodyH = lastWallCenterY + 16 - topY;
+        if (bodyH < tile) return;
+        const centerY = topY + bodyH * 0.5;
         const wallTextureKey = resolveRoomSurfaceTexture(this, roomId, 'wall');
-        for (let cy = topY + 16; cy <= lastWallCenterY; cy += tile) {
-            for (let c = 0; c < lipCols; c += 1) {
-                const localLX = chamberLeft + 16 + (c * tile);
-                if (localLX + 16 > chamberRight - (lipCols * tile)) break;
-                this.createRoomSurfaceTile(roomStart + localLX, cy, roomId, wallTextureKey, 'wall');
-            }
-            for (let c = 0; c < lipCols; c += 1) {
-                const localRX = chamberRight - 16 - (c * tile);
-                if (localRX - 16 < chamberLeft + (lipCols * tile)) break;
-                this.createRoomSurfaceTile(roomStart + localRX, cy, roomId, wallTextureKey, 'wall');
-            }
-        }
+        const addSideStrip = (worldCenterX) => {
+            const sprite = this.platforms.create(worldCenterX, centerY, wallTextureKey);
+            sprite.setDisplaySize(lipPx, bodyH);
+            sprite.setAlpha(0);
+            sprite.refreshBody();
+        };
+        addSideStrip(roomStart + chamberLeft + lipPx * 0.5);
+        addSideStrip(roomStart + chamberRight - lipPx * 0.5);
     }
 
     addRoomBespokeWallShellDecor(roomId, support = null) {

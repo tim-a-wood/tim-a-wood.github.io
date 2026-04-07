@@ -1056,9 +1056,11 @@ function simulateSequenceAttempt(order) {
     assert.ok(
         html.includes('addRoomBespokeShellInteriorSideColliders')
             && html.includes('mask bleed')
+            && html.includes('SHELL_UNIFIED_SIDE_COLLIDER_SIDE_PX')
+            && html.includes('setDisplaySize(lipPx, bodyH)')
             && html.includes('addRoomBespokeUnifiedShellForegroundDecor(roomId, shellSupport)')
             && html.includes('this.addRoomBespokeShellInteriorSideColliders(roomId, shellSupport, tile, layoutFloorTileCenterY)'),
-        'unified bespoke shell should add interior side physics strips so shell art cannot swallow the player'
+        'unified bespoke shell should add interior side physics strips sized from shell display width + atlas border ratio'
     );
 })();
 
