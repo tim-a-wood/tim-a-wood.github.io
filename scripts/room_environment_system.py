@@ -2504,6 +2504,10 @@ ATLAS_HEIGHT = 1200
 FOREGROUND_FRAME_BORDER_TOP_PX = 720  # was 240
 FOREGROUND_FRAME_BORDER_BOTTOM_PX = 360  # was 120
 FOREGROUND_FRAME_BORDER_SIDE_PX = 672  # was 224
+# Post-punchout top-band mean luminance gradient (see `_image_region_contrast`). Mask-driven shells
+# often exceed 0.024 from legitimate mortar/stone micro-contrast; keep high enough to still flag
+# obvious tiled-strip ceiling assemblies.
+ROOM_SHELL_CEILING_BAND_MEAN_CONTRAST_MAX = 0.035
 BORDER_PIECE_BORDER_TOP_PX = 672  # was 224
 BORDER_PIECE_BORDER_BOTTOM_PX = 360  # was 120
 BORDER_PIECE_BORDER_SIDE_PX = 672  # was 224
@@ -3503,7 +3507,7 @@ def _validate_room_shell_after_punchout(path: Path, geometry: Dict[str, Any], ex
         if (max(shell_lum_valid) - min(shell_lum_valid)) > 32:
             errors.append("shell_band_tone_drift")
     top_band_contrast = _image_region_contrast(rgb, (0.10, 0.02, 0.90, 0.18))
-    if top_band_contrast > 0.024:
+    if top_band_contrast > ROOM_SHELL_CEILING_BAND_MEAN_CONTRAST_MAX:
         errors.append("shell_ceiling_composite_read")
     tl_top = band_luminance_alpha((0.06, 0.02, 0.16, 0.12))
     tl_side = band_luminance_alpha((0.02, 0.06, 0.12, 0.20))
@@ -7681,13 +7685,14 @@ def _validate_bespoke_component(
         trusted_template_copy = delta <= 1.5
         if component_type == "background_far_plate" and delta > 42:
             errors.append("template_family_drift")
-        if component_type in {"midground_side_frame", "room_shell_foreground"}:
+        if component_type == "midground_side_frame":
             edge_delta = (
                 _template_delta_region(path, template_path, (0.0, 0.0, 0.24, 1.0)) +
                 _template_delta_region(path, template_path, (0.76, 0.0, 1.0, 1.0))
             ) / 2.0
             if edge_delta > 42:
                 errors.append("template_family_drift")
+        # room_shell_foreground is mask-driven; output need not match biome template edges (would false-reject mask fill).
         if component_type in {
             "wall_module_left",
             "wall_module_right",

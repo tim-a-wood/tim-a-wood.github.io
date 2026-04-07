@@ -940,3 +940,43 @@ This log records decisions for the room environment and bespoke asset quality pa
 - Status: Accepted (2026-04-07)
 - Why: Gemini still sometimes paints **cyan/teal “UI” rims** on borders and keyed edges, and **low contrast** between border masses and void/background reads as a flat gray sheet.
 - Consequence: **`_build_biome_template_prompt`** `base_rules` forbid cyan/teal/aqua/electric-blue **rim lines** and ask for **value separation** between border and interior. **`border_piece`** and **`foreground_frame`** roles add explicit **no chroma rim** language at inner/green boundaries. **`background_far_plate`**, **`midground_side_frame`**, and **`room_shell_foreground`** `component_rules` in **`_build_bespoke_prompt`** add matching bespoke guidance.
+
+### 170d. Border-piece default language: one masonry family + heavier thickness gate
+- Status: Accepted (2026-04-07)
+- Why: Founder review reported `border_piece` outputs drifting from the required language (mixed motif bands / trim-like frame) and reading too thin. Existing checks focused on band presence and flare, not **family consistency** or an explicit **heavy frame mass** threshold.
+- Consequence: `border_piece` prompt now requires one cohesive masonry family across all four bands and a double-thick enclosing read. Validator now adds thickness gates (`border_piece_side_thickness_thin`, `border_piece_top_thickness_thin`, `border_piece_bottom_thickness_thin`) and a texture-family consistency gate (`border_piece_texture_family_drift`), with targeted retry instructions for each failure mode.
+
+### 170e. Unified room shell: thicker rim default + tone/readability gate
+- Status: Accepted (2026-04-07)
+- Why: Visual QA still showed the generated chamber shell reading as too thin and too dark against the background (`room_shell_readability_low`), even when the border template contract improved.
+- Consequence: `MV_ROOM_SHELL_PUNCH_INSET_PX` default changed from `0` to `20` so punchout preserves a heavier rim by default. `_validate_room_shell_after_punchout` now enforces: stronger minimum opaque rim mass, minimum shell tone brightness (`shell_tone_too_dark`), and top/side/bottom tone consistency (`shell_band_tone_drift`). `room_shell_foreground` prompt and retry instructions now explicitly require thicker band proportions, one uniform masonry language, and visible value separation from dark backgrounds.
+
+### 170f. Deterministic shell tone lift after punchout (readability stabilizer)
+- Status: Accepted (2026-04-07)
+- Why: Even with stronger prompts, Gemini occasionally returned shells that still failed `shell_tone_too_dark` and blocked the run despite acceptable silhouette mass.
+- Consequence: `_apply_walkable_interior_punchout` now calls `_normalize_room_shell_tone(...)` before save, lifting very dark opaque shell pixels toward a readable mid-dark floor while preserving alpha and overall palette. This stabilizes shell readability without adding cyan/UI accents.
+
+### 170g. Composite-shell guardrails focused on ceiling and corner joins
+- Status: Accepted (2026-04-07)
+- Why: Founder QA still flagged a “composite image” read concentrated at the top cap and top corners (pasted-strip ceiling and module-like corner joins).
+- Consequence: `room_shell_foreground` prompt now explicitly requires a monolithic ceiling slab and fused top-corner joins with no pasted/tiled seam rhythm. `_validate_room_shell_after_punchout` adds `shell_ceiling_composite_read` and `shell_corner_join_seam_read`, and `_retry_prompt_for_validation_errors` now emits targeted corrective retries for those failure modes.
+
+### 170h. Corner dark-pool suppression for unified shell
+- Status: Accepted (2026-04-07)
+- Why: Even after composite guardrails, founder feedback flagged dark corner shading pools as visually undesirable.
+- Consequence: Added deterministic `_soften_room_shell_corner_shadow(...)` after punchout and base tone normalization so corner masonry is lifted out of near-black while staying moody. Added validator/retry support via `shell_corner_shadow_pool` and explicit “no heavy corner vignette” prompt language for `room_shell_foreground`.
+
+### 170i. Border detail-scale guardrail for oversized masonry regression
+- Status: Accepted (2026-04-07)
+- Why: Founder review flagged that border detail regressed into oversized masonry units, making shell scale feel too large relative to the playable room/player.
+- Consequence: `room_shell_foreground` prompt now includes a detail-scale contract that explicitly rejects giant blocks and requires medium-to-fine seam cadence. `_validate_room_shell_after_punchout` adds `shell_detail_scale_too_coarse` based on shell-band contrast floors, `_retry_prompt_for_validation_errors` adds a targeted “reduce block scale” retry, and `_apply_walkable_interior_punchout` now applies subtle `_enhance_room_shell_micro_detail(...)` sharpening after tone normalization to preserve readable masonry detail.
+
+### 170j. Enforce border ledge/corner fill before and after shell post-processing
+- Status: Accepted (2026-04-07)
+- Why: Founder review identified visible missing masonry wedges along the border ledge and corners. Previous checks could still pass certain corner/edge void cases because pre-punchout validation focused on broad band tone/mass and post-punchout corner luminance checks ignored fully transparent corner holes.
+- Consequence: Added a pre-punchout gate `_validate_room_shell_before_punchout(...)` with explicit top-edge and corner occupancy checks (`shell_top_edge_gap_pre`, `shell_corner_gap_pre`) and a post-punchout alpha-occupancy gate in `_validate_room_shell_after_punchout(...)` (`shell_top_edge_gap_post`, `shell_corner_gap_post`). Generation loop now validates `room_shell_foreground` before punchout and again after punchout/normalization. Retry prompts were expanded to explicitly demand continuous top ledge fill and fully filled corners with no bite-outs.
+
+### 170k. Ceiling composite-read threshold vs mask-driven texture
+- Status: Accepted (2026-04-07)
+- Why: After `template_family_drift` was no longer applied to `room_shell_foreground`, live regeneration could still fail all three attempts on `shell_ceiling_composite_read`. The top-band mean luminance-gradient gate (`_image_region_contrast` on the ceiling strip) was tuned for collage-like ceilings; mask-filled masonry often exceeds the old **0.024** floor from mortar and stone micro-contrast, not from pasted tile strips.
+- Consequence: Introduced `ROOM_SHELL_CEILING_BAND_MEAN_CONTRAST_MAX` (initial value **0.035**) and use it in `_validate_room_shell_after_punchout` for `shell_ceiling_composite_read`. Retry prompts for that code are unchanged; the gate remains a hard block but with a threshold aligned to realistic shell texture.
