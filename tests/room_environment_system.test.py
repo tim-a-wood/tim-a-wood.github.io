@@ -2116,7 +2116,7 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
             {"variant_family": "background", "orientation": "full"},
             room_geometry=geom,
         )
-        self.assertIn("footprint schematic", prompt.lower())
+        self.assertIn("room footprint conditioning", prompt.lower())
         self.assertIn("chamber bounds", prompt.lower())
 
     def test_build_bespoke_prompt_room_shell_includes_masonry_thickness_rules(self):
@@ -2152,6 +2152,9 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         self.assertIn("edge-fill contract", low)
         self.assertIn("spatial contract", low)
         self.assertIn("shell_band_axis_aligned_bbox_px_inclusive", prompt)
+        self.assertIn("mask paint", low)
+        self.assertNotIn("only adapt it to the requested fit", low)
+        self.assertNotIn("compose fog, depth, and architecture", low)
 
     def test_room_shell_spatial_contract_json_matches_mask_geometry(self):
         geom = {

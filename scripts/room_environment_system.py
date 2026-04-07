@@ -6211,6 +6211,81 @@ def _room_component_plan(room: Dict[str, Any], preview_id: str, biome_pack: Dict
     return plan
 
 
+def _room_shell_minimal_material_schema_summary(component_schema: Dict[str, Any]) -> str:
+    """Avoid dumping design_intent / silhouette_rules into the shell prompt — they read as 'draw a gothic hall'."""
+    if not isinstance(component_schema, dict):
+        return ""
+    bits = [
+        f"material_family={component_schema.get('material_family') or ''}",
+        f"damage_profile={component_schema.get('damage_profile') or ''}",
+        f"value_contrast={component_schema.get('value_contrast') or ''}",
+    ]
+    return "; ".join(bits)
+
+
+def _build_bespoke_prompt_room_shell_foreground(
+    direction: Dict[str, Any],
+    spec: Dict[str, Any],
+    plan_entry: Dict[str, Any],
+    template: Dict[str, Any],
+    room_geometry: Optional[Dict[str, Any]],
+    dims: Dict[str, Any],
+    schema_key: str,
+    component_schema: Dict[str, Any],
+    protected: str,
+    placement: Dict[str, Any],
+    shell_rules: str,
+) -> str:
+    """
+    Room shell must be mask-driven texture fill, not a scenic interior illustration.
+    Do not reuse the generic bespoke template-adaptation block (it contradicts mask fill).
+    """
+    w = int(dims.get("width") or 0)
+    h = int(dims.get("height") or 0)
+    _geom = room_geometry if isinstance(room_geometry, dict) else {}
+    cw = int(round(float(_geom.get("chamber_width") or 0)))
+    ch = int(round(float(_geom.get("chamber_height") or 0)))
+    spatial_json = ""
+    _poly_c = _geom.get("polygon") or []
+    if isinstance(_poly_c, list) and len(_poly_c) >= 3 and w > 0 and h > 0:
+        spatial_json = _room_shell_spatial_contract_json(_geom, (w, h))
+    spatial_block = ""
+    if spatial_json:
+        spatial_block = (
+            "\nSpatial contract (JSON, same geometry as reference #1):\n"
+            f"{spatial_json}\n"
+        )
+    material_schema = _room_shell_minimal_material_schema_summary(component_schema)
+    return textwrap.dedent(
+        f"""\
+        CRITICAL — MASK PAINT TASK (not a hero illustration, not a cathedral interior shot):
+        Reference #1 is a binary mask at the exact output size. Black pixels = you MUST output opaque weathered stone/mortar there, edge-to-edge within every black region.
+        White pixels = keep-clear (output solid white #FFFFFF in those pixels for this pass). Never paint fog, depth haze, vignette, sky, or distant hall recession in the shell band.
+        FORBIDDEN LAYOUT BUGS: picture-in-picture composition; a smaller scene centered on the canvas; black letterboxing or unused black margins between the image border and the stone; any “postcard” framing.
+        If reference #1 is black along x=0, x=W-1, y=0, or y=H-1, your stone must reach that same edge — do not leave a black gutter outside the masonry.
+
+        Reference #2 (approved preview): palette, stone family, crack/wear density, and lighting temperature ONLY. Do NOT copy its camera, perspective, interior depth, arches-as-setpiece, or composition.
+
+        {shell_rules}
+
+        Exact output width: {w} px
+        Exact output height: {h} px
+        Orientation: {plan_entry.get('orientation') or template.get('orientation') or 'full'}
+        Runtime placement: x={int(placement.get('x') or 0)} y={int(placement.get('y') or 0)} origin=({float(placement.get('origin_x') or 0):.2f},{float(placement.get('origin_y') or 0):.2f})
+        Protected zones: {protected}
+        Tile mode: {plan_entry.get('tile_mode') or 'stretch'}
+        Border treatment: {plan_entry.get('border_treatment') or 'none'}
+        Schema key: {schema_key}
+        Material schema (no scene layout): {material_schema}
+        Art direction (stone vocabulary only — ignore if it suggests a full interior scene): {direction.get('high_level_direction') or ''}
+        Avoid: {direction.get('negative_direction') or ''}
+        Chamber (white hole) approximate size for context: {cw}×{ch} px (do not invent interior perspective in the border bands).
+        {spatial_block}
+        Output one image at exactly {w}×{h} px. No text, no characters, no UI.
+        """
+    ).strip()
+
+
 def _build_bespoke_prompt(
     direction: Dict[str, Any],
     spec: Dict[str, Any],
@@ -6321,6 +6396,20 @@ def _build_bespoke_prompt(
             "Match the template’s stone family but simplify toward one unified mass if the reference shows busy multi-opening gothic tracery."
         ),
     }
+    if component_type == "room_shell_foreground":
+        return _build_bespoke_prompt_room_shell_foreground(
+            direction,
+            spec,
+            plan_entry,
+            template,
+            room_geometry,
+            dims,
+            schema_key,
+            component_schema if isinstance(component_schema, dict) else {},
+            protected,
+            placement,
+            component_rules["room_shell_foreground"],
+        )
     schema_summary = "; ".join([
         f"design_intent={component_schema.get('design_intent') or ''}",
         f"material_family={component_schema.get('material_family') or ''}",
