@@ -77,15 +77,20 @@ function assertIncludes(snippet, message) {
   );
 })();
 
-(function testPreviewGalleryOpensFullSizeInNewTab() {
-  assertIncludes('class="rw-preview-card-open"', 'Preview thumbnails should link open for full-size view');
-  assertIncludes("target=\"_blank\"", 'Preview open link should use a new browsing context');
-  assertIncludes("rel=\"noopener noreferrer\"", 'Preview open link should include noopener noreferrer');
+(function testPreviewGalleryOpensFullSizeInPopup() {
+  assertIncludes('class="rw-preview-card-open"', 'Preview thumbnails should use a control for full-size view');
+  assertIncludes('data-rw-asset-src', 'Preview should carry the asset URL for the viewer');
+  assertIncludes('openRoomEnvironmentAssetPreviewWindow', 'Preview click should open the dark HTML viewer in a popup window');
   assertIncludes(
     '/room-environment-preview-full.html',
     'Full-size preview should open the dark HTML viewer, not the browser default image page'
   );
-  assertIncludes('encodeURIComponent(imgHref)', 'Viewer href should pass the image URL as a same-origin query param');
+  assertIncludes('encodeURIComponent(raw)', 'Viewer should pass the image URL as a same-origin query param');
+})();
+
+(function testBuildSummaryAssetThumbsOpenInPopup() {
+  assertIncludes('rw-environment-asset-open', 'Build summary asset thumbnails should open full size from a button');
+  assertIncludes('data-rw-asset-src', 'Asset thumb buttons should carry the versioned image URL');
 })();
 
 (function testResultsPreviewAvoidsDoublePanelChrome() {
@@ -133,8 +138,12 @@ function assertIncludes(snippet, message) {
     'Open room in game should not duplicate a toolbar button when runtime review launches the preview'
   );
   assertIncludes(
-    'rw-runtime-review-launch',
-    'Runtime review screenshot should be a dedicated launch control in the build summary markup'
+    'rw-runtime-review-open-game',
+    'Runtime review should expose Open in game beside the screenshot'
+  );
+  assertIncludes(
+    'rw-runtime-review-thumb',
+    'Runtime review screenshot should open full size from a dedicated control'
   );
   assertIncludes(
     'rw-runtime-review-row',

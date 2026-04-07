@@ -1528,47 +1528,6 @@
       min-width: 0;
       width: 100%;
     }
-    button.rw-runtime-review-launch {
-      appearance: none;
-      border: none;
-      background: transparent;
-      padding: 0;
-      margin: 0;
-      font: inherit;
-      color: inherit;
-      text-align: left;
-      cursor: pointer;
-      display: grid;
-      gap: 8px;
-      width: 100%;
-      max-width: 100%;
-      min-width: 0;
-      transition: opacity 200ms ease, transform 200ms ease;
-    }
-    button.rw-runtime-review-launch:hover {
-      opacity: 0.92;
-      transform: translateY(-1px);
-    }
-    button.rw-runtime-review-launch:active {
-      opacity: 1;
-      transform: translateY(0);
-    }
-    .rw-runtime-review-launch.rw-environment-asset-thumb img {
-      display: block;
-      width: 100%;
-      max-width: 100%;
-      height: auto;
-      max-height: min(72vh, 880px);
-      object-fit: contain;
-      object-position: top center;
-      border-radius: var(--radius-default);
-      border: 1px solid var(--line);
-      background: var(--panel-2);
-      transition: border-color 200ms ease;
-    }
-    button.rw-runtime-review-launch.rw-environment-asset-thumb:hover img {
-      border-color: var(--line-strong);
-    }
     .rw-environment-output {
       min-width: 0;
     }
@@ -7564,6 +7523,33 @@
         return `${raw}${raw.includes('?') ? '&' : '?'}v=${encodeURIComponent(stamp)}`;
       }
 
+      function openRoomEnvironmentAssetPreviewWindow(srcUrl) {
+        const raw = String(srcUrl || '').trim();
+        if (!raw) return;
+        const viewerBase = new URL('/room-environment-preview-full.html', window.location.origin).href;
+        const fullUrl = `${viewerBase}?src=${encodeURIComponent(raw)}`;
+        const w = Math.min(1200, window.screen.availWidth - 48);
+        const h = Math.min(900, window.screen.availHeight - 80);
+        const left = Math.max(0, Math.round((window.screen.availWidth - w) / 2));
+        const top = Math.max(0, Math.round((window.screen.availHeight - h) / 2));
+        const features = [
+          `width=${w}`,
+          `height=${h}`,
+          `left=${left}`,
+          `top=${top}`,
+          'scrollbars=yes',
+          'resizable=yes',
+        ].join(',');
+        const win = window.open(fullUrl, 'rwRoomEnvAssetPreview', features);
+        if (win) {
+          try {
+            win.opener = null;
+          } catch (e) {
+            /* ignore cross-origin */
+          }
+        }
+      }
+
       function humanizeRoomWizardLabel(value) {
         return String(value || '').replace(/_/g, ' ').trim();
       }
@@ -8022,12 +8008,23 @@
           ? `Overlay geometry: ${(Array.isArray(overlayGeometry.slot_overlays) ? overlayGeometry.slot_overlays.length : 0)} overlay region${(Array.isArray(overlayGeometry.slot_overlays) ? overlayGeometry.slot_overlays.length : 0) === 1 ? '' : 's'} · Doors ${(Array.isArray(overlayGeometry.doors) ? overlayGeometry.doors.length : 0)} · Platforms ${(Array.isArray(overlayGeometry.platforms) ? overlayGeometry.platforms.length : 0)}`
           : '';
         const runtimeReviewMarkup = runtimeReview?.screenshot_url
-          ? `
-            <button type="button" class="rw-runtime-review-launch rw-environment-asset-thumb" aria-label="Open room in game using this runtime review screenshot">
-              <img src="${escapeHtml(assetUrlWithVersion(runtimeReview.screenshot_url || '', runtimeReview.generated_at || bespokeManifest.generated_at || ''))}" alt="Runtime review screenshot" />
-              <span>${escapeHtml(`Runtime review · ${runtimeReview.status || 'idle'}`)}</span>
-              <small>${escapeHtml(`${runtimeReview.review_mode || 'review'}${runtimeReview.capture_issue ? ` · ${runtimeReview.capture_issue}` : ''}`)}</small>
-            </button>`
+          ? (() => {
+              const rrUrl = assetUrlWithVersion(
+                runtimeReview.screenshot_url || '',
+                runtimeReview.generated_at || bespokeManifest.generated_at || ''
+              );
+              return `
+            <div class="rw-runtime-review-block">
+              <button type="button" class="rw-environment-asset-open rw-runtime-review-thumb" data-rw-asset-src="${escapeHtml(rrUrl)}" aria-label="View runtime review full size">
+                <img src="${escapeHtml(rrUrl)}" alt="Runtime review screenshot" />
+              </button>
+              <div class="rw-runtime-review-meta">
+                <span>${escapeHtml(`Runtime review · ${runtimeReview.status || 'idle'}`)}</span>
+                <small>${escapeHtml(`${runtimeReview.review_mode || 'review'}${runtimeReview.capture_issue ? ` · ${runtimeReview.capture_issue}` : ''}`)}</small>
+                <button type="button" class="btn-secondary rw-runtime-review-open-game">Open in game</button>
+              </div>
+            </div>`;
+            })()
           : '';
         const reviewBlockedSlots = Array.isArray(runtimeReview?.fail_reasons) && runtimeReview.fail_reasons.includes('slot_generation_failed');
         const slotGenFailed = reviewBlockedSlots;
@@ -8056,10 +8053,14 @@
                     ${canIterate ? `<button type="button" data-rw-bespoke-slot-action="iterate" data-rw-bespoke-slot-id="${slotIdAttr}" title="Use the current image as the first reference for Gemini">Iterate</button>` : ''}
                   </div>`
                 : '';
+              const assetThumbUrl = item.url ? assetUrlWithVersion(item.url || '', bespokeManifest.generated_at || '') : '';
+              const openFullLabel = `Open full size: ${item.slot_id || item.component_type || 'asset'}`;
               return `
                 <div class="rw-environment-asset-thumb">
                   ${item.url
-                    ? `<img src="${escapeHtml(assetUrlWithVersion(item.url || '', bespokeManifest.generated_at || ''))}" alt="${escapeHtml(item.component_type || 'asset')}" />`
+                    ? `<button type="button" class="rw-environment-asset-open" data-rw-asset-src="${escapeHtml(assetThumbUrl)}" aria-label="${escapeHtml(openFullLabel)}">
+                        <img src="${escapeHtml(assetThumbUrl)}" alt="${escapeHtml(item.component_type || 'asset')}" />
+                      </button>`
                     : `<div class="rw-environment-asset-thumb-empty">${escapeHtml(String(item.generation_source || 'missing'))}</div>`}
                   <span>${escapeHtml(item.slot_id || item.component_type || 'asset')}</span>
                   <small>${escapeHtml(sub.slice(0, 220))}</small>
@@ -8265,21 +8266,17 @@
         }
         const approved = previewState?.approved_image_id || null;
         const version = previewState?.last_generated_at || '';
-        const viewerBase = new URL('/room-environment-preview-full.html', window.location.origin).href;
         gallery.innerHTML = items.map((item) => {
           const active = approved && approved === item.preview_id ? ' active' : '';
           const imgHref = assetUrlWithVersion(item.url || '', version || item.preview_id || '');
           const previewLabel = item.label || 'Room preview';
-          const openLabel = `Open full-size preview in a new tab: ${previewLabel}`;
+          const openLabel = `Open full-size preview in a popup: ${previewLabel}`;
           const levelText = (item.render_level || '').toUpperCase();
           const imgAlt = escapeHtml(previewLabel);
           const imgSrc = escapeHtml(imgHref);
-          const fullViewHref = imgHref
-            ? `${viewerBase}?src=${encodeURIComponent(imgHref)}`
-            : '';
-          const fullViewHrefAttr = escapeHtml(fullViewHref);
+          const dataSrcAttr = escapeHtml(imgHref);
           const mediaMarkup = imgHref
-            ? `<a class="rw-preview-card-open" href="${fullViewHrefAttr}" target="_blank" rel="noopener noreferrer" title="View full size (dark background)" aria-label="${escapeHtml(openLabel)}"><img src="${imgSrc}" alt="${imgAlt}" loading="lazy" /></a>`
+            ? `<button type="button" class="rw-preview-card-open" data-rw-asset-src="${dataSrcAttr}" title="View full size (dark background)" aria-label="${escapeHtml(openLabel)}"><img src="${imgSrc}" alt="${imgAlt}" loading="lazy" /></button>`
             : `<div class="rw-preview-card-media-missing" role="img" aria-label="${imgAlt}">Preview unavailable</div>`;
           return `
             <article class="rw-preview-card${active}">
@@ -10168,12 +10165,29 @@
             }
             return;
           }
-          const launch = event.target.closest('.rw-runtime-review-launch');
-          if (!launch) return;
-          const room = getRoomWizardRoom();
-          if (!room?.id) return;
-          postRoomWizardFeedback(room, 'open_game_preview');
-          openGameWithLayout(room.id);
+          const openGameBtn = event.target.closest('.rw-runtime-review-open-game');
+          if (openGameBtn) {
+            const room = getRoomWizardRoom();
+            if (!room?.id) return;
+            postRoomWizardFeedback(room, 'open_game_preview');
+            openGameWithLayout(room.id);
+          }
+        });
+        document.getElementById('roomWizardDock')?.addEventListener('click', (event) => {
+          const previewBtn = event.target.closest('button.rw-preview-card-open[data-rw-asset-src]');
+          if (previewBtn) {
+            event.preventDefault();
+            openRoomEnvironmentAssetPreviewWindow(previewBtn.getAttribute('data-rw-asset-src'));
+            return;
+          }
+          const assetBtn = event.target.closest('button.rw-environment-asset-open');
+          if (assetBtn) {
+            const src = assetBtn.getAttribute('data-rw-asset-src');
+            if (src) {
+              event.preventDefault();
+              openRoomEnvironmentAssetPreviewWindow(src);
+            }
+          }
         });
         document.getElementById('roomWizardBuildEnvironmentAssets')?.addEventListener('click', async () => {
           const room = getRoomWizardRoom();
