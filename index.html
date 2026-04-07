@@ -2554,20 +2554,20 @@ class AshenHollow extends Phaser.Scene {
                     .setOrigin(0.5, 1)
                     .setDepth(-2)
                     .setVisible(false)
-                    .setAlpha(RUNTIME_REVIEW_CAPTURE_MODE ? 0.24 : (composition.hasBespokeBackground ? 0.4 : 0.5));
+                    .setAlpha(RUNTIME_REVIEW_CAPTURE_MODE ? (composition.hasBespokeBackground ? 0.72 : 0.58) : (composition.hasBespokeBackground ? 0.4 : 0.5));
                 this.roomBackgroundSprites[roomId] = sprite;
                 const feathers = [];
                 const leftFade = this.add.image(room.start + chamberLeft + 96, chamberTop + (chamberHeight / 2), 'fade-edge-left')
                     .setDisplaySize(Math.min(192, chamberWidth * 0.28), chamberHeight)
                     .setDepth(-1.92)
                     .setVisible(false)
-                    .setAlpha(RUNTIME_REVIEW_CAPTURE_MODE ? 0.08 : 0.92);
+                    .setAlpha(RUNTIME_REVIEW_CAPTURE_MODE ? 0.28 : 0.92);
                 feathers.push(leftFade);
                 const rightFade = this.add.image(room.start + chamberRight - 95, chamberTop + (chamberHeight / 2), 'fade-edge-right')
                     .setDisplaySize(Math.min(192, chamberWidth * 0.28), chamberHeight)
                     .setDepth(-1.92)
                     .setVisible(false)
-                    .setAlpha(RUNTIME_REVIEW_CAPTURE_MODE ? 0.08 : 0.92);
+                    .setAlpha(RUNTIME_REVIEW_CAPTURE_MODE ? 0.28 : 0.92);
                 feathers.push(rightFade);
                 /* Top feather fights bespoke ceiling slab (double band + seam); skip when a loaded ceiling owns the cap. */
                 if (!ceilingCapH) {
@@ -2575,14 +2575,14 @@ class AshenHollow extends Phaser.Scene {
                         .setDisplaySize(chamberWidth, Math.min(160, chamberHeight * 0.3))
                         .setDepth(-1.91)
                         .setVisible(false)
-                        .setAlpha(RUNTIME_REVIEW_CAPTURE_MODE ? 0.10 : 0.88);
+                        .setAlpha(RUNTIME_REVIEW_CAPTURE_MODE ? 0.24 : 0.88);
                     feathers.push(topFade);
                 }
                 const bottomFade = this.add.image(room.start + chamberLeft + (chamberWidth / 2), chamberBottom - 96, 'fade-edge-bottom')
                     .setDisplaySize(chamberWidth, Math.min(192, chamberHeight * 0.32))
                     .setDepth(-1.91)
                     .setVisible(false)
-                    .setAlpha(RUNTIME_REVIEW_CAPTURE_MODE ? 0.12 : 0.94);
+                    .setAlpha(RUNTIME_REVIEW_CAPTURE_MODE ? 0.3 : 0.94);
                 feathers.push(bottomFade);
                 this.roomBackgroundFeatherSprites[roomId] = feathers;
             }
@@ -2607,7 +2607,7 @@ class AshenHollow extends Phaser.Scene {
                         .setOrigin(0, 1)
                         .setDepth(-0.18)
                         .setVisible(false)
-                        .setAlpha(RUNTIME_REVIEW_CAPTURE_MODE ? 0.34 : 0.52));
+                        .setAlpha(RUNTIME_REVIEW_CAPTURE_MODE ? 0.62 : 0.52));
                     this.roomMidgroundSprites[roomId] = sprites;
                 } else {
                     let mgSrcW = chamberWidth;
@@ -2628,7 +2628,7 @@ class AshenHollow extends Phaser.Scene {
                         .setOrigin(0.5, 1)
                         .setDepth(composition.hasBespokeMidground ? -0.22 : -0.35)
                         .setVisible(false)
-                        .setAlpha(RUNTIME_REVIEW_CAPTURE_MODE ? 0.16 : (composition.hasBespokeMidground ? 0.24 : 0.34));
+                        .setAlpha(RUNTIME_REVIEW_CAPTURE_MODE ? (composition.hasBespokeMidground ? 0.5 : 0.46) : (composition.hasBespokeMidground ? 0.24 : 0.34));
                     this.roomMidgroundSprites[roomId] = sprite;
                 }
             }
@@ -3007,7 +3007,7 @@ class AshenHollow extends Phaser.Scene {
         const chamberWidth = Math.max(64, chamberRight - chamberLeft);
         /* Between parallax background (-2) and midground side frames (~-0.18) so masonry reads above the far plate. */
         const depth = -1.15;
-        const alpha = RUNTIME_REVIEW_CAPTURE_MODE ? 0.88 : 0.96;
+        const alpha = 0.96;
         let placed = 0;
         ceilingAssets.forEach((asset) => {
             const pl = asset.placement || {};
@@ -4559,7 +4559,7 @@ class AshenHollow extends Phaser.Scene {
         const contrastQa = isContrastQaEnvironment(roomId);
         const camRect = getRoomCameraChamberBoundsWorld(roomId);
         this.cameras.main.setBounds(camRect.x, camRect.y, camRect.width, camRect.height);
-        this.cameras.main.setBackgroundColor(getEnvironmentBackgroundColor(roomId));
+        this.cameras.main.setBackgroundColor(RUNTIME_REVIEW_CAPTURE_MODE ? '#050709' : getEnvironmentBackgroundColor(roomId));
         if (this.envKitText) {
             this.envKitText.setText(
                 `KIT: ${style.wallFamily || 'default'} · ${style.platformFamily || 'default'} · ${style.doorFamily || 'default'}`
@@ -4570,7 +4570,7 @@ class AshenHollow extends Phaser.Scene {
                 this.starField.setAlpha(0);
             } else {
                 this.starField.setTint(getEnvironmentStarfieldTint(roomId));
-                this.starField.setAlpha(this.roomBackgroundSprites?.[roomId] ? 0.3 : 1);
+                this.starField.setAlpha(RUNTIME_REVIEW_CAPTURE_MODE ? 0 : (this.roomBackgroundSprites?.[roomId] ? 0.3 : 1));
             }
         }
         if (this.roomBackgroundSprites) {

@@ -1083,7 +1083,10 @@ function simulateSequenceAttempt(order) {
     assert.ok(html.includes('CAMERA_CHAMBER_SURFACE_BLEED_PX'), 'camera chamber should have vertical surface bleed past polygon');
     assert.ok(html.includes('CAMERA_CHAMBER_SIDE_BLEED_PX'), 'camera chamber should have wider horizontal bleed for wall crop');
     assert.ok(html.includes('RUNTIME_REVIEW_CAPTURE_MODE ? 64 : 48'), 'capture mode should strengthen door readability');
-    assert.ok(html.includes('RUNTIME_REVIEW_CAPTURE_MODE ? 0.24 : (composition.hasBespokeBackground ? 0.4 : 0.5)'), 'capture mode should reduce backdrop weight');
+    assert.ok(
+        html.includes('RUNTIME_REVIEW_CAPTURE_MODE ? (composition.hasBespokeBackground ? 0.72 : 0.58) : (composition.hasBespokeBackground ? 0.4 : 0.5)'),
+        'capture mode should raise scenic backdrop visibility for tone alignment checks'
+    );
         assert.ok(html.includes('addRoomBespokeDoorDecor'), 'runtime should place bespoke door-frame assets into the scene');
         assert.ok(html.includes('addRoomBespokeCeilingDecor'), 'runtime should place bespoke ceiling_band into the scene');
         assert.ok(

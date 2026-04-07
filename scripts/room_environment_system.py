@@ -6298,9 +6298,18 @@ def _build_bespoke_prompt(
             "Composition contract: this prompt defines a structural shell component only. "
             "Do not introduce new scene composition, landmarks, or decorative set-pieces beyond what the template role and technical constraints require."
         )
+    prompt_opening = (
+        "Create a single 2D metroidvania environment component that is a tightly matched equivalent adaptation "
+        "of the attached template."
+    )
+    if component_type == "room_shell_foreground":
+        prompt_opening = (
+            "Create a single 2D metroidvania environment shell component from the attached references "
+            "(silhouette geometry guide + approved room preview)."
+        )
     return textwrap.dedent(
         f"""\
-        Create a single 2D metroidvania environment component that is a tightly matched equivalent adaptation of the attached template.
+        {prompt_opening}
         Preserve the same biome family, silhouette role, and composition discipline.
         Do not redesign the piece. Do not invent a new scene. Only adapt it to the requested fit, dimensions, orientation, and subtle local wear.
         {silhouette_clause}
@@ -7131,8 +7140,12 @@ def _render_bespoke_component_from_template(
         return False
 
 
-def _prefix_iteration_reference_refs(refs: List[Path], iteration_source: Optional[Path]) -> List[Path]:
-    """Prepend the current production asset so Gemini sees it first with the iteration prompt."""
+def _prefix_iteration_reference_refs(
+    refs: List[Path],
+    iteration_source: Optional[Path],
+    component_type: Optional[str] = None,
+) -> List[Path]:
+    """Inject the current production asset into refs for iterative refinement."""
     if iteration_source is None or not iteration_source.exists():
         return refs
     try:
@@ -7140,6 +7153,10 @@ def _prefix_iteration_reference_refs(refs: List[Path], iteration_source: Optiona
         rest = [p for p in refs if (not p.exists()) or p.resolve() != resolved]
     except OSError:
         rest = list(refs)
+    if component_type == "room_shell_foreground":
+        # Keep silhouette first + approved preview second for shell generation.
+        insert_idx = min(2, len(rest))
+        return rest[:insert_idx] + [iteration_source] + rest[insert_idx:]
     return [iteration_source] + rest
 
 
@@ -8530,11 +8547,15 @@ def generate_room_environment_asset_pack(project_id: str, room_id: str, payload:
                 if isinstance(prior_asset, dict) and prior_asset.get("url"):
                     iteration_source_path = _project_url_to_path(project_dir, str(prior_asset["url"]))
                 if iteration_source_path and iteration_source_path.exists():
-                    refs_for_job = _prefix_iteration_reference_refs(refs_for_job, iteration_source_path)
+                    refs_for_job = _prefix_iteration_reference_refs(
+                        refs_for_job,
+                        iteration_source_path,
+                        component_type=component_type,
+                    )
                     prompt = (
                         f"{base_prompt}\n\n"
-                        "Iteration note: the first reference image is this slot's current production asset. "
-                        "Refine it in place—same role, silhouette, and transparency—using the other references for biome alignment."
+                        "Iteration note: one reference image is this slot's current production asset. "
+                        "Refine it in place—same role, silhouette, and transparency—using the silhouette and approved preview references for geometry and palette alignment."
                     )
             validation_reference_path = _validation_reference_for_component(component_type, template_path, refs_for_job)
             attempt_prompt = prompt
@@ -8584,7 +8605,11 @@ def generate_room_environment_asset_pack(project_id: str, room_id: str, payload:
                         room=room,
                     )
                     if iteration_source_path and iteration_source_path.exists():
-                        refs_for_job = _prefix_iteration_reference_refs(refs_for_job, iteration_source_path)
+                        refs_for_job = _prefix_iteration_reference_refs(
+                            refs_for_job,
+                            iteration_source_path,
+                            component_type=component_type,
+                        )
                     validation_reference_path = _validation_reference_for_component(component_type, template_path, refs_for_job)
                     continue
                 valid, errors = _validate_bespoke_component(
@@ -8635,7 +8660,11 @@ def generate_room_environment_asset_pack(project_id: str, room_id: str, payload:
                     room=room,
                 )
                 if iteration_source_path and iteration_source_path.exists():
-                    refs_for_job = _prefix_iteration_reference_refs(refs_for_job, iteration_source_path)
+                    refs_for_job = _prefix_iteration_reference_refs(
+                        refs_for_job,
+                        iteration_source_path,
+                        component_type=component_type,
+                    )
                 validation_reference_path = _validation_reference_for_component(component_type, template_path, refs_for_job)
             if generated and valid and not errors:
                 pass
