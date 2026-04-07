@@ -3274,6 +3274,9 @@ def _validate_room_shell_after_punchout(path: Path, geometry: Dict[str, Any], ex
     alpha_ratio = _alpha_ratio(path)
     if alpha_ratio < 0.04:
         errors.append("missing_required_transparency")
+    # Hairline / schematic-outline shells survive punchout with tiny total opaque area (~1% or less).
+    if _opaque_pixel_fraction(path) < 0.018:
+        errors.append("shell_rim_mass_low")
     return len(errors) == 0, errors
 
 
@@ -3954,6 +3957,17 @@ def _alpha_ratio(path: Path) -> float:
     if not alpha:
         return 0.0
     return sum(1 for value in alpha if value < 250) / len(alpha)
+
+
+def _opaque_pixel_fraction(path: Path, alpha_threshold: int = 128) -> float:
+    """Fraction of pixels with alpha above threshold (post-punchout shell mass gate)."""
+    img = Image.open(path).convert("RGBA")
+    alpha = img.getchannel("A")
+    data = list(alpha.getdata())
+    if not data:
+        return 0.0
+    hi = sum(1 for value in data if value > alpha_threshold)
+    return hi / len(data)
 
 
 def _validate_environment_asset(path: Path, kind: str, expected_size: Tuple[int, int]) -> bool:
@@ -6886,6 +6900,13 @@ def _retry_prompt_for_validation_errors(component_type: str, prompt: str, errors
     if component_type == "door_frame" and "missing_required_transparency" in errors and attempt_index < 2:
         return f"{prompt}\nRetry instruction: output a true cutout doorway PNG. Preserve transparent pixels outside the stone frame and through the doorway mouth. Do not paint a full rectangular background or surrounding room."
     if component_type == "room_shell_foreground" and attempt_index < 2:
+        if "shell_rim_mass_low" in errors:
+            return (
+                f"{prompt}\nRetry instruction: the last output read as a thin outline or stroke, not a thick chamber shell. "
+                "Fill wide opaque masonry bands: ceiling (top ~12–20% of height), side walls (~8–14% of width each), "
+                "and floor footing (~8–14% of height) with visible stone, mortar, chips, and wear. "
+                "Do not output a single-pixel, neon, or HUD-accent rim; do not trace the guide as a hairline frame."
+            )
         if "walkable_interior_not_cleared" in errors:
             return (
                 f"{prompt}\nRetry instruction: the walkable interior must end up transparent after processing. "

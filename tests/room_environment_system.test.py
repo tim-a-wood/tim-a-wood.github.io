@@ -1319,6 +1319,26 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         with mock.patch.dict(os.environ, {"MV_ROOM_SHELL_PUNCH_INSET_PX": "99"}, clear=False):
             self.assertEqual(envsys._room_shell_punch_inset_px(), 48)
 
+    def test_opaque_pixel_fraction_counts_visible_mass(self):
+        path = self.root / "opaque-frac.png"
+        envsys.Image.new("RGBA", (100, 100), (0, 0, 0, 0)).save(path)
+        self.assertLess(envsys._opaque_pixel_fraction(path), 0.018)
+        img = envsys.Image.open(path).convert("RGBA")
+        px = img.load()
+        for x in range(100):
+            for y in range(20):
+                px[x, y] = (100, 110, 120, 255)
+        img.save(path)
+        self.assertGreaterEqual(envsys._opaque_pixel_fraction(path), 0.018)
+
+    def test_validate_room_shell_after_punchout_rejects_hairline_mass(self):
+        geom = envsys._room_geometry(copy.deepcopy(self.saved["room_layout"]["rooms"][0]))
+        path = self.root / "shell-hairline-mass.png"
+        envsys.Image.new("RGBA", (400, 320), (0, 0, 0, 0)).save(path)
+        ok, errors = envsys._validate_room_shell_after_punchout(path, geom, (400, 320))
+        self.assertFalse(ok)
+        self.assertIn("shell_rim_mass_low", errors)
+
     def test_v3_planner_uses_component_specific_structural_slots(self):
         room = copy.deepcopy(self.saved["room_layout"]["rooms"][0])
         room["size"] = {"width": 1184, "height": 1888}
