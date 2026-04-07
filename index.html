@@ -2823,6 +2823,39 @@ class AshenHollow extends Phaser.Scene {
         return true;
     }
 
+    /**
+     * Unified shell PNGs often paint masonry a few dozen pixels past the chamber opening (mask bleed).
+     * Polygon wall tiles only fill *outside* the footprint, so the player can walk into the stone art.
+     * Add thin vertical collider strips just *inside* the chamber left/right bounds to match the visible wall face.
+     */
+    addRoomBespokeShellInteriorSideColliders(roomId, support, tile, layoutFloorTileCenterY) {
+        if (!support?.roomBounds || !support?.chamberBounds || !Number.isFinite(layoutFloorTileCenterY)) return;
+        const poly = support.chamberBounds;
+        const roomStart = support.roomBounds.start;
+        const roomWidth = Math.max(1, Number(support.roomBounds.width) || 0);
+        const chamberLeft = Phaser.Math.Clamp(Number(poly.left || 0), 0, roomWidth);
+        const chamberRight = Phaser.Math.Clamp(Number(poly.right || roomWidth), chamberLeft, roomWidth);
+        const chamberW = Math.max(0, chamberRight - chamberLeft);
+        const lipCols = chamberW >= 288 ? 2 : 1;
+        if (chamberW < lipCols * 32 * 3) return;
+        const topY = Number(poly.top || support.roomTop || 0);
+        const lastWallCenterY = layoutFloorTileCenterY - tile;
+        if (lastWallCenterY < topY + tile) return;
+        const wallTextureKey = resolveRoomSurfaceTexture(this, roomId, 'wall');
+        for (let cy = topY + 16; cy <= lastWallCenterY; cy += tile) {
+            for (let c = 0; c < lipCols; c += 1) {
+                const localLX = chamberLeft + 16 + (c * tile);
+                if (localLX + 16 > chamberRight - (lipCols * tile)) break;
+                this.createRoomSurfaceTile(roomStart + localLX, cy, roomId, wallTextureKey, 'wall');
+            }
+            for (let c = 0; c < lipCols; c += 1) {
+                const localRX = chamberRight - 16 - (c * tile);
+                if (localRX - 16 < chamberLeft + (lipCols * tile)) break;
+                this.createRoomSurfaceTile(roomStart + localRX, cy, roomId, wallTextureKey, 'wall');
+            }
+        }
+    }
+
     addRoomBespokeWallShellDecor(roomId, support = null) {
         const wallAssets = getRoomEnvironmentBespokeWallShellAssets(roomId);
         const trimAssets = getRoomEnvironmentBespokeAssetsByType(roomId, ['wall_base_trim_left', 'wall_base_trim_right']);
@@ -3550,6 +3583,7 @@ class AshenHollow extends Phaser.Scene {
             };
             if (roomHasBespokeUnifiedShellForeground(roomId) && this.addRoomBespokeUnifiedShellForegroundDecor(roomId, shellSupport)) {
                 /* Unified shell carries wall + ceiling + primary floor read; skip modular wall modules and trims. */
+                this.addRoomBespokeShellInteriorSideColliders(roomId, shellSupport, tile, layoutFloorTileCenterY);
             } else if (!this.addRoomBespokeWallShellDecor(roomId, shellSupport)) {
                 if (!roomHasPolygonWallTileRects(roomId)) {
                     if (leftMassWidth >= 24) {
