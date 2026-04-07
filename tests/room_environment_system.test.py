@@ -87,7 +87,10 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         self.tmp.cleanup()
 
     def _fake_ai_generate(self, output_path, prompt, refs, size, transparent, component_type=None):
-        if output_path.name in {"foreground_frame.png", "foreground_frame-candidate.png"}:
+        if output_path.name in {"foreground_frame.png", "foreground_frame-candidate.png"} or component_type in {
+            "foreground_frame",
+            "room_shell_foreground",
+        }:
             img = envsys.Image.new("RGBA", size, envsys.FOREGROUND_FRAME_CENTER_KEY_RGB + (255,))
             draw = envsys.ImageDraw.Draw(img)
             draw.rectangle((0, 0, size[0], int(size[1] * 0.20)), fill=(84, 74, 64, 255))
@@ -1266,6 +1269,41 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
             )
         panels = [item for item in planner["plan"] if item["component_type"] == "backwall_panel"]
         self.assertEqual(len(panels), 0)
+
+    def test_v3_planner_unified_shell_env_replaces_ceiling_walls_and_main_floor(self):
+        room = copy.deepcopy(self.saved["room_layout"]["rooms"][0])
+        room["size"] = {"width": 1600, "height": 1200}
+        with mock.patch.dict(os.environ, {"MV_ROOM_SHELL_FOREGROUND": "1"}, clear=False):
+            planner = envv3.build_generation_plan(
+                room,
+                "preview-shell",
+                self._mock_biome_pack(),
+                "2026-04-07T12:00:00Z",
+            )
+        types = [item["component_type"] for item in planner["plan"]]
+        self.assertIn("room_shell_foreground", types)
+        self.assertNotIn("ceiling_band", types)
+        self.assertNotIn("wall_module_left", types)
+        self.assertNotIn("main_floor_top", types)
+        shell = next(item for item in planner["plan"] if item["component_type"] == "room_shell_foreground")
+        self.assertEqual(shell["source_template_component_type"], "foreground_frame")
+        self.assertEqual(shell["transparency_mode"], "alpha")
+        td = shell["target_dimensions"]
+        self.assertEqual(td["width"], 1280)
+        self.assertEqual(td["height"], 880)
+
+    def test_apply_walkable_interior_punchout_clears_polygon_interior(self):
+        geom = envsys._room_geometry(copy.deepcopy(self.saved["room_layout"]["rooms"][0]))
+        w, h = 400, 320
+        path = self.root / "shell-punch.png"
+        img = envsys.Image.new("RGBA", (w, h), (80, 90, 100, 255))
+        img.save(path)
+        envsys._apply_walkable_interior_punchout(path, geom)
+        out = envsys.Image.open(path).convert("RGBA")
+        px = out.load()
+        # Center of chamber (polygon interior) should be punched transparent
+        cx, cy = w // 2, h // 2
+        self.assertLess(px[cx, cy][3], 16)
 
     def test_v3_planner_uses_component_specific_structural_slots(self):
         room = copy.deepcopy(self.saved["room_layout"]["rooms"][0])
@@ -2850,9 +2888,11 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         self.assertEqual(envsys.V2_SLOT_SPEC_BY_TYPE["ceiling_band"]["template_component_type"], "ceiling_piece")
         self.assertEqual(envsys.V2_SLOT_SPEC_BY_TYPE["wall_module_left"]["template_component_type"], "wall_piece")
         self.assertEqual(envsys.V2_SLOT_SPEC_BY_TYPE["main_floor_top"]["template_component_type"], "primary_floor_piece")
+        self.assertEqual(envsys.V2_SLOT_SPEC_BY_TYPE["room_shell_foreground"]["template_component_type"], "foreground_frame")
         self.assertEqual(envv3.TEMPLATE_COMPONENT_BY_SLOT["ceiling_band"], "ceiling_piece")
         self.assertEqual(envv3.TEMPLATE_COMPONENT_BY_SLOT["wall_module_left"], "wall_piece")
         self.assertEqual(envv3.TEMPLATE_COMPONENT_BY_SLOT["main_floor_face"], "primary_floor_piece")
+        self.assertEqual(envv3.TEMPLATE_COMPONENT_BY_SLOT["room_shell_foreground"], "foreground_frame")
 
     def test_validate_wall_piece_source_rejects_recess_read(self):
         path = self.root / "wall-piece-bad.png"

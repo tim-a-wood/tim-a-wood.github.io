@@ -1291,10 +1291,17 @@ function getRoomEnvironmentBespokeAsset(roomId, componentType) {
         wall_base_trim_right: ['wall_base_trim_right'],
         door_frame: ['door_frame'],
         ceiling_band: ['ceiling_band'],
-        ceiling_piece: ['ceiling_piece', 'ceiling_band']
+        ceiling_piece: ['ceiling_piece', 'ceiling_band'],
+        room_shell_foreground: ['room_shell_foreground']
     };
     const accepted = aliases[componentType] || [componentType];
     return assets.find((item) => item && accepted.includes(item.component_type) && item.url) || null;
+}
+
+function roomHasBespokeUnifiedShellForeground(roomId) {
+    if (!ENABLE_BESPOKE_ROOM_RUNTIME) return false;
+    const asset = getRoomEnvironmentBespokeAsset(roomId, 'room_shell_foreground');
+    return Boolean(asset?.url);
 }
 
 function getRoomEnvironmentBespokeAssetsByType(roomId, componentTypes) {
@@ -2787,6 +2794,35 @@ class AshenHollow extends Phaser.Scene {
         return sprite;
     }
 
+    addRoomBespokeUnifiedShellForegroundDecor(roomId, support = null) {
+        if (!support?.roomBounds || !support?.chamberBounds) return false;
+        const asset = getRoomEnvironmentBespokeAsset(roomId, 'room_shell_foreground');
+        if (!asset?.url || !this.textures.exists(`env-bespoke-${asset.slot_id}`)) return false;
+        const roomBounds = support.roomBounds;
+        const poly = support.chamberBounds;
+        const chamberLeft = Number(poly.left || 0);
+        const chamberRight = Number(poly.right || roomBounds.width);
+        const chamberBottom = Number(poly.bottom || CONFIG.WORLD_HEIGHT);
+        const chamberWidth = Math.max(64, chamberRight - chamberLeft);
+        const chamberHeight = Math.max(64, Number(poly.bottom || 0) - Number(poly.top || 0));
+        const pl = asset.placement || {};
+        const dw = Math.max(1, Number(pl.display_width || asset.final_dimensions?.width || chamberWidth));
+        const dh = Math.max(1, Number(pl.display_height || asset.final_dimensions?.height || chamberHeight));
+        const ox = Number(pl.origin_x ?? 0.5);
+        const oy = Number(pl.origin_y ?? 1);
+        const localX = Number(pl.x != null ? pl.x : chamberLeft + chamberWidth * 0.5);
+        const localY = Number(pl.y != null ? pl.y : chamberBottom);
+        /* Between midground side frames (~-0.18) and bespoke wall shell (0.17); one coherent chamber shell. */
+        const depth = RUNTIME_REVIEW_CAPTURE_MODE ? 0.1 : 0.12;
+        const sprite = this.add.image(roomBounds.start + localX, localY, `env-bespoke-${asset.slot_id}`)
+            .setOrigin(ox, oy)
+            .setDisplaySize(dw, dh)
+            .setDepth(depth)
+            .setAlpha(RUNTIME_REVIEW_CAPTURE_MODE ? 1 : 0.98);
+        this.environmentDecor.push(sprite);
+        return true;
+    }
+
     addRoomBespokeWallShellDecor(roomId, support = null) {
         const wallAssets = getRoomEnvironmentBespokeWallShellAssets(roomId);
         const trimAssets = getRoomEnvironmentBespokeAssetsByType(roomId, ['wall_base_trim_left', 'wall_base_trim_right']);
@@ -3077,7 +3113,9 @@ class AshenHollow extends Phaser.Scene {
             const chamberStartX = roomBounds.start + chamberLeft;
             if (isContrastQaEnvironment(roomId)) return;
             this.addRoomBespokeDoorDecor(roomId);
-            this.addRoomBespokeCeilingDecor(roomId);
+            if (!roomHasBespokeUnifiedShellForeground(roomId)) {
+                this.addRoomBespokeCeilingDecor(roomId);
+            }
             const schema = getRoomEnvironmentSceneSchema(roomId);
             const platforms = Array.isArray(room.platforms) ? room.platforms : [];
             const doorXs = (room.doors || []).map((door) => Number(door.x || 0));
@@ -3467,7 +3505,9 @@ class AshenHollow extends Phaser.Scene {
                 const supportWidth = primaryFloorWidth;
                 const bespokePrimaryCap = getRoomEnvironmentBespokePrimaryFloorAsset(roomId);
                 const mergeBespokeFloor = Boolean(
-                    bespokePrimaryCap?.url && this.textures.exists(`env-bespoke-${bespokePrimaryCap.slot_id}`)
+                    !roomHasBespokeUnifiedShellForeground(roomId)
+                    && bespokePrimaryCap?.url
+                    && this.textures.exists(`env-bespoke-${bespokePrimaryCap.slot_id}`)
                 );
                 if (!mergeBespokeFloor) {
                     if (!this.addRoomBespokePrimaryFloorFaceDecor(roomId, {
@@ -3500,14 +3540,17 @@ class AshenHollow extends Phaser.Scene {
             const upperMassHeight = Math.max(128, floorPlaneTop - upperMassY);
             const leftMassWidth = Math.max(0, Number(polygonBounds.left || 0));
             const rightMassWidth = Math.max(0, roomBounds.width - Number(polygonBounds.right || roomBounds.width));
-            if (!this.addRoomBespokeWallShellDecor(roomId, {
+            const shellSupport = {
                 roomBounds,
                 roomTop,
                 floorWorldY,
                 walkPlaneTopY,
                 floorTileCenterY: primaryFloorPlatform ? layoutFloorTileCenterY : null,
                 chamberBounds: polygonBounds
-            })) {
+            };
+            if (roomHasBespokeUnifiedShellForeground(roomId) && this.addRoomBespokeUnifiedShellForegroundDecor(roomId, shellSupport)) {
+                /* Unified shell carries wall + ceiling + primary floor read; skip modular wall modules and trims. */
+            } else if (!this.addRoomBespokeWallShellDecor(roomId, shellSupport)) {
                 if (!roomHasPolygonWallTileRects(roomId)) {
                     if (leftMassWidth >= 24) {
                         this.addRoomWallMassDecor(roomId, roomBounds.start, upperMassY, leftMassWidth, upperMassHeight, 0.98);

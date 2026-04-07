@@ -571,6 +571,8 @@ def _default_biome_label(direction: Dict[str, Any]) -> str:
 
 
 def _component_adaptation_mode(component_type: str) -> str:
+    if component_type == "room_shell_foreground":
+        return "gemini"
     if component_type in {
         "background_plate",
         "midground_frame",
@@ -599,6 +601,7 @@ def _biome_component_generation_order(component_type: str) -> int:
         "hero_platform_piece": 4,
         "background_plate": 10,
         "midground_frame": 11,
+        "room_shell_foreground": 11,
         "door_piece": 12,
     }
     return order.get(component_type, 99)
@@ -1530,6 +1533,11 @@ def _keywords(text: str) -> List[str]:
         if len(out) >= 6:
             break
     return out
+
+
+def _use_unified_room_shell() -> bool:
+    raw = os.environ.get("MV_ROOM_SHELL_FOREGROUND", "0").strip().lower()
+    return raw in ("1", "true", "yes", "on")
 
 
 def _room_geometry(room: Dict[str, Any]) -> Dict[str, Any]:
@@ -2471,6 +2479,7 @@ COMPONENT_SCHEMA_DEFAULTS: Dict[str, Dict[str, Any]] = {
 V2_SLOT_FAMILY_SPECS: Tuple[Dict[str, Any], ...] = (
     {"component_type": "background_far_plate", "schema_key": "background", "template_component_type": "background_plate", "size": (1600, 1200), "orientation": "full", "transparency_mode": "opaque", "visual_role": "far_depth", "slot_group": "background", "tile_mode": "stretch"},
     {"component_type": "midground_side_frame", "schema_key": "midground", "template_component_type": "midground_frame", "size": (1600, 1200), "orientation": "full", "transparency_mode": "alpha", "visual_role": "side_frame", "slot_group": "midground", "tile_mode": "stretch"},
+    {"component_type": "room_shell_foreground", "schema_key": "walls", "template_component_type": "foreground_frame", "size": (1600, 1200), "orientation": "full", "transparency_mode": "alpha", "visual_role": "unified_chamber_shell", "slot_group": "foreground", "tile_mode": "stretch"},
     {"component_type": "ceiling_band", "schema_key": "ceiling", "template_component_type": "ceiling_piece", "size": (1600, 224), "orientation": "horizontal", "transparency_mode": "opaque", "visual_role": "structural_ceiling", "slot_group": "ceiling", "tile_mode": "stretch"},
     {"component_type": "wall_module_left", "schema_key": "walls", "template_component_type": "wall_piece", "size": (320, 960), "orientation": "vertical", "transparency_mode": "opaque", "visual_role": "structural_wall", "slot_group": "walls", "tile_mode": "stretch"},
     {"component_type": "wall_module_right", "schema_key": "walls", "template_component_type": "wall_piece", "size": (320, 960), "orientation": "vertical", "transparency_mode": "opaque", "visual_role": "structural_wall", "slot_group": "walls", "tile_mode": "stretch"},
@@ -3142,24 +3151,23 @@ def _chamber_point_to_output_pixel(
     return nx, ny
 
 
-def _write_bespoke_room_silhouette_reference(geometry: Dict[str, Any], output_path: Path, size: Tuple[int, int]) -> bool:
-    """
-    Raster footprint map: chamber polygon + platform/door markers at exact bespoke output resolution.
-    Prepended to Gemini refs for full-frame scenic slots so generation matches non-rectangular rooms.
-    """
+def _geometry_footprint_polygon_output_pixels(
+    geometry: Dict[str, Any],
+    out_w: int,
+    out_h: int,
+    pad: int = 24,
+) -> List[Tuple[int, int]]:
     poly_src = geometry.get("polygon") or []
     if not isinstance(poly_src, list) or len(poly_src) < 3:
-        return False
-    out_w, out_h = int(size[0]), int(size[1])
+        return []
     if out_w < 64 or out_h < 64:
-        return False
-    pad = 24
+        return []
     left = float(geometry.get("left") or 0.0)
     top_g = float(geometry.get("top") or 0.0)
     chamber_w = float(geometry.get("chamber_width") or 0.0)
     chamber_h = float(geometry.get("chamber_height") or 0.0)
     if chamber_w <= 1.0 or chamber_h <= 1.0:
-        return False
+        return []
     points: List[Tuple[int, int]] = []
     for pt in poly_src:
         if not isinstance(pt, (list, tuple)) or len(pt) != 2:
@@ -3169,7 +3177,75 @@ def _write_bespoke_room_silhouette_reference(geometry: Dict[str, Any], output_pa
         )
         points.append((int(round(nx)), int(round(ny))))
     if len(points) < 3:
+        return []
+    return points
+
+
+def _apply_walkable_interior_punchout(path: Path, geometry: Dict[str, Any]) -> None:
+    """After Gemini shell generation, force the walkable polygon interior to transparent alpha."""
+    if not path.exists():
+        return
+    img = Image.open(path).convert("RGBA")
+    w, h = img.size
+    pad = 24
+    pts = _geometry_footprint_polygon_output_pixels(geometry, w, h, pad)
+    if len(pts) < 3:
+        return
+    alpha = img.split()[3]
+    keep = Image.new("L", (w, h), 255)
+    ImageDraw.Draw(keep).polygon(pts, fill=0)
+    new_alpha = ImageChops.multiply(alpha, keep)
+    img.putalpha(new_alpha)
+    img.save(path)
+
+
+def _validate_room_shell_after_punchout(path: Path, geometry: Dict[str, Any], expected_size: Tuple[int, int]) -> Tuple[bool, List[str]]:
+    errors: List[str] = []
+    if not path.exists():
+        return False, ["missing_file"]
+    img = Image.open(path).convert("RGBA")
+    if img.size != expected_size:
+        errors.append("size_mismatch")
+    w, h = img.size
+    pad = 24
+    pts = _geometry_footprint_polygon_output_pixels(geometry, w, h, pad)
+    if len(pts) < 3:
+        return len(errors) == 0, errors
+    mask = Image.new("L", (w, h), 0)
+    ImageDraw.Draw(mask).polygon(pts, fill=255)
+    alpha = img.split()[3]
+    step = max(2, min(w, h) // 64)
+    opaque_in = 0
+    total_in = 0
+    for y in range(pad, max(pad + 1, h - pad), step):
+        for x in range(pad, max(pad + 1, w - pad), step):
+            if mask.getpixel((x, y)) < 128:
+                continue
+            total_in += 1
+            if alpha.getpixel((x, y)) > 32:
+                opaque_in += 1
+    if total_in >= 12 and (opaque_in / total_in) > 0.12:
+        errors.append("walkable_interior_not_cleared")
+    alpha_ratio = _alpha_ratio(path)
+    if alpha_ratio < 0.04:
+        errors.append("missing_required_transparency")
+    return len(errors) == 0, errors
+
+
+def _write_bespoke_room_silhouette_reference(geometry: Dict[str, Any], output_path: Path, size: Tuple[int, int]) -> bool:
+    """
+    Raster footprint map: chamber polygon + platform/door markers at exact bespoke output resolution.
+    Prepended to Gemini refs for full-frame scenic slots so generation matches non-rectangular rooms.
+    """
+    out_w, out_h = int(size[0]), int(size[1])
+    pad = 24
+    points = _geometry_footprint_polygon_output_pixels(geometry, out_w, out_h, pad)
+    if len(points) < 3:
         return False
+    left = float(geometry.get("left") or 0.0)
+    top_g = float(geometry.get("top") or 0.0)
+    chamber_w = float(geometry.get("chamber_width") or 0.0)
+    chamber_h = float(geometry.get("chamber_height") or 0.0)
     image = Image.new("RGBA", (out_w, out_h), (12, 16, 20, 255))
     draw = ImageDraw.Draw(image)
     fill_rgb = (32, 44, 52, 228)
@@ -5482,62 +5558,99 @@ def _room_component_plan(room: Dict[str, Any], preview_id: str, biome_pack: Dict
             "protected_zones": [{"type": "main_route", "x": int(width * 0.3), "y": 0, "width": int(width * 0.4), "height": height}],
             "local_geometry": {"room_width": width, "room_height": height},
         })
-    if ceiling_template:
-        ceiling_height = max(128, int(round(height * 0.18)))
-        ceiling_spec = _slot_spec("ceiling_band")
+    shell_poly_ok = len(geometry.get("polygon") or []) >= 3
+    shell_template = (
+        _template_by_component(biome_pack, "foreground_frame")
+        if _use_unified_room_shell() and shell_poly_ok
+        else None
+    )
+    unified_shell = bool(shell_template)
+    if unified_shell:
+        cw = max(1, int(round(float(geometry.get("chamber_width") or 0))))
+        ch = max(1, int(round(float(geometry.get("chamber_height") or 0))))
+        cl = int(round(float(geometry.get("left") or 0)))
+        ct = int(round(float(geometry.get("top") or 0)))
+        cb = int(round(float(geometry.get("bottom") or 0)))
+        shell_spec = _slot_spec("room_shell_foreground")
         plan.append({
-            "slot_id": f"{room_id}-ceiling",
-            "component_type": "ceiling_band",
-            "schema_key": ceiling_spec["schema_key"],
-            "source_template_id": ceiling_template["template_id"],
-            "target_dimensions": {"width": width, "height": ceiling_height},
-            "placement": {"x": int(width / 2), "y": 0, "display_width": width, "display_height": ceiling_height, "origin_x": 0.5, "origin_y": 0},
-            "orientation": "horizontal",
-            "tile_mode": ceiling_spec["tile_mode"],
-            "border_treatment": "ceiling_cap",
-            "slot_group": ceiling_spec["slot_group"],
-            "protected_zones": [{"type": "center_lane", "x": int(width * 0.25), "y": 0, "width": int(width * 0.5), "height": height}],
-            "local_geometry": {"room_width": width, "room_height": height},
+            "slot_id": f"{room_id}-room-shell",
+            "component_type": "room_shell_foreground",
+            "schema_key": shell_spec["schema_key"],
+            "source_template_id": shell_template["template_id"],
+            "target_dimensions": {"width": cw, "height": ch},
+            "placement": {"x": int(cl + cw / 2), "y": cb, "display_width": cw, "display_height": ch, "origin_x": 0.5, "origin_y": 1},
+            "orientation": "full",
+            "tile_mode": shell_spec["tile_mode"],
+            "border_treatment": "unified_chamber_shell",
+            "slot_group": shell_spec["slot_group"],
+            "protected_zones": [{"type": "walkable_shell_interior", "x": cl, "y": ct, "width": cw, "height": ch}],
+            "local_geometry": {
+                "room_width": width,
+                "room_height": height,
+                "chamber_left": cl,
+                "chamber_top": ct,
+                "chamber_width": cw,
+                "chamber_height": ch,
+            },
+            "transparency_mode": "alpha",
         })
-    if wall_template:
-        wall_module_width = max(320, int(round(width * 0.19)))
-        wall_module_height = max(320, height - 180)
-        wall_base_width = max(256, int(round(width * 0.15)))
-        for side, x in (("left", 0), ("right", max(0, width - wall_module_width))):
-            slot_type = f"wall_module_{side}"
-            slot_spec = _slot_spec(slot_type)
+    else:
+        if ceiling_template:
+            ceiling_height = max(128, int(round(height * 0.18)))
+            ceiling_spec = _slot_spec("ceiling_band")
             plan.append({
-                "slot_id": f"{room_id}-wall-module-{side}",
-                "component_type": slot_type,
-                "schema_key": slot_spec["schema_key"],
-                "source_template_id": wall_template["template_id"],
-                "target_dimensions": {"width": wall_module_width, "height": wall_module_height},
-                "placement": {"x": x, "y": 0, "display_width": wall_module_width, "display_height": wall_module_height, "origin_x": 0, "origin_y": 0},
-                "orientation": "vertical",
-                "tile_mode": slot_spec["tile_mode"],
-                "border_treatment": "dark_outer_edge",
-                "slot_group": slot_spec["slot_group"],
-                "protected_zones": [{"type": "center_lane", "x": int(width * 0.26), "y": 0, "width": int(width * 0.48), "height": height}],
-                "local_geometry": {"side": side, "room_width": width, "room_height": height},
-            })
-            trim_type = f"wall_base_trim_{side}"
-            trim_spec = _slot_spec(trim_type)
-            plan.append({
-                "slot_id": f"{room_id}-wall-base-{side}",
-                "component_type": trim_type,
-                "schema_key": trim_spec["schema_key"],
-                "source_template_id": wall_template["template_id"],
-                "target_dimensions": {"width": wall_base_width, "height": 160},
-                "placement": {"x": 0 if side == "left" else max(0, width - wall_base_width), "y": max(0, height - 220), "display_width": wall_base_width, "display_height": 160, "origin_x": 0, "origin_y": 0},
+                "slot_id": f"{room_id}-ceiling",
+                "component_type": "ceiling_band",
+                "schema_key": ceiling_spec["schema_key"],
+                "source_template_id": ceiling_template["template_id"],
+                "target_dimensions": {"width": width, "height": ceiling_height},
+                "placement": {"x": int(width / 2), "y": 0, "display_width": width, "display_height": ceiling_height, "origin_x": 0.5, "origin_y": 0},
                 "orientation": "horizontal",
-                "tile_mode": trim_spec["tile_mode"],
-                "border_treatment": "base_trim",
-                "slot_group": trim_spec["slot_group"],
-                "protected_zones": [{"type": "floor_lane", "x": int(width * 0.22), "y": int(height * 0.7), "width": int(width * 0.56), "height": int(height * 0.3)}],
-                "local_geometry": {"side": side, "room_width": width, "room_height": height},
+                "tile_mode": ceiling_spec["tile_mode"],
+                "border_treatment": "ceiling_cap",
+                "slot_group": ceiling_spec["slot_group"],
+                "protected_zones": [{"type": "center_lane", "x": int(width * 0.25), "y": 0, "width": int(width * 0.5), "height": height}],
+                "local_geometry": {"room_width": width, "room_height": height},
             })
+        if wall_template:
+            wall_module_width = max(320, int(round(width * 0.19)))
+            wall_module_height = max(320, height - 180)
+            wall_base_width = max(256, int(round(width * 0.15)))
+            for side, x in (("left", 0), ("right", max(0, width - wall_module_width))):
+                slot_type = f"wall_module_{side}"
+                slot_spec = _slot_spec(slot_type)
+                plan.append({
+                    "slot_id": f"{room_id}-wall-module-{side}",
+                    "component_type": slot_type,
+                    "schema_key": slot_spec["schema_key"],
+                    "source_template_id": wall_template["template_id"],
+                    "target_dimensions": {"width": wall_module_width, "height": wall_module_height},
+                    "placement": {"x": x, "y": 0, "display_width": wall_module_width, "display_height": wall_module_height, "origin_x": 0, "origin_y": 0},
+                    "orientation": "vertical",
+                    "tile_mode": slot_spec["tile_mode"],
+                    "border_treatment": "dark_outer_edge",
+                    "slot_group": slot_spec["slot_group"],
+                    "protected_zones": [{"type": "center_lane", "x": int(width * 0.26), "y": 0, "width": int(width * 0.48), "height": height}],
+                    "local_geometry": {"side": side, "room_width": width, "room_height": height},
+                })
+                trim_type = f"wall_base_trim_{side}"
+                trim_spec = _slot_spec(trim_type)
+                plan.append({
+                    "slot_id": f"{room_id}-wall-base-{side}",
+                    "component_type": trim_type,
+                    "schema_key": trim_spec["schema_key"],
+                    "source_template_id": wall_template["template_id"],
+                    "target_dimensions": {"width": wall_base_width, "height": 160},
+                    "placement": {"x": 0 if side == "left" else max(0, width - wall_base_width), "y": max(0, height - 220), "display_width": wall_base_width, "display_height": 160, "origin_x": 0, "origin_y": 0},
+                    "orientation": "horizontal",
+                    "tile_mode": trim_spec["tile_mode"],
+                    "border_treatment": "base_trim",
+                    "slot_group": trim_spec["slot_group"],
+                    "protected_zones": [{"type": "floor_lane", "x": int(width * 0.22), "y": int(height * 0.7), "width": int(width * 0.56), "height": int(height * 0.3)}],
+                    "local_geometry": {"side": side, "room_width": width, "room_height": height},
+                })
     floor_template = _template_by_component(biome_pack, "primary_floor_piece") or wall_template
-    if floor_template and primary_floor:
+    if floor_template and primary_floor and not unified_shell:
         primary_floor_face_height = 64
         top_spec = _slot_spec("main_floor_top")
         plan.append({
@@ -5691,6 +5804,13 @@ def _build_bespoke_prompt(
             "Build only side framing. Keep the center fully open and calm. Restrict arches, columns, and side mass to the left and right edges so the middle third stays clear. "
             "No center object, no floor plane, no bridge, no hanging focal prop, and nothing that closes the room shell across the playable route."
         ),
+        "room_shell_foreground": (
+            "Build one full chamber shell image at the exact output size: ceiling mass, both side walls, and floor/footing as one continuous foreground frame in side view, matching the biome stone family. "
+            "The footprint schematic maps the walkable chamber: you may paint detail inside that polygon for continuity, but the engine will force the interior walkable polygon to transparent in post — "
+            "still keep ceiling, walls, and floor rim readable as a cohesive shell around that region. "
+            "Do not replace the footprint with a generic centered rectangle; respect non-rectangular outlines. "
+            "Avoid a second duplicate floor strip or separate far-background scene; this layer is the structural shell only."
+        ),
         "wall_module_left": (
             "Build a structural left wall module only. This must read as solid opaque enclosure stone, not scenic concept art and not a doorway, recess, or window. "
             "Use one broad wall face with shallow masonry relief only. Keep the silhouette simple and block-like. "
@@ -5769,7 +5889,7 @@ def _build_bespoke_prompt(
     silhouette_clause = ""
     _geom = room_geometry if isinstance(room_geometry, dict) else {}
     _poly = _geom.get("polygon") or []
-    if component_type in {"background_far_plate", "midground_side_frame"} and isinstance(_poly, list) and len(_poly) >= 3:
+    if component_type in {"background_far_plate", "midground_side_frame", "room_shell_foreground"} and isinstance(_poly, list) and len(_poly) >= 3:
         silhouette_clause = (
             "\nRoom footprint conditioning: A footprint schematic is included in the reference images (dark field, cyan polygon outline, platform strips, door markers). "
             "It maps this room at the exact output resolution: cyan outline = walkable chamber boundary in side view; fill = playable volume. "
@@ -6504,7 +6624,7 @@ def _bespoke_reference_images_for_component(
         if _render_bespoke_component_from_template(template_path, guide_path, expected_size, transparent, component_type):
             return [guide_path]
         return [template_path]
-    if component_type in {"midground_side_frame"}:
+    if component_type in {"midground_side_frame", "room_shell_foreground"}:
         guide_builder = _midground_reference_guide
         guide_builder(template_path, guide_path, expected_size, transparent, aggressive=aggressive)
         if room is not None and _write_bespoke_room_silhouette_reference(_room_geometry(room), silhouette_path, expected_size):
@@ -6622,7 +6742,7 @@ def _generate_bespoke_component_from_references(
     transparent: bool,
     component_type: Optional[str] = None,
 ) -> Tuple[bool, Optional[str]]:
-    if component_type == "foreground_frame":
+    if component_type in {"foreground_frame", "room_shell_foreground"}:
         raw_path = _foreground_frame_raw_candidate_path(output_path)
         if raw_path.exists():
             raw_path.unlink()
@@ -6716,6 +6836,17 @@ def _retry_prompt_for_validation_errors(component_type: str, prompt: str, errors
         )
     if component_type == "door_frame" and "missing_required_transparency" in errors and attempt_index < 2:
         return f"{prompt}\nRetry instruction: output a true cutout doorway PNG. Preserve transparent pixels outside the stone frame and through the doorway mouth. Do not paint a full rectangular background or surrounding room."
+    if component_type == "room_shell_foreground" and attempt_index < 2:
+        if "walkable_interior_not_cleared" in errors:
+            return (
+                f"{prompt}\nRetry instruction: the walkable interior must end up transparent after processing. "
+                "Keep ceiling, walls, and floor rim as opaque masonry; avoid filling the footprint interior with solid stone or fog that survives the cutout."
+            )
+        if "template_family_drift" in errors or "too_bright" in errors:
+            return (
+                f"{prompt}\nRetry instruction: stay closer to the biome foreground_frame guide on the sides and top/bottom bands; "
+                "keep overall values moody and subordinate to gameplay readability."
+            )
     if component_type == "foreground_frame" and attempt_index < 2:
         if "top_band_not_distinct_from_center" in errors or "bottom_band_not_distinct_from_center" in errors:
             return (
@@ -6872,7 +7003,7 @@ def _validate_bespoke_component(
     luminance = _sample_luminance(path)
     if transparency_mode == "alpha" and alpha_ratio < 0.05:
         errors.append("missing_required_transparency")
-    if component_type in {"background_far_plate", "midground_side_frame"} and luminance > 185:
+    if component_type in {"background_far_plate", "midground_side_frame", "room_shell_foreground"} and luminance > 185:
         errors.append("too_bright")
     if component_type in {"main_floor_top", "main_floor_face", "hero_platform_top", "hero_platform_face", "pit_rim"} and luminance > 176:
         errors.append("platform_readability_risk")
@@ -6882,7 +7013,7 @@ def _validate_bespoke_component(
         trusted_template_copy = delta <= 1.5
         if component_type == "background_far_plate" and delta > 42:
             errors.append("template_family_drift")
-        if component_type == "midground_side_frame":
+        if component_type in {"midground_side_frame", "room_shell_foreground"}:
             edge_delta = (
                 _template_delta_region(path, template_path, (0.0, 0.0, 0.24, 1.0)) +
                 _template_delta_region(path, template_path, (0.76, 0.0, 1.0, 1.0))
@@ -6937,7 +7068,7 @@ def _validation_reference_for_component(
     template_path: Optional[Path],
     refs_for_job: Optional[List[Path]] = None,
 ) -> Optional[Path]:
-    if component_type in {"background_far_plate", "midground_side_frame"} and template_path and template_path.exists():
+    if component_type in {"background_far_plate", "midground_side_frame", "room_shell_foreground"} and template_path and template_path.exists():
         return template_path
     if refs_for_job and refs_for_job[0].exists():
         return refs_for_job[0]
@@ -6993,6 +7124,7 @@ def _build_structural_review_bundle(
             continue
 
     derived_types = [
+        "room_shell_foreground",
         "ceiling_band",
         "wall_module_left",
         "wall_module_right",
@@ -7862,6 +7994,9 @@ def generate_room_environment_asset_pack(project_id: str, room_id: str, payload:
         expected_size = (int(entry["target_dimensions"]["width"]), int(entry["target_dimensions"]["height"]))
         transparent = str(entry.get("transparency_mode") or template.get("transparency_mode") or "opaque") == "alpha"
         component_type = str(entry.get("component_type") or "")
+        bespoke_validation_tm = str(entry.get("transparency_mode") or template.get("transparency_mode") or "opaque")
+        if component_type == "room_shell_foreground":
+            bespoke_validation_tm = "opaque"
         adaptation_mode = _component_adaptation_mode(component_type) if component_type in V2_SLOT_SPEC_BY_TYPE else str(template.get("adaptation_mode") or _component_adaptation_mode(component_type))
         if iterate_from_current and adaptation_mode in {"direct", "stretch"}:
             raise ValueError(
@@ -7968,7 +8103,7 @@ def generate_room_environment_asset_pack(project_id: str, room_id: str, payload:
                     output_path,
                     component_type,
                     expected_size,
-                    str(template.get("transparency_mode") or "opaque"),
+                    bespoke_validation_tm,
                     validation_reference_path,
                 )
                 postprocessed = False
@@ -7978,9 +8113,15 @@ def generate_room_environment_asset_pack(project_id: str, room_id: str, payload:
                         output_path,
                         component_type,
                         expected_size,
-                        str(template.get("transparency_mode") or "opaque"),
+                        bespoke_validation_tm,
                         validation_reference_path,
                     )
+                if component_type == "room_shell_foreground":
+                    attempt_info["punchout_applied"] = False
+                    if valid and not errors:
+                        _apply_walkable_interior_punchout(output_path, _room_geometry(room))
+                        valid, errors = _validate_room_shell_after_punchout(output_path, _room_geometry(room), expected_size)
+                        attempt_info["punchout_applied"] = True
                 attempt_info["postprocessed"] = postprocessed
                 attempt_info["status"] = "pass" if valid and not errors else "validation_failed"
                 attempt_info["validation_errors"] = list(errors)

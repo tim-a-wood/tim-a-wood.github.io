@@ -31,6 +31,38 @@ FIRST_SLICE_COMPONENT_TYPES: List[str] = [
     "backwall_panel",
 ]
 
+def _v3_use_unified_room_shell() -> bool:
+    """When enabled, plan one chamber-sized Gemini shell slot and skip legacy wall/ceiling/main-floor strips.
+
+    Set env ``MV_ROOM_SHELL_FOREGROUND`` to ``1``, ``true``, ``on``, or ``yes``. Requires a room polygon
+    with at least three points; otherwise the planner falls back to the legacy shell slots.
+    """
+    raw = os.environ.get("MV_ROOM_SHELL_FOREGROUND", "0").strip().lower()
+    return raw in ("1", "true", "yes", "on")
+
+
+def _v3_chamber_layout(room: Dict[str, Any]) -> Optional[Dict[str, int]]:
+    """Axis-aligned bounding box of ``room.polygon`` in room-local pixels, or None if unusable."""
+    poly = room.get("polygon") or []
+    if not isinstance(poly, list) or len(poly) < 3:
+        return None
+    xs: List[float] = []
+    ys: List[float] = []
+    for pt in poly:
+        if isinstance(pt, (list, tuple)) and len(pt) == 2:
+            xs.append(float(pt[0]))
+            ys.append(float(pt[1]))
+    if len(xs) < 3:
+        return None
+    left = int(round(min(xs)))
+    right = int(round(max(xs)))
+    top = int(round(min(ys)))
+    bottom = int(round(max(ys)))
+    cw = max(1, right - left)
+    ch = max(1, bottom - top)
+    return {"left": left, "top": top, "right": right, "bottom": bottom, "width": cw, "height": ch}
+
+
 def _v3_include_backwall_panel_slots() -> bool:
     """Include backwall_panel slots in the v3 assembly plan (default: yes).
 
@@ -57,6 +89,7 @@ TEMPLATE_COMPONENT_BY_SLOT: Dict[str, str] = {
     "door_frame": "door_piece",
     "pit_rim": "primary_floor_piece",
     "pit_interior": "background_plate",
+    "room_shell_foreground": "foreground_frame",
 }
 
 
@@ -301,12 +334,13 @@ def build_generation_plan(room: Dict[str, Any], preview_id: str, biome_pack: Dic
         protected_zones: List[Dict[str, Any]],
         local_geometry: Dict[str, Any],
         border_treatment: str = "standard",
+        transparency_mode: Optional[str] = None,
     ) -> None:
         template_component = TEMPLATE_COMPONENT_BY_SLOT.get(component_type)
         template = template_library.get(template_component or "")
         if not template:
             return
-        plan.append({
+        entry: Dict[str, Any] = {
             "slot_id": slot_id,
             "component_type": component_type,
             "schema_key": schema_key,
@@ -321,7 +355,10 @@ def build_generation_plan(room: Dict[str, Any], preview_id: str, biome_pack: Dic
             "slot_group": slot_group,
             "protected_zones": copy.deepcopy(protected_zones),
             "local_geometry": copy.deepcopy(local_geometry),
-        })
+        }
+        if transparency_mode:
+            entry["transparency_mode"] = transparency_mode
+        plan.append(entry)
 
     append_slot(
         f"{room_id}-background",
@@ -364,74 +401,122 @@ def build_generation_plan(room: Dict[str, Any], preview_id: str, biome_pack: Dic
         {"room_width": width, "room_height": height},
         border_treatment="side_only",
     )
-    append_slot(
-        f"{room_id}-ceiling",
-        "ceiling_band",
-        "ceiling",
-        {"width": width, "height": max(128, int(height * 0.18))},
-        {"x": int(width / 2), "y": 0, "display_width": width, "display_height": max(128, int(height * 0.18)), "origin_x": 0.5, "origin_y": 0},
-        "horizontal",
-        "stretch",
-        "ceiling",
-        [center_lane],
-        {"room_width": width, "room_height": height},
-        border_treatment="ceiling_cap",
-    )
-    wall_module_width = max(224, min(384, int(width * 0.18)))
-    append_slot(
-        f"{room_id}-wall-module-left",
-        "wall_module_left",
-        "walls",
-        {"width": wall_module_width, "height": max(320, height - 180)},
-        {"x": 0, "y": 0, "display_width": wall_module_width, "display_height": max(320, height - 180), "origin_x": 0, "origin_y": 0},
-        "vertical",
-        "stretch",
-        "walls",
-        [center_lane],
-        {"side": "left", "room_width": width, "room_height": height},
-        border_treatment="dark_outer_edge",
-    )
-    append_slot(
-        f"{room_id}-wall-module-right",
-        "wall_module_right",
-        "walls",
-        {"width": wall_module_width, "height": max(320, height - 180)},
-        {"x": max(0, width - wall_module_width), "y": 0, "display_width": wall_module_width, "display_height": max(320, height - 180), "origin_x": 0, "origin_y": 0},
-        "vertical",
-        "stretch",
-        "walls",
-        [center_lane],
-        {"side": "right", "room_width": width, "room_height": height},
-        border_treatment="dark_outer_edge",
-    )
-    append_slot(
-        f"{room_id}-wall-base-left",
-        "wall_base_trim_left",
-        "walls",
-        {"width": 256, "height": 160},
-        {"x": 0, "y": max(0, height - 220), "display_width": 256, "display_height": 160, "origin_x": 0, "origin_y": 0},
-        "horizontal",
-        "stretch",
-        "walls",
-        [{"type": "floor_lane", "x": int(width * 0.18), "y": int(height * 0.7), "width": int(width * 0.64), "height": int(height * 0.3)}],
-        {"side": "left", "room_width": width, "room_height": height},
-        border_treatment="base_trim",
-    )
-    append_slot(
-        f"{room_id}-wall-base-right",
-        "wall_base_trim_right",
-        "walls",
-        {"width": 256, "height": 160},
-        {"x": max(0, width - 256), "y": max(0, height - 220), "display_width": 256, "display_height": 160, "origin_x": 0, "origin_y": 0},
-        "horizontal",
-        "stretch",
-        "walls",
-        [{"type": "floor_lane", "x": int(width * 0.18), "y": int(height * 0.7), "width": int(width * 0.64), "height": int(height * 0.3)}],
-        {"side": "right", "room_width": width, "room_height": height},
-        border_treatment="base_trim",
-    )
+    unified_chamber = None
+    if _v3_use_unified_room_shell():
+        _cand = _v3_chamber_layout(room)
+        _tc = TEMPLATE_COMPONENT_BY_SLOT.get("room_shell_foreground")
+        if _cand and _tc and template_library.get(_tc):
+            unified_chamber = _cand
+    if unified_chamber:
+        cw = unified_chamber["width"]
+        ch = unified_chamber["height"]
+        cl = unified_chamber["left"]
+        ct = unified_chamber["top"]
+        cb = unified_chamber["bottom"]
+        shell_lane = {
+            "type": "walkable_shell_interior",
+            "x": cl,
+            "y": ct,
+            "width": cw,
+            "height": ch,
+        }
+        append_slot(
+            f"{room_id}-room-shell",
+            "room_shell_foreground",
+            "walls",
+            {"width": cw, "height": ch},
+            {
+                "x": int(cl + cw / 2),
+                "y": cb,
+                "display_width": cw,
+                "display_height": ch,
+                "origin_x": 0.5,
+                "origin_y": 1,
+            },
+            "full",
+            "stretch",
+            "foreground",
+            [shell_lane],
+            {
+                "room_width": width,
+                "room_height": height,
+                "chamber_left": cl,
+                "chamber_top": ct,
+                "chamber_width": cw,
+                "chamber_height": ch,
+            },
+            border_treatment="unified_chamber_shell",
+            transparency_mode="alpha",
+        )
+    else:
+        append_slot(
+            f"{room_id}-ceiling",
+            "ceiling_band",
+            "ceiling",
+            {"width": width, "height": max(128, int(height * 0.18))},
+            {"x": int(width / 2), "y": 0, "display_width": width, "display_height": max(128, int(height * 0.18)), "origin_x": 0.5, "origin_y": 0},
+            "horizontal",
+            "stretch",
+            "ceiling",
+            [center_lane],
+            {"room_width": width, "room_height": height},
+            border_treatment="ceiling_cap",
+        )
+        wall_module_width = max(224, min(384, int(width * 0.18)))
+        append_slot(
+            f"{room_id}-wall-module-left",
+            "wall_module_left",
+            "walls",
+            {"width": wall_module_width, "height": max(320, height - 180)},
+            {"x": 0, "y": 0, "display_width": wall_module_width, "display_height": max(320, height - 180), "origin_x": 0, "origin_y": 0},
+            "vertical",
+            "stretch",
+            "walls",
+            [center_lane],
+            {"side": "left", "room_width": width, "room_height": height},
+            border_treatment="dark_outer_edge",
+        )
+        append_slot(
+            f"{room_id}-wall-module-right",
+            "wall_module_right",
+            "walls",
+            {"width": wall_module_width, "height": max(320, height - 180)},
+            {"x": max(0, width - wall_module_width), "y": 0, "display_width": wall_module_width, "display_height": max(320, height - 180), "origin_x": 0, "origin_y": 0},
+            "vertical",
+            "stretch",
+            "walls",
+            [center_lane],
+            {"side": "right", "room_width": width, "room_height": height},
+            border_treatment="dark_outer_edge",
+        )
+        append_slot(
+            f"{room_id}-wall-base-left",
+            "wall_base_trim_left",
+            "walls",
+            {"width": 256, "height": 160},
+            {"x": 0, "y": max(0, height - 220), "display_width": 256, "display_height": 160, "origin_x": 0, "origin_y": 0},
+            "horizontal",
+            "stretch",
+            "walls",
+            [{"type": "floor_lane", "x": int(width * 0.18), "y": int(height * 0.7), "width": int(width * 0.64), "height": int(height * 0.3)}],
+            {"side": "left", "room_width": width, "room_height": height},
+            border_treatment="base_trim",
+        )
+        append_slot(
+            f"{room_id}-wall-base-right",
+            "wall_base_trim_right",
+            "walls",
+            {"width": 256, "height": 160},
+            {"x": max(0, width - 256), "y": max(0, height - 220), "display_width": 256, "display_height": 160, "origin_x": 0, "origin_y": 0},
+            "horizontal",
+            "stretch",
+            "walls",
+            [{"type": "floor_lane", "x": int(width * 0.18), "y": int(height * 0.7), "width": int(width * 0.64), "height": int(height * 0.3)}],
+            {"side": "right", "room_width": width, "room_height": height},
+            border_treatment="base_trim",
+        )
 
-    if primary_floor is not None:
+    if primary_floor is not None and not unified_chamber:
         append_slot(
             f"{room_id}-main-floor-top",
             "main_floor_top",
