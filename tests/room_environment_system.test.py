@@ -3067,6 +3067,8 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         self.assertIn("not columns or posts", border_prompt)
         self.assertIn("not a lintel", border_prompt)
         self.assertIn("not a sill or threshold", border_prompt)
+        self.assertIn("Do not paint cyan, teal, aqua, or electric-blue rim lines", border_prompt)
+        self.assertIn("cyan, teal, or aqua accent rim", border_prompt)
         self.assertIn("not a final room scene", far_prompt)
         self.assertIn("Do not compose a hero shot", far_prompt)
         self.assertIn("white matte bars", far_prompt)

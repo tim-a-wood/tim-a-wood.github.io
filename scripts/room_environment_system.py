@@ -4717,7 +4717,9 @@ def _build_biome_template_prompt(component_type: str, direction: Dict[str, Any],
         "2D game environment art, strict side-view silhouette readable for platforming. "
         "No characters, no HUD, no text, no single-focal scenic illustration. "
         "Match the project's stone/mood; keep traverse lane visually calm. "
-        "Avoid altar centers, ritual circles, brazier focal energy, or doorway-shaped glow in the middle."
+        "Avoid altar centers, ritual circles, brazier focal energy, or doorway-shaped glow in the middle. "
+        "Do not paint cyan, teal, aqua, or electric-blue rim lines, frame strokes, or selection-like edges on borders or silhouettes — edges read as stone, mortar, and shadow only. "
+        "Keep strong value contrast between enclosing border masses and interior voids (darker or richer stone vs calmer center); avoid same-mid-gray blending that flattens the shell against the field."
     )
     role: str
     if component_type == "background_plate":
@@ -4771,6 +4773,7 @@ def _build_biome_template_prompt(component_type: str, direction: Dict[str, Any],
             "Do not draw a bright or dark inner outline around the center opening. The border should meet the center directly with simple stone edges, not a traced frame line. "
             "The light guide regions only mean 'border exists here' and the dark center only means 'center stays calm here'. "
             "Anti-designs: no arches, no pillars, no columns, no lintel, no sill, no threshold, no scene opening, no portal frame, no perspective floor, no stairs, no rubble staging, no glowing hotspot, no white matte bars, no corbel shoulders, no pedestal feet, no jagged breach center, and no empty margins at the edges. "
+            "Do not add a cyan, teal, or aqua accent rim along the inner opening or outer canvas edge; separation from the center must be value and texture (stone vs void), not a colored outline. "
             "Use ruined-gothic stone material, cool dark palette, front-facing orientation, and simple readable border masses."
         )
     elif component_type == "primary_floor_piece":
@@ -4890,7 +4893,8 @@ def _build_biome_template_prompt(component_type: str, direction: Dict[str, Any],
             "no fog, atmospheric depth effects, arches, windows, openings, symbols, scenic depth, or scenic composition; "
             "no perspective floor plane, no tunnel opening read, no inward-lit bevels, no cast shadows projecting into the center, no dark inner shadow columns, no side-pocket recess shading, no radial center vignette, no global vignette, no inset opening frame, and no 3D portal framing; "
             "no directional lighting sweep, no side-to-center shadow falloff, and no shaded depth cues that make the atlas feel volumetric; "
-            "no bright focal elements or glowing areas. "
+            "no bright focal elements or glowing areas; "
+            "no cyan, teal, aqua, or electric-blue rim hugging the green chroma-key boundary — the keyed edge must read as stone cut against green, not a UI-colored stroke. "
             "Do not solve the frame by making the whole image uniformly dark blue-gray; the image must still show a perimeter-versus-center read. "
             "Preserve the provided border silhouette and occupied-zone layout exactly: structure belongs only in the top band, bottom band, and narrow outer side strips, while the center envelope stays open and non-structural. "
             "Small chips, cracks, and edge wear are allowed inside those occupied border envelopes, but do not move structure outside them. "
@@ -5858,11 +5862,14 @@ def _build_bespoke_prompt(
             "Do not let one giant central gothic arch dominate the image. The center should feel like a narrower distant recess or corridor mouth framed by heavier side masses, not a grand nave opening. "
             "Do not open the roof into a bright skylight or exterior breach. The upper shell should stay enclosed, dark, and interior-facing."
             "Avoid a broad bright fog bank across the lower half; mist can exist, but lower wall structure and rear floor depth still need to read behind it. "
-            "Favor continuous side-wall enclosure and a darker rear chamber body over decorative floating arches."
+            "Favor continuous side-wall enclosure and a darker rear chamber body over decorative floating arches. "
+            "No thin cyan, teal, or electric accent lines tracing the chamber silhouette; depth and separation come from occlusion, mortar, and value steps in the stone family, not chromatic rim glow. "
+            "Push contrast between far shell and mid depth with value and cool-warm separation, not a clashing saturated accent band."
         ),
         "midground_side_frame": (
             "Build only side framing. Keep the center fully open and calm. Restrict arches, columns, and side mass to the left and right edges so the middle third stays clear. "
-            "No center object, no floor plane, no bridge, no hanging focal prop, and nothing that closes the room shell across the playable route."
+            "No center object, no floor plane, no bridge, no hanging focal prop, and nothing that closes the room shell across the playable route. "
+            "No cyan/teal rim lines on inner silhouette edges; side masses should separate from the center with shadow and stone value, not UI-like strokes."
         ),
         "room_shell_foreground": (
             "Build one full chamber shell image at the exact output size: ceiling mass, both side walls, and floor/footing as one continuous foreground frame in side view, matching the biome stone family. "
@@ -5870,6 +5877,7 @@ def _build_bespoke_prompt(
             "Paint deep, heavy masonry with real texture: opaque side shells should each read roughly 8–14% of output width (full stone courses, mortar, chips, wear), "
             "the ceiling band roughly 12–20% of output height, the floor footing roughly 8–14% of output height — not a thin neon border. "
             "The engine will punch the walkable polygon interior to transparent in post; the surviving rim must be substantial carved stone, not a one-pixel edge. "
+            "Explicitly avoid cyan, teal, aqua, or electric-blue strokes along the walkable cutout or outer frame; perimeter separation must read as weathered stone and shadow, not a saturated UI accent that clashes with the far background. "
             "You may paint atmosphere inside the guide polygon for continuity, but the visible perimeter must read as thick structure. "
             "Do not replace the footprint with a generic centered rectangle; respect non-rectangular outlines. "
             "Avoid a second duplicate floor strip or separate far-background scene; this layer is the structural shell only."
