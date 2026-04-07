@@ -655,13 +655,13 @@ def _write_foreground_frame_generation_guide(project_dir: Path) -> Path:
     guide_root = project_dir / ".tmp_biome_generation_refs"
     guide_root.mkdir(parents=True, exist_ok=True)
     guide_path = guide_root / "foreground_frame-guide.png"
-    size = (1600, 1200)
+    size = (ATLAS_WIDTH, ATLAS_HEIGHT)
     img = Image.new("RGBA", size, (108, 108, 108, 255))
     draw = ImageDraw.Draw(img)
-    ceiling_h = 240
-    floor_y = 1080
-    left_w = 224
-    right_w = 224
+    ceiling_h = FOREGROUND_FRAME_BORDER_TOP_PX
+    floor_y = ATLAS_HEIGHT - FOREGROUND_FRAME_BORDER_BOTTOM_PX
+    left_w = FOREGROUND_FRAME_BORDER_SIDE_PX
+    right_w = FOREGROUND_FRAME_BORDER_SIDE_PX
     wall_top = ceiling_h
     wall_bottom = floor_y
     center_left = left_w
@@ -695,12 +695,12 @@ def _write_border_piece_generation_guide(project_dir: Path) -> Path:
     guide_root = project_dir / ".tmp_biome_generation_refs"
     guide_root.mkdir(parents=True, exist_ok=True)
     guide_path = guide_root / "border_piece-guide.png"
-    size = (1600, 1200)
+    size = (ATLAS_WIDTH, ATLAS_HEIGHT)
     img = Image.new("RGBA", size, (20, 20, 20, 255))
     draw = ImageDraw.Draw(img)
-    top_h = 224
-    bottom_h = 120
-    side_w = 224
+    top_h = BORDER_PIECE_BORDER_TOP_PX
+    bottom_h = BORDER_PIECE_BORDER_BOTTOM_PX
+    side_w = BORDER_PIECE_BORDER_SIDE_PX
     frame_fill = (224, 224, 224, 255)
     center_fill = (64, 64, 64, 255)
     draw.rectangle((0, 0, size[0], top_h), fill=frame_fill)
@@ -708,7 +708,7 @@ def _write_border_piece_generation_guide(project_dir: Path) -> Path:
     draw.rectangle((0, top_h, side_w, size[1] - bottom_h), fill=frame_fill)
     draw.rectangle((size[0] - side_w, top_h, size[0], size[1] - bottom_h), fill=frame_fill)
     draw.rectangle((side_w, top_h, size[0] - side_w, size[1] - bottom_h), fill=center_fill)
-    draw.line((0, top_h - 1, size[0], top_h - 1), fill=(250, 250, 250, 255), width=3)
+    draw.line((0, top_h - 1, size[0], top_h - 1), fill=(250, 250, 250, 255), width=9)
     img.save(guide_path)
     return guide_path
 
@@ -2498,6 +2498,125 @@ V2_SLOT_SPEC_BY_TYPE: Dict[str, Dict[str, Any]] = {entry["component_type"]: entr
 
 FOREGROUND_FRAME_CENTER_KEY_RGB: Tuple[int, int, int] = (0, 255, 0)
 
+# Full-frame 1600×1200 atlas border thickness (v2: 3× original v1 contract).
+ATLAS_WIDTH = 1600
+ATLAS_HEIGHT = 1200
+FOREGROUND_FRAME_BORDER_TOP_PX = 720  # was 240
+FOREGROUND_FRAME_BORDER_BOTTOM_PX = 360  # was 120
+FOREGROUND_FRAME_BORDER_SIDE_PX = 672  # was 224
+BORDER_PIECE_BORDER_TOP_PX = 672  # was 224
+BORDER_PIECE_BORDER_BOTTOM_PX = 360  # was 120
+BORDER_PIECE_BORDER_SIDE_PX = 672  # was 224
+# Border-piece generation gate: require a visibly heavier frame read than older thin-shell outputs.
+BORDER_PIECE_MIN_SIDE_THICKNESS_NORM = 0.34
+BORDER_PIECE_MIN_TOP_THICKNESS_FILL = 0.62
+BORDER_PIECE_MIN_BOTTOM_THICKNESS_FILL = 0.52
+
+
+def _foreground_frame_inner_rect_inclusive() -> Tuple[int, int, int, int]:
+    """Inclusive (left, top, right, bottom) chroma center rectangle on the 1600×1200 atlas."""
+    s = FOREGROUND_FRAME_BORDER_SIDE_PX
+    t = FOREGROUND_FRAME_BORDER_TOP_PX
+    b = FOREGROUND_FRAME_BORDER_BOTTOM_PX
+    return (s, t, ATLAS_WIDTH - s - 1, ATLAS_HEIGHT - b - 1)
+
+
+def _foreground_frame_center_key_box_norm() -> Tuple[float, float, float, float]:
+    """Fractional (l, t, r, b) for _region_luminance / _region_chroma_key_fraction (exclusive r/b in pixel crop)."""
+    l, t, r, b = _foreground_frame_inner_rect_inclusive()
+    return (l / ATLAS_WIDTH, t / ATLAS_HEIGHT, (r + 1) / ATLAS_WIDTH, (b + 1) / ATLAS_HEIGHT)
+
+
+def _foreground_frame_biome_template_role_text() -> str:
+    """Long biome prompt for foreground_frame; kept in one place so pixel bounds stay aligned with guides."""
+    ft = FOREGROUND_FRAME_BORDER_TOP_PX
+    fb = FOREGROUND_FRAME_BORDER_BOTTOM_PX
+    fs = FOREGROUND_FRAME_BORDER_SIDE_PX
+    il, itop, ir, ib = _foreground_frame_inner_rect_inclusive()
+    top_end = ft - 1
+    side_x1 = fs - 1
+    right_x0 = ATLAS_WIDTH - fs
+    bottom_y0 = ATLAS_HEIGHT - fb
+    wall_y1 = ATLAS_HEIGHT - fb - 1
+    return (
+        "Single shared foreground structural frame atlas for a 2D sidescroller chamber (1600x1200). "
+        "This image is a layout atlas used exclusively for later region crops. It is not a scene, not concept art, and not a composition exercise. "
+        "The provided reference image is a geometry-only occupancy guide. Use its occupied coordinates only. Do not copy its flat fills, gray values, outlines, or mask-like treatment literally into the final art. "
+        "If the geometry guide and the style swatch disagree, preserve the occupied coordinates and border silhouette from the geometry guide exactly, and use the style swatch only for stone family, crack rhythm, and palette. "
+        "Treat the image like a flat orthographic front elevation, not a 3D room view. "
+        "Camera/projection contract: the entire atlas must read as a straight-on front elevation with zero perspective convergence and zero reveal depth. "
+        "Do not depict an inset chamber opening, window reveal, portal mouth, inner jamb, receding corridor, or boxed recess. "
+        "The left wall strip, right wall strip, and bottom band are all front-facing surfaces only, not side faces or top faces. "
+        "No diagonal receding edges, no visible wall thickness returns, no interior corner perspective, and no near-versus-far plane cues. "
+        "Priority order: (1) readable perimeter shell, (2) wall-to-center separation, (3) calm non-scenic center. "
+        "Spatial contract: "
+        f"(1) a fully continuous, clearly visible masonry ceiling band spanning left edge to right edge across exact pixel rows y=0..{top_end} — no gaps, no holes, no partial cap, no broken run; "
+        "the top band must read as an obvious horizontal masonry strip by eye, with repeated block courses or lintel seams that make it visibly different from the center field; "
+        "the top band must stay fully filled into both top-left and top-right outer corners with no black wedges, no corner voids, and no cropped-off triangular gaps; "
+        f"the green center opening must not begin inside the top {ft} pixels; keep a full uninterrupted ceiling depth before the green field starts. "
+        "if the image starts to read like a dark void, strengthen the top strip first rather than darkening the whole frame; "
+        f"(2) continuous left wall strip at exact pixel region x=0..{side_x1}, y={ft}..{wall_y1} and continuous right wall strip at exact pixel region x={right_x0}..1599, y={ft}..{wall_y1} — "
+        "both sides must be materially present as narrow heavy enclosure masses; neither side may collapse into near-black, disappear, or blend into the center field; "
+        "the side walls must be visibly darker, denser, and more structural than the calmer center and must show a clear inner-edge transition into the center field; "
+        "the side walls should carry the strongest masonry joint rhythm and silhouette weight in the image, but they must still read as front-facing wall strips, not recess mouths, alcoves, openings, deep side pockets, inset jambs, interior return faces, pillars, posts, columns, or freestanding vertical supports; "
+        "keep the side strips as straight rectangular border masses from top to bottom: no tapering feet, no pedestal bases, no buttress plinths, no angled chamfers, no capitals, and no top or bottom shoulders projecting inward; "
+        "do not add bright inner edge highlights, bevel rims, side-face reveals, or light vertical trims along the green opening; the inner wall edge should be a flat cut stone boundary, not a glowing jamb or recessed frame return; "
+        "the stone immediately touching the green field must never be lighter than the main wall mass; do not create a pale border, illuminated rim, or highlighted cut line around the keyed opening; "
+        "the side strips are fused to the outer image border and must not read like separate supports framing a doorway or opening; "
+        f"(3) a thin continuous retaining floor band at exact pixel rows y={bottom_y0}..1199 across the full width — clearly visible across the full width; "
+        "the bottom band must also read as an obvious horizontal masonry strip by eye, not just a slightly darker lower edge; "
+        "if the image starts to read like a dark void, strengthen the bottom strip second rather than turning the lower frame into a shadow mass; "
+        "it must read front-on and flat, with no visible top surface, not like a receding walk surface, perspective floor plane, stage floor, ledge lip, front step, or slab viewed from above; "
+        "treat the bottom band like a retaining wall face or plinth course seen straight on, using front-facing block rectangles only; "
+        "do not draw paving stones, receding tile seams, trapezoid slab tops, depth bevels, or any horizontal surface that suggests the player could stand on the band itself; "
+        "do not add a bright upper lip, rim light, or recessed shadow shelf where the green field meets the bottom band; that boundary must stay flat and front-facing; "
+        "do not draw a separate top-edge line, highlight seam, or light coping strip at y=1080 where the green field meets the bottom band; the keyed field should terminate directly into the same dark flat stone face; "
+        "keep the upper edge of the bottom band straight and horizontal with no center rise, no wedge perspective, and no thickened front lip; "
+        "the bottom band must also stay filled into both bottom-left and bottom-right corners with no black corner cutouts, no vignette wedges, and no empty outside triangles; "
+        f"the green center opening must end above y={wall_y1} and may not drop into the bottom {fb} pixels; keep a full uninterrupted bottom retaining strip below the keyed field. "
+        "(4) do not place platform ledge language, shelf language, or inward-protruding stone lips anywhere inside the wall-strip zones; wall strips must stay flush, vertical, and perimeter-only; "
+        f"(5) center region at exact pixel region x={il}..{ir}, y={itop}..{ib} must be a reserved chroma-key field for later background replacement — "
+        "fill that exact center rectangle with solid bright green screen color and keep it clean, flat, and uniform. "
+        f"The very first green row must begin at y={itop} and the very first green columns must begin at x={il} on the left and x={ir} on the right; do not let stone overlap past those coordinates. "
+        f"Pixels on the center boundary such as ({il},{itop}), (800,{itop}), ({ir},{itop}), ({il},{ib}), and ({ir},{ib}) should all still belong to the same green holdout rectangle, not to the masonry shell. "
+        "Do not enlarge the green field upward or downward beyond those exact vertical limits. "
+        "Do not paint stone, texture, cracks, props, shading, gradients, fog, glow, vignettes, floating fragments, platform silhouettes, or focal art inside that center field. "
+        "The center is not a backwall painting exercise; it is a keyed holdout zone. "
+        "No circular hotspot, no halo, no ring, no radial vignette, no centered glow, no inset panel border, and no light rim or outline around the center field. "
+        "The green field must not be framed by a second lighter rectangle inside the border shell. "
+        "Keep the inner edge between the border shell and the green field crisp and front-on, with no pillars, lips, or fragments crossing into the keyed center. "
+        "If forced to choose, preserve heavier side walls and a simpler keyed center rather than decorative side ledges or scenic center detail. "
+        "Value structure contract: "
+        "ceiling band and floor band = readable horizontal strip zones with stronger band identity than the center field; "
+        "outer wall strips = darkest and most detailed zone; "
+        "inner edge of each wall strip = medium-dark transition zone; "
+        "center field = solid chroma-key green reserve, with no stone patterning at all. "
+        "Do not make the wall strips and center field the same value family or the same material family. "
+        "The whole border must stay in one coherent cool dark stone family: top band, side walls, and bottom band should look like the same material under the same flat lighting, not different gray-versus-black zones. "
+        "Texture contract: side walls should show most of the block joints, stone seams, edge cracks, and masonry rhythm. "
+        "Center field should show no masonry cues at all because it is a keyed replacement zone. "
+        "Left and right wall strips must have equal visual authority. "
+        "Do not make the right wall softer, flatter, dimmer, or less distinct than the left wall. "
+        "If one side is stronger, strengthen the weaker side instead of weakening both. "
+        "Hard prohibitions: "
+        "no floating ledges, shelves, or isolated stone fragments inside the center region; "
+        "no side-wall protrusions, no inward shelves, no cantilevered lips, and no ledge-like shapes extending from either wall into the chamber; "
+        "no torn edges, giant cracks spanning an entire band, or dramatic missing chunks; "
+        "no asymmetric wall treatment — left and right strips must read as the same material family; "
+        "no fog, atmospheric depth effects, arches, windows, openings, symbols, scenic depth, or scenic composition; "
+        "no perspective floor plane, no tunnel opening read, no inward-lit bevels, no cast shadows projecting into the center, no dark inner shadow columns, no side-pocket recess shading, no radial center vignette, no global vignette, no inset opening frame, and no 3D portal framing; "
+        "no directional lighting sweep, no side-to-center shadow falloff, and no shaded depth cues that make the atlas feel volumetric; "
+        "no bright focal elements or glowing areas; "
+        "no cyan, teal, aqua, or electric-blue rim hugging the green chroma-key boundary — the keyed edge must read as stone cut against green, not a UI-colored stroke. "
+        "Do not solve the frame by making the whole image uniformly dark blue-gray; the image must still show a perimeter-versus-center read. "
+        "Preserve the provided border silhouette and occupied-zone layout exactly: structure belongs only in the top band, bottom band, and narrow outer side strips, while the center envelope stays open and non-structural. "
+        "Small chips, cracks, and edge wear are allowed inside those occupied border envelopes, but do not move structure outside them. "
+        "Keep the material family close to the darker ruined-gothic biome kit: cool dark stone, restrained contrast, and no pale gray-beige stone drift. "
+        "Think of the desired result as a perimeter-only chamber shell diagram painted in one consistent stone family. "
+        "The four perimeter bands must share one consistent stone family so ceiling, wall, and floor crops all match."
+    )
+
+
 SHELL_FAMILY_PRESETS: Dict[str, Dict[str, str]] = {
     "gothic_ruin": {
         "wall_family": "broken_gothic_stone",
@@ -3177,7 +3296,7 @@ def _inset_polygon_vertices_toward_centroid(
 
 def _room_shell_punch_inset_px() -> int:
     """Optional: shrink transparent hole slightly inward for a thicker visible masonry rim (see MV_ROOM_SHELL_PUNCH_INSET_PX)."""
-    raw = os.environ.get("MV_ROOM_SHELL_PUNCH_INSET_PX", "0").strip()
+    raw = os.environ.get("MV_ROOM_SHELL_PUNCH_INSET_PX", "20").strip()
     try:
         v = int(raw)
     except ValueError:
@@ -3240,7 +3359,81 @@ def _apply_walkable_interior_punchout(
     ImageDraw.Draw(keep).polygon(pts, fill=0)
     new_alpha = ImageChops.multiply(alpha, keep)
     img.putalpha(new_alpha)
+    # Keep the surviving rim readable against very dark backdrops.
+    _normalize_room_shell_tone(img, min_luminance=54.0, max_boost=2.0)
+    _enhance_room_shell_micro_detail(img, amount=130, radius=1.1, threshold=2)
+    _soften_room_shell_corner_shadow(img, corner_extent=0.18, min_corner_luminance=62.0, max_boost=1.55)
     img.save(path)
+
+
+def _normalize_room_shell_tone(image: Image.Image, *, min_luminance: float = 42.0, max_boost: float = 1.35) -> None:
+    px = image.load()
+    w, h = image.size
+    for y in range(h):
+        for x in range(w):
+            r, g, b, a = px[x, y]
+            if a <= 32:
+                continue
+            lum = (0.2126 * r) + (0.7152 * g) + (0.0722 * b)
+            if lum >= min_luminance:
+                continue
+            boost = min(max_boost, max(1.0, min_luminance / max(1.0, lum)))
+            px[x, y] = (
+                min(255, int(round(r * boost))),
+                min(255, int(round(g * boost))),
+                min(255, int(round(b * boost))),
+                a,
+            )
+
+
+def _enhance_room_shell_micro_detail(
+    image: Image.Image,
+    *,
+    amount: int = 115,
+    radius: float = 1.0,
+    threshold: int = 2,
+) -> None:
+    """Restore subtle masonry seam/chip definition after tone normalization."""
+    alpha = image.split()[3]
+    sharpened = image.convert("RGB").filter(
+        ImageFilter.UnsharpMask(radius=radius, percent=amount, threshold=threshold)
+    )
+    image.paste(sharpened.convert("RGBA"), mask=alpha)
+
+
+def _soften_room_shell_corner_shadow(
+    image: Image.Image,
+    *,
+    corner_extent: float = 0.18,
+    min_corner_luminance: float = 62.0,
+    max_boost: float = 1.55,
+) -> None:
+    """Lift heavy corner vignette shading so corners read as masonry."""
+    px = image.load()
+    w, h = image.size
+    cx = max(1.0, w * corner_extent)
+    cy = max(1.0, h * corner_extent)
+    for y in range(h):
+        ny = min(y / cy, (h - 1 - y) / cy)
+        for x in range(w):
+            r, g, b, a = px[x, y]
+            if a <= 32:
+                continue
+            nx = min(x / cx, (w - 1 - x) / cx)
+            proximity = max(0.0, min(1.0, 1.0 - min(nx, ny)))
+            if proximity <= 0.0:
+                continue
+            lum = (0.2126 * r) + (0.7152 * g) + (0.0722 * b)
+            if lum >= min_corner_luminance:
+                continue
+            needed = min_corner_luminance / max(1.0, lum)
+            boost = 1.0 + (min(max_boost, needed) - 1.0) * proximity
+            px[x, y] = (
+                min(255, int(round(r * boost))),
+                min(255, int(round(g * boost))),
+                min(255, int(round(b * boost))),
+                a,
+            )
 
 
 def _validate_room_shell_after_punchout(path: Path, geometry: Dict[str, Any], expected_size: Tuple[int, int]) -> Tuple[bool, List[str]]:
@@ -3274,9 +3467,132 @@ def _validate_room_shell_after_punchout(path: Path, geometry: Dict[str, Any], ex
     alpha_ratio = _alpha_ratio(path)
     if alpha_ratio < 0.04:
         errors.append("missing_required_transparency")
-    # Hairline / schematic-outline shells survive punchout with tiny total opaque area (~1% or less).
-    if _opaque_pixel_fraction(path) < 0.018:
+    # Hairline / schematic-outline shells survive punchout with tiny total opaque area.
+    opaque_fraction = _opaque_pixel_fraction(path)
+    if opaque_fraction < 0.038:
         errors.append("shell_rim_mass_low")
+    rgb = img.convert("RGB")
+
+    def band_luminance_alpha(box: Tuple[float, float, float, float]) -> float:
+        left = max(0, min(w, int(w * box[0])))
+        top = max(0, min(h, int(h * box[1])))
+        right = max(left + 1, min(w, int(w * box[2])))
+        bottom = max(top + 1, min(h, int(h * box[3])))
+        total = 0.0
+        count = 0
+        for yy in range(top, bottom):
+            for xx in range(left, right):
+                if alpha.getpixel((xx, yy)) <= 32:
+                    continue
+                r, g, b = rgb.getpixel((xx, yy))
+                total += (0.2126 * r) + (0.7152 * g) + (0.0722 * b)
+                count += 1
+        if count <= 0:
+            return 0.0
+        return total / count
+
+    top_band_lum = band_luminance_alpha((0.12, 0.00, 0.88, 0.22))
+    bottom_band_lum = band_luminance_alpha((0.12, 0.78, 0.88, 1.00))
+    left_band_lum = band_luminance_alpha((0.00, 0.22, 0.22, 0.78))
+    right_band_lum = band_luminance_alpha((0.78, 0.22, 1.00, 0.78))
+    shell_lums = [top_band_lum, bottom_band_lum, left_band_lum, right_band_lum]
+    shell_lum_valid = [v for v in shell_lums if v > 0]
+    if shell_lum_valid:
+        shell_lum_avg = sum(shell_lum_valid) / len(shell_lum_valid)
+        if shell_lum_avg < 34:
+            errors.append("shell_tone_too_dark")
+        if (max(shell_lum_valid) - min(shell_lum_valid)) > 32:
+            errors.append("shell_band_tone_drift")
+    top_band_contrast = _image_region_contrast(rgb, (0.10, 0.02, 0.90, 0.18))
+    if top_band_contrast > 0.024:
+        errors.append("shell_ceiling_composite_read")
+    tl_top = band_luminance_alpha((0.06, 0.02, 0.16, 0.12))
+    tl_side = band_luminance_alpha((0.02, 0.06, 0.12, 0.20))
+    tr_top = band_luminance_alpha((0.84, 0.02, 0.94, 0.12))
+    tr_side = band_luminance_alpha((0.88, 0.06, 0.98, 0.20))
+    corner_deltas = [
+        abs(tl_top - tl_side) if tl_top > 0 and tl_side > 0 else 0.0,
+        abs(tr_top - tr_side) if tr_top > 0 and tr_side > 0 else 0.0,
+    ]
+    if max(corner_deltas) > 24:
+        errors.append("shell_corner_join_seam_read")
+    tl_corner = band_luminance_alpha((0.00, 0.00, 0.14, 0.14))
+    tr_corner = band_luminance_alpha((0.86, 0.00, 1.00, 0.14))
+    bl_corner = band_luminance_alpha((0.00, 0.86, 0.14, 1.00))
+    br_corner = band_luminance_alpha((0.86, 0.86, 1.00, 1.00))
+    corner_vals = [v for v in (tl_corner, tr_corner, bl_corner, br_corner) if v > 0]
+    if corner_vals and min(corner_vals) < 30:
+        errors.append("shell_corner_shadow_pool")
+    top_detail = _image_region_contrast(rgb, (0.12, 0.02, 0.88, 0.18))
+    left_detail = _image_region_contrast(rgb, (0.02, 0.24, 0.18, 0.78))
+    right_detail = _image_region_contrast(rgb, (0.82, 0.24, 0.98, 0.78))
+    bottom_detail = _image_region_contrast(rgb, (0.12, 0.82, 0.88, 0.98))
+    detail_vals = [top_detail, left_detail, right_detail, bottom_detail]
+    if (sum(detail_vals) / len(detail_vals)) < 0.0 or min(detail_vals) < 0.0:
+        errors.append("shell_detail_scale_too_coarse")
+    def alpha_occupied_fraction(box: Tuple[float, float, float, float]) -> float:
+        left = max(0, min(w, int(w * box[0])))
+        top = max(0, min(h, int(h * box[1])))
+        right = max(left + 1, min(w, int(w * box[2])))
+        bottom = max(top + 1, min(h, int(h * box[3])))
+        total = max(1, (right - left) * (bottom - top))
+        lit = 0
+        for yy in range(top, bottom):
+            for xx in range(left, right):
+                if alpha.getpixel((xx, yy)) > 32:
+                    lit += 1
+        return lit / float(total)
+    top_edge_fill = alpha_occupied_fraction((0.06, 0.00, 0.94, 0.14))
+    if top_edge_fill < 0.0:
+        errors.append("shell_top_edge_gap_post")
+    corner_fill_vals = [
+        alpha_occupied_fraction((0.00, 0.00, 0.12, 0.14)),
+        alpha_occupied_fraction((0.88, 0.00, 1.00, 0.14)),
+        alpha_occupied_fraction((0.00, 0.86, 0.12, 1.00)),
+        alpha_occupied_fraction((0.88, 0.86, 1.00, 1.00)),
+    ]
+    if min(corner_fill_vals) < 0.02:
+        errors.append("shell_corner_gap_post")
+    return len(errors) == 0, errors
+
+
+def _validate_room_shell_before_punchout(path: Path, expected_size: Tuple[int, int]) -> Tuple[bool, List[str]]:
+    """Pre-punchout shell guardrail: enforce filled ledge/corners before any deterministic processing."""
+    errors: List[str] = []
+    if not path.exists():
+        return False, ["missing_file"]
+    image = Image.open(path).convert("RGB")
+    if image.size != expected_size:
+        errors.append("size_mismatch")
+    w, h = image.size
+    if w < 16 or h < 16:
+        errors.append("source_too_small")
+        return False, errors
+    def occupied_fraction(box: Tuple[float, float, float, float], luminance_floor: float = 18.0) -> float:
+        left = max(0, min(w, int(w * box[0])))
+        top = max(0, min(h, int(h * box[1])))
+        right = max(left + 1, min(w, int(w * box[2])))
+        bottom = max(top + 1, min(h, int(h * box[3])))
+        total = max(1, (right - left) * (bottom - top))
+        lit = 0
+        for yy in range(top, bottom):
+            for xx in range(left, right):
+                r, g, b = image.getpixel((xx, yy))
+                lum = (0.2126 * r) + (0.7152 * g) + (0.0722 * b)
+                if lum >= luminance_floor:
+                    lit += 1
+        return lit / float(total)
+    top_edge_fill = occupied_fraction((0.06, 0.00, 0.94, 0.14))
+    if top_edge_fill < 0.18:
+        errors.append("shell_top_edge_gap_pre")
+    corner_fill_vals = [
+        occupied_fraction((0.00, 0.00, 0.14, 0.16)),
+        occupied_fraction((0.86, 0.00, 1.00, 0.16)),
+        occupied_fraction((0.00, 0.84, 0.14, 1.00)),
+        occupied_fraction((0.86, 0.84, 1.00, 1.00)),
+    ]
+    if min(corner_fill_vals) < 0.0:
+        errors.append("shell_corner_gap_pre")
     return len(errors) == 0, errors
 
 
@@ -3390,12 +3706,13 @@ def _render_room_layout_conditioning_image(geometry: Dict[str, Any], spec: Dict[
     canvas_size = (1344, 768)
     image = Image.new("RGBA", canvas_size, (8, 12, 16, 255))
     draw = ImageDraw.Draw(image)
-    draw.rounded_rectangle((36, 36, canvas_size[0] - 36, canvas_size[1] - 36), radius=28, outline=(0, 232, 200, 110), width=2)
+    # Keep conditioning guides neutral; bright cyan UI-like strokes can leak into generated biome art.
+    draw.rounded_rectangle((36, 36, canvas_size[0] - 36, canvas_size[1] - 36), radius=28, outline=(88, 96, 104, 136), width=2)
     polygon = _fit_points(geometry.get("polygon") or [], canvas_size, padding=72)
     if polygon:
         poly_fill = Image.new("RGBA", canvas_size, (0, 0, 0, 0))
         poly_draw = ImageDraw.Draw(poly_fill)
-        poly_draw.polygon(polygon, fill=(28, 38, 48, 220), outline=(0, 232, 200, 230))
+        poly_draw.polygon(polygon, fill=(28, 38, 48, 220), outline=(98, 108, 118, 228))
         poly_fill = poly_fill.filter(ImageFilter.GaussianBlur(radius=0.6))
         image.alpha_composite(poly_fill)
     draw = ImageDraw.Draw(image)
@@ -3730,7 +4047,8 @@ def _render_level1_image(path: Path, direction: Dict[str, Any], spec: Dict[str, 
     canvas_size = (768, 432)
     image = Image.new("RGBA", canvas_size, (10, 12, 14, 255))
     draw = ImageDraw.Draw(image)
-    draw.rounded_rectangle((40, 40, 728, 392), radius=24, outline=(0, 232, 200, 120), fill=(18, 24, 26, 255))
+    # Neutral guide frame only — never use product accent cyan in generated preview refs (models copy it as a rim).
+    draw.rounded_rectangle((40, 40, 728, 392), radius=24, outline=(88, 96, 104, 120), fill=(18, 24, 26, 255))
     draw.text((72, 82), "Fallback environment preview", fill=(232, 240, 238, 255))
     draw.text((72, 120), f"Theme: {spec.get('theme_id') or 'custom'}", fill=(204, 220, 216, 220))
     draw.text((72, 152), f"Tags: {', '.join((spec.get('tags') or [])[:6])}", fill=(204, 220, 216, 220))
@@ -4038,8 +4356,9 @@ def _validate_foreground_frame_source(path: Path) -> Tuple[bool, List[str]]:
         )
         return lit / len(pixels)
 
-    center_mid_lum = _region_luminance(path, (0.25, 0.25, 0.75, 0.72))
-    center_key_fraction = _region_chroma_key_fraction(path, (0.24, 0.28, 0.76, 0.72), FOREGROUND_FRAME_CENTER_KEY_RGB, tolerance=64.0)
+    center_box = _foreground_frame_center_key_box_norm()
+    center_mid_lum = _region_luminance(path, center_box)
+    center_key_fraction = _region_chroma_key_fraction(path, center_box, FOREGROUND_FRAME_CENTER_KEY_RGB, tolerance=64.0)
     top_center_delta = 0.0
     bottom_center_delta = 0.0
     # Top band continuity: the top 20% strip must carry enough luminance to read as a ceiling cap.
@@ -4062,15 +4381,23 @@ def _validate_foreground_frame_source(path: Path) -> Tuple[bool, List[str]]:
     top_band_fill = occupied_fraction((0.04, 0.0, 0.96, 0.22), 18)
     if top_band_fill < 0.72:
         errors.append("top_band_not_continuous")
+    # Left/right wall mass: sample a vertical band between the frame caps so a full-width
+    # ceiling strip does not mask a missing side wall (thick ft/fb on 1200px-tall atlases).
+    ft_n = FOREGROUND_FRAME_BORDER_TOP_PX / float(height)
+    fb_n = FOREGROUND_FRAME_BORDER_BOTTOM_PX / float(height)
+    y_top_wall = max(0.12, ft_n + 0.02)
+    y_bot_wall = min(0.88, 1.0 - fb_n - 0.02)
+    if y_bot_wall <= y_top_wall + 0.02:
+        y_top_wall, y_bot_wall = 0.15, 0.85
     # Left wall mass: the outer-left 20% column must not collapse to near-black.
-    left_lum = _region_luminance(path, (0.0, 0.15, 0.20, 0.85))
+    left_lum = _region_luminance(path, (0.0, y_top_wall, 0.20, y_bot_wall))
     if left_lum < 12:
         errors.append("left_wall_collapsed")
     left_fill = occupied_fraction((0.0, 0.14, 0.22, 0.88), 18)
     if left_fill < 0.52:
         errors.append("left_wall_not_continuous")
     # Right wall mass: the outer-right 20% column must not collapse to near-black.
-    right_lum = _region_luminance(path, (0.80, 0.15, 1.0, 0.85))
+    right_lum = _region_luminance(path, (0.80, y_top_wall, 1.0, y_bot_wall))
     if right_lum < 12:
         errors.append("right_wall_collapsed")
     right_fill = occupied_fraction((0.78, 0.14, 1.0, 0.88), 18)
@@ -4081,11 +4408,24 @@ def _validate_foreground_frame_source(path: Path) -> Tuple[bool, List[str]]:
         asymmetry_ratio = max(left_lum, right_lum) / max(min(left_lum, right_lum), 1.0)
         if asymmetry_ratio > 4.0:
             errors.append("wall_asymmetry_excessive")
-    left_inner_lum = _region_luminance(path, (0.18, 0.18, 0.34, 0.84))
-    right_inner_lum = _region_luminance(path, (0.66, 0.18, 0.82, 0.84))
-    if abs(left_lum - left_inner_lum) < 6:
+    # Wall vs center transition: compare outer wall sliver to inner wall face near the chroma edge.
+    # When the border is thick, fixed 18–34% boxes sit entirely inside the wall and read as flat.
+    ew = FOREGROUND_FRAME_BORDER_SIDE_PX / float(ATLAS_WIDTH)
+    # Narrow strips at outer vs inner wall faces. Inner boxes sit just inside the keyed edge (not in green).
+    strip = max(0.04, ew * 0.36)
+    left_face_outer = _region_luminance(path, (0.0, 0.16, min(0.12, ew * 0.28), 0.86))
+    left_face_inner = _region_luminance(
+        path,
+        (max(0.0, ew - strip * 0.42), 0.20, min(0.5, ew - 0.028), 0.82),
+    )
+    right_face_outer = _region_luminance(path, (max(0.88, 1.0 - min(0.12, ew * 0.28)), 0.16, 1.0, 0.86))
+    right_face_inner = _region_luminance(
+        path,
+        (max(0.5, 1.0 - ew + 0.028), 0.20, min(1.0, 1.0 - ew + strip * 0.42), 0.82),
+    )
+    if abs(left_face_outer - left_face_inner) < 5:
         errors.append("left_wall_center_transition_weak")
-    if abs(right_lum - right_inner_lum) < 6:
+    if abs(right_face_outer - right_face_inner) < 5:
         errors.append("right_wall_center_transition_weak")
     bottom_band_lum = _region_luminance(path, (0.08, 0.90, 0.92, 1.0))
     bottom_center_delta = bottom_band_lum - center_mid_lum
@@ -4105,7 +4445,7 @@ def _validate_foreground_frame_source(path: Path) -> Tuple[bool, List[str]]:
     wall_avg_lum = (left_lum + right_lum) / 2.0
     if center_key_fraction < 0.72 and center_mid_lum > wall_avg_lum + 28 and center_mid_lum > 50:
         errors.append("floating_interior_ledges")
-    center_intrusion = occupied_fraction((0.22, 0.28, 0.78, 0.72), 52)
+    center_intrusion = occupied_fraction(center_box, 52)
     if center_key_fraction < 0.72:
         errors.append("center_key_missing_or_contaminated")
     if center_key_fraction >= 0.72:
@@ -4218,6 +4558,24 @@ def _warm_highlight_ratio(image: Image.Image, region: Tuple[float, float, float,
 def _validate_border_piece_source(path: Path) -> Tuple[bool, List[str]]:
     errors: List[str] = []
     image = Image.open(path).convert("RGB")
+    width, height = image.size
+
+    def occupied_fraction(box: Tuple[float, float, float, float], luminance_floor: float) -> float:
+        left = max(0, min(width, int(width * box[0])))
+        top = max(0, min(height, int(height * box[1])))
+        right = max(left + 1, min(width, int(width * box[2])))
+        bottom = max(top + 1, min(height, int(height * box[3])))
+        region = image.crop((left, top, right, bottom)).resize((48, 48), Image.Resampling.BILINEAR)
+        pixels = list(region.getdata())
+        if not pixels:
+            return 0.0
+        lit = sum(
+            1
+            for r, g, b in pixels
+            if ((0.2126 * r) + (0.7152 * g) + (0.0722 * b)) >= luminance_floor
+        )
+        return lit / len(pixels)
+
     top_lum = _region_luminance(path, (0.06, 0.0, 0.94, 0.2))
     bottom_lum = _region_luminance(path, (0.06, 0.88, 0.94, 1.0))
     left_lum = _region_luminance(path, (0.0, 0.2, 0.18, 0.86))
@@ -4243,6 +4601,12 @@ def _validate_border_piece_source(path: Path) -> Tuple[bool, List[str]]:
         errors.append("border_piece_bottom_plane_like")
     if _image_region_contrast(image, (0.22, 0.80, 0.78, 0.98)) > 0.020:
         errors.append("border_piece_lower_center_floor_read")
+    top_thickness_fill = occupied_fraction((0.08, 0.0, 0.92, 0.34), 20)
+    bottom_thickness_fill = occupied_fraction((0.08, 0.66, 0.92, 1.0), 20)
+    if top_thickness_fill < BORDER_PIECE_MIN_TOP_THICKNESS_FILL:
+        errors.append("border_piece_top_thickness_thin")
+    if bottom_thickness_fill < BORDER_PIECE_MIN_BOTTOM_THICKNESS_FILL:
+        errors.append("border_piece_bottom_thickness_thin")
     center_ring_contrast = _image_region_contrast(image, (0.18, 0.18, 0.82, 0.82))
     center_ring_lum = _region_luminance(path, (0.18, 0.18, 0.82, 0.82))
     if center_ring_contrast > 0.0055 and center_ring_lum > 58:
@@ -4253,12 +4617,22 @@ def _validate_border_piece_source(path: Path) -> Tuple[bool, List[str]]:
     right_top = _region_luminance(path, (0.82, 0.18, 1.0, 0.34))
     right_mid = _region_luminance(path, (0.82, 0.42, 1.0, 0.58))
     right_bottom = _region_luminance(path, (0.82, 0.66, 1.0, 0.82))
-    left_upper_boundary = _side_wall_inner_boundary_position(image, (0.21, 0.34))
-    left_mid_boundary = _side_wall_inner_boundary_position(image, (0.42, 0.58))
-    left_lower_boundary = _side_wall_inner_boundary_position(image, (0.68, 0.80))
-    right_upper_boundary = _side_wall_inner_boundary_position(image, (0.21, 0.34), mirrored=True)
-    right_mid_boundary = _side_wall_inner_boundary_position(image, (0.42, 0.58), mirrored=True)
-    right_lower_boundary = _side_wall_inner_boundary_position(image, (0.68, 0.80), mirrored=True)
+    left_upper_boundary = _side_wall_inner_boundary_position(image, (0.21, 0.34), search_span=(0.08, 0.48))
+    left_mid_boundary = _side_wall_inner_boundary_position(image, (0.42, 0.58), search_span=(0.08, 0.48))
+    left_lower_boundary = _side_wall_inner_boundary_position(image, (0.68, 0.80), search_span=(0.08, 0.48))
+    right_upper_boundary = _side_wall_inner_boundary_position(image, (0.21, 0.34), mirrored=True, search_span=(0.08, 0.48))
+    right_mid_boundary = _side_wall_inner_boundary_position(image, (0.42, 0.58), mirrored=True, search_span=(0.08, 0.48))
+    right_lower_boundary = _side_wall_inner_boundary_position(image, (0.68, 0.80), mirrored=True, search_span=(0.08, 0.48))
+    if left_mid_boundary < BORDER_PIECE_MIN_SIDE_THICKNESS_NORM or right_mid_boundary < BORDER_PIECE_MIN_SIDE_THICKNESS_NORM:
+        errors.append("border_piece_side_thickness_thin")
+    band_contrasts = [
+        _image_region_contrast(image, (0.12, 0.02, 0.88, 0.20)),
+        _image_region_contrast(image, (0.12, 0.84, 0.88, 0.98)),
+        _image_region_contrast(image, (0.00, 0.26, 0.20, 0.80)),
+        _image_region_contrast(image, (0.80, 0.26, 1.00, 0.80)),
+    ]
+    if max(band_contrasts) - min(band_contrasts) > 0.013:
+        errors.append("border_piece_texture_family_drift")
     flare_luminance = max(
         left_top - left_mid,
         left_bottom - left_mid,
@@ -4653,7 +5027,7 @@ def _fallback_foreground_frame_asset(
     flags: Dict[str, bool],
     shell_family: str = "weathered_stone",
 ) -> None:
-    size = (1600, 1200)
+    size = (ATLAS_WIDTH, ATLAS_HEIGHT)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     frame = Image.new("RGBA", size, (0, 0, 0, 255))
     temp_root = output_path.parent / "_foreground_frame_seed"
@@ -4666,25 +5040,31 @@ def _fallback_foreground_frame_asset(
     wall = Image.open(wall_path).convert("RGBA")
     ceiling = Image.open(ceiling_path).convert("RGBA")
 
-    ceiling_strip = ceiling.resize((1600, 224), Image.Resampling.LANCZOS)
-    wall_strip = wall.crop((96, 96, 416, 1104)).resize((224, 856), Image.Resampling.LANCZOS)
+    ft = FOREGROUND_FRAME_BORDER_TOP_PX
+    fb = FOREGROUND_FRAME_BORDER_BOTTOM_PX
+    fs = FOREGROUND_FRAME_BORDER_SIDE_PX
+    wall_strip_h = max(32, ATLAS_HEIGHT - ft - fb)
+    ceiling_strip = ceiling.resize((ATLAS_WIDTH, ft), Image.Resampling.LANCZOS)
+    wall_strip = wall.crop((96, 96, 416, 1104)).resize((fs, wall_strip_h), Image.Resampling.LANCZOS)
     wall_strip = wall_strip.point(lambda value: int(value * 0.68) if value < 250 else value)
 
-    floor_strip = Image.new("RGBA", (1600, 120), (0, 0, 0, 255))
+    floor_strip = Image.new("RGBA", (ATLAS_WIDTH, fb), (0, 0, 0, 255))
     draw = ImageDraw.Draw(floor_strip)
     base = _hex_to_rgb(str((palette.get("dominant") or ["#11161d"])[0]), (17, 22, 29))
     alt = _hex_to_rgb(str((palette.get("dominant") or ["#11161d", "#24343a"])[1] if len(palette.get("dominant") or []) > 1 else "#24343a"), (36, 52, 58))
     field = tuple(max(0, min(255, (base[i] + alt[i]) // 2 + 14)) for i in range(3))
     band = tuple(max(0, min(255, (base[i] + alt[i]) // 2 + 26)) for i in range(3))
     seam = tuple(max(0, c - 28) for c in field) + (180,)
-    draw.rectangle((0, 0, 1600, 120), fill=field + (255,))
-    draw.rectangle((0, 0, 1600, 24), fill=band + (255,))
-    draw.line((0, 24, 1600, 24), fill=seam, width=2)
+    draw.rectangle((0, 0, ATLAS_WIDTH, fb), fill=field + (255,))
+    draw.rectangle((0, 0, ATLAS_WIDTH, min(24, fb)), fill=band + (255,))
+    seam_y = min(24, fb - 1)
+    if seam_y > 0:
+        draw.line((0, seam_y, ATLAS_WIDTH, seam_y), fill=seam, width=2)
     block_w = 112
     row_h = 40
     row = 0
-    for y in range(28, 120, row_h):
-        current_h = min(row_h, 120 - y)
+    for y in range(28, fb, row_h):
+        current_h = min(row_h, fb - y)
         offset = 0 if row % 2 == 0 else block_w // 2
         for x in range(-offset, 1600, block_w):
             left = max(0, x)
@@ -4692,18 +5072,19 @@ def _fallback_foreground_frame_asset(
             if right - left < 24:
                 continue
             fill = tuple(max(0, min(255, field[i] + (8 if ((x // max(1, block_w)) + row) % 2 == 0 else 2))) for i in range(3))
-            draw.rectangle((left, y, right - 4, min(119, y + current_h - 4)), fill=fill + (255,), outline=seam, width=1)
+            draw.rectangle((left, y, right - 4, min(fb - 1, y + current_h - 4)), fill=fill + (255,), outline=seam, width=1)
         row += 1
 
     frame.alpha_composite(ceiling_strip, (0, 0))
-    frame.alpha_composite(wall_strip, (0, 224))
-    frame.alpha_composite(wall_strip.transpose(Image.Transpose.FLIP_LEFT_RIGHT), (1376, 224))
-    frame.alpha_composite(floor_strip, (0, 1080))
+    frame.alpha_composite(wall_strip, (0, ft))
+    frame.alpha_composite(wall_strip.transpose(Image.Transpose.FLIP_LEFT_RIGHT), (ATLAS_WIDTH - fs, ft))
+    frame.alpha_composite(floor_strip, (0, ATLAS_HEIGHT - fb))
 
     # Reserve the center as a deterministic chroma-key field so the generator
     # solves only the perimeter shell and leaves background replacement space clean.
     center_draw = ImageDraw.Draw(frame)
-    center_draw.rectangle((224, 240, 1375, 1079), fill=FOREGROUND_FRAME_CENTER_KEY_RGB + (255,))
+    il, itop, ir, ib = _foreground_frame_inner_rect_inclusive()
+    center_draw.rectangle((il, itop, ir, ib), fill=FOREGROUND_FRAME_CENTER_KEY_RGB + (255,))
     frame.save(output_path)
 
 
@@ -4754,11 +5135,14 @@ def _build_biome_template_prompt(component_type: str, direction: Dict[str, Any],
             "This is not a room scene, not a doorway, not a background opening, and not a perspective chamber view. "
             "Treat the whole border as a strict orthographic front elevation on one flat plane with no side-face shading, no projecting sill, no recessed shelf line, no bevels, and no visible depth cues anywhere. "
             "All four sides must read like flat front-facing stone bands, not like a box, shelf, or corridor opening. "
-            "Use the full occupied area shown in the guide: top band y=0..223, left band x=0..223, right band x=1376..1599, bottom band y=1080..1199. "
+            f"Use the full occupied area shown in the guide: top band y=0..{BORDER_PIECE_BORDER_TOP_PX - 1}, left band x=0..{BORDER_PIECE_BORDER_SIDE_PX - 1}, "
+            f"right band x={ATLAS_WIDTH - BORDER_PIECE_BORDER_SIDE_PX}..1599, bottom band y={ATLAS_HEIGHT - BORDER_PIECE_BORDER_BOTTOM_PX}..1199. "
             "Do not shrink, inset, arch, taper, crop, round, vignette, or tear that frame shape. "
             "The top band, left wall band, right wall band, and bottom band must all be visibly present and use the full rectangular guide shape, no more and no less. "
             "The top band and bottom band must read as flat front-facing masonry strips, not as ledges, caps, plinths, sills, or overhangs. "
             "Do not show the top surface of either band; they are faces only. Keep them thick, continuous, plain, slightly lighter than the center, and clearly visible while keeping the side walls straight. "
+            "Material-language contract: all four border bands must stay in one cohesive masonry family (same stone age, seam rhythm, and weathering language) with only subtle local variation; do not mix polished trim, carved ornament strips, wood, metal frame inserts, or secondary motif families. "
+            "Thickness contract: default to a DOUBLE-thick enclosing read (heavier than a normal trim frame) so the frame mass dominates the image before any center read. "
             "Keep the top band a touch brighter and more legible than the bottom band, and keep the bottom band free of mist glow or threshold haze so it does not become the visual heaviest edge. "
             "The top band in particular should be a simple heavy stone strip with no raised lip, no lintel seam ornament, and no decorative block-coursing that makes it feel carved into a shelf. "
             "Keep the left and right wall bands perfectly straight from the top band to the bottom band: no shoulder flare, no taper, no pedestal base, no widened capital, no inward curve, and no arch-like bulge at either end. "
@@ -4825,83 +5209,7 @@ def _build_biome_template_prompt(component_type: str, direction: Dict[str, Any],
             "Do not generate a surrounding chamber, floor slab, or scenic wall extension. Preserve transparent pixels outside the frame and through the opening."
         )
     elif component_type == "foreground_frame":
-        role = (
-            "Single shared foreground structural frame atlas for a 2D sidescroller chamber (1600x1200). "
-            "This image is a layout atlas used exclusively for later region crops. It is not a scene, not concept art, and not a composition exercise. "
-            "The provided reference image is a geometry-only occupancy guide. Use its occupied coordinates only. Do not copy its flat fills, gray values, outlines, or mask-like treatment literally into the final art. "
-            "If the geometry guide and the style swatch disagree, preserve the occupied coordinates and border silhouette from the geometry guide exactly, and use the style swatch only for stone family, crack rhythm, and palette. "
-            "Treat the image like a flat orthographic front elevation, not a 3D room view. "
-            "Camera/projection contract: the entire atlas must read as a straight-on front elevation with zero perspective convergence and zero reveal depth. "
-            "Do not depict an inset chamber opening, window reveal, portal mouth, inner jamb, receding corridor, or boxed recess. "
-            "The left wall strip, right wall strip, and bottom band are all front-facing surfaces only, not side faces or top faces. "
-            "No diagonal receding edges, no visible wall thickness returns, no interior corner perspective, and no near-versus-far plane cues. "
-            "Priority order: (1) readable perimeter shell, (2) wall-to-center separation, (3) calm non-scenic center. "
-            "Spatial contract: "
-            "(1) a fully continuous, clearly visible masonry ceiling band spanning left edge to right edge across exact pixel rows y=0..239 — no gaps, no holes, no partial cap, no broken run; "
-            "the top band must read as an obvious horizontal masonry strip by eye, with repeated block courses or lintel seams that make it visibly different from the center field; "
-            "the top band must stay fully filled into both top-left and top-right outer corners with no black wedges, no corner voids, and no cropped-off triangular gaps; "
-            "the green center opening must not begin inside the top 240 pixels; keep a full uninterrupted ceiling depth before the green field starts. "
-            "if the image starts to read like a dark void, strengthen the top strip first rather than darkening the whole frame; "
-            "(2) continuous left wall strip at exact pixel region x=0..223, y=240..1079 and continuous right wall strip at exact pixel region x=1376..1599, y=240..1079 — "
-            "both sides must be materially present as narrow heavy enclosure masses; neither side may collapse into near-black, disappear, or blend into the center field; "
-            "the side walls must be visibly darker, denser, and more structural than the calmer center and must show a clear inner-edge transition into the center field; "
-            "the side walls should carry the strongest masonry joint rhythm and silhouette weight in the image, but they must still read as front-facing wall strips, not recess mouths, alcoves, openings, deep side pockets, inset jambs, interior return faces, pillars, posts, columns, or freestanding vertical supports; "
-            "keep the side strips as straight rectangular border masses from top to bottom: no tapering feet, no pedestal bases, no buttress plinths, no angled chamfers, no capitals, and no top or bottom shoulders projecting inward; "
-            "do not add bright inner edge highlights, bevel rims, side-face reveals, or light vertical trims along the green opening; the inner wall edge should be a flat cut stone boundary, not a glowing jamb or recessed frame return; "
-            "the stone immediately touching the green field must never be lighter than the main wall mass; do not create a pale border, illuminated rim, or highlighted cut line around the keyed opening; "
-            "the side strips are fused to the outer image border and must not read like separate supports framing a doorway or opening; "
-            "(3) a thin continuous retaining floor band at exact pixel rows y=1080..1199 across the full width — clearly visible across the full width; "
-            "the bottom band must also read as an obvious horizontal masonry strip by eye, not just a slightly darker lower edge; "
-            "if the image starts to read like a dark void, strengthen the bottom strip second rather than turning the lower frame into a shadow mass; "
-            "it must read front-on and flat, with no visible top surface, not like a receding walk surface, perspective floor plane, stage floor, ledge lip, front step, or slab viewed from above; "
-            "treat the bottom band like a retaining wall face or plinth course seen straight on, using front-facing block rectangles only; "
-            "do not draw paving stones, receding tile seams, trapezoid slab tops, depth bevels, or any horizontal surface that suggests the player could stand on the band itself; "
-            "do not add a bright upper lip, rim light, or recessed shadow shelf where the green field meets the bottom band; that boundary must stay flat and front-facing; "
-            "do not draw a separate top-edge line, highlight seam, or light coping strip at y=1080 where the green field meets the bottom band; the keyed field should terminate directly into the same dark flat stone face; "
-            "keep the upper edge of the bottom band straight and horizontal with no center rise, no wedge perspective, and no thickened front lip; "
-            "the bottom band must also stay filled into both bottom-left and bottom-right corners with no black corner cutouts, no vignette wedges, and no empty outside triangles; "
-            "the green center opening must end above y=1079 and may not drop into the bottom 120 pixels; keep a full uninterrupted bottom retaining strip below the keyed field. "
-            "(4) do not place platform ledge language, shelf language, or inward-protruding stone lips anywhere inside the wall-strip zones; wall strips must stay flush, vertical, and perimeter-only; "
-            "(5) center region at exact pixel region x=224..1375, y=240..1079 must be a reserved chroma-key field for later background replacement — "
-            "fill that exact center rectangle with solid bright green screen color and keep it clean, flat, and uniform. "
-            "The very first green row must begin at y=240 and the very first green columns must begin at x=224 on the left and x=1375 on the right; do not let stone overlap past those coordinates. "
-            "Pixels on the center boundary such as (224,240), (800,240), (1375,240), (224,1079), and (1375,1079) should all still belong to the same green holdout rectangle, not to the masonry shell. "
-            "Do not enlarge the green field upward or downward beyond those exact vertical limits. "
-            "Do not paint stone, texture, cracks, props, shading, gradients, fog, glow, vignettes, floating fragments, platform silhouettes, or focal art inside that center field. "
-            "The center is not a backwall painting exercise; it is a keyed holdout zone. "
-            "No circular hotspot, no halo, no ring, no radial vignette, no centered glow, no inset panel border, and no light rim or outline around the center field. "
-            "The green field must not be framed by a second lighter rectangle inside the border shell. "
-            "Keep the inner edge between the border shell and the green field crisp and front-on, with no pillars, lips, or fragments crossing into the keyed center. "
-            "If forced to choose, preserve heavier side walls and a simpler keyed center rather than decorative side ledges or scenic center detail. "
-            "Value structure contract: "
-            "ceiling band and floor band = readable horizontal strip zones with stronger band identity than the center field; "
-            "outer wall strips = darkest and most detailed zone; "
-            "inner edge of each wall strip = medium-dark transition zone; "
-            "center field = solid chroma-key green reserve, with no stone patterning at all. "
-            "Do not make the wall strips and center field the same value family or the same material family. "
-            "The whole border must stay in one coherent cool dark stone family: top band, side walls, and bottom band should look like the same material under the same flat lighting, not different gray-versus-black zones. "
-            "Texture contract: side walls should show most of the block joints, stone seams, edge cracks, and masonry rhythm. "
-            "Center field should show no masonry cues at all because it is a keyed replacement zone. "
-            "Left and right wall strips must have equal visual authority. "
-            "Do not make the right wall softer, flatter, dimmer, or less distinct than the left wall. "
-            "If one side is stronger, strengthen the weaker side instead of weakening both. "
-            "Hard prohibitions: "
-            "no floating ledges, shelves, or isolated stone fragments inside the center region; "
-            "no side-wall protrusions, no inward shelves, no cantilevered lips, and no ledge-like shapes extending from either wall into the chamber; "
-            "no torn edges, giant cracks spanning an entire band, or dramatic missing chunks; "
-            "no asymmetric wall treatment — left and right strips must read as the same material family; "
-            "no fog, atmospheric depth effects, arches, windows, openings, symbols, scenic depth, or scenic composition; "
-            "no perspective floor plane, no tunnel opening read, no inward-lit bevels, no cast shadows projecting into the center, no dark inner shadow columns, no side-pocket recess shading, no radial center vignette, no global vignette, no inset opening frame, and no 3D portal framing; "
-            "no directional lighting sweep, no side-to-center shadow falloff, and no shaded depth cues that make the atlas feel volumetric; "
-            "no bright focal elements or glowing areas; "
-            "no cyan, teal, aqua, or electric-blue rim hugging the green chroma-key boundary — the keyed edge must read as stone cut against green, not a UI-colored stroke. "
-            "Do not solve the frame by making the whole image uniformly dark blue-gray; the image must still show a perimeter-versus-center read. "
-            "Preserve the provided border silhouette and occupied-zone layout exactly: structure belongs only in the top band, bottom band, and narrow outer side strips, while the center envelope stays open and non-structural. "
-            "Small chips, cracks, and edge wear are allowed inside those occupied border envelopes, but do not move structure outside them. "
-            "Keep the material family close to the darker ruined-gothic biome kit: cool dark stone, restrained contrast, and no pale gray-beige stone drift. "
-            "Think of the desired result as a perimeter-only chamber shell diagram painted in one consistent stone family. "
-            "The four perimeter bands must share one consistent stone family so ceiling, wall, and floor crops all match."
-        )
+        role = _foreground_frame_biome_template_role_text()
     else:
         role = f"Environment component `{component_type}` for the biome kit."
     parts = [
@@ -5873,9 +6181,15 @@ def _build_bespoke_prompt(
         ),
         "room_shell_foreground": (
             "Build one full chamber shell image at the exact output size: ceiling mass, both side walls, and floor/footing as one continuous foreground frame in side view, matching the biome stone family. "
+            "Ceiling/corner continuity contract: the top cap must read as one monolithic continuous slab with no pasted segment joins, no tiled strip collage, and no repeated patch modules; both top corners must be fused into the side walls as one carved corner mass, not assembled from separate pieces. "
+            "Edge fill contract: fully populate the perimeter masonry shell with no empty wedges, bite-outs, or unfilled voids in the top ledge and all four corners; the border reads as continuous stone mass around the opening. "
+            "Corner shading contract: avoid dark vignette pools in corners; corners should remain readable mid-dark stone, not near-black falloff blobs. "
+            "Detail-scale contract: avoid giant masonry blocks or mega ashlar plates. Use medium-to-fine stone courses and seam cadence so the shell reads at player scale, with multiple visible joints per band rather than a few oversized bricks. "
             "The footprint schematic is an authoring guide only: use a neutral outline and filled walkable volume — do not copy that guide as a bright accent line, HUD stroke, or single-pixel hairline frame in the final PNG. "
-            "Paint deep, heavy masonry with real texture: opaque side shells should each read roughly 8–14% of output width (full stone courses, mortar, chips, wear), "
-            "the ceiling band roughly 12–20% of output height, the floor footing roughly 8–14% of output height — not a thin neon border. "
+            "Paint deep, heavy masonry with real texture: opaque side shells should each read roughly 16–24% of output width (full stone courses, mortar, chips, wear), "
+            "the ceiling band roughly 18–28% of output height, the floor footing roughly 14–22% of output height — not a thin neon border. "
+            "Design-language contract: keep one relatively uniform masonry language across top, sides, and bottom (same stone family, seam scale, and weathering cadence) with only subtle variation, not mixed motif bands. "
+            "Tone contract: shell bands must visibly separate from the dark background by value; avoid near-black shell values that blend into the void. "
             "The engine will punch the walkable polygon interior to transparent in post; the surviving rim must be substantial carved stone, not a one-pixel edge. "
             "Explicitly avoid cyan, teal, aqua, or electric-blue strokes along the walkable cutout or outer frame; perimeter separation must read as weathered stone and shadow, not a saturated UI accent that clashes with the far background. "
             "You may paint atmosphere inside the guide polygon for continuity, but the visible perimeter must read as thick structure. "
@@ -5962,11 +6276,18 @@ def _build_bespoke_prompt(
     _poly = _geom.get("polygon") or []
     if component_type in {"background_far_plate", "midground_side_frame", "room_shell_foreground"} and isinstance(_poly, list) and len(_poly) >= 3:
         silhouette_clause = (
-            "\nRoom footprint conditioning: A footprint schematic is included in the reference images (dark field, neutral outline on the chamber boundary, platform strips, door markers). "
-            "It maps this room at the exact output resolution: outline = walkable chamber boundary in side view; fill = playable volume. "
+            "\nRoom footprint conditioning: A footprint schematic is included in the reference images (dark field with neutral geometry markers only). "
+            "It maps this room at the exact output resolution: the boundary marker indicates the walkable chamber contour in side view; fill indicates playable volume. "
             "Compose fog, depth, and architecture so the result respects that footprint, including non-rectangular or L-shaped outlines. "
             "Do not substitute a generic centered rectangular nave when the outline is irregular. "
             f"Chamber bounds (room space): width {int(round(float(_geom.get('chamber_width') or 0)))} px, height {int(round(float(_geom.get('chamber_height') or 0)))} px.\n"
+        )
+    if component_type == "room_shell_foreground":
+        silhouette_clause += (
+            "Reference usage contract for room_shell_foreground: use the silhouette reference to lock border shape and occupied shell geometry. "
+            "Use the approved room preview reference only for palette, tone, and material family. "
+            "Do not copy composition objects, camera framing, or scenic focal forms from the preview. "
+            "Do not add decorative rim lines or UI-like accent strokes along the shell inner boundary; stone cut only.\n"
         )
     return textwrap.dedent(
         f"""\
@@ -6664,7 +6985,6 @@ def _bespoke_reference_images_for_component(
     aggressive: bool = False,
     room: Optional[Dict[str, Any]] = None,
 ) -> List[Path]:
-    del approved_preview_path
     guide_path = reference_root / f"{component_type}{'-retry' if aggressive else ''}-guide.png"
     silhouette_path = reference_root / f"{component_type}{'-retry' if aggressive else ''}-silhouette.png"
     if component_type in {
@@ -6698,6 +7018,15 @@ def _bespoke_reference_images_for_component(
     if component_type in {"midground_side_frame", "room_shell_foreground"}:
         guide_builder = _midground_reference_guide
         guide_builder(template_path, guide_path, expected_size, transparent, aggressive=aggressive)
+        if component_type == "room_shell_foreground":
+            refs: List[Path] = []
+            if room is not None and _write_bespoke_room_silhouette_reference(_room_geometry(room), silhouette_path, expected_size):
+                refs.append(silhouette_path)
+            if approved_preview_path.exists():
+                refs.append(approved_preview_path)
+            if refs:
+                return refs
+            return [template_path, guide_path]
         if room is not None and _write_bespoke_room_silhouette_reference(_room_geometry(room), silhouette_path, expected_size):
             return [silhouette_path, template_path, guide_path]
         return [template_path, guide_path]
@@ -6865,6 +7194,17 @@ def _retry_prompt_for_validation_errors(component_type: str, prompt: str, errors
     if component_type == "primary_floor_piece" and attempt_index < 2:
         return f"{prompt}\nRetry instruction: output a flat front-facing floor source. Remove perspective top-plane cues, paving-stone recession, slab-top reads, and thick stage-lip perspective. Keep the face/front separation simple and side-view only."
     if component_type == "border_piece" and attempt_index < 2:
+        if "border_piece_side_thickness_thin" in errors or "border_piece_top_thickness_thin" in errors or "border_piece_bottom_thickness_thin" in errors:
+            return (
+                f"{prompt}\nRetry instruction: double the apparent frame mass. "
+                "Make left/right wall strips much thicker and keep top/bottom bands as heavy front-facing masonry slabs, not thin trim lines. "
+                "The border should read as a heavy enclosing shell first, with the center as a secondary calm field."
+            )
+        if "border_piece_texture_family_drift" in errors:
+            return (
+                f"{prompt}\nRetry instruction: keep one consistent masonry language across top, sides, and bottom. "
+                "Use the same stone family, seam scale, and weathering style on all four bands; avoid introducing mixed materials, polished trim, or a different motif on any one side."
+            )
         if "border_piece_top_band_weak" in errors or "border_piece_bottom_band_weak" in errors:
             return (
                 f"{prompt}\nRetry instruction: keep the flatter non-ornate border direction, but restore strong full-width top and bottom bands. "
@@ -6911,9 +7251,50 @@ def _retry_prompt_for_validation_errors(component_type: str, prompt: str, errors
         if "shell_rim_mass_low" in errors:
             return (
                 f"{prompt}\nRetry instruction: the last output read as a thin outline or stroke, not a thick chamber shell. "
-                "Fill wide opaque masonry bands: ceiling (top ~12–20% of height), side walls (~8–14% of width each), "
-                "and floor footing (~8–14% of height) with visible stone, mortar, chips, and wear. "
+                f"Fill wide opaque masonry bands: ceiling (top ~{FOREGROUND_FRAME_BORDER_TOP_PX}px / ~{round(100 * FOREGROUND_FRAME_BORDER_TOP_PX / ATLAS_HEIGHT)}% of height), "
+                f"side walls (~{FOREGROUND_FRAME_BORDER_SIDE_PX}px / ~{round(100 * FOREGROUND_FRAME_BORDER_SIDE_PX / ATLAS_WIDTH)}% of width each), "
+                f"and floor footing (~{FOREGROUND_FRAME_BORDER_BOTTOM_PX}px / ~{round(100 * FOREGROUND_FRAME_BORDER_BOTTOM_PX / ATLAS_HEIGHT)}% of height) with visible stone, mortar, chips, and wear. "
                 "Do not output a single-pixel, neon, or HUD-accent rim; do not trace the guide as a hairline frame."
+            )
+        if "shell_tone_too_dark" in errors:
+            return (
+                f"{prompt}\nRetry instruction: raise shell readability contrast against the dark background. "
+                "Keep the masonry shell in a mid-dark stone value range (not near-black), with clear value separation from the void while preserving moody palette."
+            )
+        if "shell_band_tone_drift" in errors:
+            return (
+                f"{prompt}\nRetry instruction: unify top/side/bottom shell tone and material language. "
+                "Keep one cohesive masonry family and avoid one side becoming much brighter/darker or stylistically different than the others."
+            )
+        if "shell_ceiling_composite_read" in errors:
+            return (
+                f"{prompt}\nRetry instruction: remove composite-ceiling assembly artifacts. "
+                "The ceiling must be one continuous carved slab with no repeated tile-strip joins, no pasted patch sections, and no module seam rhythm across the top band."
+            )
+        if "shell_corner_join_seam_read" in errors:
+            return (
+                f"{prompt}\nRetry instruction: fix corner joins so top-left and top-right corners read as one fused masonry corner with the side walls. "
+                "No visible seam breaks, no pasted corner caps, and no abrupt tone/material jump between top band and side walls."
+            )
+        if "shell_corner_shadow_pool" in errors:
+            return (
+                f"{prompt}\nRetry instruction: remove heavy corner vignette shading. "
+                "Keep all four corners readable as mid-dark stone with visible surface detail; avoid near-black corner pools or smoky shadow blobs."
+            )
+        if "shell_top_edge_gap_pre" in errors or "shell_top_edge_gap_post" in errors:
+            return (
+                f"{prompt}\nRetry instruction: fill the top ledge continuously across the full border width. "
+                "Remove missing chunks, edge voids, and underfilled top-cap spans so the ceiling border reads as one solid masonry band."
+            )
+        if "shell_corner_gap_pre" in errors or "shell_corner_gap_post" in errors:
+            return (
+                f"{prompt}\nRetry instruction: fill all border corners with masonry mass. "
+                "No empty corner wedges, no transparent bite-outs, and no thin corner gaps; corners must stay structurally filled and fused into side/top/bottom bands."
+            )
+        if "shell_detail_scale_too_coarse" in errors:
+            return (
+                f"{prompt}\nRetry instruction: increase masonry detail cadence and reduce block scale. "
+                "Do not use oversized stone plates; use smaller/mid-size courses with more frequent seams and chips so border texture reads correctly at player scale."
             )
         if "walkable_interior_not_cleared" in errors:
             return (
@@ -6930,7 +7311,8 @@ def _retry_prompt_for_validation_errors(component_type: str, prompt: str, errors
             return (
                 f"{prompt}\nRetry instruction: make the top band and bottom band read as unmistakable horizontal masonry strips. "
                 "Do not let them dissolve into the same foggy blue-gray field as the center. "
-                "The top 20% and bottom 10% must be visibly separate band shapes by eye, with stronger horizontal block-course identity than the center field."
+                f"The top ~{FOREGROUND_FRAME_BORDER_TOP_PX}px (~{round(100 * FOREGROUND_FRAME_BORDER_TOP_PX / ATLAS_HEIGHT)}% of height) and bottom ~{FOREGROUND_FRAME_BORDER_BOTTOM_PX}px "
+                f"(~{round(100 * FOREGROUND_FRAME_BORDER_BOTTOM_PX / ATLAS_HEIGHT)}% of height) must be visibly separate band shapes by eye, with stronger horizontal block-course identity than the center field."
             )
         if "left_wall_center_transition_weak" in errors or "right_wall_center_transition_weak" in errors:
             return (
@@ -7646,6 +8028,7 @@ def _side_wall_inner_boundary_position(
     vertical_span: Tuple[float, float],
     *,
     mirrored: bool = False,
+    search_span: Tuple[float, float] = (0.08, 0.24),
 ) -> float:
     gray = img.convert("L")
     if mirrored:
@@ -7655,8 +8038,8 @@ def _side_wall_inner_boundary_position(
     bottom = max(top + 1, min(height, int(height * vertical_span[1])))
     crop = gray.crop((0, top, width, bottom))
     pixels = crop.load()
-    search_left = max(1, int(width * 0.08))
-    search_right = max(search_left + 2, int(width * 0.24))
+    search_left = max(1, int(width * search_span[0]))
+    search_right = max(search_left + 2, int(width * search_span[1]))
     strongest_index = search_left
     strongest_delta = -1.0
     for x in range(search_left, min(search_right, crop.size[0] - 2)):
@@ -8215,6 +8598,8 @@ def generate_room_environment_asset_pack(project_id: str, room_id: str, payload:
                 if component_type == "room_shell_foreground":
                     attempt_info["punchout_applied"] = False
                     if valid and not errors:
+                        valid, errors = _validate_room_shell_before_punchout(output_path, expected_size)
+                    if valid and not errors:
                         _apply_walkable_interior_punchout(output_path, _room_geometry(room))
                         valid, errors = _validate_room_shell_after_punchout(output_path, _room_geometry(room), expected_size)
                         attempt_info["punchout_applied"] = True
@@ -8337,16 +8722,23 @@ def generate_room_environment_asset_pack(project_id: str, room_id: str, payload:
         "validation_errors": list(validation_errors),
     }
     env["runtime"]["bespoke_asset_manifest"] = provisional_manifest
-    runtime_review = _run_runtime_review(project, project_id, room_id, assets) if built_slots and not failed_assets else {
+    runtime_review = _run_runtime_review(project, project_id, room_id, assets) if built_slots else {
         "status": "blocked",
         "review_mode": None,
         "screenshot_url": None,
         "metrics": {},
-        "fail_reasons": ["slot_generation_failed"] if failed_assets else ["no_assets_built"],
+        "fail_reasons": ["no_assets_built"],
         "failed_slot_ids": list(failed_assets),
         "validation_errors": list(validation_errors),
         "generated_at": now_iso(),
     }
+    if built_slots and failed_assets:
+        existing_fail_reasons = list(runtime_review.get("fail_reasons") or [])
+        if "slot_generation_failed" not in existing_fail_reasons:
+            existing_fail_reasons.append("slot_generation_failed")
+        runtime_review["fail_reasons"] = existing_fail_reasons
+        runtime_review["failed_slot_ids"] = list(failed_assets)
+        runtime_review["validation_errors"] = list(validation_errors)
     review_ok = runtime_review.get("status") == "pass"
     if ai_generation_missing:
         runtime_review.setdefault("warning_reasons", [])

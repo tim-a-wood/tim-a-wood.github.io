@@ -3,6 +3,7 @@ from __future__ import annotations
 import base64
 import copy
 import hashlib
+import io
 import os
 import json
 import sys
@@ -26,7 +27,39 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         self.root = Path(self.tmp.name)
         self.projects_root = self.root / "tools" / "2d-sprite-and-animation" / "projects-data"
         self._old_gemini_api_key = envsys.os.environ.get("GEMINI_API_KEY")
+        self._old_google_api_key = envsys.os.environ.get("GOOGLE_API_KEY")
+        self._old_gemini_generate_content_rest = envsys._gemini_generate_content_rest
+        # Unit tests should never spend live Gemini quota; use local stubbed responses.
         envsys.os.environ["GEMINI_API_KEY"] = "test-key"
+        envsys.os.environ["GOOGLE_API_KEY"] = ""
+        if not self._testMethodName.startswith("test_gemini_"):
+            def _fake_gemini_generate_content_rest(_model: str, _parts, response_modalities=None):
+                if response_modalities and "IMAGE" in response_modalities:
+                    img = envsys.Image.new("RGBA", (96, 96), (64, 74, 86, 255))
+                    out = io.BytesIO()
+                    img.save(out, format="PNG")
+                    payload = {
+                        "candidates": [{
+                            "finishReason": "STOP",
+                            "content": {
+                                "parts": [{
+                                    "inlineData": {
+                                        "mimeType": "image/png",
+                                        "data": base64.b64encode(out.getvalue()).decode("ascii"),
+                                    }
+                                }]
+                            },
+                        }]
+                    }
+                    return payload, None
+                payload = {
+                    "candidates": [{
+                        "finishReason": "STOP",
+                        "content": {"parts": [{"text": "{}"}]},
+                    }]
+                }
+                return payload, None
+            envsys._gemini_generate_content_rest = _fake_gemini_generate_content_rest
         self.project_id = "project-alpha"
         self.project = {
             "project_id": self.project_id,
@@ -84,6 +117,11 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
             envsys.os.environ.pop("GEMINI_API_KEY", None)
         else:
             envsys.os.environ["GEMINI_API_KEY"] = self._old_gemini_api_key
+        if self._old_google_api_key is None:
+            envsys.os.environ.pop("GOOGLE_API_KEY", None)
+        else:
+            envsys.os.environ["GOOGLE_API_KEY"] = self._old_google_api_key
+        envsys._gemini_generate_content_rest = self._old_gemini_generate_content_rest
         self.tmp.cleanup()
 
     def _fake_ai_generate(self, output_path, prompt, refs, size, transparent, component_type=None):
@@ -540,11 +578,14 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         guide_path = envsys._write_foreground_frame_generation_guide(project_dir)
         guide = envsys.Image.open(guide_path).convert("RGB")
 
-        top = guide.getpixel((guide.width // 2, 80))
+        top = guide.getpixel((guide.width // 2, 40))
         bottom = guide.getpixel((guide.width // 2, 1090))
-        left = guide.getpixel((120, guide.height // 2))
-        right = guide.getpixel((guide.width - 120, guide.height // 2))
-        center = guide.getpixel((guide.width // 2, guide.height // 2))
+        ft = envsys.FOREGROUND_FRAME_BORDER_TOP_PX
+        fy = envsys.ATLAS_HEIGHT - envsys.FOREGROUND_FRAME_BORDER_BOTTOM_PX
+        left = guide.getpixel((120, (ft + fy) // 2))
+        right = guide.getpixel((guide.width - 120, (ft + fy) // 2))
+        il, itop, ir, ib = envsys._foreground_frame_inner_rect_inclusive()
+        center = guide.getpixel(((il + ir) // 2, (itop + ib) // 2))
 
         self.assertGreater(top[0], left[0] + 120)
         self.assertGreater(bottom[0], left[0] + 120)
@@ -668,11 +709,12 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
             {},
         )
         img = envsys.Image.open(path).convert("RGB")
-        center = img.getpixel((img.width // 2, img.height // 2))
+        il, itop, ir, ib = envsys._foreground_frame_inner_rect_inclusive()
+        center = img.getpixel(((il + ir) // 2, (itop + ib) // 2))
         top = img.getpixel((img.width // 2, 80))
         bottom = img.getpixel((img.width // 2, 1120))
-        left = img.getpixel((120, img.height // 2))
-        center_edge = img.getpixel((224, img.height // 2))
+        left = img.getpixel((120, (itop + ib) // 2))
+        center_edge = img.getpixel((il - 1, (itop + ib) // 2))
         self.assertGreater(center[1], 220)
         self.assertLess(center[0], 40)
         self.assertLess(center[2], 40)
@@ -1339,6 +1381,51 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         self.assertFalse(ok)
         self.assertIn("shell_rim_mass_low", errors)
 
+    def test_validate_room_shell_after_punchout_rejects_near_black_shell_tone(self):
+        geom = envsys._room_geometry(copy.deepcopy(self.saved["room_layout"]["rooms"][0]))
+        path = self.root / "shell-too-dark.png"
+        img = envsys.Image.new("RGBA", (400, 320), (0, 0, 0, 0))
+        draw = envsys.ImageDraw.Draw(img)
+        draw.rectangle((0, 0, 399, 70), fill=(8, 8, 8, 255))
+        draw.rectangle((0, 250, 399, 319), fill=(8, 8, 8, 255))
+        draw.rectangle((0, 70, 70, 250), fill=(8, 8, 8, 255))
+        draw.rectangle((329, 70, 399, 250), fill=(8, 8, 8, 255))
+        img.save(path)
+        ok, errors = envsys._validate_room_shell_after_punchout(path, geom, (400, 320))
+        self.assertFalse(ok)
+        self.assertIn("shell_tone_too_dark", errors)
+
+    def test_validate_room_shell_before_punchout_rejects_top_edge_gap(self):
+        path = self.root / "shell-pre-top-gap.png"
+        img = envsys.Image.new("RGBA", (400, 320), (30, 38, 48, 255))
+        draw = envsys.ImageDraw.Draw(img)
+        draw.rectangle((0, 0, 399, 70), fill=(62, 70, 82, 255))
+        draw.rectangle((0, 250, 399, 319), fill=(62, 70, 82, 255))
+        draw.rectangle((0, 70, 70, 250), fill=(58, 66, 78, 255))
+        draw.rectangle((329, 70, 399, 250), fill=(58, 66, 78, 255))
+        # Carve a visible top-edge wedge gap.
+        draw.rectangle((60, 0, 340, 90), fill=(0, 0, 0, 255))
+        img.save(path)
+        ok, errors = envsys._validate_room_shell_before_punchout(path, (400, 320))
+        self.assertFalse(ok)
+        self.assertIn("shell_top_edge_gap_pre", errors)
+
+    def test_validate_room_shell_after_punchout_rejects_corner_gap(self):
+        geom = envsys._room_geometry(copy.deepcopy(self.saved["room_layout"]["rooms"][0]))
+        path = self.root / "shell-post-corner-gap.png"
+        img = envsys.Image.new("RGBA", (400, 320), (0, 0, 0, 0))
+        draw = envsys.ImageDraw.Draw(img)
+        draw.rectangle((0, 0, 399, 70), fill=(62, 70, 82, 255))
+        draw.rectangle((0, 250, 399, 319), fill=(62, 70, 82, 255))
+        draw.rectangle((0, 70, 70, 250), fill=(58, 66, 78, 255))
+        draw.rectangle((329, 70, 399, 250), fill=(58, 66, 78, 255))
+        # Punch out a hard corner void.
+        draw.rectangle((0, 0, 96, 100), fill=(0, 0, 0, 0))
+        img.save(path)
+        ok, errors = envsys._validate_room_shell_after_punchout(path, geom, (400, 320))
+        self.assertFalse(ok)
+        self.assertIn("shell_corner_gap_post", errors)
+
     def test_v3_planner_uses_component_specific_structural_slots(self):
         room = copy.deepcopy(self.saved["room_layout"]["rooms"][0])
         room["size"] = {"width": 1184, "height": 1888}
@@ -1926,11 +2013,64 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         with envsys.Image.open(bg[0]) as sil:
             self.assertEqual(sil.size, (160, 120))
 
+    def test_room_shell_references_use_silhouette_and_preview(self):
+        refs_root = self.root / "refs-shell"
+        template = self.root / "template-shell.png"
+        preview = self.root / "preview-shell.png"
+        envsys.Image.new("RGBA", (320, 240), (110, 120, 130, 255)).save(template)
+        envsys.Image.new("RGBA", (320, 240), (70, 82, 95, 255)).save(preview)
+        l_room = {
+            "id": "RX",
+            "size": {"width": 320, "height": 240},
+            "polygon": [[0, 0], [320, 0], [320, 120], [160, 120], [160, 240], [0, 240]],
+            "platforms": [{"x": 64, "y": 200, "len": 4}],
+            "doors": [{"x": 24, "y": 200, "kind": "transition"}],
+        }
+        shell_refs = envsys._bespoke_reference_images_for_component(
+            "room_shell_foreground",
+            template,
+            preview,
+            [],
+            refs_root,
+            (320, 240),
+            True,
+            room=l_room,
+        )
+        self.assertEqual(len(shell_refs), 2)
+        self.assertTrue(str(shell_refs[0]).endswith("-silhouette.png"))
+        self.assertEqual(shell_refs[1], preview)
+
     def test_write_bespoke_room_silhouette_reference_requires_polygon(self):
         out = self.root / "sil-empty.png"
         self.assertFalse(
             envsys._write_bespoke_room_silhouette_reference({"polygon": [], "chamber_width": 100, "chamber_height": 100}, out, (64, 64))
         )
+
+    def test_layout_conditioning_reference_avoids_cyan_outline(self):
+        geom = {
+            "width": 320,
+            "height": 240,
+            "polygon": [[0, 0], [320, 0], [320, 240], [0, 240]],
+            "platforms": [{"x": 64, "y": 180, "len": 4}],
+            "door_positions": [{"x": 24, "y": 180}],
+        }
+        png_bytes = envsys._render_room_layout_conditioning_image(geom, {"theme_id": "ruins", "tags": []}, 0)
+        img = envsys.Image.open(io.BytesIO(png_bytes)).convert("RGBA")
+        pixels = list(img.getdata())
+        cyan_like = sum(1 for r, g, b, a in pixels if a > 0 and g >= 210 and b >= 180 and r <= 50)
+        self.assertEqual(cyan_like, 0)
+
+    def test_level1_fallback_preview_has_no_accent_cyan_outline(self):
+        out = self.root / "lvl1-fallback.png"
+        envsys._render_level1_image(
+            out,
+            {"style_family": "dark fantasy ruins"},
+            {"theme_id": "ruins", "tags": [], "description": "x"},
+        )
+        img = envsys.Image.open(out).convert("RGBA")
+        pixels = list(img.getdata())
+        cyan_like = sum(1 for r, g, b, a in pixels if a > 0 and g >= 210 and b >= 180 and r <= 50)
+        self.assertEqual(cyan_like, 0)
 
     def test_build_bespoke_prompt_includes_footprint_clause_when_geometry_has_polygon(self):
         l_room = {
@@ -2671,14 +2811,20 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         path = self.root / "fg-frame-pass.png"
         img = envsys.Image.new("RGBA", (1600, 1200), envsys.FOREGROUND_FRAME_CENTER_KEY_RGB + (255,))
         draw = envsys.ImageDraw.Draw(img)
+        ft = envsys.FOREGROUND_FRAME_BORDER_TOP_PX
+        fb = envsys.FOREGROUND_FRAME_BORDER_BOTTOM_PX
+        fs = envsys.FOREGROUND_FRAME_BORDER_SIDE_PX
         # Top band: full-width ceiling cap
-        draw.rectangle((0, 0, 1600, 240), fill=(70, 60, 50, 255))
-        # Left wall strip
-        draw.rectangle((0, 0, 280, 1200), fill=(65, 55, 45, 255))
-        # Right wall strip
-        draw.rectangle((1320, 0, 1600, 1200), fill=(65, 55, 45, 255))
+        draw.rectangle((0, 0, 1600, ft), fill=(70, 60, 50, 255))
+        # Side walls: two tones so outer vs inner face luminance differs (validator scales with border width).
+        draw.rectangle((0, 0, fs, 1200), fill=(88, 75, 62, 255))
+        draw.rectangle((fs - min(120, fs // 2), ft, fs, 1200 - fb), fill=(42, 38, 34, 255))
+        draw.rectangle((1600 - fs, 0, 1600, 1200), fill=(88, 75, 62, 255))
+        draw.rectangle((1600 - fs, ft, 1600 - fs + min(120, fs // 2), 1200 - fb), fill=(42, 38, 34, 255))
         # Bottom floor band
-        draw.rectangle((0, 1080, 1600, 1200), fill=(70, 60, 50, 255))
+        draw.rectangle((0, 1200 - fb, 1600, 1200), fill=(70, 60, 50, 255))
+        il, itop, ir, ib = envsys._foreground_frame_inner_rect_inclusive()
+        draw.rectangle((il, itop, ir, ib), fill=envsys.FOREGROUND_FRAME_CENTER_KEY_RGB + (255,))
         img.save(path)
         valid, errors = envsys._validate_foreground_frame_source(path)
         self.assertTrue(valid, f"Expected valid, got errors: {errors}")
@@ -2688,9 +2834,18 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         path = self.root / "fg-frame-no-top.png"
         img = envsys.Image.new("RGBA", (1600, 1200), (0, 0, 0, 255))
         draw = envsys.ImageDraw.Draw(img)
+        fs = envsys.FOREGROUND_FRAME_BORDER_SIDE_PX
+        ft = envsys.FOREGROUND_FRAME_BORDER_TOP_PX
+        fb = envsys.FOREGROUND_FRAME_BORDER_BOTTOM_PX
+        # Top 20% must stay dark: do not paint side walls into y < 20% h (else top_band_lum reads wall mass).
+        y_top_cut = int(1200 * 0.20)
         # Left and right walls present but top band left pitch black
-        draw.rectangle((0, 0, 280, 1200), fill=(65, 55, 45, 255))
-        draw.rectangle((1320, 0, 1600, 1200), fill=(65, 55, 45, 255))
+        draw.rectangle((0, y_top_cut, fs, 1200), fill=(88, 75, 62, 255))
+        draw.rectangle((fs - min(120, fs // 2), max(ft, y_top_cut), fs, 1200 - fb), fill=(42, 38, 34, 255))
+        draw.rectangle((1600 - fs, y_top_cut, 1600, 1200), fill=(88, 75, 62, 255))
+        draw.rectangle((1600 - fs, max(ft, y_top_cut), 1600 - fs + min(120, fs // 2), 1200 - fb), fill=(42, 38, 34, 255))
+        il, itop, ir, ib = envsys._foreground_frame_inner_rect_inclusive()
+        draw.rectangle((il, itop, ir, ib), fill=envsys.FOREGROUND_FRAME_CENTER_KEY_RGB + (255,))
         img.save(path)
         valid, errors = envsys._validate_foreground_frame_source(path)
         self.assertFalse(valid)
@@ -2700,11 +2855,15 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         path = self.root / "fg-frame-fragmented-top.png"
         img = envsys.Image.new("RGBA", (1600, 1200), (0, 0, 0, 255))
         draw = envsys.ImageDraw.Draw(img)
+        ft = envsys.FOREGROUND_FRAME_BORDER_TOP_PX
+        fb = envsys.FOREGROUND_FRAME_BORDER_BOTTOM_PX
         draw.rectangle((0, 0, 220, 1200), fill=(65, 55, 45, 255))
         draw.rectangle((1380, 0, 1600, 1200), fill=(65, 55, 45, 255))
-        draw.rectangle((0, 0, 420, 220), fill=(72, 62, 52, 255))
-        draw.rectangle((1180, 0, 1600, 220), fill=(72, 62, 52, 255))
-        draw.rectangle((0, 1080, 1600, 1200), fill=(72, 62, 52, 255))
+        draw.rectangle((0, 0, 420, min(220, ft)), fill=(72, 62, 52, 255))
+        draw.rectangle((1180, 0, 1600, min(220, ft)), fill=(72, 62, 52, 255))
+        draw.rectangle((0, 1200 - fb, 1600, 1200), fill=(72, 62, 52, 255))
+        il, itop, ir, ib = envsys._foreground_frame_inner_rect_inclusive()
+        draw.rectangle((il, itop, ir, ib), fill=envsys.FOREGROUND_FRAME_CENTER_KEY_RGB + (255,))
         img.save(path)
         valid, errors = envsys._validate_foreground_frame_source(path)
         self.assertFalse(valid)
@@ -2714,11 +2873,23 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         path = self.root / "fg-frame-top-lower-break.png"
         img = envsys.Image.new("RGBA", (1600, 1200), (26, 34, 42, 255))
         draw = envsys.ImageDraw.Draw(img)
-        draw.rectangle((0, 0, 1600, 240), fill=(52, 64, 70, 255))
-        draw.rectangle((0, 170, 1600, 240), fill=(22, 24, 28, 255))
-        draw.rectangle((0, 0, 280, 1200), fill=(65, 55, 45, 255))
-        draw.rectangle((1320, 0, 1600, 1200), fill=(65, 55, 45, 255))
-        draw.rectangle((0, 1080, 1600, 1200), fill=(70, 60, 50, 255))
+        ft = envsys.FOREGROUND_FRAME_BORDER_TOP_PX
+        fb = envsys.FOREGROUND_FRAME_BORDER_BOTTOM_PX
+        fs = envsys.FOREGROUND_FRAME_BORDER_SIDE_PX
+        # Lower edge of the top 20% strip (validator samples 14%–20% h vs full 0%–20% h).
+        y_top20 = int(1200 * 0.20)
+        y_top14 = int(1200 * 0.14)
+        y_top_cut = y_top20
+        draw.rectangle((0, 0, 1600, ft), fill=(52, 64, 70, 255))
+        draw.rectangle((0, y_top14, 1600, y_top20), fill=(22, 24, 28, 255))
+        # Keep side-wall paint out of the top 20% strip so the lower-edge luminance break remains detectable.
+        draw.rectangle((0, y_top_cut, fs, 1200), fill=(88, 75, 62, 255))
+        draw.rectangle((fs - min(120, fs // 2), max(ft, y_top_cut), fs, 1200 - fb), fill=(42, 38, 34, 255))
+        draw.rectangle((1600 - fs, y_top_cut, 1600, 1200), fill=(88, 75, 62, 255))
+        draw.rectangle((1600 - fs, max(ft, y_top_cut), 1600 - fs + min(120, fs // 2), 1200 - fb), fill=(42, 38, 34, 255))
+        draw.rectangle((0, 1200 - fb, 1600, 1200), fill=(70, 60, 50, 255))
+        il, itop, ir, ib = envsys._foreground_frame_inner_rect_inclusive()
+        draw.rectangle((il, itop, ir, ib), fill=envsys.FOREGROUND_FRAME_CENTER_KEY_RGB + (255,))
         img.save(path)
         valid, errors = envsys._validate_foreground_frame_source(path)
         self.assertFalse(valid)
@@ -2728,9 +2899,16 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         path = self.root / "fg-frame-no-right.png"
         img = envsys.Image.new("RGBA", (1600, 1200), (0, 0, 0, 255))
         draw = envsys.ImageDraw.Draw(img)
+        ft = envsys.FOREGROUND_FRAME_BORDER_TOP_PX
+        fb = envsys.FOREGROUND_FRAME_BORDER_BOTTOM_PX
+        fs = envsys.FOREGROUND_FRAME_BORDER_SIDE_PX
         # Top band and left wall present; right side left pitch black
-        draw.rectangle((0, 0, 1600, 240), fill=(70, 60, 50, 255))
-        draw.rectangle((0, 0, 280, 1200), fill=(65, 55, 45, 255))
+        draw.rectangle((0, 0, 1600, ft), fill=(70, 60, 50, 255))
+        draw.rectangle((0, 0, fs, 1200), fill=(88, 75, 62, 255))
+        draw.rectangle((fs - min(120, fs // 2), ft, fs, 1200 - fb), fill=(42, 38, 34, 255))
+        draw.rectangle((0, 1200 - fb, 1600, 1200), fill=(70, 60, 50, 255))
+        il, itop, ir, ib = envsys._foreground_frame_inner_rect_inclusive()
+        draw.rectangle((il, itop, ir, ib), fill=envsys.FOREGROUND_FRAME_CENTER_KEY_RGB + (255,))
         img.save(path)
         valid, errors = envsys._validate_foreground_frame_source(path)
         self.assertFalse(valid)
@@ -2740,12 +2918,19 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         path = self.root / "fg-frame-floating.png"
         img = envsys.Image.new("RGBA", (1600, 1200), (0, 0, 0, 255))
         draw = envsys.ImageDraw.Draw(img)
+        ft = envsys.FOREGROUND_FRAME_BORDER_TOP_PX
+        fs = envsys.FOREGROUND_FRAME_BORDER_SIDE_PX
         # Minimal perimeter so walls and top just pass their thresholds
-        draw.rectangle((0, 0, 1600, 240), fill=(40, 35, 30, 255))
-        draw.rectangle((0, 0, 280, 1200), fill=(38, 33, 28, 255))
-        draw.rectangle((1320, 0, 1600, 1200), fill=(38, 33, 28, 255))
+        fb = envsys.FOREGROUND_FRAME_BORDER_BOTTOM_PX
+        draw.rectangle((0, 0, 1600, ft), fill=(40, 35, 30, 255))
+        draw.rectangle((0, 0, fs, 1200), fill=(88, 75, 62, 255))
+        draw.rectangle((fs - min(120, fs // 2), ft, fs, 1200 - fb), fill=(42, 38, 34, 255))
+        draw.rectangle((1600 - fs, 0, 1600, 1200), fill=(88, 75, 62, 255))
+        draw.rectangle((1600 - fs, ft, 1600 - fs + min(120, fs // 2), 1200 - fb), fill=(42, 38, 34, 255))
         # Broad bright floating shelf covering most of the center mid-height zone —
         # represents the "partial scene/atlas with floating ledge bands" failure mode
+        il, itop, ir, ib = envsys._foreground_frame_inner_rect_inclusive()
+        draw.rectangle((il, itop, ir, ib), fill=envsys.FOREGROUND_FRAME_CENTER_KEY_RGB + (255,))
         draw.rectangle((350, 320, 1250, 840), fill=(150, 135, 118, 255))
         img.save(path)
         valid, errors = envsys._validate_foreground_frame_source(path)
@@ -2756,10 +2941,13 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         path = self.root / "fg-frame-flat-side-fields.png"
         img = envsys.Image.new("RGBA", (1600, 1200), (36, 42, 48, 255))
         draw = envsys.ImageDraw.Draw(img)
-        draw.rectangle((0, 0, 1600, 240), fill=(50, 58, 66, 255))
-        draw.rectangle((0, 0, 280, 1200), fill=(40, 46, 54, 255))
-        draw.rectangle((1320, 0, 1600, 1200), fill=(40, 46, 54, 255))
-        draw.rectangle((0, 1080, 1600, 1200), fill=(54, 62, 70, 255))
+        ft = envsys.FOREGROUND_FRAME_BORDER_TOP_PX
+        fb = envsys.FOREGROUND_FRAME_BORDER_BOTTOM_PX
+        fs = envsys.FOREGROUND_FRAME_BORDER_SIDE_PX
+        draw.rectangle((0, 0, 1600, ft), fill=(50, 58, 66, 255))
+        draw.rectangle((0, 0, fs + 40, 1200), fill=(40, 46, 54, 255))
+        draw.rectangle((1600 - fs - 40, 0, 1600, 1200), fill=(40, 46, 54, 255))
+        draw.rectangle((0, 1200 - fb, 1600, 1200), fill=(54, 62, 70, 255))
         img.save(path)
         valid, errors = envsys._validate_foreground_frame_source(path)
         self.assertFalse(valid)
@@ -2768,12 +2956,19 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
 
     def test_validate_foreground_frame_source_fails_bands_not_distinct_from_center(self):
         path = self.root / "fg-frame-undistinct-bands.png"
-        img = envsys.Image.new("RGBA", (1600, 1200), envsys.FOREGROUND_FRAME_CENTER_KEY_RGB + (255,))
+        img = envsys.Image.new("RGBA", (1600, 1200), (0, 0, 0, 255))
         draw = envsys.ImageDraw.Draw(img)
-        draw.rectangle((0, 0, 1600, 240), fill=envsys.FOREGROUND_FRAME_CENTER_KEY_RGB + (255,))
-        draw.rectangle((0, 0, 280, 1200), fill=(22, 30, 38, 255))
-        draw.rectangle((1320, 0, 1600, 1200), fill=(22, 30, 38, 255))
-        draw.rectangle((0, 1080, 1600, 1200), fill=envsys.FOREGROUND_FRAME_CENTER_KEY_RGB + (255,))
+        ft = envsys.FOREGROUND_FRAME_BORDER_TOP_PX
+        fb = envsys.FOREGROUND_FRAME_BORDER_BOTTOM_PX
+        fs = envsys.FOREGROUND_FRAME_BORDER_SIDE_PX
+        draw.rectangle((0, 0, 1600, ft), fill=envsys.FOREGROUND_FRAME_CENTER_KEY_RGB + (255,))
+        draw.rectangle((0, 0, fs, 1200), fill=(88, 75, 62, 255))
+        draw.rectangle((fs - min(120, fs // 2), ft, fs, 1200 - fb), fill=(42, 38, 34, 255))
+        draw.rectangle((1600 - fs, 0, 1600, 1200), fill=(88, 75, 62, 255))
+        draw.rectangle((1600 - fs, ft, 1600 - fs + min(120, fs // 2), 1200 - fb), fill=(42, 38, 34, 255))
+        draw.rectangle((0, 1200 - fb, 1600, 1200), fill=envsys.FOREGROUND_FRAME_CENTER_KEY_RGB + (255,))
+        il, itop, ir, ib = envsys._foreground_frame_inner_rect_inclusive()
+        draw.rectangle((il, itop, ir, ib), fill=envsys.FOREGROUND_FRAME_CENTER_KEY_RGB + (255,))
         img.save(path)
         valid, errors = envsys._validate_foreground_frame_source(path)
         self.assertFalse(valid)
@@ -2784,10 +2979,15 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         path = self.root / "fg-frame-no-center-key.png"
         img = envsys.Image.new("RGBA", (1600, 1200), (34, 44, 52, 255))
         draw = envsys.ImageDraw.Draw(img)
-        draw.rectangle((0, 0, 1600, 240), fill=(70, 60, 50, 255))
-        draw.rectangle((0, 0, 280, 1200), fill=(65, 55, 45, 255))
-        draw.rectangle((1320, 0, 1600, 1200), fill=(65, 55, 45, 255))
-        draw.rectangle((0, 1080, 1600, 1200), fill=(70, 60, 50, 255))
+        ft = envsys.FOREGROUND_FRAME_BORDER_TOP_PX
+        fb = envsys.FOREGROUND_FRAME_BORDER_BOTTOM_PX
+        fs = envsys.FOREGROUND_FRAME_BORDER_SIDE_PX
+        draw.rectangle((0, 0, 1600, ft), fill=(70, 60, 50, 255))
+        draw.rectangle((0, 0, fs, 1200), fill=(88, 75, 62, 255))
+        draw.rectangle((fs - min(120, fs // 2), ft, fs, 1200 - fb), fill=(42, 38, 34, 255))
+        draw.rectangle((1600 - fs, 0, 1600, 1200), fill=(88, 75, 62, 255))
+        draw.rectangle((1600 - fs, ft, 1600 - fs + min(120, fs // 2), 1200 - fb), fill=(42, 38, 34, 255))
+        draw.rectangle((0, 1200 - fb, 1600, 1200), fill=(70, 60, 50, 255))
         img.save(path)
         valid, errors = envsys._validate_foreground_frame_source(path)
         self.assertFalse(valid)
@@ -2797,11 +2997,17 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         path = self.root / "fg-frame-center-intrusion.png"
         img = envsys.Image.new("RGBA", (1600, 1200), (0, 0, 0, 255))
         draw = envsys.ImageDraw.Draw(img)
-        draw.rectangle((0, 0, 1600, 240), fill=(70, 60, 50, 255))
-        draw.rectangle((0, 0, 280, 1200), fill=(65, 55, 45, 255))
-        draw.rectangle((1320, 0, 1600, 1200), fill=(65, 55, 45, 255))
-        draw.rectangle((0, 1080, 1600, 1200), fill=(70, 60, 50, 255))
-        draw.rectangle((520, 420, 1080, 620), fill=(185, 170, 150, 255))
+        ft = envsys.FOREGROUND_FRAME_BORDER_TOP_PX
+        fb = envsys.FOREGROUND_FRAME_BORDER_BOTTOM_PX
+        fs = envsys.FOREGROUND_FRAME_BORDER_SIDE_PX
+        draw.rectangle((0, 0, 1600, ft), fill=(70, 60, 50, 255))
+        draw.rectangle((0, 0, fs, 1200), fill=(88, 75, 62, 255))
+        draw.rectangle((fs - min(120, fs // 2), ft, fs, 1200 - fb), fill=(42, 38, 34, 255))
+        draw.rectangle((1600 - fs, 0, 1600, 1200), fill=(88, 75, 62, 255))
+        draw.rectangle((1600 - fs, ft, 1600 - fs + min(120, fs // 2), 1200 - fb), fill=(42, 38, 34, 255))
+        draw.rectangle((0, 1200 - fb, 1600, 1200), fill=(70, 60, 50, 255))
+        il, itop, ir, ib = envsys._foreground_frame_inner_rect_inclusive()
+        draw.rectangle((il + 20, itop + 10, ir - 20, ib - 10), fill=(185, 170, 150, 255))
         img.save(path)
         valid, errors = envsys._validate_foreground_frame_source(path)
         self.assertFalse(valid)
@@ -2911,6 +3117,7 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         self.assertEqual(wall_path.read_bytes(), original_bytes)
 
     def test_foreground_frame_prompt_explicitly_bans_side_ledge_drift(self):
+        il, itop, ir, ib = envsys._foreground_frame_inner_rect_inclusive()
         prompt = envsys._build_biome_template_prompt(
             "foreground_frame",
             {"high_level_direction": "Broken gothic halls", "negative_direction": "", "lighting_rules": ["single focal glow", "fog depth near floor"]},
@@ -2922,12 +3129,15 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         self.assertIn("solid bright green screen color", prompt)
         self.assertIn("Do not solve the frame by making the whole image uniformly dark blue-gray", prompt)
         self.assertIn("top band must read as an obvious horizontal masonry strip by eye", prompt)
-        self.assertIn("green center opening must not begin inside the top 240 pixels", prompt)
+        self.assertIn(
+            f"green center opening must not begin inside the top {envsys.FOREGROUND_FRAME_BORDER_TOP_PX} pixels",
+            prompt,
+        )
         self.assertIn("strengthen the top strip first rather than darkening the whole frame", prompt)
         self.assertIn("no black wedges", prompt)
         self.assertIn("bottom band must also read as an obvious horizontal masonry strip by eye", prompt)
         self.assertIn("strengthen the bottom strip second rather than turning the lower frame into a shadow mass", prompt)
-        self.assertIn("green center opening must end above y=1079", prompt)
+        self.assertIn(f"green center opening must end above y={ib}", prompt)
         self.assertIn("no black corner cutouts", prompt)
         self.assertIn("retaining wall face or plinth course seen straight on", prompt)
         self.assertIn("do not draw paving stones, receding tile seams, trapezoid slab tops", prompt)
@@ -2952,8 +3162,11 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         self.assertIn("No diagonal receding edges, no visible wall thickness returns, no interior corner perspective", prompt)
         self.assertIn("geometry-only occupancy guide", prompt)
         self.assertIn("solid bright green screen color", prompt)
-        self.assertIn("The very first green row must begin at y=240", prompt)
-        self.assertIn("Pixels on the center boundary such as (224,240), (800,240), (1375,240)", prompt)
+        self.assertIn(f"The very first green row must begin at y={itop}", prompt)
+        self.assertIn(
+            f"Pixels on the center boundary such as ({il},{itop}), (800,{itop}), ({ir},{itop}), ({il},{ib}), and ({ir},{ib})",
+            prompt,
+        )
         self.assertIn("Do not enlarge the green field upward or downward beyond those exact vertical limits", prompt)
         self.assertIn("keyed holdout zone", prompt)
         self.assertIn("pillars, posts, columns, or freestanding vertical supports", prompt)
@@ -3067,6 +3280,8 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         self.assertIn("not columns or posts", border_prompt)
         self.assertIn("not a lintel", border_prompt)
         self.assertIn("not a sill or threshold", border_prompt)
+        self.assertIn("Material-language contract", border_prompt)
+        self.assertIn("DOUBLE-thick enclosing read", border_prompt)
         self.assertIn("Do not paint cyan, teal, aqua, or electric-blue rim lines", border_prompt)
         self.assertIn("cyan, teal, or aqua accent rim", border_prompt)
         self.assertIn("not a final room scene", far_prompt)
@@ -3117,21 +3332,82 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         self.assertIn("square top and bottom corners", flare_retry)
         self.assertIn("remove the torn-hole center", breach_retry)
         self.assertIn("jagged breach edges", breach_retry)
+        thickness_retry = envsys._retry_prompt_for_validation_errors(
+            "border_piece",
+            "base prompt",
+            ["border_piece_side_thickness_thin"],
+            0,
+        )
+        texture_retry = envsys._retry_prompt_for_validation_errors(
+            "border_piece",
+            "base prompt",
+            ["border_piece_texture_family_drift"],
+            0,
+        )
+        self.assertIn("double the apparent frame mass", thickness_retry)
+        self.assertIn("one consistent masonry language", texture_retry)
         self.assertIn("Remove bridges, statues, stairs", far_retry)
         self.assertIn("Remove glow lines, gold trim", platform_retry)
         self.assertIn("Do not show any background", platform_retry)
+
+    def test_room_shell_retry_prompts_address_ceiling_and_corner_composite_read(self):
+        ceiling_retry = envsys._retry_prompt_for_validation_errors(
+            "room_shell_foreground",
+            "base prompt",
+            ["shell_ceiling_composite_read"],
+            0,
+        )
+        corner_retry = envsys._retry_prompt_for_validation_errors(
+            "room_shell_foreground",
+            "base prompt",
+            ["shell_corner_join_seam_read"],
+            0,
+        )
+        shadow_retry = envsys._retry_prompt_for_validation_errors(
+            "room_shell_foreground",
+            "base prompt",
+            ["shell_corner_shadow_pool"],
+            0,
+        )
+        detail_retry = envsys._retry_prompt_for_validation_errors(
+            "room_shell_foreground",
+            "base prompt",
+            ["shell_detail_scale_too_coarse"],
+            0,
+        )
+        edge_gap_retry = envsys._retry_prompt_for_validation_errors(
+            "room_shell_foreground",
+            "base prompt",
+            ["shell_top_edge_gap_post"],
+            0,
+        )
+        corner_gap_retry = envsys._retry_prompt_for_validation_errors(
+            "room_shell_foreground",
+            "base prompt",
+            ["shell_corner_gap_pre"],
+            0,
+        )
+        self.assertIn("continuous carved slab", ceiling_retry)
+        self.assertIn("fused masonry corner", corner_retry)
+        self.assertIn("remove heavy corner vignette shading", shadow_retry)
+        self.assertIn("reduce block scale", detail_retry)
+        self.assertIn("fill the top ledge continuously", edge_gap_retry)
+        self.assertIn("fill all border corners", corner_gap_retry)
 
     def test_validate_border_piece_source_fails_side_wall_flare(self):
         path = self.root / "border-piece-side-flare.png"
         img = envsys.Image.new("RGBA", (1600, 1200), (32, 36, 44, 255))
         draw = envsys.ImageDraw.Draw(img)
-        draw.rectangle((0, 0, 1600, 224), fill=(48, 56, 64, 255))
-        draw.rectangle((0, 1080, 1600, 1200), fill=(48, 56, 64, 255))
-        draw.rectangle((0, 224, 224, 1200), fill=(52, 60, 70, 255))
-        draw.rectangle((1376, 224, 1600, 1200), fill=(52, 60, 70, 255))
-        draw.rectangle((0, 240, 260, 380), fill=(112, 124, 136, 255))
-        draw.rectangle((0, 840, 260, 1010), fill=(112, 124, 136, 255))
-        draw.rectangle((1340, 240, 1600, 380), fill=(112, 124, 136, 255))
+        top = envsys.BORDER_PIECE_BORDER_TOP_PX
+        bot = envsys.BORDER_PIECE_BORDER_BOTTOM_PX
+        side = envsys.BORDER_PIECE_BORDER_SIDE_PX
+        draw.rectangle((0, 0, 1600, top), fill=(48, 56, 64, 255))
+        draw.rectangle((0, 1200 - bot, 1600, 1200), fill=(48, 56, 64, 255))
+        draw.rectangle((0, top, side, 1200 - bot), fill=(52, 60, 70, 255))
+        draw.rectangle((1600 - side, top, 1600, 1200 - bot), fill=(52, 60, 70, 255))
+        draw.rectangle((0, top + 8, side + 40, top + 148), fill=(112, 124, 136, 255))
+        draw.rectangle((0, 840, side + 40, 1010), fill=(112, 124, 136, 255))
+        draw.rectangle((1340, top + 8, 1600, top + 148), fill=(112, 124, 136, 255))
         draw.rectangle((1340, 840, 1600, 1010), fill=(112, 124, 136, 255))
         img.save(path)
         valid, errors = envsys._validate_border_piece_source(path)
