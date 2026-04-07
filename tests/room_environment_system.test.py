@@ -1305,6 +1305,20 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         cx, cy = w // 2, h // 2
         self.assertLess(px[cx, cy][3], 16)
 
+    def test_inset_polygon_vertices_toward_centroid_moves_corners_inward(self):
+        pts = [(0, 0), (100, 0), (100, 100), (0, 100)]
+        out = envsys._inset_polygon_vertices_toward_centroid(pts, 10.0)
+        self.assertEqual(len(out), 4)
+        self.assertGreater(out[0][0], pts[0][0])
+        self.assertGreater(out[0][1], pts[0][1])
+        self.assertLess(out[1][0], pts[1][0])
+
+    def test_room_shell_punch_inset_px_reads_env(self):
+        with mock.patch.dict(os.environ, {"MV_ROOM_SHELL_PUNCH_INSET_PX": "12"}, clear=False):
+            self.assertEqual(envsys._room_shell_punch_inset_px(), 12)
+        with mock.patch.dict(os.environ, {"MV_ROOM_SHELL_PUNCH_INSET_PX": "99"}, clear=False):
+            self.assertEqual(envsys._room_shell_punch_inset_px(), 48)
+
     def test_v3_planner_uses_component_specific_structural_slots(self):
         room = copy.deepcopy(self.saved["room_layout"]["rooms"][0])
         room["size"] = {"width": 1184, "height": 1888}
@@ -1928,6 +1942,37 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         self.assertIn("footprint schematic", prompt.lower())
         self.assertIn("chamber bounds", prompt.lower())
 
+    def test_build_bespoke_prompt_room_shell_includes_masonry_thickness_rules(self):
+        l_room = {
+            "id": "RX",
+            "size": {"width": 320, "height": 240},
+            "polygon": [[0, 0], [320, 0], [320, 240], [0, 240]],
+        }
+        geom = envsys._room_geometry(l_room)
+        prompt = envsys._build_bespoke_prompt(
+            {"high_level_direction": "Ruins", "negative_direction": "none"},
+            {
+                "mood": "somber",
+                "lighting": "low",
+                "description": "test",
+                "component_schemas": {"walls": envsys._default_component_schema("walls", "test")},
+            },
+            {
+                "component_type": "room_shell_foreground",
+                "schema_key": "walls",
+                "target_dimensions": {"width": 1600, "height": 1200},
+                "orientation": "full",
+                "tile_mode": "stretch",
+                "border_treatment": "full_frame",
+                "protected_zones": [],
+            },
+            {"variant_family": "foreground", "orientation": "full"},
+            room_geometry=geom,
+        )
+        low = prompt.lower()
+        self.assertIn("heavy masonry", low)
+        self.assertIn("hairline", low)
+
     def test_wall_reference_guides_use_full_size_geometry_guides(self):
         refs_root = self.root / "refs"
         template = self.root / "template-wide.png"
@@ -2440,6 +2485,29 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         self.assertEqual(image.getpixel((800, 500))[:3], (180, 40, 40))
         self.assertNotEqual(image.getpixel((80, 500))[:3], (180, 40, 40))
         self.assertNotEqual(image.getpixel((800, 1120))[:3], (180, 40, 40))
+
+    def test_composite_runtime_asset_scopes_room_shell_to_chamber_bounds(self):
+        room = {
+            "id": "R1",
+            "size": {"width": 1600, "height": 1200},
+            "polygon": [[160, 160], [1440, 160], [1440, 1040], [160, 1040]],
+            "platforms": [{"id": "R1-P1", "x": 192, "y": 1024, "len": 38}],
+        }
+        asset = self.root / "room-shell-chamber.png"
+        envsys.Image.new("RGBA", (800, 600), (50, 120, 200, 255)).save(asset)
+        item = {
+            "slot_id": "R1-room-shell",
+            "component_type": "room_shell_foreground",
+            "slot_group": "foreground",
+            "url": f"/{asset.relative_to(envsys.ROOT).as_posix()}",
+            "placement": {"x": 800, "y": 600, "display_width": 1600, "display_height": 1200, "origin_x": 0.5, "origin_y": 0.5},
+        }
+        composed = envsys._composite_runtime_asset_sprite(item, asset, room)
+        self.assertIsNotNone(composed)
+        sprite, (x, y) = composed
+        self.assertEqual(sprite.size, (1280, 880))
+        self.assertEqual((x, y), (160, 160))
+        self.assertGreater(sprite.getpixel((sprite.size[0] // 2, sprite.size[1] // 2))[3], 240)
 
     def test_composite_runtime_review_matches_runtime_floor_face_band_height(self):
         asset = self.root / "floor-face.png"

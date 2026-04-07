@@ -3151,11 +3151,46 @@ def _chamber_point_to_output_pixel(
     return nx, ny
 
 
+def _inset_polygon_vertices_toward_centroid(
+    points: List[Tuple[int, int]],
+    inset_px: float,
+) -> List[Tuple[int, int]]:
+    """Shrink polygon toward its centroid (image pixel space). Used to leave a thicker opaque stone lip after punchout."""
+    if inset_px <= 0 or len(points) < 3:
+        return list(points)
+    fx = [float(p[0]) for p in points]
+    fy = [float(p[1]) for p in points]
+    cx = sum(fx) / len(fx)
+    cy = sum(fy) / len(fy)
+    out: List[Tuple[int, int]] = []
+    for x, y in zip(fx, fy):
+        dx, dy = x - cx, y - cy
+        dist = math.hypot(dx, dy)
+        if dist < 1e-6:
+            out.append((int(round(x)), int(round(y))))
+            continue
+        move = min(float(inset_px), dist * 0.48)
+        t = (dist - move) / dist
+        out.append((int(round(cx + dx * t)), int(round(cy + dy * t))))
+    return out
+
+
+def _room_shell_punch_inset_px() -> int:
+    """Optional: shrink transparent hole slightly inward for a thicker visible masonry rim (see MV_ROOM_SHELL_PUNCH_INSET_PX)."""
+    raw = os.environ.get("MV_ROOM_SHELL_PUNCH_INSET_PX", "0").strip()
+    try:
+        v = int(raw)
+    except ValueError:
+        return 0
+    return max(0, min(48, v))
+
+
 def _geometry_footprint_polygon_output_pixels(
     geometry: Dict[str, Any],
     out_w: int,
     out_h: int,
     pad: int = 24,
+    interior_inset_px: int = 0,
 ) -> List[Tuple[int, int]]:
     poly_src = geometry.get("polygon") or []
     if not isinstance(poly_src, list) or len(poly_src) < 3:
@@ -3178,17 +3213,26 @@ def _geometry_footprint_polygon_output_pixels(
         points.append((int(round(nx)), int(round(ny))))
     if len(points) < 3:
         return []
+    if interior_inset_px > 0:
+        points = _inset_polygon_vertices_toward_centroid(points, float(interior_inset_px))
+    if len(points) < 3:
+        return []
     return points
 
 
-def _apply_walkable_interior_punchout(path: Path, geometry: Dict[str, Any]) -> None:
+def _apply_walkable_interior_punchout(
+    path: Path,
+    geometry: Dict[str, Any],
+    interior_inset_px: Optional[int] = None,
+) -> None:
     """After Gemini shell generation, force the walkable polygon interior to transparent alpha."""
     if not path.exists():
         return
     img = Image.open(path).convert("RGBA")
     w, h = img.size
     pad = 24
-    pts = _geometry_footprint_polygon_output_pixels(geometry, w, h, pad)
+    inset = _room_shell_punch_inset_px() if interior_inset_px is None else max(0, min(48, int(interior_inset_px)))
+    pts = _geometry_footprint_polygon_output_pixels(geometry, w, h, pad, interior_inset_px=inset)
     if len(pts) < 3:
         return
     alpha = img.split()[3]
@@ -3208,7 +3252,8 @@ def _validate_room_shell_after_punchout(path: Path, geometry: Dict[str, Any], ex
         errors.append("size_mismatch")
     w, h = img.size
     pad = 24
-    pts = _geometry_footprint_polygon_output_pixels(geometry, w, h, pad)
+    inset = _room_shell_punch_inset_px()
+    pts = _geometry_footprint_polygon_output_pixels(geometry, w, h, pad, interior_inset_px=inset)
     if len(pts) < 3:
         return len(errors) == 0, errors
     mask = Image.new("L", (w, h), 0)
@@ -3249,8 +3294,9 @@ def _write_bespoke_room_silhouette_reference(geometry: Dict[str, Any], output_pa
     image = Image.new("RGBA", (out_w, out_h), (12, 16, 20, 255))
     draw = ImageDraw.Draw(image)
     fill_rgb = (32, 44, 52, 228)
-    outline_rgb = (0, 232, 200, 255)
-    line_w = max(2, out_w // 600)
+    # Neutral stone-gray outline — bright cyan reads as UI and models often bake it into the final PNG as a hairline "frame".
+    outline_rgb = (88, 96, 104, 255)
+    line_w = max(3, out_w // 400)
     draw.polygon(points, fill=fill_rgb, outline=outline_rgb, width=line_w)
     tile_px = 32.0
     for pr in geometry.get("platforms") or []:
@@ -5806,8 +5852,11 @@ def _build_bespoke_prompt(
         ),
         "room_shell_foreground": (
             "Build one full chamber shell image at the exact output size: ceiling mass, both side walls, and floor/footing as one continuous foreground frame in side view, matching the biome stone family. "
-            "The footprint schematic maps the walkable chamber: you may paint detail inside that polygon for continuity, but the engine will force the interior walkable polygon to transparent in post — "
-            "still keep ceiling, walls, and floor rim readable as a cohesive shell around that region. "
+            "The footprint schematic is an authoring guide only: use a neutral outline and filled walkable volume — do not copy that guide as a bright accent line, HUD stroke, or single-pixel hairline frame in the final PNG. "
+            "Paint deep, heavy masonry with real texture: opaque side shells should each read roughly 8–14% of output width (full stone courses, mortar, chips, wear), "
+            "the ceiling band roughly 12–20% of output height, the floor footing roughly 8–14% of output height — not a thin neon border. "
+            "The engine will punch the walkable polygon interior to transparent in post; the surviving rim must be substantial carved stone, not a one-pixel edge. "
+            "You may paint atmosphere inside the guide polygon for continuity, but the visible perimeter must read as thick structure. "
             "Do not replace the footprint with a generic centered rectangle; respect non-rectangular outlines. "
             "Avoid a second duplicate floor strip or separate far-background scene; this layer is the structural shell only."
         ),
@@ -5891,8 +5940,8 @@ def _build_bespoke_prompt(
     _poly = _geom.get("polygon") or []
     if component_type in {"background_far_plate", "midground_side_frame", "room_shell_foreground"} and isinstance(_poly, list) and len(_poly) >= 3:
         silhouette_clause = (
-            "\nRoom footprint conditioning: A footprint schematic is included in the reference images (dark field, cyan polygon outline, platform strips, door markers). "
-            "It maps this room at the exact output resolution: cyan outline = walkable chamber boundary in side view; fill = playable volume. "
+            "\nRoom footprint conditioning: A footprint schematic is included in the reference images (dark field, neutral outline on the chamber boundary, platform strips, door markers). "
+            "It maps this room at the exact output resolution: outline = walkable chamber boundary in side view; fill = playable volume. "
             "Compose fog, depth, and architecture so the result respects that footprint, including non-rectangular or L-shaped outlines. "
             "Do not substitute a generic centered rectangular nave when the outline is irregular. "
             f"Chamber bounds (room space): width {int(round(float(_geom.get('chamber_width') or 0)))} px, height {int(round(float(_geom.get('chamber_height') or 0)))} px.\n"
@@ -7349,7 +7398,13 @@ def _composite_runtime_asset_sprite(item: Dict[str, Any], asset_path: Path, room
     placement = item.get("placement") if isinstance(item.get("placement"), dict) else {}
     x, y, display_width, display_height = _placement_bounds(placement)
     component_type = str(item.get("component_type") or "")
-    if room and component_type in {"background_far_plate", "background_plate", "midground_side_frame", "midground_frame"}:
+    if room and component_type in {
+        "background_far_plate",
+        "background_plate",
+        "midground_side_frame",
+        "midground_frame",
+        "room_shell_foreground",
+    }:
         chamber_x, chamber_y, chamber_width, chamber_height = _chamber_sprite_bounds(room)
         sprite = sprite.resize((chamber_width, chamber_height), Image.Resampling.LANCZOS)
         return sprite, (chamber_x, chamber_y)
@@ -7454,6 +7509,7 @@ def _composite_runtime_review_image(
         "ceiling_band",
         "midground_side_frame",
         "midground_frame",
+        "room_shell_foreground",
         "wall_module_left",
         "wall_module_right",
         "wall_base_trim_left",
@@ -7467,6 +7523,17 @@ def _composite_runtime_review_image(
         "pit_rim",
         "pit_interior",
     }
+    _review_layer_order = {
+        "background": 0,
+        "ceiling": 1,
+        "walls": 2,
+        "midground": 3,
+        "foreground": 3.5,
+        "floor": 4,
+        "platforms": 5,
+        "doors": 6,
+        "pits": 7,
+    }
     sorted_assets = sorted(
         [
             item
@@ -7475,7 +7542,7 @@ def _composite_runtime_review_image(
             and item.get("url")
             and str(item.get("component_type") or "") in runtime_visible_component_types
         ],
-        key=lambda item: {"background": 0, "ceiling": 1, "walls": 2, "midground": 3, "floor": 4, "platforms": 5, "doors": 6, "pits": 7}.get(str(item.get("slot_group") or "misc"), 8),
+        key=lambda item: _review_layer_order.get(str(item.get("slot_group") or "misc"), 8),
     )
     for item in sorted_assets:
         rel_url = str(item.get("url") or "").lstrip("/")
