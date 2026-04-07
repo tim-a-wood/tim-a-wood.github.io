@@ -132,6 +132,15 @@ function assertIncludes(snippet, message) {
   );
 })();
 
+(function testBespokeGeminiWaitEstimationWired() {
+  assertIncludes('function roomWizardBespokeComponentUsesGemini', 'Gemini vs template slot classifier should exist');
+  assertIncludes('function roomWizardEstimateBespokeGeminiSlotCount', 'Slot-count estimator should exist');
+  assertIncludes('function roomWizardEstimateBespokeAssetWaitMs', 'Wall-clock estimator should exist');
+  assertIncludes('startRoomWizardWaitbar(', 'Wait bar entry point should remain');
+  assertIncludes('roomWizardEstimateBespokeAssetWaitMs(room, { slotId })', 'Per-slot build should pass timed wait estimate');
+  assertIncludes('roomWizardEstimateBespokeAssetWaitMs(room, { forFullBuild: true })', 'Full kit build should pass timed wait estimate');
+})();
+
 (function testRuntimeReviewOpensGameWithoutDuplicateButton() {
   assert.ok(
     !html.includes('id="roomWizardPreviewOpenGame"'),

@@ -8484,7 +8484,83 @@
         el.textContent = `Active pack: ${label} (${bid}) · ${n} template layer${n === 1 ? '' : 's'}. Frozen concepts are used as references when available. Confirm to overwrite PNGs on disk.`;
       }
 
-      function startRoomWizardWaitbar(slot, detail) {
+      /**
+       * Mirrors scripts/room_environment_system._component_adaptation_mode for bespoke slots:
+       * only "gemini" adaptation calls the image API; direct/stretch use template paths.
+       */
+      function roomWizardBespokeComponentUsesGemini(componentType) {
+        const ct = String(componentType || '');
+        if (ct === 'room_shell_foreground') return true;
+        const direct = new Set([
+          'background_plate',
+          'midground_frame',
+          'midground_side_frame',
+          'door_piece',
+          'door_frame',
+        ]);
+        if (direct.has(ct)) return false;
+        const stretch = new Set([
+          'foreground_frame',
+          'primary_floor_piece',
+          'hero_platform_piece',
+          'hero_platform_top',
+          'hero_platform_face',
+          'pit_interior',
+        ]);
+        if (stretch.has(ct)) return false;
+        return true;
+      }
+
+      /**
+       * Counts bespoke plan entries that trigger Gemini (matches server loop).
+       * Single-slot regen / iterate: always 1 API-bound slot from the UI's perspective.
+       */
+      function roomWizardEstimateBespokeGeminiSlotCount(room, opts) {
+        const options = opts || {};
+        if (options.slotId) return 1;
+        const plan = room?.environment?.runtime?.bespoke_asset_manifest?.generation_plan;
+        if (Array.isArray(plan) && plan.length) {
+          let n = 0;
+          for (let i = 0; i < plan.length; i++) {
+            const row = plan[i];
+            if (roomWizardBespokeComponentUsesGemini(row && row.component_type)) n += 1;
+          }
+          return Math.max(1, n);
+        }
+        if (options.forFullBuild) {
+          const plats = Array.isArray(room?.platforms) ? room.platforms.length : 0;
+          const pits = Array.isArray(room?.pits || room?.voidSpans)
+            ? (room.pits || room.voidSpans).length
+            : 0;
+          const extras = Math.max(0, plats - 1) + pits;
+          return Math.min(20, Math.max(7, 7 + extras));
+        }
+        return 1;
+      }
+
+      /**
+       * Wall-clock estimate: geminiSlots × (baseline × multiref factor × expected attempts) + tail.
+       * Research: public Gemini 2.5 Flash Image writeups often cite ~3–8s for light single-image
+       * requests; bespoke jobs send several reference PNGs and target ~1600×1200-class outputs, so
+       * we scale well above that. Server may run up to 3 validation attempts per slot — use ~1.45
+       * mean attempts so the bar is neither wildly pessimistic nor optimistic.
+       */
+      function roomWizardEstimateBespokeAssetWaitMs(room, opts) {
+        const options = opts || {};
+        const geminiSlots = roomWizardEstimateBespokeGeminiSlotCount(room, options);
+        const RW_GEMINI_LIGHT_REQUEST_UPPER_SEC = 8;
+        const RW_GEMINI_BESPOKE_MULTIREF_RESOLUTION_FACTOR = 12;
+        const RW_GEMINI_EXPECTED_ATTEMPTS = 1.45;
+        const RW_BESPOKE_TAIL_SEC = 40;
+        const secPerSlot =
+          RW_GEMINI_LIGHT_REQUEST_UPPER_SEC *
+          RW_GEMINI_BESPOKE_MULTIREF_RESOLUTION_FACTOR *
+          RW_GEMINI_EXPECTED_ATTEMPTS;
+        const totalSec = geminiSlots * secPerSlot + RW_BESPOKE_TAIL_SEC;
+        return Math.round(Math.max(45000, totalSec * 1000));
+      }
+
+      function startRoomWizardWaitbar(slot, detail, estimatedDurationMs) {
         if (slot === 'copilot') setRoomWizardEnvTab('results');
         const root = document.getElementById(slot === 'art-direction' ? 'roomWizardArtDirectionProgress' : 'roomWizardCopilotProgress');
         const fill = document.getElementById(slot === 'art-direction' ? 'roomWizardArtDirectionProgressFill' : 'roomWizardCopilotProgressFill');
@@ -8502,6 +8578,25 @@
           state: 'Working',
           percent: value
         });
+        const useTimed =
+          typeof estimatedDurationMs === 'number' && estimatedDurationMs >= 15000 && slot === 'copilot';
+        if (useTimed) {
+          const startTs = Date.now();
+          state.roomWizard.progressTimers[slot] = window.setInterval(() => {
+            const elapsed = Date.now() - startTs;
+            const t = Math.min(1, elapsed / estimatedDurationMs);
+            value = Math.min(92, 6 + t * 86);
+            if (fill) fill.style.width = `${value}%`;
+            if (pct) pct.textContent = `${Math.round(value)}%`;
+            setActivity({
+              label: 'Environment Processing',
+              detail: detail || 'Working…',
+              state: 'Working',
+              percent: value
+            });
+          }, 380);
+          return;
+        }
         state.roomWizard.progressTimers[slot] = window.setInterval(() => {
           value = Math.min(92, value + (value < 30 ? 8 : value < 60 ? 5 : 3));
           if (fill) fill.style.width = `${value}%`;
@@ -10125,8 +10220,18 @@
             if (state.roomWizard.aiRequestPending) return;
             state.roomWizard.aiRequestPending = true;
             const iterate = action === 'iterate';
-            startRoomWizardWaitbar('copilot', iterate ? 'Iterating one asset from its current image…' : 'Regenerating one room asset…');
-            if (st) st.textContent = iterate ? 'Iterating asset with Gemini…' : 'Regenerating one asset…';
+            const waitMs = roomWizardEstimateBespokeAssetWaitMs(room, { slotId });
+            const waitMin = Math.max(1, Math.round(waitMs / 60000));
+            startRoomWizardWaitbar(
+              'copilot',
+              `${iterate ? 'Iterating one asset' : 'Regenerating one asset'} (~${waitMin} min est., Gemini)…`,
+              waitMs
+            );
+            if (st) {
+              st.textContent = iterate
+                ? `Iterating with Gemini… about ${waitMin} min typical for one slot.`
+                : `Regenerating with Gemini… about ${waitMin} min typical for one slot.`;
+            }
             try {
               const res = await fetch(projectRoomEnvironmentApiUrl(room.id, 'generate-assets'), {
                 method: 'POST',
@@ -10202,8 +10307,17 @@
             buildButton.disabled = true;
             buildButton.textContent = 'Building final room assets…';
           }
-          startRoomWizardWaitbar('copilot', 'Generating bespoke biome assets from the approved room preview and locked templates.');
-          if (st) st.textContent = 'Building bespoke production assets…';
+          const fullWaitMs = roomWizardEstimateBespokeAssetWaitMs(room, { forFullBuild: true });
+          const fullWaitMin = Math.max(1, Math.round(fullWaitMs / 60000));
+          const geminiSlots = roomWizardEstimateBespokeGeminiSlotCount(room, { forFullBuild: true });
+          startRoomWizardWaitbar(
+            'copilot',
+            `Building bespoke kit (~${fullWaitMin} min est., ~${geminiSlots} Gemini slots)…`,
+            fullWaitMs
+          );
+          if (st) {
+            st.textContent = `Building bespoke production assets… about ${fullWaitMin} min estimated (${geminiSlots} Gemini slots × multi-reference image time).`;
+          }
           try {
             const res = await fetch(projectRoomEnvironmentApiUrl(room.id, 'generate-assets'), {
               method: 'POST',
