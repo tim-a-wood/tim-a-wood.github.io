@@ -1275,6 +1275,7 @@
   outline-offset: 2px;
 }
 
+/* Neutral border so the screenshot reads true-to-pixel (var(--line) is cyan-tinted and skews perceived tone). */
 .room-wizard-dock button.rw-environment-asset-open.rw-runtime-review-thumb img {
   display: block;
   width: 100%;
@@ -1284,13 +1285,13 @@
   object-fit: contain;
   object-position: top center;
   border-radius: var(--radius-default);
-  border: 1px solid var(--line);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   background: var(--panel-2);
   transition: border-color 200ms ease;
 }
 
 .room-wizard-dock button.rw-environment-asset-open.rw-runtime-review-thumb:hover img {
-  border-color: var(--line-strong);
+  border-color: rgba(255, 255, 255, 0.16);
 }
 
 .room-wizard-dock .rw-environment-asset-thumb-empty {
