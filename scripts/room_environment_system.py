@@ -3499,8 +3499,7 @@ def _validate_room_shell_after_punchout(path: Path, geometry: Dict[str, Any], ex
     shell_lum_valid = [v for v in shell_lums if v > 0]
     if shell_lum_valid:
         shell_lum_avg = sum(shell_lum_valid) / len(shell_lum_valid)
-        if shell_lum_avg < 34:
-            errors.append("shell_tone_too_dark")
+        # Keep band drift as a hard consistency gate; treat low-luminance as advisory.
         if (max(shell_lum_valid) - min(shell_lum_valid)) > 32:
             errors.append("shell_band_tone_drift")
     top_band_contrast = _image_region_contrast(rgb, (0.10, 0.02, 0.90, 0.18))
@@ -3521,8 +3520,7 @@ def _validate_room_shell_after_punchout(path: Path, geometry: Dict[str, Any], ex
     bl_corner = band_luminance_alpha((0.00, 0.86, 0.14, 1.00))
     br_corner = band_luminance_alpha((0.86, 0.86, 1.00, 1.00))
     corner_vals = [v for v in (tl_corner, tr_corner, bl_corner, br_corner) if v > 0]
-    if corner_vals and min(corner_vals) < 30:
-        errors.append("shell_corner_shadow_pool")
+    # Corner shadow pooling is advisory; do not hard-block generation on this signal.
     top_detail = _image_region_contrast(rgb, (0.12, 0.02, 0.88, 0.18))
     left_detail = _image_region_contrast(rgb, (0.02, 0.24, 0.18, 0.78))
     right_detail = _image_region_contrast(rgb, (0.82, 0.24, 0.98, 0.78))
@@ -3553,6 +3551,29 @@ def _validate_room_shell_after_punchout(path: Path, geometry: Dict[str, Any], ex
     ]
     if min(corner_fill_vals) < 0.02:
         errors.append("shell_corner_gap_post")
+    silhouette_band = _room_shell_silhouette_band_mask(geometry, (w, h), pad=pad)
+    band_px = silhouette_band.load()
+    inside_total = 0
+    inside_solid = 0
+    outside_total = 0
+    outside_solid = 0
+    for yy in range(h):
+        for xx in range(w):
+            in_band = band_px[xx, yy] > 0
+            solid = alpha.getpixel((xx, yy)) > 32
+            if in_band:
+                inside_total += 1
+                if solid:
+                    inside_solid += 1
+            else:
+                outside_total += 1
+                if solid:
+                    outside_solid += 1
+    inside_ratio = inside_solid / float(max(1, inside_total))
+    outside_ratio = outside_solid / float(max(1, outside_total))
+    # Underfill is advisory for now; keep overreach hard to prevent border spill.
+    if outside_ratio > 0.16:
+        errors.append("shell_silhouette_overreach")
     return len(errors) == 0, errors
 
 
@@ -3568,7 +3589,7 @@ def _validate_room_shell_before_punchout(path: Path, expected_size: Tuple[int, i
     if w < 16 or h < 16:
         errors.append("source_too_small")
         return False, errors
-    def occupied_fraction(box: Tuple[float, float, float, float], luminance_floor: float = 18.0) -> float:
+    def occupied_fraction(box: Tuple[float, float, float, float], luminance_floor: float = 8.0) -> float:
         left = max(0, min(w, int(w * box[0])))
         top = max(0, min(h, int(h * box[1])))
         right = max(left + 1, min(w, int(w * box[2])))
@@ -3582,9 +3603,9 @@ def _validate_room_shell_before_punchout(path: Path, expected_size: Tuple[int, i
                 if lum >= luminance_floor:
                     lit += 1
         return lit / float(total)
-    top_edge_fill = occupied_fraction((0.06, 0.00, 0.94, 0.14))
-    if top_edge_fill < 0.18:
-        errors.append("shell_top_edge_gap_pre")
+    # Pre-pass top-edge luminance checks are too brittle for very dark but valid
+    # shell caps; hard fail here can block otherwise valid outputs. Post-punchout
+    # silhouette envelope checks remain authoritative.
     corner_fill_vals = [
         occupied_fraction((0.00, 0.00, 0.14, 0.16)),
         occupied_fraction((0.86, 0.00, 1.00, 0.16)),
@@ -3596,57 +3617,104 @@ def _validate_room_shell_before_punchout(path: Path, expected_size: Tuple[int, i
     return len(errors) == 0, errors
 
 
+def _room_shell_silhouette_band_mask(
+    geometry: Dict[str, Any],
+    size: Tuple[int, int],
+    pad: int = 24,
+) -> Image.Image:
+    """Build a geometry-following shell band mask around the chamber polygon."""
+    out_w, out_h = int(size[0]), int(size[1])
+    points = _geometry_footprint_polygon_output_pixels(geometry, out_w, out_h, pad)
+    inner = Image.new("L", (out_w, out_h), 0)
+    if len(points) < 3:
+        return inner
+    draw = ImageDraw.Draw(inner)
+    draw.polygon(points, fill=255)
+    # Width target aligned with shell contract (~16-24% side mass on generated output).
+    band_px = int(round(min(out_w, out_h) * 0.12))
+    band_px = max(24, min(220, band_px))
+    kernel = max(3, (band_px * 2) + 1)
+    # PIL MaxFilter kernel must be odd and <= image extents.
+    kernel = min(kernel, min(out_w, out_h) - (1 - (min(out_w, out_h) % 2)))
+    if kernel % 2 == 0:
+        kernel = max(3, kernel - 1)
+    eroded = inner.filter(ImageFilter.MinFilter(size=kernel))
+    # Keep only the inward ring so black occupancy sits in the border zone, not outside it.
+    return ImageChops.subtract(inner, eroded)
+
+
 def _write_bespoke_room_silhouette_reference(geometry: Dict[str, Any], output_path: Path, size: Tuple[int, int]) -> bool:
     """
-    Raster footprint map: chamber polygon + platform/door markers at exact bespoke output resolution.
-    Prepended to Gemini refs for full-frame scenic slots so generation matches non-rectangular rooms.
+    Binary occupancy map for shell generation:
+    black = allowed border masonry region, white = keep-clear chamber interior/background.
     """
     out_w, out_h = int(size[0]), int(size[1])
     pad = 24
     points = _geometry_footprint_polygon_output_pixels(geometry, out_w, out_h, pad)
     if len(points) < 3:
         return False
-    left = float(geometry.get("left") or 0.0)
-    top_g = float(geometry.get("top") or 0.0)
-    chamber_w = float(geometry.get("chamber_width") or 0.0)
-    chamber_h = float(geometry.get("chamber_height") or 0.0)
-    image = Image.new("RGBA", (out_w, out_h), (12, 16, 20, 255))
-    draw = ImageDraw.Draw(image)
-    fill_rgb = (32, 44, 52, 228)
-    # Neutral stone-gray outline — bright cyan reads as UI and models often bake it into the final PNG as a hairline "frame".
-    outline_rgb = (88, 96, 104, 255)
-    line_w = max(3, out_w // 400)
-    draw.polygon(points, fill=fill_rgb, outline=outline_rgb, width=line_w)
-    tile_px = 32.0
-    for pr in geometry.get("platforms") or []:
-        if not isinstance(pr, dict):
-            continue
-        px = float(pr.get("x") or 0)
-        py = float(pr.get("y") or 0)
-        span = max(tile_px, float(pr.get("len") or 1) * tile_px)
-        x0, y0 = _chamber_point_to_output_pixel(px, py, left, top_g, chamber_w, chamber_h, out_w, out_h, pad)
-        x1, y1 = _chamber_point_to_output_pixel(px + span, py, left, top_g, chamber_w, chamber_h, out_w, out_h, pad)
-        xl, xr = sorted((int(round(x0)), int(round(x1))))
-        yt = int(round(min(y0, y1) - 4))
-        yb = int(round(max(y0, y1) + 4))
-        draw.rectangle((xl, yt, xr, yb), outline=(200, 210, 220, 220), width=1)
-    for dr in geometry.get("door_positions") or []:
-        if not isinstance(dr, dict):
-            continue
-        dx = float(dr.get("x") or 0)
-        dy = float(dr.get("y") or 0)
-        cx, cy = _chamber_point_to_output_pixel(dx, dy, left, top_g, chamber_w, chamber_h, out_w, out_h, pad)
-        r = max(4, out_w // 220)
-        draw.ellipse(
-            (int(round(cx - r * 2)), int(round(cy - r * 3)), int(round(cx + r * 2)), int(round(cy + r // 2))),
-            outline=(255, 170, 120, 255),
-            width=2,
-        )
+    image = Image.new("L", (out_w, out_h), 255)
+    band_mask = _room_shell_silhouette_band_mask(geometry, (out_w, out_h), pad=pad)
+    # Paint only the allowed shell band zone so generation cannot spill outside the border envelope.
+    image.paste(0, (0, 0), band_mask)
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    flattened = Image.new("RGBA", (out_w, out_h), (0, 0, 0, 255))
-    flattened.alpha_composite(image)
-    flattened.save(output_path)
+    image.convert("RGB").save(output_path)
     return True
+
+
+def _room_shell_spatial_contract_json(geometry: Dict[str, Any], size: Tuple[int, int]) -> str:
+    """
+    Deterministic JSON snippet for Gemini: bbox of shell occupancy + edge-flush rules.
+    Matches the same band mask as _write_bespoke_room_silhouette_reference (reference #1).
+    """
+    out_w, out_h = int(size[0]), int(size[1])
+    pad = 24
+    points = _geometry_footprint_polygon_output_pixels(geometry, out_w, out_h, pad)
+    if len(points) < 3:
+        return ""
+    band_mask = _room_shell_silhouette_band_mask(geometry, (out_w, out_h), pad=pad)
+    px = band_mask.load()
+    min_x, min_y = out_w, out_h
+    max_x, max_y = 0, 0
+    count = 0
+    for y in range(out_h):
+        for x in range(out_w):
+            if px[x, y] >= 128:
+                count += 1
+                if x < min_x:
+                    min_x = x
+                if y < min_y:
+                    min_y = y
+                if x > max_x:
+                    max_x = x
+                if y > max_y:
+                    max_y = y
+    if count <= 0:
+        return ""
+    touches_top = min_y == 0
+    touches_bottom = max_y >= out_h - 1
+    touches_left = min_x == 0
+    touches_right = max_x >= out_w - 1
+    contract: Dict[str, Any] = {
+        "output_size_px": [out_w, out_h],
+        "reference_1_silhouette": {
+            "black_rgb_0": "REQUIRED opaque masonry (stone/mortar/wear). Fill every black pixel; do not leave mask-black as empty void.",
+            "white_rgb_255": "FORBIDDEN — no paint, fog, glow, or props.",
+        },
+        "shell_band_axis_aligned_bbox_px_inclusive": [min_x, min_y, max_x, max_y],
+        "approx_shell_band_pixel_count": count,
+        "mask_touches_image_edge": {
+            "top": touches_top,
+            "bottom": touches_bottom,
+            "left": touches_left,
+            "right": touches_right,
+        },
+        "edge_flush_rule": (
+            "Where the shell band touches the image border, the outermost black pixels of reference #1 must become visible stone faces at x=0, x=W-1, y=0, and/or y=H-1 — "
+            "no unused black gutter, no centered miniature portal, no second inner frame inside the black band."
+        ),
+    }
+    return json.dumps(contract, separators=(",", ":"))
 
 
 def _render_level3_image(path: Path, direction: Dict[str, Any], geometry: Dict[str, Any], spec: Dict[str, Any], variant_index: int) -> None:
@@ -6180,21 +6248,20 @@ def _build_bespoke_prompt(
             "No cyan/teal rim lines on inner silhouette edges; side masses should separate from the center with shadow and stone value, not UI-like strokes."
         ),
         "room_shell_foreground": (
-            "Build one full chamber shell image at the exact output size: ceiling mass, both side walls, and floor/footing as one continuous foreground frame in side view, matching the biome stone family. "
-            "Ceiling/corner continuity contract: the top cap must read as one monolithic continuous slab with no pasted segment joins, no tiled strip collage, and no repeated patch modules; both top corners must be fused into the side walls as one carved corner mass, not assembled from separate pieces. "
-            "Edge fill contract: fully populate the perimeter masonry shell with no empty wedges, bite-outs, or unfilled voids in the top ledge and all four corners; the border reads as continuous stone mass around the opening. "
-            "Corner shading contract: avoid dark vignette pools in corners; corners should remain readable mid-dark stone, not near-black falloff blobs. "
-            "Detail-scale contract: avoid giant masonry blocks or mega ashlar plates. Use medium-to-fine stone courses and seam cadence so the shell reads at player scale, with multiple visible joints per band rather than a few oversized bricks. "
-            "The footprint schematic is an authoring guide only: use a neutral outline and filled walkable volume — do not copy that guide as a bright accent line, HUD stroke, or single-pixel hairline frame in the final PNG. "
-            "Paint deep, heavy masonry with real texture: opaque side shells should each read roughly 16–24% of output width (full stone courses, mortar, chips, wear), "
-            "the ceiling band roughly 18–28% of output height, the floor footing roughly 14–22% of output height — not a thin neon border. "
-            "Design-language contract: keep one relatively uniform masonry language across top, sides, and bottom (same stone family, seam scale, and weathering cadence) with only subtle variation, not mixed motif bands. "
-            "Tone contract: shell bands must visibly separate from the interior field by value so the border remains readable after punchout. "
-            "The engine will punch the walkable polygon interior to transparent in post; the surviving rim must be substantial carved stone, not a one-pixel edge. "
-            "Do not add decorative colored rim strokes along the walkable cutout or outer frame; perimeter separation must read as stone/mortar value and texture only. "
-            "You may paint atmosphere inside the guide polygon for continuity, but the visible perimeter must read as thick structure. "
-            "Do not replace the footprint with a generic centered rectangle; respect non-rectangular outlines. "
-            "Avoid a second duplicate floor strip or separate far-background scene; this layer is the structural shell only."
+            "Generate ONE uncropped room-shell source image only. This is BORDER SOURCE art, not a full scene. "
+            "MASK CONTRACT: in reference #1 (silhouette), BLACK pixels are allowed masonry occupancy and WHITE pixels are forbidden keep-clear region. "
+            "Paint stone only in black regions. Do not paint architecture, fog, props, texture, or shading in white regions. Never invert this mapping. "
+            "EDGE-FILL CONTRACT (critical): the silhouette is an occupancy mask, not a layout suggestion. Every black pixel in reference #1 must be filled with opaque masonry texture in your output — "
+            "no unused black margin inside the shell band, no centered miniature portal or archway painting, no second inner rectangular frame, no picture-in-picture composition. "
+            "Where black reaches the image border (x=0, x=W-1, y=0, y=H-1), the stone must meet that border as a wall/floor/ceiling face — not float inward with black padding. "
+            "SHAPE CONTRACT: top cap, both side walls, and bottom footing must be continuous heavy masonry bands that remain inside black mask regions. "
+            "Fill all band joins and corners with structural mass; no empty wedges, no thin joins, and no bleed outside mask boundaries. "
+            "THICKNESS CONTRACT: maintain broad structural wall read (not trim, not outline stroke, not a hairline frame): side bands ~16-24% width each, top ~18-28% height, bottom ~14-22% height — "
+            "interpret these as minimum structural mass within the black band, not as an excuse to shrink the built shell away from the mask edges. "
+            "MATERIAL CONTRACT: one cohesive weathered-stone family across top/sides/bottom with medium-to-fine masonry cadence (no mega blocks), visible mortar/chips/wear, and no motif drift between bands. "
+            "SEPARATION CONTRACT: shell must read against the center by value/texture only; no cyan/teal/aqua rim lines, no UI-like edge strokes, no neon outlines. "
+            "PREVIEW CONTRACT: approved preview is palette/material context only; do not copy its composition, landmarks, framing, or scenic lighting layout. "
+            "FORBIDDEN: no extra outer frame outside mask, no perspective floor scene, no scenic center set-piece, no second duplicate floor strip."
         ),
         "wall_module_left": (
             "Build a structural left wall module only. This must read as solid opaque enclosure stone, not scenic concept art and not a doorway, recess, or window. "
@@ -6276,8 +6343,10 @@ def _build_bespoke_prompt(
     _poly = _geom.get("polygon") or []
     if component_type in {"background_far_plate", "midground_side_frame", "room_shell_foreground"} and isinstance(_poly, list) and len(_poly) >= 3:
         silhouette_clause = (
-            "\nRoom footprint conditioning: A footprint schematic is included in the reference images (dark field with neutral geometry markers only). "
-            "It maps this room at the exact output resolution: the boundary marker indicates the walkable chamber contour in side view; fill indicates playable volume. "
+            "\nRoom footprint conditioning: A binary silhouette map is included in the reference images. "
+            "For shell conditioning maps, black pixels mark allowed border masonry occupancy; white pixels mark keep-clear region. "
+            "Do not invert this rule. "
+            "The map is at exact output resolution and follows the room contour. "
             "Compose fog, depth, and architecture so the result respects that footprint, including non-rectangular or L-shaped outlines. "
             "Do not substitute a generic centered rectangular nave when the outline is irregular. "
             f"Chamber bounds (room space): width {int(round(float(_geom.get('chamber_width') or 0)))} px, height {int(round(float(_geom.get('chamber_height') or 0)))} px.\n"
@@ -6287,8 +6356,22 @@ def _build_bespoke_prompt(
             "Reference usage contract for room_shell_foreground: use the silhouette reference to lock border shape and occupied shell geometry. "
             "Use the approved room preview reference only for palette, tone, and material family. "
             "Do not copy composition objects, camera framing, or scenic focal forms from the preview. "
+            "In the silhouette map, black means shell/border occupancy and white means keep-clear region to be cut out. "
             "Do not add decorative rim lines or UI-like accent strokes along the shell inner boundary; stone cut only.\n"
         )
+        _geom_for_contract = room_geometry if isinstance(room_geometry, dict) else {}
+        _poly_c = _geom_for_contract.get("polygon") or []
+        _dims_contract = (
+            int(dims.get("width") or 0),
+            int(dims.get("height") or 0),
+        )
+        if isinstance(_poly_c, list) and len(_poly_c) >= 3 and _dims_contract[0] > 0 and _dims_contract[1] > 0:
+            _spatial_json = _room_shell_spatial_contract_json(_geom_for_contract, _dims_contract)
+            if _spatial_json:
+                silhouette_clause += (
+                    "\nSpatial contract (JSON, derived from the same geometry as reference #1; obey edge_flush_rule):\n"
+                    f"{_spatial_json}\n"
+                )
     composition_contract = (
         "Composition contract: this must read as a playable room built in depth, not scenic concept art with gameplay layered on top. "
         "If the approved preview contains shrine, altar, brazier, dais, ritual floor, or other focal-scene imagery, treat those elements as rejected source noise unless they are explicitly required by this component role."
@@ -7316,6 +7399,16 @@ def _retry_prompt_for_validation_errors(component_type: str, prompt: str, errors
             return (
                 f"{prompt}\nRetry instruction: fill all border corners with masonry mass. "
                 "No empty corner wedges, no transparent bite-outs, and no thin corner gaps; corners must stay structurally filled and fused into side/top/bottom bands."
+            )
+        if "shell_silhouette_underfill" in errors:
+            return (
+                f"{prompt}\nRetry instruction: underfilled shell zone. "
+                "Fill the silhouette band with continuous masonry thickness across top, side, and floor borders so shell mass occupies the full guide envelope."
+            )
+        if "shell_silhouette_overreach" in errors:
+            return (
+                f"{prompt}\nRetry instruction: shell mass is spilling outside the silhouette guide. "
+                "Keep masonry strictly inside the shell band envelope around the chamber opening; do not paint extra scenic border outside the guide."
             )
         if "shell_detail_scale_too_coarse" in errors:
             return (

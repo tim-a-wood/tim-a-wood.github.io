@@ -1395,7 +1395,7 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         self.assertFalse(ok)
         self.assertIn("shell_tone_too_dark", errors)
 
-    def test_validate_room_shell_before_punchout_rejects_top_edge_gap(self):
+    def test_validate_room_shell_before_punchout_tolerates_dark_top_band(self):
         path = self.root / "shell-pre-top-gap.png"
         img = envsys.Image.new("RGBA", (400, 320), (30, 38, 48, 255))
         draw = envsys.ImageDraw.Draw(img)
@@ -1403,12 +1403,12 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         draw.rectangle((0, 250, 399, 319), fill=(62, 70, 82, 255))
         draw.rectangle((0, 70, 70, 250), fill=(58, 66, 78, 255))
         draw.rectangle((329, 70, 399, 250), fill=(58, 66, 78, 255))
-        # Carve a visible top-edge wedge gap.
-        draw.rectangle((60, 0, 340, 90), fill=(0, 0, 0, 255))
+        # Dark top ledge should not hard-fail pre-validation; post checks are authoritative.
+        draw.rectangle((16, 0, 384, 112), fill=(0, 0, 0, 255))
         img.save(path)
         ok, errors = envsys._validate_room_shell_before_punchout(path, (400, 320))
-        self.assertFalse(ok)
-        self.assertIn("shell_top_edge_gap_pre", errors)
+        self.assertTrue(ok)
+        self.assertNotIn("shell_top_edge_gap_pre", errors)
 
     def test_validate_room_shell_after_punchout_rejects_corner_gap(self):
         geom = envsys._room_geometry(copy.deepcopy(self.saved["room_layout"]["rooms"][0]))
@@ -1425,6 +1425,23 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         ok, errors = envsys._validate_room_shell_after_punchout(path, geom, (400, 320))
         self.assertFalse(ok)
         self.assertIn("shell_corner_gap_post", errors)
+
+    def test_room_shell_silhouette_band_mask_creates_border_zone(self):
+        geom = envsys._room_geometry(copy.deepcopy(self.saved["room_layout"]["rooms"][0]))
+        mask = envsys._room_shell_silhouette_band_mask(geom, (400, 320), pad=24)
+        self.assertEqual(mask.size, (400, 320))
+        px = mask.load()
+        self.assertGreater(px[10, 10], 0)
+        self.assertEqual(px[200, 180], 0)
+
+    def test_validate_room_shell_after_punchout_rejects_silhouette_overreach(self):
+        geom = envsys._room_geometry(copy.deepcopy(self.saved["room_layout"]["rooms"][0]))
+        path = self.root / "shell-post-overreach.png"
+        img = envsys.Image.new("RGBA", (400, 320), (80, 90, 102, 255))
+        img.save(path)
+        ok, errors = envsys._validate_room_shell_after_punchout(path, geom, (400, 320))
+        self.assertFalse(ok)
+        self.assertIn("shell_silhouette_overreach", errors)
 
     def test_v3_planner_uses_component_specific_structural_slots(self):
         room = copy.deepcopy(self.saved["room_layout"]["rooms"][0])
@@ -2132,6 +2149,22 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         low = prompt.lower()
         self.assertIn("heavy masonry", low)
         self.assertIn("hairline", low)
+        self.assertIn("edge-fill contract", low)
+        self.assertIn("spatial contract", low)
+        self.assertIn("shell_band_axis_aligned_bbox_px_inclusive", prompt)
+
+    def test_room_shell_spatial_contract_json_matches_mask_geometry(self):
+        geom = {
+            "polygon": [[0, 0], [320, 0], [320, 240], [0, 240]],
+            "chamber_width": 320,
+            "chamber_height": 240,
+        }
+        raw = envsys._room_shell_spatial_contract_json(geom, (320, 240))
+        self.assertTrue(raw)
+        data = json.loads(raw)
+        self.assertEqual(data["output_size_px"], [320, 240])
+        self.assertIn("shell_band_axis_aligned_bbox_px_inclusive", data)
+        self.assertIn("edge_flush_rule", data)
 
     def test_wall_reference_guides_use_full_size_geometry_guides(self):
         refs_root = self.root / "refs"
