@@ -587,8 +587,11 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         il, itop, ir, ib = envsys._foreground_frame_inner_rect_inclusive()
         center = guide.getpixel(((il + ir) // 2, (itop + ib) // 2))
 
-        self.assertGreater(top[0], left[0] + 120)
-        self.assertGreater(bottom[0], left[0] + 120)
+        # Cap/floor bands must read lighter than side walls for Gemini, but stay well below paper-white (no edge halos).
+        self.assertGreater(top[0], left[0] + 40)
+        self.assertGreater(bottom[0], left[0] + 40)
+        self.assertLess(max(top), 230)
+        self.assertLess(max(bottom), 230)
         self.assertGreater(center[1], 220)
         self.assertLess(center[0], 40)
         self.assertLess(center[2], 40)
@@ -2063,6 +2066,21 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
             envsys._write_bespoke_room_silhouette_reference({"polygon": [], "chamber_width": 100, "chamber_height": 100}, out, (64, 64))
         )
 
+    def test_bespoke_room_silhouette_reference_uses_dark_clear_not_white(self):
+        l_room = {
+            "id": "RX",
+            "size": {"width": 320, "height": 240},
+            "polygon": [[0, 0], [320, 0], [320, 240], [0, 240]],
+        }
+        geom = envsys._room_geometry(l_room)
+        out = self.root / "sil-dark-clear.png"
+        self.assertTrue(envsys._write_bespoke_room_silhouette_reference(geom, out, (320, 240)))
+        img = envsys.Image.open(out).convert("RGB")
+        pixels = list(img.getdata())
+        paper_white = sum(1 for r, g, b in pixels if r >= 250 and g >= 250 and b >= 250)
+        self.assertEqual(paper_white, 0)
+        self.assertEqual(img.getpixel((0, 0)), envsys.ROOM_SHELL_SILHOUETTE_CLEAR_RGB)
+
     def test_layout_conditioning_reference_avoids_cyan_outline(self):
         geom = {
             "width": 320,
@@ -2168,6 +2186,9 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         self.assertEqual(data["output_size_px"], [320, 240])
         self.assertIn("shell_band_axis_aligned_bbox_px_inclusive", data)
         self.assertIn("edge_flush_rule", data)
+        ref1 = data.get("reference_1_silhouette") or {}
+        self.assertIn("neutral_clear_rgb_8_12_16", ref1)
+        self.assertNotIn("white_rgb_255", str(data))
 
     def test_wall_reference_guides_use_full_size_geometry_guides(self):
         refs_root = self.root / "refs"

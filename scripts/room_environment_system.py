@@ -666,10 +666,11 @@ def _write_foreground_frame_generation_guide(project_dir: Path) -> Path:
     wall_bottom = floor_y
     center_left = left_w
     center_right = size[0] - right_w
-    band_fill = (236, 236, 236, 255)
-    wall_fill = (48, 48, 48, 255)
+    # Lighter cap/floor than side walls (readable template) but not near-white — avoids paper halos in outputs.
+    band_fill = (88, 92, 98, 255)
+    wall_fill = (36, 40, 46, 255)
     center_fill = FOREGROUND_FRAME_CENTER_KEY_RGB + (255,)
-    guide_line = (188, 188, 188, 255)
+    guide_line = (78, 84, 92, 255)
 
     # Exact occupied envelopes only: top cap, bottom band, left wall, right wall,
     # and an explicit chroma-key center reserve. Keep this sparse so Gemini learns
@@ -701,14 +702,14 @@ def _write_border_piece_generation_guide(project_dir: Path) -> Path:
     top_h = BORDER_PIECE_BORDER_TOP_PX
     bottom_h = BORDER_PIECE_BORDER_BOTTOM_PX
     side_w = BORDER_PIECE_BORDER_SIDE_PX
-    frame_fill = (224, 224, 224, 255)
+    frame_fill = (52, 56, 62, 255)
     center_fill = (64, 64, 64, 255)
     draw.rectangle((0, 0, size[0], top_h), fill=frame_fill)
     draw.rectangle((0, size[1] - bottom_h, size[0], size[1]), fill=frame_fill)
     draw.rectangle((0, top_h, side_w, size[1] - bottom_h), fill=frame_fill)
     draw.rectangle((size[0] - side_w, top_h, size[0], size[1] - bottom_h), fill=frame_fill)
     draw.rectangle((side_w, top_h, size[0] - side_w, size[1] - bottom_h), fill=center_fill)
-    draw.line((0, top_h - 1, size[0], top_h - 1), fill=(250, 250, 250, 255), width=9)
+    draw.line((0, top_h - 1, size[0], top_h - 1), fill=(82, 88, 96, 255), width=2)
     img.save(guide_path)
     return guide_path
 
@@ -2497,6 +2498,9 @@ V2_SLOT_FAMILY_SPECS: Tuple[Dict[str, Any], ...] = (
 V2_SLOT_SPEC_BY_TYPE: Dict[str, Dict[str, Any]] = {entry["component_type"]: entry for entry in V2_SLOT_FAMILY_SPECS}
 
 FOREGROUND_FRAME_CENTER_KEY_RGB: Tuple[int, int, int] = (0, 255, 0)
+# Keep-clear fill for room_shell silhouette refs and prompt contract (same family as layout conditioning).
+# White (#FFFFFF) margins in the mask taught Gemini paper-white halos at chamber edges and image borders.
+ROOM_SHELL_SILHOUETTE_CLEAR_RGB: Tuple[int, int, int] = (8, 12, 16)
 
 # Full-frame 1600×1200 atlas border thickness (v2: 3× original v1 contract).
 ATLAS_WIDTH = 1600
@@ -3649,20 +3653,22 @@ def _room_shell_silhouette_band_mask(
 
 def _write_bespoke_room_silhouette_reference(geometry: Dict[str, Any], output_path: Path, size: Tuple[int, int]) -> bool:
     """
-    Binary occupancy map for shell generation:
-    black = allowed border masonry region, white = keep-clear chamber interior/background.
+    Occupancy map for shell generation:
+    black = allowed border masonry region; dark neutral = keep-clear (chamber interior + image margins).
+    Not white — full-canvas white margins in older masks encouraged paper-white halos in Gemini output.
     """
     out_w, out_h = int(size[0]), int(size[1])
     pad = 24
     points = _geometry_footprint_polygon_output_pixels(geometry, out_w, out_h, pad)
     if len(points) < 3:
         return False
-    image = Image.new("L", (out_w, out_h), 255)
+    clear = ROOM_SHELL_SILHOUETTE_CLEAR_RGB
+    image = Image.new("RGB", (out_w, out_h), clear)
     band_mask = _room_shell_silhouette_band_mask(geometry, (out_w, out_h), pad=pad)
-    # Paint only the allowed shell band zone so generation cannot spill outside the border envelope.
-    image.paste(0, (0, 0), band_mask)
+    black = Image.new("RGB", (out_w, out_h), (0, 0, 0))
+    image.paste(black, (0, 0), band_mask)
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    image.convert("RGB").save(output_path)
+    image.save(output_path)
     return True
 
 
@@ -3703,7 +3709,7 @@ def _room_shell_spatial_contract_json(geometry: Dict[str, Any], size: Tuple[int,
         "output_size_px": [out_w, out_h],
         "reference_1_silhouette": {
             "black_rgb_0": "REQUIRED opaque masonry (stone/mortar/wear). Fill every black pixel; do not leave mask-black as empty void.",
-            "white_rgb_255": "FORBIDDEN — no paint, fog, glow, or props.",
+            "neutral_clear_rgb_8_12_16": "FORBIDDEN to paint masonry/fog/props — flat dark keep-clear. Never substitute paper-white (#FFFFFF), cream rims, or bright edge halos.",
         },
         "shell_band_axis_aligned_bbox_px_inclusive": [min_x, min_y, max_x, max_y],
         "approx_shell_band_pixel_count": count,
@@ -3765,7 +3771,7 @@ def _render_level3_image(path: Path, direction: Dict[str, Any], geometry: Dict[s
         sx = (float(door.get("x") or 0) / max(float(geometry.get("width") or 1), 1.0)) * (canvas_size[0] - 80) + 40
         sy = (float(door.get("y") or 0) / max(float(geometry.get("height") or 1), 1.0)) * (canvas_size[1] - 80) + 30
         h = 34 + (idx % 2) * 8
-        draw.rounded_rectangle((sx - 7, sy - h, sx + 7, sy), radius=4, fill=accent_rgb + (220,), outline=(255, 255, 255, 60))
+        draw.rounded_rectangle((sx - 7, sy - h, sx + 7, sy), radius=4, fill=accent_rgb + (220,), outline=(96, 104, 108, 55))
     caption = f"{spec.get('theme_id', 'custom').title()} · {spec.get('mood') or 'mood'}"
     subtitle = ", ".join((spec.get("tags") or [])[:4]) or "room-aware preview"
     draw.text((24, 22), caption, fill=(235, 241, 240, 255))
@@ -3802,7 +3808,7 @@ def _render_room_layout_conditioning_image(geometry: Dict[str, Any], spec: Dict[
         sx = (float(door.get("x") or 0) / max(float(geometry.get("width") or 1), 1.0)) * (canvas_size[0] - 140) + 70
         sy = (float(door.get("y") or 0) / max(float(geometry.get("height") or 1), 1.0)) * (canvas_size[1] - 140) + 56
         h = 62 + (idx % 2) * 10
-        draw.rounded_rectangle((sx - 12, sy - h, sx + 12, sy), radius=6, fill=(255, 214, 122, 220), outline=(255, 245, 225, 120))
+        draw.rounded_rectangle((sx - 12, sy - h, sx + 12, sy), radius=6, fill=(255, 214, 122, 220), outline=(108, 98, 82, 130))
     focus_x = int(canvas_size[0] * (0.3 + (variant_index * 0.2)))
     focus_y = int(canvas_size[1] * 0.34)
     glow = Image.new("RGBA", canvas_size, (0, 0, 0, 0))
@@ -6264,7 +6270,7 @@ def _build_bespoke_prompt_room_shell_foreground(
         f"""\
         CRITICAL — MASK PAINT TASK (not a hero illustration, not a cathedral interior shot):
         Reference #1 is a binary mask at the exact output size. Black pixels = you MUST output opaque weathered stone/mortar there, edge-to-edge within every black region.
-        White pixels = keep-clear (output solid white #FFFFFF in those pixels for this pass). Never paint fog, depth haze, vignette, sky, or distant hall recession in the shell band.
+        Neutral-dark pixels (~RGB {ROOM_SHELL_SILHOUETTE_CLEAR_RGB[0]},{ROOM_SHELL_SILHOUETTE_CLEAR_RGB[1]},{ROOM_SHELL_SILHOUETTE_CLEAR_RGB[2]}) = keep-clear: output the same flat dark neutral with no texture, fog, or bright fill — never paper-white (#FFFFFF), cream letterboxing, or luminous rims. Never paint fog, depth haze, vignette, sky, or distant hall recession in the shell band.
         FORBIDDEN LAYOUT BUGS: picture-in-picture composition; a smaller scene centered on the canvas; black letterboxing or unused black margins between the image border and the stone; any “postcard” framing.
         If reference #1 is black along x=0, x=W-1, y=0, or y=H-1, your stone must reach that same edge — do not leave a black gutter outside the masonry.
 
@@ -6283,7 +6289,7 @@ def _build_bespoke_prompt_room_shell_foreground(
         Material schema (no scene layout): {material_schema}
         Art direction (stone vocabulary only — ignore if it suggests a full interior scene): {direction.get('high_level_direction') or ''}
         Avoid: {direction.get('negative_direction') or ''}
-        Chamber (white hole) approximate size for context: {cw}×{ch} px (do not invent interior perspective in the border bands).
+        Chamber (keep-clear interior) approximate size for context: {cw}×{ch} px (do not invent interior perspective in the border bands).
         {spatial_block}
         Output one image at exactly {w}×{h} px. No text, no characters, no UI.
         """
@@ -6328,8 +6334,8 @@ def _build_bespoke_prompt(
         ),
         "room_shell_foreground": (
             "Generate ONE uncropped room-shell source image only. This is BORDER SOURCE art, not a full scene. "
-            "MASK CONTRACT: in reference #1 (silhouette), BLACK pixels are allowed masonry occupancy and WHITE pixels are forbidden keep-clear region. "
-            "Paint stone only in black regions. Do not paint architecture, fog, props, texture, or shading in white regions. Never invert this mapping. "
+            "MASK CONTRACT: in reference #1 (silhouette), BLACK pixels are allowed masonry occupancy and NEUTRAL-DARK pixels (~RGB 8,12,16) are forbidden keep-clear region (not white). "
+            "Paint stone only in black regions. Do not paint architecture, fog, props, texture, or shading in keep-clear regions — and never substitute bright white, cream, or paper-white fills there. Never invert this mapping. "
             "EDGE-FILL CONTRACT (critical): the silhouette is an occupancy mask, not a layout suggestion. Every black pixel in reference #1 must be filled with opaque masonry texture in your output — "
             "no unused black margin inside the shell band, no centered miniature portal or archway painting, no second inner rectangular frame, no picture-in-picture composition. "
             "Where black reaches the image border (x=0, x=W-1, y=0, y=H-1), the stone must meet that border as a wall/floor/ceiling face — not float inward with black padding. "
@@ -6437,7 +6443,7 @@ def _build_bespoke_prompt(
     if component_type in {"background_far_plate", "midground_side_frame", "room_shell_foreground"} and isinstance(_poly, list) and len(_poly) >= 3:
         silhouette_clause = (
             "\nRoom footprint conditioning: A binary silhouette map is included in the reference images. "
-            "For shell conditioning maps, black pixels mark allowed border masonry occupancy; white pixels mark keep-clear region. "
+            "For shell conditioning maps, black pixels mark allowed border masonry occupancy; neutral-dark pixels mark keep-clear region (same idea as layout guides — not paper-white). "
             "Do not invert this rule. "
             "The map is at exact output resolution and follows the room contour. "
             "Compose fog, depth, and architecture so the result respects that footprint, including non-rectangular or L-shaped outlines. "
@@ -6449,7 +6455,7 @@ def _build_bespoke_prompt(
             "Reference usage contract for room_shell_foreground: use the silhouette reference to lock border shape and occupied shell geometry. "
             "Use the approved room preview reference only for palette, tone, and material family. "
             "Do not copy composition objects, camera framing, or scenic focal forms from the preview. "
-            "In the silhouette map, black means shell/border occupancy and white means keep-clear region to be cut out. "
+            "In the silhouette map, black means shell/border occupancy and neutral-dark means keep-clear region to be cut out — do not render that zone as white or as a bright halo. "
             "Do not add decorative rim lines or UI-like accent strokes along the shell inner boundary; stone cut only.\n"
         )
         _geom_for_contract = room_geometry if isinstance(room_geometry, dict) else {}
