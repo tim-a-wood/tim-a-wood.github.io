@@ -6189,9 +6189,9 @@ def _build_bespoke_prompt(
             "Paint deep, heavy masonry with real texture: opaque side shells should each read roughly 16–24% of output width (full stone courses, mortar, chips, wear), "
             "the ceiling band roughly 18–28% of output height, the floor footing roughly 14–22% of output height — not a thin neon border. "
             "Design-language contract: keep one relatively uniform masonry language across top, sides, and bottom (same stone family, seam scale, and weathering cadence) with only subtle variation, not mixed motif bands. "
-            "Tone contract: shell bands must visibly separate from the dark background by value; avoid near-black shell values that blend into the void. "
+            "Tone contract: shell bands must visibly separate from the interior field by value so the border remains readable after punchout. "
             "The engine will punch the walkable polygon interior to transparent in post; the surviving rim must be substantial carved stone, not a one-pixel edge. "
-            "Explicitly avoid cyan, teal, aqua, or electric-blue strokes along the walkable cutout or outer frame; perimeter separation must read as weathered stone and shadow, not a saturated UI accent that clashes with the far background. "
+            "Do not add decorative colored rim strokes along the walkable cutout or outer frame; perimeter separation must read as stone/mortar value and texture only. "
             "You may paint atmosphere inside the guide polygon for continuity, but the visible perimeter must read as thick structure. "
             "Do not replace the footprint with a generic centered rectangle; respect non-rectangular outlines. "
             "Avoid a second duplicate floor strip or separate far-background scene; this layer is the structural shell only."
@@ -6289,6 +6289,15 @@ def _build_bespoke_prompt(
             "Do not copy composition objects, camera framing, or scenic focal forms from the preview. "
             "Do not add decorative rim lines or UI-like accent strokes along the shell inner boundary; stone cut only.\n"
         )
+    composition_contract = (
+        "Composition contract: this must read as a playable room built in depth, not scenic concept art with gameplay layered on top. "
+        "If the approved preview contains shrine, altar, brazier, dais, ritual floor, or other focal-scene imagery, treat those elements as rejected source noise unless they are explicitly required by this component role."
+    )
+    if component_type == "room_shell_foreground":
+        composition_contract = (
+            "Composition contract: this prompt defines a structural shell component only. "
+            "Do not introduce new scene composition, landmarks, or decorative set-pieces beyond what the template role and technical constraints require."
+        )
     return textwrap.dedent(
         f"""\
         Create a single 2D metroidvania environment component that is a tightly matched equivalent adaptation of the attached template.
@@ -6313,7 +6322,7 @@ def _build_bespoke_prompt(
         Schema key: {schema_key}
         Schema contract: {schema_summary}{(' | ceiling_fields: ' + ceiling_field_summary) if ceiling_field_summary else ''}
         Gameplay constraints: keep protected readability zones clear, preserve silhouette readability, stay close to the source template family, and protect top-lip / threshold / hazard readability.
-        Composition contract: this must read as a playable room built in depth, not scenic concept art with gameplay layered on top. If the approved preview contains shrine, altar, brazier, dais, ritual floor, or other focal-scene imagery, treat those elements as rejected source noise unless they are explicitly required by this component role.
+        {composition_contract}
         Component-specific rules: {component_rules.get(component_type, 'Preserve the source template closely and keep gameplay-facing surfaces readable.')}
         Output a single production-ready component image only at the exact output dimensions above. No text, no characters, no UI.
         """
