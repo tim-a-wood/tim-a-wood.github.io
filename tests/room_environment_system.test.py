@@ -1801,16 +1801,94 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         )
 
         self.assertNotIn(preview, background_refs)
-        self.assertTrue(background_refs[0].exists())
+        self.assertTrue(background_refs[-1].exists())
         self.assertEqual(len(background_refs), 2)
         self.assertEqual(background_refs[0], template)
-        self.assertNotEqual(background_refs[1], template)
-        self.assertLess(envsys._region_alpha_ratio(midground_refs[1], (0.36, 0.18, 0.64, 0.82)), 0.15)
+        self.assertNotEqual(background_refs[-1], template)
+        self.assertLess(envsys._region_alpha_ratio(midground_refs[-1], (0.36, 0.18, 0.64, 0.82)), 0.15)
         self.assertEqual(len(floor_refs), 2)
         self.assertEqual(floor_refs[0], template)
-        self.assertTrue(floor_refs[1].exists())
+        self.assertTrue(floor_refs[-1].exists())
         self.assertEqual(len(door_refs), 1)
         self.assertNotEqual(door_refs[0], template)
+
+    def test_bespoke_reference_prepends_room_silhouette_for_scenic_slots(self):
+        refs_root = self.root / "refs-sil"
+        template = self.root / "template-sil.png"
+        preview = self.root / "preview-sil.png"
+        envsys.Image.new("RGBA", (160, 120), (120, 140, 155, 255)).save(template)
+        envsys.Image.new("RGBA", (160, 120), (90, 105, 118, 255)).save(preview)
+        l_room = {
+            "id": "RX",
+            "size": {"width": 320, "height": 240},
+            "polygon": [[0, 0], [320, 0], [320, 120], [160, 120], [160, 240], [0, 240]],
+            "platforms": [{"x": 64, "y": 200, "len": 4}],
+            "doors": [{"x": 24, "y": 200, "kind": "transition"}],
+        }
+        bg = envsys._bespoke_reference_images_for_component(
+            "background_far_plate",
+            template,
+            preview,
+            [],
+            refs_root,
+            (160, 120),
+            False,
+            room=l_room,
+        )
+        mg = envsys._bespoke_reference_images_for_component(
+            "midground_side_frame",
+            template,
+            preview,
+            [],
+            refs_root,
+            (160, 120),
+            True,
+            room=l_room,
+        )
+        self.assertEqual(len(bg), 3)
+        self.assertTrue(str(bg[0]).endswith("-silhouette.png"))
+        self.assertEqual(bg[1], template)
+        self.assertEqual(len(mg), 3)
+        self.assertTrue(str(mg[0]).endswith("-silhouette.png"))
+        self.assertEqual(mg[1], template)
+        with envsys.Image.open(bg[0]) as sil:
+            self.assertEqual(sil.size, (160, 120))
+
+    def test_write_bespoke_room_silhouette_reference_requires_polygon(self):
+        out = self.root / "sil-empty.png"
+        self.assertFalse(
+            envsys._write_bespoke_room_silhouette_reference({"polygon": [], "chamber_width": 100, "chamber_height": 100}, out, (64, 64))
+        )
+
+    def test_build_bespoke_prompt_includes_footprint_clause_when_geometry_has_polygon(self):
+        l_room = {
+            "id": "RX",
+            "size": {"width": 320, "height": 240},
+            "polygon": [[0, 0], [320, 0], [320, 240], [0, 240]],
+        }
+        geom = envsys._room_geometry(l_room)
+        prompt = envsys._build_bespoke_prompt(
+            {"high_level_direction": "Ruins", "negative_direction": "none"},
+            {
+                "mood": "somber",
+                "lighting": "low",
+                "description": "test",
+                "component_schemas": {"background": envsys._default_component_schema("background", "test")},
+            },
+            {
+                "component_type": "background_far_plate",
+                "schema_key": "background",
+                "target_dimensions": {"width": 1600, "height": 1200},
+                "orientation": "full",
+                "tile_mode": "stretch",
+                "border_treatment": "full_frame",
+                "protected_zones": [],
+            },
+            {"variant_family": "background", "orientation": "full"},
+            room_geometry=geom,
+        )
+        self.assertIn("footprint schematic", prompt.lower())
+        self.assertIn("chamber bounds", prompt.lower())
 
     def test_wall_reference_guides_use_full_size_geometry_guides(self):
         refs_root = self.root / "refs"

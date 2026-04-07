@@ -3122,6 +3122,92 @@ def _fit_points(points: List[List[float]], size: Tuple[int, int], padding: int =
     return out
 
 
+def _chamber_point_to_output_pixel(
+    x: float,
+    y: float,
+    left: float,
+    top: float,
+    chamber_w: float,
+    chamber_h: float,
+    out_w: int,
+    out_h: int,
+    pad: int,
+) -> Tuple[float, float]:
+    if chamber_w <= 0 or chamber_h <= 0:
+        return float(pad), float(pad)
+    inner_w = max(1, out_w - (pad * 2))
+    inner_h = max(1, out_h - (pad * 2))
+    nx = ((float(x) - left) / chamber_w) * inner_w + pad
+    ny = ((float(y) - top) / chamber_h) * inner_h + pad
+    return nx, ny
+
+
+def _write_bespoke_room_silhouette_reference(geometry: Dict[str, Any], output_path: Path, size: Tuple[int, int]) -> bool:
+    """
+    Raster footprint map: chamber polygon + platform/door markers at exact bespoke output resolution.
+    Prepended to Gemini refs for full-frame scenic slots so generation matches non-rectangular rooms.
+    """
+    poly_src = geometry.get("polygon") or []
+    if not isinstance(poly_src, list) or len(poly_src) < 3:
+        return False
+    out_w, out_h = int(size[0]), int(size[1])
+    if out_w < 64 or out_h < 64:
+        return False
+    pad = 24
+    left = float(geometry.get("left") or 0.0)
+    top_g = float(geometry.get("top") or 0.0)
+    chamber_w = float(geometry.get("chamber_width") or 0.0)
+    chamber_h = float(geometry.get("chamber_height") or 0.0)
+    if chamber_w <= 1.0 or chamber_h <= 1.0:
+        return False
+    points: List[Tuple[int, int]] = []
+    for pt in poly_src:
+        if not isinstance(pt, (list, tuple)) or len(pt) != 2:
+            continue
+        nx, ny = _chamber_point_to_output_pixel(
+            float(pt[0]), float(pt[1]), left, top_g, chamber_w, chamber_h, out_w, out_h, pad
+        )
+        points.append((int(round(nx)), int(round(ny))))
+    if len(points) < 3:
+        return False
+    image = Image.new("RGBA", (out_w, out_h), (12, 16, 20, 255))
+    draw = ImageDraw.Draw(image)
+    fill_rgb = (32, 44, 52, 228)
+    outline_rgb = (0, 232, 200, 255)
+    line_w = max(2, out_w // 600)
+    draw.polygon(points, fill=fill_rgb, outline=outline_rgb, width=line_w)
+    tile_px = 32.0
+    for pr in geometry.get("platforms") or []:
+        if not isinstance(pr, dict):
+            continue
+        px = float(pr.get("x") or 0)
+        py = float(pr.get("y") or 0)
+        span = max(tile_px, float(pr.get("len") or 1) * tile_px)
+        x0, y0 = _chamber_point_to_output_pixel(px, py, left, top_g, chamber_w, chamber_h, out_w, out_h, pad)
+        x1, y1 = _chamber_point_to_output_pixel(px + span, py, left, top_g, chamber_w, chamber_h, out_w, out_h, pad)
+        xl, xr = sorted((int(round(x0)), int(round(x1))))
+        yt = int(round(min(y0, y1) - 4))
+        yb = int(round(max(y0, y1) + 4))
+        draw.rectangle((xl, yt, xr, yb), outline=(200, 210, 220, 220), width=1)
+    for dr in geometry.get("door_positions") or []:
+        if not isinstance(dr, dict):
+            continue
+        dx = float(dr.get("x") or 0)
+        dy = float(dr.get("y") or 0)
+        cx, cy = _chamber_point_to_output_pixel(dx, dy, left, top_g, chamber_w, chamber_h, out_w, out_h, pad)
+        r = max(4, out_w // 220)
+        draw.ellipse(
+            (int(round(cx - r * 2)), int(round(cy - r * 3)), int(round(cx + r * 2)), int(round(cy + r // 2))),
+            outline=(255, 170, 120, 255),
+            width=2,
+        )
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    flattened = Image.new("RGBA", (out_w, out_h), (0, 0, 0, 255))
+    flattened.alpha_composite(image)
+    flattened.save(output_path)
+    return True
+
+
 def _render_level3_image(path: Path, direction: Dict[str, Any], geometry: Dict[str, Any], spec: Dict[str, Any], variant_index: int) -> None:
     canvas_size = (768, 432)
     dominant = direction.get("palette", {}).get("dominant") or []
@@ -5572,7 +5658,13 @@ def _room_component_plan(room: Dict[str, Any], preview_id: str, biome_pack: Dict
     return plan
 
 
-def _build_bespoke_prompt(direction: Dict[str, Any], spec: Dict[str, Any], plan_entry: Dict[str, Any], template: Dict[str, Any]) -> str:
+def _build_bespoke_prompt(
+    direction: Dict[str, Any],
+    spec: Dict[str, Any],
+    plan_entry: Dict[str, Any],
+    template: Dict[str, Any],
+    room_geometry: Optional[Dict[str, Any]] = None,
+) -> str:
     dims = plan_entry.get("target_dimensions") or {}
     component_type = str(plan_entry.get("component_type") or "")
     schema_key = str(plan_entry.get("schema_key") or V2_SLOT_SPEC_BY_TYPE.get(component_type, {}).get("schema_key") or "")
@@ -5674,12 +5766,23 @@ def _build_bespoke_prompt(direction: Dict[str, Any], spec: Dict[str, Any], plan_
         ceiling_field_summary = "; ".join(
             f"{field}={component_schema.get(field) or ''}" for field in spec_fields
         )
+    silhouette_clause = ""
+    _geom = room_geometry if isinstance(room_geometry, dict) else {}
+    _poly = _geom.get("polygon") or []
+    if component_type in {"background_far_plate", "midground_side_frame"} and isinstance(_poly, list) and len(_poly) >= 3:
+        silhouette_clause = (
+            "\nRoom footprint conditioning: A footprint schematic is included in the reference images (dark field, cyan polygon outline, platform strips, door markers). "
+            "It maps this room at the exact output resolution: cyan outline = walkable chamber boundary in side view; fill = playable volume. "
+            "Compose fog, depth, and architecture so the result respects that footprint, including non-rectangular or L-shaped outlines. "
+            "Do not substitute a generic centered rectangular nave when the outline is irregular. "
+            f"Chamber bounds (room space): width {int(round(float(_geom.get('chamber_width') or 0)))} px, height {int(round(float(_geom.get('chamber_height') or 0)))} px.\n"
+        )
     return textwrap.dedent(
         f"""\
         Create a single 2D metroidvania environment component that is a tightly matched equivalent adaptation of the attached template.
         Preserve the same biome family, silhouette role, and composition discipline.
         Do not redesign the piece. Do not invent a new scene. Only adapt it to the requested fit, dimensions, orientation, and subtle local wear.
-
+        {silhouette_clause}
         Component type: {component_type}
         Variant family: {template.get('variant_family')}
         Exact output width: {int(dims.get('width') or 0)} px
@@ -6368,9 +6471,11 @@ def _bespoke_reference_images_for_component(
     expected_size: Tuple[int, int],
     transparent: bool,
     aggressive: bool = False,
+    room: Optional[Dict[str, Any]] = None,
 ) -> List[Path]:
     del approved_preview_path
     guide_path = reference_root / f"{component_type}{'-retry' if aggressive else ''}-guide.png"
+    silhouette_path = reference_root / f"{component_type}{'-retry' if aggressive else ''}-silhouette.png"
     if component_type in {
         "wall_module_left",
         "wall_module_right",
@@ -6383,6 +6488,12 @@ def _bespoke_reference_images_for_component(
         "background_far_plate",
     }:
         _structural_slot_reference_guide(component_type, guide_path, expected_size, transparent, aggressive=aggressive)
+        if (
+            component_type == "background_far_plate"
+            and room is not None
+            and _write_bespoke_room_silhouette_reference(_room_geometry(room), silhouette_path, expected_size)
+        ):
+            return [silhouette_path, template_path, guide_path]
         return [template_path, guide_path]
     if component_type in {
         "hero_platform_top",
@@ -6396,6 +6507,8 @@ def _bespoke_reference_images_for_component(
     if component_type in {"midground_side_frame"}:
         guide_builder = _midground_reference_guide
         guide_builder(template_path, guide_path, expected_size, transparent, aggressive=aggressive)
+        if room is not None and _write_bespoke_room_silhouette_reference(_room_geometry(room), silhouette_path, expected_size):
+            return [silhouette_path, template_path, guide_path]
         return [template_path, guide_path]
     refs: List[Path] = [template_path]
     refs.extend(path for path in frozen_refs if path != template_path)
@@ -6630,6 +6743,7 @@ def _retry_reference_images_for_component(
     reference_root: Path,
     expected_size: Tuple[int, int],
     transparent: bool,
+    room: Optional[Dict[str, Any]] = None,
 ) -> List[Path]:
     return _bespoke_reference_images_for_component(
         component_type,
@@ -6640,6 +6754,7 @@ def _retry_reference_images_for_component(
         expected_size,
         transparent,
         aggressive=True,
+        room=room,
     )
 
 
@@ -6822,11 +6937,9 @@ def _validation_reference_for_component(
     template_path: Optional[Path],
     refs_for_job: Optional[List[Path]] = None,
 ) -> Optional[Path]:
-    if (
-        component_type in {"background_far_plate", "midground_side_frame"}
-        and refs_for_job
-        and refs_for_job[0].exists()
-    ):
+    if component_type in {"background_far_plate", "midground_side_frame"} and template_path and template_path.exists():
+        return template_path
+    if refs_for_job and refs_for_job[0].exists():
         return refs_for_job[0]
     return template_path
 
@@ -7745,7 +7858,7 @@ def generate_room_environment_asset_pack(project_id: str, room_id: str, payload:
             continue
         output_name = f"{entry['slot_id']}.png"
         output_path = asset_root / output_name
-        base_prompt = _build_bespoke_prompt(direction, spec, entry, template)
+        base_prompt = _build_bespoke_prompt(direction, spec, entry, template, room_geometry=_room_geometry(room))
         expected_size = (int(entry["target_dimensions"]["width"]), int(entry["target_dimensions"]["height"]))
         transparent = str(entry.get("transparency_mode") or template.get("transparency_mode") or "opaque") == "alpha"
         component_type = str(entry.get("component_type") or "")
@@ -7758,7 +7871,7 @@ def generate_room_environment_asset_pack(project_id: str, room_id: str, payload:
         attempt_records: List[Dict[str, Any]] = []
         direct_validation_reference = template_path
         if adaptation_mode in {"direct", "stretch"} and component_type in {"background_far_plate", "midground_side_frame"}:
-            direct_refs = _bespoke_reference_images_for_component(
+            _bespoke_reference_images_for_component(
                 component_type,
                 template_path,
                 preview_path,
@@ -7766,9 +7879,8 @@ def generate_room_environment_asset_pack(project_id: str, room_id: str, payload:
                 reference_root,
                 expected_size,
                 transparent,
+                room=room,
             )
-            if direct_refs and direct_refs[0].exists():
-                direct_validation_reference = direct_refs[0]
         if adaptation_mode in {"direct", "stretch"}:
             generated = _render_bespoke_component_from_template(
                 template_path,
@@ -7786,6 +7898,7 @@ def generate_room_environment_asset_pack(project_id: str, room_id: str, payload:
                 reference_root,
                 expected_size,
                 transparent,
+                room=room,
             )
             iteration_source_path: Optional[Path] = None
             prompt = base_prompt
@@ -7845,6 +7958,7 @@ def generate_room_environment_asset_pack(project_id: str, room_id: str, payload:
                         reference_root,
                         expected_size,
                         transparent,
+                        room=room,
                     )
                     if iteration_source_path and iteration_source_path.exists():
                         refs_for_job = _prefix_iteration_reference_refs(refs_for_job, iteration_source_path)
@@ -7887,6 +8001,7 @@ def generate_room_environment_asset_pack(project_id: str, room_id: str, payload:
                     reference_root,
                     expected_size,
                     transparent,
+                    room=room,
                 )
                 if iteration_source_path and iteration_source_path.exists():
                     refs_for_job = _prefix_iteration_reference_refs(refs_for_job, iteration_source_path)
