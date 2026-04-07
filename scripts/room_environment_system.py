@@ -2421,15 +2421,30 @@ COMPONENT_SCHEMA_DEFAULTS: Dict[str, Dict[str, Any]] = {
     },
     "ceiling": {
         "material_family": "weathered structural stone",
-        "silhouette_rules": ["clear ceiling cap silhouette", "top shell closure reads above the route", "avoid decorative hanging clutter"],
+        "silhouette_rules": [
+            "one continuous opaque ceiling cap across the full image width",
+            "reads as a single horizontal slab or lintel course, not multiple pasted panels",
+            "top shell closure reads above the route",
+            "avoid decorative hanging clutter",
+        ],
         "detail_density": "low_to_medium",
         "value_contrast": "darker than traversal tops but lighter than empty void",
         "damage_profile": "restrained cracks and chipped spans",
         "readability_constraints": ["must help close the room shell", "must not hang into the main traversal lane"],
-        "negative_constraints": ["no hanging focal prop", "no chandelier", "no dramatic center drop"],
-        "variation_rules": ["vary arch breakup subtly", "keep span language consistent across the biome"],
+        "negative_constraints": [
+            "no hanging focal prop",
+            "no chandelier",
+            "no dramatic center drop",
+            "no row of separate arched windows, grilles, or arcade holes across the band",
+            "no collage of side-by-side framed openings or distinct vertical bays in the cap",
+            "no scenic room slice or distant hall visible through the band",
+        ],
+        "variation_rules": [
+            "vary only mortar, chips, and crack placement within one continuous cap",
+            "keep the same single-span slab read across biome variants",
+        ],
         "ceiling_band_height": "moderate shell cap height",
-        "ceiling_span_profile": "broad arch or lintel span",
+        "ceiling_span_profile": "single flat lintel, heavy beam course, or shallow barrel vault — not a multi-arch arcade",
         "ceiling_edge_weight": "heavy outer edge, quieter center",
         "ceiling_opening_clearance": "preserve headroom over the main route",
         "ceiling_detail_density": "restrained surface detail",
@@ -4560,7 +4575,9 @@ def _build_biome_template_prompt(component_type: str, direction: Dict[str, Any],
             "Single continuous ceiling-band source for later room-shell derivation. "
             "The provided reference image is a generic component template: preserve its overall silhouette, layout, and horizontal band proportion, and repaint it in this biome's material family. "
             "Generate one heavy ruined-gothic ceiling strip in strict side view, with a readable masonry band and cohesive lower edge. "
-            "Read as one opaque horizontal slab or lintel course (continuous stone), not a collage of separate panels: avoid a row of distinct arched window holes, grilles, or framed openings that look pasted side-by-side. "
+            "The output must read as one opaque horizontal slab or lintel (one structural mass), not a composite of several images: "
+            "no row of separate arched windows, tracery panels, or side-by-side 'little portals'; no arcade or cloister rhythm across the width. "
+            "If the template shows multiple openings, merge them into one continuous stone cap with shallow relief only. "
             "Do not turn it into a placeholder header bar, do not hang detached floating blocks beneath it, and do not depict an opening or portal frame. "
             "Do not invent arches, ribs, chandeliers, dangling ornaments, corbels, or a cropped room scene under the band. "
             "Fill the width edge-to-edge with one continuous ceiling component: no curved side cut-ins, no dark side end caps, and no fog or atmospheric haze below the band."
@@ -5631,6 +5648,14 @@ def _build_bespoke_prompt(direction: Dict[str, Any], spec: Dict[str, Any], plan_
         ),
         "pit_rim": "Preserve a crisp hazard rim with strong non-walkable read. No scenic bridge treatment and no false floor continuity.",
         "pit_interior": "Preserve a dark, clearly non-walkable pit interior. The center should read as a drop or void, not a floor surface.",
+        "ceiling_band": (
+            "Build only the top structural ceiling cap for this room: one horizontal opaque stone band that spans the full output width edge to edge. "
+            "It must read as a single slab, lintel course, or shallow continuous vault — not a collage of separate pieces. "
+            "Do not draw a row of distinct arched windows, traceried openings, grilles, or side-by-side framed holes; avoid arcade rhythm and repeating portal silhouettes across the width. "
+            "Do not show sky, fog, or a distant hall through the band; no transparency and no cut-out voids through the cap. "
+            "Keep detail in shallow masonry relief and mortar only; the lower edge of the band should be one cohesive horizontal line. "
+            "Match the template’s stone family but simplify toward one unified mass if the reference shows busy multi-opening gothic tracery."
+        ),
     }
     schema_summary = "; ".join([
         f"design_intent={component_schema.get('design_intent') or ''}",
@@ -5643,6 +5668,12 @@ def _build_bespoke_prompt(direction: Dict[str, Any], spec: Dict[str, Any], plan_
         f"negative_constraints={', '.join(_coerce_string_list(component_schema.get('negative_constraints')))}",
         f"variation_rules={', '.join(_coerce_string_list(component_schema.get('variation_rules')))}",
     ])
+    ceiling_field_summary = ""
+    if schema_key == "ceiling" and isinstance(component_schema, dict):
+        spec_fields = COMPONENT_SCHEMA_DEFS.get("ceiling", {}).get("specific_fields") or ()
+        ceiling_field_summary = "; ".join(
+            f"{field}={component_schema.get(field) or ''}" for field in spec_fields
+        )
     return textwrap.dedent(
         f"""\
         Create a single 2D metroidvania environment component that is a tightly matched equivalent adaptation of the attached template.
@@ -5665,7 +5696,7 @@ def _build_bespoke_prompt(direction: Dict[str, Any], spec: Dict[str, Any], plan_
         Tile mode: {plan_entry.get('tile_mode') or 'stretch'}
         Border treatment: {plan_entry.get('border_treatment') or 'none'}
         Schema key: {schema_key}
-        Schema contract: {schema_summary}
+        Schema contract: {schema_summary}{(' | ceiling_fields: ' + ceiling_field_summary) if ceiling_field_summary else ''}
         Gameplay constraints: keep protected readability zones clear, preserve silhouette readability, stay close to the source template family, and protect top-lip / threshold / hazard readability.
         Composition contract: this must read as a playable room built in depth, not scenic concept art with gameplay layered on top. If the approved preview contains shrine, altar, brazier, dais, ritual floor, or other focal-scene imagery, treat those elements as rejected source noise unless they are explicitly required by this component role.
         Component-specific rules: {component_rules.get(component_type, 'Preserve the source template closely and keep gameplay-facing surfaces readable.')}
@@ -6516,7 +6547,17 @@ def _retry_prompt_for_validation_errors(component_type: str, prompt: str, errors
     if component_type == "wall_piece" and attempt_index < 2:
         return f"{prompt}\nRetry instruction: output one flat enclosing wall source only. Remove any doorway, window, arch cutout, niche, post, pillar, inner recess, or framed opening read. Keep the wall as one continuous opaque stone mass with restrained block rhythm."
     if component_type == "ceiling_piece" and attempt_index < 2:
-        return f"{prompt}\nRetry instruction: output one continuous ceiling band only. Remove detached or floating blocks below the band, avoid placeholder header-bar treatment, and keep the lower edge of the ceiling cohesive and masonry-read by eye."
+        return (
+            f"{prompt}\nRetry instruction: output one continuous opaque ceiling slab only across the full width. "
+            "Remove any row of separate arched windows, grilles, or side-by-side framed openings; merge into one lintel or vault mass with shallow block seams only. "
+            "Remove detached or floating blocks below the band, avoid placeholder header-bar treatment, and keep the lower edge one straight cohesive masonry line."
+        )
+    if component_type == "ceiling_band" and attempt_index < 2:
+        return (
+            f"{prompt}\nRetry instruction: this is the room ceiling cap only: one full-width opaque slab or lintel course, not a collage. "
+            "Remove any row of separate arched windows, traceried openings, or side-by-side bays; merge into one continuous stone mass. "
+            "No sky, void, or distant hall through the band; keep the lower edge one straight masonry line."
+        )
     if component_type == "primary_floor_piece" and attempt_index < 2:
         return f"{prompt}\nRetry instruction: output a flat front-facing floor source. Remove perspective top-plane cues, paving-stone recession, slab-top reads, and thick stage-lip perspective. Keep the face/front separation simple and side-view only."
     if component_type == "border_piece" and attempt_index < 2:

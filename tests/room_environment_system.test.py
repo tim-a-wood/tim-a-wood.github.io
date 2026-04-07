@@ -1639,6 +1639,33 @@ class RoomEnvironmentSystemTests(unittest.TestCase):
         self.assertIn("transparent pixels outside the frame", prompt)
         self.assertIn("through the doorway opening", prompt)
 
+    def test_bespoke_prompt_ceiling_band_rejects_composite_arcade_read(self):
+        prompt = envsys._build_bespoke_prompt(
+            {"high_level_direction": "Ruined gothic vault", "negative_direction": "busy scenic chambers"},
+            {
+                "mood": "somber",
+                "lighting": "low-key",
+                "description": "A narrow stone passage under a heavy cap.",
+                "component_schemas": {"ceiling": envsys._default_component_schema("ceiling", "A narrow stone passage under a heavy cap.")},
+            },
+            {
+                "component_type": "ceiling_band",
+                "schema_key": "ceiling",
+                "target_dimensions": {"width": 1600, "height": 224},
+                "orientation": "horizontal",
+                "tile_mode": "stretch",
+                "border_treatment": "full_frame",
+                "protected_zones": [],
+            },
+            {"variant_family": "ceiling", "orientation": "horizontal"},
+        )
+        self.assertIn("one horizontal opaque stone band", prompt)
+        self.assertIn("not a collage of separate pieces", prompt)
+        self.assertIn("no row of separate arched windows", prompt)
+        self.assertIn("ceiling_fields:", prompt)
+        self.assertIn("ceiling_span_profile=", prompt)
+        self.assertIn("multi-arch arcade", prompt.lower())
+
     def test_biome_template_prompt_strengthens_background_and_door_contracts(self):
         direction = {
             "high_level_direction": "Broken gothic halls, damp stone, restrained color, readable traversal silhouettes, and sacred decay.",
