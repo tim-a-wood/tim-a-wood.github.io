@@ -972,12 +972,11 @@ function simulateSequenceAttempt(order) {
     if (!fs.existsSync(htmlPath)) return;
     const html = fs.readFileSync(htmlPath, 'utf8');
     assert.ok(
-        html.includes('primaryFloorLocalLeft = Math.max(0, chamberLeft - surfaceBleed)')
-            && html.includes('primaryFloorLocalRight = Math.min(roomBounds.width, chamberRight + surfaceBleed)')
-            && html.includes('primaryFloorY = layoutFloorTileCenterY')
+        html.includes('function getRoomPolygonPrimaryFloorSpans')
+            && html.includes('const primaryFloorY = span.tileCenterY')
             && html.includes('function getLayoutFloorTileCenterY')
             && /addRoomFloorCapDecor\([\s\S]*primaryFloorX[\s\S]*primaryFloorY[\s\S]*primaryFloorWidth/m.test(html),
-        'primary floor cap should span chamber plus surface bleed and use layout footprint floor row (polygon bottom)'
+        'primary floor cap should follow polygon bottom spans (per-column ground) with bleed, or bbox fallback'
     );
 })();
 
@@ -988,10 +987,10 @@ function simulateSequenceAttempt(order) {
     if (!fs.existsSync(htmlPath)) return;
     const html = fs.readFileSync(htmlPath, 'utf8');
     assert.ok(
-        html.includes('collisionLocalLeft = Math.max(0, chamberLeft - surfaceBleed)')
-            && html.includes('const collisionLeft = roomBounds.start + collisionLocalLeft')
-            && html.includes('this.createRoomSurfaceTile(px, floorTileCenterY, roomId, platformTextureKey, \'floor\')'),
-        'primary floor collision row should match extended floor cap (chamber + surface bleed) and primary floor tile center Y'
+        html.includes('collisionSpans')
+            && html.includes('getRoomPolygonPrimaryFloorSpans(roomId)')
+            && html.includes("this.createRoomSurfaceTile(px, span.tileCenterY, roomId, platformTextureKey, 'floor')"),
+        'primary floor collision should follow polygon bottom spans with bleed (same geometry as floor cap)'
     );
     assert.ok(
         /isPrimaryFloor\s*=\s*[\s\S]*primaryFloorPlatform[\s\S]*primaryFloorPlatform\.x[\s\S]*Math\.max\(1, Number\(primaryFloorPlatform\.len \|\| 1\)\) === len/m.test(html)
@@ -1059,7 +1058,7 @@ function simulateSequenceAttempt(order) {
             && html.includes('SHELL_UNIFIED_SIDE_COLLIDER_SIDE_PX')
             && html.includes('setDisplaySize(lipPx, bodyH)')
             && html.includes('addRoomBespokeUnifiedShellForegroundDecor(roomId, shellSupport)')
-            && html.includes('this.addRoomBespokeShellInteriorSideColliders(roomId, shellSupport, tile, layoutFloorTileCenterY)'),
+            && html.includes('this.addRoomBespokeShellInteriorSideColliders(roomId, shellSupport, tile, shellFloorTileCenterY)'),
         'unified bespoke shell should add interior side physics strips sized from shell display width + atlas border ratio'
     );
 })();

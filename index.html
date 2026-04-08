@@ -893,6 +893,65 @@ function getRoomPolygonBounds(roomId) {
 }
 
 /**
+ * Primary floor spans along the polygon bottom: for each tile column, find the lowest interior
+ * point (max Y) and snap to the 32px floor grid. Merging runs yields disjoint horizontal segments
+ * at possibly different tile-center Y values so the floor cap / lip follows stepped or non-rect footprints
+ * instead of one full-width strip from the axis-aligned bbox.
+ */
+function getRoomPolygonPrimaryFloorSpans(roomId) {
+    const room = getLayoutRoom(roomId);
+    const slot = ROOM_IDS[roomId];
+    if (!room || !slot || !Array.isArray(room.polygon) || room.polygon.length < 3) {
+        return null;
+    }
+    const poly = room.polygon;
+    const pb = getRoomPolygonBounds(roomId);
+    const roomWidth = slot.width;
+    const yTop = Math.max(0, Number(pb.top) - 8);
+    const yBot = Math.min(CONFIG.WORLD_HEIGHT - 1, Number(pb.bottom) + 64);
+    const xMin = Math.max(16, Math.floor(Number(pb.left) / 32) * 32 + 16);
+    const xMax = Math.min(roomWidth - 16, Math.ceil(Number(pb.right) / 32) * 32 - 16);
+    if (xMin > xMax) {
+        return null;
+    }
+    const samples = [];
+    for (let cx = xMin; cx <= xMax; cx += 32) {
+        let maxInside = null;
+        for (let y = yBot; y >= yTop; y -= 8) {
+            if (pointInPolygon(cx, y, poly)) {
+                maxInside = y;
+                break;
+            }
+        }
+        if (maxInside == null) {
+            continue;
+        }
+        const rawCenter = maxInside - 16;
+        const snapped = Math.round((rawCenter - 16) / 32) * 32 + 16;
+        samples.push({ cx, ty: snapped });
+    }
+    if (!samples.length) {
+        return null;
+    }
+    const spans = [];
+    let segStart = samples[0].cx;
+    let segEnd = samples[0].cx;
+    let segTy = samples[0].ty;
+    for (let i = 1; i < samples.length; i += 1) {
+        if (samples[i].ty !== segTy) {
+            spans.push({ localLeft: segStart - 16, localRight: segEnd + 16, tileCenterY: segTy });
+            segStart = samples[i].cx;
+            segEnd = samples[i].cx;
+            segTy = samples[i].ty;
+        } else {
+            segEnd = samples[i].cx;
+        }
+    }
+    spans.push({ localLeft: segStart - 16, localRight: segEnd + 16, tileCenterY: segTy });
+    return spans;
+}
+
+/**
  * World-space rectangle for camera clamping: footprint polygon plus bleed when present
  * (wider horizontally for wall strips, one tile vertically), otherwise the full room slot.
  */
@@ -3524,6 +3583,7 @@ class AshenHollow extends Phaser.Scene {
             const primaryFloorPlatform = getPrimaryFloorPlatform(roomId);
             const layoutFloorTileCenterY = getLayoutFloorTileCenterY(roomId, floorWorldY);
             const walkPlaneTopY = getRoomWalkPlaneTopY(roomId, floorWorldY);
+            let shellFloorTileCenterY = layoutFloorTileCenterY;
             if (!roomBounds || roomWidth <= 0) return;
             const floorTextureKey = resolveRoomSurfaceTexture(this, roomId, 'floor');
             if (!primaryFloorPlatform) {
@@ -3541,50 +3601,62 @@ class AshenHollow extends Phaser.Scene {
                 const chamberLeft = Number(polygonBounds.left || 0);
                 const chamberRight = Number(polygonBounds.right || roomBounds.width);
                 const surfaceBleed = Number(CONFIG.CAMERA_CHAMBER_SIDE_BLEED_PX) || Number(CONFIG.CAMERA_CHAMBER_SURFACE_BLEED_PX) || 32;
-                /* Extend past polygon left/right (same as camera horizontal bleed) so floor meets bespoke wall bases and fills L-corners. */
-                const primaryFloorLocalLeft = Math.max(0, chamberLeft - surfaceBleed);
-                const primaryFloorLocalRight = Math.min(roomBounds.width, chamberRight + surfaceBleed);
-                const primaryFloorWidth = Math.max(1, primaryFloorLocalRight - primaryFloorLocalLeft);
-                const primaryFloorX = roomBounds.start + primaryFloorLocalLeft;
-                /* Floor tile row + cap follow layout footprint bottom (getLayoutFloorTileCenterY), not only authored platform.y. */
-                const primaryFloorY = layoutFloorTileCenterY;
-                const lowerFloorTop = Math.min(walkPlaneTopY - 56, primaryFloorY + 20);
-                const lowerFloorHeight = Math.max(48, visualBottom - lowerFloorTop - 12);
-                const supportWidth = primaryFloorWidth;
+                const spanFromPoly = getRoomPolygonPrimaryFloorSpans(roomId);
+                const floorSpans = spanFromPoly && spanFromPoly.length
+                    ? spanFromPoly.map((s) => ({
+                        localLeft: Math.max(0, s.localLeft - surfaceBleed),
+                        localRight: Math.min(roomWidth, s.localRight + surfaceBleed),
+                        tileCenterY: s.tileCenterY
+                    }))
+                    : [{
+                        localLeft: Math.max(0, chamberLeft - surfaceBleed),
+                        localRight: Math.min(roomWidth, chamberRight + surfaceBleed),
+                        tileCenterY: layoutFloorTileCenterY
+                    }];
+                shellFloorTileCenterY = Math.max(...floorSpans.map((s) => Number(s.tileCenterY) || 0));
                 const bespokePrimaryCap = getRoomEnvironmentBespokePrimaryFloorAsset(roomId);
                 const mergeBespokeFloor = Boolean(
                     !roomHasBespokeUnifiedShellForeground(roomId)
                     && bespokePrimaryCap?.url
                     && this.textures.exists(`env-bespoke-${bespokePrimaryCap.slot_id}`)
                 );
-                if (!mergeBespokeFloor) {
-                    if (!this.addRoomBespokePrimaryFloorFaceDecor(roomId, {
-                        x: primaryFloorLocalLeft,
-                        y: lowerFloorTop,
-                        width: supportWidth,
-                        height: lowerFloorHeight
-                    })) {
-                        this.addRoomFloorBandDecor(roomId, primaryFloorX, lowerFloorTop, supportWidth, lowerFloorHeight);
-                    } else {
-                        this.addRoomFloorBandDecor(roomId, primaryFloorX, lowerFloorTop, supportWidth, lowerFloorHeight, RUNTIME_REVIEW_CAPTURE_MODE ? 0.72 : 0.6);
+                floorSpans.forEach((span) => {
+                    const primaryFloorWidth = Math.max(1, span.localRight - span.localLeft);
+                    const primaryFloorX = roomBounds.start + span.localLeft;
+                    const primaryFloorY = span.tileCenterY;
+                    const walkPlaneTopSpan = primaryFloorY - 16;
+                    const lowerFloorTop = Math.min(walkPlaneTopSpan - 56, primaryFloorY + 20);
+                    const lowerFloorHeight = Math.max(48, visualBottom - lowerFloorTop - 12);
+                    const supportWidth = primaryFloorWidth;
+                    if (!mergeBespokeFloor) {
+                        if (!this.addRoomBespokePrimaryFloorFaceDecor(roomId, {
+                            x: span.localLeft,
+                            y: lowerFloorTop,
+                            width: supportWidth,
+                            height: lowerFloorHeight
+                        })) {
+                            this.addRoomFloorBandDecor(roomId, primaryFloorX, lowerFloorTop, supportWidth, lowerFloorHeight);
+                        } else {
+                            this.addRoomFloorBandDecor(roomId, primaryFloorX, lowerFloorTop, supportWidth, lowerFloorHeight, RUNTIME_REVIEW_CAPTURE_MODE ? 0.72 : 0.6);
+                        }
                     }
-                }
-                const faceMergeSpan = mergeBespokeFloor ? Math.max(0, primaryFloorY - lowerFloorTop) : 0;
-                this.addRoomFloorCapDecor(
-                    roomId,
-                    primaryFloorX,
-                    primaryFloorY,
-                    primaryFloorWidth,
-                    24,
-                    faceMergeSpan
-                );
+                    const faceMergeSpan = mergeBespokeFloor ? Math.max(0, primaryFloorY - lowerFloorTop) : 0;
+                    this.addRoomFloorCapDecor(
+                        roomId,
+                        primaryFloorX,
+                        primaryFloorY,
+                        primaryFloorWidth,
+                        24,
+                        faceMergeSpan
+                    );
+                });
             }
             // Do not add a second "underfloor" band + cap when !primaryFloorPlatform: the world floor row + cap
             // already fills the bottom; the old else branch stacked a second cap ~50px higher and caused a dark seam.
             // Always run bespoke wall shell when manifest has wall slots; polygon rects are a separate thin grid.
             // (Old gate skipped bespoke whenever rects.length > 0 — hid wall_module art on typical R1 polygons.)
             const upperMassY = Number(polygonBounds.top || roomTop);
-            const floorPlaneTop = primaryFloorPlatform ? layoutFloorTileCenterY : Number(polygonBounds.bottom || floorWorldY);
+            const floorPlaneTop = primaryFloorPlatform ? shellFloorTileCenterY : Number(polygonBounds.bottom || floorWorldY);
             const upperMassHeight = Math.max(128, floorPlaneTop - upperMassY);
             const leftMassWidth = Math.max(0, Number(polygonBounds.left || 0));
             const rightMassWidth = Math.max(0, roomBounds.width - Number(polygonBounds.right || roomBounds.width));
@@ -3593,12 +3665,12 @@ class AshenHollow extends Phaser.Scene {
                 roomTop,
                 floorWorldY,
                 walkPlaneTopY,
-                floorTileCenterY: primaryFloorPlatform ? layoutFloorTileCenterY : null,
+                floorTileCenterY: primaryFloorPlatform ? shellFloorTileCenterY : null,
                 chamberBounds: polygonBounds
             };
             if (roomHasBespokeUnifiedShellForeground(roomId) && this.addRoomBespokeUnifiedShellForegroundDecor(roomId, shellSupport)) {
                 /* Unified shell carries wall + ceiling + primary floor read; skip modular wall modules and trims. */
-                this.addRoomBespokeShellInteriorSideColliders(roomId, shellSupport, tile, layoutFloorTileCenterY);
+                this.addRoomBespokeShellInteriorSideColliders(roomId, shellSupport, tile, shellFloorTileCenterY);
             } else if (!this.addRoomBespokeWallShellDecor(roomId, shellSupport)) {
                 if (!roomHasPolygonWallTileRects(roomId)) {
                     if (leftMassWidth >= 24) {
@@ -3655,14 +3727,30 @@ class AshenHollow extends Phaser.Scene {
                     : resolveRoomPlatformTexture(this, roomId, tint || 0);
                 if (isPrimaryFloor) {
                     const surfaceBleed = Number(CONFIG.CAMERA_CHAMBER_SIDE_BLEED_PX) || Number(CONFIG.CAMERA_CHAMBER_SURFACE_BLEED_PX) || 32;
-                    const collisionLocalLeft = Math.max(0, chamberLeft - surfaceBleed);
-                    const collisionLocalRight = Math.min(roomBounds.width, chamberRight + surfaceBleed);
-                    const collisionLeft = roomBounds.start + collisionLocalLeft;
-                    const collisionWidth = Math.max(1, collisionLocalRight - collisionLocalLeft);
-                    for (let i = 0; i < Math.ceil(collisionWidth / tile); i++) {
-                        const px = collisionLeft + (i * tile) + 16;
-                        this.createRoomSurfaceTile(px, floorTileCenterY, roomId, platformTextureKey, 'floor');
-                    }
+                    const spanFromPoly = getRoomPolygonPrimaryFloorSpans(roomId);
+                    const collisionSpans = spanFromPoly && spanFromPoly.length
+                        ? spanFromPoly.map((s) => ({
+                            localLeft: Math.max(0, s.localLeft - surfaceBleed),
+                            localRight: Math.min(roomBounds.width, s.localRight + surfaceBleed),
+                            tileCenterY: s.tileCenterY
+                        }))
+                        : [{
+                            localLeft: Math.max(0, chamberLeft - surfaceBleed),
+                            localRight: Math.min(roomBounds.width, chamberRight + surfaceBleed),
+                            tileCenterY: floorTileCenterY
+                        }];
+                    collisionSpans.forEach((span) => {
+                        const collisionWidth = Math.max(1, span.localRight - span.localLeft);
+                        const collisionLeft = roomBounds.start + span.localLeft;
+                        const n = Math.ceil(collisionWidth / tile);
+                        for (let i = 0; i < n; i += 1) {
+                            const px = collisionLeft + (i * tile) + 16;
+                            if (px > roomBounds.start + span.localRight - 16) {
+                                break;
+                            }
+                            this.createRoomSurfaceTile(px, span.tileCenterY, roomId, platformTextureKey, 'floor');
+                        }
+                    });
                 } else {
                     for (let i = 0; i < len; i++) {
                         const px = x + (i * tile) + 16;
