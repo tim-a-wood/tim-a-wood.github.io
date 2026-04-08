@@ -74,6 +74,11 @@ This log records decisions for the room environment and bespoke asset quality pa
 - Why: One recurring artifact in the latest pass was luminous vertical bands near the center lane that read like pasted doorway cutouts instead of side-only framing.
 - Consequence: Midground validation and postprocessing now detect and suppress hot inner-edge bands so side framing stays dark and subordinate.
 
+### 18. Structural bespoke slots must receive the same room-footprint silhouette reference as scenic slots
+- Status: Accepted
+- Why: Only `background_far_plate` was prepending `_write_bespoke_room_silhouette_reference`; wall modules, trims, `ceiling_band`, `main_floor_*`, and `pit_rim` used generic rectangular slot guides only, so the model had no locked chamber outline for irregular or L-shaped rooms.
+- Consequence: When `room` is present and the polygon is valid, all structural bespoke component types in that reference path return `[silhouette, template, guide]` (silhouette at the slot output size). `_build_bespoke_prompt` adds the existing “Room footprint conditioning” clause for those component types when `room_geometry` includes a polygon (same text as scenic slots).
+
 ## Rejected Paths To Avoid Repeating
 
 - Repeatedly prompt-tuning the same scenic background concept without changing the source-art contract.

@@ -1223,30 +1223,16 @@ def _build_art_direction_concept_prompts(direction: Dict[str, Any], count: int =
 
 
 def _call_gemini_image(prompt: str) -> Optional[bytes]:
-    api_key = _gemini_api_key()
-    if not api_key:
+    if not _gemini_api_key():
         return None
     model = os.environ.get("GEMINI_IMAGE_MODEL", "gemini-2.5-flash-image").strip() or "gemini-2.5-flash-image"
-    body = {
-        "contents": [{"role": "user", "parts": [{"text": prompt}]}],
-        "generationConfig": {
-            "imageConfig": {"aspectRatio": "16:9"},
-        },
-    }
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
-    req = urllib.request.Request(
-        url,
-        data=json.dumps(body).encode("utf-8"),
-        headers={
-            "Content-Type": "application/json",
-            "x-goog-api-key": api_key,
-        },
-        method="POST",
+    raw, err = _gemini_generate_content_rest(
+        model,
+        [{"text": prompt}],
+        response_modalities=["IMAGE", "TEXT"],
+        generation_config_merge={"imageConfig": {"aspectRatio": "16:9"}},
     )
-    try:
-        with urllib.request.urlopen(req, timeout=180) as resp:
-            raw = json.loads(resp.read().decode("utf-8"))
-    except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError, json.JSONDecodeError):
+    if err or not raw:
         return None
     return _extract_gemini_image_bytes(raw)
 
@@ -1986,29 +1972,17 @@ def _refresh_asset_pack_staleness(room: Dict[str, Any], env: Dict[str, Any], dir
 
 
 def _gemini_json(system_prompt: str, user_prompt: str) -> Optional[Dict[str, Any]]:
-    api_key = _gemini_api_key()
-    if not api_key:
+    if not _gemini_api_key():
         return None
     model = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash").strip() or "gemini-2.5-flash"
-    body = {
-        "systemInstruction": {"parts": [{"text": system_prompt}]},
-        "contents": [{"role": "user", "parts": [{"text": user_prompt}]}],
-        "generationConfig": {"responseMimeType": "application/json", "temperature": 0.35},
-    }
-    url = (
-        "https://generativelanguage.googleapis.com/v1beta/models/"
-        f"{model}:generateContent?key={api_key}"
+    raw, err = _gemini_generate_content_rest(
+        model,
+        [{"text": user_prompt}],
+        response_modalities=None,
+        system_instruction=system_prompt,
+        generation_config_merge={"responseMimeType": "application/json", "temperature": 0.35},
     )
-    req = urllib.request.Request(
-        url,
-        data=json.dumps(body).encode("utf-8"),
-        headers={"Content-Type": "application/json"},
-        method="POST",
-    )
-    try:
-        with urllib.request.urlopen(req, timeout=90) as resp:
-            raw = json.loads(resp.read().decode("utf-8"))
-    except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError, json.JSONDecodeError):
+    if err or not raw:
         return None
     candidates = raw.get("candidates") or []
     if not candidates:
@@ -3278,6 +3252,60 @@ def _chamber_point_to_output_pixel(
     return nx, ny
 
 
+def _polygon_area_room_units(geometry: Dict[str, Any]) -> float:
+    """Shoelace area of room polygon in layout coordinates (same units as chamber_width/height)."""
+    poly = geometry.get("polygon") or []
+    if not isinstance(poly, list) or len(poly) < 3:
+        return 0.0
+    pts: List[Tuple[float, float]] = []
+    for p in poly:
+        if isinstance(p, (list, tuple)) and len(p) == 2:
+            pts.append((float(p[0]), float(p[1])))
+    if len(pts) < 3:
+        return 0.0
+    s = 0.0
+    for i in range(len(pts)):
+        j = (i + 1) % len(pts)
+        s += pts[i][0] * pts[j][1] - pts[j][0] * pts[i][1]
+    return abs(s) * 0.5
+
+
+def _geometry_footprint_vertex_count(geometry: Dict[str, Any]) -> int:
+    poly = geometry.get("polygon") or []
+    if not isinstance(poly, list):
+        return 0
+    return len([p for p in poly if isinstance(p, (list, tuple)) and len(p) == 2])
+
+
+def _geometry_footprint_area_fill_ratio(geometry: Dict[str, Any]) -> float:
+    """Polygon area / axis-aligned chamber box; <1 means concave, L-shape, or cutouts."""
+    cw = float(geometry.get("chamber_width") or 0)
+    ch = float(geometry.get("chamber_height") or 0)
+    if cw <= 1.0 or ch <= 1.0:
+        return 1.0
+    area = _polygon_area_room_units(geometry)
+    box = cw * ch
+    return area / box if box > 0 else 1.0
+
+
+def _geometry_footprint_shape_hint(geometry: Dict[str, Any]) -> str:
+    """One-line hint for Gemini when the footprint is not a simple rectangle."""
+    if not isinstance(geometry, dict):
+        return ""
+    vc = _geometry_footprint_vertex_count(geometry)
+    ratio = _geometry_footprint_area_fill_ratio(geometry)
+    bits: List[str] = []
+    if vc > 4:
+        bits.append(f"walkable polygon has {vc} vertices (non-rectangular outline)")
+    if ratio < 0.9:
+        bits.append(
+            f"walkable area is ~{int(round(ratio * 100))}% of the bounding box (concave/L/step shape — preserve every corner and indent from the layout guide exactly)"
+        )
+    if not bits:
+        return ""
+    return "FOOTPRINT FIDELITY: " + " ".join(bits) + "."
+
+
 def _inset_polygon_vertices_toward_centroid(
     points: List[Tuple[int, int]],
     inset_px: float,
@@ -3705,6 +3733,8 @@ def _room_shell_spatial_contract_json(geometry: Dict[str, Any], size: Tuple[int,
     touches_bottom = max_y >= out_h - 1
     touches_left = min_x == 0
     touches_right = max_x >= out_w - 1
+    poly_v = _geometry_footprint_vertex_count(geometry)
+    fill_ratio = round(_geometry_footprint_area_fill_ratio(geometry), 4)
     contract: Dict[str, Any] = {
         "output_size_px": [out_w, out_h],
         "reference_1_silhouette": {
@@ -3724,6 +3754,15 @@ def _room_shell_spatial_contract_json(geometry: Dict[str, Any], size: Tuple[int,
             "no unused black gutter, no centered miniature portal, no second inner frame inside the black band."
         ),
     }
+    if poly_v > 4 or fill_ratio < 0.9:
+        contract["footprint_shape"] = {
+            "layout_polygon_vertices": poly_v,
+            "polygon_area_over_chamber_bbox": fill_ratio,
+            "rule": (
+                "The keep-clear interior follows this room's polygon, not a centered rectangle. "
+                "Match re-entrant corners, diagonal edges, and L-steps from reference #1; do not round the opening into a portal or nave."
+            ),
+        }
     return json.dumps(contract, separators=(",", ":"))
 
 
@@ -3745,7 +3784,7 @@ def _render_level3_image(path: Path, direction: Dict[str, Any], geometry: Dict[s
         poly_overlay = Image.new("RGBA", canvas_size, (0, 0, 0, 0))
         poly_draw = ImageDraw.Draw(poly_overlay)
         poly_fill = tuple(min(255, int(bg_b[i] + 24)) for i in range(3))
-        poly_draw.polygon(polygon, fill=poly_fill + (190,), outline=accent_rgb + (220,))
+        poly_draw.polygon(polygon, fill=poly_fill + (190,), outline=accent_rgb + (235,), width=2)
         poly_overlay = poly_overlay.filter(ImageFilter.GaussianBlur(radius=0.8))
         image.alpha_composite(poly_overlay)
     focus_x = canvas_size[0] * (0.38 + (variant_index * 0.12))
@@ -3790,7 +3829,7 @@ def _render_room_layout_conditioning_image(geometry: Dict[str, Any], spec: Dict[
     if polygon:
         poly_fill = Image.new("RGBA", canvas_size, (0, 0, 0, 0))
         poly_draw = ImageDraw.Draw(poly_fill)
-        poly_draw.polygon(polygon, fill=(28, 38, 48, 220), outline=(98, 108, 118, 228))
+        poly_draw.polygon(polygon, fill=(28, 38, 48, 220), outline=(118, 128, 138, 255), width=3)
         poly_fill = poly_fill.filter(ImageFilter.GaussianBlur(radius=0.6))
         image.alpha_composite(poly_fill)
     draw = ImageDraw.Draw(image)
@@ -3844,6 +3883,9 @@ def _gemini_generate_content_rest(
     model: str,
     parts: List[Dict[str, Any]],
     response_modalities: Optional[List[str]] = None,
+    *,
+    system_instruction: Optional[str] = None,
+    generation_config_merge: Optional[Dict[str, Any]] = None,
 ) -> Tuple[Optional[Dict[str, Any]], Optional[str]]:
     """Returns (response_json, user_safe_error). On success, error is None."""
     api_key = _gemini_api_key()
@@ -3853,9 +3895,19 @@ def _gemini_generate_content_rest(
         return None, msg
     data: Optional[Dict[str, Any]] = None
     try:
-        payload: Dict[str, Any] = {"contents": [{"parts": parts}]}
+        payload: Dict[str, Any] = {}
+        if system_instruction is not None:
+            payload["systemInstruction"] = {"parts": [{"text": system_instruction}]}
+            payload["contents"] = [{"role": "user", "parts": parts}]
+        else:
+            payload["contents"] = [{"parts": parts}]
+        gen_cfg: Dict[str, Any] = {}
+        if generation_config_merge:
+            gen_cfg.update(generation_config_merge)
         if response_modalities:
-            payload["generationConfig"] = {"responseModalities": list(response_modalities)}
+            gen_cfg["responseModalities"] = list(response_modalities)
+        if gen_cfg:
+            payload["generationConfig"] = gen_cfg
         url = (
             "https://generativelanguage.googleapis.com/v1beta/models/"
             f"{urllib.parse.quote(model, safe='')}:generateContent?key={urllib.parse.quote(api_key, safe='')}"
@@ -3950,11 +4002,14 @@ def _build_level3_variant_prompt(
     attachment_guide = (
         "Additional attached images are frozen art direction anchors. Match their style language and world identity closely."
     )
+    foot_hint = _geometry_footprint_shape_hint(geometry)
+    foot_para = f"\n        {foot_hint}\n" if foot_hint else ""
     return textwrap.dedent(
         f"""\
         Create a high-detail 2D side-view game environment concept for a metroidvania room.
         This is a room environment preview, not a mood board and not abstract color treatment.
-        The attached first image is a hard layout guide. Respect its overall room silhouette, door locations, main walkable structures, and framing.
+        The attached first image is a hard layout guide. Match the walkable floor polygon footprint exactly — every corner, diagonal edge, L-shape, step, and indent — not a substitute rectangle or centered box nave.
+        Do not normalize the room to a symmetrical hall when the guide shows an irregular outline.{foot_para}
         {attachment_guide}
 
         Art direction:
@@ -3975,7 +4030,7 @@ def _build_level3_variant_prompt(
         - landmarks: {landmarks}
         - hazards: {hazards}
         - room description: {spec.get('description') or ''}
-        - geometry summary: width {int(geometry.get('width') or 0)}, height {int(geometry.get('height') or 0)}, {int(geometry.get('platform_count') or 0)} platforms, {int(geometry.get('door_count') or 0)} doors
+        - geometry summary: width {int(geometry.get('width') or 0)}, height {int(geometry.get('height') or 0)}, footprint vertices {_geometry_footprint_vertex_count(geometry)}, polygon/box fill ~{int(round(_geometry_footprint_area_fill_ratio(geometry) * 100))}%, {int(geometry.get('platform_count') or 0)} platforms, {int(geometry.get('door_count') or 0)} doors
         - readability notes: {', '.join(spec.get('readability_notes') or []) or 'keep the main route easy to read'}
 
         Output requirements:
@@ -6266,17 +6321,20 @@ def _build_bespoke_prompt_room_shell_foreground(
             f"{spatial_json}\n"
         )
     material_schema = _room_shell_minimal_material_schema_summary(component_schema)
+    foot_hint_line = _geometry_footprint_shape_hint(_geom)
+    foot_hint_block = f"\n{foot_hint_line}\n" if foot_hint_line else ""
     return textwrap.dedent(
         f"""\
         CRITICAL — MASK PAINT TASK (not a hero illustration, not a cathedral interior shot):
         Reference #1 is a binary mask at the exact output size. Black pixels = you MUST output opaque weathered stone/mortar there, edge-to-edge within every black region.
         Neutral-dark pixels (~RGB {ROOM_SHELL_SILHOUETTE_CLEAR_RGB[0]},{ROOM_SHELL_SILHOUETTE_CLEAR_RGB[1]},{ROOM_SHELL_SILHOUETTE_CLEAR_RGB[2]}) = keep-clear: output the same flat dark neutral with no texture, fog, or bright fill — never paper-white (#FFFFFF), cream letterboxing, or luminous rims. Never paint fog, depth haze, vignette, sky, or distant hall recession in the shell band.
+        OPENING GEOMETRY: the inner boundary between black (shell) and neutral-dark (keep-clear) is the room footprint at this resolution — including L-shapes, steps, re-entrant corners, and diagonal edges. Do not round it into a portal, nave, or centered rectangle; if reference #2 disagrees, reference #1 wins.
         FORBIDDEN LAYOUT BUGS: picture-in-picture composition; a smaller scene centered on the canvas; black letterboxing or unused black margins between the image border and the stone; any “postcard” framing.
         If reference #1 is black along x=0, x=W-1, y=0, or y=H-1, your stone must reach that same edge — do not leave a black gutter outside the masonry.
 
         Reference #2 (approved preview): palette, stone family, crack/wear density, and lighting temperature ONLY. Do NOT copy its camera, perspective, interior depth, arches-as-setpiece, or composition.
 
-        {shell_rules}
+        {foot_hint_block}{shell_rules}
 
         Exact output width: {w} px
         Exact output height: {h} px
@@ -6316,6 +6374,7 @@ def _build_bespoke_prompt(
     component_rules = {
         "background_far_plate": (
             "Build only the far-depth hall shell. The image must read as enclosing architecture, not a scenic key art moment. "
+            "When a footprint silhouette reference is attached, the walkable opening shape (including L-shapes and concave outlines) is locked to that mask — do not substitute a generic centered rectangular nave. "
             "Treat the approved room preview as context only and explicitly reject carryover of any altar, brazier energy, shrine focal landmark, center dais, near framing, "
             "or pasted-in floor strip from that preview. Use walls, arches, pillars, recesses, and bay rhythm to create a readable room shell with calm depth falloff and an open center lane. "
             "Keep the center dimmer than the sides, but not empty fog; it should still show a dark recess, arch, or wall structure. "
@@ -6329,6 +6388,7 @@ def _build_bespoke_prompt(
         ),
         "midground_side_frame": (
             "Build only side framing. Keep the center fully open and calm. Restrict arches, columns, and side mass to the left and right edges so the middle third stays clear. "
+            "When a footprint silhouette is attached, the clear center must follow that polygon (including irregular and L-shaped voids), not a simplified box. "
             "No center object, no floor plane, no bridge, no hanging focal prop, and nothing that closes the room shell across the playable route. "
             "No cyan/teal rim lines on inner silhouette edges; side masses should separate from the center with shadow and stone value, not UI-like strokes."
         ),
@@ -6339,13 +6399,13 @@ def _build_bespoke_prompt(
             "EDGE-FILL CONTRACT (critical): the silhouette is an occupancy mask, not a layout suggestion. Every black pixel in reference #1 must be filled with opaque masonry texture in your output — "
             "no unused black margin inside the shell band, no centered miniature portal or archway painting, no second inner rectangular frame, no picture-in-picture composition. "
             "Where black reaches the image border (x=0, x=W-1, y=0, y=H-1), the stone must meet that border as a wall/floor/ceiling face — not float inward with black padding. "
-            "SHAPE CONTRACT: top cap, both side walls, and bottom footing must be continuous heavy masonry bands that remain inside black mask regions. "
+            "SHAPE CONTRACT: top cap, both side walls, and bottom footing must be continuous heavy masonry bands that remain inside black mask regions, bending with every re-entrant corner of the keep-clear void. "
             "Fill all band joins and corners with structural mass; no empty wedges, no thin joins, and no bleed outside mask boundaries. "
-            "THICKNESS CONTRACT: maintain broad structural wall read (not trim, not outline stroke, not a hairline frame): side bands ~16-24% width each, top ~18-28% height, bottom ~14-22% height — "
-            "interpret these as minimum structural mass within the black band, not as an excuse to shrink the built shell away from the mask edges. "
+            "THICKNESS CONTRACT: within the black band only, keep a broad structural masonry read (not a hairline outline): aim for roughly ~16-24% of image width per side band and ~18-28% top / ~14-22% bottom where the mask allows — "
+            "never override the mask's interior opening to force a symmetric rectangle; if the room is L-shaped, the void stays L-shaped. "
             "MATERIAL CONTRACT: one cohesive weathered-stone family across top/sides/bottom with medium-to-fine masonry cadence (no mega blocks), visible mortar/chips/wear, and no motif drift between bands. "
             "SEPARATION CONTRACT: shell must read against the center by value/texture only; no cyan/teal/aqua rim lines, no UI-like edge strokes, no neon outlines. "
-            "PREVIEW CONTRACT: approved preview is palette/material context only; do not copy its composition, landmarks, framing, or scenic lighting layout. "
+            "PREVIEW CONTRACT: approved preview is palette/material context only; do not copy its composition, outer framing, chamber opening shape, landmarks, or scenic lighting layout. "
             "FORBIDDEN: no extra outer frame outside mask, no perspective floor scene, no scenic center set-piece, no second duplicate floor strip."
         ),
         "wall_module_left": (
@@ -6440,7 +6500,20 @@ def _build_bespoke_prompt(
     silhouette_clause = ""
     _geom = room_geometry if isinstance(room_geometry, dict) else {}
     _poly = _geom.get("polygon") or []
-    if component_type in {"background_far_plate", "midground_side_frame", "room_shell_foreground"} and isinstance(_poly, list) and len(_poly) >= 3:
+    _footprint_prompt_component_types = {
+        "background_far_plate",
+        "midground_side_frame",
+        "room_shell_foreground",
+        "wall_module_left",
+        "wall_module_right",
+        "wall_base_trim_left",
+        "wall_base_trim_right",
+        "ceiling_band",
+        "main_floor_top",
+        "main_floor_face",
+        "pit_rim",
+    }
+    if component_type in _footprint_prompt_component_types and isinstance(_poly, list) and len(_poly) >= 3:
         silhouette_clause = (
             "\nRoom footprint conditioning: A binary silhouette map is included in the reference images. "
             "For shell conditioning maps, black pixels mark allowed border masonry occupancy; neutral-dark pixels mark keep-clear region (same idea as layout guides — not paper-white). "
@@ -6471,6 +6544,9 @@ def _build_bespoke_prompt(
                     "\nSpatial contract (JSON, derived from the same geometry as reference #1; obey edge_flush_rule):\n"
                     f"{_spatial_json}\n"
                 )
+    _foot_tail = _geometry_footprint_shape_hint(_geom)
+    if silhouette_clause and _foot_tail:
+        silhouette_clause += f"\n{_foot_tail}\n"
     composition_contract = (
         "Composition contract: this must read as a playable room built in depth, not scenic concept art with gameplay layered on top. "
         "If the approved preview contains shrine, altar, brazier, dais, ritual floor, or other focal-scene imagery, treat those elements as rejected source noise unless they are explicitly required by this component role."
@@ -7199,11 +7275,7 @@ def _bespoke_reference_images_for_component(
         "background_far_plate",
     }:
         _structural_slot_reference_guide(component_type, guide_path, expected_size, transparent, aggressive=aggressive)
-        if (
-            component_type == "background_far_plate"
-            and room is not None
-            and _write_bespoke_room_silhouette_reference(_room_geometry(room), silhouette_path, expected_size)
-        ):
+        if room is not None and _write_bespoke_room_silhouette_reference(_room_geometry(room), silhouette_path, expected_size):
             return [silhouette_path, template_path, guide_path]
         return [template_path, guide_path]
     if component_type in {
