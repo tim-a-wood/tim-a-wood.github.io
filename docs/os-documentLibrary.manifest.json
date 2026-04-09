@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "generated": "2026-04-09T19:24:04Z",
+  "generated": "2026-04-09T19:39:27Z",
   "repo_root_note": "Paths are relative to repository root.",
   "categories": [
     {
@@ -14,7 +14,7 @@
           "title": "Art bible — v0.2 (superseded)",
           "path": "artifacts/ashen-hollow-art-bible-v0.2.md",
           "format": "markdown",
-          "date_modified": "2026-04-02"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "artifacts-ashen-hollow-art-bible-v0-3-md",
@@ -28,28 +28,28 @@
           "title": "Business brand guide (operational handbook)",
           "path": "docs/mv-business-brand-guide-pamphlet.html",
           "format": "html",
-          "date_modified": "2026-04-03"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "docs-reports-business-brand-guide-v0-2-stakeholder-reviews-2026-04-02-md",
           "title": "Business brand guide v0.2 — specialist stakeholder sign-off record",
           "path": "docs/reports/business-brand-guide-v0.2-stakeholder-reviews-2026-04-02.md",
           "format": "markdown",
-          "date_modified": "2026-04-03"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "docs-brand-charter-html",
           "title": "Company brand charter (executive summary)",
           "path": "docs/brand-charter.html",
           "format": "html",
-          "date_modified": "2026-04-03"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "docs-reports-initial-business-plan-2026-04-01-md",
           "title": "Initial business plan (working draft)",
           "path": "docs/reports/initial-business-plan-2026-04-01.md",
           "format": "markdown",
-          "date_modified": "2026-04-02"
+          "date_modified": "2026-04-09"
         }
       ]
     },
@@ -64,49 +64,49 @@
           "title": "Check test coverage",
           "path": ".cursor/rules/check-test-coverage.mdc",
           "format": "markdown",
-          "date_modified": "2026-03-06"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "cursor-rules-commit-and-push-on-change-mdc",
           "title": "Commit and push on change",
           "path": ".cursor/rules/commit-and-push-on-change.mdc",
           "format": "markdown",
-          "date_modified": "2026-03-06"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "cursor-rules-create-test-report-on-change-mdc",
           "title": "Create test report on change",
           "path": ".cursor/rules/create-test-report-on-change.mdc",
           "format": "markdown",
-          "date_modified": "2026-03-06"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "style-guide-md",
           "title": "Design system — canonical UI style guide",
           "path": "STYLE_GUIDE.md",
           "format": "markdown",
-          "date_modified": "2026-04-02"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "cursor-rules-frontend-design-mdc",
           "title": "Frontend design",
           "path": ".cursor/rules/frontend-design.mdc",
           "format": "markdown",
-          "date_modified": "2026-04-04"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "cursor-rules-read-project-overview-mdc",
           "title": "Read project overview",
           "path": ".cursor/rules/read-project-overview.mdc",
           "format": "markdown",
-          "date_modified": "2026-03-06"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "cursor-rules-read-project-plan-mdc",
           "title": "Read project plan",
           "path": ".cursor/rules/read-project-plan.mdc",
           "format": "markdown",
-          "date_modified": "2026-03-06"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "agents-md",
@@ -120,14 +120,14 @@
           "title": "Repository governance — Claude Code rules",
           "path": "CLAUDE.md",
           "format": "markdown",
-          "date_modified": "2026-04-04"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "cursor-rules-review-acceptance-tests-on-change-mdc",
           "title": "Review acceptance tests on change",
           "path": ".cursor/rules/review-acceptance-tests-on-change.mdc",
           "format": "markdown",
-          "date_modified": "2026-03-06"
+          "date_modified": "2026-04-09"
         }
       ]
     },
@@ -142,49 +142,49 @@
           "title": "Operating charter — Analytics",
           "path": "agents/analytics/charter.md",
           "format": "markdown",
-          "date_modified": "2026-04-02"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "agents-animation-charter-md",
           "title": "Operating charter — Animation",
           "path": "agents/animation/charter.md",
           "format": "markdown",
-          "date_modified": "2026-04-04"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "agents-audio-charter-md",
           "title": "Operating charter — Audio",
           "path": "agents/audio/charter.md",
           "format": "markdown",
-          "date_modified": "2026-04-02"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "agents-creative-charter-md",
           "title": "Operating charter — Creative",
           "path": "agents/creative/charter.md",
           "format": "markdown",
-          "date_modified": "2026-04-04"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "agents-cybersecurity-charter-md",
           "title": "Operating charter — Cybersecurity",
           "path": "agents/cybersecurity/charter.md",
           "format": "markdown",
-          "date_modified": "2026-04-02"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "agents-design-charter-md",
           "title": "Operating charter — Design",
           "path": "agents/design/charter.md",
           "format": "markdown",
-          "date_modified": "2026-04-04"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "agents-engineering-charter-md",
           "title": "Operating charter — Engineering",
           "path": "agents/engineering/charter.md",
           "format": "markdown",
-          "date_modified": "2026-04-04"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "agents-finance-charter-md",
@@ -198,77 +198,77 @@
           "title": "Operating charter — Game Director",
           "path": "agents/game-director/charter.md",
           "format": "markdown",
-          "date_modified": "2026-04-07"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "agents-game-systems-charter-md",
           "title": "Operating charter — Game Systems",
           "path": "agents/game-systems/charter.md",
           "format": "markdown",
-          "date_modified": "2026-04-02"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "agents-legal-charter-md",
           "title": "Operating charter — Legal",
           "path": "agents/legal/charter.md",
           "format": "markdown",
-          "date_modified": "2026-04-02"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "agents-level-design-charter-md",
           "title": "Operating charter — Level Design",
           "path": "agents/level-design/charter.md",
           "format": "markdown",
-          "date_modified": "2026-04-04"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "agents-marketing-charter-md",
           "title": "Operating charter — Marketing",
           "path": "agents/marketing/charter.md",
           "format": "markdown",
-          "date_modified": "2026-04-02"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "agents-narrative-charter-md",
           "title": "Operating charter — Narrative",
           "path": "agents/narrative/charter.md",
           "format": "markdown",
-          "date_modified": "2026-04-02"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "agents-orchestrator-charter-md",
           "title": "Operating charter — Orchestrator",
           "path": "agents/orchestrator/charter.md",
           "format": "markdown",
-          "date_modified": "2026-04-04"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "agents-qa-charter-md",
           "title": "Operating charter — Qa",
           "path": "agents/qa/charter.md",
           "format": "markdown",
-          "date_modified": "2026-04-02"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "agents-research-charter-md",
           "title": "Operating charter — Research",
           "path": "agents/research/charter.md",
           "format": "markdown",
-          "date_modified": "2026-04-02"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "agents-strategy-charter-md",
           "title": "Operating charter — Strategy",
           "path": "agents/strategy/charter.md",
           "format": "markdown",
-          "date_modified": "2026-04-02"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "agents-support-charter-md",
           "title": "Operating charter — Support",
           "path": "agents/support/charter.md",
           "format": "markdown",
-          "date_modified": "2026-04-02"
+          "date_modified": "2026-04-09"
         }
       ]
     },
@@ -283,70 +283,70 @@
           "title": "Branch behavior v1",
           "path": "docs/branch-behavior-v1.md",
           "format": "markdown",
-          "date_modified": "2026-03-09"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "docs-gate-state-spec-v1-md",
           "title": "Gate state spec v1",
           "path": "docs/gate-state-spec-v1.md",
           "format": "markdown",
-          "date_modified": "2026-03-08"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "prompts-labyrinth-layout-plan-md",
           "title": "Labyrinth layout plan",
           "path": "prompts/labyrinth_layout_plan.md",
           "format": "markdown",
-          "date_modified": "2026-03-06"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "prompts-level-design-spec-md",
           "title": "Level design spec",
           "path": "prompts/level_design_spec.md",
           "format": "markdown",
-          "date_modified": "2026-03-06"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "docs-map-graph-v1-md",
           "title": "Map graph v1",
           "path": "docs/map-graph-v1.md",
           "format": "markdown",
-          "date_modified": "2026-03-08"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "docs-map-mvp-constraints-md",
           "title": "Map mvp constraints",
           "path": "docs/map-mvp-constraints.md",
           "format": "markdown",
-          "date_modified": "2026-03-08"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "prompts-metroidvania-single-room-guide-md",
           "title": "Metroidvania single room guide",
           "path": "prompts/metroidvania_single_room_guide.md",
           "format": "markdown",
-          "date_modified": "2026-03-06"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "docs-navigation-no-guidance-test-log-v1-md",
           "title": "Navigation no guidance test log v1",
           "path": "docs/navigation-no-guidance-test-log-v1.md",
           "format": "markdown",
-          "date_modified": "2026-03-09"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "docs-progression-unlocks-v1-md",
           "title": "Progression unlocks v1",
           "path": "docs/progression-unlocks-v1.md",
           "format": "markdown",
-          "date_modified": "2026-03-08"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "prompts-project-overview-md",
           "title": "Project overview",
           "path": "prompts/project_overview.md",
           "format": "markdown",
-          "date_modified": "2026-03-06"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "readme-md",
@@ -360,28 +360,28 @@
           "title": "Project plan",
           "path": "prompts/project_plan.md",
           "format": "markdown",
-          "date_modified": "2026-04-06"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "docs-readability-pass-v1-md",
           "title": "Readability pass v1",
           "path": "docs/readability-pass-v1.md",
           "format": "markdown",
-          "date_modified": "2026-03-09"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "docs-room-layout-iteration-plan-md",
           "title": "Room layout iteration plan",
           "path": "docs/room-layout-iteration-plan.md",
           "format": "markdown",
-          "date_modified": "2026-03-09"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "tests-readme-md",
           "title": "Testing — handbook (tests/)",
           "path": "tests/README.md",
           "format": "markdown",
-          "date_modified": "2026-03-27"
+          "date_modified": "2026-04-09"
         }
       ]
     },
@@ -403,7 +403,7 @@
           "title": "Analytics dashboard kpis",
           "path": "docs/analytics-dashboard-kpis.md",
           "format": "markdown",
-          "date_modified": "2026-04-03"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "docs-creative-minor-decisions-v0-3-md",
@@ -417,42 +417,42 @@
           "title": "Cross tool usage",
           "path": "docs/cross-tool-usage.md",
           "format": "markdown",
-          "date_modified": "2026-03-28"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "docs-room-environment-pipeline-mvp-env-001-editor-api-flow-md",
           "title": "ENV 001 editor api flow",
           "path": "docs/room-environment-pipeline-mvp/ENV-001-editor-api-flow.md",
           "format": "markdown",
-          "date_modified": "2026-04-04"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "docs-room-environment-pipeline-mvp-env-002-persistence-layout-md",
           "title": "ENV 002 persistence layout",
           "path": "docs/room-environment-pipeline-mvp/ENV-002-persistence-layout.md",
           "format": "markdown",
-          "date_modified": "2026-04-04"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "docs-room-environment-pipeline-mvp-env-003-editor-payload-contract-md",
           "title": "ENV 003 editor payload contract",
           "path": "docs/room-environment-pipeline-mvp/ENV-003-editor-payload-contract.md",
           "format": "markdown",
-          "date_modified": "2026-04-04"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "docs-room-environment-pipeline-mvp-env-029-deprecation-path-md",
           "title": "ENV 029 deprecation path",
           "path": "docs/room-environment-pipeline-mvp/ENV-029-deprecation-path.md",
           "format": "markdown",
-          "date_modified": "2026-04-05"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "docs-room-environment-pipeline-mvp-env-030-founder-calibration-packet-md",
           "title": "ENV 030 founder calibration packet",
           "path": "docs/room-environment-pipeline-mvp/ENV-030-founder-calibration-packet.md",
           "format": "markdown",
-          "date_modified": "2026-04-05"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "docs-handover-art-bible-v0-3-spec-md",
@@ -487,168 +487,168 @@
           "title": "Index",
           "path": "docs/diagrams/room-environment-v3/index.md",
           "format": "markdown",
-          "date_modified": "2026-04-02"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "docs-my-actions-integration-plan-md",
           "title": "My actions integration plan",
           "path": "docs/my-actions-integration-plan.md",
           "format": "markdown",
-          "date_modified": "2026-04-04"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "docs-pacing-tuning-v1-md",
           "title": "Pacing tuning v1",
           "path": "docs/pacing-tuning-v1.md",
           "format": "markdown",
-          "date_modified": "2026-04-06"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "docs-room-environment-pipeline-mvp-readme-md",
           "title": "README",
           "path": "docs/room-environment-pipeline-mvp/README.md",
           "format": "markdown",
-          "date_modified": "2026-04-04"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "docs-room-creation-wizard-plan-md",
           "title": "Room creation wizard plan",
           "path": "docs/room-creation-wizard-plan.md",
           "format": "markdown",
-          "date_modified": "2026-03-27"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "docs-room-editor-agent-task-spec-md",
           "title": "Room editor agent task spec",
           "path": "docs/room-editor-agent-task-spec.md",
           "format": "markdown",
-          "date_modified": "2026-03-27"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "docs-room-editor-creative-decisions-md",
           "title": "Room editor creative decisions",
           "path": "docs/room-editor-creative-decisions.md",
           "format": "markdown",
-          "date_modified": "2026-03-27"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "docs-room-editor-overhaul-plan-md",
           "title": "Room editor overhaul plan",
           "path": "docs/room-editor-overhaul-plan.md",
           "format": "markdown",
-          "date_modified": "2026-03-28"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "docs-room-editor-workbench-execution-plan-md",
           "title": "Room editor workbench execution plan",
           "path": "docs/room-editor-workbench-execution-plan.md",
           "format": "markdown",
-          "date_modified": "2026-03-28"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "docs-room-editor-workbench-integration-plan-md",
           "title": "Room editor workbench integration plan",
           "path": "docs/room-editor-workbench-integration-plan.md",
           "format": "markdown",
-          "date_modified": "2026-03-28"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "docs-qa-room-environment-calibration-rooms-md",
           "title": "Room environment calibration rooms",
           "path": "docs/qa/room-environment-calibration-rooms.md",
           "format": "markdown",
-          "date_modified": "2026-04-06"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "docs-room-environment-pipeline-v3-software-requirements-md",
           "title": "Room environment pipeline v3 software requirements",
           "path": "docs/room-environment-pipeline-v3-software-requirements.md",
           "format": "markdown",
-          "date_modified": "2026-04-03"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "docs-room-environment-pipeline-v3-spec-md",
           "title": "Room environment pipeline v3 spec",
           "path": "docs/room-environment-pipeline-v3-spec.md",
           "format": "markdown",
-          "date_modified": "2026-04-03"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "docs-room-layout-validation-md",
           "title": "Room layout validation",
           "path": "docs/room-layout-validation.md",
           "format": "markdown",
-          "date_modified": "2026-03-27"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "room-rules-md",
           "title": "Room rules",
           "path": "room-rules.md",
           "format": "markdown",
-          "date_modified": "2026-03-06"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "docs-room-wizard-implementation-sprints-md",
           "title": "Room wizard implementation sprints",
           "path": "docs/room-wizard-implementation-sprints.md",
           "format": "markdown",
-          "date_modified": "2026-03-28"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "docs-sprite-workbench-architecture-visualization-master-plan-md",
           "title": "Sprite workbench architecture visualization master plan",
           "path": "docs/sprite-workbench-architecture-visualization-master-plan.md",
           "format": "markdown",
-          "date_modified": "2026-04-04"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "docs-sprite-workbench-architecture-visualization-plan-md",
           "title": "Sprite workbench architecture visualization plan",
           "path": "docs/sprite-workbench-architecture-visualization-plan.md",
           "format": "markdown",
-          "date_modified": "2026-04-04"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "docs-sprite-workbench-overhaul-plan-md",
           "title": "Sprite workbench overhaul plan",
           "path": "docs/sprite-workbench-overhaul-plan.md",
           "format": "markdown",
-          "date_modified": "2026-03-20"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "docs-sprite-workbench-phaser-handoff-md",
           "title": "Sprite workbench phaser handoff",
           "path": "docs/sprite-workbench-phaser-handoff.md",
           "format": "markdown",
-          "date_modified": "2026-03-26"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "docs-sprite-workbench-runtime-export-contract-md",
           "title": "Sprite workbench runtime export contract",
           "path": "docs/sprite-workbench-runtime-export-contract.md",
           "format": "markdown",
-          "date_modified": "2026-03-26"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "docs-sprite-workbench-stabilization-plan-md",
           "title": "Sprite workbench stabilization plan",
           "path": "docs/sprite-workbench-stabilization-plan.md",
           "format": "markdown",
-          "date_modified": "2026-03-24"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "docs-sprite-workbench-stage-audit-and-action-plan-md",
           "title": "Sprite workbench stage audit and action plan",
           "path": "docs/sprite-workbench-stage-audit-and-action-plan.md",
           "format": "markdown",
-          "date_modified": "2026-03-24"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "docs-design-workbench-feedback-root-cause-md",
           "title": "Workbench feedback root cause",
           "path": "docs/design/workbench-feedback-root-cause.md",
           "format": "markdown",
-          "date_modified": "2026-03-29"
+          "date_modified": "2026-04-09"
         }
       ]
     },
@@ -663,14 +663,14 @@
           "title": "CANONICAL DOWNSTREAM CONTRACT",
           "path": "tools/2d-sprite-and-animation/docs/CANONICAL-DOWNSTREAM-CONTRACT.md",
           "format": "markdown",
-          "date_modified": "2026-03-17"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "tools-2d-sprite-and-animation-docs-how-to-use-ai-workflow-md",
           "title": "How To Use AI Workflow",
           "path": "tools/2d-sprite-and-animation/docs/How-To-Use-AI-Workflow.md",
           "format": "markdown",
-          "date_modified": "2026-03-17"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "docs-pixel-art-quality-standards-md",
@@ -684,14 +684,14 @@
           "title": "README",
           "path": "tools/2d-sprite-and-animation/README.md",
           "format": "markdown",
-          "date_modified": "2026-03-27"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "tools-2d-sprite-and-animation-docs-room-layout-validation-md",
           "title": "Room Layout Validation",
           "path": "tools/2d-sprite-and-animation/docs/Room-Layout-Validation.md",
           "format": "markdown",
-          "date_modified": "2026-03-27"
+          "date_modified": "2026-04-09"
         }
       ]
     },
@@ -713,28 +713,28 @@
           "title": "Assurance copilot do178c market 2026 04 02",
           "path": "research/library/technical/assurance-copilot-do178c-market-2026-04-02.md",
           "format": "markdown",
-          "date_modified": "2026-04-02"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "research-library-findings-codebase-scan-2026-04-01-md",
           "title": "Codebase scan 2026 04 01",
           "path": "research/library/findings/codebase-scan-2026-04-01.md",
           "format": "markdown",
-          "date_modified": "2026-04-02"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "research-dashboard-md",
           "title": "Dashboard",
           "path": "research/dashboard.md",
           "format": "markdown",
-          "date_modified": "2026-04-02"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "research-library-reports-guardrail-enforcement-audit-2026-04-02-md",
           "title": "Guardrail enforcement audit 2026 04 02",
           "path": "research/library/reports/guardrail-enforcement-audit-2026-04-02.md",
           "format": "markdown",
-          "date_modified": "2026-04-02"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "research-library-index-md",
@@ -748,14 +748,14 @@
           "title": "Passive income market scan 2026 04 01",
           "path": "research/library/findings/passive-income-market-scan-2026-04-01.md",
           "format": "markdown",
-          "date_modified": "2026-04-02"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "research-readme-md",
           "title": "README",
           "path": "research/README.md",
           "format": "markdown",
-          "date_modified": "2026-04-02"
+          "date_modified": "2026-04-09"
         }
       ]
     },
@@ -777,49 +777,49 @@
           "title": "2026 04 01 room environment v3 review decision brief",
           "path": "decisions/2026-04-01-room-environment-v3-review-decision-brief.md",
           "format": "markdown",
-          "date_modified": "2026-04-02"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "decisions-2026-04-02-assurance-copilot-other-income-gate-md",
           "title": "2026 04 02 assurance copilot other income gate",
           "path": "decisions/2026-04-02-assurance-copilot-other-income-gate.md",
           "format": "markdown",
-          "date_modified": "2026-04-02"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "decisions-2026-04-03-foreground-frame-validation-handoff-md",
           "title": "2026 04 03 foreground frame validation handoff",
           "path": "decisions/2026-04-03-foreground-frame-validation-handoff.md",
           "format": "markdown",
-          "date_modified": "2026-04-03"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "decisions-2026-04-03-room-environment-handoff-md",
           "title": "2026 04 03 room environment handoff",
           "path": "decisions/2026-04-03-room-environment-handoff.md",
           "format": "markdown",
-          "date_modified": "2026-04-03"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "decisions-2026-04-03-sprite-arch-dashboard-graph-library-md",
           "title": "2026 04 03 sprite arch dashboard graph library",
           "path": "decisions/2026-04-03-sprite-arch-dashboard-graph-library.md",
           "format": "markdown",
-          "date_modified": "2026-04-04"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "decisions-2026-04-03-sprite-workbench-arch-m2-md",
           "title": "2026 04 03 sprite workbench arch m2",
           "path": "decisions/2026-04-03-sprite-workbench-arch-m2.md",
           "format": "markdown",
-          "date_modified": "2026-04-04"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "decisions-readme-md",
           "title": "README",
           "path": "decisions/README.md",
           "format": "markdown",
-          "date_modified": "2026-03-28"
+          "date_modified": "2026-04-09"
         }
       ]
     },
@@ -834,196 +834,196 @@
           "title": "Ai capabilities q1 2026",
           "path": "knowledge/ai-capabilities-q1-2026.md",
           "format": "markdown",
-          "date_modified": "2026-03-28"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "templates-approval-matrix-md",
           "title": "Approval matrix",
           "path": "templates/approval-matrix.md",
           "format": "markdown",
-          "date_modified": "2026-03-28"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "playbooks-brainstorming-session-md",
           "title": "Brainstorming session",
           "path": "playbooks/brainstorming-session.md",
           "format": "markdown",
-          "date_modified": "2026-03-28"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "templates-brainstorming-summary-md",
           "title": "Brainstorming summary",
           "path": "templates/brainstorming-summary.md",
           "format": "markdown",
-          "date_modified": "2026-03-28"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "templates-daily-product-report-md",
           "title": "Daily product report",
           "path": "templates/daily-product-report.md",
           "format": "markdown",
-          "date_modified": "2026-04-01"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "agents-design-dashboard-standard-md",
           "title": "Dashboard standard",
           "path": "agents/design/dashboard-standard.md",
           "format": "markdown",
-          "date_modified": "2026-04-02"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "agents-directives-dashboard-standard-md",
           "title": "Dashboard standard",
           "path": "agents/directives/dashboard-standard.md",
           "format": "markdown",
-          "date_modified": "2026-03-31"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "templates-decision-brief-md",
           "title": "Decision brief",
           "path": "templates/decision-brief.md",
           "format": "markdown",
-          "date_modified": "2026-03-28"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "templates-directive-summary-md",
           "title": "Directive summary",
           "path": "templates/directive-summary.md",
           "format": "markdown",
-          "date_modified": "2026-03-29"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "templates-escalation-alert-md",
           "title": "Escalation alert",
           "path": "templates/escalation-alert.md",
           "format": "markdown",
-          "date_modified": "2026-03-28"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "templates-external-checkpoint-review-md",
           "title": "External checkpoint review",
           "path": "templates/external-checkpoint-review.md",
           "format": "markdown",
-          "date_modified": "2026-04-02"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "playbooks-external-checkpoint-validation-md",
           "title": "External checkpoint validation",
           "path": "playbooks/external-checkpoint-validation.md",
           "format": "markdown",
-          "date_modified": "2026-04-02"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "templates-incident-report-md",
           "title": "Incident report",
           "path": "templates/incident-report.md",
           "format": "markdown",
-          "date_modified": "2026-03-28"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "playbooks-incident-response-md",
           "title": "Incident response",
           "path": "playbooks/incident-response.md",
           "format": "markdown",
-          "date_modified": "2026-03-28"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "templates-launch-readiness-md",
           "title": "Launch readiness",
           "path": "templates/launch-readiness.md",
           "format": "markdown",
-          "date_modified": "2026-03-28"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "playbooks-legal-review-ai-assets-md",
           "title": "Legal review ai assets",
           "path": "playbooks/legal-review-ai-assets.md",
           "format": "markdown",
-          "date_modified": "2026-03-28"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "knowledge-metroidvania-design-md",
           "title": "Metroidvania design",
           "path": "knowledge/metroidvania-design.md",
           "format": "markdown",
-          "date_modified": "2026-03-28"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "agents-design-os-agents-home-ui-handoff-md",
           "title": "Os agents home ui handoff",
           "path": "agents/design/os-agents-home-ui-handoff.md",
           "format": "markdown",
-          "date_modified": "2026-04-03"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "agents-design-os-home-dashboard-handoff-md",
           "title": "Os home dashboard handoff",
           "path": "agents/design/os_home_dashboard_handoff.md",
           "format": "markdown",
-          "date_modified": "2026-03-30"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "agents-directives-plain-language-dashboards-md",
           "title": "Plain language dashboards",
           "path": "agents/directives/plain-language-dashboards.md",
           "format": "markdown",
-          "date_modified": "2026-03-30"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "playbooks-pricing-review-md",
           "title": "Pricing review",
           "path": "playbooks/pricing-review.md",
           "format": "markdown",
-          "date_modified": "2026-03-28"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "knowledge-readme-md",
           "title": "README",
           "path": "knowledge/README.md",
           "format": "markdown",
-          "date_modified": "2026-03-28"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "playbooks-release-readiness-md",
           "title": "Release readiness",
           "path": "playbooks/release-readiness.md",
           "format": "markdown",
-          "date_modified": "2026-03-28"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "reporting-templates-specialist-monthly-md",
           "title": "Specialist monthly",
           "path": "reporting/templates/specialist-monthly.md",
           "format": "markdown",
-          "date_modified": "2026-03-28"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "reporting-templates-specialist-weekly-md",
           "title": "Specialist weekly",
           "path": "reporting/templates/specialist-weekly.md",
           "format": "markdown",
-          "date_modified": "2026-03-28"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "agents-directives-task-completion-update-md",
           "title": "Task completion update",
           "path": "agents/directives/task-completion-update.md",
           "format": "markdown",
-          "date_modified": "2026-03-31"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "templates-weekly-founder-digest-md",
           "title": "Weekly founder digest",
           "path": "templates/weekly-founder-digest.md",
           "format": "markdown",
-          "date_modified": "2026-03-28"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "playbooks-weekly-founder-review-md",
           "title": "Weekly founder review",
           "path": "playbooks/weekly-founder-review.md",
           "format": "markdown",
-          "date_modified": "2026-03-28"
+          "date_modified": "2026-04-09"
         }
       ]
     },
@@ -1038,7 +1038,7 @@
           "title": "Quality — acceptance test specification",
           "path": "tests/acceptance_tests.md",
           "format": "markdown",
-          "date_modified": "2026-03-06"
+          "date_modified": "2026-04-09"
         }
       ]
     },
@@ -1053,105 +1053,112 @@
           "title": "Agent guardrail enforcement — audit memorandum",
           "path": "docs/reports/agent-guardrail-enforcement-audit-2026-04-02.md",
           "format": "markdown",
-          "date_modified": "2026-04-03"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "docs-reports-design-review-ashen-hollow-art-bible-v0-2-md",
           "title": "Design review memorandum — Ashen Hollow art bible v0.2",
           "path": "docs/reports/design-review-ashen-hollow-art-bible-v0.2.md",
           "format": "markdown",
-          "date_modified": "2026-04-02"
+          "date_modified": "2026-04-09"
+        },
+        {
+          "id": "docs-reports-design-review-art-bible-pdf-export-2026-04-09-md",
+          "title": "Design review — art bible PDF export & email delivery (STYLE_GUIDE)",
+          "path": "docs/reports/design-review-art-bible-pdf-export-2026-04-09.md",
+          "format": "markdown",
+          "date_modified": "2026-04-09"
         },
         {
           "id": "docs-reports-room-environment-editor-payload-contract-md",
           "title": "Room environment editor payload contract",
           "path": "docs/reports/room-environment-editor-payload-contract.md",
           "format": "markdown",
-          "date_modified": "2026-04-04"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "docs-reports-room-environment-mvp-qa-regression-plan-md",
           "title": "Room environment mvp qa regression plan",
           "path": "docs/reports/room-environment-mvp-qa-regression-plan.md",
           "format": "markdown",
-          "date_modified": "2026-04-06"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "docs-reports-room-environment-v3-executive-summary-2026-04-01-md",
           "title": "Room environment pipeline v3 — executive summary",
           "path": "docs/reports/room-environment-v3-executive-summary-2026-04-01.md",
           "format": "markdown",
-          "date_modified": "2026-04-02"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "docs-reports-room-environment-room-semantics-contract-md",
           "title": "Room environment room semantics contract",
           "path": "docs/reports/room-environment-room-semantics-contract.md",
           "format": "markdown",
-          "date_modified": "2026-04-04"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "docs-reports-room-environment-stylepack-reference-contract-md",
           "title": "Room environment stylepack reference contract",
           "path": "docs/reports/room-environment-stylepack-reference-contract.md",
           "format": "markdown",
-          "date_modified": "2026-04-04"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "docs-reports-room-environment-v3-creative-review-2026-04-01-md",
           "title": "Room environment v3 — creative review memorandum",
           "path": "docs/reports/room-environment-v3-creative-review-2026-04-01.md",
           "format": "markdown",
-          "date_modified": "2026-04-02"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "docs-reports-room-environment-v3-design-review-2026-04-01-md",
           "title": "Room environment v3 — design review memorandum",
           "path": "docs/reports/room-environment-v3-design-review-2026-04-01.md",
           "format": "markdown",
-          "date_modified": "2026-04-02"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "docs-reports-room-environment-v3-engineering-review-2026-04-01-md",
           "title": "Room environment v3 — engineering review memorandum",
           "path": "docs/reports/room-environment-v3-engineering-review-2026-04-01.md",
           "format": "markdown",
-          "date_modified": "2026-04-02"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "docs-reports-room-environment-v3-game-director-review-2026-04-01-md",
           "title": "Room environment v3 — game director review memorandum",
           "path": "docs/reports/room-environment-v3-game-director-review-2026-04-01.md",
           "format": "markdown",
-          "date_modified": "2026-04-02"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "docs-reports-room-environment-v3-orchestrator-synthesis-2026-04-01-md",
           "title": "Room environment v3 — orchestrator synthesis",
           "path": "docs/reports/room-environment-v3-orchestrator-synthesis-2026-04-01.md",
           "format": "markdown",
-          "date_modified": "2026-04-02"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "docs-reports-room-environment-v3-qa-review-2026-04-01-md",
           "title": "Room environment v3 — QA review memorandum",
           "path": "docs/reports/room-environment-v3-qa-review-2026-04-01.md",
           "format": "markdown",
-          "date_modified": "2026-04-02"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "docs-reports-room-environment-v3-stakeholder-review-kickoff-2026-04-01-md",
           "title": "Room environment v3 — stakeholder review kickoff record",
           "path": "docs/reports/room-environment-v3-stakeholder-review-kickoff-2026-04-01.md",
           "format": "markdown",
-          "date_modified": "2026-04-02"
+          "date_modified": "2026-04-09"
         },
         {
           "id": "docs-reports-sprite-arch-dashboard-phased-reviews-2026-04-03-md",
           "title": "Sprite arch dashboard phased reviews 2026 04 03",
           "path": "docs/reports/sprite-arch-dashboard-phased-reviews-2026-04-03.md",
           "format": "markdown",
-          "date_modified": "2026-04-04"
+          "date_modified": "2026-04-09"
         }
       ]
     },
@@ -1286,7 +1293,7 @@
     "To retire a policy: Archive on a card or scripts/archive_policy_document.py — files move to docs/archived-policies/; rebuild the library to refresh this page."
   ],
   "stats": {
-    "files_indexed": 160,
+    "files_indexed": 161,
     "categories_non_empty": 12
   }
 }

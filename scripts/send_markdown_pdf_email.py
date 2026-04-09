@@ -11,6 +11,9 @@ Usage (from repo root, after sourcing .env.local):
     --file research/library/technical/assurance-copilot-do178c-market-2026-04-02.md \\
     --subject "[MV Agent OS] Assurance Copilot research — PDF — 2026-04-02"
 
+PDF only (no Resend — no RESEND_API_KEY required):
+  python3 scripts/send_markdown_pdf_email.py --pdf-only --file artifacts/ashen-hollow-art-bible-v0.3.md
+
 Optional:
   CHROME_BIN=/path/to/Google\\ Chrome  (default: macOS Google Chrome)
 """
@@ -119,6 +122,11 @@ def main() -> None:
         default="",
         help="Optional markdown prepended to the email body (not the PDF)",
     )
+    parser.add_argument(
+        "--pdf-only",
+        action="store_true",
+        help="Write PDF under artifacts/ then exit (no email; Resend env not required).",
+    )
     args = parser.parse_args()
 
     md_path = Path(args.file).expanduser()
@@ -126,16 +134,6 @@ def main() -> None:
         md_path = (REPO / md_path).resolve()
     if not md_path.is_file():
         print(f"ERROR: file not found: {md_path}", file=sys.stderr)
-        sys.exit(1)
-
-    api_key = os.environ.get("RESEND_API_KEY", "")
-    to_addr = os.environ.get("DIGEST_EMAIL_TO", "")
-    sender = os.environ.get("DIGEST_EMAIL_FROM", "MV Agent OS <onboarding@resend.dev>")
-    if not api_key:
-        print("ERROR: RESEND_API_KEY not set (source .env.local).", file=sys.stderr)
-        sys.exit(1)
-    if not to_addr:
-        print("ERROR: DIGEST_EMAIL_TO not set.", file=sys.stderr)
         sys.exit(1)
 
     digest = _load_digest_module()
@@ -210,6 +208,30 @@ def main() -> None:
         html_to_pdf(chrome, html_file, pdf_file)
         final_pdf = artifacts / pdf_name
         pdf_file.replace(final_pdf)
+
+    sz = final_pdf.stat().st_size
+    mb = sz / (1024 * 1024)
+    if mb >= 10:
+        print(
+            f"WARNING: PDF is {mb:.1f} MB — many email clients (Outlook) may block or fail to open "
+            "large attachments. Prefer --pdf-only and open locally, or use a hosted link. "
+            "See docs/reports/design-review-art-bible-pdf-export-2026-04-09.md",
+            file=sys.stderr,
+        )
+
+    if args.pdf_only:
+        print(f"PDF saved at: {final_pdf} ({sz} bytes). Skipped email (--pdf-only).", flush=True)
+        return
+
+    api_key = os.environ.get("RESEND_API_KEY", "")
+    to_addr = os.environ.get("DIGEST_EMAIL_TO", "")
+    sender = os.environ.get("DIGEST_EMAIL_FROM", "MV Agent OS <onboarding@resend.dev>")
+    if not api_key:
+        print("ERROR: RESEND_API_KEY not set (source .env.local).", file=sys.stderr)
+        sys.exit(1)
+    if not to_addr:
+        print("ERROR: DIGEST_EMAIL_TO not set.", file=sys.stderr)
+        sys.exit(1)
 
     intro = (args.body_intro.strip() + "\n\n") if args.body_intro.strip() else ""
     rel = str(md_path.relative_to(REPO))

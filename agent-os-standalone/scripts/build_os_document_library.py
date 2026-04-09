@@ -162,6 +162,9 @@ FORMAL_DISPLAY_TITLES: dict[str, str] = {
     "docs/reports/design-review-ashen-hollow-art-bible-v0.2.md": (
         "Design review memorandum — Ashen Hollow art bible v0.2"
     ),
+    "docs/reports/design-review-art-bible-pdf-export-2026-04-09.md": (
+        "Design review — art bible PDF export & email delivery (STYLE_GUIDE)"
+    ),
     "docs/reports/room-environment-v3-executive-summary-2026-04-01.md": (
         "Room environment pipeline v3 — executive summary"
     ),
