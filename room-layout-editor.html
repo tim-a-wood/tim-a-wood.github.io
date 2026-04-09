@@ -3701,6 +3701,12 @@
         : LOCAL_SLOT
           ? `${LOCAL_STORAGE_PREFIX}${LOCAL_SLOT}`
           : 'ashen-hollow-room-layout-v1';
+      /** After Save (or dirty navigate), prefer this copy on reload until Sync canonical or Reload from disk (server would otherwise overwrite). */
+      function getLayoutPreferBrowserKey() {
+        if (LOCAL_SLOT && !PROJECT_ID) return `ashen-hollow-room-layout-v1:prefer-browser:local:${LOCAL_SLOT}`;
+        if (PROJECT_ID) return `ashen-hollow-room-layout-v1:prefer-browser:${PROJECT_ID}`;
+        return 'ashen-hollow-room-layout-v1:prefer-browser:default';
+      }
       const SEED_DATA = JSON.parse(document.getElementById('seedData').textContent);
       const ROOM_AI_SESSION_ID = `rwai-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
       const ROOM_W = 1600;
@@ -3807,6 +3813,9 @@
         if (!state.data) return;
         try {
           window.localStorage.setItem(LAYOUT_STORAGE_KEY, JSON.stringify(state.data, null, 2));
+          if (!LOCAL_SLOT || PROJECT_ID) {
+            window.localStorage.setItem(getLayoutPreferBrowserKey(), '1');
+          }
         } catch (err) {
           setStatus(`Could not save to browser storage: ${err.message}`, 'error');
         }
@@ -5077,6 +5086,9 @@
         ui.jsonText.value = JSON.stringify(state.data, null, 2);
         try {
           window.localStorage.setItem(LAYOUT_STORAGE_KEY, ui.jsonText.value);
+          if (!LOCAL_SLOT || PROJECT_ID) {
+            window.localStorage.setItem(getLayoutPreferBrowserKey(), '1');
+          }
         } catch (_) {}
       }
 
@@ -10645,11 +10657,30 @@
           return;
         }
 
+        if (forceDisk) {
+          try {
+            window.localStorage.removeItem(getLayoutPreferBrowserKey());
+          } catch (_) {}
+        }
+
         initializeData(structuredClone(SEED_DATA), 'Loaded embedded seed data.');
         const apiLayout = await loadCanonicalLayoutFromApi();
         if (apiLayout) {
           state.apiAvailable = true;
           updateSyncButtonState();
+          const saved = !forceDisk ? loadSavedLayout() : null;
+          const preferBrowser = !forceDisk && window.localStorage.getItem(getLayoutPreferBrowserKey()) === '1';
+          if (preferBrowser && (!saved || !Array.isArray(saved.rooms) || saved.rooms.length === 0)) {
+            try {
+              window.localStorage.removeItem(getLayoutPreferBrowserKey());
+            } catch (_) {}
+          } else if (preferBrowser && saved && Array.isArray(saved.rooms) && saved.rooms.length > 0) {
+            initializeData(
+              saved,
+              `Loaded ${saved.rooms.length} rooms from your last browser save (overrides server until you Sync canonical or Reload from disk).`
+            );
+            return;
+          }
           initializeData(
             apiLayout,
             forceDisk
@@ -10837,6 +10868,7 @@
         const serialized = JSON.stringify(state.data, null, 2);
         try {
           window.localStorage.setItem(LAYOUT_STORAGE_KEY, serialized);
+          window.localStorage.setItem(getLayoutPreferBrowserKey(), '1');
         } catch (_) {}
 
         if (state.fileHandle) {
@@ -10886,6 +10918,9 @@
             throw new Error(`HTTP ${response.status}`);
           }
           setDirty(false);
+          try {
+            window.localStorage.removeItem(getLayoutPreferBrowserKey());
+          } catch (_) {}
           setStatus(PROJECT_ID
             ? 'Saved current layout into the active workbench project.'
             : 'Synced current layout into canonical room-layout-data.json. Commit and push next.');
@@ -10897,6 +10932,9 @@
 
       function clearSavedLayout() {
         window.localStorage.removeItem(LAYOUT_STORAGE_KEY);
+        try {
+          window.localStorage.removeItem(getLayoutPreferBrowserKey());
+        } catch (_) {}
         setStatus('Cleared saved layout from local storage.');
       }
 
